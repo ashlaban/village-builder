@@ -37,6 +37,7 @@ VB['sim/notable'] = (() => {
     hunger: 'Deaths from hunger',
     farm: 'Farms left empty, claimed or newly built',
     custom: 'Changes of custom',
+    meeting: 'Village meetings that did not decide',
   };
   // A pawn's line: itself, its forebears and its descendants, this many generations up and down.
   const GENERATIONS = 4;
@@ -63,6 +64,7 @@ VB['sim/notable'] = (() => {
     const k = ev.kind;
     if (FARM.has(k)) return ['farm'];
     if (CUSTOM.has(k)) return ['custom'];
+    if (k === 'meetingFailed') return ['meeting'];
     if (k !== 'died' && k !== 'born' && k !== 'married') return null;
     const why = [];
     if (concerns(st, ev, about)) why.push('family');
@@ -92,7 +94,7 @@ VB['sim/notable'] = (() => {
     marriage: { label: 'Marriages', kinds: ['married', 'putOff', 'offered', 'matchRefused', 'offerLapsed', 'wedding'] },
     land: { label: 'Land and farms', kinds: ['holds', 'inherited', 'empty', 'claim', 'moved', 'joined', 'cottage', 'left', 'stayed', 'settled', 'plot',
       'plotStarted', 'field', 'meadow', 'stake', 'border', 'oreFound', 'service', 'guardian'] },
-    custom: { label: 'Customs', kinds: ['custom', 'split', 'cause'] },
+    custom: { label: 'Customs and meetings', kinds: ['custom', 'split', 'cause', 'meetingFailed'] },
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
   // the village log, nor of a farm's history.

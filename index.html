@@ -2763,6 +2763,17 @@ const Culture = (() => {
   // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
   const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
+  // A culture's practices that are not customs (VB-257; design.md section 7, Village routines): a rule the culture holds, declared here
+  // with the customs, before the first seed, each with its options and the one every culture starts with; not voted on, not drifting,
+  // and a culture that splits off keeps its parent's. noDecision: what follows when a village's meeting does not decide its routines (no
+  // quorum, or a tie): no village work that year, or last year's work again.
+  const PRACTICES = Object.freeze({
+    noDecision: Object.freeze({ label: 'When the meeting does not decide', opts: Object.freeze([['nothing', 'No village work that year'],
+      ['asLastYear', 'The work of last year']]), base: 'nothing' }),
+  });
+  const basePractices = () => Object.fromEntries(Object.entries(PRACTICES).map(([k, x]) => [k, x.base]));
+  // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).
+  const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
   // nameCulture(s, from), onSplit(nc, from, cause) and, if given, decide(s, dim, option) for a meeting's change (VB-170); the caller builds
   // them (sim/society hooks(st), or tests/calibrate.js). The environment itself (cultures, settlements, people, driftMul) is plain data.
@@ -2771,6 +2782,7 @@ const Culture = (() => {
     const c = {
       id: env.cultures.length, name, customs: Int8Array.from(customs), centres: centre === null ? [] : [centre],
       parent, founded: env.t, history: [], namePrefs: { farm: [...prefs.farm] },
+      practices: parent !== null && env.cultures[parent] && env.cultures[parent].practices ? { ...env.cultures[parent].practices } : basePractices(),
     };
     env.cultures.push(c);
     return c;
@@ -3015,7 +3027,8 @@ const Culture = (() => {
   };
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
   Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, norm: { value: norm },
-    WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS } });
+    WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS },
+    PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf } });
   return api;
 })();
 VB['culture'] = Culture;
@@ -4492,7 +4505,7 @@ VB['sim/records'] = (() => {
     born: 0, married: 0, died: 0, child: 0, holds: 0, inherited: 0, guardian: 0, service: 0, provisions: 0, moved: 0, joined: 0, left: 0,
     stayed: 0, settled: 0, noLand: 0, empty: 0, claim: 0, claimEnded: 0, cottage: 0, plot: 0, plotStarted: 0, field: 0, meadow: 0,
     stake: 0, stakeLapsed: 0, border: 0, oreFound: 0, custom: 0, split: 0, cause: 0, kinBarred: 0, share: 0, player: 0, year: 0, hayRotted: 0, offered: 0,
-    matchRefused: 0, offerLapsed: 0,
+    matchRefused: 0, offerLapsed: 0, meetingFailed: 0,
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT, enemy: SHORT, friend: SHORT, fellOut: SHORT, gift: GENERATION, harvest: GENERATION, hay: GENERATION, frost: GENERATION,
     herdBirths: GENERATION, herdDeath: GENERATION, slaughter: GENERATION, spoiled: GENERATION, putOff: GENERATION, seedEaten: GENERATION,
@@ -6969,6 +6982,7 @@ VB['sim/notable'] = (() => {
     hunger: 'Deaths from hunger',
     farm: 'Farms left empty, claimed or newly built',
     custom: 'Changes of custom',
+    meeting: 'Village meetings that did not decide',
   };
   // A pawn's line: itself, its forebears and its descendants, this many generations up and down.
   const GENERATIONS = 4;
@@ -6995,6 +7009,7 @@ VB['sim/notable'] = (() => {
     const k = ev.kind;
     if (FARM.has(k)) return ['farm'];
     if (CUSTOM.has(k)) return ['custom'];
+    if (k === 'meetingFailed') return ['meeting'];
     if (k !== 'died' && k !== 'born' && k !== 'married') return null;
     const why = [];
     if (concerns(st, ev, about)) why.push('family');
@@ -7024,7 +7039,7 @@ VB['sim/notable'] = (() => {
     marriage: { label: 'Marriages', kinds: ['married', 'putOff', 'offered', 'matchRefused', 'offerLapsed', 'wedding'] },
     land: { label: 'Land and farms', kinds: ['holds', 'inherited', 'empty', 'claim', 'moved', 'joined', 'cottage', 'left', 'stayed', 'settled', 'plot',
       'plotStarted', 'field', 'meadow', 'stake', 'border', 'oreFound', 'service', 'guardian'] },
-    custom: { label: 'Customs', kinds: ['custom', 'split', 'cause'] },
+    custom: { label: 'Customs and meetings', kinds: ['custom', 'split', 'cause', 'meetingFailed'] },
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
   // the village log, nor of a farm's history.
@@ -9131,6 +9146,14 @@ VB['sim/commands'] = (() => {
         || (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option ? 'the practice is that already' : null),
       run: (st, c) => { st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option; },
     },
+    // routines({routines, by}): the village's routines this year (VB-257) become args.routines, set by the meeting's decision (by
+    // 'meeting') or, when it did not decide, by its culture's practice (by 'nothing' or 'asLastYear'; sim/lifecycle)
+    routines: {
+      check: (st, c) => settlement(st, c) || (!st.plans.villages.has(c.actor.settlement) ? `village ${c.actor.settlement} has no plan`
+        : !(c.args && ['meeting', 'nothing', 'asLastYear'].includes(c.args.by)) ? `routines cannot be set by ${c.args && c.args.by}`
+          : later('sim/plans').routinesWhy(c.args.routines)),
+      run: (st, c) => later('sim/plans').setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
+    },
     // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
     // marry(target, {home}): the actor and the target marry and live in household args.home
     marry: {
@@ -9598,9 +9621,9 @@ VB['sim/occasions'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/plans: holders' plans (design.md section 7; VB-258, VB-248, VB-249, VB-252): a standing plan per live household and village, a
+// @sys sim/plans: holders' plans (design.md section 7; VB-258, VB-248, VB-249, VB-252, VB-257): a standing plan per live household and village, a
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
-// diligence, and the due-queue that opens the time-bound kinds at their hours
+// diligence, and the due-queue that opens the time-bound kinds at their hours; the village's routines, set by its meeting
 VB['sim/plans'] = (() => {
   const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
@@ -9634,6 +9657,10 @@ VB['sim/plans'] = (() => {
   //   (sim/meadows), seedNeed (sim/hunger), the review and its land step.
   // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none
   //   (nothing names one yet: VB-253's verb). plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
+  // @state plan.routines (a village's; VB-257): the keys of VILLAGE_ROUTINES the village does this year, at most MAX_ROUTINES, each a source
+  //   of the village's tasks (sim/jobs asks only their kinds); plan.routinesBy: how they were set, 'founded' (the founders' choice, until
+  //   the first meeting), 'meeting' (the meeting decided), or, when it did not decide, its culture's practice noDecision ('nothing',
+  //   'asLastYear'); plan.routinesYear: the year of cal they were set. Written only by setRoutines, through the meeting's verb.
   // @state plan.build (a household's; VB-332): its building step, {tile, kind 'pick' | 'quarry' | null} (where its stone comes from; -1 and
   //   null for nowhere in reach) while it means to raise its house onto stone, else null or absent; set at each review (sim/building's buildStep).
   // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
@@ -9708,6 +9735,48 @@ VB['sim/plans'] = (() => {
     if (h < WORK[0] - 1) return day * DAY + WORK[0] - 1;
     if (h > WORK[1]) return (day + 1) * DAY + WORK[0] - 1;
     return day * DAY + h;
+  }
+  // ---- the village's routines (design.md section 7, Village routines; VB-257) ----
+  // The village work a meeting may choose from, in the order it is weighed: each routine names the kinds it is the source of (asked at
+  // the village's review, sim/jobs), whether the village has that work this year, and how much it weighs at the meeting (`need`, a
+  // stand-in for the voices' support until slice 5's Decisions, VB-313). The fence's stretches are the first; the green and well (VB-058),
+  // a common field (VB-100) and work days (VB-120) add theirs.
+  const VILLAGE_ROUTINES = Object.freeze({
+    fence: Object.freeze({ label: 'Keeping the village fence', kinds: Object.freeze(['mend']), available: (st, v) => v.fence.length > 0,
+      need: (st, v) => { let n = 0; for (const s of v.fence) n += 1 - s.cond; return n; } }),
+  });
+  const MAX_ROUTINES = 4;
+  // The routines chosen from candidates [[need, key]], most needed first and in their order of declaration between equals: at most
+  // MAX_ROUTINES, or null when the last place is tied with the first left out (the meeting does not decide). Pure.
+  function rankRoutines(cands) {
+    const order = Object.keys(VILLAGE_ROUTINES), sorted = [...cands].sort((a, b) => b[0] - a[0] || order.indexOf(a[1]) - order.indexOf(b[1]));
+    if (sorted.length > MAX_ROUTINES && sorted[MAX_ROUTINES - 1][0] === sorted[MAX_ROUTINES][0]) return null;
+    return sorted.slice(0, MAX_ROUTINES).map((c) => c[1]);
+  }
+  // The routines a village would choose from its work available now, or null for a tie.
+  function chooseRoutines(st, v) {
+    const cands = [];
+    for (const k of Object.keys(VILLAGE_ROUTINES)) { const R = VILLAGE_ROUTINES[k]; if (R.available(st, v)) cands.push([R.need(st, v), k]); }
+    return rankRoutines(cands);
+  }
+  // Why a list of routines may not be a village's, or null: each a known routine, once, at most MAX_ROUTINES.
+  function routinesWhy(list) {
+    if (!Array.isArray(list)) return 'the routines are not a list';
+    if (list.length > MAX_ROUTINES) return `at most ${MAX_ROUTINES} routines`;
+    for (const k of list) if (!Object.hasOwn(VILLAGE_ROUTINES, k)) return `there is no routine ${k}`;
+    return new Set(list).size === list.length ? null : 'a routine is named twice';
+  }
+  // The village's routines become `list`, set `by` ('founded', 'meeting', 'nothing', 'asLastYear'): the one writer (the meeting's verb,
+  // sim/commands, and the plan's making). They post from the village's next review on; those no longer chosen are taken down at it.
+  function setRoutines(st, vid, list, by) {
+    const plan = st.plans.villages.get(vid);
+    plan.routines = [...list]; plan.routinesBy = by; plan.routinesYear = cal(st.t).year;
+  }
+  // Does the village's plan ask kind k this year: is it a kind of one of its routines. Allocates nothing.
+  function routineAsks(plan, k) {
+    const list = plan.routines;
+    for (let i = 0; i < list.length; i++) if (VILLAGE_ROUTINES[list[i]].kinds.includes(k)) return true;
+    return false;
   }
   const mapOf = (st, type) => (type === 'household' ? st.plans.households : st.plans.villages);
   // ---- planning days (design.md section 7, Planning days; VB-249) ----
@@ -9813,13 +9882,19 @@ VB['sim/plans'] = (() => {
     plan.counted = null;
     Stores.reserve(st, hh, plan, 'grain', hh.farmstead !== null ? seedNeed(st, hh) : 0, 'seed');
   }
+  // A village's first routines, until its first meeting: what its founders would choose from the work it has (a tie: all of it, the first
+  // MAX_ROUTINES in their order). Also at the load of a save made before routines.
+  function founded(st, plan) {
+    const v = st.villages[plan.holder.id], list = chooseRoutines(st, v);
+    setRoutines(st, v.id, list || Object.keys(VILLAGE_ROUTINES).filter((k) => VILLAGE_ROUTINES[k].available(st, v)).slice(0, MAX_ROUTINES), 'founded');
+  }
   // A holder's standing plan, made when the household is founded or the village is (and for every holder at seed and load). Its first
   // review is at the next review hour, whatever its planning day.
   function makePlan(st, type, id) {
     const plan = { holder: { type, id }, kind: 'standing', nextReview: reviewAfter(Math.floor(st.tick / TICKS) - 1), last: null, woke: null,
       looked: null, dirty: false, reserved: {}, reasons: {} };
     mapOf(st, type).set(id, plan);
-    if (type === 'household') { household(st, plan); enqueue(st, id); }
+    if (type === 'household') { household(st, plan); enqueue(st, id); } else founded(st, plan);
     return plan;
   }
   // A dissolved household's plan goes with it, its reservations with the plan, and its entries leave the due-queue.
@@ -9844,6 +9919,7 @@ VB['sim/plans'] = (() => {
         if (plan.holder.type === 'household') household(st, plan);
       }
       if (plan.holder.type === 'household' && !st.plans.seasons.has(plan.holder.id)) seasonal(st, plan, cal(st.t));
+      if (plan.holder.type === 'village' && !plan.routines) founded(st, plan); // VB-257: nor routines
       if (plan.last === undefined) {
         plan.last = null; plan.woke = null; plan.looked = null;
         plan.dirty = false; // lint-allow: owner a save made before the flag gets it clear (sim/stores sets it)
@@ -9879,7 +9955,7 @@ VB['sim/plans'] = (() => {
     Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed'); // a project begun holds its seed from now
   }
   return { reviewHour, makePlan, dropPlan, planOf, seasonOf, seedPlans, fillPlans, reviewed, landStep, reviewWhy, mayLook, closing, cadence, WINDOWED,
-    dueNow, again, ROUTINES, cultureOf };
+    dueNow, again, ROUTINES, cultureOf, VILLAGE_ROUTINES, MAX_ROUTINES, rankRoutines, chooseRoutines, routinesWhy, setRoutines, routineAsks };
 })();
 </script>
 <script>
@@ -9896,7 +9972,7 @@ VB['sim/jobs'] = (() => {
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
-  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again } = VB['sim/plans'];
+  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -10003,7 +10079,17 @@ VB['sim/jobs'] = (() => {
       takeDown('household', hh.id);
     }
     own = null;
-    for (const v of st.villages) if (review('village', v.id)) { ask(ASK.village, v, v); takeDown('village', v.id); }
+    // a village's review asks only the kinds of the routines its meeting chose this year (VB-257); the others post nothing
+    for (const v of st.villages) {
+      const plan = review('village', v.id);
+      if (!plan) continue;
+      VB.count.oppAsk += ASK.village.length;
+      for (let i = 0; i < ASK.village.length; i++) {
+        kind = ASK.village[i][0];
+        if (kind === null || routineAsks(plan, kind)) ASK.village[i][1](st, v, v, c, put, undefined);
+      }
+      takeDown('village', v.id);
+    }
     // ---- the island: plots, and empty farms being restored, every review hour; and a farm's land project that has ended (given up,
     // or contested away, sim/stakes) takes its task down at once, its hands freed, whatever the holder's planning day ----
     for (const j of st.jobs.values()) if (islandJob(j)) j.live = false;
@@ -11693,8 +11779,9 @@ VB['sim/lifecycle'] = (() => {
   const { deathRoll, CAUSES } = VB['sim/deaths'];
   const {
     leaveHousehold, unionOf, wasWidowed, noteDeath, personEvent, log, age, fullName, spouseOf, kinDegree, settlementIdOf, practice, farmPractice, noteUnionEnd,
-      holdingOf, atHousehold, lifeEvent, spokesmanOf,
+      holdingOf, atHousehold, lifeEvent, spokesmanOf, membersOf, voiceOf,
   } = VB['sim/records'];
+  const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { stillAtDeath } = VB['sim/agents'];
   const {
     heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor, roundHeirs,
@@ -11748,6 +11835,8 @@ VB['sim/lifecycle'] = (() => {
         `Took up the cause: ${Culture.DIMS[p.advocate.dim].label.toLowerCase()}, ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`);
     }
     const c = cal(st.t), out = [];
+    const held = new Map(); // each village's meeting on its green today (sim/occasions)
+    for (const o of st.occasions) if (o.kind === 'meeting' && o.start <= st.t && st.t < o.end) held.set(o.village, o);
     for (const s of env.settlements) {
       const ch = Culture.meeting(env, hk, s);
       for (const x of ch) {
@@ -11755,6 +11844,8 @@ VB['sim/lifecycle'] = (() => {
           txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”).`;
         log(st, txt, { kind: 'custom', village: s.id }); out.push({ year: c.year, text: txt });
       }
+      const txt = routinesMeeting(st, s, held.get(s.id));
+      if (txt) out.push({ year: c.year, text: txt });
     }
     for (const cu of env.cultures) {
       const r = Culture.cultureYear(env, hk, cu);
@@ -11766,6 +11857,31 @@ VB['sim/lifecycle'] = (() => {
     st.meetingLog.unshift(...out.length ? out : [{ year: c.year, text: 'The meetings changed nothing this year.' }]);
     st.meetingLog.length = Math.min(st.meetingLog.length, 30);
     st.lastMeeting = st.t;
+  }
+  // The village's routines for the year (VB-257; design.md section 7, Village routines), at its meeting: with a quorum, at least half of
+  // those with a voice come to the green (the meeting's occasion, sim/occasions), the meeting chooses from the village work available
+  // (sim/plans) and sets them by its verb; without one, or when the choice is tied, it does not decide, and its culture's practice says
+  // what follows: no village work this year ('nothing') or last year's again ('asLastYear'), told in the log as a notable event of the
+  // village. A village with no one living holds no meeting, and its routines stand. Returns the log's line of a failure, or null.
+  const QUORUM = 0.5;
+  function routinesMeeting(st, s, o) {
+    const v = st.villages[s.id], people = membersOf(st, s.id);
+    if (!v || !people.length) return null;
+    let voices = 0, came = 0;
+    for (const p of people) if (voiceOf(st, p, s) > 0) voices++;
+    if (o) for (const id of o.come) if (st.pawns[id].alive && st.agents[id].occasion === o.id) came++;
+    const quorum = voices > 0 && came >= voices * QUORUM, list = quorum ? chooseRoutines(st, v) : null;
+    if (list) { issue(st, { actor: { settlement: s.id }, verb: 'routines', args: { routines: list, by: 'meeting' }, source: 'meeting' }); return null; }
+    const by = Culture.practiceOf(st.cenv.cultures[s.culture], 'noDecision'), plan = st.plans.villages.get(s.id);
+    const kept = by === 'asLastYear' ? plan.routines : [];
+    issue(st, { actor: { settlement: s.id }, verb: 'routines', args: { routines: kept, by }, source: 'meeting' });
+    const why = quorum ? 'was split evenly over the village\'s work' : `had no quorum, ${came} of ${voices} ${voices === 1 ? 'voice' : 'voices'} there`;
+    const work = kept.map((k) => VILLAGE_ROUTINES[k].label.toLowerCase()).join(', ');
+    const then = by === 'asLastYear' ? (kept.length ? `the village keeps last year's work: ${work}` : 'the village keeps last year\'s work, which was none')
+      : v.fence.length ? 'no village work this year, and the village fence goes unmended' : 'no village work this year';
+    const txt = `The ${s.name} meeting ${why} and did not decide: ${then}.`;
+    log(st, txt, { kind: 'meetingFailed', village: s.id, n: came, of: voices });
+    return txt;
   }
   function holdMeetings(st) { for (let n = 0; n < MEETING_STAGES - 1; n++) meetingStage(st, n); } // not the land meeting
   const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
@@ -12034,8 +12150,8 @@ VB['sim/lifecycle'] = (() => {
     for (let k = step - 1; k < env.settlements.length; k += NIGHT_STEPS) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
   }
   return {
-    killPawn, retireHolder, holdMeetings, meetingStage, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife, dailyDeaths, nightCulture,
-    NIGHT_STEPS, handover, offerOf, cannotAnswer, answerOffer, dueOffers,
+    killPawn, retireHolder, holdMeetings, meetingStage, routinesMeeting, MEETING_STAGES, kinOk, wed, movingRound, roundPhase, ROUND_PHASES, dailyLife,
+    dailyDeaths, nightCulture, NIGHT_STEPS, handover, offerOf, cannotAnswer, answerOffer, dueOffers,
   };
 })();
 </script>
@@ -12397,6 +12513,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.cenv: {t, cultures[], settlements[], people[], driftMul, ...}; the Culture environment (see culture.js), plain data;
     //   its lookups are hooks(st) (sim/society)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; each culture's order of preference among farm names (VB-026)
+    // @state culture.practices: {noDecision: 'nothing' | 'asLastYear'}; the culture's practices that are not customs (culture.js PRACTICES; VB-257)
     const st = {
       t: 6, tick: 6 * TICKS, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
       makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
@@ -12946,6 +13063,9 @@ VB['sim/saves'] = (() => {
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
+    // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
+    const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
+    if (st.cenv) for (const c of st.cenv.cultures) if (!c.practices) c.practices = practices();
     if (!st.plans) seedPlans(st); // VB-258: older saves have no plans
     else fillPlans(st); // VB-248: nor targets and reservations
     if (!st.offers) { st.offers = []; st.offerSeq = 0; } // VB-293: nor marriage offers
@@ -17809,7 +17929,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'e3231a4c51', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '256ff6a3d6', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

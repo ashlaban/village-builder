@@ -111,6 +111,17 @@ const Culture = (() => {
   // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
   const NAME_PREFS = { farm: ['compass', 'landmark', 'owner'] };
+  // A culture's practices that are not customs (VB-257; design.md section 7, Village routines): a rule the culture holds, declared here
+  // with the customs, before the first seed, each with its options and the one every culture starts with; not voted on, not drifting,
+  // and a culture that splits off keeps its parent's. noDecision: what follows when a village's meeting does not decide its routines (no
+  // quorum, or a tie): no village work that year, or last year's work again.
+  const PRACTICES = Object.freeze({
+    noDecision: Object.freeze({ label: 'When the meeting does not decide', opts: Object.freeze([['nothing', 'No village work that year'],
+      ['asLastYear', 'The work of last year']]), base: 'nothing' }),
+  });
+  const basePractices = () => Object.fromEntries(Object.entries(PRACTICES).map(([k, x]) => [k, x.base]));
+  // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).
+  const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
   // nameCulture(s, from), onSplit(nc, from, cause) and, if given, decide(s, dim, option) for a meeting's change (VB-170); the caller builds
   // them (sim/society hooks(st), or tests/calibrate.js). The environment itself (cultures, settlements, people, driftMul) is plain data.
@@ -119,6 +130,7 @@ const Culture = (() => {
     const c = {
       id: env.cultures.length, name, customs: Int8Array.from(customs), centres: centre === null ? [] : [centre],
       parent, founded: env.t, history: [], namePrefs: { farm: [...prefs.farm] },
+      practices: parent !== null && env.cultures[parent] && env.cultures[parent].practices ? { ...env.cultures[parent].practices } : basePractices(),
     };
     env.cultures.push(c);
     return c;
@@ -363,7 +375,8 @@ const Culture = (() => {
   };
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
   Object.defineProperties(api, { initPerson: { value: initPerson }, advocate: { value: advocate }, norm: { value: norm },
-    WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS } });
+    WORTH: { value: WORTH }, CLASSES: { value: CLASSES }, PROPER: { value: PROPER }, NORMS: { value: NORMS },
+    PRACTICES: { value: PRACTICES }, practiceOf: { value: practiceOf } });
   return api;
 })();
 VB['culture'] = Culture;
