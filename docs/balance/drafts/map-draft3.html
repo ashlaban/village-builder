@@ -1,0 +1,304 @@
+<title>Village Balance Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; the map and the tables break out wider and scroll on their own. */
+:root {
+  --bg: #f2f5f1; --surface: #ffffff; --fg: #1c2928; --muted: #5a6a67; --rule: #cfd8d3;
+  --prop: #a8700a; --prop-fill: #fbf1d8; --plan: #2f658f; --gap: #a5432c;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141b1a; --surface: #1c2524; --fg: #e4ebe7; --muted: #9aaba6; --rule: #33413e;
+  --prop: #e2b24c; --prop-fill: #3a2f12; --plan: #8dbbe0; --gap: #e88a72; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141b1a; --surface: #1c2524; --fg: #e4ebe7; --muted: #9aaba6; --rule: #33413e;
+  --prop: #e2b24c; --prop-fill: #3a2f12; --plan: #8dbbe0; --gap: #e88a72; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 17px/1.55 var(--body);
+  padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
+section, header { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+h1 { font: 700 clamp(30px, 5vw, 44px)/1.08 var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font: 700 24px/1.2 var(--display); margin: 0; text-wrap: balance; }
+p, li { max-width: 68ch; margin: 0; }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 20px; line-height: 1.45; }
+code { font: 500 .86em var(--mono); color: var(--muted); white-space: nowrap; }
+strong { font-weight: 600; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+.scroll svg { display: block; width: 100%; min-width: 1000px; height: auto; }
+figcaption { color: var(--muted); font-size: 15px; max-width: 80ch; }
+.key { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; color: var(--muted); }
+.key span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 30px; height: 14px; border-radius: 3px; border: 1.6px solid var(--fg); background: var(--surface); }
+.sw.prop { border-color: var(--prop); background: var(--prop-fill); border-radius: 8px; border-width: 2.2px; }
+.ln { width: 30px; height: 0; border-top: 2px solid var(--fg); } .ln.plan { border-top: 2px dashed var(--plan); } .ln.gap { border-top: 2.5px dotted var(--gap); }
+.bd { width: 20px; height: 20px; border-radius: 50%; background: var(--fg); color: var(--bg); font: 700 12px var(--body); display: inline-flex; align-items: center; justify-content: center; }
+.bd.r { background: var(--gap); }
+#bm .n { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5; }
+#bm .n.prop { fill: var(--prop-fill); stroke: var(--prop); stroke-width: 2.6; }
+#bm .n.plan { stroke: var(--plan); stroke-dasharray: 6 4; }
+#bm .t { font: 700 13.5px var(--display); fill: var(--fg); } #bm .s { font: 400 11.5px var(--body); fill: var(--muted); }
+#bm .l { font: 400 12.5px var(--body); fill: var(--muted); } #bm .l.p { fill: var(--plan); }
+#bm .e { stroke: var(--fg); stroke-width: 1.6; } #bm .e.p { stroke: var(--plan); stroke-dasharray: 6 4; } #bm .e.g { stroke: var(--gap); stroke-width: 2; stroke-dasharray: 2 5; }
+#bm .n.gapn { stroke: var(--gap); stroke-width: 2; stroke-dasharray: 2 5; }
+#bm .tk { stroke: var(--fg); stroke-width: 1.6; } #bm .tk.p { stroke: var(--plan); } #bm .tk.g { stroke: var(--gap); }
+#bm .f { stroke: var(--fg); stroke-width: 4.5; } #bm .f.p { stroke: var(--plan); stroke-dasharray: 9 5; }
+#bm .fl { font: 600 12.5px var(--body); fill: var(--fg); font-style: italic; } #bm .sink { fill: var(--fg); }
+#bm .hb { fill: var(--fg); } #bm .hp { fill: var(--plan); } #bm .hg { fill: var(--gap); }
+#bm .sg { fill: var(--surface); stroke: var(--fg); stroke-width: 1.2; } #bm .sg.p { stroke: var(--plan); } #bm .sg.g { stroke: var(--gap); }
+#bm .sgt { font: 700 13px var(--body); fill: var(--fg); } #bm .sgt.p { fill: var(--plan); } #bm .sgt.g { fill: var(--gap); }
+#bm .lpB { fill: var(--fg); } #bm .lpR { fill: var(--gap); } #bm .lpt { font: 700 11.5px var(--body); fill: var(--bg); }
+.tw { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: 15.5px; line-height: 1.4; }
+th { text-align: left; font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 0 14px 8px 0; border-bottom: 1.5px solid var(--fg); }
+td { vertical-align: top; padding: 10px 14px 10px 0; border-bottom: 1px solid var(--rule); }
+td:first-child { font-weight: 600; }
+.st { font: 500 12px var(--mono); white-space: nowrap; } .st.p { color: var(--plan); } .st.g { color: var(--gap); }
+.note { color: var(--muted); font-size: 15px; }
+.fw { width: 30px; height: 0; border-top: 4.5px solid var(--fg); } .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--fg); }
+.slow { display: inline-flex; gap: 3px; } .slow i { width: 0; height: 13px; border-left: 2px solid var(--fg); }
+td .id { font: 500 12px var(--mono); color: var(--muted); margin-right: 6px; }
+</style>
+<main>
+<header>
+  <span class="eyebrow">Village builder · balance map · draft 3 · 12 November 2026</span>
+  <h1>What holds the game in balance</h1>
+  <p class="lede">Nine properties to tune toward, and the levers that act on them. This draft is grounded in four cards: hunger to mobility, population growth, the surplus that supports towns and an elite, and goodwill beside silver. Three more cards are seeds and are not drawn yet.</p>
+</header>
+
+<figure>
+  <div class="scroll"><svg id="bm" viewBox="0 0 1200 690" role="img" aria-label="Draft 3 of the balance map: nine balance properties and their levers. Food produced flows five ways: eaten, taken, feasted, sold, or rotted. Food kept per head, when low, raises deaths and asks for help.">
+<defs><marker id="mb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="hb"/></marker><marker id="mp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="hp"/></marker><marker id="mg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="hg"/></marker><marker id="fb" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="15" markerHeight="15" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="hb"/></marker><marker id="fp" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="15" markerHeight="15" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="hp"/></marker></defs><line x1="343" y1="394" x2="447" y2="332" class="f b" marker-end="url(#fb)"/>
+<text x="372" y="352" text-anchor="end" class="fl">eaten</text>
+<line x1="380" y1="420" x2="414" y2="420" class="f p" marker-end="url(#fp)"/>
+<text x="400" y="412" text-anchor="middle" class="fl">taken</text>
+<line x1="343" y1="446" x2="447" y2="508" class="f b" marker-end="url(#fb)"/>
+<text x="438" y="476" text-anchor="start" class="fl">feasted</text>
+<line x1="300" y1="446" x2="300" y2="508" class="f p" marker-end="url(#fp)"/>
+<text x="308" y="484" text-anchor="start" class="fl">sold</text>
+<line x1="270" y1="446" x2="214" y2="494" class="f b" marker-end="url(#fb)"/>
+<text x="196" y="522" text-anchor="end" class="fl">rots</text>
+<circle cx="208" cy="500" r="9" class="sink"/>
+<line x1="300" y1="206" x2="300" y2="270" class="e b" marker-end="url(#mb)"/>
+<circle cx="300" cy="238" r="9" class="sg b"/><text x="300" y="242" text-anchor="middle" class="sgt b">+</text>
+<line x1="457" y1="206" x2="350" y2="270" class="e b" marker-end="url(#mb)"/>
+<circle cx="403" cy="238" r="9" class="sg b"/><text x="403" y="242" text-anchor="middle" class="sgt b">−</text>
+<line x1="257" y1="274" x2="150" y2="210" class="e b" marker-end="url(#mb)"/>
+<line x1="225.9" y1="262.5" x2="232.0" y2="252.2" class="tk b"/>
+<line x1="221.6" y1="259.9" x2="227.7" y2="249.6" class="tk b"/>
+<circle cx="191" cy="234" r="9" class="sg b"/><text x="191" y="239" text-anchor="middle" class="sgt b">+</text>
+<line x1="180" y1="180" x2="216" y2="180" class="e b" marker-end="url(#mb)"/>
+<line x1="188.3" y1="174.0" x2="188.3" y2="186.0" class="tk b"/>
+<line x1="193.3" y1="174.0" x2="193.3" y2="186.0" class="tk b"/>
+<circle cx="206" cy="180" r="9" class="sg b"/><text x="206" y="184" text-anchor="middle" class="sgt b">−</text>
+<line x1="376" y1="96" x2="327" y2="150" class="e b" marker-end="url(#mb)"/>
+<circle cx="352" cy="123" r="9" class="sg b"/><text x="352" y="128" text-anchor="middle" class="sgt b">−</text>
+<line x1="476" y1="154" x2="427" y2="100" class="e g" marker-end="url(#mg)"/>
+<circle cx="452" cy="127" r="9" class="sg g"/><text x="452" y="132" text-anchor="middle" class="sgt g">−</text>
+<line x1="180" y1="300" x2="216" y2="300" class="e p" marker-end="url(#mp)"/>
+<circle cx="198" cy="300" r="9" class="sg p"/><text x="198" y="304" text-anchor="middle" class="sgt p">±</text>
+<line x1="500" y1="274" x2="500" y2="210" class="e b" marker-end="url(#mb)"/>
+<circle cx="500" cy="242" r="9" class="sg b"/><text x="500" y="246" text-anchor="middle" class="sgt b">−</text>
+<line x1="543" y1="274" x2="650" y2="210" class="e g" marker-end="url(#mg)"/>
+<circle cx="597" cy="242" r="9" class="sg g"/><text x="597" y="246" text-anchor="middle" class="sgt g">−</text>
+<line x1="620" y1="180" x2="584" y2="180" class="e p" marker-end="url(#mp)"/>
+<circle cx="602" cy="180" r="9" class="sg p"/><text x="602" y="184" text-anchor="middle" class="sgt p">+</text>
+<line x1="820" y1="180" x2="784" y2="180" class="e p" marker-end="url(#mp)"/>
+<circle cx="802" cy="180" r="9" class="sg p"/><text x="802" y="184" text-anchor="middle" class="sgt p">+</text>
+<line x1="1053" y1="96" x2="955" y2="150" class="e p" marker-end="url(#mp)"/>
+<line x1="1030.3" y1="115.2" x2="1024.5" y2="104.7" class="tk p"/>
+<line x1="1025.9" y1="117.6" x2="1020.2" y2="107.1" class="tk p"/>
+<circle cx="992" cy="129" r="9" class="sg p"/><text x="992" y="134" text-anchor="middle" class="sgt p">+</text>
+<line x1="300" y1="326" x2="300" y2="390" class="e b" marker-end="url(#mb)"/>
+<line x1="306.0" y1="341.4" x2="294.0" y2="341.4" class="tk b"/>
+<line x1="306.0" y1="346.4" x2="294.0" y2="346.4" class="tk b"/>
+<circle cx="300" cy="366" r="9" class="sg b"/><text x="300" y="370" text-anchor="middle" class="sgt b">−</text>
+<line x1="500" y1="394" x2="500" y2="330" class="e p" marker-end="url(#mp)"/>
+<circle cx="500" cy="362" r="9" class="sg p"/><text x="500" y="366" text-anchor="middle" class="sgt p">−</text>
+<line x1="580" y1="289" x2="616" y2="289" class="e b" marker-end="url(#mb)"/>
+<circle cx="598" cy="289" r="9" class="sg b"/><text x="598" y="294" text-anchor="middle" class="sgt b">−</text>
+<line x1="620" y1="311" x2="584" y2="311" class="e b" marker-end="url(#mb)"/>
+<circle cx="602" cy="311" r="9" class="sg b"/><text x="602" y="316" text-anchor="middle" class="sgt b">+</text>
+<line x1="711" y1="326" x2="711" y2="390" class="e b" marker-end="url(#mb)"/>
+<circle cx="711" cy="358" r="9" class="sg b"/><text x="711" y="362" text-anchor="middle" class="sgt b">+</text>
+<line x1="689" y1="394" x2="689" y2="330" class="e b" marker-end="url(#mb)"/>
+<circle cx="689" cy="362" r="9" class="sg b"/><text x="689" y="366" text-anchor="middle" class="sgt b">+</text>
+<line x1="780" y1="300" x2="816" y2="300" class="e p" marker-end="url(#mp)"/>
+<circle cx="798" cy="300" r="9" class="sg p"/><text x="798" y="304" text-anchor="middle" class="sgt p">−</text>
+<line x1="743" y1="326" x2="850" y2="390" class="e g" marker-end="url(#mg)"/>
+<circle cx="797" cy="358" r="9" class="sg g"/><text x="797" y="362" text-anchor="middle" class="sgt g">−</text>
+<line x1="780" y1="420" x2="816" y2="420" class="e g" marker-end="url(#mg)"/>
+<circle cx="798" cy="420" r="9" class="sg g"/><text x="798" y="424" text-anchor="middle" class="sgt g">+</text>
+<line x1="943" y1="394" x2="1050" y2="330" class="e g" marker-end="url(#mg)"/>
+<line x1="968.0" y1="372.2" x2="974.1" y2="382.5" class="tk g"/>
+<line x1="972.3" y1="369.6" x2="978.4" y2="379.9" class="tk g"/>
+<circle cx="1009" cy="354" r="9" class="sg g"/><text x="1009" y="359" text-anchor="middle" class="sgt g">+</text>
+<line x1="980" y1="300" x2="1016" y2="300" class="e p" marker-end="url(#mp)"/>
+<line x1="988.3" y1="294.0" x2="988.3" y2="306.0" class="tk p"/>
+<line x1="993.3" y1="294.0" x2="993.3" y2="306.0" class="tk p"/>
+<circle cx="1006" cy="300" r="9" class="sg p"/><text x="1006" y="304" text-anchor="middle" class="sgt p">+</text>
+<line x1="1111" y1="326" x2="1111" y2="390" class="e p" marker-end="url(#mp)"/>
+<circle cx="1111" cy="358" r="9" class="sg p"/><text x="1111" y="362" text-anchor="middle" class="sgt p">+</text>
+<line x1="1089" y1="394" x2="1089" y2="330" class="e p" marker-end="url(#mp)"/>
+<line x1="1083.0" y1="378.6" x2="1095.0" y2="378.6" class="tk p"/>
+<line x1="1083.0" y1="373.6" x2="1095.0" y2="373.6" class="tk p"/>
+<circle cx="1089" cy="354" r="9" class="sg p"/><text x="1089" y="359" text-anchor="middle" class="sgt p">−</text>
+<line x1="1100" y1="274" x2="1100" y2="210" class="e p" marker-end="url(#mp)"/>
+<line x1="1094.0" y1="258.6" x2="1106.0" y2="258.6" class="tk p"/>
+<line x1="1094.0" y1="253.6" x2="1106.0" y2="253.6" class="tk p"/>
+<circle cx="1100" cy="234" r="9" class="sg p"/><text x="1100" y="239" text-anchor="middle" class="sgt p">+</text>
+<line x1="1020" y1="180" x2="984" y2="180" class="e p" marker-end="url(#mp)"/>
+<line x1="1011.7" y1="186.0" x2="1011.7" y2="174.0" class="tk p"/>
+<line x1="1006.7" y1="186.0" x2="1006.7" y2="174.0" class="tk p"/>
+<circle cx="994" cy="180" r="9" class="sg p"/><text x="994" y="184" text-anchor="middle" class="sgt p">+</text>
+<line x1="180" y1="420" x2="216" y2="420" class="e p" marker-end="url(#mp)"/>
+<circle cx="198" cy="420" r="9" class="sg p"/><text x="198" y="424" text-anchor="middle" class="sgt p">+</text>
+<line x1="100" y1="446" x2="100" y2="510" class="e p" marker-end="url(#mp)"/>
+<circle cx="100" cy="478" r="9" class="sg p"/><text x="100" y="482" text-anchor="middle" class="sgt p">−</text>
+<line x1="543" y1="514" x2="650" y2="450" class="e g" marker-end="url(#mg)"/>
+<circle cx="597" cy="482" r="9" class="sg g"/><text x="597" y="486" text-anchor="middle" class="sgt g">+</text>
+<line x1="300" y1="624" x2="300" y2="570" class="e p" marker-end="url(#mp)"/>
+<circle cx="300" cy="597" r="9" class="sg p"/><text x="300" y="602" text-anchor="middle" class="sgt p">+</text>
+<path d="M 100 154 L 100 24 L 900 24 L 900 150" class="e p" fill="none" marker-end="url(#mp)"/>
+<circle cx="560" cy="24" r="9" class="sg p"/><text x="560" y="28" text-anchor="middle" class="sgt p">+</text>
+<line x1="297.5" y1="18.0" x2="297.5" y2="30.0" class="tk p"/>
+<line x1="302.5" y1="18.0" x2="302.5" y2="30.0" class="tk p"/>
+<text x="720" y="42" text-anchor="middle" class="l p">the unmarried and landless leave for town</text>
+<path d="M 1026 326 L 1000 352 L 1000 484 L 500 484 L 500 452" class="e p" fill="none" marker-end="url(#mp)"/>
+<circle cx="820" cy="484" r="9" class="sg p"/><text x="820" y="488" text-anchor="middle" class="sgt p">+</text>
+<line x1="1006.0" y1="417.5" x2="994.0" y2="417.5" class="tk p"/>
+<line x1="1006.0" y1="422.5" x2="994.0" y2="422.5" class="tk p"/>
+<line x1="800" y1="118" x2="838" y2="150" class="e p" marker-end="url(#mp)"/>
+<circle cx="815" cy="131" r="9" class="sg p"/><text x="815" y="136" text-anchor="middle" class="sgt p">+</text>
+<text x="792" y="112" text-anchor="end" class="l p">food sold</text>
+<line x1="42" y1="356" x2="66" y2="391" class="e p" marker-end="url(#mp)"/>
+<circle cx="51" cy="369" r="9" class="sg p"/><text x="51" y="374" text-anchor="middle" class="sgt p">+</text>
+<text x="20" y="348" text-anchor="start" class="l p">goods from town and fair</text>
+<circle cx="238" cy="222" r="13" class="lpB"/><text x="238" y="226" text-anchor="middle" class="lpt">B1</text>
+<circle cx="400" cy="300" r="13" class="lpB"/><text x="400" y="304" text-anchor="middle" class="lpt">B2</text>
+<circle cx="640" cy="356" r="13" class="lpB"/><text x="640" y="360" text-anchor="middle" class="lpt">B3</text>
+<circle cx="800" cy="240" r="13" class="lpB"/><text x="800" y="244" text-anchor="middle" class="lpt">B4</text>
+<circle cx="1150" cy="360" r="13" class="lpB"/><text x="1150" y="364" text-anchor="middle" class="lpt">B5</text>
+<circle cx="640" cy="520" r="13" class="lpB"/><text x="640" y="524" text-anchor="middle" class="lpt">B6</text>
+<circle cx="760" cy="506" r="13" class="lpR"/><text x="760" y="510" text-anchor="middle" class="lpt">R1</text>
+<circle cx="200" cy="378" r="13" class="lpR"/><text x="200" y="382" text-anchor="middle" class="lpt">R2</text>
+<circle cx="232" cy="600" r="13" class="lpR"/><text x="232" y="604" text-anchor="middle" class="lpt">R3</text>
+<rect x="320.0" y="44.0" width="160" height="52" rx="6" class="n lev"/>
+<text x="400" y="67" text-anchor="middle" class="t">Nursing gap</text><text x="400" y="84" text-anchor="middle" class="s">no conception while nursing</text>
+<rect x="1020.0" y="44.0" width="160" height="52" rx="6" class="n lev plan"/>
+<text x="1100" y="67" text-anchor="middle" class="t">Reach by water</text><text x="1100" y="84" text-anchor="middle" class="s">boats, ice, roads</text>
+<rect x="20.0" y="154.0" width="160" height="52" rx="6" class="n lev"/>
+<text x="100" y="177" text-anchor="middle" class="t">Late or no marriage</text><text x="100" y="194" text-anchor="middle" class="s">needs a home with means</text>
+<rect x="220.0" y="154.0" width="160" height="52" rx="6" class="n lev"/>
+<text x="300" y="177" text-anchor="middle" class="t">Births</text><text x="300" y="194" text-anchor="middle" class="s">by age, to the married</text>
+<rect x="420.0" y="154.0" width="160" height="52" rx="6" class="n lev"/>
+<text x="500" y="177" text-anchor="middle" class="t">Deaths</text><text x="500" y="194" text-anchor="middle" class="s">most before age 15</text>
+<rect x="620.0" y="154.0" width="160" height="52" rx="6" class="n lev plan"/>
+<text x="700" y="177" text-anchor="middle" class="t">Disease</text><text x="700" y="194" text-anchor="middle" class="s">not designed yet</text>
+<rect x="820.0" y="154.0" width="160" height="52" rx="26" class="n prop"/>
+<text x="900" y="177" text-anchor="middle" class="t">Town and craft share</text><text x="900" y="194" text-anchor="middle" class="s">target 325 of 1,000</text>
+<rect x="1020.0" y="154.0" width="160" height="52" rx="26" class="n prop"/>
+<text x="1100" y="177" text-anchor="middle" class="t">Elite share</text><text x="1100" y="194" text-anchor="middle" class="s">target 75 of 1,000</text>
+<rect x="20.0" y="274.0" width="160" height="52" rx="6" class="n lev plan"/>
+<text x="100" y="297" text-anchor="middle" class="t">The outside world</text><text x="100" y="314" text-anchor="middle" class="s">a fixed trickle in and out</text>
+<rect x="220.0" y="274.0" width="160" height="52" rx="26" class="n prop"/>
+<text x="300" y="297" text-anchor="middle" class="t">Population</text><text x="300" y="314" text-anchor="middle" class="s">target about 1,000</text>
+<rect x="420.0" y="274.0" width="160" height="52" rx="26" class="n prop"/>
+<text x="500" y="297" text-anchor="middle" class="t">Food kept per head</text><text x="500" y="314" text-anchor="middle" class="s">hunger when low</text>
+<rect x="620.0" y="274.0" width="160" height="52" rx="6" class="n lev"/>
+<text x="700" y="297" text-anchor="middle" class="t">Kin help</text><text x="700" y="314" text-anchor="middle" class="s">gifts in hunger</text>
+<rect x="820.0" y="274.0" width="160" height="52" rx="6" class="n lev plan"/>
+<text x="900" y="297" text-anchor="middle" class="t">Debt</text><text x="900" y="314" text-anchor="middle" class="s">loans, default, a case</text>
+<rect x="1020.0" y="274.0" width="160" height="52" rx="26" class="n prop"/>
+<text x="1100" y="297" text-anchor="middle" class="t">Land concentration</text><text x="1100" y="314" text-anchor="middle" class="s">land Gini, tenancy</text>
+<rect x="20.0" y="394.0" width="160" height="52" rx="6" class="n lev plan"/>
+<text x="100" y="417" text-anchor="middle" class="t">Wanted goods</text><text x="100" y="434" text-anchor="middle" class="s">worth working for</text>
+<rect x="220.0" y="394.0" width="160" height="52" rx="26" class="n prop"/>
+<text x="300" y="417" text-anchor="middle" class="t">Food produced</text><text x="300" y="434" text-anchor="middle" class="s">per farmer; 1.67 or more</text>
+<rect x="420.0" y="394.0" width="160" height="52" rx="26" class="n prop"/>
+<text x="500" y="417" text-anchor="middle" class="t">Share extracted</text><text x="500" y="434" text-anchor="middle" class="s">rent, tithe, tax, labour</text>
+<rect x="620.0" y="394.0" width="160" height="52" rx="26" class="n prop"/>
+<text x="700" y="417" text-anchor="middle" class="t">Goodwill in circulation</text><text x="700" y="434" text-anchor="middle" class="s">halves in 4 years</text>
+<rect x="820.0" y="394.0" width="160" height="52" rx="6" class="n lev gapn"/>
+<text x="900" y="417" text-anchor="middle" class="t">Patronage</text><text x="900" y="434" text-anchor="middle" class="s">gifts repaid in work and votes</text>
+<rect x="1020.0" y="394.0" width="160" height="52" rx="6" class="n lev plan"/>
+<text x="1100" y="417" text-anchor="middle" class="t">Brakes on estates</text><text x="1100" y="434" text-anchor="middle" class="s">votes, heirs, tenants, talk</text>
+<rect x="20.0" y="514.0" width="160" height="52" rx="26" class="n prop"/>
+<text x="100" y="537" text-anchor="middle" class="t">Idle hours</text><text x="100" y="554" text-anchor="middle" class="s">55 to 79% today</text>
+<rect x="220.0" y="514.0" width="160" height="52" rx="6" class="n lev plan"/>
+<text x="300" y="537" text-anchor="middle" class="t">Sold</text><text x="300" y="554" text-anchor="middle" class="s">for goods, later for silver</text>
+<rect x="420.0" y="514.0" width="160" height="52" rx="6" class="n lev"/>
+<text x="500" y="537" text-anchor="middle" class="t">Feasts and gifts</text><text x="500" y="554" text-anchor="middle" class="s">in good years</text>
+<rect x="220.0" y="624.0" width="160" height="52" rx="6" class="n lev plan"/>
+<text x="300" y="647" text-anchor="middle" class="t">Tax asked in silver</text><text x="300" y="664" text-anchor="middle" class="s">the Crown, by ship</text></svg></div>
+  <div class="key">
+    <span><i class="sw prop"></i>balance property</span>
+    <span><i class="sw"></i>lever</span>
+    <span><i class="fw"></i>where the food goes</span>
+    <span><i class="dot"></i>lost</span>
+    <span><i class="ln"></i>built</span>
+    <span><i class="ln plan"></i>planned</span>
+    <span><i class="ln gap"></i>not in the design: missing or proposed</span>
+    <span><i class="slow"><i></i><i></i></i>slow: years or more</span>
+    <span><i class="bd">B</i>loop that balances</span>
+    <span><i class="bd r">R</i>loop that reinforces</span>
+  </div>
+  <figcaption>An arrow marked + pushes its target the same way; − pushes against it; ± is a steady push that does not respond to the island. Two bars across an arrow mark a slow link. The thick arrows are not influences but the food itself: what a farm produces is eaten, taken, feasted, sold, or rots. Tuning the game is largely tuning that split. The numbered loops are listed below.</figcaption>
+</figure>
+
+<section>
+  <h2>The balance properties</h2>
+  <div class="tw"><table>
+    <tr><th>Property</th><th>How it is measured</th><th>Target</th><th>Today</th></tr>
+    <tr><td>Population</td><td>The living, and growth a year</td><td>About 1,000 on a medium map, held by loops, not a cap</td><td>Populous small doubles in 40 years (352 to 729)</td></tr>
+    <tr><td>Food produced</td><td>A farming household's output over its own need, after seed and spoilage</td><td>1.67 follows from the split; more than that to carry bad years</td><td>1.1 to 1.6, falling as the island fills</td></tr>
+    <tr><td>Share extracted</td><td>Rent, tithe, tax, interest and owed labour, as a share of what is produced; one of five outlets beside eaten, feasted, sold and rotted</td><td>Not set. About 40% of output must leave the farm, by extraction and by sale together</td><td>0: nothing is taken or sold yet; the excess is feasted as ale or rots</td></tr>
+    <tr><td>Food kept per head</td><td>What a household keeps over its need; hunger when below 1</td><td>Above the floor (seed and 20 days) for most households</td><td>Uneven: one household in six is a single person, hungry beside full barns</td></tr>
+    <tr><td>Goodwill in circulation</td><td>Goodwill owed between holders, and between how many pairs</td><td>Not set</td><td>Booked and shown; made only by help in hunger</td></tr>
+    <tr><td>Idle hours</td><td>Adult work hours with no task</td><td>No limit set. Enough must remain for subsistence after owed work</td><td>55 to 79% over the year</td></tr>
+    <tr><td>Town and craft share</td><td>People living by specialised work</td><td>325 of 1,000; fewer if farmers' slack hours make part of the goods</td><td>0: no towns or crafts yet</td></tr>
+    <tr><td>Elite share</td><td>Landed and ranked households; retinue counted by its own class</td><td>75 of 1,000, about 12 to 15 households</td><td>0: no class yet</td></tr>
+    <tr><td>Land concentration</td><td>Land Gini; share of farms under tenancy</td><td>A band, to be set in slice 5</td><td>Every farm is owned by those who work it</td></tr>
+  </table></div>
+  <p class="note">Yield is the setpoint under food produced: at high yields farm work leaves hands free, at low yields it takes them all. The game's own ratio has not been measured for this map yet. Land use is not a property here: it fills toward the map's limit and is not tuned.</p>
+</section>
+
+<section>
+  <h2>The loops and pushes</h2>
+  <div class="tw"><table>
+    <tr><th>Name</th><th>Path</th><th>Kind</th><th>Range</th><th>Lag</th><th>Status</th></tr>
+    <tr><td><span class="id">B1</span>Marriage valve</td><td>More people per farm, fewer homes with means, later and fewer marriages, fewer births</td><td>Balances</td><td>Wide in history. Narrow here: ages are fixed at 18 and 20</td><td>A generation</td><td class="st">gate built; age does not respond</td></tr>
+    <tr><td><span class="id">B2</span>Hunger check</td><td>More people, less produced per farmer as the island fills, less kept, more deaths. Hunger also stops conception and marriage (not drawn)</td><td>Balances</td><td>Wide: hunger multiplies the death risk up to 2.5 times</td><td>A season</td><td class="st">built</td></tr>
+    <tr><td><span class="id">B3</span>Kin help</td><td>A short household asks, kin give, it is fed; goodwill is booked, and one who owes gives back more readily</td><td>Balances between households</td><td>The giver's grain above seed and 20 days</td><td>A season</td><td class="st">built</td></tr>
+    <tr><td><span class="id">B4</span>Town sink</td><td>The unmarried and landless move to town, where crowding breeds disease and deaths outrun births</td><td>Balances</td><td>Set by the town's size</td><td>Years</td><td class="st p">slice 9; disease not designed</td></tr>
+    <tr><td><span class="id">B5</span>Brakes on estates</td><td>Debtors vote for labour as the remedy, heirs split land, tenants leave, talk thins the creditor's voice</td><td>Balances R1</td><td>Unmeasured</td><td>Decades</td><td class="st p">slices 5, 7</td></tr>
+    <tr><td><span class="id">R1</span>Estates and the squeeze</td><td>Where help falls short a household borrows, default passes land, concentrated land raises the share extracted, which lowers what is kept</td><td>Reinforces</td><td>One field a hearing; rent a quarter of the harvest</td><td>Years</td><td class="st p">slice 5</td></tr>
+    <tr><td><span class="id">R2</span>Trade</td><td>Goods from town and fair give farmers a reason to produce past their need; the surplus sold feeds the town</td><td>Reinforces, toward a high or a low resting point</td><td>Up to the idle hours there are</td><td>Years</td><td class="st p">slices 4, 9</td></tr>
+    <tr><td><span class="id">B6</span>Feasting</td><td>A good year's surplus is feasted and given; guests owe goodwill, which returns as help in a bad year and as standing</td><td>Balances between households; builds the giver's standing</td><td>The surplus not taken or sold</td><td>Years</td><td class="st g">ale for standing built; goodwill from feasts proposed</td></tr>
+    <tr><td><span class="id">R3</span>Money</td><td>A tax asked in silver makes farms sell; selling brings silver and goods, and less is left to feast</td><td>Reinforces; thins feasting by taking its grain</td><td>Open</td><td>Years</td><td class="st p">slice 8</td></tr>
+    <tr><td>Nursing gap</td><td>A birth blocks the next for the nursing time; an infant's death should end it early</td><td>Balances, replaces losses only</td><td>Narrow: about 6 to 9 births a woman</td><td>A year or two</td><td class="st g">gap built; early end missing</td></tr>
+    <tr><td>Patronage</td><td>Where kin help falls short, a rich household gives; large one-sided goodwill is worked off as days on its farm and weighed in the debtor's vote</td><td>Feeds elite share and concentration</td><td>Open</td><td>Years</td><td class="st g">proposed, 12 Nov</td></tr>
+    <tr><td>Disease</td><td>Hunger and crowding raise sickness, which raises deaths</td><td>Balances</td><td>Unknown</td><td>Months after a bad harvest</td><td class="st g">named, not designed</td></tr>
+    <tr><td>Rot</td><td>Grain in store rots: the outlet for whatever finds no other. Better keeping would shrink it, and also raise what the rich can lend</td><td>Steady loss</td><td>5% a year, 40% on old stores</td><td>A year</td><td class="st">built; better keeping not designed</td></tr>
+    <tr><td>Owed work</td><td>Labour owed, hired or worked off turns idle hours into food on the larger farms. Counted in the share extracted; not drawn</td><td>Raises food produced</td><td>Limited by the peak seasons, when few hours are idle</td><td>A season</td><td class="st p">slice 5; worked-off goodwill proposed</td></tr>
+    <tr><td>The outside world</td><td>A merchant, an elite with a retinue, a settling family; recruiting of young adults</td><td>Steady push, both ways</td><td>Very limited, mostly fixed</td><td>None</td><td class="st p">slice 8</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>What draft 3 shows</h2>
+  <ul>
+    <li><strong>The split of the surplus is the main dial.</strong> Eaten, taken, feasted, sold, rotted: each outlet feeds a different part of the map. Feasting feeds goodwill, sale feeds the town, taking feeds the elite, and rot feeds nothing.</li>
+    <li><strong>Today only two outlets and the sink work.</strong> Food is eaten, a little is brewed, and the rest rots. That is why a surplus of 1.1 to 1.6 supports nobody.</li>
+    <li><strong>Silver thins goodwill by competing for grain.</strong> Nothing takes goodwill's place among kin. A tax in silver makes farms sell what they would have feasted.</li>
+    <li><strong>Help is the gate to both roads up.</strong> Where kin help falls short, a household either borrows (debt, then land) or takes a patron's gift (goodwill, then work and votes). Both end in land concentration.</li>
+    <li><strong>Extraction still has no brake of its own.</strong> R1 tightens itself, B5 opposes it only at the land step and slowly, and the floor is the one hard stop.</li>
+  </ul>
+  <p class="note">Sources: <code>src/sim/births.js</code>, <code>src/sim/deaths.js</code>, <code>src/sim/rules.js</code>, <code>design.md</code> v0.4, <code>docs/review-cities.md</code>, target-v2 sections 6.1 to 6.3, and acoup's "Bread, How Did They Make It?" and "Life, Work, Death and the Peasant". Ranges without a number in the code come from the history, not from runs.</p>
+</section>
+</main>

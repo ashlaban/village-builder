@@ -1,0 +1,224 @@
+<title>Balance Mock Findings</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; the map and the tables break out wider and scroll on their own. */
+:root {
+  --bg: #f2f5f1; --surface: #ffffff; --fg: #1c2928; --muted: #5a6a67; --rule: #cfd8d3;
+  --prop: #a8700a; --prop-fill: #fbf1d8; --plan: #2f658f; --gap: #a5432c;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141b1a; --surface: #1c2524; --fg: #e4ebe7; --muted: #9aaba6; --rule: #33413e;
+  --prop: #e2b24c; --prop-fill: #3a2f12; --plan: #8dbbe0; --gap: #e88a72; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141b1a; --surface: #1c2524; --fg: #e4ebe7; --muted: #9aaba6; --rule: #33413e;
+  --prop: #e2b24c; --prop-fill: #3a2f12; --plan: #8dbbe0; --gap: #e88a72; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 17px/1.55 var(--body);
+  padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
+section, header { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+h1 { font: 700 clamp(30px, 5vw, 44px)/1.08 var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font: 700 24px/1.2 var(--display); margin: 0; text-wrap: balance; }
+p, li { max-width: 68ch; margin: 0; }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 20px; line-height: 1.45; }
+code { font: 500 .86em var(--mono); color: var(--muted); white-space: nowrap; }
+strong { font-weight: 600; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+.scroll svg { display: block; width: 100%; min-width: 1000px; height: auto; }
+figcaption { color: var(--muted); font-size: 15px; max-width: 80ch; }
+.key { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; color: var(--muted); }
+.key span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 30px; height: 14px; border-radius: 3px; border: 1.6px solid var(--fg); background: var(--surface); }
+.sw.prop { border-color: var(--prop); background: var(--prop-fill); border-radius: 8px; border-width: 2.2px; }
+.ln { width: 30px; height: 0; border-top: 2px solid var(--fg); } .ln.plan { border-top: 2px dashed var(--plan); } .ln.gap { border-top: 2.5px dotted var(--gap); }
+.bd { width: 20px; height: 20px; border-radius: 50%; background: var(--fg); color: var(--bg); font: 700 12px var(--body); display: inline-flex; align-items: center; justify-content: center; }
+.bd.r { background: var(--gap); }
+#bm .n { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5; }
+#bm .n.prop { fill: var(--prop-fill); stroke: var(--prop); stroke-width: 2.6; }
+#bm .n.plan { stroke: var(--plan); stroke-dasharray: 6 4; }
+#bm .t { font: 700 13.5px var(--display); fill: var(--fg); } #bm .s { font: 400 11.5px var(--body); fill: var(--muted); }
+#bm .l { font: 400 12.5px var(--body); fill: var(--muted); } #bm .l.p { fill: var(--plan); }
+#bm .e { stroke: var(--fg); stroke-width: 1.6; } #bm .e.p { stroke: var(--plan); stroke-dasharray: 6 4; } #bm .e.g { stroke: var(--gap); stroke-width: 2; stroke-dasharray: 2 5; }
+#bm .n.gapn { stroke: var(--gap); stroke-width: 2; stroke-dasharray: 2 5; }
+#bm .tk { stroke: var(--fg); stroke-width: 1.6; } #bm .tk.p { stroke: var(--plan); } #bm .tk.g { stroke: var(--gap); }
+#bm .f { stroke: var(--fg); stroke-width: 4.5; } #bm .f.p { stroke: var(--plan); stroke-dasharray: 9 5; }
+#bm .fl { font: 600 12.5px var(--body); fill: var(--fg); font-style: italic; } #bm .sink { fill: var(--fg); }
+#bm .hb { fill: var(--fg); } #bm .hp { fill: var(--plan); } #bm .hg { fill: var(--gap); }
+#bm .sg { fill: var(--surface); stroke: var(--fg); stroke-width: 1.2; } #bm .sg.p { stroke: var(--plan); } #bm .sg.g { stroke: var(--gap); }
+#bm .sgt { font: 700 13px var(--body); fill: var(--fg); } #bm .sgt.p { fill: var(--plan); } #bm .sgt.g { fill: var(--gap); }
+#bm .lpB { fill: var(--fg); } #bm .lpR { fill: var(--gap); } #bm .lpt { font: 700 11.5px var(--body); fill: var(--bg); }
+.tw { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: 15.5px; line-height: 1.4; }
+th { text-align: left; font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 0 14px 8px 0; border-bottom: 1.5px solid var(--fg); }
+td { vertical-align: top; padding: 10px 14px 10px 0; border-bottom: 1px solid var(--rule); }
+td:first-child { font-weight: 600; }
+.st { font: 500 12px var(--mono); white-space: nowrap; } .st.p { color: var(--plan); } .st.g { color: var(--gap); }
+.note { color: var(--muted); font-size: 15px; }
+.fw { width: 30px; height: 0; border-top: 4.5px solid var(--fg); } .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--fg); }
+.slow { display: inline-flex; gap: 3px; } .slow i { width: 0; height: 13px; border-left: 2px solid var(--fg); }
+td .id { font: 500 12px var(--mono); color: var(--muted); margin-right: 6px; }
+.fig { background: #fcfcfa; border: 1px solid var(--rule); border-radius: 8px; padding: 10px; overflow-x: auto; }
+.fig img { display: block; width: 100%; min-width: 640px; height: auto; }
+h3 { font: 700 18px/1.25 var(--display); margin: 6px 0 0; }
+.verdict { font: 500 12px var(--mono); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.v-yes { color: var(--plan); } .v-part { color: var(--prop); } .v-no { color: var(--gap); }
+ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+pre { font: 400 13px/1.45 var(--mono); background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 0; }
+</style>
+<main>
+<header>
+  <span class="eyebrow">Village builder · balance map · reflection after eight experiments · 12 November 2026</span>
+  <h1>What the mocks say about the balance map</h1>
+  <p class="lede">Eight experiments tested draft 3 of the map: five mock models, measurements on the real game, a survey of abstractions, and accounts built at the target. The loop diagram turned out to be the wrong main picture, and several things it shows are not what holds this game in balance.</p>
+</header>
+
+<section>
+  <h2>In short</h2>
+  <ul>
+    <li><strong>The map could not be simulated as drawn.</strong> Only 3 of its 40 links could be turned into a model from the sign alone. What was missing was the same each time: quantities that add up, gates with thresholds, the spread between households, and time.</li>
+    <li><strong>Marriage holds the population, not hunger.</strong> Hunger touches under 1% of households in the game. The dial that matters is how much a home must have before a couple may marry.</li>
+    <li><strong>The surplus already exists, and about a fifth of the harvest rots.</strong> The target needs 1.7 to 2.15 times the farmers' need, depending on rot and feasting, against 1.64 to 1.86 measured.</li>
+    <li><strong>The road from hunger to a landed elite carries almost no traffic.</strong> In the mocks an elite of the right size comes from a tithe and offices. Debt concentrates land only after the map is full, and slowly.</li>
+    <li><strong>Growth is slower than the vision.</strong> The ceiling is about 2.4% a year; reaching 1,000 in 150 years needs about 3.1%.</li>
+  </ul>
+  <p class="note">Every mock uses the game's own numbers where they exist and invented ones elsewhere. Treat directions and orders of size as findings, and exact percentages as illustrations.</p>
+</section>
+
+<section>
+  <h2>What changed in the picture of the game</h2>
+
+  <h3>1. The marriage gate is the master dial</h3>
+  <p>The game already delays marriage for want of a home: couples putting it off rose from none to 50 to 120 a decade, and almost nobody stays unmarried. In the whole-map model, switching this gate off left 72% more people and 64% of households hungry. Its setpoint, the means a home must have, sets the food ratio late in the game, and through it land concentration, the town's food and hunger. Draft 3 has no place for that number.</p>
+  <figure><div class="fig"><img src="fig-levers.png" alt="Bar chart of how much each lever alone can change the annual growth rate from a baseline of plus 2.4 percent. Disease up to three times removes 3.74 points, chronic hunger 2.26, marriage age from 18 to 28 removes 2.0, never marrying up to 35 percent 1.45, the nursing gap between plus 0.5 and minus 1.09."></div>
+  <figcaption>How far each lever alone can move annual growth, from the demography mock. The red line is zero growth. Migration is small at 1,000 people and very large at 100.</figcaption></figure>
+  <ul>
+    <li>Every way of holding 1,000 has a human cost. By hunger alone about half of children die. By marriage at 18 alone about half never marry. Marriage at 26 cost the fewest lives.</li>
+    <li>Balance held by marriage overshoots after a shock and echoes for a generation. Balance held by hunger or disease returns smoothly.</li>
+    <li>The town does not slow growth. Its migrants are the village's unmarried, so the brake is still the marriage gate. The town decides where people live.</li>
+  </ul>
+
+  <h3>2. The food is there; the question is where it goes</h3>
+  <figure><div class="fig"><img src="fig-food.png" alt="Three bars. The first two show the same harvest split today and at the target: today 21 percent seed, 45 percent eaten on the farm, 5 percent ale, 14 percent rots and 15 percent with no outlet; at the target the rot and unaccounted shares become tithe, rent, tax and 13 percent sold to the town. The second shows how the town eats. The third shows what the food ratio must cover: farm need 1.0, town 0.43, elite 0.20, against a measured band of 1.64 to 1.86."></div>
+  <figcaption>From the accounts at the target. Top: the same harvest, split as measured today and as the target needs. Bottom: what the food ratio must cover, against the band the game measures.</figcaption></figure>
+  <ul>
+    <li><strong>1.67 is a floor.</strong> It assumes no rot, no feasting, an elite that eats like peasants and a town that grows nothing. With today's rot the need is about 1.96, or 2.15 if half the surplus is feasted.</li>
+    <li><strong>Rot is the decisive dial.</strong> It has to fall from about 17% of output to about 3%, and farmers have to sell nearly nine tenths of what they have spare.</li>
+    <li><strong>The town is the residual claimant.</strong> It eats what is left after everyone else, so a 2% fall in yield already leaves it short.</li>
+    <li><strong>About 15% of today's produce has no outlet</strong> in the measured split. Only forcing the accounts to close found it. It should be checked in the game.</li>
+  </ul>
+
+  <h3>3. The elite comes from tithe and office, not from debt</h3>
+  <figure><div class="fig"><img src="fig-roads.png" alt="Two line charts over 250 years. Left: elite households under each candidate road. Tithe plus office and the baseline rise to about 15 households; debt alone, the goodwill road and no road stay near zero to one; debt with a weak marriage valve reaches about 5 late. Right: the land Gini under each road; a silver tax with arrears reaches 0.9, kin inheriting land 0.75, debt roads 0.3 to 0.55, tithe and office stays at 0.2."></div>
+  <figcaption>Elite households and land inequality under each candidate road, each switched on alone, from the regimes mock. The dashed line is the median year the map fills.</figcaption></figure>
+  <ul>
+    <li><strong>Rent cannot feed an elite.</strong> A tithe falls on everything every field produces; rent falls on the grain of tenant fields only. Rent and interest come to 6 to 10% of output at most. Living on rent alone would need nine tenths of all fields under tenancy.</li>
+    <li><strong>Debt concentrates land only when the map is full and food is tight.</strong> That is why two round 1 models disagreed: one assumed a full island from year 1, the other never ran short. At the game's food ratio debt gives no more than one elite household in 150 years.</li>
+    <li><strong>The road from hunger through goodwill to land moved 70 fields in 250 years.</strong> Hard lenders, not generous households, end up with land. Patronage as proposed is negligible, because the owed work is cleared in a year or two.</li>
+    <li><strong>An elite by office has no brake.</strong> It moves one for one with the tithe. That makes it easy to tune and gives it no dynamics.</li>
+    <li><strong>The design's rule for "landed" miscounts.</strong> It counted 45 to 100 of 200 households as landed with no rents at all.</li>
+  </ul>
+
+  <h3>4. Growth needs help from outside</h3>
+  <ul>
+    <li>With the game's numbers the ceiling is 2.4% a year. Founders alone grow about 1 to 1.7% and reach about 100 people by year 150, mostly because kinship bars marriages.</li>
+    <li>Faster demography alone (earlier marriage, shorter nursing, fewer child deaths) reaches about 565 and overshoots into hunger.</li>
+    <li>One immigrant family every two years reaches about 1,000 by year 150. That is more than "very limited".</li>
+  </ul>
+
+  <h3>5. Reach is the condition under every limit</h3>
+  <p>You said reach by water is not a lever. The measurements agree and go further. Growth slows when land within a day's walk of a village runs out, with only 14% of the map in use. Walking and carrying take 30 to 47% of working hours outside winter. Reach decides where the land limit sits, how large a town's catchment is, and who can marry whom.</p>
+
+  <h3>6. Culture needs a seed and a switch</h3>
+  <figure><div class="fig"><img src="fig-culture.png" alt="Line charts from the culture mock showing the gap between two islands' customs over 200 years, rising to a peak near year 150 and then falling, with phase lines for boats, the town and the Church."></div>
+  <figcaption>The one configuration that gave your curve: difference rising to a peak near year 150, then falling. From the culture mock.</figcaption></figure>
+  <ul>
+    <li>An opinion penalty keeps differences but does not create them. Two cultures need a seed: different starting customs, or different land.</li>
+    <li>It acts as a switch. Marriages across the divide fell from 26% to 1% between two nearby settings.</li>
+    <li>Your rise and fall needed three things: poorer land on one island, land running out pushing the heirs custom, and attitudes pulled toward the practice in force. The game has no such pull, and its customs flicker: 29 to 46% of changes undo the previous one.</li>
+    <li>The fall came from the town and a Church doctrine, which opinion does not filter.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Which perspectives earned their place</h2>
+  <div class="tw"><table>
+    <tr><th>Perspective</th><th>What it showed that nothing else did</th><th>What it cannot show</th><th>Verdict</th></tr>
+    <tr><td>Loop diagram (draft 3)</td><td>Names the mechanisms and whether each balances or reinforces. Good for collecting cards and talking about design</td><td>What adds up, thresholds, spread, which loop is in charge. Its signs mislead wherever something accumulates</td><td class="verdict v-part">keep as backing</td></tr>
+    <tr><td>Budgets: accounts that must close</td><td>That 1.67 is a floor; that rot is the decisive dial; that the town is the residual claimant; the 15% with no outlet; that rent cannot feed the elite</td><td>Thresholds, spread between households, timing, the order of claims, whether a balance returns after a shock</td><td class="verdict v-yes">main picture</td></tr>
+    <tr><td>Regimes: which limit binds, era by era</td><td>Which dial is live now. Three transitions are real and survive any unlock order: homes within reach, the map filling (about year 150), the town's food</td><td>Limits overlap a quarter of the time; the town's early limits only mark unlock dates; 3 of 8 candidate limits never bound</td><td class="verdict v-part">a strip beneath</td></tr>
+    <tr><td>Dial table: setpoint, sensor, actuator, range, delay</td><td>Predicted a dial's own property well (tithe on elite: +20% predicted, +21% found). Records what is a gate and what is a rate</td><td>Effects that pass through population, and gains that change with the regime. Right on direction 80% of the time, on size 73%</td><td class="verdict v-part">the legend</td></tr>
+    <tr><td>Spread between households</td><td>It is the mechanism behind estates, hunger and goodwill. Equal households cut estates from 18 to 4.5</td><td>Hard to draw statically</td><td class="verdict v-yes">must be marked</td></tr>
+    <tr><td>Range bars per lever</td><td>That disease, hunger and marriage each can stop growth alone, and nursing cannot</td><td>Interaction: brakes are far from additive</td><td class="verdict v-part">in the legend</td></tr>
+  </table></div>
+  <p>The two round 2 experiments disagree on the single picture. One wants the food ladder at the centre; the other wants the regime strip. I think they answer different questions. The budget says whether the target is possible and who goes short. The regime says which dial matters at this point in a game. A designer tuning needs the second to know where to look and the first to know what a change costs.</p>
+</section>
+
+<section>
+  <h2>The vocabulary the map needs</h2>
+  <p>Draft 3 has two kinds of thing, properties and levers. The experiments needed seven:</p>
+  <div class="tw"><table>
+    <tr><th>Kind</th><th>What it is</th><th>Examples</th></tr>
+    <tr><td>Stock</td><td>Something that accumulates, with a target band</td><td>Farmers, townspeople, elite; grain in store; goodwill; land held and tenanted</td></tr>
+    <tr><td>Flow</td><td>What moves between stocks or to a sink; flows add up</td><td>Births, deaths, moves to town; eaten, taken, sold, feasted, rotted</td></tr>
+    <tr><td>Gate</td><td>A threshold that opens or closes a flow</td><td>A home with means; hunger at 0.5 stops marriage; the floor; default after two harvests</td></tr>
+    <tr><td>Setpoint</td><td>The number that says where a gate or rate sits. This is what gets tuned</td><td>The means test, the tithe, rot rates, yield, how much farmers want goods</td></tr>
+    <tr><td>Condition</td><td>Sets where limits sit; not tuned during a game</td><td>Reach on foot and by water; ships; the outside world</td></tr>
+    <tr><td>Process between households</td><td>Moves things within a class; invisible in class totals</td><td>Kin help, feasts, loans, patronage</td></tr>
+    <tr><td>Consequence</td><td>Follows from the rest; watched, not targeted</td><td>Idle hours; the food ratio needed; land inequality</td></tr>
+  </table></div>
+  <p>Draft 3 mixed these. Births and deaths were drawn as levers but are flows. Reach by water was a lever but is a condition. Food produced was a property but is a rate with a setpoint under it. Idle hours was a property to tune but is the slack a household keeps once its need is met.</p>
+</section>
+
+<section>
+  <h2>A shape for the single diagram</h2>
+  <p>Three bands on one page, with the cards behind it as the detailed record:</p>
+  <pre>conditions   reach on foot and by water  ·  ships and silver  ·  the outside world
+----------------------------------------------------------------------------------
+PEOPLE       births ==&gt; ( FARMERS 600 ) ==&gt; ( TOWN 325 ) ==&gt; deaths
+               ^ gate: a home with means        ^ limited by migrants, then by food
+                       \==&gt; ( ELITE 75 )  by office and tithe; by debt once the map is full
+
+FOOD         produced ==+== eaten on the farm
+(one bar,               +== taken   ==&gt; elite            setpoints on each outlet:
+ widths add up)         +== sold    ==&gt; town             means test, tithe, wanted
+                        +== feasted ==&gt; goodwill         goods, keeping, yield
+                        +== rots    ==&gt; lost
+             marked: the two tight margins (the town's food, the full tenant)
+             marked: where spread matters (households under need, hard lenders)
+----------------------------------------------------------------------------------
+ERAS         frontier | homes within reach | trade and town | map full | mature
+             in charge:  mates  -&gt;  marriage gate  -&gt;  town  -&gt;  town food, debt
+----------------------------------------------------------------------------------
+legend       each gate and setpoint: range, delay, what it holds, built or planned</pre>
+  <p>This keeps what draft 3 did well: the five-way split of the harvest stays the centre. It adds what the experiments needed: stocks with targets, gates as their own symbol, conditions outside the frame, and a time axis. Culture would sit as dials on four of the gates (heirs, marriage rules, who eats first, who speaks), with its own small curve on the era strip.</p>
+</section>
+
+<section>
+  <h2>Decisions the experiments put to you</h2>
+  <ol>
+    <li><strong>Where should the elite come from?</strong> Tithe and office gives the 75 easily and without drama. Debt gives a slow, late ratchet won by hard lenders. Your road from hunger through goodwill gives almost nothing under the designed numbers. If that road matters to the vision, it needs a mechanism that does not depend on households going short.</li>
+    <li><strong>How should the island reach 1,000?</strong> More immigration than "very limited", a larger start, a longer game, or easier marriage for founders. Faster births alone overshoot.</li>
+    <li><strong>What holds farmers at 600 when land does not bind?</strong> The target uses about 5% of a medium map. Either reach does it, or the elite withholds land, or the land fills with pasture and woods.</li>
+    <li><strong>Which cost is acceptable?</strong> Late marriage, a deadly town, child deaths and emigration are interchangeable ways to stop growth. The mix is a design choice with a human face.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>To verify in the game</h2>
+  <ul>
+    <li>The 15% of produce with no outlet in the measured split.</li>
+    <li>The village store: 68 to 85% of the grain put in rots, and little is given back out.</li>
+    <li>The "landed" rule counting households with no rents.</li>
+    <li>Founders stalling at about 1% a year, with a third of households single-person.</li>
+    <li>Customs flickering back and forth; no pull toward the practice in force.</li>
+    <li>The game cannot yet report: share extracted, tenancy, town share, elite share, trade, goodwill from feasts, disease.</li>
+  </ul>
+  <p class="note">The experiments: a demography cohort model; a 200-household model of surplus, debt and estates; draft 3 as one stock-and-flow model; a culture model of 12 villages; measurements on the populous and founders scenarios; a survey of abstractions; accounts at the target; and a household model of the whole 200-year arc with a blind test of the dial table. Scripts, data and all 36 figures are kept in the session's scratchpad folder <code>mocks/</code>.</p>
+</section>
+</main>
