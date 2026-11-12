@@ -1,6 +1,6 @@
-// @sys sim/plans: holders' plans (design.md section 7; VB-258, VB-248, VB-249, VB-252): a standing plan per live household and village, a
+// @sys sim/plans: holders' plans (design.md section 7; VB-258, VB-248, VB-249, VB-252, VB-257): a standing plan per live household and village, a
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
-// diligence, and the due-queue that opens the time-bound kinds at their hours
+// diligence, and the due-queue that opens the time-bound kinds at their hours; the village's routines, set by its meeting
 VB['sim/plans'] = (() => {
   const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, CROPS, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
@@ -34,6 +34,10 @@ VB['sim/plans'] = (() => {
   //   (sim/meadows), seedNeed (sim/hunger), the review and its land step.
   // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none
   //   (nothing names one yet: VB-253's verb). plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
+  // @state plan.routines (a village's; VB-257): the keys of VILLAGE_ROUTINES the village does this year, at most MAX_ROUTINES, each a source
+  //   of the village's tasks (sim/jobs asks only their kinds); plan.routinesBy: how they were set, 'founded' (the founders' choice, until
+  //   the first meeting), 'meeting' (the meeting decided), or, when it did not decide, its culture's practice noDecision ('nothing',
+  //   'asLastYear'); plan.routinesYear: the year of cal they were set. Written only by setRoutines, through the meeting's verb.
   // @state plan.build (a household's; VB-332): its building step, {tile, kind 'pick' | 'quarry' | null} (where its stone comes from; -1 and
   //   null for nowhere in reach) while it means to raise its house onto stone, else null or absent; set at each review (sim/building's buildStep).
   // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
@@ -108,6 +112,48 @@ VB['sim/plans'] = (() => {
     if (h < WORK[0] - 1) return day * DAY + WORK[0] - 1;
     if (h > WORK[1]) return (day + 1) * DAY + WORK[0] - 1;
     return day * DAY + h;
+  }
+  // ---- the village's routines (design.md section 7, Village routines; VB-257) ----
+  // The village work a meeting may choose from, in the order it is weighed: each routine names the kinds it is the source of (asked at
+  // the village's review, sim/jobs), whether the village has that work this year, and how much it weighs at the meeting (`need`, a
+  // stand-in for the voices' support until slice 5's Decisions, VB-313). The fence's stretches are the first; the green and well (VB-058),
+  // a common field (VB-100) and work days (VB-120) add theirs.
+  const VILLAGE_ROUTINES = Object.freeze({
+    fence: Object.freeze({ label: 'Keeping the village fence', kinds: Object.freeze(['mend']), available: (st, v) => v.fence.length > 0,
+      need: (st, v) => { let n = 0; for (const s of v.fence) n += 1 - s.cond; return n; } }),
+  });
+  const MAX_ROUTINES = 4;
+  // The routines chosen from candidates [[need, key]], most needed first and in their order of declaration between equals: at most
+  // MAX_ROUTINES, or null when the last place is tied with the first left out (the meeting does not decide). Pure.
+  function rankRoutines(cands) {
+    const order = Object.keys(VILLAGE_ROUTINES), sorted = [...cands].sort((a, b) => b[0] - a[0] || order.indexOf(a[1]) - order.indexOf(b[1]));
+    if (sorted.length > MAX_ROUTINES && sorted[MAX_ROUTINES - 1][0] === sorted[MAX_ROUTINES][0]) return null;
+    return sorted.slice(0, MAX_ROUTINES).map((c) => c[1]);
+  }
+  // The routines a village would choose from its work available now, or null for a tie.
+  function chooseRoutines(st, v) {
+    const cands = [];
+    for (const k of Object.keys(VILLAGE_ROUTINES)) { const R = VILLAGE_ROUTINES[k]; if (R.available(st, v)) cands.push([R.need(st, v), k]); }
+    return rankRoutines(cands);
+  }
+  // Why a list of routines may not be a village's, or null: each a known routine, once, at most MAX_ROUTINES.
+  function routinesWhy(list) {
+    if (!Array.isArray(list)) return 'the routines are not a list';
+    if (list.length > MAX_ROUTINES) return `at most ${MAX_ROUTINES} routines`;
+    for (const k of list) if (!Object.hasOwn(VILLAGE_ROUTINES, k)) return `there is no routine ${k}`;
+    return new Set(list).size === list.length ? null : 'a routine is named twice';
+  }
+  // The village's routines become `list`, set `by` ('founded', 'meeting', 'nothing', 'asLastYear'): the one writer (the meeting's verb,
+  // sim/commands, and the plan's making). They post from the village's next review on; those no longer chosen are taken down at it.
+  function setRoutines(st, vid, list, by) {
+    const plan = st.plans.villages.get(vid);
+    plan.routines = [...list]; plan.routinesBy = by; plan.routinesYear = cal(st.t).year;
+  }
+  // Does the village's plan ask kind k this year: is it a kind of one of its routines. Allocates nothing.
+  function routineAsks(plan, k) {
+    const list = plan.routines;
+    for (let i = 0; i < list.length; i++) if (VILLAGE_ROUTINES[list[i]].kinds.includes(k)) return true;
+    return false;
   }
   const mapOf = (st, type) => (type === 'household' ? st.plans.households : st.plans.villages);
   // ---- planning days (design.md section 7, Planning days; VB-249) ----
@@ -215,13 +261,19 @@ VB['sim/plans'] = (() => {
     plan.counted = null;
     Stores.reserve(st, hh, plan, 'grain', hh.farmstead !== null ? seedNeed(st, hh) : 0, 'seed');
   }
+  // A village's first routines, until its first meeting: what its founders would choose from the work it has (a tie: all of it, the first
+  // MAX_ROUTINES in their order). Also at the load of a save made before routines.
+  function founded(st, plan) {
+    const v = st.villages[plan.holder.id], list = chooseRoutines(st, v);
+    setRoutines(st, v.id, list || Object.keys(VILLAGE_ROUTINES).filter((k) => VILLAGE_ROUTINES[k].available(st, v)).slice(0, MAX_ROUTINES), 'founded');
+  }
   // A holder's standing plan, made when the household is founded or the village is (and for every holder at seed and load). Its first
   // review is at the next review hour, whatever its planning day.
   function makePlan(st, type, id) {
     const plan = { holder: { type, id }, kind: 'standing', nextReview: reviewAfter(Math.floor(st.tick / TICKS) - 1), last: null, woke: null,
       looked: null, dirty: false, reserved: {}, reasons: {} };
     mapOf(st, type).set(id, plan);
-    if (type === 'household') { household(st, plan); enqueue(st, id); }
+    if (type === 'household') { household(st, plan); enqueue(st, id); } else founded(st, plan);
     return plan;
   }
   // A dissolved household's plan goes with it, its reservations with the plan, and its entries leave the due-queue.
@@ -246,6 +298,7 @@ VB['sim/plans'] = (() => {
         if (plan.holder.type === 'household') household(st, plan);
       }
       if (plan.holder.type === 'household' && !st.plans.seasons.has(plan.holder.id)) seasonal(st, plan, cal(st.t));
+      if (plan.holder.type === 'village' && !plan.routines) founded(st, plan); // VB-257: nor routines
       if (plan.last === undefined) {
         plan.last = null; plan.woke = null; plan.looked = null;
         plan.dirty = false; // lint-allow: owner a save made before the flag gets it clear (sim/stores sets it)
@@ -281,5 +334,5 @@ VB['sim/plans'] = (() => {
     Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed'); // a project begun holds its seed from now
   }
   return { reviewHour, makePlan, dropPlan, planOf, seasonOf, seedPlans, fillPlans, reviewed, landStep, reviewWhy, mayLook, closing, cadence, WINDOWED,
-    dueNow, again, ROUTINES, cultureOf };
+    dueNow, again, ROUTINES, cultureOf, VILLAGE_ROUTINES, MAX_ROUTINES, rankRoutines, chooseRoutines, routinesWhy, setRoutines, routineAsks };
 })();
