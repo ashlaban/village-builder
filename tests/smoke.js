@@ -229,6 +229,32 @@ async function goodwillPanel() {
   }
   doc.getElementById('tabFacts').click(); tick(2);
   if (doc.getElementById('tileFacts').hidden || !doc.getElementById('tileHistory').hidden) fail('the Details tab did not come back');
+  // The Customs tab (VB-389) of a village's card: the customs as a charter, a phrase a custom; a phrase opens the ways of its custom, each
+  // voice of the meeting by exactly one of them; a pawn's card has no such tab, and shows its Details while the choice is kept.
+  {
+    const tabC = doc.getElementById('tabCustoms'), box = doc.getElementById('tileCustoms'), DIMS = require('../src/load.js').culture.DIMS;
+    settlers.querySelector(`button[data-village="${farm.village}"]`).click(); tick(5);
+    if (tabC.hidden) fail("no Customs tab on a village's card");
+    tabC.click(); tick(2);
+    const phrases = box.querySelectorAll('.charter [data-phrase]');
+    if (box.hidden || !doc.getElementById('tileFacts').hidden) fail('the Customs tab did not open');
+    if (phrases.length !== DIMS.length) fail(`the charter has ${phrases.length} phrases, expected ${DIMS.length}`);
+    if (!box.querySelector('h3.lead') || box.querySelectorAll('h3:not(.lead)').length !== 4) fail('the charter lacks its heading or its four heads');
+    const sett = st.cenv.settlements[farm.village], voices = Sim.membersOf(st, sett.id).filter((p) => p.alive && Sim.voiceOf(st, p, sett) > 0).length;
+    phrases[0].click(); tick(2);
+    const stand = box.querySelector('.stand'), ways = stand ? stand.querySelectorAll('.way').length : 0;
+    const dim = DIMS[+phrases[0].dataset.phrase];
+    if (ways !== dim.opts.length) fail(`an opened custom shows ${ways} ways, expected ${dim.opts.length}`);
+    if (stand && voices <= 8 && stand.querySelectorAll('.voice').length !== voices) fail(`${stand.querySelectorAll('.voice').length} faces for ${voices} voices`);
+    if (stand && stand.querySelectorAll('.tag').length < 1) fail('no way of the opened custom is marked as in force');
+    if (/%/.test(box.textContent)) fail('the Customs tab shows a percentage');
+    box.querySelector('[aria-expanded="true"]').dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); tick(2);
+    if (box.querySelector('.stand')) fail('Enter on the open phrase did not close it');
+    console.log('customs tab:', phrases.length, 'phrases |', ways, 'ways,', voices, 'voices |', box.querySelector('.charter').textContent.replace(/\s+/g, ' '));
+    settlers.querySelector(`button[data-pawn="${holder.id}"]`).click(); tick(5);
+    if (!tabC.hidden || doc.getElementById('tileFacts').hidden || !box.hidden) fail("a pawn's card shows the Customs tab or not its Details");
+    doc.getElementById('tabFacts').click(); tick(2);
+  }
   const recent = settlers.querySelector('[data-fold="recent"]');
   recent.open = true; recent.dispatchEvent(new win.Event('toggle')); tick(2);
   const lines = settlers.querySelectorAll('[data-fold="recent"] .log p').length, told = Sim.villageLog(st).length;

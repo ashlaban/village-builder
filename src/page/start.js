@@ -162,7 +162,7 @@
     demo = false; demoAt = null; document.body.classList.remove('demo');
     await swapWorld(a.wd, a.sim, a.painted);
     intro = null; cam.x = a.cam.x; cam.y = a.cam.y; cam.z = zt = a.cam.z; vel.x = vel.y = 0;
-    settlersHTML = ''; $('settlers').textContent = ''; customsStamp = '';
+    settlersHTML = ''; $('settlers').textContent = ''; customsStamp = ''; charterStamp = '';
     if (choose && choose.farm >= 0) { sel = st.farmsteads[choose.farm].house; selectionPinned = true; hoverDirty = true; renderChoose(); }
   }
   // A game raised or loaded drops the start's islands and the game kept aside (page/loader, build).
