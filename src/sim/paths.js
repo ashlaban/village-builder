@@ -16,6 +16,16 @@ VB['sim/paths'] = (() => {
     // @state w.worn: Uint8Array per tile; stage of the wear: 0 none, 1 trodden ground, 2 path, 3 lane; set once a game day
     w.wear = new Float32Array(w.N); w.worn = new Uint8Array(w.N);
   }
+  // A way laid by hand (the archipelago editor) on a run just seeded: each of its tiles worn to `stage` at the least, as if walked so for
+  // years; it fades as any wear does where no one walks. Built tiles and water take none. The number of tiles worn.
+  function layWay(w, tiles, stage) {
+    let n = 0;
+    for (const i of tiles) {
+      if (i < 0 || i >= w.N || w.dev[i] || w.water[i]) continue;
+      w.wear[i] = Math.max(w.wear[i], PATHS.at[stage]); w.worn[i] = Math.max(w.worn[i], stage); n++;
+    }
+    return n;
+  }
   // A walking pawn enters tile i. Houses, fields and the green wear no path; water is not walked.
   function tread(w, i) { if (i >= 0 && !w.dev[i] && !w.water[i]) w.wear[i] += 1; }
   // Once a game day: every count fades; a count under half a crossing is gone, and so is the wear of a tile built on since (a field
@@ -63,5 +73,5 @@ VB['sim/paths'] = (() => {
     for (let i = 0; i < w.N; i++) if (!w.water[i] && !w.dev[i]) n[w.worn[i]]++;
     return n;
   }
-  return { stageOf, initWear, tread, fadeWear, wearIn, stageCounts };
+  return { stageOf, initWear, tread, fadeWear, wearIn, stageCounts, layWay };
 })();

@@ -33,9 +33,10 @@ VB['gen/cover'] = (() => {
   function keep(w) {
     const kept = {};
     for (const k of Object.keys(w)) if (ArrayBuffer.isView(w[k])) kept[k] = w[k].slice();
-    return { arrays: kept, veinKind: w.veinKind.slice() };
+    return { arrays: kept, veinKind: w.veinKind.slice(), keys: new Set(Object.keys(w)) };
   }
   function restore(w, kept) {
+    for (const k of Object.keys(w)) if (!kept.keys.has(k)) delete w[k]; // what a run added: its wear, its caches
     for (const k of Object.keys(kept.arrays)) w[k].set(kept.arrays[k]);
     w.veinKind.length = 0; w.veinKind.push(...kept.veinKind);
   }

@@ -350,9 +350,13 @@
         <legend>Place</legend>
         <div class="ed-brushes" id="edPlaces" role="group" aria-label="Place">
           <button type="button" data-place="none" aria-pressed="true" class="wide">Look around</button>
-          <button type="button" data-place="village" aria-pressed="false">A village</button>
-          <button type="button" data-place="farm" aria-pressed="false">A household</button>
-          <button type="button" data-place="remove" aria-pressed="false" class="wide">Take one away</button>
+          <button type="button" data-place="village" data-ico="village" aria-pressed="false">A village</button>
+          <button type="button" data-place="farm" data-ico="home" aria-pressed="false">A household</button>
+          <button type="button" data-place="field" data-ico="sow" aria-pressed="false">A field</button>
+          <button type="button" data-place="meadow" data-ico="hay" aria-pressed="false">A meadow</button>
+          <button type="button" data-place="way" data-ico="road" aria-pressed="false">A road, drawn</button>
+          <button type="button" data-place="route" data-ico="road" aria-pressed="false">A road, found</button>
+          <button type="button" data-place="remove" data-ico="minus" aria-pressed="false" class="wide">Take one away</button>
         </div>
         <label class="ed-range" id="edFarmsRow"><span>Farms in a village<output id="edFarmsOut" for="edFarms"></output></span>
           <input id="edFarms" type="range" min="2" max="16" step="1" value="5"></label>

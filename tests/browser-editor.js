@@ -176,6 +176,20 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
   if (!(await pressUntil(await tries(v1.centre), async () => (await placed()).farms > v1.farms))) fail('no household could be placed near the village');
   const v2 = await placed();
   if (v2.villages !== 1 || v2.farms !== v1.farms + 1) fail(`a household placed near a village is not of it: ${JSON.stringify(v2)}`);
+  // a field by the household; a road found from the green to the house, worn as a lane where nothing is built; each button has its icon
+  const extra = () => page.evaluate(() => { const s = window.__ed.st, w = s.w; let lane = 0; for (let i = 0; i < w.N; i++) lane += w.worn[i] === 3;
+    return { fields: s.farmsteads.reduce((n, f) => n + f.fields.length, 0), lane, house: s.farmsteads[s.farmsteads.length - 1].house }; });
+  const e0 = await extra();
+  await page.click('#edPlaces [data-place="field"]');
+  if (!(await pressUntil(await tries(e0.house), async () => (await extra()).fields > e0.fields))) fail('no field could be placed by the household');
+  const xy = (i) => page.evaluate((i) => { const w = window.__ed.w, c = window.__ed.cam, r = document.getElementById('stage').getBoundingClientRect();
+    return { x: r.left + r.width / 2 + (w.hx[i] - c.x) * c.z, y: r.top + r.height / 2 + (w.hy[i] - c.y) * c.z }; }, i);
+  await page.click('#edPlaces [data-place="route"]');
+  const from = await xy(v1.centre), to = await xy(e0.house);
+  await page.mouse.click(from.x, from.y); await page.mouse.click(to.x, to.y); await page.waitForTimeout(400);
+  const e1 = await extra();
+  if (!(e1.lane > e0.lane) || !/1 road/.test(await page.locator('#edPlaced').innerText())) fail(`a road found: ${JSON.stringify([e0, e1])}`);
+  if ((await page.locator('#edPlaces button svg').count()) !== 7) fail('a place button has no icon');
   await page.waitForTimeout(1500);
   if ((await placed()).t !== v2.t) fail('the picture of what is placed does not stand still');
   if (!/households in 1 village/.test(await page.locator('#edPlaced').innerText())) fail(`placed: ${await page.locator('#edPlaced').innerText()}`);
@@ -185,6 +199,8 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
     && document.getElementById('loader').classList.contains('done') && !document.getElementById('menuBtn').disabled, null, { timeout: 180000 });
   const g2 = await page.evaluate(() => { const s = window.__ed.st; return { farms: s.farmsteads.length, villages: s.villages.length, centre: s.villages[0].center,
     unsaved: window.__ed.unsaved, choose: !document.getElementById('choose').hidden }; });
+  const e2 = await extra();
+  if (e2.fields !== e1.fields || e2.lane !== e1.lane) fail(`the game's fields and roads are not those placed: ${JSON.stringify([e1, e2])}`);
   if (g2.farms !== v2.farms || g2.villages !== 1 || g2.centre !== v2.centre || !g2.unsaved || !g2.choose) fail(`Play, placed by hand: ${JSON.stringify(g2)} for ${JSON.stringify(v2)}`);
   // back in the editor what was placed stands again; one taken away, then all
   await page.click('#chooseWatch'); await page.click('#menuBtn'); await landing(); await page.click('#landEdit'); await raised();
@@ -195,5 +211,5 @@ const HOOK = 'let st = null, speed = 1, selPawn = -1;';
   await browser.close();
   if (errors.length) { console.log(`browser-editor: ${errors.length} failure(s)`); process.exit(1); }
   console.log('browser-editor: a world alone on the stage, its tools in one scene, raised again as the parameters ask; the open game kept aside and '
-    + 'brought back; the brush lays cover and deposits; a village and a household placed by hand; Play starts a game on the world as made');
+    + 'brought back; the brush lays cover and deposits; a village, a household, a field and a road placed by hand; Play starts a game on the world as made');
 })().catch((e) => { console.error(e); process.exit(1); });

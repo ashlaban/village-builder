@@ -67,7 +67,7 @@
   async function edShow(whole) {
     demo = true; demoAt = null; demoRun = null; document.body.classList.add('demo');
     await swapWorld(edit.wd, edit.sim, edit.painted);
-    still = true; intro = null;
+    still = true; intro = null; edWays();
     if (whole) { T = 2; cam.x = edit.wd.W / 2; cam.y = edit.wd.H / 2; cam.z = zt = zMin(); vel.x = vel.y = 0; }
     edFacts();
   }
@@ -133,7 +133,7 @@
   // shown (not from a form changed since), so the editor keeps its own world, to come back to from the main menu. Such a game cannot be
   // saved yet: a save rebuilds its world from seed and size alone (page/loader, `unsaved`).
   function edPlay() {
-    if (!edit || !edit.wd || edit.busy || building || (edManual() && !edit.places.length)) return;
+    if (!edit || !edit.wd || edit.busy || building || $('edPlay').disabled) return;
     const p = edit.p;
     build(p.seed, $('edSettled').value, { cols: p.cols, rows: p.rows, landFrac: p.land / 100, regionRadius: p.region, apply: edApply,
       places: edManual() ? edit.places.map((x) => ({ ...x })) : null });
@@ -141,7 +141,7 @@
   // Main menu: the game kept aside comes back behind it; with none, the editor's world stays there.
   function closeEditor() {
     if (!editorOpen() || (edit && edit.busy)) return;
-    $('editor').hidden = true; document.body.classList.remove('editing'); sel = -1; hoverDirty = true; edHoldBrush();
+    $('editor').hidden = true; document.body.classList.remove('editing'); sel = -1; hoverDirty = true; edHoldBrush(); edWays();
     onStage(async () => {
       if (aside && !editorOpen()) await restoreAside();
       if (!editorOpen() && $('genScreen').hidden && !building) showLanding();
@@ -243,81 +243,9 @@
     for (const [t, d] of edit.deposit) Geo.setDeposit(wd, t, d);
     if (edit.deposit.size) Geo.reveins(wd);
   }
-  // ---- what is placed ----
-  // Settled by a scenario, the land is settled when Play is pressed. Placed by hand (Sim.seed's manual scenario), each place is laid at
-  // once by the game's own generator, and what stands there is that run, which Play begins on a land raised the same.
-  const edManual = () => $('edSettled').value === 'manual';
-  let edPlace = null; // the place tool held: 'village', 'farm', 'remove', or null
-  const edStale = new Set(); // tiles whose look a run taken away or laid has changed, to paint again
-  const edMark = (wd, sim) => {
-    if (sim) for (const t of sim.used) edStale.add(t); if (wd.worn) for (let i = 0; i < wd.N; i++) if (wd.worn[i]) edStale.add(i); };
-  // The run of the places on a world as kept, or null with none. A place that finds no room is taken out of the list, and the rest laid.
-  function edLay(wd, kept, seed) {
-    while (edManual() && edit.places.length) {
-      try { return Sim.seed(wd, seed, 'manual', edit.places); } catch (e) {
-        VB['gen/cover'].restore(wd, kept);
-        if (e.place === undefined) { console.warn('What is placed could not be laid', e); return null; }
-        edit.places.splice(e.place, 1);
-      }
-    }
-    return null;
-  }
-  // The run taken off the editor's world, which is as kept again.
-  function edUnseat() {
-    edMark(edit.wd, edit.sim); VB['gen/cover'].restore(edit.wd, edit.kept); edit.sim = null;
-    buildSettlement(edit.wd, null);
-  }
-  // The places laid anew on the world as kept, and shown.
-  async function edRelay() {
-    if (!edit || !edit.wd || w !== edit.wd) return;
-    const wd = edit.wd;
-    edMark(wd, edit.sim); VB['gen/cover'].restore(wd, edit.kept);
-    edit.sim = edLay(wd, edit.kept, edit.p.seed);
-    edMark(wd, edit.sim);
-    const tiles = [...edStale]; edStale.clear();
-    await buildSettlement(wd, edit.sim); still = true;
-    repaintTiles(tiles, tiles); edSettleEcho();
-  }
-  // page/input's mapBrush, for a place tool: a press on the map places a village about the tile or a household on it, or takes away the
-  // place nearest the tile. A place that finds no room is not kept, and the panel says so.
-  async function edPlaceAt(sx, sy, first) {
-    if (first !== true || !edit || !edit.wd || edit.busy || w !== edit.wd || !edPlace) return;
-    const wd = edit.wd, [x, y] = toWorld(sx, sy), t = loc(x, y, [0, 0]), n = edit.places.length;
-    if (t < 0) return;
-    let msg = '';
-    if (edPlace === 'remove') {
-      let k = -1, kd = 5;
-      edit.places.forEach((p, j) => { const d = VB['sim/hex'].hexSteps(wd, t, p.farm !== undefined ? p.farm : p.village); if (d < kd) { kd = d; k = j; } });
-      if (k < 0) return;
-      edit.places.splice(k, 1);
-    } else edit.places.push(edPlace === 'village' ? { village: t, farms: Number($('edFarms').value) } : { farm: t });
-    await edRelay();
-    if (edPlace !== 'remove' && edit.places.length <= n) {
-      msg = edPlace === 'village' ? 'A village finds no room there.' : 'A house cannot stand there, or finds no fields about it.';
-    }
-    $('edPlaceMsg').hidden = !msg; $('edPlaceMsg').textContent = msg;
-  }
-  // The Settlement panel as things stand, and whether Play can begin: placed by hand, only once something is placed.
-  function edSettleEcho() {
-    const manual = edManual(), sim = edit && edit.sim;
-    $('edSettledNote').textContent = manual ? 'Place villages and households yourself. Close households are one village, as they are in play.'
-      : `${START_WORDS[$('edSettled').value].line} They are placed when you press Play.`;
-    $('edPlacing').hidden = $('edPlacedBox').hidden = !manual;
-    for (const b of $('edPlaces').querySelectorAll('button')) b.setAttribute('aria-pressed',
-      String((b.dataset.place === 'none' ? null : b.dataset.place) === edPlace));
-    $('edFarmsOut').textContent = $('edFarms').value; $('edFarmsRow').hidden = edPlace !== 'village';
-    $('edPlaceNote').textContent = edPlace === 'village' ? 'Press on the land: the village is laid about that tile, with the farms that find room.'
-      : edPlace === 'farm' ? 'Press on the land: the house stands on that tile, its fields beside it.'
-        : edPlace === 'remove' ? 'Press on a village\u2019s green, or on a house you placed.' : 'Drag the map to move it. Choose what to place.';
-    const farms = sim ? sim.farmsteads.length : 0, vs = sim ? sim.villages.length : 0, people = sim ? sim.pawns.length : 0;
-    $('edPlaced').textContent = sim ? `${farms} ${farms === 1 ? 'household' : 'households'} in ${vs} ${vs === 1 ? 'village' : 'villages'}, ${people} people.`
-      : 'Nothing yet. Play begins once something is placed.';
-    $('edUnplace').disabled = !edit || edit.busy || !edit.places.length;
-    $('edPlay').disabled = !edit || edit.busy || !edit.wd || (manual && !edit.places.length);
-  }
   // A game raised or loaded drops the editor's world, which is heavy, and keeps what it was raised from: the next visit raises it again.
   function dropEditor() {
-    $('editor').hidden = true; document.body.classList.remove('editing'); edHoldBrush();
+    $('editor').hidden = true; document.body.classList.remove('editing'); edHoldBrush(); edWayG.clear();
     if (edit) { edit.wd = null; edit.painted = null; edit.kept = null; edit.sim = null; }
   }
 
@@ -347,16 +275,3 @@
   // the land as it was raised: the same parameters once more, with nothing laid on it
   $('edUnpaint').addEventListener('click', () => { if (edit && !edit.busy && edit.p) { edit.cover.clear(); edit.deposit.clear(); edRaise(edit.p); } });
   edBrushList();
-  $('edSettled').innerHTML = '<option value="manual">Placed by hand</option>'
-    + START_ORDER.map((k) => `<option value="${k}">${START_WORDS[k].name}</option>`).join('');
-  $('edSettled').value = 'founders';
-  // by hand or by a scenario: the picture of what is placed stands only while it is what Play would begin on
-  $('edSettled').addEventListener('input', () => {
-    edHoldBrush(); edSettleEcho(); if (edit && edit.wd && !edit.busy && (edit.sim || edit.places.length)) edRelay(); });
-  $('edPlaces').addEventListener('click', (e) => {
-    const b = e.target.closest('button'); if (!b) return;
-    edPlace = b.dataset.place === 'none' ? null : b.dataset.place; $('edPlaceMsg').hidden = true; edHoldBrush(); edSettleEcho();
-  });
-  $('edFarms').addEventListener('input', edSettleEcho);
-  $('edUnplace').addEventListener('click', () => { if (edit && !edit.busy && edit.places.length) { edit.places = []; edRelay(); } });
-  edSettleEcho();

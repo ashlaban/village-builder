@@ -10,6 +10,8 @@ VB['sim/layout'] = (() => {
   // ---- placing farms: houses, fields, fences ----
   // A farm's fields lie within FIELD_REACH walking steps of its house (VB-109).
   const FIELD_REACH = 4;
+  // A field or a meadow placed by hand (the archipelago editor) is of the farm nearest within HAND_REACH steps (sim/meadows' own reach).
+  const HAND_REACH = 6;
   const nextTo = (w, t, set) => { for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0 && set.has(j)) return true; } return false; };
   // n free farmable tiles in one connected block (each touching another, by hex neighbour) within FIELD_REACH walking steps of the house,
   // none next to the house or in `avoid` (the yards: tiles next to any house or green). Grown from each candidate tile, taking the best
@@ -321,10 +323,13 @@ VB['sim/layout'] = (() => {
       if (s > bs) { bs = s; best = t; }
     }
     if (best < 0) return false;
-    used.add(best);
-    f.fields.push({ id: f.fields.length, tile: best, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, best),
-      soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
+    fieldOn(w, used, f, best);
     return true;
+  }
+  function fieldOn(w, used, f, tile) {
+    used.add(tile);
+    f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
+      soil: SOIL.start, weedOpen: false, weedPosted: null, weedMiss: 0 });
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
   const farmHooks = [];
@@ -362,6 +367,16 @@ VB['sim/layout'] = (() => {
         farmsteads.push(f);
         return f;
       },
+      // A field on this very tile, placed by hand: of the farm whose house is nearest, within HAND_REACH steps. False where the tile
+      // cannot be a field (not farmable, taken, a yard) or no farm is near enough.
+      addFieldAt(tile) {
+        if (!farmable(w, tile) || used.has(tile) || yards.has(tile)) return false;
+        let f = null, fd = HAND_REACH + 1;
+        for (const g of farmsteads) { const d = hexSteps(w, g.house, tile); if (d < fd) { fd = d; f = g; } }
+        if (!f) return false;
+        fieldOn(w, used, f, tile); fieldsAt.add(tile);
+        return true;
+      },
       finish() {
         nameFarms(w, villages, farmsteads, rand);
         finishLand(w, villages, farmsteads, used, rand, bare);
@@ -372,7 +387,7 @@ VB['sim/layout'] = (() => {
     };
   }
   return {
-    settlementGenerator, farmHooks, FIELD_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
+    settlementGenerator, farmHooks, FIELD_REACH, HAND_REACH, nextTo, placeFields, enclose, siteScore, villageName, makeFence, makeFarmstead, findSite,
     buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
   };
 })();

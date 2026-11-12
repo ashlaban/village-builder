@@ -1,6 +1,6 @@
 // The manual scenario (the archipelago editor's Settlement tool): places laid in their order, a village by the generator about a tile and a
 // household on a very tile; households close to a village's centre are of that village, a far one is a village of its own; a place with no
-// room names itself; the state is sound and runs; and a world kept before seeding and put back seeds the same run again.
+// room names itself; a field, a meadow and a way are laid where they were placed; the state is sound and runs; and a world kept before seeding and put back seeds the same run again.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Cover = VB['gen/cover'], { SETTLE } = VB['sim/rules'], { hexSteps } = VB['sim/hex'];
 const { checkState } = require('./lib/invariants.js');
@@ -40,6 +40,31 @@ assert(farmOn(a).village !== 0 && farmOn(a).village === farmOn(b).village, 'two 
 assert.strictEqual(st.villages.length, 2); assert(!st.villages[1].green, 'a village of households placed by hand has no green');
 assert(farmOn(a).fields.length >= 3 && st.households[farmOn(a).household].members.length >= 2);
 assert.deepStrictEqual(checkState(st), []);
+
+// a field and a meadow on chosen tiles are of the farm nearest; a way is worn where it was laid; far from any farm they find no room
+const free = (from, lo, hi, ok) => sites(from, lo, hi).filter((t) => !st.used.has(t) && ok(t));
+const withPlace = (p) => tryPlaces([...places, p]);
+const fieldT = free(a, 2, 4, (t) => !(withPlace({ field: t }) instanceof Error))[0];
+assert(fieldT !== undefined, 'a field finds a tile by the household');
+const meadowT = free(a, 2, 5, (t) => t !== fieldT && !(tryPlaces([...places, { field: fieldT }, { meadow: t }]) instanceof Error))[0];
+assert(meadowT !== undefined, 'a meadow finds a tile by the household');
+const way = VB['sim/routes'].findRoute(w, near, a, 1e9);
+assert(way && way.length > 5, 'a way is found over the unsettled land from one house to the other');
+const all = [...places, { field: fieldT }, { meadow: meadowT }, { way, stage: 3 }];
+st = tryPlaces(all);
+assert(!(st instanceof Error), `fields, meadows and ways: ${st.message}`);
+const owner = st.farmsteads.find((f) => f.fields.some((fd) => fd.tile === fieldT));
+assert(owner && (owner.house === a || owner.house === b), 'the field is of a farm near it');
+assert(st.farmsteads.some((f) => f.meadows.some((m) => m.tile === meadowT) && (f.house === a || f.house === b)), 'the meadow is of a farm near it');
+const worn = way.filter((t) => st.w.worn[t] === 3).length;
+assert(worn > way.length / 2 && way.every((t) => st.w.dev[t] || st.w.worn[t] === 3), `the way is a lane where nothing is built: ${worn} of ${way.length}`);
+assert.deepStrictEqual(checkState(st), []);
+Sim.advance(st, 24 * 20); // and the run goes on, sound; the world is put back by the next seeding
+assert.deepStrictEqual(checkState(st), []);
+const lonely = sites(a, 3 * SETTLE.centreApart, 9 * SETTLE.centreApart).find((t) => st.farmsteads.every((f) => hexSteps(w, f.house, t) > 8));
+if (lonely !== undefined) for (const p of [{ field: lonely }, { meadow: lonely }]) assert.strictEqual(withPlace(p).place, places.length, 'no farm near enough');
+assert(tryPlaces([{ way, stage: 3 }]) instanceof Error, 'a way alone is no settlement');
+st = tryPlaces(places);
 
 // no room: the place says which it is; nothing placed is refused
 const sea = w.water.indexOf(1);

@@ -27,10 +27,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - The archipelago editor is `src/page/editor.js`: a world alone on the stage with no run (`edit`, page state as the showcase island is), its
   tools' panels in one scene, Regenerate, and Play, which calls the loader's `build` with the generation options and `apply(wd)`. The
   terrain brush changes a world only before a run is seeded on it, through `VB['gen/cover'].set` (a land tile's cover) and the geology's
-  `setDeposit` and `reveins`; what was painted is kept as tile maps and laid again on the land raised anew. The Settlement tool settles
-  by a scenario, or by hand: `Sim.seed(w, seed, 'manual', places)` (`sim/scenarios`, seedManual; `tests/manual.js`) lays each place in order, a
+  `setDeposit` and `reveins`; what was painted is kept as tile maps and laid again on the land raised anew. The Settlement tool (`src/page/editplace.js`)
+  settles by a scenario, or by hand: `Sim.seed(w, seed, 'manual', places)` (`sim/scenarios`, seedManual; `tests/manual.js`) lays each place in order, a
   village by the generator or a household on its very tile (`sim/layout`, addFarmAt, which joins it to a village whose centre is within
-  `SETTLE.centreApart`), with people as in Populous. The editor shows that run, standing still (`still`), and puts the world back
+  `SETTLE.centreApart`), with people as in Populous. A field or a meadow placed is of the farm nearest within `HAND_REACH`
+  (`sim/layout`, addFieldAt; `sim/meadows`, meadowAt), and a road is wear laid as a lane (`sim/paths`, layWay), drawn or found by `findRoute`. The editor shows that run, standing still (`still`), and puts the world back
   (`gen/cover`, keep and restore) before it is painted or seeded again. A game begun there is
   `unsaved`: a save rebuilds its world from seed and size alone (`tests/browser-editor.js`).
 - Walking: `src/sim/routes.js` holds the cost of each tile (terrain, fords, worn paths; rivers are closed but at a ford or bridge), the A* route
