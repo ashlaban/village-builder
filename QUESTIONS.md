@@ -144,6 +144,21 @@ lie bands, averaging only its own; forgetting is the weak band. None blocks a ta
 7. Belief is the parameter everything hangs on (a base of 0.3 leaves the fair's other village unaware in 7 of 10 seeds). **P:** a base of
    0.6, moved by the tie to and opinion of the teller and by fit, as in the experiment; fitted in the wrap-up.
 
+### VB-136: herding, as built (raised 12 November 2026)
+Herding is merged (children do 69% of it; the numbers are in `backlog/VB-136.md`). Three things it showed that are yours to judge; none blocks a task.
+1. A household without a child of 8 seldom herds: founders herd 0 to 22 of 54 grazing days (the mistress and the maid have herding priority 0, the
+   farmer 2 and he is at the wood, the hay or the fishing), so their cows give about half their milk (7.3 rations a cow a year against 13.5).
+   Nobody went hungrier for it in the runs (founders small, seeds 7 and 42: hungry household-days 4 to 0 and 0 to 0). **P:** leave it for now, as
+   the real cost of a household without children; if it should not be, the lever is a village herd (one herder for the village's cattle, a
+   routine of VB-257's kind, which is how it was done), not the women's priority.
+2. Cattle never got into a crop in any run: fences are mended at 0.65 and break in at 0.45, so the rule is exercised only by `tests/herding.js`,
+   and VB-257's "an unmended fence lets the cattle in" has shown no consequence yet (two failed meetings in 30 years at seed 11, no crop lost).
+   **P:** leave the numbers; the consequence comes when a village's routines can leave the fence out (VB-058, VB-100 and VB-120 add routines
+   that compete for the four places).
+3. With herding, gifts and close friendships fall in the heirs run of `tests/record.js` (seed 7, 3 years: gifts 21 to 7, close friends 7 to 4;
+   births, deaths and marriages the same): the herders are away from the houses by day. **P:** accept it for now and let the talk plan
+   (VB-186) say whether herders meet each other on the pasture, which would give some of it back.
+
 ## Priority 3
 
 ### VB-158 and VB-033: stakes and empty farms, as built (raised 2 November 2026)
