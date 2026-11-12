@@ -1,4 +1,4 @@
-// @sys sim/fields: new fields, crop lifecycle and daily growth, weeding, frost and abandonment; soil and manure
+// @sys sim/fields: new fields (each a project plan of sim/plans), crop lifecycle and daily growth, weeding, frost and abandonment; soil and manure
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
@@ -11,6 +11,8 @@ VB['sim/fields'] = (() => {
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const { team } = VB['sim/herds'];
   const Stores = VB['sim/stores'];
+  const Projects = VB['sim/projects'], { emit } = VB['sim/events'];
+  const { seedPer } = VB['sim/hunger'];
   const REACH = 4, SCRUB_HOURS = 10, STONE_HOURS = 20, BREAK_HOURS = 30, STONES_PER_LOAD = 25;
   // Rations a household eats in a full year of 48 days.
   function yearlyRations(st, hh) {
@@ -35,7 +37,10 @@ VB['sim/fields'] = (() => {
   function builtTiles(st) {
     const out = new Set(st.villages.map((v) => v.center));
     for (const f of st.farmsteads) out.add(f.house);
-    for (const v of st.villages) for (const p of v.plots || []) for (const tr of p.tiles) if (tr.kind === 'house') out.add(tr.tile);
+    for (const v of st.villages) { // plots built, and under way (their village's project plans, VB-123)
+      for (const p of v.plots || []) for (const tr of p.tiles) if (tr.kind === 'house') out.add(tr.tile);
+      for (const p of Projects.projectsOf(st, 'village', v.id)) for (const tr of p.steps[0].places) if (tr.kind === 'house') out.add(tr.tile);
+    }
     return out;
   }
   // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),
@@ -54,35 +59,41 @@ VB['sim/fields'] = (() => {
     }
     return best;
   }
+  // The project plan of a new field on `tile`, as sim/plans makes it (makeProject; VB-123): clearing, then breaking, both under the
+  // household's stake; it holds back the seed the field will want (released when the field is made, when the standing plan's seed counts it).
+  const fieldProject = (st, hh, tile) => ({ what: 'field', steps: [{ kind: 'clear', place: tile, hours: clearHours(st, tile), stake: 'field' },
+    { kind: 'break', place: tile, hours: BREAK_HOURS, stake: 'field' }], hold: { grain: seedPer(st, hh) } });
   // A household with fewer fields than it wants, none in progress, picks a tile and stakes it (sim/stakes): the project starts with clearing.
   // With no free tile within reach, it may contest the best tile another household of its village staked and left unworked.
   // The land step of its standing plan (sim/plans, VB-248): `wanted` is the plan's target of fields, `given` a tile the plan names in place
-  // of chooseTile's (-1: none; nothing names one yet, VB-253's verb will, and checks it first).
+  // of chooseTile's (-1: none; nothing names one yet, VB-253's verb will, and checks it first). Returns the project plan for sim/plans to
+  // make (fieldProject), or undefined.
   function startProject(st, f, hh, built = builtTiles(st), wanted = fieldsWanted(st, hh), given = -1) {
-    if (f.project || f.fields.length >= wanted) return;
+    if (Projects.projectOf(st, 'household', hh.id) || f.fields.length >= wanted) return;
     let tile = given >= 0 ? given : chooseTile(st, f, undefined, built);
     if (tile < 0) {
       tile = chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
       if (tile < 0 || !contest(st, f, hh, tile, 'field')) return;
     }
     stake(st, hh, tile, 'field');
-    f.project = { tile, stage: 'clear', hours: clearHours(st, tile) };
+    return fieldProject(st, hh, tile);
   }
-  // Clearing done: the stones go to the household's store, the tile is bare ground.
+  // Clearing done: the stones go to the household's store, the tile is bare ground; the project's next step, breaking, opens.
   function finishClear(st, f, hh) {
-    const w = st.w, tile = f.project.tile;
+    const w = st.w, tile = Projects.openOf(st, 'household', f.household).place;
     const loads = Math.round(w.stones[tile] / STONES_PER_LOAD); if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
-    w.stones[tile] = 0; f.project.stage = 'break'; f.project.hours = BREAK_HOURS;
+    w.stones[tile] = 0; emit(st, 'stepDone', { type: 'household', id: f.household }); // the project's next step opens (sim/plans)
     st.biomeDirty.add(tile);
   }
   // Breaking done: the stake is the household's own land, a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh
-  // (SOIL.fresh, VB-149).
+  // (SOIL.fresh, VB-149). The project is finished.
   function finishBreak(st, f) {
-    const w = st.w, tile = f.project.tile;
+    const w = st.w, tile = Projects.openOf(st, 'household', f.household).place;
     realiseStake(st, st.households[f.household], tile);
     f.fields.push({ id: f.fields.length, tile, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
       soil: w.dev[tile] ? SOIL.start : SOIL.fresh, weedOpen: false, weedPosted: null, weedMiss: 0 });
-    f.project = null; st.used.add(tile); w.dev[tile] = 1;
+    emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
+    st.used.add(tile); w.dev[tile] = 1;
     st.visualDirty = true; st.biomeDirty.add(tile);
     log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
   }
@@ -154,7 +165,7 @@ VB['sim/fields'] = (() => {
       fd.weedOpen = true; fd.weedPosted = day;
     }
     // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
-    for (const f of st.farmsteads) if (f.household === null && !f.claim) {
+    for (const f of st.farmsteads) if (f.household === null && !Projects.onFarm(st, f.id)) {
       const yrs = (st.t - f.emptySince) / YEAR;
       for (const fd of f.fields) {
         const want = yrs > 8 && nearForest(st.w, fd.tile) || fd.stage === 'scrub' ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage;
@@ -171,6 +182,6 @@ VB['sim/fields'] = (() => {
     }
   }
   return { hoed, sown, trample, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable,
-    fieldsWanted, builtTiles, chooseTile, startProject, finishClear, finishBreak, wearSoil,
+    fieldsWanted, builtTiles, chooseTile, startProject, fieldProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };
 })();

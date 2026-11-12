@@ -10,13 +10,13 @@ VB['sim/settle'] = (() => {
   const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } = VB['sim/records'];
   const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
-  const { builtTiles, clearHours } = VB['sim/fields'];
+  const { builtTiles, fieldProject } = VB['sim/fields'];
   const { stake } = VB['sim/stakes'];
-  const { findSite, hasPlot, activePlots, building, roomAt } = VB['sim/expansion'];
+  const { findSite, hasPlot, activePlots, building, roomAt, livePlots, tilesOf } = VB['sim/expansion'];
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
-  const { makePlan } = VB['sim/plans'];
+  const { makePlan, openOf, makeProject } = VB['sim/plans'];
   const { reckonWood, woodTaken } = VB['sim/territory'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
@@ -87,8 +87,11 @@ VB['sim/settle'] = (() => {
   function landInUse(st) {
     const w = st.w, use = { taken: new Set(st.used), near: new Set() }, marks = builtTiles(st);
     for (let t = 0; t < w.N; t++) if (st.owner[t] !== 0 || st.claims.has(t)) use.taken.add(t);
-    for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); if (f.project) marks.add(f.project.tile); }
-    for (const v of st.villages) for (const p of v.plots) for (const tr of p.tiles) marks.add(tr.tile);
+    for (const f of st.farmsteads) {
+      for (const fd of f.fields) marks.add(fd.tile);
+      const s = f.household !== null && openOf(st, 'household', f.household); if (s) marks.add(s.place); // its project (sim/plans)
+    }
+    for (const v of st.villages) for (const p of [...v.plots, ...livePlots(st, v)]) for (const tr of tilesOf(p)) marks.add(tr.tile);
     // A multi-source search computes the union of the same radius searches. Each tile is visited once,
     // even where hundreds of fields overlap; source order and BFS order cannot affect set membership.
     const queue = [...marks], depth = new Map(queue.map((t) => [t, 0]));
@@ -167,7 +170,7 @@ VB['sim/settle'] = (() => {
     const rank = (u) => (kin.has(u.id) ? 0 : 1);
     near.sort((a, b) => rank(a) - rank(b) || reach.get(a.center) - reach.get(b.center) || a.id - b.id);
     for (const u of near) {
-      const under = activePlots(u).length + u.plots.filter(building).length + u.farmsteads.filter((id) => st.farmsteads[id].booth).length;
+      const under = activePlots(st, u).length + livePlots(st, u).filter(building).length + u.farmsteads.filter((id) => st.farmsteads[id].booth).length;
       if (under >= MAX_PLOTS) continue;
       const site = findSite(st, u);
       if (site) return { village: u, house: site.house, field: site.field, steps: reach.get(u.center) };
@@ -190,7 +193,7 @@ VB['sim/settle'] = (() => {
     const hh = foundHousehold(st, f, party.all, settler.id, { grain: prov.grain, text, followers: party.followers, carry: false }); // no wood (VB-328)
     woodTaken(st, house); reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
     stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
-    f.project = { tile: field, stage: 'clear', hours: clearHours(st, field) };
+    makeProject(st, 'household', hh.id, fieldProject(st, hh, field)); // its project plan (sim/plans, VB-123)
     return f;
   }
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.

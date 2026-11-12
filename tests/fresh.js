@@ -17,7 +17,10 @@ for (const [t] of VB['sim/hex'].bfs(w, f.house, 8, VB['sim/routes'].walkable(w))
 }
 check(free.length >= 2, 'two free tiles near the farm');
 const [freshTile, oldTile] = free; w.dev[oldTile] = 1;
-const breakOn = (tile) => { f.project = { tile, stage: 'break', hours: 0 }; F.finishBreak(st, f); return f.fields[f.fields.length - 1]; };
+const breakOn = (tile) => {
+  VB['sim/plans'].makeProject(st, 'household', f.household, { what: 'field', steps: [{ kind: 'break', place: tile, hours: 0, stake: 'field' }] });
+  F.finishBreak(st, f); return f.fields[f.fields.length - 1];
+};
 const fresh = breakOn(freshTile), old = breakOn(oldTile);
 check(near(fresh.soil, S.fresh) && near(old.soil, S.start), `soil on fresh ground ${fresh.soil}, on old ground ${old.soil}`);
 check(w.dev[freshTile] === 1, 'the fresh tile is farmed now');
@@ -43,14 +46,14 @@ const landless = (u) => st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.set
 const v = st.villages.find((u) => landless(u).length) || st.villages[0], ids = landless(v); // the first village with an adult without land
 st.demand = ids.slice(0, 1);
 X.startPlots(st);
-const plot = v.plots[v.plots.length - 1];
+const plot = X.livePlots(st, v).slice(-1)[0]; // its village's project plan (VB-123)
 if (!plot) check(false, 'a plot is started');
 else {
-  const ftr = plot.tiles.find((t) => t.kind === 'field'), wasFresh = !w.dev[ftr.tile];
-  for (const tr of plot.tiles) while (tr.i < tr.steps.length) X.finishStep(st, { plot, tr });
+  const ftr = X.tilesOf(plot).find((t) => t.kind === 'field'), wasFresh = !w.dev[ftr.tile];
+  for (const tr of X.tilesOf(plot)) while (tr.i < tr.steps.length) X.finishStep(st, { plot, tr });
   check(ftr.fresh === wasFresh, `the plot's field remembers fresh ground (${ftr.fresh})`);
   for (let i = 0; i < 3; i++) X.finishStep(st, { plot, cottage: true });
-  const g = st.farmsteads[plot.farmstead];
+  const g = st.farmsteads[v.plots.find((q) => q.id === plot.plot)?.farmstead];
   check(g && near(g.fields[0].soil, wasFresh ? S.fresh : S.start), `the plot farm's field soil ${g && g.fields[0].soil}`);
 }
 if (failed) process.exit(1);

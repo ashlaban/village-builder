@@ -7,7 +7,7 @@ const { shareFood, fillStores, surplus, askDaysAt } = VB['sim/help'], { dailyNee
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 const fresh = () => {
   const st = Sim.seed(r.value, 7, 'founders');
-  for (const f of st.farmsteads) if (f.project) f.project = null;
+  for (const hh of st.households) VB['sim/plans'].dropAll(st, 'household', hh.id);
   for (const hh of st.households) { hh.grain = seedReserve(st, hh); hh.meals = 0; }
   return st;
 };

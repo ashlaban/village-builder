@@ -2,14 +2,14 @@
 // a cottage's or a booth's site whose felled tiles gave too little for its walls, and the plot's wood shared out when the plot is given;
 // raising a house onto a stone foundation, with stone picked or quarried for it (VB-332)
 VB['sim/building'] = (() => {
-  const Stores = VB['sim/stores'];
+  const Stores = VB['sim/stores'], Projects = VB['sim/projects'];
   const { BUILD, ECON, SEASON_DAYS, SPEED, houseCondition } = VB['sim/rules'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
   const { walkable, findRoute } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
-  const { building, COTTAGE, boothJob, finishBoothStage } = VB['sim/expansion'];
+  const { building, livePlots, COTTAGE, boothJob, finishBoothStage } = VB['sim/expansion'];
   // Design (Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's walls take BUILD.timber loads (six trees, 3 loads a tree as a firewood
   // trip's); a plot's felled tiles give their trees as its wood (sim/expansion, plot.wood); a cottage or booth short of it fells the rest in
   // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: plot.wood, or f.booth.wood).
@@ -25,8 +25,8 @@ VB['sim/building'] = (() => {
     };
     for (const v of st.villages) {
       if (!v.wood.length) continue;
-      for (const plot of v.plots) {
-        if (building(plot)) ask(`timber:v${v.id}.${plot.id}`, v, plot, plot.cottage.i, plot.tiles[0].tile, { type: 'village', id: v.id });
+      for (const plot of livePlots(st, v)) { // the site's timber is the walls step's (sim/expansion)
+        if (building(plot)) ask(`timber:v${v.id}.${plot.plot}`, v, plot.steps[2], plot.open - 1, plot.steps[1].place, { type: 'village', id: v.id });
       }
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
@@ -66,7 +66,7 @@ VB['sim/building'] = (() => {
   // land project under way when the step would open (a household makes its land first); its source kept while a load can still be got there.
   function buildStep(st, plan, hh) {
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null, old = plan.build || null;
-    if (!f || f.household !== hh.id || f.booth || f.grade !== 'ground' || (!old && f.project)) return null;
+    if (!f || f.household !== hh.id || f.booth || f.grade !== 'ground' || (!old && Projects.projectOf(st, 'household', hh.id))) return null;
     if (old && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
     return stoneSource(st, f);
   }
@@ -142,7 +142,7 @@ VB['sim/building'] = (() => {
       const n = Math.min(left, Math.max(0, ECON.woodWinter - hh.wood));
       if (n > 0) { Stores.put(st, hh, 'wood', n, 'plot'); left -= n; }
     }
-    plot.wood = 0;
+    plot.steps[2].wood = 0;
     return left;
   }
   return { KINDS, boothWork, timberWork, shareWood, stoneWork, buildStep, stoneSource };

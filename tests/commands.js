@@ -136,11 +136,11 @@ const servant = st3.pawns.find((p) => p.died === null && p.age >= 15 && !Sim.isH
 const master = st3.households.find((h) => !h.dissolved && h.id !== servant.household);
 assert.strictEqual(issue(st3, { actor: servant.id, verb: 'serve', target: master.id, source: 'round' }), true);
 assert.strictEqual(servant.household, master.id); assert.strictEqual(servant.servant, true);
-const empty = st3.farmsteads.find((f) => VB['sim/farmclaims'].claimable(f));
+const empty = st3.farmsteads.find((f) => VB['sim/farmclaims'].claimable(st3, f));
 if (empty) {
   const claimant = st3.pawns.find((p) => p.died === null && p.age >= 18 && p.id !== groom.id && p.id !== bride.id);
   assert.strictEqual(issue(st3, { actor: claimant.id, verb: 'claim', target: empty.id, source: 'round' }), true);
-  assert.strictEqual(empty.claim.by, claimant.id);
+  assert.strictEqual(VB['sim/farmclaims'].claimOn(st3, empty).by, claimant.id);
   R3.push([{ actor: claimant.id, verb: 'claim', target: empty.id }, /cannot be claimed/]);
 }
 const before4 = snap3();

@@ -103,7 +103,7 @@ VB['sim/clock'] = (() => {
     { every: 'day', owner: 'sim/clock', note: 'empty farms decay, about 8% a year',
       run: (st) => {
         // not while a claimant mends the farm (VB-033)
-        for (const f of st.farmsteads) if (f.household === null && !f.claim) {
+        for (const f of st.farmsteads) if (f.household === null && !VB['sim/projects'].onFarm(st, f.id)) { // its restoration (VB-123)
           f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
           if (f.state === 'derelict' && f.condition < 0.15) { f.state = 'ruin'; st.visualDirty = true; }
         }

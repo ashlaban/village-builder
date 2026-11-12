@@ -11,7 +11,7 @@ VB['sim/jobs'] = (() => {
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
-  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks } = VB['sim/plans'];
+  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks, openOf } = VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   function post(st, key, kind, owner, site, extra) {
@@ -135,11 +135,11 @@ VB['sim/jobs'] = (() => {
     ask(ASK.island, null, null);
     for (const j of st.jobs.values()) {
       if (islandJob(j)) sweep(st, j);
-      else if (KINDS[j.kind].project && j.farm && !onProject(j)) { j.live = false; sweep(st, j); }
+      else if (KINDS[j.kind].project && j.farm && !onProject(st, j)) { j.live = false; sweep(st, j); }
     }
   }
-  // A land project's task whose project still stands at its stage on its tile.
-  const onProject = (j) => !!j.farm.project && j.farm.project.tile === j.site && j.farm.project.stage === j.kind;
+  // A land project's task whose project plan still stands at this step on its tile (sim/plans, projectOf).
+  const onProject = (st, j) => { const s = openOf(st, 'household', j.owner.id); return !!s && s.place === j.site && s.kind === j.kind; };
   // A member without a task acts on the household's opportunities (design.md section 7, Acting without the plan; VB-249): when matching
   // gave it none of the plan's tasks, the kinds of its household's fields and farm are asked as a review asks them, at most once a
   // household a day (sim/plans, mayLook), and what they report is posted for it to take; nothing is taken down. The pawns whose household

@@ -6,7 +6,7 @@ const { feedHousehold, dailyNeed, seedReserve } = VB['sim/hunger'], { callCooks,
 const { DAY, cal } = VB['sim/rules'];
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 const fresh = () => Sim.seed(r.value, 7, 'founders');
-const setup = (st, hh) => { for (const fd of st.farmsteads[hh.farmstead].fields) fd.stage = 'growing'; if (st.farmsteads[hh.farmstead].project) st.farmsteads[hh.farmstead].project = null; };
+const setup = (st, hh) => { for (const fd of st.farmsteads[hh.farmstead].fields) fd.stage = 'growing'; VB['sim/plans'].dropAll(st, 'household', hh.id); };
 
 // every household starts with two days of meals, in every scenario
 for (const sc of ['founders', 'heirs', 'populous']) {
@@ -33,7 +33,7 @@ for (const sc of ['founders', 'heirs', 'populous']) {
   assert(Math.abs(hh.meals - need) < 1e-9 && Math.abs(hh.grain - (100 - need / 2)) < 1e-9 && hh.cookDay === c.day, 'cooked up to the next meal');
   hh.meals = 0; hh.grain = 0.2; hh.cookDay = -1; st.jobs.set('k', j); complete(st, cook);
   assert(Math.abs(hh.meals - 0.2) < 1e-9 && hh.grain === 0, 'only the grain there is');
-  f.project = { tile: f.house, stage: 'clear', hours: 1 }; hh.meals = 0; hh.grain = seedReserve(st, hh); st.jobs.set('k', j); complete(st, cook);
+  VB['sim/plans'].makeProject(st, 'household', hh.id, VB['sim/fields'].fieldProject(st, hh, f.house)); hh.meals = 0; hh.grain = seedReserve(st, hh); st.jobs.set('k', j); complete(st, cook);
   assert.strictEqual(hh.meals, 0, 'seed is not cooked');
 }
 { // from 14:00 a household short of meals calls its best cook off other work; the job it leaves keeps its progress

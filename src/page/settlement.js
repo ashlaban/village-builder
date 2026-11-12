@@ -134,7 +134,8 @@
     for (const v of st.villages) {
       if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
       for (const s2 of v.fence) addFence(s2);
-      for (const plot of v.plots.filter((q) => !q.built)) for (const tr of plot.tiles) {
+      const X = VB['sim/expansion'];
+      for (const plot of X.livePlots(st, v)) for (const tr of X.tilesOf(plot)) { // the plots under way: their village's project plans (VB-123)
         // stumps while the wood is felled but not grubbed out, turned soil once the ground is broken, a ring while the work goes on
         const g = new PIXI.Graphics(), x = wd.hx[tr.tile], y = wd.hy[tr.tile], step = tr.steps[tr.i];
         if (step === 'grub') for (const [dx, dy] of [[-7, 2], [0, -5], [6, 4], [-2, 8]]) {
@@ -142,8 +143,8 @@
             g.ellipse(x + dx, y + dy, 0.9, 0.7).stroke({ width: 0.4, color: 0x96462f }); }
         if (tr.kind === 'field' && tr.i >= tr.steps.length) g.ellipse(x, y + 2, 14, 8).fill({ color: 0x986846, alpha: 0.9 }).stroke({
           width: 0.8, color: INK, alpha: 0.6 });
-        if (tr.kind === 'house' && plot.cottage) cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, plot.cottage.i);
-        if (!plot.done || (plot.cottage && !plot.built)) g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
+        if (tr.kind === 'house' && plot.open >= 1) cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, X.cottageAt(plot));
+        g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
         L.fences.addChild(g);
       }
     }

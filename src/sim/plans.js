@@ -9,10 +9,11 @@ VB['sim/plans'] = (() => {
   const { KINDS } = VB['sim/kinds'];
   const { seedNeed } = VB['sim/hunger'];
   const { fieldsWanted, fieldsWorkable, startProject } = VB['sim/fields'];
+  const Projects = VB['sim/projects'], { on } = VB['sim/events'], { log } = VB['sim/records'];
   const { startMeadow } = VB['sim/meadows'];
   const { buildStep } = VB['sim/building'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
-  //   seasonal plan, due: the due-queue}; a standing plan is
+  //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
   //   of its last review), woke (the day of its last review woken by a store), looked (the day a member last looked for work outside the
   //   plan's tasks), dirty (sim/stores: a store crossed a target since the last review), reserved, reasons (sim/stores' reservations)}, and a
@@ -40,6 +41,61 @@ VB['sim/plans'] = (() => {
   //   'asLastYear'); plan.routinesYear: the year of cal they were set. Written only by setRoutines, through the meeting's verb.
   // @state plan.build (a household's; VB-332): its building step, {tile, kind 'pick' | 'quarry' | null} (where its stone comes from; -1 and
   //   null for nowhere in reach) while it means to raise its house onto stone, else null or absent; set at each review (sim/building's buildStep).
+  // ---- project plans (VB-123; design.md section 7): their record and reads are sim/projects'; only this section writes them ----
+  const { projectsOf, projectOf, holderOf, impossible, dropWords } = Projects;
+  function remove(st, plan) {
+    const map = st.plans.projects[plan.holder.type], list = map.get(plan.holder.id) || [], i = list.indexOf(plan);
+    if (i >= 0) list.splice(i, 1);
+    if (!list.length) map.delete(plan.holder.id);
+  }
+  // A project plan for holder {type, id}, from {what, steps, hold, ...its own fields} (sim/fields' fieldProject, sim/meadows', a plot): what
+  // its steps spend is reserved from the holder's free stock (null, and no plan, when another plan holds it), `hold` kept back for after it.
+  function makeProject(st, type, id, { what, steps, hold = null, ...own }) {
+    const holder = holderOf(st, { type, id }), P = st.plans.projects, spend = {};
+    const plan = { id: ++st.plans.projectSeq, holder: { type, id }, kind: 'project', what, ...own, steps, open: 0, reserved: {}, reasons: {} };
+    if (!P[type].has(id)) P[type].set(id, []);
+    P[type].get(id).push(plan);
+    for (const s of steps) for (const good in s.spends || {}) spend[good] = (spend[good] || 0) + s.spends[good];
+    for (const good in spend) if (!Stores.reserve(st, holder, plan, good, spend[good], 'build')) { dropProject(st, plan); return null; }
+    for (const good in hold || {}) Stores.reserve(st, holder, plan, good, hold[good], 'field');
+    return plan;
+  }
+  // The open step done: what it spends taken from the store with its reservation, the next step open; after the last, the plan finished.
+  function advance(st, plan) {
+    const s = plan.steps[plan.open], holder = holderOf(st, plan.holder);
+    for (const good in s.spends || {}) {
+      const left = plan.reserved[good] - s.spends[good];
+      if (left > 1e-9) Stores.reserve(st, holder, plan, good, left, 'build'); else Stores.release(st, holder, plan, good, 'build');
+      Stores.take(st, holder, good, s.spends[good], 'build');
+    }
+    if (++plan.open >= plan.steps.length) { Stores.releaseAll(plan); remove(st, plan); }
+  }
+  // The plan is given up: its reservations released, the plan removed, and `text` told as a notable event when given.
+  function dropProject(st, plan, text = null, at = {}) {
+    Stores.releaseAll(plan); remove(st, plan);
+    if (text) log(st, text, { kind: 'projectDropped', ...at });
+  }
+  // The plan reviewed at once when a store or a right of its holder changed: while its step is possible it stands; else it is dropped and
+  // told, in its own words (sim/projects' dropWords), in `text` and `at` given by the change, or not at all when `told`. True when it stands.
+  function review(st, plan, told = false, text = null, at = null) {
+    const why = impossible(st, plan);
+    if (!why) return true;
+    if (!told && !text) [text, at] = dropWords(st, plan, why);
+    dropProject(st, plan, told ? null : text, at || {});
+    return false;
+  }
+  // Every plan of a holder that ends (a household dissolved), without a word: the end of its holder is told.
+  const dropAll = (st, type, id) => { for (const plan of [...projectsOf(st, type, id)]) dropProject(st, plan); };
+  // A claim lost on a tile (sim/stakes; -1: all; `told`, or `text` and `at`); a store short (sim/stores); a step done (sim/fields,
+  // sim/meadows, sim/expansion, sim/cottage: `plan` names it when the holder has several); a plot begun (sim/expansion).
+  on('rightLost', (st, d) => {
+    for (const plan of [...projectsOf(st, d.type, d.id)]) {
+      if (d.tile < 0 || plan.steps.some((s) => s.place === d.tile)) review(st, plan, !!d.told, d.text || null, d.at || null);
+    }
+  });
+  on('storeShort', (st, d) => { for (const plan of [...projectsOf(st, d.type, d.id)]) if (plan.reasons[d.good] === 'build') review(st, plan); });
+  on('stepDone', (st, d) => { const plan = d.plan || projectOf(st, d.type, d.id); if (plan) advance(st, plan); });
+  on('projectBegun', (st, d) => { makeProject(st, d.type, d.id, d.project); });
   // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
   // A culture's year as rules of sim/registry, so that a culture, a head's foresight (VB-254) or the player (VB-253) changes one row: for
   // each season the routines in the order the work is done (year.order: a routine's place in the season, -1 when it is not done then), and
@@ -279,12 +335,13 @@ VB['sim/plans'] = (() => {
   // A dissolved household's plan goes with it, its reservations with the plan, and its entries leave the due-queue.
   function dropPlan(st, type, id) {
     mapOf(st, type).delete(id);
+    dropAll(st, type, id); // its project plans with it
     if (type === 'household') { st.plans.seasons.delete(id); st.plans.due = st.plans.due.filter((e) => e[1] !== id); }
   }
   const planOf = (st, type, id) => mapOf(st, type).get(id);
   // The plans of every live holder, at seed, and at the load of a save made before plans (VB-258).
   function seedPlans(st) {
-    st.plans = { households: new Map(), villages: new Map(), seasons: new Map(), due: [] };
+    st.plans = { households: new Map(), villages: new Map(), seasons: new Map(), due: [], projects: Projects.emptyProjects(), projectSeq: 0 };
     for (const id of st.liveHouseholds) makePlan(st, 'household', id);
     for (const v of st.villages) makePlan(st, 'village', v.id);
   }
@@ -292,6 +349,7 @@ VB['sim/plans'] = (() => {
   // plans (VB-252): its plans get them as made now.
   function fillPlans(st) {
     if (!st.plans.seasons) st.plans.seasons = new Map();
+    if (!st.plans.projects) { st.plans.projects = Projects.emptyProjects(); st.plans.projectSeq = 0; } // VB-123: project plans
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (!plan.reserved) {
         plan.reserved = {}; plan.reasons = {}; // lint-allow: owner a save made before reservations gets empty ones (sim/stores writes them)
@@ -329,10 +387,13 @@ VB['sim/plans'] = (() => {
   // meadow while it is short of one; the tile is the holder's choice (chooseTile, chooseMeadow) unless the plan names one.
   // `built`: the houses and greens, once for every farm's look (sim/fields, builtTiles).
   function landStep(st, plan, f, hh, built) {
-    startProject(st, f, hh, built, plan.targets.fields, plan.tiles.field);
-    startMeadow(st, f, hh, built, plan.tiles.meadow);
+    let p = startProject(st, f, hh, built, plan.targets.fields, plan.tiles.field);
+    if (p) makeProject(st, 'household', hh.id, p);
+    p = startMeadow(st, f, hh, built, plan.tiles.meadow);
+    if (p) makeProject(st, 'household', hh.id, p);
     Stores.reserve(st, hh, plan, 'grain', seedNeed(st, hh), 'seed'); // a project begun holds its seed from now
   }
   return { reviewHour, makePlan, dropPlan, planOf, seasonOf, seedPlans, fillPlans, reviewed, landStep, reviewWhy, mayLook, closing, cadence, WINDOWED,
-    dueNow, again, ROUTINES, cultureOf, VILLAGE_ROUTINES, MAX_ROUTINES, rankRoutines, chooseRoutines, routinesWhy, setRoutines, routineAsks };
+    dueNow, again, ROUTINES, cultureOf, VILLAGE_ROUTINES, MAX_ROUTINES, rankRoutines, chooseRoutines, routinesWhy, setRoutines, routineAsks,
+    projectOf, projectsOf, openOf: Projects.openOf, makeProject, advance, drop: dropProject, review, dropAll, impossible }; // VB-123's project plans
 })();
