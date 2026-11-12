@@ -23,8 +23,7 @@ VB['sim/rules'] = (() => {
   // ---- economy (a ration, the unit of food, is one adult's food for one game day; FOODS below) ----
   const ECON = {
     ration: { adult: 1, child: 0.5 },
-    fieldYield: 100, seedPerField: 25, // a 4:1 yield ratio
-    sowWindow: [0, 9], ripeAfterDays: 26, dryDays: 1,
+    dryDays: 1,
     woodPerTrip: 3, woodTarget: 30, woodWinter: 40, woodUse: [0.35, 0.3, 0.5, 1.6],
     startGrain: 180, startWood: 16,
     fenceDecay: [0.012, 0.01, 0.014, 0.03], fenceMendBelow: 0.65,
@@ -32,6 +31,16 @@ VB['sim/rules'] = (() => {
     // grain in store spoils (mice, damp, mould; balance review): a share a year of the grain up to a year's need, of the next year's worth, and of
     // the rest; the FAO puts losses in traditional stores at about 5% a year, and up to 20% where rats are many
     storeLoss: [0.05, 0.2, 0.4], villageStoreLoss: 0.2, // the village store (sim/help) loses a fifth a year, as grain kept a second year
+  };
+  // ---- crops (VB-346; design.md, Crops and rotations): one row each, and a field holds the key of its crop (`fd.crop`). A plain table here,
+  // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
+  // grain. Days are game days. yield: rations a field gives at fertility and soil 1; seed: rations sown on a field (a 4:1 ratio); sow: the window
+  // [season, first day, last day]; ripe: days from sowing to ripe; wear: the soil a harvest takes (the frost's day is the
+  // calendar's, sim/clock FROST, until a second crop has another). hours: the work of each stage; KINDS plow, sow, weed, reap and thresh (sim/kinds)
+  // read them from here. ----
+  const CROPS = {
+    barley: { yield: 100, seed: 25, sow: [0, 0, 9], ripe: 26, wear: 0.08,
+      hours: { plow: 20, sow: 2, weed: 2, reap: 5, thresh: 6 } },
   };
   // ---- fields a household wants (balance review, 1 Nov 2026): enough for `want` times a year's rations at `expect` of the full yield, but no more
   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
@@ -203,7 +212,7 @@ VB['sim/rules'] = (() => {
   // The heap loses `rot` of what lies on it in a year (balance review). perLoad 0.02 would make about 3 head of cattle, not 1.5, hold 3 fields, but
   // cost a quarter more hungry days over 8 seeds, so it stays at 0.04 until Kim chooses (QUESTIONS.md). A field broken on ground never farmed
   // (w.dev 0) starts at `fresh`, above the cap: virgin and burnt-over land gave far more its first crops (VB-149, docs/review-expansion.md) ----
-  const SOIL = { start: 1, fresh: 1.4, wear: 0.08, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
+  const SOIL = { start: 1, fresh: 1.4, floor: 0.75, perLoad: 0.04, cap: 1.15, cattle: 0.2, sheep: 0.04, window: [0, 5], rot: 0.5 };
   // Ale (VB-305; design.md, Goods, Ale and standing; Kim, 10 Nov): a side craft in autumn and winter. `grain` rations of grain from the
   // household's surplus (above its floor, which holds the seed reserve) and `hours` of work in the house give a barrel, which keeps one season
   // (the good's perish, sim/stores) and serves `guests` guests; a household brews while it holds fewer than `stock` barrels. A barrel poured at
@@ -333,7 +342,7 @@ VB['sim/rules'] = (() => {
   const houseTerm = (st, f) => ((onStone(f) ? HOUSE.termStone : HOUSE.term) + (houseTarred(st, f) ? HOUSE.termTarred - HOUSE.term : 0))
     * houseCondition(st, f);
   return { DAY, SEASON_DAYS, YEAR_DAYS, YEAR, TICKS, HOUSE, houseCondition, houseTarred, houseTerm,
-    SEASONS, cal, WORK, dark, ECON, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
+    SEASONS, cal, WORK, dark, ECON, CROPS, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
     BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, HERD, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS, SHARES, SETTLE, SERVICE, MATCH,

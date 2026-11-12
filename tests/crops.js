@@ -1,21 +1,22 @@
 // Crop boundary regressions: seed shortages, sheaves waiting at frost, and restoring an abandoned farm.
 const assert = require('assert'), VB = require('../src/load.js');
+const { CROPS } = VB['sim/rules'];
 const { setClock, moveClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { DAY, YEAR, SEASON_DAYS, cal } = VB['sim/rules'];
-const { KINDS } = VB['sim/kinds'], { endOfDay } = VB['sim/clock'];
-const { fieldsDay } = VB['sim/fields'];
+const { KINDS } = VB['sim/kinds'];
+const { fieldsDay, fieldsFrost } = VB['sim/fields'];
 const w = tinyWorld(Array.from({ length: 18 }, () => '.'.repeat(24)));
 const st = tinyState(w, [{ at: [8, 8], farms: 2 }], { seed: 7 });
 const f = st.farmsteads[0], hh = st.households[f.household], fd = f.fields[0];
 assert(fd, 'test farm needs a field');
 const j = { farm: f, field: fd };
 KINDS.plow.done(st, j);
-hh.grain = st.ECON.seedPerField - 1;
+hh.grain = CROPS.barley.seed - 1;
 const before = structuredClone(fd);
 KINDS.sow.done(st, j, hh, cal(0));
 assert.deepStrictEqual(fd, before, 'insufficient seed must leave the hoed field untouched');
-hh.grain = st.ECON.seedPerField;
+hh.grain = CROPS.barley.seed;
 KINDS.sow.done(st, j, hh, cal(0));
 assert.equal(hh.grain, 0, 'sowing consumes the seed');
 
@@ -41,7 +42,7 @@ KINDS.haul.deliver(st, j, hh, f);
 const waiting = { ...fd, id: f.fields.length, stage: 'stooks', sown: 0, held: 17 };
 f.fields.push(waiting);
 const frostBefore = st.record.filter((e) => e.kind === 'frost').length;
-endOfDay(st, c);
+fieldsDay(st, c); fieldsFrost(st); // the final autumn midnight (sim/clock, CALENDAR)
 assert(hh.unthreshed.includes(held), 'delivered sheaves survive the final autumn midnight');
 assert.equal(fd.stage, 'stubble');
 assert.equal(waiting.stage, 'stubble');

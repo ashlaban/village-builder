@@ -2,21 +2,21 @@
 // load.js's order and, right after each registers, wraps the coarse entry points listed in SYSTEMS in a timer, so the modules loaded after it
 // destructure the wrapped functions. Time is exclusive (a wrapped call inside another counts for the inner one). Per-pawn steps (moving,
 // working) are far too many to time one by one: the agents' step is timed whole, once a step (VB-205), and what is left of Sim.advance (the
-// clock's own loops, onHour and endOfDay outside the named systems) is the remainder, reported as "agents and walking".
+// clock's own loops, the calendar's entries outside the named systems) is the remainder, reported as "agents and walking".
 // Used by tools/sim.js: `const { load, result } = require('./perf.js')`; `load()` replaces require('../src/load.js').
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path');
 const SYSTEMS = {
   'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'callCooks', 'lookUp', 'planRound', 'lookForWork'] },
   'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/society': ['outdoors'] },
-  'daily life and births': { 'sim/lifecycle': ['dailyLife', 'nightCulture'], 'sim/births': ['dailyBirths'] },
+  'daily life and births': { 'sim/lifecycle': ['dailyLife', 'dailyDeaths', 'nightCulture'], 'sim/births': ['dailyBirths'] },
   'hunger and meals': { 'sim/hunger': ['feedHousehold', 'spoilGrain'], 'sim/help': ['shareFood'] },
   // Slice 1, kin help booked (VB-219): what it added to help, the gift's check (the floor and the allowance) and goodwill's booking,
   // handovers and ends. Help's daily ask and the gift's moves and events (settleGift, help's gift until VB-216) stay in hunger and meals.
   'kin help and goodwill': { 'sim/exchange': ['assessGift'], 'sim/relations': ['book', 'passGoodwill', 'endGoodwill'] },
-  'herds': { 'sim/herds': ['herdsDay'] },
-  'byre': { 'sim/byre': ['byreDay'] },
-  'meadows': { 'sim/meadows': ['meadowsDay'] },
+  'herds': { 'sim/herds': ['herdsDay', 'spring'] },
+  'byre': { 'sim/byre': ['byreDay', 'autumnCounts'] },
+  'meadows': { 'sim/meadows': ['meadowsSpring', 'meadowsFrost'] },
   'paths and routes': { 'sim/paths': ['fadeWear'], 'sim/routes': ['refreshRoutes'] },
   'trees': { 'sim/forest': ['growTrees'] },
   'the moving round': { 'sim/lifecycle': ['roundPhase'] }, // a phase a step (VB-201)

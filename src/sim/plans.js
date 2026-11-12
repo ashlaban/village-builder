@@ -2,7 +2,7 @@
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
 // diligence, and the due-queue that opens the time-bound kinds at their hours
 VB['sim/plans'] = (() => {
-  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, cal } = VB['sim/rules'];
+  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, CROPS, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   const { next: rnd } = VB['sim/rng'];
   const Stores = VB['sim/stores'];
@@ -130,7 +130,7 @@ VB['sim/plans'] = (() => {
   year('wood', (st, x) => (x.season === 1 || x.season === 2 ? st.ECON.woodWinter : st.ECON.woodTarget));
   year('woodSecond', (st) => st.ECON.woodTarget * 0.4);
   year('hayWinters', () => HAY_WINTERS);
-  year('seed', (st) => st.ECON.seedPerField);
+  year('seed', () => CROPS.barley.seed);
   year('perHand', () => FIELDS.perHand);
   // The template compiled at the season's turn (Rules for cost, 6): per culture {wood: [by season], and of this season woodSecond,
   // hayWinters, seed, perHand, steps: the routines in order}, made at its first need in a season, so a seasonal plan copies arrays and
@@ -212,7 +212,7 @@ VB['sim/plans'] = (() => {
   // sowing and the day after it (its hoeing and sowing taken down), the two last days of autumn (the harvest before the frost), and the first
   // day of winter (the ice: fishing taken down, VB-117).
   function closing(st, c) {
-    const last = st.ECON.sowWindow[1];
+    const last = CROPS.barley.sow[2]; // the sowing window's end (barley alone as yet)
     return (c.season === 0 && (c.sday === last || c.sday === last + 1)) || (c.season === 2 && c.sday >= SEASON_DAYS - 2) || (c.season === 3 && c.sday === 0);
   }
   // A household whose field is ripe, or that has a field still to hoe or sow while the sowing window is open, at the first review hour:
@@ -221,8 +221,10 @@ VB['sim/plans'] = (() => {
     if (plan.holder.type !== 'household' || c.hour !== FIRST) return false;
     const hh = st.households[plan.holder.id], f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return false;
-    const W = st.ECON.sowWindow, sow = c.season === 0 && c.sday >= W[0] && c.sday <= W[1];
-    for (const fd of f.fields) if (fd.stage === 'ripe' || (sow && (fd.stage === 'stubble' || fd.stage === 'plowed'))) return true;
+    for (const fd of f.fields) {
+      const W = CROPS[fd.crop].sow, sow = c.season === W[0] && c.sday >= W[1] && c.sday <= W[2];
+      if (fd.stage === 'ripe' || (sow && (fd.stage === 'stubble' || fd.stage === 'plowed'))) return true;
+    }
     return false;
   }
   // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, or its fields due today,

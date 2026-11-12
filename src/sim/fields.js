@@ -2,7 +2,7 @@
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
-  const { ECON, FIELDS, SOIL, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
+  const { ECON, CROPS, FIELDS, SOIL, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
@@ -30,7 +30,7 @@ VB['sim/fields'] = (() => {
   // Fields a household wants: enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield), as many as its hands can till.
   // `workable`: fieldsWorkable(st, hh), when the caller has it (the plan's review writes both, sim/plans).
   const fieldsWanted = (st, hh, workable = fieldsWorkable(st, hh)) => Math.max(1, Math.min(workable,
-    Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (FIELDS.expect * ECON.fieldYield))));
+    Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (FIELDS.expect * CROPS.barley.yield))));
   // Hours of clearing a tile: scrub, plus the stones in proportion.
   const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255;
   // Houses and greens, standing or planned (a plot's house): no field is made next to one (VB-113).
@@ -87,7 +87,7 @@ VB['sim/fields'] = (() => {
   function finishBreak(st, f) {
     const w = st.w, tile = Projects.openOf(st, 'household', f.household).place;
     realiseStake(st, st.households[f.household], tile);
-    f.fields.push({ id: f.fields.length, tile, stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
+    f.fields.push({ id: f.fields.length, tile, crop: 'barley', stage: 'stubble', sown: null, reaped: null, held: 0, fert: fertility(w, tile),
       soil: w.dev[tile] ? SOIL.start : SOIL.fresh, weedOpen: false, weedPosted: null, weedMiss: 0 });
     emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
     st.used.add(tile); w.dev[tile] = 1;
@@ -96,7 +96,7 @@ VB['sim/fields'] = (() => {
   }
   // ---- soil and manure (VB-137) ----
   // A reaped crop wears the field's soil.
-  const wearSoil = (fd) => { fd.soil = Math.max(SOIL.floor, fd.soil - SOIL.wear); };
+  const wearSoil = (fd) => { fd.soil = Math.max(SOIL.floor, fd.soil - CROPS[fd.crop].wear); };
   // In spring, while the heap holds a load, manure goes to the field with the poorest soil that is not yet sown: [field, loads] or null.
   function manureWanted(f, hh, c) {
     if (c.season !== 0 || c.sday < SOIL.window[0] || c.sday > SOIL.window[1] || !(hh.manure >= 1)) return null;
@@ -112,7 +112,8 @@ VB['sim/fields'] = (() => {
     const n = Math.max(0, Math.min(loads, hh.manure));
     hh.manure -= n; fd.soil = Math.max(fd.soil, Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad));
   }
-  // @state farmstead.fields[]: crop stage, sown/reaped days, held sheaves and weeding progress; changed only here after seeding.
+  // @state farmstead.fields[]: crop (a key of CROPS, sim/rules), stage, sown/reaped days, held sheaves and
+  // weeding progress; changed only here after seeding.
   const hoed = (fd) => { fd.stage = 'plowed'; };
   function sown(fd, c) {
     fd.stage = 'sown'; fd.sown = c.day;
@@ -121,7 +122,7 @@ VB['sim/fields'] = (() => {
   function reaped(st, fd, c) {
     const E = st.ECON;
     fd.stage = 'stooks'; fd.reaped = c.day;
-    fd.held = Math.round(E.fieldYield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
+    fd.held = Math.round(CROPS[fd.crop].yield * fd.fert * fd.soil * st.weather * (0.9 + rnd(st.rng.fields) * 0.2)
       * (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)));
     wearSoil(fd); // the crop takes from the soil (VB-137)
     fd.weedOpen = false; fd.weedPosted = null; fd.weedMiss = 0;
@@ -146,7 +147,7 @@ VB['sim/fields'] = (() => {
     for (const f of st.farmsteads) for (const fd of f.fields) {
       if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
       const g = day - fd.sown;
-      if (g >= E.ripeAfterDays) fd.stage = 'ripe';
+      if (g >= CROPS[fd.crop].ripe) fd.stage = 'ripe';
       else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
     }
     // upkeep: a growing field wants weeding every E.weedEvery days; a job still open when the next falls due counts as missed
@@ -155,11 +156,6 @@ VB['sim/fields'] = (() => {
       if (fd.weedPosted !== null && day - fd.weedPosted < E.weedEvery) continue;
       if (fd.weedOpen) fd.weedMiss++;
       fd.weedOpen = true; fd.weedPosted = day;
-    }
-    if (c.season === 2 && c.sday === SEASON_DAYS - 1) for (const f of st.farmsteads) for (const fd of f.fields) {
-      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
-        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
-      }
     }
     // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
     for (const f of st.farmsteads) if (f.household === null && !f.claim) {
@@ -170,7 +166,15 @@ VB['sim/fields'] = (() => {
       }
     }
   }
-  return { hoed, sown, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable, fieldsWanted,
-    builtTiles, chooseTile, startProject, fieldProject, finishClear, finishBreak, wearSoil,
+  // The autumn frost, on the season's last day (sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still standing or in stooks is lost.
+  function fieldsFrost(st) {
+    for (const f of st.farmsteads) for (const fd of f.fields) {
+      if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
+        fd.stage = 'stubble'; fd.sown = null; fd.held = 0; log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
+      }
+    }
+  }
+  return { hoed, sown, reaped, hauled, reclaimed, weeded, abandoned, fieldsDay, fieldsFrost, BREAK_HOURS, clearHours, yearlyRations, fieldsWorkable,
+    fieldsWanted, builtTiles, chooseTile, startProject, fieldProject, finishClear, finishBreak, wearSoil,
     manureWanted, manureDone };
 })();

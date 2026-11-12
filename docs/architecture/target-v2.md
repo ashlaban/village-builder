@@ -149,6 +149,9 @@ declared in one table, because it decides outcomes (what decays, such as goodwil
 form, by the rules for cost): in autumn, harvest, then stores, then dues, then plans, then the meeting
 (autumn day 10), then the moving round (day 11).
 
+The table exists (VB-241, 12 November): `CALENDAR` in `src/sim/clock.js`, entries by step, hour, day, season or year, or at a named day and
+step, each with its owner; `node tools/sim.js --report calendar` prints it, and `tests/clock.js` holds its order.
+
 ## 4. Domains
 
 ### 4.1 Kernel

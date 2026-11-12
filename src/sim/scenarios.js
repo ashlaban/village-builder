@@ -2,7 +2,7 @@
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
-  const { YEAR, TICKS, ECON, FERTILITY, farmable } = VB['sim/rules'];
+  const { YEAR, TICKS, ECON, CROPS, FERTILITY, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -33,7 +33,7 @@ VB['sim/scenarios'] = (() => {
     initCulture(st, null, { kinLimit: 'close' }); countDemand(st);
     st.makeFields = true;
     // grain for a full year of rations, and seed for the fields the household wants
-    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + fieldsWanted(st, hh) * ECON.seedPerField;
+    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + fieldsWanted(st, hh) * CROPS.barley.seed;
     foundersHerds(st);
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
@@ -71,7 +71,7 @@ VB['sim/scenarios'] = (() => {
     const st = makeState(w, S, R, households, farmsteads, villages, used, 'populous');
     initCulture(st, null); countDemand(st);
     // grain for a full year of rations and seed for every field the farm has, as for the founders
-    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * ECON.seedPerField;
+    for (const hh of st.households) hh.grain = yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * CROPS.barley.seed;
     populousHerds(st); placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
@@ -192,7 +192,7 @@ VB['sim/scenarios'] = (() => {
     //   empty farm being restored by its claimant;
     //   sim/farmclaims); meadows[] {id, tile, stage 'grass'|'mown'|'aftermath',
     //   fert, raked, mown (day), held} (hay meadows; sim/meadows);
-    //   fields[] {id, tile, stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
+    //   fields[] {id, tile, crop (key of CROPS), stage, sown, reaped, held, fert, soil (0.75..1.4: worn by harvests, raised by manure to 1.15; a field
     //   broken on ground never farmed starts at 1.4; VB-137, VB-149), weedOpen,
     //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1 at condAt (hours; an occupied house wears from it, houseCondition of

@@ -4,6 +4,7 @@
 //   --from Y: count years from Y on (the first years of a scenario are settling in); --json prints the household-years as well.
 require('./help.js')(__filename);
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], F = VB['sim/hunger'], Stores = VB['sim/stores'];
+const { CROPS } = VB['sim/rules'];
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'founders'), seeds = opt('seeds', '7').split(',').map(Number), map = opt('map', 'small');
@@ -29,7 +30,7 @@ function run(seed) {
       let gifts = 0;
       for (const e of hh.ledger) {
         if (e.t < t0 || e.t >= t1) continue;
-        if (e.kind === 'harvest') made.grain += e.n - E.seedPerField; // the seed for that crop was sown from the store
+        if (e.kind === 'harvest') made.grain += e.n - CROPS.barley.seed; // the seed for that crop was sown from the store
         else if (e.kind in made) made[e.kind] += e.n;
         else if (e.kind === 'gift') gifts += e.n;
       }

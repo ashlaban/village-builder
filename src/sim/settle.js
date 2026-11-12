@@ -3,7 +3,7 @@ VB['sim/settle'] = (() => {
   const { issue } = VB['sim/commands'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { SETTLE, ECON, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
+  const { SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -69,7 +69,7 @@ VB['sim/settle'] = (() => {
   const Stores = VB['sim/stores'];
   const rationsOf = (st, ids) => ids.reduce((s, id) => s + (st.pawns[id].age >= 14 ? ECON.ration.adult : ECON.ration.child), 0);
   function provisions(st, all) {
-    const need = Math.ceil(SETTLE.provisionDays * rationsOf(st, all)) + ECON.seedPerField, gifts = [];
+    const need = Math.ceil(SETTLE.provisionDays * rationsOf(st, all)) + CROPS.barley.seed, gifts = [];
     let have = all.reduce((s, id) => s + (st.pawns[id].stake || 0), 0);
     for (const h of new Set(all.map((id) => st.pawns[id].household))) {
       if (have >= need) break;
