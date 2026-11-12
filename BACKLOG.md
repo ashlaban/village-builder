@@ -153,6 +153,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-354](backlog/VB-354.md) | A season's weather, read by each crop in its own way | crops | 2 | M | VB-349 | The yearly weather factor gives way to a season's warmth and wetness, the thaw and the first frost, which barley, rye, peas and hay each read differently. |
 | [VB-355](backlog/VB-355.md) | The player sows: verbs for a field's rotation, and crops on the map | crops | 2 | M | VB-350, VB-253, VB-256 | The player as head sets a field's rotation freely among those it has seed for, or sows one field out of turn; the plan panel lists the fields; the map shows each crop at each stage. |
 | [VB-356](backlog/VB-356.md) | Wrap-up: crops and rotations | crops | 2 | M | VB-347, VB-348, VB-349, VB-350, VB-351, VB-352, VB-353, VB-354, VB-355 | Check the arch against the design with long runs: the food balance by crop, how crops spread, the hedge against the weather, the labour calendar, cost early and late; add its bands and propose tuning. |
+| [VB-387](backlog/VB-387.md) | Herding's routes: the herders' walks out of the route counters' residual | - | 2 | S | VB-236 | routeRefresh, routeExpand and routeSearch are out since herding (VB-136); find what the daily refresh tests and bring them back. |
 | [VB-331](backlog/VB-331.md) | A day without water: no cooking and a little health | - | 3 | S | VB-327 | A household that fetched no water that day cannot cook and its members lose a little health, as with an empty woodpile; today the water job is read by nothing. |
 
 ## Archs
