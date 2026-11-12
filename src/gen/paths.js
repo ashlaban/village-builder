@@ -9,7 +9,11 @@ VB['gen/paths'] = (() => {
   // rim where the turf breaks, the bare earth, and on paths and lanes a paler middle where the ground is packed hardest.
   const LOOK = {
     ways: 2, // the worn neighbours a tile's way keeps to (keeps, below)
-    from: 2, // the stage from which a way is drawn: 2, a path (PATHS.at[2] crossings, about four a day kept up)
+    // the stage from which a way is drawn: 3, a lane (PATHS.at[3] crossings, about sixteen a day kept up). One household alone makes
+    // some eleven crossings a day of the tile at its door (water, the green, its fields and the wood, there and back), so a path
+    // (four a day) is every household's own way and a village's middle was a net of them; a lane is a way several households share,
+    // and those are the roads (Kim, VB-396). Trodden ground and paths are walked, counted and quicker as before, and not drawn.
+    from: 3,
     width: [0, 4.5, 6.5, 9.5],
     level: [-1, 0, 1, 1],
     layers: [
@@ -25,7 +29,7 @@ VB['gen/paths'] = (() => {
     return [w.hx[i] + Math.cos(a) * d, w.hy[i] + Math.sin(a) * d];
   }
   // A worn tile that draws its own trail: land, a field or a meadow (w.dev 0 and 1) worn to LOOK.from or more, not a green, a house or
-  // a river. Trodden ground is walked, counted and quicker (sim/paths, sim/routes) and is not drawn (Kim, VB-396): the small ways
+  // a river. Less worn ground is walked, counted and quicker (sim/paths, sim/routes) and is not drawn (Kim, VB-396): the small ways
   // everyone takes across the grass are too slight for the map, and drawn they hid the roads.
   const trail = (w, i) => i >= 0 && w.worn[i] >= LOOK.from && w.dev[i] < 2 && !w.water[i] && !w.river[i];
   // ---- which ways a trail leaves its tile ----
