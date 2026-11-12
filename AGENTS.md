@@ -59,11 +59,12 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   adds a report (households, pawns, jobs, events, hunger, perf, counts and more), `--household N`, `--pawn N`; `--save FILE` and
   `--load FILE`, so a bug report can carry the run.
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
-- Also: `node tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies
-  and cycles), `node tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs;
-  `node tests/calibrate.js natural 2 50` is quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters), `node tools/shot.js`
-  (screenshots of the page), `node tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads),
-  `node tools/bench.js` (the budget's lines at `medium-y5` and `medium-ref`).
+- Also: `node tools/gossip.js` (VB-187's experiment: stories against opinion averaging in a reduced scenario; `docs/gossip-experiment.md`), `node
+  tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies and cycles), `node
+  tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs; `node tests/calibrate.js natural 2 50` is
+  quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters), `node tools/shot.js` (screenshots of the page), `node
+  tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
+  `medium-y5` and `medium-ref`).
 - Agent usage: `node tools/agent-usage.js` (this session's calls, tokens and tool results, from its transcript; `--history docs/agents/usage`).
 - Play locally: open `index.html` in a browser.
 
