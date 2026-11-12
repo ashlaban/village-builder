@@ -2,6 +2,26 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 12 November 2026 (VB-119)
+
+## VB-119: fresh fish on dried fish (raised 12 November 2026)
+VB-119 was rebuilt on dried fish (VB-300) as you decided on 11 November, with a cook job under way finishing after 18:00, and measured by the
+same runs (populous small, 30 years, seeds 3, 7, 11, 42; `backlog/VB-119.md`, third pass). Households are still hungrier: household-years
+hungry on over 0.3 of their days 0 / 0 / 0 / 0 -> 6 / 0 / 5 / 2, hungry days 30 / 19 / 17 / 14 -> 261 / 33 / 170 / 40, grain at harvest 3 to
+30% lower from year 5. Households dry 35,000 to 56,000 rations of fish over 30 years, as before, while 120,000 to 200,000 rations of fresh
+fish spoil (40 to 46% of the fish landed for food): a boat's trip lands about two days of a household's need, and the summer's surplus that
+fed the winter as meals is lost. The hungry households are the poorest (1 or 2 fields, many children, fished-out water) after a poor
+harvest, and they eat their seed uncooked, at 1.25. The branch is committed, not merged.
+1. How the summer's surplus is kept. **P:** a catch the household cannot eat before it spoils is dried, not lost: the drying want grows
+   from a quarter of the winter's need to the winter's fish share of the pot and its season runs to the end of autumn (VB-300's `DRY`),
+   and fishing for the pot waits while the fresh fish held covers the next 2 days of the pot (its urgency counts grain today, so a
+   household with grain fishes daily and the catch spoils). Measured by the same runs before merging.
+   **A (Kim, 12 Nov):** Merge VB-119 as rebuilt; drying the catch a household cannot eat is a separate task (VB-388), as proposed.
+2. The seed a short household eats. **P:** it is cooked like other grain: the cook cooks from the seed what the coming day's meal would take
+   from it (as `feedHousehold` does), so `rawGrain` falls only on days the cook is missed (seed 3 with `rawGrain` 1: 6 -> 1 hungry
+   household-years).
+   **A (Kim, 12 Nov):** In the same separate task (VB-388): the cook cooks the seed a short household would eat, as proposed.
+
 # Archived 11 November 2026 (VB-119)
 
 ## VB-119 and VB-023: two tasks built and held back (raised 11 November 2026)

@@ -10,22 +10,6 @@ Since 3 November the backlog is organised as vertical slices (`docs/roadmap.md`)
 
 ## Priority 2
 
-### VB-119: fresh fish on dried fish (raised 12 November 2026)
-VB-119 was rebuilt on dried fish (VB-300) as you decided on 11 November, with a cook job under way finishing after 18:00, and measured by the
-same runs (populous small, 30 years, seeds 3, 7, 11, 42; `backlog/VB-119.md`, third pass). Households are still hungrier: household-years
-hungry on over 0.3 of their days 0 / 0 / 0 / 0 -> 6 / 0 / 5 / 2, hungry days 30 / 19 / 17 / 14 -> 261 / 33 / 170 / 40, grain at harvest 3 to
-30% lower from year 5. Households dry 35,000 to 56,000 rations of fish over 30 years, as before, while 120,000 to 200,000 rations of fresh
-fish spoil (40 to 46% of the fish landed for food): a boat's trip lands about two days of a household's need, and the summer's surplus that
-fed the winter as meals is lost. The hungry households are the poorest (1 or 2 fields, many children, fished-out water) after a poor
-harvest, and they eat their seed uncooked, at 1.25. The branch is committed, not merged.
-1. How the summer's surplus is kept. **P:** a catch the household cannot eat before it spoils is dried, not lost: the drying want grows
-   from a quarter of the winter's need to the winter's fish share of the pot and its season runs to the end of autumn (VB-300's `DRY`),
-   and fishing for the pot waits while the fresh fish held covers the next 2 days of the pot (its urgency counts grain today, so a
-   household with grain fishes daily and the catch spoils). Measured by the same runs before merging.
-2. The seed a short household eats. **P:** it is cooked like other grain: the cook cooks from the seed what the coming day's meal would take
-   from it (as `feedHousehold` does), so `rawGrain` falls only on days the cook is missed (seed 3 with `rawGrain` 1: 6 -> 1 hungry
-   household-years).
-
 ### VB-294: where the village's choice of gathering is made (raised 11 November 2026)
 Raised by the backlog's curation of 11 November. VB-294's criterion reads "A village's choice is a routine of its meeting (VB-257), so the player's pawn argues for it by advocacy as for any cause." VB-257's routines are village work (at most four a year, each a source of tasks on the `villager` basis), set "as a decision of the meeting (a command of the meeting, as its other decisions)"; a choice among hosts posts no work. Slice 5's VB-313 builds `sim/decisions`, the one place where a body's questions, procedures and ballots are asked (the custom votes first; VB-293's offers are planned to move there), but it is slice 5 and P3, and VB-294 is slice 4 and P2.
 1. Is the choice of gathering one of VB-257's routines, or a question of the meeting of its own? **P:** a question of its own, made as VB-257 makes its decisions (a command of the meeting, the player's pawn arguing by advocacy), not one of the four routines; VB-294 keeps waiting for VB-257 only, and VB-313 moves the choice into `sim/decisions` with the other questions when it lands, so slice 4 does not wait for slice 5. The other way: VB-294 waits for VB-313 as well, and the fair moves behind slice 5's refactor.
