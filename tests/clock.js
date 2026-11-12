@@ -69,6 +69,7 @@ const ORDER = [
   "year |  | sim/meadows | the meadows are grass again",
   "year | season 2, sday 11 | sim/meadows | the autumn frost rots hay still lying",
   "day |  | sim/byre | food spoils, manure rots, the stalled herds eat their hay",
+  "year | season 0, sday 2 | sim/drying | the ice is gone: households by the sea begin a boat (VB-300)",
   "year | doy 31 | sim/byre | the autumn count: what goes to slaughter",
   "day |  | sim/byre | cattle left unherded yesterday may stray into a crop (VB-136)",
   "day |  | sim/grazing | every herd back by its farm for the night (VB-136)",

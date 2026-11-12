@@ -15,9 +15,10 @@ VB['sim/building'] = (() => {
   // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: plot.wood, or f.booth.wood).
   const WALLS = COTTAGE.indexOf('walls');
   // Loads the site still lacks for its walls: none once they stand.
-  const short = (site, stage) => (stage <= WALLS ? Math.max(0, BUILD.timber - (site.wood || 0)) : 0);
+  const short = (site, stage) => (stage <= WALLS ? Math.max(0, (site.timber ?? BUILD.timber) - (site.wood || 0)) : 0);
   // Asked once for the island: for each cottage being built on a plot (the village's job) and each booth's cottage (its household's) short of
-  // timber, a trip for each load of it still lacking, at most two at a time; none where the village has no wood (sim/territory).
+  // timber, and each household's boat being built (VB-300), a trip for each load of it still lacking, at most two at a time; none where the
+  // village has no wood (sim/territory).
   function timberWork(st, holder, at, c, post) {
     const ask = (key, v, site, stage, dest, owner) => {
       const n = Math.min(2, Math.ceil(short(site, stage) / ECON.woodPerTrip));
@@ -31,6 +32,8 @@ VB['sim/building'] = (() => {
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
         if (f.booth && f.household !== null) ask(`timber:f${f.id}`, v, f.booth, f.booth.i, f.house, { type: 'household', id: f.household });
+        const s = f.household !== null && Projects.openOf(st, 'household', f.household); // a boat's timber, carried to its shore (VB-300)
+        if (s && s.kind === 'boat') ask(`timber:b${f.id}`, v, s, 0, s.place, { type: 'household', id: f.household });
       }
     }
   }

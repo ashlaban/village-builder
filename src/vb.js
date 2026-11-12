@@ -40,6 +40,9 @@ VB.COUNTERS = {
   cookFarm: 'Farms visited by callCooks, from 14:00 to the end of work, for a household short of cooked food (sim/jobs; VB-227)',
   forageGround: 'Tiles within reach of a house searched for its gathering ground, when its gathering is asked for (sim/forage; VB-118)',
   fishGround: 'Tiles within reach of a house searched for its fishing ground, when its fishing is asked for (sim/fish; VB-117)',
+  fishReach: 'Tiles within reach of a house searched for fishing water: a village\'s reach test when it has a new farm, a household\'s shore '
+    + 'for a boat (sim/drying; VB-300)',
+  boatAsk: 'Farms of villages by fishing water asked whether their household begins a boat, once a year (sim/drying; VB-300)',
   digGround: 'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
   pastureTiles: 'Tiles within reach of a house searched for its herds\' pasture, once a grazing day a household (sim/herds; VB-136)',
 };
