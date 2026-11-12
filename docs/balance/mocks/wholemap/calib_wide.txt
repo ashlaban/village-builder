@@ -1,0 +1,22 @@
+loss 0.005547973779355552
+  y           5.315  base   2.350  plausible 1.8-3.0  OUTSIDE plausible
+  cv_hh       1.391  base   0.350  plausible 0.25-0.7  OUTSIDE plausible
+  sig_y       0.498  base   0.150  plausible 0.1-0.3  OUTSIDE plausible
+  res         3.126  base   1.000  plausible 0.3-1.5  OUTSIDE plausible
+  f_feast     0.463  base   0.500  plausible 0.2-0.9
+  beta        0.748  base   0.600  plausible 0.2-0.9
+  k_def       0.990  base   0.500  plausible 0.1-0.8  OUTSIDE plausible
+  mu          0.535  base   0.250  plausible 0.05-0.5  OUTSIDE plausible
+  crowd       0.021  base   0.020  plausible 0.0-0.06
+  cE          7.221  base   1.500  plausible 1.0-3.0  OUTSIDE plausible
+  kH          0.834  base   0.750  plausible 0.5-0.95
+  m1          1.169  base   1.600  plausible 0.3-2.5
+  s1          0.782  base   0.600  plausible 0.1-0.8  at edge
+  tithe       0.388  base   0.100  plausible 0.0-0.12  OUTSIDE plausible
+  pat         0.411  base   0.300  plausible 0.0-0.6
+  tau_E      57.465  base   8.000  plausible 3-20  OUTSIDE plausible
+{'pop': np.float64(1019.011), 'farm': np.float64(607.985), 'T': np.float64(336.185), 'E': np.float64(74.841), 'hungry': np.float64(0.021), 'kept': np.float64(2.744), 'h': np.float64(0.009), 'Cn': np.float64(0.288), 'made': np.float64(3.443), 'extracted': np.float64(0.5), 'out_share': np.float64(0.574), 'idle': np.float64(0.342), 'G': np.float64(479.044), 't900': 157.0, 'hungry_max': np.float64(0.143)}
+seed 2 {'pop': np.float64(1019.25), 'farm': np.float64(613.49), 'T': np.float64(328.32), 'E': np.float64(77.44), 'hungry': np.float64(0.02), 'kept': np.float64(3.21), 'Cn': np.float64(0.31), 't900': 155.0}
+seed 3 {'pop': np.float64(1010.8), 'farm': np.float64(611.61), 'T': np.float64(312.43), 'E': np.float64(86.77), 'hungry': np.float64(0.03), 'kept': np.float64(2.61), 'Cn': np.float64(0.24), 't900': 155.0}
+seed 4 {'pop': np.float64(1007.68), 'farm': np.float64(609.81), 'T': np.float64(315.01), 'E': np.float64(82.86), 'hungry': np.float64(0.03), 'kept': np.float64(2.54), 'Cn': np.float64(0.28), 't900': 156.0}
+seed 5 {'pop': np.float64(963.3), 'farm': np.float64(596.13), 'T': np.float64(286.04), 'E': np.float64(81.13), 'hungry': np.float64(0.02), 'kept': np.float64(3.21), 'Cn': np.float64(0.27), 't900': 183.0}

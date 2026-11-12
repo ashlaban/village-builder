@@ -1,0 +1,308 @@
+{
+ "hoursShare": {
+  "farmer": {
+   "spring": {
+    "working": 43,
+    "walking": 26,
+    "carrying": 6.9,
+    "idle": 24.1
+   },
+   "summer": {
+    "working": 35,
+    "walking": 31.9,
+    "carrying": 13.8,
+    "idle": 19.3
+   },
+   "autumn": {
+    "working": 46.6,
+    "walking": 26.6,
+    "carrying": 9.9,
+    "idle": 16.8
+   },
+   "winter": {
+    "working": 16.6,
+    "walking": 11.8,
+    "carrying": 7.4,
+    "idle": 64.3
+   }
+  },
+  "wife": {
+   "spring": {
+    "working": 38.3,
+    "walking": 30.9,
+    "carrying": 4.2,
+    "idle": 26.7
+   },
+   "summer": {
+    "working": 34.6,
+    "walking": 28.3,
+    "carrying": 5.6,
+    "idle": 31.6
+   },
+   "autumn": {
+    "working": 47.9,
+    "walking": 27.6,
+    "carrying": 7.1,
+    "idle": 17.4
+   },
+   "winter": {
+    "working": 23.8,
+    "walking": 16.4,
+    "carrying": 0.7,
+    "idle": 59.1
+   }
+  },
+  "retired": {
+   "spring": {
+    "working": 10.8,
+    "walking": 15.6,
+    "carrying": 10.8,
+    "idle": 62.8
+   },
+   "summer": {
+    "working": 19.8,
+    "walking": 25,
+    "carrying": 13.2,
+    "idle": 42
+   },
+   "autumn": {
+    "working": 28.8,
+    "walking": 16,
+    "carrying": 8.7,
+    "idle": 46.5
+   },
+   "winter": {
+    "working": 2.4,
+    "walking": 1.7,
+    "carrying": 0,
+    "idle": 95.8
+   }
+  },
+  "son": {
+   "spring": {
+    "working": 29.5,
+    "walking": 20.1,
+    "carrying": 10.6,
+    "idle": 39.9
+   },
+   "summer": {
+    "working": 25,
+    "walking": 18.8,
+    "carrying": 11.8,
+    "idle": 44.3
+   },
+   "autumn": {
+    "working": 40.8,
+    "walking": 21.9,
+    "carrying": 9.7,
+    "idle": 27.7
+   },
+   "winter": {
+    "working": 9.9,
+    "walking": 8.4,
+    "carrying": 4.3,
+    "idle": 77.4
+   }
+  },
+  "daughter": {
+   "spring": {
+    "working": 26.4,
+    "walking": 22.2,
+    "carrying": 9,
+    "idle": 42.4
+   },
+   "summer": {
+    "working": 27.1,
+    "walking": 22.9,
+    "carrying": 11.8,
+    "idle": 38.2
+   },
+   "autumn": {
+    "working": 28.5,
+    "walking": 27.8,
+    "carrying": 12.5,
+    "idle": 31.3
+   },
+   "winter": {
+    "working": 0,
+    "walking": 8.3,
+    "carrying": 8.3,
+    "idle": 83.3
+   }
+  }
+ },
+ "idleReasons": {
+  "no job they may take": 82.6,
+  "has a bid, waits for the next round": 10.2,
+  "not worth the walk": 4.4,
+  "poor fit, waits": 2.7
+ },
+ "waitHours": {
+  "water": {
+   "n": 103,
+   "median": 0,
+   "p90": 1
+  },
+  "plow": {
+   "n": 144,
+   "median": 8,
+   "p90": 27
+  },
+  "rake": {
+   "n": 31,
+   "median": 5,
+   "p90": 27
+  },
+  "manure": {
+   "n": 6,
+   "median": 0.7,
+   "p90": 6.5
+  },
+  "cook": {
+   "n": 742,
+   "median": 0,
+   "p90": 0
+  },
+  "sow": {
+   "n": 38,
+   "median": 1,
+   "p90": 6
+  },
+  "wood": {
+   "n": 234,
+   "median": 3.1,
+   "p90": 21
+  },
+  "fish": {
+   "n": 399,
+   "median": 3,
+   "p90": 13
+  },
+  "rackfish": {
+   "n": 76,
+   "median": 2,
+   "p90": 17
+  },
+  "dry": {
+   "n": 43,
+   "median": 0.1,
+   "p90": 3
+  },
+  "fodder": {
+   "n": 7,
+   "median": 2,
+   "p90": 7
+  },
+  "weed": {
+   "n": 203,
+   "median": 0.1,
+   "p90": 3
+  },
+  "milk": {
+   "n": 170,
+   "median": 0,
+   "p90": 0
+  },
+  "herd": {
+   "n": 158,
+   "median": 0,
+   "p90": 0
+  },
+  "mend": {
+   "n": 35,
+   "median": 0,
+   "p90": 11
+  },
+  "repair": {
+   "n": 8,
+   "median": 0.3,
+   "p90": 38
+  },
+  "mow": {
+   "n": 54,
+   "median": 10,
+   "p90": 42
+  },
+  "hay": {
+   "n": 27,
+   "median": 1,
+   "p90": 6.3
+  },
+  "gather": {
+   "n": 244,
+   "median": 2,
+   "p90": 15
+  },
+  "brew": {
+   "n": 48,
+   "median": 1,
+   "p90": 10
+  },
+  "haul": {
+   "n": 63,
+   "median": 6,
+   "p90": 10
+  },
+  "reap": {
+   "n": 24,
+   "median": 8,
+   "p90": 11
+  },
+  "thresh": {
+   "n": 56,
+   "median": 2,
+   "p90": 10
+  },
+  "slaughter": {
+   "n": 9,
+   "median": 2,
+   "p90": 4
+  },
+  "salt": {
+   "n": 2,
+   "median": 2,
+   "p90": 2
+  },
+  "restore": {
+   "n": 1,
+   "median": 0,
+   "p90": 0
+  },
+  "reclaim": {
+   "n": 10,
+   "median": 11,
+   "p90": 28
+  }
+ },
+ "switchesPerPawnYear": {
+  "other": 16.43,
+  "cookCall": 9.53
+ },
+ "unclaimedAtEndOfDay": {
+  "fodder": 0.21,
+  "plow": 3.52,
+  "rake": 0.5,
+  "manure": 0.13,
+  "wood": 4.15,
+  "sow": 0.35,
+  "fish": 6.06,
+  "rackfish": 0.96,
+  "dry": 0.46,
+  "mend": 0.4,
+  "milk": 0.4,
+  "weed": 0.23,
+  "mow": 2.42,
+  "hay": 0.15,
+  "herd": 0.1,
+  "gather": 3.13,
+  "repair": 0.13,
+  "brew": 0.67,
+  "reap": 0.63,
+  "thresh": 1.42,
+  "haul": 0.42,
+  "water": 0.1,
+  "salt": 0.13,
+  "restore": 0.04,
+  "reclaim": 0.25
+ }
+}

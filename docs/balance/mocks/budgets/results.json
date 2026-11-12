@@ -1,0 +1,1061 @@
+{
+ "people_A": {
+  "params": {
+   "marry_F": 23,
+   "marry_T": 24,
+   "marry_E": 20,
+   "q_F": 0.7379,
+   "q_T": 0.4,
+   "q_E": 0.3572,
+   "phi": 0.85,
+   "e_out": 0.1,
+   "h_F": 0.05,
+   "h_T": 0.05,
+   "D": 1.15,
+   "D_town": 1.5198,
+   "u": 0.0005,
+   "dn": 0.004,
+   "imm_T": 1.0,
+   "imm_E": 0.5,
+   "nursing": 48
+  },
+  "solve_residual": [
+   0.0,
+   0.0,
+   -0.0
+  ],
+  "account": {
+   "farm": {
+    "stock": 600.0997,
+    "births": 22.6577,
+    "deaths": 19.2616,
+    "under15_deaths": 9.0064,
+    "marriages": 4.5833,
+    "children": 223.6214,
+    "adults": 376.4783,
+    "workers": 346.6245,
+    "elders": 29.8538,
+    "units": 488.289,
+    "never_married_45": 0.0185,
+    "in": 0.0,
+    "out": 3.3938,
+    "net": 0.0023
+   },
+   "town": {
+    "stock": 324.9271,
+    "births": 8.9584,
+    "deaths": 14.1899,
+    "under15_deaths": 4.8312,
+    "marriages": 1.5313,
+    "children": 72.6604,
+    "adults": 252.2667,
+    "workers": 238.6656,
+    "elders": 13.601,
+    "units": 288.5969,
+    "never_married_45": 0.5349,
+    "in": 5.2322,
+    "out": 0.0,
+    "net": 0.0007
+   },
+   "elite": {
+    "stock": 74.9732,
+    "births": 3.0594,
+    "deaths": 2.3952,
+    "under15_deaths": 1.1574,
+    "marriages": 0.3241,
+    "children": 31.0652,
+    "adults": 43.908,
+    "workers": 39.9609,
+    "elders": 3.9471,
+    "units": 59.4406,
+    "never_married_45": 0.0018,
+    "in": 0.8002,
+    "out": 1.4643,
+    "net": 0.0001
+   },
+   "flows": {
+    "farm_to_town": 2.7679,
+    "elite_to_town": 1.4643,
+    "farm_to_elite": 0.3002,
+    "farm_out": 0.3256,
+    "in_town": 1.0,
+    "in_elite": 0.5
+   },
+   "total": {
+    "r": 0.0,
+    "births": 34.6755,
+    "deaths": 35.8467,
+    "child_deaths_per_birth": 0.4324,
+    "never_married_45": 0.2306,
+    "town_death_share": 0.3958,
+    "e0": 28.8388
+   }
+  }
+ },
+ "growth_budget_A": {
+  "ceiling": 0.024,
+  "end": -0.0,
+  "shapley": {
+   "marriage delay": 0.0089,
+   "never marrying": 0.0066,
+   "hunger": 0.0016,
+   "disease": 0.0028,
+   "town (migration, marriage, deaths)": 0.0054,
+   "net migration (out of island, in)": -0.0013
+  },
+  "alone": {
+   "marriage delay": 0.009,
+   "never marrying": 0.0005,
+   "hunger": 0.0017,
+   "disease": 0.0028,
+   "town (migration, marriage, deaths)": 0.0005,
+   "net migration (out of island, in)": -0.0019
+  },
+  "last": {
+   "marriage delay": 0.0085,
+   "never marrying": 0.013,
+   "hunger": 0.0018,
+   "disease": 0.0028,
+   "town (migration, marriage, deaths)": 0.01,
+   "net migration (out of island, in)": -0.0
+  },
+  "human": {
+   "child_deaths_per_birth": 0.4324,
+   "never_married_45": 0.2306,
+   "e0": 28.8388,
+   "town_death_share": 0.3958,
+   "D_town": 1.5198,
+   "hunger": 0.05,
+   "farm_women_marrying": 0.7379,
+   "migrants_to_town": 4.2322,
+   "emigrants": 0.3256,
+   "marry_F": 23,
+   "births": 34.6755
+  }
+ },
+ "alternatives": {
+  "B hunger-held (marry 20, almost all marry)": {
+   "params": {
+    "marry_F": 20,
+    "marry_T": 21,
+    "marry_E": 18,
+    "q_F": 0.95,
+    "q_T": 0.4,
+    "q_E": 0.2936,
+    "phi": 0.85,
+    "e_out": 0.1,
+    "h_F": 0.4241,
+    "h_T": 0.4241,
+    "D": 1.0,
+    "D_town": 0.812,
+    "u": 0.0005,
+    "dn": 0.004,
+    "imm_T": 1.0,
+    "imm_E": 0.5,
+    "nursing": 48
+   },
+   "residual": [
+    -0.0003,
+    0.0,
+    -0.0
+   ],
+   "shapley": {
+    "marriage delay": 0.003,
+    "never marrying": 0.0099,
+    "hunger": 0.0107,
+    "disease": 0.0,
+    "town (migration, marriage, deaths)": 0.0016,
+    "net migration (out of island, in)": -0.0011
+   },
+   "human": {
+    "child_deaths_per_birth": 0.4494,
+    "never_married_45": 0.2039,
+    "e0": 30.2515,
+    "town_death_share": 0.287,
+    "D_town": 0.812,
+    "hunger": 0.4241,
+    "farm_women_marrying": 0.95,
+    "migrants_to_town": 2.1815,
+    "emigrants": 0.0574,
+    "marry_F": 20,
+    "births": 33.0562
+   },
+   "valid": true
+  },
+  "C late marriage (26, no hunger)": {
+   "params": {
+    "marry_F": 26,
+    "marry_T": 26,
+    "marry_E": 22,
+    "q_F": 0.7637,
+    "q_T": 0.4,
+    "q_E": 0.3349,
+    "phi": 0.85,
+    "e_out": 0.1,
+    "h_F": 0.0,
+    "h_T": 0.0,
+    "D": 1.0,
+    "D_town": 1.5729,
+    "u": 0.0005,
+    "dn": 0.004,
+    "imm_T": 1.0,
+    "imm_E": 0.5,
+    "nursing": 48
+   },
+   "residual": [
+    -0.0,
+    -0.0,
+    0.0
+   ],
+   "shapley": {
+    "marriage delay": 0.0139,
+    "never marrying": 0.006,
+    "hunger": 0.0,
+    "disease": 0.0,
+    "town (migration, marriage, deaths)": 0.0054,
+    "net migration (out of island, in)": -0.0013
+   },
+   "human": {
+    "child_deaths_per_birth": 0.3765,
+    "never_married_45": 0.2295,
+    "e0": 33.1015,
+    "town_death_share": 0.4089,
+    "D_town": 1.5729,
+    "hunger": 0.0,
+    "farm_women_marrying": 0.7637,
+    "migrants_to_town": 3.7301,
+    "emigrants": 0.2698,
+    "marry_F": 26,
+    "births": 30.2101
+   },
+   "valid": true
+  },
+  "D town graveyard (marry 20, town marries 60%)": {
+   "params": {
+    "marry_F": 20,
+    "marry_T": 20,
+    "marry_E": 20,
+    "q_F": 0.5521,
+    "q_T": 0.6,
+    "q_E": 0.3096,
+    "phi": 0.95,
+    "e_out": 0.0,
+    "h_F": 0.02,
+    "h_T": 0.05,
+    "D": 1.0,
+    "D_town": 3.2705,
+    "u": 0.0005,
+    "dn": 0.004,
+    "imm_T": 1.0,
+    "imm_E": 0.5,
+    "nursing": 48
+   },
+   "residual": [
+    -0.0,
+    -0.0,
+    0.0
+   ],
+   "shapley": {
+    "marriage delay": 0.0035,
+    "never marrying": 0.0099,
+    "hunger": 0.001,
+    "disease": 0.0,
+    "town (migration, marriage, deaths)": 0.0106,
+    "net migration (out of island, in)": -0.001
+   },
+   "human": {
+    "child_deaths_per_birth": 0.5072,
+    "never_married_45": 0.1545,
+    "e0": 23.2089,
+    "town_death_share": 0.5699,
+    "D_town": 3.2705,
+    "hunger": 0.02,
+    "farm_women_marrying": 0.5521,
+    "migrants_to_town": 7.7884,
+    "emigrants": 0.0,
+    "marry_F": 20,
+    "births": 43.0869
+   },
+   "valid": true
+  },
+  "E emigration valve (marry 21, 60% of the unmarried leave)": {
+   "params": {
+    "marry_F": 21,
+    "marry_T": 24,
+    "marry_E": 20,
+    "q_F": 0.5812,
+    "q_T": 0.4,
+    "q_E": 0.311,
+    "phi": 0.35,
+    "e_out": 0.6,
+    "h_F": 0.02,
+    "h_T": 0.05,
+    "D": 1.0,
+    "D_town": 1.6108,
+    "u": 0.0005,
+    "dn": 0.004,
+    "imm_T": 1.0,
+    "imm_E": 0.5,
+    "nursing": 48
+   },
+   "residual": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "shapley": {
+    "marriage delay": 0.0066,
+    "never marrying": 0.01,
+    "hunger": 0.001,
+    "disease": 0.0,
+    "town (migration, marriage, deaths)": 0.0076,
+    "net migration (out of island, in)": -0.001
+   },
+   "human": {
+    "child_deaths_per_birth": 0.3864,
+    "never_married_45": 0.2438,
+    "e0": 29.1383,
+    "town_death_share": 0.4095,
+    "D_town": 1.6108,
+    "hunger": 0.02,
+    "farm_women_marrying": 0.5812,
+    "migrants_to_town": 3.6241,
+    "emigrants": 3.5208,
+    "marry_F": 21,
+    "births": 34.3191
+   },
+   "valid": true
+  }
+ },
+ "accounts": {
+  "p": {
+   "R": 1.75,
+   "grain_share": 0.52,
+   "seed_yield": 2.9,
+   "hh_size": 4.7,
+   "fields_hh": 3.4,
+   "meadows_hh": 2.7,
+   "rot": 0.03,
+   "bad_year": 0.75,
+   "tithe": 0.1,
+   "rent": 0.25,
+   "rent_days": 2,
+   "tax": 0.03,
+   "interest": 0.01,
+   "toll": 0.0625,
+   "hire": 3,
+   "days_field": 8,
+   "elite_hh": 13.5,
+   "elite_mult": 1.5,
+   "retinue_hh": 4,
+   "hospitality": 0.15,
+   "demesne_hh": 5,
+   "elite_reserve": 0.1,
+   "town_own": 0.15,
+   "town_reserve": 0.05,
+   "sold": 0.8822,
+   "tenant_fields": 65.1172,
+   "tenancy": 0.15,
+   "gw_half": 4.0,
+   "gw_target": 88,
+   "help_gw": 15.25,
+   "feast_credit": 0.5,
+   "idle": {
+    "spring": 0.31,
+    "summer": 0.335,
+    "autumn": 0.24,
+    "winter": 0.64
+   },
+   "walk_share": 0.39,
+   "field_share_autumn": 0.3,
+   "demesne_season": {
+    "spring": 0.375,
+    "summer": 0.125,
+    "autumn": 0.5,
+    "winter": 0.0
+   },
+   "peak_buffer": 0.1,
+   "craft_days": 40,
+   "craft_share": 0.5,
+   "villages": 30,
+   "reach_fields": 24,
+   "land_tiles": 20082
+  },
+  "food": {
+   "P": 41016.2772,
+   "seed": 11225.5074,
+   "gross": 52241.7846,
+   "grain_gross": 32553.9716,
+   "grain_net": 21328.4641,
+   "other": 19687.8131,
+   "farm_eaten": 23437.8727,
+   "rot": 1230.4883,
+   "tithe": 5224.1785,
+   "rent": 1220.7739,
+   "tax": 1230.4883,
+   "interest": 410.1628,
+   "toll_farm": 761.7309,
+   "taken": 8847.3343,
+   "sold": 6617.0509,
+   "feast": 883.531,
+   "disposable": 7500.5818,
+   "gifts_internal": 1947.1321,
+   "town_need": 13852.6499,
+   "town_own": 1732.5694,
+   "town_bought": 6617.0509,
+   "town_from_elite_surplus": 4085.8963,
+   "retinue_fed_by_elite": 2302.1876,
+   "toll_town": 375.39,
+   "elite_own": 4279.7239,
+   "elite_hospitality": 641.9586,
+   "demesne_net": 2087.0419,
+   "net_field": 49.1309,
+   "gross_field": 74.9893,
+   "R_effective": 1.75
+  },
+  "elite": {
+   "households": 13.5,
+   "requirement": 7223.87,
+   "per_household": 535.1015,
+   "own": 4279.7239,
+   "hospitality": 641.9586,
+   "retinue": 54.0,
+   "retinue_need": 2302.1876,
+   "income": {
+    "tithe": 5224.1785,
+    "rent": 1220.7739,
+    "tax": 1230.4883,
+    "interest": 410.1628,
+    "tolls": 1137.1209,
+    "demesne": 2087.0419
+   },
+   "income_total": 11309.7663,
+   "surplus": 4085.8963,
+   "tenant_fields": 65.1172,
+   "tenant_fields_per_hh": 4.8235,
+   "tenancy_share": 0.15,
+   "rent_field": 18.7473,
+   "demesne_fields": 67.5,
+   "owed_days": 130.2344,
+   "hired_days": 409.7656,
+   "demesne_days": 540.0,
+   "rent_share_of_output": 0.0298,
+   "tithe_share_of_output": 0.1274,
+   "taken_share_of_output": 0.2157
+  },
+  "goodwill": {
+   "stock": 107.9708,
+   "help_in": 15.25,
+   "feast_in": 3.4599,
+   "decay": 18.7099,
+   "feast_needed_if_only_source": 3894.0695,
+   "feast_needed_share_of_P": 0.0949,
+   "feast_needed_share_of_surplus": 0.2215
+  },
+  "labour": {
+   "seasons": {
+    "spring": {
+     "adult_days": 4159.4942,
+     "idle": 1289.4432,
+     "demesne": 202.5,
+     "buffer": 0.0,
+     "left": 1086.9432
+    },
+    "summer": {
+     "adult_days": 4159.4942,
+     "idle": 1393.4306,
+     "demesne": 67.5,
+     "buffer": 0.0,
+     "left": 1325.9306
+    },
+    "autumn": {
+     "adult_days": 4159.4942,
+     "idle": 998.2786,
+     "demesne": 270.0,
+     "buffer": 415.9494,
+     "left": 312.3292
+    },
+    "winter": {
+     "adult_days": 4159.4942,
+     "idle": 2662.0763,
+     "demesne": 0.0,
+     "buffer": 0.0,
+     "left": 2662.0763
+    }
+   },
+   "farm_workers": 346.6245,
+   "craft_workers": 119.3328,
+   "winter_replace_workers": 66.5519,
+   "winter_replace_people": 90.6059
+  },
+  "land": {
+   "farm_hh": 127.6808,
+   "fields": 434.1147,
+   "demesne": 67.5,
+   "fields_used": 501.6147,
+   "reach_cap": 720,
+   "meadows": 344.7381,
+   "tiles_used": 1052.519,
+   "tiles_share": 0.0524,
+   "elite_owned_share": 0.2644,
+   "tenancy_share": 0.15
+  },
+  "tenant": {
+   "kept": 1.0249,
+   "kept_bad": 0.8842,
+   "take_share": 0.3844
+  },
+  "margins": {
+   "town": 0.05,
+   "farm": 0.32,
+   "tenant": 0.0249,
+   "tenant_bad": -0.1158,
+   "elite": 0.5656,
+   "goodwill_feast": 0.2269,
+   "labour_peak": 0.0751,
+   "land": 0.3033
+  }
+ },
+ "food_today": {
+  "split": {
+   "seed": 11068.3503,
+   "rot": 7161.8737,
+   "ale": 2604.3177,
+   "farm_eaten": 23437.8727,
+   "unused": 7969.3701
+  },
+  "rot_share_of_P": 0.1746,
+  "unused_share_of_P": 0.1943
+ },
+ "food_target": {
+  "split": {
+   "seed": 11225.5074,
+   "farm_eaten": 23437.8727,
+   "rot": 1230.4883,
+   "tithe": 5224.1785,
+   "rent": 1220.7739,
+   "tax_interest": 1640.6511,
+   "tolls": 761.7309,
+   "sold": 6617.0509,
+   "feast": 883.531
+  },
+  "check": 0.0
+ },
+ "R_needed": {
+  "sold 1.0, rot 0.03": 1.6934,
+  "sold 1.0, rot 0.175": 1.9645,
+  "sold 0.5, rot 0.03": 1.9058,
+  "sold 0.5, rot 0.175": 2.1469
+ },
+ "R_ladder": {
+  "farm": 1.0,
+  "town": 0.4349,
+  "elite": 0.2032,
+  "rot": 0.0525,
+  "town_reserve": 0.0217,
+  "feast_and_elite_slack": 0.0377
+ },
+ "target_at_today_rot": {
+  "town": -0.4647,
+  "farm": 0.0663,
+  "tenant": -0.2289,
+  "tenant_bad": -0.3696,
+  "elite": 0.5656,
+  "goodwill_feast": 0.047,
+  "labour_peak": 0.0751,
+  "land": 0.3033
+ },
+ "elite_options": {
+  "rent only": {
+   "tenant_fields": 385.3279,
+   "per_hh": 28.5428,
+   "tenancy": 0.8876,
+   "rent_share_of_output": 0.1761,
+   "taken_share": 0.1761,
+   "tenant_margin": 0.3503,
+   "income": {
+    "tithe": 0.0,
+    "rent": 7223.87,
+    "tax": 0.0,
+    "interest": 0.0,
+    "tolls": 0.0,
+    "demesne": 0.0
+   }
+  },
+  "rent + demesne (owed days, hired hands)": {
+   "tenant_fields": 223.3587,
+   "per_hh": 16.5451,
+   "tenancy": 0.5145,
+   "rent_share_of_output": 0.1021,
+   "taken_share": 0.1021,
+   "tenant_margin": 0.3503,
+   "income": {
+    "tithe": 0.0,
+    "rent": 4187.3794,
+    "tax": 0.0,
+    "interest": 0.0,
+    "tolls": 0.0,
+    "demesne": 3036.4907
+   }
+  },
+  "design mix without the tithe (Church apart)": {
+   "tenant_fields": 111.1134,
+   "per_hh": 8.2306,
+   "tenancy": 0.256,
+   "rent_share_of_output": 0.0508,
+   "taken_share": 0.1094,
+   "tenant_margin": 0.2478,
+   "income": {
+    "tithe": 0.0,
+    "rent": 2083.0792,
+    "tax": 1230.4883,
+    "interest": 410.1628,
+    "tolls": 1137.1209,
+    "demesne": 2363.0188
+   }
+  },
+  "design mix (tithe, tax, interest, tolls, demesne)": {
+   "tenant_fields": 0.0,
+   "per_hh": 0.0,
+   "tenancy": 0.0,
+   "rent_share_of_output": 0.0,
+   "taken_share": 0.1859,
+   "tenant_margin": 0.0249,
+   "income": {
+    "tithe": 5224.1785,
+    "rent": 0.0,
+    "tax": 1230.4883,
+    "interest": 410.1628,
+    "tolls": 1137.1209,
+    "demesne": 1696.3387
+   }
+  }
+ },
+ "tithe_only_rate": 0.1383,
+ "perturb": {
+  "yield (seed:yield)": {
+   "0.8": {
+    "margins": {
+     "town": -0.6093,
+     "farm": 0.0999,
+     "tenant": -0.1362,
+     "tenant_bad": -0.2249,
+     "elite": 0.2655,
+     "goodwill_feast": 0.0708,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "town",
+    "worst_margin": -0.6093,
+    "people": null
+   },
+   "1.2": {
+    "margins": {
+     "town": 0.7093,
+     "farm": 0.5402,
+     "tenant": 0.186,
+     "tenant_bad": -0.0068,
+     "elite": 0.8657,
+     "goodwill_feast": 0.383,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "labour_peak",
+    "worst_margin": 0.0751,
+    "people": null
+   },
+   "slack": {
+    "down": [
+     0.02,
+     "town"
+    ],
+    "up": null
+   }
+  },
+  "fields per household": {
+   "0.8": {
+    "margins": {
+     "town": -0.3176,
+     "farm": 0.1785,
+     "tenant": -0.0472,
+     "tenant_bad": -0.1597,
+     "elite": 0.4519,
+     "goodwill_feast": 0.1266,
+     "labour_peak": 0.1351,
+     "land": 0.4239
+    },
+    "worst": "town",
+    "worst_margin": -0.3176,
+    "people": null
+   },
+   "1.2": {
+    "margins": {
+     "town": 0.4176,
+     "farm": 0.4615,
+     "tenant": 0.0969,
+     "tenant_bad": -0.0719,
+     "elite": 0.6794,
+     "goodwill_feast": 0.3272,
+     "labour_peak": 0.0151,
+     "land": 0.1827
+    },
+    "worst": "labour_peak",
+    "worst_margin": 0.0151,
+    "people": null
+   },
+   "slack": {
+    "down": [
+     0.03,
+     "town"
+    ],
+    "up": [
+     0.26,
+     "labour_peak"
+    ]
+   }
+  },
+  "share rotted": {
+   "0.8": {
+    "margins": {
+     "town": 0.0713,
+     "farm": 0.3305,
+     "tenant": 0.0354,
+     "tenant_bad": -0.1053,
+     "elite": 0.5656,
+     "goodwill_feast": 0.2343,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "tenant",
+    "worst_margin": 0.0354,
+    "people": null
+   },
+   "1.2": {
+    "margins": {
+     "town": 0.0287,
+     "farm": 0.3095,
+     "tenant": 0.0144,
+     "tenant_bad": -0.1263,
+     "elite": 0.5656,
+     "goodwill_feast": 0.2194,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "tenant",
+    "worst_margin": 0.0144,
+    "people": null
+   },
+   "slack": {
+    "down": null,
+    "up": [
+     0.47,
+     "town"
+    ]
+   }
+  },
+  "tithe": {
+   "0.8": {
+    "margins": {
+     "town": 0.0379,
+     "farm": 0.3646,
+     "tenant": 0.0694,
+     "tenant_bad": -0.0712,
+     "elite": 0.421,
+     "goodwill_feast": 0.2585,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "town",
+    "worst_margin": 0.0379,
+    "people": null
+   },
+   "1.2": {
+    "margins": {
+     "town": 0.0621,
+     "farm": 0.2754,
+     "tenant": -0.0197,
+     "tenant_bad": -0.1604,
+     "elite": 0.7102,
+     "goodwill_feast": 0.1953,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "tenant",
+    "worst_margin": -0.0197,
+    "people": null
+   },
+   "slack": {
+    "down": null,
+    "up": [
+     0.12,
+     "tenant"
+    ]
+   }
+  },
+  "rent share": {
+   "0.8": {
+    "margins": {
+     "town": 0.0472,
+     "farm": 0.3304,
+     "tenant": 0.0943,
+     "tenant_bad": -0.0637,
+     "elite": 0.5318,
+     "goodwill_feast": 0.2343,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "town",
+    "worst_margin": 0.0472,
+    "people": null
+   },
+   "1.2": {
+    "margins": {
+     "town": 0.0528,
+     "farm": 0.3096,
+     "tenant": -0.0446,
+     "tenant_bad": -0.1679,
+     "elite": 0.5994,
+     "goodwill_feast": 0.2195,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "tenant",
+    "worst_margin": -0.0446,
+    "people": null
+   },
+   "slack": {
+    "down": null,
+    "up": [
+     0.08,
+     "tenant"
+    ]
+   }
+  },
+  "share sold": {
+   "0.8": {
+    "margins": {
+     "town": -0.0798,
+     "farm": 0.32,
+     "tenant": 0.0249,
+     "tenant_bad": -0.1158,
+     "elite": 0.5656,
+     "goodwill_feast": 0.5667,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "town",
+    "worst_margin": -0.0798,
+    "people": null
+   },
+   "1.2": {
+    "margins": {
+     "town": 0.1367,
+     "farm": 0.32,
+     "tenant": 0.0249,
+     "tenant_bad": -0.1158,
+     "elite": 0.5656,
+     "goodwill_feast": 0.0,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "tenant",
+    "worst_margin": 0.0249,
+    "people": null
+   },
+   "slack": {
+    "down": [
+     0.08,
+     "town"
+    ],
+    "up": null
+   }
+  },
+  "elite household size": {
+   "0.8": {
+    "margins": {
+     "town": 0.1475,
+     "farm": 0.32,
+     "tenant": 0.0249,
+     "tenant_bad": -0.1158,
+     "elite": 0.9596,
+     "goodwill_feast": 0.2269,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "tenant",
+    "worst_margin": 0.0249,
+    "people": null
+   },
+   "1.2": {
+    "margins": {
+     "town": -0.0556,
+     "farm": 0.32,
+     "tenant": 0.0249,
+     "tenant_bad": -0.1158,
+     "elite": 0.3029,
+     "goodwill_feast": 0.2269,
+     "labour_peak": 0.0751,
+     "land": 0.3033
+    },
+    "worst": "town",
+    "worst_margin": -0.0556,
+    "people": null
+   },
+   "slack": {
+    "down": null,
+    "up": [
+     0.1,
+     "town"
+    ]
+   }
+  },
+  "town mortality": {
+   "0.8": {
+    "margins": {
+     "town": -0.3203,
+     "farm": 0.3122,
+     "tenant": 0.0249,
+     "tenant_bad": -0.1158,
+     "elite": 0.4726,
+     "goodwill_feast": 0.2213,
+     "labour_peak": 0.0653,
+     "land": 0.3821
+    },
+    "worst": "town",
+    "worst_margin": -0.3203,
+    "people": {
+     "r": 0.0,
+     "shares": [
+      0.5217,
+      0.4054,
+      0.0729
+     ]
+    }
+   },
+   "1.2": {
+    "margins": {
+     "town": 0.4614,
+     "farm": 0.3243,
+     "tenant": 0.0249,
+     "tenant_bad": -0.1158,
+     "elite": 0.6265,
+     "goodwill_feast": 0.2299,
+     "labour_peak": 0.0804,
+     "land": 0.249
+    },
+    "worst": "tenant",
+    "worst_margin": 0.0249,
+    "people": {
+     "r": 0.0,
+     "shares": [
+      0.654,
+      0.2695,
+      0.0764
+     ]
+    }
+   },
+   "slack": {
+    "down": [
+     0.03,
+     "town"
+    ],
+    "up": null
+   }
+  },
+  "marriage age (farm women)": {
+   "0.8": {
+    "margins": {
+     "town": 0.7059,
+     "farm": 0.3266,
+     "tenant": 0.0249,
+     "tenant_bad": -0.1158,
+     "elite": 0.9933,
+     "goodwill_feast": 0.2215,
+     "labour_peak": 0.0772,
+     "land": 0.2166
+    },
+    "worst": "tenant",
+    "worst_margin": 0.0249,
+    "people": {
+     "r": 0.0085,
+     "shares": [
+      0.6864,
+      0.259,
+      0.0546
+     ]
+    }
+   },
+   "1.2": {
+    "margins": {
+     "town": -0.737,
+     "farm": 0.2933,
+     "tenant": 0.0249,
+     "tenant_bad": -0.1158,
+     "elite": -0.1346,
+     "goodwill_feast": 0.2168,
+     "labour_peak": 0.0494,
+     "land": 0.5079
+    },
+    "worst": "town",
+    "worst_margin": -0.737,
+    "people": {
+     "r": -0.0089,
+     "shares": [
+      0.404,
+      0.4691,
+      0.127
+     ]
+    }
+   },
+   "slack": {
+    "down": [
+     0.07,
+     "people (growth > 0.25%/yr)"
+    ],
+    "up": [
+     0.03,
+     "town"
+    ]
+   }
+  },
+  "walking time": {
+   "0.8": {
+    "margins": {
+     "town": 0.05,
+     "farm": 0.32,
+     "tenant": 0.0249,
+     "tenant_bad": -0.1158,
+     "elite": 0.5656,
+     "goodwill_feast": 0.2269,
+     "labour_peak": 0.1225,
+     "land": 0.3033
+    },
+    "worst": "tenant",
+    "worst_margin": 0.0249,
+    "people": null
+   },
+   "1.2": {
+    "margins": {
+     "town": 0.05,
+     "farm": 0.32,
+     "tenant": 0.0249,
+     "tenant_bad": -0.1158,
+     "elite": 0.5656,
+     "goodwill_feast": 0.2269,
+     "labour_peak": 0.004,
+     "land": 0.3033
+    },
+    "worst": "labour_peak",
+    "worst_margin": 0.004,
+    "people": null
+   },
+   "slack": {
+    "down": null,
+    "up": [
+     0.21,
+     "labour_peak"
+    ]
+   }
+  }
+ }
+}

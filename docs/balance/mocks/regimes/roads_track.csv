@@ -1,0 +1,177 @@
+debt,goodwill,clear,escheat,tax,road,seed
+0,0,1314,0,0,none,0
+0,0,1311,0,0,none,1
+0,0,1195,0,0,none,2
+0,0,1158,0,0,none,3
+0,0,1313,0,0,none,4
+0,0,1023,0,0,none,5
+0,0,1015,0,0,none,6
+0,0,1201,0,0,none,7
+0,0,1147,0,0,none,8
+0,0,1240,0,0,none,9
+0,0,1128,0,0,none,10
+0,0,1304,0,0,none,11
+0,0,1151,0,0,none,12
+0,0,1062,0,0,none,13
+0,0,1126,0,0,none,14
+0,0,1115,0,0,none,15
+83,0,1242,0,0,debt,0
+55,0,1228,0,0,debt,1
+56,0,1168,0,0,debt,2
+29,0,966,0,0,debt,3
+137,0,1149,0,0,debt,4
+76,0,1094,0,0,debt,5
+56,0,1041,0,0,debt,6
+78,0,1238,0,0,debt,7
+101,0,1010,0,0,debt,8
+97,0,1234,0,0,debt,9
+46,0,1210,0,0,debt,10
+77,0,1121,0,0,debt,11
+37,0,1188,0,0,debt,12
+81,0,1120,0,0,debt,13
+64,0,1189,0,0,debt,14
+63,0,1126,0,0,debt,15
+0,0,1253,0,0,tithe+office,0
+0,0,1279,0,0,tithe+office,1
+0,0,1264,0,0,tithe+office,2
+0,0,1048,0,0,tithe+office,3
+0,0,1335,0,0,tithe+office,4
+0,0,1150,0,0,tithe+office,5
+0,0,1037,0,0,tithe+office,6
+0,0,1341,0,0,tithe+office,7
+0,0,1129,0,0,tithe+office,8
+0,0,1260,0,0,tithe+office,9
+0,0,1198,0,0,tithe+office,10
+0,0,1186,0,0,tithe+office,11
+0,0,1229,0,0,tithe+office,12
+0,0,1009,0,0,tithe+office,13
+0,0,1256,0,0,tithe+office,14
+0,0,1258,0,0,tithe+office,15
+0,0,440,517,0,life cycle + kin escheat,0
+0,0,435,575,0,life cycle + kin escheat,1
+0,0,406,603,0,life cycle + kin escheat,2
+0,0,408,576,0,life cycle + kin escheat,3
+0,0,426,695,0,life cycle + kin escheat,4
+0,0,390,476,0,life cycle + kin escheat,5
+0,0,438,478,0,life cycle + kin escheat,6
+0,0,436,552,0,life cycle + kin escheat,7
+0,0,430,488,0,life cycle + kin escheat,8
+0,0,428,501,0,life cycle + kin escheat,9
+0,0,427,507,0,life cycle + kin escheat,10
+0,0,401,486,0,life cycle + kin escheat,11
+0,0,412,551,0,life cycle + kin escheat,12
+0,0,436,438,0,life cycle + kin escheat,13
+0,0,397,499,0,life cycle + kin escheat,14
+0,0,442,516,0,life cycle + kin escheat,15
+0,87,1277,0,0,goodwill (designer road),0
+0,90,1164,0,0,goodwill (designer road),1
+0,67,1166,0,0,goodwill (designer road),2
+0,14,1128,0,0,goodwill (designer road),3
+0,120,1137,0,0,goodwill (designer road),4
+0,51,1098,0,0,goodwill (designer road),5
+0,44,1041,0,0,goodwill (designer road),6
+0,79,1317,0,0,goodwill (designer road),7
+0,62,1142,0,0,goodwill (designer road),8
+0,90,1198,0,0,goodwill (designer road),9
+0,93,1140,0,0,goodwill (designer road),10
+0,79,1233,0,0,goodwill (designer road),11
+0,57,1209,0,0,goodwill (designer road),12
+0,35,1075,0,0,goodwill (designer road),13
+0,63,1148,0,0,goodwill (designer road),14
+0,73,1188,0,0,goodwill (designer road),15
+309,0,880,0,0,"debt, low valve (means 1.05)",0
+268,0,904,0,0,"debt, low valve (means 1.05)",1
+282,0,940,0,0,"debt, low valve (means 1.05)",2
+193,0,861,0,0,"debt, low valve (means 1.05)",3
+398,0,977,0,0,"debt, low valve (means 1.05)",4
+257,0,862,0,0,"debt, low valve (means 1.05)",5
+207,0,900,0,0,"debt, low valve (means 1.05)",6
+320,0,883,0,0,"debt, low valve (means 1.05)",7
+265,0,1067,0,0,"debt, low valve (means 1.05)",8
+281,0,997,0,0,"debt, low valve (means 1.05)",9
+229,0,822,0,0,"debt, low valve (means 1.05)",10
+427,0,915,0,0,"debt, low valve (means 1.05)",11
+192,0,846,0,0,"debt, low valve (means 1.05)",12
+280,0,859,0,0,"debt, low valve (means 1.05)",13
+286,0,905,0,0,"debt, low valve (means 1.05)",14
+194,0,1017,0,0,"debt, low valve (means 1.05)",15
+151,0,1272,0,0,debt + office (baseline),0
+106,0,1240,0,0,debt + office (baseline),1
+128,0,1112,0,0,debt + office (baseline),2
+53,0,1066,0,0,debt + office (baseline),3
+129,0,1287,0,0,debt + office (baseline),4
+157,0,1073,0,0,debt + office (baseline),5
+58,0,985,0,0,debt + office (baseline),6
+138,0,1304,0,0,debt + office (baseline),7
+110,0,1235,0,0,debt + office (baseline),8
+151,0,1361,0,0,debt + office (baseline),9
+61,0,1218,0,0,debt + office (baseline),10
+146,0,1253,0,0,debt + office (baseline),11
+166,0,1290,0,0,debt + office (baseline),12
+39,0,1264,0,0,debt + office (baseline),13
+119,0,1124,0,0,debt + office (baseline),14
+152,0,1135,0,0,debt + office (baseline),15
+561,0,1123,0,0,office + tax road,0
+424,0,1011,0,0,office + tax road,1
+393,0,1084,0,0,office + tax road,2
+262,0,915,0,0,office + tax road,3
+452,0,1225,0,0,office + tax road,4
+367,0,911,0,0,office + tax road,5
+297,0,851,0,0,office + tax road,6
+407,0,1064,0,0,office + tax road,7
+377,0,1011,0,0,office + tax road,8
+441,0,935,0,0,office + tax road,9
+385,0,964,0,0,office + tax road,10
+334,0,1142,0,0,office + tax road,11
+364,0,1092,0,0,office + tax road,12
+423,0,1056,0,0,office + tax road,13
+363,0,1117,0,0,office + tax road,14
+391,0,1098,0,0,office + tax road,15
+152,42,440,521,0,all roads,0
+168,33,405,454,0,all roads,1
+176,17,416,475,0,all roads,2
+170,34,407,544,0,all roads,3
+224,49,422,531,0,all roads,4
+182,28,392,313,0,all roads,5
+224,50,425,390,0,all roads,6
+208,30,448,386,0,all roads,7
+184,28,437,347,0,all roads,8
+207,44,455,416,0,all roads,9
+216,40,431,467,0,all roads,10
+149,26,407,412,0,all roads,11
+156,16,428,371,0,all roads,12
+150,24,445,404,0,all roads,13
+194,37,417,401,0,all roads,14
+199,29,412,363,0,all roads,15
+0,0,1293,0,0,office by count (cap),0
+0,0,1300,0,0,office by count (cap),1
+0,0,1283,0,0,office by count (cap),2
+0,0,1012,0,0,office by count (cap),3
+0,0,1371,0,0,office by count (cap),4
+0,0,1045,0,0,office by count (cap),5
+0,0,1053,0,0,office by count (cap),6
+0,0,1261,0,0,office by count (cap),7
+0,0,1220,0,0,office by count (cap),8
+0,0,1262,0,0,office by count (cap),9
+0,0,1207,0,0,office by count (cap),10
+0,0,1252,0,0,office by count (cap),11
+0,0,1138,0,0,office by count (cap),12
+0,0,1061,0,0,office by count (cap),13
+0,0,1343,0,0,office by count (cap),14
+0,0,1234,0,0,office by count (cap),15
+376,0,862,0,0,"debt + office, low valve",0
+289,0,925,0,0,"debt + office, low valve",1
+260,0,941,0,0,"debt + office, low valve",2
+221,0,923,0,0,"debt + office, low valve",3
+344,0,912,0,0,"debt + office, low valve",4
+306,0,959,0,0,"debt + office, low valve",5
+206,0,821,0,0,"debt + office, low valve",6
+335,0,989,0,0,"debt + office, low valve",7
+215,0,989,0,0,"debt + office, low valve",8
+295,0,939,0,0,"debt + office, low valve",9
+283,0,889,0,0,"debt + office, low valve",10
+327,0,971,0,0,"debt + office, low valve",11
+216,0,819,0,0,"debt + office, low valve",12
+311,0,946,0,0,"debt + office, low valve",13
+318,0,986,0,0,"debt + office, low valve",14
+212,0,996,0,0,"debt + office, low valve",15

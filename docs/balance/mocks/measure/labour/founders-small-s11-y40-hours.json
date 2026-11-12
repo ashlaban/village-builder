@@ -1,0 +1,1273 @@
+{
+ "years": [
+  41
+ ],
+ "every": "step",
+ "groups": [
+  {
+   "group": "1 field",
+   "households": 3,
+   "members": 1,
+   "handsHours": 576,
+   "workersHours": 576,
+   "hours": [
+    {
+     "kind": "wood",
+     "work": 31.6,
+     "move": 113.8,
+     "total": 145.4,
+     "p10": 129.3,
+     "median": 150.3,
+     "p90": 156.7,
+     "ofHands": 25.2,
+     "ofWorkers": 25.2
+    },
+    {
+     "kind": "cook",
+     "work": 71.2,
+     "move": 53.9,
+     "total": 125.1,
+     "p10": 116.7,
+     "median": 128.3,
+     "p90": 130.2,
+     "ofHands": 21.7,
+     "ofWorkers": 21.7
+    },
+    {
+     "kind": "water",
+     "work": 10.8,
+     "move": 55.1,
+     "total": 65.9,
+     "p10": 61.6,
+     "median": 62.4,
+     "p90": 73.6,
+     "ofHands": 11.4,
+     "ofWorkers": 11.4
+    },
+    {
+     "kind": "mow",
+     "work": 25.2,
+     "move": 11.3,
+     "total": 36.5,
+     "p10": 0,
+     "median": 49.4,
+     "p90": 60.1,
+     "ofHands": 6.3,
+     "ofWorkers": 6.3
+    },
+    {
+     "kind": "plow",
+     "work": 20.6,
+     "move": 3.7,
+     "total": 24.3,
+     "p10": 23.9,
+     "median": 23.9,
+     "p90": 25.1,
+     "ofHands": 4.2,
+     "ofWorkers": 4.2
+    },
+    {
+     "kind": "thresh",
+     "work": 20.8,
+     "move": 2,
+     "total": 22.8,
+     "p10": 22.6,
+     "median": 22.7,
+     "p90": 23.2,
+     "ofHands": 4,
+     "ofWorkers": 4
+    },
+    {
+     "kind": "rackfish",
+     "work": 7.3,
+     "move": 15.3,
+     "total": 22.7,
+     "p10": 13.6,
+     "median": 13.9,
+     "p90": 40.5,
+     "ofHands": 3.9,
+     "ofWorkers": 3.9
+    },
+    {
+     "kind": "reap",
+     "work": 15.4,
+     "move": 2.5,
+     "total": 18,
+     "p10": 17.6,
+     "median": 17.6,
+     "p90": 18.7,
+     "ofHands": 3.1,
+     "ofWorkers": 3.1
+    },
+    {
+     "kind": "weed",
+     "work": 8.2,
+     "move": 6,
+     "total": 14.2,
+     "p10": 10.5,
+     "median": 13.6,
+     "p90": 18.4,
+     "ofHands": 2.5,
+     "ofWorkers": 2.5
+    },
+    {
+     "kind": "mend",
+     "work": 7.5,
+     "move": 5.3,
+     "total": 12.7,
+     "p10": 0,
+     "median": 5.9,
+     "p90": 32.3,
+     "ofHands": 2.2,
+     "ofWorkers": 2.2
+    },
+    {
+     "kind": "fodder",
+     "work": 9.7,
+     "move": 1.6,
+     "total": 11.3,
+     "p10": 0,
+     "median": 16.6,
+     "p90": 17.3,
+     "ofHands": 2,
+     "ofWorkers": 2
+    },
+    {
+     "kind": "haul",
+     "work": 3,
+     "move": 7.3,
+     "total": 10.3,
+     "p10": 6.9,
+     "median": 10.3,
+     "p90": 13.6,
+     "ofHands": 1.8,
+     "ofWorkers": 1.8
+    },
+    {
+     "kind": "hay",
+     "work": 5.6,
+     "move": 4.5,
+     "total": 10.1,
+     "p10": 0,
+     "median": 15,
+     "p90": 15.3,
+     "ofHands": 1.8,
+     "ofWorkers": 1.8
+    },
+    {
+     "kind": "brew",
+     "work": 8.8,
+     "move": 0.5,
+     "total": 9.3,
+     "p10": 6.9,
+     "median": 8.6,
+     "p90": 12.3,
+     "ofHands": 1.6,
+     "ofWorkers": 1.6
+    },
+    {
+     "kind": "rake",
+     "work": 3.7,
+     "move": 5.2,
+     "total": 8.9,
+     "p10": 0,
+     "median": 12.5,
+     "p90": 14.3,
+     "ofHands": 1.6,
+     "ofWorkers": 1.6
+    },
+    {
+     "kind": "milk",
+     "work": 5.2,
+     "move": 1.5,
+     "total": 6.7,
+     "p10": 0,
+     "median": 9.1,
+     "p90": 11,
+     "ofHands": 1.2,
+     "ofWorkers": 1.2
+    },
+    {
+     "kind": "dry",
+     "work": 2.6,
+     "move": 3.4,
+     "total": 6,
+     "p10": 3.6,
+     "median": 4.8,
+     "p90": 9.6,
+     "ofHands": 1,
+     "ofWorkers": 1
+    },
+    {
+     "kind": "fish",
+     "work": 1.2,
+     "move": 4.6,
+     "total": 5.8,
+     "p10": 3.2,
+     "median": 4.3,
+     "p90": 10,
+     "ofHands": 1,
+     "ofWorkers": 1
+    },
+    {
+     "kind": "repair",
+     "work": 4,
+     "move": 0.3,
+     "total": 4.3,
+     "p10": 4.2,
+     "median": 4.2,
+     "p90": 4.4,
+     "ofHands": 0.7,
+     "ofWorkers": 0.7
+    },
+    {
+     "kind": "sow",
+     "work": 2.1,
+     "move": 1.4,
+     "total": 3.4,
+     "p10": 2.6,
+     "median": 2.6,
+     "p90": 5.1,
+     "ofHands": 0.6,
+     "ofWorkers": 0.6
+    },
+    {
+     "kind": "gather",
+     "work": 0.9,
+     "move": 1.7,
+     "total": 2.6,
+     "p10": 0,
+     "median": 2.4,
+     "p90": 5.4,
+     "ofHands": 0.5,
+     "ofWorkers": 0.5
+    },
+    {
+     "kind": "manure",
+     "work": 1.3,
+     "move": 0.4,
+     "total": 1.7,
+     "p10": 0,
+     "median": 2.4,
+     "p90": 2.7,
+     "ofHands": 0.3,
+     "ofWorkers": 0.3
+    },
+    {
+     "kind": "(idle)",
+     "work": null,
+     "move": null,
+     "total": 23.5,
+     "p10": 13.6,
+     "median": 14.3,
+     "p90": 42.7,
+     "ofHands": 4.1,
+     "ofWorkers": 4.1
+    }
+   ],
+   "farming": {
+    "hoed": {
+     "fields": 3,
+     "median": "spring 3",
+     "latest": "spring 3"
+    },
+    "sown": {
+     "fields": 3,
+     "median": "spring 4",
+     "latest": "spring 4"
+    },
+    "ripe": {
+     "fields": 3,
+     "median": "autumn 5",
+     "latest": "autumn 5"
+    },
+    "reaped": {
+     "fields": 3,
+     "median": "autumn 7",
+     "latest": "autumn 7"
+    },
+    "barn": {
+     "fields": 3,
+     "median": "autumn 8",
+     "latest": "autumn 9"
+    },
+    "threshed": {
+     "fields": 3,
+     "median": "autumn 11",
+     "latest": "autumn 12"
+    }
+   },
+   "fields": 3,
+   "neverSown": 0,
+   "frost": 0
+  },
+  {
+   "group": "3 fields",
+   "households": 2,
+   "members": 5,
+   "handsHours": 1152,
+   "workersHours": 1255.2,
+   "hours": [
+    {
+     "kind": "water",
+     "work": 42.1,
+     "move": 114.4,
+     "total": 156.5,
+     "p10": 105.3,
+     "median": 207.7,
+     "p90": 207.7,
+     "ofHands": 13.6,
+     "ofWorkers": 12.5
+    },
+    {
+     "kind": "wood",
+     "work": 34.2,
+     "move": 117.2,
+     "total": 151.3,
+     "p10": 133.9,
+     "median": 168.7,
+     "p90": 168.7,
+     "ofHands": 13.1,
+     "ofWorkers": 12.1
+    },
+    {
+     "kind": "cook",
+     "work": 81.8,
+     "move": 50,
+     "total": 131.8,
+     "p10": 126.8,
+     "median": 136.8,
+     "p90": 136.8,
+     "ofHands": 11.4,
+     "ofWorkers": 10.5
+    },
+    {
+     "kind": "mow",
+     "work": 89.9,
+     "move": 28.6,
+     "total": 118.5,
+     "p10": 102.9,
+     "median": 134.1,
+     "p90": 134.1,
+     "ofHands": 10.3,
+     "ofWorkers": 9.4
+    },
+    {
+     "kind": "plow",
+     "work": 61.1,
+     "move": 10.4,
+     "total": 71.5,
+     "p10": 66.7,
+     "median": 76.3,
+     "p90": 76.3,
+     "ofHands": 6.2,
+     "ofWorkers": 5.7
+    },
+    {
+     "kind": "fish",
+     "work": 25.7,
+     "move": 40.6,
+     "total": 66.3,
+     "p10": 15.5,
+     "median": 117.1,
+     "p90": 117.1,
+     "ofHands": 5.8,
+     "ofWorkers": 5.3
+    },
+    {
+     "kind": "hay",
+     "work": 28,
+     "move": 28.9,
+     "total": 56.9,
+     "p10": 52.6,
+     "median": 61.2,
+     "p90": 61.2,
+     "ofHands": 4.9,
+     "ofWorkers": 4.5
+    },
+    {
+     "kind": "reap",
+     "work": 47.5,
+     "move": 8.3,
+     "total": 55.8,
+     "p10": 55.4,
+     "median": 56.2,
+     "p90": 56.2,
+     "ofHands": 4.8,
+     "ofWorkers": 4.4
+    },
+    {
+     "kind": "thresh",
+     "work": 50.9,
+     "move": 4.4,
+     "total": 55.3,
+     "p10": 41,
+     "median": 69.6,
+     "p90": 69.6,
+     "ofHands": 4.8,
+     "ofWorkers": 4.4
+    },
+    {
+     "kind": "weed",
+     "work": 28.1,
+     "move": 22.5,
+     "total": 50.6,
+     "p10": 40.1,
+     "median": 61.1,
+     "p90": 61.1,
+     "ofHands": 4.4,
+     "ofWorkers": 4
+    },
+    {
+     "kind": "gather",
+     "work": 22.9,
+     "move": 22.2,
+     "total": 45.1,
+     "p10": 27.6,
+     "median": 62.5,
+     "p90": 62.5,
+     "ofHands": 3.9,
+     "ofWorkers": 3.6
+    },
+    {
+     "kind": "rake",
+     "work": 19.9,
+     "move": 17.6,
+     "total": 37.5,
+     "p10": 36.7,
+     "median": 38.2,
+     "p90": 38.2,
+     "ofHands": 3.3,
+     "ofWorkers": 3
+    },
+    {
+     "kind": "rackfish",
+     "work": 14.6,
+     "move": 17.8,
+     "total": 32.4,
+     "p10": 19.8,
+     "median": 45,
+     "p90": 45,
+     "ofHands": 2.8,
+     "ofWorkers": 2.6
+    },
+    {
+     "kind": "milk",
+     "work": 24.5,
+     "move": 4.7,
+     "total": 29.2,
+     "p10": 20.6,
+     "median": 37.8,
+     "p90": 37.8,
+     "ofHands": 2.5,
+     "ofWorkers": 2.3
+    },
+    {
+     "kind": "fodder",
+     "work": 25.8,
+     "move": 2.3,
+     "total": 28.1,
+     "p10": 22.7,
+     "median": 33.5,
+     "p90": 33.5,
+     "ofHands": 2.4,
+     "ofWorkers": 2.2
+    },
+    {
+     "kind": "haul",
+     "work": 7.3,
+     "move": 19.5,
+     "total": 26.8,
+     "p10": 16.7,
+     "median": 36.9,
+     "p90": 36.9,
+     "ofHands": 2.3,
+     "ofWorkers": 2.1
+    },
+    {
+     "kind": "mend",
+     "work": 4.7,
+     "move": 7.8,
+     "total": 12.5,
+     "p10": 9.9,
+     "median": 15.2,
+     "p90": 15.2,
+     "ofHands": 1.1,
+     "ofWorkers": 1
+    },
+    {
+     "kind": "slaughter",
+     "work": 9.1,
+     "move": 1.4,
+     "total": 10.5,
+     "p10": 3.9,
+     "median": 17.1,
+     "p90": 17.1,
+     "ofHands": 0.9,
+     "ofWorkers": 0.8
+    },
+    {
+     "kind": "sow",
+     "work": 6.1,
+     "move": 4.2,
+     "total": 10.2,
+     "p10": 10,
+     "median": 10.5,
+     "p90": 10.5,
+     "ofHands": 0.9,
+     "ofWorkers": 0.8
+    },
+    {
+     "kind": "brew",
+     "work": 8.4,
+     "move": 0.4,
+     "total": 8.8,
+     "p10": 4.3,
+     "median": 13.4,
+     "p90": 13.4,
+     "ofHands": 0.8,
+     "ofWorkers": 0.7
+    },
+    {
+     "kind": "manure",
+     "work": 5.1,
+     "move": 3.5,
+     "total": 8.6,
+     "p10": 6.6,
+     "median": 10.6,
+     "p90": 10.6,
+     "ofHands": 0.7,
+     "ofWorkers": 0.7
+    },
+    {
+     "kind": "repair",
+     "work": 4.1,
+     "move": 0.4,
+     "total": 4.6,
+     "p10": 4.2,
+     "median": 4.9,
+     "p90": 4.9,
+     "ofHands": 0.4,
+     "ofWorkers": 0.4
+    },
+    {
+     "kind": "dry",
+     "work": 3.4,
+     "move": 1.1,
+     "total": 4.5,
+     "p10": 4.5,
+     "median": 4.5,
+     "p90": 4.5,
+     "ofHands": 0.4,
+     "ofWorkers": 0.4
+    },
+    {
+     "kind": "meadow",
+     "work": 2,
+     "move": 0.9,
+     "total": 2.9,
+     "p10": 0,
+     "median": 5.8,
+     "p90": 5.8,
+     "ofHands": 0.3,
+     "ofWorkers": 0.2
+    },
+    {
+     "kind": "salt",
+     "work": 1.3,
+     "move": 0.4,
+     "total": 1.7,
+     "p10": 0,
+     "median": 3.4,
+     "p90": 3.4,
+     "ofHands": 0.1,
+     "ofWorkers": 0.1
+    },
+    {
+     "kind": "(idle)",
+     "work": null,
+     "move": null,
+     "total": 283.8,
+     "p10": 140.3,
+     "median": 427.4,
+     "p90": 427.4,
+     "ofHands": 24.6,
+     "ofWorkers": 22.6
+    }
+   ],
+   "farming": {
+    "hoed": {
+     "fields": 6,
+     "median": "spring 5",
+     "latest": "spring 7"
+    },
+    "sown": {
+     "fields": 6,
+     "median": "spring 6",
+     "latest": "spring 8"
+    },
+    "ripe": {
+     "fields": 6,
+     "median": "autumn 7",
+     "latest": "autumn 9"
+    },
+    "reaped": {
+     "fields": 6,
+     "median": "autumn 8",
+     "latest": "autumn 10"
+    },
+    "barn": {
+     "fields": 6,
+     "median": "autumn 11",
+     "latest": "autumn 11"
+    },
+    "threshed": {
+     "fields": 6,
+     "median": "winter 1",
+     "latest": "winter 2"
+    }
+   },
+   "fields": 6,
+   "neverSown": 0,
+   "frost": 0
+  },
+  {
+   "group": "4 fields",
+   "households": 3,
+   "members": 4.3,
+   "handsHours": 1032,
+   "workersHours": 1550,
+   "hours": [
+    {
+     "kind": "fish",
+     "work": 67.7,
+     "move": 90.8,
+     "total": 158.5,
+     "p10": 41.1,
+     "median": 161.5,
+     "p90": 272.9,
+     "ofHands": 15.4,
+     "ofWorkers": 10.2
+    },
+    {
+     "kind": "wood",
+     "work": 35.1,
+     "move": 100.5,
+     "total": 135.6,
+     "p10": 106,
+     "median": 133.8,
+     "p90": 166.9,
+     "ofHands": 13.1,
+     "ofWorkers": 8.7
+    },
+    {
+     "kind": "cook",
+     "work": 76.2,
+     "move": 34.3,
+     "total": 110.5,
+     "p10": 97,
+     "median": 111.1,
+     "p90": 123.4,
+     "ofHands": 10.7,
+     "ofWorkers": 7.1
+    },
+    {
+     "kind": "plow",
+     "work": 68.1,
+     "move": 13.7,
+     "total": 81.7,
+     "p10": 53.6,
+     "median": 95.5,
+     "p90": 96.1,
+     "ofHands": 7.9,
+     "ofWorkers": 5.3
+    },
+    {
+     "kind": "reap",
+     "work": 60.3,
+     "move": 16.1,
+     "total": 76.5,
+     "p10": 76,
+     "median": 76.1,
+     "p90": 77.3,
+     "ofHands": 7.4,
+     "ofWorkers": 4.9
+    },
+    {
+     "kind": "water",
+     "work": 27.4,
+     "move": 43.1,
+     "total": 70.5,
+     "p10": 36.9,
+     "median": 74.6,
+     "p90": 100.1,
+     "ofHands": 6.8,
+     "ofWorkers": 4.6
+    },
+    {
+     "kind": "thresh",
+     "work": 61.1,
+     "move": 2.8,
+     "total": 63.9,
+     "p10": 20.3,
+     "median": 85.1,
+     "p90": 86.4,
+     "ofHands": 6.2,
+     "ofWorkers": 4.1
+    },
+    {
+     "kind": "weed",
+     "work": 33.2,
+     "move": 29.5,
+     "total": 62.7,
+     "p10": 50.3,
+     "median": 59.6,
+     "p90": 78.3,
+     "ofHands": 6.1,
+     "ofWorkers": 4
+    },
+    {
+     "kind": "gather",
+     "work": 23.3,
+     "move": 32.5,
+     "total": 55.8,
+     "p10": 18.3,
+     "median": 64.4,
+     "p90": 84.7,
+     "ofHands": 5.4,
+     "ofWorkers": 3.6
+    },
+    {
+     "kind": "mow",
+     "work": 32.6,
+     "move": 11.9,
+     "total": 44.5,
+     "p10": 0,
+     "median": 0,
+     "p90": 133.5,
+     "ofHands": 4.3,
+     "ofWorkers": 2.9
+    },
+    {
+     "kind": "rackfish",
+     "work": 21.1,
+     "move": 18.7,
+     "total": 39.8,
+     "p10": 0.7,
+     "median": 30.4,
+     "p90": 88.2,
+     "ofHands": 3.9,
+     "ofWorkers": 2.6
+    },
+    {
+     "kind": "haul",
+     "work": 8.2,
+     "move": 23.5,
+     "total": 31.8,
+     "p10": 6.8,
+     "median": 39.9,
+     "p90": 48.6,
+     "ofHands": 3.1,
+     "ofWorkers": 2
+    },
+    {
+     "kind": "hay",
+     "work": 10.1,
+     "move": 13.8,
+     "total": 23.8,
+     "p10": 0,
+     "median": 0,
+     "p90": 71.5,
+     "ofHands": 2.3,
+     "ofWorkers": 1.5
+    },
+    {
+     "kind": "mend",
+     "work": 12.8,
+     "move": 4.9,
+     "total": 17.7,
+     "p10": 12.4,
+     "median": 12.5,
+     "p90": 28.3,
+     "ofHands": 1.7,
+     "ofWorkers": 1.1
+    },
+    {
+     "kind": "sow",
+     "work": 8.3,
+     "move": 8.4,
+     "total": 16.7,
+     "p10": 16.5,
+     "median": 16.8,
+     "p90": 16.8,
+     "ofHands": 1.6,
+     "ofWorkers": 1.1
+    },
+    {
+     "kind": "fodder",
+     "work": 12.6,
+     "move": 2.3,
+     "total": 14.9,
+     "p10": 0,
+     "median": 15.6,
+     "p90": 29.2,
+     "ofHands": 1.4,
+     "ofWorkers": 1
+    },
+    {
+     "kind": "milk",
+     "work": 7.3,
+     "move": 1.5,
+     "total": 8.8,
+     "p10": 0,
+     "median": 0,
+     "p90": 26.4,
+     "ofHands": 0.9,
+     "ofWorkers": 0.6
+    },
+    {
+     "kind": "dry",
+     "work": 6,
+     "move": 2.8,
+     "total": 8.7,
+     "p10": 0,
+     "median": 5.3,
+     "p90": 20.9,
+     "ofHands": 0.8,
+     "ofWorkers": 0.6
+    },
+    {
+     "kind": "rake",
+     "work": 5.4,
+     "move": 3.3,
+     "total": 8.6,
+     "p10": 0,
+     "median": 0,
+     "p90": 25.9,
+     "ofHands": 0.8,
+     "ofWorkers": 0.6
+    },
+    {
+     "kind": "brew",
+     "work": 6.9,
+     "move": 1.2,
+     "total": 8.1,
+     "p10": 0,
+     "median": 10.3,
+     "p90": 13.9,
+     "ofHands": 0.8,
+     "ofWorkers": 0.5
+    },
+    {
+     "kind": "manure",
+     "work": 3.9,
+     "move": 2.8,
+     "total": 6.7,
+     "p10": 0,
+     "median": 4,
+     "p90": 16.2,
+     "ofHands": 0.7,
+     "ofWorkers": 0.4
+    },
+    {
+     "kind": "repair",
+     "work": 1.3,
+     "move": 0.1,
+     "total": 1.4,
+     "p10": 0,
+     "median": 0,
+     "p90": 4.2,
+     "ofHands": 0.1,
+     "ofWorkers": 0.1
+    },
+    {
+     "kind": "slaughter",
+     "work": 1,
+     "move": 0,
+     "total": 1.1,
+     "p10": 0,
+     "median": 0,
+     "p90": 3.2,
+     "ofHands": 0.1,
+     "ofWorkers": 0.1
+    },
+    {
+     "kind": "salt",
+     "work": 0.4,
+     "move": 0,
+     "total": 0.4,
+     "p10": 0,
+     "median": 0,
+     "p90": 1.3,
+     "ofHands": 0,
+     "ofWorkers": 0
+    },
+    {
+     "kind": "(idle)",
+     "work": null,
+     "move": null,
+     "total": 702.2,
+     "p10": 25.1,
+     "median": 597,
+     "p90": 1484.5,
+     "ofHands": 68,
+     "ofWorkers": 45.3
+    }
+   ],
+   "farming": {
+    "hoed": {
+     "fields": 10,
+     "median": "spring 4",
+     "latest": "spring 7"
+    },
+    "sown": {
+     "fields": 12,
+     "median": "spring 5",
+     "latest": "spring 8"
+    },
+    "ripe": {
+     "fields": 12,
+     "median": "autumn 6",
+     "latest": "autumn 9"
+    },
+    "reaped": {
+     "fields": 11,
+     "median": "autumn 7",
+     "latest": "autumn 11"
+    },
+    "barn": {
+     "fields": 11,
+     "median": "autumn 8",
+     "latest": "autumn 11"
+    },
+    "threshed": {
+     "fields": 11,
+     "median": "autumn 11",
+     "latest": "winter 5"
+    }
+   },
+   "fields": 12,
+   "neverSown": 0,
+   "frost": 1
+  },
+  {
+   "group": "5 fields",
+   "households": 2,
+   "members": 5,
+   "handsHours": 1440,
+   "workersHours": 1830,
+   "hours": [
+    {
+     "kind": "fish",
+     "work": 67.9,
+     "move": 108,
+     "total": 175.9,
+     "p10": 107.5,
+     "median": 244.2,
+     "p90": 244.2,
+     "ofHands": 12.2,
+     "ofWorkers": 9.6
+    },
+    {
+     "kind": "plow",
+     "work": 101.7,
+     "move": 17.4,
+     "total": 119.1,
+     "p10": 115.1,
+     "median": 123.1,
+     "p90": 123.1,
+     "ofHands": 8.3,
+     "ofWorkers": 6.5
+    },
+    {
+     "kind": "cook",
+     "work": 85.4,
+     "move": 32.6,
+     "total": 118.1,
+     "p10": 106.8,
+     "median": 129.3,
+     "p90": 129.3,
+     "ofHands": 8.2,
+     "ofWorkers": 6.5
+    },
+    {
+     "kind": "wood",
+     "work": 33.3,
+     "move": 81.3,
+     "total": 114.6,
+     "p10": 114,
+     "median": 115.1,
+     "p90": 115.1,
+     "ofHands": 8,
+     "ofWorkers": 6.3
+    },
+    {
+     "kind": "mow",
+     "work": 76.3,
+     "move": 26.5,
+     "total": 102.8,
+     "p10": 67.8,
+     "median": 137.9,
+     "p90": 137.9,
+     "ofHands": 7.1,
+     "ofWorkers": 5.6
+    },
+    {
+     "kind": "reap",
+     "work": 82.2,
+     "move": 15,
+     "total": 97.2,
+     "p10": 90.4,
+     "median": 104,
+     "p90": 104,
+     "ofHands": 6.7,
+     "ofWorkers": 5.3
+    },
+    {
+     "kind": "weed",
+     "work": 42.8,
+     "move": 40.9,
+     "total": 83.7,
+     "p10": 81.1,
+     "median": 86.4,
+     "p90": 86.4,
+     "ofHands": 5.8,
+     "ofWorkers": 4.6
+    },
+    {
+     "kind": "gather",
+     "work": 42.3,
+     "move": 40.3,
+     "total": 82.6,
+     "p10": 25.6,
+     "median": 139.6,
+     "p90": 139.6,
+     "ofHands": 5.7,
+     "ofWorkers": 4.5
+    },
+    {
+     "kind": "thresh",
+     "work": 71.3,
+     "move": 3.4,
+     "total": 74.6,
+     "p10": 42,
+     "median": 107.2,
+     "p90": 107.2,
+     "ofHands": 5.2,
+     "ofWorkers": 4.1
+    },
+    {
+     "kind": "water",
+     "work": 31.6,
+     "move": 40,
+     "total": 71.6,
+     "p10": 51.9,
+     "median": 91.4,
+     "p90": 91.4,
+     "ofHands": 5,
+     "ofWorkers": 3.9
+    },
+    {
+     "kind": "rackfish",
+     "work": 23.7,
+     "move": 23.9,
+     "total": 47.6,
+     "p10": 46.9,
+     "median": 48.2,
+     "p90": 48.2,
+     "ofHands": 3.3,
+     "ofWorkers": 2.6
+    },
+    {
+     "kind": "haul",
+     "work": 12.6,
+     "move": 34.7,
+     "total": 47.3,
+     "p10": 25.4,
+     "median": 69.1,
+     "p90": 69.1,
+     "ofHands": 3.3,
+     "ofWorkers": 2.6
+    },
+    {
+     "kind": "hay",
+     "work": 19.3,
+     "move": 25.2,
+     "total": 44.4,
+     "p10": 27.2,
+     "median": 61.6,
+     "p90": 61.6,
+     "ofHands": 3.1,
+     "ofWorkers": 2.4
+    },
+    {
+     "kind": "rake",
+     "work": 14.1,
+     "move": 15.1,
+     "total": 29.2,
+     "p10": 23,
+     "median": 35.4,
+     "p90": 35.4,
+     "ofHands": 2,
+     "ofWorkers": 1.6
+    },
+    {
+     "kind": "fodder",
+     "work": 24.2,
+     "move": 1.8,
+     "total": 26,
+     "p10": 19.5,
+     "median": 32.6,
+     "p90": 32.6,
+     "ofHands": 1.8,
+     "ofWorkers": 1.4
+    },
+    {
+     "kind": "milk",
+     "work": 18.5,
+     "move": 3.5,
+     "total": 22,
+     "p10": 21.6,
+     "median": 22.4,
+     "p90": 22.4,
+     "ofHands": 1.5,
+     "ofWorkers": 1.2
+    },
+    {
+     "kind": "manure",
+     "work": 10.9,
+     "move": 10,
+     "total": 20.9,
+     "p10": 17.6,
+     "median": 24.3,
+     "p90": 24.3,
+     "ofHands": 1.5,
+     "ofWorkers": 1.1
+    },
+    {
+     "kind": "sow",
+     "work": 10,
+     "move": 6.6,
+     "total": 16.6,
+     "p10": 16.2,
+     "median": 17.1,
+     "p90": 17.1,
+     "ofHands": 1.2,
+     "ofWorkers": 0.9
+    },
+    {
+     "kind": "slaughter",
+     "work": 9.2,
+     "move": 1.6,
+     "total": 10.8,
+     "p10": 7,
+     "median": 14.6,
+     "p90": 14.6,
+     "ofHands": 0.7,
+     "ofWorkers": 0.6
+    },
+    {
+     "kind": "brew",
+     "work": 8.2,
+     "move": 0.6,
+     "total": 8.8,
+     "p10": 8.2,
+     "median": 9.4,
+     "p90": 9.4,
+     "ofHands": 0.6,
+     "ofWorkers": 0.5
+    },
+    {
+     "kind": "mend",
+     "work": 3.4,
+     "move": 3.4,
+     "total": 6.8,
+     "p10": 5.1,
+     "median": 8.4,
+     "p90": 8.4,
+     "ofHands": 0.5,
+     "ofWorkers": 0.4
+    },
+    {
+     "kind": "dry",
+     "work": 4.5,
+     "move": 2,
+     "total": 6.4,
+     "p10": 4.2,
+     "median": 8.6,
+     "p90": 8.6,
+     "ofHands": 0.4,
+     "ofWorkers": 0.3
+    },
+    {
+     "kind": "salt",
+     "work": 2.3,
+     "move": 0.5,
+     "total": 2.8,
+     "p10": 2.5,
+     "median": 3.1,
+     "p90": 3.1,
+     "ofHands": 0.2,
+     "ofWorkers": 0.2
+    },
+    {
+     "kind": "repair",
+     "work": 2,
+     "move": 0.7,
+     "total": 2.7,
+     "p10": 0,
+     "median": 5.4,
+     "p90": 5.4,
+     "ofHands": 0.2,
+     "ofWorkers": 0.1
+    },
+    {
+     "kind": "(idle)",
+     "work": null,
+     "move": null,
+     "total": 757.4,
+     "p10": 461,
+     "median": 1053.7,
+     "p90": 1053.7,
+     "ofHands": 52.6,
+     "ofWorkers": 41.4
+    }
+   ],
+   "farming": {
+    "hoed": {
+     "fields": 10,
+     "median": "spring 5",
+     "latest": "spring 9"
+    },
+    "sown": {
+     "fields": 10,
+     "median": "spring 6",
+     "latest": "spring 9"
+    },
+    "ripe": {
+     "fields": 10,
+     "median": "autumn 7",
+     "latest": "autumn 10"
+    },
+    "reaped": {
+     "fields": 9,
+     "median": "autumn 8",
+     "latest": "autumn 11"
+    },
+    "barn": {
+     "fields": 9,
+     "median": "autumn 10",
+     "latest": "autumn 11"
+    },
+    "threshed": {
+     "fields": 9,
+     "median": "autumn 12",
+     "latest": "winter 2"
+    }
+   },
+   "fields": 10,
+   "neverSown": 0,
+   "frost": 1
+  }
+ ]
+}

@@ -1,0 +1,22 @@
+loss 0.12925335467750657
+  y           2.818  base   2.350  plausible 1.8-3.0
+  cv_hh       0.695  base   0.350  plausible 0.25-0.7  at edge
+  sig_y       0.147  base   0.150  plausible 0.1-0.3
+  res         1.274  base   1.000  plausible 0.3-1.5
+  f_feast     0.306  base   0.500  plausible 0.2-0.9
+  beta        0.897  base   0.600  plausible 0.2-0.9  at edge
+  k_def       0.768  base   0.500  plausible 0.1-0.8
+  mu          0.329  base   0.250  plausible 0.05-0.5
+  crowd       0.004  base   0.020  plausible 0.0-0.06
+  cE          1.554  base   1.500  plausible 1.0-3.0
+  kH          0.732  base   0.750  plausible 0.5-0.95
+  m1          0.694  base   1.600  plausible 0.3-2.5
+  s1          0.370  base   0.600  plausible 0.1-0.8
+  tithe       0.116  base   0.100  plausible 0.0-0.12
+  pat         0.340  base   0.300  plausible 0.0-0.6
+  tau_E       4.275  base   8.000  plausible 3-20
+{'pop': np.float64(959.461), 'farm': np.float64(574.361), 'T': np.float64(312.157), 'E': np.float64(72.942), 'hungry': np.float64(0.032), 'kept': np.float64(1.612), 'h': np.float64(0.009), 'Cn': np.float64(0.053), 'made': np.float64(1.897), 'extracted': np.float64(0.185), 'out_share': np.float64(0.455), 'idle': np.float64(0.355), 'G': np.float64(92.651), 't900': 144.0, 'hungry_max': np.float64(0.086)}
+seed 2 {'pop': np.float64(989.69), 'farm': np.float64(572.46), 'T': np.float64(340.73), 'E': np.float64(76.5), 'hungry': np.float64(0.03), 'kept': np.float64(1.61), 'Cn': np.float64(0.07), 't900': 139.0}
+seed 3 {'pop': np.float64(995.6), 'farm': np.float64(575.47), 'T': np.float64(344.52), 'E': np.float64(75.61), 'hungry': np.float64(0.04), 'kept': np.float64(1.53), 'Cn': np.float64(0.05), 't900': 139.0}
+seed 4 {'pop': np.float64(967.06), 'farm': np.float64(573.44), 'T': np.float64(320.74), 'E': np.float64(72.88), 'hungry': np.float64(0.04), 'kept': np.float64(1.63), 'Cn': np.float64(0.05), 't900': 140.0}
+seed 5 {'pop': np.float64(1016.86), 'farm': np.float64(572.52), 'T': np.float64(370.09), 'E': np.float64(74.24), 'hungry': np.float64(0.03), 'kept': np.float64(1.53), 'Cn': np.float64(0.04), 't900': 140.0}

@@ -1,0 +1,34 @@
+          dial        prop  predicted  measured    se  significant  direction_ok  size_ok
+0        means         pop         -8     -3.07  3.03        False         False    False
+1        means  town_share         15     16.40  3.02         True          True     True
+2        means    elite_hh          0      1.87  2.97        False          True     True
+3        means       ratio          8      4.45  1.35         True          True     True
+4        means  hungry_pts         -1     -0.11  0.17        False          True     True
+5        means    gini_pts          0     -0.29  0.67        False          True     True
+6        tithe         pop          0      1.35  1.07        False          True     True
+7        tithe  town_share          5     -2.06  2.11        False         False    False
+8        tithe    elite_hh         20     21.42  1.99         True          True     True
+9        tithe       ratio          0      0.50  1.24        False          True     True
+10       tithe  hungry_pts          0     -0.16  0.16        False          True     True
+11       tithe    gini_pts          0     -0.43  0.52        False          True     True
+12         Wd1         pop          0     -1.98  2.04        False          True     True
+13         Wd1  town_share         12     12.18  2.72         True          True     True
+14         Wd1    elite_hh          0     -2.63  2.35        False          True    False
+15         Wd1       ratio          2      0.91  1.30        False          True     True
+16         Wd1  hungry_pts         -1      0.03  0.20        False          True     True
+17         Wd1    gini_pts          0      0.19  0.64        False          True     True
+18      town_d         pop         -3     -6.09  1.61         True          True    False
+19      town_d  town_share        -15     -4.87  3.19        False         False    False
+20      town_d    elite_hh          0     -5.11  2.33         True         False    False
+21      town_d       ratio          0      0.78  1.22        False          True     True
+22      town_d  hungry_pts          0     -0.16  0.17        False          True     True
+23      town_d    gini_pts          0      0.04  0.63        False          True     True
+24  child_mort         pop         10     21.01  4.58         True          True    False
+25  child_mort  town_share          5      5.32  3.10        False         False     True
+26  child_mort    elite_hh          5     12.86  3.98         True          True    False
+27  child_mort       ratio         -3     -3.05  1.59        False         False     True
+28  child_mort  hungry_pts          1      0.52  0.33        False          True     True
+29  child_mort    gini_pts          0     -0.72  0.55        False          True     True
+direction right 0.8 size right (x2) 0.73
+among significant effects: direction 0.88 size 0.5 n 8
+base {'pop': 663.886, 'town_share': 0.146, 'elite_hh': 11.08, 'ratio': 1.885, 'hungry_pts': 0.523, 'gini_pts': 22.025}

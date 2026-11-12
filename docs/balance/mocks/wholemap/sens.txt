@@ -1,0 +1,64 @@
+one at a time: total |effect| (sum over properties, each scaled by its target), top 12
+param
+f_home    2.29
+kH        2.17
+Lmax      2.08
+fert      1.93
+cv_hh     1.81
+m1        1.76
+phimax    1.16
+tithe     0.93
+y         0.69
+lpw       0.69
+cE        0.61
+W50       0.61
+
+per property: top 3 parameters (effect of -25% -> +25%, in units of the target)
+  pop        f_home -0.51, kH +0.48, Lmax +0.47
+  farm_share m1 -0.14, W50 +0.05, craft -0.05
+  T          f_home -0.51, kH +0.49, Lmax +0.48
+  E          f_home -0.54, cE -0.52, tithe +0.51
+  made       m1 +0.19, tithe +0.07, W50 -0.07
+  extracted  tithe +0.14, tax +0.06, m1 -0.03
+  kept       floor +0.20, sig_y +0.15, m1 +0.08
+  hungry     phimax -0.38, cv_hh +0.13, phi0 -0.08
+  G          cv_hh +1.33, f_home -0.54, kH +0.51
+  idle       lpw +0.69, y +0.69, m1 -0.21
+  Cn         phimax -0.16, cv_hh +0.16, k_def +0.16
+
+Latin hypercube (400 runs, all parameters +-25%): spread and robustness at year 200
+  pop        base  959.461  p5  568.124  p95 1391.215  rank-R2 0.93; in band (900, 1100): 24%
+             Lmax +0.48, kH +0.43, fert +0.42, f_home -0.41, dO -0.11
+  farm_share base    0.599  p5    0.558  p95    0.681  rank-R2 0.76; in band (0.55, 0.65): 84%
+             m1 -0.58, m0 -0.27, craft -0.24, f_home -0.19, W50 +0.18
+  T          base  312.157  p5  152.552  p95  448.576  rank-R2 0.74; in band (275, 375): 36%
+             Lmax +0.41, fert +0.37, m1 +0.26, kH +0.25, f_home -0.20
+  E          base   72.942  p5   39.500  p95  122.916  rank-R2 0.95; in band (60, 90): 41%
+             tithe +0.43, cE -0.42, f_home -0.36, kH +0.35, Lmax +0.35
+  made       base    1.897  p5    1.634  p95    2.056  rank-R2 0.82
+             m1 +0.66, m0 +0.29, tithe +0.28, craft +0.27, W50 -0.23
+  extracted  base    0.185  p5    0.152  p95    0.219  rank-R2 0.93
+             tithe +0.79, tax +0.34, m1 -0.16, cv_hh +0.15, phimax -0.15
+  kept       base    1.612  p5    1.464  p95    1.806  rank-R2 0.86; in band (1.0, 9): 99%
+             floor +0.58, sig_y +0.40, m1 +0.25, fert -0.23, Lmax +0.14
+  hungry     base    0.032  p5    0.011  p95    0.059  rank-R2 0.83; in band (0, 0.1): 98%
+             phimax -0.71, cv_hh +0.20, m1 -0.19, phi0 -0.17, gw_half -0.13
+  G          base   92.651  p5   32.140  p95  237.445  rank-R2 0.89
+             cv_hh +0.67, f_home -0.34, kH +0.27, gw_half +0.25, Lmax +0.24
+  idle       base    0.355  p5    0.102  p95    0.544  rank-R2 0.91
+             lpw +0.70, y +0.62, m1 -0.18, f_home -0.11, craft -0.10
+  Cn         base    0.053  p5    0.016  p95    0.115  rank-R2 0.85
+             phimax -0.44, cv_hh +0.41, k_def +0.38, fv -0.23, fert +0.18
+runs with every banded property in band: 11%
+
+mean |SRRC| over properties, top 10:
+m1        0.247
+f_home    0.200
+kH        0.191
+fert      0.181
+Lmax      0.177
+tithe     0.173
+cv_hh     0.164
+phimax    0.155
+y         0.123
+m0        0.116

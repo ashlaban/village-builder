@@ -1,0 +1,429 @@
+{
+ "hoursShare": {
+  "farmer": {
+   "spring": {
+    "working": 40.8,
+    "walking": 27.9,
+    "carrying": 6.8,
+    "idle": 24.5
+   },
+   "summer": {
+    "working": 36.9,
+    "walking": 34.2,
+    "carrying": 11.5,
+    "idle": 17.3
+   },
+   "autumn": {
+    "working": 44.3,
+    "walking": 26.9,
+    "carrying": 9.6,
+    "idle": 19.2
+   },
+   "winter": {
+    "working": 16.3,
+    "walking": 15,
+    "carrying": 6.9,
+    "idle": 61.9
+   }
+  },
+  "wife": {
+   "spring": {
+    "working": 34.7,
+    "walking": 32.1,
+    "carrying": 5.4,
+    "idle": 27.8
+   },
+   "summer": {
+    "working": 32.3,
+    "walking": 32.6,
+    "carrying": 8.2,
+    "idle": 26.9
+   },
+   "autumn": {
+    "working": 41,
+    "walking": 27.8,
+    "carrying": 8.5,
+    "idle": 22.6
+   },
+   "winter": {
+    "working": 24,
+    "walking": 17.3,
+    "carrying": 3.5,
+    "idle": 55.2
+   }
+  },
+  "son": {
+   "spring": {
+    "working": 33.5,
+    "walking": 20,
+    "carrying": 8.4,
+    "idle": 38
+   },
+   "summer": {
+    "working": 31.7,
+    "walking": 25.3,
+    "carrying": 12.3,
+    "idle": 30.7
+   },
+   "autumn": {
+    "working": 38.3,
+    "walking": 21.3,
+    "carrying": 9.4,
+    "idle": 31.1
+   },
+   "winter": {
+    "working": 8.1,
+    "walking": 6.3,
+    "carrying": 2.2,
+    "idle": 83.4
+   }
+  },
+  "daughter": {
+   "spring": {
+    "working": 22.9,
+    "walking": 22.5,
+    "carrying": 7.9,
+    "idle": 46.8
+   },
+   "summer": {
+    "working": 22.2,
+    "walking": 23.5,
+    "carrying": 11.4,
+    "idle": 42.9
+   },
+   "autumn": {
+    "working": 30.4,
+    "walking": 20.7,
+    "carrying": 10.9,
+    "idle": 38
+   },
+   "winter": {
+    "working": 7.9,
+    "walking": 10.9,
+    "carrying": 6.4,
+    "idle": 74.8
+   }
+  },
+  "retired": {
+   "spring": {
+    "working": 11.1,
+    "walking": 12.1,
+    "carrying": 6.7,
+    "idle": 70.1
+   },
+   "summer": {
+    "working": 16.5,
+    "walking": 14.8,
+    "carrying": 10,
+    "idle": 58.7
+   },
+   "autumn": {
+    "working": 29.9,
+    "walking": 16,
+    "carrying": 9.6,
+    "idle": 44.6
+   },
+   "winter": {
+    "working": 3.2,
+    "walking": 1.8,
+    "carrying": 0.9,
+    "idle": 94.1
+   }
+  },
+  "farmhand": {
+   "spring": {
+    "working": 28.8,
+    "walking": 28.8,
+    "carrying": 13.2,
+    "idle": 29.2
+   },
+   "summer": {
+    "working": 24.3,
+    "walking": 31.6,
+    "carrying": 18.4,
+    "idle": 25.7
+   },
+   "autumn": {
+    "working": 37.5,
+    "walking": 24.3,
+    "carrying": 16.3,
+    "idle": 21.9
+   },
+   "winter": {
+    "working": 8.7,
+    "walking": 14.9,
+    "carrying": 18.1,
+    "idle": 58.3
+   }
+  },
+  "maid": {
+   "spring": {
+    "working": 45.6,
+    "walking": 37.6,
+    "carrying": 15,
+    "idle": 1.7
+   },
+   "summer": {
+    "working": 50,
+    "walking": 29.9,
+    "carrying": 17,
+    "idle": 3.1
+   },
+   "autumn": {
+    "working": 45.2,
+    "walking": 32.8,
+    "carrying": 19.7,
+    "idle": 2.3
+   },
+   "winter": {
+    "working": 35.3,
+    "walking": 48.5,
+    "carrying": 15,
+    "idle": 1.2
+   }
+  }
+ },
+ "idleReasons": {
+  "has a bid, waits for the next round": 8.6,
+  "not worth the walk": 2.1,
+  "no job they may take": 85.9,
+  "poor fit, waits": 3.4
+ },
+ "waitHours": {
+  "water": {
+   "n": 764,
+   "median": 1,
+   "p90": 4
+  },
+  "plow": {
+   "n": 766,
+   "median": 7,
+   "p90": 22
+  },
+  "rake": {
+   "n": 226,
+   "median": 5,
+   "p90": 39
+  },
+  "fodder": {
+   "n": 56,
+   "median": 2,
+   "p90": 6
+  },
+  "sow": {
+   "n": 176,
+   "median": 1,
+   "p90": 4
+  },
+  "timber": {
+   "n": 42,
+   "median": 8,
+   "p90": 13
+  },
+  "manure": {
+   "n": 57,
+   "median": 0,
+   "p90": 4
+  },
+  "repair": {
+   "n": 45,
+   "median": 7,
+   "p90": 51
+  },
+  "foundation": {
+   "n": 25,
+   "median": 8,
+   "p90": 27.8
+  },
+  "cook": {
+   "n": 4103,
+   "median": 0,
+   "p90": 0
+  },
+  "break": {
+   "n": 18,
+   "median": 8,
+   "p90": 11
+  },
+  "mend": {
+   "n": 189,
+   "median": 0,
+   "p90": 6
+  },
+  "fish": {
+   "n": 2105,
+   "median": 2.6,
+   "p90": 11
+  },
+  "rackfish": {
+   "n": 500,
+   "median": 2,
+   "p90": 11
+  },
+  "dig": {
+   "n": 11,
+   "median": 23,
+   "p90": 167
+  },
+  "wood": {
+   "n": 1164,
+   "median": 4,
+   "p90": 30
+  },
+  "dry": {
+   "n": 208,
+   "median": 0.1,
+   "p90": 3
+  },
+  "meadow": {
+   "n": 4,
+   "median": 7,
+   "p90": 18
+  },
+  "clear": {
+   "n": 15,
+   "median": 5,
+   "p90": 11
+  },
+  "weed": {
+   "n": 1060,
+   "median": 0,
+   "p90": 3
+  },
+  "milk": {
+   "n": 939,
+   "median": 0,
+   "p90": 0
+  },
+  "herd": {
+   "n": 1239,
+   "median": 0,
+   "p90": 1
+  },
+  "boat": {
+   "n": 3,
+   "median": 3,
+   "p90": 5
+  },
+  "walls": {
+   "n": 25,
+   "median": 8,
+   "p90": 20
+  },
+  "mow": {
+   "n": 494,
+   "median": 10,
+   "p90": 26
+  },
+  "hay": {
+   "n": 275,
+   "median": 1,
+   "p90": 13
+  },
+  "roof": {
+   "n": 15,
+   "median": 8,
+   "p90": 24
+  },
+  "gather": {
+   "n": 1301,
+   "median": 2,
+   "p90": 11.8
+  },
+  "quarry": {
+   "n": 42,
+   "median": 5.9,
+   "p90": 16
+  },
+  "brew": {
+   "n": 198,
+   "median": 1,
+   "p90": 9
+  },
+  "reap": {
+   "n": 39,
+   "median": 10,
+   "p90": 11
+  },
+  "haul": {
+   "n": 278,
+   "median": 7,
+   "p90": 13
+  },
+  "thresh": {
+   "n": 329,
+   "median": 2,
+   "p90": 11
+  },
+  "slaughter": {
+   "n": 436,
+   "median": 10,
+   "p90": 36
+  },
+  "salt": {
+   "n": 42,
+   "median": 0.2,
+   "p90": 8
+  },
+  "fell": {
+   "n": 4,
+   "median": 3,
+   "p90": 4
+  },
+  "grub": {
+   "n": 1,
+   "median": 0,
+   "p90": 0
+  },
+  "pick": {
+   "n": 4,
+   "median": 2,
+   "p90": 5
+  }
+ },
+ "switchesPerPawnYear": {
+  "other": 18.48,
+  "cookCall": 8.95
+ },
+ "unclaimedAtEndOfDay": {
+  "foundation": 0.52,
+  "wood": 27.06,
+  "break": 0.5,
+  "dig": 0.9,
+  "brew": 2.35,
+  "timber": 2.29,
+  "fodder": 1.17,
+  "plow": 18.29,
+  "rake": 4.06,
+  "repair": 1.69,
+  "sow": 1.5,
+  "mend": 2.29,
+  "manure": 0.75,
+  "clear": 0.31,
+  "fish": 35.27,
+  "rackfish": 7.08,
+  "meadow": 0.06,
+  "dry": 1.67,
+  "water": 0.83,
+  "weed": 2.58,
+  "milk": 1.19,
+  "herd": 1.58,
+  "cook": 0.02,
+  "boat": 0.06,
+  "walls": 0.63,
+  "mow": 14.6,
+  "hay": 3.15,
+  "roof": 0.29,
+  "quarry": 1.06,
+  "gather": 18.75,
+  "reap": 2.19,
+  "haul": 2.75,
+  "thresh": 7.71,
+  "slaughter": 9.94,
+  "salt": 0.6,
+  "fell": 0.06,
+  "grub": 0.04,
+  "raise": 0.06,
+  "pick": 0.02
+ }
+}

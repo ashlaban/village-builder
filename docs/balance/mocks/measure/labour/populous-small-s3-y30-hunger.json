@@ -1,0 +1,20 @@
+{
+ "households": [],
+ "summary": {
+  "year": 31,
+  "households": 127,
+  "hungryHouseholds": 0,
+  "hungryHouseholdShare": 0,
+  "people": 538,
+  "hungryPeople": 0,
+  "hungryPeopleShare": 0,
+  "starvedInYear": 0,
+  "grainQuartiles": {
+   "min": 16,
+   "q1": 171,
+   "median": 281,
+   "q3": 424,
+   "max": 1505
+  }
+ }
+}

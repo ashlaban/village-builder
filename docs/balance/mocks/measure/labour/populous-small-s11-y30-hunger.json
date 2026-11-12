@@ -1,0 +1,40 @@
+{
+ "households": [
+  {
+   "id": 135,
+   "village": 6,
+   "members": 4,
+   "infant": 0,
+   "child": 3,
+   "adult": 1,
+   "old": 0,
+   "fields": 4,
+   "sown": 1,
+   "grainAtHarvest": 0,
+   "grainNow": 59,
+   "hungryDays": 31,
+   "spring": 8,
+   "summer": 11,
+   "autumn": 12,
+   "winter": 0,
+   "starved": 2
+  }
+ ],
+ "summary": {
+  "year": 31,
+  "households": 130,
+  "hungryHouseholds": 1,
+  "hungryHouseholdShare": 0.008,
+  "people": 582,
+  "hungryPeople": 4,
+  "hungryPeopleShare": 0.007,
+  "starvedInYear": 2,
+  "grainQuartiles": {
+   "min": 42,
+   "q1": 186,
+   "median": 276,
+   "q3": 385,
+   "max": 1205
+  }
+ }
+}
