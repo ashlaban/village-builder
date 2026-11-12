@@ -63,6 +63,25 @@ for (const f of pop.farmsteads) {
   if (d >= 0 && pw.dev[d] !== 2) doors++;
 }
 check(doors > pop.farmsteads.length / 4, `only ${doors} of ${pop.farmsteads.length} houses have a way to their door`);
+// the ways onto a green: at most three sides bring one, never two side by side; a trail tile on another side joins the way beside it
+let onto = 0, joined = 0;
+for (const v of pop.villages) {
+  if (!v.green) continue;
+  const g = v.center, kept = Look.greenWays(pw, g);
+  check(kept.length <= 3 && kept.every((k) => !kept.includes((k + 1) % 6)), `${v.name}: ways onto the green on sides ${kept.join(', ')}`);
+  onto += kept.length;
+  for (let k = 0; k < 6; k++) {
+    const j = pw.nb[g * 6 + k];
+    if (j < 0 || pw.worn[j] < Look.LOOK.from || pw.dev[j] > 1 || pw.river[j]) continue;
+    const out = Look.exits(pw, j), to = Look.joins(pw, j);
+    check(out.includes((k + 3) % 6) === kept.includes(k), `${v.name}: side ${k} ${kept.includes(k) ? 'has no' : 'has a'} way onto the green`);
+    if (kept.includes(k)) { check(to === -1, `${v.name}: side ${k} has its own way and joins another`); continue; }
+    joined++;
+    const d = [0, 1, 2, 3, 4, 5].find((q) => pw.nb[j * 6 + q] === to);
+    check(d !== undefined && out.includes(d) && Look.exits(pw, to).includes((d + 3) % 6), `${v.name}: side ${k} does not join the way beside it`);
+  }
+}
+check(onto > 0, 'no way runs onto any green after a populous year');
 // trodden ground is walked and counted and draws nothing (LOOK.from)
 const faint = pw.worn.findIndex((s, i) => s === 1 && pw.dev[i] < 2 && !pw.river[i]);
 if (faint >= 0) check(Look.segments(pw, faint).length === 0, 'trodden ground draws a trail');

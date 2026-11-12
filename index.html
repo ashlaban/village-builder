@@ -1350,6 +1350,34 @@ VB['gen/paths'] = (() => {
   }
   // How far into a house's tile its way runs, from the trail's bend towards the house: under the yard's edge, short of the buildings.
   const DOOR = 0.7;
+  // The ways onto a green (Kim, VB-396): of its six sides at most three bring a way, never two side by side, so the green keeps open
+  // ground between its ways. The sides' trail tiles are taken most worn first, by their count of crossings (the lower side settles
+  // ties), each unless a side beside it is taken. The directions (0..5) taken, from the green g.
+  function greenWays(w, g) {
+    const sides = [];
+    for (let k = 0; k < 6; k++) if (trail(w, w.nb[g * 6 + k])) sides.push(k);
+    sides.sort((a, b) => w.wear[w.nb[g * 6 + b]] - w.wear[w.nb[g * 6 + a]] || a - b);
+    const kept = [];
+    for (const k of sides) if (!kept.includes((k + 1) % 6) && !kept.includes((k + 5) % 6)) kept.push(k);
+    return kept;
+  }
+  // A trail tile i on a side of a green that brings no way onto it runs into the way beside it instead, which is its neighbour too: the
+  // tile it joins (the more worn of the two, if both sides beside it are taken), or -1 when i is on no green or has its own way onto it.
+  function joins(w, i) {
+    for (let k = 0; k < 6; k++) {
+      const g = w.nb[i * 6 + k];
+      if (g < 0 || w.dev[g] !== 2) continue;
+      const kept = greenWays(w, g), side = (k + 3) % 6;
+      if (kept.includes(side)) return -1;
+      let best = -1;
+      for (const d of [1, 5]) {
+        const q = (side + d) % 6, j = w.nb[g * 6 + q];
+        if (kept.includes(q) && (best < 0 || w.wear[j] > w.wear[best])) best = j;
+      }
+      return best;
+    }
+    return -1;
+  }
   // The directions (0..5) in which tile i's trail leaves it: to each linked trail neighbour and worn ford; and, when that makes it a
   // dead end, on into the unworn field or meadow that lies straightest ahead, since that is where the way was going. A lone worn tile
   // between such tiles joins the two most opposite. So a way along a row of fields does not send a spur into each. A house is
@@ -1359,9 +1387,9 @@ VB['gen/paths'] = (() => {
     for (let k = 0; k < 6; k++) {
       const j = w.nb[i * 6 + k];
       if (j < 0 || w.water[j]) continue;
-      if (trail(w, j)) { if (linked(w, i, j, k)) out.push(k); }
+      if (trail(w, j)) { if (linked(w, i, j, k) || joins(w, i) === j || joins(w, j) === i) out.push(k); }
       else if (w.river[j]) { if (w.crossing[j] > 0 && w.worn[j] > 0) out.push(k); }
-      else if (w.dev[j] === 2) out.push(k); // a green: the way goes on across it
+      else if (w.dev[j] === 2) { if (greenWays(w, j).includes((k + 3) % 6)) out.push(k); } // a green: the way goes on to the well, if its side is taken
       else if (w.dev[j] === 3) { if (door(w, j) === i) out.push(k); } // a house whose door this is: a way ends there
       else if (w.dev[j]) built.push(k); // a field or meadow that is not worn
     }
@@ -1531,7 +1559,7 @@ VB['gen/paths'] = (() => {
     items.length = n;
     return items;
   }
-  return { LOOK, bend, door, exits, segments, drawChunk, drawOver, thin };
+  return { LOOK, bend, door, greenWays, joins, exits, segments, drawChunk, drawOver, thin };
 })();
 </script>
 <script>
@@ -4762,7 +4790,8 @@ VB['sim/layout'] = (() => {
   // A village of four or more farms has a street: a row of open tiles through the green that is never built on, so it wears into the
   // village's lane as its people walk it (sim/paths). `need` tiles are laid as arms from the green, the first two leaving it on
   // opposite sides, and a larger village sending off one more for every STREET.armFarms farms over STREET.from (a third from ten
-  // farms, a fourth from sixteen, six at the most). An arm grows a tile at a time, straight on or
+  // farms, a fourth from sixteen, six at the most); the fourth and later ones are side streets off the street, not off the green.
+  // An arm grows a tile at a time, straight on or
   // bearing one step left or right: it keeps to the height of the green (so it follows a shore, a river bank or a valley floor rather
   // than climbing), to dry and stoneless ground with room for houses beside it, and wanders a little; it does not bend twice the same
   // way running (no hooks), touch the street's earlier tiles (no doubling back) or run by another village's fields or houses.
@@ -4776,32 +4805,36 @@ VB['sim/layout'] = (() => {
       const b = w.biome[t];
       return STREET.room * room - STREET.level * Math.abs(w.hp[t] - level) - (1.5 * w.stones[t]) / 255 - (b === B.MARSH ? 2 : b === B.HILLS ? 0.6 : 0);
     };
-    const heads = [], rim = new Set(); // the directions the arms left the green in, and their first tiles
+    const heads = []; // the directions the arms left the green in
     const free = (k) => open(w.nb[center * 6 + k]) && !heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2);
+    const beside = (a, b) => { for (let q = 0; q < 6; q++) if (w.nb[a * 6 + q] === b) return true; return false; };
     for (let a = 0; a < arms && street.size < need; a++) {
-      const len = Math.ceil((need - street.size) / (arms - a)), apart = [0, 1, 2, 3, 4, 5].some(free);
+      // An arm leaves the green well away from the others: opposite the first, or between them, so at most three do, never two side by
+      // side, and the green keeps open ground between its ways (Kim, VB-396). A fourth arm, or one that finds no such side free, is a
+      // side street: it leaves a tile of the street laid so far.
+      const len = Math.ceil((need - street.size) / (arms - a)), side = !([0, 1, 2, 3, 4, 5].some(free));
       let at = center, dir = -1, bent = 0;
       for (let n = 0; n < len; n++) {
-        let pick = -1, pd = -1, ps = -Infinity;
-        for (let k = 0; k < 6; k++) {
+        let pick = -1, pd = -1, ps = -Infinity, from = at;
+        for (const stem of dir < 0 && side ? [...street] : [at]) for (let k = 0; k < 6; k++) {
           const turn = dir < 0 ? 0 : ((k - dir + 9) % 6) - 3; // -1, 0 or 1 once the arm has a heading
           if (dir >= 0 && Math.abs(turn) > 1) continue;
-          // a new arm leaves the green well away from the others (opposite the first, or between them) while such a side is free,
-          // and then on any side no arm has taken: a large village's green has a way out on every side (VB-396)
-          if (dir < 0 && (apart ? heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2) : heads.includes(k))) continue;
-          const t = w.nb[at * 6 + k];
+          if (dir < 0 && !side && heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2)) continue;
+          const t = w.nb[stem * 6 + k];
           if (!open(t)) continue;
-          let doubled = false; // touching the street anywhere but where it came from, or, leaving the green, the arm beside it
+          // not touching the street anywhere but where it came from (a side street's first tile also touches the tiles beside its
+          // stem, which is how it leaves), nor the green but as an arm's first tile
+          let doubled = false;
           for (let q = 0; q < 6; q++) {
             const j = w.nb[t * 6 + q];
-            if (j !== at && ((street.has(j) && !(at === center && rim.has(j))) || (j === center && at !== center))) doubled = true;
+            if (j !== stem && ((street.has(j) && !(stem !== at && beside(j, stem))) || (j === center && stem !== center))) doubled = true;
           }
           if (doubled) continue;
           const sc = worth(t) + (turn === 0 ? STREET.straight : turn === bent ? -STREET.hook : 0) + rand() * STREET.wander;
-          if (sc > ps) { ps = sc; pick = t; pd = k; }
+          if (sc > ps) { ps = sc; pick = t; pd = k; from = stem; }
         }
         if (pick < 0) break;
-        if (dir < 0) { heads.push(pd); rim.add(pick); } else if (pd !== dir) bent = ((pd - dir + 9) % 6) - 3;
+        if (dir < 0) { if (from === center) heads.push(pd); } else if (pd !== dir) bent = ((pd - dir + 9) % 6) - 3;
         street.add(pick); at = pick; dir = pd;
       }
     }
@@ -18666,7 +18699,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // The living at the start, for each map size: the least and the most of Sim.seed at the seeds of DEMO.seeds (tests/start.js runs them).
   const START_PEOPLE = {
     founders: { t: [10, 10], s: [10, 10], m: [10, 10], l: [10, 10] }, heirs: { t: [18, 18], s: [18, 18], m: [18, 18], l: [18, 18] },
-    populous: { t: [139, 155], s: [323, 354], m: [809, 865], l: [802, 833] },
+    populous: { t: [135, 155], s: [324, 358], m: [804, 864], l: [802, 841] },
   };
   const START_SIGNS = {
     well: 'M6 21V7M3 10l14-6M17 4v7M15 11h4v4h-4zM10 21h10', tree: 'M12 21v-6M12 3l6 12H6z',
@@ -20182,7 +20215,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '19a2328748', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '8634fb4223', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

@@ -92,6 +92,34 @@ VB['gen/paths'] = (() => {
   }
   // How far into a house's tile its way runs, from the trail's bend towards the house: under the yard's edge, short of the buildings.
   const DOOR = 0.7;
+  // The ways onto a green (Kim, VB-396): of its six sides at most three bring a way, never two side by side, so the green keeps open
+  // ground between its ways. The sides' trail tiles are taken most worn first, by their count of crossings (the lower side settles
+  // ties), each unless a side beside it is taken. The directions (0..5) taken, from the green g.
+  function greenWays(w, g) {
+    const sides = [];
+    for (let k = 0; k < 6; k++) if (trail(w, w.nb[g * 6 + k])) sides.push(k);
+    sides.sort((a, b) => w.wear[w.nb[g * 6 + b]] - w.wear[w.nb[g * 6 + a]] || a - b);
+    const kept = [];
+    for (const k of sides) if (!kept.includes((k + 1) % 6) && !kept.includes((k + 5) % 6)) kept.push(k);
+    return kept;
+  }
+  // A trail tile i on a side of a green that brings no way onto it runs into the way beside it instead, which is its neighbour too: the
+  // tile it joins (the more worn of the two, if both sides beside it are taken), or -1 when i is on no green or has its own way onto it.
+  function joins(w, i) {
+    for (let k = 0; k < 6; k++) {
+      const g = w.nb[i * 6 + k];
+      if (g < 0 || w.dev[g] !== 2) continue;
+      const kept = greenWays(w, g), side = (k + 3) % 6;
+      if (kept.includes(side)) return -1;
+      let best = -1;
+      for (const d of [1, 5]) {
+        const q = (side + d) % 6, j = w.nb[g * 6 + q];
+        if (kept.includes(q) && (best < 0 || w.wear[j] > w.wear[best])) best = j;
+      }
+      return best;
+    }
+    return -1;
+  }
   // The directions (0..5) in which tile i's trail leaves it: to each linked trail neighbour and worn ford; and, when that makes it a
   // dead end, on into the unworn field or meadow that lies straightest ahead, since that is where the way was going. A lone worn tile
   // between such tiles joins the two most opposite. So a way along a row of fields does not send a spur into each. A house is
@@ -101,9 +129,9 @@ VB['gen/paths'] = (() => {
     for (let k = 0; k < 6; k++) {
       const j = w.nb[i * 6 + k];
       if (j < 0 || w.water[j]) continue;
-      if (trail(w, j)) { if (linked(w, i, j, k)) out.push(k); }
+      if (trail(w, j)) { if (linked(w, i, j, k) || joins(w, i) === j || joins(w, j) === i) out.push(k); }
       else if (w.river[j]) { if (w.crossing[j] > 0 && w.worn[j] > 0) out.push(k); }
-      else if (w.dev[j] === 2) out.push(k); // a green: the way goes on across it
+      else if (w.dev[j] === 2) { if (greenWays(w, j).includes((k + 3) % 6)) out.push(k); } // a green: the way goes on to the well, if its side is taken
       else if (w.dev[j] === 3) { if (door(w, j) === i) out.push(k); } // a house whose door this is: a way ends there
       else if (w.dev[j]) built.push(k); // a field or meadow that is not worn
     }
@@ -273,5 +301,5 @@ VB['gen/paths'] = (() => {
     items.length = n;
     return items;
   }
-  return { LOOK, bend, door, exits, segments, drawChunk, drawOver, thin };
+  return { LOOK, bend, door, greenWays, joins, exits, segments, drawChunk, drawOver, thin };
 })();

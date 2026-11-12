@@ -120,7 +120,8 @@ VB['sim/layout'] = (() => {
   // A village of four or more farms has a street: a row of open tiles through the green that is never built on, so it wears into the
   // village's lane as its people walk it (sim/paths). `need` tiles are laid as arms from the green, the first two leaving it on
   // opposite sides, and a larger village sending off one more for every STREET.armFarms farms over STREET.from (a third from ten
-  // farms, a fourth from sixteen, six at the most). An arm grows a tile at a time, straight on or
+  // farms, a fourth from sixteen, six at the most); the fourth and later ones are side streets off the street, not off the green.
+  // An arm grows a tile at a time, straight on or
   // bearing one step left or right: it keeps to the height of the green (so it follows a shore, a river bank or a valley floor rather
   // than climbing), to dry and stoneless ground with room for houses beside it, and wanders a little; it does not bend twice the same
   // way running (no hooks), touch the street's earlier tiles (no doubling back) or run by another village's fields or houses.
@@ -134,32 +135,36 @@ VB['sim/layout'] = (() => {
       const b = w.biome[t];
       return STREET.room * room - STREET.level * Math.abs(w.hp[t] - level) - (1.5 * w.stones[t]) / 255 - (b === B.MARSH ? 2 : b === B.HILLS ? 0.6 : 0);
     };
-    const heads = [], rim = new Set(); // the directions the arms left the green in, and their first tiles
+    const heads = []; // the directions the arms left the green in
     const free = (k) => open(w.nb[center * 6 + k]) && !heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2);
+    const beside = (a, b) => { for (let q = 0; q < 6; q++) if (w.nb[a * 6 + q] === b) return true; return false; };
     for (let a = 0; a < arms && street.size < need; a++) {
-      const len = Math.ceil((need - street.size) / (arms - a)), apart = [0, 1, 2, 3, 4, 5].some(free);
+      // An arm leaves the green well away from the others: opposite the first, or between them, so at most three do, never two side by
+      // side, and the green keeps open ground between its ways (Kim, VB-396). A fourth arm, or one that finds no such side free, is a
+      // side street: it leaves a tile of the street laid so far.
+      const len = Math.ceil((need - street.size) / (arms - a)), side = !([0, 1, 2, 3, 4, 5].some(free));
       let at = center, dir = -1, bent = 0;
       for (let n = 0; n < len; n++) {
-        let pick = -1, pd = -1, ps = -Infinity;
-        for (let k = 0; k < 6; k++) {
+        let pick = -1, pd = -1, ps = -Infinity, from = at;
+        for (const stem of dir < 0 && side ? [...street] : [at]) for (let k = 0; k < 6; k++) {
           const turn = dir < 0 ? 0 : ((k - dir + 9) % 6) - 3; // -1, 0 or 1 once the arm has a heading
           if (dir >= 0 && Math.abs(turn) > 1) continue;
-          // a new arm leaves the green well away from the others (opposite the first, or between them) while such a side is free,
-          // and then on any side no arm has taken: a large village's green has a way out on every side (VB-396)
-          if (dir < 0 && (apart ? heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2) : heads.includes(k))) continue;
-          const t = w.nb[at * 6 + k];
+          if (dir < 0 && !side && heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2)) continue;
+          const t = w.nb[stem * 6 + k];
           if (!open(t)) continue;
-          let doubled = false; // touching the street anywhere but where it came from, or, leaving the green, the arm beside it
+          // not touching the street anywhere but where it came from (a side street's first tile also touches the tiles beside its
+          // stem, which is how it leaves), nor the green but as an arm's first tile
+          let doubled = false;
           for (let q = 0; q < 6; q++) {
             const j = w.nb[t * 6 + q];
-            if (j !== at && ((street.has(j) && !(at === center && rim.has(j))) || (j === center && at !== center))) doubled = true;
+            if (j !== stem && ((street.has(j) && !(stem !== at && beside(j, stem))) || (j === center && stem !== center))) doubled = true;
           }
           if (doubled) continue;
           const sc = worth(t) + (turn === 0 ? STREET.straight : turn === bent ? -STREET.hook : 0) + rand() * STREET.wander;
-          if (sc > ps) { ps = sc; pick = t; pd = k; }
+          if (sc > ps) { ps = sc; pick = t; pd = k; from = stem; }
         }
         if (pick < 0) break;
-        if (dir < 0) { heads.push(pd); rim.add(pick); } else if (pd !== dir) bent = ((pd - dir + 9) % 6) - 3;
+        if (dir < 0) { if (from === center) heads.push(pd); } else if (pd !== dir) bent = ((pd - dir + 9) % 6) - 3;
         street.add(pick); at = pick; dir = pd;
       }
     }

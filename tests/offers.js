@@ -10,11 +10,12 @@ const { canon } = require('./lib/canon.js'), { checkState } = require('./lib/inv
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
 // every chance comes up (sim/rng's fix), for the round only
-const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } };
+const roll = (st, f) => {
+  const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } };
 const told = (st, from, kind) => st.record.slice(from).filter((e) => typeof e === 'object' && !e.self && e.kind === kind);
-// Populous tiny at seed 51, natural deaths off, every household given the means to marry; `before(st)` runs before the round (to play a pawn).
+// Populous tiny at seed 54 (51 until the villages were laid out anew, VB-396: the scene needs a bride who speaks for herself), natural deaths off, every household given the means to marry; `before(st)` runs before the round (to play a pawn).
 function scene(before = () => {}) {
-  const st = Sim.seed(world(51), 51, 'populous'); st.naturalDeaths = false;
+  const st = Sim.seed(world(54), 54, 'populous'); st.naturalDeaths = false;
   for (const h of st.households) h.grain.barley += 5000;
   before(st);
   const mark = st.record.length;
@@ -24,7 +25,7 @@ function scene(before = () => {}) {
 // The round with no player: its first marriage is a son of the house (his father speaks for him) and a woman who speaks for herself, and
 // the farm passes to him at the marriage (the handover custom 'marriage').
 const plain = scene(), wed = told(plain.st, plain.mark, 'married')[0];
-const man = wed.pawn, woman = wed.other, home = wed.household, head = Sim.seed(world(51), 51, 'populous').households[home].holder;
+const man = wed.pawn, woman = wed.other, home = wed.household, head = Sim.seed(world(54), 54, 'populous').households[home].holder;
 assert.ok(man !== undefined && head !== man && plain.st.households[home].holder === man, 'the scene: a son marries and takes over the farm');
 assert.deepStrictEqual(plain.st.offers, [], 'no player, no offer stored');
 assert.strictEqual(plain.st.offerSeq, 0);
@@ -33,7 +34,7 @@ const play = (id) => (st) => { assert.strictEqual(Sim.inhabit(st, id), true); };
 
 // 1. spokesmanOf: a son of the house is spoken for by its holder; a holder, and one who speaks for itself, by itself.
 {
-  const st = Sim.seed(world(51), 51, 'populous');
+  const st = Sim.seed(world(54), 54, 'populous');
   assert.strictEqual(R.spokesmanOf(st, man), head, 'a son of the house: the holder speaks');
   assert.strictEqual(R.spokesmanOf(st, head), head, 'a holder speaks for itself');
   assert.strictEqual(R.spokesmanOf(st, woman), woman, 'the bride speaks for herself');
@@ -82,7 +83,8 @@ const offered = () => {
   assert.strictEqual(Sim.answer(st, o.id, false), true);
   assert.strictEqual(R.spouseOf(st, man), null); assert.strictEqual(R.spouseOf(st, woman), null);
   const ev = told(st, 0, 'matchRefused');
-  assert.ok(ev.length === 1 && ev[0].pawn === man && ev[0].other === woman && ev[0].text.startsWith(Sim.fullName(st.pawns[man])), 'the refusal names who refused');
+  assert.ok(ev.length === 1 && ev[0].pawn === man && ev[0].other === woman && ev[0].text.startsWith(Sim.fullName(st.pawns[man])),
+    'the refusal names who refused');
   assert.ok(Math.abs(opinionOf(st, head, man) - (was - 0.2)) < 1e-9, `the head's opinion falls by 0.2 (${was} to ${opinionOf(st, head, man)})`);
   assert.strictEqual(st.households[home].holder, head, 'no marriage, no handover');
   assert.deepStrictEqual(st.offers, []);
@@ -131,7 +133,7 @@ const offered = () => {
 {
   const { st } = offered(), text = JSON.stringify(Sim.save(st));
   Sim.advance(st, 8 * Sim.DAY);
-  const back = Sim.load(world(51), JSON.parse(text));
+  const back = Sim.load(world(54), JSON.parse(text));
   assert.strictEqual(back.offers.length, 1, 'the open offer is saved');
   Sim.advance(back, 8 * Sim.DAY);
   const bad = [...new Set([...Object.keys(st), ...Object.keys(back)])].filter((k) => k !== 'w' && canon(st[k]) !== canon(back[k]));
@@ -141,7 +143,7 @@ const offered = () => {
 
 // 9. A skip stops on an offer that waits for the played pawn's answer, but not on one open when it began.
 {
-  const st = Sim.seed(world(51), 51, 'populous'); st.naturalDeaths = false;
+  const st = Sim.seed(world(54), 54, 'populous'); st.naturalDeaths = false;
   for (const h of st.households) h.grain.barley += 5000;
   Sim.inhabit(st, man);
   const from = Sim.skipFrom(st);
@@ -161,12 +163,13 @@ console.log(`offers ok: no player stores none; a played man's match waits, holds
 // Enmity: two kinds of memory that together pass SOCIAL.enemy (claim -0.45 and border -0.3 at most).
 {
   const { SOCIAL, MARRIAGE } = VB['sim/rules'], { remember } = VB['sim/relations'], { matchScore } = VB['sim/matching'];
-  const hate = (st, a, b) => { remember(st, a, b, 'claim'); remember(st, a, b, 'claim'); remember(st, a, b, 'claim'); remember(st, a, b, 'border'); remember(st, a, b, 'border');
+  const hate = (st, a, b) => {
+    remember(st, a, b, 'claim'); remember(st, a, b, 'claim'); remember(st, a, b, 'claim'); remember(st, a, b, 'border'); remember(st, a, b, 'border');
     remember(st, a, b, 'border'); assert.ok(opinionOf(st, a, b) <= SOCIAL.enemy, `${a} is an enemy of ${b}: ${opinionOf(st, a, b)}`); };
   const asked = (st, from) => told(st, from, 'matchRefused');
   // (a) liking moves matchScore by the mean of the two opinions.
   {
-    const st = Sim.seed(world(51), 51, 'populous'), M = st.pawns[man], F = st.pawns[woman];
+    const st = Sim.seed(world(54), 54, 'populous'), M = st.pawns[man], F = st.pawns[woman];
     const score = () => matchScore(st, M, F, 0.5, false), rest = () => score() - MARRIAGE.liking * (opinionOf(st, man, woman) + opinionOf(st, woman, man)) / 2;
     const s0 = score(), r0 = rest();
     remember(st, man, woman, 'bull'); remember(st, man, woman, 'bull'); remember(st, woman, man, 'bull');
