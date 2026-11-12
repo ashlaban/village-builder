@@ -1,4 +1,4 @@
-// @sys page/customs: the Customs tab of a village's card: its customs as a charter, who stands by which way, and why (VB-389, VB-391)
+// @sys page/customs: the Customs tab of a village's card: its customs as a charter, who stands by which way, and why (VB-389, VB-391); the charter's sentences
   // ======== customs ========
   // The customs are told as sentences under four heads; the option in force is a phrase of its sentence, [before, {option: phrase}, after].
   const CHARTER = [['Land', ['claims', 'dispute', 'newLand']],
@@ -54,6 +54,16 @@
       return { k, d, x, cust, y, state, differs: x !== cust, who };
     }) };
   }
+  // The charter: the customs as sentences under their heads. pick(k) is the option told of custom k and mark(k) its phrase's mark; the open
+  // custom's detail follows its paragraph. The phrases' ids take a prefix: the card's charter and the Culture pane's are in one document.
+  function charterHTML(prefix, pick, mark, open, detail) {
+    const said = (k) => `${SAID[Culture.DIMS[k].key][0]}<span role="button" tabindex="0" class="phrase ${mark(k)}" id="${prefix}${k}" data-phrase="${k}"
+      aria-expanded="${k === open}">${phraseOf(k, pick(k))}</span>${SAID[Culture.DIMS[k].key][2]}`;
+    return CHARTER.map(([head, keys]) => {
+      const ks = keys.map((key) => Culture.IDX[key]);
+      return `<h3>${head}</h3><p class="charter">${ks.map(said).join(' ')}</p>${ks.includes(open) ? detail(open) : ''}`;
+    }).join('');
+  }
   const markOf = (c) => (c.state === 'turning' || c.state === 'contested' ? c.state : c.differs ? 'differs' : '');
   // The note of a chosen voice (VB-391): how far they lean to their first and second way, and the strongest pull towards the first, as the
   // daily drift weighs them (sim/leanings): their own cause, what they learned young, those they deal with, a cause argued near them, their
@@ -98,14 +108,10 @@
     if (stamp === charterStamp) return;
     charterStamp = stamp;
     const r = readCustoms(s), days = nextMeeting(), cn = esc(r.culture.name);
-    let h = `<h3 class="lead">The customs of ${esc(s.name)}</h3><p class="note">${esc(s.name)} follows the <strong>${cn} culture</strong>. ${r.voices} of its ${
+    let h = `<h3 class="lead">The customs of ${esc(s.name)}</h3><p class="note">${esc(
+      s.name)} follows the <button type="button" class="name" data-culture="${r.culture.id}">${cn} culture</button>. ${r.voices} of its ${
       r.people} people speak at the meeting, next in ${days} ${days === 1 ? 'day' : 'days'}. Choose a phrase to see who stands where.</p>`;
-    for (const [head, keys] of CHARTER) {
-      const cs = keys.map((key) => r.dims[Culture.IDX[key]]), open = cs.find((c) => c.k === customOpen);
-      const said = (c) => `${SAID[c.d.key][0]}<span role="button" tabindex="0" class="phrase ${markOf(c)}" id="phrase${c.k}" data-phrase="${c.k}"
-        aria-expanded="${c.k === customOpen}">${phraseOf(c.k, c.x)}</span>${SAID[c.d.key][2]}`;
-      h += `<h3>${head}</h3><p class="charter">${cs.map(said).join(' ')}</p>${open ? standHTML(open, r, s) : ''}`;
-    }
+    h += charterHTML('phrase', (k) => r.dims[k].x, (k) => markOf(r.dims[k]), customOpen, (k) => standHTML(r.dims[k], r, s));
     h += `<p class="key"><span><span class="phrase differs">Differs</span> from ${cn} custom</span><span><span class="phrase contested">Contested</span></span>`
       + '<span><span class="phrase turning">Set to change</span></span></p>';
     updatePanelHTML($('tileCustoms'), h);
@@ -113,6 +119,8 @@
   // A phrase opens and closes by a click, Enter or Space, and the opened custom is brought into view; a face shows and hides its note.
   function togglePhrase(e) {
     const p = e.target.closest('[data-phrase]'), v = e.target.closest('[data-voice]');
+    const cu = e.target.closest('[data-culture]');
+    if (cu && e.type === 'click') { openCulture(+cu.dataset.culture); return; }
     if (v && e.type === 'click') {
       customVoice = customVoice === +v.dataset.voice ? -1 : +v.dataset.voice;
       renderCustoms(customsOf);

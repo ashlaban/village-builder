@@ -1,85 +1,25 @@
-// @sys page/drawer: the customs and debug drawer
-  // ======== customs and debug drawer ========
+// @sys page/drawer: the dock's drawer: the Culture pane (page/culture) and Debug
+  // ======== culture and debug drawer ========
   let drawerTab = null, skipping = false;
-  const drawer = $('drawer'), BAR = ['#2f7d6b', '#c9a24a', '#a8604c', '#5a72a8'];
+  const drawer = $('drawer');
   function openDrawer(tab) {
     openPanel(activePanel === tab ? null : tab);
-    $('drawerTitle').textContent = tab === 'debug' ? 'Debug' : 'Customs';
-    if (drawerTab === 'debug') buildDebug();
-    if (drawerTab === 'customs') buildCustoms();
+    if (drawerTab === 'debug') { $('drawerTitle').textContent = 'Debug'; buildDebug(); }
+    if (drawerTab === 'culture') chooseCulture();
     renderDrawer();
   }
-  $('customsBtn').addEventListener('click', () => openDrawer('customs'));
+  $('cultureBtn').addEventListener('click', () => openDrawer('culture'));
   $('debugBtn').addEventListener('click', () => openDrawer('debug'));
   $('drawerClose').addEventListener('click', () => {
-    const tab = drawerTab; openPanel(null); $(tab === 'debug' ? 'debugBtn' : 'customsBtn').focus();
+    const tab = drawerTab; openPanel(null); $(tab === 'debug' ? 'debugBtn' : 'cultureBtn').focus();
   });
   const optLabel = (d, j) => Culture.DIMS[d].opts[j][1];
   const nextMeeting = () => {
     const c = Sim.cal(st.t), target = 2 * Sim.SEASON_DAYS + 9; let days = target - c.doy; if (days < 0 || (days === 0 && c.hour >= 12)) days += Sim.YEAR_DAYS;
     return days; };
-  let customVillage = 0, customsStamp = '', comparisonOpen = false;
-  function buildCustoms() {
-    const setts = st.cenv.settlements;
-    if (!setts[customVillage]) customVillage = 0;
-    $('drawerBody').innerHTML = `<label class="custom-picker">Village<select id="customVillage">${setts.map((s) =>
-      `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label><div id="customContent"></div>
-      <details id="customComparison"><summary>Compare all villages</summary><div id="customTable" class="table-scroll" tabindex="0"
-      role="region" aria-label="Village customs comparison, scroll horizontally"></div></details>`;
-    $('customVillage').value = String(customVillage);
-    $('customVillage').addEventListener('change', (e) => { customVillage = +e.target.value; customsStamp = ''; renderDrawer(); });
-    $('customComparison').open = comparisonOpen;
-    $('customComparison').addEventListener('toggle', (e) => {
-      comparisonOpen = e.target.open; customsStamp = ''; renderDrawer();
-    });
-    customsStamp = '';
-  }
   function renderDrawer() {
     if (!drawerTab || !st || document.body.classList.contains('ui-hidden') || drawer.classList.contains('collapsed')) return;
-    if (drawerTab !== 'customs') { updateDebug(); return; }
-    if (!$('customContent')) buildCustoms();
-    const env = st.cenv, setts = env.settlements;
-    // Rebuild the selector when villages change, not every animation tick.
-    if ($('customVillage').options.length !== setts.length) buildCustoms();
-    const stamp = `${Math.floor(st.t / Sim.DAY)}:${customVillage}:${comparisonOpen}:${setts.map((s) => s.practice.join(',')).join(';')}`;
-    if (stamp === customsStamp) return;
-    customsStamp = stamp;
-    const s = setts[customVillage], culture = env.cultures[s.culture], members = Sim.membersOf(st, s.id);
-    const voices = members.filter((p) => Sim.voiceOf(st, p, s) > 0).length;
-    const support = Culture.support(env, members, (p) => Sim.voiceOf(st, p, s)).S, days = nextMeeting();
-    let h = `<p class="dm">${members.length} people · ${voices} with a voice · ${Math.round(s.tie * 100)}% tie to the culture’s centre.</p>
-      <p class="dm"><strong>${esc(culture.name)} culture</strong>, centred on ${esc(setts[culture.centres[0]].name)}${culture.parent !== null
-        ? `, split from ${esc(env.cultures[culture.parent].name)}` : ''}.</p>
-      <p class="dm">Next village meetings in ${days} ${days === 1 ? 'day' : 'days'}. Attitudes drift daily; practice changes at the meeting after harvest.</p>`;
-    if (s.id !== culture.centres[0]) h += `<p class="dm">${Math.round((s.divergence || 0) * 100)}% apart in practice${s.fissionYears
-      ? `; ${s.fissionYears} of ${Culture.P.fission.years} years towards a split` : ''}.</p>`;
-    Culture.DIMS.forEach((d, k) => {
-      const differs = s.practice[k] !== culture.customs[k], offset = Culture.OFF[k], dots = Math.max(1, Math.round(d.m * 5));
-      h += `<section class="custom-card"><h3>${esc(d.label)}</h3><p class="${differs ? 'different' : ''}">Village: <strong>${esc(
-        optLabel(k, s.practice[k]))}</strong></p><p class="dm">Culture: ${esc(optLabel(k, culture.customs[k]))}${differs ? ' · differs locally' : ''}</p>
-        <div class="sbar" aria-hidden="true">${d.opts.map((option, j) =>
-          `<i style="width:${(support[offset + j] * 100).toFixed(1)}%;background:${BAR[j]}"></i>`).join('')}</div>
-        <p class="support">${d.opts.map((option, j) => `<span class="sw-item"><span class="sw"
-          style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(support[offset + j] * 100)}%</span>`).join(
-            ' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
-    });
-    h += '<h3 class="dh3">Meetings</h3>' + (st.meetingLog.length ? st.meetingLog.slice(0, 8).map((e) =>
-      `<p class="dm">Year ${e.year}: ${esc(e.text)}</p>`).join('') : '<p class="dm">No meeting held yet.</p>');
-    updatePanelHTML($('customContent'), h);
-    if (comparisonOpen) {
-      const sup = setts.map((v) => Culture.support(env, Sim.membersOf(st, v.id), (p) => Sim.voiceOf(st, p, v)).S);
-      let table = `<table class="cust"><thead><tr><th scope="col">Custom</th>${setts.map((v) =>
-        `<th scope="col">${esc(v.name)}<br>${esc(env.cultures[v.culture].name)} culture</th>`).join('')}</tr></thead><tbody>`;
-      Culture.DIMS.forEach((d, k) => {
-        table += `<tr><th scope="row">${esc(d.label)}</th>${setts.map((v, i) => {
-          const c = env.cultures[v.culture], different = v.practice[k] !== c.customs[k];
-          return `<td class="${different ? 'dev' : ''}">${esc(optLabel(k, v.practice[k]))}<br>Culture: ${esc(optLabel(k, c.customs[k]))}
-            <div class="sbar" aria-hidden="true">${d.opts.map((option, j) => `<i style="width:${(sup[i][Culture.OFF[k] + j] * 100).toFixed(1)}%;
-              background:${BAR[j]}"></i>`).join('')}</div></td>`;
-        }).join('')}</tr>`;
-      });
-      $('customTable').innerHTML = table + '</tbody></table>';
-    }
+    if (drawerTab === 'culture') renderCulture(); else updateDebug();
   }
   function buildDebug() {
     const dims = Culture.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');

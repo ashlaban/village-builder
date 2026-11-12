@@ -82,8 +82,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   it shows says why not itself (`staysWhy`, `barred`, `unfit`, `fit`): a new bar is added to the rule, not here.
 - The chronicle (VB-099): `Sim.chronicle(st, {pawn | farm | village}, group)` and `Sim.villageLog(st, n)`, also in `src/sim/notable.js`, are the
   record as a history, newest first, and as the village log (`st.events` is gone: `log` writes the record only). `CHRONICLE` names the
-  filters by kind; a new event kind that belongs to one is added there. The History tab of the selection card is `src/page/history.js`. The Customs tab of a village's card (VB-389) is
-  `src/page/customs.js`: the customs as sentences (`SAID`; a new custom or option gets its phrase there) and who stands by which way.
+  filters by kind; a new event kind that belongs to one is added there. The History tab of the selection card is `src/page/history.js`.
+- Customs on the page (VB-389 to VB-391): `src/page/customs.js` is the Customs tab of a village's card, the customs as sentences (`SAID`; a
+  new custom or option gets its phrase there), who stands by which way, and a voice's note (its pulls from `src/sim/leanings.js`, a
+  read-only view); `src/page/culture.js` is the dock's Culture pane: a culture's villages, its own charter, the meetings.
 - Commands (VB-167 to VB-171): `src/sim/commands.js` holds the verbs (`work`, `walkTo`, `goHome`, `idle`, `attend`; `decide`; `marry`, `handOn`, `serve`,
   `claim`, `leave`; debug `kill`, `retire`, `argue`, `rally`, `skip`). The planner, the meeting, the moving round and the debug drawer act by
   `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.

@@ -83,12 +83,34 @@ const iv = setInterval(async () => {
   expand('.village-block'); expand('.household-block'); expand('[data-fold^="commons-"]');
   console.log('settlers:', qa('#settlers .farm h2').map((h) => h.textContent).join(' / '));
   console.log('village block:', q('#settlers .farm').textContent.replace(/\s+/g, ' ').slice(0, 300));
-  doc.getElementById('customsBtn').click(); expand('#customComparison'); tick(20);
   if (qa('#settlers .farm h2').length === 0) fail('settlers list is empty');
-  const nDims = require('../src/load.js').culture.DIMS.length;
-  if (qa('.cust tbody tr').length !== nDims) fail('customs table has ' + qa('.cust tbody tr').length + ' rows, expected ' + nDims);
-  console.log('customs rows:', qa('.cust tbody tr').length, '| first row:', q('.cust tbody tr').textContent.replace(/\s+/g, ' '), '| bars', qa('.sbar').length);
-  console.log('customs text:', qa('#drawerBody .dm').slice(0, 4).map((p) => p.textContent).join(' || '));
+  // The Culture pane (VB-390): titled by the culture; a row a village; the culture's own charter, a phrase a custom, and a phrase opened
+  // to its ways; the meetings; a village's row opens its card at the Customs tab, whose culture link comes back here.
+  {
+    const nDims = require('../src/load.js').culture.DIMS.length, body = doc.getElementById('drawerBody'), pane = (sel) => [...body.querySelectorAll(sel)];
+    doc.getElementById('cultureBtn').click(); tick(5);
+    const title = doc.getElementById('drawerTitle').textContent, rows = pane('[data-charter]').length, villages = simSt.cenv.settlements.length;
+    if (!/ culture$/.test(title)) fail(`the Culture pane is titled ${title}`);
+    if (rows !== villages) fail(`the Culture pane lists ${rows} villages of ${villages}`);
+    body.querySelector('[data-ctab="custom"]').click(); tick(2);
+    if (pane('.charter [data-phrase]').length !== nDims) fail(`the culture's charter has ${pane('.charter [data-phrase]').length} phrases, expected ${nDims}`);
+    body.querySelector('[data-phrase]').click(); tick(2);
+    const ways = pane('.stand .way').length;
+    if (ways !== require('../src/load.js').culture.DIMS[+body.querySelector('[aria-expanded="true"]').dataset.phrase].opts.length) fail(`an opened custom of the culture shows ${ways} ways`);
+    body.querySelector('[data-ctab="meetings"]').click(); tick(2);
+    if (!pane('.note').length) fail('the Meetings tab says nothing');
+    console.log('culture pane:', title, '|', rows, 'villages |', ways, 'ways |', pane('.note').map((p) => p.textContent).join(' || ').slice(0, 200));
+    body.querySelector('[data-ctab="villages"]').click(); tick(2);
+    const row = body.querySelector('[data-charter]'), name = row.querySelector('.who').firstChild.textContent;
+    row.click(); tick(5);
+    if (doc.getElementById('tileName').textContent !== name || doc.getElementById('tileCustoms').hidden) fail(`the row of ${name} did not open its customs`);
+    const link = doc.querySelector('#tileCustoms [data-culture]');
+    if (!link) fail("a village's customs do not name its culture as a link"); else {
+      link.click(); tick(5);
+      if (doc.getElementById('drawer').hidden || doc.getElementById('drawerTitle').textContent !== link.textContent) fail('the culture link did not open the Culture pane');
+    }
+    doc.getElementById('tabFacts').click();
+  }
   doc.getElementById('debugBtn').click(); tick(5);
   console.log('debug when:', doc.getElementById('dbgWhen').textContent, '| out:', doc.getElementById('dbgOut').textContent);
   q('[data-act="meet"]').click(); console.log('meet:', doc.getElementById('dbgMsg').textContent);

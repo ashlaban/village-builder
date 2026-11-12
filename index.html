@@ -124,14 +124,6 @@ body {
 .drawer .dh3 { font-size: 17px; font-weight: 700; margin: 14px 0 4px; }
 .drawer .dm { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .drawer .dm strong { color: var(--ink); font-weight: 600; }
-.cust { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 6px; }
-.cust th, .cust td { text-align: left; vertical-align: top; padding: 6px 4px; border-top: 1px solid var(--edge); }
-.cust thead th { font-weight: 600; border-top: 0; }
-.cust tbody th { font-weight: 500; }
-.cust td.dev { background: color-mix(in srgb, var(--gold) 18%, transparent); }
-.sbar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; background: var(--edge); }
-.sbar i { display: block; height: 100%; }
-.sw-item { white-space: nowrap; }
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 3px 0 6px; vertical-align: -1px; }
 .mall { color: var(--muted); letter-spacing: 1px; font-size: 11px; }
 .dbg-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
@@ -404,14 +396,6 @@ body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.ba
 .act-banner button { flex: none; border-radius: 10px; }
 body.tool-on .toasts { top: calc(var(--bar-bottom, 76px) + 80px); }
 .notice-pop .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
-.custom-picker { display: grid; gap: 6px; margin-bottom: 12px; color: var(--muted); }
-.custom-picker select { width: 100%; font-size: 16px; }
-.custom-card { padding: 12px 0; border-top: 1px solid var(--edge); }
-.custom-card h3 { font-size: 17px; margin: 0 0 8px; }
-.custom-card p { margin: 4px 0; font-size: 15px; line-height: 1.4; }
-.custom-card .different { color: var(--accent); }
-.custom-card .support { font-size: 13px; color: var(--muted); }
-.custom-card .sbar { height: 8px; margin: 8px 0; }
 /* the Customs tab of a village's card (page/customs): the charter, its marked phrases, and an opened custom's ways with their faces */
 .customs span, .customs strong { display: inline; margin: 0; font: inherit; color: inherit; }
 .customs h3 { margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid var(--edge); font-size: 12px; font-weight: 700; letter-spacing: 0.07em;
@@ -458,8 +442,23 @@ body.tool-on .toasts { top: calc(var(--bar-bottom, 76px) + 80px); }
   color: var(--muted); }
 .customs .key .phrase { font-size: 13px; font-weight: 500; cursor: default; }
 @media (pointer: coarse) { .customs .charter { line-height: 2.05; } }
-.table-scroll { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
-.cust { min-width: 500px; }
+/* the Culture pane (page/culture): the charter's pieces again, the villages as rows, the meetings by year */
+.culture .links { margin: 0 0 8px; }
+.culture .chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.culture .tabs { margin: 10px 0; }
+.culture .row { padding: 7px 0; border-radius: 0; }
+.culture .row + .row, .culture .kept .row:first-of-type { border-top: 1px solid var(--edge); }
+.culture .row img.mini { width: 32px; height: 32px; }
+.culture .row .who { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
+.culture .row .who i { font-weight: 400; line-height: 1.35; }
+.culture .row .who i.stir { color: var(--ink); }
+.culture .mark { display: inline-block; }
+.culture .row .state { font-size: 18px; color: var(--muted); }
+.culture .kept { margin-top: 4px; border-top: 1px solid var(--edge); }
+.culture .kept summary { padding: 10px 0; font-size: 14px; color: var(--muted); cursor: pointer; }
+.culture .stand .links { margin: 6px 0 2px; }
+.culture h3.lead { margin-top: 14px; }
+.culture .said { margin: 0 0 6px; font-size: 14px; line-height: 1.45; color: var(--ink); }
 body.ui-hidden .hud, body.ui-hidden .navigation, body.ui-hidden .sheet, body.ui-hidden .lod, body.ui-hidden .toasts, body.ui-hidden .play-offer,
 body.ui-hidden .act-bar, body.ui-hidden .act-menu, body.ui-hidden .act-banner { visibility: hidden; pointer-events: none; }
 body.ui-hidden .toast { pointer-events: none; }
@@ -820,8 +819,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     aria-controls="peopleSheet"><span class="nav-label">People</span></button>
   <button id="treeBtn" type="button" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
     class="nav-label">Family</span></button>
-  <button id="customsBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Customs (C)" aria-pressed="false" aria-controls="drawer"><span
-    class="nav-label">Customs</span></button>
+  <button id="cultureBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Culture (C)" aria-pressed="false" aria-controls="drawer"><span
+    class="nav-label">Culture</span></button>
   <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
     class="nav-label">Debug</span></button>
 </nav>
@@ -862,10 +861,10 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 </aside>
 <aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
   <div class="sheet-head">
-    <h2 id="drawerTitle">Customs</h2>
+    <h2 id="drawerTitle">Culture</h2>
     <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody"
       aria-label="Collapse" title="Collapse"></button>
-    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close customs" title="Close"></button>
+    <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close" title="Close"></button>
   </div>
   <div class="sheet-content" id="drawerBody"></div>
 </aside>
@@ -14951,7 +14950,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     dropStart(); // the start's islands and a game kept aside are dropped, as the game that was open is
     treeSel = -1; selPawn = -1; selVillage = -1; selFarm = -1; selectionPinned = false;
     openPanel(null); peopleFolds.clear(); peopleQuery = ''; $('peopleSearch').value = '';
-    settlersHTML = ''; $('settlers').textContent = ''; customVillage = 0; comparisonOpen = false; customsStamp = ''; charterStamp = '';
+    settlersHTML = ''; $('settlers').textContent = ''; cultureOf = 0; cultureOpen = -1; cultureStamp = ''; charterStamp = '';
     setLoad('Painting the overview', 0.55); await frame();
     const painted = await paintOverview(wd, (p) => setLoad(null, 0.55 + p * 0.4));
     setLoad('Drawing the regions', 0.96); await frame();
@@ -15197,7 +15196,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
 
   const keys = new Set();
   const SHORTCUTS = {
-    p: 'settlersBtn', t: 'treeBtn', c: 'customsBtn', g: 'gridBtn', r: 'regionBtn', l: 'landBtn', o: 'groundBtn', m: 'minimapBtn', f: 'centre' };
+    p: 'settlersBtn', t: 'treeBtn', c: 'cultureBtn', g: 'gridBtn', r: 'regionBtn', l: 'landBtn', o: 'groundBtn', m: 'minimapBtn', f: 'centre' };
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (!$('tree').hidden) {
@@ -15225,7 +15224,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
       if (press === 'centre') centreSelection(); else $(press).click();
       return;
     }
-    if (e.target.closest && e.target.closest('button, input, select, textarea, summary, .table-scroll')) return;
+    if (e.target.closest && e.target.closest('button, input, select, textarea, summary')) return;
     const k = e.key.toLowerCase();
     if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(k)) { keys.add(k); stopIntro(); e.preventDefault(); }
     if (k === ' ') { e.preventDefault(); setSpeed(speed === 0 ? lastSpeed : 0); }
@@ -15280,10 +15279,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     paintBar();
     $('peopleSheet').hidden = panel !== 'people'; $('settlers').hidden = panel !== 'people';
     $('tile').hidden = panel !== 'tile';
-    $('drawer').hidden = !['customs', 'debug'].includes(panel);
-    drawerTab = ['customs', 'debug'].includes(panel) ? panel : null;
+    $('drawer').hidden = !['culture', 'debug'].includes(panel);
+    drawerTab = ['culture', 'debug'].includes(panel) ? panel : null;
     $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
-    $('customsBtn').setAttribute('aria-pressed', String(panel === 'customs'));
+    $('cultureBtn').setAttribute('aria-pressed', String(panel === 'culture'));
     $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));
     if (mobileUI.matches && panel) setMinimap(false);
     if (document.body.classList.contains('ui-hidden')) $('minimap').inert = true;
@@ -17307,6 +17306,16 @@ if (typeof module !== 'undefined') module.exports = Sim;
       return { k, d, x, cust, y, state, differs: x !== cust, who };
     }) };
   }
+  // The charter: the customs as sentences under their heads. pick(k) is the option told of custom k and mark(k) its phrase's mark; the open
+  // custom's detail follows its paragraph. The phrases' ids take a prefix: the card's charter and the Culture pane's are in one document.
+  function charterHTML(prefix, pick, mark, open, detail) {
+    const said = (k) => `${SAID[Culture.DIMS[k].key][0]}<span role="button" tabindex="0" class="phrase ${mark(k)}" id="${prefix}${k}" data-phrase="${k}"
+      aria-expanded="${k === open}">${phraseOf(k, pick(k))}</span>${SAID[Culture.DIMS[k].key][2]}`;
+    return CHARTER.map(([head, keys]) => {
+      const ks = keys.map((key) => Culture.IDX[key]);
+      return `<h3>${head}</h3><p class="charter">${ks.map(said).join(' ')}</p>${ks.includes(open) ? detail(open) : ''}`;
+    }).join('');
+  }
   const markOf = (c) => (c.state === 'turning' || c.state === 'contested' ? c.state : c.differs ? 'differs' : '');
   // The note of a chosen voice (VB-391): how far they lean to their first and second way, and the strongest pull towards the first, as the
   // daily drift weighs them (sim/leanings): their own cause, what they learned young, those they deal with, a cause argued near them, their
@@ -17351,14 +17360,10 @@ if (typeof module !== 'undefined') module.exports = Sim;
     if (stamp === charterStamp) return;
     charterStamp = stamp;
     const r = readCustoms(s), days = nextMeeting(), cn = esc(r.culture.name);
-    let h = `<h3 class="lead">The customs of ${esc(s.name)}</h3><p class="note">${esc(s.name)} follows the <strong>${cn} culture</strong>. ${r.voices} of its ${
+    let h = `<h3 class="lead">The customs of ${esc(s.name)}</h3><p class="note">${esc(
+      s.name)} follows the <button type="button" class="name" data-culture="${r.culture.id}">${cn} culture</button>. ${r.voices} of its ${
       r.people} people speak at the meeting, next in ${days} ${days === 1 ? 'day' : 'days'}. Choose a phrase to see who stands where.</p>`;
-    for (const [head, keys] of CHARTER) {
-      const cs = keys.map((key) => r.dims[Culture.IDX[key]]), open = cs.find((c) => c.k === customOpen);
-      const said = (c) => `${SAID[c.d.key][0]}<span role="button" tabindex="0" class="phrase ${markOf(c)}" id="phrase${c.k}" data-phrase="${c.k}"
-        aria-expanded="${c.k === customOpen}">${phraseOf(c.k, c.x)}</span>${SAID[c.d.key][2]}`;
-      h += `<h3>${head}</h3><p class="charter">${cs.map(said).join(' ')}</p>${open ? standHTML(open, r, s) : ''}`;
-    }
+    h += charterHTML('phrase', (k) => r.dims[k].x, (k) => markOf(r.dims[k]), customOpen, (k) => standHTML(r.dims[k], r, s));
     h += `<p class="key"><span><span class="phrase differs">Differs</span> from ${cn} custom</span><span><span class="phrase contested">Contested</span></span>`
       + '<span><span class="phrase turning">Set to change</span></span></p>';
     updatePanelHTML($('tileCustoms'), h);
@@ -17366,6 +17371,8 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A phrase opens and closes by a click, Enter or Space, and the opened custom is brought into view; a face shows and hides its note.
   function togglePhrase(e) {
     const p = e.target.closest('[data-phrase]'), v = e.target.closest('[data-voice]');
+    const cu = e.target.closest('[data-culture]');
+    if (cu && e.type === 'click') { openCulture(+cu.dataset.culture); return; }
     if (v && e.type === 'click') {
       customVoice = customVoice === +v.dataset.voice ? -1 : +v.dataset.voice;
       renderCustoms(customsOf);
@@ -18382,7 +18389,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
     demo = false; demoAt = null; document.body.classList.remove('demo');
     await swapWorld(a.wd, a.sim, a.painted);
     intro = null; cam.x = a.cam.x; cam.y = a.cam.y; cam.z = zt = a.cam.z; vel.x = vel.y = 0;
-    settlersHTML = ''; $('settlers').textContent = ''; customsStamp = ''; charterStamp = '';
+    settlersHTML = ''; $('settlers').textContent = ''; cultureStamp = ''; charterStamp = '';
     if (choose && choose.farm >= 0) { sel = st.farmsteads[choose.farm].house; selectionPinned = true; hoverDirty = true; renderChoose(); }
   }
   // A game raised or loaded drops the start's islands and the game kept aside (page/loader, build).
@@ -18983,87 +18990,27 @@ if (typeof module !== 'undefined') module.exports = Sim;
     }
   });
 
-  // ======== customs and debug drawer ========
+  // ======== culture and debug drawer ========
   let drawerTab = null, skipping = false;
-  const drawer = $('drawer'), BAR = ['#2f7d6b', '#c9a24a', '#a8604c', '#5a72a8'];
+  const drawer = $('drawer');
   function openDrawer(tab) {
     openPanel(activePanel === tab ? null : tab);
-    $('drawerTitle').textContent = tab === 'debug' ? 'Debug' : 'Customs';
-    if (drawerTab === 'debug') buildDebug();
-    if (drawerTab === 'customs') buildCustoms();
+    if (drawerTab === 'debug') { $('drawerTitle').textContent = 'Debug'; buildDebug(); }
+    if (drawerTab === 'culture') chooseCulture();
     renderDrawer();
   }
-  $('customsBtn').addEventListener('click', () => openDrawer('customs'));
+  $('cultureBtn').addEventListener('click', () => openDrawer('culture'));
   $('debugBtn').addEventListener('click', () => openDrawer('debug'));
   $('drawerClose').addEventListener('click', () => {
-    const tab = drawerTab; openPanel(null); $(tab === 'debug' ? 'debugBtn' : 'customsBtn').focus();
+    const tab = drawerTab; openPanel(null); $(tab === 'debug' ? 'debugBtn' : 'cultureBtn').focus();
   });
   const optLabel = (d, j) => Culture.DIMS[d].opts[j][1];
   const nextMeeting = () => {
     const c = Sim.cal(st.t), target = 2 * Sim.SEASON_DAYS + 9; let days = target - c.doy; if (days < 0 || (days === 0 && c.hour >= 12)) days += Sim.YEAR_DAYS;
     return days; };
-  let customVillage = 0, customsStamp = '', comparisonOpen = false;
-  function buildCustoms() {
-    const setts = st.cenv.settlements;
-    if (!setts[customVillage]) customVillage = 0;
-    $('drawerBody').innerHTML = `<label class="custom-picker">Village<select id="customVillage">${setts.map((s) =>
-      `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></label><div id="customContent"></div>
-      <details id="customComparison"><summary>Compare all villages</summary><div id="customTable" class="table-scroll" tabindex="0"
-      role="region" aria-label="Village customs comparison, scroll horizontally"></div></details>`;
-    $('customVillage').value = String(customVillage);
-    $('customVillage').addEventListener('change', (e) => { customVillage = +e.target.value; customsStamp = ''; renderDrawer(); });
-    $('customComparison').open = comparisonOpen;
-    $('customComparison').addEventListener('toggle', (e) => {
-      comparisonOpen = e.target.open; customsStamp = ''; renderDrawer();
-    });
-    customsStamp = '';
-  }
   function renderDrawer() {
     if (!drawerTab || !st || document.body.classList.contains('ui-hidden') || drawer.classList.contains('collapsed')) return;
-    if (drawerTab !== 'customs') { updateDebug(); return; }
-    if (!$('customContent')) buildCustoms();
-    const env = st.cenv, setts = env.settlements;
-    // Rebuild the selector when villages change, not every animation tick.
-    if ($('customVillage').options.length !== setts.length) buildCustoms();
-    const stamp = `${Math.floor(st.t / Sim.DAY)}:${customVillage}:${comparisonOpen}:${setts.map((s) => s.practice.join(',')).join(';')}`;
-    if (stamp === customsStamp) return;
-    customsStamp = stamp;
-    const s = setts[customVillage], culture = env.cultures[s.culture], members = Sim.membersOf(st, s.id);
-    const voices = members.filter((p) => Sim.voiceOf(st, p, s) > 0).length;
-    const support = Culture.support(env, members, (p) => Sim.voiceOf(st, p, s)).S, days = nextMeeting();
-    let h = `<p class="dm">${members.length} people · ${voices} with a voice · ${Math.round(s.tie * 100)}% tie to the culture’s centre.</p>
-      <p class="dm"><strong>${esc(culture.name)} culture</strong>, centred on ${esc(setts[culture.centres[0]].name)}${culture.parent !== null
-        ? `, split from ${esc(env.cultures[culture.parent].name)}` : ''}.</p>
-      <p class="dm">Next village meetings in ${days} ${days === 1 ? 'day' : 'days'}. Attitudes drift daily; practice changes at the meeting after harvest.</p>`;
-    if (s.id !== culture.centres[0]) h += `<p class="dm">${Math.round((s.divergence || 0) * 100)}% apart in practice${s.fissionYears
-      ? `; ${s.fissionYears} of ${Culture.P.fission.years} years towards a split` : ''}.</p>`;
-    Culture.DIMS.forEach((d, k) => {
-      const differs = s.practice[k] !== culture.customs[k], offset = Culture.OFF[k], dots = Math.max(1, Math.round(d.m * 5));
-      h += `<section class="custom-card"><h3>${esc(d.label)}</h3><p class="${differs ? 'different' : ''}">Village: <strong>${esc(
-        optLabel(k, s.practice[k]))}</strong></p><p class="dm">Culture: ${esc(optLabel(k, culture.customs[k]))}${differs ? ' · differs locally' : ''}</p>
-        <div class="sbar" aria-hidden="true">${d.opts.map((option, j) =>
-          `<i style="width:${(support[offset + j] * 100).toFixed(1)}%;background:${BAR[j]}"></i>`).join('')}</div>
-        <p class="support">${d.opts.map((option, j) => `<span class="sw-item"><span class="sw"
-          style="background:${BAR[j]}"></span>${esc(option[1])}: ${Math.round(support[offset + j] * 100)}%</span>`).join(
-            ' · ')}</p><p class="support">Ease of change: ${'●'.repeat(dots)}${'○'.repeat(5 - dots)}</p></section>`;
-    });
-    h += '<h3 class="dh3">Meetings</h3>' + (st.meetingLog.length ? st.meetingLog.slice(0, 8).map((e) =>
-      `<p class="dm">Year ${e.year}: ${esc(e.text)}</p>`).join('') : '<p class="dm">No meeting held yet.</p>');
-    updatePanelHTML($('customContent'), h);
-    if (comparisonOpen) {
-      const sup = setts.map((v) => Culture.support(env, Sim.membersOf(st, v.id), (p) => Sim.voiceOf(st, p, v)).S);
-      let table = `<table class="cust"><thead><tr><th scope="col">Custom</th>${setts.map((v) =>
-        `<th scope="col">${esc(v.name)}<br>${esc(env.cultures[v.culture].name)} culture</th>`).join('')}</tr></thead><tbody>`;
-      Culture.DIMS.forEach((d, k) => {
-        table += `<tr><th scope="row">${esc(d.label)}</th>${setts.map((v, i) => {
-          const c = env.cultures[v.culture], different = v.practice[k] !== c.customs[k];
-          return `<td class="${different ? 'dev' : ''}">${esc(optLabel(k, v.practice[k]))}<br>Culture: ${esc(optLabel(k, c.customs[k]))}
-            <div class="sbar" aria-hidden="true">${d.opts.map((option, j) => `<i style="width:${(sup[i][Culture.OFF[k] + j] * 100).toFixed(1)}%;
-              background:${BAR[j]}"></i>`).join('')}</div></td>`;
-        }).join('')}</tr>`;
-      });
-      $('customTable').innerHTML = table + '</tbody></table>';
-    }
+    if (drawerTab === 'culture') renderCulture(); else updateDebug();
   }
   function buildDebug() {
     const dims = Culture.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');
@@ -19163,6 +19110,105 @@ if (typeof module !== 'undefined') module.exports = Sim;
     settlersHTML = ''; updateDebug();
   });
 
+  // ======== culture ========
+  // The pane tells of one culture: where the island has several, chips choose. Its tabs: the villages, those with something stirring or a
+  // way of their own first; the custom, the culture's own charter (page/customs); the meetings, by year.
+  const KEEPERS = 6; // more villages than this that keep the custom throughout fold into one line
+  let cultureOf = 0, cultureWanted = -1, cultureTab = 'villages', cultureOpen = -1, cultureKept = false, cultureStamp = '';
+  const culturesLive = () => st.cenv.cultures.filter((c) => st.cenv.settlements.some((s) => s.culture === c.id));
+  // The culture the pane opens on: the one asked for by a link, else that of the village selected, else of the played pawn's village.
+  function chooseCulture() {
+    const env = st.cenv, of = (v) => (v >= 0 && env.settlements[v] && env.settlements[v].id === v ? env.settlements[v].culture : -1);
+    const me = played(), home = me >= 0 ? Sim.settlementIdOf(st, st.pawns[me]) : -1, live = culturesLive().map((c) => c.id);
+    const want = [cultureWanted, of(selVillage), of(home === null || home === undefined ? -1 : home), cultureOf].find((c) => live.includes(c));
+    cultureOf = want === undefined ? live[0] : want; cultureWanted = -1; cultureOpen = -1; cultureStamp = '';
+  }
+  // From a village's Customs tab: the pane at that village's culture.
+  function openCulture(id) { cultureWanted = id; cultureTab = 'villages'; openDrawer('culture'); }
+  function cultureVillages(cu, setts) {
+    const cn = esc(cu.name), read = setts.map((s) => {
+      const r = readCustoms(s), own = r.dims.filter((c) => c.differs), turn = r.dims.find((c) => c.state === 'turning'),
+        cont = r.dims.find((c) => c.state === 'contested');
+      return { s, own, turn, cont, rank: (turn ? 100 : 0) + (cont ? 10 : 0) + own.length };
+    }).sort((a, b) => b.rank - a.rank || a.s.id - b.s.id);
+    const row = (v) => `<button type="button" class="row" data-charter="${v.s.id}">${iconImg(villageIcon(st.villages[v.s.id]), 'mini')}<span class="who">${
+      esc(v.s.name)}<i>${v.own.length ? `Its own way: ${v.own.map((c) =>
+        `${esc(c.d.label.toLowerCase())}: ${esc(optLabel(c.k, c.x).toLowerCase())}`).join('; ')}`
+      : 'Keeps the custom throughout'}</i>${v.turn ? `<i class="stir"><span class="mark hungry"></span>${esc(v.turn.d.label)}: set to change</i>`
+      : v.cont ? `<i class="stir"><span class="mark short"></span>${esc(v.cont.d.label)}: contested</i>` : ''}</span><span class="state">›</span></button>`;
+    const quiet = read.filter((v) => !v.rank), fold = quiet.length > KEEPERS;
+    return `<p class="note">A village keeps the ${cn} custom until its own meeting decides otherwise. Open a village to read its customs.</p>${
+      read.filter((v) => v.rank || !fold).map(row).join('')}${fold ? `<details class="kept" ${cultureKept ? 'open' : ''}><summary>${quiet.length
+      } villages keep the custom throughout</summary>${quiet.map(row).join('')}</details>` : ''}`;
+  }
+  function cultureCharter(cu, setts) {
+    const split = (k) => setts.some((s) => s.practice[k] !== cu.customs[k]);
+    const ways = (k) => `<div class="stand" id="cultureStand"><p class="of">${esc(Culture.DIMS[k].label)}</p>${Culture.DIMS[k].opts.map((o, j) => {
+      const at = setts.filter((s) => s.practice[k] === j);
+      return `<div class="way${j === cu.customs[k] ? ' in' : ''}"><p>${esc(o[1])}${j === cu.customs[k] ? '<em class="tag">The custom</em>' : ''}</p>${
+        !at.length ? '<p class="none">No village.</p>' : at.length === setts.length ? `<p class="none">All ${setts.length} villages.</p>`
+          : `<div class="links">${at.map((s) => villageChip(st.villages[s.id])).join('')}</div>`}</div>`;
+    }).join('')}</div>`;
+    return `<p class="note">What the ${esc(
+      cu.name)} villages hold in common. A tinted phrase is one some village has changed; choose a phrase to see which.</p>${
+      charterHTML('custom', (k) => cu.customs[k], (k) => (split(k) ? 'differs' : ''), cultureOpen, ways)}`;
+  }
+  function cultureMeetings() {
+    const days = nextMeeting(), NONE = 'The meetings changed nothing this year.';
+    let h = `<p class="note">The villages meet after harvest: next in ${days} ${days === 1 ? 'day' : 'days'}.</p>`, year = null, quiet = [];
+    const flush = () => {
+      if (quiet.length) h += `<p class="note">${quiet.length > 1 ? `Years ${quiet[quiet.length - 1]} to ${quiet[0]}` :
+        `Year ${quiet[0]}`}: nothing changed.</p>`;
+      quiet = [];
+    };
+    for (const e of st.meetingLog) {
+      if (e.text === NONE) { quiet.push(e.year); continue; }
+      flush();
+      if (e.year !== year) { year = e.year; h += `<h3 class="lead">Year ${year}</h3>`; }
+      h += `<p class="said">${esc(e.text)}</p>`;
+    }
+    flush();
+    return h + (st.meetingLog.length ? '' : '<p class="note">No meeting held yet.</p>');
+  }
+  // Drawn when the day, the culture, the tab, the open phrase, a practice or the meeting log changes, not every frame.
+  function renderCulture() {
+    const env = st.cenv, live = culturesLive();
+    if (!live.some((c) => c.id === cultureOf)) chooseCulture();
+    const cu = env.cultures[cultureOf], setts = env.settlements.filter((s) => s.culture === cu.id);
+    const stamp = [Math.floor(st.t / Sim.DAY), cu.id, cultureTab, cultureOpen, cultureKept, played(), live.length, cu.customs, st.meetingLog.length,
+      st.meetingLog[0] && st.meetingLog[0].year, ...setts.map((s) => `${s.id}/${s.practice}`)].join(':');
+    if (stamp === cultureStamp) return;
+    cultureStamp = stamp;
+    $('drawerTitle').textContent = `${cu.name} culture`;
+    const people = setts.reduce((a, s) => a + Sim.membersOf(st, s.id).filter((p) => p.alive).length, 0),
+      tabs = [['villages', 'Villages'], ['custom', 'The custom'],
+      ['meetings', 'Meetings']];
+    const h = `<div class="culture customs">${live.length > 1 ? `<div class="links" role="group" aria-label="Culture">${live.map((c) =>
+      `<button type="button" class="chip" data-culture="${c.id}" aria-pressed="${c.id === cu.id}">${esc(c.name)}</button>`).join('')}</div>` : ''}
+      <p class="note"><strong>${setts.length} ${setts.length === 1 ? 'village' : 'villages'}</strong> · ${people} people · centred on ${
+      esc(env.settlements[cu.centres[0]].name)}${cu.parent !== null ? `, split from ${esc(env.cultures[cu.parent].name)}` : ''}</p>
+      <div class="tabs" role="tablist" aria-label="About the culture">${tabs.map(([k, t]) =>
+      `<button type="button" role="tab" data-ctab="${k}" aria-selected="${cultureTab === k}">${t}</button>`).join('')}</div>${
+      cultureTab === 'villages' ? cultureVillages(cu, setts) : cultureTab === 'custom' ? cultureCharter(cu, setts) : cultureMeetings()}</div>`;
+    updatePanelHTML($('drawerBody'), h);
+  }
+  // The pane's clicks: a tab, a culture, a village (its card, at the Customs tab), a phrase of the custom (also by Enter or Space).
+  function cultureClick(e) {
+    if (drawerTab !== 'culture') return;
+    const hit = (sel) => e.target.closest(sel), tab = hit('[data-ctab]'), cu = hit('[data-culture]'), v = hit('[data-charter], [data-village]'),
+      p = hit('[data-phrase]');
+    if (e.type === 'keydown' && (!p || (e.key !== 'Enter' && e.key !== ' '))) return;
+    if (v) { cardTab = 'customs'; selectVillage(+(v.dataset.charter || v.dataset.village)); return; }
+    if (tab) { cultureTab = tab.dataset.ctab; cultureOpen = -1; } else if (cu) { cultureOf = +cu.dataset.culture; cultureOpen = -1; }
+    else if (p) { e.preventDefault(); cultureOpen = cultureOpen === +p.dataset.phrase ? -1 : +p.dataset.phrase; } else return;
+    renderCulture();
+    const again = p ? $(`custom${p.dataset.phrase}`) : tab ? $('drawerBody').querySelector(`[data-ctab="${cultureTab}"]`) : null, stand = $('cultureStand');
+    if (again) again.focus({ preventScroll: true });
+    if (p && stand && stand.scrollIntoView) stand.scrollIntoView({ block: 'nearest' });
+  }
+  $('drawerBody').addEventListener('click', cultureClick);
+  $('drawerBody').addEventListener('keydown', cultureClick);
+  $('drawerBody').addEventListener('toggle', (e) => { if (e.target.classList.contains('kept')) { cultureKept = e.target.open; cultureStamp = ''; } }, true);
   // ---- notifications ----
   // A toast for each notable event the record gains: at the top centre, under the top bar (VB-338), for 6 s, at most 3 at once (a fourth replaces
   // the oldest). Events of one kind in one village on one game day share a toast while it is up ("3 births in Ulsäter"), which is what
@@ -19264,7 +19310,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '5d9295d94e', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '9af0db1d6b', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
