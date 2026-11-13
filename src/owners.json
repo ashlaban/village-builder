@@ -48,6 +48,8 @@
     "household.spoilt": "sim/stores",
     "household.clay": "sim/stores",
     "household.bogOre": "sim/stores",
+    "household.peat": "sim/stores",
+    "household.peatCut": "sim/stores",
     "household.digAt": "sim/dig",
     "household.rack": "sim/stores",
     "household.fresh": "sim/pot",

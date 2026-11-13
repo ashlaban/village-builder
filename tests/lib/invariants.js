@@ -303,7 +303,7 @@ function checkState(st) {
     if (h.holder !== null && !h.members.includes(h.holder) && !(st.liveTrusts || []).some((i) => st.trusts[i].household === h.id)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
-    for (const k of ['wood', 'stone', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    for (const k of ['wood', 'stone', 'peat', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
     // the hand quern (VB-009): null, or a stone of sandstone or granite made at a time not after now
     if (h.quern !== null && !(h.quern && ['sandstone', 'granite'].includes(h.quern.rock) && Number.isFinite(h.quern.made) && h.quern.made <= st.t))
       bad.push(`households[${h.id}]: quern ${JSON.stringify(h.quern)}`);
@@ -311,7 +311,7 @@ function checkState(st) {
     for (const k of ['clay', 'bogOre']) if (!Number.isInteger(h[k]) || h[k] < 0 ||
       h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
     if (h.digAt !== undefined &&
-      !['clay', 'bogOre'].every((g) => h.digAt[g] === -1 || tileOk(h.digAt[g]))) bad.push(`households[${h.id}]: digAt ${JSON.stringify(h.digAt)}`);
+      !['clay', 'bogOre', 'peat'].every((g) => h.digAt[g] === -1 || tileOk(h.digAt[g]))) bad.push(`households[${h.id}]: digAt ${JSON.stringify(h.digAt)}`);
     // the catch waiting by the drying rack, and the household's boat: a shore tile next to water of the sea or a large lake (VB-300)
     if (h.rack !== undefined && !within(h.rack, 0, 1e6)) bad.push(`households[${h.id}]: rack is ${h.rack}`);
     const b = h.boat;
@@ -374,7 +374,7 @@ function checkState(st) {
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
-        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', ...FISHES, ...WOODS].includes(e.good)
+        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', 'peat', ...FISHES, ...WOODS].includes(e.good)
         || e.stake && !st.pawns[e.pawn]) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }
@@ -384,7 +384,7 @@ function checkState(st) {
     for (let i = 0; i < holder.totals.length; i++) {
       const x = holder.totals[i], key = `${x.year}:${x.kind}:${x.good}`;
       if (!S.ROUTINE.includes(x.kind) || !Number.isInteger(x.year) || x.year > year || x.year < year - 3 || !Number.isFinite(x.n)
-          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves meat milk butter ale'.split(' '), ...FISHES, ...WOODS].includes(x.good)
+          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves meat milk butter ale peat'.split(' '), ...FISHES, ...WOODS].includes(x.good)
           || seen.has(key)
           || i && holder.totals[i - 1].year > x.year) bad.push(`stores[${holder.id}]: invalid total ${JSON.stringify(x)}`);
       seen.add(key);
@@ -639,14 +639,14 @@ function checkState(st) {
     if (off) bad.push(`st.deer: ${off} regions with deer, a day or edges out of place`);
   }
   // deposits (VB-359, sim/dig): loads left only on a deposit tile; a dug tile (dugDay) not after today, its first amount at least what is left
-  // and nothing dug but clay and bog iron; an endless tile stays endless
+  // and nothing dug but clay, bog iron and peat; an endless tile stays endless
   {
     const { deposit, depositLeft, depositFull, dugDay } = st.w, today = Math.floor(st.t / 24), E = globalThis.VB['gen/geology'];
     let off = 0;
     if (deposit) for (let i = 0; i < N; i++) {
       if (!deposit[i] && depositLeft[i]) off++;
       else if (dugDay && dugDay[i] && (dugDay[i] > today + 1 || depositFull[i] < depositLeft[i] || depositFull[i] === E.ENDLESS
-        || (deposit[i] !== E.DEPOSIT.CLAY && deposit[i] !== E.DEPOSIT.BOG_IRON))) off++;
+        || (deposit[i] !== E.DEPOSIT.CLAY && deposit[i] !== E.DEPOSIT.BOG_IRON && deposit[i] !== E.DEPOSIT.PEAT))) off++;
     }
     if (off) bad.push(`w.depositLeft: ${off} tiles with loads or a digging out of place`);
   }

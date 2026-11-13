@@ -1,7 +1,7 @@
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
 // ale brewed, poured and spoiling (VB-305); the registry of goods (VB-299) and Culture's worth and proper as rules
 VB['sim/stores'] = (() => {
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW, CROPS } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW, CROPS, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'],
     Culture = VB['culture'],
     { emit } = VB['sim/events'],
@@ -100,6 +100,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'flour') return good; // ground on the quern (VB-009, sim/quern)
     if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
+    if (kind === 'household' && good === 'peat') return good; // the peat stack (VB-367)
     if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
@@ -159,6 +160,9 @@ VB['sim/stores'] = (() => {
   };
   const setGrain = (holder, crop, n) =>
     'center' in holder ? setVillageGrain(holder, crop, n) : setHouseholdGrain(holder, crop, n);
+  const setPeat = (hh, n) => {
+    hh.peat = n;
+  };
   const setWood = (hh, n) => {
     hh.wood = n;
   };
@@ -180,6 +184,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
     else if (good === 'stone') setStone(holder, n);
+    else if (good === 'peat') setPeat(holder, n);
     else if (good === 'fish') setRack(holder, n);
     else if (good === 'flour') setFlour(holder, n);
     else setMeals(holder, n);
@@ -374,11 +379,25 @@ VB['sim/stores'] = (() => {
     if (good === 'clay') hh.clay = n;
     else hh.bogOre = n;
   }
+  // @state household.peat: units of peat held, wet or dry (VB-367; a unit burns as PEAT.worth of wood), 0 at the start
+  // @state household.peatCut: {key, n} or undefined: the units cut in the season keyed year * 4 + season, which are still drying: peat cut in
+  //   a season burns from the next (rule 3: read in closed form against the clock, no pass that dries it)
+  const seasonKey = (st) => {
+    const c = cal(st.t);
+    return c.year * 4 + c.season;
+  };
+  const peatCut = (st, hh) => (hh.peatCut && hh.peatCut.key === seasonKey(st) ? hh.peatCut.n : 0);
+  // The peat that burns today: what is held less what was cut this season.
+  const peatDry = (st, hh) => Math.max(0, (hh.peat || 0) - peatCut(st, hh));
   function dug(st, hh, good, n) {
     amount(n);
-    if (type(hh) !== 'household' || !DUG.includes(good)) throw new Error(`stores: cannot dig ${good}`);
+    if (type(hh) !== 'household' || !(DUG.includes(good) || good === 'peat'))
+      throw new Error(`stores: cannot dig ${good}`);
     record(st, hh, good, n, 'dig');
-    setDug(hh, good, (hh[good] || 0) + n);
+    if (good === 'peat') {
+      hh.peatCut = { key: seasonKey(st), n: peatCut(st, hh) + n };
+      hh.peat = (hh.peat || 0) + n;
+    } else setDug(hh, good, (hh[good] || 0) + n);
     return n;
   }
   // Only a newly constructed household, before its members move in. Constructor supplies are replaced, not consumed. grain: by crop (a
@@ -706,6 +725,7 @@ VB['sim/stores'] = (() => {
     goodOf,
     goods,
     dug,
+    peatDry,
     dry,
     cookLarder,
     grainOf,

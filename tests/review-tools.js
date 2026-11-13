@@ -8,8 +8,8 @@ const Stocks = require('../tools/stocks.js');
 const fields = Stocks.stateFields(), { missing, stale } = Stocks.unlisted(fields);
 assert.deepStrictEqual(missing, [], 'a stored quantity needs its line in tools/stocks.js (QUANTITIES, with `none`), or a place in NOT_STOCKS');
 assert.deepStrictEqual(stale, [], 'tools/stocks.js lists fields no @state line names');
-const more = new Map([...fields, ['household.peat', 'a test']]);
-assert.deepStrictEqual(Stocks.unlisted(more).missing, ['household.peat (a test)'], 'a quantity without a line is found');
+const more = new Map([...fields, ['household.lime', 'a test']]);
+assert.deepStrictEqual(Stocks.unlisted(more).missing, ['household.lime (a test)'], 'a quantity without a line is found');
 for (const q of Stocks.QUANTITIES) assert(q.none && q.none.length > 10 && q.fields.length && q.name, `${q.id}: a line says what happens at none`);
 // what the reviews of 10 and 11 November found: nothing reads the day's water (until VB-331 lands; then change this line); the woodpile is
 // read since VB-327 (the cold house, the cook), the stone heap since VB-332 (the foundation)

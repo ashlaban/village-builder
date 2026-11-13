@@ -340,6 +340,7 @@ VB['sim/records'] = (() => {
       haySpoilt: 0,
       clay: 0,
       bogOre: 0,
+      peat: 0,
       rack: 0,
       boat: null,
       carts: [],

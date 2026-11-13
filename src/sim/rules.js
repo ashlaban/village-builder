@@ -679,6 +679,11 @@ VB['sim/rules'] = (() => {
   // holds too few, the rest of the area lies beyond it, up to `far` steps (VB-421): the farthest a trip still fits the working day, 9 hours'
   // walk out on meadow (3 steps an hour) and its 3 hours' cutting between 6:00 and 18:00; the laden walk home may run past the day's end.
   const WOOD = { perHousehold: 5, least: 6, cap: 150, reach: 12, far: 27, thin: 0.25 };
+  // Peat (VB-367; design.md, Fuel; Proposed, slice 6's plan, 11 Nov): cut in summer (sim/dig) and burnt in place of wood once dry, from the
+  // season after it was cut. A load of peat is dug a trip (ECON.woodPerTrip units, as a firewood trip brings); `worth` of wood a unit burns
+  // as. A household cuts when the village's wood lies more than `far` steps from its house, or from day `late` of summer (summer's end
+  // nears) while its fuel pile is under the winter's goal, up to the shortfall.
+  const PEAT = { worth: 0.5, far: 8, late: 6 };
   // What building takes (sim/building; design, Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's or booth's walls take `timber` loads of
   // wood (six trees). A stone foundation (VB-332; design, Land and ecology, Stone; Agreed, Kim, 11 Nov) takes `foundationStone` loads from the
   // household's heap and `foundationHours` of work at the house; stone is picked (`pickHours` a load) on a meadow tile holding more than
@@ -890,6 +895,7 @@ VB['sim/rules'] = (() => {
     MATCH,
     CLAIMS,
     WOOD,
+    PEAT,
     BUILD,
   };
 })();

@@ -55,6 +55,9 @@ const QUANTITIES = [
   { id: 'clay', of: 'household', name: 'clay and bog iron ore', unit: 'loads', fields: ['household.clay', 'household.bogOre'], good: 'clay',
     goods: ['clay', 'bogOre'],
     holder: 'household', kinds: ['dig'], covers: ['household.digAt'], none: 'nothing: nothing uses them until slice 6' },
+  { id: 'peat', of: 'household', name: 'the peat stack', unit: 'units', fields: ['household.peat', 'household.peatCut'], good: 'peat',
+    holder: 'household', kinds: ['dig'],
+    none: 'the day\'s fire burns wood alone, and the household cuts more of it, and in summer more peat (sim/hunger, sim/dig, VB-367)' },
   { id: 'ale', of: 'household', name: 'ale', unit: 'barrels', fields: ['household.ale'], good: 'ale', holder: 'household', kinds: ['brew'],
     covers: ['household.poured'], none: 'no barrel is poured at an occasion, and the host gains no standing by it (sim/society)' },
   { id: 'hay', of: 'household', name: 'hay in the barn', unit: 'units', fields: ['household.hay'], kinds: ['hay'], losses: ['sim/byre:spoilHay'],
@@ -153,7 +156,7 @@ function stateFields(known = null) {
 const OPS = { put: 'add', take: 'take', takeSpare: 'take', move: 'move', cook: 'cook', sheaf: 'add', thresh: 'thresh', spoil: 'take', dug: 'add',
   start: 'start', brew: 'brew',
   pour: 'take', spoilAle: 'take', villageDay: 'take', dry: 'take', cookLarder: 'add' };
-const OP_GOODS = { dug: ['clay', 'bogOre'] };
+const OP_GOODS = { dug: ['clay', 'bogOre', 'peat'] };
 const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'handingOn', 'provisions', 'start']);
 const SKIP = new Set(['sim/stores', 'sim/saves']); // the stores' own operations, and saving
 // A module's named functions, innermost by line: [{name, from, to}], a job kind's properties as `kind.property`

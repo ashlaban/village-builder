@@ -128,6 +128,7 @@ const EXTENDED = [
   ['node', 'tests/record.js'],
   ['node', 'tests/layout.js'],
   ['node', 'tests/dig.js'],
+  ['node', 'tests/peat.js'],
   ['node', 'tests/commands.js'],
   ['node', 'tests/offers.js'],
   ['node', 'tests/review-tools.js'],
