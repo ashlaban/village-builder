@@ -1,5 +1,6 @@
 // @sys sim/service: households short of people: a guardian for orphaned minor heirs, a servant for a holder who lives alone, kin or a
-// servant for a household of at most one grown member whose ask for food fell short (VB-308), and service where labour is short (VB-090)
+// servant for a household of at most one grown member whose ask for food fell short (VB-308), and with nobody to come, kin who hold its farm
+// in trust (VB-309); service where labour is short (VB-090)
 VB['sim/service'] = (() => {
   const { setServant, takePeopleCheck } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } =
@@ -11,6 +12,7 @@ VB['sim/service'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { SERVICE } = VB['sim/rules'];
   const { hasPlot } = VB['sim/expansion'];
+  const { trustOf } = VB['sim/ownership'];
   const adult = (p) => p.alive && p.age >= 18;
   // a before b, comparing arrays of numbers element by element
   const before = (a, b) => {
@@ -91,7 +93,12 @@ VB['sim/service'] = (() => {
             ...atHousehold(st, hh),
           },
         );
-      } else extinct(st, hh, `its heir ${fullName(ward)} is a child, with no grown kin to keep it`);
+      } else {
+        // the kin who would take the children hold the farm in trust until the heir is 18 (Kim, 13 Nov; VB-309), else it stands empty
+        const args = { why: 'is a child with no grown kin to come', ward: ward.id };
+        if (issue(st, { actor: ward.id, verb: 'goToKin', target: hh.id, args, source: 'help' }) !== true)
+          extinct(st, hh, `its heir ${fullName(ward)} is a child, with no grown kin to keep it`);
+      }
       refreshRoles(st);
       st.visualDirty = true;
     }
@@ -181,9 +188,10 @@ VB['sim/service'] = (() => {
     return best;
   }
   function takeServants(st) {
+    // a grown holder whose farm is held in trust by kin counts as one who lives alone: with a servant, it goes back (VB-309)
     const lone = st.liveHouseholds
       .map((id) => st.households[id])
-      .filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
+      .filter((h) => !h.dissolved && (h.members.length === 1 || trustOf(st, h.id)) && adult(st.pawns[h.holder]));
     const taken = new Set(),
       moved = new Set(); // the households that took a servant this round, and the servants (for serveWhereShort)
     if (!lone.length) return { taken, moved };
@@ -192,9 +200,12 @@ VB['sim/service'] = (() => {
     // Whether it would serve is the pawn's own wish (anyone who wants out would), and the player's stands in: false declines (VB-212).
     const available = willServe(st);
     for (const hh of lone) {
-      if (hh.members.length !== 1) continue;
+      const t = trustOf(st, hh.id);
+      if (!t && hh.members.length !== 1) continue;
       const best = servantFor(st, hh, available);
       if (!best) continue;
+      const back = { actor: hh.holder, verb: 'goBack', target: hh.id, args: { why: 'servant' }, source: 'round' };
+      if (t && issue(st, back) !== true) continue;
       if (issue(st, { actor: best.id, verb: 'serve', target: hh.id, source: 'round' }) === true) {
         taken.add(hh.id);
         moved.add(best.id);
@@ -226,6 +237,7 @@ VB['sim/service'] = (() => {
           !h.dissolved &&
           h.holder !== null &&
           !taken.has(h.id) &&
+          !trustOf(st, h.id) &&
           farmOf(st, h).fields.length > 0 &&
           handsPerField(st, h) < SERVICE.short,
       );
@@ -272,8 +284,9 @@ VB['sim/service'] = (() => {
   // fit to serve (unfit null: free, unmarried, 18 to 50), whose household is not left short of people without them (it keeps two grown
   // members, or holds no fields), from the village or within SERVICE.reach steps, moves in as a member with the minor children who live
   // with them. Else a servant, as takeServants chooses for this
-  // household, through the `serve` command. People come to the farm: its owner, holder and fields are unchanged. With nobody to come,
-  // nothing happens (VB-309). Only a household named searches: st.demand once with a kinship memo, then the servants' list.
+  // household, through the `serve` command. People come to the farm: its owner, holder and fields are unchanged. With nobody to come, its
+  // people go to kin who hold the farm in trust (trusteeFor, sim/trust; VB-309), else nothing happens. Only a household named searches:
+  // st.demand once with a kinship memo, then the servants' list, then its kin households.
   const grown = (st, hh) => hh.members.filter((id) => adult(st.pawns[id])).length;
   function takeIn(st, ids) {
     let available = null;
@@ -320,9 +333,12 @@ VB['sim/service'] = (() => {
         if (!available) available = willServe(st);
         VB.count.takeInWeighed += available.length;
         const s = servantFor(st, hh, available);
-        if (!s) continue;
-        if (issue(st, { actor: s.id, verb: 'serve', target: hh.id, source: 'help' }) !== true) continue;
-        available = available.filter((x) => x !== s.id);
+        if (s && issue(st, { actor: s.id, verb: 'serve', target: hh.id, source: 'help' }) === true)
+          available = available.filter((x) => x !== s.id);
+        else {
+          const args = { why: 'was short of food and hands, with nobody to come' };
+          if (issue(st, { actor: hh.holder, verb: 'goToKin', target: hh.id, args, source: 'help' }) !== true) continue;
+        }
       }
       refreshRoles(st);
       st.visualDirty = true;

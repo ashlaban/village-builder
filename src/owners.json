@@ -7,6 +7,8 @@
     "st.living": {"owner": "sim/records", "category": "cache"},
     "st.liveHouseholds": {"owner": "sim/records", "category": "cache"},
     "st.peopleCheck": "sim/records",
+    "st.trusts": "sim/trust",
+    "st.liveTrusts": {"owner": "sim/trust", "category": "cache"},
     "st.awake": {"owner": "sim/agents", "category": "cache"},
     "st.claims": "sim/claims",
     "st.finds": "sim/prospect",

@@ -59,6 +59,8 @@ VB['sim/lifecycle'] = (() => {
   const { issue, playerDied, clearMatchWish } = VB['sim/commands'];
   const { forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
   const { wedding, funeral } = VB['sim/occasions'];
+  const { closeTrust, goBack, wardsOfAge, inheritedHeld } = VB['sim/trust'],
+    { trustOfHolder } = VB['sim/ownership'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id];
     if (!p.alive) return;
@@ -102,6 +104,12 @@ VB['sim/lifecycle'] = (() => {
       leaveHousehold(st, id, true);
       if (hh.holder === id) succession(st, hh, 'death');
     }
+    const held = trustOfHolder(st, id); // a farm held in trust for it (VB-309): the trust ends, and succession as today
+    if (held) {
+      closeTrust(st, held, 'death');
+      succession(st, st.households[held.household], 'death');
+    }
+    inheritedHeld(st);
     endGoodwill(st, id); // after succession, which passes a holder's share on
     refreshRoles(st);
     refreshPrestige(st);
@@ -113,6 +121,7 @@ VB['sim/lifecycle'] = (() => {
     const r = heirRanking(st, hh);
     if (!r.length) return false;
     transfer(st, hh, r[0], 'retirement');
+    inheritedHeld(st);
     refreshRoles(st);
     refreshPrestige(st);
     return true;
@@ -286,6 +295,10 @@ VB['sim/lifecycle'] = (() => {
   function wed(st, mId, fId, home) {
     const m = st.pawns[mId],
       f = st.pawns[fId];
+    for (const id of [mId, fId]) {
+      const t = trustOfHolder(st, id); // a holder whose farm is held in trust goes back to it first (VB-309)
+      if (t) goBack(st, t, 'married', 'round');
+    }
     st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
     for (const id of [mId, fId]) {
       if (st.pawns[id].household !== home) moveTo(st, id, home);
@@ -624,6 +637,7 @@ VB['sim/lifecycle'] = (() => {
       p.age = age(st, p);
     }
     comeOfAge(st);
+    wardsOfAge(st); // a ward of 18 goes back to the farm held in trust for it (sim/trust, VB-309)
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     dailyTies(st);
   }

@@ -27,7 +27,8 @@ VB['sim/heirs'] = (() => {
     wishOf,
   } = VB['sim/records'];
   const { moved, dropJob, journeyOf } = VB['sim/agents'];
-  const { farmToVillage } = VB['sim/ownership'];
+  const { farmToVillage, heldFarms } = VB['sim/ownership'];
+  const { issue } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
@@ -325,7 +326,9 @@ VB['sim/heirs'] = (() => {
   function serviceHome(st, hh) {
     const village = st.farmsteads[hh.farmstead].village,
       vOf = (h) => st.farmsteads[h.farmstead].village;
-    const open = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.id !== hh.id);
+    const open = st.liveHouseholds
+      .map((id) => st.households[id])
+      .filter((h) => !h.dissolved && h.id !== hh.id && h.members.length); // not a farm held in trust (VB-309)
     const smallest = (list) => list.sort((x, y) => x.members.length - y.members.length || x.id - y.id)[0];
     const here = smallest(open.filter((h) => vOf(h) === village));
     if (here) return here.id;
@@ -368,6 +371,15 @@ VB['sim/heirs'] = (() => {
   }
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
+    // a farm it held in trust goes back to its holder first (VB-309, sim/trust)
+    for (const g of heldFarms(st, hh.id))
+      issue(st, {
+        actor: st.households[g.household].holder,
+        verb: 'goBack',
+        target: g.household,
+        args: { why: 'trustee gone' },
+        source: 'trust',
+      });
     const f = st.farmsteads[hh.farmstead];
     f.condition = houseCondition(st, f);
     f.household = null;

@@ -767,7 +767,7 @@ VB['sim/rules'] = (() => {
   const onStone = (f) => f.grade === 'stone';
   function houseCondition(st, f) {
     const c = f.condition ?? 1;
-    if (f.household === null) return c;
+    if (f.household === null || st.liveTrusts?.some((i) => st.trusts[i].household === f.household)) return c; // empty, or in trust
     const t0 = f.condAt ?? 0,
       tar = Math.min(st.t, f.tarredUntil || 0),
       tarred = Math.max(0, tar - t0),

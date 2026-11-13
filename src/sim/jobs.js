@@ -12,6 +12,7 @@ VB['sim/jobs'] = (() => {
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
+  const { trustOf, heldFarms } = VB['sim/ownership'];
   const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks, openOf } =
     VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
@@ -105,7 +106,7 @@ VB['sim/jobs'] = (() => {
         K = WINDOWED[k],
         f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
       gave = false;
-      if (f && f.household === id) {
+      if (f && f.household === id && !trustOf(st, id)) {
         const mine = st.jobsBy.get(`household:${id}`);
         if (mine) for (const j of mine) if (j.kind === K) j.live = false;
         only = K;
@@ -113,6 +114,9 @@ VB['sim/jobs'] = (() => {
         const rule = DUE_RULES[k];
         if (KINDS[K].stages) {
           for (const fd of f.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, f);
+          // the fields of a farm it holds in trust, as its own (VB-309)
+          for (const g of heldFarms(st, id))
+            for (const fd of g.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, g);
         } else ask(rule, hh, f, f);
         only = null;
         const now = st.jobsBy.get(`household:${id}`);
@@ -139,15 +143,17 @@ VB['sim/jobs'] = (() => {
       if (mine) for (const j of mine) if (!islandJob(j)) sweep(st, j);
     };
     for (const f of st.farmsteads) {
-      if (f.household === null) continue;
+      // a farm held in trust posts nothing of its own: its trustee works its fields as its own (VB-309)
+      if (f.household === null || trustOf(st, f.household)) continue;
       const hh = st.households[f.household],
         plan = review('household', hh.id);
       if (!plan) continue;
       own = { type: 'household', id: hh.id };
-      for (const fd of f.fields) {
-        const rules = ASK.fieldAt[fd.stage];
-        if (rules) ask(rules, hh, fd, f);
-      }
+      for (const g of [f, ...heldFarms(st, hh.id)])
+        for (const fd of g.fields) {
+          const rules = ASK.fieldAt[fd.stage];
+          if (rules) ask(rules, hh, fd, g);
+        }
       ask(ASK.farm, hh, f, f);
       // A choice, not an availability: the plan's land step, a new field, or a meadow once the fields are enough, at the review (balance
       // review: households in every scenario look, and those short of land searched in vain every hour; sim/plans).
@@ -217,10 +223,11 @@ VB['sim/jobs'] = (() => {
       if (!mayLook(plan, c.day)) continue;
       looked.add(hh.id);
       own = { type: 'household', id: hh.id };
-      for (const fd of f.fields) {
-        const rules = LOOK.fieldAt[fd.stage];
-        if (rules) ask(rules, hh, fd, f);
-      }
+      for (const g of [f, ...heldFarms(st, hh.id)])
+        for (const fd of g.fields) {
+          const rules = LOOK.fieldAt[fd.stage];
+          if (rules) ask(rules, hh, fd, g);
+        }
       ask(LOOK.farm, hh, f, f);
       ask(LOOK.farmAfterPlans, hh, f, f);
       out.push(a);

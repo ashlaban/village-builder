@@ -9,7 +9,7 @@ VB['sim/commands'] = (() => {
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { assessGift, settleGift } = VB['sim/exchange'];
-  // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
+  // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
     !(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length)
@@ -17,6 +17,8 @@ VB['sim/commands'] = (() => {
       : !(Number.isInteger(c.args.option) && c.args.option >= 0 && c.args.option < Culture.NOPT[c.args.dim])
         ? `custom ${c.args.dim} has no option ${c.args.option}`
         : null;
+  // The live trust of household id's farm (st.liveTrusts, sim/trust; read as sim/ownership's trustOf reads it), or null.
+  const trustOf = (st, id) => (st.liveTrusts || []).map((i) => st.trusts[i]).find((t) => t.household === id) || null;
   const home = (st, id) => Number.isInteger(id) && st.households[id] && !st.households[id].dissolved;
   const settlement = (st, c) =>
     c.actor && st.cenv && st.cenv.settlements[c.actor.settlement]
@@ -177,6 +179,35 @@ VB['sim/commands'] = (() => {
       run: (st, c) => later('sim/plans').setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
     },
     // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
+    // goBack(target, {why}): the actor, holder of household `target`'s farm held in trust by kin (VB-309, sim/trust), goes back to it with
+    // its people, and the trust ends: at its marriage, a servant at the round, its coming of age or the trustee's end (args.why)
+    goBack: {
+      check: (st, c) =>
+        living(st, c.actor) ||
+        (!trustOf(st, c.target)
+          ? `household ${c.target} is not held in trust`
+          : st.households[c.target].holder !== c.actor
+            ? `pawn ${c.actor} does not hold household ${c.target}`
+            : null),
+      run: (st, c) => later('sim/trust').endTrust(st, trustOf(st, c.target), (c.args && c.args.why) || 'return'),
+    },
+    // goToKin(target, {why, ward}): the actor, holder of household `target`, which nobody can come to (sim/service: VB-308's search found
+    // nobody, or an orphaned heir with no guardian, args.ward), goes to the kin household that will hold its farm in trust (VB-309)
+    goToKin: {
+      check: (st, c) =>
+        living(st, c.actor) ||
+        (!home(st, c.target)
+          ? `there is no household ${c.target}`
+          : st.households[c.target].holder !== c.actor
+            ? `pawn ${c.actor} does not hold household ${c.target}`
+            : trustOf(st, c.target)
+              ? `household ${c.target} is held in trust already`
+              : later('sim/trust').trusteeFor(st, st.households[c.target], (c.args && c.args.ward) ?? null) === null
+                ? 'no kin household within reach can hold the farm'
+                : null),
+      run: (st, c) =>
+        later('sim/trust').holdInTrust(st, st.households[c.target], c.args.why, (c.args && c.args.ward) ?? null),
+    },
     // marry(target, {home}): the actor and the target marry and live in household args.home
     marry: {
       check: (st, c) =>

@@ -37,6 +37,7 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings } = VB['sim/occasions'];
   const { takeIn } = VB['sim/service'];
+  const { trustOf } = VB['sim/ownership'];
   const { boatYear } = VB['sim/drying'],
     { cartsYear } = VB['sim/carts'],
     { KINDS } = VB['sim/kinds'];
@@ -213,9 +214,9 @@ VB['sim/clock'] = (() => {
       owner: 'sim/clock',
       note: 'empty farms decay, about 8% a year',
       run: (st) => {
-        // not while a claimant mends the farm (VB-033)
+        // not while a claimant mends the farm (VB-033); a house held in trust stands empty and decays as an empty farm's (VB-309)
         for (const f of st.farmsteads)
-          if (f.household === null && !VB['sim/projects'].onFarm(st, f.id)) {
+          if ((f.household === null || trustOf(st, f.household)) && !VB['sim/projects'].onFarm(st, f.id)) {
             // its restoration (VB-123)
             f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
             if (f.state === 'derelict' && f.condition < 0.15) {

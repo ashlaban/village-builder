@@ -31,6 +31,23 @@ function checkState(st) {
   // VB-323: the households to check for a missing adult: live ids, no duplicates
   if (!Array.isArray(st.peopleCheck) || new Set(st.peopleCheck).size !== st.peopleCheck.length
     || st.peopleCheck.some((id) => !st.households[id] || st.households[id].dissolved)) bad.push('peopleCheck: not a list of distinct live household ids');
+  // VB-309: farms held in trust: st.liveTrusts the sorted ids of the open records of st.trusts; a live trust's farm and trustee live, its
+  // household empty, its holder living with the trustee; no farm held twice
+  if (st.trusts || st.liveTrusts) {
+    const T = st.trusts || [], L = st.liveTrusts || [], open = T.filter((t) => t.end === null).map((t) => t.id);
+    if (T.some((t, i) => t.id !== i) || L.length !== open.length || L.some((id, i) => id !== open[i])) bad.push('trusts: liveTrusts differs from the open records');
+    const held = new Set();
+    for (const id of L) {
+      const t = T[id], hh = st.households[t.household], k = st.households[t.trustee];
+      if (!hh || hh.dissolved || !k || k.dissolved) { bad.push(`trust ${id}: its household or its trustee is gone`); continue; }
+      if (held.has(t.household)) bad.push(`trust ${id}: household ${t.household} held twice`);
+      held.add(t.household);
+      if (hh.members.length) bad.push(`trust ${id}: household ${t.household} held in trust has members ${hh.members.join(', ')}`);
+      const p = st.pawns[hh.holder];
+      if (!p || !p.alive || p.household !== t.trustee) bad.push(`trust ${id}: holder ${hh.holder} does not live with the trustee ${t.trustee}`);
+      if (t.ward !== null && t.ward !== hh.holder) bad.push(`trust ${id}: ward ${t.ward} is not the holder`);
+    }
+  }
   // the clock (VB-235): st.tick, a non-negative whole count of 6-minute steps, is its source of truth; st.t is it in hours, whole steps
   // only (VB-244: the page keeps the part of a step)
   const TICKS = globalThis.VB['sim/rules'].TICKS;
@@ -276,7 +293,7 @@ function checkState(st) {
       if (memberOf.has(id)) bad.push(`pawns[${id}]: in households ${memberOf.get(id)} and ${h.id}`);
       memberOf.set(id, h.id);
     }
-    if (h.holder !== null && !h.members.includes(h.holder)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
+    if (h.holder !== null && !h.members.includes(h.holder) && !(st.liveTrusts || []).some((i) => st.trusts[i].household === h.id)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
     for (const k of ['wood', 'stone', 'meals', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
