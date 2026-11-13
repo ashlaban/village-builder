@@ -303,7 +303,10 @@ function checkState(st) {
     if (h.holder !== null && !h.members.includes(h.holder) && !(st.liveTrusts || []).some((i) => st.trusts[i].household === h.id)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
-    for (const k of ['wood', 'stone', 'meals', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    for (const k of ['wood', 'stone', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    // the hand quern (VB-009): null, or a stone of sandstone or granite made at a time not after now
+    if (h.quern !== null && !(h.quern && ['sandstone', 'granite'].includes(h.quern.rock) && Number.isFinite(h.quern.made) && h.quern.made <= st.t))
+      bad.push(`households[${h.id}]: quern ${JSON.stringify(h.quern)}`);
     // dug loads (VB-359): whole loads, and no more than the stock a household digs to; its digging ground's tiles on the map
     for (const k of ['clay', 'bogOre']) if (!Number.isInteger(h[k]) || h[k] < 0 ||
       h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
@@ -367,6 +370,7 @@ function checkState(st) {
   const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
   const WOODS = ['wood', 'timber', 'stone']; // the woodpile and timber at a building site (VB-328), the stone heap (VB-332)
   const FISHES = ['fish', 'dried fish', 'gathered']; // the catch by the drying rack and the fish hung on it (VB-300), fresh food (VB-119)
+  FISHES.push('flour'); // ground on the quern (VB-009): a store moved as the foods are
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t

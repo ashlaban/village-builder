@@ -31,6 +31,10 @@ const QUANTITIES = [
     kinds: ['cook'],
     covers: ['household.cookDay'],
     none: 'the household eats its gathered food as it is, then its grain uncooked, a ration of it feeding ECON.uncooked (0.75; sim/hunger, VB-119, VB-327)' },
+  { id: 'flour', of: 'household', name: 'flour', unit: 'rations', fields: ['household.flour'], good: 'flour', holder: 'household',
+    kinds: ['grind'], covers: ['household.quern'],
+    none: 'the cook puts grain in the pot unground, ECON.unground (1.25) grain a ration (sim/pot); a household with a working quern grinds more '
+      + 'while it has grain above its seed reserve (sim/quern, VB-009)' },
   { id: 'fresh', of: 'household', name: 'fresh food (fish, gathered food)', unit: 'rations', fields: ['household.fresh'], kinds: ['fish', 'gather'],
     none: 'the pot is of grain and dried fish alone, a pot of one source in summer, fishing for the pot is posted (it waits while fresh fish '
       + 'covers 2 days, VB-388), and fishing and gathering are more urgent (sim/pot, VB-119)' },

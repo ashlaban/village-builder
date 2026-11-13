@@ -14,6 +14,7 @@ VB['sim/scenarios'] = (() => {
   const { placeAtHome } = VB['sim/agents'];
   const { seedPlans } = VB['sim/plans'];
   const { dailyNeed } = VB['sim/hunger'];
+  const { startQuern } = VB['sim/quern'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
@@ -524,6 +525,7 @@ VB['sim/scenarios'] = (() => {
     refreshRoles(st);
     buildHours(st); // VB-286: the walking hours between the villages' greens
     for (const hh of st.households) hh.meals = 2 * dailyNeed(st, hh); // two days of meals to start with
+    for (const hh of st.households) startQuern(st, hh); // each with its hand quern (VB-009)
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
     // the record's history before the start: births, deaths and marriages of the people on record, in time order
     const before = [];

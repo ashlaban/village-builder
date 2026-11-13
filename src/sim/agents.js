@@ -608,6 +608,7 @@ VB['sim/agents'] = (() => {
   // false: its provisions come from the new household (settlers, who walk on their stakes).
   function moved(st, a, old, hh, carry = true) {
     const f = st.farmsteads[hh.farmstead];
+    if (old) driveHome(st, old, a.id); // the old household's herds it had out are left by that farm (its herder is no longer a member)
     if (travelling(a)) return retarget(st, a, f.house);
     release(st, a);
     dropSides(st, a);

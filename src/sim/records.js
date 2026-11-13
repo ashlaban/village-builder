@@ -320,6 +320,8 @@ VB['sim/records'] = (() => {
       holder,
       grain: { barley: ECON.startGrain },
       meals: 0,
+      flour: 0, // ground on the quern (VB-009; sim/stores holds it, sim/quern grinds it)
+      quern: null, // the hand quern (VB-009, sim/quern); a household of the scenario's start is given one there
       wood: ECON.startWood,
       stone: 0,
       ledger: [],

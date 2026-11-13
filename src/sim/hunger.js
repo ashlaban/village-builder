@@ -91,16 +91,17 @@ VB['sim/hunger'] = (() => {
         ? AUTUMN * SEASON_DAYS - doy
         : YEAR_DAYS - doy + AUTUMN * SEASON_DAYS;
   }
-  // The food a household holds, in rations: its grain, its larder and its fresh food (VB-119; read with st, for the batches past their day);
+  // The food a household holds, in rations: its grain and flour, its larder and its fresh food (VB-119; read with st, for the batches past their day);
   // and in days of its need (Infinity with nobody to feed).
-  const foodHeld = (hh, st) => grainOf(hh) + larderOf(hh) + (st && hh.fresh.length ? Pot.freshHeld(st, hh) : 0);
+  const foodHeld = (hh, st) =>
+    grainOf(hh) + (hh.flour || 0) + larderOf(hh) + (st && hh.fresh.length ? Pot.freshHeld(st, hh) : 0);
   function daysOfFood(st, hh) {
     const need = dailyNeed(st, hh);
     return need > 0 ? foodHeld(hh, st) / need : Infinity;
   }
   // The food a household holds of one source of the pot (FOODS' source; dried fish 'fish').
   function sourceHeld(st, hh, source) {
-    let s = source === 'grain' ? grainOf(hh) : 0;
+    let s = source === 'grain' ? grainOf(hh) + hh.flour : 0;
     for (const l of hh.larder) {
       const f = FOODS[l.kind],
         src = f ? f.source : Stores.GOODS.has(l.kind) ? Stores.GOODS.get(l.kind).source : null;
@@ -189,7 +190,8 @@ VB['sim/hunger'] = (() => {
     return groups.length ? groups[groups.length - 1].map((p) => p.id) : [];
   }
   // Feeds a household for the day: larder food about to spoil first, then meals (VB-119: people eat meals), and with no meals fresh food
-  // eaten uncooked (FOODS raw), then grain above the seed reserve eaten uncooked (a ration of it feeds ECON.uncooked, VB-327), then the
+  // eaten uncooked (FOODS raw), then flour (VB-009) and grain above the seed reserve eaten uncooked (a ration of either feeds
+  // ECON.uncooked, VB-327), then the
   // rest of the larder, then, as the last step and for what the day lacks, the seed below the reserve (VB-282; the fields it cannot sow go
   // unsown), uncooked too; when that is not enough, what there is goes by the household's feedOrder, in groups served one after the other.
   // Amounts below are in rations of need; grain is taken at 1 / uncooked a ration. Given the day's season, the day's fire burns first
@@ -212,7 +214,8 @@ VB['sim/hunger'] = (() => {
     const R = 1 / E.uncooked,
       wild = hh.fresh.length ? Pot.freshHeld(st, hh, null, true) : 0;
     const spare = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')),
-      avail = hh.meals + wild + spare / R; // meals, then uncooked food
+      flour = hh.flour,
+      avail = hh.meals + wild + (flour + spare) / R; // meals, then uncooked food
     const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
     const seed = (grainOf(hh) - spare) / R,
       lack = rest - late - avail,
@@ -222,9 +225,12 @@ VB['sim/hunger'] = (() => {
       const left = Math.max(0, rest - late),
         cooked = Math.min(hh.meals, left),
         uncooked = Math.min(wild, left - cooked);
-      const grain = Math.max(0, left - cooked - uncooked) * R;
+      const raw = Math.max(0, left - cooked - uncooked) * R,
+        fl = Math.min(raw, flour),
+        grain = raw - fl;
       Stores.take(st, hh, 'meals', cooked, 'meal');
       if (uncooked > 0) Pot.takeFresh(st, hh, uncooked, 'meal', null, true);
+      if (fl > 0) Stores.take(st, hh, 'flour', fl, 'raw');
       if (grain > 0) Stores.takeSpare(st, hh, Math.min(grain, spare), 'raw'); // Math.min: the same amount as ever when no seed is eaten
       if (dip > 0) eatSeed(st, hh, grain - Math.min(grain, spare));
     } else {
@@ -237,6 +243,7 @@ VB['sim/hunger'] = (() => {
       }
       Stores.take(st, hh, 'meals', hh.meals, 'meal');
       if (wild > 0) Pot.takeFresh(st, hh, wild, 'meal', null, true);
+      if (flour > 0) Stores.take(st, hh, 'flour', flour, 'raw');
       if (spare > 0) Stores.takeSpare(st, hh, spare, 'raw');
       hh.hungryDays++;
     }

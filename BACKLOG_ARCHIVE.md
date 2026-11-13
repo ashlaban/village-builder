@@ -311,3 +311,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-427](backlog/VB-427.md) | Repair: the nightly checks that fail (smoke, record, review-tools) | - | 1 | S | tests/smoke.js, tests/record.js and tests/review-tools.js fail at the branch tip; each is repaired at its cause. |
 | [VB-106](backlog/VB-106.md) | Neighbours help with each other's work, and it builds ties | year | 3 | M | Idle adults may take a waiting field job of another household in their village; help raises tie and opinion. |
 | [VB-389](backlog/VB-389.md) | The fields a household wants are counted net of seed | animals | 2 | S | fieldsWanted counts the yield after seed, so a household plans for its need and not 0.73 of it. |
+| [VB-009](backlog/VB-009.md) | Hand-quern milling and making rations | mill | 3 | M | Grind grain to flour on a hand quern and cook rations from it. |

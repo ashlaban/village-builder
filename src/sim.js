@@ -50,6 +50,7 @@ const Sim = (() => {
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
   const { withOxen } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
+  const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
   const { claimsOn, strength, holdings } = VB['sim/claims'];
   const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];
   const { left: depositLeftNow } = VB['sim/dig']; // VB-359: loads left now, bog iron grown back
@@ -138,6 +139,7 @@ const Sim = (() => {
     describeHerds,
     herdReport,
     larderOf,
+    quernYears,
     team,
     withOxen,
     inMilk,

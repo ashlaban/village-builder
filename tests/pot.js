@@ -2,12 +2,14 @@
 // their 3 days, read when the store is next touched; the cook makes the next day's meals from fresh food, oldest first, then grain; a pot
 // of 2 sources (each at least a fifth) goes 10% further, of 3 or more 20%; with no meals a household eats gathered food as it is and then
 // grain uncooked, a ration of grain feeding 0.75 of a ration of need (VB-327); a cook at work at the end of work finishes the pot; the cook
-// cooks the seed a short household would eat (VB-388).
+// cooks the seed a short household would eat (VB-388). Grain is cooked unground here, at ECON.unground grain a ration (VB-009; flour from
+// the quern, 1 to 1, is tests/quern.js's).
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Pot = VB['sim/pot'];
 const { FOODS, ECON, DAY, WORK } = VB['sim/rules'], { dailyNeed, feedHousehold } = VB['sim/hunger'], { KINDS } = VB['sim/kinds'];
 const { moveClock } = require('./lib/clock.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('POT FAIL:', m); } };
 const near = (a, b, e = 1e-6) => Math.abs(a - b) < e;
+const U = ECON.unground; // grain a ration, cooked unground (VB-009)
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 // a household with no larder, fields growing (no seed held back), no project plan, and a known store
 function home(grain = 1000) {
@@ -37,7 +39,7 @@ function run(fishShare) {
     sources = Pot.pot(st, hh, need - hh.meals); feedHousehold(st, hh); moveClock(st, DAY);
   }
   check(hh.hungryDays === 0 && near(hh.meals, 0, 1e-6), `${fishShare}: fed every day from meals`);
-  return { food: g0 - grain(hh) + fish - Pot.freshHeld(st, hh), need, sources };
+  return { food: (g0 - grain(hh)) / U + fish - Pot.freshHeld(st, hh), need, sources }; // in rations: grain at U a ration
 }
 const plain = run(0), mixed = run(0.25);
 check(plain.sources === 1 && near(plain.food, 12 * plain.need), `grain only: 12 days of need (${plain.food} for ${12 * plain.need})`);
@@ -48,13 +50,13 @@ check(mixed.sources === 2 && near(mixed.food, 0.9 * plain.food), `grain and fish
   const { st, hh } = home(), need = dailyNeed(st, hh);
   Pot.putFresh(st, hh, 'fish', 0.3 * 0.8 * need, 'catch'); Pot.putFresh(st, hh, 'gathered', 0.3 * 0.8 * need, 'gathering');
   const g0 = grain(hh), k = Pot.pot(st, hh, need);
-  check(k === 3 && near(hh.meals, need) && near(g0 - grain(hh), 0.4 * 0.8 * need) && near(Pot.freshHeld(st, hh), 0), `3 sources: ${k}, a fifth less food`);
+  check(k === 3 && near(hh.meals, need) && near(g0 - grain(hh), 0.4 * 0.8 * need * U) && near(Pot.freshHeld(st, hh), 0), `3 sources: ${k}, a fifth less food`);
 }
 {
   const { st, hh } = home(), need = dailyNeed(st, hh);
   Pot.putFresh(st, hh, 'fish', 0.1 * need, 'catch');
   const g0 = grain(hh), k = Pot.pot(st, hh, need);
-  check(k === 1 && near(hh.meals, need) && near(g0 - grain(hh), 0.9 * need), `fish at a tenth is not a source (${k})`);
+  check(k === 1 && near(hh.meals, need) && near(g0 - grain(hh), 0.9 * need * U), `fish at a tenth is not a source (${k})`);
 }
 
 // --- the oldest batch goes in first; past its 3 days a batch is lost when the store is next touched, and the loss is in the ledger
@@ -94,7 +96,7 @@ check(ECON.uncooked === 0.75, 'uncooked grain: a ration feeds 0.75');
   check(raw && raw.count === 3, 'each day eaten raw is counted');
   const g1 = grain(hh);
   for (let d = 0; d < 3; d++) { Pot.pot(st, hh, need - hh.meals); feedHousehold(st, hh); moveClock(st, DAY); }
-  check(near(g1 - grain(hh), 3 * need), 'cooked again: a ration of grain a ration of need');
+  check(near(g1 - grain(hh), 3 * need * U), 'cooked again, unground: ECON.unground grain a ration of need');
 }
 {
   const { st, hh } = home(), need = dailyNeed(st, hh), g0 = grain(hh);
@@ -119,10 +121,10 @@ check(ECON.uncooked === 0.75, 'uncooked grain: a ration feeds 0.75');
   KINDS.cook.available(st, hh, f, c, (key) => asked.push(key));
   check(seed > need && asked.length === 1, `a household with only its seed posts a cook (${asked.length})`);
   KINDS.cook.done(st, { day: c.day }, hh, c);
-  check(near(hh.meals, need) && near(grain(hh), seed - need), `the cook cooks the day's seed: ${hh.meals} meals, ${seed - grain(hh)} seed`);
+  check(near(hh.meals, need) && near(grain(hh), seed - need * U), `the cook cooks the day's seed: ${hh.meals} meals, ${seed - grain(hh)} seed`);
   const told = st.record.filter((e) => e.kind === 'seedEaten').length;
   feedHousehold(st, hh);
-  check(hh.hungryDays === 0 && near(grain(hh), seed - need) && told >= 1, 'eaten cooked: no seed at the raw rate, the unsown fields told');
+  check(hh.hungryDays === 0 && near(grain(hh), seed - need * U) && told >= 1, 'eaten cooked: no seed at the raw rate, the unsown fields told');
   hh.cookDay = -1; hh.meals = 0; hh.larder = [{ kind: 'salt meat', n: 2 * need, until: st.t + 40 * DAY }]; asked.length = 0;
   KINDS.cook.available(st, hh, f, c, (key) => asked.push(key));
   check(asked.length === 0, 'a larder that covers the day: no seed to cook');

@@ -45,6 +45,9 @@ VB['sim/stores'] = (() => {
   // VB-139: a roe deer's meat, brought home from a hunt (sim/deer), folded as the catch is.
   KINDS.push('hunt');
   ROUTINE.push('hunt');
+  // VB-009: grain ground to flour on the hand quern (routine), and a load of stone off the heap for a new quern (sim/quern)
+  KINDS.push('grind', 'quern');
+  ROUTINE.push('grind');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -94,6 +97,7 @@ VB['sim/stores'] = (() => {
   function field(holder, good, kind = type(holder)) {
     if (isGrain(good)) return kind === 'pawn' ? 'stake' : GRAIN;
     if (kind === 'household' && good === 'meals') return good;
+    if (kind === 'household' && good === 'flour') return good; // ground on the quern (VB-009, sim/quern)
     if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
     if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
@@ -164,6 +168,10 @@ VB['sim/stores'] = (() => {
   const setMeals = (hh, n) => {
     hh.meals = n;
   };
+  // @state household.flour: rations of flour ground on the household's quern and not yet cooked (VB-009; sim/quern grinds, sim/pot cooks), 0 at the start
+  const setFlour = (hh, n) => {
+    hh.flour = n;
+  };
   // @state household.rack: rations of fresh fish laid by the drying rack, waiting to be split and hung (VB-300; sim/drying), 0 at the start
   const setRack = (hh, n) => {
     hh.rack = n;
@@ -173,6 +181,7 @@ VB['sim/stores'] = (() => {
     else if (good === 'wood') setWood(holder, n);
     else if (good === 'stone') setStone(holder, n);
     else if (good === 'fish') setRack(holder, n);
+    else if (good === 'flour') setFlour(holder, n);
     else setMeals(holder, n);
   }
   // VB-249: a store crossing a target wakes its household's plan for a review (sim/plans reads and clears the flag, at most one such review
