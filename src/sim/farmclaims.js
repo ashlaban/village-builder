@@ -3,7 +3,7 @@
 VB['sim/farmclaims'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { YEAR, CLAIMS, CROPS } = VB['sim/rules'];
-  const { hexSteps } = VB['sim/hex'];
+  const { hoursBetween } = VB['sim/routes'];
   const {
     spouseOf,
     childrenOf,
@@ -95,7 +95,7 @@ VB['sim/farmclaims'] = (() => {
     return p ? st.farmsteads[p.farm] : null;
   }
   // The claimants of farm f among `ids`, best first, under its village's `claims` practice (a key of the custom):
-  //   kin       while the old family's birthright stands, its kin first (any village within CLAIMS.farmReach), closest degree first; then the
+  //   kin       while the old family's birthright stands, its kin first (any village within CLAIMS.farmHours), closest degree first; then the
   //             farm's own villagers; once it lapses, the villagers only
   //   villagers the farm's villagers, then those of villages within reach
   //   anyone    any landless adult of a village within reach
@@ -104,10 +104,9 @@ VB['sim/farmclaims'] = (() => {
   // Which farm a pawn would take is its own wish, any it may, and the player's stands in (st.player.wishes.claim, VB-212); the order is a rule.
   function claimants(st, f, ids = st.demand, rule = practice(st, f.village).claims) {
     const vid = f.village,
-      centre = st.villages[vid].center,
       right = rule === 'kin' ? birthrightOn(st, f) : null;
     const home = (id) => settlementIdOf(st, st.pawns[id]);
-    const near = (id) => home(id) === vid || hexSteps(st.w, st.villages[home(id)].center, centre) <= CLAIMS.farmReach;
+    const near = (id) => hoursBetween(st, home(id), vid) <= CLAIMS.farmHours; // there and back in a day (VB-290)
     const degree = new Map();
     if (right)
       for (const id of ids) {

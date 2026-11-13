@@ -32,6 +32,7 @@ VB['sim/heirs'] = (() => {
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
+  const { hoursBetween } = VB['sim/routes'];
   const { SHARES, GOODWILL, houseCondition } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/herds'];
@@ -321,7 +322,11 @@ VB['sim/heirs'] = (() => {
     );
     st.visualDirty = true;
   }
-  // The smallest undissolved household of the village, or of the nearest village (by hexSteps between centres) when it has none.
+  // Whether households a's and b's villages lie within walking reach of each other (VB-290).
+  const reachable = (st, a, b) =>
+    hoursBetween(st, st.farmsteads[a.farmstead].village, st.farmsteads[b.farmstead].village) < Infinity;
+  // The smallest undissolved household of the village, or of the nearest village by walking hours when it has none (VB-290); with none
+  // within walking reach, of the nearest by hexSteps between centres (until slice 10's boats).
   function serviceHome(st, hh) {
     const village = st.farmsteads[hh.farmstead].village,
       vOf = (h) => st.farmsteads[h.farmstead].village;
@@ -331,23 +336,32 @@ VB['sim/heirs'] = (() => {
     if (here) return here.id;
     const c = st.villages[village].center;
     let best = null,
+      bh = Infinity,
       bd = Infinity;
     for (const h of open) {
-      const d = hexSteps(st.w, c, st.villages[vOf(h)].center);
-      if (d < bd) {
-        bd = d;
-        best = vOf(h);
+      const u = vOf(h),
+        t = hoursBetween(st, village, u);
+      if (t < bh) {
+        bh = t;
+        best = u;
+      }
+      if (bh === Infinity) {
+        const d = hexSteps(st.w, c, st.villages[u].center);
+        if (d < bd) {
+          bd = d;
+          best = u;
+        }
       }
     }
     const near = smallest(open.filter((h) => vOf(h) === best));
     return near ? near.id : null;
   }
   // A child's nearest grown kin with a household other than hh, by kinship (the oldest on a tie), or null (stability review: an orphan goes to
-  // an aunt or a grandparent before going into service).
+  // an aunt or a grandparent before going into service). Among the kin within walking reach of hh's village first (VB-290), else among all.
   function kinHomeFor(st, id, hh) {
-    const memo = new Map();
-    let best = null,
-      bk = 0;
+    const memo = new Map(),
+      best = [null, null],
+      bk = [0, 0];
     for (const liveId of st.living) {
       const q = st.pawns[liveId];
       if (
@@ -358,13 +372,16 @@ VB['sim/heirs'] = (() => {
         st.households[q.household].dissolved
       )
         continue;
-      const k = kinship(st, id, q.id, memo);
-      if (k > bk || (k === bk && k > 0 && q.born < best.born)) {
-        best = q;
-        bk = k;
-      }
+      const k = kinship(st, id, q.id, memo),
+        near = reachable(st, hh, st.households[q.household]);
+      for (const i of near ? [0, 1] : [1])
+        if (k > bk[i] || (k === bk[i] && k > 0 && q.born < best[i].born)) {
+          best[i] = q;
+          bk[i] = k;
+        }
     }
-    return best ? best.household : null;
+    const b = best[0] || best[1];
+    return b ? b.household : null;
   }
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
@@ -386,9 +403,12 @@ VB['sim/heirs'] = (() => {
     for (const id of [...hh.members]) {
       const p = st.pawns[id];
       if (!p.alive) continue;
-      const near = kinNear(st, id)
+      const kin = kinNear(st, id)
         .map((q) => st.pawns[q])
-        .find((q) => q.alive && q.household !== null && !st.households[q.household].dissolved && q.household !== hh.id);
+        .filter(
+          (q) => q.alive && q.household !== null && !st.households[q.household].dissolved && q.household !== hh.id,
+        );
+      const near = kin.find((q) => reachable(st, hh, st.households[q.household])) || kin[0]; // within walking reach first (VB-290)
       const kinHome = near ? near.household : p.age < 18 ? kinHomeFor(st, id, hh) : null;
       const target = kinHome !== null ? kinHome : serviceHome(st, hh);
       if (target !== null) {

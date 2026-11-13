@@ -76,6 +76,7 @@ const INTEGRATION = [
   ['node', 'tests/daylight.js'],
   ['node', 'tests/service.js'],
   ['node', 'tests/villagehours.js'],
+  ['node', 'tests/roundreach.js'],
   ['node', 'tests/projects.js'],
   ['node', 'tests/routines.js'],
   ['node', 'tests/cottage.js'],

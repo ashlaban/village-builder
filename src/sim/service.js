@@ -8,7 +8,7 @@ VB['sim/service'] = (() => {
   // The end of the log line of one whose new home lies in another village, who set out on a journey (sim/agents, VB-287).
   const setsOut = (st, id) => (st.journeys.some((j) => j.pawn === id) ? ', and sets out for it' : '');
   const { issue } = VB['sim/commands'];
-  const { hexSteps } = VB['sim/hex'];
+  const { hoursBetween } = VB['sim/routes'];
   const { SERVICE } = VB['sim/rules'];
   const { hasPlot } = VB['sim/expansion'];
   const adult = (p) => p.alive && p.age >= 18;
@@ -42,7 +42,8 @@ VB['sim/service'] = (() => {
 
   // ---- guardians (stability review) ----
   // A minor heir holds in name with a guardian until 18 (sim/heirs), but when no adult is left in the house, a child kept the farm alone and
-  // mostly starved. Daily, a household with no adult takes in the ward's nearest landless adult relative (by kinship, then the oldest), with
+  // mostly starved. Daily, a household with no adult takes in the ward's nearest landless adult relative (by kinship, then the oldest; among those
+  // within walking reach of the farm's village first, VB-290), with
   // their spouse and the minor children who live with them, and that relative becomes the guardian. With no such relative, the children go to
   // their nearest kin (or into service in the village) and the farm stands empty, as one that dies out.
   function familyOf(st, id) {
@@ -65,28 +66,32 @@ VB['sim/service'] = (() => {
       const ward = st.pawns[hh.holder],
         f = farmOf(st, hh),
         memo = new Map();
-      let best = null,
-        bk = 0;
+      // the first by kinship, then the oldest, among those within walking reach of the farm's village (VB-290), else among all
+      const best = [null, null],
+        bk = [0, 0];
       for (const id of st.demand) {
         const q = st.pawns[id];
         if (!free(st, q) || q.household === hh.id) continue;
         const k = kinship(st, ward.id, id, memo);
         if (k <= 0) continue;
-        if (!best || k > bk || (k === bk && q.born < best.born)) {
-          best = q;
-          bk = k;
-        }
+        const near = hoursBetween(st, farmOf(st, st.households[q.household]).village, f.village) < Infinity;
+        for (const i of near ? [0, 1] : [1])
+          if (!best[i] || k > bk[i] || (k === bk[i] && q.born < best[i].born)) {
+            best[i] = q;
+            bk[i] = k;
+          }
       }
-      if (best) {
-        for (const id of familyOf(st, best.id)) moveTo(st, id, hh.id);
+      const guardian = best[0] || best[1];
+      if (guardian) {
+        for (const id of familyOf(st, guardian.id)) moveTo(st, id, hh.id);
         setGuardian(st, hh, ward.id);
-        personEvent(st, best.id, 'guardian', `Became guardian of ${fullName(ward)} at ${f.name}`, false); // recorded below
+        personEvent(st, guardian.id, 'guardian', `Became guardian of ${fullName(ward)} at ${f.name}`, false); // recorded below
         log(
           st,
-          `${fullName(best)} moves to ${f.name} as guardian of ${fullName(ward)}, who was left there with no grown kin.`,
+          `${fullName(guardian)} moves to ${f.name} as guardian of ${fullName(ward)}, who was left there with no grown kin.`,
           {
             kind: 'guardian',
-            pawn: best.id,
+            pawn: guardian.id,
             other: ward.id,
             ...atHousehold(st, hh),
           },
@@ -100,7 +105,7 @@ VB['sim/service'] = (() => {
   // ---- a servant for the lone (stability review; a slice of VB-090) ----
   // At the moving round, after marriages and moves to new land: a holder of 18 or more who lives alone takes in an unmarried adult who wants
   // land (st.demand) as farmhand or maid, if that adult's household keeps at least SERVICE.keepHands working hands without them: from the
-  // holder's village first, then from the nearest village whose centre lies within SERVICE.reach steps; among them, the one whose household
+  // holder's village first, then from the nearest village within SERVICE.hours walking hours; among them, the one whose household
   // keeps the most hands, then the oldest. The servant still wants land, as VB-090 has it, and may marry the holder.
   // A landless adult goes into service with the holder of household hh, who lives alone (the serve command, VB-171).
   function enterService(st, id, hhId) {
@@ -148,20 +153,15 @@ VB['sim/service'] = (() => {
   // Those who would serve now, in demand order: fit (unfit null), and not declining by the player's wish (VB-212).
   const willServe = (st) =>
     st.demand.filter((id) => unfit(st, st.pawns[id]) === null && wishOf(st, id, 'serve') !== false);
-  // Steps between the village centres of households a and b (0 in one village).
-  const stepsBetween = (st, a, b) => {
-    const u = farmOf(st, a).village,
-      v = farmOf(st, b).village;
-    return u === v ? 0 : hexSteps(st.w, st.villages[u].center, st.villages[v].center);
-  };
-  // The placement every service rule shares (village first, then the nearest village within reach; VB-090, VB-308): the steps between the
-  // village centres of households a and b, 0 in one village, or null beyond SERVICE.reach. Ranking by it puts the own village first.
-  const reachSteps = (st, a, b) => {
-    const d = stepsBetween(st, a, b);
-    return d > SERVICE.reach ? null : d;
+  // The placement every service rule shares (village first, then the nearest village within a day's walk; VB-090, VB-308, VB-290): the
+  // walking hours between the greens of households a's and b's villages (sim/routes), 0 in one village, or null beyond SERVICE.hours or
+  // by no route by land. Ranking by it puts the own village first. One table entry.
+  const reachHours = (st, a, b) => {
+    const h = hoursBetween(st, farmOf(st, a).village, farmOf(st, b).village);
+    return h > SERVICE.hours ? null : h;
   };
   // The servant for household hh among `available`, or null: one whose household keeps SERVICE.keepHands working hands without it, from
-  // hh's village first, then the nearest village within SERVICE.reach steps; then the household that keeps the most hands, then the oldest.
+  // hh's village first, then the nearest village within SERVICE.hours walking hours; then the household that keeps the most hands, then the oldest.
   function servantFor(st, hh, available) {
     let best = null,
       bs = null;
@@ -170,7 +170,7 @@ VB['sim/service'] = (() => {
       if (q.household === hh.id) continue;
       const left = handsLeft(st, q);
       if (left < SERVICE.keepHands) continue;
-      const d = reachSteps(st, st.households[q.household], hh);
+      const d = reachHours(st, st.households[q.household], hh);
       if (d === null) continue;
       const s = [d, -left, q.born];
       if (!bs || before(s, bs)) {
@@ -211,7 +211,7 @@ VB['sim/service'] = (() => {
   // this round's): those who would serve (willServe: in st.demand, fit, unmarried, 18 to 50, not declining by the player's wish), oldest
   // first, whose household has hands to spare and keeps at least SERVICE.short hands per field without them, go as servants (the serve
   // command) to the short household with fields of their own village with the fewest hands per field, else to the shortest of the nearest
-  // village within reach that has one (reachSteps); never to a household where a parent lives (nobody goes back home by this rule). Each
+  // village within reach that has one (reachHours); never to a household where a parent lives (nobody goes back home by this rule). Each
   // household takes at most one new servant a round, and nobody moves twice in one. A servant whose household is no longer short may go
   // on at a later round by the same rule. Board and lodging only: the servant is a member and works its jobs on the `servant` basis.
   const fieldsOf = (st, hh) => Math.max(1, farmOf(st, hh).fields.length);
@@ -249,7 +249,7 @@ VB['sim/service'] = (() => {
       for (let i = 0; i < short.length; i++) {
         const h = short[i];
         if (h.id === from.id || parentIn(st, q, h)) continue;
-        const d = reachSteps(st, from, h);
+        const d = reachHours(st, from, h);
         if (d === null) continue;
         const s = [d, handsPerField(st, h), h.id];
         if (!bs || before(s, bs)) {
@@ -270,7 +270,7 @@ VB['sim/service'] = (() => {
   // A household of at most one grown member, with fields, whose seasonal ask for food fell short (sim/help's shareFood names it, the same
   // day) is taken in at once. Kin first: the holder's nearest relative in st.demand (kinship over 0, then the oldest, as a guardian is chosen),
   // fit to serve (unfit null: free, unmarried, 18 to 50), whose household is not left short of people without them (it keeps two grown
-  // members, or holds no fields), from the village or within SERVICE.reach steps, moves in as a member with the minor children who live
+  // members, or holds no fields), from the village or within SERVICE.hours walking hours, moves in as a member with the minor children who live
   // with them. Else a servant, as takeServants chooses for this
   // household, through the `serve` command. People come to the farm: its owner, holder and fields are unchanged. With nobody to come,
   // nothing happens (VB-309). Only a household named searches: st.demand once with a kinship memo, then the servants' list.
@@ -292,7 +292,7 @@ VB['sim/service'] = (() => {
         if (k <= 0 || (best && (k < bk || (k === bk && q.born >= best.born)))) continue;
         const from = st.households[q.household];
         if (from.dissolved || (grown(st, from) - 1 < 2 && farmOf(st, from).fields.length)) continue;
-        if (reachSteps(st, from, hh) === null) continue;
+        if (reachHours(st, from, hh) === null) continue;
         best = q;
         bk = k;
       }
