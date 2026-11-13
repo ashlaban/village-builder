@@ -5,20 +5,23 @@ VB['sim/routes'] = (() => {
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
-  // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too;
+  // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too,
+  // and its wear takes away a share of what its ground costs above meadow (PATHS.clear, VB-439; not at a ford or on a bridge);
   // the green (w.dev 2) wears no path.
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
     if (w.dev && w.dev[i]) return w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
     const c =
-      w.river && w.river[i]
-        ? w.crossing[i] === 1
-          ? TERRAIN.ford
-          : w.crossing[i] === 2
-            ? TERRAIN.bridge
-            : Infinity
-        : (TERRAIN[w.biome[i]] ?? 1);
-    return w.worn ? c / PATHS.speed[w.worn[i]] : c;
+        w.river && w.river[i]
+          ? w.crossing[i] === 1
+            ? TERRAIN.ford
+            : w.crossing[i] === 2
+              ? TERRAIN.bridge
+              : Infinity
+          : 0,
+      s = w.worn ? w.worn[i] : 0;
+    if (c) return c / PATHS.speed[s];
+    return (1 + ((TERRAIN[w.biome[i]] ?? 1) - 1) * (1 - PATHS.clear[s])) / PATHS.speed[s];
   }
   // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses).
   const passable = (w, i) => i >= 0 && (tileCost(w, i) < Infinity || (!!w.dev && w.dev[i] === 3));
