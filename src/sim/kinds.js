@@ -1,7 +1,7 @@
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'], Projects = VB['sim/projects'];
-  const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition } = VB['sim/rules'];
+  const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition } = VB['sim/rules'], Carts = VB['sim/carts'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf } = VB['sim/hunger'], { reserved } = Stores;
@@ -164,9 +164,10 @@ VB['sim/kinds'] = (() => {
         return (goal - free) / goal + (c.season === 2 ? U.woodSummer : 0);
       },
       // a tree felled on the tile drawn from the village's wood when the job was posted (VB-326), or on one drawn now if it was cut bare
-      deliver: (st, j, hh) => {
-        Stores.put(st, hh, 'wood', st.ECON.woodPerTrip, 'firewood'); fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.farm.village]));
-      },
+      deliver: (st, j, hh, f, a) => { // a tree felled, and its wood home, for each load cut and stacked on the cart (sim/carts); one on the back
+        for (let k = Carts.loads(a); k > 0; k--) { Stores.put(st, hh, 'wood', st.ECON.woodPerTrip, 'firewood');
+          fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.farm.village])); } },
+      stack: (st, j, hh, c, load) => hh.wood - reserved(st, hh, 'wood') + st.ECON.woodPerTrip * Carts.loads({ load }) < woodTargets(st, hh).wood[c.season],
       draw: (st, j) => drawWood(st, st.villages[j.farm.village]),
       // while the village has a wood and the pile's free wood (VB-123) is below the plan's goal for the season; a second job below its woodSecond
       available: (st, hh, f, c, post) => {
@@ -270,7 +271,7 @@ VB['sim/kinds'] = (() => {
       verb: 'Gathering the hay', go: 'Going for the hay', back: 'Carrying hay to the barn', name: 'Bring in hay', label: 'Hauling hay', anim: 'gather',
       hours: 4, hands: Infinity, type: 'harvest', carry: 'hay', to: 'barn',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
-      deliver: (st, j, hh, f) => hayIn(st, j.meadow, hh, f), available: meadowWork,
+      ...Carts.HAY, deliver: (st, j, hh, f, a) => hayIn(st, j.meadow, hh, f, a), available: meadowWork, // by the load (sim/carts)
     },
     fodder: {
       verb: 'Feeding and mucking out in the byre', go: 'Going to the byre', name: 'Fodder the animals', label: 'Byre', anim: 'gather', hours: 1,
@@ -279,7 +280,7 @@ VB['sim/kinds'] = (() => {
     },
     manure: {
       verb: 'Spreading manure on the field', go: 'Carting manure to the field', name: 'Cart manure', label: 'Manure', anim: 'gather', hours: 1,
-      hands: Infinity, type: 'tilling', field: true, spot: onField, urgency: (st, j, c, U) => U.manure,
+      hands: Infinity, type: 'tilling', field: true, spot: onField, urgency: (st, j, c, U) => U.manure, carted: true, // faster with a cart (sim/carts)
       done: (st, j, hh) => manureDone(st, j.field, hh, j.hours),
       // in spring, while the heap holds a load: the farm's poorest field not yet sown, for the loads it takes (manureWanted, VB-137)
       available: (st, hh, f, c, post) => {
@@ -373,7 +374,7 @@ VB['sim/kinds'] = (() => {
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
   KINDS.herd = VB['sim/grazing'].KIND;
-    Object.assign(KINDS, Drying.KINDS, VB['sim/carts'].KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
+    Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -393,8 +394,7 @@ VB['sim/kinds'] = (() => {
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
-  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry')); // VB-359, VB-300 (the boat is a project's step: landProject)
-  ASK.farmAfterPlans.push(rule('mendcart')); // sim/carts (a cart, as the boat, is a project's step)
+  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart')); // VB-359, VB-300, sim/carts (a boat or a cart is a project's step)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen };
 })();

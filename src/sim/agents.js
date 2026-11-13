@@ -77,7 +77,8 @@ VB['sim/agents'] = (() => {
     // a load on its way home is put down in its farm's barn first (VB-335: a wedding or a move at the round found a pawn mid-haul)
     if (a.load > 0 && a.phase === 'back' && a.job) deposit(st, a, a.job.farm);
     if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
-    a.phase = null; a.work = null; a.basis = null;
+    a.phase = null; a.work = null; a.basis = null; a.load = 0; // wood cut and stacked, not yet on its way, is left
+    const hid = st.pawns[a.id].household; if (hid !== null) Carts.leave(st, st.households[hid], a.id); // and its cart is free
   }
   // ---- attention (VB-251; design.md section 7): a pawn holds one task (a.job), and besides it one partial and one background task ----
   // @state agent.side: absent, or {partial, background}: the jobs the pawn holds besides its task, each a job of st.jobs listing the pawn
@@ -185,7 +186,7 @@ VB['sim/agents'] = (() => {
     const j = a.job, K = KINDS[j.kind];
     const hh = st.households[farm && farm.household !== null ? farm.household : st.pawns[a.id].household];
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
-    if (a.load > TRAVEL.load) Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on wears
+    Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears
     if (!K.again || !K.again(j)) dropJob(st, j);
     else j.claims.splice(j.claims.indexOf(a.id), 1); // open for the next load
     a.carry = null; a.load = 0; a.job = null; a.basis = null; a.phase = null;
@@ -227,7 +228,9 @@ VB['sim/agents'] = (() => {
   }
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
-    j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1);
+    // manure is carted faster with a cart (sim/carts): taken as the work begins, and kept until it ends
+    const hhW = K.carted || K.stack ? st.households[st.pawns[a.id].household] : null;
+    j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1) * (K.carted ? Carts.carting(st, hhW, a.id, teamFree(st, hhW)) : 1);
     if (K.worked) K.worked(st, j);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
@@ -240,14 +243,27 @@ VB['sim/agents'] = (() => {
       a.stride += Math.hypot(nx - a.x, ny - a.y) / 3.4;
       a.x = nx; a.y = ny;
     }
+    if (j.done >= (j.hours ?? K.hours) && K.stack) {
+      // firewood (sim/carts): a trip's cutting is a back load; with a cart that has room for one more, the cutter stays and cuts
+      // it, while the pile is short and the working day has the hours; with no cart free and the pile still short, a miss
+      a.load = (a.load || 0) + TRAVEL.load;
+      const c = cal(st.t);
+      if (K.stack(st, j, hhW, c, a.load) && c.hour + K.hours <= WORK[1]) {
+        const cap = Carts.holds(st, hhW, a.id) || Carts.take(st, hhW, a.id, teamFree(st, hhW));
+        if (cap >= a.load + TRAVEL.load) { j.done = 0; return; }
+        if (cap === TRAVEL.load) Carts.missed(st, hhW);
+      }
+      if (a.load <= TRAVEL.load) Carts.leave(st, hhW, a.id);
+    }
     if (j.done >= (j.hours ?? K.hours)) {
       // a load taken from the field (VB-335), on the household's best free cart or on the back (sim/carts); a load on the back
       // with more left waiting is a miss the head counts
       const hhL = K.load ? st.households[st.pawns[a.id].household] : null, cap = K.load ? Carts.take(st, hhL, a.id, teamFree(st, hhL)) : 0;
       const n = K.load ? K.load(st, a, j, cap) : null;
       if (K.load && cap === TRAVEL.load && n > 0 && K.again(j)) Carts.missed(st, hhL);
+      if (K.load && n <= TRAVEL.load) Carts.leave(st, hhL, a.id); // a load for the back needs no cart
       if (K.carry && n !== 0) {
-        if (n !== null && K.again(j)) j.done = 0; // the others go on loading
+        if (n !== null && K.again(j)) { j.done = 0; if (K.reload) j.hours = K.reload; } // the others go on loading
         else freeHands(st, j, a.id);
         a.carry = K.carry; a.phase = 'back'; a.work = null;
         const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], to = K.to === 'site' ? j.dest : f.house;
@@ -257,6 +273,7 @@ VB['sim/agents'] = (() => {
         walkTo(st, a, to, x, y);
       } else {
         complete(st, a);
+        if (K.carted) Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the dung cart is back, and wears
         a.job = null; a.basis = null; a.work = null;
         a.phase = null; a.inside = false;
         if (K.inside) { a.inside = false; a.anim = 'idle'; }

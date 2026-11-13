@@ -3,7 +3,7 @@
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { byRiver, SEASON_DAYS } = VB['sim/rules'];
+  const { byRiver, SEASON_DAYS, TRAVEL } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
@@ -141,9 +141,19 @@ VB['sim/meadows'] = (() => {
     m.held = Math.round(HAY * m.fert * st.weather * (m.raked ? 1 : UNRAKED) * (0.9 + rnd(st.rng.fields) * 0.2));
   }
   // Carried home: the hay goes into the household's barn; once the farm's last meadow is in, the log says how it stands for the winter.
-  function hayIn(st, m, hh, f) {
-    hh.hay += m.held; m.held = 0; m.stage = 'aftermath';
-    if (f.meadows.some((q) => q.stage !== 'aftermath')) return;
+  // Hay is carried by the load (sim/carts): what a pawn takes of the meadow's lying hay, as a load in rations (TRAVEL.hay units of hay a
+  // ration: `cap` is the back's or a cart's); the meadow is aftermath once its last hay is taken.
+  function hayLoad(m, cap) {
+    const take = Math.min(m.held, cap * TRAVEL.hay);
+    m.held -= take;
+    if (m.held <= 1e-9) { m.held = 0; m.stage = 'aftermath'; }
+    return take / TRAVEL.hay;
+  }
+  // A load of hay is in the barn; with the farm's last one, the log tells how the hay stands against the winter.
+  function hayIn(st, m, hh, f, a) {
+    hh.hay += a.load * TRAVEL.hay;
+    if (f.meadows.some((q) => q.stage !== 'aftermath')
+      || hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].phase === 'back' && st.agents[id].carry === 'hay')) return;
     const need = winterNeed(st, hh), short = need > hh.hay;
     log(st, `${f.name} has its hay in: ${Math.round(hh.hay)} for a winter's need of ${Math.round(need)}${short ? '; it is short' : ''}.`, {
       kind: 'hay', n: Math.round(hh.hay), ...atHousehold(st, hh) });
@@ -161,7 +171,8 @@ VB['sim/meadows'] = (() => {
     }
   }
   return {
-    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow,
+    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, hayLoad, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow,
+      addMeadow,
       startMeadow,
     meadowProject, finishMeadow, placeMeadows, meadowAt,
   };

@@ -188,14 +188,8 @@ VB['sim/rules'] = (() => {
   // the farm; deaths of grown animals a year; the byre's room in cattle (a calf counts half); ages in years ----
   // ---- what one adult carries (Kim, 10 Nov: one number for the fields, the fair and the journeys): rations on the back, and on a cart with
   // two oxen (VB-335, VB-291, VB-295) ----
-  const TRAVEL = { load: 30, hand: 90, cart: 300, pace: { back: 0.9, hand: 0.8, ox: 0.6 } };
-  // ---- carts (sim/carts; the distance review, Kim, 12 Nov): a load is `load` rations on the back, `hand` on a hand cart and `cart` on an ox
-  // cart (it was 90 with two oxen: Kim, 10 Nov; a back load is 25 to 30 kg, a hand cart's 100 to 150 kg on a track, an ox cart's 500 to
-  // 800 kg, halved here since sheaves and hay fill a cart before they weigh it down; from memory, unchecked). pace: a laden pawn's speed
-  // of an unladen one's. A cart is `hours` of work at the house and `timber` loads of the village's wood (a tree gives 3); each trip wears
-  // it by `wear`, it is mended (mendHours) below `mendAt`, and at 0 it is gone. A head whose household took `misses` loads on the back in
-  // a year, with no cart free and more waiting, has another built ----
-  const CART = { hours: { hand: 12, ox: 30 }, timber: { hand: 3, ox: 6 }, wear: 0.02, mendAt: 0.5, mendHours: 3, misses: 6 };
+  // hand, cart: on a hand cart and an ox cart (sim/carts; it was 90 with two oxen); pace: a laden pawn's speed; hay: units a ration of load
+  const TRAVEL = { load: 30, hand: 90, cart: 300, pace: { back: 0.9, hand: 0.8, ox: 0.6 }, hay: 0.2 };
   const HERD = {
     hayLoss: [0.05, 0.25, 0.5], // annual barn losses by winters of need held (VB-159)
     hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
@@ -391,7 +385,7 @@ VB['sim/rules'] = (() => {
     SEASONS, cal, WORK, dark, ECON, CROPS, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, TRAVEL, CART, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, TRAVEL, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
     SHARES, SETTLE, SERVICE, MATCH,
       CLAIMS, WOOD, BUILD };
 })();
