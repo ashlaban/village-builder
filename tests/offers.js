@@ -208,3 +208,25 @@ console.log(`offers ok: no player stores none; a played man's match waits, holds
     assert.strictEqual(R.spouseOf(st, man), woman, 'dislike above the line still says yes');
   }
 }
+
+// 11. Each village holds its own round, a village a step (VB-277): the offer is made in the round of the man's village, and the woman it
+// holds is not chosen by a man of a later village the same day. Populous tiny at seed 61: man 8 of village 0 marries woman 24; with him
+// left out (his wish: not this year), man 32 of village 1 marries her; with him played, his offer holds her, and she stays unmarried.
+{
+  const S = 61, M = 8, W = 24, LATER = 32;
+  const round = (before) => {
+    const st = Sim.seed(world(S), S, 'populous'); st.naturalDeaths = false;
+    for (const h of st.households) h.grain.barley += 5000;
+    before(st); roll(st, () => Sim.movingRound(st)); return st;
+  };
+  const base = Sim.seed(world(S), S, 'populous'), villageOf = (id) => R.settlementIdOf(base, base.pawns[id]);
+  assert.deepStrictEqual([villageOf(M), villageOf(LATER)], [0, 1], 'the scene: a man of village 0 and one of village 1');
+  assert.strictEqual(R.spouseOf(round(() => {}), M), W, 'the scene: the round marries the man of village 0 to her');
+  assert.strictEqual(R.spouseOf(round((st) => { Sim.inhabit(st, M); Sim.wish(st, 'match', false); }), W), LATER,
+    'the scene: without him, the man of village 1 marries her');
+  const st = round((st) => Sim.inhabit(st, M));
+  assert.deepStrictEqual(st.offers.map((o) => [o.man, o.woman, o.village]), [[M, W, 0]], 'the offer is made at village 0\'s round');
+  assert.strictEqual(R.spouseOf(st, W), null, 'and the woman it holds is not chosen by the man of village 1 the same day');
+  sound(st, 'an offer held across the villages\' rounds');
+}
+console.log('offers ok: an offer made at village 0\'s round holds the woman from village 1\'s (VB-277)');

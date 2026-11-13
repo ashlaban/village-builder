@@ -19,7 +19,7 @@ VB['sim/clock'] = (() => {
     meetingStage,
     MEETING_STAGES,
     roundPhase,
-    ROUND_PHASES,
+    ROUND_STEPS,
     dailyLife,
     dailyDeaths,
     nightCulture,
@@ -404,7 +404,8 @@ VB['sim/clock'] = (() => {
       note: "the night's culture, a settlement a step (VB-201)",
       run: (st, c, n) => nightCulture(st, n),
     },
-    // ---- autumn: the meetings' stages from noon of day 10 (customs, then the outland; VB-206), the moving round's from noon of day 11 (VB-201) ----
+    // ---- autumn: the meetings' stages from noon of day 10 (customs, then the outland; VB-206), the moving round's from noon of day 11:
+    // a village a step, then its three island-wide phases from 18:00 (VB-201, VB-277) ----
     ...Array.from({ length: MEETING_STAGES }, (_, r) => ({
       every: 'year',
       at: { season: AUTUMN, sday: 9, hour: 12, tick: r },
@@ -413,14 +414,14 @@ VB['sim/clock'] = (() => {
       note: `the meetings, stage ${r}`,
       run: (st) => meetingStage(st, r),
     })),
-    ...Array.from({ length: ROUND_PHASES }, (_, r) => ({
+    {
       every: 'year',
-      at: { season: AUTUMN, sday: 10, hour: 12, tick: r },
+      at: { season: AUTUMN, sday: 10, hour: 12, tick: [0, ROUND_STEPS] },
       when: cenv,
       owner: 'sim/lifecycle',
-      note: `the moving round, phase ${r}`,
-      run: (st) => roundPhase(st, r),
-    })),
+      note: "the moving round: a village's round a step, then demand, settlement and service (VB-277)",
+      run: (st, c, n) => roundPhase(st, n - 12 * TICKS),
+    },
   ];
   function decayFence(st, s, decay) {
     const before = s.cond;
