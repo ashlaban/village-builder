@@ -171,6 +171,28 @@ function drawBooth(wd, f, empty) {
   g.zIndex = y + 8;
   L.objects.addChild(g);
 }
+// A field's sprite and its stooks, its rows at angle th: a farm's, or a village's common field (VB-100).
+function addField(wd, fd, th) {
+  const sp = new PIXI.Sprite(fieldTex[cropStage(fd)] || fieldTex.stubble);
+  sp.anchor.set(0.5);
+  sp.scale.set(0.5);
+  sp.rotation = th;
+  sp.position.set(wd.hx[fd.tile], wd.hy[fd.tile]);
+  L.fields.addChild(sp);
+  const stooks = [];
+  for (let k = 0; k < 9; k++) {
+    const u = ((k % 3) - 1) * 12,
+      v = (Math.floor(k / 3) - 1) * 12,
+      jx = Math.sin(k * 7.1) * 2,
+      jy = Math.cos(k * 3.3) * 2;
+    const x = wd.hx[fd.tile] + Math.cos(th) * u - Math.sin(th) * v + jx,
+      y = wd.hy[fd.tile] + Math.sin(th) * u + Math.cos(th) * v + jy;
+    const sk = place(art.stook[k % 2], x, y + 2, 0.5, 0.9);
+    sk.visible = false;
+    stooks.push(sk);
+  }
+  fieldSprites.push({ sp, fd, stage: cropStage(fd), stooks });
+}
 // Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty).
 function buildFarms(wd) {
   for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()])
@@ -193,28 +215,7 @@ function buildFarms(wd) {
       hy = wd.hy[f.house],
       empty = f.household === null,
       ruin = f.state === 'ruin';
-    for (const fd of f.fields) {
-      const sp = new PIXI.Sprite(fieldTex[cropStage(fd)] || fieldTex.stubble);
-      sp.anchor.set(0.5);
-      sp.scale.set(0.5);
-      sp.rotation = f.rowAngle;
-      sp.position.set(wd.hx[fd.tile], wd.hy[fd.tile]);
-      L.fields.addChild(sp);
-      const stooks = [],
-        th = f.rowAngle;
-      for (let k = 0; k < 9; k++) {
-        const u = ((k % 3) - 1) * 12,
-          v = (Math.floor(k / 3) - 1) * 12,
-          jx = Math.sin(k * 7.1) * 2,
-          jy = Math.cos(k * 3.3) * 2;
-        const x = wd.hx[fd.tile] + Math.cos(th) * u - Math.sin(th) * v + jx,
-          y = wd.hy[fd.tile] + Math.sin(th) * u + Math.cos(th) * v + jy;
-        const sk = place(art.stook[k % 2], x, y + 2, 0.5, 0.9);
-        sk.visible = false;
-        stooks.push(sk);
-      }
-      fieldSprites.push({ sp, fd, stage: cropStage(fd), stooks });
-    }
+    for (const fd of f.fields) addField(wd, fd, f.rowAngle);
     for (const m of f.meadows) {
       const sp = new PIXI.Sprite(fieldTex['meadow-' + m.stage]);
       sp.anchor.set(0.5);
@@ -325,6 +326,7 @@ function buildFarms(wd) {
     pitInfo.push({ tile: pit.tile, x, y: y - 2, puffs, smoke: 0 });
   }
   for (const v of st.villages) {
+    for (const fd of v.commonFields || []) addField(wd, fd, 0); // the village's common fields (VB-100)
     if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
     for (const s2 of v.fence) addFence(s2);
     const X = VB['sim/expansion'];

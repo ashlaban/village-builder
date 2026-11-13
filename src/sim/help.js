@@ -80,7 +80,7 @@ VB['sim/help'] = (() => {
         if (want <= 1e-9) break;
       }
       const v = st.villages[st.farmsteads[hh.farmstead].village],
-        n = Math.min(want, grainOf(v));
+        n = Math.min(want, grainOf(v) - reserved(st, v, 'grain')); // not the seed of its common fields (VB-100)
       if (n > 1e-9 && give(st, v, hh, n)) want -= n;
       if (want > 1e-9 && shortOfPeople(st, hh)) short.push(hh.id);
     }

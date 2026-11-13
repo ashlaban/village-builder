@@ -19,7 +19,8 @@ VB['sim/kinds'] = (() => {
   const Building = VB['sim/building'],
     Pot = VB['sim/pot'],
     Green = VB['sim/green'],
-    Workdays = VB['sim/workdays'];
+    Workdays = VB['sim/workdays'],
+    Commons = VB['sim/commons'];
   const { ground: forageGround, gather } = VB['sim/forage'],
     Drying = VB['sim/drying'];
   // A kind's fields:
@@ -123,6 +124,10 @@ VB['sim/kinds'] = (() => {
     for (const m of f.meadows)
       for (const [key, kind] of meadowJobs(f, m, c, want)) post(key, m.tile, { meadow: m, farm: f }, kind);
   }
+  // The village's common fields (VB-100): their kinds, as at a farm's fields, while its meeting chose the routine.
+  function commonWork(st, v, at, c, post) {
+    if (st.plans.villages.get(v.id).routines.includes('commons')) Commons.work(st, v, c, post, ASK.fieldAt);
+  }
   // The byre's work at the cottage, for a household with herds or meat in its larder: fodder, slaughter, salting, milking (sim/byre).
   function byreWork(st, hh, f, c, post) {
     if (hh.herds.length || hh.larder.length)
@@ -193,8 +198,9 @@ VB['sim/kinds'] = (() => {
       spot: onField,
       urgency: inWindow,
       done: (st, j, hh, c) => {
-        if (Stores.grainOf(hh, j.field.crop) < CROPS[j.field.crop].seed) return; // the seed eaten since it was posted
-        Stores.take(st, hh, Stores.grainGood(j.field.crop), CROPS[j.field.crop].seed, 'seed');
+        const from = j.common ? st.villages[j.village] : hh; // a common field's seed is the village store's (VB-100)
+        if (Stores.grainOf(from, j.field.crop) < CROPS[j.field.crop].seed) return; // the seed eaten since it was posted
+        Stores.take(st, from, Stores.grainGood(j.field.crop), CROPS[j.field.crop].seed, 'seed');
         sown(j.field, c);
       },
       // a hoed field, in the sowing window, while the household has the seed for it (sowWhy)
@@ -241,6 +247,7 @@ VB['sim/kinds'] = (() => {
       load: (st, a, j, cap) => (a.load = carried(j.field, cap)),
       again: (j) => j.field.stage === 'stooks',
       deliver: (st, j, hh, f, a) => {
+        if (j.common) return Commons.brought(st, j, a); // a common field's, into the village store (VB-100)
         binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.field.crop));
         if (
           f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
@@ -425,7 +432,7 @@ VB['sim/kinds'] = (() => {
       spot: onField,
       project: true,
       worked: workStake,
-      done: (st, j, hh) => onProject(st, j) && finishClear(st, j.farm, hh),
+      done: (st, j, hh) => (j.common ? Commons.cleared(st, j, hh) : onProject(st, j) && finishClear(st, j.farm, hh)),
       available: landProject, // also a plot's step (plotWork)
     },
     break: {
@@ -441,7 +448,7 @@ VB['sim/kinds'] = (() => {
       spot: onField,
       project: true,
       worked: workStake,
-      done: (st, j) => onProject(st, j) && finishBreak(st, j.farm),
+      done: (st, j) => (j.common ? Commons.brokenUp(st, j) : onProject(st, j) && finishBreak(st, j.farm)),
       available: landProject, // also a plot's step (plotWork)
     },
     meadow: {
@@ -804,7 +811,9 @@ VB['sim/kinds'] = (() => {
       'gather',
       Building.stoneWork,
     ].map(rule),
-    village: ['mend', 'green', 'workfence'].map(rule), // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays)
+    // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays); the common fields' (sim/commons, VB-100) the
+    // open step of the one under way and the field kinds of each one's stage, while the meeting chose them
+    village: ['mend', 'green', 'workfence', commonWork].map(rule),
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
