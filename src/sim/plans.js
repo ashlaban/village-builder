@@ -529,8 +529,9 @@ VB['sim/plans'] = (() => {
     } // VB-123: project plans
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (!plan.reserved) {
-        plan.reserved = {};
-        plan.reasons = {}; // lint-allow: owner a save made before reservations gets empty ones (sim/stores writes them)
+        // a save made before reservations gets empty ones (sim/stores writes them)
+        plan.reserved = {}; // lint-allow: owner an old save's migration
+        plan.reasons = {}; // lint-allow: owner an old save's migration
         if (plan.holder.type === 'household') household(st, plan);
       }
       if (plan.holder.type === 'household' && !st.plans.seasons.has(plan.holder.id)) seasonal(st, plan, cal(st.t));

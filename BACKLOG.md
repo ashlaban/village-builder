@@ -237,9 +237,9 @@ says where each section went).
 
 **Refactor rules** (every task titled "Refactor:"):
 - Behaviour is unchanged: `node tools/same.js --base REF` prints `same` against the commit the task started from (`docs/testing.md`), its line is in the PR, and the hard checks pass. Rebuild `index.html` before committing.
-- Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Lines over 160 characters in moved code are wrapped at statement or argument boundaries; nothing else is reformatted (`tools/wrap.js` does it, and `--compare` checks the build).
+- Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Moved code is formatted by Prettier (`npm run format`), as all of `src/` is.
 - No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
-- A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads. Its length is not capped: over 400 lines the lint asks for an open task, titled "Refactor: split <key> ...", that splits it by concern; the task that takes it there opens one (VB-413, VB-414).
+- A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads. Its length is not capped: over 700 formatted lines (the 400 of the packed sources, rescaled when `src/` was formatted, 13 November) the lint asks for an open task, titled "Refactor: split <key> ...", that splits it by concern; the task that takes it there opens one (VB-413, VB-414).
 
 **Testing, work counters and cost growth:** permanent golden baselines are retired (VB-408). Older tasks that require a golden
 check or update instead follow `docs/testing.md`; preserve behavior for refactors, test the intended contracts for behavior changes.

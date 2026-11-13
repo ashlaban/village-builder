@@ -6,7 +6,7 @@ const { chromium } = require('playwright'), fs = require('fs'), path = require('
 const { browserHTML } = require('./lib/browser');
 const root = path.join(__dirname, '..'), out = process.argv[2] || null, tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'vb-saves-'));
 const pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
-const HOOK = 'let st = null, speed = 1, selPawn = -1;';
+const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
 const OTHER = 'Made by another build of the game; it cannot be loaded';
 const P7 = 'populous-7-120x85';
 const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:', m); };
