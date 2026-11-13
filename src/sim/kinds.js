@@ -729,9 +729,9 @@ VB['sim/kinds'] = (() => {
         const g = Drying.fishingPlace(st, hh, f);
         if (!g) return;
         // the key names the bank, so a ground fished out is left for the next one at the following review
-        post(`fish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat });
+        post(`fish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat, leaky: g.leaky });
         if (spareDays(st, hh) < FISH.secondDays)
-          post(`fish:h${hh.id}:${g.shore}b`, g.shore, { farm: f, water: g.water, boat: g.boat });
+          post(`fish:h${hh.id}:${g.shore}b`, g.shore, { farm: f, water: g.water, boat: g.boat, leaky: g.leaky });
       },
     },
     gather: {
@@ -769,6 +769,7 @@ VB['sim/kinds'] = (() => {
   // hunting roe deer (VB-139): its record is sim/deer's, its urgency fishing's, by the household's spare food
   KINDS.hunt = { ...VB['sim/deer'].KIND, urgency: (st, j, c, U) => spareUrgency(st, j, U) };
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
+  Object.assign(KINDS, VB['sim/tar'].KINDS); // the tar pit, burning tar, tarring the house and the boat (VB-301): sim/tar's
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -804,6 +805,7 @@ VB['sim/kinds'] = (() => {
   // VB-359, VB-300, sim/carts (a boat or a cart is a project's step), VB-139 (hunting roe deer), VB-390 (a cow led home, sim/exchange)
   ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart'), rule('hunt'), rule('lead'));
   ASK.farmAfterPlans.push(rule('grind'), rule('hewQuern')); // the hand quern (VB-009, sim/quern)
+  ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy };
 })();

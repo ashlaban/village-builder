@@ -76,8 +76,18 @@ near(needValue(st, hh, 'butter', 2), 30, 'two lots fill the back load');
 near(needValue(st, hh, 'butter', 3), 30, 'a third lot is beyond the load');
 near(needValue(st, hh, 'butter', 1, 20), 10 * NEED.beyond * NEED.lacking, 'beyond the load, need alone (the pot lacks milk)');
 near(needValue(st, hh, 'grain', 1), 10 * NEED.beyond, 'grain does not keep');
-near(needValue(st, hh, 'tar', 1), 8, 'tar as a keeping good'); near(needValue(st, hh, 'tar', 1, KEEPING.cap - 7), 0, 'no room for tar');
-near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: 1, kept: 0 }), 0, 'no boat or house due');
+{ // tar (VB-301, sim/tar): its worth to a household whose house is due and holds no barrel; with the house tarred, only a keeping good's
+  const f = st.farmsteads[hh.farmstead], was = f.tarredUntil, held = hh.tar;
+  hh.tar = 0; f.tarredUntil = 0;
+  near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: 1, kept: 0 }), 8, 'the house due: a barrel is worth its worth');
+  near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: 2, kept: 0 }), 8, 'a second barrel is not needed');
+  near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: -1, kept: 0 }), 0, 'none held: nothing to give up');
+  hh.tar = 1; near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: -1, kept: 0 }), -8, 'giving up the one barrel for the house');
+  hh.tar = 0; f.tarredUntil = st.t + Sim.YEAR;
+  near(needValue(st, hh, 'tar', 1), 8, 'tar as a keeping good'); near(needValue(st, hh, 'tar', 1, KEEPING.cap - 7), 0, 'no room for tar');
+  near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: 1, kept: 0 }), 0, 'no boat or house due');
+  f.tarredUntil = was; hh.tar = held;
+}
 near(needValue(st, hh, 'ale', 1), 7, 'ale with no occasion ahead');
 // animals: 1.5 times with none of its kind, 1 otherwise, nothing without hay for the winter
 const cows = (h) => h.herds.map((id) => st.herds[id]).filter((hd) => hd.species === 'cattle').reduce((s, hd) => s + hd.head.filter((x) => x.kind === 'cow').length, 0);

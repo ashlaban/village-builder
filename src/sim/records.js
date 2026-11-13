@@ -66,6 +66,7 @@ VB['sim/records'] = (() => {
     offerLapsed: 0,
     meetingFailed: 0,
     cartBuilt: 0, // a household's new cart (VB-327)
+    tarPit: 0, // a household's tar pit dug (VB-301)
     setOut: 0, // a journey to a new home in another village (VB-287)
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT,
@@ -89,6 +90,7 @@ VB['sim/records'] = (() => {
     noWood: GENERATION,
     cattleInCrop: GENERATION,
     cartGone: GENERATION, // a cart worn out (VB-327)
+    boatLost: GENERATION, // a fishing boat lost for want of tar (VB-301)
     arrived: GENERATION, // the journey's end (VB-287)
     deerInCrop: GENERATION,
   };
@@ -344,6 +346,8 @@ VB['sim/records'] = (() => {
       peat: 0,
       rack: 0,
       boat: null,
+      tar: 0,
+      tarPit: null, // tar: barrels held (sim/stores), tarPit: the household's tar pit (sim/tar; VB-301)
       carts: [],
       cartMiss: 0, // carts, cartMiss: sim/carts; clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
       larder: [],

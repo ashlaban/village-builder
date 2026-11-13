@@ -403,6 +403,12 @@ VB['sim/saves'] = (() => {
         hh.rack = 0;
         hh.boat = null;
       } // VB-300: nor a drying rack nor a boat
+    for (const hh of st.households)
+      if (hh.tar === undefined) {
+        hh.tar = 0; // lint-allow: owner an older save's household, as sim/records makes one
+        hh.tarPit = null; // lint-allow: owner as above: no tar pit (VB-301)
+        if (hh.boat && hh.boat.tarred === undefined) hh.boat.tarred = hh.boat.built; // lint-allow: owner as above: tarred as it was built
+      } // VB-301: nor tar nor a tar pit
     for (const hh of st.households) if (!hh.fresh) openFresh(hh); // VB-119: nor fresh food
     for (const hh of st.households)
       if (hh.flour === undefined) {

@@ -58,6 +58,9 @@ VB.COUNTERS = {
   fishReach:
     "Tiles within reach of a house searched for fishing water: a village's reach test when it has a new farm, a household's shore " +
     'for a boat (sim/drying; VB-300)',
+  tarAsk:
+    "Farms asked once a year whether a boat is lost for want of tar or a tar pit is begun, and pine tiles of a village's wood walked " +
+    'for tar (sim/drying, sim/tar; VB-301)',
   boatAsk:
     'Farms of villages by fishing water asked whether their household begins a boat, once a year (sim/drying; VB-300)',
   digGround:

@@ -161,7 +161,14 @@ function renderSettlers() {
           <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads; peat ${hh.peat || 0} units.</p>
           <p>Wool ${Math.round(hh.wool || 0)} fleeces, unspun.</p>
           <p>Dried fish ${Math.round(Sim.larderOf(hh, 'dried fish'))} rations${hh.rack >= 0.5 ? `; ${Math.round(hh.rack)} fresh by the rack` : ''}${
-            hh.boat ? '; a fishing boat on the shore' : ''
+            hh.boat
+              ? `; a fishing boat on the shore, tarred ${Math.floor(Sim.boatUntarred(st, hh.boat))} years ago${
+                  Sim.boatUntarred(st, hh.boat) >= 2 ? ': it leaks' : ''
+                }`
+              : ''
+          }.</p>
+          <p>Tar ${hh.tar || 0} barrels${hh.tarPit ? '; a tar pit in the pine wood' : ''}${
+            hh.farmstead !== null && Sim.houseTarred(st, st.farmsteads[hh.farmstead]) ? '; the house is tarred' : ''
           }.</p>
           <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>`
           : '',

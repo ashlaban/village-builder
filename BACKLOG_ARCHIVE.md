@@ -315,3 +315,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-367](backlog/VB-367.md) | Peat: cut in summer and burnt in place of wood | mill | 3 | S | A household short of wood near a peat bog cuts peat in summer; dried, two loads burn as one of wood. |
 | [VB-120](backlog/VB-120.md) | Village work days | year | 3 | M | The meeting sets days when the whole village mends the fence or clears the commons; staying away costs prestige. |
 | [VB-144](backlog/VB-144.md) | Ewes' milk and wool | mill | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. |
+| [VB-301](backlog/VB-301.md) | Tar: burnt in pine villages, needed for boats and timber | fair | 3 | M | A tar pit as a household's facility and tar burning as long work; boats need tarring and tarred timber needs less upkeep, so shore villages need the forest's good. |

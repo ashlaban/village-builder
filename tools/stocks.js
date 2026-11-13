@@ -58,6 +58,9 @@ const QUANTITIES = [
   { id: 'peat', of: 'household', name: 'the peat stack', unit: 'units', fields: ['household.peat', 'household.peatCut'], good: 'peat',
     holder: 'household', kinds: ['dig'],
     none: 'the day\'s fire burns wood alone, and the household cuts more of it, and in summer more peat (sim/hunger, sim/dig, VB-367)' },
+  { id: 'tar', of: 'household', name: 'tar', unit: 'barrels', fields: ['household.tar'], good: 'tar', holder: 'household', kinds: ['tarburn'],
+    none: 'the house is not tarred and wears at the plain rate, and a boat due a barrel leaks, fishes at half and after BOAT.lostYears is lost; '
+      + 'the pit\'s household burns more in early summer (sim/tar, sim/drying, VB-301)' },
   { id: 'ale', of: 'household', name: 'ale', unit: 'barrels', fields: ['household.ale'], good: 'ale', holder: 'household', kinds: ['brew'],
     covers: ['household.poured'], none: 'no barrel is poured at an occasion, and the host gains no standing by it (sim/society)' },
   { id: 'hay', of: 'household', name: 'hay in the barn', unit: 'units', fields: ['household.hay'], kinds: ['hay'], losses: ['sim/byre:spoilHay'],
@@ -108,7 +111,7 @@ const NOT_STOCKS = {
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'household.spoilt', 'household.hungryDays',
     'household.hunger', 'household.cold', 'household.coldLog', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows',
-    'farmstead.booth', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.carts',
+    'farmstead.booth', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
       'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded'],
   'the generated world': ['w.seed', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',
