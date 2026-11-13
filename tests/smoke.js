@@ -244,7 +244,8 @@ async function goodwillPanel() {
   };
   const farmId = st.households[holder.household].farmstead, farm = st.farmsteads[farmId];
   openHistory('a pawn', () => settlers.querySelector(`button[data-pawn="${holder.id}"]`).click());
-  if (!/ holds /.test(hist.textContent) || !/was born/.test(hist.textContent)) fail("a holder's history lacks its birth or its farm");
+  // its farm is told by a line that names it: founders hold theirs from the start, a pawn who left a crowded village founds or settles at one
+  if (!hist.textContent.includes(farm.name) || !/was born/.test(hist.textContent)) fail("a holder's history lacks its birth or its farm");
   openHistory('a farm', () => settlers.querySelector(`button[data-farm="${farmId}"]`).click());
   openHistory('a village', () => settlers.querySelector(`button[data-village="${farm.village}"]`).click());
   const link = hist.querySelector('button.name[data-farm]');
@@ -417,7 +418,7 @@ async function actionBar() {
     fail(`the gift was not queued: ${JSON.stringify(gift)}`); }
   while (st.player.queue.length) Sim.unqueue(st, 0);
   // Walk here: the camera follows the pawn, and a tap at the view's middle (the page's 0, 0 here) is its tile
-  q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(5);
+  q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(200); // the camera glides to the pawn, wherever its work has taken it
   q('#actBar [data-group="self"]').click(); tick(1); q('#actMenu [data-bar="walk"]').click(); tick(1);
   if (q('#actBanner').hidden || !/^Walk here: (tap|click) an open tile/.test(q('#actBanner').textContent) || !q('#actMenu').hidden) {
     fail('Walk here\'s tool is not shown'); }
