@@ -26,21 +26,24 @@ VB['sim/routes'] = (() => {
   const through = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
   // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
   const walkable = (w) => (j) => passable(w, j);
-  // What the slope of the step between a and b adds: SLOPE.perRise for each unit of elevation between them, up or down alike (so the
-  // way back costs what the way there does), at most SLOPE.max. Water lies at sea level; a worn path does not flatten a slope.
-  const slopeCost = (w, a, b) => {
-    if (!w.he) return 0;
+  // What the slope of the step between a and b multiplies its cost by: Tobler's hiking function made symmetric around the flat (VB-438),
+  // exp(SLOPE.tobler |S|) for the slope S = SLOPE.grade times the elevation between them, up or down alike (so the way back costs what
+  // the way there does), at most SLOPE.max; 1 on the level. Water lies at sea level; a worn path does not flatten a slope.
+  const slopeFactor = (w, a, b) => {
+    if (!w.he) return 1;
     const ha = w.he[a],
       hb = w.he[b],
-      s = SLOPE.perRise * Math.abs((ha > 0 ? ha : 0) - (hb > 0 ? hb : 0));
-    return s < SLOPE.max ? s : SLOPE.max;
+      rise = Math.abs((ha > 0 ? ha : 0) - (hb > 0 ? hb : 0));
+    if (rise === 0) return 1;
+    const f = Math.exp(SLOPE.tobler * SLOPE.grade * rise);
+    return f < SLOPE.max ? f : SLOPE.max;
   };
-  // Cost of the step between neighbouring tiles a and b: the mean of their costs and the slope between them; a closed end (where a
+  // Cost of the step between neighbouring tiles a and b: the mean of their costs times the slope's factor; a closed end (where a
   // route starts or ends) counts as meadow.
   const stepCost = (w, a, b) => {
     const ca = tileCost(w, a),
       cb = tileCost(w, b);
-    return ((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2 + slopeCost(w, a, b);
+    return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
   };
 
   const STRAIGHT = 1e-3; // see findRoute: what a tile's width off the straight line adds to a tile's key, in steps
@@ -261,7 +264,7 @@ VB['sim/routes'] = (() => {
   // times the dearest step (MAX_STEP, the dearest terrain on the steepest slope), so a changed tile nearer than n - 1 always drops it and
   // one beyond n * MAX_STEP / minStep never does.
   // The changed tiles' hex coordinates are worked out once, not once per route (hexSteps in sim/hex, unrolled).
-  const MAX_STEP = Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0] + SLOPE.max;
+  const MAX_STEP = (Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0]) * SLOPE.max;
   function refreshRoutes(st) {
     if (!st.routeDirty.size) return;
     const w = st.w,
@@ -368,7 +371,7 @@ VB['sim/routes'] = (() => {
     tileCost,
     passable,
     walkable,
-    slopeCost,
+    slopeFactor,
     stepCost,
     findRoute,
     routeCost,

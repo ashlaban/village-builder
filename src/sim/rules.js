@@ -643,11 +643,16 @@ VB['sim/rules'] = (() => {
     wornYears: 3,
     trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 },
   };
-  // ---- slopes (sim/routes): a step between two tiles costs more by its rise, up or down alike, on top of the terrain's cost ----
-  // perRise: meadow steps added per unit of elevation difference between the two tiles (w.he, 0 to 1 over the land); max: the cap on a
-  // step's surcharge, which bounds the dearest step (the route cache's refresh needs one). A rise per step is about 0.04 to 0.07 at the
-  // median, 0.10 to 0.18 at the 90th percentile and 0.5 to 0.7 at the most (more on smaller maps). perRise 0 switches slopes off.
-  const SLOPE = { perRise: 6, max: 2 };
+  // ---- slopes (sim/routes): a step between two tiles is slowed by its slope, up or down alike, whatever its terrain (VB-438) ----
+  // Tobler's hiking function (Tobler 1993: 6 exp(-3.5 |S + 0.05|) km an hour at slope S, rise over run), made symmetric around the
+  // flat: a walker's speed falls by exp(-tobler |S|), so a step's cost is its terrain's times exp(tobler |S|).
+  // tobler: the function's exponent; grade: the slope S of a step whose two tiles differ by one unit of elevation (w.he, 0 to 1 over
+  // the land): the heightmap is far steeper than ground is (read as 1,400 m of relief over tiles of 150 m, grade would be 9.3 and the
+  // median step a slope of 0.3), so grade is set where the median step costs what it did before (Kim, 13 Nov); max: the cap on the
+  // factor, where Tobler's 6 km an hour has fallen to 1, which bounds the dearest step (the route cache's refresh needs one).
+  // Walkable neighbours differ by 0.03 to 0.04 at the median, 0.08 to 0.12 at the 90th percentile, 0.16 to 0.24 at the 99th and 0.4
+  // to 0.5 at the most (small and medium, seeds 7 and 42): factors of about 1.2, 1.7, 2.9 and the cap. grade 0 switches slopes off.
+  const SLOPE = { tobler: 3.5, grade: 1.5, max: 6 };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
   // a lane over meadow. cacheMax: LRU entries; 60,000 keeps the late fixture's hit-rate loss within 5 points (VB-198).
   const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
