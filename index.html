@@ -5760,11 +5760,16 @@ VB['sim/rules'] = (() => {
     wornYears: 3,
     trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 },
   };
-  // ---- slopes (sim/routes): a step between two tiles costs more by its rise, up or down alike, on top of the terrain's cost ----
-  // perRise: meadow steps added per unit of elevation difference between the two tiles (w.he, 0 to 1 over the land); max: the cap on a
-  // step's surcharge, which bounds the dearest step (the route cache's refresh needs one). A rise per step is about 0.04 to 0.07 at the
-  // median, 0.10 to 0.18 at the 90th percentile and 0.5 to 0.7 at the most (more on smaller maps). perRise 0 switches slopes off.
-  const SLOPE = { perRise: 6, max: 2 };
+  // ---- slopes (sim/routes): a step between two tiles is slowed by its slope, up or down alike, whatever its terrain (VB-438) ----
+  // Tobler's hiking function (Tobler 1993: 6 exp(-3.5 |S + 0.05|) km an hour at slope S, rise over run), made symmetric around the
+  // flat: a walker's speed falls by exp(-tobler |S|), so a step's cost is its terrain's times exp(tobler |S|).
+  // tobler: the function's exponent; grade: the slope S of a step whose two tiles differ by one unit of elevation (w.he, 0 to 1 over
+  // the land): the heightmap is far steeper than ground is (read as 1,400 m of relief over tiles of 150 m, grade would be 9.3 and the
+  // median step a slope of 0.3), so grade is set where the median step costs what it did before (Kim, 13 Nov); max: the cap on the
+  // factor, where Tobler's 6 km an hour has fallen to 1, which bounds the dearest step (the route cache's refresh needs one).
+  // Walkable neighbours differ by 0.03 to 0.04 at the median, 0.08 to 0.12 at the 90th percentile, 0.16 to 0.24 at the 99th and 0.4
+  // to 0.5 at the most (small and medium, seeds 7 and 42): factors of about 1.2, 1.7, 2.9 and the cap. grade 0 switches slopes off.
+  const SLOPE = { tobler: 3.5, grade: 1.5, max: 6 };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
   // a lane over meadow. cacheMax: LRU entries; 60,000 keeps the late fixture's hit-rate loss within 5 points (VB-198).
   const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
@@ -7050,21 +7055,24 @@ VB['sim/routes'] = (() => {
   const through = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
   // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
   const walkable = (w) => (j) => passable(w, j);
-  // What the slope of the step between a and b adds: SLOPE.perRise for each unit of elevation between them, up or down alike (so the
-  // way back costs what the way there does), at most SLOPE.max. Water lies at sea level; a worn path does not flatten a slope.
-  const slopeCost = (w, a, b) => {
-    if (!w.he) return 0;
+  // What the slope of the step between a and b multiplies its cost by: Tobler's hiking function made symmetric around the flat (VB-438),
+  // exp(SLOPE.tobler |S|) for the slope S = SLOPE.grade times the elevation between them, up or down alike (so the way back costs what
+  // the way there does), at most SLOPE.max; 1 on the level. Water lies at sea level; a worn path does not flatten a slope.
+  const slopeFactor = (w, a, b) => {
+    if (!w.he) return 1;
     const ha = w.he[a],
       hb = w.he[b],
-      s = SLOPE.perRise * Math.abs((ha > 0 ? ha : 0) - (hb > 0 ? hb : 0));
-    return s < SLOPE.max ? s : SLOPE.max;
+      rise = Math.abs((ha > 0 ? ha : 0) - (hb > 0 ? hb : 0));
+    if (rise === 0) return 1;
+    const f = Math.exp(SLOPE.tobler * SLOPE.grade * rise);
+    return f < SLOPE.max ? f : SLOPE.max;
   };
-  // Cost of the step between neighbouring tiles a and b: the mean of their costs and the slope between them; a closed end (where a
+  // Cost of the step between neighbouring tiles a and b: the mean of their costs times the slope's factor; a closed end (where a
   // route starts or ends) counts as meadow.
   const stepCost = (w, a, b) => {
     const ca = tileCost(w, a),
       cb = tileCost(w, b);
-    return ((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2 + slopeCost(w, a, b);
+    return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
   };
 
   const STRAIGHT = 1e-3; // see findRoute: what a tile's width off the straight line adds to a tile's key, in steps
@@ -7285,7 +7293,7 @@ VB['sim/routes'] = (() => {
   // times the dearest step (MAX_STEP, the dearest terrain on the steepest slope), so a changed tile nearer than n - 1 always drops it and
   // one beyond n * MAX_STEP / minStep never does.
   // The changed tiles' hex coordinates are worked out once, not once per route (hexSteps in sim/hex, unrolled).
-  const MAX_STEP = Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0] + SLOPE.max;
+  const MAX_STEP = (Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0]) * SLOPE.max;
   function refreshRoutes(st) {
     if (!st.routeDirty.size) return;
     const w = st.w,
@@ -7392,7 +7400,7 @@ VB['sim/routes'] = (() => {
     tileCost,
     passable,
     walkable,
-    slopeCost,
+    slopeFactor,
     stepCost,
     findRoute,
     routeCost,
@@ -38904,7 +38912,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'f51f73c35a',
+const BUILD = '6f0e7f2fb1',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
