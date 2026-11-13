@@ -31,6 +31,7 @@ VB['sim/clock'] = (() => {
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
   const { byreDay, autumnCounts, strays } = VB['sim/byre'];
   const { herdsBack, halveGraze } = VB['sim/grazing'];
+  const { recount, deerGraze, browseCrops } = VB['sim/deer'];
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
@@ -296,6 +297,25 @@ VB['sim/clock'] = (() => {
       run: (st) => herdsBack(st),
     },
     { every: 'year', owner: 'sim/grazing', note: 'the grazing pressure halves (VB-136)', run: (st) => halveGraze(st) },
+    {
+      every: 'year',
+      owner: 'sim/deer',
+      note: "the forest edges counted again: each region's capacity for roe deer (VB-139)",
+      run: (st) => recount(st),
+    },
+    {
+      every: 'day',
+      owner: 'sim/deer',
+      note: 'the roe deer graze the forest edges (VB-139)',
+      run: (st, c) => deerGraze(st, c),
+    },
+    {
+      every: 'day',
+      when: (st, c) => c.season === 1,
+      owner: 'sim/deer',
+      note: 'in summer, roe deer may get into a crop by a wood through a broken fence (VB-139)',
+      run: (st) => browseCrops(st),
+    },
     // ---- the people ----
     {
       every: 'day',

@@ -356,7 +356,7 @@ function checkState(st) {
     for (let i = 0; i < holder.totals.length; i++) {
       const x = holder.totals[i], key = `${x.year}:${x.kind}:${x.good}`;
       if (!S.ROUTINE.includes(x.kind) || !Number.isInteger(x.year) || x.year > year || x.year < year - 3 || !Number.isFinite(x.n)
-          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves milk butter ale'.split(' '), ...FISHES, ...WOODS].includes(x.good)
+          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves meat milk butter ale'.split(' '), ...FISHES, ...WOODS].includes(x.good)
           || seen.has(key)
           || i && holder.totals[i - 1].year > x.year) bad.push(`stores[${holder.id}]: invalid total ${JSON.stringify(x)}`);
       seen.add(key);
@@ -583,6 +583,18 @@ function checkState(st) {
     let off = 0;
     for (let i = 0; i < N; i++) if (!(forage[i] >= 0 && forage[i] <= 1) || forageYear[i] < 0 || forageYear[i] > year) off++;
     if (off) bad.push(`w.forage: ${off} tiles with a stock or year out of place`);
+  }
+  // roe deer (VB-139, sim/deer): a region's head from 0, its capacity DEER.perEdge a forest-edge tile it lists, set on a day not after today,
+  // the edges tiles of the region (wood at the year's count; a wood felled since stays listed until the next), and no deer without capacity
+  if (st.deer) {
+    const D = st.deer, Dr = globalThis.VB['sim/rules'].DEER, R = st.w.regions.length, day = Math.floor(st.t / 24);
+    let off = 0;
+    if (D.head.length !== R || D.since.length !== R || D.cap.length !== R || D.edges.length !== R) off = R;
+    else for (let r = 0; r < R; r++) {
+      if (!(D.head[r] >= 0 && D.head[r] < Infinity) || D.since[r] > day || Math.abs(D.cap[r] - D.edges[r].length * Dr.perEdge) > 1e-9
+        || (D.cap[r] === 0 && D.head[r] !== 0) || D.edges[r].some((t) => st.w.region[t] !== r)) off++;
+    }
+    if (off) bad.push(`st.deer: ${off} regions with deer, a day or edges out of place`);
   }
   // deposits (VB-359, sim/dig): loads left only on a deposit tile; a dug tile (dugDay) not after today, its first amount at least what is left
   // and nothing dug but clay and bog iron; an endless tile stays endless

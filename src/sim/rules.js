@@ -110,6 +110,22 @@ VB['sim/rules'] = (() => {
   // stock and lowers it by `take`; every stock is full each spring. Posted from summer day `from` + 1 to the end of autumn; its second trip and
   // urgency are fishing's (FISH.secondDays, MATCH.urgency) ----
   const FORAGE = { reach: 5, trip: 2.5, take: 0.2, least: 0.2, from: 5 };
+  // ---- roe deer (VB-139; Kim, 30 Oct: the one wild grazer, meat and hides when hunted, forest edges and meadows, can damage crops), starting
+  // values with no source but a roe deer's size: a region's stock grows logistically at `growth` a year towards `perEdge` deer for each of
+  // its forest-edge tiles (a wood tile beside open land: a tile of land about 150 m across, Two readings of one grid, so about 0.15 deer a
+  // hectare of edge). Each day its deer graze `graze` cow-hours of pressure a deer (sim/grazing) over `spots` of its edge tiles in turn. In
+  // summer a standing crop beside a wood and a broken stretch of the village fence (below `crop.below`, the cattle's HERD.stray.below) is
+  // browsed with `crop.chance` a day times the region's deer against its capacity, losing `crop.loss` of its yield. Hunting (`hunt`): in
+  // autumn and winter, men of `minAge` or more, a trip of `hours` to the nearest forest edge within `reach` walking steps whose region holds
+  // `least` deer or more; it kills with `chance` times the deer against the capacity, a kill giving `meat` rations of fresh meat (a sheep's) ----
+  const DEER = {
+    perEdge: 0.3,
+    growth: 0.35,
+    graze: 1.5,
+    spots: 3,
+    crop: { below: 0.45, chance: 0.04, loss: 0.05 },
+    hunt: { reach: 6, hours: 4, chance: 0.3, least: 1, meat: 3, minAge: 14 },
+  };
   const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
   // ---- rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it ----
   // irrigation: extra fertility of a field next to a river tile; site: added to a village site's score by steps to the nearest river tile (0..3).
@@ -127,7 +143,8 @@ VB['sim/rules'] = (() => {
 
   // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
   // every kind its type and fills in `prio`, each role's rank of every kind. Herding (VB-136; Kim, 31 Oct): child 8, daughter 6, son 5,
-  // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Jobs carry an owner that decides who may take them ----
+  // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Hunting (VB-139) is foraging for the men alone: none for the
+  // women, the retired and children. Jobs carry an owner that decides who may take them ----
   const ROLES = {
     farmer: {
       title: 'Farmer',
@@ -160,7 +177,7 @@ VB['sim/rules'] = (() => {
         husbandry: 9,
         foraging: 4,
       },
-      except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2 },
+      except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2, hunt: 0 },
     },
     farmhand: {
       title: 'Farmhand',
@@ -193,7 +210,7 @@ VB['sim/rules'] = (() => {
         husbandry: 10,
         foraging: 5,
       },
-      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 },
+      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2, hunt: 0 },
     },
     son: {
       title: 'Son of the house',
@@ -227,19 +244,19 @@ VB['sim/rules'] = (() => {
         foraging: 6,
         herding: 6,
       },
-      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 },
+      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2, hunt: 0 },
     },
     retired: {
       title: 'Retired',
       sv: 'undantag',
       work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3, herding: 4 },
-      except: { cook: 4, slaughter: 2 },
+      except: { cook: 4, slaughter: 2, hunt: 0 },
     },
     child: {
       title: 'Child',
       sv: 'barn',
       work: { harvest: 3, foraging: 5, herding: 8 },
-      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0 },
+      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0 },
     },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
@@ -781,6 +798,7 @@ VB['sim/rules'] = (() => {
     FIELDS,
     FISH,
     FORAGE,
+    DEER,
     FERTILITY,
     RIVER,
     farmable,

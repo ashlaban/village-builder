@@ -36,7 +36,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-100](backlog/VB-100.md) | Common fields worked by the village | year | 3 | M | A village with an empty store makes a common field; its harvest fills the store. |
 | [VB-106](backlog/VB-106.md) | Neighbours help with each other's work, and it builds ties | year | 3 | M | Idle adults may take a waiting field job of another household in their village; help raises tie and opinion. |
 | [VB-120](backlog/VB-120.md) | Village work days | year | 3 | M | The meeting sets days when the whole village mends the fence or clears the commons; staying away costs prestige. |
-| [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-141](backlog/VB-141.md) | Plan: customs of the animals | debt | 3 | S | Commons grazing, hunting rights, common hay, winter keep, village herd. |
 | [VB-144](backlog/VB-144.md) | Ewes' milk and wool | mill | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. |
 | [VB-160](backlog/VB-160.md) | Plan: what raised yields over the centuries, and a model for it | animals | 3 | S | Survey the historical causes of rising grain yields, their size and timescale, and propose a model in which a gain follows a change in farming; no code. |
@@ -74,6 +73,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-420](backlog/VB-420.md) | Refactor: split sim/kinds by concern | - | 3 | M | sim/kinds is over 700 formatted lines (about 795 after VB-348): split the job kinds by concern, each move checked with tools/same.js. |
 | [VB-422](backlog/VB-422.md) | Refactor: split sim/agents by concern (journeys, attention, walking) | - | 3 | M | sim/agents is over the line and the width since journeys; split journeys, attention and the awake set out. |
 | [VB-423](backlog/VB-423.md) | Refactor: split sim/hunger by concern (the meal, the need rule) | - | 3 | M | sim/hunger exports 20 names since journeys; split the need rule and the larder from the daily meal. |
+| [VB-424](backlog/VB-424.md) | Hides from the hunt | animals | 3 | S | A kill gives a hide once a system reads it (dress, VB-363, or trade); left out of VB-139. |
 
 ## Waiting for Kim
 
@@ -161,7 +161,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-289](backlog/VB-289.md) | The suitor's visit: a match beyond a day's walk needs a winter journey first | between | 2 | M | VB-288 | A man who found no one at his village's round may walk in winter to the nearest village beyond a day's walk that holds a free woman, at his household's cost in food and days; only villages he visited put their women in his pool at the next round, besides those within a day's walk. |
 | [VB-280](backlog/VB-280.md) | The order of villages turns by the year, so no village always asks first | between | 3 | S | VB-277 | In village id order the first villages' men ask first every year; start the round's and the meetings' order at village year mod count, deterministic and without a new draw, if Kim agrees. |
 | [VB-325](backlog/VB-325.md) | Wrap-up: between villages: distance and journeys | between | 3 | S | VB-277, VB-278, VB-279, VB-280, VB-288, VB-289, VB-290, VB-291 | Long runs against the plan's numbers: marriages and kin gifts by walking hours, journeys a year, the round and meetings a village a step against 60 ms; bands added. |
-| [VB-048](backlog/VB-048.md) | Wrap-up: tune yields and the food balance of a farm | animals | 3 | M | VB-091, VB-139, VB-144, VB-160 | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. |
+| [VB-048](backlog/VB-048.md) | Wrap-up: tune yields and the food balance of a farm | animals | 3 | M | VB-091, VB-144, VB-160 | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. |
 | [VB-350](backlog/VB-350.md) | Rotations: a field's courses, staggered over the farm, and the village's usual one | crops | 2 | M | VB-349 | A field holds a rotation of at most four courses and its step; a farm's fields are staggered; fallow does not count against the hands; the village's usual rotation is updated at the autumn meeting. Every head holds the usual one. |
 | [VB-351](backlog/VB-351.md) | The head chooses what to sow, by foresight | crops | 2 | M | VB-350, VB-255 | A poor, an ordinary and a good head choose rotation, field and sowing day differently, each with its bias; a crop new to the household is a project. |
 | [VB-352](backlog/VB-352.md) | Seed in hunger and on the move: the last field's seed, a start in life, settlers | crops | 2 | S | VB-350 | A hungry household eats the seed it holds most of first and the last field's seed of each crop last; new households and settlers carry a field's seed of each crop the old home can spare. |

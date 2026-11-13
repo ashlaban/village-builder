@@ -83,6 +83,9 @@ const QUANTITIES = [
   { id: 'graze', of: 'tile', name: 'a tile\'s grazing pressure', unit: 'cow-hours, halving a year', fields: ['w.graze'], kinds: ['herd'],
     none: 'nothing until forest spread (VB-091) reads it: then ungrazed open land is not kept open and goes to scrub, and its trees are not '
       + 'thinned; a tile with less is the better pasture, so herds move on to it (sim/grazing)' },
+  { id: 'deer', of: 'region', name: 'a region\'s roe deer', unit: 'deer', fields: ['st.deer'], kinds: ['hunt'],
+    none: 'no hunting ground there (below DEER.hunt.least), no kill, no crop browsed; the deer grow back towards the capacity of the region\'s forest '
+      + 'edges, from any left (sim/deer)' },
 ];
 
 // ---- the other fields of the @state lines, by hand: each with why it is not a stored quantity ----
