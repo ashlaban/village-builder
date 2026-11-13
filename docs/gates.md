@@ -38,7 +38,7 @@ used as saved). `tools/bench.js` and `tools/bands.js` were not rerun (minutes an
 |---|---|---|---|---|---|---|
 | 1 | `build.py --check` | `index.html` is built from `src/` | exact | test | pass | hard: a stale page is a wrong page |
 | 2 | `tests/lint.js`, rules | `@sys` line, no clock or `Math.random` in modules, page writes only its flags | exact; `// lint-allow:` per line | test | pass | hard: determinism and the page's contract |
-| 3 | `tests/lint.js`, sizes | no line over 160 characters; a module over 400 lines is reported, not failed (VB-410, 13 November: the task that crosses the line opens a split task) | `tests/lint-baseline.json`, long lines only, only falls | test | pass | the columns hard while cheap to meet (`tools/wrap.js`); length a report until VB-381's falling baselines for exports and function length |
+| 3 | `tests/lint.js`, sizes | no line over 160 characters; a module over 400 lines needs an open task that splits it (VB-410, VB-411, 13 November) | `tests/lint-baseline.json`: long lines, and `src/gen.js` kept at 545 lines; only falls | test | pass | the columns hard while cheap to meet (`tools/wrap.js`); the split task hard, since opening one is always possible; until VB-381's falling baselines for exports and function length |
 | 4 | `tests/ownership.js` (and `ownershiprules`, `cacheowners`) | only an owned field's owner writes it | `src/owners.json`; `tests/ownership-baseline.json`, 1 site left, only falls | test | pass | hard: architecture correctness, no noise |
 | 5 | `tests/dependencies.js` | no lookup into a later module but command dispatch | exact | test | pass | hard |
 | 6 | `tests/backlog.js` and the tool tests | backlog tables agree with task files; tools behave | exact | test | pass | hard |

@@ -2,8 +2,9 @@
 // (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st. The page script's files
 // (src/page/*.js, listed in src/page.json; VB-053) get the structure checks and the page rule, not the clock rule: the page may read the clock.
 // Existing long lines are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
-// Length is no cap (VB-410): a module over 400 lines is reported, never failed; the task that takes it over the line opens a task to split it.
-const fs = require('fs'), path = require('path'), { clockUse, pageWrites, counterUses } = require('./lint-rules.js');
+// Length is no cap (VB-410, VB-411): a module over 400 lines needs an open task that splits it ("Refactor: ..." naming its key in the title);
+// with one it may grow. A module kept over the line without a task is in the baseline at its length, which only falls (`src/gen.js`).
+const fs = require('fs'), path = require('path'), { clockUse, pageWrites, counterUses, splitTask } = require('./lint-rules.js');
 const root = path.join(__dirname, '..'), BASE = path.join(__dirname, 'lint-baseline.json');
 const SPLIT_LINES = 400, MAX_COLS = 160;
 const files = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8')).map((f) => 'src/' + f).concat('src/load.js');
@@ -11,6 +12,11 @@ const pageFiles = JSON.parse(fs.readFileSync(path.join(root, 'src/page.json'), '
 const key = (f) => (f === 'src/load.js' ? 'load' : f.slice(4, -3));
 const base = fs.existsSync(BASE) ? JSON.parse(fs.readFileSync(BASE, 'utf8')) : {};
 const cur = {}, errors = [], notes = [];
+let tasks = null; // the backlog's tasks, read only when a module is over the line
+const openTasks = () => tasks || (tasks = fs.readdirSync(path.join(root, 'backlog')).filter((n) => /^VB-\d+\.md$/.test(n)).map((n) => {
+  const text = fs.readFileSync(path.join(root, 'backlog', n), 'utf8'), m = /^# (VB-\d+): (.*)$/m.exec(text), s = /^Status: (.*)$/m.exec(text);
+  return { id: m ? m[1] : n.slice(0, -3), title: m ? m[2] : '', status: s ? s[1] : '' };
+}));
 for (const f of files.concat(pageFiles)) {
   const lines = fs.readFileSync(path.join(root, f), 'utf8').split('\n');
   if (lines[lines.length - 1] === '') lines.pop();
@@ -18,9 +24,15 @@ for (const f of files.concat(pageFiles)) {
   const long = lines.map((l, i) => (l.length > MAX_COLS ? i + 1 : 0)).filter(Boolean);
   const headOk = head.test(lines[0] || '');
   if (!headOk) errors.push(`${f}:1 line 1 must be "// @sys ${key(f)}: <purpose>"`);
-  cur[f] = { longLines: long.length };
-  const b = base[f] || { longLines: 0 };
-  if (lines.length > SPLIT_LINES) notes.push(`${f}: ${lines.length} lines, over ${SPLIT_LINES}: not a failure; it needs an open task to split it by concern (AGENTS.md, Conventions)`);
+  cur[f] = { lines: lines.length, longLines: long.length };
+  const b = { lines: 0, longLines: 0, ...base[f] };
+  if (lines.length > SPLIT_LINES && lines.length > b.lines) {
+    const id = splitTask(key(f), openTasks());
+    if (id) notes.push(`${f}: ${lines.length} lines, over ${SPLIT_LINES}; ${id} splits it`);
+    else errors.push(`${f}:${lines.length} ${lines.length} lines, over ${b.lines > SPLIT_LINES ? `its baseline of ${b.lines}` : SPLIT_LINES}, and no open task splits it. Do not pack lines or move code to make room: `
+      + `open the task (node tools/backlog.js new name="Refactor: split ${key(f)} by concern" ...), name it in the PR, and go on`);
+  }
+  if (lines.length < b.lines) notes.push(`${f}: improved (lines ${b.lines} -> ${lines.length}); run lint.js --update`);
   if (long.length > b.longLines) errors.push(...long.map((n) => `${f}:${n} line over ${MAX_COLS} characters (${long.length} long lines, baseline ${b.longLines})`));
   if (long.length < b.longLines) notes.push(`${f}: improved (long lines ${b.longLines} -> ${long.length}); run lint.js --update`);
 }
@@ -54,8 +66,8 @@ if (process.argv.includes('--update')) {
   const next = {};
   for (const f of files.concat(pageFiles)) {
     const c = cur[f], b = base[f];
-    const n = b ? Math.min(b.longLines, c.longLines) : c.longLines;
-    if (n) next[f] = { longLines: n };
+    const n = Math.min(b && b.longLines || 0, c.longLines), kept = Math.min(b && b.lines || 0, c.lines);
+    if (n || kept > SPLIT_LINES) next[f] = { ...(kept > SPLIT_LINES ? { lines: kept } : {}), ...(n ? { longLines: n } : {}) };
   }
   fs.writeFileSync(BASE, JSON.stringify(next, null, 1) + '\n'); console.log('lint-baseline.json updated'); process.exit(0);
 }

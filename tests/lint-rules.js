@@ -31,3 +31,12 @@ function counterUses(line, names) {
   return hits;
 }
 module.exports.counterUses = counterUses;
+
+// The open task that splits a module (VB-411): a task not done, titled "Refactor: ..." and naming the module's key (`sim/relations`) in its
+// title. tasks is [{id, title, status}]; a key matches whole, so `gen` is not found in `gen/rivers`. Returns the task's id or null.
+function splitTask(key, tasks) {
+  const named = new RegExp(String.raw`(?<![\w/.-])${key.replace(/[/.]/g, '\\$&')}(?:\.js)?(?![\w/-])`);
+  const hit = tasks.find((k) => !/^done\b/.test(k.status) && /^Refactor:/.test(k.title) && named.test(k.title));
+  return hit ? hit.id : null;
+}
+module.exports.splitTask = splitTask;
