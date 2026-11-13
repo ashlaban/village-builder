@@ -49,14 +49,14 @@ for (const seed of [7, 42]) {
     }
   }
 }
-// heirs keep the rules; founders make their fields in play, as one block where they can, never next to a house; plots too
+// heirs keep the rules; founders make their fields in play, as one block where they can, never next to a green; plots too
 const heirs = Sim.seed(world(7), 7, 'heirs');
 fieldRules(heirs, 'heirs seed 7');
 Sim.advance(heirs, 3 * Sim.YEAR);
 fieldRules(heirs, 'heirs seed 7 after 3 years', true);
 const X = VB['sim/expansion'];
 for (const v of heirs.villages) for (const p of [...v.plots, ...X.livePlots(heirs, v)]) for (const tr of X.tilesOf(p)) if (tr.kind === 'field') {
-  check(!nbs(heirs.w, tr.tile).some((j) => built(heirs).has(j)), `heirs: plot field ${tr.tile} touches a house or green`);
+  check(!nbs(heirs.w, tr.tile).some((j) => heirs.villages.some((v) => v.green && v.center === j)), `heirs: plot field ${tr.tile} touches a green`);
 }
 const founders = Sim.seed(world(7), 7, 'founders');
 Sim.advance(founders, 10 * Sim.YEAR);

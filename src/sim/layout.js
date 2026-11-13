@@ -286,8 +286,18 @@ VB['sim/layout'] = (() => {
       },
     };
   }
+  // Where farmed land may lie in play (a field or a meadow a household makes, a plot's field; Kim, 12 Nov), as the generator lays it: not
+  // on the ring of tiles round any village's green, which stays open, and no nearer the green of its own village v than its house, so
+  // the green stays the centre; it may touch a house. Gives the test of a tile, for the farm whose house is `house`.
+  function farmedLand(w, villages, v, house) {
+    const ring = new Set();
+    for (const u of villages) if (u.green) for (let k = 0; k < 6; k++) ring.add(w.nb[u.center * 6 + k]);
+    const c = v && v.green ? v.center : -1, dh = c >= 0 ? hexSteps(w, c, house) : 0;
+    return (t) => !ring.has(t) && (c < 0 || hexSteps(w, c, t) >= dh);
+  }
   return {
-    settlementGenerator, farmHooks, FIELD_REACH, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore, nameVillages, makeFence, makeFarmstead,
+    settlementGenerator, farmHooks, FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore,
+      nameVillages, makeFence, makeFarmstead,
     findSite, buildVillage, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
   };
 })();

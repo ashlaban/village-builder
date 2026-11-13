@@ -8,7 +8,7 @@ VB['sim/meadows'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
-  const { nextTo } = VB['sim/layout'];
+  const { nextTo, farmedLand } = VB['sim/layout'];
   const { HAND_REACH } = VB['sim/byhand'];
   const { hexSteps } = VB['sim/hex'];
   const { winterNeed } = VB['sim/herds'];
@@ -32,14 +32,15 @@ VB['sim/meadows'] = (() => {
   // Hay a farm's meadows give in an ordinary year, before raking and weather.
   const expectedHay = (f) => f.meadows.reduce((s, m) => s + HAY * m.fert, 0);
   // The best free tile for a hay meadow within REACH of the house, or -1: open meadow, marsh or heath, not a river or water tile, its
-  // village's outland or wilderness (sim/territory) and unused, not next to a house or green; by site value, near, few stones, beside the
+  // village's outland or wilderness (sim/territory) and unused, where farmed land may lie (sim/layout, farmedLand); by site value, near, few stones, beside the
   // farm's meadows, and away from its fields' block. `free`: whether the household may take a tile in (as for chooseTile, sim/fields).
   function chooseMeadow(st, f, free = (t) => freeFor(st, t, f.village), built = builtTiles(st)) {
     const w = st.w, own = new Set(f.meadows.map((m) => m.tile)), fields = new Set(f.fields.map((fd) => fd.tile));
+    const may = farmedLand(w, st.villages, st.villages[f.village], f.house);
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
       if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !free(t) || st.used.has(t) || built.has(t)) continue;
-      if (nextTo(w, t, built)) continue;
+      if (!may(t)) continue;
       const s = meadowFert(w, t) - 0.06 * d - (0.3 * w.stones[t]) / 255 + (nextTo(w, t, own) ? 0.3 : 0) - (nextTo(w, t, fields) ? 0.5 : 0);
       if (s > bs) { bs = s; best = t; }
     }
@@ -88,7 +89,8 @@ VB['sim/meadows'] = (() => {
   // farm is near enough.
   function meadowAt(st, tile, built = builtTiles(st)) {
     const w = st.w;
-    if (!SITE[w.biome[tile]] || w.river[tile] || w.water[tile] || st.used.has(tile) || built.has(tile) || nextTo(w, tile, built)) return false;
+    if (!SITE[w.biome[tile]] || w.river[tile] || w.water[tile] || st.used.has(tile) || built.has(tile) ||
+      !farmedLand(w, st.villages, null, tile)(tile)) return false;
     let f = null, fd = HAND_REACH + 1;
     for (const id of st.liveHouseholds) {
       const g = st.farmsteads[st.households[id].farmstead], d = hexSteps(w, g.house, tile);
