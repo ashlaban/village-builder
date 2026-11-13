@@ -5357,7 +5357,7 @@ VB['sim/rules'] = (() => {
       title: 'Child',
       sv: 'barn',
       work: { harvest: 3, foraging: 5, herding: 8 },
-      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0, grind: 1 },
+      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0 },
     },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
@@ -18264,6 +18264,7 @@ VB['sim/agents'] = (() => {
   // false: its provisions come from the new household (settlers, who walk on their stakes).
   function moved(st, a, old, hh, carry = true) {
     const f = st.farmsteads[hh.farmstead];
+    if (old) driveHome(st, old, a.id); // the old household's herds it had out are left by that farm (its herder is no longer a member)
     if (travelling(a)) return retarget(st, a, f.house);
     release(st, a);
     dropSides(st, a);
@@ -36889,7 +36890,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '944ade0141',
+const BUILD = '979afd8bd7',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

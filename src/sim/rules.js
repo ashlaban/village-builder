@@ -267,7 +267,7 @@ VB['sim/rules'] = (() => {
       title: 'Child',
       sv: 'barn',
       work: { harvest: 3, foraging: 5, herding: 8 },
-      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0, grind: 1 },
+      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0 },
     },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
