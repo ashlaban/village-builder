@@ -204,7 +204,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 | `health` | hunger | hunger 62,63,64 | deaths, agents, page |
 | `hunger` | hunger | hunger 54 | deaths, agents, lifecycle, births |
 | `hungerLog` | hunger | hunger 53 | - |
-| `kinPush` | lifecycle | lifecycle 82,86,95 | society |
+| `kinPush` | lifecycle | lifecycle (kinPressure at a village's round; cleared at the first village's round, by `wed` and `killPawn`; VB-277) | society |
 | `landWait` | settle | settle 42 | heirs |
 | `nursingUntil` | births | births 38 | page |
 | `owedFrom` | stores (new) ¹ | heirs 114 | cottage |
@@ -582,7 +582,7 @@ writers in fields, meadows, stakes and settle.
 | The village store spoils | `village.grain *= ...` | `clock.js:62` |
 | Larder food past its day | `household.larder` (filter) | `byre.js:157-158` |
 | A short household asks kin, then the village store | the giver's and the taker's `grain` and `ledger` (gift), `village.grain`, **`pawn.ties`** of both holders | `clock.js:56` → `help.js:41-54` (shareFood), `help.js:27-38` (gift) |
-| At the moving round every household gives to the village store | `household.grain`, `ledger`, `village.grain` | `help.js:56-63` (fillStores) |
+| At its village's round every household gives to the village store | `household.grain`, `ledger`, `village.grain` | `help.js` (fillStores, a village's own since VB-277) |
 | Shares to the heirs who do not inherit | `household.grain -= paid`, `pawn.stake`, `pawn.owed`, `pawn.owedFrom` | `heirs.js:105-121` (transfer) |
 | A holder marrying away with nobody to take the farm brings its grain | `to.grain += hh.grain; hh.grain = 0` | `heirs.js:270` (handOn) |
 | Provisions for those who take an empty farm, or settle new land | the old households' `grain`, `pawn.stake = 0`; the new household's grain (at creation) | `farmclaims.js:163-175`, `settle.js:69-79` and `175`, `cottage.js:38-39` |
