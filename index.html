@@ -19096,6 +19096,26 @@ VB['sim/agents'] = (() => {
     }
     j.claims = j.claims.filter((id) => id === finisher || st.agents[id].phase === 'back');
   }
+  // Household hh is going (sim/heirs' extinct): the jobs it posted and those on its farm f go, and those working them stop, as freeHands
+  // stops them (a neighbour helping, VB-106, would finish a job of no household); a load on its way home, its own people's or a helper's,
+  // is put down in its barn first, while it stands, as at a move (VB-335): brought in after, it went to a household gone and threw.
+  function stopWorkFor(st, hh, f) {
+    const jobs = new Set(st.jobsBy.get(`household:${hh.id}`));
+    for (const j of st.jobs.values()) if (j.farm === f) jobs.add(j);
+    const carriers = new Set(hh.members);
+    for (const j of jobs) for (const id of j.claims) carriers.add(id);
+    for (const id of carriers) {
+      const a = st.agents[id];
+      if (!a || a.phase !== 'back' || !a.job || !st.pawns[id].alive) continue;
+      release(st, a);
+      a.path = null;
+      a.anim = 'idle';
+    }
+    for (const j of jobs) {
+      freeHands(st, j, -1);
+      dropJob(st, j);
+    }
+  }
   // The household a job is done for: the job's own, or the pawn's for a village's job (a helper works for another household, VB-106).
   const workFor = (st, a, j) =>
     st.households[j.owner && j.owner.type === 'household' ? j.owner.id : st.pawns[a.id].household];
@@ -19603,6 +19623,7 @@ VB['sim/agents'] = (() => {
     start,
     release,
     freeHands,
+    stopWorkFor,
     complete,
     deposit,
     wantsWork,
@@ -21774,7 +21795,7 @@ VB['sim/heirs'] = (() => {
     ancestorsOf,
     wishOf,
   } = VB['sim/records'];
-  const { moved, dropJob, journeyOf, freeHands } = VB['sim/agents'];
+  const { moved, journeyOf, stopWorkFor } = VB['sim/agents'];
   const { farmToVillage, heldFarms } = VB['sim/ownership'];
   const { issue } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
@@ -22136,6 +22157,9 @@ VB['sim/heirs'] = (() => {
   }
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
+    const f = st.farmsteads[hh.farmstead];
+    // its work stops first, while it stands: a load on its way home is put down in its barn (sim/agents)
+    stopWorkFor(st, hh, f);
     // a farm it held in trust goes back to its holder first (VB-309, sim/trust)
     for (const g of heldFarms(st, hh.id))
       issue(st, {
@@ -22145,7 +22169,6 @@ VB['sim/heirs'] = (() => {
         args: { why: 'trustee gone' },
         source: 'trust',
       });
-    const f = st.farmsteads[hh.farmstead];
     f.condition = houseCondition(st, f);
     f.household = null;
     f.state = 'derelict';
@@ -22158,12 +22181,6 @@ VB['sim/heirs'] = (() => {
     dropStakes(st, hh);
     farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
-    // its jobs go, and those working them stop: a neighbour helping (VB-106) would otherwise finish a job of no household (VB-100's runs)
-    for (const j of [...st.jobs.values()])
-      if (j.farm === f) {
-        freeHands(st, j, -1);
-        dropJob(st, j);
-      }
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
       const p = st.pawns[id];
@@ -38358,7 +38375,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '41e3a50ebe',
+const BUILD = '1f6c63c925',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
