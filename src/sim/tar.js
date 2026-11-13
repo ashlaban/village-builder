@@ -67,7 +67,7 @@ VB['sim/tar'] = (() => {
     return null;
   }
   // At the start of summer: in each village with pine in its wood and no pit, the household with the most working hands (at least
-  // TAR.hands; the first farm among equals) and no project plan begins one on the wood's first pine tile.
+  // TAR.hands; the first farm among equals), no project plan and no head holding off projects (VB-253) begins one on the wood's first pine tile.
   function tarYear(st) {
     for (const v of st.villages) {
       if (!v.wood || !v.wood.length || villagePit(st, v)) continue;
@@ -78,7 +78,8 @@ VB['sim/tar'] = (() => {
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id],
           hh = f.household === null ? null : st.households[f.household];
-        if (!hh || hh.dissolved || f.booth || Projects.projectOf(st, 'household', hh.id)) continue;
+        if (!hh || hh.dissolved || f.booth || Projects.projectOf(st, 'household', hh.id) || Projects.heldOff(st, hh.id))
+          continue;
         const n = Drying.hands(st, hh);
         if (n > most) {
           most = n;

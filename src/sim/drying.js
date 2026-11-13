@@ -129,7 +129,8 @@ VB['sim/drying'] = (() => {
     return free >= BOAT.hands && Stores.grainOf(hh) - floorOf(st, hh) >= dailyNeed(st, hh) * YEAR_DAYS;
   }
   // At the start of the drying season: a boat untarred BOAT.lostYears is lost (VB-301); then each household of a village by fishing water,
-  // with no boat for its house, no project plan, grain and hands to spare (boatable) and a village wood to fell in, begins a boat if a shore by the sea
+  // with no boat for its house, no project plan (nor a head holding off projects, VB-253), grain and hands to spare (boatable) and a
+  // village wood to fell in, begins a boat if a shore by the sea
   // or a large lake is in its reach.
   function boatYear(st) {
     for (const v of st.villages) {
@@ -155,7 +156,8 @@ VB['sim/drying'] = (() => {
           hh.dissolved ||
           f.booth ||
           (hh.boat && hh.boat.house === f.house) ||
-          Projects.projectOf(st, 'household', hh.id)
+          Projects.projectOf(st, 'household', hh.id) ||
+          Projects.heldOff(st, hh.id)
         )
           continue;
         if (!boatable(st, hh, f)) continue;

@@ -553,7 +553,7 @@ crosses boundaries is execution writing food and fields directly, and two module
 
 | Step | State changed | Writer |
 | --- | --- | --- |
-| At the start of the work day, a household with fewer fields than it wants picks a tile | none (reads `st.used`, `w`, claims, `st.owner`) | `jobs.js:70` → `fields.js:54-63` (startProject, chooseTile) |
+| At the start of the work day, a household with fewer fields than it wants picks a tile | none (reads `st.used`, `w`, claims, `st.owner`) | `plans.js` (the land step, by the verb `project`) → `fields.js` (pickField, beginField) |
 | With no free tile, it may contest a stake another household left unworked | `st.claims` (the old claim dropped), the loser's **`farmstead.project = null`**, the loser's `pawn.rel` (remember), `st.record` | `stakes.js:41-51` (contest), `claims.js:33-39`, `relations.js:59-69` |
 | The tile is staked | `st.claims`, `st.claimSeq`, `st.landDirty` | `stakes.js:14` → `claims.js:22-30` (addClaim) |
 | The project starts | **`farmstead.project`** = {clear} | `fields.js:62` — past `sim/stakes`, proposed owner |
