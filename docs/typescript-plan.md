@@ -2,7 +2,7 @@
 
 > Testing policy updated by VB-408 (12 November 2026): [Testing](testing.md) supersedes the golden-file,
 > suite membership and CI requirements below. There are no permanent behavior baselines to update.
-> Refactors preserve behavior through focused contracts and optional comparisons to their starting commit.
+> Refactors preserve behavior through focused contracts and `tools/same.js` against their starting commit.
 > Late fixtures and long measurements run in the extended/nightly tier, not routine PR verification.
 
 

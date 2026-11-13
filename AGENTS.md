@@ -24,8 +24,9 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 3. If it turns out to need a decision, decide it by Deciding without Kim (below) and write the decision and its reason in the task file.
    Only if it is one of the two kinds that go to Kim, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
-5. Before the last commit: `npm test`; for size M or L, or a change under `src/page/`, run `npm run verify` once.
-   Rebuild `index.html` before committing. Report advisory targets; only correctness and execution failures stop a merge.
+5. Before the last commit: `npm test`; for a task of size M or L, or one that touches `src/page/`, `npm run verify` instead, once.
+   Rebuild `index.html` before committing. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
+   report it in the task file and the PR's Targets section (before, after, residual, cause).
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
@@ -53,24 +54,30 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   `close-arch KEY`, and `sync` after a task file's header is edited by hand, to change it. Each rewrites the tables and runs `tests/backlog.js`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer QUERY N TEXT|archive QUERY`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Build: `python3 build.py` inlines `src/` into `index.html`; `python3 build.py --check` fails if it is stale.
-- Test: `npm ci && npm test` runs representative checks (about 30 seconds budget), with slowest scripts reported.
-- Verify: `npm run verify` adds integration scenarios and jsdom/Chromium functionality, without late fixtures.
-  `node tests/run.js integration --verbose` runs just that tier (CI runs fast separately).
-- Extended: `npm run nightly` prepares late fixtures once, runs long correctness checks, then advisory measurements.
-  `node tests/run.js extended` runs long checks without the full benchmark. See `docs/testing.md` for coverage and timeouts.
+- Tests, three tiers listed in `tests/suites.js` (`docs/testing.md` has what each covers, the timeouts and the measured times):
+  - Fast: `npm install && npm test`, about 10 seconds (budget 30): the build, lint, ownership, dependencies, backlog and rule checks on
+    deliberate small states. A passing run prints its slowest five and its summary (`node tests/run.js test --list` prints each script's line).
+  - Integration: `npm run verify` runs fast and then the generated scenarios and the page in jsdom and real Chromium (functionality,
+    not rendering speed), about 4 minutes, without late fixtures; `node tests/run.js integration` runs that tier alone, and
+    `--verbose` also prints the reported numbers.
+  - Extended: `node tests/run.js extended` makes the small fixtures and runs the long checks (demography, daily invariants,
+    fixtures, history, bands, the player's line, the start's people); `npm run nightly` makes all four fixtures, runs
+    extended, then the bench and the bands. Neither is part of a task; the Extended checks workflow runs nightly.
+  - One script alone: `node tests/NAME.js`. A new check goes into the cheapest tier that can hold it, with a line in `tests/suites.js`.
 - Fixtures, late saves (`small-y5`, `small-y40`, `medium-y5`, `medium-ref`): a local cache, never published or fetched (VB-272). They
   lie in the gitignored `tests/fixtures/<key>/`, the key a hash of the modules of `src/manifest.json`, so a fixture is made for the
   sources as they are and is never stale: `node tools/fixtures.js status|make|clean`. One run a map saves both of its fixtures (small
   about 2 minutes, medium 1.5, side by side); `medium-ref` is saved at the first year's end with 1,000 living (by year 60), and its
-  stamp names the year. `npm run nightly` prepares all fixtures before checking them; in a test or a
-  tool, `require('./lib/fixtures.js').loadFixture(name)` gives `{st, stamp}`, making a missing one first; `npm run nightly` makes what
-  is missing and runs the bench (minutes).
+  stamp names the year. `npm test` and `npm run verify` load none; the extended tier makes the small pair first when the sources
+  lack it; in a test or a tool, `require('./lib/fixtures.js').loadFixture(name)` gives `{st, stamp}`, making a missing one first;
+  `npm run nightly` makes what is missing and runs the bench (minutes).
 - Bands (`tests/lib/bands.js`, one table; Kim's decision 9): `node tests/bands.js` (extended) checks each band's reduced run, populous on
   the tiny map at four seeds for 8 years; `node tools/bands.js` makes the full runs (populous small at four seeds, founders small at
   sixteen, heirs at two), prints each band and appends to `docs/bench/bands.jsonl`, never failing (`npm run nightly` runs it for a new
   commit). Growth is a target over a scenario's seeds; a household's hunger is described, with no target (Deciding without Kim, 1 and 2).
-- No permanent golden baselines. Older task/document references to golden checks or updates are superseded by `docs/testing.md`.
-  Refactors preserve behavior with focused comparisons against their starting commit; never regenerate a historical behavior baseline.
+- No golden file (retired by VB-408, Kim, 12 November): where an older task or document asks for `tests/golden.js` or a re-recorded
+  `tests/golden.json`, `docs/testing.md` stands instead. A refactor shows its behaviour unchanged with `node tools/same.js --base REF`, REF the commit it started
+  from: the same runs from both trees, the world and the state compared leaf by leaf, nothing recorded. Its line goes into the PR.
 - Targets: `node tools/targets.js [--name PATTERN] [--since DATE]` prints each target's latest value, residual and last five
   (`docs/bench/targets.jsonl`, written by `--record` on the checks that are targets, the bench, the bands and the nightly; `docs/bench/targets.md`).
 - Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
@@ -136,11 +143,14 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   loop on a late save (`node tools/sim.js --load FILE --years 1 --report perf`), not only on populous at year 2.
 
 ## Working rules
-- Behaviour-preserving work uses focused contracts and, when needed, a temporary comparison against its starting commit (`docs/testing.md`).
-- Use `npm test` while working. Run `npm run verify` before completing size M/L work or page changes. PR CI runs both tiers once;
-  extended late-game checks and measurements run nightly/manual. Never update a permanent golden file.
+- Behaviour-preserving work passes the focused checks of what it touches and, where that is not evidence enough, `node tools/same.js` against
+  its starting commit (`docs/testing.md`; the refactor rules are in `BACKLOG.md`, "How this backlog works").
+- Use `npm test` while working, after each change. At the end of a task of size M or L, or one that changes `src/page/`:
+  `npm run verify`, once. The Checks workflow (`.github/workflows/checks.yml`) runs the fast tier and then the integration tier on a
+  pull request; the Extended checks workflow (`nightly.yml`) runs the long checks and measurements nightly or by hand.
 - Hard and soft checks (Kim, 10 November, VB-261; `docs/gates.md`). Hard, and stopping a merge: a red `npm test`, or a hard script of
-  verify (the build, lint rules and size baselines, ownership, dependencies, backlog, determinism and plain data, rule tests, saves, invariants, the page's functional tests, the counters' structure). Cost,
+  verify (the build, lint rules and size baselines, ownership, dependencies, backlog, determinism and plain data, rule tests, saves,
+  invariants, the page's functional tests, the counters' structure). Cost,
   balance, demography and timing are targets: they print their measure, target and residual, and never set the exit code. A PR has a
   "Targets" section, one line for each target the change moves or was meant to move (before, after, residual, whether the change is
   its cause) and one line summing the targets out and not moved ("8 targets out, as on `main`"). A change never raises a target,
@@ -151,7 +161,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - A slice's wrap-up adds its loops' bands to `tests/lib/bands.js`: a `report` for the full runs and, where a reduced run can show the
   loop, an `assert`.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.
-- A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run by the fast continuity probe and daily by `tests/invariants.js` in extended)
+- A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run daily by `tests/continuity.js`
+  in `npm test`, on a small state, and by `tests/invariants.js` in the extended tier, over years)
   and, if it is a stored quantity, its line in `tools/stocks.js` (what happens at none; `tests/review-tools.js` checks it).
 - Every PR of size M, or that adds a module or a state field, starts with a short impact note: the modules and state it reads and writes,
   any new coupling between systems, and, where it adds an abstraction or a special case, why the existing ones do not fit.

@@ -1,4 +1,4 @@
-// Verify late-game states: the small pair, made here if missing (verify's runner makes it first), and the medium ones where made.
+// Verify late-game states: the small pair, made here if missing (the extended runner makes it first), and the medium ones where made.
 const assert = require('assert'), F = require('./lib/fixtures.js'), { checkState } = require('./lib/invariants.js');
 const VB = require('../src/load.js'), Sim = VB.sim, { compareRankings } = require('./lib/heir-rankings.js');
 const SMALL = ['small-y5', 'small-y40'];

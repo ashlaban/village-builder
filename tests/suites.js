@@ -1,4 +1,5 @@
 // Explicit coverage tiers; see docs/testing.md. Every former scenario check remains in integration or extended.
+// The runner starts them in this order.
 const FAST = [
   ['python3', 'build.py', '--check'],
   ['node', 'tests/marriage-demography.js'],
@@ -20,6 +21,7 @@ const FAST = [
   ['node', 'tests/doc-tool.js'],
   ['node', 'tests/questions-tool.js'],
   ['node', 'tests/agent-usage.js'],
+  ['node', 'tests/same-tool.js'],
   ['node', 'tests/wood.js'],
   ['node', 'tests/timber.js'],
   ['node', 'tests/stone.js'],
@@ -45,7 +47,18 @@ const FAST = [
   ['node', 'tests/rng.js']
 ];
 const INTEGRATION = [
+  // The slowest first, so that none starts last and runs on alone; the rest in any order.
+  ['node', 'tests/tools.js'],
+  ['node', 'tests/saves.js'],
+  ['node', 'tests/smoke.js'],
+  ['node', 'tests/populous.js'],
   ['node', 'tests/spread.js', '--extended'],
+  ['node', 'tests/indexes.js', '--extended'],
+  ['node', 'tests/clock.js', '--extended'],
+  ['node', 'tests/paths.js', '--extended'],
+  ['node', 'tests/rivers.js'],
+  ['node', 'tests/settle.js'],
+  ['node', 'tests/stones.js'],
   ['node', 'tests/events.js'],
   ['node', 'tests/stores.js'],
   ['node', 'tests/grain.js'],
@@ -72,8 +85,6 @@ const INTEGRATION = [
   ['node', 'tests/spacing.js'],
   ['node', 'tests/manual.js'],
   ['node', 'tests/trees.js'],
-  ['node', 'tests/stones.js'],
-  ['node', 'tests/rivers.js'],
   ['node', 'tests/climate.js'],
   ['node', 'tests/geology.js'],
   ['node', 'tests/prospect.js'],
@@ -93,14 +104,12 @@ const INTEGRATION = [
   ['node', 'tests/service.js'],
   ['node', 'tests/villagehours.js'],
   ['node', 'tests/layout.js'],
-  ['node', 'tests/tools.js'],
   ['node', 'tests/meals.js'],
   ['node', 'tests/plans.js'],
   ['node', 'tests/projects.js'],
   ['node', 'tests/routines.js'],
   ['node', 'tests/plots.js'],
   ['node', 'tests/cottage.js'],
-  ['node', 'tests/settle.js'],
   ['node', 'tests/relations.js'],
   ['node', 'tests/help.js'],
   ['node', 'tests/exchange.js'],
@@ -126,28 +135,22 @@ const INTEGRATION = [
   ['node', 'tests/herding.js'],
   ['node', 'tests/start.js'],
   ['node', 'tests/gossip.js'],
-  ['node', 'tests/populous.js'],
-  ['node', 'tests/saves.js'],
-  ['node', 'tests/smoke.js'],
+  ['node', 'tests/hunger.js'],
+  ['node', 'tests/health.js'],
   ['node', 'tests/browser.js'],
   ['node', 'tests/browser-speed.js'],
   ['node', 'tests/browser-mobile.js'],
   ['node', 'tests/browser-saves.js'],
   ['node', 'tests/browser-start.js'],
-  ['node', 'tests/browser-editor.js'],
-  ['node', 'tests/start.js', '--people'],
-  ['node', 'tests/clock.js', '--extended'],
-  ['node', 'tests/indexes.js', '--extended'],
-  ['node', 'tests/paths.js', '--extended']
+  ['node', 'tests/browser-editor.js']
 ];
 const EXTENDED = [
   ['node', 'tests/births.js'],
-  ['node', 'tests/hunger.js'],
-  ['node', 'tests/health.js'],
   ['node', 'tests/invariants.js'],
   ['node', 'tests/fixtures.js'],
   ['node', 'tests/history.js'],
   ['node', 'tests/bands.js'],
-  ['node', 'tests/line.js']
+  ['node', 'tests/line.js'],
+  ['node', 'tests/start.js', '--people']
 ];
 module.exports = { FAST, INTEGRATION, EXTENDED };

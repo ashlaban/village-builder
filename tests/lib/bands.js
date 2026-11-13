@@ -1,5 +1,5 @@
 // The table of bands (VB-163; target-v2, section 6.2; Kim's decision 9): each band is a probe of a finished run with a range it should
-// fall in. A band's `assert` is checked on a reduced scenario in `npm run verify` (tests/bands.js) and fails outside its range; its `report`
+// fall in. A band's `assert` is checked on a reduced scenario in the extended tier (tests/bands.js) and fails outside its range; its `report`
 // is a full run, made nightly by tools/bands.js, printed as in or out and never failing. A slice's wrap-up adds its loops' bands here.
 //   {id, probe, kind, report?: {lo, hi, afterYear, scenario, map, years, seeds}, assert?: {lo, hi, afterYear, setup, years, seeds}}
 // Kinds: `balancing` is a target (reported with its residual), `watched` fails the reduced run when out, and `described` has no range:

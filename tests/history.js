@@ -21,7 +21,7 @@ function windowOf(name) {
 }
 async function main() {
   const names = ['small-y5', 'small-y40'], started = performance.now();
-  // Only the parent makes what is missing (verify's runner has made it already); the workers load.
+  // Only the parent makes what is missing (the extended runner has made it already); the workers load.
   if (!F.ensure(names)) throw new Error('history: required fixtures could not be prepared');
   const windows = await Promise.all(names.map(windowOf)), results = [];
   for (let i = 0; i < windows.length; i++) {

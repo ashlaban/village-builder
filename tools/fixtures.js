@@ -85,11 +85,11 @@ const USAGE = `usage: node tools/fixtures.js <command>
   make [name...] make the named fixtures, or all (${Object.keys(F.FIXTURES).join(', ')}), into tests/fixtures/<key>/: one run a map
                  (small about 2 minutes, medium about 1.5, side by side), saving each fixture as the run passes it; keeps the
                  newest ${KEEP} keys
-  make-missing name...  make those of the named fixtures that the current key lacks (verify's first step)
+  make-missing name...  make those of the named fixtures that the current key lacks (the extended tier's first step)
   clean          remove every key but the current one
   The key hashes the modules of src/manifest.json: a fixture is made for the sources as they are and is never stale. Nothing is
   fetched or published. In a test or a tool, require('./lib/fixtures.js').loadFixture(name) gives {st, stamp}, making a missing one
-  first; npm run verify makes the small pair beside its other scripts.`;
+  first; node tests/run.js extended makes the small pair first, npm run nightly all four.`;
 async function main(args) {
   const [command, ...names] = args;
   if (command === 'make') return make(names.length ? names : undefined);
