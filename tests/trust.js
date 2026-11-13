@@ -85,9 +85,13 @@ let report = '';
   check(holder.household === a.id && maid.household === a.id && maid.servant && t.why === 'servant', `back with a servant (${t.why})`);
   invariants(st, 'after the servant');
 }
-// 4. The holder dies: the trust ends, succession as today.
+// 4. A save keeps the trust; then the holder dies: the trust ends, succession as today.
 {
-  const { st, a, holder, t } = intoTrust();
+  const made = intoTrust(), back = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(made.st))));
+  check(JSON.stringify(back.trusts) === JSON.stringify(made.st.trusts) && JSON.stringify(back.liveTrusts) === JSON.stringify(made.st.liveTrusts)
+    && trustOf(back, made.a.id), 'a save and load keep the trust');
+  invariants(back, 'loaded');
+  const st = back, a = st.households[made.a.id], holder = st.pawns[made.holder.id], t = trustOf(st, a.id);
   Sim.killPawn(st, holder.id, 'illness');
   check(t.why === 'death' && !trustOf(st, a.id), `the trust ends at the holder's death (${t.why})`);
   invariants(st, 'after the death');
