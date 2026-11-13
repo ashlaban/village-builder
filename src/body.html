@@ -147,6 +147,7 @@
       <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
     </div>
     <div class="ground-key panel" id="groundKey" role="group" aria-label="Key to the ground" hidden></div>
+    <div class="ground-key reach-key panel" id="reachKey" role="group" aria-label="Key to walking time" hidden></div>
     <div class="minimap panel" id="minimap" aria-label="Overview map, click or tap to jump" tabindex="0" role="group">
       <canvas id="mmBase"></canvas>
       <canvas id="mmView"></canvas>
@@ -160,6 +161,8 @@
         title="Land ownership (L)" aria-pressed="false"></button>
       <button id="groundBtn" type="button" class="icon-btn" data-icon="ground" aria-keyshortcuts="o" aria-label="Bedrock and deposits"
         title="Bedrock and deposits (O)" aria-pressed="false" aria-controls="groundKey"></button>
+      <button id="reachBtn" type="button" class="icon-btn" data-icon="reach" aria-keyshortcuts="h" aria-label="Walking time from the selected tile"
+        title="Walking time from the selected tile (H)" aria-pressed="false" aria-controls="reachKey"></button>
       <button id="noticeBtn" type="button" class="icon-btn" data-icon="bell" aria-label="Notifications" title="Which notifications show"
         aria-expanded="false" aria-controls="noticePop"></button>
       <button id="minimapBtn" type="button" class="icon-btn" data-icon="minimap" aria-keyshortcuts="m" aria-label="Minimap" title="Minimap (M)"

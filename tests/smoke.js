@@ -76,6 +76,10 @@ const iv = setInterval(async () => {
   doc.getElementById('groundBtn').click(); tick(5);
   if (doc.getElementById('groundKey').hidden || !/Bedrock/.test(doc.getElementById('groundKey').textContent)) fail('the Ground overlay shows no key');
   doc.getElementById('groundBtn').click(); tick(2); // the Ground overlay on and off
+  doc.getElementById('reachBtn').click(); tick(5); // the Reach overlay (VB-437): its key names the origin, or asks for one
+  if (doc.getElementById('reachKey').hidden || !/Walking time/.test(doc.getElementById('reachKey').textContent)) fail('the Reach overlay shows no key');
+  doc.getElementById('reachBtn').click(); tick(2);
+  if (!doc.getElementById('reachKey').hidden) fail('the Reach overlay keeps its key when off');
   doc.getElementById('settlersBtn').click(); tick(20);
   const expand = (selector) => qa(selector).forEach((el) => {
     el.open = true; el.dispatchEvent(new win.Event('toggle'));

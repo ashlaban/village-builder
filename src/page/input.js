@@ -124,6 +124,7 @@ const SHORTCUTS = {
   r: 'regionBtn',
   l: 'landBtn',
   o: 'groundBtn',
+  h: 'reachBtn',
   m: 'minimapBtn',
   f: 'centre',
 };
@@ -256,6 +257,7 @@ toggle($('landBtn'), (on) => {
   if (on) drawLand();
 });
 toggle($('groundBtn'), (on) => setGround(on));
+toggle($('reachBtn'), (on) => setReach(on));
 // Panel choices and folds belong to the page, never to saved simulation state.
 const mobileUI = matchMedia('(max-width: 1024px)');
 let activePanel = null,

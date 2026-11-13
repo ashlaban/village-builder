@@ -194,6 +194,7 @@ function updateSettlement(dt) {
   if (st.pathDirty.size) refreshPaths();
   if (landOn || st.landDirty.size) refreshLand();
   refreshGround();
+  refreshReach();
   for (const o of fieldSprites) {
     const s = cropStage(o.fd);
     if (s !== o.stage) {
