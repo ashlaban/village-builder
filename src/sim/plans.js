@@ -10,11 +10,12 @@ VB['sim/plans'] = (() => {
     SEED = Stores.grainGood(SEED_CROP); // the seed reserved: barley's until rotations (VB-350)
   const { KINDS } = VB['sim/kinds'];
   const { seedNeed } = VB['sim/hunger'];
-  const { fieldsWanted, fieldsWorkable, startProject } = VB['sim/fields'];
+  const { fieldsWanted, fieldsWorkable, fieldWhy, pickField, beginField } = VB['sim/fields'];
   const Projects = VB['sim/projects'],
     { on } = VB['sim/events'],
     { log } = VB['sim/records'];
-  const { startMeadow } = VB['sim/meadows'];
+  const { meadowWhy, pickMeadow, beginMeadow, wantsMeadow } = VB['sim/meadows'];
+  const { issue } = VB['sim/commands'];
   const { reviewWant } = VB['sim/exchange'];
   const { buildStep } = VB['sim/building'];
   const Green = VB['sim/green'],
@@ -30,7 +31,7 @@ VB['sim/plans'] = (() => {
   //   is dropped with it, so the maps hold only live holders (Rules for cost, 1). Its review asks each kind where it is available for the
   //   holder (refreshJobs, sim/jobs) on the holder's planning day, and out of turn when a window closes or a store crosses a target.
   // @state st.plans.seasons (VB-252): a household's seasonal plan, {holder, kind: 'season', year, season (of cal), made (the day), steps (the
-  //   season's routines in the template's order: kinds of sim/kinds)}; one per undissolved household, made with its standing plan and again
+  //   season's routines in the template's order: kinds of sim/kinds), by (absent, or 'head' once its head set the order: VB-253's verb)}; one per undissolved household, made with its standing plan and again
   //   at the standing plan's first review in each season, from its culture's template; dropped with it. The order is recorded, not yet
   //   enforced beyond what the role rankings do (VB-023 enforces the first order).
   // @state st.plans.due: [[hour, household id, index in WINDOWED]], sorted by hour, then id, then index: one entry per live household and
@@ -42,8 +43,12 @@ VB['sim/plans'] = (() => {
   //   perHand (fields a working adult can till): copied from the template when its seasonal plan is made; fields, workable (the fields
   //   wanted and those its hands can till, written at each review, which takes the land step)}. Read by wood (sim/kinds), hayWanted
   //   (sim/meadows), seedNeed (sim/hunger), the review and its land step.
-  // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none
-  //   (nothing names one yet: VB-253's verb). plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
+  // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none;
+  //   named by the head's verb `tile` (VB-253), used once and cleared by the land step, or cleared there when it no longer passes. plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
+  // @state plan.chosen (a household's; VB-253): absent until its head first chooses through a verb (the player as head), then {hay (winters),
+  //   fields, wood (loads), cow (0 or 1): the head's targets in place of the template's and the holder's rule's, each null for none;
+  //   project: 'none' (no project of the household's is begun by its own rule until cleared) or null}. Each lasts until cleared.
+  //   Written only by the head's verbs (setTarget, holdProject), applied by seasonal and reviewed; cow is read by sim/exchange.
   // @state plan.routines (a village's; VB-257): the keys of VILLAGE_ROUTINES the village does this year, at most MAX_ROUTINES, each a source
   //   of the village's tasks (sim/jobs asks only their kinds); plan.routinesBy: how they were set, 'founded' (the founders' choice, until
   //   the first meeting), 'meeting' (the meeting decided), or, when it did not decide, its culture's practice noDecision ('nothing',
@@ -289,6 +294,7 @@ VB['sim/plans'] = (() => {
     P.hayWinters = T.hayWinters;
     P.seed = T.seed;
     P.perHand = T.perHand;
+    chosenTargets(plan);
     const sp = {
       holder: { type: 'household', id },
       kind: 'season',
@@ -630,6 +636,7 @@ VB['sim/plans'] = (() => {
     if (sp.year !== c.year || sp.season !== c.season) seasonal(st, plan, c);
     T.workable = fieldsWorkable(st, hh, T.perHand);
     T.fields = fieldsWanted(st, hh, T.workable);
+    chosenTargets(plan);
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed');
     reviewWant(st, plan, hh, why); // a cow wanted (VB-390): plan.want, sim/exchange's
@@ -658,14 +665,137 @@ VB['sim/plans'] = (() => {
     if (Commons.fieldsOf(v).length) Stores.reserve(st, v, plan, SEED, seedNeed(st, v, SEED_CROP), 'seed');
   }
   // The land step (at each review of a household's plan): a new field while the household has fewer than the plan's target, else a hay
-  // meadow while it is short of one; the tile is the holder's choice (chooseTile, chooseMeadow) unless the plan names one.
-  // `built`: the houses and greens, once for every farm's look (sim/fields, builtTiles).
+  // meadow while it is short of one; none while its head holds off projects (VB-253). The tile is the one the plan names, while it still
+  // passes the verb's check (cleared when it no longer does), else the holder's choice (pickField, pickMeadow); the field or meadow is
+  // begun through the head's verb `project`, the holder's rule as the player's (source 'pawn'; VB-253). `built`: the houses and greens,
+  // once for every farm's look (sim/fields, builtTiles).
   function landStep(st, plan, f, hh, built) {
-    let p = startProject(st, f, hh, built, plan.targets.fields, plan.tiles.field);
-    if (p) makeProject(st, 'household', hh.id, p);
-    p = startMeadow(st, f, hh, built, plan.tiles.meadow);
-    if (p) makeProject(st, 'household', hh.id, p);
+    if (!(plan.chosen && plan.chosen.project === 'none')) {
+      if (!Projects.projectOf(st, 'household', hh.id) && f.fields.length < plan.targets.fields)
+        landBy(st, plan, f, hh, 'field', built);
+      if (!Projects.projectOf(st, 'household', hh.id) && wantsMeadow(st, f, hh))
+        landBy(st, plan, f, hh, 'meadow', built);
+    }
     Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed'); // a project begun holds its seed from now
+  }
+  // The holder's rule for the land project `what`: the plan's named tile, or its own pick, begun through the verb.
+  function landBy(st, plan, f, hh, what, built) {
+    let tile = plan.tiles[what];
+    if (tile >= 0 && (what === 'field' ? fieldWhy : meadowWhy)(st, f, hh, tile, built)) tile = plan.tiles[what] = -1;
+    if (tile < 0) tile = (what === 'field' ? pickField : pickMeadow)(st, f, hh, built);
+    if (tile < 0) return;
+    const actor = hh.holder === null ? { household: hh.id } : hh.holder;
+    issue(st, { actor, verb: 'project', target: hh.id, args: { what, tile }, source: 'pawn' });
+  }
+  // ---- the player as head (VB-253; design.md section 7, The player as head; section 15, Parity of command) ----
+  // The head's choices of its plan, each the act of a verb of sim/commands (setTarget, nameTile, setOrder, holdProject, beginLand,
+  // giveUp), which checks it first: a target, the tile of the next field or meadow, the order of the season's routines, the project.
+  // A target's bounds, [least, most], for the household's plan now: hay 0 to 3 winters' need, fields 0 to what its hands can till, the
+  // woodpile 0 to twice the winter's goal, a cow 0 (none wanted) or 1 (wanted while it holds a meadow and has no cattle).
+  const HAY_MOST = 3;
+  function targetBounds(st, plan, store) {
+    if (store === 'hay') return [0, HAY_MOST];
+    if (store === 'fields') return [0, plan.targets.workable];
+    if (store === 'wood') return [0, 2 * st.ECON.woodWinter];
+    if (store === 'cow') return [0, 1];
+    return null;
+  }
+  // Why n may not be the target of `store` in household id's plan, or null (n null: the choice cleared, the holder's rule again).
+  function targetWhy(st, id, store, n) {
+    const plan = st.plans.households.get(id),
+      b = plan && targetBounds(st, plan, store);
+    if (!b) return `there is no target ${store}`;
+    if (n === null) return null;
+    if (!Number.isFinite(n) || n < b[0] || n > b[1]) return `${store} must be from ${b[0]} to ${b[1]}`;
+    return (store === 'fields' || store === 'cow') && !Number.isInteger(n) ? `${store} must be a whole number` : null;
+  }
+  const choices = (plan) =>
+    plan.chosen || (plan.chosen = { hay: null, fields: null, wood: null, cow: null, project: null });
+  // The head's targets over the plan's (at its making each season, at each review and when one is set): the woodpile's goal in every season.
+  function chosenTargets(plan) {
+    const C = plan.chosen,
+      T = plan.targets;
+    if (!C) return;
+    if (C.hay !== null) T.hayWinters = C.hay;
+    if (C.wood !== null) for (let s = 0; s < 4; s++) T.wood[s] = C.wood;
+    if (C.fields !== null) T.fields = Math.min(C.fields, T.workable);
+  }
+  // The target of `store` becomes n (null: the template's and the holder's rule's again, from the next season's plan or review).
+  function setTarget(st, id, store, n) {
+    const plan = st.plans.households.get(id);
+    choices(plan)[store] = n;
+    chosenTargets(plan);
+  }
+  // The tile of the next field or meadow (`what`) becomes `tile`, or none (-1): the land step takes it when the household wants one.
+  function nameTile(st, id, what, tile) {
+    st.plans.households.get(id).tiles[what] = tile;
+  }
+  // Why `steps` may not be the order of household id's routines this season, or null: the same routines as its seasonal plan's, each once.
+  function orderWhy(st, id, steps) {
+    const sp = st.plans.seasons.get(id);
+    if (!sp) return `household ${id} has no seasonal plan`;
+    if (!Array.isArray(steps) || steps.length !== sp.steps.length || new Set(steps).size !== steps.length)
+      return `the order must name each of the season's ${sp.steps.length} routines once`;
+    for (const k of steps) if (!sp.steps.includes(k)) return `${k} is not a routine of the season`;
+    return null;
+  }
+  // The season's routines in the head's order, until the next season's plan is made (recorded; VB-023's enforcement was not merged).
+  function setOrder(st, id, steps) {
+    const sp = st.plans.seasons.get(id);
+    sp.steps = [...steps];
+    sp.by = 'head';
+  }
+  // The head holds off projects (on true) or lets its rule take them again (false).
+  function holdProject(st, id, on) {
+    choices(st.plans.households.get(id)).project = on ? 'none' : null;
+  }
+  // Why household hh may not begin the land project `what` on `tile` now, or null: a farm of its own, no project under way, and the
+  // tile's check (fieldWhy, meadowWhy: claims, reach, the farm's block).
+  function landWhy(st, hh, what, tile) {
+    if (what !== 'field' && what !== 'meadow') return `there is no land project ${what}`;
+    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
+    const p = Projects.projectOf(st, 'household', hh.id);
+    if (p) return `household ${hh.id} has a ${p.what} under way`;
+    return (what === 'field' ? fieldWhy : meadowWhy)(st, f, hh, tile);
+  }
+  // The new field or meadow begun on `tile` (sim/fields' beginField, sim/meadows' beginMeadow: staked, or a stake contested), its project
+  // plan made; the plan's named tile used. Nothing is begun when a contest is lost.
+  function beginLand(st, hh, what, tile) {
+    const f = st.farmsteads[hh.farmstead],
+      p = what === 'field' ? beginField(st, f, hh, tile) : beginMeadow(st, f, hh, tile);
+    if (!p) return;
+    makeProject(st, 'household', hh.id, p);
+    const plan = st.plans.households.get(hh.id);
+    if (plan.tiles[what] === tile) plan.tiles[what] = -1;
+  }
+  // The household's project under way given up by its head, and told; its stake, if any, stays until it lapses or is taken (sim/stakes).
+  function giveUp(st, hh, plan) {
+    dropProject(st, plan, ...dropWords(st, plan, 'its head chose to'));
+  }
+  // What the head may choose, for the page (VB-256): the targets now and the head's own, their bounds, the named tiles, the season's
+  // order and the project under way, or null for a household with no plan. Plain data, a copy.
+  function headView(st, id) {
+    const plan = st.plans.households.get(id),
+      sp = st.plans.seasons.get(id);
+    if (!plan || !sp) return null;
+    const T = plan.targets,
+      C = plan.chosen || {},
+      p = Projects.projectOf(st, 'household', id);
+    const target = (store, now) => ({ now, chosen: C[store] ?? null, bounds: targetBounds(st, plan, store) });
+    return {
+      targets: {
+        hay: target('hay', T.hayWinters),
+        fields: target('fields', T.fields),
+        wood: target('wood', T.wood[cal(st.t).season]),
+        cow: target('cow', plan.want ? 1 : 0),
+      },
+      tiles: { ...plan.tiles },
+      order: [...sp.steps],
+      orderBy: sp.by || 'template',
+      project: p ? { id: p.id, what: p.what, step: p.steps[p.open].kind } : null,
+      heldOff: C.project === 'none',
+    };
   }
   return {
     reviewHour,
@@ -677,6 +807,16 @@ VB['sim/plans'] = (() => {
     fillPlans,
     reviewed,
     landStep,
+    targetWhy,
+    setTarget,
+    nameTile,
+    orderWhy,
+    setOrder,
+    holdProject,
+    landWhy,
+    beginLand,
+    giveUp,
+    headView,
     reviewWhy,
     mayLook,
     closing,
