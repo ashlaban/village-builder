@@ -2,11 +2,12 @@
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
+  const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
-  const { villageOf, age } = VB['sim/records'];
+  const { villageOf, age, kinNear } = VB['sim/records'];
   const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot, travelling } =
     VB['sim/agents'];
-  const { companyFor } = VB['sim/relations'];
+  const { companyFor, opinionOf } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
@@ -364,22 +365,13 @@ VB['sim/jobs'] = (() => {
     }
     return lo;
   }
-  function planRound(st, idle, c) {
-    const bids = [];
-    for (const a of idle) {
-      const js = jobsFor(st, st.pawns[a.id]);
-      VB.count.matchBid += js.length ?? js.size;
-      for (const j of js) {
-        const s = bid(st, a, j, c);
-        if (s > 0) bids.push([s, a, j, j.claims.length]);
-      }
-    }
+  // Assign the bids, best first, one job a pawn; a bid on a job others joined earlier in the round falls by join for each and waits its
+  // turn again.
+  function assign(st, bids, busy) {
     bids.sort((x, y) => y[0] - x[0]);
-    const busy = new Set();
     for (let i = 0; i < bids.length; i++) {
       const [s, a, j, k] = bids[i];
       if (busy.has(a) || !isOpen(j)) continue;
-      // others joined the job earlier in this round: the bid falls by join for each, and waits its turn again
       if (j.claims.length > k) {
         const b = [s * MATCH.join ** (j.claims.length - k), a, j, j.claims.length];
         bids.splice(slot(bids, i + 1, b[0]), 0, b);
@@ -388,7 +380,70 @@ VB['sim/jobs'] = (() => {
       issue(st, { actor: a.id, verb: 'work', target: j.key, source: 'planner' });
       busy.add(a);
     }
+  }
+  function planRound(st, idle, c) {
+    const bids = [],
+      bidding = new Set();
+    for (const a of idle) {
+      const js = jobsFor(st, st.pawns[a.id]);
+      VB.count.matchBid += js.length ?? js.size;
+      for (const j of js) {
+        const s = bid(st, a, j, c);
+        if (s > 0) {
+          bids.push([s, a, j, j.claims.length]);
+          bidding.add(a);
+        }
+      }
+    }
+    const busy = new Set();
+    assign(st, bids, busy);
+    helpRound(st, idle, bidding, busy, c);
     return busy;
+  }
+  // Help between households (VB-106): a pawn with no bid of its own this round bids on the jobs the other households of its village offer,
+  // each its most urgent open job of each kind help takes (MATCH.help), at its bid times factor, + kin for near kin of the holder, + its
+  // opinion of the holder. Bids on the helper basis only (sim/eligibility).
+  function helpRound(st, idle, bidding, busy, c) {
+    const offers = new Map(),
+      bids = [];
+    for (const a of idle) {
+      const p = st.pawns[a.id];
+      if (bidding.has(a) || busy.has(a) || age(st, p) < HELP.minAge) continue;
+      const v = villageOf(st, p);
+      if (!offers.has(v)) offers.set(v, offered(st, v, c));
+      const kin = kinNear(st, p.id);
+      for (const j of offers.get(v)) {
+        VB.count.helpBid++;
+        const hh = st.households[j.owner.id];
+        if (hh.id === p.household) continue;
+        const s = bid(st, a, j, c);
+        if (s <= 0) continue;
+        const f =
+          HELP.factor +
+          (hh.holder !== null ? (kin.includes(hh.holder) ? HELP.kin : 0) + opinionOf(st, p.id, hh.holder) : 0);
+        if (f > 0) bids.push([s * f, a, j, j.claims.length]);
+      }
+    }
+    if (bids.length) assign(st, bids, busy);
+  }
+  // What the households of village v offer helpers: each its most urgent open job of each kind help takes, waited long enough, in id order.
+  function offered(st, v, c) {
+    const out = [];
+    for (const fid of st.villages[v].farmsteads) {
+      const hid = st.farmsteads[fid].household,
+        js = hid === null ? null : st.jobsBy.get(`household:${hid}`);
+      if (!js) continue;
+      const best = new Map();
+      for (const j of js) {
+        VB.count.helpOffer++;
+        if (!HELP.kinds.includes(j.kind) || !isOpen(j) || attentionOf(j) !== 'full') continue;
+        if (st.t - j.posted < HELP.waitHours) continue;
+        const b = best.get(j.kind);
+        if (!b || urgency(st, j, c) > urgency(st, b, c)) best.set(j.kind, j);
+      }
+      for (const j of best.values()) out.push(j);
+    }
+    return out.sort((x, y) => x.id - y.id);
   }
   // Nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while.
   function idleAbout(st, a) {

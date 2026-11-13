@@ -363,6 +363,8 @@ VB['sim/rules'] = (() => {
       refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
       // sim/byre: an unherded herd got into the field through a broken stretch of fence; about the holder of the stretch's keeper (VB-136)
       crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
+      // sim/agents: a helper finished a job of another household of its village, both ways with each adult there (VB-106; Kim, 10 Nov)
+      worked: { label: 'Worked together', v: 0.05, cap: 0.3, days: YEAR_DAYS },
     },
     talk: {
       from: 6,
@@ -738,6 +740,18 @@ VB['sim/rules'] = (() => {
     join: 0.8,
     switchRatio: 1.5,
     switchMargin: 1,
+    // Help between households (VB-106; design.md, Who may take a job): an adult of `minAge` or more with no bid of its own in a round
+    // bids on another household's job of its village, of the `kinds`, once the job has waited `waitHours`; each household offers its
+    // most urgent open job of each kind. The bid is multiplied by `factor`, plus `kin` for near kin of the holder, plus the helper's
+    // opinion of the holder. Each finished task (a load, for hauling) raises the tie with each adult helped by `tie`.
+    help: {
+      minAge: 14,
+      waitHours: 2,
+      kinds: ['plow', 'sow', 'weed', 'reap', 'haul', 'thresh', 'clear', 'break', 'mend'],
+      factor: 0.5,
+      kin: 1,
+      tie: 0.2,
+    },
     urgency: {
       field: 1,
       fieldPerDay: 8, // plow and sow: 1 + sday / 8
