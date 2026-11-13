@@ -1320,6 +1320,8 @@ VB.COUNTERS = {
     "Tiles within reach of a house searched for its herds' pasture, once a grazing day a household (sim/herds; VB-136)",
   deerGround:
     'Tiles within reach of a house searched for its hunting ground, when its hunting is asked for in autumn and winter (sim/deer; VB-139)',
+  workdayHolders:
+    'Holders of a village weighed by a household that stayed away from its work day, twice a year (sim/workdays; VB-120)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };
@@ -5242,12 +5244,14 @@ VB['sim/rules'] = (() => {
   // every kind its type and fills in `prio`, each role's rank of every kind. Herding (VB-136; Kim, 31 Oct): child 8, daughter 6, son 5,
   // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Hunting (VB-139) is foraging for the men alone: none for the
   // women, the retired and children. A village duty (VB-058: the green and well; Kim, 30 Oct): farmhand and son 6, farmer 5, mistress, maid
-  // and daughter 3, below the farm's own work; none for the retired and children. Jobs carry an owner that decides who may take them ----
+  // and daughter 3, below the farm's own work; none for the retired and children. A village work day (VB-120; Kim, 10 Nov): 8 for every
+  // adult whatever the role (WORKDAY.prio), none for children. Jobs carry an owner that decides who may take them ----
   const ROLES = {
     farmer: {
       title: 'Farmer',
       sv: 'bonde',
       work: {
+        workday: 8,
         duty: 5,
         tilling: 10,
         tending: 10,
@@ -5266,6 +5270,7 @@ VB['sim/rules'] = (() => {
       title: 'Mistress of the house',
       sv: 'husfru',
       work: {
+        workday: 8,
         duty: 3,
         tilling: 2,
         tending: 5,
@@ -5283,6 +5288,7 @@ VB['sim/rules'] = (() => {
       title: 'Farmhand',
       sv: 'dräng',
       work: {
+        workday: 8,
         duty: 6,
         tilling: 9,
         tending: 6,
@@ -5301,6 +5307,7 @@ VB['sim/rules'] = (() => {
       title: 'Maid',
       sv: 'piga',
       work: {
+        workday: 8,
         duty: 3,
         tilling: 1,
         tending: 4,
@@ -5318,6 +5325,7 @@ VB['sim/rules'] = (() => {
       title: 'Son of the house',
       sv: 'son',
       work: {
+        workday: 8,
         duty: 6,
         tilling: 9,
         tending: 6,
@@ -5336,6 +5344,7 @@ VB['sim/rules'] = (() => {
       title: 'Daughter of the house',
       sv: 'dotter',
       work: {
+        workday: 8,
         duty: 3,
         tilling: 1,
         tending: 4,
@@ -5353,7 +5362,7 @@ VB['sim/rules'] = (() => {
     retired: {
       title: 'Retired',
       sv: 'undantag',
-      work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3, herding: 4 },
+      work: { workday: 8, tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3, herding: 4 },
       except: { cook: 4, slaughter: 2, hunt: 0, grind: 3 },
     },
     child: {
@@ -5461,6 +5470,9 @@ VB['sim/rules'] = (() => {
       crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
       // sim/agents: a helper finished a job of another household of its village, both ways with each adult there (VB-106; Kim, 10 Nov)
       worked: { label: 'Worked together', v: 0.05, cap: 0.3, days: YEAR_DAYS },
+      // sim/workdays: a holder of the village whose household stayed away from a work day; each other holder with a tie to it (VB-120; Kim,
+      // 10 Nov: a small negative memory fading over a year; the numbers are the agent's starting values)
+      stayedAway: { label: 'Stayed away from the work day', v: -0.05, cap: -0.15, days: YEAR_DAYS },
     },
     talk: {
       from: 6,
@@ -5799,6 +5811,26 @@ VB['sim/rules'] = (() => {
     sweepHours: 10,
     greenReach: 4,
   };
+  // Village work days (VB-120; Kim, 10 Nov; design, Jobs, owners and roles: Village work days): a routine the meeting may choose for a village
+  // with a fence; chosen, the village works together on `days` ([season, day of the season, what]): spring's first day the fence, its stretches
+  // below `fenceBelow` (each `fenceHours`, as a mend), summer's second the commons, scrub cleared at the wood's edge (`clearHours` an adult of
+  // the village). Every adult (from `minAge`) takes the work at role priority `prio`, whatever the role; it takes unlimited hands, all
+  // together. An adult who works `hours` gains `came` prestige for the year; a household none of whose adults worked their share (`hours`, or
+  // the day's work over its adults when that is less) is away: its holder loses `missed` (the agent's own reading of "at the work day").
+  const WORKDAY = {
+    days: [
+      [0, 0, 'fence'],
+      [1, 1, 'commons'],
+    ],
+    fenceBelow: 0.9,
+    fenceHours: 2.5,
+    clearHours: 3,
+    prio: 8,
+    minAge: 14,
+    hours: 2,
+    came: 0.05,
+    missed: -0.1,
+  };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one within
   // `hours` walking hours of it, a day's walk, since the servant moves (VB-290; design.md, The round's other acts; it was 15 hex steps).
@@ -5990,6 +6022,7 @@ VB['sim/rules'] = (() => {
     WOOD,
     PEAT,
     BUILD,
+    WORKDAY,
   };
 })();
 </script>
@@ -8333,6 +8366,7 @@ VB['sim/records'] = (() => {
     friend: SHORT,
     fellOut: SHORT,
     helped: SHORT, // helped another household of the village with its work (VB-106)
+    workday: SHORT, // a village's work day: who turned out and who stayed away (VB-120)
     gift: GENERATION,
     harvest: GENERATION,
     hay: GENERATION,
@@ -16958,6 +16992,203 @@ VB['sim/green'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/workdays: village work days (VB-120; Kim, 10 Nov): a routine the meeting may choose for a village with a fence (VB-257); on
+// spring's first day the village closes its fence together and on summer's second clears scrub at its wood's edge, every adult at one
+// priority; at the day's end those who turned out gain standing for the year, a household that stayed away loses its holder's, and the
+// other holders tied to that holder remember it
+VB['sim/workdays'] = (() => {
+  const { WORKDAY, WORK, cal } = VB['sim/rules'];
+  const { hexSteps } = VB['sim/hex'];
+  const { log, age, tieOf, fullName } = VB['sim/records'];
+  const { remember } = VB['sim/relations'];
+  const { emit } = VB['sim/events'];
+  // @state village.workday: the village's last work day, or absent before its first: {day (game day), what ('fence' | 'commons'),
+  //   hoursOf ({pawn id: hours worked at the day's jobs}), cleared (the commons' work done), judged (its end told)}. Written only here:
+  //   begun by the first hour worked at the day's jobs (or, when nobody came, at its end), judged at the end of work (sim/clock).
+  // @state pawn.workdays: {year (of cal), came (work days the pawn turned out to), missed (work days its household stayed away from, as its
+  //   holder)}, absent before its first; read by sim/society's prestige while year is this year.
+  const VILLAGE = (v) => ({ type: 'village', id: v.id });
+  // The work day of calendar date c: 'fence', 'commons', or null.
+  function dayOf(c) {
+    for (const [season, sday, what] of WORKDAY.days) if (c.season === season && c.sday === sday) return what;
+    return null;
+  }
+  // The households of the occupied farms of village v, and their adults (living members from WORKDAY.minAge).
+  function households(st, v) {
+    const out = [];
+    for (const id of v.farmsteads) {
+      const f = st.farmsteads[id],
+        hh = f.household === null ? null : st.households[f.household];
+      if (!hh || hh.dissolved) continue;
+      const adults = hh.members.filter((m) => st.pawns[m].alive && age(st, st.pawns[m]) >= WORKDAY.minAge);
+      out.push({ hh, adults });
+    }
+    return out;
+  }
+  // The commons' tile: of the village's wood, a tile on its edge (beside open land), nearest the village's centre, the lowest id between
+  // equals; -1 for none.
+  function edgeOf(st, v) {
+    const w = st.w,
+      wood = new Set(v.wood);
+    let best = -1,
+      bd = Infinity;
+    for (const t of v.wood) {
+      let edge = false;
+      for (let d = 0; d < 6 && !edge; d++) {
+        const n = w.nb[t * 6 + d];
+        edge = n >= 0 && !wood.has(n) && !w.water[n];
+      }
+      if (!edge) continue;
+      const dist = hexSteps(w, v.center, t);
+      if (dist < bd || (dist === bd && t < best)) {
+        best = t;
+        bd = dist;
+      }
+    }
+    return best;
+  }
+  // The fence's stretches the day mends.
+  const worn = (v) => v.fence.filter((s) => s.cond < WORKDAY.fenceBelow);
+  // The village's record of the work day of date c, begun now when it has none.
+  function recordOf(st, v, c) {
+    if (!v.workday || v.workday.day !== c.day)
+      v.workday = { day: c.day, what: dayOf(c), hoursOf: {}, cleared: false, judged: false };
+    return v.workday;
+  }
+  // The routine's rule, asked at the village's reviews while its meeting chose work days (sim/jobs): on a work day, until the end of work,
+  // the fence's worn stretches (WORKDAY.fenceHours each), or the commons' clearing at the wood's edge (WORKDAY.clearHours an adult of the
+  // village), as village jobs. A village with a whole fence, or no wood, has no work day. Reads only.
+  function workdayWork(st, v, at, c, post) {
+    const what = dayOf(c);
+    if (!what || c.hour >= WORK[1]) return;
+    const own = VILLAGE(v);
+    if (what === 'fence') {
+      for (const s of worn(v))
+        post(`workfence:v${v.id}.${s.id}`, s.tile, { stretch: s, village: v.id }, 'workfence', own);
+      return;
+    }
+    if (v.workday && v.workday.day === c.day && v.workday.cleared) return;
+    const site = edgeOf(st, v);
+    let hours = 0;
+    for (const x of households(st, v)) hours += x.adults.length * WORKDAY.clearHours;
+    if (site >= 0 && hours > 0) post(`workclear:v${v.id}`, site, { village: v.id, hours }, 'workclear', own);
+  }
+  // Each step an adult works at the day's jobs, its hours are counted towards its turning out.
+  function worked(st, j, dt, a) {
+    if (!a) return;
+    const rec = recordOf(st, st.villages[j.village], cal(st.t));
+    if (!rec.judged) rec.hoursOf[a.id] = (rec.hoursOf[a.id] || 0) + dt;
+  }
+  // The pawn's year of work days, begun afresh in a new year.
+  function mark(st, id, c, key) {
+    const p = st.pawns[id];
+    if (!p.workdays || p.workdays.year !== c.year) p.workdays = { year: c.year, came: 0, missed: 0 };
+    p.workdays[key]++;
+  }
+  // The end of a work day (sim/clock, at the end of work): each adult who worked WORKDAY.hours turned out; a household none of whose
+  // adults worked their share (WORKDAY.hours, or the hours the village worked over its adults when that is less) stayed away: its holder
+  // loses standing for the year, and each other holder of the village with a tie to it remembers. The village's log tells the day. A day
+  // is judged where its work was posted (`called`: jobs of it still stand) or worked. Returns the pawns whose standing changed.
+  function judge(st, v, c, called) {
+    if (!(v.workday && v.workday.day === c.day) && !called) return [];
+    const rec = recordOf(st, v, c);
+    if (rec.judged) return [];
+    rec.judged = true;
+    const hs = households(st, v);
+    let adults = 0;
+    for (const x of hs) adults += x.adults.length;
+    let total = 0;
+    for (const id in rec.hoursOf) total += rec.hoursOf[id];
+    const share = Math.min(WORKDAY.hours, total / Math.max(1, adults)),
+      came = [],
+      away = [];
+    for (const x of hs) {
+      let any = false;
+      for (const id of x.adults) {
+        const h = rec.hoursOf[id] || 0;
+        if (h >= WORKDAY.hours) came.push(id);
+        if (h > 0 && h >= share) any = true;
+      }
+      if (!any && x.adults.length && x.hh.holder !== null && st.pawns[x.hh.holder].alive) away.push(x.hh);
+    }
+    for (const id of came) mark(st, id, c, 'came');
+    const holders = hs.map((x) => x.hh.holder).filter((h) => h !== null && st.pawns[h].alive);
+    for (const hh of away) {
+      mark(st, hh.holder, c, 'missed');
+      for (const b of holders) {
+        VB.count.workdayHolders++;
+        if (b !== hh.holder && tieOf(st, b, hh.holder) > 0) remember(st, b, hh.holder, 'stayedAway');
+      }
+    }
+    const turned = Object.keys(rec.hoursOf).filter((id) => rec.hoursOf[id] > 0).length,
+      task = rec.what === 'fence' ? 'to close the village fence' : 'to clear the commons at the edge of the wood',
+      names = away.map((hh) => fullName(st.pawns[hh.holder])).join(', ');
+    log(
+      st,
+      `${v.name} held its work day ${task}: ${turned} of ${adults} adults turned out` +
+        (away.length ? `; the households of ${names} stayed away.` : '.'),
+      { kind: 'workday', village: v.id, n: turned },
+    );
+    const changed = [...came, ...away.map((hh) => hh.holder)];
+    emit(st, 'workDay', { pawns: changed });
+    return changed;
+  }
+  // The day's jobs left standing at its end: the village's, of the work day's kinds.
+  const isWorkdayJob = (j) => j.kind === 'workfence' || j.kind === 'workclear';
+  // Where the pawn stands: round the stretch, as at mending; on the commons' tile, spread over it.
+  const fenceSpot = (st, a, j) => {
+    const w = st.w,
+      s = j.stretch;
+    return [s.mx + (w.hx[j.site] - s.mx) * 0.25 + a.ox * 0.4, s.my + (w.hy[j.site] - s.my) * 0.25 + 3 + a.oy * 0.2];
+  };
+  const clearSpot = (st, a, j) => [st.w.hx[j.site] + a.ox * 0.8, st.w.hy[j.site] + a.oy * 0.6];
+  // The job kinds (sim/kinds takes them in): the work day's own type of work, `workday` (ROLES: 8 for every adult), unlimited hands, all
+  // together (no hand's bid falls for those already at it, sim/jobs).
+  const KINDS = {
+    workfence: {
+      verb: 'Closing the village fence on the work day',
+      go: 'Going to the work day at the fence',
+      name: 'Close the village fence (work day)',
+      label: 'Work day',
+      anim: 'mallet',
+      hours: WORKDAY.fenceHours,
+      hands: Infinity,
+      together: true,
+      type: 'workday',
+      minAge: WORKDAY.minAge,
+      spot: fenceSpot,
+      worked,
+      done: (st, j) => {
+        j.stretch.cond = 1;
+        j.stretch.dirty = true;
+      },
+      available: workdayWork,
+    },
+    workclear: {
+      verb: 'Clearing the commons on the work day',
+      go: 'Going to the work day on the commons',
+      name: 'Clear the commons (work day)',
+      label: 'Work day',
+      anim: 'hoe',
+      hours: WORKDAY.clearHours,
+      hands: Infinity,
+      together: true,
+      type: 'workday',
+      minAge: WORKDAY.minAge,
+      spot: clearSpot,
+      worked,
+      done: (st, j) => {
+        recordOf(st, st.villages[j.village], cal(st.t)).cleared = true;
+      },
+      available: workdayWork,
+    },
+  };
+  // Whether the routine is open to a village (VILLAGE_ROUTINES, sim/plans): it has a fence to close.
+  const wanted = (st, v) => v.fence.length > 0;
+  return { KINDS, dayOf, wanted, judge, isWorkdayJob, households, edgeOf };
+})();
+</script>
+<script>
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'],
@@ -16977,7 +17208,8 @@ VB['sim/kinds'] = (() => {
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
   const Building = VB['sim/building'],
     Pot = VB['sim/pot'],
-    Green = VB['sim/green'];
+    Green = VB['sim/green'],
+    Workdays = VB['sim/workdays'];
   const { ground: forageGround, gather } = VB['sim/forage'],
     Drying = VB['sim/drying'];
   // A kind's fields:
@@ -16990,7 +17222,7 @@ VB['sim/kinds'] = (() => {
   //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f, a): what arriving home with a load does;
   //   load(st, a, j, cap): a trip's load from the field; again(j): the job stays open for the next (haul, VB-335);
   //   draw(st, j): the site of a job of the kind, drawn when it is first posted, in place of the site its rule names (VB-326: firewood);
-  //   worked(st, j): what each step of work does besides the progress; project: true for a stage of a land project, whose job ends with
+  //   worked(st, j, dt, a): what each step of work by pawn a does besides the progress; project: true for a stage of a land project, whose job ends with
   //   the project (sim/jobs drops it, its hands freed, once it is no longer posted);
   //   available(st, holder, at, c, post, f): where the kind could be done now (VB-208); it calls post(key, site, extra) for each job it
   //   would post. holder is the household (or the village), at the field, farm or village asked about, f the household's farm. sim/jobs'
@@ -17004,6 +17236,7 @@ VB['sim/kinds'] = (() => {
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt), each step worked; minAge.
   //   late: a job of the kind under way, its worker walking there or at work, is finished after the end of work (VB-119: the cook).
+  //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/jobs).
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   // The fuel pile in wood loads: the woodpile less what a project plan holds back, and the peat held at PEAT.worth (VB-367).
@@ -17600,6 +17833,7 @@ VB['sim/kinds'] = (() => {
     },
     ...Building.KINDS, // the cottage's stages and the timber its walls take (sim/building)
     ...Green.KINDS, // the village green and well (sim/green, VB-058)
+    ...Workdays.KINDS, // the village's work days (sim/workdays, VB-120)
     mend: {
       verb: 'Mending the fence',
       go: 'Going to mend the fence',
@@ -17754,7 +17988,7 @@ VB['sim/kinds'] = (() => {
       'gather',
       Building.stoneWork,
     ].map(rule),
-    village: ['mend', 'green'].map(rule), // the green's rule posts each of its kinds (sim/green)
+    village: ['mend', 'green', 'workfence'].map(rule), // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays)
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
@@ -18175,7 +18409,7 @@ VB['sim/agents'] = (() => {
       rateOf(st, st.pawns[a.id]) *
       (withOxen(st, a) ? HERD.team.rate : 1) *
       (K.carted ? Carts.carting(st, hhW, a.id, teamFree(st, hhW)) : 1);
-    if (K.worked) K.worked(st, j);
+    if (K.worked) K.worked(st, j, dt, a);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working
@@ -19521,7 +19755,8 @@ VB['sim/plans'] = (() => {
   const { startMeadow } = VB['sim/meadows'];
   const { reviewWant } = VB['sim/exchange'];
   const { buildStep } = VB['sim/building'];
-  const Green = VB['sim/green'];
+  const Green = VB['sim/green'],
+    Workdays = VB['sim/workdays'];
   const { heldFarms } = VB['sim/ownership'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
@@ -19838,6 +20073,15 @@ VB['sim/plans'] = (() => {
       available: (st, v) => Green.wanted(st, v),
       need: (st, v) => Green.houses(st, v).length,
     }),
+    // work days (VB-120): while the village has a fence to close; weighed, as the green, by the farms that would turn out. Set only by a
+    // meeting, for the coming year (Kim, 10 Nov): the founders' first routines hold none
+    workdays: Object.freeze({
+      label: 'Work days at the fence and the commons',
+      meeting: true,
+      kinds: Object.freeze(['workfence', 'workclear']),
+      available: (st, v) => Workdays.wanted(st, v),
+      need: (st, v) => Green.houses(st, v).length,
+    }),
   });
   const MAX_ROUTINES = 4;
   // The routines chosen from candidates [[need, key]], most needed first and in their order of declaration between equals: at most
@@ -19848,12 +20092,13 @@ VB['sim/plans'] = (() => {
     if (sorted.length > MAX_ROUTINES && sorted[MAX_ROUTINES - 1][0] === sorted[MAX_ROUTINES][0]) return null;
     return sorted.slice(0, MAX_ROUTINES).map((c) => c[1]);
   }
-  // The routines a village would choose from its work available now, or null for a tie.
-  function chooseRoutines(st, v) {
+  // The routines a village would choose from its work available now, or null for a tie; its founders (`founders`) choose none that only a
+  // meeting sets (`meeting`).
+  function chooseRoutines(st, v, founders = false) {
     const cands = [];
     for (const k of Object.keys(VILLAGE_ROUTINES)) {
       const R = VILLAGE_ROUTINES[k];
-      if (R.available(st, v)) cands.push([R.need(st, v), k]);
+      if (R.available(st, v) && !(founders && R.meeting)) cands.push([R.need(st, v), k]);
     }
     return rankRoutines(cands);
   }
@@ -19934,11 +20179,14 @@ VB['sim/plans'] = (() => {
       });
     return due(f) || heldFarms(st, hh.id).some(due);
   }
-  // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, or its fields due today,
-  // once ('window'); a store that crossed a target, at most one such review a day ('store').
+  // A village whose meeting chose work days, at the first review hour of a work day: it calls its village out (VB-120).
+  const workdayDue = (plan, c) =>
+    plan.holder.type === 'village' && c.hour === FIRST && !!Workdays.dayOf(c) && plan.routines.includes('workdays');
+  // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, its fields due today, or a
+  // village's work day, once ('window'); a store that crossed a target, at most one such review a day ('store').
   function reviewWhy(st, plan, hour, c) {
     if (hour >= plan.nextReview) return 'day';
-    if (plan.last !== c.day && (closing(st, c) || fieldsDue(st, plan, c))) return 'window';
+    if (plan.last !== c.day && (closing(st, c) || fieldsDue(st, plan, c) || workdayDue(plan, c))) return 'window';
     return plan.dirty && plan.woke !== c.day ? 'store' : null;
   }
   // A member without a task looks at the household's opportunities: true at most once a household a day (VB-249).
@@ -20003,13 +20251,13 @@ VB['sim/plans'] = (() => {
   // MAX_ROUTINES in their order). Also at the load of a save made before routines.
   function founded(st, plan) {
     const v = st.villages[plan.holder.id],
-      list = chooseRoutines(st, v);
+      list = chooseRoutines(st, v, true);
     setRoutines(
       st,
       v.id,
       list ||
         Object.keys(VILLAGE_ROUTINES)
-          .filter((k) => VILLAGE_ROUTINES[k].available(st, v))
+          .filter((k) => VILLAGE_ROUTINES[k].available(st, v) && !VILLAGE_ROUTINES[k].meeting)
           .slice(0, MAX_ROUTINES),
       'founded',
     );
@@ -20419,6 +20667,8 @@ VB['sim/jobs'] = (() => {
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), else by role and kind.
   const prioOf = (st, p, j) =>
     j.plot ? plotPrio(st, p) : j.claim ? claimPrio(st, p, j) : ROLES[p.role].prio[j.kind] || 0;
+  // The join factor for n hands already at job j: MATCH.join ** n, or 1 for a kind worked all together (VB-120: a work day).
+  const joined = (j, n) => (KINDS[j.kind].together ? 1 : MATCH.join ** n);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
   // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, younger than the
   // kind's minAge (VB-136: herding from 8), not its work, or a poor fit for a job that has not waited long enough.
@@ -20435,7 +20685,7 @@ VB['sim/jobs'] = (() => {
     const p = st.pawns[a.id];
     if (!isOpen(j) || !eligible(st, j, p) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j))) return -1;
     const s = score(st, p, j, c);
-    return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * MATCH.join ** j.claims.length;
+    return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * joined(j, j.claims.length);
   }
   // The jobs a pawn may bid for: its household's and its village's, in increasing id.
   const none = new Set();
@@ -20455,14 +20705,14 @@ VB['sim/jobs'] = (() => {
         j = a.job;
       if (a.phase !== 'work' || !j || p.died !== null || unplanned(st, a.id)) continue;
       if ((j.hours ?? KINDS[j.kind].hours) - j.done <= rateOf(st, p)) continue;
-      const own = (score(st, p, j, c) ?? 0) * MATCH.join ** (j.claims.length - 1);
+      const own = (score(st, p, j, c) ?? 0) * joined(j, j.claims.length - 1);
       let best = null,
         top = MATCH.switchRatio * own + MATCH.switchMargin;
       for (const k of jobsFor(st, p)) {
         VB.count.lookUpJob++;
         if (k === j || !isOpen(k) || attentionOf(k) !== 'full') continue;
         const s = score(st, p, k, c),
-          b = s === null ? -1 : s * MATCH.join ** k.claims.length;
+          b = s === null ? -1 : s * joined(k, k.claims.length);
         if (b > top) {
           top = b;
           best = k;
@@ -20491,7 +20741,7 @@ VB['sim/jobs'] = (() => {
       if (row.bid + MATCH.noise <= 0) {
         row.reason = 'not worth the walk';
         row.bid = null;
-      } else row.bid *= MATCH.join ** j.claims.length;
+      } else row.bid *= joined(j, j.claims.length);
     }
     return row;
   }
@@ -20547,7 +20797,7 @@ VB['sim/jobs'] = (() => {
       const [s, a, j, k] = bids[i];
       if (busy.has(a) || !isOpen(j)) continue;
       if (j.claims.length > k) {
-        const b = [s * MATCH.join ** (j.claims.length - k), a, j, j.claims.length];
+        const b = [s * joined(j, j.claims.length - k), a, j, j.claims.length];
         bids.splice(slot(bids, i + 1, b[0]), 0, b);
         continue;
       }
@@ -22636,7 +22886,7 @@ VB['sim/society'] = (() => {
   const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
-  const { YEAR, houseTerm, TIE, SPEED } = VB['sim/rules'];
+  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { hoursBetween } = VB['sim/routes'];
   const {
@@ -22775,6 +23025,12 @@ VB['sim/society'] = (() => {
       const ale = aleStanding(st, holdingOf(st, p.id));
       if (ale > 0) parts.push(['Ale poured', ale]);
     }
+    // the village's work days this year (VB-120): turned out, and, as a holder, stayed away
+    const wd = p.workdays;
+    if (wd && wd.year === cal(st.t).year) {
+      if (wd.came) parts.push(['Turned out for the work days', wd.came * WORKDAY.came]);
+      if (wd.missed) parts.push(['Stayed away from the work day', wd.missed * WORKDAY.missed]);
+    }
     return parts;
   }
   function refreshPrestige(st) {
@@ -22787,6 +23043,13 @@ VB['sim/society'] = (() => {
   on('alePoured', (st, e) => {
     const p = st.pawns[e.host];
     if (p.alive) p.prestige = prestigeParts(st, p).reduce((n, x) => n + x[1], 0);
+  });
+  // A village's work day ended (sim/workdays): the standing of those who turned out, and of the holders who stayed away, at once.
+  on('workDay', (st, e) => {
+    for (const id of e.pawns) {
+      const p = st.pawns[id];
+      if (p.alive) p.prestige = prestigeParts(st, p).reduce((n, x) => n + x[1], 0);
+    }
   });
   // Self-interest follows position: what would this option do for me, or for my children?
   function refreshInterests(st) {
@@ -24824,7 +25087,9 @@ VB['sim/clock'] = (() => {
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
   const { shareFood } = VB['sim/help'];
-  const { placeByDoor, release, stepAgents, travelling, dueJourneys, stopJourneys, feedTravellers } = VB['sim/agents'];
+  const Workdays = VB['sim/workdays'];
+  const { placeByDoor, release, dropJob, stepAgents, travelling, dueJourneys, stopJourneys, feedTravellers } =
+    VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
@@ -24959,6 +25224,19 @@ VB['sim/clock'] = (() => {
           release(st, a);
           if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
         }
+      },
+    },
+    {
+      every: 'hour',
+      at: { hour: WORK[1] },
+      when: (st, c) => !!Workdays.dayOf(c),
+      owner: 'sim/workdays',
+      note: "a village's work day ends: who turned out and who stayed away (VB-120); its jobs left free are taken down",
+      run: (st, c) => {
+        const called = new Set();
+        for (const j of st.jobs.values()) if (Workdays.isWorkdayJob(j)) called.add(j.village);
+        for (const v of st.villages) Workdays.judge(st, v, c, called.has(v.id));
+        for (const j of [...st.jobs.values()]) if (Workdays.isWorkdayJob(j) && !j.claims.length) dropJob(st, j);
       },
     },
     // ---- each day, at midnight: the households, the land ----
@@ -37087,7 +37365,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '6ba6a30b9d',
+const BUILD = '66ff429d61',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

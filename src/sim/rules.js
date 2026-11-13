@@ -149,12 +149,14 @@ VB['sim/rules'] = (() => {
   // every kind its type and fills in `prio`, each role's rank of every kind. Herding (VB-136; Kim, 31 Oct): child 8, daughter 6, son 5,
   // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Hunting (VB-139) is foraging for the men alone: none for the
   // women, the retired and children. A village duty (VB-058: the green and well; Kim, 30 Oct): farmhand and son 6, farmer 5, mistress, maid
-  // and daughter 3, below the farm's own work; none for the retired and children. Jobs carry an owner that decides who may take them ----
+  // and daughter 3, below the farm's own work; none for the retired and children. A village work day (VB-120; Kim, 10 Nov): 8 for every
+  // adult whatever the role (WORKDAY.prio), none for children. Jobs carry an owner that decides who may take them ----
   const ROLES = {
     farmer: {
       title: 'Farmer',
       sv: 'bonde',
       work: {
+        workday: 8,
         duty: 5,
         tilling: 10,
         tending: 10,
@@ -173,6 +175,7 @@ VB['sim/rules'] = (() => {
       title: 'Mistress of the house',
       sv: 'husfru',
       work: {
+        workday: 8,
         duty: 3,
         tilling: 2,
         tending: 5,
@@ -190,6 +193,7 @@ VB['sim/rules'] = (() => {
       title: 'Farmhand',
       sv: 'dräng',
       work: {
+        workday: 8,
         duty: 6,
         tilling: 9,
         tending: 6,
@@ -208,6 +212,7 @@ VB['sim/rules'] = (() => {
       title: 'Maid',
       sv: 'piga',
       work: {
+        workday: 8,
         duty: 3,
         tilling: 1,
         tending: 4,
@@ -225,6 +230,7 @@ VB['sim/rules'] = (() => {
       title: 'Son of the house',
       sv: 'son',
       work: {
+        workday: 8,
         duty: 6,
         tilling: 9,
         tending: 6,
@@ -243,6 +249,7 @@ VB['sim/rules'] = (() => {
       title: 'Daughter of the house',
       sv: 'dotter',
       work: {
+        workday: 8,
         duty: 3,
         tilling: 1,
         tending: 4,
@@ -260,7 +267,7 @@ VB['sim/rules'] = (() => {
     retired: {
       title: 'Retired',
       sv: 'undantag',
-      work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3, herding: 4 },
+      work: { workday: 8, tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3, herding: 4 },
       except: { cook: 4, slaughter: 2, hunt: 0, grind: 3 },
     },
     child: {
@@ -368,6 +375,9 @@ VB['sim/rules'] = (() => {
       crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
       // sim/agents: a helper finished a job of another household of its village, both ways with each adult there (VB-106; Kim, 10 Nov)
       worked: { label: 'Worked together', v: 0.05, cap: 0.3, days: YEAR_DAYS },
+      // sim/workdays: a holder of the village whose household stayed away from a work day; each other holder with a tie to it (VB-120; Kim,
+      // 10 Nov: a small negative memory fading over a year; the numbers are the agent's starting values)
+      stayedAway: { label: 'Stayed away from the work day', v: -0.05, cap: -0.15, days: YEAR_DAYS },
     },
     talk: {
       from: 6,
@@ -706,6 +716,26 @@ VB['sim/rules'] = (() => {
     sweepHours: 10,
     greenReach: 4,
   };
+  // Village work days (VB-120; Kim, 10 Nov; design, Jobs, owners and roles: Village work days): a routine the meeting may choose for a village
+  // with a fence; chosen, the village works together on `days` ([season, day of the season, what]): spring's first day the fence, its stretches
+  // below `fenceBelow` (each `fenceHours`, as a mend), summer's second the commons, scrub cleared at the wood's edge (`clearHours` an adult of
+  // the village). Every adult (from `minAge`) takes the work at role priority `prio`, whatever the role; it takes unlimited hands, all
+  // together. An adult who works `hours` gains `came` prestige for the year; a household none of whose adults worked their share (`hours`, or
+  // the day's work over its adults when that is less) is away: its holder loses `missed` (the agent's own reading of "at the work day").
+  const WORKDAY = {
+    days: [
+      [0, 0, 'fence'],
+      [1, 1, 'commons'],
+    ],
+    fenceBelow: 0.9,
+    fenceHours: 2.5,
+    clearHours: 3,
+    prio: 8,
+    minAge: 14,
+    hours: 2,
+    came: 0.05,
+    missed: -0.1,
+  };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one within
   // `hours` walking hours of it, a day's walk, since the servant moves (VB-290; design.md, The round's other acts; it was 15 hex steps).
@@ -897,5 +927,6 @@ VB['sim/rules'] = (() => {
     WOOD,
     PEAT,
     BUILD,
+    WORKDAY,
   };
 })();

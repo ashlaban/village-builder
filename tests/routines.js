@@ -54,7 +54,8 @@ function green(st, v, ids) {
   const { st, v, s, plan, voices } = setUp();
   plan.routines = []; // lint-allow: owner the test starts from a year without village work
   L.routinesMeeting(st, s, green(st, v, voices.map((p) => p.id)));
-  assert.deepStrictEqual(plan.routines, ['fence']); assert.strictEqual(plan.routinesBy, 'meeting');
+  // the work days too (VB-120), which only a meeting sets
+  assert.deepStrictEqual(plan.routines, ['fence', 'workdays']); assert.strictEqual(plan.routinesBy, 'meeting');
   assert.strictEqual(failures(st).length, 0);
   review(st, 1); assert.strictEqual(vmends(st, v.id).length, v.fence.length, 'the chosen routine posts');
 }
@@ -98,14 +99,14 @@ function green(st, v, ids) {
   assert.strictEqual(issue(st, { actor: { settlement: 999 }, verb: 'routines', args: { routines: [], by: 'meeting' }, source: 'test' }).includes('no settlement'), true);
   assert.strictEqual(JSON.stringify(plan.routines), before, 'refusals change nothing');
 }
-{ // a year of play: every meeting decides, the fence chosen where there is one; a save keeps the routines
+{ // a year of play: every meeting decides, the fence and the work days chosen where there is one; a save keeps the routines
   const st = fresh();
   Sim.advance(st, Sim.YEAR);
   for (const x of st.villages) {
     const p = Plans.planOf(st, 'village', x.id);
     if (!Sim.membersOf(st, x.id).length) continue;
     assert.strictEqual(p.routinesBy, 'meeting', `village ${x.id}'s meeting decided`);
-    assert.deepStrictEqual(p.routines, x.fence.length ? ['fence'] : []);
+    assert.deepStrictEqual([...p.routines].sort(), x.fence.length ? ['fence', 'workdays'] : []);
   }
   const back = Sim.load(st.w, JSON.parse(JSON.stringify(Sim.save(st))));
   assert.deepStrictEqual([...back.plans.villages.values()].map((p) => p.routines), [...st.plans.villages.values()].map((p) => p.routines));

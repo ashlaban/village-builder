@@ -68,6 +68,8 @@ VB.COUNTERS = {
     "Tiles within reach of a house searched for its herds' pasture, once a grazing day a household (sim/herds; VB-136)",
   deerGround:
     'Tiles within reach of a house searched for its hunting ground, when its hunting is asked for in autumn and winter (sim/deer; VB-139)',
+  workdayHolders:
+    'Holders of a village weighed by a household that stayed away from its work day, twice a year (sim/workdays; VB-120)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };

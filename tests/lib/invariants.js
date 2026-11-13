@@ -430,6 +430,10 @@ function checkState(st) {
       !P[k].opts.some((o) => o[0] === c.practices[k])) bad.push(`cultures[${c.id}]: practice ${k} is ${c.practices && c.practices[k]}`);
   }
   for (const p of st.pawns) {
+    // a pawn's work days (VB-120): counts of days, within the days a year holds
+    const wd = p.workdays;
+    if (wd && !(Number.isInteger(wd.year) && [wd.came, wd.missed].every((n) => Number.isInteger(n) && n >= 0 && n <= 2) && wd.came + wd.missed <= 2))
+      bad.push(`pawns[${p.id}]: work days ${JSON.stringify(wd)}`);
     if (p.alive) {
       if (!memberOf.has(p.id)) bad.push(`pawns[${p.id}]: alive but in no household`);
       else if (p.household !== memberOf.get(p.id)) bad.push(`pawns[${p.id}]: household field ${p.household}, member of ${memberOf.get(p.id)}`);
@@ -574,6 +578,13 @@ function checkState(st) {
       if (st.owner[t] !== -v.id - 1 || !st.used.has(t) || onRiver(t) || st.w.water[t]) bad.push(`villages[${v.id}]: green under way on tile ${t}, not its own open ground`);
       const B = globalThis.VB['sim/rules'].BUILD;
       if (!Number.isInteger(wellStep.brought) || wellStep.brought < 0 || wellStep.brought > B.wellStone) bad.push(`villages[${v.id}]: the well's stone ${wellStep.brought}`);
+    }
+    // the last work day (VB-120): a day not after today, of a kind there is, hours worked by pawns that were born, none negative, and no
+    // more than the day's working hours
+    const wd = v.workday;
+    if (wd) {
+      if (!Number.isInteger(wd.day) || wd.day > Math.floor(st.t / 24) || !['fence', 'commons'].includes(wd.what)) bad.push(`villages[${v.id}]: work day ${wd.day} ${wd.what}`);
+      for (const [id, h] of Object.entries(wd.hoursOf)) if (!st.pawns[id] || !within(h, 0, 12.5)) bad.push(`villages[${v.id}]: work day hours ${id}: ${h}`);
     }
     const nums = [...(v.plots || []).map((pl) => pl.id), ...live.map((pl) => pl.plot)].sort((a, b) => a - b);
     if (!nums.every((n, i) => n === i)) bad.push(`villages[${v.id}]: plots numbered ${nums}`);
