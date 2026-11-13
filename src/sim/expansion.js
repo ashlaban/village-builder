@@ -24,12 +24,12 @@ VB['sim/expansion'] = (() => {
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // @state village.plots[]: the village's plots built, {id, village, intended, holder (who moved in), started, farmstead, tiles: [{tile, kind
   //   'house' | 'field'}]}, appended when the cottage's household moves in (sim/cottage). A plot under way is a project plan of its village
-  //   (st.plans.projects; a village's only kind of project), {..., what: 'plot', plot (its number in the village: the plots built and under
+  //   (st.plans.projects; a village's other project is its green, sim/green), {..., what: 'plot', plot (its number in the village: the plots built and under
   //   way before it), intended, to (the pawn it is allotted to once cleared, or null), hours ({pawn: hours worked on it}), started, steps}:
   //   the steps are its clearing, of several places (each {tile, kind 'house' | 'field', steps (fell, grub, clear, break), i, fresh}, one
   //   task a place, worked side by side), then the cottage's stages at the house ({kind, place, hours, done (hours worked)}; the walls also
   //   `wood`, the timber brought to the site, which nothing else may take: VB-328).
-  const livePlots = (st, v) => Projects.projectsOf(st, 'village', v.id);
+  const livePlots = (st, v) => Projects.projectsOf(st, 'village', v.id).filter((p) => p.what === 'plot'); // not its green (VB-058)
   const tilesOf = (p) => (p.steps ? p.steps[0].places : p.tiles);
   const activePlots = (st, v) => livePlots(st, v).filter((p) => p.open < 1);
   const building = (p) => p.open >= 1 && p.to !== null;

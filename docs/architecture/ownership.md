@@ -376,7 +376,7 @@ These are read and never written after creation. Each has one owner by construct
 | pawn | `id`, `given`, `sex`, `father`, `mother`, `fatherName`, `patronym`, `founder`, `look`, `buffer`, `born` (and `born`, `alive`, `age` for a newborn) | records (`person`), births |
 | household | `id`, `farmstead` | records (`makeHousehold`) |
 | farmstead | `id`, `house`, `village`, `rowAngle`, `fence` | layout (`makeFarmstead`) |
-| village | `id`, `center`, `green`, `well` (only `layout.js:144` sets them, at seeding) | layout, settle (`found`) |
+| village | `id`, `center`, `green`, `well` (set at seeding by layout and byhand; in play `center`, `green` and `well` only by `sim/green` when a village's well is done, VB-058) | layout, settle (`found`), green |
 | union | `id`, `a`, `b`, `start`, `kind` | records (`marry`), lifecycle (`wed`) |
 | herd | `id`, `species` | herds (`makeHerd`) |
 | job | `id`, `key`, `kind`, `owner`, `site`, `posted`, `hours`, and its source's fields (`field`, `farm`, `meadow`, `plot`, `claim`, ...) | jobs (`post`) |

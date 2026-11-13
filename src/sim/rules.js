@@ -145,12 +145,14 @@ VB['sim/rules'] = (() => {
   // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
   // every kind its type and fills in `prio`, each role's rank of every kind. Herding (VB-136; Kim, 31 Oct): child 8, daughter 6, son 5,
   // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Hunting (VB-139) is foraging for the men alone: none for the
-  // women, the retired and children. Jobs carry an owner that decides who may take them ----
+  // women, the retired and children. A village duty (VB-058: the green and well; Kim, 30 Oct): farmhand and son 6, farmer 5, mistress, maid
+  // and daughter 3, below the farm's own work; none for the retired and children. Jobs carry an owner that decides who may take them ----
   const ROLES = {
     farmer: {
       title: 'Farmer',
       sv: 'bonde',
       work: {
+        duty: 5,
         tilling: 10,
         tending: 10,
         harvest: 8,
@@ -168,6 +170,7 @@ VB['sim/rules'] = (() => {
       title: 'Mistress of the house',
       sv: 'husfru',
       work: {
+        duty: 3,
         tilling: 2,
         tending: 5,
         harvest: 6,
@@ -184,6 +187,7 @@ VB['sim/rules'] = (() => {
       title: 'Farmhand',
       sv: 'dräng',
       work: {
+        duty: 6,
         tilling: 9,
         tending: 6,
         harvest: 8,
@@ -201,6 +205,7 @@ VB['sim/rules'] = (() => {
       title: 'Maid',
       sv: 'piga',
       work: {
+        duty: 3,
         tilling: 1,
         tending: 4,
         harvest: 6,
@@ -217,6 +222,7 @@ VB['sim/rules'] = (() => {
       title: 'Son of the house',
       sv: 'son',
       work: {
+        duty: 6,
         tilling: 9,
         tending: 6,
         harvest: 8,
@@ -234,6 +240,7 @@ VB['sim/rules'] = (() => {
       title: 'Daughter of the house',
       sv: 'dotter',
       work: {
+        duty: 3,
         tilling: 1,
         tending: 4,
         harvest: 6,
@@ -667,8 +674,9 @@ VB['sim/rules'] = (() => {
   // wood (six trees). A stone foundation (VB-332; design, Land and ecology, Stone; Agreed, Kim, 11 Nov) takes `foundationStone` loads from the
   // household's heap and `foundationHours` of work at the house; stone is picked (`pickHours` a load) on a meadow tile holding more than
   // `keepStones` (what a meadow keeps, sim/meadows) or quarried (`quarryHours` a load) on hills or mountains, within `stoneReach` walking steps
-  // and `stoneWalk` hours' walk of the house (proposed, 11 Nov). The village's well (VB-058, not built in play yet) is to take `wellStone` loads
-  // from its households' heaps.
+  // and `stoneWalk` hours' walk of the house (proposed, 11 Nov). The village's well (VB-058; sim/green) takes `wellStone` loads from its
+  // households' heaps, carried to the green; the green is cleared in `greenHours`, the well dug and lined in `wellHours` and its sweep raised
+  // in `sweepHours` (Agreed, Kim, 30 Oct); the green lies within `greenReach` walking steps of a farm's house (VB-058's own choice).
   const BUILD = {
     timber: 18,
     foundationStone: 12,
@@ -679,6 +687,10 @@ VB['sim/rules'] = (() => {
     stoneReach: 12,
     stoneWalk: 3,
     wellStone: 6,
+    greenHours: 10,
+    wellHours: 40,
+    sweepHours: 10,
+    greenReach: 4,
   };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one within

@@ -16,7 +16,8 @@ VB['sim/kinds'] = (() => {
   const { renewClaim } = VB['sim/claims'];
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
   const Building = VB['sim/building'],
-    Pot = VB['sim/pot'];
+    Pot = VB['sim/pot'],
+    Green = VB['sim/green'];
   const { ground: forageGround, gather } = VB['sim/forage'],
     Drying = VB['sim/drying'];
   // A kind's fields:
@@ -637,6 +638,7 @@ VB['sim/kinds'] = (() => {
       available: plotWork,
     },
     ...Building.KINDS, // the cottage's stages and the timber its walls take (sim/building)
+    ...Green.KINDS, // the village green and well (sim/green, VB-058)
     mend: {
       verb: 'Mending the fence',
       go: 'Going to mend the fence',
@@ -789,7 +791,7 @@ VB['sim/kinds'] = (() => {
       'gather',
       Building.stoneWork,
     ].map(rule),
-    village: ['mend'].map(rule),
+    village: ['mend', 'green'].map(rule), // the green's rule posts each of its kinds (sim/green)
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };

@@ -46,7 +46,8 @@ const QUANTITIES = [
     none: 'the day\'s fire takes what there is and the house is cold (hh.cold, sim/hunger): health falls, no meal is cooked, and the firewood job comes first (VB-327)' },
   { id: 'stone', of: 'household', name: 'the stone heap', unit: 'loads', fields: ['household.stone'], good: 'stone', holder: 'household',
     kinds: ['pick', 'quarry'],
-    none: 'the house is not raised onto a stone foundation; stone is picked or quarried for it (sim/building, VB-332)' },
+    none: 'the house is not raised onto a stone foundation; stone is picked or quarried for it (sim/building, VB-332); the village\'s well, '
+      + 'when its village digs one, waits until a heap holds a load to carry to the green (sim/green, VB-058)' },
   { id: 'clay', of: 'household', name: 'clay and bog iron ore', unit: 'loads', fields: ['household.clay', 'household.bogOre'], good: 'clay',
     goods: ['clay', 'bogOre'],
     holder: 'household', kinds: ['dig'], covers: ['household.digAt'], none: 'nothing: nothing uses them until slice 6' },

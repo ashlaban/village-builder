@@ -16,6 +16,7 @@ VB['sim/plans'] = (() => {
     { log } = VB['sim/records'];
   const { startMeadow } = VB['sim/meadows'];
   const { buildStep } = VB['sim/building'];
+  const Green = VB['sim/green'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
@@ -323,6 +324,14 @@ VB['sim/plans'] = (() => {
         return n;
       },
     }),
+    // the green and well (VB-058): while the village has two or more occupied farms and no well, or its green is under way; weighed by
+    // the farms that would draw water there
+    green: Object.freeze({
+      label: 'Laying out the green and digging the well',
+      kinds: Object.freeze(['green', 'wellstone', 'well', 'sweep']),
+      available: (st, v) => Green.wanted(st, v),
+      need: (st, v) => Green.houses(st, v).length,
+    }),
   });
   const MAX_ROUTINES = 4;
   // The routines chosen from candidates [[need, key]], most needed first and in their order of declaration between equals: at most
@@ -581,7 +590,10 @@ VB['sim/plans'] = (() => {
     plan.last = c.day;
     if (why === 'store') plan.woke = c.day;
     plan.dirty = false; // lint-allow: owner the review has read the stores whose crossing sim/stores flagged
-    if (plan.holder.type !== 'household') return;
+    if (plan.holder.type !== 'household') {
+      greenStep(st, plan);
+      return;
+    }
     const hh = st.households[plan.holder.id],
       T = plan.targets,
       sp = seasonOf(st, hh.id);
@@ -591,6 +603,16 @@ VB['sim/plans'] = (() => {
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed');
     plan.build = buildStep(st, plan, hh); // the building step (VB-332): open while the house is to be raised onto stone, and where its stone comes from
+  }
+  // A village's review: while its routines hold the green and well and it has none under way, its green's project plan is made where a
+  // tile is found (sim/green, VB-058).
+  function greenStep(st, plan) {
+    if (plan.holder.type !== 'village' || !plan.routines.includes('green')) return;
+    const v = st.villages[plan.holder.id],
+      p = Green.greenProject(st, v);
+    if (!p) return;
+    const made = makeProject(st, 'village', v.id, p);
+    if (made) Green.laidOut(st, v, made);
   }
   // The land step (at each review of a household's plan): a new field while the household has fewer than the plan's target, else a hay
   // meadow while it is short of one; the tile is the holder's choice (chooseTile, chooseMeadow) unless the plan names one.

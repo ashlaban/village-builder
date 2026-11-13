@@ -34,6 +34,7 @@ VB['sim/stores'] = (() => {
   ROUTINE.push('firewood', 'burn');
   // VB-332: the stone heap, in loads of 25 stones: cleared from a field or meadow, picked, quarried; taken by a stone foundation.
   KINDS.push('clear', 'pick', 'quarry', 'foundation');
+  KINDS.push('well'); // VB-058: a load carried from the heap to the village's well (sim/green)
   // VB-123: what a project plan's step spends, taken from the store when the step is done (sim/projects).
   KINDS.push('build');
   // VB-300: a catch hung on the drying rack (sim/drying), out of the rack's store into the larder; VB-119: 'raw', grain eaten uncooked (sim/hunger)

@@ -45,6 +45,7 @@ VB['sim/records'] = (() => {
     cottage: 0,
     plot: 0,
     plotStarted: 0,
+    green: 0, // the village's green and well laid out, and done (VB-058)
     field: 0,
     meadow: 0,
     stake: 0,
