@@ -76,6 +76,9 @@ is repaired by a task of its own.
 - Index checks explicitly append children/unions, end a union, move a member and change a holder, comparing queries to independent scans.
 - `continuity` compares independently constructed current runs, checks daily invariants, then compares JSON save/load continuation
   including modified world tiles. Longer generated-world continuation remains in `saves` and player continuity in `line`.
+- `journeys` (VB-287) walks a move within a village and a bride's two-leg journey between two tiny villages with the page closed: legs
+  at 6:00, stops on the route at 18:00, provisions out of the old household's store and no share of the new one's meal, a save on the
+  road continued, a death on the road and an unprovisioned walk.
 - `reports` exercises hunger/season/quantile math on deliberate data plus one CLI JSON check. `tools` retains full report integration.
 - `rng` tests independent streams without first generating and advancing a world for a year.
 - `cowwant` (VB-390) checks a household's want of a cow on the probe village: the deal booked as goodwill, kin's heifer at a marriage,

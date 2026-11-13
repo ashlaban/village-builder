@@ -34,5 +34,7 @@
   "digGround": 2.8144444444444443,
   "cowSeek": 0,
   "pastureTiles": 37.46888888888889,
-  "roundRank": 0.02666666666666667
+  "roundRank": 0.02666666666666667,
+  "deerGround": 10.574402250351618,
+  "deerCrop": 0
 }

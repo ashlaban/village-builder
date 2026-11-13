@@ -75,11 +75,29 @@ VB['sim/kinds'] = (() => {
     const w = CROPS[fd.crop].sow;
     return c.season === w[0] && c.sday >= w[1] && c.sday <= w[2];
   };
-  // The hours of a stage are the crop's row (CROPS.barley.hours, sim/rules): barley alone as yet, so the kinds read its row.
+  // The hours of a stage are the crop's row (CROPS, sim/rules): the kinds hold barley's, and a field's job carries its crop's where they
+  // differ (rye's weeding, fallow's tilling; VB-348), so a barley field's job is as it was.
   const HOURS = CROPS.barley.hours;
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
-  // The household has fewer meals than the coming meal needs, and grain or fresh food (VB-119) to cook it from.
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && Pot.cookable(st, hh);
+  const fieldJob = (f, fd, k) => {
+    const h = CROPS[fd.crop].hours[k];
+    return h === undefined || h === HOURS[k] ? { field: fd, farm: f } : { field: fd, farm: f, hours: h };
+  };
+  // Why household hh cannot sow field fd today, or null (VB-348): the course is not sown, the window is shut, the field is not hoed, or the
+  // household holds less than a field's seed of the crop, which is taken from its own grain (seed rye is rye).
+  function sowWhy(hh, fd, c) {
+    const C = CROPS[fd.crop];
+    if (!(C.seed > 0)) return `a field in ${fd.crop} is not sown`;
+    if (!sowing(fd, c)) return `${fd.crop} is not sown in this season`;
+    if (fd.stage !== 'plowed') return 'the field is not hoed';
+    const has = Stores.grainOf(hh, fd.crop);
+    return has < C.seed
+      ? `the household holds ${Math.floor(has)} of the ${C.seed} rations of ${fd.crop} a field's seed takes`
+      : null;
+  }
+  // The household has fewer meals than the coming meal needs, grain, fresh food (VB-119) or seed it would eat (VB-388) to cook it from, and
+  // wood in the pile (VB-327: an empty pile cannot cook; the pot burns no wood of its own, the day's use is the hearth's).
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.wood > 0 && Pot.cookable(st, hh, dailyNeed(st, hh));
   // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
   // seed reserve): a household never brews grain it needs.
   const brewWanted = (st, hh) =>
@@ -143,10 +161,11 @@ VB['sim/kinds'] = (() => {
       spot: onField,
       urgency: inWindow,
       done: (st, j) => hoed(j.field),
-      // a field in stubble, in the sowing window
+      // a field in stubble, in the sowing window (a fallow field: in its tilling window, once a year; VB-348)
       stages: ['stubble'],
       available: (st, hh, fd, c, post, f) => {
-        if (sowing(fd, c) && fd.stage === 'stubble') post('plow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (sowing(fd, c) && fd.stage === 'stubble' && !(CROPS[fd.crop].fallow && fd.rest === 1))
+          post('plow:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'plow'));
       },
     },
     sow: {
@@ -163,19 +182,15 @@ VB['sim/kinds'] = (() => {
       spot: onField,
       urgency: inWindow,
       done: (st, j, hh, c) => {
-        const seed = CROPS[j.field.crop].seed;
-        if (Stores.grainOf(hh, j.field.crop) < seed) return;
-        Stores.take(st, hh, Stores.grainGood(j.field.crop), seed, 'seed');
+        if (Stores.grainOf(hh, j.field.crop) < CROPS[j.field.crop].seed) return; // the seed eaten since it was posted
+        Stores.take(st, hh, Stores.grainGood(j.field.crop), CROPS[j.field.crop].seed, 'seed');
         sown(j.field, c);
       },
-      // a hoed field, in the sowing window, while the household has the seed for it
+      // a hoed field, in the sowing window, while the household has the seed for it (sowWhy)
       stages: ['plowed'],
       available: (st, hh, fd, c, post, f) => {
-        if (sowing(fd, c) && fd.stage === 'plowed' && Stores.grainOf(hh, fd.crop) >= CROPS[fd.crop].seed)
-          post('sow:' + fieldKey(f, fd), fd.tile, {
-            field: fd,
-            farm: f,
-          });
+        if (fd.stage === 'plowed' && sowWhy(hh, fd, c) === null)
+          post('sow:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'sow'));
       },
     },
     reap: {
@@ -194,7 +209,7 @@ VB['sim/kinds'] = (() => {
       // a ripe field
       stages: ['ripe'],
       available: (st, hh, fd, c, post, f) => {
-        if (fd.stage === 'ripe') post('reap:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (fd.stage === 'ripe') post('reap:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'reap'));
       },
     },
     haul: {
@@ -215,7 +230,7 @@ VB['sim/kinds'] = (() => {
       load: (st, a, j, cap) => (a.load = carried(j.field, cap)),
       again: (j) => j.field.stage === 'stooks',
       deliver: (st, j, hh, f, a) => {
-        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1));
+        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.field.crop));
         if (
           f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
           !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].phase === 'back')
@@ -241,9 +256,10 @@ VB['sim/kinds'] = (() => {
       carry: 'logs',
       to: 'woodpile',
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
-      // 2.2 when the pile is nearly out; else its shortfall of the goal, and more in autumn
+      // 3 in a cold house (VB-327: above cooking's 2.2); 2.2 when the pile is nearly out; else its shortfall of the goal, and more in autumn
       urgency: (st, j, c, U) => {
         const hh = st.households[j.farm.household];
+        if (hh.cold > 0) return U.woodColdUrgency;
         const free = hh.wood - reserved(st, hh, 'wood'); // what a project plan holds back is not for the fire (VB-123)
         if (free < U.woodLow) return U.woodLowUrgency;
         const goal = woodTargets(st, hh).wood[c.season];
@@ -317,9 +333,9 @@ VB['sim/kinds'] = (() => {
       window: { from: 14 },
       late: true, // a pot under way is finished after the end of work (VB-119; Kim, 11 Nov)
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
-      // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain (sim/pot), for the day posted
+      // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain, the seed it would eat (sim/pot)
       done: (st, j, hh, c) => {
-        Pot.pot(st, hh, Math.max(0, dailyNeed(st, hh) - hh.meals));
+        Pot.cookMeal(st, hh, dailyNeed(st, hh));
         hh.cookDay = j.day ?? c.day;
       },
       // from 14:00 to the end of work, while the household is short of meals and has grain or fresh food to cook (cookWanted)
@@ -364,7 +380,7 @@ VB['sim/kinds'] = (() => {
       // a growing field whose weeding is open (sim/fields)
       stages: ['growing'],
       available: (st, hh, fd, c, post, f) => {
-        if (fd.stage === 'growing' && fd.weedOpen) post('weed:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (fd.stage === 'growing' && fd.weedOpen) post('weed:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'weed'));
       },
     },
     thresh: {
@@ -697,13 +713,13 @@ VB['sim/kinds'] = (() => {
       },
       // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
       urgency: (st, j, c, U) => spareUrgency(st, j, U),
-      // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119)
+      // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119); beyond it, to the rack (VB-388)
       deliver: (st, j, hh) => {
-        Pot.putFresh(st, hh, 'fish', Drying.catchOf(st, j), 'catch');
+        Drying.potCatch(st, j, hh);
       },
       // in the fishing season, from its boat or the house's fishing ground (sim/drying): one trip, two while spare food is under FISH.secondDays
       available: (st, hh, f, c, post) => {
-        if (!fishing(c)) return;
+        if (!fishing(c) || Pot.fishCovered(st, hh, dailyNeed(st, hh))) return; // none while fresh fish covers 2 days (VB-388)
         const g = Drying.fishingPlace(st, hh, f);
         if (!g) return;
         // the key names the bank, so a ground fished out is left for the next one at the following review
@@ -743,6 +759,8 @@ VB['sim/kinds'] = (() => {
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
   KINDS.herd = VB['sim/grazing'].KIND;
   KINDS.lead = VB['sim/exchange'].KIND;
+  // hunting roe deer (VB-139): its record is sim/deer's, its urgency fishing's, by the household's spare food
+  KINDS.hunt = { ...VB['sim/deer'].KIND, urgency: (st, j, c, U) => spareUrgency(st, j, U) };
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
@@ -776,8 +794,8 @@ VB['sim/kinds'] = (() => {
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
-  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart')); // VB-359, VB-300, sim/carts (a boat or a cart is a project's step)
-  ASK.farmAfterPlans.push(rule('lead')); // a cow led home (VB-390; sim/exchange)
+  // VB-359, VB-300, sim/carts (a boat or a cart is a project's step), VB-139 (hunting roe deer), VB-390 (a cow led home, sim/exchange)
+  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart'), rule('hunt'), rule('lead'));
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen };
+  return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy };
 })();

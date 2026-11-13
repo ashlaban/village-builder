@@ -275,13 +275,13 @@ VB['sim/territory'] = (() => {
   const woodOf = (st, t) => st.villages.find((v) => v.wood && v.wood.includes(t)) || null;
   // ---- the meeting, and the start ----
   // At each autumn meeting, after the customs: last year's claims are settled, then new ones made, and each village reckons its wood; one
-  // with households and no forest in reach has none, and the log says so.
+  // with households and no forest in reach has none, and the log says so: its houses are cold (VB-327).
   function landMeeting(st) {
     settleOutland(st);
     claimOutland(st);
     for (const v of st.villages) {
       if (!reckonWood(st, v).length && occupied(st, v)) {
-        log(st, `${v.name} has no wood within reach to cut.`, { kind: 'noWood', village: v.id });
+        log(st, `${v.name} has no wood within reach to cut: its houses are cold.`, { kind: 'noWood', village: v.id });
       }
     }
   }

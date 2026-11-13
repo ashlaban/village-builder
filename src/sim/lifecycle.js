@@ -11,7 +11,7 @@ VB['sim/lifecycle'] = (() => {
   const { DAY, YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE, SOCIAL } = VB['sim/rules'];
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved } = VB['sim/stores'];
-  const { deathRoll, CAUSES } = VB['sim/deaths'];
+  const { deathRoll, CAUSES, COLD } = VB['sim/deaths'];
   const {
     leaveHousehold,
     unionOf,
@@ -36,7 +36,7 @@ VB['sim/lifecycle'] = (() => {
   } = VB['sim/records'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { startInLife } = VB['sim/exchange'];
-  const { stillAtDeath } = VB['sim/agents'];
+  const { stillAtDeath, travelling, tileAt, journeyOf } = VB['sim/agents'];
   const {
     heirRanking,
     moveTo,
@@ -66,7 +66,8 @@ VB['sim/lifecycle'] = (() => {
     p.died = st.t;
     p.alive = false;
     noteDeath(st, id);
-    const a = st.agents[id];
+    const a = st.agents[id],
+      road = travelling(a) ? tileAt(st, a.x, a.y) : null; // it dies where it fell on the road (VB-287)
     stillAtDeath(st, a);
     clearMatchWish(st, id, id);
     playerDied(st, id); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)
@@ -77,18 +78,22 @@ VB['sim/lifecycle'] = (() => {
     }
     dropTies(st, id);
     if (p.rel) forget(st, id);
+    // a death in a cold house is told so (VB-327); the cause is the cause, the cold having lowered the health the hazard reads
+    const cold = p.household !== null && st.households[p.household].cold > 0;
     lifeEvent(
       st,
       id,
       log(
         st,
         `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} ` +
-          `${CAUSES[cause].log}, aged ${p.age}.`,
+          `${CAUSES[cause].log}${cold ? COLD : ''}, aged ${p.age}${road !== null ? ', on the road' : ''}.`,
         {
           kind: 'died',
           pawn: id,
           text: cause,
+          ...(cold ? { cold: true } : {}),
           ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}),
+          ...(road !== null ? { tile: road } : {}),
         },
       ),
     );
@@ -289,8 +294,12 @@ VB['sim/lifecycle'] = (() => {
       personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === mId ? fId : mId])}`, false);
       st.rigDirty.add(id); // recorded below
     }
-    const fm = st.farmsteads[st.households[home].farmstead];
-    log(st, `${fullName(m)} and ${fullName(f)} marry and live at ${fm.name}.`, {
+    const fm = st.farmsteads[st.households[home].farmstead],
+      away = [m, f].filter((q) => journeyOf(st, q.id)); // from another village: and sets out for it (VB-287)
+    const out = away.length
+      ? `, and ${away.map((q) => q.given).join(' and ')} ${away.length > 1 ? 'set' : 'sets'} out for it`
+      : '';
+    log(st, `${fullName(m)} and ${fullName(f)} marry and live at ${fm.name}${out}.`, {
       kind: 'married',
       pawn: mId,
       other: fId,

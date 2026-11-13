@@ -150,7 +150,7 @@ function renderSettlers() {
           ? `<p>Grain ${Math.round(Sim.grainOf(hh))} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
           <p>Meals ${Math.round(hh.meals)} rations, cooked.</p>
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
-          <p>Firewood ${Math.round(hh.wood)} loads; stone ${hh.stone} loads.</p>
+          <p>Firewood ${Math.round(hh.wood)} loads${hh.cold > 0 ? ', cold: no firewood' : ''}; stone ${hh.stone} loads.</p>
           <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads.</p>
           <p>Dried fish ${Math.round(Sim.larderOf(hh, 'dried fish'))} rations${hh.rack >= 0.5 ? `; ${Math.round(hh.rack)} fresh by the rack` : ''}${
             hh.boat ? '; a fishing boat on the shore' : ''
@@ -343,7 +343,9 @@ function showPawn(id) {
   card(
     Sim.fullName(p),
     [
-      `${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`,
+      `${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}${
+        p.household !== null && st.households[p.household].cold > 0 ? ', cold: no firewood' : ''
+      }`,
       `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`,
       p.stake
         ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}`
@@ -505,6 +507,7 @@ function settlementTileInfo(i) {
           `Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`,
           heirs.length ? `Heirs: ${heirs.join(', then ')}` : 'No heir in line',
           `${hungerWord(hh)}: ${Math.round(Sim.grainOf(hh))} rations of grain, ${Math.round(hh.wood)} loads of firewood`,
+          ...(hh.cold > 0 ? ['Cold: no firewood'] : []),
         ],
         { farm: f.id, house: true },
       ];

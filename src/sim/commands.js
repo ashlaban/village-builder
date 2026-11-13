@@ -1,6 +1,6 @@
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
-  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter } =
+  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter, travelling } =
     VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { eligible } = VB['sim/eligibility'];
@@ -34,6 +34,8 @@ VB['sim/commands'] = (() => {
   };
   const living = (st, id) =>
     st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`;
+  // A living pawn not on a journey (VB-287): on the road it takes no work, walks nowhere else and goes to no occasion.
+  const free = (st, id) => living(st, id) || (travelling(st.agents[id]) ? `pawn ${id} is on the road` : null);
   // The gift a `give` command describes, {from, to, good, n, source}, or why there is none: the actor is the giving household's holder,
   // {household} for a household without one, or {village} for its store; the target a household, or {village} for the yearly filling.
   function giftOf(st, c) {
@@ -69,7 +71,7 @@ VB['sim/commands'] = (() => {
     // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
     work: {
       check: (st, c) =>
-        living(st, c.actor) ||
+        free(st, c.actor) ||
         (!st.jobs.has(c.target)
           ? `there is no job ${c.target}`
           : !isOpen(st.jobs.get(c.target))
@@ -95,7 +97,7 @@ VB['sim/commands'] = (() => {
       // Not refused on a tile the walking rule closes: an idle walk to company may end on a river tile (twice in a founders year at seed 7),
       // and the walk goes ahead as it always has; refusing it would change behaviour (VB-168). A player's walk should offer open tiles only.
       check: (st, c) =>
-        living(st, c.actor) ||
+        free(st, c.actor) ||
         (!(Number.isInteger(c.target) && c.target >= 0 && c.target < st.w.N) ? `there is no tile ${c.target}` : null),
       run: (st, c) => {
         const x = c.args && c.args.x !== undefined ? c.args.x : st.w.hx[c.target],
@@ -106,13 +108,13 @@ VB['sim/commands'] = (() => {
     // goHome: walk home and go in (phase 'home')
     goHome: {
       check: (st, c) =>
-        living(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
+        free(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
       run: (st, c) => goHome(st, st.agents[c.actor]),
     },
     // idle(until): look for nothing to do until game time args.until
     idle: {
       check: (st, c) =>
-        living(st, c.actor) ||
+        free(st, c.actor) ||
         (!(c.args && c.args.until >= st.t) ? `idle until ${c.args && c.args.until}, which is past` : null),
       run: (st, c) => idle(st, st.agents[c.actor], c.args.until),
     },
@@ -130,7 +132,7 @@ VB['sim/commands'] = (() => {
     // attend(occasion): set out for the occasion with id `target` (sim/occasions; source 'occasion'), leaving the work in hand, walk to a spot
     // about it and stand there until its end
     attend: {
-      check: (st, c) => living(st, c.actor) || later('sim/occasions').cannotAttend(st, c.actor, c.target),
+      check: (st, c) => free(st, c.actor) || later('sim/occasions').cannotAttend(st, c.actor, c.target),
       run: (st, c) => {
         const a = st.agents[c.actor];
         release(st, a);

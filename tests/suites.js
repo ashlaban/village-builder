@@ -25,9 +25,11 @@ const FAST = [
   ['node', 'tests/agent-usage.js'],
   ['node', 'tests/same-tool.js'],
   ['node', 'tests/wood.js'],
+  ['node', 'tests/cold.js'],
   ['node', 'tests/timber.js'],
   ['node', 'tests/stone.js'],
   ['node', 'tests/crops.js'],
+  ['node', 'tests/rye.js'],
   ['node', 'tests/kinds.js'],
   ['node', 'tests/routes.js'],
   ['node', 'tests/tiny.js'],
@@ -46,6 +48,7 @@ const FAST = [
   ['node', 'tests/reports.js'],
   ['node', 'tests/runner.js'],
   ['node', 'tests/continuity.js'],
+  ['node', 'tests/journeys.js'],
   ['node', 'tests/rng.js'],
   ['node', 'tests/cowwant.js']
 ];
@@ -93,6 +96,7 @@ const INTEGRATION = [
   ['node', 'tests/gossip.js'],
   ['node', 'tests/health.js'],
   ['node', 'tests/carts.js'],
+  ['node', 'tests/deer.js'],
 ];
 const EXTENDED = [
   // The slowest first, so that none starts last and runs on alone. First the long runs of whole islands, which load the late fixtures.

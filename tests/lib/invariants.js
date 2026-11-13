@@ -2,13 +2,14 @@
 const { SYSTEMS } = require('../../src/load.js')['sim/rng'];
 const { checkRoles } = require('./owner-caches.js');
 const checked = new WeakMap(); // the record's length at the last check, by record
-// Grain by crop (VB-347): an object of crops of CROPS, none negative, and the sum the readers see (Stores.grainOf) is their sum.
+// Grain by crop (VB-347): an object of crops of CROPS with seed (Stores.CROP_LIST: not fallow, VB-348), none negative, and the sum the
+// readers see (Stores.grainOf) is their sum.
 const LOADED = require('../../src/load.js'), CROPS = LOADED['sim/rules'].CROPS;
 function grainBad(g) {
   if (!g || typeof g !== 'object' || Array.isArray(g)) return true;
   let sum = 0;
   for (const c of Object.keys(g)) {
-    if (!CROPS[c] || !Number.isFinite(g[c]) || g[c] < -1e-6 || g[c] > 1e6) return true;
+    if (!LOADED['sim/stores'].CROP_LIST.includes(c) || !CROPS[c] || !Number.isFinite(g[c]) || g[c] < -1e-6 || g[c] > 1e6) return true;
     sum += g[c];
   }
   return Math.abs(LOADED['sim/stores'].grainOf({ grain: g }) - sum) > 1e-9 * Math.max(1, sum);
@@ -267,6 +268,12 @@ function checkState(st) {
   const within = (x, lo, hi) => Number.isFinite(x) && x >= lo && x <= hi;
   const memberOf = new Map();
   for (const h of st.households) {
+    // the cold (VB-327): coldLog holds at most HUNGER.days days' cold, each 0..1, and is empty when warm that long; cold is its sum over
+    // HUNGER.days, so 0 exactly when the log is empty
+    const CL = h.coldLog, HD = globalThis.VB['sim/rules'].HUNGER.days;
+    if (!Array.isArray(CL) || CL.length > HD || CL.some((x) => !within(x, 0, 1))) bad.push(`households[${h.id}]: coldLog ${JSON.stringify(CL)}`);
+    else if (!within(h.cold, 0, 1) || Math.abs(h.cold - CL.reduce((n, x) => n + x, 0) / HD) > 1e-9 || (CL.length > 0) !== CL.some((x) => x > 0))
+      bad.push(`households[${h.id}]: cold ${h.cold} against its log ${JSON.stringify(CL)}`);
     if (h.dissolved) { if (h.members.length) bad.push(`households[${h.id}]: dissolved but has members ${h.members}`); continue; }
     if (new Set(h.members).size !== h.members.length) bad.push(`households[${h.id}]: duplicate members ${h.members}`);
     for (const id of h.members) {
@@ -356,7 +363,7 @@ function checkState(st) {
     for (let i = 0; i < holder.totals.length; i++) {
       const x = holder.totals[i], key = `${x.year}:${x.kind}:${x.good}`;
       if (!S.ROUTINE.includes(x.kind) || !Number.isInteger(x.year) || x.year > year || x.year < year - 3 || !Number.isFinite(x.n)
-          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves milk butter ale'.split(' '), ...FISHES, ...WOODS].includes(x.good)
+          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves meat milk butter ale'.split(' '), ...FISHES, ...WOODS].includes(x.good)
           || seen.has(key)
           || i && holder.totals[i - 1].year > x.year) bad.push(`stores[${holder.id}]: invalid total ${JSON.stringify(x)}`);
       seen.add(key);
@@ -584,6 +591,18 @@ function checkState(st) {
     for (let i = 0; i < N; i++) if (!(forage[i] >= 0 && forage[i] <= 1) || forageYear[i] < 0 || forageYear[i] > year) off++;
     if (off) bad.push(`w.forage: ${off} tiles with a stock or year out of place`);
   }
+  // roe deer (VB-139, sim/deer): a region's head from 0, its capacity DEER.perEdge a forest-edge tile it lists, set on a day not after today,
+  // the edges tiles of the region (wood at the year's count; a wood felled since stays listed until the next), and no deer without capacity
+  if (st.deer) {
+    const D = st.deer, Dr = globalThis.VB['sim/rules'].DEER, R = st.w.regions.length, day = Math.floor(st.t / 24);
+    let off = 0;
+    if (D.head.length !== R || D.since.length !== R || D.cap.length !== R || D.edges.length !== R) off = R;
+    else for (let r = 0; r < R; r++) {
+      if (!(D.head[r] >= 0 && D.head[r] < Infinity) || D.since[r] > day || Math.abs(D.cap[r] - D.edges[r].length * Dr.perEdge) > 1e-9
+        || (D.cap[r] === 0 && D.head[r] !== 0) || D.edges[r].some((t) => st.w.region[t] !== r)) off++;
+    }
+    if (off) bad.push(`st.deer: ${off} regions with deer, a day or edges out of place`);
+  }
   // deposits (VB-359, sim/dig): loads left only on a deposit tile; a dug tile (dugDay) not after today, its first amount at least what is left
   // and nothing dug but clay and bog iron; an endless tile stays endless
   {
@@ -692,6 +711,25 @@ function checkState(st) {
       if ((o.answers || []).every((x) => x.yes === true)) bad.push(`${at}: all have said yes, and the offer is open`);
     });
   }
+  // the journeys (VB-287): sorted by due, ids below st.journeySeq and unique, each pawn living and in at most one, `to` its household's house,
+  // the food it carries never below 0; a pawn is in phase 'journey' or 'road' exactly when it is on one.
+  if (st.journeys !== undefined) {
+    const seen = new Set(), ids = new Set();
+    if (!Array.isArray(st.journeys) || !Number.isInteger(st.journeySeq) || st.journeySeq < 0) bad.push(`journeys: ${typeof st.journeys}, seq ${st.journeySeq}`);
+    else st.journeys.forEach((j, n) => {
+      const at = `journeys[${n}] (id ${j.id})`, p = st.pawns[j.pawn];
+      if (n > 0 && st.journeys[n - 1].due > j.due) bad.push(`${at}: due ${j.due} before the one ahead of it`);
+      if (!Number.isInteger(j.id) || j.id < 0 || j.id >= st.journeySeq || ids.has(j.id)) bad.push(`${at}: id against journeySeq ${st.journeySeq}`);
+      ids.add(j.id);
+      if (!p || !p.alive || seen.has(j.pawn)) bad.push(`${at}: pawn ${j.pawn} dead, missing or on two journeys`);
+      seen.add(j.pawn);
+      if (p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
+      if (j.why !== 'move' || !(j.food >= 0) || !Number.isFinite(j.due)) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
+      const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
+      if (ph !== 'journey' && ph !== 'road') bad.push(`${at}: its pawn is in phase ${ph}`);
+    });
+    for (const a of st.agents) if ((a.phase === 'journey' || a.phase === 'road') && !seen.has(a.id)) bad.push(`agent ${a.id}: phase ${a.phase} and on no journey`);
+  }
   // the occasions (VB-126): sorted by due, ids below st.occasionSeq and unique, due at most at the end, which is after the start (not
   // after now: a test may set the clock forward, and the next step ends it); the asked are in order of setting out, each once, and none of them has set out; a pawn at an occasion stands at one
   // that is in the queue and lists it among those who came.
@@ -782,7 +820,18 @@ function checkHerds(st, bad) {
   for (const f of st.farmsteads) for (const fd of f.fields) {
     if (!Object.prototype.hasOwnProperty.call(CROPS, fd.crop)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: crop ${fd.crop} is not in the table`); // VB-346
     if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
+    // VB-348: a fallow field is never sown; a sown field's crop has seed; a winter crop stands across the year's turn, any other is not
+    // standing in winter; weeding rounds within the crop's; a rest mark is 0.5 or 1
+    const C = CROPS[fd.crop] || {}, at = `farmsteads[${f.id}].fields[${fd.id}]`, standing = ['sown', 'growing', 'ripe'].includes(fd.stage);
+    if (C.fallow && (fd.sown !== null || fd.stage === 'plowed' || standing || fd.stage === 'stooks')) bad.push(`${at}: fallow but ${fd.stage}, sown ${fd.sown}`);
+    if (fd.sown !== null && !(C.seed > 0)) bad.push(`${at}: sown with ${fd.crop}, which has no seed`);
+    if (standing && Math.floor(st.t / VB['sim/rules'].DAY / VB['sim/rules'].SEASON_DAYS) % 4 === 3 && !C.winter && f.household !== null) bad.push(`${at}: ${fd.crop} ${fd.stage} in winter`);
+    if (fd.weeds !== undefined && !(Number.isInteger(fd.weeds) && fd.weeds >= 1 && fd.weeds <= (C.weeds || 0))) bad.push(`${at}: weeds ${fd.weeds}`);
+    if (fd.rest !== undefined && fd.rest !== 0.5 && fd.rest !== 1) bad.push(`${at}: rest ${fd.rest}`);
   }
+  // the barn's crops (VB-348): absent, or one known crop for each unthreshed entry
+  for (const h of st.households) if (h.sheafCrops !== undefined && !(Array.isArray(h.sheafCrops) && h.sheafCrops.length === h.unthreshed.length &&
+    h.sheafCrops.every((c) => LOADED['sim/stores'].CROP_LIST.includes(c)))) bad.push(`households[${h.id}]: sheafCrops ${JSON.stringify(h.sheafCrops)}`);
 }
 // Goodwill balances (sim/relations, VB-217): none for the dead or with them, at most GOODWILL.cap, each {v, t} with v non-zero and finite,
 // t no later than now, mirrored exactly on the other pawn ({v: -v, t}).

@@ -2,7 +2,8 @@
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
-  const { ECON, CROPS, FIELDS, SOIL, HERD, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
+  const { ECON, CROPS, FIELDS, SOIL, HERD, DEER, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } =
+    VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
@@ -171,11 +172,17 @@ VB['sim/fields'] = (() => {
     hh.manure -= n;
     fd.soil = Math.max(fd.soil, Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad));
   }
-  // @state farmstead.fields[]: crop (a key of CROPS, sim/rules), stage, sown/reaped days, held sheaves and
+  // @state farmstead.fields[]: crop (a key of CROPS, sim/rules: a crop, or the course fallow, VB-348), stage, sown/reaped days, held sheaves and
   // weeding progress; changed only here after seeding.
   //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
+  //   weeds: absent, or the rounds of weeding posted since sowing, for a crop with a number of rounds (CROPS weeds: rye; VB-348)
+  //   rest: absent, or a fallow field's rest this year (VB-348): 0.5 once it stood fallow at the summer's start, 1 once tilled; credited
+  //   to the soil at the year's end, whatever the field bears by then (rye is sown on it in autumn)
+  // A stubble field hoed for its crop; a fallow field (the course, not the stage) is tilled and stays in stubble.
+  //   browsed: absent, or the times roe deer got into it since it was sown (VB-139; each takes DEER.crop.loss of its yield)
   const hoed = (fd) => {
-    fd.stage = 'plowed';
+    if (CROPS[fd.crop].fallow) fd.rest = 1;
+    else fd.stage = 'plowed';
   };
   function sown(fd, c) {
     fd.stage = 'sown';
@@ -184,10 +191,13 @@ VB['sim/fields'] = (() => {
     fd.weedPosted = null;
     fd.weedMiss = 0;
     delete fd.trampled;
+    delete fd.weeds;
+    delete fd.browsed;
   }
-  // Cattle got into the standing crop (sim/byre, VB-136).
-  const trample = (fd) => {
-    fd.trampled = (fd.trampled || 0) + 1;
+  // Cattle got into the standing crop (sim/byre, VB-136), or roe deer (`deer`; sim/deer, VB-139).
+  const trample = (fd, deer = false) => {
+    if (deer) fd.browsed = (fd.browsed || 0) + 1;
+    else fd.trampled = (fd.trampled || 0) + 1;
   };
   function reaped(st, fd, c) {
     const E = st.ECON;
@@ -200,10 +210,13 @@ VB['sim/fields'] = (() => {
         st.weather *
         (0.9 + rnd(st.rng.fields) * 0.2) *
         (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)) *
-        (1 - HERD.stray.loss) ** (fd.trampled || 0),
+        (1 - HERD.stray.loss) ** (fd.trampled || 0) *
+        (1 - DEER.crop.loss) ** (fd.browsed || 0),
     );
     delete fd.trampled;
+    delete fd.browsed;
     delete fd.bin;
+    delete fd.weeds;
     wearSoil(fd); // the crop takes from the soil (VB-137)
     fd.weedOpen = false;
     fd.weedPosted = null;
@@ -247,6 +260,33 @@ VB['sim/fields'] = (() => {
       if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
     return false;
   }
+  // A ripe field still standing on its crop's `lost` day is lost (rye by the autumn's first day; VB-348).
+  function lostRipe(st, f, fd, c) {
+    const L = CROPS[fd.crop].lost;
+    if (!L || fd.stage !== 'ripe' || c.season !== L[0] || c.sday !== L[1]) return;
+    fd.stage = 'stubble';
+    fd.sown = null;
+    fd.weedOpen = false;
+    delete fd.weeds;
+    delete fd.trampled;
+    st.visualDirty = true;
+    log(st, `A crop at ${f.name} was lost, left standing too long.`, { kind: 'frost', ...atFarm(f) });
+  }
+  // Fallow's rest (VB-348): marked on the summer's first day on each fallow field of an occupied farm (tilled since: 1), credited on the
+  // year's last day: CROPS.fallow.mend times the mark, to at most SOIL.start (a field manured above it keeps its soil).
+  function rest(st, c) {
+    const summer = c.season === 1 && c.sday === 0,
+      end = c.season === 3 && c.sday === SEASON_DAYS - 1;
+    if (!summer && !end) return;
+    for (const f of st.farmsteads)
+      for (const fd of f.fields) {
+        if (summer && f.household !== null && CROPS[fd.crop].fallow && fd.rest === undefined) fd.rest = 0.5;
+        if (end && fd.rest !== undefined) {
+          fd.soil = Math.max(fd.soil, Math.min(SOIL.start, fd.soil + CROPS.fallow.mend * fd.rest));
+          delete fd.rest;
+        }
+      }
+  }
   // Daily crop rules, after routes and before buildings and fences decay. No random draws.
   function fieldsDay(st, c) {
     const E = st.ECON;
@@ -257,16 +297,25 @@ VB['sim/fields'] = (() => {
         const g = day - fd.sown;
         if (g >= CROPS[fd.crop].ripe) fd.stage = 'ripe';
         else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
+        lostRipe(st, f, fd, c);
       }
-    // upkeep: a growing field wants weeding every E.weedEvery days; a job still open when the next falls due counts as missed
+    // upkeep: a growing field wants weeding every E.weedEvery days, or its crop's rounds (weeds) only; a job still open when the next falls
+    // due, or E.weedEvery days after the last round, counts as missed
     for (const f of st.farmsteads)
       for (const fd of f.fields) {
         if (f.household === null || fd.stage !== 'growing') continue;
         if (fd.weedPosted !== null && day - fd.weedPosted < E.weedEvery) continue;
         if (fd.weedOpen) fd.weedMiss++;
+        const R = CROPS[fd.crop].weeds;
+        if (R !== undefined && (fd.weeds || 0) >= R) {
+          fd.weedOpen = false;
+          continue;
+        }
         fd.weedOpen = true;
         fd.weedPosted = day;
+        if (R !== undefined) fd.weeds = (fd.weeds || 0) + 1;
       }
+    rest(st, c);
     // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
     for (const f of st.farmsteads)
       if (f.household === null && !Projects.onFarm(st, f.id)) {
@@ -281,10 +330,12 @@ VB['sim/fields'] = (() => {
         }
       }
   }
-  // The autumn frost, on the season's last day (sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still standing or in stooks is lost.
+  // The autumn frost, on the season's last day (sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still standing or in stooks is lost;
+  // a winter crop (rye) standing green is not (VB-348).
   function fieldsFrost(st) {
     for (const f of st.farmsteads)
       for (const fd of f.fields) {
+        if (CROPS[fd.crop].winter && fd.stage === 'growing') continue;
         if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
           fd.stage = 'stubble';
           fd.sown = null;

@@ -10,7 +10,7 @@ VB['sim/clock'] = (() => {
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
   const { shareFood } = VB['sim/help'];
-  const { placeByDoor, release, stepAgents } = VB['sim/agents'];
+  const { placeByDoor, release, stepAgents, travelling, dueJourneys, stopJourneys, feedTravellers } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
@@ -31,6 +31,7 @@ VB['sim/clock'] = (() => {
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
   const { byreDay, autumnCounts, strays } = VB['sim/byre'];
   const { herdsBack, halveGraze } = VB['sim/grazing'];
+  const { recount, deerGraze, browseCrops } = VB['sim/deer'];
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
@@ -112,6 +113,22 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'hour',
+      at: { hour: WORK[0] },
+      when: (st) => st.journeys.length > 0,
+      owner: 'sim/agents',
+      note: "a journey's leg due sets out (VB-287)",
+      run: (st) => dueJourneys(st),
+    },
+    {
+      every: 'hour',
+      at: { hour: WORK[1] },
+      when: (st) => st.journeys.length > 0,
+      owner: 'sim/agents',
+      note: 'those on the road stop where they stand for the night (VB-287)',
+      run: (st) => stopJourneys(st),
+    },
+    {
+      every: 'hour',
       at: { hour: WORK[1] },
       owner: 'sim/agents',
       note: 'the work day ends: everyone free goes home',
@@ -122,6 +139,7 @@ VB['sim/clock'] = (() => {
           if (a.phase === 'back') continue; // finish the delivery first
           if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
           if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
+          if (travelling(a)) continue; // on the road it sleeps where it stopped (VB-287)
           if (a.job && KINDS[a.job.kind].late && (a.phase === 'go' || a.phase === 'work')) continue; // a pot under way is finished (VB-119)
           release(st, a);
           if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
@@ -140,18 +158,23 @@ VB['sim/clock'] = (() => {
     {
       every: 'day',
       owner: 'sim/hunger',
-      note: 'meals, grain and ale spoil, the fire burns wood',
+      note: 'the fire burns wood (a house without is cold), meals, grain and ale spoil',
       run: (st, c) => {
-        const E = st.ECON;
         for (const liveId of st.liveHouseholds) {
           const hh = st.households[liveId];
           if (hh.dissolved) continue;
-          feedHousehold(st, hh);
+          feedHousehold(st, hh, c.season); // the day's fire first, then the meal (VB-327: the cold reaches health)
           spoilGrain(st, hh);
           Stores.spoilAle(st, hh);
-          Stores.take(st, hh, 'wood', E.woodUse[c.season], 'burn'); // the day's fire (VB-328: through the stores)
         }
       },
+    },
+    {
+      every: 'day',
+      when: (st) => st.journeys.length > 0,
+      owner: 'sim/agents',
+      note: 'those on the road eat what they carry (VB-287)',
+      run: (st) => feedTravellers(st),
     },
     { every: 'day', owner: 'sim/stores', note: 'the village store spoils too', run: (st) => Stores.villageDay(st) },
     { every: 'day', owner: 'sim/forest', note: 'trees grow', run: (st) => growTrees(st) },
@@ -274,6 +297,25 @@ VB['sim/clock'] = (() => {
       run: (st) => herdsBack(st),
     },
     { every: 'year', owner: 'sim/grazing', note: 'the grazing pressure halves (VB-136)', run: (st) => halveGraze(st) },
+    {
+      every: 'year',
+      owner: 'sim/deer',
+      note: "the forest edges counted again: each region's capacity for roe deer (VB-139)",
+      run: (st) => recount(st),
+    },
+    {
+      every: 'day',
+      owner: 'sim/deer',
+      note: 'the roe deer graze the forest edges (VB-139)',
+      run: (st, c) => deerGraze(st, c),
+    },
+    {
+      every: 'day',
+      when: (st, c) => c.season === 1,
+      owner: 'sim/deer',
+      note: 'in summer, roe deer may get into a crop by a wood through a broken fence (VB-139)',
+      run: (st) => browseCrops(st),
+    },
     // ---- the people ----
     {
       every: 'day',

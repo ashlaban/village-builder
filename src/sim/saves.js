@@ -403,6 +403,11 @@ VB['sim/saves'] = (() => {
       } // VB-300: nor a drying rack nor a boat
     for (const hh of st.households) if (!hh.fresh) openFresh(hh); // VB-119: nor fresh food
     for (const hh of st.households)
+      if (!hh.coldLog) {
+        hh.cold = 0; // lint-allow: owner an older save's household, warm as sim/records makes one
+        hh.coldLog = []; // lint-allow: owner as above
+      } // VB-327: nor the cold
+    for (const hh of st.households)
       if (!hh.carts) {
         hh.carts = [];
         hh.cartMiss = 0;
@@ -428,6 +433,10 @@ VB['sim/saves'] = (() => {
       st.occasions = [];
       st.occasionSeq = 0;
     } // VB-126: nor occasions, nor their stream
+    if (!st.journeys) {
+      st.journeys = [];
+      st.journeySeq = 0;
+    } // VB-287: nor journeys
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
     if (!st.finds) {
       st.finds = new Map();
@@ -436,6 +445,8 @@ VB['sim/saves'] = (() => {
     for (const a of st.agents) if (a.occasion === undefined) a.occasion = null;
     // VB-326: older saves had one tile of wood a village (v.commonsWood) and a farm (f.woodlot); the village's wood is reckoned now
     if (!st.rng.forest) st.rng.forest = makeStream(data.seed, 'forest');
+    if (!st.rng.deer) st.rng.deer = makeStream(data.seed, 'deer'); // VB-139: nor roe deer, nor their stream
+    if (!st.deer) VB['sim/deer'].initDeer(st);
     for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
     for (const v of st.villages)
       if (!v.wood) {

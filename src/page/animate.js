@@ -239,6 +239,7 @@ function updateSettlement(dt) {
   }
   drawTeams(show);
   drawHerds(c, show);
+  drawDeer(c, show); // roe deer at the forest edges in the twilight (VB-139, page/deer)
   ring.clear();
   if (selPawn >= 0 && rigs[selPawn].root.visible) {
     const x = drawX[selPawn],

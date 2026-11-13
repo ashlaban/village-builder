@@ -457,7 +457,7 @@ passes through commands. A larger strongly connected component reflects those ne
 | sim/expansion | gen, rules, hex, routes, records, ownership, territory, forest, fields, layout | commands:3 (later) |
 | sim/farmclaims | rules, hex, records, claims, hunger, expansion, stores | commands:4 (later) |
 | sim/kinds | stores, rules, records, forest, hunger, fields, meadows, byre, expansion, claims, farmclaims | - |
-| sim/agents | rng, rules, routes, paths, records, herds, expansion, kinds | - |
+| sim/agents | rng, rules, routes, paths, records, stores, hunger, herds, expansion, kinds | - |
 | sim/commands | agents, kinds, culture, records | lifecycle:65 (later), heirs:71 (later), service:77 (later), farmclaims:82, farmclaims:83, settle:89 (later), settle:98 (later), membership:115 (later), cottage:122 (later), lifecycle:125 (later), heirs:131 (later), lifecycle:133 (later), clock:153 (later) |
 | sim/jobs | rng, rules, hunger, hex, records, agents, relations, commands, kinds, fields, meadows, byre, expansion, farmclaims | - |
 | sim/heirs | records, agents, ownership, stores, stakes, farmclaims, hex, rules, herds, fields | count:20 |

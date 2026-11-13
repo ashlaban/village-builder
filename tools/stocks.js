@@ -30,18 +30,20 @@ const QUANTITIES = [
   { id: 'meals', of: 'household', name: 'meals', unit: 'rations', fields: ['household.meals'], good: 'meals', holder: 'household',
     kinds: ['cook'],
     covers: ['household.cookDay'],
-    none: 'the household eats its gathered food as it is, then its grain uncooked at ECON.rawGrain, a quarter more (sim/hunger, VB-119)' },
+    none: 'the household eats its gathered food as it is, then its grain uncooked, a ration of it feeding ECON.uncooked (0.75; sim/hunger, VB-119, VB-327)' },
   { id: 'fresh', of: 'household', name: 'fresh food (fish, gathered food)', unit: 'rations', fields: ['household.fresh'], kinds: ['fish', 'gather'],
-    none: 'the pot is of grain and dried fish alone, a pot of one source in summer, and fishing and gathering are more urgent (sim/pot, VB-119)' },
+    none: 'the pot is of grain and dried fish alone, a pot of one source in summer, fishing for the pot is posted (it waits while fresh fish '
+      + 'covers 2 days, VB-388), and fishing and gathering are more urgent (sim/pot, VB-119)' },
   { id: 'sheaves', of: 'household', name: 'sheaves in the barn', unit: 'rations', fields: ['household.unthreshed'], good: 'sheaves', holder: 'household',
     kinds: ['haul'], covers: ['household.threshed'], none: 'nothing to thresh: the threshing job is not posted' },
   { id: 'larder', of: 'household', name: 'the larder (meat, salt meat, milk, butter, dried fish)', unit: 'rations', fields: ['household.larder'],
     kinds: ['slaughter', 'salt', 'milk', 'dry'],
     none: 'meals and grain feed the household alone' },
   { id: 'rack', of: 'household', name: 'fish by the drying rack', unit: 'rations', fields: ['household.rack'], good: 'fish', holder: 'household',
-    kinds: ['rackfish'], none: 'nothing to split and hang: the drying job is not posted, and another catch for the rack may be (sim/drying, VB-300)' },
+    kinds: ['rackfish', 'fish'], // fish: the catch for the pot beyond what is eaten before it spoils (sim/drying, VB-388)
+    none: 'nothing to split and hang: the drying job is not posted, and another catch for the rack may be (sim/drying, VB-300)' },
   { id: 'wood', of: 'household', name: 'the woodpile', unit: 'loads', fields: ['household.wood'], good: 'wood', holder: 'household', kinds: ['wood'],
-    none: 'nothing: the day\'s fire takes what there is, and a cold house costs nothing (VB-327)' },
+    none: 'the day\'s fire takes what there is and the house is cold (hh.cold, sim/hunger): health falls, no meal is cooked, and the firewood job comes first (VB-327)' },
   { id: 'stone', of: 'household', name: 'the stone heap', unit: 'loads', fields: ['household.stone'], good: 'stone', holder: 'household',
     kinds: ['pick', 'quarry'],
     none: 'the house is not raised onto a stone foundation; stone is picked or quarried for it (sim/building, VB-332)' },
@@ -68,6 +70,8 @@ const QUANTITIES = [
   { id: 'villageGrain', of: 'village', name: 'the village store\'s grain', unit: 'rations', fields: ['village.grain'], good: 'grain', holder: 'village',
     kinds: [],
     none: 'a household short of food gets nothing from the village when its kin cannot help (sim/help)' },
+  { id: 'provisions', of: 'journey', name: 'the food a pawn on a journey carries', unit: 'rations', fields: ['st.journeys'], kinds: [],
+    none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (sim/agents, VB-287)' },
   { id: 'trees', of: 'tile', name: 'a tile\'s trees', unit: 'trees', fields: ['w.trees'], kinds: ['fell', 'grub'], covers: ['w.treesMax'],
     none: 'a tile cut bare: firewood is cut on another tile of the village\'s wood; with none left, no firewood job is posted (sim/territory)' },
   { id: 'stones', of: 'tile', name: 'a tile\'s stones', unit: 'stones', fields: ['w.stones'], kinds: ['pick', 'clear'],
@@ -81,6 +85,9 @@ const QUANTITIES = [
   { id: 'graze', of: 'tile', name: 'a tile\'s grazing pressure', unit: 'cow-hours, halving a year', fields: ['w.graze'], kinds: ['herd'],
     none: 'nothing until forest spread (VB-091) reads it: then ungrazed open land is not kept open and goes to scrub, and its trees are not '
       + 'thinned; a tile with less is the better pasture, so herds move on to it (sim/grazing)' },
+  { id: 'deer', of: 'region', name: 'a region\'s roe deer', unit: 'deer', fields: ['st.deer'], kinds: ['hunt'],
+    none: 'no hunting ground there (below DEER.hunt.least), no kill, no crop browsed; the deer grow back towards the capacity of the region\'s forest '
+      + 'edges, from any left (sim/deer)' },
 ];
 
 // ---- the other fields of the @state lines, by hand: each with why it is not a stored quantity ----
@@ -89,7 +96,7 @@ const NOT_STOCKS = {
     'household.herds', 'household.dissolved', 'farmstead.id', 'farmstead.house', 'farmstead.village', 'farmstead.household', 'farmstead.name',
     'farmstead.line', 'farmstead.rowAngle', 'village.id', 'village.name', 'village.center', 'village.farmsteads', 'village.wood', 'village.plots'],
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'household.spoilt', 'household.hungryDays',
-    'household.hunger', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals'],
+    'household.hunger', 'household.cold', 'household.coldLog', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows',
     'farmstead.booth', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.carts',
       'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded'],

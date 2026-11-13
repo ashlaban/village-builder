@@ -249,7 +249,8 @@ function renderActions() {
         wood === 1 ? 'load' : 'loads'
       }.`;
   h += `<div class="play-head"><h3>You play ${esc(Sim.fullName(p))}</h3><button type="button" data-play="find">Find</button></div>`;
-  h += `<p class="needs">Hunger ${Math.round(p.hunger * 100)}%, health ${Math.round(p.health)}.${food}</p>`;
+  const cold = hh && hh.cold > 0 ? ', cold: no firewood' : '';
+  h += `<p class="needs">Hunger ${Math.round(p.hunger * 100)}%${cold}, health ${Math.round(p.health)}.${food}</p>`;
   h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
   h +=
     `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>` +

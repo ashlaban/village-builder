@@ -20,6 +20,7 @@ VB['sim/scenarios'] = (() => {
   const { yearlyRations, fieldsWanted } = VB['sim/fields'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
+  const { initDeer } = VB['sim/deer'];
   const { layWay } = VB['sim/paths'];
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
@@ -377,7 +378,9 @@ VB['sim/scenarios'] = (() => {
     //   ledger[] ({t, kind, n, good, pawn?, stake?}; sim/stores; signed movements by good; 'harvest', 'gift', 'meat', 'milk', 'butter' (rations made;
     //   sim/byre)); kinds not in Stores.ROUTINE only (VB-204), kept three years and emptied when the household dissolves,
     //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
-    //   hungryDays, seedSeason (the season the seed was last eaten in and told; sim/hunger), hunger (mean of members'), waterDay, cookDay, dissolved,
+    //   hungryDays, seedSeason (the season the seed was last eaten in and told; sim/hunger), hunger (mean of members'),
+    //   cold (0..1, the mean of coldLog over HUNGER.days) and coldLog[] (the last days' cold, each the wood the fire lacked over winter's use;
+    //   empty when warm that long; sim/hunger, VB-327), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter'|'dried fish' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fresh[] ({food 'fish'|'gathered' (rules FOODS held 'fresh'), day, qty (units)}: fresh food in batches by day; sim/pot, VB-119),
@@ -426,6 +429,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
     // @state st.offers, st.offerSeq: the open marriage offers and the next offer's id (see sim/lifecycle)
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
+    // @state st.journeys, st.journeySeq: the open journeys between villages and the next one's id (see sim/agents, VB-287)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
@@ -503,9 +507,13 @@ VB['sim/scenarios'] = (() => {
       offerSeq: 0,
       occasions: [],
       occasionSeq: 0,
+      journeys: [],
+      journeySeq: 0,
       finds: new Map(),
+      deer: null,
     };
     rebuildLiving(st);
+    initDeer(st); // roe deer in every region with forest edges, at their capacity (VB-139)
     seedPlans(st);
     for (const v of villages) {
       v.plots = [];

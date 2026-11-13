@@ -45,7 +45,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`: cluster villages,
   a farm at a time round the green, each house where its land is best, its fields one block beside it and outward of it. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
 - Food quantities and paid stakes (VB-174): `src/sim/stores.js` owns grain, meals, sheaves and food ledgers.
-- Fresh food and the pot (VB-119): `src/sim/pot.js` owns `household.fresh` (fish and gathered food in batches by day, lost past their shelf life when the store is next touched) and cooks the pot (fresh food, dried fish in winter, grain; a pot of several sources goes further), moving food through `sim/stores`.
+- Fresh food and the pot (VB-119): `src/sim/pot.js` owns `household.fresh` (fish and gathered food in batches by day, lost past their shelf life when the store is next touched) and cooks the pot (fresh food, dried fish in winter, grain, and the seed a short household would eat, VB-388; a pot of several sources goes further), moving food through `sim/stores`; `sim/drying` lays the catch for the pot beyond what is eaten before it spoils by the rack (VB-388).
   Meals are cooked by `cook` from a food of `FOODS` (`src/sim/rules.js`), by its worth in rations (VB-259).
   Call operations with a good and a reason; signed ledger entries distinguish goods and pawn stakes. Owed shares stay in heirs/cottage.
 - Animals (VB-131 to VB-138): `src/sim/herds.js` (herds of named cattle and counted sheep, spring breeding, each scenario's herds, cows in milk, the team of oxen), `src/sim/meadows.js` (hay meadows and haymaking, only while hay is wanted), `src/sim/byre.js` (the stall period, the autumn count, slaughter, salting, milking, the dung heap, an unherded herd in a crop), `src/sim/grazing.js` (VB-136: herding, the day's pasture, the herds out with the herder, the grazing pressure `w.graze`, halving each year in closed form); the larder of stored food and grain spoiling in store are in `src/sim/hunger.js`; soil, manure and how many fields a household wants in `src/sim/fields.js`. Design and plan: `docs/review-animals.md`; balance and history: `docs/review-balance.md`.
@@ -53,6 +53,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   a pawn takes and its pace; wear, mending and the end of a cart; the head's count of misses, `household.cartMiss`, and the cart built as a
   project at the house; its tunables `CART`, with `TRAVEL` in `src/sim/rules.js`). `sim/agents` asks it at each load, `sim/kinds` takes its
   kinds (`cart`, `mendcart`) and the hay's loads from it, `sim/building` fells its timber, `sim/clock` runs its winter count.
+- Journeys (VB-287; design.md, Between villages): `src/sim/agents.js` owns `st.journeys` and `st.journeySeq`. `sim/heirs`' `moveTo`
+  changes the household at the act and hands the pawn to `moved`: within a village it walks to the new door; to another village it sets
+  out on a journey, its provisions (`TRAVEL.dayWalk` hours a ration) taken from the household it leaves through `sim/stores` (reason
+  `journey`), a leg a day from 6:00 to 18:00 as due entries the calendar reads at 6:00 (`dueJourneys`) and stops at 18:00
+  (`stopJourneys`); on the road it eats what it carries (`feedTravellers`, through `sim/hunger`'s `ate`), out of its household's meal.
 - Claims (VB-042, VB-155 to VB-158, VB-033): `src/sim/claims.js` (claims on tiles: strength, lapse, disputes by custom), `src/sim/territory.js` (the
   village's outland, borders and cairns), `src/sim/stakes.js` (a field or meadow project stakes its tile; contests) and `src/sim/farmclaims.js`
   (empty farms: the birthright, claimants by custom, restoration and moving in). Design and plan: `docs/review-claims.md`.
@@ -155,6 +160,9 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   what happens when there is none; `tests/review-tools.js` fails for a field of the `@state` lines in neither its lines nor `NOT_STOCKS`.
 - A new crop is one row of `CROPS` in `src/sim/rules.js` (VB-346): `yield`, `seed`, `sow` ([season, first day, last day]), `ripe` (days from
   sowing), `wear` (the soil a harvest takes) and `hours` (plow, sow, weed, reap, thresh). A field holds
-  the key as `fd.crop`; `sim/fields` and the kinds read the field's row, never a constant. Today the KINDS take their hours from `CROPS.barley.hours`
-  (the stage's hours live there, not in the kind); a second crop makes them per field. The table is a plain constant, never in saved state.
+  the key as `fd.crop`; `sim/fields` and the kinds read the field's row, never a constant. The KINDS hold barley's hours (`CROPS.barley.hours`), and a
+  field's job carries its crop's hours where they differ (VB-348). Optional keys (VB-348): `winter` (stands the frost), `lost` ([season, day] a ripe
+  field still standing is lost), `weeds` (rounds of weeding, else one every `ECON.weedEvery` days). A row without `seed` is a course, not a crop:
+  `fallow` (tilled in its `sow` window, `mend` to the soil at the year's end); `sim/stores` holds as grain only the rows with seed (`CROP_LIST`).
+  The table is a plain constant, never in saved state.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.

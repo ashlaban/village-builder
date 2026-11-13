@@ -35,6 +35,7 @@ VB['sim/rng'] = (() => {
     'traits',
     'prospect',
     'forest',
+    'deer',
   ];
   // While a scenario is seeded, every system draws from its one seeding stream S, in the order it always has.
   const seeding = (S) => Object.fromEntries([['seed', S], ...SYSTEMS.map((k) => [k, S])]);
