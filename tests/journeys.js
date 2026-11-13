@@ -106,4 +106,38 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.ok(died && Number.isInteger(died.tile), 'the died event names where she fell');
   assert.deepStrictEqual(checkState(s), [], 'invariants after a death on the road');
 }
+// ---- a child born to a mother on the road is born where she is, and walks on to the same home (VB-425; no teleporting) ----
+{
+  const s = far(), hh = s.households[0], from = s.households[1];
+  const mid = from.members.find((id) => id !== from.holder && s.pawns[id].sex === 'f' && s.pawns[id].age >= 14);
+  const dad = hh.members.find((id) => s.pawns[id].sex === 'm' && s.pawns[id].age >= 14);
+  to(s, 10);
+  moveTo(s, mid, hh.id);
+  Sim.advance(s, 2);
+  const m = s.agents[mid], [mx, my] = [m.x, m.y];
+  assert.ok(m.phase === 'journey' && Math.hypot(mx - homeSpot(s, m)[0], my - homeSpot(s, m)[1]) > 200, 'the mother is far from home');
+  const p = s.pawns[mid], n = s.pawns.length;
+  p.pregnantUntil = s.t; p.pregnantBy = dad;
+  s.rng.births.fix = 0.99;
+  VB['sim/births'].dailyBirths(s); delete s.rng.births.fix;
+  assert.strictEqual(s.pawns.length, n + 1, 'a child is born');
+  const c = s.agents[n];
+  assert.ok(Math.hypot(c.x - mx, c.y - my) < 1e-6 && !c.inside, 'the child is at the mother\'s tile, outdoors, not at home');
+  assert.ok(s.journeys.some((j) => j.pawn === n && j.to === s.farmsteads[hh.farmstead].house), 'it travels to the home');
+  assert.deepStrictEqual(checkState(s), [], 'invariants after a birth on the road');
+  for (let d = 0; d < 3 && s.journeys.length; d++) Sim.advance(s, DAY);
+  assert.ok(!s.journeys.some((j) => j.pawn === n), 'the child arrives too');
+  assert.ok(Math.hypot(c.x - homeSpot(s, c)[0], c.y - homeSpot(s, c)[1]) < 60, 'and is at its home village');
+}
+
+// ---- the player's command to a pawn on the road is refused with the reason (decided: refused, not held) ----
+{
+  const s = far(), hh = s.households[0], id = adultOf(s, s.households[1]);
+  to(s, 10);
+  moveTo(s, id, hh.id);
+  for (const verb of ['walkTo', 'work', 'goHome', 'idle']) {
+    const r = VB['sim/commands'].issue(s, { actor: id, verb, target: null, args: {}, source: 'player' });
+    assert.ok(r && !r.ok && /on the road/.test(JSON.stringify(r)), `${verb} is refused: on the road`);
+  }
+}
 console.log(`journeys: a walk home within a village; a bride across ${Math.round(hours)} hours in ${stops + 1} legs, provisioned for ${days} days; save, death and hunger on the road`);
