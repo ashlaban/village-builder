@@ -7,7 +7,7 @@ VB['sim/spread'] = (() => {
   const { DAY, YEAR_DAYS, GRAZE } = VB['sim/rules'];
   const { costChanged } = VB['sim/routes'];
   const { FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
-  const { grazeOf } = VB['sim/grazing'];
+  const { yearScale } = VB['sim/grazing'];
   const Projects = VB['sim/projects'];
   const { on } = VB['sim/events'];
   // design.md, Land and ecology, Forest spread (Decided; rates Agreed, Kim, 30 Oct; QUESTION_ARCHIVE.md, VB-091): open land next to forest,
@@ -146,14 +146,15 @@ VB['sim/spread'] = (() => {
       front = st.front,
       day = Math.floor(st.t / DAY),
       ctx = { restoring: null },
-      join = [];
+      join = [],
+      scale = yearScale(st); // the pressure now is w.graze over the year's scale (sim/grazing, grazeOf), taken once for the pass
     for (const t of front) {
       VB.count.frontTile++;
       if (!open(w, t) || !(w.trees[t] > 0 || seeded(w, t))) {
         front.delete(t);
         continue;
       }
-      const g = grazeOf(st, t);
+      const g = w.graze[t] / scale;
       if (g >= GRAZE.thins) {
         if (w.trees[t] > 0) setTrees(st, t, w.trees[t] - w.treesMax[t] * RATE * SPREAD.thin, join);
         continue;
