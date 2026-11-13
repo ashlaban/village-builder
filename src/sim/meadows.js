@@ -3,10 +3,10 @@
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { byRiver, SEASON_DAYS, TRAVEL } = VB['sim/rules'];
+  const { byRiver, SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { log, atFarm, atHousehold } = VB['sim/records'];
+  const { log, atFarm, atHousehold, age } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo, farmedLand } = VB['sim/layout'];
   const { HAND_REACH } = VB['sim/byhand'];
@@ -73,6 +73,18 @@ VB['sim/meadows'] = (() => {
   }
   const wantsMeadow = (st, f, hh) =>
     hh.herds.length > 0 && f.meadows.length < MAX && expectedHay(f) < WANT * winterNeed(st, hh);
+  // A first meadow (VB-428): a household with no herd and no meadow yet, with the hands for a cow (HERD.want.hands working hands, as
+  // sim/exchange's cowWanted counts them), makes one at its land step, so that the want of a cow (VB-390) can come true. Not at generation.
+  function wantsFirstMeadow(st, f, hh) {
+    if (hh.herds.length > 0 || f.meadows.length > 0) return false;
+    let hands = 0;
+    for (const id of hh.members) {
+      const p = st.pawns[id],
+        a = age(st, p);
+      if (p.died === null && a >= 14 && a < 60 && !p.retired && ++hands >= HERD.want.hands) return true;
+    }
+    return false;
+  }
   // The tile becomes the household's meadow: owned, in use, developed (no path wears on it, the settlement layer draws it).
   function addMeadow(st, f, hh, tile) {
     setOwner(st, tile, { type: 'household', id: hh.id });
@@ -107,7 +119,7 @@ VB['sim/meadows'] = (() => {
     };
   }
   function startMeadow(st, f, hh, built = builtTiles(st), given = -1) {
-    if (Projects.projectOf(st, 'household', hh.id) || !wantsMeadow(st, f, hh)) return;
+    if (Projects.projectOf(st, 'household', hh.id) || !(wantsMeadow(st, f, hh) || wantsFirstMeadow(st, f, hh))) return;
     let tile = given >= 0 ? given : chooseMeadow(st, f, undefined, built);
     if (tile < 0) {
       tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
