@@ -14,11 +14,13 @@ const H = (id) => ({ type: 'household', id });
 // The land step's field (sim/fields' choice, made a project plan by sim/plans, as the review does).
 const start = (st, f, hh) => { const p = F.startProject(st, f, hh); if (p) VB['sim/plans'].makeProject(st, 'household', hh.id, p); };
 // A farm's land project (its household's project plan, VB-123): its open step's tile and kind, or null.
-const pj = (st, f) => { const s = f.household === null ? null : VB['sim/plans'].openOf(st, 'household', f.household); return s ? { tile: s.place, stage: s.kind } : null; };
+const pj = (st, f) => {
+  const s = f.household === null ? null : VB['sim/plans'].openOf(st, 'household', f.household); return s ? { tile: s.place, stage: s.kind } : null; };
 const map = Array.from({ length: 12 }, () => '.'.repeat(20));
 // One village of three farms at 10:00 on the first day: household 0 (8 people) and 2 (6) want a fourth field, household 1 (3) does not.
 function scene(dispute = 'first') {
-  const st = tinyState(tinyWorld(map), [{ at: [9, 6], farms: 3, sizes: [8, 3, 6] }], { seed: 4, customs: { dispute } });
+  const st = tinyState(tinyWorld(map), [{ at: [9, 6], farms: 3, sizes: [8, 3, 6] }], {
+    seed: 2, customs: { dispute } }); // seed 2: a seed where household 0's worker is still on the way when the contest is heard
   moveClock(st, 10);
   const hh = st.households, f = hh.map((h) => st.farmsteads[h.farmstead]);
   return { st, hh, f };
@@ -109,8 +111,10 @@ function contest(dispute, idle = 2, ties = 'contestor') {
   const taken = !!pj(st, f[2]) && pj(st, f[2]).tile === t;
   if (taken) {
     check(CL.claimOf(st, t, H(2)) && !CL.claimOf(st, t, H(0)) && !pj(st, f[0]), `${dispute}: household 2 stakes the tile, household 0's project ends`);
-    check(Math.abs(R.opinionOf(st, b, a) - (before + SOCIAL.memories.claim.v)) < 1e-9, `${dispute}: the loser's holder remembers it (${R.opinionOf(st, b, a) - before})`);
-    check(hh[0].grievance && hh[0].grievance.rules.includes('first'), `${dispute}: the loser leans to the rules that would have kept it (${hh[0].grievance && hh[0].grievance.rules})`);
+    check(Math.abs(R.opinionOf(st, b, a) - (before + SOCIAL.memories.claim.v)) < 1e-9,
+      `${dispute}: the loser's holder remembers it (${R.opinionOf(st, b, a) - before})`);
+    check(hh[0].grievance && hh[0].grievance.rules.includes('first'),
+      `${dispute}: the loser leans to the rules that would have kept it (${hh[0].grievance && hh[0].grievance.rules})`);
     check(events(st, n, /takes the field .* staked and left unworked/).length === 1, `${dispute}: the log tells it`);
     J.refreshJobs(st, cal(st.t + 1));
     check(!st.jobs.has(`clear:f${f[0].id}`) && worker.job === null, `${dispute}: the loser's job is dropped, its worker freed`);

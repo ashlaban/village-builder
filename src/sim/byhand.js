@@ -8,10 +8,10 @@ VB['sim/byhand'] = (() => {
   // gen: a settlementGenerator of sim/layout, before its finish(). Each is false (null) where the tile cannot take what is placed.
   // A farm on this very tile, with three fields: it joins the village whose centre is the nearest within SETTLE.centreApart steps, as
   // close farms are one village in play, or is a village of its own, as a lone farm is. Null where the tile cannot bear a house (not
-  // farmable, taken, a yard, beside a field) or finds no fields.
+  // farmable, taken, ground kept open) or finds no fields.
   function farmAt(w, gen, house) {
     const { used, farmsteads, villages, fieldsAt, yards } = gen;
-    if (!farmable(w, house) || used.has(house) || yards.has(house) || nextTo(w, house, fieldsAt)) return null;
+    if (!farmable(w, house) || used.has(house) || yards.has(house)) return null;
     const fields = placeFields(w, used, house, 3, yards);
     if (!fields) return null;
     let v = null, vd = SETTLE.centreApart + 1;

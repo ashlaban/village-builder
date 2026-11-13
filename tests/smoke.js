@@ -227,7 +227,7 @@ async function goodwillPanel() {
     tabH.click(); tick(2);
     if (doc.getElementById('tileHistory').hidden || !doc.getElementById('tileFacts').hidden || tabH.getAttribute('aria-selected') !== 'true') {
       fail(`the History tab of ${what} did not open`); }
-    const all = hist.querySelectorAll('p').length;
+    const all = hist.querySelectorAll('p:not(.more)').length; // the line that tells of earlier events not listed has no date
     if (!all || hist.querySelectorAll('time').length !== all) fail(`the history of ${what} has ${all} lines, not each with its date`);
     for (const k of doc.querySelectorAll('#historyKinds button')) {
       k.click(); tick(2);

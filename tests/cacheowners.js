@@ -2,7 +2,7 @@
 const assert = require('assert'), { checkRoles, loadWithRoleChecks } = require('./lib/owner-caches.js');
 const VB = loadWithRoleChecks(), { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
-const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(30))), [{ at: [10, 10], farms: 2, sizes: [6, 5] }], { seed: 7, herds: true });
+const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(30))), [{ at: [10, 10], farms: 2, sizes: [6, 5] }], { seed: 5, herds: true });
 assert.deepStrictEqual(checkState(st), []);
 const hh = st.households[0], holder = st.pawns[hh.holder], farm = st.farmsteads[hh.farmstead];
 holder.role = 'child';

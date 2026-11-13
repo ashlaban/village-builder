@@ -112,7 +112,8 @@ check(ECON.rawGrain === 1.25, 'raw grain: 1.25 rations for a ration of need');
 // --- a run: fish and gathered food go into pots, a cook at work at the end of work finishes, the state keeps its invariants
 check(KINDS.cook.late === true, 'the cook\'s job is finished after the end of work');
 {
-  const st = Sim.seed(r.value, 7, 'founders');
+  const st = Sim.seed(r.value, 7, 'heirs'); // heirs: larger households, where a cook is still at the pot at the end of work (at 12 tiles an hour
+  // the founders' cooks are done by then)
   const pots = [0, 0, 0, 0], pot = Pot.pot;
   let late = 0, finished = 0;
   Pot.pot = (...a) => { const k = pot(...a); pots[Math.min(k, 3)]++; return k; };
