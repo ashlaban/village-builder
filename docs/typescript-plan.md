@@ -160,6 +160,8 @@ May run beside: any task that does not edit `tools/writes.js` or `tests/dependen
 
 ## P8: A formatter, and the files become TypeScript
 
+13 November: the formatting of `src/` is done ahead of the rest (Prettier 3.10.1, the check in `npm test`, the line trigger rescaled to 700 formatted lines and kept); `backlog/VB-380.md` has the notes. Left here: the rename, and `tests/` and `tools/`.
+
 Priority: 3
 Size: M (L by lines; mechanical)
 Arch: yardstick

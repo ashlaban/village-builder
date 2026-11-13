@@ -335,7 +335,7 @@ const Culture = (() => {
       }
       if (n) for (let k = 0; k < TOTAL; k++) m[k] /= n;
       // Resolve settlement factors once per day, outside the per-person numerical loops.
-      means.set(s.id, { mean: n ? m : null, anchor: P.anchor[s.kind] || P.anchor.village, rate: P.kind[s.kind] });
+      means.set(s.id, { mean: n ? m : null, anchor: WEIGH.anchor(s.kind), rate: P.kind[s.kind] });
     }
     const tgt = new Float32Array(TOTAL),
       press = new Float32Array(TOTAL),
@@ -364,7 +364,7 @@ const Culture = (() => {
         n++;
       }
       if (n) for (let k = 0; k < TOTAL; k++) m[k] /= n;
-      means.set(s.id, { mean: n ? m : null, anchor: P.anchor[s.kind] || P.anchor.village, rate: P.kind[s.kind] });
+      means.set(s.id, { mean: n ? m : null, anchor: WEIGH.anchor(s.kind), rate: P.kind[s.kind] });
     } else {
       people = [];
       for (const id of hooks.living) {
@@ -383,6 +383,18 @@ const Culture = (() => {
     VB.count.walkDaily += walked;
   }
 
+  // The factors of a person's daily drift, each written here once: the drift (driftPerson) and the view of its pulls (sim/leanings, VB-398)
+  // read the same ones. tie: the weight of a tie of stored weight w0 to q; age: the young are moved more; social, cause and interest: the
+  // rates of a custom of weight m; mixed: the company's share mixed with the settlement's mean; anchor: the pull back to what was learned young.
+  const WEIGH = Object.freeze({
+    tie: (w0, q) => w0 * q.prestige * (q.advocate ? P.advocacyWeight : 1),
+    age: (age) => (age < 25 ? 1.5 : age < 50 ? 1 : 0.6),
+    social: (m, rate, ageF) => m * P.social * rate * ageF,
+    cause: (m, rate, ageF) => P.persuasion * Math.pow(m, 0.75) * rate * ageF,
+    interest: (m) => m * P.selfInterest,
+    mixed: (t, mean) => (1 - P.oblique) * t + P.oblique * mean,
+    anchor: (kind) => P.anchor[kind] || P.anchor.village,
+  });
   // A separate per-person function avoids repeated OSR/deoptimization of the nested traversal (VB-195).
   function driftPerson(p, hooks, dt, rand, mul, means, tgt, press, sq) {
     const byId = hooks.byId;
@@ -400,23 +412,23 @@ const Culture = (() => {
     for (const [j, w0] of p.ties) {
       const q = byId(j);
       if (!q || !q.alive || q.age < 12) continue;
-      const wq = w0 * q.prestige * (q.advocate ? P.advocacyWeight : 1);
+      const wq = WEIGH.tie(w0, q);
       for (let k = 0; k < TOTAL; k++) tgt[k] += wq * q.att[k];
       wsum += wq;
       if (q.advocate) press[OFF[q.advocate.dim] + q.advocate.opt] += wq; // advocates argue, not just exist
     }
     if (wsum > 0) for (let k = 0; k < TOTAL; k++) press[k] /= wsum;
     if (wsum > 0) for (let k = 0; k < TOTAL; k++) tgt[k] /= wsum;
-    if (M) for (let k = 0; k < TOTAL; k++) tgt[k] = wsum > 0 ? (1 - P.oblique) * tgt[k] + P.oblique * M[k] : M[k];
+    if (M) for (let k = 0; k < TOTAL; k++) tgt[k] = wsum > 0 ? WEIGH.mixed(tgt[k], M[k]) : M[k];
     else if (wsum === 0) tgt.set(p.att);
-    const ageF = p.age < 25 ? 1.5 : p.age < 50 ? 1 : 0.6,
-      anchorR = local ? local.anchor : P.anchor[kind] || P.anchor.village;
+    const ageF = WEIGH.age(p.age),
+      anchorR = local ? local.anchor : WEIGH.anchor(kind);
     for (let d = 0; d < DIMS.length; d++) {
       const o = OFF[d],
         n = NOPT[d],
         m = DIMS[d].m;
-      const rs = m * P.social * kindRate * ageF,
-        ru = m * P.selfInterest,
+      const rs = WEIGH.social(m, kindRate, ageF),
+        ru = WEIGH.interest(m),
         sig = m * P.noise;
       const adv = p.advocate && p.advocate.dim === d ? p.advocate : null;
       let nz = 0;
@@ -428,7 +440,7 @@ const Culture = (() => {
       nz /= n;
       let pr = 0;
       for (let j = 0; j < n; j++) pr += press[o + j];
-      const rp = P.persuasion * Math.pow(m, 0.75) * kindRate * ageF;
+      const rp = WEIGH.cause(m, kindRate, ageF);
       for (let j = 0; j < n; j++) {
         const a = p.att[o + j];
         let da = rs * (tgt[o + j] - a) + anchorR * (p.anc[o + j] - a) + rp * (press[o + j] - pr * a);
@@ -642,6 +654,7 @@ const Culture = (() => {
     TOTAL,
     IDX,
     P,
+    WEIGH,
     ARCHETYPES,
     NAME_PREFS,
     optIndex,

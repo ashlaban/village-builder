@@ -46,7 +46,7 @@ VB['sim/plans'] = (() => {
   // @state plan.build (a household's; VB-332): its building step, {tile, kind 'pick' | 'quarry' | null} (where its stone comes from; -1 and
   //   null for nowhere in reach) while it means to raise its house onto stone, else null or absent; set at each review (sim/building's buildStep).
   // ---- project plans (VB-123; design.md section 7): their record and reads are sim/projects'; only this section writes them ----
-  const { projectsOf, projectOf, holderOf, impossible, dropWords } = Projects;
+  const { projectsOf, projectOf, holderOf } = Projects;
   function remove(st, plan) {
     const map = st.plans.projects[plan.holder.type],
       list = map.get(plan.holder.id) || [],
@@ -103,8 +103,29 @@ VB['sim/plans'] = (() => {
     remove(st, plan);
     if (text) log(st, text, { kind: 'projectDropped', ...at });
   }
+  // Why the plan's open step is no longer possible, or null: its holder is gone; the claim it works under is lost (contested away, lapsed;
+  // st.claims read as sim/claims keeps it); the holder's stock no longer covers what its steps will spend (the reserved good lost).
+  function impossible(st, plan) {
+    const h = holderOf(st, plan.holder),
+      s = plan.steps[plan.open],
+      by = plan.holder;
+    if (!h || h.dissolved || (by.type === 'pawn' && !h.alive)) return 'its holder is gone';
+    const c = s.stake && (st.claims.get(s.place) || []).find((x) => x.by.type === by.type && x.by.id === by.id);
+    if (s.stake && (!c || c.why !== s.stake)) return 'its claim on the land is lost';
+    for (const good in plan.reasons)
+      if (plan.reasons[good] === 'build' && plan.reserved[good] > (h[good] || 0) + 1e-9) return `its ${good} is gone`;
+    return null;
+  }
+  // How a plan dropped for `why` is told: [text, the event's place].
+  function dropWords(st, plan, why) {
+    const h = holderOf(st, plan.holder),
+      house = plan.holder.type === 'household',
+      f = house ? st.farmsteads[h.farmstead] : null;
+    const text = `${house ? f.name : h.name} gives up its ${plan.what === 'meadow' ? 'new hay meadow' : 'new ' + plan.what}: ${why}.`;
+    return [text, house ? { household: h.id, farm: f.id, village: f.village } : { [plan.holder.type]: plan.holder.id }];
+  }
   // The plan reviewed at once when a store or a right of its holder changed: while its step is possible it stands; else it is dropped and
-  // told, in its own words (sim/projects' dropWords), in `text` and `at` given by the change, or not at all when `told`. True when it stands.
+  // told, in its own words (dropWords), in `text` and `at` given by the change, or not at all when `told`. True when it stands.
   function review(st, plan, told = false, text = null, at = null) {
     const why = impossible(st, plan);
     if (!why) return true;
