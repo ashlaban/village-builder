@@ -615,6 +615,16 @@ VB['sim/agents'] = (() => {
     }
     goHome(st, a);
   }
+  // A child born to a mother on the road (VB-425; no teleporting): it is where she is, outdoors, and walks to its home as she does.
+  function placeBorn(st, a, mother, hh) {
+    const m = st.agents[mother];
+    if (!travelling(m)) return placeAtHome(st, a);
+    a.x = m.x;
+    a.y = m.y;
+    a.inside = false;
+    a.anim = 'idle';
+    setOut(st, a, null, hh, false, hoursTo(st, null, tileAt(st, a.x, a.y), st.farmsteads[hh.farmstead].village));
+  }
   // A journey starts: provisions from the household it leaves, its record, and the first leg now if a day's walking is left (6:00 to
   // 16:00), else at the next 6:00, from where it stands.
   function setOut(st, a, old, hh, carry, hours) {
@@ -736,6 +746,7 @@ VB['sim/agents'] = (() => {
     dropJob,
     homeSpot,
     placeAtHome,
+    placeBorn,
     placeByDoor,
     idle,
     haltForTalk,

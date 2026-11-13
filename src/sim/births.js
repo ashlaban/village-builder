@@ -6,7 +6,7 @@ VB['sim/births'] = (() => {
     VB['sim/records'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie, floorKin } = VB['sim/relations'];
-  const { placeAtHome } = VB['sim/agents'];
+  const { placeBorn } = VB['sim/agents'];
   const { refreshRoles } = VB['sim/heirs'];
   const { killPawn } = VB['sim/lifecycle'];
   // chance per game day that a married woman of this age conceives, when she is neither pregnant nor nursing
@@ -87,7 +87,7 @@ VB['sim/births'] = (() => {
       talk: null,
       occasion: null,
     });
-    placeAtHome(st, st.agents[id]);
+    placeBorn(st, st.agents[id], m.id, hh);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
     lifeEvent(
       st,

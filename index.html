@@ -17591,6 +17591,16 @@ VB['sim/agents'] = (() => {
     }
     goHome(st, a);
   }
+  // A child born to a mother on the road (VB-425; no teleporting): it is where she is, outdoors, and walks to its home as she does.
+  function placeBorn(st, a, mother, hh) {
+    const m = st.agents[mother];
+    if (!travelling(m)) return placeAtHome(st, a);
+    a.x = m.x;
+    a.y = m.y;
+    a.inside = false;
+    a.anim = 'idle';
+    setOut(st, a, null, hh, false, hoursTo(st, null, tileAt(st, a.x, a.y), st.farmsteads[hh.farmstead].village));
+  }
   // A journey starts: provisions from the household it leaves, its record, and the first leg now if a day's walking is left (6:00 to
   // 16:00), else at the next 6:00, from where it stands.
   function setOut(st, a, old, hh, carry, hours) {
@@ -17712,6 +17722,7 @@ VB['sim/agents'] = (() => {
     dropJob,
     homeSpot,
     placeAtHome,
+    placeBorn,
     placeByDoor,
     idle,
     haltForTalk,
@@ -22790,7 +22801,7 @@ VB['sim/births'] = (() => {
     VB['sim/records'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie, floorKin } = VB['sim/relations'];
-  const { placeAtHome } = VB['sim/agents'];
+  const { placeBorn } = VB['sim/agents'];
   const { refreshRoles } = VB['sim/heirs'];
   const { killPawn } = VB['sim/lifecycle'];
   // chance per game day that a married woman of this age conceives, when she is neither pregnant nor nursing
@@ -22871,7 +22882,7 @@ VB['sim/births'] = (() => {
       talk: null,
       occasion: null,
     });
-    placeAtHome(st, st.agents[id]);
+    placeBorn(st, st.agents[id], m.id, hh);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
     lifeEvent(
       st,
@@ -35839,7 +35850,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'b963d8dc2a',
+const BUILD = '23cc622b61',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
