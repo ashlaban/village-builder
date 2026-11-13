@@ -78,6 +78,8 @@ is repaired by a task of its own.
   including modified world tiles. Longer generated-world continuation remains in `saves` and player continuity in `line`.
 - `reports` exercises hunger/season/quantile math on deliberate data plus one CLI JSON check. `tools` retains full report integration.
 - `rng` tests independent streams without first generating and advancing a world for a year.
+- `cowwant` (VB-390) checks a household's want of a cow on the probe village: the deal booked as goodwill, kin's heifer at a marriage,
+  and the animal moving only once a member has taken the job that leads it home.
 - Calendar checks enforce essential ordering (food sharing before consumption/take-in; path changes before route refresh), not note
   text or a snapshot of every entry. `spread` tests phases and saves between them. Path thresholds are read from current tunables.
 - `record` no longer asserts a particular number/hash of life stories. It checks event indexing and retains its long event/folding checks.

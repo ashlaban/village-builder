@@ -46,7 +46,8 @@ const FAST = [
   ['node', 'tests/reports.js'],
   ['node', 'tests/runner.js'],
   ['node', 'tests/continuity.js'],
-  ['node', 'tests/rng.js']
+  ['node', 'tests/rng.js'],
+  ['node', 'tests/cowwant.js']
 ];
 const INTEGRATION = [
   ['node', 'tests/events.js'],

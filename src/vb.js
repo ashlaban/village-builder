@@ -59,6 +59,8 @@ VB.COUNTERS = {
     'Farms of villages by fishing water asked whether their household begins a boat, once a year (sim/drying; VB-300)',
   digGround:
     'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
+  cowSeek:
+    "Households of its village weighed by a household's open want of a cow, on its planning day (sim/exchange; VB-390)",
   pastureTiles:
     "Tiles within reach of a house searched for its herds' pasture, once a grazing day a household (sim/herds; VB-136)",
 };

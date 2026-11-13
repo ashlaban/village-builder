@@ -425,11 +425,12 @@ VB['sim/herds'] = (() => {
     return n;
   }
   // Pay up to `due` rations of a share in animals to household `to`, the least valuable first, never past what is due. Returns the rations paid.
-  // `to` is the sibling's own household: with none (null), a dissolved one or `from` itself, nothing is paid.
-  function payInAnimals(st, from, to, due) {
+  // `to` is the sibling's own household: with none (null), a dissolved one or `from` itself, nothing is paid. `kinds`: the animals it may be
+  // paid in, in that order (a cow led home in a deal or at a marriage is paid in its own kind; VB-390).
+  function payInAnimals(st, from, to, due, kinds = ['ewe', 'heifer', 'steer', 'cow', 'ox']) {
     let paid = 0;
     if (!to || to.dissolved || to === from) return 0;
-    for (const kind of ['ewe', 'heifer', 'steer', 'cow', 'ox']) {
+    for (const kind of kinds) {
       const worth = VB['culture'].norm('worth', kind === 'ewe' ? 'sheep' : 'cattle/' + kind); // the one table of customary worth (VB-299)
       while (due - paid >= worth && giveAnimal(st, from, to, kind)) paid += worth;
     }
