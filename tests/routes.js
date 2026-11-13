@@ -1,6 +1,6 @@
 // Routes: cache keys never collide on a Large map, far targets are found, and the search takes the cheapest way by terrain (VB-096)
 // and over worn paths (VB-110).
-const VB = require('../src/load.js'), { B } = VB.gen, { hasRoute } = VB['sim/agents'], { route, findRoute, routeCost, refreshRoutes, costChanged } = VB['sim/routes'];
+const VB = require('../src/load.js'), { B } = VB.gen, { route, findRoute, routeCost, refreshRoutes, costChanged } = VB['sim/routes'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('ROUTES FAIL:', m); } };
 const grid = (COLS, ROWS) => {
   const N = COLS * ROWS, nb = new Int32Array(N * 6).fill(-1);
@@ -17,7 +17,7 @@ const grid = (COLS, ROWS) => {
   // (100029, 100030) and (100030, 30) share the old key from * 100000 + to; the second is too far to walk, so it falls back
   const p1 = route(st, 100029, 100030), p2 = route(st, 100030, 30);
   check(p1.length === 2 && p1[0] === 100029 && p1[1] === 100030, 'first pair gets its own path');
-  check(p2.length === 1 && p2[0] === 30 && !hasRoute(st, 100030, 30), 'second pair gets its own path, a fallback that hasRoute reads as none');
+  check(p2.length === 1 && p2[0] === 30 && st.routeFallbacks === 1, 'second pair gets its own path, a counted fallback');
   st.routeFallbacks = 0;
   const far = route(st, 0, 100 + 100 * COLS);
   check(far.length > 60 && far[far.length - 1] === 100 + 100 * COLS && st.routeFallbacks === 0, 'a far target is found');
@@ -25,7 +25,7 @@ const grid = (COLS, ROWS) => {
   check(back.length === far.length && back.every((t, k) => t === far[far.length - 1 - k]), 'the way back is the way there, reversed');
   w.water.fill(1); w.water[0] = 0;
   route(st, 0, N - 1);
-  check(!hasRoute(st, 0, N - 1) && hasRoute(st, 0, 0), 'an unreachable target has no route');
+  check(st.routeFallbacks === 1, 'unreachable target counts one fallback');
 }
 {
   // a hill ridge between two points: across it costs 2 a tile; round it is longer but cheaper once the ridge is wide enough
@@ -150,8 +150,9 @@ const grid = (COLS, ROWS) => {
     // A failed reverse lookup must stay a counted search, rather than reversing a straight-walk fallback.
     st.pathCache.clear(); w.water.fill(1); w.water[0] = 0;
     assert.deepStrictEqual(route(st, 0, 15), [15]);
-    const misses = VB.count.routeSearch;
+    const fallbacks = st.routeFallbacks, misses = VB.count.routeSearch;
     assert.deepStrictEqual(route(st, 15, 0), [0]);
+    assert.strictEqual(st.routeFallbacks, fallbacks + 1);
     assert.strictEqual(VB.count.routeSearch, misses + 1);
   } finally { ROUTE.cacheMax = savedMax; }
 }

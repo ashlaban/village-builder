@@ -39,9 +39,6 @@ VB.COUNTERS = {
   helpOffer:
     "Jobs of a village's households weighed for the offer to helpers, once a village a round with a helper (sim/jobs, offered; VB-106)",
   helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',
-  moveNoRoute:
-    'Moves to a new home that did not start for want of a way by land: the pawn stays where it is (sim/agents, moved; VB-329)',
-  bidNoRoute: 'Winning bids refused for want of a way by land to the job (sim/jobs, assign; VB-329)',
   lookUpJob:
     'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
   occasionAsked:
@@ -82,7 +79,6 @@ VB.COUNTERS = {
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };
 VB.count = {};
-VB.noWay = ''; // the last walk refused for want of a way by land (sim/agents walkTo; VB-329): read by the invariants only
 VB.resetCounts = () => {
   for (const name of Object.keys(VB.COUNTERS)) VB.count[name] = 0;
 };

@@ -239,7 +239,11 @@ VB['sim/routes'] = (() => {
       st.pathCache.set(bk, back);
       p = back.slice().reverse();
     } else {
-      p = findRoute(st.w, from, to) || [to]; // no way by land within reach: the goal alone, which sim/agents hasRoute reads as none
+      p = findRoute(st.w, from, to);
+      if (!p) {
+        p = [to];
+        st.routeFallbacks++;
+      }
     }
     st.pathCache.set(k, p);
     trimRoutes(st);

@@ -5,19 +5,8 @@ VB['sim/jobs'] = (() => {
   const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age, kinNear } = VB['sim/records'];
-  const {
-    freeHands,
-    ownerKey,
-    dropJob,
-    rateOf,
-    tileAt,
-    canReach,
-    offerWhy,
-    attentionOf,
-    heldAt,
-    workSpot,
-    travelling,
-  } = VB['sim/agents'];
+  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot, travelling } =
+    VB['sim/agents'];
   const { companyFor, opinionOf } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
@@ -396,11 +385,6 @@ VB['sim/jobs'] = (() => {
       if (j.claims.length > k) {
         const b = [s * joined(j, j.claims.length - k), a, j, j.claims.length];
         bids.splice(slot(bids, i + 1, b[0]), 0, b);
-        continue;
-      }
-      // only the bid that would win asks for a route (VB-329); the verb checks it too, and a refused pair is cached until the day's end
-      if (!canReach(st, a, j)) {
-        VB.count.bidNoRoute++;
         continue;
       }
       issue(st, { actor: a.id, verb: 'work', target: j.key, source: 'planner' });

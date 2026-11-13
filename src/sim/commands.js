@@ -1,21 +1,7 @@
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
-  const {
-    start,
-    release,
-    walkTo,
-    canReach,
-    hasRoute,
-    tileAt,
-    goHome,
-    idle,
-    haltForTalk,
-    attentionOf,
-    sideWhy,
-    hold,
-    reachAfter,
-    travelling,
-  } = VB['sim/agents'];
+  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter, travelling } =
+    VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
@@ -92,9 +78,9 @@ VB['sim/commands'] = (() => {
           ? `there is no job ${c.target}`
           : !isOpen(st.jobs.get(c.target))
             ? `job ${c.target} has no room`
-            : (attentionOf(st.jobs.get(c.target)) !== 'full'
-                ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))
-                : null) || (!canReach(st, st.agents[c.actor], st.jobs.get(c.target), false) ? 'no way there' : null)),
+            : attentionOf(st.jobs.get(c.target)) !== 'full'
+              ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))
+              : null),
       run: (st, c) => {
         const a = st.agents[c.actor],
           j = st.jobs.get(c.target);
@@ -114,11 +100,7 @@ VB['sim/commands'] = (() => {
       // and the walk goes ahead as it always has; refusing it would change behaviour (VB-168). A player's walk should offer open tiles only.
       check: (st, c) =>
         free(st, c.actor) ||
-        (!(Number.isInteger(c.target) && c.target >= 0 && c.target < st.w.N)
-          ? `there is no tile ${c.target}`
-          : !hasRoute(st, tileAt(st, st.agents[c.actor].x, st.agents[c.actor].y), c.target, false)
-            ? 'no way there'
-            : null),
+        (!(Number.isInteger(c.target) && c.target >= 0 && c.target < st.w.N) ? `there is no tile ${c.target}` : null),
       run: (st, c) => {
         const x = c.args && c.args.x !== undefined ? c.args.x : st.w.hx[c.target],
           y = c.args && c.args.y !== undefined ? c.args.y : st.w.hy[c.target];
@@ -128,17 +110,7 @@ VB['sim/commands'] = (() => {
     // goHome: walk home and go in (phase 'home')
     goHome: {
       check: (st, c) =>
-        free(st, c.actor) ||
-        (st.pawns[c.actor].household === null
-          ? `pawn ${c.actor} has no home`
-          : !hasRoute(
-                st,
-                tileAt(st, st.agents[c.actor].x, st.agents[c.actor].y),
-                st.farmsteads[st.households[st.pawns[c.actor].household].farmstead].house,
-                false,
-              )
-            ? 'no way there'
-            : null),
+        free(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
       run: (st, c) => goHome(st, st.agents[c.actor]),
     },
     // idle(until): look for nothing to do until game time args.until
