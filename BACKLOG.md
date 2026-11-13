@@ -73,6 +73,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-422](backlog/VB-422.md) | Refactor: split sim/agents by concern (journeys, attention, walking) | - | 3 | M | sim/agents is over the line and the width since journeys; split journeys, attention and the awake set out. |
 | [VB-423](backlog/VB-423.md) | Refactor: split sim/hunger by concern (the meal, the need rule) | - | 3 | M | sim/hunger exports 20 names since journeys; split the need rule and the larder from the daily meal. |
 | [VB-424](backlog/VB-424.md) | Hides from the hunt | animals | 3 | S | A kill gives a hide once a system reads it (dress, VB-363, or trade); left out of VB-139. |
+| [VB-426](backlog/VB-426.md) | Young villages without wood at seed 11 | - | 3 | S | Four villages of populous small seed 11 have no wood within 27 steps; find whether their own cutting or an older village's far allotment took it. |
 
 ## Waiting for Kim
 
