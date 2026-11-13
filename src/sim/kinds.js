@@ -78,8 +78,8 @@ VB['sim/kinds'] = (() => {
   // The hours of a stage are the crop's row (CROPS.barley.hours, sim/rules): barley alone as yet, so the kinds read its row.
   const HOURS = CROPS.barley.hours;
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
-  // The household has fewer meals than the coming meal needs, and grain or fresh food (VB-119) to cook it from.
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && Pot.cookable(st, hh);
+  // The household has fewer meals than the coming meal needs, and grain, fresh food (VB-119) or seed it would eat (VB-388) to cook it from.
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && Pot.cookable(st, hh, dailyNeed(st, hh));
   // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
   // seed reserve): a household never brews grain it needs.
   const brewWanted = (st, hh) =>
@@ -317,9 +317,9 @@ VB['sim/kinds'] = (() => {
       window: { from: 14 },
       late: true, // a pot under way is finished after the end of work (VB-119; Kim, 11 Nov)
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
-      // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain (sim/pot), for the day posted
+      // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain, the seed it would eat (sim/pot)
       done: (st, j, hh, c) => {
-        Pot.pot(st, hh, Math.max(0, dailyNeed(st, hh) - hh.meals));
+        Pot.cookMeal(st, hh, dailyNeed(st, hh));
         hh.cookDay = j.day ?? c.day;
       },
       // from 14:00 to the end of work, while the household is short of meals and has grain or fresh food to cook (cookWanted)
@@ -697,13 +697,13 @@ VB['sim/kinds'] = (() => {
       },
       // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
       urgency: (st, j, c, U) => spareUrgency(st, j, U),
-      // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119)
+      // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119); beyond it, to the rack (VB-388)
       deliver: (st, j, hh) => {
-        Pot.putFresh(st, hh, 'fish', Drying.catchOf(st, j), 'catch');
+        Drying.potCatch(st, j, hh);
       },
       // in the fishing season, from its boat or the house's fishing ground (sim/drying): one trip, two while spare food is under FISH.secondDays
       available: (st, hh, f, c, post) => {
-        if (!fishing(c)) return;
+        if (!fishing(c) || Pot.fishCovered(st, hh, dailyNeed(st, hh))) return; // none while fresh fish covers 2 days (VB-388)
         const g = Drying.fishingPlace(st, hh, f);
         if (!g) return;
         // the key names the bank, so a ground fished out is left for the next one at the following review

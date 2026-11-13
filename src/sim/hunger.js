@@ -2,7 +2,7 @@
 // the need rule (VB-299) and its food term
 VB['sim/hunger'] = (() => {
   const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS } = VB['sim/rules'];
-  const { age, farmPractice, log, atFarm } = VB['sim/records'];
+  const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'];
   const Rules = VB['sim/registry'];
@@ -239,20 +239,11 @@ VB['sim/hunger'] = (() => {
     }
     hh.hunger = mem.length ? sum / mem.length : 0;
   }
-  // The seed a meal eats (VB-282): taken through the stores with its own reason, and the fields it leaves unsown told once a season at most.
+  // The seed a meal eats (VB-282): taken through the stores with its own reason, and the fields it leaves unsown told once a season at most
+  // (sim/pot, which the cook's seed tells too, VB-388).
   function eatSeed(st, hh, n) {
     Stores.take(st, hh, 'grain', n, 'seedMeal'); // of each crop as it is held (VB-352 orders it)
-    const season = Math.floor(st.t / (SEASON_DAYS * DAY)),
-      f = st.farmsteads[hh.farmstead];
-    if (hh.seedSeason === season) return;
-    hh.seedSeason = season;
-    const short = Math.max(0, Math.ceil((reserved(st, hh, 'grain') - grainOf(hh)) / CROPS.barley.seed - 1e-9));
-    if (short)
-      log(st, `${f.name} eats the seed it kept back: ${short === 1 ? 'a field' : short + ' fields'} may go unsown.`, {
-        kind: 'seedEaten',
-        n: short,
-        ...atFarm(f),
-      });
+    Pot.seedTold(st, hh);
   }
   // Health after the meal: hunger drains it (faster for the very young and the old), a full meal restores some.
   function updateHealth(st, p, fed) {
