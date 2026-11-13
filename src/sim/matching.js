@@ -6,6 +6,7 @@ VB['sim/matching'] = (() => {
     { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
   const { roundHeirs, heirFor } = VB['sim/heirs'];
+  const { trustOfHolder } = VB['sim/ownership'];
   const { opinionOf } = VB['sim/relations'];
 
   // ---- the rules of a match (the moving round's marriages, and what the player's wish for a match is checked against, VB-274) ----
@@ -44,8 +45,16 @@ VB['sim/matching'] = (() => {
       means = new Map();
     const place = (id) => {
       if (!places.has(id)) {
-        const hh = st.households[st.pawns[id].household];
-        places.set(id, hh && !hh.dissolved && (hh.holder === id || heirs.rank(hh.id)[0] === id) ? hh.id : null);
+        const hh = st.households[st.pawns[id].household],
+          held = trustOfHolder(st, id); // a holder whose farm is held in trust lives there once married (VB-309)
+        places.set(
+          id,
+          held
+            ? held.household
+            : hh && !hh.dissolved && (hh.holder === id || heirs.rank(hh.id)[0] === id)
+              ? hh.id
+              : null,
+        );
       }
       return places.get(id);
     };

@@ -306,3 +306,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-394](backlog/VB-394.md) | Hay comes home by the load | - | 3 | S | A load of hay is 10 units on the back and 60 on a cart, so a meadow of 30 is three trips or one cart. |
 | [VB-058](backlog/VB-058.md) | The village green and well, built by the village | year | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. |
 | [VB-390](backlog/VB-390.md) | A new household with a meadow wants a cow | animals | 2 | M | A new household of two or more hands with a meadow wants a cow in its standing plan, from kin's herd at a marriage or by a deal. |
+| [VB-309](backlog/VB-309.md) | Held by kin when nobody can come: the farm in trust, its owner unchanged | year | 2 | M | a household short of people that nobody can come to moves to its nearest kin household, which works its farm in trust until the holder can return |

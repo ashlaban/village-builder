@@ -71,7 +71,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   order of preference (`c.namePrefs`); a lone farm's village bears its farm's name, and the page labels a village of two or more farms once.
 - Households short of people (stability review, `docs/review-stability.md`): `src/sim/service.js` brings a guardian to an orphaned minor heir and a
   servant to a holder who lives alone; a household of at most one grown member whose ask for food falls short (`shareFood`, `src/sim/help.js`,
-  names it) takes in kin, else a servant, at once (`takeIn`, VB-308); at the moving round a landless adult from a household with hands to
+  names it) takes in kin, else a servant, at once (`takeIn`, VB-308), and with nobody to come, its people go to their nearest kin household,
+  which holds the farm in trust (`src/sim/trust.js`, VB-309: `st.trusts`, the verbs `goToKin` and `goBack`; the trustee posts the farm's
+  field work as its own in `src/sim/jobs.js`, and `src/sim/ownership.js` reads which farms are held); an orphaned heir with no guardian is
+  held for the same way; at the moving round a landless adult from a household with hands to
   spare goes into service where labour is short, by hands per field (`serveWhereShort`, VB-090; the placement `reachSteps` is shared); marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/lifecycle.js`
   and `src/sim/heirs.js`.
 - Saves (VB-074): `Sim.save(st)` and `Sim.load(w, data)` in `src/sim/saves.js`; a generic codec keeps shared objects, Maps, Sets and typed
@@ -143,7 +146,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058).
 - Social: `culture`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings).
-- Agency: `sim/agents`, `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle`, `sim/eligibility`, `sim/plans`.
+- Agency: `sim/agents`, `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle`, `sim/eligibility`, `sim/plans`.
 - Derived views: `sim/notable`, `sim/opportunities` (read-only, computed when asked).
 
 ## Adding things

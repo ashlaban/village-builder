@@ -5887,7 +5887,7 @@ VB['sim/rules'] = (() => {
   const onStone = (f) => f.grade === 'stone';
   function houseCondition(st, f) {
     const c = f.condition ?? 1;
-    if (f.household === null) return c;
+    if (f.household === null || st.liveTrusts?.some((i) => st.trusts[i].household === f.household)) return c; // empty, or in trust
     const t0 = f.condAt ?? 0,
       tar = Math.min(st.t, f.tarredUntil || 0),
       tarred = Math.max(0, tar - t0),
@@ -8164,7 +8164,7 @@ VB['sim/byhand'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/ownership: who owns each tile: a household, a village, or nobody
+// @sys sim/ownership: who owns each tile: a household, a village, or nobody; and which farms are held in trust (read only; VB-309)
 VB['sim/ownership'] = (() => {
   // @state st.owner: Int32Array, one per tile; 0 = nobody, n > 0 = household n - 1, n < 0 = village -n - 1
   const ownerOf = (st, tile) => {
@@ -8196,7 +8196,36 @@ VB['sim/ownership'] = (() => {
     for (const fd of f.fields) setOwner(st, fd.tile, o);
     for (const m of f.meadows || []) setOwner(st, m.tile, o);
   }
-  return { ownerOf, setOwner, seedOwners, farmToVillage };
+  // ---- farms held in trust (VB-309; st.trusts and st.liveTrusts, written by sim/trust) ----
+  // A farm held in trust is worked by a kin household that does not own it: the owner stays the household that holds it. Read here, by the
+  // systems loaded before sim/trust (the job board, the plans, the clock); a few live trusts at most, so a walk over them allocates nothing.
+  const NONE = [];
+  // The live trust of the farm of household hhId, or null.
+  function trustOf(st, hhId) {
+    const live = st.liveTrusts || NONE;
+    for (let i = 0; i < live.length; i++) if (st.trusts[live[i]].household === hhId) return st.trusts[live[i]];
+    return null;
+  }
+  // The live trust whose farm pawn `id` holds (it lives with the trustee), or null.
+  function trustOfHolder(st, id) {
+    const live = st.liveTrusts || NONE;
+    for (let i = 0; i < live.length; i++)
+      if (st.households[st.trusts[live[i]].household].holder === id) return st.trusts[live[i]];
+    return null;
+  }
+  // The farms household hhId holds in trust for kin, in the order of the trusts (none: a shared empty list).
+  function heldFarms(st, hhId) {
+    const live = st.liveTrusts || NONE;
+    let out = NONE;
+    for (let i = 0; i < live.length; i++) {
+      const t = st.trusts[live[i]];
+      if (t.trustee !== hhId) continue;
+      if (out === NONE) out = [];
+      out.push(st.farmsteads[st.households[t.household].farmstead]);
+    }
+    return out;
+  }
+  return { ownerOf, setOwner, seedOwners, farmToVillage, trustOf, trustOfHolder, heldFarms };
 })();
 </script>
 <script>
@@ -18238,7 +18267,7 @@ VB['sim/commands'] = (() => {
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { assessGift, settleGift } = VB['sim/exchange'];
-  // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
+  // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
     !(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length)
@@ -18246,6 +18275,8 @@ VB['sim/commands'] = (() => {
       : !(Number.isInteger(c.args.option) && c.args.option >= 0 && c.args.option < Culture.NOPT[c.args.dim])
         ? `custom ${c.args.dim} has no option ${c.args.option}`
         : null;
+  // The live trust of household id's farm (st.liveTrusts, sim/trust; read as sim/ownership's trustOf reads it), or null.
+  const trustOf = (st, id) => (st.liveTrusts || []).map((i) => st.trusts[i]).find((t) => t.household === id) || null;
   const home = (st, id) => Number.isInteger(id) && st.households[id] && !st.households[id].dissolved;
   const settlement = (st, c) =>
     c.actor && st.cenv && st.cenv.settlements[c.actor.settlement]
@@ -18406,6 +18437,35 @@ VB['sim/commands'] = (() => {
       run: (st, c) => later('sim/plans').setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
     },
     // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
+    // goBack(target, {why}): the actor, holder of household `target`'s farm held in trust by kin (VB-309, sim/trust), goes back to it with
+    // its people, and the trust ends: at its marriage, a servant at the round, its coming of age or the trustee's end (args.why)
+    goBack: {
+      check: (st, c) =>
+        living(st, c.actor) ||
+        (!trustOf(st, c.target)
+          ? `household ${c.target} is not held in trust`
+          : st.households[c.target].holder !== c.actor
+            ? `pawn ${c.actor} does not hold household ${c.target}`
+            : null),
+      run: (st, c) => later('sim/trust').endTrust(st, trustOf(st, c.target), (c.args && c.args.why) || 'return'),
+    },
+    // goToKin(target, {why, ward}): the actor, holder of household `target`, which nobody can come to (sim/service: VB-308's search found
+    // nobody, or an orphaned heir with no guardian, args.ward), goes to the kin household that will hold its farm in trust (VB-309)
+    goToKin: {
+      check: (st, c) =>
+        living(st, c.actor) ||
+        (!home(st, c.target)
+          ? `there is no household ${c.target}`
+          : st.households[c.target].holder !== c.actor
+            ? `pawn ${c.actor} does not hold household ${c.target}`
+            : trustOf(st, c.target)
+              ? `household ${c.target} is held in trust already`
+              : later('sim/trust').trusteeFor(st, st.households[c.target], (c.args && c.args.ward) ?? null) === null
+                ? 'no kin household within reach can hold the farm'
+                : null),
+      run: (st, c) =>
+        later('sim/trust').holdInTrust(st, st.households[c.target], c.args.why, (c.args && c.args.ward) ?? null),
+    },
     // marry(target, {home}): the actor and the target marry and live in household args.home
     marry: {
       check: (st, c) =>
@@ -19120,6 +19180,7 @@ VB['sim/plans'] = (() => {
   const { reviewWant } = VB['sim/exchange'];
   const { buildStep } = VB['sim/building'];
   const Green = VB['sim/green'];
+  const { heldFarms } = VB['sim/ownership'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
@@ -19515,19 +19576,21 @@ VB['sim/plans'] = (() => {
     );
   }
   // A household whose field is ripe, or that has a field still to hoe or sow while the sowing window is open, at the first review hour:
-  // its fields' window is closing on it (a crop that waits for a planning day meets the frost; VB-322). Walks its own fields only.
+  // its fields' window is closing on it (a crop that waits for a planning day meets the frost; VB-322). Walks its own fields and those of a
+  // farm it holds in trust (VB-309).
   function fieldsDue(st, plan, c) {
     if (plan.holder.type !== 'household' || c.hour !== FIRST) return false;
     const hh = st.households[plan.holder.id],
       f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return false;
-    for (const fd of f.fields) {
-      const W = CROPS[fd.crop].sow,
-        sow = c.season === W[0] && c.sday >= W[1] && c.sday <= W[2];
-      const idle = fd.stage === 'plowed' || (fd.stage === 'stubble' && !(CROPS[fd.crop].fallow && fd.rest === 1)); // fallow: tilled once
-      if (fd.stage === 'ripe' || (sow && idle)) return true;
-    }
-    return false;
+    const due = (g) =>
+      g.fields.some((fd) => {
+        const W = CROPS[fd.crop].sow,
+          sow = c.season === W[0] && c.sday >= W[1] && c.sday <= W[2];
+        const idle = fd.stage === 'plowed' || (fd.stage === 'stubble' && !(CROPS[fd.crop].fallow && fd.rest === 1)); // fallow: tilled once
+        return fd.stage === 'ripe' || (sow && idle);
+      });
+    return due(f) || heldFarms(st, hh.id).some(due);
   }
   // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, or its fields due today,
   // once ('window'); a store that crossed a target, at most one such review a day ('store').
@@ -19781,6 +19844,7 @@ VB['sim/jobs'] = (() => {
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
+  const { trustOf, heldFarms } = VB['sim/ownership'];
   const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks, openOf } =
     VB['sim/plans'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
@@ -19874,7 +19938,7 @@ VB['sim/jobs'] = (() => {
         K = WINDOWED[k],
         f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
       gave = false;
-      if (f && f.household === id) {
+      if (f && f.household === id && !trustOf(st, id)) {
         const mine = st.jobsBy.get(`household:${id}`);
         if (mine) for (const j of mine) if (j.kind === K) j.live = false;
         only = K;
@@ -19882,6 +19946,9 @@ VB['sim/jobs'] = (() => {
         const rule = DUE_RULES[k];
         if (KINDS[K].stages) {
           for (const fd of f.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, f);
+          // the fields of a farm it holds in trust, as its own (VB-309)
+          for (const g of heldFarms(st, id))
+            for (const fd of g.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, g);
         } else ask(rule, hh, f, f);
         only = null;
         const now = st.jobsBy.get(`household:${id}`);
@@ -19908,15 +19975,17 @@ VB['sim/jobs'] = (() => {
       if (mine) for (const j of mine) if (!islandJob(j)) sweep(st, j);
     };
     for (const f of st.farmsteads) {
-      if (f.household === null) continue;
+      // a farm held in trust posts nothing of its own: its trustee works its fields as its own (VB-309)
+      if (f.household === null || trustOf(st, f.household)) continue;
       const hh = st.households[f.household],
         plan = review('household', hh.id);
       if (!plan) continue;
       own = { type: 'household', id: hh.id };
-      for (const fd of f.fields) {
-        const rules = ASK.fieldAt[fd.stage];
-        if (rules) ask(rules, hh, fd, f);
-      }
+      for (const g of [f, ...heldFarms(st, hh.id)])
+        for (const fd of g.fields) {
+          const rules = ASK.fieldAt[fd.stage];
+          if (rules) ask(rules, hh, fd, g);
+        }
       ask(ASK.farm, hh, f, f);
       // A choice, not an availability: the plan's land step, a new field, or a meadow once the fields are enough, at the review (balance
       // review: households in every scenario look, and those short of land searched in vain every hour; sim/plans).
@@ -19986,10 +20055,11 @@ VB['sim/jobs'] = (() => {
       if (!mayLook(plan, c.day)) continue;
       looked.add(hh.id);
       own = { type: 'household', id: hh.id };
-      for (const fd of f.fields) {
-        const rules = LOOK.fieldAt[fd.stage];
-        if (rules) ask(rules, hh, fd, f);
-      }
+      for (const g of [f, ...heldFarms(st, hh.id)])
+        for (const fd of g.fields) {
+          const rules = LOOK.fieldAt[fd.stage];
+          if (rules) ask(rules, hh, fd, g);
+        }
       ask(LOOK.farm, hh, f, f);
       ask(LOOK.farmAfterPlans, hh, f, f);
       out.push(a);
@@ -20226,7 +20296,8 @@ VB['sim/heirs'] = (() => {
     wishOf,
   } = VB['sim/records'];
   const { moved, dropJob, journeyOf } = VB['sim/agents'];
-  const { farmToVillage } = VB['sim/ownership'];
+  const { farmToVillage, heldFarms } = VB['sim/ownership'];
+  const { issue } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
@@ -20529,7 +20600,9 @@ VB['sim/heirs'] = (() => {
   function serviceHome(st, hh) {
     const village = st.farmsteads[hh.farmstead].village,
       vOf = (h) => st.farmsteads[h.farmstead].village;
-    const open = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.id !== hh.id);
+    const open = st.liveHouseholds
+      .map((id) => st.households[id])
+      .filter((h) => !h.dissolved && h.id !== hh.id && h.members.length); // not a farm held in trust (VB-309)
     const smallest = (list) => list.sort((x, y) => x.members.length - y.members.length || x.id - y.id)[0];
     const here = smallest(open.filter((h) => vOf(h) === village));
     if (here) return here.id;
@@ -20584,6 +20657,15 @@ VB['sim/heirs'] = (() => {
   }
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
+    // a farm it held in trust goes back to its holder first (VB-309, sim/trust)
+    for (const g of heldFarms(st, hh.id))
+      issue(st, {
+        actor: st.households[g.household].holder,
+        verb: 'goBack',
+        target: g.household,
+        args: { why: 'trustee gone' },
+        source: 'trust',
+      });
     const f = st.farmsteads[hh.farmstead];
     f.condition = houseCondition(st, f);
     f.household = null;
@@ -20875,6 +20957,186 @@ VB['sim/heirs'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/trust: a farm held in trust by kin (VB-309): a household nobody can come to goes to its nearest kin household, which works its
+// fields and takes their harvest while the owner, holder and line stay the same; the trust ends at the holder's marriage, a servant, a
+// ward's coming of age, the trustee's end or the holder's death
+VB['sim/trust'] = (() => {
+  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold, kinship } = VB['sim/records'];
+  const { moveTo, refreshRoles, handOn } = VB['sim/heirs'];
+  const { freeHands, dropJob } = VB['sim/agents'];
+  const { issue } = VB['sim/commands'];
+  const { houseCondition } = VB['sim/rules'];
+  const { passHerds } = VB['sim/herds'];
+  const Stores = VB['sim/stores'];
+  const { kinHouseholds, shortOfPeople } = VB['sim/help'];
+  const { trustOf } = VB['sim/ownership'];
+  const { hexSteps } = VB['sim/hex'];
+  const { SERVICE } = VB['sim/rules'];
+  // @state st.trusts: every farm ever held in trust (design.md, Households short of people: Held by kin when nobody can come), by id, never
+  //   reused: {id, household (the household whose farm is held; its holder, owner and line unchanged), trustee (the kin household that works
+  //   it), ward (its holder while a minor, else null), people (the members who went to the trustee), start, end (null while it holds), why
+  //   (how it ended: 'married', 'servant', 'of age', 'trustee gone', 'death', 'inherited')}; written only here; absent until the first.
+  // @state st.liveTrusts: sorted ids of the live trusts in st.trusts (Rules for cost, 1): a cache owned here, read through sim/ownership.
+  const farmOf = (st, hh) => st.farmsteads[hh.farmstead];
+  // The jobs household ownerId has posted, on farm f only when f is given: dropped, their hands freed.
+  function dropJobs(st, ownerId, f = null) {
+    const mine = st.jobsBy.get(`household:${ownerId}`);
+    if (!mine) return;
+    for (const j of [...mine])
+      if (f === null || j.farm === f) {
+        if (j.claims.length) freeHands(st, j, -1);
+        dropJob(st, j);
+      }
+  }
+  // Whether household g lies within the service reach of household hh: one village, or village centres SERVICE.reach steps apart or less
+  // (the placement of every service rule, sim/service's reachSteps).
+  function inReach(st, g, hh) {
+    const u = farmOf(st, g).village,
+      v = farmOf(st, hh).village;
+    return u === v || hexSteps(st.w, st.villages[u].center, st.villages[v].center) <= SERVICE.reach;
+  }
+  // The kin household that would hold hh's farm in trust, or null: the first of its kin households (sim/help's kinHouseholds: parents and
+  // children before siblings, then by id) within reach that is not itself short of people nor held in trust. For an orphaned heir (`ward`)
+  // with none, the household of its nearest grown kin within reach that is not short of people, by kinship then the oldest, as the children
+  // of a farm that empties go to kin (sim/heirs, kinHomeFor).
+  function trusteeFor(st, hh, ward = null) {
+    for (const k of kinHouseholds(st, hh)) {
+      const g = st.households[k];
+      if (!trustOf(st, k) && !shortOfPeople(st, g) && inReach(st, g, hh)) return k;
+    }
+    if (ward === null) return null;
+    const memo = new Map();
+    let best = null,
+      bk = 0;
+    VB.count.takeInWeighed += st.living.length;
+    for (const id of st.living) {
+      const q = st.pawns[id];
+      if (!q.alive || q.age < 18 || q.household === null || q.household === hh.id) continue;
+      const g = st.households[q.household];
+      if (g.dissolved || shortOfPeople(st, g) || !inReach(st, g, hh)) continue;
+      const k = kinship(st, ward, id, memo);
+      if (k > bk || (k === bk && k > 0 && q.born < best.born)) {
+        best = q;
+        bk = k;
+      }
+    }
+    return best ? best.household : null;
+  }
+  // Household hh (at most one grown member, nobody to come, or an orphaned heir with no guardian, `ward`) goes to its trusteeFor, which
+  // holds its farm in trust: its people move there with its grain and animals; its own tasks are taken down; the house stands empty, its
+  // condition kept from now as an empty farm's (sim/rules' houseCondition, the clock's decay); the trustee posts the farm's field work as its
+  // own (sim/jobs), and its harvest comes to the trustee's barn as any of its work's does. `why`: the end of the log line.
+  function holdInTrust(st, hh, why, ward = null) {
+    const trustee = trusteeFor(st, hh, ward);
+    const f = farmOf(st, hh),
+      k = st.households[trustee],
+      holder = st.pawns[hh.holder];
+    f.condition = houseCondition(st, f);
+    if (!st.trusts) st.trusts = [];
+    if (!st.liveTrusts) st.liveTrusts = [];
+    const t = {
+      id: st.trusts.length,
+      household: hh.id,
+      trustee,
+      ward: holder.age < 18 ? holder.id : null,
+      people: hh.members.filter((id) => st.pawns[id].alive),
+      start: st.t,
+      end: null,
+      why: null,
+    };
+    st.trusts.push(t);
+    st.liveTrusts.push(t.id); // ids rise, so the cache stays sorted
+    dropJobs(st, hh.id);
+    Stores.move(st, hh, k, 'grain', Stores.grainOf(hh), 'handingOn');
+    passHerds(st, hh, trustee);
+    const at = farmOf(st, k).name;
+    for (const id of t.people) moveTo(st, id, trustee, `Moved to kin at ${at}, who hold ${f.name} in trust`);
+    log(st, `${fullName(holder)} of ${f.name} ${why}, and goes to kin at ${at}, who hold the farm in trust.`, {
+      kind: 'moved',
+      pawn: holder.id,
+      other: k.holder,
+      ...atHousehold(st, hh),
+    });
+    refreshRoles(st);
+    st.visualDirty = true;
+    return t;
+  }
+  // The trust ends, its people where they are: the record closed, the house wearing again from the condition it kept, the trustee's tasks
+  // on the farm taken down. Its own act at the holder's death (succession then as today); the return's first step.
+  function closeTrust(st, t, why) {
+    const hh = st.households[t.household],
+      f = farmOf(st, hh);
+    t.end = st.t;
+    t.why = why;
+    st.liveTrusts = st.liveTrusts.filter((id) => id !== t.id);
+    f.condAt = st.t;
+    dropJobs(st, t.trustee, f);
+    log(st, `${f.name} is no longer held in trust by kin at ${farmOf(st, st.households[t.trustee]).name} (${why}).`, {
+      kind: 'moved',
+      pawn: hh.holder,
+      ...atHousehold(st, hh),
+    });
+  }
+  // The holder goes back to the farm held in trust (the goBack command): with a spouse and minor children living with the trustee, and those
+  // of its people who went with it and still live there unmarried; with them, their part of the trustee's grain (its store by mouths).
+  function endTrust(st, t, why) {
+    const hh = st.households[t.household],
+      k = st.households[t.trustee],
+      holder = hh.holder,
+      sp = spouseOf(st, holder);
+    const minor = (id) => st.pawns[id].age < 18 && !isHolder(st, id);
+    const going = [
+      holder,
+      ...(sp !== null ? [sp] : []),
+      ...childrenOf(st, holder).filter(minor),
+      ...t.people.filter((id) => id !== holder && spouseOf(st, id) === null && !isHolder(st, id)),
+    ].filter((id, i, a) => a.indexOf(id) === i && st.pawns[id].alive && st.pawns[id].household === k.id);
+    const n = (Stores.grainOf(k) * going.length) / Math.max(1, k.members.length);
+    closeTrust(st, t, why);
+    if (n > 0) Stores.move(st, k, hh, 'grain', n, 'handingOn');
+    for (const id of going) moveTo(st, id, hh.id, `Went back to ${farmOf(st, hh).name}`);
+    personEvent(st, holder, 'moved', `Went back to ${farmOf(st, hh).name}, held in trust by kin until then`, false); // below
+    log(st, `${fullName(st.pawns[holder])} goes back to ${farmOf(st, hh).name}.`, {
+      kind: 'moved',
+      pawn: holder,
+      ...atHousehold(st, hh),
+    });
+    refreshRoles(st);
+    st.visualDirty = true;
+  }
+  const goBack = (st, t, why, src) =>
+    issue(st, {
+      actor: st.households[t.household].holder,
+      verb: 'goBack',
+      target: t.household,
+      args: { why },
+      source: src,
+    });
+  // Daily, with sim/heirs' comeOfAge: a ward of 18 goes back to the farm held for it.
+  function wardsOfAge(st) {
+    if (!st.liveTrusts || !st.liveTrusts.length) return;
+    for (const id of st.liveTrusts.slice()) {
+      const t = st.trusts[id];
+      if (t.ward !== null && st.pawns[t.ward].alive && st.pawns[t.ward].age >= 18) goBack(st, t, 'of age', 'trust');
+    }
+  }
+  // After a death or a retirement hands a farm on (sim/lifecycle): when the trustee's new holder is the holder of the farm it holds, that
+  // holder now keeps a farm where it lives, and hands the held one on as a holder who marries onto another farm does (handOn).
+  function inheritedHeld(st) {
+    if (!st.liveTrusts || !st.liveTrusts.length) return;
+    for (const id of st.liveTrusts.slice()) {
+      const t = st.trusts[id],
+        hh = st.households[t.household],
+        k = st.households[t.trustee];
+      if (k.dissolved || k.holder !== hh.holder) continue;
+      closeTrust(st, t, 'inherited');
+      handOn(st, hh, hh.holder, k.id);
+    }
+  }
+  return { trusteeFor, holdInTrust, closeTrust, endTrust, goBack, wardsOfAge, inheritedHeld };
+})();
+</script>
+<script>
 // @sys sim/matching: the rules of a marriage match: kin degree, a home and its means, the score; what the moving round's matcher and the
 // player's wish for a match (VB-274) are both checked against
 VB['sim/matching'] = (() => {
@@ -20883,6 +21145,7 @@ VB['sim/matching'] = (() => {
     { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
   const { roundHeirs, heirFor } = VB['sim/heirs'];
+  const { trustOfHolder } = VB['sim/ownership'];
   const { opinionOf } = VB['sim/relations'];
 
   // ---- the rules of a match (the moving round's marriages, and what the player's wish for a match is checked against, VB-274) ----
@@ -20921,8 +21184,16 @@ VB['sim/matching'] = (() => {
       means = new Map();
     const place = (id) => {
       if (!places.has(id)) {
-        const hh = st.households[st.pawns[id].household];
-        places.set(id, hh && !hh.dissolved && (hh.holder === id || heirs.rank(hh.id)[0] === id) ? hh.id : null);
+        const hh = st.households[st.pawns[id].household],
+          held = trustOfHolder(st, id); // a holder whose farm is held in trust lives there once married (VB-309)
+        places.set(
+          id,
+          held
+            ? held.household
+            : hh && !hh.dissolved && (hh.holder === id || heirs.rank(hh.id)[0] === id)
+              ? hh.id
+              : null,
+        );
       }
       return places.get(id);
     };
@@ -21056,7 +21327,8 @@ VB['sim/membership'] = (() => {
 </script>
 <script>
 // @sys sim/service: households short of people: a guardian for orphaned minor heirs, a servant for a holder who lives alone, kin or a
-// servant for a household of at most one grown member whose ask for food fell short (VB-308), and service where labour is short (VB-090)
+// servant for a household of at most one grown member whose ask for food fell short (VB-308), and with nobody to come, kin who hold its farm
+// in trust (VB-309); service where labour is short (VB-090)
 VB['sim/service'] = (() => {
   const { setServant, takePeopleCheck } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } =
@@ -21068,6 +21340,7 @@ VB['sim/service'] = (() => {
   const { hoursBetween } = VB['sim/routes'];
   const { SERVICE } = VB['sim/rules'];
   const { hasPlot } = VB['sim/expansion'];
+  const { trustOf } = VB['sim/ownership'];
   const adult = (p) => p.alive && p.age >= 18;
   // a before b, comparing arrays of numbers element by element
   const before = (a, b) => {
@@ -21153,7 +21426,12 @@ VB['sim/service'] = (() => {
             ...atHousehold(st, hh),
           },
         );
-      } else extinct(st, hh, `its heir ${fullName(ward)} is a child, with no grown kin to keep it`);
+      } else {
+        // the kin who would take the children hold the farm in trust until the heir is 18 (Kim, 13 Nov; VB-309), else it stands empty
+        const args = { why: 'is a child with no grown kin to come', ward: ward.id };
+        if (issue(st, { actor: ward.id, verb: 'goToKin', target: hh.id, args, source: 'help' }) !== true)
+          extinct(st, hh, `its heir ${fullName(ward)} is a child, with no grown kin to keep it`);
+      }
       refreshRoles(st);
       st.visualDirty = true;
     }
@@ -21238,9 +21516,10 @@ VB['sim/service'] = (() => {
     return best;
   }
   function takeServants(st) {
+    // a grown holder whose farm is held in trust by kin counts as one who lives alone: with a servant, it goes back (VB-309)
     const lone = st.liveHouseholds
       .map((id) => st.households[id])
-      .filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
+      .filter((h) => !h.dissolved && (h.members.length === 1 || trustOf(st, h.id)) && adult(st.pawns[h.holder]));
     const taken = new Set(),
       moved = new Set(); // the households that took a servant this round, and the servants (for serveWhereShort)
     if (!lone.length) return { taken, moved };
@@ -21249,9 +21528,12 @@ VB['sim/service'] = (() => {
     // Whether it would serve is the pawn's own wish (anyone who wants out would), and the player's stands in: false declines (VB-212).
     const available = willServe(st);
     for (const hh of lone) {
-      if (hh.members.length !== 1) continue;
+      const t = trustOf(st, hh.id);
+      if (!t && hh.members.length !== 1) continue;
       const best = servantFor(st, hh, available);
       if (!best) continue;
+      const back = { actor: hh.holder, verb: 'goBack', target: hh.id, args: { why: 'servant' }, source: 'round' };
+      if (t && issue(st, back) !== true) continue;
       if (issue(st, { actor: best.id, verb: 'serve', target: hh.id, source: 'round' }) === true) {
         taken.add(hh.id);
         moved.add(best.id);
@@ -21283,6 +21565,7 @@ VB['sim/service'] = (() => {
           !h.dissolved &&
           h.holder !== null &&
           !taken.has(h.id) &&
+          !trustOf(st, h.id) &&
           farmOf(st, h).fields.length > 0 &&
           handsPerField(st, h) < SERVICE.short,
       );
@@ -21329,8 +21612,9 @@ VB['sim/service'] = (() => {
   // fit to serve (unfit null: free, unmarried, 18 to 50), whose household is not left short of people without them (it keeps two grown
   // members, or holds no fields), from the village or within SERVICE.hours walking hours, moves in as a member with the minor children who live
   // with them. Else a servant, as takeServants chooses for this
-  // household, through the `serve` command. People come to the farm: its owner, holder and fields are unchanged. With nobody to come,
-  // nothing happens (VB-309). Only a household named searches: st.demand once with a kinship memo, then the servants' list.
+  // household, through the `serve` command. People come to the farm: its owner, holder and fields are unchanged. With nobody to come, its
+  // people go to kin who hold the farm in trust (trusteeFor, sim/trust; VB-309), else nothing happens. Only a household named searches:
+  // st.demand once with a kinship memo, then the servants' list, then its kin households.
   const grown = (st, hh) => hh.members.filter((id) => adult(st.pawns[id])).length;
   function takeIn(st, ids) {
     let available = null;
@@ -21377,9 +21661,12 @@ VB['sim/service'] = (() => {
         if (!available) available = willServe(st);
         VB.count.takeInWeighed += available.length;
         const s = servantFor(st, hh, available);
-        if (!s) continue;
-        if (issue(st, { actor: s.id, verb: 'serve', target: hh.id, source: 'help' }) !== true) continue;
-        available = available.filter((x) => x !== s.id);
+        if (s && issue(st, { actor: s.id, verb: 'serve', target: hh.id, source: 'help' }) === true)
+          available = available.filter((x) => x !== s.id);
+        else {
+          const args = { why: 'was short of food and hands, with nobody to come' };
+          if (issue(st, { actor: hh.holder, verb: 'goToKin', target: hh.id, args, source: 'help' }) !== true) continue;
+        }
       }
       refreshRoles(st);
       st.visualDirty = true;
@@ -22684,6 +22971,8 @@ VB['sim/lifecycle'] = (() => {
   const { issue, playerDied, clearMatchWish } = VB['sim/commands'];
   const { forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
   const { wedding, funeral } = VB['sim/occasions'];
+  const { closeTrust, goBack, wardsOfAge, inheritedHeld } = VB['sim/trust'],
+    { trustOfHolder } = VB['sim/ownership'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id];
     if (!p.alive) return;
@@ -22727,6 +23016,12 @@ VB['sim/lifecycle'] = (() => {
       leaveHousehold(st, id, true);
       if (hh.holder === id) succession(st, hh, 'death');
     }
+    const held = trustOfHolder(st, id); // a farm held in trust for it (VB-309): the trust ends, and succession as today
+    if (held) {
+      closeTrust(st, held, 'death');
+      succession(st, st.households[held.household], 'death');
+    }
+    inheritedHeld(st);
     endGoodwill(st, id); // after succession, which passes a holder's share on
     refreshRoles(st);
     refreshPrestige(st);
@@ -22738,6 +23033,7 @@ VB['sim/lifecycle'] = (() => {
     const r = heirRanking(st, hh);
     if (!r.length) return false;
     transfer(st, hh, r[0], 'retirement');
+    inheritedHeld(st);
     refreshRoles(st);
     refreshPrestige(st);
     return true;
@@ -22911,6 +23207,10 @@ VB['sim/lifecycle'] = (() => {
   function wed(st, mId, fId, home) {
     const m = st.pawns[mId],
       f = st.pawns[fId];
+    for (const id of [mId, fId]) {
+      const t = trustOfHolder(st, id); // a holder whose farm is held in trust goes back to it first (VB-309)
+      if (t) goBack(st, t, 'married', 'round');
+    }
     st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
     const olds = [mId, fId].map((id) => st.pawns[id].household).filter((h) => h !== null && h !== home);
     for (const id of [mId, fId]) {
@@ -23252,6 +23552,7 @@ VB['sim/lifecycle'] = (() => {
       p.age = age(st, p);
     }
     comeOfAge(st);
+    wardsOfAge(st); // a ward of 18 goes back to the farm held in trust for it (sim/trust, VB-309)
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     dailyTies(st);
   }
@@ -24151,6 +24452,7 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings } = VB['sim/occasions'];
   const { takeIn } = VB['sim/service'];
+  const { trustOf } = VB['sim/ownership'];
   const { boatYear } = VB['sim/drying'],
     { cartsYear } = VB['sim/carts'],
     { KINDS } = VB['sim/kinds'];
@@ -24327,9 +24629,9 @@ VB['sim/clock'] = (() => {
       owner: 'sim/clock',
       note: 'empty farms decay, about 8% a year',
       run: (st) => {
-        // not while a claimant mends the farm (VB-033)
+        // not while a claimant mends the farm (VB-033); a house held in trust stands empty and decays as an empty farm's (VB-309)
         for (const f of st.farmsteads)
-          if (f.household === null && !VB['sim/projects'].onFarm(st, f.id)) {
+          if ((f.household === null || trustOf(st, f.household)) && !VB['sim/projects'].onFarm(st, f.id)) {
             // its restoration (VB-123)
             f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
             if (f.state === 'derelict' && f.condition < 0.15) {
@@ -36371,7 +36673,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'c79cf03df3',
+const BUILD = '9c96d2febf',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

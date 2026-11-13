@@ -18,6 +18,7 @@ VB['sim/plans'] = (() => {
   const { reviewWant } = VB['sim/exchange'];
   const { buildStep } = VB['sim/building'];
   const Green = VB['sim/green'];
+  const { heldFarms } = VB['sim/ownership'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
@@ -413,19 +414,21 @@ VB['sim/plans'] = (() => {
     );
   }
   // A household whose field is ripe, or that has a field still to hoe or sow while the sowing window is open, at the first review hour:
-  // its fields' window is closing on it (a crop that waits for a planning day meets the frost; VB-322). Walks its own fields only.
+  // its fields' window is closing on it (a crop that waits for a planning day meets the frost; VB-322). Walks its own fields and those of a
+  // farm it holds in trust (VB-309).
   function fieldsDue(st, plan, c) {
     if (plan.holder.type !== 'household' || c.hour !== FIRST) return false;
     const hh = st.households[plan.holder.id],
       f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return false;
-    for (const fd of f.fields) {
-      const W = CROPS[fd.crop].sow,
-        sow = c.season === W[0] && c.sday >= W[1] && c.sday <= W[2];
-      const idle = fd.stage === 'plowed' || (fd.stage === 'stubble' && !(CROPS[fd.crop].fallow && fd.rest === 1)); // fallow: tilled once
-      if (fd.stage === 'ripe' || (sow && idle)) return true;
-    }
-    return false;
+    const due = (g) =>
+      g.fields.some((fd) => {
+        const W = CROPS[fd.crop].sow,
+          sow = c.season === W[0] && c.sday >= W[1] && c.sday <= W[2];
+        const idle = fd.stage === 'plowed' || (fd.stage === 'stubble' && !(CROPS[fd.crop].fallow && fd.rest === 1)); // fallow: tilled once
+        return fd.stage === 'ripe' || (sow && idle);
+      });
+    return due(f) || heldFarms(st, hh.id).some(due);
   }
   // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, or its fields due today,
   // once ('window'); a store that crossed a target, at most one such review a day ('store').

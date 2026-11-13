@@ -9,7 +9,7 @@
       "sim/drying", "sim/carts", "sim/green"],
     "social": ["culture", "sim/relations", "sim/society", "sim/deaths", "sim/births", "sim/heirs", "sim/membership", "sim/cottage",
       "sim/settle", "sim/farmclaims", "sim/service", "sim/matching", "sim/occasions"],
-    "agency": ["sim/agents", "sim/jobs", "sim/kinds", "sim/exchange", "sim/help", "sim/lifecycle", "sim/eligibility", "sim/plans"],
+    "agency": ["sim/agents", "sim/trust", "sim/jobs", "sim/kinds", "sim/exchange", "sim/help", "sim/lifecycle", "sim/eligibility", "sim/plans"],
     "derived": ["sim/notable", "sim/leanings", "sim/opportunities"]
   }
 }

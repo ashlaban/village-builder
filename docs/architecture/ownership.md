@@ -38,6 +38,8 @@ until VB-175 moves membership to `sim/records`.
 The counts and the file:line lists come from `node tools/writes.js`, which can be rerun after each refactor; `--field household.grain`
 lists one field's write sites. The proposed owners, the traces, the gap table and the ranking are judgements, made by hand.
 
+VB-309 (13 November): `sim/trust` owns `st.trusts`, every farm held in trust by kin (by id, never reused, closed with `end` and `why`), and `st.liveTrusts`, the cache of the open ones (Rules for cost, 1); `sim/ownership` reads them for the systems loaded before it (`trustOf`, `trustOfHolder`, `heldFarms`). The farm's owner (`st.owner`), holder and line are not written by a trust.
+
 VB-323 (11 November): `sim/records` owns `st.peopleCheck`, the queue of households whose membership lost a member (or took in a minor), read and emptied daily by `careForOrphans`.
 
 VB-195 (5 November): `sim/records` owns the `st.living` and `st.liveHouseholds` caches, sorted by record id.
