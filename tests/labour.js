@@ -57,10 +57,10 @@ let report = '';
   check(VB.count.labourWeighed > 0, 'the search is counted (labourWeighed)');
   check(S.hands(st, c.b) / 2 >= SERVICE.short, 'B keeps a hand per field');
   const others = c.four.filter((p) => p.household !== c.b.id && p.household !== c.a.id);
-  // the village first, then the nearest village within SERVICE.reach steps (sim/service): where no farm of the village is short, one
-  // goes to a farm of a neighbouring village (as at this seed since the villages were laid out anew, VB-402)
-  const near = (p) => VB['sim/hex'].hexSteps(st.w, st.villages[vOf(st, st.households[p.household])].center, st.villages[vOf(st, c.a)].center);
-  for (const p of others) check(p.servant && near(p) <= SERVICE.reach, `any other who went serves within reach (${near(p)} steps)`);
+  // the village first, then the nearest village within SERVICE.hours walking hours (sim/service, VB-290): where no farm of the village is
+  // short, one goes to a farm of a neighbouring village (as at this seed since the villages were laid out anew, VB-402)
+  const near = (p) => VB['sim/routes'].hoursBetween(st, vOf(st, st.households[p.household]), vOf(st, c.a));
+  for (const p of others) check(p.servant && near(p) <= SERVICE.hours, `any other who went serves within reach (${near(p).toFixed(1)} hours)`);
   report += `; ${others.length} more went to other short farms of the village`;
   const bad = checkState(st); check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
   // 2. The servant does not move again while the old couple's farm is still short; at a later round, with the farm no longer short (two

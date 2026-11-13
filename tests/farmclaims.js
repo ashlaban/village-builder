@@ -17,11 +17,12 @@ const out = [];
   out.push('restoration 3.3 h at 90%, 36 h at 30%');
 }
 
-// A row of three villages: A (3 farms) and B (2 farms) 11 steps apart, C (1 farm) 33 steps from A. B's second farm (household 4) empties.
+// A row of three villages: A (3 farms) and B (2 farms) 11 steps apart, C (1 farm) 33 steps from A, across a sound, out of walking reach
+// (VB-290: claims reach CLAIMS.farmHours walking hours). B's second farm (household 4) empties.
 // Its last holder's grown children are the old family: Gunhild 19 (married to Jöns 20 of B's other farm), Olof 21, and Brita 23, gone to
 // serve in A. B's other villagers: Kerstin 23 and Cecilia 26. Gunnar of A, 30; Per of C, 22, out of reach.
 function scene(rule) {
-  const map = Array.from({ length: 10 }, () => '.'.repeat(44));
+  const map = Array.from({ length: 10 }, () => '.'.repeat(30) + '~' + '.'.repeat(13));
   const st = tinyState(tinyWorld(map),
     [{ at: [5, 5], farms: 3, sizes: [8, 8, 8] }, { at: [16, 5], farms: 2, sizes: [8, 8] }, { at: [38, 5], farms: 1, sizes: [8] }],
     { seed: 4 });
@@ -94,6 +95,18 @@ for (const rule of ['kin', 'villagers', 'anyone', 'assembly']) {
   moveClock(st, CLAIMS.birthrightYears * YEAR); CL.lapseClaims(st);
   const list = FC.claimants(st, f);
   check(names(st, list) === names(st, [who.jons, who.cecilia, who.kerstin, who.olof]), `kin, lapsed: ${names(st, list)}`);
+}
+// the reach is walking hours (VB-290): C within CLAIMS.farmHours of B by the table brings Per in; an hour more leaves him out, and A as
+// far leaves Gunnar and Brita out, though A's centre lies 11 hex steps from B's
+{
+  const { st, f, who } = scene('anyone');
+  const set = (a, b, h) => { st.villageHours[a][b] = h; st.villageHours[b][a] = h; };
+  set(1, 2, CLAIMS.farmHours);
+  check(FC.claimants(st, f).includes(who.per), `anyone, C ${CLAIMS.farmHours} h away: Per may claim`);
+  set(1, 2, CLAIMS.farmHours + 1); set(0, 1, CLAIMS.farmHours + 1);
+  const list = FC.claimants(st, f);
+  check(names(st, list) === names(st, [who.jons, who.cecilia, who.kerstin, who.olof]), `anyone, A and C beyond ${CLAIMS.farmHours} h: ${names(st, list)}`);
+  out.push(`by hours: Per within ${CLAIMS.farmHours} h, none of A beyond`);
 }
 out.push(`orders: ${Object.entries(orders).map(([k, v]) => `${k} ${v}`).join('; ')}`);
 

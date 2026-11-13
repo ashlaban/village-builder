@@ -4,9 +4,9 @@ VB['sim/society'] = (() => {
   const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
-  const { YEAR, houseTerm } = VB['sim/rules'];
-  const { stepsTo, hexSteps } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { YEAR, houseTerm, TIE, SPEED } = VB['sim/rules'];
+  const { hexSteps } = VB['sim/hex'];
+  const { hoursBetween } = VB['sim/routes'];
   const {
     log,
     age,
@@ -90,7 +90,9 @@ VB['sim/society'] = (() => {
     st.cenv.settlements.push(s);
     return s;
   }
-  // tie of each settlement to its culture's centre: travel distance plus living kin across the gap
+  // tie of each settlement to its culture's centre: the walking hours between the greens plus living kin across the gap. s.distance: those
+  // hours (VB-290: it was unweighted steps), from the table of walking hours (sim/routes), or TIE.sea times the hex steps over SPEED over
+  // the sea or beyond walking reach (a sea crossing costs more).
   function updateTies(st) {
     const env = st.cenv,
       sid = new Map(),
@@ -112,15 +114,15 @@ VB['sim/society'] = (() => {
       }
       const va = st.villages[s.id],
         vb = st.villages[centre];
-      const steps = stepsTo(st.w, va.center, vb.center, 160, walkable(st.w));
-      const d = steps >= 0 ? steps : hexSteps(st.w, va.center, vb.center) * 1.6; // a sea crossing costs more
+      const walk = hoursBetween(st, s.id, centre);
+      const d = walk < Infinity ? walk : (hexSteps(st.w, va.center, vb.center) * TIE.sea) / SPEED;
       let kin = 0;
       for (const p of by.get(s.id) || [])
         for (const q of kinNear(st, p.id)) {
           const o = st.pawns[q];
           if (o.alive && sid.get(q) === centre) kin++;
         }
-      s.tie = Math.min(1, Math.exp(-d / 25) + Math.min(0.3, kin * 0.04));
+      s.tie = Math.min(1, Math.exp(-d / TIE.hours) + Math.min(0.3, kin * 0.04));
       s.distance = d;
       s.kinLinks = kin;
     }

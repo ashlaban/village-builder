@@ -669,16 +669,21 @@ VB['sim/rules'] = (() => {
     wellStone: 6,
   };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
-  // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one whose
-  // centre lies within `reach` steps of it. Where labour is short (VB-090; Agreed, Kim, 30 Oct): hands per field below `short`, to spare above `spare`.
-  const SERVICE = { ages: [18, 50], keepHands: 2, reach: 15, short: 1, spare: 1.5 };
+  // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one within
+  // `hours` walking hours of it, a day's walk, since the servant moves (VB-290; design.md, The round's other acts; it was 15 hex steps).
+  // Where labour is short (VB-090; Agreed, Kim, 30 Oct): hands per field below `short`, to spare above `spare`.
+  const SERVICE = { ages: [18, 50], keepHands: 2, hours: 12, short: 1, spare: 1.5 };
+  // The tie of a settlement to its culture's centre (sim/society, VB-290): exp(-h / hours) for h walking hours between the two greens (the
+  // table of VB-286), plus the kin term; over the sea or beyond walking reach, `sea` times the hex steps, in hours (/ SPEED).
+  const TIE = { hours: 8, sea: 1.6 };
   // Claims on land (sim/claims, sim/territory; claims review, docs/review-claims.md; numbers Proposed): an unrealised claim fades over `years`
   // without work or renewal; a village claims outland within `outReach` walking steps of its green, `outPerFarm` tiles an occupied farm; a
   // household may contest a stake weaker than `contestBelow`; a family's birthright on its empty farm lasts `birthrightYears`; a household
   // that lost a dispute leans for `grievanceYears` towards the rules that would have let it win.
   // A village short of outland presses a richer neighbour for at most `pressPerMeeting` tiles a meeting; a cairn keeps the village that lost a
-  // border dispute from pressing for that tile again for `cairnYears`. An empty farm may be claimed from a village whose centre lies within
-  // `farmReach` steps of the farm's village centre, under the customs that let outsiders claim (VB-033; as SERVICE.reach); the claimants start
+  // border dispute from pressing for that tile again for `cairnYears`. An empty farm may be claimed from a village within `farmHours`
+  // walking hours of the farm's village, there and back in a day, since the claimant's household mends it from home (VB-290; it was 15 hex
+  // steps), under the customs that let outsiders claim (VB-033); the claimants start
   // with seed for its fields and `farmFood` days of food; they mend it at role priority `claimantPrio`, their housemates help at `helperPrio`.
   const CLAIMS = {
     years: 3,
@@ -689,7 +694,7 @@ VB['sim/rules'] = (() => {
     grievanceYears: 5,
     pressPerMeeting: 4,
     cairnYears: 3,
-    farmReach: 15,
+    farmHours: 6,
     farmFood: 60,
     claimantPrio: 9,
     helperPrio: 5,
@@ -836,6 +841,7 @@ VB['sim/rules'] = (() => {
     SHARES,
     SETTLE,
     SERVICE,
+    TIE,
     MATCH,
     CLAIMS,
     WOOD,
