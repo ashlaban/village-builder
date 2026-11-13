@@ -7,7 +7,7 @@
 // of tar every BOAT.tarYears (sim/tar spends it); untarred that long it fishes at BOAT.leaky of its catch, and after BOAT.lostYears it is lost.
 // VB-388 (Kim, 12 Nov): the catch for the pot a household cannot eat before it spoils goes to the rack while the rack has room.
 VB['sim/drying'] = (() => {
-  const { FISH, FOODS, SEASON_DAYS, YEAR, cal } = VB['sim/rules'];
+  const { FISH, FIELDS, FOODS, SEASON_DAYS, YEAR, YEAR_DAYS, cal } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'],
     { passable } = VB['sim/routes'];
   const { isWater, lakeSizes, ground, landCatch } = VB['sim/fish'];
@@ -15,7 +15,7 @@ VB['sim/drying'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
-  const { dailyNeed, larderOf } = VB['sim/hunger'];
+  const { dailyNeed, larderOf, floorOf } = VB['sim/hunger'];
   const Pot = VB['sim/pot'];
   // Proposed (VB-300, the orchestrator's starting values for Kim): a household dries enough fish for the winter's fish share of its pot
   // (sim/pot's WINTER_FISH, VB-388) over the days without fresh fish (the winter and spring's first FISH.from days, under the ice), in
@@ -122,8 +122,14 @@ VB['sim/drying'] = (() => {
     }
     return n;
   }
+  // VB-393 (Kim, 12 Nov): a boat is built only by a household that can spare it: grain above its floor (which holds the seed reserve)
+  // and a year's need besides, and BOAT.hands working hands that its fields do not need (FIELDS.perHand fields a hand).
+  function boatable(st, hh, f) {
+    const free = hands(st, hh) - Math.ceil(f.fields.length / FIELDS.perHand);
+    return free >= BOAT.hands && Stores.grainOf(hh) - floorOf(st, hh) >= dailyNeed(st, hh) * YEAR_DAYS;
+  }
   // At the start of the drying season: a boat untarred BOAT.lostYears is lost (VB-301); then each household of a village by fishing water,
-  // with no boat for its house, no project plan, BOAT.hands working hands and a village wood to fell in, begins a boat if a shore by the sea
+  // with no boat for its house, no project plan, grain and hands to spare (boatable) and a village wood to fell in, begins a boat if a shore by the sea
   // or a large lake is in its reach.
   function boatYear(st) {
     for (const v of st.villages) {
@@ -152,7 +158,7 @@ VB['sim/drying'] = (() => {
           Projects.projectOf(st, 'household', hh.id)
         )
           continue;
-        if (hands(st, hh) < BOAT.hands) continue;
+        if (!boatable(st, hh, f)) continue;
         const s = boatShore(st, f.house);
         if (s)
           emit(st, 'projectBegun', {
