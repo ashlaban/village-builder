@@ -319,3 +319,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
 | [VB-393](backlog/VB-393.md) | A boat is built only by a household with a surplus and two free hands | fair | 3 | S | Until boats are a holder's project (VB-255) kept with tar (VB-301), only a household with a surplus and two free hands builds one. |
 | [VB-100](backlog/VB-100.md) | Common fields worked by the village | year | 3 | M | A village with an empty store makes a common field; its harvest fills the store. |
+| [VB-391](backlog/VB-391.md) | An ask for help that brings nothing is not the season's ask | - | 2 | S | A household whose seasonal ask brings nothing at all may ask again on a later day. |
