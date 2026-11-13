@@ -6,10 +6,13 @@
 // and spring, to the next summer (the good's keepsDays, sim/stores). Nobody travels in a boat (slice 10); its tarring is VB-301's.
 VB['sim/drying'] = (() => {
   const { FISH, SEASON_DAYS } = VB['sim/rules'];
-  const { bfs } = VB['sim/hex'], { passable } = VB['sim/routes'];
+  const { bfs } = VB['sim/hex'],
+    { passable } = VB['sim/routes'];
   const { isWater, lakeSizes, ground, landCatch } = VB['sim/fish'];
   const { age } = VB['sim/records'];
-  const Stores = VB['sim/stores'], Projects = VB['sim/projects'], { emit } = VB['sim/events'];
+  const Stores = VB['sim/stores'],
+    Projects = VB['sim/projects'],
+    { emit } = VB['sim/events'];
   const { dailyNeed, larderOf } = VB['sim/hunger'];
   // Proposed (VB-300, the orchestrator's starting values for Kim): a household dries enough fish for `share` of its pot over the days
   // without fresh fish (the winter and spring's first FISH.from days, under the ice), in whole lots of `lot` rations; it fishes for the
@@ -28,7 +31,8 @@ VB['sim/drying'] = (() => {
   // @state village.fishing: {farms, near}: the reach test as of the village's farms (farms: how many it had when tested; near: whether
   //   fishing water was in reach of one of their houses); a cache, written only here, tested again when the village has a new farm.
   function nearWater(st, house) {
-    const w = st.w, { dist } = bfs(w, house, FISH.reach, (j) => passable(w, j));
+    const w = st.w,
+      { dist } = bfs(w, house, FISH.reach, (j) => passable(w, j));
     VB.count.fishReach += dist.size;
     for (const t of dist.keys()) {
       if (w.river[t]) continue;
@@ -40,7 +44,11 @@ VB['sim/drying'] = (() => {
     const n = v.farmsteads.length;
     if (v.fishing && v.fishing.farms === n) return v.fishing.near;
     let near = false;
-    for (const id of v.farmsteads) if (nearWater(st, st.farmsteads[id].house)) { near = true; break; }
+    for (const id of v.farmsteads)
+      if (nearWater(st, st.farmsteads[id].house)) {
+        near = true;
+        break;
+      }
     v.fishing = { farms: n, near };
     return near;
   }
@@ -58,13 +66,15 @@ VB['sim/drying'] = (() => {
   const catchOf = (st, j) => landCatch(st, j.water) * (j.boat ? BOAT.catch : 1);
   // ---- drying ----
   // The dried fish a household wants in store: DRY.share of its need over the days without fresh fish, in whole lots.
-  const wanted = (st, hh) => Math.ceil(DRY.share * dailyNeed(st, hh) * winterDays / DRY.lot - 1e-9) * DRY.lot;
+  const wanted = (st, hh) => Math.ceil((DRY.share * dailyNeed(st, hh) * winterDays) / DRY.lot - 1e-9) * DRY.lot;
   // The drying season: from spring day FISH.from + 1 to summer day DRY.until.
   const drying = (c) => (c.season === 0 && c.sday >= FISH.from) || (c.season === 1 && c.sday < DRY.until);
   // ---- the boat's project (VB-123's project plan: one step at the shore, which waits for its timber; sim/building fells it) ----
   // The bank nearest the house within FISH.reach walking steps by the sea or a lake of FISH.bigLake tiles or more: {shore, water}, or null.
   function boatShore(st, house) {
-    const w = st.w, { dist } = bfs(w, house, FISH.reach, (j) => passable(w, j)), size = lakeSizes(w);
+    const w = st.w,
+      { dist } = bfs(w, house, FISH.reach, (j) => passable(w, j)),
+      size = lakeSizes(w);
     VB.count.fishReach += dist.size;
     for (const t of dist.keys()) {
       if (w.river[t]) continue;
@@ -77,7 +87,11 @@ VB['sim/drying'] = (() => {
   }
   function hands(st, hh) {
     let n = 0;
-    for (const id of hh.members) { const p = st.pawns[id], a = age(st, p); if (p.died === null && a >= 14 && a < 60 && !p.retired) n++; }
+    for (const id of hh.members) {
+      const p = st.pawns[id],
+        a = age(st, p);
+      if (p.died === null && a >= 14 && a < 60 && !p.retired) n++;
+    }
     return n;
   }
   // At the start of the drying season: each household of a village by fishing water, with no boat for its house, no project plan, BOAT.hands
@@ -86,53 +100,112 @@ VB['sim/drying'] = (() => {
     for (const v of st.villages) {
       if (!v.wood.length || !villageFishes(st, v)) continue;
       for (const id of v.farmsteads) {
-        const f = st.farmsteads[id], hh = f.household === null ? null : st.households[f.household];
+        const f = st.farmsteads[id],
+          hh = f.household === null ? null : st.households[f.household];
         VB.count.boatAsk++;
-        if (!hh || hh.dissolved || f.booth || (hh.boat && hh.boat.house === f.house) || Projects.projectOf(st, 'household', hh.id)) continue;
+        if (
+          !hh ||
+          hh.dissolved ||
+          f.booth ||
+          (hh.boat && hh.boat.house === f.house) ||
+          Projects.projectOf(st, 'household', hh.id)
+        )
+          continue;
         if (hands(st, hh) < BOAT.hands) continue;
         const s = boatShore(st, f.house);
-        if (s) emit(st, 'projectBegun', { type: 'household', id: hh.id, project: { what: 'boat', water: s.water,
-          steps: [{ kind: 'boat', place: s.shore, hours: BOAT.hours, wood: 0, timber: BOAT.timber }] } });
+        if (s)
+          emit(st, 'projectBegun', {
+            type: 'household',
+            id: hh.id,
+            project: {
+              what: 'boat',
+              water: s.water,
+              steps: [{ kind: 'boat', place: s.shore, hours: BOAT.hours, wood: 0, timber: BOAT.timber }],
+            },
+          });
       }
     }
   }
   // The boat built: the household's, at the plan's shore; the plan is finished (sim/plans).
   function boatBuilt(st, j, hh) {
-    const plan = Projects.projectOf(st, 'household', hh.id), s = plan && Projects.openStep(plan);
+    const plan = Projects.projectOf(st, 'household', hh.id),
+      s = plan && Projects.openStep(plan);
     if (!s || s.kind !== 'boat' || s.place !== j.site) return;
     const f = st.farmsteads[hh.farmstead];
     hh.boat = { tile: s.place, water: plan.water, house: f.house, built: st.t };
     emit(st, 'stepDone', { type: 'household', id: hh.id });
   }
   // ---- the job kinds (sim/kinds registers them; their fields are described there) ----
-  const nearHouse = (dx, dy) => (st, a, j) => [st.w.hx[j.farm.house] + dx + a.ox * 0.3, st.w.hy[j.farm.house] + dy + a.oy * 0.2];
+  const nearHouse = (dx, dy) => (st, a, j) => [
+    st.w.hx[j.farm.house] + dx + a.ox * 0.3,
+    st.w.hy[j.farm.house] + dy + a.oy * 0.2,
+  ];
   const KINDS = {
     rackfish: {
-      verb: 'Fishing for the drying rack', go: 'Going fishing for the rack', back: 'Carrying the catch to the rack', name: 'Fish for the rack',
-      label: 'Fishing', anim: 'fish', hours: 3, hands: 1, type: 'foraging', carry: 'fish', to: 'door',
+      verb: 'Fishing for the drying rack',
+      go: 'Going fishing for the rack',
+      back: 'Carrying the catch to the rack',
+      name: 'Fish for the rack',
+      label: 'Fishing',
+      anim: 'fish',
+      hours: 3,
+      hands: 1,
+      type: 'foraging',
+      carry: 'fish',
+      to: 'door',
       spot: (st, a, j) => {
-        const w = st.w, x = w.hx[j.site], y = w.hy[j.site], k = w.water[j.water] ? 0.45 : 0.7;
+        const w = st.w,
+          x = w.hx[j.site],
+          y = w.hy[j.site],
+          k = w.water[j.water] ? 0.45 : 0.7;
         return [x + (w.hx[j.water] - x) * k + a.ox * 0.15, y + (w.hy[j.water] - y) * k + a.oy * 0.1];
       },
       urgency: () => DRY.urgency,
       // the catch is laid by the rack, to be split and hung
-      deliver: (st, j, hh) => { Stores.put(st, hh, 'fish', catchOf(st, j), 'catch'); },
+      deliver: (st, j, hh) => {
+        Stores.put(st, hh, 'fish', catchOf(st, j), 'catch');
+      },
       // in the drying season, in a village by fishing water, while the household holds less dried fish than it wants and no catch waits
       available: (st, hh, f, c, post) => {
-        if (!drying(c) || hh.rack > 0 || larderOf(hh, 'dried fish') >= wanted(st, hh) || !villageFishes(st, st.villages[f.village])) return;
+        if (
+          !drying(c) ||
+          hh.rack > 0 ||
+          larderOf(hh, 'dried fish') >= wanted(st, hh) ||
+          !villageFishes(st, st.villages[f.village])
+        )
+          return;
         const g = fishingPlace(st, hh, f);
         if (g) post(`rackfish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat });
       },
     },
     dry: {
-      verb: 'Splitting and hanging fish to dry', go: 'Going to the drying rack', name: 'Hang fish to dry', label: 'Drying', anim: 'gather',
-      hours: DRY.hours, hands: 1, type: 'household', spot: nearHouse(18, 4), urgency: () => DRY.hang,
-      done: (st, j, hh) => { Stores.dry(st, hh); },
-      available: (st, hh, f, c, post) => { if (hh.rack > 0) post(`dry:h${hh.id}`, f.house, { farm: f }); },
+      verb: 'Splitting and hanging fish to dry',
+      go: 'Going to the drying rack',
+      name: 'Hang fish to dry',
+      label: 'Drying',
+      anim: 'gather',
+      hours: DRY.hours,
+      hands: 1,
+      type: 'household',
+      spot: nearHouse(18, 4),
+      urgency: () => DRY.hang,
+      done: (st, j, hh) => {
+        Stores.dry(st, hh);
+      },
+      available: (st, hh, f, c, post) => {
+        if (hh.rack > 0) post(`dry:h${hh.id}`, f.house, { farm: f });
+      },
     },
     boat: {
-      verb: 'Building a fishing boat', go: 'Going to the boat on the shore', name: 'Build a fishing boat', label: 'Boat', anim: 'mallet',
-      hours: BOAT.hours, hands: 2, type: 'wood', project: true,
+      verb: 'Building a fishing boat',
+      go: 'Going to the boat on the shore',
+      name: 'Build a fishing boat',
+      label: 'Boat',
+      anim: 'mallet',
+      hours: BOAT.hours,
+      hands: 2,
+      type: 'wood',
+      project: true,
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.3],
       done: (st, j, hh) => boatBuilt(st, j, hh),
     },

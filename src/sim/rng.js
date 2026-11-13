@@ -18,13 +18,31 @@ VB['sim/rng'] = (() => {
     return fromState(Math.imul(seed | 0, 0x9e3779b1) ^ h);
   }
   // The systems that draw, one stream each once seeding is over (Kim, 2 Nov: every system has its own source of randomness).
-  const SYSTEMS = ['work', 'fields', 'weather', 'fences', 'births', 'deaths', 'culture', 'people', 'society', 'talk', 'herds', 'settle', 'occasions', 'traits',
-    'prospect', 'forest'];
+  const SYSTEMS = [
+    'work',
+    'fields',
+    'weather',
+    'fences',
+    'births',
+    'deaths',
+    'culture',
+    'people',
+    'society',
+    'talk',
+    'herds',
+    'settle',
+    'occasions',
+    'traits',
+    'prospect',
+    'forest',
+  ];
   // While a scenario is seeded, every system draws from its one seeding stream S, in the order it always has.
   const seeding = (S) => Object.fromEntries([['seed', S], ...SYSTEMS.map((k) => [k, S])]);
   // Once seeding is over: a stream of its own for each system, from the scenario's seed and the system's name, so a change to one system's
   // draws does not reshuffle the others. The seeding stream is dropped.
-  function splitStreams(st, seed) { st.rng = Object.fromEntries(SYSTEMS.map((k) => [k, makeStream(seed, k)])); }
+  function splitStreams(st, seed) {
+    st.rng = Object.fromEntries(SYSTEMS.map((k) => [k, makeStream(seed, k)]));
+  }
   // a draw function over a stream, for code that takes one (Culture, the generators)
   const drawer = (r) => () => next(r);
   return { next, fromState, makeStream, drawer, SYSTEMS, seeding, splitStreams };

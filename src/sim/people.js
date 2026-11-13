@@ -4,45 +4,68 @@ VB['sim/people'] = (() => {
 
   // Founders: a young couple on every farm, and two servants who join two of the households.
   function foundersHouseholds(R, farmsteads) {
-    const rand = R.rand, households = [];
+    const rand = R.rand,
+      households = [];
     farmsteads.forEach((f) => {
-      const hAge = 23 + ((rand() * 11) | 0), wAge = Math.max(19, hAge - 1 - ((rand() * 6) | 0));
-      const man = person(R, { sex: 'm', age: hAge }), wife = person(R, { sex: 'f', age: wAge });
+      const hAge = 23 + ((rand() * 11) | 0),
+        wAge = Math.max(19, hAge - 1 - ((rand() * 6) | 0));
+      const man = person(R, { sex: 'm', age: hAge }),
+        wife = person(R, { sex: 'f', age: wAge });
       households.push(makeHousehold(R, households.length, f, [man, wife], man));
       marry(R, man, wife, 1 + ((rand() * 4) | 0));
     });
     const order = households.map((h) => h.id).sort(() => rand() - 0.5);
     const hand = person(R, { sex: 'm', age: 16 + ((rand() * 4) | 0), servant: true }),
       maid = person(R, { sex: 'f', age: 16 + ((rand() * 4) | 0), servant: true });
-    joinHousehold(R, households[order[0]], hand); joinHousehold(R, households[order[1 % order.length]], maid);
+    joinHousehold(R, households[order[0]], hand);
+    joinHousehold(R, households[order[1 % order.length]], maid);
     return households;
   }
 
   // Household sizes 4 to 9, about 6 on average.
-  const SIZES = [[4, 0.15], [5, 0.2], [6, 0.25], [7, 0.2], [8, 0.12], [9, 0.08]];
+  const SIZES = [
+    [4, 0.15],
+    [5, 0.2],
+    [6, 0.25],
+    [7, 0.2],
+    [8, 0.12],
+    [9, 0.08],
+  ];
   function drawSize(rand) {
     let u = rand();
-    for (const [n, p] of SIZES) { if (u < p) return n; u -= p; }
+    for (const [n, p] of SIZES) {
+      if (u < p) return n;
+      u -= p;
+    }
     return 6;
   }
 
   // Populous: a couple, their children (two or three years apart) and sometimes a servant. Two generations only: the parents have no
   // recorded parents, so there are no grandparents, living or on record. In a third of the households the eldest child is 18 to 26.
   function populousHouseholds(R, farmsteads, sizes) {
-    const rand = R.rand, households = [];
+    const rand = R.rand,
+      households = [];
     for (const f of farmsteads) {
-      const size = sizes[f.id], servant = size >= 6 && rand() < 0.25 ? 1 : 0, kids = size - 2 - servant;
+      const size = sizes[f.id],
+        servant = size >= 6 && rand() < 0.25 ? 1 : 0,
+        kids = size - 2 - servant;
       const ages = [0];
       for (let k = 1; k < kids; k++) ages.push(ages[k - 1] + 2 + ((rand() * 2) | 0));
-      const span = ages[kids - 1], grown = rand() < 1 / 3;
-      const youngest = grown ? Math.max(0, 18 + ((rand() * 9) | 0) - span) : (rand() * 3) | 0, eldest = youngest + span;
-      const wAge = Math.max(25 + ((rand() * 14) | 0), eldest + 19), hAge = wAge + ((rand() * 6) | 0) - 1;
-      const man = person(R, { sex: 'm', age: hAge }), wife = person(R, { sex: 'f', age: wAge });
+      const span = ages[kids - 1],
+        grown = rand() < 1 / 3;
+      const youngest = grown ? Math.max(0, 18 + ((rand() * 9) | 0) - span) : (rand() * 3) | 0,
+        eldest = youngest + span;
+      const wAge = Math.max(25 + ((rand() * 14) | 0), eldest + 19),
+        hAge = wAge + ((rand() * 6) | 0) - 1;
+      const man = person(R, { sex: 'm', age: hAge }),
+        wife = person(R, { sex: 'f', age: wAge });
       const members = [man, wife];
       marry(R, man, wife, eldest + 1 + ((rand() * 3) | 0));
-      for (let k = 0; k < kids; k++) members.push(person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: youngest + ages[k], father: man, mother: wife }));
+      for (let k = 0; k < kids; k++)
+        members.push(person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: youngest + ages[k], father: man, mother: wife }));
       const hh = makeHousehold(R, households.length, f, members, man);
-      if (servant) joinHousehold(R, hh, person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: 15 + ((rand() * 6) | 0), servant: true }));
+      if (servant)
+        joinHousehold(R, hh, person(R, { sex: rand() < 0.5 ? 'm' : 'f', age: 15 + ((rand() * 6) | 0), servant: true }));
       households.push(hh);
     }
     return households;
@@ -52,19 +75,33 @@ VB['sim/people'] = (() => {
   // in order, each {farm, sex, age, servant}: they join the farm's household, and on an empty farm the first of them, an adult, founds it
   // and holds it. Returns the households, and `refused`, the index in `people` of the first who could not be placed (-1: none).
   function handHouseholds(R, farmsteads, sizes, fill, people) {
-    const rand = R.rand, households = populousHouseholds(R, farmsteads.filter((f) => !fill[f.id]), sizes);
+    const rand = R.rand,
+      households = populousHouseholds(
+        R,
+        farmsteads.filter((f) => !fill[f.id]),
+        sizes,
+      );
     for (const f of farmsteads) {
       if (fill[f.id] !== 'couple') continue;
-      const hAge = 23 + ((rand() * 11) | 0), wAge = Math.max(19, hAge - 1 - ((rand() * 6) | 0));
-      const man = person(R, { sex: 'm', age: hAge }), wife = person(R, { sex: 'f', age: wAge });
+      const hAge = 23 + ((rand() * 11) | 0),
+        wAge = Math.max(19, hAge - 1 - ((rand() * 6) | 0));
+      const man = person(R, { sex: 'm', age: hAge }),
+        wife = person(R, { sex: 'f', age: wAge });
       households.push(makeHousehold(R, households.length, f, [man, wife], man));
       marry(R, man, wife, 1 + ((rand() * 4) | 0));
     }
     let refused = -1;
     people.forEach((p, k) => {
       const f = farmsteads[p.farm];
-      if (refused >= 0 || !f || fill[f.id] === 'ruin' || (f.household === null && p.age < 18)) { if (refused < 0) refused = k; return; }
-      const id = person(R, { sex: p.sex === 'f' ? 'f' : 'm', age: p.age, servant: !!p.servant && f.household !== null });
+      if (refused >= 0 || !f || fill[f.id] === 'ruin' || (f.household === null && p.age < 18)) {
+        if (refused < 0) refused = k;
+        return;
+      }
+      const id = person(R, {
+        sex: p.sex === 'f' ? 'f' : 'm',
+        age: p.age,
+        servant: !!p.servant && f.household !== null,
+      });
       if (f.household === null) households.push(makeHousehold(R, households.length, f, [id], id));
       else joinHousehold(R, households[f.household], id);
     });

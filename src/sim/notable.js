@@ -12,11 +12,21 @@ VB['sim/notable'] = (() => {
   function recordOf(st, q = {}) {
     if (q.life) return lifeOf(st, q.pawn);
     const kinds = q.kinds ? new Set(q.kinds) : null;
-    const out = st.record.filter((e) => told(e) && (q.pawn === undefined || e.pawn === q.pawn || e.other === q.pawn)
-      && (q.household === undefined || e.household === q.household) && (q.farm === undefined || e.farm === q.farm)
-      && (q.village === undefined || e.village === q.village) && (!kinds || kinds.has(e.kind))
-      && (q.from === undefined || e.t >= q.from) && (q.to === undefined || e.t < q.to));
-    return out.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
+    const out = st.record.filter(
+      (e) =>
+        told(e) &&
+        (q.pawn === undefined || e.pawn === q.pawn || e.other === q.pawn) &&
+        (q.household === undefined || e.household === q.household) &&
+        (q.farm === undefined || e.farm === q.farm) &&
+        (q.village === undefined || e.village === q.village) &&
+        (!kinds || kinds.has(e.kind)) &&
+        (q.from === undefined || e.t >= q.from) &&
+        (q.to === undefined || e.t < q.to),
+    );
+    return out
+      .map((e, i) => [e, i])
+      .sort((a, b) => a[0].t - b[0].t || a[1] - b[1])
+      .map(([e]) => e);
   }
   // A pawn's life in its own words, in the order it was written: {t, kind, text, at (the position on the record)}, a death with its
   // `cause` and told as "Died of ...", a birth with no text; an event since folded is {t (its year's start), kind, at, folded (the count
@@ -24,7 +34,10 @@ VB['sim/notable'] = (() => {
   function lifeOf(st, id) {
     return st.pawns[id].events.map((at) => {
       const e = st.record[at];
-      if (typeof e !== 'object') { const y = st.recordYears[e]; return { t: y.year * YEAR, kind: y.kind, at, folded: y.tally }; }
+      if (typeof e !== 'object') {
+        const y = st.recordYears[e];
+        return { t: y.year * YEAR, kind: y.kind, at, folded: y.tally };
+      }
       if (e.kind === 'born') return { t: e.t, kind: 'born', at }; // the village's line is the mother's telling
       if (e.kind !== 'died') return { t: e.t, kind: e.kind, text: e.text, at };
       return { t: e.t, kind: 'died', text: CAUSES[e.text] ? CAUSES[e.text].event : undefined, cause: e.text, at };
@@ -44,12 +57,15 @@ VB['sim/notable'] = (() => {
   const HUNGER = new Set(['hunger', 'starvation']);
   const FARM = new Set(['empty', 'claim', 'cottage', 'left']);
   const CUSTOM = new Set(['custom', 'split']);
-  const inLine = (st, a, b) => a === b || ancestorsOf(st, [a], GENERATIONS).has(b) || ancestorsOf(st, [b], GENERATIONS).has(a);
+  const inLine = (st, a, b) =>
+    a === b || ancestorsOf(st, [a], GENERATIONS).has(b) || ancestorsOf(st, [b], GENERATIONS).has(a);
   // Does a birth, marriage or death concern pawn `about`: it happened in its household, or to someone of its line.
   function concerns(st, ev, about) {
     if (about === null || about === undefined || about < 0) return false;
     if (ev.household !== undefined && ev.household === st.pawns[about].household) return true;
-    return (ev.pawn !== undefined && inLine(st, about, ev.pawn)) || (ev.other !== undefined && inLine(st, about, ev.other));
+    return (
+      (ev.pawn !== undefined && inLine(st, about, ev.pawn)) || (ev.other !== undefined && inLine(st, about, ev.other))
+    );
   }
   // Did the dead pawn of a `died` event hold the household it died in. Read from the kin index, which keeps a household under every holder
   // it has had since the run was seeded or loaded: right for a death of this session, false for one a loaded save had already passed on.
@@ -83,7 +99,8 @@ VB['sim/notable'] = (() => {
       if (ev.kind === 'holds') return `${fullName(st.pawns[ev.pawn])} holds ${st.farmsteads[ev.farm].name}.`;
       return ev.kind === 'married' ? `${fullName(st.pawns[ev.pawn])} and ${fullName(st.pawns[ev.other])} married.` : '';
     }
-    const p = st.pawns[ev.pawn], cause = CAUSES[ev.text];
+    const p = st.pawns[ev.pawn],
+      cause = CAUSES[ev.text];
     if (!cause) return `${fullName(p)} died ${ev.text || ''}`.trim() + '.';
     return `${fullName(p)} of ${ev.farm !== undefined ? st.farmsteads[ev.farm].name : 'the island'} ${cause.log}, aged ${age(st, p, ev.t)}.`;
   }
@@ -92,8 +109,30 @@ VB['sim/notable'] = (() => {
   const CHRONICLE = {
     life: { label: 'Births and deaths', kinds: ['born', 'died', 'funeralAle'] },
     marriage: { label: 'Marriages', kinds: ['married', 'putOff', 'offered', 'matchRefused', 'offerLapsed', 'wedding'] },
-    land: { label: 'Land and farms', kinds: ['holds', 'inherited', 'empty', 'claim', 'moved', 'joined', 'cottage', 'left', 'stayed', 'settled', 'plot',
-      'plotStarted', 'field', 'meadow', 'stake', 'border', 'oreFound', 'service', 'guardian'] },
+    land: {
+      label: 'Land and farms',
+      kinds: [
+        'holds',
+        'inherited',
+        'empty',
+        'claim',
+        'moved',
+        'joined',
+        'cottage',
+        'left',
+        'stayed',
+        'settled',
+        'plot',
+        'plotStarted',
+        'field',
+        'meadow',
+        'stake',
+        'border',
+        'oreFound',
+        'service',
+        'guardian',
+      ],
+    },
     custom: { label: 'Customs and meetings', kinds: ['custom', 'split', 'cause', 'meetingFailed'] },
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
@@ -108,14 +147,25 @@ VB['sim/notable'] = (() => {
   // to it, a farm taken over from it). A farm's or village's leaves out the personal events; an `empty` event's note says how long the
   // farm stood empty. One pass over the record, on demand (the page keeps the result until the record grows): no step calls this.
   function chronicle(st, q, group = null) {
-    const kinds = group ? new Set(CHRONICLE[group].kinds) : null, rows = [], mine = q.pawn !== undefined;
-    const base = st.record.filter((e) => told(e) && (mine ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind)) : !PERSONAL.has(e.kind))
-      && (q.farm === undefined || e.farm === q.farm) && (q.village === undefined || e.village === q.village));
-    const list = base.map((e, i) => [e, i]).sort((a, b) => a[0].t - b[0].t || a[1] - b[1]).map(([e]) => e);
+    const kinds = group ? new Set(CHRONICLE[group].kinds) : null,
+      rows = [],
+      mine = q.pawn !== undefined;
+    const base = st.record.filter(
+      (e) =>
+        told(e) &&
+        (mine ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind)) : !PERSONAL.has(e.kind)) &&
+        (q.farm === undefined || e.farm === q.farm) &&
+        (q.village === undefined || e.village === q.village),
+    );
+    const list = base
+      .map((e, i) => [e, i])
+      .sort((a, b) => a[0].t - b[0].t || a[1] - b[1])
+      .map(([e]) => e);
     for (let i = 0; i < list.length; i++) {
       const e = list[i];
       // its coming to a household is told once: not as `joined` when another event of the same hour tells it (a wedding, a new farm)
-      if (e.kind === 'joined' && list.some((o) => o !== e && o.t === e.t && o.farm === e.farm && o.kind !== 'joined')) continue;
+      if (e.kind === 'joined' && list.some((o) => o !== e && o.t === e.t && o.farm === e.farm && o.kind !== 'joined'))
+        continue;
       if (kinds && !kinds.has(e.kind)) continue;
       let note = null;
       if (e.kind === 'empty' && q.farm !== undefined) {
@@ -162,10 +212,19 @@ VB['sim/notable'] = (() => {
   // already), offer (the id the next offer will have, VB-293: the offers open when it began, and any older, do not stop it, and each
   // that does stops it once)}; null when no pawn is played.
   function skipFrom(st) {
-    const pl = st.player; if (!pl) return null;
-    const hid = st.pawns[pl.pawn].household, hh = hid !== null ? st.households[hid] : null;
-    return { t: st.t, n: st.record.length, eve: roundEve(st.t), homeId: hid, short: hh ? hh.hungryDays : 0, hungry: !!hh && hh.hunger > 0,
-      offer: st.offerSeq };
+    const pl = st.player;
+    if (!pl) return null;
+    const hid = st.pawns[pl.pawn].household,
+      hh = hid !== null ? st.households[hid] : null;
+    return {
+      t: st.t,
+      n: st.record.length,
+      eve: roundEve(st.t),
+      homeId: hid,
+      short: hh ? hh.hungryDays : 0,
+      hungry: !!hh && hh.hunger > 0,
+      offer: st.offerSeq,
+    };
   }
   // Does the open offer o wait for pawn id's answer.
   const waitsFor = (o, id) => o.answers.some((a) => a.by === id && a.yes === null);
@@ -175,7 +234,10 @@ VB['sim/notable'] = (() => {
     const k = ev.kind;
     if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
     if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
-    if (FARM.has(k)) return (vid !== null && ev.village === vid) || (hid !== null && ev.household === hid) || concerns(st, ev, about) ? 'farm' : null;
+    if (FARM.has(k))
+      return (vid !== null && ev.village === vid) || (hid !== null && ev.household === hid) || concerns(st, ev, about)
+        ? 'farm'
+        : null;
     return CUSTOM.has(k) && vid !== null && ev.village === vid ? 'custom' : null;
   }
   // Has a skip begun at `from` (skipFrom) reached a stop: null, or {why (a key of SKIP), text (a sentence), ev (the record event, if one)}.
@@ -184,24 +246,53 @@ VB['sim/notable'] = (() => {
   function skipStop(st, from) {
     const pl = st.player;
     if (!pl) return { why: 'none', text: 'No pawn is played.' };
-    const p = st.pawns[pl.pawn], hid = p.household, vid = settlementIdOf(st, p), hh = hid !== null ? st.households[hid] : null;
+    const p = st.pawns[pl.pawn],
+      hid = p.household,
+      vid = settlementIdOf(st, p),
+      hh = hid !== null ? st.households[hid] : null;
     while (from.n < st.record.length) {
-      const ev = st.record[from.n++], why = stopsFor(st, ev, pl.pawn, hid, vid);
+      const ev = st.record[from.n++],
+        why = stopsFor(st, ev, pl.pawn, hid, vid);
       if (why) return { why, text: eventLine(st, ev), ev };
     }
-    if (hid !== from.homeId) { from.homeId = hid; from.short = hh ? hh.hungryDays : 0; from.hungry = !!hh && hh.hunger > 0; }
+    if (hid !== from.homeId) {
+      from.homeId = hid;
+      from.short = hh ? hh.hungryDays : 0;
+      from.hungry = !!hh && hh.hunger > 0;
+    }
     if (hh && hh.hungryDays > from.short) {
       from.short = hh.hungryDays;
-      if (!from.hungry) { from.hungry = true; return { why: 'hunger', text: `${st.farmsteads[hh.farmstead].name} had too little to eat today.` }; }
+      if (!from.hungry) {
+        from.hungry = true;
+        return { why: 'hunger', text: `${st.farmsteads[hh.farmstead].name} had too little to eat today.` };
+      }
     }
     for (const o of st.offers) {
       if (!(o.id >= from.offer) || !waitsFor(o, pl.pawn)) continue;
       from.offer = o.id + 1;
-      return { why: 'offer', text: `A match waits for an answer: ${fullName(st.pawns[o.man])} and ${fullName(st.pawns[o.woman])}.` };
+      return {
+        why: 'offer',
+        text: `A match waits for an answer: ${fullName(st.pawns[o.man])} and ${fullName(st.pawns[o.woman])}.`,
+      };
     }
-    if (pl.refused && pl.refused.t > from.t) return { why: 'refused', text: `A command was refused: ${pl.refused.verb}, ${pl.refused.why}.` };
-    if (!pl.auto && !pl.queue.length) return { why: 'idle', text: `${fullName(p)} has nothing queued, and its automatic behaviour is off.` };
+    if (pl.refused && pl.refused.t > from.t)
+      return { why: 'refused', text: `A command was refused: ${pl.refused.verb}, ${pl.refused.why}.` };
+    if (!pl.auto && !pl.queue.length)
+      return { why: 'idle', text: `${fullName(p)} has nothing queued, and its automatic behaviour is off.` };
     return st.t >= from.eve ? { why: 'round', text: 'The moving round is tomorrow at noon.' } : null;
   }
-  return { recordOf, lifeOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop, roundEve };
+  return {
+    recordOf,
+    lifeOf,
+    NOTABLE,
+    notable,
+    eventLine,
+    CHRONICLE,
+    chronicle,
+    villageLog,
+    SKIP,
+    skipFrom,
+    skipStop,
+    roundEve,
+  };
 })();

@@ -20,65 +20,125 @@ VB['sim/agents'] = (() => {
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
   }
   function placeAtHome(st, a) {
-    const [x, y] = homeSpot(st, a); a.x = x; a.y = y; a.inside = true; a.path = null; a.phase = null; a.job = null; a.anim = 'idle'; a.carry = null;
+    const [x, y] = homeSpot(st, a);
+    a.x = x;
+    a.y = y;
+    a.inside = true;
+    a.path = null;
+    a.phase = null;
+    a.job = null;
+    a.anim = 'idle';
+    a.carry = null;
   }
   // Dawn repositions an indoor pawn without clearing its movement or work state.
   function placeByDoor(st, a) {
-    const [x, y] = homeSpot(st, a); a.x = x; a.y = y;
+    const [x, y] = homeSpot(st, a);
+    a.x = x;
+    a.y = y;
   }
-  function idle(st, a, until) { a.idleUntil = until; wake(st, a.id); }
+  function idle(st, a, until) {
+    a.idleUntil = until;
+    wake(st, a.id);
+  }
   // A talk stops only an idle pawn outdoors, not one on its way to an occasion (VB-126), and never shortens an existing pause.
   function haltForTalk(st, g, until) {
     if (!g.inside && !g.job && g.phase === null && g.occasion === null) {
-      g.path = null; g.anim = 'idle'; g.idleUntil = Math.max(g.idleUntil, until);
+      g.path = null;
+      g.anim = 'idle';
+      g.idleUntil = Math.max(g.idleUntil, until);
     }
   }
   function stillAtDeath(st, a) {
-    release(st, a); dropSides(st, a); a.path = null; a.inside = true; sleep(st, a.id);
-    const p = st.pawns[a.id]; if (p.household !== null) driveHome(st, st.households[p.household], a.id); // its herds are left by the farm
+    release(st, a);
+    dropSides(st, a);
+    a.path = null;
+    a.inside = true;
+    sleep(st, a.id);
+    const p = st.pawns[a.id];
+    if (p.household !== null) driveHome(st, st.households[p.household], a.id); // its herds are left by the farm
   }
   function tileAt(st, x, y) {
-    const w = st.w, R = w.R, HW = w.HW, AP = w.AP;
-    const px = x - AP, py = y - R, qf = ((Math.sqrt(3) / 3) * px - py / 3) / R, rf = ((2 / 3) * py) / R, sf = -qf - rf;
-    let q = Math.round(qf), r = Math.round(rf), s = Math.round(sf);
-    const dq = Math.abs(q - qf), dr = Math.abs(r - rf), ds = Math.abs(s - sf);
-    if (dq > dr && dq > ds) q = -r - s; else if (dr > ds) r = -q - s;
+    const w = st.w,
+      R = w.R,
+      HW = w.HW,
+      AP = w.AP;
+    const px = x - AP,
+      py = y - R,
+      qf = ((Math.sqrt(3) / 3) * px - py / 3) / R,
+      rf = ((2 / 3) * py) / R,
+      sf = -qf - rf;
+    let q = Math.round(qf),
+      r = Math.round(rf),
+      s = Math.round(sf);
+    const dq = Math.abs(q - qf),
+      dr = Math.abs(r - rf),
+      ds = Math.abs(s - sf);
+    if (dq > dr && dq > ds) q = -r - s;
+    else if (dr > ds) r = -q - s;
     const col = q + ((r - (r & 1)) >> 1);
     return r >= 0 && r < w.ROWS && col >= 0 && col < w.COLS ? r * w.COLS + col : -1;
   }
   // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
   // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
   function walkTo(st, a, tile, x, y) {
-    const w = st.w, from = tileAt(st, a.x, a.y), p = from >= 0 && from !== tile ? route(st, from, tile) : null;
-    const ok = p && p[0] === from, tiles = ok ? p.slice(1, -1) : [], cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);
+    const w = st.w,
+      from = tileAt(st, a.x, a.y),
+      p = from >= 0 && from !== tile ? route(st, from, tile) : null;
+    const ok = p && p[0] === from,
+      tiles = ok ? p.slice(1, -1) : [],
+      cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);
     a.path = [[a.x, a.y]];
     for (let s = 0; s < tiles.length; s++) {
       const t = tiles[s];
       a.path.push([w.hx[t] + a.ox * 0.4, w.hy[t] + a.oy * 0.4, stepCost(w, p[s], t), t]);
     }
     a.path.push([x, y, ok ? stepCost(w, p[p.length - 2], tile) : cost(tile), ok ? tile : -1]);
-    a.seg = 0; a.inside = false; a.anim = 'walk'; wake(st, a.id);
+    a.seg = 0;
+    a.inside = false;
+    a.anim = 'walk';
+    wake(st, a.id);
   }
   // Where on the site a pawn stands to do the job: as its kind says, else the middle of the tile.
-  const workSpot = (st, a, j) => (KINDS[j.kind].spot ? KINDS[j.kind].spot(st, a, j) : [st.w.hx[j.site], st.w.hy[j.site]]);
+  const workSpot = (st, a, j) =>
+    KINDS[j.kind].spot ? KINDS[j.kind].spot(st, a, j) : [st.w.hx[j.site], st.w.hy[j.site]];
   // The pawn joins the job's workers (j.claims) and sets out for it.
   function start(st, a, j) {
-    j.claims.push(a.id); a.job = j;
+    j.claims.push(a.id);
+    a.job = j;
     const K = KINDS[j.kind];
-    if (K.inside) { const [x, y] = homeSpot(st, a); a.phase = 'go'; walkTo(st, a, j.farm.house, x, y); return; }
+    if (K.inside) {
+      const [x, y] = homeSpot(st, a);
+      a.phase = 'go';
+      walkTo(st, a, j.farm.house, x, y);
+      return;
+    }
     const [x, y] = workSpot(st, a, j);
-    a.phase = 'go'; walkTo(st, a, j.site, x, y);
+    a.phase = 'go';
+    walkTo(st, a, j.site, x, y);
   }
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
-  function dropJob(st, j) { if (st.jobs.get(j.key) === j) st.jobs.delete(j.key); const s = j.owner && st.jobsBy.get(ownerKey(j.owner)); if (s) s.delete(j); }
+  function dropJob(st, j) {
+    if (st.jobs.get(j.key) === j) st.jobs.delete(j.key);
+    const s = j.owner && st.jobsBy.get(ownerKey(j.owner));
+    if (s) s.delete(j);
+  }
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
     // a load on its way home is put down in its farm's barn first (VB-335: a wedding or a move at the round found a pawn mid-haul)
     if (a.load > 0 && a.phase === 'back' && a.job) deposit(st, a, a.job.farm);
-    if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
-    a.phase = null; a.work = null; a.basis = null; a.load = 0; // wood cut and stacked, not yet on its way, is left
-    const hid = st.pawns[a.id].household; if (hid !== null) Carts.leave(st, st.households[hid], a.id); // and its cart is free
+    if (a.job) {
+      const c = a.job.claims,
+        i = c.indexOf(a.id);
+      if (i >= 0) c.splice(i, 1);
+      a.job = null;
+    }
+    a.phase = null;
+    a.work = null;
+    a.basis = null;
+    a.load = 0; // wood cut and stacked, not yet on its way, is left
+    const hid = st.pawns[a.id].household;
+    if (hid !== null) Carts.leave(st, st.households[hid], a.id); // and its cart is free
   }
   // ---- attention (VB-251; design.md section 7): a pawn holds one task (a.job), and besides it one partial and one background task ----
   // @state agent.side: absent, or {partial, background}: the jobs the pawn holds besides its task, each a job of st.jobs listing the pawn
@@ -95,28 +155,37 @@ VB['sim/agents'] = (() => {
     const att = attentionOf(j);
     if (att === 'full') return `${j.key} is not a side task`;
     if (heldAt(a, att)) return `the pawn already holds a ${att} task`;
-    if (att === 'background' && a.job && !(inReach(st, j, tileAt(st, a.x, a.y)) && inReach(st, j, a.job.site))) return `${j.key} is out of its reach`;
+    if (att === 'background' && a.job && !(inReach(st, j, tileAt(st, a.x, a.y)) && inReach(st, j, a.job.site)))
+      return `${j.key} is out of its reach`;
     return null;
   }
   // The pawn takes up side task j; a background task out of its reach, with no task in hand, it sets out for. The kind's `held` says what
   // taking it up does (VB-136: the herds go out with the herder).
   function hold(st, a, j) {
     if (!a.side) a.side = { partial: null, background: null };
-    a.side[attentionOf(j)] = j; j.claims.push(a.id);
-    if (attentionOf(j) === 'background' && !a.job && !inReach(st, j, tileAt(st, a.x, a.y))) { const [x, y] = workSpot(st, a, j); walkTo(st, a, j.site, x, y); }
+    a.side[attentionOf(j)] = j;
+    j.claims.push(a.id);
+    if (attentionOf(j) === 'background' && !a.job && !inReach(st, j, tileAt(st, a.x, a.y))) {
+      const [x, y] = workSpot(st, a, j);
+      walkTo(st, a, j.site, x, y);
+    }
     if (KINDS[j.kind].held) KINDS[j.kind].held(st, j, a, cal(st.t));
   }
   // The pawn lets go of side task j, which stays posted, with its progress, for others.
   function unhold(a, j) {
-    const i = j.claims.indexOf(a.id); if (i >= 0) j.claims.splice(i, 1);
+    const i = j.claims.indexOf(a.id);
+    if (i >= 0) j.claims.splice(i, 1);
     for (const slot of ['partial', 'background']) if (a.side[slot] === j) a.side[slot] = null;
     if (!a.side.partial && !a.side.background) delete a.side;
   }
-  function dropSides(st, a) { if (a.side) for (const slot of ['partial', 'background']) if (a.side && a.side[slot]) unhold(a, a.side[slot]); }
+  function dropSides(st, a) {
+    if (a.side) for (const slot of ['partial', 'background']) if (a.side && a.side[slot]) unhold(a, a.side[slot]);
+  }
   // The matcher offers a pawn that holds a background task only tasks within its reach (a full one beyond it never, until the urgency
   // switch; VB-136: the herder may take other work within reach of the pasture); null when job j may be bid for, else why not.
   function offerWhy(st, a, j) {
-    const att = attentionOf(j), bg = heldAt(a, 'background');
+    const att = attentionOf(j),
+      bg = heldAt(a, 'background');
     if (att !== 'full') return sideWhy(st, a, j);
     if (bg && !inReach(st, bg, j.site)) return `${j.key} would take the background task ${bg.key} out of reach`;
     return null;
@@ -135,15 +204,27 @@ VB['sim/agents'] = (() => {
   const SLOTS = ['partial', 'background'];
   function stepSide(st, a, dt, h) {
     for (let k = 0; k < 2; k++) {
-      const slot = SLOTS[k], j = heldAt(a, slot); if (!j) continue;
-      if (st.jobs.get(j.key) !== j) { unhold(a, j); if (!a.side) return; continue; }
+      const slot = SLOTS[k],
+        j = heldAt(a, slot);
+      if (!j) continue;
+      if (st.jobs.get(j.key) !== j) {
+        unhold(a, j);
+        if (!a.side) return;
+        continue;
+      }
       if (slot !== 'background') continue;
       const K = KINDS[j.kind];
-      if (h < WORK[0] || h >= WORK[1]) { unhold(a, j); if (!a.side) return; continue; }
+      if (h < WORK[0] || h >= WORK[1]) {
+        unhold(a, j);
+        if (!a.side) return;
+        continue;
+      }
       if ((a.path || a.phase !== null) && !inReach(st, j, tileAt(st, a.x, a.y))) {
         const end = a.path && a.path[a.path.length - 1];
         if (end && inReach(st, j, tileAt(st, end[0], end[1]))) continue;
-        unhold(a, j); if (!a.side) return; continue;
+        unhold(a, j);
+        if (!a.side) return;
+        continue;
       }
       j.done += dt * K.rate;
       if (K.worked) K.worked(st, j, dt);
@@ -164,60 +245,102 @@ VB['sim/agents'] = (() => {
       if (id === finisher) continue;
       const b = st.agents[id];
       if (b.phase === 'back') continue; // a load on the road stays the job's (VB-335)
-      if (b.side && (b.side.partial === j || b.side.background === j)) { unhold(b, j); continue; }
+      if (b.side && (b.side.partial === j || b.side.background === j)) {
+        unhold(b, j);
+        continue;
+      }
       if (b.phase === 'go') b.path = null;
-      b.job = null; b.phase = null; b.work = null; b.inside = false; b.anim = 'idle';
+      b.job = null;
+      b.phase = null;
+      b.work = null;
+      b.inside = false;
+      b.anim = 'idle';
     }
     j.claims = j.claims.filter((id) => id === finisher || st.agents[id].phase === 'back');
   }
   // The work is done: those who finished it together know each other better (sim/relations); a plot's step is finished (sim/expansion),
   // any other job does what its kind says (sim/kinds).
   function complete(st, a) {
-    const j = a.job, hh = st.households[st.pawns[a.id].household], K = KINDS[j.kind];
+    const j = a.job,
+      hh = st.households[st.pawns[a.id].household],
+      K = KINDS[j.kind];
     if (j.claims.length > 1) workedTogether(st, j.claims);
     freeHands(st, j, a.id);
     prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours ?? 0); // a hidden vein near the work may be come on (sim/prospect)
-    if (j.plot) { finishStep(st, j); dropJob(st, j); return; }
+    if (j.plot) {
+      finishStep(st, j);
+      dropJob(st, j);
+      return;
+    }
     if (K.done) K.done(st, j, hh, cal(st.t));
     dropJob(st, j);
   }
   // Home with the load: the kind says what it brings.
   function deposit(st, a, farm = null) {
-    const j = a.job, K = KINDS[j.kind];
+    const j = a.job,
+      K = KINDS[j.kind];
     const hh = st.households[farm && farm.household !== null ? farm.household : st.pawns[a.id].household];
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
     Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears
     if (!K.again || !K.again(j)) dropJob(st, j);
     else j.claims.splice(j.claims.indexOf(a.id), 1); // open for the next load
-    a.carry = null; a.load = 0; a.job = null; a.basis = null; a.phase = null;
+    a.carry = null;
+    a.load = 0;
+    a.job = null;
+    a.basis = null;
+    a.phase = null;
   }
-  const wantsWork = (st, a, c) => !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
+  const wantsWork = (st, a, c) =>
+    !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
   function arrived(st, a) {
     a.anim = 'idle';
     if (a.phase === 'go') {
       const K = KINDS[a.job.kind];
-      a.phase = 'work'; a.anim = K.anim || 'idle'; a.inside = !!K.inside;
-      if (K.field) a.work = { s: -13, dir: 1, row: firstRow(a.job, a), th: rowAngle(a.job), cx: st.w.hx[a.job.site], cy: st.w.hy[a.job.site] };
+      a.phase = 'work';
+      a.anim = K.anim || 'idle';
+      a.inside = !!K.inside;
+      if (K.field)
+        a.work = {
+          s: -13,
+          dir: 1,
+          row: firstRow(a.job, a),
+          th: rowAngle(a.job),
+          cx: st.w.hx[a.job.site],
+          cy: st.w.hy[a.job.site],
+        };
     } else if (a.phase === 'back') deposit(st, a);
     else if (a.phase === 'home') {
-      a.inside = true; a.phase = null;
+      a.inside = true;
+      a.phase = null;
       driveHome(st, st.households[st.pawns[a.id].household], a.id); // the herds it brought home are by the farm (VB-136)
     }
   }
   // Home, letting go of its side tasks (VB-136).
   function goHome(st, a) {
-    const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], [x, y] = homeSpot(st, a);
-    dropSides(st, a); walkTo(st, a, f.house, x, y); a.phase = 'home';
+    const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead],
+      [x, y] = homeSpot(st, a);
+    dropSides(st, a);
+    walkTo(st, a, f.house, x, y);
+    a.phase = 'home';
   }
   // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
-  const rateOf = (st, p) => workRate(p.role, age(st, p)) * (1 - HUNGER.slow * p.hunger) * (1 - HEALTH.slow * (100 - p.health) / 100);
+  const rateOf = (st, p) =>
+    workRate(p.role, age(st, p)) * (1 - HUNGER.slow * p.hunger) * (1 - (HEALTH.slow * (100 - p.health)) / 100);
   // The pawn drives the household's oxen (VB-138): it is the first hand on the household's earliest hoeing or breaking job that has hands,
   // and the household has a team. Derived each time, so the team is never in two fields.
   function withOxen(st, a) {
     const j = a.job;
-    if (!j || a.phase !== 'work' || j.claims[0] !== a.id || j.owner.type !== 'household' || !HERD.team.kinds.includes(j.kind)) return false;
+    if (
+      !j ||
+      a.phase !== 'work' ||
+      j.claims[0] !== a.id ||
+      j.owner.type !== 'household' ||
+      !HERD.team.kinds.includes(j.kind)
+    )
+      return false;
     let first = null;
-    for (const q of st.jobsBy.get(ownerKey(j.owner)) || []) if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
+    for (const q of st.jobsBy.get(ownerKey(j.owner)) || [])
+      if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
     return first === j && hasTeam(st, st.households[j.owner.id]);
   }
   // The household's team may draw the ox cart: it has a team, at no plough and with no other cart on the road (VB-335; sim/carts).
@@ -227,21 +350,34 @@ VB['sim/agents'] = (() => {
     return true;
   }
   function stepWork(st, a, dt) {
-    const j = a.job, K = KINDS[j.kind];
+    const j = a.job,
+      K = KINDS[j.kind];
     // manure is carted faster with a cart (sim/carts): taken as the work begins, and kept until it ends
     const hhW = K.carted || K.stack ? st.households[st.pawns[a.id].household] : null;
-    j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1) * (K.carted ? Carts.carting(st, hhW, a.id, teamFree(st, hhW)) : 1);
+    j.done +=
+      dt *
+      rateOf(st, st.pawns[a.id]) *
+      (withOxen(st, a) ? HERD.team.rate : 1) *
+      (K.carted ? Carts.carting(st, hhW, a.id, teamFree(st, hhW)) : 1);
     if (K.worked) K.worked(st, j);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working
-      const wk = a.work, speed = K.pace || ROW_PACE;
+      const wk = a.work,
+        speed = K.pace || ROW_PACE;
       wk.s += wk.dir * speed * dt;
-      if (wk.s > 13 || wk.s < -13) { wk.s = Math.max(-13, Math.min(13, wk.s)); wk.dir = -wk.dir; wk.row += 6; if (wk.row > 12) wk.row = -12; }
-      const nx = wk.cx + Math.cos(wk.th) * wk.s - Math.sin(wk.th) * wk.row, ny = wk.cy + Math.sin(wk.th) * wk.s + Math.cos(wk.th) * wk.row;
+      if (wk.s > 13 || wk.s < -13) {
+        wk.s = Math.max(-13, Math.min(13, wk.s));
+        wk.dir = -wk.dir;
+        wk.row += 6;
+        if (wk.row > 12) wk.row = -12;
+      }
+      const nx = wk.cx + Math.cos(wk.th) * wk.s - Math.sin(wk.th) * wk.row,
+        ny = wk.cy + Math.sin(wk.th) * wk.s + Math.cos(wk.th) * wk.row;
       if (Math.abs(nx - a.x) > 0.01) a.face = nx > a.x ? 1 : -1;
       a.stride += Math.hypot(nx - a.x, ny - a.y) / 3.4;
-      a.x = nx; a.y = ny;
+      a.x = nx;
+      a.y = ny;
     }
     if (j.done >= (j.hours ?? K.hours) && K.stack) {
       // firewood (sim/carts): a trip's cutting is a back load; with a cart that has room for one more, the cutter stays and cuts
@@ -250,7 +386,10 @@ VB['sim/agents'] = (() => {
       const c = cal(st.t);
       if (K.stack(st, j, hhW, c, a.load) && c.hour + K.hours <= WORK[1]) {
         const cap = Carts.holds(st, hhW, a.id) || Carts.take(st, hhW, a.id, teamFree(st, hhW));
-        if (cap >= a.load + TRAVEL.load) { j.done = 0; return; }
+        if (cap >= a.load + TRAVEL.load) {
+          j.done = 0;
+          return;
+        }
         if (cap === TRAVEL.load) Carts.missed(st, hhW);
       }
       if (a.load <= TRAVEL.load) Carts.leave(st, hhW, a.id);
@@ -258,47 +397,79 @@ VB['sim/agents'] = (() => {
     if (j.done >= (j.hours ?? K.hours)) {
       // a load taken from the field (VB-335), on the household's best free cart or on the back (sim/carts); a load on the back
       // with more left waiting is a miss the head counts
-      const hhL = K.load ? st.households[st.pawns[a.id].household] : null, cap = K.load ? Carts.take(st, hhL, a.id, teamFree(st, hhL)) : 0;
+      const hhL = K.load ? st.households[st.pawns[a.id].household] : null,
+        cap = K.load ? Carts.take(st, hhL, a.id, teamFree(st, hhL)) : 0;
       const n = K.load ? K.load(st, a, j, cap) : null;
       if (K.load && cap === TRAVEL.load && n > 0 && K.again(j)) Carts.missed(st, hhL);
       if (K.load && n <= TRAVEL.load) Carts.leave(st, hhL, a.id); // a load for the back needs no cart
       if (K.carry && n !== 0) {
-        if (n !== null && K.again(j)) { j.done = 0; if (K.reload) j.hours = K.reload; } // the others go on loading
+        if (n !== null && K.again(j)) {
+          j.done = 0;
+          if (K.reload) j.hours = K.reload;
+        } // the others go on loading
         else freeHands(st, j, a.id);
-        a.carry = K.carry; a.phase = 'back'; a.work = null;
-        const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], to = K.to === 'site' ? j.dest : f.house;
+        a.carry = K.carry;
+        a.phase = 'back';
+        a.work = null;
+        const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead],
+          to = K.to === 'site' ? j.dest : f.house;
         // sheaves go to the barn door, firewood to the woodpile, water into the cottage, timber to its building site (VB-328)
-        const hx = st.w.hx[to], hy = st.w.hy[to];
-        const [x, y] = K.to === 'door' ? homeSpot(st, a) : K.to === 'woodpile' || K.to === 'site' ? [hx + 7, hy + 16] : [hx - 3, hy - 9];
+        const hx = st.w.hx[to],
+          hy = st.w.hy[to];
+        const [x, y] =
+          K.to === 'door'
+            ? homeSpot(st, a)
+            : K.to === 'woodpile' || K.to === 'site'
+              ? [hx + 7, hy + 16]
+              : [hx - 3, hy - 9];
         walkTo(st, a, to, x, y);
       } else {
         complete(st, a);
         if (K.carted) Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the dung cart is back, and wears
-        a.job = null; a.basis = null; a.work = null;
-        a.phase = null; a.inside = false;
-        if (K.inside) { a.inside = false; a.anim = 'idle'; }
+        a.job = null;
+        a.basis = null;
+        a.work = null;
+        a.phase = null;
+        a.inside = false;
+        if (K.inside) {
+          a.inside = false;
+          a.anim = 'idle';
+        }
       }
     }
   }
   function moveAgent(st, a, dt) {
     let left = SPEED * st.w.HW * dt * (a.carry ? Carts.pace(st, a) : 1); // map units of meadow walking; a step of cost c takes c of them per unit
     while (left > 0 && a.seg < a.path.length - 1) {
-      const pt = a.path[a.seg + 1], tx = pt[0], ty = pt[1], c = pt[2] === undefined ? 1 : pt[2];
-      const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), reach = left / c;
+      const pt = a.path[a.seg + 1],
+        tx = pt[0],
+        ty = pt[1],
+        c = pt[2] === undefined ? 1 : pt[2];
+      const dx = tx - a.x,
+        dy = ty - a.y,
+        d = Math.hypot(dx, dy),
+        reach = left / c;
       if (Math.abs(dx) > 0.3) a.face = dx > 0 ? 1 : -1;
       const m = Math.min(d, reach);
       a.stride += m / 3.4;
       if (d <= reach) {
-        a.x = tx; a.y = ty; a.seg++; VB.count.walkPoint++;
+        a.x = tx;
+        a.y = ty;
+        a.seg++;
+        VB.count.walkPoint++;
         const t = a.path[a.seg][3] ?? -1;
         // the herds it drives wear the way too (VB-136): only a herder out with them, or bringing them home, can drive any
         if (t >= 0) tread(st.w, t, a.side || a.phase === 'home' ? 1 + HERD.herding.move * driven(st, a.id) : 1);
-      }
-      else if (reach > 0) { a.x += (dx / d) * reach; a.y += (dy / d) * reach; }
-      else break; // a budget so small (a few 1e-324) that it moves nothing: it never shrinks, so stop until the next step
+      } else if (reach > 0) {
+        a.x += (dx / d) * reach;
+        a.y += (dy / d) * reach;
+      } else break; // a budget so small (a few 1e-324) that it moves nothing: it never shrinks, so stop until the next step
       left -= m * c;
     }
-    if (a.seg >= a.path.length - 1) { a.path = null; arrived(st, a); }
+    if (a.seg >= a.path.length - 1) {
+      a.path = null;
+      arrived(st, a);
+    }
   }
   // ---- the six-minute step (VB-205): only the agents that may act this hour are walked (rule 4) ----
   // @state st.awake: {hour, ids, at}, a cache owned here, not saved (non-enumerable, like st.idx): the ids, in increasing order, of the
@@ -309,7 +480,9 @@ VB['sim/agents'] = (() => {
   function awake(st) {
     const hour = Math.floor(st.tick / TICKS);
     if (st.awake && st.awake.hour === hour) return st.awake;
-    const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], ids = [];
+    const h = ((hour % DAY) + DAY) % DAY,
+      work = h >= WORK[0] && h <= WORK[1],
+      ids = [];
     VB.count.walkAwake += st.living.length;
     for (const id of st.living) {
       const a = st.agents[id];
@@ -322,25 +495,39 @@ VB['sim/agents'] = (() => {
   }
   // Where id is in the sorted ids, or where it would go.
   function place(ids, id) {
-    let lo = 0, hi = ids.length;
-    while (lo < hi) { const m = (lo + hi) >> 1; if (ids[m] < id) lo = m + 1; else hi = m; }
+    let lo = 0,
+      hi = ids.length;
+    while (lo < hi) {
+      const m = (lo + hi) >> 1;
+      if (ids[m] < id) lo = m + 1;
+      else hi = m;
+    }
     return lo;
   }
   function wake(st, id) {
-    const w = st.awake; if (!w) return;
-    const i = place(w.ids, id); if (w.ids[i] === id) return;
-    w.ids.splice(i, 0, id); if (i <= w.at) w.at++;
+    const w = st.awake;
+    if (!w) return;
+    const i = place(w.ids, id);
+    if (w.ids[i] === id) return;
+    w.ids.splice(i, 0, id);
+    if (i <= w.at) w.at++;
   }
   function sleep(st, id) {
-    const w = st.awake; if (!w) return;
-    const i = place(w.ids, id); if (w.ids[i] !== id) return;
-    w.ids.splice(i, 1); if (i <= w.at) w.at--;
+    const w = st.awake;
+    if (!w) return;
+    const i = place(w.ids, id);
+    if (w.ids[i] !== id) return;
+    w.ids.splice(i, 1);
+    if (i <= w.at) w.at--;
   }
   // Each awake agent walks, works, or, if it wants work, joins the list returned (in id order) for the planner (sim/clock). A whole
   // 6-minute step, always: the page draws the pawns between steps (VB-244).
   const STEP_HOURS = 1 / TICKS;
   function stepAgents(st, c) {
-    const w = awake(st), ids = w.ids, out = [], dt = STEP_HOURS;
+    const w = awake(st),
+      ids = w.ids,
+      out = [],
+      dt = STEP_HOURS;
     VB.count.walkStep += ids.length;
     for (w.at = 0; w.at < ids.length; w.at++) {
       const a = st.agents[ids[w.at]];
@@ -366,11 +553,39 @@ VB['sim/agents'] = (() => {
     return a.path ? 'Strolling' : 'Resting';
   }
   return {
-    ownerKey, dropJob,
-    homeSpot, placeAtHome, placeByDoor, idle, haltForTalk, stillAtDeath, tileAt, route, walkTo, workSpot, start, release, freeHands, complete, deposit,
-      wantsWork, arrived, goHome, rateOf,
-    withOxen, stepWork,
-    moveAgent, stepAgents, describe,
-    attentionOf, heldAt, sideWhy, offerWhy, hold, unhold, dropSides, reachAfter,
+    ownerKey,
+    dropJob,
+    homeSpot,
+    placeAtHome,
+    placeByDoor,
+    idle,
+    haltForTalk,
+    stillAtDeath,
+    tileAt,
+    route,
+    walkTo,
+    workSpot,
+    start,
+    release,
+    freeHands,
+    complete,
+    deposit,
+    wantsWork,
+    arrived,
+    goHome,
+    rateOf,
+    withOxen,
+    stepWork,
+    moveAgent,
+    stepAgents,
+    describe,
+    attentionOf,
+    heldAt,
+    sideWhy,
+    offerWhy,
+    hold,
+    unhold,
+    dropSides,
+    reachAfter,
   };
 })();

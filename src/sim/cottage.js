@@ -7,31 +7,56 @@ VB['sim/cottage'] = (() => {
   const { reckonWood } = VB['sim/territory'];
   const { shareWood } = VB['sim/building'];
   const { startHerd, payInAnimals } = VB['sim/herds'];
-  const Stores = VB['sim/stores'], { emit } = VB['sim/events'];
+  const Stores = VB['sim/stores'],
+    { emit } = VB['sim/events'];
   const names = VB['sim/names'];
   // A new farm's name (VB-026, VB-401): by the generators the village's culture prefers, their order drawn by weight, not one another
   // farm of the village has; owner is its first holder. Drawn from the house tile's own stream, not st.rng.
   function farmName(st, v, f, owner = null) {
-    const rand = names.tileRand(f.house), others = v.farmsteads.filter((id) => id !== f.id).map((id) => st.farmsteads[id]);
-    return names.farmName({ w: st.w, f, village: v, owner, farms: [f, ...others], fresh: true }, new Set(others.map((g) => g.name)), rand,
-      names.farmOrder(names.prefsOf(st, v.id).farm, rand));
+    const rand = names.tileRand(f.house),
+      others = v.farmsteads.filter((id) => id !== f.id).map((id) => st.farmsteads[id]);
+    return names.farmName(
+      { w: st.w, f, village: v, owner, farms: [f, ...others], fresh: true },
+      new Set(others.map((g) => g.name)),
+      rand,
+      names.farmOrder(names.prefsOf(st, v.id).farm, rand),
+    );
   }
   // The roof is on: the plot's holder and spouse (and their minor children) move into a new farmstead of the plot's house and field.
   // Their stakes (shares already paid out, VB-032) become the household's grain; shares still owed stay a debt of the farm they came from.
   // `plot`: the plot's project plan (sim/plans), finished here and kept as the village's record of the plot (village.plots, sim/expansion).
   function finishCottage(st, plot) {
-    const v = st.villages[plot.holder.id], holder = st.pawns[plot.to], sp = spouseOf(st, holder.id), tiles = plot.steps[0].places;
+    const v = st.villages[plot.holder.id],
+      holder = st.pawns[plot.to],
+      sp = spouseOf(st, holder.id),
+      tiles = plot.steps[0].places;
     // the holder died, or took another farm or married onto one (VB-153) meanwhile: the roof stands, nobody is to live there
     if (!holder.alive || isHolder(st, holder.id) || (sp !== null && st.pawns[sp].alive && isHolder(st, sp))) {
-      plot.to = null; log(st, `The new cottage in ${v.name} stands empty.`, { kind: 'empty', village: v.id }); return;
+      plot.to = null;
+      log(st, `The new cottage in ${v.name} stands empty.`, { kind: 'empty', village: v.id });
+      return;
     }
-    const house = tiles.find((t) => t.kind === 'house').tile, field = tiles.find((t) => t.kind === 'field').tile;
+    const house = tiles.find((t) => t.kind === 'house').tile,
+      field = tiles.find((t) => t.kind === 'field').tile;
     const f = makeFarmstead(st.w, st.farmsteads.length, house, [field], v, st.used);
     if (tiles.find((t) => t.kind === 'field').fresh) f.fields[0].soil = SOIL.fresh; // broken on ground never farmed (VB-149)
-    f.name = farmName(st, v, f, holder); f.state = 'occupied'; f.condition = 1; f.condAt = st.t; f.emptySince = null; f.fence = null;
-    st.farmsteads.push(f); v.farmsteads.push(f.id);
-    v.plots.push({ id: plot.plot, village: v.id, intended: plot.intended, holder: holder.id, started: plot.started, farmstead: f.id,
-      tiles: tiles.map((t) => ({ tile: t.tile, kind: t.kind })) });
+    f.name = farmName(st, v, f, holder);
+    f.state = 'occupied';
+    f.condition = 1;
+    f.condAt = st.t;
+    f.emptySince = null;
+    f.fence = null;
+    st.farmsteads.push(f);
+    v.farmsteads.push(f.id);
+    v.plots.push({
+      id: plot.plot,
+      village: v.id,
+      intended: plot.intended,
+      holder: holder.id,
+      started: plot.started,
+      farmstead: f.id,
+      tiles: tiles.map((t) => ({ tile: t.tile, kind: t.kind })),
+    });
     emit(st, 'stepDone', { type: 'village', id: v.id, plan: plot }); // the roof on: the plan is finished (sim/plans)
     const members = [holder.id];
     if (sp !== null && st.pawns[sp].alive) members.push(sp);
@@ -43,16 +68,22 @@ VB['sim/cottage'] = (() => {
       }
     }
     // the plot's wood (VB-328): the new household's pile up to its winter goal, then the piles of those who worked the plot; the rest is burnt
-    const left = Math.max(0, plot.steps[2].wood || 0), mine = Math.min(left, ECON.woodWinter);
+    const left = Math.max(0, plot.steps[2].wood || 0),
+      mine = Math.min(left, ECON.woodWinter);
     const hh = foundHousehold(st, f, members, holder.id, { stakes: true, unhomed: true, wood: mine });
     const burnt = shareWood(st, plot, left - mine);
     reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
     // a cow and two ewes from the old household, when that leaves it a cow and its winter hay (VB-140)
-    const oldId = [...from].find((id) => id !== null && id !== hh.id), oldHh = oldId === undefined ? null : st.households[oldId];
+    const oldId = [...from].find((id) => id !== null && id !== hh.id),
+      oldHh = oldId === undefined ? null : st.households[oldId];
     if (oldHh && !oldHh.dissolved) startHerd(st, oldHh, hh);
     personEvent(st, holder.id, 'moved', `Moved into the new farmstead ${f.name}`, false); // recorded below
     const smoke = burnt > 0 ? `; ${Math.round(burnt)} loads of the plot's wood are burnt where they lie` : '';
-    log(st, `${fullName(holder)} moves into the new farmstead ${f.name} in ${v.name}${smoke}.`, { kind: 'cottage', pawn: holder.id, ...atHousehold(st, hh) });
+    log(st, `${fullName(holder)} moves into the new farmstead ${f.name} in ${v.name}${smoke}.`, {
+      kind: 'cottage',
+      pawn: holder.id,
+      ...atHousehold(st, hh),
+    });
   }
   // At the moving round: shares still owed are paid from the debtor farm's grain above its reserve (the seed and the winter's food).
   // The payment goes to the pawn's household, or to its stake while it has none.
@@ -60,7 +91,8 @@ VB['sim/cottage'] = (() => {
     for (const liveId of st.living) {
       const p = st.pawns[liveId];
       if (!p.alive || !(p.owed > 0) || p.owedFrom === undefined || p.owedFrom === null) continue;
-      const hh = st.households[p.owedFrom]; if (!hh || hh.dissolved) continue;
+      const hh = st.households[p.owedFrom];
+      if (!hh || hh.dissolved) continue;
       const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember;
       const pay = Math.min(p.owed, Math.max(0, Math.floor(Stores.grainOf(hh) - reserve)));
       const own = p.household !== null && p.household !== hh.id ? st.households[p.household] : null;
@@ -68,12 +100,24 @@ VB['sim/cottage'] = (() => {
       const animals = own && !own.dissolved && p.owed - pay > 0 ? payInAnimals(st, hh, own, p.owed - pay) : 0;
       if (pay <= 0 && animals <= 0) continue;
       p.owed -= pay + animals;
-      if (animals > 0) personEvent(st, p.id, 'share', `Was paid animals worth ${animals} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`,
-        { n: animals, ...atHousehold(st, hh) });
+      if (animals > 0)
+        personEvent(
+          st,
+          p.id,
+          'share',
+          `Was paid animals worth ${animals} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`,
+          { n: animals, ...atHousehold(st, hh) },
+        );
       if (pay <= 0) continue;
       const to = own || p;
       Stores.move(st, hh, to, 'grain', pay, { kind: 'share', pawn: p.id });
-      personEvent(st, p.id, 'share', `Was paid ${pay} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`, { n: pay, ...atHousehold(st, hh) });
+      personEvent(
+        st,
+        p.id,
+        'share',
+        `Was paid ${pay} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`,
+        { n: pay, ...atHousehold(st, hh) },
+      );
     }
   }
   return { farmName, finishCottage, payOwed };

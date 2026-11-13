@@ -4,6 +4,7 @@
   "scripts": {
     "test": "node tests/run.js test",
     "verify": "node tests/run.js verify",
+    "format": "prettier --write \"src/**/*.js\"",
     "nightly": "node tools/nightly.js",
     "calibrate": "node tests/calibrate.js natural 12 200"
   },
@@ -12,6 +13,7 @@
     "acorn": "8.15.0",
     "jsdom": "24.1.3",
     "pixi.js": "8.14.3",
-    "playwright": "1.63.0"
+    "playwright": "1.63.0",
+    "prettier": "3.10.1"
   }
 }

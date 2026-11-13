@@ -24,13 +24,18 @@ VB['sim/stakes'] = (() => {
       if (c.by.type === 'village' && c.by.id === vid) continue;
       if (found || c.by.type !== 'household' || c.by.id === hid || !STAKE.has(c.why)) return null;
       const h = st.households[c.by.id];
-      if (h.dissolved || st.farmsteads[h.farmstead].village !== vid || CL.strength(st, c) >= CLAIMS.contestBelow) return null;
+      if (h.dissolved || st.farmsteads[h.farmstead].village !== vid || CL.strength(st, c) >= CLAIMS.contestBelow)
+        return null;
       found = c;
     }
     return found;
   }
-  const RULE_WORD = { first: 'by the first claim', strongest: 'by the strongest claim', kin: 'as kin of the last holder',
-    meeting: 'by the voices at the meeting' };
+  const RULE_WORD = {
+    first: 'by the first claim',
+    strongest: 'by the strongest claim',
+    kin: 'as kin of the last holder',
+    meeting: 'by the voices at the meeting',
+  };
   // Household hh of farm f, with no free tile within reach, contests the weakened stake on `tile`: the village's Disputed claims practice
   // settles it at once, the stake's older claim against hh's fresh one. Under `first` the stake stands; under `kin` too, as nobody held the
   // tile before; under `strongest` hh's fresh claim wins; under `meeting` the better supported. If hh wins, the stake is dropped and its
@@ -39,17 +44,37 @@ VB['sim/stakes'] = (() => {
   function contest(st, f, hh, tile, why) {
     const old = contestable(st, tile, f.village, hh.id);
     if (!old) return false;
-    const mine = { by: HH(hh.id), state: 'unrealised', why, since: st.t, renewed: st.t, seq: st.claimSeq + 1, until: null };
-    const rule = practice(st, f.village).dispute, ctx = { village: f.village }, claims = [old, mine];
+    const mine = {
+      by: HH(hh.id),
+      state: 'unrealised',
+      why,
+      since: st.t,
+      renewed: st.t,
+      seq: st.claimSeq + 1,
+      until: null,
+    };
+    const rule = practice(st, f.village).dispute,
+      ctx = { village: f.village },
+      claims = [old, mine];
     if (CL.settle(st, claims, rule, ctx) !== mine) return false;
-    const loser = st.households[old.by.id], lf = st.farmsteads[loser.farmstead];
+    const loser = st.households[old.by.id],
+      lf = st.farmsteads[loser.farmstead];
     CL.aggrieve(st, claims, mine, ctx);
     CL.dropClaim(st, tile, old.by);
     // the loser's project on the tile is reviewed at once and dropped (sim/projects; told below); its job goes at the next posting (sim/jobs)
     emit(st, 'rightLost', { type: 'household', id: loser.id, tile, told: true });
-    if (st.pawns[loser.holder].alive && st.pawns[hh.holder].alive) emit(st, 'claimTaken', { loser: loser.holder, taker: hh.holder });
-    log(st, `${f.name} takes the ${old.why === 'meadow' ? 'meadow' : 'field'} ${lf.name} staked and left unworked, ${RULE_WORD[rule]}.`, {
-      kind: 'stake', pawn: hh.holder, other: loser.holder, ...atFarm(f) });
+    if (st.pawns[loser.holder].alive && st.pawns[hh.holder].alive)
+      emit(st, 'claimTaken', { loser: loser.holder, taker: hh.holder });
+    log(
+      st,
+      `${f.name} takes the ${old.why === 'meadow' ? 'meadow' : 'field'} ${lf.name} staked and left unworked, ${RULE_WORD[rule]}.`,
+      {
+        kind: 'stake',
+        pawn: hh.holder,
+        other: loser.holder,
+        ...atFarm(f),
+      },
+    );
     return true;
   }
   // Once a day, after sim/claims' lapseClaims: a stake that lapsed (CLAIMS.years unworked) ends its household's project on the tile (sim/projects
@@ -58,8 +83,15 @@ VB['sim/stakes'] = (() => {
     for (const [tile, c] of dropped) {
       if (c.by.type !== 'household' || !STAKE.has(c.why)) continue;
       const f = st.farmsteads[st.households[c.by.id].farmstead];
-      emit(st, 'rightLost', { type: 'household', id: c.by.id, tile, text: `${f.name} gives up its stake: the new `
-        + `${c.why === 'meadow' ? 'hay meadow' : 'field'} lay unworked for ${CLAIMS.years} years.`, at: { kind: 'stakeLapsed', ...atFarm(f) } });
+      emit(st, 'rightLost', {
+        type: 'household',
+        id: c.by.id,
+        tile,
+        text:
+          `${f.name} gives up its stake: the new ` +
+          `${c.why === 'meadow' ? 'hay meadow' : 'field'} lay unworked for ${CLAIMS.years} years.`,
+        at: { kind: 'stakeLapsed', ...atFarm(f) },
+      });
     }
   }
   // A household that dissolves drops its stakes, and every other claim it holds; its projects end with it (sim/plans drops them first).

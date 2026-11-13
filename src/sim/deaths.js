@@ -3,9 +3,14 @@ VB['sim/deaths'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { YEAR, YEAR_DAYS, hazard } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
-  Rules.declare({ id: 'death.hazard', owner: 'sim/deaths', combine: 'product',
-    base: (st, p) => hazard((st.t - p.born) / YEAR) / YEAR_DAYS, baseCause: (st, p) => baseCause((st.t - p.born) / YEAR),
-      order: ['hunger', 'frailty'] }); // the terms are contributed by sim/hunger
+  Rules.declare({
+    id: 'death.hazard',
+    owner: 'sim/deaths',
+    combine: 'product',
+    base: (st, p) => hazard((st.t - p.born) / YEAR) / YEAR_DAYS,
+    baseCause: (st, p) => baseCause((st.t - p.born) / YEAR),
+    order: ['hunger', 'frailty'],
+  }); // the terms are contributed by sim/hunger
   // Cause keys: the base hazard by age (infancy, childhood, illness, oldAge), the share added by hunger, and the causes set elsewhere.
   // `event` is the text of the pawn's life event, `log` the text of the village log ("<name> of <farm> <log>, aged <n>").
   const CAUSES = {

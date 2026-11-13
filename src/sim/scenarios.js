@@ -9,7 +9,8 @@ VB['sim/scenarios'] = (() => {
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const ByHand = VB['sim/byhand'];
   const { foundersHouseholds, drawSize, populousHouseholds, handHouseholds } = VB['sim/people'];
-  const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } = VB['sim/records'];
+  const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } =
+    VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
   const { seedPlans } = VB['sim/plans'];
   const { dailyNeed } = VB['sim/hunger'];
@@ -23,50 +24,82 @@ VB['sim/scenarios'] = (() => {
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
   function seedFounders(w, seedNum) {
-    const S = fromState((seedNum * 2654435761) ^ 0x51ed), rand = drawer(S);
-    const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
+    const S = fromState((seedNum * 2654435761) ^ 0x51ed),
+      rand = drawer(S);
+    const comp = landComponents(w),
+      minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
     const center = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
     if (center < 0) throw new Error('No village site found');
-    const gen = settlementGenerator(w, rand, true), village = gen.addVillage(center, 3), lone = gen.addLoneFarm(center);
+    const gen = settlementGenerator(w, rand, true),
+      village = gen.addVillage(center, 3),
+      lone = gen.addLoneFarm(center);
     const { used, farmsteads, villages } = gen.finish();
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = foundersHouseholds(R, farmsteads);
     const st = makeState(w, S, R, households, farmsteads, villages, used, 'founders');
-    initCulture(st, null, { kinLimit: 'close' }); countDemand(st);
+    initCulture(st, null, { kinLimit: 'close' });
+    countDemand(st);
     st.makeFields = true;
     // grain for a full year of rations, and seed for the fields the household wants
-    for (const hh of st.households) hh.grain = { barley: yearlyRations(st, hh) + fieldsWanted(st, hh) * CROPS.barley.seed }; // by crop (VB-347)
+    for (const hh of st.households)
+      hh.grain = { barley: yearlyRations(st, hh) + fieldsWanted(st, hh) * CROPS.barley.seed }; // by crop (VB-347)
     foundersHerds(st);
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
-      kind: 'settled', n: R.pawns.length, village: village.id });
-    VB['sim/carts'].seedCarts(st, false); splitStreams(st, seedNum); return st;
+      kind: 'settled',
+      n: R.pawns.length,
+      village: village.id,
+    });
+    VB['sim/carts'].seedCarts(st, false);
+    splitStreams(st, seedNum);
+    return st;
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population; on a Medium or Large map
   // the first two villages are a large and a medium one, which take the best sites.
   const POPULATION = { tiny: [130, 170], small: [320, 380], big: [800, 950] };
-  const BANDS = [[0.6, 2, 5], [0.3, 6, 10], [0.1, 12, 16]]; // share of villages, farms from, farms to
+  const BANDS = [
+    [0.6, 2, 5],
+    [0.3, 6, 10],
+    [0.1, 12, 16],
+  ]; // share of villages, farms from, farms to
   const VILLAGE_SPACING = 10; // steps between village centres
   function seedPopulous(w, seedNum) {
-    const S = fromState((seedNum * 2654435761) ^ 0x9091), rand = drawer(S);
-    const [lo, hi] = POPULATION[w.N < 15000 ? 'tiny' : w.N < 40000 ? 'small' : 'big'], comp = landComponents(w);
-    const gen = settlementGenerator(w, rand), centres = [], sizes = [], scores = new Float32Array(w.N).fill(NaN);
+    const S = fromState((seedNum * 2654435761) ^ 0x9091),
+      rand = drawer(S);
+    const [lo, hi] = POPULATION[w.N < 15000 ? 'tiny' : w.N < 40000 ? 'small' : 'big'],
+      comp = landComponents(w);
+    const gen = settlementGenerator(w, rand),
+      centres = [],
+      sizes = [],
+      scores = new Float32Array(w.N).fill(NaN);
     let pop = 0;
     while (pop < lo) {
-      let u = rand(), band = BANDS[BANDS.length - 1];
-      for (const b of BANDS) { if (u < b[0]) { band = b; break; } u -= b[0]; }
+      let u = rand(),
+        band = BANDS[BANDS.length - 1];
+      for (const b of BANDS) {
+        if (u < b[0]) {
+          band = b;
+          break;
+        }
+        u -= b[0];
+      }
       if (lo >= POPULATION.big[0] && centres.length < 2) band = BANDS[2 - centres.length]; // a big map has a large and a medium village
       const farms = Math.min(band[1] + ((rand() * (band[2] - band[1] + 1)) | 0), Math.floor((hi - pop) / 9));
-      const free = (i) => comp.size[comp.id[i]] >= 60 && !gen.used.has(i) && centres.every((x) => hexSteps(w, x, i) >= VILLAGE_SPACING);
+      const free = (i) =>
+        comp.size[comp.id[i]] >= 60 && !gen.used.has(i) && centres.every((x) => hexSteps(w, x, i) >= VILLAGE_SPACING);
       const c = findSite(w, rand, comp, free, scores);
       if (c < 0) break;
       centres.push(c);
       for (const fid of gen.addVillage(c, farms).farmsteads) {
-        sizes[fid] = drawSize(rand); pop += sizes[fid];
+        sizes[fid] = drawSize(rand);
+        pop += sizes[fid];
         if (sizes[fid] >= 7) gen.addField(fid); // a big household works a fourth field
       }
     }
-    if (pop < lo) throw new Error(`Populous Villages: only ${pop} of ${lo} people fit on this map; try a larger map or another seed`);
+    if (pop < lo)
+      throw new Error(
+        `Populous Villages: only ${pop} of ${lo} people fit on this map; try a larger map or another seed`,
+      );
     return standing(w, S, rand, gen, sizes, 'populous', seedNum);
   }
   // Placed by hand (the archipelago editor): `places`, each {village: tile, farms}, a village laid by the generator about that tile;
@@ -77,34 +110,84 @@ VB['sim/scenarios'] = (() => {
   // order, then the greens, the fields, the people, the meadows and the ways. Where a place finds no room the error's `place` is its index.
   const EMPTY = { empty: [3, 'derelict', 'fallow'], ruin: [15, 'ruin', 'scrub'] }; // years empty, the farm's state, its fields' stage
   function seedManual(w, seedNum, places) {
-    const S = fromState((seedNum * 2654435761) ^ 0x3d17), rand = drawer(S), gen = settlementGenerator(w, rand), sizes = [], fill = [];
-    const list = places || [], no = (k) => { throw Object.assign(new Error('No room for what was placed there'), { place: k }); };
-    const each = (key, fn) => list.forEach((p, k) => { if (p[key] !== undefined && !fn(p, k)) no(k); });
-    list.forEach((p, k) => { // villages and farms in the one order, as each takes its room from those after it
+    const S = fromState((seedNum * 2654435761) ^ 0x3d17),
+      rand = drawer(S),
+      gen = settlementGenerator(w, rand),
+      sizes = [],
+      fill = [];
+    const list = places || [],
+      no = (k) => {
+        throw Object.assign(new Error('No room for what was placed there'), { place: k });
+      };
+    const each = (key, fn) =>
+      list.forEach((p, k) => {
+        if (p[key] !== undefined && !fn(p, k)) no(k);
+      });
+    list.forEach((p, k) => {
+      // villages and farms in the one order, as each takes its room from those after it
       if (p.village === undefined && p.farm === undefined) return;
-      const at = p.farm !== undefined ? p.farm : p.village, f = p.farm !== undefined && !w.water[at] ? ByHand.farmAt(w, gen, at) : null;
-      const made = p.farm !== undefined ? (f ? [f.id] : []) : w.water[at] || gen.used.has(at) ? [] : gen.addVillage(at, p.farms).farmsteads;
+      const at = p.farm !== undefined ? p.farm : p.village,
+        f = p.farm !== undefined && !w.water[at] ? ByHand.farmAt(w, gen, at) : null;
+      const made =
+        p.farm !== undefined
+          ? f
+            ? [f.id]
+            : []
+          : w.water[at] || gen.used.has(at)
+            ? []
+            : gen.addVillage(at, p.farms).farmsteads;
       if (!made.length) no(k);
-      if (f && p.fill && p.fill !== 'full') { fill[f.id] = p.fill; return; }
-      for (const fid of made) { sizes[fid] = drawSize(rand); if (sizes[fid] >= 7) gen.addField(fid); }
+      if (f && p.fill && p.fill !== 'full') {
+        fill[f.id] = p.fill;
+        return;
+      }
+      for (const fid of made) {
+        sizes[fid] = drawSize(rand);
+        if (sizes[fid] >= 7) gen.addField(fid);
+      }
     });
     if (!gen.farmsteads.length) throw new Error('Nothing is placed to live in');
     each('green', (p) => ByHand.greenAt(w, gen, p.green));
     each('field', (p) => ByHand.fieldAt(w, gen, p.field));
-    const pawns = list.map((p, k) => (p.pawn === undefined ? null : { k, sex: p.sex, age: p.age | 0, servant: p.servant,
-      farm: gen.farmsteads.findIndex((f) => f.house === p.pawn) })).filter(Boolean);
+    const pawns = list
+      .map((p, k) =>
+        p.pawn === undefined
+          ? null
+          : {
+              k,
+              sex: p.sex,
+              age: p.age | 0,
+              servant: p.servant,
+              farm: gen.farmsteads.findIndex((f) => f.house === p.pawn),
+            },
+      )
+      .filter(Boolean);
     const people = (R, farmsteads) => {
       const made = handHouseholds(R, farmsteads, sizes, fill, pawns);
       if (made.refused >= 0) no(pawns[made.refused].k);
-      for (const f of farmsteads) { // a farm left with no one stands empty, as one of the old farms does (seedHeirs)
+      for (const f of farmsteads) {
+        // a farm left with no one stands empty, as one of the old farms does (seedHeirs)
         if (f.household !== null) continue;
         const [years, state, stage] = EMPTY[fill[f.id]] || EMPTY.empty;
-        f.state = state; f.emptySince = -years * YEAR; f.line = null; f.condition = Math.max(0.08, 1 - years * 0.075);
+        f.state = state;
+        f.emptySince = -years * YEAR;
+        f.line = null;
+        f.condition = Math.max(0.08, 1 - years * 0.075);
         for (const fd of f.fields) fd.stage = stage;
       }
       return made.households;
     };
-    const st = standing(w, S, rand, gen, sizes, 'manual', seedNum, (run) => each('meadow', (p) => meadowAt(run, p.meadow)), people);
+    const st = standing(
+      w,
+      S,
+      rand,
+      gen,
+      sizes,
+      'manual',
+      seedNum,
+      (run) => each('meadow', (p) => meadowAt(run, p.meadow)),
+      people,
+    );
     each('way', (p) => layWay(w, p.way, p.stage || 3) > 0);
     return st;
   }
@@ -116,41 +199,62 @@ VB['sim/scenarios'] = (() => {
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
     const households = people ? people(R, farmsteads) : populousHouseholds(R, farmsteads, sizes);
     const st = makeState(w, S, R, households, farmsteads, villages, used, scenario);
-    initCulture(st, null); countDemand(st);
+    initCulture(st, null);
+    countDemand(st);
     // grain for a full year of rations and seed for every field the farm has, as for the founders
-    for (const hh of st.households) hh.grain = { barley: yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * CROPS.barley.seed };
-    populousHerds(st); if (byHand) byHand(st);
+    for (const hh of st.households)
+      hh.grain = { barley: yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * CROPS.barley.seed };
+    populousHerds(st);
+    if (byHand) byHand(st);
     placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
-    VB['sim/carts'].seedCarts(st, true); splitStreams(st, seedNum); return st;
+    VB['sim/carts'].seedCarts(st, true);
+    splitStreams(st, seedNum);
+    return st;
   }
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
   function seedHeirs(w, seedNum) {
-    const S = fromState((seedNum * 2654435761) ^ 0x2a11), rand = drawer(S);
-    const comp = landComponents(w), minLand = Math.round((1500 * w.N) / (280 * 200)); // on a small map, the requirement scaled to it
+    const S = fromState((seedNum * 2654435761) ^ 0x2a11),
+      rand = drawer(S);
+    const comp = landComponents(w),
+      minLand = Math.round((1500 * w.N) / (280 * 200)); // on a small map, the requirement scaled to it
     let a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= 1500);
     if (a < 0) a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
     if (a < 0) throw new Error('No village site found');
     // village B as remote as possible: another island if there is a decent one, otherwise far along the same land
     const { dist: far } = bfs(w, a, 200, walkable(w));
-    let b = findSite(w, rand, comp, (i) => comp.id[i] !== comp.id[a] && comp.size[comp.id[i]] >= 350 && hexSteps(w, a, i) >= 30);
+    let b = findSite(
+      w,
+      rand,
+      comp,
+      (i) => comp.id[i] !== comp.id[a] && comp.size[comp.id[i]] >= 350 && hexSteps(w, a, i) >= 30,
+    );
     if (b < 0) b = findSite(w, rand, comp, (i) => (far.get(i) || 0) >= 45);
     if (b < 0) b = findSite(w, rand, comp, (i) => hexSteps(w, a, i) >= 20);
-    const gen = settlementGenerator(w, rand), vA = gen.addVillage(a, 4), vB = gen.addVillage(b, 3);
+    const gen = settlementGenerator(w, rand),
+      vA = gen.addVillage(a, 4),
+      vB = gen.addVillage(b, 3);
     const { used, farmsteads, villages } = gen.finish();
-    const A = farmsteads.filter((f) => f.village === 0), Bf = farmsteads.filter((f) => f.village === 1);
+    const A = farmsteads.filter((f) => f.village === 0),
+      Bf = farmsteads.filter((f) => f.village === 1);
     if (A.length < 4 || Bf.length < 3) throw new Error('Not enough room for the debug villages');
-    const [A1, A2, A3, A4] = A, [B1, B2, B3] = Bf;
+    const [A1, A2, A3, A4] = A,
+      [B1, B2, B3] = Bf;
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
-    const P = (o) => person(R, o), dead = (sex, age, yearsAgo, o = {}) => P({ sex, age, diedYearsAgo: yearsAgo, ...o });
+    const P = (o) => person(R, o),
+      dead = (sex, age, yearsAgo, o = {}) => P({ sex, age, diedYearsAgo: yearsAgo, ...o });
     // --- village B's old line at B3: three children, who went three ways ---
-    const g1m = dead('m', 74, 10), g1f = dead('f', 70, 8); marry(R, g1m, g1f, 62, 10);
+    const g1m = dead('m', 74, 10),
+      g1f = dead('f', 70, 8);
+    marry(R, g1m, g1f, 62, 10);
     const kerstin = P({ given: 'Kerstin', sex: 'f', age: 58, father: g1m, mother: g1f });
     const erik = P({ given: 'Erik', sex: 'm', age: 52, father: g1m, mother: g1f });
     const olof = P({ given: 'Olof', sex: 'm', age: 47, father: g1m, mother: g1f }); // the bachelor who held on to B3
     // --- B1: the heiress Ingrid married Erik, who moved in with her ---
-    const g2m = dead('m', 66, 12), g2f = dead('f', 72, 5); marry(R, g2m, g2f, 55, 12);
+    const g2m = dead('m', 66, 12),
+      g2f = dead('f', 72, 5);
+    marry(R, g2m, g2f, 55, 12);
     dead('m', 2, 46, { father: g2m, mother: g2f });
     const ingrid = P({ given: 'Ingrid', sex: 'f', age: 49, father: g2m, mother: g2f });
     marry(R, erik, ingrid, 29);
@@ -159,49 +263,91 @@ VB['sim/scenarios'] = (() => {
     const per = P({ given: 'Per', sex: 'm', age: 20, father: erik, mother: ingrid }),
       elin = P({ given: 'Elin', sex: 'f', age: 16, father: erik, mother: ingrid });
     // --- B2: a family that died out fifteen years ago ---
-    const b2m = dead('m', 58, 15), b2f = dead('f', 55, 16); marry(R, b2m, b2f, 40, 16); dead('m', 20, 18, { father: b2m, mother: b2f });
+    const b2m = dead('m', 58, 15),
+      b2f = dead('f', 55, 16);
+    marry(R, b2m, b2f, 40, 16);
+    dead('m', 20, 18, { father: b2m, mother: b2f });
     // --- village A: A1 old couple; Kerstin came from B3 ---
-    const g3m = dead('m', 65, 20), g3f = dead('f', 70, 14); marry(R, g3m, g3f, 45, 20);
+    const g3m = dead('m', 65, 20),
+      g3f = dead('f', 70, 14);
+    marry(R, g3m, g3f, 45, 20);
     const lars = P({ given: 'Lars', sex: 'm', age: 61, father: g3m, mother: g3f });
     marry(R, lars, kerstin, 31);
     const jon = P({ given: 'Jon', sex: 'm', age: 29, father: lars, mother: kerstin }),
       brita = P({ given: 'Brita', sex: 'f', age: 25, father: lars, mother: kerstin }),
       gunnar = P({ given: 'Gunnar', sex: 'm', age: 20, father: lars, mother: kerstin });
     // --- A2 and A4 share a line: two brothers; the elder married into A4, the younger kept A2 ---
-    const g4m = dead('m', 60, 25), g4f = dead('f', 66, 18); marry(R, g4m, g4f, 64, 25);
-    const anders = dead('m', 60, 4, { given: 'Anders', father: g4m, mother: g4f }), nils2 = dead('m', 55, 3, { given: 'Nils', father: g4m, mother: g4f });
-    const marta = P({ given: 'Marta', sex: 'f', age: 54 }); marry(R, nils2, marta, 24, 3);
+    const g4m = dead('m', 60, 25),
+      g4f = dead('f', 66, 18);
+    marry(R, g4m, g4f, 64, 25);
+    const anders = dead('m', 60, 4, { given: 'Anders', father: g4m, mother: g4f }),
+      nils2 = dead('m', 55, 3, { given: 'Nils', father: g4m, mother: g4f });
+    const marta = P({ given: 'Marta', sex: 'f', age: 54 });
+    marry(R, nils2, marta, 24, 3);
     const karin = P({ given: 'Karin', sex: 'f', age: 22, father: nils2, mother: marta });
-    const g5m = dead('m', 62, 30), g5f = dead('f', 64, 26); marry(R, g5m, g5f, 50, 30);
-    const ragnhild = dead('f', 58, 2, { given: 'Ragnhild', father: g5m, mother: g5f }); marry(R, anders, ragnhild, 36, 4);
+    const g5m = dead('m', 62, 30),
+      g5f = dead('f', 64, 26);
+    marry(R, g5m, g5f, 50, 30);
+    const ragnhild = dead('f', 58, 2, { given: 'Ragnhild', father: g5m, mother: g5f });
+    marry(R, anders, ragnhild, 36, 4);
     const hakan = P({ given: 'Håkan', sex: 'm', age: 33, father: anders, mother: ragnhild }),
-      signe = P({ given: 'Signe', sex: 'f', age: 30 }); marry(R, hakan, signe, 10);
+      signe = P({ given: 'Signe', sex: 'f', age: 30 });
+    marry(R, hakan, signe, 10);
     const margit = P({ given: 'Margit', sex: 'f', age: 8, father: hakan, mother: signe }),
       smaOlof = P({ given: 'Olof', sex: 'm', age: 5, father: hakan, mother: signe });
     // --- A3: died out six years ago, a couple and their baby ---
-    const g6m = dead('m', 65, 30), g6f = dead('f', 63, 22); marry(R, g6m, g6f, 48, 30);
-    const ivar = dead('m', 36, 6, { given: 'Ivar', father: g6m, mother: g6f }), gertrud = dead('f', 34, 6, { given: 'Gertrud' }); marry(R, ivar, gertrud, 9, 6);
+    const g6m = dead('m', 65, 30),
+      g6f = dead('f', 63, 22);
+    marry(R, g6m, g6f, 48, 30);
+    const ivar = dead('m', 36, 6, { given: 'Ivar', father: g6m, mother: g6f }),
+      gertrud = dead('f', 34, 6, { given: 'Gertrud' });
+    marry(R, ivar, gertrud, 9, 6);
     dead('m', 1, 6, { father: ivar, mother: gertrud });
 
     const households = [];
-    households.push(makeHousehold(R, 0, A1, [lars, kerstin, jon, brita, gunnar], lars)); A1.line = lars;
-    households.push(makeHousehold(R, 1, A2, [marta, karin], marta)); A2.line = nils2; // a widow holding for life
+    households.push(makeHousehold(R, 0, A1, [lars, kerstin, jon, brita, gunnar], lars));
+    A1.line = lars;
+    households.push(makeHousehold(R, 1, A2, [marta, karin], marta));
+    A2.line = nils2; // a widow holding for life
     households.push(makeHousehold(R, 2, A4, [hakan, signe, margit, smaOlof], hakan));
-    households.push(makeHousehold(R, 3, B1, [erik, ingrid, sigrid, nils, per, elin], erik)); B1.line = ingrid;
+    households.push(makeHousehold(R, 3, B1, [erik, ingrid, sigrid, nils, per, elin], erik));
+    B1.line = ingrid;
     households.push(makeHousehold(R, 4, B3, [olof], olof));
-    for (const [f, years, line, stage, state] of [[A3, 6, ivar, 'fallow', 'derelict'], [B2, 15, b2m, 'scrub', 'ruin']]) {
-      f.household = null; f.state = state; f.emptySince = -years * YEAR; f.line = line; f.condition = Math.max(0.08, 1 - years * 0.075);
+    for (const [f, years, line, stage, state] of [
+      [A3, 6, ivar, 'fallow', 'derelict'],
+      [B2, 15, b2m, 'scrub', 'ruin'],
+    ]) {
+      f.household = null;
+      f.state = state;
+      f.emptySince = -years * YEAR;
+      f.line = line;
+      f.condition = Math.max(0.08, 1 - years * 0.075);
       for (const fd of f.fields) fd.stage = stage;
     }
     const st = makeState(w, S, R, households, farmsteads, villages, used, 'heirs');
     // village B grew up apart and leans its own way on some customs
-    initCulture(st, { 1: { heirSex: { any: 0.35 }, handover: { death: 0.3 }, claims: { anyone: 0.25 }, voice: { heads: 0.2 } } }); countDemand(st);
+    initCulture(st, {
+      1: { heirSex: { any: 0.35 }, handover: { death: 0.3 }, claims: { anyone: 0.25 }, voice: { heads: 0.2 } },
+    });
+    countDemand(st);
     // herds by household: [household, cows, heifers, bull and oxen, ewes (and a ram with the bull)]
-    heirsHerds(st, [[0, 3, 0, true, 6], [1, 1, 0, false, 3], [2, 2, 1, false, 0], [3, 3, 0, true, 6], [4, 1, 0, false, 0]]);
-    placeMeadows(st); seedOutland(st, true);
+    heirsHerds(st, [
+      [0, 3, 0, true, 6],
+      [1, 1, 0, false, 3],
+      [2, 2, 1, false, 0],
+      [3, 3, 0, true, 6],
+      [4, 1, 0, false, 0],
+    ]);
+    placeMeadows(st);
+    seedOutland(st, true);
     for (const f of [A3, B2]) birthright(st, f, f.line, f.emptySince); // the old families' birthright, from when the farms emptied (VB-033)
-    log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`, { kind: 'settled', n: R.pawns.length });
-    VB['sim/carts'].seedCarts(st, true); splitStreams(st, seedNum); return st;
+    log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`, {
+      kind: 'settled',
+      n: R.pawns.length,
+    });
+    VB['sim/carts'].seedCarts(st, true);
+    splitStreams(st, seedNum);
+    return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
     seal();
@@ -292,22 +438,80 @@ VB['sim/scenarios'] = (() => {
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; a culture's preference among farm names: weights, the first heaviest
     // @state culture.practices: {noDecision: 'nothing' | 'asLastYear'}; the culture's practices that are not customs (culture.js PRACTICES; VB-257)
     const st = {
-      t: 6, tick: 6 * TICKS, rng: seeding(S), w, ECON, pawns: R.pawns, unions: R.unions, households, farmsteads, villages, used, scenario,
-      makeFields: true, jobs: new Map(), jobsBy: new Map(), jobSeq: 0, weather: 0.85 + rand() * 0.3, record: [],
-      recordYears: [], recordFold: { shortAt: 0, longAt: 0, pass: null },
-      pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set(),
-      talks: 0, driftMul: 1, naturalDeaths: true, player: null, demand: [], meetingLog: [], herds: [], headSeq: 0,
+      t: 6,
+      tick: 6 * TICKS,
+      rng: seeding(S),
+      w,
+      ECON,
+      pawns: R.pawns,
+      unions: R.unions,
+      households,
+      farmsteads,
+      villages,
+      used,
+      scenario,
+      makeFields: true,
+      jobs: new Map(),
+      jobsBy: new Map(),
+      jobSeq: 0,
+      weather: 0.85 + rand() * 0.3,
+      record: [],
+      recordYears: [],
+      recordFold: { shortAt: 0, longAt: 0, pass: null },
+      pathCache: new Map(),
+      routeFallbacks: 0,
+      routeDirty: new Set(),
+      talks: 0,
+      driftMul: 1,
+      naturalDeaths: true,
+      player: null,
+      demand: [],
+      meetingLog: [],
+      herds: [],
+      headSeq: 0,
       agents: R.pawns.map((p) => ({
-        id: p.id, x: 0, y: 0, path: null, seg: 0, phase: null, job: null, inside: true, anim: 'idle', carry: null, face: 1, stride: rand() * 6,
-        ox: (rand() - 0.5) * 12, oy: (rand() - 0.5) * 8, work: null, idleUntil: 0, talk: null, occasion: null,
+        id: p.id,
+        x: 0,
+        y: 0,
+        path: null,
+        seg: 0,
+        phase: null,
+        job: null,
+        inside: true,
+        anim: 'idle',
+        carry: null,
+        face: 1,
+        stride: rand() * 6,
+        ox: (rand() - 0.5) * 12,
+        oy: (rand() - 0.5) * 8,
+        work: null,
+        idleUntil: 0,
+        talk: null,
+        occasion: null,
       })),
-      visualDirty: false, rigDirty: new Set(), regrow: new Set(), treeDirty: new Set(), biomeDirty: new Set(), pathDirty: new Set(),
-      claims: new Map(), claimSeq: 0, landDirty: new Set(), cairns: new Map(), offers: [], offerSeq: 0, occasions: [], occasionSeq: 0,
+      visualDirty: false,
+      rigDirty: new Set(),
+      regrow: new Set(),
+      treeDirty: new Set(),
+      biomeDirty: new Set(),
+      pathDirty: new Set(),
+      claims: new Map(),
+      claimSeq: 0,
+      landDirty: new Set(),
+      cairns: new Map(),
+      offers: [],
+      offerSeq: 0,
+      occasions: [],
+      occasionSeq: 0,
       finds: new Map(),
     };
     rebuildLiving(st);
     seedPlans(st);
-    for (const v of villages) { v.plots = []; v.crowded = 0; v.founded = null; }
+    for (const v of villages) {
+      v.plots = [];
+      v.crowded = 0;
+      v.founded = null;
+    }
     seedOwners(st);
     refreshRoles(st);
     buildHours(st); // VB-286: the walking hours between the villages' greens
@@ -322,17 +526,28 @@ VB['sim/scenarios'] = (() => {
     }
     for (const u of st.unions) before.push([u.start, { kind: 'married', pawn: u.a, other: u.b }]);
     // and who holds each farm at the start, so a farm's history names every holder it has had (VB-099)
-    for (const hh of st.households) if (hh.holder !== null && !hh.dissolved) before.push([st.t, { kind: 'holds', pawn: hh.holder, ...atHousehold(st, hh) }]);
-    before.map((e, i) => [...e, i]).sort((a, b) => a[0] - b[0] || a[2] - b[2]).forEach(([t, ev]) => record(st, ev, t));
+    for (const hh of st.households)
+      if (hh.holder !== null && !hh.dissolved)
+        before.push([st.t, { kind: 'holds', pawn: hh.holder, ...atHousehold(st, hh) }]);
+    before
+      .map((e, i) => [...e, i])
+      .sort((a, b) => a[0] - b[0] || a[2] - b[2])
+      .forEach(([t, ev]) => record(st, ev, t));
     // a living pawn's events begin with its birth (VB-199: positions in the record)
-    st.record.forEach((e, i) => { if (e.kind === 'born' && st.pawns[e.pawn].died === null) st.pawns[e.pawn].events.unshift(i); });
+    st.record.forEach((e, i) => {
+      if (e.kind === 'born' && st.pawns[e.pawn].died === null) st.pawns[e.pawn].events.unshift(i);
+    });
     return st;
   }
 
   // places: what was placed by hand, for the 'manual' scenario (seedManual).
   function seed(w, seedNum, scenario = 'founders', places = null) {
     if (scenario === 'manual') return seedManual(w, seedNum, places);
-    return scenario === 'heirs' ? seedHeirs(w, seedNum) : scenario === 'populous' ? seedPopulous(w, seedNum) : seedFounders(w, seedNum);
+    return scenario === 'heirs'
+      ? seedHeirs(w, seedNum)
+      : scenario === 'populous'
+        ? seedPopulous(w, seedNum)
+        : seedFounders(w, seedNum);
   }
   return { seedFounders, seedHeirs, seedPopulous, makeState, seed };
 })();
