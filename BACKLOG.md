@@ -61,6 +61,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-429](backlog/VB-429.md) | The led cow is drawn beside the pawn leading it | animals | 3 | S | The job lead (VB-390) walks a cow home; the page draws only the pawn. |
 | [VB-430](backlog/VB-430.md) | Refactor: split sim/relations by concern | - | 3 | M | sim/relations is 714 lines since neighbours' help (VB-106); split it by concern. |
 | [VB-431](backlog/VB-431.md) | Refactor: split sim/plans by concern | - | 3 | M | sim/plans is over 700 lines since the common fields (VB-100); split it by concern. |
+| [VB-432](backlog/VB-432.md) | A village's round clears only the memos a marriage touches | between | 3 | S | Rankings in the moving round rose four- to eightfold with VB-277; clear only the heirs' memos a marriage or handover touches. |
 
 ## Waiting for Kim
 
