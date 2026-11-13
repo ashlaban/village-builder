@@ -4,11 +4,12 @@ VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
   // ---- the record of events (VB-075) ----
-  // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self}, the fields that do not
-  // apply absent. log and personEvent write their event as they write their text; `false` for ev says another call records the event.
+  // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self, cold}, the fields that do
+  // not apply absent (cold: a death in a cold house, VB-327). log and personEvent write their event as they write their text; `false`
+  // for ev says another call records the event.
   // A pawn's own events (pawn.events) are positions in it, not copies (VB-199). A slot is never removed, so a position stays good: a
   // routine event, once folded, becomes the index of its count in st.recordYears.
-  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text', 'self'];
+  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text', 'self', 'cold'];
   function record(st, ev, t = st.t) {
     const e = { t, kind: ev.kind };
     for (const k of FIELDS) if (ev[k] !== undefined && ev[k] !== null) e[k] = ev[k];
@@ -320,6 +321,8 @@ VB['sim/records'] = (() => {
       hungryDays: 0,
       seedSeason: -1,
       hunger: 0,
+      cold: 0,
+      coldLog: [],
       waterDay: -1,
       cookDay: -1,
       dissolved: false,

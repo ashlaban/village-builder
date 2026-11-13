@@ -11,15 +11,15 @@ assert.deepStrictEqual(stale, [], 'tools/stocks.js lists fields no @state line n
 const more = new Map([...fields, ['household.peat', 'a test']]);
 assert.deepStrictEqual(Stocks.unlisted(more).missing, ['household.peat (a test)'], 'a quantity without a line is found');
 for (const q of Stocks.QUANTITIES) assert(q.none && q.none.length > 10 && q.fields.length && q.name, `${q.id}: a line says what happens at none`);
-// what the reviews of 10 and 11 November found: nothing reads the woodpile or the day's water (until VB-327 and VB-331 land; then change
-// these lines); the stone heap is read since VB-332 (the foundation)
+// what the reviews of 10 and 11 November found: nothing reads the day's water (until VB-331 lands; then change this line); the woodpile is
+// read since VB-327 (the cold house, the cook), the stone heap since VB-332 (the foundation)
 const rows = new Map(Stocks.build().map((r) => [r.id, r]));
-assert.strictEqual(rows.get('wood').mark, 'read by nothing', 'the woodpile is read by nothing (VB-327)');
+assert.strictEqual(rows.get('wood').mark, 'used', 'the woodpile is used by the hearth and the cook (VB-327)');
 assert.strictEqual(rows.get('water').mark, 'read by nothing', 'the day\'s water is read by nothing (VB-331)');
 assert.strictEqual(rows.get('stone').mark, 'used', 'the stone heap is used by the foundation (VB-332)');
 for (const id of ['grain', 'meals', 'hay', 'villageGrain']) assert.strictEqual(rows.get(id).mark, 'used', `${id} is used`);
-assert(rows.get('wood').reads.every((r) => r.own) && rows.get('wood').adds.some((a) => a.fn === 'wood.deliver'),
-  'the woodpile: its own kind reads and fills it');
+assert(rows.get('wood').reads.some((r) => r.fn === 'cookWanted') && rows.get('wood').adds.some((a) => a.fn === 'wood.deliver'),
+  'the woodpile: the cook reads it (VB-327), and its own kind fills it');
 
 // 2. The hours report reads the run and writes nothing: the same seed gives the same state with or without it
 const world = () => { const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; }; // a run changes its world

@@ -25,6 +25,7 @@ const FAST = [
   ['node', 'tests/agent-usage.js'],
   ['node', 'tests/same-tool.js'],
   ['node', 'tests/wood.js'],
+  ['node', 'tests/cold.js'],
   ['node', 'tests/timber.js'],
   ['node', 'tests/stone.js'],
   ['node', 'tests/crops.js'],

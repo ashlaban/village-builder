@@ -11,7 +11,7 @@ VB['sim/lifecycle'] = (() => {
   const { DAY, YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE, SOCIAL } = VB['sim/rules'];
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved } = VB['sim/stores'];
-  const { deathRoll, CAUSES } = VB['sim/deaths'];
+  const { deathRoll, CAUSES, COLD } = VB['sim/deaths'];
   const {
     leaveHousehold,
     unionOf,
@@ -76,17 +76,20 @@ VB['sim/lifecycle'] = (() => {
     }
     dropTies(st, id);
     if (p.rel) forget(st, id);
+    // a death in a cold house is told so (VB-327); the cause is the cause, the cold having lowered the health the hazard reads
+    const cold = p.household !== null && st.households[p.household].cold > 0;
     lifeEvent(
       st,
       id,
       log(
         st,
         `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} ` +
-          `${CAUSES[cause].log}, aged ${p.age}.`,
+          `${CAUSES[cause].log}${cold ? COLD : ''}, aged ${p.age}.`,
         {
           kind: 'died',
           pawn: id,
           text: cause,
+          ...(cold ? { cold: true } : {}),
           ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}),
         },
       ),
