@@ -76,6 +76,23 @@ function leadHome(st, buyer) {
   check(balance(st, seller.holder, buyer.holder) <= 0, 'a start in life is not booked');
   check(!checkState(st).length, 'start in life: ' + checkState(st).slice(0, 3).join('; '));
 }
+{ // a first meadow (VB-428): two hands, no herd, no meadow: the land step starts one; one hand, or a meadow already: none
+  const st = state(), [hh] = pair(st), f = st.farmsteads[hh.farmstead];
+  check(!hh.herds.length && !f.meadows.length, 'the probe household has no herd and no meadow');
+  // the land step begins it through the head's verb (VB-253); the fields' target is met first, so the meadow is the project begun
+  const P = VB['sim/plans'], begun = (s, h) => VB['sim/projects'].projectOf(s, 'household', h.id);
+  const plan = st.plans.households.get(hh.id);
+  plan.targets.fields = f.fields.length;
+  check(M.wantsFirstMeadow(st, f, hh), 'two hands, no herd, no meadow: a first meadow is wanted');
+  P.landStep(st, plan, f, hh, VB['sim/fields'].builtTiles(st));
+  check(begun(st, hh) && begun(st, hh).what === 'meadow', 'the land step starts the first meadow');
+  const lone = state(), [lh] = pair(lone), lf = lone.farmsteads[lh.farmstead], lplan = lone.plans.households.get(lh.id);
+  for (const id of lh.members) if (id !== lh.holder) lone.pawns[id].retired = true;
+  lplan.targets.fields = lf.fields.length;
+  check(!M.wantsFirstMeadow(lone, lf, lh), 'one hand: no first meadow is wanted');
+  P.landStep(lone, lplan, lf, lh, VB['sim/fields'].builtTiles(lone));
+  check(!begun(lone, lh), 'one hand: the land step starts none');
+}
 
 if (failed) process.exit(1);
 console.log('cowwant ok');

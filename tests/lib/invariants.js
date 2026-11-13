@@ -103,6 +103,13 @@ function checkState(st) {
           : W.from === id || !st.households[W.from] || !['heifer', 'cow'].includes(W.kind) || !['kin', 'deal'].includes(W.by) ||
             (!st.households[W.from].dissolved && villageOf(W.from) !== villageOf(id)))))
           bad.push(`plans: household ${id} wants ${JSON.stringify(W)}`);
+        // VB-253: the head's choices, absent until one is made: each target null or within its widest bounds (hay 0 to 3 winters, fields
+        // a whole number, wood 0 to twice the winter's goal, a cow 0 or 1), the hold on projects 'none' or null
+        const Ch = plan.chosen, in01 = (x, most, whole) => x === null || (Number.isFinite(x) && x >= 0 && x <= most && (!whole || Number.isInteger(x)));
+        if (Ch !== undefined && (!Ch || !in01(Ch.hay, 3) || !in01(Ch.fields, Infinity, true) || !in01(Ch.wood, 2 * st.ECON.woodWinter) ||
+          !in01(Ch.cow, 1, true) || (Ch.project !== null && Ch.project !== 'none') || Object.keys(Ch).length !== 5))
+          bad.push(`plans: household ${id}'s head chose ${JSON.stringify(Ch)}`);
+        if (Ch && Ch.fields !== null && T.fields > Ch.fields) bad.push(`plans: household ${id} wants ${T.fields} fields over its head's ${Ch.fields}`);
       }
     }
     // VB-252: one seasonal plan per undissolved household, its steps kinds that exist; of the current season once the standing plan has
@@ -118,6 +125,7 @@ function checkState(st) {
           !sp.steps.every((k) => KINDS[k])) {
           bad.push(`plans: household ${id} has no seasonal plan of its own`); continue;
         }
+        if (sp.by !== undefined && sp.by !== 'head') bad.push(`plans: household ${id}'s seasonal order is by ${sp.by}`); // VB-253
         const key = sp.year * 4 + sp.season;
         if (key > now || (key !== now && plan && plan.last !== null && plan.last >= start)) {
           bad.push(`plans: household ${id}'s seasonal plan is of year ${sp.year}, season ${sp.season}, not of the current one`);

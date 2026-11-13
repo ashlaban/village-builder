@@ -43,6 +43,12 @@ VB['sim/projects'] = (() => {
     if (P) for (const list of P.pawn.values()) for (const plan of list) if (plan.farm === id) return plan;
     return null;
   }
+  // Whether household id's head holds off projects (VB-253: the player chose none, plan.chosen.project, sim/plans): no project of the
+  // household's is begun by its own rule (the land step, the boat, the tar pit) until the choice is cleared. Allocates nothing.
+  function heldOff(st, id) {
+    const plan = st.plans && st.plans.households.get(id);
+    return !!(plan && plan.chosen && plan.chosen.project === 'none');
+  }
   // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
   const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map() });
   return {
@@ -54,6 +60,7 @@ VB['sim/projects'] = (() => {
     forEach,
     holderOf,
     onFarm,
+    heldOff,
     emptyProjects,
   };
 })();

@@ -66,6 +66,21 @@ VB['sim/fields'] = (() => {
     }
     return out;
   }
+  // Why tile t cannot be a field of farm f, beyond its reach (one of a few fixed words, so the search allocates nothing), or null:
+  // farmable, `free` (the household may take it in), no house or green on or planned for it (`built`), not in use, and where farmed land
+  // may lie (`may`, sim/layout's farmedLand). The one list of checks of chooseTile's search and of the head's verb (fieldWhy; VB-253).
+  const fieldBar = (st, t, free, built, may) =>
+    !farmable(st.w, t)
+      ? 'the land there cannot be tilled'
+      : !free(t)
+        ? 'the land there is claimed'
+        : built.has(t)
+          ? 'a house or the green is there'
+          : st.used.has(t)
+            ? 'the land there is in use'
+            : !may(t)
+              ? "the land there is outside the farm's block"
+              : null;
   // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),
   // not on a river, and where farmed land may lie (sim/layout, farmedLand: beside a house, but off the ring round a green and no nearer
   // the green than the house): fertile (watered by one), few stones, near, and 1 better when it touches one of the
@@ -80,7 +95,7 @@ VB['sim/fields'] = (() => {
     let best = -1,
       bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
-      if (d < 1 || !farmable(w, t) || !free(t) || built.has(t) || st.used.has(t) || !may(t)) continue;
+      if (d < 1 || fieldBar(st, t, free, built, may) !== null) continue;
       const s =
         fertility(w, t) -
         (0.5 * w.stones[t]) / 255 -
@@ -94,6 +109,23 @@ VB['sim/fields'] = (() => {
     }
     return best;
   }
+  // May household hh, whose farm is f, take tile t in: free, or a stake of its village left unworked that it may contest (sim/stakes).
+  const mayTake = (st, f, hh) => (t) => freeFor(st, t, f.village) || contestable(st, t, f.village, hh.id) !== null;
+  // Why tile t cannot be the next field of household hh, whose farm is f, or null: the checks of chooseTile (fieldBar), and within REACH
+  // steps' walk of the house. The check of the head's verb, the player's and the holder's alike (sim/commands, VB-253).
+  function fieldWhy(st, f, hh, t, built = builtTiles(st)) {
+    if (!(Number.isInteger(t) && t >= 0 && t < st.w.N)) return `there is no tile ${t}`;
+    const d = bfs(st.w, f.house, REACH, walkable(st.w)).dist.get(t);
+    if (d === undefined) return `the tile is not within ${REACH} steps' walk of the house`;
+    if (d < 1) return 'the house stands there';
+    return fieldBar(st, t, mayTake(st, f, hh), built, farmedLand(st.w, st.villages, st.villages[f.village], f.house));
+  }
+  // The holder's own choice of its next field's tile (VB-248's land step): the best free tile, or with none, the best stake it may contest;
+  // -1 for none.
+  function pickField(st, f, hh, built = builtTiles(st)) {
+    const tile = chooseTile(st, f, undefined, built);
+    return tile >= 0 ? tile : chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
+  }
   // The project plan of a new field on `tile`, as sim/plans makes it (makeProject; VB-123): clearing, then breaking, both under the
   // household's stake; it holds back the seed the field will want (released when the field is made, when the standing plan's seed counts it).
   const fieldProject = (st, hh, tile) => ({
@@ -104,18 +136,11 @@ VB['sim/fields'] = (() => {
     ],
     hold: { [Stores.grainGood('barley')]: seedPer(st, hh) },
   }); // a new field bears barley
-  // A household with fewer fields than it wants, none in progress, picks a tile and stakes it (sim/stakes): the project starts with clearing.
-  // With no free tile within reach, it may contest the best tile another household of its village staked and left unworked.
-  // The land step of its standing plan (sim/plans, VB-248): `wanted` is the plan's target of fields, `given` a tile the plan names in place
-  // of chooseTile's (-1: none; nothing names one yet, VB-253's verb will, and checks it first). Returns the project plan for sim/plans to
-  // make (fieldProject), or undefined.
-  function startProject(st, f, hh, built = builtTiles(st), wanted = fieldsWanted(st, hh), given = -1) {
-    if (Projects.projectOf(st, 'household', hh.id) || f.fields.length >= wanted) return;
-    let tile = given >= 0 ? given : chooseTile(st, f, undefined, built);
-    if (tile < 0) {
-      tile = chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
-      if (tile < 0 || !contest(st, f, hh, tile, 'field')) return;
-    }
+  // The new field begun on `tile` (sim/plans' beginLand, the head's verb): a stake of another household is contested first (sim/stakes),
+  // and nothing is begun when the contest is lost; else the tile is staked. Returns the project plan for sim/plans to make (fieldProject),
+  // or null.
+  function beginField(st, f, hh, tile) {
+    if (!freeFor(st, tile, f.village) && !contest(st, f, hh, tile, 'field')) return null;
     stake(st, hh, tile, 'field');
     return fieldProject(st, hh, tile);
   }
@@ -380,7 +405,9 @@ VB['sim/fields'] = (() => {
     fieldsWanted,
     builtTiles,
     chooseTile,
-    startProject,
+    fieldWhy,
+    pickField,
+    beginField,
     fieldProject,
     finishClear,
     clearStones,
