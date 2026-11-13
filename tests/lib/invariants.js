@@ -395,6 +395,17 @@ function checkState(st) {
     }
     if (holder.dissolved && (holder.ledger.length || holder.totals.length)) bad.push(`households[${holder.id}]: dissolved with a ledger`);
   }
+  // VB-100: a village's common fields: each on its own tile, the village's, in use, with a stage a field has, its ids in order; and no farm's
+  const STAGES = ['stubble', 'plowed', 'sown', 'growing', 'ripe', 'stooks', 'fallow', 'scrub'], farmFields = new Set();
+  for (const f of st.farmsteads) for (const fd of f.fields) farmFields.add(fd.tile);
+  for (const v of st.villages) {
+    if (v.commonFields === undefined) continue;
+    if (!Array.isArray(v.commonFields)) { bad.push(`villages[${v.id}]: commonFields is not a list`); continue; }
+    v.commonFields.forEach((fd, i) => {
+      if (fd.id !== i || !STAGES.includes(fd.stage) || st.owner[fd.tile] !== -v.id - 1 || !st.used.has(fd.tile) || farmFields.has(fd.tile))
+        bad.push(`villages[${v.id}]: common field ${i} ${JSON.stringify({ tile: fd.tile, stage: fd.stage, owner: st.owner[fd.tile] })}`);
+    });
+  }
   for (const v of st.villages) {
     if (grainBad(v.grain)) bad.push(`villages[${v.id}]: grain is ${JSON.stringify(v.grain)}`);
     // the reach test to fishing water (sim/drying, VB-300): tested for no more farms than the village has
@@ -527,7 +538,8 @@ function checkState(st) {
         if (!within(CL.strength(st, c), 0, 1) || !(c.seq > 0 && c.seq <= st.claimSeq)) bad.push(`claims[${tile}]: ${k} strength or seq ${c.seq}`);
         if (c.by.type === 'household' && st.households[c.by.id] &&
           st.households[c.by.id].dissolved) bad.push(`claims[${tile}]: dissolved household ${c.by.id}`);
-        if ((c.why === 'outland') !== (c.by.type === 'village')) bad.push(`claims[${tile}]: ${k} claims ${c.why}`); // only villages claim outland (VB-156)
+        // only villages claim outland (VB-156); a village claims only outland, and a common field's tile (VB-100)
+        if ((c.why === 'outland') !== (c.by.type === 'village') && !(c.why === 'field' && c.by.type === 'village')) bad.push(`claims[${tile}]: ${k} claims ${c.why}`);
         if (c.why === 'birthright') { // the old family's claim on the house of its empty farm, for a while (VB-033)
           const f = st.farmsteads.find((x) => x.house === tile);
           if (c.by.type !== 'pawn' || c.state !== 'realised' || c.until === null || !f ||
@@ -538,7 +550,10 @@ function checkState(st) {
           if (c.by.type !== 'pawn' || !f ||
             VB['sim/farmclaims'].claimOn(st, f)?.by !== c.by.id) bad.push(`claims[${tile}]: ${k} claims a farm with no claim under way`);
         }
-        if (c.why === 'field' || c.why === 'meadow') { // a stake is its household's project (VB-158)
+        if (c.why === 'field' && c.by.type === 'village') { // a common field's tile, while it is cleared and broken (VB-100)
+          const pl = (st.plans.projects.village.get(c.by.id) || []).find((x) => x.what === 'commons');
+          if (!pl || pl.steps[pl.open].place !== tile || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} claims it for no common field`);
+        } else if (c.why === 'field' || c.why === 'meadow') { // a stake is its household's project (VB-158)
           const h = c.by.type === 'household' && st.households[c.by.id], f = h && st.farmsteads[h.farmstead];
           const s = f && projectStep(f.household);
           if (!s || s.place !== tile || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} stakes it with no project there`);
@@ -575,7 +590,11 @@ function checkState(st) {
     // on one tile, the village's and in use, open ground off any river, its stone brought at most what the well takes
     if (v.well && !v.green) bad.push(`villages[${v.id}]: a well without a green`);
     const greens = projects.filter((pl) => pl.what === 'green');
-    if (projects.some((pl) => pl.what !== 'plot' && pl.what !== 'green')) bad.push(`villages[${v.id}]: a project of an unknown kind`);
+    if (projects.some((pl) => !['plot', 'green', 'commons'].includes(pl.what))) bad.push(`villages[${v.id}]: a project of an unknown kind`);
+    // a common field under way (VB-100): at most one, its clearing and breaking on one tile, in use
+    const commons = projects.filter((pl) => pl.what === 'commons');
+    if (commons.length > 1 || commons.some((pl) => pl.steps.map((x) => x.kind).join() !== 'clear,break' ||
+        pl.steps[0].place !== pl.steps[1].place || !st.used.has(pl.steps[0].place))) bad.push(`villages[${v.id}]: a common field under way is malformed`);
     if (greens.length > 1 || (greens.length && v.well)) bad.push(`villages[${v.id}]: ${greens.length} greens under way, well ${v.well}`);
     for (const pl of greens) {
       const t = pl.steps[0].place, wellStep = pl.steps[1];

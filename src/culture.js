@@ -148,6 +148,17 @@ const Culture = (() => {
         ['meeting', 'The meeting decides'],
       ],
     },
+    // VB-100 (Kim, 10 Nov): how the village's common fields rank beside a household's own work (sim/commons; COMMONS.lean, sim/rules)
+    {
+      key: 'commons',
+      label: 'Work on the common fields',
+      m: 0.5,
+      opts: [
+        ['own', 'After the household’s own work'],
+        ['fair', 'As the village’s other duties'],
+        ['first', 'Before the household’s own work'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -177,6 +188,7 @@ const Culture = (() => {
       feedOrder: 'equal',
       ownHeir: 'behind',
       dispute: 'first',
+      commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
     },
   };
 

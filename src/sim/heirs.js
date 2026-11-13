@@ -26,7 +26,7 @@ VB['sim/heirs'] = (() => {
     ancestorsOf,
     wishOf,
   } = VB['sim/records'];
-  const { moved, dropJob, journeyOf } = VB['sim/agents'];
+  const { moved, journeyOf, stopWorkFor } = VB['sim/agents'];
   const { farmToVillage, heldFarms } = VB['sim/ownership'];
   const { issue } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
@@ -388,6 +388,9 @@ VB['sim/heirs'] = (() => {
   }
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
+    const f = st.farmsteads[hh.farmstead];
+    // its work stops first, while it stands: a load on its way home is put down in its barn (sim/agents)
+    stopWorkFor(st, hh, f);
     // a farm it held in trust goes back to its holder first (VB-309, sim/trust)
     for (const g of heldFarms(st, hh.id))
       issue(st, {
@@ -397,7 +400,6 @@ VB['sim/heirs'] = (() => {
         args: { why: 'trustee gone' },
         source: 'trust',
       });
-    const f = st.farmsteads[hh.farmstead];
     f.condition = houseCondition(st, f);
     f.household = null;
     f.state = 'derelict';
@@ -410,7 +412,6 @@ VB['sim/heirs'] = (() => {
     dropStakes(st, hh);
     farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
-    for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
       const p = st.pawns[id];

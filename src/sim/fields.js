@@ -121,42 +121,53 @@ VB['sim/fields'] = (() => {
   }
   // Clearing done: the stones go to the household's store, the tile is bare ground; the project's next step, breaking, opens.
   function finishClear(st, f, hh) {
+    const tile = Projects.openOf(st, 'household', f.household).place;
+    clearStones(st, tile, hh);
+    emit(st, 'stepDone', { type: 'household', id: f.household }); // the project's next step opens (sim/plans)
+  }
+  // The stones cleared off `tile` go to household hh's heap (VB-332: through the stores; a common field's to the household of the one who
+  // finished the clearing, VB-100), and the tile is bare ground.
+  function clearStones(st, tile, hh) {
     const w = st.w,
-      tile = Projects.openOf(st, 'household', f.household).place;
-    const loads = Math.round(w.stones[tile] / STONES_PER_LOAD);
-    if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
+      loads = Math.round(w.stones[tile] / STONES_PER_LOAD);
+    if (loads > 0 && hh) Stores.put(st, hh, 'stone', loads, 'clear');
     w.stones[tile] = 0;
     clearScrub(st, tile); // its scrub too, and it is tended (VB-091)
-    emit(st, 'stepDone', { type: 'household', id: f.household }); // the project's next step opens (sim/plans)
     st.biomeDirty.add(tile);
   }
   // Breaking done: the stake is the household's own land, a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh
   // (SOIL.fresh, VB-149). The project is finished.
   function finishBreak(st, f) {
-    const w = st.w,
-      tile = Projects.openOf(st, 'household', f.household).place;
+    const tile = Projects.openOf(st, 'household', f.household).place;
     realiseStake(st, st.households[f.household], tile);
-    tended(st, tile);
-    f.fields.push({
-      id: f.fields.length,
-      tile,
-      crop: 'barley',
-      stage: 'stubble',
-      sown: null,
-      reaped: null,
-      held: 0,
-      fert: fertility(w, tile),
-      soil: w.dev[tile] ? SOIL.start : SOIL.fresh,
-      weedOpen: false,
-      weedPosted: null,
-      weedMiss: 0,
-    });
+    f.fields.push(broken(st, tile, f.fields.length));
     emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
+    log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
+  }
+  // A new field in stubble on `tile`, its ground broken: farmed land from now. A farm's (finishBreak) or a village's common field (VB-100,
+  // sim/commons), whose holder adds it to its list.
+  function broken(st, tile, id) {
+    const w = st.w,
+      fd = {
+        id,
+        tile,
+        crop: 'barley',
+        stage: 'stubble',
+        sown: null,
+        reaped: null,
+        held: 0,
+        fert: fertility(w, tile),
+        soil: w.dev[tile] ? SOIL.start : SOIL.fresh,
+        weedOpen: false,
+        weedPosted: null,
+        weedMiss: 0,
+      };
+    tended(st, tile); // VB-091
     st.used.add(tile);
     w.dev[tile] = 1;
     st.visualDirty = true;
     st.biomeDirty.add(tile);
-    log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
+    return fd;
   }
   // ---- soil and manure (VB-137) ----
   // A reaped crop wears the field's soil.
@@ -273,7 +284,16 @@ VB['sim/fields'] = (() => {
     delete fd.weeds;
     delete fd.trampled;
     st.visualDirty = true;
-    log(st, `A crop at ${f.name} was lost, left standing too long.`, { kind: 'frost', ...atFarm(f) });
+    log(st, `A crop at ${placeName(f)} was lost, left standing too long.`, { kind: 'frost', ...placeOf(f) });
+  }
+  // A field's holder as its log line names it: a farm, or a village for its common fields (VB-100).
+  const isVillage = (x) => 'center' in x;
+  const placeName = (x) => (isVillage(x) ? `the common field of ${x.name}` : x.name);
+  const placeOf = (x) => (isVillage(x) ? { village: x.id } : atFarm(x));
+  // The fields being worked: each occupied farm's, then each village's common fields (VB-100), as fn(holder, field).
+  function eachWorked(st, fn) {
+    for (const f of st.farmsteads) if (f.household !== null) for (const fd of f.fields) fn(f, fd);
+    for (const v of st.villages) if (v.commonFields) for (const fd of v.commonFields) fn(v, fd);
   }
   // Fallow's rest (VB-348): marked on the summer's first day on each fallow field of an occupied farm (tilled since: 1), credited on the
   // year's last day: CROPS.fallow.mend times the mark, to at most SOIL.start (a field manured above it keeps its soil).
@@ -294,26 +314,24 @@ VB['sim/fields'] = (() => {
   function fieldsDay(st, c) {
     const E = st.ECON;
     const day = Math.floor(st.t / DAY);
-    for (const f of st.farmsteads)
-      for (const fd of f.fields) {
-        if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
-        const g = day - fd.sown;
-        if (g >= CROPS[fd.crop].ripe) fd.stage = 'ripe';
-        else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
-        lostRipe(st, f, fd, c);
-      }
+    eachWorked(st, (f, fd) => {
+      if (fd.sown === null || fd.stage === 'stooks') return;
+      const g = day - fd.sown;
+      if (g >= CROPS[fd.crop].ripe) fd.stage = 'ripe';
+      else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
+      lostRipe(st, f, fd, c);
+    });
     // upkeep: a growing field wants its crop's rounds of weeding (CROPS weeds), the next falling due E.weedDays[round] days after sowing; a
     // round still open when the next falls due, or at ripening (reaped), counts as missed
-    for (const f of st.farmsteads)
-      for (const fd of f.fields) {
-        if (f.household === null || fd.stage !== 'growing') continue;
-        const n = fd.weeds || 0;
-        if (n >= CROPS[fd.crop].weeds || day - fd.sown < E.weedDays[n]) continue;
-        if (fd.weedOpen) fd.weedMiss++;
-        fd.weedOpen = true;
-        fd.weedPosted = day;
-        fd.weeds = n + 1;
-      }
+    eachWorked(st, (f, fd) => {
+      if (fd.stage !== 'growing') return;
+      const n = fd.weeds || 0;
+      if (n >= CROPS[fd.crop].weeds || day - fd.sown < E.weedDays[n]) return;
+      if (fd.weedOpen) fd.weedMiss++;
+      fd.weedOpen = true;
+      fd.weedPosted = day;
+      fd.weeds = n + 1;
+    });
     rest(st, c);
     // Untended fields go to grass, unless a claimant is restoring the farm; a field the forest has grown into is scrub (sim/spread, VB-091).
     for (const f of st.farmsteads)
@@ -333,23 +351,21 @@ VB['sim/fields'] = (() => {
   // The autumn frost, on the season's last day (sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still standing or in stooks is lost;
   // a winter crop (rye) standing green is not (VB-348).
   function fieldsFrost(st) {
-    for (const f of st.farmsteads)
-      for (const fd of f.fields) {
-        if (CROPS[fd.crop].winter && fd.stage === 'growing') continue;
-        if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
-          fd.stage = 'stubble';
-          fd.sown = null;
-          fd.held = 0;
-          log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
-        }
+    eachWorked(st, (f, fd) => {
+      if (CROPS[fd.crop].winter && fd.stage === 'growing') return;
+      if (['ripe', 'growing', 'stooks'].includes(fd.stage)) {
+        fd.stage = 'stubble';
+        fd.sown = null;
+        fd.held = 0;
+        log(st, `A crop at ${placeName(f)} was lost to frost.`, { kind: 'frost', ...placeOf(f) });
       }
+    });
   }
   return {
     hoed,
     sown,
     trample,
     reaped,
-    hauled,
     carried,
     binned,
     reclaimed,
@@ -367,8 +383,9 @@ VB['sim/fields'] = (() => {
     startProject,
     fieldProject,
     finishClear,
+    clearStones,
     finishBreak,
-    wearSoil,
+    broken,
     manureWanted,
     manureDone,
   };

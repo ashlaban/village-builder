@@ -434,6 +434,7 @@ VB['sim/saves'] = (() => {
     // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
     const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
     if (st.cenv) for (const c of st.cenv.cultures) if (!c.practices) c.practices = practices();
+    if (st.cenv) newCustoms(st); // VB-100: nor the custom of the commons
     oldGrain(st); // VB-347: nor grain by crop
     if (!st.plans)
       seedPlans(st); // VB-258: older saves have no plans
@@ -472,6 +473,32 @@ VB['sim/saves'] = (() => {
     for (const f of st.farmsteads) for (const fd of f.fields) if (fd.crop === undefined) fd.crop = 'barley'; // VB-346: older saves' fields held barley
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
+  }
+  // A save made before a custom (VB-100: the commons) holds fewer customs than DIMS: each culture and settlement gets the archetype's option
+  // of each custom it lacks, and each person an attitude and anchor that prefer it (as seeding would, without its draws).
+  function newCustoms(st) {
+    const C = VB['culture'],
+      base = C.fromArchetype('oldNordic'),
+      n = C.DIMS.length;
+    const grow = (a) => Int8Array.from({ length: n }, (_, k) => (k < a.length ? a[k] : base[k]));
+    for (const c of st.cenv.cultures) if (c.customs.length < n) c.customs = grow(c.customs);
+    for (const s of st.cenv.settlements) if (s.practice.length < n) s.practice = grow(s.practice);
+    const total = C.OFF[n - 1] + C.NOPT[n - 1];
+    const att = (a) => {
+      if (!a || a.length >= total) return a;
+      const out = new Float32Array(total);
+      out.set(a);
+      for (let k = 0; k < n; k++) {
+        if (C.OFF[k] < a.length) continue;
+        for (let j = 0; j < C.NOPT[k]; j++) out[C.OFF[k] + j] = j === base[k] ? 0.6 : 0.4 / (C.NOPT[k] - 1);
+      }
+      return out;
+    };
+    for (const p of st.pawns) {
+      p.att = att(p.att);
+      p.anc = att(p.anc);
+      if (p.interest) p.interest = att(p.interest);
+    }
   }
   // ---- saves made before project plans (VB-123; sim/plans makes them now) ----
   // A save made before project plans held a farm's land project on the farm ({tile, stage, hours}): its household's plan now.

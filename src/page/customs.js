@@ -5,7 +5,7 @@ const CHARTER = [
   ['Land', ['claims', 'dispute', 'newLand']],
   ['Inheritance', ['handover', 'heirSex', 'birthOrder', 'heirCount', 'daughterShare', 'widow', 'ownHeir']],
   ['Household', ['residence', 'kinLimit', 'feedOrder']],
-  ['Meeting', ['voice']],
+  ['Meeting', ['voice', 'commons']],
 ];
 const SAID = {
   claims: [
@@ -91,6 +91,15 @@ const SAID = {
   feedOrder: [
     'When food is short, ',
     { equal: 'all get equal shares', children: 'children eat first', workers: 'those who work eat first' },
+    '.',
+  ],
+  commons: [
+    'Work on the common fields comes ',
+    {
+      own: 'after a household’s own work',
+      fair: 'with the village’s other duties',
+      first: 'before a household’s own work',
+    },
     '.',
   ],
   voice: [

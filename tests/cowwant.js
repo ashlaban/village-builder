@@ -6,14 +6,25 @@ const { balance } = VB['sim/relations'], { checkState } = require('./lib/invaria
 let failed = 0;
 const check = (ok, m) => { if (!ok) { failed++; console.error('COWWANT FAIL:', m); } };
 const cowsOf = (st, hh) => H.herdsOf(st, hh).reduce((n, hd) => n + (hd.species === 'cattle' ? hd.head.length : 0), 0);
-// household 2 of village 1 has no meadow and no cattle; household 3, its neighbour, keeps two cows and a bull
+// a household with no meadow and no cattle, and a neighbour of its village that keeps two cows or more and the bull, as the probe's seeding
+// gives them (VB-100: the herds drawn at seeding moved with the customs' draws; household 2 and 3 were the pair before)
+function pair(st) {
+  const villageOf = (hh) => st.farmsteads[hh.farmstead].village;
+  for (const b of st.households) {
+    if (st.farmsteads[b.farmstead].meadows.length || cowsOf(st, b)) continue;
+    const s = st.households.find((h) => h !== b && villageOf(h) === villageOf(b) && cowsOf(st, h) >= 2 &&
+      H.herdOf(st, h, 'cattle').head.some((x) => x.kind === 'bull'));
+    if (s) return [b, s, st.households.find((h) => villageOf(h) !== villageOf(b))];
+  }
+  throw new Error('cowwant: the probe has no household without cattle beside one with a bull');
+}
 function setUp() {
-  const st = state(), buyer = st.households[2], seller = st.households[3], f = st.farmsteads[buyer.farmstead];
+  const st = state(), [buyer, seller, away] = pair(st), f = st.farmsteads[buyer.farmstead];
   check(!X.cowWanted(st, buyer), 'no meadow: no cow wanted');
   M.addMeadow(st, f, buyer, M.chooseMeadow(st, f));
   seller.hay = 200; // enough to spare a cow and its winter's hay, and grain for an allowance over a cow's worth
   VB['sim/stores'].put(st, seller, VB['sim/stores'].grainGood('barley'), 100, 'harvest');
-  return { st, buyer, seller, plan: st.plans.households.get(buyer.id) };
+  return { st, buyer, seller, away, plan: st.plans.households.get(buyer.id) };
 }
 // lead the want home: advance past the stall (spring day 5) hour by hour until the buyer has cattle; the lead job is seen claimed first
 function leadHome(st, buyer) {
@@ -31,9 +42,11 @@ function leadHome(st, buyer) {
   X.reviewWant(st, plan, buyer, 'store');
   check(plan.want && plan.want.from === null, `a review out of turn makes the want but seeks no deal: ${JSON.stringify(plan.want)}`);
   X.reviewWant(st, plan, buyer, 'day');
-  check(plan.want.from === seller.id && plan.want.kind === 'cow' && plan.want.by === 'deal', `the deal: ${JSON.stringify(plan.want)}`);
+  // the seller spares a cow, or its heifer where it keeps one (the probe's seller keeps one since VB-100's draws)
+  const kind = H.herdOf(st, seller, 'cattle').head.some((h) => h.kind === 'heifer') ? 'heifer' : 'cow';
+  check(plan.want.from === seller.id && plan.want.kind === kind && plan.want.by === 'deal', `the deal: ${JSON.stringify(plan.want)}`);
   check(leadHome(st, buyer), 'the lead job was taken before the cow came');
-  check(H.herdOf(st, buyer, 'cattle').head.map((h) => h.kind).join() === 'cow', 'the cow is home');
+  check(H.herdOf(st, buyer, 'cattle').head.map((h) => h.kind).join() === kind, `the ${kind} is home`);
   check(H.herdOf(st, seller, 'cattle').head.some((h) => h.kind === 'cow'), 'the seller keeps a cow');
   check(!plan.want, 'the want is met');
   check(balance(st, seller.holder, buyer.holder) > 0, 'the cow is booked as goodwill the buyer owes');
@@ -53,9 +66,9 @@ function leadHome(st, buyer) {
   check(!plan.want, 'one hand: the want is dropped');
 }
 { // a marriage: kin's heifer as a start in life, not booked
-  const { st, buyer, seller, plan } = setUp();
+  const { st, buyer, seller, away, plan } = setUp();
   H.addHead(st, H.herdOf(st, seller, 'cattle'), 'f', st.t - 2 * Sim.YEAR, 'heifer');
-  check(!X.startInLife(st, buyer, st.households[1]), 'a household of another village gives no heifer');
+  check(!X.startInLife(st, buyer, away), 'a household of another village gives no heifer');
   check(X.startInLife(st, buyer, seller), 'the neighbour spares a heifer');
   check(plan.want.kind === 'heifer' && plan.want.by === 'kin', `start in life: ${JSON.stringify(plan.want)}`);
   check(leadHome(st, buyer), 'the lead job was taken before the heifer came');

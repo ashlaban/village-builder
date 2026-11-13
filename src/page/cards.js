@@ -129,6 +129,11 @@ function showVillage(id) {
       ? `Founded in year ${Math.floor(v.founded.t / Sim.YEAR) + 1} from ${mother.name} by ${Sim.fullName(st.pawns[v.founded.by])}`
       : '',
     v.crowded > 0 ? `Crowded: ${v.crowded} adults wait for land, and there is no room to clear` : '',
+    // its common fields and their stage (VB-100), and the one being cleared
+    ...(v.commonFields || []).map(
+      (fd, i) => `Common field ${i + 1}: ${fieldSummary({ fields: [fd] }).replace(/^1 /, '')}`,
+    ),
+    VB['sim/commons'].underWay(st, v) ? 'Clearing a common field for the village store' : '',
   ].filter(Boolean);
   const list = `<h3>Farms</h3>${farms
     .map((f) => {
