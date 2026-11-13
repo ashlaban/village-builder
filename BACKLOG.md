@@ -64,6 +64,9 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-394](backlog/VB-394.md) | Hay comes home by the load | - | 3 | S | A load of hay is 10 units on the back and 60 on a cart, so a meadow of 30 is three trips or one cart. |
 | [VB-395](backlog/VB-395.md) | Refactor: the pawn's vital fields are written by sim/records | ownership | 3 | S | pawn.alive and pawn.age get one writer, sim/records, called by lifecycle and births. |
 | [VB-410](backlog/VB-410.md) | A cart is drawn: beside the house, and with the pawn that has it out | - | 3 | S | Carts are household items (sim/carts) with nothing drawn: the page shows a hand cart or an ox cart by the house while it is home, and with the pawn (the oxen before an ox cart) while it is out with a load; a worn cart looks worn |
+| [VB-416](backlog/VB-416.md) | Refactor: split sim/stores by concern (goods registry, reservations, ale) | - | 3 | M | sim/stores is 537 lines unpacked, and holds five concerns: the store operations and grain by crop, the ledger, ale, reservations, the goods registry |
+| [VB-417](backlog/VB-417.md) | Refactor: split culture by concern (the catalogue, the drift, the norms on goods) | - | 3 | M | culture is 692 lines and exports 21 names and 12 more that are hidden from the count; the customs' catalogue, the daily drift and the norms on goods are three concerns |
+| [VB-418](backlog/VB-418.md) | Refactor: each domain declares its own job kinds | - | 3 | M | A job kind's record lives in sim/kinds for most kinds and in its domain module for three (dig, herd, the cottage's stages); one rule for where it lives |
 
 ## Waiting for Kim
 
@@ -236,9 +239,9 @@ says where each section went).
 
 **Refactor rules** (every task titled "Refactor:"):
 - Behaviour is unchanged: `node tools/same.js --base REF` prints `same` against the commit the task started from (`docs/testing.md`), its line is in the PR, and the hard checks pass. Rebuild `index.html` before committing.
-- Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Lines over 160 characters in moved code are wrapped at statement or argument boundaries; nothing else is reformatted (`tools/wrap.js` does it, and `--compare` checks the build).
+- Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Moved code is formatted by Prettier (`npm run format`), as all of `src/` is.
 - No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
-- A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads. Its length is not capped: over 400 lines the lint asks for an open task, titled "Refactor: split <key> ...", that splits it by concern; the task that takes it there opens one (VB-413, VB-414).
+- A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads. Its length is not capped: over 700 formatted lines (the 400 of the packed sources, rescaled when `src/` was formatted, 13 November) the lint asks for an open task, titled "Refactor: split <key> ...", that splits it by concern; the task that takes it there opens one (VB-413, VB-414).
 
 **Testing, work counters and cost growth:** permanent golden baselines are retired (VB-408). Older tasks that require a golden
 check or update instead follow `docs/testing.md`; preserve behavior for refactors, test the intended contracts for behavior changes.

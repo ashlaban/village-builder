@@ -19,13 +19,15 @@ VB['sim/ownership'] = (() => {
     }
     for (const f of st.farmsteads) {
       const o = f.household === null ? { type: 'village', id: f.village } : { type: 'household', id: f.household };
-      setOwner(st, f.house, o); for (const fd of f.fields) setOwner(st, fd.tile, o);
+      setOwner(st, f.house, o);
+      for (const fd of f.fields) setOwner(st, fd.tile, o);
     }
   }
   // A farm that stands empty passes to its village, with its fields and meadows.
   function farmToVillage(st, f) {
     const o = { type: 'village', id: f.village };
-    setOwner(st, f.house, o); for (const fd of f.fields) setOwner(st, fd.tile, o);
+    setOwner(st, f.house, o);
+    for (const fd of f.fields) setOwner(st, fd.tile, o);
     for (const m of f.meadows || []) setOwner(st, m.tile, o);
   }
   return { ownerOf, setOwner, seedOwners, farmToVillage };

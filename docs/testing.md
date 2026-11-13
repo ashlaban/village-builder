@@ -11,7 +11,7 @@ scenarios, heavily constructed on the smallest states; the longer tests run at n
 
 | Command | When | Coverage |
 |---|---|---|
-| `npm test` | While editing, after each change (9 s) | Build, lint/ownership/dependencies, backlog, representative rule/regression checks, tiny simulation invariants, determinism, JSON save/load continuity, scheduling, indexes and report calculations |
+| `npm test` | While editing, after each change (9 s) | Build, format (`tests/format.js`: Prettier over `src/`), lint/ownership/dependencies, backlog, representative rule/regression checks, tiny simulation invariants, determinism, JSON save/load continuity, scheduling, indexes and report calculations |
 | `npm run verify` | Once, at the end of every task (35 s) | Fast plus integration: the other rule checks that run on small states in under 5 seconds each, and the small tools |
 | `node tests/run.js integration` | CI after its fast job | Integration alone; avoids repeating the fast suite |
 | `node tests/run.js extended` | At night; never part of a task | Everything long: generated islands and runs of years, the page in jsdom and all Chromium functionality, demography, daily multi-year invariants, late fixtures/history, bands, player-line continuity and the start screen's people table |

@@ -3,6 +3,7 @@
 // rebuilt on a small constructed state. The runner starts them in this order.
 const FAST = [
   ['python3', 'build.py', '--check'],
+  ['node', 'tests/format.js'],
   ['node', 'tests/marriage-demography.js'],
   ['node', 'tests/lintrules.js'],
   ['node', 'tests/backlog.js'],

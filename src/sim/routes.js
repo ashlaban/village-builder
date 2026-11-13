@@ -10,7 +10,14 @@ VB['sim/routes'] = (() => {
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
     if (w.dev && w.dev[i]) return w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
-    const c = w.river && w.river[i] ? (w.crossing[i] === 1 ? TERRAIN.ford : w.crossing[i] === 2 ? TERRAIN.bridge : Infinity) : TERRAIN[w.biome[i]] ?? 1;
+    const c =
+      w.river && w.river[i]
+        ? w.crossing[i] === 1
+          ? TERRAIN.ford
+          : w.crossing[i] === 2
+            ? TERRAIN.bridge
+            : Infinity
+        : (TERRAIN[w.biome[i]] ?? 1);
     return w.worn ? c / PATHS.speed[w.worn[i]] : c;
   }
   // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses).
@@ -23,13 +30,16 @@ VB['sim/routes'] = (() => {
   // way back costs what the way there does), at most SLOPE.max. Water lies at sea level; a worn path does not flatten a slope.
   const slopeCost = (w, a, b) => {
     if (!w.he) return 0;
-    const ha = w.he[a], hb = w.he[b], s = SLOPE.perRise * Math.abs((ha > 0 ? ha : 0) - (hb > 0 ? hb : 0));
+    const ha = w.he[a],
+      hb = w.he[b],
+      s = SLOPE.perRise * Math.abs((ha > 0 ? ha : 0) - (hb > 0 ? hb : 0));
     return s < SLOPE.max ? s : SLOPE.max;
   };
   // Cost of the step between neighbouring tiles a and b: the mean of their costs and the slope between them; a closed end (where a
   // route starts or ends) counts as meadow.
   const stepCost = (w, a, b) => {
-    const ca = tileCost(w, a), cb = tileCost(w, b);
+    const ca = tileCost(w, a),
+      cb = tileCost(w, b);
     return ((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2 + slopeCost(w, a, b);
   };
 
@@ -40,35 +50,62 @@ VB['sim/routes'] = (() => {
   function buffers(w) {
     let s = scratch.get(w);
     if (!s) {
-      s = { g: new Float64Array(w.N), prev: new Int32Array(w.N), mark: new Uint32Array(w.N), shut: new Uint32Array(w.N), tgt: new Uint32Array(w.N), run: 0,
-        open: null };
+      s = {
+        g: new Float64Array(w.N),
+        prev: new Int32Array(w.N),
+        mark: new Uint32Array(w.N),
+        shut: new Uint32Array(w.N),
+        tgt: new Uint32Array(w.N),
+        run: 0,
+        open: null,
+      };
       scratch.set(w, s);
     }
     return s;
   }
   // A binary heap of tiles by key, in two plain arrays; the lower key first, ties by the lower tile index.
   function heap() {
-    const k = [], n = [];
+    const k = [],
+      n = [];
     const less = (a, b) => k[a] < k[b] || (k[a] === k[b] && n[a] < n[b]);
-    const swap = (a, b) => { [k[a], k[b]] = [k[b], k[a]]; [n[a], n[b]] = [n[b], n[a]]; };
+    const swap = (a, b) => {
+      [k[a], k[b]] = [k[b], k[a]];
+      [n[a], n[b]] = [n[b], n[a]];
+    };
     return {
-      get size() { return n.length; },
-      clear() { k.length = 0; n.length = 0; },
+      get size() {
+        return n.length;
+      },
+      clear() {
+        k.length = 0;
+        n.length = 0;
+      },
       push(key, tile) {
-        let c = k.push(key) - 1; n.push(tile);
-        while (c > 0) { const p = (c - 1) >> 1; if (!less(c, p)) break; swap(c, p); c = p; }
+        let c = k.push(key) - 1;
+        n.push(tile);
+        while (c > 0) {
+          const p = (c - 1) >> 1;
+          if (!less(c, p)) break;
+          swap(c, p);
+          c = p;
+        }
       },
       pop() {
-        const top = n[0], lk = k.pop(), ln = n.pop();
+        const top = n[0],
+          lk = k.pop(),
+          ln = n.pop();
         if (n.length) {
-          k[0] = lk; n[0] = ln;
+          k[0] = lk;
+          n[0] = ln;
           for (let c = 0; ;) {
-            const l = 2 * c + 1, r = l + 1;
+            const l = 2 * c + 1,
+              r = l + 1;
             let m = c;
             if (l < n.length && less(l, m)) m = l;
             if (r < n.length && less(r, m)) m = r;
             if (m === c) break;
-            swap(c, m); c = m;
+            swap(c, m);
+            c = m;
           }
         }
         return top;
@@ -81,20 +118,33 @@ VB['sim/routes'] = (() => {
     if (from === to) return [from];
     VB.count.routeSearch++;
     let expanded = 0;
-    const S = buffers(w), { g, prev, mark, shut } = S, run = ++S.run, open = heap(), lo = ROUTE.minStep;
+    const S = buffers(w),
+      { g, prev, mark, shut } = S,
+      run = ++S.run,
+      open = heap(),
+      lo = ROUTE.minStep;
     // Among routes that cost the same (on open ground there are many: every staircase between two tiles), the one nearest the straight
     // line is taken, as people walk: STRAIGHT of a step for each tile's width a tile lies off the line is added to its key, far below
     // any difference in cost. So the trips between two places wear one line, not a fan of them, and the ways look like ways (VB-402).
-    const flat = !!w.hx, fx = flat ? w.hx[from] : 0, fy = flat ? w.hy[from] : 0, lx = flat ? w.hx[to] - fx : 0, ly = flat ? w.hy[to] - fy : 0;
+    const flat = !!w.hx,
+      fx = flat ? w.hx[from] : 0,
+      fy = flat ? w.hy[from] : 0,
+      lx = flat ? w.hx[to] - fx : 0,
+      ly = flat ? w.hy[to] - fy : 0;
     const off = flat ? STRAIGHT / ((Math.hypot(lx, ly) || 1) * w.HW) : 0; // a world with no tile centres (a test's bare grid) has no line
     const h = (i) => hexSteps(w, i, to) * lo + (flat ? Math.abs((w.hx[i] - fx) * ly - (w.hy[i] - fy) * lx) * off : 0);
-    g[from] = 0; prev[from] = -1; mark[from] = run; open.push(h(from), from);
+    g[from] = 0;
+    prev[from] = -1;
+    mark[from] = run;
+    open.push(h(from), from);
     while (open.size) {
-      const i = open.pop(); expanded++;
+      const i = open.pop();
+      expanded++;
       if (shut[i] === run) continue;
       shut[i] = run;
       if (i === to) {
-        const p = [to]; for (let j = prev[to]; j >= 0; j = prev[j]) p.push(j);
+        const p = [to];
+        for (let j = prev[to]; j >= 0; j = prev[j]) p.push(j);
         VB.count.routeExpand += expanded;
         return p.reverse();
       }
@@ -103,7 +153,9 @@ VB['sim/routes'] = (() => {
         if (j < 0 || shut[j] === run || (j !== to && !through(w, j))) continue;
         const gj = g[i] + stepCost(w, i, j);
         if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
-        g[j] = gj; prev[j] = i; mark[j] = run;
+        g[j] = gj;
+        prev[j] = i;
+        mark[j] = run;
         open.push(gj + h(j), j);
       }
     }
@@ -116,22 +168,37 @@ VB['sim/routes'] = (() => {
   // world's scratch buffers and one heap, and allocates nothing per tile; the tiles it settles are counted in VB.count.reachSettled.
   // The costs are findRoute + routeCost's, to rounding (the sums are made the same way, from `from`).
   function reachCosts(w, from, maxCost, targets, out = new Array(targets.length)) {
-    const S = buffers(w), { g, mark, shut, tgt } = S, run = ++S.run, open = S.open || (S.open = heap());
-    let left = 0, settled = 0;
-    for (let i = 0; i < targets.length; i++) if (tgt[targets[i]] !== run) { tgt[targets[i]] = run; left++; }
+    const S = buffers(w),
+      { g, mark, shut, tgt } = S,
+      run = ++S.run,
+      open = S.open || (S.open = heap());
+    let left = 0,
+      settled = 0;
+    for (let i = 0; i < targets.length; i++)
+      if (tgt[targets[i]] !== run) {
+        tgt[targets[i]] = run;
+        left++;
+      }
     open.clear();
-    g[from] = 0; mark[from] = run; open.push(0, from);
+    g[from] = 0;
+    mark[from] = run;
+    open.push(0, from);
     while (open.size && left > 0) {
       const i = open.pop();
       if (shut[i] === run) continue;
-      shut[i] = run; settled++;
-      if (tgt[i] === run) { if (--left === 0) break; if (i !== from && !through(w, i)) continue; }
+      shut[i] = run;
+      settled++;
+      if (tgt[i] === run) {
+        if (--left === 0) break;
+        if (i !== from && !through(w, i)) continue;
+      }
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
         if (j < 0 || shut[j] === run || (tgt[j] !== run && !through(w, j))) continue;
         const gj = g[i] + stepCost(w, i, j);
         if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
-        g[j] = gj; mark[j] = run;
+        g[j] = gj;
+        mark[j] = run;
         open.push(gj, j);
       }
     }
@@ -150,30 +217,43 @@ VB['sim/routes'] = (() => {
   // Also used on load: pre-VB-198 saves may hold more entries than the current bound.
   function trimRoutes(st) {
     while (st.pathCache.size > ROUTE.cacheMax) {
-      st.pathCache.delete(st.pathCache.keys().next().value); VB.count.routeEvict++;
+      st.pathCache.delete(st.pathCache.keys().next().value);
+      VB.count.routeEvict++;
     }
   }
   function route(st, from, to) {
-    const N = st.w.N, k = from * N + to;
+    const N = st.w.N,
+      k = from * N + to;
     let p = st.pathCache.get(k);
     if (p) {
-      VB.count.routeHit++; st.pathCache.delete(k); st.pathCache.set(k, p);
+      VB.count.routeHit++;
+      st.pathCache.delete(k);
+      st.pathCache.set(k, p);
       return p;
     }
-    const bk = to * N + from, back = st.pathCache.get(bk);
+    const bk = to * N + from,
+      back = st.pathCache.get(bk);
     if (back && back[0] === to) {
-      VB.count.routeHit++; st.pathCache.delete(bk); st.pathCache.set(bk, back);
+      VB.count.routeHit++;
+      st.pathCache.delete(bk);
+      st.pathCache.set(bk, back);
       p = back.slice().reverse();
     } else {
       p = findRoute(st.w, from, to);
-      if (!p) { p = [to]; st.routeFallbacks++; }
+      if (!p) {
+        p = [to];
+        st.routeFallbacks++;
+      }
     }
-    st.pathCache.set(k, p); trimRoutes(st);
+    st.pathCache.set(k, p);
+    trimRoutes(st);
     return p;
   }
   // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the routes it could change
   // are dropped at the end of the day.
-  const costChanged = (st, tile) => { st.routeDirty.add(tile); };
+  const costChanged = (st, tile) => {
+    st.routeDirty.add(tile);
+  };
   // Once a game day: drop the cached routes that a changed tile might now shorten or lengthen, and every straight-walk fallback.
   // A route by tile t costs at least (steps from the start to t + steps from t to the end) times the cheapest step,
   // so a route that costs less than that cannot change because of t.
@@ -184,18 +264,41 @@ VB['sim/routes'] = (() => {
   const MAX_STEP = Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0] + SLOPE.max;
   function refreshRoutes(st) {
     if (!st.routeDirty.size) return;
-    const w = st.w, N = w.N, C = w.COLS, n = st.routeDirty.size, dq = new Int32Array(n), dr = new Int32Array(n);
+    const w = st.w,
+      N = w.N,
+      C = w.COLS,
+      n = st.routeDirty.size,
+      dq = new Int32Array(n),
+      dr = new Int32Array(n);
     let i = 0;
-    for (const t of st.routeDirty) { const y = (t / C) | 0; dq[i] = (t % C) - ((y - (y & 1)) >> 1); dr[i] = y; i++; }
-    const qOf = (t) => { const y = (t / C) | 0; return (t % C) - ((y - (y & 1)) >> 1); };
+    for (const t of st.routeDirty) {
+      const y = (t / C) | 0;
+      dq[i] = (t % C) - ((y - (y & 1)) >> 1);
+      dr[i] = y;
+      i++;
+    }
+    const qOf = (t) => {
+      const y = (t / C) | 0;
+      return (t % C) - ((y - (y & 1)) >> 1);
+    };
     VB.count.routeRefresh += st.pathCache.size;
     for (const [k, p] of st.pathCache) {
-      const to = k % N, from = (k - to) / N;
-      if (p.length === 1 && from !== to) { st.pathCache.delete(k); continue; }
-      const fq = qOf(from), fr = (from / C) | 0, tq = qOf(to), tr = (to / C) | 0;
+      const to = k % N,
+        from = (k - to) / N;
+      if (p.length === 1 && from !== to) {
+        st.pathCache.delete(k);
+        continue;
+      }
+      const fq = qOf(from),
+        fr = (from / C) | 0,
+        tq = qOf(to),
+        tr = (to / C) | 0;
       let near = Infinity; // the least hexSteps(from, t) + hexSteps(t, to) over the changed tiles t
       for (let j = 0; j < n; j++) {
-        const a = fq - dq[j], b = fr - dr[j], c = dq[j] - tq, d = dr[j] - tr;
+        const a = fq - dq[j],
+          b = fr - dr[j],
+          c = dq[j] - tq,
+          d = dr[j] - tr;
         const s = (Math.abs(a) + Math.abs(b) + Math.abs(a + b) + Math.abs(c) + Math.abs(d) + Math.abs(c + d)) / 2;
         if (s < near) near = s;
       }
@@ -213,12 +316,16 @@ VB['sim/routes'] = (() => {
   //   (sim/routes). Nothing reads it yet: hoursBetween (VB-287, VB-288, VB-290).
   // Village k's row, and column k of every other row, from one search of the villages' centres.
   function refreshHoursRow(st, k) {
-    const T = st.villageHours, vs = st.villages;
+    const T = st.villageHours,
+      vs = st.villages;
     if (!T || T.length !== vs.length || k >= vs.length) return;
-    const targets = vs.map((v) => v.center), costs = reachCosts(st.w, vs[k].center, ROUTE.reach, targets), row = T[k];
+    const targets = vs.map((v) => v.center),
+      costs = reachCosts(st.w, vs[k].center, ROUTE.reach, targets),
+      row = T[k];
     for (let u = 0; u < costs.length; u++) {
       const h = u === k ? 0 : costs[u] === null ? null : costs[u] / SPEED;
-      row[u] = h; T[u][k] = h;
+      row[u] = h;
+      T[u][k] = h;
     }
   }
   // The whole table: at the seed, and at a load of a save made before it.
@@ -239,9 +346,17 @@ VB['sim/routes'] = (() => {
   const ROW_STEPS = 60;
   function refreshHoursStep(st, j) {
     const n = st.villages.length;
-    if (n <= ROW_STEPS) { if (j < n) refreshHoursRow(st, j); return; }
-    for (let k = Math.floor((j * n + ROW_STEPS - 1) / ROW_STEPS), end = Math.floor(((j + 1) * n + ROW_STEPS - 1) / ROW_STEPS); k < end;
-      k++) refreshHoursRow(st, k);
+    if (n <= ROW_STEPS) {
+      if (j < n) refreshHoursRow(st, j);
+      return;
+    }
+    for (
+      let k = Math.floor((j * n + ROW_STEPS - 1) / ROW_STEPS),
+        end = Math.floor(((j + 1) * n + ROW_STEPS - 1) / ROW_STEPS);
+      k < end;
+      k++
+    )
+      refreshHoursRow(st, k);
   }
   // Walking hours between two villages' greens: 0 for the same village, Infinity beyond reach or by no land route. Allocates nothing.
   function hoursBetween(st, a, b) {
@@ -249,6 +364,23 @@ VB['sim/routes'] = (() => {
     const h = st.villageHours[a][b];
     return h === null ? Infinity : h;
   }
-  return { tileCost, passable, walkable, slopeCost, stepCost, findRoute, routeCost, reachCosts, route, costChanged, refreshRoutes, trimRoutes,
-    buildHours, villageAdded, refreshHoursStep, hoursBetween, ROW_STEPS };
+  return {
+    tileCost,
+    passable,
+    walkable,
+    slopeCost,
+    stepCost,
+    findRoute,
+    routeCost,
+    reachCosts,
+    route,
+    costChanged,
+    refreshRoutes,
+    trimRoutes,
+    buildHours,
+    villageAdded,
+    refreshHoursStep,
+    hoursBetween,
+    ROW_STEPS,
+  };
 })();

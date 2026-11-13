@@ -2,7 +2,8 @@
 // servant for a household of at most one grown member whose ask for food fell short (VB-308), and service where labour is short (VB-090)
 VB['sim/service'] = (() => {
   const { setServant, takePeopleCheck } = VB['sim/records'];
-  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } = VB['sim/records'];
+  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } =
+    VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hexSteps } = VB['sim/hex'];
@@ -10,16 +11,32 @@ VB['sim/service'] = (() => {
   const { hasPlot } = VB['sim/expansion'];
   const adult = (p) => p.alive && p.age >= 18;
   // a before b, comparing arrays of numbers element by element
-  const before = (a, b) => { for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k] < b[k]; return false; };
+  const before = (a, b) => {
+    for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k] < b[k];
+    return false;
+  };
   const farmOf = (st, hh) => st.farmsteads[hh.farmstead];
   // a farm by name, with its village's name when it lies in another village than `here` (farm names repeat between villages)
-  const farmIn = (st, hh, here = null) => { const f = farmOf(st, hh); return f.village === here ? f.name : `${f.name} in ${st.villages[f.village].name}`; };
+  const farmIn = (st, hh, here = null) => {
+    const f = farmOf(st, hh);
+    return f.village === here ? f.name : `${f.name} in ${st.villages[f.village].name}`;
+  };
   const isGuardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
   // Working hands of a household: members of 14 to 59 who have not retired (as VB-090 counts them).
-  const hands = (st, hh) => hh.members.filter((id) => { const p = st.pawns[id]; return p.alive && p.age >= 14 && p.age < 60 && !p.retired; }).length;
+  const hands = (st, hh) =>
+    hh.members.filter((id) => {
+      const p = st.pawns[id];
+      return p.alive && p.age >= 14 && p.age < 60 && !p.retired;
+    }).length;
   // An adult who wants land (st.demand, refreshed at each moving round) and can move: alive, landless still, with no plot coming, not a guardian.
-  const free = (st, p) => adult(p) && !p.retired && p.household !== null && !isHolder(st, p.id) && !hasPlot(st, p.id) && !isGuardian(st, p.id)
-    && (spouseOf(st, p.id) === null || !isHolder(st, spouseOf(st, p.id)));
+  const free = (st, p) =>
+    adult(p) &&
+    !p.retired &&
+    p.household !== null &&
+    !isHolder(st, p.id) &&
+    !hasPlot(st, p.id) &&
+    !isGuardian(st, p.id) &&
+    (spouseOf(st, p.id) === null || !isHolder(st, spouseOf(st, p.id)));
 
   // ---- guardians (stability review) ----
   // A minor heir holds in name with a guardian until 18 (sim/heirs), but when no adult is left in the house, a child kept the farm alone and
@@ -27,12 +44,15 @@ VB['sim/service'] = (() => {
   // their spouse and the minor children who live with them, and that relative becomes the guardian. With no such relative, the children go to
   // their nearest kin (or into service in the village) and the farm stands empty, as one that dies out.
   function familyOf(st, id) {
-    const p = st.pawns[id], out = [id], sp = spouseOf(st, id);
+    const p = st.pawns[id],
+      out = [id],
+      sp = spouseOf(st, id);
     if (sp !== null && st.pawns[sp].alive && st.pawns[sp].household === p.household) out.push(sp);
-    for (const q of out.slice()) for (const c of childrenOf(st, q)) {
-      const k = st.pawns[c];
-      if (k.alive && k.age < 18 && k.household === p.household && !out.includes(c) && !isHolder(st, c)) out.push(c);
-    }
+    for (const q of out.slice())
+      for (const c of childrenOf(st, q)) {
+        const k = st.pawns[c];
+        if (k.alive && k.age < 18 && k.household === p.household && !out.includes(c) && !isHolder(st, c)) out.push(c);
+      }
     return out;
   }
   function careForOrphans(st) {
@@ -40,21 +60,38 @@ VB['sim/service'] = (() => {
     for (const liveId of takePeopleCheck(st)) {
       const hh = st.households[liveId];
       if (hh.dissolved || !hh.members.length || hh.members.some((id) => adult(st.pawns[id]))) continue;
-      const ward = st.pawns[hh.holder], f = farmOf(st, hh), memo = new Map();
-      let best = null, bk = 0;
+      const ward = st.pawns[hh.holder],
+        f = farmOf(st, hh),
+        memo = new Map();
+      let best = null,
+        bk = 0;
       for (const id of st.demand) {
-        const q = st.pawns[id]; if (!free(st, q) || q.household === hh.id) continue;
-        const k = kinship(st, ward.id, id, memo); if (k <= 0) continue;
-        if (!best || k > bk || (k === bk && q.born < best.born)) { best = q; bk = k; }
+        const q = st.pawns[id];
+        if (!free(st, q) || q.household === hh.id) continue;
+        const k = kinship(st, ward.id, id, memo);
+        if (k <= 0) continue;
+        if (!best || k > bk || (k === bk && q.born < best.born)) {
+          best = q;
+          bk = k;
+        }
       }
       if (best) {
         for (const id of familyOf(st, best.id)) moveTo(st, id, hh.id);
         setGuardian(st, hh, ward.id);
         personEvent(st, best.id, 'guardian', `Became guardian of ${fullName(ward)} at ${f.name}`, false); // recorded below
-        log(st, `${fullName(best)} moves to ${f.name} as guardian of ${fullName(ward)}, who was left there with no grown kin.`, {
-          kind: 'guardian', pawn: best.id, other: ward.id, ...atHousehold(st, hh) });
+        log(
+          st,
+          `${fullName(best)} moves to ${f.name} as guardian of ${fullName(ward)}, who was left there with no grown kin.`,
+          {
+            kind: 'guardian',
+            pawn: best.id,
+            other: ward.id,
+            ...atHousehold(st, hh),
+          },
+        );
       } else extinct(st, hh, `its heir ${fullName(ward)} is a child, with no grown kin to keep it`);
-      refreshRoles(st); st.visualDirty = true;
+      refreshRoles(st);
+      st.visualDirty = true;
     }
   }
 
@@ -65,19 +102,41 @@ VB['sim/service'] = (() => {
   // keeps the most hands, then the oldest. The servant still wants land, as VB-090 has it, and may marry the holder.
   // A landless adult goes into service with the holder of household hh, who lives alone (the serve command, VB-171).
   function enterService(st, id, hhId) {
-    const best = st.pawns[id], hh = st.households[hhId], holder = st.pawns[hh.holder], v = farmOf(st, hh).village;
-    const from = farmIn(st, st.households[best.household], v), alone = hh.members.length === 1;
-    moveTo(st, best.id, hh.id); setServant(st, best.id, true);
+    const best = st.pawns[id],
+      hh = st.households[hhId],
+      holder = st.pawns[hh.holder],
+      v = farmOf(st, hh).village;
+    const from = farmIn(st, st.households[best.household], v),
+      alone = hh.members.length === 1;
+    moveTo(st, best.id, hh.id);
+    setServant(st, best.id, true);
     personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`, false); // recorded below
-    log(st, `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, ${alone ? 'who lived alone'
-      : 'which was short of hands'}.`, { kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
+    log(
+      st,
+      `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, ${
+        alone ? 'who lived alone' : 'which was short of hands'
+      }.`,
+      { kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) },
+    );
   }
   // Why q may not go into service at all, or null: it must be free to move, unmarried and of serving age.
   function unfit(st, q) {
-    if (!free(st, q)) return !adult(q) ? 'under 18' : q.retired ? 'retired' : q.household === null ? 'has no home' : hasPlot(st, q.id) ? 'has a plot coming'
-      : isGuardian(st, q.id) ? 'keeps a ward' : 'holds a farm, or is married to its holder';
+    if (!free(st, q))
+      return !adult(q)
+        ? 'under 18'
+        : q.retired
+          ? 'retired'
+          : q.household === null
+            ? 'has no home'
+            : hasPlot(st, q.id)
+              ? 'has a plot coming'
+              : isGuardian(st, q.id)
+                ? 'keeps a ward'
+                : 'holds a farm, or is married to its holder';
     if (spouseOf(st, q.id) !== null) return 'married';
-    return q.age > SERVICE.ages[1] || q.age < SERVICE.ages[0] ? `service is for those of ${SERVICE.ages[0]} to ${SERVICE.ages[1]}` : null;
+    return q.age > SERVICE.ages[1] || q.age < SERVICE.ages[0]
+      ? `service is for those of ${SERVICE.ages[0]} to ${SERVICE.ages[1]}`
+      : null;
   }
   // The working hands q's household keeps without it; -1 when it has no household to leave (dissolved, or q alone in it).
   function handsLeft(st, q) {
@@ -85,32 +144,46 @@ VB['sim/service'] = (() => {
     return from.dissolved || from.members.length < 2 ? -1 : hands(st, from) - (q.age >= 14 && q.age < 60 ? 1 : 0);
   }
   // Those who would serve now, in demand order: fit (unfit null), and not declining by the player's wish (VB-212).
-  const willServe = (st) => st.demand.filter((id) => unfit(st, st.pawns[id]) === null && wishOf(st, id, 'serve') !== false);
+  const willServe = (st) =>
+    st.demand.filter((id) => unfit(st, st.pawns[id]) === null && wishOf(st, id, 'serve') !== false);
   // Steps between the village centres of households a and b (0 in one village).
   const stepsBetween = (st, a, b) => {
-    const u = farmOf(st, a).village, v = farmOf(st, b).village;
+    const u = farmOf(st, a).village,
+      v = farmOf(st, b).village;
     return u === v ? 0 : hexSteps(st.w, st.villages[u].center, st.villages[v].center);
   };
   // The placement every service rule shares (village first, then the nearest village within reach; VB-090, VB-308): the steps between the
   // village centres of households a and b, 0 in one village, or null beyond SERVICE.reach. Ranking by it puts the own village first.
-  const reachSteps = (st, a, b) => { const d = stepsBetween(st, a, b); return d > SERVICE.reach ? null : d; };
+  const reachSteps = (st, a, b) => {
+    const d = stepsBetween(st, a, b);
+    return d > SERVICE.reach ? null : d;
+  };
   // The servant for household hh among `available`, or null: one whose household keeps SERVICE.keepHands working hands without it, from
   // hh's village first, then the nearest village within SERVICE.reach steps; then the household that keeps the most hands, then the oldest.
   function servantFor(st, hh, available) {
-    let best = null, bs = null;
+    let best = null,
+      bs = null;
     for (const id of available) {
       const q = st.pawns[id];
       if (q.household === hh.id) continue;
-      const left = handsLeft(st, q); if (left < SERVICE.keepHands) continue;
-      const d = reachSteps(st, st.households[q.household], hh); if (d === null) continue;
+      const left = handsLeft(st, q);
+      if (left < SERVICE.keepHands) continue;
+      const d = reachSteps(st, st.households[q.household], hh);
+      if (d === null) continue;
       const s = [d, -left, q.born];
-      if (!bs || before(s, bs)) { best = q; bs = s; }
+      if (!bs || before(s, bs)) {
+        best = q;
+        bs = s;
+      }
     }
     return best;
   }
   function takeServants(st) {
-    const lone = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
-    const taken = new Set(), moved = new Set(); // the households that took a servant this round, and the servants (for serveWhereShort)
+    const lone = st.liveHouseholds
+      .map((id) => st.households[id])
+      .filter((h) => !h.dissolved && h.members.length === 1 && adult(st.pawns[h.holder]));
+    const taken = new Set(),
+      moved = new Set(); // the households that took a servant this round, and the servants (for serveWhereShort)
     if (!lone.length) return { taken, moved };
     // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
     // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
@@ -118,10 +191,15 @@ VB['sim/service'] = (() => {
     const available = willServe(st);
     for (const hh of lone) {
       if (hh.members.length !== 1) continue;
-      const best = servantFor(st, hh, available); if (!best) continue;
-      if (issue(st, { actor: best.id, verb: 'serve', target: hh.id, source: 'round' }) === true) { taken.add(hh.id); moved.add(best.id); }
+      const best = servantFor(st, hh, available);
+      if (!best) continue;
+      if (issue(st, { actor: best.id, verb: 'serve', target: hh.id, source: 'round' }) === true) {
+        taken.add(hh.id);
+        moved.add(best.id);
+      }
     }
-    refreshRoles(st); st.visualDirty = true;
+    refreshRoles(st);
+    st.visualDirty = true;
     return { taken, moved };
   }
 
@@ -136,29 +214,54 @@ VB['sim/service'] = (() => {
   // on at a later round by the same rule. Board and lodging only: the servant is a member and works its jobs on the `servant` basis.
   const fieldsOf = (st, hh) => Math.max(1, farmOf(st, hh).fields.length);
   const handsPerField = (st, hh) => hands(st, hh) / fieldsOf(st, hh);
-  const parentIn = (st, q, hh) => [q.father, q.mother].some((id) => id !== null && st.pawns[id].alive && st.pawns[id].household === hh.id);
+  const parentIn = (st, q, hh) =>
+    [q.father, q.mother].some((id) => id !== null && st.pawns[id].alive && st.pawns[id].household === hh.id);
   function serveWhereShort(st, { taken = new Set(), moved = new Set() } = {}) {
-    const short = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.holder !== null && !taken.has(h.id)
-      && farmOf(st, h).fields.length > 0 && handsPerField(st, h) < SERVICE.short);
+    const short = st.liveHouseholds
+      .map((id) => st.households[id])
+      .filter(
+        (h) =>
+          !h.dissolved &&
+          h.holder !== null &&
+          !taken.has(h.id) &&
+          farmOf(st, h).fields.length > 0 &&
+          handsPerField(st, h) < SERVICE.short,
+      );
     if (!short.length) return;
-    const going = willServe(st).map((id) => st.pawns[id]).filter((q) => !moved.has(q.id)).sort((a, b) => a.born - b.born || a.id - b.id);
+    const going = willServe(st)
+      .map((id) => st.pawns[id])
+      .filter((q) => !moved.has(q.id))
+      .sort((a, b) => a.born - b.born || a.id - b.id);
     for (const q of going) {
       if (!short.length) break;
       const from = st.households[q.household];
-      if (from.dissolved || handsPerField(st, from) <= SERVICE.spare || (hands(st, from) - 1) / fieldsOf(st, from) < SERVICE.short) continue;
-      let best = -1, bs = null;
+      if (
+        from.dissolved ||
+        handsPerField(st, from) <= SERVICE.spare ||
+        (hands(st, from) - 1) / fieldsOf(st, from) < SERVICE.short
+      )
+        continue;
+      let best = -1,
+        bs = null;
       VB.count.labourWeighed += short.length;
       for (let i = 0; i < short.length; i++) {
-        const h = short[i]; if (h.id === from.id || parentIn(st, q, h)) continue;
-        const d = reachSteps(st, from, h); if (d === null) continue;
+        const h = short[i];
+        if (h.id === from.id || parentIn(st, q, h)) continue;
+        const d = reachSteps(st, from, h);
+        if (d === null) continue;
         const s = [d, handsPerField(st, h), h.id];
-        if (!bs || before(s, bs)) { best = i; bs = s; }
+        if (!bs || before(s, bs)) {
+          best = i;
+          bs = s;
+        }
       }
       if (best < 0) continue;
       if (issue(st, { actor: q.id, verb: 'serve', target: short[best].id, source: 'round' }) !== true) continue;
-      short.splice(best, 1); moved.add(q.id);
+      short.splice(best, 1);
+      moved.add(q.id);
     }
-    refreshRoles(st); st.visualDirty = true;
+    refreshRoles(st);
+    st.visualDirty = true;
   }
 
   // ---- taken in before it starves (VB-308; design.md, Households short of people) ----
@@ -175,31 +278,63 @@ VB['sim/service'] = (() => {
     for (const id of ids) {
       const hh = st.households[id];
       if (hh.dissolved || hh.holder === null || !farmOf(st, hh).fields.length || grown(st, hh) > 1) continue;
-      const holder = st.pawns[hh.holder], memo = new Map();
-      let best = null, bk = 0;
+      const holder = st.pawns[hh.holder],
+        memo = new Map();
+      let best = null,
+        bk = 0;
       VB.count.takeInWeighed += st.demand.length;
       for (const qid of st.demand) {
-        const q = st.pawns[qid]; if (q.household === null || q.household === hh.id || unfit(st, q) !== null) continue;
-        const k = kinship(st, holder.id, qid, memo); if (k <= 0 || (best && (k < bk || (k === bk && q.born >= best.born)))) continue;
-        const from = st.households[q.household]; if (from.dissolved || (grown(st, from) - 1 < 2 && farmOf(st, from).fields.length)) continue;
+        const q = st.pawns[qid];
+        if (q.household === null || q.household === hh.id || unfit(st, q) !== null) continue;
+        const k = kinship(st, holder.id, qid, memo);
+        if (k <= 0 || (best && (k < bk || (k === bk && q.born >= best.born)))) continue;
+        const from = st.households[q.household];
+        if (from.dissolved || (grown(st, from) - 1 < 2 && farmOf(st, from).fields.length)) continue;
         if (reachSteps(st, from, hh) === null) continue;
-        best = q; bk = k;
+        best = q;
+        bk = k;
       }
       if (best) {
         const from = farmIn(st, st.households[best.household], farmOf(st, hh).village);
         for (const m of familyOf(st, best.id)) moveTo(st, m, hh.id);
-        personEvent(st, best.id, 'moved', `Moved to ${farmIn(st, hh)} to help ${fullName(holder)}, who was short of food and hands`, false); // below
-        log(st, `${fullName(best)} of ${from} moves to ${farmIn(st, hh)} to help ${fullName(holder)}, who was short of food and hands.`, {
-          kind: 'moved', pawn: best.id, other: holder.id, ...atHousehold(st, hh) });
+        personEvent(
+          st,
+          best.id,
+          'moved',
+          `Moved to ${farmIn(st, hh)} to help ${fullName(holder)}, who was short of food and hands`,
+          false,
+        ); // below
+        log(
+          st,
+          `${fullName(best)} of ${from} moves to ${farmIn(st, hh)} to help ${fullName(holder)}, who was short of food and hands.`,
+          {
+            kind: 'moved',
+            pawn: best.id,
+            other: holder.id,
+            ...atHousehold(st, hh),
+          },
+        );
       } else {
         if (!available) available = willServe(st);
         VB.count.takeInWeighed += available.length;
-        const s = servantFor(st, hh, available); if (!s) continue;
+        const s = servantFor(st, hh, available);
+        if (!s) continue;
         if (issue(st, { actor: s.id, verb: 'serve', target: hh.id, source: 'help' }) !== true) continue;
         available = available.filter((x) => x !== s.id);
       }
-      refreshRoles(st); st.visualDirty = true;
+      refreshRoles(st);
+      st.visualDirty = true;
     }
   }
-  return { careForOrphans, takeServants, serveWhereShort, takeIn, enterService, hands, handsPerField, unfit, handsLeft };
+  return {
+    careForOrphans,
+    takeServants,
+    serveWhereShort,
+    takeIn,
+    enterService,
+    hands,
+    handsPerField,
+    unfit,
+    handsLeft,
+  };
 })();

@@ -24,7 +24,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 3. If it turns out to need a decision, decide it by Deciding without Kim (below) and write the decision and its reason in the task file.
    Only if it is one of the two kinds that go to Kim, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
-5. Before the last commit: `npm run verify` (half a minute); for a change under `src/page/`, also `node tests/smoke.js` and the
+5. Before the last commit: `npm run format`, then `npm run verify` (half a minute); for a change under `src/page/`, also `node tests/smoke.js` and the
    `tests/browser*.js` it touches. Rebuild `index.html` before committing. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
    report it in the task file and the PR's Targets section (before, after, residual, cause).
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
@@ -53,6 +53,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read; `done ID...`, `set ID key=value...`, `new key=value...`,
   `close-arch KEY`, and `sync` after a task file's header is edited by hand, to change it. Each rewrites the tables and runs `tests/backlog.js`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer QUERY N TEXT|archive QUERY`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
+- Format: `src/` is formatted by Prettier (`.prettierrc.json`: width 120, single quotes; VB-380): `npm run format` after editing a
+  source, before the build; `tests/format.js` (fast) fails an unformatted file. `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+  keeps the sweep out of `git blame`. `tests/` and `tools/` are not formatted yet.
 - Build: `python3 build.py` inlines `src/` into `index.html`; `python3 build.py --check` fails if it is stale.
 - Tests, three tiers listed in `tests/suites.js` (`docs/testing.md` has what each covers, the timeouts and the measured times):
   - Fast: `npm install && npm test`, about 10 seconds (budget 30): the build, lint, ownership, dependencies, backlog and rule checks on
@@ -99,7 +102,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Also: `node tools/gossip.js` (VB-187's experiment: stories against opinion averaging in a reduced scenario; `docs/gossip-experiment.md`), `node
   tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies and cycles), `node
   tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs; `node tests/calibrate.js natural 2 50` is
-  quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters), `node tools/shot.js` (screenshots of the page), `node
+  quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters; for `tests/` and `tools/`, `src/` has Prettier), `node tools/shot.js` (screenshots of the page), `node
   tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
   `medium-y5` and `medium-ref`).
 - Agent usage: `node tools/agent-usage.js` (this session's calls, tokens and tool results, from its transcript; `--history docs/agents/usage`).
@@ -133,9 +136,11 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Time is in game hours: `DAY`, `SEASON_DAYS`, `YEAR_DAYS` and `YEAR` are defined once, in `src/sim/rules.js`.
 - Ids are array indexes (`pawns`, `households`, `farmsteads`, fences) and are never reused.
 - Tunables, a new job kind and a new custom: `docs/architecture/modules.md`, Adding things.
-- A module's length is not capped (VB-413). Code goes where its concern lives, a statement to a line. Over 400 lines the lint asks
+- A module's length is not capped (VB-413). Code goes where its concern lives, formatted by Prettier. Over 700 formatted lines (the
+  400 of the packed sources, rescaled by the sweep of 13 November) the lint asks
   for an open task that splits the module (VB-414): the task that takes it over the line opens one, titled "Refactor: split <key> ..."
-  (`sim/heirs`), names it in its PR and goes on. Never pack lines or place code elsewhere to make room.
+  (`sim/heirs`), names it in its PR and goes on. Never place code elsewhere to make room. The seven modules the sweep left over the
+  line are in `tests/lint-baseline.json` at their lengths, which only fall.
   Width the same way (VB-415): a module over 15 exports (`tests/width-baseline.json` holds today's 21 at their counts) may add one only
   with such a task open; the `sim` facade is not counted.
 

@@ -6,7 +6,7 @@ const { chromium } = require('playwright'), fs = require('fs'), path = require('
 const { browserHTML } = require('./lib/browser');
 const root = path.join(__dirname, '..'), pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
 const errors = [], fail = (m) => { errors.push(m); console.error('START FAIL:', m); };
-const HOOK = 'let st = null, speed = 1, selPawn = -1;';
+const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
 (async () => {
   const browser = await chromium.launch({ executablePath: process.env.VB_CHROMIUM || undefined }),
     page = await browser.newPage({ viewport: { width: 1440, height: 900 } });

@@ -23,8 +23,8 @@ const scenario = opt('scenario', 'populous'), seed = opt('seed', '7'), size = op
 const hours = +opt('hours', 0), follow = opt('follow', null);
 const outDir = path.resolve(opt('out', '.')), closeN = +opt('close', 1), at = opt('at', null), land = args.includes('--land'), htmlPath = opt('html', path.join(root, 'index.html'));
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
-const html = fs.readFileSync(htmlPath, 'utf8').replace('let st = null, speed = 1, selPawn = -1;',
-  'let st = null, speed = 1, selPawn = -1; window.__vb = { get st() { return st; }, cam: () => cam, Sim: () => Sim, '
+const html = fs.readFileSync(htmlPath, 'utf8').replace('let st = null,\n  speed = 1,\n  selPawn = -1;',
+  'let st = null,\n  speed = 1,\n  selPawn = -1; window.__vb = { get st() { return st; }, cam: () => cam, Sim: () => Sim, '
   + 'view(x, y, z) { stopIntro(); cam.x = x; cam.y = y; cam.z = z; zt = z; vel.x = vel.y = 0; } };');
 if (!html.includes('window.__vb')) throw new Error('hook not found: the page script changed');
 fs.mkdirSync(outDir, { recursive: true });

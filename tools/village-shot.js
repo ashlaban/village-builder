@@ -29,7 +29,7 @@ if (seeds.some((s) => !(s >= 0)) || !(farms >= 1) || !(cols >= 12) || !(rows >= 
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
 // Three hooks into the page script: the state and camera, a map size of our own, and our seeding in place of a scenario's.
 const HOOKS = [
-  ['let st = null, speed = 1, selPawn = -1;', 'let st = null, speed = 1, selPawn = -1; window.__vb = { get st() { return st; }, Sim: () => Sim, '
+  ['let st = null,\n  speed = 1,\n  selPawn = -1;', 'let st = null,\n  speed = 1,\n  selPawn = -1; window.__vb = { get st() { return st; }, Sim: () => Sim, '
     + 'view(x, y, z) { stopIntro(); cam.x = x; cam.y = y; cam.z = z; zt = z; vel.x = vel.y = 0; }, '
     + 'clearSky() { for (const c of clouds) { c.spr.destroy(); c.sh.destroy(); } clouds = []; } };'],
   ['const SIZES = { t: [120, 85],', `const SIZES = { x: [${cols}, ${rows}], t: [120, 85],`],

@@ -11,18 +11,31 @@ VB['sim/exchange'] = (() => {
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. Switched on by GOODWILL.acts (VB-220).
-  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'goodwill', label: 'Goodwill',
+  Rules.contribute({
+    rule: 'allowance',
+    source: 'sim/exchange',
+    key: 'goodwill',
+    label: 'Goodwill',
     tunables: ['GOODWILL.acts', 'GOODWILL.limitDays'],
     value: (st, c) => {
       if (!GOODWILL.acts || c.giver === null || c.receiver === null) return 0;
       const owed = balance(st, c.giver, c.receiver); // > 0: the receiver owes the giver
       return owed < 0 ? -owed : -Math.max(0, owed - GOODWILL.limitDays * dailyNeed(st, c.to));
-    } });
+    },
+  });
   // allowance's opinion term (design.md, The gift: Allowance; Kim, 10 Nov): the giver's opinion of the receiver, -1 to 1, times
   // GOODWILL.opinionRations. Coupled with goodwill, which colours opinion (gratitude): a high opinion lets a deal through.
-  Rules.contribute({ rule: 'allowance', source: 'sim/exchange', key: 'opinion', label: 'Opinion of them',
+  Rules.contribute({
+    rule: 'allowance',
+    source: 'sim/exchange',
+    key: 'opinion',
+    label: 'Opinion of them',
     tunables: ['GOODWILL.acts', 'GOODWILL.opinionRations'],
-    value: (st, c) => (!GOODWILL.acts || c.giver === null || c.receiver === null ? 0 : GOODWILL.opinionRations * opinionOf(st, c.giver, c.receiver)) });
+    value: (st, c) =>
+      !GOODWILL.acts || c.giver === null || c.receiver === null
+        ? 0
+        : GOODWILL.opinionRations * opinionOf(st, c.giver, c.receiver),
+  });
   // A gift {from, to, good, n, source}: from and to are households or villages (a village gives from its store, or takes the yearly
   // filling). Sizes are compared with a tolerance, since the size help asks for is reckoned apart from the allowance's sum.
   const TOLERANCE = 1e-9;
@@ -35,15 +48,24 @@ VB['sim/exchange'] = (() => {
   // store has neither and gives what it holds. The player's pawn passes both (The gift: the player's gift; the warning is VB-221's).
   // {floorOk, allowance, accept, why}: why is null when the gift is accepted, else the reason.
   function assessGift(st, o) {
-    let floorOk, allowance = Infinity;
+    let floorOk,
+      allowance = Infinity;
     if (isHousehold(o.from)) {
       floorOk = Stores.grainOf(o.from) - o.n >= floorOf(st, o.from) - TOLERANCE;
-      ctx.giver = o.from.holder; ctx.receiver = isHousehold(o.to) ? o.to.holder : null; ctx.from = o.from; ctx.to = o.to;
+      ctx.giver = o.from.holder;
+      ctx.receiver = isHousehold(o.to) ? o.to.holder : null;
+      ctx.from = o.from;
+      ctx.to = o.to;
       allowance = Rules.value(st, 'allowance', ctx);
     } else floorOk = o.n <= Stores.grainOf(o.from) + TOLERANCE;
-    const player = o.source === 'player', within = o.n <= allowance + TOLERANCE;
-    const why = !floorOk && (!player || !isHousehold(o.from)) ? `it would take ${nameOf(st, o.from)} below its floor`
-      : !within && !player ? `${nameOf(st, o.from)} would give at most ${Math.round(allowance)} rations` : null;
+    const player = o.source === 'player',
+      within = o.n <= allowance + TOLERANCE;
+    const why =
+      !floorOk && (!player || !isHousehold(o.from))
+        ? `it would take ${nameOf(st, o.from)} below its floor`
+        : !within && !player
+          ? `${nameOf(st, o.from)} would give at most ${Math.round(allowance)} rations`
+          : null;
     return { floorOk, allowance, accept: why === null, why };
   }
   // What the player is told before its pawn's household gives n below its floor (VB-221; The gift: the player's gift): null when the
@@ -59,21 +81,44 @@ VB['sim/exchange'] = (() => {
   function receive(st, from, to, n, fromName, parts) {
     Stores.put(st, to, 'grain', n, { kind: 'gift', from: fromName }, parts);
     const ht = to.holder !== null ? st.pawns[to.holder] : null;
-    if (ht) personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`, {
-      n: Math.round(n), other: from && from.holder !== null ? from.holder : null, ...atHousehold(st, to) });
+    if (ht)
+      personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`, {
+        n: Math.round(n),
+        other: from && from.holder !== null ? from.holder : null,
+        ...atHousehold(st, to),
+      });
     if (from) {
       const hf = from.holder !== null ? st.pawns[from.holder] : null;
-      if (hf) personEvent(st, hf.id, 'gift', `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`, ht ? false : {
-        n: Math.round(n), ...atHousehold(st, to) }); // with a receiving holder, recorded above
-      if (hf && ht && hf.ties && ht.ties) for (const [a, b] of [[hf, ht], [ht, hf]]) addTie(st, a.id, b.id, HELP.tieGain);
+      if (hf)
+        personEvent(
+          st,
+          hf.id,
+          'gift',
+          `Gave ${Math.round(n)} grain to ${st.farmsteads[to.farmstead].name}`,
+          ht
+            ? false
+            : {
+                n: Math.round(n),
+                ...atHousehold(st, to),
+              },
+        ); // with a receiving holder, recorded above
+      if (hf && ht && hf.ties && ht.ties)
+        for (const [a, b] of [
+          [hf, ht],
+          [ht, hf],
+        ])
+          addTie(st, a.id, b.id, HELP.tieGain);
       if (hf && ht) book(st, hf.id, ht.id, n * WORTH.grain); // the giver is owed the gift's worth (Who books: the two holders)
     }
   }
   // Settles an accepted gift; only the verb `give` calls it (tests/commands.js).
   function settleGift(st, o) {
-    if (!isHousehold(o.to)) Stores.move(st, o.from, o.to, 'grain', o.n, { kind: 'gift', to: 'the village store' }); // the yearly filling
-    else { // the giver's grain goes in the proportion it holds its crops (VB-347): taken first, then received
-      const parts = {}, fromName = isHousehold(o.from) ? st.farmsteads[o.from.farmstead].name : o.from.name;
+    if (!isHousehold(o.to))
+      Stores.move(st, o.from, o.to, 'grain', o.n, { kind: 'gift', to: 'the village store' }); // the yearly filling
+    else {
+      // the giver's grain goes in the proportion it holds its crops (VB-347): taken first, then received
+      const parts = {},
+        fromName = isHousehold(o.from) ? st.farmsteads[o.from.farmstead].name : o.from.name;
       Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }, parts);
       receive(st, isHousehold(o.from) ? o.from : null, o.to, o.n, fromName, parts);
     }
@@ -81,7 +126,9 @@ VB['sim/exchange'] = (() => {
   // For the panel (VB-218): what giver would give up to receiver (pawn ids) in one deal toward receiver's household, and its parts, as
   // Rules.explain returns them; null unless giver holds a household and receiver lives in another. Reads only; its own context.
   function explainAllowance(st, giver, receiver) {
-    const from = holdingOf(st, giver), h = st.pawns[receiver].household, to = h !== null ? st.households[h] : null;
+    const from = holdingOf(st, giver),
+      h = st.pawns[receiver].household,
+      to = h !== null ? st.households[h] : null;
     if (!from || !to || to === from || to.dissolved) return null;
     return Rules.explain(st, 'allowance', { giver, receiver, from, to });
   }
@@ -90,10 +137,23 @@ VB['sim/exchange'] = (() => {
   // until boats and the house's condition come (VB-300, VB-301, VB-306), so only as a keeping good; ale its worth with an occasion ahead (a
   // wedding, a funeral ale, hosting), half otherwise, and no household has an occasion ahead until occasions come (VB-126, VB-305).
   const ALE = { noOccasion: 0.5 };
-  Rules.contribute({ rule: 'need', source: 'sim/exchange', key: 'tar', label: 'Tar, for a boat or the house due (from VB-301)', range: [0, 0],
-    tunables: [], value: () => 0 });
-  Rules.contribute({ rule: 'need', source: 'sim/exchange', key: 'ale', label: 'Ale, for an occasion ahead (occasions from VB-126)', 
-    tunables: ['ALE.noOccasion'], value: (st, c) => (c.good.id === 'ale' ? ALE.noOccasion * c.n * Culture.norm('worth', 'ale') : 0) });
+  Rules.contribute({
+    rule: 'need',
+    source: 'sim/exchange',
+    key: 'tar',
+    label: 'Tar, for a boat or the house due (from VB-301)',
+    range: [0, 0],
+    tunables: [],
+    value: () => 0,
+  });
+  Rules.contribute({
+    rule: 'need',
+    source: 'sim/exchange',
+    key: 'ale',
+    label: 'Ale, for an occasion ahead (occasions from VB-126)',
+    tunables: ['ALE.noOccasion'],
+    value: (st, c) => (c.good.id === 'ale' ? ALE.noOccasion * c.n * Culture.norm('worth', 'ale') : 0),
+  });
   // A keeping good is worth its customary worth to a taker with no need of it, for the quanta that keep what it holds to pass on within
   // KEEPING.cap rations' worth (one back load; design.md, The fair, Keeping goods).
   const KEEPING = { cap: 30 };
@@ -103,16 +163,21 @@ VB['sim/exchange'] = (() => {
   // worth as one.
   function needValue(st, hh, good, n, kept = 0) {
     const g = Stores.goodOf(good);
-    needCtx.hh = hh; needCtx.good = g; needCtx.n = n; needCtx.kept = kept;
+    needCtx.hh = hh;
+    needCtx.good = g;
+    needCtx.n = n;
+    needCtx.kept = kept;
     const v = Rules.value(st, 'need', needCtx);
     needCtx.hh = null;
     if (!(n > 0) || !g.keeping) return v;
-    const worth = Culture.norm('worth', good), keep = Math.min(n, Math.floor((KEEPING.cap - kept) / worth + 1e-9));
+    const worth = Culture.norm('worth', good),
+      keep = Math.min(n, Math.floor((KEEPING.cap - kept) / worth + 1e-9));
     return keep > 0 ? Math.max(v, keep * worth) : v;
   }
   // What custom calls household hh giving a quantum of `give` for one of `take` (a word of Culture.PROPER): within a class ordinary, food
   // for an animal admired, an animal (a ware) given for food while hh holds fewer than Culture.NORMS.hardBelowDays of its need a hard
   // bargain, land in no deal. A deal is called by the worse of its two sides' words.
-  const propriety = (st, hh, give, take) => Culture.norm('proper', Stores.goodOf(give).class, Stores.goodOf(take).class, daysOfFood(st, hh));
+  const propriety = (st, hh, give, take) =>
+    Culture.norm('proper', Stores.goodOf(give).class, Stores.goodOf(take).class, daysOfFood(st, hh));
   return { assessGift, settleGift, explainAllowance, giftWarning, needValue, propriety, KEEPING, ALE };
 })();

@@ -26,19 +26,25 @@ VB['sim/prospect'] = (() => {
   }
   // A pawn has finished `hours` of work on `tile`: with a hidden vein within reach that its village does not know, it may come on it.
   function worked(st, pawnId, tile, hours) {
-    const w = st.w, vein = tile >= 0 && w.veinNear ? w.veinNear[tile] : 0;
+    const w = st.w,
+      vein = tile >= 0 && w.veinNear ? w.veinNear[tile] : 0;
     if (!vein) return;
-    const p = st.pawns[pawnId]; if (p.household === null) return;
-    const hh = st.households[p.household], v = villageOf(st, p);
+    const p = st.pawns[pawnId];
+    if (p.household === null) return;
+    const hh = st.households[p.household],
+      v = villageOf(st, p);
     // @state st.finds: Map of village id to the vein ids (w.vein) the village has found, in the order found; a village with none has no entry
     let found = st.finds.get(v);
-    if (!found) st.finds.set(v, found = []);
+    if (!found) st.finds.set(v, (found = []));
     if (found.includes(vein) || rnd(st.rng.prospect) >= hours / PROSPECT.hours) return;
     found.push(vein);
     const ore = Geo.DEPOSITS[w.veinKind[vein]].name.toLowerCase();
     st.visualDirty = true;
-    log(st, `${fullName(p)} of ${st.farmsteads[hh.farmstead].name} has come on ${ore} in the hills: ${st.villages[v].name} knows of it now.`,
-      { kind: 'oreFound', pawn: pawnId, ...atHousehold(st, hh) });
+    log(
+      st,
+      `${fullName(p)} of ${st.farmsteads[hh.farmstead].name} has come on ${ore} in the hills: ${st.villages[v].name} knows of it now.`,
+      { kind: 'oreFound', pawn: pawnId, ...atHousehold(st, hh) },
+    );
   }
   return { PROSPECT, knows, known, worked };
 })();
