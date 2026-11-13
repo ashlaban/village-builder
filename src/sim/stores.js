@@ -38,6 +38,8 @@ VB['sim/stores'] = (() => {
   KINDS.push('build');
   // VB-300: a catch hung on the drying rack (sim/drying), out of the rack's store into the larder; VB-119: 'raw', grain eaten uncooked (sim/hunger)
   KINDS.push('drying', 'raw');
+  // VB-287: provisions given to a pawn who sets out on a journey (sim/agents), and what it carried back into its new home's meals
+  KINDS.push('journey');
   ROUTINE.push('drying', 'raw');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;

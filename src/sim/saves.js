@@ -428,6 +428,10 @@ VB['sim/saves'] = (() => {
       st.occasions = [];
       st.occasionSeq = 0;
     } // VB-126: nor occasions, nor their stream
+    if (!st.journeys) {
+      st.journeys = [];
+      st.journeySeq = 0;
+    } // VB-287: nor journeys
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
     if (!st.finds) {
       st.finds = new Map();

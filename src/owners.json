@@ -27,6 +27,8 @@
     "st.offers": "sim/lifecycle",
     "st.offerSeq": "sim/lifecycle",
     "st.occasions": "sim/occasions",
+    "st.journeys": "sim/agents",
+    "st.journeySeq": "sim/agents",
     "st.occasionSeq": "sim/occasions",
     "agent.occasion": "sim/occasions",
     "household.grain": "sim/stores",

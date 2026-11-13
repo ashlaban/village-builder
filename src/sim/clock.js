@@ -10,7 +10,7 @@ VB['sim/clock'] = (() => {
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
   const { shareFood } = VB['sim/help'];
-  const { placeByDoor, release, stepAgents } = VB['sim/agents'];
+  const { placeByDoor, release, stepAgents, travelling, dueJourneys, stopJourneys, feedTravellers } = VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
@@ -112,6 +112,22 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'hour',
+      at: { hour: WORK[0] },
+      when: (st) => st.journeys.length > 0,
+      owner: 'sim/agents',
+      note: "a journey's leg due sets out (VB-287)",
+      run: (st) => dueJourneys(st),
+    },
+    {
+      every: 'hour',
+      at: { hour: WORK[1] },
+      when: (st) => st.journeys.length > 0,
+      owner: 'sim/agents',
+      note: 'those on the road stop where they stand for the night (VB-287)',
+      run: (st) => stopJourneys(st),
+    },
+    {
+      every: 'hour',
       at: { hour: WORK[1] },
       owner: 'sim/agents',
       note: 'the work day ends: everyone free goes home',
@@ -122,6 +138,7 @@ VB['sim/clock'] = (() => {
           if (a.phase === 'back') continue; // finish the delivery first
           if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
           if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
+          if (travelling(a)) continue; // on the road it sleeps where it stopped (VB-287)
           if (a.job && KINDS[a.job.kind].late && (a.phase === 'go' || a.phase === 'work')) continue; // a pot under way is finished (VB-119)
           release(st, a);
           if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
@@ -152,6 +169,13 @@ VB['sim/clock'] = (() => {
           Stores.take(st, hh, 'wood', E.woodUse[c.season], 'burn'); // the day's fire (VB-328: through the stores)
         }
       },
+    },
+    {
+      every: 'day',
+      when: (st) => st.journeys.length > 0,
+      owner: 'sim/agents',
+      note: 'those on the road eat what they carry (VB-287)',
+      run: (st) => feedTravellers(st),
     },
     { every: 'day', owner: 'sim/stores', note: 'the village store spoils too', run: (st) => Stores.villageDay(st) },
     { every: 'day', owner: 'sim/forest', note: 'trees grow', run: (st) => growTrees(st) },

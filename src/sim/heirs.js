@@ -26,7 +26,7 @@ VB['sim/heirs'] = (() => {
     ancestorsOf,
     wishOf,
   } = VB['sim/records'];
-  const { placeAtHome, release, dropJob } = VB['sim/agents'];
+  const { moved, dropJob, journeyOf } = VB['sim/agents'];
   const { farmToVillage } = VB['sim/ownership'];
   const Stores = VB['sim/stores'];
   const { dropStakes } = VB['sim/stakes'];
@@ -226,16 +226,17 @@ VB['sim/heirs'] = (() => {
     };
     return { rank, invalidate };
   }
-  // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle).
-  function moveTo(st, id, hhId, text = null) {
+  // The end of an act's log line for a pawn whose new home lies in another village, so that it set out on a journey (VB-287).
+  const setsOut = (st, id) => (journeyOf(st, id) ? ', and sets out for it' : '');
+  // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle). The pawn walks to its new home, on a
+  // journey when it lies in another village (sim/agents' moved, VB-287); carry false: its provisions come from the new household (settlers).
+  function moveTo(st, id, hhId, text = null, carry = true) {
     const p = st.pawns[id],
       old = p.household !== null ? st.households[p.household] : null;
     leaveHousehold(st, id);
     const hh = st.households[hhId];
     joinHousehold(st, hh, id, false);
-    const a = st.agents[id];
-    release(st, a);
-    placeAtHome(st, a);
+    moved(st, st.agents[id], old, hh, carry);
     if (old && old.farmstead !== hh.farmstead) {
       // on the record as `joined`, beside the event that tells the move itself
       personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, {
@@ -401,11 +402,15 @@ VB['sim/heirs'] = (() => {
             `Went into service at ${st.farmsteads[st.households[target].farmstead].name}`,
             false,
           ); // recorded below
-          log(st, `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}.`, {
-            kind: 'service',
-            pawn: id,
-            ...atHousehold(st, st.households[target]),
-          });
+          log(
+            st,
+            `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}${setsOut(st, id)}.`,
+            {
+              kind: 'service',
+              pawn: id,
+              ...atHousehold(st, st.households[target]),
+            },
+          );
         }
       }
     }

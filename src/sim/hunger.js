@@ -189,9 +189,14 @@ VB['sim/hunger'] = (() => {
   // last step and for what the day lacks, the seed below the reserve (VB-282; the fields it cannot sow go unsown), uncooked too; when that
   // is not enough, what there is goes by the household's feedOrder, in groups served one after the other. Amounts below are in rations of
   // need; grain is taken at rawGrain a ration.
+  // A pawn on a journey (VB-287; sim/agents' phases 'journey' and 'road') eats what it carries, not its household's meal.
+  const onRoad = (st, id) => {
+    const ph = st.agents[id].phase;
+    return ph === 'journey' || ph === 'road';
+  };
   function feedHousehold(st, hh) {
     const E = st.ECON,
-      mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
+      mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null && !onRoad(st, p.id));
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])),
       total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
@@ -231,14 +236,20 @@ VB['sim/hunger'] = (() => {
     }
     let sum = 0;
     for (const p of mem) {
-      p.hungerLog.push(1 - eaten.get(p) / need.get(p));
-      if (p.hungerLog.length > HUNGER.days) p.hungerLog.shift();
-      p.hunger = p.hungerLog.reduce((s, x) => s + x, 0) / HUNGER.days;
+      ate(st, p, eaten.get(p), need.get(p));
       sum += p.hunger;
-      updateHealth(st, p, eaten.get(p) >= need.get(p));
     }
     hh.hunger = mem.length ? sum / mem.length : 0;
   }
+  // The day's meal of pawn p: `eaten` of its `need` rations, into its hunger log, its hunger and its health.
+  function ate(st, p, eaten, need) {
+    p.hungerLog.push(1 - eaten / need);
+    if (p.hungerLog.length > HUNGER.days) p.hungerLog.shift();
+    p.hunger = p.hungerLog.reduce((s, x) => s + x, 0) / HUNGER.days;
+    updateHealth(st, p, eaten >= need);
+  }
+  // A pawn's day's need in rations.
+  const rationOf = (st, p) => (age(st, p) >= 14 ? st.ECON.ration.adult : st.ECON.ration.child);
   // The seed a meal eats (VB-282): taken through the stores with its own reason, and the fields it leaves unsown told once a season at most.
   function eatSeed(st, hh, n) {
     Stores.take(st, hh, 'grain', n, 'seedMeal'); // of each crop as it is held (VB-352 orders it)
@@ -279,6 +290,8 @@ VB['sim/hunger'] = (() => {
     daysOfFood,
     stockWorth,
     feedHousehold,
+    ate,
+    rationOf,
     feedGroups,
     servedLast,
     dailyNeed,

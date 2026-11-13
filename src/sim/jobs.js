@@ -4,7 +4,8 @@ VB['sim/jobs'] = (() => {
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot } = VB['sim/agents'];
+  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot, travelling } =
+    VB['sim/agents'];
   const { companyFor } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
@@ -45,7 +46,7 @@ VB['sim/jobs'] = (() => {
       for (const id of hh.members) {
         const p = st.pawns[id],
           pr = ROLES[p.role].prio.cook || 0;
-        if (p.died === null && pr > top && !unplanned(st, id)) {
+        if (p.died === null && pr > top && !unplanned(st, id) && !travelling(st.agents[id])) {
           best = st.agents[id];
           top = pr;
         }
