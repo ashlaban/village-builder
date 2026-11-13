@@ -18,7 +18,8 @@ VB['sim/plans'] = (() => {
   const { reviewWant } = VB['sim/exchange'];
   const { buildStep } = VB['sim/building'];
   const Green = VB['sim/green'],
-    Workdays = VB['sim/workdays'];
+    Workdays = VB['sim/workdays'],
+    Commons = VB['sim/commons'];
   const { heldFarms } = VB['sim/ownership'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
@@ -344,6 +345,16 @@ VB['sim/plans'] = (() => {
       available: (st, v) => Workdays.wanted(st, v),
       need: (st, v) => Green.houses(st, v).length,
     }),
+    // a common field (VB-100; Kim, 10 Nov): while the village has common fields to work, one under way, or would make one (sim/commons:
+    // three or more farms, its store short, meadow near the green); weighed, as the green, by its farms. Set only by a meeting. Its jobs
+    // are posted by one shared rule (sim/kinds' commonWork), which asks the routine itself
+    commons: Object.freeze({
+      label: 'A common field for the village store',
+      meeting: true,
+      kinds: Object.freeze([]),
+      available: (st, v) => Commons.available(st, v),
+      need: (st, v) => Green.houses(st, v).length,
+    }),
   });
   const MAX_ROUTINES = 4;
   // The routines chosen from candidates [[need, key]], most needed first and in their order of declaration between equals: at most
@@ -360,7 +371,7 @@ VB['sim/plans'] = (() => {
     const cands = [];
     for (const k of Object.keys(VILLAGE_ROUTINES)) {
       const R = VILLAGE_ROUTINES[k];
-      if (R.available(st, v) && !(founders && R.meeting)) cands.push([R.need(st, v), k]);
+      if (!(founders && R.meeting) && R.available(st, v)) cands.push([R.need(st, v), k]);
     }
     return rankRoutines(cands);
   }
@@ -519,7 +530,7 @@ VB['sim/plans'] = (() => {
       v.id,
       list ||
         Object.keys(VILLAGE_ROUTINES)
-          .filter((k) => VILLAGE_ROUTINES[k].available(st, v) && !VILLAGE_ROUTINES[k].meeting)
+          .filter((k) => !VILLAGE_ROUTINES[k].meeting && VILLAGE_ROUTINES[k].available(st, v))
           .slice(0, MAX_ROUTINES),
       'founded',
     );
@@ -610,6 +621,7 @@ VB['sim/plans'] = (() => {
     plan.dirty = false; // lint-allow: owner the review has read the stores whose crossing sim/stores flagged
     if (plan.holder.type !== 'household') {
       greenStep(st, plan);
+      commonsStep(st, plan);
       return;
     }
     const hh = st.households[plan.holder.id],
@@ -632,6 +644,18 @@ VB['sim/plans'] = (() => {
     if (!p) return;
     const made = makeProject(st, 'village', v.id, p);
     if (made) Green.laidOut(st, v, made);
+  }
+  // A village's review while its routines hold the commons (VB-100): a common field's project plan is made where the village would make
+  // one (sim/commons), and the village store holds back the seed of its common fields not yet sown.
+  function commonsStep(st, plan) {
+    if (!plan.routines.includes('commons')) return;
+    const v = st.villages[plan.holder.id],
+      p = Commons.project(st, v);
+    if (p) {
+      const made = makeProject(st, 'village', v.id, p);
+      if (made) Commons.begun(st, v, made);
+    }
+    if (Commons.fieldsOf(v).length) Stores.reserve(st, v, plan, SEED, seedNeed(st, v, SEED_CROP), 'seed');
   }
   // The land step (at each review of a household's plan): a new field while the household has fewer than the plan's target, else a hay
   // meadow while it is short of one; the tile is the holder's choice (chooseTile, chooseMeadow) unless the plan names one.

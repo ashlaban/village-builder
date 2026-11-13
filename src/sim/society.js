@@ -23,6 +23,7 @@ VB['sim/society'] = (() => {
   const { on } = VB['sim/events'],
     { aleStanding } = VB['sim/stores'];
   const { heirRanking, ownFirstOf } = VB['sim/heirs'];
+  const { helpLean } = VB['sim/commons'];
   // The lookups Culture's functions take (VB-073): built from st on each call, so nothing in st.cenv is a function.
   function hooks(st) {
     const env = st.cenv;
@@ -240,6 +241,12 @@ VB['sim/society'] = (() => {
       const gr = p.household !== null ? st.households[p.household].grievance : null;
       if (gr && st.t < gr.until && p.age >= 16)
         set('dispute', Object.fromEntries(gr.rules.map((r) => [r, 1 / gr.rules.length])));
+      // the commons (VB-100; Kim, 10 Nov): help its household was given leans a person towards the next higher option than its village's
+      const hl = helpLean(st, p, settlementIdOf(st, p));
+      if (hl) {
+        const o = O[I.commons];
+        for (let j = 0; j < Culture.NOPT[I.commons]; j++) it[o + j] = it[o + j] * (1 - hl.w) + (j === hl.to ? hl.w : 0);
+      }
       p.interest = it;
     }
   }

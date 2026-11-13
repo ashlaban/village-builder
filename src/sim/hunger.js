@@ -16,16 +16,18 @@ VB['sim/hunger'] = (() => {
   // field's seed itself (sim/projects, VB-123). Only the day's meal reaches below the seed, and only when the day would otherwise fall short
   // (feedHousehold; Kim, 10 November: the hungry household eats its seed). By crop (VB-347): the fields that bear or last bore it (their
   // next crop, until rotations choose it, VB-350); without one, every field of a sown crop (not fallow, VB-348).
+  // A village's (VB-100): its common fields', a crop's seed each.
   function seedNeed(st, hh, crop) {
-    const f = st.farmsteads[hh.farmstead];
+    const village = !('farmstead' in hh),
+      fields = village ? hh.commonFields || [] : st.farmsteads[hh.farmstead].fields;
     let n = 0;
-    for (const fd of f.fields)
+    for (const fd of fields)
       if (
         (fd.stage === 'stubble' || fd.stage === 'plowed') &&
         (crop === undefined ? CROPS[fd.crop].seed > 0 : fd.crop === crop)
       )
         n++;
-    return n * seedPer(st, hh);
+    return n * (village ? CROPS.barley.seed : seedPer(st, hh));
   }
   Stores.follow('seed', seedNeed);
   const { reserved, grainOf } = Stores;

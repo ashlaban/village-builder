@@ -15,7 +15,8 @@
   "walkTies": 0.3322222222222222,
   "tiePairs": 2.7222222222222223,
   "roundPairs": 0.0022222222222222222,
-  "heirRank": 0.02666666666666667,
+  "roundWalk": 0.06526019690576652,
+  "heirRank": 0.020253164556962026,
   "storeWalk": 0.06666666666666667,
   "recordFold": 0,
   "ruleValue": 1.0755555555555556,
@@ -38,9 +39,9 @@
   "digGround": 2.8144444444444443,
   "cowSeek": 0.1305,
   "pastureTiles": 37.46888888888889,
+  "roundRank": 0.020253164556962026,
   "deerGround": 10.574402250351618,
   "frontTile": 0,
   "deerCrop": 0,
-  "workdayHolders": 0,
-  "roundRank": 0.02666666666666667
+  "workdayHolders": 0
 }

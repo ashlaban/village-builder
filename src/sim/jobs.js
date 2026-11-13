@@ -24,6 +24,7 @@ VB['sim/jobs'] = (() => {
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
+  const { commonPrio } = VB['sim/commons'];
   const { trustOf, heldFarms } = VB['sim/ownership'];
   const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks, openOf } =
     VB['sim/plans'];
@@ -253,9 +254,16 @@ VB['sim/jobs'] = (() => {
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours. A job that k pawns already
   // work gets join^k of the bid (VB-102).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
-  // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), else by role and kind.
+  // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), by the village's custom on a common field (sim/commons,
+  // VB-100), else by role and kind.
   const prioOf = (st, p, j) =>
-    j.plot ? plotPrio(st, p) : j.claim ? claimPrio(st, p, j) : ROLES[p.role].prio[j.kind] || 0;
+    j.plot
+      ? plotPrio(st, p)
+      : j.claim
+        ? claimPrio(st, p, j)
+        : j.common
+          ? commonPrio(st, p, j)
+          : ROLES[p.role].prio[j.kind] || 0;
   // The join factor for n hands already at job j: MATCH.join ** n, or 1 for a kind worked all together (VB-120: a work day).
   const joined = (j, n) => (KINDS[j.kind].together ? 1 : MATCH.join ** n);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
