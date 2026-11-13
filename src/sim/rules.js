@@ -45,9 +45,9 @@ VB['sim/rules'] = (() => {
     startWood: 16,
     fenceDecay: [0.012, 0.01, 0.014, 0.03],
     fenceMendBelow: 0.65,
-    weedEvery: 6,
-    weedCut: 0.08,
-    weedCutMax: 0.4, // a growing field wants weeding every 6 days; each missed job cuts the yield
+    weedDays: [6, 15],
+    weedCut: 0.2,
+    weedCutMax: 0.4, // a growing field is weeded in rounds, each falling due this many days after sowing; each missed round cuts the yield
     // grain in store spoils (mice, damp, mould; balance review): a share a year of the grain up to a year's need, of the next year's worth, and of
     // the rest; the FAO puts losses in traditional stores at about 5% a year, and up to 20% where rats are many
     storeLoss: [0.05, 0.2, 0.4],
@@ -74,10 +74,11 @@ VB['sim/rules'] = (() => {
       sow: [0, 0, 9],
       ripe: 26,
       wear: 0.08,
-      hours: { plow: 20, sow: 2, weed: 2, reap: 15, thresh: 20 },
+      weeds: 2,
+      hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
     },
     // winter rye (VB-348): sown in autumn days 1 to 6, it stands the winter and the frost (winter), and is ripe in summer days 7 to 12; a
-    // ripe field still standing on `lost` [season, day] is lost; weeds: the rounds of weeding it gets (barley: every ECON.weedEvery days)
+    // ripe field still standing on `lost` [season, day] is lost; weeds: the rounds of weeding it gets (barley 2, at ECON.weedDays)
     rye: {
       yield: 100,
       seed: 25,

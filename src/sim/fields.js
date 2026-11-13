@@ -175,7 +175,7 @@ VB['sim/fields'] = (() => {
   // @state farmstead.fields[]: crop (a key of CROPS, sim/rules: a crop, or the course fallow, VB-348), stage, sown/reaped days, held sheaves and
   // weeding progress; changed only here after seeding.
   //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
-  //   weeds: absent, or the rounds of weeding posted since sowing, for a crop with a number of rounds (CROPS weeds: rye; VB-348)
+  //   weeds: absent, or the rounds of weeding posted since sowing (CROPS weeds; VB-334, VB-348)
   //   rest: absent, or a fallow field's rest this year (VB-348): 0.5 once it stood fallow at the summer's start, 1 once tilled; credited
   //   to the soil at the year's end, whatever the field bears by then (rye is sown on it in autumn)
   // A stubble field hoed for its crop; a fallow field (the course, not the stage) is tilled and stays in stubble.
@@ -201,6 +201,7 @@ VB['sim/fields'] = (() => {
   };
   function reaped(st, fd, c) {
     const E = st.ECON;
+    if (fd.weedOpen) fd.weedMiss++;
     fd.stage = 'stooks';
     fd.reaped = c.day;
     fd.held = Math.round(
@@ -299,21 +300,17 @@ VB['sim/fields'] = (() => {
         else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
         lostRipe(st, f, fd, c);
       }
-    // upkeep: a growing field wants weeding every E.weedEvery days, or its crop's rounds (weeds) only; a job still open when the next falls
-    // due, or E.weedEvery days after the last round, counts as missed
+    // upkeep: a growing field wants its crop's rounds of weeding (CROPS weeds), the next falling due E.weedDays[round] days after sowing; a
+    // round still open when the next falls due, or at ripening (reaped), counts as missed
     for (const f of st.farmsteads)
       for (const fd of f.fields) {
         if (f.household === null || fd.stage !== 'growing') continue;
-        if (fd.weedPosted !== null && day - fd.weedPosted < E.weedEvery) continue;
+        const n = fd.weeds || 0;
+        if (n >= CROPS[fd.crop].weeds || day - fd.sown < E.weedDays[n]) continue;
         if (fd.weedOpen) fd.weedMiss++;
-        const R = CROPS[fd.crop].weeds;
-        if (R !== undefined && (fd.weeds || 0) >= R) {
-          fd.weedOpen = false;
-          continue;
-        }
         fd.weedOpen = true;
         fd.weedPosted = day;
-        if (R !== undefined) fd.weeds = (fd.weeds || 0) + 1;
+        fd.weeds = n + 1;
       }
     rest(st, c);
     // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
