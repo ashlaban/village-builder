@@ -1,9 +1,10 @@
-// @sys sim/dig: digging clay and bog iron (VB-359): the loads a deposit tile has left, bog iron growing back, and a household's digging ground
-// What shows at the surface and needs no facility is dug: clay and bog iron. The hidden ores, peat, flint, amber and salt wait for their goods
-// (design.md, Goods of place and side crafts, In the ground). The loads go into the household's store (sim/stores dig) and nothing uses them
-// until slice 6 (VB-185), so a household digs in its slack, and only up to DIG.stock loads of each.
+// @sys sim/dig: digging clay, bog iron and peat (VB-359, VB-367): the loads a deposit tile has left, bog iron growing back, and a household's digging ground
+// What shows at the surface and needs no facility is dug: clay, bog iron and peat. The hidden ores, flint, amber and salt wait for their goods
+// (design.md, Goods of place and side crafts, In the ground). The loads go into the household's store (sim/stores dig) and nothing uses clay
+// and bog iron until slice 6 (VB-185), so a household digs those in its slack, and only up to DIG.stock loads of each. Peat is fuel (VB-367):
+// cut in summer into the peat stack, where it dries, and burnt in place of wood (sim/hunger warmHouse); it never grows back.
 VB['sim/dig'] = (() => {
-  const { YEAR_DAYS, DAY } = VB['sim/rules'];
+  const { YEAR_DAYS, DAY, PEAT, cal } = VB['sim/rules'];
   const Geo = VB['gen/geology'],
     { DEPOSIT, ENDLESS } = Geo;
   const { bfs } = VB['sim/hex'],
@@ -15,8 +16,8 @@ VB['sim/dig'] = (() => {
   // urgency, the job's weight in a bid (MATCH.urgency's scale): the house's upkeep's, so that it is done in the household's slack.
   const DIG = { hours: 3, reach: 12, stock: 4, regrow: 1, urgency: 0.5 };
   // The goods dug, by deposit: the household's store (hh[good]) and the ledger's good.
-  const GOODS = { [DEPOSIT.CLAY]: 'clay', [DEPOSIT.BOG_IRON]: 'bogOre' };
-  const DUG = Object.values(GOODS);
+  const GOODS = { [DEPOSIT.CLAY]: 'clay', [DEPOSIT.BOG_IRON]: 'bogOre', [DEPOSIT.PEAT]: 'peat' };
+  const DUG = Object.values(GOODS); // peat last
   const goodOf = (w, i) => (w.deposit ? GOODS[w.deposit[i]] || null : null); // a world made without the ground layers has nothing to dig
   const today = (st) => Math.floor(st.t / DAY);
   // @state w.depositFull: Uint16Array per tile; the loads the tile's deposit began with (gen/geology's amount), set at its first digging,
@@ -56,8 +57,17 @@ VB['sim/dig'] = (() => {
     return o === 0 || o === hh.id + 1 || isOutland(st, t, f.village);
   };
   const diggable = (st, hh, f, t, good) => goodOf(st.w, t) === good && left(st, t) > 0 && mayDig(st, hh, f, t);
-  // The goods the household still wants: those it holds fewer than DIG.stock loads of.
-  const wants = (hh, good) => (hh[good] || 0) < DIG.stock;
+  // The trips of peat the household still wants (VB-367): in summer, the shortfall of its fuel pile (wood and peat at PEAT.worth, all
+  // peat held, wet or dry) against the winter's goal, in the trips that would fill it; 0 otherwise.
+  function peatTrips(st, hh) {
+    const c = cal(st.t),
+      plan = st.plans.households.get(hh.id);
+    if (c.season !== 1 || !plan) return 0;
+    const short = plan.targets.wood[1] - (hh.wood - Stores.reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0));
+    return short > 1e-9 ? Math.ceil(short / (PEAT.worth * st.ECON.woodPerTrip)) : 0;
+  }
+  // The goods the household still wants: clay and bog iron while it holds fewer than DIG.stock loads of them; peat while it is short of fuel.
+  const wants = (st, hh, good) => (good === 'peat' ? peatTrips(st, hh) > 0 : (hh[good] || 0) < DIG.stock);
   // @state household.digAt: {house, year, clay, bogOre} or undefined: the household's digging ground, searched from its house in the game
   //   year named, for each good the nearest tile it may dig within DIG.reach walking steps (-1 with none). Searched when the want opens and
   //   kept (rule 4): again only for a new house, a new year with a good not found, or a tile no longer to be dug.
@@ -67,6 +77,9 @@ VB['sim/dig'] = (() => {
       at = { house: f.house, year: Math.floor(today(st) / YEAR_DAYS) };
     VB.count.digGround += dist.size;
     for (const good of DUG) at[good] = -1;
+    // the village's wood is far when none of it lies within PEAT.far steps of the house (VB-367)
+    const wood = st.villages[f.village].wood || [];
+    at.far = !wood.some((t) => dist.has(t) && dist.get(t) <= PEAT.far);
     for (const t of dist.keys()) {
       const good = goodOf(w, t);
       if (good && at[good] < 0 && diggable(st, hh, f, t, good)) at[good] = t;
@@ -76,16 +89,21 @@ VB['sim/dig'] = (() => {
   }
   // The tile the household would dig next, and its good, or null: the good it holds fewer loads of among those it wants and has in reach.
   function digSite(st, hh, f) {
-    if (!DUG.some((g) => wants(hh, g))) return null;
+    const want = DUG.filter((g) => wants(st, hh, g));
+    if (!want.length) return null;
     let at = hh.digAt;
     const year = Math.floor(today(st) / YEAR_DAYS);
     const stale =
       !at ||
       at.house !== f.house ||
-      DUG.some((g) => wants(hh, g) && (at[g] >= 0 ? !diggable(st, hh, f, at[g], g) : at.year !== year));
+      want.some((g) => (at[g] >= 0 ? !diggable(st, hh, f, at[g], g) : at.year !== year)) ||
+      (want.includes('peat') && at.year !== year); // far is read again a year on
     if (stale) at = search(st, hh, f);
+    // peat first, when the wood is far or summer is ending; else the good it holds fewest loads of
+    if (want.includes('peat') && at.peat >= 0 && (at.far || cal(st.t).sday >= PEAT.late))
+      return { tile: at.peat, good: 'peat' };
     let best = null;
-    for (const g of DUG) if (wants(hh, g) && at[g] >= 0 && (!best || (hh[g] || 0) < (hh[best] || 0))) best = g;
+    for (const g of want) if (g !== 'peat' && at[g] >= 0 && (!best || (hh[g] || 0) < (hh[best] || 0))) best = g;
     return best ? { tile: at[best], good: best } : null;
   }
   // The job kind (sim/kinds registers it as KINDS.dig; its fields are described there): a load a trip, carried home, in the slack.
@@ -93,7 +111,7 @@ VB['sim/dig'] = (() => {
     verb: 'Digging',
     go: 'Going to dig',
     back: 'Carrying the load home',
-    name: 'Dig clay or bog iron',
+    name: 'Dig clay, bog iron or peat',
     label: 'Digging',
     anim: 'hoe',
     hours: DIG.hours,
@@ -102,10 +120,20 @@ VB['sim/dig'] = (() => {
     carry: 'basket',
     to: 'door',
     spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.4],
-    urgency: () => DIG.urgency,
-    // the load: the tile falls by one, the store rises by what it gave (none if the tile was spent meanwhile, or the stock is full)
+    // peat weighs the pile's shortfall of its goal, as the firewood does, but never less than the upkeep's
+    urgency: (st, j) => {
+      if (j.good !== 'peat') return DIG.urgency;
+      const hh = st.households[j.farm.household],
+        goal = st.plans.households.get(hh.id).targets.wood[1],
+        free = hh.wood - Stores.reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
+      return Math.max(DIG.urgency, (goal - free) / goal);
+    },
+    // the load: the tile falls by one, the store rises by what it gave (none if the tile was spent meanwhile, or the stock is full); a trip
+    // of peat brings ECON.woodPerTrip units, as a firewood trip does
     deliver: (st, j, hh) => {
-      if (wants(hh, j.good) && digLoad(st, j.site)) Stores.dug(st, hh, j.good, 1);
+      if (wants(st, hh, j.good) && digLoad(st, j.site)) {
+        Stores.dug(st, hh, j.good, j.good === 'peat' ? st.ECON.woodPerTrip : 1);
+      }
     },
     // the household's digging ground: the nearest tile within reach of the good it holds fewest loads of, while it wants one
     available: (st, hh, f, c, post) => {

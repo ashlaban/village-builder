@@ -1,7 +1,7 @@
 // @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health;
 // the need rule (VB-299) and its food term
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS, PEAT } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'];
@@ -255,7 +255,13 @@ VB['sim/hunger'] = (() => {
     const use = st.ECON.woodUse,
       want = use[season],
       burnt = Stores.take(st, hh, 'wood', want, 'burn'); // the day's fire, what the pile holds of it (VB-328: through the stores)
-    const day = want - burnt > 1e-9 ? (want - burnt) / use[3] : 0;
+    let lack = want - burnt;
+    if (lack > 1e-9 && hh.peat > 0) {
+      // then dry peat (VB-367): a unit burns as PEAT.worth of wood
+      const dry = Stores.peatDry(st, hh);
+      if (dry > 0) lack -= Stores.take(st, hh, 'peat', Math.min(dry, lack / PEAT.worth), 'burn') * PEAT.worth;
+    }
+    const day = lack > 1e-9 ? lack / use[3] : 0;
     if (day > 0 || hh.cold > 0) {
       hh.coldLog.push(day);
       if (hh.coldLog.length > HUNGER.days) hh.coldLog.shift();

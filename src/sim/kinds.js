@@ -2,7 +2,7 @@
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
-  const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition } = VB['sim/rules'],
+  const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition, PEAT } = VB['sim/rules'],
     Carts = VB['sim/carts'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
@@ -46,6 +46,8 @@ VB['sim/kinds'] = (() => {
   //   late: a job of the kind under way, its worker walking there or at work, is finished after the end of work (VB-119: the cook).
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
+  // The fuel pile in wood loads: the woodpile less what a project plan holds back, and the peat held at PEAT.worth (VB-367).
+  const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
   // Several hands on one field start on different rows: the nth worker on row -12 + 6n, five rows across the tile.
   const firstRow = (j, a) => -12 + 6 * (Math.max(0, j.claims.indexOf(a.id)) % 5);
@@ -261,7 +263,7 @@ VB['sim/kinds'] = (() => {
       urgency: (st, j, c, U) => {
         const hh = st.households[j.farm.household];
         if (hh.cold > 0) return U.woodColdUrgency;
-        const free = hh.wood - reserved(st, hh, 'wood'); // what a project plan holds back is not for the fire (VB-123)
+        const free = fuelFree(st, hh); // what a project plan holds back is not for the fire (VB-123)
         if (free < U.woodLow) return U.woodLowUrgency;
         const goal = woodTargets(st, hh).wood[c.season];
         return (goal - free) / goal + (c.season === 2 ? U.woodSummer : 0);
@@ -275,14 +277,13 @@ VB['sim/kinds'] = (() => {
         }
       },
       stack: (st, j, hh, c, load) =>
-        hh.wood - reserved(st, hh, 'wood') + st.ECON.woodPerTrip * Carts.loads({ load }) <
-        woodTargets(st, hh).wood[c.season],
+        fuelFree(st, hh) + st.ECON.woodPerTrip * Carts.loads({ load }) < woodTargets(st, hh).wood[c.season],
       draw: (st, j) => drawWood(st, st.villages[j.farm.village]),
       // while the village has a wood and the pile's free wood (VB-123) is below the plan's goal for the season; a second job below its woodSecond
       available: (st, hh, f, c, post) => {
         const wood = st.villages[f.village].wood,
           T = woodTargets(st, hh),
-          free = hh.wood - reserved(st, hh, 'wood');
+          free = fuelFree(st, hh);
         if (wood.length && free < T.wood[c.season]) {
           post(`wood:h${hh.id}`, wood[0], { farm: f });
           if (free < T.woodSecond) post(`wood:h${hh.id}b`, wood[0], { farm: f });
