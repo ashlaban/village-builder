@@ -65,6 +65,8 @@ const QUANTITIES = [
     none: 'stalled animals go unfed: they grow lean and, after HERD.starveDays, the weakest die (sim/byre); the autumn count culls to the hay (sim/byre)' },
   { id: 'manure', of: 'household', name: 'the manure heap', unit: 'loads', fields: ['household.manure'], kinds: ['manure'],
     none: 'fields are not manured: their soil is not raised (sim/fields)' },
+  { id: 'wool', of: 'household', name: 'fleeces', unit: 'fleeces', fields: ['household.wool'], kinds: [],
+    none: 'nothing yet: fleeces only accumulate until the winter crafts spin them (VB-121, VB-362)' },
   { id: 'water', of: 'household', name: 'the day\'s water', unit: 'a day\'s (fetched or not)', fields: ['household.waterDay'],
     kinds: ['water'],
     none: 'nothing: a day without water costs nothing (VB-331)' },

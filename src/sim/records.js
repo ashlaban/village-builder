@@ -353,6 +353,7 @@ VB['sim/records'] = (() => {
       poured: [],
       milkDay: -1,
       manure: 0,
+      wool: 0,
       spoilt: 0,
     };
     if (R.liveHouseholds) R.liveHouseholds.push(id);

@@ -5590,6 +5590,12 @@ VB['sim/rules'] = (() => {
     leanMax: 0.4,
     butter: 0.4,
     butterDays: 48,
+    // ewes' milk and wool (VB-144; Walter of Henley): a ewe that lambed this spring gives eweMilk rations a day from turn-out to the end of
+    // summer (day `eweEnd`, a doy), eweHours more milking hours a ewe; each sheep of a year or more gives a fleece on summer day 1 (doy `shear`)
+    eweMilk: 0.05,
+    eweHours: 0.03,
+    eweEnd: 24,
+    shear: 12,
     // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
     team: { oxen: 2, kinds: ['plow', 'break'], rate: 5 },
     // a cow wanted (VB-390; sim/exchange): a household of `hands` working hands or more that holds a meadow and no cattle wants one
@@ -8646,6 +8652,7 @@ VB['sim/records'] = (() => {
       poured: [],
       milkDay: -1,
       manure: 0,
+      wool: 0,
       spoilt: 0,
     };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
@@ -10795,7 +10802,8 @@ VB['sim/herds'] = (() => {
   const { walkable } = VB['sim/routes'];
   const { emit } = VB['sim/events'];
   // @state st.herds[]: {id, species 'cattle'|'sheep', household, home (tile where it grazes by the farm), head[] (cattle), ewes, rams, lambs
-  //   (sheep), cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
+  //   (sheep), lambed (ewes lambed this spring; VB-144),
+  //   cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
   //   fodder since the count), unfed (stall days running without full hay) (sim/byre), herder (the pawn the herds are out with, from
   //   taking them to pasture until it is home again, or null: by the farm; VB-136), herded (the game day a herder last took them out, -1
   //   never; VB-136)}; id = index, never reused; a herd emptied by a dissolved household is kept with household null (sim/herds)
@@ -10896,6 +10904,7 @@ VB['sim/herds'] = (() => {
       herd.ewes = 0;
       herd.rams = 0;
       herd.lambs = 0;
+      herd.lambed = 0;
     }
     st.herds.push(herd);
     hh.herds.push(herd.id);
@@ -11023,10 +11032,12 @@ VB['sim/herds'] = (() => {
           emit(st, 'bullLent', { borrower: hh.holder, lender: other.holder });
         }
       } else {
+        herd.lambed = 0;
         if (!herd.ewes || !(herd.rams > 0 || ramNear(st, house))) continue;
         let lambs = 0;
         for (let e = 0; e < herd.ewes; e++) {
           if (rnd(st.rng.herds) >= HERD.lamb) continue;
+          herd.lambed++; // in milk this summer, whether or not the lamb lives
           const n = rnd(st.rng.herds) < HERD.twins ? 2 : 1;
           for (let k = 0; k < n; k++) if (rnd(st.rng.herds) >= HERD.lambDeath) lambs++;
         }
@@ -14866,7 +14877,7 @@ VB['sim/byre'] = (() => {
     let cows = 0;
     for (const herd of herdsOf(st, hh)) {
       cows +=
-        inMilk(st, herd, c).length *
+        (inMilk(st, herd, c).length + inMilkEwes(st, herd, c) * (HERD.eweMilk / HERD.milk)) *
         (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean)) *
         (unherded(st, herd, c) ? HERD.herding.milk : 1);
     }
@@ -15005,6 +15016,18 @@ VB['sim/byre'] = (() => {
       emergency(st, hh, c);
     }
   }
+  // Ewes in milk now (VB-144): those that lambed this spring, from turn-out to the end of summer.
+  const inMilkEwes = (st, herd, c) =>
+    herd.species !== 'sheep' || stalled(c) || c.doy >= HERD.eweEnd ? 0 : Math.min(herd.lambed || 0, herd.ewes);
+  const milkEwes = (st, hh, c) => herdsOf(st, hh).reduce((s, hd) => s + inMilkEwes(st, hd, c), 0);
+  // Summer day 1 (VB-144): each sheep of a year or more gives a fleece. Spinning and weaving wait for the winter crafts, so wool accumulates.
+  function shearing(st) {
+    for (const hd of st.herds) {
+      if (hd.household === null || hd.species !== 'sheep' || !(hd.ewes + hd.rams > 0)) continue;
+      const hh = st.households[hd.household];
+      hh.wool = (hh.wool || 0) + hd.ewes + hd.rams;
+    }
+  }
   // Fed and mucked out: the day's dung goes on the heap (VB-137).
   function fodderDone(st, hh, c) {
     hh.fodderDay = c.day;
@@ -15041,8 +15064,15 @@ VB['sim/byre'] = (() => {
     const meat = hh.larder.length ? larderOf(hh, 'meat') : 0;
     if (meat > 0) out.push([`salt:h${hh.id}`, 'salt', { hours: Math.max(1, meat / HERD.saltPerHour) }]);
     // milking from 6:00 while the herds are out (VB-135); the cows in milk are counted only then (no cow is in milk in the byre, VB-227)
-    const cows = hh.milkDay !== c.day && c.hour >= WORK[0] && !stalled(c) ? milkCows(st, hh, c) : 0;
-    if (cows) out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
+    const due = hh.milkDay !== c.day && c.hour >= WORK[0] && !stalled(c),
+      cows = due ? milkCows(st, hh, c) : 0,
+      ewes = due ? milkEwes(st, hh, c) : 0;
+    if (cows || ewes)
+      out.push([
+        `milk:h${hh.id}:${c.day}`,
+        'milk',
+        { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows + HERD.eweHours * ewes },
+      ]);
     return out;
   }
   // The autumn count of every household with herds (sim/clock, CALENDAR, on HERD.countDay).
@@ -15065,7 +15095,6 @@ VB['sim/byre'] = (() => {
   }
   return {
     spoilHay,
-    stallLeft,
     autumnCounts,
     strays,
     stray,
@@ -15078,7 +15107,8 @@ VB['sim/byre'] = (() => {
     milkDone,
     fodderDone,
     byreDay,
-    fodderHours,
+    milkEwes,
+    shearing,
     byreJobs,
   };
 })();
@@ -24898,7 +24928,8 @@ VB['sim/scenarios'] = (() => {
     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter'|'dried fish' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fresh[] ({food 'fish'|'gathered' (rules FOODS held 'fresh'), day, qty (units)}: fresh food in batches by day; sim/pot, VB-119),
     //   fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
-    //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
+    //   manure (loads on the heap by the byre; VB-137), wool (fleeces shorn, summer day 1; VB-144),
+    //   spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, line, state, condition, condAt, grade,
     //   tarredUntil, emptySince}
     //   house is a tile index (the field or meadow in the making is its household's project plan, st.plans.projects, and an empty farm's
@@ -25108,7 +25139,7 @@ VB['sim/clock'] = (() => {
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
-  const { byreDay, autumnCounts, strays } = VB['sim/byre'];
+  const { byreDay, autumnCounts, strays, shearing } = VB['sim/byre'];
   const { herdsBack, halveGraze } = VB['sim/grazing'];
   const { recount, deerGraze, browseCrops } = VB['sim/deer'];
   const { lapseClaims } = VB['sim/claims'];
@@ -25341,6 +25372,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/herds',
       note: 'spring: the animals age, die, calve and lamb',
       run: (st) => spring(st),
+    },
+    {
+      every: 'year',
+      at: { doy: HERD.shear },
+      owner: 'sim/byre',
+      note: 'summer day 1: the sheep are shorn',
+      run: (st) => shearing(st),
     },
     { every: 'year', owner: 'sim/meadows', note: 'the meadows are grass again', run: (st) => meadowsSpring(st) },
     {
@@ -26069,6 +26107,7 @@ VB['sim/saves'] = (() => {
         hh.bogOre = 0;
       } // VB-359: nor dug loads
     for (const hh of st.households) if (hh.peat === undefined) hh.peat = 0; // VB-367: nor peat
+    for (const hh of st.households) if (hh.wool === undefined) hh.wool = 0; // VB-144: nor fleeces
     for (const hh of st.households)
       if (hh.rack === undefined) {
         hh.rack = 0;
@@ -31954,6 +31993,7 @@ function renderSettlers() {
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
           <p>Firewood ${Math.round(hh.wood)} loads${hh.cold > 0 ? ', cold: no firewood' : ''}; stone ${hh.stone} loads.</p>
           <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads; peat ${hh.peat || 0} units.</p>
+          <p>Wool ${Math.round(hh.wool || 0)} fleeces, unspun.</p>
           <p>Dried fish ${Math.round(Sim.larderOf(hh, 'dried fish'))} rations${hh.rack >= 0.5 ? `; ${Math.round(hh.rack)} fresh by the rack` : ''}${
             hh.boat ? '; a fishing boat on the shore' : ''
           }.</p>
@@ -37365,7 +37405,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '66ff429d61',
+const BUILD = 'c938af7d16',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

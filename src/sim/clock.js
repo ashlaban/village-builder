@@ -31,7 +31,7 @@ VB['sim/clock'] = (() => {
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
-  const { byreDay, autumnCounts, strays } = VB['sim/byre'];
+  const { byreDay, autumnCounts, strays, shearing } = VB['sim/byre'];
   const { herdsBack, halveGraze } = VB['sim/grazing'];
   const { recount, deerGraze, browseCrops } = VB['sim/deer'];
   const { lapseClaims } = VB['sim/claims'];
@@ -264,6 +264,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/herds',
       note: 'spring: the animals age, die, calve and lamb',
       run: (st) => spring(st),
+    },
+    {
+      every: 'year',
+      at: { doy: HERD.shear },
+      owner: 'sim/byre',
+      note: 'summer day 1: the sheep are shorn',
+      run: (st) => shearing(st),
     },
     { every: 'year', owner: 'sim/meadows', note: 'the meadows are grass again', run: (st) => meadowsSpring(st) },
     {

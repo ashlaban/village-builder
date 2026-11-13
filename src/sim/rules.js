@@ -495,6 +495,12 @@ VB['sim/rules'] = (() => {
     leanMax: 0.4,
     butter: 0.4,
     butterDays: 48,
+    // ewes' milk and wool (VB-144; Walter of Henley): a ewe that lambed this spring gives eweMilk rations a day from turn-out to the end of
+    // summer (day `eweEnd`, a doy), eweHours more milking hours a ewe; each sheep of a year or more gives a fleece on summer day 1 (doy `shear`)
+    eweMilk: 0.05,
+    eweHours: 0.03,
+    eweEnd: 24,
+    shear: 12,
     // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
     team: { oxen: 2, kinds: ['plow', 'break'], rate: 5 },
     // a cow wanted (VB-390; sim/exchange): a household of `hands` working hands or more that holds a meadow and no cattle wants one

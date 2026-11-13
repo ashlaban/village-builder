@@ -397,6 +397,7 @@ VB['sim/saves'] = (() => {
         hh.bogOre = 0;
       } // VB-359: nor dug loads
     for (const hh of st.households) if (hh.peat === undefined) hh.peat = 0; // VB-367: nor peat
+    for (const hh of st.households) if (hh.wool === undefined) hh.wool = 0; // VB-144: nor fleeces
     for (const hh of st.households)
       if (hh.rack === undefined) {
         hh.rack = 0;

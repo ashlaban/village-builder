@@ -262,7 +262,7 @@ VB['sim/byre'] = (() => {
     let cows = 0;
     for (const herd of herdsOf(st, hh)) {
       cows +=
-        inMilk(st, herd, c).length *
+        (inMilk(st, herd, c).length + inMilkEwes(st, herd, c) * (HERD.eweMilk / HERD.milk)) *
         (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean)) *
         (unherded(st, herd, c) ? HERD.herding.milk : 1);
     }
@@ -401,6 +401,18 @@ VB['sim/byre'] = (() => {
       emergency(st, hh, c);
     }
   }
+  // Ewes in milk now (VB-144): those that lambed this spring, from turn-out to the end of summer.
+  const inMilkEwes = (st, herd, c) =>
+    herd.species !== 'sheep' || stalled(c) || c.doy >= HERD.eweEnd ? 0 : Math.min(herd.lambed || 0, herd.ewes);
+  const milkEwes = (st, hh, c) => herdsOf(st, hh).reduce((s, hd) => s + inMilkEwes(st, hd, c), 0);
+  // Summer day 1 (VB-144): each sheep of a year or more gives a fleece. Spinning and weaving wait for the winter crafts, so wool accumulates.
+  function shearing(st) {
+    for (const hd of st.herds) {
+      if (hd.household === null || hd.species !== 'sheep' || !(hd.ewes + hd.rams > 0)) continue;
+      const hh = st.households[hd.household];
+      hh.wool = (hh.wool || 0) + hd.ewes + hd.rams;
+    }
+  }
   // Fed and mucked out: the day's dung goes on the heap (VB-137).
   function fodderDone(st, hh, c) {
     hh.fodderDay = c.day;
@@ -437,8 +449,15 @@ VB['sim/byre'] = (() => {
     const meat = hh.larder.length ? larderOf(hh, 'meat') : 0;
     if (meat > 0) out.push([`salt:h${hh.id}`, 'salt', { hours: Math.max(1, meat / HERD.saltPerHour) }]);
     // milking from 6:00 while the herds are out (VB-135); the cows in milk are counted only then (no cow is in milk in the byre, VB-227)
-    const cows = hh.milkDay !== c.day && c.hour >= WORK[0] && !stalled(c) ? milkCows(st, hh, c) : 0;
-    if (cows) out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows }]);
+    const due = hh.milkDay !== c.day && c.hour >= WORK[0] && !stalled(c),
+      cows = due ? milkCows(st, hh, c) : 0,
+      ewes = due ? milkEwes(st, hh, c) : 0;
+    if (cows || ewes)
+      out.push([
+        `milk:h${hh.id}:${c.day}`,
+        'milk',
+        { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows + HERD.eweHours * ewes },
+      ]);
     return out;
   }
   // The autumn count of every household with herds (sim/clock, CALENDAR, on HERD.countDay).
@@ -461,7 +480,6 @@ VB['sim/byre'] = (() => {
   }
   return {
     spoilHay,
-    stallLeft,
     autumnCounts,
     strays,
     stray,
@@ -474,7 +492,8 @@ VB['sim/byre'] = (() => {
     milkDone,
     fodderDone,
     byreDay,
-    fodderHours,
+    milkEwes,
+    shearing,
     byreJobs,
   };
 })();

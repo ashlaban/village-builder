@@ -159,6 +159,7 @@ function renderSettlers() {
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
           <p>Firewood ${Math.round(hh.wood)} loads${hh.cold > 0 ? ', cold: no firewood' : ''}; stone ${hh.stone} loads.</p>
           <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads; peat ${hh.peat || 0} units.</p>
+          <p>Wool ${Math.round(hh.wool || 0)} fleeces, unspun.</p>
           <p>Dried fish ${Math.round(Sim.larderOf(hh, 'dried fish'))} rations${hh.rack >= 0.5 ? `; ${Math.round(hh.rack)} fresh by the rack` : ''}${
             hh.boat ? '; a fishing boat on the shore' : ''
           }.</p>
