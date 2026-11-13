@@ -2,9 +2,9 @@
 // (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st. The page script's files
 // (src/page/*.js, listed in src/page.json; VB-053) get the structure checks and the page rule, not the clock rule: the page may read the clock.
 // Existing long lines are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
-// Length is no cap (VB-410, VB-411): a module over 400 lines needs an open task that splits it ("Refactor: ..." naming its key in the title);
+// Length is no cap (VB-413, VB-414): a module over 400 lines needs an open task that splits it ("Refactor: ..." naming its key in the title);
 // with one it may grow. A module kept over the line without a task is in the baseline at its length, which only falls (`src/gen.js`).
-// Width the same way (VB-412): a module over 15 exports, counted on its loaded namespace, may add one only with such a task open;
+// Width the same way (VB-415): a module over 15 exports, counted on its loaded namespace, may add one only with such a task open;
 // tests/width-baseline.json holds the modules over 15 at their counts, which only fall. `sim`, the facade that gathers the others, is not counted.
 const fs = require('fs'), path = require('path'), { clockUse, pageWrites, counterUses, splitTask } = require('./lint-rules.js');
 const root = path.join(__dirname, '..'), BASE = path.join(__dirname, 'lint-baseline.json');
