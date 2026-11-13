@@ -665,6 +665,9 @@ VB['sim/agents'] = (() => {
     a.carry = null; // a load on its way home was put down by release
     const from = old ? st.farmsteads[old.farmstead] : null,
       at = tileAt(st, a.x, a.y);
+    // no way by land to the new home (VB-329; design.md, Between villages, Over the sea): the journey does not start. It stays where it
+    // is, a member of a household it cannot walk to, until slice 10's boats; who is sent over the sea is the senders' (sim/service, sim/heirs)
+    if (!hasRoute(st, at, f.house)) return stranded(st, a);
     if (from ? from.village !== f.village : hoursTo(st, null, at, f.village) > TRAVEL.dayWalk)
       return setOut(st, a, old, hh, carry, hoursTo(st, from ? from.village : null, at, f.village));
     const h = cal(st.t).hour,
@@ -678,6 +681,14 @@ VB['sim/agents'] = (() => {
       return;
     }
     goHome(st, a);
+  }
+  // A move that cannot start, for want of a way by land (VB-329): the pawn stands where it is, idle, and is counted.
+  function stranded(st, a) {
+    VB.count.moveNoRoute++;
+    a.path = null;
+    a.phase = null;
+    a.anim = 'idle';
+    wake(st, a.id);
   }
   // A child born to a mother on the road (VB-425; no teleporting): it is where she is, outdoors, and walks to its home as she does.
   function placeBorn(st, a, mother, hh) {
@@ -752,6 +763,10 @@ VB['sim/agents'] = (() => {
   function retarget(st, a, to) {
     const j = journeyOf(st, a.id);
     if (j.to === to) return;
+    if (!hasRoute(st, tileAt(st, a.x, a.y), to)) {
+      dropJourney(st, a.id);
+      return stranded(st, a);
+    }
     j.to = to;
     a.path = null;
     if (a.phase === 'journey') {

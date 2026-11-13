@@ -42,6 +42,16 @@ jNear.posted = st.t - 5;
 Jobs.planRound(st, idle, c);
 assert(idle.some((p) => p.job === jNear) && idle.every((p) => p.job !== jFar), 'the pawns did not take the work they can reach');
 assert.strictEqual(st.routeFallbacks, 0);
+// a move to a home over the sea does not start (the household changes, sim/heirs' moveTo; the pawn stays where it is, counted)
+{
+  const m = st.agents[adults[1]], mx = m.x, my = m.y, n = VB.count.moveNoRoute;
+  VB['sim/heirs'].moveTo(st, m.id, B.id);
+  for (let k = 0; k < 30; k++) Sim.advance(st, 0.1);
+  assert(st.pawns[m.id].household === B.id && VB.count.moveNoRoute === n + 1 && !st.journeys.some((j) => j.pawn === m.id), 'a journey over the sea started');
+  assert(tileOf(st, m.x, m.y) === tileOf(st, mx, my) || hasRoute(st, tileOf(st, mx, my), tileOf(st, m.x, m.y)), 'the mover crossed the sea');
+  assert.strictEqual(st.routeFallbacks, 0, 'the stranded mover made a fallback walk');
+  assert.strictEqual(issue(st, { actor: m.id, verb: 'goHome', source: 'player' }), 'no way there');
+}
 // a goal beyond ROUTE.reach on one island is refused as well
 const long = tinyWorld(Array(3).fill('.'.repeat(ROUTE.reach * 2 + 20)));
 const st2 = { w: long, pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set() };

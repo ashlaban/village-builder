@@ -1291,6 +1291,8 @@ VB.COUNTERS = {
   helpOffer:
     "Jobs of a village's households weighed for the offer to helpers, once a village a round with a helper (sim/jobs, offered; VB-106)",
   helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',
+  moveNoRoute:
+    'Moves to a new home that did not start for want of a way by land: the pawn stays where it is (sim/agents, moved; VB-329)',
   bidNoRoute: 'Winning bids refused for want of a way by land to the job (sim/jobs, assign; VB-329)',
   lookUpJob:
     'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
@@ -19505,6 +19507,9 @@ VB['sim/agents'] = (() => {
     a.carry = null; // a load on its way home was put down by release
     const from = old ? st.farmsteads[old.farmstead] : null,
       at = tileAt(st, a.x, a.y);
+    // no way by land to the new home (VB-329; design.md, Between villages, Over the sea): the journey does not start. It stays where it
+    // is, a member of a household it cannot walk to, until slice 10's boats; who is sent over the sea is the senders' (sim/service, sim/heirs)
+    if (!hasRoute(st, at, f.house)) return stranded(st, a);
     if (from ? from.village !== f.village : hoursTo(st, null, at, f.village) > TRAVEL.dayWalk)
       return setOut(st, a, old, hh, carry, hoursTo(st, from ? from.village : null, at, f.village));
     const h = cal(st.t).hour,
@@ -19518,6 +19523,14 @@ VB['sim/agents'] = (() => {
       return;
     }
     goHome(st, a);
+  }
+  // A move that cannot start, for want of a way by land (VB-329): the pawn stands where it is, idle, and is counted.
+  function stranded(st, a) {
+    VB.count.moveNoRoute++;
+    a.path = null;
+    a.phase = null;
+    a.anim = 'idle';
+    wake(st, a.id);
   }
   // A child born to a mother on the road (VB-425; no teleporting): it is where she is, outdoors, and walks to its home as she does.
   function placeBorn(st, a, mother, hh) {
@@ -19592,6 +19605,10 @@ VB['sim/agents'] = (() => {
   function retarget(st, a, to) {
     const j = journeyOf(st, a.id);
     if (j.to === to) return;
+    if (!hasRoute(st, tileAt(st, a.x, a.y), to)) {
+      dropJourney(st, a.id);
+      return stranded(st, a);
+    }
     j.to = to;
     a.path = null;
     if (a.phase === 'journey') {
@@ -38437,7 +38454,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'd3ffe408fb',
+const BUILD = '455b42ebaa',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
