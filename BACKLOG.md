@@ -236,7 +236,7 @@ says where each section went).
 - Behaviour is unchanged: `node tools/same.js --base REF` prints `same` against the commit the task started from (`docs/testing.md`), its line is in the PR, and the hard checks pass. Rebuild `index.html` before committing.
 - Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Lines over 160 characters in moved code are wrapped at statement or argument boundaries; nothing else is reformatted (`tools/wrap.js` does it, and `--compare` checks the build).
 - No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
-- A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads, and stays under 400 lines.
+- A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads. Its length is not capped: over 400 lines the lint reports it, and the task that takes it there opens a task to split it by concern (VB-410).
 
 **Testing, work counters and cost growth:** permanent golden baselines are retired (VB-408). Older tasks that require a golden
 check or update instead follow `docs/testing.md`; preserve behavior for refactors, test the intended contracts for behavior changes.

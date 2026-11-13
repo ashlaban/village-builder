@@ -137,6 +137,8 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Derived views: `sim/notable`, `sim/opportunities` (read-only, computed when asked).
 
 ## Adding things
+- A module has no cap on its length (VB-410): the lint reports one over 400 lines, and the task that takes it there opens a task to split it by
+  concern. Put code where its concern lives, not where there is room.
 - Tunables: `ECON`, `FIELDS`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `HERD`, `SOIL`, `RIVER`, `TERRAIN`, `SLOPE`, `ROUTE`, `PATHS`, `SETTLE`
   and `SERVICE` in `src/sim/rules.js`; `KINDS` (job kinds) in `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`
   (worn paths) in `src/gen/paths.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.

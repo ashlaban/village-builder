@@ -1,10 +1,11 @@
-// Structure lint: @sys header on line 1, at most 400 lines, no line over 160 characters; no clock or unseeded random in the modules
+// Structure lint: @sys header on line 1, no line over 160 characters; no clock or unseeded random in the modules
 // (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st. The page script's files
 // (src/page/*.js, listed in src/page.json; VB-053) get the structure checks and the page rule, not the clock rule: the page may read the clock.
-// Existing violations are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
+// Existing long lines are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
+// Length is no cap (VB-410): a module over 400 lines is reported, never failed; the task that takes it over the line opens a task to split it.
 const fs = require('fs'), path = require('path'), { clockUse, pageWrites, counterUses } = require('./lint-rules.js');
 const root = path.join(__dirname, '..'), BASE = path.join(__dirname, 'lint-baseline.json');
-const MAX_LINES = 400, MAX_COLS = 160;
+const SPLIT_LINES = 400, MAX_COLS = 160;
 const files = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8')).map((f) => 'src/' + f).concat('src/load.js');
 const pageFiles = JSON.parse(fs.readFileSync(path.join(root, 'src/page.json'), 'utf8')).map((f) => 'src/' + f);
 const key = (f) => (f === 'src/load.js' ? 'load' : f.slice(4, -3));
@@ -17,11 +18,11 @@ for (const f of files.concat(pageFiles)) {
   const long = lines.map((l, i) => (l.length > MAX_COLS ? i + 1 : 0)).filter(Boolean);
   const headOk = head.test(lines[0] || '');
   if (!headOk) errors.push(`${f}:1 line 1 must be "// @sys ${key(f)}: <purpose>"`);
-  cur[f] = { lines: lines.length, longLines: long.length };
-  const b = base[f] || { lines: Math.min(lines.length, MAX_LINES), longLines: 0 };
-  if (lines.length > MAX_LINES && lines.length > b.lines) errors.push(`${f}:${lines.length} file has ${lines.length} lines, limit ${Math.max(MAX_LINES, b.lines)}`);
+  cur[f] = { longLines: long.length };
+  const b = base[f] || { longLines: 0 };
+  if (lines.length > SPLIT_LINES) notes.push(`${f}: ${lines.length} lines, over ${SPLIT_LINES}: not a failure; it needs an open task to split it by concern (AGENTS.md, Conventions)`);
   if (long.length > b.longLines) errors.push(...long.map((n) => `${f}:${n} line over ${MAX_COLS} characters (${long.length} long lines, baseline ${b.longLines})`));
-  if (lines.length < b.lines && b.lines > MAX_LINES || long.length < b.longLines) notes.push(`${f}: improved (lines ${b.lines} -> ${lines.length}, long lines ${b.longLines} -> ${long.length}); run lint.js --update`);
+  if (long.length < b.longLines) notes.push(`${f}: improved (long lines ${b.longLines} -> ${long.length}); run lint.js --update`);
 }
 // determinism: the modules read no clock and draw no unseeded random numbers
 for (const f of files) fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((l, i) => {
@@ -53,7 +54,8 @@ if (process.argv.includes('--update')) {
   const next = {};
   for (const f of files.concat(pageFiles)) {
     const c = cur[f], b = base[f];
-    next[f] = b ? { lines: Math.min(b.lines, c.lines), longLines: Math.min(b.longLines, c.longLines) } : c;
+    const n = b ? Math.min(b.longLines, c.longLines) : c.longLines;
+    if (n) next[f] = { longLines: n };
   }
   fs.writeFileSync(BASE, JSON.stringify(next, null, 1) + '\n'); console.log('lint-baseline.json updated'); process.exit(0);
 }

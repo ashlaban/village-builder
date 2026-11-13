@@ -133,6 +133,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Time is in game hours: `DAY`, `SEASON_DAYS`, `YEAR_DAYS` and `YEAR` are defined once, in `src/sim/rules.js`.
 - Ids are array indexes (`pawns`, `households`, `farmsteads`, fences) and are never reused.
 - Tunables, a new job kind and a new custom: `docs/architecture/modules.md`, Adding things.
+- A module's length is not capped (VB-410). Code goes where its concern lives, a statement to a line. The lint reports a module over 400
+  lines without failing: the task that takes it over the line opens a "Refactor:" task to split it by concern and names it in its PR.
+  Never pack lines or place code elsewhere to make room.
 
 ## Architecture work
 - Read target-v2's principles (section 2) before adding a module, an owner or a call between modules. Before giving new state an owner, find
