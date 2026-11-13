@@ -140,7 +140,18 @@ VB['sim/notable'] = (() => {
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
   // the village log, nor of a farm's history.
-  const PERSONAL = new Set(['closeFriend', 'enemy', 'friend', 'fellOut', 'cause', 'player', 'share', 'gift', 'joined']);
+  const PERSONAL = new Set([
+    'closeFriend',
+    'enemy',
+    'friend',
+    'fellOut',
+    'cause',
+    'player',
+    'share',
+    'gift',
+    'joined',
+    'helped',
+  ]);
   // The events that tell a farm is lived in again, which end a spell of standing empty.
   const SETTLES = new Set(['holds', 'inherited', 'moved', 'cottage', 'left']);
   const whole = (n) => `${n} ${n === 1 ? 'year' : 'years'}`;

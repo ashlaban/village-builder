@@ -28,7 +28,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-043](backlog/VB-043.md) | One scope model: a membership graph of entities | debt | 3 | M | The membership graph of typed edges, with scopes on it; as Membership's truth if Kim adopts it (measured 0.55 ms at year 12). |
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
 | [VB-100](backlog/VB-100.md) | Common fields worked by the village | year | 3 | M | A village with an empty store makes a common field; its harvest fills the store. |
-| [VB-106](backlog/VB-106.md) | Neighbours help with each other's work, and it builds ties | year | 3 | M | Idle adults may take a waiting field job of another household in their village; help raises tie and opinion. |
 | [VB-120](backlog/VB-120.md) | Village work days | year | 3 | M | The meeting sets days when the whole village mends the fence or clears the commons; staying away costs prestige. |
 | [VB-141](backlog/VB-141.md) | Plan: customs of the animals | debt | 3 | S | Commons grazing, hunting rights, common hay, winter keep, village herd. |
 | [VB-144](backlog/VB-144.md) | Ewes' milk and wool | mill | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. |
@@ -68,6 +67,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-426](backlog/VB-426.md) | Young villages without wood at seed 11 | - | 3 | S | Four villages of populous small seed 11 have no wood within 27 steps; find whether their own cutting or an older village's far allotment took it. |
 | [VB-428](backlog/VB-428.md) | A household that would want a cow makes a meadow first | animals | 3 | S | A household without herds never makes a meadow (wantsMeadow), so most new farms never come to want a cow (VB-390). |
 | [VB-429](backlog/VB-429.md) | The led cow is drawn beside the pawn leading it | animals | 3 | S | The job lead (VB-390) walks a cow home; the page draws only the pawn. |
+| [VB-430](backlog/VB-430.md) | Refactor: split sim/relations by concern | - | 3 | M | sim/relations is 714 lines since neighbours' help (VB-106); split it by concern. |
 
 ## Waiting for Kim
 
@@ -104,7 +104,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-292](backlog/VB-292.md) | The player's journey: the played pawn may make a visit | life | 3 | S | VB-289 | Parity of command: the visit the round's unmatched men make is the player's to order, for its pawn or, as head, for an unmarried son: a verb, an opportunity and a line in the pawn panel, at the same costs. |
 | [VB-255](backlog/VB-255.md) | Projects: a head with a surplus takes one, by its values | year | 2 | M | VB-254 | With targets met and hands and stores to spare, a head takes one project from the menu (more fields, a claim, a farm or cottage for the heir, a barn), weighted by ambition and generosity. |
 | [VB-256](backlog/VB-256.md) | The plan panel: a holder's plan read and changed in the page | year | 2 | M | VB-253, VB-255 | The household panel shows routines and targets, next steps, the project, reservations and who holds which task; the player as head changes them. |
-| [VB-108](backlog/VB-108.md) | Wrap-up: the household's year | year | 3 | S | VB-100, VB-106, VB-120, VB-162, VB-253, VB-254, VB-255, VB-256 | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
+| [VB-108](backlog/VB-108.md) | Wrap-up: the household's year | year | 3 | S | VB-100, VB-120, VB-162, VB-253, VB-254, VB-255, VB-256 | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
 | [VB-162](backlog/VB-162.md) | A village overview: food, people, idle hands and warnings | year | 3 | M | VB-256 | One panel per village: food against need, people by age, hungry households, idle hands, and warnings that name the households. |
 | [VB-294](backlog/VB-294.md) | The gathering: villages choose where to meet, and one hosts | fair | 2 | M | VB-278 | Each village chooses at its autumn meeting the gathering it attends next year; fewer than three villages and it is not held; the district read from the choice. |
 | [VB-295](backlog/VB-295.md) | Going to the gathering: a household plans it, packs and walks there | fair | 2 | M | VB-294 | The gathering as an occasion: who goes and who stays, provisions and loads packed, the walk there and back, three days on the host's green. |

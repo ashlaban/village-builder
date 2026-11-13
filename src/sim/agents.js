@@ -14,6 +14,7 @@ VB['sim/agents'] = (() => {
   const Carts = VB['sim/carts'];
   const { driveHome, driven } = VB['sim/grazing'];
   const { workedTogether } = VB['sim/relations'];
+  const { emit } = VB['sim/events'];
   const { finishStep } = VB['sim/expansion'];
   const { worked: prospected } = VB['sim/prospect'];
   const { KINDS, rowAngle, firstRow, isOpen } = VB['sim/kinds'];
@@ -264,13 +265,24 @@ VB['sim/agents'] = (() => {
     }
     j.claims = j.claims.filter((id) => id === finisher || st.agents[id].phase === 'back');
   }
+  // The household a job is done for: the job's own, or the pawn's for a village's job (a helper works for another household, VB-106).
+  const workFor = (st, a, j) =>
+    st.households[j.owner && j.owner.type === 'household' ? j.owner.id : st.pawns[a.id].household];
+  // Those of `ids` who worked the household job j as helpers (sim/eligibility) are told to sim/relations (VB-106): help is a gift, so
+  // nothing is owed and nothing moves.
+  function helped(st, j, ids) {
+    let hs = null;
+    for (const id of ids) if (st.agents[id].basis === 'helper') (hs || (hs = [])).push(id);
+    if (hs) emit(st, 'helped', { helpers: hs, household: j.owner.id, farm: j.farm || null });
+  }
   // The work is done: those who finished it together know each other better (sim/relations); a plot's step is finished (sim/expansion),
-  // any other job does what its kind says (sim/kinds).
+  // any other job does what its kind says (sim/kinds), for the household it was done for.
   function complete(st, a) {
     const j = a.job,
-      hh = st.households[st.pawns[a.id].household],
+      hh = workFor(st, a, j),
       K = KINDS[j.kind];
     if (j.claims.length > 1) workedTogether(st, j.claims);
+    helped(st, j, j.claims);
     freeHands(st, j, a.id);
     prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours ?? 0); // a hidden vein near the work may be come on (sim/prospect)
     if (j.plot) {
@@ -285,7 +297,8 @@ VB['sim/agents'] = (() => {
   function deposit(st, a, farm = null) {
     const j = a.job,
       K = KINDS[j.kind];
-    const hh = st.households[farm && farm.household !== null ? farm.household : st.pawns[a.id].household];
+    const hh = farm && farm.household !== null ? st.households[farm.household] : workFor(st, a, j);
+    helped(st, j, [a.id]); // a load brought in is a task done
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
     Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears
     if (!K.again || !K.again(j)) dropJob(st, j);
@@ -417,7 +430,7 @@ VB['sim/agents'] = (() => {
         a.carry = K.carry;
         a.phase = 'back';
         a.work = null;
-        const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead],
+        const f = st.farmsteads[workFor(st, a, j).farmstead],
           to = K.to === 'site' ? j.dest : f.house;
         // sheaves go to the barn door, firewood to the woodpile, water into the cottage, timber to its building site (VB-328)
         const hx = st.w.hx[to],

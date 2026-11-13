@@ -2,8 +2,8 @@
 // and the people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn), memories and bands
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL } = VB['sim/rules'];
-  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf } = VB['sim/records'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL, MATCH } = VB['sim/rules'];
+  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf, age } = VB['sim/records'];
   const { on } = VB['sim/events'],
     issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories; // the land's memories, from events (sim/stakes, sim/territory, sim/herds), are the three `on` below
@@ -270,6 +270,28 @@ VB['sim/relations'] = (() => {
   on('borderLost', (st, e) => remember(st, e.loser, e.winner, 'border'));
   on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull'));
   on('cattleInCrop', (st, e) => remember(st, e.holder, e.keeper, 'crop'));
+  on('helped', (st, e) => helped(st, e));
+  // Helpers finished a task of household e.household (sim/agents; VB-106): each knows each adult there better and both remember working
+  // together; the helper's life tells of the farm helped, once a day for a farm.
+  function helped(st, e) {
+    const hh = st.households[e.household],
+      f = e.farm || st.farmsteads[hh.farmstead],
+      H = MATCH.help;
+    for (const h of e.helpers) {
+      for (const m of hh.members) {
+        const q = st.pawns[m];
+        if (m === h || !q.alive || age(st, q) < H.minAge) continue;
+        grow(st, h, m, H.tie);
+        remember(st, h, m, 'worked');
+        remember(st, m, h, 'worked');
+      }
+      const ev = st.pawns[h].events,
+        last = ev.length ? st.record[ev[ev.length - 1]] : null;
+      if (last && last.kind === 'helped' && last.farm === f.id && Math.floor(last.t / DAY) === Math.floor(st.t / DAY))
+        continue;
+      personEvent(st, h, 'helped', `Helped at ${f.name}`, { farm: f.id, household: hh.id, village: f.village });
+    }
+  }
   // r keeps the memories of the kinds `keep` passes, copied in their order to a new object, not deleted from the old: a deleted key leaves
   // it a slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205). False if none is left.
   function sift(r, keep) {

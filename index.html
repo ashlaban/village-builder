@@ -1287,6 +1287,9 @@ VB.COUNTERS = {
     "Plans reviewed: on each holder's planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)",
   matchBid:
     'Idle pawn and job pairs weighed by matching, each pawn with the jobs of its household and village (sim/jobs, planRound; VB-227)',
+  helpOffer:
+    "Jobs of a village's households weighed for the offer to helpers, once a village a round with a helper (sim/jobs, offered; VB-106)",
+  helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',
   lookUpJob:
     'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
   occasionAsked:
@@ -5452,6 +5455,8 @@ VB['sim/rules'] = (() => {
       refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
       // sim/byre: an unherded herd got into the field through a broken stretch of fence; about the holder of the stretch's keeper (VB-136)
       crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
+      // sim/agents: a helper finished a job of another household of its village, both ways with each adult there (VB-106; Kim, 10 Nov)
+      worked: { label: 'Worked together', v: 0.05, cap: 0.3, days: YEAR_DAYS },
     },
     talk: {
       from: 6,
@@ -5827,6 +5832,18 @@ VB['sim/rules'] = (() => {
     join: 0.8,
     switchRatio: 1.5,
     switchMargin: 1,
+    // Help between households (VB-106; design.md, Who may take a job): an adult of `minAge` or more with no bid of its own in a round
+    // bids on another household's job of its village, of the `kinds`, once the job has waited `waitHours`; each household offers its
+    // most urgent open job of each kind. The bid is multiplied by `factor`, plus `kin` for near kin of the holder, plus the helper's
+    // opinion of the holder. Each finished task (a load, for hauling) raises the tie with each adult helped by `tie`.
+    help: {
+      minAge: 14,
+      waitHours: 2,
+      kinds: ['plow', 'sow', 'weed', 'reap', 'haul', 'thresh', 'clear', 'break', 'mend'],
+      factor: 0.5,
+      kin: 1,
+      tie: 0.2,
+    },
     urgency: {
       field: 1,
       fieldPerDay: 8, // plow and sow: 1 + sday / 8
@@ -8303,6 +8320,7 @@ VB['sim/records'] = (() => {
     enemy: SHORT,
     friend: SHORT,
     fellOut: SHORT,
+    helped: SHORT, // helped another household of the village with its work (VB-106)
     gift: GENERATION,
     harvest: GENERATION,
     hay: GENERATION,
@@ -9090,8 +9108,8 @@ VB['sim/prospect'] = (() => {
 // and the people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn), memories and bands
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL } = VB['sim/rules'];
-  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf } = VB['sim/records'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL, MATCH } = VB['sim/rules'];
+  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf, age } = VB['sim/records'];
   const { on } = VB['sim/events'],
     issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories; // the land's memories, from events (sim/stakes, sim/territory, sim/herds), are the three `on` below
@@ -9358,6 +9376,28 @@ VB['sim/relations'] = (() => {
   on('borderLost', (st, e) => remember(st, e.loser, e.winner, 'border'));
   on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull'));
   on('cattleInCrop', (st, e) => remember(st, e.holder, e.keeper, 'crop'));
+  on('helped', (st, e) => helped(st, e));
+  // Helpers finished a task of household e.household (sim/agents; VB-106): each knows each adult there better and both remember working
+  // together; the helper's life tells of the farm helped, once a day for a farm.
+  function helped(st, e) {
+    const hh = st.households[e.household],
+      f = e.farm || st.farmsteads[hh.farmstead],
+      H = MATCH.help;
+    for (const h of e.helpers) {
+      for (const m of hh.members) {
+        const q = st.pawns[m];
+        if (m === h || !q.alive || age(st, q) < H.minAge) continue;
+        grow(st, h, m, H.tie);
+        remember(st, h, m, 'worked');
+        remember(st, m, h, 'worked');
+      }
+      const ev = st.pawns[h].events,
+        last = ev.length ? st.record[ev[ev.length - 1]] : null;
+      if (last && last.kind === 'helped' && last.farm === f.id && Math.floor(last.t / DAY) === Math.floor(st.t / DAY))
+        continue;
+      personEvent(st, h, 'helped', `Helped at ${f.name}`, { farm: f.id, household: hh.id, village: f.village });
+    }
+  }
   // r keeps the memories of the kinds `keep` passes, copied in their order to a new object, not deleted from the old: a deleted key leaves
   // it a slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205). False if none is left.
   function sift(r, keep) {
@@ -13371,7 +13411,18 @@ VB['sim/notable'] = (() => {
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
   // the village log, nor of a farm's history.
-  const PERSONAL = new Set(['closeFriend', 'enemy', 'friend', 'fellOut', 'cause', 'player', 'share', 'gift', 'joined']);
+  const PERSONAL = new Set([
+    'closeFriend',
+    'enemy',
+    'friend',
+    'fellOut',
+    'cause',
+    'player',
+    'share',
+    'gift',
+    'joined',
+    'helped',
+  ]);
   // The events that tell a farm is lived in again, which end a spell of standing empty.
   const SETTLES = new Set(['holds', 'inherited', 'moved', 'cottage', 'left']);
   const whole = (n) => `${n} ${n === 1 ? 'year' : 'years'}`;
@@ -17451,13 +17502,22 @@ VB['sim/kinds'] = (() => {
 <script>
 // @sys sim/eligibility: who may take a task, and on what basis (design.md section 7; VB-250): one table of bases, each a check, in a fixed order
 VB['sim/eligibility'] = (() => {
-  const { villageOf } = VB['sim/records'];
-  // A basis is a check of (st, task, pawn); the first that holds is the answer, so later bases (helper VB-106, debtor, hired) are added
+  const { villageOf, age } = VB['sim/records'];
+  const HELP = VB['sim/rules'].MATCH.help;
+  // An adult of the household's village helps with its job of a kind neighbours helped with, once it has waited (VB-106): a gift, nothing owed.
+  const helps = (st, t, p) => {
+    if (t.owner.type !== 'household' || t.owner.id === p.household || !HELP.kinds.includes(t.kind)) return false;
+    if (st.t - t.posted < HELP.waitHours || age(st, p) < HELP.minAge) return false;
+    const hh = st.households[t.owner.id];
+    return !hh.dissolved && hh.farmstead !== null && st.farmsteads[hh.farmstead].village === villageOf(st, p);
+  };
+  // A basis is a check of (st, task, pawn); the first that holds is the answer, so later bases (debtor, hired) are added
   // here, in their place in the order. A task is {owner: {type, id}}: a job, or the owner of a work opportunity not yet posted.
   const BASES = [
     ['servant', (st, t, p) => t.owner.type === 'household' && t.owner.id === p.household && p.servant],
     ['member', (st, t, p) => t.owner.type === 'household' && t.owner.id === p.household],
     ['villager', (st, t, p) => t.owner.type === 'village' && villageOf(st, p) === t.owner.id],
+    ['helper', helps],
     ['self', (st, t) => t.owner.type !== 'household' && t.owner.type !== 'village'],
   ];
   // The basis on which the pawn may take the task, or null.
@@ -17485,6 +17545,7 @@ VB['sim/agents'] = (() => {
   const Carts = VB['sim/carts'];
   const { driveHome, driven } = VB['sim/grazing'];
   const { workedTogether } = VB['sim/relations'];
+  const { emit } = VB['sim/events'];
   const { finishStep } = VB['sim/expansion'];
   const { worked: prospected } = VB['sim/prospect'];
   const { KINDS, rowAngle, firstRow, isOpen } = VB['sim/kinds'];
@@ -17735,13 +17796,24 @@ VB['sim/agents'] = (() => {
     }
     j.claims = j.claims.filter((id) => id === finisher || st.agents[id].phase === 'back');
   }
+  // The household a job is done for: the job's own, or the pawn's for a village's job (a helper works for another household, VB-106).
+  const workFor = (st, a, j) =>
+    st.households[j.owner && j.owner.type === 'household' ? j.owner.id : st.pawns[a.id].household];
+  // Those of `ids` who worked the household job j as helpers (sim/eligibility) are told to sim/relations (VB-106): help is a gift, so
+  // nothing is owed and nothing moves.
+  function helped(st, j, ids) {
+    let hs = null;
+    for (const id of ids) if (st.agents[id].basis === 'helper') (hs || (hs = [])).push(id);
+    if (hs) emit(st, 'helped', { helpers: hs, household: j.owner.id, farm: j.farm || null });
+  }
   // The work is done: those who finished it together know each other better (sim/relations); a plot's step is finished (sim/expansion),
-  // any other job does what its kind says (sim/kinds).
+  // any other job does what its kind says (sim/kinds), for the household it was done for.
   function complete(st, a) {
     const j = a.job,
-      hh = st.households[st.pawns[a.id].household],
+      hh = workFor(st, a, j),
       K = KINDS[j.kind];
     if (j.claims.length > 1) workedTogether(st, j.claims);
+    helped(st, j, j.claims);
     freeHands(st, j, a.id);
     prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours ?? 0); // a hidden vein near the work may be come on (sim/prospect)
     if (j.plot) {
@@ -17756,7 +17828,8 @@ VB['sim/agents'] = (() => {
   function deposit(st, a, farm = null) {
     const j = a.job,
       K = KINDS[j.kind];
-    const hh = st.households[farm && farm.household !== null ? farm.household : st.pawns[a.id].household];
+    const hh = farm && farm.household !== null ? st.households[farm.household] : workFor(st, a, j);
+    helped(st, j, [a.id]); // a load brought in is a task done
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
     Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears
     if (!K.again || !K.again(j)) dropJob(st, j);
@@ -17888,7 +17961,7 @@ VB['sim/agents'] = (() => {
         a.carry = K.carry;
         a.phase = 'back';
         a.work = null;
-        const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead],
+        const f = st.farmsteads[workFor(st, a, j).farmstead],
           to = K.to === 'site' ? j.dest : f.house;
         // sheaves go to the barn door, firewood to the woodpile, water into the cottage, timber to its building site (VB-328)
         const hx = st.w.hx[to],
@@ -19836,11 +19909,12 @@ VB['sim/plans'] = (() => {
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
+  const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
-  const { villageOf, age } = VB['sim/records'];
+  const { villageOf, age, kinNear } = VB['sim/records'];
   const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot, travelling } =
     VB['sim/agents'];
-  const { companyFor } = VB['sim/relations'];
+  const { companyFor, opinionOf } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
@@ -20198,22 +20272,13 @@ VB['sim/jobs'] = (() => {
     }
     return lo;
   }
-  function planRound(st, idle, c) {
-    const bids = [];
-    for (const a of idle) {
-      const js = jobsFor(st, st.pawns[a.id]);
-      VB.count.matchBid += js.length ?? js.size;
-      for (const j of js) {
-        const s = bid(st, a, j, c);
-        if (s > 0) bids.push([s, a, j, j.claims.length]);
-      }
-    }
+  // Assign the bids, best first, one job a pawn; a bid on a job others joined earlier in the round falls by join for each and waits its
+  // turn again.
+  function assign(st, bids, busy) {
     bids.sort((x, y) => y[0] - x[0]);
-    const busy = new Set();
     for (let i = 0; i < bids.length; i++) {
       const [s, a, j, k] = bids[i];
       if (busy.has(a) || !isOpen(j)) continue;
-      // others joined the job earlier in this round: the bid falls by join for each, and waits its turn again
       if (j.claims.length > k) {
         const b = [s * MATCH.join ** (j.claims.length - k), a, j, j.claims.length];
         bids.splice(slot(bids, i + 1, b[0]), 0, b);
@@ -20222,7 +20287,70 @@ VB['sim/jobs'] = (() => {
       issue(st, { actor: a.id, verb: 'work', target: j.key, source: 'planner' });
       busy.add(a);
     }
+  }
+  function planRound(st, idle, c) {
+    const bids = [],
+      bidding = new Set();
+    for (const a of idle) {
+      const js = jobsFor(st, st.pawns[a.id]);
+      VB.count.matchBid += js.length ?? js.size;
+      for (const j of js) {
+        const s = bid(st, a, j, c);
+        if (s > 0) {
+          bids.push([s, a, j, j.claims.length]);
+          bidding.add(a);
+        }
+      }
+    }
+    const busy = new Set();
+    assign(st, bids, busy);
+    helpRound(st, idle, bidding, busy, c);
     return busy;
+  }
+  // Help between households (VB-106): a pawn with no bid of its own this round bids on the jobs the other households of its village offer,
+  // each its most urgent open job of each kind help takes (MATCH.help), at its bid times factor, + kin for near kin of the holder, + its
+  // opinion of the holder. Bids on the helper basis only (sim/eligibility).
+  function helpRound(st, idle, bidding, busy, c) {
+    const offers = new Map(),
+      bids = [];
+    for (const a of idle) {
+      const p = st.pawns[a.id];
+      if (bidding.has(a) || busy.has(a) || age(st, p) < HELP.minAge) continue;
+      const v = villageOf(st, p);
+      if (!offers.has(v)) offers.set(v, offered(st, v, c));
+      const kin = kinNear(st, p.id);
+      for (const j of offers.get(v)) {
+        VB.count.helpBid++;
+        const hh = st.households[j.owner.id];
+        if (hh.id === p.household) continue;
+        const s = bid(st, a, j, c);
+        if (s <= 0) continue;
+        const f =
+          HELP.factor +
+          (hh.holder !== null ? (kin.includes(hh.holder) ? HELP.kin : 0) + opinionOf(st, p.id, hh.holder) : 0);
+        if (f > 0) bids.push([s * f, a, j, j.claims.length]);
+      }
+    }
+    if (bids.length) assign(st, bids, busy);
+  }
+  // What the households of village v offer helpers: each its most urgent open job of each kind help takes, waited long enough, in id order.
+  function offered(st, v, c) {
+    const out = [];
+    for (const fid of st.villages[v].farmsteads) {
+      const hid = st.farmsteads[fid].household,
+        js = hid === null ? null : st.jobsBy.get(`household:${hid}`);
+      if (!js) continue;
+      const best = new Map();
+      for (const j of js) {
+        VB.count.helpOffer++;
+        if (!HELP.kinds.includes(j.kind) || !isOpen(j) || attentionOf(j) !== 'full') continue;
+        if (st.t - j.posted < HELP.waitHours) continue;
+        const b = best.get(j.kind);
+        if (!b || urgency(st, j, c) > urgency(st, b, c)) best.set(j.kind, j);
+      }
+      for (const j of best.values()) out.push(j);
+    }
+    return out.sort((x, y) => x.id - y.id);
   }
   // Nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while.
   function idleAbout(st, a) {
@@ -36675,7 +36803,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '76bc64e4ed',
+const BUILD = 'a7d03746d4',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

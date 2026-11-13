@@ -73,6 +73,7 @@ const INTEGRATION = [
   ['node', 'tests/prospect.js'],
   ['node', 'tests/children.js'],
   ['node', 'tests/hands.js'],
+  ['node', 'tests/helpers.js'],
   ['node', 'tests/interrupts.js'],
   ['node', 'tests/ownheir.js'],
   ['node', 'tests/daylight.js'],

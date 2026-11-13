@@ -22,6 +22,8 @@
   "oppAsk": 9.63888888888889,
   "planReview": 0.2777777777777778,
   "matchBid": 7.25,
+  "helpOffer": 4.367932489451476,
+  "helpBid": 0.24753867791842477,
   "lookUpJob": 5.668888888888889,
   "occasionAsked": 0,
   "takeInWeighed": 0,
@@ -34,7 +36,7 @@
   "digGround": 2.8144444444444443,
   "cowSeek": 0.1305,
   "pastureTiles": 37.46888888888889,
-  "roundRank": 0.02666666666666667,
   "deerGround": 10.574402250351618,
-  "deerCrop": 0
+  "deerCrop": 0,
+  "roundRank": 0.02666666666666667
 }
