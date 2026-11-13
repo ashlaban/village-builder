@@ -930,7 +930,7 @@ const ArchGen = (() => {
     for (let row = r0; row <= r1; row++)
       for (let col = c0; col <= c1; col++) {
         const i = row * COLS + col,
-          b = biome[i];
+          b = w.trees && w.trees[i] > 0 && biome[i] < B.FOREST ? B.FOREST : biome[i]; // scrub drawn as wood (VB-091)
         if (w.dev && w.dev[i]) continue; // farmland and yards are drawn by the settlement layer
         if (hx[i] < x0 - M - R || hx[i] > x1 + M + R || hy[i] < y0 - M - R || hy[i] > y1 + M + R) continue;
         const rnd = mulberry32((seed * 31 + i * 2654435761) >>> 0);

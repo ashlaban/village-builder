@@ -13,6 +13,8 @@ VB['sim/territory'] = (() => {
   // st.used, or a green); the outland, village land not in use, held in common (its pasture, wood and land to take in); and wilderness, held by
   // nobody. A village claims outland by need at its autumn meeting (landMeeting); a claim unopposed until the next meeting becomes its own.
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
+  // A tile a village may cut firewood on: forest, or open land the forest has grown into at half cover or more (VB-091, sim/spread's thick).
+  const woodland = (w, t) => wooded(w, t) || (w.treesMax[t] > 0 && w.trees[t] >= 0.5 * w.treesMax[t]);
   // Land a village may hold as outland: not water, snow or a river's course.
   const holdable = (w, t) => !w.water[t] && !w.river[t] && w.biome[t] !== B.SNOW;
   const occupied = (st, v) => v.farmsteads.reduce((n, id) => n + (st.farmsteads[id].household !== null ? 1 : 0), 0);
@@ -260,7 +262,7 @@ VB['sim/territory'] = (() => {
       const own = [],
         free = [];
       for (const [t, d] of bfs(w, v.center, reach, walkable(w)).dist) {
-        if (d <= from || !wooded(w, t) || w.trees[t] <= 0 || st.used.has(t) || others.has(t) || !freeFor(st, t, v.id))
+        if (d <= from || !woodland(w, t) || w.trees[t] <= 0 || st.used.has(t) || others.has(t) || !freeFor(st, t, v.id))
           continue;
         (st.owner[t] === -v.id - 1 ? own : free).push([t, d]);
       }

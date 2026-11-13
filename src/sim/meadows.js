@@ -19,6 +19,7 @@ VB['sim/meadows'] = (() => {
   const Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
   const { seedPer } = VB['sim/hunger'];
+  const { scrubHours, clearScrub } = VB['sim/spread'];
   // A meadow tile yields HAY × its site value a year in an ordinary year (VB-132): open meadow 1, marsh 0.8, heath 0.6, and 1.3 times that on
   // wet ground by a river or open water. A household with animals wants meadows for WANT × its winter's need, at most MAX; it looks for them
   // within REACH walking steps. Clearing takes CLEAR_HOURS and up to STONE_HOURS for the stones, down to KEEP_STONES of 255.
@@ -95,7 +96,10 @@ VB['sim/meadows'] = (() => {
   // stake. It holds back a field's seed, as the seed reserve counted any land project before project plans (kept so the run is the same;
   // VB-123's notes).
   function meadowProject(st, hh, tile) {
-    const hours = CLEAR_HOURS + (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES);
+    const hours =
+      CLEAR_HOURS +
+      (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES) +
+      scrubHours(st, tile); // and the forest's scrub on it (VB-091)
     return {
       what: 'meadow',
       steps: [{ kind: 'meadow', place: tile, hours, stake: 'meadow' }],
@@ -121,6 +125,7 @@ VB['sim/meadows'] = (() => {
     const loads = Math.round(gone / STONES_PER_LOAD);
     if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
     w.stones[tile] -= gone;
+    clearScrub(st, tile); // its scrub cleared too, and it is tended (VB-091)
     emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
     addMeadow(st, f, hh, tile);
     st.visualDirty = true;

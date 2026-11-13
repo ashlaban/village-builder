@@ -61,6 +61,8 @@
     "w.depositFull": "sim/dig",
     "w.dugDay": "sim/dig",
     "w.graze": "sim/grazing",
+    "w.tended": "sim/spread",
+    "st.front": "sim/spread",
     "st.deer": "sim/deer",
     "household.pasture": "sim/grazing",
     "household.wood": "sim/stores",

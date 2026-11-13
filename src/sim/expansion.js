@@ -12,15 +12,14 @@ VB['sim/expansion'] = (() => {
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];
-  const { clearTile } = VB['sim/forest'];
+  const { clearTile, FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
+  const { thick, clearScrub, tended } = VB['sim/spread'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
   const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand } = VB['sim/layout'];
   const COTTAGE = ['foundation', 'walls', 'roof'],
     COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const MAX_PLOTS = 2,
-    REACH = 6,
-    FELL_HOURS = 10,
-    GRUB_HOURS = 6;
+    REACH = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // @state village.plots[]: the village's plots built, {id, village, intended, holder (who moved in), started, farmstead, tiles: [{tile, kind
   //   'house' | 'field'}]}, appended when the cottage's household moves in (sim/cottage). A plot under way is a project plan of its village
@@ -41,7 +40,7 @@ VB['sim/expansion'] = (() => {
   // A site's walls wait until BUILD.timber loads of wood lie there (VB-328; site: a plot, or a booth).
   const waitsForTimber = (site, i) => COTTAGE[i] === 'walls' && (site.wood || 0) < BUILD.timber;
   const stepsFor = (w, tile, kind) => [
-    ...(wooded(w, tile) ? ['fell', 'grub'] : []),
+    ...(wooded(w, tile) || thick(w, tile) ? ['fell', 'grub'] : []), // thick scrub as forest (VB-091)
     'clear',
     ...(kind === 'field' ? ['break'] : []),
   ];
@@ -302,11 +301,14 @@ VB['sim/expansion'] = (() => {
       st.regrow.delete(tr.tile);
       st.treeDirty.add(tr.tile);
     } else if (step === 'grub') clearTile(st, tr.tile);
-    else if (step === 'clear') w.stones[tr.tile] = 0;
-    else if (tr.kind === 'field') {
+    else if (step === 'clear') {
+      w.stones[tr.tile] = 0;
+      clearScrub(st, tr.tile); // scrub below half cover goes with the clearing (VB-091)
+    } else if (tr.kind === 'field') {
       tr.fresh = !w.dev[tr.tile];
       w.dev[tr.tile] = 1;
     } // ground never farmed starts fresh (VB-149)
+    tended(st, tr.tile); // worked on: kept open from the forest a year (sim/spread)
     tr.i++;
     st.biomeDirty.add(tr.tile);
     st.visualDirty = true;

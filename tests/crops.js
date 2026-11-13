@@ -67,8 +67,14 @@ assert.equal(fd.stage, 'stubble', 'restoration protects the field from overgrowt
 VB['sim/plans'].dropAll(st, 'pawn', hh.holder);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'fallow');
-fd.tile = tileAt(w, 12, 10); w.biome[tileAt(w, 13, 10)] = VB.gen.B.FOREST;
-setClock(st, 9 * YEAR);
+// Forest spread (sim/spread, VB-091) grows trees on it: from a quarter of full cover the field is scrub; cleared of them, it is grass again.
+w.treesMax[fd.tile] = 60; w.trees[fd.tile] = 14;
 fieldsDay(st, cal(st.t));
-assert.equal(fd.stage, 'scrub', 'woodland within two steps spreads into the abandoned field');
+assert.equal(fd.stage, 'fallow', 'below a quarter of full cover the field is still grass');
+w.trees[fd.tile] = 15;
+fieldsDay(st, cal(st.t));
+assert.equal(fd.stage, 'scrub', 'the forest has grown into the abandoned field');
+w.trees[fd.tile] = 0;
+fieldsDay(st, cal(st.t));
+assert.equal(fd.stage, 'fallow', 'a field whose scrub is gone is grass again');
 console.log('crops ok: seed shortage, weeding cadence, frost delivery boundary and claimed-farm overgrowth');

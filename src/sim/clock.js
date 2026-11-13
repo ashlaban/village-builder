@@ -4,6 +4,7 @@ VB['sim/clock'] = (() => {
   const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, SOCIAL, HERD, FISH } = VB['sim/rules'];
   const { log, startFold, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
+  const { spreadForest } = VB['sim/spread'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
   const { refreshRoutes, costChanged, refreshHoursStep, ROW_STEPS } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
@@ -179,6 +180,12 @@ VB['sim/clock'] = (() => {
     },
     { every: 'day', owner: 'sim/stores', note: 'the village store spoils too', run: (st) => Stores.villageDay(st) },
     { every: 'day', owner: 'sim/forest', note: 'trees grow', run: (st) => growTrees(st) },
+    {
+      every: 'day',
+      owner: 'sim/spread',
+      note: 'the forest spreads into open land it borders, unless kept open (VB-091)',
+      run: (st) => spreadForest(st),
+    },
     {
       every: 'day',
       owner: 'sim/claims',
