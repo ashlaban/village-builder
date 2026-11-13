@@ -275,7 +275,7 @@ VB['sim/rules'] = (() => {
     opinionRations: 10, // allowance: the giver's opinion of the receiver (-1 to 1) times this many rations
   };
 
-  const SPEED = 3; // tiles per game hour on foot, on meadow
+  const SPEED = 12; // tiles per game hour on foot, on meadow (it was 3: the distance review, Kim, 12 Nov; design.md, World and scale)
   // ---- walking (sim/routes): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
   // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
   const TERRAIN = { [B.BEACH]: 1, [B.MEADOW]: 1, [B.HEATH]: 1, [B.FOREST]: 1.5, [B.PINE]: 1.5, [B.HILLS]: 2, [B.MARSH]: 2, [B.MOUNTAIN]: 3,

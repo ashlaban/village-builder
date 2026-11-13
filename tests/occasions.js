@@ -111,7 +111,8 @@ for (const id of [...mates, ...kin]) if (st.pawns[id].age >= 4) {
 Sim.advance(st, ale.start - 0.3 - st.t);
 const working = ale.asked.filter((g) => g.leave === ale.start && st.agents[g.id].job && st.agents[g.id].phase !== 'back').map((g) => g.id);
 Sim.advance(st, 0.5);
-for (const id of working) assert.strictEqual(st.agents[id].occasion, ale.id, `pawn ${id} leaves its work for the funeral ale`);
+// but one that took up its load meanwhile, which it carries home first (as those carrying at the first look)
+for (const id of working) assert.ok(st.agents[id].occasion === ale.id || st.agents[id].phase === 'back', `pawn ${id} leaves its work for the funeral ale`);
 assert.ok(/funeral ale/i.test(Sim.describe(st, mates[0])), Sim.describe(st, mates[0]));
 const mark2 = st.record.length;
 Sim.advance(st, 5);

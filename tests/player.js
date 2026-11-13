@@ -9,7 +9,11 @@ const { dropKind } = require('./lib/record.js');
 // hoeing in spring. Seed 4: at most other seeds someone else is free and fetches the firewood before the farmer looks up (villages laid
 // out by their land, the fields beside the houses; Kim, 12 Nov).
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
-const make = (hours = 0) => { const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 }); if (hours) Sim.advance(st, hours); return st; };
+// noLand: no household starts a field or meadow project, so the grown ones are all at the hoeing (part 3)
+const make = (hours = 0, noLand = false) => {
+  const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 }); if (noLand) st.makeFields = false;
+  if (hours) Sim.advance(st, hours); return st;
+};
 const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
 const hour = (st) => Sim.cal(st.t).hour;
 const jobOf = (st, kind, hh = 0) => [...st.jobs.values()].find((j) => j.kind === kind && j.owner.type === 'household' && j.owner.id === hh);
@@ -60,7 +64,7 @@ const FARMER = 0, WIFE = 1;
 // 3. Looking up (sim/jobs, lookUp): with the woodpile low the farmer leaves his field for the woods at the full hour; told to hoe, he stays.
 {
   const low = (st) => { st.households[0].wood = 5; Sim.advance(st, 0.6); };
-  const plain = make(4.5), st = make(4.5), a = st.agents[FARMER];
+  const plain = make(4.5, true), st = make(4.5, true), a = st.agents[FARMER];
   low(plain); assert.strictEqual(plain.agents[FARMER].job.kind, 'wood', 'unplayed, the farmer leaves the field for the woods');
   const field = a.job;
   Sim.inhabit(st, FARMER); Sim.queue(st, { actor: FARMER, verb: 'work', target: field.key });
@@ -93,7 +97,7 @@ const FARMER = 0, WIFE = 1;
   assert.ok(!st.player.queue.length && !a.inside && !a.path, 'it walked to the green and stands there');
   assert.ok(st.agents.some((b) => b.job), 'while the others work');
   Sim.advance(st, 0.3);
-  assert.strictEqual(a.phase, 'home', 'at the end of work it goes home');
+  assert.ok(a.phase === 'home' || a.inside, 'at the end of work it goes home'); // on its way, or home already (12 tiles an hour)
   Sim.advance(st, 1); assert.ok(a.inside, 'and is indoors by dark');
   sound(st, 'the automatic behaviour off');
 }
