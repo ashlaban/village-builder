@@ -94,13 +94,14 @@ VB['sim/stores'] = (() => {
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
   // ---- grain by crop (VB-347; design.md, Goods, recipes and facilities: goods in subtypes): a household's and a village's grain is
-  // {[crop]: rations}, a key of CROPS each (none held: no key, or 0). The good 'grain/<crop>' is one crop's grain, 'grain' any crop's: a take
-  // of 'grain' falls on each crop in proportion to what is held of it (takeSpare: to what is held of it above its reservation), and a put of
-  // 'grain' names its crops, as a take's `into` gave them. The ledger counts grain as 'grain' whatever its crop. A pawn's stake is one number
-  // of no crop; it goes into a store as STAKE_CROP (VB-352 gives stakes and starts their crops).
+  // {[crop]: rations}, a crop of CROPS each, a row with seed (fallow is a course, not a grain; VB-348) (none held: no key, or 0). The good
+  // 'grain/<crop>' is one crop's grain, 'grain' any crop's: a take of 'grain' falls on each crop in proportion to what is held of it
+  // (takeSpare: to what is held of it above its reservation), and a put of 'grain' names its crops, as a take's `into` gave them. The
+  // ledger counts grain as 'grain' whatever its crop. A pawn's stake is one number of no crop; it goes into a store as STAKE_CROP (VB-352
+  // gives stakes and starts their crops).
   // @state household.grain, village.grain: {[crop]: rations >= 0}, crops of CROPS; their sum, grainOf, is the grain the readers see
   const GRAIN = 'grain',
-    CROP_LIST = Object.freeze(Object.keys(CROPS)),
+    CROP_LIST = Object.freeze(Object.keys(CROPS).filter((c) => CROPS[c].seed > 0)),
     CROP_GOOD = {},
     GOOD_CROP = {},
     STAKE_CROP = 'barley';
@@ -242,8 +243,10 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // A crop's weight in a take of 'grain': what is held of it, or what is held above its reservation.
-  const weight = (st, holder, c, spare) =>
-    spare ? Math.max(0, (holder.grain[c] || 0) - reserved(st, holder, CROP_GOOD[c])) : holder.grain[c] || 0;
+  const weight = (st, holder, c, spare) => {
+    const x = holder.grain[c] || 0; // a crop not held is not asked for its reservation
+    return spare && x > 0 ? Math.max(0, x - reserved(st, holder, CROP_GOOD[c])) : x;
+  };
   // Takes n (at most what is held) from the crops by their weights; the last crop with weight takes what is left, so that one crop gives
   // exactly n, and what the weights could not place is taken from the crops in order. Allocates nothing but `into`.
   function split(st, holder, n, spare, into) {
@@ -323,20 +326,31 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // @state household.threshed: entries of unthreshed threshed so far (absent: 0); seq numbers a field's entry
-  function sheaf(st, hh, n, seq = -1) {
+  // @state household.sheafCrops: absent while every entry of unthreshed is barley's; else the crop of each entry, in its order (VB-348)
+  function sheaf(st, hh, n, seq = -1, crop = 'barley') {
     const th = hh.threshed || 0,
       i = seq - th,
       old = i >= 0 && i < hh.unthreshed.length; // a field's loads add to its entry
     record(st, hh, 'sheaves', n, seq < 0 ? { kind: 'harvest', first: true } : 'harvest'); // first: its first load
     if (!hh.unthreshed.length) wake(st, hh);
-    return old ? ((hh.unthreshed[i] += n), seq) : th + hh.unthreshed.push(n) - 1;
+    if (old) {
+      hh.unthreshed[i] += n;
+      return seq;
+    }
+    grainGood(crop); // an unknown crop throws
+    if (crop !== 'barley' && !hh.sheafCrops) hh.sheafCrops = hh.unthreshed.map(() => 'barley');
+    if (hh.sheafCrops) hh.sheafCrops.push(crop);
+    return th + hh.unthreshed.push(n) - 1;
   }
+  // The barn's first entry is threshed into grain of its crop.
   function thresh(st, hh) {
     type(hh);
-    const n = hh.unthreshed.shift() || 0;
+    const n = hh.unthreshed.shift() || 0,
+      crop = hh.sheafCrops ? hh.sheafCrops.shift() || 'barley' : 'barley';
+    if (hh.sheafCrops && !hh.sheafCrops.some((c) => c !== 'barley')) delete hh.sheafCrops;
     hh.threshed = (hh.threshed || 0) + (n ? 1 : 0);
     record(st, hh, 'sheaves', -n, 'thresh');
-    put(st, hh, grainGood(STAKE_CROP), n, 'thresh'); // sheaves are barley's until VB-348
+    put(st, hh, grainGood(crop), n, 'thresh');
   }
   // ---- dug goods (VB-359; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
   // @state household.clay, household.bogOre: loads of clay and of bog iron ore dug and held (sim/dig), whole numbers, 0 at the start

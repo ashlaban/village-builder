@@ -15,12 +15,16 @@ VB['sim/hunger'] = (() => {
   // review; sim/stores counts it with this rule when it is read, so a field sown since counts at once); a land project holds back its new
   // field's seed itself (sim/projects, VB-123). Only the day's meal reaches below the seed, and only when the day would otherwise fall short
   // (feedHousehold; Kim, 10 November: the hungry household eats its seed). By crop (VB-347): the fields that bear or last bore it (their
-  // next crop, until rotations choose it, VB-350); every field without one.
+  // next crop, until rotations choose it, VB-350); without one, every field of a sown crop (not fallow, VB-348).
   function seedNeed(st, hh, crop) {
     const f = st.farmsteads[hh.farmstead];
     let n = 0;
     for (const fd of f.fields)
-      if ((fd.stage === 'stubble' || fd.stage === 'plowed') && (crop === undefined || fd.crop === crop)) n++;
+      if (
+        (fd.stage === 'stubble' || fd.stage === 'plowed') &&
+        (crop === undefined ? CROPS[fd.crop].seed > 0 : fd.crop === crop)
+      )
+        n++;
     return n * seedPer(st, hh);
   }
   Stores.follow('seed', seedNeed);
