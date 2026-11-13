@@ -1325,6 +1325,7 @@ VB.COUNTERS = {
     'Tiles within reach of a house searched for its hunting ground, when its hunting is asked for in autumn and winter (sim/deer; VB-139)',
   workdayHolders:
     'Holders of a village weighed by a household that stayed away from its work day, twice a year (sim/workdays; VB-120)',
+  frontTile: 'Tiles of the forest front visited by spreadForest, once a game day (sim/spread; VB-091)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };
@@ -4291,7 +4292,7 @@ const ArchGen = (() => {
     for (let row = r0; row <= r1; row++)
       for (let col = c0; col <= c1; col++) {
         const i = row * COLS + col,
-          b = biome[i];
+          b = w.trees && w.trees[i] > 0 && biome[i] < B.FOREST ? B.FOREST : biome[i]; // scrub drawn as wood (VB-091)
         if (w.dev && w.dev[i]) continue; // farmland and yards are drawn by the settlement layer
         if (hx[i] < x0 - M - R || hx[i] > x1 + M + R || hy[i] < y0 - M - R || hy[i] > y1 + M + R) continue;
         const rnd = mulberry32((seed * 31 + i * 2654435761) >>> 0);
@@ -10121,6 +10122,8 @@ VB['sim/territory'] = (() => {
   // st.used, or a green); the outland, village land not in use, held in common (its pasture, wood and land to take in); and wilderness, held by
   // nobody. A village claims outland by need at its autumn meeting (landMeeting); a claim unopposed until the next meeting becomes its own.
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
+  // A tile a village may cut firewood on: forest, or open land the forest has grown into at half cover or more (VB-091, sim/spread's thick).
+  const woodland = (w, t) => wooded(w, t) || (w.treesMax[t] > 0 && w.trees[t] >= 0.5 * w.treesMax[t]);
   // Land a village may hold as outland: not water, snow or a river's course.
   const holdable = (w, t) => !w.water[t] && !w.river[t] && w.biome[t] !== B.SNOW;
   const occupied = (st, v) => v.farmsteads.reduce((n, id) => n + (st.farmsteads[id].household !== null ? 1 : 0), 0);
@@ -10368,7 +10371,7 @@ VB['sim/territory'] = (() => {
       const own = [],
         free = [];
       for (const [t, d] of bfs(w, v.center, reach, walkable(w)).dist) {
-        if (d <= from || !wooded(w, t) || w.trees[t] <= 0 || st.used.has(t) || others.has(t) || !freeFor(st, t, v.id))
+        if (d <= from || !woodland(w, t) || w.trees[t] <= 0 || st.used.has(t) || others.has(t) || !freeFor(st, t, v.id))
           continue;
         (st.owner[t] === -v.id - 1 ? own : free).push([t, d]);
       }
@@ -10539,14 +10542,19 @@ VB['sim/forest'] = (() => {
   const { next } = VB['sim/rng'];
   const { costChanged } = VB['sim/routes'];
   const { woodTaken } = VB['sim/territory'];
+  const { emit } = VB['sim/events'];
   const REGROW_YEARS = 30; // a partly felled tile regains its trees, linearly, in this many game years
+  // Hours to fell a wooded tile's trees and to grub out its stumps (VB-031; also thick scrub cleared, sim/spread).
+  const FELL_HOURS = 10,
+    GRUB_HOURS = 6;
+  const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
 
   function stageChanged(st, tile, was) {
     if (treeStage(st.w, tile) !== was) st.treeDirty.add(tile);
   }
 
-  // A tile with no trees left becomes meadow for good (until forest spread, VB-091); a village whose wood held it reckons its wood again
-  // (sim/territory).
+  // A tile with no trees left becomes meadow, for good unless the forest spreads back into it (sim/spread, which hears cutBare); a village
+  // whose wood held it reckons its wood again (sim/territory).
   function clearTile(st, tile) {
     const w = st.w;
     w.trees[tile] = 0;
@@ -10557,6 +10565,7 @@ VB['sim/forest'] = (() => {
     st.biomeDirty.add(tile);
     costChanged(st, tile);
     woodTaken(st, tile);
+    emit(st, 'cutBare', { tile });
   }
 
   // The tile a firewood trip of village v cuts on (VB-326), drawn when its job is posted from the stream rng.forest: evenly among the tiles
@@ -10579,7 +10588,7 @@ VB['sim/forest'] = (() => {
     return -1;
   }
 
-  // A completed firewood trip fells one tree on its tile.
+  // A completed firewood trip fells one tree on its tile: a forest tile grows it back (st.regrow), scrub as the front grows (sim/spread).
   function fellTree(st, tile) {
     const w = st.w;
     if (tile < 0 || w.trees[tile] <= 0) return;
@@ -10589,7 +10598,7 @@ VB['sim/forest'] = (() => {
       clearTile(st, tile);
       return;
     }
-    st.regrow.add(tile);
+    if (wooded(w, tile)) st.regrow.add(tile);
     stageChanged(st, tile, was);
   }
 
@@ -10604,7 +10613,7 @@ VB['sim/forest'] = (() => {
       stageChanged(st, tile, was);
     }
   }
-  return { fellTree, drawWood, growTrees, clearTile };
+  return { FELL_HOURS, GRUB_HOURS, fellTree, drawWood, growTrees, clearTile };
 })();
 </script>
 <script>
@@ -10796,6 +10805,184 @@ VB['sim/grazing'] = (() => {
     unherded,
     KIND,
   };
+})();
+</script>
+<script>
+// @sys sim/spread: forest spread into open land (VB-091): the front of open tiles beside woodland, where scrub grows to forest unless
+// farming, work or grazing keeps the land open; the hours scrub adds to clearing
+VB['sim/spread'] = (() => {
+  const G = VB['gen'],
+    { B, treeStage, setBiome } = G;
+  const { fullTrees } = VB['gen/cover'];
+  const { DAY, YEAR_DAYS, GRAZE } = VB['sim/rules'];
+  const { costChanged } = VB['sim/routes'];
+  const { FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
+  const { yearScale } = VB['sim/grazing'];
+  const Projects = VB['sim/projects'];
+  const { on } = VB['sim/events'];
+  // design.md, Land and ecology, Forest spread (Decided; rates Agreed, Kim, 30 Oct; QUESTION_ARCHIVE.md, VB-091): open land next to forest,
+  // or to scrub at half cover or more, gains trees as regrowth does, full cover in `years` game years (a quarter, scrub, in about 8); at full
+  // cover it is forest. Grazing at or above GRAZE.thins takes trees off at `thin` of that rate. Work on a tile keeps it open `tendedDays`
+  // game days. Land is scrub from `scrub` of full cover (an empty farm's field is then 'scrub', sim/fields). Clearing scrub below `half`
+  // cover adds `scrubHours` to the clearing; at half or more it is felled and grubbed as forest.
+  const SPREAD = { years: 30, thin: 0.2, scrub: 0.25, half: 0.5, tendedDays: YEAR_DAYS, scrubHours: 10 };
+  const RATE = 1 / (SPREAD.years * YEAR_DAYS); // of full cover, a game day
+  const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
+  // Open land the forest may take: meadow or heath (an empty farm's field lies on it), not water, a green or a house.
+  const open = (w, t) => (w.biome[t] === B.MEADOW || w.biome[t] === B.HEATH) && !w.water[t] && w.dev[t] < 2;
+  // Scrub at half cover or more: it seeds its neighbours, is cut for firewood (sim/territory), and is felled and grubbed when cleared.
+  const thick = (w, t) => !wooded(w, t) && w.treesMax[t] > 0 && w.trees[t] >= SPREAD.half * w.treesMax[t];
+  // Whether a neighbour of t seeds it: a forest tile, or thick scrub.
+  function seeded(w, t) {
+    for (let d = 0; d < 6; d++) {
+      const j = w.nb[t * 6 + d];
+      if (j >= 0 && (wooded(w, j) || thick(w, j))) return true;
+    }
+    return false;
+  }
+  // The forest t grows into: pine where most of its forest neighbours are pine, else broadleaf.
+  function kindAt(w, t) {
+    let pine = 0,
+      broad = 0;
+    for (let d = 0; d < 6; d++) {
+      const j = w.nb[t * 6 + d];
+      if (j < 0) continue;
+      if (w.biome[j] === B.PINE) pine++;
+      else if (w.biome[j] === B.FOREST) broad++;
+    }
+    return pine > broad ? B.PINE : B.FOREST;
+  }
+  // @state st.front: Set of tile indexes; the open tiles the forest may take (open land beside forest or thick scrub, and every scrub
+  //   tile), visited once a game day (spreadForest); a tile that no longer qualifies is dropped when visited. Made at seed and at the load
+  //   of an older save (initFront); joined by a tile cut bare (the event cutBare of sim/forest) and by the open neighbours of a tile that
+  //   becomes thick scrub or forest. Written here only.
+  // @state w.tended: Int32Array per tile; the game day of the last work on the tile (a clearing step, a field or meadow made, a field
+  //   reclaimed) plus 1, 0 for none; work keeps a tile open SPREAD.tendedDays. Written here only (tended).
+  // A field a scenario lays out gone to scrub (a ruin's) has the trees of scrub, a quarter of full cover.
+  function initFront(st) {
+    const w = st.w;
+    if (!w.tended) w.tended = new Int32Array(w.N);
+    for (const f of st.farmsteads)
+      for (const fd of f.fields)
+        if (fd.stage === 'scrub' && open(w, fd.tile) && w.treesMax[fd.tile] === 0) {
+          w.treesMax[fd.tile] = fullTrees(G, w.seed, fd.tile, kindAt(w, fd.tile));
+          w.trees[fd.tile] = SPREAD.scrub * w.treesMax[fd.tile];
+        }
+    st.front = new Set();
+    for (let t = 0; t < w.N; t++) if (open(w, t) && (w.trees[t] > 0 || seeded(w, t))) st.front.add(t);
+  }
+  on('cutBare', (st, e) => {
+    if (st.front && open(st.w, e.tile) && seeded(st.w, e.tile)) st.front.add(e.tile);
+  });
+  // Work on tile t today keeps it open (a clearing step, a field or meadow made, a field reclaimed).
+  function tended(st, t) {
+    st.w.tended[t] = Math.floor(st.t / DAY) + 1;
+  }
+  // The hours the trees on tile t add to clearing it: none without trees, SPREAD.scrubHours for scrub below half cover, a felling and a
+  // grubbing for thick scrub or forest (as forest, VB-031; a plot fells and grubs as steps of their own, before its clearing).
+  const scrubHours = (st, t) => {
+    const w = st.w;
+    if (!(w.trees[t] > 0)) return 0;
+    return wooded(w, t) || thick(w, t) ? FELL_HOURS + GRUB_HOURS : SPREAD.scrubHours;
+  };
+  // Tile t is cleared of its scrub (a clearing step done, a field reclaimed): its trees are gone, and it is tended today. A field of an
+  // empty farm that went to forest is meadow again.
+  function clearScrub(st, t) {
+    const w = st.w;
+    tended(st, t);
+    if (!(w.trees[t] > 0) && !wooded(w, t)) return;
+    if (wooded(w, t)) {
+      setBiome(w, t, B.MEADOW);
+      st.biomeDirty.add(t);
+      st.regrow.delete(t);
+      costChanged(st, t);
+    }
+    w.trees[t] = 0;
+    w.treesMax[t] = 0;
+    st.treeDirty.add(t);
+    st.visualDirty = true;
+  }
+  // Whether farming or work keeps tile t open today: work within SPREAD.tendedDays; a household's field (in use, or its to reclaim), its
+  // meadow mown within the year, or other land it uses; an empty farm's field or meadow under restoration (`restoring`, made on first need).
+  function kept(st, t, day, ctx) {
+    const w = st.w;
+    if (w.tended[t] && day - (w.tended[t] - 1) < SPREAD.tendedDays) return true;
+    if (!st.used.has(t)) return false;
+    const n = st.owner[t];
+    if (n > 0) {
+      const hh = st.households[n - 1];
+      if (hh.dissolved || hh.farmstead === null || hh.farmstead === undefined) return true;
+      const f = st.farmsteads[hh.farmstead];
+      for (const fd of f.fields) if (fd.tile === t) return true;
+      for (const m of f.meadows || []) if (m.tile === t) return m.mown !== null && day - m.mown < YEAR_DAYS;
+      return true;
+    }
+    if (ctx.restoring === null) {
+      ctx.restoring = new Set();
+      Projects.forEach(st, (plan) => {
+        if (plan.farm === undefined || plan.farm === null) return;
+        const f = st.farmsteads[plan.farm];
+        for (const fd of f.fields) ctx.restoring.add(fd.tile);
+        for (const m of f.meadows || []) ctx.restoring.add(m.tile);
+      });
+    }
+    return ctx.restoring.has(t);
+  }
+  // The trees of front tile t set to n (0 to its full cover); a tile that becomes thick scrub opens the front to its neighbours (`join`).
+  function setTrees(st, t, n, join) {
+    const w = st.w,
+      was = treeStage(w, t),
+      wasThick = thick(w, t);
+    w.trees[t] = Math.max(0, Math.min(w.treesMax[t], n));
+    if (!wasThick && thick(w, t)) join.push(t);
+    if (treeStage(w, t) !== was) st.treeDirty.add(t);
+  }
+  // Front tile t reaches full cover: it is forest (broadleaf, or pine by its neighbours), its trees at full cover as generated forest's.
+  function becomeForest(st, t, join) {
+    const w = st.w,
+      b = kindAt(w, t);
+    setBiome(w, t, b);
+    w.treesMax[t] = fullTrees(G, w.seed, t, b);
+    w.trees[t] = w.treesMax[t];
+    st.front.delete(t);
+    st.treeDirty.add(t);
+    st.biomeDirty.add(t);
+    costChanged(st, t);
+    join.push(t);
+  }
+  // Once a game day: each tile of the front gains trees, or is kept open, or is thinned by grazing; one that no longer qualifies leaves it.
+  function spreadForest(st) {
+    const w = st.w,
+      front = st.front,
+      day = Math.floor(st.t / DAY),
+      ctx = { restoring: null },
+      join = [],
+      scale = yearScale(st); // the pressure now is w.graze over the year's scale (sim/grazing, grazeOf), taken once for the pass
+    for (const t of front) {
+      VB.count.frontTile++;
+      if (!open(w, t) || !(w.trees[t] > 0 || seeded(w, t))) {
+        front.delete(t);
+        continue;
+      }
+      const g = w.graze[t] / scale;
+      if (g >= GRAZE.thins) {
+        if (w.trees[t] > 0) setTrees(st, t, w.trees[t] - w.treesMax[t] * RATE * SPREAD.thin, join);
+        continue;
+      }
+      if (g >= GRAZE.keepsOpen || kept(st, t, day, ctx)) continue;
+      if (w.treesMax[t] === 0) w.treesMax[t] = fullTrees(G, w.seed, t, kindAt(w, t));
+      const n = w.trees[t] + w.treesMax[t] * RATE;
+      if (n >= w.treesMax[t]) becomeForest(st, t, join);
+      else setTrees(st, t, n, join);
+    }
+    // the open neighbours of new thick scrub and new forest join the front, to be visited from tomorrow
+    for (const t of join)
+      for (let d = 0; d < 6; d++) {
+        const j = w.nb[t * 6 + d];
+        if (j >= 0 && open(w, j)) front.add(j);
+      }
+  }
+  return { SPREAD, initFront, spreadForest, tended, scrubHours, clearScrub, thick };
 })();
 </script>
 <script>
@@ -13967,6 +14154,7 @@ VB['sim/fields'] = (() => {
   const Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
   const { seedPer } = VB['sim/hunger'];
+  const { scrubHours, clearScrub, tended, SPREAD } = VB['sim/spread'];
   const REACH = 4,
     SCRUB_HOURS = 10,
     STONE_HOURS = 20,
@@ -14003,8 +14191,8 @@ VB['sim/fields'] = (() => {
         Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (FIELDS.expect * CROPS.barley.yield - CROPS.barley.seed)),
       ),
     );
-  // Hours of clearing a tile: scrub, plus the stones in proportion.
-  const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255;
+  // Hours of clearing a tile: brush, plus the stones in proportion, plus the scrub the forest has grown on it (sim/spread, VB-091).
+  const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255 + scrubHours(st, tile);
   // Houses and greens, standing or planned (a plot's house): no field is made next to one (VB-113).
   function builtTiles(st) {
     const out = new Set(st.villages.map((v) => v.center));
@@ -14077,6 +14265,7 @@ VB['sim/fields'] = (() => {
     const loads = Math.round(w.stones[tile] / STONES_PER_LOAD);
     if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
     w.stones[tile] = 0;
+    clearScrub(st, tile); // its scrub too, and it is tended (VB-091)
     emit(st, 'stepDone', { type: 'household', id: f.household }); // the project's next step opens (sim/plans)
     st.biomeDirty.add(tile);
   }
@@ -14086,6 +14275,7 @@ VB['sim/fields'] = (() => {
     const w = st.w,
       tile = Projects.openOf(st, 'household', f.household).place;
     realiseStake(st, st.households[f.household], tile);
+    tended(st, tile);
     f.fields.push({
       id: f.fields.length,
       tile,
@@ -14196,6 +14386,7 @@ VB['sim/fields'] = (() => {
     fd.bin = seq;
   };
   function reclaimed(st, fd) {
+    clearScrub(st, fd.tile); // the forest's scrub on it is cleared with the grass (VB-091)
     if (fd.stage === 'fallow' || fd.stage === 'scrub') {
       fd.stage = 'stubble';
       st.visualDirty = true;
@@ -14210,12 +14401,6 @@ VB['sim/fields'] = (() => {
       fd.stage = 'stubble';
       fd.sown = null;
     }
-  }
-  // Scrub is the first step of forest spread, so it only comes to fields with woodland within 2 steps.
-  function nearForest(w, tile) {
-    for (const j of bfs(w, tile, 2, () => true).dist.keys())
-      if (w.biome[j] === B.FOREST || w.biome[j] === B.PINE) return true;
-    return false;
   }
   // A ripe field still standing on its crop's `lost` day is lost (rye by the autumn's first day; VB-348).
   function lostRipe(st, f, fd, c) {
@@ -14269,13 +14454,14 @@ VB['sim/fields'] = (() => {
         fd.weeds = n + 1;
       }
     rest(st, c);
-    // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
+    // Untended fields go to grass, unless a claimant is restoring the farm; a field the forest has grown into is scrub (sim/spread, VB-091).
     for (const f of st.farmsteads)
       if (f.household === null && !Projects.onFarm(st, f.id)) {
         const yrs = (st.t - f.emptySince) / YEAR;
         for (const fd of f.fields) {
-          const want =
-            (yrs > 8 && nearForest(st.w, fd.tile)) || fd.stage === 'scrub' ? 'scrub' : yrs > 1 ? 'fallow' : fd.stage;
+          const w = st.w,
+            scrub = w.treesMax[fd.tile] > 0 && w.trees[fd.tile] >= SPREAD.scrub * w.treesMax[fd.tile];
+          const want = scrub ? 'scrub' : yrs > 1 || fd.stage === 'scrub' ? 'fallow' : fd.stage;
           if (fd.stage !== want) {
             fd.stage = want;
             st.visualDirty = true;
@@ -14349,6 +14535,7 @@ VB['sim/meadows'] = (() => {
   const Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
   const { seedPer } = VB['sim/hunger'];
+  const { scrubHours, clearScrub } = VB['sim/spread'];
   // A meadow tile yields HAY × its site value a year in an ordinary year (VB-132): open meadow 1, marsh 0.8, heath 0.6, and 1.3 times that on
   // wet ground by a river or open water. A household with animals wants meadows for WANT × its winter's need, at most MAX; it looks for them
   // within REACH walking steps. Clearing takes CLEAR_HOURS and up to STONE_HOURS for the stones, down to KEEP_STONES of 255.
@@ -14425,7 +14612,10 @@ VB['sim/meadows'] = (() => {
   // stake. It holds back a field's seed, as the seed reserve counted any land project before project plans (kept so the run is the same;
   // VB-123's notes).
   function meadowProject(st, hh, tile) {
-    const hours = CLEAR_HOURS + (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES);
+    const hours =
+      CLEAR_HOURS +
+      (STONE_HOURS * Math.max(0, st.w.stones[tile] - KEEP_STONES)) / (255 - KEEP_STONES) +
+      scrubHours(st, tile); // and the forest's scrub on it (VB-091)
     return {
       what: 'meadow',
       steps: [{ kind: 'meadow', place: tile, hours, stake: 'meadow' }],
@@ -14451,6 +14641,7 @@ VB['sim/meadows'] = (() => {
     const loads = Math.round(gone / STONES_PER_LOAD);
     if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
     w.stones[tile] -= gone;
+    clearScrub(st, tile); // its scrub cleared too, and it is tended (VB-091)
     emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
     addMeadow(st, f, hh, tile);
     st.visualDirty = true;
@@ -15303,15 +15494,14 @@ VB['sim/expansion'] = (() => {
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];
-  const { clearTile } = VB['sim/forest'];
+  const { clearTile, FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
+  const { thick, clearScrub, tended } = VB['sim/spread'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
   const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand } = VB['sim/layout'];
   const COTTAGE = ['foundation', 'walls', 'roof'],
     COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const MAX_PLOTS = 2,
-    REACH = 6,
-    FELL_HOURS = 10,
-    GRUB_HOURS = 6;
+    REACH = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // @state village.plots[]: the village's plots built, {id, village, intended, holder (who moved in), started, farmstead, tiles: [{tile, kind
   //   'house' | 'field'}]}, appended when the cottage's household moves in (sim/cottage). A plot under way is a project plan of its village
@@ -15332,7 +15522,7 @@ VB['sim/expansion'] = (() => {
   // A site's walls wait until BUILD.timber loads of wood lie there (VB-328; site: a plot, or a booth).
   const waitsForTimber = (site, i) => COTTAGE[i] === 'walls' && (site.wood || 0) < BUILD.timber;
   const stepsFor = (w, tile, kind) => [
-    ...(wooded(w, tile) ? ['fell', 'grub'] : []),
+    ...(wooded(w, tile) || thick(w, tile) ? ['fell', 'grub'] : []), // thick scrub as forest (VB-091)
     'clear',
     ...(kind === 'field' ? ['break'] : []),
   ];
@@ -15593,11 +15783,14 @@ VB['sim/expansion'] = (() => {
       st.regrow.delete(tr.tile);
       st.treeDirty.add(tr.tile);
     } else if (step === 'grub') clearTile(st, tr.tile);
-    else if (step === 'clear') w.stones[tr.tile] = 0;
-    else if (tr.kind === 'field') {
+    else if (step === 'clear') {
+      w.stones[tr.tile] = 0;
+      clearScrub(st, tr.tile); // scrub below half cover goes with the clearing (VB-091)
+    } else if (tr.kind === 'field') {
       tr.fresh = !w.dev[tr.tile];
       w.dev[tr.tile] = 1;
     } // ground never farmed starts fresh (VB-149)
+    tended(st, tr.tile); // worked on: kept open from the forest a year (sim/spread)
     tr.i++;
     st.biomeDirty.add(tr.tile);
     st.visualDirty = true;
@@ -17520,6 +17713,7 @@ VB['sim/kinds'] = (() => {
     Carts = VB['sim/carts'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
+  const { scrubHours, SPREAD } = VB['sim/spread'];
   const { dailyNeed, floorOf } = VB['sim/hunger'],
     { reserved } = Stores;
   const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, carried, binned, reclaimed, weeded } =
@@ -17589,6 +17783,11 @@ VB['sim/kinds'] = (() => {
   // By the byre door, left of the cottage (the page draws the byre there).
   const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
   const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
+  // A field the forest has grown into at half cover or more is felled and grubbed besides (sim/spread, VB-091).
+  const reclaimHours = (st, fd) => {
+    const h = scrubHours(st, fd.tile);
+    return RECLAIM[fd.stage] + (h > SPREAD.scrubHours ? h : 0);
+  };
   // The sowing window of a field's crop, when it is hoed and sown (the row's `sow`: [season, first day, last day]).
   const sowing = (fd, c) => {
     const w = CROPS[fd.crop].sow;
@@ -17984,7 +18183,7 @@ VB['sim/kinds'] = (() => {
       stages: ['fallow', 'scrub'],
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'fallow' || fd.stage === 'scrub')
-          post('reclaim:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, hours: RECLAIM[fd.stage] });
+          post('reclaim:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, hours: reclaimHours(st, fd) });
       },
     },
     restore: {
@@ -24859,6 +25058,7 @@ VB['sim/scenarios'] = (() => {
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
   const { initDeer } = VB['sim/deer'];
+  const { initFront } = VB['sim/spread'];
   const { layWay } = VB['sim/paths'];
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
@@ -25353,6 +25553,7 @@ VB['sim/scenarios'] = (() => {
     };
     rebuildLiving(st);
     initDeer(st); // roe deer in every region with forest edges, at their capacity (VB-139)
+    initFront(st); // the open land beside the forest, where it may spread (VB-091)
     seedPlans(st);
     for (const v of villages) {
       v.plots = [];
@@ -25407,6 +25608,7 @@ VB['sim/clock'] = (() => {
   const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, SOCIAL, HERD, FISH } = VB['sim/rules'];
   const { log, startFold, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
+  const { spreadForest } = VB['sim/spread'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
   const { refreshRoutes, costChanged, refreshHoursStep, ROW_STEPS } = VB['sim/routes'];
   const { fadeWear } = VB['sim/paths'];
@@ -25598,6 +25800,12 @@ VB['sim/clock'] = (() => {
     },
     { every: 'day', owner: 'sim/stores', note: 'the village store spoils too', run: (st) => Stores.villageDay(st) },
     { every: 'day', owner: 'sim/forest', note: 'trees grow', run: (st) => growTrees(st) },
+    {
+      every: 'day',
+      owner: 'sim/spread',
+      note: 'the forest spreads into open land it borders, unless kept open (VB-091)',
+      run: (st) => spreadForest(st),
+    },
     {
       every: 'day',
       owner: 'sim/claims',
@@ -26297,6 +26505,7 @@ VB['sim/saves'] = (() => {
   ];
   WORLD.push('depositLeft', 'depositFull', 'dugDay'); // VB-359: what has been dug (sim/dig); a save without them was never dug
   WORLD.push('graze'); // VB-136: grazing pressure (sim/herds); a save without it was never grazed
+  WORLD.push('tended'); // VB-091: the last work on a tile (sim/spread); a save without it has its front made anew
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
@@ -26473,6 +26682,7 @@ VB['sim/saves'] = (() => {
     if (!st.rng.forest) st.rng.forest = makeStream(data.seed, 'forest');
     if (!st.rng.deer) st.rng.deer = makeStream(data.seed, 'deer'); // VB-139: nor roe deer, nor their stream
     if (!st.deer) VB['sim/deer'].initDeer(st);
+    if (!st.front || !w.tended) VB['sim/spread'].initFront(st); // VB-091: nor the forest's front, nor the work on tiles
     for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
     for (const v of st.villages)
       if (!v.wood) {
@@ -37773,7 +37983,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'fdd6849125',
+const BUILD = '1b038058f2',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

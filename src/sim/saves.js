@@ -284,6 +284,7 @@ VB['sim/saves'] = (() => {
   ];
   WORLD.push('depositLeft', 'depositFull', 'dugDay'); // VB-359: what has been dug (sim/dig); a save without them was never dug
   WORLD.push('graze'); // VB-136: grazing pressure (sim/herds); a save without it was never grazed
+  WORLD.push('tended'); // VB-091: the last work on a tile (sim/spread); a save without it has its front made anew
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
   // Format 3 (VB-259): the household's cooked store is hh.meals, no longer hh.rations; older saves are refused, as another build's.
@@ -460,6 +461,7 @@ VB['sim/saves'] = (() => {
     if (!st.rng.forest) st.rng.forest = makeStream(data.seed, 'forest');
     if (!st.rng.deer) st.rng.deer = makeStream(data.seed, 'deer'); // VB-139: nor roe deer, nor their stream
     if (!st.deer) VB['sim/deer'].initDeer(st);
+    if (!st.front || !w.tended) VB['sim/spread'].initFront(st); // VB-091: nor the forest's front, nor the work on tiles
     for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
     for (const v of st.villages)
       if (!v.wood) {

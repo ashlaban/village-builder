@@ -6,6 +6,7 @@ VB['sim/kinds'] = (() => {
     Carts = VB['sim/carts'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
+  const { scrubHours, SPREAD } = VB['sim/spread'];
   const { dailyNeed, floorOf } = VB['sim/hunger'],
     { reserved } = Stores;
   const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, carried, binned, reclaimed, weeded } =
@@ -75,6 +76,11 @@ VB['sim/kinds'] = (() => {
   // By the byre door, left of the cottage (the page draws the byre there).
   const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
   const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
+  // A field the forest has grown into at half cover or more is felled and grubbed besides (sim/spread, VB-091).
+  const reclaimHours = (st, fd) => {
+    const h = scrubHours(st, fd.tile);
+    return RECLAIM[fd.stage] + (h > SPREAD.scrubHours ? h : 0);
+  };
   // The sowing window of a field's crop, when it is hoed and sown (the row's `sow`: [season, first day, last day]).
   const sowing = (fd, c) => {
     const w = CROPS[fd.crop].sow;
@@ -470,7 +476,7 @@ VB['sim/kinds'] = (() => {
       stages: ['fallow', 'scrub'],
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'fallow' || fd.stage === 'scrub')
-          post('reclaim:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, hours: RECLAIM[fd.stage] });
+          post('reclaim:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, hours: reclaimHours(st, fd) });
       },
     },
     restore: {

@@ -409,13 +409,14 @@ function checkState(st) {
       bad.push(`villages[${v.id}]: founded is ${JSON.stringify(fd)}`);
     }
   }
-  // the village's wood (VB-326): every tile wooded, in no other village's wood and not in use; within the cap
+  // the village's wood (VB-326): every tile wooded (forest, or scrub the forest has grown on open land, VB-091), in no other village's wood
+  // and not in use; within the cap
   const WOOD = globalThis.VB['sim/rules'].WOOD, { B } = globalThis.VB.gen, inWood = new Map();
   for (const v of st.villages) {
     if (!Array.isArray(v.wood) || v.wood.length > WOOD.cap) { bad.push(`villages[${v.id}]: wood is ${JSON.stringify(v.wood)}`); continue; }
     for (const t of v.wood) {
       const b = st.w.biome[t];
-      if (!(b === B.FOREST || b === B.PINE) || !(st.w.trees[t] > 0)) bad.push(`villages[${v.id}]: wood tile ${t} is not wooded`);
+      if (!(b === B.FOREST || b === B.PINE || st.w.treesMax[t] > 0) || !(st.w.trees[t] > 0)) bad.push(`villages[${v.id}]: wood tile ${t} is not wooded`);
       if (st.used.has(t)) bad.push(`villages[${v.id}]: wood tile ${t} is in use`);
       if (inWood.has(t)) bad.push(`villages[${v.id}]: wood tile ${t} is also village ${inWood.get(t)}'s`);
       inWood.set(t, v.id);

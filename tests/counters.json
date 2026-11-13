@@ -38,6 +38,7 @@
   "cowSeek": 0.1305,
   "pastureTiles": 37.46888888888889,
   "deerGround": 10.574402250351618,
+  "frontTile": 0,
   "deerCrop": 0,
   "workdayHolders": 0,
   "roundRank": 0.02666666666666667

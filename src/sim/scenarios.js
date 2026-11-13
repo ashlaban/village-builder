@@ -22,6 +22,7 @@ VB['sim/scenarios'] = (() => {
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
   const { initDeer } = VB['sim/deer'];
+  const { initFront } = VB['sim/spread'];
   const { layWay } = VB['sim/paths'];
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
@@ -516,6 +517,7 @@ VB['sim/scenarios'] = (() => {
     };
     rebuildLiving(st);
     initDeer(st); // roe deer in every region with forest edges, at their capacity (VB-139)
+    initFront(st); // the open land beside the forest, where it may spread (VB-091)
     seedPlans(st);
     for (const v of villages) {
       v.plots = [];
