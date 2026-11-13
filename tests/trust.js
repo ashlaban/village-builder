@@ -67,7 +67,7 @@ let report = '';
   report = `${R.fullName(holder)} held at ${st.farmsteads[c.farmstead].name}, ${jobs.length} tasks on ${f.name}`;
   // 2. The holder marries: the couple goes back.
   const wife = st.pawns.find((p) => p.alive && p.sex !== holder.sex && p.age >= 18 && p.age < 40 && R.spouseOf(st, p.id) === null && !R.isHolder(st, p.id)
-    && p.household !== null && R.kinDegree(st, p.id, holder.id) > 2);
+    && p.household !== null && R.kinDegree(st, p.id, holder.id) > 2 && !st.herds.some((hd) => hd.herder === p.id)); // not a herder: the herd's keeper is set again at the next round (sim/grazing)
   check(issue(st, { actor: holder.id, verb: 'marry', target: wife.id, args: { home: a.id }, source: 'test' }) === true, 'the marriage');
   refreshRoles(st); // as the round does after its marriages
   check(holder.household === a.id && wife.household === a.id && !trustOf(st, a.id) && t.why === 'married', `the couple lives on the farm, the trust ended (${t.why})`);

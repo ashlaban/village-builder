@@ -141,6 +141,7 @@ const EXTENDED = [
   ['node', 'tests/help.js'],
   ['node', 'tests/guardian.js'],
   ['node', 'tests/newfields.js'],
+  ['node', 'tests/fieldswanted.js'],
   ['node', 'tests/manual.js'],
   ['node', 'tests/herds.js'],
   ['node', 'tests/herding.js'],

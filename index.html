@@ -13638,12 +13638,16 @@ VB['sim/fields'] = (() => {
     }
     return Math.floor(hands * perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
   }
-  // Fields a household wants: enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield), as many as its hands can till.
+  // Fields a household wants: enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield, net of the seed a field
+  // takes back, VB-389), as many as its hands can till.
   // `workable`: fieldsWorkable(st, hh), when the caller has it (the plan's review writes both, sim/plans).
   const fieldsWanted = (st, hh, workable = fieldsWorkable(st, hh)) =>
     Math.max(
       1,
-      Math.min(workable, Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (FIELDS.expect * CROPS.barley.yield))),
+      Math.min(
+        workable,
+        Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (FIELDS.expect * CROPS.barley.yield - CROPS.barley.seed)),
+      ),
     );
   // Hours of clearing a tile: scrub, plus the stones in proportion.
   const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255;
@@ -36673,7 +36677,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '3b6cd0069f',
+const BUILD = '06e31c6957',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
