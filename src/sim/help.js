@@ -95,11 +95,12 @@ VB['sim/help'] = (() => {
     }
     return short;
   }
-  // At the moving round every household gives a share of its surplus to its village's store.
-  function fillStores(st) {
+  // At the moving round every household gives a share of its surplus to its village's store: a village's at its own round (VB-277), or
+  // every village's when v is null.
+  function fillStores(st, v = null) {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
-      if (hh.dissolved) continue;
+      if (hh.dissolved || (v !== null && st.farmsteads[hh.farmstead].village !== v)) continue;
       const n = surplus(st, hh) * HELP.storeShare;
       if (n <= 1e-9) continue;
       give(st, hh, st.villages[st.farmsteads[hh.farmstead].village], n);

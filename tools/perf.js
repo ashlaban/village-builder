@@ -19,7 +19,7 @@ const SYSTEMS = {
   'meadows': { 'sim/meadows': ['meadowsSpring', 'meadowsFrost'] },
   'paths and routes': { 'sim/paths': ['fadeWear'], 'sim/routes': ['refreshRoutes'] },
   'trees': { 'sim/forest': ['growTrees'] },
-  'the moving round': { 'sim/lifecycle': ['roundPhase'] }, // a phase a step (VB-201)
+  'the moving round': { 'sim/lifecycle': ['roundPhase'] }, // a step: a village's round, or a phase (VB-201, VB-277)
   'meetings': { 'sim/lifecycle': ['meetingStage'] },
   // VB-205: the agents' six-minute step (walking, working, and who wants work), and the strolls of those the planner found nothing for.
   'agents: walking and working': { 'sim/agents': ['stepAgents'] },
