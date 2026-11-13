@@ -299,6 +299,23 @@ function updateSettlement(dt) {
       if (h.heap.texture !== art.manure[k]) h.heap.texture = art.manure[k];
     }
   }
+  // the tar pits smoke while someone burns tar at them (VB-301)
+  if (pitInfo.length) {
+    const burning = new Set();
+    for (const a of st.agents) if (a.job && a.job.kind === 'burntar' && a.phase === 'work') burning.add(a.job.site);
+    for (const q of pitInfo) {
+      q.smoke += ((burning.has(q.tile) ? 0.9 : 0) - q.smoke) * ease;
+      const on = near && q.smoke > 0.02;
+      q.puffs.forEach((p, k) => {
+        p.visible = on;
+        if (!on) return;
+        const ph = (time * 0.12 + k / q.puffs.length + q.tile * 0.13) % 1;
+        p.position.set(q.x + ph * 7 + Math.sin(ph * 5 + k) * 1.6, q.y - ph * 26);
+        p.scale.set(0.12 + ph * 0.32);
+        p.alpha = Math.min(0.95, (1 - ph * ph) * 2 * q.smoke * (ph < 0.1 ? ph * 10 : 1));
+      });
+    }
+  }
   for (const l of labels) {
     l.t.scale.set(0.55 / cam.z);
     l.t.position.set(l.x, l.y);

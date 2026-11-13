@@ -3,14 +3,15 @@
 // a shore built as a project plan (the cook puts dried fish in the winter's pot: sim/pot, VB-119)
 // Design: design.md, Goods of place and side crafts (Goods of place, First goods, Side crafts, The fishing boat; Agreed, 10 Nov). Fish are
 // split and hung on racks in the dry winds of spring to autumn (stockfish, klippfisk), and keep a year or more: here through winter
-// and spring, to the next summer (the good's keepsDays, sim/stores). Nobody travels in a boat (slice 10); its tarring is VB-301's.
+// and spring, to the next summer (the good's keepsDays, sim/stores). Nobody travels in a boat (slice 10). VB-301: a boat wants a barrel
+// of tar every BOAT.tarYears (sim/tar spends it); untarred that long it fishes at BOAT.leaky of its catch, and after BOAT.lostYears it is lost.
 // VB-388 (Kim, 12 Nov): the catch for the pot a household cannot eat before it spoils goes to the rack while the rack has room.
 VB['sim/drying'] = (() => {
-  const { FISH, FOODS, SEASON_DAYS, cal } = VB['sim/rules'];
+  const { FISH, FOODS, SEASON_DAYS, YEAR, cal } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'],
     { passable } = VB['sim/routes'];
   const { isWater, lakeSizes, ground, landCatch } = VB['sim/fish'];
-  const { age } = VB['sim/records'];
+  const { age, log, atFarm } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
@@ -26,7 +27,9 @@ VB['sim/drying'] = (() => {
   // The fishing boat (design.md, The fishing boat; Agreed, 10 Nov): `hours` of work at the shore, `timber` loads of the village's wood
   // felled and carried to it (two trees, at 3 loads a tree as VB-328's timber trip), a trip in it brings `catch` times the bank's (8 rations
   // where the bank gives 4). A household with `hands` working hands (14 to 59) may build one, at the start of the drying season.
-  const BOAT = { hours: 20, timber: 6, catch: 2, hands: 2 };
+  // Tar (VB-301; design.md, The fishing boat; Agreed, 10 Nov): a boat is tarred as it is built and wants a barrel every `tarYears`;
+  // untarred that long it leaks and fishes at `leaky` of its catch (8 rations a trip to 4), and untarred `lostYears` it is lost.
+  const BOAT = { hours: 20, timber: 6, catch: 2, hands: 2, tarYears: 2, leaky: 0.5, lostYears: 4 };
   const winterDays = SEASON_DAYS + FISH.from;
   // ---- the village's reach (the reach test, as VB-117's): fishing water (a river, a lake or the sea) next to a bank within FISH.reach
   // walking steps of one of its houses. The world's water does not change in play, so the test changes only with the village's farms. ----
@@ -55,17 +58,26 @@ VB['sim/drying'] = (() => {
     return near;
   }
   // ---- where a household fishes: from its boat while it lies in reach of the house it was built for, else from its fishing ground ----
-  // @state household.boat: {tile, water, house, built} or null: the household's fishing boat, kept on shore tile `tile` by water tile
-  //   `water`, built for the house on tile `house` (a household that moves leaves it behind), at game hour `built`; it does not decay
-  //   until tar (VB-301). Written only here.
+  // @state household.boat: {tile, water, house, built, tarred} or null: the household's fishing boat, kept on shore tile `tile` by water
+  //   tile `water`, built for the house on tile `house` (a household that moves leaves it behind), at game hour `built`, last tarred at game
+  //   hour `tarred` (VB-301; tarred as it is built). Written only here.
+  // Years since the boat was last tarred (read in closed form: no pass ages it).
+  const untarred = (st, b) => (st.t - (b.tarred ?? b.built)) / YEAR;
+  // The boat is past saving: untarred BOAT.lostYears (the yearly round takes it away; until then nobody fishes from it).
+  const boatGone = (st, b) => untarred(st, b) >= BOAT.lostYears;
+  // The household's boat is due a barrel of tar: untarred for BOAT.tarYears less `lead` years (tarred in the season before it leaks).
+  const boatDue = (st, hh, f, lead = 0) =>
+    !!hh.boat && hh.boat.house === f.house && !boatGone(st, hh.boat) && untarred(st, hh.boat) >= BOAT.tarYears - lead;
   function fishingPlace(st, hh, f) {
     const b = hh.boat;
-    if (b && b.house === f.house) return { shore: b.tile, water: b.water, boat: true };
+    if (b && b.house === f.house && !boatGone(st, b))
+      return { shore: b.tile, water: b.water, boat: true, leaky: untarred(st, b) >= BOAT.tarYears };
     const g = ground(st, f.house);
-    return g ? { shore: g.shore, water: g.water, boat: false } : null;
+    return g ? { shore: g.shore, water: g.water, boat: false, leaky: false } : null;
   }
-  // A trip's catch, in rations: the bank's (sim/fish, lowering the stock of water that runs down), BOAT.catch times it from a boat.
-  const catchOf = (st, j) => landCatch(st, j.water) * (j.boat ? BOAT.catch : 1);
+  // A trip's catch, in rations: the bank's (sim/fish, lowering the stock of water that runs down), BOAT.catch times it from a boat, and
+  // BOAT.leaky of that from a boat untarred too long (VB-301).
+  const catchOf = (st, j) => landCatch(st, j.water) * (j.boat ? BOAT.catch * (j.leaky ? BOAT.leaky : 1) : 1);
   // ---- drying ----
   // The dried fish a household wants in store: the winter pot's fish share of its need over the days without fresh fish, in whole lots.
   const wanted = (st, hh) => Math.ceil((Pot.WINTER_FISH * dailyNeed(st, hh) * winterDays) / DRY.lot - 1e-9) * DRY.lot;
@@ -110,10 +122,23 @@ VB['sim/drying'] = (() => {
     }
     return n;
   }
-  // At the start of the drying season: each household of a village by fishing water, with no boat for its house, no project plan, BOAT.hands
-  // working hands and a village wood to fell in, begins a boat if a shore by the sea or a large lake is in its reach.
+  // At the start of the drying season: a boat untarred BOAT.lostYears is lost (VB-301); then each household of a village by fishing water,
+  // with no boat for its house, no project plan, BOAT.hands working hands and a village wood to fell in, begins a boat if a shore by the sea
+  // or a large lake is in its reach.
   function boatYear(st) {
     for (const v of st.villages) {
+      for (const id of v.farmsteads) {
+        const f = st.farmsteads[id],
+          hh = f.household === null ? null : st.households[f.household];
+        VB.count.tarAsk++;
+        if (hh && hh.boat && boatGone(st, hh.boat)) {
+          hh.boat = null;
+          log(st, `${f.name}'s fishing boat, untarred for ${BOAT.lostYears} years, has rotted and is lost.`, {
+            kind: 'boatLost',
+            ...atFarm(f),
+          });
+        }
+      }
       if (!v.wood.length || !villageFishes(st, v)) continue;
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id],
@@ -148,8 +173,12 @@ VB['sim/drying'] = (() => {
       s = plan && Projects.openStep(plan);
     if (!s || s.kind !== 'boat' || s.place !== j.site) return;
     const f = st.farmsteads[hh.farmstead];
-    hh.boat = { tile: s.place, water: plan.water, house: f.house, built: st.t };
+    hh.boat = { tile: s.place, water: plan.water, house: f.house, built: st.t, tarred: st.t };
     emit(st, 'stepDone', { type: 'household', id: hh.id });
+  }
+  // The boat is tarred (VB-301; sim/tar spends the barrel).
+  function boatTarred(st, hh) {
+    if (hh.boat) hh.boat.tarred = st.t;
   }
   // ---- the job kinds (sim/kinds registers them; their fields are described there) ----
   const nearHouse = (dx, dy) => (st, a, j) => [
@@ -191,7 +220,8 @@ VB['sim/drying'] = (() => {
         )
           return;
         const g = fishingPlace(st, hh, f);
-        if (g) post(`rackfish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat });
+        if (g)
+          post(`rackfish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat, leaky: g.leaky });
       },
     },
     dry: {
@@ -226,5 +256,21 @@ VB['sim/drying'] = (() => {
       done: (st, j, hh) => boatBuilt(st, j, hh),
     },
   };
-  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, potCatch, wanted, drying, boatShore, boatYear };
+  return {
+    DRY,
+    BOAT,
+    KINDS,
+    villageFishes,
+    fishingPlace,
+    catchOf,
+    potCatch,
+    wanted,
+    drying,
+    boatShore,
+    boatYear,
+    untarred,
+    boatDue,
+    boatTarred,
+    hands,
+  };
 })();

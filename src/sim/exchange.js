@@ -135,19 +135,9 @@ VB['sim/exchange'] = (() => {
     return Rules.explain(st, 'allowance', { giver, receiver, from, to });
   }
   // ---- goods at the fair (VB-299; design.md, The fair: Need and Keeping goods; target-v2 5.1). VB-302's deals read these. ----
-  // need's terms for tar and ale (sim/hunger declares the rule): tar is worth its worth when a boat or the house is due, which nothing is
-  // until boats and the house's condition come (VB-300, VB-301, VB-306), so only as a keeping good; ale its worth with an occasion ahead (a
-  // wedding, a funeral ale, hosting), half otherwise, and no household has an occasion ahead until occasions come (VB-126, VB-305).
+  // need's term for ale (sim/hunger declares the rule; tar's is sim/tar's, VB-301): ale its worth with an occasion ahead (a wedding, a
+  // funeral ale, hosting), half otherwise, and no household has an occasion ahead until occasions come (VB-126, VB-305).
   const ALE = { noOccasion: 0.5 };
-  Rules.contribute({
-    rule: 'need',
-    source: 'sim/exchange',
-    key: 'tar',
-    label: 'Tar, for a boat or the house due (from VB-301)',
-    range: [0, 0],
-    tunables: [],
-    value: () => 0,
-  });
   Rules.contribute({
     rule: 'need',
     source: 'sim/exchange',

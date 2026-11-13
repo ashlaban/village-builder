@@ -9,6 +9,7 @@ let fieldTex = null,
 let fieldSprites = [],
   rigs = [],
   houseInfo = [],
+  pitInfo = [], // the tar pits and their smoke (VB-301; page/settlement, page/animate)
   fences = [],
   labels = [],
   meadowSprites = [];

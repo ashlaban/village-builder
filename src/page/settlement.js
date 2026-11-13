@@ -41,6 +41,7 @@ function clearSettlement() {
   fieldSprites = [];
   rigs = [];
   houseInfo = [];
+  pitInfo = [];
   fences = [];
   labels = [];
   herdSprites = new Map();
@@ -180,6 +181,7 @@ function buildFarms(wd) {
   fieldSprites = [];
   rigs = [];
   houseInfo = [];
+  pitInfo = [];
   fences = [];
   herdSprites = new Map();
   deerSprites = [];
@@ -224,8 +226,9 @@ function buildFarms(wd) {
     const yard = place(art.yard, hx, hy + 1, 0.5, 0.5, L.fields, 0.27);
     if (empty) yard.alpha = ruin ? 0.2 : 0.35;
     const v = f.id % 3;
-    // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims)
-    const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : 0xffffff;
+    // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims); a tarred house's logs
+    // are darker (VB-301)
+    const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : Sim.houseTarred(st, f) ? 0x9a8a7c : 0xffffff;
     if (f.booth) drawBooth(wd, f, empty);
     else {
       const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
@@ -293,6 +296,33 @@ function buildFarms(wd) {
       houseInfo.push({ f, puffs, wood, stack, heap, cx, cy, lit, glow, smoke: 0, fire: 0 });
     }
     if (f.fence) for (const s2 of f.fence) addFence(s2);
+  }
+  // the tar pits (VB-301): a funnel of dark earth on the pine slope, a barrel by its run-off, and smoke while tar is burnt (page/animate)
+  for (const hh of st.households) {
+    const pit = hh.tarPit;
+    if (hh.dissolved || !pit) continue;
+    const x = wd.hx[pit.tile] + 8,
+      y = wd.hy[pit.tile] + 6,
+      g = new PIXI.Graphics();
+    g.ellipse(x, y, 7.5, 4.2).fill({ color: 0x5a4a3a }).stroke({ width: 0.7, color: INK });
+    g.ellipse(x, y - 0.6, 4.6, 2.4).fill({ color: 0x2a211b });
+    g.ellipse(x + 0.4, y + 0.2, 1.6, 0.8).fill({ color: 0x120d0a });
+    g.rect(x + 5.2, y + 1.2, 4, 2.6)
+      .fill({ color: 0x7a5636 })
+      .stroke({ width: 0.4, color: INK });
+    g.zIndex = y;
+    L.objects.addChild(g);
+    const puffs = [];
+    for (let k = 0; k < 5; k++) {
+      const p = new PIXI.Sprite(art.puff);
+      p.anchor.set(0.5);
+      p.zIndex = 1e6;
+      p.tint = 0x6a625c; // tar smoke is dark
+      p.visible = false;
+      L.objects.addChild(p);
+      puffs.push(p);
+    }
+    pitInfo.push({ tile: pit.tile, x, y: y - 2, puffs, smoke: 0 });
   }
   for (const v of st.villages) {
     if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);

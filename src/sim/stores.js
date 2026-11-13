@@ -48,6 +48,8 @@ VB['sim/stores'] = (() => {
   // VB-009: grain ground to flour on the hand quern (routine), and a load of stone off the heap for a new quern (sim/quern)
   KINDS.push('grind', 'quern');
   ROUTINE.push('grind');
+  // VB-301: a barrel of tar burnt at the household's pit, and one laid on its house or its boat (sim/tar)
+  KINDS.push('tarburn', 'tarring');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -101,6 +103,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
     if (kind === 'household' && good === 'peat') return good; // the peat stack (VB-367)
+    if (kind === 'household' && good === 'tar') return good; // barrels of tar (VB-301, sim/tar)
     if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
@@ -180,12 +183,17 @@ VB['sim/stores'] = (() => {
   const setRack = (hh, n) => {
     hh.rack = n;
   };
+  // @state household.tar: barrels of tar held (VB-301; burnt at the household's pit and laid on its house or boat, sim/tar), whole numbers, 0 at the start
+  const setTar = (hh, n) => {
+    hh.tar = n;
+  };
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
     else if (good === 'stone') setStone(holder, n);
     else if (good === 'peat') setPeat(holder, n);
     else if (good === 'fish') setRack(holder, n);
+    else if (good === 'tar') setTar(holder, n);
     else if (good === 'flour') setFlour(holder, n);
     else setMeals(holder, n);
   }

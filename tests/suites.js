@@ -58,6 +58,7 @@ const INTEGRATION = [
   ['node', 'tests/grain.js'],
   ['node', 'tests/scaling.js'],
   ['node', '--expose-gc', 'tests/goods.js'],
+  ['node', 'tests/tar.js'],
   ['node', 'tests/causes.js'],
   ['node', 'tests/deaths.js'],
   ['node', 'tests/codec.js'],

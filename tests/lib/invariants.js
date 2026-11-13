@@ -316,7 +316,11 @@ function checkState(st) {
     if (h.rack !== undefined && !within(h.rack, 0, 1e6)) bad.push(`households[${h.id}]: rack is ${h.rack}`);
     const b = h.boat;
     if (b && !(tileOk(b.tile) && tileOk(b.house) && st.w.water[b.water] === 1 && Array.from({ length: 6 }, (_, k) => st.w.nb[b.tile * 6 + k]).includes(b.water)
-      && b.built <= st.t)) bad.push(`households[${h.id}]: boat ${JSON.stringify(b)}`);
+      && b.built <= st.t && (b.tarred === undefined || b.tarred >= b.built && b.tarred <= st.t))) bad.push(`households[${h.id}]: boat ${JSON.stringify(b)}`);
+    // tar (VB-301): whole barrels; the pit null or on a tile of the map, in a village, dug at a time not after now
+    if (h.tar !== undefined && !(Number.isInteger(h.tar) && h.tar >= 0 && h.tar <= 100)) bad.push(`households[${h.id}]: tar is ${h.tar}`);
+    if (h.tarPit !== undefined && h.tarPit !== null && !(tileOk(h.tarPit.tile) && st.villages[h.tarPit.village] && h.tarPit.built <= st.t))
+      bad.push(`households[${h.id}]: tarPit ${JSON.stringify(h.tarPit)}`);
     if (b !== undefined && b !== null && typeof b !== 'object') bad.push(`households[${h.id}]: boat ${b}`);
     // carts (sim/carts): hand or ox, a condition above 0 and at most 1, out with no one or with a pawn; the misses a count
     if (!Array.isArray(h.carts) ||
@@ -374,7 +378,7 @@ function checkState(st) {
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
-        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', 'peat', ...FISHES, ...WOODS].includes(e.good)
+        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', 'peat', 'tar', ...FISHES, ...WOODS].includes(e.good)
         || e.stake && !st.pawns[e.pawn]) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }

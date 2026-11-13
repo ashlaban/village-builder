@@ -39,6 +39,7 @@ VB['sim/clock'] = (() => {
   const { takeIn } = VB['sim/service'];
   const { trustOf } = VB['sim/ownership'];
   const { boatYear } = VB['sim/drying'],
+    { tarYear } = VB['sim/tar'],
     { cartsYear } = VB['sim/carts'],
     { KINDS } = VB['sim/kinds'];
 
@@ -270,6 +271,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/drying',
       note: 'the ice is gone: households by the sea begin a boat (VB-300)',
       run: (st) => boatYear(st),
+    },
+    {
+      every: 'year',
+      at: { season: 1, sday: 0 },
+      owner: 'sim/tar',
+      note: 'summer: a village with pine and no tar pit has one dug (VB-301)',
+      run: (st) => tarYear(st),
     },
     {
       every: 'year',

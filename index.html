@@ -1310,6 +1310,9 @@ VB.COUNTERS = {
   fishReach:
     "Tiles within reach of a house searched for fishing water: a village's reach test when it has a new farm, a household's shore " +
     'for a boat (sim/drying; VB-300)',
+  tarAsk:
+    "Farms asked once a year whether a boat is lost for want of tar or a tar pit is begun, and pine tiles of a village's wood walked " +
+    'for tar (sim/drying, sim/tar; VB-301)',
   boatAsk:
     'Farms of villages by fishing water asked whether their household begins a boat, once a year (sim/drying; VB-300)',
   digGround:
@@ -8326,6 +8329,7 @@ VB['sim/records'] = (() => {
     offerLapsed: 0,
     meetingFailed: 0,
     cartBuilt: 0, // a household's new cart (VB-327)
+    tarPit: 0, // a household's tar pit dug (VB-301)
     setOut: 0, // a journey to a new home in another village (VB-287)
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT,
@@ -8348,6 +8352,7 @@ VB['sim/records'] = (() => {
     noWood: GENERATION,
     cattleInCrop: GENERATION,
     cartGone: GENERATION, // a cart worn out (VB-327)
+    boatLost: GENERATION, // a fishing boat lost for want of tar (VB-301)
     arrived: GENERATION, // the journey's end (VB-287)
     deerInCrop: GENERATION,
   };
@@ -8603,6 +8608,8 @@ VB['sim/records'] = (() => {
       peat: 0,
       rack: 0,
       boat: null,
+      tar: 0,
+      tarPit: null, // tar: barrels held (sim/stores), tarPit: the household's tar pit (sim/tar; VB-301)
       carts: [],
       cartMiss: 0, // carts, cartMiss: sim/carts; clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
       larder: [],
@@ -11369,6 +11376,8 @@ VB['sim/stores'] = (() => {
   // VB-009: grain ground to flour on the hand quern (routine), and a load of stone off the heap for a new quern (sim/quern)
   KINDS.push('grind', 'quern');
   ROUTINE.push('grind');
+  // VB-301: a barrel of tar burnt at the household's pit, and one laid on its house or its boat (sim/tar)
+  KINDS.push('tarburn', 'tarring');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -11422,6 +11431,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
     if (kind === 'household' && good === 'peat') return good; // the peat stack (VB-367)
+    if (kind === 'household' && good === 'tar') return good; // barrels of tar (VB-301, sim/tar)
     if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
@@ -11501,12 +11511,17 @@ VB['sim/stores'] = (() => {
   const setRack = (hh, n) => {
     hh.rack = n;
   };
+  // @state household.tar: barrels of tar held (VB-301; burnt at the household's pit and laid on its house or boat, sim/tar), whole numbers, 0 at the start
+  const setTar = (hh, n) => {
+    hh.tar = n;
+  };
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
     else if (good === 'stone') setStone(holder, n);
     else if (good === 'peat') setPeat(holder, n);
     else if (good === 'fish') setRack(holder, n);
+    else if (good === 'tar') setTar(holder, n);
     else if (good === 'flour') setFlour(holder, n);
     else setMeals(holder, n);
   }
@@ -13146,19 +13161,9 @@ VB['sim/exchange'] = (() => {
     return Rules.explain(st, 'allowance', { giver, receiver, from, to });
   }
   // ---- goods at the fair (VB-299; design.md, The fair: Need and Keeping goods; target-v2 5.1). VB-302's deals read these. ----
-  // need's terms for tar and ale (sim/hunger declares the rule): tar is worth its worth when a boat or the house is due, which nothing is
-  // until boats and the house's condition come (VB-300, VB-301, VB-306), so only as a keeping good; ale its worth with an occasion ahead (a
-  // wedding, a funeral ale, hosting), half otherwise, and no household has an occasion ahead until occasions come (VB-126, VB-305).
+  // need's term for ale (sim/hunger declares the rule; tar's is sim/tar's, VB-301): ale its worth with an occasion ahead (a wedding, a
+  // funeral ale, hosting), half otherwise, and no household has an occasion ahead until occasions come (VB-126, VB-305).
   const ALE = { noOccasion: 0.5 };
-  Rules.contribute({
-    rule: 'need',
-    source: 'sim/exchange',
-    key: 'tar',
-    label: 'Tar, for a boat or the house due (from VB-301)',
-    range: [0, 0],
-    tunables: [],
-    value: () => 0,
-  });
   Rules.contribute({
     rule: 'need',
     source: 'sim/exchange',
@@ -16281,14 +16286,15 @@ VB['sim/building'] = (() => {
 // a shore built as a project plan (the cook puts dried fish in the winter's pot: sim/pot, VB-119)
 // Design: design.md, Goods of place and side crafts (Goods of place, First goods, Side crafts, The fishing boat; Agreed, 10 Nov). Fish are
 // split and hung on racks in the dry winds of spring to autumn (stockfish, klippfisk), and keep a year or more: here through winter
-// and spring, to the next summer (the good's keepsDays, sim/stores). Nobody travels in a boat (slice 10); its tarring is VB-301's.
+// and spring, to the next summer (the good's keepsDays, sim/stores). Nobody travels in a boat (slice 10). VB-301: a boat wants a barrel
+// of tar every BOAT.tarYears (sim/tar spends it); untarred that long it fishes at BOAT.leaky of its catch, and after BOAT.lostYears it is lost.
 // VB-388 (Kim, 12 Nov): the catch for the pot a household cannot eat before it spoils goes to the rack while the rack has room.
 VB['sim/drying'] = (() => {
-  const { FISH, FOODS, SEASON_DAYS, cal } = VB['sim/rules'];
+  const { FISH, FOODS, SEASON_DAYS, YEAR, cal } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'],
     { passable } = VB['sim/routes'];
   const { isWater, lakeSizes, ground, landCatch } = VB['sim/fish'];
-  const { age } = VB['sim/records'];
+  const { age, log, atFarm } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
@@ -16304,7 +16310,9 @@ VB['sim/drying'] = (() => {
   // The fishing boat (design.md, The fishing boat; Agreed, 10 Nov): `hours` of work at the shore, `timber` loads of the village's wood
   // felled and carried to it (two trees, at 3 loads a tree as VB-328's timber trip), a trip in it brings `catch` times the bank's (8 rations
   // where the bank gives 4). A household with `hands` working hands (14 to 59) may build one, at the start of the drying season.
-  const BOAT = { hours: 20, timber: 6, catch: 2, hands: 2 };
+  // Tar (VB-301; design.md, The fishing boat; Agreed, 10 Nov): a boat is tarred as it is built and wants a barrel every `tarYears`;
+  // untarred that long it leaks and fishes at `leaky` of its catch (8 rations a trip to 4), and untarred `lostYears` it is lost.
+  const BOAT = { hours: 20, timber: 6, catch: 2, hands: 2, tarYears: 2, leaky: 0.5, lostYears: 4 };
   const winterDays = SEASON_DAYS + FISH.from;
   // ---- the village's reach (the reach test, as VB-117's): fishing water (a river, a lake or the sea) next to a bank within FISH.reach
   // walking steps of one of its houses. The world's water does not change in play, so the test changes only with the village's farms. ----
@@ -16333,17 +16341,26 @@ VB['sim/drying'] = (() => {
     return near;
   }
   // ---- where a household fishes: from its boat while it lies in reach of the house it was built for, else from its fishing ground ----
-  // @state household.boat: {tile, water, house, built} or null: the household's fishing boat, kept on shore tile `tile` by water tile
-  //   `water`, built for the house on tile `house` (a household that moves leaves it behind), at game hour `built`; it does not decay
-  //   until tar (VB-301). Written only here.
+  // @state household.boat: {tile, water, house, built, tarred} or null: the household's fishing boat, kept on shore tile `tile` by water
+  //   tile `water`, built for the house on tile `house` (a household that moves leaves it behind), at game hour `built`, last tarred at game
+  //   hour `tarred` (VB-301; tarred as it is built). Written only here.
+  // Years since the boat was last tarred (read in closed form: no pass ages it).
+  const untarred = (st, b) => (st.t - (b.tarred ?? b.built)) / YEAR;
+  // The boat is past saving: untarred BOAT.lostYears (the yearly round takes it away; until then nobody fishes from it).
+  const boatGone = (st, b) => untarred(st, b) >= BOAT.lostYears;
+  // The household's boat is due a barrel of tar: untarred for BOAT.tarYears less `lead` years (tarred in the season before it leaks).
+  const boatDue = (st, hh, f, lead = 0) =>
+    !!hh.boat && hh.boat.house === f.house && !boatGone(st, hh.boat) && untarred(st, hh.boat) >= BOAT.tarYears - lead;
   function fishingPlace(st, hh, f) {
     const b = hh.boat;
-    if (b && b.house === f.house) return { shore: b.tile, water: b.water, boat: true };
+    if (b && b.house === f.house && !boatGone(st, b))
+      return { shore: b.tile, water: b.water, boat: true, leaky: untarred(st, b) >= BOAT.tarYears };
     const g = ground(st, f.house);
-    return g ? { shore: g.shore, water: g.water, boat: false } : null;
+    return g ? { shore: g.shore, water: g.water, boat: false, leaky: false } : null;
   }
-  // A trip's catch, in rations: the bank's (sim/fish, lowering the stock of water that runs down), BOAT.catch times it from a boat.
-  const catchOf = (st, j) => landCatch(st, j.water) * (j.boat ? BOAT.catch : 1);
+  // A trip's catch, in rations: the bank's (sim/fish, lowering the stock of water that runs down), BOAT.catch times it from a boat, and
+  // BOAT.leaky of that from a boat untarred too long (VB-301).
+  const catchOf = (st, j) => landCatch(st, j.water) * (j.boat ? BOAT.catch * (j.leaky ? BOAT.leaky : 1) : 1);
   // ---- drying ----
   // The dried fish a household wants in store: the winter pot's fish share of its need over the days without fresh fish, in whole lots.
   const wanted = (st, hh) => Math.ceil((Pot.WINTER_FISH * dailyNeed(st, hh) * winterDays) / DRY.lot - 1e-9) * DRY.lot;
@@ -16388,10 +16405,23 @@ VB['sim/drying'] = (() => {
     }
     return n;
   }
-  // At the start of the drying season: each household of a village by fishing water, with no boat for its house, no project plan, BOAT.hands
-  // working hands and a village wood to fell in, begins a boat if a shore by the sea or a large lake is in its reach.
+  // At the start of the drying season: a boat untarred BOAT.lostYears is lost (VB-301); then each household of a village by fishing water,
+  // with no boat for its house, no project plan, BOAT.hands working hands and a village wood to fell in, begins a boat if a shore by the sea
+  // or a large lake is in its reach.
   function boatYear(st) {
     for (const v of st.villages) {
+      for (const id of v.farmsteads) {
+        const f = st.farmsteads[id],
+          hh = f.household === null ? null : st.households[f.household];
+        VB.count.tarAsk++;
+        if (hh && hh.boat && boatGone(st, hh.boat)) {
+          hh.boat = null;
+          log(st, `${f.name}'s fishing boat, untarred for ${BOAT.lostYears} years, has rotted and is lost.`, {
+            kind: 'boatLost',
+            ...atFarm(f),
+          });
+        }
+      }
       if (!v.wood.length || !villageFishes(st, v)) continue;
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id],
@@ -16426,8 +16456,12 @@ VB['sim/drying'] = (() => {
       s = plan && Projects.openStep(plan);
     if (!s || s.kind !== 'boat' || s.place !== j.site) return;
     const f = st.farmsteads[hh.farmstead];
-    hh.boat = { tile: s.place, water: plan.water, house: f.house, built: st.t };
+    hh.boat = { tile: s.place, water: plan.water, house: f.house, built: st.t, tarred: st.t };
     emit(st, 'stepDone', { type: 'household', id: hh.id });
+  }
+  // The boat is tarred (VB-301; sim/tar spends the barrel).
+  function boatTarred(st, hh) {
+    if (hh.boat) hh.boat.tarred = st.t;
   }
   // ---- the job kinds (sim/kinds registers them; their fields are described there) ----
   const nearHouse = (dx, dy) => (st, a, j) => [
@@ -16469,7 +16503,8 @@ VB['sim/drying'] = (() => {
         )
           return;
         const g = fishingPlace(st, hh, f);
-        if (g) post(`rackfish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat });
+        if (g)
+          post(`rackfish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat, leaky: g.leaky });
       },
     },
     dry: {
@@ -16504,7 +16539,265 @@ VB['sim/drying'] = (() => {
       done: (st, j, hh) => boatBuilt(st, j, hh),
     },
   };
-  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, potCatch, wanted, drying, boatShore, boatYear };
+  return {
+    DRY,
+    BOAT,
+    KINDS,
+    villageFishes,
+    fishingPlace,
+    catchOf,
+    potCatch,
+    wanted,
+    drying,
+    boatShore,
+    boatYear,
+    untarred,
+    boatDue,
+    boatTarred,
+    hands,
+  };
+})();
+</script>
+<script>
+// @sys sim/tar: tar (VB-301), the second good of place: a village's pine (its reach test), the tar pit one household builds and owns,
+// burning tar in the slack of early summer, and a barrel spent on the house (f.tarredUntil) or on the fishing boat; tar's need term
+// Design: design.md, Goods of place and side crafts (Goods of place, First goods, A well-kept house, The fishing boat; What each good is
+// for: Agreed, 10 Nov). Tar is burnt from resinous pine wood in a funnel-shaped pit (tjärdal) dug on a slope of the pine forest, in the
+// weeks between sowing and haymaking; a barrel is the farm's, held for its house and its boat (a keeping good, sim/stores). Tar gives no
+// prestige by itself, only through the well-kept house (HOUSE.termTarred, sim/rules). Without the fair (VB-302) a barrel never leaves the
+// household that burnt it: only the pit's own household tars its house and its boat.
+VB['sim/tar'] = (() => {
+  const { YEAR, SEASON_DAYS, HOUSE, houseCondition, houseTarred } = VB['sim/rules'];
+  const { B } = VB['gen'];
+  const Rules = VB['sim/registry'];
+  const Stores = VB['sim/stores'],
+    Projects = VB['sim/projects'],
+    { emit } = VB['sim/events'];
+  const { log, atFarm } = VB['sim/records'];
+  const { fellTree } = VB['sim/forest'];
+  const Drying = VB['sim/drying'];
+  // Proposed (VB-301, the task's numbers; the pit's and the tarring's hours are this task's own, for Kim's review): a barrel takes `barrelHours`
+  // of work at the pit and one pine tree of the village's wood (a load of pine wood), burnt from summer day 0 to `burnDays` (early summer,
+  // between the sowing and the haymaking: the slack); a pit is dug in `pitHours` by `hands` hands; tarring a house or a boat takes
+  // `tarHours`, in spring, summer or autumn (tar is laid on dry wood); the boat is tarred from `lead` years before it leaks (BOAT.tarYears),
+  // so a barrel bought at a summer fair is in time. The pit's household keeps a barrel ready for its house, and one for its boat
+  // (`stock`, burnt ahead: a barrel keeps). `urgency`: a side craft's, as ale and digging (the household's slack).
+  const TAR = {
+    barrelHours: 12,
+    burnDays: SEASON_DAYS / 2,
+    pitHours: 12,
+    hands: 2,
+    tarHours: 4,
+    lead: 0.5,
+    urgency: 0.5,
+  };
+  const SUMMER = 1,
+    WINTER = 3;
+  // ---- the reach test: pine in the village's wood (VB-326's allotment, within WOOD.reach of its centre and beyond to WOOD.far) ----
+  // Burning draws only among the pine tiles of the village's wood: the firewood trips do not tell pine from broadleaf, so a tar village
+  // burns its pine as firewood too (the task's note), and a village whose pine is felled has no tar until it grows back or the wood is
+  // reckoned again (sim/territory).
+  const pine = (w, t) => w.biome[t] === B.PINE && w.trees[t] > 0;
+  // The first pine tile of the village's wood with trees standing (the wood is held nearest the centre first), or -1. A walk of the
+  // allotment (at most WOOD.cap tiles), on the yearly round and on the job's posting and finishing, never daily.
+  function pineTile(st, v) {
+    const w = st.w,
+      wood = v.wood || [];
+    for (let i = 0; i < wood.length; i++) {
+      VB.count.tarAsk++;
+      if (pine(w, wood[i])) return wood[i];
+    }
+    return -1;
+  }
+  const villageTar = (st, v) => pineTile(st, v) >= 0;
+  // ---- the pit: a facility one household builds and owns (design.md, Skill and tools) ----
+  // @state household.tarPit: {tile, village, built} or null: the household's tar pit, dug on tile `tile` of village `village`'s wood at game
+  //   hour `built`; it burns only while the household's farm is in that village. Written only here.
+  const pitOf = (st, hh, f) => (hh.tarPit && f && hh.tarPit.village === f.village ? hh.tarPit : null);
+  // The household of village v that holds a pit there, or null; and whether one is being dug (a household's project plan).
+  function villagePit(st, v) {
+    for (const id of v.farmsteads) {
+      const f = st.farmsteads[id],
+        hh = f.household === null ? null : st.households[f.household];
+      VB.count.tarAsk++;
+      if (!hh || hh.dissolved) continue;
+      if (pitOf(st, hh, f)) return hh;
+      const plan = Projects.projectOf(st, 'household', hh.id);
+      if (plan && plan.what === 'tarpit') return hh;
+    }
+    return null;
+  }
+  // At the start of summer: in each village with pine in its wood and no pit, the household with the most working hands (at least
+  // TAR.hands; the first farm among equals) and no project plan begins one on the wood's first pine tile.
+  function tarYear(st) {
+    for (const v of st.villages) {
+      if (!v.wood || !v.wood.length || villagePit(st, v)) continue;
+      const t = pineTile(st, v);
+      if (t < 0) continue;
+      let best = null,
+        most = TAR.hands - 1;
+      for (const id of v.farmsteads) {
+        const f = st.farmsteads[id],
+          hh = f.household === null ? null : st.households[f.household];
+        if (!hh || hh.dissolved || f.booth || Projects.projectOf(st, 'household', hh.id)) continue;
+        const n = Drying.hands(st, hh);
+        if (n > most) {
+          most = n;
+          best = hh;
+        }
+      }
+      if (best)
+        emit(st, 'projectBegun', {
+          type: 'household',
+          id: best.id,
+          project: { what: 'tarpit', steps: [{ kind: 'tarpit', place: t, hours: TAR.pitHours, wood: 0 }] },
+        });
+    }
+  }
+  // The pit dug: the household's; the plan is finished (sim/plans).
+  function pitDug(st, j, hh) {
+    const plan = Projects.projectOf(st, 'household', hh.id),
+      s = plan && Projects.openStep(plan);
+    if (!s || s.kind !== 'tarpit' || s.place !== j.site) return;
+    const f = st.farmsteads[hh.farmstead];
+    hh.tarPit = { tile: s.place, village: f.village, built: st.t };
+    st.visualDirty = true;
+    log(st, `${f.name} has dug a tar pit in the pine wood of ${st.villages[f.village].name}.`, {
+      kind: 'tarPit',
+      ...atFarm(f),
+    });
+    emit(st, 'stepDone', { type: 'household', id: hh.id });
+  }
+  // ---- what tar is for: the house and the boat ----
+  // The house is due a barrel while it is not tarred; the boat from TAR.lead years before it leaks.
+  const houseDue = (st, f) => !!f && !f.booth && !houseTarred(st, f);
+  function dueCount(st, hh) {
+    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    if (!f) return 0;
+    return (houseDue(st, f) ? 1 : 0) + (Drying.boatDue(st, hh, f, TAR.lead) ? 1 : 0);
+  }
+  // The barrels the pit's household keeps ready: one for its house, and one for its boat if it has one.
+  const stock = (st, hh, f) => 1 + (hh.boat && hh.boat.house === f.house ? 1 : 0);
+  // A barrel burnt: a pine tree of the village's wood felled into the pit (none left: nothing burnt), a barrel into the store.
+  function burnt(st, hh) {
+    const f = st.farmsteads[hh.farmstead],
+      t = f && pitOf(st, hh, f) ? pineTile(st, st.villages[f.village]) : -1;
+    if (t < 0) return false;
+    fellTree(st, t);
+    Stores.put(st, hh, 'tar', 1, 'tarburn');
+    return true;
+  }
+  // A barrel laid on the house: its condition is read to now (the wear so far at the old rate), then tarred for HOUSE.tarYears.
+  function tarHouse(st, hh) {
+    const f = st.farmsteads[hh.farmstead];
+    if (!houseDue(st, f) || Stores.take(st, hh, 'tar', 1, 'tarring') < 1) return false;
+    f.condition = houseCondition(st, f);
+    f.condAt = st.t;
+    f.tarredUntil = st.t + HOUSE.tarYears * YEAR;
+    st.visualDirty = true;
+    return true;
+  }
+  function tarBoat(st, hh) {
+    const f = st.farmsteads[hh.farmstead];
+    if (!Drying.boatDue(st, hh, f, TAR.lead) || Stores.take(st, hh, 'tar', 1, 'tarring') < 1) return false;
+    Drying.boatTarred(st, hh);
+    return true;
+  }
+  // ---- tar's need term (sim/hunger declares the rule; VB-299 left it a stub): a barrel is worth its customary worth to a household
+  // whose house or boat is due and that holds too few to tar them, and nothing beyond (it is then only a keeping good, sim/exchange) ----
+  const worthCtx = { good: null }; // reused: the term allocates nothing
+  const lack = (due, held) => (due > held ? due - held : 0);
+  Rules.contribute({
+    rule: 'need',
+    source: 'sim/tar',
+    key: 'tar',
+    label: 'Tar, for a boat or the house due',
+    tunables: ['TAR.lead'],
+    value: (st, c) => {
+      if (c.good.id !== 'tar' || !c.hh) return 0;
+      const due = dueCount(st, c.hh),
+        held = c.hh.tar || 0;
+      worthCtx.good = c.good;
+      return Rules.value(st, 'worth', worthCtx) * (lack(due, held) - lack(due, Math.max(0, held + c.n)));
+    },
+  });
+  // ---- the job kinds (sim/kinds registers them; their fields are described there) ----
+  const atSite = (dx, dy) => (st, a, j) => [st.w.hx[j.site] + dx + a.ox * 0.4, st.w.hy[j.site] + dy + a.oy * 0.3];
+  const warm = (c) => c.season !== WINTER;
+  const KINDS = {
+    tarpit: {
+      verb: 'Digging a tar pit',
+      go: 'Going to dig the tar pit',
+      name: 'Dig a tar pit',
+      label: 'Tar pit',
+      anim: 'hoe',
+      hours: TAR.pitHours,
+      hands: TAR.hands,
+      type: 'wood',
+      project: true,
+      spot: atSite(0, 0),
+      done: (st, j, hh) => pitDug(st, j, hh),
+    },
+    burntar: {
+      verb: 'Burning tar',
+      go: 'Going to the tar pit',
+      name: 'Burn tar',
+      label: 'Tar',
+      anim: 'axe',
+      hours: TAR.barrelHours,
+      hands: TAR.hands,
+      type: 'wood',
+      spot: atSite(4, 2),
+      urgency: () => TAR.urgency,
+      done: (st, j, hh) => {
+        burnt(st, hh);
+      },
+      // in early summer, at the household's pit, while it holds fewer barrels than it keeps and its village's wood holds pine
+      available: (st, hh, f, c, post) => {
+        if (c.season !== SUMMER || c.sday >= TAR.burnDays || (hh.tar || 0) >= stock(st, hh, f)) return;
+        const pit = pitOf(st, hh, f);
+        if (pit && villageTar(st, st.villages[f.village])) post(`burntar:h${hh.id}`, pit.tile, { farm: f });
+      },
+    },
+    tarhouse: {
+      verb: 'Tarring the house',
+      go: 'Going home to tar the house',
+      name: 'Tar the house',
+      label: 'Tarring',
+      anim: 'mallet',
+      hours: TAR.tarHours,
+      hands: 1,
+      type: 'upkeep',
+      spot: (st, a, j) => [st.w.hx[j.site] - 6 + a.ox * 0.2, st.w.hy[j.site] + 2 + a.oy * 0.2],
+      urgency: () => TAR.urgency,
+      done: (st, j, hh) => {
+        tarHouse(st, hh);
+      },
+      available: (st, hh, f, c, post) => {
+        if ((hh.tar || 0) >= 1 && warm(c) && houseDue(st, f)) post(`tarhouse:h${hh.id}`, f.house, { farm: f });
+      },
+    },
+    tarboat: {
+      verb: 'Tarring the boat',
+      go: 'Going to tar the boat',
+      name: 'Tar the boat',
+      label: 'Tarring',
+      anim: 'mallet',
+      hours: TAR.tarHours,
+      hands: 1,
+      type: 'upkeep',
+      spot: atSite(0, 0),
+      urgency: () => TAR.urgency,
+      done: (st, j, hh) => {
+        tarBoat(st, hh);
+      },
+      available: (st, hh, f, c, post) => {
+        if ((hh.tar || 0) >= 1 && warm(c) && Drying.boatDue(st, hh, f, TAR.lead))
+          post(`tarboat:h${hh.id}`, hh.boat.tile, { farm: f });
+      },
+    },
+  };
+  return { TAR, KINDS, pineTile, villageTar, pitOf, villagePit, tarYear, dueCount, houseDue, burnt, tarHouse, tarBoat };
 })();
 </script>
 <script>
@@ -17686,9 +17979,9 @@ VB['sim/kinds'] = (() => {
         const g = Drying.fishingPlace(st, hh, f);
         if (!g) return;
         // the key names the bank, so a ground fished out is left for the next one at the following review
-        post(`fish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat });
+        post(`fish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat, leaky: g.leaky });
         if (spareDays(st, hh) < FISH.secondDays)
-          post(`fish:h${hh.id}:${g.shore}b`, g.shore, { farm: f, water: g.water, boat: g.boat });
+          post(`fish:h${hh.id}:${g.shore}b`, g.shore, { farm: f, water: g.water, boat: g.boat, leaky: g.leaky });
       },
     },
     gather: {
@@ -17726,6 +18019,7 @@ VB['sim/kinds'] = (() => {
   // hunting roe deer (VB-139): its record is sim/deer's, its urgency fishing's, by the household's spare food
   KINDS.hunt = { ...VB['sim/deer'].KIND, urgency: (st, j, c, U) => spareUrgency(st, j, U) };
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
+  Object.assign(KINDS, VB['sim/tar'].KINDS); // the tar pit, burning tar, tarring the house and the boat (VB-301): sim/tar's
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -17761,6 +18055,7 @@ VB['sim/kinds'] = (() => {
   // VB-359, VB-300, sim/carts (a boat or a cart is a project's step), VB-139 (hunting roe deer), VB-390 (a cow led home, sim/exchange)
   ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart'), rule('hunt'), rule('lead'));
   ASK.farmAfterPlans.push(rule('grind'), rule('hewQuern')); // the hand quern (VB-009, sim/quern)
+  ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy };
 })();
@@ -24853,6 +25148,7 @@ VB['sim/clock'] = (() => {
   const { takeIn } = VB['sim/service'];
   const { trustOf } = VB['sim/ownership'];
   const { boatYear } = VB['sim/drying'],
+    { tarYear } = VB['sim/tar'],
     { cartsYear } = VB['sim/carts'],
     { KINDS } = VB['sim/kinds'];
 
@@ -25084,6 +25380,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/drying',
       note: 'the ice is gone: households by the sea begin a boat (VB-300)',
       run: (st) => boatYear(st),
+    },
+    {
+      every: 'year',
+      at: { season: 1, sday: 0 },
+      owner: 'sim/tar',
+      note: 'summer: a village with pine and no tar pit has one dug (VB-301)',
+      run: (st) => tarYear(st),
     },
     {
       every: 'year',
@@ -25796,6 +26099,12 @@ VB['sim/saves'] = (() => {
         hh.rack = 0;
         hh.boat = null;
       } // VB-300: nor a drying rack nor a boat
+    for (const hh of st.households)
+      if (hh.tar === undefined) {
+        hh.tar = 0; // lint-allow: owner an older save's household, as sim/records makes one
+        hh.tarPit = null; // lint-allow: owner as above: no tar pit (VB-301)
+        if (hh.boat && hh.boat.tarred === undefined) hh.boat.tarred = hh.boat.built; // lint-allow: owner as above: tarred as it was built
+      } // VB-301: nor tar nor a tar pit
     for (const hh of st.households) if (!hh.fresh) openFresh(hh); // VB-119: nor fresh food
     for (const hh of st.households)
       if (hh.flour === undefined) {
@@ -26012,6 +26321,8 @@ const Sim = (() => {
   const { withOxen } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
+  const { houseTarred } = VB['sim/rules'],
+    { untarred: boatUntarred } = VB['sim/drying']; // VB-301: a house tarred, a boat's years since its tarring
   const { claimsOn, strength, holdings } = VB['sim/claims'];
   const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];
   const { left: depositLeftNow } = VB['sim/dig']; // VB-359: loads left now, bog iron grown back
@@ -26101,6 +26412,8 @@ const Sim = (() => {
     herdReport,
     larderOf,
     quernYears,
+    houseTarred,
+    boatUntarred,
     team,
     withOxen,
     inMilk,
@@ -29980,6 +30293,7 @@ let fieldTex = null,
 let fieldSprites = [],
   rigs = [],
   houseInfo = [],
+  pitInfo = [], // the tar pits and their smoke (VB-301; page/settlement, page/animate)
   fences = [],
   labels = [],
   meadowSprites = [];
@@ -30552,6 +30866,7 @@ function clearSettlement() {
   fieldSprites = [];
   rigs = [];
   houseInfo = [];
+  pitInfo = [];
   fences = [];
   labels = [];
   herdSprites = new Map();
@@ -30691,6 +31006,7 @@ function buildFarms(wd) {
   fieldSprites = [];
   rigs = [];
   houseInfo = [];
+  pitInfo = [];
   fences = [];
   herdSprites = new Map();
   deerSprites = [];
@@ -30735,8 +31051,9 @@ function buildFarms(wd) {
     const yard = place(art.yard, hx, hy + 1, 0.5, 0.5, L.fields, 0.27);
     if (empty) yard.alpha = ruin ? 0.2 : 0.35;
     const v = f.id % 3;
-    // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims)
-    const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : 0xffffff;
+    // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims); a tarred house's logs
+    // are darker (VB-301)
+    const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : Sim.houseTarred(st, f) ? 0x9a8a7c : 0xffffff;
     if (f.booth) drawBooth(wd, f, empty);
     else {
       const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
@@ -30804,6 +31121,33 @@ function buildFarms(wd) {
       houseInfo.push({ f, puffs, wood, stack, heap, cx, cy, lit, glow, smoke: 0, fire: 0 });
     }
     if (f.fence) for (const s2 of f.fence) addFence(s2);
+  }
+  // the tar pits (VB-301): a funnel of dark earth on the pine slope, a barrel by its run-off, and smoke while tar is burnt (page/animate)
+  for (const hh of st.households) {
+    const pit = hh.tarPit;
+    if (hh.dissolved || !pit) continue;
+    const x = wd.hx[pit.tile] + 8,
+      y = wd.hy[pit.tile] + 6,
+      g = new PIXI.Graphics();
+    g.ellipse(x, y, 7.5, 4.2).fill({ color: 0x5a4a3a }).stroke({ width: 0.7, color: INK });
+    g.ellipse(x, y - 0.6, 4.6, 2.4).fill({ color: 0x2a211b });
+    g.ellipse(x + 0.4, y + 0.2, 1.6, 0.8).fill({ color: 0x120d0a });
+    g.rect(x + 5.2, y + 1.2, 4, 2.6)
+      .fill({ color: 0x7a5636 })
+      .stroke({ width: 0.4, color: INK });
+    g.zIndex = y;
+    L.objects.addChild(g);
+    const puffs = [];
+    for (let k = 0; k < 5; k++) {
+      const p = new PIXI.Sprite(art.puff);
+      p.anchor.set(0.5);
+      p.zIndex = 1e6;
+      p.tint = 0x6a625c; // tar smoke is dark
+      p.visible = false;
+      L.objects.addChild(p);
+      puffs.push(p);
+    }
+    pitInfo.push({ tile: pit.tile, x, y: y - 2, puffs, smoke: 0 });
   }
   for (const v of st.villages) {
     if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
@@ -31360,6 +31704,23 @@ function updateSettlement(dt) {
       if (h.heap.texture !== art.manure[k]) h.heap.texture = art.manure[k];
     }
   }
+  // the tar pits smoke while someone burns tar at them (VB-301)
+  if (pitInfo.length) {
+    const burning = new Set();
+    for (const a of st.agents) if (a.job && a.job.kind === 'burntar' && a.phase === 'work') burning.add(a.job.site);
+    for (const q of pitInfo) {
+      q.smoke += ((burning.has(q.tile) ? 0.9 : 0) - q.smoke) * ease;
+      const on = near && q.smoke > 0.02;
+      q.puffs.forEach((p, k) => {
+        p.visible = on;
+        if (!on) return;
+        const ph = (time * 0.12 + k / q.puffs.length + q.tile * 0.13) % 1;
+        p.position.set(q.x + ph * 7 + Math.sin(ph * 5 + k) * 1.6, q.y - ph * 26);
+        p.scale.set(0.12 + ph * 0.32);
+        p.alpha = Math.min(0.95, (1 - ph * ph) * 2 * q.smoke * (ph < 0.1 ? ph * 10 : 1));
+      });
+    }
+  }
   for (const l of labels) {
     l.t.scale.set(0.55 / cam.z);
     l.t.position.set(l.x, l.y);
@@ -31677,7 +32038,14 @@ function renderSettlers() {
           <p>Firewood ${Math.round(hh.wood)} loads${hh.cold > 0 ? ', cold: no firewood' : ''}; stone ${hh.stone} loads.</p>
           <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads; peat ${hh.peat || 0} units.</p>
           <p>Dried fish ${Math.round(Sim.larderOf(hh, 'dried fish'))} rations${hh.rack >= 0.5 ? `; ${Math.round(hh.rack)} fresh by the rack` : ''}${
-            hh.boat ? '; a fishing boat on the shore' : ''
+            hh.boat
+              ? `; a fishing boat on the shore, tarred ${Math.floor(Sim.boatUntarred(st, hh.boat))} years ago${
+                  Sim.boatUntarred(st, hh.boat) >= 2 ? ': it leaks' : ''
+                }`
+              : ''
+          }.</p>
+          <p>Tar ${hh.tar || 0} barrels${hh.tarPit ? '; a tar pit in the pine wood' : ''}${
+            hh.farmstead !== null && Sim.houseTarred(st, st.farmsteads[hh.farmstead]) ? '; the house is tarred' : ''
           }.</p>
           <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>`
           : '',
@@ -37087,7 +37455,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '6ba6a30b9d',
+const BUILD = '261f6e1226',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
