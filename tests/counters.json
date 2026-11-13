@@ -32,7 +32,7 @@
   "fishReach": 0.8466666666666667,
   "boatAsk": 0,
   "digGround": 2.8144444444444443,
-  "cowSeek": 0,
+  "cowSeek": 0.1305,
   "pastureTiles": 37.46888888888889,
   "roundRank": 0.02666666666666667,
   "deerGround": 10.574402250351618,
