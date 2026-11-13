@@ -64,6 +64,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-394](backlog/VB-394.md) | Hay comes home by the load | - | 3 | S | A load of hay is 10 units on the back and 60 on a cart, so a meadow of 30 is three trips or one cart. |
 | [VB-395](backlog/VB-395.md) | Refactor: the pawn's vital fields are written by sim/records | ownership | 3 | S | pawn.alive and pawn.age get one writer, sim/records, called by lifecycle and births. |
 | [VB-410](backlog/VB-410.md) | A cart is drawn: beside the house, and with the pawn that has it out | - | 3 | S | Carts are household items (sim/carts) with nothing drawn: the page shows a hand cart or an ox cart by the house while it is home, and with the pawn (the oxen before an ox cart) while it is out with a load; a worn cart looks worn |
+| [VB-416](backlog/VB-416.md) | Refactor: split sim/stores by concern (goods registry, reservations, ale) | - | 3 | M | sim/stores is 537 lines unpacked, and holds five concerns: the store operations and grain by crop, the ledger, ale, reservations, the goods registry |
 
 ## Waiting for Kim
 

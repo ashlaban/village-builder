@@ -9,24 +9,33 @@ VB['sim/stores'] = (() => {
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
   // VB-328: the woodpile, in loads: a firewood trip, the day's burning (routine), a plot's wood, timber left over, a new household's first wood.
-  KINDS.push('firewood', 'burn', 'plot', 'timber', 'start'); ROUTINE.push('firewood', 'burn');
+  KINDS.push('firewood', 'burn', 'plot', 'timber', 'start');
+  ROUTINE.push('firewood', 'burn');
   // VB-332: the stone heap, in loads of 25 stones: cleared from a field or meadow, picked, quarried; taken by a stone foundation.
   KINDS.push('clear', 'pick', 'quarry', 'foundation');
   // VB-123: what a project plan's step spends, taken from the store when the step is done (sim/projects).
   KINDS.push('build');
   // VB-300: a catch hung on the drying rack (sim/drying), out of the rack's store into the larder; VB-119: 'raw', grain eaten uncooked (sim/hunger)
-  KINDS.push('drying', 'raw'); ROUTINE.push('drying', 'raw');
+  KINDS.push('drying', 'raw');
+  ROUTINE.push('drying', 'raw');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
   function fold(holder, year, kind, good, n) {
     const T = holder.totals;
     for (let i = T.length - 1; i >= 0 && T[i].year === year; i--) {
-      const x = T[i]; if (x.kind === kind && x.good === good) { x.n += n; x.count++; return; }
+      const x = T[i];
+      if (x.kind === kind && x.good === good) {
+        x.n += n;
+        x.count++;
+        return;
+      }
     }
     T.push({ year, kind, good, n, count: 1 });
   }
-  function amount(n) { if (!Number.isFinite(n) || n < 0) throw new Error(`stores: invalid amount ${n}`); }
+  function amount(n) {
+    if (!Number.isFinite(n) || n < 0) throw new Error(`stores: invalid amount ${n}`);
+  }
   function type(holder) {
     if (!holder || holder.dissolved) throw new Error('stores: missing or dissolved holder');
     // A pawn is told by `given` (a person on record has it, no other holder does); anything else is refused.
@@ -35,9 +44,13 @@ VB['sim/stores'] = (() => {
     if ('given' in holder) return 'pawn';
     throw new Error('stores: not a holder');
   }
-  function villageEntry(v, entry) { if (!v.ledger) v.ledger = []; v.ledger.push(entry); }
+  function villageEntry(v, entry) {
+    if (!v.ledger) v.ledger = [];
+    v.ledger.push(entry);
+  }
   function record(st, holder, good, n, why, kind = type(holder)) {
-    amount(Math.abs(n)); if (good !== GRAIN && GOOD_CROP[good] !== undefined) good = GRAIN; // the ledger counts grain whatever its crop
+    amount(Math.abs(n));
+    if (good !== GRAIN && GOOD_CROP[good] !== undefined) good = GRAIN; // the ledger counts grain whatever its crop
     const detail = typeof why === 'string' ? { kind: why } : why;
     if (!detail || !KINDS.includes(detail.kind)) throw new Error('stores: unknown reason');
     const hh = kind === 'pawn' ? st.households[holder.household] : holder;
@@ -45,7 +58,10 @@ VB['sim/stores'] = (() => {
     else if (hh) {
       const entry = { ...detail, t: st.t, n, good, ...(kind === 'pawn' ? { pawn: holder.id, stake: true } : {}) };
       if (kind === 'village') villageEntry(holder, entry);
-      else { if (!hh.ledger) hh.ledger = []; hh.ledger.push(entry); }
+      else {
+        if (!hh.ledger) hh.ledger = [];
+        hh.ledger.push(entry);
+      }
     }
   }
   function field(holder, good, kind = type(holder)) {
@@ -63,19 +79,35 @@ VB['sim/stores'] = (() => {
   // of no crop; it goes into a store as STAKE_CROP (VB-352 gives stakes and starts their crops).
   // @state household.grain, village.grain: {[crop]: rations >= 0}, crops of CROPS; their sum, grainOf, is the grain the readers see
   const GRAIN = 'grain', CROP_LIST = Object.freeze(Object.keys(CROPS)), CROP_GOOD = {}, GOOD_CROP = {}, STAKE_CROP = 'barley';
-  for (const c of CROP_LIST) { CROP_GOOD[c] = GRAIN + '/' + c; GOOD_CROP[GRAIN + '/' + c] = c; }
+  for (const c of CROP_LIST) {
+    CROP_GOOD[c] = GRAIN + '/' + c;
+    GOOD_CROP[GRAIN + '/' + c] = c;
+  }
   const isGrain = (good) => good === GRAIN || GOOD_CROP[good] !== undefined;
-  function grainGood(crop) { const g = CROP_GOOD[crop]; if (!g) throw new Error(`stores: unknown crop ${crop}`); return g; }
+  function grainGood(crop) {
+    const g = CROP_GOOD[crop];
+    if (!g) throw new Error(`stores: unknown crop ${crop}`);
+    return g;
+  }
   // The grain a household or a village holds, of every crop or of one (VB-347): the one reader of the store's grain. Allocates nothing; the
   // crops are added in CROPS' order, so that grain of one crop is its number itself.
   function grainOf(holder, crop) {
-    const g = holder.grain; if (crop !== undefined) return g[crop] || 0;
-    let n = 0; for (let i = 0; i < CROP_LIST.length; i++) { const x = g[CROP_LIST[i]]; if (x !== undefined) n += x; }
+    const g = holder.grain;
+    if (crop !== undefined) return g[crop] || 0;
+    let n = 0;
+    for (let i = 0; i < CROP_LIST.length; i++) {
+      const x = g[CROP_LIST[i]];
+      if (x !== undefined) n += x;
+    }
     return n;
   }
   // Grain by crop as a take's `into` gave it, or as a constructor names it: an object of crops of CROPS, each a number >= 0.
   const partsOk = (parts) => !!parts && typeof parts === 'object' && Object.keys(parts).every((c) => CROP_GOOD[c] && parts[c] >= 0 && parts[c] < Infinity);
-  const partsSum = (parts) => { let n = 0; for (const c of CROP_LIST) if (parts[c] !== undefined) n += parts[c]; return n; };
+  const partsSum = (parts) => {
+    let n = 0;
+    for (const c of CROP_LIST) if (parts[c] !== undefined) n += parts[c];
+    return n;
+  };
   // Explicit writes keep the ownership scan aware of every stored quantity.
   const setStake = (p, n) => { p.stake = n; };
   const setHouseholdGrain = (hh, crop, n) => { hh.grain[crop] = n; };
@@ -108,40 +140,57 @@ VB['sim/stores'] = (() => {
   }
   // Puts n of a good. Grain: 'grain/<crop>' into its crop; 'grain' by `parts` ({[crop]: n}, summing to n: a take's `into`); a stake: any crop.
   function put(st, holder, good, n, why, parts) {
-    amount(n); const kind = type(holder), k = field(holder, good, kind);
+    amount(n);
+    const kind = type(holder), k = field(holder, good, kind);
     if (k === GRAIN) {
-      if (good === GRAIN && !(partsOk(parts) && Math.abs(partsSum(parts) - n) <= 1e-9 * Math.max(1, n))) throw new Error('stores: grain is put by its crops');
-      const before = grainOf(holder); record(st, holder, good, n, why, kind);
+      if (good === GRAIN && !(partsOk(parts) && Math.abs(partsSum(parts) - n) <= 1e-9 * Math.max(1, n))) {
+        throw new Error('stores: grain is put by its crops');
+      }
+      const before = grainOf(holder);
+      record(st, holder, good, n, why, kind);
       if (good !== GRAIN) setGrain(holder, GOOD_CROP[good], (holder.grain[GOOD_CROP[good]] || 0) + n);
       else for (const c of CROP_LIST) if (parts[c] > 0) setGrain(holder, c, (holder.grain[c] || 0) + parts[c]);
-      crossed(st, holder, kind, before); return n;
+      crossed(st, holder, kind, before);
+      return n;
     }
     const before = holder[k] || 0;
-    record(st, holder, good, n, why, kind); set(holder, good, before + n, kind); return n;
+    record(st, holder, good, n, why, kind);
+    set(holder, good, before + n, kind);
+    return n;
   }
   // Takes up to n of a good and says how much it got. Grain: 'grain/<crop>' from its crop, 'grain' from each crop in proportion to what is
   // held of it; `into`, when given, has the amounts by crop added (a pawn's stake gives STAKE_CROP).
   function take(st, holder, good, n, why, into) {
-    amount(n); const kind = type(holder), k = field(holder, good, kind);
+    amount(n);
+    const kind = type(holder), k = field(holder, good, kind);
     if (k === GRAIN) return takeGrain(st, holder, good, n, why, into, kind, false);
     const before = holder[k] || 0, got = Math.min(before, n);
-    record(st, holder, good, -got, why, kind); set(holder, good, before - got, kind);
+    record(st, holder, good, -got, why, kind);
+    set(holder, good, before - got, kind);
     if (got > 0) short(st, holder, kind, good, holder[k]);
     if (into && k === 'stake') into[STAKE_CROP] = (into[STAKE_CROP] || 0) + got;
     return got;
   }
   // Takes up to n of a household's unreserved grain, whatever its crop (the cook, the meal, the brewer): by what each crop holds above its reservation.
   function takeSpare(st, hh, n, why, into) {
-    amount(n); if (type(hh) !== 'household') throw new Error('stores: spare grain is a household\'s');
+    amount(n);
+    if (type(hh) !== 'household') throw new Error('stores: spare grain is a household\'s');
     return takeGrain(st, hh, GRAIN, n, why, into, 'household', true);
   }
   function takeGrain(st, holder, good, n, why, into, kind, spare) {
-    const before = grainOf(holder); let got;
+    const before = grainOf(holder);
+    let got;
     if (good !== GRAIN) {
-      const c = GOOD_CROP[good], x = holder.grain[c] || 0; got = Math.min(x, n);
-      setGrain(holder, c, x - got); if (into) into[c] = (into[c] || 0) + got;
-    } else { got = Math.min(before, n); split(st, holder, got, spare, into); }
-    record(st, holder, good, -got, why, kind); crossed(st, holder, kind, before);
+      const c = GOOD_CROP[good], x = holder.grain[c] || 0;
+      got = Math.min(x, n);
+      setGrain(holder, c, x - got);
+      if (into) into[c] = (into[c] || 0) + got;
+    } else {
+      got = Math.min(before, n);
+      split(st, holder, got, spare, into);
+    }
+    record(st, holder, good, -got, why, kind);
+    crossed(st, holder, kind, before);
     if (got > 0) short(st, holder, kind, GRAIN, grainOf(holder));
     return got;
   }
@@ -151,20 +200,42 @@ VB['sim/stores'] = (() => {
   // exactly n, and what the weights could not place is taken from the crops in order. Allocates nothing but `into`.
   function split(st, holder, n, spare, into) {
     let total = 0, last = -1;
-    for (let i = 0; i < CROP_LIST.length; i++) { const w = weight(st, holder, CROP_LIST[i], spare); if (w > 0) { total += w; last = i; } }
-    if (last < 0) { if (spare) split(st, holder, n, false, into); return; }
+    for (let i = 0; i < CROP_LIST.length; i++) {
+      const w = weight(st, holder, CROP_LIST[i], spare);
+      if (w > 0) {
+        total += w;
+        last = i;
+      }
+    }
+    if (last < 0) {
+      if (spare) split(st, holder, n, false, into);
+      return;
+    }
     let left = n;
     for (let i = 0; i <= last; i++) {
       const c = CROP_LIST[i], w = weight(st, holder, c, spare), x = holder.grain[c];
       if (w > 0) left -= takeCrop(holder, c, i === last ? Math.min(x, left) : Math.min(x, left, n * w / total), into);
     }
-    for (let i = 0; i < CROP_LIST.length && left > 0; i++) left -= takeCrop(holder, CROP_LIST[i], Math.min(holder.grain[CROP_LIST[i]] || 0, left), into);
+    for (let i = 0; i < CROP_LIST.length && left > 0; i++) {
+      left -= takeCrop(holder, CROP_LIST[i], Math.min(holder.grain[CROP_LIST[i]] || 0, left), into);
+    }
   }
-  function takeCrop(holder, c, k, into) { if (k > 0) { setGrain(holder, c, holder.grain[c] - k); if (into) into[c] = (into[c] || 0) + k; } return k; }
+  function takeCrop(holder, c, k, into) {
+    if (k > 0) {
+      setGrain(holder, c, holder.grain[c] - k);
+      if (into) into[c] = (into[c] || 0) + k;
+    }
+    return k;
+  }
   // Moves up to n of a good between holders; grain keeps its crops (in the proportion the giver holds them, for 'grain').
   function move(st, from, to, good, n, why) {
-    amount(n); field(from, good); field(to, good); const parts = isGrain(good) ? {} : undefined;
-    const got = take(st, from, good, n, why, parts); put(st, to, good, got, why, parts); return got;
+    amount(n);
+    field(from, good);
+    field(to, good);
+    const parts = isGrain(good) ? {} : undefined;
+    const got = take(st, from, good, n, why, parts);
+    put(st, to, good, got, why, parts);
+    return got;
   }
   // Meals, in rations, from n units of a food (VB-259): its worth in FOODS. The one place a food becomes meals.
   const mealsFrom = (food, n) => n * FOODS[food].worth;
@@ -179,54 +250,79 @@ VB['sim/stores'] = (() => {
   function dry(st, hh) {
     const n = take(st, hh, 'fish', hh.rack || 0, 'drying');
     if (!(n > 0)) return 0;
-    record(st, hh, 'dried fish', n, 'drying'); hh.larder.push({ kind: 'dried fish', n, until: st.t + goodOf('dried fish').perish.keepsDays * DAY });
+    record(st, hh, 'dried fish', n, 'drying');
+    hh.larder.push({ kind: 'dried fish', n, until: st.t + goodOf('dried fish').perish.keepsDays * DAY });
     return n;
   }
   // The cook takes up to n rations of a larder food (dried fish), the lots that spoil first first, and makes meals of it, 1 to 1.
   function cookLarder(st, hh, kind, n) {
-    amount(n); let got = 0;
+    amount(n);
+    let got = 0;
     const lots = hh.larder.filter((l) => l.kind === kind).sort((a, b) => a.until - b.until);
-    for (const l of lots) { if (got >= n) break; const k = Math.min(l.n, n - got); l.n -= k; got += k; }
+    for (const l of lots) {
+      if (got >= n) break;
+      const k = Math.min(l.n, n - got);
+      l.n -= k;
+      got += k;
+    }
     if (!(got > 0)) return 0;
     hh.larder = hh.larder.filter((l) => l.n > 1e-9);
-    record(st, hh, kind, -got, 'cooking'); put(st, hh, 'meals', got * goodOf(kind).rations, 'cooking');
+    record(st, hh, kind, -got, 'cooking');
+    put(st, hh, 'meals', got * goodOf(kind).rations, 'cooking');
     return got;
   }
-  function sheaf(st, hh, n, seq = -1) { // @state household.threshed: entries of unthreshed threshed so far (absent: 0); seq numbers a field's entry
+  // @state household.threshed: entries of unthreshed threshed so far (absent: 0); seq numbers a field's entry
+  function sheaf(st, hh, n, seq = -1) {
     const th = hh.threshed || 0, i = seq - th, old = i >= 0 && i < hh.unthreshed.length; // a field's loads add to its entry
-    record(st, hh, 'sheaves', n, seq < 0 ? { kind: 'harvest', first: true } : 'harvest'); if (!hh.unthreshed.length) wake(st, hh); // first: its first load
+    record(st, hh, 'sheaves', n, seq < 0 ? { kind: 'harvest', first: true } : 'harvest'); // first: its first load
+    if (!hh.unthreshed.length) wake(st, hh);
     return old ? (hh.unthreshed[i] += n, seq) : th + hh.unthreshed.push(n) - 1;
   }
   function thresh(st, hh) {
-    type(hh); const n = hh.unthreshed.shift() || 0; hh.threshed = (hh.threshed || 0) + (n ? 1 : 0);
-    record(st, hh, 'sheaves', -n, 'thresh'); put(st, hh, grainGood(STAKE_CROP), n, 'thresh'); // sheaves are barley's until VB-348
+    type(hh);
+    const n = hh.unthreshed.shift() || 0;
+    hh.threshed = (hh.threshed || 0) + (n ? 1 : 0);
+    record(st, hh, 'sheaves', -n, 'thresh');
+    put(st, hh, grainGood(STAKE_CROP), n, 'thresh'); // sheaves are barley's until VB-348
   }
   // ---- dug goods (VB-359; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
   // @state household.clay, household.bogOre: loads of clay and of bog iron ore dug and held (sim/dig), whole numbers, 0 at the start
   const DUG = ['clay', 'bogOre'];
-  function setDug(hh, good, n) { if (good === 'clay') hh.clay = n; else hh.bogOre = n; }
+  function setDug(hh, good, n) {
+    if (good === 'clay') hh.clay = n;
+    else hh.bogOre = n;
+  }
   function dug(st, hh, good, n) {
     amount(n);
     if (type(hh) !== 'household' || !DUG.includes(good)) throw new Error(`stores: cannot dig ${good}`);
-    record(st, hh, good, n, 'dig'); setDug(hh, good, (hh[good] || 0) + n); return n;
+    record(st, hh, good, n, 'dig');
+    setDug(hh, good, (hh[good] || 0) + n);
+    return n;
   }
   // Only a newly constructed household, before its members move in. Constructor supplies are replaced, not consumed. grain: by crop (a
   // take's `into`).
   function start(st, hh, grain, meals = 0) {
     if (!partsOk(grain)) throw new Error('stores: a start\'s grain is by crop');
-    amount(meals); type(hh);
-    hh.grain = { ...grain }; hh.meals = meals;
+    amount(meals);
+    type(hh);
+    hh.grain = { ...grain };
+    hh.meals = meals;
     hh.wood = 0; // its first wood comes from somewhere (sim/membership, VB-328)
-    record(st, hh, 'grain', partsSum(grain), 'provisions'); record(st, hh, 'meals', meals, 'provisions');
+    record(st, hh, 'grain', partsSum(grain), 'provisions');
+    record(st, hh, 'meals', meals, 'provisions');
   }
   // Grain spoiling in store, n in all, on each crop in proportion to what is held of it (sim/hunger reckons n).
   function spoil(st, hh, n) {
-    const lost = take(st, hh, 'grain', n, 'spoilage'); hh.spoilt = (hh.spoilt || 0) + lost;
+    const lost = take(st, hh, 'grain', n, 'spoilage');
+    hh.spoilt = (hh.spoilt || 0) + lost;
   }
   function villageDay(st) {
     VB.count.storeWalk += st.villages.length;
     const share = 1 - Math.pow(1 - st.ECON.villageStoreLoss, 1 / YEAR_DAYS); // the day's share of the year's loss
-    for (const v of st.villages) { const g = grainOf(v); if (g > 0) take(st, v, GRAIN, g * share, 'spoilage'); }
+    for (const v of st.villages) {
+      const g = grainOf(v);
+      if (g > 0) take(st, v, GRAIN, g * share, 'spoilage');
+    }
   }
   // At the new year: entries and totals older than three years go. Only live holders are walked (rule 1); a dissolved household's
   // ledger was emptied when it dissolved (close).
@@ -236,21 +332,30 @@ VB['sim/stores'] = (() => {
     for (const id of st.liveHouseholds) {
       const hh = st.households[id];
       VB.count.storeWalk += hh.ledger.length + hh.totals.length;
-      hh.ledger = hh.ledger.filter(recent); hh.totals = hh.totals.filter(kept); hh.poured = hh.poured.filter((t) => st.t - t < YEAR * BREW.years);
+      hh.ledger = hh.ledger.filter(recent);
+      hh.totals = hh.totals.filter(kept);
+      hh.poured = hh.poured.filter((t) => st.t - t < YEAR * BREW.years);
     }
     for (const v of st.villages) {
       VB.count.storeWalk += v.ledger.length + v.totals.length;
-      v.ledger = v.ledger.filter(recent); v.totals = v.totals.filter(kept);
+      v.ledger = v.ledger.filter(recent);
+      v.totals = v.totals.filter(kept);
     }
   }
   // A household's ledger ends when it dissolves: no movement can reach it afterwards (type refuses a dissolved holder).
   function close(st, hh) {
     if (!hh.dissolved) throw new Error('stores: close a dissolved household only');
-    hh.ledger = []; hh.totals = [];
-    hh.ale = []; hh.poured = [];
+    hh.ledger = [];
+    hh.totals = [];
+    hh.ale = [];
+    hh.poured = [];
   }
   // The sum of a holder's totals of one routine kind in a calendar year (its entries are read from the ledger as before).
-  function yearSum(holder, kind, year) { let n = 0; for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n; return n; }
+  function yearSum(holder, kind, year) {
+    let n = 0;
+    for (const x of holder.totals) if (x.year === year && x.kind === kind) n += x.n;
+    return n;
+  }
   // ---- ale (VB-305; design.md, Goods, Ale and standing): barrels in lots {n, until (game hours)}, oldest first, kept in hh.ale (a household
   // holds ale and no other holder does); BREW.grain rations of grain make a barrel, which keeps the good's season. hh.poured: the game hours
   // of the barrels poured in the last BREW.years years, the last BREW.maxBarrels of them (the host's standing counts no more), pruned at the
@@ -259,12 +364,17 @@ VB['sim/stores'] = (() => {
   // @state household.poured: number[]: the game hours at which barrels were poured, oldest first, at most BREW.maxBarrels, those over BREW.years old pruned
   const aleKeeps = () => goodOf('ale').perish.keepsDays * DAY;
   // The barrels the household holds now.
-  function aleOf(st, hh) { let n = 0; for (const l of hh.ale) if (l.until > st.t) n += l.n; return n; }
+  function aleOf(st, hh) {
+    let n = 0;
+    for (const l of hh.ale) if (l.until > st.t) n += l.n;
+    return n;
+  }
   // Brews a barrel from the household's grain (sim/kinds checks that it is surplus: grain above the floor); 0 if the grain is not there.
   function brew(st, hh) {
     type(hh);
     if (grainOf(hh) < BREW.grain) return 0;
-    takeSpare(st, hh, BREW.grain, 'brew'); record(st, hh, 'ale', 1, 'brew');
+    takeSpare(st, hh, BREW.grain, 'brew');
+    record(st, hh, 'ale', 1, 'brew');
     hh.ale.push({ n: 1, until: st.t + aleKeeps() });
     return 1;
   }
@@ -274,23 +384,32 @@ VB['sim/stores'] = (() => {
     let lost = 0;
     for (const l of hh.ale) if (l.until <= st.t) lost += l.n;
     if (!lost) return;
-    record(st, hh, 'ale', -lost, 'spoilage'); hh.ale = hh.ale.filter((l) => l.until > st.t);
+    record(st, hh, 'ale', -lost, 'spoilage');
+    hh.ale = hh.ale.filter((l) => l.until > st.t);
   }
   // Pours up to n barrels, the oldest first, and says how many (the host's standing counts them, sim/society); used up with its reason.
   function pour(st, hh, n) {
-    type(hh); spoilAle(st, hh);
-    const rest = []; let left = Math.floor(n);
-    for (const l of hh.ale) { const k = Math.min(l.n, left); left -= k; if (l.n > k) rest.push({ n: l.n - k, until: l.until }); }
+    type(hh);
+    spoilAle(st, hh);
+    const rest = [];
+    let left = Math.floor(n);
+    for (const l of hh.ale) {
+      const k = Math.min(l.n, left);
+      left -= k;
+      if (l.n > k) rest.push({ n: l.n - k, until: l.until });
+    }
     const got = Math.floor(n) - left;
     if (!got) return 0;
-    hh.ale = rest; record(st, hh, 'ale', -got, 'pour');
+    hh.ale = rest;
+    record(st, hh, 'ale', -got, 'pour');
     for (let i = 0; i < got; i++) hh.poured.push(st.t);
     if (hh.poured.length > BREW.maxBarrels) hh.poured.splice(0, hh.poured.length - BREW.maxBarrels);
     return got;
   }
   // The host's standing from its pours: BREW.prestige a barrel poured in the last BREW.years years, counted up to BREW.maxBarrels.
   function aleStanding(st, hh) {
-    let n = 0; for (const t of hh.poured) if (st.t - t < BREW.years * YEAR) n++;
+    let n = 0;
+    for (const t of hh.poured) if (st.t - t < BREW.years * YEAR) n++;
     return n * BREW.prestige;
   }
   // ---- reservations (VB-248; design.md section 7, Reservations): a plan holds back a count of a good in its holder's store, so that
@@ -306,8 +425,13 @@ VB['sim/stores'] = (() => {
   // fields as they are sown (sim/hunger). Stored counts lag a sowing or a stage change by up to an hour, and the readers of the seed
   // (the cook, the meal, help, deals, provisions, the means to marry) read it within the hour, so the count is read where it is wanted.
   const FOLLOWS = {};
-  function follow(why, count) { if (!RESERVE.includes(why) || FOLLOWS[why]) throw new Error(`stores: cannot follow ${why}`); FOLLOWS[why] = count; }
-  function reason(why) { if (!RESERVE.includes(why)) throw new Error(`stores: unknown reservation ${why}`); }
+  function follow(why, count) {
+    if (!RESERVE.includes(why) || FOLLOWS[why]) throw new Error(`stores: cannot follow ${why}`);
+    FOLLOWS[why] = count;
+  }
+  function reason(why) {
+    if (!RESERVE.includes(why)) throw new Error(`stores: unknown reservation ${why}`);
+  }
   // The plans of a holder's that a reservation is kept on: its standing plan (sim/plans; a pawn has none) and its project plans (sim/projects,
   // st.plans.projects: a list per holder, none for most).
   const planFor = (st, holder, kind = type(holder)) => (kind === 'household' ? st.plans.households.get(holder.id)
@@ -317,21 +441,30 @@ VB['sim/stores'] = (() => {
   // A plan holds back n of a good. A `build` reservation is refused (false) beyond the holder's free stock, so that two plans do not count
   // on the same timber; the others are not checked. True when made.
   function reserve(st, holder, plan, good, n, why) {
-    amount(n); reason(why); const k = field(holder, good);
+    amount(n);
+    reason(why);
+    const k = field(holder, good);
     if (k === GRAIN && good === GRAIN) throw new Error('stores: grain is reserved by its crop');
     if (!isPlanOf(st, holder, plan)) throw new Error('stores: a reservation names its holder\'s plan');
-    if (why === CHECKED && n > (holder[k] || 0) - reserved(st, holder, good) + (plan.reasons[good] ? plan.reserved[good] : 0) + 1e-9) return false;
-    plan.reserved[good] = n; plan.reasons[good] = why;
+    if (why === CHECKED && n > (holder[k] || 0) - reserved(st, holder, good) + (plan.reasons[good] ? plan.reserved[good] : 0) + 1e-9) {
+      return false;
+    }
+    plan.reserved[good] = n;
+    plan.reasons[good] = why;
     return true;
   }
   function release(st, holder, plan, good, why) {
     reason(why);
     if (!isPlanOf(st, holder, plan) || plan.reasons[good] !== why) throw new Error('stores: no such reservation');
-    delete plan.reserved[good]; delete plan.reasons[good];
+    delete plan.reserved[good];
+    delete plan.reasons[good];
   }
   // Every reservation of a plan that ends (sim/projects: done, or dropped; its holder may be gone, so it is not asked).
   function releaseAll(plan) {
-    for (const good of Object.keys(plan.reasons)) { delete plan.reserved[good]; delete plan.reasons[good]; }
+    for (const good of Object.keys(plan.reasons)) {
+      delete plan.reserved[good];
+      delete plan.reasons[good];
+    }
   }
   // What the holder's plans hold back of a good; a following reservation counted now. Grain is reserved by crop ('grain/<crop>', VB-347):
   // 'grain' reads the sum of its crops'. Allocates nothing (the review reads it hourly).
@@ -373,7 +506,11 @@ VB['sim/stores'] = (() => {
     if (!ok) throw new Error('stores: invalid or duplicate good ' + (spec && spec.id));
     GOODS.set(spec.id, Object.freeze({ subtype: null, source: null, ...spec, perish: spec.perish && Object.freeze({ ...spec.perish }) }));
   }
-  function goodOf(id) { const g = GOODS.get(id); if (!g) throw new Error('stores: unknown good ' + id); return g; }
+  function goodOf(id) {
+    const g = GOODS.get(id);
+    if (!g) throw new Error('stores: unknown good ' + id);
+    return g;
+  }
   const goods = () => [...GOODS.values()];
   // The goods the fair trades (design.md, Quanta and worth). Wool and cheese are not goods yet (slice 6); labour days are promises (slice 5).
   const food = (id, lump, source, perish, keeping) => ({ id, kind: id, class: 'food', unit: 'ration', quantum: 10, lump, rations: 1, source, perish, keeping });
