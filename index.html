@@ -5568,7 +5568,7 @@ VB['sim/rules'] = (() => {
     butter: 0.4,
     butterDays: 48,
     // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
-    team: { oxen: 2, kinds: ['plow', 'break'], rate: 2.5 },
+    team: { oxen: 2, kinds: ['plow', 'break'], rate: 5 },
     // herding (VB-136; docs/review-animals.md, G6 and G7): each grazing day a household with a herd posts `herd` from `from` (6:00); a herder
     // of minAge or more takes the household's herds to a pasture within `steps` steps of the house and keeps them there `hours` hours,
     // working at the side (background attention) within `reach` steps of it, then brings them home. Unherded by `by` (10:00), the herds
@@ -36189,7 +36189,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '3a6118a6f8',
+const BUILD = 'ee188238c0',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
