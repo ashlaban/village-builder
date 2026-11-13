@@ -1,5 +1,5 @@
 // The line rules of tests/lint.js on single lines: the page writes to st, and clock or random use in the modules.
-const assert = require('assert'), { clockUse, pageWrites, counterUses } = require('./lint-rules.js');
+const assert = require('assert'), { clockUse, pageWrites, counterUses, splitTask } = require('./lint-rules.js');
 for (const l of ['st.t = 5;', 'st.pawns[3].household = 1', 'st.jobs.set(k, j)', 'st.events.push(e)', 'st.x.y += 2', 'n = ++st.jobSeq', 'st.jobSeq++', 'st.rigDirty.add(3)',
   'st.rigDirty.delete(3)', 'st.treeDirty.clear(); st.owner[i] = 2', 'st.t |= 1', 'st.naturalDeaths.x = 1', 'st.pawns.sort((a, b) => a - b)']) {
   assert(pageWrites(l).length > 0, `forbidden write not found: ${l}`);
@@ -22,4 +22,11 @@ for (const line of ['VB.count.walkStep++;', 'VB.count.walkStep += agents.length;
   "const { bfs } = VB['sim/hex'];"]) {
   assert.deepStrictEqual(counterUses(line, names), []);
 }
+const tasks = [{ id: 'VB-1', title: 'Refactor: split sim/relations by concern', status: 'done (1 Nov 2026)' }, { id: 'VB-2', title: 'Refactor: split gen/rivers.js', status: 'blocked' },
+  { id: 'VB-3', title: 'Splitting land in sim/heirs', status: 'ready' }, { id: 'VB-4', title: 'Refactor: `sim/stores` in two: holders and moves', status: 'needs-review' }];
+assert.strictEqual(splitTask('sim/relations', tasks), null, 'a done task splits nothing');
+assert.strictEqual(splitTask('gen/rivers', tasks), 'VB-2');
+assert.strictEqual(splitTask('gen', tasks), null, 'gen is not gen/rivers');
+assert.strictEqual(splitTask('sim/heirs', tasks), null, 'only a task titled Refactor: counts');
+assert.strictEqual(splitTask('sim/stores', tasks), 'VB-4');
 console.log('lintrules ok');
