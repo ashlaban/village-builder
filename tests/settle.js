@@ -68,7 +68,9 @@ check(f.name === nv.name, `the farm bears the new village's name (${f.name}, ${n
 check(f.fields.length === 0 && VB['sim/plans'].openOf(st, 'household', hh.id)?.kind === 'clear', 'the first field is the household\'s project plan');
 check(hh && hh.holder === m.id && m.household === hh.id && sib.household === hh.id && hh.members.length === 2, 'settler and sibling live there');
 check(sib.servant && ['farmhand', 'maid'].includes(sib.role) && m.role === 'farmer', `the sibling serves (${sib.role})`);
-check(Sim.grainOf(hh) >= 300 && !m.stake, `the stake is the household's grain (${Sim.grainOf(hh)})`);
+// the stake less a day's ration a head, eaten uncooked on the journey (VB-287, sim/agents setOut)
+const journeyFood = hh.members.reduce((n, id) => n + (st.pawns[id].age >= 14 ? st.ECON.ration.adult : st.ECON.ration.child), 0) / st.ECON.uncooked;
+check(Math.abs(Sim.grainOf(hh) - (300 - journeyFood)) < 1e-6 && !m.stake, `the stake is the household's grain, less the journey's (${Sim.grainOf(hh)})`);
 check(!st.households[oldHh].members.includes(m.id), 'the settler left the old household');
 check(st.demand.includes(sib.id) && !st.demand.includes(m.id), 'the sibling still wants land, the settler does not');
 const s = st.cenv.settlements[nv.id];
@@ -118,9 +120,11 @@ const founders = () => {
   check(d <= SETTLE.join, `the lone farm lies within ${SETTLE.join} steps (${d})`);
   check(t.st.villages.length === n && t.lone.farmsteads.length === farms + 1 && g.booth && t.st.households[g.household].holder === t.m.id,
     `the settler joins the lone farm's village (villages ${t.st.villages.length - n} new, its farms ${farms} -> ${t.lone.farmsteads.length})`);
-  // named by direction from the lone farm, now the hamlet's centre (VB-026), and the log says so
-  check(/^(Norr|Söder|Öster|Väster|Mellan|Ny)gården$/.test(g.name) && Sim.villageLog(t.st, Infinity).some((e) => e.text.includes(`settles at ${g.name} in ${t.lone.name}`)),
-    `the joined farm is named by compass and the log says so (${g.name})`);
+  // named as a new cottage is (VB-399): a name one of the farm generators offers for the farm, and the log says so
+  const N = VB['sim/names'], fctx = { w: t.st.w, f: g, village: t.lone, owner: t.m, farms: t.lone.farmsteads.map((id) => t.st.farmsteads[id]), fresh: true },
+    r = () => N.tileRand(g.house), offered = Object.values(N.FARM).flatMap((gen) => gen(fctx, r())).map((nm) => nm.replace(/ \d+$/, ''));
+  check(offered.includes(g.name.replace(/ \d+$/, '')) && Sim.villageLog(t.st, Infinity).some((e) => e.text.includes(`settles at ${g.name} in ${t.lone.name}`)),
+    `the joined farm is named by a farm generator and the log says so (${g.name})`);
   check(t.lone.name === t.st.farmsteads[t.lone.farmsteads[0]].name, `the lone farm's village bears its farm's name (${t.lone.name})`);
   bad = checkState(t.st); check(!bad.length, `invariants after joining: ${bad.slice(0, 3).join('; ')}`);
   joined = `; joined ${t.lone.name} ${d} steps away`;

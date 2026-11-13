@@ -8263,6 +8263,7 @@ VB['sim/records'] = (() => {
     matchRefused: 0,
     offerLapsed: 0,
     meetingFailed: 0,
+    cartBuilt: 0, // a household's new cart (VB-327)
     setOut: 0, // a journey to a new home in another village (VB-287)
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT,
@@ -8283,6 +8284,7 @@ VB['sim/records'] = (() => {
     funeralAle: GENERATION,
     noWood: GENERATION,
     cattleInCrop: GENERATION,
+    cartGone: GENERATION, // a cart worn out (VB-327)
     arrived: GENERATION, // the journey's end (VB-287)
     deerInCrop: GENERATION,
   };
@@ -36189,7 +36191,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '3a6118a6f8',
+const BUILD = '9fa29154d5',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
