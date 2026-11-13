@@ -63,7 +63,8 @@ for (const scenario of ['founders', 'populous']) {
 // VB-347: grain is held by crop (tests/grain.js takes two crops); with barley alone the sum is the number itself, to the last bit.
 {
   const c = tinyState(tinyWorld(Array(12).fill('.'.repeat(20))), [{ at: [8, 6], farms: 2 }], { seed: 7 }), h = c.households[0];
-  assert.deepStrictEqual(S.CROP_LIST, Object.keys(VB['sim/rules'].CROPS));
+  const CROPS = VB['sim/rules'].CROPS; // the rows with seed: fallow is a course, not a crop (VB-348)
+  assert.deepStrictEqual(S.CROP_LIST, Object.keys(CROPS).filter((c) => CROPS[c].seed > 0));
   assert.strictEqual(S.grainGood('barley'), 'grain/barley'); assert.throws(() => S.grainGood('wheat'), /unknown crop/);
   S.start(c, h, { barley: 0.1 + 0.2 }); assert.strictEqual(S.grainOf(h), 0.1 + 0.2, 'one crop: its number');
   S.take(c, h, 'grain', 0.1, 'meal'); assert.strictEqual(h.grain.barley, 0.1 + 0.2 - 0.1, 'one crop: the same subtraction as ever');

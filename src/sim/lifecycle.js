@@ -11,7 +11,7 @@ VB['sim/lifecycle'] = (() => {
   const { DAY, YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE, SOCIAL } = VB['sim/rules'];
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved } = VB['sim/stores'];
-  const { deathRoll, CAUSES } = VB['sim/deaths'];
+  const { deathRoll, CAUSES, COLD } = VB['sim/deaths'];
   const {
     leaveHousehold,
     unionOf,
@@ -35,7 +35,8 @@ VB['sim/lifecycle'] = (() => {
     voiceOf,
   } = VB['sim/records'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
-  const { stillAtDeath } = VB['sim/agents'];
+  const { startInLife } = VB['sim/exchange'];
+  const { stillAtDeath, travelling, tileAt, journeyOf } = VB['sim/agents'];
   const {
     heirRanking,
     moveTo,
@@ -59,13 +60,17 @@ VB['sim/lifecycle'] = (() => {
   const { issue, playerDied, clearMatchWish } = VB['sim/commands'];
   const { forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
   const { wedding, funeral } = VB['sim/occasions'];
+  const { closeTrust, goBack, wardsOfAge, inheritedHeld } = VB['sim/trust'],
+    { trustOfHolder } = VB['sim/ownership'];
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id];
     if (!p.alive) return;
     p.died = st.t;
     p.alive = false;
+    p.kinPush = null; // the round's pushes are cleared on the living only (VB-277)
     noteDeath(st, id);
-    const a = st.agents[id];
+    const a = st.agents[id],
+      road = travelling(a) ? tileAt(st, a.x, a.y) : null; // it dies where it fell on the road (VB-287)
     stillAtDeath(st, a);
     clearMatchWish(st, id, id);
     playerDied(st, id); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)
@@ -76,18 +81,22 @@ VB['sim/lifecycle'] = (() => {
     }
     dropTies(st, id);
     if (p.rel) forget(st, id);
+    // a death in a cold house is told so (VB-327); the cause is the cause, the cold having lowered the health the hazard reads
+    const cold = p.household !== null && st.households[p.household].cold > 0;
     lifeEvent(
       st,
       id,
       log(
         st,
         `${fullName(p)} of ${p.household !== null ? st.farmsteads[st.households[p.household].farmstead].name : 'the island'} ` +
-          `${CAUSES[cause].log}, aged ${p.age}.`,
+          `${CAUSES[cause].log}${cold ? COLD : ''}, aged ${p.age}${road !== null ? ', on the road' : ''}.`,
         {
           kind: 'died',
           pawn: id,
           text: cause,
+          ...(cold ? { cold: true } : {}),
           ...(p.household !== null ? atHousehold(st, st.households[p.household]) : {}),
+          ...(road !== null ? { tile: road } : {}),
         },
       ),
     );
@@ -97,6 +106,12 @@ VB['sim/lifecycle'] = (() => {
       leaveHousehold(st, id, true);
       if (hh.holder === id) succession(st, hh, 'death');
     }
+    const held = trustOfHolder(st, id); // a farm held in trust for it (VB-309): the trust ends, and succession as today
+    if (held) {
+      closeTrust(st, held, 'death');
+      succession(st, st.households[held.household], 'death');
+    }
+    inheritedHeld(st);
     endGoodwill(st, id); // after succession, which passes a holder's share on
     refreshRoles(st);
     refreshPrestige(st);
@@ -108,6 +123,7 @@ VB['sim/lifecycle'] = (() => {
     const r = heirRanking(st, hh);
     if (!r.length) return false;
     transfer(st, hh, r[0], 'retirement');
+    inheritedHeld(st);
     refreshRoles(st);
     refreshPrestige(st);
     return true;
@@ -220,60 +236,50 @@ VB['sim/lifecycle'] = (() => {
     for (let n = 0; n < MEETING_STAGES - 1; n++) meetingStage(st, n);
   } // not the land meeting
   const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
-  // Scarcity and plenty of spouses push the marriage limit: an adult who finds no allowed partner but would under the next looser
-  // option pulls towards it; one who married a partner also allowed under the next stricter option pulls back, at half the weight.
-  function kinPressure(st, men, women, taken, homeFor) {
-    const env = st.cenv,
-      blocked = new Map(),
-      at = (cu) => kinOpts.indexOf(cu.kinLimit);
-    // Annual historical cleanup also clears the last pressure recorded on people who have since died.
-    for (const p of st.pawns) p.kinPush = null;
-    const wed = new Map();
-    for (const id of st.living) {
-      const u = unionOf(st, id);
-      if (u && u.start === st.t) wed.set(u.id, u);
-    }
-    // Unions were visited in record order; retain that order for equal-time remarriages too.
-    const pairs = [...wed.values()].sort((a, b) => a.id - b.id);
-    wed.clear();
-    for (const u of pairs) {
-      wed.set(u.a, u.b);
-      wed.set(u.b, u.a);
-    }
-    for (const [x, y] of wed) {
-      const cu = practice(st, settlementIdOf(st, st.pawns[x])),
-        k = at(cu);
-      if (k > 0 && kinOk(st, x, y, cu, kinOpts[k - 1]))
-        st.pawns[x].kinPush = { to: kinOpts[k - 1], w: MARRIAGE.plentyPush };
-    }
-    for (const [mine, others] of [
-      [men, women],
-      [women, men],
-    ]) {
-      for (const p of mine) {
-        if (taken.has(p.id) || wed.has(p.id)) continue;
-        const s = settlementIdOf(st, p);
-        if (s === null) continue;
-        const cu = practice(st, s),
+  // Scarcity and plenty of spouses push the marriage limit, a village's own at the end of its round (VB-277): one the step married to a
+  // partner also allowed under the next stricter option pulls back, at half the weight; an unmatched man of the village, or an unmarried
+  // woman of it, not held by an offer, who finds no allowed partner among the free of the other sex in every village but would under the
+  // next looser option pulls towards it. The living's pushes are cleared at the first village's step, a pawn's at its marriage and death.
+  function kinPressure(st, v, men, women, others, taken, married, homeFor) {
+    const at = (cu) => kinOpts.indexOf(cu.kinLimit),
+      wed = new Set();
+    for (const [x, y] of married)
+      for (const [a, b] of [
+        [x, y],
+        [y, x],
+      ]) {
+        wed.add(a);
+        const cu = practice(st, settlementIdOf(st, st.pawns[a])),
           k = at(cu);
-        if (k >= kinOpts.length - 1) continue;
-        const can = (o, opt) =>
-          !taken.has(o.id) &&
-          (p.sex === 'm' ? homeFor(p, o, cu) : homeFor(o, p, cu)) !== null &&
-          kinOk(st, p.id, o.id, cu, opt);
-        if (others.some((o) => can(o, cu.kinLimit)) || !others.some((o) => can(o, kinOpts[k + 1]))) continue;
-        p.kinPush = { to: kinOpts[k + 1], w: MARRIAGE.scarcePush };
-        blocked.set(s, (blocked.get(s) || 0) + 1);
+        if (k > 0 && kinOk(st, a, b, cu, kinOpts[k - 1]))
+          st.pawns[a].kinPush = { to: kinOpts[k - 1], w: MARRIAGE.plentyPush };
+      }
+    const cu = practice(st, v),
+      k = at(cu);
+    let blocked = 0;
+    if (k < kinOpts.length - 1) {
+      const local = women.filter((p) => settlementIdOf(st, p) === v),
+        free = (o) => !taken.has(o.id) && !wed.has(o.id);
+      for (const [mine, pool] of [
+        [men, women],
+        [local, men.concat(others)],
+      ]) {
+        for (const p of mine) {
+          if (!free(p)) continue;
+          const can = (o, opt) =>
+            free(o) &&
+            (p.sex === 'm' ? homeFor(p, o, cu) : homeFor(o, p, cu)) !== null &&
+            kinOk(st, p.id, o.id, cu, opt);
+          if (pool.some((o) => can(o, cu.kinLimit)) || !pool.some((o) => can(o, kinOpts[k + 1]))) continue;
+          p.kinPush = { to: kinOpts[k + 1], w: MARRIAGE.scarcePush };
+          blocked++;
+        }
       }
     }
-    const c = cal(st.t),
-      out = [];
-    for (const [s, n] of blocked) {
-      const txt = `At the ${env.settlements[s].name} moving round, ${n} adult${n > 1 ? 's' : ''} found no spouse only because of kin.`;
-      log(st, txt, { kind: 'kinBarred', village: s, n });
-      out.push({ year: c.year, text: txt });
-    }
-    st.meetingLog.unshift(...out);
+    if (!blocked) return;
+    const txt = `At the ${st.cenv.settlements[v].name} moving round, ${blocked} adult${blocked > 1 ? 's' : ''} found no spouse only because of kin.`;
+    log(st, txt, { kind: 'kinBarred', village: v, n: blocked });
+    st.meetingLog.unshift({ year: cal(st.t).year, text: txt });
     st.meetingLog.length = Math.min(st.meetingLog.length, 30);
   }
   // A marriage (the marry command, VB-171): the union, both move to the home household, the event, ties, a spouse who held a farm of
@@ -281,14 +287,24 @@ VB['sim/lifecycle'] = (() => {
   function wed(st, mId, fId, home) {
     const m = st.pawns[mId],
       f = st.pawns[fId];
+    for (const id of [mId, fId]) {
+      const t = trustOfHolder(st, id); // a holder whose farm is held in trust goes back to it first (VB-309)
+      if (t) goBack(st, t, 'married', 'round');
+    }
+    m.kinPush = f.kinPush = null; // pushed at an earlier village's round, she takes the pull of the round that married her (VB-277)
     st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
+    const olds = [mId, fId].map((id) => st.pawns[id].household).filter((h) => h !== null && h !== home);
     for (const id of [mId, fId]) {
       if (st.pawns[id].household !== home) moveTo(st, id, home);
       personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === mId ? fId : mId])}`, false);
       st.rigDirty.add(id); // recorded below
     }
-    const fm = st.farmsteads[st.households[home].farmstead];
-    log(st, `${fullName(m)} and ${fullName(f)} marry and live at ${fm.name}.`, {
+    const fm = st.farmsteads[st.households[home].farmstead],
+      away = [m, f].filter((q) => journeyOf(st, q.id)); // from another village: and sets out for it (VB-287)
+    const out = away.length
+      ? `, and ${away.map((q) => q.given).join(' and ')} ${away.length > 1 ? 'set' : 'sets'} out for it`
+      : '';
+    log(st, `${fullName(m)} and ${fullName(f)} marry and live at ${fm.name}${out}.`, {
       kind: 'married',
       pawn: mId,
       other: fId,
@@ -301,67 +317,77 @@ VB['sim/lifecycle'] = (() => {
       const own2 = holdingOf(st, id);
       if (own2 && own2.id !== home) handOn(st, own2, id, home);
     }
+    // a heifer from the old household of the one who moved in, where the home wants a cow (sim/exchange, VB-390)
+    for (const h of olds) if (startInLife(st, st.households[home], st.households[h])) break;
     wedding(st, mId, fId, home); // the next day's feast at their farm (sim/occasions, VB-126)
   }
-  // The moving round (autumn day 10) runs in ROUND_PHASES phases on the 6-minute steps from noon (VB-201), so no step holds all of it:
-  // 0, the marriages and the handovers; 1, demand, claims on empty farms and plots; 2, settlement; 3, service, what is owed and prestige.
-  // No phase keeps anything for the next (each builds its own ranking view), so nothing is saved: the step of the day says which is due.
-  const ROUND_PHASES = 4;
+  // The moving round (autumn day 11) runs on the 6-minute steps from noon (VB-201, VB-277): first each village's own round (villageRound), a
+  // village a step in the order of village id, village k of n on step k while n is at most VILLAGE_STEPS, else on floor(k * VILLAGE_STEPS /
+  // n); then three phases on fixed steps from 18:00, island-wide: demand, claims on empty farms and plots; settlement; service, what is owed
+  // and prestige. Fixed, since settlement founds villages. Nothing is kept from one step for the next, so nothing is saved: the step of the
+  // day says what is due. `movingRound` runs every step at once (the drawer's button, the tests).
+  const VILLAGE_STEPS = 60,
+    ROUND_STEPS = VILLAGE_STEPS + 3;
   function movingRound(st) {
-    for (let n = 0; n < ROUND_PHASES; n++) roundPhase(st, n);
+    for (let n = 0; n < ROUND_STEPS; n++) roundPhase(st, n);
   }
   function roundPhase(st, n) {
-    if (n === 0) marriageRound(st);
-    else if (n === 1) {
+    const villages = st.villages.length;
+    if (n < VILLAGE_STEPS) {
+      if (villages <= VILLAGE_STEPS) {
+        if (n < villages) villageRound(st, n);
+      } else
+        for (let k = Math.ceil((n * villages) / VILLAGE_STEPS); k < villages; k++) {
+          if (Math.floor((k * VILLAGE_STEPS) / villages) !== n) break;
+          villageRound(st, k);
+        }
+      return;
+    }
+    if (n === VILLAGE_STEPS) {
       countDemand(st, roundHeirs(st).rank); // who wants out: landless adults with no prospect of a farm
       claimFarms(st); // empty farms go to claimants by custom before any plot is cleared
       startPlots(st, (id) => claimableFarm(st, id) === null);
-    } else if (n === 2)
+    } else if (n === VILLAGE_STEPS + 1)
       settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
-    else if (n === 3) {
+    else if (n === VILLAGE_STEPS + 2) {
       serveWhereShort(st, takeServants(st)); // a holder who lives alone takes in a landless adult, then service where labour is short (sim/service)
       payOwed(st);
       refreshPrestige(st);
     }
     st.visualDirty = true;
   }
-  function marriageRound(st) {
+  // A village's round (VB-277; design.md, A village's round): its households fill its store; its own unmarried men, those with a place first,
+  // then the oldest, each choose by the score among the unmarried women of every village (one married at an earlier village's round is no
+  // longer single, one held by an open offer is taken); its handovers, for its own farms and for the homes in other villages its marriages
+  // chose; and its kin pressure. Heirs are ranked afresh: matchRules memoizes the rankings with the homes and the means, and the memos are
+  // cleared after each marriage or handover the step makes.
+  function villageRound(st, v) {
     let pairs = 0;
-    const env = st.cenv;
-    refreshRoles(st);
-    fillStores(st);
-    const alive = st.living.map((id) => st.pawns[id]);
-    for (const p of alive) p.age = age(st, p);
-    const single = (p) => spouseOf(st, p.id) === null && p.died === null;
-    // marriages: a couple needs a place to live, as the customs define it
-    const fed = (p) => p.hunger < HUNGER.marryBelow;
-    const widowed = new Set(); // the single who have been married: their marriage ended by a death (balance review)
-    for (const p of alive) if (wasWidowed(st, p.id)) widowed.add(p.id);
+    VB.count.roundWalk += st.living.length;
+    if (v === 0) refreshRoles(st);
+    fillStores(st, v);
     // The played pawn's wish for a match (VB-274): false leaves it out of the round's matching; a pawn is checked before the matcher's loop.
-    const wishOf = st.player && alive.some((p) => p.id === st.player.pawn) ? st.player.wishes.match : null,
+    const wishOf = st.player && st.pawns[st.player.pawn]?.alive ? st.player.wishes.match : null,
       wisher = wishOf === null ? null : st.player.pawn;
-    const men = alive.filter(
-        (p) =>
-          p.sex === 'm' &&
-          p.age >= MARRIAGE.menFrom &&
-          single(p) &&
-          !p.retired &&
-          fed(p) &&
-          !(wishOf === false && p.id === wisher),
-      ),
-      women = alive.filter(
-        (p) =>
-          p.sex === 'f' &&
-          p.age >= MARRIAGE.womenFrom &&
-          single(p) &&
-          !p.retired &&
-          fed(p) &&
-          !(wishOf === false && p.id === wisher),
-      );
-    // Where each pawn would live if married, and whether the home affords it: sim/heirs' matchRules, caches until the next marriage.
+    const fed = (p) => p.hunger < HUNGER.marryBelow;
+    // The pool, in one walk of the living: the village's men who may marry, the women of every village, and the other villages' men (for
+    // the kin pressure); the widowed among them (balance review). The living's pushes are cleared at the first village's round.
+    const men = [],
+      women = [],
+      others = [],
+      widowed = new Set();
+    for (const id of st.living) {
+      const p = st.pawns[id];
+      if (v === 0) p.kinPush = null;
+      p.age = age(st, p);
+      if (spouseOf(st, id) !== null || p.retired || !fed(p) || (wishOf === false && id === wisher)) continue;
+      if (p.age < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) continue;
+      if (wasWidowed(st, id)) widowed.add(id);
+      (p.sex === 'f' ? women : settlementIdOf(st, p) === v ? men : others).push(p);
+    }
+    // Where each pawn would live if married, and whether the home affords it: matchRules' memos, cleared after each marriage and handover.
     const rules = matchRules(st),
-      { heirs, places, handed, means, place, homeFor, affords } = rules,
-      homes = new Map(alive.map((p) => [p.id, p.household]));
+      { place, homeFor, affords } = rules;
     men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
     // A pawn in an open offer is not free to anyone, and counts as matched (VB-293): `taken` holds the matched women and the held.
     const taken = new Set(),
@@ -370,39 +396,19 @@ VB['sim/lifecycle'] = (() => {
       taken.add(o.man);
       taken.add(o.woman);
     }
-    const putOff = new Map(); // village -> couples who put off marrying for want of means
-    const changedSince = (mark, people, households) => {
-      for (const e of st.record.slice(mark)) {
-        if (e.self) continue; // a pawn's own telling of an event recorded beside it (sim/records)
-        if (e.household !== undefined && e.household !== null) households.add(e.household);
-        for (const id of [e.pawn, e.other])
-          if (id !== undefined && id !== null) {
-            people.add(id);
-            households.add(homes.get(id));
-            households.add(st.pawns[id].household);
-          }
-      }
-      households.delete(null);
-      households.delete(undefined);
-      const dirty = heirs.invalidate(people, households);
-      for (const h of households) means.delete(h);
-      for (const h of dirty) {
-        handed.delete(h);
-        for (const id of st.households[h].members) places.delete(id);
-      }
-      for (const id of people) {
-        places.delete(id);
-        homes.set(id, st.pawns[id].household);
-      }
-    };
-    let housed = null;
-    // A wished partner who passes the round's rules is the first match, and an offer the played pawn has said yes to: no draw is made.
+    // A wished partner who passes the round's rules is the first match of the man's village, and an offer the played pawn has said yes to:
+    // no draw is made. The rounds of the villages before his hold the woman for it.
     const wished = typeof wishOf === 'number' ? matchBar(st, wisher, wishOf, rules) : null,
-      forced = wished && wished.man ? wished : null;
+      wv = wished && wished.man ? settlementIdOf(st, wished.man) : null,
+      forced = wv === v ? wished : null;
+    if (wv !== null && wv > v) taken.add(wished.woman.id);
+    const cu = practice(st, v),
+      married = [],
+      away = new Set(); // the homes in other villages the marriages chose
+    let putOff = 0,
+      housed = null;
     for (const m of forced ? [forced.man, ...men.filter((x) => x !== forced.man)] : men) {
       if (taken.has(m.id)) continue; // held by an open offer
-      const sm = settlementIdOf(st, m),
-        cu = practice(st, sm);
       let best = null,
         bs = -Infinity;
       const pm = place(m.id),
@@ -427,7 +433,7 @@ VB['sim/lifecycle'] = (() => {
       }
       if (!best || bs < MARRIAGE.minScore || (!isWish && rnd(st.rng.society) > MARRIAGE.goAhead)) continue;
       if (!affords(best.home)) {
-        putOff.set(sm, (putOff.get(sm) || 0) + 1);
+        putOff++;
         continue;
       }
       taken.add(best.f.id);
@@ -447,41 +453,28 @@ VB['sim/lifecycle'] = (() => {
         makeOffer(st, m.id, best.f.id, best.home, answers);
         continue;
       }
-      const mark = st.record.length;
       issue(st, { actor: m.id, verb: 'marry', target: best.f.id, args: { home: best.home }, source: 'round' });
+      rules.clear();
       housed = null;
-      const people = new Set([m.id, best.f.id]),
-        households = new Set([homes.get(m.id), homes.get(best.f.id), best.home]);
-      // Commands record all moves, transfers and extinctions, including children and third-party claimants.
-      changedSince(mark, people, households);
-      // Marriage can move a village's last waiting adult, and a claim can remove one from demand.
-      // Other farms in either village must refresh their fallback handover score too.
-      for (const h of handed.keys()) {
-        const v = st.farmsteads[st.households[h].farmstead].village;
-        if ([...households].some((id) => st.farmsteads[st.households[id].farmstead].village === v)) handed.delete(h);
-      }
+      married.push([m.id, best.f.id]);
+      if (st.farmsteads[st.households[best.home].farmstead].village !== v) away.add(best.home);
     }
-    for (const [v, n] of putOff) {
-      log(
-        st,
-        `At the ${st.villages[v].name} moving round, ${n} couple${n > 1 ? 's' : ''} put off marrying: the farm cannot feed another mouth.`,
-        {
-          kind: 'putOff',
-          village: v,
-          n,
-        },
-      );
+    if (putOff) {
+      const txt = `${putOff} couple${putOff > 1 ? 's' : ''} put off marrying: the farm cannot feed another mouth`;
+      log(st, `At the ${st.villages[v].name} moving round, ${txt}.`, { kind: 'putOff', village: v, n: putOff });
     }
-    kinPressure(st, men, women, taken, homeFor);
-    // handovers by custom: when the heir marries, or when the holder turns 60
-    for (const liveId of st.liveHouseholds) {
-      const hh = st.households[liveId],
-        mark = st.record.length,
-        old = hh.holder,
-        heir = handover(st, hh, heirs.rank);
-      if (heir !== null) changedSince(mark, new Set([old, heir]), new Set([hh.id]));
+    kinPressure(st, v, men, women, others, taken, married, homeFor);
+    // handovers by custom, when the heir marries or the holder turns 60: the village's farms and the homes its marriages chose
+    let handed = 0;
+    const farms = st.liveHouseholds.filter(
+      (h) => away.has(h) || st.farmsteads[st.households[h].farmstead].village === v,
+    );
+    for (const h of farms) {
+      if (handover(st, st.households[h], rules.rank) === null) continue;
+      rules.clear();
+      handed++;
     }
-    refreshRoles(st);
+    if (married.length || handed) refreshRoles(st);
     VB.count.roundPairs += pairs;
   }
   // The handover by custom that a marriage brings, for one household: when its first heir (rank(h)[0], `rank` a ranking function of
@@ -597,7 +590,7 @@ VB['sim/lifecycle'] = (() => {
       }
     else if (why !== true) log(st, `The match of ${names(st, o)} lapsed: ${why}.`, { kind: 'offerLapsed', ...at });
     else {
-      handover(st, hh, roundHeirs(st).rank);
+      handover(st, hh, (h) => heirRanking(st, st.households[h]));
       refreshRoles(st);
     }
   }
@@ -615,6 +608,7 @@ VB['sim/lifecycle'] = (() => {
       p.age = age(st, p);
     }
     comeOfAge(st);
+    wardsOfAge(st); // a ward of 18 goes back to the farm held in trust for it (sim/trust, VB-309)
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
     dailyTies(st);
   }
@@ -656,7 +650,7 @@ VB['sim/lifecycle'] = (() => {
     wed,
     movingRound,
     roundPhase,
-    ROUND_PHASES,
+    ROUND_STEPS,
     dailyLife,
     dailyDeaths,
     nightCulture,

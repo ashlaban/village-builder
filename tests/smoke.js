@@ -184,7 +184,13 @@ async function goodwillPanel() {
   for (let k = 0; k < 6000 && !msg.textContent.startsWith('Skipped'); k++) await new Promise((r) => setTimeout(r, 5));
   if (!msg.textContent.startsWith('Skipped')) { fail('"Skip a year" did not finish on the tiny map'); return; }
   tick(5);
-  const st = simSt, holder = st.pawns.find((p) => p.alive && Sim.isHolder(st, p.id)
+  const st = simSt;
+  // A well-fed island makes no gifts (hunger drives them), and populous 7 on the tiny map has no hungry household in its first years, so
+  // the run has no balance to show: the panel is tested on a balance made by hand, a gift of 20 rations between two holders (VB-427).
+  const hs = st.pawns.filter((p) => p.alive && Sim.isHolder(st, p.id));
+  const other = hs.find((q) => q.household !== hs[0].household);
+  if (!hs.some((p) => Sim.goodwillOf(st, p.id).length) && other) win.VB['sim/relations'].addGoodwill(st, hs[0].id, other.id, 20);
+  const holder = st.pawns.find((p) => p.alive && Sim.isHolder(st, p.id)
     && Sim.goodwillOf(st, p.id).some((x) => Math.abs(x.balance) >= 1 && Sim.explainAllowance(st, p.id, x.other)));
   if (!holder) { fail('no holder has a goodwill balance after a year of populous 7 on the tiny map'); return; }
   const settlers = doc.getElementById('settlers');
@@ -238,7 +244,8 @@ async function goodwillPanel() {
   };
   const farmId = st.households[holder.household].farmstead, farm = st.farmsteads[farmId];
   openHistory('a pawn', () => settlers.querySelector(`button[data-pawn="${holder.id}"]`).click());
-  if (!/ holds /.test(hist.textContent) || !/was born/.test(hist.textContent)) fail("a holder's history lacks its birth or its farm");
+  // its farm is told by a line that names it: founders hold theirs from the start, a pawn who left a crowded village founds or settles at one
+  if (!hist.textContent.includes(farm.name) || !/was born/.test(hist.textContent)) fail("a holder's history lacks its birth or its farm");
   openHistory('a farm', () => settlers.querySelector(`button[data-farm="${farmId}"]`).click());
   openHistory('a village', () => settlers.querySelector(`button[data-village="${farm.village}"]`).click());
   const link = hist.querySelector('button.name[data-farm]');
@@ -411,7 +418,7 @@ async function actionBar() {
     fail(`the gift was not queued: ${JSON.stringify(gift)}`); }
   while (st.player.queue.length) Sim.unqueue(st, 0);
   // Walk here: the camera follows the pawn, and a tap at the view's middle (the page's 0, 0 here) is its tile
-  q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(5);
+  q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(200); // the camera glides to the pawn, wherever its work has taken it
   q('#actBar [data-group="self"]').click(); tick(1); q('#actMenu [data-bar="walk"]').click(); tick(1);
   if (q('#actBanner').hidden || !/^Walk here: (tap|click) an open tile/.test(q('#actBanner').textContent) || !q('#actMenu').hidden) {
     fail('Walk here\'s tool is not shown'); }

@@ -148,12 +148,27 @@ function renderSettlers() {
         'Supplies & health',
         foldOpen(suppliesKey)
           ? `<p>Grain ${Math.round(Sim.grainOf(hh))} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
-          <p>Meals ${Math.round(hh.meals)} rations, cooked.</p>
+          <p>Flour ${Math.round(hh.flour || 0)} rations, ground; meals ${Math.round(hh.meals)} rations, cooked.</p>
+          <p>${
+            hh.quern
+              ? Sim.quernYears(st, hh) > 0
+                ? `A hand quern of ${hh.quern.rock}, ${Math.ceil(Sim.quernYears(st, hh))} years left.`
+                : `A hand quern of ${hh.quern.rock}, worn out: grain is cooked unground.`
+              : 'No hand quern: grain is cooked unground.'
+          }</p>
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
-          <p>Firewood ${Math.round(hh.wood)} loads; stone ${hh.stone} loads.</p>
-          <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads.</p>
+          <p>Firewood ${Math.round(hh.wood)} loads${hh.cold > 0 ? ', cold: no firewood' : ''}; stone ${hh.stone} loads.</p>
+          <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads; peat ${hh.peat || 0} units.</p>
+          <p>Wool ${Math.round(hh.wool || 0)} fleeces, unspun.</p>
           <p>Dried fish ${Math.round(Sim.larderOf(hh, 'dried fish'))} rations${hh.rack >= 0.5 ? `; ${Math.round(hh.rack)} fresh by the rack` : ''}${
-            hh.boat ? '; a fishing boat on the shore' : ''
+            hh.boat
+              ? `; a fishing boat on the shore, tarred ${Math.floor(Sim.boatUntarred(st, hh.boat))} years ago${
+                  Sim.boatUntarred(st, hh.boat) >= 2 ? ': it leaks' : ''
+                }`
+              : ''
+          }.</p>
+          <p>Tar ${hh.tar || 0} barrels${hh.tarPit ? '; a tar pit in the pine wood' : ''}${
+            hh.farmstead !== null && Sim.houseTarred(st, st.farmsteads[hh.farmstead]) ? '; the house is tarred' : ''
           }.</p>
           <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>`
           : '',
@@ -343,7 +358,9 @@ function showPawn(id) {
   card(
     Sim.fullName(p),
     [
-      `${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}`,
+      `${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}${
+        p.household !== null && st.households[p.household].cold > 0 ? ', cold: no firewood' : ''
+      }`,
       `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`,
       p.stake
         ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}`
@@ -505,6 +522,7 @@ function settlementTileInfo(i) {
           `Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`,
           heirs.length ? `Heirs: ${heirs.join(', then ')}` : 'No heir in line',
           `${hungerWord(hh)}: ${Math.round(Sim.grainOf(hh))} rations of grain, ${Math.round(hh.wood)} loads of firewood`,
+          ...(hh.cold > 0 ? ['Cold: no firewood'] : []),
         ],
         { farm: f.id, house: true },
       ];
@@ -558,7 +576,19 @@ function settlementTileInfo(i) {
       { farm: f.id },
     ];
   }
-  for (const v of st.villages)
+  for (const v of st.villages) {
     if (v.center === i && v.green) return [`Village green of ${v.name}`, [], { village: v.id }];
+    // a common field (VB-100): worked by the village, its harvest into the village store
+    const fd = (v.commonFields || []).find((q) => q.tile === i);
+    if (fd)
+      return [
+        `Common field of ${v.name}`,
+        [
+          `${fieldSummary({ fields: [fd] }).replace(/^1 /, '')}, worked by the village`,
+          `Soil quality ${Math.round(fd.fert * 100)}%; its seed and its harvest are the village store's`,
+        ],
+        { village: v.id },
+      ];
+  }
   return null;
 }

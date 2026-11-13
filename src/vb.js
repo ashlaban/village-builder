@@ -25,6 +25,7 @@ VB.COUNTERS = {
   tiePairs:
     'Pairs given familiarity for waking hours at home (daily) or a job finished together (sim/relations, VB-127)',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
+  roundWalk: "Pawn records walked by a village's round to build its pool, once a village (sim/lifecycle, VB-277)",
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
   storeWalk: 'Village stores and retained ledger entries visited for spoilage and pruning',
   recordFold: 'Record slots passed by the yearly fold of routine events (sim/records, VB-199)',
@@ -35,6 +36,9 @@ VB.COUNTERS = {
     "Plans reviewed: on each holder's planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)",
   matchBid:
     'Idle pawn and job pairs weighed by matching, each pawn with the jobs of its household and village (sim/jobs, planRound; VB-227)',
+  helpOffer:
+    "Jobs of a village's households weighed for the offer to helpers, once a village a round with a helper (sim/jobs, offered; VB-106)",
+  helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',
   lookUpJob:
     'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
   occasionAsked:
@@ -55,12 +59,24 @@ VB.COUNTERS = {
   fishReach:
     "Tiles within reach of a house searched for fishing water: a village's reach test when it has a new farm, a household's shore " +
     'for a boat (sim/drying; VB-300)',
+  tarAsk:
+    "Farms asked once a year whether a boat is lost for want of tar or a tar pit is begun, and pine tiles of a village's wood walked " +
+    'for tar (sim/drying, sim/tar; VB-301)',
   boatAsk:
     'Farms of villages by fishing water asked whether their household begins a boat, once a year (sim/drying; VB-300)',
   digGround:
     'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
+  cowSeek:
+    "Households of its village weighed by a household's open want of a cow, on its planning day (sim/exchange; VB-390)",
   pastureTiles:
     "Tiles within reach of a house searched for its herds' pasture, once a grazing day a household (sim/herds; VB-136)",
+  deerGround:
+    'Tiles within reach of a house searched for its hunting ground, when its hunting is asked for in autumn and winter (sim/deer; VB-139)',
+  workdayHolders:
+    'Holders of a village weighed by a household that stayed away from its work day, twice a year (sim/workdays; VB-120)',
+  frontTile: 'Tiles of the forest front visited by spreadForest, once a game day (sim/spread; VB-091)',
+  deerCrop:
+    'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };
 VB.count = {};
 VB.resetCounts = () => {

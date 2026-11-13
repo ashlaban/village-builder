@@ -38,6 +38,8 @@ until VB-175 moves membership to `sim/records`.
 The counts and the file:line lists come from `node tools/writes.js`, which can be rerun after each refactor; `--field household.grain`
 lists one field's write sites. The proposed owners, the traces, the gap table and the ranking are judgements, made by hand.
 
+VB-309 (13 November): `sim/trust` owns `st.trusts`, every farm held in trust by kin (by id, never reused, closed with `end` and `why`), and `st.liveTrusts`, the cache of the open ones (Rules for cost, 1); `sim/ownership` reads them for the systems loaded before it (`trustOf`, `trustOfHolder`, `heldFarms`). The farm's owner (`st.owner`), holder and line are not written by a trust.
+
 VB-323 (11 November): `sim/records` owns `st.peopleCheck`, the queue of households whose membership lost a member (or took in a minor), read and emptied daily by `careForOrphans`.
 
 VB-195 (5 November): `sim/records` owns the `st.living` and `st.liveHouseholds` caches, sorted by record id.
@@ -202,7 +204,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 | `health` | hunger | hunger 62,63,64 | deaths, agents, page |
 | `hunger` | hunger | hunger 54 | deaths, agents, lifecycle, births |
 | `hungerLog` | hunger | hunger 53 | - |
-| `kinPush` | lifecycle | lifecycle 82,86,95 | society |
+| `kinPush` | lifecycle | lifecycle (kinPressure at a village's round; cleared at the first village's round, by `wed` and `killPawn`; VB-277) | society |
 | `landWait` | settle | settle 42 | heirs |
 | `nursingUntil` | births | births 38 | page |
 | `owedFrom` | stores (new) ¹ | heirs 114 | cottage |
@@ -376,7 +378,9 @@ These are read and never written after creation. Each has one owner by construct
 | pawn | `id`, `given`, `sex`, `father`, `mother`, `fatherName`, `patronym`, `founder`, `look`, `buffer`, `born` (and `born`, `alive`, `age` for a newborn) | records (`person`), births |
 | household | `id`, `farmstead` | records (`makeHousehold`) |
 | farmstead | `id`, `house`, `village`, `rowAngle`, `fence` | layout (`makeFarmstead`) |
-| village | `id`, `center`, `green`, `well` (only `layout.js:144` sets them, at seeding) | layout, settle (`found`) |
+| village | `id`, `center`, `green`, `well` (set at seeding by layout and byhand; in play `center`, `green` and `well` only by `sim/green` when a village's well is done, VB-058) | layout, settle (`found`), green |
+| village | `workday` (the last work day: hours each adult worked, judged at its end, VB-120) | workdays |
+| pawn | `workdays` (the year's work days turned out to and stayed away from, read by society's prestige, VB-120) | workdays |
 | union | `id`, `a`, `b`, `start`, `kind` | records (`marry`), lifecycle (`wed`) |
 | herd | `id`, `species` | herds (`makeHerd`) |
 | job | `id`, `key`, `kind`, `owner`, `site`, `posted`, `hours`, and its source's fields (`field`, `farm`, `meadow`, `plot`, `claim`, ...) | jobs (`post`) |
@@ -457,7 +461,7 @@ passes through commands. A larger strongly connected component reflects those ne
 | sim/expansion | gen, rules, hex, routes, records, ownership, territory, forest, fields, layout | commands:3 (later) |
 | sim/farmclaims | rules, hex, records, claims, hunger, expansion, stores | commands:4 (later) |
 | sim/kinds | stores, rules, records, forest, hunger, fields, meadows, byre, expansion, claims, farmclaims | - |
-| sim/agents | rng, rules, routes, paths, records, herds, expansion, kinds | - |
+| sim/agents | rng, rules, routes, paths, records, stores, hunger, herds, expansion, kinds | - |
 | sim/commands | agents, kinds, culture, records | lifecycle:65 (later), heirs:71 (later), service:77 (later), farmclaims:82, farmclaims:83, settle:89 (later), settle:98 (later), membership:115 (later), cottage:122 (later), lifecycle:125 (later), heirs:131 (later), lifecycle:133 (later), clock:153 (later) |
 | sim/jobs | rng, rules, hunger, hex, records, agents, relations, commands, kinds, fields, meadows, byre, expansion, farmclaims | - |
 | sim/heirs | records, agents, ownership, stores, stakes, farmclaims, hex, rules, herds, fields | count:20 |
@@ -549,7 +553,7 @@ crosses boundaries is execution writing food and fields directly, and two module
 
 | Step | State changed | Writer |
 | --- | --- | --- |
-| At the start of the work day, a household with fewer fields than it wants picks a tile | none (reads `st.used`, `w`, claims, `st.owner`) | `jobs.js:70` → `fields.js:54-63` (startProject, chooseTile) |
+| At the start of the work day, a household with fewer fields than it wants picks a tile | none (reads `st.used`, `w`, claims, `st.owner`) | `plans.js` (the land step, by the verb `project`) → `fields.js` (pickField, beginField) |
 | With no free tile, it may contest a stake another household left unworked | `st.claims` (the old claim dropped), the loser's **`farmstead.project = null`**, the loser's `pawn.rel` (remember), `st.record` | `stakes.js:41-51` (contest), `claims.js:33-39`, `relations.js:59-69` |
 | The tile is staked | `st.claims`, `st.claimSeq`, `st.landDirty` | `stakes.js:14` → `claims.js:22-30` (addClaim) |
 | The project starts | **`farmstead.project`** = {clear} | `fields.js:62` — past `sim/stakes`, proposed owner |
@@ -578,7 +582,7 @@ writers in fields, meadows, stakes and settle.
 | The village store spoils | `village.grain *= ...` | `clock.js:62` |
 | Larder food past its day | `household.larder` (filter) | `byre.js:157-158` |
 | A short household asks kin, then the village store | the giver's and the taker's `grain` and `ledger` (gift), `village.grain`, **`pawn.ties`** of both holders | `clock.js:56` → `help.js:41-54` (shareFood), `help.js:27-38` (gift) |
-| At the moving round every household gives to the village store | `household.grain`, `ledger`, `village.grain` | `help.js:56-63` (fillStores) |
+| At its village's round every household gives to the village store | `household.grain`, `ledger`, `village.grain` | `help.js` (fillStores, a village's own since VB-277) |
 | Shares to the heirs who do not inherit | `household.grain -= paid`, `pawn.stake`, `pawn.owed`, `pawn.owedFrom` | `heirs.js:105-121` (transfer) |
 | A holder marrying away with nobody to take the farm brings its grain | `to.grain += hh.grain; hh.grain = 0` | `heirs.js:270` (handOn) |
 | Provisions for those who take an empty farm, or settle new land | the old households' `grain`, `pawn.stake = 0`; the new household's grain (at creation) | `farmclaims.js:163-175`, `settle.js:69-79` and `175`, `cottage.js:38-39` |

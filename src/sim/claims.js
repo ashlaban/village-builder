@@ -160,10 +160,11 @@ VB['sim/claims'] = (() => {
       for (const fd of f.fields) kind.set(fd.tile, 'fields');
       for (const m of f.meadows || []) kind.set(m.tile, 'meadows');
     }
+    const greens = new Set(st.villages.map((v) => v.center));
     for (const v of st.villages)
       for (const p of Projects.projectsOf(st, 'village', v.id))
-        for (const tr of p.steps[0].places) kind.set(tr.tile, 'plots');
-    const greens = new Set(st.villages.map((v) => v.center));
+        if (p.what === 'plot') for (const tr of p.steps[0].places) kind.set(tr.tile, 'plots');
+        else greens.add(p.steps[0].place); // a green under way (VB-058)
     const households = new Map(),
       villages = new Map();
     const row = (m, id, keys) => {

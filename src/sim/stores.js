@@ -1,7 +1,7 @@
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
 // ale brewed, poured and spoiling (VB-305); the registry of goods (VB-299) and Culture's worth and proper as rules
 VB['sim/stores'] = (() => {
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW, CROPS } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW, CROPS, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'],
     Culture = VB['culture'],
     { emit } = VB['sim/events'],
@@ -34,11 +34,22 @@ VB['sim/stores'] = (() => {
   ROUTINE.push('firewood', 'burn');
   // VB-332: the stone heap, in loads of 25 stones: cleared from a field or meadow, picked, quarried; taken by a stone foundation.
   KINDS.push('clear', 'pick', 'quarry', 'foundation');
+  KINDS.push('well'); // VB-058: a load carried from the heap to the village's well (sim/green)
   // VB-123: what a project plan's step spends, taken from the store when the step is done (sim/projects).
   KINDS.push('build');
   // VB-300: a catch hung on the drying rack (sim/drying), out of the rack's store into the larder; VB-119: 'raw', grain eaten uncooked (sim/hunger)
   KINDS.push('drying', 'raw');
+  // VB-287: provisions given to a pawn who sets out on a journey (sim/agents), and what it carried back into its new home's meals
+  KINDS.push('journey');
   ROUTINE.push('drying', 'raw');
+  // VB-139: a roe deer's meat, brought home from a hunt (sim/deer), folded as the catch is.
+  KINDS.push('hunt');
+  ROUTINE.push('hunt');
+  // VB-009: grain ground to flour on the hand quern (routine), and a load of stone off the heap for a new quern (sim/quern)
+  KINDS.push('grind', 'quern');
+  ROUTINE.push('grind');
+  // VB-301: a barrel of tar burnt at the household's pit, and one laid on its house or its boat (sim/tar)
+  KINDS.push('tarburn', 'tarring');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -88,19 +99,23 @@ VB['sim/stores'] = (() => {
   function field(holder, good, kind = type(holder)) {
     if (isGrain(good)) return kind === 'pawn' ? 'stake' : GRAIN;
     if (kind === 'household' && good === 'meals') return good;
+    if (kind === 'household' && good === 'flour') return good; // ground on the quern (VB-009, sim/quern)
     if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
+    if (kind === 'household' && good === 'peat') return good; // the peat stack (VB-367)
+    if (kind === 'household' && good === 'tar') return good; // barrels of tar (VB-301, sim/tar)
     if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
   // ---- grain by crop (VB-347; design.md, Goods, recipes and facilities: goods in subtypes): a household's and a village's grain is
-  // {[crop]: rations}, a key of CROPS each (none held: no key, or 0). The good 'grain/<crop>' is one crop's grain, 'grain' any crop's: a take
-  // of 'grain' falls on each crop in proportion to what is held of it (takeSpare: to what is held of it above its reservation), and a put of
-  // 'grain' names its crops, as a take's `into` gave them. The ledger counts grain as 'grain' whatever its crop. A pawn's stake is one number
-  // of no crop; it goes into a store as STAKE_CROP (VB-352 gives stakes and starts their crops).
+  // {[crop]: rations}, a crop of CROPS each, a row with seed (fallow is a course, not a grain; VB-348) (none held: no key, or 0). The good
+  // 'grain/<crop>' is one crop's grain, 'grain' any crop's: a take of 'grain' falls on each crop in proportion to what is held of it
+  // (takeSpare: to what is held of it above its reservation), and a put of 'grain' names its crops, as a take's `into` gave them. The
+  // ledger counts grain as 'grain' whatever its crop. A pawn's stake is one number of no crop; it goes into a store as STAKE_CROP (VB-352
+  // gives stakes and starts their crops).
   // @state household.grain, village.grain: {[crop]: rations >= 0}, crops of CROPS; their sum, grainOf, is the grain the readers see
   const GRAIN = 'grain',
-    CROP_LIST = Object.freeze(Object.keys(CROPS)),
+    CROP_LIST = Object.freeze(Object.keys(CROPS).filter((c) => CROPS[c].seed > 0)),
     CROP_GOOD = {},
     GOOD_CROP = {},
     STAKE_CROP = 'barley';
@@ -148,6 +163,9 @@ VB['sim/stores'] = (() => {
   };
   const setGrain = (holder, crop, n) =>
     'center' in holder ? setVillageGrain(holder, crop, n) : setHouseholdGrain(holder, crop, n);
+  const setPeat = (hh, n) => {
+    hh.peat = n;
+  };
   const setWood = (hh, n) => {
     hh.wood = n;
   };
@@ -157,15 +175,26 @@ VB['sim/stores'] = (() => {
   const setMeals = (hh, n) => {
     hh.meals = n;
   };
+  // @state household.flour: rations of flour ground on the household's quern and not yet cooked (VB-009; sim/quern grinds, sim/pot cooks), 0 at the start
+  const setFlour = (hh, n) => {
+    hh.flour = n;
+  };
   // @state household.rack: rations of fresh fish laid by the drying rack, waiting to be split and hung (VB-300; sim/drying), 0 at the start
   const setRack = (hh, n) => {
     hh.rack = n;
+  };
+  // @state household.tar: barrels of tar held (VB-301; burnt at the household's pit and laid on its house or boat, sim/tar), whole numbers, 0 at the start
+  const setTar = (hh, n) => {
+    hh.tar = n;
   };
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
     else if (good === 'stone') setStone(holder, n);
+    else if (good === 'peat') setPeat(holder, n);
     else if (good === 'fish') setRack(holder, n);
+    else if (good === 'tar') setTar(holder, n);
+    else if (good === 'flour') setFlour(holder, n);
     else setMeals(holder, n);
   }
   // VB-249: a store crossing a target wakes its household's plan for a review (sim/plans reads and clears the flag, at most one such review
@@ -242,8 +271,10 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // A crop's weight in a take of 'grain': what is held of it, or what is held above its reservation.
-  const weight = (st, holder, c, spare) =>
-    spare ? Math.max(0, (holder.grain[c] || 0) - reserved(st, holder, CROP_GOOD[c])) : holder.grain[c] || 0;
+  const weight = (st, holder, c, spare) => {
+    const x = holder.grain[c] || 0; // a crop not held is not asked for its reservation
+    return spare && x > 0 ? Math.max(0, x - reserved(st, holder, CROP_GOOD[c])) : x;
+  };
   // Takes n (at most what is held) from the crops by their weights; the last crop with weight takes what is left, so that one crop gives
   // exactly n, and what the weights could not place is taken from the crops in order. Allocates nothing but `into`.
   function split(st, holder, n, spare, into) {
@@ -323,20 +354,31 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // @state household.threshed: entries of unthreshed threshed so far (absent: 0); seq numbers a field's entry
-  function sheaf(st, hh, n, seq = -1) {
+  // @state household.sheafCrops: absent while every entry of unthreshed is barley's; else the crop of each entry, in its order (VB-348)
+  function sheaf(st, hh, n, seq = -1, crop = 'barley') {
     const th = hh.threshed || 0,
       i = seq - th,
       old = i >= 0 && i < hh.unthreshed.length; // a field's loads add to its entry
     record(st, hh, 'sheaves', n, seq < 0 ? { kind: 'harvest', first: true } : 'harvest'); // first: its first load
     if (!hh.unthreshed.length) wake(st, hh);
-    return old ? ((hh.unthreshed[i] += n), seq) : th + hh.unthreshed.push(n) - 1;
+    if (old) {
+      hh.unthreshed[i] += n;
+      return seq;
+    }
+    grainGood(crop); // an unknown crop throws
+    if (crop !== 'barley' && !hh.sheafCrops) hh.sheafCrops = hh.unthreshed.map(() => 'barley');
+    if (hh.sheafCrops) hh.sheafCrops.push(crop);
+    return th + hh.unthreshed.push(n) - 1;
   }
+  // The barn's first entry is threshed into grain of its crop.
   function thresh(st, hh) {
     type(hh);
-    const n = hh.unthreshed.shift() || 0;
+    const n = hh.unthreshed.shift() || 0,
+      crop = hh.sheafCrops ? hh.sheafCrops.shift() || 'barley' : 'barley';
+    if (hh.sheafCrops && !hh.sheafCrops.some((c) => c !== 'barley')) delete hh.sheafCrops;
     hh.threshed = (hh.threshed || 0) + (n ? 1 : 0);
     record(st, hh, 'sheaves', -n, 'thresh');
-    put(st, hh, grainGood(STAKE_CROP), n, 'thresh'); // sheaves are barley's until VB-348
+    put(st, hh, grainGood(crop), n, 'thresh');
   }
   // ---- dug goods (VB-359; sim/dig): whole loads of clay and bog iron ore in a household's store, nothing using them until slice 6 ----
   // @state household.clay, household.bogOre: loads of clay and of bog iron ore dug and held (sim/dig), whole numbers, 0 at the start
@@ -345,11 +387,25 @@ VB['sim/stores'] = (() => {
     if (good === 'clay') hh.clay = n;
     else hh.bogOre = n;
   }
+  // @state household.peat: units of peat held, wet or dry (VB-367; a unit burns as PEAT.worth of wood), 0 at the start
+  // @state household.peatCut: {key, n} or undefined: the units cut in the season keyed year * 4 + season, which are still drying: peat cut in
+  //   a season burns from the next (rule 3: read in closed form against the clock, no pass that dries it)
+  const seasonKey = (st) => {
+    const c = cal(st.t);
+    return c.year * 4 + c.season;
+  };
+  const peatCut = (st, hh) => (hh.peatCut && hh.peatCut.key === seasonKey(st) ? hh.peatCut.n : 0);
+  // The peat that burns today: what is held less what was cut this season.
+  const peatDry = (st, hh) => Math.max(0, (hh.peat || 0) - peatCut(st, hh));
   function dug(st, hh, good, n) {
     amount(n);
-    if (type(hh) !== 'household' || !DUG.includes(good)) throw new Error(`stores: cannot dig ${good}`);
+    if (type(hh) !== 'household' || !(DUG.includes(good) || good === 'peat'))
+      throw new Error(`stores: cannot dig ${good}`);
     record(st, hh, good, n, 'dig');
-    setDug(hh, good, (hh[good] || 0) + n);
+    if (good === 'peat') {
+      hh.peatCut = { key: seasonKey(st), n: peatCut(st, hh) + n };
+      hh.peat = (hh.peat || 0) + n;
+    } else setDug(hh, good, (hh[good] || 0) + n);
     return n;
   }
   // Only a newly constructed household, before its members move in. Constructor supplies are replaced, not consumed. grain: by crop (a
@@ -677,6 +733,7 @@ VB['sim/stores'] = (() => {
     goodOf,
     goods,
     dug,
+    peatDry,
     dry,
     cookLarder,
     grainOf,

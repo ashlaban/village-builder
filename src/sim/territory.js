@@ -13,6 +13,8 @@ VB['sim/territory'] = (() => {
   // st.used, or a green); the outland, village land not in use, held in common (its pasture, wood and land to take in); and wilderness, held by
   // nobody. A village claims outland by need at its autumn meeting (landMeeting); a claim unopposed until the next meeting becomes its own.
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
+  // A tile a village may cut firewood on: forest, or open land the forest has grown into at half cover or more (VB-091, sim/spread's thick).
+  const woodland = (w, t) => wooded(w, t) || (w.treesMax[t] > 0 && w.trees[t] >= 0.5 * w.treesMax[t]);
   // Land a village may hold as outland: not water, snow or a river's course.
   const holdable = (w, t) => !w.water[t] && !w.river[t] && w.biome[t] !== B.SNOW;
   const occupied = (st, v) => v.farmsteads.reduce((n, id) => n + (st.farmsteads[id].household !== null ? 1 : 0), 0);
@@ -243,26 +245,32 @@ VB['sim/territory'] = (() => {
   // ---- the village's wood (VB-326) ----
   // A village cuts its firewood in an allotted area, v.wood: WOOD.perHousehold wooded tiles for each live household, at least WOOD.least and
   // at most WOOD.cap; the nearest within WOOD.reach walking steps of its centre, first those of its own land, then forest no other village
-  // holds or claims (freeFor), never a tile in use (house, field, meadow, plot), a green, or another village's wood. Reckoned at the autumn
-  // meeting (landMeeting), when a farm is founded in the village, and when a tile of it is cut bare or built on (woodTaken); never daily. One
-  // bounded search (the tiles within WOOD.reach) a call. Empty when no forest lies in reach.
+  // holds or claims (freeFor), never a tile in use (house, field, meadow, plot), a green, or another village's wood. Where reach holds too
+  // few, the rest lies beyond it, up to WOOD.far, own land first and nearest first; those trips cost the longer walk (VB-421). Reckoned at
+  // the autumn meeting (landMeeting), when a farm is founded in the village, and when a tile of it is cut bare or built on (woodTaken);
+  // never daily. One bounded search (the tiles within WOOD.reach) a call, and a second (within WOOD.far) when the first finds too few.
+  // Empty when no forest lies within WOOD.far.
   const woodSize = (st, v) => Math.min(WOOD.cap, Math.max(WOOD.least, WOOD.perHousehold * occupied(st, v)));
   function reckonWood(st, v) {
     const w = st.w,
+      size = woodSize(st, v),
       others = new Set(),
-      own = [],
-      free = [];
+      near = (a, b) => a[1] - b[1] || a[0] - b[0];
     for (const u of st.villages) if (u !== v && u.wood) for (const t of u.wood) others.add(t);
-    for (const [t, d] of bfs(w, v.center, WOOD.reach, walkable(w)).dist) {
-      if (!wooded(w, t) || w.trees[t] <= 0 || st.used.has(t) || others.has(t) || !freeFor(st, t, v.id)) continue;
-      (st.owner[t] === -v.id - 1 ? own : free).push([t, d]);
-    }
-    const near = (a, b) => a[1] - b[1] || a[0] - b[0];
-    const wood = own
-      .sort(near)
-      .concat(free.sort(near))
-      .slice(0, woodSize(st, v))
-      .map(([t]) => t);
+    // the wooded tiles v may cut, more than `from` and at most `reach` steps away: its own land's first, then free forest, nearest first
+    const search = (from, reach) => {
+      const own = [],
+        free = [];
+      for (const [t, d] of bfs(w, v.center, reach, walkable(w)).dist) {
+        if (d <= from || !woodland(w, t) || w.trees[t] <= 0 || st.used.has(t) || others.has(t) || !freeFor(st, t, v.id))
+          continue;
+        (st.owner[t] === -v.id - 1 ? own : free).push([t, d]);
+      }
+      return own.sort(near).concat(free.sort(near));
+    };
+    let list = search(-1, WOOD.reach);
+    if (list.length < size) list = list.concat(search(WOOD.reach, WOOD.far));
+    const wood = list.slice(0, size).map(([t]) => t);
     if (st.landDirty) for (const t of new Set([...(v.wood || []), ...wood])) st.landDirty.add(t);
     v.wood = wood;
     return wood;
@@ -275,13 +283,16 @@ VB['sim/territory'] = (() => {
   const woodOf = (st, t) => st.villages.find((v) => v.wood && v.wood.includes(t)) || null;
   // ---- the meeting, and the start ----
   // At each autumn meeting, after the customs: last year's claims are settled, then new ones made, and each village reckons its wood; one
-  // with households and no forest in reach has none, and the log says so.
+  // with households and no forest in reach has none, and the log says so: its houses are cold (VB-327).
   function landMeeting(st) {
     settleOutland(st);
     claimOutland(st);
     for (const v of st.villages) {
       if (!reckonWood(st, v).length && occupied(st, v)) {
-        log(st, `${v.name} has no wood within reach to cut.`, { kind: 'noWood', village: v.id });
+        log(st, `${v.name} has no wood within a day's walk to cut: its houses are cold.`, {
+          kind: 'noWood',
+          village: v.id,
+        });
       }
     }
   }

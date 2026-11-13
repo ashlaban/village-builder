@@ -3,7 +3,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { setClock, moveClock } = require('./lib/clock.js');
-const { shareFood, fillStores, surplus, askDaysAt } = VB['sim/help'], { dailyNeed, seedReserve } = VB['sim/hunger'], { HELP } = VB['sim/rules'];
+const { shareFood, fillStores, surplus, askDaysAt, seasonOf } = VB['sim/help'], { dailyNeed, seedReserve } = VB['sim/hunger'], { HELP } = VB['sim/rules'];
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 const fresh = () => {
   const st = Sim.seed(r.value, 7, 'founders');
@@ -49,6 +49,17 @@ for (const p of Sim.seed(r.value, 7, 'populous').pawns) assert(p.buffer >= HELP.
   shareFood(st); const first = Sim.grainOf(a); assert(first > 0, 'the store gave');
   a.grain = { barley: 0 }; shareFood(st); assert.strictEqual(Sim.grainOf(a), 0, 'no second ask in the season');
   moveClock(st, 12 * Sim.DAY); shareFood(st); assert(Sim.grainOf(a) > 0, 'asks again next season');
+}
+{ // an ask that brought nothing is not the season's ask (VB-391): a lone household asks again the next day, and once something came, no more
+  const st = fresh(), [a] = st.households, v = st.villages[st.farmsteads[a.farmstead].village];
+  for (const hh of st.households) hh.grain = { barley: hh === a ? 0 : seedReserve(st, hh) }; // no kin has a surplus
+  v.grain = { barley: 0 };
+  const log0 = a.ledger.length;
+  shareFood(st); assert.strictEqual(a.askedIn, undefined, 'nothing moved: not the season\'s ask'); assert.strictEqual(a.ledger.length, log0, 'nothing booked');
+  moveClock(st, Sim.DAY); shareFood(st); assert.strictEqual(a.askedIn, undefined, 'still nothing, and asks the day after');
+  v.grain = { barley: 1e5 }; moveClock(st, Sim.DAY); shareFood(st);
+  assert(Sim.grainOf(a) > 0, 'the store filled later in the season: asked again and was given'); assert.strictEqual(a.askedIn, seasonOf(st.t), 'that ask counts');
+  a.grain = { barley: 0 }; moveClock(st, Sim.DAY); shareFood(st); assert.strictEqual(Sim.grainOf(a), 0, 'no second ask once one brought something');
 }
 { // stores fill at the moving round from surpluses only
   const st = fresh(), a = st.households[0], v = st.villages[st.farmsteads[a.farmstead].village];

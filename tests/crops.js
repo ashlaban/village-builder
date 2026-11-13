@@ -20,17 +20,22 @@ hh.grain = { barley: CROPS.barley.seed };
 KINDS.sow.done(st, j, hh, cal(0));
 assert.equal(Sim.grainOf(hh), 0, 'sowing consumes the seed');
 
-// Growth opens weeding on day 3, repeats only when due, and counts a missed round once.
+// Growth (day 3) opens no weeding; the first round falls due on day 6 and the second on day 15 (ECON.weedDays), a missed round counts once,
+// and no third round follows.
 setClock(st, 3 * DAY); fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'growing');
+assert.equal(fd.weedOpen, false, 'no round before day 6');
+setClock(st, 6 * DAY); fieldsDay(st, cal(st.t));
 assert.equal(fd.weedOpen, true);
 KINDS.weed.done(st, j);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.weedOpen, false, 'finishing weeding must not reopen it the same day');
-moveClock(st, st.ECON.weedEvery * DAY); fieldsDay(st, cal(st.t));
+setClock(st, 15 * DAY); fieldsDay(st, cal(st.t));
 assert.equal(fd.weedMiss, 0, 'completed weeding does not count as missed');
-moveClock(st, st.ECON.weedEvery * DAY); fieldsDay(st, cal(st.t));
-assert.equal(fd.weedMiss, 1, 'an unfinished round counts when the next falls due');
+assert.equal(fd.weedOpen, true, 'the second round falls due on day 15');
+setClock(st, 20 * DAY); fieldsDay(st, cal(st.t));
+assert.equal(fd.weeds, 2, 'two rounds a crop');
+assert.equal(fd.weedOpen, true);
 
 // Sheaves already delivered survive frost; those still in the field are lost, even after reaping.
 const c = cal((3 * SEASON_DAYS - 1) * DAY);
@@ -62,8 +67,14 @@ assert.equal(fd.stage, 'stubble', 'restoration protects the field from overgrowt
 VB['sim/plans'].dropAll(st, 'pawn', hh.holder);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'fallow');
-fd.tile = tileAt(w, 12, 10); w.biome[tileAt(w, 13, 10)] = VB.gen.B.FOREST;
-setClock(st, 9 * YEAR);
+// Forest spread (sim/spread, VB-091) grows trees on it: from a quarter of full cover the field is scrub; cleared of them, it is grass again.
+w.treesMax[fd.tile] = 60; w.trees[fd.tile] = 14;
 fieldsDay(st, cal(st.t));
-assert.equal(fd.stage, 'scrub', 'woodland within two steps spreads into the abandoned field');
+assert.equal(fd.stage, 'fallow', 'below a quarter of full cover the field is still grass');
+w.trees[fd.tile] = 15;
+fieldsDay(st, cal(st.t));
+assert.equal(fd.stage, 'scrub', 'the forest has grown into the abandoned field');
+w.trees[fd.tile] = 0;
+fieldsDay(st, cal(st.t));
+assert.equal(fd.stage, 'fallow', 'a field whose scrub is gone is grass again');
 console.log('crops ok: seed shortage, weeding cadence, frost delivery boundary and claimed-farm overgrowth');

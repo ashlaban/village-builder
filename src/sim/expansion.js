@@ -12,24 +12,23 @@ VB['sim/expansion'] = (() => {
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];
-  const { clearTile } = VB['sim/forest'];
+  const { clearTile, FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
+  const { thick, clearScrub, tended } = VB['sim/spread'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
   const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand } = VB['sim/layout'];
   const COTTAGE = ['foundation', 'walls', 'roof'],
     COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const MAX_PLOTS = 2,
-    REACH = 6,
-    FELL_HOURS = 10,
-    GRUB_HOURS = 6;
+    REACH = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // @state village.plots[]: the village's plots built, {id, village, intended, holder (who moved in), started, farmstead, tiles: [{tile, kind
   //   'house' | 'field'}]}, appended when the cottage's household moves in (sim/cottage). A plot under way is a project plan of its village
-  //   (st.plans.projects; a village's only kind of project), {..., what: 'plot', plot (its number in the village: the plots built and under
+  //   (st.plans.projects; a village's other project is its green, sim/green), {..., what: 'plot', plot (its number in the village: the plots built and under
   //   way before it), intended, to (the pawn it is allotted to once cleared, or null), hours ({pawn: hours worked on it}), started, steps}:
   //   the steps are its clearing, of several places (each {tile, kind 'house' | 'field', steps (fell, grub, clear, break), i, fresh}, one
   //   task a place, worked side by side), then the cottage's stages at the house ({kind, place, hours, done (hours worked)}; the walls also
   //   `wood`, the timber brought to the site, which nothing else may take: VB-328).
-  const livePlots = (st, v) => Projects.projectsOf(st, 'village', v.id);
+  const livePlots = (st, v) => Projects.projectsOf(st, 'village', v.id).filter((p) => p.what === 'plot'); // not its green (VB-058)
   const tilesOf = (p) => (p.steps ? p.steps[0].places : p.tiles);
   const activePlots = (st, v) => livePlots(st, v).filter((p) => p.open < 1);
   const building = (p) => p.open >= 1 && p.to !== null;
@@ -41,7 +40,7 @@ VB['sim/expansion'] = (() => {
   // A site's walls wait until BUILD.timber loads of wood lie there (VB-328; site: a plot, or a booth).
   const waitsForTimber = (site, i) => COTTAGE[i] === 'walls' && (site.wood || 0) < BUILD.timber;
   const stepsFor = (w, tile, kind) => [
-    ...(wooded(w, tile) ? ['fell', 'grub'] : []),
+    ...(wooded(w, tile) || thick(w, tile) ? ['fell', 'grub'] : []), // thick scrub as forest (VB-091)
     'clear',
     ...(kind === 'field' ? ['break'] : []),
   ];
@@ -302,11 +301,14 @@ VB['sim/expansion'] = (() => {
       st.regrow.delete(tr.tile);
       st.treeDirty.add(tr.tile);
     } else if (step === 'grub') clearTile(st, tr.tile);
-    else if (step === 'clear') w.stones[tr.tile] = 0;
-    else if (tr.kind === 'field') {
+    else if (step === 'clear') {
+      w.stones[tr.tile] = 0;
+      clearScrub(st, tr.tile); // scrub below half cover goes with the clearing (VB-091)
+    } else if (tr.kind === 'field') {
       tr.fresh = !w.dev[tr.tile];
       w.dev[tr.tile] = 1;
     } // ground never farmed starts fresh (VB-149)
+    tended(st, tr.tile); // worked on: kept open from the forest a year (sim/spread)
     tr.i++;
     st.biomeDirty.add(tr.tile);
     st.visualDirty = true;

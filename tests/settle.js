@@ -68,7 +68,9 @@ check(f.name === nv.name, `the farm bears the new village's name (${f.name}, ${n
 check(f.fields.length === 0 && VB['sim/plans'].openOf(st, 'household', hh.id)?.kind === 'clear', 'the first field is the household\'s project plan');
 check(hh && hh.holder === m.id && m.household === hh.id && sib.household === hh.id && hh.members.length === 2, 'settler and sibling live there');
 check(sib.servant && ['farmhand', 'maid'].includes(sib.role) && m.role === 'farmer', `the sibling serves (${sib.role})`);
-check(Sim.grainOf(hh) >= 300 && !m.stake, `the stake is the household's grain (${Sim.grainOf(hh)})`);
+// the stake less a day's ration a head, eaten uncooked on the journey (VB-287, sim/agents setOut)
+const journeyFood = hh.members.reduce((n, id) => n + (st.pawns[id].age >= 14 ? st.ECON.ration.adult : st.ECON.ration.child), 0) / st.ECON.uncooked;
+check(Math.abs(Sim.grainOf(hh) - (300 - journeyFood)) < 1e-6 && !m.stake, `the stake is the household's grain, less the journey's (${Sim.grainOf(hh)})`);
 check(!st.households[oldHh].members.includes(m.id), 'the settler left the old household');
 check(st.demand.includes(sib.id) && !st.demand.includes(m.id), 'the sibling still wants land, the settler does not');
 const s = st.cenv.settlements[nv.id];
@@ -97,6 +99,17 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n && Sim.villageLog(t.st, Infinity).some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
 }
+// 3b. A home that took in a spouse at this round gives no provisions (VB-330); the next round it gives, and one that did not marry gives as before.
+{
+  const t = setUp(), hh = t.st.households[t.m.household], party = [t.m.id];
+  t.m.stake = 0; hh.grain = { barley: 4000 };
+  check(S.provisions(t.st, party) !== null, 'a home that did not marry gives its grain');
+  const bride = t.st.pawns.find((p) => p.alive && p.household !== hh.id && Sim.spouseOf(t.st, p.id) === null && p.age >= 18);
+  t.st.unions.push({ id: t.st.unions.length, a: t.sib.id, b: bride.id, start: t.st.t - (t.st.t % 24), end: null, kind: 'marriage' });
+  check(S.provisions(t.st, party) === null, 'a home that took in a spouse at this round, on an earlier step of its day, gives nothing');
+  t.st.t += 30 * 24; // the next round
+  check(S.provisions(t.st, party) !== null, 'the next round it gives');
+}
 // 4. Founders (at foundersSeed): a lone farm lies within reach from the crowded village. With room there, a waiting adult joins it, building a
 // booth, and founds nothing (VB-147); with an adult of its own waiting for land, or no room, it is passed over and the settler founds.
 let joined = '';
@@ -118,9 +131,11 @@ const founders = () => {
   check(d <= SETTLE.join, `the lone farm lies within ${SETTLE.join} steps (${d})`);
   check(t.st.villages.length === n && t.lone.farmsteads.length === farms + 1 && g.booth && t.st.households[g.household].holder === t.m.id,
     `the settler joins the lone farm's village (villages ${t.st.villages.length - n} new, its farms ${farms} -> ${t.lone.farmsteads.length})`);
-  // named by direction from the lone farm, now the hamlet's centre (VB-026), and the log says so
-  check(/^(Norr|Söder|Öster|Väster|Mellan|Ny)gården$/.test(g.name) && Sim.villageLog(t.st, Infinity).some((e) => e.text.includes(`settles at ${g.name} in ${t.lone.name}`)),
-    `the joined farm is named by compass and the log says so (${g.name})`);
+  // named as a new cottage is (VB-399): a name one of the farm generators offers for the farm, and the log says so
+  const N = VB['sim/names'], fctx = { w: t.st.w, f: g, village: t.lone, owner: t.m, farms: t.lone.farmsteads.map((id) => t.st.farmsteads[id]), fresh: true },
+    r = () => N.tileRand(g.house), offered = Object.values(N.FARM).flatMap((gen) => gen(fctx, r())).map((nm) => nm.replace(/ \d+$/, ''));
+  check(offered.includes(g.name.replace(/ \d+$/, '')) && Sim.villageLog(t.st, Infinity).some((e) => e.text.includes(`settles at ${g.name} in ${t.lone.name}`)),
+    `the joined farm is named by a farm generator and the log says so (${g.name})`);
   check(t.lone.name === t.st.farmsteads[t.lone.farmsteads[0]].name, `the lone farm's village bears its farm's name (${t.lone.name})`);
   bad = checkState(t.st); check(!bad.length, `invariants after joining: ${bad.slice(0, 3).join('; ')}`);
   joined = `; joined ${t.lone.name} ${d} steps away`;

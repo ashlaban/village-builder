@@ -2,7 +2,7 @@
 // skip to the next event that concerns the played pawn (VB-234); queries of the record and a pawn's life (VB-199); read-only views, no state
 VB['sim/notable'] = (() => {
   const { index, ancestorsOf, fullName, age, settlementIdOf } = VB['sim/records'];
-  const { CAUSES } = VB['sim/deaths'];
+  const { CAUSES, COLD } = VB['sim/deaths'];
   const { YEAR, DAY, SEASON_DAYS, WORK } = VB['sim/rules'];
   // An event of the record in full that every view reads: not a folded slot (a number, sim/records), nor a pawn's own telling of an event
   // recorded beside it (`self`), which only its life reads.
@@ -40,7 +40,8 @@ VB['sim/notable'] = (() => {
       }
       if (e.kind === 'born') return { t: e.t, kind: 'born', at }; // the village's line is the mother's telling
       if (e.kind !== 'died') return { t: e.t, kind: e.kind, text: e.text, at };
-      return { t: e.t, kind: 'died', text: CAUSES[e.text] ? CAUSES[e.text].event : undefined, cause: e.text, at };
+      const told = CAUSES[e.text] ? CAUSES[e.text].event + (e.cold ? COLD : '') : undefined;
+      return { t: e.t, kind: 'died', text: told, cause: e.text, at };
     });
   }
   // Why an event is notable (Kim, 9 Nov: QUESTION_ARCHIVE.md, "VB-098"), in the order the page lists them; the page turns each on or off.
@@ -102,7 +103,8 @@ VB['sim/notable'] = (() => {
     const p = st.pawns[ev.pawn],
       cause = CAUSES[ev.text];
     if (!cause) return `${fullName(p)} died ${ev.text || ''}`.trim() + '.';
-    return `${fullName(p)} of ${ev.farm !== undefined ? st.farmsteads[ev.farm].name : 'the island'} ${cause.log}, aged ${age(st, p, ev.t)}.`;
+    const where = ev.farm !== undefined ? st.farmsteads[ev.farm].name : 'the island';
+    return `${fullName(p)} of ${where} ${cause.log}${ev.cold ? COLD : ''}, aged ${age(st, p, ev.t)}.`;
   }
   // ---- the chronicle (VB-099): the record as the history of a pawn, a farm or a village, and as the village log ----
   // The kinds a history is filtered by, in the order the page offers them.
@@ -124,6 +126,7 @@ VB['sim/notable'] = (() => {
         'settled',
         'plot',
         'plotStarted',
+        'green',
         'field',
         'meadow',
         'stake',
@@ -137,7 +140,18 @@ VB['sim/notable'] = (() => {
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
   // the village log, nor of a farm's history.
-  const PERSONAL = new Set(['closeFriend', 'enemy', 'friend', 'fellOut', 'cause', 'player', 'share', 'gift', 'joined']);
+  const PERSONAL = new Set([
+    'closeFriend',
+    'enemy',
+    'friend',
+    'fellOut',
+    'cause',
+    'player',
+    'share',
+    'gift',
+    'joined',
+    'helped',
+  ]);
   // The events that tell a farm is lived in again, which end a spell of standing empty.
   const SETTLES = new Set(['holds', 'inherited', 'moved', 'cottage', 'left']);
   const whole = (n) => `${n} ${n === 1 ? 'year' : 'years'}`;

@@ -5,7 +5,8 @@ VB['sim/matching'] = (() => {
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
-  const { roundHeirs, heirFor } = VB['sim/heirs'];
+  const { heirRanking, heirFor } = VB['sim/heirs'];
+  const { trustOfHolder } = VB['sim/ownership'];
   const { opinionOf } = VB['sim/relations'];
 
   // ---- the rules of a match (the moving round's marriages, and what the player's wish for a match is checked against, VB-274) ----
@@ -28,24 +29,36 @@ VB['sim/matching'] = (() => {
       (MARRIAGE.liking * (opinionOf(st, m.id, f.id) + opinionOf(st, f.id, m.id))) / 2
     ); // opinion (VB-275)
   }
-  // Where each pawn would live if married (placeIfMarried), cached until the next marriage changes the families: ranking every farm's
-  // heirs for every pair of candidates made the round cost about a second at populous medium. `homeFor(m, f, cu)`: where a couple would
+  // Where each pawn would live if married (placeIfMarried), memoized with the heir rankings it reads (`rank(h)`, heirRanking ranked afresh,
+  // VB-277) until `clear()`, which a village's round calls after each marriage or handover it makes: ranking every farm's heirs for every
+  // pair of candidates made the round cost about a second at populous medium. `homeFor(m, f, cu)`: where a couple would
   // live, or null. Under 'land' one of them needs a place (the farm they hold or are first heir to). When both have one (VB-153): a holder
   // keeps their farm and a spouse who is only first heir steps out of that line; of two holders, the couple lives where the other farm is
   // best handed on (handOn: an adult heir, then a landless adult of its village, then a child or nobody), then on the farm with more
   // fields, the man's on a tie. Under the other customs the spouse's home counts. `affords(h)`: the means to marry (VB-153): the home
   // holds food above its seed for MARRIAGE.means years of its members and one more, counting grain still in sheaf and the larder, so that
   // marriages fall after a bad harvest (the preventive check). A home with fewer than two adults needs no means: a lone holder, or a
-  // widow with small children, needs the spouse's hands. Cached per household until a marriage.
+  // widow with small children, needs the spouse's hands. Memoized per household until clear().
   function matchRules(st) {
-    const heirs = roundHeirs(st),
+    const ranks = new Map(),
       places = new Map(),
       handed = new Map(),
       means = new Map();
+    const rank = (h) => {
+      if (!ranks.has(h)) ranks.set(h, heirRanking(st, st.households[h]));
+      return ranks.get(h);
+    };
+    const clear = () => {
+      for (const m of [ranks, places, handed, means]) m.clear();
+    };
     const place = (id) => {
       if (!places.has(id)) {
-        const hh = st.households[st.pawns[id].household];
-        places.set(id, hh && !hh.dissolved && (hh.holder === id || heirs.rank(hh.id)[0] === id) ? hh.id : null);
+        const hh = st.households[st.pawns[id].household],
+          held = trustOfHolder(st, id); // a holder whose farm is held in trust lives there once married (VB-309)
+        places.set(
+          id,
+          held ? held.household : hh && !hh.dissolved && (hh.holder === id || rank(hh.id)[0] === id) ? hh.id : null,
+        );
       }
       return places.get(id);
     };
@@ -53,7 +66,7 @@ VB['sim/matching'] = (() => {
     const handsOnWell = (h) => {
       if (!handed.has(h)) {
         const hh = st.households[h],
-          heir = heirFor(st, hh, heirs.rank(h), hh.holder),
+          heir = heirFor(st, hh, rank(h), hh.holder),
           v = st.farmsteads[hh.farmstead].village;
         const grown =
           heir !== null &&
@@ -90,7 +103,7 @@ VB['sim/matching'] = (() => {
       }
       return means.get(h);
     };
-    return { heirs, places, handed, means, place, homeFor, affords };
+    return { rank, place, homeFor, affords, clear };
   }
   // Why the match of pawns a and b (ids, either sex) may not be made at the round now ({why}), or the match ({man, woman, home}: pawns and
   // a household id). The round's rules: both alive, single, of age, fed, not retired and in no open offer; the kin degree the man's village's

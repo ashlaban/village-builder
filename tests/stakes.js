@@ -12,7 +12,11 @@ let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('S
 const ok = (st, label) => { Sim.refreshRoles(st); const bad = checkState(st); check(!bad.length, `${label}: invariants: ${bad.slice(0, 2).join('; ')}`); };
 const H = (id) => ({ type: 'household', id });
 // The land step's field (sim/fields' choice, made a project plan by sim/plans, as the review does).
-const start = (st, f, hh) => { const p = F.startProject(st, f, hh); if (p) VB['sim/plans'].makeProject(st, 'household', hh.id, p); };
+const start = (st, f, hh) => {
+  if (VB['sim/projects'].projectOf(st, 'household', hh.id) || f.fields.length >= F.fieldsWanted(st, hh)) return;
+  const tile = F.pickField(st, f, hh), p = tile >= 0 ? F.beginField(st, f, hh, tile) : null;
+  if (p) VB['sim/plans'].makeProject(st, 'household', hh.id, p);
+};
 // A farm's land project (its household's project plan, VB-123): its open step's tile and kind, or null.
 const pj = (st, f) => {
   const s = f.household === null ? null : VB['sim/plans'].openOf(st, 'household', f.household); return s ? { tile: s.place, stage: s.kind } : null; };

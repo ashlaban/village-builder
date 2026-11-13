@@ -37,7 +37,7 @@ VB['sim/membership'] = (() => {
     }
     for (const id of members) {
       if (unhomed && st.pawns[id].household === null) joinHousehold(st, hh, id);
-      else moveTo(st, id, hh.id, text);
+      else moveTo(st, id, hh.id, text, carry);
       st.rigDirty.add(id);
     }
     for (const id of followers) setServant(st, id, true);

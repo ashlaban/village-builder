@@ -14,12 +14,15 @@ VB['sim/scenarios'] = (() => {
   const { placeAtHome } = VB['sim/agents'];
   const { seedPlans } = VB['sim/plans'];
   const { dailyNeed } = VB['sim/hunger'];
+  const { startQuern } = VB['sim/quern'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
   const { yearlyRations, fieldsWanted } = VB['sim/fields'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
+  const { initDeer } = VB['sim/deer'];
+  const { initFront } = VB['sim/spread'];
   const { layWay } = VB['sim/paths'];
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
@@ -377,12 +380,15 @@ VB['sim/scenarios'] = (() => {
     //   ledger[] ({t, kind, n, good, pawn?, stake?}; sim/stores; signed movements by good; 'harvest', 'gift', 'meat', 'milk', 'butter' (rations made;
     //   sim/byre)); kinds not in Stores.ROUTINE only (VB-204), kept three years and emptied when the household dissolves,
     //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
-    //   hungryDays, seedSeason (the season the seed was last eaten in and told; sim/hunger), hunger (mean of members'), waterDay, cookDay, dissolved,
+    //   hungryDays, seedSeason (the season the seed was last eaten in and told; sim/hunger), hunger (mean of members'),
+    //   cold (0..1, the mean of coldLog over HUNGER.days) and coldLog[] (the last days' cold, each the wood the fire lacked over winter's use;
+    //   empty when warm that long; sim/hunger, VB-327), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter'|'dried fish' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fresh[] ({food 'fish'|'gathered' (rules FOODS held 'fresh'), day, qty (units)}: fresh food in batches by day; sim/pot, VB-119),
     //   fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
-    //   manure (loads on the heap by the byre; VB-137), spoilt (rations of grain lost in store since the start; sim/hunger)}
+    //   manure (loads on the heap by the byre; VB-137), wool (fleeces shorn, summer day 1; VB-144),
+    //   spoilt (rations of grain lost in store since the start; sim/hunger)}
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, line, state, condition, condAt, grade,
     //   tarredUntil, emptySince}
     //   house is a tile index (the field or meadow in the making is its household's project plan, st.plans.projects, and an empty farm's
@@ -426,6 +432,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
     // @state st.offers, st.offerSeq: the open marriage offers and the next offer's id (see sim/lifecycle)
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
+    // @state st.journeys, st.journeySeq: the open journeys between villages and the next one's id (see sim/agents, VB-287)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
@@ -503,9 +510,14 @@ VB['sim/scenarios'] = (() => {
       offerSeq: 0,
       occasions: [],
       occasionSeq: 0,
+      journeys: [],
+      journeySeq: 0,
       finds: new Map(),
+      deer: null,
     };
     rebuildLiving(st);
+    initDeer(st); // roe deer in every region with forest edges, at their capacity (VB-139)
+    initFront(st); // the open land beside the forest, where it may spread (VB-091)
     seedPlans(st);
     for (const v of villages) {
       v.plots = [];
@@ -516,6 +528,7 @@ VB['sim/scenarios'] = (() => {
     refreshRoles(st);
     buildHours(st); // VB-286: the walking hours between the villages' greens
     for (const hh of st.households) hh.meals = 2 * dailyNeed(st, hh); // two days of meals to start with
+    for (const hh of st.households) startQuern(st, hh); // each with its hand quern (VB-009)
     for (const a of st.agents) if (!st.pawns[a.id].died) placeAtHome(st, a);
     // the record's history before the start: births, deaths and marriages of the people on record, in time order
     const before = [];

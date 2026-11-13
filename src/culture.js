@@ -148,6 +148,17 @@ const Culture = (() => {
         ['meeting', 'The meeting decides'],
       ],
     },
+    // VB-100 (Kim, 10 Nov): how the village's common fields rank beside a household's own work (sim/commons; COMMONS.lean, sim/rules)
+    {
+      key: 'commons',
+      label: 'Work on the common fields',
+      m: 0.5,
+      opts: [
+        ['own', 'After the household’s own work'],
+        ['fair', 'As the village’s other duties'],
+        ['first', 'Before the household’s own work'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -177,6 +188,7 @@ const Culture = (() => {
       feedOrder: 'equal',
       ownHeir: 'behind',
       dispute: 'first',
+      commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
     },
   };
 
@@ -628,6 +640,7 @@ const Culture = (() => {
     'cattle/heifer': 20,
     'cattle/steer': 20,
     sheep: 6,
+    quern: 25, // a hand quern's stone, hewn of sandstone or granite (VB-009; Proposed, slice 6's plan): a good of place
   });
   // The three classes of goods (Decided, 10 Nov): food; wares (animals, cloth and labour; today animals, and tar beside them); land.
   const CLASSES = Object.freeze(['food', 'wares', 'land']);

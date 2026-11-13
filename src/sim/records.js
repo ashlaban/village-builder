@@ -4,11 +4,12 @@ VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
   // ---- the record of events (VB-075) ----
-  // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self}, the fields that do not
-  // apply absent. log and personEvent write their event as they write their text; `false` for ev says another call records the event.
+  // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self, cold, tile}, the fields that do
+  // not apply absent (cold: a death in a cold house, VB-327; tile: where a pawn died on the road, VB-287). log and personEvent write their
+  // event as they write their text; `false` for ev says another call records the event.
   // A pawn's own events (pawn.events) are positions in it, not copies (VB-199). A slot is never removed, so a position stays good: a
   // routine event, once folded, becomes the index of its count in st.recordYears.
-  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text', 'self'];
+  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text', 'self', 'cold', 'tile'];
   function record(st, ev, t = st.t) {
     const e = { t, kind: ev.kind };
     for (const k of FIELDS) if (ev[k] !== undefined && ev[k] !== null) e[k] = ev[k];
@@ -44,6 +45,7 @@ VB['sim/records'] = (() => {
     cottage: 0,
     plot: 0,
     plotStarted: 0,
+    green: 0, // the village's green and well laid out, and done (VB-058)
     field: 0,
     meadow: 0,
     stake: 0,
@@ -63,11 +65,16 @@ VB['sim/records'] = (() => {
     matchRefused: 0,
     offerLapsed: 0,
     meetingFailed: 0,
+    cartBuilt: 0, // a household's new cart (VB-327)
+    tarPit: 0, // a household's tar pit dug (VB-301)
+    setOut: 0, // a journey to a new home in another village (VB-287)
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT,
     enemy: SHORT,
     friend: SHORT,
     fellOut: SHORT,
+    helped: SHORT, // helped another household of the village with its work (VB-106)
+    workday: SHORT, // a village's work day: who turned out and who stayed away (VB-120)
     gift: GENERATION,
     harvest: GENERATION,
     hay: GENERATION,
@@ -82,6 +89,10 @@ VB['sim/records'] = (() => {
     funeralAle: GENERATION,
     noWood: GENERATION,
     cattleInCrop: GENERATION,
+    cartGone: GENERATION, // a cart worn out (VB-327)
+    boatLost: GENERATION, // a fishing boat lost for want of tar (VB-301)
+    arrived: GENERATION, // the journey's end (VB-287)
+    deerInCrop: GENERATION,
   };
   // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
   //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record
@@ -312,6 +323,8 @@ VB['sim/records'] = (() => {
       holder,
       grain: { barley: ECON.startGrain },
       meals: 0,
+      flour: 0, // ground on the quern (VB-009; sim/stores holds it, sim/quern grinds it)
+      quern: null, // the hand quern (VB-009, sim/quern); a household of the scenario's start is given one there
       wood: ECON.startWood,
       stone: 0,
       ledger: [],
@@ -320,6 +333,8 @@ VB['sim/records'] = (() => {
       hungryDays: 0,
       seedSeason: -1,
       hunger: 0,
+      cold: 0,
+      coldLog: [],
       waterDay: -1,
       cookDay: -1,
       dissolved: false,
@@ -328,8 +343,11 @@ VB['sim/records'] = (() => {
       haySpoilt: 0,
       clay: 0,
       bogOre: 0,
+      peat: 0,
       rack: 0,
       boat: null,
+      tar: 0,
+      tarPit: null, // tar: barrels held (sim/stores), tarPit: the household's tar pit (sim/tar; VB-301)
       carts: [],
       cartMiss: 0, // carts, cartMiss: sim/carts; clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
       larder: [],
@@ -339,6 +357,7 @@ VB['sim/records'] = (() => {
       poured: [],
       milkDay: -1,
       manure: 0,
+      wool: 0,
       spoilt: 0,
     };
     if (R.liveHouseholds) R.liveHouseholds.push(id);

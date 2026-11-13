@@ -26,12 +26,14 @@ VB['sim/heirs'] = (() => {
     ancestorsOf,
     wishOf,
   } = VB['sim/records'];
-  const { placeAtHome, release, dropJob } = VB['sim/agents'];
-  const { farmToVillage } = VB['sim/ownership'];
+  const { moved, journeyOf, stopWorkFor } = VB['sim/agents'];
+  const { farmToVillage, heldFarms } = VB['sim/ownership'];
+  const { issue } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
+  const { hoursBetween } = VB['sim/routes'];
   const { SHARES, GOODWILL, houseCondition } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/herds'];
@@ -226,16 +228,17 @@ VB['sim/heirs'] = (() => {
     };
     return { rank, invalidate };
   }
-  // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle).
-  function moveTo(st, id, hhId, text = null) {
+  // The end of an act's log line for a pawn whose new home lies in another village, so that it set out on a journey (VB-287).
+  const setsOut = (st, id) => (journeyOf(st, id) ? ', and sets out for it' : '');
+  // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle). The pawn walks to its new home, on a
+  // journey when it lies in another village (sim/agents' moved, VB-287); carry false: its provisions come from the new household (settlers).
+  function moveTo(st, id, hhId, text = null, carry = true) {
     const p = st.pawns[id],
       old = p.household !== null ? st.households[p.household] : null;
     leaveHousehold(st, id);
     const hh = st.households[hhId];
     joinHousehold(st, hh, id, false);
-    const a = st.agents[id];
-    release(st, a);
-    placeAtHome(st, a);
+    moved(st, st.agents[id], old, hh, carry);
     if (old && old.farmstead !== hh.farmstead) {
       // on the record as `joined`, beside the event that tells the move itself
       personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, {
@@ -320,33 +323,48 @@ VB['sim/heirs'] = (() => {
     );
     st.visualDirty = true;
   }
-  // The smallest undissolved household of the village, or of the nearest village (by hexSteps between centres) when it has none.
+  // Whether households a's and b's villages lie within walking reach of each other (VB-290).
+  const reachable = (st, a, b) =>
+    hoursBetween(st, st.farmsteads[a.farmstead].village, st.farmsteads[b.farmstead].village) < Infinity;
+  // The smallest undissolved household of the village, or of the nearest village by walking hours when it has none (VB-290); with none
+  // within walking reach, of the nearest by hexSteps between centres (until slice 10's boats).
   function serviceHome(st, hh) {
     const village = st.farmsteads[hh.farmstead].village,
       vOf = (h) => st.farmsteads[h.farmstead].village;
-    const open = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved && h.id !== hh.id);
+    const open = st.liveHouseholds
+      .map((id) => st.households[id])
+      .filter((h) => !h.dissolved && h.id !== hh.id && h.members.length); // not a farm held in trust (VB-309)
     const smallest = (list) => list.sort((x, y) => x.members.length - y.members.length || x.id - y.id)[0];
     const here = smallest(open.filter((h) => vOf(h) === village));
     if (here) return here.id;
     const c = st.villages[village].center;
     let best = null,
+      bh = Infinity,
       bd = Infinity;
     for (const h of open) {
-      const d = hexSteps(st.w, c, st.villages[vOf(h)].center);
-      if (d < bd) {
-        bd = d;
-        best = vOf(h);
+      const u = vOf(h),
+        t = hoursBetween(st, village, u);
+      if (t < bh) {
+        bh = t;
+        best = u;
+      }
+      if (bh === Infinity) {
+        const d = hexSteps(st.w, c, st.villages[u].center);
+        if (d < bd) {
+          bd = d;
+          best = u;
+        }
       }
     }
     const near = smallest(open.filter((h) => vOf(h) === best));
     return near ? near.id : null;
   }
   // A child's nearest grown kin with a household other than hh, by kinship (the oldest on a tie), or null (stability review: an orphan goes to
-  // an aunt or a grandparent before going into service).
+  // an aunt or a grandparent before going into service). Among the kin within walking reach of hh's village first (VB-290), else among all.
   function kinHomeFor(st, id, hh) {
-    const memo = new Map();
-    let best = null,
-      bk = 0;
+    const memo = new Map(),
+      best = [null, null],
+      bk = [0, 0];
     for (const liveId of st.living) {
       const q = st.pawns[liveId];
       if (
@@ -357,17 +375,31 @@ VB['sim/heirs'] = (() => {
         st.households[q.household].dissolved
       )
         continue;
-      const k = kinship(st, id, q.id, memo);
-      if (k > bk || (k === bk && k > 0 && q.born < best.born)) {
-        best = q;
-        bk = k;
-      }
+      const k = kinship(st, id, q.id, memo),
+        near = reachable(st, hh, st.households[q.household]);
+      for (const i of near ? [0, 1] : [1])
+        if (k > bk[i] || (k === bk[i] && k > 0 && q.born < best[i].born)) {
+          best[i] = q;
+          bk[i] = k;
+        }
     }
-    return best ? best.household : null;
+    const b = best[0] || best[1];
+    return b ? b.household : null;
   }
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
+    // its work stops first, while it stands: a load on its way home is put down in its barn (sim/agents)
+    stopWorkFor(st, hh, f);
+    // a farm it held in trust goes back to its holder first (VB-309, sim/trust)
+    for (const g of heldFarms(st, hh.id))
+      issue(st, {
+        actor: st.households[g.household].holder,
+        verb: 'goBack',
+        target: g.household,
+        args: { why: 'trustee gone' },
+        source: 'trust',
+      });
     f.condition = houseCondition(st, f);
     f.household = null;
     f.state = 'derelict';
@@ -380,14 +412,16 @@ VB['sim/heirs'] = (() => {
     dropStakes(st, hh);
     farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
-    for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
       const p = st.pawns[id];
       if (!p.alive) continue;
-      const near = kinNear(st, id)
+      const kin = kinNear(st, id)
         .map((q) => st.pawns[q])
-        .find((q) => q.alive && q.household !== null && !st.households[q.household].dissolved && q.household !== hh.id);
+        .filter(
+          (q) => q.alive && q.household !== null && !st.households[q.household].dissolved && q.household !== hh.id,
+        );
+      const near = kin.find((q) => reachable(st, hh, st.households[q.household])) || kin[0]; // within walking reach first (VB-290)
       const kinHome = near ? near.household : p.age < 18 ? kinHomeFor(st, id, hh) : null;
       const target = kinHome !== null ? kinHome : serviceHome(st, hh);
       if (target !== null) {
@@ -401,11 +435,15 @@ VB['sim/heirs'] = (() => {
             `Went into service at ${st.farmsteads[st.households[target].farmstead].name}`,
             false,
           ); // recorded below
-          log(st, `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}.`, {
-            kind: 'service',
-            pawn: id,
-            ...atHousehold(st, st.households[target]),
-          });
+          log(
+            st,
+            `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}${setsOut(st, id)}.`,
+            {
+              kind: 'service',
+              pawn: id,
+              ...atHousehold(st, st.households[target]),
+            },
+          );
         }
       }
     }

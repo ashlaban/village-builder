@@ -40,3 +40,21 @@ check(one.first.length === HOUSEHOLDS && one.bare > 0, `with one tile a househol
 if (failed) process.exit(1);
 console.log(`wood ok: ${HOUSEHOLDS} households, ${full.first.length} tiles, none cut bare in ${YEARS} years, standing trees ${Math.round(full.byYear[0])} `
   + `after a year, ${Math.round(y20)} at year 20, ${Math.round(y30)} at year 30; at one tile a household ${one.bare} cut bare`);
+
+// Beyond reach (VB-421): a village whose reach holds no forest takes its wood beyond it, nearest first, up to WOOD.far steps; with none
+// within WOOD.far it has none. A band of forest starts `gap` columns east of the green.
+const { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'], { reckonWood } = VB['sim/territory'];
+function beyond(gap) {
+  const rows2 = Array.from({ length: 22 }, () => [...Array(60)].map((_, c) => (c < 6 + gap ? '.' : 'F')).join(''));
+  const st = tinyState(tinyWorld(rows2), [{ at: [6, 11], farms: 4, sizes: [4, 4, 4, 4] }], { seed: 3 }), v = st.villages[0];
+  const dist = bfs(st.w, v.center, 60, walkable(st.w)).dist, steps = reckonWood(st, v).map((t) => dist.get(t));
+  return { v, steps };
+}
+{
+  const { v, steps } = beyond(18);
+  check(v.wood.length === WOOD.perHousehold * 4, `a village with forest only beyond reach has ${v.wood.length} tiles of wood`);
+  check(steps.every((d) => d > WOOD.reach && d <= WOOD.far), `its wood lies beyond reach and within far: ${Math.min(...steps)} to ${Math.max(...steps)} steps`);
+  check(steps.every((d, i) => i === 0 || d >= steps[i - 1]), 'nearest first');
+  const none = beyond(WOOD.far + 6);
+  check(none.v.wood.length === 0, `forest beyond WOOD.far: ${none.v.wood.length} tiles of wood`);
+}

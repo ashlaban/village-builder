@@ -11,6 +11,7 @@ VB['sim/building'] = (() => {
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { building, livePlots, COTTAGE, boothJob, finishBoothStage } = VB['sim/expansion'];
+  const { wantsStone } = VB['sim/quern'];
   // Design (Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's walls take BUILD.timber loads (six trees, 3 loads a tree as a firewood
   // trip's); a plot's felled tiles give their trees as its wood (sim/expansion, plot.wood); a cottage or booth short of it fells the rest in
   // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: plot.wood, or f.booth.wood).
@@ -90,15 +91,17 @@ VB['sim/building'] = (() => {
   }
   // The building step a household's plan holds after a review: open while its house stands on the ground, lived in by it, and it has no
   // land project under way when the step would open (a household makes its land first); its source kept while a load can still be got there.
+  // It is also open, whatever the house and the land, while the household wants a quern and its heap lacks the load to hew it from (VB-009).
   function buildStep(st, plan, hh) {
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null,
-      old = plan.build || null;
+      old = plan.build || null,
+      quern = !!f && wantsStone(st, hh);
     if (
       !f ||
       f.household !== hh.id ||
       f.booth ||
-      f.grade !== 'ground' ||
-      (!old && Projects.projectOf(st, 'household', hh.id))
+      (f.grade !== 'ground' && !quern) ||
+      (!old && !quern && Projects.projectOf(st, 'household', hh.id))
     )
       return null;
     if (old && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
@@ -112,6 +115,11 @@ VB['sim/building'] = (() => {
     const plan = st.plans.households.get(hh.id),
       step = plan && plan.build;
     if (!step || f.household !== hh.id) return;
+    if (f.grade !== 'ground') {
+      // a house on stone: the step is open for a quern's load (VB-009), one trip
+      if (step.tile >= 0 && hh.stone < 1) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
+      return;
+    }
     if (hh.stone >= BUILD.foundationStone) {
       if (slack(c)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise');
       return;

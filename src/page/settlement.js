@@ -41,9 +41,11 @@ function clearSettlement() {
   fieldSprites = [];
   rigs = [];
   houseInfo = [];
+  pitInfo = [];
   fences = [];
   labels = [];
   herdSprites = new Map();
+  deerSprites = [];
   meadowSprites = [];
   teamDraw = new Map();
 }
@@ -64,12 +66,19 @@ async function buildSettlement(wd, s) {
 }
 // Map labels: a village of two or more farms (or with a green) by its name, at its centre; a lone farm by its farm's name, at the house
 // (a one-farm village bears its farm's name, unique on the island; VB-026). Rebuilt when villages or farm names change (settlers found
-// villages and join them in play; VB-148), once the label font has loaded.
+// villages and join them in play; VB-148), or a village lays out its green (its label moves there, larger; VB-058), once the label font
+// has loaded.
 let labelsReady = false,
   labelSig = '';
 const byName = (v) => v.green || v.farmsteads.length >= 2;
 const labelSigOf = () =>
-  st.villages.map((v) => (byName(v) ? v.name : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'))).join('/');
+  st.villages
+    .map((v) =>
+      byName(v)
+        ? `${v.name}@${v.center}${v.green ? 'g' : ''}`
+        : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'),
+    )
+    .join('/');
 function buildLabels(wd) {
   for (const t of L.labels.removeChildren()) t.destroy();
   labels = [];
@@ -162,6 +171,28 @@ function drawBooth(wd, f, empty) {
   g.zIndex = y + 8;
   L.objects.addChild(g);
 }
+// A field's sprite and its stooks, its rows at angle th: a farm's, or a village's common field (VB-100).
+function addField(wd, fd, th) {
+  const sp = new PIXI.Sprite(fieldTex[cropStage(fd)] || fieldTex.stubble);
+  sp.anchor.set(0.5);
+  sp.scale.set(0.5);
+  sp.rotation = th;
+  sp.position.set(wd.hx[fd.tile], wd.hy[fd.tile]);
+  L.fields.addChild(sp);
+  const stooks = [];
+  for (let k = 0; k < 9; k++) {
+    const u = ((k % 3) - 1) * 12,
+      v = (Math.floor(k / 3) - 1) * 12,
+      jx = Math.sin(k * 7.1) * 2,
+      jy = Math.cos(k * 3.3) * 2;
+    const x = wd.hx[fd.tile] + Math.cos(th) * u - Math.sin(th) * v + jx,
+      y = wd.hy[fd.tile] + Math.sin(th) * u + Math.cos(th) * v + jy;
+    const sk = place(art.stook[k % 2], x, y + 2, 0.5, 0.9);
+    sk.visible = false;
+    stooks.push(sk);
+  }
+  fieldSprites.push({ sp, fd, stage: cropStage(fd), stooks });
+}
 // Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty).
 function buildFarms(wd) {
   for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()])
@@ -172,8 +203,10 @@ function buildFarms(wd) {
   fieldSprites = [];
   rigs = [];
   houseInfo = [];
+  pitInfo = [];
   fences = [];
   herdSprites = new Map();
+  deerSprites = [];
   meadowSprites = [];
   teamDraw = new Map();
   L.objects.sortableChildren = true;
@@ -182,28 +215,7 @@ function buildFarms(wd) {
       hy = wd.hy[f.house],
       empty = f.household === null,
       ruin = f.state === 'ruin';
-    for (const fd of f.fields) {
-      const sp = new PIXI.Sprite(fieldTex[cropStage(fd)] || fieldTex.stubble);
-      sp.anchor.set(0.5);
-      sp.scale.set(0.5);
-      sp.rotation = f.rowAngle;
-      sp.position.set(wd.hx[fd.tile], wd.hy[fd.tile]);
-      L.fields.addChild(sp);
-      const stooks = [],
-        th = f.rowAngle;
-      for (let k = 0; k < 9; k++) {
-        const u = ((k % 3) - 1) * 12,
-          v = (Math.floor(k / 3) - 1) * 12,
-          jx = Math.sin(k * 7.1) * 2,
-          jy = Math.cos(k * 3.3) * 2;
-        const x = wd.hx[fd.tile] + Math.cos(th) * u - Math.sin(th) * v + jx,
-          y = wd.hy[fd.tile] + Math.sin(th) * u + Math.cos(th) * v + jy;
-        const sk = place(art.stook[k % 2], x, y + 2, 0.5, 0.9);
-        sk.visible = false;
-        stooks.push(sk);
-      }
-      fieldSprites.push({ sp, fd, stage: cropStage(fd), stooks });
-    }
+    for (const fd of f.fields) addField(wd, fd, f.rowAngle);
     for (const m of f.meadows) {
       const sp = new PIXI.Sprite(fieldTex['meadow-' + m.stage]);
       sp.anchor.set(0.5);
@@ -215,8 +227,9 @@ function buildFarms(wd) {
     const yard = place(art.yard, hx, hy + 1, 0.5, 0.5, L.fields, 0.27);
     if (empty) yard.alpha = ruin ? 0.2 : 0.35;
     const v = f.id % 3;
-    // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims)
-    const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : 0xffffff;
+    // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims); a tarred house's logs
+    // are darker (VB-301)
+    const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : Sim.houseTarred(st, f) ? 0x9a8a7c : 0xffffff;
     if (f.booth) drawBooth(wd, f, empty);
     else {
       const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
@@ -285,7 +298,35 @@ function buildFarms(wd) {
     }
     if (f.fence) for (const s2 of f.fence) addFence(s2);
   }
+  // the tar pits (VB-301): a funnel of dark earth on the pine slope, a barrel by its run-off, and smoke while tar is burnt (page/animate)
+  for (const hh of st.households) {
+    const pit = hh.tarPit;
+    if (hh.dissolved || !pit) continue;
+    const x = wd.hx[pit.tile] + 8,
+      y = wd.hy[pit.tile] + 6,
+      g = new PIXI.Graphics();
+    g.ellipse(x, y, 7.5, 4.2).fill({ color: 0x5a4a3a }).stroke({ width: 0.7, color: INK });
+    g.ellipse(x, y - 0.6, 4.6, 2.4).fill({ color: 0x2a211b });
+    g.ellipse(x + 0.4, y + 0.2, 1.6, 0.8).fill({ color: 0x120d0a });
+    g.rect(x + 5.2, y + 1.2, 4, 2.6)
+      .fill({ color: 0x7a5636 })
+      .stroke({ width: 0.4, color: INK });
+    g.zIndex = y;
+    L.objects.addChild(g);
+    const puffs = [];
+    for (let k = 0; k < 5; k++) {
+      const p = new PIXI.Sprite(art.puff);
+      p.anchor.set(0.5);
+      p.zIndex = 1e6;
+      p.tint = 0x6a625c; // tar smoke is dark
+      p.visible = false;
+      L.objects.addChild(p);
+      puffs.push(p);
+    }
+    pitInfo.push({ tile: pit.tile, x, y: y - 2, puffs, smoke: 0 });
+  }
   for (const v of st.villages) {
+    for (const fd of v.commonFields || []) addField(wd, fd, 0); // the village's common fields (VB-100)
     if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
     for (const s2 of v.fence) addFence(s2);
     const X = VB['sim/expansion'];

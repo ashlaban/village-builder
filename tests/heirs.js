@@ -12,7 +12,7 @@ const show = (title) => {
   }
   for (const f of st.farmsteads) if (f.household === null) console.log(`  ${st.villages[f.village].name}/${f.name}: ${f.state}, condition ${(f.condition * 100).toFixed(0)}%, fields ${f.fields[0].stage}`);
   console.log('  wants out:', st.demand.map(nm).join(', ') || '(not counted yet)');
-  for (const s of st.cenv.settlements) console.log(`  ${s.name}: tie ${s.tie.toFixed(2)} (distance ${s.distance ? s.distance.toFixed(0) : 0}, kin links ${s.kinLinks || 0}), heirSex ${Sim.practice(st, s.id).heirSex}, handover ${Sim.practice(st, s.id).handover}, claims ${Sim.practice(st, s.id).claims}`);
+  for (const s of st.cenv.settlements) console.log(`  ${s.name}: tie ${s.tie.toFixed(2)} (${s.distance ? s.distance.toFixed(1) : 0} walking hours, kin links ${s.kinLinks || 0}), heirSex ${Sim.practice(st, s.id).heirSex}, handover ${Sim.practice(st, s.id).handover}, claims ${Sim.practice(st, s.id).claims}`);
 };
 show('start');
 console.log('  kinship Jon–Sigrid (cousins):', Sim.kinship(st, st.pawns.find((p) => p.given === st.pawns[st.households[0].members[2]].given).id, st.households[3].members[2]));

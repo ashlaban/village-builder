@@ -54,6 +54,11 @@ const PROBES = {
   },
   // the highest share of its days that a household was hungry, over the years after y (households present MIN_DAYS or more), beside it
   worstHungryShare: (s, y) => Math.max(0, ...after(s, y).map((x) => x.worstHungry)),
+  // cold household-days (VB-327: the day's fire lacked wood, sim/hunger warmHouse) over household-days, after year y
+  coldHouseholdShare: (s, y) => {
+    let cold = 0, all = 0; for (const x of after(s, y)) { cold += x.coldDays; all += x.householdDays; }
+    return all ? cold / all : 0;
+  },
   // the share of the matches made after year y that were refused (VB-275's opinion, VB-293's offers, as sim/lifecycle logs them): refusals
   // over refusals and marriages (0 when there were none). Opinion is rare enough that a match made at enmity is the exception.
   refusedMatchShare: (s, y) => {
@@ -73,6 +78,8 @@ const FLOORS = [
   { id: 'hunger-deaths', probe: 'hungerDeathShare', kind: 'described', afterYear: 3 },
   { id: 'hungry-households', probe: 'hungryHouseholdShare', kind: 'described', afterYear: 3 },
   { id: 'worst-household', probe: 'worstHungryShare', kind: 'described', afterYear: 3 },
+  // VB-327: cold household-days, reported in the full runs only, with no assert until Kim gives a target
+  { id: 'cold-households', probe: 'coldHouseholdShare', kind: 'described', afterYear: 0, reportOnly: true },
   // slice 2 (a life): matches refused by opinion, or by a played pawn, stay a small part of the matches; a household is not left unmarried by them
   { id: 'refused-matches', probe: 'refusedMatchShare', kind: 'watched', lo: 0, hi: 0.2, afterYear: 3 },
   { id: 'invariants', probe: 'invariantFailures', kind: 'watched', lo: 0, hi: 0, afterYear: 0 },
@@ -95,7 +102,7 @@ const BANDS = [];
 for (const f of FLOORS) for (const [name, run] of Object.entries(FULL)) {
   const range = { ...(f.kind === 'described' ? {} : { lo: f.lo, hi: f.hi }), afterYear: f.afterYear };
   BANDS.push({ id: `${f.id}/${name}`, probe: f.probe, kind: f.kind, report: { ...range, ...run },
-    ...(name === 'populous' ? { assert: { ...range, ...REDUCED } } : {}) });
+    ...(name === 'populous' && !f.reportOnly ? { assert: { ...range, ...REDUCED } } : {}) });
 }
 
 // One run, sampled at every year end: {scenario, map, seed, years} -> {samples, secs, cpuSecs}. The run advances a day at a time, so a
@@ -105,18 +112,22 @@ function runScenario({ scenario, map, seed, years }) {
   const st = Sim.seed(r.value, seed, scenario), samples = [sample(st, 0, null)];
   for (let y = 1; y <= years; y++) {
     const from = st.record.length, hungry0 = new Map(), days = new Map();
+    let coldDays = 0;
     for (const id of st.liveHouseholds) hungry0.set(id, st.households[id].hungryDays);
     for (let d = 0; d < YEAR_DAYS; d++) {
       Sim.advance(st, DAY);
-      for (const id of st.liveHouseholds) { days.set(id, (days.get(id) || 0) + 1); if (!hungry0.has(id)) hungry0.set(id, 0); }
+      for (const id of st.liveHouseholds) {
+        days.set(id, (days.get(id) || 0) + 1); if (!hungry0.has(id)) hungry0.set(id, 0);
+        const log = st.households[id].coldLog; if (log.length && log[log.length - 1] > 0) coldDays++; // the day's fire lacked wood
+      }
     }
-    samples.push(sample(st, y, { from, hungry0, days }));
+    samples.push(sample(st, y, { from, hungry0, days, coldDays }));
   }
   const cpu = process.cpuUsage(cpu0);
   return { samples, secs: (Date.now() - t0) / 1000, cpuSecs: (cpu.user + cpu.system) / 1e6 };
 }
 // A year's sample: living, the live households of each village, births, marriages and deaths by cause (read from the record appended
-// this year), hungry household-days and household-days, the worst household's hungry share, the household-years judged and those over
+// this year), hungry, cold (VB-327) and all household-days, the worst household's hungry share, the household-years judged and those over
 // HUNGRY_SHARE, and checkState's violations.
 function sample(st, year, y) {
   const villages = {};
@@ -125,7 +136,7 @@ function sample(st, year, y) {
     if (v !== null && v !== undefined) villages[v] = (villages[v] || 0) + 1;
   }
   const out = { year, living: st.living.length, households: st.liveHouseholds.length, villages, births: 0, marriages: 0, refusedMatches: 0, deaths: {},
-    hungryDays: 0, householdDays: 0, worstHungry: 0, hungryHouseholds: 0, householdYears: 0, invariants: [] };
+    hungryDays: 0, householdDays: 0, coldDays: y ? y.coldDays || 0 : 0, worstHungry: 0, hungryHouseholds: 0, householdYears: 0, invariants: [] };
   if (!y) return out;
   for (let i = y.from; i < st.record.length; i++) {
     const e = st.record[i]; if (typeof e !== 'object' || e.self) continue; // a folded slot, or a pawn's own telling (VB-199)

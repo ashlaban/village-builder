@@ -2,6 +2,24 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 13 November 2026 (VB-283)
+
+## VB-283: a household nobody can come to (raised 10 November 2026)
+VB-283 replayed the ten full runs of the bands (`docs/bench/lone-households.js`; tables in `backlog/VB-283.md`). At `38b920d`, after VB-282 (a hungry household may eat its seed), 56 of the 225 household-years hungry over 0.3 after year 3 are of households with at most one grown member (34 households; 35 rows hold one field). The orchestrator decided, for you to overturn, that such a household is taken in when its seasonal ask for help falls short: a free relative moves in, else a servant (VB-308, ready; `design.md`, Households short of people, Taken in before it starves). That reaches 14 or 15 of the 56. In 42, nobody could come; 33 of those had a parent's, child's or sibling's household within reach. What becomes of them moves a Decided point, so it waits for you (VB-309, blocked).
+1. Who holds the farm when its people go to kin? **P:** the kin household holds it in trust: it works the fields and takes the harvest, the owner and the holder stay the same, the house stands empty and decays; the trust ends when the holder marries or takes a servant at a moving round (they move back), when a ward comes of age, or at the holder's death (succession as today). The farm stays the family's, as the task asks, and the relation is the one splitting land already has (`design.md`, Handover and shares: the old household works the sibling's fields, Agreed 30 Oct), so VB-034 can reuse it. The other way: the farm is given up and stands empty, held by the village, with the family's birthright to claim it back (the machinery of a farm that dies out; nothing new, but the owner changes and the land goes out of use).
+   **A (Kim, 13 Nov):** As proposed (Kim, by the orchestrator's question round of 13 November: 'P on all, you may adjust').
+2. The orphan rule (Decided, 1 Nov: with no relative to be guardian, the children go to kin and the farm stands empty). **P:** the kin who take the children hold the farm in trust in the same way until the heir is 18, so the farm stays the family's. The other way: keep the rule as decided; VB-309 then serves lone adults only.
+   **A (Kim, 13 Nov):** As proposed (Kim, by the orchestrator's question round of 13 November: 'P on all, you may adjust').
+
+# Archived 13 November 2026 (VB-184)
+
+## VB-184: debt and land, slice 5 (raised 11 November 2026)
+One question of slice 5's plan (`backlog/VB-184.md`) is left; the others stand as answered (`QUESTION_ARCHIVE.md`, 12 November).
+Kim asked to iterate on this one before deciding (target-v2, decision 3). It holds VB-043 and the scope views after it (VB-044,
+VB-092, VB-095).
+7. Bodies: one membership graph, or a domain per kind ("Target architecture v2: decisions waiting", question 1). Measured on 11 November, as that question proposed (populous medium, seed 7, year 12: 1,031 living, 1,288 ever born, 211 live households): today's memberships as a graph of typed edges (residence, service, holding, a household's village, unions, and the dead's ended residences outside the live index) have 2,009 edges; the graph builds in 0.55 ms, the household cache derived from it in 0.33 ms and equal to today's for every household, and 1,000 moves (an edge ended, one made, the cache kept) take 0.86 ms; VB-043's bound is 50 ms. The cost that remains is history: about 2 ended edges a pawn ever born in the save, to be folded into the record like other history (rule 9). **P:** adopt the graph as Membership's truth, with the household cache Membership's own (VB-043 as rewritten). Only VB-043 and the scope views after it (VB-044, VB-092, VB-095) wait for this; the debt chain names households and villages as today.
+   **A (Kim, 13 Nov):** As proposed (Kim, by the orchestrator's question round of 13 November: 'P on all, you may adjust').
+
 # Archived 12 November 2026 (Principles for decisions)
 
 Answered on 12 November 2026 in Kim's discussion of principles: Kim approved each disposition; an answer of P stands by AGENTS.md, Deciding without Kim.

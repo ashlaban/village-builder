@@ -23,6 +23,8 @@ VB['sim/deaths'] = (() => {
     childbirth: { event: 'Died in childbirth', log: 'died in childbirth' },
     killed: { event: 'Killed', log: 'was killed' },
   };
+  // A death in a cold house (VB-327: its household's hh.cold above 0) is told with this after the cause's words; no cause of its own.
+  const COLD = ' in a cold house';
   const baseCause = (a) => (a < 1 ? 'infancy' : a < 15 ? 'childhood' : a < 60 ? 'illness' : 'oldAge');
   // One pawn's death roll for the day: null or a cause key, read from the rule's contributions (Rules.draw). One random draw.
   function deathRoll(st, p) {
@@ -30,5 +32,5 @@ VB['sim/deaths'] = (() => {
     if (p.health <= 0) return 'starvation';
     return Rules.draw(st, 'death.hazard', p, u);
   }
-  return { CAUSES, deathRoll };
+  return { CAUSES, COLD, deathRoll };
 })();

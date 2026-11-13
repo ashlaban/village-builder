@@ -1,6 +1,6 @@
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
-  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter } =
+  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter, travelling } =
     VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { eligible } = VB['sim/eligibility'];
@@ -9,7 +9,7 @@ VB['sim/commands'] = (() => {
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { assessGift, settleGift } = VB['sim/exchange'];
-  // Verbs carried out by systems loaded after this module (sim/heirs, sim/lifecycle, sim/clock) find them when they run.
+  // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
     !(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length)
@@ -17,6 +17,8 @@ VB['sim/commands'] = (() => {
       : !(Number.isInteger(c.args.option) && c.args.option >= 0 && c.args.option < Culture.NOPT[c.args.dim])
         ? `custom ${c.args.dim} has no option ${c.args.option}`
         : null;
+  // The live trust of household id's farm (st.liveTrusts, sim/trust; read as sim/ownership's trustOf reads it), or null.
+  const trustOf = (st, id) => (st.liveTrusts || []).map((i) => st.trusts[i]).find((t) => t.household === id) || null;
   const home = (st, id) => Number.isInteger(id) && st.households[id] && !st.households[id].dissolved;
   const settlement = (st, c) =>
     c.actor && st.cenv && st.cenv.settlements[c.actor.settlement]
@@ -34,6 +36,8 @@ VB['sim/commands'] = (() => {
   };
   const living = (st, id) =>
     st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`;
+  // A living pawn not on a journey (VB-287): on the road it takes no work, walks nowhere else and goes to no occasion.
+  const free = (st, id) => living(st, id) || (travelling(st.agents[id]) ? `pawn ${id} is on the road` : null);
   // The gift a `give` command describes, {from, to, good, n, source}, or why there is none: the actor is the giving household's holder,
   // {household} for a household without one, or {village} for its store; the target a household, or {village} for the yearly filling.
   function giftOf(st, c) {
@@ -65,11 +69,44 @@ VB['sim/commands'] = (() => {
     if (!(Number.isFinite(n) && n > 0)) return `cannot give ${n}`;
     return { from, to, good: 'grain', n, source: c.source };
   }
+  // The head of household c.target, or why the actor is not: a living pawn that holds it, or {household} for a household with no holder
+  // (its own rule); the household has a standing plan (VB-253).
+  function heads(st, c) {
+    const id = c.target;
+    if (!home(st, id) || !st.plans.households.has(id)) return `there is no household ${id} with a plan`;
+    const hh = st.households[id];
+    if (Number.isInteger(c.actor))
+      return (
+        living(st, c.actor) ||
+        (hh.holder !== c.actor
+          ? `pawn ${c.actor} is not the head of household ${id}: only its head changes its plan`
+          : null)
+      );
+    return c.actor && c.actor.household === id && hh.holder === null
+      ? null
+      : `only the head of household ${id} changes its plan`;
+  }
+  const farmOf = (st, c) => {
+    const hh = st.households[c.target];
+    return hh.farmstead !== null && st.farmsteads[hh.farmstead].household === hh.id
+      ? null
+      : `household ${c.target} has no farm of its own`;
+  };
+  const landWhat = (what) => (what === 'field' || what === 'meadow' ? null : `there is no land project ${what}`);
+  // The tile a land project `what` is begun on: args.tile, else the tile the plan names, else the holder's own pick (-1: none).
+  function landTile(st, hh, args) {
+    if (Number.isInteger(args.tile)) return args.tile;
+    const named = st.plans.households.get(hh.id).tiles[args.what];
+    if (named >= 0) return named;
+    return args.what === 'field'
+      ? later('sim/fields').pickField(st, st.farmsteads[hh.farmstead], hh)
+      : later('sim/meadows').pickMeadow(st, st.farmsteads[hh.farmstead], hh);
+  }
   const VERBS = {
     // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
     work: {
       check: (st, c) =>
-        living(st, c.actor) ||
+        free(st, c.actor) ||
         (!st.jobs.has(c.target)
           ? `there is no job ${c.target}`
           : !isOpen(st.jobs.get(c.target))
@@ -95,7 +132,7 @@ VB['sim/commands'] = (() => {
       // Not refused on a tile the walking rule closes: an idle walk to company may end on a river tile (twice in a founders year at seed 7),
       // and the walk goes ahead as it always has; refusing it would change behaviour (VB-168). A player's walk should offer open tiles only.
       check: (st, c) =>
-        living(st, c.actor) ||
+        free(st, c.actor) ||
         (!(Number.isInteger(c.target) && c.target >= 0 && c.target < st.w.N) ? `there is no tile ${c.target}` : null),
       run: (st, c) => {
         const x = c.args && c.args.x !== undefined ? c.args.x : st.w.hx[c.target],
@@ -106,13 +143,13 @@ VB['sim/commands'] = (() => {
     // goHome: walk home and go in (phase 'home')
     goHome: {
       check: (st, c) =>
-        living(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
+        free(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
       run: (st, c) => goHome(st, st.agents[c.actor]),
     },
     // idle(until): look for nothing to do until game time args.until
     idle: {
       check: (st, c) =>
-        living(st, c.actor) ||
+        free(st, c.actor) ||
         (!(c.args && c.args.until >= st.t) ? `idle until ${c.args && c.args.until}, which is past` : null),
       run: (st, c) => idle(st, st.agents[c.actor], c.args.until),
     },
@@ -130,7 +167,7 @@ VB['sim/commands'] = (() => {
     // attend(occasion): set out for the occasion with id `target` (sim/occasions; source 'occasion'), leaving the work in hand, walk to a spot
     // about it and stand there until its end
     attend: {
-      check: (st, c) => living(st, c.actor) || later('sim/occasions').cannotAttend(st, c.actor, c.target),
+      check: (st, c) => free(st, c.actor) || later('sim/occasions').cannotAttend(st, c.actor, c.target),
       run: (st, c) => {
         const a = st.agents[c.actor];
         release(st, a);
@@ -148,6 +185,81 @@ VB['sim/commands'] = (() => {
         return typeof o === 'string' ? o : assessGift(st, o).why;
       },
       run: (st, c) => settleGift(st, giftOf(st, c)),
+    },
+    // ---- the head's plan (VB-253; design.md section 7, The player as head; section 15, Parity of command): household `target`'s head
+    // chooses, the player in it (source 'player') or its own rule (source 'pawn'; the actor {household} for a household with no holder), and
+    // the same check binds both. A target or the hold on projects lasts until cleared, a tile until it is used, an order until the season's
+    // plan is made again ----
+    // target({store, n}): the plan's target of `store` becomes n, within its bounds (sim/plans' targetBounds: hay 0 to 3 winters, fields 0
+    // to what the hands can till, wood 0 to twice the winter's goal, cow 0 or 1); n null clears it, and the holder's rule sets it again
+    target: {
+      check: (st, c) =>
+        heads(st, c) ||
+        (!c.args || c.args.n === undefined
+          ? 'a target names n, or null to clear it'
+          : later('sim/plans').targetWhy(st, c.target, c.args.store, c.args.n)),
+      run: (st, c) => later('sim/plans').setTarget(st, c.target, c.args.store, c.args.n),
+    },
+    // tile({what, tile}): the tile of the next field or meadow (what) becomes `tile`, under the checks of the holder's own choice (sim/fields'
+    // fieldWhy, sim/meadows' meadowWhy: claims, reach, the farm's block); tile null or -1 clears it
+    tile: {
+      check: (st, c) => {
+        const why = heads(st, c) || farmOf(st, c) || landWhat(c.args && c.args.what);
+        if (why || c.args.tile === null || c.args.tile === -1) return why;
+        const hh = st.households[c.target];
+        return c.args.what === 'field'
+          ? later('sim/fields').fieldWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile)
+          : later('sim/meadows').meadowWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile);
+      },
+      run: (st, c) => later('sim/plans').nameTile(st, c.target, c.args.what, c.args.tile === null ? -1 : c.args.tile),
+    },
+    // order({steps}): the season's routines in this order (the seasonal plan's, each once), until the next season's plan
+    order: {
+      check: (st, c) => heads(st, c) || later('sim/plans').orderWhy(st, c.target, c.args && c.args.steps),
+      run: (st, c) => later('sim/plans').setOrder(st, c.target, c.args.steps),
+    },
+    // project({what, tile}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
+    // refused while a project is under way, and under the tile's checks. The land step is the holder's rule for it (sim/plans, source
+    // 'pawn'). what 'none': the head holds off projects (its rule begins none: the land step, the boat, the tar pit); null clears that.
+    // VB-255's menu of projects adds its own whats.
+    project: {
+      check: (st, c) => {
+        const what = c.args && c.args.what,
+          why = heads(st, c);
+        if (why || what === 'none' || what === null) return why;
+        const bad = farmOf(st, c) || landWhat(what);
+        if (bad) return bad;
+        const hh = st.households[c.target],
+          tile = landTile(st, hh, c.args);
+        return tile < 0
+          ? `no tile within reach can be taken in for a ${what}`
+          : later('sim/plans').landWhy(st, hh, what, tile);
+      },
+      run: (st, c) => {
+        const P = later('sim/plans'),
+          what = c.args.what;
+        if (what === 'none' || what === null) P.holdProject(st, c.target, what === 'none');
+        else P.beginLand(st, st.households[c.target], what, landTile(st, st.households[c.target], c.args));
+      },
+    },
+    // dropProject({id, hold}): give up the household's project under way (args.id, the plan's id, when given: a field, a meadow, a boat,
+    // a tar pit, ...), and with hold, hold off projects as project 'none' does
+    dropProject: {
+      check: (st, c) => {
+        const why = heads(st, c);
+        if (why) return why;
+        const p = later('sim/projects').projectOf(st, 'household', c.target);
+        return !p
+          ? `household ${c.target} has no project under way`
+          : c.args && c.args.id !== undefined && c.args.id !== p.id
+            ? `household ${c.target} has no project ${c.args.id} under way`
+            : null;
+      },
+      run: (st, c) => {
+        const P = later('sim/plans');
+        P.giveUp(st, st.households[c.target], later('sim/projects').projectOf(st, 'household', c.target));
+        if (c.args && c.args.hold) P.holdProject(st, c.target, true);
+      },
     },
     // ---- a settlement's meeting (source 'meeting') ----
     // decide({dim, option}): the settlement's practice of the custom becomes the option
@@ -175,6 +287,35 @@ VB['sim/commands'] = (() => {
       run: (st, c) => later('sim/plans').setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
     },
     // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
+    // goBack(target, {why}): the actor, holder of household `target`'s farm held in trust by kin (VB-309, sim/trust), goes back to it with
+    // its people, and the trust ends: at its marriage, a servant at the round, its coming of age or the trustee's end (args.why)
+    goBack: {
+      check: (st, c) =>
+        living(st, c.actor) ||
+        (!trustOf(st, c.target)
+          ? `household ${c.target} is not held in trust`
+          : st.households[c.target].holder !== c.actor
+            ? `pawn ${c.actor} does not hold household ${c.target}`
+            : null),
+      run: (st, c) => later('sim/trust').endTrust(st, trustOf(st, c.target), (c.args && c.args.why) || 'return'),
+    },
+    // goToKin(target, {why, ward}): the actor, holder of household `target`, which nobody can come to (sim/service: VB-308's search found
+    // nobody, or an orphaned heir with no guardian, args.ward), goes to the kin household that will hold its farm in trust (VB-309)
+    goToKin: {
+      check: (st, c) =>
+        living(st, c.actor) ||
+        (!home(st, c.target)
+          ? `there is no household ${c.target}`
+          : st.households[c.target].holder !== c.actor
+            ? `pawn ${c.actor} does not hold household ${c.target}`
+            : trustOf(st, c.target)
+              ? `household ${c.target} is held in trust already`
+              : later('sim/trust').trusteeFor(st, st.households[c.target], (c.args && c.args.ward) ?? null) === null
+                ? 'no kin household within reach can hold the farm'
+                : null),
+      run: (st, c) =>
+        later('sim/trust').holdInTrust(st, st.households[c.target], c.args.why, (c.args && c.args.ward) ?? null),
+    },
     // marry(target, {home}): the actor and the target marry and live in household args.home
     marry: {
       check: (st, c) =>
@@ -562,9 +703,22 @@ VB['sim/commands'] = (() => {
     if (!st.player) return 'no pawn is played';
     return issue(st, { actor: st.player.pawn, verb: 'answer', target: offerId, args: { yes }, source: 'player' });
   }
+  // The played pawn chooses as head of its household (VB-253, for the page's plan panel, VB-256): verb one of HEAD_VERBS, at once, not
+  // queued (a choice of the plan takes no time); its target the household it holds, else the one it lives in, so a pawn that is not the
+  // head is refused with the reason. True, or why not.
+  const HEAD_VERBS = ['target', 'tile', 'order', 'project', 'dropProject'];
+  function head(st, verb, args) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (!HEAD_VERBS.includes(verb)) return `${verb} is not a choice of the plan`;
+    const held = holdingOf(st, pl.pawn),
+      target = held && !held.dissolved ? held.id : st.pawns[pl.pawn].household;
+    return issue(st, { actor: pl.pawn, verb, target, args: args || {}, source: 'player' });
+  }
   return {
     issue,
     VERBS,
+    head,
     QUEUE_MAX,
     commanded,
     unplanned,

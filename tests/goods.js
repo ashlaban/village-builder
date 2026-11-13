@@ -11,17 +11,17 @@ const near = (a, b, what) => { assert(Math.abs(a - b) < 1e-6, `${what}: ${a}, wa
 
 // ---- the registry: every good the fair trades, and nothing else; worth as the agreed table ----
 const WANT = { grain: 10, butter: 15, 'salt meat': 15, 'dried fish': 15, tar: 8, ale: 14, 'cattle/cow': 40, 'cattle/ox': 50, 'cattle/heifer': 20,
-  'cattle/steer': 20, sheep: 6 };
+  'cattle/steer': 20, sheep: 6, quern: 25 }; // the hand quern (VB-009; Proposed)
 assert.deepStrictEqual(Stores.goods().map((g) => g.id).sort(), Object.keys(WANT).sort(), 'the goods of the fair');
 for (const [id, w] of Object.entries(WANT)) {
   near(Culture.norm('worth', id), w, `worth of ${id}`);
   near(Rules.value(null, 'worth', { good: Stores.goodOf(id) }), w, `the worth rule for ${id}`);
 }
-assert.deepStrictEqual(Stores.goods().filter((g) => g.keeping).map((g) => g.id).sort(), ['butter', 'dried fish', 'salt meat', 'sheep', 'tar']);
+assert.deepStrictEqual(Stores.goods().filter((g) => g.keeping).map((g) => g.id).sort(), ['butter', 'dried fish', 'quern', 'salt meat', 'sheep', 'tar']);
 for (const id of ['grain', 'butter', 'salt meat', 'dried fish']) {
   const g = Stores.goodOf(id); assert(g.class === 'food' && g.quantum === 10 && g.rations === 1 && g.unit === 'ration', id);
 }
-for (const id of ['cattle/cow', 'cattle/ox', 'cattle/heifer', 'cattle/steer', 'sheep', 'tar']) assert.strictEqual(Stores.goodOf(id).class, 'wares', id);
+for (const id of ['cattle/cow', 'cattle/ox', 'cattle/heifer', 'cattle/steer', 'sheep', 'tar', 'quern']) assert.strictEqual(Stores.goodOf(id).class, 'wares', id);
 assert(Stores.goods().every((g) => Object.isFrozen(g) && g.perish === null || g.perish.keepsDays > 0 || g.perish.lossPerYear > 0), 'perishing');
 assert.throws(() => Stores.goodOf('wool'), /unknown good/); // wool and cheese are not goods yet
 assert.throws(() => Stores.declareGood({ id: 'grain' }), /invalid or duplicate/);
@@ -76,8 +76,18 @@ near(needValue(st, hh, 'butter', 2), 30, 'two lots fill the back load');
 near(needValue(st, hh, 'butter', 3), 30, 'a third lot is beyond the load');
 near(needValue(st, hh, 'butter', 1, 20), 10 * NEED.beyond * NEED.lacking, 'beyond the load, need alone (the pot lacks milk)');
 near(needValue(st, hh, 'grain', 1), 10 * NEED.beyond, 'grain does not keep');
-near(needValue(st, hh, 'tar', 1), 8, 'tar as a keeping good'); near(needValue(st, hh, 'tar', 1, KEEPING.cap - 7), 0, 'no room for tar');
-near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: 1, kept: 0 }), 0, 'no boat or house due');
+{ // tar (VB-301, sim/tar): its worth to a household whose house is due and holds no barrel; with the house tarred, only a keeping good's
+  const f = st.farmsteads[hh.farmstead], was = f.tarredUntil, held = hh.tar;
+  hh.tar = 0; f.tarredUntil = 0;
+  near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: 1, kept: 0 }), 8, 'the house due: a barrel is worth its worth');
+  near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: 2, kept: 0 }), 8, 'a second barrel is not needed');
+  near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: -1, kept: 0 }), 0, 'none held: nothing to give up');
+  hh.tar = 1; near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: -1, kept: 0 }), -8, 'giving up the one barrel for the house');
+  hh.tar = 0; f.tarredUntil = st.t + Sim.YEAR;
+  near(needValue(st, hh, 'tar', 1), 8, 'tar as a keeping good'); near(needValue(st, hh, 'tar', 1, KEEPING.cap - 7), 0, 'no room for tar');
+  near(Rules.value(st, 'need', { hh, good: Stores.goodOf('tar'), n: 1, kept: 0 }), 0, 'no boat or house due');
+  f.tarredUntil = was; hh.tar = held;
+}
 near(needValue(st, hh, 'ale', 1), 7, 'ale with no occasion ahead');
 // animals: 1.5 times with none of its kind, 1 otherwise, nothing without hay for the winter
 const cows = (h) => h.herds.map((id) => st.herds[id]).filter((hd) => hd.species === 'cattle').reduce((s, hd) => s + hd.head.filter((x) => x.kind === 'cow').length, 0);

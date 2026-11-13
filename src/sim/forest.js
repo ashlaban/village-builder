@@ -5,14 +5,19 @@ VB['sim/forest'] = (() => {
   const { next } = VB['sim/rng'];
   const { costChanged } = VB['sim/routes'];
   const { woodTaken } = VB['sim/territory'];
+  const { emit } = VB['sim/events'];
   const REGROW_YEARS = 30; // a partly felled tile regains its trees, linearly, in this many game years
+  // Hours to fell a wooded tile's trees and to grub out its stumps (VB-031; also thick scrub cleared, sim/spread).
+  const FELL_HOURS = 10,
+    GRUB_HOURS = 6;
+  const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
 
   function stageChanged(st, tile, was) {
     if (treeStage(st.w, tile) !== was) st.treeDirty.add(tile);
   }
 
-  // A tile with no trees left becomes meadow for good (until forest spread, VB-091); a village whose wood held it reckons its wood again
-  // (sim/territory).
+  // A tile with no trees left becomes meadow, for good unless the forest spreads back into it (sim/spread, which hears cutBare); a village
+  // whose wood held it reckons its wood again (sim/territory).
   function clearTile(st, tile) {
     const w = st.w;
     w.trees[tile] = 0;
@@ -23,6 +28,7 @@ VB['sim/forest'] = (() => {
     st.biomeDirty.add(tile);
     costChanged(st, tile);
     woodTaken(st, tile);
+    emit(st, 'cutBare', { tile });
   }
 
   // The tile a firewood trip of village v cuts on (VB-326), drawn when its job is posted from the stream rng.forest: evenly among the tiles
@@ -45,7 +51,7 @@ VB['sim/forest'] = (() => {
     return -1;
   }
 
-  // A completed firewood trip fells one tree on its tile.
+  // A completed firewood trip fells one tree on its tile: a forest tile grows it back (st.regrow), scrub as the front grows (sim/spread).
   function fellTree(st, tile) {
     const w = st.w;
     if (tile < 0 || w.trees[tile] <= 0) return;
@@ -55,7 +61,7 @@ VB['sim/forest'] = (() => {
       clearTile(st, tile);
       return;
     }
-    st.regrow.add(tile);
+    if (wooded(w, tile)) st.regrow.add(tile);
     stageChanged(st, tile, was);
   }
 
@@ -70,5 +76,5 @@ VB['sim/forest'] = (() => {
       stageChanged(st, tile, was);
     }
   }
-  return { fellTree, drawWood, growTrees, clearTile };
+  return { FELL_HOURS, GRUB_HOURS, fellTree, drawWood, growTrees, clearTile };
 })();

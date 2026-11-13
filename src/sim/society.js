@@ -4,9 +4,9 @@ VB['sim/society'] = (() => {
   const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
-  const { YEAR, houseTerm } = VB['sim/rules'];
-  const { stepsTo, hexSteps } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal } = VB['sim/rules'];
+  const { hexSteps } = VB['sim/hex'];
+  const { hoursBetween } = VB['sim/routes'];
   const {
     log,
     age,
@@ -23,6 +23,7 @@ VB['sim/society'] = (() => {
   const { on } = VB['sim/events'],
     { aleStanding } = VB['sim/stores'];
   const { heirRanking, ownFirstOf } = VB['sim/heirs'];
+  const { helpLean } = VB['sim/commons'];
   // The lookups Culture's functions take (VB-073): built from st on each call, so nothing in st.cenv is a function.
   function hooks(st) {
     const env = st.cenv;
@@ -90,7 +91,9 @@ VB['sim/society'] = (() => {
     st.cenv.settlements.push(s);
     return s;
   }
-  // tie of each settlement to its culture's centre: travel distance plus living kin across the gap
+  // tie of each settlement to its culture's centre: the walking hours between the greens plus living kin across the gap. s.distance: those
+  // hours (VB-290: it was unweighted steps), from the table of walking hours (sim/routes), or TIE.sea times the hex steps over SPEED over
+  // the sea or beyond walking reach (a sea crossing costs more).
   function updateTies(st) {
     const env = st.cenv,
       sid = new Map(),
@@ -112,15 +115,15 @@ VB['sim/society'] = (() => {
       }
       const va = st.villages[s.id],
         vb = st.villages[centre];
-      const steps = stepsTo(st.w, va.center, vb.center, 160, walkable(st.w));
-      const d = steps >= 0 ? steps : hexSteps(st.w, va.center, vb.center) * 1.6; // a sea crossing costs more
+      const walk = hoursBetween(st, s.id, centre);
+      const d = walk < Infinity ? walk : (hexSteps(st.w, va.center, vb.center) * TIE.sea) / SPEED;
       let kin = 0;
       for (const p of by.get(s.id) || [])
         for (const q of kinNear(st, p.id)) {
           const o = st.pawns[q];
           if (o.alive && sid.get(q) === centre) kin++;
         }
-      s.tie = Math.min(1, Math.exp(-d / 25) + Math.min(0.3, kin * 0.04));
+      s.tie = Math.min(1, Math.exp(-d / TIE.hours) + Math.min(0.3, kin * 0.04));
       s.distance = d;
       s.kinLinks = kin;
     }
@@ -141,6 +144,12 @@ VB['sim/society'] = (() => {
       const ale = aleStanding(st, holdingOf(st, p.id));
       if (ale > 0) parts.push(['Ale poured', ale]);
     }
+    // the village's work days this year (VB-120): turned out, and, as a holder, stayed away
+    const wd = p.workdays;
+    if (wd && wd.year === cal(st.t).year) {
+      if (wd.came) parts.push(['Turned out for the work days', wd.came * WORKDAY.came]);
+      if (wd.missed) parts.push(['Stayed away from the work day', wd.missed * WORKDAY.missed]);
+    }
     return parts;
   }
   function refreshPrestige(st) {
@@ -153,6 +162,13 @@ VB['sim/society'] = (() => {
   on('alePoured', (st, e) => {
     const p = st.pawns[e.host];
     if (p.alive) p.prestige = prestigeParts(st, p).reduce((n, x) => n + x[1], 0);
+  });
+  // A village's work day ended (sim/workdays): the standing of those who turned out, and of the holders who stayed away, at once.
+  on('workDay', (st, e) => {
+    for (const id of e.pawns) {
+      const p = st.pawns[id];
+      if (p.alive) p.prestige = prestigeParts(st, p).reduce((n, x) => n + x[1], 0);
+    }
   });
   // Self-interest follows position: what would this option do for me, or for my children?
   function refreshInterests(st) {
@@ -225,6 +241,12 @@ VB['sim/society'] = (() => {
       const gr = p.household !== null ? st.households[p.household].grievance : null;
       if (gr && st.t < gr.until && p.age >= 16)
         set('dispute', Object.fromEntries(gr.rules.map((r) => [r, 1 / gr.rules.length])));
+      // the commons (VB-100; Kim, 10 Nov): help its household was given leans a person towards the next higher option than its village's
+      const hl = helpLean(st, p, settlementIdOf(st, p));
+      if (hl) {
+        const o = O[I.commons];
+        for (let j = 0; j < Culture.NOPT[I.commons]; j++) it[o + j] = it[o + j] * (1 - hl.w) + (j === hl.to ? hl.w : 0);
+      }
       p.interest = it;
     }
   }

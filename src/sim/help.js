@@ -3,7 +3,7 @@
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
-  const { childrenOf, siblingsOf } = VB['sim/records'];
+  const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const Rules = VB['sim/registry'];
@@ -25,22 +25,6 @@ VB['sim/help'] = (() => {
     return Math.max(0, grainOf(hh) - reserved(st, hh, 'grain') - buffer);
   };
   const spare = (st, hh) => Math.max(0, grainOf(hh) - reserved(st, hh, 'grain'));
-  // households holding a parent, child or sibling of a member, closest first (parents and children before siblings, then by id)
-  function kinHouseholds(st, hh) {
-    const rank = new Map();
-    const note = (id, r) => {
-      const q = st.pawns[id];
-      if (!q.alive || q.household === null || q.household === hh.id || st.households[q.household].dissolved) return;
-      rank.set(q.household, Math.min(rank.get(q.household) ?? 9, r));
-    };
-    for (const id of hh.members) {
-      const p = st.pawns[id];
-      for (const par of [p.father, p.mother]) if (par !== null) note(par, 1);
-      for (const c of childrenOf(st, id)) note(c, 1);
-      for (const s of siblingsOf(st, id)) note(s, 2);
-    }
-    return [...rank].sort((a, b) => a[1] - b[1] || a[0] - b[0]).map((x) => x[0]);
-  }
   // A gift of n grain, as the command `give` (source 'help'): its actor is the giver's holder, or the household or village itself
   // without one; true when it was given.
   const actorOf = (x) => ('farmstead' in x ? (x.holder !== null ? x.holder : { household: x.id }) : { village: x.id });
@@ -53,7 +37,7 @@ VB['sim/help'] = (() => {
       source: 'help',
     }) === true;
   // @state household.askedIn: the season (game seasons since the start) in which the household last asked for help, or absent; written only
-  //   here. A household asks at most once a season (VB-222; design.md, The gift: Lumps and occasions).
+  //   here. A household asks at most once a season (VB-222; design.md, The gift: Lumps and occasions), and an ask that moved no goods does not count (VB-391).
   const seasonOf = (t) => Math.floor(t / (SEASON_DAYS * DAY));
   const noteAsked = (hh, season) => {
     hh.askedIn = season;
@@ -76,8 +60,9 @@ VB['sim/help'] = (() => {
       return p.alive && p.age >= 18;
     }).length <= 1;
   // Each day, a household whose spare grain covers fewer than HELP.askBelow days, and that has not asked this season, asks kin, then the
-  // village store, for food until the next harvest (askDaysAt); if the gifts fall short, it waits for the next season. Returns the ids of
-  // the households short of people whose ask fell short today, in ascending id, for sim/service to take in (sim/help moves nobody).
+  // village store, for food until the next harvest (askDaysAt); if the gifts fall short, it waits for the next season. An ask that
+  // brought nothing at all does not count, and it asks again tomorrow (VB-391). Returns the ids of the households short of people whose
+  // ask fell short today, in ascending id, for sim/service to take in (sim/help moves nobody).
   function shareFood(st) {
     const season = seasonOf(st.t),
       short = [];
@@ -87,26 +72,35 @@ VB['sim/help'] = (() => {
       if (hh.askedIn === season) continue;
       const need = dailyNeed(st, hh);
       if (need <= 0 || spare(st, hh) >= HELP.askBelow * need) continue;
-      noteAsked(hh, season);
-      let want = askDaysAt(st) * need - spare(st, hh);
+      let moved = false,
+        want = askDaysAt(st) * need - spare(st, hh);
       for (const k of kinHouseholds(st, hh)) {
         const n = Math.min(want, surplus(st, st.households[k]));
         if (n <= 1e-9) continue;
-        if (give(st, st.households[k], hh, n)) want -= n;
+        if (give(st, st.households[k], hh, n)) {
+          want -= n;
+          moved = true;
+        }
         if (want <= 1e-9) break;
       }
       const v = st.villages[st.farmsteads[hh.farmstead].village],
-        n = Math.min(want, grainOf(v));
-      if (n > 1e-9 && give(st, v, hh, n)) want -= n;
+        n = Math.min(want, grainOf(v) - reserved(st, v, 'grain')); // not the seed of its common fields (VB-100)
+      if (n > 1e-9 && give(st, v, hh, n)) {
+        want -= n;
+        moved = true;
+      }
+      // an ask that moved no goods marks nothing worth remembering (VB-391): it is not the season's ask, and the household asks again on a later day
+      if (moved) noteAsked(hh, season);
       if (want > 1e-9 && shortOfPeople(st, hh)) short.push(hh.id);
     }
     return short;
   }
-  // At the moving round every household gives a share of its surplus to its village's store.
-  function fillStores(st) {
+  // At the moving round every household gives a share of its surplus to its village's store: a village's at its own round (VB-277), or
+  // every village's when v is null.
+  function fillStores(st, v = null) {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
-      if (hh.dissolved) continue;
+      if (hh.dissolved || (v !== null && st.farmsteads[hh.farmstead].village !== v)) continue;
       const n = surplus(st, hh) * HELP.storeShare;
       if (n <= 1e-9) continue;
       give(st, hh, st.villages[st.farmsteads[hh.farmstead].village], n);
