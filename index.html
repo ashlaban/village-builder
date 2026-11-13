@@ -24029,7 +24029,7 @@ VB['sim/settle'] = (() => {
   const { issue } = VB['sim/commands'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
+  const { DAY, SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
   const { walkable, villageAdded, costChanged } = VB['sim/routes'];
@@ -24116,11 +24116,12 @@ VB['sim/settle'] = (() => {
       }
     return { all, followers };
   }
-  // A home that took in a spouse at this round gives none (Kim, 10 November, VB-330): a member whose union started at this day.
+  // A home that took in a spouse at this round gives none (Kim, 10 November, VB-330): a member whose union started on this day, since the
+  // villages' rounds marry on earlier steps of the day than settlement's (VB-277).
   const wedThisRound = (st, hh) =>
     hh.members.some((m) => {
       const u = unionOf(st, m);
-      return u && u.start === st.t;
+      return u && Math.floor(u.start / DAY) === Math.floor(st.t / DAY);
     });
   // Food until the next harvest (SETTLE.provisionDays of the party's rations) and seed for one field: the party's stakes, then their old
   // households' grain, the settler's household first. An old household keeps its seed and the food of those who stay for its holder's buffer
@@ -38365,7 +38366,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '29d80dd411',
+const BUILD = 'fa1b983ddf',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

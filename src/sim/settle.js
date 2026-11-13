@@ -3,7 +3,7 @@ VB['sim/settle'] = (() => {
   const { issue } = VB['sim/commands'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
+  const { DAY, SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
   const { walkable, villageAdded, costChanged } = VB['sim/routes'];
@@ -90,11 +90,12 @@ VB['sim/settle'] = (() => {
       }
     return { all, followers };
   }
-  // A home that took in a spouse at this round gives none (Kim, 10 November, VB-330): a member whose union started at this day.
+  // A home that took in a spouse at this round gives none (Kim, 10 November, VB-330): a member whose union started on this day, since the
+  // villages' rounds marry on earlier steps of the day than settlement's (VB-277).
   const wedThisRound = (st, hh) =>
     hh.members.some((m) => {
       const u = unionOf(st, m);
-      return u && u.start === st.t;
+      return u && Math.floor(u.start / DAY) === Math.floor(st.t / DAY);
     });
   // Food until the next harvest (SETTLE.provisionDays of the party's rations) and seed for one field: the party's stakes, then their old
   // households' grain, the settler's household first. An old household keeps its seed and the food of those who stay for its holder's buffer

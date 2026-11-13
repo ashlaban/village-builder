@@ -105,8 +105,8 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   t.m.stake = 0; hh.grain = { barley: 4000 };
   check(S.provisions(t.st, party) !== null, 'a home that did not marry gives its grain');
   const bride = t.st.pawns.find((p) => p.alive && p.household !== hh.id && Sim.spouseOf(t.st, p.id) === null && p.age >= 18);
-  t.st.unions.push({ id: t.st.unions.length, a: t.sib.id, b: bride.id, start: t.st.t, end: null, kind: 'marriage' });
-  check(S.provisions(t.st, party) === null, 'a home that took in a spouse at this round gives nothing');
+  t.st.unions.push({ id: t.st.unions.length, a: t.sib.id, b: bride.id, start: t.st.t - (t.st.t % 24), end: null, kind: 'marriage' });
+  check(S.provisions(t.st, party) === null, 'a home that took in a spouse at this round, on an earlier step of its day, gives nothing');
   t.st.t += 30 * 24; // the next round
   check(S.provisions(t.st, party) !== null, 'the next round it gives');
 }
