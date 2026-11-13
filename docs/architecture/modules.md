@@ -138,7 +138,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 
 ## Adding things
 - A module has no cap on its length (VB-410): over 400 lines the lint asks for an open task titled "Refactor: split <key> ...", opened by the task that
-  takes it there (VB-411). Put code where its concern lives, not where there is room.
+  takes it there (VB-411). The same task is asked for when a module over 15 exports gains one (VB-412; the `sim` facade is not counted). Put code where its concern lives, not where there is room.
 - Tunables: `ECON`, `FIELDS`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `HERD`, `SOIL`, `RIVER`, `TERRAIN`, `SLOPE`, `ROUTE`, `PATHS`, `SETTLE`
   and `SERVICE` in `src/sim/rules.js`; `KINDS` (job kinds) in `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`
   (worn paths) in `src/gen/paths.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.

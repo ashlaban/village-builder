@@ -4,9 +4,11 @@
 // Existing long lines are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
 // Length is no cap (VB-410, VB-411): a module over 400 lines needs an open task that splits it ("Refactor: ..." naming its key in the title);
 // with one it may grow. A module kept over the line without a task is in the baseline at its length, which only falls (`src/gen.js`).
+// Width the same way (VB-412): a module over 15 exports, counted on its loaded namespace, may add one only with such a task open;
+// tests/width-baseline.json holds the modules over 15 at their counts, which only fall. `sim`, the facade that gathers the others, is not counted.
 const fs = require('fs'), path = require('path'), { clockUse, pageWrites, counterUses, splitTask } = require('./lint-rules.js');
 const root = path.join(__dirname, '..'), BASE = path.join(__dirname, 'lint-baseline.json');
-const SPLIT_LINES = 400, MAX_COLS = 160;
+const SPLIT_LINES = 400, MAX_COLS = 160, MAX_EXPORTS = 15, WIDTH = path.join(__dirname, 'width-baseline.json'), FACADES = new Set(['sim']);
 const files = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8')).map((f) => 'src/' + f).concat('src/load.js');
 const pageFiles = JSON.parse(fs.readFileSync(path.join(root, 'src/page.json'), 'utf8')).map((f) => 'src/' + f);
 const key = (f) => (f === 'src/load.js' ? 'load' : f.slice(4, -3));
@@ -62,14 +64,27 @@ const worldOf = (seed) => { const it = VB.gen.generate(seed); let r; while (!(r 
 const w = worldOf(7), states = [VB.sim.seed(worldOf(7), 7, 'founders'), VB.sim.seed(worldOf(7), 7, 'heirs')];
 for (const k of Object.keys(w)) if (!tagged.w.has(k)) errors.push(`src/gen.js: top-level key w.${k} has no @state tag`);
 for (const k of new Set(states.flatMap((s) => Object.keys(s)))) if (k !== 'w' && !tagged.st.has(k)) errors.push(`src/sim.js: top-level key st.${k} has no @state tag`);
+const width = fs.existsSync(WIDTH) ? JSON.parse(fs.readFileSync(WIDTH, 'utf8')) : {}, wide = {};
+for (const f of files) {
+  const k = key(f), ns = VB[k];
+  if (FACADES.has(k) || !ns || typeof ns !== 'object') continue;
+  const n = Object.keys(ns).length, was = width[k] || 0;
+  if (n > MAX_EXPORTS) wide[k] = was ? Math.min(was, n) : n;
+  if (n <= MAX_EXPORTS || n <= was) { if (n < was) notes.push(`${f}: improved (exports ${was} -> ${n}); run lint.js --update`); continue; }
+  const id = splitTask(k, openTasks());
+  if (id) notes.push(`${f}: ${n} exports, over ${was || MAX_EXPORTS}; ${id} splits it`);
+  else errors.push(`${f}: ${n} exports, over ${was ? `its baseline of ${was}` : MAX_EXPORTS}, and no open task splits it. Do not fold several things into one export or export from `
+    + `another module to make room: open the task (node tools/backlog.js new name="Refactor: split ${k} by concern" ...), name it in the PR, and go on`);
+}
 if (process.argv.includes('--update')) {
+  fs.writeFileSync(WIDTH, JSON.stringify(wide, null, 1) + '\n');
   const next = {};
   for (const f of files.concat(pageFiles)) {
     const c = cur[f], b = base[f];
     const n = Math.min(b && b.longLines || 0, c.longLines), kept = Math.min(b && b.lines || 0, c.lines);
     if (n || kept > SPLIT_LINES) next[f] = { ...(kept > SPLIT_LINES ? { lines: kept } : {}), ...(n ? { longLines: n } : {}) };
   }
-  fs.writeFileSync(BASE, JSON.stringify(next, null, 1) + '\n'); console.log('lint-baseline.json updated'); process.exit(0);
+  fs.writeFileSync(BASE, JSON.stringify(next, null, 1) + '\n'); console.log('lint-baseline.json and width-baseline.json updated'); process.exit(0);
 }
 notes.forEach((n) => console.log(n));
 if (errors.length) { console.error('LINT FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }

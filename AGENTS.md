@@ -136,6 +136,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - A module's length is not capped (VB-410). Code goes where its concern lives, a statement to a line. Over 400 lines the lint asks
   for an open task that splits the module (VB-411): the task that takes it over the line opens one, titled "Refactor: split <key> ..."
   (`sim/heirs`), names it in its PR and goes on. Never pack lines or place code elsewhere to make room.
+  Width the same way (VB-412): a module over 15 exports (`tests/width-baseline.json` holds today's 21 at their counts) may add one only
+  with such a task open; the `sim` facade is not counted.
 
 ## Architecture work
 - Read target-v2's principles (section 2) before adding a module, an owner or a call between modules. Before giving new state an owner, find

@@ -1,0 +1,23 @@
+{
+ "culture": 20,
+ "sim/rules": 59,
+ "sim/names": 31,
+ "sim/routes": 17,
+ "sim/layout": 21,
+ "sim/records": 52,
+ "sim/relations": 32,
+ "sim/claims": 18,
+ "sim/herds": 30,
+ "sim/stores": 42,
+ "sim/hunger": 18,
+ "sim/fields": 26,
+ "sim/meadows": 19,
+ "sim/byre": 16,
+ "sim/expansion": 16,
+ "sim/farmclaims": 17,
+ "sim/agents": 34,
+ "sim/commands": 17,
+ "sim/plans": 34,
+ "sim/heirs": 17,
+ "sim/lifecycle": 20
+}
