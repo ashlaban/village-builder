@@ -7,7 +7,7 @@ VB['sim/settle'] = (() => {
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
   const { walkable, villageAdded, costChanged } = VB['sim/routes'];
-  const { log, fullName, spouseOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } =
+  const { log, fullName, spouseOf, unionOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } =
     VB['sim/records'];
   const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
@@ -90,6 +90,12 @@ VB['sim/settle'] = (() => {
       }
     return { all, followers };
   }
+  // A home that took in a spouse at this round gives none (Kim, 10 November, VB-330): a member whose union started at this day.
+  const wedThisRound = (st, hh) =>
+    hh.members.some((m) => {
+      const u = unionOf(st, m);
+      return u && u.start === st.t;
+    });
   // Food until the next harvest (SETTLE.provisionDays of the party's rations) and seed for one field: the party's stakes, then their old
   // households' grain, the settler's household first. An old household keeps its seed and the food of those who stay for its holder's buffer
   // (HELP) or until the harvest, whichever is longer, as kin keep theirs before giving (sim/help). {grain, gifts: [[household, grain]]}, or
@@ -103,8 +109,9 @@ VB['sim/settle'] = (() => {
     let have = all.reduce((s, id) => s + (st.pawns[id].stake || 0), 0);
     for (const h of new Set(all.map((id) => st.pawns[id].household))) {
       if (have >= need) break;
-      const hh = st.households[h],
-        stay = hh.members.filter((m) => !all.includes(m)),
+      const hh = st.households[h];
+      if (wedThisRound(st, hh)) continue;
+      const stay = hh.members.filter((m) => !all.includes(m)),
         holder = st.pawns[hh.holder];
       const keep = reserved(st, hh, 'grain') + Math.max(holder.buffer, SETTLE.provisionDays) * rationsOf(st, stay);
       const give = Math.min(need - have, Math.max(0, Math.floor(Stores.grainOf(hh) - keep)));
