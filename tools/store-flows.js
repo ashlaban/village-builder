@@ -4,7 +4,7 @@
 // node tools/store-flows.js --scenario populous --seeds 3,7,11 --map small --years 50 [--rule NAME] [--json]
 //   --rule: base (the game's), share10 (HELP.storeShare 0.1), rate5 (villageStoreLoss 0.05, a household's), target1 (fill only up to a
 //   year of the village's need), target05 (up to half a year), target025 (a quarter), target05+share10 (both).
-//   Prints a line per seed; --json prints the rows (a village-year each).
+//   Prints a line per seed; --json prints the rows instead, a line a village-year, as the run goes.
 require('./help.js')(__filename);
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Stores = VB['sim/stores'], Hunger = VB['sim/hunger'];
 const Commands = VB['sim/commands'], { HELP, YEAR_DAYS } = VB['sim/rules'];
@@ -18,7 +18,7 @@ const need = (st, v) => {
   for (const id of v.farmsteads) { const f = st.farmsteads[id]; if (f.household !== null) n += Hunger.dailyNeed(st, st.households[f.household]); }
   return n * YEAR_DAYS;
 };
-const tm = /target(\d+)/.exec(rule), target = tm ? { 1: 1, 5: 0.5, 25: 0.25 }[tm[1]] : null;
+const tm = /target(\d+)/.exec(rule), target = tm ? +(tm[1][0] === '0' ? '0.' + tm[1].slice(1) : tm[1]) : null; // target05 is half a year
 if (/share10/.test(rule)) HELP.storeShare = 0.1;
 const issue = Commands.issue; // sim/help reads the command module at each call, so this cap reaches the yearly filling
 if (target !== null) Commands.issue = (st, cmd) => {
@@ -51,6 +51,7 @@ function run(seed) {
       row.takers = row.takers.size;
       row.store = Stores.grainOf(v); row.need = need(st, v); row.hungry = hungry - hungry0; // island-wide, the same in each village's row
       rows.push(row);
+      if (json) console.log(JSON.stringify(row)); // a line a village-year, as the run goes, so a run cut short keeps its years
     }
     hungry0 = hungry;
   }
@@ -58,8 +59,7 @@ function run(seed) {
 }
 const sts = seeds.map(run), E = sts[0].ECON;
 const sum = (l, k) => l.reduce((s, r) => s + r[k], 0), f = (x, d = 0) => (+x).toFixed(d);
-if (json) console.log(JSON.stringify(rows));
-else {
+if (!json) {
   console.log(`${scenario} ${map} ${years} years, rule ${rule}; rations; home rot ${E.storeLoss[0]} (a year's need) to ${E.storeLoss[1]}; village store ${E.villageStoreLoss}`);
   console.log('seed villages filled commons total_in given takers/yr each seed rot rot%in end_store yrs_need hungry_days/yr home_rot(5%..20%)');
   for (const s of seeds) {

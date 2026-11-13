@@ -99,6 +99,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   household-year by job kind, work and walking, against its hands' and workers' working hours, and the farming year's days; `tools/hours.js`);
   `node tools/stocks.js [--json]` (each stored quantity's adders, takers and readers, and what happens at none; marks those read by nothing).
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
+  `node tools/store-flows.js --scenario populous --seeds 7 --years 15 [--rule NAME]`: the village stores' yearly flows (VB-406).
 - Also: `node tools/gossip.js` (VB-187's experiment: stories against opinion averaging in a reduced scenario; `docs/gossip-experiment.md`), `node
   tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies and cycles), `node
   tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs; `node tests/calibrate.js natural 2 50` is
