@@ -102,6 +102,12 @@ const ICON = {
   ),
   land: svgIcon(20, 20, '<path d="M5 17.5V2.5M5 3.5h10l-2.5 3.25L15 10H5"/>', ICON_STROKE),
   ground: svgIcon(20, 20, '<path d="M2.5 7.5L10 3.5l7.5 4-7.5 4ZM2.5 11.5l7.5 4 7.5-4"/>', ICON_STROKE), // strata: what lies in the ground
+  reach: svgIcon(
+    20,
+    20,
+    '<circle cx="10" cy="10" r="1.5"/><circle cx="10" cy="10" r="4.5"/><circle cx="10" cy="10" r="7.5"/>',
+    ICON_STROKE,
+  ), // rings round a place: how far a walk is
   bell: svgIcon(
     20,
     20,

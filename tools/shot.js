@@ -8,6 +8,7 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   screenshots of the built index.html in Chromium: the whole island and close-ups of the largest villages
   writes <tag>-island.jpg, <tag>-close<k>.jpg and <tag>-info.json (villages, their land) into DIR (default: the current directory)
   --land        with the Land overlay on
+  --reach       with the Reach overlay on, measured from the largest village's green
   --close N     close-ups of the N largest villages (default 1)
   --at X,Y,Z    one close-up at a point and zoom instead
   --tag NAME    the files' prefix (default <scenario>-<seed>-<size>-y<years>)
@@ -21,11 +22,11 @@ const { chromium } = require(root + '/node_modules/playwright');
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'populous'), seed = opt('seed', '7'), size = opt('size', 't'), years = +opt('years', 0), tag = opt('tag', `${scenario}-${seed}-${size}-y${years}`);
 const hours = +opt('hours', 0), follow = opt('follow', null);
-const outDir = path.resolve(opt('out', '.')), closeN = +opt('close', 1), at = opt('at', null), land = args.includes('--land'), htmlPath = opt('html', path.join(root, 'index.html'));
+const outDir = path.resolve(opt('out', '.')), closeN = +opt('close', 1), at = opt('at', null), land = args.includes('--land'), reach = args.includes('--reach'), htmlPath = opt('html', path.join(root, 'index.html'));
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
 const html = fs.readFileSync(htmlPath, 'utf8').replace('let st = null,\n  speed = 1,\n  selPawn = -1;',
   'let st = null,\n  speed = 1,\n  selPawn = -1; window.__vb = { get st() { return st; }, cam: () => cam, Sim: () => Sim, '
-  + 'view(x, y, z) { stopIntro(); cam.x = x; cam.y = y; cam.z = z; zt = z; vel.x = vel.y = 0; } };');
+  + 'reachFrom(v) { selectVillage(v, false); setReach(true); }, view(x, y, z) { stopIntro(); cam.x = x; cam.y = y; cam.z = z; zt = z; vel.x = vel.y = 0; } };');
 if (!html.includes('window.__vb')) throw new Error('hook not found: the page script changed');
 fs.mkdirSync(outDir, { recursive: true });
 const page_ = path.join(os.tmpdir(), `vb-shot-${process.pid}.html`); fs.writeFileSync(page_, html);
@@ -51,6 +52,8 @@ const page_ = path.join(os.tmpdir(), `vb-shot-${process.pid}.html`); fs.writeFil
   }, [years, hours]);
   console.error(`${tag}: advanced ${years} years in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   if (land) await page.evaluate(() => document.getElementById('landBtn').click()); // the button may sit in a closed menu
+  if (reach) await page.evaluate(() => { const vs = window.__vb.st.villages;
+    window.__vb.reachFrom(vs.reduce((a, v) => (v.farmsteads.length > vs[a].farmsteads.length ? v.id : a), 0)); document.body.classList.add('minimap-open'); });
   await page.waitForTimeout(1500);
   const info = await page.evaluate(() => {
     const st = window.__vb.st, Sim = window.__vb.Sim(), held = Sim.holdings(st);

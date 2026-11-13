@@ -303,6 +303,8 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
 .ground-key i.gem { width: 11px; height: 11px; margin: 0 1.5px; transform: rotate(45deg); }
 .ground-key i.endless { background: none; box-shadow: 0 0 0 2px var(--panel, #fff), 0 0 0 3.5px #2a1a0c; width: 9px; height: 9px; margin: 0 2.5px; }
 body:not(.minimap-open) .ground-key { display: none; }
+.reach-key ul { grid-template-columns: 1fr; }
+.reach-key p { margin: 8px 0 0; color: var(--muted, inherit); }
 /* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-338: the dock's
    panels rise where they were; first at the bottom left, then from 9 Nov at the bottom centre, above the dock). The bar's bottom edge,
    which a narrow screen's date on two lines moves, is measured by page/notices. */
@@ -993,6 +995,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
       <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
     </div>
     <div class="ground-key panel" id="groundKey" role="group" aria-label="Key to the ground" hidden></div>
+    <div class="ground-key reach-key panel" id="reachKey" role="group" aria-label="Key to walking time" hidden></div>
     <div class="minimap panel" id="minimap" aria-label="Overview map, click or tap to jump" tabindex="0" role="group">
       <canvas id="mmBase"></canvas>
       <canvas id="mmView"></canvas>
@@ -1006,6 +1009,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
         title="Land ownership (L)" aria-pressed="false"></button>
       <button id="groundBtn" type="button" class="icon-btn" data-icon="ground" aria-keyshortcuts="o" aria-label="Bedrock and deposits"
         title="Bedrock and deposits (O)" aria-pressed="false" aria-controls="groundKey"></button>
+      <button id="reachBtn" type="button" class="icon-btn" data-icon="reach" aria-keyshortcuts="h" aria-label="Walking time from the selected tile"
+        title="Walking time from the selected tile (H)" aria-pressed="false" aria-controls="reachKey"></button>
       <button id="noticeBtn" type="button" class="icon-btn" data-icon="bell" aria-label="Notifications" title="Which notifications show"
         aria-expanded="false" aria-controls="noticePop"></button>
       <button id="minimapBtn" type="button" class="icon-btn" data-icon="minimap" aria-keyshortcuts="m" aria-label="Minimap" title="Minimap (M)"
@@ -27761,6 +27766,7 @@ for (const k of [
   'ways',
   'fences',
   'ground',
+  'reach',
   'land',
   'grid',
   'regions',
@@ -27777,6 +27783,7 @@ const lodLayer = [L.lod0, L.lod1, L.lod2];
 L.regions.visible = false;
 L.land.visible = false;
 L.ground.visible = false;
+L.reach.visible = false;
 
 // ---- static textures ----
 let SPR = null; // the trees and shrubs the chunks are decorated with: landSprites (page/farmart), made at the first chunk
@@ -27975,6 +27982,12 @@ const ICON = {
   ),
   land: svgIcon(20, 20, '<path d="M5 17.5V2.5M5 3.5h10l-2.5 3.25L15 10H5"/>', ICON_STROKE),
   ground: svgIcon(20, 20, '<path d="M2.5 7.5L10 3.5l7.5 4-7.5 4ZM2.5 11.5l7.5 4 7.5-4"/>', ICON_STROKE), // strata: what lies in the ground
+  reach: svgIcon(
+    20,
+    20,
+    '<circle cx="10" cy="10" r="1.5"/><circle cx="10" cy="10" r="4.5"/><circle cx="10" cy="10" r="7.5"/>',
+    ICON_STROKE,
+  ), // rings round a place: how far a walk is
   bell: svgIcon(
     20,
     20,
@@ -28691,6 +28704,172 @@ function resetGround() {
   if (groundG) groundG.clear();
   if (groundOn) drawGround();
 }
+// ---- the Reach overlay (sim/routes): how far a walk is from one place ----
+// The land is coloured by the walking time from an origin, by the costs the pawns walk by (terrain, slope, worn paths, fords and
+// bridges; unladen, one way). A band ends at an hour the rules compare a walk against, read from the rules so that it follows their
+// tuning; a dark line runs where one band meets the next. Land further than the route search goes is grey, land with no way to it
+// by land is left as it is. The origin is the tile last selected by a click (a house or a green as well); it is measured again
+// every REACH_EVERY seconds, since paths wear and bridges are built, and drawn again only when a tile's band has changed. The lines
+// are a drawing of their own, made again when the zoom halves or doubles, so that they stay at least REACH_LINE pixels wide.
+const REACH_COLOUR = [0xf0f921, 0xfdb42f, 0xed7953, 0xcc4778, 0x9c179e, 0x5c01a6, 0x0d0887]; // near to far (the plasma ramp)
+const REACH_BEYOND = 0x5a5a5a,
+  REACH_NONE = 255,
+  REACH_EVERY = 2,
+  REACH_LINE = 2;
+let reachG = null,
+  reachLines = null,
+  reachZoom = 0,
+  reachOn = false,
+  reachFrom = -1,
+  reachFor = null,
+  reachAt = -1,
+  reachBand = null,
+  reachCost = [];
+// The bands' far edges in walking hours, nearest first, each with what the rules or the design hold at it.
+function reachBands() {
+  const R = VB['sim/rules'],
+    raw = [
+      [0.25, ''],
+      [0.5, ''],
+      [1, 'about the next village'],
+      [R.BUILD.stoneWalk, 'stone for a house'],
+      [R.CLAIMS.farmHours, 'there and back in a day'],
+      [R.TRAVEL.dayWalk, "a day's walk"],
+      [R.ROUTE.reach / R.SPEED, 'as far as routes go'],
+    ].sort((a, b) => a[0] - b[0]),
+    out = [];
+  for (const [h, what] of raw) {
+    const last = out[out.length - 1];
+    if (last && h - last.h < 1e-9) last.what = [last.what, what].filter(Boolean).join(', ');
+    else out.push({ h, what });
+  }
+  return out;
+}
+const reachTime = (h) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(1)} h`);
+// The band of every tile from `from`: its index in `bands`, bands.length beyond the last edge, REACH_NONE with no way by land.
+function reachMeasure(from, bands) {
+  const Routes = VB['sim/routes'],
+    speed = VB['sim/rules'].SPEED,
+    targets = [],
+    band = new Uint8Array(w.N).fill(REACH_NONE);
+  for (let i = 0; i < w.N; i++) if (Routes.passable(w, i)) targets.push(i);
+  reachCost = Routes.reachCosts(w, from, Infinity, targets, reachCost);
+  for (let t = 0; t < targets.length; t++) {
+    const c = reachCost[t];
+    if (c === null) continue;
+    let k = 0;
+    while (k < bands.length && c / speed > bands[k].h) k++;
+    band[targets[t]] = k;
+  }
+  return band;
+}
+function reachKey(bands, seen) {
+  const row = (colour, text) => `<li><i class="rock" style="background:${hex6(colour)}"></i>${text}</li>`;
+  if (reachFrom < 0) {
+    $('reachKey').innerHTML = '<h2 class="menu-label">Walking time</h2><p>Click a tile on land to measure from it.</p>';
+    return;
+  }
+  $('reachKey').innerHTML =
+    `<h2 class="menu-label">Walking time from tile ${reachFrom % w.COLS}, ${(reachFrom / w.COLS) | 0}</h2><ul>` +
+    bands
+      .map((b, k) => (seen[k] ? row(REACH_COLOUR[k], `Within ${reachTime(b.h)}${b.what ? `: ${b.what}` : ''}`) : ''))
+      .join('') +
+    (seen[bands.length] ? row(REACH_BEYOND, 'Further, by land') : '') +
+    '</ul><p>One way, on foot. No colour: no way by land.</p>';
+}
+function drawReach() {
+  if (!w) return;
+  if (!reachG) {
+    reachG = new PIXI.Graphics();
+    reachLines = new PIXI.Graphics();
+    L.reach.addChild(reachG, reachLines);
+  }
+  const bands = reachBands().slice(0, REACH_COLOUR.length),
+    from = reachFrom >= 0 && reachFrom < w.N ? reachFrom : -1,
+    band = from >= 0 ? reachMeasure(from, bands) : null;
+  reachAt = time;
+  if (band && reachFor === w && reachBand && band.every((b, i) => b === reachBand[i])) return;
+  const g = reachG,
+    seen = bands.map(() => 0).concat(0);
+  g.clear();
+  reachLines.clear();
+  reachFor = w;
+  reachBand = band;
+  if (!band) {
+    reachFrom = -1;
+    reachKey(bands, seen);
+    return;
+  }
+  for (let k = 0; k <= bands.length; k++) {
+    for (let i = 0; i < w.N; i++)
+      if (band[i] === k) {
+        g.poly(hexPoly(i));
+        seen[k]++;
+      }
+    if (seen[k]) g.fill({ color: k < bands.length ? REACH_COLOUR[k] : REACH_BEYOND, alpha: 0.62 });
+  }
+  drawReachLines();
+  reachKey(bands, seen);
+}
+// The contours: each edge between a tile and a neighbour of a further band, drawn once, from the nearer side; and a ring at the origin.
+const reachZoomStep = () => Math.round(Math.log2(cam.z));
+function drawReachLines() {
+  const g = reachLines,
+    band = reachBand,
+    from = reachFrom,
+    px = Math.max(w.R * 0.2, REACH_LINE / cam.z);
+  g.clear();
+  reachZoom = reachZoomStep();
+  if (!band) return;
+  let lines = 0;
+  for (let i = 0; i < w.N; i++) {
+    if (band[i] === REACH_NONE) continue;
+    for (let d = 0; d < 6; d++) {
+      const j = w.nb[i * 6 + d];
+      if (j < 0 || band[j] === REACH_NONE || band[j] <= band[i]) continue;
+      edge(g, i, d);
+      lines++;
+    }
+  }
+  if (lines) g.stroke({ width: px, color: 0x1a0c2a, alpha: 0.9, cap: 'round' });
+  g.circle(w.hx[from], w.hy[from], w.R * 0.75).stroke({ width: px * 1.6, color: 0x1a0c2a });
+  g.circle(w.hx[from], w.hy[from], w.R * 0.75).stroke({ width: px * 0.7, color: 0xffffff });
+}
+// The tile a click selected, if a walk can start there: land, a house or a green; a selected person keeps the origin as it is.
+function reachPick() {
+  return selectionPinned && selPawn < 0 && sel >= 0 && sel < w.N && VB['sim/routes'].passable(w, sel) ? sel : -1;
+}
+function setReach(on) {
+  reachOn = on;
+  L.reach.visible = on;
+  $('reachKey').hidden = !on;
+  if (!on || !w) return;
+  const pick = reachPick();
+  if (pick >= 0) reachFrom = pick;
+  reachBand = null;
+  drawReach();
+}
+// Each frame while the overlay is on: a newly selected tile is measured from at once, the same one again every REACH_EVERY seconds.
+function refreshReach() {
+  if (!reachOn || !w) return;
+  const pick = reachPick();
+  if (pick >= 0 && pick !== reachFrom) {
+    reachFrom = pick;
+    drawReach();
+  } else if (reachFrom >= 0 && time - reachAt >= REACH_EVERY) drawReach();
+  if (reachBand && reachZoomStep() !== reachZoom) drawReachLines();
+}
+// A new world: the old one's reach is wiped, and its origin forgotten.
+function resetReach() {
+  reachFrom = -1;
+  reachBand = null;
+  reachFor = null;
+  if (reachG) {
+    reachG.clear();
+    reachLines.clear();
+  }
+  if (reachOn) drawReach();
+}
 // ---- loader ----
 const loader = $('loader');
 const setLoad = (text, p) => {
@@ -28793,6 +28972,7 @@ async function swapWorld(wd, sim, { wc, over }) {
   resetLand();
   if (landOn) drawLand();
   resetGround();
+  resetReach();
 }
 // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
 // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply, places} (page/editor), `apply(wd)`
@@ -29350,6 +29530,7 @@ const SHORTCUTS = {
   r: 'regionBtn',
   l: 'landBtn',
   o: 'groundBtn',
+  h: 'reachBtn',
   m: 'minimapBtn',
   f: 'centre',
 };
@@ -29482,6 +29663,7 @@ toggle($('landBtn'), (on) => {
   if (on) drawLand();
 });
 toggle($('groundBtn'), (on) => setGround(on));
+toggle($('reachBtn'), (on) => setReach(on));
 // Panel choices and folds belong to the page, never to saved simulation state.
 const mobileUI = matchMedia('(max-width: 1024px)');
 let activePanel = null,
@@ -32838,6 +33020,7 @@ function updateSettlement(dt) {
   if (st.pathDirty.size) refreshPaths();
   if (landOn || st.landDirty.size) refreshLand();
   refreshGround();
+  refreshReach();
   for (const o of fieldSprites) {
     const s = cropStage(o.fd);
     if (s !== o.stage) {
@@ -38721,7 +38904,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'f26dad19e1',
+const BUILD = 'f51f73c35a',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

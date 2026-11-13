@@ -77,6 +77,7 @@ for (const k of [
   'ways',
   'fences',
   'ground',
+  'reach',
   'land',
   'grid',
   'regions',
@@ -93,6 +94,7 @@ const lodLayer = [L.lod0, L.lod1, L.lod2];
 L.regions.visible = false;
 L.land.visible = false;
 L.ground.visible = false;
+L.reach.visible = false;
 
 // ---- static textures ----
 let SPR = null; // the trees and shrubs the chunks are decorated with: landSprites (page/farmart), made at the first chunk

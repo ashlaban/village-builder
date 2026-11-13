@@ -101,6 +101,7 @@ async function swapWorld(wd, sim, { wc, over }) {
   resetLand();
   if (landOn) drawLand();
   resetGround();
+  resetReach();
 }
 // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
 // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply, places} (page/editor), `apply(wd)`
