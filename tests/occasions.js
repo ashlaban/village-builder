@@ -16,9 +16,9 @@ const roll = (st, f) => {
 const told = (st, from, kind) => st.record.slice(from).filter((e) => typeof e === 'object' && !e.self && e.kind === kind);
 const villageOf = (st, id) => R.settlementIdOf(st, st.pawns[id]);
 const near = (st, a, o) => Math.abs(a.x - o.x) < 16 && Math.abs(a.y - o.y) < 10;
-// Populous at seed 7, natural deaths off, every household with the means to marry, and the moving round at hour 0 of the first day.
+// Populous at seed 3 (at seed 7 the first round marries one couple, since villages were laid out by their land), natural deaths off, every household with the means to marry, and the moving round at hour 0 of the first day.
 function scene() {
-  const st = Sim.seed(world(7), 7, 'populous'); st.naturalDeaths = false;
+  const st = Sim.seed(world(3), 3, 'populous'); st.naturalDeaths = false;
   for (const h of st.households) h.grain.barley += 5000;
   const mark = st.record.length;
   roll(st, () => Sim.movingRound(st));
@@ -88,7 +88,7 @@ for (const e of lines) {
 }
 sound(st, 'after the weddings');
 {
-  const back = Sim.load(world(7), JSON.parse(text));
+  const back = Sim.load(world(3), JSON.parse(text));
   Sim.advance(back, 6.1);
   const bad = [...new Set([...Object.keys(st), ...Object.keys(back)])].filter((k) => k !== 'w' && canon(st[k]) !== canon(back[k]));
   assert.deepStrictEqual(bad, [], 'the loaded run plays as the unbroken one');
@@ -111,7 +111,8 @@ for (const id of [...mates, ...kin]) if (st.pawns[id].age >= 4) {
 Sim.advance(st, ale.start - 0.3 - st.t);
 const working = ale.asked.filter((g) => g.leave === ale.start && st.agents[g.id].job && st.agents[g.id].phase !== 'back').map((g) => g.id);
 Sim.advance(st, 0.5);
-for (const id of working) assert.strictEqual(st.agents[id].occasion, ale.id, `pawn ${id} leaves its work for the funeral ale`);
+// but one that took up its load meanwhile, which it carries home first (as those carrying at the first look)
+for (const id of working) assert.ok(st.agents[id].occasion === ale.id || st.agents[id].phase === 'back', `pawn ${id} leaves its work for the funeral ale`);
 assert.ok(/funeral ale/i.test(Sim.describe(st, mates[0])), Sim.describe(st, mates[0]));
 const mark2 = st.record.length;
 Sim.advance(st, 5);

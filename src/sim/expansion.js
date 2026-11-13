@@ -12,7 +12,7 @@ VB['sim/expansion'] = (() => {
   const { freeFor, woodTaken } = VB['sim/territory'];
   const { clearTile } = VB['sim/forest'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
-  const { FIELD_REACH, nextTo } = VB['sim/layout'];
+  const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand } = VB['sim/layout'];
   const COTTAGE = ['foundation', 'walls', 'roof'], COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const MAX_PLOTS = 2, REACH = 6, FELL_HOURS = 10, GRUB_HOURS = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
@@ -37,8 +37,10 @@ VB['sim/expansion'] = (() => {
     return s === 'fell' ? FELL_HOURS : s === 'grub' ? GRUB_HOURS : s === 'clear' ? clearHours(st, tr.tile) : BREAK_HOURS;
   };
   // A house tile and one field tile within REACH steps of the green: the village's outland or wilderness (sim/territory), passable, off the
-  // rivers, in the village's region or one touching it. The house grows on the village (it may touch other houses, never a field); the field
-  // lies 2 to FIELD_REACH steps from it, next to no house or green (VB-113); and the farm has room (roomAt). Null when there is no room.
+  // rivers, in the village's region or one touching it. The house stands where the generator would put it (sim/layout, HOUSE: near the
+  // green, not crowded, where its field is worth most and its own tile least; Kim, 12 Nov); the field lies 1 to FIELD_REACH steps from it,
+  // where farmed land may lie (farmedLand: beside a house, off the ring round the green, no nearer the green than the house); and the
+  // farm has room (roomAt). Null when there is no room.
   // Room for a farm whose house is h (VB-154): free farmable tiles within FIELD_REACH walking steps of h, unused and free for village vid
   // (its outland or wilderness; vid null: wilderness only, for a new village; sim/territory), that `taken` does not exclude; counted up to
   // FIELDS.room. A farm needs FIELDS.room of them besides its first field for more fields, meadow and pasture.
@@ -67,25 +69,28 @@ VB['sim/expansion'] = (() => {
       if (w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
       cand.push([t, d]);
     }
-    const dist = new Map(cand), fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
-    const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !nextTo(w, t, built);
+    const fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255;
+    const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !built.has(t);
     const fieldCandidates = cand.filter(([t]) => fieldOk(t)).map(([t]) => [t, fieldScore(t)]);
     const walk = walkable(w), house = (j) => w.dev[j] === 3, shut = (j) => j < 0 || !walk(j) || house(j);
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
-      if (nextTo(w, h, fields)) continue;
+      const may = farmedLand(w, st.villages, v, h);
       // a house may not close a way, since no route crosses one, nor close the green in (VB-402)
       if (cutsOff(w, h, shut, house) || (v.green && rimFull(w, v.center, h, house))) continue;
       let f = -1, fs = -Infinity;
       for (const [t, score] of fieldCandidates) {
         const steps = hexSteps(w, h, t);
-        if (steps < 2 || steps > FIELD_REACH) continue;
-        const sc = score - 0.15 * steps;
+        if (steps < 1 || steps > FIELD_REACH || fields.has(t) || !may(t)) continue;
+        const sc = score - FIELD_NEAR * steps;
         if (sc > fs) { fs = sc; f = t; }
       }
       if (f >= 0 && roomAt(st, h, (t) => t === f || t === h || fields.has(t) || built.has(t), v.id) < FIELDS.room) continue;
       let touch = 0; for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
-      const s = -0.2 * d - (wooded(w, h) ? 0.5 : 0) + (f >= 0 ? 1 : 0) + 0.3 * Math.min(touch, 3);
+      // the generator's score of a house site (sim/layout, HOUSE): near the green, not crowded, where its field is worth most and its own
+      // tile least
+      const s = -HOUSE.far * d - HOUSE.crowd * Math.max(0, touch - 1) - (d === 1 ? 0 : HOUSE.offGreen) - (wooded(w, h) ? 0.5 : 0)
+        + (f >= 0 ? HOUSE.byLand * fs - HOUSE.spare * fertility(w, h) : -Infinity);
       if (s > bs) { bs = s; best = { house: h, field: f }; }
     }
     return !best || best.field < 0 ? null : best;

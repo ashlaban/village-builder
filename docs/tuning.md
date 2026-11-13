@@ -27,6 +27,7 @@ Both references meet the target (median at least 1%), so nothing below is urgent
 | `ECON.fieldYield` 100 | Rations a field in an ordinary year, before seed | Years 4 to 15 net 73 to 84 a field and no household is short | No change; the rise over centuries is VB-160's | VB-284, question 3 |
 | Fences: mended at 0.65, broken through at 0.45 | The condition at which a fence is mended, and at which cattle get into a crop | Cattle never got into a crop in any run, so the rule has shown no consequence | No change until a village's routines can leave the fence out (VB-058, VB-100, VB-120) | VB-136, question 2 |
 | `CLAIMS.contestBelow` 0.5 | How unworked a stake must be before it may be contested (about 18 months) | 421 projects, no contest and no lapse: projects finish within days | No change until projects can stall | VB-158, question 1 |
+| The carts' numbers (`TRAVEL`, `CART`) | Loads of 30, 90 and 300 rations; paces; wear 2% a trip, mended below half; 6 misses a year for another cart; hours and timber to build | Seed 7, small: founders build 6 hand carts in 12 years and none wears out; populous 32 in 6 years; 179 hours a year of walking and carrying on a 4-field farm become 171 | None yet: VB-411 measures them over seeds first | The distance review, 13 Nov; VB-411 |
 
 ## Mechanisms on their way that move the same numbers
 

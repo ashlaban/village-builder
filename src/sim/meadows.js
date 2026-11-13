@@ -3,12 +3,12 @@
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { byRiver, SEASON_DAYS } = VB['sim/rules'];
+  const { byRiver, SEASON_DAYS, TRAVEL } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
-  const { nextTo } = VB['sim/layout'];
+  const { nextTo, farmedLand } = VB['sim/layout'];
   const { HAND_REACH } = VB['sim/byhand'];
   const { hexSteps } = VB['sim/hex'];
   const { winterNeed } = VB['sim/herds'];
@@ -32,14 +32,15 @@ VB['sim/meadows'] = (() => {
   // Hay a farm's meadows give in an ordinary year, before raking and weather.
   const expectedHay = (f) => f.meadows.reduce((s, m) => s + HAY * m.fert, 0);
   // The best free tile for a hay meadow within REACH of the house, or -1: open meadow, marsh or heath, not a river or water tile, its
-  // village's outland or wilderness (sim/territory) and unused, not next to a house or green; by site value, near, few stones, beside the
+  // village's outland or wilderness (sim/territory) and unused, where farmed land may lie (sim/layout, farmedLand); by site value, near, few stones, beside the
   // farm's meadows, and away from its fields' block. `free`: whether the household may take a tile in (as for chooseTile, sim/fields).
   function chooseMeadow(st, f, free = (t) => freeFor(st, t, f.village), built = builtTiles(st)) {
     const w = st.w, own = new Set(f.meadows.map((m) => m.tile)), fields = new Set(f.fields.map((fd) => fd.tile));
+    const may = farmedLand(w, st.villages, st.villages[f.village], f.house);
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
       if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !free(t) || st.used.has(t) || built.has(t)) continue;
-      if (nextTo(w, t, built)) continue;
+      if (!may(t)) continue;
       const s = meadowFert(w, t) - 0.06 * d - (0.3 * w.stones[t]) / 255 + (nextTo(w, t, own) ? 0.3 : 0) - (nextTo(w, t, fields) ? 0.5 : 0);
       if (s > bs) { bs = s; best = t; }
     }
@@ -88,7 +89,8 @@ VB['sim/meadows'] = (() => {
   // farm is near enough.
   function meadowAt(st, tile, built = builtTiles(st)) {
     const w = st.w;
-    if (!SITE[w.biome[tile]] || w.river[tile] || w.water[tile] || st.used.has(tile) || built.has(tile) || nextTo(w, tile, built)) return false;
+    if (!SITE[w.biome[tile]] || w.river[tile] || w.water[tile] || st.used.has(tile) || built.has(tile) ||
+      !farmedLand(w, st.villages, null, tile)(tile)) return false;
     let f = null, fd = HAND_REACH + 1;
     for (const id of st.liveHouseholds) {
       const g = st.farmsteads[st.households[id].farmstead], d = hexSteps(w, g.house, tile);
@@ -141,9 +143,19 @@ VB['sim/meadows'] = (() => {
     m.held = Math.round(HAY * m.fert * st.weather * (m.raked ? 1 : UNRAKED) * (0.9 + rnd(st.rng.fields) * 0.2));
   }
   // Carried home: the hay goes into the household's barn; once the farm's last meadow is in, the log says how it stands for the winter.
-  function hayIn(st, m, hh, f) {
-    hh.hay += m.held; m.held = 0; m.stage = 'aftermath';
-    if (f.meadows.some((q) => q.stage !== 'aftermath')) return;
+  // Hay is carried by the load (sim/carts): what a pawn takes of the meadow's lying hay, as a load in rations (TRAVEL.hay units of hay a
+  // ration: `cap` is the back's or a cart's); the meadow is aftermath once its last hay is taken.
+  function hayLoad(m, cap) {
+    const take = Math.min(m.held, cap * TRAVEL.hay);
+    m.held -= take;
+    if (m.held <= 1e-9) { m.held = 0; m.stage = 'aftermath'; }
+    return take / TRAVEL.hay;
+  }
+  // A load of hay is in the barn; with the farm's last one, the log tells how the hay stands against the winter.
+  function hayIn(st, m, hh, f, a) {
+    hh.hay += a.load * TRAVEL.hay;
+    if (f.meadows.some((q) => q.stage !== 'aftermath')
+      || hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].phase === 'back' && st.agents[id].carry === 'hay')) return;
     const need = winterNeed(st, hh), short = need > hh.hay;
     log(st, `${f.name} has its hay in: ${Math.round(hh.hay)} for a winter's need of ${Math.round(need)}${short ? '; it is short' : ''}.`, {
       kind: 'hay', n: Math.round(hh.hay), ...atHousehold(st, hh) });
@@ -161,7 +173,8 @@ VB['sim/meadows'] = (() => {
     }
   }
   return {
-    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow,
+    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, hayLoad, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow,
+      addMeadow,
       startMeadow,
     meadowProject, finishMeadow, placeMeadows, meadowAt,
   };

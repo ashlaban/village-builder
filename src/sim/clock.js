@@ -26,7 +26,7 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings } = VB['sim/occasions'];
   const { takeIn } = VB['sim/service'];
-  const { boatYear } = VB['sim/drying'], { KINDS } = VB['sim/kinds'];
+  const { boatYear } = VB['sim/drying'], { cartsYear } = VB['sim/carts'], { KINDS } = VB['sim/kinds'];
 
   // ---- the calendar (VB-241) ----
   // CALENDAR is everything the clock runs, in the order it runs: each 6-minute step walks the table once, top to bottom, and runs each
@@ -124,6 +124,8 @@ VB['sim/clock'] = (() => {
     { every: 'day', owner: 'sim/byre', note: 'food spoils, manure rots, the stalled herds eat their hay', run: (st, c) => byreDay(st, c) },
     { every: 'year', at: { season: 0, sday: FISH.from }, owner: 'sim/drying', note: 'the ice is gone: households by the sea begin a boat (VB-300)',
       run: (st) => boatYear(st) },
+    { every: 'year', at: { season: 3, sday: 0 }, owner: 'sim/carts', note: 'the winter begins: a head short of carts in the year has one built',
+      run: (st) => cartsYear(st) },
     { every: 'year', at: { doy: HERD.countDay }, owner: 'sim/byre', note: 'the autumn count: what goes to slaughter', run: (st) => autumnCounts(st) },
     { every: 'day', owner: 'sim/byre', note: 'cattle left unherded yesterday may stray into a crop (VB-136)', run: (st, c) => strays(st, c) },
     { every: 'day', owner: 'sim/grazing', note: 'every herd back by its farm for the night (VB-136)', run: (st) => herdsBack(st) },

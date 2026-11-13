@@ -3675,7 +3675,8 @@ VB['sim/rules'] = (() => {
   // the farm; deaths of grown animals a year; the byre's room in cattle (a calf counts half); ages in years ----
   // ---- what one adult carries (Kim, 10 Nov: one number for the fields, the fair and the journeys): rations on the back, and on a cart with
   // two oxen (VB-335, VB-291, VB-295) ----
-  const TRAVEL = { load: 30, cart: 90 };
+  // hand, cart: on a hand cart and an ox cart (sim/carts; it was 90 with two oxen); pace: a laden pawn's speed; hay: units a ration of load
+  const TRAVEL = { load: 30, hand: 90, cart: 300, pace: { back: 0.9, hand: 0.8, ox: 0.6 }, hay: 0.2 };
   const HERD = {
     hayLoss: [0.05, 0.25, 0.5], // annual barn losses by winters of need held (VB-159)
     hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
@@ -3762,7 +3763,7 @@ VB['sim/rules'] = (() => {
     opinionRations: 10, // allowance: the giver's opinion of the receiver (-1 to 1) times this many rations
   };
 
-  const SPEED = 3; // tiles per game hour on foot, on meadow
+  const SPEED = 12; // tiles per game hour on foot, on meadow (it was 3: the distance review, Kim, 12 Nov; design.md, World and scale)
   // ---- walking (sim/routes): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
   // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
   const TERRAIN = { [B.BEACH]: 1, [B.MEADOW]: 1, [B.HEATH]: 1, [B.FOREST]: 1.5, [B.PINE]: 1.5, [B.HILLS]: 2, [B.MARSH]: 2, [B.MOUNTAIN]: 3,
@@ -4932,7 +4933,7 @@ VB['sim/forage'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/layout: placing villages (a green, a street, houses along them), farmsteads, fields and fences on the map
+// @sys sim/layout: placing villages (a green, and a farm at a time round it, by its land), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
   const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
@@ -4944,15 +4945,18 @@ VB['sim/layout'] = (() => {
   // ---- placing farms: houses, fields, fences ----
   // A farm's fields lie within FIELD_REACH walking steps of its house (VB-109).
   const FIELD_REACH = 4;
+  // What a step from the house costs a field, against its fertility (meadow 1): the fields lie close to the house (was 0.15; Kim, 12 Nov).
+  const FIELD_NEAR = 0.3;
   const nextTo = (w, t, set) => { for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0 && set.has(j)) return true; } return false; };
   // n free farmable tiles in one connected block (each touching another, by hex neighbour) within FIELD_REACH walking steps of the house,
-  // none next to the house or in `avoid` (the yards: tiles next to any house or green). Grown from each candidate tile, taking the best
-  // neighbouring candidate each time; of these blocks, the one with the highest summed fertility less 0.15 per step from the house.
-  // Null when no block of n exists.
-  function placeFields(w, used, house, n, avoid) {
-    const score = new Map(), own = new Set([house]);
+  // none in `avoid` (the ground kept open: a street's tiles and the tiles round a green). A field may touch a house, its own or
+  // another's (Kim, 12 Nov: the fields lie close). Grown from each candidate tile, taking the best
+  // neighbouring candidate each time; of these blocks, the one with the highest summed fertility less FIELD_NEAR per step from the house.
+  // Null when no block of n exists. ok (optional): a test every tile of the block passes (a village's fields lie outward of their house).
+  function placeFields(w, used, house, n, avoid, ok = null) {
+    const score = new Map();
     for (const [t, d] of bfs(w, house, FIELD_REACH, walkable(w)).dist) {
-      if (d >= 2 && farmable(w, t) && !used.has(t) && !(avoid && avoid.has(t)) && !nextTo(w, t, own)) score.set(t, fertility(w, t) - 0.15 * d);
+      if (d >= 1 && farmable(w, t) && !used.has(t) && !(avoid && avoid.has(t)) && (!ok || ok(t))) score.set(t, fertility(w, t) - FIELD_NEAR * d);
     }
     let best = null, bs = -Infinity;
     for (const [seed, s0] of score) {
@@ -5050,144 +5054,61 @@ VB['sim/layout'] = (() => {
     }
     return best;
   }
-  // ---- the form of a village: a street, and houses along it ----
-  // A village of four or more farms has a street: a row of open tiles through the green that is never built on, so it wears into the
-  // village's lane as its people walk it (sim/paths). `need` tiles are laid as arms from the green, the first two leaving it on
-  // opposite sides, and a larger village sending off one more for every STREET.armFarms farms over STREET.from (a third from ten
-  // farms, a fourth from sixteen, six at the most); the fourth and later ones are side streets off the street, not off the green.
-  // An arm grows a tile at a time, straight on or
-  // bearing one step left or right: it keeps to the height of the green (so it follows a shore, a river bank or a valley floor rather
-  // than climbing), to dry and stoneless ground with room for houses beside it, and wanders a little; it does not bend twice the same
-  // way running (no hooks), touch the street's earlier tiles (no doubling back) or run by another village's fields or houses.
-  const STREET = { from: 4, perFarm: 0.7, armFarms: 6, level: 14, straight: 0.35, hook: 1.2, room: 0.25, wander: 0.9 };
-  function layStreet(w, used, rand, center, need, arms, taken) {
-    const street = new Set(), level = w.hp[center];
-    const open = (t) => t >= 0 && farmable(w, t) && !used.has(t) && !street.has(t) && !w.river[t] && !taken.has(t) && !nextTo(w, t, taken);
-    const worth = (t) => {
-      let room = 0;
-      for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0 && farmable(w, j) && !used.has(j) && !street.has(j)) room++; }
-      const b = w.biome[t];
-      return STREET.room * room - STREET.level * Math.abs(w.hp[t] - level) - (1.5 * w.stones[t]) / 255 - (b === B.MARSH ? 2 : b === B.HILLS ? 0.6 : 0);
-    };
-    const heads = []; // the directions the arms left the green in
-    const free = (k) => open(w.nb[center * 6 + k]) && !heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2);
-    const beside = (a, b) => { for (let q = 0; q < 6; q++) if (w.nb[a * 6 + q] === b) return true; return false; };
-    for (let a = 0; a < arms && street.size < need; a++) {
-      // An arm leaves the green well away from the others: opposite the first, or between them, so at most three do, never two side by
-      // side, and the green keeps open ground between its ways (Kim, VB-402). A fourth arm, or one that finds no such side free, is a
-      // side street: it leaves a tile of the street laid so far.
-      const len = Math.ceil((need - street.size) / (arms - a)), side = !([0, 1, 2, 3, 4, 5].some(free));
-      let at = center, dir = -1, bent = 0;
-      for (let n = 0; n < len; n++) {
-        let pick = -1, pd = -1, ps = -Infinity, from = at;
-        for (const stem of dir < 0 && side ? [...street] : [at]) for (let k = 0; k < 6; k++) {
-          const turn = dir < 0 ? 0 : ((k - dir + 9) % 6) - 3; // -1, 0 or 1 once the arm has a heading
-          if (dir >= 0 && Math.abs(turn) > 1) continue;
-          if (dir < 0 && !side && heads.some((h) => Math.abs(((k - h + 9) % 6) - 3) < 2)) continue;
-          const t = w.nb[stem * 6 + k];
-          if (!open(t)) continue;
-          // not touching the street anywhere but where it came from (a side street's first tile also touches the tiles beside its
-          // stem, which is how it leaves), nor the green but as an arm's first tile
-          let doubled = false;
-          for (let q = 0; q < 6; q++) {
-            const j = w.nb[t * 6 + q];
-            if (j !== stem && ((street.has(j) && !(stem !== at && beside(j, stem))) || (j === center && stem !== center))) doubled = true;
-          }
-          if (doubled) continue;
-          const sc = worth(t) + (turn === 0 ? STREET.straight : turn === bent ? -STREET.hook : 0) + rand() * STREET.wander;
-          if (sc > ps) { ps = sc; pick = t; pd = k; from = stem; }
-        }
-        if (pick < 0) break;
-        if (dir < 0) { if (from === center) heads.push(pd); } else if (pd !== dir) bent = ((pd - dir + 9) % 6) - 3;
-        street.add(pick); at = pick; dir = pd;
-      }
-    }
-    return street;
-  }
-  // A village laid out (VB-113, revised): the green, its street (layStreet), if it has one, and houses one by one along them. A house
-  // stands on a tile touching the street or the green, or, where those are full or there is no street, an earlier house's yard; it
-  // hangs together with the houses so far (its tile or a neighbour is one of their yards); it keeps off stony and wet ground and never
-  // stands next to a field. It would rather have open ground on most sides than neighbours on all: touching one house costs nothing,
-  // each one more costs `crowd`, so the village is a loose row with gaps (yards, a tree, a way through to the fields), not a block.
-  // Then each house takes its block of fields beyond the yards and the street (placeFields); a house whose fields find no room is
-  // not built, and another site is tried in its place. fieldsAt, yards (tiles next to a house or green, and street tiles) and homes (houses and greens) are
-  // kept by the settlement generator across villages.
-  const HOUSE = { reach: 8, far: 0.3, crowd: 0.9, offStreet: 1.4, wander: 1.6, better: 0.15, land: 2.4 };
-  // The form follows the site: where the street village comes out short of its farms (a neck of land, where the street and its row take
-  // the ground the fields need), the village is laid again without a street, close round its green, and the form with more farms stands.
+  // ---- the form of a village: houses round a green, each where its land is best ----
+  // A village laid out by its land (Kim, 12 Nov; it was a street and a row, VB-113): the green, then a farm at a time. A house stands on
+  // a tile touching the green or hanging together with the village so far (its tile or a neighbour touches one of its houses, or its
+  // tile one of its fields, so the village grows out past the fields of its first farms); it keeps off
+  // stony and wet ground, and would rather have open ground on most sides than neighbours on all: touching one house costs nothing,
+  // each one more costs `crowd`. Of the `tries` best such sites, the house stands where the land round it is best: its site's score,
+  // plus `byLand` times the worth of the block of fields it would take (placeFields), less `spare` times the house tile's own fertility,
+  // since a house stands on the poorer ground and spares the good (the stony rise beside the clay of a Swedish village). Its fields lie
+  // no nearer the green than the house, so the green stays the village's centre, and off the ring round the green, which stays open;
+  // a site whose fields find no room, or only ground too poor to feed a household (`land`), is no site. The village has no laid
+  // street: its lanes wear in where its people walk (sim/paths). fieldsAt, yards (the ground kept open: the tiles round a green) and
+  // homes (houses and greens) are kept by the settlement generator across villages.
+  const HOUSE = { reach: 8, far: 0.3, crowd: 0.9, offGreen: 1.4, wander: 1.6, land: 2.4, tries: 16, byLand: 1.5, spare: 1 };
   function buildVillage(w, used, rand, center, nFarms, id, farmsteads, villages = [], fieldsAt = new Set(), yards = new Set(), homes = new Set()) {
     const name = drawnName(rand, villages); // named when all are laid (nameVillages)
-    if (nFarms < STREET.from) return layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, false);
-    const sets = [used, fieldsAt, yards, homes], keep = () => ({ sets: sets.map((x) => [...x]), farms: farmsteads.slice() });
-    const back = (k) => { sets.forEach((x, n) => { x.clear(); for (const t of k.sets[n]) x.add(t); }); farmsteads.length = 0; farmsteads.push(...k.farms); };
-    const before = keep(), row = layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, true);
-    if (row.farmsteads.length >= nFarms) return row;
-    const withRow = keep();
-    back(before);
-    const close = layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, false);
-    if (close.farmsteads.length > row.farmsteads.length) return close;
-    back(withRow);
-    return row;
-  }
-  function layVillage(w, used, rand, center, nFarms, id, name, farmsteads, fieldsAt, yards, homes, withStreet) {
     const village = { id, name, center, farmsteads: [], fence: [], wood: [], grain: {}, ledger: [], totals: [], green: true, well: true };
     used.add(center);
-    const taken = new Set([...fieldsAt, ...homes]);
-    const street = !withStreet ? new Set()
-      : layStreet(w, used, rand, center, Math.ceil(nFarms * STREET.perFarm) + 1,
-        Math.min(6, 2 + Math.floor((nFarms - STREET.from) / STREET.armFarms)), taken);
-    const mine = new Set([center]), near = new Set();
+    const mine = new Set([center]), near = new Set(), tilled = new Set();
     const build = (t) => { mine.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) near.add(j); } };
     build(center);
-    // fields keep off the street, and off the tiles along it, which are the house sites, so they lie behind the row; where a house
-    // finds no fields so (a narrow neck of land), fields may take the sites along the street that no house has taken
-    const sides = new Set(yards);
-    for (const t of street) { yards.add(t); sides.add(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) sides.add(j); } }
-    for (const t of near) { yards.add(t); sides.add(t); }
-    const front = new Set([center, ...street]), reach = bfs(w, center, HOUSE.reach, walkable(w)).dist;
+    for (const t of near) yards.add(t); // the ring round the green stays open: houses may stand on it, fields may not
+    const reach = bfs(w, center, HOUSE.reach, walkable(w)).dist;
+    const fromGreen = bfs(w, center, HOUSE.reach + FIELD_REACH, walkable(w)).dist, outward = (h) => (t) => (fromGreen.get(t) ?? Infinity) >= fromGreen.get(h);
     // no route crosses a house: this village's so far (mine, but its green) and the other villages' (homes)
     const walk = walkable(w), house = (j) => j !== center && (mine.has(j) || homes.has(j)), shut = (j) => j < 0 || !walk(j) || house(j);
-    // the house sites still open, best first
+    // the house sites still open, with their scores, best first
     const sites = () => {
       const out = [];
       for (const [t, d] of reach) {
-        if (d < 1 || used.has(t) || street.has(t) || !farmable(w, t) || nextTo(w, t, fieldsAt) || !(near.has(t) || nextTo(w, t, near))) continue;
+        if (d < 1 || used.has(t) || !farmable(w, t) || !(near.has(t) || nextTo(w, t, near) || nextTo(w, t, tilled))) continue;
         if (cutsOff(w, t, shut, house) || rimFull(w, center, t, house)) continue;
         let touch = 0; for (let k = 0; k < 6; k++) if (mine.has(w.nb[t * 6 + k]) && w.nb[t * 6 + k] !== center) touch++;
         const b = w.biome[t];
-        out.push([t, -HOUSE.far * d - HOUSE.crowd * Math.max(0, touch - 1) - (nextTo(w, t, front) ? 0 : HOUSE.offStreet) - (1.5 * w.stones[t]) / 255
+        out.push([t, -HOUSE.far * d - HOUSE.crowd * Math.max(0, touch - 1) - (d === 1 ? 0 : HOUSE.offGreen) - (1.5 * w.stones[t]) / 255
           - (b === B.MARSH ? 2 : b === B.HILLS ? 0.5 : 0) + rand() * HOUSE.wander]);
       }
-      return out.sort((x, y) => y[1] - x[1] || x[0] - y[0]).map((x) => x[0]);
+      return out.sort((x, y) => y[1] - x[1] || x[0] - y[0]);
     };
-    const stand = (t) => { used.add(t); build(t); for (let k = 0; k < 6; k++) { const j = w.nb[t * 6 + k]; if (j >= 0) { yards.add(j); sides.add(j); } } };
-    // the farm of the house at t, if it finds its fields: behind the row, unless the unbuilt sites along the street give clearly
-    // better land (HOUSE.better more fertility over the block): a tidy row is not worth a poor farm
-    const worth = (block) => (block ? block.reduce((sum, j) => sum + fertility(w, j), 0) : -Infinity);
-    const farm = (t) => {
-      const behind = placeFields(w, used, t, 3, sides), any = placeFields(w, used, t, 3, yards);
-      const fields = worth(any) > worth(behind) + HOUSE.better ? any : behind;
-      if (!fields || worth(fields) < HOUSE.land) return false; // ground too poor to feed a household is no room for a farm
-      const f = makeFarmstead(w, farmsteads.length, t, fields, village, used);
-      farmsteads.push(f); village.farmsteads.push(f.id); homes.add(t);
-      for (const j of fields) fieldsAt.add(j);
-      return true;
-    };
-    // first the houses, so that no field takes a house's place; then each house's fields, the first house first; then, for the houses
-    // that found none, other sites one at a time, each kept only if its fields find room
-    const houses = [];
-    for (let n = 0; n < nFarms; n++) { const t = sites()[0]; if (t === undefined) break; houses.push(t); stand(t); }
-    // a house is kept if it still hangs together with the houses kept before it, and finds its fields
-    mine.clear(); near.clear(); build(center);
-    for (const t of houses) { if ((near.has(t) || nextTo(w, t, near)) && farm(t)) build(t); else used.delete(t); }
-    while (village.farmsteads.length < nFarms) {
-      let done = false;
-      for (const t of sites()) {
-        used.add(t); // placeFields takes no used tile, and makeFarmstead marks the house
-        if (farm(t)) { stand(t); done = true; break; }
+    const worth = (block) => block.reduce((sum, j) => sum + fertility(w, j), 0);
+    for (let n = 0; n < nFarms; n++) {
+      let best = null, bs = -Infinity;
+      const open = sites();
+      // the best of the first `tries` sites; where none of them finds its fields, of the next `tries`, and so on
+      for (let k = 0; k < open.length && !best; k += HOUSE.tries) for (const [t, base] of open.slice(k, k + HOUSE.tries)) {
+        used.add(t); // placeFields takes no used tile
+        const fields = placeFields(w, used, t, 3, yards, outward(t));
         used.delete(t);
+        if (!fields || worth(fields) < HOUSE.land) continue;
+        const sc = base + HOUSE.byLand * worth(fields) - HOUSE.spare * fertility(w, t);
+        if (sc > bs) { bs = sc; best = [t, fields]; }
       }
-      if (!done) break;
+      if (!best) break;
+      const f = makeFarmstead(w, farmsteads.length, best[0], best[1], village, used);
+      farmsteads.push(f); village.farmsteads.push(f.id); homes.add(best[0]); build(best[0]);
+      for (const j of best[1]) { fieldsAt.add(j); tilled.add(j); }
     }
     village.green = village.well = village.farmsteads.length >= 2;
     // a village that came to one farm is a lone farm: its centre is the house, and the ground meant for the green is free again
@@ -5228,7 +5149,7 @@ VB['sim/layout'] = (() => {
     const { dist: reach } = bfs(w, center, 40, walkable(w));
     let lone = null, ls = -Infinity;
     for (const [j, d] of reach) {
-      if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3 || yards.has(j) || nextTo(w, j, fieldsAt)) continue;
+      if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3 || yards.has(j)) continue;
       const fields = placeFields(w, used, j, 3, yards);
       if (!fields) continue;
       const s = siteScore(w, j) + fields.reduce((a, k) => a + fertility(w, k), 0) + rand();
@@ -5247,7 +5168,6 @@ VB['sim/layout'] = (() => {
   function farmIn(w, used, v, house, fields, farmsteads, fieldsAt, yards) {
     const f = makeFarmstead(w, farmsteads.length, house, fields, v, used);
     v.farmsteads.push(f.id);
-    for (let k = 0; k < 6; k++) { const j = w.nb[house * 6 + k]; if (j >= 0) yards.add(j); }
     for (const t of fields) fieldsAt.add(t);
     return f;
   }
@@ -5258,7 +5178,7 @@ VB['sim/layout'] = (() => {
     let best = -1, bs = -Infinity;
     for (const [t, d] of dist) {
       if (used.has(t) || yards.has(t) || !farmable(w, t) || !f.fields.some((fd) => hexSteps(w, fd.tile, t) === 1)) continue;
-      const s = fertility(w, t) - 0.15 * d;
+      const s = fertility(w, t) - FIELD_NEAR * d;
       if (s > bs) { bs = s; best = t; }
     }
     if (best < 0) return false;
@@ -5301,9 +5221,19 @@ VB['sim/layout'] = (() => {
       },
     };
   }
+  // Where farmed land may lie in play (a field or a meadow a household makes, a plot's field; Kim, 12 Nov), as the generator lays it: not
+  // on the ring of tiles round any village's green, which stays open, and no nearer the green of its own village v than its house, so
+  // the green stays the centre; it may touch a house. Gives the test of a tile, for the farm whose house is `house`.
+  function farmedLand(w, villages, v, house) {
+    const ring = new Set();
+    for (const u of villages) if (u.green) for (let k = 0; k < 6; k++) ring.add(w.nb[u.center * 6 + k]);
+    const c = v && v.green ? v.center : -1, dh = c >= 0 ? hexSteps(w, c, house) : 0;
+    return (t) => !ring.has(t) && (c < 0 || hexSteps(w, c, t) >= dh);
+  }
   return {
-    settlementGenerator, farmHooks, FIELD_REACH, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore, nameVillages, makeFence, makeFarmstead,
-    findSite, buildVillage, layStreet, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
+    settlementGenerator, farmHooks, FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand, nextTo, loneVillage, farmIn, fieldOn, placeFields, enclose, siteScore,
+      nameVillages, makeFence, makeFarmstead,
+    findSite, buildVillage, nameFarms, loneFarmName, finishLand, woodNear, findLoneFarm,
   };
 })();
 </script>
@@ -5318,10 +5248,10 @@ VB['sim/byhand'] = (() => {
   // gen: a settlementGenerator of sim/layout, before its finish(). Each is false (null) where the tile cannot take what is placed.
   // A farm on this very tile, with three fields: it joins the village whose centre is the nearest within SETTLE.centreApart steps, as
   // close farms are one village in play, or is a village of its own, as a lone farm is. Null where the tile cannot bear a house (not
-  // farmable, taken, a yard, beside a field) or finds no fields.
+  // farmable, taken, ground kept open) or finds no fields.
   function farmAt(w, gen, house) {
     const { used, farmsteads, villages, fieldsAt, yards } = gen;
-    if (!farmable(w, house) || used.has(house) || yards.has(house) || nextTo(w, house, fieldsAt)) return null;
+    if (!farmable(w, house) || used.has(house) || yards.has(house)) return null;
     const fields = placeFields(w, used, house, 3, yards);
     if (!fields) return null;
     let v = null, vd = SETTLE.centreApart + 1;
@@ -5561,7 +5491,8 @@ VB['sim/records'] = (() => {
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: { barley: ECON.startGrain }, meals: 0, wood: ECON.startWood, stone: 0,
       ledger: [], totals: [], unthreshed: [], hungryDays: 0, seedSeason: -1, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0,
-        haySpoilt: 0, clay: 0, bogOre: 0, rack: 0, boat: null, // clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
+        haySpoilt: 0, clay: 0, bogOre: 0, rack: 0, boat: null, carts: [],
+          cartMiss: 0, // carts, cartMiss: sim/carts; clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
       larder: [], fresh: [], fodderDay: -1, ale: [], poured: [],
       milkDay: -1, manure: 0, spoilt: 0 };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
@@ -8563,7 +8494,7 @@ VB['sim/fields'] = (() => {
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
-  const { nextTo } = VB['sim/layout'];
+  const { nextTo, farmedLand, FIELD_NEAR } = VB['sim/layout'];
   const { freeFor } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const { team } = VB['sim/herds'];
@@ -8601,17 +8532,18 @@ VB['sim/fields'] = (() => {
     return out;
   }
   // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),
-  // not on a river and not next to a house or green: fertile (watered by one), few stones, near, and 1 better when it touches one of the
+  // not on a river, and where farmed land may lie (sim/layout, farmedLand: beside a house, but off the ring round a green and no nearer
+  // the green than the house): fertile (watered by one), few stones, near, and 1 better when it touches one of the
   // farm's fields, so the fields grow as one block (VB-109). Open meadow always comes first; heath, hills or marsh (poorer, by FERTILITY)
   // only when no meadow is free (balance review: where land ran short, poorer land was taken in). -1 when there is none. `free`: whether the
   // household may take a tile in (a stake it may contest, for sim/stakes).
   // `built`: builtTiles(st), when the caller has it (the review asks every farm in one hour, VB-227).
   function chooseTile(st, f, free = (t) => freeFor(st, t, f.village), built = builtTiles(st)) {
-    const w = st.w, own = new Set(f.fields.map((fd) => fd.tile));
+    const w = st.w, own = new Set(f.fields.map((fd) => fd.tile)), may = farmedLand(w, st.villages, st.villages[f.village], f.house);
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
-      if (d < 1 || !farmable(w, t) || !free(t) || built.has(t) || st.used.has(t) || nextTo(w, t, built)) continue;
-      const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * d + (nextTo(w, t, own) ? 1 : 0) - (w.biome[t] === B.MEADOW ? 0 : 2);
+      if (d < 1 || !farmable(w, t) || !free(t) || built.has(t) || st.used.has(t) || !may(t)) continue;
+      const s = fertility(w, t) - 0.5 * w.stones[t] / 255 - FIELD_NEAR * d + (nextTo(w, t, own) ? 1 : 0) - (w.biome[t] === B.MEADOW ? 0 : 2);
       if (s > bs) { bs = s; best = t; }
     }
     return best;
@@ -8757,12 +8689,12 @@ VB['sim/fields'] = (() => {
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { byRiver, SEASON_DAYS } = VB['sim/rules'];
+  const { byRiver, SEASON_DAYS, TRAVEL } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
-  const { nextTo } = VB['sim/layout'];
+  const { nextTo, farmedLand } = VB['sim/layout'];
   const { HAND_REACH } = VB['sim/byhand'];
   const { hexSteps } = VB['sim/hex'];
   const { winterNeed } = VB['sim/herds'];
@@ -8786,14 +8718,15 @@ VB['sim/meadows'] = (() => {
   // Hay a farm's meadows give in an ordinary year, before raking and weather.
   const expectedHay = (f) => f.meadows.reduce((s, m) => s + HAY * m.fert, 0);
   // The best free tile for a hay meadow within REACH of the house, or -1: open meadow, marsh or heath, not a river or water tile, its
-  // village's outland or wilderness (sim/territory) and unused, not next to a house or green; by site value, near, few stones, beside the
+  // village's outland or wilderness (sim/territory) and unused, where farmed land may lie (sim/layout, farmedLand); by site value, near, few stones, beside the
   // farm's meadows, and away from its fields' block. `free`: whether the household may take a tile in (as for chooseTile, sim/fields).
   function chooseMeadow(st, f, free = (t) => freeFor(st, t, f.village), built = builtTiles(st)) {
     const w = st.w, own = new Set(f.meadows.map((m) => m.tile)), fields = new Set(f.fields.map((fd) => fd.tile));
+    const may = farmedLand(w, st.villages, st.villages[f.village], f.house);
     let best = -1, bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
       if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !free(t) || st.used.has(t) || built.has(t)) continue;
-      if (nextTo(w, t, built)) continue;
+      if (!may(t)) continue;
       const s = meadowFert(w, t) - 0.06 * d - (0.3 * w.stones[t]) / 255 + (nextTo(w, t, own) ? 0.3 : 0) - (nextTo(w, t, fields) ? 0.5 : 0);
       if (s > bs) { bs = s; best = t; }
     }
@@ -8842,7 +8775,8 @@ VB['sim/meadows'] = (() => {
   // farm is near enough.
   function meadowAt(st, tile, built = builtTiles(st)) {
     const w = st.w;
-    if (!SITE[w.biome[tile]] || w.river[tile] || w.water[tile] || st.used.has(tile) || built.has(tile) || nextTo(w, tile, built)) return false;
+    if (!SITE[w.biome[tile]] || w.river[tile] || w.water[tile] || st.used.has(tile) || built.has(tile) ||
+      !farmedLand(w, st.villages, null, tile)(tile)) return false;
     let f = null, fd = HAND_REACH + 1;
     for (const id of st.liveHouseholds) {
       const g = st.farmsteads[st.households[id].farmstead], d = hexSteps(w, g.house, tile);
@@ -8895,9 +8829,19 @@ VB['sim/meadows'] = (() => {
     m.held = Math.round(HAY * m.fert * st.weather * (m.raked ? 1 : UNRAKED) * (0.9 + rnd(st.rng.fields) * 0.2));
   }
   // Carried home: the hay goes into the household's barn; once the farm's last meadow is in, the log says how it stands for the winter.
-  function hayIn(st, m, hh, f) {
-    hh.hay += m.held; m.held = 0; m.stage = 'aftermath';
-    if (f.meadows.some((q) => q.stage !== 'aftermath')) return;
+  // Hay is carried by the load (sim/carts): what a pawn takes of the meadow's lying hay, as a load in rations (TRAVEL.hay units of hay a
+  // ration: `cap` is the back's or a cart's); the meadow is aftermath once its last hay is taken.
+  function hayLoad(m, cap) {
+    const take = Math.min(m.held, cap * TRAVEL.hay);
+    m.held -= take;
+    if (m.held <= 1e-9) { m.held = 0; m.stage = 'aftermath'; }
+    return take / TRAVEL.hay;
+  }
+  // A load of hay is in the barn; with the farm's last one, the log tells how the hay stands against the winter.
+  function hayIn(st, m, hh, f, a) {
+    hh.hay += a.load * TRAVEL.hay;
+    if (f.meadows.some((q) => q.stage !== 'aftermath')
+      || hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].phase === 'back' && st.agents[id].carry === 'hay')) return;
     const need = winterNeed(st, hh), short = need > hh.hay;
     log(st, `${f.name} has its hay in: ${Math.round(hh.hay)} for a winter's need of ${Math.round(need)}${short ? '; it is short' : ''}.`, {
       kind: 'hay', n: Math.round(hh.hay), ...atHousehold(st, hh) });
@@ -8915,7 +8859,8 @@ VB['sim/meadows'] = (() => {
     }
   }
   return {
-    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow, addMeadow,
+    HAY, UNRAKED, hayDay, hayWanted, meadowJobs, mowDone, hayIn, hayLoad, meadowsSpring, meadowsFrost, meadowFert, expectedHay, chooseMeadow, wantsMeadow,
+      addMeadow,
       startMeadow,
     meadowProject, finishMeadow, placeMeadows, meadowAt,
   };
@@ -9257,7 +9202,7 @@ VB['sim/expansion'] = (() => {
   const { freeFor, woodTaken } = VB['sim/territory'];
   const { clearTile } = VB['sim/forest'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
-  const { FIELD_REACH, nextTo } = VB['sim/layout'];
+  const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand } = VB['sim/layout'];
   const COTTAGE = ['foundation', 'walls', 'roof'], COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const MAX_PLOTS = 2, REACH = 6, FELL_HOURS = 10, GRUB_HOURS = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
@@ -9282,8 +9227,10 @@ VB['sim/expansion'] = (() => {
     return s === 'fell' ? FELL_HOURS : s === 'grub' ? GRUB_HOURS : s === 'clear' ? clearHours(st, tr.tile) : BREAK_HOURS;
   };
   // A house tile and one field tile within REACH steps of the green: the village's outland or wilderness (sim/territory), passable, off the
-  // rivers, in the village's region or one touching it. The house grows on the village (it may touch other houses, never a field); the field
-  // lies 2 to FIELD_REACH steps from it, next to no house or green (VB-113); and the farm has room (roomAt). Null when there is no room.
+  // rivers, in the village's region or one touching it. The house stands where the generator would put it (sim/layout, HOUSE: near the
+  // green, not crowded, where its field is worth most and its own tile least; Kim, 12 Nov); the field lies 1 to FIELD_REACH steps from it,
+  // where farmed land may lie (farmedLand: beside a house, off the ring round the green, no nearer the green than the house); and the
+  // farm has room (roomAt). Null when there is no room.
   // Room for a farm whose house is h (VB-154): free farmable tiles within FIELD_REACH walking steps of h, unused and free for village vid
   // (its outland or wilderness; vid null: wilderness only, for a new village; sim/territory), that `taken` does not exclude; counted up to
   // FIELDS.room. A farm needs FIELDS.room of them besides its first field for more fields, meadow and pasture.
@@ -9312,25 +9259,28 @@ VB['sim/expansion'] = (() => {
       if (w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
       cand.push([t, d]);
     }
-    const dist = new Map(cand), fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255 - 0.15 * dist.get(t);
-    const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !nextTo(w, t, built);
+    const fieldScore = (t) => fertility(w, t) - 0.5 * w.stones[t] / 255;
+    const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !built.has(t);
     const fieldCandidates = cand.filter(([t]) => fieldOk(t)).map(([t]) => [t, fieldScore(t)]);
     const walk = walkable(w), house = (j) => w.dev[j] === 3, shut = (j) => j < 0 || !walk(j) || house(j);
     let best = null, bs = -Infinity;
     for (const [h, d] of cand) {
-      if (nextTo(w, h, fields)) continue;
+      const may = farmedLand(w, st.villages, v, h);
       // a house may not close a way, since no route crosses one, nor close the green in (VB-402)
       if (cutsOff(w, h, shut, house) || (v.green && rimFull(w, v.center, h, house))) continue;
       let f = -1, fs = -Infinity;
       for (const [t, score] of fieldCandidates) {
         const steps = hexSteps(w, h, t);
-        if (steps < 2 || steps > FIELD_REACH) continue;
-        const sc = score - 0.15 * steps;
+        if (steps < 1 || steps > FIELD_REACH || fields.has(t) || !may(t)) continue;
+        const sc = score - FIELD_NEAR * steps;
         if (sc > fs) { fs = sc; f = t; }
       }
       if (f >= 0 && roomAt(st, h, (t) => t === f || t === h || fields.has(t) || built.has(t), v.id) < FIELDS.room) continue;
       let touch = 0; for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
-      const s = -0.2 * d - (wooded(w, h) ? 0.5 : 0) + (f >= 0 ? 1 : 0) + 0.3 * Math.min(touch, 3);
+      // the generator's score of a house site (sim/layout, HOUSE): near the green, not crowded, where its field is worth most and its own
+      // tile least
+      const s = -HOUSE.far * d - HOUSE.crowd * Math.max(0, touch - 1) - (d === 1 ? 0 : HOUSE.offGreen) - (wooded(w, h) ? 0.5 : 0)
+        + (f >= 0 ? HOUSE.byLand * fs - HOUSE.spare * fertility(w, h) : -Infinity);
       if (s > bs) { bs = s; best = { house: h, field: f }; }
     }
     return !best || best.field < 0 ? null : best;
@@ -9740,7 +9690,8 @@ VB['sim/building'] = (() => {
         const f = st.farmsteads[id];
         if (f.booth && f.household !== null) ask(`timber:f${f.id}`, v, f.booth, f.booth.i, f.house, { type: 'household', id: f.household });
         const s = f.household !== null && Projects.openOf(st, 'household', f.household); // a boat's timber, carried to its shore (VB-300)
-        if (s && s.kind === 'boat') ask(`timber:b${f.id}`, v, s, 0, s.place, { type: 'household', id: f.household });
+        if (s && (s.kind === 'boat' || s.kind === 'cart')) ask(`timber:b${f.id}`, v, s, 0, s.place, {
+          type: 'household', id: f.household }); // and a cart's, to the house
       }
     }
   }
@@ -10002,10 +9953,134 @@ VB['sim/drying'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/carts: the household's carts (the distance review, Kim, 12 Nov): hand carts and ox carts as items that carry a larger load home,
+// wear with each trip and are mended; the head counts the loads that found no cart free and has another built, as a project at the house
+// Design: design.md, Carts. A pawn taking a load from the field takes the household's best free cart: an ox cart if its team is free, else a
+// hand cart, else the load goes on the back (TRAVEL). Today only sheaves are carried by the load (sim/kinds, haul); hay, firewood and manure
+// are to follow. Reads sim/herds (the team), sim/projects; writes household.carts and household.cartMiss, and begins and ends the cart's project.
+VB['sim/carts'] = (() => {
+  const { TRAVEL } = VB['sim/rules'], { hayLoad } = VB['sim/meadows'];
+  // The tunables (the distance review, Kim, 12 Nov): a load is `load` rations on the back, `hand` on a hand cart and `cart` on an ox
+  // cart (it was 90 with two oxen: Kim, 10 Nov; a back load is 25 to 30 kg, a hand cart's 100 to 150 kg on a track, an ox cart's 500 to
+  // 800 kg, halved here since sheaves and hay fill a cart before they weigh it down; from memory, unchecked). pace: a laden pawn's speed
+  // of an unladen one's. A cart is `hours` of work at the house and `timber` loads of the village's wood (a tree gives 3); each trip wears
+  // it by `wear`, it is mended (mendHours) below `mendAt`, and at 0 it is gone. A head whose household took `misses` loads on the back in
+  // a year, with no cart free and more waiting, has another built. What a load is, by what is carried: sheaves in rations; hay at
+  // TRAVEL.hay units a ration of load (6 on the back, 18 and 60 on the carts: a meadow's 30 is five trips on the back); firewood a trip's
+  // cutting (ECON.woodPerTrip) a back load, so a cart lets a pawn stay and cut further loads while the pile is short and the day lasts;
+  // manure is carted `manure` times as fast with a cart (as the team's rate at the plough)
+  const CART = { hours: { hand: 12, ox: 30 }, timber: { hand: 3, ox: 6 }, wear: 0.02, mendAt: 0.5, mendHours: 3, misses: 6,
+    manure: { hand: 1.5, ox: 2.5 }, reload: 0.5 };
+  const { hasTeam } = VB['sim/herds'], Projects = VB['sim/projects'], { emit } = VB['sim/events'];
+  const { log, atFarm } = VB['sim/records'];
+  // @state household.carts[]: {kind ('hand' | 'ox'), cond (1 new; mended below CART.mendAt; gone at 0), built (game hour), by (the pawn
+  //   that has it out with a load, or null)}: the household's carts, in the order they were made. Written only here.
+  // @state household.cartMiss: loads taken on the back this year because no cart was free while more waited (the head's count); 0 at each
+  //   winter's start. Written only here.
+  // A cart is out while the pawn named in `by` is at the job it took it for: carrying a load home, cutting a further load of firewood
+  // beside it, or carting dung; a `by` left by a pawn that died or dropped the job is free again.
+  const out = (st, c) => { const a = c.by === null ? null : st.agents[c.by]; return !!a && !!a.job && (a.phase === 'back' || a.phase === 'work'); };
+  const free = (st, hh, kind) => hh.carts.find((c) => c.kind === kind && !out(st, c)) || null;
+  const cartOf = (st, hh, id) => hh.carts.find((c) => c.by === id && out(st, c)) || null;
+  // The load pawn `id` of household hh may take now, and the cart it takes for it: `teamFree` says whether the team could draw the ox cart
+  // (sim/agents: the household has one, and it is at no plough and no other cart).
+  function take(st, hh, id, teamFree) {
+    const i = hh.carts.indexOf((teamFree && free(st, hh, 'ox')) || free(st, hh, 'hand'));
+    if (i < 0) return TRAVEL.load;
+    const c = hh.carts[i];
+    c.by = id;
+    return c.kind === 'ox' ? TRAVEL.cart : TRAVEL.hand;
+  }
+  // What the cart pawn `id` has out holds, or 0; and the pawn gives its cart up (a load that fits the back needs none).
+  const holds = (st, hh, id) => { const c = cartOf(st, hh, id); return c ? (c.kind === 'ox' ? TRAVEL.cart : TRAVEL.hand) : 0; };
+  function leave(st, hh, id) { const i = hh.carts.findIndex((c) => c.by === id); if (i >= 0) { const c = hh.carts[i]; c.by = null; } }
+  // Carting dung (sim/agents, each step of the work): the rate with the cart the pawn has, or takes now; 1 with none.
+  function carting(st, hh, id, teamFree) {
+    let c = cartOf(st, hh, id);
+    if (!c && take(st, hh, id, teamFree) > TRAVEL.load) c = cartOf(st, hh, id);
+    return c ? CART.manure[c.kind] : 1;
+  }
+  // The ox cart is out (the team with it).
+  const oxOut = (st, hh) => hh.carts.some((c) => c.kind === 'ox' && out(st, c));
+  // How fast a laden pawn walks, of an unladen one's pace: with the load on its back, with a hand cart, or beside the oxen.
+  function pace(st, a) {
+    if (!(a.load > TRAVEL.load)) return TRAVEL.pace.back;
+    const c = cartOf(st, st.households[st.pawns[a.id].household], a.id);
+    return c ? TRAVEL.pace[c.kind] : TRAVEL.pace.back;
+  }
+  // A load is home: the cart it came on wears, and one worn out is gone.
+  function home(st, hh, id) {
+    const i = hh.carts.findIndex((c) => c.by === id);
+    if (i < 0) return;
+    const c = hh.carts[i], f = st.farmsteads[hh.farmstead];
+    c.by = null; c.cond -= CART.wear;
+    if (c.cond > 1e-9) return;
+    hh.carts.splice(i, 1);
+    log(st, `${f.name}'s ${c.kind === 'ox' ? 'ox cart' : 'hand cart'} is worn out.`, { kind: 'cartGone', ...atFarm(f) });
+  }
+  // A load went on the back while more waited and no cart was free.
+  function missed(st, hh) { hh.cartMiss++; }
+  // At the winter's start the head counts the year's misses: at CART.misses or more, and with no project under way, the household builds
+  // another cart: an ox cart if it keeps a team and has none, else a hand cart. The count starts again.
+  function cartsYear(st) {
+    for (const v of st.villages) for (const fid of v.farmsteads) {
+      const f = st.farmsteads[fid], hh = f.household === null ? null : st.households[f.household];
+      if (!hh || hh.dissolved) continue;
+      const n = hh.cartMiss; hh.cartMiss = 0;
+      if (n < CART.misses || !v.wood.length || f.booth || Projects.projectOf(st, 'household', hh.id)) continue;
+      const kind = hasTeam(st, hh) && !hh.carts.some((c) => c.kind === 'ox') ? 'ox' : 'hand';
+      emit(st, 'projectBegun', { type: 'household', id: hh.id, project: { what: 'cart', cart: kind,
+        steps: [{ kind: 'cart', place: f.house, hours: CART.hours[kind], wood: 0, timber: CART.timber[kind] }] } });
+    }
+  }
+  function cartBuilt(st, j, hh) {
+    const plan = Projects.projectOf(st, 'household', hh.id), s = plan && Projects.openStep(plan);
+    if (!s || s.kind !== 'cart') return;
+    const f = st.farmsteads[hh.farmstead];
+    hh.carts.push({ kind: plan.cart, cond: 1, built: st.t, by: null });
+    log(st, `${f.name} has built ${plan.cart === 'ox' ? 'an ox cart' : 'a hand cart'}.`, { kind: 'cartBuilt', ...atFarm(f) });
+    emit(st, 'stepDone', { type: 'household', id: hh.id });
+  }
+  // The carts a scenario's households start with: an ox cart where there is a team to draw it, and a hand cart on every farm that has
+  // stood for years (not the founders', who land with what they carry).
+  function seedCarts(st, standing) {
+    for (const id of st.liveHouseholds) {
+      const hh = st.households[id];
+      if (standing) hh.carts.push({ kind: 'hand', cond: 1, built: st.t, by: null });
+      if (hasTeam(st, hh)) hh.carts.push({ kind: 'ox', cond: 1, built: st.t, by: null });
+    }
+  }
+  // What the kinds of sim/kinds take from here. Hay goes by the load, as sheaves: the first is raked together in the job's hours, a
+  // further one loaded in CART.reload. loads: the back loads a pawn brings home (firewood: one for each trip's cutting stacked on its cart).
+  const HAY = { load: (st, a, j, cap) => (a.load = hayLoad(j.meadow, cap)), again: (j) => j.meadow.held > 0, reload: CART.reload };
+  const loads = (a) => Math.max(1, Math.round((a ? a.load : 0) / TRAVEL.load));
+  // ---- the job kinds (sim/kinds registers them) ----
+  const atHouse = (st, a, j) => [st.w.hx[j.farm.house] + 6 + a.ox * 0.3, st.w.hy[j.farm.house] + 4 + a.oy * 0.2];
+  const worst = (st, hh) => hh.carts.filter((c) => !out(st, c)).sort((a, b) => a.cond - b.cond)[0] || null;
+  const KINDS = {
+    cart: {
+      verb: 'Building a cart', go: 'Going to build the cart', name: 'Build a cart', label: 'Cart', anim: 'mallet',
+      hours: CART.hours.hand, hands: 2, type: 'wood', project: true, spot: atHouse,
+      done: (st, j, hh) => cartBuilt(st, j, hh),
+    },
+    mendcart: {
+      verb: 'Mending the cart', go: 'Going to mend the cart', name: 'Mend the cart', label: 'Cart', anim: 'mallet',
+      hours: CART.mendHours, hands: 1, type: 'upkeep', spot: atHouse, urgency: (st, j, c, U) => U.repair,
+      done: (st, j, hh) => { const i = hh.carts.indexOf(worst(st, hh)), c = hh.carts[i]; if (c && c.cond < CART.mendAt) c.cond = 1; },
+      available: (st, hh, f, c, post) => {
+        const w = f.household === hh.id ? worst(st, hh) : null;
+        if (w && w.cond < CART.mendAt) post(`mendcart:f${f.id}`, f.house, { farm: f });
+      },
+    },
+  };
+  return { KINDS, CART, HAY, loads, take, holds, leave, carting, pace, home, missed, oxOut, cartsYear, seedCarts };
+})();
+</script>
+<script>
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'], Projects = VB['sim/projects'];
-  const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition } = VB['sim/rules'];
+  const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition } = VB['sim/rules'], Carts = VB['sim/carts'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf } = VB['sim/hunger'], { reserved } = Stores;
@@ -10168,9 +10243,10 @@ VB['sim/kinds'] = (() => {
         return (goal - free) / goal + (c.season === 2 ? U.woodSummer : 0);
       },
       // a tree felled on the tile drawn from the village's wood when the job was posted (VB-326), or on one drawn now if it was cut bare
-      deliver: (st, j, hh) => {
-        Stores.put(st, hh, 'wood', st.ECON.woodPerTrip, 'firewood'); fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.farm.village]));
-      },
+      deliver: (st, j, hh, f, a) => { // a tree felled, and its wood home, for each load cut and stacked on the cart (sim/carts); one on the back
+        for (let k = Carts.loads(a); k > 0; k--) { Stores.put(st, hh, 'wood', st.ECON.woodPerTrip, 'firewood');
+          fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.farm.village])); } },
+      stack: (st, j, hh, c, load) => hh.wood - reserved(st, hh, 'wood') + st.ECON.woodPerTrip * Carts.loads({ load }) < woodTargets(st, hh).wood[c.season],
       draw: (st, j) => drawWood(st, st.villages[j.farm.village]),
       // while the village has a wood and the pile's free wood (VB-123) is below the plan's goal for the season; a second job below its woodSecond
       available: (st, hh, f, c, post) => {
@@ -10274,7 +10350,7 @@ VB['sim/kinds'] = (() => {
       verb: 'Gathering the hay', go: 'Going for the hay', back: 'Carrying hay to the barn', name: 'Bring in hay', label: 'Hauling hay', anim: 'gather',
       hours: 4, hands: Infinity, type: 'harvest', carry: 'hay', to: 'barn',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6], urgency: (st, j, c, U) => U.haul,
-      deliver: (st, j, hh, f) => hayIn(st, j.meadow, hh, f), available: meadowWork,
+      ...Carts.HAY, deliver: (st, j, hh, f, a) => hayIn(st, j.meadow, hh, f, a), available: meadowWork, // by the load (sim/carts)
     },
     fodder: {
       verb: 'Feeding and mucking out in the byre', go: 'Going to the byre', name: 'Fodder the animals', label: 'Byre', anim: 'gather', hours: 1,
@@ -10283,7 +10359,7 @@ VB['sim/kinds'] = (() => {
     },
     manure: {
       verb: 'Spreading manure on the field', go: 'Carting manure to the field', name: 'Cart manure', label: 'Manure', anim: 'gather', hours: 1,
-      hands: Infinity, type: 'tilling', field: true, spot: onField, urgency: (st, j, c, U) => U.manure,
+      hands: Infinity, type: 'tilling', field: true, spot: onField, urgency: (st, j, c, U) => U.manure, carted: true, // faster with a cart (sim/carts)
       done: (st, j, hh) => manureDone(st, j.field, hh, j.hours),
       // in spring, while the heap holds a load: the farm's poorest field not yet sown, for the loads it takes (manureWanted, VB-137)
       available: (st, hh, f, c, post) => {
@@ -10376,7 +10452,8 @@ VB['sim/kinds'] = (() => {
     },
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
-  KINDS.herd = VB['sim/grazing'].KIND; Object.assign(KINDS, Drying.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
+  KINDS.herd = VB['sim/grazing'].KIND;
+    Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -10396,7 +10473,7 @@ VB['sim/kinds'] = (() => {
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
-  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry')); // VB-359, VB-300 (the boat is a project's step: landProject)
+  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart')); // VB-359, VB-300, sim/carts (a boat or a cart is a project's step)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen };
 })();
@@ -10432,6 +10509,7 @@ VB['sim/agents'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { eligible } = VB['sim/eligibility'];
   const { hasTeam } = VB['sim/herds'];
+  const Carts = VB['sim/carts'];
   const { driveHome, driven } = VB['sim/grazing'];
   const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
@@ -10500,7 +10578,8 @@ VB['sim/agents'] = (() => {
     // a load on its way home is put down in its farm's barn first (VB-335: a wedding or a move at the round found a pawn mid-haul)
     if (a.load > 0 && a.phase === 'back' && a.job) deposit(st, a, a.job.farm);
     if (a.job) { const c = a.job.claims, i = c.indexOf(a.id); if (i >= 0) c.splice(i, 1); a.job = null; }
-    a.phase = null; a.work = null; a.basis = null;
+    a.phase = null; a.work = null; a.basis = null; a.load = 0; // wood cut and stacked, not yet on its way, is left
+    const hid = st.pawns[a.id].household; if (hid !== null) Carts.leave(st, st.households[hid], a.id); // and its cart is free
   }
   // ---- attention (VB-251; design.md section 7): a pawn holds one task (a.job), and besides it one partial and one background task ----
   // @state agent.side: absent, or {partial, background}: the jobs the pawn holds besides its task, each a job of st.jobs listing the pawn
@@ -10608,6 +10687,7 @@ VB['sim/agents'] = (() => {
     const j = a.job, K = KINDS[j.kind];
     const hh = st.households[farm && farm.household !== null ? farm.household : st.pawns[a.id].household];
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
+    Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears
     if (!K.again || !K.again(j)) dropJob(st, j);
     else j.claims.splice(j.claims.indexOf(a.id), 1); // open for the next load
     a.carry = null; a.load = 0; a.job = null; a.basis = null; a.phase = null;
@@ -10641,16 +10721,17 @@ VB['sim/agents'] = (() => {
     for (const q of st.jobsBy.get(ownerKey(j.owner)) || []) if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
     return first === j && hasTeam(st, st.households[j.owner.id]);
   }
-  // The household's team draws the cart: it has one, and no one else has it out, at the plough or on the road (VB-335).
-  function cartFree(st, a) {
-    const hh = st.households[st.pawns[a.id].household];
-    if (!hasTeam(st, hh)) return false;
-    for (const id of hh.members) { const b = st.agents[id]; if (b.phase === 'back' && b.load > TRAVEL.load || withOxen(st, b)) return false; }
+  // The household's team may draw the ox cart: it has a team, at no plough and with no other cart on the road (VB-335; sim/carts).
+  function teamFree(st, hh) {
+    if (!hasTeam(st, hh) || Carts.oxOut(st, hh)) return false;
+    for (const id of hh.members) if (withOxen(st, st.agents[id])) return false;
     return true;
   }
   function stepWork(st, a, dt) {
     const j = a.job, K = KINDS[j.kind];
-    j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1);
+    // manure is carted faster with a cart (sim/carts): taken as the work begins, and kept until it ends
+    const hhW = K.carted || K.stack ? st.households[st.pawns[a.id].household] : null;
+    j.done += dt * rateOf(st, st.pawns[a.id]) * (withOxen(st, a) ? HERD.team.rate : 1) * (K.carted ? Carts.carting(st, hhW, a.id, teamFree(st, hhW)) : 1);
     if (K.worked) K.worked(st, j);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
@@ -10663,10 +10744,27 @@ VB['sim/agents'] = (() => {
       a.stride += Math.hypot(nx - a.x, ny - a.y) / 3.4;
       a.x = nx; a.y = ny;
     }
+    if (j.done >= (j.hours ?? K.hours) && K.stack) {
+      // firewood (sim/carts): a trip's cutting is a back load; with a cart that has room for one more, the cutter stays and cuts
+      // it, while the pile is short and the working day has the hours; with no cart free and the pile still short, a miss
+      a.load = (a.load || 0) + TRAVEL.load;
+      const c = cal(st.t);
+      if (K.stack(st, j, hhW, c, a.load) && c.hour + K.hours <= WORK[1]) {
+        const cap = Carts.holds(st, hhW, a.id) || Carts.take(st, hhW, a.id, teamFree(st, hhW));
+        if (cap >= a.load + TRAVEL.load) { j.done = 0; return; }
+        if (cap === TRAVEL.load) Carts.missed(st, hhW);
+      }
+      if (a.load <= TRAVEL.load) Carts.leave(st, hhW, a.id);
+    }
     if (j.done >= (j.hours ?? K.hours)) {
-      const n = K.load ? K.load(st, a, j, cartFree(st, a) ? TRAVEL.cart : TRAVEL.load) : null; // a load taken from the field (VB-335)
+      // a load taken from the field (VB-335), on the household's best free cart or on the back (sim/carts); a load on the back
+      // with more left waiting is a miss the head counts
+      const hhL = K.load ? st.households[st.pawns[a.id].household] : null, cap = K.load ? Carts.take(st, hhL, a.id, teamFree(st, hhL)) : 0;
+      const n = K.load ? K.load(st, a, j, cap) : null;
+      if (K.load && cap === TRAVEL.load && n > 0 && K.again(j)) Carts.missed(st, hhL);
+      if (K.load && n <= TRAVEL.load) Carts.leave(st, hhL, a.id); // a load for the back needs no cart
       if (K.carry && n !== 0) {
-        if (n !== null && K.again(j)) j.done = 0; // the others go on loading
+        if (n !== null && K.again(j)) { j.done = 0; if (K.reload) j.hours = K.reload; } // the others go on loading
         else freeHands(st, j, a.id);
         a.carry = K.carry; a.phase = 'back'; a.work = null;
         const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead], to = K.to === 'site' ? j.dest : f.house;
@@ -10676,6 +10774,7 @@ VB['sim/agents'] = (() => {
         walkTo(st, a, to, x, y);
       } else {
         complete(st, a);
+        if (K.carted) Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the dung cart is back, and wears
         a.job = null; a.basis = null; a.work = null;
         a.phase = null; a.inside = false;
         if (K.inside) { a.inside = false; a.anim = 'idle'; }
@@ -10683,7 +10782,7 @@ VB['sim/agents'] = (() => {
     }
   }
   function moveAgent(st, a, dt) {
-    let left = SPEED * st.w.HW * dt * (a.carry ? 0.8 : 1); // map units of meadow walking; a step of cost c takes c of them per unit
+    let left = SPEED * st.w.HW * dt * (a.carry ? Carts.pace(st, a) : 1); // map units of meadow walking; a step of cost c takes c of them per unit
     while (left > 0 && a.seg < a.path.length - 1) {
       const pt = a.path[a.seg + 1], tx = pt[0], ty = pt[1], c = pt[2] === undefined ? 1 : pt[2];
       const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), reach = left / c;
@@ -14164,7 +14263,7 @@ VB['sim/scenarios'] = (() => {
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
       kind: 'settled', n: R.pawns.length, village: village.id });
-    splitStreams(st, seedNum); return st;
+    VB['sim/carts'].seedCarts(st, false); splitStreams(st, seedNum); return st;
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population; on a Medium or Large map
   // the first two villages are a large and a medium one, which take the best sites.
@@ -14247,7 +14346,7 @@ VB['sim/scenarios'] = (() => {
     placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
-    splitStreams(st, seedNum); return st;
+    VB['sim/carts'].seedCarts(st, true); splitStreams(st, seedNum); return st;
   }
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
   function seedHeirs(w, seedNum) {
@@ -14325,7 +14424,7 @@ VB['sim/scenarios'] = (() => {
     placeMeadows(st); seedOutland(st, true);
     for (const f of [A3, B2]) birthright(st, f, f.line, f.emptySince); // the old families' birthright, from when the farms emptied (VB-033)
     log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`, { kind: 'settled', n: R.pawns.length });
-    splitStreams(st, seedNum); return st;
+    VB['sim/carts'].seedCarts(st, true); splitStreams(st, seedNum); return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
     seal();
@@ -14490,7 +14589,7 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings } = VB['sim/occasions'];
   const { takeIn } = VB['sim/service'];
-  const { boatYear } = VB['sim/drying'], { KINDS } = VB['sim/kinds'];
+  const { boatYear } = VB['sim/drying'], { cartsYear } = VB['sim/carts'], { KINDS } = VB['sim/kinds'];
 
   // ---- the calendar (VB-241) ----
   // CALENDAR is everything the clock runs, in the order it runs: each 6-minute step walks the table once, top to bottom, and runs each
@@ -14588,6 +14687,8 @@ VB['sim/clock'] = (() => {
     { every: 'day', owner: 'sim/byre', note: 'food spoils, manure rots, the stalled herds eat their hay', run: (st, c) => byreDay(st, c) },
     { every: 'year', at: { season: 0, sday: FISH.from }, owner: 'sim/drying', note: 'the ice is gone: households by the sea begin a boat (VB-300)',
       run: (st) => boatYear(st) },
+    { every: 'year', at: { season: 3, sday: 0 }, owner: 'sim/carts', note: 'the winter begins: a head short of carts in the year has one built',
+      run: (st) => cartsYear(st) },
     { every: 'year', at: { doy: HERD.countDay }, owner: 'sim/byre', note: 'the autumn count: what goes to slaughter', run: (st) => autumnCounts(st) },
     { every: 'day', owner: 'sim/byre', note: 'cattle left unherded yesterday may stray into a crop (VB-136)', run: (st, c) => strays(st, c) },
     { every: 'day', owner: 'sim/grazing', note: 'every herd back by its farm for the night (VB-136)', run: (st) => herdsBack(st) },
@@ -14980,6 +15081,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.clay === undefined) { hh.clay = 0; hh.bogOre = 0; } // VB-359: nor dug loads
     for (const hh of st.households) if (hh.rack === undefined) { hh.rack = 0; hh.boat = null; } // VB-300: nor a drying rack nor a boat
     for (const hh of st.households) if (!hh.fresh) openFresh(hh); // VB-119: nor fresh food
+    for (const hh of st.households) if (!hh.carts) { hh.carts = []; hh.cartMiss = 0; } // nor carts (sim/carts): older saves' teams drew an unnamed one
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
@@ -19129,7 +19231,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // The living at the start, for each map size: the least and the most of Sim.seed at the seeds of DEMO.seeds (tests/start.js runs them).
   const START_PEOPLE = {
     founders: { t: [10, 10], s: [10, 10], m: [10, 10], l: [10, 10] }, heirs: { t: [18, 18], s: [18, 18], m: [18, 18], l: [18, 18] },
-    populous: { t: [135, 155], s: [324, 358], m: [804, 864], l: [802, 841] },
+    populous: { t: [132, 156], s: [323, 360], m: [800, 844], l: [801, 880] },
   };
   const START_SIGNS = {
     well: 'M6 21V7M3 10l14-6M17 4v7M15 11h4v4h-4zM10 21h10', tree: 'M12 21v-6M12 3l6 12H6z',
@@ -20684,7 +20786,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'c829871d78', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'ae7c11f03b', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

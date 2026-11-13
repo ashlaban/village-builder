@@ -63,6 +63,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-393](backlog/VB-393.md) | A boat is built only by a household with a surplus and two free hands | fair | 3 | S | Until boats are a holder's project (VB-255) kept with tar (VB-301), only a household with a surplus and two free hands builds one. |
 | [VB-394](backlog/VB-394.md) | Hay comes home by the load | - | 3 | S | A load of hay is 10 units on the back and 60 on a cart, so a meadow of 30 is three trips or one cart. |
 | [VB-395](backlog/VB-395.md) | Refactor: the pawn's vital fields are written by sim/records | ownership | 3 | S | pawn.alive and pawn.age get one writer, sim/records, called by lifecycle and births. |
+| [VB-410](backlog/VB-410.md) | A cart is drawn: beside the house, and with the pawn that has it out | - | 3 | S | Carts are household items (sim/carts) with nothing drawn: the page shows a hand cart or an ox cart by the house while it is home, and with the pawn (the oxen before an ox cart) while it is out with a load; a worn cart looks worn |
 
 ## Waiting for Kim
 
@@ -164,6 +165,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-356](backlog/VB-356.md) | Wrap-up: crops and rotations | crops | 2 | M | VB-348, VB-349, VB-350, VB-351, VB-352, VB-353, VB-354, VB-355 | Check the arch against the design with long runs: the food balance by crop, how crops spread, the hedge against the weather, the labour calendar, cost early and late; add its bands and propose tuning. |
 | [VB-387](backlog/VB-387.md) | Herding's routes: the herders' walks out of the route counters' residual | - | 2 | S | VB-236 | routeRefresh, routeExpand and routeSearch are out since herding (VB-136); find what the daily refresh tests and bring them back. |
 | [VB-331](backlog/VB-331.md) | A day without water: no cooking and a little health | - | 3 | S | VB-327 | A household that fetched no water that day cannot cook and its members lose a little health, as with an empty woodpile; today the water job is read by nothing. |
+| [VB-411](backlog/VB-411.md) | Tuning: the carts' numbers, for a run Kim starts | - | 3 | S | Kim | The carts' numbers are first values, from memory and unchecked (loads, paces, wear, mending, the misses for another cart, hours and timber to build, dung's rate, hay a load): measure what each moves and put them before Kim's tuning run; an agent changes none |
 
 ## Archs
 
