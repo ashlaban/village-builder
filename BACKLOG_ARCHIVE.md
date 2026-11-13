@@ -310,3 +310,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-336](backlog/VB-336.md) | The ox team's advantage: an ard tills several times faster than a hoe | - | 3 | S | The team's rate at hoeing and breaking rises from 2.5 to 5, so that keeping two oxen through the winter pays. |
 | [VB-427](backlog/VB-427.md) | Repair: the nightly checks that fail (smoke, record, review-tools) | - | 1 | S | tests/smoke.js, tests/record.js and tests/review-tools.js fail at the branch tip; each is repaired at its cause. |
 | [VB-106](backlog/VB-106.md) | Neighbours help with each other's work, and it builds ties | year | 3 | M | Idle adults may take a waiting field job of another household in their village; help raises tie and opinion. |
+| [VB-120](backlog/VB-120.md) | Village work days | year | 3 | M | The meeting sets days when the whole village mends the fence or clears the commons; staying away costs prestige. |
