@@ -22,7 +22,7 @@ for (const seed of [7, 42]) {
   for (const hh of st.households) {
     const f = st.farmsteads[hh.farmstead];
     if (hh.herds.length) check(f.meadows.length >= 1, `founders ${seed}: ${f.name} keeps animals but has no meadow by the end of summer`);
-    else check(!f.meadows.length, `founders ${seed}: ${f.name} keeps no animals but made a meadow`);
+    // a household without animals may make a first meadow, for a cow it wants (VB-428), by the rule of tests/cowwant.js
     validMeadows(st, f, hh, `founders ${seed}`);
   }
   check(!checkState(st).length, `founders ${seed}: ` + checkState(st).slice(0, 3).join('; '));

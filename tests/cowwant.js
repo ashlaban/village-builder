@@ -63,6 +63,15 @@ function leadHome(st, buyer) {
   check(balance(st, seller.holder, buyer.holder) <= 0, 'a start in life is not booked');
   check(!checkState(st).length, 'start in life: ' + checkState(st).slice(0, 3).join('; '));
 }
+{ // a first meadow (VB-428): two hands, no herd, no meadow: the land step starts one; one hand, or a meadow already: none
+  const st = state(), hh = st.households[2], f = st.farmsteads[hh.farmstead];
+  check(!hh.herds.length && !f.meadows.length, 'the probe household has no herd and no meadow');
+  const p = M.startMeadow(st, f, hh);
+  check(p && p.what === 'meadow', 'two hands, no herd, no meadow: a first meadow is started');
+  const lone = state(), lh = lone.households[2];
+  for (const id of lh.members) if (id !== lh.holder) lone.pawns[id].retired = true;
+  check(!M.startMeadow(lone, lone.farmsteads[lh.farmstead], lh), 'one hand: no first meadow');
+}
 
 if (failed) process.exit(1);
 console.log('cowwant ok');
