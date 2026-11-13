@@ -12,8 +12,9 @@ VB['sim/carts'] = (() => {
   // of an unladen one's. A cart is `hours` of work at the house and `timber` loads of the village's wood (a tree gives 3); each trip wears
   // it by `wear`, it is mended (mendHours) below `mendAt`, and at 0 it is gone. A head whose household took `misses` loads on the back in
   // a year, with no cart free and more waiting, has another built. What a load is, by what is carried: sheaves in rations; hay at
-  // TRAVEL.hay units a ration of load (6 on the back, 18 and 60 on the carts: a meadow's 30 is five trips on the back); firewood a trip's
-  // cutting (ECON.woodPerTrip) a back load, so a cart lets a pawn stay and cut further loads while the pile is short and the day lasts;
+  // TRAVEL.hay units a ration of load, an ox cart at most TRAVEL.hayCart (10 on the back, 30 on a hand cart,
+  // 60 on an ox cart: a meadow's 30 is three trips on the back; VB-394); firewood a trip's cutting
+  // (ECON.woodPerTrip) a back load, so a cart lets a pawn stay and cut further loads while the pile is short and the day lasts;
   // manure is carted `manure` times as fast with a cart (as the team's rate at the plough)
   const CART = {
     hours: { hand: 12, ox: 30 },
@@ -23,7 +24,7 @@ VB['sim/carts'] = (() => {
     mendHours: 3,
     misses: 6,
     manure: { hand: 1.5, ox: 2.5 },
-    reload: 0.5,
+    reload: 1.5,
   };
   const { hasTeam } = VB['sim/herds'],
     Projects = VB['sim/projects'],
@@ -140,7 +141,8 @@ VB['sim/carts'] = (() => {
     }
   }
   // What the kinds of sim/kinds take from here. Hay goes by the load, as sheaves: the first is raked together in the job's hours, a
-  // further one loaded in CART.reload. loads: the back loads a pawn brings home (firewood: one for each trip's cutting stacked on its cart).
+  // further one loaded in CART.reload (1.5 hours a load, as the job's own).
+  // loads: the back loads a pawn brings home (firewood: one for each trip's cutting stacked on its cart).
   const HAY = {
     load: (st, a, j, cap) => (a.load = hayLoad(j.meadow, cap)),
     again: (j) => j.meadow.held > 0,

@@ -211,7 +211,7 @@ VB['sim/meadows'] = (() => {
   // Hay is carried by the load (sim/carts): what a pawn takes of the meadow's lying hay, as a load in rations (TRAVEL.hay units of hay a
   // ration: `cap` is the back's or a cart's); the meadow is aftermath once its last hay is taken.
   function hayLoad(m, cap) {
-    const take = Math.min(m.held, cap * TRAVEL.hay);
+    const take = Math.min(m.held, cap * TRAVEL.hay, TRAVEL.hayCart);
     m.held -= take;
     if (m.held <= 1e-9) {
       m.held = 0;

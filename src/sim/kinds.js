@@ -523,7 +523,7 @@ VB['sim/kinds'] = (() => {
       name: 'Bring in hay',
       label: 'Hauling hay',
       anim: 'gather',
-      hours: 4,
+      hours: 1.5,
       hands: Infinity,
       type: 'harvest',
       carry: 'hay',

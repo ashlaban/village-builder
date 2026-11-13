@@ -66,12 +66,13 @@ KINDS.cart.done(st, { farm: f, site: f.house }, hh);
 check(hh.carts.length === 1 && hh.carts[0].kind === 'hand' && hh.carts[0].cond === 1 && !Projects.projectOf(st, 'household', hh.id),
   'built, the cart is the household\'s and the plan is done');
 
-// --- hay by the load: 6 units on the back, 18 on a hand cart, the meadow aftermath with its last hay
+// --- hay by the load: 10 units on the back, 30 on a hand cart, 60 on an ox cart (VB-394), the meadow aftermath with its last hay
 {
   const m = { stage: 'mown', held: 30 };
-  check(near(M.hayLoad(m, TRAVEL.load), TRAVEL.load) && near(m.held, 24) && m.stage === 'mown', 'a back load is 6 of the meadow\'s 30');
-  check(near(M.hayLoad(m, TRAVEL.hand), TRAVEL.hand) && near(m.held, 6), 'a hand cart\'s is 18');
-  check(near(M.hayLoad(m, TRAVEL.cart), 30) && m.held === 0 && m.stage === 'aftermath', 'the last load takes what is left, and the meadow is aftermath');
+  check(near(M.hayLoad(m, TRAVEL.load), TRAVEL.load) && near(m.held, 20) && m.stage === 'mown', 'a back load is 10 of the meadow\'s 30');
+  check(near(M.hayLoad(m, TRAVEL.hand), 20 / TRAVEL.hay) && near(m.held, 0) && m.stage === 'aftermath', 'a hand cart takes the rest, 20 at most');
+  const o = { stage: 'mown', held: 90 };
+  check(near(M.hayLoad(o, TRAVEL.cart), 60 / TRAVEL.hay) && near(o.held, 30) && o.stage === 'mown', 'an ox cart takes 60 of a larger heap');
   check(KINDS.hay.again({ meadow: { held: 3 } }) && !KINDS.hay.again({ meadow: { held: 0 } }) && KINDS.hay.reload === CART.reload, 'more loads while hay lies');
 }
 // --- firewood: a load for each trip's cutting stacked on the cart
