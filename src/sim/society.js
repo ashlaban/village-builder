@@ -4,7 +4,7 @@ VB['sim/society'] = (() => {
   const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
-  const { YEAR, houseTerm, TIE, SPEED } = VB['sim/rules'];
+  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { hoursBetween } = VB['sim/routes'];
   const {
@@ -143,6 +143,12 @@ VB['sim/society'] = (() => {
       const ale = aleStanding(st, holdingOf(st, p.id));
       if (ale > 0) parts.push(['Ale poured', ale]);
     }
+    // the village's work days this year (VB-120): turned out, and, as a holder, stayed away
+    const wd = p.workdays;
+    if (wd && wd.year === cal(st.t).year) {
+      if (wd.came) parts.push(['Turned out for the work days', wd.came * WORKDAY.came]);
+      if (wd.missed) parts.push(['Stayed away from the work day', wd.missed * WORKDAY.missed]);
+    }
     return parts;
   }
   function refreshPrestige(st) {
@@ -155,6 +161,13 @@ VB['sim/society'] = (() => {
   on('alePoured', (st, e) => {
     const p = st.pawns[e.host];
     if (p.alive) p.prestige = prestigeParts(st, p).reduce((n, x) => n + x[1], 0);
+  });
+  // A village's work day ended (sim/workdays): the standing of those who turned out, and of the holders who stayed away, at once.
+  on('workDay', (st, e) => {
+    for (const id of e.pawns) {
+      const p = st.pawns[id];
+      if (p.alive) p.prestige = prestigeParts(st, p).reduce((n, x) => n + x[1], 0);
+    }
   });
   // Self-interest follows position: what would this option do for me, or for my children?
   function refreshInterests(st) {

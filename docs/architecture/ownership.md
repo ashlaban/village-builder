@@ -379,6 +379,8 @@ These are read and never written after creation. Each has one owner by construct
 | household | `id`, `farmstead` | records (`makeHousehold`) |
 | farmstead | `id`, `house`, `village`, `rowAngle`, `fence` | layout (`makeFarmstead`) |
 | village | `id`, `center`, `green`, `well` (set at seeding by layout and byhand; in play `center`, `green` and `well` only by `sim/green` when a village's well is done, VB-058) | layout, settle (`found`), green |
+| village | `workday` (the last work day: hours each adult worked, judged at its end, VB-120) | workdays |
+| pawn | `workdays` (the year's work days turned out to and stayed away from, read by society's prestige, VB-120) | workdays |
 | union | `id`, `a`, `b`, `start`, `kind` | records (`marry`), lifecycle (`wed`) |
 | herd | `id`, `species` | herds (`makeHerd`) |
 | job | `id`, `key`, `kind`, `owner`, `site`, `posted`, `hours`, and its source's fields (`field`, `farm`, `meadow`, `plot`, `claim`, ...) | jobs (`post`) |

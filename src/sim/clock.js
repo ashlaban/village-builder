@@ -10,7 +10,9 @@ VB['sim/clock'] = (() => {
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
   const { shareFood } = VB['sim/help'];
-  const { placeByDoor, release, stepAgents, travelling, dueJourneys, stopJourneys, feedTravellers } = VB['sim/agents'];
+  const Workdays = VB['sim/workdays'];
+  const { placeByDoor, release, dropJob, stepAgents, travelling, dueJourneys, stopJourneys, feedTravellers } =
+    VB['sim/agents'];
   const { refreshJobs, callCooks, lookUp, planRound, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
@@ -145,6 +147,19 @@ VB['sim/clock'] = (() => {
           release(st, a);
           if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
         }
+      },
+    },
+    {
+      every: 'hour',
+      at: { hour: WORK[1] },
+      when: (st, c) => !!Workdays.dayOf(c),
+      owner: 'sim/workdays',
+      note: "a village's work day ends: who turned out and who stayed away (VB-120); its jobs left free are taken down",
+      run: (st, c) => {
+        const called = new Set();
+        for (const j of st.jobs.values()) if (Workdays.isWorkdayJob(j)) called.add(j.village);
+        for (const v of st.villages) Workdays.judge(st, v, c, called.has(v.id));
+        for (const j of [...st.jobs.values()]) if (Workdays.isWorkdayJob(j) && !j.claims.length) dropJob(st, j);
       },
     },
     // ---- each day, at midnight: the households, the land ----

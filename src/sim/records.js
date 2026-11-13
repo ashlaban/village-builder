@@ -73,6 +73,7 @@ VB['sim/records'] = (() => {
     friend: SHORT,
     fellOut: SHORT,
     helped: SHORT, // helped another household of the village with its work (VB-106)
+    workday: SHORT, // a village's work day: who turned out and who stayed away (VB-120)
     gift: GENERATION,
     harvest: GENERATION,
     hay: GENERATION,

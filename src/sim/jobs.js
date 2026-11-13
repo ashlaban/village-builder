@@ -245,6 +245,8 @@ VB['sim/jobs'] = (() => {
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), else by role and kind.
   const prioOf = (st, p, j) =>
     j.plot ? plotPrio(st, p) : j.claim ? claimPrio(st, p, j) : ROLES[p.role].prio[j.kind] || 0;
+  // The join factor for n hands already at job j: MATCH.join ** n, or 1 for a kind worked all together (VB-120: a work day).
+  const joined = (j, n) => (KINDS[j.kind].together ? 1 : MATCH.join ** n);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
   // A pawn's noise-free score for a job, before the join factor; null when the pawn will not take it: a child under 7, younger than the
   // kind's minAge (VB-136: herding from 8), not its work, or a poor fit for a job that has not waited long enough.
@@ -261,7 +263,7 @@ VB['sim/jobs'] = (() => {
     const p = st.pawns[a.id];
     if (!isOpen(j) || !eligible(st, j, p) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j))) return -1;
     const s = score(st, p, j, c);
-    return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * MATCH.join ** j.claims.length;
+    return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * joined(j, j.claims.length);
   }
   // The jobs a pawn may bid for: its household's and its village's, in increasing id.
   const none = new Set();
@@ -281,14 +283,14 @@ VB['sim/jobs'] = (() => {
         j = a.job;
       if (a.phase !== 'work' || !j || p.died !== null || unplanned(st, a.id)) continue;
       if ((j.hours ?? KINDS[j.kind].hours) - j.done <= rateOf(st, p)) continue;
-      const own = (score(st, p, j, c) ?? 0) * MATCH.join ** (j.claims.length - 1);
+      const own = (score(st, p, j, c) ?? 0) * joined(j, j.claims.length - 1);
       let best = null,
         top = MATCH.switchRatio * own + MATCH.switchMargin;
       for (const k of jobsFor(st, p)) {
         VB.count.lookUpJob++;
         if (k === j || !isOpen(k) || attentionOf(k) !== 'full') continue;
         const s = score(st, p, k, c),
-          b = s === null ? -1 : s * MATCH.join ** k.claims.length;
+          b = s === null ? -1 : s * joined(k, k.claims.length);
         if (b > top) {
           top = b;
           best = k;
@@ -317,7 +319,7 @@ VB['sim/jobs'] = (() => {
       if (row.bid + MATCH.noise <= 0) {
         row.reason = 'not worth the walk';
         row.bid = null;
-      } else row.bid *= MATCH.join ** j.claims.length;
+      } else row.bid *= joined(j, j.claims.length);
     }
     return row;
   }
@@ -373,7 +375,7 @@ VB['sim/jobs'] = (() => {
       const [s, a, j, k] = bids[i];
       if (busy.has(a) || !isOpen(j)) continue;
       if (j.claims.length > k) {
-        const b = [s * MATCH.join ** (j.claims.length - k), a, j, j.claims.length];
+        const b = [s * joined(j, j.claims.length - k), a, j, j.claims.length];
         bids.splice(slot(bids, i + 1, b[0]), 0, b);
         continue;
       }

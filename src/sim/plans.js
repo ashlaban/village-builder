@@ -17,7 +17,8 @@ VB['sim/plans'] = (() => {
   const { startMeadow } = VB['sim/meadows'];
   const { reviewWant } = VB['sim/exchange'];
   const { buildStep } = VB['sim/building'];
-  const Green = VB['sim/green'];
+  const Green = VB['sim/green'],
+    Workdays = VB['sim/workdays'];
   const { heldFarms } = VB['sim/ownership'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
@@ -334,6 +335,15 @@ VB['sim/plans'] = (() => {
       available: (st, v) => Green.wanted(st, v),
       need: (st, v) => Green.houses(st, v).length,
     }),
+    // work days (VB-120): while the village has a fence to close; weighed, as the green, by the farms that would turn out. Set only by a
+    // meeting, for the coming year (Kim, 10 Nov): the founders' first routines hold none
+    workdays: Object.freeze({
+      label: 'Work days at the fence and the commons',
+      meeting: true,
+      kinds: Object.freeze(['workfence', 'workclear']),
+      available: (st, v) => Workdays.wanted(st, v),
+      need: (st, v) => Green.houses(st, v).length,
+    }),
   });
   const MAX_ROUTINES = 4;
   // The routines chosen from candidates [[need, key]], most needed first and in their order of declaration between equals: at most
@@ -344,12 +354,13 @@ VB['sim/plans'] = (() => {
     if (sorted.length > MAX_ROUTINES && sorted[MAX_ROUTINES - 1][0] === sorted[MAX_ROUTINES][0]) return null;
     return sorted.slice(0, MAX_ROUTINES).map((c) => c[1]);
   }
-  // The routines a village would choose from its work available now, or null for a tie.
-  function chooseRoutines(st, v) {
+  // The routines a village would choose from its work available now, or null for a tie; its founders (`founders`) choose none that only a
+  // meeting sets (`meeting`).
+  function chooseRoutines(st, v, founders = false) {
     const cands = [];
     for (const k of Object.keys(VILLAGE_ROUTINES)) {
       const R = VILLAGE_ROUTINES[k];
-      if (R.available(st, v)) cands.push([R.need(st, v), k]);
+      if (R.available(st, v) && !(founders && R.meeting)) cands.push([R.need(st, v), k]);
     }
     return rankRoutines(cands);
   }
@@ -430,11 +441,14 @@ VB['sim/plans'] = (() => {
       });
     return due(f) || heldFarms(st, hh.id).some(due);
   }
-  // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, or its fields due today,
-  // once ('window'); a store that crossed a target, at most one such review a day ('store').
+  // A village whose meeting chose work days, at the first review hour of a work day: it calls its village out (VB-120).
+  const workdayDue = (plan, c) =>
+    plan.holder.type === 'village' && c.hour === FIRST && !!Workdays.dayOf(c) && plan.routines.includes('workdays');
+  // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, its fields due today, or a
+  // village's work day, once ('window'); a store that crossed a target, at most one such review a day ('store').
   function reviewWhy(st, plan, hour, c) {
     if (hour >= plan.nextReview) return 'day';
-    if (plan.last !== c.day && (closing(st, c) || fieldsDue(st, plan, c))) return 'window';
+    if (plan.last !== c.day && (closing(st, c) || fieldsDue(st, plan, c) || workdayDue(plan, c))) return 'window';
     return plan.dirty && plan.woke !== c.day ? 'store' : null;
   }
   // A member without a task looks at the household's opportunities: true at most once a household a day (VB-249).
@@ -499,13 +513,13 @@ VB['sim/plans'] = (() => {
   // MAX_ROUTINES in their order). Also at the load of a save made before routines.
   function founded(st, plan) {
     const v = st.villages[plan.holder.id],
-      list = chooseRoutines(st, v);
+      list = chooseRoutines(st, v, true);
     setRoutines(
       st,
       v.id,
       list ||
         Object.keys(VILLAGE_ROUTINES)
-          .filter((k) => VILLAGE_ROUTINES[k].available(st, v))
+          .filter((k) => VILLAGE_ROUTINES[k].available(st, v) && !VILLAGE_ROUTINES[k].meeting)
           .slice(0, MAX_ROUTINES),
       'founded',
     );

@@ -378,7 +378,7 @@ VB['sim/agents'] = (() => {
       rateOf(st, st.pawns[a.id]) *
       (withOxen(st, a) ? HERD.team.rate : 1) *
       (K.carted ? Carts.carting(st, hhW, a.id, teamFree(st, hhW)) : 1);
-    if (K.worked) K.worked(st, j);
+    if (K.worked) K.worked(st, j, dt, a);
     if (j.plot) j.plot.hours[a.id] = (j.plot.hours[a.id] || 0) + dt;
     if (a.work) {
       // walk the field row by row while working

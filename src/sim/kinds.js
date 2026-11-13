@@ -17,7 +17,8 @@ VB['sim/kinds'] = (() => {
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
   const Building = VB['sim/building'],
     Pot = VB['sim/pot'],
-    Green = VB['sim/green'];
+    Green = VB['sim/green'],
+    Workdays = VB['sim/workdays'];
   const { ground: forageGround, gather } = VB['sim/forage'],
     Drying = VB['sim/drying'];
   // A kind's fields:
@@ -30,7 +31,7 @@ VB['sim/kinds'] = (() => {
   //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f, a): what arriving home with a load does;
   //   load(st, a, j, cap): a trip's load from the field; again(j): the job stays open for the next (haul, VB-335);
   //   draw(st, j): the site of a job of the kind, drawn when it is first posted, in place of the site its rule names (VB-326: firewood);
-  //   worked(st, j): what each step of work does besides the progress; project: true for a stage of a land project, whose job ends with
+  //   worked(st, j, dt, a): what each step of work by pawn a does besides the progress; project: true for a stage of a land project, whose job ends with
   //   the project (sim/jobs drops it, its hands freed, once it is no longer posted);
   //   available(st, holder, at, c, post, f): where the kind could be done now (VB-208); it calls post(key, site, extra) for each job it
   //   would post. holder is the household (or the village), at the field, farm or village asked about, f the household's farm. sim/jobs'
@@ -44,6 +45,7 @@ VB['sim/kinds'] = (() => {
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt), each step worked; minAge.
   //   late: a job of the kind under way, its worker walking there or at work, is finished after the end of work (VB-119: the cook).
+  //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/jobs).
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -639,6 +641,7 @@ VB['sim/kinds'] = (() => {
     },
     ...Building.KINDS, // the cottage's stages and the timber its walls take (sim/building)
     ...Green.KINDS, // the village green and well (sim/green, VB-058)
+    ...Workdays.KINDS, // the village's work days (sim/workdays, VB-120)
     mend: {
       verb: 'Mending the fence',
       go: 'Going to mend the fence',
@@ -792,7 +795,7 @@ VB['sim/kinds'] = (() => {
       'gather',
       Building.stoneWork,
     ].map(rule),
-    village: ['mend', 'green'].map(rule), // the green's rule posts each of its kinds (sim/green)
+    village: ['mend', 'green', 'workfence'].map(rule), // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays)
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
