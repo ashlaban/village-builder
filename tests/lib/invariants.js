@@ -194,6 +194,8 @@ function checkState(st) {
     const cs = st.pawns[id].causeSince;
     if (cs !== null && cs !== undefined && !(cs <= st.t / globalThis.VB['sim/rules'].YEAR + 1e-6)) bad.push(`pawn ${id}: causeSince ${cs}`);
   }
+  // no pawn walks where there is no way by land (VB-329): walkTo counts each refusal
+  if (st.routeFallbacks) bad.push(`routeFallbacks: ${st.routeFallbacks} walks with no route by land, the last ${globalThis.VB.noWay}`);
   if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/rules'].ROUTE.cacheMax) {
     bad.push('pathCache: exceeds ROUTE.cacheMax or is not a Map');
   }

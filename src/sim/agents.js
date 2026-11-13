@@ -3,7 +3,7 @@
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
-  const { route, stepCost, tileCost, hoursBetween } = VB['sim/routes'];
+  const { route, findRoute, stepCost, tileCost, hoursBetween } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age, personEvent } = VB['sim/records'];
   const Stores = VB['sim/stores'];
@@ -87,11 +87,20 @@ VB['sim/agents'] = (() => {
   }
   // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
   // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
+  // With no way by land (VB-329) the pawn does not move: it stays where it is, idle, and st.routeFallbacks counts it (a failure of the
+  // invariants: whoever sent it should have asked hasRoute first). Returns whether it walks.
   function walkTo(st, a, tile, x, y) {
     const w = st.w,
       from = tileAt(st, a.x, a.y),
       p = from >= 0 && from !== tile ? route(st, from, tile) : null;
-    const ok = p && p[0] === from,
+    if (p && p[0] !== from) {
+      st.routeFallbacks++;
+      VB.noWay = `pawn ${a.id} from tile ${from} to tile ${tile}`; // the pair, for the invariants' message; like VB.count, outside st
+      a.path = null;
+      a.anim = 'idle';
+      return false;
+    }
+    const ok = !!p,
       tiles = ok ? p.slice(1, -1) : [],
       cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);
     a.path = [[a.x, a.y]];
@@ -104,7 +113,23 @@ VB['sim/agents'] = (() => {
     a.inside = false;
     a.anim = 'walk';
     wake(st, a.id);
+    return true;
   }
+  // Is there a way by land from `from` to `to` (VB-329)? Asks the route cache, so a known pair costs a lookup; a pair with no way is cached
+  // as the goal alone until the day's end, so a refusal is not asked about again that day (rule 4).
+  // `keep` false (a verb's check, which must leave the state as it was): a pair not in the cache is searched and not kept.
+  function hasRoute(st, from, to, keep = true) {
+    if (from === to || from < 0) return true;
+    if (keep) return route(st, from, to)[0] === from;
+    const N = st.w.N,
+      p = st.pathCache.get(from * N + to),
+      q = st.pathCache.get(to * N + from);
+    return p ? p[0] === from : q ? q[0] === to : !!findRoute(st.w, from, to);
+  }
+  // The tile a pawn walks to for job j: the farm's house for work indoors, else the site.
+  const goalOf = (j) => (KINDS[j.kind].inside ? j.farm.house : j.site);
+  // The pawn can reach job j by land (VB-329).
+  const canReach = (st, a, j, keep = true) => hasRoute(st, tileAt(st, a.x, a.y), goalOf(j), keep);
   // Where on the site a pawn stands to do the job: as its kind says, else the middle of the tile.
   const workSpot = (st, a, j) =>
     KINDS[j.kind].spot ? KINDS[j.kind].spot(st, a, j) : [st.w.hx[j.site], st.w.hy[j.site]];
@@ -116,12 +141,17 @@ VB['sim/agents'] = (() => {
     if (K.inside) {
       const [x, y] = homeSpot(st, a);
       a.phase = 'go';
-      walkTo(st, a, j.farm.house, x, y);
+      if (!walkTo(st, a, j.farm.house, x, y)) return noWay(st, a);
       return;
     }
     const [x, y] = workSpot(st, a, j);
     a.phase = 'go';
-    walkTo(st, a, j.site, x, y);
+    if (!walkTo(st, a, j.site, x, y)) noWay(st, a);
+  }
+  // A job it cannot walk to is let go, and the pawn waits an hour before it looks again.
+  function noWay(st, a) {
+    release(st, a);
+    idle(st, a, st.t + 1);
   }
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
@@ -339,7 +369,7 @@ VB['sim/agents'] = (() => {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead],
       [x, y] = homeSpot(st, a);
     dropSides(st, a);
-    walkTo(st, a, f.house, x, y);
+    if (!walkTo(st, a, f.house, x, y)) return idle(st, a, st.t + 1); // no way home by land (VB-329): it stays, and looks again in an hour
     a.phase = 'home';
   }
   // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
@@ -683,7 +713,12 @@ VB['sim/agents'] = (() => {
     const a = st.agents[j.pawn];
     if (!a.path) {
       const [x, y] = homeSpot(st, a);
-      walkTo(st, a, j.to, x, y);
+      if (!walkTo(st, a, j.to, x, y)) {
+        // no way by land (VB-329): the journey does not go on; the pawn stays where it is
+        dropJourney(st, a.id);
+        a.phase = null;
+        return;
+      }
     } else {
       a.inside = false;
       a.anim = 'walk';
@@ -768,6 +803,8 @@ VB['sim/agents'] = (() => {
     tileAt,
     route,
     walkTo,
+    canReach,
+    hasRoute,
     workSpot,
     start,
     release,

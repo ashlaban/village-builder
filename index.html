@@ -1290,6 +1290,7 @@ VB.COUNTERS = {
   helpOffer:
     "Jobs of a village's households weighed for the offer to helpers, once a village a round with a helper (sim/jobs, offered; VB-106)",
   helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',
+  bidNoRoute: 'Winning bids refused for want of a way by land to the job (sim/jobs, assign; VB-329)',
   lookUpJob:
     'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
   occasionAsked:
@@ -7230,11 +7231,7 @@ VB['sim/routes'] = (() => {
       st.pathCache.set(bk, back);
       p = back.slice().reverse();
     } else {
-      p = findRoute(st.w, from, to);
-      if (!p) {
-        p = [to];
-        st.routeFallbacks++;
-      }
+      p = findRoute(st.w, from, to) || [to]; // no way by land within reach: the goal alone, which sim/agents hasRoute reads as none
     }
     st.pathCache.set(k, p);
     trimRoutes(st);
@@ -18564,7 +18561,7 @@ VB['sim/eligibility'] = (() => {
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
-  const { route, stepCost, tileCost, hoursBetween } = VB['sim/routes'];
+  const { route, findRoute, stepCost, tileCost, hoursBetween } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age, personEvent } = VB['sim/records'];
   const Stores = VB['sim/stores'];
@@ -18648,11 +18645,19 @@ VB['sim/agents'] = (() => {
   }
   // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
   // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
+  // With no way by land (VB-329) the pawn does not move: it stays where it is, idle, and st.routeFallbacks counts it (a failure of the
+  // invariants: whoever sent it should have asked hasRoute first). Returns whether it walks.
   function walkTo(st, a, tile, x, y) {
     const w = st.w,
       from = tileAt(st, a.x, a.y),
       p = from >= 0 && from !== tile ? route(st, from, tile) : null;
-    const ok = p && p[0] === from,
+    if (p && p[0] !== from) {
+      st.routeFallbacks++;
+      a.path = null;
+      a.anim = 'idle';
+      return false;
+    }
+    const ok = !!p,
       tiles = ok ? p.slice(1, -1) : [],
       cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);
     a.path = [[a.x, a.y]];
@@ -18665,7 +18670,23 @@ VB['sim/agents'] = (() => {
     a.inside = false;
     a.anim = 'walk';
     wake(st, a.id);
+    return true;
   }
+  // Is there a way by land from `from` to `to` (VB-329)? Asks the route cache, so a known pair costs a lookup; a pair with no way is cached
+  // as the goal alone until the day's end, so a refusal is not asked about again that day (rule 4).
+  // `keep` false (a verb's check, which must leave the state as it was): a pair not in the cache is searched and not kept.
+  function hasRoute(st, from, to, keep = true) {
+    if (from === to || from < 0) return true;
+    if (keep) return route(st, from, to)[0] === from;
+    const N = st.w.N,
+      p = st.pathCache.get(from * N + to),
+      q = st.pathCache.get(to * N + from);
+    return p ? p[0] === from : q ? q[0] === to : !!findRoute(st.w, from, to);
+  }
+  // The tile a pawn walks to for job j: the farm's house for work indoors, else the site.
+  const goalOf = (j) => (KINDS[j.kind].inside ? j.farm.house : j.site);
+  // The pawn can reach job j by land (VB-329).
+  const canReach = (st, a, j, keep = true) => hasRoute(st, tileAt(st, a.x, a.y), goalOf(j), keep);
   // Where on the site a pawn stands to do the job: as its kind says, else the middle of the tile.
   const workSpot = (st, a, j) =>
     KINDS[j.kind].spot ? KINDS[j.kind].spot(st, a, j) : [st.w.hx[j.site], st.w.hy[j.site]];
@@ -18677,12 +18698,17 @@ VB['sim/agents'] = (() => {
     if (K.inside) {
       const [x, y] = homeSpot(st, a);
       a.phase = 'go';
-      walkTo(st, a, j.farm.house, x, y);
+      if (!walkTo(st, a, j.farm.house, x, y)) return noWay(st, a);
       return;
     }
     const [x, y] = workSpot(st, a, j);
     a.phase = 'go';
-    walkTo(st, a, j.site, x, y);
+    if (!walkTo(st, a, j.site, x, y)) noWay(st, a);
+  }
+  // A job it cannot walk to is let go, and the pawn waits an hour before it looks again.
+  function noWay(st, a) {
+    release(st, a);
+    idle(st, a, st.t + 1);
   }
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
@@ -19244,7 +19270,12 @@ VB['sim/agents'] = (() => {
     const a = st.agents[j.pawn];
     if (!a.path) {
       const [x, y] = homeSpot(st, a);
-      walkTo(st, a, j.to, x, y);
+      if (!walkTo(st, a, j.to, x, y)) {
+        // no way by land (VB-329): the journey does not go on; the pawn stays where it is
+        dropJourney(st, a.id);
+        a.phase = null;
+        return;
+      }
     } else {
       a.inside = false;
       a.anim = 'walk';
@@ -19329,6 +19360,8 @@ VB['sim/agents'] = (() => {
     tileAt,
     route,
     walkTo,
+    canReach,
+    hasRoute,
     workSpot,
     start,
     release,
@@ -19364,8 +19397,22 @@ VB['sim/agents'] = (() => {
 <script>
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
-  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter, travelling } =
-    VB['sim/agents'];
+  const {
+    start,
+    release,
+    walkTo,
+    canReach,
+    hasRoute,
+    tileAt,
+    goHome,
+    idle,
+    haltForTalk,
+    attentionOf,
+    sideWhy,
+    hold,
+    reachAfter,
+    travelling,
+  } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
@@ -19442,9 +19489,11 @@ VB['sim/commands'] = (() => {
           ? `there is no job ${c.target}`
           : !isOpen(st.jobs.get(c.target))
             ? `job ${c.target} has no room`
-            : attentionOf(st.jobs.get(c.target)) !== 'full'
-              ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))
-              : null),
+            : !canReach(st, st.agents[c.actor], st.jobs.get(c.target), false)
+              ? 'no way there'
+              : attentionOf(st.jobs.get(c.target)) !== 'full'
+                ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))
+                : null),
       run: (st, c) => {
         const a = st.agents[c.actor],
           j = st.jobs.get(c.target);
@@ -19464,7 +19513,11 @@ VB['sim/commands'] = (() => {
       // and the walk goes ahead as it always has; refusing it would change behaviour (VB-168). A player's walk should offer open tiles only.
       check: (st, c) =>
         free(st, c.actor) ||
-        (!(Number.isInteger(c.target) && c.target >= 0 && c.target < st.w.N) ? `there is no tile ${c.target}` : null),
+        (!(Number.isInteger(c.target) && c.target >= 0 && c.target < st.w.N)
+          ? `there is no tile ${c.target}`
+          : !hasRoute(st, tileAt(st, st.agents[c.actor].x, st.agents[c.actor].y), c.target, false)
+            ? 'no way there'
+            : null),
       run: (st, c) => {
         const x = c.args && c.args.x !== undefined ? c.args.x : st.w.hx[c.target],
           y = c.args && c.args.y !== undefined ? c.args.y : st.w.hy[c.target];
@@ -19474,7 +19527,17 @@ VB['sim/commands'] = (() => {
     // goHome: walk home and go in (phase 'home')
     goHome: {
       check: (st, c) =>
-        free(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
+        free(st, c.actor) ||
+        (st.pawns[c.actor].household === null
+          ? `pawn ${c.actor} has no home`
+          : !hasRoute(
+                st,
+                tileAt(st, st.agents[c.actor].x, st.agents[c.actor].y),
+                st.farmsteads[st.households[st.pawns[c.actor].household].farmstead].house,
+                false,
+              )
+            ? 'no way there'
+            : null),
       run: (st, c) => goHome(st, st.agents[c.actor]),
     },
     // idle(until): look for nothing to do until game time args.until
@@ -20957,8 +21020,19 @@ VB['sim/jobs'] = (() => {
   const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age, kinNear } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot, travelling } =
-    VB['sim/agents'];
+  const {
+    freeHands,
+    ownerKey,
+    dropJob,
+    rateOf,
+    tileAt,
+    canReach,
+    offerWhy,
+    attentionOf,
+    heldAt,
+    workSpot,
+    travelling,
+  } = VB['sim/agents'];
   const { companyFor, opinionOf } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
@@ -21329,6 +21403,11 @@ VB['sim/jobs'] = (() => {
       if (j.claims.length > k) {
         const b = [s * joined(j, j.claims.length - k), a, j, j.claims.length];
         bids.splice(slot(bids, i + 1, b[0]), 0, b);
+        continue;
+      }
+      // only the bid that would win asks for a route (VB-329); the verb checks it too, and a refused pair is cached until the day's end
+      if (!canReach(st, a, j)) {
+        VB.count.bidNoRoute++;
         continue;
       }
       issue(st, { actor: a.id, verb: 'work', target: j.key, source: 'planner' });
@@ -37989,7 +38068,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'd072db0a58',
+const BUILD = '0d0b6c572d',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

@@ -20,7 +20,7 @@ try {
   // a tile within reach, and one beyond it
   let near = -1, far = -1;
   for (let i = 0; i < st.w.N; i++) {
-    if (st.w.water[i]) continue;
+    if (st.w.water[i] || !A.hasRoute(st, here, i)) continue; // by land (VB-329)
     const d = hexSteps(st.w, here, i);
     if (near < 0 && d <= 2) near = i;
     if (far < 0 && d >= 5) far = i;
