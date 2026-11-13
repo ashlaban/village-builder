@@ -5734,21 +5734,28 @@ VB['sim/rules'] = (() => {
   const SPEED = 12; // tiles per game hour on foot, on meadow (it was 3: the distance review, Kim, 12 Nov; design.md, World and scale)
   // ---- walking (sim/routes): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
   // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
+  // Each kind of ground has its own cost (Kim, 13 Nov; VB-439): sand and heather slow a walker a little, open pine wood more, rough
+  // hill ground more again, a thick broadleaf wood with no way through it takes twice the time of meadow, marsh and bare rock longer.
+  // What a worn way takes off these is PATHS.clear.
   const TERRAIN = {
-    [B.BEACH]: 1,
     [B.MEADOW]: 1,
-    [B.HEATH]: 1,
-    [B.FOREST]: 1.5,
-    [B.PINE]: 1.5,
-    [B.HILLS]: 2,
-    [B.MARSH]: 2,
-    [B.MOUNTAIN]: 3,
+    [B.BEACH]: 1.15,
+    [B.HEATH]: 1.25,
+    [B.PINE]: 1.6,
+    [B.HILLS]: 1.8,
+    [B.FOREST]: 2,
+    [B.MARSH]: 2.5,
+    [B.MOUNTAIN]: 3.5,
     [B.SNOW]: Infinity,
     ford: 2,
     bridge: 1,
   };
   // ---- worn paths (sim/paths): a tile's crossings, halving every halfLifeDays, make it trodden ground, a path or a lane at `at`;
   // a stage is lost only below `keep` of its threshold; speed: how much faster a pawn walks there, by stage (VB-110) ----
+  // clear: the share of the ground's cost above meadow that the wear takes away, by stage (VB-439): a tile costs
+  // (1 + (TERRAIN - 1) (1 - clear)) / speed. A road is a path or a lane (stages 2 and 3): cleared and firm, it is walked almost alike
+  // through any ground, so a road through thick forest (1.14 a path, 1.04 a lane) is a little slower than open meadow (1), which is a
+  // little slower than a road over meadow (0.91, 0.87); trodden ground (stage 1) is only a little easier than none (forest 1.72).
   // A generated village (but the founders') starts with `wornYears` of its daily trips worn in (VB-114): `trips` per farm and day, there
   // and back, to each field, to the well (water) and to the green on an idle stroll, and to the village's wood; set so a new village has the paths a
   // played one has after two years (populous Tiny, seeds 7 and 11: 14 and 18 path tiles worn in, 14 to 21 and 13 to 19 played).
@@ -5756,7 +5763,8 @@ VB['sim/rules'] = (() => {
     at: [0, 50, 200, 800],
     keep: 0.85,
     halfLifeDays: YEAR_DAYS,
-    speed: [1, 1.05, 1.15, 1.3],
+    speed: [1, 1.03, 1.1, 1.15],
+    clear: [0, 0.25, 0.75, 0.8],
     wornYears: 3,
     trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 },
   };
@@ -5765,11 +5773,12 @@ VB['sim/rules'] = (() => {
   // flat: a walker's speed falls by exp(-tobler |S|), so a step's cost is its terrain's times exp(tobler |S|).
   // tobler: the function's exponent; grade: the slope S of a step whose two tiles differ by one unit of elevation (w.he, 0 to 1 over
   // the land): the heightmap is far steeper than ground is (read as 1,400 m of relief over tiles of 150 m, grade would be 9.3 and the
-  // median step a slope of 0.3), so grade is set where the median step costs what it did before (Kim, 13 Nov); max: the cap on the
-  // factor, where Tobler's 6 km an hour has fallen to 1, which bounds the dearest step (the route cache's refresh needs one).
+  // median step a slope of 0.3), so grade was set where the median step cost what it did before, then raised from 1.5 to 2 (Kim,
+  // 13 Nov; VB-439); max: the cap on the factor, where Tobler's 6 km an hour has fallen to 1, which bounds the dearest step (the
+  // route cache's refresh needs one).
   // Walkable neighbours differ by 0.03 to 0.04 at the median, 0.08 to 0.12 at the 90th percentile, 0.16 to 0.24 at the 99th and 0.4
-  // to 0.5 at the most (small and medium, seeds 7 and 42): factors of about 1.2, 1.7, 2.9 and the cap. grade 0 switches slopes off.
-  const SLOPE = { tobler: 3.5, grade: 1.5, max: 6 };
+  // to 0.5 at the most (small and medium, seeds 7 and 42): factors of about 1.3, 2.0, 4.1 and the cap (from a difference of 0.26). grade 0 switches slopes off.
+  const SLOPE = { tobler: 3.5, grade: 2, max: 6 };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
   // a lane over meadow. cacheMax: LRU entries; 60,000 keeps the late fixture's hit-rate loss within 5 points (VB-198).
   const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
@@ -7034,20 +7043,23 @@ VB['sim/routes'] = (() => {
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
-  // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too;
+  // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too,
+  // and its wear takes away a share of what its ground costs above meadow (PATHS.clear, VB-439; not at a ford or on a bridge);
   // the green (w.dev 2) wears no path.
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
     if (w.dev && w.dev[i]) return w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
     const c =
-      w.river && w.river[i]
-        ? w.crossing[i] === 1
-          ? TERRAIN.ford
-          : w.crossing[i] === 2
-            ? TERRAIN.bridge
-            : Infinity
-        : (TERRAIN[w.biome[i]] ?? 1);
-    return w.worn ? c / PATHS.speed[w.worn[i]] : c;
+        w.river && w.river[i]
+          ? w.crossing[i] === 1
+            ? TERRAIN.ford
+            : w.crossing[i] === 2
+              ? TERRAIN.bridge
+              : Infinity
+          : 0,
+      s = w.worn ? w.worn[i] : 0;
+    if (c) return c / PATHS.speed[s];
+    return (1 + ((TERRAIN[w.biome[i]] ?? 1) - 1) * (1 - PATHS.clear[s])) / PATHS.speed[s];
   }
   // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses).
   const passable = (w, i) => i >= 0 && (tileCost(w, i) < Infinity || (!!w.dev && w.dev[i] === 3));
@@ -38912,7 +38924,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '6f0e7f2fb1',
+const BUILD = 'e488a6d38b',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
