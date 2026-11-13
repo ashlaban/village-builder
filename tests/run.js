@@ -40,6 +40,9 @@ async function main() {
   const failed = results.filter((r) => !r.ok), outs = targets.filter((t) => t.status === 'out');
   console.log('slowest: ' + [...results].sort((a, b) => b.ms - a.ms).slice(0, 5)
     .map((r) => `${r.cmd.slice(1).join(' ')} ${(r.ms / 1000).toFixed(1)}s`).join('; '));
+  // A script run for every task takes under 5 seconds (Kim, 13 November); one over is named, and never fails the run.
+  const over = suite === 'extended' ? [] : results.filter((r) => r.ms > 5000);
+  if (over.length) console.log('over 5 s: ' + over.map((r) => `${r.cmd.slice(1).join(' ')} ${(r.ms / 1000).toFixed(1)}s`).join('; '));
   console.log(`${suite}: ${results.length - failed.length}/${cmds.length} passed, ${failed.length} failed in `
     + `${((Date.now() - started) / 1000).toFixed(1)} s; ${outs.length} targets out (advisory)`);
   if (failed.length) process.exitCode = 1;

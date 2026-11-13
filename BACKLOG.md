@@ -12,6 +12,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-409](backlog/VB-409.md) | Verify's page check and the nightly-only rule checks, rebuilt on small constructed states | - | 1 | L | 60 scripts run only at night since VB-408; each rule they hold gets a case on a constructed tiny state in verify, the page first. |
 | [VB-058](backlog/VB-058.md) | The village green and well, built by the village | year | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. |
 | [VB-186](backlog/VB-186.md) | Plan: talk travels: traits, venues and stories (slice 7) | talk | 2 | S | Design traits, encounters at venues and stories, with lies and counter-stories, from the experiment. |
 | [VB-253](backlog/VB-253.md) | The player as head: every choice of the plan as a command | year | 2 | M | Verbs for a target, the tile of the next field or meadow, the season's order and the project, under the holder's checks; the holder's rule where none is made. |

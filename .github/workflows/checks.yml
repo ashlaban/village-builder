@@ -22,7 +22,7 @@ jobs:
   verify:
     needs: fast
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,8 +30,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      # The fast job already ran FAST. Local npm run verify includes both tiers.
+      # The fast job already ran FAST. Local npm run verify includes both tiers. No browser: the page's checks run nightly.
       - run: node tests/run.js integration --verbose 2>&1 | tee verify.log
         shell: bash
       - name: Results and advisory targets

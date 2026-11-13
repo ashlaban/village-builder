@@ -24,8 +24,8 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 3. If it turns out to need a decision, decide it by Deciding without Kim (below) and write the decision and its reason in the task file.
    Only if it is one of the two kinds that go to Kim, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
-5. Before the last commit: `npm test`; for a task of size M or L, or one that touches `src/page/`, `npm run verify` instead, once.
-   Rebuild `index.html` before committing. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
+5. Before the last commit: `npm run verify` (half a minute); for a change under `src/page/`, also `node tests/smoke.js` and the
+   `tests/browser*.js` it touches. Rebuild `index.html` before committing. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
    report it in the task file and the PR's Targets section (before, after, residual, cause).
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
@@ -57,18 +57,21 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Tests, three tiers listed in `tests/suites.js` (`docs/testing.md` has what each covers, the timeouts and the measured times):
   - Fast: `npm install && npm test`, about 10 seconds (budget 30): the build, lint, ownership, dependencies, backlog and rule checks on
     deliberate small states. A passing run prints its slowest five and its summary (`node tests/run.js test --list` prints each script's line).
-  - Integration: `npm run verify` runs fast and then the generated scenarios and the page in jsdom and real Chromium (functionality,
-    not rendering speed), about 4 minutes, without late fixtures; `node tests/run.js integration` runs that tier alone, and
-    `--verbose` also prints the reported numbers.
-  - Extended: `node tests/run.js extended` makes the small fixtures and runs the long checks (demography, daily invariants,
-    fixtures, history, bands, the player's line, the start's people); `npm run nightly` makes all four fixtures, runs
-    extended, then the bench and the bands. Neither is part of a task; the Extended checks workflow runs nightly.
-  - One script alone: `node tests/NAME.js`. A new check goes into the cheapest tier that can hold it, with a line in `tests/suites.js`.
+  - Verify: `npm run verify` runs fast and then the integration tier, rule checks on small constructed states and the small tools,
+    about 35 seconds in all (budget a minute); `node tests/run.js integration` runs that tier alone, and `--verbose` also prints the
+    reported numbers. A script of either tier takes under 5 seconds; the runner names one over (`over 5 s: ...`), without failing.
+  - Extended, at night and never part of a task: `node tests/run.js extended` makes the small fixtures and runs everything long:
+    generated islands and runs of years, the page in jsdom and real Chromium, demography, daily invariants, fixtures, history,
+    bands, the player's line. `npm run nightly` makes all four fixtures, runs extended, then the bench and the bands (the Extended
+    checks workflow). A task that changes `src/page/` also runs `node tests/smoke.js` and the `tests/browser*.js` it touches, by
+    name, until verify has a page check of its own (VB-409).
+  - One script alone: `node tests/NAME.js`. A new check is built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`)
+    and goes into fast or integration, with a line in `tests/suites.js`; only what needs a whole island or years goes to extended.
 - Fixtures, late saves (`small-y5`, `small-y40`, `medium-y5`, `medium-ref`): a local cache, never published or fetched (VB-272). They
   lie in the gitignored `tests/fixtures/<key>/`, the key a hash of the modules of `src/manifest.json`, so a fixture is made for the
   sources as they are and is never stale: `node tools/fixtures.js status|make|clean`. One run a map saves both of its fixtures (small
   about 2 minutes, medium 1.5, side by side); `medium-ref` is saved at the first year's end with 1,000 living (by year 60), and its
-  stamp names the year. `npm test` and `npm run verify` load none; the extended tier makes the small pair first when the sources
+  stamp names the year. `npm test` and `npm run verify` load none (they run at night); the extended tier makes the small pair first when the sources
   lack it; in a test or a tool, `require('./lib/fixtures.js').loadFixture(name)` gives `{st, stamp}`, making a missing one first;
   `npm run nightly` makes what is missing and runs the bench (minutes).
 - Bands (`tests/lib/bands.js`, one table; Kim's decision 9): `node tests/bands.js` (extended) checks each band's reduced run, populous on
@@ -82,7 +85,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   (`docs/bench/targets.jsonl`, written by `--record` on the checks that are targets, the bench, the bands and the nightly; `docs/bench/targets.md`).
 - Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`.
-- Cost growth: `node tests/scaling.js` (integration; population exponent at most 1.15) and `node tests/history.js` (extended, from `small-y5` and
+- Cost growth: `node tests/scaling.js` (verify; population exponent at most 1.15) and `node tests/history.js` (extended, from `small-y5` and
   `small-y40`; work per living pawn-day at year 40 over year 5, target 1.25). Both report each counter's ratio, target and residual
   as targets and never fail.
 - Baselines that only fall: `node tests/lint.js --update` (`tests/lint-baseline.json`) and `node tests/ownership.js --update` (fixed sites).
@@ -145,12 +148,12 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 ## Working rules
 - Behaviour-preserving work passes the focused checks of what it touches and, where that is not evidence enough, `node tools/same.js` against
   its starting commit (`docs/testing.md`; the refactor rules are in `BACKLOG.md`, "How this backlog works").
-- Use `npm test` while working, after each change. At the end of a task of size M or L, or one that changes `src/page/`:
-  `npm run verify`, once. The Checks workflow (`.github/workflows/checks.yml`) runs the fast tier and then the integration tier on a
-  pull request; the Extended checks workflow (`nightly.yml`) runs the long checks and measurements nightly or by hand.
+- Use `npm test` while working, after each change, and `npm run verify` once at the end of every task (half a minute). The Checks
+  workflow (`.github/workflows/checks.yml`) runs the same two tiers on a pull request; the Extended checks workflow (`nightly.yml`)
+  runs the long checks, the page's and the measurements nightly or by hand. A red night is repaired by a task of its own.
 - Hard and soft checks (Kim, 10 November, VB-261; `docs/gates.md`). Hard, and stopping a merge: a red `npm test`, or a hard script of
   verify (the build, lint rules and size baselines, ownership, dependencies, backlog, determinism and plain data, rule tests, saves,
-  invariants, the page's functional tests, the counters' structure). Cost,
+  invariants, the counters' structure); at night, the same kinds in the extended tier and the page's functional tests. Cost,
   balance, demography and timing are targets: they print their measure, target and residual, and never set the exit code. A PR has a
   "Targets" section, one line for each target the change moves or was meant to move (before, after, residual, whether the change is
   its cause) and one line summing the targets out and not moved ("8 targets out, as on `main`"). A change never raises a target,
