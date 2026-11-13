@@ -265,6 +265,26 @@ VB['sim/agents'] = (() => {
     }
     j.claims = j.claims.filter((id) => id === finisher || st.agents[id].phase === 'back');
   }
+  // Household hh is going (sim/heirs' extinct): the jobs it posted and those on its farm f go, and those working them stop, as freeHands
+  // stops them (a neighbour helping, VB-106, would finish a job of no household); a load on its way home, its own people's or a helper's,
+  // is put down in its barn first, while it stands, as at a move (VB-335): brought in after, it went to a household gone and threw.
+  function stopWorkFor(st, hh, f) {
+    const jobs = new Set(st.jobsBy.get(`household:${hh.id}`));
+    for (const j of st.jobs.values()) if (j.farm === f) jobs.add(j);
+    const carriers = new Set(hh.members);
+    for (const j of jobs) for (const id of j.claims) carriers.add(id);
+    for (const id of carriers) {
+      const a = st.agents[id];
+      if (!a || a.phase !== 'back' || !a.job || !st.pawns[id].alive) continue;
+      release(st, a);
+      a.path = null;
+      a.anim = 'idle';
+    }
+    for (const j of jobs) {
+      freeHands(st, j, -1);
+      dropJob(st, j);
+    }
+  }
   // The household a job is done for: the job's own, or the pawn's for a village's job (a helper works for another household, VB-106).
   const workFor = (st, a, j) =>
     st.households[j.owner && j.owner.type === 'household' ? j.owner.id : st.pawns[a.id].household];
@@ -772,6 +792,7 @@ VB['sim/agents'] = (() => {
     start,
     release,
     freeHands,
+    stopWorkFor,
     complete,
     deposit,
     wantsWork,
