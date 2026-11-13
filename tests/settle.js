@@ -99,6 +99,17 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n && Sim.villageLog(t.st, Infinity).some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
 }
+// 3b. A home that took in a spouse at this round gives no provisions (VB-330); the next round it gives, and one that did not marry gives as before.
+{
+  const t = setUp(), hh = t.st.households[t.m.household], party = [t.m.id];
+  t.m.stake = 0; hh.grain = { barley: 4000 };
+  check(S.provisions(t.st, party) !== null, 'a home that did not marry gives its grain');
+  const bride = t.st.pawns.find((p) => p.alive && p.household !== hh.id && Sim.spouseOf(t.st, p.id) === null && p.age >= 18);
+  t.st.unions.push({ id: t.st.unions.length, a: t.sib.id, b: bride.id, start: t.st.t - (t.st.t % 24), end: null, kind: 'marriage' });
+  check(S.provisions(t.st, party) === null, 'a home that took in a spouse at this round, on an earlier step of its day, gives nothing');
+  t.st.t += 30 * 24; // the next round
+  check(S.provisions(t.st, party) !== null, 'the next round it gives');
+}
 // 4. Founders (at foundersSeed): a lone farm lies within reach from the crowded village. With room there, a waiting adult joins it, building a
 // booth, and founds nothing (VB-147); with an adult of its own waiting for land, or no room, it is passed over and the settler founds.
 let joined = '';
