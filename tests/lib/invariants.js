@@ -79,6 +79,13 @@ function checkState(st) {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
         }
         if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+        // VB-390: a want of a cow names no giver, or another household of the same village (one dissolved since is let go at the next
+        // review), a heifer or a cow, by kin or by a deal
+        const W = plan.want, villageOf = (h) => st.farmsteads[st.households[h].farmstead].village;
+        if (W && (W.what !== 'cow' || (W.from === null ? W.kind !== null || W.by !== null
+          : W.from === id || !st.households[W.from] || !['heifer', 'cow'].includes(W.kind) || !['kin', 'deal'].includes(W.by) ||
+            (!st.households[W.from].dissolved && villageOf(W.from) !== villageOf(id)))))
+          bad.push(`plans: household ${id} wants ${JSON.stringify(W)}`);
       }
     }
     // VB-252: one seasonal plan per undissolved household, its steps kinds that exist; of the current season once the standing plan has

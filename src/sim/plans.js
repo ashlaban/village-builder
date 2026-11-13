@@ -15,6 +15,7 @@ VB['sim/plans'] = (() => {
     { on } = VB['sim/events'],
     { log } = VB['sim/records'];
   const { startMeadow } = VB['sim/meadows'];
+  const { reviewWant } = VB['sim/exchange'];
   const { buildStep } = VB['sim/building'];
   const Green = VB['sim/green'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
@@ -602,6 +603,7 @@ VB['sim/plans'] = (() => {
     T.fields = fieldsWanted(st, hh, T.workable);
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed');
+    reviewWant(st, plan, hh, why); // a cow wanted (VB-390): plan.want, sim/exchange's
     plan.build = buildStep(st, plan, hh); // the building step (VB-332): open while the house is to be raised onto stone, and where its stone comes from
   }
   // A village's review: while its routines hold the green and well and it has none under way, its green's project plan is made where a

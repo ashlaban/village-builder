@@ -17,6 +17,7 @@
     "plan.tiles": "sim/plans",
     "plan.counted": "sim/plans",
     "plan.build": "sim/plans",
+    "plan.want": "sim/exchange",
     "plan.routines": "sim/plans",
     "plan.routinesBy": "sim/plans",
     "plan.routinesYear": "sim/plans",

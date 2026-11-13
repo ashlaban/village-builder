@@ -482,6 +482,8 @@ VB['sim/rules'] = (() => {
     butterDays: 48,
     // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
     team: { oxen: 2, kinds: ['plow', 'break'], rate: 2.5 },
+    // a cow wanted (VB-390; sim/exchange): a household of `hands` working hands or more that holds a meadow and no cattle wants one
+    want: { hands: 2 },
     // herding (VB-136; docs/review-animals.md, G6 and G7): each grazing day a household with a herd posts `herd` from `from` (6:00); a herder
     // of minAge or more takes the household's herds to a pasture within `steps` steps of the house and keeps them there `hours` hours,
     // working at the side (background attention) within `reach` steps of it, then brings them home. Unherded by `by` (10:00), the herds

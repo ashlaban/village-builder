@@ -35,6 +35,7 @@ VB['sim/lifecycle'] = (() => {
     voiceOf,
   } = VB['sim/records'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
+  const { startInLife } = VB['sim/exchange'];
   const { stillAtDeath, travelling, tileAt, journeyOf } = VB['sim/agents'];
   const {
     heirRanking,
@@ -287,6 +288,7 @@ VB['sim/lifecycle'] = (() => {
     const m = st.pawns[mId],
       f = st.pawns[fId];
     st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
+    const olds = [mId, fId].map((id) => st.pawns[id].household).filter((h) => h !== null && h !== home);
     for (const id of [mId, fId]) {
       if (st.pawns[id].household !== home) moveTo(st, id, home);
       personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === mId ? fId : mId])}`, false);
@@ -310,6 +312,8 @@ VB['sim/lifecycle'] = (() => {
       const own2 = holdingOf(st, id);
       if (own2 && own2.id !== home) handOn(st, own2, id, home);
     }
+    // a heifer from the old household of the one who moved in, where the home wants a cow (sim/exchange, VB-390)
+    for (const h of olds) if (startInLife(st, st.households[home], st.households[h])) break;
     wedding(st, mId, fId, home); // the next day's feast at their farm (sim/occasions, VB-126)
   }
   // The moving round (autumn day 10) runs in ROUND_PHASES phases on the 6-minute steps from noon (VB-201), so no step holds all of it:

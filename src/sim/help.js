@@ -3,7 +3,7 @@
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
-  const { childrenOf, siblingsOf } = VB['sim/records'];
+  const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const Rules = VB['sim/registry'];
@@ -25,22 +25,6 @@ VB['sim/help'] = (() => {
     return Math.max(0, grainOf(hh) - reserved(st, hh, 'grain') - buffer);
   };
   const spare = (st, hh) => Math.max(0, grainOf(hh) - reserved(st, hh, 'grain'));
-  // households holding a parent, child or sibling of a member, closest first (parents and children before siblings, then by id)
-  function kinHouseholds(st, hh) {
-    const rank = new Map();
-    const note = (id, r) => {
-      const q = st.pawns[id];
-      if (!q.alive || q.household === null || q.household === hh.id || st.households[q.household].dissolved) return;
-      rank.set(q.household, Math.min(rank.get(q.household) ?? 9, r));
-    };
-    for (const id of hh.members) {
-      const p = st.pawns[id];
-      for (const par of [p.father, p.mother]) if (par !== null) note(par, 1);
-      for (const c of childrenOf(st, id)) note(c, 1);
-      for (const s of siblingsOf(st, id)) note(s, 2);
-    }
-    return [...rank].sort((a, b) => a[1] - b[1] || a[0] - b[0]).map((x) => x[0]);
-  }
   // A gift of n grain, as the command `give` (source 'help'): its actor is the giver's holder, or the household or village itself
   // without one; true when it was given.
   const actorOf = (x) => ('farmstead' in x ? (x.holder !== null ? x.holder : { household: x.id }) : { village: x.id });

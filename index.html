@@ -1311,6 +1311,8 @@ VB.COUNTERS = {
     'Farms of villages by fishing water asked whether their household begins a boat, once a year (sim/drying; VB-300)',
   digGround:
     'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
+  cowSeek:
+    "Households of its village weighed by a household's open want of a cow, on its planning day (sim/exchange; VB-390)",
   pastureTiles:
     "Tiles within reach of a house searched for its herds' pasture, once a grazing day a household (sim/herds; VB-136)",
   deerGround:
@@ -5569,6 +5571,8 @@ VB['sim/rules'] = (() => {
     butterDays: 48,
     // oxen at the plough (VB-138): two oxen make a team, which draws the ard for the first hand on these kinds, `rate` times a hoe
     team: { oxen: 2, kinds: ['plow', 'break'], rate: 2.5 },
+    // a cow wanted (VB-390; sim/exchange): a household of `hands` working hands or more that holds a meadow and no cattle wants one
+    want: { hands: 2 },
     // herding (VB-136; docs/review-animals.md, G6 and G7): each grazing day a household with a herd posts `herd` from `from` (6:00); a herder
     // of minAge or more takes the household's herds to a pasture within `steps` steps of the house and keeps them there `hours` hours,
     // working at the side (background attention) within `reach` steps of it, then brings them home. Unherded by `by` (10:00), the herds
@@ -11088,11 +11092,12 @@ VB['sim/herds'] = (() => {
     return n;
   }
   // Pay up to `due` rations of a share in animals to household `to`, the least valuable first, never past what is due. Returns the rations paid.
-  // `to` is the sibling's own household: with none (null), a dissolved one or `from` itself, nothing is paid.
-  function payInAnimals(st, from, to, due) {
+  // `to` is the sibling's own household: with none (null), a dissolved one or `from` itself, nothing is paid. `kinds`: the animals it may be
+  // paid in, in that order (a cow led home in a deal or at a marriage is paid in its own kind; VB-390).
+  function payInAnimals(st, from, to, due, kinds = ['ewe', 'heifer', 'steer', 'cow', 'ox']) {
     let paid = 0;
     if (!to || to.dissolved || to === from) return 0;
-    for (const kind of ['ewe', 'heifer', 'steer', 'cow', 'ox']) {
+    for (const kind of kinds) {
       const worth = VB['culture'].norm('worth', kind === 'ewe' ? 'sheep' : 'cattle/' + kind); // the one table of customary worth (VB-299)
       while (due - paid >= worth && giveAnimal(st, from, to, kind)) paid += worth;
     }
@@ -12683,13 +12688,15 @@ VB['sim/hunger'] = (() => {
 </script>
 <script>
 // @sys sim/exchange: deals between parties, the gift for now (VB-216): whether one goes ahead (the floor, allowance), and settling it through
-// sim/stores and sim/relations, its worth booked as goodwill between the two holders (VB-217); owns no state
+// sim/stores and sim/relations, its worth booked as goodwill between the two holders (VB-217); a household's want of a cow, the deal or
+// the start in life that meets it and the job that leads the animal home (VB-390); whom a household deals with first, its kin
 VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
   const { addTie, book, balance, opinionOf } = VB['sim/relations'];
-  const { HELP, GOODWILL } = VB['sim/rules'];
-  const { personEvent, atHousehold, holdingOf } = VB['sim/records'];
+  const { HELP, GOODWILL, HERD, stalled } = VB['sim/rules'];
+  const { personEvent, atHousehold, holdingOf, age, childrenOf, siblingsOf } = VB['sim/records'];
+  const { herdsOf, winterNeed, payInAnimals } = VB['sim/herds'];
   const { floorOf, dailyNeed, servedLast, daysOfFood } = VB['sim/hunger'];
   const Culture = VB['culture'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
@@ -12863,7 +12870,191 @@ VB['sim/exchange'] = (() => {
   // bargain, land in no deal. A deal is called by the worse of its two sides' words.
   const propriety = (st, hh, give, take) =>
     Culture.norm('proper', Stores.goodOf(give).class, Stores.goodOf(take).class, daysOfFood(st, hh));
-  return { assessGift, settleGift, explainAllowance, giftWarning, needValue, propriety, KEEPING, ALE };
+  // households holding a parent, child or sibling of a member, closest first (parents and children before siblings, then by id); food help
+  // asks them first (sim/help), and so does a household that wants a cow (VB-390)
+  function kinHouseholds(st, hh) {
+    const rank = new Map();
+    const note = (id, r) => {
+      const q = st.pawns[id];
+      if (!q.alive || q.household === null || q.household === hh.id || st.households[q.household].dissolved) return;
+      rank.set(q.household, Math.min(rank.get(q.household) ?? 9, r));
+    };
+    for (const id of hh.members) {
+      const p = st.pawns[id];
+      for (const par of [p.father, p.mother]) if (par !== null) note(par, 1);
+      for (const c of childrenOf(st, id)) note(c, 1);
+      for (const s of siblingsOf(st, id)) note(s, 2);
+    }
+    return [...rank].sort((a, b) => a[1] - b[1] || a[0] - b[0]).map((x) => x[0]);
+  }
+  // ---- a cow for a household with a meadow and none (VB-390; QUESTION_ARCHIVE.md, VB-284, question 5) ----
+  // @state plan.want (a household's standing plan; VB-390): {what: 'cow', from (the household that gives it, or null while none is found),
+  //   kind ('heifer' | 'cow', or null), by ('kin': a start in life at a marriage, 'deal', or null)} while the household has HERD.want.hands
+  //   working hands or more, holds a meadow and has no cattle; null or absent otherwise. Written only here: at the plan's review (sim/plans
+  //   calls reviewWant), at a marriage (startInLife) and when the animal is led home (the kind `lead`).
+  const ASKED = ['heifer', 'cow']; // what a household asks for, the cheaper first
+  const wantOf = (st, hh) => {
+    const plan = st.plans.households.get(hh.id);
+    return plan && plan.want ? plan.want : null;
+  };
+  const hasCattle = (st, hh) =>
+    hh.herds.some((id) => st.herds[id].species === 'cattle' && st.herds[id].head.length > 0);
+  // A household wants a cow while it has HERD.want.hands working hands (14 to 59, not retired, as sim/fields counts them), holds a hay
+  // meadow and has no cattle.
+  function cowWanted(st, hh) {
+    const f = hh.dissolved || hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    if (!f || !f.meadows.length || hasCattle(st, hh)) return false;
+    let hands = 0;
+    for (const id of hh.members) {
+      const p = st.pawns[id],
+        a = age(st, p);
+      if (p.died === null && a >= 14 && a < 60 && !p.retired && ++hands >= HERD.want.hands) return true;
+    }
+    return false;
+  }
+  // Whether hh can spare an animal of `kind` above its own plan: sim/herds' giveAnimal's rule read ahead (it keeps a cow, so its own want
+  // is met, and its winter's hay); giveAnimal checks it again when the animal is led away.
+  function spares(st, hh, kind) {
+    if (hh.dissolved) return false;
+    let has = false,
+      cows = 0;
+    for (const hd of herdsOf(st, hh))
+      if (hd.species === 'cattle')
+        for (const h of hd.head) {
+          if (h.kind === kind) has = true;
+          if (h.kind === 'cow') cows++;
+        }
+    return (
+      has && (kind === 'cow' ? cows - 1 : cows) >= 1 && hh.hay >= winterNeed(st, hh) - HERD.hay[kind] * HERD.stallDays
+    );
+  }
+  const worthOf = (kind) => Culture.norm('worth', 'cattle/' + kind); // the one table of customary worth (VB-299)
+  // A deal for the want: among the households of its village, kin first (kinHouseholds), then the others in the order of its farms, the first that spares a
+  // heifer, or else a cow, and whose allowance toward the household covers its customary worth (the gift for now: the animal is given and
+  // its worth booked as goodwill when it is home). Sets the want's giver, or leaves it open.
+  function seek(st, hh, w) {
+    const v = st.villages[st.farmsteads[hh.farmstead].village],
+      mine = new Set();
+    for (const fid of v.farmsteads) {
+      const id = st.farmsteads[fid].household;
+      if (id !== null && id !== hh.id) mine.add(id);
+    }
+    const order = kinHouseholds(st, hh).filter((id) => mine.has(id));
+    for (const id of mine) if (!order.includes(id)) order.push(id);
+    for (const id of order) {
+      VB.count.cowSeek++;
+      const from = st.households[id];
+      for (const kind of ASKED) {
+        if (!spares(st, from, kind)) continue;
+        if (assessGift(st, { from, to: hh, n: worthOf(kind) }).allowance + TOLERANCE < worthOf(kind)) break;
+        w.from = id;
+        w.kind = kind;
+        w.by = 'deal';
+        return;
+      }
+    }
+  }
+  const open = (w) => {
+    w.from = null;
+    w.kind = null;
+    w.by = null;
+  };
+  // At each review of the household's standing plan (sim/plans): the want made or dropped by cowWanted; a giver that can no longer spare its
+  // animal let go; on its planning day (why 'day'), an open want looks for a deal.
+  function reviewWant(st, plan, hh, why) {
+    if (!cowWanted(st, hh)) {
+      if (plan.want) plan.want = null;
+      return;
+    }
+    if (!plan.want) plan.want = { what: 'cow', from: null, kind: null, by: null };
+    const w = plan.want;
+    if (w.from !== null && !spares(st, st.households[w.from], w.kind)) open(w);
+    if (w.from === null && why === 'day') seek(st, hh, w);
+  }
+  // A marriage (sim/lifecycle): the household `to` the couple lives in wants a cow, and `from`, the old household of the spouse who moved
+  // in, of the same village, spares a heifer: she is its start in life, given and not booked (as a new household's start, sim/cottage). True
+  // when promised; the household's own members lead her home.
+  function startInLife(st, to, from) {
+    const plan = st.plans.households.get(to.id);
+    if (!plan || !from || from === to || from.dissolved || !cowWanted(st, to)) return false;
+    if (plan.want && plan.want.from !== null) return false;
+    if (st.farmsteads[from.farmstead].village !== st.farmsteads[to.farmstead].village || !spares(st, from, 'heifer'))
+      return false;
+    plan.want = { what: 'cow', from: from.id, kind: 'heifer', by: 'kin' };
+    return true;
+  }
+  // The animal is home: taken from the giver's herd into the household's (sim/herds; with hay above the giver's winter need), its worth
+  // booked as goodwill in a deal, the want met. The giver that can no longer spare it leaves the want open.
+  function ledHome(st, j, hh) {
+    const w = wantOf(st, hh);
+    if (!w || w.from !== j.from) return;
+    const from = st.households[w.from],
+      kind = w.kind,
+      worth = worthOf(kind);
+    if (!(payInAnimals(st, from, hh, worth, [kind]) > 0)) {
+      open(w);
+      return;
+    }
+    const plan = st.plans.households.get(hh.id);
+    plan.want = null;
+    const name = st.farmsteads[from.farmstead].name,
+      home = st.farmsteads[hh.farmstead].name;
+    if (w.by === 'deal' && from.holder !== null && hh.holder !== null) book(st, from.holder, hh.holder, worth);
+    const how = w.by === 'kin' ? 'as a start in life' : 'in a deal';
+    if (hh.holder !== null)
+      personEvent(st, hh.holder, w.by === 'kin' ? 'share' : 'gift', `Was given a ${kind} from ${name} ${how}`, {
+        n: worth,
+        other: from.holder,
+        ...atHousehold(st, hh),
+      });
+    if (from.holder !== null)
+      personEvent(st, from.holder, w.by === 'kin' ? 'share' : 'gift', `Gave a ${kind} to ${home} ${how}`, {
+        n: worth,
+        other: hh.holder,
+        ...atHousehold(st, from),
+      });
+  }
+  // The kind `lead` (sim/kinds): a member walks to the giver's byre and leads the animal home (no animal appears where it has not walked).
+  // Posted at the household's farm while its want has a giver and the herds are out of the byre (an animal led home in winter would come to
+  // a barn without its hay).
+  const KIND = {
+    verb: 'Haltering the animal',
+    go: 'Going to fetch a cow',
+    back: 'Leading the cow home',
+    name: 'Fetch a cow',
+    label: 'Fetching a cow',
+    anim: null,
+    hours: 0.5,
+    hands: 1,
+    type: 'husbandry',
+    carry: 'cow',
+    to: 'barn',
+    spot: (st, a, j) => [st.w.hx[j.site] - 20 + a.ox * 0.3, st.w.hy[j.site] + 5 + a.oy * 0.2], // by the giver's byre door
+    urgency: (st, j, c, U) => U.other,
+    deliver: (st, j, hh) => ledHome(st, j, hh),
+    available: (st, hh, f, c, post) => {
+      const w = wantOf(st, hh);
+      if (!w || w.from === null || stalled(c)) return;
+      const from = st.households[w.from];
+      if (from.dissolved || from.farmstead === null) return;
+      post(`lead:h${hh.id}:${w.from}`, st.farmsteads[from.farmstead].house, { farm: f, from: w.from });
+    },
+  };
+  return {
+    assessGift,
+    settleGift,
+    explainAllowance,
+    giftWarning,
+    needValue,
+    propriety,
+    KEEPING,
+    ALE,
+    kinHouseholds,
+    cowWanted,
+    reviewWant,
+    startInLife,
+    KIND,
+  };
 })();
 </script>
 <script>
@@ -12872,7 +13063,7 @@ VB['sim/exchange'] = (() => {
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
-  const { childrenOf, siblingsOf } = VB['sim/records'];
+  const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const Rules = VB['sim/registry'];
@@ -12894,22 +13085,6 @@ VB['sim/help'] = (() => {
     return Math.max(0, grainOf(hh) - reserved(st, hh, 'grain') - buffer);
   };
   const spare = (st, hh) => Math.max(0, grainOf(hh) - reserved(st, hh, 'grain'));
-  // households holding a parent, child or sibling of a member, closest first (parents and children before siblings, then by id)
-  function kinHouseholds(st, hh) {
-    const rank = new Map();
-    const note = (id, r) => {
-      const q = st.pawns[id];
-      if (!q.alive || q.household === null || q.household === hh.id || st.households[q.household].dissolved) return;
-      rank.set(q.household, Math.min(rank.get(q.household) ?? 9, r));
-    };
-    for (const id of hh.members) {
-      const p = st.pawns[id];
-      for (const par of [p.father, p.mother]) if (par !== null) note(par, 1);
-      for (const c of childrenOf(st, id)) note(c, 1);
-      for (const s of siblingsOf(st, id)) note(s, 2);
-    }
-    return [...rank].sort((a, b) => a[1] - b[1] || a[0] - b[0]).map((x) => x[0]);
-  }
   // A gift of n grain, as the command `give` (source 'help'): its actor is the giver's holder, or the household or village itself
   // without one; true when it was given.
   const actorOf = (x) => ('farmstead' in x ? (x.holder !== null ? x.holder : { household: x.id }) : { village: x.id });
@@ -17200,6 +17375,7 @@ VB['sim/kinds'] = (() => {
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
   KINDS.herd = VB['sim/grazing'].KIND;
+  KINDS.lead = VB['sim/exchange'].KIND;
   // hunting roe deer (VB-139): its record is sim/deer's, its urgency fishing's, by the household's spare food
   KINDS.hunt = { ...VB['sim/deer'].KIND, urgency: (st, j, c, U) => spareUrgency(st, j, U) };
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
@@ -17235,8 +17411,8 @@ VB['sim/kinds'] = (() => {
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
-  // VB-359, VB-300, sim/carts (a boat or a cart is a project's step), VB-139 (hunting roe deer)
-  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart'), rule('hunt'));
+  // VB-359, VB-300, sim/carts (a boat or a cart is a project's step), VB-139 (hunting roe deer), VB-390 (a cow led home, sim/exchange)
+  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart'), rule('hunt'), rule('lead'));
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy };
 })();
@@ -18941,6 +19117,7 @@ VB['sim/plans'] = (() => {
     { on } = VB['sim/events'],
     { log } = VB['sim/records'];
   const { startMeadow } = VB['sim/meadows'];
+  const { reviewWant } = VB['sim/exchange'];
   const { buildStep } = VB['sim/building'];
   const Green = VB['sim/green'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
@@ -19528,6 +19705,7 @@ VB['sim/plans'] = (() => {
     T.fields = fieldsWanted(st, hh, T.workable);
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed');
+    reviewWant(st, plan, hh, why); // a cow wanted (VB-390): plan.want, sim/exchange's
     plan.build = buildStep(st, plan, hh); // the building step (VB-332): open while the house is to be raised onto stone, and where its stone comes from
   }
   // A village's review: while its routines hold the green and well and it has none under way, its green's project plan is made where a
@@ -22481,6 +22659,7 @@ VB['sim/lifecycle'] = (() => {
     voiceOf,
   } = VB['sim/records'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
+  const { startInLife } = VB['sim/exchange'];
   const { stillAtDeath, travelling, tileAt, journeyOf } = VB['sim/agents'];
   const {
     heirRanking,
@@ -22733,6 +22912,7 @@ VB['sim/lifecycle'] = (() => {
     const m = st.pawns[mId],
       f = st.pawns[fId];
     st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
+    const olds = [mId, fId].map((id) => st.pawns[id].household).filter((h) => h !== null && h !== home);
     for (const id of [mId, fId]) {
       if (st.pawns[id].household !== home) moveTo(st, id, home);
       personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === mId ? fId : mId])}`, false);
@@ -22756,6 +22936,8 @@ VB['sim/lifecycle'] = (() => {
       const own2 = holdingOf(st, id);
       if (own2 && own2.id !== home) handOn(st, own2, id, home);
     }
+    // a heifer from the old household of the one who moved in, where the home wants a cow (sim/exchange, VB-390)
+    for (const h of olds) if (startInLife(st, st.households[home], st.households[h])) break;
     wedding(st, mId, fId, home); // the next day's feast at their farm (sim/occasions, VB-126)
   }
   // The moving round (autumn day 10) runs in ROUND_PHASES phases on the 6-minute steps from noon (VB-201), so no step holds all of it:
@@ -36189,7 +36371,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '3a6118a6f8',
+const BUILD = 'c79cf03df3',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
