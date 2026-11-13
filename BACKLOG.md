@@ -13,7 +13,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-409](backlog/VB-409.md) | Verify's page check and the nightly-only rule checks, rebuilt on small constructed states | - | 1 | L | 60 scripts run only at night since VB-408; each rule they hold gets a case on a constructed tiny state in verify, the page first. |
-| [VB-427](backlog/VB-427.md) | Repair: the nightly checks that fail (smoke, record, review-tools) | - | 1 | S | tests/smoke.js, tests/record.js and tests/review-tools.js fail at the branch tip; each is repaired at its cause. |
 | [VB-186](backlog/VB-186.md) | Plan: talk travels: traits, venues and stories (slice 7) | talk | 2 | S | Design traits, encounters at venues and stories, with lies and counter-stories, from the experiment. |
 | [VB-253](backlog/VB-253.md) | The player as head: every choice of the plan as a command | year | 2 | M | Verbs for a target, the tile of the next field or meadow, the season's order and the project, under the holder's checks; the holder's rule where none is made. |
 | [VB-254](backlog/VB-254.md) | Foresight: stand-in traits, a head's horizon and its bias | year | 2 | M | A head plans from an estimate of its needs: wits, husbandry and years as head set the horizon and a persistent bias; the poorest tenth leave the template's order. |

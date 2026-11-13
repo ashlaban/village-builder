@@ -65,6 +65,7 @@ VB['sim/records'] = (() => {
     matchRefused: 0,
     offerLapsed: 0,
     meetingFailed: 0,
+    cartBuilt: 0, // a household's new cart (VB-327)
     setOut: 0, // a journey to a new home in another village (VB-287)
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT,
@@ -85,6 +86,7 @@ VB['sim/records'] = (() => {
     funeralAle: GENERATION,
     noWood: GENERATION,
     cattleInCrop: GENERATION,
+    cartGone: GENERATION, // a cart worn out (VB-327)
     arrived: GENERATION, // the journey's end (VB-287)
     deerInCrop: GENERATION,
   };
