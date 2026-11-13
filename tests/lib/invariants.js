@@ -848,6 +848,7 @@ function checkHerds(st, bad) {
     if (hh.milkDay !== undefined &&
       !(Number.isInteger(hh.milkDay) && hh.milkDay >= -1 && hh.milkDay <= st.t / 24)) bad.push(`households[${hh.id}]: milkDay ${hh.milkDay}`);
     if (hh.manure !== undefined && !(hh.manure >= 0)) bad.push(`households[${hh.id}]: manure ${hh.manure}`); // VB-137
+    if (hh.wool !== undefined && !(hh.wool >= 0)) bad.push(`households[${hh.id}]: wool ${hh.wool}`); // VB-144
     if (hh.spoilt !== undefined && !(hh.spoilt >= 0)) bad.push(`households[${hh.id}]: spoilt ${hh.spoilt}`); // grain lost in store (balance review)
   }
   // a field's soil (VB-137) between the floor that harvests wear it to and the cap manure raises it to
