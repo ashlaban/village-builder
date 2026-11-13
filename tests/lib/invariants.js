@@ -532,7 +532,21 @@ function checkState(st) {
     if (v.green && onRiver(v.center)) bad.push(`villages[${v.id}]: green on river tile ${v.center}`);
     // plots built (village.plots) and under way (the village's project plans, VB-123): numbered 0, 1, ... in the village; the timber at the
     // site within range (VB-328); a built one's farmstead exists
-    const live = st.plans && st.plans.projects ? st.plans.projects.village.get(v.id) || [] : [];
+    const projects = st.plans && st.plans.projects ? st.plans.projects.village.get(v.id) || [] : [],
+      live = projects.filter((pl) => pl.what === 'plot');
+    // the green and well (VB-058): a well only with a green; a green under way at most once, only while there is no well: its three steps
+    // on one tile, the village's and in use, open ground off any river, its stone brought at most what the well takes
+    if (v.well && !v.green) bad.push(`villages[${v.id}]: a well without a green`);
+    const greens = projects.filter((pl) => pl.what === 'green');
+    if (projects.some((pl) => pl.what !== 'plot' && pl.what !== 'green')) bad.push(`villages[${v.id}]: a project of an unknown kind`);
+    if (greens.length > 1 || (greens.length && v.well)) bad.push(`villages[${v.id}]: ${greens.length} greens under way, well ${v.well}`);
+    for (const pl of greens) {
+      const t = pl.steps[0].place, wellStep = pl.steps[1];
+      if (pl.steps.map((x) => x.kind).join() !== 'green,well,sweep' || pl.steps.some((x) => x.place !== t)) bad.push(`villages[${v.id}]: green shape`);
+      if (st.owner[t] !== -v.id - 1 || !st.used.has(t) || onRiver(t) || st.w.water[t]) bad.push(`villages[${v.id}]: green under way on tile ${t}, not its own open ground`);
+      const B = globalThis.VB['sim/rules'].BUILD;
+      if (!Number.isInteger(wellStep.brought) || wellStep.brought < 0 || wellStep.brought > B.wellStone) bad.push(`villages[${v.id}]: the well's stone ${wellStep.brought}`);
+    }
     const nums = [...(v.plots || []).map((pl) => pl.id), ...live.map((pl) => pl.plot)].sort((a, b) => a - b);
     if (!nums.every((n, i) => n === i)) bad.push(`villages[${v.id}]: plots numbered ${nums}`);
     for (const pl of live) {

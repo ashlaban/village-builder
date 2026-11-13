@@ -57,7 +57,7 @@ VB['sim/fields'] = (() => {
       // plots built, and under way (their village's project plans, VB-123)
       for (const p of v.plots || []) for (const tr of p.tiles) if (tr.kind === 'house') out.add(tr.tile);
       for (const p of Projects.projectsOf(st, 'village', v.id))
-        for (const tr of p.steps[0].places) if (tr.kind === 'house') out.add(tr.tile);
+        if (p.what === 'plot') for (const tr of p.steps[0].places) if (tr.kind === 'house') out.add(tr.tile);
     }
     return out;
   }

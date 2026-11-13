@@ -126,6 +126,7 @@ VB['sim/notable'] = (() => {
         'settled',
         'plot',
         'plotStarted',
+        'green',
         'field',
         'meadow',
         'stake',

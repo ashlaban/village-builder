@@ -65,12 +65,19 @@ async function buildSettlement(wd, s) {
 }
 // Map labels: a village of two or more farms (or with a green) by its name, at its centre; a lone farm by its farm's name, at the house
 // (a one-farm village bears its farm's name, unique on the island; VB-026). Rebuilt when villages or farm names change (settlers found
-// villages and join them in play; VB-148), once the label font has loaded.
+// villages and join them in play; VB-148), or a village lays out its green (its label moves there, larger; VB-058), once the label font
+// has loaded.
 let labelsReady = false,
   labelSig = '';
 const byName = (v) => v.green || v.farmsteads.length >= 2;
 const labelSigOf = () =>
-  st.villages.map((v) => (byName(v) ? v.name : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'))).join('/');
+  st.villages
+    .map((v) =>
+      byName(v)
+        ? `${v.name}@${v.center}${v.green ? 'g' : ''}`
+        : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'),
+    )
+    .join('/');
 function buildLabels(wd) {
   for (const t of L.labels.removeChildren()) t.destroy();
   labels = [];

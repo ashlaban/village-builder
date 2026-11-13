@@ -5231,12 +5231,14 @@ VB['sim/rules'] = (() => {
   // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
   // every kind its type and fills in `prio`, each role's rank of every kind. Herding (VB-136; Kim, 31 Oct): child 8, daughter 6, son 5,
   // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Hunting (VB-139) is foraging for the men alone: none for the
-  // women, the retired and children. Jobs carry an owner that decides who may take them ----
+  // women, the retired and children. A village duty (VB-058: the green and well; Kim, 30 Oct): farmhand and son 6, farmer 5, mistress, maid
+  // and daughter 3, below the farm's own work; none for the retired and children. Jobs carry an owner that decides who may take them ----
   const ROLES = {
     farmer: {
       title: 'Farmer',
       sv: 'bonde',
       work: {
+        duty: 5,
         tilling: 10,
         tending: 10,
         harvest: 8,
@@ -5254,6 +5256,7 @@ VB['sim/rules'] = (() => {
       title: 'Mistress of the house',
       sv: 'husfru',
       work: {
+        duty: 3,
         tilling: 2,
         tending: 5,
         harvest: 6,
@@ -5270,6 +5273,7 @@ VB['sim/rules'] = (() => {
       title: 'Farmhand',
       sv: 'dräng',
       work: {
+        duty: 6,
         tilling: 9,
         tending: 6,
         harvest: 8,
@@ -5287,6 +5291,7 @@ VB['sim/rules'] = (() => {
       title: 'Maid',
       sv: 'piga',
       work: {
+        duty: 3,
         tilling: 1,
         tending: 4,
         harvest: 6,
@@ -5303,6 +5308,7 @@ VB['sim/rules'] = (() => {
       title: 'Son of the house',
       sv: 'son',
       work: {
+        duty: 6,
         tilling: 9,
         tending: 6,
         harvest: 8,
@@ -5320,6 +5326,7 @@ VB['sim/rules'] = (() => {
       title: 'Daughter of the house',
       sv: 'dotter',
       work: {
+        duty: 3,
         tilling: 1,
         tending: 4,
         harvest: 6,
@@ -5744,8 +5751,9 @@ VB['sim/rules'] = (() => {
   // wood (six trees). A stone foundation (VB-332; design, Land and ecology, Stone; Agreed, Kim, 11 Nov) takes `foundationStone` loads from the
   // household's heap and `foundationHours` of work at the house; stone is picked (`pickHours` a load) on a meadow tile holding more than
   // `keepStones` (what a meadow keeps, sim/meadows) or quarried (`quarryHours` a load) on hills or mountains, within `stoneReach` walking steps
-  // and `stoneWalk` hours' walk of the house (proposed, 11 Nov). The village's well (VB-058, not built in play yet) is to take `wellStone` loads
-  // from its households' heaps.
+  // and `stoneWalk` hours' walk of the house (proposed, 11 Nov). The village's well (VB-058; sim/green) takes `wellStone` loads from its
+  // households' heaps, carried to the green; the green is cleared in `greenHours`, the well dug and lined in `wellHours` and its sweep raised
+  // in `sweepHours` (Agreed, Kim, 30 Oct); the green lies within `greenReach` walking steps of a farm's house (VB-058's own choice).
   const BUILD = {
     timber: 18,
     foundationStone: 12,
@@ -5756,6 +5764,10 @@ VB['sim/rules'] = (() => {
     stoneReach: 12,
     stoneWalk: 3,
     wellStone: 6,
+    greenHours: 10,
+    wellHours: 40,
+    sweepHours: 10,
+    greenReach: 4,
   };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one whose
@@ -8215,6 +8227,7 @@ VB['sim/records'] = (() => {
     cottage: 0,
     plot: 0,
     plotStarted: 0,
+    green: 0, // the village's green and well laid out, and done (VB-058)
     field: 0,
     meadow: 0,
     stake: 0,
@@ -9878,10 +9891,11 @@ VB['sim/claims'] = (() => {
       for (const fd of f.fields) kind.set(fd.tile, 'fields');
       for (const m of f.meadows || []) kind.set(m.tile, 'meadows');
     }
+    const greens = new Set(st.villages.map((v) => v.center));
     for (const v of st.villages)
       for (const p of Projects.projectsOf(st, 'village', v.id))
-        for (const tr of p.steps[0].places) kind.set(tr.tile, 'plots');
-    const greens = new Set(st.villages.map((v) => v.center));
+        if (p.what === 'plot') for (const tr of p.steps[0].places) kind.set(tr.tile, 'plots');
+        else greens.add(p.steps[0].place); // a green under way (VB-058)
     const households = new Map(),
       villages = new Map();
     const row = (m, id, keys) => {
@@ -11234,6 +11248,7 @@ VB['sim/stores'] = (() => {
   ROUTINE.push('firewood', 'burn');
   // VB-332: the stone heap, in loads of 25 stones: cleared from a field or meadow, picked, quarried; taken by a stone foundation.
   KINDS.push('clear', 'pick', 'quarry', 'foundation');
+  KINDS.push('well'); // VB-058: a load carried from the heap to the village's well (sim/green)
   // VB-123: what a project plan's step spends, taken from the store when the step is done (sim/projects).
   KINDS.push('build');
   // VB-300: a catch hung on the drying rack (sim/drying), out of the rack's store into the larder; VB-119: 'raw', grain eaten uncooked (sim/hunger)
@@ -13120,6 +13135,7 @@ VB['sim/notable'] = (() => {
         'settled',
         'plot',
         'plotStarted',
+        'green',
         'field',
         'meadow',
         'stake',
@@ -13419,7 +13435,7 @@ VB['sim/fields'] = (() => {
       // plots built, and under way (their village's project plans, VB-123)
       for (const p of v.plots || []) for (const tr of p.tiles) if (tr.kind === 'house') out.add(tr.tile);
       for (const p of Projects.projectsOf(st, 'village', v.id))
-        for (const tr of p.steps[0].places) if (tr.kind === 'house') out.add(tr.tile);
+        if (p.what === 'plot') for (const tr of p.steps[0].places) if (tr.kind === 'house') out.add(tr.tile);
     }
     return out;
   }
@@ -14705,12 +14721,12 @@ VB['sim/expansion'] = (() => {
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // @state village.plots[]: the village's plots built, {id, village, intended, holder (who moved in), started, farmstead, tiles: [{tile, kind
   //   'house' | 'field'}]}, appended when the cottage's household moves in (sim/cottage). A plot under way is a project plan of its village
-  //   (st.plans.projects; a village's only kind of project), {..., what: 'plot', plot (its number in the village: the plots built and under
+  //   (st.plans.projects; a village's other project is its green, sim/green), {..., what: 'plot', plot (its number in the village: the plots built and under
   //   way before it), intended, to (the pawn it is allotted to once cleared, or null), hours ({pawn: hours worked on it}), started, steps}:
   //   the steps are its clearing, of several places (each {tile, kind 'house' | 'field', steps (fell, grub, clear, break), i, fresh}, one
   //   task a place, worked side by side), then the cottage's stages at the house ({kind, place, hours, done (hours worked)}; the walls also
   //   `wood`, the timber brought to the site, which nothing else may take: VB-328).
-  const livePlots = (st, v) => Projects.projectsOf(st, 'village', v.id);
+  const livePlots = (st, v) => Projects.projectsOf(st, 'village', v.id).filter((p) => p.what === 'plot'); // not its green (VB-058)
   const tilesOf = (p) => (p.steps ? p.steps[0].places : p.tiles);
   const activePlots = (st, v) => livePlots(st, v).filter((p) => p.open < 1);
   const building = (p) => p.open >= 1 && p.to !== null;
@@ -16152,6 +16168,262 @@ VB['sim/carts'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/green: the village green and well, built by the village (VB-058; Kim, 30 Oct): a village of two or more occupied farms and no
+// well may choose the work as a routine at its meeting (VB-257); its review then makes it a project plan of the village (VB-123): the
+// green's tile chosen and taken, the green cleared, stone carried to it from the households' heaps, the well dug and lined, the sweep
+// raised; then the village has its green and well, its centre on the green
+VB['sim/green'] = (() => {
+  const Stores = VB['sim/stores'],
+    Projects = VB['sim/projects'];
+  const { BUILD } = VB['sim/rules'];
+  const { B } = VB['gen'];
+  const { bfs } = VB['sim/hex'];
+  const { walkable, costChanged } = VB['sim/routes'];
+  const { setOwner } = VB['sim/ownership'];
+  const { freeFor } = VB['sim/territory'];
+  const { log } = VB['sim/records'];
+  const { emit } = VB['sim/events'];
+  // @state the green's project plan (st.plans.projects.village; sim/projects): {what: 'green', started (game hours), steps: [{kind 'green',
+  //   place, hours}, {kind 'well', place, hours, brought (loads of stone carried to the green)}, {kind 'sweep', place, hours}]}, at most one
+  //   a village. Its tile is the village's (st.owner) and in use (st.used) from the plan's making; v.center, v.green and v.well change when
+  //   the sweep is raised (sim/layout and sim/byhand set them at seeding).
+  const STONES_PER_LOAD = 25; // as clearing and picking load them (sim/fields, sim/building)
+  const VILLAGE = (v) => ({ type: 'village', id: v.id });
+  // The village's green under way, or null.
+  function greenOf(st, v) {
+    for (const p of Projects.projectsOf(st, 'village', v.id)) if (p.what === 'green') return p;
+    return null;
+  }
+  // The occupied farms' houses of the village.
+  function houses(st, v) {
+    const out = [];
+    for (const id of v.farmsteads) if (st.farmsteads[id].household !== null) out.push(st.farmsteads[id].house);
+    return out;
+  }
+  // Whether the village has the work: no well yet, and two or more occupied farms or the green under way (the routine's `available`).
+  const wanted = (st, v) => !v.well && (!!greenOf(st, v) || houses(st, v).length >= 2);
+  // Ground a green may lie on: open meadow or heath, not water or a river's course, not in use (a house, field, meadow, plot), not in the
+  // village's wood, and land the village may take in (its outland, or wilderness nobody claims; sim/territory).
+  const OPEN = new Set([B.MEADOW, B.HEATH]);
+  const open = (st, v, t, wood) => {
+    const w = st.w;
+    return (
+      OPEN.has(w.biome[t]) &&
+      !w.water[t] &&
+      !w.river[t] &&
+      !w.dev[t] &&
+      !st.used.has(t) &&
+      !wood.has(t) &&
+      t !== v.center &&
+      freeFor(st, t, v.id)
+    );
+  };
+  // The green's tile: of the open tiles within BUILD.greenReach walking steps of an occupied farm's house, the nearest to the houses' mean
+  // position (so it lies between them), the lowest id between equals; -1 for none, or fewer than two farms.
+  function greenSite(st, v) {
+    const w = st.w,
+      hs = houses(st, v);
+    if (hs.length < 2) return -1;
+    let mx = 0,
+      my = 0;
+    for (const h of hs) {
+      mx += w.hx[h] / hs.length;
+      my += w.hy[h] / hs.length;
+    }
+    const wood = new Set(v.wood);
+    let best = -1,
+      bd = Infinity;
+    for (const h of hs)
+      for (const t of bfs(w, h, BUILD.greenReach, walkable(w)).dist.keys()) {
+        if (!open(st, v, t, wood)) continue;
+        const d = (w.hx[t] - mx) ** 2 + (w.hy[t] - my) ** 2;
+        if (d < bd || (d === bd && t < best)) {
+          best = t;
+          bd = d;
+        }
+      }
+    return best;
+  }
+  // The green's project plan for the village, as sim/plans makes it (makeProject), or null: none while the village has no such work, has
+  // one under way, or finds no tile. It spends nothing from the village's store: the well's stone comes from the households' heaps.
+  function greenProject(st, v) {
+    if (v.well || greenOf(st, v) || houses(st, v).length < 2) return null;
+    const t = greenSite(st, v);
+    if (t < 0) return null;
+    return {
+      what: 'green',
+      started: st.t,
+      steps: [
+        { kind: 'green', place: t, hours: BUILD.greenHours },
+        { kind: 'well', place: t, hours: BUILD.wellHours, brought: 0 },
+        { kind: 'sweep', place: t, hours: BUILD.sweepHours },
+      ],
+    };
+  }
+  // The plan made: its tile is the village's and in use from now, and the village's log tells it.
+  function laidOut(st, v, plan) {
+    const t = plan.steps[0].place;
+    setOwner(st, t, VILLAGE(v));
+    st.used.add(t);
+    st.visualDirty = true;
+    log(st, `${v.name} sets out to lay out a green and dig a well between its farms.`, {
+      kind: 'green',
+      village: v.id,
+    });
+  }
+  // The open step done: told to the village's plan (sim/plans advances it).
+  const stepDone = (st, v, plan) => emit(st, 'stepDone', { type: 'village', id: v.id, plan });
+  // The green cleared: open ground that the ways cross (sim/paths: no path wears on it; sim/routes walk it as meadow).
+  function cleared(st, j) {
+    const v = st.villages[j.village],
+      plan = greenOf(st, v);
+    if (!plan || plan.steps[plan.open] !== j.step) return;
+    st.w.dev[j.site] = 2;
+    costChanged(st, j.site);
+    st.biomeDirty.add(j.site);
+    stepDone(st, v, plan);
+  }
+  // A load of stone laid at the green: the well's, or, once it has all it takes, left lying on the green (stones in the ground, which a
+  // meadow keeps; never more than a tile holds).
+  function stoneLaid(st, j) {
+    const s = j.step;
+    if (s.brought < BUILD.wellStone) s.brought++;
+    else {
+      st.w.stones[s.place] = Math.min(255, st.w.stones[s.place] + STONES_PER_LOAD);
+      st.biomeDirty.add(s.place);
+    }
+  }
+  // A load taken off a household's heap for the well, at its house: 1, or 0 when the heap no longer holds one free, or the well has its stone.
+  function stoneTaken(st, j) {
+    const hh = st.households[j.from],
+      s = j.step;
+    if (!hh || hh.dissolved || s.brought >= BUILD.wellStone || (hh.stone || 0) - Stores.reserved(st, hh, 'stone') < 1)
+      return 0;
+    Stores.take(st, hh, 'stone', 1, 'well');
+    return 1;
+  }
+  // The well dug and lined with its stone.
+  function dug(st, j) {
+    const v = st.villages[j.village],
+      plan = greenOf(st, v);
+    if (!plan || plan.steps[plan.open] !== j.step) return;
+    stepDone(st, v, plan);
+  }
+  // The sweep raised: the village has its green and well from now, its centre on the green (water is drawn there, sim/kinds; the map
+  // draws the green, the sweep and the village's name there).
+  function raised(st, j) {
+    const v = st.villages[j.village],
+      plan = greenOf(st, v);
+    if (!plan || plan.steps[plan.open] !== j.step) return;
+    v.center = j.site;
+    v.green = true;
+    v.well = true;
+    st.visualDirty = true;
+    log(st, `The well sweep is raised on the new green of ${v.name}: the farms draw their water at one well.`, {
+      kind: 'green',
+      village: v.id,
+    });
+    stepDone(st, v, plan);
+  }
+  // The households whose heaps hold stone the well may take, most first, then by id.
+  function heaps(st, v) {
+    const out = [];
+    for (const id of v.farmsteads) {
+      const f = st.farmsteads[id],
+        hh = f.household === null ? null : st.households[f.household];
+      const n = hh ? (hh.stone || 0) - Stores.reserved(st, hh, 'stone') : 0;
+      if (n >= 1) out.push([n, hh.id, f.house]);
+    }
+    return out.sort((a, b) => b[0] - a[0] || a[1] - b[1]);
+  }
+  // Asked at the village's review while its meeting chose the routine (sim/jobs): the open step of its green, owned by the village; while
+  // the well lacks stone, a trip to carry a load to the green from each of the two fullest heaps (one when one load is lacking), in place
+  // of the digging. Nothing while no heap holds stone: the well waits for it.
+  function greenWork(st, v, at, c, post) {
+    const plan = greenOf(st, v);
+    if (!plan) return;
+    const s = plan.steps[plan.open],
+      own = VILLAGE(v);
+    if (s.kind === 'well' && s.brought < BUILD.wellStone) {
+      const from = heaps(st, v),
+        n = Math.min(2, BUILD.wellStone - s.brought, from.length);
+      for (let k = 0; k < n; k++)
+        post(
+          `wellstone:v${v.id}${k ? 'b' : ''}`,
+          from[k][2],
+          { village: v.id, step: s, from: from[k][1], dest: s.place },
+          'wellstone',
+          own,
+        );
+      return;
+    }
+    post(`${s.kind}:v${v.id}`, s.place, { village: v.id, step: s }, s.kind, own);
+  }
+  // Where the pawn stands at the green's work: round the tile's middle, the well a little below it (where the page draws the sweep).
+  const spot = (dy) => (st, a, j) => [st.w.hx[j.site] + a.ox * 0.5, st.w.hy[j.site] + dy + a.oy * 0.3];
+  // The job kinds (sim/kinds takes them in), a village duty (ROLES' `duty`, sim/rules).
+  const KINDS = {
+    green: {
+      verb: 'Clearing the village green',
+      go: 'Going to clear the green',
+      name: 'Clear the green',
+      label: 'Green',
+      anim: 'hoe',
+      hours: BUILD.greenHours,
+      hands: 3,
+      type: 'duty',
+      spot: spot(0),
+      done: cleared,
+      available: greenWork,
+    },
+    wellstone: {
+      verb: 'Loading stone for the well',
+      go: 'Going for stone for the well',
+      back: 'Carrying stone to the well',
+      name: 'Carry stone to the well',
+      label: 'Stone',
+      anim: 'gather',
+      hours: 0.25,
+      hands: 1,
+      type: 'duty',
+      carry: 'basket',
+      to: 'site',
+      load: (st, a, j) => stoneTaken(st, j),
+      again: () => false,
+      deliver: (st, j) => stoneLaid(st, j),
+      available: greenWork,
+    },
+    well: {
+      verb: 'Digging and lining the well',
+      go: 'Going to dig the well',
+      name: 'Dig the well',
+      label: 'Well',
+      anim: 'hoe',
+      hours: BUILD.wellHours,
+      hands: 2,
+      type: 'duty',
+      spot: spot(10),
+      done: dug,
+      available: greenWork,
+    },
+    sweep: {
+      verb: 'Raising the well sweep',
+      go: 'Going to raise the well sweep',
+      name: 'Raise the well sweep',
+      label: 'Sweep',
+      anim: 'mallet',
+      hours: BUILD.sweepHours,
+      hands: 3,
+      type: 'duty',
+      spot: spot(10),
+      done: raised,
+      available: greenWork,
+    },
+  };
+  return { KINDS, greenWork, greenOf, greenSite, greenProject, laidOut, wanted, houses };
+})();
+</script>
+<script>
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'],
@@ -16170,7 +16442,8 @@ VB['sim/kinds'] = (() => {
   const { renewClaim } = VB['sim/claims'];
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
   const Building = VB['sim/building'],
-    Pot = VB['sim/pot'];
+    Pot = VB['sim/pot'],
+    Green = VB['sim/green'];
   const { ground: forageGround, gather } = VB['sim/forage'],
     Drying = VB['sim/drying'];
   // A kind's fields:
@@ -16791,6 +17064,7 @@ VB['sim/kinds'] = (() => {
       available: plotWork,
     },
     ...Building.KINDS, // the cottage's stages and the timber its walls take (sim/building)
+    ...Green.KINDS, // the village green and well (sim/green, VB-058)
     mend: {
       verb: 'Mending the fence',
       go: 'Going to mend the fence',
@@ -16943,7 +17217,7 @@ VB['sim/kinds'] = (() => {
       'gather',
       Building.stoneWork,
     ].map(rule),
-    village: ['mend'].map(rule),
+    village: ['mend', 'green'].map(rule), // the green's rule posts each of its kinds (sim/green)
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
@@ -18643,6 +18917,7 @@ VB['sim/plans'] = (() => {
     { log } = VB['sim/records'];
   const { startMeadow } = VB['sim/meadows'];
   const { buildStep } = VB['sim/building'];
+  const Green = VB['sim/green'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
@@ -18950,6 +19225,14 @@ VB['sim/plans'] = (() => {
         return n;
       },
     }),
+    // the green and well (VB-058): while the village has two or more occupied farms and no well, or its green is under way; weighed by
+    // the farms that would draw water there
+    green: Object.freeze({
+      label: 'Laying out the green and digging the well',
+      kinds: Object.freeze(['green', 'wellstone', 'well', 'sweep']),
+      available: (st, v) => Green.wanted(st, v),
+      need: (st, v) => Green.houses(st, v).length,
+    }),
   });
   const MAX_ROUTINES = 4;
   // The routines chosen from candidates [[need, key]], most needed first and in their order of declaration between equals: at most
@@ -19208,7 +19491,10 @@ VB['sim/plans'] = (() => {
     plan.last = c.day;
     if (why === 'store') plan.woke = c.day;
     plan.dirty = false; // lint-allow: owner the review has read the stores whose crossing sim/stores flagged
-    if (plan.holder.type !== 'household') return;
+    if (plan.holder.type !== 'household') {
+      greenStep(st, plan);
+      return;
+    }
     const hh = st.households[plan.holder.id],
       T = plan.targets,
       sp = seasonOf(st, hh.id);
@@ -19218,6 +19504,16 @@ VB['sim/plans'] = (() => {
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed');
     plan.build = buildStep(st, plan, hh); // the building step (VB-332): open while the house is to be raised onto stone, and where its stone comes from
+  }
+  // A village's review: while its routines hold the green and well and it has none under way, its green's project plan is made where a
+  // tile is found (sim/green, VB-058).
+  function greenStep(st, plan) {
+    if (plan.holder.type !== 'village' || !plan.routines.includes('green')) return;
+    const v = st.villages[plan.holder.id],
+      p = Green.greenProject(st, v);
+    if (!p) return;
+    const made = makeProject(st, 'village', v.id, p);
+    if (made) Green.laidOut(st, v, made);
   }
   // The land step (at each review of a household's plan): a new field while the household has fewer than the plan's target, else a hay
   // meadow while it is short of one; the tile is the holder's choice (chooseTile, chooseMeadow) unless the plan names one.
@@ -29342,12 +29638,19 @@ async function buildSettlement(wd, s) {
 }
 // Map labels: a village of two or more farms (or with a green) by its name, at its centre; a lone farm by its farm's name, at the house
 // (a one-farm village bears its farm's name, unique on the island; VB-026). Rebuilt when villages or farm names change (settlers found
-// villages and join them in play; VB-148), once the label font has loaded.
+// villages and join them in play; VB-148), or a village lays out its green (its label moves there, larger; VB-058), once the label font
+// has loaded.
 let labelsReady = false,
   labelSig = '';
 const byName = (v) => v.green || v.farmsteads.length >= 2;
 const labelSigOf = () =>
-  st.villages.map((v) => (byName(v) ? v.name : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'))).join('/');
+  st.villages
+    .map((v) =>
+      byName(v)
+        ? `${v.name}@${v.center}${v.green ? 'g' : ''}`
+        : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'),
+    )
+    .join('/');
 function buildLabels(wd) {
   for (const t of L.labels.removeChildren()) t.destroy();
   labels = [];
@@ -35839,7 +36142,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'b963d8dc2a',
+const BUILD = '71d3da0a80',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

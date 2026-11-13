@@ -300,3 +300,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |
 | [VB-388](backlog/VB-388.md) | A catch that cannot be eaten is dried, and the seed a short household eats is cooked | year | 2 | M | Fishing for the pot waits while fresh fish covers two days, the surplus catch goes to the rack, and the cook cooks the seed a short household would eat. |
 | [VB-421](backlog/VB-421.md) | A village whose wood in reach is gone: its households cut further, or leave | - | 2 | M | A village with no wood in reach is cold every day; find why the allotment empties, and let it cut further or walk away. |
+| [VB-058](backlog/VB-058.md) | The village green and well, built by the village | year | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. |
