@@ -75,9 +75,26 @@ VB['sim/kinds'] = (() => {
     const w = CROPS[fd.crop].sow;
     return c.season === w[0] && c.sday >= w[1] && c.sday <= w[2];
   };
-  // The hours of a stage are the crop's row (CROPS.barley.hours, sim/rules): barley alone as yet, so the kinds read its row.
+  // The hours of a stage are the crop's row (CROPS, sim/rules): the kinds hold barley's, and a field's job carries its crop's where they
+  // differ (rye's weeding, fallow's tilling; VB-348), so a barley field's job is as it was.
   const HOURS = CROPS.barley.hours;
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
+  const fieldJob = (f, fd, k) => {
+    const h = CROPS[fd.crop].hours[k];
+    return h === undefined || h === HOURS[k] ? { field: fd, farm: f } : { field: fd, farm: f, hours: h };
+  };
+  // Why household hh cannot sow field fd today, or null (VB-348): the course is not sown, the window is shut, the field is not hoed, or the
+  // household holds less than a field's seed of the crop, which is taken from its own grain (seed rye is rye).
+  function sowWhy(hh, fd, c) {
+    const C = CROPS[fd.crop];
+    if (!(C.seed > 0)) return `a field in ${fd.crop} is not sown`;
+    if (!sowing(fd, c)) return `${fd.crop} is not sown in this season`;
+    if (fd.stage !== 'plowed') return 'the field is not hoed';
+    const has = Stores.grainOf(hh, fd.crop);
+    return has < C.seed
+      ? `the household holds ${Math.floor(has)} of the ${C.seed} rations of ${fd.crop} a field's seed takes`
+      : null;
+  }
   // The household has fewer meals than the coming meal needs, and grain or fresh food (VB-119) to cook it from.
   const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && Pot.cookable(st, hh);
   // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
@@ -143,10 +160,11 @@ VB['sim/kinds'] = (() => {
       spot: onField,
       urgency: inWindow,
       done: (st, j) => hoed(j.field),
-      // a field in stubble, in the sowing window
+      // a field in stubble, in the sowing window (a fallow field: in its tilling window, once a year; VB-348)
       stages: ['stubble'],
       available: (st, hh, fd, c, post, f) => {
-        if (sowing(fd, c) && fd.stage === 'stubble') post('plow:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (sowing(fd, c) && fd.stage === 'stubble' && !(CROPS[fd.crop].fallow && fd.rest === 1))
+          post('plow:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'plow'));
       },
     },
     sow: {
@@ -163,19 +181,15 @@ VB['sim/kinds'] = (() => {
       spot: onField,
       urgency: inWindow,
       done: (st, j, hh, c) => {
-        const seed = CROPS[j.field.crop].seed;
-        if (Stores.grainOf(hh, j.field.crop) < seed) return;
-        Stores.take(st, hh, Stores.grainGood(j.field.crop), seed, 'seed');
+        if (Stores.grainOf(hh, j.field.crop) < CROPS[j.field.crop].seed) return; // the seed eaten since it was posted
+        Stores.take(st, hh, Stores.grainGood(j.field.crop), CROPS[j.field.crop].seed, 'seed');
         sown(j.field, c);
       },
-      // a hoed field, in the sowing window, while the household has the seed for it
+      // a hoed field, in the sowing window, while the household has the seed for it (sowWhy)
       stages: ['plowed'],
       available: (st, hh, fd, c, post, f) => {
-        if (sowing(fd, c) && fd.stage === 'plowed' && Stores.grainOf(hh, fd.crop) >= CROPS[fd.crop].seed)
-          post('sow:' + fieldKey(f, fd), fd.tile, {
-            field: fd,
-            farm: f,
-          });
+        if (fd.stage === 'plowed' && sowWhy(hh, fd, c) === null)
+          post('sow:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'sow'));
       },
     },
     reap: {
@@ -194,7 +208,7 @@ VB['sim/kinds'] = (() => {
       // a ripe field
       stages: ['ripe'],
       available: (st, hh, fd, c, post, f) => {
-        if (fd.stage === 'ripe') post('reap:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (fd.stage === 'ripe') post('reap:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'reap'));
       },
     },
     haul: {
@@ -215,7 +229,7 @@ VB['sim/kinds'] = (() => {
       load: (st, a, j, cap) => (a.load = carried(j.field, cap)),
       again: (j) => j.field.stage === 'stooks',
       deliver: (st, j, hh, f, a) => {
-        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1));
+        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.field.crop));
         if (
           f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
           !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].phase === 'back')
@@ -364,7 +378,7 @@ VB['sim/kinds'] = (() => {
       // a growing field whose weeding is open (sim/fields)
       stages: ['growing'],
       available: (st, hh, fd, c, post, f) => {
-        if (fd.stage === 'growing' && fd.weedOpen) post('weed:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+        if (fd.stage === 'growing' && fd.weedOpen) post('weed:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'weed'));
       },
     },
     thresh: {
@@ -777,5 +791,5 @@ VB['sim/kinds'] = (() => {
   };
   ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart')); // VB-359, VB-300, sim/carts (a boat or a cart is a project's step)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen };
+  return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy };
 })();

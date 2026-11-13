@@ -2,13 +2,14 @@
 const { SYSTEMS } = require('../../src/load.js')['sim/rng'];
 const { checkRoles } = require('./owner-caches.js');
 const checked = new WeakMap(); // the record's length at the last check, by record
-// Grain by crop (VB-347): an object of crops of CROPS, none negative, and the sum the readers see (Stores.grainOf) is their sum.
+// Grain by crop (VB-347): an object of crops of CROPS with seed (Stores.CROP_LIST: not fallow, VB-348), none negative, and the sum the
+// readers see (Stores.grainOf) is their sum.
 const LOADED = require('../../src/load.js'), CROPS = LOADED['sim/rules'].CROPS;
 function grainBad(g) {
   if (!g || typeof g !== 'object' || Array.isArray(g)) return true;
   let sum = 0;
   for (const c of Object.keys(g)) {
-    if (!CROPS[c] || !Number.isFinite(g[c]) || g[c] < -1e-6 || g[c] > 1e6) return true;
+    if (!LOADED['sim/stores'].CROP_LIST.includes(c) || !CROPS[c] || !Number.isFinite(g[c]) || g[c] < -1e-6 || g[c] > 1e6) return true;
     sum += g[c];
   }
   return Math.abs(LOADED['sim/stores'].grainOf({ grain: g }) - sum) > 1e-9 * Math.max(1, sum);
@@ -775,7 +776,18 @@ function checkHerds(st, bad) {
   for (const f of st.farmsteads) for (const fd of f.fields) {
     if (!Object.prototype.hasOwnProperty.call(CROPS, fd.crop)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: crop ${fd.crop} is not in the table`); // VB-346
     if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
+    // VB-348: a fallow field is never sown; a sown field's crop has seed; a winter crop stands across the year's turn, any other is not
+    // standing in winter; weeding rounds within the crop's; a rest mark is 0.5 or 1
+    const C = CROPS[fd.crop] || {}, at = `farmsteads[${f.id}].fields[${fd.id}]`, standing = ['sown', 'growing', 'ripe'].includes(fd.stage);
+    if (C.fallow && (fd.sown !== null || fd.stage === 'plowed' || standing || fd.stage === 'stooks')) bad.push(`${at}: fallow but ${fd.stage}, sown ${fd.sown}`);
+    if (fd.sown !== null && !(C.seed > 0)) bad.push(`${at}: sown with ${fd.crop}, which has no seed`);
+    if (standing && Math.floor(st.t / VB['sim/rules'].DAY / VB['sim/rules'].SEASON_DAYS) % 4 === 3 && !C.winter && f.household !== null) bad.push(`${at}: ${fd.crop} ${fd.stage} in winter`);
+    if (fd.weeds !== undefined && !(Number.isInteger(fd.weeds) && fd.weeds >= 1 && fd.weeds <= (C.weeds || 0))) bad.push(`${at}: weeds ${fd.weeds}`);
+    if (fd.rest !== undefined && fd.rest !== 0.5 && fd.rest !== 1) bad.push(`${at}: rest ${fd.rest}`);
   }
+  // the barn's crops (VB-348): absent, or one known crop for each unthreshed entry
+  for (const h of st.households) if (h.sheafCrops !== undefined && !(Array.isArray(h.sheafCrops) && h.sheafCrops.length === h.unthreshed.length &&
+    h.sheafCrops.every((c) => LOADED['sim/stores'].CROP_LIST.includes(c)))) bad.push(`households[${h.id}]: sheafCrops ${JSON.stringify(h.sheafCrops)}`);
 }
 // Goodwill balances (sim/relations, VB-217): none for the dead or with them, at most GOODWILL.cap, each {v, t} with v non-zero and finite,
 // t no later than now, mirrored exactly on the other pawn ({v: -v, t}).

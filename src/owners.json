@@ -32,6 +32,7 @@
     "household.grain": "sim/stores",
     "household.meals": "sim/stores",
     "household.unthreshed": "sim/stores",
+    "household.sheafCrops": "sim/stores",
     "household.ale": "sim/stores",
     "household.poured": "sim/stores",
     "household.ledger": "sim/stores",

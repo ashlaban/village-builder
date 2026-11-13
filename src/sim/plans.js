@@ -412,7 +412,8 @@ VB['sim/plans'] = (() => {
     for (const fd of f.fields) {
       const W = CROPS[fd.crop].sow,
         sow = c.season === W[0] && c.sday >= W[1] && c.sday <= W[2];
-      if (fd.stage === 'ripe' || (sow && (fd.stage === 'stubble' || fd.stage === 'plowed'))) return true;
+      const idle = fd.stage === 'plowed' || (fd.stage === 'stubble' && !(CROPS[fd.crop].fallow && fd.rest === 1)); // fallow: tilled once
+      if (fd.stage === 'ripe' || (sow && idle)) return true;
     }
     return false;
   }

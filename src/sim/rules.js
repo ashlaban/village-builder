@@ -64,7 +64,7 @@ VB['sim/rules'] = (() => {
   // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
   // grain. Days are game days. yield: rations a field gives at fertility and soil 1; seed: rations sown on a field (a 4:1 ratio); sow: the window
   // [season, first day, last day]; ripe: days from sowing to ripe; wear: the soil a harvest takes (the frost's day is the
-  // calendar's, sim/clock FROST, until a second crop has another). hours: the work of each stage; KINDS plow, sow, weed, reap and thresh (sim/kinds)
+  // calendar's, sim/clock FROST; it takes every crop but a winter one). hours: the work of each stage; KINDS plow, sow, weed, reap and thresh (sim/kinds)
   // read them from here. ----
   const CROPS = {
     barley: {
@@ -75,6 +75,23 @@ VB['sim/rules'] = (() => {
       wear: 0.08,
       hours: { plow: 20, sow: 2, weed: 2, reap: 15, thresh: 20 },
     },
+    // winter rye (VB-348): sown in autumn days 1 to 6, it stands the winter and the frost (winter), and is ripe in summer days 7 to 12; a
+    // ripe field still standing on `lost` [season, day] is lost; weeds: the rounds of weeding it gets (barley: every ECON.weedEvery days)
+    rye: {
+      yield: 100,
+      seed: 25,
+      sow: [2, 0, 5],
+      ripe: 42,
+      wear: 0.08,
+      winter: true,
+      lost: [2, 0],
+      weeds: 1,
+      hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
+    },
+    // fallow (VB-348), a course and not a crop: never sown, no seed and no grain (sim/stores holds only the rows with seed); tilled once in
+    // `sow`, the summer; at the year's end a field that stood fallow through the summer gains `mend` of soil if tilled, half if not, to
+    // at most SOIL.start
+    fallow: { fallow: true, sow: [1, 0, SEASON_DAYS - 1], mend: 0.08, hours: { plow: 10 } },
   };
   // ---- fields a household wants (balance review, 1 Nov 2026): enough for `want` times a year's rations at `expect` of the full yield, but no more
   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
