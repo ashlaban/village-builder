@@ -13469,7 +13469,7 @@ VB['sim/help'] = (() => {
       source: 'help',
     }) === true;
   // @state household.askedIn: the season (game seasons since the start) in which the household last asked for help, or absent; written only
-  //   here. A household asks at most once a season (VB-222; design.md, The gift: Lumps and occasions).
+  //   here. A household asks at most once a season (VB-222; design.md, The gift: Lumps and occasions), and an ask that moved no goods does not count (VB-391).
   const seasonOf = (t) => Math.floor(t / (SEASON_DAYS * DAY));
   const noteAsked = (hh, season) => {
     hh.askedIn = season;
@@ -13492,8 +13492,9 @@ VB['sim/help'] = (() => {
       return p.alive && p.age >= 18;
     }).length <= 1;
   // Each day, a household whose spare grain covers fewer than HELP.askBelow days, and that has not asked this season, asks kin, then the
-  // village store, for food until the next harvest (askDaysAt); if the gifts fall short, it waits for the next season. Returns the ids of
-  // the households short of people whose ask fell short today, in ascending id, for sim/service to take in (sim/help moves nobody).
+  // village store, for food until the next harvest (askDaysAt); if the gifts fall short, it waits for the next season. An ask that
+  // brought nothing at all does not count, and it asks again tomorrow (VB-391). Returns the ids of the households short of people whose
+  // ask fell short today, in ascending id, for sim/service to take in (sim/help moves nobody).
   function shareFood(st) {
     const season = seasonOf(st.t),
       short = [];
@@ -13503,17 +13504,25 @@ VB['sim/help'] = (() => {
       if (hh.askedIn === season) continue;
       const need = dailyNeed(st, hh);
       if (need <= 0 || spare(st, hh) >= HELP.askBelow * need) continue;
-      noteAsked(hh, season);
-      let want = askDaysAt(st) * need - spare(st, hh);
+      let moved = false,
+        want = askDaysAt(st) * need - spare(st, hh);
       for (const k of kinHouseholds(st, hh)) {
         const n = Math.min(want, surplus(st, st.households[k]));
         if (n <= 1e-9) continue;
-        if (give(st, st.households[k], hh, n)) want -= n;
+        if (give(st, st.households[k], hh, n)) {
+          want -= n;
+          moved = true;
+        }
         if (want <= 1e-9) break;
       }
       const v = st.villages[st.farmsteads[hh.farmstead].village],
         n = Math.min(want, grainOf(v));
-      if (n > 1e-9 && give(st, v, hh, n)) want -= n;
+      if (n > 1e-9 && give(st, v, hh, n)) {
+        want -= n;
+        moved = true;
+      }
+      // an ask that moved no goods marks nothing worth remembering (VB-391): it is not the season's ask, and the household asks again on a later day
+      if (moved) noteAsked(hh, season);
       if (want > 1e-9 && shortOfPeople(st, hh)) short.push(hh.id);
     }
     return short;
@@ -37773,7 +37782,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'fdd6849125',
+const BUILD = '3aa273c337',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
