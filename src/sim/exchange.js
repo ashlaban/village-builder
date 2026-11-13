@@ -200,11 +200,18 @@ VB['sim/exchange'] = (() => {
   };
   const hasCattle = (st, hh) =>
     hh.herds.some((id) => st.herds[id].species === 'cattle' && st.herds[id].head.length > 0);
+  // The head's choice of a cow (sim/plans' plan.chosen.cow, its verb `target`; VB-253): 0 none, 1 wanted, null the rule's.
+  const chosenCow = (st, hh) => {
+    const plan = st.plans.households.get(hh.id);
+    return plan && plan.chosen ? plan.chosen.cow : null;
+  };
   // A household wants a cow while it has HERD.want.hands working hands (14 to 59, not retired, as sim/fields counts them), holds a hay
-  // meadow and has no cattle.
+  // meadow and has no cattle; its head's choice comes first (none, or wanted whatever its hands while it holds a meadow and has no cattle).
   function cowWanted(st, hh) {
-    const f = hh.dissolved || hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!f || !f.meadows.length || hasCattle(st, hh)) return false;
+    const f = hh.dissolved || hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
+      choice = f ? chosenCow(st, hh) : 0;
+    if (choice === 0 || !f.meadows.length || hasCattle(st, hh)) return false;
+    if (choice === 1) return true;
     let hands = 0;
     for (const id of hh.members) {
       const p = st.pawns[id],

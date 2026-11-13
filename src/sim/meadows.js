@@ -3,10 +3,10 @@
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { byRiver, SEASON_DAYS, TRAVEL } = VB['sim/rules'];
+  const { byRiver, SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
-  const { log, atFarm, atHousehold } = VB['sim/records'];
+  const { log, atFarm, atHousehold, age } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo, farmedLand } = VB['sim/layout'];
   const { HAND_REACH } = VB['sim/byhand'];
@@ -44,6 +44,22 @@ VB['sim/meadows'] = (() => {
   const meadowFert = (w, i) => (SITE[w.biome[i]] || 0) * (wetBank(w, i) ? 1.3 : 1);
   // Hay a farm's meadows give in an ordinary year, before raking and weather.
   const expectedHay = (f) => f.meadows.reduce((s, m) => s + HAY * m.fert, 0);
+  // Why tile t cannot be a meadow of farm f, beyond its reach (fixed words, so the search allocates nothing), or null: chooseMeadow's checks
+  // (VB-253: the head's verb asks the same, meadowWhy).
+  const meadowBar = (st, t, free, built, may) =>
+    !SITE[st.w.biome[t]]
+      ? 'only open meadow, marsh or heath makes a hay meadow'
+      : st.w.river[t] || st.w.water[t]
+        ? 'the tile is water'
+        : !free(t)
+          ? 'the land there is claimed'
+          : st.used.has(t)
+            ? 'the land there is in use'
+            : built.has(t)
+              ? 'a house or the green is there'
+              : !may(t)
+                ? "the land there is outside the farm's block"
+                : null;
   // The best free tile for a hay meadow within REACH of the house, or -1: open meadow, marsh or heath, not a river or water tile, its
   // village's outland or wilderness (sim/territory) and unused, where farmed land may lie (sim/layout, farmedLand); by site value, near, few stones, beside the
   // farm's meadows, and away from its fields' block. `free`: whether the household may take a tile in (as for chooseTile, sim/fields).
@@ -55,9 +71,7 @@ VB['sim/meadows'] = (() => {
     let best = -1,
       bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
-      if (d < 1 || !SITE[w.biome[t]] || w.river[t] || w.water[t] || !free(t) || st.used.has(t) || built.has(t))
-        continue;
-      if (!may(t)) continue;
+      if (d < 1 || meadowBar(st, t, free, built, may) !== null) continue;
       const s =
         meadowFert(w, t) -
         0.06 * d -
@@ -71,8 +85,36 @@ VB['sim/meadows'] = (() => {
     }
     return best;
   }
+  const mayTake = (st, f, hh) => (t) => freeFor(st, t, f.village) || contestable(st, t, f.village, hh.id) !== null;
+  // Why tile t cannot be the next hay meadow of household hh, whose farm is f, or null: chooseMeadow's checks, within REACH steps' walk of
+  // the house, and fewer than MAX meadows. The check of the head's verb (sim/commands, VB-253).
+  function meadowWhy(st, f, hh, t, built = builtTiles(st)) {
+    if (!(Number.isInteger(t) && t >= 0 && t < st.w.N)) return `there is no tile ${t}`;
+    if (f.meadows.length >= MAX) return `the farm has ${MAX} meadows, the most it keeps`;
+    const d = bfs(st.w, f.house, REACH, walkable(st.w)).dist.get(t);
+    if (d === undefined) return `the tile is not within ${REACH} steps' walk of the house`;
+    if (d < 1) return 'the house stands there';
+    return meadowBar(st, t, mayTake(st, f, hh), built, farmedLand(st.w, st.villages, st.villages[f.village], f.house));
+  }
+  // The holder's own choice of its next meadow's tile: the best free tile, or with none, the best stake it may contest; -1 for none.
+  function pickMeadow(st, f, hh, built = builtTiles(st)) {
+    const tile = chooseMeadow(st, f, undefined, built);
+    return tile >= 0 ? tile : chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
+  }
   const wantsMeadow = (st, f, hh) =>
     hh.herds.length > 0 && f.meadows.length < MAX && expectedHay(f) < WANT * winterNeed(st, hh);
+  // A first meadow (VB-428): a household with no herd and no meadow yet, with the hands for a cow (HERD.want.hands working hands, as
+  // sim/exchange's cowWanted counts them), makes one at its land step, so that the want of a cow (VB-390) can come true. Not at generation.
+  function wantsFirstMeadow(st, f, hh) {
+    if (hh.herds.length > 0 || f.meadows.length > 0) return false;
+    let hands = 0;
+    for (const id of hh.members) {
+      const p = st.pawns[id],
+        a = age(st, p);
+      if (p.died === null && a >= 14 && a < 60 && !p.retired && ++hands >= HERD.want.hands) return true;
+    }
+    return false;
+  }
   // The tile becomes the household's meadow: owned, in use, developed (no path wears on it, the settlement layer draws it).
   function addMeadow(st, f, hh, tile) {
     setOwner(st, tile, { type: 'household', id: hh.id });
@@ -106,13 +148,10 @@ VB['sim/meadows'] = (() => {
       hold: { [Stores.grainGood('barley')]: seedPer(st, hh) },
     };
   }
-  function startMeadow(st, f, hh, built = builtTiles(st), given = -1) {
-    if (Projects.projectOf(st, 'household', hh.id) || !wantsMeadow(st, f, hh)) return;
-    let tile = given >= 0 ? given : chooseMeadow(st, f, undefined, built);
-    if (tile < 0) {
-      tile = chooseMeadow(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
-      if (tile < 0 || !contest(st, f, hh, tile, 'meadow')) return;
-    }
+  // The new meadow begun on `tile` (sim/plans' beginLand, the head's verb): a stake of another household contested first, nothing begun when
+  // the contest is lost; else the tile staked. The project plan for sim/plans to make (meadowProject), or null.
+  function beginMeadow(st, f, hh, tile) {
+    if (!freeFor(st, tile, f.village) && !contest(st, f, hh, tile, 'meadow')) return null;
     stake(st, hh, tile, 'meadow');
     return meadowProject(st, hh, tile);
   }
@@ -282,9 +321,12 @@ VB['sim/meadows'] = (() => {
     meadowFert,
     expectedHay,
     chooseMeadow,
+    meadowWhy,
+    pickMeadow,
+    beginMeadow,
     wantsMeadow,
+    wantsFirstMeadow,
     addMeadow,
-    startMeadow,
     meadowProject,
     finishMeadow,
     placeMeadows,
