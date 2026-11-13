@@ -1,7 +1,7 @@
 // The pot and fresh food (VB-119; design.md, Meals and Mixed meals): fish and gathered food are fresh, held in batches by day and lost past
 // their 3 days, read when the store is next touched; the cook makes the next day's meals from fresh food, oldest first, then grain; a pot
 // of 2 sources (each at least a fifth) goes 10% further, of 3 or more 20%; with no meals a household eats gathered food as it is and then
-// grain uncooked, 1.25 rations of grain for a ration of need; a cook at work at the end of work finishes the pot.
+// grain uncooked, a ration of grain feeding 0.75 of a ration of need (VB-327); a cook at work at the end of work finishes the pot.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Pot = VB['sim/pot'];
 const { FOODS, ECON, DAY, WORK } = VB['sim/rules'], { dailyNeed, feedHousehold } = VB['sim/hunger'], { KINDS } = VB['sim/kinds'];
 const { moveClock } = require('./lib/clock.js'), { checkState } = require('./lib/invariants.js');
@@ -82,13 +82,13 @@ check(mixed.sources === 2 && near(mixed.food, 0.9 * plain.food), `grain and fish
   check(hh.fresh.length === Pot.FRESH_CAP && near(spoiled(hh, 'fish'), 2), `${hh.fresh.length} batches, 2 lost`);
 }
 
-// --- no meals: gathered food is eaten as it is, then grain uncooked at ECON.rawGrain; a household that misses its cooking for 3 days uses
+// --- no meals: gathered food is eaten as it is, then grain uncooked at ECON.uncooked; a household that misses its cooking for 3 days uses
 // 25% more grain on those days
-check(ECON.rawGrain === 1.25, 'raw grain: 1.25 rations for a ration of need');
+check(ECON.uncooked === 0.75, 'uncooked grain: a ration feeds 0.75');
 {
   const { st, hh } = home(), need = dailyNeed(st, hh), g0 = grain(hh);
   for (let d = 0; d < 3; d++) { feedHousehold(st, hh); moveClock(st, DAY); }
-  check(hh.hungryDays === 0 && near(g0 - grain(hh), 3 * 1.25 * need), `3 days uncooked: ${g0 - grain(hh)} grain for ${3 * need} of need`);
+  check(hh.hungryDays === 0 && near(g0 - grain(hh), 3 * need / 0.75), `3 days uncooked: ${g0 - grain(hh)} grain for ${3 * need} of need`);
   const raw = hh.totals.find((x) => x.kind === 'raw' && x.good === 'grain');
   check(raw && raw.count === 3, 'each day eaten raw is counted');
   const g1 = grain(hh);
@@ -99,7 +99,7 @@ check(ECON.rawGrain === 1.25, 'raw grain: 1.25 rations for a ration of need');
   const { st, hh } = home(), need = dailyNeed(st, hh), g0 = grain(hh);
   Pot.putFresh(st, hh, 'gathered', need / 2, 'gathering'); Pot.putFresh(st, hh, 'fish', need, 'catch');
   feedHousehold(st, hh);
-  check(near(Pot.freshHeld(st, hh, 'gathered'), 0) && near(Pot.freshHeld(st, hh, 'fish'), need) && near(g0 - grain(hh), 1.25 * need / 2),
+  check(near(Pot.freshHeld(st, hh, 'gathered'), 0) && near(Pot.freshHeld(st, hh, 'fish'), need) && near(g0 - grain(hh), need / 0.75 / 2),
     'gathered food eaten as it is, at no penalty, before raw grain; fish is not eaten uncooked');
 }
 { // short of everything: the meal takes what there is, grain at its raw rate, and the day is hungry

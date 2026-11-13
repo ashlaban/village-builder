@@ -54,11 +54,12 @@ VB['sim/rules'] = (() => {
     villageStoreLoss: 0.2, // the village store (sim/help) loses a fifth a year, as grain kept a second year
     // the pot (VB-119; design.md, Meals; Kim, 30 Oct and 10 Nov): a food is a source of the pot when it gives at least potShare of its rations;
     // a pot of k sources needs pot[k] of the food a pot of one source needs for the same meals (1 / 0.9 and 1 / 0.8 times its rations in
-    // meals for 2 and for 3 or more). A household with no meals eats its grain uncooked, rawGrain rations of grain for a ration of need
-    // (the agent's starting value; Kim, 11 Nov: it stays, once a cook job under way may finish after work ends)
+    // meals for 2 and for 3 or more). A household with no meals eats its grain uncooked, and a ration of grain eaten so feeds `uncooked` of a
+    // ration of need (VB-327; design.md, Fuel: Agreed, 10 Nov, 0.75 in every meal no one cooked, wood or not; it was rawGrain 1.25, the
+    // agent's value of VB-119, a cost of 1 / 0.8)
     pot: [1, 1, 0.9, 0.8],
     potShare: 0.2,
-    rawGrain: 1.25,
+    uncooked: 0.75,
   };
   // ---- crops (VB-346; design.md, Crops and rotations): one row each, and a field holds the key of its crop (`fd.crop`). A plain table here,
   // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
@@ -308,8 +309,9 @@ VB['sim/rules'] = (() => {
   // ---- hunger: a member's hunger h (0..1) multiplies the death hazard by 1 + k(age) * h, and slows work by HUNGER.slow * h ----
   const HUNGER = { days: 12, slow: 0.4, marryBelow: 0.5, k: (a) => (a < 5 || a >= 60 ? 1.5 : a < 15 ? 0.6 : 0.3) };
 
-  // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and restored by full meals; at 0 the pawn dies of starvation ----
-  const HEALTH = { drain: 4, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+  // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and by a cold house (VB-327: `cold` times the day's cold,
+  // 0..1), and restored by a full meal on a warm day; at 0 the pawn dies of starvation ----
+  const HEALTH = { drain: 4, cold: 2, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
 
   // ---- relationships (sim/relations; docs/review-relationships.md; VB-240, Kim 10 Nov): one pawn's opinion of another (-1..1) is derived:
   // the standing's value (kin, spouse, housemate), plus affinity, affinity.weight * compatibility * min(1, tie / affinity.known), the pair's
@@ -495,7 +497,7 @@ VB['sim/rules'] = (() => {
   // held (where a household keeps it: 'grain', its grain; 'larder', lots eaten as they are, sim/hunger addFood, from sim/byre and sim/drying;
   // 'fresh', batches by the day they came in, sim/pot putFresh) and raw (it may be eaten uncooked, at no penalty: the larder's foods always,
   // fresh food on a day without meals). Grain, fresh food and dried fish are cooked into meals (sim/pot); grain eaten uncooked costs
-  // ECON.rawGrain. Flour (milling, VB-009) will be a row with source 'grain'. ----
+  // 1 / ECON.uncooked a ration. Flour (milling, VB-009) will be a row with source 'grain'. ----
   const FOODS = {
     grain: { worth: 1, keeps: null, source: 'grain', held: 'grain', raw: false },
     meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', held: 'larder', raw: true }, // fresh, from the slaughter
@@ -694,6 +696,7 @@ VB['sim/rules'] = (() => {
       haul: 1.1, // reap: 1.3, and in autumn + sday / 5 (the frost comes on autumn day 11)
       woodLow: 8,
       woodLowUrgency: 2.2,
+      woodColdUrgency: 3, // VB-327: a cold household's wood comes before its cooking (cookEvening 2.2)
       woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the goal, + 0.5 in autumn
       waterMorning: 1.4,
       waterMorningHour: 10,

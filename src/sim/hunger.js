@@ -189,20 +189,22 @@ VB['sim/hunger'] = (() => {
     return groups.length ? groups[groups.length - 1].map((p) => p.id) : [];
   }
   // Feeds a household for the day: larder food about to spoil first, then meals (VB-119: people eat meals), and with no meals fresh food
-  // eaten uncooked (FOODS raw), then grain above the seed reserve eaten uncooked at ECON.rawGrain, then the rest of the larder, then, as the
-  // last step and for what the day lacks, the seed below the reserve (VB-282; the fields it cannot sow go unsown), uncooked too; when that
-  // is not enough, what there is goes by the household's feedOrder, in groups served one after the other. Amounts below are in rations of
-  // need; grain is taken at rawGrain a ration.
-  function feedHousehold(st, hh) {
+  // eaten uncooked (FOODS raw), then grain above the seed reserve eaten uncooked (a ration of it feeds ECON.uncooked, VB-327), then the
+  // rest of the larder, then, as the last step and for what the day lacks, the seed below the reserve (VB-282; the fields it cannot sow go
+  // unsown), uncooked too; when that is not enough, what there is goes by the household's feedOrder, in groups served one after the other.
+  // Amounts below are in rations of need; grain is taken at 1 / uncooked a ration. Given the day's season, the day's fire burns first
+  // (warmHouse), and its cold reaches each member's health; without it (a meal alone, as tests feed one) the day is warm.
+  function feedHousehold(st, hh, season) {
     const E = st.ECON,
       mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null);
+    const cold = season === undefined ? 0 : warmHouse(st, hh, season);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])),
       total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
     if (hh.fresh.length) Pot.settle(st, hh);
     const early = hh.larder.length ? takeFood(st, hh, total, HERD.eatSoonDays * DAY) : 0,
       rest = total - early;
-    const R = E.rawGrain,
+    const R = 1 / E.uncooked,
       wild = hh.fresh.length ? Pot.freshHeld(st, hh, null, true) : 0;
     const spare = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')),
       avail = hh.meals + wild + spare / R; // meals, then uncooked food
@@ -239,9 +241,29 @@ VB['sim/hunger'] = (() => {
       if (p.hungerLog.length > HUNGER.days) p.hungerLog.shift();
       p.hunger = p.hungerLog.reduce((s, x) => s + x, 0) / HUNGER.days;
       sum += p.hunger;
-      updateHealth(st, p, eaten.get(p) >= need.get(p));
+      updateHealth(st, p, eaten.get(p) >= need.get(p), cold);
     }
     hh.hunger = mem.length ? sum / mem.length : 0;
+  }
+  // The day's fire (VB-327; design.md, Fuel): the hearth burns the season's use (ECON.woodUse), or what the pile holds. A household whose pile
+  // does not cover it is cold that day by the part it lacked times the season's use over winter's, which is the wood it lacked over winter's
+  // use: a summer day without wood barely counts. hh.cold is the mean of the last HUNGER.days days' cold (hh.coldLog), as a pawn's hunger is
+  // of its hungerLog. Returns the day's cold. One comparison a live household a day, in the pass that burns the wood.
+  function warmHouse(st, hh, season) {
+    const use = st.ECON.woodUse,
+      want = use[season],
+      burnt = Stores.take(st, hh, 'wood', want, 'burn'); // the day's fire, what the pile holds of it (VB-328: through the stores)
+    const day = want - burnt > 1e-9 ? (want - burnt) / use[3] : 0;
+    if (day > 0 || hh.cold > 0) {
+      hh.coldLog.push(day);
+      if (hh.coldLog.length > HUNGER.days) hh.coldLog.shift();
+      hh.cold = hh.coldLog.reduce((s, x) => s + x, 0) / HUNGER.days;
+      if (!hh.coldLog.some((x) => x > 0)) {
+        hh.coldLog.length = 0; // warm for HUNGER.days days: the log empties, and a warm house's day is the one comparison
+        hh.cold = 0;
+      }
+    }
+    return day;
   }
   // The seed a meal eats (VB-282): taken through the stores with its own reason, and the fields it leaves unsown told once a season at most.
   function eatSeed(st, hh, n) {
@@ -258,11 +280,14 @@ VB['sim/hunger'] = (() => {
         ...atFarm(f),
       });
   }
-  // Health after the meal: hunger drains it (faster for the very young and the old), a full meal restores some.
-  function updateHealth(st, p, fed) {
-    const a = age(st, p);
-    if (p.hunger > 0) p.health -= HEALTH.drain * p.hunger * p.hunger * (a < 5 || a >= 60 ? HEALTH.frail : 1);
-    if (fed) p.health += HEALTH.recover;
+  // Health after the meal: hunger drains it, and the day's cold in the house (VB-327), both faster for the very young and the old; a full meal
+  // restores some on a warm day, nothing on a cold one.
+  function updateHealth(st, p, fed, cold = 0) {
+    const a = age(st, p),
+      frail = a < 5 || a >= 60 ? HEALTH.frail : 1;
+    if (p.hunger > 0) p.health -= HEALTH.drain * p.hunger * p.hunger * frail;
+    if (cold > 0) p.health -= HEALTH.cold * cold * frail;
+    else if (fed) p.health += HEALTH.recover;
     p.health = Math.max(0, Math.min(100, p.health));
   }
   // Grain in the barn spoils a little each day (balance review): ECON.storeLoss a year of the first year's need held, of the second, and of the

@@ -140,16 +140,14 @@ VB['sim/clock'] = (() => {
     {
       every: 'day',
       owner: 'sim/hunger',
-      note: 'meals, grain and ale spoil, the fire burns wood',
+      note: 'the fire burns wood (a house without is cold), meals, grain and ale spoil',
       run: (st, c) => {
-        const E = st.ECON;
         for (const liveId of st.liveHouseholds) {
           const hh = st.households[liveId];
           if (hh.dissolved) continue;
-          feedHousehold(st, hh);
+          feedHousehold(st, hh, c.season); // the day's fire first, then the meal (VB-327: the cold reaches health)
           spoilGrain(st, hh);
           Stores.spoilAle(st, hh);
-          Stores.take(st, hh, 'wood', E.woodUse[c.season], 'burn'); // the day's fire (VB-328: through the stores)
         }
       },
     },

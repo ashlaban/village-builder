@@ -70,8 +70,8 @@ if (h2) {
   Sim.advance(s2, 4.5);
   const used = g0 - (Sim.grainOf(h2) + h2.meals) - ((h2.spoilt || 0) - sp0); // grain that spoiled in store overnight is not eaten
   check(F.larderOf(h2, 'milk') < 1e-9, 'fresh milk left after the meal');
-  // what meals do not cover is grain eaten uncooked, at ECON.rawGrain (VB-119)
-  const rest = need - m0, want = Math.min(meals0, rest) + Math.max(0, rest - meals0) * s2.ECON.rawGrain;
+  // what meals do not cover is grain eaten uncooked, at 1 / ECON.uncooked a ration (VB-119, VB-327)
+  const rest = need - m0, want = Math.min(meals0, rest) + Math.max(0, rest - meals0) / s2.ECON.uncooked;
   check(Math.abs(used - want) < 1e-6, `the meal took ${used.toFixed(2)} grain and meals, wanted ${want.toFixed(2)} (need less milk)`);
 }
 check(st.households.some((h) => F.larderOf(h, 'butter') > 1), 'no butter in any larder at the byre');

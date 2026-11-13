@@ -20,7 +20,7 @@ for (const sc of ['founders', 'heirs', 'populous']) {
   hh.meals = need; hh.grain = { barley: 50 }; feedHousehold(st, hh);
   assert(Math.abs(hh.meals) < 1e-9 && Sim.grainOf(hh) === 50 && hh.hungryDays === 0, 'meals first');
   hh.meals = 0; hh.cookDay = -1; feedHousehold(st, hh);
-  assert(Math.abs(Sim.grainOf(hh) - (50 - 1.25 * need)) < 1e-9 && hh.hungryDays === 0, 'no cook, no meals: grain is eaten uncooked (VB-119), nobody is hungry');
+  assert(Math.abs(Sim.grainOf(hh) - (50 - need / st.ECON.uncooked)) < 1e-9 && hh.hungryDays === 0, 'no cook, no meals: grain is eaten uncooked (VB-119), nobody is hungry');
   hh.grain = { barley: 0 }; feedHousehold(st, hh);
   assert.strictEqual(hh.hungryDays, 1, 'no grain and no meals: short');
 }

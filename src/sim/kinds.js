@@ -95,8 +95,10 @@ VB['sim/kinds'] = (() => {
       ? `the household holds ${Math.floor(has)} of the ${C.seed} rations of ${fd.crop} a field's seed takes`
       : null;
   }
-  // The household has fewer meals than the coming meal needs, and grain or fresh food (VB-119) to cook it from.
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.meals < dailyNeed(st, hh) && Pot.cookable(st, hh);
+  // The household has fewer meals than the coming meal needs, grain or fresh food (VB-119) to cook it from, and wood in the pile (VB-327: an
+  // empty pile cannot cook; the pot burns no wood of its own, the day's use is the hearth's).
+  const cookWanted = (st, hh, c) =>
+    hh.cookDay !== c.day && hh.wood > 0 && hh.meals < dailyNeed(st, hh) && Pot.cookable(st, hh);
   // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
   // seed reserve): a household never brews grain it needs.
   const brewWanted = (st, hh) =>
@@ -255,9 +257,10 @@ VB['sim/kinds'] = (() => {
       carry: 'logs',
       to: 'woodpile',
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
-      // 2.2 when the pile is nearly out; else its shortfall of the goal, and more in autumn
+      // 3 in a cold house (VB-327: above cooking's 2.2); 2.2 when the pile is nearly out; else its shortfall of the goal, and more in autumn
       urgency: (st, j, c, U) => {
         const hh = st.households[j.farm.household];
+        if (hh.cold > 0) return U.woodColdUrgency;
         const free = hh.wood - reserved(st, hh, 'wood'); // what a project plan holds back is not for the fire (VB-123)
         if (free < U.woodLow) return U.woodLowUrgency;
         const goal = woodTargets(st, hh).wood[c.season];

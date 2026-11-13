@@ -261,6 +261,12 @@ function checkState(st) {
   const within = (x, lo, hi) => Number.isFinite(x) && x >= lo && x <= hi;
   const memberOf = new Map();
   for (const h of st.households) {
+    // the cold (VB-327): coldLog holds at most HUNGER.days days' cold, each 0..1, and is empty when warm that long; cold is its sum over
+    // HUNGER.days, so 0 exactly when the log is empty
+    const CL = h.coldLog, HD = globalThis.VB['sim/rules'].HUNGER.days;
+    if (!Array.isArray(CL) || CL.length > HD || CL.some((x) => !within(x, 0, 1))) bad.push(`households[${h.id}]: coldLog ${JSON.stringify(CL)}`);
+    else if (!within(h.cold, 0, 1) || Math.abs(h.cold - CL.reduce((n, x) => n + x, 0) / HD) > 1e-9 || (CL.length > 0) !== CL.some((x) => x > 0))
+      bad.push(`households[${h.id}]: cold ${h.cold} against its log ${JSON.stringify(CL)}`);
     if (h.dissolved) { if (h.members.length) bad.push(`households[${h.id}]: dissolved but has members ${h.members}`); continue; }
     if (new Set(h.members).size !== h.members.length) bad.push(`households[${h.id}]: duplicate members ${h.members}`);
     for (const id of h.members) {
