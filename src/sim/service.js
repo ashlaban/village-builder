@@ -5,6 +5,8 @@ VB['sim/service'] = (() => {
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } =
     VB['sim/records'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
+  // The end of the log line of one whose new home lies in another village, who set out on a journey (sim/agents, VB-287).
+  const setsOut = (st, id) => (st.journeys.some((j) => j.pawn === id) ? ', and sets out for it' : '');
   const { issue } = VB['sim/commands'];
   const { hexSteps } = VB['sim/hex'];
   const { SERVICE } = VB['sim/rules'];
@@ -115,7 +117,7 @@ VB['sim/service'] = (() => {
       st,
       `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, ${
         alone ? 'who lived alone' : 'which was short of hands'
-      }.`,
+      }${setsOut(st, best.id)}.`,
       { kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) },
     );
   }

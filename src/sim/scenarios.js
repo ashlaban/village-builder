@@ -428,6 +428,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
     // @state st.offers, st.offerSeq: the open marriage offers and the next offer's id (see sim/lifecycle)
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
+    // @state st.journeys, st.journeySeq: the open journeys between villages and the next one's id (see sim/agents, VB-287)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
@@ -505,6 +506,8 @@ VB['sim/scenarios'] = (() => {
       offerSeq: 0,
       occasions: [],
       occasionSeq: 0,
+      journeys: [],
+      journeySeq: 0,
       finds: new Map(),
     };
     rebuildLiving(st);

@@ -184,6 +184,8 @@ VB['sim/occasions'] = (() => {
     !unplanned(st, a.id) &&
     !held(a, o) &&
     a.phase !== 'back' &&
+    a.phase !== 'journey' &&
+    a.phase !== 'road' && // on the road (VB-287)
     (o.overrides || (!a.job && (a.phase === null || a.phase === 'home')));
   // The occasion o's turn: those whose time to set out has come go if they can; one who cannot yet is looked at again in an hour, while it
   // could still arrive an hour before the end. At the end, o is over.

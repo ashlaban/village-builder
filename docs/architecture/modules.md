@@ -53,6 +53,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   a pawn takes and its pace; wear, mending and the end of a cart; the head's count of misses, `household.cartMiss`, and the cart built as a
   project at the house; its tunables `CART`, with `TRAVEL` in `src/sim/rules.js`). `sim/agents` asks it at each load, `sim/kinds` takes its
   kinds (`cart`, `mendcart`) and the hay's loads from it, `sim/building` fells its timber, `sim/clock` runs its winter count.
+- Journeys (VB-287; design.md, Between villages): `src/sim/agents.js` owns `st.journeys` and `st.journeySeq`. `sim/heirs`' `moveTo`
+  changes the household at the act and hands the pawn to `moved`: within a village it walks to the new door; to another village it sets
+  out on a journey, its provisions (`TRAVEL.dayWalk` hours a ration) taken from the household it leaves through `sim/stores` (reason
+  `journey`), a leg a day from 6:00 to 18:00 as due entries the calendar reads at 6:00 (`dueJourneys`) and stops at 18:00
+  (`stopJourneys`); on the road it eats what it carries (`feedTravellers`, through `sim/hunger`'s `ate`), out of its household's meal.
 - Claims (VB-042, VB-155 to VB-158, VB-033): `src/sim/claims.js` (claims on tiles: strength, lapse, disputes by custom), `src/sim/territory.js` (the
   village's outland, borders and cairns), `src/sim/stakes.js` (a field or meadow project stakes its tile; contests) and `src/sim/farmclaims.js`
   (empty farms: the birthright, claimants by custom, restoration and moving in). Design and plan: `docs/review-claims.md`.

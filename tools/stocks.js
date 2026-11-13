@@ -68,6 +68,8 @@ const QUANTITIES = [
   { id: 'villageGrain', of: 'village', name: 'the village store\'s grain', unit: 'rations', fields: ['village.grain'], good: 'grain', holder: 'village',
     kinds: [],
     none: 'a household short of food gets nothing from the village when its kin cannot help (sim/help)' },
+  { id: 'provisions', of: 'journey', name: 'the food a pawn on a journey carries', unit: 'rations', fields: ['st.journeys'], kinds: [],
+    none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (sim/agents, VB-287)' },
   { id: 'trees', of: 'tile', name: 'a tile\'s trees', unit: 'trees', fields: ['w.trees'], kinds: ['fell', 'grub'], covers: ['w.treesMax'],
     none: 'a tile cut bare: firewood is cut on another tile of the village\'s wood; with none left, no firewood job is posted (sim/territory)' },
   { id: 'stones', of: 'tile', name: 'a tile\'s stones', unit: 'stones', fields: ['w.stones'], kinds: ['pick', 'clear'],
