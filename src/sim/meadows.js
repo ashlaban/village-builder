@@ -143,11 +143,6 @@ VB['sim/meadows'] = (() => {
     stake(st, hh, tile, 'meadow');
     return meadowProject(st, hh, tile);
   }
-  function startMeadow(st, f, hh, built = builtTiles(st), given = -1) {
-    if (Projects.projectOf(st, 'household', hh.id) || !wantsMeadow(st, f, hh)) return;
-    const tile = given >= 0 ? given : pickMeadow(st, f, hh, built);
-    return tile >= 0 ? beginMeadow(st, f, hh, tile) || undefined : undefined;
-  }
   // Cleared: the worst stones go to the household's store, and the stake is its own land, a meadow from now on; the project is finished.
   function finishMeadow(st, f, hh) {
     const w = st.w,
@@ -319,7 +314,6 @@ VB['sim/meadows'] = (() => {
     beginMeadow,
     wantsMeadow,
     addMeadow,
-    startMeadow,
     meadowProject,
     finishMeadow,
     placeMeadows,

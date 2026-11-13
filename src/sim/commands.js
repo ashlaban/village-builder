@@ -9,9 +9,6 @@ VB['sim/commands'] = (() => {
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { assessGift, settleGift } = VB['sim/exchange'];
-  const { fieldWhy, pickField } = VB['sim/fields'],
-    { meadowWhy, pickMeadow } = VB['sim/meadows'],
-    { projectOf } = VB['sim/projects'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
@@ -101,7 +98,9 @@ VB['sim/commands'] = (() => {
     if (Number.isInteger(args.tile)) return args.tile;
     const named = st.plans.households.get(hh.id).tiles[args.what];
     if (named >= 0) return named;
-    return (args.what === 'field' ? pickField : pickMeadow)(st, st.farmsteads[hh.farmstead], hh);
+    return args.what === 'field'
+      ? later('sim/fields').pickField(st, st.farmsteads[hh.farmstead], hh)
+      : later('sim/meadows').pickMeadow(st, st.farmsteads[hh.farmstead], hh);
   }
   const VERBS = {
     // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
@@ -208,7 +207,9 @@ VB['sim/commands'] = (() => {
         const why = heads(st, c) || farmOf(st, c) || landWhat(c.args && c.args.what);
         if (why || c.args.tile === null || c.args.tile === -1) return why;
         const hh = st.households[c.target];
-        return (c.args.what === 'field' ? fieldWhy : meadowWhy)(st, st.farmsteads[hh.farmstead], hh, c.args.tile);
+        return c.args.what === 'field'
+          ? later('sim/fields').fieldWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile)
+          : later('sim/meadows').meadowWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile);
       },
       run: (st, c) => later('sim/plans').nameTile(st, c.target, c.args.what, c.args.tile === null ? -1 : c.args.tile),
     },
@@ -247,7 +248,7 @@ VB['sim/commands'] = (() => {
       check: (st, c) => {
         const why = heads(st, c);
         if (why) return why;
-        const p = projectOf(st, 'household', c.target);
+        const p = later('sim/projects').projectOf(st, 'household', c.target);
         return !p
           ? `household ${c.target} has no project under way`
           : c.args && c.args.id !== undefined && c.args.id !== p.id
@@ -256,7 +257,7 @@ VB['sim/commands'] = (() => {
       },
       run: (st, c) => {
         const P = later('sim/plans');
-        P.giveUp(st, st.households[c.target], projectOf(st, 'household', c.target));
+        P.giveUp(st, st.households[c.target], later('sim/projects').projectOf(st, 'household', c.target));
         if (c.args && c.args.hold) P.holdProject(st, c.target, true);
       },
     },
@@ -717,7 +718,6 @@ VB['sim/commands'] = (() => {
   return {
     issue,
     VERBS,
-    HEAD_VERBS,
     head,
     QUEUE_MAX,
     commanded,

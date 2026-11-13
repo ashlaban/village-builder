@@ -31,7 +31,8 @@ VB['sim/plans'] = (() => {
   //   is dropped with it, so the maps hold only live holders (Rules for cost, 1). Its review asks each kind where it is available for the
   //   holder (refreshJobs, sim/jobs) on the holder's planning day, and out of turn when a window closes or a store crosses a target.
   // @state st.plans.seasons (VB-252): a household's seasonal plan, {holder, kind: 'season', year, season (of cal), made (the day), steps (the
-  //   season's routines in the template's order: kinds of sim/kinds), by (absent, or 'head' once its head set the order: VB-253's verb)}; one per undissolved household, made with its standing plan and again
+  //   season's routines in the template's order: kinds of sim/kinds), by (absent, or 'head' once its head set the order: VB-253's verb)};
+  //   one per undissolved household, made with its standing plan and again
   //   at the standing plan's first review in each season, from its culture's template; dropped with it. The order is recorded, not yet
   //   enforced beyond what the role rankings do (VB-023 enforces the first order).
   // @state st.plans.due: [[hour, household id, index in WINDOWED]], sorted by hour, then id, then index: one entry per live household and
@@ -44,7 +45,8 @@ VB['sim/plans'] = (() => {
   //   wanted and those its hands can till, written at each review, which takes the land step)}. Read by wood (sim/kinds), hayWanted
   //   (sim/meadows), seedNeed (sim/hunger), the review and its land step.
   // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none;
-  //   named by the head's verb `tile` (VB-253), used once and cleared by the land step, or cleared there when it no longer passes. plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
+  //   named by the head's verb `tile` (VB-253), used once and cleared by the land step, or cleared there when it no longer passes.
+  //   plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
   // @state plan.chosen (a household's; VB-253): absent until its head first chooses through a verb (the player as head), then {hay (winters),
   //   fields, wood (loads), cow (0 or 1): the head's targets in place of the template's and the holder's rule's, each null for none;
   //   project: 'none' (no project of the household's is begun by its own rule until cleared) or null}. Each lasts until cleared.
@@ -769,9 +771,12 @@ VB['sim/plans'] = (() => {
     const plan = st.plans.households.get(hh.id);
     if (plan.tiles[what] === tile) plan.tiles[what] = -1;
   }
-  // The household's project under way given up by its head, and told; its stake, if any, stays until it lapses or is taken (sim/stakes).
+  // The household's project under way given up by its head, and told; the stake it worked under is dropped with it (sim/claims: a stake
+  // is its household's project, sim/stakes), and the ground stays as the work left it.
   function giveUp(st, hh, plan) {
-    dropProject(st, plan, ...dropWords(st, plan, 'its head chose to'));
+    const [text, at] = dropWords(st, plan, 'its head chose to');
+    for (const s of plan.steps) if (s.stake) VB['sim/claims'].dropClaim(st, s.place, plan.holder);
+    dropProject(st, plan, text, at);
   }
   // What the head may choose, for the page (VB-256): the targets now and the head's own, their bounds, the named tiles, the season's
   // order and the project under way, or null for a household with no plan. Plain data, a copy.

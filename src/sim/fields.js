@@ -144,13 +144,6 @@ VB['sim/fields'] = (() => {
     stake(st, hh, tile, 'field');
     return fieldProject(st, hh, tile);
   }
-  // A household with fewer fields than it wants, none in progress, picks a tile (pickField) and begins the field (beginField). The land
-  // step whole, for tests; sim/plans' land step takes it in its parts, through the head's verb (VB-253). `given` a tile in place of the pick.
-  function startProject(st, f, hh, built = builtTiles(st), wanted = fieldsWanted(st, hh), given = -1) {
-    if (Projects.projectOf(st, 'household', hh.id) || f.fields.length >= wanted) return;
-    const tile = given >= 0 ? given : pickField(st, f, hh, built);
-    return tile >= 0 ? beginField(st, f, hh, tile) || undefined : undefined;
-  }
   // Clearing done: the stones go to the household's store, the tile is bare ground; the project's next step, breaking, opens.
   function finishClear(st, f, hh) {
     const tile = Projects.openOf(st, 'household', f.household).place;
@@ -415,7 +408,6 @@ VB['sim/fields'] = (() => {
     fieldWhy,
     pickField,
     beginField,
-    startProject,
     fieldProject,
     finishClear,
     clearStones,
