@@ -1313,6 +1313,10 @@ VB.COUNTERS = {
     'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
   pastureTiles:
     "Tiles within reach of a house searched for its herds' pasture, once a grazing day a household (sim/herds; VB-136)",
+  deerGround:
+    'Tiles within reach of a house searched for its hunting ground, when its hunting is asked for in autumn and winter (sim/deer; VB-139)',
+  deerCrop:
+    'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };
 VB.count = {};
 VB.resetCounts = () => {
@@ -5175,6 +5179,22 @@ VB['sim/rules'] = (() => {
   // stock and lowers it by `take`; every stock is full each spring. Posted from summer day `from` + 1 to the end of autumn; its second trip and
   // urgency are fishing's (FISH.secondDays, MATCH.urgency) ----
   const FORAGE = { reach: 5, trip: 2.5, take: 0.2, least: 0.2, from: 5 };
+  // ---- roe deer (VB-139; Kim, 30 Oct: the one wild grazer, meat and hides when hunted, forest edges and meadows, can damage crops), starting
+  // values with no source but a roe deer's size: a region's stock grows logistically at `growth` a year towards `perEdge` deer for each of
+  // its forest-edge tiles (a wood tile beside open land: a tile of land about 150 m across, Two readings of one grid, so about 0.15 deer a
+  // hectare of edge). Each day its deer graze `graze` cow-hours of pressure a deer (sim/grazing) over `spots` of its edge tiles in turn. In
+  // summer a standing crop beside a wood and a broken stretch of the village fence (below `crop.below`, the cattle's HERD.stray.below) is
+  // browsed with `crop.chance` a day times the region's deer against its capacity, losing `crop.loss` of its yield. Hunting (`hunt`): in
+  // autumn and winter, men of `minAge` or more, a trip of `hours` to the nearest forest edge within `reach` walking steps whose region holds
+  // `least` deer or more; it kills with `chance` times the deer against the capacity, a kill giving `meat` rations of fresh meat (a sheep's) ----
+  const DEER = {
+    perEdge: 0.3,
+    growth: 0.35,
+    graze: 1.5,
+    spots: 3,
+    crop: { below: 0.45, chance: 0.04, loss: 0.05 },
+    hunt: { reach: 6, hours: 4, chance: 0.3, least: 1, meat: 3, minAge: 14 },
+  };
   const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
   // ---- rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it ----
   // irrigation: extra fertility of a field next to a river tile; site: added to a village site's score by steps to the nearest river tile (0..3).
@@ -5192,7 +5212,8 @@ VB['sim/rules'] = (() => {
 
   // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
   // every kind its type and fills in `prio`, each role's rank of every kind. Herding (VB-136; Kim, 31 Oct): child 8, daughter 6, son 5,
-  // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Jobs carry an owner that decides who may take them ----
+  // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Hunting (VB-139) is foraging for the men alone: none for the
+  // women, the retired and children. Jobs carry an owner that decides who may take them ----
   const ROLES = {
     farmer: {
       title: 'Farmer',
@@ -5225,7 +5246,7 @@ VB['sim/rules'] = (() => {
         husbandry: 9,
         foraging: 4,
       },
-      except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2 },
+      except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2, hunt: 0 },
     },
     farmhand: {
       title: 'Farmhand',
@@ -5258,7 +5279,7 @@ VB['sim/rules'] = (() => {
         husbandry: 10,
         foraging: 5,
       },
-      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 },
+      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2, hunt: 0 },
     },
     son: {
       title: 'Son of the house',
@@ -5292,19 +5313,19 @@ VB['sim/rules'] = (() => {
         foraging: 6,
         herding: 6,
       },
-      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2 },
+      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2, hunt: 0 },
     },
     retired: {
       title: 'Retired',
       sv: 'undantag',
       work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3, herding: 4 },
-      except: { cook: 4, slaughter: 2 },
+      except: { cook: 4, slaughter: 2, hunt: 0 },
     },
     child: {
       title: 'Child',
       sv: 'barn',
       work: { harvest: 3, foraging: 5, herding: 8 },
-      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0 },
+      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0 },
     },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
@@ -5842,6 +5863,7 @@ VB['sim/rules'] = (() => {
     FIELDS,
     FISH,
     FORAGE,
+    DEER,
     FERTILITY,
     RIVER,
     farmable,
@@ -6152,6 +6174,7 @@ VB['sim/rng'] = (() => {
     'traits',
     'prospect',
     'forest',
+    'deer',
   ];
   // While a scenario is seeded, every system draws from its one seeding stream S, in the order it always has.
   const seeding = (S) => Object.fromEntries([['seed', S], ...SYSTEMS.map((k) => [k, S])]);
@@ -8205,6 +8228,7 @@ VB['sim/records'] = (() => {
     funeralAle: GENERATION,
     noWood: GENERATION,
     cattleInCrop: GENERATION,
+    deerInCrop: GENERATION,
   };
   // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
   //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record
@@ -11177,6 +11201,9 @@ VB['sim/stores'] = (() => {
   // VB-300: a catch hung on the drying rack (sim/drying), out of the rack's store into the larder; VB-119: 'raw', grain eaten uncooked (sim/hunger)
   KINDS.push('drying', 'raw');
   ROUTINE.push('drying', 'raw');
+  // VB-139: a roe deer's meat, brought home from a hunt (sim/deer), folded as the catch is.
+  KINDS.push('hunt');
+  ROUTINE.push('hunt');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -13182,7 +13209,8 @@ VB['sim/leanings'] = (() => {
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
-  const { ECON, CROPS, FIELDS, SOIL, HERD, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
+  const { ECON, CROPS, FIELDS, SOIL, HERD, DEER, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } =
+    VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
@@ -13354,6 +13382,7 @@ VB['sim/fields'] = (() => {
   // @state farmstead.fields[]: crop (a key of CROPS, sim/rules), stage, sown/reaped days, held sheaves and
   // weeding progress; changed only here after seeding.
   //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
+  //   browsed: absent, or the times roe deer got into it since it was sown (VB-139; each takes DEER.crop.loss of its yield)
   const hoed = (fd) => {
     fd.stage = 'plowed';
   };
@@ -13364,10 +13393,12 @@ VB['sim/fields'] = (() => {
     fd.weedPosted = null;
     fd.weedMiss = 0;
     delete fd.trampled;
+    delete fd.browsed;
   }
-  // Cattle got into the standing crop (sim/byre, VB-136).
-  const trample = (fd) => {
-    fd.trampled = (fd.trampled || 0) + 1;
+  // Cattle got into the standing crop (sim/byre, VB-136), or roe deer (`deer`; sim/deer, VB-139).
+  const trample = (fd, deer = false) => {
+    if (deer) fd.browsed = (fd.browsed || 0) + 1;
+    else fd.trampled = (fd.trampled || 0) + 1;
   };
   function reaped(st, fd, c) {
     const E = st.ECON;
@@ -13380,9 +13411,11 @@ VB['sim/fields'] = (() => {
         st.weather *
         (0.9 + rnd(st.rng.fields) * 0.2) *
         (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)) *
-        (1 - HERD.stray.loss) ** (fd.trampled || 0),
+        (1 - HERD.stray.loss) ** (fd.trampled || 0) *
+        (1 - DEER.crop.loss) ** (fd.browsed || 0),
     );
     delete fd.trampled;
+    delete fd.browsed;
     delete fd.bin;
     wearSoil(fd); // the crop takes from the soil (VB-137)
     fd.weedOpen = false;
@@ -14273,6 +14306,176 @@ VB['sim/byre'] = (() => {
     fodderHours,
     byreJobs,
   };
+})();
+</script>
+<script>
+// @sys sim/deer: roe deer (VB-139), the one wild grazer: a stock in each region with forest, growing towards a capacity set by its
+// forest-edge tiles; their grazing at the edges, their browsing of crops through a broken fence, and hunting them in autumn and winter
+VB['sim/deer'] = (() => {
+  const { DEER, HERD, DAY, YEAR_DAYS } = VB['sim/rules'],
+    { B } = VB['gen'];
+  const { next: rnd } = VB['sim/rng'];
+  const { bfs, hexSteps } = VB['sim/hex'];
+  const { passable } = VB['sim/routes'];
+  const { graze } = VB['sim/grazing'];
+  const { trample } = VB['sim/fields'];
+  const { addFood } = VB['sim/hunger'];
+  const Stores = VB['sim/stores'];
+  const { log, atFarm } = VB['sim/records'];
+  // The deer live by the woods and graze the open land beside them (design.md, Animals: forest edges and meadows). A region's deer are one
+  // stock, as fish are a water tile's (sim/fish): no deer is followed, and none walks from one region to another (they are counted where
+  // they live; a region with no forest edge has none, and one that gains its first edge gains no deer until deer can move, later).
+  // @state st.deer: {head[], since[], cap[], edges[][]}, one entry a region of w.regions: head the region's deer as of the game day in
+  //   since, read in closed form as logistic growth towards cap at DEER.growth a year (stock; Rules for cost, 3); cap DEER.perEdge a forest-edge tile;
+  //   edges the region's forest-edge tiles in tile order, the year's (recounted at the year's first step, recount). Written here only.
+  const wooded = (w, i) => w.biome[i] === B.FOREST || w.biome[i] === B.PINE;
+  // A forest-edge tile: a wood tile with open land (not wood, not water) beside it.
+  function edgeTile(w, i) {
+    if (!wooded(w, i)) return false;
+    for (let k = 0; k < 6; k++) {
+      const j = w.nb[i * 6 + k];
+      if (j >= 0 && !w.water[j] && !wooded(w, j)) return true;
+    }
+    return false;
+  }
+  // A tile with a wood tile beside it.
+  function byWood(w, i) {
+    for (let k = 0; k < 6; k++) {
+      const j = w.nb[i * 6 + k];
+      if (j >= 0 && wooded(w, j)) return true;
+    }
+    return false;
+  }
+  const today = (st) => Math.floor(st.t / DAY);
+  // Region r's deer now: logistic growth from head towards cap since the day they were set, in years.
+  function stock(st, r) {
+    const D = st.deer,
+      K = D.cap[r],
+      n0 = D.head[r];
+    if (!(K > 0) || !(n0 > 0)) return 0;
+    return K / (1 + (K / n0 - 1) * Math.exp((-DEER.growth * (today(st) - D.since[r])) / YEAR_DAYS));
+  }
+  // Region r's deer against its capacity, from 0 to 1: how often they are met, in a crop or on a hunt.
+  function density(st, r) {
+    const K = st.deer.cap[r];
+    return K > 0 ? Math.min(1, stock(st, r) / K) : 0;
+  }
+  // The forest edges counted again, once a year: a felled or cleared wood moves them, and the capacity with them; the deer of each region
+  // are what they were, towards the new capacity (none where it has no edge left).
+  function recount(st) {
+    const w = st.w,
+      D = st.deer,
+      R = w.regions.length,
+      found = Array.from({ length: R }, () => []);
+    for (let i = 0; i < w.N; i++) if (edgeTile(w, i)) found[w.region[i]].push(i); // lint-allow: owner a list of this call's own
+    for (let r = 0; r < R; r++) {
+      const s = stock(st, r);
+      D.cap[r] = found[r].length * DEER.perEdge;
+      D.head[r] = D.cap[r] > 0 ? s : 0;
+      D.since[r] = today(st);
+    }
+    D.edges = found;
+  }
+  // The deer of a new run (sim/scenarios) or of a save made before them (sim/saves): every region at its capacity, as wild woods are.
+  function initDeer(st) {
+    const R = st.w.regions.length;
+    st.deer = { head: new Array(R).fill(0), since: new Array(R).fill(0), cap: new Array(R).fill(0), edges: [] };
+    recount(st);
+    for (let r = 0; r < R; r++) st.deer.head[r] = st.deer.cap[r];
+  }
+  // Each day the deer of a region graze DEER.graze cow-hours a deer over DEER.spots of its edge tiles, in turn through the year.
+  function deerGraze(st, c) {
+    const D = st.deer,
+      S = DEER.spots;
+    for (let r = 0; r < D.edges.length; r++) {
+      const e = D.edges[r];
+      if (!e.length) continue;
+      const n = stock(st, r);
+      if (!(n > 0)) continue;
+      for (let k = 0; k < S; k++)
+        graze(st, e[(((c.day * S + k) % e.length) + e.length) % e.length], (n * DEER.graze) / S);
+    }
+  }
+  // A standing crop, sown and not yet reaped.
+  const STANDING = ['sown', 'growing', 'ripe'];
+  // In summer (sim/clock, CALENDAR): a standing crop beside a wood and beside a broken stretch of its village's fence (below
+  // DEER.crop.below) is browsed with DEER.crop.chance times its region's deer against the capacity; it loses DEER.crop.loss of its yield
+  // (sim/fields). Nobody is blamed: the deer are nobody's (the fence's keeper answers for cattle, sim/byre).
+  function browseCrops(st) {
+    const w = st.w;
+    for (const v of st.villages) {
+      const broken = v.fence.filter((s) => s.cond < DEER.crop.below);
+      if (!broken.length) continue;
+      for (const fid of v.farmsteads) {
+        const g = st.farmsteads[fid];
+        if (g.household === null) continue;
+        for (const fd of g.fields) {
+          VB.count.deerCrop++;
+          if (!STANDING.includes(fd.stage) || !byWood(w, fd.tile)) continue;
+          if (!broken.some((s) => s.edges.some((e) => hexSteps(w, e.tile, fd.tile) <= 1))) continue;
+          const d = density(st, w.region[fd.tile]);
+          if (!(d > 0) || rnd(st.rng.deer) >= DEER.crop.chance * d) continue;
+          trample(fd, true);
+          log(st, `Roe deer got into the crop at ${g.name} through a broken fence.`, {
+            kind: 'deerInCrop',
+            ...atFarm(g),
+          });
+        }
+      }
+    }
+  }
+  // ---- hunting ----
+  // The hunting ground of a house: the nearest forest-edge tile within DEER.hunt.reach walking steps, not built on, whose region holds
+  // DEER.hunt.least deer or more (ties by the search's order), or -1.
+  function ground(st, house) {
+    const w = st.w,
+      { dist } = bfs(w, house, DEER.hunt.reach, (j) => passable(w, j));
+    VB.count.deerGround += dist.size;
+    for (const t of dist.keys()) if (edgeTile(w, t) && !w.dev[t] && stock(st, w.region[t]) >= DEER.hunt.least) return t;
+    return -1;
+  }
+  // A hunt at tile `site` comes home: a kill with DEER.hunt.chance times the region's deer against its capacity (none below
+  // DEER.hunt.least), one deer fewer and DEER.hunt.meat rations of fresh meat in the larder, to be salted as the slaughter's is (sim/byre).
+  // The kills, 0 or 1.
+  function hunt(st, hh, site) {
+    const D = st.deer,
+      r = st.w.region[site],
+      s = stock(st, r);
+    if (s < DEER.hunt.least || rnd(st.rng.deer) >= DEER.hunt.chance * Math.min(1, s / D.cap[r])) return 0;
+    D.head[r] = s - 1;
+    D.since[r] = today(st);
+    addFood(st, hh, 'meat', DEER.hunt.meat, HERD.freshDays);
+    Stores.record(st, hh, 'meat', DEER.hunt.meat, 'hunt');
+    return 1;
+  }
+  // The job kind (sim/kinds registers it, with fishing's urgency by the household's spare food): in autumn and winter, a trip to the
+  // house's hunting ground; foraging work for the men alone (ROLES' exceptions), from DEER.hunt.minAge. The pawn comes home with or
+  // without a kill.
+  const KIND = {
+    verb: 'Hunting roe deer',
+    go: 'Going hunting',
+    back: 'Coming home from the hunt',
+    name: 'Go hunting',
+    label: 'Hunting',
+    anim: null,
+    hours: DEER.hunt.hours,
+    hands: 1,
+    type: 'foraging',
+    minAge: DEER.hunt.minAge,
+    carry: 'game',
+    to: 'door',
+    spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.5, st.w.hy[j.site] + a.oy * 0.4],
+    deliver: (st, j, hh) => {
+      hunt(st, hh, j.site);
+    },
+    // the key names the tile, so a ground whose region is hunted out is left for the next one at the following review
+    available: (st, hh, f, c, post) => {
+      if (c.season < 2) return;
+      const t = ground(st, f.house);
+      if (t >= 0) post(`hunt:h${hh.id}:${t}`, t, { farm: f });
+    },
+  };
+  return { edgeTile, stock, density, recount, initDeer, deerGraze, browseCrops, ground, hunt, KIND };
 })();
 </script>
 <script>
@@ -16477,6 +16680,8 @@ VB['sim/kinds'] = (() => {
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
   KINDS.herd = VB['sim/grazing'].KIND;
+  // hunting roe deer (VB-139): its record is sim/deer's, its urgency fishing's, by the household's spare food
+  KINDS.hunt = { ...VB['sim/deer'].KIND, urgency: (st, j, c, U) => spareUrgency(st, j, U) };
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
@@ -16510,7 +16715,8 @@ VB['sim/kinds'] = (() => {
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
-  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart')); // VB-359, VB-300, sim/carts (a boat or a cart is a project's step)
+  // VB-359, VB-300, sim/carts (a boat or a cart is a project's step), VB-139 (hunting roe deer)
+  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart'), rule('hunt'));
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen };
 })();
@@ -22401,6 +22607,7 @@ VB['sim/scenarios'] = (() => {
   const { yearlyRations, fieldsWanted } = VB['sim/fields'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
+  const { initDeer } = VB['sim/deer'];
   const { layWay } = VB['sim/paths'];
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
@@ -22885,8 +23092,10 @@ VB['sim/scenarios'] = (() => {
       occasions: [],
       occasionSeq: 0,
       finds: new Map(),
+      deer: null,
     };
     rebuildLiving(st);
+    initDeer(st); // roe deer in every region with forest edges, at their capacity (VB-139)
     seedPlans(st);
     for (const v of villages) {
       v.plots = [];
@@ -22967,6 +23176,7 @@ VB['sim/clock'] = (() => {
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
   const { byreDay, autumnCounts, strays } = VB['sim/byre'];
   const { herdsBack, halveGraze } = VB['sim/grazing'];
+  const { recount, deerGraze, browseCrops } = VB['sim/deer'];
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
@@ -23210,6 +23420,25 @@ VB['sim/clock'] = (() => {
       run: (st) => herdsBack(st),
     },
     { every: 'year', owner: 'sim/grazing', note: 'the grazing pressure halves (VB-136)', run: (st) => halveGraze(st) },
+    {
+      every: 'year',
+      owner: 'sim/deer',
+      note: "the forest edges counted again: each region's capacity for roe deer (VB-139)",
+      run: (st) => recount(st),
+    },
+    {
+      every: 'day',
+      owner: 'sim/deer',
+      note: 'the roe deer graze the forest edges (VB-139)',
+      run: (st, c) => deerGraze(st, c),
+    },
+    {
+      every: 'day',
+      when: (st, c) => c.season === 1,
+      owner: 'sim/deer',
+      note: 'in summer, roe deer may get into a crop by a wood through a broken fence (VB-139)',
+      run: (st) => browseCrops(st),
+    },
     // ---- the people ----
     {
       every: 'day',
@@ -23909,6 +24138,8 @@ VB['sim/saves'] = (() => {
     for (const a of st.agents) if (a.occasion === undefined) a.occasion = null;
     // VB-326: older saves had one tile of wood a village (v.commonsWood) and a farm (f.woodlot); the village's wood is reckoned now
     if (!st.rng.forest) st.rng.forest = makeStream(data.seed, 'forest');
+    if (!st.rng.deer) st.rng.deer = makeStream(data.seed, 'deer'); // VB-139: nor roe deer, nor their stream
+    if (!st.deer) VB['sim/deer'].initDeer(st);
     for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
     for (const v of st.villages)
       if (!v.wood) {
@@ -28396,6 +28627,7 @@ function makeArt(R) {
     manure: [0, 1, 2].map((l) => T(manureCanvas(l))),
     cow: COATS.map((_, k) => [T(cowCanvas(k, 0)), T(cowCanvas(k, 1))]),
     sheep: [T(sheepCanvas(0)), T(sheepCanvas(1))],
+    deer: [0, 1].map((coat) => [T(deerCanvas(coat, 0)), T(deerCanvas(coat, 1))]), // roe deer (VB-139, page/deer)
   };
   atlas = buildAtlas();
 }
@@ -28614,6 +28846,7 @@ function clearSettlement() {
   fences = [];
   labels = [];
   herdSprites = new Map();
+  deerSprites = [];
   meadowSprites = [];
   teamDraw = new Map();
 }
@@ -28744,6 +28977,7 @@ function buildFarms(wd) {
   houseInfo = [];
   fences = [];
   herdSprites = new Map();
+  deerSprites = [];
   meadowSprites = [];
   teamDraw = new Map();
   L.objects.sortableChildren = true;
@@ -29350,6 +29584,7 @@ function updateSettlement(dt) {
   }
   drawTeams(show);
   drawHerds(c, show);
+  drawDeer(c, show); // roe deer at the forest edges in the twilight (VB-139, page/deer)
   ring.clear();
   if (selPawn >= 0 && rigs[selPawn].root.visible) {
     const x = drawX[selPawn],
@@ -29427,6 +29662,143 @@ function updateSettlement(dt) {
       else if (sel >= 0 && (selFarm >= 0 || w.treesMax[sel] > 0)) showTile(sel);
     }
   }
+}
+// ---- the art: a roe deer side on, facing right; `coat` 0 the summer's red-brown, 1 the winter's grey-brown; `look` 0 grazes with the head
+// down, 1 looks up, ears pricked. The white rump patch shows either way ----
+const DEER_COATS = [
+  [170, 92, 50],
+  [116, 98, 82],
+];
+function deerCanvas(coat, look) {
+  const K = artKit(34, 32, 71 + coat * 5 + look),
+    { g, col, under } = K,
+    base = DEER_COATS[coat],
+    sh = (f) => base.map((v) => v * f),
+    hx = 28,
+    hy = look ? 7 : 21;
+  K.shadow(16, 30, 11, 1.8);
+  under(
+    [
+      ...[8, 11, 20, 23].map((x, k) => [
+        sh(k % 2 ? 0.8 : 0.7),
+        () => {
+          g.beginPath();
+          g.rect(x, 17, 1.6, 12);
+        },
+      ]),
+      [
+        base,
+        () => {
+          g.beginPath();
+          g.ellipse(15.5, 15, 10, 5.4, -0.05, 0, 7);
+        },
+      ],
+      [
+        base,
+        () => {
+          g.beginPath();
+          g.moveTo(21, 11.5);
+          g.quadraticCurveTo(25, look ? 7 : 14, hx - 2, hy);
+          g.lineTo(hx + 1, hy + 2.5);
+          g.quadraticCurveTo(26, look ? 13 : 19, 23, 17);
+          g.closePath();
+        },
+      ],
+      [
+        sh(0.85),
+        () => {
+          g.beginPath();
+          g.ellipse(hx - 1.5, hy - 3, 1.2, 2.6, look ? -0.3 : 0.5, 0, 7);
+        },
+      ],
+      [
+        base,
+        () => {
+          g.beginPath();
+          g.ellipse(hx, hy + 0.5, 3.3, 2.2, look ? 0.3 : 1.1, 0, 7);
+        },
+      ],
+    ],
+    0.45,
+  );
+  g.fillStyle = col([246, 240, 228]);
+  g.beginPath();
+  g.ellipse(6.4, 14.5, 2.6, 3.4, 0, 0, 7);
+  g.fill(); // the rump patch
+  g.fillStyle = col(MP.dark);
+  g.beginPath();
+  g.arc(hx + (look ? 2.6 : 1.2), hy + (look ? 1.4 : 2.6), 0.9, 0, 7);
+  g.fill(); // the nose
+  g.beginPath();
+  g.arc(hx - 0.3, hy - 0.2, 0.6, 0, 7);
+  g.fill(); // the eye
+  return K.c;
+}
+// ---- on the map: only in the twilight, within DEER_TWILIGHT hours of the dark's end or start, and near the camera; a forest-edge tile in
+// view shows a group of one to three by a draw on the tile and the day, more often where its region holds more deer against its capacity
+// (sim/deer), at most DEER_MAX in all. Page state only: the pool of sprites; nothing is written to st ----
+const DEER_TWILIGHT = 2.5,
+  DEER_MAX = 12,
+  DEER_SEEN = 0.12,
+  DEER_SCALE = 0.3;
+let deerSprites = [];
+// Whether hour h of date c is in the twilight: within DEER_TWILIGHT hours before the dark begins or after it ends.
+function deerHour(h, c) {
+  const [a, b] = Sim.dark(c);
+  return (a - h + 24) % 24 <= DEER_TWILIGHT || (h - b + 24) % 24 <= DEER_TWILIGHT;
+}
+function drawDeer(c, show) {
+  let used = 0;
+  if (show && cam.z > 0.3 && st.deer && deerHour(c.hour, c)) {
+    const D = VB['sim/deer'],
+      [x0, y0, x1, y1] = viewRect(40),
+      coat = c.season === 3 || (c.season === 2 && c.sday >= 6) ? 1 : 0;
+    for (let r = 0; r < st.deer.edges.length && used < DEER_MAX; r++) {
+      const e = st.deer.edges[r];
+      if (!e.length) continue;
+      const d = D.density(st, r);
+      if (!(d > 0)) continue;
+      for (const t of e) {
+        const x = w.hx[t],
+          y = w.hy[t];
+        if (x < x0 || x > x1 || y < y0 || y > y1 || hash(t * 13 + c.day * 7) >= DEER_SEEN * d) continue;
+        // out of the trees, on the open ground beside them: towards the first open neighbour
+        let ox = 0,
+          oy = 0;
+        for (let k = 0; k < 6; k++) {
+          const j = w.nb[t * 6 + k];
+          if (j >= 0 && !w.water[j] && w.biome[j] !== G.B.FOREST && w.biome[j] !== G.B.PINE) {
+            ox = (w.hx[j] - x) * 0.55;
+            oy = (w.hy[j] - y) * 0.55;
+            break;
+          }
+        }
+        const n = 1 + ((hash(t * 5 + c.day) * 3) | 0);
+        for (let k = 0; k < n && used < DEER_MAX; k++, used++) {
+          let s = deerSprites[used];
+          if (!s) {
+            s = new PIXI.Sprite(art.deer[0][0]);
+            s.anchor.set(0.5, 0.92);
+            L.objects.addChild(s);
+            deerSprites[used] = s;
+          }
+          const key = t * 31 + k * 17 + c.day,
+            ph = hash(key + 3) * 6.283,
+            u = time * 0.05 + ph,
+            px = x + ox + (hash(key + 1) - 0.5) * 20 + Math.sin(u) * 3,
+            py = y + oy + (hash(key + 2) - 0.5) * 10 + Math.cos(u * 0.7) * 1.2,
+            look = Math.sin(time * 0.3 + ph * 3) > 0.4 ? 1 : 0,
+            tex = art.deer[coat][look];
+          if (s.texture !== tex) s.texture = tex;
+          s.visible = true;
+          s.position.set(px, py);
+          s.zIndex = py;
+          s.scale.set(Math.cos(u) >= 0 ? DEER_SCALE : -DEER_SCALE, DEER_SCALE);
+        }
+      }
+    }
+  }
+  for (let k = used; k < deerSprites.length; k++) deerSprites[k].visible = false;
 }
 // ---- words ----
 const isWidow = (p) =>
@@ -34988,7 +35360,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '0bcba308ad',
+const BUILD = '74485b27d8',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

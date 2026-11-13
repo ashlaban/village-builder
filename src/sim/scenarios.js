@@ -20,6 +20,7 @@ VB['sim/scenarios'] = (() => {
   const { yearlyRations, fieldsWanted } = VB['sim/fields'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
+  const { initDeer } = VB['sim/deer'];
   const { layWay } = VB['sim/paths'];
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
@@ -504,8 +505,10 @@ VB['sim/scenarios'] = (() => {
       occasions: [],
       occasionSeq: 0,
       finds: new Map(),
+      deer: null,
     };
     rebuildLiving(st);
+    initDeer(st); // roe deer in every region with forest edges, at their capacity (VB-139)
     seedPlans(st);
     for (const v of villages) {
       v.plots = [];

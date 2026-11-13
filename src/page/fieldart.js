@@ -249,6 +249,7 @@ function makeArt(R) {
     manure: [0, 1, 2].map((l) => T(manureCanvas(l))),
     cow: COATS.map((_, k) => [T(cowCanvas(k, 0)), T(cowCanvas(k, 1))]),
     sheep: [T(sheepCanvas(0)), T(sheepCanvas(1))],
+    deer: [0, 1].map((coat) => [T(deerCanvas(coat, 0)), T(deerCanvas(coat, 1))]), // roe deer (VB-139, page/deer)
   };
   atlas = buildAtlas();
 }

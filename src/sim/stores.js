@@ -39,6 +39,9 @@ VB['sim/stores'] = (() => {
   // VB-300: a catch hung on the drying rack (sim/drying), out of the rack's store into the larder; VB-119: 'raw', grain eaten uncooked (sim/hunger)
   KINDS.push('drying', 'raw');
   ROUTINE.push('drying', 'raw');
+  // VB-139: a roe deer's meat, brought home from a hunt (sim/deer), folded as the catch is.
+  KINDS.push('hunt');
+  ROUTINE.push('hunt');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.

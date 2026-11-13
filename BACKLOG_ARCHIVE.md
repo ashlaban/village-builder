@@ -294,3 +294,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-413](backlog/VB-413.md) | Module length: 400 lines is a trigger for a split task, not a cap | yardstick | 2 | S | The lint no longer fails a module over 400 lines; it reports it, and the task that crosses the line opens a split task |
 | [VB-414](backlog/VB-414.md) | The lint asks for an open split task when a module passes 400 lines | yardstick | 2 | S | A module over 400 lines fails the lint unless an open Refactor task names it; gen.js is held at its 545 lines |
 | [VB-415](backlog/VB-415.md) | The lint holds a module's exports to 15, or asks for an open split task | yardstick | 2 | S | A module over 15 exports may add one only with an open Refactor task naming it; 21 modules start in a falling baseline; the sim facade is not counted |
+| [VB-139](backlog/VB-139.md) | Roe deer | animals | 3 | M | Deer stock per region, crop damage by broken fences, hunting. |

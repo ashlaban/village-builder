@@ -2,7 +2,8 @@
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
-  const { ECON, CROPS, FIELDS, SOIL, HERD, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } = VB['sim/rules'];
+  const { ECON, CROPS, FIELDS, SOIL, HERD, DEER, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } =
+    VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
@@ -174,6 +175,7 @@ VB['sim/fields'] = (() => {
   // @state farmstead.fields[]: crop (a key of CROPS, sim/rules), stage, sown/reaped days, held sheaves and
   // weeding progress; changed only here after seeding.
   //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
+  //   browsed: absent, or the times roe deer got into it since it was sown (VB-139; each takes DEER.crop.loss of its yield)
   const hoed = (fd) => {
     fd.stage = 'plowed';
   };
@@ -184,10 +186,12 @@ VB['sim/fields'] = (() => {
     fd.weedPosted = null;
     fd.weedMiss = 0;
     delete fd.trampled;
+    delete fd.browsed;
   }
-  // Cattle got into the standing crop (sim/byre, VB-136).
-  const trample = (fd) => {
-    fd.trampled = (fd.trampled || 0) + 1;
+  // Cattle got into the standing crop (sim/byre, VB-136), or roe deer (`deer`; sim/deer, VB-139).
+  const trample = (fd, deer = false) => {
+    if (deer) fd.browsed = (fd.browsed || 0) + 1;
+    else fd.trampled = (fd.trampled || 0) + 1;
   };
   function reaped(st, fd, c) {
     const E = st.ECON;
@@ -200,9 +204,11 @@ VB['sim/fields'] = (() => {
         st.weather *
         (0.9 + rnd(st.rng.fields) * 0.2) *
         (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)) *
-        (1 - HERD.stray.loss) ** (fd.trampled || 0),
+        (1 - HERD.stray.loss) ** (fd.trampled || 0) *
+        (1 - DEER.crop.loss) ** (fd.browsed || 0),
     );
     delete fd.trampled;
+    delete fd.browsed;
     delete fd.bin;
     wearSoil(fd); // the crop takes from the soil (VB-137)
     fd.weedOpen = false;

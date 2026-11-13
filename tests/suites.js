@@ -92,6 +92,7 @@ const INTEGRATION = [
   ['node', 'tests/gossip.js'],
   ['node', 'tests/health.js'],
   ['node', 'tests/carts.js'],
+  ['node', 'tests/deer.js'],
 ];
 const EXTENDED = [
   // The slowest first, so that none starts last and runs on alone. First the long runs of whole islands, which load the late fixtures.

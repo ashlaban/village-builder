@@ -44,6 +44,7 @@ function clearSettlement() {
   fences = [];
   labels = [];
   herdSprites = new Map();
+  deerSprites = [];
   meadowSprites = [];
   teamDraw = new Map();
 }
@@ -174,6 +175,7 @@ function buildFarms(wd) {
   houseInfo = [];
   fences = [];
   herdSprites = new Map();
+  deerSprites = [];
   meadowSprites = [];
   teamDraw = new Map();
   L.objects.sortableChildren = true;
