@@ -8,6 +8,7 @@ VB['sim/agents'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { eligible } = VB['sim/eligibility'];
   const { hasTeam } = VB['sim/herds'];
+  const Carts = VB['sim/carts'];
   const { driveHome, driven } = VB['sim/grazing'];
   const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
@@ -184,6 +185,7 @@ VB['sim/agents'] = (() => {
     const j = a.job, K = KINDS[j.kind];
     const hh = st.households[farm && farm.household !== null ? farm.household : st.pawns[a.id].household];
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
+    if (a.load > TRAVEL.load) Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on wears
     if (!K.again || !K.again(j)) dropJob(st, j);
     else j.claims.splice(j.claims.indexOf(a.id), 1); // open for the next load
     a.carry = null; a.load = 0; a.job = null; a.basis = null; a.phase = null;
@@ -217,11 +219,10 @@ VB['sim/agents'] = (() => {
     for (const q of st.jobsBy.get(ownerKey(j.owner)) || []) if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
     return first === j && hasTeam(st, st.households[j.owner.id]);
   }
-  // The household's team draws the cart: it has one, and no one else has it out, at the plough or on the road (VB-335).
-  function cartFree(st, a) {
-    const hh = st.households[st.pawns[a.id].household];
-    if (!hasTeam(st, hh)) return false;
-    for (const id of hh.members) { const b = st.agents[id]; if (b.phase === 'back' && b.load > TRAVEL.load || withOxen(st, b)) return false; }
+  // The household's team may draw the ox cart: it has a team, at no plough and with no other cart on the road (VB-335; sim/carts).
+  function teamFree(st, hh) {
+    if (!hasTeam(st, hh) || Carts.oxOut(st, hh)) return false;
+    for (const id of hh.members) if (withOxen(st, st.agents[id])) return false;
     return true;
   }
   function stepWork(st, a, dt) {
@@ -240,7 +241,11 @@ VB['sim/agents'] = (() => {
       a.x = nx; a.y = ny;
     }
     if (j.done >= (j.hours ?? K.hours)) {
-      const n = K.load ? K.load(st, a, j, cartFree(st, a) ? TRAVEL.cart : TRAVEL.load) : null; // a load taken from the field (VB-335)
+      // a load taken from the field (VB-335), on the household's best free cart or on the back (sim/carts); a load on the back
+      // with more left waiting is a miss the head counts
+      const hhL = K.load ? st.households[st.pawns[a.id].household] : null, cap = K.load ? Carts.take(st, hhL, a.id, teamFree(st, hhL)) : 0;
+      const n = K.load ? K.load(st, a, j, cap) : null;
+      if (K.load && cap === TRAVEL.load && n > 0 && K.again(j)) Carts.missed(st, hhL);
       if (K.carry && n !== 0) {
         if (n !== null && K.again(j)) j.done = 0; // the others go on loading
         else freeHands(st, j, a.id);
@@ -259,7 +264,7 @@ VB['sim/agents'] = (() => {
     }
   }
   function moveAgent(st, a, dt) {
-    let left = SPEED * st.w.HW * dt * (a.carry ? 0.8 : 1); // map units of meadow walking; a step of cost c takes c of them per unit
+    let left = SPEED * st.w.HW * dt * (a.carry ? Carts.pace(st, a) : 1); // map units of meadow walking; a step of cost c takes c of them per unit
     while (left > 0 && a.seg < a.path.length - 1) {
       const pt = a.path[a.seg + 1], tx = pt[0], ty = pt[1], c = pt[2] === undefined ? 1 : pt[2];
       const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), reach = left / c;

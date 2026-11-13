@@ -40,7 +40,7 @@ VB['sim/scenarios'] = (() => {
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
       kind: 'settled', n: R.pawns.length, village: village.id });
-    splitStreams(st, seedNum); return st;
+    VB['sim/carts'].seedCarts(st, false); splitStreams(st, seedNum); return st;
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population; on a Medium or Large map
   // the first two villages are a large and a medium one, which take the best sites.
@@ -123,7 +123,7 @@ VB['sim/scenarios'] = (() => {
     placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
-    splitStreams(st, seedNum); return st;
+    VB['sim/carts'].seedCarts(st, true); splitStreams(st, seedNum); return st;
   }
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
   function seedHeirs(w, seedNum) {
@@ -201,7 +201,7 @@ VB['sim/scenarios'] = (() => {
     placeMeadows(st); seedOutland(st, true);
     for (const f of [A3, B2]) birthright(st, f, f.line, f.emptySince); // the old families' birthright, from when the farms emptied (VB-033)
     log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`, { kind: 'settled', n: R.pawns.length });
-    splitStreams(st, seedNum); return st;
+    VB['sim/carts'].seedCarts(st, true); splitStreams(st, seedNum); return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
     seal();

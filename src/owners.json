@@ -44,6 +44,8 @@
     "household.rack": "sim/stores",
     "household.fresh": "sim/pot",
     "household.boat": "sim/drying",
+    "household.carts": "sim/carts",
+    "household.cartMiss": "sim/carts",
     "village.fishing": {"owner": "sim/drying", "category": "cache"},
     "w.depositLeft": "sim/dig",
     "w.depositFull": "sim/dig",

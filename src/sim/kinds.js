@@ -372,7 +372,7 @@ VB['sim/kinds'] = (() => {
     },
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
-  KINDS.herd = VB['sim/grazing'].KIND; Object.assign(KINDS, Drying.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
+  KINDS.herd = VB['sim/grazing'].KIND; Object.assign(KINDS, Drying.KINDS, VB['sim/carts'].KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -393,6 +393,7 @@ VB['sim/kinds'] = (() => {
     fieldAt: {},
   };
   ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry')); // VB-359, VB-300 (the boat is a project's step: landProject)
+  ASK.farmAfterPlans.push(rule('mendcart')); // sim/carts (a cart, as the boat, is a project's step)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen };
 })();

@@ -3675,7 +3675,14 @@ VB['sim/rules'] = (() => {
   // the farm; deaths of grown animals a year; the byre's room in cattle (a calf counts half); ages in years ----
   // ---- what one adult carries (Kim, 10 Nov: one number for the fields, the fair and the journeys): rations on the back, and on a cart with
   // two oxen (VB-335, VB-291, VB-295) ----
-  const TRAVEL = { load: 30, cart: 90 };
+  const TRAVEL = { load: 30, hand: 90, cart: 300, pace: { back: 0.9, hand: 0.8, ox: 0.6 } };
+  // ---- carts (sim/carts; the distance review, Kim, 12 Nov): a load is `load` rations on the back, `hand` on a hand cart and `cart` on an ox
+  // cart (it was 90 with two oxen: Kim, 10 Nov; a back load is 25 to 30 kg, a hand cart's 100 to 150 kg on a track, an ox cart's 500 to
+  // 800 kg, halved here since sheaves and hay fill a cart before they weigh it down; from memory, unchecked). pace: a laden pawn's speed
+  // of an unladen one's. A cart is `hours` of work at the house and `timber` loads of the village's wood (a tree gives 3); each trip wears
+  // it by `wear`, it is mended (mendHours) below `mendAt`, and at 0 it is gone. A head whose household took `misses` loads on the back in
+  // a year, with no cart free and more waiting, has another built ----
+  const CART = { hours: { hand: 12, ox: 30 }, timber: { hand: 3, ox: 6 }, wear: 0.02, mendAt: 0.5, mendHours: 3, misses: 6 };
   const HERD = {
     hayLoss: [0.05, 0.25, 0.5], // annual barn losses by winters of need held (VB-159)
     hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
@@ -3871,7 +3878,7 @@ VB['sim/rules'] = (() => {
     SEASONS, cal, WORK, dark, ECON, CROPS, FIELDS, FISH, FORAGE, FERTILITY, RIVER, farmable, byRiver, fertility, ROLES, CHILD, workRate,
     PLOT_PRIO,
     MALE, FEMALE, patronym, DIRNAME, hazard,
-    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, TRAVEL, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
+    BIRTH, HUNGER, HEALTH, MARRIAGE, HELP, GOODWILL, TRAVEL, CART, HERD, stalled, GRAZE, FOODS, SOIL, SOCIAL, IDLE, SPEED, BREW, TERRAIN, SLOPE, ROUTE, PATHS,
     SHARES, SETTLE, SERVICE, MATCH,
       CLAIMS, WOOD, BUILD };
 })();
@@ -5480,7 +5487,7 @@ VB['sim/records'] = (() => {
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: { barley: ECON.startGrain }, meals: 0, wood: ECON.startWood, stone: 0,
       ledger: [], totals: [], unthreshed: [], hungryDays: 0, seedSeason: -1, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0,
-        haySpoilt: 0, clay: 0, bogOre: 0, rack: 0, boat: null, // clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
+        haySpoilt: 0, clay: 0, bogOre: 0, rack: 0, boat: null, carts: [], cartMiss: 0, // carts, cartMiss: sim/carts; clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
       larder: [], fresh: [], fodderDay: -1, ale: [], poured: [],
       milkDay: -1, manure: 0, spoilt: 0 };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
@@ -9659,7 +9666,7 @@ VB['sim/building'] = (() => {
         const f = st.farmsteads[id];
         if (f.booth && f.household !== null) ask(`timber:f${f.id}`, v, f.booth, f.booth.i, f.house, { type: 'household', id: f.household });
         const s = f.household !== null && Projects.openOf(st, 'household', f.household); // a boat's timber, carried to its shore (VB-300)
-        if (s && s.kind === 'boat') ask(`timber:b${f.id}`, v, s, 0, s.place, { type: 'household', id: f.household });
+        if (s && (s.kind === 'boat' || s.kind === 'cart')) ask(`timber:b${f.id}`, v, s, 0, s.place, { type: 'household', id: f.household }); // and a cart's, to the house
       }
     }
   }
@@ -9918,6 +9925,104 @@ VB['sim/drying'] = (() => {
     },
   };
   return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, wanted, drying, boatShore, boatYear };
+})();
+</script>
+<script>
+// @sys sim/carts: the household's carts (the distance review, Kim, 12 Nov): hand carts and ox carts as items that carry a larger load home,
+// wear with each trip and are mended; the head counts the loads that found no cart free and has another built, as a project at the house
+// Design: design.md, Carts. A pawn taking a load from the field takes the household's best free cart: an ox cart if its team is free, else a
+// hand cart, else the load goes on the back (TRAVEL). Today only sheaves are carried by the load (sim/kinds, haul); hay, firewood and manure
+// are to follow. Reads sim/herds (the team), sim/projects; writes household.carts and household.cartMiss, and begins and ends the cart's project.
+VB['sim/carts'] = (() => {
+  const { TRAVEL, CART } = VB['sim/rules'];
+  const { hasTeam } = VB['sim/herds'], Projects = VB['sim/projects'], { emit } = VB['sim/events'];
+  const { log, atFarm } = VB['sim/records'];
+  // @state household.carts[]: {kind ('hand' | 'ox'), cond (1 new; mended below CART.mendAt; gone at 0), built (game hour), by (the pawn
+  //   that has it out with a load, or null)}: the household's carts, in the order they were made. Written only here.
+  // @state household.cartMiss: loads taken on the back this year because no cart was free while more waited (the head's count); 0 at each
+  //   winter's start. Written only here.
+  // A cart is out while the pawn named in `by` still carries its load home; a `by` left by a pawn that died or dropped the load is free again.
+  const out = (st, c) => { const a = c.by === null ? null : st.agents[c.by]; return !!a && a.phase === 'back' && a.load > TRAVEL.load; };
+  const free = (st, hh, kind) => hh.carts.find((c) => c.kind === kind && !out(st, c)) || null;
+  const cartOf = (st, hh, id) => hh.carts.find((c) => c.by === id && out(st, c)) || null;
+  // The load pawn `id` of household hh may take now, and the cart it takes for it: `teamFree` says whether the team could draw the ox cart
+  // (sim/agents: the household has one, and it is at no plough and no other cart).
+  function take(st, hh, id, teamFree) {
+    const c = (teamFree && free(st, hh, 'ox')) || free(st, hh, 'hand');
+    if (!c) return TRAVEL.load;
+    c.by = id;
+    return c.kind === 'ox' ? TRAVEL.cart : TRAVEL.hand;
+  }
+  // The ox cart is out (the team with it).
+  const oxOut = (st, hh) => hh.carts.some((c) => c.kind === 'ox' && out(st, c));
+  // How fast a laden pawn walks, of an unladen one's pace: with the load on its back, with a hand cart, or beside the oxen.
+  function pace(st, a) {
+    if (!(a.load > TRAVEL.load)) return TRAVEL.pace.back;
+    const c = cartOf(st, st.households[st.pawns[a.id].household], a.id);
+    return c ? TRAVEL.pace[c.kind] : TRAVEL.pace.back;
+  }
+  // A load is home: the cart it came on wears, and one worn out is gone.
+  function home(st, hh, id) {
+    const i = hh.carts.findIndex((c) => c.by === id);
+    if (i < 0) return;
+    const c = hh.carts[i], f = st.farmsteads[hh.farmstead];
+    c.by = null; c.cond -= CART.wear;
+    if (c.cond > 1e-9) return;
+    hh.carts.splice(i, 1);
+    log(st, `${f.name}'s ${c.kind === 'ox' ? 'ox cart' : 'hand cart'} is worn out.`, { kind: 'cartGone', ...atFarm(f) });
+  }
+  // A load went on the back while more waited and no cart was free.
+  function missed(st, hh) { hh.cartMiss++; }
+  // At the winter's start the head counts the year's misses: at CART.misses or more, and with no project under way, the household builds
+  // another cart: an ox cart if it keeps a team and has none, else a hand cart. The count starts again.
+  function cartsYear(st) {
+    for (const v of st.villages) for (const fid of v.farmsteads) {
+      const f = st.farmsteads[fid], hh = f.household === null ? null : st.households[f.household];
+      if (!hh || hh.dissolved) continue;
+      const n = hh.cartMiss; hh.cartMiss = 0;
+      if (n < CART.misses || !v.wood.length || f.booth || Projects.projectOf(st, 'household', hh.id)) continue;
+      const kind = hasTeam(st, hh) && !hh.carts.some((c) => c.kind === 'ox') ? 'ox' : 'hand';
+      emit(st, 'projectBegun', { type: 'household', id: hh.id, project: { what: 'cart', cart: kind,
+        steps: [{ kind: 'cart', place: f.house, hours: CART.hours[kind], wood: 0, timber: CART.timber[kind] }] } });
+    }
+  }
+  function cartBuilt(st, j, hh) {
+    const plan = Projects.projectOf(st, 'household', hh.id), s = plan && Projects.openStep(plan);
+    if (!s || s.kind !== 'cart') return;
+    const f = st.farmsteads[hh.farmstead];
+    hh.carts.push({ kind: plan.cart, cond: 1, built: st.t, by: null });
+    log(st, `${f.name} has built ${plan.cart === 'ox' ? 'an ox cart' : 'a hand cart'}.`, { kind: 'cartBuilt', ...atFarm(f) });
+    emit(st, 'stepDone', { type: 'household', id: hh.id });
+  }
+  // The carts a scenario's households start with: an ox cart where there is a team to draw it, and a hand cart on every farm that has
+  // stood for years (not the founders', who land with what they carry).
+  function seedCarts(st, standing) {
+    for (const id of st.liveHouseholds) {
+      const hh = st.households[id];
+      if (standing) hh.carts.push({ kind: 'hand', cond: 1, built: st.t, by: null });
+      if (hasTeam(st, hh)) hh.carts.push({ kind: 'ox', cond: 1, built: st.t, by: null });
+    }
+  }
+  // ---- the job kinds (sim/kinds registers them) ----
+  const atHouse = (st, a, j) => [st.w.hx[j.farm.house] + 6 + a.ox * 0.3, st.w.hy[j.farm.house] + 4 + a.oy * 0.2];
+  const worst = (st, hh) => hh.carts.filter((c) => !out(st, c)).sort((a, b) => a.cond - b.cond)[0] || null;
+  const KINDS = {
+    cart: {
+      verb: 'Building a cart', go: 'Going to build the cart', name: 'Build a cart', label: 'Cart', anim: 'mallet',
+      hours: CART.hours.hand, hands: 2, type: 'wood', project: true, spot: atHouse,
+      done: (st, j, hh) => cartBuilt(st, j, hh),
+    },
+    mendcart: {
+      verb: 'Mending the cart', go: 'Going to mend the cart', name: 'Mend the cart', label: 'Cart', anim: 'mallet',
+      hours: CART.mendHours, hands: 1, type: 'upkeep', spot: atHouse, urgency: (st, j, c, U) => U.repair,
+      done: (st, j, hh) => { const c = worst(st, hh); if (c && c.cond < CART.mendAt) c.cond = 1; },
+      available: (st, hh, f, c, post) => {
+        const w = f.household === hh.id ? worst(st, hh) : null;
+        if (w && w.cond < CART.mendAt) post(`mendcart:f${f.id}`, f.house, { farm: f });
+      },
+    },
+  };
+  return { KINDS, take, pace, home, missed, oxOut, cartsYear, seedCarts };
 })();
 </script>
 <script>
@@ -10295,7 +10400,7 @@ VB['sim/kinds'] = (() => {
     },
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
-  KINDS.herd = VB['sim/grazing'].KIND; Object.assign(KINDS, Drying.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
+  KINDS.herd = VB['sim/grazing'].KIND; Object.assign(KINDS, Drying.KINDS, VB['sim/carts'].KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -10316,6 +10421,7 @@ VB['sim/kinds'] = (() => {
     fieldAt: {},
   };
   ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry')); // VB-359, VB-300 (the boat is a project's step: landProject)
+  ASK.farmAfterPlans.push(rule('mendcart')); // sim/carts (a cart, as the boat, is a project's step)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen };
 })();
@@ -10351,6 +10457,7 @@ VB['sim/agents'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { eligible } = VB['sim/eligibility'];
   const { hasTeam } = VB['sim/herds'];
+  const Carts = VB['sim/carts'];
   const { driveHome, driven } = VB['sim/grazing'];
   const { workedTogether } = VB['sim/relations'];
   const { finishStep } = VB['sim/expansion'];
@@ -10527,6 +10634,7 @@ VB['sim/agents'] = (() => {
     const j = a.job, K = KINDS[j.kind];
     const hh = st.households[farm && farm.household !== null ? farm.household : st.pawns[a.id].household];
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
+    if (a.load > TRAVEL.load) Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on wears
     if (!K.again || !K.again(j)) dropJob(st, j);
     else j.claims.splice(j.claims.indexOf(a.id), 1); // open for the next load
     a.carry = null; a.load = 0; a.job = null; a.basis = null; a.phase = null;
@@ -10560,11 +10668,10 @@ VB['sim/agents'] = (() => {
     for (const q of st.jobsBy.get(ownerKey(j.owner)) || []) if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
     return first === j && hasTeam(st, st.households[j.owner.id]);
   }
-  // The household's team draws the cart: it has one, and no one else has it out, at the plough or on the road (VB-335).
-  function cartFree(st, a) {
-    const hh = st.households[st.pawns[a.id].household];
-    if (!hasTeam(st, hh)) return false;
-    for (const id of hh.members) { const b = st.agents[id]; if (b.phase === 'back' && b.load > TRAVEL.load || withOxen(st, b)) return false; }
+  // The household's team may draw the ox cart: it has a team, at no plough and with no other cart on the road (VB-335; sim/carts).
+  function teamFree(st, hh) {
+    if (!hasTeam(st, hh) || Carts.oxOut(st, hh)) return false;
+    for (const id of hh.members) if (withOxen(st, st.agents[id])) return false;
     return true;
   }
   function stepWork(st, a, dt) {
@@ -10583,7 +10690,11 @@ VB['sim/agents'] = (() => {
       a.x = nx; a.y = ny;
     }
     if (j.done >= (j.hours ?? K.hours)) {
-      const n = K.load ? K.load(st, a, j, cartFree(st, a) ? TRAVEL.cart : TRAVEL.load) : null; // a load taken from the field (VB-335)
+      // a load taken from the field (VB-335), on the household's best free cart or on the back (sim/carts); a load on the back
+      // with more left waiting is a miss the head counts
+      const hhL = K.load ? st.households[st.pawns[a.id].household] : null, cap = K.load ? Carts.take(st, hhL, a.id, teamFree(st, hhL)) : 0;
+      const n = K.load ? K.load(st, a, j, cap) : null;
+      if (K.load && cap === TRAVEL.load && n > 0 && K.again(j)) Carts.missed(st, hhL);
       if (K.carry && n !== 0) {
         if (n !== null && K.again(j)) j.done = 0; // the others go on loading
         else freeHands(st, j, a.id);
@@ -10602,7 +10713,7 @@ VB['sim/agents'] = (() => {
     }
   }
   function moveAgent(st, a, dt) {
-    let left = SPEED * st.w.HW * dt * (a.carry ? 0.8 : 1); // map units of meadow walking; a step of cost c takes c of them per unit
+    let left = SPEED * st.w.HW * dt * (a.carry ? Carts.pace(st, a) : 1); // map units of meadow walking; a step of cost c takes c of them per unit
     while (left > 0 && a.seg < a.path.length - 1) {
       const pt = a.path[a.seg + 1], tx = pt[0], ty = pt[1], c = pt[2] === undefined ? 1 : pt[2];
       const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), reach = left / c;
@@ -14083,7 +14194,7 @@ VB['sim/scenarios'] = (() => {
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
       kind: 'settled', n: R.pawns.length, village: village.id });
-    splitStreams(st, seedNum); return st;
+    VB['sim/carts'].seedCarts(st, false); splitStreams(st, seedNum); return st;
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population; on a Medium or Large map
   // the first two villages are a large and a medium one, which take the best sites.
@@ -14166,7 +14277,7 @@ VB['sim/scenarios'] = (() => {
     placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
-    splitStreams(st, seedNum); return st;
+    VB['sim/carts'].seedCarts(st, true); splitStreams(st, seedNum); return st;
   }
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
   function seedHeirs(w, seedNum) {
@@ -14244,7 +14355,7 @@ VB['sim/scenarios'] = (() => {
     placeMeadows(st); seedOutland(st, true);
     for (const f of [A3, B2]) birthright(st, f, f.line, f.emptySince); // the old families' birthright, from when the farms emptied (VB-033)
     log(st, `Debug scenario: ${vA.name} and ${vB.name}, with heirs, younger siblings and two empty farms.`, { kind: 'settled', n: R.pawns.length });
-    splitStreams(st, seedNum); return st;
+    VB['sim/carts'].seedCarts(st, true); splitStreams(st, seedNum); return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
     seal();
@@ -14409,7 +14520,7 @@ VB['sim/clock'] = (() => {
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings } = VB['sim/occasions'];
   const { takeIn } = VB['sim/service'];
-  const { boatYear } = VB['sim/drying'], { KINDS } = VB['sim/kinds'];
+  const { boatYear } = VB['sim/drying'], { cartsYear } = VB['sim/carts'], { KINDS } = VB['sim/kinds'];
 
   // ---- the calendar (VB-241) ----
   // CALENDAR is everything the clock runs, in the order it runs: each 6-minute step walks the table once, top to bottom, and runs each
@@ -14507,6 +14618,8 @@ VB['sim/clock'] = (() => {
     { every: 'day', owner: 'sim/byre', note: 'food spoils, manure rots, the stalled herds eat their hay', run: (st, c) => byreDay(st, c) },
     { every: 'year', at: { season: 0, sday: FISH.from }, owner: 'sim/drying', note: 'the ice is gone: households by the sea begin a boat (VB-300)',
       run: (st) => boatYear(st) },
+    { every: 'year', at: { season: 3, sday: 0 }, owner: 'sim/carts', note: 'the winter begins: a head short of carts in the year has one built',
+      run: (st) => cartsYear(st) },
     { every: 'year', at: { doy: HERD.countDay }, owner: 'sim/byre', note: 'the autumn count: what goes to slaughter', run: (st) => autumnCounts(st) },
     { every: 'day', owner: 'sim/byre', note: 'cattle left unherded yesterday may stray into a crop (VB-136)', run: (st, c) => strays(st, c) },
     { every: 'day', owner: 'sim/grazing', note: 'every herd back by its farm for the night (VB-136)', run: (st) => herdsBack(st) },
@@ -14899,6 +15012,7 @@ VB['sim/saves'] = (() => {
     for (const hh of st.households) if (hh.clay === undefined) { hh.clay = 0; hh.bogOre = 0; } // VB-359: nor dug loads
     for (const hh of st.households) if (hh.rack === undefined) { hh.rack = 0; hh.boat = null; } // VB-300: nor a drying rack nor a boat
     for (const hh of st.households) if (!hh.fresh) openFresh(hh); // VB-119: nor fresh food
+    for (const hh of st.households) if (!hh.carts) { hh.carts = []; hh.cartMiss = 0; } // nor carts (sim/carts): older saves' teams drew an unnamed one
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
     if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
@@ -20603,7 +20717,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = '5b3b8fd3de', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = 'e328867e8e', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };
