@@ -50,7 +50,8 @@ const FAST = [
   ['node', 'tests/continuity.js'],
   ['node', 'tests/journeys.js'],
   ['node', 'tests/rng.js'],
-  ['node', 'tests/cowwant.js']
+  ['node', 'tests/cowwant.js'],
+  ['node', 'tests/quern.js'], // the hand quern (VB-009): grinding, the pot's flour, wear and hewing, on the probe's small state
 ];
 const INTEGRATION = [
   ['node', 'tests/events.js'],

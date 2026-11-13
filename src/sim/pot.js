@@ -3,6 +3,7 @@
 // Design: design.md, Economy and jobs (Goods and the farming year: Mixed meals, Meals); VB-119 (Kim, 30 Oct, 10 and 11 Nov). Beside sim/stores,
 // whose operations it moves food with (record, put, take, takeSpare, cookLarder), as sim/dig: the stores module is at the lint's size.
 // VB-388 (Kim, 12 Nov): the cook cooks the seed a short household would eat; fishing for the pot waits while fresh fish covers two days.
+// VB-009: flour from the quern (sim/quern) goes in before grain, at 1:1; grain cooked unground gives 1 / ECON.unground a ration (FOODS).
 VB['sim/pot'] = (() => {
   const { DAY, FOODS, FISH, ECON, CROPS, SEASON_DAYS, cal } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
@@ -99,7 +100,7 @@ VB['sim/pot'] = (() => {
   const FISH_WAIT = 2;
   const fishCovered = (st, hh, need) => hh.fresh.length > 0 && freshHeld(st, hh, 'fish') >= FISH_WAIT * need;
   // ---- the pot (design.md, Meals): the cook makes up to `want` meals from the household's fresh food, what spoils first going in first,
-  // then dried fish (VB-300), then grain above the seed reserve, then, for a short household, the seed (VB-388). A food is a source when
+  // then dried fish (VB-300), then flour (VB-009), then grain above the seed reserve, then, for a short household, the seed (VB-388). A food is a source when
   // it gives ECON.potShare of the pot's rations (grain and flour one source; fresh and dried fish one, FOODS' source); a pot of k sources
   // makes 1 / ECON.pot[k] times its rations in meals.
   // The cook fills the smallest pot that makes the meals wanted (a pot of 3 sources first, then 2, then 1), or, short of food, puts in all
@@ -132,8 +133,8 @@ VB['sim/pot'] = (() => {
     return s;
   }
   // Fills `units` with a pot of `target` rations: fresh food oldest first, then dried fish (`lean`: only up to WINTER_FISH of the pot with
-  // the fresh fish in it), then grain (spare at most: the grain above the seed reserve, and the seed the cook may take). Returns the
-  // rations it could not fill. Reads only.
+  // the fresh fish in it), then flour, then grain (spare at most: the grain above the seed reserve, and the seed the cook may take). Returns
+  // the rations it could not fill. Reads only.
   function fill(st, hh, target, spare, dried, lean, units) {
     for (const k in units) delete units[k];
     let left = target;
@@ -152,6 +153,11 @@ VB['sim/pot'] = (() => {
     if (d > 0) {
       units['dried fish'] = d / FOODS['dried fish'].worth;
       left -= d;
+    }
+    const fl = Math.min(hh.flour, left / FOODS.flour.worth);
+    if (fl > 0) {
+      units.flour = fl;
+      left -= mealsFrom('flour', fl);
     }
     const g = Math.min(spare, left / FOODS.grain.worth);
     if (g > 0) {
@@ -196,21 +202,23 @@ VB['sim/pot'] = (() => {
         got = cookLarder(st, hh, food, n);
         plain += mealsFrom(food, got);
       } // its meals put, 1 to 1
+      else if (food === 'flour') got = take(st, hh, 'flour', n, 'cooking');
       else got = takeFresh(st, hh, n, 'cooking', food)[food] || 0;
       meals += mealsFrom(food, got);
     }
     if (meals > plain) put(st, hh, 'meals', meals / potFactor(k) - plain, 'cooking');
     return meals > 0 ? k : 0;
   }
-  // The seed the coming day's meal would eat (VB-388; as sim/hunger's feedHousehold): what `want` rations lack after the grain above the
-  // reserve, the fresh food and the larder, at most the seed held. One sum of the larder's lots; read when the cook is asked.
+  // The seed the coming day's meal would eat (VB-388; as sim/hunger's feedHousehold): the grain that cooks what `want` rations lack after
+  // the grain above the reserve, the flour, the fresh food and the larder, at most the seed held. One sum of the larder's lots; read when
+  // the cook is asked.
   function seedForMeal(st, hh, want) {
     const g = grainOf(hh),
       free = Math.max(0, g - reserved(st, hh, 'grain'));
     if (!(want > 0) || g - free <= 1e-9) return 0;
-    let other = free + (hh.fresh.length ? freshHeld(st, hh) : 0);
+    let other = mealsFrom('grain', free) + hh.flour + (hh.fresh.length ? freshHeld(st, hh) : 0);
     for (const l of hh.larder) other += l.n;
-    return Math.max(0, Math.min(g - free, want - other));
+    return Math.max(0, Math.min(g - free, (want - other) / FOODS.grain.worth)); // grain, cooked unground (VB-009)
   }
   // The cook's pot for a household whose day needs `need` rations: the meals still missing, with the seed the meal would eat (VB-388).
   function cookMeal(st, hh, need) {
@@ -234,16 +242,20 @@ VB['sim/pot'] = (() => {
         ...atFarm(f),
       });
   }
-  // Something to cook for a household whose day needs `need` rations and lacks meals: grain above the seed reserve, fresh food, or the
-  // seed the meal would eat (sim/kinds' cook is posted for it).
+  // Something to cook for a household whose day needs `need` rations and lacks meals: flour, grain above the seed reserve, fresh food, or
+  // the seed the meal would eat (sim/kinds' cook is posted for it).
   const cookable = (st, hh, need) =>
     hh.meals < need &&
-    (grainOf(hh) - reserved(st, hh, 'grain') > 0 ||
+    (hh.flour > 0 ||
+      grainOf(hh) - reserved(st, hh, 'grain') > 0 ||
       (hh.fresh.length > 0 && freshHeld(st, hh) > 0) ||
       seedForMeal(st, hh, need - hh.meals) > 0);
-  // The household's spare food, in rations: grain above the seed reserve, cooked meals and fresh food (fishing's and gathering's urgency).
+  // The household's spare food, in rations: grain above the seed reserve, flour, cooked meals and fresh food (fishing's and gathering's urgency).
   const spareFood = (st, hh) =>
-    Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')) + hh.meals + (hh.fresh.length ? freshHeld(st, hh) : 0);
+    Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')) +
+    hh.flour +
+    hh.meals +
+    (hh.fresh.length ? freshHeld(st, hh) : 0);
   return {
     FRESH_CAP,
     FISH_WAIT,

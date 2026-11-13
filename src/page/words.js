@@ -148,7 +148,14 @@ function renderSettlers() {
         'Supplies & health',
         foldOpen(suppliesKey)
           ? `<p>Grain ${Math.round(Sim.grainOf(hh))} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
-          <p>Meals ${Math.round(hh.meals)} rations, cooked.</p>
+          <p>Flour ${Math.round(hh.flour || 0)} rations, ground; meals ${Math.round(hh.meals)} rations, cooked.</p>
+          <p>${
+            hh.quern
+              ? Sim.quernYears(st, hh) > 0
+                ? `A hand quern of ${hh.quern.rock}, ${Math.ceil(Sim.quernYears(st, hh))} years left.`
+                : `A hand quern of ${hh.quern.rock}, worn out: grain is cooked unground.`
+              : 'No hand quern: grain is cooked unground.'
+          }</p>
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
           <p>Firewood ${Math.round(hh.wood)} loads${hh.cold > 0 ? ', cold: no firewood' : ''}; stone ${hh.stone} loads.</p>
           <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads.</p>

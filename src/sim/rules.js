@@ -60,6 +60,9 @@ VB['sim/rules'] = (() => {
     pot: [1, 1, 0.9, 0.8],
     potShare: 0.2,
     uncooked: 0.75,
+    // grain cooked unground, without flour from the quern (VB-009; design.md, Milling at home: Decided, Agreed): `unground` grain a ration;
+    // flour cooks 1 to 1
+    unground: 1.25,
   };
   // ---- crops (VB-346; design.md, Crops and rotations): one row each, and a field holds the key of its crop (`fd.crop`). A plain table here,
   // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
@@ -164,7 +167,7 @@ VB['sim/rules'] = (() => {
         foraging: 3,
         herding: 2,
       },
-      except: { reap: 9, cook: 1, slaughter: 8 },
+      except: { reap: 9, cook: 1, slaughter: 8, grind: 1 },
     },
     wife: {
       title: 'Mistress of the house',
@@ -181,7 +184,7 @@ VB['sim/rules'] = (() => {
         husbandry: 9,
         foraging: 4,
       },
-      except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2, hunt: 0 },
+      except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2, hunt: 0, grind: 7 },
     },
     farmhand: {
       title: 'Farmhand',
@@ -199,7 +202,7 @@ VB['sim/rules'] = (() => {
         foraging: 6,
         herding: 3,
       },
-      except: { cook: 0, slaughter: 8, gather: 3 },
+      except: { cook: 0, slaughter: 8, gather: 3, grind: 1 },
     },
     maid: {
       title: 'Maid',
@@ -216,7 +219,7 @@ VB['sim/rules'] = (() => {
         husbandry: 10,
         foraging: 5,
       },
-      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2, hunt: 0 },
+      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2, hunt: 0, grind: 7 },
     },
     son: {
       title: 'Son of the house',
@@ -234,7 +237,7 @@ VB['sim/rules'] = (() => {
         foraging: 7,
         herding: 5,
       },
-      except: { cook: 0, slaughter: 7, gather: 3 },
+      except: { cook: 0, slaughter: 7, gather: 3, grind: 1 },
     },
     daughter: {
       title: 'Daughter of the house',
@@ -252,19 +255,19 @@ VB['sim/rules'] = (() => {
         foraging: 6,
         herding: 6,
       },
-      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2, hunt: 0 },
+      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2, hunt: 0, grind: 6 },
     },
     retired: {
       title: 'Retired',
       sv: 'undantag',
       work: { tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3, herding: 4 },
-      except: { cook: 4, slaughter: 2, hunt: 0 },
+      except: { cook: 4, slaughter: 2, hunt: 0, grind: 3 },
     },
     child: {
       title: 'Child',
       sv: 'barn',
       work: { harvest: 3, foraging: 5, herding: 8 },
-      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0 },
+      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0, grind: 1 },
     },
   };
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
@@ -535,9 +538,11 @@ VB['sim/rules'] = (() => {
   // held (where a household keeps it: 'grain', its grain; 'larder', lots eaten as they are, sim/hunger addFood, from sim/byre and sim/drying;
   // 'fresh', batches by the day they came in, sim/pot putFresh) and raw (it may be eaten uncooked, at no penalty: the larder's foods always,
   // fresh food on a day without meals). Grain, fresh food and dried fish are cooked into meals (sim/pot); grain eaten uncooked costs
-  // 1 / ECON.uncooked a ration. Flour (milling, VB-009) will be a row with source 'grain'. ----
+  // 1 / ECON.uncooked a ration. Grain cooked unground gives 1 / ECON.unground a ration; flour, ground on the hand quern (sim/quern, VB-009),
+  // is held as 'flour' (household.flour) and cooks 1 to 1, one source with grain. ----
   const FOODS = {
-    grain: { worth: 1, keeps: null, source: 'grain', held: 'grain', raw: false },
+    grain: { worth: 1 / ECON.unground, keeps: null, source: 'grain', held: 'grain', raw: false },
+    flour: { worth: 1, keeps: null, source: 'grain', held: 'flour', raw: false }, // a few days' stock: its keeping is not modelled
     meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', held: 'larder', raw: true }, // fresh, from the slaughter
     'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', held: 'larder', raw: true },
     milk: { worth: 1, keeps: 1, source: 'milk', held: 'larder', raw: true }, // fresh milk keeps a day

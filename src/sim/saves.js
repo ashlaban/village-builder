@@ -403,6 +403,11 @@ VB['sim/saves'] = (() => {
       } // VB-300: nor a drying rack nor a boat
     for (const hh of st.households) if (!hh.fresh) openFresh(hh); // VB-119: nor fresh food
     for (const hh of st.households)
+      if (hh.flour === undefined) {
+        hh.flour = 0; // lint-allow: owner an older save's household, as sim/records makes one
+        hh.quern = null; // lint-allow: owner as above: it eats its grain unground until it hews a quern (VB-009)
+      } // VB-009: nor flour nor a quern
+    for (const hh of st.households)
       if (!hh.coldLog) {
         hh.cold = 0; // lint-allow: owner an older save's household, warm as sim/records makes one
         hh.coldLog = []; // lint-allow: owner as above
