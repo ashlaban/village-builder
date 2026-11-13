@@ -316,3 +316,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-120](backlog/VB-120.md) | Village work days | year | 3 | M | The meeting sets days when the whole village mends the fence or clears the commons; staying away costs prestige. |
 | [VB-144](backlog/VB-144.md) | Ewes' milk and wool | mill | 3 | S | Ewes milked until summer's end, as 13th-century husbandry counted them; wool for the winter crafts. |
 | [VB-301](backlog/VB-301.md) | Tar: burnt in pine villages, needed for boats and timber | fair | 3 | M | A tar pit as a household's facility and tar burning as long work; boats need tarring and tarred timber needs less upkeep, so shore villages need the forest's good. |
+| [VB-393](backlog/VB-393.md) | A boat is built only by a household with a surplus and two free hands | fair | 3 | S | Until boats are a holder's project (VB-255) kept with tar (VB-301), only a household with a surplus and two free hands builds one. |
