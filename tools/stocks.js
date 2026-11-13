@@ -32,14 +32,16 @@ const QUANTITIES = [
     covers: ['household.cookDay'],
     none: 'the household eats its gathered food as it is, then its grain uncooked, a ration of it feeding ECON.uncooked (0.75; sim/hunger, VB-119, VB-327)' },
   { id: 'fresh', of: 'household', name: 'fresh food (fish, gathered food)', unit: 'rations', fields: ['household.fresh'], kinds: ['fish', 'gather'],
-    none: 'the pot is of grain and dried fish alone, a pot of one source in summer, and fishing and gathering are more urgent (sim/pot, VB-119)' },
+    none: 'the pot is of grain and dried fish alone, a pot of one source in summer, fishing for the pot is posted (it waits while fresh fish '
+      + 'covers 2 days, VB-388), and fishing and gathering are more urgent (sim/pot, VB-119)' },
   { id: 'sheaves', of: 'household', name: 'sheaves in the barn', unit: 'rations', fields: ['household.unthreshed'], good: 'sheaves', holder: 'household',
     kinds: ['haul'], covers: ['household.threshed'], none: 'nothing to thresh: the threshing job is not posted' },
   { id: 'larder', of: 'household', name: 'the larder (meat, salt meat, milk, butter, dried fish)', unit: 'rations', fields: ['household.larder'],
     kinds: ['slaughter', 'salt', 'milk', 'dry'],
     none: 'meals and grain feed the household alone' },
   { id: 'rack', of: 'household', name: 'fish by the drying rack', unit: 'rations', fields: ['household.rack'], good: 'fish', holder: 'household',
-    kinds: ['rackfish'], none: 'nothing to split and hang: the drying job is not posted, and another catch for the rack may be (sim/drying, VB-300)' },
+    kinds: ['rackfish', 'fish'], // fish: the catch for the pot beyond what is eaten before it spoils (sim/drying, VB-388)
+    none: 'nothing to split and hang: the drying job is not posted, and another catch for the rack may be (sim/drying, VB-300)' },
   { id: 'wood', of: 'household', name: 'the woodpile', unit: 'loads', fields: ['household.wood'], good: 'wood', holder: 'household', kinds: ['wood'],
     none: 'the day\'s fire takes what there is and the house is cold (hh.cold, sim/hunger): health falls, no meal is cooked, and the firewood job comes first (VB-327)' },
   { id: 'stone', of: 'household', name: 'the stone heap', unit: 'loads', fields: ['household.stone'], good: 'stone', holder: 'household',

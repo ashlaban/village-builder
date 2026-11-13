@@ -12048,11 +12048,13 @@ VB['sim/dig'] = (() => {
 // @sys sim/pot: fresh food (fish, gathered food) held in batches by the day it came in and lost past its shelf life when the store is next
 // touched; the pot, where the cook makes the coming day's meals from fresh food, dried fish and grain, and a pot of several foods goes further
 // Design: design.md, Economy and jobs (Goods and the farming year: Mixed meals, Meals); VB-119 (Kim, 30 Oct, 10 and 11 Nov). Beside sim/stores,
-// whose operations it moves food with (record, put, takeSpare, cookLarder), as sim/dig: the stores module is at the lint's size.
+// whose operations it moves food with (record, put, take, takeSpare, cookLarder), as sim/dig: the stores module is at the lint's size.
+// VB-388 (Kim, 12 Nov): the cook cooks the seed a short household would eat; fishing for the pot waits while fresh fish covers two days.
 VB['sim/pot'] = (() => {
-  const { DAY, FOODS, FISH, ECON, cal } = VB['sim/rules'];
+  const { DAY, FOODS, FISH, ECON, CROPS, SEASON_DAYS, cal } = VB['sim/rules'];
+  const { log, atFarm } = VB['sim/records'];
   const Stores = VB['sim/stores'],
-    { record, put, takeSpare, cookLarder, reserved, grainOf, mealsFrom } = Stores;
+    { record, put, take, takeSpare, cookLarder, reserved, grainOf, mealsFrom } = Stores;
   // ---- fresh food (FOODS held 'fresh': fish, gathered food): batches {food, day (the game day it came in), qty (units)}, oldest first.
   // A batch older than its food's keeps is lost; nothing walks the households to spoil them: a batch's loss is read from its day when the
   // household's fresh store is next touched (settle: the catch, the pot, the meal; Rules for cost, 3), and freshHeld reads a stale batch as
@@ -12140,12 +12142,18 @@ VB['sim/pot'] = (() => {
       );
     return into;
   }
+  // Fishing for the pot waits while the fresh fish held covers FISH_WAIT days of the pot (VB-388): `need` is the household's day.
+  const FISH_WAIT = 2;
+  const fishCovered = (st, hh, need) => hh.fresh.length > 0 && freshHeld(st, hh, 'fish') >= FISH_WAIT * need;
   // ---- the pot (design.md, Meals): the cook makes up to `want` meals from the household's fresh food, what spoils first going in first,
-  // then dried fish (VB-300), then grain above the seed reserve. A food is a source when it gives ECON.potShare of the pot's rations (grain
-  // and flour one source; fresh and dried fish one, FOODS' source); a pot of k sources makes 1 / ECON.pot[k] times its rations in meals.
+  // then dried fish (VB-300), then grain above the seed reserve, then, for a short household, the seed (VB-388). A food is a source when
+  // it gives ECON.potShare of the pot's rations (grain and flour one source; fresh and dried fish one, FOODS' source); a pot of k sources
+  // makes 1 / ECON.pot[k] times its rations in meals.
   // The cook fills the smallest pot that makes the meals wanted (a pot of 3 sources first, then 2, then 1), or, short of food, puts in all
   // there is. Dried fish is kept for the months without fresh fish (winter and spring before FISH.from, the fishing season's start): only
-  // then does it go in, and only as much as makes fish a source of the pot, so that the store lasts the winter. ----
+  // then does it go in, and only up to WINTER_FISH of the pot with the fresh fish in it, the most fish a pot of two sources holds with
+  // grain still a source; sim/drying dries that share of the winter's need (VB-388), so the store lasts the winter. ----
+  const WINTER_FISH = 1 - ECON.potShare;
   const POT = { units: {}, sources: new Map() }; // scratch, reused: the pot allocates little on the cook's hour
   function sourcesOf(units) {
     const S = POT.sources;
@@ -12170,8 +12178,9 @@ VB['sim/pot'] = (() => {
     for (const l of hh.larder) if (l.kind === 'dried fish') s += l.n;
     return s;
   }
-  // Fills `units` with a pot of `target` rations: fresh food oldest first, then dried fish (`lean`: only up to a fifth of the pot with the
-  // fresh fish in it), then grain (spare at most). Returns the rations it could not fill. Reads only.
+  // Fills `units` with a pot of `target` rations: fresh food oldest first, then dried fish (`lean`: only up to WINTER_FISH of the pot with
+  // the fresh fish in it), then grain (spare at most: the grain above the seed reserve, and the seed the cook may take). Returns the
+  // rations it could not fill. Reads only.
   function fill(st, hh, target, spare, dried, lean, units) {
     for (const k in units) delete units[k];
     let left = target;
@@ -12185,7 +12194,7 @@ VB['sim/pot'] = (() => {
     const d = Math.min(
       dried,
       left,
-      lean ? Math.max(0, ECON.potShare * target - mealsFrom('fish', units.fish || 0)) : Infinity,
+      lean ? Math.max(0, WINTER_FISH * target - mealsFrom('fish', units.fish || 0)) : Infinity,
     );
     if (d > 0) {
       units['dried fish'] = d / FOODS['dried fish'].worth;
@@ -12198,11 +12207,13 @@ VB['sim/pot'] = (() => {
     }
     return left;
   }
-  // Cooks the pot; returns its number of sources (0: nothing cooked).
-  function pot(st, hh, want) {
+  // Cooks the pot, with up to `seed` rations of the seed reserve after the grain above it (VB-388); returns its number of sources (0: nothing cooked).
+  function pot(st, hh, want, seed = 0) {
     check(st, hh, want);
+    check(st, hh, seed);
     settle(st, hh);
-    const spare = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')),
+    const free = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')),
+      spare = free + Math.min(seed, grainOf(hh) - free),
       dried = hh.larder.length && iced(st) ? driedHeld(hh) : 0,
       units = POT.units;
     let k = 0;
@@ -12225,8 +12236,10 @@ VB['sim/pot'] = (() => {
       const n = units[food];
       if (!(n > 0)) continue;
       let got;
-      if (food === 'grain') got = takeSpare(st, hh, n, 'cooking');
-      else if (food === 'dried fish') {
+      if (food === 'grain') {
+        got = takeSpare(st, hh, Math.min(n, free), 'cooking');
+        if (n - got > 1e-12) got += take(st, hh, 'grain', n - got, 'seedMeal'); // the seed, of each crop as it is held (as sim/hunger's)
+      } else if (food === 'dried fish') {
         got = cookLarder(st, hh, food, n);
         plain += mealsFrom(food, got);
       } // its meals put, 1 to 1
@@ -12236,13 +12249,64 @@ VB['sim/pot'] = (() => {
     if (meals > plain) put(st, hh, 'meals', meals / potFactor(k) - plain, 'cooking');
     return meals > 0 ? k : 0;
   }
-  // Something to cook: grain above the seed reserve, or fresh food (sim/kinds' cook is posted for it).
-  const cookable = (st, hh) =>
-    grainOf(hh) - reserved(st, hh, 'grain') > 0 || (hh.fresh.length > 0 && freshHeld(st, hh) > 0);
+  // The seed the coming day's meal would eat (VB-388; as sim/hunger's feedHousehold): what `want` rations lack after the grain above the
+  // reserve, the fresh food and the larder, at most the seed held. One sum of the larder's lots; read when the cook is asked.
+  function seedForMeal(st, hh, want) {
+    const g = grainOf(hh),
+      free = Math.max(0, g - reserved(st, hh, 'grain'));
+    if (!(want > 0) || g - free <= 1e-9) return 0;
+    let other = free + (hh.fresh.length ? freshHeld(st, hh) : 0);
+    for (const l of hh.larder) other += l.n;
+    return Math.max(0, Math.min(g - free, want - other));
+  }
+  // The cook's pot for a household whose day needs `need` rations: the meals still missing, with the seed the meal would eat (VB-388).
+  function cookMeal(st, hh, need) {
+    const want = Math.max(0, need - hh.meals),
+      seed = seedForMeal(st, hh, want),
+      k = pot(st, hh, want, seed);
+    if (seed > 0 && grainOf(hh) < reserved(st, hh, 'grain') - 1e-9) seedTold(st, hh);
+    return k;
+  }
+  // The fields the seed eaten leaves unsown, told once a season at most (VB-282; sim/hunger's meal and the cook).
+  function seedTold(st, hh) {
+    const season = Math.floor(st.t / (SEASON_DAYS * DAY)),
+      f = st.farmsteads[hh.farmstead];
+    if (hh.seedSeason === season) return;
+    hh.seedSeason = season;
+    const short = Math.max(0, Math.ceil((reserved(st, hh, 'grain') - grainOf(hh)) / CROPS.barley.seed - 1e-9));
+    if (short)
+      log(st, `${f.name} eats the seed it kept back: ${short === 1 ? 'a field' : short + ' fields'} may go unsown.`, {
+        kind: 'seedEaten',
+        n: short,
+        ...atFarm(f),
+      });
+  }
+  // Something to cook for a household whose day needs `need` rations and lacks meals: grain above the seed reserve, fresh food, or the
+  // seed the meal would eat (sim/kinds' cook is posted for it).
+  const cookable = (st, hh, need) =>
+    hh.meals < need &&
+    (grainOf(hh) - reserved(st, hh, 'grain') > 0 ||
+      (hh.fresh.length > 0 && freshHeld(st, hh) > 0) ||
+      seedForMeal(st, hh, need - hh.meals) > 0);
   // The household's spare food, in rations: grain above the seed reserve, cooked meals and fresh food (fishing's and gathering's urgency).
   const spareFood = (st, hh) =>
     Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')) + hh.meals + (hh.fresh.length ? freshHeld(st, hh) : 0);
-  return { FRESH_CAP, openFresh, settle, putFresh, freshHeld, takeFresh, pot, cookable, spareFood };
+  return {
+    FRESH_CAP,
+    FISH_WAIT,
+    WINTER_FISH,
+    openFresh,
+    settle,
+    putFresh,
+    freshHeld,
+    takeFresh,
+    fishCovered,
+    pot,
+    cookMeal,
+    seedTold,
+    cookable,
+    spareFood,
+  };
 })();
 </script>
 <script>
@@ -12250,7 +12314,7 @@ VB['sim/pot'] = (() => {
 // the need rule (VB-299) and its food term
 VB['sim/hunger'] = (() => {
   const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS } = VB['sim/rules'];
-  const { age, farmPractice, log, atFarm } = VB['sim/records'];
+  const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'];
   const Rules = VB['sim/registry'];
@@ -12524,20 +12588,11 @@ VB['sim/hunger'] = (() => {
   }
   // A pawn's day's need in rations.
   const rationOf = (st, p) => (age(st, p) >= 14 ? st.ECON.ration.adult : st.ECON.ration.child);
-  // The seed a meal eats (VB-282): taken through the stores with its own reason, and the fields it leaves unsown told once a season at most.
+  // The seed a meal eats (VB-282): taken through the stores with its own reason, and the fields it leaves unsown told once a season at most
+  // (sim/pot, which the cook's seed tells too, VB-388).
   function eatSeed(st, hh, n) {
     Stores.take(st, hh, 'grain', n, 'seedMeal'); // of each crop as it is held (VB-352 orders it)
-    const season = Math.floor(st.t / (SEASON_DAYS * DAY)),
-      f = st.farmsteads[hh.farmstead];
-    if (hh.seedSeason === season) return;
-    hh.seedSeason = season;
-    const short = Math.max(0, Math.ceil((reserved(st, hh, 'grain') - grainOf(hh)) / CROPS.barley.seed - 1e-9));
-    if (short)
-      log(st, `${f.name} eats the seed it kept back: ${short === 1 ? 'a field' : short + ' fields'} may go unsown.`, {
-        kind: 'seedEaten',
-        n: short,
-        ...atFarm(f),
-      });
+    Pot.seedTold(st, hh);
   }
   // Health after the meal: hunger drains it, and the day's cold in the house (VB-327), both faster for the very young and the old; a full meal
   // restores some on a warm day, nothing on a cold one.
@@ -15663,13 +15718,14 @@ VB['sim/building'] = (() => {
 </script>
 <script>
 // @sys sim/drying: dried fish (VB-300), the first good of place: a village's reach to fishing water, refreshed when its farms change;
-// fishing for the drying rack and hanging the catch, a side craft of spring and early summer; the fishing boat, a household's facility on
+// fishing for the drying rack and hanging the catch, a side craft of spring to autumn; the fishing boat, a household's facility on
 // a shore built as a project plan (the cook puts dried fish in the winter's pot: sim/pot, VB-119)
 // Design: design.md, Goods of place and side crafts (Goods of place, First goods, Side crafts, The fishing boat; Agreed, 10 Nov). Fish are
-// split and hung on racks in the dry winds of spring and early summer (stockfish, klippfisk), and keep a year or more: here through winter
+// split and hung on racks in the dry winds of spring to autumn (stockfish, klippfisk), and keep a year or more: here through winter
 // and spring, to the next summer (the good's keepsDays, sim/stores). Nobody travels in a boat (slice 10); its tarring is VB-301's.
+// VB-388 (Kim, 12 Nov): the catch for the pot a household cannot eat before it spoils goes to the rack while the rack has room.
 VB['sim/drying'] = (() => {
-  const { FISH, SEASON_DAYS } = VB['sim/rules'];
+  const { FISH, FOODS, SEASON_DAYS, cal } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'],
     { passable } = VB['sim/routes'];
   const { isWater, lakeSizes, ground, landCatch } = VB['sim/fish'];
@@ -15678,13 +15734,14 @@ VB['sim/drying'] = (() => {
     Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
   const { dailyNeed, larderOf } = VB['sim/hunger'];
-  // Proposed (VB-300, the orchestrator's starting values for Kim): a household dries enough fish for `share` of its pot over the days
-  // without fresh fish (the winter and spring's first FISH.from days, under the ice), in whole lots of `lot` rations; it fishes for the
-  // rack from spring day FISH.from + 1 to summer day `until` (the drying winds of spring and early summer), one catch waiting at a time;
-  // splitting and hanging a catch takes `hours` at the rack by the house, at `hang` urgency (as salting meat: the catch does not wait),
-  // the trip is fishing's (3 hours) at `urgency` (a side craft's, as ale and digging: the household's slack). Out of the fishing season the
-  // cook puts dried fish in for a fifth of the pot, as a source (sim/pot, VB-119), so `share` lasts a quarter longer than the winter.
-  const DRY = { share: 0.25, lot: 10, until: 6, hours: 1, hang: 1.6, urgency: 0.5 };
+  const Pot = VB['sim/pot'];
+  // Proposed (VB-300, the orchestrator's starting values for Kim): a household dries enough fish for the winter's fish share of its pot
+  // (sim/pot's WINTER_FISH, VB-388) over the days without fresh fish (the winter and spring's first FISH.from days, under the ice), in
+  // whole lots of `lot` rations; it fishes for the rack from spring day FISH.from + 1 to the end of autumn (VB-388: the season of fishing
+  // for the pot), one catch waiting at a time; splitting and hanging a catch takes `hours` at the rack by the house, at `hang` urgency (as
+  // salting meat: the catch does not wait), the trip is fishing's (3 hours) at `urgency` (a side craft's, as ale and digging: the
+  // household's slack). Out of the fishing season the cook puts dried fish in for that share of the pot (sim/pot, VB-119), so it lasts the winter.
+  const DRY = { lot: 10, hours: 1, hang: 1.6, urgency: 0.5 };
   // The fishing boat (design.md, The fishing boat; Agreed, 10 Nov): `hours` of work at the shore, `timber` loads of the village's wood
   // felled and carried to it (two trees, at 3 loads a tree as VB-328's timber trip), a trip in it brings `catch` times the bank's (8 rations
   // where the bank gives 4). A household with `hands` working hands (14 to 59) may build one, at the start of the drying season.
@@ -15729,10 +15786,24 @@ VB['sim/drying'] = (() => {
   // A trip's catch, in rations: the bank's (sim/fish, lowering the stock of water that runs down), BOAT.catch times it from a boat.
   const catchOf = (st, j) => landCatch(st, j.water) * (j.boat ? BOAT.catch : 1);
   // ---- drying ----
-  // The dried fish a household wants in store: DRY.share of its need over the days without fresh fish, in whole lots.
-  const wanted = (st, hh) => Math.ceil((DRY.share * dailyNeed(st, hh) * winterDays) / DRY.lot - 1e-9) * DRY.lot;
-  // The drying season: from spring day FISH.from + 1 to summer day DRY.until.
-  const drying = (c) => (c.season === 0 && c.sday >= FISH.from) || (c.season === 1 && c.sday < DRY.until);
+  // The dried fish a household wants in store: the winter pot's fish share of its need over the days without fresh fish, in whole lots.
+  const wanted = (st, hh) => Math.ceil((Pot.WINTER_FISH * dailyNeed(st, hh) * winterDays) / DRY.lot - 1e-9) * DRY.lot;
+  // The drying season: from spring day FISH.from + 1 to the end of autumn (VB-388).
+  const drying = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
+  // The catch for the pot (sim/kinds' fish): fresh fish (sim/pot), and the fresh fish held beyond what the household eats before it spoils
+  // (its need over the fish's keeps) laid by the rack, the oldest first, while the drying season is open and the rack has room (the dried
+  // fish wanted, less what is held and what waits by the rack). One comparison a catch (VB-388).
+  function potCatch(st, j, hh) {
+    Pot.putFresh(st, hh, 'fish', catchOf(st, j), 'catch');
+    if (!drying(cal(st.t))) return 0;
+    const need = dailyNeed(st, hh),
+      room = wanted(st, hh) - larderOf(hh, 'dried fish') - (hh.rack || 0),
+      n = Math.min(room, Pot.freshHeld(st, hh, 'fish') - need * FOODS.fish.keeps);
+    if (!(n > 1e-9)) return 0;
+    const got = Pot.takeFresh(st, hh, n, 'drying', 'fish').fish || 0;
+    if (got > 0) Stores.put(st, hh, 'fish', got, 'drying');
+    return got;
+  }
   // ---- the boat's project (VB-123's project plan: one step at the shore, which waits for its timber; sim/building fells it) ----
   // The bank nearest the house within FISH.reach walking steps by the sea or a lake of FISH.bigLake tiles or more: {shore, water}, or null.
   function boatShore(st, house) {
@@ -15874,7 +15945,7 @@ VB['sim/drying'] = (() => {
       done: (st, j, hh) => boatBuilt(st, j, hh),
     },
   };
-  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, wanted, drying, boatShore, boatYear };
+  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, potCatch, wanted, drying, boatShore, boatYear };
 })();
 </script>
 <script>
@@ -16167,10 +16238,9 @@ VB['sim/kinds'] = (() => {
       ? `the household holds ${Math.floor(has)} of the ${C.seed} rations of ${fd.crop} a field's seed takes`
       : null;
   }
-  // The household has fewer meals than the coming meal needs, grain or fresh food (VB-119) to cook it from, and wood in the pile (VB-327: an
-  // empty pile cannot cook; the pot burns no wood of its own, the day's use is the hearth's).
-  const cookWanted = (st, hh, c) =>
-    hh.cookDay !== c.day && hh.wood > 0 && hh.meals < dailyNeed(st, hh) && Pot.cookable(st, hh);
+  // The household has fewer meals than the coming meal needs, grain, fresh food (VB-119) or seed it would eat (VB-388) to cook it from, and
+  // wood in the pile (VB-327: an empty pile cannot cook; the pot burns no wood of its own, the day's use is the hearth's).
+  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.wood > 0 && Pot.cookable(st, hh, dailyNeed(st, hh));
   // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
   // seed reserve): a household never brews grain it needs.
   const brewWanted = (st, hh) =>
@@ -16406,9 +16476,9 @@ VB['sim/kinds'] = (() => {
       window: { from: 14 },
       late: true, // a pot under way is finished after the end of work (VB-119; Kim, 11 Nov)
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
-      // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain (sim/pot), for the day posted
+      // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain, the seed it would eat (sim/pot)
       done: (st, j, hh, c) => {
-        Pot.pot(st, hh, Math.max(0, dailyNeed(st, hh) - hh.meals));
+        Pot.cookMeal(st, hh, dailyNeed(st, hh));
         hh.cookDay = j.day ?? c.day;
       },
       // from 14:00 to the end of work, while the household is short of meals and has grain or fresh food to cook (cookWanted)
@@ -16786,13 +16856,13 @@ VB['sim/kinds'] = (() => {
       },
       // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
       urgency: (st, j, c, U) => spareUrgency(st, j, U),
-      // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119)
+      // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119); beyond it, to the rack (VB-388)
       deliver: (st, j, hh) => {
-        Pot.putFresh(st, hh, 'fish', Drying.catchOf(st, j), 'catch');
+        Drying.potCatch(st, j, hh);
       },
       // in the fishing season, from its boat or the house's fishing ground (sim/drying): one trip, two while spare food is under FISH.secondDays
       available: (st, hh, f, c, post) => {
-        if (!fishing(c)) return;
+        if (!fishing(c) || Pot.fishCovered(st, hh, dailyNeed(st, hh))) return; // none while fresh fish covers 2 days (VB-388)
         const g = Drying.fishingPlace(st, hh, f);
         if (!g) return;
         // the key names the bank, so a ground fished out is left for the next one at the following review
@@ -35758,7 +35828,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '546639a1e4',
+const BUILD = '22c972bff0',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

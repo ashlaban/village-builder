@@ -1,7 +1,8 @@
 // The pot and fresh food (VB-119; design.md, Meals and Mixed meals): fish and gathered food are fresh, held in batches by day and lost past
 // their 3 days, read when the store is next touched; the cook makes the next day's meals from fresh food, oldest first, then grain; a pot
 // of 2 sources (each at least a fifth) goes 10% further, of 3 or more 20%; with no meals a household eats gathered food as it is and then
-// grain uncooked, a ration of grain feeding 0.75 of a ration of need (VB-327); a cook at work at the end of work finishes the pot.
+// grain uncooked, a ration of grain feeding 0.75 of a ration of need (VB-327); a cook at work at the end of work finishes the pot; the cook
+// cooks the seed a short household would eat (VB-388).
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Pot = VB['sim/pot'];
 const { FOODS, ECON, DAY, WORK } = VB['sim/rules'], { dailyNeed, feedHousehold } = VB['sim/hunger'], { KINDS } = VB['sim/kinds'];
 const { moveClock } = require('./lib/clock.js'), { checkState } = require('./lib/invariants.js');
@@ -109,14 +110,32 @@ check(ECON.uncooked === 0.75, 'uncooked grain: a ration feeds 0.75');
   check(hh.hungryDays === 1 && grain(hh) === 0 && near(Pot.freshHeld(st, hh), 0), 'short: all eaten, a hungry day');
 }
 
+// --- the seed a short household eats is cooked (VB-388): a cook is posted for it, and the meal eats it cooked, not at the raw rate
+{
+  const { st, hh } = home(0), f = st.farmsteads[hh.farmstead], need = dailyNeed(st, hh);
+  VB['sim/plans'].makeProject(st, 'household', hh.id, VB['sim/fields'].fieldProject(st, hh, f.house)); // a new field's seed held back
+  const seed = VB['sim/hunger'].seedReserve(st, hh); hh.grain = { barley: seed }; hh.fresh = []; hh.cookDay = -1;
+  const c = { season: 1, sday: 3, day: 15, hour: 15 }, asked = [];
+  KINDS.cook.available(st, hh, f, c, (key) => asked.push(key));
+  check(seed > need && asked.length === 1, `a household with only its seed posts a cook (${asked.length})`);
+  KINDS.cook.done(st, { day: c.day }, hh, c);
+  check(near(hh.meals, need) && near(grain(hh), seed - need), `the cook cooks the day's seed: ${hh.meals} meals, ${seed - grain(hh)} seed`);
+  const told = st.record.filter((e) => e.kind === 'seedEaten').length;
+  feedHousehold(st, hh);
+  check(hh.hungryDays === 0 && near(grain(hh), seed - need) && told >= 1, 'eaten cooked: no seed at the raw rate, the unsown fields told');
+  hh.cookDay = -1; hh.meals = 0; hh.larder = [{ kind: 'salt meat', n: 2 * need, until: st.t + 40 * DAY }]; asked.length = 0;
+  KINDS.cook.available(st, hh, f, c, (key) => asked.push(key));
+  check(asked.length === 0, 'a larder that covers the day: no seed to cook');
+}
+
 // --- a run: fish and gathered food go into pots, a cook at work at the end of work finishes, the state keeps its invariants
 check(KINDS.cook.late === true, 'the cook\'s job is finished after the end of work');
 {
   const st = Sim.seed(r.value, 7, 'heirs'); // heirs: larger households, where a cook is still at the pot at the end of work (at 12 tiles an hour
   // the founders' cooks are done by then)
-  const pots = [0, 0, 0, 0], pot = Pot.pot;
+  const pots = [0, 0, 0, 0], pot = Pot.cookMeal;
   let late = 0, finished = 0;
-  Pot.pot = (...a) => { const k = pot(...a); pots[Math.min(k, 3)]++; return k; };
+  Pot.cookMeal = (...a) => { const k = pot(...a); pots[Math.min(k, 3)]++; return k; };
   try {
     for (let d = 0; d < 36; d++) {
       Sim.advance(st, d * DAY + WORK[1] - 0.1 - st.t);
@@ -130,7 +149,7 @@ check(KINDS.cook.late === true, 'the cook\'s job is finished after the end of wo
       Sim.advance(st, 2.5);
       for (const b of busy) if (b.hh.cookDay === d) finished++;
     }
-  } finally { Pot.pot = pot; }
+  } finally { Pot.cookMeal = pot; }
   const bad = checkState(st);
   check(!bad.length, 'invariants: ' + bad.slice(0, 3).join('; '));
   check(pots[2] + pots[3] > 0, `mixed pots by the autumn: ${pots.join(', ')}`);

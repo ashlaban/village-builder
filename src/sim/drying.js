@@ -1,11 +1,12 @@
 // @sys sim/drying: dried fish (VB-300), the first good of place: a village's reach to fishing water, refreshed when its farms change;
-// fishing for the drying rack and hanging the catch, a side craft of spring and early summer; the fishing boat, a household's facility on
+// fishing for the drying rack and hanging the catch, a side craft of spring to autumn; the fishing boat, a household's facility on
 // a shore built as a project plan (the cook puts dried fish in the winter's pot: sim/pot, VB-119)
 // Design: design.md, Goods of place and side crafts (Goods of place, First goods, Side crafts, The fishing boat; Agreed, 10 Nov). Fish are
-// split and hung on racks in the dry winds of spring and early summer (stockfish, klippfisk), and keep a year or more: here through winter
+// split and hung on racks in the dry winds of spring to autumn (stockfish, klippfisk), and keep a year or more: here through winter
 // and spring, to the next summer (the good's keepsDays, sim/stores). Nobody travels in a boat (slice 10); its tarring is VB-301's.
+// VB-388 (Kim, 12 Nov): the catch for the pot a household cannot eat before it spoils goes to the rack while the rack has room.
 VB['sim/drying'] = (() => {
-  const { FISH, SEASON_DAYS } = VB['sim/rules'];
+  const { FISH, FOODS, SEASON_DAYS, cal } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'],
     { passable } = VB['sim/routes'];
   const { isWater, lakeSizes, ground, landCatch } = VB['sim/fish'];
@@ -14,13 +15,14 @@ VB['sim/drying'] = (() => {
     Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
   const { dailyNeed, larderOf } = VB['sim/hunger'];
-  // Proposed (VB-300, the orchestrator's starting values for Kim): a household dries enough fish for `share` of its pot over the days
-  // without fresh fish (the winter and spring's first FISH.from days, under the ice), in whole lots of `lot` rations; it fishes for the
-  // rack from spring day FISH.from + 1 to summer day `until` (the drying winds of spring and early summer), one catch waiting at a time;
-  // splitting and hanging a catch takes `hours` at the rack by the house, at `hang` urgency (as salting meat: the catch does not wait),
-  // the trip is fishing's (3 hours) at `urgency` (a side craft's, as ale and digging: the household's slack). Out of the fishing season the
-  // cook puts dried fish in for a fifth of the pot, as a source (sim/pot, VB-119), so `share` lasts a quarter longer than the winter.
-  const DRY = { share: 0.25, lot: 10, until: 6, hours: 1, hang: 1.6, urgency: 0.5 };
+  const Pot = VB['sim/pot'];
+  // Proposed (VB-300, the orchestrator's starting values for Kim): a household dries enough fish for the winter's fish share of its pot
+  // (sim/pot's WINTER_FISH, VB-388) over the days without fresh fish (the winter and spring's first FISH.from days, under the ice), in
+  // whole lots of `lot` rations; it fishes for the rack from spring day FISH.from + 1 to the end of autumn (VB-388: the season of fishing
+  // for the pot), one catch waiting at a time; splitting and hanging a catch takes `hours` at the rack by the house, at `hang` urgency (as
+  // salting meat: the catch does not wait), the trip is fishing's (3 hours) at `urgency` (a side craft's, as ale and digging: the
+  // household's slack). Out of the fishing season the cook puts dried fish in for that share of the pot (sim/pot, VB-119), so it lasts the winter.
+  const DRY = { lot: 10, hours: 1, hang: 1.6, urgency: 0.5 };
   // The fishing boat (design.md, The fishing boat; Agreed, 10 Nov): `hours` of work at the shore, `timber` loads of the village's wood
   // felled and carried to it (two trees, at 3 loads a tree as VB-328's timber trip), a trip in it brings `catch` times the bank's (8 rations
   // where the bank gives 4). A household with `hands` working hands (14 to 59) may build one, at the start of the drying season.
@@ -65,10 +67,24 @@ VB['sim/drying'] = (() => {
   // A trip's catch, in rations: the bank's (sim/fish, lowering the stock of water that runs down), BOAT.catch times it from a boat.
   const catchOf = (st, j) => landCatch(st, j.water) * (j.boat ? BOAT.catch : 1);
   // ---- drying ----
-  // The dried fish a household wants in store: DRY.share of its need over the days without fresh fish, in whole lots.
-  const wanted = (st, hh) => Math.ceil((DRY.share * dailyNeed(st, hh) * winterDays) / DRY.lot - 1e-9) * DRY.lot;
-  // The drying season: from spring day FISH.from + 1 to summer day DRY.until.
-  const drying = (c) => (c.season === 0 && c.sday >= FISH.from) || (c.season === 1 && c.sday < DRY.until);
+  // The dried fish a household wants in store: the winter pot's fish share of its need over the days without fresh fish, in whole lots.
+  const wanted = (st, hh) => Math.ceil((Pot.WINTER_FISH * dailyNeed(st, hh) * winterDays) / DRY.lot - 1e-9) * DRY.lot;
+  // The drying season: from spring day FISH.from + 1 to the end of autumn (VB-388).
+  const drying = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
+  // The catch for the pot (sim/kinds' fish): fresh fish (sim/pot), and the fresh fish held beyond what the household eats before it spoils
+  // (its need over the fish's keeps) laid by the rack, the oldest first, while the drying season is open and the rack has room (the dried
+  // fish wanted, less what is held and what waits by the rack). One comparison a catch (VB-388).
+  function potCatch(st, j, hh) {
+    Pot.putFresh(st, hh, 'fish', catchOf(st, j), 'catch');
+    if (!drying(cal(st.t))) return 0;
+    const need = dailyNeed(st, hh),
+      room = wanted(st, hh) - larderOf(hh, 'dried fish') - (hh.rack || 0),
+      n = Math.min(room, Pot.freshHeld(st, hh, 'fish') - need * FOODS.fish.keeps);
+    if (!(n > 1e-9)) return 0;
+    const got = Pot.takeFresh(st, hh, n, 'drying', 'fish').fish || 0;
+    if (got > 0) Stores.put(st, hh, 'fish', got, 'drying');
+    return got;
+  }
   // ---- the boat's project (VB-123's project plan: one step at the shore, which waits for its timber; sim/building fells it) ----
   // The bank nearest the house within FISH.reach walking steps by the sea or a lake of FISH.bigLake tiles or more: {shore, water}, or null.
   function boatShore(st, house) {
@@ -210,5 +226,5 @@ VB['sim/drying'] = (() => {
       done: (st, j, hh) => boatBuilt(st, j, hh),
     },
   };
-  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, wanted, drying, boatShore, boatYear };
+  return { DRY, BOAT, KINDS, villageFishes, fishingPlace, catchOf, potCatch, wanted, drying, boatShore, boatYear };
 })();
