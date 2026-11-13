@@ -31,7 +31,7 @@ VB['sim/clock'] = (() => {
   // ---- the calendar (VB-241) ----
   // CALENDAR is everything the clock runs, in the order it runs: each 6-minute step walks the table once, top to bottom, and runs each
   // entry whose cadence and place the step reached and whose guard holds. The order decides outcomes (target-v2 3.3), so it is written
-  // here and nowhere else; tests/clock.js holds it against a recorded list (an intended change of order re-records that list there).
+  // here and nowhere else; tests/clock.js checks required ordering relationships; tests/spread.js exercises scheduled phases.
   // An entry: {every, at, when, owner, run, note}.
   //   every: 'step' | 'hour' | 'day' | 'season' | 'year', how often it comes round.
   //   at: its place within that cadence, {hour, tick, season, sday, doy}. hour is the hour of the day; tick the 6-minute step counted
@@ -46,7 +46,7 @@ VB['sim/clock'] = (() => {
   //   run: (st, c, n): c is cal() of the step's hour (null for a 'step' entry with no date and no guard, which reads its own time), n
   //     the step of the day (0 to DAY * TICKS - 1).
   // It is code, never saved: compiled and frozen as this module loads (the last module before Sim, so nothing can register later).
-  // To add an entry: insert it below where it should run, then re-record the order in tests/clock.js (ORDER; its failure prints the list).
+  // To add an entry: insert it below where it should run, add a focused test for any new scheduling relationship.
   const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
   const cenv = (st) => !!st.cenv;
   // Households short of people whose ask for food fell short today (sim/help, VB-308): written by shareFood's entry and read by takeIn's

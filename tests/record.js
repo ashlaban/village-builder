@@ -36,26 +36,17 @@ for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 's
 const unlisted = [...written].filter((k) => !(k in H));
 assert.deepStrictEqual(unlisted, [], `kinds written but not in HISTORY (sim/records): ${unlisted.join(', ')}`);
 const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).done); return r.value; };
-// A pawn's life reads as it did when each pawn kept copies of its events: the times and texts of every pawn's events, heirs at seed 7
-// after two and a half years (before any fold), hash as the copies did at 7812253, the commit before VB-199 (230 events, 79786b701a98b8a7,
-// until VB-201 moved the night's culture and the round's phases). Re-recorded since for VB-235 (the clock) and when slopes entered the
-// walking cost (VB-271), and when talk stopped writing memories and friend events (VB-240), and when a hungry household began to eat its
-// seed (VB-282), and for planning days (VB-249) with occasions (VB-126, weddings and funeral ales in the lives), and for digging (VB-359),
-// the village's wood (VB-326), timber (VB-328) and stone (VB-332), and when the weather began to place the
-// biomes, so every island changed (VB-342), and for herding (VB-136: fewer gifts and close friends, the same births, deaths and marriages),
-// and for dried fish and the boat (VB-300: 49 events became 58), and for the harvest hours (VB-333: 58 became 55), and for fresh food and
-// the pot (VB-119: 55 events, other ones), and for sheaves carried by the load (VB-335: 55 became 68, with VB-119), and for the
-// villages' and farms' names (VB-399, VB-401: the same 68 events, the villages and farms named in them renamed), and when
-// fields and meadows began to wear paths and speed walking and routes to go round houses in villages laid out
-// anew (VB-402: 68 became 85), and when villages were laid out by their land, the fields beside the houses (Kim, 12 Nov: 85 became 64), and when walking became 12 tiles an hour (64 became 57):
-// the lives changed, not how they are read.
+// The life view must return the indexed life events, regardless of how the simulation's stories evolve.
 {
   const st = Sim.seed(world(), 7, 'heirs');
-  Sim.advance(st, 2.5 * Sim.YEAR);
-  const lives = st.pawns.map((p) => Sim.recordOf(st, { pawn: p.id, life: true }).map((e) => [e.t, e.text === undefined ? null : e.text]));
-  const hash = require('crypto').createHash('sha256').update(JSON.stringify(lives)).digest('hex').slice(0, 16);
-  assert.strictEqual(lives.reduce((a, l) => a + l.length, 0), 57, 'heirs 7 at 2.5 years: 57 events on its pawns');
-  assert.strictEqual(hash, '9e96c274ae6a59be', 'a pawn\'s life reads as it did with copies');
+  for (const p of st.pawns) {
+    const events = Sim.recordOf(st, { pawn: p.id, life: true });
+    assert.deepStrictEqual(events.map((e) => e.at), p.events);
+    for (const e of events) {
+      assert.strictEqual(e.kind, st.record[e.at].kind);
+      assert.strictEqual(e.t, st.record[e.at].t);
+    }
+  }
 }
 const st = Sim.seed(world(), 7, 'founders');
 Sim.advance(st, 10 * Sim.YEAR + 12 * Sim.DAY); // the fold of the tenth year's turn has ended

@@ -33,7 +33,8 @@ VB['sim/building'] = (() => {
         const f = st.farmsteads[id];
         if (f.booth && f.household !== null) ask(`timber:f${f.id}`, v, f.booth, f.booth.i, f.house, { type: 'household', id: f.household });
         const s = f.household !== null && Projects.openOf(st, 'household', f.household); // a boat's timber, carried to its shore (VB-300)
-        if (s && (s.kind === 'boat' || s.kind === 'cart')) ask(`timber:b${f.id}`, v, s, 0, s.place, { type: 'household', id: f.household }); // and a cart's, to the house
+        if (s && (s.kind === 'boat' || s.kind === 'cart')) ask(`timber:b${f.id}`, v, s, 0, s.place, {
+          type: 'household', id: f.household }); // and a cart's, to the house
       }
     }
   }

@@ -10,11 +10,10 @@ for (let i = 0; i < 100; i++) assert.strictEqual(R.next(copy), R.next(a), 'a JSO
 const f = R.fromState(1); f.fix = 0;
 assert.strictEqual(R.next(f), 0); assert.strictEqual(f.s, 1, 'a fixed stream does not advance');
 
-const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).done); return r.value; };
 const run = (extra) => {
-  const st = Sim.seed(world(), 7, 'founders');
+  const st = require('./lib/probe.js').state();
   assert.deepStrictEqual(Object.keys(st.rng).sort(), [...R.SYSTEMS].sort(), 'one stream per system after seeding');
-  Sim.advance(st, Sim.YEAR);
+
   for (let i = 0; i < extra; i++) R.next(st.rng.work);
   return { births: [0, 1, 2].map(() => R.next(st.rng.births)), deaths: [0, 1, 2].map(() => R.next(st.rng.deaths)), work: R.next(st.rng.work) };
 };
@@ -24,4 +23,4 @@ assert.deepStrictEqual(more.deaths, plain.deaths, 'deaths stream untouched by dr
 assert.notStrictEqual(more.work, plain.work, 'the work stream did advance');
 const names = R.SYSTEMS.map((k) => R.makeStream(7, k).s);
 assert.strictEqual(new Set(names).size, names.length, 'systems start from different states');
-console.log(`rng ok: mulberry32's sequence, JSON copies continue, fix holds; founders 7 after a year: 1,000 draws on work leave births ${plain.births.map((x) => x.toFixed(3)).join(' ')} and deaths unchanged`);
+console.log(`rng ok: mulberry32's sequence, JSON copies continue, fix holds; tiny village: 1,000 draws on work leave births ${plain.births.map((x) => x.toFixed(3)).join(' ')} and deaths unchanged`);

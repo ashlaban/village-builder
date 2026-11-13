@@ -5487,7 +5487,8 @@ VB['sim/records'] = (() => {
   function makeHousehold(R, id, f, members, holder) {
     const hh = { id, farmstead: f.id, members: [...members], holder, grain: { barley: ECON.startGrain }, meals: 0, wood: ECON.startWood, stone: 0,
       ledger: [], totals: [], unthreshed: [], hungryDays: 0, seedSeason: -1, hunger: 0, waterDay: -1, cookDay: -1, dissolved: false, herds: [], hay: 0,
-        haySpoilt: 0, clay: 0, bogOre: 0, rack: 0, boat: null, carts: [], cartMiss: 0, // carts, cartMiss: sim/carts; clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
+        haySpoilt: 0, clay: 0, bogOre: 0, rack: 0, boat: null, carts: [],
+          cartMiss: 0, // carts, cartMiss: sim/carts; clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
       larder: [], fresh: [], fodderDay: -1, ale: [], poured: [],
       milkDay: -1, manure: 0, spoilt: 0 };
     if (R.liveHouseholds) R.liveHouseholds.push(id);
@@ -9666,7 +9667,8 @@ VB['sim/building'] = (() => {
         const f = st.farmsteads[id];
         if (f.booth && f.household !== null) ask(`timber:f${f.id}`, v, f.booth, f.booth.i, f.house, { type: 'household', id: f.household });
         const s = f.household !== null && Projects.openOf(st, 'household', f.household); // a boat's timber, carried to its shore (VB-300)
-        if (s && (s.kind === 'boat' || s.kind === 'cart')) ask(`timber:b${f.id}`, v, s, 0, s.place, { type: 'household', id: f.household }); // and a cart's, to the house
+        if (s && (s.kind === 'boat' || s.kind === 'cart')) ask(`timber:b${f.id}`, v, s, 0, s.place, {
+          type: 'household', id: f.household }); // and a cart's, to the house
       }
     }
   }
@@ -9948,8 +9950,9 @@ VB['sim/carts'] = (() => {
   // The load pawn `id` of household hh may take now, and the cart it takes for it: `teamFree` says whether the team could draw the ox cart
   // (sim/agents: the household has one, and it is at no plough and no other cart).
   function take(st, hh, id, teamFree) {
-    const c = (teamFree && free(st, hh, 'ox')) || free(st, hh, 'hand');
-    if (!c) return TRAVEL.load;
+    const i = hh.carts.indexOf((teamFree && free(st, hh, 'ox')) || free(st, hh, 'hand'));
+    if (i < 0) return TRAVEL.load;
+    const c = hh.carts[i];
     c.by = id;
     return c.kind === 'ox' ? TRAVEL.cart : TRAVEL.hand;
   }
@@ -10015,7 +10018,7 @@ VB['sim/carts'] = (() => {
     mendcart: {
       verb: 'Mending the cart', go: 'Going to mend the cart', name: 'Mend the cart', label: 'Cart', anim: 'mallet',
       hours: CART.mendHours, hands: 1, type: 'upkeep', spot: atHouse, urgency: (st, j, c, U) => U.repair,
-      done: (st, j, hh) => { const c = worst(st, hh); if (c && c.cond < CART.mendAt) c.cond = 1; },
+      done: (st, j, hh) => { const i = hh.carts.indexOf(worst(st, hh)), c = hh.carts[i]; if (c && c.cond < CART.mendAt) c.cond = 1; },
       available: (st, hh, f, c, post) => {
         const w = f.household === hh.id ? worst(st, hh) : null;
         if (w && w.cond < CART.mendAt) post(`mendcart:f${f.id}`, f.house, { farm: f });
@@ -10400,7 +10403,8 @@ VB['sim/kinds'] = (() => {
     },
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
-  KINDS.herd = VB['sim/grazing'].KIND; Object.assign(KINDS, Drying.KINDS, VB['sim/carts'].KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
+  KINDS.herd = VB['sim/grazing'].KIND;
+    Object.assign(KINDS, Drying.KINDS, VB['sim/carts'].KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
@@ -14525,7 +14529,7 @@ VB['sim/clock'] = (() => {
   // ---- the calendar (VB-241) ----
   // CALENDAR is everything the clock runs, in the order it runs: each 6-minute step walks the table once, top to bottom, and runs each
   // entry whose cadence and place the step reached and whose guard holds. The order decides outcomes (target-v2 3.3), so it is written
-  // here and nowhere else; tests/clock.js holds it against a recorded list (an intended change of order re-records that list there).
+  // here and nowhere else; tests/clock.js checks required ordering relationships; tests/spread.js exercises scheduled phases.
   // An entry: {every, at, when, owner, run, note}.
   //   every: 'step' | 'hour' | 'day' | 'season' | 'year', how often it comes round.
   //   at: its place within that cadence, {hour, tick, season, sday, doy}. hour is the hour of the day; tick the 6-minute step counted
@@ -14540,7 +14544,7 @@ VB['sim/clock'] = (() => {
   //   run: (st, c, n): c is cal() of the step's hour (null for a 'step' entry with no date and no guard, which reads its own time), n
   //     the step of the day (0 to DAY * TICKS - 1).
   // It is code, never saved: compiled and frozen as this module loads (the last module before Sim, so nothing can register later).
-  // To add an entry: insert it below where it should run, then re-record the order in tests/clock.js (ORDER; its failure prints the list).
+  // To add an entry: insert it below where it should run, add a focused test for any new scheduling relationship.
   const STEPS_A_DAY = DAY * TICKS, mod = (x, m) => ((x % m) + m) % m;
   const cenv = (st) => !!st.cenv;
   // Households short of people whose ask for food fell short today (sim/help, VB-308): written by shareFood's entry and read by takeIn's
@@ -20717,7 +20721,7 @@ if (typeof module !== 'undefined') module.exports = Sim;
   // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
   // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
   // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-  const BUILD = 'e328867e8e', SAVE_SLOTS = ['auto', '1', '2', '3'];
+  const BUILD = '68b3f51eec', SAVE_SLOTS = ['auto', '1', '2', '3'];
   const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
   const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
   const SIZE_NAMES = { t: 'tiny', s: 'small', m: 'medium', l: 'large' };

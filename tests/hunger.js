@@ -22,7 +22,7 @@ for (const [order, check] of [
   hh.members = [man.id, child.id]; for (const q of [man, child]) q.hunger = 0, q.hungerLog = [];
   const s = st.cenv.settlements[Sim.settlementIdOf(st, man)]; s.practice[Culture.IDX.feedOrder] = Culture.optIndex('feedOrder', order);
   for (const fd of st.farmsteads[hh.farmstead].fields) fd.stage = 'growing'; // no seed to keep back
-  hh.grain = { barley: 1.2 }; // a man needs 1 and a child 0.5
+  hh.grain = { barley: 1.2 * st.ECON.rawGrain }; // 1.2 rations, eaten uncooked (VB-119); a man needs 1 and a child 0.5
   feedHousehold(st, hh);
   check({ man: man.hungerLog[0], kid: child.hungerLog[0] });
   assert.strictEqual(Sim.grainOf(hh), 0); assert.strictEqual(hh.hungryDays, 1);
@@ -35,16 +35,17 @@ for (const [order, check] of [
   hh.members = [man.id]; man.hunger = 0; man.hungerLog = [];
   f.fields.forEach((fd, k) => { fd.stage = k < 3 ? 'plowed' : 'growing'; });
   assert.strictEqual(f.fields.filter((fd) => fd.stage === 'plowed').length, 3);
+  const R = st.ECON.rawGrain; // with no meals, a ration of need is R of grain, eaten uncooked (VB-119)
   hh.grain = { barley: 50 }; const log0 = st.record.length; feedHousehold(st, hh);
-  assert(Math.abs(Sim.grainOf(hh) - 49) < 1e-9, 'the short day eats one ration of the seed, no more');
+  assert(Math.abs(Sim.grainOf(hh) - (50 - R)) < 1e-9, 'the short day eats one ration of the seed, no more');
   assert(man.hungerLog[0] === 0 && hh.hungryDays === 0, 'and the household is not hungry');
   assert.strictEqual(st.record.slice(log0).filter((e) => e.kind === 'seedEaten').length, 1, 'the unsown fields are told');
   feedHousehold(st, hh); assert.strictEqual(st.record.slice(log0).filter((e) => e.kind === 'seedEaten').length, 1, 'once a season');
   hh.grain = { barley: 0 }; feedHousehold(st, hh); assert(man.hungerLog.pop() > 0 && hh.hungryDays === 1, 'nothing to eat is still hungry');
   hh.grain = { barley: 100 }; feedHousehold(st, hh);
-  assert(Math.abs(Sim.grainOf(hh) - 99) < 1e-9, 'grain above the reserve is eaten (one ration)');
+  assert(Math.abs(Sim.grainOf(hh) - (100 - R)) < 1e-9, 'grain above the reserve is eaten (one ration)');
   hh.grain = { barley: 76 }; hh.members = [man.id]; feedHousehold(st, hh);
-  assert(Math.abs(Sim.grainOf(hh) - 75) < 1e-9);
+  assert(Math.abs(Sim.grainOf(hh) - (76 - R)) < 1e-9, 'the spare grain first, then the seed for the rest of the ration');
 }
 
 // hunger level: mean shortfall over 12 days, and back to 0 after 12 fed days

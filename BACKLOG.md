@@ -12,6 +12,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-409](backlog/VB-409.md) | Verify's page check and the nightly-only rule checks, rebuilt on small constructed states | - | 1 | L | 60 scripts run only at night since VB-408; each rule they hold gets a case on a constructed tiny state in verify, the page first. |
 | [VB-058](backlog/VB-058.md) | The village green and well, built by the village | year | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. |
 | [VB-186](backlog/VB-186.md) | Plan: talk travels: traits, venues and stories (slice 7) | talk | 2 | S | Design traits, encounters at venues and stories, with lies and counter-stories, from the experiment. |
 | [VB-253](backlog/VB-253.md) | The player as head: every choice of the plan as a command | year | 2 | M | Verbs for a target, the tile of the next field or meadow, the season's order and the project, under the holder's checks; the holder's rule where none is made. |
@@ -26,6 +27,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-389](backlog/VB-389.md) | The fields a household wants are counted net of seed | animals | 2 | S | fieldsWanted counts the yield after seed, so a household plans for its need and not 0.73 of it. |
 | [VB-390](backlog/VB-390.md) | A new household with a meadow wants a cow | animals | 2 | M | A new household of two or more hands with a meadow wants a cow in its standing plan, from kin's herd at a marriage or by a deal. |
 | [VB-391](backlog/VB-391.md) | An ask for help that brings nothing is not the season's ask | - | 2 | S | A household whose seasonal ask brings nothing at all may ask again on a later day. |
+| [VB-403](backlog/VB-403.md) | Balance accounts: a report of where the food and the people go | yardstick | 2 | M | One report that closes the yearly accounts of a run: food by source and outlet, people by births, deaths, marriages and moves, the spread between households, goodwill and labour; the properties of the balance map that the game can report. |
+| [VB-406](backlog/VB-406.md) | The village store: why most of its grain rots | - | 2 | S | Measured on populous small: 68 to 85% of the grain households give the village store rots there and 10 to 22% is given back out. Measure its flows a year, explain them, and propose the rule that would make it a store. |
 | [VB-009](backlog/VB-009.md) | Hand-quern milling and making rations | mill | 3 | M | Grind grain to flour on a hand quern and cook rations from it. |
 | [VB-091](backlog/VB-091.md) | Forest spread into open land | animals | 3 | M | Open land next to forest goes to scrub and then woodland unless farming, mowing or grazing keeps it open. |
 | [VB-100](backlog/VB-100.md) | Common fields worked by the village | year | 3 | M | A village with an empty store makes a common field; its harvest fills the store. |
@@ -67,6 +70,9 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-404](backlog/VB-404.md) | Plan: where the elite comes from | debt | 2 | S | The balance review's mocks give an elite of the target's size by office and tithe, and almost none by debt at the game's food ratio; decide the roads to the 75 and rewrite slice 5's class rule and tasks to fit. |
+| [VB-405](backlog/VB-405.md) | Plan: marriage that answers to scarcity, and how founders grow | - | 2 | S | Marriage holds the population and its means test is the master setpoint; growth has a ceiling of 2.4% a year and founders reach about 1%. Decide how marriage and nursing respond, and how an island reaches 1,000. |
+| [VB-407](backlog/VB-407.md) | Plan: outlets for the surplus: feasts that book goodwill, and keeping | - | 2 | S | About a fifth of the harvest rots and the target needs it eaten elsewhere. Design the good year's feast and gift as the source of goodwill and standing, better keeping as a late lever, and animals as stored wealth. |
 
 ## Blocked
 
@@ -227,13 +233,14 @@ v0.3's sections (`docs/design-v0.3.md`); v0.4 keeps v0.3's subsection names, so 
 says where each section went).
 
 **Refactor rules** (every task titled "Refactor:"):
-- Behaviour is unchanged: `node tests/golden.js` passes with `tests/golden.json` (VB-011) unchanged, and the hard checks pass (`AGENTS.md`, Working rules). Rebuild `index.html` before committing.
+- Behaviour is unchanged: `node tools/same.js --base REF` prints `same` against the commit the task started from (`docs/testing.md`), its line is in the PR, and the hard checks pass. Rebuild `index.html` before committing.
 - Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Lines over 160 characters in moved code are wrapped at statement or argument boundaries; nothing else is reformatted (`tools/wrap.js` does it, and `--compare` checks the build).
 - No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
 - A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads, and stays under 400 lines.
 
-**Golden file, work counters and cost growth:** a task that changes behaviour or work counters on purpose re-records them and lists
-the changes in its PR. Counters and cost growth are targets: they report their residual and never fail, and a change does not raise
+**Testing, work counters and cost growth:** permanent golden baselines are retired (VB-408). Older tasks that require a golden
+check or update instead follow `docs/testing.md`; preserve behavior for refactors, test the intended contracts for behavior changes.
+A work-counter baseline change is reported in its PR. Counters and cost growth are targets: they report their residual and never fail, and a change does not raise
 a target to hide one (Kim, VB-261). A criterion worded as a line ("at most 30 ms", "verify passes") means: moved towards the target, its
 residual reported, and who closes what is left named; "verify passes" means its hard checks pass. The commands and limits are in
 `AGENTS.md` (Commands and Working rules).

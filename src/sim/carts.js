@@ -18,8 +18,9 @@ VB['sim/carts'] = (() => {
   // The load pawn `id` of household hh may take now, and the cart it takes for it: `teamFree` says whether the team could draw the ox cart
   // (sim/agents: the household has one, and it is at no plough and no other cart).
   function take(st, hh, id, teamFree) {
-    const c = (teamFree && free(st, hh, 'ox')) || free(st, hh, 'hand');
-    if (!c) return TRAVEL.load;
+    const i = hh.carts.indexOf((teamFree && free(st, hh, 'ox')) || free(st, hh, 'hand'));
+    if (i < 0) return TRAVEL.load;
+    const c = hh.carts[i];
     c.by = id;
     return c.kind === 'ox' ? TRAVEL.cart : TRAVEL.hand;
   }
@@ -85,7 +86,7 @@ VB['sim/carts'] = (() => {
     mendcart: {
       verb: 'Mending the cart', go: 'Going to mend the cart', name: 'Mend the cart', label: 'Cart', anim: 'mallet',
       hours: CART.mendHours, hands: 1, type: 'upkeep', spot: atHouse, urgency: (st, j, c, U) => U.repair,
-      done: (st, j, hh) => { const c = worst(st, hh); if (c && c.cond < CART.mendAt) c.cond = 1; },
+      done: (st, j, hh) => { const i = hh.carts.indexOf(worst(st, hh)), c = hh.carts[i]; if (c && c.cond < CART.mendAt) c.cond = 1; },
       available: (st, hh, f, c, post) => {
         const w = f.household === hh.id ? worst(st, hh) : null;
         if (w && w.cond < CART.mendAt) post(`mendcart:f${f.id}`, f.house, { farm: f });

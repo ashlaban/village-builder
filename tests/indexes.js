@@ -27,6 +27,25 @@ function run(scenario, size, years) {
   const st = Sim.seed(r.value, 7, scenario); compare(st, `${scenario} seed`);
   for (let y = 1; y <= years; y++) { Sim.advance(st, Sim.YEAR); compare(st, `${scenario} year ${y}`); }
 }
-run('founders', [120, 85], 10); run('populous', [180, 130], 3); run('heirs', [120, 85], 5);
+if (process.argv.includes('--extended')) {
+  run('founders', [120, 85], 10); run('populous', [180, 130], 3); run('heirs', [120, 85], 5);
+} else {
+  const st = require('./lib/probe.js').state(), R = VB['sim/records'];
+  compare(st, 'seeded'); // warm the indexes before each mutation
+  const names = R.nameKit(() => 0.5), context = { ...names, pawns: st.pawns, unions: st.unions, living: st.living };
+  const father = R.person(context, { sex: 'm', age: 25 }), mother = R.person(context, { sex: 'f', age: 25 });
+  R.marry(st, father, mother, 0);
+  compare(st, 'married');
+  R.person(context, { sex: 'f', age: 0, father, mother });
+  R.person(context, { sex: 'm', age: 0, father, mother });
+  compare(st, 'children appended');
+  const u = st.unions.at(-1); u.end = st.t; R.noteUnionEnd(st, u);
+  compare(st, 'union ended');
+  const mover = st.households[0].members.find((id) => id !== st.households[0].holder);
+  R.leaveHousehold(st, mover); R.joinHousehold(st, st.households.at(-1), mover);
+  compare(st, 'household moved');
+  const h = st.households[0]; h.holder = h.members.find((id) => id !== h.holder); R.noteHolder(st, h);
+  compare(st, 'holder changed');
+}
 if (failed) { console.error(`${failed} of ${n} checks failed`); process.exit(1); }
 console.log(`indexes ok: ${n} checks`);

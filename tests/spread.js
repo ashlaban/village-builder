@@ -20,7 +20,10 @@ const VB = globalThis.VB, Sim = VB.sim, G = VB.gen, { canon } = require('./lib/c
 const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS } = VB['sim/rules'], { NIGHT_STEPS, ROUND_PHASES, MEETING_STAGES } = VB['sim/lifecycle'];
 const world = (seed, size) => { const it = G.generate(seed, size); let r; while (!(r = it.next()).done); return r.value; };
 const TINY = { cols: 120, rows: 85 };
-const st = Sim.seed(world(7, TINY), 7, 'populous');
+const extended = process.argv.includes('--extended'), probe = require('./lib/probe.js');
+const seed = () => extended ? Sim.seed(world(7, TINY), 7, 'populous') : probe.state();
+const restoreWorld = (data) => extended ? world(data.seed, { cols: data.cols, rows: data.rows }) : probe.world();
+const st = seed();
 assert.strictEqual(YEAR, YEAR_H);
 // to the day before the round, then across it and the next night in uneven advances
 const roundDay = 2 * SEASON_DAYS + 10, start = Math.floor(st.t / YEAR) * YEAR + (roundDay - 1) * DAY;
@@ -48,9 +51,9 @@ for (const night of nights) {
 // Saved between two phases of the round, and in the middle of the night: the loaded run matches the run that was never saved.
 const saved = [];
 for (const [label, at] of [['between the round\'s phases', start + DAY + 12.1], ['in the night\'s culture', start + 2 * DAY + 0.5]]) {
-  const a = Sim.seed(world(7, TINY), 7, 'populous');
+  const a = seed();
   Sim.advance(a, at - a.t);
-  const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(world(data.seed, { cols: data.cols, rows: data.rows }), data);
+  const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(restoreWorld(data), data);
   for (const run of [a, b]) for (let k = 0; k < 30; k++) Sim.advance(run, 0.1);
   const bad = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => k !== 'w' && canon(a[k]) !== canon(b[k]));
   assert.deepStrictEqual(bad, [], `saved ${label}: the loaded run differs in ${bad.join(', ')}`);
@@ -58,7 +61,7 @@ for (const [label, at] of [['between the round\'s phases', start + DAY + 12.1], 
 }
 // The meetings (VB-206): the customs once, on the third step from noon of autumn day 10; saves before and between the stages go on.
 const mday = Math.floor(st.t / YEAR) * YEAR + (2 * SEASON_DAYS + 9) * DAY + YEAR; // next year's autumn day 10
-const m = Sim.seed(world(7, TINY), 7, 'populous');
+const m = seed();
 Sim.advance(m, mday + 11.5 - m.t);
 const seen = [], msizes = [0.2, 0.4, 0.1, 0.3, 0.7];
 for (let i = 0, end = mday + 13; m.t < end - 1e-9; i++) {
@@ -68,9 +71,9 @@ for (let i = 0, end = mday + 13; m.t < end - 1e-9; i++) {
 assert.strictEqual(seen.length, 1, 'the customs run once');
 assert(seen[0] >= 12.19 && seen[0] <= 12.31, `on the third step from noon (at ${seen[0]})`);
 for (const at of [12, 12.1, 12.2]) {
-  const a = Sim.seed(world(7, TINY), 7, 'populous');
+  const a = seed();
   Sim.advance(a, mday + at - a.t);
-  const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(world(data.seed, { cols: data.cols, rows: data.rows }), data);
+  const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(restoreWorld(data), data);
   for (const run of [a, b]) Sim.advance(run, 1);
   const bad = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => k !== 'w' && canon(a[k]) !== canon(b[k]));
   assert.deepStrictEqual(bad, [], `saved at meeting hour ${at}: the loaded run differs in ${bad.join(', ')}`);
