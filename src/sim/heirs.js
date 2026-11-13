@@ -26,7 +26,7 @@ VB['sim/heirs'] = (() => {
     ancestorsOf,
     wishOf,
   } = VB['sim/records'];
-  const { moved, dropJob, journeyOf } = VB['sim/agents'];
+  const { moved, dropJob, journeyOf, freeHands } = VB['sim/agents'];
   const { farmToVillage, heldFarms } = VB['sim/ownership'];
   const { issue } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
@@ -410,7 +410,12 @@ VB['sim/heirs'] = (() => {
     dropStakes(st, hh);
     farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
-    for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
+    // its jobs go, and those working them stop: a neighbour helping (VB-106) would otherwise finish a job of no household (VB-100's runs)
+    for (const j of [...st.jobs.values()])
+      if (j.farm === f) {
+        freeHands(st, j, -1);
+        dropJob(st, j);
+      }
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
       const p = st.pawns[id];

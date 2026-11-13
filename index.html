@@ -21274,7 +21274,7 @@ VB['sim/heirs'] = (() => {
     ancestorsOf,
     wishOf,
   } = VB['sim/records'];
-  const { moved, dropJob, journeyOf } = VB['sim/agents'];
+  const { moved, dropJob, journeyOf, freeHands } = VB['sim/agents'];
   const { farmToVillage, heldFarms } = VB['sim/ownership'];
   const { issue } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
@@ -21658,7 +21658,12 @@ VB['sim/heirs'] = (() => {
     dropStakes(st, hh);
     farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
-    for (const j of [...st.jobs.values()]) if (j.farm === f) dropJob(st, j);
+    // its jobs go, and those working them stop: a neighbour helping (VB-106) would otherwise finish a job of no household (VB-100's runs)
+    for (const j of [...st.jobs.values()])
+      if (j.farm === f) {
+        freeHands(st, j, -1);
+        dropJob(st, j);
+      }
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     for (const id of [...hh.members]) {
       const p = st.pawns[id];
@@ -37769,7 +37774,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'b06ac9abac',
+const BUILD = 'f77ea93e03',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
