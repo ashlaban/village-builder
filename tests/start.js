@@ -1,6 +1,6 @@
 // The start's island (VB-340): the showcase island of the menu (DEMO, page/loader) re-seeded with each built scenario. Heirs asks for less
 // land on a small map (seedHeirs, sim/scenarios), so it fits that island; DEMO.start lists the seeds of DEMO.seeds where all three fit.
-// `--people` also checks the start's people at each map size (START_PEOPLE, page/start) against Sim.seed at the seeds of DEMO.seeds (verify).
+// `--people` also checks the start's people at each map size (START_PEOPLE, page/start) against Sim.seed at the seeds of DEMO.seeds (extended).
 const fs = require('fs'), path = require('path');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const src = (f) => fs.readFileSync(path.join(__dirname, '../src/page', f), 'utf8');

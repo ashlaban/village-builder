@@ -1,4 +1,4 @@
-// Canonical text and hashes of state values, shared by tests/golden.js and tests/saves.js.
+// Canonical text and hashes of state values, shared by determinism and save/load checks.
 const crypto = require('crypto');
 const sha = (s) => crypto.createHash('sha1').update(s).digest('hex').slice(0, 16);
 

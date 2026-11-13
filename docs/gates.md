@@ -1,5 +1,11 @@
 # Gates and targets
 
+> Testing policy updated by VB-408 (12 November 2026): [Testing](testing.md) supersedes the golden-file,
+> suite membership and CI requirements below. There are no permanent behavior baselines to update.
+> Refactors preserve behavior through focused contracts and `tools/same.js` against their starting commit.
+> Late fixtures and long measurements run in the extended/nightly tier, not routine PR verification.
+
+
 VB-261, 10 November 2026, at `aea615a`. Kim, the same day: "We need to rethink the gates. We can't have hard gates in this phase of
 development. Targets (and their residuals) are good however." This survey lists every check that can stop a task or a merge today, proposes
 for each whether it stays a hard check (it fails a run) or becomes a target (it reports a measured value, its target and the residual, and

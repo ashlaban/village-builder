@@ -12,6 +12,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-409](backlog/VB-409.md) | Verify's page check and the nightly-only rule checks, rebuilt on small constructed states | - | 1 | L | 60 scripts run only at night since VB-408; each rule they hold gets a case on a constructed tiny state in verify, the page first. |
 | [VB-058](backlog/VB-058.md) | The village green and well, built by the village | year | 2 | M | A village that gains a second farm lays out a green and digs a well; they are not created automatically. |
 | [VB-186](backlog/VB-186.md) | Plan: talk travels: traits, venues and stories (slice 7) | talk | 2 | S | Design traits, encounters at venues and stories, with lies and counter-stories, from the experiment. |
 | [VB-253](backlog/VB-253.md) | The player as head: every choice of the plan as a command | year | 2 | M | Verbs for a target, the tile of the next field or meadow, the season's order and the project, under the holder's checks; the holder's rule where none is made. |
@@ -232,13 +233,14 @@ v0.3's sections (`docs/design-v0.3.md`); v0.4 keeps v0.3's subsection names, so 
 says where each section went).
 
 **Refactor rules** (every task titled "Refactor:"):
-- Behaviour is unchanged: `node tests/golden.js` passes with `tests/golden.json` (VB-011) unchanged, and the hard checks pass (`AGENTS.md`, Working rules). Rebuild `index.html` before committing.
+- Behaviour is unchanged: `node tools/same.js --base REF` prints `same` against the commit the task started from (`docs/testing.md`), its line is in the PR, and the hard checks pass. Rebuild `index.html` before committing.
 - Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Lines over 160 characters in moved code are wrapped at statement or argument boundaries; nothing else is reformatted (`tools/wrap.js` does it, and `--compare` checks the build).
 - No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
 - A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads, and stays under 400 lines.
 
-**Golden file, work counters and cost growth:** a task that changes behaviour or work counters on purpose re-records them and lists
-the changes in its PR. Counters and cost growth are targets: they report their residual and never fail, and a change does not raise
+**Testing, work counters and cost growth:** permanent golden baselines are retired (VB-408). Older tasks that require a golden
+check or update instead follow `docs/testing.md`; preserve behavior for refactors, test the intended contracts for behavior changes.
+A work-counter baseline change is reported in its PR. Counters and cost growth are targets: they report their residual and never fail, and a change does not raise
 a target to hide one (Kim, VB-261). A criterion worded as a line ("at most 30 ms", "verify passes") means: moved towards the target, its
 residual reported, and who closes what is left named; "verify passes" means its hard checks pass. The commands and limits are in
 `AGENTS.md` (Commands and Working rules).
