@@ -431,7 +431,7 @@ VB['sim/agents'] = (() => {
         a.phase = 'back';
         a.work = null;
         const f = st.farmsteads[workFor(st, a, j).farmstead],
-          to = K.to === 'site' ? j.dest : f.house;
+          to = K.to === 'site' || j.common ? j.dest : f.house; // a common field's sheaves go to the green (VB-100)
         // sheaves go to the barn door, firewood to the woodpile, water into the cottage, timber to its building site (VB-328)
         const hx = st.w.hx[to],
           hy = st.w.hy[to];

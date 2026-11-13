@@ -391,6 +391,17 @@ function checkState(st) {
     }
     if (holder.dissolved && (holder.ledger.length || holder.totals.length)) bad.push(`households[${holder.id}]: dissolved with a ledger`);
   }
+  // VB-100: a village's common fields: each on its own tile, the village's, in use, with a stage a field has, its ids in order; and no farm's
+  const STAGES = ['stubble', 'plowed', 'sown', 'growing', 'ripe', 'stooks', 'fallow', 'scrub'], farmFields = new Set();
+  for (const f of st.farmsteads) for (const fd of f.fields) farmFields.add(fd.tile);
+  for (const v of st.villages) {
+    if (v.commonFields === undefined) continue;
+    if (!Array.isArray(v.commonFields)) { bad.push(`villages[${v.id}]: commonFields is not a list`); continue; }
+    v.commonFields.forEach((fd, i) => {
+      if (fd.id !== i || !STAGES.includes(fd.stage) || st.owner[fd.tile] !== -v.id - 1 || !st.used.has(fd.tile) || farmFields.has(fd.tile))
+        bad.push(`villages[${v.id}]: common field ${i} ${JSON.stringify({ tile: fd.tile, stage: fd.stage, owner: st.owner[fd.tile] })}`);
+    });
+  }
   for (const v of st.villages) {
     if (grainBad(v.grain)) bad.push(`villages[${v.id}]: grain is ${JSON.stringify(v.grain)}`);
     // the reach test to fishing water (sim/drying, VB-300): tested for no more farms than the village has

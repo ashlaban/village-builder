@@ -93,6 +93,7 @@
     "pawn.rel": "sim/relations",
     "pawn.workdays": "sim/workdays",
     "village.workday": "sim/workdays",
+    "village.commonFields": "sim/commons",
     "pawn.bands": "sim/relations",
     "pawn.goodwill": "sim/relations",
     "household.askedIn": "sim/help",

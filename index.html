@@ -4548,6 +4548,17 @@ const Culture = (() => {
         ['meeting', 'The meeting decides'],
       ],
     },
+    // VB-100 (Kim, 10 Nov): how the village's common fields rank beside a household's own work (sim/commons; COMMONS.lean, sim/rules)
+    {
+      key: 'commons',
+      label: 'Work on the common fields',
+      m: 0.5,
+      opts: [
+        ['own', 'After the household’s own work'],
+        ['fair', 'As the village’s other duties'],
+        ['first', 'Before the household’s own work'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -4577,6 +4588,7 @@ const Culture = (() => {
       feedOrder: 'equal',
       ownHeir: 'behind',
       dispute: 'first',
+      commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
     },
   };
 
@@ -5837,6 +5849,20 @@ VB['sim/rules'] = (() => {
     came: 0.05,
     missed: -0.1,
   };
+  // Common fields worked by the village (VB-100; Kim, 10 Nov; design, Commons): a routine the meeting may choose for a village of `minFarms`
+  // or more occupied farms whose store holds less than `storeDays` days of its members' need, with a free meadow tile within `reach` steps of
+  // its green (its centre before it has one); at most one common field for every `perFarms` farms. Its tasks are the village's, at the
+  // village-duty priorities of ROLES (`duty`) moved by the village's custom `commons` (`lean`: its options' steps from them).
+  // `pull`: how far the help a person's household was given leans it to the next higher option, at `fullDays` days of its need owed.
+  const COMMONS = {
+    minFarms: 3,
+    storeDays: 10,
+    reach: 3,
+    perFarms: 3,
+    lean: { own: -2, fair: 0, first: 2 },
+    fullDays: 30,
+    pull: 0.6,
+  };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one within
   // `hours` walking hours of it, a day's walk, since the servant moves (VB-290; design.md, The round's other acts; it was 15 hex steps).
@@ -6029,6 +6055,7 @@ VB['sim/rules'] = (() => {
     PEAT,
     BUILD,
     WORKDAY,
+    COMMONS,
   };
 })();
 </script>
@@ -12575,16 +12602,18 @@ VB['sim/hunger'] = (() => {
   // field's seed itself (sim/projects, VB-123). Only the day's meal reaches below the seed, and only when the day would otherwise fall short
   // (feedHousehold; Kim, 10 November: the hungry household eats its seed). By crop (VB-347): the fields that bear or last bore it (their
   // next crop, until rotations choose it, VB-350); without one, every field of a sown crop (not fallow, VB-348).
+  // A village's (VB-100): its common fields', a crop's seed each.
   function seedNeed(st, hh, crop) {
-    const f = st.farmsteads[hh.farmstead];
+    const village = !('farmstead' in hh),
+      fields = village ? hh.commonFields || [] : st.farmsteads[hh.farmstead].fields;
     let n = 0;
-    for (const fd of f.fields)
+    for (const fd of fields)
       if (
         (fd.stage === 'stubble' || fd.stage === 'plowed') &&
         (crop === undefined ? CROPS[fd.crop].seed > 0 : fd.crop === crop)
       )
         n++;
-    return n * seedPer(st, hh);
+    return n * (village ? CROPS.barley.seed : seedPer(st, hh));
   }
   Stores.follow('seed', seedNeed);
   const { reserved, grainOf } = Stores;
@@ -13507,7 +13536,7 @@ VB['sim/help'] = (() => {
         if (want <= 1e-9) break;
       }
       const v = st.villages[st.farmsteads[hh.farmstead].village],
-        n = Math.min(want, grainOf(v));
+        n = Math.min(want, grainOf(v) - reserved(st, v, 'grain')); // not the seed of its common fields (VB-100)
       if (n > 1e-9 && give(st, v, hh, n)) want -= n;
       if (want > 1e-9 && shortOfPeople(st, hh)) short.push(hh.id);
     }
@@ -14067,40 +14096,51 @@ VB['sim/fields'] = (() => {
   }
   // Clearing done: the stones go to the household's store, the tile is bare ground; the project's next step, breaking, opens.
   function finishClear(st, f, hh) {
-    const w = st.w,
-      tile = Projects.openOf(st, 'household', f.household).place;
-    const loads = Math.round(w.stones[tile] / STONES_PER_LOAD);
-    if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
-    w.stones[tile] = 0;
+    const tile = Projects.openOf(st, 'household', f.household).place;
+    clearStones(st, tile, hh);
     emit(st, 'stepDone', { type: 'household', id: f.household }); // the project's next step opens (sim/plans)
+  }
+  // The stones cleared off `tile` go to household hh's heap (VB-332: through the stores; a common field's to the household of the one who
+  // finished the clearing, VB-100), and the tile is bare ground.
+  function clearStones(st, tile, hh) {
+    const w = st.w,
+      loads = Math.round(w.stones[tile] / STONES_PER_LOAD);
+    if (loads > 0 && hh) Stores.put(st, hh, 'stone', loads, 'clear');
+    w.stones[tile] = 0;
     st.biomeDirty.add(tile);
   }
   // Breaking done: the stake is the household's own land, a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh
   // (SOIL.fresh, VB-149). The project is finished.
   function finishBreak(st, f) {
-    const w = st.w,
-      tile = Projects.openOf(st, 'household', f.household).place;
+    const tile = Projects.openOf(st, 'household', f.household).place;
     realiseStake(st, st.households[f.household], tile);
-    f.fields.push({
-      id: f.fields.length,
-      tile,
-      crop: 'barley',
-      stage: 'stubble',
-      sown: null,
-      reaped: null,
-      held: 0,
-      fert: fertility(w, tile),
-      soil: w.dev[tile] ? SOIL.start : SOIL.fresh,
-      weedOpen: false,
-      weedPosted: null,
-      weedMiss: 0,
-    });
+    f.fields.push(broken(st, tile, f.fields.length));
     emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
+    log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
+  }
+  // A new field in stubble on `tile`, its ground broken: farmed land from now. A farm's (finishBreak) or a village's common field (VB-100,
+  // sim/commons), whose holder adds it to its list.
+  function broken(st, tile, id) {
+    const w = st.w,
+      fd = {
+        id,
+        tile,
+        crop: 'barley',
+        stage: 'stubble',
+        sown: null,
+        reaped: null,
+        held: 0,
+        fert: fertility(w, tile),
+        soil: w.dev[tile] ? SOIL.start : SOIL.fresh,
+        weedOpen: false,
+        weedPosted: null,
+        weedMiss: 0,
+      };
     st.used.add(tile);
     w.dev[tile] = 1;
     st.visualDirty = true;
     st.biomeDirty.add(tile);
-    log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
+    return fd;
   }
   // ---- soil and manure (VB-137) ----
   // A reaped crop wears the field's soil.
@@ -14222,7 +14262,16 @@ VB['sim/fields'] = (() => {
     delete fd.weeds;
     delete fd.trampled;
     st.visualDirty = true;
-    log(st, `A crop at ${f.name} was lost, left standing too long.`, { kind: 'frost', ...atFarm(f) });
+    log(st, `A crop at ${placeName(f)} was lost, left standing too long.`, { kind: 'frost', ...placeOf(f) });
+  }
+  // A field's holder as its log line names it: a farm, or a village for its common fields (VB-100).
+  const isVillage = (x) => 'center' in x;
+  const placeName = (x) => (isVillage(x) ? `the common field of ${x.name}` : x.name);
+  const placeOf = (x) => (isVillage(x) ? { village: x.id } : atFarm(x));
+  // The fields being worked: each occupied farm's, then each village's common fields (VB-100), as fn(holder, field).
+  function eachWorked(st, fn) {
+    for (const f of st.farmsteads) if (f.household !== null) for (const fd of f.fields) fn(f, fd);
+    for (const v of st.villages) if (v.commonFields) for (const fd of v.commonFields) fn(v, fd);
   }
   // Fallow's rest (VB-348): marked on the summer's first day on each fallow field of an occupied farm (tilled since: 1), credited on the
   // year's last day: CROPS.fallow.mend times the mark, to at most SOIL.start (a field manured above it keeps its soil).
@@ -14243,26 +14292,24 @@ VB['sim/fields'] = (() => {
   function fieldsDay(st, c) {
     const E = st.ECON;
     const day = Math.floor(st.t / DAY);
-    for (const f of st.farmsteads)
-      for (const fd of f.fields) {
-        if (f.household === null || fd.sown === null || fd.stage === 'stooks') continue;
-        const g = day - fd.sown;
-        if (g >= CROPS[fd.crop].ripe) fd.stage = 'ripe';
-        else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
-        lostRipe(st, f, fd, c);
-      }
+    eachWorked(st, (f, fd) => {
+      if (fd.sown === null || fd.stage === 'stooks') return;
+      const g = day - fd.sown;
+      if (g >= CROPS[fd.crop].ripe) fd.stage = 'ripe';
+      else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
+      lostRipe(st, f, fd, c);
+    });
     // upkeep: a growing field wants its crop's rounds of weeding (CROPS weeds), the next falling due E.weedDays[round] days after sowing; a
     // round still open when the next falls due, or at ripening (reaped), counts as missed
-    for (const f of st.farmsteads)
-      for (const fd of f.fields) {
-        if (f.household === null || fd.stage !== 'growing') continue;
-        const n = fd.weeds || 0;
-        if (n >= CROPS[fd.crop].weeds || day - fd.sown < E.weedDays[n]) continue;
-        if (fd.weedOpen) fd.weedMiss++;
-        fd.weedOpen = true;
-        fd.weedPosted = day;
-        fd.weeds = n + 1;
-      }
+    eachWorked(st, (f, fd) => {
+      if (fd.stage !== 'growing') return;
+      const n = fd.weeds || 0;
+      if (n >= CROPS[fd.crop].weeds || day - fd.sown < E.weedDays[n]) return;
+      if (fd.weedOpen) fd.weedMiss++;
+      fd.weedOpen = true;
+      fd.weedPosted = day;
+      fd.weeds = n + 1;
+    });
     rest(st, c);
     // Untended fields go to grass and then scrub, unless a claimant is restoring the farm.
     for (const f of st.farmsteads)
@@ -14281,23 +14328,21 @@ VB['sim/fields'] = (() => {
   // The autumn frost, on the season's last day (sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still standing or in stooks is lost;
   // a winter crop (rye) standing green is not (VB-348).
   function fieldsFrost(st) {
-    for (const f of st.farmsteads)
-      for (const fd of f.fields) {
-        if (CROPS[fd.crop].winter && fd.stage === 'growing') continue;
-        if (f.household !== null && ['ripe', 'growing', 'stooks'].includes(fd.stage)) {
-          fd.stage = 'stubble';
-          fd.sown = null;
-          fd.held = 0;
-          log(st, `A crop at ${f.name} was lost to frost.`, { kind: 'frost', ...atFarm(f) });
-        }
+    eachWorked(st, (f, fd) => {
+      if (CROPS[fd.crop].winter && fd.stage === 'growing') return;
+      if (['ripe', 'growing', 'stooks'].includes(fd.stage)) {
+        fd.stage = 'stubble';
+        fd.sown = null;
+        fd.held = 0;
+        log(st, `A crop at ${placeName(f)} was lost to frost.`, { kind: 'frost', ...placeOf(f) });
       }
+    });
   }
   return {
     hoed,
     sown,
     trample,
     reaped,
-    hauled,
     carried,
     binned,
     reclaimed,
@@ -14315,8 +14360,9 @@ VB['sim/fields'] = (() => {
     startProject,
     fieldProject,
     finishClear,
+    clearStones,
     finishBreak,
-    wearSoil,
+    broken,
     manureWanted,
     manureDone,
   };
@@ -17219,6 +17265,221 @@ VB['sim/workdays'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/commons: common fields worked by the village (VB-100; Kim, 10 Nov): a routine its meeting may choose for a village of three or more
+// occupied farms whose store runs short, with free meadow near its green; the village claims the tile and clears and breaks it as a farm
+// makes a field, then works it through a farm field's stages, its tasks the village's at the priorities its custom `commons` sets; the seed
+// comes from the village store and the harvest goes into it. Help a household was given leans its people towards the commons.
+VB['sim/commons'] = (() => {
+  const Projects = VB['sim/projects'],
+    Stores = VB['sim/stores'],
+    Culture = VB['culture'];
+  const { COMMONS, ROLES, farmable, fertility } = VB['sim/rules'];
+  const { B } = VB['gen'];
+  const { bfs } = VB['sim/hex'];
+  const { walkable } = VB['sim/routes'];
+  const { freeFor } = VB['sim/territory'];
+  const { addClaim, realise } = VB['sim/claims'];
+  const { log } = VB['sim/records'];
+  const { emit } = VB['sim/events'];
+  const { dailyNeed } = VB['sim/hunger'];
+  const { goodwillOf } = VB['sim/relations'];
+  const { clearHours, clearStones, broken, builtTiles, BREAK_HOURS } = VB['sim/fields'];
+  const { houses } = VB['sim/green'];
+  // @state village.commonFields: the village's common fields, records as a farm's (farmstead.fields, sim/fields: stage, crop, sown...),
+  //   absent before its first; a field is added only here, when its ground is broken; its stages are written by sim/fields as a farm's.
+  // @state the common field's project plan (st.plans.projects.village; sim/projects): {what: 'commons', started (game hours), steps: [{kind
+  //   'clear', place, hours, stake 'field'}, {kind 'break', place, hours, stake 'field'}]}, at most one a village; from its making its tile
+  //   is claimed by the village (st.claims, why 'field'; renewed by the work) and in use (st.used); breaking makes it the village's.
+  const NONE = [];
+  const VILLAGE = (v) => ({ type: 'village', id: v.id });
+  const fieldsOf = (v) => v.commonFields || NONE;
+  // The village's common field under way, or null.
+  function underWay(st, v) {
+    for (const p of Projects.projectsOf(st, 'village', v.id)) if (p.what === 'commons') return p;
+    return null;
+  }
+  // The days of its members' need that the village store holds, less the seed it holds back for its common fields.
+  function storeDays(st, v) {
+    let need = 0;
+    for (const id of v.farmsteads) {
+      const f = st.farmsteads[id];
+      if (f.household !== null) need += dailyNeed(st, st.households[f.household]);
+    }
+    return need > 0 ? Math.max(0, Stores.grainOf(v) - Stores.reserved(st, v, 'grain')) / need : Infinity;
+  }
+  // Whether the village has room for another common field: fewer, with the one under way, than one for every COMMONS.perFarms farms.
+  const room = (st, v, farms) => fieldsOf(v).length + (underWay(st, v) ? 1 : 0) < Math.floor(farms / COMMONS.perFarms);
+  // The common field's tile: of the free open meadow within COMMONS.reach walking steps of the green (the village's centre), farmable,
+  // unbroken and not in use, not a house's or a green's, not in the village's wood, land the village may take in (its outland, or wilderness
+  // nobody claims; sim/territory): the nearest, the most fertile between equals, then the lowest id; -1 for none.
+  function site(st, v) {
+    const w = st.w,
+      wood = new Set(v.wood),
+      built = builtTiles(st);
+    let best = -1,
+      bd = Infinity,
+      bf = -Infinity;
+    for (const [t, d] of bfs(w, v.center, COMMONS.reach, walkable(w)).dist) {
+      if (d < 1 || w.biome[t] !== B.MEADOW || !farmable(w, t) || w.dev[t] || st.used.has(t) || built.has(t)) continue;
+      if (wood.has(t) || !freeFor(st, t, v.id)) continue;
+      const fe = fertility(w, t);
+      if (d < bd || (d === bd && (fe > bf || (fe === bf && t < best)))) {
+        best = t;
+        bd = d;
+        bf = fe;
+      }
+    }
+    return best;
+  }
+  // Whether the village would make a common field now (Kim, 10 Nov): COMMONS.minFarms or more occupied farms, its store under
+  // COMMONS.storeDays days of its members' need, room for one more, and a tile for it.
+  function wanted(st, v) {
+    const farms = houses(st, v).length;
+    return farms >= COMMONS.minFarms && room(st, v, farms) && storeDays(st, v) < COMMONS.storeDays && site(st, v) >= 0;
+  }
+  // Whether the routine is open to the village (VILLAGE_ROUTINES, sim/plans): it has common fields to work, one under way, or would make one.
+  const available = (st, v) => fieldsOf(v).length > 0 || !!underWay(st, v) || wanted(st, v);
+  // The common field's project plan, as sim/plans makes it (makeProject), or null while the village would make none.
+  function project(st, v) {
+    if (underWay(st, v) || !wanted(st, v)) return null;
+    const t = site(st, v);
+    return {
+      what: 'commons',
+      started: st.t,
+      steps: [
+        { kind: 'clear', place: t, hours: clearHours(st, t), stake: 'field' },
+        { kind: 'break', place: t, hours: BREAK_HOURS, stake: 'field' },
+      ],
+    };
+  }
+  // The plan made: the village claims its tile (VB-042), in use from now, and the village's log tells it.
+  function begun(st, v, plan) {
+    const t = plan.steps[0].place;
+    addClaim(st, t, VILLAGE(v), 'field');
+    st.used.add(t);
+    log(st, `${v.name} sets out to clear a common field for the village store.`, { kind: 'field', village: v.id });
+  }
+  // The open step of the village's common field, on its tile, is the job's.
+  const onStep = (st, j, kind) => {
+    const plan = underWay(st, st.villages[j.village]),
+      s = plan && plan.steps[plan.open];
+    return s && s.kind === kind && s.place === j.site ? plan : null;
+  };
+  // The clearing done (the kind `clear`, sim/kinds): the stones to the heap of the household of the one who finished it; breaking opens.
+  function cleared(st, j, hh) {
+    const plan = onStep(st, j, 'clear');
+    if (!plan) return;
+    clearStones(st, j.site, hh);
+    emit(st, 'stepDone', { type: 'village', id: j.village, plan });
+  }
+  // The ground broken (the kind `break`): the tile is the village's, a common field in stubble; the project is finished.
+  function brokenUp(st, j) {
+    const plan = onStep(st, j, 'break');
+    if (!plan) return;
+    const v = st.villages[j.village];
+    realise(st, j.site, VILLAGE(v));
+    if (!v.commonFields) v.commonFields = [];
+    v.commonFields.push(broken(st, j.site, v.commonFields.length));
+    emit(st, 'stepDone', { type: 'village', id: v.id, plan });
+    log(st, `${v.name} has broken a common field: its harvest will go to the village store.`, {
+      kind: 'field',
+      village: v.id,
+    });
+  }
+  // A load of the common field's sheaves brought to the green (the kind `haul`): threshed there, its grain goes into the village store
+  // (the village has no barn; the agent's reading). The last load is told in the village's log.
+  function brought(st, j, a) {
+    const v = st.villages[j.village],
+      n = a.load || 0;
+    if (n > 0) Stores.put(st, v, Stores.grainGood(j.field.crop), n, 'harvest');
+    const more = j.claims.some((id) => id !== a.id && st.agents[id].phase === 'back' && st.agents[id].load > 0);
+    if (j.field.stage !== 'stooks' && !more)
+      log(st, `${v.name} has brought in the harvest of its common field to the village store.`, {
+        kind: 'harvest',
+        village: v.id,
+      });
+  }
+  // The village's review (sim/jobs), while its meeting chose the commons: the open step of the common field under way, and at each common
+  // field the field kinds of its stage, as a farm's (fieldAt: sim/kinds' ASK.fieldAt), owned by the village; a common field's job carries
+  // `common` and its village, and the haul brings the sheaves to the green.
+  function work(st, v, c, post, fieldAt) {
+    const own = VILLAGE(v),
+      plan = underWay(st, v);
+    if (plan) {
+      const s = plan.steps[plan.open];
+      post(`${s.kind}:v${v.id}`, s.place, { village: v.id, common: true, hours: s.hours }, s.kind, own);
+    }
+    for (const fd of fieldsOf(v)) {
+      const rules = fieldAt[fd.stage];
+      if (!rules) continue;
+      for (let i = 0; i < rules.length; i++) {
+        const k = rules[i][0];
+        rules[i][1](
+          st,
+          v,
+          fd,
+          c,
+          (key, site, extra) => {
+            const x = { field: fd, village: v.id, common: true };
+            if (extra.hours !== undefined) x.hours = extra.hours;
+            if (k === 'haul') x.dest = v.center;
+            post(`${k}:v${v.id}.${fd.id}`, site, x, k, own);
+          },
+          v,
+        );
+      }
+    }
+  }
+  // ---- the custom (Kim, 10 Nov): the priority of the commons' tasks, a role's village duty (ROLES' `duty`) moved by COMMONS.lean of the
+  // option in force, compiled once into a table by option and role (Rules for cost, 6: read in the bid, it allocates nothing) ----
+  const DIM = Culture.IDX.commons,
+    OPTS = Culture.DIMS[DIM].opts.map((o) => o[0]),
+    FAIR = OPTS.indexOf('fair');
+  const PRIO = OPTS.map((k) =>
+    Object.fromEntries(
+      Object.keys(ROLES).map((r) => [r, ROLES[r].work.duty ? Math.max(0, ROLES[r].work.duty + COMMONS.lean[k]) : 0]),
+    ),
+  );
+  // The option of the custom in force in village vid (its settlement's practice), an index of OPTS.
+  const optionOf = (st, vid) => (st.cenv && st.cenv.settlements[vid] ? st.cenv.settlements[vid].practice[DIM] : FAIR);
+  // A pawn's priority for a common field's job (sim/jobs).
+  const commonPrio = (st, p, j) => PRIO[optionOf(st, j.village)][p.role] || 0;
+  // Help received leans a person towards the commons (Kim, 10 Nov): the days of its household's need it owes in goodwill (what its holder
+  // was given and has not given back, fading as goodwill fades: sim/relations), up to COMMONS.fullDays, lean it by up to COMMONS.pull
+  // towards the next higher option than the one in force. Read at the refresh of the interests (sim/society), from the balances as kept.
+  // {to (an index of OPTS), w}, or null.
+  function helpLean(st, p, vid) {
+    const hh = p.household === null ? null : st.households[p.household];
+    if (!hh || hh.dissolved || hh.holder === null || vid === null) return null;
+    let owed = 0;
+    for (const g of goodwillOf(st, hh.holder)) if (g.balance < 0) owed -= g.balance;
+    const need = dailyNeed(st, hh);
+    if (!(owed > 0) || !(need > 0)) return null;
+    return {
+      to: Math.min(OPTS.length - 1, optionOf(st, vid) + 1),
+      w: COMMONS.pull * Math.min(1, owed / need / COMMONS.fullDays),
+    };
+  }
+  return {
+    fieldsOf,
+    underWay,
+    storeDays,
+    site,
+    wanted,
+    available,
+    project,
+    begun,
+    cleared,
+    brokenUp,
+    brought,
+    work,
+    commonPrio,
+    helpLean,
+    OPTS,
+  };
+})();
+</script>
+<script>
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'],
@@ -17239,7 +17500,8 @@ VB['sim/kinds'] = (() => {
   const Building = VB['sim/building'],
     Pot = VB['sim/pot'],
     Green = VB['sim/green'],
-    Workdays = VB['sim/workdays'];
+    Workdays = VB['sim/workdays'],
+    Commons = VB['sim/commons'];
   const { ground: forageGround, gather } = VB['sim/forage'],
     Drying = VB['sim/drying'];
   // A kind's fields:
@@ -17338,6 +17600,10 @@ VB['sim/kinds'] = (() => {
     for (const m of f.meadows)
       for (const [key, kind] of meadowJobs(f, m, c, want)) post(key, m.tile, { meadow: m, farm: f }, kind);
   }
+  // The village's common fields (VB-100): their kinds, as at a farm's fields, while its meeting chose the routine.
+  function commonWork(st, v, at, c, post) {
+    if (st.plans.villages.get(v.id).routines.includes('commons')) Commons.work(st, v, c, post, ASK.fieldAt);
+  }
   // The byre's work at the cottage, for a household with herds or meat in its larder: fodder, slaughter, salting, milking (sim/byre).
   function byreWork(st, hh, f, c, post) {
     if (hh.herds.length || hh.larder.length)
@@ -17408,8 +17674,9 @@ VB['sim/kinds'] = (() => {
       spot: onField,
       urgency: inWindow,
       done: (st, j, hh, c) => {
-        if (Stores.grainOf(hh, j.field.crop) < CROPS[j.field.crop].seed) return; // the seed eaten since it was posted
-        Stores.take(st, hh, Stores.grainGood(j.field.crop), CROPS[j.field.crop].seed, 'seed');
+        const from = j.common ? st.villages[j.village] : hh; // a common field's seed is the village store's (VB-100)
+        if (Stores.grainOf(from, j.field.crop) < CROPS[j.field.crop].seed) return; // the seed eaten since it was posted
+        Stores.take(st, from, Stores.grainGood(j.field.crop), CROPS[j.field.crop].seed, 'seed');
         sown(j.field, c);
       },
       // a hoed field, in the sowing window, while the household has the seed for it (sowWhy)
@@ -17456,6 +17723,7 @@ VB['sim/kinds'] = (() => {
       load: (st, a, j, cap) => (a.load = carried(j.field, cap)),
       again: (j) => j.field.stage === 'stooks',
       deliver: (st, j, hh, f, a) => {
+        if (j.common) return Commons.brought(st, j, a); // a common field's, into the village store (VB-100)
         binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.field.crop));
         if (
           f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
@@ -17640,7 +17908,7 @@ VB['sim/kinds'] = (() => {
       spot: onField,
       project: true,
       worked: workStake,
-      done: (st, j, hh) => onProject(st, j) && finishClear(st, j.farm, hh),
+      done: (st, j, hh) => (j.common ? Commons.cleared(st, j, hh) : onProject(st, j) && finishClear(st, j.farm, hh)),
       available: landProject, // also a plot's step (plotWork)
     },
     break: {
@@ -17656,7 +17924,7 @@ VB['sim/kinds'] = (() => {
       spot: onField,
       project: true,
       worked: workStake,
-      done: (st, j) => onProject(st, j) && finishBreak(st, j.farm),
+      done: (st, j) => (j.common ? Commons.brokenUp(st, j) : onProject(st, j) && finishBreak(st, j.farm)),
       available: landProject, // also a plot's step (plotWork)
     },
     meadow: {
@@ -18018,7 +18286,9 @@ VB['sim/kinds'] = (() => {
       'gather',
       Building.stoneWork,
     ].map(rule),
-    village: ['mend', 'green', 'workfence'].map(rule), // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays)
+    // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays); the common fields' (sim/commons, VB-100) the
+    // open step of the one under way and the field kinds of each one's stage, while the meeting chose them
+    village: ['mend', 'green', 'workfence', commonWork].map(rule),
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
@@ -18492,7 +18762,7 @@ VB['sim/agents'] = (() => {
         a.phase = 'back';
         a.work = null;
         const f = st.farmsteads[workFor(st, a, j).farmstead],
-          to = K.to === 'site' ? j.dest : f.house;
+          to = K.to === 'site' || j.common ? j.dest : f.house; // a common field's sheaves go to the green (VB-100)
         // sheaves go to the barn door, firewood to the woodpile, water into the cottage, timber to its building site (VB-328)
         const hx = st.w.hx[to],
           hy = st.w.hy[to];
@@ -19786,7 +20056,8 @@ VB['sim/plans'] = (() => {
   const { reviewWant } = VB['sim/exchange'];
   const { buildStep } = VB['sim/building'];
   const Green = VB['sim/green'],
-    Workdays = VB['sim/workdays'];
+    Workdays = VB['sim/workdays'],
+    Commons = VB['sim/commons'];
   const { heldFarms } = VB['sim/ownership'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
@@ -20112,6 +20383,16 @@ VB['sim/plans'] = (() => {
       available: (st, v) => Workdays.wanted(st, v),
       need: (st, v) => Green.houses(st, v).length,
     }),
+    // a common field (VB-100; Kim, 10 Nov): while the village has common fields to work, one under way, or would make one (sim/commons:
+    // three or more farms, its store short, meadow near the green); weighed, as the green, by its farms. Set only by a meeting. Its jobs
+    // are posted by one shared rule (sim/kinds' commonWork), which asks the routine itself
+    commons: Object.freeze({
+      label: 'A common field for the village store',
+      meeting: true,
+      kinds: Object.freeze([]),
+      available: (st, v) => Commons.available(st, v),
+      need: (st, v) => Green.houses(st, v).length,
+    }),
   });
   const MAX_ROUTINES = 4;
   // The routines chosen from candidates [[need, key]], most needed first and in their order of declaration between equals: at most
@@ -20128,7 +20409,7 @@ VB['sim/plans'] = (() => {
     const cands = [];
     for (const k of Object.keys(VILLAGE_ROUTINES)) {
       const R = VILLAGE_ROUTINES[k];
-      if (R.available(st, v) && !(founders && R.meeting)) cands.push([R.need(st, v), k]);
+      if (!(founders && R.meeting) && R.available(st, v)) cands.push([R.need(st, v), k]);
     }
     return rankRoutines(cands);
   }
@@ -20287,7 +20568,7 @@ VB['sim/plans'] = (() => {
       v.id,
       list ||
         Object.keys(VILLAGE_ROUTINES)
-          .filter((k) => VILLAGE_ROUTINES[k].available(st, v) && !VILLAGE_ROUTINES[k].meeting)
+          .filter((k) => !VILLAGE_ROUTINES[k].meeting && VILLAGE_ROUTINES[k].available(st, v))
           .slice(0, MAX_ROUTINES),
       'founded',
     );
@@ -20378,6 +20659,7 @@ VB['sim/plans'] = (() => {
     plan.dirty = false; // lint-allow: owner the review has read the stores whose crossing sim/stores flagged
     if (plan.holder.type !== 'household') {
       greenStep(st, plan);
+      commonsStep(st, plan);
       return;
     }
     const hh = st.households[plan.holder.id],
@@ -20400,6 +20682,18 @@ VB['sim/plans'] = (() => {
     if (!p) return;
     const made = makeProject(st, 'village', v.id, p);
     if (made) Green.laidOut(st, v, made);
+  }
+  // A village's review while its routines hold the commons (VB-100): a common field's project plan is made where the village would make
+  // one (sim/commons), and the village store holds back the seed of its common fields not yet sown.
+  function commonsStep(st, plan) {
+    if (!plan.routines.includes('commons')) return;
+    const v = st.villages[plan.holder.id],
+      p = Commons.project(st, v);
+    if (p) {
+      const made = makeProject(st, 'village', v.id, p);
+      if (made) Commons.begun(st, v, made);
+    }
+    if (Commons.fieldsOf(v).length) Stores.reserve(st, v, plan, SEED, seedNeed(st, v, SEED_CROP), 'seed');
   }
   // The land step (at each review of a household's plan): a new field while the household has fewer than the plan's target, else a hay
   // meadow while it is short of one; the tile is the holder's choice (chooseTile, chooseMeadow) unless the plan names one.
@@ -20465,6 +20759,7 @@ VB['sim/jobs'] = (() => {
   const { KINDS, ASK, cookWanted, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
+  const { commonPrio } = VB['sim/commons'];
   const { trustOf, heldFarms } = VB['sim/ownership'];
   const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks, openOf } =
     VB['sim/plans'];
@@ -20694,9 +20989,16 @@ VB['sim/jobs'] = (() => {
   // assigned first. A poor fit (role priority 2 or less) only bids once the job has waited two hours. A job that k pawns already
   // work gets join^k of the bid (VB-102).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
-  // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), else by role and kind.
+  // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), by the village's custom on a common field (sim/commons,
+  // VB-100), else by role and kind.
   const prioOf = (st, p, j) =>
-    j.plot ? plotPrio(st, p) : j.claim ? claimPrio(st, p, j) : ROLES[p.role].prio[j.kind] || 0;
+    j.plot
+      ? plotPrio(st, p)
+      : j.claim
+        ? claimPrio(st, p, j)
+        : j.common
+          ? commonPrio(st, p, j)
+          : ROLES[p.role].prio[j.kind] || 0;
   // The join factor for n hands already at job j: MATCH.join ** n, or 1 for a kind worked all together (VB-120: a work day).
   const joined = (j, n) => (KINDS[j.kind].together ? 1 : MATCH.join ** n);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
@@ -22935,6 +23237,7 @@ VB['sim/society'] = (() => {
   const { on } = VB['sim/events'],
     { aleStanding } = VB['sim/stores'];
   const { heirRanking, ownFirstOf } = VB['sim/heirs'];
+  const { helpLean } = VB['sim/commons'];
   // The lookups Culture's functions take (VB-073): built from st on each call, so nothing in st.cenv is a function.
   function hooks(st) {
     const env = st.cenv;
@@ -23152,6 +23455,12 @@ VB['sim/society'] = (() => {
       const gr = p.household !== null ? st.households[p.household].grievance : null;
       if (gr && st.t < gr.until && p.age >= 16)
         set('dispute', Object.fromEntries(gr.rules.map((r) => [r, 1 / gr.rules.length])));
+      // the commons (VB-100; Kim, 10 Nov): help its household was given leans a person towards the next higher option than its village's
+      const hl = helpLean(st, p, settlementIdOf(st, p));
+      if (hl) {
+        const o = O[I.commons];
+        for (let j = 0; j < Culture.NOPT[I.commons]; j++) it[o + j] = it[o + j] * (1 - hl.w) + (j === hl.to ? hl.w : 0);
+      }
       p.interest = it;
     }
   }
@@ -26137,6 +26446,7 @@ VB['sim/saves'] = (() => {
     // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
     const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
     if (st.cenv) for (const c of st.cenv.cultures) if (!c.practices) c.practices = practices();
+    if (st.cenv) newCustoms(st); // VB-100: nor the custom of the commons
     oldGrain(st); // VB-347: nor grain by crop
     if (!st.plans)
       seedPlans(st); // VB-258: older saves have no plans
@@ -26174,6 +26484,32 @@ VB['sim/saves'] = (() => {
     for (const f of st.farmsteads) for (const fd of f.fields) if (fd.crop === undefined) fd.crop = 'barley'; // VB-346: older saves' fields held barley
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     return st;
+  }
+  // A save made before a custom (VB-100: the commons) holds fewer customs than DIMS: each culture and settlement gets the archetype's option
+  // of each custom it lacks, and each person an attitude and anchor that prefer it (as seeding would, without its draws).
+  function newCustoms(st) {
+    const C = VB['culture'],
+      base = C.fromArchetype('oldNordic'),
+      n = C.DIMS.length;
+    const grow = (a) => Int8Array.from({ length: n }, (_, k) => (k < a.length ? a[k] : base[k]));
+    for (const c of st.cenv.cultures) if (c.customs.length < n) c.customs = grow(c.customs);
+    for (const s of st.cenv.settlements) if (s.practice.length < n) s.practice = grow(s.practice);
+    const total = C.OFF[n - 1] + C.NOPT[n - 1];
+    const att = (a) => {
+      if (!a || a.length >= total) return a;
+      const out = new Float32Array(total);
+      out.set(a);
+      for (let k = 0; k < n; k++) {
+        if (C.OFF[k] < a.length) continue;
+        for (let j = 0; j < C.NOPT[k]; j++) out[C.OFF[k] + j] = j === base[k] ? 0.6 : 0.4 / (C.NOPT[k] - 1);
+      }
+      return out;
+    };
+    for (const p of st.pawns) {
+      p.att = att(p.att);
+      p.anc = att(p.anc);
+      if (p.interest) p.interest = att(p.interest);
+    }
   }
   // ---- saves made before project plans (VB-123; sim/plans makes them now) ----
   // A save made before project plans held a farm's land project on the farm ({tile, stage, hours}): its household's plan now.
@@ -30998,6 +31334,28 @@ function drawBooth(wd, f, empty) {
   g.zIndex = y + 8;
   L.objects.addChild(g);
 }
+// A field's sprite and its stooks, its rows at angle th: a farm's, or a village's common field (VB-100).
+function addField(wd, fd, th) {
+  const sp = new PIXI.Sprite(fieldTex[cropStage(fd)] || fieldTex.stubble);
+  sp.anchor.set(0.5);
+  sp.scale.set(0.5);
+  sp.rotation = th;
+  sp.position.set(wd.hx[fd.tile], wd.hy[fd.tile]);
+  L.fields.addChild(sp);
+  const stooks = [];
+  for (let k = 0; k < 9; k++) {
+    const u = ((k % 3) - 1) * 12,
+      v = (Math.floor(k / 3) - 1) * 12,
+      jx = Math.sin(k * 7.1) * 2,
+      jy = Math.cos(k * 3.3) * 2;
+    const x = wd.hx[fd.tile] + Math.cos(th) * u - Math.sin(th) * v + jx,
+      y = wd.hy[fd.tile] + Math.sin(th) * u + Math.cos(th) * v + jy;
+    const sk = place(art.stook[k % 2], x, y + 2, 0.5, 0.9);
+    sk.visible = false;
+    stooks.push(sk);
+  }
+  fieldSprites.push({ sp, fd, stage: cropStage(fd), stooks });
+}
 // Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty).
 function buildFarms(wd) {
   for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()])
@@ -31019,28 +31377,7 @@ function buildFarms(wd) {
       hy = wd.hy[f.house],
       empty = f.household === null,
       ruin = f.state === 'ruin';
-    for (const fd of f.fields) {
-      const sp = new PIXI.Sprite(fieldTex[cropStage(fd)] || fieldTex.stubble);
-      sp.anchor.set(0.5);
-      sp.scale.set(0.5);
-      sp.rotation = f.rowAngle;
-      sp.position.set(wd.hx[fd.tile], wd.hy[fd.tile]);
-      L.fields.addChild(sp);
-      const stooks = [],
-        th = f.rowAngle;
-      for (let k = 0; k < 9; k++) {
-        const u = ((k % 3) - 1) * 12,
-          v = (Math.floor(k / 3) - 1) * 12,
-          jx = Math.sin(k * 7.1) * 2,
-          jy = Math.cos(k * 3.3) * 2;
-        const x = wd.hx[fd.tile] + Math.cos(th) * u - Math.sin(th) * v + jx,
-          y = wd.hy[fd.tile] + Math.sin(th) * u + Math.cos(th) * v + jy;
-        const sk = place(art.stook[k % 2], x, y + 2, 0.5, 0.9);
-        sk.visible = false;
-        stooks.push(sk);
-      }
-      fieldSprites.push({ sp, fd, stage: cropStage(fd), stooks });
-    }
+    for (const fd of f.fields) addField(wd, fd, f.rowAngle);
     for (const m of f.meadows) {
       const sp = new PIXI.Sprite(fieldTex['meadow-' + m.stage]);
       sp.anchor.set(0.5);
@@ -31123,6 +31460,7 @@ function buildFarms(wd) {
     if (f.fence) for (const s2 of f.fence) addFence(s2);
   }
   for (const v of st.villages) {
+    for (const fd of v.commonFields || []) addField(wd, fd, 0); // the village's common fields (VB-100)
     if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
     for (const s2 of v.fence) addFence(s2);
     const X = VB['sim/expansion'];
@@ -32403,8 +32741,20 @@ function settlementTileInfo(i) {
       { farm: f.id },
     ];
   }
-  for (const v of st.villages)
+  for (const v of st.villages) {
     if (v.center === i && v.green) return [`Village green of ${v.name}`, [], { village: v.id }];
+    // a common field (VB-100): worked by the village, its harvest into the village store
+    const fd = (v.commonFields || []).find((q) => q.tile === i);
+    if (fd)
+      return [
+        `Common field of ${v.name}`,
+        [
+          `${fieldSummary({ fields: [fd] }).replace(/^1 /, '')}, worked by the village`,
+          `Soil quality ${Math.round(fd.fert * 100)}%; its seed and its harvest are the village store's`,
+        ],
+        { village: v.id },
+      ];
+  }
   return null;
 }
 // ======== selection cards ========
@@ -32537,6 +32887,11 @@ function showVillage(id) {
       ? `Founded in year ${Math.floor(v.founded.t / Sim.YEAR) + 1} from ${mother.name} by ${Sim.fullName(st.pawns[v.founded.by])}`
       : '',
     v.crowded > 0 ? `Crowded: ${v.crowded} adults wait for land, and there is no room to clear` : '',
+    // its common fields and their stage (VB-100), and the one being cleared
+    ...(v.commonFields || []).map(
+      (fd, i) => `Common field ${i + 1}: ${fieldSummary({ fields: [fd] }).replace(/^1 /, '')}`,
+    ),
+    VB['sim/commons'].underWay(st, v) ? 'Clearing a common field for the village store' : '',
   ].filter(Boolean);
   const list = `<h3>Farms</h3>${farms
     .map((f) => {
@@ -32683,7 +33038,7 @@ const CHARTER = [
   ['Land', ['claims', 'dispute', 'newLand']],
   ['Inheritance', ['handover', 'heirSex', 'birthOrder', 'heirCount', 'daughterShare', 'widow', 'ownHeir']],
   ['Household', ['residence', 'kinLimit', 'feedOrder']],
-  ['Meeting', ['voice']],
+  ['Meeting', ['voice', 'commons']],
 ];
 const SAID = {
   claims: [
@@ -32769,6 +33124,15 @@ const SAID = {
   feedOrder: [
     'When food is short, ',
     { equal: 'all get equal shares', children: 'children eat first', workers: 'those who work eat first' },
+    '.',
+  ],
+  commons: [
+    'Work on the common fields comes ',
+    {
+      own: 'after a household’s own work',
+      fair: 'with the village’s other duties',
+      first: 'before a household’s own work',
+    },
     '.',
   ],
   voice: [
@@ -37405,7 +37769,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'c938af7d16',
+const BUILD = 'b06ac9abac',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

@@ -742,6 +742,20 @@ VB['sim/rules'] = (() => {
     came: 0.05,
     missed: -0.1,
   };
+  // Common fields worked by the village (VB-100; Kim, 10 Nov; design, Commons): a routine the meeting may choose for a village of `minFarms`
+  // or more occupied farms whose store holds less than `storeDays` days of its members' need, with a free meadow tile within `reach` steps of
+  // its green (its centre before it has one); at most one common field for every `perFarms` farms. Its tasks are the village's, at the
+  // village-duty priorities of ROLES (`duty`) moved by the village's custom `commons` (`lean`: its options' steps from them).
+  // `pull`: how far the help a person's household was given leans it to the next higher option, at `fullDays` days of its need owed.
+  const COMMONS = {
+    minFarms: 3,
+    storeDays: 10,
+    reach: 3,
+    perFarms: 3,
+    lean: { own: -2, fair: 0, first: 2 },
+    fullDays: 30,
+    pull: 0.6,
+  };
   // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one within
   // `hours` walking hours of it, a day's walk, since the servant moves (VB-290; design.md, The round's other acts; it was 15 hex steps).
@@ -934,5 +948,6 @@ VB['sim/rules'] = (() => {
     PEAT,
     BUILD,
     WORKDAY,
+    COMMONS,
   };
 })();

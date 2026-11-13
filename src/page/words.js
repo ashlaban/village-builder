@@ -569,7 +569,19 @@ function settlementTileInfo(i) {
       { farm: f.id },
     ];
   }
-  for (const v of st.villages)
+  for (const v of st.villages) {
     if (v.center === i && v.green) return [`Village green of ${v.name}`, [], { village: v.id }];
+    // a common field (VB-100): worked by the village, its harvest into the village store
+    const fd = (v.commonFields || []).find((q) => q.tile === i);
+    if (fd)
+      return [
+        `Common field of ${v.name}`,
+        [
+          `${fieldSummary({ fields: [fd] }).replace(/^1 /, '')}, worked by the village`,
+          `Soil quality ${Math.round(fd.fert * 100)}%; its seed and its harvest are the village store's`,
+        ],
+        { village: v.id },
+      ];
+  }
   return null;
 }
