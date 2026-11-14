@@ -23,6 +23,37 @@ class Heap {
   }
 }
 
+// One queue entry per tile: repeated changes cannot accumulate stale heap records while repair is paused.
+class IndexedHeap extends Heap {
+  constructor() { super(); this.positions = new Map(); }
+  swap(a, b) {
+    const v = this.items; [v[a], v[b]] = [v[b], v[a]];
+    this.positions.set(v[a].i, a); this.positions.set(v[b].i, b);
+  }
+  balance(c) {
+    const a = this.items;
+    while (c) { const p = (c - 1) >> 1; if (!this.less(a[c], a[p])) break; this.swap(c, p); c = p; }
+    for (;;) {
+      const l = c * 2 + 1, r = l + 1; let m = c;
+      if (l < a.length && this.less(a[l], a[m])) m = l;
+      if (r < a.length && this.less(a[r], a[m])) m = r;
+      if (m === c) break; this.swap(c, m); c = m;
+    }
+  }
+  push(q) {
+    let p = this.positions.get(q.i);
+    if (p === undefined) { p = this.items.length; this.items.push(q); this.positions.set(q.i, p); }
+    else this.items[p] = q;
+    this.balance(p);
+  }
+  remove(i) {
+    const p = this.positions.get(i); if (p === undefined) return;
+    const last = this.items.pop(); this.positions.delete(i);
+    if (p < this.items.length) { this.items[p] = last; this.positions.set(last.i, p); this.balance(p); }
+  }
+  pop() { const q = this.items[0]; if (q) this.remove(q.i); return q; }
+}
+
 // Identical cost memoization for control and experiments. Finite upper bound: N tiles and 3N undirected edges.
 class Costs {
   constructor(w, routes) { this.w = w; this.routes = routes; this.tiles = new Map(); this.edges = new Map(); }
@@ -124,22 +155,141 @@ class Tree {
   }
 }
 
+const lexLess = (g, t, h, u) => g < h || (g === h && t < u);
+
+// Lifelong Planning A* with zero heuristic, grown only as far as requests need. g is the stored root distance;
+// rhs is the best one-edge lookahead. A changed edge updates its two endpoints; inconsistencies then propagate locally.
+// The hex neighbour array supplies both incoming and outgoing edges, so no child-index or full-tree walk is needed.
+class RepairTree extends Tree {
+  constructor(costs, root, cap, stats) {
+    super(costs, root, cap, stats);
+    this.nodes.clear(); this.heap = new IndexedHeap(); this.repairUntil = 0;
+    this.ensure(root); this.update(root);
+  }
+  ensure(i) {
+    if (this.nodes.has(i)) return true;
+    if (this.nodes.size >= this.cap + 6) return false;
+    this.nodes.set(i, { g: Infinity, t: Infinity, rhs: Infinity, rt: Infinity, parent: -1, rp: -1, done: false });
+    this.touched.add(i);
+    for (let d = 0; d < 6; d++) { const j = this.costs.w.nb[i * 6 + d]; if (j >= 0) this.touched.add(j); }
+    return true;
+  }
+  update(i) {
+    const r = this.nodes.get(i); if (!r) return;
+    this.stats.rhsUpdates++;
+    let g = i === this.root ? 0 : Infinity, t = g, parent = -1;
+    if (i !== this.root && this.costs.open(i)) for (let d = 0; d < 6; d++) {
+      const j = this.costs.w.nb[i * 6 + d]; if (j < 0) continue;
+      this.stats.rhsScans++;
+      const p = this.nodes.get(j);
+      if (!p || p.g === Infinity || !this.costs.open(j)) continue;
+      this.stats.treeRelaxed++;
+      const e = this.costs.edge(i, j), ng = p.g + e.cost, nt = p.t + e.time;
+      if (lexLess(ng, nt, g, t)) { g = ng; t = nt; parent = j; }
+    }
+    this.setRhs(i, g, t, parent);
+  }
+  setRhs(i, g, t, parent) {
+    const r = this.nodes.get(i);
+    r.rhs = g; r.rt = t; r.rp = parent;
+    r.done = r.g === g && r.t === t && g < Infinity;
+    // An equal-cost replacement parent still needs installing when the old doorway/edge disappears.
+    if (r.done) r.parent = parent;
+    if (r.g === g && r.t === t) this.heap.remove(i);
+    else {
+      const lower = lexLess(r.g, r.t, g, t);
+      const q = { i, k: lower ? r.g : g, t: lower ? r.t : t, b: 0 }, pos = this.heap.positions.get(i), prior = this.heap.items[pos];
+      if (prior && prior.k === q.k && prior.t === q.t) return;
+      this.heap.push(q);
+      this.stats.queueUpdates++;
+    }
+  }
+  offer(i, via) {
+    const r = this.nodes.get(i); if (!r || i === this.root) return;
+    this.stats.rhsOffers++;
+    const p = this.nodes.get(via);
+    let g = Infinity, t = Infinity;
+    if (p?.g < Infinity && this.costs.open(i) && this.costs.open(via)) {
+      this.stats.treeRelaxed++;
+      const e = this.costs.edge(i, via); g = p.g + e.cost; t = p.t + e.time;
+    }
+    if (lexLess(g, t, r.rhs, r.rt)) this.setRhs(i, g, t, via);
+    else if (r.rp === via && (g !== r.rhs || t !== r.rt)) this.update(i);
+  }
+  peek() { return this.heap.items[0] || null; }
+  radius() { return this.peek()?.k ?? Infinity; }
+  known(i) { const r = this.nodes.get(i); return !!r?.done && r.g < this.radius(); }
+  potential(i, radius) { return Math.min(this.nodes.get(i)?.g ?? Infinity, radius); }
+  changed(tile) {
+    this.repairUntil = Math.max(this.repairUntil, this.peek()?.k ?? this.maxSettled + 1);
+    // A newly opened tile bordering a finite label must enter the queue even if it was never previously traversable.
+    if (!this.nodes.has(tile) && this.costs.open(tile)) {
+      let supported = false;
+      for (let d = 0; d < 6; d++) {
+        const j = this.costs.w.nb[tile * 6 + d]; if (this.nodes.get(j)?.g < Infinity) { supported = true; break; }
+      }
+      if (supported && !this.ensure(tile)) return false; // bounded-memory fallback; never expose an unrepresented shortcut
+    }
+    this.update(tile);
+    for (let d = 0; d < 6; d++) { const j = this.costs.w.nb[tile * 6 + d]; if (j >= 0) this.offer(j, tile); }
+    this.stats.repairBatches++;
+    return true;
+  }
+  grow(targets, budget) {
+    let n = 0;
+    while (n < budget && this.peek() && (this.peek().k < this.repairUntil || targets.some(i => !this.known(i)))) {
+      const q = this.peek(), r = this.nodes.get(q.i), lower = lexLess(r.rhs, r.rt, r.g, r.t);
+      // A finite label must relax all outgoing edges. Stop before it if that would exceed the bounded record pool.
+      let extra = 0;
+      if (lower) for (let d = 0; d < 6; d++) {
+        const j = this.costs.w.nb[q.i * 6 + d]; if (j >= 0 && this.costs.open(j) && !this.nodes.has(j)) extra++;
+      }
+      if (this.nodes.size + extra > this.cap + 6) { this.stats.capStops++; break; }
+      this.heap.pop(); n++;
+      if (q.k < this.repairUntil) this.stats.repairProcessed++;
+      if (lower) {
+        r.g = r.rhs; r.t = r.rt; r.parent = r.rp; r.done = true;
+        this.maxSettled = Math.max(this.maxSettled, r.g);
+      } else { r.g = r.t = Infinity; r.parent = -1; r.done = false; this.update(q.i); }
+      for (let d = 0; d < 6; d++) {
+        const j = this.costs.w.nb[q.i * 6 + d]; if (j < 0) continue;
+        if (lower && this.costs.open(j)) this.ensure(j);
+        this.offer(j, q.i);
+      }
+    }
+    this.stats.treeSettled += n;
+    return n;
+  }
+  certifiedPath(from, to) {
+    if (from === this.root || to === this.root) {
+      if (!this.known(this.root) || this.costs.ports(from === this.root ? to : from).some(i => !this.known(i))) return null;
+    } else if (!this.known(from) || !this.known(to)) return null;
+    return super.certifiedPath(from, to);
+  }
+}
+
 class TreePool {
-  constructor(costs, { cap = 2048, grow = 64 } = {}) {
-    this.costs = costs; this.cap = cap; this.budget = grow; this.trees = new Map();
+  constructor(costs, { cap = 2048, grow = 64, repair = false } = {}) {
+    this.costs = costs; this.cap = cap; this.budget = grow; this.repair = repair; this.trees = new Map();
     this.stats = { treeSettled: 0, treeRelaxed: 0, created: 0, invalidations: 0, invalidationChecks: 0, highRecords: 0,
-      highFrontier: 0, highTouched: 0, growthMs: 0, invalidationMs: 0 };
+      highFrontier: 0, highTouched: 0, growthMs: 0, invalidationMs: 0, repairBatches: 0, repairProcessed: 0,
+      rhsUpdates: 0, rhsOffers: 0, rhsScans: 0, queueUpdates: 0, capStops: 0, capResets: 0, maxBatchProcessed: 0 };
   }
   get(id, root) {
     if (id < 0 || !this.costs.open(root)) return null;
     let t = this.trees.get(id);
-    if (!t || t.root !== root) { t = new Tree(this.costs, root, this.cap, this.stats); this.trees.set(id, t); this.stats.created++; }
+    if (!t || t.root !== root) {
+      t = this.repair ? new RepairTree(this.costs, root, this.cap, this.stats) : new Tree(this.costs, root, this.cap, this.stats);
+      this.trees.set(id, t); this.stats.created++;
+    }
     return t;
   }
   grow(tree, targets) {
     if (!tree || !targets.length) return;
-    const start = performance.now(); tree.grow(targets.flatMap(i => this.costs.ports(i)), this.budget);
+    const start = performance.now(), processed = tree.grow(targets.flatMap(i => this.costs.ports(i)), this.budget);
     this.stats.growthMs += performance.now() - start;
+    this.stats.maxBatchProcessed = Math.max(this.stats.maxBatchProcessed, processed);
+    if (!processed) return; // repeated visits to a known exit do not scan the village pool for telemetry
     let records = 0, frontier = 0, touched = 0;
     for (const t of this.trees.values()) { records += t.nodes.size; frontier += t.heap.size; touched += t.touched.size; }
     this.stats.highRecords = Math.max(this.stats.highRecords, records);
@@ -153,7 +303,13 @@ class TreePool {
       this.stats.invalidationChecks++;
       // Every settled vertex's incident edges are protected, including previously blocked neighbours.
       // Changes entirely beyond that boundary cannot improve already settled distances.
-      if (t.touched.has(tile)) { this.trees.delete(id); this.stats.invalidations++; }
+      if (t.touched.has(tile)) {
+        if (this.repair && this.costs.open(t.root)) {
+          if (t.changed(tile)) continue;
+          this.stats.capResets++;
+        }
+        this.trees.delete(id); this.stats.invalidations++;
+      }
     }
     this.stats.invalidationMs += performance.now() - start;
   }
@@ -211,4 +367,4 @@ class Solver {
     return null;
   }
 }
-module.exports = { Heap, Costs, Tree, TreePool, Solver };
+module.exports = { Heap, IndexedHeap, Costs, Tree, RepairTree, TreePool, Solver };

@@ -1,6 +1,7 @@
 // Live shadow experiment: exact A* guided by one demand-grown shortest-path tree per village.
 // usage: node tools/village-tree-probe.js [--map tiny|small|medium|large] [--seeds 7,42] [--days 48] [--grow 64] [--cap 2048]
 // --load FILE starts from a local saved game instead of generation (one run; --seeds is ignored).
+// --repair both|incremental|rebuild (default both) compares local branch repair with whole-tree invalidation.
 // Control, endpoint-demand and actual-tread exit growth see the SAME native cache misses and cost changes.
 // Exits are undeveloped tiles adjoining developed land, learned only when a pawn actually treads there.
 // Includes tree building and invalidation in work/timings; never replaces game routes. Outputs JSON; no screenshots.
@@ -11,8 +12,9 @@ const root = path.join(__dirname, '..'), args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf('--' + k); return i < 0 ? d : args[i + 1]; };
 const map = opt('map', 'tiny'), sizes = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 const days = +opt('days', 48), grow = +opt('grow', 64), cap = +opt('cap', 2048), load = opt('load', null);
+const repair = opt('repair', 'both');
 const seeds = load ? [null] : opt('seeds', '7,42').split(',').map(Number);
-if (!sizes[map] || !Number.isInteger(days) || days < 0 || !Number.isInteger(grow) || grow < 1 || !Number.isInteger(cap) || cap < 8 || seeds.some(s => s !== null && !Number.isInteger(s))) throw new Error('bad arguments');
+if (!['both', 'incremental', 'rebuild'].includes(repair) || !sizes[map] || !Number.isInteger(days) || days < 0 || !Number.isInteger(grow) || grow < 1 || !Number.isInteger(cap) || cap < 8 || seeds.some(s => s !== null && !Number.isInteger(s))) throw new Error('bad arguments');
 let live = null;
 for (const file of JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8'))) {
   require(path.join(root, 'src', file));
@@ -37,11 +39,14 @@ const vb = globalThis.VB, R = vb['sim/routes'], rules = vb['sim/rules'], { hexSt
 class Experiment {
   constructor(st) {
     this.st = st; this.calls = 0; this.misses = 0; this.compared = 0; this.noRoute = 0; this.nativeMs = 0; this.exitHookMs = 0;
-    this.exitTreads = 0; this.treads = 0; this.changes = 0; this.ties = { demand: 0, exit: 0 }; this.strongQueries = { demand: 0, exit: 0 };
+    this.exitTreads = 0; this.treads = 0; this.changes = 0; this.ties = {}; this.strongQueries = {}; this.commonExitMs = 0;
     this.models = {};
-    for (const name of ['control', 'demand', 'exit']) {
+    const names = ['control', ...(repair !== 'incremental' ? ['demand', 'exit'] : []), ...(repair !== 'rebuild' ? ['repairDemand', 'repairExit'] : [])];
+    for (const name of names) {
       const costs = new Costs(st.w, R), solver = new Solver(costs, hexSteps, rules);
-      this.models[name] = { costs, solver, dispatchMs: 0, pool: name === 'control' ? null : new TreePool(costs, { cap, grow }) };
+      this.models[name] = { costs, solver, dispatchMs: 0, treadMs: 0, changeMs: 0, growth: name.toLowerCase().includes('demand') ? 'demand' : 'exit',
+        pool: name === 'control' ? null : new TreePool(costs, { cap, grow, repair: name.startsWith('repair') }) };
+      if (name !== 'control') { this.ties[name] = 0; this.strongQueries[name] = 0; }
     }
   }
   village(tile) {
@@ -55,11 +60,13 @@ class Experiment {
   tree(model, tile) { const v = this.village(tile); return v < 0 ? null : model.pool.get(v, this.st.villages[v].center); }
   query(from, to, native) {
     this.misses++;
-    const values = {}, order = this.misses % 2 ? ['control', 'demand', 'exit'] : ['exit', 'demand', 'control'];
+    const values = {}, order = Object.keys(this.models);
+    // Rotate all five models, rather than always putting incremental repair last.
+    for (let k = 0; k < this.misses % order.length; k++) order.push(order.shift());
     for (const name of order) {
       const started = performance.now();
       const model = this.models[name], tree = model.pool ? this.tree(model, from) : null;
-      if (name === 'demand') model.pool.grow(tree, [from, to]);
+      if (model.pool && model.growth === 'demand') model.pool.grow(tree, [from, to]);
       const before = model.solver.stats.stronger;
       values[name] = model.solver.route(from, to, tree);
       model.dispatchMs += performance.now() - started;
@@ -73,7 +80,7 @@ class Experiment {
       assert(Math.abs(control.time - R.routeCost(this.st.w, native)) < 1e-8, `control/native time ${from}->${to}`);
       this.compared++;
     }
-    for (const name of ['demand', 'exit']) {
+    for (const name of Object.keys(this.ties)) {
       const x = values[name]; assert.strictEqual(!!x, !!control);
       if (!x) continue;
       assert(Math.abs(x.cost - control.cost) < 1e-8, `${name} choice ${from}->${to}: ${x.cost} vs ${control.cost}`);
@@ -83,18 +90,26 @@ class Experiment {
   }
   changed(i) {
     this.changes++;
-    for (const model of Object.values(this.models)) { if (model.pool) model.pool.changed(i); else model.costs.changed(i); }
+    for (const model of Object.values(this.models)) {
+      const start = performance.now();
+      if (model.pool) model.pool.changed(i); else model.costs.changed(i);
+      model.changeMs += performance.now() - start;
+    }
   }
   tread(i) {
     const start = performance.now(); this.treads++;
     const { w } = this.st;
+    let boundary = false;
     if (i >= 0 && !w.dev[i] && !w.water[i]) {
-      let boundary = false;
       for (let d = 0; d < 6; d++) { const j = w.nb[i * 6 + d]; if (j >= 0 && w.dev[j]) { boundary = true; break; } }
-      if (boundary) {
-        this.exitTreads++;
-        const model = this.models.exit, tree = this.tree(model, i);
+    }
+    this.commonExitMs += performance.now() - start;
+    if (boundary) {
+      this.exitTreads++;
+      for (const model of Object.values(this.models)) if (model.pool && model.growth === 'exit') {
+        const begin = performance.now(), tree = this.tree(model, i);
         model.pool.grow(tree, [i]);
+        model.treadMs += performance.now() - begin;
       }
     }
     this.exitHookMs += performance.now() - start;
@@ -103,9 +118,9 @@ class Experiment {
     const models = {};
     for (const [name, m] of Object.entries(this.models)) {
       const tree = m.pool?.stats;
-      models[name] = { ...m.solver.stats, tree, dispatchMs: m.dispatchMs, totalSettled: m.solver.stats.settled + (tree?.treeSettled || 0),
-        // exitHookMs already includes growth; do not add growth twice.
-        totalMs: m.dispatchMs + (name === 'exit' ? this.exitHookMs : 0) + (tree?.invalidationMs || 0),
+      const treadMs = m.pool && m.growth === 'exit' ? m.treadMs + this.commonExitMs : 0;
+      models[name] = { ...m.solver.stats, tree, dispatchMs: m.dispatchMs, treadMs, changeMs: m.changeMs, totalSettled: m.solver.stats.settled + (tree?.treeSettled || 0),
+        totalMs: m.dispatchMs + treadMs + m.changeMs,
         costCacheTiles: m.costs.tiles.size, costCacheEdges: m.costs.edges.size };
     }
     return { calls: this.calls, misses: this.misses, compared: this.compared, noRoute: this.noRoute, costChanges: this.changes,
@@ -129,7 +144,7 @@ for (const seed of seeds) {
   live = new Experiment(st);
   const start = performance.now();
   for (let day = 0; day < days; day++) vb.sim.advance(st, vb.sim.DAY);
-  result.push({ seed, map: load ? 'save:' + load : map, days, grow, cap, villages: st.villages.length,
+  result.push({ seed, map: load ? 'save:' + load : map, days, grow, cap, repair, villages: st.villages.length,
     population: st.pawns.filter(p => p.alive).length, instrumentedSimulationMs: performance.now() - start, ...live.report() });
   live = null;
 }

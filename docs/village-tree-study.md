@@ -117,6 +117,9 @@ Raw results: [`docs/bench/village-trees.json`](bench/village-trees.json). The la
 
 ## Next implementation candidate
 
+Update: [incremental repair is now implemented and measured](village-tree-repair.md). The paragraphs below record the candidate
+proposed by this initial study; the follow-up contains its actual results and deployment recommendation.
+
 Measure **incremental repair**, rather than rebuilding a whole village tree whenever one of its used paths changes stage.
 Decreases must propagate into nodes whose parent edge did not change; increases may detach a branch and require finding an
 alternative from the frontier. A reverse edge/child index and a bounded inconsistency queue are necessary parts of that cost.
