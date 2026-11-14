@@ -12,7 +12,7 @@ const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const near = (x, y, what) => assert(Math.abs(x - y) < 1e-9, `${what}: ${x}, expected ${y}`);
 const st = tinyState(tinyWorld(Array(12).fill('.'.repeat(20))), [{ at: [8, 6], farms: 3 }], { seed: 7 });
 const [a, b, c] = st.households, v = st.villages[0];
-assert.deepStrictEqual(S.CROP_LIST, ['barley', 'rye']);
+assert.deepStrictEqual(S.CROP_LIST, ['barley', 'rye', 'peas']);
 for (const h of st.households) S.start(st, h, {});
 
 // the sum, one crop, a crop's take, a take of any crop
