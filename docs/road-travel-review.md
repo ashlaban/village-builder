@@ -1,6 +1,6 @@
 # Roads, terrain and travel: review, 13 November 2026
 
-Reviewed at `8bc997b`. This is research and a code audit, not a tuning run. No simulation parameters or design decisions were changed by this review. The later [active effort policy](path-effort-policy.md) (VB-441, 14 November) supersedes the time-only route-choice description below; base walking speeds remain as reviewed.
+Reviewed at `8bc997b`. This is research and a code audit, not a tuning run. No simulation parameters or design decisions were changed by this review. The later [active effort policy](path-effort-policy.md) (VB-441, 14 November) supersedes the time-only route-choice description below; base `SPEED` remains as reviewed, while main's later VB-439 changes the terrain/path-clearing costs and slope grade.
 
 ## Findings
 

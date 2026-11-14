@@ -1,6 +1,6 @@
 # Active path effort policy (VB-441, 14 November 2026)
 
-The route chooser now trades walking time against effort. VB-440 only separated the quantities; it deliberately kept them equal.
+This PR preserves main's newer physical terrain costs, `PATHS.clear`, stage speeds [1, 1.03, 1.1, 1.15], and slope grade 2 (VB-439). The route chooser now trades walking time against effort. VB-440 only separated the quantities; it deliberately kept them equal.
 This policy activates the requested behaviour. No screenshots were used to validate it.
 
 ## Evidence and limits
@@ -84,13 +84,13 @@ cleared/rebuilt on load; ongoing physical movement remains valid because speeds 
 
 ## Validation and measured behaviour
 
-`tests/routes-effort.js` equalises all stage speeds to isolate effort. The chooser takes a 16.5-unit physical-time forest route instead of
-the 15-unit direct route: choice cost falls from 21.99 to 19.14. It rejects a distant detour, reports actual travel time, respects a tight
-physical budget, avoids saturated ground, and leaves sand/marsh softness intact after trampling. At `SPEED = 12`, the example's 15 and
-16.5 meadow-step costs correspond to 75 and 82.5 game minutes. Tests also cover off-route cache improvements and old-save migration.
+`tests/routes-effort.js` equalises all stage speeds and disables physical clearing to isolate effort. With main's broadleaf cost 2, the chooser takes a 22-unit physical-time forest route instead of
+the 20-unit direct route: choice cost falls from 29.32 to 25.52. It rejects a distant detour, reports actual travel time, respects a tight
+physical budget, avoids saturated ground, and leaves sand/marsh softness intact after trampling. At `SPEED = 12`, the example's 20 and
+22 meadow-step costs correspond to 100 and 110 game minutes. Tests also cover off-route cache improvements and old-save migration.
 `tests/routes-compiled.js` uses an independent effort/time Dijkstra oracle through terrain, wear, heightmap, bridge/ford and rule edits.
 
-`tools/path-effort-probe.js` compares real generated runs with the batch-one routing snapshot. Founders and populous, tiny map, seeds
+The initial measurements below compare real generated runs with the batch-one snapshot at `8bc997b`; the current-main integration measurements follow afterwards. `tools/path-effort-probe.js` makes the comparison numerically. Founders and populous, tiny map, seeds
 7 and 42, two years each:
 
 | Scenario/seed | Same-world sampled trips changed | Trips with lower choice cost | Total walking-time change in sample | End population before → after | Hungry pawn-days before → after | Trodden/path/lane tiles before → after |
@@ -110,3 +110,23 @@ Cache entries checked fall 5,304 → 4,555; 5,503 → 5,240; 134,941 → 117,329
 speedup; the active preference is extra work. Existing straight-route fallbacks (VB-329) remain 0/0, 0/0, 0/0 and 2/3 before/after; the
 last case remains an existing routing defect to repair, not evidence of a valid land route. No counter baseline was raised to conceal it.
 Full check results and remaining target residuals are recorded in `backlog/VB-441.md`.
+
+## Integration with current main (PR baseline `ce6b2d1`)
+
+Main changed physical terrain/path-clearing costs while this work was in progress. Those decisions are retained. The effort allowance
+still treats soft substrate and moisture as persistent; the physical `PATHS.clear` benefits supplied by main also stand. No daily rain
+or drainage facility is invented. Local task IDs were renumbered: compiler VB-440, active policy VB-441; main owns VB-439.
+
+Fresh two-year comparisons use main's routes as baseline and the same founders/populous tiny seeds 7/42:
+
+| Scenario/seed | Sample trips choosing a longer, lower-choice-cost route | Population before → after | Hungry pawn-days before → after | Trodden/path/lane before → after |
+|---|---:|---:|---:|---|
+| founders 7 | 0/8 | 12 → 12 | 46 → 43 | 20/11/0 → 22/11/0 |
+| founders 42 | 1/8 | 11 → 11 | 0 → 0 | 28/8/0 → 28/9/0 |
+| populous 7 | 2/112 | 139 → 138 | 69 → 59 | 130/85/42 → 132/90/38 |
+| populous 42 | 3/118 | 146 → 146 | 0 → 12 | 199/105/18 → 183/108/25 |
+
+Six of 246 sampled trips change for strictly lower choice cost; all four final wear hashes differ. Household outcomes change in 6,
+5, 26 and 28 compared households. Heap removals: 17,604 → 21,657; 21,089 → 25,743; 319,425 → 410,371; 226,030 → 290,100
+(about 22–28% higher). Cache-refresh checks: 5,245 → 4,475; 5,257 → 5,609; 128,727 → 116,619; 115,563 → 100,688. Existing
+unreachable-route fallbacks remain 0/0, 0/0, 0/0, 2/1. There is no claim of faster overall routing or uniformly improved food security.
