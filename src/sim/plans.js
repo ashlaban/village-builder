@@ -326,6 +326,14 @@ VB['sim/plans'] = (() => {
   // stand-in for the voices' support until slice 5's Decisions, VB-313). The fence's stretches are the first; the green and well (VB-058),
   // a common field (VB-100) and work days (VB-120) add theirs.
   const VILLAGE_ROUTINES = Object.freeze({
+    bridge: Object.freeze({
+      label: 'Building a bridge',
+      meeting: true,
+      kinds: Object.freeze(['bridge']),
+      available: (st, v) =>
+        !!VB['sim/bridges'].underWay(st, v) || (VB['sim/bridges'].funded(st, v) && !!VB['sim/bridges'].site(st, v)),
+      need: (st, v) => Green.houses(st, v).length,
+    }),
     fence: Object.freeze({
       label: 'Keeping the village fence',
       kinds: Object.freeze(['mend']),
@@ -394,9 +402,17 @@ VB['sim/plans'] = (() => {
   // sim/commands, and the plan's making). They post from the village's next review on; those no longer chosen are taken down at it.
   function setRoutines(st, vid, list, by) {
     const plan = st.plans.villages.get(vid);
+    const hadBridge = (plan.routines || []).includes('bridge');
     plan.routines = [...list];
     plan.routinesBy = by;
+    const already = plan.routinesYear === cal(st.t).year && hadBridge;
     plan.routinesYear = cal(st.t).year;
+    if (by === 'meeting' && list.includes('bridge') && !already) {
+      const bridges = VB['sim/bridges'],
+        v = st.villages[vid],
+        p = bridges.project(st, v);
+      if (p && makeProject(st, 'village', vid, p)) bridges.begun(st, v);
+    }
   }
   // Does the village's plan ask kind k this year: is it a kind of one of its routines. Allocates nothing.
   function routineAsks(plan, k) {

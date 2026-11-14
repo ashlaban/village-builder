@@ -1047,3 +1047,5 @@ debtor remain with heirs/cottage as obligations under target-v2's later decision
 The allowance falls from 62 to 20 sites: 39 food writes are fixed and three
 owed-share writes leave the goods boundary. No exemption is added. Golden dumps
 change only ledger lines; full evidence and storage costs: `docs/review-vb174.md`.
+
+Bridge crossings (VB-115): `gen/rivers` seeds `w.crossing`; `sim/bridges` alone changes a crossing to 2 in play, on completion of a village project. Project progress remains owned by `sim/plans`. Household wood and stone contributions go through `sim/stores`.

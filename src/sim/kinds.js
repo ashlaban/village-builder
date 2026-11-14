@@ -654,6 +654,7 @@ VB['sim/kinds'] = (() => {
       available: plotWork,
     },
     ...Building.KINDS, // the cottage's stages and the timber its walls take (sim/building)
+    ...VB['sim/bridges'].KINDS,
     ...Green.KINDS, // the village green and well (sim/green, VB-058)
     ...Workdays.KINDS, // the village's work days (sim/workdays, VB-120)
     mend: {
@@ -813,7 +814,7 @@ VB['sim/kinds'] = (() => {
     ].map(rule),
     // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays); the common fields' (sim/commons, VB-100) the
     // open step of the one under way and the field kinds of each one's stage, while the meeting chose them
-    village: ['mend', 'green', 'workfence', commonWork].map(rule),
+    village: ['bridge', 'mend', 'green', 'workfence', commonWork].map(rule),
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };

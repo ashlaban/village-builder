@@ -5848,6 +5848,11 @@ VB['sim/rules'] = (() => {
     stoneReach: 12,
     stoneWalk: 3,
     wellStone: 6,
+    // A village bridge: committed wood/stone loads and shared person-hours of construction.
+    bridgeHours: 192,
+    bridgeWood: 24,
+    bridgeStone: 16,
+    bridgeReach: 10,
     greenHours: 10,
     wellHours: 40,
     sweepHours: 10,
@@ -17682,6 +17687,143 @@ VB['sim/green'] = (() => {
 })();
 </script>
 <script>
+// @sys sim/bridges: bounded local crossing survey and village bridge construction (VB-115).
+VB['sim/bridges'] = (() => {
+  const Projects = VB['sim/projects'],
+    Stores = VB['sim/stores'];
+  const { BUILD } = VB['sim/rules'];
+  const { bfs } = VB['sim/hex'];
+  const { passable, costChanged } = VB['sim/routes'];
+  const underWay = (st, v) => Projects.projectsOf(st, 'village', v.id).find((p) => p.what === 'bridge');
+  const homes = (st, v) => v.farmsteads.map((id) => st.farmsteads[id]).filter((f) => f.household !== null);
+  function funded(st, v) {
+    const total = { wood: 0, stone: 0 };
+    for (const f of homes(st, v)) {
+      const h = st.households[f.household];
+      for (const g of ['wood', 'stone']) total[g] += Math.max(0, (h[g] || 0) - Stores.reserved(st, h, g));
+    }
+    return total.wood >= BUILD.bridgeWood && total.stone >= BUILD.bridgeStone;
+  }
+  // At most eight farms, two destinations each, 64 nearby river tiles and radius 10 searches.
+  // One map per endpoint, never one route search per candidate. Scores are saved walking
+  // steps, with a small convenience benefit for a ford already used by these journeys.
+  function adjacent(w, a, b) {
+    for (let d = 0; d < 6; d++) if (w.nb[a * 6 + d] === b) return true;
+    return false;
+  }
+  function site(st, v) {
+    const w = st.w,
+      farms = homes(st, v),
+      trips = [],
+      candidates = new Set();
+    for (let k = 0; k < Math.min(8, farms.length); k++) {
+      const f = farms[Math.floor((k * farms.length) / Math.min(8, farms.length))];
+      const a = bfs(w, f.house, BUILD.bridgeReach, (t) => passable(w, t)).dist;
+      for (const t of a.keys())
+        for (let d = 0; d < 6 && candidates.size < 64; d++) {
+          const r = w.nb[t * 6 + d];
+          if (r >= 0 && w.river[r] && !w.water[r] && w.crossing[r] !== 2) candidates.add(r);
+        }
+      for (const field of [f.fields[0], f.meadows[0]])
+        if (field) {
+          trips.push({
+            a,
+            b: bfs(w, field.tile, BUILD.bridgeReach, (t) => passable(w, t)).dist,
+            old: a.get(field.tile) ?? BUILD.bridgeReach * 2,
+          });
+        }
+    }
+    let best = null;
+    for (const tile of candidates) {
+      if (st.used.has(tile)) continue;
+      let occupied = false;
+      Projects.forEach(st, (p) => {
+        if (p.what === 'bridge' && p.steps[0].river === tile) occupied = true;
+      });
+      if (occupied) continue;
+      const banks = [];
+      for (let d = 0; d < 6; d++) {
+        const t = w.nb[tile * 6 + d];
+        if (t >= 0 && !w.river[t] && passable(w, t) && w.dev[t] !== 3) banks.push(t);
+      }
+      let score = 0,
+        users = 0;
+      for (const trip of trips) {
+        let saved = 0;
+        for (const a of banks)
+          for (const b of banks) {
+            if (a === b || adjacent(w, a, b)) continue;
+            const da = trip.a.get(a),
+              db = trip.b.get(b);
+            if (da === undefined || db === undefined) continue;
+            const gain = trip.old - da - db - 2 + (w.crossing[tile] === 1 ? 1 : 0);
+            saved = Math.max(saved, gain);
+          }
+        if (saved > 0) {
+          score += saved;
+          users++;
+        }
+      }
+      if (users >= 2 && (!best || score > best.score || (score === best.score && tile < best.tile)))
+        best = { tile, bank: banks.find((b) => trips.some((trip) => trip.a.has(b))), score };
+    }
+    return best;
+  }
+  function project(st, v) {
+    if (underWay(st, v) || !funded(st, v)) return null;
+    const s = site(st, v);
+    return s
+      ? {
+          what: 'bridge',
+          started: st.t,
+          steps: [{ kind: 'bridge', place: s.bank, river: s.tile, hours: BUILD.bridgeHours }],
+        }
+      : null;
+  }
+  function begun(st, v) {
+    for (const g of ['wood', 'stone']) {
+      let left = g === 'wood' ? BUILD.bridgeWood : BUILD.bridgeStone;
+      for (const f of homes(st, v)) {
+        const h = st.households[f.household],
+          n = Math.min(left, Math.max(0, (h[g] || 0) - Stores.reserved(st, h, g)));
+        if (n) Stores.take(st, h, g, n, 'build');
+        left -= n;
+      }
+    }
+  }
+  function work(st, v, at, c, post) {
+    const p = underWay(st, v);
+    if (p)
+      post(`bridge:v${v.id}`, p.steps[0].place, { village: v.id, step: p.steps[0] }, 'bridge', {
+        type: 'village',
+        id: v.id,
+      });
+  }
+  const KINDS = {
+    bridge: {
+      verb: 'Building a bridge',
+      go: 'Going to build the bridge',
+      name: 'Build a bridge',
+      label: 'Bridge',
+      anim: 'mallet',
+      hours: BUILD.bridgeHours,
+      hands: 3,
+      type: 'duty',
+      available: work,
+      done: (st, j) => {
+        const p = underWay(st, st.villages[j.village]);
+        if (!p || p.steps[0] !== j.step) return;
+        st.w.crossing[j.step.river] = 2;
+        costChanged(st, j.step.river);
+        st.visualDirty = true;
+        VB['sim/events'].emit(st, 'stepDone', { type: 'village', id: j.village, plan: p });
+      },
+    },
+  };
+  return { KINDS, underWay, funded, site, project, begun };
+})();
+</script>
+<script>
 // @sys sim/workdays: village work days (VB-120; Kim, 10 Nov): a routine the meeting may choose for a village with a fence (VB-257); on
 // spring's first day the village closes its fence together and on summer's second clears scrub at its wood's edge, every adult at one
 // priority; at the day's end those who turned out gain standing for the year, a household that stayed away loses its holder's, and the
@@ -18750,6 +18892,7 @@ VB['sim/kinds'] = (() => {
       available: plotWork,
     },
     ...Building.KINDS, // the cottage's stages and the timber its walls take (sim/building)
+    ...VB['sim/bridges'].KINDS,
     ...Green.KINDS, // the village green and well (sim/green, VB-058)
     ...Workdays.KINDS, // the village's work days (sim/workdays, VB-120)
     mend: {
@@ -18909,7 +19052,7 @@ VB['sim/kinds'] = (() => {
     ].map(rule),
     // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays); the common fields' (sim/commons, VB-100) the
     // open step of the one under way and the field kinds of each one's stage, while the meeting chose them
-    village: ['mend', 'green', 'workfence', commonWork].map(rule),
+    village: ['bridge', 'mend', 'green', 'workfence', commonWork].map(rule),
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
@@ -21128,6 +21271,14 @@ VB['sim/plans'] = (() => {
   // stand-in for the voices' support until slice 5's Decisions, VB-313). The fence's stretches are the first; the green and well (VB-058),
   // a common field (VB-100) and work days (VB-120) add theirs.
   const VILLAGE_ROUTINES = Object.freeze({
+    bridge: Object.freeze({
+      label: 'Building a bridge',
+      meeting: true,
+      kinds: Object.freeze(['bridge']),
+      available: (st, v) =>
+        !!VB['sim/bridges'].underWay(st, v) || (VB['sim/bridges'].funded(st, v) && !!VB['sim/bridges'].site(st, v)),
+      need: (st, v) => Green.houses(st, v).length,
+    }),
     fence: Object.freeze({
       label: 'Keeping the village fence',
       kinds: Object.freeze(['mend']),
@@ -21196,9 +21347,17 @@ VB['sim/plans'] = (() => {
   // sim/commands, and the plan's making). They post from the village's next review on; those no longer chosen are taken down at it.
   function setRoutines(st, vid, list, by) {
     const plan = st.plans.villages.get(vid);
+    const hadBridge = (plan.routines || []).includes('bridge');
     plan.routines = [...list];
     plan.routinesBy = by;
+    const already = plan.routinesYear === cal(st.t).year && hadBridge;
     plan.routinesYear = cal(st.t).year;
+    if (by === 'meeting' && list.includes('bridge') && !already) {
+      const bridges = VB['sim/bridges'],
+        v = st.villages[vid],
+        p = bridges.project(st, v);
+      if (p && makeProject(st, 'village', vid, p)) bridges.begun(st, v);
+    }
   }
   // Does the village's plan ask kind k this year: is it a kind of one of its routines. Allocates nothing.
   function routineAsks(plan, k) {
@@ -32405,6 +32564,68 @@ function cottageStage(g, x, y, n) {
       .fill(0x7aa258)
       .stroke({ width: 0.9, color: INK, join: 'round' });
 }
+// Timber bridge on stone abutments: the farms' ochre boards, oxide rails and dark mural contour.
+// Rotate the deck across the river, keeping posts upright in the picture like the other buildings.
+function drawBridge(wd, tile) {
+  const x = wd.hx[tile],
+    y = wd.hy[tile];
+  let to = wd.riverTo[tile];
+  if (to < 0) {
+    for (let d = 0; d < 6; d++) {
+      const n = wd.nb[tile * 6 + d];
+      if (n >= 0 && wd.river[n]) {
+        to = n;
+        break;
+      }
+    }
+  }
+  const angle = to >= 0 ? Math.atan2(wd.hy[to] - y, wd.hx[to] - x) + Math.PI / 2 : 0;
+  const ux = Math.cos(angle),
+    uy = Math.sin(angle),
+    vx = -uy,
+    vy = ux;
+  const length = wd.R * 0.68,
+    width = wd.R * 0.19;
+  const g = new PIXI.Graphics();
+  const point = (a, b, lift = 0) => [x + ux * a + vx * b, y + uy * a + vy * b - lift];
+  const slab = (a, b, c, d, colour, lift = 0) => {
+    g.poly([...point(a, c, lift), ...point(b, c, lift), ...point(b, d, lift), ...point(a, d, lift)])
+      .fill(colour)
+      .stroke({ width: 0.8, color: INK, join: 'round' });
+  };
+  const pole = (a, b, c, d, lift) => {
+    g.moveTo(...point(a, b, lift))
+      .lineTo(...point(c, d, lift))
+      .stroke({ width: 2.2, color: INK })
+      .moveTo(...point(a, b, lift))
+      .lineTo(...point(c, d, lift))
+      .stroke({ width: 1, color: 0x964632 });
+  };
+  // Low grey stone footings, dark timber beneath and separate pale planks above.
+  for (const end of [-1, 1]) slab(end * length - 2.5, end * length + 2.5, -width - 1.5, width + 1.5, 0xdad2c2);
+  slab(-length, length, -width, width, 0x785c3c, 1);
+  // Paint the far rail before the deck, the near rail last, so the crossing reads in either direction.
+  const rail = (side) => {
+    for (const t of [-1, 0, 1]) {
+      const [px, py] = point(t * length, side * width, 2);
+      g.moveTo(px, py)
+        .lineTo(px, py - 5)
+        .stroke({ width: 2.2, color: INK })
+        .moveTo(px, py)
+        .lineTo(px, py - 5)
+        .stroke({ width: 1, color: 0x964632 });
+    }
+    pole(-length, side * width, length, side * width, 7);
+  };
+  const near = vy >= 0 ? 1 : -1;
+  rail(-near);
+  for (let k = 0; k < 8; k++)
+    slab(-length + (k * length) / 4, -length + ((k + 1) * length) / 4, -width, width, k % 2 ? 0xdeac58 : 0xe6b866, 2);
+  rail(near);
+  g.zIndex = y + Math.abs(uy) * length + Math.abs(vy) * width;
+  g.label = `bridge:${tile}`;
+  L.objects.addChild(g);
+}
 // A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
 // rising log walls, the turf roof; a ring while the work goes on (VB-148).
 function drawBooth(wd, f, empty) {
@@ -32474,6 +32695,7 @@ function buildFarms(wd) {
   meadowSprites = [];
   teamDraw = new Map();
   L.objects.sortableChildren = true;
+  for (let tile = 0; tile < wd.N; tile++) if (wd.crossing[tile] === 2) drawBridge(wd, tile);
   for (const f of st.farmsteads) {
     const hx = wd.hx[f.house],
       hy = wd.hy[f.house],
@@ -38924,7 +39146,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'e488a6d38b',
+const BUILD = '195de710ef',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
