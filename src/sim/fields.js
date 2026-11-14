@@ -5,7 +5,7 @@ VB['sim/fields'] = (() => {
   const { ECON, CROPS, FIELDS, SOIL, HERD, DEER, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } =
     VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, costChanged } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
   const { nextTo, farmedLand, FIELD_NEAR } = VB['sim/layout'];
   const { freeFor } = VB['sim/territory'];
@@ -189,6 +189,7 @@ VB['sim/fields'] = (() => {
       };
     tended(st, tile); // VB-091
     st.used.add(tile);
+    if (!w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     w.dev[tile] = 1;
     st.visualDirty = true;
     st.biomeDirty.add(tile);

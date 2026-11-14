@@ -14223,7 +14223,7 @@ VB['sim/fields'] = (() => {
   const { ECON, CROPS, FIELDS, SOIL, HERD, DEER, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } =
     VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, costChanged } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
   const { nextTo, farmedLand, FIELD_NEAR } = VB['sim/layout'];
   const { freeFor } = VB['sim/territory'];
@@ -14407,6 +14407,7 @@ VB['sim/fields'] = (() => {
       };
     tended(st, tile); // VB-091
     st.used.add(tile);
+    if (!w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     w.dev[tile] = 1;
     st.visualDirty = true;
     st.biomeDirty.add(tile);
@@ -14644,7 +14645,7 @@ VB['sim/meadows'] = (() => {
   const { B } = VB['gen'];
   const { byRiver, SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, costChanged } = VB['sim/routes'];
   const { log, atFarm, atHousehold, age } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo, farmedLand } = VB['sim/layout'];
@@ -14767,6 +14768,7 @@ VB['sim/meadows'] = (() => {
       held: 0,
     });
     st.used.add(tile);
+    if (!st.w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     st.w.dev[tile] = 1;
     st.biomeDirty.add(tile);
   }
@@ -15953,6 +15955,7 @@ VB['sim/expansion'] = (() => {
       clearScrub(st, tr.tile); // scrub below half cover goes with the clearing (VB-091)
     } else if (tr.kind === 'field') {
       tr.fresh = !w.dev[tr.tile];
+      if (tr.fresh) costChanged(st, tr.tile); // developed ground walks as open ground (sim/routes, tileCost)
       w.dev[tr.tile] = 1;
     } // ground never farmed starts fresh (VB-149)
     tended(st, tr.tile); // worked on: kept open from the forest a year (sim/spread)
@@ -38924,7 +38927,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'e488a6d38b',
+const BUILD = 'c8092f236c',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
