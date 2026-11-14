@@ -5,7 +5,7 @@ VB['sim/meadows'] = (() => {
   const { B } = VB['gen'];
   const { byRiver, SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, costChanged } = VB['sim/routes'];
   const { log, atFarm, atHousehold, age } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo, farmedLand } = VB['sim/layout'];
@@ -128,6 +128,7 @@ VB['sim/meadows'] = (() => {
       held: 0,
     });
     st.used.add(tile);
+    if (!st.w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     st.w.dev[tile] = 1;
     st.biomeDirty.add(tile);
   }

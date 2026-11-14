@@ -1266,10 +1266,6 @@ var VB = (globalThis.VB = globalThis.VB || {});
 VB.COUNTERS = {
   routeSearch: 'A* searches started',
   routeExpand: 'Tiles removed from the A* heap (including duplicates)',
-  routeCostTile: 'Tile walking/preference costs compiled, once per touched tile per search',
-  routeSlopeEdge: 'Slope edges compiled on first use or after relief/rule changes',
-  routeBudgetFallback:
-    'Destinations whose preferred route exceeded the physical budget, requiring fastest-route fallback',
   routeHit: 'Routes served from the cache, in either direction',
   routeRefresh: 'Cached routes tested for invalidation',
   reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
@@ -5769,28 +5765,6 @@ VB['sim/rules'] = (() => {
     halfLifeDays: YEAR_DAYS,
     speed: [1, 1.03, 1.1, 1.15],
     clear: [0, 0.25, 0.75, 0.8],
-    // Route choice, not speed or calories: time plus a weighted surface-effort allowance (VB-441).
-    // Energy coefficients: dirt/grass 1.1, light/heavy brush 1.2/1.5, bog 1.8, loose sand 2.1
-    // (Soule/Goldman and Pandolf, collated by de Gruchy et al. 2017). Rough ground 1.28: Voloshina et al. 2013.
-    // Biome mappings, residual obstruction by wear stage, wetness threshold and time/effort exchange are game approximations.
-    // Foot traffic reduces obstruction, never the persistent softness of sand, marsh or high-moisture ground. Bridges are firm.
-    effort: {
-      weight: 1,
-      firm: 1.1,
-      ground: {
-        [B.MEADOW]: 1.1,
-        [B.HEATH]: 1.2,
-        [B.FOREST]: 1.5,
-        [B.PINE]: 1.5,
-        [B.HILLS]: 1.28,
-        [B.MOUNTAIN]: 1.28,
-        [B.BEACH]: 2.1,
-        [B.MARSH]: 1.8,
-      },
-      remaining: [1, 0.65, 0.35, 0.15],
-      wetAbove: 0.65,
-      wetExtra: 0.4,
-    },
     wornYears: 3,
     trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 },
   };
@@ -5874,11 +5848,6 @@ VB['sim/rules'] = (() => {
     stoneReach: 12,
     stoneWalk: 3,
     wellStone: 6,
-    // A village bridge: committed wood/stone loads and shared person-hours of construction.
-    bridgeHours: 192,
-    bridgeWood: 24,
-    bridgeStone: 16,
-    bridgeReach: 10,
     greenHours: 10,
     wellHours: 40,
     sweepHours: 10,
@@ -7071,54 +7040,27 @@ VB['sim/names'] = (() => {
 VB['sim/routes'] = (() => {
   const { TERRAIN, SLOPE, ROUTE, PATHS, SPEED } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
-  const { B } = VB['gen'];
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
   // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too,
   // and its wear takes away a share of what its ground costs above meadow (PATHS.clear, VB-439; not at a ford or on a bridge);
   // the green (w.dev 2) wears no path.
-  function tileCost(w, i, preference = false) {
+  function tileCost(w, i) {
     if (w.water[i]) return Infinity;
-    let c;
-    if (w.dev && w.dev[i]) {
-      c = w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
-    } else {
-      c =
+    if (w.dev && w.dev[i]) return w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
+    const c =
         w.river && w.river[i]
           ? w.crossing[i] === 1
             ? TERRAIN.ford
             : w.crossing[i] === 2
               ? TERRAIN.bridge
               : Infinity
-          : (TERRAIN[w.biome[i]] ?? 1);
-      const stage = w.worn ? w.worn[i] : 0;
-      if (!(w.river && w.river[i]) && c < Infinity) c = 1 + (c - 1) * (1 - PATHS.clear[stage]);
-      c /= PATHS.speed[stage];
-    }
-    return preference && c < Infinity ? c * effortFactor(w, i) : c;
+          : 0,
+      s = w.worn ? w.worn[i] : 0;
+    if (c) return c / PATHS.speed[s];
+    return (1 + ((TERRAIN[w.biome[i]] ?? 1) - 1) * (1 - PATHS.clear[s])) / PATHS.speed[s];
   }
-  // A preference allowance grounded in surface-energy measurements, not an estimate of individual calorie use. Persistent
-  // moisture is the generator's rainfall/valley-wetness proxy, not today's rain; st.weather is a harvest factor and is not read.
-  function effortFactor(w, i) {
-    const e = PATHS.effort;
-    if (e.weight === 0 || (w.river && w.river[i] && w.crossing[i] === 2)) return 1;
-    const developed = w.dev && w.dev[i],
-      biome = w.biome[i],
-      ground = developed ? e.firm : (e.ground[biome] ?? e.firm),
-      excess = Math.max(0, ground - e.firm),
-      soft = !developed && (biome === B.BEACH || biome === B.MARSH),
-      remaining = developed === 2 ? 0 : e.remaining[w.worn ? w.worn[i] : 0],
-      moisture = w.hm ? Math.min(1, Math.max(0, (w.hm[i] - e.wetAbove) / (1 - e.wetAbove))) : 0,
-      wet = e.wetExtra * moisture;
-    return 1 + e.weight * (e.firm - 1 + (soft ? Math.max(excess, wet) : excess * remaining + wet));
-  }
-  // Every route within a physical budget has choice cost below this conservative bound. The allowance never changes reach hours.
-  const choiceBound = (budget) =>
-    budget *
-    (1 +
-      PATHS.effort.weight *
-        (Math.max(PATHS.effort.firm, ...Object.values(PATHS.effort.ground)) - 1 + PATHS.effort.wetExtra));
   // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses).
   const passable = (w, i) => i >= 0 && (tileCost(w, i) < Infinity || (!!w.dev && w.dev[i] === 3));
   // Land a route may cross: passable, and not a house.
@@ -7139,32 +7081,21 @@ VB['sim/routes'] = (() => {
   };
   // Cost of the step between neighbouring tiles a and b: the mean of their costs times the slope's factor; a closed end (where a
   // route starts or ends) counts as meadow.
-  const stepCost = (w, a, b, preference = false) => {
-    const ca = tileCost(w, a, preference),
-      cb = tileCost(w, b, preference);
+  const stepCost = (w, a, b) => {
+    const ca = tileCost(w, a),
+      cb = tileCost(w, b);
     return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
   };
 
   const STRAIGHT = 1e-3; // see findRoute: what a tile's width off the straight line adds to a tile's key, in steps
   // ---- the search: A* (Hart, Nilsson and Raphael 1968) with the hex distance times the cheapest step as the bound ----
-  // Scratch arrays per world, reused by every search. Compiled tile costs are stamped per search, so even direct edits during
-  // generation, an editor session or load cannot leave stale terrain costs. Slope rows persist across searches, checked against
-  // their endpoint heights before use. These derived buffers are not world/state truth and are never saved (VB-440).
+  // Scratch arrays per world, reused by every search: g (cost so far), prev, and the search that last touched each tile (mark).
   const scratch = new WeakMap();
   function buffers(w) {
     let s = scratch.get(w);
     if (!s) {
       s = {
         g: new Float64Array(w.N),
-        time: new Float64Array(w.N),
-        walking: new Float64Array(w.N),
-        choice: new Float64Array(w.N),
-        costMark: new Uint32Array(w.N),
-        heights: new Float64Array(w.N).fill(NaN),
-        slopeReady: new Uint8Array(w.N),
-        slopes: null,
-        heightmap: null,
-        slopeRule: '',
         prev: new Int32Array(w.N),
         mark: new Uint32Array(w.N),
         shut: new Uint32Array(w.N),
@@ -7174,76 +7105,16 @@ VB['sim/routes'] = (() => {
       };
       scratch.set(w, s);
     }
-    const rule = `${SLOPE.tobler}/${SLOPE.grade}/${SLOPE.max}`;
-    if (s.heightmap !== w.he || s.slopeRule !== rule) {
-      s.heightmap = w.he;
-      s.slopeRule = rule;
-      s.slopeReady.fill(0);
-      s.heights.fill(NaN);
-      if (w.he && !s.slopes) s.slopes = new Float64Array(w.N * 6);
-    }
     return s;
   }
-  // Compile physical time and active effort preference separately. Movement reads physical cost; choice adds an effort allowance.
-  // The stage speed bonus remains a physical-time rule; the obstruction term represents extra effort at a given walking pace.
-  function compileTile(w, s, i) {
-    if (s.costMark[i] === s.run) return;
-    s.walking[i] = tileCost(w, i);
-    s.choice[i] = s.walking[i] < Infinity ? s.walking[i] * effortFactor(w, i) : Infinity;
-    s.costMark[i] = s.run;
-    VB.count.routeCostTile++;
-  }
-  function checkHeight(w, s, i) {
-    if (s.heights[i] === w.he[i]) return;
-    s.heights[i] = w.he[i];
-    s.slopeReady[i] = 0;
-    for (let d = 0; d < 6; d++) {
-      const j = w.nb[i * 6 + d];
-      if (j >= 0) s.slopeReady[j] = 0;
-    }
-  }
-  // Each expanded tile checks its seven heights. An unchanged row costs only lookups; a changed height invalidates neighbouring
-  // rows too. Thus slopes compile at most once per row until relief/rules change, without relying on terrain-change notifications.
-  function compileSlopes(w, s, i) {
-    if (!w.he) return;
-    checkHeight(w, s, i);
-    for (let d = 0; d < 6; d++) {
-      const j = w.nb[i * 6 + d];
-      if (j >= 0) checkHeight(w, s, j);
-    }
-    if (s.slopeReady[i]) return;
-    let edges = 0;
-    for (let d = 0; d < 6; d++) {
-      const j = w.nb[i * 6 + d];
-      if (j < 0) continue;
-      s.slopes[i * 6 + d] = slopeFactor(w, i, j);
-      edges++;
-    }
-    s.slopeReady[i] = 1;
-    VB.count.routeSlopeEdge += edges;
-  }
-  // Same arithmetic as stepCost, including the meadow allowance for a closed endpoint. Choice points stay separate from time.
-  const compiledStep = (w, s, costs, i, j, d) => {
-    const ca = costs[i],
-      cb = costs[j];
-    return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * (w.he ? s.slopes[i * 6 + d] : 1);
-  };
-  // A binary heap: preference first, physical time second, straightness third, then tile index.
+  // A binary heap of tiles by key, in two plain arrays; the lower key first, ties by the lower tile index.
   function heap() {
     const k = [],
-      n = [],
-      time = [],
-      straight = [];
-    const less = (a, b) =>
-      k[a] < k[b] ||
-      (k[a] === k[b] &&
-        (time[a] < time[b] ||
-          (time[a] === time[b] && (straight[a] < straight[b] || (straight[a] === straight[b] && n[a] < n[b])))));
+      n = [];
+    const less = (a, b) => k[a] < k[b] || (k[a] === k[b] && n[a] < n[b]);
     const swap = (a, b) => {
       [k[a], k[b]] = [k[b], k[a]];
       [n[a], n[b]] = [n[b], n[a]];
-      [time[a], time[b]] = [time[b], time[a]];
-      [straight[a], straight[b]] = [straight[b], straight[a]];
     };
     return {
       get size() {
@@ -7252,14 +7123,10 @@ VB['sim/routes'] = (() => {
       clear() {
         k.length = 0;
         n.length = 0;
-        time.length = 0;
-        straight.length = 0;
       },
-      push(key, tile, hours = 0, bias = 0) {
+      push(key, tile) {
         let c = k.push(key) - 1;
         n.push(tile);
-        time.push(hours);
-        straight.push(bias);
         while (c > 0) {
           const p = (c - 1) >> 1;
           if (!less(c, p)) break;
@@ -7270,14 +7137,10 @@ VB['sim/routes'] = (() => {
       pop() {
         const top = n[0],
           lk = k.pop(),
-          ln = n.pop(),
-          lt = time.pop(),
-          ls = straight.pop();
+          ln = n.pop();
         if (n.length) {
           k[0] = lk;
           n[0] = ln;
-          time[0] = lt;
-          straight[0] = ls;
           for (let c = 0; ;) {
             const l = 2 * c + 1,
               r = l + 1;
@@ -7293,11 +7156,9 @@ VB['sim/routes'] = (() => {
       },
     };
   }
-  // Prefer the least effort-adjusted cost. maxCost is still a physical walking budget in meadow-step units: if the preferred
-  // route exceeds it, use the fastest feasible route instead. This preserves reach without a costly multi-label constrained search.
-  // prefer=false is the physical fallback and the reference mode for diagnostics/tests.
+  // The cheapest route from `from` to `to`, both ends included, or null when every route costs more than maxCost.
   // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
-  function findRoute(w, from, to, maxCost = ROUTE.reach, prefer = true) {
+  function findRoute(w, from, to, maxCost = ROUTE.reach) {
     if (from === to) return [from];
     VB.count.routeSearch++;
     let expanded = 0;
@@ -7305,21 +7166,18 @@ VB['sim/routes'] = (() => {
       { g, prev, mark, shut } = S,
       run = ++S.run,
       open = heap(),
-      lo = ROUTE.minStep,
-      limit = prefer ? choiceBound(maxCost) : maxCost;
+      lo = ROUTE.minStep;
     // Among routes that cost the same (on open ground there are many: every staircase between two tiles), the one nearest the straight
-    // line is taken: STRAIGHT times its offset is a tertiary tie-break, after choice and physical time. It never inflates the
-    // admissible heuristic or overrides a cheaper route. This concentrates equal-cost trips without changing their objective (VB-441).
+    // line is taken, as people walk: STRAIGHT of a step for each tile's width a tile lies off the line is added to its key, far below
+    // any difference in cost. So the trips between two places wear one line, not a fan of them, and the ways look like ways (VB-402).
     const flat = !!w.hx,
       fx = flat ? w.hx[from] : 0,
       fy = flat ? w.hy[from] : 0,
       lx = flat ? w.hx[to] - fx : 0,
       ly = flat ? w.hy[to] - fy : 0;
     const off = flat ? STRAIGHT / ((Math.hypot(lx, ly) || 1) * w.HW) : 0; // a world with no tile centres (a test's bare grid) has no line
-    const h = (i) => hexSteps(w, i, to) * lo;
-    const bias = (i) => (flat ? Math.abs((w.hx[i] - fx) * ly - (w.hy[i] - fy) * lx) * off : 0);
+    const h = (i) => hexSteps(w, i, to) * lo + (flat ? Math.abs((w.hx[i] - fx) * ly - (w.hy[i] - fy) * lx) * off : 0);
     g[from] = 0;
-    S.time[from] = 0;
     prev[from] = -1;
     mark[from] = run;
     open.push(h(from), from);
@@ -7332,28 +7190,17 @@ VB['sim/routes'] = (() => {
         const p = [to];
         for (let j = prev[to]; j >= 0; j = prev[j]) p.push(j);
         VB.count.routeExpand += expanded;
-        p.reverse();
-        if (prefer && S.time[to] > maxCost) {
-          VB.count.routeBudgetFallback++;
-          return findRoute(w, from, to, maxCost, false);
-        }
-        return p;
+        return p.reverse();
       }
-      compileTile(w, S, i);
-      compileSlopes(w, S, i);
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run) continue;
-        compileTile(w, S, j);
-        if (j !== to && S.walking[j] === Infinity) continue;
-        const time = S.time[i] + compiledStep(w, S, S.walking, i, j, d),
-          gj = g[i] + compiledStep(w, S, prefer ? S.choice : S.walking, i, j, d);
-        if (gj > limit || (mark[j] === run && (gj > g[j] || (gj === g[j] && time >= S.time[j])))) continue;
+        if (j < 0 || shut[j] === run || (j !== to && !through(w, j))) continue;
+        const gj = g[i] + stepCost(w, i, j);
+        if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
         g[j] = gj;
-        S.time[j] = time;
         prev[j] = i;
         mark[j] = run;
-        open.push(gj + h(j), j, time + h(j), bias(j));
+        open.push(gj + h(j), j);
       }
     }
     VB.count.routeExpand += expanded;
@@ -7363,14 +7210,12 @@ VB['sim/routes'] = (() => {
   // targets[i] goes to out[i], or null when it lies beyond maxCost or cannot be reached. The search stops at maxCost, or once every target is
   // settled. As in findRoute, `from` and the targets may be closed tiles (a closed target is reached, never walked through). It reuses the
   // world's scratch buffers and one heap, and allocates nothing per tile; the tiles it settles are counted in VB.count.reachSettled.
-  // Output is physical walking cost along preferred routes, never preference points. A fastest-route fallback for targets whose
-  // preferred route exceeds maxCost preserves the physical reach budget, as in findRoute. Equal choice costs prefer less walking.
-  function reachCosts(w, from, maxCost, targets, out = new Array(targets.length), prefer = true) {
+  // The costs are findRoute + routeCost's, to rounding (the sums are made the same way, from `from`).
+  function reachCosts(w, from, maxCost, targets, out = new Array(targets.length)) {
     const S = buffers(w),
       { g, mark, shut, tgt } = S,
       run = ++S.run,
-      open = S.open || (S.open = heap()),
-      limit = prefer ? choiceBound(maxCost) : maxCost;
+      open = S.open || (S.open = heap());
     let left = 0,
       settled = 0;
     for (let i = 0; i < targets.length; i++)
@@ -7380,7 +7225,6 @@ VB['sim/routes'] = (() => {
       }
     open.clear();
     g[from] = 0;
-    S.time[from] = 0;
     mark[from] = run;
     open.push(0, from);
     while (open.size && left > 0) {
@@ -7392,43 +7236,24 @@ VB['sim/routes'] = (() => {
         if (--left === 0) break;
         if (i !== from && !through(w, i)) continue;
       }
-      compileTile(w, S, i);
-      compileSlopes(w, S, i);
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run) continue;
-        compileTile(w, S, j);
-        if (tgt[j] !== run && S.walking[j] === Infinity) continue;
-        const time = S.time[i] + compiledStep(w, S, S.walking, i, j, d),
-          gj = g[i] + compiledStep(w, S, prefer ? S.choice : S.walking, i, j, d);
-        if (gj > limit || (mark[j] === run && (gj > g[j] || (gj === g[j] && time >= S.time[j])))) continue;
+        if (j < 0 || shut[j] === run || (tgt[j] !== run && !through(w, j))) continue;
+        const gj = g[i] + stepCost(w, i, j);
+        if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
         g[j] = gj;
-        S.time[j] = time;
         mark[j] = run;
-        open.push(gj, j, time);
+        open.push(gj, j);
       }
     }
     VB.count.reachSettled += settled;
-    const fallback = [],
-      slots = [];
-    for (let i = 0; i < targets.length; i++) {
-      out[i] = shut[targets[i]] === run ? S.time[targets[i]] : null;
-      if (prefer && out[i] > maxCost) {
-        fallback.push(targets[i]);
-        slots.push(i);
-      }
-    }
-    if (fallback.length) {
-      VB.count.routeBudgetFallback += fallback.length;
-      const times = reachCosts(w, from, maxCost, fallback, undefined, false);
-      for (let i = 0; i < slots.length; i++) out[slots[i]] = times[i];
-    }
+    for (let i = 0; i < targets.length; i++) out[i] = shut[targets[i]] === run ? g[targets[i]] : null;
     return out;
   }
   // Cost of a route (a list of neighbouring tiles), by the costs in force now.
-  function routeCost(w, p, preference = false) {
+  function routeCost(w, p) {
     let c = 0;
-    for (let s = 1; s < p.length; s++) c += stepCost(w, p[s - 1], p[s], preference);
+    for (let s = 1; s < p.length; s++) c += stepCost(w, p[s - 1], p[s]);
     return c;
   }
 
@@ -7468,7 +7293,7 @@ VB['sim/routes'] = (() => {
     trimRoutes(st);
     return p;
   }
-  // A tile whose time or effort cost changed (a felled wood, a new path stage, edited moisture): the routes it could change
+  // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the routes it could change
   // are dropped at the end of the day.
   const costChanged = (st, tile) => {
     st.routeDirty.add(tile);
@@ -7486,7 +7311,6 @@ VB['sim/routes'] = (() => {
     const w = st.w,
       N = w.N,
       C = w.COLS,
-      maxChoiceStep = choiceBound(MAX_STEP),
       n = st.routeDirty.size,
       dq = new Int32Array(n),
       dr = new Int32Array(n);
@@ -7523,10 +7347,8 @@ VB['sim/routes'] = (() => {
         if (s < near) near = s;
       }
       const steps = p.length - 1;
-      if (near > (steps * maxChoiceStep) / ROUTE.minStep + 1) continue;
-      // Bounded journeys can use the physical fallback. Invalidation must cover both objectives, including newly attractive
-      // tiles outside the old route. Choice cost bounds physical cost from above, so it is conservative for either selection.
-      if (near < steps - 1 || near <= routeCost(w, p, true) / ROUTE.minStep) st.pathCache.delete(k);
+      if (near > (steps * MAX_STEP) / ROUTE.minStep + 1) continue;
+      if (near < steps - 1 || near <= routeCost(w, p) / ROUTE.minStep) st.pathCache.delete(k);
     }
     st.routeDirty.clear();
   }
@@ -14401,7 +14223,7 @@ VB['sim/fields'] = (() => {
   const { ECON, CROPS, FIELDS, SOIL, HERD, DEER, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } =
     VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, costChanged } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
   const { nextTo, farmedLand, FIELD_NEAR } = VB['sim/layout'];
   const { freeFor } = VB['sim/territory'];
@@ -14585,6 +14407,7 @@ VB['sim/fields'] = (() => {
       };
     tended(st, tile); // VB-091
     st.used.add(tile);
+    if (!w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     w.dev[tile] = 1;
     st.visualDirty = true;
     st.biomeDirty.add(tile);
@@ -14822,7 +14645,7 @@ VB['sim/meadows'] = (() => {
   const { B } = VB['gen'];
   const { byRiver, SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, costChanged } = VB['sim/routes'];
   const { log, atFarm, atHousehold, age } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo, farmedLand } = VB['sim/layout'];
@@ -14945,6 +14768,7 @@ VB['sim/meadows'] = (() => {
       held: 0,
     });
     st.used.add(tile);
+    if (!st.w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     st.w.dev[tile] = 1;
     st.biomeDirty.add(tile);
   }
@@ -16131,6 +15955,7 @@ VB['sim/expansion'] = (() => {
       clearScrub(st, tr.tile); // scrub below half cover goes with the clearing (VB-091)
     } else if (tr.kind === 'field') {
       tr.fresh = !w.dev[tr.tile];
+      if (tr.fresh) costChanged(st, tr.tile); // developed ground walks as open ground (sim/routes, tileCost)
       w.dev[tr.tile] = 1;
     } // ground never farmed starts fresh (VB-149)
     tended(st, tr.tile); // worked on: kept open from the forest a year (sim/spread)
@@ -17860,143 +17685,6 @@ VB['sim/green'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/bridges: bounded local crossing survey and village bridge construction (VB-115).
-VB['sim/bridges'] = (() => {
-  const Projects = VB['sim/projects'],
-    Stores = VB['sim/stores'];
-  const { BUILD } = VB['sim/rules'];
-  const { bfs } = VB['sim/hex'];
-  const { passable, costChanged } = VB['sim/routes'];
-  const underWay = (st, v) => Projects.projectsOf(st, 'village', v.id).find((p) => p.what === 'bridge');
-  const homes = (st, v) => v.farmsteads.map((id) => st.farmsteads[id]).filter((f) => f.household !== null);
-  function funded(st, v) {
-    const total = { wood: 0, stone: 0 };
-    for (const f of homes(st, v)) {
-      const h = st.households[f.household];
-      for (const g of ['wood', 'stone']) total[g] += Math.max(0, (h[g] || 0) - Stores.reserved(st, h, g));
-    }
-    return total.wood >= BUILD.bridgeWood && total.stone >= BUILD.bridgeStone;
-  }
-  // At most eight farms, two destinations each, 64 nearby river tiles and radius 10 searches.
-  // One map per endpoint, never one route search per candidate. Scores are saved walking
-  // steps, with a small convenience benefit for a ford already used by these journeys.
-  function adjacent(w, a, b) {
-    for (let d = 0; d < 6; d++) if (w.nb[a * 6 + d] === b) return true;
-    return false;
-  }
-  function site(st, v) {
-    const w = st.w,
-      farms = homes(st, v),
-      trips = [],
-      candidates = new Set();
-    for (let k = 0; k < Math.min(8, farms.length); k++) {
-      const f = farms[Math.floor((k * farms.length) / Math.min(8, farms.length))];
-      const a = bfs(w, f.house, BUILD.bridgeReach, (t) => passable(w, t)).dist;
-      for (const t of a.keys())
-        for (let d = 0; d < 6 && candidates.size < 64; d++) {
-          const r = w.nb[t * 6 + d];
-          if (r >= 0 && w.river[r] && !w.water[r] && w.crossing[r] !== 2) candidates.add(r);
-        }
-      for (const field of [f.fields[0], f.meadows[0]])
-        if (field) {
-          trips.push({
-            a,
-            b: bfs(w, field.tile, BUILD.bridgeReach, (t) => passable(w, t)).dist,
-            old: a.get(field.tile) ?? BUILD.bridgeReach * 2,
-          });
-        }
-    }
-    let best = null;
-    for (const tile of candidates) {
-      if (st.used.has(tile)) continue;
-      let occupied = false;
-      Projects.forEach(st, (p) => {
-        if (p.what === 'bridge' && p.steps[0].river === tile) occupied = true;
-      });
-      if (occupied) continue;
-      const banks = [];
-      for (let d = 0; d < 6; d++) {
-        const t = w.nb[tile * 6 + d];
-        if (t >= 0 && !w.river[t] && passable(w, t) && w.dev[t] !== 3) banks.push(t);
-      }
-      let score = 0,
-        users = 0;
-      for (const trip of trips) {
-        let saved = 0;
-        for (const a of banks)
-          for (const b of banks) {
-            if (a === b || adjacent(w, a, b)) continue;
-            const da = trip.a.get(a),
-              db = trip.b.get(b);
-            if (da === undefined || db === undefined) continue;
-            const gain = trip.old - da - db - 2 + (w.crossing[tile] === 1 ? 1 : 0);
-            saved = Math.max(saved, gain);
-          }
-        if (saved > 0) {
-          score += saved;
-          users++;
-        }
-      }
-      if (users >= 2 && (!best || score > best.score || (score === best.score && tile < best.tile)))
-        best = { tile, bank: banks.find((b) => trips.some((trip) => trip.a.has(b))), score };
-    }
-    return best;
-  }
-  function project(st, v) {
-    if (underWay(st, v) || !funded(st, v)) return null;
-    const s = site(st, v);
-    return s
-      ? {
-          what: 'bridge',
-          started: st.t,
-          steps: [{ kind: 'bridge', place: s.bank, river: s.tile, hours: BUILD.bridgeHours }],
-        }
-      : null;
-  }
-  function begun(st, v) {
-    for (const g of ['wood', 'stone']) {
-      let left = g === 'wood' ? BUILD.bridgeWood : BUILD.bridgeStone;
-      for (const f of homes(st, v)) {
-        const h = st.households[f.household],
-          n = Math.min(left, Math.max(0, (h[g] || 0) - Stores.reserved(st, h, g)));
-        if (n) Stores.take(st, h, g, n, 'build');
-        left -= n;
-      }
-    }
-  }
-  function work(st, v, at, c, post) {
-    const p = underWay(st, v);
-    if (p)
-      post(`bridge:v${v.id}`, p.steps[0].place, { village: v.id, step: p.steps[0] }, 'bridge', {
-        type: 'village',
-        id: v.id,
-      });
-  }
-  const KINDS = {
-    bridge: {
-      verb: 'Building a bridge',
-      go: 'Going to build the bridge',
-      name: 'Build a bridge',
-      label: 'Bridge',
-      anim: 'mallet',
-      hours: BUILD.bridgeHours,
-      hands: 3,
-      type: 'duty',
-      available: work,
-      done: (st, j) => {
-        const p = underWay(st, st.villages[j.village]);
-        if (!p || p.steps[0] !== j.step) return;
-        st.w.crossing[j.step.river] = 2;
-        costChanged(st, j.step.river);
-        st.visualDirty = true;
-        VB['sim/events'].emit(st, 'stepDone', { type: 'village', id: j.village, plan: p });
-      },
-    },
-  };
-  return { KINDS, underWay, funded, site, project, begun };
-})();
-</script>
-<script>
 // @sys sim/workdays: village work days (VB-120; Kim, 10 Nov): a routine the meeting may choose for a village with a fence (VB-257); on
 // spring's first day the village closes its fence together and on summer's second clears scrub at its wood's edge, every adult at one
 // priority; at the day's end those who turned out gain standing for the year, a household that stayed away loses its holder's, and the
@@ -19065,7 +18753,6 @@ VB['sim/kinds'] = (() => {
       available: plotWork,
     },
     ...Building.KINDS, // the cottage's stages and the timber its walls take (sim/building)
-    ...VB['sim/bridges'].KINDS,
     ...Green.KINDS, // the village green and well (sim/green, VB-058)
     ...Workdays.KINDS, // the village's work days (sim/workdays, VB-120)
     mend: {
@@ -19225,7 +18912,7 @@ VB['sim/kinds'] = (() => {
     ].map(rule),
     // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays); the common fields' (sim/commons, VB-100) the
     // open step of the one under way and the field kinds of each one's stage, while the meeting chose them
-    village: ['bridge', 'mend', 'green', 'workfence', commonWork].map(rule),
+    village: ['mend', 'green', 'workfence', commonWork].map(rule),
     island: [plotWork, claimWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
@@ -21444,14 +21131,6 @@ VB['sim/plans'] = (() => {
   // stand-in for the voices' support until slice 5's Decisions, VB-313). The fence's stretches are the first; the green and well (VB-058),
   // a common field (VB-100) and work days (VB-120) add theirs.
   const VILLAGE_ROUTINES = Object.freeze({
-    bridge: Object.freeze({
-      label: 'Building a bridge',
-      meeting: true,
-      kinds: Object.freeze(['bridge']),
-      available: (st, v) =>
-        !!VB['sim/bridges'].underWay(st, v) || (VB['sim/bridges'].funded(st, v) && !!VB['sim/bridges'].site(st, v)),
-      need: (st, v) => Green.houses(st, v).length,
-    }),
     fence: Object.freeze({
       label: 'Keeping the village fence',
       kinds: Object.freeze(['mend']),
@@ -21520,17 +21199,9 @@ VB['sim/plans'] = (() => {
   // sim/commands, and the plan's making). They post from the village's next review on; those no longer chosen are taken down at it.
   function setRoutines(st, vid, list, by) {
     const plan = st.plans.villages.get(vid);
-    const hadBridge = (plan.routines || []).includes('bridge');
     plan.routines = [...list];
     plan.routinesBy = by;
-    const already = plan.routinesYear === cal(st.t).year && hadBridge;
     plan.routinesYear = cal(st.t).year;
-    if (by === 'meeting' && list.includes('bridge') && !already) {
-      const bridges = VB['sim/bridges'],
-        v = st.villages[vid],
-        p = bridges.project(st, v);
-      if (p && makeProject(st, 'village', vid, p)) bridges.begun(st, v);
-    }
   }
   // Does the village's plan ask kind k this year: is it a kind of one of its routines. Allocates nothing.
   function routineAsks(plan, k) {
@@ -27589,7 +27260,6 @@ VB['sim/saves'] = (() => {
     for (const p of st.pawns) if (p.rel instanceof Map) pack.set(p.rel, { as: 'rel', data: packRel(p.rel) });
     return {
       format: FORMAT,
-      routePolicy: 1, // VB-441: legacy time-only routes and village hours are rebuilt on load
       scenario: st.scenario,
       seed: w.seed,
       cols: w.COLS,
@@ -27643,10 +27313,6 @@ VB['sim/saves'] = (() => {
     if (w.dev) for (const f of st.farmsteads) w.dev[f.house] = 3; // lint-allow: owner an older save's mark, set as layout sets it
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
-    if (data.routePolicy !== 1) {
-      st.pathCache.clear();
-      buildHours(st);
-    }
     trimRoutes(st);
     if (!st.villageHours) buildHours(st); // VB-286: older saves have no table of walking hours between villages
     for (const v of st.villages) if (!v.ledger) v.ledger = [];
@@ -32742,68 +32408,6 @@ function cottageStage(g, x, y, n) {
       .fill(0x7aa258)
       .stroke({ width: 0.9, color: INK, join: 'round' });
 }
-// Timber bridge on stone abutments: the farms' ochre boards, oxide rails and dark mural contour.
-// Rotate the deck across the river, keeping posts upright in the picture like the other buildings.
-function drawBridge(wd, tile) {
-  const x = wd.hx[tile],
-    y = wd.hy[tile];
-  let to = wd.riverTo[tile];
-  if (to < 0) {
-    for (let d = 0; d < 6; d++) {
-      const n = wd.nb[tile * 6 + d];
-      if (n >= 0 && wd.river[n]) {
-        to = n;
-        break;
-      }
-    }
-  }
-  const angle = to >= 0 ? Math.atan2(wd.hy[to] - y, wd.hx[to] - x) + Math.PI / 2 : 0;
-  const ux = Math.cos(angle),
-    uy = Math.sin(angle),
-    vx = -uy,
-    vy = ux;
-  const length = wd.R * 0.68,
-    width = wd.R * 0.19;
-  const g = new PIXI.Graphics();
-  const point = (a, b, lift = 0) => [x + ux * a + vx * b, y + uy * a + vy * b - lift];
-  const slab = (a, b, c, d, colour, lift = 0) => {
-    g.poly([...point(a, c, lift), ...point(b, c, lift), ...point(b, d, lift), ...point(a, d, lift)])
-      .fill(colour)
-      .stroke({ width: 0.8, color: INK, join: 'round' });
-  };
-  const pole = (a, b, c, d, lift) => {
-    g.moveTo(...point(a, b, lift))
-      .lineTo(...point(c, d, lift))
-      .stroke({ width: 2.2, color: INK })
-      .moveTo(...point(a, b, lift))
-      .lineTo(...point(c, d, lift))
-      .stroke({ width: 1, color: 0x964632 });
-  };
-  // Low grey stone footings, dark timber beneath and separate pale planks above.
-  for (const end of [-1, 1]) slab(end * length - 2.5, end * length + 2.5, -width - 1.5, width + 1.5, 0xdad2c2);
-  slab(-length, length, -width, width, 0x785c3c, 1);
-  // Paint the far rail before the deck, the near rail last, so the crossing reads in either direction.
-  const rail = (side) => {
-    for (const t of [-1, 0, 1]) {
-      const [px, py] = point(t * length, side * width, 2);
-      g.moveTo(px, py)
-        .lineTo(px, py - 5)
-        .stroke({ width: 2.2, color: INK })
-        .moveTo(px, py)
-        .lineTo(px, py - 5)
-        .stroke({ width: 1, color: 0x964632 });
-    }
-    pole(-length, side * width, length, side * width, 7);
-  };
-  const near = vy >= 0 ? 1 : -1;
-  rail(-near);
-  for (let k = 0; k < 8; k++)
-    slab(-length + (k * length) / 4, -length + ((k + 1) * length) / 4, -width, width, k % 2 ? 0xdeac58 : 0xe6b866, 2);
-  rail(near);
-  g.zIndex = y + Math.abs(uy) * length + Math.abs(vy) * width;
-  g.label = `bridge:${tile}`;
-  L.objects.addChild(g);
-}
 // A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
 // rising log walls, the turf roof; a ring while the work goes on (VB-148).
 function drawBooth(wd, f, empty) {
@@ -32873,7 +32477,6 @@ function buildFarms(wd) {
   meadowSprites = [];
   teamDraw = new Map();
   L.objects.sortableChildren = true;
-  for (let tile = 0; tile < wd.N; tile++) if (wd.crossing[tile] === 2) drawBridge(wd, tile);
   for (const f of st.farmsteads) {
     const hx = wd.hx[f.house],
       hy = wd.hy[f.house],
@@ -39324,7 +38927,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '75ac136eb4',
+const BUILD = 'c8092f236c',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
