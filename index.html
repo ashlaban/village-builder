@@ -14401,7 +14401,7 @@ VB['sim/fields'] = (() => {
   const { ECON, CROPS, FIELDS, SOIL, HERD, DEER, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } =
     VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, costChanged } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
   const { nextTo, farmedLand, FIELD_NEAR } = VB['sim/layout'];
   const { freeFor } = VB['sim/territory'];
@@ -14586,6 +14586,7 @@ VB['sim/fields'] = (() => {
     tended(st, tile); // VB-091
     st.used.add(tile);
     w.dev[tile] = 1;
+    costChanged(st, tile); // developed ground can change both walking cost and effort
     st.visualDirty = true;
     st.biomeDirty.add(tile);
     return fd;
@@ -14822,7 +14823,7 @@ VB['sim/meadows'] = (() => {
   const { B } = VB['gen'];
   const { byRiver, SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable, costChanged } = VB['sim/routes'];
   const { log, atFarm, atHousehold, age } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo, farmedLand } = VB['sim/layout'];
@@ -14946,6 +14947,7 @@ VB['sim/meadows'] = (() => {
     });
     st.used.add(tile);
     st.w.dev[tile] = 1;
+    costChanged(st, tile);
     st.biomeDirty.add(tile);
   }
   // A household with animals and no land project, short of meadow for its herds' winter, stakes a tile and starts clearing it (sim/stakes);
@@ -16132,6 +16134,7 @@ VB['sim/expansion'] = (() => {
     } else if (tr.kind === 'field') {
       tr.fresh = !w.dev[tr.tile];
       w.dev[tr.tile] = 1;
+      costChanged(st, tr.tile);
     } // ground never farmed starts fresh (VB-149)
     tended(st, tr.tile); // worked on: kept open from the forest a year (sim/spread)
     tr.i++;
@@ -39324,7 +39327,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = '75ac136eb4',
+const BUILD = 'fc027096c4',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

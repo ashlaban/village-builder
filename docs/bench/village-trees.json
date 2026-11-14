@@ -1,0 +1,1366 @@
+{
+  "researchOnly": true,
+  "simulationBase": "0423f61c038f9549bee26df27821a2ad4e840e38 plus development cost notifications",
+  "treePolicy": "one green-rooted resumable tree per village; exact truncated-landmark A* plus certified ancestor/root subpaths",
+  "timingCaution": "single instrumented runs, concurrent processes; no production speedup claimed",
+  "runs": [
+    {
+      "seed": 7,
+      "map": "tiny",
+      "days": 48,
+      "grow": 64,
+      "cap": 2048,
+      "villages": 3,
+      "population": 134,
+      "instrumentedSimulationMs": 7209.160366,
+      "calls": 28100,
+      "misses": 7435,
+      "compared": 7435,
+      "noRoute": 0,
+      "costChanges": 263,
+      "treads": 106603,
+      "exitTreads": 18207,
+      "differentEqualCostPaths": {
+        "demand": 0,
+        "exit": 0
+      },
+      "strongerHeuristicQueries": {
+        "demand": 6445,
+        "exit": 5673
+      },
+      "nativeRouteMs": 576.8422760000167,
+      "exitHookMs": 170.1103340000575,
+      "models": {
+        "control": {
+          "queries": 7435,
+          "settled": 183751,
+          "relaxed": 544262,
+          "heuristicCalls": 344115,
+          "stronger": 0,
+          "certified": 0,
+          "fallbacks": 0,
+          "ms": 414.6211420000134,
+          "dispatchMs": 427.0943979999919,
+          "totalSettled": 183751,
+          "totalMs": 427.0943979999919,
+          "costCacheTiles": 2627,
+          "costCacheEdges": 5712
+        },
+        "demand": {
+          "queries": 7435,
+          "settled": 143655,
+          "relaxed": 434522,
+          "heuristicCalls": 282568,
+          "stronger": 107864,
+          "certified": 908,
+          "fallbacks": 0,
+          "ms": 432.27574400000617,
+          "tree": {
+            "treeSettled": 31936,
+            "treeRelaxed": 172579,
+            "created": 123,
+            "invalidations": 121,
+            "invalidationChecks": 342,
+            "highRecords": 851,
+            "highFrontier": 168,
+            "highTouched": 1002,
+            "growthMs": 218.43538399997612,
+            "invalidationMs": 0.9491070000085529
+          },
+          "dispatchMs": 677.0478370000142,
+          "totalSettled": 175591,
+          "totalMs": 677.9969440000227,
+          "costCacheTiles": 2620,
+          "costCacheEdges": 5705
+        },
+        "exit": {
+          "queries": 7435,
+          "settled": 155099,
+          "relaxed": 466081,
+          "heuristicCalls": 299251,
+          "stronger": 82844,
+          "certified": 688,
+          "fallbacks": 0,
+          "ms": 393.95411900003705,
+          "tree": {
+            "treeSettled": 25490,
+            "treeRelaxed": 136730,
+            "created": 124,
+            "invalidations": 122,
+            "invalidationChecks": 344,
+            "highRecords": 656,
+            "highFrontier": 159,
+            "highTouched": 809,
+            "growthMs": 111.18497999995941,
+            "invalidationMs": 0.7292809999999008
+          },
+          "dispatchMs": 409.9489020000227,
+          "totalSettled": 180589,
+          "totalMs": 580.7885170000801,
+          "costCacheTiles": 2627,
+          "costCacheEdges": 5712
+        }
+      },
+      "trial": "tiny"
+    },
+    {
+      "seed": 42,
+      "map": "tiny",
+      "days": 48,
+      "grow": 64,
+      "cap": 2048,
+      "villages": 5,
+      "population": 138,
+      "instrumentedSimulationMs": 5795.211766999999,
+      "calls": 27852,
+      "misses": 5667,
+      "compared": 5666,
+      "noRoute": 1,
+      "costChanges": 326,
+      "treads": 80505,
+      "exitTreads": 20802,
+      "differentEqualCostPaths": {
+        "demand": 0,
+        "exit": 0
+      },
+      "strongerHeuristicQueries": {
+        "demand": 4819,
+        "exit": 4127
+      },
+      "nativeRouteMs": 427.57535700003973,
+      "exitHookMs": 159.15006799992625,
+      "models": {
+        "control": {
+          "queries": 5667,
+          "settled": 123864,
+          "relaxed": 387790,
+          "heuristicCalls": 242348,
+          "stronger": 0,
+          "certified": 0,
+          "fallbacks": 0,
+          "ms": 326.1096720000187,
+          "dispatchMs": 332.4901350000164,
+          "totalSettled": 123864,
+          "totalMs": 332.4901350000164,
+          "costCacheTiles": 4216,
+          "costCacheEdges": 8385
+        },
+        "demand": {
+          "queries": 5667,
+          "settled": 91528,
+          "relaxed": 293018,
+          "heuristicCalls": 191262,
+          "stronger": 84860,
+          "certified": 832,
+          "fallbacks": 0,
+          "ms": 328.5977790000561,
+          "tree": {
+            "treeSettled": 32257,
+            "treeRelaxed": 173697,
+            "created": 208,
+            "invalidations": 203,
+            "invalidationChecks": 1173,
+            "highRecords": 1221,
+            "highFrontier": 295,
+            "highTouched": 1478,
+            "growthMs": 116.58102999992661,
+            "invalidationMs": 17.880051000001913
+          },
+          "dispatchMs": 460.3203450000419,
+          "totalSettled": 123785,
+          "totalMs": 478.20039600004384,
+          "costCacheTiles": 4253,
+          "costCacheEdges": 8452
+        },
+        "exit": {
+          "queries": 5667,
+          "settled": 103685,
+          "relaxed": 328791,
+          "heuristicCalls": 209700,
+          "stronger": 61981,
+          "certified": 615,
+          "fallbacks": 0,
+          "ms": 278.1794900000259,
+          "tree": {
+            "treeSettled": 23563,
+            "treeRelaxed": 126455,
+            "created": 207,
+            "invalidations": 202,
+            "invalidationChecks": 1214,
+            "highRecords": 930,
+            "highFrontier": 259,
+            "highTouched": 1114,
+            "growthMs": 124.3715119999888,
+            "invalidationMs": 1.098271000020759
+          },
+          "dispatchMs": 290.36098300006597,
+          "totalSettled": 127248,
+          "totalMs": 450.609322000013,
+          "costCacheTiles": 4220,
+          "costCacheEdges": 8400
+        }
+      },
+      "trial": "tiny"
+    },
+    {
+      "seed": 7,
+      "map": "small",
+      "days": 48,
+      "grow": 64,
+      "cap": 2048,
+      "villages": 11,
+      "population": 348,
+      "instrumentedSimulationMs": 13187.234847,
+      "calls": 72224,
+      "misses": 14889,
+      "compared": 14889,
+      "noRoute": 0,
+      "costChanges": 673,
+      "treads": 218921,
+      "exitTreads": 44286,
+      "differentEqualCostPaths": {
+        "demand": 0,
+        "exit": 0
+      },
+      "strongerHeuristicQueries": {
+        "demand": 13027,
+        "exit": 11176
+      },
+      "nativeRouteMs": 1090.1318110004067,
+      "exitHookMs": 518.4763560001184,
+      "models": {
+        "control": {
+          "queries": 14889,
+          "settled": 315059,
+          "relaxed": 940220,
+          "heuristicCalls": 596801,
+          "stronger": 0,
+          "certified": 0,
+          "fallbacks": 0,
+          "ms": 654.6245690000196,
+          "dispatchMs": 670.9108990000732,
+          "totalSettled": 315059,
+          "totalMs": 670.9108990000732,
+          "costCacheTiles": 5213,
+          "costCacheEdges": 12056
+        },
+        "demand": {
+          "queries": 14889,
+          "settled": 245703,
+          "relaxed": 750422,
+          "heuristicCalls": 493365,
+          "stronger": 193157,
+          "certified": 1764,
+          "fallbacks": 0,
+          "ms": 658.9986470000144,
+          "tree": {
+            "treeSettled": 91732,
+            "treeRelaxed": 494602,
+            "created": 449,
+            "invalidations": 440,
+            "invalidationChecks": 4042,
+            "highRecords": 3295,
+            "highFrontier": 707,
+            "highTouched": 3746,
+            "growthMs": 537.5280610000477,
+            "invalidationMs": 5.138348000000406
+          },
+          "dispatchMs": 1263.823243000053,
+          "totalSettled": 337435,
+          "totalMs": 1268.9615910000534,
+          "costCacheTiles": 5272,
+          "costCacheEdges": 12221
+        },
+        "exit": {
+          "queries": 14889,
+          "settled": 272332,
+          "relaxed": 823878,
+          "heuristicCalls": 530046,
+          "stronger": 132391,
+          "certified": 1386,
+          "fallbacks": 0,
+          "ms": 778.7669220000475,
+          "tree": {
+            "treeSettled": 54287,
+            "treeRelaxed": 286810,
+            "created": 426,
+            "invalidations": 417,
+            "invalidationChecks": 4281,
+            "highRecords": 1931,
+            "highFrontier": 507,
+            "highTouched": 2243,
+            "growthMs": 377.7055860001683,
+            "invalidationMs": 3.2011719999654815
+          },
+          "dispatchMs": 809.7324380000491,
+          "totalSettled": 326619,
+          "totalMs": 1331.409966000133,
+          "costCacheTiles": 5193,
+          "costCacheEdges": 12020
+        }
+      },
+      "trial": "small"
+    },
+    {
+      "seed": 42,
+      "map": "small",
+      "days": 48,
+      "grow": 64,
+      "cap": 2048,
+      "villages": 9,
+      "population": 349,
+      "instrumentedSimulationMs": 8650.234714000002,
+      "calls": 74495,
+      "misses": 18036,
+      "compared": 18035,
+      "noRoute": 1,
+      "costChanges": 813,
+      "treads": 266093,
+      "exitTreads": 57109,
+      "differentEqualCostPaths": {
+        "demand": 0,
+        "exit": 0
+      },
+      "strongerHeuristicQueries": {
+        "demand": 15470,
+        "exit": 13394
+      },
+      "nativeRouteMs": 816.768868000021,
+      "exitHookMs": 262.6076459980977,
+      "models": {
+        "control": {
+          "queries": 18036,
+          "settled": 519259,
+          "relaxed": 1543220,
+          "heuristicCalls": 953420,
+          "stronger": 0,
+          "certified": 0,
+          "fallbacks": 0,
+          "ms": 615.8527609999983,
+          "dispatchMs": 627.2046519998839,
+          "totalSettled": 519259,
+          "totalMs": 627.2046519998839,
+          "costCacheTiles": 7219,
+          "costCacheEdges": 15971
+        },
+        "demand": {
+          "queries": 18036,
+          "settled": 399172,
+          "relaxed": 1210535,
+          "heuristicCalls": 768786,
+          "stronger": 287872,
+          "certified": 2405,
+          "fallbacks": 0,
+          "ms": 612.9914530002097,
+          "tree": {
+            "treeSettled": 104451,
+            "treeRelaxed": 565133,
+            "created": 482,
+            "invalidations": 474,
+            "invalidationChecks": 4386,
+            "highRecords": 3171,
+            "highFrontier": 555,
+            "highTouched": 3730,
+            "growthMs": 276.37388899962025,
+            "invalidationMs": 2.3719000000710366
+          },
+          "dispatchMs": 917.5262509998101,
+          "totalSettled": 503623,
+          "totalMs": 919.8981509998812,
+          "costCacheTiles": 7301,
+          "costCacheEdges": 16122
+        },
+        "exit": {
+          "queries": 18036,
+          "settled": 438722,
+          "relaxed": 1322488,
+          "heuristicCalls": 826509,
+          "stronger": 207527,
+          "certified": 1835,
+          "fallbacks": 0,
+          "ms": 653.7645609999672,
+          "tree": {
+            "treeSettled": 65186,
+            "treeRelaxed": 350905,
+            "created": 458,
+            "invalidations": 450,
+            "invalidationChecks": 4621,
+            "highRecords": 1739,
+            "highFrontier": 459,
+            "highTouched": 2048,
+            "growthMs": 194.17409099997894,
+            "invalidationMs": 1.97492500008957
+          },
+          "dispatchMs": 675.571524000341,
+          "totalSettled": 503908,
+          "totalMs": 940.1540949985283,
+          "costCacheTiles": 7236,
+          "costCacheEdges": 15988
+        }
+      },
+      "trial": "small"
+    },
+    {
+      "seed": 7,
+      "map": "tiny",
+      "days": 48,
+      "grow": 8,
+      "cap": 256,
+      "villages": 3,
+      "population": 134,
+      "instrumentedSimulationMs": 7154.597747000001,
+      "calls": 28100,
+      "misses": 7435,
+      "compared": 7435,
+      "noRoute": 0,
+      "costChanges": 263,
+      "treads": 106603,
+      "exitTreads": 18207,
+      "differentEqualCostPaths": {
+        "demand": 0,
+        "exit": 0
+      },
+      "strongerHeuristicQueries": {
+        "demand": 6294,
+        "exit": 5605
+      },
+      "nativeRouteMs": 667.5501919999776,
+      "exitHookMs": 255.2639789998825,
+      "models": {
+        "control": {
+          "queries": 7435,
+          "settled": 183751,
+          "relaxed": 544262,
+          "heuristicCalls": 344115,
+          "stronger": 0,
+          "certified": 0,
+          "fallbacks": 0,
+          "ms": 367.89303499996345,
+          "dispatchMs": 400.040422000018,
+          "totalSettled": 183751,
+          "totalMs": 400.040422000018,
+          "costCacheTiles": 2627,
+          "costCacheEdges": 5712
+        },
+        "demand": {
+          "queries": 7435,
+          "settled": 159243,
+          "relaxed": 478081,
+          "heuristicCalls": 305027,
+          "stronger": 80602,
+          "certified": 683,
+          "fallbacks": 0,
+          "ms": 419.4087039999556,
+          "tree": {
+            "treeSettled": 15111,
+            "treeRelaxed": 80313,
+            "created": 112,
+            "invalidations": 110,
+            "invalidationChecks": 345,
+            "highRecords": 419,
+            "highFrontier": 130,
+            "highTouched": 498,
+            "growthMs": 124.69856800001708,
+            "invalidationMs": 1.0003480000016225
+          },
+          "dispatchMs": 573.7999969999876,
+          "totalSettled": 174354,
+          "totalMs": 574.8003449999892,
+          "costCacheTiles": 2627,
+          "costCacheEdges": 5712
+        },
+        "exit": {
+          "queries": 7435,
+          "settled": 163899,
+          "relaxed": 490895,
+          "heuristicCalls": 312329,
+          "stronger": 67871,
+          "certified": 536,
+          "fallbacks": 0,
+          "ms": 471.51066000002356,
+          "tree": {
+            "treeSettled": 14194,
+            "treeRelaxed": 75252,
+            "created": 112,
+            "invalidations": 110,
+            "invalidationChecks": 350,
+            "highRecords": 420,
+            "highFrontier": 130,
+            "highTouched": 503,
+            "growthMs": 156.56216299999392,
+            "invalidationMs": 0.6186009999953512
+          },
+          "dispatchMs": 488.25072699997986,
+          "totalSettled": 178093,
+          "totalMs": 744.1333069998577,
+          "costCacheTiles": 2627,
+          "costCacheEdges": 5712
+        }
+      },
+      "trial": "tiny-bounded"
+    },
+    {
+      "seed": 42,
+      "map": "tiny",
+      "days": 48,
+      "grow": 8,
+      "cap": 256,
+      "villages": 5,
+      "population": 138,
+      "instrumentedSimulationMs": 4306.767759,
+      "calls": 27852,
+      "misses": 5667,
+      "compared": 5666,
+      "noRoute": 1,
+      "costChanges": 326,
+      "treads": 80505,
+      "exitTreads": 20802,
+      "differentEqualCostPaths": {
+        "demand": 0,
+        "exit": 0
+      },
+      "strongerHeuristicQueries": {
+        "demand": 4691,
+        "exit": 4104
+      },
+      "nativeRouteMs": 413.409183000078,
+      "exitHookMs": 117.23582700008046,
+      "models": {
+        "control": {
+          "queries": 5667,
+          "settled": 123864,
+          "relaxed": 387790,
+          "heuristicCalls": 242348,
+          "stronger": 0,
+          "certified": 0,
+          "fallbacks": 0,
+          "ms": 192.13933400002134,
+          "dispatchMs": 195.56263000006038,
+          "totalSettled": 123864,
+          "totalMs": 195.56263000006038,
+          "costCacheTiles": 4216,
+          "costCacheEdges": 8385
+        },
+        "demand": {
+          "queries": 5667,
+          "settled": 106224,
+          "relaxed": 336287,
+          "heuristicCalls": 213113,
+          "stronger": 60361,
+          "certified": 601,
+          "fallbacks": 0,
+          "ms": 200.18883100003586,
+          "tree": {
+            "treeSettled": 16846,
+            "treeRelaxed": 90624,
+            "created": 192,
+            "invalidations": 187,
+            "invalidationChecks": 1183,
+            "highRecords": 775,
+            "highFrontier": 243,
+            "highTouched": 908,
+            "growthMs": 90.8397060000625,
+            "invalidationMs": 0.8469109999969078
+          },
+          "dispatchMs": 301.6900139999325,
+          "totalSettled": 123070,
+          "totalMs": 302.5369249999294,
+          "costCacheTiles": 4220,
+          "costCacheEdges": 8398
+        },
+        "exit": {
+          "queries": 5667,
+          "settled": 109358,
+          "relaxed": 345690,
+          "heuristicCalls": 218476,
+          "stronger": 52341,
+          "certified": 502,
+          "fallbacks": 0,
+          "ms": 262.18233699997654,
+          "tree": {
+            "treeSettled": 17104,
+            "treeRelaxed": 91926,
+            "created": 200,
+            "invalidations": 195,
+            "invalidationChecks": 1216,
+            "highRecords": 810,
+            "highFrontier": 238,
+            "highTouched": 958,
+            "growthMs": 82.3940160001548,
+            "invalidationMs": 0.7242310000165162
+          },
+          "dispatchMs": 271.49937299995327,
+          "totalSettled": 126462,
+          "totalMs": 389.45943100005024,
+          "costCacheTiles": 4221,
+          "costCacheEdges": 8401
+        }
+      },
+      "trial": "tiny-bounded"
+    },
+    {
+      "seed": null,
+      "map": "small seed 7 after five years (local save)",
+      "days": 48,
+      "grow": 64,
+      "cap": 2048,
+      "villages": 11,
+      "population": 389,
+      "instrumentedSimulationMs": 15166.749647999999,
+      "calls": 81235,
+      "misses": 10798,
+      "compared": 10797,
+      "noRoute": 1,
+      "costChanges": 469,
+      "treads": 250613,
+      "exitTreads": 32968,
+      "differentEqualCostPaths": {
+        "demand": 0,
+        "exit": 0
+      },
+      "strongerHeuristicQueries": {
+        "demand": 9311,
+        "exit": 8169
+      },
+      "nativeRouteMs": 964.932948000094,
+      "exitHookMs": 379.3294670001003,
+      "models": {
+        "control": {
+          "queries": 10798,
+          "settled": 309045,
+          "relaxed": 925076,
+          "heuristicCalls": 573289,
+          "stronger": 0,
+          "certified": 0,
+          "fallbacks": 0,
+          "ms": 723.2024509999578,
+          "dispatchMs": 734.6154350000281,
+          "totalSettled": 309045,
+          "totalMs": 734.6154350000281,
+          "costCacheTiles": 8417,
+          "costCacheEdges": 19330
+        },
+        "demand": {
+          "queries": 10798,
+          "settled": 236344,
+          "relaxed": 724298,
+          "heuristicCalls": 462769,
+          "stronger": 172668,
+          "certified": 1366,
+          "fallbacks": 0,
+          "ms": 767.6566349999814,
+          "tree": {
+            "treeSettled": 77674,
+            "treeRelaxed": 418659,
+            "created": 319,
+            "invalidations": 310,
+            "invalidationChecks": 2991,
+            "highRecords": 3943,
+            "highFrontier": 792,
+            "highTouched": 4485,
+            "growthMs": 421.94328699997595,
+            "invalidationMs": 2.6007860000077017
+          },
+          "dispatchMs": 1227.3294989999777,
+          "totalSettled": 314018,
+          "totalMs": 1229.9302849999854,
+          "costCacheTiles": 8470,
+          "costCacheEdges": 19531
+        },
+        "exit": {
+          "queries": 10798,
+          "settled": 265490,
+          "relaxed": 804990,
+          "heuristicCalls": 505527,
+          "stronger": 127253,
+          "certified": 1054,
+          "fallbacks": 0,
+          "ms": 858.2859749999955,
+          "tree": {
+            "treeSettled": 41736,
+            "treeRelaxed": 221026,
+            "created": 269,
+            "invalidations": 260,
+            "invalidationChecks": 3387,
+            "highRecords": 2520,
+            "highFrontier": 654,
+            "highTouched": 2883,
+            "growthMs": 290.8585330000485,
+            "invalidationMs": 2.866494000001694
+          },
+          "dispatchMs": 893.3329539999304,
+          "totalSettled": 307226,
+          "totalMs": 1275.5289150000324,
+          "costCacheTiles": 8471,
+          "costCacheEdges": 19495
+        }
+      },
+      "trial": "small-y5"
+    },
+    {
+      "seed": 7,
+      "map": "large",
+      "days": 48,
+      "grow": 64,
+      "cap": 2048,
+      "villages": 24,
+      "population": 809,
+      "instrumentedSimulationMs": 23662.569627999997,
+      "calls": 177741,
+      "misses": 40639,
+      "compared": 40635,
+      "noRoute": 4,
+      "costChanges": 1896,
+      "treads": 573344,
+      "exitTreads": 118557,
+      "differentEqualCostPaths": {
+        "demand": 0,
+        "exit": 0
+      },
+      "strongerHeuristicQueries": {
+        "demand": 35331,
+        "exit": 30398
+      },
+      "nativeRouteMs": 1773.2510650011918,
+      "exitHookMs": 861.0275070014759,
+      "models": {
+        "control": {
+          "queries": 40639,
+          "settled": 882147,
+          "relaxed": 2683398,
+          "heuristicCalls": 1683124,
+          "stronger": 0,
+          "certified": 0,
+          "fallbacks": 0,
+          "ms": 1569.8782879998398,
+          "dispatchMs": 1598.5384020002348,
+          "totalSettled": 882147,
+          "totalMs": 1598.5384020002348,
+          "costCacheTiles": 9923,
+          "costCacheEdges": 24714
+        },
+        "demand": {
+          "queries": 40639,
+          "settled": 712710,
+          "relaxed": 2219122,
+          "heuristicCalls": 1428294,
+          "stronger": 470931,
+          "certified": 4808,
+          "fallbacks": 0,
+          "ms": 1543.0122169993138,
+          "tree": {
+            "treeSettled": 305559,
+            "treeRelaxed": 1690324,
+            "created": 1293,
+            "invalidations": 1272,
+            "invalidationChecks": 27869,
+            "highRecords": 8122,
+            "highFrontier": 1656,
+            "highTouched": 8951,
+            "growthMs": 1033.2929449995281,
+            "invalidationMs": 13.128381000073205
+          },
+          "dispatchMs": 2710.540958000085,
+          "totalSettled": 1018269,
+          "totalMs": 2723.6693390001583,
+          "costCacheTiles": 11224,
+          "costCacheEdges": 28171
+        },
+        "exit": {
+          "queries": 40639,
+          "settled": 777582,
+          "relaxed": 2400409,
+          "heuristicCalls": 1520270,
+          "stronger": 320186,
+          "certified": 3740,
+          "fallbacks": 0,
+          "ms": 1716.6275970001989,
+          "tree": {
+            "treeSettled": 170646,
+            "treeRelaxed": 930272,
+            "created": 1175,
+            "invalidations": 1154,
+            "invalidationChecks": 29421,
+            "highRecords": 4966,
+            "highFrontier": 1229,
+            "highTouched": 5562,
+            "growthMs": 654.5378559999699,
+            "invalidationMs": 12.871548999974038
+          },
+          "dispatchMs": 1781.225654999953,
+          "totalSettled": 948228,
+          "totalMs": 2655.124711001403,
+          "costCacheTiles": 10301,
+          "costCacheEdges": 25737
+        }
+      },
+      "trial": "large"
+    }
+  ],
+  "developmentImpact": {
+    "before": [
+      {
+        "seed": 7,
+        "population": 134,
+        "hungryPawnDays": 15,
+        "routeSearch": 7109,
+        "routeExpand": 213751,
+        "routeRefresh": 41746,
+        "households": [
+          {
+            "id": 0,
+            "grain": 309.9469197200852
+          },
+          {
+            "id": 1,
+            "grain": 492.3899576473618
+          },
+          {
+            "id": 2,
+            "grain": 423.9080548850806
+          },
+          {
+            "id": 3,
+            "grain": 567.9547494476581
+          },
+          {
+            "id": 4,
+            "grain": 434.42481705954515
+          },
+          {
+            "id": 5,
+            "grain": 383.9295559565238
+          },
+          {
+            "id": 6,
+            "grain": 255.0045108113478
+          },
+          {
+            "id": 7,
+            "grain": 420.6010107946477
+          },
+          {
+            "id": 8,
+            "grain": 379.19775631096144
+          },
+          {
+            "id": 9,
+            "grain": 479.30539729667385
+          },
+          {
+            "id": 10,
+            "grain": 470.67405869174496
+          },
+          {
+            "id": 11,
+            "grain": 248.21372932994058
+          },
+          {
+            "id": 12,
+            "grain": 550.5800327147437
+          },
+          {
+            "id": 13,
+            "grain": 508.8830197790135
+          },
+          {
+            "id": 14,
+            "grain": 465.3978769984044
+          },
+          {
+            "id": 15,
+            "grain": 452.45857972994173
+          },
+          {
+            "id": 16,
+            "grain": 570.2736528242455
+          },
+          {
+            "id": 17,
+            "grain": 370.5217353316606
+          },
+          {
+            "id": 18,
+            "grain": 576.0283795816562
+          },
+          {
+            "id": 19,
+            "grain": 459.89535978836614
+          },
+          {
+            "id": 20,
+            "grain": 71.34438322759326
+          },
+          {
+            "id": 21,
+            "grain": 88.12566883357545
+          },
+          {
+            "id": 22,
+            "grain": 0
+          }
+        ]
+      },
+      {
+        "seed": 42,
+        "population": 138,
+        "hungryPawnDays": 0,
+        "routeSearch": 5299,
+        "routeExpand": 138488,
+        "routeRefresh": 40813,
+        "households": [
+          {
+            "id": 0,
+            "grain": 520.9663616772758
+          },
+          {
+            "id": 1,
+            "grain": 421.9132528984845
+          },
+          {
+            "id": 2,
+            "grain": 356.34360485490754
+          },
+          {
+            "id": 3,
+            "grain": 525.3297834491439
+          },
+          {
+            "id": 4,
+            "grain": 608.0754763493
+          },
+          {
+            "id": 5,
+            "grain": 555.6813298257031
+          },
+          {
+            "id": 6,
+            "grain": 555.6211417825137
+          },
+          {
+            "id": 7,
+            "grain": 320.97698037477835
+          },
+          {
+            "id": 8,
+            "grain": 471.3063820921134
+          },
+          {
+            "id": 9,
+            "grain": 708.5389042626144
+          },
+          {
+            "id": 10,
+            "grain": 304.8414217956826
+          },
+          {
+            "id": 11,
+            "grain": 383.896307899978
+          },
+          {
+            "id": 12,
+            "grain": 488.8333895757473
+          },
+          {
+            "id": 13,
+            "grain": 278.8436818498184
+          },
+          {
+            "id": 14,
+            "grain": 351.63232043386296
+          },
+          {
+            "id": 15,
+            "grain": 565.7944003428569
+          },
+          {
+            "id": 16,
+            "grain": 483.7700204369535
+          },
+          {
+            "id": 17,
+            "grain": 378.176658934366
+          },
+          {
+            "id": 18,
+            "grain": 477.4875569755596
+          },
+          {
+            "id": 19,
+            "grain": 289.37117158149863
+          },
+          {
+            "id": 20,
+            "grain": 358.7105779978341
+          },
+          {
+            "id": 21,
+            "grain": 331.00696803421107
+          },
+          {
+            "id": 22,
+            "grain": 49.27832081945304
+          },
+          {
+            "id": 23,
+            "grain": 44.39545321025664
+          },
+          {
+            "id": 24,
+            "grain": 48.416118571900476
+          },
+          {
+            "id": 25,
+            "grain": 48.16409156665417
+          },
+          {
+            "id": 26,
+            "grain": 44.67579950172819
+          },
+          {
+            "id": 27,
+            "grain": 44.95538545413983
+          }
+        ]
+      }
+    ],
+    "after": [
+      {
+        "seed": 7,
+        "population": 134,
+        "hungryPawnDays": 0,
+        "routeSearch": 7514,
+        "routeExpand": 211442,
+        "routeRefresh": 40171,
+        "households": [
+          {
+            "id": 0,
+            "grain": 297.7494355472623
+          },
+          {
+            "id": 1,
+            "grain": 497.45676035117344
+          },
+          {
+            "id": 2,
+            "grain": 417.4644846563197
+          },
+          {
+            "id": 3,
+            "grain": 554.2020261480626
+          },
+          {
+            "id": 4,
+            "grain": 446.6489712999741
+          },
+          {
+            "id": 5,
+            "grain": 389.928903619314
+          },
+          {
+            "id": 6,
+            "grain": 257.2815106011314
+          },
+          {
+            "id": 7,
+            "grain": 434.25235792211043
+          },
+          {
+            "id": 8,
+            "grain": 362.8390089582181
+          },
+          {
+            "id": 9,
+            "grain": 481.5388738525604
+          },
+          {
+            "id": 10,
+            "grain": 455.77761967168504
+          },
+          {
+            "id": 11,
+            "grain": 241.3766733479034
+          },
+          {
+            "id": 12,
+            "grain": 568.5095458867531
+          },
+          {
+            "id": 13,
+            "grain": 512.992686005997
+          },
+          {
+            "id": 14,
+            "grain": 476.131567604414
+          },
+          {
+            "id": 15,
+            "grain": 438.0618165161278
+          },
+          {
+            "id": 16,
+            "grain": 585.4657706730701
+          },
+          {
+            "id": 17,
+            "grain": 372.6024421487942
+          },
+          {
+            "id": 18,
+            "grain": 577.5879332623687
+          },
+          {
+            "id": 19,
+            "grain": 457.9861546854832
+          },
+          {
+            "id": 20,
+            "grain": 71.34438322759326
+          },
+          {
+            "id": 21,
+            "grain": 88.12566883357545
+          },
+          {
+            "id": 22,
+            "grain": 13.43910535111815
+          }
+        ]
+      },
+      {
+        "seed": 42,
+        "population": 138,
+        "hungryPawnDays": 0,
+        "routeSearch": 5726,
+        "routeExpand": 152610,
+        "routeRefresh": 35736,
+        "households": [
+          {
+            "id": 0,
+            "grain": 510.34835237174775
+          },
+          {
+            "id": 1,
+            "grain": 410.0510421592476
+          },
+          {
+            "id": 2,
+            "grain": 346.00404871405493
+          },
+          {
+            "id": 3,
+            "grain": 496.9840475207692
+          },
+          {
+            "id": 4,
+            "grain": 650.1804450548268
+          },
+          {
+            "id": 5,
+            "grain": 520.4452052556787
+          },
+          {
+            "id": 6,
+            "grain": 482.87538211373965
+          },
+          {
+            "id": 7,
+            "grain": 308.5875914965795
+          },
+          {
+            "id": 8,
+            "grain": 626.9550437591762
+          },
+          {
+            "id": 9,
+            "grain": 677.671571638558
+          },
+          {
+            "id": 10,
+            "grain": 332.73067742580054
+          },
+          {
+            "id": 11,
+            "grain": 371.72892605697876
+          },
+          {
+            "id": 12,
+            "grain": 466.40413195761863
+          },
+          {
+            "id": 13,
+            "grain": 306.59901796455586
+          },
+          {
+            "id": 14,
+            "grain": 340.27400188911776
+          },
+          {
+            "id": 15,
+            "grain": 658.7412885972972
+          },
+          {
+            "id": 16,
+            "grain": 494.22703583555415
+          },
+          {
+            "id": 17,
+            "grain": 357.1949061367881
+          },
+          {
+            "id": 18,
+            "grain": 512.0832779235946
+          },
+          {
+            "id": 19,
+            "grain": 354.2985837107767
+          },
+          {
+            "id": 20,
+            "grain": 339.00228337266566
+          },
+          {
+            "id": 21,
+            "grain": 329.09118310824823
+          },
+          {
+            "id": 22,
+            "grain": 50.760445562406865
+          },
+          {
+            "id": 23,
+            "grain": 48.47857815985085
+          },
+          {
+            "id": 24,
+            "grain": 44.67579950172819
+          },
+          {
+            "id": 25,
+            "grain": 0
+          },
+          {
+            "id": 26,
+            "grain": 44.67579950172819
+          },
+          {
+            "id": 27,
+            "grain": 0
+          }
+        ]
+      }
+    ]
+  },
+  "integrationSmoke": {
+    "base": "fcec025 (bridge construction)",
+    "result": {
+      "seed": 7,
+      "map": "tiny",
+      "days": 2,
+      "grow": 64,
+      "cap": 2048,
+      "villages": 2,
+      "population": 133,
+      "instrumentedSimulationMs": 306.0165330000001,
+      "calls": 1183,
+      "misses": 508,
+      "compared": 508,
+      "noRoute": 0,
+      "costChanges": 7,
+      "treads": 3293,
+      "exitTreads": 741,
+      "differentEqualCostPaths": {
+        "demand": 0,
+        "exit": 0
+      },
+      "strongerHeuristicQueries": {
+        "demand": 400,
+        "exit": 337
+      },
+      "nativeRouteMs": 19.306739999999195,
+      "exitHookMs": 5.685295999997834,
+      "models": {
+        "control": {
+          "queries": 508,
+          "settled": 6892,
+          "relaxed": 20505,
+          "heuristicCalls": 13840,
+          "stronger": 0,
+          "certified": 0,
+          "fallbacks": 0,
+          "ms": 15.938399999998978,
+          "dispatchMs": 16.418674000001374,
+          "totalSettled": 6892,
+          "totalMs": 16.418674000001374,
+          "costCacheTiles": 659,
+          "costCacheEdges": 1393
+        },
+        "demand": {
+          "queries": 508,
+          "settled": 4380,
+          "relaxed": 13323,
+          "heuristicCalls": 9411,
+          "stronger": 4497,
+          "certified": 107,
+          "fallbacks": 0,
+          "ms": 10.37112299999933,
+          "tree": {
+            "treeSettled": 863,
+            "treeRelaxed": 4606,
+            "created": 4,
+            "invalidations": 2,
+            "invalidationChecks": 6,
+            "highRecords": 610,
+            "highFrontier": 149,
+            "highTouched": 750,
+            "growthMs": 6.8306070000006684,
+            "invalidationMs": 0.04081500000006599
+          },
+          "dispatchMs": 18.60004599999877,
+          "totalSettled": 5243,
+          "totalMs": 18.640860999998836,
+          "costCacheTiles": 764,
+          "costCacheEdges": 1601
+        },
+        "exit": {
+          "queries": 508,
+          "settled": 5412,
+          "relaxed": 16304,
+          "heuristicCalls": 11205,
+          "stronger": 3777,
+          "certified": 68,
+          "fallbacks": 0,
+          "ms": 12.975415000000567,
+          "tree": {
+            "treeSettled": 575,
+            "treeRelaxed": 3078,
+            "created": 4,
+            "invalidations": 2,
+            "invalidationChecks": 6,
+            "highRecords": 423,
+            "highFrontier": 126,
+            "highTouched": 501,
+            "growthMs": 4.235710999998332,
+            "invalidationMs": 0.02589500000010503
+          },
+          "dispatchMs": 13.719011999998997,
+          "totalSettled": 5987,
+          "totalMs": 19.430202999996936,
+          "costCacheTiles": 653,
+          "costCacheEdges": 1382
+        }
+      }
+    }
+  },
+  "counterImpact": {
+    "base": "fcec025 (bridge construction)",
+    "before": "TARGET counters/routeSearch 0.584/pawn-day 0.3605555555555556/pawn-day +0.2234 out\nTARGET counters/routeExpand 2.781/pawn-day 1.6475555555555559/pawn-day +1.134 out\nTARGET counters/routeCostTile 7.948/pawn-day 8.792573839662449/pawn-day 0 in\nTARGET counters/routeSlopeEdge 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeBudgetFallback 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeHit 3.684/pawn-day 4.154333333333334/pawn-day 0 in\nTARGET counters/routeRefresh 4.051/pawn-day 0.9203333333333334/pawn-day +3.13 out\nTARGET counters/reachSettled 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeEvict 0/pawn-day 0/pawn-day 0 in\nTARGET counters/talkWeighed 6.561/pawn-day 11.369111111111112/pawn-day 0 in\nTARGET counters/walkStep 89.17/pawn-day 90.64000000000001/pawn-day 0 in\nTARGET counters/walkAwake 24.03/pawn-day 26.43666666666667/pawn-day 0 in\nTARGET counters/idleStroll 3.013/pawn-day 3.487/pawn-day 0 in\nTARGET counters/companyWeighed 4.582/pawn-day 6.3164444444444445/pawn-day 0 in\nTARGET counters/walkPoint 9.186/pawn-day 7.074222222222223/pawn-day +2.112 out\nTARGET counters/walkDaily 5.998/pawn-day 6.6000000000000005/pawn-day 0 in\nTARGET counters/walkTies 0.2768/pawn-day 0.36544444444444446/pawn-day 0 in\nTARGET counters/tiePairs 2.932/pawn-day 2.994444444444445/pawn-day 0 in\nTARGET counters/roundPairs 0.001125/pawn-day 0.002444444444444445/pawn-day 0 in\nTARGET counters/roundWalk 0.06526/pawn-day 0.07178621659634318/pawn-day 0 in\nTARGET counters/heirRank 0.02025/pawn-day 0.02227848101265823/pawn-day 0 in\nTARGET counters/storeWalk 0.06751/pawn-day 0.07333333333333333/pawn-day 0 in\nTARGET counters/recordFold 0/pawn-day 0/pawn-day 0 in\nTARGET counters/ruleValue 1.075/pawn-day 1.1831111111111112/pawn-day 0 in\nTARGET counters/oppAsk 16.84/pawn-day 10.60277777777778/pawn-day +6.234 out\nTARGET counters/planReview 0.2982/pawn-day 0.3055555555555556/pawn-day 0 in\nTARGET counters/matchBid 13.51/pawn-day 7.9750000000000005/pawn-day +5.538 out\nTARGET counters/helpOffer 4.331/pawn-day 4.804725738396624/pawn-day 0 in\nTARGET counters/helpBid 0.3657/pawn-day 0.2722925457102673/pawn-day +0.09339 out\nTARGET counters/lookUpJob 8.002/pawn-day 6.235777777777778/pawn-day +1.766 out\nTARGET counters/occasionAsked 0.01013/pawn-day 0/pawn-day +0.01013 out\nTARGET counters/takeInWeighed 0/pawn-day 0/pawn-day 0 in\nTARGET counters/labourWeighed 0/pawn-day 0/pawn-day 0 in\nTARGET counters/cookFarm 0.8101/pawn-day 0.8800000000000001/pawn-day 0 in\nTARGET counters/forageGround 14.85/pawn-day 17.239444444444445/pawn-day 0 in\nTARGET counters/fishGround 46.3/pawn-day 50.44722222222223/pawn-day 0 in\nTARGET counters/fishReach 0.8574/pawn-day 0.9313333333333335/pawn-day 0 in\nTARGET counters/tarAsk 0.006751/pawn-day 0.007426100000000001/pawn-day 0 in\nTARGET counters/boatAsk 0/pawn-day 0/pawn-day 0 in\nTARGET counters/digGround 2.847/pawn-day 3.095888888888889/pawn-day 0 in\nTARGET counters/cowSeek 0/pawn-day 0.14355/pawn-day 0 in\nTARGET counters/pastureTiles 4.131/pawn-day 41.21577777777778/pawn-day 0 in\nTARGET counters/deerGround 10.57/pawn-day 11.631842475386781/pawn-day 0 in\nTARGET counters/workdayHolders 0/pawn-day 0/pawn-day 0 in\nTARGET counters/frontTile 0/pawn-day 0/pawn-day 0 in\nTARGET counters/deerCrop 0/pawn-day 0/pawn-day 0 in\nTARGET counters/roundRank 0.02025/pawn-day 0.02227848101265823/pawn-day 0 in\ncounters ok: 47 counters, 30 days, two villages, 889 living pawn-days; 89-pair round probe; 9 counters out against baseline\n",
+    "after": "TARGET counters/routeSearch 0.62/pawn-day 0.3605555555555556/pawn-day +0.2594 out\nTARGET counters/routeExpand 2.922/pawn-day 1.6475555555555559/pawn-day +1.275 out\nTARGET counters/routeCostTile 8.375/pawn-day 8.792573839662449/pawn-day 0 in\nTARGET counters/routeSlopeEdge 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeBudgetFallback 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeHit 3.648/pawn-day 4.154333333333334/pawn-day 0 in\nTARGET counters/routeRefresh 3.614/pawn-day 0.9203333333333334/pawn-day +2.694 out\nTARGET counters/reachSettled 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeEvict 0/pawn-day 0/pawn-day 0 in\nTARGET counters/talkWeighed 6.561/pawn-day 11.369111111111112/pawn-day 0 in\nTARGET counters/walkStep 89.17/pawn-day 90.64000000000001/pawn-day 0 in\nTARGET counters/walkAwake 24.03/pawn-day 26.43666666666667/pawn-day 0 in\nTARGET counters/idleStroll 3.013/pawn-day 3.487/pawn-day 0 in\nTARGET counters/companyWeighed 4.582/pawn-day 6.3164444444444445/pawn-day 0 in\nTARGET counters/walkPoint 9.186/pawn-day 7.074222222222223/pawn-day +2.112 out\nTARGET counters/walkDaily 5.998/pawn-day 6.6000000000000005/pawn-day 0 in\nTARGET counters/walkTies 0.2768/pawn-day 0.36544444444444446/pawn-day 0 in\nTARGET counters/tiePairs 2.932/pawn-day 2.994444444444445/pawn-day 0 in\nTARGET counters/roundPairs 0.001125/pawn-day 0.002444444444444445/pawn-day 0 in\nTARGET counters/roundWalk 0.06526/pawn-day 0.07178621659634318/pawn-day 0 in\nTARGET counters/heirRank 0.02025/pawn-day 0.02227848101265823/pawn-day 0 in\nTARGET counters/storeWalk 0.06751/pawn-day 0.07333333333333333/pawn-day 0 in\nTARGET counters/recordFold 0/pawn-day 0/pawn-day 0 in\nTARGET counters/ruleValue 1.075/pawn-day 1.1831111111111112/pawn-day 0 in\nTARGET counters/oppAsk 16.84/pawn-day 10.60277777777778/pawn-day +6.234 out\nTARGET counters/planReview 0.2982/pawn-day 0.3055555555555556/pawn-day 0 in\nTARGET counters/matchBid 13.51/pawn-day 7.9750000000000005/pawn-day +5.538 out\nTARGET counters/helpOffer 4.331/pawn-day 4.804725738396624/pawn-day 0 in\nTARGET counters/helpBid 0.3657/pawn-day 0.2722925457102673/pawn-day +0.09339 out\nTARGET counters/lookUpJob 8.002/pawn-day 6.235777777777778/pawn-day +1.766 out\nTARGET counters/occasionAsked 0.01013/pawn-day 0/pawn-day +0.01013 out\nTARGET counters/takeInWeighed 0/pawn-day 0/pawn-day 0 in\nTARGET counters/labourWeighed 0/pawn-day 0/pawn-day 0 in\nTARGET counters/cookFarm 0.8101/pawn-day 0.8800000000000001/pawn-day 0 in\nTARGET counters/forageGround 14.85/pawn-day 17.239444444444445/pawn-day 0 in\nTARGET counters/fishGround 46.3/pawn-day 50.44722222222223/pawn-day 0 in\nTARGET counters/fishReach 0.8574/pawn-day 0.9313333333333335/pawn-day 0 in\nTARGET counters/tarAsk 0.006751/pawn-day 0.007426100000000001/pawn-day 0 in\nTARGET counters/boatAsk 0/pawn-day 0/pawn-day 0 in\nTARGET counters/digGround 2.847/pawn-day 3.095888888888889/pawn-day 0 in\nTARGET counters/cowSeek 0/pawn-day 0.14355/pawn-day 0 in\nTARGET counters/pastureTiles 4.131/pawn-day 41.21577777777778/pawn-day 0 in\nTARGET counters/deerGround 10.57/pawn-day 11.631842475386781/pawn-day 0 in\nTARGET counters/workdayHolders 0/pawn-day 0/pawn-day 0 in\nTARGET counters/frontTile 0/pawn-day 0/pawn-day 0 in\nTARGET counters/deerCrop 0/pawn-day 0/pawn-day 0 in\nTARGET counters/roundRank 0.02025/pawn-day 0.02227848101265823/pawn-day 0 in\ncounters ok: 47 counters, 30 days, two villages, 889 living pawn-days; 89-pair round probe; 9 counters out against baseline\n"
+  },
+  "validation": {
+    "verify": "108/108 passed; 17 advisory targets out",
+    "unitQueries": 144,
+    "liveMisses": 110566,
+    "foundRoutes": 110558
+  }
+}
