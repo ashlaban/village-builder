@@ -42,5 +42,8 @@
   "deerGround": 10.574402250351618,
   "frontTile": 0,
   "deerCrop": 0,
-  "workdayHolders": 0
+  "workdayHolders": 0,
+  "routeCostTile": 7.99324894514768,
+  "routeSlopeEdge": 0,
+  "routeBudgetFallback": 0
 }

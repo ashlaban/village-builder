@@ -2,27 +2,54 @@
 VB['sim/routes'] = (() => {
   const { TERRAIN, SLOPE, ROUTE, PATHS, SPEED } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
+  const { B } = VB['gen'];
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
   // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too,
   // and its wear takes away a share of what its ground costs above meadow (PATHS.clear, VB-439; not at a ford or on a bridge);
   // the green (w.dev 2) wears no path.
-  function tileCost(w, i) {
+  function tileCost(w, i, preference = false) {
     if (w.water[i]) return Infinity;
-    if (w.dev && w.dev[i]) return w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
-    const c =
+    let c;
+    if (w.dev && w.dev[i]) {
+      c = w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
+    } else {
+      c =
         w.river && w.river[i]
           ? w.crossing[i] === 1
             ? TERRAIN.ford
             : w.crossing[i] === 2
               ? TERRAIN.bridge
               : Infinity
-          : 0,
-      s = w.worn ? w.worn[i] : 0;
-    if (c) return c / PATHS.speed[s];
-    return (1 + ((TERRAIN[w.biome[i]] ?? 1) - 1) * (1 - PATHS.clear[s])) / PATHS.speed[s];
+          : (TERRAIN[w.biome[i]] ?? 1);
+      const stage = w.worn ? w.worn[i] : 0;
+      if (!(w.river && w.river[i]) && c < Infinity) c = 1 + (c - 1) * (1 - PATHS.clear[stage]);
+      c /= PATHS.speed[stage];
+    }
+    return preference && c < Infinity ? c * effortFactor(w, i) : c;
   }
+  // A preference allowance grounded in surface-energy measurements, not an estimate of individual calorie use. Persistent
+  // moisture is the generator's rainfall/valley-wetness proxy, not today's rain; st.weather is a harvest factor and is not read.
+  function effortFactor(w, i) {
+    const e = PATHS.effort;
+    if (e.weight === 0 || (w.river && w.river[i] && w.crossing[i] === 2)) return 1;
+    const developed = w.dev && w.dev[i],
+      biome = w.biome[i],
+      ground = developed ? e.firm : (e.ground[biome] ?? e.firm),
+      excess = Math.max(0, ground - e.firm),
+      soft = !developed && (biome === B.BEACH || biome === B.MARSH),
+      remaining = developed === 2 ? 0 : e.remaining[w.worn ? w.worn[i] : 0],
+      moisture = w.hm ? Math.min(1, Math.max(0, (w.hm[i] - e.wetAbove) / (1 - e.wetAbove))) : 0,
+      wet = e.wetExtra * moisture;
+    return 1 + e.weight * (e.firm - 1 + (soft ? Math.max(excess, wet) : excess * remaining + wet));
+  }
+  // Every route within a physical budget has choice cost below this conservative bound. The allowance never changes reach hours.
+  const choiceBound = (budget) =>
+    budget *
+    (1 +
+      PATHS.effort.weight *
+        (Math.max(PATHS.effort.firm, ...Object.values(PATHS.effort.ground)) - 1 + PATHS.effort.wetExtra));
   // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses).
   const passable = (w, i) => i >= 0 && (tileCost(w, i) < Infinity || (!!w.dev && w.dev[i] === 3));
   // Land a route may cross: passable, and not a house.
@@ -43,21 +70,32 @@ VB['sim/routes'] = (() => {
   };
   // Cost of the step between neighbouring tiles a and b: the mean of their costs times the slope's factor; a closed end (where a
   // route starts or ends) counts as meadow.
-  const stepCost = (w, a, b) => {
-    const ca = tileCost(w, a),
-      cb = tileCost(w, b);
+  const stepCost = (w, a, b, preference = false) => {
+    const ca = tileCost(w, a, preference),
+      cb = tileCost(w, b, preference);
     return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
   };
 
   const STRAIGHT = 1e-3; // see findRoute: what a tile's width off the straight line adds to a tile's key, in steps
   // ---- the search: A* (Hart, Nilsson and Raphael 1968) with the hex distance times the cheapest step as the bound ----
-  // Scratch arrays per world, reused by every search: g (cost so far), prev, and the search that last touched each tile (mark).
+  // Scratch arrays per world, reused by every search. Compiled tile costs are stamped per search, so even direct edits during
+  // generation, an editor session or load cannot leave stale terrain costs. Slope rows persist across searches, checked against
+  // their endpoint heights before use. These derived buffers are not world/state truth and are never saved (VB-440).
   const scratch = new WeakMap();
   function buffers(w) {
     let s = scratch.get(w);
     if (!s) {
       s = {
         g: new Float64Array(w.N),
+        time: new Float64Array(w.N),
+        walking: new Float64Array(w.N),
+        choice: new Float64Array(w.N),
+        costMark: new Uint32Array(w.N),
+        heights: new Float64Array(w.N).fill(NaN),
+        slopeReady: new Uint8Array(w.N),
+        slopes: null,
+        heightmap: null,
+        slopeRule: '',
         prev: new Int32Array(w.N),
         mark: new Uint32Array(w.N),
         shut: new Uint32Array(w.N),
@@ -67,16 +105,76 @@ VB['sim/routes'] = (() => {
       };
       scratch.set(w, s);
     }
+    const rule = `${SLOPE.tobler}/${SLOPE.grade}/${SLOPE.max}`;
+    if (s.heightmap !== w.he || s.slopeRule !== rule) {
+      s.heightmap = w.he;
+      s.slopeRule = rule;
+      s.slopeReady.fill(0);
+      s.heights.fill(NaN);
+      if (w.he && !s.slopes) s.slopes = new Float64Array(w.N * 6);
+    }
     return s;
   }
-  // A binary heap of tiles by key, in two plain arrays; the lower key first, ties by the lower tile index.
+  // Compile physical time and active effort preference separately. Movement reads physical cost; choice adds an effort allowance.
+  // The stage speed bonus remains a physical-time rule; the obstruction term represents extra effort at a given walking pace.
+  function compileTile(w, s, i) {
+    if (s.costMark[i] === s.run) return;
+    s.walking[i] = tileCost(w, i);
+    s.choice[i] = s.walking[i] < Infinity ? s.walking[i] * effortFactor(w, i) : Infinity;
+    s.costMark[i] = s.run;
+    VB.count.routeCostTile++;
+  }
+  function checkHeight(w, s, i) {
+    if (s.heights[i] === w.he[i]) return;
+    s.heights[i] = w.he[i];
+    s.slopeReady[i] = 0;
+    for (let d = 0; d < 6; d++) {
+      const j = w.nb[i * 6 + d];
+      if (j >= 0) s.slopeReady[j] = 0;
+    }
+  }
+  // Each expanded tile checks its seven heights. An unchanged row costs only lookups; a changed height invalidates neighbouring
+  // rows too. Thus slopes compile at most once per row until relief/rules change, without relying on terrain-change notifications.
+  function compileSlopes(w, s, i) {
+    if (!w.he) return;
+    checkHeight(w, s, i);
+    for (let d = 0; d < 6; d++) {
+      const j = w.nb[i * 6 + d];
+      if (j >= 0) checkHeight(w, s, j);
+    }
+    if (s.slopeReady[i]) return;
+    let edges = 0;
+    for (let d = 0; d < 6; d++) {
+      const j = w.nb[i * 6 + d];
+      if (j < 0) continue;
+      s.slopes[i * 6 + d] = slopeFactor(w, i, j);
+      edges++;
+    }
+    s.slopeReady[i] = 1;
+    VB.count.routeSlopeEdge += edges;
+  }
+  // Same arithmetic as stepCost, including the meadow allowance for a closed endpoint. Choice points stay separate from time.
+  const compiledStep = (w, s, costs, i, j, d) => {
+    const ca = costs[i],
+      cb = costs[j];
+    return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * (w.he ? s.slopes[i * 6 + d] : 1);
+  };
+  // A binary heap: preference first, physical time second, straightness third, then tile index.
   function heap() {
     const k = [],
-      n = [];
-    const less = (a, b) => k[a] < k[b] || (k[a] === k[b] && n[a] < n[b]);
+      n = [],
+      time = [],
+      straight = [];
+    const less = (a, b) =>
+      k[a] < k[b] ||
+      (k[a] === k[b] &&
+        (time[a] < time[b] ||
+          (time[a] === time[b] && (straight[a] < straight[b] || (straight[a] === straight[b] && n[a] < n[b])))));
     const swap = (a, b) => {
       [k[a], k[b]] = [k[b], k[a]];
       [n[a], n[b]] = [n[b], n[a]];
+      [time[a], time[b]] = [time[b], time[a]];
+      [straight[a], straight[b]] = [straight[b], straight[a]];
     };
     return {
       get size() {
@@ -85,10 +183,14 @@ VB['sim/routes'] = (() => {
       clear() {
         k.length = 0;
         n.length = 0;
+        time.length = 0;
+        straight.length = 0;
       },
-      push(key, tile) {
+      push(key, tile, hours = 0, bias = 0) {
         let c = k.push(key) - 1;
         n.push(tile);
+        time.push(hours);
+        straight.push(bias);
         while (c > 0) {
           const p = (c - 1) >> 1;
           if (!less(c, p)) break;
@@ -99,10 +201,14 @@ VB['sim/routes'] = (() => {
       pop() {
         const top = n[0],
           lk = k.pop(),
-          ln = n.pop();
+          ln = n.pop(),
+          lt = time.pop(),
+          ls = straight.pop();
         if (n.length) {
           k[0] = lk;
           n[0] = ln;
+          time[0] = lt;
+          straight[0] = ls;
           for (let c = 0; ;) {
             const l = 2 * c + 1,
               r = l + 1;
@@ -118,9 +224,11 @@ VB['sim/routes'] = (() => {
       },
     };
   }
-  // The cheapest route from `from` to `to`, both ends included, or null when every route costs more than maxCost.
+  // Prefer the least effort-adjusted cost. maxCost is still a physical walking budget in meadow-step units: if the preferred
+  // route exceeds it, use the fastest feasible route instead. This preserves reach without a costly multi-label constrained search.
+  // prefer=false is the physical fallback and the reference mode for diagnostics/tests.
   // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
-  function findRoute(w, from, to, maxCost = ROUTE.reach) {
+  function findRoute(w, from, to, maxCost = ROUTE.reach, prefer = true) {
     if (from === to) return [from];
     VB.count.routeSearch++;
     let expanded = 0;
@@ -128,18 +236,21 @@ VB['sim/routes'] = (() => {
       { g, prev, mark, shut } = S,
       run = ++S.run,
       open = heap(),
-      lo = ROUTE.minStep;
+      lo = ROUTE.minStep,
+      limit = prefer ? choiceBound(maxCost) : maxCost;
     // Among routes that cost the same (on open ground there are many: every staircase between two tiles), the one nearest the straight
-    // line is taken, as people walk: STRAIGHT of a step for each tile's width a tile lies off the line is added to its key, far below
-    // any difference in cost. So the trips between two places wear one line, not a fan of them, and the ways look like ways (VB-402).
+    // line is taken: STRAIGHT times its offset is a tertiary tie-break, after choice and physical time. It never inflates the
+    // admissible heuristic or overrides a cheaper route. This concentrates equal-cost trips without changing their objective (VB-441).
     const flat = !!w.hx,
       fx = flat ? w.hx[from] : 0,
       fy = flat ? w.hy[from] : 0,
       lx = flat ? w.hx[to] - fx : 0,
       ly = flat ? w.hy[to] - fy : 0;
     const off = flat ? STRAIGHT / ((Math.hypot(lx, ly) || 1) * w.HW) : 0; // a world with no tile centres (a test's bare grid) has no line
-    const h = (i) => hexSteps(w, i, to) * lo + (flat ? Math.abs((w.hx[i] - fx) * ly - (w.hy[i] - fy) * lx) * off : 0);
+    const h = (i) => hexSteps(w, i, to) * lo;
+    const bias = (i) => (flat ? Math.abs((w.hx[i] - fx) * ly - (w.hy[i] - fy) * lx) * off : 0);
     g[from] = 0;
+    S.time[from] = 0;
     prev[from] = -1;
     mark[from] = run;
     open.push(h(from), from);
@@ -152,17 +263,28 @@ VB['sim/routes'] = (() => {
         const p = [to];
         for (let j = prev[to]; j >= 0; j = prev[j]) p.push(j);
         VB.count.routeExpand += expanded;
-        return p.reverse();
+        p.reverse();
+        if (prefer && S.time[to] > maxCost) {
+          VB.count.routeBudgetFallback++;
+          return findRoute(w, from, to, maxCost, false);
+        }
+        return p;
       }
+      compileTile(w, S, i);
+      compileSlopes(w, S, i);
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run || (j !== to && !through(w, j))) continue;
-        const gj = g[i] + stepCost(w, i, j);
-        if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
+        if (j < 0 || shut[j] === run) continue;
+        compileTile(w, S, j);
+        if (j !== to && S.walking[j] === Infinity) continue;
+        const time = S.time[i] + compiledStep(w, S, S.walking, i, j, d),
+          gj = g[i] + compiledStep(w, S, prefer ? S.choice : S.walking, i, j, d);
+        if (gj > limit || (mark[j] === run && (gj > g[j] || (gj === g[j] && time >= S.time[j])))) continue;
         g[j] = gj;
+        S.time[j] = time;
         prev[j] = i;
         mark[j] = run;
-        open.push(gj + h(j), j);
+        open.push(gj + h(j), j, time + h(j), bias(j));
       }
     }
     VB.count.routeExpand += expanded;
@@ -172,12 +294,14 @@ VB['sim/routes'] = (() => {
   // targets[i] goes to out[i], or null when it lies beyond maxCost or cannot be reached. The search stops at maxCost, or once every target is
   // settled. As in findRoute, `from` and the targets may be closed tiles (a closed target is reached, never walked through). It reuses the
   // world's scratch buffers and one heap, and allocates nothing per tile; the tiles it settles are counted in VB.count.reachSettled.
-  // The costs are findRoute + routeCost's, to rounding (the sums are made the same way, from `from`).
-  function reachCosts(w, from, maxCost, targets, out = new Array(targets.length)) {
+  // Output is physical walking cost along preferred routes, never preference points. A fastest-route fallback for targets whose
+  // preferred route exceeds maxCost preserves the physical reach budget, as in findRoute. Equal choice costs prefer less walking.
+  function reachCosts(w, from, maxCost, targets, out = new Array(targets.length), prefer = true) {
     const S = buffers(w),
       { g, mark, shut, tgt } = S,
       run = ++S.run,
-      open = S.open || (S.open = heap());
+      open = S.open || (S.open = heap()),
+      limit = prefer ? choiceBound(maxCost) : maxCost;
     let left = 0,
       settled = 0;
     for (let i = 0; i < targets.length; i++)
@@ -187,6 +311,7 @@ VB['sim/routes'] = (() => {
       }
     open.clear();
     g[from] = 0;
+    S.time[from] = 0;
     mark[from] = run;
     open.push(0, from);
     while (open.size && left > 0) {
@@ -198,24 +323,43 @@ VB['sim/routes'] = (() => {
         if (--left === 0) break;
         if (i !== from && !through(w, i)) continue;
       }
+      compileTile(w, S, i);
+      compileSlopes(w, S, i);
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run || (tgt[j] !== run && !through(w, j))) continue;
-        const gj = g[i] + stepCost(w, i, j);
-        if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
+        if (j < 0 || shut[j] === run) continue;
+        compileTile(w, S, j);
+        if (tgt[j] !== run && S.walking[j] === Infinity) continue;
+        const time = S.time[i] + compiledStep(w, S, S.walking, i, j, d),
+          gj = g[i] + compiledStep(w, S, prefer ? S.choice : S.walking, i, j, d);
+        if (gj > limit || (mark[j] === run && (gj > g[j] || (gj === g[j] && time >= S.time[j])))) continue;
         g[j] = gj;
+        S.time[j] = time;
         mark[j] = run;
-        open.push(gj, j);
+        open.push(gj, j, time);
       }
     }
     VB.count.reachSettled += settled;
-    for (let i = 0; i < targets.length; i++) out[i] = shut[targets[i]] === run ? g[targets[i]] : null;
+    const fallback = [],
+      slots = [];
+    for (let i = 0; i < targets.length; i++) {
+      out[i] = shut[targets[i]] === run ? S.time[targets[i]] : null;
+      if (prefer && out[i] > maxCost) {
+        fallback.push(targets[i]);
+        slots.push(i);
+      }
+    }
+    if (fallback.length) {
+      VB.count.routeBudgetFallback += fallback.length;
+      const times = reachCosts(w, from, maxCost, fallback, undefined, false);
+      for (let i = 0; i < slots.length; i++) out[slots[i]] = times[i];
+    }
     return out;
   }
   // Cost of a route (a list of neighbouring tiles), by the costs in force now.
-  function routeCost(w, p) {
+  function routeCost(w, p, preference = false) {
     let c = 0;
-    for (let s = 1; s < p.length; s++) c += stepCost(w, p[s - 1], p[s]);
+    for (let s = 1; s < p.length; s++) c += stepCost(w, p[s - 1], p[s], preference);
     return c;
   }
 
@@ -255,7 +399,7 @@ VB['sim/routes'] = (() => {
     trimRoutes(st);
     return p;
   }
-  // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the routes it could change
+  // A tile whose time or effort cost changed (a felled wood, a new path stage, edited moisture): the routes it could change
   // are dropped at the end of the day.
   const costChanged = (st, tile) => {
     st.routeDirty.add(tile);
@@ -273,6 +417,7 @@ VB['sim/routes'] = (() => {
     const w = st.w,
       N = w.N,
       C = w.COLS,
+      maxChoiceStep = choiceBound(MAX_STEP),
       n = st.routeDirty.size,
       dq = new Int32Array(n),
       dr = new Int32Array(n);
@@ -309,8 +454,10 @@ VB['sim/routes'] = (() => {
         if (s < near) near = s;
       }
       const steps = p.length - 1;
-      if (near > (steps * MAX_STEP) / ROUTE.minStep + 1) continue;
-      if (near < steps - 1 || near <= routeCost(w, p) / ROUTE.minStep) st.pathCache.delete(k);
+      if (near > (steps * maxChoiceStep) / ROUTE.minStep + 1) continue;
+      // Bounded journeys can use the physical fallback. Invalidation must cover both objectives, including newly attractive
+      // tiles outside the old route. Choice cost bounds physical cost from above, so it is conservative for either selection.
+      if (near < steps - 1 || near <= routeCost(w, p, true) / ROUTE.minStep) st.pathCache.delete(k);
     }
     st.routeDirty.clear();
   }

@@ -331,6 +331,7 @@ VB['sim/saves'] = (() => {
     for (const p of st.pawns) if (p.rel instanceof Map) pack.set(p.rel, { as: 'rel', data: packRel(p.rel) });
     return {
       format: FORMAT,
+      routePolicy: 1, // VB-441: legacy time-only routes and village hours are rebuilt on load
       scenario: st.scenario,
       seed: w.seed,
       cols: w.COLS,
@@ -384,6 +385,10 @@ VB['sim/saves'] = (() => {
     if (w.dev) for (const f of st.farmsteads) w.dev[f.house] = 3; // lint-allow: owner an older save's mark, set as layout sets it
     rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
+    if (data.routePolicy !== 1) {
+      st.pathCache.clear();
+      buildHours(st);
+    }
     trimRoutes(st);
     if (!st.villageHours) buildHours(st); // VB-286: older saves have no table of walking hours between villages
     for (const v of st.villages) if (!v.ledger) v.ledger = [];
