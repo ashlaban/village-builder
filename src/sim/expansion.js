@@ -307,6 +307,7 @@ VB['sim/expansion'] = (() => {
     } else if (tr.kind === 'field') {
       tr.fresh = !w.dev[tr.tile];
       w.dev[tr.tile] = 1;
+      costChanged(st, tr.tile);
     } // ground never farmed starts fresh (VB-149)
     tended(st, tr.tile); // worked on: kept open from the forest a year (sim/spread)
     tr.i++;

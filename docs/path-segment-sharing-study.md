@@ -121,8 +121,21 @@ An exact region graph must retain every relevant border exit, including off-road
 
 ## Experiment status and limitations
 
-The four Tiny/Small experiments completed and produced the values above. The prototype lived at `tools/segment-sharing-probe.js` on the local research branch and asserted agreement with the native route chooser. It was not production code.
+The workspace recovered, including the finished Large seed-7 two-year result. The maintained prototype is now
+[`tools/segment-sharing-probe.js`](../tools/segment-sharing-probe.js), with all five runs in
+[`docs/bench/path-segment-sharing.json`](bench/path-segment-sharing.json).
 
-A Large seed-7 two-year command finished, but the workspace became unavailable before its output could be read. No Large profile share or result is claimed. The local prototype, raw JSON files and unfinished VB-442 task could not be published or receive final repository checks after that outage. This document preserves the completed evidence through GitHub on a separate research branch. It changes no production routing.
+Large finished with 850 people and 13,168 cached routes. Of 361,578 calls, 69,837 required searches. Median route length was
+four tiles; median segment length was one step. Numeric payloads were 215,288 bytes for flat paths, 631,628 for junction
+segments, and 212,644 for selective eight-tile chunks. All 100 replay queries again had identical settled-node counts:
+1,216 before and after shortcuts. Relaxations rose from 3,745 to 3,776. No physical-time tie changed.
+
+The instrumented native journey API took 3,213 ms of a 31,293 ms simulation (10.3%); this includes cache-hit work, so it does not
+establish the uncached-search-only share required by VB-097. Including refresh and village-hours APIs gave 18.1%. Single-run
+times remain diagnostic, with allocation, instrumentation and JIT effects. No speed improvement is claimed.
+
+The next requested experiment, [demand-grown village trees](village-tree-study.md), shares search work rather than geometry.
+Its live comparison includes invalidation and rebuilding, unlike this study's frozen replay. The segment experiment itself
+changes no production routing.
 
 PR #132 was merged before the outage, after both GitHub required checks and all 106 local verification checks passed. No further production merge is part of this exploration.
