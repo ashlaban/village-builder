@@ -196,7 +196,7 @@ Paths are not built; they are worn into the land by people and animals walking. 
 1. **Each crossing counts:** every tile keeps a count of the pawns and animals that cross it, halving each game year so unused paths fade.
 2. **Three stages:** trodden ground at a count of 50, a path at 200, a lane at 800, about 1, 4 and 16 crossings a day kept up.
 3. **Faster walking:** walking is 5% faster on trodden ground, 15% on a path and 30% on a lane than on the bare terrain, so paths draw routes without lanes ruling all travel.
-4. **Sharing paths:** route-finding counts the faster walking, so a pawn takes a path when it is quicker even if it is longer; routes merge, and the merged path wears deeper. Lanes form between farms, the well, the fields and the commons wood, as desire paths do.
+4. **Sharing paths:** route-finding weighs walking time and surface effort, so a pawn can take a longer beaten path for easier footing. Vegetation and roughness matter more than short grass; wear reduces obstruction but does not drain wet ground. The generated moisture map adds persistent soft-ground effort; the annual harvest weather factor is not rain. Routes merge, and the merged path wears deeper. Walking and village hours still measure actual time; if the preferred route exceeds a physical reach budget, the fastest feasible route is used. The coefficients and research are in `docs/path-effort-policy.md` (`PATHS.effort`; user requested the active policy, 14 Nov; VB-441). Lanes form between farms, the well, the fields and the commons wood, as desire paths do.
 5. **Land kept open:** grass does not grow back on a path, and forest does not spread onto one while it is used.
 6. **Under snow,** lanes stay visible as trodden snow; paths and trodden ground are covered.
 

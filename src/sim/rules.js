@@ -640,6 +640,28 @@ VB['sim/rules'] = (() => {
     keep: 0.85,
     halfLifeDays: YEAR_DAYS,
     speed: [1, 1.05, 1.15, 1.3],
+    // Route choice, not speed or calories: time plus a weighted surface-effort allowance (VB-441).
+    // Energy coefficients: dirt/grass 1.1, light/heavy brush 1.2/1.5, bog 1.8, loose sand 2.1
+    // (Soule/Goldman and Pandolf, collated by de Gruchy et al. 2017). Rough ground 1.28: Voloshina et al. 2013.
+    // Biome mappings, residual obstruction by wear stage, wetness threshold and time/effort exchange are game approximations.
+    // Foot traffic reduces obstruction, never the persistent softness of sand, marsh or high-moisture ground. Bridges are firm.
+    effort: {
+      weight: 1,
+      firm: 1.1,
+      ground: {
+        [B.MEADOW]: 1.1,
+        [B.HEATH]: 1.2,
+        [B.FOREST]: 1.5,
+        [B.PINE]: 1.5,
+        [B.HILLS]: 1.28,
+        [B.MOUNTAIN]: 1.28,
+        [B.BEACH]: 2.1,
+        [B.MARSH]: 1.8,
+      },
+      remaining: [1, 0.65, 0.35, 0.15],
+      wetAbove: 0.65,
+      wetExtra: 0.4,
+    },
     wornYears: 3,
     trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 },
   };
