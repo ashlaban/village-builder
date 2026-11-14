@@ -22,6 +22,8 @@ terrain changes. This is an active shadow comparison: alternative searches actua
 Each village has at most one tree, rooted at its green/centre. A resumable Dijkstra search stores settled preference distances,
 physical times and parent pointers, plus its unexpanded frontier. Houses cannot be transit vertices. Equal preference distances
 prefer shorter physical walking time, as the native router does.
+The source tile's owner selects the village (through its household/farmstead where needed); unowned land uses the nearest
+centre. Exit visits use the same rule. No tree is allocated per pawn or per origin–destination pair.
 
 Two growth policies run beside a common geometric-heuristic A* control:
 

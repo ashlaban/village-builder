@@ -1,0 +1,40 @@
+const assert = require('node:assert/strict');
+const { performance } = require('node:perf_hooks');
+const VB = require('../src/load.js');
+const { tinyState } = require('./lib/tiny.js');
+const Bridges = VB['sim/bridges'], Plans = VB['sim/plans'], Stores = VB['sim/stores'];
+const st = require('./lib/probe.js').state(), v = st.villages[0], w = st.w;
+// A river through a small constructed world, with a remote ford.
+const col = Math.floor(w.COLS / 2), at = (x,y) => y * w.COLS + x;
+w.water.fill(0); w.river.fill(0); w.crossing.fill(0); w.dev.fill(0);
+for (let y = 0; y < w.ROWS; y++) w.river[at(col,y)] = 1;
+w.crossing[at(col,0)] = 1;
+st.used.clear();
+for (const [k,id] of v.farmsteads.entries()) {
+  const f = st.farmsteads[id], y = Math.min(w.ROWS - 2, 3 + k);
+  f.house = at(col-2,y); f.fields = [{tile: at(col+2,y)}]; f.meadows = [{tile: at(col+2,y+1)}];
+  const h = st.households[f.household];
+  Stores.put(st,h,'wood',20,'start'); Stores.put(st,h,'stone',20,'clear');
+}
+const choice = Bridges.site(st,v);
+assert.ok(choice, 'a shared detour offers a crossing');
+w.crossing[choice.tile] = 1;
+assert.ok(Bridges.site(st,v), 'a used ford can be improved for convenience');
+w.crossing[choice.tile] = 0;
+assert.ok(!Bridges.underWay(st,v));
+const stock = g => v.farmsteads.reduce((n,id) => n + st.households[st.farmsteads[id].household][g],0);
+const wood = stock('wood'), stone = stock('stone');
+Plans.setRoutines(st,v.id,['bridge'],'meeting');
+const p = Bridges.underWay(st,v); assert.ok(p);
+assert.equal(stock('wood'),wood - VB['sim/rules'].BUILD.bridgeWood);
+assert.equal(stock('stone'),stone - VB['sim/rules'].BUILD.bridgeStone);
+assert.equal(w.crossing[p.steps[0].river],0,'construction does not open crossing early');
+Bridges.KINDS.bridge.done(st,{village:v.id,step:p.steps[0]});
+assert.equal(w.crossing[p.steps[0].river],2);
+assert.ok(st.routeDirty.has(p.steps[0].river));
+Plans.setRoutines(st,v.id,['bridge'],'meeting');
+assert.equal(stock('wood'),wood - VB['sim/rules'].BUILD.bridgeWood,'no second charge in same meeting year');
+for(let i=0;i<10;i++) Bridges.site(st,v);
+const start = performance.now();
+for(let i=0;i<100;i++) Bridges.site(st,v);
+console.log(`bridges ok; bounded survey ${((performance.now()-start)/100).toFixed(3)} ms per village`);

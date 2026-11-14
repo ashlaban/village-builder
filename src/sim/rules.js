@@ -753,6 +753,11 @@ VB['sim/rules'] = (() => {
     stoneReach: 12,
     stoneWalk: 3,
     wellStone: 6,
+    // A village bridge: committed wood/stone loads and shared person-hours of construction.
+    bridgeHours: 192,
+    bridgeWood: 24,
+    bridgeStone: 16,
+    bridgeReach: 10,
     greenHours: 10,
     wellHours: 40,
     sweepHours: 10,

@@ -1250,5 +1250,117 @@
         ]
       }
     ]
+  },
+  "integrationSmoke": {
+    "base": "fcec025 (bridge construction)",
+    "result": {
+      "seed": 7,
+      "map": "tiny",
+      "days": 2,
+      "grow": 64,
+      "cap": 2048,
+      "villages": 2,
+      "population": 133,
+      "instrumentedSimulationMs": 306.0165330000001,
+      "calls": 1183,
+      "misses": 508,
+      "compared": 508,
+      "noRoute": 0,
+      "costChanges": 7,
+      "treads": 3293,
+      "exitTreads": 741,
+      "differentEqualCostPaths": {
+        "demand": 0,
+        "exit": 0
+      },
+      "strongerHeuristicQueries": {
+        "demand": 400,
+        "exit": 337
+      },
+      "nativeRouteMs": 19.306739999999195,
+      "exitHookMs": 5.685295999997834,
+      "models": {
+        "control": {
+          "queries": 508,
+          "settled": 6892,
+          "relaxed": 20505,
+          "heuristicCalls": 13840,
+          "stronger": 0,
+          "certified": 0,
+          "fallbacks": 0,
+          "ms": 15.938399999998978,
+          "dispatchMs": 16.418674000001374,
+          "totalSettled": 6892,
+          "totalMs": 16.418674000001374,
+          "costCacheTiles": 659,
+          "costCacheEdges": 1393
+        },
+        "demand": {
+          "queries": 508,
+          "settled": 4380,
+          "relaxed": 13323,
+          "heuristicCalls": 9411,
+          "stronger": 4497,
+          "certified": 107,
+          "fallbacks": 0,
+          "ms": 10.37112299999933,
+          "tree": {
+            "treeSettled": 863,
+            "treeRelaxed": 4606,
+            "created": 4,
+            "invalidations": 2,
+            "invalidationChecks": 6,
+            "highRecords": 610,
+            "highFrontier": 149,
+            "highTouched": 750,
+            "growthMs": 6.8306070000006684,
+            "invalidationMs": 0.04081500000006599
+          },
+          "dispatchMs": 18.60004599999877,
+          "totalSettled": 5243,
+          "totalMs": 18.640860999998836,
+          "costCacheTiles": 764,
+          "costCacheEdges": 1601
+        },
+        "exit": {
+          "queries": 508,
+          "settled": 5412,
+          "relaxed": 16304,
+          "heuristicCalls": 11205,
+          "stronger": 3777,
+          "certified": 68,
+          "fallbacks": 0,
+          "ms": 12.975415000000567,
+          "tree": {
+            "treeSettled": 575,
+            "treeRelaxed": 3078,
+            "created": 4,
+            "invalidations": 2,
+            "invalidationChecks": 6,
+            "highRecords": 423,
+            "highFrontier": 126,
+            "highTouched": 501,
+            "growthMs": 4.235710999998332,
+            "invalidationMs": 0.02589500000010503
+          },
+          "dispatchMs": 13.719011999998997,
+          "totalSettled": 5987,
+          "totalMs": 19.430202999996936,
+          "costCacheTiles": 653,
+          "costCacheEdges": 1382
+        }
+      }
+    }
+  },
+  "counterImpact": {
+    "base": "fcec025 (bridge construction)",
+    "before": "TARGET counters/routeSearch 0.584/pawn-day 0.3605555555555556/pawn-day +0.2234 out\nTARGET counters/routeExpand 2.781/pawn-day 1.6475555555555559/pawn-day +1.134 out\nTARGET counters/routeCostTile 7.948/pawn-day 8.792573839662449/pawn-day 0 in\nTARGET counters/routeSlopeEdge 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeBudgetFallback 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeHit 3.684/pawn-day 4.154333333333334/pawn-day 0 in\nTARGET counters/routeRefresh 4.051/pawn-day 0.9203333333333334/pawn-day +3.13 out\nTARGET counters/reachSettled 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeEvict 0/pawn-day 0/pawn-day 0 in\nTARGET counters/talkWeighed 6.561/pawn-day 11.369111111111112/pawn-day 0 in\nTARGET counters/walkStep 89.17/pawn-day 90.64000000000001/pawn-day 0 in\nTARGET counters/walkAwake 24.03/pawn-day 26.43666666666667/pawn-day 0 in\nTARGET counters/idleStroll 3.013/pawn-day 3.487/pawn-day 0 in\nTARGET counters/companyWeighed 4.582/pawn-day 6.3164444444444445/pawn-day 0 in\nTARGET counters/walkPoint 9.186/pawn-day 7.074222222222223/pawn-day +2.112 out\nTARGET counters/walkDaily 5.998/pawn-day 6.6000000000000005/pawn-day 0 in\nTARGET counters/walkTies 0.2768/pawn-day 0.36544444444444446/pawn-day 0 in\nTARGET counters/tiePairs 2.932/pawn-day 2.994444444444445/pawn-day 0 in\nTARGET counters/roundPairs 0.001125/pawn-day 0.002444444444444445/pawn-day 0 in\nTARGET counters/roundWalk 0.06526/pawn-day 0.07178621659634318/pawn-day 0 in\nTARGET counters/heirRank 0.02025/pawn-day 0.02227848101265823/pawn-day 0 in\nTARGET counters/storeWalk 0.06751/pawn-day 0.07333333333333333/pawn-day 0 in\nTARGET counters/recordFold 0/pawn-day 0/pawn-day 0 in\nTARGET counters/ruleValue 1.075/pawn-day 1.1831111111111112/pawn-day 0 in\nTARGET counters/oppAsk 16.84/pawn-day 10.60277777777778/pawn-day +6.234 out\nTARGET counters/planReview 0.2982/pawn-day 0.3055555555555556/pawn-day 0 in\nTARGET counters/matchBid 13.51/pawn-day 7.9750000000000005/pawn-day +5.538 out\nTARGET counters/helpOffer 4.331/pawn-day 4.804725738396624/pawn-day 0 in\nTARGET counters/helpBid 0.3657/pawn-day 0.2722925457102673/pawn-day +0.09339 out\nTARGET counters/lookUpJob 8.002/pawn-day 6.235777777777778/pawn-day +1.766 out\nTARGET counters/occasionAsked 0.01013/pawn-day 0/pawn-day +0.01013 out\nTARGET counters/takeInWeighed 0/pawn-day 0/pawn-day 0 in\nTARGET counters/labourWeighed 0/pawn-day 0/pawn-day 0 in\nTARGET counters/cookFarm 0.8101/pawn-day 0.8800000000000001/pawn-day 0 in\nTARGET counters/forageGround 14.85/pawn-day 17.239444444444445/pawn-day 0 in\nTARGET counters/fishGround 46.3/pawn-day 50.44722222222223/pawn-day 0 in\nTARGET counters/fishReach 0.8574/pawn-day 0.9313333333333335/pawn-day 0 in\nTARGET counters/tarAsk 0.006751/pawn-day 0.007426100000000001/pawn-day 0 in\nTARGET counters/boatAsk 0/pawn-day 0/pawn-day 0 in\nTARGET counters/digGround 2.847/pawn-day 3.095888888888889/pawn-day 0 in\nTARGET counters/cowSeek 0/pawn-day 0.14355/pawn-day 0 in\nTARGET counters/pastureTiles 4.131/pawn-day 41.21577777777778/pawn-day 0 in\nTARGET counters/deerGround 10.57/pawn-day 11.631842475386781/pawn-day 0 in\nTARGET counters/workdayHolders 0/pawn-day 0/pawn-day 0 in\nTARGET counters/frontTile 0/pawn-day 0/pawn-day 0 in\nTARGET counters/deerCrop 0/pawn-day 0/pawn-day 0 in\nTARGET counters/roundRank 0.02025/pawn-day 0.02227848101265823/pawn-day 0 in\ncounters ok: 47 counters, 30 days, two villages, 889 living pawn-days; 89-pair round probe; 9 counters out against baseline\n",
+    "after": "TARGET counters/routeSearch 0.62/pawn-day 0.3605555555555556/pawn-day +0.2594 out\nTARGET counters/routeExpand 2.922/pawn-day 1.6475555555555559/pawn-day +1.275 out\nTARGET counters/routeCostTile 8.375/pawn-day 8.792573839662449/pawn-day 0 in\nTARGET counters/routeSlopeEdge 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeBudgetFallback 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeHit 3.648/pawn-day 4.154333333333334/pawn-day 0 in\nTARGET counters/routeRefresh 3.614/pawn-day 0.9203333333333334/pawn-day +2.694 out\nTARGET counters/reachSettled 0/pawn-day 0/pawn-day 0 in\nTARGET counters/routeEvict 0/pawn-day 0/pawn-day 0 in\nTARGET counters/talkWeighed 6.561/pawn-day 11.369111111111112/pawn-day 0 in\nTARGET counters/walkStep 89.17/pawn-day 90.64000000000001/pawn-day 0 in\nTARGET counters/walkAwake 24.03/pawn-day 26.43666666666667/pawn-day 0 in\nTARGET counters/idleStroll 3.013/pawn-day 3.487/pawn-day 0 in\nTARGET counters/companyWeighed 4.582/pawn-day 6.3164444444444445/pawn-day 0 in\nTARGET counters/walkPoint 9.186/pawn-day 7.074222222222223/pawn-day +2.112 out\nTARGET counters/walkDaily 5.998/pawn-day 6.6000000000000005/pawn-day 0 in\nTARGET counters/walkTies 0.2768/pawn-day 0.36544444444444446/pawn-day 0 in\nTARGET counters/tiePairs 2.932/pawn-day 2.994444444444445/pawn-day 0 in\nTARGET counters/roundPairs 0.001125/pawn-day 0.002444444444444445/pawn-day 0 in\nTARGET counters/roundWalk 0.06526/pawn-day 0.07178621659634318/pawn-day 0 in\nTARGET counters/heirRank 0.02025/pawn-day 0.02227848101265823/pawn-day 0 in\nTARGET counters/storeWalk 0.06751/pawn-day 0.07333333333333333/pawn-day 0 in\nTARGET counters/recordFold 0/pawn-day 0/pawn-day 0 in\nTARGET counters/ruleValue 1.075/pawn-day 1.1831111111111112/pawn-day 0 in\nTARGET counters/oppAsk 16.84/pawn-day 10.60277777777778/pawn-day +6.234 out\nTARGET counters/planReview 0.2982/pawn-day 0.3055555555555556/pawn-day 0 in\nTARGET counters/matchBid 13.51/pawn-day 7.9750000000000005/pawn-day +5.538 out\nTARGET counters/helpOffer 4.331/pawn-day 4.804725738396624/pawn-day 0 in\nTARGET counters/helpBid 0.3657/pawn-day 0.2722925457102673/pawn-day +0.09339 out\nTARGET counters/lookUpJob 8.002/pawn-day 6.235777777777778/pawn-day +1.766 out\nTARGET counters/occasionAsked 0.01013/pawn-day 0/pawn-day +0.01013 out\nTARGET counters/takeInWeighed 0/pawn-day 0/pawn-day 0 in\nTARGET counters/labourWeighed 0/pawn-day 0/pawn-day 0 in\nTARGET counters/cookFarm 0.8101/pawn-day 0.8800000000000001/pawn-day 0 in\nTARGET counters/forageGround 14.85/pawn-day 17.239444444444445/pawn-day 0 in\nTARGET counters/fishGround 46.3/pawn-day 50.44722222222223/pawn-day 0 in\nTARGET counters/fishReach 0.8574/pawn-day 0.9313333333333335/pawn-day 0 in\nTARGET counters/tarAsk 0.006751/pawn-day 0.007426100000000001/pawn-day 0 in\nTARGET counters/boatAsk 0/pawn-day 0/pawn-day 0 in\nTARGET counters/digGround 2.847/pawn-day 3.095888888888889/pawn-day 0 in\nTARGET counters/cowSeek 0/pawn-day 0.14355/pawn-day 0 in\nTARGET counters/pastureTiles 4.131/pawn-day 41.21577777777778/pawn-day 0 in\nTARGET counters/deerGround 10.57/pawn-day 11.631842475386781/pawn-day 0 in\nTARGET counters/workdayHolders 0/pawn-day 0/pawn-day 0 in\nTARGET counters/frontTile 0/pawn-day 0/pawn-day 0 in\nTARGET counters/deerCrop 0/pawn-day 0/pawn-day 0 in\nTARGET counters/roundRank 0.02025/pawn-day 0.02227848101265823/pawn-day 0 in\ncounters ok: 47 counters, 30 days, two villages, 889 living pawn-days; 89-pair round probe; 9 counters out against baseline\n"
+  },
+  "validation": {
+    "verify": "108/108 passed; 17 advisory targets out",
+    "unitQueries": 144,
+    "liveMisses": 110566,
+    "foundRoutes": 110558
   }
 }
