@@ -152,3 +152,28 @@ Open, in order of payoff:
    this date (`roundPairs` 6.1 against a baseline of 1.33): sessions never saw it, having no fixtures.
 5. Suggestions 2 and 7 of section 4 (targeted test runs; spec and report apart in task files).
 6. **More than one measured run**: the run above was not unattended (25 minutes waiting for answers), so there is no baseline yet.
+
+## 8. Fourth batch (14 November 2026): side by side, an inbox, and three measures
+
+Kim's aim: the most work for the least overhead, with sub-agents working side by side. Done:
+
+| Change | Where | Before | After |
+|--------|-------|--------|-------|
+| Sub-agents side by side | `docs/agents/worker.md`, `.claude/agents/vb-task.md` | one sub-agent at a time, in the shared checkout | three or four, each in a worktree; the orchestrator merges one at a time and runs `npm test` on each merge |
+| The inbox | `tools/inbox.js` (`tests/inbox.js`): a local SQLite file in the git common directory, never committed | a sub-agent took "the next free ID" in its own checkout and edited `BACKLOG.md`, `QUESTIONS.md` and `docs/tuning.md`, which collide between worktrees | IDs reserved in blocks of five; claims name who else edits a file; notes (task, question, tuning, candidate, teleport, decision) are written into the shared files once, by `apply`; `report` prints the PR's "For Kim" |
+| A reserved ID | `tools/backlog.js new id=VB-NNN` | the next free ID only | a named free ID |
+| Sub-agents measured | `tools/agent-usage.js` | counted `isSidechain` lines of the session's transcript; sub-agents are written to `<session>/subagents/agent-*.jsonl`, so a night's sub-agents were not counted at all (the doubt of section 7, settled) | each sub-agent measured from its own transcript, with the task its prompt names |
+
+The three measures (`node tools/agent-usage.js --results FILE`, at each run's wrap-up; kept in the run's file under `docs/agents/usage/`):
+1. **Weighted cost of a done task, by size.** One number, in fresh-input tokens: input + 1.25 × cache writes + 0.1 × cache reads +
+   5 × output, about the prices' ratios. Raw sums mislead: cache reads are most of the count and the cheapest tokens.
+2. **Overhead.** The orchestrator's share of the run's weighted cost, and the sub-agents' median boot: the context at the first edit,
+   which is what a task reads before it changes anything (`AGENTS.md`, the task, its Design refs).
+3. **Done at the first attempt.** The share of ended tasks that are done; a cheaper night that leaves tasks `needs-review` is not cheaper.
+
+A static guard beside them: `tests/context-size.js` reports, as a target, the bytes every sub-agent loads before it reads its task
+(`AGENTS.md` and `.claude/agents/vb-task.md`), since each of its calls re-reads them.
+
+Not yet known: any of the three for a real night. The history holds two worker runs from before this batch, one of them attended;
+five nights or more are needed before medians by size mean anything. The inbox saves few tokens by itself: what it buys is no
+merge conflicts in the shared files and an orchestrator that reads one line a note.

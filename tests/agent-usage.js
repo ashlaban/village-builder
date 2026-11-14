@@ -41,6 +41,28 @@ r = run(file, '--until', at(8), '--json');
 expect('--until limits the entries', r.ok && JSON.parse(r.out).calls === 2, r.out);
 r = run('--history', path.join(dir, 'usage'));
 expect('history by label', r.ok && /^worker: 1 runs/m.test(r.out) && /calls +3 \[3, 3\]/.test(r.out), r.out);
+// two sub-agents with transcripts of their own: the task from the prompt, the boot at the first edit, size and status from the results
+fs.mkdirSync(path.join(dir, 's', 'subagents'), { recursive: true });
+const sub = (task, read, edit) => [
+  { type: 'user', isSidechain: true, timestamp: at(10), message: { role: 'user', content: `Task ${task} on branch x. SECRET-PROMPT` } },
+  { type: 'assistant', isSidechain: true, timestamp: at(11), message: { id: 'a1', model: 'y-model', usage: usage(read, 0, 10),
+    content: [{ type: 'tool_use', id: 'u1', name: 'Read', input: { file_path: 'AGENTS.md' } }] } },
+  ...(edit ? [{ type: 'assistant', isSidechain: true, timestamp: at(12), message: { id: 'a2', model: 'y-model', usage: usage(read + 500, 0, 20),
+    content: [{ type: 'tool_use', id: 'u2', name: 'Edit', input: { file_path: 'src/x.js' } }] } }] : []),
+].map((l) => JSON.stringify(l)).join('\n');
+fs.writeFileSync(path.join(dir, 's', 'subagents', 'agent-aaaa1111.jsonl'), sub('VB-123', 1000, true));
+fs.writeFileSync(path.join(dir, 's', 'subagents', 'agent-bbbb2222.jsonl'), sub('VB-124', 3000, false));
+fs.writeFileSync(path.join(dir, 'results.json'), JSON.stringify([{ task: 'VB-123', status: 'done', size: 'S' }, { task: 'VB-124', status: 'failed', size: 'M' }]));
+r = run(file, '--json', '--results', path.join(dir, 'results.json'));
+const w = r.ok ? JSON.parse(r.out) : { subagents: [], summary: {} }, [s1, s2] = w.subagents;
+// weighted: input + 1.25 cache writes + 0.1 cache reads + 5 output; s1 is 4 + 0.1 * 2500 + 5 * 30 = 404
+expect('sub-agents: task, size, status, weighted cost and boot', s1 && s1.task === 'VB-123' && s1.size === 'S' && s1.status === 'done' && s1.weighted === 404
+  && s1.boot === 1502 && s1.calls === 2 && s2.task === 'VB-124' && s2.boot === 0, r.out);
+expect('the summary: share, boot, cost a done task, first pass', w.summary.weightedTotal === w.weighted + s1.weighted + s2.weighted
+  && w.summary.orchestratorShare > 0 && w.summary.bootMedian === 1502 && w.summary.perSize.S.median === 404 && w.summary.firstPass === 0.5
+  && w.summary.weightedPerDoneTask === w.summary.weightedTotal, r.out);
+r = run(file, '--results', path.join(dir, 'results.json'));
+expect('the report lists the sub-agents, no content', r.ok && /VB-123 S done y-model: 2 calls/.test(r.out) && /50% done/.test(r.out) && !/SECRET/.test(r.out), r.out);
 fs.rmSync(dir, { recursive: true, force: true });
 
 if (errors.length) { console.error('AGENT USAGE FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }

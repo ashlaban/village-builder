@@ -30,6 +30,9 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
+A sub-agent of an orchestrated run (`docs/agents/worker.md`) follows `.claude/agents/vb-task.md`, which replaces what steps 3, 6 and 7
+write to shared files: it leaves notes in the inbox, and the orchestrator writes the backlog, the questions and the PR.
+
 ## Deciding without Kim (Kim, 12 and 14 November)
 A question goes to Kim only if it moves a Decided point of `design.md`, or lets the player do something no existing system covers.
 Otherwise decide by these, write the decision and its reason in the task file, and go on. Nothing below stops work: where no principle
@@ -74,18 +77,24 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
    It is enough that the mechanics reward this: an island with no player is not held to a target for it.
 
 ### Surfacing
-What Kim should see is surfaced, never waited for. A task notes, in its task file and in its result to the orchestrator:
+What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with
+no orchestrator, in its PR):
 - **A principle candidate**, when a decision had no principle to rest on, when two principles pulled apart, or when it is the third
-  decision of one kind: one line of the rule proposed, and the decisions behind it.
-- **A teleport found**, with the task opened for it.
+  decision of one kind: one line of the rule proposed, and the decisions behind it (`candidate`).
+- **A teleport found**, with the task opened for it (`teleport`, and a `task` of the arch `physical`).
+- **A close call**: a decision another agent could as well have made the other way (`decision`).
 
-The orchestrator gathers these at the head of the night's PR, under "For Kim": the candidates first, then the decisions that were
-close calls, one line each. Kim accepts a candidate into this section or strikes it; until then the decision made stands.
+The orchestrator gathers these at the head of the night's PR, under "For Kim" (`node tools/inbox.js report`): the candidates first,
+then the teleports and the close calls, one line each. Kim accepts a candidate into this section or strikes it; until then the decision made stands.
 
 ## Commands
 Every tool run from `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with `tools/help.js`).
 - Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read; `done ID...`, `set ID key=value...`, `new key=value...`,
   `close-arch KEY`, and `sync` after a task file's header is edited by hand, to change it. Each rewrites the tables and runs `tests/backlog.js`.
+- Inbox, in an orchestrated run (`docs/agents/worker.md`): `node tools/inbox.js start|claim|note|result` for a sub-agent, `init|status|
+  apply|report|results` for the orchestrator. A local SQLite file shared by the checkout's worktrees, never committed: reserved task
+  IDs, who edits which file, and the notes (new tasks, questions, tuning rows, principle candidates, teleports, close calls) that
+  `apply` writes into the backlog, `QUESTIONS.md` and `docs/tuning.md`, once.
 - Questions: `node tools/questions.js list|show VB-NNN|answer QUERY N TEXT|archive QUERY`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Format: `src/` is formatted by Prettier (`.prettierrc.json`: width 120, single quotes; VB-380): `npm run format` after editing a
   source, before the build; `tests/format.js` (fast) fails an unformatted file. `git config blame.ignoreRevsFile .git-blame-ignore-revs`
@@ -140,7 +149,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters; for `tests/` and `tools/`, `src/` has Prettier), `node tools/shot.js` (screenshots of the page), `node
   tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
   `medium-y5` and `medium-ref`).
-- Agent usage: `node tools/agent-usage.js` (this session's calls, tokens and tool results, from its transcript; `--history docs/agents/usage`).
+- Agent usage: `node tools/agent-usage.js [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
+  their transcripts: weighted cost a done task by size, the orchestrator's share, the median boot, the share done; `--history docs/agents/usage`).
 - Play locally: open `index.html` in a browser.
 
 ## Finding things
