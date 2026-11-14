@@ -106,11 +106,20 @@ const grid = (COLS, ROWS) => {
   check(onLane(p, set) && p.length - 1 > 10, `a lane one row off the straight way is taken (${p.length - 1} steps, cost ${routeCost(w, p).toFixed(2)})`);
   set = lane(4); p = findRoute(w, from, to);
   check(!onLane(p, set) && p.length - 1 === 10, `a lane four rows off is not (${p.length - 1} steps, cost ${routeCost(w, p).toFixed(2)})`);
-  // trodden ground, paths and lanes are 5%, 15% and 30% quicker
-  const c0 = VB['sim/routes'].tileCost(w, at(20, 20));
-  w.worn[at(20, 20)] = 1; const c1 = VB['sim/routes'].tileCost(w, at(20, 20));
-  w.worn[at(20, 20)] = 2; const c2 = VB['sim/routes'].tileCost(w, at(20, 20));
-  check(Math.abs(c0 / c1 - 1.05) < 1e-9 && Math.abs(c0 / c2 - 1.15) < 1e-9, `stage speeds: ${c0 / c1}, ${c0 / c2}`);
+  // on meadow, trodden ground, paths and lanes are quicker by PATHS.speed
+  const { PATHS, TERRAIN: T } = VB['sim/rules'], cost = VB['sim/routes'].tileCost, t = at(20, 20);
+  const stages = (biome) => { w.biome[t] = biome; const c = [0, 1, 2, 3].map((s) => { w.worn[t] = s; return cost(w, t); }); w.worn[t] = 0; w.biome[t] = B.MEADOW; return c; };
+  const m = stages(B.MEADOW), f = stages(B.FOREST);
+  check(m.every((c, s) => Math.abs(m[0] / c - PATHS.speed[s]) < 1e-9), `stage speeds on meadow: ${m.map((c) => (m[0] / c).toFixed(3))}`);
+  // every kind of ground has a cost of its own (VB-439)
+  { const kinds = [B.MEADOW, B.BEACH, B.HEATH, B.PINE, B.HILLS, B.FOREST, B.MARSH, B.MOUNTAIN].map((k) => T[k]);
+    check(new Set(kinds).size === kinds.length && kinds.every((c, k) => !k || c > kinds[k - 1]), `each ground its own cost: ${kinds}`); }
+  // roads (a path or a lane) clear the ground: thick forest is much slower than a road through it, which is a little slower than open
+  // meadow, which is a little slower than a road over meadow
+  for (const s of [2, 3]) check(f[0] > 1.5 * f[s] && f[s] > m[0] && f[s] < 1.2 * m[0] && m[0] > m[s] && m[s] > 0.8 * m[0],
+    `forest ${f[0]}, its road ${f[s].toFixed(3)}, meadow ${m[0]}, its road ${m[s].toFixed(3)} (stage ${s})`);
+  check(f[1] < f[0] && f[1] > 1.5 * m[0], `trodden forest is still slow (${f[1].toFixed(3)})`);
+  check(Math.abs(f[2] - (1 + (T[B.FOREST] - 1) * (1 - PATHS.clear[2])) / PATHS.speed[2]) < 1e-9, 'a worn tile costs (1 + (terrain - 1)(1 - clear)) / speed');
 }
 // VB-198: use a tiny bound to exercise real hits, searches, saves and legacy trimming without a large fixture.
 {

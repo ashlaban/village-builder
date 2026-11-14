@@ -6,7 +6,8 @@ VB['sim/routes'] = (() => {
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
-  // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too;
+  // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too,
+  // and its wear takes away a share of what its ground costs above meadow (PATHS.clear, VB-439; not at a ford or on a bridge);
   // the green (w.dev 2) wears no path.
   function tileCost(w, i, preference = false) {
     if (w.water[i]) return Infinity;
@@ -22,7 +23,9 @@ VB['sim/routes'] = (() => {
               ? TERRAIN.bridge
               : Infinity
           : (TERRAIN[w.biome[i]] ?? 1);
-      if (w.worn) c /= PATHS.speed[w.worn[i]];
+      const stage = w.worn ? w.worn[i] : 0;
+      if (!(w.river && w.river[i]) && c < Infinity) c = 1 + (c - 1) * (1 - PATHS.clear[stage]);
+      c /= PATHS.speed[stage];
     }
     return preference && c < Infinity ? c * effortFactor(w, i) : c;
   }

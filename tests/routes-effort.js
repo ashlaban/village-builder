@@ -2,7 +2,7 @@
 const assert = require('assert'), VB = require('../src/load.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const R = VB['sim/routes'], { PATHS } = VB['sim/rules'];
-const speeds = [...PATHS.speed], weight = PATHS.effort.weight;
+const speeds = [...PATHS.speed], clearing = [...PATHS.clear], weight = PATHS.effort.weight;
 const world = (ground = 'F') => {
   const w = tinyWorld(Array(16).fill(ground.repeat(30)));
   w.dev = new Uint8Array(w.N); w.worn = new Uint8Array(w.N); w.he.fill(0.2); w.hm.fill(0.5);
@@ -19,7 +19,7 @@ function lane(w, up) {
 }
 try {
   // Equalise actual movement speeds to isolate effort from the already existing stage speed bonuses.
-  PATHS.speed.fill(1);
+  PATHS.speed.fill(1); PATHS.clear.fill(0);
   const w = world(), main = lane(w, 1), fast = R.findRoute(w, from, to, Infinity, false), preferred = R.findRoute(w, from, to, Infinity);
   const fastTime = R.routeCost(w, fast), preferredTime = R.routeCost(w, preferred),
     fastChoice = R.routeCost(w, fast, true), preferredChoice = R.routeCost(w, preferred, true);
@@ -39,7 +39,7 @@ try {
   const ratios = [];
   for (let stage = 0; stage < 4; stage++) {
     w.worn[at(25, 12)] = stage;
-    assert.strictEqual(R.tileCost(w, at(25, 12)), 1.5);
+    assert.strictEqual(R.tileCost(w, at(25, 12)), VB['sim/rules'].TERRAIN[VB.gen.B.FOREST]);
     ratios.push(R.tileCost(w, at(25, 12), true) / R.tileCost(w, at(25, 12)));
   }
   assert(ratios.every((v, k) => k === 0 || v < ratios[k - 1]), 'trodden ground already reduces obstruction; later stages improve it');
@@ -76,7 +76,7 @@ try {
   assert.strictEqual(R.routeCost(w, R.findRoute(w, from, to, Infinity)), fastTime, 'zero weight is an explicit time-only diagnostic');
   console.log(JSON.stringify({ directWalkingCost: fastTime, pathWalkingCost: preferredTime,
     directChoice: fastChoice, pathChoice: preferredChoice, stageEffortFactors: ratios, wetDetourSteps: wet.length - dry.length }));
-} finally { PATHS.speed.splice(0, PATHS.speed.length, ...speeds); PATHS.effort.weight = weight; }
+} finally { PATHS.speed.splice(0, PATHS.speed.length, ...speeds); PATHS.clear.splice(0, PATHS.clear.length, ...clearing); PATHS.effort.weight = weight; }
 // New saves retain policy caches; old time-only caches and village-hour tables are rebuilt immediately on load.
 const rows = Array(18).fill('.'.repeat(30)), w = tinyWorld(rows);
 const st = tinyState(w, [{ at: [7, 9], farms: 2 }, { at: [21, 9], farms: 2 }], { seed: 7 });
