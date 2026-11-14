@@ -33,6 +33,8 @@ const FAST = [
   ['node', 'tests/rye.js'],
   ['node', 'tests/kinds.js'],
   ['node', 'tests/routes.js'],
+  ['node', 'tests/routes-compiled.js'],
+  ['node', 'tests/routes-effort.js'],
   ['node', 'tests/tiny.js'],
   ['node', 'tests/claims.js'],
   ['node', 'tests/territory.js'],

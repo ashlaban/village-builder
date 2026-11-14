@@ -9,6 +9,10 @@ var VB = (globalThis.VB = globalThis.VB || {});
 VB.COUNTERS = {
   routeSearch: 'A* searches started',
   routeExpand: 'Tiles removed from the A* heap (including duplicates)',
+  routeCostTile: 'Tile walking/preference costs compiled, once per touched tile per search',
+  routeSlopeEdge: 'Slope edges compiled on first use or after relief/rule changes',
+  routeBudgetFallback:
+    'Destinations whose preferred route exceeded the physical budget, requiring fastest-route fallback',
   routeHit: 'Routes served from the cache, in either direction',
   routeRefresh: 'Cached routes tested for invalidation',
   reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',

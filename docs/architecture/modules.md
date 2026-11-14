@@ -38,6 +38,12 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   search, `reachCosts` (one Dijkstra from a green to many, for the table of walking hours between villages, `st.villageHours`, VB-286),
   the route cache and `walkable(w)`, the rule every reach search (`bfs`) uses. `src/sim/paths.js` counts and fades worn paths
   (`w.wear`, `w.worn`) and wears in generated villages; `src/gen/paths.js` draws them into the map chunks.
+  Routing compiles separate walking and choice costs once per touched tile per search (VB-440, VB-441). Choice adds
+  `PATHS.effort`'s surface/obstruction and generated-moisture allowance; movement still uses walking cost. Reach reports actual time
+  along chosen routes; a fastest-route fallback preserves a tight physical budget. Slope rows are reused until endpoint heights or
+  slope rules change. Derived buffers remain outside saved state. Wear dirties cached routes only when its stage changes; cache
+  invalidation uses choice bounds too, so attractive off-route paths are found. Saves mark their route policy; legacy route/hour
+  caches are rebuilt on load. `tools/path-effort-probe.js` measures behaviour and `tools/route-costs.js` measures search/update work.
 - `Sim.seed(w, seed, scenario)` (`src/sim/scenarios.js`) makes the state `st`; `Sim.advance(st, hours)` (`src/sim/clock.js`) runs it, by whole 6-minute steps only: any other number of hours is refused with an error (VB-244); the page keeps the part of a step and draws the pawns between steps.
   What runs, and in what order, is one table in `src/sim/clock.js`, `CALENDAR` (VB-241): each entry an `every` (step, hour, day, season,
   year), an `at` within it (hour, tick, season, sday, doy), a guard `when` that is not a date, an owner module, `run` and a note. Each step walks
