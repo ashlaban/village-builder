@@ -1,4 +1,4 @@
-// @sys page/settlement: building the settlement layer: farms, pawns, labels, booths, fences and herd sprites
+// @sys page/settlement: building the settlement layer: farms, bridges, pawns, labels, booths, fences and herd sprites
 // World units per art unit, and where a farm's buildings stand from the centre of its house tile: [x, y of the foot]. The yard is one
 // hex, so the byre and the barn stand at the back, the storehouse and the cottage before them, and the piles in the corners left.
 const ART_S = 0.2;
@@ -141,6 +141,68 @@ function cottageStage(g, x, y, n) {
       .fill(0x7aa258)
       .stroke({ width: 0.9, color: INK, join: 'round' });
 }
+// Timber bridge on stone abutments: the farms' ochre boards, oxide rails and dark mural contour.
+// Rotate the deck across the river, keeping posts upright in the picture like the other buildings.
+function drawBridge(wd, tile) {
+  const x = wd.hx[tile],
+    y = wd.hy[tile];
+  let to = wd.riverTo[tile];
+  if (to < 0) {
+    for (let d = 0; d < 6; d++) {
+      const n = wd.nb[tile * 6 + d];
+      if (n >= 0 && wd.river[n]) {
+        to = n;
+        break;
+      }
+    }
+  }
+  const angle = to >= 0 ? Math.atan2(wd.hy[to] - y, wd.hx[to] - x) + Math.PI / 2 : 0;
+  const ux = Math.cos(angle),
+    uy = Math.sin(angle),
+    vx = -uy,
+    vy = ux;
+  const length = wd.R * 0.68,
+    width = wd.R * 0.19;
+  const g = new PIXI.Graphics();
+  const point = (a, b, lift = 0) => [x + ux * a + vx * b, y + uy * a + vy * b - lift];
+  const slab = (a, b, c, d, colour, lift = 0) => {
+    g.poly([...point(a, c, lift), ...point(b, c, lift), ...point(b, d, lift), ...point(a, d, lift)])
+      .fill(colour)
+      .stroke({ width: 0.8, color: INK, join: 'round' });
+  };
+  const pole = (a, b, c, d, lift) => {
+    g.moveTo(...point(a, b, lift))
+      .lineTo(...point(c, d, lift))
+      .stroke({ width: 2.2, color: INK })
+      .moveTo(...point(a, b, lift))
+      .lineTo(...point(c, d, lift))
+      .stroke({ width: 1, color: 0x964632 });
+  };
+  // Low grey stone footings, dark timber beneath and separate pale planks above.
+  for (const end of [-1, 1]) slab(end * length - 2.5, end * length + 2.5, -width - 1.5, width + 1.5, 0xdad2c2);
+  slab(-length, length, -width, width, 0x785c3c, 1);
+  // Paint the far rail before the deck, the near rail last, so the crossing reads in either direction.
+  const rail = (side) => {
+    for (const t of [-1, 0, 1]) {
+      const [px, py] = point(t * length, side * width, 2);
+      g.moveTo(px, py)
+        .lineTo(px, py - 5)
+        .stroke({ width: 2.2, color: INK })
+        .moveTo(px, py)
+        .lineTo(px, py - 5)
+        .stroke({ width: 1, color: 0x964632 });
+    }
+    pole(-length, side * width, length, side * width, 7);
+  };
+  const near = vy >= 0 ? 1 : -1;
+  rail(-near);
+  for (let k = 0; k < 8; k++)
+    slab(-length + (k * length) / 4, -length + ((k + 1) * length) / 4, -width, width, k % 2 ? 0xdeac58 : 0xe6b866, 2);
+  rail(near);
+  g.zIndex = y + Math.abs(uy) * length + Math.abs(vy) * width;
+  g.label = `bridge:${tile}`;
+  L.objects.addChild(g);
+}
 // A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
 // rising log walls, the turf roof; a ring while the work goes on (VB-148).
 function drawBooth(wd, f, empty) {
@@ -210,6 +272,7 @@ function buildFarms(wd) {
   meadowSprites = [];
   teamDraw = new Map();
   L.objects.sortableChildren = true;
+  for (let tile = 0; tile < wd.N; tile++) if (wd.crossing[tile] === 2) drawBridge(wd, tile);
   for (const f of st.farmsteads) {
     const hx = wd.hx[f.house],
       hy = wd.hy[f.house],
