@@ -88,19 +88,36 @@ slices of `docs/roadmap.md` build towards them, and the sections below say how f
 - **Inspiration.** The acoup blog (Bret Devereaux), especially "Bread, How Did They Make It?", "Clothing, How Did They Make It?" and "Life,
   Work, Death and the Peasant".
 
-### Principles for decisions (Kim, 12 November 2026)
+### Principles for decisions (Kim, 12 and 14 November 2026)
 
-Decided, in a discussion of the open questions. They say how a question is answered when the sections below do not; `AGENTS.md`,
-Deciding without Kim, is their working form and says which questions still go to Kim.
+Decided, in a discussion of the open questions and a revision two days later. They say how a question is answered when the sections
+below do not; `AGENTS.md`, Deciding without Kim, is their working form and says which questions still go to Kim.
 
-- **Hunger is an engine.** Shortage drives the gift and goodwill, and through them loans, land passing and the landed class. A household
-  may fail; the design does not aim for every household to be fed.
+- **Nothing teleports.** The one hard rule. Goods, animals and people change place only by being carried, carted, led, shipped or
+  walked, by someone who makes the journey, and nothing appears or vanishes but by a process that makes or uses it: water is fetched
+  from the well, hay from the meadow. A farmstead is one place; a pawn working away from it carries its meal. Rights and knowledge are
+  exempt, since following every fact through the world is not computable: ownership, obligations, goodwill and news move at once, so a
+  gift, a share or a loan changes owner where it lies and waits to be fetched. The world a scenario starts with is placed, not
+  carried. Where the sections below still move goods or animals at once (help in hunger, shares, handing on, a new household's start),
+  the rule stands over them, and a task of the arch `physical` rewrites each.
+- **Hunger presses, the feast binds.** Shortage drives help, loans and land passing, and through them the landed class; help still
+  books goodwill. What drives the goodwill economy is plenty: at a feast a household turns its surplus into goodwill and standing. A
+  household may fail; the design does not aim for every household to be fed.
 - **The island grows without the player.** The island as a whole must grow reliably with nobody steering it: at least 1% a year in the
   long term, over most seeds (Balance loops and targets, Growth). Only island-wide numbers are judged.
 - **Parameters, not patches.** What balance depends on is a named parameter with a meaning in the physical world or in a gameplay
-  system. Parameters are tuned together, for gameplay balance, in runs Kim starts; otherwise only to avoid a collapse.
-- **History, leaning to gameplay.** Systems, customs and their defaults are grounded in history; where history and play part, play
-  decides. Customs may be added freely for now; a later review will look for a smaller set with the same effects.
+  system. The first value is seldom the best: a task may experiment a little to find a good parameterisation, of new parameters and
+  existing ones. The game as a whole is tuned in runs Kim starts, over many parameters together, for gameplay balance.
+- **Mechanisms, not prescriptions.** History is preferred, within reason, and the game must be fun; where history and play part, play
+  decides. A historical pattern is reached by modelling what produced it, never by setting it: women's age at marriage held
+  population in check, so the design models what makes a couple wait (a holding to marry onto, years in service, a portion to save),
+  not the age allowed. Hard limits are for physical facts.
+- **Customs may prescribe.** Customs and their defaults are grounded in history. A custom may set a rule (a culture's least age to
+  marry): it is a rule the pawns hold, which differs between villages and can change, not a rule of the simulation. Customs may be
+  added freely for now; a later review will look for a smaller set with the same effects.
+- **Place matters.** The game favours settlements that specialise where the land suits it (a mining village, a farming one, a fishing
+  one) and trade between them: over land, by river, and late in the game by sea. The cost of carrying is what makes a route worth
+  having. It is enough that the mechanics reward this; an island with no player is not held to a target for it.
 - **Detail where it is a decision.** Quantities and logistics are grounded in history, and the kinds modelled are those that give the
   head or the player a decision: key kinds, not every kind, as with the crops (Crops and rotations).
 - **References.** Founders is the reference for the early game, populous for the late game (many pawns).
@@ -1206,7 +1223,7 @@ Slices 0 and 9 write this section (backlog VB-181, VB-189); the loops and their 
 | Balance points | Many systems balance themselves, and tuning the game means tuning their balance points: peasant fertility is held in check by taxation and by higher death rates in crowded towns | Decided, 3 Nov (Kim's description) |
 | Population | About 1,000 living pawns on a medium map (see Vision and scope) | Decided, 3 Nov |
 | Growth | The island grows without the player. Yearly growth of a run is `(end / start)^(1 / years) − 1`. Over a scenario's seeds: the median seed grows at least 1% a year; at least three seeds in four end above their start; at most one in eight ends below half its start. Not every seed need grow. Founders is held to it as the early reference; populous while land is free (the loops hold it after); heirs is reported without a target | Decided, 12 Nov (1%, most seeds, the references); Agreed, 12 Nov (the three numbers) |
-| What is judged | Island-wide numbers only. Hunger is an engine (Vision and scope, Principles), so measures of single households (the hungriest household, the share of households hungry, hunger's share of deaths) are reported as descriptions and have no target | Decided, 12 Nov |
+| What is judged | Island-wide numbers only. Hunger presses (Vision and scope, Principles), so measures of single households (the hungriest household, the share of households hungry, hunger's share of deaths) are reported as descriptions and have no target | Decided, 12 Nov |
 | Collapse and tuning | A collapse is a reference scenario whose median seed shrinks; it may be tuned away at once. Anything short of a target but not a collapse is reported and left: parameters are tuned together, for gameplay balance, in runs Kim starts. A formula that computes something other than it says is a fix, not tuning | Decided, 12 Nov |
 | Strata | 600 farming, 325 in towns and specialised work, 75 elite, per 1,000, at the end game; open to challenge. Proposed reading: a band for a developed island, not a quota, with strata counted by relation to production, not residence | Decided (the target), Proposed (the reading); the food it needs and who may be counted in each: The balance review, below (12 Nov) |
 | Bands | Full-simulation bands are reported nightly and never fail; reduced scenarios (a tiny map, a few years) are asserted and may fail outside their band | Decided, 3 Nov |
@@ -1546,6 +1563,7 @@ State: **built** (as designed), **partly** (some of it built), **planned** (a ba
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 0.4 (principles, revised) | 14 November 2026 | Kim's revision of Principles for decisions: nothing teleports, the one hard rule (goods, animals and people are carried, led or walked; rights and knowledge move at once, so a gift or a share changes owner where it lies and is fetched; a farmstead is one place; a meal is carried to work away); hunger presses and the feast binds (feasts, not hunger, drive the goodwill economy; help still books goodwill); a task may experiment a little with parameters, new and existing; mechanisms, not prescriptions (a historical pattern is modelled through its causes, never set); customs may prescribe; place matters (specialised settlements and trade over land, river and, late, sea). The sections that still move goods or animals at once stand until a task of the arch `physical` rewrites each. |
 | 0.4 (distance review) | 12 November 2026 | Kim's decisions in a review of distance against the historical record (walking was 26 to 29% of hands' working hours, about a tenth in the record): World and scale reads land at 150 m a hex (it was 100 m); Settlements and look, Generated villages: villages are laid out by their land, a farm at a time round the green, the fields beside the houses and outward of them, and the laid street is removed. Walking is 12 tiles an hour (it was 3). World, climate and travel gains Carts: hand carts and ox carts as household items that wear, with loads of 30 on the back, 90 and 300, for sheaves, hay, firewood and dung (`src/sim/carts.js`). Fields lie beside houses in play too (a next field, a meadow, a plot) |
 | 0.4 (balance review) | 12 November 2026 | Kim's decisions in a session on what holds the game in balance, with eight experiments (`docs/balance/`): Balance loops and targets gains The balance review: the balance map and its properties; where a farm's food goes; the 600 / 325 / 75 split as deliberate, with a base yield that may exceed 1.67; idle labour as what land-owners draw on; servants and retinue counted by class; pull, then push; marriage and nursing as the levers of growth; disease and the town as a sink; the outside world mostly fixed; the vision of hunger to mobility, and patronage; goodwill and coin as two circuits; feasts as the driver of goodwill; two cultures, most different mid to late game; like seeks like through opinion; land use and reach not tunables. Marked Under revision: Births, Courting, Immigration, Class, What landed changes, How a village comes to host. Backlog VB-403 to VB-407; questions for Kim under VB-404, VB-405 and VB-407 |
 | 0.4 (the archipelago editor) | 12 November 2026 | Kim's decisions in a session as the editor was built: The player, commands and views gains The archipelago editor (a second way into a game from the main menu: the generator's parameters, a terrain brush for cover and deposits, and settlement by a scenario or by hand, with villages, households, people, empty farms, ruins, greens, fields, meadows and roads placed and shown at once; Regenerate resets what was made by hand; Play begins on the world as shown; such a game is not saved yet). Starting a game: New archipelago is Play a Scenario, and no screen has a Back button, the Main menu button being at each screen's top right (was: Back returns one step). Saving names the new menu. What was chosen in building and not weighed by Kim is Proposed there |

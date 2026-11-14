@@ -30,23 +30,57 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
-## Deciding without Kim (Kim, 12 November)
+## Deciding without Kim (Kim, 12 and 14 November)
 A question goes to Kim only if it moves a Decided point of `design.md`, or lets the player do something no existing system covers.
-Otherwise decide by these, write the decision and its reason in the task file, and go on.
-1. **Hunger is an engine.** Shortage drives gifts, goodwill and loans, and through them the landed class. A household may fail. Only
-   island-wide numbers are judged; per-household measures are reported as descriptions, with no target.
+Otherwise decide by these, write the decision and its reason in the task file, and go on. Nothing below stops work: where no principle
+covers a decision, or two pull apart, decide, go on, and surface it (Surfacing, below).
+
+**The hard rule: nothing teleports.** Goods, animals and people change place only by being carried, carted, led, shipped or walked, by
+someone who makes the journey; and nothing appears or vanishes but by a process that makes or uses it.
+- A farmstead is one place: nothing is carried between its house, barn and woodpile. A pawn working away from it carries its meal.
+- Rights and knowledge are exempt, since following every fact through the world is not computable: ownership, obligations, goodwill and
+  news move at once. So a gift, a share or a loan changes owner where it lies, and waits there until someone fetches it.
+- The world a scenario starts with is placed, not carried.
+- No task adds a teleport, however small or temporary. An agent that finds one in the code opens a task for it (arch `physical`) and
+  goes on; these tasks are taken interleaved with the slice's work, and each reports its numbers, since goods that take time to arrive
+  change hunger.
+
+1. **Hunger presses, the feast binds.** Shortage drives help, loans and land passing, and through them the landed class; help still
+   books goodwill. What drives the goodwill economy is plenty: at a feast a household turns its surplus into goodwill and standing. A
+   household may fail. Only island-wide numbers are judged; per-household measures are reported as descriptions, with no target.
 2. **The island grows without the player.** Over a scenario's seeds, yearly growth `(end / start)^(1 / years) - 1`: the median seed
    grows at least 1% a year, at least three seeds in four end above their start, and at most one in eight below half of it. Populous is
    held to this only while land is free. A median seed that shrinks is a collapse; anything between is a target out, not a collapse.
-3. **Parameters, not patches.** What balance depends on is a named tunable with a physical or gameplay meaning. Agents do not tune:
-   tuning is a run over many parameters, for gameplay balance, that Kim starts. A measurement that shows a shortfall is reported and
-   left for that run, as a row of `docs/tuning.md`. Two exceptions: a formula that computes something other than it says is a fix,
-   reported before and after; and a collapse may be tuned away.
+3. **Parameters, not patches.** What balance depends on is a named tunable with a physical or gameplay meaning. The first value is
+   seldom the best: a task may look for a good parameterisation of what it builds or touches, new parameters and existing ones, in at
+   most five short runs (seeds and map named), and writes the values tried and what each gave in the task file. Tuning the game, a run
+   over many parameters for gameplay balance, is Kim's to start: a shortfall outside the task's reach is reported and left for that
+   run, as a row of `docs/tuning.md`. A formula that computes something other than it says is a fix, reported before and after; and a
+   collapse may be tuned away.
 4. **Extending a system needs no question:** a new crop is sown as crops are; copper is mined as iron is.
-5. **Customs** are grounded in history, with defaults leaning to gameplay. Add them freely; Kim will later review them for a smaller set.
+5. **Customs** are grounded in history, with defaults leaning to gameplay. A custom may prescribe (a culture's least age to marry):
+   it is a rule the pawns hold, which differs between villages and can change, not a rule of the simulation (8). Add them freely; Kim
+   will later review them for a smaller set.
 6. **References:** founders is the early game's, populous the late game's (many pawns). Heirs is reported without a target.
 7. **Detail** is grounded in history and chosen where it gives the head or the player a decision: key kinds, not every kind, as with
    the crops (`design.md`, Crops and rotations).
+8. **Mechanisms, not prescriptions.** History is preferred, within reason, and the game must stay fun; where they part, play decides.
+   A historical pattern is reached by modelling what produced it, never by setting it: women's age at marriage held population in
+   check, so model what makes a couple wait (a holding to marry onto, years in service, a portion to save), not the age allowed. A
+   parameter that sets an outcome directly is a patch (3); hard limits are for physical facts.
+9. **Place matters.** The game favours settlements that specialise where the land suits it (a mining village, a farming one, a
+   fishing one) and trade between them: over land, by river, and late in the game by sea. Where a mechanism could let every village
+   make everything or tie production to place, choose place; the cost of carrying (the hard rule) is what makes a route worth having.
+   It is enough that the mechanics reward this: an island with no player is not held to a target for it.
+
+### Surfacing
+What Kim should see is surfaced, never waited for. A task notes, in its task file and in its result to the orchestrator:
+- **A principle candidate**, when a decision had no principle to rest on, when two principles pulled apart, or when it is the third
+  decision of one kind: one line of the rule proposed, and the decisions behind it.
+- **A teleport found**, with the task opened for it.
+
+The orchestrator gathers these at the head of the night's PR, under "For Kim": the candidates first, then the decisions that were
+close calls, one line each. Kim accepts a candidate into this section or strikes it; until then the decision made stands.
 
 ## Commands
 Every tool run from `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with `tools/help.js`).
