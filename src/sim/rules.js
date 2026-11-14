@@ -93,6 +93,18 @@ VB['sim/rules'] = (() => {
       weeds: 1,
       hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
     },
+    // peas (VB-349): a spring crop, the soil mended `gain` a crop (to SOIL.start; a field manured above it keeps its soil) and no wear; hoed
+    // (plow), pulled (reap) and threshed in fewer hours; lost to the frost as barley is; cooked in the pot as the food `pulses`, a source of its own
+    peas: {
+      yield: 60,
+      seed: 20,
+      sow: [0, 0, 9],
+      ripe: 18,
+      wear: 0,
+      gain: 0.04,
+      weeds: 2,
+      hours: { plow: 20, sow: 2, weed: 5, reap: 10, thresh: 10 },
+    },
     // fallow (VB-348), a course and not a crop: never sown, no seed and no grain (sim/stores holds only the rows with seed); tilled once in
     // `sow`, the summer; at the year's end a field that stood fallow through the summer gains `mend` of soil if tilled, half if not, to
     // at most SOIL.start
@@ -560,6 +572,8 @@ VB['sim/rules'] = (() => {
   // is held as 'flour' (household.flour) and cooks 1 to 1, one source with grain. ----
   const FOODS = {
     grain: { worth: 1 / ECON.unground, keeps: null, source: 'grain', held: 'grain', raw: false },
+    // peas, held as grain of their crop (stores) and so spoiling and eaten uncooked as grain; in the pot a source of their own (VB-349)
+    pulses: { worth: 1, keeps: null, source: 'pulses', held: 'grain', raw: false },
     flour: { worth: 1, keeps: null, source: 'grain', held: 'flour', raw: false }, // a few days' stock: its keeping is not modelled
     meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', held: 'larder', raw: true }, // fresh, from the slaughter
     'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', held: 'larder', raw: true },

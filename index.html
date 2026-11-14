@@ -5210,6 +5210,18 @@ VB['sim/rules'] = (() => {
       weeds: 1,
       hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
     },
+    // peas (VB-349): a spring crop, the soil mended `gain` a crop (to SOIL.start; a field manured above it keeps its soil) and no wear; hoed
+    // (plow), pulled (reap) and threshed in fewer hours; lost to the frost as barley is; cooked in the pot as the food `pulses`, a source of its own
+    peas: {
+      yield: 60,
+      seed: 20,
+      sow: [0, 0, 9],
+      ripe: 18,
+      wear: 0,
+      gain: 0.04,
+      weeds: 2,
+      hours: { plow: 20, sow: 2, weed: 5, reap: 10, thresh: 10 },
+    },
     // fallow (VB-348), a course and not a crop: never sown, no seed and no grain (sim/stores holds only the rows with seed); tilled once in
     // `sow`, the summer; at the year's end a field that stood fallow through the summer gains `mend` of soil if tilled, half if not, to
     // at most SOIL.start
@@ -5677,6 +5689,8 @@ VB['sim/rules'] = (() => {
   // is held as 'flour' (household.flour) and cooks 1 to 1, one source with grain. ----
   const FOODS = {
     grain: { worth: 1 / ECON.unground, keeps: null, source: 'grain', held: 'grain', raw: false },
+    // peas, held as grain of their crop (stores) and so spoiling and eaten uncooked as grain; in the pot a source of their own (VB-349)
+    pulses: { worth: 1, keeps: null, source: 'pulses', held: 'grain', raw: false },
     flour: { worth: 1, keeps: null, source: 'grain', held: 'flour', raw: false }, // a few days' stock: its keeping is not modelled
     meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', held: 'larder', raw: true }, // fresh, from the slaughter
     'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', held: 'larder', raw: true },
@@ -11867,12 +11881,13 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // Takes up to n of a household's unreserved grain, whatever its crop (the cook, the meal, the brewer): by what each crop holds above its reservation.
-  function takeSpare(st, hh, n, why, into) {
+  // `skip`: a crop left out (the pot's grain is not its pulses, VB-349).
+  function takeSpare(st, hh, n, why, into, skip) {
     amount(n);
     if (type(hh) !== 'household') throw new Error("stores: spare grain is a household's");
-    return takeGrain(st, hh, GRAIN, n, why, into, 'household', true);
+    return takeGrain(st, hh, GRAIN, n, why, into, 'household', true, skip);
   }
-  function takeGrain(st, holder, good, n, why, into, kind, spare) {
+  function takeGrain(st, holder, good, n, why, into, kind, spare, skip) {
     const before = grainOf(holder);
     let got;
     if (good !== GRAIN) {
@@ -11882,8 +11897,8 @@ VB['sim/stores'] = (() => {
       setGrain(holder, c, x - got);
       if (into) into[c] = (into[c] || 0) + got;
     } else {
-      got = Math.min(before, n);
-      split(st, holder, got, spare, into);
+      got = Math.min(before - (skip ? holder.grain[skip] || 0 : 0), n);
+      split(st, holder, got, spare, into, skip);
     }
     record(st, holder, good, -got, why, kind);
     crossed(st, holder, kind, before);
@@ -11891,34 +11906,35 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // A crop's weight in a take of 'grain': what is held of it, or what is held above its reservation.
-  const weight = (st, holder, c, spare) => {
-    const x = holder.grain[c] || 0; // a crop not held is not asked for its reservation
+  const weight = (st, holder, c, spare, skip) => {
+    const x = c === skip ? 0 : holder.grain[c] || 0; // a crop not held is not asked for its reservation
     return spare && x > 0 ? Math.max(0, x - reserved(st, holder, CROP_GOOD[c])) : x;
   };
   // Takes n (at most what is held) from the crops by their weights; the last crop with weight takes what is left, so that one crop gives
   // exactly n, and what the weights could not place is taken from the crops in order. Allocates nothing but `into`.
-  function split(st, holder, n, spare, into) {
+  function split(st, holder, n, spare, into, skip) {
     let total = 0,
       last = -1;
     for (let i = 0; i < CROP_LIST.length; i++) {
-      const w = weight(st, holder, CROP_LIST[i], spare);
+      const w = weight(st, holder, CROP_LIST[i], spare, skip);
       if (w > 0) {
         total += w;
         last = i;
       }
     }
     if (last < 0) {
-      if (spare) split(st, holder, n, false, into);
+      if (spare) split(st, holder, n, false, into, skip);
       return;
     }
     let left = n;
     for (let i = 0; i <= last; i++) {
       const c = CROP_LIST[i],
-        w = weight(st, holder, c, spare),
+        w = weight(st, holder, c, spare, skip),
         x = holder.grain[c];
       if (w > 0) left -= takeCrop(holder, c, i === last ? Math.min(x, left) : Math.min(x, left, (n * w) / total), into);
     }
     for (let i = 0; i < CROP_LIST.length && left > 0; i++) {
+      if (CROP_LIST[i] === skip) continue;
       left -= takeCrop(holder, CROP_LIST[i], Math.min(holder.grain[CROP_LIST[i]] || 0, left), into);
     }
   }
@@ -12679,7 +12695,7 @@ VB['sim/pot'] = (() => {
   // Fills `units` with a pot of `target` rations: fresh food oldest first, then dried fish (`lean`: only up to WINTER_FISH of the pot with
   // the fresh fish in it), then flour, then grain (spare at most: the grain above the seed reserve, and the seed the cook may take). Returns
   // the rations it could not fill. Reads only.
-  function fill(st, hh, target, spare, dried, lean, units) {
+  function fill(st, hh, target, spare, dried, lean, units, pulses) {
     for (const k in units) delete units[k];
     let left = target;
     for (const b of hh.fresh) {
@@ -12703,10 +12719,21 @@ VB['sim/pot'] = (() => {
       units.flour = fl;
       left -= mealsFrom('flour', fl);
     }
-    const g = Math.min(spare, left / FOODS.grain.worth);
+    // pulses (peas, VB-349) are a source of their own: first, up to what leaves grain a source (`lean`), else after the grain
+    let pu = lean ? Math.min(pulses, left / FOODS.pulses.worth, WINTER_FISH * target) : 0;
+    if (pu > 0) {
+      units.pulses = pu;
+      left -= mealsFrom('pulses', pu);
+    }
+    const g = Math.min(spare - pulses, left / FOODS.grain.worth);
     if (g > 0) {
       units.grain = g;
       left -= mealsFrom('grain', g);
+    }
+    pu = Math.min(pulses - pu, left / FOODS.pulses.worth);
+    if (pu > 0) {
+      units.pulses = (units.pulses || 0) + pu;
+      left -= mealsFrom('pulses', pu);
     }
     return left;
   }
@@ -12717,6 +12744,8 @@ VB['sim/pot'] = (() => {
     settle(st, hh);
     const free = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')),
       spare = free + Math.min(seed, grainOf(hh) - free),
+      peas = hh.grain.peas || 0,
+      pulses = peas > 0 ? Math.min(spare, Math.max(0, peas - reserved(st, hh, Stores.grainGood('peas')))) : 0, // the peas above their seed
       dried = hh.larder.length && iced(st) ? driedHeld(hh) : 0,
       units = POT.units;
     let k = 0;
@@ -12724,12 +12753,12 @@ VB['sim/pot'] = (() => {
       let done = false;
       for (let s = ECON.pot.length - 1; s >= 1 && !done; s--) {
         // the factor a pot of s sources needs; the last, a full pot of any
-        const left = fill(st, hh, want * potFactor(s), spare, dried, s > 1, units);
+        const left = fill(st, hh, want * potFactor(s), spare, dried, s > 1, units, pulses);
         k = sourcesOf(units);
         done = left <= 1e-9 && (s === 1 || Math.min(k, ECON.pot.length - 1) === s);
       }
       if (!done) {
-        fill(st, hh, Infinity, spare, dried, false, units);
+        fill(st, hh, Infinity, spare, dried, false, units, pulses);
         k = sourcesOf(units);
       } // short of food: all there is
     } else for (const f in units) delete units[f];
@@ -12740,9 +12769,10 @@ VB['sim/pot'] = (() => {
       if (!(n > 0)) continue;
       let got;
       if (food === 'grain') {
-        got = takeSpare(st, hh, Math.min(n, free), 'cooking');
+        got = takeSpare(st, hh, Math.min(n, Math.max(0, free - pulses)), 'cooking', undefined, 'peas');
         if (n - got > 1e-12) got += take(st, hh, 'grain', n - got, 'seedMeal'); // the seed, of each crop as it is held (as sim/hunger's)
-      } else if (food === 'dried fish') {
+      } else if (food === 'pulses') got = take(st, hh, Stores.grainGood('peas'), n, 'cooking');
+      else if (food === 'dried fish') {
         got = cookLarder(st, hh, food, n);
         plain += mealsFrom(food, got);
       } // its meals put, 1 to 1
@@ -14415,7 +14445,10 @@ VB['sim/fields'] = (() => {
   // ---- soil and manure (VB-137) ----
   // A reaped crop wears the field's soil.
   const wearSoil = (fd) => {
-    fd.soil = Math.max(SOIL.floor, fd.soil - CROPS[fd.crop].wear);
+    const C = CROPS[fd.crop];
+    fd.soil = C.gain
+      ? Math.max(fd.soil, Math.min(SOIL.start, fd.soil + C.gain))
+      : Math.max(SOIL.floor, fd.soil - C.wear); // peas mend it (VB-349)
   };
   // In spring, while the heap holds a load, manure goes to the field with the poorest soil that is not yet sown: [field, loads] or null.
   function manureWanted(f, hh, c) {
@@ -38924,7 +38957,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'e488a6d38b',
+const BUILD = 'fbc52b812c',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
