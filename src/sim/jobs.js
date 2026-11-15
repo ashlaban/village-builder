@@ -551,7 +551,8 @@ VB['sim/jobs'] = (() => {
   function idleAbout(st, a) {
     VB.count.idleStroll++;
     const bg = heldAt(a, 'background'),
-      go = (tile, x, y) => issue(st, { actor: a.id, verb: 'walkTo', target: tile, args: { x, y }, source: 'planner' });
+      go = (tile, x, y) =>
+        issue(st, { actor: a.id, verb: 'walkTo', target: tile, args: { x, y, near: true }, source: 'planner' });
     const mate = !bg && st.cenv ? companyFor(st, a) : null;
     // a herder waits by its herds, within reach of the pasture (VB-136)
     if (bg) {
