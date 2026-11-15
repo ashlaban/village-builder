@@ -5794,8 +5794,9 @@ VB['sim/rules'] = (() => {
   // to 0.5 at the most (small and medium, seeds 7 and 42): factors of about 1.3, 2.0, 4.1 and the cap (from a difference of 0.26). grade 0 switches slopes off.
   const SLOPE = { tobler: 3.5, grade: 2, max: 6 };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
-  // a lane over meadow. cacheMax: LRU entries; 60,000 keeps the late fixture's hit-rate loss within 5 points (VB-198).
-  const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
+  // a lane over meadow. cacheMax: entries, first in first out; the cache is emptied each day a tile changes cost (VB-236), and the most
+  // it held over 48 days after the first emptying was 4,028 at medium-ref and 2,779 at small-y40: twice the larger, for a run of quiet days.
+  const ROUTE = { cacheMax: 8000, reach: 200, minStep: 1 / PATHS.speed[3] };
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = {
@@ -7271,7 +7272,7 @@ VB['sim/routes'] = (() => {
     return c;
   }
 
-  // ---- the cache: bounded LRU in Map order (oldest first); the way back is the way there, reversed ----
+  // ---- the cache: bounded, first in first out in Map order (oldest first), emptied each day a tile changed; the way back is the way there, reversed ----
   // Also used on load: pre-VB-198 saves may hold more entries than the current bound.
   function trimRoutes(st) {
     while (st.pathCache.size > ROUTE.cacheMax) {
@@ -7285,16 +7286,12 @@ VB['sim/routes'] = (() => {
     let p = st.pathCache.get(k);
     if (p) {
       VB.count.routeHit++;
-      st.pathCache.delete(k);
-      st.pathCache.set(k, p);
       return p;
     }
     const bk = to * N + from,
       back = st.pathCache.get(bk);
     if (back && back[0] === to) {
       VB.count.routeHit++;
-      st.pathCache.delete(bk);
-      st.pathCache.set(bk, back);
       p = back.slice().reverse();
     } else {
       p = findRoute(st.w, from, to);
@@ -7307,63 +7304,17 @@ VB['sim/routes'] = (() => {
     trimRoutes(st);
     return p;
   }
-  // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the routes it could change
-  // are dropped at the end of the day.
+  // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the cache is emptied at the end of
+  // the day. Dropping only the routes the tile could change took as long as the searches it saved (VB-236): the late fixtures change a
+  // tile on nearly every day, and the cache refills with a tenth of the routes held.
   const costChanged = (st, tile) => {
     st.routeDirty.add(tile);
   };
-  // Once a game day: drop the cached routes that a changed tile might now shorten or lengthen, and every straight-walk fallback.
-  // A route by tile t costs at least (steps from the start to t + steps from t to the end) times the cheapest step,
-  // so a route that costs less than that cannot change because of t.
-  // The test is skipped where its outcome is certain without the route's cost: a route of n steps costs at least n minSteps, and at most n
-  // times the dearest step (MAX_STEP, the dearest terrain on the steepest slope), so a changed tile nearer than n - 1 always drops it and
-  // one beyond n * MAX_STEP / minStep never does.
-  // The changed tiles' hex coordinates are worked out once, not once per route (hexSteps in sim/hex, unrolled).
-  const MAX_STEP = (Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0]) * SLOPE.max;
+  // Once a game day: when any tile changed cost, empty the cache (the straight-walk fallbacks with it).
   function refreshRoutes(st) {
     if (!st.routeDirty.size) return;
-    const w = st.w,
-      N = w.N,
-      C = w.COLS,
-      n = st.routeDirty.size,
-      dq = new Int32Array(n),
-      dr = new Int32Array(n);
-    let i = 0;
-    for (const t of st.routeDirty) {
-      const y = (t / C) | 0;
-      dq[i] = (t % C) - ((y - (y & 1)) >> 1);
-      dr[i] = y;
-      i++;
-    }
-    const qOf = (t) => {
-      const y = (t / C) | 0;
-      return (t % C) - ((y - (y & 1)) >> 1);
-    };
     VB.count.routeRefresh += st.pathCache.size;
-    for (const [k, p] of st.pathCache) {
-      const to = k % N,
-        from = (k - to) / N;
-      if (p.length === 1 && from !== to) {
-        st.pathCache.delete(k);
-        continue;
-      }
-      const fq = qOf(from),
-        fr = (from / C) | 0,
-        tq = qOf(to),
-        tr = (to / C) | 0;
-      let near = Infinity; // the least hexSteps(from, t) + hexSteps(t, to) over the changed tiles t
-      for (let j = 0; j < n; j++) {
-        const a = fq - dq[j],
-          b = fr - dr[j],
-          c = dq[j] - tq,
-          d = dr[j] - tr;
-        const s = (Math.abs(a) + Math.abs(b) + Math.abs(a + b) + Math.abs(c) + Math.abs(d) + Math.abs(c + d)) / 2;
-        if (s < near) near = s;
-      }
-      const steps = p.length - 1;
-      if (near > (steps * MAX_STEP) / ROUTE.minStep + 1) continue;
-      if (near < steps - 1 || near <= routeCost(w, p) / ROUTE.minStep) st.pathCache.delete(k);
-    }
+    st.pathCache.clear();
     st.routeDirty.clear();
   }
 
@@ -26197,7 +26148,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self}; every event, append-only (sim/records, VB-075);
     //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start.
     //   A routine event's slot becomes, once folded, the index of its count in st.recordYears (VB-199); slots are never removed.
-    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes), LRU oldest first, at most ROUTE.cacheMax.
+    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends; sim/routes), oldest first, emptied each day a tile
+    //   changed cost, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.talks: number; talks since the start (sim/relations)
@@ -38957,7 +38909,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'fbc52b812c',
+const BUILD = '68e6b41451',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
