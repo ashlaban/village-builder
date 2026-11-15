@@ -3,8 +3,7 @@
 VB['sim/forage'] = (() => {
   const { FORAGE, YEAR_DAYS, DAY } = VB['sim/rules'],
     { B } = VB['gen'];
-  const { bfs } = VB['sim/hex'];
-  const { passable } = VB['sim/routes'];
+  const { reachTiles } = VB['sim/routes'];
   // Fresh stocks for a world: every tile full; the settlement generator calls it, and a load of a save made before gathering.
   function initForage(w) {
     // @state w.forage: Float32Array per tile; a forest or heath tile's stock of wild food from 0 to 1 as of the year in w.forageYear; it is
@@ -30,9 +29,12 @@ VB['sim/forage'] = (() => {
   // (ties by the search's order), or -1.
   function ground(st, house) {
     const w = st.w,
-      { dist } = bfs(w, house, FORAGE.reach, (j) => passable(w, j));
-    VB.count.forageGround += dist.size;
-    for (const t of dist.keys()) if (wild(w, t) && !w.dev[t] && stock(st, t) >= FORAGE.least - 1e-6) return t;
+      tiles = reachTiles(w, house, FORAGE.reach);
+    for (let n = 0; n < tiles.length; n++) {
+      const t = tiles[n];
+      VB.count.forageGround++;
+      if (wild(w, t) && !w.dev[t] && stock(st, t) >= FORAGE.least - 1e-6) return t;
+    }
     return -1;
   }
   return { initForage, wild, stock, gather, ground };

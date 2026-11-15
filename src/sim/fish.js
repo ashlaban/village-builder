@@ -2,8 +2,7 @@
 // closed form, and a house's fishing ground: the nearest bank within reach whose water holds fish
 VB['sim/fish'] = (() => {
   const { FISH, DAY } = VB['sim/rules'];
-  const { bfs } = VB['sim/hex'];
-  const { passable } = VB['sim/routes'];
+  const { reachTiles } = VB['sim/routes'];
   // Fresh stocks for a world: every water full; the settlement generator calls it, and a load of a save made before fishing.
   function initFish(w) {
     // @state w.fish: Float32Array per tile; a river or small lake tile's fish stock from 0 to 1 as of the day in w.fishDay, recovering
@@ -59,9 +58,10 @@ VB['sim/fish'] = (() => {
   // richest neighbouring water holds at least FISH.least; ties by the search's order. {shore, water}, or null.
   function ground(st, house) {
     const w = st.w,
-      { dist } = bfs(w, house, FISH.reach, (j) => passable(w, j));
-    VB.count.fishGround += dist.size;
-    for (const t of dist.keys()) {
+      tiles = reachTiles(w, house, FISH.reach);
+    for (let n = 0; n < tiles.length; n++) {
+      const t = tiles[n];
+      VB.count.fishGround++;
       if (w.river[t]) continue;
       let best = -1,
         top = FISH.least;

@@ -26,7 +26,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
    Only if it is one of the two kinds that go to Kim, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
 5. Before the last commit: `npm run format`, then `npm run verify` (half a minute); for a change under `src/page/`, also `node tests/smoke.js` and the
-   `tests/browser*.js` it touches. Rebuild `index.html` before committing. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
+   `tests/browser*.js` it touches. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
    report it in the task file and the PR's Targets section (before, after, residual, cause).
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`. A criterion
    unmet, or met only in part: keep the commit, leave it unticked with the reason, and `set ID status=needs-review`; it is not done.
@@ -77,9 +77,18 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
    fishing one) and trade between them: over land, by river, and late in the game by sea. Where a mechanism could let every village
    make everything or tie production to place, choose place; the cost of carrying (the hard rule) is what makes a route worth having.
    It is enough that the mechanics reward this: an island with no player is not held to a target for it.
-10. **The future is someone's estimate** (Kim, 15 November). What the player is shown of what will happen (when a task ends, whether a
-   store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
-   knowledge; what has happened is shown as it was. A view that foretells says whose estimate it shows.
+10. **Decided fixes the mechanism, not its bounds.** A named cap, target or floor on a Decided rule (a store that fills only to a
+    target) is parameterisation (3), not a question, when the mechanism stays as Decided and a measurement shows the defect: the
+    design's line gains the bound, and the numbers are reported before and after. Replacing the mechanism still goes to Kim.
+11. **Enforcing is not asking.** Bringing the code into line with a Decided point or the hard rule needs no question, even where it
+    costs a target: do it, and report the cost before and after (Working rules, Targets).
+12. **Tooling is the agent's.** The formatter, the bundler, hooks, baselines and strictness are decided by target-v2's principles
+    and written in the task file. Kim keeps only whether, and when, work goes ahead that holds other tasks back.
+13. **An elite is what the rules leave over, not a quota.** No road, office or class is given a share or a count to reach. A plan
+    sizes each claim (a rent, a keep, a due) against a household's need, and the wrap-up reports who became elite and by what.
+14. **The future is someone's estimate** (Kim, 15 November). What the player is shown of what will happen (when a task ends, whether a
+    store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
+    knowledge; what has happened is shown as it was. A view that foretells says whose estimate it shows.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with
@@ -99,7 +108,8 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   `close-arch`, `sync` change it.
 - Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|result` (a sub-agent), `init|status|apply|report|results`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
-- Format, then build: `npm run format` after editing `src/` (Prettier), then `python3 build.py` (`--check` fails if `index.html` is stale).
+- Format: `npm run format` after editing `src/` (Prettier). `index.html` is derived and not in the repository (VB-450): never commit it. The
+  page's tests and tools build their own copy, and the Pages workflow builds the site's; `python3 build.py` writes one to open by hand.
 - Tests (`tests/suites.js`, `docs/testing.md`): `npm test`, fast, 10 seconds; `npm run verify`, fast and integration, 40 seconds; one
   script, `node tests/NAME.js`. The extended tier, the fixtures, the bench and the bands run at night, never in a task. A new check is
   built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`) and gets a line in `tests/suites.js`.
@@ -173,7 +183,6 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   re-records a ceiling or writes an allowance to make a residual vanish; only Kim changes a target, and only Kim starts a tuning run
   (Deciding without Kim, 3). The lint and ownership baselines
   stay ratchets.
-- Rebuild `index.html` before committing; both suites check it.
 - A slice's wrap-up adds its loops' bands to `tests/lib/bands.js`: a `report` for the full runs and, where a reduced run can show the
   loop, an `assert`.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.

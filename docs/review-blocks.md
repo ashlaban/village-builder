@@ -139,7 +139,7 @@ shown by step 1's invariant, the island's numbers and the counters.
 - **A pawn that is not head sees estimates by its own judgement.** It follows from parity of command; surfaced as a close call.
 - **The plan panel's "who holds which task" (VB-256) is the timetable's.** VB-256 keeps the rest.
 
-Principle, accepted by Kim on 15 November (`AGENTS.md`, Deciding without Kim, 10): *what the player is shown of the future is some
+Principle, accepted by Kim on 15 November (`AGENTS.md`, Deciding without Kim, 14): *what the player is shown of the future is some
 pawn's estimate, never the simulation's knowledge.*
 
 ## 6. Rejected
@@ -154,8 +154,9 @@ pawn's estimate, never the simulation's knowledge.*
 
 - **While the pawn works a long leg:** the page's control "until my task ends", as proposed; later there will be more for the player
   to do meanwhile (plan social manoeuvres, design outfits). In VB-477.
-- **The order:** VB-467 and VB-468, VB-471 to VB-474, VB-254, then VB-475 onward.
-- **The principle is accepted** (`AGENTS.md`, Deciding without Kim, 10; `design.md`, Principles): the future is someone's estimate.
+- **The order:** VB-467 and VB-468, VB-471 to VB-474, VB-254, then VB-475 onward. (VB-467 was closed at the merge with `main`: its
+  VB-452 had cached the ground searches.)
+- **The principle is accepted** (`AGENTS.md`, Deciding without Kim, 14; `design.md`, Principles): the future is someone's estimate.
 
 ## 8. The open tasks, read against this plan (15 November 2026)
 

@@ -1,0 +1,40 @@
+name: Pages
+# Publishes the game and its documents (VB-449). The page is built from src/ here, so the site does not depend on an index.html kept
+# in the repository; the Markdown documents are rendered by the same Jekyll build that "Deploy from a branch" ran, so BACKLOG.html,
+# QUESTIONS.html and docs/roadmap.html keep their addresses. Needs Settings, Pages, Source: GitHub Actions.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - run: python3 build.py
+      - uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+      - name: The built page is in the site
+        run: cmp index.html _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
