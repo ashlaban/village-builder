@@ -1,5 +1,6 @@
 // Browser smoke test: loads index.html in real Chromium (Playwright), PixiJS served from node_modules in place of the CDN.
 // Generates a Tiny Populous Villages map, skips a year, opens each panel, and fails on any console or page error. Runs in verify only.
+const { builtPage } = require('./lib/page');
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path');
 const { browserHTML } = require('./lib/browser');
 const root = path.join(__dirname, '..'), pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
@@ -18,7 +19,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({
     contentType: 'text/css', body: '' }));
   await page.route('https://village.test/', (r) => r.fulfill({
-    contentType: 'text/html', body: browserHTML(fs.readFileSync(path.join(root, 'index.html'), 'utf8')
+    contentType: 'text/html', body: browserHTML(builtPage()
       .replace('app.ticker.add((tk) => {', 'app.ticker.maxFPS = 12; app.ticker.add((tk) => {')
       .replace('let st = null,\n  speed = 1,\n  selPawn = -1;', 'let st = null,\n  speed = 1,\n  selPawn = -1; window.__play = { get st() { return st; }, Sim, focusPawn, '
         + 'get speed() { return speed; }, get choose() { return choose; }, '
