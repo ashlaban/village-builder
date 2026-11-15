@@ -28,5 +28,21 @@ assert.strictEqual(splitTask('sim/relations', tasks), null, 'a done task splits 
 assert.strictEqual(splitTask('gen/rivers', tasks), 'VB-2');
 assert.strictEqual(splitTask('gen', tasks), null, 'gen is not gen/rivers');
 assert.strictEqual(splitTask('sim/heirs', tasks), null, 'only a task titled Refactor: counts');
+
+// The width lint leaves out an export read by registries alone (VB-454).
+const { exportReaders, leftOut } = require('./lint-rules.js');
+const REG = { 'sim/kinds': 'job kinds', 'sim/clock': 'the calendar' };
+const srcs = {
+  'sim/fields': "VB['sim/fields'] = (() => { return { hoed, shared, idle }; })();",
+  'sim/kinds': "const { hoed, shared } = VB['sim/fields'];",
+  'sim/clock': "const F = VB['sim/fields']; F.hoed(st); // VB['sim/fields'].idle",
+  'sim/plans': "const { shared } = VB['sim/fields'];",
+  sim: "const { idle } = VB['sim/fields'];",
+};
+const rd = exportReaders(srcs)['sim/fields'];
+assert.deepStrictEqual(leftOut(['hoed', 'shared', 'idle'], rd, REG), { hoed: ['sim/clock', 'sim/kinds'] }, 'registries alone: left out; a second module or none: counted');
+const whole = { 'sim/clock': "const A = VB['m']; run(A);" };
+assert.deepStrictEqual(Object.keys(leftOut(['x'], exportReaders(whole).m, REG)), ['x'], 'a namespace passed whole is read in full, by a registry here');
+assert.deepStrictEqual(leftOut(['x'], exportReaders({ ...whole, p: "VB['m'].x" }).m, REG), {}, 'a non-registry reader counts');
 assert.strictEqual(splitTask('sim/stores', tasks), 'VB-4');
 console.log('lintrules ok');
