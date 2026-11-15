@@ -754,7 +754,7 @@ What each reads (the harvest is multiplied by each line that applies; w and r ar
 | Hay | A wet spring: + 0.15 × r | A wet summer, on the swathes: − 0.15 at the wettest | A dry spring and a wet haymaking |
 
 - **The hedges this gives:** a dry summer is poor for barley and peas and leaves the rye whole; a wet summer is good to no crop but worst for rye and hay; a hard winter touches only the rye. Barley and hay, which every farm has today, fail in different years.
-- **Barley alone stays about as it is:** its reading is tuned so that its mean and spread are today's factor's (0.75 to 1.2, about 0.975 on average), so a village with barley only is fed as now. The golden file changes all the same, and the tasks say so.
+- **Barley alone stays about as it is:** its reading is tuned so that its mean and spread are today's factor's (0.75 to 1.2, about 0.975 on average), so a village with barley only is fed as now. A run's state changes all the same, and the tasks report the numbers before and after.
 - **A head cannot see the season coming,** so foresight is not prediction: a good head's answer to the weather is the mix, the early sowing and the seed kept of two crops.
 - **Not yet in:** the wetness of a place (a river bank, a marsh's edge; the weather's rain a tile, once merged, is its normal), high ground's short season, and oats, the crop for both.
 
@@ -777,7 +777,7 @@ What each reads (the harvest is multiplied by each line that applies; w and r ar
 | The food balance (VB-048) | A farm in three courses needs a fourth field; the retune of yields and fields a farm reads rations by crop | The wrap-up VB-356 hands its numbers to VB-048 |
 | The player (VB-253, VB-256) | Verbs for a field's rotation and for sowing out of turn; the plan panel lists fields and seed | VB-355 |
 | The page | Each crop drawn at each stage; rye green in autumn | VB-355 |
-| Saves and the golden file | New fields on fields, stores, villages and pawns, each with invariants. Barley-only runs stay as they are until the scenarios' crops (VB-353) and the weather (VB-354), which re-record it | Each task |
+| Saves and behaviour | New fields on fields, stores, villages and pawns, each with invariants. Barley-only runs stay as they are (`node tools/same.js`) until the scenarios' crops (VB-353) and the weather (VB-354), which report their numbers before and after | Each task |
 | Cost | A choice a field a year; a village a year at its meeting; a reading a field at its reaping. Nothing daily, nothing over pairs, nothing that grows with history | Named in each task; measured in VB-356 |
 
 ### Long work and processing
