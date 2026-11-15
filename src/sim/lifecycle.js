@@ -38,18 +38,8 @@ VB['sim/lifecycle'] = (() => {
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { startInLife } = VB['sim/exchange'];
   const { stillAtDeath, travelling, tileAt, journeyOf } = VB['sim/agents'];
-  const {
-    heirRanking,
-    moveTo,
-    transfer,
-    succession,
-    comeOfAge,
-    refreshRoles,
-    countDemand,
-    handOn,
-    heirFor,
-    roundHeirs,
-  } = VB['sim/heirs'];
+  const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor } =
+    VB['sim/heirs'];
   const { kinOk, matchScore, matchRules, matchBar } = VB['sim/matching'];
   const { startPlots } = VB['sim/expansion'];
   const { claimFarms, claimableFarm } = VB['sim/farmclaims'];
@@ -369,7 +359,7 @@ VB['sim/lifecycle'] = (() => {
       return;
     }
     if (n === VILLAGE_STEPS) {
-      countDemand(st, roundHeirs(st).rank); // who wants out: landless adults with no prospect of a farm
+      countDemand(st); // who wants out: landless adults with no prospect of a farm
       claimFarms(st); // empty farms go to claimants by custom before any plot is cleared
       startPlots(st, (id) => claimableFarm(st, id) === null);
     } else if (n === VILLAGE_STEPS + 1)

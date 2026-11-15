@@ -5,7 +5,7 @@ const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const root = path.join(__dirname, '..'), rows = new Map(), stack = [];
 let active = false;
 const targets = {
-  'sim/heirs': ['roundHeirs', 'handOn', 'countDemand', 'refreshRoles'],
+  'sim/heirs': ['handOn', 'countDemand', 'refreshRoles'],
   'sim/lifecycle': ['movingRound', 'kinPressure', 'wed'],
   'sim/help': ['fillStores'], 'sim/farmclaims': ['claimFarms'], 'sim/expansion': ['startPlots'],
   'sim/settle': ['settleRound'], 'sim/service': ['takeServants'], 'sim/cottage': ['payOwed'],
@@ -29,14 +29,6 @@ for (const file of JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json
   const key = file.slice(0, -3), mod = globalThis.VB[key];
   if (!mod) continue;
   for (const name of targets[key] || []) mod[name] = wrap(mod[name], name);
-  if (key === 'sim/heirs') {
-    const make = mod.roundHeirs;
-    mod.roundHeirs = (...args) => {
-      const view = make(...args);
-      view.rank = wrap(view.rank, 'cachedRank'); view.invalidate = wrap(view.invalidate, 'invalidateRanks');
-      return view;
-    };
-  }
 }
 const VB = globalThis.VB, F = require('../tests/lib/fixtures.js');
 for (const name of process.argv.slice(2).length ? process.argv.slice(2) : ['small-y40', 'medium-ref']) {
