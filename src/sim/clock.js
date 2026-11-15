@@ -14,7 +14,7 @@ VB['sim/clock'] = (() => {
   const Workdays = VB['sim/workdays'];
   const { placeByDoor, release, dropJob, stepAgents, travelling, dueJourneys, stopJourneys, feedTravellers } =
     VB['sim/agents'];
-  const { refreshJobs, callCooks, lookUp, planRound, idleAbout, lookForWork } = VB['sim/jobs'];
+  const { refreshJobs, takeDay, helpers, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
   const { outdoors } = VB['sim/society'];
@@ -101,20 +101,6 @@ VB['sim/clock'] = (() => {
       owner: 'sim/jobs',
       note: 'the review of the standing plans (sim/plans reviewHour)',
       run: (st, c) => refreshJobs(st, c),
-    },
-    {
-      every: 'hour',
-      at: { hour: [14, WORK[1]] },
-      owner: 'sim/jobs',
-      note: 'cooks called for the evening meal',
-      run: (st, c) => callCooks(st, c),
-    },
-    {
-      every: 'hour',
-      at: { hour: [WORK[0], WORK[1]] },
-      owner: 'sim/jobs',
-      note: 'more urgent work interrupts a job (VB-107)',
-      run: (st, c) => lookUp(st, c),
     },
     {
       every: 'hour',
@@ -597,8 +583,9 @@ VB['sim/clock'] = (() => {
       all = stepAgents(st, c),
       idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
     if (idle.length) {
-      const got = planRound(st, idle, c);
-      // those the plan's tasks did not employ look at the household's opportunities, and are matched again (VB-249)
+      // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted
+      // anew (VB-249), and take again; those still without help a neighbour (VB-106)
+      const got = takeDay(st, idle, c);
       const looked =
         got.size < idle.length
           ? lookForWork(
@@ -607,7 +594,8 @@ VB['sim/clock'] = (() => {
               c,
             )
           : [];
-      if (looked.length) for (const a of planRound(st, looked, c)) got.add(a);
+      if (looked.length) for (const a of takeDay(st, looked, c)) got.add(a);
+      if (got.size < idle.length) helpers(st, idle, got, c);
       for (const a of idle) if (!got.has(a)) idleAbout(st, a);
     }
   }

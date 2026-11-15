@@ -34,13 +34,13 @@ VB.COUNTERS = {
     "Calls of a kind's `available` rule: by the reviews of the plans, the due-queue and members looking for work (sim/jobs; VB-258, VB-249)",
   planReview:
     "Plans reviewed: on each holder's planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)",
-  matchBid:
-    'Idle pawn and job pairs weighed by matching, each pawn with the jobs of its household and village (sim/jobs, planRound; VB-227)',
+  dayPair:
+    "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
+    '(sim/jobs, allot; VB-466)',
+  dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-466)',
   helpOffer:
     "Jobs of a village's households weighed for the offer to helpers, once a village a round with a helper (sim/jobs, offered; VB-106)",
   helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',
-  lookUpJob:
-    'Jobs weighed by pawns at work looking up from their job, each with the jobs of its household and village (sim/jobs, lookUp; VB-227)',
   occasionAsked:
     "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
     '(sim/occasions, VB-126)',
@@ -50,8 +50,6 @@ VB.COUNTERS = {
   labourWeighed:
     'Households short of labour weighed for a landless adult with hands to spare at home, at the moving round (sim/service, ' +
     'serveWhereShort; VB-090)',
-  cookFarm:
-    'Farms visited by callCooks, from 14:00 to the end of work, for a household short of cooked food (sim/jobs; VB-227)',
   forageGround:
     'Tiles within reach of a house searched for its gathering ground, when its gathering is asked for (sim/forage; VB-118)',
   fishGround:

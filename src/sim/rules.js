@@ -816,13 +816,17 @@ VB['sim/rules'] = (() => {
     claimantPrio: 9,
     helperPrio: 5,
   };
-  // Job matching (jobs.js): a poor fit (role priority at most poorFit) bids once the job has waited poorFitWaitHours; each step from home costs
-  // distanceWeight; noise breaks ties; a bid for a job that k pawns already work is multiplied by join^k (VB-102), so a free job comes first.
-  // Once an hour a pawn at work leaves its job for another whose noise-free bid is above switchRatio × its own job's + switchMargin (VB-107).
+  // The fit of a pawn for a job (jobs.js): its role's priority for the kind times the job's urgency, less distanceWeight for each step
+  // from home; a good fit (priority above poorFit) never falls under `floor`. The head allots a household's day by it (VB-466); a
+  // further hand on a job counts for join of the one before (VB-102), so a free job comes first. When the day is allotted anew, a pawn
+  // at work leaves its job for one whose fit is above switchRatio × its own job's + switchMargin (VB-107). `noise` is on a helper's
+  // bid for a neighbour's job only.
   // urgency: a job's weight in a bid, by kind (see the kinds in sim/kinds).
   const MATCH = {
     poorFit: 2,
-    poorFitWaitHours: 2,
+    // The head's day (VB-466): a task is given hands until they finish it within `horizon` working days, and a member is given tasks
+    // up to its working hours of that time; what it may do besides follows in its list.
+    day: { horizon: 0.5 },
     floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
     distanceWeight: 0.15,
     noise: 0.3,

@@ -9,7 +9,7 @@
 // @state agent.occasion: the id of the occasion the pawn set out for and stands at until its end, or null
 VB['sim/occasions'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, SPEED, WORK, SOCIAL, cal } = VB['sim/rules'];
+  const { DAY, SPEED, WORK, SOCIAL, TICKS, cal } = VB['sim/rules'];
   const { findRoute, routeCost } = VB['sim/routes'];
   const { kinNear, membersOf, voiceOf, fullName, log, atFarm } = VB['sim/records'];
   const { issue, unplanned } = VB['sim/commands'];
@@ -187,7 +187,8 @@ VB['sim/occasions'] = (() => {
     a.phase !== 'journey' &&
     a.phase !== 'road' && // on the road (VB-287)
     (o.overrides || (!a.job && (a.phase === null || a.phase === 'home')));
-  // The occasion o's turn: those whose time to set out has come go if they can; one who cannot yet is looked at again in an hour, while it
+  // The occasion o's turn: those whose time to set out has come go if they can; one who cannot yet is looked at again in an hour (at the
+  // next step if it is carrying a load home), while it
   // could still arrive an hour before the end. At the end, o is over.
   function visit(st) {
     const o = st.occasions[0];
@@ -207,7 +208,9 @@ VB['sim/occasions'] = (() => {
         o.asked.splice(i, 1);
         continue;
       }
-      again = st.t + 1;
+      // one carrying a load home is looked at again at the next step, when the load may be down (VB-466: looked at each hour, a hauler
+      // whose trips took the hour was on the road with a load every time, and a village of one voice had no quorum)
+      again = Math.min(again, st.t + (a.phase === 'back' ? 1 / TICKS : 1));
       i++;
     }
     const nextLeave = o.asked.find((g) => g.leave > st.t);

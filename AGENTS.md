@@ -86,6 +86,9 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
     and written in the task file. Kim keeps only whether, and when, work goes ahead that holds other tasks back.
 13. **An elite is what the rules leave over, not a quota.** No road, office or class is given a share or a count to reach. A plan
     sizes each claim (a rent, a keep, a due) against a household's need, and the wrap-up reports who became elite and by what.
+14. **The future is someone's estimate** (Kim, 15 November). What the player is shown of what will happen (when a task ends, whether a
+    store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
+    knowledge; what has happened is shown as it was. A view that foretells says whose estimate it shows.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with

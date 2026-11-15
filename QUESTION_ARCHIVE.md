@@ -92,6 +92,14 @@ From the balance review of 12 November (`docs/balance/findings.md`; `docs/balanc
    **A (Kim, 13 Nov):** As proposed (Kim, by the orchestrator's question round of 13 November: 'P on all, you may adjust').
 6. Do the refactors VB-310 (Obligations), VB-311 (own and use) and VB-313 (Decisions) go ahead before this is answered? **P:** yes: every road above needs obligations, rights held apart and the meeting's questions; VB-312 and VB-314 to VB-321 wait for this plan.
    **A (Kim, 13 Nov):** As proposed (Kim, by the orchestrator's question round of 13 November: 'P on all, you may adjust').
+# Archived 15 November 2026 (VB-469)
+
+## VB-469: work as blocks, the timetable and the estimate (raised 15 November 2026)
+From the plan `docs/review-blocks.md` (after `docs/review-jobs.md`, sections 10 and 11). The design text is in `design.md` section 7 (A leg, and its end, to The timetable); these two are what the plan could not decide.
+1. What does the player do while its pawn works a long leg (six hours of hoeing)? With blocks nothing happens to the pawn until the leg ends or is cut. **P:** the clock runs at the chosen speed as today, and the page gains one control, "until my task ends", which runs the clock at its fastest and stops at the leg's end or at anything that concerns the household (a call, a request for help, a death, an occasion, a store crossing a target). It is a control of the page's speed, not a verb: the simulation does the same with or without it.
+   **A (Kim, 15 Nov):** Yes. Later there will be more for the player to do meanwhile (plan social manoeuvres, design outfits).
+2. The estimate rests on foresight (VB-254: the stand-in traits, skill as head, the biases), which is ready and not built. **P:** VB-254 is built after the first four steps of the plan (legs as blocks and the page) and before the estimate, so the engine's change and the heads' judgement are measured apart; the order is VB-467, VB-468, VB-471 to VB-474, VB-254, VB-475 onward.
+   **A (Kim, 15 Nov):** Yes.
 
 # Archived 13 November 2026 (VB-283)
 

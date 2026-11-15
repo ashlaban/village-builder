@@ -1,7 +1,8 @@
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
 // ale brewed, poured and spoiling (VB-305); the registry of goods (VB-299) and Culture's worth and proper as rules
 VB['sim/stores'] = (() => {
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW, CROPS, cal } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW, CROPS, MATCH, cal } = VB['sim/rules'];
+  const WOOD_LOW = MATCH.urgency.woodLow;
   const Rules = VB['sim/registry'],
     Culture = VB['culture'],
     { emit } = VB['sim/events'],
@@ -243,6 +244,8 @@ VB['sim/stores'] = (() => {
     record(st, holder, good, -got, why, kind);
     set(holder, good, before - got, kind);
     if (got > 0) short(st, holder, kind, good, holder[k]);
+    // a woodpile that falls under the low mark wakes the head (VB-466: the day is allotted anew, and a hand may be called to the woods)
+    if (kind === 'household' && good === 'wood' && before >= WOOD_LOW && holder[k] < WOOD_LOW) wake(st, holder);
     if (into && k === 'stake') into[STAKE_CROP] = (into[STAKE_CROP] || 0) + got;
     return got;
   }
