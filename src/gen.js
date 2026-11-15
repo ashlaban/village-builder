@@ -160,6 +160,28 @@ const ArchGen = (() => {
     MOUNTAIN: 11,
     SNOW: 12,
   };
+  // ---- land cover: which biome a land tile gets, from its height rank p (0 the lowest land tile, 1 the highest) and its moisture m
+  // (0 dry to 1 wet, a little wetter on the coast and drier with height). Read in this order, the first that holds:
+  //   snow, mountain: p above these; shore: a coast tile with p below it is sandy shore, or marsh where m is above shoreMarsh;
+  //   upland: p above it is hills, or pine forest where m is above uplandPine;
+  //   then the lowland by moisture: heath below `heath`, meadow below `meadow`, broadleaf forest below `forest`, and wetter than that
+  //   pine forest, or marsh where p is below marshLow and m above marshWet.
+  // So the lowland's shares move with three numbers: lowering `heath` and `meadow` gives their land to the broadleaf forest. These
+  // values give, on medium at seeds 7, 11 and 42, 27%, 17% and 19% of the land to forest and pine, 21 to 25% to meadow and 15 to 25%
+  // to heath (`node tools/cover.js` prints the shares). ----
+  const COVER = {
+    snow: 0.975,
+    mountain: 0.9,
+    shore: 0.16,
+    shoreMarsh: 0.76,
+    upland: 0.76,
+    uplandPine: 0.5,
+    heath: 0.3,
+    meadow: 0.54,
+    forest: 0.7,
+    marshLow: 0.22,
+    marshWet: 0.8,
+  };
   // Land colours are the earth pigments of a painted vault (yellow ochre, green earth, red oxide, limewash), from c to c2 by the macro
   // tint; shade: how strongly the light of the relief tells on the biome.
   const BIOMES = [
@@ -475,14 +497,14 @@ const ArchGen = (() => {
       const m = Math.max(0, Math.min(1, hm[i] + (coast ? 0.05 : 0) - p * 0.15));
       hm[i] = m;
       let b;
-      if (p > 0.975) b = B.SNOW;
-      else if (p > 0.9) b = B.MOUNTAIN;
-      else if (coast && p < 0.16) b = m > 0.76 ? B.MARSH : B.BEACH;
-      else if (p > 0.76) b = m > 0.5 ? B.PINE : B.HILLS;
-      else if (m < 0.3) b = B.HEATH;
-      else if (m < 0.54) b = B.MEADOW;
-      else if (m < 0.7) b = B.FOREST;
-      else b = p < 0.22 && m > 0.8 ? B.MARSH : B.PINE;
+      if (p > COVER.snow) b = B.SNOW;
+      else if (p > COVER.mountain) b = B.MOUNTAIN;
+      else if (coast && p < COVER.shore) b = m > COVER.shoreMarsh ? B.MARSH : B.BEACH;
+      else if (p > COVER.upland) b = m > COVER.uplandPine ? B.PINE : B.HILLS;
+      else if (m < COVER.heath) b = B.HEATH;
+      else if (m < COVER.meadow) b = B.MEADOW;
+      else if (m < COVER.forest) b = B.FOREST;
+      else b = p < COVER.marshLow && m > COVER.marshWet ? B.MARSH : B.PINE;
       biome[i] = b;
     }
 
@@ -1027,6 +1049,7 @@ const ArchGen = (() => {
     hexLocator,
     BIOMES,
     B,
+    COVER,
     NX,
     NY,
     LV,
