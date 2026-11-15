@@ -156,7 +156,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   (`sim/heirs`), names it in its PR and goes on. Never place code elsewhere to make room. The seven modules the sweep left over the
   line are in `tests/lint-baseline.json` at their lengths, which only fall.
   Width the same way (VB-415): a module over 15 exports (`tests/width-baseline.json` holds today's 21 at their counts) may add one only
-  with such a task open; the `sim` facade is not counted.
+  with such a task open; the `sim` facade is not counted, nor an export read only by registries (`REGISTRIES` in `tests/lint.js`: `sim/kinds`, `sim/clock`, `sim/commands`; VB-454).
 
 ## Architecture work
 - Read target-v2's principles (section 2) before adding a module, an owner or a call between modules. Before giving new state an owner, find
