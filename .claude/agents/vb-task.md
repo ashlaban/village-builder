@@ -1,6 +1,7 @@
 ---
 name: vb-task
 description: Implements one ready backlog task of the village builder (VB-NNN) in its own worktree, beside other sub-agents, from reading it to the commit, and returns a short result. Give it the task ID, the run's branch and its reserved task IDs; the caller chooses the model by the task's size.
+tools: Bash, Read, Edit, Write, Grep, Glob
 ---
 # One task
 
