@@ -13,7 +13,7 @@
 //   --land        with the Land overlay on
 //   --scale S     device pixel ratio (default 2: 2880 by 1800 pixels; 1 for a quick look)
 //   --tag NAME    the files' prefix (default village-<seed>-<farms>f-y<years>)
-//   --html FILE   another build of the page (default index.html: run python3 build.py first)
+//   --html FILE   another build of the page (default: built from src/ for the run, tests/lib/page.js)
 // The page is driven as tools/shot.js drives it: Playwright on a scratch copy of index.html, PixiJS from node_modules. The village is seeded as
 // tests/lib/tiny.js seeds a state (the settlement generator, then the populous households, herds, meadows and outland), not by a scenario.
 require('./help.js')(__filename);
@@ -23,7 +23,7 @@ const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--
   args.includes('--' + k);
 const seeds = String(opt('seeds', opt('seed', '7'))).split(',').map(Number), farms = +opt('farms', 8), cols = +opt('cols', 40), rows = +opt('rows', 28);
 const years = +opt('years', 0), zoom = +opt('zoom', 0), scale = +opt('scale', 2), outDir = path.resolve(opt('out', '.'));
-const htmlPath = opt('html', path.join(root, 'index.html'));
+const htmlPath = opt('html', null);
 if (seeds.some((s) => !(s >= 0)) || !(farms >= 1) || !(cols >= 12) || !(rows >= 12)) {
   console.error('village-shot: bad options; see --help'); process.exit(2); }
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
@@ -35,7 +35,7 @@ const HOOKS = [
   ['const SIZES = { t: [120, 85],', `const SIZES = { x: [${cols}, ${rows}], t: [120, 85],`],
   ['Sim.seed(wd, seed, scenario, custom ? custom.places : null)', 'window.__seedVillage(wd, seed)'],
 ];
-let html = fs.readFileSync(htmlPath, 'utf8');
+let html = htmlPath ? fs.readFileSync(htmlPath, 'utf8') : require('../tests/lib/page').builtPage();
 for (const [from, to] of HOOKS) {
   if (!html.includes(from)) throw new Error(`hook not found: the page script changed (${from})`);
   html = html.replace(from, to);

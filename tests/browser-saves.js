@@ -2,6 +2,7 @@
 // continue, a save of another build (refused; Delete it; Start a new game), Delete archipelago, a file round trip and a file of another
 // build, the auto slot when the page is hidden, Main menu then Back to game, and no console errors.
 // `node tests/browser-saves.js OUTDIR` also leaves screenshots (landing, saves overlay, generation screen; desktop and phone) in OUTDIR.
+const { builtPage } = require('./lib/page');
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path'), zlib = require('zlib');
 const { browserHTML } = require('./lib/browser');
 const root = path.join(__dirname, '..'), out = process.argv[2] || null, tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'vb-saves-'));
@@ -18,7 +19,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   page.on('console', (m) => { if (m.type() === 'error') fail('console.error: ' + m.text()); });
   page.on('pageerror', (e) => fail('page error: ' + (e.stack || e.message)));
   await page.route(/^https?:\/\//, (r) => /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
-  await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(fs.readFileSync(path.join(root, 'index.html'), 'utf8')
+  await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(builtPage()
     .replace(HOOK, HOOK + ' window.__play = { get st() { return st; }, Sim, listSaves: () => listSaves(), saveTx: (...a) => saveTx(...a) };')) }));
   const shot = async (name) => { if (out) await page.screenshot({ path: path.join(out, name) }); };
   const done = () => page.waitForFunction(() => document.getElementById('loader').classList.contains('done') && !!window.__play.st

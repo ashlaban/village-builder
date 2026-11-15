@@ -1,9 +1,10 @@
 // Mobile interaction regression: panels, folds, search, UI restoration and map gestures in real Chromium.
+const { builtPage } = require('./lib/page');
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const { chromium } = require('playwright');
 const { browserHTML } = require('./lib/browser');
 const root = path.join(__dirname, '..'), pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
-const rawHTML = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace('let st = null,\n  speed = 1,\n  selPawn = -1;',
+const rawHTML = builtPage().replace('let st = null,\n  speed = 1,\n  selPawn = -1;',
   'let st = null,\n  speed = 1,\n  selPawn = -1; window.__mobile = { get st() { return st; }, get speed() { return speed; }, '
   + 'get cam() { return { ...cam }; }, get selected() { return selPawn; }, card, selectPawn, '
   + 'village() { app.ticker.maxFPS = 12; stopIntro(); const i = st.villages[0].center; cam.x = w.hx[i]; cam.y = w.hy[i]; cam.z = zt = 0.8; vel.x = vel.y = 0; } };');

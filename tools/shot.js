@@ -5,14 +5,14 @@
 // Sizes: t(iny), s(mall), m(edium), l(arge). Writes <tag>-island.jpg, <tag>-close<k>.jpg and <tag>-info.json (villages, their land).
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log(`usage: node tools/shot.js [--scenario populous] [--seed 7] [--size t|s|m|l] [--years 0] [--out DIR]
-  screenshots of the built index.html in Chromium: the whole island and close-ups of the largest villages
+  screenshots of the page, built from src/, in Chromium: the whole island and close-ups of the largest villages
   writes <tag>-island.jpg, <tag>-close<k>.jpg and <tag>-info.json (villages, their land) into DIR (default: the current directory)
   --land        with the Land overlay on
   --reach       with the Reach overlay on, measured from the largest village's green
   --close N     close-ups of the N largest villages (default 1)
   --at X,Y,Z    one close-up at a point and zoom instead
   --tag NAME    the files' prefix (default <scenario>-<seed>-<size>-y<years>)
-  --html FILE   another build of the page
+  --html FILE   another build of the page (default: built from src/ for the run)
   --follow KIND the first pawn at work on a job of this kind (gather, fish...) is where --at looks (--at X,Y,Z then gives Z only)
   --hours H     then H more game hours (whole 6-minute steps), to catch a time of day: a meeting, a wedding`);
   process.exit(0);
@@ -22,9 +22,9 @@ const { chromium } = require(root + '/node_modules/playwright');
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'populous'), seed = opt('seed', '7'), size = opt('size', 't'), years = +opt('years', 0), tag = opt('tag', `${scenario}-${seed}-${size}-y${years}`);
 const hours = +opt('hours', 0), follow = opt('follow', null);
-const outDir = path.resolve(opt('out', '.')), closeN = +opt('close', 1), at = opt('at', null), land = args.includes('--land'), reach = args.includes('--reach'), htmlPath = opt('html', path.join(root, 'index.html'));
+const outDir = path.resolve(opt('out', '.')), closeN = +opt('close', 1), at = opt('at', null), land = args.includes('--land'), reach = args.includes('--reach'), htmlPath = opt('html', null);
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
-const html = fs.readFileSync(htmlPath, 'utf8').replace('let st = null,\n  speed = 1,\n  selPawn = -1;',
+const html = (htmlPath ? fs.readFileSync(htmlPath, 'utf8') : require('../tests/lib/page').builtPage()).replace('let st = null,\n  speed = 1,\n  selPawn = -1;',
   'let st = null,\n  speed = 1,\n  selPawn = -1; window.__vb = { get st() { return st; }, cam: () => cam, Sim: () => Sim, '
   + 'reachFrom(v) { selectVillage(v, false); setReach(true); }, view(x, y, z) { stopIntro(); cam.x = x; cam.y = y; cam.z = z; zt = z; vel.x = vel.y = 0; } };');
 if (!html.includes('window.__vb')) throw new Error('hook not found: the page script changed');
