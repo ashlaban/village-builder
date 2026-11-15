@@ -1,4 +1,4 @@
-// @sys sim/society: Culture wiring: settlements, ties, prestige and interests of pawns
+// @sys sim/society: Culture wiring: settlements, ties, prestige and interests of pawns (a village's, at its meeting)
 VB['sim/society'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { issue } = VB['sim/commands'];
@@ -22,7 +22,7 @@ VB['sim/society'] = (() => {
   } = VB['sim/records'];
   const { on } = VB['sim/events'],
     { aleStanding } = VB['sim/stores'];
-  const { heirRanking, ownFirstOf } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirs'];
   const { helpLean } = VB['sim/commons'];
   // The lookups Culture's functions take (VB-073): built from st on each call, so nothing in st.cenv is a function.
   function hooks(st) {
@@ -93,40 +93,41 @@ VB['sim/society'] = (() => {
   }
   // tie of each settlement to its culture's centre: the walking hours between the greens plus living kin across the gap. s.distance: those
   // hours (VB-290: it was unweighted steps), from the table of walking hours (sim/routes), or TIE.sea times the hex steps over SPEED over
-  // the sea or beyond walking reach (a sea crossing costs more).
-  function updateTies(st) {
+  // the sea or beyond walking reach (a sea crossing costs more). `updateTies(st)` sets every settlement's; `updateTie(st, sid, people)` one
+  // settlement's (by id), from its living people (a village's meeting, VB-278), counting the near kin of each who live in the centre.
+  function updateTie(st, sid, people) {
     const env = st.cenv,
-      sid = new Map(),
-      by = new Map(); // each living pawn's settlement, and the pawns of each, in id order
+      s = env.settlements[sid],
+      c = env.cultures[s.culture],
+      centre = c.centres[0];
+    if (s.id === centre) {
+      s.tie = 1;
+      return;
+    }
+    const va = st.villages[s.id],
+      vb = st.villages[centre];
+    const walk = hoursBetween(st, s.id, centre);
+    const d = walk < Infinity ? walk : (hexSteps(st.w, va.center, vb.center) * TIE.sea) / SPEED;
+    let kin = 0;
+    for (const p of people)
+      for (const q of kinNear(st, p.id)) {
+        const o = st.pawns[q];
+        if (o.alive && settlementIdOf(st, o) === centre) kin++;
+      }
+    s.tie = Math.min(1, Math.exp(-d / TIE.hours) + Math.min(0.3, kin * 0.04));
+    s.distance = d;
+    s.kinLinks = kin;
+  }
+  function updateTies(st) {
+    const by = new Map(); // the living pawns of each settlement, in id order
     for (const id of st.living) {
-      const p = st.pawns[id];
-      const v = settlementIdOf(st, p);
-      sid.set(p.id, v);
-      const l = by.get(v);
+      const p = st.pawns[id],
+        v = settlementIdOf(st, p),
+        l = by.get(v);
       if (l) l.push(p);
       else by.set(v, [p]);
     }
-    for (const s of env.settlements) {
-      const c = env.cultures[s.culture],
-        centre = c.centres[0];
-      if (s.id === centre) {
-        s.tie = 1;
-        continue;
-      }
-      const va = st.villages[s.id],
-        vb = st.villages[centre];
-      const walk = hoursBetween(st, s.id, centre);
-      const d = walk < Infinity ? walk : (hexSteps(st.w, va.center, vb.center) * TIE.sea) / SPEED;
-      let kin = 0;
-      for (const p of by.get(s.id) || [])
-        for (const q of kinNear(st, p.id)) {
-          const o = st.pawns[q];
-          if (o.alive && sid.get(q) === centre) kin++;
-        }
-      s.tie = Math.min(1, Math.exp(-d / TIE.hours) + Math.min(0.3, kin * 0.04));
-      s.distance = d;
-      s.kinLinks = kin;
-    }
+    for (const s of st.cenv.settlements) updateTie(st, s.id, by.get(s.id) || []);
   }
   // The parts of a pawn's prestige, [label, value]: standing (1.6 a holder, 1.3 a holder's spouse, else 1), age from 55, and for a holder and
   // a holder's spouse the term of the house's condition (VB-306), read from the farm's closed form (nothing is stored beside the condition).
@@ -170,14 +171,18 @@ VB['sim/society'] = (() => {
       if (p.alive) p.prestige = prestigeParts(st, p).reduce((n, x) => n + x[1], 0);
     }
   });
-  // Self-interest follows position: what would this option do for me, or for my children?
-  function refreshInterests(st) {
-    const D = Culture.DIMS,
-      I = Culture.IDX,
+  // Self-interest follows position: what would this option do for me, or for my children? For `people` (pawn records; all the living when
+  // left out): a village's meeting refreshes its own (VB-278). Each household's first heir is ranked once a call (a memo by household);
+  // the dead's interest is cleared at the death (sim/lifecycle, killPawn), so no walk of every pawn ever is made.
+  function refreshInterests(st, people = null) {
+    const I = Culture.IDX,
       O = Culture.OFF,
-      own = ownFirstOf(st);
-    // Annual historical cleanup clears dead people's saved interests too; live-only work uses the indexes.
-    for (const p of st.pawns) {
+      first = new Map();
+    const firstHeir = (hh) => {
+      if (!first.has(hh.id)) first.set(hh.id, heirRanking(st, hh)[0]);
+      return first.get(hh.id);
+    };
+    for (const p of people || st.living.map((id) => st.pawns[id])) {
       if (!p.alive || p.age < 12) {
         p.interest = null;
         continue;
@@ -193,9 +198,7 @@ VB['sim/society'] = (() => {
         sp = spouseOf(st, p.id),
         spHolder = sp !== null && isHolder(st, sp);
       const heirOfHome =
-        p.household !== null &&
-        !st.households[p.household].dissolved &&
-        heirRanking(st, st.households[p.household], null, false, own)[0] === p.id;
+        p.household !== null && !st.households[p.household].dissolved && firstHeir(st.households[p.household]) === p.id;
       const landless = !holder && !spHolder && !heirOfHome && p.age >= 16;
       const sibs = siblingsOf(st, p.id).filter((q) => st.pawns[q].alive),
         sisters = sibs.filter((q) => st.pawns[q].sex === 'f').length,
@@ -269,5 +272,15 @@ VB['sim/society'] = (() => {
     });
     return { out, cells, cellOf, size: NEAR };
   }
-  return { prestigeParts, hooks, initCulture, addSettlement, updateTies, refreshPrestige, refreshInterests, outdoors };
+  return {
+    prestigeParts,
+    hooks,
+    initCulture,
+    addSettlement,
+    updateTies,
+    updateTie,
+    refreshPrestige,
+    refreshInterests,
+    outdoors,
+  };
 })();

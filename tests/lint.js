@@ -9,9 +9,16 @@
 // Width the same way (VB-415): a module over 15 exports, counted on its loaded namespace, may add one only with such a task open;
 // tests/width-baseline.json holds the modules over 15 at their counts, which only fall. `sim`, the facade that gathers the others, is not counted.
 const { readSource } = require('../tools/lib/source.js');
-const fs = require('fs'), path = require('path'), { clockUse, pageWrites, counterUses, splitTask } = require('./lint-rules.js');
+const fs = require('fs'), path = require('path'), { clockUse, pageWrites, counterUses, splitTask, exportReaders, leftOut } = require('./lint-rules.js');
 const root = path.join(__dirname, '..'), BASE = path.join(__dirname, 'lint-baseline.json');
 const SPLIT_LINES = 700, MAX_COLS = 160, MAX_EXPORTS = 15, WIDTH = path.join(__dirname, 'width-baseline.json'), FACADES = new Set(['sim']);
+// The registries (VB-454): modules that know every domain by design and call back what the others export for them. An export read by
+// registries alone is no interface another domain can lean on, so the width lint leaves it out. A module joins only here, with its reason.
+const REGISTRIES = {
+  'sim/kinds': 'job kinds: each kind\'s done, plan and cost callbacks are exported by the domain that owns the kind',
+  'sim/clock': 'the calendar: each entry\'s run is exported by the domain that owns it',
+  'sim/commands': 'verbs: a verb\'s body is exported by the domain whose act it wraps',
+};
 const files = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8')).map((f) => 'src/' + f).concat('src/load.js');
 const pageFiles = JSON.parse(fs.readFileSync(path.join(root, 'src/page.json'), 'utf8')).map((f) => 'src/' + f);
 const key = (f) => (f === 'src/load.js' ? 'load' : f.slice(4, -3));
@@ -67,11 +74,18 @@ const worldOf = (seed) => { const it = VB.gen.generate(seed); let r; while (!(r 
 const w = worldOf(7), states = [VB.sim.seed(worldOf(7), 7, 'founders'), VB.sim.seed(worldOf(7), 7, 'heirs')];
 for (const k of Object.keys(w)) if (!tagged.w.has(k)) errors.push(`src/gen.js: top-level key w.${k} has no @state tag`);
 for (const k of new Set(states.flatMap((s) => Object.keys(s)))) if (k !== 'w' && !tagged.st.has(k)) errors.push(`src/sim.js: top-level key st.${k} has no @state tag`);
+const readers = exportReaders(Object.fromEntries(files.filter((f) => f !== 'src/load.js').map((f) => [key(f), readSource(f)])), FACADES);
 const width = fs.existsSync(WIDTH) ? JSON.parse(fs.readFileSync(WIDTH, 'utf8')) : {}, wide = {};
 for (const f of files) {
   const k = key(f), ns = VB[k];
   if (FACADES.has(k) || !ns || typeof ns !== 'object') continue;
-  const n = Object.keys(ns).length, was = width[k] || 0;
+  const names = Object.keys(ns), out = leftOut(names, readers[k], REGISTRIES), n = names.length - Object.keys(out).length, was = width[k] || 0;
+  if (names.length > MAX_EXPORTS) {
+    const by = {};
+    for (const r of Object.values(out)) by[r.join('+')] = (by[r.join('+')] || 0) + 1;
+    const list = Object.entries(by).map(([r, c]) => `${r} ${c}`).join(', ') || 'none';
+    console.log(`${f}: ${names.length} exports, ${names.length - n} left out (read by registries alone: ${list}), ${n} counted`);
+  }
   if (n > MAX_EXPORTS) wide[k] = was ? Math.min(was, n) : n;
   if (n <= MAX_EXPORTS || n <= was) { if (n < was) notes.push(`${f}: improved (exports ${was} -> ${n}); run lint.js --update`); continue; }
   const id = splitTask(k, openTasks());

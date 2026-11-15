@@ -1060,4 +1060,5 @@ const ArchGen = (() => {
   };
 })();
 VB['gen'] = ArchGen;
+if (typeof globalThis !== 'undefined') globalThis.ArchGen = ArchGen; // the page script reads it (VB-374)
 if (typeof module !== 'undefined') module.exports = ArchGen;
