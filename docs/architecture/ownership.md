@@ -196,7 +196,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 | `att` **3** | culture ⁵ | culture 183; society 34; births 28 | - |
 | `rel` **3** | relations ⁵ | relations 62,64,66,77,79,80,87,88; society 35; births 29 | lifecycle |
 | `servant` **3** | records ² | heirs 84,175; service 66; settle 180 | - |
-| `interest` **2** | society | society 35,84,126; births 29 | culture |
+| `interest` **3** | society | society 35,84,126; births 29; lifecycle (killPawn: cleared at the death, VB-278) | culture |
 | `owed` **2** | stores (new) ¹ | heirs 113; cottage 62 | page |
 | `prestige` **2** | society | society 35,76,77; births 29 | culture |
 | `born` | births | births 27 | records, relations, deaths, expansion, farmclaims, heirs, service, society, settle, lifecycle, scenarios, page |
