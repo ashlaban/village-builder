@@ -3,6 +3,7 @@
 //   CompressionStream, IndexedDB); the median of --runs after one warm-up. Save: encode (Sim.save), stringify, gzip, IndexedDB write
 //   (Chromium only). Load: IndexedDB read (Chromium only), gunzip, parse, decode (Sim.load on the world already generated).
 //   The 0.5 s line is VB-199's and VB-226's, not this tool's. Makes the fixtures it lacks (minutes); needs Playwright for Chromium.
+const { builtPage } = require('../tests/lib/page');
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), zlib = require('zlib'), { performance } = require('perf_hooks');
 const F = require('../tests/lib/fixtures.js');
@@ -35,7 +36,7 @@ async function chromiumTimes(list) {
     const text = zlib.gunzipSync(fs.readFileSync(F.files(name).save)).toString('utf8'), page = await browser.newPage();
     page.setDefaultTimeout(600000); page.on('pageerror', (e) => console.error('pageerror', e.message));
     await page.route(/^https?:\/\//, (r) => /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
-    await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(fs.readFileSync(path.join(root, 'index.html'), 'utf8')
+    await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(builtPage()
       .replace(HOOK, HOOK + ' window.__play = { get st() { return st; }, Sim, build: (...a) => build(...a), gzip: (...a) => gzip(...a), gunzip: (...a) => gunzip(...a), saveTx: (...a) => saveTx(...a) };')) }));
     await page.goto('https://village.test/');
     await page.waitForFunction(() => !!window.__play && !document.getElementById('landing').hidden);

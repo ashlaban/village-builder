@@ -3,3 +3,4 @@ package-lock.json
 docs/img/
 BACKLOG_ARCHIVE.md
 QUESTION_ARCHIVE.md
+.claude/worktrees/

@@ -1,7 +1,7 @@
 const { JSDOM } = require('jsdom');
 const { createCanvas } = require('@napi-rs/canvas');
 const fs = require('fs');
-const html = fs.readFileSync(require('path').join(__dirname, '../index.html'), 'utf8').replace(/<script src=[^>]+><\/script>/, '');
+const html = require('./lib/page').builtPage().replace(/<script src=[^>]+><\/script>/, '');
 const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://x.test/' });
 const win = dom.window, doc = win.document;
 let failed = 0; const fail = (m) => { failed++; console.error('SMOKE FAIL:', m); };

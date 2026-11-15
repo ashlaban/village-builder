@@ -276,7 +276,7 @@ function checkState(st) {
       const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], has = new Set(ids);
       for (const id of st.living) {
         const a = st.agents[id];
-        if (!has.has(id) && (a.path || a.phase === 'work' || (work && a.phase === null && a.idleUntil <= hour + 1))) {
+        if (!has.has(id) && a.phase !== 'road' && (a.path || a.phase === 'work' || (work && a.phase === null && a.idleUntil <= hour + 1))) {
           bad.push(`awake: agent ${id} may act in hour ${hour} but is not awake`);
         }
       }
@@ -661,6 +661,20 @@ function checkState(st) {
     }
     if (off) bad.push(`w.fish: ${off} tiles with a stock or day out of place`);
   }
+  // the kept lists of walking reach (VB-452; sim/routes reachTiles): for each farm with a household and each reach the ground searches ask
+  // (fishing, gathering, hunting), the kept list is what a new search from the house finds now, tile for tile in its order
+  {
+    const V = globalThis.VB, Rt = V['sim/routes'], Ru = V['sim/rules'], walk = Rt.walkable(st.w);
+    let off = 0, first = null;
+    for (const f of st.farmsteads) {
+      if (f.household === null) continue;
+      for (const steps of new Set([Ru.FISH.reach, Ru.FORAGE.reach, Ru.DEER.hunt.reach])) {
+        const kept = Rt.reachTiles(st.w, f.house, steps), now = [...V['sim/hex'].bfs(st.w, f.house, steps, walk).dist.keys()];
+        if (kept.length !== now.length || now.some((t, i) => kept[i] !== t)) { off++; first ??= `house ${f.house}, ${steps} steps`; }
+      }
+    }
+    if (off) bad.push(`reachTiles: ${off} kept lists differ from a new search (${first})`);
+  }
   // wild food (VB-118): stocks from 0 to 1, set in a year not after this one; below 1 or set only on a forest or heath tile (a cleared tile keeps its stock)
   const { forage, forageYear } = st.w;
   if (forage) {
@@ -801,8 +815,10 @@ function checkState(st) {
       ids.add(j.id);
       if (!p || !p.alive || seen.has(j.pawn)) bad.push(`${at}: pawn ${j.pawn} dead, missing or on two journeys`);
       seen.add(j.pawn);
-      if (p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
-      if (j.why !== 'move' || !(j.food >= 0) || !Number.isFinite(j.due)) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
+      const bearing = j.why === 'carry' && !j.back; // VB-291: a carrier bound for the receiver's house, with his gift
+      if (bearing ? !j.gift || !(j.gift.n > 0) || st.farmsteads[st.households[j.gift.to].farmstead].house !== j.to : (j.gift || false) && j.gift !== null) bad.push(`${at}: a gift ${JSON.stringify(j.gift)} on a journey ${j.why}, back ${j.back}`);
+      if (!bearing && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
+      if ((j.why !== 'move' && j.why !== 'carry') || !(j.food >= 0) || !Number.isFinite(j.due)) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
       const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
       if (ph !== 'journey' && ph !== 'road') bad.push(`${at}: its pawn is in phase ${ph}`);
     });
