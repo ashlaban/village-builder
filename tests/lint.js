@@ -8,6 +8,7 @@
 // with one it may grow. A module kept over the line without a task is in the baseline at its length, which only falls.
 // Width the same way (VB-415): a module over 15 exports, counted on its loaded namespace, may add one only with such a task open;
 // tests/width-baseline.json holds the modules over 15 at their counts, which only fall. `sim`, the facade that gathers the others, is not counted.
+const { readSource } = require('../tools/lib/source.js');
 const fs = require('fs'), path = require('path'), { clockUse, pageWrites, counterUses, splitTask } = require('./lint-rules.js');
 const root = path.join(__dirname, '..'), BASE = path.join(__dirname, 'lint-baseline.json');
 const SPLIT_LINES = 700, MAX_COLS = 160, MAX_EXPORTS = 15, WIDTH = path.join(__dirname, 'width-baseline.json'), FACADES = new Set(['sim']);
@@ -22,7 +23,7 @@ const openTasks = () => tasks || (tasks = fs.readdirSync(path.join(root, 'backlo
   return { id: m ? m[1] : n.slice(0, -3), title: m ? m[2] : '', status: s ? s[1] : '' };
 }));
 for (const f of files.concat(pageFiles)) {
-  const lines = fs.readFileSync(path.join(root, f), 'utf8').split('\n');
+  const lines = readSource(f).split('\n');
   if (lines[lines.length - 1] === '') lines.pop();
   const head = new RegExp(`^// @sys ${key(f).replace('/', '\\/')}: \\S.*$`);
   const long = lines.map((l, i) => (l.length > MAX_COLS ? i + 1 : 0)).filter(Boolean);
@@ -41,24 +42,24 @@ for (const f of files.concat(pageFiles)) {
   if (long.length < b.longLines) notes.push(`${f}: improved (long lines ${b.longLines} -> ${long.length}); run lint.js --update`);
 }
 // determinism: the modules read no clock and draw no unseeded random numbers
-for (const f of files) fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((l, i) => {
+for (const f of files) readSource(f).split('\n').forEach((l, i) => {
   const hit = clockUse(l); if (hit) errors.push(`${f}:${i + 1} ${hit} in a module (use the seeded random source, or add "// lint-allow: clock <reason>")`);
 });
 // a rule contribution's `source` is the module whose file registers it (VB-232)
-for (const f of files) fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((l, i) => {
+for (const f of files) readSource(f).split('\n').forEach((l, i) => {
   const m = /\.contribute\(\{[^\n]*?\bsource: '([^']*)'/.exec(l);
   if (m && m[1] !== key(f)) errors.push(`${f}:${i + 1} a contribution's source is '${m[1]}', but this file is ${key(f)}: register it in the module it names`);
 });
 // the page only reads st: it may set visualDirty, naturalDeaths and driftMul, and clear rigDirty, treeDirty, biomeDirty, pathDirty and landDirty
-for (const f of ['src/body.html', ...pageFiles]) fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((l, i) => {
+for (const f of ['src/body.html', ...pageFiles]) readSource(f).split('\n').forEach((l, i) => {
   for (const wr of pageWrites(l)) errors.push(`${f}:${i + 1} the page writes to the simulation state: ${wr}`);
 });
 // every top-level key of w and st must have an @state tag: `// @state st.a,b: ...` or `// @state st.a: ...`
 const tagged = { w: new Set(), st: new Set() };
-for (const f of files) for (const line of fs.readFileSync(path.join(root, f), 'utf8').split('\n').filter((l) => l.includes('@state '))) for (const m of line.matchAll(/\b(w|st)\.([\w,]+)/g)) m[2].split(',').forEach((k) => tagged[m[1]].add(k));
+for (const f of files) for (const line of readSource(f).split('\n').filter((l) => l.includes('@state '))) for (const m of line.matchAll(/\b(w|st)\.([\w,]+)/g)) m[2].split(',').forEach((k) => tagged[m[1]].add(k));
 const VB = require('../src/load.js');
 for (const f of files.filter((f) => f !== 'src/vb.js')) {
-  fs.readFileSync(path.join(root, f), 'utf8').split('\n').forEach((line, i) => {
+  readSource(f).split('\n').forEach((line, i) => {
     for (const hit of counterUses(line, new Set(Object.keys(VB.COUNTERS)))) errors.push(`${f}:${i + 1} forbidden counter use: ${hit} (only standalone increments; use braces for conditional increments)`);
   });
 }

@@ -1,6 +1,7 @@
 // Commands (VB-167): a work command is carried out as start was; a refused command changes nothing; outside sim/commands and sim/agents
 // nothing in src/sim calls start (or the other acts the command verbs wrap).
 const assert = require('assert');
+const { readSource } = require('../tools/lib/source.js');
 const fs = require('fs'), path = require('path'), { tokenize } = require('../tools/wrap.js');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['sim/commands'], { isOpen } = VB['sim/kinds'];
 const { canon } = require('./lib/canon.js');
@@ -9,7 +10,7 @@ const { canon } = require('./lib/canon.js');
 const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'carryGift', 'setRoutines', 'endTrust', 'holdInTrust',
   'setTarget', 'nameTile', 'setOrder', 'holdProject', 'beginLand', 'giveUp'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
-const text = Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(__dirname, '..', f), 'utf8')]));
+const text = Object.fromEntries(files.map((f) => [f, readSource(f)]));
 const definedIn = Object.fromEntries(WRAPPED.map((n) => [n, files.find((f) => new RegExp(`function ${n}\\(`).test(text[f]))]));
 for (const n of WRAPPED) if (!definedIn[n]) throw new Error(`no module defines ${n}`);
 for (const f of files) {

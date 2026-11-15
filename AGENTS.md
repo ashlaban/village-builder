@@ -123,6 +123,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 
 ## Finding things
 - Module map: `grep -rn "^// @sys" src`; state schema: `grep -rn "@state" src`; modules in load order: `src/manifest.json`.
+- Source is read through `readSource(file)` (`tools/lib/source.js`), never `readFileSync`, so that `.ts` is read as JavaScript.
 - A module and its users: grep `VB['<key>']`, e.g. `VB['sim']`. Definitions are `function name(` or `const name = (`; sections are `// ----` headers.
 - The page script is `src/page/*.js`, in the order of `src/page.json`; `build.py` splices them, without their `@sys` line, into the one closure
   in `src/body.html`. They are not `VB` modules: they share the closure's variables (grep `src/page` for a name), and run in order.
