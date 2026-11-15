@@ -69,6 +69,11 @@ VB['sim/carts'] = (() => {
     if (!c && take(st, hh, id, teamFree) > TRAVEL.load) c = cartOf(st, hh, id);
     return c ? CART.manure[c.kind] : 1;
   }
+  // The same rate read only: with the cart the pawn has, or the one it would take now (teamFree as for `take`); 1 with none.
+  function cartingRate(st, hh, id, teamFree) {
+    const c = cartOf(st, hh, id) || (teamFree && free(st, hh, 'ox')) || free(st, hh, 'hand');
+    return c ? CART.manure[c.kind] : 1;
+  }
   // The ox cart is out (the team with it).
   const oxOut = (st, hh) => hh.carts.some((c) => c.kind === 'ox' && out(st, c));
   // How fast a laden pawn walks, of an unladen one's pace: with the load on its back, with a hand cart, or beside the oxen.
@@ -188,5 +193,21 @@ VB['sim/carts'] = (() => {
       },
     },
   };
-  return { KINDS, CART, HAY, loads, take, holds, leave, carting, pace, home, missed, oxOut, cartsYear, seedCarts };
+  return {
+    KINDS,
+    CART,
+    HAY,
+    loads,
+    take,
+    holds,
+    leave,
+    carting,
+    cartingRate,
+    pace,
+    home,
+    missed,
+    oxOut,
+    cartsYear,
+    seedCarts,
+  };
 })();
