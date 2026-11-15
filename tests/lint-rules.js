@@ -40,3 +40,44 @@ function splitTask(key, tasks) {
   return hit ? hit.id : null;
 }
 module.exports.splitTask = splitTask;
+
+// Who reads each export (VB-454). sources is {key: text} of the modules of src/manifest.json; the result maps a module key to a map of
+// export name to the set of module keys that read it, found in the text: `const { a, b: c } = VB['m']`, `VB['m'].a`, and `A.a` for an
+// alias `A = VB['m']`. A use that cannot be followed (the namespace passed whole) counts as reading every export of it: the set holds '*'.
+// A module's own file and the facades (the `sim` facade is not a reader, as it is not counted) are skipped.
+function exportReaders(sources, facades = new Set(['sim'])) {
+  const out = {}, add = (m, name, by) => { const r = out[m] || (out[m] = {}); (r[name] || (r[name] = new Set())).add(by); };
+  for (const [by, raw] of Object.entries(sources)) {
+    if (facades.has(by)) continue;
+    let text = raw.split('\n').map((l) => l.replace(/(^|\s)\/\/.*$/, '$1')).join('\n');
+    const take = (re, fn) => { text = text.replace(re, (...a) => { fn(...a); return ' '; }); };
+    take(/\{([^{}]*)\}\s*=\s*VB\[['"]([\w/]+)['"]\]/g, (_, names, m) => {
+      if (m !== by) for (const n of names.split(',')) { const k = n.split(':')[0].replace(/=.*$/, '').trim(); if (k) add(m, k, by); }
+    });
+    take(/\bVB\[['"]([\w/]+)['"]\]\s*(?:\.\s*(\w+)|\[\s*['"](\w+)['"]\s*\])/g, (_, m, a, b) => { if (m !== by) add(m, a || b, by); });
+    const aliases = [];
+    take(/\b(\w+)\s*=\s*VB\[['"]([\w/]+)['"]\](?!\s*=[^=])/g, (_, a, m) => { if (m !== by) aliases.push([a, m]); });
+    for (const [a, m] of aliases) {
+      let followed = 0, any = 0;
+      text.replace(new RegExp(String.raw`(?<![\w.$])${a}\s*(?:\.\s*(\w+)|\[\s*['"](\w+)['"]\s*\])`, 'g'), (_, x, y) => { followed++; add(m, x || y, by); return ''; });
+      text.replace(new RegExp(String.raw`(?<![\w.$])${a}(?![\w$])`, 'g'), () => { any++; return ''; });
+      if (any > followed) add(m, '*', by);
+    }
+    text.replace(/\bVB\[['"]([\w/]+)['"]\](?!\s*=[^=])/g, (_, m) => { if (m !== by) add(m, '*', by); return ''; });
+  }
+  return out;
+}
+module.exports.exportReaders = exportReaders;
+
+// The exports of a module that the width lint leaves out: those read by registries alone. names are the module's exports, readers its entry of
+// exportReaders, registries the list of tests/lint.js. Returns {name: [registry keys that read it]} for each export left out. An export nobody
+// reads is counted; so is one a module reads that is no registry, or a '*' read by a non-registry.
+function leftOut(names, readers = {}, registries) {
+  const out = {};
+  for (const n of names) {
+    const by = new Set([...(readers[n] || []), ...(readers['*'] || [])]);
+    if (by.size && [...by].every((m) => m in registries)) out[n] = [...by].sort();
+  }
+  return out;
+}
+module.exports.leftOut = leftOut;
