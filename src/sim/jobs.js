@@ -286,7 +286,8 @@ VB['sim/jobs'] = (() => {
     else {
       const here = st.farmsteads[st.households[p.household].farmstead].house;
       row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
-      if (row.bid <= 0) {
+      if (row.bid + MATCH.noise <= 0) {
+        // as bid: a score that the noise can lift above nothing is one the pawn may bid with (VB-254: was bid <= 0)
         row.reason = 'not worth the walk';
         row.bid = null;
       } else row.bid *= joined(j, j.claims.length);

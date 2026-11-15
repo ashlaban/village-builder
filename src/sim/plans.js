@@ -2,9 +2,9 @@
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
 // diligence, and the due-queue that opens the time-bound kinds at their hours; the village's routines, set by its meeting
 VB['sim/plans'] = (() => {
-  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, FIELDS, CROPS, cal } = VB['sim/rules'];
+  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, CROPS, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
-  const { next: rnd } = VB['sim/rng'];
+  const Traits = VB['sim/traits'];
   const Stores = VB['sim/stores'],
     SEED_CROP = 'barley',
     SEED = Stores.grainGood(SEED_CROP); // the seed reserved: barley's until rotations (VB-350)
@@ -37,8 +37,10 @@ VB['sim/plans'] = (() => {
   //   enforced beyond what the role rankings do (VB-023 enforces the first order).
   // @state st.plans.due: [[hour, household id, index in WINDOWED]], sorted by hour, then id, then index: one entry per live household and
   //   time-bound kind, the hour its kind is next asked for the household (VB-249; Rules for cost, 4). Written only here.
-  // @state pawn.diligence: a number in [0, 1) from the stream `traits`, drawn once, when the pawn first heads a household's review (a
-  //   stand-in until VB-254); its thirds give the planning day's cadence (every third day, every second, daily).
+  // @state plan.head (a household's; VB-254): its head as planner, {pawn (the holder), since (game hours: when it became head), bias: {wood,
+  //   hay, seed, fields}: its multipliers on the template's targets, each within Traits.HEAD.bias × (1 - its skill then) of 1}; drawn once
+  //   from the stream `traits` when the plan is made and when the holder changes (sim/heirs' event newHead), never at a review; null while
+  //   the household has no holder.
   // @state plan.targets (a household's; VB-248, VB-252): {wood: [the woodpile's goal by season], woodSecond (a second hand cuts below it),
   //   hayWinters (hay is made while the barn holds less than this many winters' need), seed (grain kept back for each field not yet sown),
   //   perHand (fields a working adult can till): copied from the template when its seasonal plan is made; fields, workable (the fields
@@ -291,10 +293,7 @@ VB['sim/plans'] = (() => {
     const id = plan.holder.id,
       T = templateOf(st, cultureOf(st, st.households[id]), c),
       P = plan.targets;
-    for (let s = 0; s < 4; s++) P.wood[s] = T.wood[s];
-    P.woodSecond = T.woodSecond;
-    P.hayWinters = T.hayWinters;
-    P.seed = T.seed;
+    foresee(st, plan, c, T);
     P.perHand = T.perHand;
     chosenTargets(plan);
     const sp = {
@@ -309,6 +308,74 @@ VB['sim/plans'] = (() => {
     return sp;
   }
   const seasonOf = (st, id) => st.plans.seasons.get(id);
+  // ---- foresight (design.md section 7, How a holder chooses: foresight; VB-254) ----
+  // A head's skill (Traits.skill) sets how far ahead it looks: under HORIZON[0] it reacts, working a store only once it has crossed its
+  // target; from HORIZON[0] it projects each store to the season's end; from HORIZON[1] a season further. Under ORDER_LEAST it does not keep
+  // the template's order (none is enforced yet: VB-023 was closed unmerged). Its bias, drawn once, multiplies the template's targets.
+  const HORIZON = Object.freeze([0.33, 0.67]),
+    ORDER_LEAST = 0.1,
+    UNBIASED = Object.freeze({ wood: 1, hay: 1, seed: 1, fields: 1 });
+  // The household's plan has a new head (its making, a succession): its record and bias, drawn now from the stream `traits`.
+  function newHead(st, plan) {
+    if (st.rng.seed) return; // while a scenario is seeded (its one stream): startHeads draws them once the streams are split
+    const id = st.households[plan.holder.id].holder;
+    if (id === null || id === undefined) {
+      plan.head = null;
+      return;
+    }
+    const s = Traits.skill(st, id, st.t),
+      bias = {};
+    for (const k of Object.keys(UNBIASED)) bias[k] = Traits.biasOf(st, s);
+    plan.head = { pawn: id, since: st.t, bias };
+  }
+  // Every household's head at the start of a run, once the streams are split and the living have their traits; its targets made again.
+  function startHeads(st) {
+    for (const plan of st.plans.households.values()) {
+      newHead(st, plan);
+      seasonal(st, plan, cal(st.t));
+    }
+  }
+  on('newHead', (st, d) => {
+    const plan = st.plans && st.plans.households.get(d.household);
+    if (plan) newHead(st, plan);
+  });
+  // The skill of the head of household id's plan now; the middle for a household with no head.
+  function headSkill(st, id) {
+    const plan = st.plans.households.get(id),
+      H = plan && plan.head;
+    return H ? Traits.skill(st, H.pawn, H.since) : 0.5;
+  }
+  // Seasons ahead the head looks: 0 (it reacts), 1 (to the season's end) or 2 (a season further).
+  const horizonOf = (s) => (s < HORIZON[0] ? 0 : s < HORIZON[1] ? 1 : 2);
+  // The days from today to the end of the head's horizon (0 for a head that reacts).
+  const daysAhead = (c, hz) => (hz ? SEASON_DAYS - c.sday + (hz - 1) * SEASON_DAYS : 0);
+  // The head's targets from the template's T at c: each times its bias; the woodpile's goal this season and the hay raised by what the
+  // head projects the household will burn and feed before its horizon ends (the hearth's ECON.woodUse by season, the stall days in it over a
+  // winter's); the seed held back for next spring only once its sowing is within the horizon (a far-seeing head from the harvest on, one
+  // that looks to the season's end from winter, one that reacts once the sowing season has come). A few multiplications; draws nothing.
+  function foresee(st, plan, c, T) {
+    const P = plan.targets,
+      b = plan.head ? plan.head.bias : UNBIASED,
+      hz = horizonOf(headSkill(st, plan.holder.id)),
+      days = daysAhead(c, hz),
+      use = st.ECON.woodUse;
+    for (let s = 0; s < 4; s++) P.wood[s] = T.wood[s] * b.wood;
+    P.wood[c.season] += hz
+      ? use[c.season] * (SEASON_DAYS - c.sday) + (hz > 1 ? use[(c.season + 1) % 4] * SEASON_DAYS : 0)
+      : 0;
+    P.woodSecond = T.woodSecond * b.wood;
+    let stall = 0;
+    for (let d = 0; d < days; d++) {
+      const doy = (c.doy + d) % YEAR_DAYS;
+      if (doy >= HERD.stall[0] || doy < HERD.stall[1]) stall++;
+    }
+    P.hayWinters = T.hayWinters * b.hay + stall / HERD.stallDays;
+    const sowing = c.season === 0 || (hz >= 1 && c.season === 3) || hz >= 2;
+    P.seed = sowing ? T.seed * b.seed : 0;
+  }
+  // The fields the head wants, of the `wanted` its household's food asks: times its bias, whole, at least one and at most `workable`.
+  const headFields = (plan, wanted, workable) =>
+    Math.max(1, Math.min(workable, Math.round(wanted * (plan.head ? plan.head.bias.fields : 1))));
   // The hours at which plans may be reviewed and the due-queue is asked: every hour from one before work starts to the end of work
   // (sim/clock calls refreshJobs then).
   const reviewHour = (h) => h >= WORK[0] - 1 && h <= WORK[1];
@@ -408,18 +475,12 @@ VB['sim/plans'] = (() => {
   // ---- planning days (design.md section 7, Planning days; VB-249) ----
   const FIRST = WORK[0] - 1,
     HOURS = WORK[1] - FIRST + 1; // the review hours, 5:00 to 18:00
-  // The head's diligence, drawn once (a stand-in until VB-254).
-  function diligence(st, id) {
-    const p = st.pawns[id];
-    if (p.diligence === undefined) p.diligence = rnd(st.rng.traits);
-    return p.diligence;
-  }
   // Days between a holder's reviews: by its head's diligence, every third day (the lowest third), every second, or daily; a village's daily.
   function cadence(st, plan) {
     if (plan.holder.type !== 'household') return 1;
     const head = st.households[plan.holder.id].holder;
     if (head === null || head === undefined) return 1;
-    const d = diligence(st, head);
+    const d = Traits.of(st, head, 'diligence');
     return d < 1 / 3 ? 3 : d < 2 / 3 ? 2 : 1;
   }
   // The holder's next planning hour after `hour`: its hour of the working day and its day in the cycle are offset by its id, so reviews
@@ -518,11 +579,12 @@ VB['sim/plans'] = (() => {
   function household(st, plan) {
     const hh = st.households[plan.holder.id];
     plan.targets = { wood: [0, 0, 0, 0], woodSecond: 0, hayWinters: 0, seed: 0, perHand: 0, fields: 0, workable: 0 };
+    if (plan.head === undefined) newHead(st, plan);
     seasonal(st, plan, cal(st.t));
     const T = plan.targets;
     if (hh.farmstead !== null) {
       T.workable = fieldsWorkable(st, hh, T.perHand);
-      T.fields = fieldsWanted(st, hh, T.workable);
+      T.fields = headFields(plan, fieldsWanted(st, hh, T.workable), T.workable);
     }
     plan.tiles = { field: -1, meadow: -1 };
     plan.counted = null;
@@ -602,6 +664,7 @@ VB['sim/plans'] = (() => {
         plan.reasons = {}; // lint-allow: owner an old save's migration
         if (plan.holder.type === 'household') household(st, plan);
       }
+      if (plan.holder.type === 'household' && plan.head === undefined) newHead(st, plan); // VB-254: nor heads
       if (plan.holder.type === 'household' && !st.plans.seasons.has(plan.holder.id)) seasonal(st, plan, cal(st.t));
       if (plan.holder.type === 'village' && !plan.routines) founded(st, plan); // VB-257: nor routines
       if (plan.last === undefined) {
@@ -636,8 +699,9 @@ VB['sim/plans'] = (() => {
       T = plan.targets,
       sp = seasonOf(st, hh.id);
     if (sp.year !== c.year || sp.season !== c.season) seasonal(st, plan, c);
+    else foresee(st, plan, c, templateOf(st, cultureOf(st, hh), c));
     T.workable = fieldsWorkable(st, hh, T.perHand);
-    T.fields = fieldsWanted(st, hh, T.workable);
+    T.fields = headFields(plan, fieldsWanted(st, hh, T.workable), T.workable);
     chosenTargets(plan);
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed');
@@ -778,23 +842,37 @@ VB['sim/plans'] = (() => {
     for (const s of plan.steps) if (s.stake) VB['sim/claims'].dropClaim(st, s.place, plan.holder);
     dropProject(st, plan, text, at);
   }
-  // What the head may choose, for the page (VB-256): the targets now and the head's own, their bounds, the named tiles, the season's
-  // order and the project under way, or null for a household with no plan. Plain data, a copy.
+  // What the head may choose, for the page (VB-256): the targets now (the head's, by its foresight and bias: VB-254), the custom's (its
+  // culture's template, unbiased; the fields its household's food asks), the head's own choices, their bounds, the named tiles, the
+  // season's order and the project under way; the head's skill and horizon; or null for a household with no plan. Plain data, a copy.
   function headView(st, id) {
     const plan = st.plans.households.get(id),
       sp = st.plans.seasons.get(id);
     if (!plan || !sp) return null;
     const T = plan.targets,
       C = plan.chosen || {},
-      p = Projects.projectOf(st, 'household', id);
-    const target = (store, now) => ({ now, chosen: C[store] ?? null, bounds: targetBounds(st, plan, store) });
+      p = Projects.projectOf(st, 'household', id),
+      c = cal(st.t),
+      hh = st.households[id],
+      M = templateOf(st, cultureOf(st, hh), c),
+      skill = headSkill(st, id);
+    const target = (store, now, custom) => ({
+      now,
+      custom,
+      chosen: C[store] ?? null,
+      bounds: targetBounds(st, plan, store),
+    });
+    const wanted = hh.farmstead === null ? 0 : fieldsWanted(st, hh, T.workable);
     return {
       targets: {
-        hay: target('hay', T.hayWinters),
-        fields: target('fields', T.fields),
-        wood: target('wood', T.wood[cal(st.t).season]),
-        cow: target('cow', plan.want ? 1 : 0),
+        hay: target('hay', T.hayWinters, M.hayWinters),
+        fields: target('fields', T.fields, wanted),
+        wood: target('wood', T.wood[c.season], M.wood[c.season]),
+        cow: target('cow', plan.want ? 1 : 0, null),
       },
+      head: plan.head
+        ? { pawn: plan.head.pawn, skill, horizon: horizonOf(skill), keepsOrder: skill >= ORDER_LEAST }
+        : null,
       tiles: { ...plan.tiles },
       order: [...sp.steps],
       orderBy: sp.by || 'template',
@@ -809,6 +887,7 @@ VB['sim/plans'] = (() => {
     planOf,
     seasonOf,
     seedPlans,
+    startHeads,
     fillPlans,
     reviewed,
     landStep,
@@ -826,6 +905,8 @@ VB['sim/plans'] = (() => {
     mayLook,
     closing,
     cadence,
+    headSkill,
+    horizonOf,
     WINDOWED,
     dueNow,
     again,

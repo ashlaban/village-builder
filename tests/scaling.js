@@ -38,7 +38,7 @@ function villageWorld(n) {
   for (const hh of households) {
     hh.grain = { barley: VB['sim/fields'].yearlyRations(st, hh) + farmsteads[hh.farmstead].fields.length * CROPS.barley.seed };
   }
-  rng.splitStreams(st, 7);
+  VB['sim/scenarios'].startStreams(st, 7);
   assert.strictEqual(villages.length, n);
   assert.strictEqual(households.length, n * 3);
   assert.strictEqual(st.pawns.length, n * 18);
