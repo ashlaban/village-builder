@@ -36,7 +36,7 @@ used as saved). `tools/bench.js` and `tools/bands.js` were not rerun (minutes an
 
 | # | Check | What it asserts | Threshold, and where it lives | Runs in | At `aea615a` | Proposal |
 |---|---|---|---|---|---|---|
-| 1 | `build.py --check` | `index.html` is built from `src/` | exact | test | pass | hard: a stale page is a wrong page |
+| 1 | `tests/build.js` (VB-450; `build.py --check` until `index.html` left the repository) | the page builds from `src/`, its placeholders filled, the same each time | exact | test | pass | hard: a page that does not build is no page |
 | 2 | `tests/lint.js`, rules | `@sys` line, no clock or `Math.random` in modules, page writes only its flags | exact; `// lint-allow:` per line | test | pass | hard: determinism and the page's contract |
 | 3 | `tests/lint.js`, sizes | `src/` formatted by Prettier (`tests/format.js`); no line over 160 characters; a module over 700 formatted lines needs an open task that splits it (VB-413, VB-414; rescaled from 400 by the sweep, 13 November) | `tests/lint-baseline.json`: one long line, and the seven modules over 700 lines at their lengths; only falls | test | pass | the columns hard while cheap to meet (Prettier breaks code; a comment is broken by hand); the split task hard, since opening one is always possible; until VB-381's falling baselines for exports and function length |
 | 3b | `tests/lint.js`, width | a module over 15 exports gains one only with an open task that splits it (VB-415, 13 November); the `sim` facade is not counted | `tests/width-baseline.json`, 21 modules at their counts, only falls | test | pass | hard, since opening the task is always possible; a function's length waits for VB-381 |

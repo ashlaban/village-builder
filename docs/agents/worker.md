@@ -26,7 +26,8 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
    model by size: `sonnet` for S, `opus` for M and L. If that agent type is not offered, start a general-purpose one with the same
    model, told to read `.claude/agents/vb-task.md` and follow it for that task.
 3. When one ends, merge it, one at a time: `git merge --no-ff <its branch>` into the run's branch, then `npm test`.
-   - A conflict in `index.html` alone: it is built, so rebuild it (`python3 build.py`, `git add index.html`), conclude the merge, and go on to `npm test`.
+   - `index.html` is derived and no longer in the repository (VB-450): a branch from before that may still conflict in it; take
+     the deletion (`git rm index.html`), conclude the merge, and go on to `npm test`.
    - Any other conflict, or a red `npm test`: undo the merge (`git merge --abort`, or `git reset --hard` to the commit before it), and
      `node tools/inbox.js result VB-NNN status=needs-review summary=<the reason>`. Never retry a task in the same night, and never
      fix it yourself.
