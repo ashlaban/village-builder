@@ -35,7 +35,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 A sub-agent of an orchestrated run (`docs/agents/worker.md`) follows `.claude/agents/vb-task.md`, which replaces what steps 3, 6 and 7
 write to shared files: it leaves notes in the inbox, and the orchestrator writes the backlog, the questions and the PR.
 
-## Deciding without Kim (Kim, 12 and 14 November)
+## Deciding without Kim (Kim, 12, 14 and 15 November)
 A question goes to Kim only if it moves a Decided point of `design.md`, or lets the player do something no existing system covers.
 Otherwise decide by these, write the decision and its reason in the task file, and go on. Nothing below stops work: where no principle
 covers a decision, or two pull apart, decide, go on, and surface it (Surfacing, below).
@@ -77,6 +77,13 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
    fishing one) and trade between them: over land, by river, and late in the game by sea. Where a mechanism could let every village
    make everything or tie production to place, choose place; the cost of carrying (the hard rule) is what makes a route worth having.
    It is enough that the mechanics reward this: an island with no player is not held to a target for it.
+10. **Decided fixes the mechanism, not its bounds.** A named cap, target or floor on a Decided rule (a store that fills only to a
+    target) is parameterisation (3), not a question, when the mechanism stays as Decided and a measurement shows the defect: the
+    design's line gains the bound, and the numbers are reported before and after. Replacing the mechanism still goes to Kim.
+11. **Enforcing is not asking.** Bringing the code into line with a Decided point or the hard rule needs no question, even where it
+    costs a target: do it, and report the cost before and after (Working rules, Targets).
+12. **Tooling is the agent's.** The formatter, the bundler, hooks, baselines and strictness are decided by target-v2's principles
+    and written in the task file. Kim keeps only whether, and when, work goes ahead that holds other tasks back.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with
