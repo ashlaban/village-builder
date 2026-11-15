@@ -3,3 +3,4 @@ tests/out/
 tests/fixtures
 work/
 .claude/worktrees/
+index.html

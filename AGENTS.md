@@ -26,7 +26,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
    Only if it is one of the two kinds that go to Kim, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
 5. Before the last commit: `npm run format`, then `npm run verify` (half a minute); for a change under `src/page/`, also `node tests/smoke.js` and the
-   `tests/browser*.js` it touches. Rebuild `index.html` before committing. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
+   `tests/browser*.js` it touches. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
    report it in the task file and the PR's Targets section (before, after, residual, cause).
 6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`. A criterion
    unmet, or met only in part: keep the commit, leave it unticked with the reason, and `set ID status=needs-review`; it is not done.
@@ -96,7 +96,8 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   `close-arch`, `sync` change it.
 - Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|result` (a sub-agent), `init|status|apply|report|results`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
-- Format, then build: `npm run format` after editing `src/` (Prettier), then `python3 build.py` (`--check` fails if `index.html` is stale).
+- Format: `npm run format` after editing `src/` (Prettier). `index.html` is derived and not in the repository (VB-450): never commit it. The
+  page's tests and tools build their own copy, and the Pages workflow builds the site's; `python3 build.py` writes one to open by hand.
 - Tests (`tests/suites.js`, `docs/testing.md`): `npm test`, fast, 10 seconds; `npm run verify`, fast and integration, 40 seconds; one
   script, `node tests/NAME.js`. The extended tier, the fixtures, the bench and the bands run at night, never in a task. A new check is
   built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`) and gets a line in `tests/suites.js`.
@@ -170,7 +171,6 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   re-records a ceiling or writes an allowance to make a residual vanish; only Kim changes a target, and only Kim starts a tuning run
   (Deciding without Kim, 3). The lint and ownership baselines
   stay ratchets.
-- Rebuild `index.html` before committing; both suites check it.
 - A slice's wrap-up adds its loops' bands to `tests/lib/bands.js`: a `report` for the full runs and, where a reduced run can show the
   loop, an `assert`.
 - Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.

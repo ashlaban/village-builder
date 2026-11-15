@@ -1,5 +1,6 @@
-"""Inline src/ into a single self-contained index.html. `--check` only compares, and exits 1 if it is stale; `--stdout` prints the
-page and writes nothing (tests/lib/page.js: the page's tests and tools build their own copy, VB-449)."""
+"""Inline src/ into a single self-contained index.html, a derived file that is not kept in the repository (VB-450): the Pages
+workflow builds it for the site, and `--stdout` prints the page and writes nothing (tests/lib/page.js: the page's tests and tools
+build their own copy, VB-449). Run it to play locally."""
 import hashlib
 import json
 import sys
@@ -20,10 +21,5 @@ if "--stdout" in sys.argv:
     sys.stdout.buffer.write(page.encode())
     sys.exit(0)
 target = root / "index.html"
-if "--check" in sys.argv:
-    if not target.exists() or target.read_text() != page:
-        print("index.html is out of date: run python3 build.py")
-        sys.exit(1)
-    sys.exit(0)
 target.write_text(page)
 print(f"index.html: {len(page):,} bytes")

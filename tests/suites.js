@@ -2,7 +2,7 @@
 // A script of FAST or INTEGRATION takes under 5 seconds (the runner names those over); a longer one goes to EXTENDED until it is
 // rebuilt on a small constructed state. The runner starts them in this order.
 const FAST = [
-  ['python3', 'build.py', '--check'],
+  ['node', 'tests/build.js'],
   ['node', 'tests/format.js'],
   ['node', 'tests/marriage-demography.js'],
   ['node', 'tests/lintrules.js'],

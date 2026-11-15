@@ -98,7 +98,7 @@ if (phase === 'plan') {
 }
 if (page) rules.push('The page changed: `node tests/smoke.js` and the `tests/browser*.js` it touches; a screenshot under docs/img/ (`node tools/shot.js --help`).');
 if (/\bms\b|counter|medium-ref|small-y40|\bcost\b/i.test(text.slice(0, text.length - rest.length))) rules.push('Cost: AGENTS.md, Rules for cost; report counters, and leave times to the nightly bench when others share the machine.');
-rules.push('To finish: `npm run format`, `python3 build.py`, `npm run verify`; tick the criteria and write your notes in the task file.');
+rules.push('To finish: `npm run format`, `npm run verify`; tick the criteria and write your notes in the task file.');
 out.push('## Rules for this task\n' + rules.map((r) => '- ' + r).join('\n'));
 
 console.log(out.join('\n\n'));

@@ -161,8 +161,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-353](backlog/VB-353.md) | The scenarios' crops: founders, heirs and populous | crops | 2 | S | VB-350 | Each scenario's preset: the founders' three farms bring rye, the lone farm peas and a backup farm a field's pea seed; heirs' two villages differ; populous villages draw by their ground. |
 | [VB-355](backlog/VB-355.md) | The player sows: verbs for a field's rotation, and crops on the map | crops | 2 | M | VB-350, VB-256 | The player as head sets a field's rotation freely among those it has seed for, or sows one field out of turn; the plan panel lists the fields; the map shows each crop at each stage. |
 | [VB-356](backlog/VB-356.md) | Wrap-up: crops and rotations | crops | 2 | M | VB-350, VB-351, VB-352, VB-353, VB-354, VB-355 | Check the arch against the design with long runs: the food balance by crop, how crops spread, the hedge against the weather, the labour calendar, cost early and late; add its bands and propose tuning. |
-| [VB-449](backlog/VB-449.md) | The site is published by a workflow, and the page's tests and tools build their own copy | - | 2 | S | Kim | A Pages workflow builds the page and publishes the site with its rendered documents; the page's tests and tools build their own copy (tests/lib/page.js). index.html stays kept until VB-450. |
-| [VB-450](backlog/VB-450.md) | index.html is no longer kept in the repository | - | 2 | S | VB-449, Kim | index.html leaves the repository and goes into .gitignore; the build's check leaves the fast tier and the rebuild leaves the working rules. After Kim has switched Pages to GitHub Actions. |
 | [VB-411](backlog/VB-411.md) | Tuning: the carts' numbers, for a run Kim starts | - | 3 | S | Kim | The carts' numbers are first values, from memory and unchecked (loads, paces, wear, mending, the misses for another cart, hours and timber to build, dung's rate, hay a load): measure what each moves and put them before Kim's tuning run; an agent changes none |
 
 ## Archs
@@ -235,7 +233,7 @@ v0.3's sections (`docs/design-v0.3.md`); v0.4 keeps v0.3's subsection names, so 
 says where each section went).
 
 **Refactor rules** (every task titled "Refactor:"):
-- Behaviour is unchanged: `node tools/same.js --base REF` prints `same` against the commit the task started from (`docs/testing.md`), its line is in the PR, and the hard checks pass. Rebuild `index.html` before committing.
+- Behaviour is unchanged: `node tools/same.js --base REF` prints `same` against the commit the task started from (`docs/testing.md`), its line is in the PR, and the hard checks pass.
 - Code moves verbatim apart from the module wrapper, the dependency lines at its top and its return list. Moved code is formatted by Prettier (`npm run format`), as all of `src/` is.
 - No renames: functions, state fields and the `Sim`, `ArchGen` and `Culture` APIs keep their names, so backlog references and greps stay valid.
 - A new module follows the VB-012 convention, starts with an `@sys` header (VB-013), is listed in `src/manifest.json` after every module it reads. Its length is not capped: over 700 formatted lines (the 400 of the packed sources, rescaled when `src/` was formatted, 13 November) the lint asks for an open task, titled "Refactor: split <key> ...", that splits it by concern; the task that takes it there opens one (VB-413, VB-414).
