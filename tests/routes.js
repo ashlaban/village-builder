@@ -188,5 +188,24 @@ const grid = (COLS, ROWS) => {
   st.routeDirty.clear(); tr.i = 0; VB['sim/expansion'].finishStep(st, job());
   assert(!st.routeDirty.has(plotTile), 'ground already developed changes no cost');
 }
+// The kept lists of walking reach (VB-452): reachTiles gives a new search's tiles in its order, the same list at the next ask; water is
+// left out; and a tile whose standing changes after all (here water drained, told by costChanged) has the lists searched again.
+{
+  const { reachTiles, walkable } = VB['sim/routes'], { bfs } = VB['sim/hex'];
+  const COLS = 20, w = grid(COLS, 20), from = 10 * COLS + 10, wet = from + 2;
+  w.water[wet] = 1;
+  const st = { w, pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set() };
+  const fresh = () => [...bfs(w, from, 4, walkable(w)).dist.keys()];
+  const kept = reachTiles(w, from, 4);
+  check(kept[0] === from && kept.length === fresh().length && fresh().every((t, i) => kept[i] === t), 'the kept list is the search, in its order');
+  check(!kept.includes(wet), 'water is not in walking reach');
+  check(reachTiles(w, from, 4) === kept, 'the next ask gets the kept list');
+  check(reachTiles(w, from, 3).length < kept.length, 'a shorter reach has its own list');
+  costChanged(st, from + 1);
+  check(reachTiles(w, from, 4) === kept, 'a cost changed on ground that can still be stood on keeps the lists');
+  w.water[wet] = 0; costChanged(st, wet);
+  const again = reachTiles(w, from, 4);
+  check(again !== kept && again.includes(wet) && fresh().every((t, i) => again[i] === t), 'a tile that can now be stood on has the lists searched again');
+}
 if (failed) process.exit(1);
 console.log('routes ok');

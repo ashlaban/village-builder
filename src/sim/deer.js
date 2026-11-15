@@ -4,8 +4,8 @@ VB['sim/deer'] = (() => {
   const { DEER, HERD, DAY, YEAR_DAYS } = VB['sim/rules'],
     { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
-  const { bfs, hexSteps } = VB['sim/hex'];
-  const { passable } = VB['sim/routes'];
+  const { hexSteps } = VB['sim/hex'];
+  const { reachTiles } = VB['sim/routes'];
   const { graze } = VB['sim/grazing'];
   const { trample } = VB['sim/fields'];
   const { addFood } = VB['sim/hunger'];
@@ -118,9 +118,12 @@ VB['sim/deer'] = (() => {
   // DEER.hunt.least deer or more (ties by the search's order), or -1.
   function ground(st, house) {
     const w = st.w,
-      { dist } = bfs(w, house, DEER.hunt.reach, (j) => passable(w, j));
-    VB.count.deerGround += dist.size;
-    for (const t of dist.keys()) if (edgeTile(w, t) && !w.dev[t] && stock(st, w.region[t]) >= DEER.hunt.least) return t;
+      tiles = reachTiles(w, house, DEER.hunt.reach);
+    for (let n = 0; n < tiles.length; n++) {
+      const t = tiles[n];
+      VB.count.deerGround++;
+      if (edgeTile(w, t) && !w.dev[t] && stock(st, w.region[t]) >= DEER.hunt.least) return t;
+    }
     return -1;
   }
   // A hunt at tile `site` comes home: a kill with DEER.hunt.chance times the region's deer against its capacity (none below

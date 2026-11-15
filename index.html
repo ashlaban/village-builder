@@ -7059,10 +7059,11 @@ VB['sim/names'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/routes: walking costs by terrain and slope, the route search (A*) and the route cache with its daily refresh
+// @sys sim/routes: walking costs by terrain and slope, the kept lists of what is in walking reach, the route search (A*) and the route
+// cache with its daily refresh
 VB['sim/routes'] = (() => {
   const { TERRAIN, SLOPE, ROUTE, PATHS, SPEED } = VB['sim/rules'];
-  const { hexSteps } = VB['sim/hex'];
+  const { hexSteps, bfs } = VB['sim/hex'];
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
@@ -7090,6 +7091,28 @@ VB['sim/routes'] = (() => {
   const through = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
   // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
   const walkable = (w) => (j) => passable(w, j);
+  // The tiles within `steps` walking steps of `from`, in the order the breadth-first search finds them (sim/hex bfs under `walkable`,
+  // `from` first): what a house's ground searches scan for the nearest tile that will do (sim/fish, sim/forage, sim/deer), asked for
+  // many times a day and the same each time. Where a pawn can stand is the generated world's (not water, not a river away from its
+  // crossings, not snow; a house can be stood on), which play does not change, so a list is searched once and kept beside the world's
+  // own data: never in `st`, never saved, the same after a load. Should a tile's standing change after all, costChanged (below) sees it
+  // and the lists are searched again. One list a house and reach asked for, of at most 3 * steps * (steps + 1) + 1 tiles.
+  const REACH = new WeakMap(); // lint-allow: closure derived from the world alone, as sim/fish's lakeSize; holds nothing of a run
+  function reachTiles(w, from, steps) {
+    let r = REACH.get(w);
+    if (!r) REACH.set(w, (r = { lists: new Map(), stood: null }));
+    const key = from * 256 + steps;
+    let list = r.lists.get(key);
+    if (!list) {
+      if (!r.stood) {
+        r.stood = new Uint8Array(w.N);
+        for (let i = 0; i < w.N; i++) r.stood[i] = passable(w, i) ? 1 : 0;
+      }
+      list = Int32Array.from(bfs(w, from, steps, walkable(w)).dist.keys());
+      r.lists.set(key, list);
+    }
+    return list;
+  }
   // What the slope of the step between a and b multiplies its cost by: Tobler's hiking function made symmetric around the flat (VB-438),
   // exp(SLOPE.tobler |S|) for the slope S = SLOPE.grade times the elevation between them, up or down alike (so the way back costs what
   // the way there does), at most SLOPE.max; 1 on the level. Water lies at sea level; a worn path does not flatten a slope.
@@ -7320,6 +7343,12 @@ VB['sim/routes'] = (() => {
   // are dropped at the end of the day.
   const costChanged = (st, tile) => {
     st.routeDirty.add(tile);
+    const r = REACH.get(st.w),
+      stands = passable(st.w, tile) ? 1 : 0;
+    if (r && r.stood && r.stood[tile] !== stands) {
+      r.stood[tile] = stands;
+      r.lists.clear();
+    }
   };
   // Once a game day: drop the cached routes that a changed tile might now shorten or lengthen, and every straight-walk fallback.
   // A route by tile t costs at least (steps from the start to t + steps from t to the end) times the cheapest step,
@@ -7435,6 +7464,7 @@ VB['sim/routes'] = (() => {
     tileCost,
     passable,
     walkable,
+    reachTiles,
     slopeFactor,
     stepCost,
     findRoute,
@@ -7556,8 +7586,7 @@ VB['sim/paths'] = (() => {
 // closed form, and a house's fishing ground: the nearest bank within reach whose water holds fish
 VB['sim/fish'] = (() => {
   const { FISH, DAY } = VB['sim/rules'];
-  const { bfs } = VB['sim/hex'];
-  const { passable } = VB['sim/routes'];
+  const { reachTiles } = VB['sim/routes'];
   // Fresh stocks for a world: every water full; the settlement generator calls it, and a load of a save made before fishing.
   function initFish(w) {
     // @state w.fish: Float32Array per tile; a river or small lake tile's fish stock from 0 to 1 as of the day in w.fishDay, recovering
@@ -7613,9 +7642,10 @@ VB['sim/fish'] = (() => {
   // richest neighbouring water holds at least FISH.least; ties by the search's order. {shore, water}, or null.
   function ground(st, house) {
     const w = st.w,
-      { dist } = bfs(w, house, FISH.reach, (j) => passable(w, j));
-    VB.count.fishGround += dist.size;
-    for (const t of dist.keys()) {
+      tiles = reachTiles(w, house, FISH.reach);
+    for (let n = 0; n < tiles.length; n++) {
+      const t = tiles[n];
+      VB.count.fishGround++;
       if (w.river[t]) continue;
       let best = -1,
         top = FISH.least;
@@ -7641,8 +7671,7 @@ VB['sim/fish'] = (() => {
 VB['sim/forage'] = (() => {
   const { FORAGE, YEAR_DAYS, DAY } = VB['sim/rules'],
     { B } = VB['gen'];
-  const { bfs } = VB['sim/hex'];
-  const { passable } = VB['sim/routes'];
+  const { reachTiles } = VB['sim/routes'];
   // Fresh stocks for a world: every tile full; the settlement generator calls it, and a load of a save made before gathering.
   function initForage(w) {
     // @state w.forage: Float32Array per tile; a forest or heath tile's stock of wild food from 0 to 1 as of the year in w.forageYear; it is
@@ -7668,9 +7697,12 @@ VB['sim/forage'] = (() => {
   // (ties by the search's order), or -1.
   function ground(st, house) {
     const w = st.w,
-      { dist } = bfs(w, house, FORAGE.reach, (j) => passable(w, j));
-    VB.count.forageGround += dist.size;
-    for (const t of dist.keys()) if (wild(w, t) && !w.dev[t] && stock(st, t) >= FORAGE.least - 1e-6) return t;
+      tiles = reachTiles(w, house, FORAGE.reach);
+    for (let n = 0; n < tiles.length; n++) {
+      const t = tiles[n];
+      VB.count.forageGround++;
+      if (wild(w, t) && !w.dev[t] && stock(st, t) >= FORAGE.least - 1e-6) return t;
+    }
     return -1;
   }
   return { initForage, wild, stock, gather, ground };
@@ -15506,8 +15538,8 @@ VB['sim/deer'] = (() => {
   const { DEER, HERD, DAY, YEAR_DAYS } = VB['sim/rules'],
     { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
-  const { bfs, hexSteps } = VB['sim/hex'];
-  const { passable } = VB['sim/routes'];
+  const { hexSteps } = VB['sim/hex'];
+  const { reachTiles } = VB['sim/routes'];
   const { graze } = VB['sim/grazing'];
   const { trample } = VB['sim/fields'];
   const { addFood } = VB['sim/hunger'];
@@ -15620,9 +15652,12 @@ VB['sim/deer'] = (() => {
   // DEER.hunt.least deer or more (ties by the search's order), or -1.
   function ground(st, house) {
     const w = st.w,
-      { dist } = bfs(w, house, DEER.hunt.reach, (j) => passable(w, j));
-    VB.count.deerGround += dist.size;
-    for (const t of dist.keys()) if (edgeTile(w, t) && !w.dev[t] && stock(st, w.region[t]) >= DEER.hunt.least) return t;
+      tiles = reachTiles(w, house, DEER.hunt.reach);
+    for (let n = 0; n < tiles.length; n++) {
+      const t = tiles[n];
+      VB.count.deerGround++;
+      if (edgeTile(w, t) && !w.dev[t] && stock(st, w.region[t]) >= DEER.hunt.least) return t;
+    }
     return -1;
   }
   // A hunt at tile `site` comes home: a kill with DEER.hunt.chance times the region's deer against its capacity (none below
@@ -38949,7 +38984,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'c780c93648',
+const BUILD = '3bed851a75',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
