@@ -2,7 +2,9 @@
 // season, until the harvest), and the village store's yearly filling; each gift is a command `give`, settled by sim/exchange (VB-216)
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
-  const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
+  const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
+  const { hoursBetween } = VB['sim/routes'];
+  const onRoad = (a) => a.phase === 'journey' || a.phase === 'road'; // as sim/agents' travelling, which loads after this module
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
@@ -28,14 +30,27 @@ VB['sim/help'] = (() => {
   // A gift of n grain, as the command `give` (source 'help'): its actor is the giver's holder, or the household or village itself
   // without one; true when it was given.
   const actorOf = (x) => ('farmstead' in x ? (x.holder !== null ? x.holder : { household: x.id }) : { village: x.id });
-  const give = (st, from, to, n) =>
+  const give = (st, from, to, n, carrier) =>
     issue(st, {
       actor: actorOf(from),
       verb: 'give',
       target: 'farmstead' in to ? to.id : { village: to.id },
-      args: { good: 'grain', n },
+      args: carrier === undefined ? { good: 'grain', n } : { good: 'grain', n, carrier },
       source: 'help',
     }) === true;
+  // The youngest adult of 14 to 59 of household hh who is not on the road (VB-291), or -1: the one who carries a far gift
+  function carrierOf(st, hh) {
+    let best = -1;
+    for (const id of hh.members) {
+      const p = st.pawns[id];
+      if (!p.alive || p.age < 14 || p.age >= 60 || onRoad(st.agents[id])) continue;
+      if (best < 0 || p.age < st.pawns[best].age) best = id;
+    }
+    return best;
+  }
+  // Walking hours from household k's village to hh's
+  const hoursOf = (st, k, hh) =>
+    hoursBetween(st, st.farmsteads[st.households[k].farmstead].village, st.farmsteads[hh.farmstead].village);
   // @state household.askedIn: the season (game seasons since the start) in which the household last asked for help, or absent; written only
   //   here. A household asks at most once a season (VB-222; design.md, The gift: Lumps and occasions), and an ask that moved no goods does not count (VB-391).
   const seasonOf = (t) => Math.floor(t / (SEASON_DAYS * DAY));
@@ -74,7 +89,17 @@ VB['sim/help'] = (() => {
       if (need <= 0 || spare(st, hh) >= HELP.askBelow * need) continue;
       let moved = false,
         want = askDaysAt(st) * need - spare(st, hh);
+      // kin within a day's walk give at once, then the village store, then kin further away, nearest first, each by a carrier on a journey
+      // (VB-291; kin over the sea or beyond reach are not asked)
+      const near = [],
+        far = [];
       for (const k of kinHouseholds(st, hh)) {
+        const h = hoursOf(st, k, hh);
+        if (h <= TRAVEL.dayWalk) near.push(k);
+        else if (h < Infinity) far.push(k);
+      }
+      far.sort((a, b) => hoursOf(st, a, hh) - hoursOf(st, b, hh) || a - b);
+      for (const k of near) {
         const n = Math.min(want, surplus(st, st.households[k]));
         if (n <= 1e-9) continue;
         if (give(st, st.households[k], hh, n)) {
@@ -88,6 +113,18 @@ VB['sim/help'] = (() => {
       if (n > 1e-9 && give(st, v, hh, n)) {
         want -= n;
         moved = true;
+      }
+      for (const k of far) {
+        if (want <= 1e-9) break;
+        const g = st.households[k],
+          n = Math.min(want, surplus(st, g), TRAVEL.load); // what one adult carries on his back
+        if (n <= 1e-9) continue;
+        const c = carrierOf(st, g);
+        if (c < 0) continue; // no one can go: the ask goes on
+        if (give(st, g, hh, n, c)) {
+          want -= n;
+          moved = true;
+        }
       }
       // an ask that moved no goods marks nothing worth remembering (VB-391): it is not the season's ask, and the household asks again on a later day
       if (moved) noteAsked(hh, season);

@@ -140,4 +140,31 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
     assert.ok(r && !r.ok && /on the road/.test(JSON.stringify(r)), `${verb} is refused: on the road`);
   }
 }
+
+// ---- a gift from kin further than a day's walk is carried (VB-291): taken at the start, booked at arrival, the carrier home ----
+{
+  const s = far(), rec = s.households[0], giv = s.households[1], id = adultOf(s, giv);
+  to(s, 8);
+  Stores.put(s, giv, 'grain', 200, 'harvest', { barley: 200 });
+  const g0 = Stores.grainOf(giv), r0 = Stores.grainOf(rec);
+  const r = VB['sim/commands'].issue(s, { actor: giv.holder, verb: 'give', target: rec.id, args: { good: 'grain', n: 25, carrier: id }, source: 'player' });
+  assert.strictEqual(r, true, 'the gift is agreed: ' + JSON.stringify(r));
+  const j = s.journeys.find((x) => x.pawn === id);
+  assert.ok(j && j.why === 'carry' && j.gift.n === 25 && j.to === s.farmsteads[rec.farmstead].house, 'a carry journey to the receiver');
+  assert.ok(g0 - Stores.grainOf(giv) >= 25 - 1e-9, 'the grain left the giver at the start');
+  assert.strictEqual(Stores.grainOf(rec), r0, 'the receiver has not got it yet');
+  assert.ok(Math.abs(j.food - 2 * Math.ceil(VB['sim/routes'].hoursBetween(s, 1, 0) / TRAVEL.dayWalk)) < 1e-9, 'provisions for there and back');
+  assert.strictEqual(s.pawns[id].household, giv.id, 'the carrier stays his household\'s');
+  let arrived = false;
+  for (let d = 0; d < 8 && s.journeys.length; d++) {
+    Sim.advance(s, DAY / 2);
+    assert.deepStrictEqual(checkState(s), [], 'invariants on the carrier\'s way, step ' + d);
+    if (!arrived && s.journeys[0] && s.journeys[0].back) {
+      arrived = true;
+      assert.ok(rec.ledger.some((e) => e.kind === 'gift' && e.from), 'the receiver books the gift when he arrives');
+    }
+  }
+  assert.ok(arrived && !s.journeys.length, 'he delivered and walked home');
+  assert.ok(s.pawns[id].events.some((k) => s.record[k].kind === 'arrived'), 'arrived in his record');
+}
 console.log(`journeys: a walk home within a village; a bride across ${Math.round(hours)} hours in ${stops + 1} legs, provisioned for ${days} days; save, death and hunger on the road`);
