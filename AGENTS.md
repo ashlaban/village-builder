@@ -106,7 +106,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   records an intended change), `node tools/targets.js` (each target's latest value and residual).
 - Baselines that only fall: `node tests/lint.js --update`, `node tests/ownership.js --update`.
 - In `docs/commands.md` only: fixtures, bands, cost growth, the review tools (`hours`, `stocks`, `store-flows`), `gossip`, `rules`,
-  `writes`, `calibrate`, `wrap`, `shot`, `village-shot`, `bench`, `agent-usage`.
+  `writes`, `calibrate`, `wrap`, `shot`, `village-shot`, `cover`, `bench`, `agent-usage`.
 
 ## Finding things
 - Module map: `grep -rn "^// @sys" src`; state schema: `grep -rn "@state" src`; modules in load order: `src/manifest.json`.
