@@ -67,6 +67,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters; for `tests/` and `tools/`, `src/` has Prettier), `node tools/shot.js` (screenshots of the page), `node
   tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
   `medium-y5` and `medium-ref`).
+- Land cover: `node tools/cover.js [--map M] [--seeds 7,11,42]` prints each biome's share of a generated island's land; the thresholds are `COVER` in `src/gen.js`.
 - Agent usage: `node tools/agent-usage.js [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
   their transcripts: weighted cost a done task by size, the orchestrator's share, the median boot, the share done; `--history docs/agents/usage`).
 - Play locally: open `index.html` in a browser.

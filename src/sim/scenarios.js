@@ -57,7 +57,8 @@ VB['sim/scenarios'] = (() => {
     splitStreams(st, seedNum);
     return st;
   }
-  // Populous Villages: only villages, of three size bands, until the map holds the target population; on a Medium or Large map
+  // Populous Villages: only villages, of three size bands, until the map holds the target population (POPULATION's first number a
+  // map size: 800 on a Medium or Large map) or has no site left, in which case it starts with fewer; on a Medium or Large map
   // the first two villages are a large and a medium one, which take the best sites.
   const POPULATION = { tiny: [130, 170], small: [320, 380], big: [800, 950] };
   const BANDS = [
@@ -99,10 +100,10 @@ VB['sim/scenarios'] = (() => {
         if (sizes[fid] >= 7) gen.addField(fid); // a big household works a fourth field
       }
     }
-    if (pop < lo)
-      throw new Error(
-        `Populous Villages: only ${pop} of ${lo} people fit on this map; try a larger map or another seed`,
-      );
+    // The population is a target (Kim, 15 Nov): a map with too few sites is seeded with the villages it holds. Only a map that
+    // holds no village at all is refused, since a run needs someone.
+    if (!centres.length)
+      throw new Error('Populous Villages: no village fits on this map; try a larger map or another seed');
     return standing(w, S, rand, gen, sizes, 'populous', seedNum);
   }
   // Placed by hand (the archipelago editor): `places`, each {village: tile, farms}, a village laid by the generator about that tile;
