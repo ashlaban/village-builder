@@ -85,6 +85,13 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. `roundPhase(st, n)`
   is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
+- The meetings (`src/sim/lifecycle.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
+  step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
+  (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,
+  `src/sim/society.js`), the causes its adults take up and its meeting, whose lines go to the head of `st.meetingLog`; roles and prestige
+  island-wide, and the living of no settlement, at the first village's. At 18:00 each culture's year, at 18:06 the land meeting.
+  `meetingStage(st, n)` is the step's entry; `holdMeetings` runs the villages and the cultures. The meeting's occasion on each green is
+  called for its village's turn: from two hours before its step to the step after.
 - Saves (VB-074): `Sim.save(st)` and `Sim.load(w, data)` in `src/sim/saves.js`; a generic codec keeps shared objects, Maps, Sets and typed
   arrays, and the tiles the simulation changes are saved with the state (its `WORLD` list: a new world field the simulation writes goes there).
   `st` is plain data (VB-073, `tests/plaindata.js`): no functions, and no state kept aside in module closures, or a loaded run drifts
@@ -101,7 +108,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   grows), plus the memories. Talk grows the tie only; its kind is the bubble's. A band is checked by `touch` where a pair's tie or memories
   change (a talk, a job together, the day's hours at home, the kin floor, `remember`, the season's pass), never by a pass over pairs.
 - Occasions (VB-126): `src/sim/occasions.js` calls a gathering at a place from a start to an end (the village meeting on the green on autumn
-  day 10, a wedding the day after a marriage, a funeral ale the day after a death), asks its guests and keeps `st.occasions`, a due-queue the
+  day 10, for its village's turn, a wedding the day after a marriage, a funeral ale the day after a death), asks its guests and keeps `st.occasions`, a due-queue the
   six-minute step reads at its head only. Those asked set out by the verb `attend` and stand about the spot until the end (`agent.occasion`);
   talk there is talk as anywhere. The gathering of villages (VB-295) is the next kind.
 - Notable events (VB-098): `Sim.notable(st, ev, about)` in `src/sim/notable.js` gives the reasons a record event is notable (keys of
@@ -173,7 +180,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 
 ## Adding things
 - A module has no cap on its length (VB-413): over 700 formatted lines (`src/` is formatted by Prettier, `npm run format`) the lint asks for an open task titled "Refactor: split <key> ...", opened by the task that
-  takes it there (VB-414). The same task is asked for when a module over 15 exports gains one (VB-415; the `sim` facade is not counted). Put code where its concern lives, not where there is room.
+  takes it there (VB-414). The same task is asked for when a module over 15 exports gains one (VB-415; the `sim` facade is not counted, nor an export read only by a registry: a job kind's `done`, a calendar entry's `run`, a verb's body; the list is `REGISTRIES` in `tests/lint.js`, VB-454). Put code where its concern lives, not where there is room.
 - Tunables: `ECON`, `FIELDS`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `HERD`, `SOIL`, `RIVER`, `TERRAIN`, `SLOPE`, `ROUTE`, `PATHS`, `SETTLE`
   and `SERVICE` in `src/sim/rules.js`; `KINDS` (job kinds) in `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`
   (worn paths) in `src/gen/paths.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.

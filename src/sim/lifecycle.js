@@ -1,4 +1,5 @@
-// @sys sim/lifecycle: deaths, retirement, village meetings, the moving round and its marriage offers, and the daily life step
+// @sys sim/lifecycle: deaths, retirement, the village meetings (a village a step, then the cultures and the land meeting), the moving round
+//   and its marriage offers, and the daily life step
 // @state st.offers[]: the open marriage offers (VB-293; planned to move to slice 5's Decisions), sorted by due, each {id, man, woman (pawn
 //   ids), home (the household they would live in), village (the man's settlement), made, due (made + MARRIAGE.offerDays days; game hours),
 //   answers[] ({key: 'man' | 'woman' | 'manSide' | 'womanSide', by (the one to marry, or its spokesman when the offer was made), yes: null
@@ -37,18 +38,8 @@ VB['sim/lifecycle'] = (() => {
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { startInLife } = VB['sim/exchange'];
   const { stillAtDeath, travelling, tileAt, journeyOf } = VB['sim/agents'];
-  const {
-    heirRanking,
-    moveTo,
-    transfer,
-    succession,
-    comeOfAge,
-    refreshRoles,
-    countDemand,
-    handOn,
-    heirFor,
-    roundHeirs,
-  } = VB['sim/heirs'];
+  const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor } =
+    VB['sim/heirs'];
   const { kinOk, matchScore, matchRules, matchBar } = VB['sim/matching'];
   const { startPlots } = VB['sim/expansion'];
   const { claimFarms, claimableFarm } = VB['sim/farmclaims'];
@@ -56,10 +47,10 @@ VB['sim/lifecycle'] = (() => {
   const { careForOrphans, takeServants, serveWhereShort } = VB['sim/service'];
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
-  const { updateTies, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
+  const { updateTie, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue, playerDied, clearMatchWish } = VB['sim/commands'];
   const { forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
-  const { wedding, funeral } = VB['sim/occasions'];
+  const { wedding, funeral, VILLAGE_STEPS, villageTurn } = VB['sim/occasions'];
   const { closeTrust, goBack, wardsOfAge, inheritedHeld } = VB['sim/trust'],
     { trustOfHolder } = VB['sim/ownership'];
   function killPawn(st, id, cause = 'killed') {
@@ -68,6 +59,7 @@ VB['sim/lifecycle'] = (() => {
     p.died = st.t;
     p.alive = false;
     p.kinPush = null; // the round's pushes are cleared on the living only (VB-277)
+    p.interest = null; // and its interests, which the village's meeting refreshes for the living only (VB-278)
     noteDeath(st, id);
     const a = st.agents[id],
       road = travelling(a) ? tileAt(st, a.x, a.y) : null; // it dies where it fell on the road (VB-287)
@@ -128,29 +120,48 @@ VB['sim/lifecycle'] = (() => {
     refreshPrestige(st);
     return true;
   }
-  // The year's meetings, in four stages on four 6-minute steps from noon (VB-206, rule 5): the whole-population refreshes, then the ties, then the
-  // year's entrepreneurs, each settlement's meeting and each culture's year, then the land meeting. The step of the day says what is due, so a
-  // save between two stages goes on; the draws keep their order. `holdMeetings` is the first three at once (the drawer's button, the tests).
-  const MEETING_STAGES = 4;
+  // The year's meetings (VB-278; design.md, A village's meeting): on autumn day 10, each village's meeting on its own 6-minute step from noon,
+  // in the order of village id (villageTurn, as the moving round's villages), then from 18:00 each culture's year, and on the next step the
+  // land meeting, which settles outland between villages. `meetingStage(st, n)`, n the step from noon, is each step's entry point; nothing
+  // is kept from one step for the next, so nothing is saved: the step of the day says what is due. `holdMeetings` is every village's and the
+  // cultures' at once, not the land meeting (the drawer's button, the tests).
+  const CULTURE_STEP = VILLAGE_STEPS,
+    MEETING_STAGES = VILLAGE_STEPS + 2;
+  // The villages whose turn is step n of the window (sim/occasions, villageTurn): f(k) for each, in order.
+  function villagesOfStep(st, n, f) {
+    const villages = st.villages.length;
+    if (villages <= VILLAGE_STEPS) {
+      if (n < villages) f(n);
+      return;
+    }
+    for (let k = Math.ceil((n * villages) / VILLAGE_STEPS); k < villages && villageTurn(k, villages) === n; k++) f(k);
+  }
   function meetingStage(st, n) {
+    st.cenv.t = st.t / YEAR;
+    if (n < VILLAGE_STEPS) villagesOfStep(st, n, (v) => villageMeeting(st, v));
+    else if (n === CULTURE_STEP) culturesYear(st);
+    else if (n === CULTURE_STEP + 1) landMeeting(st);
+  }
+  // Village v's meeting: its living's interests, its tie to its culture's centre, the causes its adults take up, and its meeting, whose lines
+  // go to the head of st.meetingLog. At the first village's step, the island's roles and prestige (every meeting reads them), and the living
+  // of no settlement have their interests and causes with that village's.
+  function villageMeeting(st, v) {
     const env = st.cenv,
-      hk = hooks(st);
-    env.t = st.t / YEAR;
-    if (n === 0) {
+      s = env.settlements[v],
+      c = cal(st.t);
+    const people = membersOf(st, v); // its living, in id order (the order of st.living)
+    VB.count.meetingWalk += people.length;
+    const all = people.slice();
+    if (v === 0) {
       refreshRoles(st);
       refreshPrestige(st);
-      refreshInterests(st);
-      return;
+      VB.count.meetingWalk += st.living.length;
+      for (const id of st.living) if (st.pawns[id].household === null) all.push(st.pawns[id]);
     }
-    if (n === 1) {
-      updateTies(st);
-      return;
-    }
-    if (n === 3) {
-      landMeeting(st);
-      return;
-    }
-    const starters = Culture.entrepreneurs(env, hk, drawer(st.rng.culture));
+    refreshInterests(st, all);
+    if (s) updateTie(st, v, people);
+    const hk = hooks(st);
+    const starters = Culture.entrepreneurs(env, { ...hk, living: all.map((p) => p.id) }, drawer(st.rng.culture));
     for (const p of starters) {
       personEvent(
         st,
@@ -159,21 +170,33 @@ VB['sim/lifecycle'] = (() => {
         `Took up the cause: ${Culture.DIMS[p.advocate.dim].label.toLowerCase()}, ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`,
       );
     }
-    const c = cal(st.t),
-      out = [];
-    const held = new Map(); // each village's meeting on its green today (sim/occasions)
-    for (const o of st.occasions) if (o.kind === 'meeting' && o.start <= st.t && st.t < o.end) held.set(o.village, o);
-    for (const s of env.settlements) {
-      const ch = Culture.meeting(env, hk, s);
-      for (const x of ch) {
-        const d = Culture.DIMS[x.dim],
-          txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”).`;
-        log(st, txt, { kind: 'custom', village: s.id });
-        out.push({ year: c.year, text: txt });
-      }
-      const txt = routinesMeeting(st, s, held.get(s.id));
-      if (txt) out.push({ year: c.year, text: txt });
+    if (!s) return;
+    const out = [];
+    const ch = Culture.meeting(env, { ...hk, membersOf: (x) => (x === s ? people : membersOf(st, x.id)) }, s);
+    for (const x of ch) {
+      const d = Culture.DIMS[x.dim],
+        txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”).`;
+      log(st, txt, { kind: 'custom', village: s.id });
+      out.push({ year: c.year, text: txt });
     }
+    // its meeting on its green today (sim/occasions)
+    const held = st.occasions.find(
+      (o) => o.kind === 'meeting' && o.village === s.id && o.start <= st.t && st.t < o.end,
+    );
+    const txt = routinesMeeting(st, s, held, people);
+    if (txt) out.push({ year: c.year, text: txt });
+    toMeetingLog(st, out);
+  }
+  function toMeetingLog(st, lines) {
+    st.meetingLog.unshift(...lines);
+    st.meetingLog.length = Math.min(st.meetingLog.length, 30);
+  }
+  // At 18:00, once all the villages have met: each culture's year, and a line when no meeting of this year changed anything.
+  function culturesYear(st) {
+    const env = st.cenv,
+      hk = hooks(st),
+      c = cal(st.t),
+      out = [];
     for (const cu of env.cultures) {
       const r = Culture.cultureYear(env, hk, cu);
       for (const x of r.changes) {
@@ -183,8 +206,9 @@ VB['sim/lifecycle'] = (() => {
         out.push({ year: c.year, text: txt });
       }
     }
-    st.meetingLog.unshift(...(out.length ? out : [{ year: c.year, text: 'The meetings changed nothing this year.' }]));
-    st.meetingLog.length = Math.min(st.meetingLog.length, 30);
+    if (!out.length && !(st.meetingLog.length && st.meetingLog[0].year === c.year))
+      out.push({ year: c.year, text: 'The meetings changed nothing this year.' });
+    toMeetingLog(st, out);
     st.lastMeeting = st.t;
   }
   // The village's routines for the year (VB-257; design.md section 7, Village routines), at its meeting: with a quorum, at least half of
@@ -193,9 +217,8 @@ VB['sim/lifecycle'] = (() => {
   // what follows: no village work this year ('nothing') or last year's again ('asLastYear'), told in the log as a notable event of the
   // village. A village with no one living holds no meeting, and its routines stand. Returns the log's line of a failure, or null.
   const QUORUM = 0.5;
-  function routinesMeeting(st, s, o) {
-    const v = st.villages[s.id],
-      people = membersOf(st, s.id);
+  function routinesMeeting(st, s, o, people = membersOf(st, s.id)) {
+    const v = st.villages[s.id];
     if (!v || !people.length) return null;
     let voices = 0,
       came = 0;
@@ -233,7 +256,7 @@ VB['sim/lifecycle'] = (() => {
     return txt;
   }
   function holdMeetings(st) {
-    for (let n = 0; n < MEETING_STAGES - 1; n++) meetingStage(st, n);
+    for (let n = 0; n <= CULTURE_STEP; n++) meetingStage(st, n);
   } // not the land meeting
   const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
   // Scarcity and plenty of spouses push the marriage limit, a village's own at the end of its round (VB-277): one the step married to a
@@ -326,25 +349,17 @@ VB['sim/lifecycle'] = (() => {
   // n); then three phases on fixed steps from 18:00, island-wide: demand, claims on empty farms and plots; settlement; service, what is owed
   // and prestige. Fixed, since settlement founds villages. Nothing is kept from one step for the next, so nothing is saved: the step of the
   // day says what is due. `movingRound` runs every step at once (the drawer's button, the tests).
-  const VILLAGE_STEPS = 60,
-    ROUND_STEPS = VILLAGE_STEPS + 3;
+  const ROUND_STEPS = VILLAGE_STEPS + 3;
   function movingRound(st) {
     for (let n = 0; n < ROUND_STEPS; n++) roundPhase(st, n);
   }
   function roundPhase(st, n) {
-    const villages = st.villages.length;
     if (n < VILLAGE_STEPS) {
-      if (villages <= VILLAGE_STEPS) {
-        if (n < villages) villageRound(st, n);
-      } else
-        for (let k = Math.ceil((n * villages) / VILLAGE_STEPS); k < villages; k++) {
-          if (Math.floor((k * VILLAGE_STEPS) / villages) !== n) break;
-          villageRound(st, k);
-        }
+      villagesOfStep(st, n, (v) => villageRound(st, v));
       return;
     }
     if (n === VILLAGE_STEPS) {
-      countDemand(st, roundHeirs(st).rank); // who wants out: landless adults with no prospect of a farm
+      countDemand(st); // who wants out: landless adults with no prospect of a farm
       claimFarms(st); // empty farms go to claimants by custom before any plot is cleared
       startPlots(st, (id) => claimableFarm(st, id) === null);
     } else if (n === VILLAGE_STEPS + 1)

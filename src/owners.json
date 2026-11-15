@@ -94,6 +94,8 @@
     "agent.idleUntil": "sim/agents",
     "agent.x": "sim/agents",
     "agent.y": "sim/agents",
+    "agent.leg": "sim/agents",
+    "job.cast": "sim/agents",
     "pawn.ties": "sim/relations",
     "pawn.tieT": "sim/relations",
     "pawn.homeHours": "sim/relations",

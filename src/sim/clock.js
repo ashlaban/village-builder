@@ -428,16 +428,16 @@ VB['sim/clock'] = (() => {
       note: "the night's culture, a settlement a step (VB-201)",
       run: (st, c, n) => nightCulture(st, n),
     },
-    // ---- autumn: the meetings' stages from noon of day 10 (customs, then the outland; VB-206), the moving round's from noon of day 11:
-    // a village a step, then its three island-wide phases from 18:00 (VB-201, VB-277) ----
-    ...Array.from({ length: MEETING_STAGES }, (_, r) => ({
+    // ---- autumn: the meetings from noon of day 10, a village a step, then the cultures' years at 18:00 and the land meeting (VB-278);
+    // the moving round's from noon of day 11: a village's round a step, then its three island-wide phases from 18:00 (VB-201, VB-277) ----
+    {
       every: 'year',
-      at: { season: AUTUMN, sday: 9, hour: 12, tick: r },
+      at: { season: AUTUMN, sday: 9, hour: 12, tick: [0, MEETING_STAGES] },
       when: cenv,
       owner: 'sim/lifecycle',
-      note: `the meetings, stage ${r}`,
-      run: (st) => meetingStage(st, r),
-    })),
+      note: "the meetings: a village's meeting a step, then the cultures' years and the land meeting (VB-278)",
+      run: (st, c, n) => meetingStage(st, n - 12 * TICKS),
+    },
     {
       every: 'year',
       at: { season: AUTUMN, sday: 10, hour: 12, tick: [0, ROUND_STEPS] },

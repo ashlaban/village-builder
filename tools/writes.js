@@ -21,6 +21,7 @@ const { scopesOf } = require('./write-scopes.js');
 const { dependencies } = require('./dependencies.js');
 const { validateOwners } = require('./owner-policy.js');
 const ROOT = path.join(__dirname, '..');
+const { readSource } = require('./lib/source.js');
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8')).filter((f) => f !== 'vb.js');
 const OWNERS = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/owners.json'), 'utf8'));
 const ownerOf = (field) => typeof OWNERS.fields[field] === 'string' ? OWNERS.fields[field] : OWNERS.fields[field]?.owner;
@@ -96,7 +97,7 @@ function matches(toks) {
 }
 
 // One module. `returns` maps 'module:function' to the path the function returns (from the first pass over every module).
-function scan(file, mod, returns = {}, src = fs.readFileSync(path.join(ROOT, file), 'utf8')) {
+function scan(file, mod, returns = {}, src = readSource(file)) {
   const tokens = tokenize(src), toks = tokens.filter((t) => t.t !== 'com');
   const allowed = new Set();
   for (const t of tokens) if (t.t === 'com' && /^\/\/ lint-allow: owner \S/.test(src.slice(t.s, t.e))) {
