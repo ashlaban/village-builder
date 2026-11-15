@@ -8,7 +8,8 @@ const Stores = VB['sim/stores'], Plans = VB['sim/plans'], { seedNeed } = VB['sim
 const { refreshJobs } = VB['sim/jobs'], { DAY, WORK, HERD, YEAR_DAYS, cal } = VB['sim/rules'];
 const { checkState } = require('./lib/invariants.js');
 const it = G.generate(7); let r; while (!(r = it.next()).done);
-const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
+const { templateHeads } = require('./lib/heads.js');
+const fresh = (sc = 'founders') => templateHeads(VB, Sim.seed(r.value, 7, sc)); // heads that plan by the template (VB-254)
 
 { // every household's plan has its targets and its seed reservation from the start; the reservation is the fields' need, read live
   const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);
@@ -116,8 +117,8 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
 }
 { // planning days: the head's diligence sets the cadence, the id the day and the hour; a store crossing a target wakes one review a day
   const st = fresh('populous'), hh = st.households[0], plan = Plans.planOf(st, 'household', hh.id), head = st.pawns[hh.holder];
-  for (const [d, cad] of [[0.1, 3], [0.5, 2], [0.9, 1]]) { head.diligence = d; assert.strictEqual(Plans.cadence(st, plan), cad, `diligence ${d}`); }
-  head.diligence = 0.1;
+  for (const [d, cad] of [[0.1, 3], [0.5, 2], [0.9, 1]]) { head.traits.diligence = d; assert.strictEqual(Plans.cadence(st, plan), cad, `diligence ${d}`); }
+  head.traits.diligence = 0.1;
   setClock(st, 3 * DAY + WORK[0]);
   Plans.reviewed(st, plan, cal(st.t));
   const next = plan.nextReview, nd = Math.floor(next / DAY), nh = next - nd * DAY;
@@ -140,7 +141,7 @@ const fresh = (sc = 'founders') => Sim.seed(r.value, 7, sc);
   const setup = (season, sday, stage) => {
     const st = fresh('populous'), hh = st.households.find((h) => h.farmstead !== null && h.holder !== null);
     const f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);
-    st.pawns[hh.holder].diligence = 0.1;
+    st.pawns[hh.holder].traits.diligence = 0.1;
     assert.strictEqual(Plans.cadence(st, plan), 3, 'every third day');
     let D = season * SEASON_DAYS + sday;
     while ((D + hh.id) % 3) D++; // its planning day

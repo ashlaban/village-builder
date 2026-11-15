@@ -1,0 +1,12 @@
+// VB-254: every head of a state made to plan by the template alone: of no skill (it reacts, so it projects nothing) and with no bias (the
+// traits' stream forced with `fix` while its heads are drawn again); for tests written against the template's targets.
+function templateHeads(VB, st) {
+  const P = VB['sim/plans'];
+  for (const plan of st.plans.households.values())
+    if (plan.head) Object.assign(st.pawns[plan.head.pawn].traits, { wits: 0, husbandry: 0 });
+  st.rng.traits.fix = 0.5;
+  P.startHeads(st);
+  delete st.rng.traits.fix;
+  return st;
+}
+module.exports = { templateHeads };
