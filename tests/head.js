@@ -110,7 +110,7 @@ let made;
   const { st, hh, plan } = scene({ herds: true });
   Sim.inhabit(st, hh.holder);
   // a head that reacts, with no bias (VB-254): its rule's targets are the template's
-  Object.assign(st.pawns[hh.holder].traits, { wits: 0, husbandry: 0 });
+  st.pawns[hh.holder].traits.fill(0, 0, 2); // wits and husbandry
   plan.head.bias = { wood: 1, hay: 1, seed: 1, fields: 1 };
   const E = st.ECON, T = plan.targets, before = snap(st, hh), was = { hay: 2, wood: [E.woodTarget, E.woodWinter, E.woodWinter, E.woodTarget] };
   refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3.5 }), /hay must be from 0 to 3/, 'hay over three winters');

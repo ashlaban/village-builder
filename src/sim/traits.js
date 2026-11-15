@@ -4,20 +4,22 @@
 VB['sim/traits'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { YEAR } = VB['sim/rules'];
-  // @state pawn.traits (VB-254): {wits, husbandry, diligence, ambition, generosity}, each uniform in [0, 1) from the stream `traits`, so
-  //   neutral on average; drawn once, in this order, when the pawn is born or, for the living, when the run is seeded (and at the load of a
-  //   save without them, keeping VB-249's diligence where the pawn had one). Absent for the dead on record before the run. Written only here.
-  const NAMES = Object.freeze(['wits', 'husbandry', 'diligence', 'ambition', 'generosity']);
+  // @state pawn.traits (VB-254): [wits, husbandry, diligence, ambition, generosity] in the order of NAMES (an array, to keep the save
+  //   small), each uniform in [0, 1) from the stream `traits` to a thousandth, so neutral on average; drawn once, in this order, when the pawn
+  //   is born or, for the living, when the run is seeded (and at the load of a save without them, keeping VB-249's diligence where the pawn
+  //   had one). Absent for the dead on record before the run. Written only here; read through Traits.of.
+  const NAMES = Object.freeze(['wits', 'husbandry', 'diligence', 'ambition', 'generosity']),
+    IDX = Object.freeze(Object.fromEntries(NAMES.map((k, i) => [k, i])));
   // Skill as head (design.md section 7, foresight): the mean of wits and husbandry, plus GROWTH a year as head up to MOST, capped at 1.
   // The bias on a head's targets is within BIAS × (1 - skill) either way of the template's, drawn once when it becomes head.
   const HEAD = Object.freeze({ growth: 0.02, most: 0.2, bias: 0.3 });
-  // The pawn's traits, drawn now (`keep`: a value already held, as an old save's diligence, kept in place of its draw; drawn all the same,
-  // so the stream advances as for any pawn).
+  // The pawn's traits, drawn now (`keep`: values already held by name, as an old save's diligence, kept in place of their draws; drawn all
+  // the same, so the stream advances as for any pawn).
   function draw(st, id, keep = {}) {
-    const t = {};
+    const t = [];
     for (const k of NAMES) {
-      const u = rnd(st.rng.traits);
-      t[k] = keep[k] !== undefined ? keep[k] : u;
+      const u = Math.floor(rnd(st.rng.traits) * 1000) / 1000;
+      t.push(keep[k] !== undefined ? keep[k] : u);
     }
     st.pawns[id].traits = t;
     return t;
@@ -35,7 +37,7 @@ VB['sim/traits'] = (() => {
   // reads the middle.
   function of(st, id, name) {
     const t = st.pawns[id].traits;
-    return t ? t[name] : 0.5;
+    return t ? t[IDX[name]] : 0.5;
   }
   // Skill as head of a pawn head since `since` (game hours): the mean of wits and husbandry, plus HEAD.growth a year as head up to HEAD.most.
   const skill = (st, id, since) =>
@@ -45,6 +47,6 @@ VB['sim/traits'] = (() => {
         Math.min(HEAD.most, (HEAD.growth * Math.max(0, st.t - since)) / YEAR),
     );
   // A head's multiplier on one target, of skill s: within HEAD.bias × (1 - s) either way of 1, uniform; drawn from the stream `traits`.
-  const biasOf = (st, s) => 1 + HEAD.bias * (1 - s) * (2 * rnd(st.rng.traits) - 1);
-  return { NAMES, HEAD, draw, seedTraits, of, skill, biasOf };
+  const biasOf = (st, s) => Math.round((1 + HEAD.bias * (1 - s) * (2 * rnd(st.rng.traits) - 1)) * 1000) / 1000; // to a thousandth
+  return { NAMES, IDX, HEAD, draw, seedTraits, of, skill, biasOf };
 })();

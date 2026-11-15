@@ -13,17 +13,17 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
 // the traits: every living pawn has the five, in [0, 1), from the stream `traits`; their mean near the middle (neutral on average)
 {
   const st = make();
-  for (const id of st.living) assert.deepStrictEqual(Object.keys(st.pawns[id].traits), T.NAMES, `pawn ${id} has the five traits`);
+  for (const id of st.living) assert.strictEqual(st.pawns[id].traits.length, T.NAMES.length, `pawn ${id} has the five traits`);
   assert.deepStrictEqual(checkState(st), [], 'invariants at the start');
   const s0 = { ...st.rng.traits };
   const t = T.draw(st, st.living[0]);
   assert.notDeepStrictEqual(st.rng.traits, s0, 'drawn from the stream traits');
-  for (const k of T.NAMES) assert.strictEqual(T.of(st, st.living[0], k), t[k], `read through Traits.of: ${k}`);
+  T.NAMES.forEach((k, i) => assert.strictEqual(T.of(st, st.living[0], k), t[i], `read through Traits.of: ${k}`));
   let sum = 0, n = 0;
-  for (let i = 0; i < 2000; i++) for (const k of T.NAMES) { sum += T.draw(st, st.living[0])[k]; n++; }
+  for (let i = 0; i < 2000; i++) for (const x of T.draw(st, st.living[0])) { sum += x; n++; }
   assert.ok(Math.abs(sum / n - 0.5) < 0.02, `uniform, so neutral on average: mean ${(sum / n).toFixed(3)}`);
   st.rng.traits.fix = 0.25;
-  assert.ok(Object.values(T.draw(st, st.living[0])).every((x) => x === 0.25), 'forced with fix');
+  assert.ok(T.draw(st, st.living[0]).every((x) => x === 0.25), 'forced with fix');
 }
 
 // a birth draws the child's traits
@@ -35,18 +35,19 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   const n = st.pawns.length;
   dailyBirths(st);
   assert.strictEqual(st.pawns.length, n + 1, 'a child is born');
-  assert.deepStrictEqual(Object.keys(st.pawns[n].traits), T.NAMES, 'with its traits');
+  assert.strictEqual(st.pawns[n].traits.length, T.NAMES.length, 'with its traits');
 }
 
 // skill as head: the mean of wits and husbandry, 0.02 a year as head up to 0.2, capped at 1; the horizon by its thirds
 {
   const st = make(), id = st.households[0].holder;
-  Object.assign(st.pawns[id].traits, { wits: 0.4, husbandry: 0.6 });
+  const set = (w, h) => { st.pawns[id].traits[T.IDX.wits] = w; st.pawns[id].traits[T.IDX.husbandry] = h; };
+  set(0.4, 0.6);
   st.t += 30 * YEAR;
   assert.ok(near(T.skill(st, id, st.t), 0.5), 'the mean of wits and husbandry');
   assert.ok(near(T.skill(st, id, st.t - 3 * YEAR), 0.56), '0.02 a year as head');
   assert.ok(near(T.skill(st, id, st.t - 20 * YEAR), 0.7), 'up to 0.2');
-  Object.assign(st.pawns[id].traits, { wits: 0.95, husbandry: 0.95 });
+  set(0.95, 0.95);
   assert.strictEqual(T.skill(st, id, st.t - 20 * YEAR), 1, 'capped at 1');
   assert.deepStrictEqual([0.1, 0.32, 0.33, 0.66, 0.67, 1].map(P.horizonOf), [0, 0, 1, 1, 2, 2], 'reacts, to the season\'s end, a season further');
 }
@@ -75,7 +76,7 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   assert.deepStrictEqual(plan.head.bias, { wood: 1, hay: 1, seed: 1, fields: 1 }, 'no bias');
   const goal = (c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   const at = (wits, c) => {
-    Object.assign(st.pawns[hh.holder].traits, { wits, husbandry: wits });
+    st.pawns[hh.holder].traits.fill(wits, 0, 2);
     plan.head.since = st.t;
     const s0 = JSON.stringify(st.rng);
     P.reviewed(st, plan, c, 'store');
@@ -101,7 +102,7 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   assert.ok(stall > 0 && near(hay, 2 + stall / HERD.stallDays), `the hay for the stall days ahead: ${hay}`);
   // the bias multiplies the plan's targets, not the template's, from the next season's plan
   plan.head.bias = { wood: 0.8, hay: 1.2, seed: 0.9, fields: 1 };
-  Object.assign(st.pawns[hh.holder].traits, { wits: 0.1, husbandry: 0.1 });
+  st.pawns[hh.holder].traits.fill(0.1, 0, 2);
   st.t = (3 * SEASON_DAYS + 1) * DAY + 8;
   const wi = cal(st.t);
   P.reviewed(st, plan, wi, 'store');

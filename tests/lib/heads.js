@@ -3,7 +3,10 @@
 function templateHeads(VB, st) {
   const P = VB['sim/plans'];
   for (const plan of st.plans.households.values())
-    if (plan.head) Object.assign(st.pawns[plan.head.pawn].traits, { wits: 0, husbandry: 0 });
+    if (plan.head) {
+      const t = st.pawns[plan.head.pawn].traits, I = VB['sim/traits'].IDX;
+      t[I.wits] = t[I.husbandry] = 0;
+    }
   st.rng.traits.fix = 0.5;
   P.startHeads(st);
   delete st.rng.traits.fix;

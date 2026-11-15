@@ -267,10 +267,10 @@ function checkState(st) {
         P.longNext <= P.longEnd))) bad.push(`recordFold: ${JSON.stringify(F)}`);
   }
   // the stand-in traits (VB-254): every living pawn has the five, each in [0, 1); none keeps VB-249's diligence beside them
-  const NAMES = globalThis.VB['sim/traits'].NAMES.join();
+  const NAMES = globalThis.VB['sim/traits'].NAMES;
   for (const id of st.living) {
     const t = st.pawns[id].traits;
-    if (!t || Object.keys(t).join() !== NAMES || !Object.values(t).every((x) => x >= 0 && x < 1) || 'diligence' in st.pawns[id])
+    if (!Array.isArray(t) || t.length !== NAMES.length || !t.every((x) => x >= 0 && x < 1) || 'diligence' in st.pawns[id])
       bad.push(`pawn ${id}: traits ${JSON.stringify(t)}`);
   }
   // a pawn's events (VB-199), those added since the last check: positions in the record, each its own event or one folded since
