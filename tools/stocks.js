@@ -18,6 +18,7 @@
 // quantity adds its line here, with its `none`.
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), acorn = require('acorn'), Writes = require('./writes.js');
+const { readSource } = require('./lib/source.js');
 const ROOT = path.join(__dirname, '..');
 
 // ---- the table, by hand: a line a stored quantity ----
@@ -133,7 +134,7 @@ function stateFields(known = null) {
   known = known || new Set(Writes.build().fields.map((f) => f.field));
   const out = new Map();
   for (const f of manifest) {
-    const lines = fs.readFileSync(path.join(ROOT, 'src', f), 'utf8').split('\n');
+    const lines = readSource('src/' + f).split('\n');
     lines.forEach((line, i) => {
       const m = line.match(/\/\/ @state (\S[^:]*?):/);
       if (!m) return;
@@ -247,7 +248,7 @@ function build() {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8')).filter((f) => f !== 'vb.js');
   const keyOf = (f) => f.replace(/\.js$/, ''), map = Writes.build(), byField = new Map(map.fields.map((f) => [f.field, f]));
   // read sites by module, as the writes map finds them (its two passes: the functions' returns, then the reads)
-  const sources = manifest.map((f) => ({ f, mod: keyOf(f), src: fs.readFileSync(path.join(ROOT, 'src', f), 'utf8') }));
+  const sources = manifest.map((f) => ({ f, mod: keyOf(f), src: readSource('src/' + f) }));
   const returns = {};
   for (const s of sources) for (const [n, p] of Object.entries(Writes.scan('src/' + s.f, s.mod, {}).rets)) returns[s.mod + ':' + n] = p;
   const mods = new Map();

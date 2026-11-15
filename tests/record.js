@@ -3,12 +3,13 @@
 // positions in the record and read as they did, every kind is in HISTORY, and the routine kinds fold into yearly counts.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const { readSource } = require('../tools/lib/source.js');
 const fs = require('fs'), path = require('path'), { tokenize } = require('../tools/wrap.js');
 
 // every log(st, text, event) call in the simulation passes its event: two commas at the call's own depth
 const missing = [];
 for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js'])) {
-  const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), toks = tokenize(src).filter((t) => t.t !== 'com');
+  const src = readSource(f), toks = tokenize(src).filter((t) => t.t !== 'com');
   for (let i = 0; i + 1 < toks.length; i++) {
     const t = toks[i], prev = toks[i - 1];
     if (t.t !== 'word' || t.v !== 'log' || toks[i + 1].v !== '(' || (prev && (prev.v === '.' || prev.v === 'function'))) continue;
@@ -29,7 +30,7 @@ assert.deepStrictEqual(missing, [], `log calls without an event: ${missing.join(
 // the events of log and record calls
 const H = VB['sim/records'].HISTORY, written = new Set();
 for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x)) {
-  const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+  const src = readSource(f);
   for (const m of src.matchAll(/personEvent\(st, [^,]+, '(\w+)'/g)) written.add(m[1]);
   for (const m of src.matchAll(/\b(?:log|record)\(st, [^;]*?\{[^;]*?kind: '(\w+)'/g)) written.add(m[1]);
 }
