@@ -60,6 +60,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-433](backlog/VB-433.md) | Refactor: split sim/commands by concern | - | 3 | M | sim/commands is over the lint's line or width trigger since the head's commands (VB-253); split it by concern. |
 | [VB-434](backlog/VB-434.md) | Refactor: split sim/fields by concern | - | 3 | M | sim/fields is over the lint's line or width trigger since the head's commands (VB-253); split it by concern. |
 | [VB-435](backlog/VB-435.md) | Refactor: split sim/meadows by concern | - | 3 | M | sim/meadows is over the lint's line or width trigger since the head's commands (VB-253); split it by concern. |
+| [VB-442](backlog/VB-442.md) | Rebuild only the farms that changed, not every farm, fence and pawn | - | 3 | M | buildFarms takes down and redraws the whole settlement layer about 85 times a game year on populous tiny (255 steps in 3 years, seed 18), for a single broken field, a birth or a death. Rebuild what the change touched. |
 
 ## Waiting for Kim
 
