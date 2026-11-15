@@ -242,7 +242,7 @@ VB['sim/routes'] = (() => {
     return c;
   }
 
-  // ---- the cache: bounded LRU in Map order (oldest first); the way back is the way there, reversed ----
+  // ---- the cache: bounded, first in first out in Map order (oldest first), emptied each day a tile changed; the way back is the way there, reversed ----
   // Also used on load: pre-VB-198 saves may hold more entries than the current bound.
   function trimRoutes(st) {
     while (st.pathCache.size > ROUTE.cacheMax) {
@@ -256,16 +256,12 @@ VB['sim/routes'] = (() => {
     let p = st.pathCache.get(k);
     if (p) {
       VB.count.routeHit++;
-      st.pathCache.delete(k);
-      st.pathCache.set(k, p);
       return p;
     }
     const bk = to * N + from,
       back = st.pathCache.get(bk);
     if (back && back[0] === to) {
       VB.count.routeHit++;
-      st.pathCache.delete(bk);
-      st.pathCache.set(bk, back);
       p = back.slice().reverse();
     } else {
       p = findRoute(st.w, from, to);
@@ -278,8 +274,9 @@ VB['sim/routes'] = (() => {
     trimRoutes(st);
     return p;
   }
-  // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the routes it could change
-  // are dropped at the end of the day.
+  // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the cache is emptied at the end of
+  // the day. Dropping only the routes the tile could change took as long as the searches it saved (VB-236): the late fixtures change a
+  // tile on nearly every day, and the cache refills with a tenth of the routes held.
   const costChanged = (st, tile) => {
     st.routeDirty.add(tile);
     const r = REACH.get(st.w),
@@ -289,58 +286,11 @@ VB['sim/routes'] = (() => {
       r.lists.clear();
     }
   };
-  // Once a game day: drop the cached routes that a changed tile might now shorten or lengthen, and every straight-walk fallback.
-  // A route by tile t costs at least (steps from the start to t + steps from t to the end) times the cheapest step,
-  // so a route that costs less than that cannot change because of t.
-  // The test is skipped where its outcome is certain without the route's cost: a route of n steps costs at least n minSteps, and at most n
-  // times the dearest step (MAX_STEP, the dearest terrain on the steepest slope), so a changed tile nearer than n - 1 always drops it and
-  // one beyond n * MAX_STEP / minStep never does.
-  // The changed tiles' hex coordinates are worked out once, not once per route (hexSteps in sim/hex, unrolled).
-  const MAX_STEP = (Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0]) * SLOPE.max;
+  // Once a game day: when any tile changed cost, empty the cache (the straight-walk fallbacks with it).
   function refreshRoutes(st) {
     if (!st.routeDirty.size) return;
-    const w = st.w,
-      N = w.N,
-      C = w.COLS,
-      n = st.routeDirty.size,
-      dq = new Int32Array(n),
-      dr = new Int32Array(n);
-    let i = 0;
-    for (const t of st.routeDirty) {
-      const y = (t / C) | 0;
-      dq[i] = (t % C) - ((y - (y & 1)) >> 1);
-      dr[i] = y;
-      i++;
-    }
-    const qOf = (t) => {
-      const y = (t / C) | 0;
-      return (t % C) - ((y - (y & 1)) >> 1);
-    };
     VB.count.routeRefresh += st.pathCache.size;
-    for (const [k, p] of st.pathCache) {
-      const to = k % N,
-        from = (k - to) / N;
-      if (p.length === 1 && from !== to) {
-        st.pathCache.delete(k);
-        continue;
-      }
-      const fq = qOf(from),
-        fr = (from / C) | 0,
-        tq = qOf(to),
-        tr = (to / C) | 0;
-      let near = Infinity; // the least hexSteps(from, t) + hexSteps(t, to) over the changed tiles t
-      for (let j = 0; j < n; j++) {
-        const a = fq - dq[j],
-          b = fr - dr[j],
-          c = dq[j] - tq,
-          d = dr[j] - tr;
-        const s = (Math.abs(a) + Math.abs(b) + Math.abs(a + b) + Math.abs(c) + Math.abs(d) + Math.abs(c + d)) / 2;
-        if (s < near) near = s;
-      }
-      const steps = p.length - 1;
-      if (near > (steps * MAX_STEP) / ROUTE.minStep + 1) continue;
-      if (near < steps - 1 || near <= routeCost(w, p) / ROUTE.minStep) st.pathCache.delete(k);
-    }
+    st.pathCache.clear();
     st.routeDirty.clear();
   }
 

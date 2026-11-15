@@ -1,7 +1,19 @@
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
-  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter, travelling } =
-    VB['sim/agents'];
+  const {
+    start,
+    release,
+    walkTo,
+    goHome,
+    idle,
+    haltForTalk,
+    attentionOf,
+    sideWhy,
+    hold,
+    reachAfter,
+    travelling,
+    carryGift,
+  } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
@@ -67,7 +79,16 @@ VB['sim/commands'] = (() => {
     if (to === from) return 'one cannot give to oneself';
     if (!(c.args && c.args.good === 'grain')) return 'only grain is given';
     if (!(Number.isFinite(n) && n > 0)) return `cannot give ${n}`;
-    return { from, to, good: 'grain', n, source: c.source };
+    const o = { from, to, good: 'grain', n, source: c.source };
+    if (c.args.carrier !== undefined) {
+      // a gift carried (VB-291): by an adult of the giving household who is not on the road
+      const p = st.pawns[c.args.carrier];
+      if (!('farmstead' in from) || !('farmstead' in to)) return 'only a household carries a gift to a household';
+      if (!p || !p.alive || p.household !== from.id || p.age < 14 || p.age >= 60 || free(st, p.id))
+        return `pawn ${c.args.carrier} cannot carry the gift`;
+      o.carrier = p.id;
+    }
+    return o;
   }
   // The head of household c.target, or why the actor is not: a living pawn that holds it, or {household} for a household with no holder
   // (its own rule); the household has a standing plan (VB-253).
@@ -177,14 +198,19 @@ VB['sim/commands'] = (() => {
       },
     },
     // ---- gifts (source 'help', later 'player'; VB-216) ----
-    // give(target, {good, n}): the actor's household, or village store, gives n of good to household `target`, or to the village store
+    // give(target, {good, n, carrier}): with a carrier (a pawn of the giving household), the gift is carried to the receiver and booked there when he
+    // arrives (VB-291); the actor's household, or village store, gives n of good to household `target`, or to the village store
     // (target {village}); refused when it would take the giver below its floor or beyond its allowance (sim/exchange)
     give: {
       check: (st, c) => {
         const o = giftOf(st, c);
         return typeof o === 'string' ? o : assessGift(st, o).why;
       },
-      run: (st, c) => settleGift(st, giftOf(st, c)),
+      run: (st, c) => {
+        const o = giftOf(st, c);
+        if (o.carrier !== undefined) carryGift(st, o);
+        else settleGift(st, o);
+      },
     },
     // ---- the head's plan (VB-253; design.md section 7, The player as head; section 15, Parity of command): household `target`'s head
     // chooses, the player in it (source 'player') or its own rule (source 'pawn'; the actor {household} for a household with no holder), and
