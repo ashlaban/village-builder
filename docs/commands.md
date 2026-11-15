@@ -6,6 +6,9 @@ the short list. Read one entry with `node tools/doc.js docs/commands.md QUERY`, 
 Every tool run from `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with `tools/help.js`).
 - Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read; `done ID...`, `set ID key=value...`, `new key=value...`,
   `close-arch KEY`, and `sync` after a task file's header is edited by hand, to change it. Each rewrites the tables and runs `tests/backlog.js`.
+- A task's brief: `node tools/brief.js VB-NNN [--refs N]` prints, in one call, the task up to its criteria (its notes by size only, a
+  `Flag:` line kept), its open questions, each section of `design.md` its Design ref names (whole up to N KB, default 4; a longer one
+  by its subsections), the tasks that wait for it, and the rules for its kind (a change of behaviour, a refactor, the page, a plan, a wrap-up).
 - Inbox, in an orchestrated run (`docs/agents/worker.md`): `node tools/inbox.js start|claim|note|result` for a sub-agent, `init|status|
   apply|report|results` for the orchestrator. A local SQLite file shared by the checkout's worktrees, never committed: reserved task
   IDs, who edits which file, and the notes (new tasks, questions, tuning rows, principle candidates, teleports, close calls) that

@@ -5,7 +5,7 @@ A village builder proof of concept on a generated hex archipelago: one `index.ht
 
 Documents. Read the section you need, not the whole file: `node tools/doc.js FILE "Heading"`, or `--toc` for the contents with sizes.
 - `design.md`: the design, snapshot v0.4, a skeleton each slice's plan fills in (v0.3 is `docs/design-v0.3.md`; refs written before
-  3 November point there). Read-only but for design and review tasks; a point marked "Under revision" stands until its slice's plan rewrites it.
+  3 November point there; its change log is `docs/design-changelog.md`). Read-only but for design and review tasks; a point marked "Under revision" stands until its slice's plan rewrites it.
 - `BACKLOG.md`: open tasks, one file each in `backlog/`, done ones in `BACKLOG_ARCHIVE.md`; its last section, "How this backlog works",
   holds the task rules (statuses, archs and phases, the refactor rules). Read and change it with `tools/backlog.js`, not through its tables.
 - `QUESTIONS.md`: the questions only Kim can answer (Deciding without Kim), answered ones in `QUESTION_ARCHIVE.md`; read, answer and move
@@ -19,8 +19,9 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
   mechanisms, `findings.md` for the experiments of 12 November; its `mocks/` are throwaway research scripts, not game code.
 
 ## Taking a task
-1. `node tools/backlog.js next`, then `show ID`: the first ready task is the one to take.
-2. Read only what its Design ref and notes name (`tools/doc.js`), and its questions (`node tools/questions.js show ID`).
+1. `node tools/backlog.js next`: the first ready task is the one to take.
+2. `node tools/brief.js ID` gives what you need to start, in one call: the task, its questions, the design sections its ref names, and
+   the rules for its kind. Read more only where it points (`tools/doc.js`; the task's notes with `node tools/backlog.js show ID`).
 3. If it turns out to need a decision, decide it by Deciding without Kim (below) and write the decision and its reason in the task file.
    Only if it is one of the two kinds that go to Kim, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
@@ -90,7 +91,8 @@ then the teleports and the close calls, one line each. Kim accepts a candidate i
 ## Commands
 Every tool under `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with
 `tools/help.js`). The full reference, with each tool's cadence, fixtures and measures, is `docs/commands.md`: grep it for a name.
-- Backlog: `node tools/backlog.js next|list|show ID [--brief]`; `done`, `set`, `new`, `close-arch`, `sync` change it.
+- A task's brief: `node tools/brief.js ID`. Backlog: `node tools/backlog.js next|list|show ID [--brief]`; `done`, `set`, `new`,
+  `close-arch`, `sync` change it.
 - Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|result` (a sub-agent), `init|status|apply|report|results`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Format, then build: `npm run format` after editing `src/` (Prettier), then `python3 build.py` (`--check` fails if `index.html` is stale).

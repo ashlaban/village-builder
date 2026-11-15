@@ -17,8 +17,8 @@ The orchestrator writes those once, from your notes.
 1. Set up: `git merge` the run's branch, so that you start from its latest commit; then link what the main checkout already has,
    `M="$(git rev-parse --path-format=absolute --git-common-dir)/.."`: `ln -s "$M/node_modules" node_modules` if it is missing, and
    `ln -s "$M/tests/fixtures" tests/fixtures` likewise (the fixtures are keyed by the sources, so the cache is safe to share).
-2. Take the task as `AGENTS.md`, "Taking a task", says, from `node tools/backlog.js show ID` to ticking its criteria and writing its
-   notes in `backlog/ID.md`, which is yours to edit. Read sections, not files (`tools/doc.js`); learn a tool from its `--help`.
+2. Take the task as `AGENTS.md`, "Taking a task", says, from `node tools/brief.js ID` to ticking its criteria and writing its notes
+   in `backlog/ID.md`, which is yours to edit. Read sections, not files (`tools/doc.js`); learn a tool from its `--help`.
 3. Before you first edit a file under `src/`, `node tools/inbox.js claim ID FILE...`. If another task holds one, keep your change to
    that file small.
 4. Allowed: what the task specifies, and the tests it needs. No new dependencies, build changes or restructuring unless the task says so.

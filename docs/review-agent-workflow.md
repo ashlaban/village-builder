@@ -177,3 +177,21 @@ A static guard beside them: `tests/context-size.js` reports, as a target, the by
 Not yet known: any of the three for a real night. The history holds two worker runs from before this batch, one of them attended;
 five nights or more are needed before medians by size mean anything. The inbox saves few tokens by itself: what it buys is no
 merge conflicts in the shared files and an orchestrator that reads one line a note.
+
+## 9. Fifth batch (15 November 2026): the starting context, after a trial of three tasks
+
+The trial (VB-349, VB-236, VB-291; three Sonnet sub-agents side by side): each started at 69.9k tokens of context before reading
+anything, read about 53k more before its first edit (nearly all of it code and tests; one design section among the three), and made
+39 to 68 calls. Cache reads were over half of each task's weighted cost (VB-349: 4.65M read, 465k of 757k), so the cost of a task is
+about its calls times its context, and what is in the context at the first call is paid on every call.
+
+| Change | Before | After |
+|--------|--------|-------|
+| `vb-task` names its tools (Bash, Read, Edit, Write, Grep, Glob) | a sub-agent loaded every tool of the session (publishing, cloud sessions, schedules): most of the 69.9k | not measured: a session loads the definition at its start, so the first night shows it |
+| `AGENTS.md`, Commands | 27.3 KB in all | 21.4 KB: a short list; the full entries, unchanged, in `docs/commands.md` |
+| `design.md`, Change log | 303.5 KB with 31 KB of log | 272.9 KB; the log is `docs/design-changelog.md` |
+| `tools/brief.js ID` | three or four calls to gather the task, its questions and its design sections | one call, 3 KB at the median over the 48 ready tasks (11.5 KB at most), with the rules for the task's kind |
+
+Also from the trial: the built `index.html` conflicts between tasks side by side, and the orchestrator rebuilds it; a linked
+`node_modules` and the worktrees themselves are ignored; times measured beside other sub-agents are descriptions; the fixtures cache
+is linked into a worktree. Still open: whether a task with a criterion unmet keeps its commit as `needs-review`.
