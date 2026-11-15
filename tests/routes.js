@@ -174,5 +174,23 @@ const grid = (COLS, ROWS) => {
     assert.strictEqual(VB.count.routeSearch, misses + 1);
   } finally { ROUTE.cacheMax = savedMax; }
 }
+{ // Developed ground walks as open ground (tileCost), so the three acts that develop a tile tell the route cache, once, when it was not
+  // developed before: a household's broken field, its meadow, a village plot's broken field.
+  const assert = require('assert'), { tinyWorld, tinyState } = require('./lib/tiny.js');
+  const st = tinyState(tinyWorld(Array(14).fill('.'.repeat(22))), [{ at: [7, 7], farms: 2 }]);
+  const farm = st.farmsteads[0], hh = st.households[farm.household];
+  const fresh = (n) => { const out = []; for (let i = 0; out.length < n; i++) if (!st.w.dev[i] && !st.used.has(i)) out.push(i); return out; };
+  const [field, meadow, plotTile] = fresh(3);
+  st.routeDirty.clear(); VB['sim/fields'].broken(st, field, 0);
+  assert(st.routeDirty.has(field), 'breaking a field tells the route cache');
+  VB['sim/meadows'].addMeadow(st, farm, hh, meadow);
+  assert(st.routeDirty.has(meadow), 'making a meadow tells the route cache');
+  const tr = { tile: plotTile, kind: 'field', i: 0, steps: ['break'] }, other = { tile: plotTile + 1, kind: 'field', i: 0, steps: ['break'] };
+  const job = () => ({ tr, plot: { holder: { id: 0 }, steps: [{ places: [tr, other] }, {}, {}] } });
+  VB['sim/expansion'].finishStep(st, job());
+  assert(st.routeDirty.has(plotTile), 'breaking a village plot tells the route cache');
+  st.routeDirty.clear(); tr.i = 0; VB['sim/expansion'].finishStep(st, job());
+  assert(!st.routeDirty.has(plotTile), 'ground already developed changes no cost');
+}
 if (failed) process.exit(1);
 console.log('routes ok');

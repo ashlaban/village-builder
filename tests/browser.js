@@ -24,6 +24,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
         + 'get speed() { return speed; }, get choose() { return choose; }, '
         + 'look: (i) => { stopIntro(); followPlayed = false; cam.x = w.hx[i]; cam.y = w.hy[i]; cam.z = zt = 1.5; vel.x = vel.y = 0; }, '
         + 'tool: () => tool && { kind: tool.kind, sites: tool.sites.slice() }, '
+        + 'drawings: () => { const h = app.renderer.graphicsContext._gpuContextHash; let n = 0; for (const k in h) if (h[k]) n++; return n; }, render: () => app.render(), '
         + 'set st(v) { st = v; }, world: () => w, ticker: () => app.ticker, setSpeed: (v) => { speed = v; }, advance: (dt) => advanceSimulation(dt), '
         + 'place: () => { placePawns(); return { drawX, drawY, prevX, prevY, prevIn, prevN, stepShare, drawBetween: drawingBetween() }; } };')),
   }));
@@ -130,6 +131,20 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('[data-act="skip1"]');
   await page.waitForFunction(() => document.getElementById('dbgMsg').textContent.startsWith('Skipped'), null, { timeout: 90000 });
   await page.click('#drawerClose');
+  // A rebuilt farm's drawings are freed (VB-441): after eight more rebuilds of the farms, each one drawn, the renderer holds about as many
+  // Graphics contexts as after the first. Destroyed without their contexts, every fence and house of every rebuild stayed in its cache.
+  {
+    const rebuilt = async () => {
+      await page.evaluate(() => { window.__play.st.visualDirty = true; });
+      await page.waitForFunction(() => !window.__play.st.visualDirty);
+      return page.evaluate(() => { window.__play.render(); return window.__play.drawings(); });
+    };
+    const first = await rebuilt();
+    let last = first;
+    for (let k = 0; k < 8; k++) last = await rebuilt();
+    if (!(first > 10)) fail(`the renderer holds ${first} Graphics contexts after a rebuild: the check counts nothing`);
+    if (last > first * 1.5 + 10) fail(`the renderer holds ${last} Graphics contexts after nine rebuilds of the farms, ${first} after one: the old ones are kept`);
+  }
   for (const id of ['landBtn', 'settlersBtn', 'cultureBtn', 'treeBtn', 'landBtn']) {
     await page.click('#' + id); await page.waitForTimeout(500);
     if (id === 'treeBtn') await page.click('#treeClose');

@@ -33,7 +33,7 @@ function clearSettlement() {
     ...L.objects.removeChildren(),
     ...L.labels.removeChildren(),
   ])
-    if (s !== ring) s.destroy({ children: true });
+    if (s !== ring) s.destroy({ children: true, context: true });
   selPawn = -1;
   selVillage = -1;
   selFarm = -1;
@@ -193,13 +193,11 @@ function addField(wd, fd, th) {
   }
   fieldSprites.push({ sp, fd, stage: cropStage(fd), stooks });
 }
-// Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty).
+// Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty). What is taken down is destroyed with its
+// context (VB-441): PixiJS frees a Graphics' own geometry only when asked to, and the renderer otherwise keeps every fence ever drawn.
 function buildFarms(wd) {
   for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()])
-    if (s2 !== ring)
-      s2.destroy({
-        children: true,
-      });
+    if (s2 !== ring) s2.destroy({ children: true, context: true });
   fieldSprites = [];
   rigs = [];
   houseInfo = [];
