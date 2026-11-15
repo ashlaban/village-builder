@@ -42,13 +42,13 @@ function drawTeams(show) {
       for (const q of e.oxen) q.visible = false;
       if (sp.texture !== tex) sp.texture = tex;
       sp.visible = true;
-      sp.scale.set(-drawFace[a.id] * COW_SCALE.cow, COW_SCALE.cow);
-      sp.position.set(ax + drawFace[a.id] * 8, ay - 1.5);
+      sp.scale.set(-drawFacing[a.id] * COW_SCALE.cow, COW_SCALE.cow);
+      sp.position.set(ax + drawFacing[a.id] * 8, ay - 1.5);
       sp.zIndex = ay - 1.5;
       e.g.clear();
       continue;
     }
-    const dir = drawFace[a.id],
+    const dir = drawFacing[a.id],
       sway = Math.sin(time * 3 + a.id) * 0.6;
     oxen.forEach((h, k) => {
       const sp = e.oxen[k],
@@ -135,7 +135,7 @@ function drawHerds(c, show) {
 let drawX = new Float64Array(0),
   drawY = new Float64Array(0),
   drawStride = new Float64Array(0),
-  drawFace = new Float64Array(0);
+  drawFacing = new Float64Array(0);
 const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
 // The place on its rows of a pawn working a field at drawn tick `at`, [x, y, face, distance walked], or null: from the start of its row
 // (where its work leg began, a.leg), along rows 26 units long and 6 apart, five across the tile, turning at each end.
@@ -165,7 +165,7 @@ function placePawns() {
     drawX = new Float64Array(cap);
     drawY = new Float64Array(cap);
     drawStride = new Float64Array(cap);
-    drawFace = new Float64Array(cap);
+    drawFacing = new Float64Array(cap);
   }
   const between = drawingBetween(),
     s = between ? stepShare : 1,
@@ -177,12 +177,12 @@ function placePawns() {
     let x = a.x,
       y = a.y,
       stride = a.stride || 0;
-    drawFace[i] = a.face;
+    drawFacing[i] = a.face;
     const rows = rowPlace(a, at);
     if (rows) {
       drawX[i] = rows[0];
       drawY[i] = rows[1];
-      drawFace[i] = rows[2];
+      drawFacing[i] = rows[2];
       drawStride[i] = stride + rows[3] / 3.4;
       continue;
     }
@@ -270,7 +270,7 @@ function updateSettlement(dt) {
         ? Math.sign(other.x - a.x)
         : Math.abs(wet) > 0.5
           ? Math.sign(wet)
-          : drawFace[a.id];
+          : drawFacing[a.id];
     const x = drawX[a.id],
       y = drawY[a.id];
     R.root.position.set(x, y);

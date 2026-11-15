@@ -17,27 +17,27 @@ function hoe(hh, fieldIx, hands) {
   const f = st.farmsteads[hh.farmstead], fd = f.fields[fieldIx];
   const j = J.post(st, `plow:test${hh.id}.${fieldIx}`, 'plow', { type: 'household', id: hh.id }, fd.tile, { field: fd, farm: f });
   const ags = hands.map((id) => st.agents[id]);
-  for (const a of ags) { A.release(st, a); j.claims.push(a.id); a.job = j; a.phase = 'work'; a.path = null; a.inside = false; }
+  // each arrives at the field (VB-472: the task's rate is reckoned as a hand joins)
+  for (const a of ags) { A.release(st, a); j.claims.push(a.id); a.job = j; a.phase = 'go'; a.path = null; a.inside = false; A.arrived(st, a); }
   return { j, ags };
 }
 const rate = (a) => A.rateOf(st, st.pawns[a.id]);
 const adults = (hh) => hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 14);
 let { j, ags } = hoe(withT, 0, adults(withT).slice(0, 2));
 check(A.withOxen(st, ags[0]) && !A.withOxen(st, ags[1]), 'the team is not with the first hand only');
-const before = j.done; for (const a of ags) A.stepWork(st, a, 0.1);
-const want = 0.1 * (rate(ags[0]) * T.rate + rate(ags[1]));
-check(Math.abs(j.done - before - want) < 1e-9, `with oxen: ${(j.done - before).toFixed(4)} done, wanted ${want.toFixed(4)}`);
+const want = rate(ags[0]) * T.rate + rate(ags[1]);
+check(Math.abs(j.rate - want) < 1e-9, `with oxen: ${j.rate.toFixed(4)} hours an hour, wanted ${want.toFixed(4)}`);
 check(Sim.describe(st, ags[0].id) === 'Ploughing with the oxen' && Sim.describe(st, ags[1].id) === 'Hoeing a field', 'the pawn panel lines');
 // a second field: the team stays in the first
 const second = hoe(withT, 1, adults(withT).slice(2, 3));
 if (second.ags.length) check(!A.withOxen(st, second.ags[0]), 'the team in two fields at once');
 // a household without a team hoes by hand
 const other = hoe(without, 0, adults(without).slice(0, 1));
-const b2 = other.j.done; A.stepWork(st, other.ags[0], 0.1);
-check(Math.abs(other.j.done - b2 - 0.1 * rate(other.ags[0])) < 1e-9 && !A.withOxen(st, other.ags[0]), 'oxen for a household without a team');
+check(Math.abs(other.j.rate - rate(other.ags[0])) < 1e-9 && !A.withOxen(st, other.ags[0]), 'oxen for a household without a team');
 // the team goes to the field: the first job ends, the second job's first hand takes the oxen
 for (const a of ags) A.release(st, a);
 if (second.ags.length) check(A.withOxen(st, second.ags[0]), 'the team does not move to the next field');
+if (second.ags.length) check(Math.abs(second.j.rate - rate(second.ags[0]) * T.rate) < 1e-9, `the next field's rate ${second.j.rate} is not reckoned with the team`);
 
 // --- founders at seed 7, small map, 2 years: tilling done per pawn-hour of breaking and hoeing, the oxen's farm against the others
 const s2 = Sim.seed(world(7, [180, 130]), 7, 'founders');
