@@ -154,7 +154,7 @@ function checkState(st) {
     }
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (typeof plan.dirty !== 'boolean' || plan.last === undefined) bad.push(`plans: ${plan.holder.type} ${plan.holder.id} lacks its review record`);
-      // VB-449: a household's day, once allotted: the hour it was made, and for pawns of the state a list of task keys, each once
+      // VB-466: a household's day, once allotted: the hour it was made, and for pawns of the state a list of task keys, each once
       if (plan.day !== undefined) {
         const d = plan.day, at = `plans: household ${plan.holder.id}'s day`;
         if (plan.holder.type !== 'household' || !d || !Number.isInteger(d.made) || !d.lists || typeof d.lists !== 'object') bad.push(`${at} is not {made, lists}`);

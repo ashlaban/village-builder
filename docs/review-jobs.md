@@ -256,7 +256,7 @@ a throwaway mock before any plan, as the balance mocks were (`docs/balance/mocks
 - **C is in scope**, after B.
 - The reviewer's unchecked view is wanted, labelled as such (section 5.2).
 
-## 9. B as built (VB-449, 15 November 2026)
+## 9. B as built (VB-466, 15 November 2026)
 
 The head's day is in: `allot`, `takeDay` and `helpers` in `src/sim/jobs.js`, the day saved on the household's plan, `design.md` section 7
 rewritten. Three things turned out other than section 6 says:
@@ -268,7 +268,7 @@ rewritten. Three things turned out other than section 6 says:
 - **Two faults that the old timing hid** came out and are fixed: a meeting looked hourly at a pawn that carried a load every hour, and
   an invariant forbade a state the firewood cart makes on `main` too.
 
-Fewer households went hungry at each seed run (hungry household-days 40 to 29, 4 to 0, 1 to 0); the numbers are in `backlog/VB-449.md`.
+Fewer households went hungry at each seed run (hungry household-days 40 to 29, 4 to 0, 1 to 0); the numbers are in `backlog/VB-466.md`.
 Still to do of section 7's table: the day in the plan panel with the head's verbs, help as an ask, the two fixes of A, and C's mock.
 
 ## 10. C measured (15 November 2026)

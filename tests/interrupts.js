@@ -1,4 +1,4 @@
-// More urgent work interrupts a job (VB-107; VB-449: when the head allots the day anew): a son hoeing leaves the field for the woods when the woodpile drops under 8
+// More urgent work interrupts a job (VB-107; VB-466: when the head allots the day anew): a son hoeing leaves the field for the woods when the woodpile drops under 8
 // (firewood urgency 2.2), and the field keeps its progress; the farmer keeps hoeing (his firewood bid stays under 1.5 × his hoeing + 1);
 // a job the pawn would finish within the hour is not left.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
@@ -32,7 +32,7 @@ function morning() {
 }
 {
   const { st, hh, son } = morning(), field = son.job, hours = field.hours ?? Sim.KINDS.plow.hours;
-  // under an hour of work left at the son's rate (1) when the head allots the day anew (VB-449: the test is made then, not at the hour)
+  // under an hour of work left at the son's rate (1) when the head allots the day anew (VB-466: the test is made then, not at the hour)
   field.done = hours - 0.8;
   hh.wood = 5;
   VB['sim/jobs'].allot(st, hh, Sim.cal(st.t));

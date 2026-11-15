@@ -1293,8 +1293,8 @@ VB.COUNTERS = {
     "Plans reviewed: on each holder's planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)",
   dayPair:
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
-    '(sim/jobs, allot; VB-449)',
-  dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-449)',
+    '(sim/jobs, allot; VB-466)',
+  dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-466)',
   helpOffer:
     "Jobs of a village's households weighed for the offer to helpers, once a village a round with a helper (sim/jobs, offered; VB-106)",
   helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',
@@ -5955,14 +5955,14 @@ VB['sim/rules'] = (() => {
     helperPrio: 5,
   };
   // The fit of a pawn for a job (jobs.js): its role's priority for the kind times the job's urgency, less distanceWeight for each step
-  // from home; a good fit (priority above poorFit) never falls under `floor`. The head allots a household's day by it (VB-449); a
+  // from home; a good fit (priority above poorFit) never falls under `floor`. The head allots a household's day by it (VB-466); a
   // further hand on a job counts for join of the one before (VB-102), so a free job comes first. When the day is allotted anew, a pawn
   // at work leaves its job for one whose fit is above switchRatio × its own job's + switchMargin (VB-107). `noise` is on a helper's
   // bid for a neighbour's job only.
   // urgency: a job's weight in a bid, by kind (see the kinds in sim/kinds).
   const MATCH = {
     poorFit: 2,
-    // The head's day (VB-449): a task is given hands until they finish it within `horizon` working days, and a member is given tasks
+    // The head's day (VB-466): a task is given hands until they finish it within `horizon` working days, and a member is given tasks
     // up to its working hours of that time; what it may do besides follows in its list.
     day: { horizon: 0.5 },
     floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
@@ -11854,7 +11854,7 @@ VB['sim/stores'] = (() => {
     record(st, holder, good, -got, why, kind);
     set(holder, good, before - got, kind);
     if (got > 0) short(st, holder, kind, good, holder[k]);
-    // a woodpile that falls under the low mark wakes the head (VB-449: the day is allotted anew, and a hand may be called to the woods)
+    // a woodpile that falls under the low mark wakes the head (VB-466: the day is allotted anew, and a hand may be called to the woods)
     if (kind === 'household' && good === 'wood' && before >= WOOD_LOW && holder[k] < WOOD_LOW) wake(st, holder);
     if (into && k === 'stake') into[STAKE_CROP] = (into[STAKE_CROP] || 0) + got;
     return got;
@@ -20847,7 +20847,7 @@ VB['sim/occasions'] = (() => {
         o.asked.splice(i, 1);
         continue;
       }
-      // one carrying a load home is looked at again at the next step, when the load may be down (VB-449: looked at each hour, a hauler
+      // one carrying a load home is looked at again at the next step, when the load may be down (VB-466: looked at each hour, a hauler
       // whose trips took the hour was on the road with a load every time, and a village of one voice had no quorum)
       again = Math.min(again, st.t + (a.phase === 'back' ? 1 / TICKS : 1));
       i++;
@@ -21778,7 +21778,7 @@ VB['sim/plans'] = (() => {
 })();
 </script>
 <script>
-// @sys sim/jobs: job board: posting and the reviews' asks; the head's day (VB-449): a household's tasks allotted to its members, and taken
+// @sys sim/jobs: job board: posting and the reviews' asks; the head's day (VB-466): a household's tasks allotted to its members, and taken
 // from each member's list; fit and urgency; the round of bids for help between households
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
@@ -22133,7 +22133,7 @@ VB['sim/jobs'] = (() => {
       busy.add(a);
     }
   }
-  // ---- the head's day (VB-449; design.md section 7, The day's work) ----
+  // ---- the head's day (VB-466; design.md section 7, The day's work) ----
   // @state plan.day (a household's standing plan's; sim/plans holds the plan): absent until first allotted, then {made (the game hour),
   //   lists: {pawn id: [job keys]}}: for each living member the tasks the head gave it, in the order it takes them; a member too young has
   //   an empty list. Written only by allot, whole, each time; a key whose job is gone is passed over. Plain data, saved with the plan.
@@ -27110,7 +27110,7 @@ VB['sim/clock'] = (() => {
       all = stepAgents(st, c),
       idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
     if (idle.length) {
-      // each takes the next task of its day (VB-449); those it gave none look at the household's opportunities, whose day is then allotted
+      // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted
       // anew (VB-249), and take again; those still without help a neighbour (VB-106)
       const got = takeDay(st, idle, c);
       const looked =
@@ -39129,7 +39129,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'eaf8443fae',
+const BUILD = '3af7b99dcd',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);

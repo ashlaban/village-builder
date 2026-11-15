@@ -1,8 +1,8 @@
-# Plan: work as blocks, the timetable and the estimate (VB-452, 15 November 2026)
+# Plan: work as blocks, the timetable and the estimate (VB-469, 15 November 2026)
 
 A design pass; no code. It turns option C of `docs/review-jobs.md` (sections 6, 10 and 11) and Kim's answers of 15 November into
 design text (`design.md` section 7, written by this pass), a cost named before building, and implement tasks. Sources: the mock
-(`docs/mocks/blocks/README.md`), the head's day as built (VB-449), Rules for cost 3, 4 and 7, and the code at `799a32b`.
+(`docs/mocks/blocks/README.md`), the head's day as built (VB-466), Rules for cost 3, 4 and 7, and the code at `799a32b`.
 
 ## 1. Survey: what a block replaces, and who reads what it changes
 
@@ -38,7 +38,7 @@ and the hooks run when the task is reckoned, with the hours since.
 
 ### 1.4 What stays as built
 
-The clock and its calendar (a 6-minute step; `st.tick`); the head's day and who takes what (VB-449); the kinds' `done`, `deliver`,
+The clock and its calendar (a 6-minute step; `st.tick`); the head's day and who takes what (VB-466); the kinds' `done`, `deliver`,
 `load` and `again`; carts; eligibility; occasions; the end of the working day, which already visits each worker.
 
 ## 2. The design
@@ -84,7 +84,7 @@ So a task takes longer because the crop is heavy or the hand is hungry, which th
 **Heads allot by their estimates.** The head's day gives a task hands until its *estimated* hours are covered, each member up to its
 *believed* hours. A poor head mans a heavy harvest as a normal one.
 
-**The timetable** is a view, not state: each member's list (VB-449) laid end to end with the walks between, each task a range. It is
+**The timetable** is a view, not state: each member's list (VB-466) laid end to end with the walks between, each task a range. It is
 worked out when asked for (the panel, the allotment), never each step. Nothing the player sees shows hours left other than as an
 estimate; progress so far is seen and is exact.
 
@@ -114,15 +114,15 @@ each step is a check that fails loudly, not a change in balance.
 
 | Step, task | What | Size | What shows it right |
 | --- | --- | --- | --- |
-| 1, VB-454 | The end foretold, beside the stepping: `walkHours`, a task's due step, `placeOf`, `doneOf`; an invariant that a leg ends within a step of its foretelling | S | `tools/same.js` clean: nothing is changed |
-| 2, VB-455 | Work legs as blocks: a worker is not stepped; progress in closed form; the hooks at the reckoning; the rows walked by the page | M | Step 1's invariant; numbers before and after; saves; `walkStep` falls |
-| 3, VB-456 | Walks and waits as blocks, journeys in the same queue; `st.awake` goes; the readers of a place use `placeOf` | M | The same; talks a pawn-day unchanged within a twentieth |
-| 4, VB-457 | The page draws from legs | S | `tests/smoke.js`, the browser tests, a screenshot before and after |
-| 5, VB-458 | Time taken from causes: the crop's size, the hand's skill, mishaps | M | Balance numbers at the bands' seeds; the hours report by kind |
-| 6, VB-459 | The head's estimate, and allotting by it (after VB-254) | M | A constructed state: a poor and a good head, a heavy crop; hungry households by the head's judgement, reported |
-| 7, VB-460 | The timetable in the page: the day, the ranges, the call's cost, the head's verbs; no view leaks the truth | M | The page's functional tests |
-| 8, VB-453 | Help is asked for (VB-453): a request sized in hours from the estimate | M | |
-| 9, VB-461 | Wrap-up: bands, the bench on `medium-ref`, the idle share, a tuning proposal | S | |
+| 1, VB-471 | The end foretold, beside the stepping: `walkHours`, a task's due step, `placeOf`, `doneOf`; an invariant that a leg ends within a step of its foretelling | S | `tools/same.js` clean: nothing is changed |
+| 2, VB-472 | Work legs as blocks: a worker is not stepped; progress in closed form; the hooks at the reckoning; the rows walked by the page | M | Step 1's invariant; numbers before and after; saves; `walkStep` falls |
+| 3, VB-473 | Walks and waits as blocks, journeys in the same queue; `st.awake` goes; the readers of a place use `placeOf` | M | The same; talks a pawn-day unchanged within a twentieth |
+| 4, VB-474 | The page draws from legs | S | `tests/smoke.js`, the browser tests, a screenshot before and after |
+| 5, VB-475 | Time taken from causes: the crop's size, the hand's skill, mishaps | M | Balance numbers at the bands' seeds; the hours report by kind |
+| 6, VB-476 | The head's estimate, and allotting by it (after VB-254) | M | A constructed state: a poor and a good head, a heavy crop; hungry households by the head's judgement, reported |
+| 7, VB-477 | The timetable in the page: the day, the ranges, the call's cost, the head's verbs; no view leaks the truth | M | The page's functional tests |
+| 8, VB-470 | Help is asked for (VB-470): a request sized in hours from the estimate | M | |
+| 9, VB-478 | Wrap-up: bands, the bench on `medium-ref`, the idle share, a tuning proposal | S | |
 
 Steps 2 and 3 cannot be shown by `tools/same.js`: the state's shape changes and a worker no longer moves within its tile. They are
 shown by step 1's invariant, the island's numbers and the counters.
@@ -153,14 +153,14 @@ pawn's estimate, never the simulation's knowledge.*
 ## 7. Kim's answers (15 November 2026)
 
 - **While the pawn works a long leg:** the page's control "until my task ends", as proposed; later there will be more for the player
-  to do meanwhile (plan social manoeuvres, design outfits). In VB-460.
-- **The order:** VB-450 and VB-451, VB-454 to VB-457, VB-254, then VB-458 onward.
+  to do meanwhile (plan social manoeuvres, design outfits). In VB-477.
+- **The order:** VB-467 and VB-468, VB-471 to VB-474, VB-254, then VB-475 onward.
 - **The principle is accepted** (`AGENTS.md`, Deciding without Kim, 10; `design.md`, Principles): the future is someone's estimate.
 
 ## 8. The open tasks, read against this plan (15 November 2026)
 
 All 145 open tasks were read. Rewritten: VB-329 (no route: from bids to the day's lists) and VB-319 (hired hands: from the two-hour
-wait to the head's estimate; now also waits for VB-453). Now waiting: VB-422 (split `sim/agents`) for VB-456. Noted, with what
+wait to the head's estimate; now also waits for VB-470). Now waiting: VB-422 (split `sim/agents`) for VB-473. Noted, with what
 changes for each: VB-108, VB-121, VB-162, VB-247, VB-254, VB-295, VB-315, VB-351, VB-354, VB-360, VB-362, VB-365, VB-382, VB-410,
 VB-418, VB-420, VB-429, VB-444, VB-448. One overlap to settle when either lands: skill, between VB-360 (crafts, learnt by doing) and
-VB-458 (a stand-in by type of work).
+VB-475 (a stand-in by type of work).

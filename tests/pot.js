@@ -141,7 +141,7 @@ check(KINDS.cook.late === true, 'the cook\'s job is finished after the end of wo
   try {
     const Jobs = VB['sim/jobs'], { issue } = VB['sim/commands'];
     for (let d = 0; d < 36; d++) {
-      // Since the head's day (VB-449) the meal's hand is called at 14:00, and no pot is left so late by itself: every sixth day one
+      // Since the head's day (VB-466) the meal's hand is called at 14:00, and no pot is left so late by itself: every sixth day one
       // household's pot is found empty an hour before the end of work, its cook is asked for and its mistress sent to it.
       if (d % 6 === 3) {
         Sim.advance(st, d * DAY + WORK[1] - 1 - st.t);

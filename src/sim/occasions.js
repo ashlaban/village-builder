@@ -208,7 +208,7 @@ VB['sim/occasions'] = (() => {
         o.asked.splice(i, 1);
         continue;
       }
-      // one carrying a load home is looked at again at the next step, when the load may be down (VB-449: looked at each hour, a hauler
+      // one carrying a load home is looked at again at the next step, when the load may be down (VB-466: looked at each hour, a hauler
       // whose trips took the hour was on the road with a load every time, and a village of one voice had no quorum)
       again = Math.min(again, st.t + (a.phase === 'back' ? 1 / TICKS : 1));
       i++;

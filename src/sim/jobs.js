@@ -1,4 +1,4 @@
-// @sys sim/jobs: job board: posting and the reviews' asks; the head's day (VB-449): a household's tasks allotted to its members, and taken
+// @sys sim/jobs: job board: posting and the reviews' asks; the head's day (VB-466): a household's tasks allotted to its members, and taken
 // from each member's list; fit and urgency; the round of bids for help between households
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
@@ -353,7 +353,7 @@ VB['sim/jobs'] = (() => {
       busy.add(a);
     }
   }
-  // ---- the head's day (VB-449; design.md section 7, The day's work) ----
+  // ---- the head's day (VB-466; design.md section 7, The day's work) ----
   // @state plan.day (a household's standing plan's; sim/plans holds the plan): absent until first allotted, then {made (the game hour),
   //   lists: {pawn id: [job keys]}}: for each living member the tasks the head gave it, in the order it takes them; a member too young has
   //   an empty list. Written only by allot, whole, each time; a key whose job is gone is passed over. Plain data, saved with the plan.

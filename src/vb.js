@@ -36,8 +36,8 @@ VB.COUNTERS = {
     "Plans reviewed: on each holder's planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)",
   dayPair:
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
-    '(sim/jobs, allot; VB-449)',
-  dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-449)',
+    '(sim/jobs, allot; VB-466)',
+  dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-466)',
   helpOffer:
     "Jobs of a village's households weighed for the offer to helpers, once a village a round with a helper (sim/jobs, offered; VB-106)",
   helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',

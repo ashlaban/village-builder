@@ -583,7 +583,7 @@ VB['sim/clock'] = (() => {
       all = stepAgents(st, c),
       idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
     if (idle.length) {
-      // each takes the next task of its day (VB-449); those it gave none look at the household's opportunities, whose day is then allotted
+      // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted
       // anew (VB-249), and take again; those still without help a neighbour (VB-106)
       const got = takeDay(st, idle, c);
       const looked =

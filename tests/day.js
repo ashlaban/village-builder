@@ -1,4 +1,4 @@
-// The head's day (VB-449; design.md section 7, The day's work): each morning, at its review and when its tasks change, a household's head
+// The head's day (VB-466; design.md section 7, The day's work): each morning, at its review and when its tasks change, a household's head
 // allots its members' day: for each living member an ordered list of task keys, best fit first, a further hand on a task counting for
 // less, without a random draw; a pawn takes the first task of its list it can; the day is saved with the plan. On a small constructed
 // state: three farms on open ground, spring day 0, at 10:30.

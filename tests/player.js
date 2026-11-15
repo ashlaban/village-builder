@@ -61,7 +61,7 @@ const FARMER = 0, WIFE = 1;
   assert.ok(a.job || a.phase === 'home' || a.inside, 'left to itself again, the pawn does as the others: more work, or home at the end of it');
 }
 
-// 3. Called off (sim/jobs, allot; VB-449): the woodpile falls low, the head's day is allotted anew at the full hour, and a son leaves the
+// 3. Called off (sim/jobs, allot; VB-466): the woodpile falls low, the head's day is allotted anew at the full hour, and a son leaves the
 // field for the woods while the farmer keeps hoeing (design.md section 7, More urgent work); told to hoe, the son stays.
 {
   const SON = 4;
@@ -77,7 +77,7 @@ const FARMER = 0, WIFE = 1;
   assert.ok(hour(st) > 11 && a.job === field, 'the player\'s command is not left for more urgent work');
 }
 
-// 4. The call to cook (sim/jobs, allot: a task with a deadline today calls its hand; VB-449): the wife is called off the field at 14:00; on the player's command she stays, and the
+// 4. The call to cook (sim/jobs, allot: a task with a deadline today calls its hand; VB-466): the wife is called off the field at 14:00; on the player's command she stays, and the
 // next cook is called.
 {
   const hungry = (st) => { st.households[0].meals = 0; Sim.advance(st, 0.6); };

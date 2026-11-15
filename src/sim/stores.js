@@ -244,7 +244,7 @@ VB['sim/stores'] = (() => {
     record(st, holder, good, -got, why, kind);
     set(holder, good, before - got, kind);
     if (got > 0) short(st, holder, kind, good, holder[k]);
-    // a woodpile that falls under the low mark wakes the head (VB-449: the day is allotted anew, and a hand may be called to the woods)
+    // a woodpile that falls under the low mark wakes the head (VB-466: the day is allotted anew, and a hand may be called to the woods)
     if (kind === 'household' && good === 'wood' && before >= WOOD_LOW && holder[k] < WOOD_LOW) wake(st, holder);
     if (into && k === 'stake') into[STAKE_CROP] = (into[STAKE_CROP] || 0) + got;
     return got;

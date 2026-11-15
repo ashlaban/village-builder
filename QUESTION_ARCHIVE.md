@@ -2,13 +2,13 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
-# Archived 15 November 2026 (VB-452)
+# Archived 15 November 2026 (VB-469)
 
-## VB-452: work as blocks, the timetable and the estimate (raised 15 November 2026)
+## VB-469: work as blocks, the timetable and the estimate (raised 15 November 2026)
 From the plan `docs/review-blocks.md` (after `docs/review-jobs.md`, sections 10 and 11). The design text is in `design.md` section 7 (A leg, and its end, to The timetable); these two are what the plan could not decide.
 1. What does the player do while its pawn works a long leg (six hours of hoeing)? With blocks nothing happens to the pawn until the leg ends or is cut. **P:** the clock runs at the chosen speed as today, and the page gains one control, "until my task ends", which runs the clock at its fastest and stops at the leg's end or at anything that concerns the household (a call, a request for help, a death, an occasion, a store crossing a target). It is a control of the page's speed, not a verb: the simulation does the same with or without it.
    **A (Kim, 15 Nov):** Yes. Later there will be more for the player to do meanwhile (plan social manoeuvres, design outfits).
-2. The estimate rests on foresight (VB-254: the stand-in traits, skill as head, the biases), which is ready and not built. **P:** VB-254 is built after the first four steps of the plan (legs as blocks and the page) and before the estimate, so the engine's change and the heads' judgement are measured apart; the order is VB-450, VB-451, VB-454 to VB-457, VB-254, VB-458 onward.
+2. The estimate rests on foresight (VB-254: the stand-in traits, skill as head, the biases), which is ready and not built. **P:** VB-254 is built after the first four steps of the plan (legs as blocks and the page) and before the estimate, so the engine's change and the heads' judgement are measured apart; the order is VB-467, VB-468, VB-471 to VB-474, VB-254, VB-475 onward.
    **A (Kim, 15 Nov):** Yes.
 
 # Archived 13 November 2026 (VB-283)

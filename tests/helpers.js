@@ -30,7 +30,7 @@ assert.strictEqual(eligible(st, { ...j, kind: 'cook' }, pawn), null, 'cooking is
 assert.strictEqual(eligible(st, j, st.pawns[adults(other)[0]]), null, 'a household of another village does not help');
 const holder = B.holder, before = helpers.map((h) => [tieOf(st, h, holder), opinionOf(st, h, holder), opinionOf(st, holder, h)]);
 const grainA = Sim.grainOf(A), grainB = Sim.grainOf(B);
-// One round of help (VB-449: the round is left for help), at 9:00 on a working day, the helpers idle; B's own adults are left out of it.
+// One round of help (VB-466: the round is left for help), at 9:00 on a working day, the helpers idle; B's own adults are left out of it.
 const c = Sim.cal(st.t), idle = helpers.map((id) => st.agents[id]);
 Jobs.helpers(st, idle, new Set(), c);
 const working = helpers.filter((id) => st.agents[id].job === j);
