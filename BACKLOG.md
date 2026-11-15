@@ -160,7 +160,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 
 ## Archs
 
-The vertical slices of `docs/roadmap.md` in Kim's order, then the archs that run beside them: `between` (the tasks of slice 2's plan VB-281) and the two older archs with open tasks. Closed archs are in the archive.
+The vertical slices of `docs/roadmap.md` in Kim's order, then the archs that run beside them: `between` (the tasks of slice 2's plan VB-281) the two older archs with open tasks, and `physical` (nothing teleports; Kim, 14 November). Closed archs are in the archive.
 
 | Key | Arch | Goal | Design ref |
 |-----|------|------|------------|
@@ -178,6 +178,7 @@ The vertical slices of `docs/roadmap.md` in Kim's order, then the archs that run
 | animals | Animals and husbandry | Open beside the slices: VB-160, VB-139, VB-091 and the wrap-up VB-048 (after slice 6). Herds, hay meadows and the winter limit; the food balance of a farm, and yields tuned once animals are in. | Animals; Land and ecology |
 | crops | Crops and rotations | Open beside the slices since 11 November: several crops as rows of rules, a rotation a field, the head choosing by foresight, seed as what a household can sow, a crop's response to warmth, wetness and frost. A first batch (barley, winter rye, fallow, peas) after slice 3; fibre and ale crops with slice 6. | Goods and the farming year; World and scale; Weather, seasons and daylight; Work: opportunities, plans and tasks |
 | ownership | State ownership and boundaries | Open beside the slices: VB-173 to VB-179 are done (target-v2 found they fit it unchanged); the wrap-up VB-180 remains. Every piece of state the simulation keeps has one owning module, which alone writes it; other modules read it freely and change it through the owner's operations; a static check keeps it so, and the map of owners and dependencies stays current (architecture review, 3 November 2026, `docs/review-architecture.md`). | none |
+| physical | Nothing teleports | Open beside the slices since 14 November (Kim): goods, animals and people change place only by being carried, carted, led, shipped or walked, and nothing appears or vanishes but by a process; rights and knowledge move at once, so a gift or a share changes owner where it lies and is fetched. Each teleport found in the code is a task here, taken interleaved with the slices' work, and reports its numbers. No tasks yet: the audit of 13 November found the instant moves of help, shares, handing on, herds, hay, seed and manure; Kim starts them. | Vision and scope, Principles for decisions; `AGENTS.md`, Deciding without Kim |
 
 ## How this backlog works
 
