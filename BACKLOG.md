@@ -80,7 +80,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 
 | ID | Name | Arch | Pri | Size | Waits for | Summary |
 |----|------|------|-----|------|-----------|---------|
-| [VB-225](backlog/VB-225.md) | The release and the orphan branch of the fixtures deleted | yardstick | 1 | S | Kim | Since VB-272 nothing reads the release fixtures or the orphan branch fixtures: Kim deletes both. |
 | [VB-166](backlog/VB-166.md) | A frame-time budget for the page, in headless Chromium | yardstick | 3 | S | Kim | Measure the page's frame times in headless Chromium, so a costly drawing change is caught when it lands. |
 | [VB-375](backlog/VB-375.md) | One loader with a hook for timed and replaced functions | yardstick | 3 | M | VB-374 | An ES module's exports cannot be reassigned, and ten files do that today to count or time a function: `tools/perf.js` (about 25 functions of 12 module. |
 | [VB-376](backlog/VB-376.md) | ES modules, part 1: the first 21 modules of the manifest | yardstick | 3 | M | VB-373, VB-374, VB-375, VB-108 | Turn the first 21 modules of `src/manifest.json` (`vb`, the five `gen/*`, `gen`, `culture`, then `sim/rules` through `sim/records`), from `VB['key'] =. |
