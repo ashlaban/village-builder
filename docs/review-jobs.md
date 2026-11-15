@@ -307,5 +307,10 @@ C may be a breaking change: the timetable is the simulation, not a copy of the s
   (principles 1 and 8), which answers the risk of a solved day.
 - **Cost:** one draw a block, one stored lean a head, nothing polled.
 
-Open: whether a poor head's range is honest and wide, or too narrow; which causes of time taken come first; whether skill at a type
-of work grows from hours worked now or with slice 7's traits.
+Kim's answers to the three that were open (15 November):
+
+- **The range is honest and wide** for a poor head: it knows less, and knows it; the lean moves the centre. A trait may break this:
+  a proud or over-confident head holds a range too narrow. That is slice 7's (the twelve traits); until then every range is honest.
+- **The first causes of time taken** are those the world already holds: the worker's rate, the size of the crop for reaping, carrying
+  and threshing, and the walk. Tools and weather follow when their systems are built.
+- **Skill at a type of work does not grow in C.** It runs on the stand-in numbers until slice 7.
