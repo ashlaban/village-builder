@@ -175,4 +175,5 @@ const Sim = (() => {
   };
 })();
 VB['sim'] = Sim;
+if (typeof globalThis !== 'undefined') globalThis.Sim = Sim; // the page script reads it; the bundle (VB-374) keeps the const local
 if (typeof module !== 'undefined') module.exports = Sim;
