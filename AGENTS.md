@@ -5,7 +5,7 @@ A village builder proof of concept on a generated hex archipelago: one `index.ht
 
 Documents. Read the section you need, not the whole file: `node tools/doc.js FILE "Heading"`, or `--toc` for the contents with sizes.
 - `design.md`: the design, snapshot v0.4, a skeleton each slice's plan fills in (v0.3 is `docs/design-v0.3.md`; refs written before
-  3 November point there). Read-only but for design and review tasks; a point marked "Under revision" stands until its slice's plan rewrites it.
+  3 November point there; its change log is `docs/design-changelog.md`). Read-only but for design and review tasks; a point marked "Under revision" stands until its slice's plan rewrites it.
 - `BACKLOG.md`: open tasks, one file each in `backlog/`, done ones in `BACKLOG_ARCHIVE.md`; its last section, "How this backlog works",
   holds the task rules (statuses, archs and phases, the refactor rules). Read and change it with `tools/backlog.js`, not through its tables.
 - `QUESTIONS.md`: the questions only Kim can answer (Deciding without Kim), answered ones in `QUESTION_ARCHIVE.md`; read, answer and move
@@ -19,96 +19,94 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
   mechanisms, `findings.md` for the experiments of 12 November; its `mocks/` are throwaway research scripts, not game code.
 
 ## Taking a task
-1. `node tools/backlog.js next`, then `show ID`: the first ready task is the one to take.
-2. Read only what its Design ref and notes name (`tools/doc.js`), and its questions (`node tools/questions.js show ID`).
+1. `node tools/backlog.js next`: the first ready task is the one to take.
+2. `node tools/brief.js ID` gives what you need to start, in one call: the task, its questions, the design sections its ref names, and
+   the rules for its kind. Read more only where it points (`tools/doc.js`; the task's notes with `node tools/backlog.js show ID`).
 3. If it turns out to need a decision, decide it by Deciding without Kim (below) and write the decision and its reason in the task file.
    Only if it is one of the two kinds that go to Kim, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
 4. Work in small commits, with `npm test` after each change.
 5. Before the last commit: `npm run format`, then `npm run verify` (half a minute); for a change under `src/page/`, also `node tests/smoke.js` and the
    `tests/browser*.js` it touches. Rebuild `index.html` before committing. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
    report it in the task file and the PR's Targets section (before, after, residual, cause).
-6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
+6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`. A criterion
+   unmet, or met only in part: keep the commit, leave it unticked with the reason, and `set ID status=needs-review`; it is not done.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
-## Deciding without Kim (Kim, 12 November)
+A sub-agent of an orchestrated run (`docs/agents/worker.md`) follows `.claude/agents/vb-task.md`, which replaces what steps 3, 6 and 7
+write to shared files: it leaves notes in the inbox, and the orchestrator writes the backlog, the questions and the PR.
+
+## Deciding without Kim (Kim, 12 and 14 November)
 A question goes to Kim only if it moves a Decided point of `design.md`, or lets the player do something no existing system covers.
-Otherwise decide by these, write the decision and its reason in the task file, and go on.
-1. **Hunger is an engine.** Shortage drives gifts, goodwill and loans, and through them the landed class. A household may fail. Only
-   island-wide numbers are judged; per-household measures are reported as descriptions, with no target.
+Otherwise decide by these, write the decision and its reason in the task file, and go on. Nothing below stops work: where no principle
+covers a decision, or two pull apart, decide, go on, and surface it (Surfacing, below).
+
+**The hard rule: nothing teleports.** Goods, animals and people change place only by being carried, carted, led, shipped or walked, by
+someone who makes the journey; and nothing appears or vanishes but by a process that makes or uses it.
+- A farmstead is one place: nothing is carried between its house, barn and woodpile. A pawn working away from it carries its meal.
+- Rights and knowledge are exempt, since following every fact through the world is not computable: ownership, obligations, goodwill and
+  news move at once. So a gift, a share or a loan changes owner where it lies, and waits there until someone fetches it.
+- The world a scenario starts with is placed, not carried.
+- No task adds a teleport, however small or temporary. An agent that finds one in the code opens a task for it (arch `physical`) and
+  goes on; these tasks are taken interleaved with the slice's work, and each reports its numbers, since goods that take time to arrive
+  change hunger.
+
+1. **Hunger presses, the feast binds.** Shortage drives help, loans and land passing, and through them the landed class; help still
+   books goodwill. What drives the goodwill economy is plenty: at a feast a household turns its surplus into goodwill and standing. A
+   household may fail. Only island-wide numbers are judged; per-household measures are reported as descriptions, with no target.
 2. **The island grows without the player.** Over a scenario's seeds, yearly growth `(end / start)^(1 / years) - 1`: the median seed
    grows at least 1% a year, at least three seeds in four end above their start, and at most one in eight below half of it. Populous is
    held to this only while land is free. A median seed that shrinks is a collapse; anything between is a target out, not a collapse.
-3. **Parameters, not patches.** What balance depends on is a named tunable with a physical or gameplay meaning. Agents do not tune:
-   tuning is a run over many parameters, for gameplay balance, that Kim starts. A measurement that shows a shortfall is reported and
-   left for that run, as a row of `docs/tuning.md`. Two exceptions: a formula that computes something other than it says is a fix,
-   reported before and after; and a collapse may be tuned away.
+3. **Parameters, not patches.** What balance depends on is a named tunable with a physical or gameplay meaning. The first value is
+   seldom the best: a task may look for a good parameterisation of what it builds or touches, new parameters and existing ones, in at
+   most five short runs (seeds and map named), and writes the values tried and what each gave in the task file. Tuning the game, a run
+   over many parameters for gameplay balance, is Kim's to start: a shortfall outside the task's reach is reported and left for that
+   run, as a row of `docs/tuning.md`. A formula that computes something other than it says is a fix, reported before and after; and a
+   collapse may be tuned away.
 4. **Extending a system needs no question:** a new crop is sown as crops are; copper is mined as iron is.
-5. **Customs** are grounded in history, with defaults leaning to gameplay. Add them freely; Kim will later review them for a smaller set.
+5. **Customs** are grounded in history, with defaults leaning to gameplay. A custom may prescribe (a culture's least age to marry):
+   it is a rule the pawns hold, which differs between villages and can change, not a rule of the simulation (8). Add them freely; Kim
+   will later review them for a smaller set.
 6. **References:** founders is the early game's, populous the late game's (many pawns). Heirs is reported without a target.
 7. **Detail** is grounded in history and chosen where it gives the head or the player a decision: key kinds, not every kind, as with
    the crops (`design.md`, Crops and rotations).
+8. **Mechanisms, not prescriptions.** History is preferred, within reason, and the game must stay fun; where they part, play decides.
+   A historical pattern is reached by modelling what produced it, never by setting it: women's age at marriage held population in
+   check, so model what makes a couple wait (a holding to marry onto, years in service, a portion to save), not the age allowed. A
+   parameter that sets an outcome directly is a patch (3); hard limits are for physical facts.
+9. **Place matters.** The game favours settlements that specialise where the land suits it (a mining village, a farming one, a
+   fishing one) and trade between them: over land, by river, and late in the game by sea. Where a mechanism could let every village
+   make everything or tie production to place, choose place; the cost of carrying (the hard rule) is what makes a route worth having.
+   It is enough that the mechanics reward this: an island with no player is not held to a target for it.
+
+### Surfacing
+What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with
+no orchestrator, in its PR):
+- **A principle candidate**, when a decision had no principle to rest on, when two principles pulled apart, or when it is the third
+  decision of one kind: one line of the rule proposed, and the decisions behind it (`candidate`).
+- **A teleport found**, with the task opened for it (`teleport`, and a `task` of the arch `physical`).
+- **A close call**: a decision another agent could as well have made the other way (`decision`).
+
+The orchestrator gathers these at the head of the night's PR, under "For Kim" (`node tools/inbox.js report`): the candidates first,
+then the teleports and the close calls, one line each. Kim accepts a candidate into this section or strikes it; until then the decision made stands.
 
 ## Commands
-Every tool run from `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with `tools/help.js`).
-- Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read; `done ID...`, `set ID key=value...`, `new key=value...`,
-  `close-arch KEY`, and `sync` after a task file's header is edited by hand, to change it. Each rewrites the tables and runs `tests/backlog.js`.
-- Questions: `node tools/questions.js list|show VB-NNN|answer QUERY N TEXT|archive QUERY`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
-- Format: `src/` is formatted by Prettier (`.prettierrc.json`: width 120, single quotes; VB-380): `npm run format` after editing a
-  source, before the build; `tests/format.js` (fast) fails an unformatted file. `git config blame.ignoreRevsFile .git-blame-ignore-revs`
-  keeps the sweep out of `git blame`. `tests/` and `tools/` are not formatted yet.
-- Build: `python3 build.py` inlines `src/` into `index.html`; `python3 build.py --check` fails if it is stale.
-- Tests, three tiers listed in `tests/suites.js` (`docs/testing.md` has what each covers, the timeouts and the measured times):
-  - Fast: `npm install && npm test`, about 10 seconds (budget 30): the build, lint, ownership, dependencies, backlog and rule checks on
-    deliberate small states. A passing run prints its slowest five and its summary (`node tests/run.js test --list` prints each script's line).
-  - Verify: `npm run verify` runs fast and then the integration tier, rule checks on small constructed states and the small tools,
-    about 35 seconds in all (budget a minute); `node tests/run.js integration` runs that tier alone, and `--verbose` also prints the
-    reported numbers. A script of either tier takes under 5 seconds; the runner names one over (`over 5 s: ...`), without failing.
-  - Extended, at night and never part of a task: `node tests/run.js extended` makes the small fixtures and runs everything long:
-    generated islands and runs of years, the page in jsdom and real Chromium, demography, daily invariants, fixtures, history,
-    bands, the player's line. `npm run nightly` makes all four fixtures, runs extended, then the bench and the bands (the Extended
-    checks workflow). A task that changes `src/page/` also runs `node tests/smoke.js` and the `tests/browser*.js` it touches, by
-    name, until verify has a page check of its own (VB-409).
-  - One script alone: `node tests/NAME.js`. A new check is built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`)
-    and goes into fast or integration, with a line in `tests/suites.js`; only what needs a whole island or years goes to extended.
-- Fixtures, late saves (`small-y5`, `small-y40`, `medium-y5`, `medium-ref`): a local cache, never published or fetched (VB-272). They
-  lie in the gitignored `tests/fixtures/<key>/`, the key a hash of the modules of `src/manifest.json`, so a fixture is made for the
-  sources as they are and is never stale: `node tools/fixtures.js status|make|clean`. One run a map saves both of its fixtures (small
-  about 2 minutes, medium 1.5, side by side); `medium-ref` is saved at the first year's end with 1,000 living (by year 60), and its
-  stamp names the year. `npm test` and `npm run verify` load none (they run at night); the extended tier makes the small pair first when the sources
-  lack it; in a test or a tool, `require('./lib/fixtures.js').loadFixture(name)` gives `{st, stamp}`, making a missing one first;
-  `npm run nightly` makes what is missing and runs the bench (minutes).
-- Bands (`tests/lib/bands.js`, one table; Kim's decision 9): `node tests/bands.js` (extended) checks each band's reduced run, populous on
-  the tiny map at four seeds for 8 years; `node tools/bands.js` makes the full runs (populous small at four seeds, founders small at
-  sixteen, heirs at two), prints each band and appends to `docs/bench/bands.jsonl`, never failing (`npm run nightly` runs it for a new
-  commit). Growth is a target over a scenario's seeds; a household's hunger is described, with no target (Deciding without Kim, 1 and 2).
-- No golden file (retired by VB-408, Kim, 12 November): where an older task or document asks for `tests/golden.js` or a re-recorded
-  `tests/golden.json`, `docs/testing.md` stands instead. A refactor shows its behaviour unchanged with `node tools/same.js --base REF`, REF the commit it started
-  from: the same runs from both trees, the world and the state compared leaf by leaf, nothing recorded. Its line goes into the PR.
-- Targets: `node tools/targets.js [--name PATTERN] [--since DATE]` prints each target's latest value, residual and last five
-  (`docs/bench/targets.jsonl`, written by `--record` on the checks that are targets, the bench, the bands and the nightly; `docs/bench/targets.md`).
-- Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
-  `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`.
-- Cost growth: `node tests/scaling.js` (verify; population exponent at most 1.15) and `node tests/history.js` (extended, from `small-y5` and
-  `small-y40`; work per living pawn-day at year 40 over year 5, target 1.25). Both report each counter's ratio, target and residual
-  as targets and never fail.
-- Baselines that only fall: `node tests/lint.js --update` (`tests/lint-baseline.json`) and `node tests/ownership.js --update` (fixed sites).
-- Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints a line a year; `--report NAME [--json]`
-  adds a report (households, pawns, jobs, events, hunger, perf, counts and more), `--household N`, `--pawn N`; `--save FILE` and
-  `--load FILE`, so a bug report can carry the run.
-- Review tools (VB-337): `node tools/sim.js --report hours [--from Y] [--fields N] [--team] [--household N] [--json]` (pawn-hours a
-  household-year by job kind, work and walking, against its hands' and workers' working hours, and the farming year's days; `tools/hours.js`);
-  `node tools/stocks.js [--json]` (each stored quantity's adders, takers and readers, and what happens at none; marks those read by nothing).
-- Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
-  `node tools/store-flows.js --scenario populous --seeds 7 --years 15 [--rule NAME]`: the village stores' yearly flows (VB-406).
-- Also: `node tools/gossip.js` (VB-187's experiment: stories against opinion averaging in a reduced scenario; `docs/gossip-experiment.md`), `node
-  tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies and cycles), `node
-  tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs; `node tests/calibrate.js natural 2 50` is
-  quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters; for `tests/` and `tools/`, `src/` has Prettier), `node tools/shot.js` (screenshots of the page), `node
-  tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
-  `medium-y5` and `medium-ref`).
-- Land cover: `node tools/cover.js [--map M] [--seeds 7,11,42]` prints each biome's share of a generated island's land; the thresholds are `COVER` in `src/gen.js`.
-- Agent usage: `node tools/agent-usage.js` (this session's calls, tokens and tool results, from its transcript; `--history docs/agents/usage`).
-- Play locally: open `index.html` in a browser.
+Every tool under `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with
+`tools/help.js`). The full reference, with each tool's cadence, fixtures and measures, is `docs/commands.md`: grep it for a name.
+- A task's brief: `node tools/brief.js ID`. Backlog: `node tools/backlog.js next|list|show ID [--brief]`; `done`, `set`, `new`,
+  `close-arch`, `sync` change it.
+- Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|result` (a sub-agent), `init|status|apply|report|results`.
+- Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
+- Format, then build: `npm run format` after editing `src/` (Prettier), then `python3 build.py` (`--check` fails if `index.html` is stale).
+- Tests (`tests/suites.js`, `docs/testing.md`): `npm test`, fast, 10 seconds; `npm run verify`, fast and integration, 40 seconds; one
+  script, `node tests/NAME.js`. The extended tier, the fixtures, the bench and the bands run at night, never in a task. A new check is
+  built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`) and gets a line in `tests/suites.js`.
+- No golden file: a refactor shows its behaviour unchanged with `node tools/same.js --base REF`, REF the commit it started from.
+- Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report NAME] [--save FILE|--load FILE]`.
+- Numbers before and after: `node tools/balance.js` (food by source against need), `node tests/counters.js` (work counters; `--update`
+  records an intended change), `node tools/targets.js` (each target's latest value and residual).
+- Baselines that only fall: `node tests/lint.js --update`, `node tests/ownership.js --update`.
+- In `docs/commands.md` only: fixtures, bands, cost growth, the review tools (`hours`, `stocks`, `store-flows`), `gossip`, `rules`,
+  `writes`, `calibrate`, `wrap`, `shot`, `village-shot`, `cover`, `bench`, `agent-usage`.
 
 ## Finding things
 - Module map: `grep -rn "^// @sys" src`; state schema: `grep -rn "@state" src`; modules in load order: `src/manifest.json`.
