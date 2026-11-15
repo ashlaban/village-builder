@@ -3,7 +3,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { moveClock } = require('./lib/clock.js');
-const { feedHousehold, updateHealth } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HEALTH, YEAR, YEAR_DAYS } = VB['sim/rules'], { stepWork } = VB['sim/agents'];
+const { feedHousehold, updateHealth } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HEALTH, YEAR, YEAR_DAYS } = VB['sim/rules'], { rateOf } = VB['sim/agents'];
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const w7 = world(7), fresh = () => Sim.seed(w7, 7, 'founders');
 const starve = (p, age, days) => { // hunger 1 every day; the day on which the pawn would die, or 0
@@ -37,9 +37,8 @@ const starve = (p, age, days) => { // hunger 1 every day; the day on which the p
 }
 // work: progress per hour is multiplied by 1 - 0.3 (100 - health) / 100
 for (const health of [100, 50, 0]) {
-  const st = fresh(), a = st.agents[0]; st.pawns[0].hunger = 0; st.pawns[0].health = health;
-  a.job = { kind: 'sow', done: 0 }; a.work = null; stepWork(st, a, 1);
-  assert(Math.abs(a.job.done - (1 - HEALTH.slow * (100 - health) / 100)) < 1e-9, `work at health ${health}`);
+  const st = fresh(); st.pawns[0].hunger = 0; st.pawns[0].health = health;
+  assert(Math.abs(rateOf(st, st.pawns[0]) - (1 - HEALTH.slow * (100 - health) / 100)) < 1e-9, `work at health ${health}`);
 }
 // a starving household dies of starvation within a season
 {

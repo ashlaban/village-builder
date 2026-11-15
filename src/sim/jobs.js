@@ -6,7 +6,7 @@ VB['sim/jobs'] = (() => {
   const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age, kinNear } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot, travelling } =
+  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot, travelling, doneOf } =
     VB['sim/agents'];
   const { companyFor, opinionOf } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
@@ -358,7 +358,7 @@ VB['sim/jobs'] = (() => {
   //   lists: {pawn id: [job keys]}}: for each living member the tasks the head gave it, in the order it takes them; a member too young has
   //   an empty list. Written only by allot, whole, each time; a key whose job is gone is passed over. Plain data, saved with the plan.
   const dayHours = (st, p) => MATCH.day.horizon * (WORK[1] - WORK[0]) * rateOf(st, p);
-  const hoursLeft = (j) => (j.hours ?? KINDS[j.kind].hours ?? 0) - j.done;
+  const hoursLeft = (st, j) => (j.hours ?? KINDS[j.kind].hours ?? 0) - doneOf(st, j);
   // The head allots the household's day. Every member is weighed for every task of the household and of its village that it may take, by
   // its fit (score); best fit first, a further hand on a task counting for less (join), a task is given hands until they finish it within
   // the horizon, each member up to its own working
@@ -383,7 +383,7 @@ VB['sim/jobs'] = (() => {
       const jobs = jobsFor(st, members[0]);
       VB.count.dayPair += (jobs.length ?? jobs.size) * members.length;
       for (const j of jobs) {
-        if (attentionOf(j) === 'full' && hoursLeft(j) <= 0) continue; // only its load is on the road
+        if (attentionOf(j) === 'full' && hoursLeft(st, j) <= 0) continue; // only its load is on the road
         for (const p of members) {
           if (!eligible(st, j, p)) continue;
           const s = score(st, p, j, c);
@@ -404,7 +404,7 @@ VB['sim/jobs'] = (() => {
         [s, id, j, k = 0] = pair,
         full = attentionOf(j) === 'full',
         m = manned.get(j) || [0, 0],
-        left = full ? hoursLeft(j) : 0;
+        left = full ? hoursLeft(st, j) : 0;
       if (m[1] >= KINDS[j.kind].hands || (full && (cap.get(id) <= 0 || m[0] >= left)) || (!full && m[1] > 0)) {
         spare.push(pair);
         continue;
@@ -439,7 +439,7 @@ VB['sim/jobs'] = (() => {
       }
       if (!top || !busy || a.phase !== 'work' || a.job === top[1] || !isOpen(top[1])) continue;
       if (
-        hoursLeft(a.job) > rateOf(st, p) &&
+        hoursLeft(st, a.job) > rateOf(st, p) &&
         top[0] > MATCH.switchRatio * (score(st, p, a.job, c) ?? 0) + MATCH.switchMargin
       )
         issue(st, { actor: a.id, verb: 'work', target: top[1].key, source: 'planner' });

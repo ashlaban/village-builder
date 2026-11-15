@@ -18,6 +18,8 @@ VB.COUNTERS = {
   walkAwake: 'Agent records walked to rebuild the awake list, once a game hour (VB-205)',
   idleStroll: 'Idle pawns sent strolling by idleAbout when the planner found them no work (VB-205)',
   companyWeighed: 'Idle pawns drawn and weighed as company in companyFor (VB-205)',
+  workReckon:
+    'Tasks under work reckoned, with their hours since (sim/agents settle: a hand joins or leaves, the end of work, the meal; VB-472)',
   walkPoint: 'Path points walked past by moveAgent (VB-205)',
   walkDaily: 'Pawn records walked by dailyLife and Culture.dailyStep',
   walkTies:

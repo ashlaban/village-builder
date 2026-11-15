@@ -42,13 +42,13 @@ function drawTeams(show) {
       for (const q of e.oxen) q.visible = false;
       if (sp.texture !== tex) sp.texture = tex;
       sp.visible = true;
-      sp.scale.set(-a.face * COW_SCALE.cow, COW_SCALE.cow);
-      sp.position.set(ax + a.face * 8, ay - 1.5);
+      sp.scale.set(-drawFace[a.id] * COW_SCALE.cow, COW_SCALE.cow);
+      sp.position.set(ax + drawFace[a.id] * 8, ay - 1.5);
       sp.zIndex = ay - 1.5;
       e.g.clear();
       continue;
     }
-    const dir = a.face,
+    const dir = drawFace[a.id],
       sway = Math.sin(time * 3 + a.id) * 0.6;
     oxen.forEach((h, k) => {
       const sp = e.oxen[k],
@@ -129,10 +129,34 @@ function drawHerds(c, show) {
 }
 // ---- where each pawn is drawn this frame (VB-244): between its place before the last step (page/speed) and its own, by the share of
 // the next step the frames have asked for; a pawn that went indoors, came out or was placed (moved more than a step's walk at the
-// fastest, on a lane) is drawn where it is. Page state only: nothing of it is written to st. ----
+// fastest, on a lane) is drawn where it is. A pawn at work on a field walks its rows (VB-472): the simulation has it stand at the start of
+// its first row, and the page walks it row by row from the tick its work began, at the drawn time. Page state only: nothing of it is
+// written to st. ----
 let drawX = new Float64Array(0),
   drawY = new Float64Array(0),
-  drawStride = new Float64Array(0);
+  drawStride = new Float64Array(0),
+  drawFace = new Float64Array(0);
+const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
+// The place on its rows of a pawn working a field at drawn tick `at`, [x, y, face, distance walked], or null: from the start of its row
+// (where its work leg began, a.leg), along rows 26 units long and 6 apart, five across the tile, turning at each end.
+function rowPlace(a, at) {
+  const j = a.job,
+    K = j && a.phase === 'work' && !a.inside && a.leg ? Sim.KINDS[j.kind] : null;
+  if (!K || !K.field) return null;
+  const th = VB['sim/kinds'].rowAngle(j),
+    cx = w.hx[j.site],
+    cy = w.hy[j.site],
+    c = Math.cos(th),
+    sn = Math.sin(th);
+  const row0 = Math.round((-sn * (a.leg.x - cx) + c * (a.leg.y - cy) + 12) / 6),
+    d = ((K.pace || ROW_PACE) * Math.max(0, at - a.leg.t)) / VB['sim/rules'].TICKS,
+    k = Math.floor(d / 26),
+    u = d - 26 * k,
+    dir = k % 2 ? -1 : 1,
+    along = dir > 0 ? -13 + u : 13 - u,
+    row = -12 + 6 * ((((row0 + k) % 5) + 5) % 5);
+  return [cx + c * along - sn * row, cy + sn * along + c * row, Math.abs(c) > 0.05 ? Math.sign(c * dir) : a.face, d];
+}
 function placePawns() {
   const n = st.agents.length,
     R = VB['sim/rules'];
@@ -141,8 +165,11 @@ function placePawns() {
     drawX = new Float64Array(cap);
     drawY = new Float64Array(cap);
     drawStride = new Float64Array(cap);
+    drawFace = new Float64Array(cap);
   }
-  const s = drawingBetween() ? stepShare : 1,
+  const between = drawingBetween(),
+    s = between ? stepShare : 1,
+    at = between ? st.tick - 1 + stepShare : st.tick,
     far = ((R.SPEED * w.HW) / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6,
     far2 = far * far;
   for (let i = 0; i < n; i++) {
@@ -150,6 +177,15 @@ function placePawns() {
     let x = a.x,
       y = a.y,
       stride = a.stride || 0;
+    drawFace[i] = a.face;
+    const rows = rowPlace(a, at);
+    if (rows) {
+      drawX[i] = rows[0];
+      drawY[i] = rows[1];
+      drawFace[i] = rows[2];
+      drawStride[i] = stride + rows[3] / 3.4;
+      continue;
+    }
     if (s < 1 && i < prevN && !prevIn[i] && !a.inside) {
       const dx = a.x - prevX[i],
         dy = a.y - prevY[i];
@@ -230,7 +266,11 @@ function updateSettlement(dt) {
     // a pawn fishing faces the water (VB-117)
     const wet = !a.path && a.phase === 'work' && a.job && a.job.water !== undefined ? w.hx[a.job.water] - a.x : 0;
     const face =
-      other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : Math.abs(wet) > 0.5 ? Math.sign(wet) : a.face;
+      other && Math.abs(other.x - a.x) > 0.5
+        ? Math.sign(other.x - a.x)
+        : Math.abs(wet) > 0.5
+          ? Math.sign(wet)
+          : drawFace[a.id];
     const x = drawX[a.id],
       y = drawY[a.id];
     R.root.position.set(x, y);
