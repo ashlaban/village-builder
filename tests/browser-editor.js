@@ -4,6 +4,7 @@
 // with it; the terrain brush lays ground cover and deposits on the land, and Regenerate asks before it clears them; Play starts a game on
 // the world shown, with what was painted, settled as chosen, which cannot be saved yet; placed by hand, a village and a household are laid at
 // once and stand still, Play waits for something placed and begins on what is placed. Runs in verify only.
+const { builtPage } = require('./lib/page');
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path');
 const { browserHTML } = require('./lib/browser');
 const root = path.join(__dirname, '..'), pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
@@ -17,7 +18,7 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
   page.on('pageerror', (e) => fail('page error: ' + (e.stack || e.message)));
   await page.route(/^https?:\/\//, (r) => (/pixi(\.min)?\.js/.test(r.request().url())
     ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' })));
-  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const html = builtPage();
   if (!html.includes(HOOK)) throw new Error('hook not found');
   await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(html.replace(HOOK,
     HOOK + ' window.__ed = { get st() { return st; }, get w() { return w; }, get demo() { return demo; }, get unsaved() { return unsaved; }, get cam() { return cam; } };')) }));
