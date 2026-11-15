@@ -65,6 +65,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-443](backlog/VB-443.md) | Refactor: split gen by concern (terrain and land cover, the baked drawing) | - | 3 | M | src/gen.js is over its baseline since its land cover thresholds were named (COVER); split it by concern so that the lint's length line holds. |
 | [VB-451](backlog/VB-451.md) | Refactor: split sim/routes by concern (walking costs and reach, the route cache, the hours between villages) | - | 3 | M | sim/routes has 18 exports over its baseline of 17 (VB-452 added reachTiles): walking costs and what is in walking reach, the route search and its cache, and the villages' table of hours are three concerns. |
 | [VB-453](backlog/VB-453.md) | A job's urgency is worked out once a round, not once a bid | - | 3 | S | planRound and lookUp score each job for each idle pawn (about 3,000 bids a game day on populous tiny), and half of a score's time is the job's urgency, which does not depend on the pawn. |
+| [VB-504](backlog/VB-504.md) | browser-mobile fails: charter phrase a custom (15 !== 14) | - | 3 | S | tests/browser-mobile.js:152 asserts 15 !== 14; fails on the parent commit too |
 
 ## Waiting for Kim
 
@@ -73,7 +74,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-278](backlog/VB-278.md) | The meetings a village a step: each village's meeting in its own six-minute step | between | 2 | M | VB-206's four stages run the whole island at once; each village now holds its meeting in its own step (its people's interests, its tie, its causes, its meeting), then the cultures' reckoning and the land meeting; draws reorder, so customs are calibrated before and after. |
-| [VB-504](backlog/VB-504.md) | browser-mobile fails: charter phrase a custom (15 !== 14) | - | 3 | S | tests/browser-mobile.js:152 asserts 15 !== 14; fails on the parent commit too |
 
 ## Blocked
 
