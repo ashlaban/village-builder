@@ -84,6 +84,8 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
     costs a target: do it, and report the cost before and after (Working rules, Targets).
 12. **Tooling is the agent's.** The formatter, the bundler, hooks, baselines and strictness are decided by target-v2's principles
     and written in the task file. Kim keeps only whether, and when, work goes ahead that holds other tasks back.
+13. **An elite is what the rules leave over, not a quota.** No road, office or class is given a share or a count to reach. A plan
+    sizes each claim (a rent, a keep, a due) against a household's need, and the wrap-up reports who became elite and by what.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with
