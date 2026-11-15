@@ -9,7 +9,8 @@ const USAGE = `usage: node tools/backlog.js <command> [--root DIR]
   show ID... [--brief]      a task's file; --brief stops before its notes and reports
   done ID... [--date D]     mark done (Status: done (D)): rows to the archive, ID dropped from "Waits for:" lines, freed tasks set ready
   set ID key=value...       status, priority, size, arch, phase, waits, name, summary (status=done is the same as done)
-  new key=value...          the next free ID: name, status, priority, size, summary required; arch, phase, waits, ref, goal optional
+  new key=value...          the next free ID: name, status, priority, size, summary required; arch, phase, waits, ref, goal optional;
+                            id=VB-NNN takes a reserved ID instead (tools/inbox.js start)
   close-arch KEY            an arch with no open tasks: its row moves to the archive's closed archs
   sync [--dry]              rewrite the tables from the task files, e.g. after editing a header by hand; --dry only reports`;
 
@@ -221,7 +222,9 @@ if (cmd === 'next') {
   const p = parsePairs(rest), lack = ['name', 'status', 'priority', 'size', 'summary'].filter((k) => !p[k]);
   if (lack.length) fail(`new needs ${lack.join(', ')} (key=value)`);
   if (p.status === 'ready') fail('a new task starts blocked or needs-review: fill in its file, then  set ID status=ready');
-  const id = 'VB-' + String(Math.max(0, ...[...tasks.keys()].map(num)) + 1).padStart(3, '0');
+  if (p.id && (!/^VB-\d{3,}$/.test(p.id) || tasks.has(p.id))) fail(`id=${p.id}: ${tasks.has(p.id) ? 'taken' : 'not VB-NNN'}`);
+  const id = p.id || 'VB-' + String(Math.max(0, ...[...tasks.keys()].map(num)) + 1).padStart(3, '0');
+  delete p.id;
   const t = { id, name: p.name, status: '', priority: '', size: '', arch: '-', phase: '-', waits: [], dirty: true,
     text: `# ${id}: ${p.name}\nStatus: ${p.status}\nPriority: ${p.priority}\nSize: ${p.size}\n`
       + `Design ref: ${p.ref || '(to write)'}\nGoal: ${p.goal || '(to write)'}\nAcceptance criteria:\n- [ ] (to write)\n` };

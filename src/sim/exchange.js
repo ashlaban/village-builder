@@ -351,6 +351,7 @@ VB['sim/exchange'] = (() => {
   return {
     assessGift,
     settleGift,
+    receive,
     explainAllowance,
     giftWarning,
     needValue,

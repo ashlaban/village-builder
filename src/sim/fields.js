@@ -198,7 +198,10 @@ VB['sim/fields'] = (() => {
   // ---- soil and manure (VB-137) ----
   // A reaped crop wears the field's soil.
   const wearSoil = (fd) => {
-    fd.soil = Math.max(SOIL.floor, fd.soil - CROPS[fd.crop].wear);
+    const C = CROPS[fd.crop];
+    fd.soil = C.gain
+      ? Math.max(fd.soil, Math.min(SOIL.start, fd.soil + C.gain))
+      : Math.max(SOIL.floor, fd.soil - C.wear); // peas mend it (VB-349)
   };
   // In spring, while the heap holds a load, manure goes to the field with the poorest soil that is not yet sown: [field, loads] or null.
   function manureWanted(f, hh, c) {

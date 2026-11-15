@@ -8,6 +8,7 @@ VB['sim/agents'] = (() => {
   const { age, personEvent } = VB['sim/records'];
   const Stores = VB['sim/stores'];
   const { ate, rationOf } = VB['sim/hunger'];
+  const { receive } = VB['sim/exchange'];
   const { hexSteps } = VB['sim/hex'];
   const { eligible } = VB['sim/eligibility'];
   const { hasTeam } = VB['sim/herds'];
@@ -23,6 +24,8 @@ VB['sim/agents'] = (() => {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
   }
+  // the spot by the door of the house on tile `house`, where pawn a would stand
+  const spotAt = (st, a, house) => [st.w.hx[house] - 12 + a.ox * 0.3, st.w.hy[house] + 14 + a.oy * 0.15];
   function placeAtHome(st, a) {
     const [x, y] = homeSpot(st, a);
     a.x = x;
@@ -661,23 +664,27 @@ VB['sim/agents'] = (() => {
   }
   // A journey starts: provisions from the household it leaves, its record, and the first leg now if a day's walking is left (6:00 to
   // 16:00), else at the next 6:00, from where it stands.
-  function setOut(st, a, old, hh, carry, hours) {
+  function setOut(st, a, old, hh, carry, hours, gift = null) {
     const p = st.pawns[a.id],
       f = st.farmsteads[hh.farmstead],
       j = {
         id: st.journeySeq++,
         pawn: a.id,
         to: f.house,
-        why: 'move',
+        why: gift ? 'carry' : 'move',
         due: 0,
         food: 0,
         from: old ? old.farmstead : null,
       };
+    if (gift) {
+      j.gift = gift; // VB-291: {to (household), n (grain), parts (by crop)}; null from its arrival on, the pawn walking home
+      j.back = false;
+    }
     // provisions (design: Provisions and the season): a ration (half below 14) a day of walking, from the grain above the seed of the
     // household it leaves, then of the one it joins; with none to give it goes unprovisioned, and hungry
-    const want = Math.ceil(hours / TRAVEL.dayWalk) * rationOf(st, p),
+    const want = Math.ceil(hours / TRAVEL.dayWalk) * (gift ? 2 : 1) * rationOf(st, p), // a carrier's way back as well
       R = 1 / st.ECON.uncooked;
-    for (const src of carry && old && !old.dissolved ? [old, hh] : [hh]) {
+    for (const src of gift ? [old] : carry && old && !old.dissolved ? [old, hh] : [hh]) {
       const n = Math.min(want - j.food, Math.max(0, Stores.grainOf(src) - Stores.reserved(st, src, 'grain')) / R);
       if (n > 1e-9) {
         Stores.takeSpare(st, src, n * R, { kind: 'journey', pawn: a.id });
@@ -686,6 +693,10 @@ VB['sim/agents'] = (() => {
     }
     const left = old ? st.farmsteads[old.farmstead].name : 'where it stood';
     personEvent(st, a.id, 'setOut', `Set out from ${left} for ${f.name}, ${Math.round(hours)} hours' walk`, false);
+    startLeg(st, a, j);
+  }
+  // The first leg now if a day's walking is left (6:00 to 16:00), else at the next 6:00, from where the pawn stands.
+  function startLeg(st, a, j) {
     const h = cal(st.t).hour;
     if (h >= WORK[0] && h < WORK[1] - 2) {
       leg(st, j);
@@ -698,11 +709,24 @@ VB['sim/agents'] = (() => {
     j.due = nextLeg(st.t);
     queueJourney(st, j);
   }
+  // A gift of n grain from household `from` to household `to`, further than a day's walk (VB-291; Kim, 10 Nov: carried, not sent): the
+  // grain leaves the giver's store as the carrier, one of its adults, sets out; the receiver books it when he arrives (delivered).
+  // Only the verb `give` calls it.
+  function carryGift(st, o) {
+    const a = st.agents[o.carrier],
+      parts = {};
+    Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }, parts);
+    release(st, a);
+    dropSides(st, a);
+    a.carry = null;
+    const hours = hoursBetween(st, st.farmsteads[o.from.farmstead].village, st.farmsteads[o.to.farmstead].village);
+    setOut(st, a, o.from, o.to, false, hours, { to: o.to.id, n: o.n, parts });
+  }
   // A leg: the route is found at the first (a journey costs one search), and walked on from where the pawn stopped at the others.
   function leg(st, j) {
     const a = st.agents[j.pawn];
     if (!a.path) {
-      const [x, y] = homeSpot(st, a);
+      const [x, y] = spotAt(st, a, j.to);
       walkTo(st, a, j.to, x, y);
     } else {
       a.inside = false;
@@ -716,11 +740,12 @@ VB['sim/agents'] = (() => {
   // A pawn's household changed again on the road (a death at home, a handover): it walks to the new home, turning back if need be.
   function retarget(st, a, to) {
     const j = journeyOf(st, a.id);
-    if (j.to === to) return;
+    if (j.to === to || (j.why === 'carry' && !j.back)) return; // a carrier delivers first, and then walks to the home he has
+    if (j.why === 'carry') j.back = true;
     j.to = to;
     a.path = null;
     if (a.phase === 'journey') {
-      const [x, y] = homeSpot(st, a);
+      const [x, y] = spotAt(st, a, to);
       walkTo(st, a, to, x, y);
     }
   }
@@ -749,9 +774,26 @@ VB['sim/agents'] = (() => {
     }
   }
   // Arrival: the journey ends, what is left of its provisions goes into the new home's meals, and the pawn is at home.
+  // A carrier arrives with his gift: the receiving household books it (its village's store, if the household is gone) and he turns for home.
+  function delivered(st, a, j) {
+    const g = j.gift,
+      from = st.households[st.pawns[a.id].household],
+      to = st.households[g.to],
+      f = st.farmsteads[to.farmstead];
+    j.gift = null;
+    j.back = true;
+    if (to.dissolved) Stores.put(st, st.villages[f.village], 'grain', g.n, { kind: 'gift', from: f.name }, g.parts);
+    else receive(st, from && !from.dissolved ? from : null, to, g.n, st.farmsteads[j.from].name, g.parts);
+    personEvent(st, a.id, 'arrived', `Arrived at ${f.name} with ${Math.round(g.n)} grain`, false);
+    j.to = st.farmsteads[from.farmstead].house;
+    a.anim = 'idle';
+    a.path = null;
+    startLeg(st, a, j);
+  }
   function endJourney(st, a) {
-    const j = journeyOf(st, a.id),
-      hh = st.households[st.pawns[a.id].household];
+    const j = journeyOf(st, a.id);
+    if (j.why === 'carry' && !j.back) return delivered(st, a, j);
+    const hh = st.households[st.pawns[a.id].household];
     st.journeys.splice(st.journeys.indexOf(j), 1);
     if (j.food > 1e-9 && !hh.dissolved) Stores.put(st, hh, 'meals', j.food, { kind: 'journey', pawn: a.id });
     placeAtHome(st, a);
@@ -815,6 +857,7 @@ VB['sim/agents'] = (() => {
     travelling,
     journeyOf,
     moved,
+    carryGift,
     dueJourneys,
     stopJourneys,
     feedTravellers,
