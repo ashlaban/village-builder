@@ -17,7 +17,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Format: `src/` is formatted by Prettier (`.prettierrc.json`: width 120, single quotes; VB-380): `npm run format` after editing a
   source, before the build; `tests/format.js` (fast) fails an unformatted file. `git config blame.ignoreRevsFile .git-blame-ignore-revs`
   keeps the sweep out of `git blame`. `tests/` and `tools/` are not formatted yet.
-- Build: `python3 build.py` inlines `src/` into `index.html`, a derived file that is not kept in the repository (VB-450); `--stdout` prints the
+- Build: `node build.js` inlines `src/` into `index.html`, a derived file that is not kept in the repository (VB-450); `--check` fails if it is stale, `--stdout` prints the
   page and writes nothing (`tests/lib/page.js`). `tests/build.js` (fast) checks that the page builds.
 - Tests, three tiers listed in `tests/suites.js` (`docs/testing.md` has what each covers, the timeouts and the measured times):
   - Fast: `npm install && npm test`, about 10 seconds (budget 30): the build, lint, ownership, dependencies, backlog and rule checks on
@@ -71,4 +71,4 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Land cover: `node tools/cover.js [--map M] [--seeds 7,11,42]` prints each biome's share of a generated island's land; the thresholds are `COVER` in `src/gen.js`.
 - Agent usage: `node tools/agent-usage.js [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
   their transcripts: weighted cost a done task by size, the orchestrator's share, the median boot, the share done; `--history docs/agents/usage`).
-- Play locally: `python3 build.py`, then open `index.html` in a browser.
+- Play locally: `node build.js`, then open `index.html` in a browser.

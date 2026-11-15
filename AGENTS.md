@@ -109,7 +109,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|result` (a sub-agent), `init|status|apply|report|results`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Format: `npm run format` after editing `src/` (Prettier). `index.html` is derived and not in the repository (VB-450): never commit it. The
-  page's tests and tools build their own copy, and the Pages workflow builds the site's; `python3 build.py` writes one to open by hand.
+  page's tests and tools build their own copy, and the Pages workflow builds the site's; `node build.js` writes one to open by hand.
 - Tests (`tests/suites.js`, `docs/testing.md`): `npm test`, fast, 10 seconds; `npm run verify`, fast and integration, 40 seconds; one
   script, `node tests/NAME.js`. The extended tier, the fixtures, the bench and the bands run at night, never in a task. A new check is
   built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`) and gets a line in `tests/suites.js`.
@@ -125,7 +125,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Module map: `grep -rn "^// @sys" src`; state schema: `grep -rn "@state" src`; modules in load order: `src/manifest.json`.
 - Source is read through `readSource(file)` (`tools/lib/source.js`), never `readFileSync`, so that `.ts` is read as JavaScript.
 - A module and its users: grep `VB['<key>']`, e.g. `VB['sim']`. Definitions are `function name(` or `const name = (`; sections are `// ----` headers.
-- The page script is `src/page/*.js`, in the order of `src/page.json`; `build.py` splices them, without their `@sys` line, into the one closure
+- The page script is `src/page/*.js`, in the order of `src/page.json`; `build.js` splices them, without their `@sys` line, into the one closure
   in `src/body.html`. They are not `VB` modules: they share the closure's variables (grep `src/page` for a name), and run in order.
 
 ## Conventions
