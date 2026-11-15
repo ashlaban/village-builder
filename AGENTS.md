@@ -35,7 +35,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 A sub-agent of an orchestrated run (`docs/agents/worker.md`) follows `.claude/agents/vb-task.md`, which replaces what steps 3, 6 and 7
 write to shared files: it leaves notes in the inbox, and the orchestrator writes the backlog, the questions and the PR.
 
-## Deciding without Kim (Kim, 12 and 14 November)
+## Deciding without Kim (Kim, 12, 14 and 15 November)
 A question goes to Kim only if it moves a Decided point of `design.md`, or lets the player do something no existing system covers.
 Otherwise decide by these, write the decision and its reason in the task file, and go on. Nothing below stops work: where no principle
 covers a decision, or two pull apart, decide, go on, and surface it (Surfacing, below).
@@ -77,6 +77,9 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
    fishing one) and trade between them: over land, by river, and late in the game by sea. Where a mechanism could let every village
    make everything or tie production to place, choose place; the cost of carrying (the hard rule) is what makes a route worth having.
    It is enough that the mechanics reward this: an island with no player is not held to a target for it.
+10. **The future is someone's estimate** (Kim, 15 November). What the player is shown of what will happen (when a task ends, whether a
+   store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
+   knowledge; what has happened is shown as it was. A view that foretells says whose estimate it shows.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with

@@ -120,6 +120,9 @@ below do not; `AGENTS.md`, Deciding without Kim, is their working form and says 
   having. It is enough that the mechanics reward this; an island with no player is not held to a target for it.
 - **Detail where it is a decision.** Quantities and logistics are grounded in history, and the kinds modelled are those that give the
   head or the player a decision: key kinds, not every kind, as with the crops (Crops and rotations).
+- **The future is someone's estimate** (Kim, 15 November). What the player is shown of what will happen (when a task ends, whether a
+  store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
+  knowledge; what has happened is shown as it was (section 7, The estimate and The timetable).
 - **References.** Founders is the reference for the early game, populous for the late game (many pawns).
 
 ## 2. World, climate and travel

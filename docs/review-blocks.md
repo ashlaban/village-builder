@@ -139,8 +139,8 @@ shown by step 1's invariant, the island's numbers and the counters.
 - **A pawn that is not head sees estimates by its own judgement.** It follows from parity of command; surfaced as a close call.
 - **The plan panel's "who holds which task" (VB-256) is the timetable's.** VB-256 keeps the rest.
 
-Principle candidate, for Kim: *what the player is shown of the future is some pawn's estimate, never the simulation's knowledge.* It
-is the third decision of this kind (the head's needs, the timetable, a helper's request).
+Principle, accepted by Kim on 15 November (`AGENTS.md`, Deciding without Kim, 10): *what the player is shown of the future is some
+pawn's estimate, never the simulation's knowledge.*
 
 ## 6. Rejected
 
@@ -150,7 +150,17 @@ is the third decision of this kind (the head's needs, the timetable, a helper's 
 - *A messenger for the call:* a copy of the day for each pawn, against the hard rule's exemption (Kim, 15 November).
 - *Building the plan panel's list first and the timetable later:* built twice.
 
-## 7. Questions for Kim
+## 7. Kim's answers (15 November 2026)
 
-In `QUESTIONS.md`, "VB-452: work as blocks". Two: what the player does while its pawn works a long leg, and the order against
-foresight (VB-254).
+- **While the pawn works a long leg:** the page's control "until my task ends", as proposed; later there will be more for the player
+  to do meanwhile (plan social manoeuvres, design outfits). In VB-460.
+- **The order:** VB-450 and VB-451, VB-454 to VB-457, VB-254, then VB-458 onward.
+- **The principle is accepted** (`AGENTS.md`, Deciding without Kim, 10; `design.md`, Principles): the future is someone's estimate.
+
+## 8. The open tasks, read against this plan (15 November 2026)
+
+All 145 open tasks were read. Rewritten: VB-329 (no route: from bids to the day's lists) and VB-319 (hired hands: from the two-hour
+wait to the head's estimate; now also waits for VB-453). Now waiting: VB-422 (split `sim/agents`) for VB-456. Noted, with what
+changes for each: VB-108, VB-121, VB-162, VB-247, VB-254, VB-295, VB-315, VB-351, VB-354, VB-360, VB-362, VB-365, VB-382, VB-410,
+VB-418, VB-420, VB-429, VB-444, VB-448. One overlap to settle when either lands: skill, between VB-360 (crafts, learnt by doing) and
+VB-458 (a stand-in by type of work).
