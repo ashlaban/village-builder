@@ -3,7 +3,8 @@
 // times, and the largest results. A response is written as several transcript lines (one per content block) that repeat its usage, so
 // calls are counted by message id. Only aggregates are printed: no prompt, result or file content. See docs/review-agent-workflow.md.
 // Sub-agents have transcripts of their own (<session>/subagents/agent-*.jsonl): each is measured the same way and listed with the task
-// its prompt names (VB-NNN), its model and its boot, the context at its first edit (what it read before it changed anything).
+// its prompt names (VB-NNN), its model and its boot, the context at its first edit; the boot less the context at its first call (the
+// harness, the tools and AGENTS.md, which no task can avoid) is what it read before it changed anything.
 // Cost is one weighted number, in fresh-input tokens: input + 1.25 × cache writes + 0.1 × cache reads + 5 × output (about the prices'
 // ratios). The summary gives the run's three measures: weighted cost a finished task by size, the overhead (the orchestrator's share
 // of the cost, and the median boot), and with --results the share of tasks done at the first attempt.
@@ -113,7 +114,7 @@ function subagents(file, results) {
   return fs.readdirSync(dir).filter((f) => /^agent-.*\.jsonl$/.test(f)).map((f) => {
     const s = measure(path.join(dir, f), true), r = results.find((x) => x.task && x.task === s.task) || {};
     return { agent: f.slice(6, -6).slice(0, 8), task: s.task, size: r.size || null, status: r.status || null, model: s.models[0] || null, calls: s.calls,
-      tokens: s.tokens, weighted: s.weighted, boot: s.context.firstEdit, peak: s.context.peak, activeMin: s.activeMin, start: s.start };
+      tokens: s.tokens, weighted: s.weighted, first: s.context.first, boot: s.context.firstEdit, peak: s.context.peak, activeMin: s.activeMin, start: s.start };
   }).filter((s) => s.calls).sort((a, b) => String(a.start).localeCompare(String(b.start)));
 }
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b), i = (s.length - 1) / 2; return s.length ? Math.round((s[Math.floor(i)] + s[Math.ceil(i)]) / 2) : null; };
@@ -124,6 +125,7 @@ function summary(m) {
   const bySize = {};
   for (const size of ['S', 'M', 'L']) { const xs = done.filter((s) => s.size === size).map((s) => s.weighted); if (xs.length) bySize[size] = { n: xs.length, median: median(xs) }; }
   return { weightedTotal: total, orchestratorShare: total ? +(m.weighted / total).toFixed(3) : null, bootMedian: median(subs.map((s) => s.boot).filter(Boolean)),
+    readMedian: median(subs.filter((s) => s.boot).map((s) => s.boot - s.first)),
     weightedPerDoneTask: done.length ? Math.round(total / done.length) : null, perSize: bySize,
     firstPass: ended.length ? +(done.length / ended.length).toFixed(2) : null, tasks: ended.length };
 }
@@ -150,11 +152,11 @@ function report(m) {
   ];
   const s = m.summary;
   lines.push(`weighted cost ${k(s.weightedTotal)}: the orchestrator ${k(m.weighted)} (${s.orchestratorShare == null ? '-' : Math.round(s.orchestratorShare * 100) + '%'}), `
-    + `${m.subagents.length} sub-agents ${k(s.weightedTotal - m.weighted)}; median boot ${s.bootMedian == null ? '-' : k(s.bootMedian)}`);
+    + `${m.subagents.length} sub-agents ${k(s.weightedTotal - m.weighted)}; median boot ${s.bootMedian == null ? '-' : `${k(s.bootMedian)}, of which read before the first edit ${k(s.readMedian)}`}`);
   if (s.tasks) lines.push(`tasks: ${s.tasks} ended, ${Math.round(s.firstPass * 100)}% done; weighted cost a done task ${s.weightedPerDoneTask == null ? '-' : k(s.weightedPerDoneTask)}`
     + Object.entries(s.perSize).map(([size, x]) => `; ${size} median ${k(x.median)} (${x.n})`).join(''));
   lines.push(...m.subagents.map((x) => `  ${x.task || x.agent} ${x.size || '-'} ${x.status || '-'} ${x.model || '-'}: ${x.calls} calls, weighted ${k(x.weighted)}, `
-    + `boot ${x.boot ? k(x.boot) : '-'}, peak ${k(x.peak)}, ${x.activeMin} min`));
+    + `first call ${k(x.first)}, boot ${x.boot ? k(x.boot) : '-'}, peak ${k(x.peak)}, ${x.activeMin} min`));
   if (turns) lines.push(...m.turns.map((x) => `  turn ${x.at}: ${x.calls} calls, cache reads ${k(x.cacheRead)}, output ${k(x.output)}, peak ${k(x.peak)}`));
   return lines.join('\n');
 }

@@ -57,7 +57,7 @@ r = run(file, '--json', '--results', path.join(dir, 'results.json'));
 const w = r.ok ? JSON.parse(r.out) : { subagents: [], summary: {} }, [s1, s2] = w.subagents;
 // weighted: input + 1.25 cache writes + 0.1 cache reads + 5 output; s1 is 4 + 0.1 * 2500 + 5 * 30 = 404
 expect('sub-agents: task, size, status, weighted cost and boot', s1 && s1.task === 'VB-123' && s1.size === 'S' && s1.status === 'done' && s1.weighted === 404
-  && s1.boot === 1502 && s1.calls === 2 && s2.task === 'VB-124' && s2.boot === 0, r.out);
+  && s1.boot === 1502 && s1.first === 1002 && w.summary.readMedian === 500 && s1.calls === 2 && s2.task === 'VB-124' && s2.boot === 0, r.out);
 expect('the summary: share, boot, cost a done task, first pass', w.summary.weightedTotal === w.weighted + s1.weighted + s2.weighted
   && w.summary.orchestratorShare > 0 && w.summary.bootMedian === 1502 && w.summary.perSize.S.median === 404 && w.summary.firstPass === 0.5
   && w.summary.weightedPerDoneTask === w.summary.weightedTotal, r.out);

@@ -26,7 +26,8 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
    model by size: `sonnet` for S, `opus` for M and L. If that agent type is not offered, start a general-purpose one with the same
    model, told to read `.claude/agents/vb-task.md` and follow it for that task.
 3. When one ends, merge it, one at a time: `git merge --no-ff <its branch>` into the run's branch, then `npm test`.
-   - A conflict, or a red `npm test`: undo the merge (`git merge --abort`, or `git reset --hard` to the commit before it), and
+   - A conflict in `index.html` alone: it is built, so rebuild it (`python3 build.py`, `git add index.html`), conclude the merge, and go on to `npm test`.
+   - Any other conflict, or a red `npm test`: undo the merge (`git merge --abort`, or `git reset --hard` to the commit before it), and
      `node tools/inbox.js result VB-NNN status=needs-review summary=<the reason>`. Never retry a task in the same night, and never
      fix it yourself.
    - It reported `failed`, or left no result (`node tools/inbox.js status`): the same, without merging.
@@ -57,6 +58,8 @@ push. Candidates are never ready. Prefer small tasks that unblock others.
 
 ## Rules
 - Never leave uncommitted work at the end of a task. Never edit `design.md`.
+- Timing is measured by the nightly bench, alone on the machine (section 3): a time a sub-agent measured beside others is a
+  description, never a result.
 - Only you merge, apply and push; a sub-agent commits on its worktree's branch and writes nothing outside its worktree but the inbox.
 - If `BACKLOG.md` or `BACKLOG_ARCHIVE.md` conflicts when you update from `main`, keep both sides' rows (delete only the conflict
   markers) and run `node tools/backlog.js sync`, which rebuilds the tables from the task files.

@@ -13,13 +13,16 @@ What you share with the others goes through the inbox (`node tools/inbox.js --he
 `BACKLOG.md`, `BACKLOG_ARCHIVE.md`, `QUESTIONS.md` or `docs/tuning.md`, and you do not run `tools/backlog.js done`, `set` or `new`.
 The orchestrator writes those once, from your notes.
 
-1. Set up: if `node_modules` is missing, `ln -s "$(git rev-parse --path-format=absolute --git-common-dir)/../node_modules" node_modules`;
-   then `git merge` the run's branch, so that you start from its latest commit.
+1. Set up: `git merge` the run's branch, so that you start from its latest commit; then link what the main checkout already has,
+   `M="$(git rev-parse --path-format=absolute --git-common-dir)/.."`: `ln -s "$M/node_modules" node_modules` if it is missing, and
+   `ln -s "$M/tests/fixtures" tests/fixtures` likewise (the fixtures are keyed by the sources, so the cache is safe to share).
 2. Take the task as `AGENTS.md`, "Taking a task", says, from `node tools/backlog.js show ID` to ticking its criteria and writing its
    notes in `backlog/ID.md`, which is yours to edit. Read sections, not files (`tools/doc.js`); learn a tool from its `--help`.
 3. Before you first edit a file under `src/`, `node tools/inbox.js claim ID FILE...`. If another task holds one, keep your change to
    that file small.
 4. Allowed: what the task specifies, and the tests it needs. No new dependencies, build changes or restructuring unless the task says so.
+   Others are using the machine: a time you measure is a description, not a result, so report counters and leave times to the
+   nightly bench; and run nothing that appends to a shared record (`tools/bench.js`, `tools/bands.js`, `--record`).
 5. Leave a note (`node tools/inbox.js note ID KIND ...`) for each of these, as it comes up:
    - `task`: a follow-up task, with one of your reserved IDs, its criteria as the body;
    - `tuning`: a shortfall left for the tuning run; `question`: one only Kim can answer, with its proposed answers;

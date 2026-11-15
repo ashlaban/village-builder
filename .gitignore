@@ -1,5 +1,5 @@
 node_modules
 tests/out/
-tests/fixtures/
+tests/fixtures
 work/
 .claude/worktrees/
