@@ -139,7 +139,23 @@ check(KINDS.cook.late === true, 'the cook\'s job is finished after the end of wo
   let late = 0, finished = 0;
   Pot.cookMeal = (...a) => { const k = pot(...a); pots[Math.min(k, 3)]++; return k; };
   try {
+    const Jobs = VB['sim/jobs'], { issue } = VB['sim/commands'];
     for (let d = 0; d < 36; d++) {
+      // Since the head's day (VB-449) the meal's hand is called at 14:00, and no pot is left so late by itself: every sixth day one
+      // household's pot is found empty an hour before the end of work, its cook is asked for and its mistress sent to it.
+      if (d % 6 === 3) {
+        Sim.advance(st, d * DAY + WORK[1] - 1 - st.t);
+        const c = Sim.cal(st.t);
+        for (const id of st.liveHouseholds) {
+          const hh = st.households[id], f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+          const cook = f && f.household === id && hh.members.find((m) => st.pawns[m].alive && st.pawns[m].role === 'wife' && !st.agents[m].job);
+          if (cook === undefined || cook === false || cook === null || st.jobs.has(`cook:h${id}:${c.day}`)) continue;
+          hh.cookDay = -1; hh.meals = 0;
+          let key = null;
+          KINDS.cook.available(st, hh, f, c, (k, site, extra) => { key = k; Jobs.post(st, k, 'cook', { type: 'household', id }, site, extra); });
+          if (key && issue(st, { actor: cook, verb: 'work', target: key, source: 'planner' }) === true) break;
+        }
+      }
       Sim.advance(st, d * DAY + WORK[1] - 0.1 - st.t);
       const busy = [];
       for (const id of st.living) {

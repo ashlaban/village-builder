@@ -61,20 +61,23 @@ const FARMER = 0, WIFE = 1;
   assert.ok(a.job || a.phase === 'home' || a.inside, 'left to itself again, the pawn does as the others: more work, or home at the end of it');
 }
 
-// 3. Looking up (sim/jobs, lookUp): with the woodpile low the farmer leaves his field for the woods at the full hour; told to hoe, he stays.
+// 3. Called off (sim/jobs, allot; VB-449): the woodpile falls low, the head's day is allotted anew at the full hour, and a son leaves the
+// field for the woods while the farmer keeps hoeing (design.md section 7, More urgent work); told to hoe, the son stays.
 {
-  const low = (st) => { st.households[0].wood = 5; Sim.advance(st, 0.6); };
-  const plain = make(4.5, true), st = make(4.5, true), a = st.agents[FARMER];
-  low(plain); assert.strictEqual(plain.agents[FARMER].job.kind, 'wood', 'unplayed, the farmer leaves the field for the woods');
+  const SON = 4;
+  const low = (st) => { const hh = st.households[0]; VB['sim/stores'].take(st, hh, 'wood', hh.wood - 5, 'burn'); Sim.advance(st, 0.6); };
+  const plain = make(4.5, true), st = make(4.5, true), a = st.agents[SON];
+  low(plain); assert.strictEqual(plain.agents[SON].job.kind, 'wood', 'unplayed, the son leaves the field for the woods');
+  assert.strictEqual(plain.agents[FARMER].job.kind, 'plow', 'and the farmer keeps hoeing');
   const field = a.job;
-  Sim.inhabit(st, FARMER); Sim.queue(st, { actor: FARMER, verb: 'work', target: field.key });
+  Sim.inhabit(st, SON); Sim.queue(st, { actor: SON, verb: 'work', target: field.key });
   Sim.advance(st, 0.3);
   assert.ok(a.job === field && a.phase === 'work' && hour(st) < 11, 'back at the hoeing before the hour');
   low(st);
   assert.ok(hour(st) > 11 && a.job === field, 'the player\'s command is not left for more urgent work');
 }
 
-// 4. The call to cook (sim/jobs, callCooks): the wife is called off the field at 14:00; on the player's command she stays, and the
+// 4. The call to cook (sim/jobs, allot: a task with a deadline today calls its hand; VB-449): the wife is called off the field at 14:00; on the player's command she stays, and the
 // next cook is called.
 {
   const hungry = (st) => { st.households[0].meals = 0; Sim.advance(st, 0.6); };

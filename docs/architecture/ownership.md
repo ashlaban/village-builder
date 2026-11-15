@@ -531,14 +531,15 @@ One row for each change of state, with its writer. *Past the owner* marks a writ
 | --- | --- | --- |
 | Each work hour, every job is marked unposted | `job.live = false` | `jobs.js:47` (refreshJobs) |
 | The fields post their work: hoe, sow, weed, reap, haul | `st.jobs`, `st.jobsBy`, `st.jobSeq`, `job.live` | `jobs.js:20-26` (post), called at `jobs.js:55-61` |
-| Idle pawns are gathered; each bids for every job it may take | draws `st.rng.work` | `clock.js:117-124`, `jobs.js:192-207` (planRound) |
-| The best bid is carried out as a command | none in the planner | `jobs.js:205` → `issue` (`commands.js:132`) → verb `work` (`commands.js:22-26`) |
+| The head allots the household's day, each morning, at its review and when its tasks change (VB-449) | `plan.day`; no random draw | `jobs.js` (allot, allotChanged) |
+| Idle pawns are gathered; each takes the first task of its list that has room; one with none bids to help a neighbour | the helper's bid draws `st.rng.work` | `clock.js` (step), `jobs.js` (takeDay, helpers) |
+| The task taken is carried out as a command | none in the planner | `jobs.js:205` → `issue` (`commands.js:132`) → verb `work` (`commands.js:22-26`) |
 | The job in hand is left, keeping its progress | `job.claims` (splice), `agent.job`, `agent.phase`, `agent.work` | `agents.js:55-58` (release) |
 | The pawn joins the job and sets out | `job.claims` (push), `agent.job`, `agent.phase = 'go'`, `agent.path`, `seg`, `inside`, `anim`; the route is cached in `st.pathCache` | `agents.js:44-50` (start), `agents.js:30-41` (walkTo), `routes.js:103` |
 | Walking | `agent.x`, `y`, `seg`, `face`, `stride`; worn paths `w.wear` | `agents.js:141-153` (moveAgent), `paths.js:17-20` (tread) |
 | Arrival | `agent.phase = 'work'`, `anim`, `inside`, `work` (the row being walked) | `agents.js:85-92` (arrived) |
 | Working | `job.done`; for a land project, its claim renewed (`claim.renewed`) | `agents.js:111`; `claims.js:32` through the kind's `worked` |
-| Every work hour, a better job may interrupt | as release and start | `jobs.js:130-144` (lookUp) |
+| When the day is allotted anew, a much more urgent task, or one with a deadline today, calls its hand | as release and start | `jobs.js` (allot) |
 | Sowing done: the other hands are freed | their `agent.job`, `phase`, `work`, `inside`, `anim`, `path`; `job.claims` | `agents.js:60-68` (freeHands) |
 | The seed goes into the ground | **`household.grain -= seedPerField`**, `farmstead.fields[].stage = 'sown'`, `sown`, the weeding fields | `kinds.js:54-55` (the kind's `done`) — past the owner of food and of the field |
 | The job ends | `st.jobs.delete`, `st.jobsBy` | `agents.js:53` (dropJob) — past `sim/jobs`, which posts |

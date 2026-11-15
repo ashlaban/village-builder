@@ -255,3 +255,18 @@ a throwaway mock before any plan, as the balance mocks were (`docs/balance/mocks
 - **B first.** The Agreed points of section 7 it rewrites may move.
 - **C is in scope**, after B.
 - The reviewer's unchecked view is wanted, labelled as such (section 5.2).
+
+## 9. B as built (VB-449, 15 November 2026)
+
+The head's day is in: `allot`, `takeDay` and `helpers` in `src/sim/jobs.js`, the day saved on the household's plan, `design.md` section 7
+rewritten. Three things turned out other than section 6 says:
+
+- **Not cheaper.** The jobs line is 40.9 ms a day against 38.6 (populous small, seed 7, 4 years), within the noise of the two runs. The
+  pairs weighed are as many as the bids and looks up were, and the routes are the same. The cost argument now rests on C alone.
+- **The join factor stays.** Without it every hand's best task was the same field and the spring raking was missed. It is the rule
+  that spreads hands over simultaneous tasks, and it moved into the allotment unchanged.
+- **Two faults that the old timing hid** came out and are fixed: a meeting looked hourly at a pawn that carried a load every hour, and
+  an invariant forbade a state the firewood cart makes on `main` too.
+
+Fewer households went hungry at each seed run (hungry household-days 40 to 29, 4 to 0, 1 to 0); the numbers are in `backlog/VB-449.md`.
+Still to do of section 7's table: the day in the plan panel with the head's verbs, help as an ask, the two fixes of A, and C's mock.
