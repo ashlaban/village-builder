@@ -106,6 +106,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters; for `tests/` and `tools/`, `src/` has Prettier), `node tools/shot.js` (screenshots of the page), `node
   tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
   `medium-y5` and `medium-ref`).
+- Land cover: `node tools/cover.js [--map M] [--seeds 7,11,42]` prints each biome's share of a generated island's land; the thresholds are `COVER` in `src/gen.js`.
 - Agent usage: `node tools/agent-usage.js` (this session's calls, tokens and tool results, from its transcript; `--history docs/agents/usage`).
 - Play locally: open `index.html` in a browser.
 
