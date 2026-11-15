@@ -90,10 +90,13 @@ VB['sim/agents'] = (() => {
   }
   // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
   // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
-  function walkTo(st, a, tile, x, y) {
+  // `near` (an idle stroll, VB-468): to a neighbouring tile it walks straight over, with no route search.
+  function walkTo(st, a, tile, x, y, near) {
     const w = st.w,
       from = tileAt(st, a.x, a.y),
-      p = from >= 0 && from !== tile ? route(st, from, tile) : null;
+      k = near && from >= 0 ? w.nb.indexOf(tile, from * 6) : -1,
+      step = k >= from * 6 && k < from * 6 + 6,
+      p = step ? [from, tile] : from >= 0 && from !== tile ? route(st, from, tile) : null;
     const ok = p && p[0] === from,
       tiles = ok ? p.slice(1, -1) : [],
       cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);

@@ -373,7 +373,7 @@ VB['sim/rules'] = (() => {
   // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
   // An idle pawn the planner found no work looks again after wait[0] to wait[1] hours (VB-245; Kim, 10 Nov: 2 to 4, from 0.75 to 2). It hears of new
   // work meanwhile through the hourly refresh and `awake` (sim/agents), which wakes those whose pause ends by the hour's end, and of an occasion by the asking.
-  const IDLE = { wait: [2, 4] };
+  const IDLE = { wait: [4, 8] };
   const SOCIAL = {
     situational: { spouse: 0.3, parent: 0.3, child: 0.3, sibling: 0.2, housemate: 0.1 },
     memories: {
