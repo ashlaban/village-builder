@@ -1,7 +1,8 @@
-// @sys sim/routes: walking costs by terrain and slope, the route search (A*) and the route cache with its daily refresh
+// @sys sim/routes: walking costs by terrain and slope, the kept lists of what is in walking reach, the route search (A*) and the route
+// cache with its daily refresh
 VB['sim/routes'] = (() => {
   const { TERRAIN, SLOPE, ROUTE, PATHS, SPEED } = VB['sim/rules'];
-  const { hexSteps } = VB['sim/hex'];
+  const { hexSteps, bfs } = VB['sim/hex'];
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
@@ -29,6 +30,28 @@ VB['sim/routes'] = (() => {
   const through = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
   // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
   const walkable = (w) => (j) => passable(w, j);
+  // The tiles within `steps` walking steps of `from`, in the order the breadth-first search finds them (sim/hex bfs under `walkable`,
+  // `from` first): what a house's ground searches scan for the nearest tile that will do (sim/fish, sim/forage, sim/deer), asked for
+  // many times a day and the same each time. Where a pawn can stand is the generated world's (not water, not a river away from its
+  // crossings, not snow; a house can be stood on), which play does not change, so a list is searched once and kept beside the world's
+  // own data: never in `st`, never saved, the same after a load. Should a tile's standing change after all, costChanged (below) sees it
+  // and the lists are searched again. One list a house and reach asked for, of at most 3 * steps * (steps + 1) + 1 tiles.
+  const REACH = new WeakMap(); // lint-allow: closure derived from the world alone, as sim/fish's lakeSize; holds nothing of a run
+  function reachTiles(w, from, steps) {
+    let r = REACH.get(w);
+    if (!r) REACH.set(w, (r = { lists: new Map(), stood: null }));
+    const key = from * 256 + steps;
+    let list = r.lists.get(key);
+    if (!list) {
+      if (!r.stood) {
+        r.stood = new Uint8Array(w.N);
+        for (let i = 0; i < w.N; i++) r.stood[i] = passable(w, i) ? 1 : 0;
+      }
+      list = Int32Array.from(bfs(w, from, steps, walkable(w)).dist.keys());
+      r.lists.set(key, list);
+    }
+    return list;
+  }
   // What the slope of the step between a and b multiplies its cost by: Tobler's hiking function made symmetric around the flat (VB-438),
   // exp(SLOPE.tobler |S|) for the slope S = SLOPE.grade times the elevation between them, up or down alike (so the way back costs what
   // the way there does), at most SLOPE.max; 1 on the level. Water lies at sea level; a worn path does not flatten a slope.
@@ -256,6 +279,12 @@ VB['sim/routes'] = (() => {
   // tile on nearly every day, and the cache refills with a tenth of the routes held.
   const costChanged = (st, tile) => {
     st.routeDirty.add(tile);
+    const r = REACH.get(st.w),
+      stands = passable(st.w, tile) ? 1 : 0;
+    if (r && r.stood && r.stood[tile] !== stands) {
+      r.stood[tile] = stands;
+      r.lists.clear();
+    }
   };
   // Once a game day: when any tile changed cost, empty the cache (the straight-walk fallbacks with it).
   function refreshRoutes(st) {
@@ -324,6 +353,7 @@ VB['sim/routes'] = (() => {
     tileCost,
     passable,
     walkable,
+    reachTiles,
     slopeFactor,
     stepCost,
     findRoute,
