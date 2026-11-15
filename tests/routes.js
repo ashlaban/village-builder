@@ -47,13 +47,17 @@ const grid = (COLS, ROWS) => {
   check(s && !s.some((t) => w.biome[t] === B.SNOW) && s.includes(at(14, 25)), 'snowfields are never crossed; the gap is taken');
   w.biome[at(14, 25)] = B.SNOW;
   check(findRoute(w, from, to) === null, 'no route through a closed wall of snow');
-  // a cached route through a tile whose cost changes is dropped at the end of the day; routes far from it stay
+  // a tile's cost changes: at the end of the day the cache is emptied, so no route is served from before the change (VB-236)
   w.biome.fill(B.MEADOW);
   const st = { w, pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set() };
   const r1 = route(st, from, to), r2 = route(st, at(2, 2), at(4, 2));
+  check(route(st, from, to) === r1 && r2 === route(st, at(2, 2), at(4, 2)), 'with no change a route is served from the cache');
+  refreshRoutes(st);
+  check(st.pathCache.size === 2, 'nothing changed: the cache stays');
   w.biome[r1[5]] = B.MARSH; costChanged(st, r1[5]); refreshRoutes(st);
-  check(!st.pathCache.has(from * w.N + to) && st.pathCache.has(at(2, 2) * w.N + at(4, 2)), 'only the routes a changed tile may touch are dropped');
-  check(route(st, from, to) !== r1 && r2 === route(st, at(2, 2), at(4, 2)), 'the dropped route is searched again');
+  check(st.pathCache.size === 0 && st.routeDirty.size === 0, 'a tile changed: the cache is emptied and the changes forgotten');
+  const r3 = route(st, from, to);
+  check(r3 !== r1 && !r3.includes(r1[5]), 'the route is searched again, round the dearer tile');
 }
 {
   // slopes (Tobler's hiking function, symmetric; VB-438): a raised block of meadow between two points is walked round, though its ground
@@ -129,22 +133,22 @@ const grid = (COLS, ROWS) => {
   const st = tinyState(w, [{ at: [10, 10], farms: 2, sizes: [6, 5] }], { seed: 7 });
   const key = (a, b) => a * w.N + b, keys = (s) => [...s.pathCache.keys()];
   const savedMax = ROUTE.cacheMax;
-  assert.strictEqual(savedMax, 60000, 'the measured production cache bound is 60,000');
+  assert.strictEqual(savedMax, 8000, 'the measured production cache bound is 8,000 (VB-236)');
   try {
     ROUTE.cacheMax = 3;
     const first = route(st, 0, 1);
     route(st, 2, 3); route(st, 4, 5);
     assert.strictEqual(route(st, 0, 1), first, 'a direct hit returns the same path');
-    assert.deepStrictEqual(keys(st), [key(2, 3), key(4, 5), key(0, 1)], 'a direct hit becomes most recent');
+    assert.deepStrictEqual(keys(st), [key(0, 1), key(2, 3), key(4, 5)], 'a direct hit keeps its place (first in, first out)');
     const evictions = VB.count.routeEvict;
     route(st, 6, 7);
     assert.strictEqual(VB.count.routeEvict, evictions + 1, 'each eviction is counted at its owner');
-    assert.deepStrictEqual(keys(st), [key(4, 5), key(0, 1), key(6, 7)], 'insertion evicts the least recent, not the most recent');
+    assert.deepStrictEqual(keys(st), [key(2, 3), key(4, 5), key(6, 7)], 'insertion evicts the oldest');
     const searches = VB.count.routeSearch;
     const reverse = route(st, 5, 4);
     assert.deepStrictEqual(reverse, [5, 4]);
     assert.strictEqual(VB.count.routeSearch, searches, 'a reverse hit does not search');
-    assert.deepStrictEqual(keys(st), [key(6, 7), key(4, 5), key(5, 4)], 'reverse reuse touches its source as well as inserting its result');
+    assert.deepStrictEqual(keys(st), [key(4, 5), key(6, 7), key(5, 4)], 'a reverse hit inserts its result and leaves its source where it is');
     route(st, 2, 3);
     assert.strictEqual(VB.count.routeSearch, searches + 1, 'an evicted route can be searched again');
     assert.strictEqual(st.pathCache.size, ROUTE.cacheMax);
@@ -152,7 +156,7 @@ const grid = (COLS, ROWS) => {
 
     const load = () => VB.sim.load(tinyWorld(rows), JSON.parse(JSON.stringify(VB.sim.save(st))));
     const back = load();
-    assert.deepStrictEqual([...back.pathCache], [...st.pathCache], 'save/load preserves paths and their LRU order');
+    assert.deepStrictEqual([...back.pathCache], [...st.pathCache], 'save/load preserves paths and their order');
     route(st, 8, 9); route(back, 8, 9);
     assert.deepStrictEqual([...back.pathCache], [...st.pathCache], 'the next eviction is identical after a save/load');
     // A pre-bound save's Map order is the only recency information available: retain its newest entries.
