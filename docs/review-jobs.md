@@ -279,3 +279,33 @@ removes is 17.7% of simulation time, about 15 of 95 ms a game day, since a third
 changes every reader of a pawn's place. The reviews' availability asks (20.8%) are a larger item, and option A's two fixes are worth
 about as much as C together. The order this suggests: A, then the availability cache `design.md` section 7 already agrees
 (Opportunities: cached per holder), then C, perhaps as its half step (work legs only).
+
+## 11. The shape of C, as discussed with Kim (15 November 2026)
+
+C may be a breaking change: the timetable is the simulation, not a copy of the stepping. Decided in the discussion, to be written into
+`design.md` by C's plan:
+
+- **A call is instant.** The head calls a pawn off a block at once (knowledge moves at once, the hard rule's exemption). The cost is
+  physical and shown before the call: the walk home, the load left. The engine needs the cut for the night, a death and an occasion in
+  any case. An earshot rule (instant near the house, at the leg's end beyond) is a later option, not built.
+- **The timetable is an estimate**, with a range, not a promise.
+- **Two skills, kept apart.** The worker's skill changes the time taken; the head's skill changes the estimate. The player as head
+  sees its pawn's estimate, flaws and all (parity of command).
+- **Time taken and the uncertainty of the estimate are different things**, and each needs its cause:
+
+| Quantity | Whose | What moves it | Drawn |
+| --- | --- | --- | --- |
+| The norm | The kind's | The hours everyone knows a task takes | Never |
+| The time taken | The world's | Causes the world already holds: the worker's rate (skill at the type of work, age, hunger, health), the ground and the crop (a heavy stand takes longer to reap and carry, scrub to clear), the walk, worn tools when built, weather when built | No: computed |
+| Its residual | The worker's | Mishaps and rework, fewer for a practised hand | Once, when the block starts, from a seeded stream |
+| The estimate's centre | The head's | Which of the causes above it reckons with, and a persistent lean (one head always thinks it will go faster) | The lean once, when it becomes head |
+| The estimate's width | The head's | What it cannot know (the residual, what may interrupt) and what it judges poorly; narrower with husbandry and years as head, and as the work proceeds and is seen | Never: derived |
+
+  So most of the variation in time taken is explained by state, not dice; the residual is small and is the only new randomness. The
+  estimate is wrong for reasons that can be named in the panel ("did not reckon with the heavy crop").
+- **Heads allot by their estimates**, so a poor head mans the harvest too thinly and meets the frost: households differ by mechanism
+  (principles 1 and 8), which answers the risk of a solved day.
+- **Cost:** one draw a block, one stored lean a head, nothing polled.
+
+Open: whether a poor head's range is honest and wide, or too narrow; which causes of time taken come first; whether skill at a type
+of work grows from hours worked now or with slice 7's traits.
