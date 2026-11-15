@@ -28,14 +28,15 @@ The orchestrator writes those once, from your notes.
    - `task`: a follow-up task, with one of your reserved IDs, its criteria as the body;
    - `tuning`: a shortfall left for the tuning run; `question`: one only Kim can answer, with its proposed answers;
    - `candidate`, `teleport`, `decision`: what `AGENTS.md`, Surfacing, asks for. A teleport found also gets a `task` note, arch `physical`.
-6. If it needs a decision only Kim can make, or a criterion cannot be met: revert your changes, write the reason in the task file,
-   note the `question`, and end with `needs-review`.
+6. A criterion you cannot meet, or could only meet in part (a measure not taken counts): keep your work and commit it, leave the
+   criterion unticked with the reason beside it in the task file, and end with `needs-review`, never `done`. A decision only Kim can
+   make: revert what depends on it, keep and commit what does not, note the `question`, and end with `needs-review`.
 7. To finish: `git merge` the run's branch again, run the checks `AGENTS.md` asks for on the result, and commit as `VB-NNN: <title>`
    on your worktree's branch. Do not push, and never leave uncommitted work, whatever the outcome. Then
    `node tools/inbox.js result ID status=done|needs-review|failed commit=SHA size=S|M|L summary=...`.
 8. Where the page changed, save a screenshot (`node tools/shot.js --help`) under `docs/img/` and commit it.
 
 Your last message is all your caller sees, so make it the result and nothing else, in at most twelve lines:
-- `VB-NNN <title>: done <commit> on <branch>`, or `needs-review <commit> on <branch>: <reason>`, or `failed: <what, and the state of the worktree>`;
+- `VB-NNN <title>: done <commit> on <branch>`, or `needs-review <commit> on <branch>: <the criteria unmet, or the question>`, or `failed: <what, and the state of the worktree>`;
 - the numbers `AGENTS.md` asks for (before and after, seeds and maps; counters changed, targets moved), and the screenshot's path;
 - the notes you left, by kind and count; the inbox holds their text.

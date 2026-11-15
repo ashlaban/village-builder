@@ -76,6 +76,11 @@ r = run('', 'apply');
 expect('apply applies once', r.ok && /applied 0/.test(r.out), r.out);
 const check = spawnSync(process.execPath, [path.join(root, 'tests', 'backlog.js'), dir], { encoding: 'utf8' });
 expect('tests/backlog.js passes on the result', check.status === 0, check.stdout + check.stderr);
+r = run('', 'result', B, 'status=needs-review', 'commit=def5678', 'summary=cost not measured');
+r = run('', 'apply');
+expect('a task with a criterion unmet goes to Waiting for Kim', r.ok && file('BACKLOG.md').split('\n## Waiting for Kim\n')[1].split('\n## ')[0].includes(`[${B}]`), r.out);
+r = run('', 'report');
+expect('and heads the report with its reason', r.out.includes(`- ${B} def5678: cost not measured`), r.out);
 r = run('', 'report');
 expect('report: the PR section', r.ok && r.out.startsWith('## For Kim') && r.out.includes('- Animals are led, never carried')
   && r.out.includes('hay jumps') && r.out.includes(`- ${N} Herds are led`), r.out);

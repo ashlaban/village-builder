@@ -227,6 +227,7 @@ if (cmd === 'init') {
   const section = (title, rows) => { if (rows.length) out.push('', `**${title}**`, ...rows); };
   section('Principle candidates', by('candidate').map((n) => `- ${one(n.fields.rule)} (${n.task})${n.body ? '\n' + n.body.split('\n').map((l) => '  ' + l).join('\n') : ''}`));
   section('Teleports found', by('teleport').map((n) => `- ${headline(n)}, found by ${n.task}`));
+  section('Tasks merged with a criterion unmet', all("SELECT * FROM results WHERE status = 'needs-review'").map((r) => `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));
   section('Close calls', by('decision').map((n) => `- ${n.task}: ${headline(n)}`));
   section('Questions (in `QUESTIONS.md`)', by('question').map((n) => `- ${n.task}: ${headline(n)} (priority ${n.fields.priority})`));
   section('New tasks', by('task').map((n) => `- ${n.fields.id} ${one(n.fields.name)} (${n.fields.size}, ${n.fields.status || 'needs-review'}; from ${n.task}): ${one(n.fields.summary)}`));

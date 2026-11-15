@@ -28,7 +28,8 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 5. Before the last commit: `npm run format`, then `npm run verify` (half a minute); for a change under `src/page/`, also `node tests/smoke.js` and the
    `tests/browser*.js` it touches. Rebuild `index.html` before committing. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
    report it in the task file and the PR's Targets section (before, after, residual, cause).
-6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`.
+6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`. A criterion
+   unmet, or met only in part: keep the commit, leave it unticked with the reason, and `set ID status=needs-review`; it is not done.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
 A sub-agent of an orchestrated run (`docs/agents/worker.md`) follows `.claude/agents/vb-task.md`, which replaces what steps 3, 6 and 7
