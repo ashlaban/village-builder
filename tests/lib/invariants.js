@@ -276,7 +276,7 @@ function checkState(st) {
       const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], has = new Set(ids);
       for (const id of st.living) {
         const a = st.agents[id];
-        if (!has.has(id) && (a.path || a.phase === 'work' || (work && a.phase === null && a.idleUntil <= hour + 1))) {
+        if (!has.has(id) && a.phase !== 'road' && (a.path || a.phase === 'work' || (work && a.phase === null && a.idleUntil <= hour + 1))) {
           bad.push(`awake: agent ${id} may act in hour ${hour} but is not awake`);
         }
       }
@@ -801,8 +801,10 @@ function checkState(st) {
       ids.add(j.id);
       if (!p || !p.alive || seen.has(j.pawn)) bad.push(`${at}: pawn ${j.pawn} dead, missing or on two journeys`);
       seen.add(j.pawn);
-      if (p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
-      if (j.why !== 'move' || !(j.food >= 0) || !Number.isFinite(j.due)) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
+      const bearing = j.why === 'carry' && !j.back; // VB-291: a carrier bound for the receiver's house, with his gift
+      if (bearing ? !j.gift || !(j.gift.n > 0) || st.farmsteads[st.households[j.gift.to].farmstead].house !== j.to : (j.gift || false) && j.gift !== null) bad.push(`${at}: a gift ${JSON.stringify(j.gift)} on a journey ${j.why}, back ${j.back}`);
+      if (!bearing && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
+      if ((j.why !== 'move' && j.why !== 'carry') || !(j.food >= 0) || !Number.isFinite(j.due)) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
       const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
       if (ph !== 'journey' && ph !== 'road') bad.push(`${at}: its pawn is in phase ${ph}`);
     });

@@ -135,7 +135,7 @@ VB['sim/pot'] = (() => {
   // Fills `units` with a pot of `target` rations: fresh food oldest first, then dried fish (`lean`: only up to WINTER_FISH of the pot with
   // the fresh fish in it), then flour, then grain (spare at most: the grain above the seed reserve, and the seed the cook may take). Returns
   // the rations it could not fill. Reads only.
-  function fill(st, hh, target, spare, dried, lean, units) {
+  function fill(st, hh, target, spare, dried, lean, units, pulses) {
     for (const k in units) delete units[k];
     let left = target;
     for (const b of hh.fresh) {
@@ -159,10 +159,21 @@ VB['sim/pot'] = (() => {
       units.flour = fl;
       left -= mealsFrom('flour', fl);
     }
-    const g = Math.min(spare, left / FOODS.grain.worth);
+    // pulses (peas, VB-349) are a source of their own: first, up to what leaves grain a source (`lean`), else after the grain
+    let pu = lean ? Math.min(pulses, left / FOODS.pulses.worth, WINTER_FISH * target) : 0;
+    if (pu > 0) {
+      units.pulses = pu;
+      left -= mealsFrom('pulses', pu);
+    }
+    const g = Math.min(spare - pulses, left / FOODS.grain.worth);
     if (g > 0) {
       units.grain = g;
       left -= mealsFrom('grain', g);
+    }
+    pu = Math.min(pulses - pu, left / FOODS.pulses.worth);
+    if (pu > 0) {
+      units.pulses = (units.pulses || 0) + pu;
+      left -= mealsFrom('pulses', pu);
     }
     return left;
   }
@@ -173,6 +184,8 @@ VB['sim/pot'] = (() => {
     settle(st, hh);
     const free = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')),
       spare = free + Math.min(seed, grainOf(hh) - free),
+      peas = hh.grain.peas || 0,
+      pulses = peas > 0 ? Math.min(spare, Math.max(0, peas - reserved(st, hh, Stores.grainGood('peas')))) : 0, // the peas above their seed
       dried = hh.larder.length && iced(st) ? driedHeld(hh) : 0,
       units = POT.units;
     let k = 0;
@@ -180,12 +193,12 @@ VB['sim/pot'] = (() => {
       let done = false;
       for (let s = ECON.pot.length - 1; s >= 1 && !done; s--) {
         // the factor a pot of s sources needs; the last, a full pot of any
-        const left = fill(st, hh, want * potFactor(s), spare, dried, s > 1, units);
+        const left = fill(st, hh, want * potFactor(s), spare, dried, s > 1, units, pulses);
         k = sourcesOf(units);
         done = left <= 1e-9 && (s === 1 || Math.min(k, ECON.pot.length - 1) === s);
       }
       if (!done) {
-        fill(st, hh, Infinity, spare, dried, false, units);
+        fill(st, hh, Infinity, spare, dried, false, units, pulses);
         k = sourcesOf(units);
       } // short of food: all there is
     } else for (const f in units) delete units[f];
@@ -196,9 +209,10 @@ VB['sim/pot'] = (() => {
       if (!(n > 0)) continue;
       let got;
       if (food === 'grain') {
-        got = takeSpare(st, hh, Math.min(n, free), 'cooking');
+        got = takeSpare(st, hh, Math.min(n, Math.max(0, free - pulses)), 'cooking', undefined, 'peas');
         if (n - got > 1e-12) got += take(st, hh, 'grain', n - got, 'seedMeal'); // the seed, of each crop as it is held (as sim/hunger's)
-      } else if (food === 'dried fish') {
+      } else if (food === 'pulses') got = take(st, hh, Stores.grainGood('peas'), n, 'cooking');
+      else if (food === 'dried fish') {
         got = cookLarder(st, hh, food, n);
         plain += mealsFrom(food, got);
       } // its meals put, 1 to 1

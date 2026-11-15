@@ -247,12 +247,13 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // Takes up to n of a household's unreserved grain, whatever its crop (the cook, the meal, the brewer): by what each crop holds above its reservation.
-  function takeSpare(st, hh, n, why, into) {
+  // `skip`: a crop left out (the pot's grain is not its pulses, VB-349).
+  function takeSpare(st, hh, n, why, into, skip) {
     amount(n);
     if (type(hh) !== 'household') throw new Error("stores: spare grain is a household's");
-    return takeGrain(st, hh, GRAIN, n, why, into, 'household', true);
+    return takeGrain(st, hh, GRAIN, n, why, into, 'household', true, skip);
   }
-  function takeGrain(st, holder, good, n, why, into, kind, spare) {
+  function takeGrain(st, holder, good, n, why, into, kind, spare, skip) {
     const before = grainOf(holder);
     let got;
     if (good !== GRAIN) {
@@ -262,8 +263,8 @@ VB['sim/stores'] = (() => {
       setGrain(holder, c, x - got);
       if (into) into[c] = (into[c] || 0) + got;
     } else {
-      got = Math.min(before, n);
-      split(st, holder, got, spare, into);
+      got = Math.min(before - (skip ? holder.grain[skip] || 0 : 0), n);
+      split(st, holder, got, spare, into, skip);
     }
     record(st, holder, good, -got, why, kind);
     crossed(st, holder, kind, before);
@@ -271,34 +272,35 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // A crop's weight in a take of 'grain': what is held of it, or what is held above its reservation.
-  const weight = (st, holder, c, spare) => {
-    const x = holder.grain[c] || 0; // a crop not held is not asked for its reservation
+  const weight = (st, holder, c, spare, skip) => {
+    const x = c === skip ? 0 : holder.grain[c] || 0; // a crop not held is not asked for its reservation
     return spare && x > 0 ? Math.max(0, x - reserved(st, holder, CROP_GOOD[c])) : x;
   };
   // Takes n (at most what is held) from the crops by their weights; the last crop with weight takes what is left, so that one crop gives
   // exactly n, and what the weights could not place is taken from the crops in order. Allocates nothing but `into`.
-  function split(st, holder, n, spare, into) {
+  function split(st, holder, n, spare, into, skip) {
     let total = 0,
       last = -1;
     for (let i = 0; i < CROP_LIST.length; i++) {
-      const w = weight(st, holder, CROP_LIST[i], spare);
+      const w = weight(st, holder, CROP_LIST[i], spare, skip);
       if (w > 0) {
         total += w;
         last = i;
       }
     }
     if (last < 0) {
-      if (spare) split(st, holder, n, false, into);
+      if (spare) split(st, holder, n, false, into, skip);
       return;
     }
     let left = n;
     for (let i = 0; i <= last; i++) {
       const c = CROP_LIST[i],
-        w = weight(st, holder, c, spare),
+        w = weight(st, holder, c, spare, skip),
         x = holder.grain[c];
       if (w > 0) left -= takeCrop(holder, c, i === last ? Math.min(x, left) : Math.min(x, left, (n * w) / total), into);
     }
     for (let i = 0; i < CROP_LIST.length && left > 0; i++) {
+      if (CROP_LIST[i] === skip) continue;
       left -= takeCrop(holder, CROP_LIST[i], Math.min(holder.grain[CROP_LIST[i]] || 0, left), into);
     }
   }

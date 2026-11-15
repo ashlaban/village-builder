@@ -5233,6 +5233,18 @@ VB['sim/rules'] = (() => {
       weeds: 1,
       hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
     },
+    // peas (VB-349): a spring crop, the soil mended `gain` a crop (to SOIL.start; a field manured above it keeps its soil) and no wear; hoed
+    // (plow), pulled (reap) and threshed in fewer hours; lost to the frost as barley is; cooked in the pot as the food `pulses`, a source of its own
+    peas: {
+      yield: 60,
+      seed: 20,
+      sow: [0, 0, 9],
+      ripe: 18,
+      wear: 0,
+      gain: 0.04,
+      weeds: 2,
+      hours: { plow: 20, sow: 2, weed: 5, reap: 10, thresh: 10 },
+    },
     // fallow (VB-348), a course and not a crop: never sown, no seed and no grain (sim/stores holds only the rows with seed); tilled once in
     // `sow`, the summer; at the year's end a field that stood fallow through the summer gains `mend` of soil if tilled, half if not, to
     // at most SOIL.start
@@ -5700,6 +5712,8 @@ VB['sim/rules'] = (() => {
   // is held as 'flour' (household.flour) and cooks 1 to 1, one source with grain. ----
   const FOODS = {
     grain: { worth: 1 / ECON.unground, keeps: null, source: 'grain', held: 'grain', raw: false },
+    // peas, held as grain of their crop (stores) and so spoiling and eaten uncooked as grain; in the pot a source of their own (VB-349)
+    pulses: { worth: 1, keeps: null, source: 'pulses', held: 'grain', raw: false },
     flour: { worth: 1, keeps: null, source: 'grain', held: 'flour', raw: false }, // a few days' stock: its keeping is not modelled
     meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', held: 'larder', raw: true }, // fresh, from the slaughter
     'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', held: 'larder', raw: true },
@@ -5803,8 +5817,9 @@ VB['sim/rules'] = (() => {
   // to 0.5 at the most (small and medium, seeds 7 and 42): factors of about 1.3, 2.0, 4.1 and the cap (from a difference of 0.26). grade 0 switches slopes off.
   const SLOPE = { tobler: 3.5, grade: 2, max: 6 };
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
-  // a lane over meadow. cacheMax: LRU entries; 60,000 keeps the late fixture's hit-rate loss within 5 points (VB-198).
-  const ROUTE = { cacheMax: 60000, reach: 200, minStep: 1 / PATHS.speed[3] };
+  // a lane over meadow. cacheMax: entries, first in first out; the cache is emptied each day a tile changes cost (VB-236), and the most
+  // it held over 48 days after the first emptying was 4,028 at medium-ref and 2,779 at small-y40: twice the larger, for a run of quiet days.
+  const ROUTE = { cacheMax: 8000, reach: 200, minStep: 1 / PATHS.speed[3] };
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = {
@@ -7280,7 +7295,7 @@ VB['sim/routes'] = (() => {
     return c;
   }
 
-  // ---- the cache: bounded LRU in Map order (oldest first); the way back is the way there, reversed ----
+  // ---- the cache: bounded, first in first out in Map order (oldest first), emptied each day a tile changed; the way back is the way there, reversed ----
   // Also used on load: pre-VB-198 saves may hold more entries than the current bound.
   function trimRoutes(st) {
     while (st.pathCache.size > ROUTE.cacheMax) {
@@ -7294,16 +7309,12 @@ VB['sim/routes'] = (() => {
     let p = st.pathCache.get(k);
     if (p) {
       VB.count.routeHit++;
-      st.pathCache.delete(k);
-      st.pathCache.set(k, p);
       return p;
     }
     const bk = to * N + from,
       back = st.pathCache.get(bk);
     if (back && back[0] === to) {
       VB.count.routeHit++;
-      st.pathCache.delete(bk);
-      st.pathCache.set(bk, back);
       p = back.slice().reverse();
     } else {
       p = findRoute(st.w, from, to);
@@ -7316,63 +7327,17 @@ VB['sim/routes'] = (() => {
     trimRoutes(st);
     return p;
   }
-  // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the routes it could change
-  // are dropped at the end of the day.
+  // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the cache is emptied at the end of
+  // the day. Dropping only the routes the tile could change took as long as the searches it saved (VB-236): the late fixtures change a
+  // tile on nearly every day, and the cache refills with a tenth of the routes held.
   const costChanged = (st, tile) => {
     st.routeDirty.add(tile);
   };
-  // Once a game day: drop the cached routes that a changed tile might now shorten or lengthen, and every straight-walk fallback.
-  // A route by tile t costs at least (steps from the start to t + steps from t to the end) times the cheapest step,
-  // so a route that costs less than that cannot change because of t.
-  // The test is skipped where its outcome is certain without the route's cost: a route of n steps costs at least n minSteps, and at most n
-  // times the dearest step (MAX_STEP, the dearest terrain on the steepest slope), so a changed tile nearer than n - 1 always drops it and
-  // one beyond n * MAX_STEP / minStep never does.
-  // The changed tiles' hex coordinates are worked out once, not once per route (hexSteps in sim/hex, unrolled).
-  const MAX_STEP = (Math.max(...Object.values(TERRAIN).filter((c) => c < Infinity)) / PATHS.speed[0]) * SLOPE.max;
+  // Once a game day: when any tile changed cost, empty the cache (the straight-walk fallbacks with it).
   function refreshRoutes(st) {
     if (!st.routeDirty.size) return;
-    const w = st.w,
-      N = w.N,
-      C = w.COLS,
-      n = st.routeDirty.size,
-      dq = new Int32Array(n),
-      dr = new Int32Array(n);
-    let i = 0;
-    for (const t of st.routeDirty) {
-      const y = (t / C) | 0;
-      dq[i] = (t % C) - ((y - (y & 1)) >> 1);
-      dr[i] = y;
-      i++;
-    }
-    const qOf = (t) => {
-      const y = (t / C) | 0;
-      return (t % C) - ((y - (y & 1)) >> 1);
-    };
     VB.count.routeRefresh += st.pathCache.size;
-    for (const [k, p] of st.pathCache) {
-      const to = k % N,
-        from = (k - to) / N;
-      if (p.length === 1 && from !== to) {
-        st.pathCache.delete(k);
-        continue;
-      }
-      const fq = qOf(from),
-        fr = (from / C) | 0,
-        tq = qOf(to),
-        tr = (to / C) | 0;
-      let near = Infinity; // the least hexSteps(from, t) + hexSteps(t, to) over the changed tiles t
-      for (let j = 0; j < n; j++) {
-        const a = fq - dq[j],
-          b = fr - dr[j],
-          c = dq[j] - tq,
-          d = dr[j] - tr;
-        const s = (Math.abs(a) + Math.abs(b) + Math.abs(a + b) + Math.abs(c) + Math.abs(d) + Math.abs(c + d)) / 2;
-        if (s < near) near = s;
-      }
-      const steps = p.length - 1;
-      if (near > (steps * MAX_STEP) / ROUTE.minStep + 1) continue;
-      if (near < steps - 1 || near <= routeCost(w, p) / ROUTE.minStep) st.pathCache.delete(k);
-    }
+    st.pathCache.clear();
     st.routeDirty.clear();
   }
 
@@ -11890,12 +11855,13 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // Takes up to n of a household's unreserved grain, whatever its crop (the cook, the meal, the brewer): by what each crop holds above its reservation.
-  function takeSpare(st, hh, n, why, into) {
+  // `skip`: a crop left out (the pot's grain is not its pulses, VB-349).
+  function takeSpare(st, hh, n, why, into, skip) {
     amount(n);
     if (type(hh) !== 'household') throw new Error("stores: spare grain is a household's");
-    return takeGrain(st, hh, GRAIN, n, why, into, 'household', true);
+    return takeGrain(st, hh, GRAIN, n, why, into, 'household', true, skip);
   }
-  function takeGrain(st, holder, good, n, why, into, kind, spare) {
+  function takeGrain(st, holder, good, n, why, into, kind, spare, skip) {
     const before = grainOf(holder);
     let got;
     if (good !== GRAIN) {
@@ -11905,8 +11871,8 @@ VB['sim/stores'] = (() => {
       setGrain(holder, c, x - got);
       if (into) into[c] = (into[c] || 0) + got;
     } else {
-      got = Math.min(before, n);
-      split(st, holder, got, spare, into);
+      got = Math.min(before - (skip ? holder.grain[skip] || 0 : 0), n);
+      split(st, holder, got, spare, into, skip);
     }
     record(st, holder, good, -got, why, kind);
     crossed(st, holder, kind, before);
@@ -11914,34 +11880,35 @@ VB['sim/stores'] = (() => {
     return got;
   }
   // A crop's weight in a take of 'grain': what is held of it, or what is held above its reservation.
-  const weight = (st, holder, c, spare) => {
-    const x = holder.grain[c] || 0; // a crop not held is not asked for its reservation
+  const weight = (st, holder, c, spare, skip) => {
+    const x = c === skip ? 0 : holder.grain[c] || 0; // a crop not held is not asked for its reservation
     return spare && x > 0 ? Math.max(0, x - reserved(st, holder, CROP_GOOD[c])) : x;
   };
   // Takes n (at most what is held) from the crops by their weights; the last crop with weight takes what is left, so that one crop gives
   // exactly n, and what the weights could not place is taken from the crops in order. Allocates nothing but `into`.
-  function split(st, holder, n, spare, into) {
+  function split(st, holder, n, spare, into, skip) {
     let total = 0,
       last = -1;
     for (let i = 0; i < CROP_LIST.length; i++) {
-      const w = weight(st, holder, CROP_LIST[i], spare);
+      const w = weight(st, holder, CROP_LIST[i], spare, skip);
       if (w > 0) {
         total += w;
         last = i;
       }
     }
     if (last < 0) {
-      if (spare) split(st, holder, n, false, into);
+      if (spare) split(st, holder, n, false, into, skip);
       return;
     }
     let left = n;
     for (let i = 0; i <= last; i++) {
       const c = CROP_LIST[i],
-        w = weight(st, holder, c, spare),
+        w = weight(st, holder, c, spare, skip),
         x = holder.grain[c];
       if (w > 0) left -= takeCrop(holder, c, i === last ? Math.min(x, left) : Math.min(x, left, (n * w) / total), into);
     }
     for (let i = 0; i < CROP_LIST.length && left > 0; i++) {
+      if (CROP_LIST[i] === skip) continue;
       left -= takeCrop(holder, CROP_LIST[i], Math.min(holder.grain[CROP_LIST[i]] || 0, left), into);
     }
   }
@@ -12702,7 +12669,7 @@ VB['sim/pot'] = (() => {
   // Fills `units` with a pot of `target` rations: fresh food oldest first, then dried fish (`lean`: only up to WINTER_FISH of the pot with
   // the fresh fish in it), then flour, then grain (spare at most: the grain above the seed reserve, and the seed the cook may take). Returns
   // the rations it could not fill. Reads only.
-  function fill(st, hh, target, spare, dried, lean, units) {
+  function fill(st, hh, target, spare, dried, lean, units, pulses) {
     for (const k in units) delete units[k];
     let left = target;
     for (const b of hh.fresh) {
@@ -12726,10 +12693,21 @@ VB['sim/pot'] = (() => {
       units.flour = fl;
       left -= mealsFrom('flour', fl);
     }
-    const g = Math.min(spare, left / FOODS.grain.worth);
+    // pulses (peas, VB-349) are a source of their own: first, up to what leaves grain a source (`lean`), else after the grain
+    let pu = lean ? Math.min(pulses, left / FOODS.pulses.worth, WINTER_FISH * target) : 0;
+    if (pu > 0) {
+      units.pulses = pu;
+      left -= mealsFrom('pulses', pu);
+    }
+    const g = Math.min(spare - pulses, left / FOODS.grain.worth);
     if (g > 0) {
       units.grain = g;
       left -= mealsFrom('grain', g);
+    }
+    pu = Math.min(pulses - pu, left / FOODS.pulses.worth);
+    if (pu > 0) {
+      units.pulses = (units.pulses || 0) + pu;
+      left -= mealsFrom('pulses', pu);
     }
     return left;
   }
@@ -12740,6 +12718,8 @@ VB['sim/pot'] = (() => {
     settle(st, hh);
     const free = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')),
       spare = free + Math.min(seed, grainOf(hh) - free),
+      peas = hh.grain.peas || 0,
+      pulses = peas > 0 ? Math.min(spare, Math.max(0, peas - reserved(st, hh, Stores.grainGood('peas')))) : 0, // the peas above their seed
       dried = hh.larder.length && iced(st) ? driedHeld(hh) : 0,
       units = POT.units;
     let k = 0;
@@ -12747,12 +12727,12 @@ VB['sim/pot'] = (() => {
       let done = false;
       for (let s = ECON.pot.length - 1; s >= 1 && !done; s--) {
         // the factor a pot of s sources needs; the last, a full pot of any
-        const left = fill(st, hh, want * potFactor(s), spare, dried, s > 1, units);
+        const left = fill(st, hh, want * potFactor(s), spare, dried, s > 1, units, pulses);
         k = sourcesOf(units);
         done = left <= 1e-9 && (s === 1 || Math.min(k, ECON.pot.length - 1) === s);
       }
       if (!done) {
-        fill(st, hh, Infinity, spare, dried, false, units);
+        fill(st, hh, Infinity, spare, dried, false, units, pulses);
         k = sourcesOf(units);
       } // short of food: all there is
     } else for (const f in units) delete units[f];
@@ -12763,9 +12743,10 @@ VB['sim/pot'] = (() => {
       if (!(n > 0)) continue;
       let got;
       if (food === 'grain') {
-        got = takeSpare(st, hh, Math.min(n, free), 'cooking');
+        got = takeSpare(st, hh, Math.min(n, Math.max(0, free - pulses)), 'cooking', undefined, 'peas');
         if (n - got > 1e-12) got += take(st, hh, 'grain', n - got, 'seedMeal'); // the seed, of each crop as it is held (as sim/hunger's)
-      } else if (food === 'dried fish') {
+      } else if (food === 'pulses') got = take(st, hh, Stores.grainGood('peas'), n, 'cooking');
+      else if (food === 'dried fish') {
         got = cookLarder(st, hh, food, n);
         plain += mealsFrom(food, got);
       } // its meals put, 1 to 1
@@ -13694,6 +13675,7 @@ VB['sim/exchange'] = (() => {
   return {
     assessGift,
     settleGift,
+    receive,
     explainAllowance,
     giftWarning,
     needValue,
@@ -13713,7 +13695,9 @@ VB['sim/exchange'] = (() => {
 // season, until the harvest), and the village store's yearly filling; each gift is a command `give`, settled by sim/exchange (VB-216)
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
-  const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
+  const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
+  const { hoursBetween } = VB['sim/routes'];
+  const onRoad = (a) => a.phase === 'journey' || a.phase === 'road'; // as sim/agents' travelling, which loads after this module
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
@@ -13739,14 +13723,27 @@ VB['sim/help'] = (() => {
   // A gift of n grain, as the command `give` (source 'help'): its actor is the giver's holder, or the household or village itself
   // without one; true when it was given.
   const actorOf = (x) => ('farmstead' in x ? (x.holder !== null ? x.holder : { household: x.id }) : { village: x.id });
-  const give = (st, from, to, n) =>
+  const give = (st, from, to, n, carrier) =>
     issue(st, {
       actor: actorOf(from),
       verb: 'give',
       target: 'farmstead' in to ? to.id : { village: to.id },
-      args: { good: 'grain', n },
+      args: carrier === undefined ? { good: 'grain', n } : { good: 'grain', n, carrier },
       source: 'help',
     }) === true;
+  // The youngest adult of 14 to 59 of household hh who is not on the road (VB-291), or -1: the one who carries a far gift
+  function carrierOf(st, hh) {
+    let best = -1;
+    for (const id of hh.members) {
+      const p = st.pawns[id];
+      if (!p.alive || p.age < 14 || p.age >= 60 || onRoad(st.agents[id])) continue;
+      if (best < 0 || p.age < st.pawns[best].age) best = id;
+    }
+    return best;
+  }
+  // Walking hours from household k's village to hh's
+  const hoursOf = (st, k, hh) =>
+    hoursBetween(st, st.farmsteads[st.households[k].farmstead].village, st.farmsteads[hh.farmstead].village);
   // @state household.askedIn: the season (game seasons since the start) in which the household last asked for help, or absent; written only
   //   here. A household asks at most once a season (VB-222; design.md, The gift: Lumps and occasions), and an ask that moved no goods does not count (VB-391).
   const seasonOf = (t) => Math.floor(t / (SEASON_DAYS * DAY));
@@ -13785,7 +13782,17 @@ VB['sim/help'] = (() => {
       if (need <= 0 || spare(st, hh) >= HELP.askBelow * need) continue;
       let moved = false,
         want = askDaysAt(st) * need - spare(st, hh);
+      // kin within a day's walk give at once, then the village store, then kin further away, nearest first, each by a carrier on a journey
+      // (VB-291; kin over the sea or beyond reach are not asked)
+      const near = [],
+        far = [];
       for (const k of kinHouseholds(st, hh)) {
+        const h = hoursOf(st, k, hh);
+        if (h <= TRAVEL.dayWalk) near.push(k);
+        else if (h < Infinity) far.push(k);
+      }
+      far.sort((a, b) => hoursOf(st, a, hh) - hoursOf(st, b, hh) || a - b);
+      for (const k of near) {
         const n = Math.min(want, surplus(st, st.households[k]));
         if (n <= 1e-9) continue;
         if (give(st, st.households[k], hh, n)) {
@@ -13799,6 +13806,18 @@ VB['sim/help'] = (() => {
       if (n > 1e-9 && give(st, v, hh, n)) {
         want -= n;
         moved = true;
+      }
+      for (const k of far) {
+        if (want <= 1e-9) break;
+        const g = st.households[k],
+          n = Math.min(want, surplus(st, g), TRAVEL.load); // what one adult carries on his back
+        if (n <= 1e-9) continue;
+        const c = carrierOf(st, g);
+        if (c < 0) continue; // no one can go: the ask goes on
+        if (give(st, g, hh, n, c)) {
+          want -= n;
+          moved = true;
+        }
       }
       // an ask that moved no goods marks nothing worth remembering (VB-391): it is not the season's ask, and the household asks again on a later day
       if (moved) noteAsked(hh, season);
@@ -14439,7 +14458,10 @@ VB['sim/fields'] = (() => {
   // ---- soil and manure (VB-137) ----
   // A reaped crop wears the field's soil.
   const wearSoil = (fd) => {
-    fd.soil = Math.max(SOIL.floor, fd.soil - CROPS[fd.crop].wear);
+    const C = CROPS[fd.crop];
+    fd.soil = C.gain
+      ? Math.max(fd.soil, Math.min(SOIL.start, fd.soil + C.gain))
+      : Math.max(SOIL.floor, fd.soil - C.wear); // peas mend it (VB-349)
   };
   // In spring, while the heap holds a load, manure goes to the field with the poorest soil that is not yet sown: [field, loads] or null.
   function manureWanted(f, hh, c) {
@@ -18987,6 +19009,7 @@ VB['sim/agents'] = (() => {
   const { age, personEvent } = VB['sim/records'];
   const Stores = VB['sim/stores'];
   const { ate, rationOf } = VB['sim/hunger'];
+  const { receive } = VB['sim/exchange'];
   const { hexSteps } = VB['sim/hex'];
   const { eligible } = VB['sim/eligibility'];
   const { hasTeam } = VB['sim/herds'];
@@ -19002,6 +19025,8 @@ VB['sim/agents'] = (() => {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
   }
+  // the spot by the door of the house on tile `house`, where pawn a would stand
+  const spotAt = (st, a, house) => [st.w.hx[house] - 12 + a.ox * 0.3, st.w.hy[house] + 14 + a.oy * 0.15];
   function placeAtHome(st, a) {
     const [x, y] = homeSpot(st, a);
     a.x = x;
@@ -19640,23 +19665,27 @@ VB['sim/agents'] = (() => {
   }
   // A journey starts: provisions from the household it leaves, its record, and the first leg now if a day's walking is left (6:00 to
   // 16:00), else at the next 6:00, from where it stands.
-  function setOut(st, a, old, hh, carry, hours) {
+  function setOut(st, a, old, hh, carry, hours, gift = null) {
     const p = st.pawns[a.id],
       f = st.farmsteads[hh.farmstead],
       j = {
         id: st.journeySeq++,
         pawn: a.id,
         to: f.house,
-        why: 'move',
+        why: gift ? 'carry' : 'move',
         due: 0,
         food: 0,
         from: old ? old.farmstead : null,
       };
+    if (gift) {
+      j.gift = gift; // VB-291: {to (household), n (grain), parts (by crop)}; null from its arrival on, the pawn walking home
+      j.back = false;
+    }
     // provisions (design: Provisions and the season): a ration (half below 14) a day of walking, from the grain above the seed of the
     // household it leaves, then of the one it joins; with none to give it goes unprovisioned, and hungry
-    const want = Math.ceil(hours / TRAVEL.dayWalk) * rationOf(st, p),
+    const want = Math.ceil(hours / TRAVEL.dayWalk) * (gift ? 2 : 1) * rationOf(st, p), // a carrier's way back as well
       R = 1 / st.ECON.uncooked;
-    for (const src of carry && old && !old.dissolved ? [old, hh] : [hh]) {
+    for (const src of gift ? [old] : carry && old && !old.dissolved ? [old, hh] : [hh]) {
       const n = Math.min(want - j.food, Math.max(0, Stores.grainOf(src) - Stores.reserved(st, src, 'grain')) / R);
       if (n > 1e-9) {
         Stores.takeSpare(st, src, n * R, { kind: 'journey', pawn: a.id });
@@ -19665,6 +19694,10 @@ VB['sim/agents'] = (() => {
     }
     const left = old ? st.farmsteads[old.farmstead].name : 'where it stood';
     personEvent(st, a.id, 'setOut', `Set out from ${left} for ${f.name}, ${Math.round(hours)} hours' walk`, false);
+    startLeg(st, a, j);
+  }
+  // The first leg now if a day's walking is left (6:00 to 16:00), else at the next 6:00, from where the pawn stands.
+  function startLeg(st, a, j) {
     const h = cal(st.t).hour;
     if (h >= WORK[0] && h < WORK[1] - 2) {
       leg(st, j);
@@ -19677,11 +19710,24 @@ VB['sim/agents'] = (() => {
     j.due = nextLeg(st.t);
     queueJourney(st, j);
   }
+  // A gift of n grain from household `from` to household `to`, further than a day's walk (VB-291; Kim, 10 Nov: carried, not sent): the
+  // grain leaves the giver's store as the carrier, one of its adults, sets out; the receiver books it when he arrives (delivered).
+  // Only the verb `give` calls it.
+  function carryGift(st, o) {
+    const a = st.agents[o.carrier],
+      parts = {};
+    Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }, parts);
+    release(st, a);
+    dropSides(st, a);
+    a.carry = null;
+    const hours = hoursBetween(st, st.farmsteads[o.from.farmstead].village, st.farmsteads[o.to.farmstead].village);
+    setOut(st, a, o.from, o.to, false, hours, { to: o.to.id, n: o.n, parts });
+  }
   // A leg: the route is found at the first (a journey costs one search), and walked on from where the pawn stopped at the others.
   function leg(st, j) {
     const a = st.agents[j.pawn];
     if (!a.path) {
-      const [x, y] = homeSpot(st, a);
+      const [x, y] = spotAt(st, a, j.to);
       walkTo(st, a, j.to, x, y);
     } else {
       a.inside = false;
@@ -19695,11 +19741,12 @@ VB['sim/agents'] = (() => {
   // A pawn's household changed again on the road (a death at home, a handover): it walks to the new home, turning back if need be.
   function retarget(st, a, to) {
     const j = journeyOf(st, a.id);
-    if (j.to === to) return;
+    if (j.to === to || (j.why === 'carry' && !j.back)) return; // a carrier delivers first, and then walks to the home he has
+    if (j.why === 'carry') j.back = true;
     j.to = to;
     a.path = null;
     if (a.phase === 'journey') {
-      const [x, y] = homeSpot(st, a);
+      const [x, y] = spotAt(st, a, to);
       walkTo(st, a, to, x, y);
     }
   }
@@ -19728,9 +19775,26 @@ VB['sim/agents'] = (() => {
     }
   }
   // Arrival: the journey ends, what is left of its provisions goes into the new home's meals, and the pawn is at home.
+  // A carrier arrives with his gift: the receiving household books it (its village's store, if the household is gone) and he turns for home.
+  function delivered(st, a, j) {
+    const g = j.gift,
+      from = st.households[st.pawns[a.id].household],
+      to = st.households[g.to],
+      f = st.farmsteads[to.farmstead];
+    j.gift = null;
+    j.back = true;
+    if (to.dissolved) Stores.put(st, st.villages[f.village], 'grain', g.n, { kind: 'gift', from: f.name }, g.parts);
+    else receive(st, from && !from.dissolved ? from : null, to, g.n, st.farmsteads[j.from].name, g.parts);
+    personEvent(st, a.id, 'arrived', `Arrived at ${f.name} with ${Math.round(g.n)} grain`, false);
+    j.to = st.farmsteads[from.farmstead].house;
+    a.anim = 'idle';
+    a.path = null;
+    startLeg(st, a, j);
+  }
   function endJourney(st, a) {
-    const j = journeyOf(st, a.id),
-      hh = st.households[st.pawns[a.id].household];
+    const j = journeyOf(st, a.id);
+    if (j.why === 'carry' && !j.back) return delivered(st, a, j);
+    const hh = st.households[st.pawns[a.id].household];
     st.journeys.splice(st.journeys.indexOf(j), 1);
     if (j.food > 1e-9 && !hh.dissolved) Stores.put(st, hh, 'meals', j.food, { kind: 'journey', pawn: a.id });
     placeAtHome(st, a);
@@ -19794,6 +19858,7 @@ VB['sim/agents'] = (() => {
     travelling,
     journeyOf,
     moved,
+    carryGift,
     dueJourneys,
     stopJourneys,
     feedTravellers,
@@ -19803,8 +19868,20 @@ VB['sim/agents'] = (() => {
 <script>
 // @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; the player's queue
 VB['sim/commands'] = (() => {
-  const { start, release, walkTo, goHome, idle, haltForTalk, attentionOf, sideWhy, hold, reachAfter, travelling } =
-    VB['sim/agents'];
+  const {
+    start,
+    release,
+    walkTo,
+    goHome,
+    idle,
+    haltForTalk,
+    attentionOf,
+    sideWhy,
+    hold,
+    reachAfter,
+    travelling,
+    carryGift,
+  } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
@@ -19870,7 +19947,16 @@ VB['sim/commands'] = (() => {
     if (to === from) return 'one cannot give to oneself';
     if (!(c.args && c.args.good === 'grain')) return 'only grain is given';
     if (!(Number.isFinite(n) && n > 0)) return `cannot give ${n}`;
-    return { from, to, good: 'grain', n, source: c.source };
+    const o = { from, to, good: 'grain', n, source: c.source };
+    if (c.args.carrier !== undefined) {
+      // a gift carried (VB-291): by an adult of the giving household who is not on the road
+      const p = st.pawns[c.args.carrier];
+      if (!('farmstead' in from) || !('farmstead' in to)) return 'only a household carries a gift to a household';
+      if (!p || !p.alive || p.household !== from.id || p.age < 14 || p.age >= 60 || free(st, p.id))
+        return `pawn ${c.args.carrier} cannot carry the gift`;
+      o.carrier = p.id;
+    }
+    return o;
   }
   // The head of household c.target, or why the actor is not: a living pawn that holds it, or {household} for a household with no holder
   // (its own rule); the household has a standing plan (VB-253).
@@ -19980,14 +20066,19 @@ VB['sim/commands'] = (() => {
       },
     },
     // ---- gifts (source 'help', later 'player'; VB-216) ----
-    // give(target, {good, n}): the actor's household, or village store, gives n of good to household `target`, or to the village store
+    // give(target, {good, n, carrier}): with a carrier (a pawn of the giving household), the gift is carried to the receiver and booked there when he
+    // arrives (VB-291); the actor's household, or village store, gives n of good to household `target`, or to the village store
     // (target {village}); refused when it would take the giver below its floor or beyond its allowance (sim/exchange)
     give: {
       check: (st, c) => {
         const o = giftOf(st, c);
         return typeof o === 'string' ? o : assessGift(st, o).why;
       },
-      run: (st, c) => settleGift(st, giftOf(st, c)),
+      run: (st, c) => {
+        const o = giftOf(st, c);
+        if (o.carrier !== undefined) carryGift(st, o);
+        else settleGift(st, o);
+      },
     },
     // ---- the head's plan (VB-253; design.md section 7, The player as head; section 15, Parity of command): household `target`'s head
     // chooses, the player in it (source 'player') or its own rule (source 'pawn'; the actor {household} for a household with no holder), and
@@ -26191,7 +26282,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self}; every event, append-only (sim/records, VB-075);
     //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start.
     //   A routine event's slot becomes, once folded, the index of its count in st.recordYears (VB-199); slots are never removed.
-    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends included; sim/routes), LRU oldest first, at most ROUTE.cacheMax.
+    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends; sim/routes), oldest first, emptied each day a tile
+    //   changed cost, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
     // @state st.talks: number; talks since the start (sim/relations)
@@ -38949,7 +39041,7 @@ function updateNotices(dt) {
 // A page save is {build, savedAt, label, save: Sim.save(st)}, as gzipped JSON. An archipelago (scenario, seed and size) has four slots:
 // `auto`, written when the page is hidden, and 1 to 3, written by hand; a slot is overwritten in place and no older save is kept.
 // The database keeps each slot's line (`saves`) apart from its bytes (`blobs`), so a list never reads the bytes.
-const BUILD = 'c780c93648',
+const BUILD = '6f9bca598c',
   SAVE_SLOTS = ['auto', '1', '2', '3'];
 const archOf = (s) => `${s.scenario}-${s.w.seed}-${s.w.COLS}x${s.w.ROWS}`;
 const sizeKey = (cols, rows) => Object.keys(SIZES).find((k) => SIZES[k][0] === cols && SIZES[k][1] === rows);
