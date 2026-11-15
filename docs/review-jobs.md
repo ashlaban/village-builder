@@ -270,3 +270,12 @@ rewritten. Three things turned out other than section 6 says:
 
 Fewer households went hungry at each seed run (hungry household-days 40 to 29, 4 to 0, 1 to 0); the numbers are in `backlog/VB-449.md`.
 Still to do of section 7's table: the day in the plan panel with the head's verbs, help as an ask, the two fixes of A, and C's mock.
+
+## 10. C measured (15 November 2026)
+
+`docs/mocks/blocks/` holds the mock and its numbers. In short: a scheduler would handle 12.4 events a pawn-day in place of 95 agent-steps;
+a walk's end is foretold to the step in every case and a task's in 99.9%; wear and talk are no obstacle. But the plain stepping it
+removes is 17.7% of simulation time, about 15 of 95 ms a game day, since a third of the agents' line is the events themselves; and it
+changes every reader of a pawn's place. The reviews' availability asks (20.8%) are a larger item, and option A's two fixes are worth
+about as much as C together. The order this suggests: A, then the availability cache `design.md` section 7 already agrees
+(Opportunities: cached per holder), then C, perhaps as its half step (work legs only).
