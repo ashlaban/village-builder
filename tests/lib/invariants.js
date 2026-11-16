@@ -95,7 +95,7 @@ function checkState(st) {
           plan.reasons['grain/barley'] !== 'seed') {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
         }
-        if (!(T.seed >= 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+        if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
         // VB-254: the plan's head is its household's holder, since a time not after now, with a bias on each of the four targets within
         // Traits.HEAD.bias of 1; none while the household has no holder
         const H = plan.head, hhH = st.households[id].holder, most = globalThis.VB['sim/traits'].HEAD.bias + 1e-9;
