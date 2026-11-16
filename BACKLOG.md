@@ -68,7 +68,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-360](backlog/VB-360.md) | Skills: learnt by doing, faster with aptitude, fading unused | mill | 3 | M | A skill a craft and pawn from 0 to 1: a novice works at 60% and a master at 130%; halfway in 400 hours; a tenth lost a year unused, read in closed form. |
 | [VB-361](backlog/VB-361.md) | Facilities: a registry of built things, raised in stages | mill | 3 | M | st.facilities holds built things on sites with an owner, a kind, a condition and building stages that are plan steps; the bloomery, the loom's house, kilns and mills use it. |
 | [VB-375](backlog/VB-375.md) | One loader with a hook for timed and replaced functions | yardstick | 3 | M | An ES module's exports cannot be reassigned, and ten files do that today to count or time a function: `tools/perf.js` (about 25 functions of 12 module. |
-| [VB-392](backlog/VB-392.md) | The player's wish to settle new land | life | 3 | S | A fourth wish, settle: true passes the round's draw to lead or follow a party, false never does. |
 | [VB-416](backlog/VB-416.md) | Refactor: split sim/stores by concern (goods registry, reservations, ale) | - | 3 | M | sim/stores is 537 lines unpacked, and holds five concerns: the store operations and grain by crop, the ledger, ale, reservations, the goods registry |
 | [VB-419](backlog/VB-419.md) | Refactor: split sim/rules by concern | - | 3 | M | sim/rules is over 700 formatted lines (821 after VB-348's crops) and exports 59 names: split it by concern, each move checked with tools/same.js. |
 | [VB-423](backlog/VB-423.md) | Refactor: split sim/hunger by concern (the meal, the need rule) | - | 3 | M | sim/hunger exports 20 names since journeys; split the need rule and the larder from the daily meal. |
@@ -117,7 +116,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-872](backlog/VB-872.md) | Tests: a small island generated once per seed in tests/lib/probe.js | tests | 2 | S | offers and other probe scripts spend most of their time generating the same small island again |
+| [VB-872](backlog/VB-872.md) | Tests: a small island generated once per seed in tests/lib/probe.js | - | 2 | S | offers and other probe scripts spend most of their time generating the same small island again |
 | [VB-722](backlog/VB-722.md) | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 
 ## Blocked
