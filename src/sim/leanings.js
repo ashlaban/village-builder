@@ -5,12 +5,13 @@ VB['sim/leanings'] = (() => {
   // company (those they deal with, mixed with the settlement's mean share for it, or null; friend is the tie that weighs most among those
   // who favour j above the custom's other ways), upbringing (what they learned young), cause (a cause argued near them; arguer is who argues
   // it with most weight), interest (their own) and own (they argue it themselves). A view for the page (page/customs, VB-398): it writes
-  // nothing and draws no randomness.
-  function pulls(p, d, j, byId, mean = null, kind = 'village') {
+  // nothing and draws no randomness. open and pious: what the person's openness and piety do to its malleability and to the pull of what
+  // it learned young (Traits.act; VB-520), as the drift reads them through its hooks.
+  function pulls(p, d, j, byId, mean = null, kind = 'village', open = 1, pious = 1) {
     const o = OFF[d],
       n = NOPT[d],
       k = o + j,
-      m = DIMS[d].m,
+      m = DIMS[d].m * open,
       a = p.att[k],
       rate = P.kind[kind],
       ageF = WEIGH.age(p.age);
@@ -53,7 +54,7 @@ VB['sim/leanings'] = (() => {
     return {
       company: WEIGH.social(m, rate, ageF) * (tgt - a),
       friend,
-      upbringing: WEIGH.anchor(kind) * (p.anc[k] - a),
+      upbringing: WEIGH.anchor(kind) * pious * (p.anc[k] - a),
       cause: WEIGH.cause(m, rate, ageF) * (press - pr * a),
       arguer,
       interest: p.interest ? WEIGH.interest(m) * (p.interest[k] - a) : 0,

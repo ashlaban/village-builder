@@ -110,6 +110,7 @@ const INTEGRATION = [
   ['node', 'tests/stakes.js'],
   ['node', 'tests/head.js'],
   ['node', 'tests/traits.js'],
+  ['node', 'tests/traitacts.js'], // VB-520: what each trait does, chemistry, the quarrel
   ['node', 'tests/ale.js'],
   ['node', 'tests/attention.js'],
   ['node', 'tests/setdown.js'],

@@ -257,7 +257,8 @@ const Culture = (() => {
   // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).
   const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
-  // nameCulture(s, from), onSplit(nc, from, cause) and, if given, decide(s, dim, option) for a meeting's change (VB-170); the caller builds
+  // nameCulture(s, from), onSplit(nc, from, cause) and, if given, decide(s, dim, option) for a meeting's change (VB-170) and act(p, trait,
+  // rule) for what a person's trait does to its drift (VB-520: openness, piety; 1 at a trait of 0.5); the caller builds
   // them (sim/society hooks(st), or tests/calibrate.js). The environment itself (cultures, settlements, people, driftMul) is plain data.
   // `values`: the means of its people's four values (VB-519; Customs and culture, A culture's values), as given (an archetype's) or else
   // its parent's, until its people's are reckoned.
@@ -305,9 +306,25 @@ const Culture = (() => {
     return a;
   }
 
+  // @state pawn.leans (VB-520): Uint8Array, one byte a custom (in the order of DIMS): the option the pawn's attitude favours most (the first
+  //   of equals), compiled wherever its attitude is written (initPerson, advocate, the daily drift), for chemistry's customs between two
+  //   pawns (sim/relations; design.md, Chemistry), which reads a byte a custom (Rules for cost, 6). Written only here.
+  function leanOn(p, d) {
+    const o = OFF[d],
+      n = NOPT[d];
+    let top = 0;
+    for (let j = 1; j < n; j++) if (p.att[o + j] > p.att[o + top]) top = j;
+    p.leans[d] = top;
+  }
+  // Every custom's leaning compiled afresh (a person made, or a save made before VB-520 loaded).
+  function compileLeans(p) {
+    if (!p.leans || p.leans.length !== DIMS.length) p.leans = new Uint8Array(DIMS.length);
+    for (let d = 0; d < DIMS.length; d++) leanOn(p, d);
+  }
   // Initialize seeded and newborn pawns alike; the caller supplies the seeded or inherited attitude.
   function initPerson(p, att) {
     p.att = att;
+    compileLeans(p);
     p.anc = Float32Array.from(p.att);
     p.prestige = 1;
     p.interest = null;
@@ -328,6 +345,7 @@ const Culture = (() => {
       n = NOPT[dim];
     for (let j = 0; j < n; j++) p.att[o + j] += P.advocacyJump * ((j === opt ? 1 : 0) - p.att[o + j]);
     normBlock(p.att, o, n);
+    leanOn(p, dim);
   }
   // The year from which the pawn may take up a new cause (it is free when t has reached it).
   const causeFree = (p) =>
@@ -437,12 +455,15 @@ const Culture = (() => {
     if (wsum > 0) for (let k = 0; k < TOTAL; k++) tgt[k] /= wsum;
     if (M) for (let k = 0; k < TOTAL; k++) tgt[k] = wsum > 0 ? WEIGH.mixed(tgt[k], M[k]) : M[k];
     else if (wsum === 0) tgt.set(p.att);
-    const ageF = WEIGH.age(p.age),
-      anchorR = local ? local.anchor : WEIGH.anchor(kind);
+    // the pawn's own pace (VB-520): its openness moves its malleability, its piety the pull of what it learned young (hooks.act, the
+    // caller's reading of its traits; 1 without)
+    const open = hooks.act ? hooks.act(p, 'openness', 'malleability') : 1,
+      ageF = WEIGH.age(p.age),
+      anchorR = (local ? local.anchor : WEIGH.anchor(kind)) * (hooks.act ? hooks.act(p, 'piety', 'anchor') : 1);
     for (let d = 0; d < DIMS.length; d++) {
       const o = OFF[d],
         n = NOPT[d],
-        m = DIMS[d].m;
+        m = DIMS[d].m * open;
       const rs = WEIGH.social(m, kindRate, ageF),
         ru = WEIGH.interest(m),
         sig = m * P.noise;
@@ -465,6 +486,7 @@ const Culture = (() => {
         p.att[o + j] = a + da * dt * mul + sig * (xi[j] - nz) * sq * 0.5;
       }
       normBlock(p.att, o, n);
+      leanOn(p, d);
       const ad = (p.age < 20 ? P.youthAnchorDrift : P.adultAnchorDrift) * dt * mul;
       for (let j = 0; j < n; j++) p.anc[o + j] += ad * (p.att[o + j] - p.anc[o + j]);
     }
@@ -479,8 +501,9 @@ const Culture = (() => {
       if (!p.alive || p.age < 18) continue;
       if (p.advocate && p.advocate.until !== undefined && p.advocate.until <= env.t) p.advocate = null;
       if (p.advocate || env.t < causeFree(p)) continue;
+      const open = hooks.act ? hooks.act(p, 'openness', 'cause') : 1; // 0 to 2 times by openness (VB-520)
       for (let d = 0; d < DIMS.length; d++) {
-        if (rand() >= P.entrepreneur * DIMS[d].m * DIMS[d].m) continue;
+        if (rand() >= P.entrepreneur * DIMS[d].m * DIMS[d].m * open) continue;
         // the cause is one that is already in the air: weighted by the person's own interest and by local support
         const o = OFF[d],
           n = NOPT[d],
@@ -716,6 +739,7 @@ const Culture = (() => {
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
   Object.defineProperties(api, {
     initPerson: { value: initPerson },
+    compileLeans: { value: compileLeans },
     advocate: { value: advocate },
     causeFree: { value: causeFree },
     norm: { value: norm },

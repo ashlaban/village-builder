@@ -3,6 +3,7 @@
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
+  const { act } = VB['sim/traits'];
   const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age, kinNear } = VB['sim/records'];
@@ -594,7 +595,12 @@ VB['sim/jobs'] = (() => {
     issue(st, {
       actor: a.id,
       verb: 'idle',
-      args: { until: st.t + IDLE.wait[0] + rnd(st.rng.work) * (IDLE.wait[1] - IDLE.wait[0]) },
+      // IDLE.wait times 4/3 to 2/3 by diligence (the design's 4 to 2 hours about its 3; TRAITS.acts.diligence.idleWait, VB-520)
+      args: {
+        until:
+          st.t +
+          (IDLE.wait[0] + rnd(st.rng.work) * (IDLE.wait[1] - IDLE.wait[0])) * act(st, a.id, 'diligence', 'idleWait'),
+      },
       source: 'planner',
     });
   }

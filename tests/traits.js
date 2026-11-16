@@ -18,11 +18,11 @@ const setSkill = (st, id, x) => { const t = st.pawns[id].traits; t[T.IDX.wits] =
 {
   const st = make();
   for (const p of st.pawns) assert.strictEqual(p.traits.length, 12, `pawn ${p.id} has the twelve traits`);
-  assert.deepStrictEqual(T.NAMES, ['generosity', 'piety', 'ambition', 'honour', 'sociability', 'temper', 'diligence', 'openness', 'body', 'hands', 'husbandry', 'wits']);
-  assert.deepStrictEqual(Object.keys(TRAITS.culture.oldNordic), T.NAMES.slice(0, 4), 'a culture holds the four values, in order');
+  assert.deepStrictEqual(TRAITS.names, ['generosity', 'piety', 'ambition', 'honour', 'sociability', 'temper', 'diligence', 'openness', 'body', 'hands', 'husbandry', 'wits']);
+  assert.deepStrictEqual(Object.keys(TRAITS.culture.oldNordic), TRAITS.names.slice(0, 4), 'a culture holds the four values, in order');
   assert.deepStrictEqual(checkState(st), [], 'invariants at the start');
   const id = st.living[0];
-  T.NAMES.forEach((k, i) => assert.strictEqual(T.of(st, id, k), st.pawns[id].traits[i], `read through Traits.of: ${k}`));
+  TRAITS.names.forEach((k, i) => assert.strictEqual(T.of(st, id, k), st.pawns[id].traits[i], `read through Traits.of: ${k}`));
   const s0 = { ...st.rng.traits };
   T.pass(st, 0.5, 0);
   assert.notDeepStrictEqual(st.rng.traits, s0, 'drawn from the stream traits');
@@ -79,7 +79,7 @@ const born = (st, hh) => {
   st.rng.traits.fix = 0.5;
   const { kid } = born(st, hh), t = st.pawns[kid].traits, cv = st.cenv.cultures[0].values;
   delete st.rng.traits.fix;
-  T.NAMES.forEach((k, i) => {
+  TRAITS.names.forEach((k, i) => {
     const mu = i < 4 ? cv[k] : 0.5, b = TRAITS.b[i < 4 ? 'values' : i < 8 ? 'temperament' : 'aptitudes'];
     assert.ok(t[i] > mu && t[i] < 0.8, `${k}: between the parents and the mean (${t[i]})`);
     assert.ok(near(t[i], Math.round((mu + b * (0.85 - mu)) * 1000) / 1000), `${k}: by the equation`);
@@ -115,10 +115,10 @@ const born = (st, hh) => {
   VB['sim/lifecycle'].dailyLife(st);
   const t = p.traits, tf = fed.traits;
   assert.ok(p.leanDays === null && fed.leanDays === null, 'set once, and the hungry days dropped');
-  T.NAMES.slice(0, 4).forEach((k, i) => assert.ok(near(t[i], Math.round((cv[k] + 0.6 * (0.8 - cv[k])) * 1000) / 1000), `${k}: from the house that raised it (${t[i]})`));
-  for (let i = 4; i < 12; i++) if (i !== T.IDX.body && i !== T.IDX.wits) assert.strictEqual(t[i], before[i], `${T.NAMES[i]}: of its birth`);
+  TRAITS.names.slice(0, 4).forEach((k, i) => assert.ok(near(t[i], Math.round((cv[k] + 0.6 * (0.8 - cv[k])) * 1000) / 1000), `${k}: from the house that raised it (${t[i]})`));
+  for (let i = 4; i < 12; i++) if (i !== T.IDX.body && i !== T.IDX.wits) assert.strictEqual(t[i], before[i], `${TRAITS.names[i]}: of its birth`);
   assert.ok(near(t[T.IDX.body], Math.max(0.02, before[T.IDX.body] - 0.1), 1e-9) && near(t[T.IDX.wits], Math.max(0.02, before[T.IDX.wits] - 0.05), 1e-9), 'half of 96 days hungry: 0.1 off body, 0.05 off wits');
-  T.NAMES.forEach((k, i) => { if (i !== T.IDX.body && i !== T.IDX.wits) assert.strictEqual(t[i], tf[i], `${k}: as the fed child's`); });
+  TRAITS.names.forEach((k, i) => { if (i !== T.IDX.body && i !== T.IDX.wits) assert.strictEqual(t[i], tf[i], `${k}: as the fed child's`); });
   assert.ok(tf[T.IDX.body] === before[T.IDX.body] && tf[T.IDX.wits] === before[T.IDX.wits], 'a fed childhood takes nothing');
   delete st.rng.traits.fix;
   const s1 = JSON.stringify(st.rng.traits);
@@ -138,9 +138,9 @@ const born = (st, hh) => {
   for (const p of adults(1)) p.traits.fill(0.8, 0, 4);
   C.cultureYear(env, hk, env.cultures[0]);
   const all = [...adults(0), ...adults(1)];
-  T.NAMES.slice(0, 4).forEach((k, i) => assert.ok(near(env.cultures[0].values[k], avg(all, i)), `${k}: the mean of its adults`));
+  TRAITS.names.slice(0, 4).forEach((k, i) => assert.ok(near(env.cultures[0].values[k], avg(all, i)), `${k}: the mean of its adults`));
   const nc = C.split(env, hk, [1], 'test');
-  T.NAMES.slice(0, 4).forEach((k) => assert.strictEqual(nc.values[k], 0.8, `${k}: the split culture's, its own adults'`));
+  TRAITS.names.slice(0, 4).forEach((k) => assert.strictEqual(nc.values[k], 0.8, `${k}: the split culture's, its own adults'`));
   assert.notStrictEqual(nc.values, env.cultures[0].values, 'its own record');
   // a child born there draws its values around its own culture's means
   const hh = st.households.find((h) => st.farmsteads[h.farmstead].village === 1 && !h.dissolved);

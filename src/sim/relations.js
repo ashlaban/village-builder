@@ -2,7 +2,9 @@
 // and the people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn), memories and bands
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL, MATCH } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL, MATCH, TRAITS } = VB['sim/rules'];
+  const Traits = VB['sim/traits'],
+    { DIMS } = VB['culture'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf, age } = VB['sim/records'];
   const { partners } = VB['sim/encounters'];
   const { on } = VB['sim/events'],
@@ -162,7 +164,8 @@ VB['sim/relations'] = (() => {
           if (band) p.bands.set(j, band);
         }
   }
-  // ---- compatibility: fixed for a pair, from the world seed and the two ids, so it needs no memory; a large age gap lowers it ----
+  // ---- compatibility (chemistry, VB-520; design.md, Chemistry): a function of the two pawns, nothing stored for the pair ----
+  // The seeded personal term is fixed for a pair, from the world seed and the two ids, so it needs no memory.
   const mix = (h) => {
     h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
     h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
@@ -170,13 +173,46 @@ VB['sim/relations'] = (() => {
   };
   const unit = (s, i, j) =>
     mix(Math.imul(s, 0x9e3779b1) ^ Math.imul(i + 1, 73856093) ^ Math.imul(j + 1, 19349663)) / 4294967296;
-  // -1..1, shaped like a triangle around 0; less by 0.02 a year of age gap beyond 5 years, at most 0.4
+  // Likeness, friction and the customs between them (SOCIAL.chemistry): the traits read by index, the customs a byte each (culture's
+  // pawn.leans), each custom weighed by 1 − its malleability (LEAN_W, over its sum).
+  const CH = SOCIAL.chemistry,
+    TI = Traits.IDX,
+    ALIKE = [TI.generosity, TI.piety, TI.ambition, TI.honour, TI.sociability],
+    LEAN_W = Float64Array.from(DIMS, (d) => 1 - d.m),
+    LEAN_SUM = LEAN_W.reduce((x, y) => x + y, 0);
+  const traitAt = (t, k) => (t ? t[k] : 0.5);
+  // 1 for two alike in the four values and sociability, 0 at CH.span (two drawn at random), -1 at twice that
+  function likeness(ta, tb) {
+    let d = 0;
+    for (let k = 0; k < ALIKE.length; k++) d += Math.abs(traitAt(ta, ALIKE[k]) - traitAt(tb, ALIKE[k]));
+    return Math.max(-1, Math.min(1, (CH.span - d / ALIKE.length) / CH.span));
+  }
+  // the share of customs on which the two lean to different options, each weighed by 1 − its malleability; 0 without leanings
+  function customsBetween(pa, pb) {
+    const la = pa.leans,
+      lb = pb.leans;
+    if (!la || !lb || LEAN_SUM <= 0) return 0;
+    let x = 0;
+    for (let d = 0; d < LEAN_W.length; d++) if (la[d] !== lb[d]) x += LEAN_W[d];
+    return x / LEAN_SUM;
+  }
+  // personal × the seeded term (-1..1, a triangle around 0) + likeness × likeness − friction × (the two tempers' sum − 1) − customs × the
+  // customs between them; less 0.02 a year of age gap beyond 5 years, at most 0.4; within -1..1. Allocates nothing.
   function compat(st, a, b) {
     const i = Math.min(a, b),
       j = Math.max(a, b),
-      s = st.w.seed >>> 0;
-    const gap = Math.abs(st.pawns[i].born - st.pawns[j].born) / YEAR;
-    return Math.max(-1, unit(s, i, j) + unit(s ^ 0x5bd1e995, j, i) - 1 - Math.min(0.4, Math.max(0, gap - 5) * 0.02));
+      s = st.w.seed >>> 0,
+      pi = st.pawns[i],
+      pj = st.pawns[j];
+    const gap = Math.abs(pi.born - pj.born) / YEAR,
+      personal = unit(s, i, j) + unit(s ^ 0x5bd1e995, j, i) - 1,
+      friction = traitAt(pi.traits, TI.temper) + traitAt(pj.traits, TI.temper) - 1;
+    const c =
+      CH.personal * personal +
+      CH.likeness * likeness(pi.traits, pj.traits) -
+      CH.friction * friction -
+      CH.customs * customsBetween(pi, pj);
+    return Math.max(-1, Math.min(1, c - Math.min(0.4, Math.max(0, gap - 5) * 0.02)));
   }
 
   // ---- standing: what b is to a by the family records and the household: spouse, parent, child, sibling, housemate or null ----
@@ -253,14 +289,17 @@ VB['sim/relations'] = (() => {
         { other: b, village: settlementIdOf(st, st.pawns[a]) },
       );
   }
-  // a remembers an event with b: the memory of its kind gains v, up to its cap, and fades from now
+  // a remembers an event with b: the memory of its kind gains v, up to its cap, and fades from now. A breach (TRAITS.breach) is felt by
+  // a's honour, its v and cap 0.5 to 1.5 times (TRAITS.acts.honour.breach; VB-520).
+  const BREACH = new Set(TRAITS.breach);
   function remember(st, a, b, kind) {
     const rel = st.pawns[a].rel,
       r = rel.get(b) || rel.set(b, { mem: {} }).get(b),
       K = M[kind],
-      m = r.mem[kind];
-    const sum = (m ? memNow(st, kind, m) : 0) + K.v,
-      v = K.cap > 0 ? Math.min(K.cap, sum) : Math.max(K.cap, sum);
+      m = r.mem[kind],
+      felt = BREACH.has(kind) ? Traits.act(st, a, 'honour', 'breach') : 1;
+    const sum = (m ? memNow(st, kind, m) : 0) + K.v * felt,
+      v = K.cap > 0 ? Math.min(K.cap * felt, sum) : Math.max(K.cap * felt, sum);
     if (m) {
       m.v = v;
       m.t = st.t;
@@ -385,7 +424,12 @@ VB['sim/relations'] = (() => {
     let weighed = 0;
     for (let k = 0; k < n; k++) {
       const a = ag[ids[(start + k) % n]];
-      if (busy[a.id] === round || !able(st, a) || rnd(st.rng.talk) >= T.chance) continue;
+      if (
+        busy[a.id] === round ||
+        !able(st, a) ||
+        rnd(st.rng.talk) >= Math.min(1, T.chance * Traits.act(st, a.id, 'sociability', 'talk'))
+      )
+        continue;
       const ya = young(st, st.pawns[a.id]),
         sa = scaleOf(st, st.pawns[a.id]);
       let tot = 0;
@@ -427,6 +471,7 @@ VB['sim/relations'] = (() => {
     const at = st.t + rnd(st.rng.talk) * T.bubbleHours,
       until = at + T.bubbleHours;
     grow(st, i, j, TIES.talk);
+    if (kind === 'crossWords') quarrelMaybe(st, i, j);
     const show = (g, other) => {
       const s = g.talk || (g.talk = {});
       s.with = other;
@@ -441,6 +486,18 @@ VB['sim/relations'] = (() => {
     halt(a);
     halt(b);
     st.talks++;
+  }
+
+  // Cross words become a quarrel (VB-520; design.md, The twelve traits: temper) at T.quarrel × the two tempers' sum, one draw of the talk
+  // stream: both remember it (SOCIAL.memories.quarrel) and it is an event of the record, of i with j where i lives, for the stories to come.
+  function quarrelMaybe(st, i, j) {
+    if (rnd(st.rng.talk) >= T.quarrel * (Traits.of(st, i, 'temper') + Traits.of(st, j, 'temper'))) return;
+    remember(st, i, j, 'quarrel');
+    remember(st, j, i, 'quarrel');
+    personEvent(st, i, 'quarrel', `Quarrelled with ${fullName(st.pawns[j])}`, {
+      other: j,
+      village: settlementIdOf(st, st.pawns[i]),
+    });
   }
 
   // ---- company: an idle pawn may join someone it likes who idles outdoors in its village ----
@@ -470,7 +527,7 @@ VB['sim/relations'] = (() => {
   // Whom idle pawn a joins, at chance SOCIAL.seek: one of up to SOCIAL.seekSample idle pawns of its village, by liking (opinion + 0.05, so
   // never one it dislikes) and familiarity; null if none, and it strolls to the green or its yard as before.
   function companyFor(st, a) {
-    if (rnd(st.rng.talk) >= SOCIAL.seek) return null;
+    if (rnd(st.rng.talk) >= SOCIAL.seek * Traits.act(st, a.id, 'sociability', 'seek')) return null; // 0.25 to 0.75 (VB-520)
     const v = settlementIdOf(st, st.pawns[a.id]),
       list = v === null ? null : idlersBy(st).get(v);
     if (!list || !list.length) return null;
@@ -673,6 +730,7 @@ VB['sim/relations'] = (() => {
     forget,
     talkHour,
     talkWeight,
+    quarrelMaybe,
     companyFor,
     opinionWord,
     relationsOf,

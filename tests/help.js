@@ -11,11 +11,12 @@ const fresh = () => {
   for (const hh of st.households) { hh.grain = { barley: seedReserve(st, hh) }; hh.meals = 0; }
   return st;
 };
-for (const p of Sim.seed(r.value, 7, 'populous').pawns) assert(p.buffer >= HELP.bufferDays[0] && p.buffer <= HELP.bufferDays[1], 'buffer drawn from 20..60 days');
+const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the floor and the holder's reserve, by its generosity
+{ const st = Sim.seed(r.value, 7, 'populous'); for (const p of st.pawns) { const b = bufferOf(st, p.id); assert(b >= HELP.floorDays && b <= HELP.floorDays + 40, 'buffer 20..60 days by generosity'); } }
 { // a household above its buffer gives to a hungry kin household; one below its buffer does not
   const st = fresh(), [a, b, c] = st.households, v = st.villages[st.farmsteads[a.farmstead].village];
   st.pawns[a.members[0]].father = b.members[0]; // b holds a parent of a member of a
-  const buf = (hh) => st.pawns[hh.holder].buffer * dailyNeed(st, hh);
+  const buf = (hh) => bufferOf(st, hh.holder) * dailyNeed(st, hh);
   b.grain = { barley: seedReserve(st, b) + buf(b) + 500 }; c.grain = { barley: seedReserve(st, c) + buf(c) / 2 }; v.grain = { barley: 0 };
   const bs = surplus(st, b); assert(Math.abs(bs - 500) < 1e-6, 'surplus is grain above buffer and seed reserve');
   assert.strictEqual(surplus(st, c), 0, 'below its buffer there is no surplus');
@@ -31,7 +32,7 @@ for (const p of Sim.seed(r.value, 7, 'populous').pawns) assert(p.buffer >= HELP.
   const st = fresh(), [a, b] = st.households, v = st.villages[st.farmsteads[a.farmstead].village];
   for (const hh of st.households) hh.grain = { barley: hh === a || hh === b ? 0 : seedReserve(st, hh) + 1e4 };
   st.pawns[a.members[0]].father = b.members[0];
-  const need = dailyNeed(st, a), buf = st.pawns[b.holder].buffer * dailyNeed(st, b);
+  const need = dailyNeed(st, a), buf = bufferOf(st, b.holder) * dailyNeed(st, b);
   b.grain = { barley: buf + 2 * need }; v.grain = { barley: 1000 };
   shareFood(st);
   assert(Math.abs(Sim.grainOf(a) - askDaysAt(st) * need) < 1e-6, 'asked food until the harvest in all');
@@ -64,7 +65,7 @@ for (const p of Sim.seed(r.value, 7, 'populous').pawns) assert(p.buffer >= HELP.
 { // stores fill at the moving round from surpluses only
   const st = fresh(), a = st.households[0], v = st.villages[st.farmsteads[a.farmstead].village];
   v.grain = { barley: 0 }; for (const hh of st.households) hh.grain = { barley: seedReserve(st, hh) };
-  a.grain.barley += st.pawns[a.holder].buffer * dailyNeed(st, a) + 400;
+  a.grain.barley += bufferOf(st, a.holder) * dailyNeed(st, a) + 400;
   fillStores(st);
   assert(Math.abs(Sim.grainOf(v) - 100) < 1e-6, `store holds ${Sim.grainOf(v)}, expected 25% of 400`);
 }

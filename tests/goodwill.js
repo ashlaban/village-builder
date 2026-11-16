@@ -4,6 +4,7 @@
 // a retirement, end at a death, and survive a save.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const { bufferOf } = VB['sim/traits']; // VB-520: the floor and the holder's reserve, by its generosity
 const { moveClock } = require('./lib/clock.js');
 const R = VB['sim/relations'], { issue } = VB['sim/commands'], { killPawn, retireHolder } = VB['sim/lifecycle'];
 const { floorOf } = VB['sim/hunger'], { GOODWILL } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
@@ -17,7 +18,7 @@ const [A, B] = holders, a = A.holder, b = B.holder;
 const alive = (s) => s.pawns.filter((p) => p.alive).map((p) => p.id);
 
 // a kin gift between two holders books its worth on both sides
-A.grain = { barley: floorOf(st, A) + st.pawns[a].buffer * 100 + 500 };
+A.grain = { barley: floorOf(st, A) + bufferOf(st, a) * 100 + 500 };
 assert.strictEqual(issue(st, { actor: a, verb: 'give', target: B.id, args: { good: 'grain', n: 40 }, source: 'help' }), true);
 near(R.balance(st, a, b), 40, 'the giver is owed the gift'); near(R.balance(st, b, a), -40, 'the receiver owes it');
 assert.deepStrictEqual(st.pawns[a].goodwill.get(b), { v: 40, t: st.t }); assert.deepStrictEqual(st.pawns[b].goodwill.get(a), { v: -40, t: st.t });

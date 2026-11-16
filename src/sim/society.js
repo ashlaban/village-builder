@@ -5,7 +5,7 @@ VB['sim/society'] = (() => {
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
   const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal, TRAITS } = VB['sim/rules'];
-  const { addValues } = VB['sim/traits'];
+  const { addValues, act } = VB['sim/traits'];
   const { hexSteps } = VB['sim/hex'];
   const { hoursBetween } = VB['sim/routes'];
   const {
@@ -40,6 +40,7 @@ VB['sim/society'] = (() => {
         issue(st, { actor: { settlement: s.id }, verb: 'decide', args: { dim, option }, source: 'meeting' }) === true,
       membersOf: (s) => membersOf(st, s.id),
       addValues, // a culture's values, the mean of its living adults' (sim/traits, VB-519)
+      act: (p, name, rule) => act(st, p.id, name, rule), // what a trait does to the drift (sim/traits, VB-520)
       nameCulture: (s) => `${s.name.replace(/(by|sta|vik|nes|inge|berga|tuna|säter)$/, '') || s.name}folk`,
       onSplit: (nc, from) =>
         log(
