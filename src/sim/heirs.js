@@ -38,9 +38,10 @@ VB['sim/heirs'] = (() => {
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/herds'];
   const { abandoned } = VB['sim/fields'],
-    { dropPlan } = VB['sim/plans'];
+    { dropPlan } = VB['sim/plans'],
+    { emit } = VB['sim/events'];
   // Who would inherit this farm now, in order, under the practice of its village.
-  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
+  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, deps = null) {
     VB.count.heirRank++;
     const f = st.farmsteads[hh.farmstead],
       cu = cust || practice(st, f.village);
@@ -82,6 +83,10 @@ VB['sim/heirs'] = (() => {
     };
     lineOf(line, 0);
     const direct = new Set(out);
+    if (deps) {
+      deps.add(line);
+      deps.add(hh.holder);
+    }
     // Only full rankings need the wider family; ownFirstOf asks just for direct heirs.
     // Then siblings and their lines, then the parents' siblings (cousins) and theirs.
     seen.add(line);
@@ -101,10 +106,12 @@ VB['sim/heirs'] = (() => {
     }
     const ok = out.filter((id) => {
       const p = st.pawns[id];
+      if (deps) deps.add(id);
       if (cu.heirSex === 'sons' && p.sex === 'f') return false;
       const own = holdingOf(st, id);
       if (own && own !== hh) return false; // already holds a farm
       const sp = spouseOf(st, id);
+      if (deps && sp !== null) deps.add(sp);
       if (sp !== null) {
         const so = holdingOf(st, sp);
         if (so && so !== hh) return false;
@@ -121,7 +128,11 @@ VB['sim/heirs'] = (() => {
       : ownFirstOf(
           st,
           hh,
-          [...ancestorsOf(st, ok, 4)].flatMap((id) => householdsOfLine(st, id)),
+          [...ancestorsOf(st, ok, 4)].flatMap((id) => {
+            if (deps) deps.add(id);
+            return householdsOfLine(st, id);
+          }),
+          deps,
         );
     if (cu.ownHeir === 'keeps') {
       // nobody steps behind; an heir first in another farm's line too takes the farm with more fields (on a tie, their own
@@ -141,13 +152,14 @@ VB['sim/heirs'] = (() => {
     return [...ok.filter((id) => !back(id)), ...ok.filter(back)];
   }
   // [heir, household id] for the first direct heir of each household other than hh (all households when hh is null). Callers that rank many
-  // households while nothing changes compute this once and pass it to heirRanking as ownFirstSet. `among`: only these household ids.
-  function ownFirstOf(st, hh = null, among = null) {
+  // households while nothing changes compute this once and pass it to heirRanking as ownFirstSet. `among`: only these household ids;
+  // `deps`: a Set that gets the pawns the rankings read.
+  function ownFirstOf(st, hh = null, among = null, deps = null) {
     const out = [];
     for (const id of among || st.liveHouseholds) {
       const o = st.households[id];
       if (o !== hh) {
-        const r = heirRanking(st, o, null, true);
+        const r = heirRanking(st, o, null, true, null, deps);
         if (r.length) out.push([r[0], o.id]);
       }
     }
@@ -193,6 +205,7 @@ VB['sim/heirs'] = (() => {
     hh.holder = heir;
     f.line = heir;
     noteHolder(st, hh);
+    if (old !== heir) emit(st, 'newHead', { household: hh.id }); // the head's bias, drawn once (sim/plans, VB-254)
     noteLine(st, f);
     // at a retirement or a holder's death, a share of the old holder's goodwill passes to the new holder (design.md, The gift: Who books)
     if (old !== null && old !== heir && (reason === 'retirement' || reason === 'death'))
@@ -439,6 +452,7 @@ VB['sim/heirs'] = (() => {
     ) {
       hh.holder = spouse;
       noteHolder(st, hh);
+      emit(st, 'newHead', { household: hh.id });
       if (cu.widow === 'outright') {
         f.line = spouse;
         noteLine(st, f);

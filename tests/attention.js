@@ -39,12 +39,12 @@ try {
   // never two of one attention
   assert.match(go(bg2), /already holds a background/); assert.match(go(pt2), /already holds a partial/);
   // out of reach: refused
-  A.unhold(a, bg); assert.strictEqual(a.side.background, null);
+  A.unhold(st, a, bg); assert.strictEqual(a.side.background, null);
   assert.match(go(farBg), /out of its reach/);
   assert.strictEqual(go(bg), true);
   // the matcher offers a pawn with a background task only tasks within reach (VB-136: a full one too, so the herder works by the pasture)
   const c = Sim.cal(st.t);
-  A.unhold(a, pt); A.release(st, a);
+  A.unhold(st, a, pt); A.release(st, a);
   assert.strictEqual(A.offerWhy(st, a, pt2), null, 'a partial task in reach is offered');
   assert.strictEqual(A.offerWhy(st, a, full), null, 'a full task in reach is offered');
   assert.ok(A.offerWhy(st, a, farFull), 'a full task out of reach is not');
@@ -58,9 +58,12 @@ try {
   A.release(st, a); assert.strictEqual(go(bg), true);
   const was = bg.done;
   a.x = st.w.hx[near]; a.y = st.w.hy[near];
-  for (let i = 0; i < 10; i++) A.stepAgents(st, c);
-  assert.ok(bg.done > was, 'worked at the side');
-  a.x = st.w.hx[far]; a.y = st.w.hy[far];
+  const way = a.path;
+  a.path = null; // standing there
+  A.stepAgents(st, c);
+  // its progress is reckoned (VB-472): the holder's step finds it minding the task, at the kind's rate
+  assert.ok(bg.rate === KINDS[bg.kind].rate && bg.done === was && bg.due > st.tick, 'worked at the side');
+  a.x = st.w.hx[far]; a.y = st.w.hy[far]; a.path = way;
   A.stepAgents(st, c);
   assert.strictEqual(a.side, undefined, 'out of reach, dropped'); assert.ok(isOpen(bg));
   // with no task in hand, a background task out of reach is taken up and set out for; walking into reach it is kept, unworked
@@ -69,7 +72,8 @@ try {
   const before = farBg.done;
   A.stepAgents(st, Sim.cal(st.t));
   assert.strictEqual(a.side && a.side.background, farBg, 'kept on the way'); assert.strictEqual(farBg.done, before, 'not worked on the way');
-  A.unhold(a, farBg); a.path = null;
+  assert.ok(!(farBg.rate > 0), 'no rate on the way');
+  A.unhold(st, a, farBg); a.path = null;
   // a death lets go all
   a.x = st.w.hx[near]; a.y = st.w.hy[near];
   assert.strictEqual(go(bg), true); assert.strictEqual(go(pt), true);
