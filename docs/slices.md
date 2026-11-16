@@ -439,6 +439,16 @@ gathering's host.
   - capacities of cart, sledge and boat;
   - what a cart needs underfoot;
   - upkeep duty.
+- **16 November update (the plan of VB-190;** `docs/plans/VB-190.md`; `design.md`, Climate and travel beyond walking**):** the
+  slice is planned, unattended, on proposed answers that Kim may strike. A world has a latitude chosen at generation (the
+  references stay on the middle world) and three bands a map; a winter has at most six dates a band, taken from a due-queue. A
+  boat lies where it was left, so a journey by water is a walk, a leg by water and a walk, and no search mixes modes; a table
+  of hours is what people know of a normal season. Carts need a way, sledges need snow. Built ways (track, causeway, bridge)
+  are facilities built only along worn ways, by the alderman's reckoning put to the meeting, kept by a custom. Tasks: VB-807 to
+  VB-818, with VB-083 and VB-115 rewritten, VB-721 confirmed, VB-097 left to the wrap-up's measure and VB-722 closed. The slice
+  claims 4 ms a game day at `medium-ref` on the middle world. Measured at year 0 on four medium islands: boats and ice widen
+  the 12-hour circle (35 to 61 pairs of villages on foot, 42 to 109 by boat, 63 to 101 over sound ice) and leave the 3-hour one
+  where it was, so nothing here gathers a town.
 
 ## 4. The order, and why
 
