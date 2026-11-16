@@ -423,6 +423,9 @@ function checkState(st) {
         bad.push(`villages[${v.id}]: common field ${i} ${JSON.stringify({ tile: fd.tile, stage: fd.stage, owner: st.owner[fd.tile] })}`);
     });
   }
+  for (const v of st.villages)
+    if (v.commonSow !== undefined && !(Number.isInteger(v.commonSow.year) && typeof v.commonSow.sow === 'boolean'))
+      bad.push(`villages[${v.id}]: commonSow ${JSON.stringify(v.commonSow)}`);
   for (const v of st.villages) {
     if (grainBad(v.grain)) bad.push(`villages[${v.id}]: grain is ${JSON.stringify(v.grain)}`);
     // the reach test to fishing water (sim/drying, VB-300): tested for no more farms than the village has

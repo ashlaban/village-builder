@@ -20,6 +20,7 @@ const need = (st, v) => {
 };
 const tm = /target(\d+)/.exec(rule), target = tm ? +(tm[1][0] === '0' ? '0.' + tm[1].slice(1) : tm[1]) : null; // target05 is half a year
 if (/share10/.test(rule)) HELP.storeShare = 0.1;
+if (args.includes('--target')) HELP.storeTarget = +opt('target', HELP.storeTarget); // the game's own (VB-457); 1e9 is the filling and sowing as before it
 const issue = Commands.issue; // sim/help reads the command module at each call, so this cap reaches the yearly filling
 if (target !== null) Commands.issue = (st, cmd) => {
   if (cmd.source === 'help' && cmd.target && cmd.target.village !== undefined) {
@@ -35,6 +36,7 @@ function run(seed) {
   const st = Sim.seed(r.value, seed, scenario);
   if (/rate5/.test(rule)) st.ECON.villageStoreLoss = 0.05;
   let hungry0 = 0;
+  const live0 = st.living.length;
   for (let y = 1; y <= years; y++) {
     const t0 = (y - 1) * Sim.YEAR + 1, t1 = y * Sim.YEAR + 1;
     if (st.t < t0) Sim.advance(st, t0 - st.t);
@@ -55,19 +57,22 @@ function run(seed) {
     }
     hungry0 = hungry;
   }
+  grow[seed] = [live0, st.living.length];
   return st;
 }
+const grow = {};
 const sts = seeds.map(run), E = sts[0].ECON;
 const sum = (l, k) => l.reduce((s, r) => s + r[k], 0), f = (x, d = 0) => (+x).toFixed(d);
 if (!json) {
   console.log(`${scenario} ${map} ${years} years, rule ${rule}; rations; home rot ${E.storeLoss[0]} (a year's need) to ${E.storeLoss[1]}; village store ${E.villageStoreLoss}`);
-  console.log('seed villages filled commons total_in given takers/yr each seed rot rot%in end_store yrs_need hungry_days/yr home_rot(5%..20%)');
+  console.log('seed villages filled commons total_in given takers/yr each seed rot rot%in end_store yrs_need hungry_days/yr home_rot(5%..20%) living_start->end growth%/yr');
   for (const s of seeds) {
     const l = rows.filter((r) => r.seed === s), inn = sum(l, 'filled') + sum(l, 'harvest'), takers = sum(l, 'takers');
     const last = l.filter((r) => r.year === years), v0 = l[0] ? l[0].village : 0;
     console.log([s, new Set(l.map((r) => r.village)).size, f(sum(l, 'filled')), f(sum(l, 'harvest')), f(inn), f(sum(l, 'given')),
       f(takers / years, 1), f(sum(l, 'given') / Math.max(1, takers), 1), f(sum(l, 'seed_')), f(sum(l, 'rot')), f(100 * sum(l, 'rot') / Math.max(1, inn)) + '%',
       f(sum(last, 'store')), f(sum(last, 'store') / Math.max(1, sum(last, 'need')), 2), f(sum(l.filter((r) => r.village === v0), 'hungry') / years),
-      `${f(sum(l, 'filled') * E.storeLoss[0])}..${f(sum(l, 'filled') * E.storeLoss[1])}`].join(' '));
+      `${f(sum(l, 'filled') * E.storeLoss[0])}..${f(sum(l, 'filled') * E.storeLoss[1])}`,
+      `${grow[s][0]}->${grow[s][1]}`, f(100 * ((grow[s][1] / grow[s][0]) ** (1 / years) - 1), 2)].join(' '));
   }
 }
