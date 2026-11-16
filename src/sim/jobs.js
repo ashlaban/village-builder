@@ -232,7 +232,15 @@ VB['sim/jobs'] = (() => {
     return out;
   }
   // A job's weight in a bid, as its kind says (sim/kinds).
-  const urgency = (st, j, c) =>
+  // `memo`, a Map the caller makes for one allotment or one round of help, holds the urgencies worked out in it (VB-453): a job's urgency
+  // takes no pawn, so each is worked out once and read for every bid; the caller drops it with the call.
+  const urgency = (st, j, c, memo) => {
+    if (!memo) return urgencyOf(st, j, c);
+    let u = memo.get(j);
+    if (u === undefined) memo.set(j, (u = urgencyOf(st, j, c)));
+    return u;
+  };
+  const urgencyOf = (st, j, c) =>
     KINDS[j.kind].urgency ? KINDS[j.kind].urgency(st, j, c, MATCH.urgency) : MATCH.urgency.other;
   // A pawn's fit for a job: its role's priority for the kind times the job's urgency, less the walk. The head allots by it (allot); a
   // helper bids it for a neighbour's job, where a job that k pawns already work gets join^k of the bid (VB-102, VB-106).
@@ -254,17 +262,17 @@ VB['sim/jobs'] = (() => {
   // minAge (VB-136: herding from 8), or not its work.
   const tooYoung = (st, p, j) =>
     (p.role === 'child' && age(st, p) < CHILD.from) || (KINDS[j.kind].minAge && age(st, p) < KINDS[j.kind].minAge);
-  function score(st, p, j, c) {
+  function score(st, p, j, c, memo) {
     if (tooYoung(st, p, j)) return null;
     const pr = prioOf(st, p, j);
     if (pr <= 0) return null;
     const here = st.farmsteads[st.households[p.household].farmstead].house;
-    return floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
+    return floored(pr, pr * urgency(st, j, c, memo) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
   }
-  function bid(st, a, j, c) {
+  function bid(st, a, j, c, memo) {
     const p = st.pawns[a.id];
     if (!isOpen(j) || !eligible(st, j, p) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j))) return -1;
-    const s = score(st, p, j, c);
+    const s = score(st, p, j, c, memo);
     return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * joined(j, j.claims.length);
   }
   // The jobs a pawn may bid for: its household's and its village's, in increasing id.
@@ -379,7 +387,8 @@ VB['sim/jobs'] = (() => {
       // not a child under 7, one on a journey, or the player's pawn while it is commanded: the head allots around them
       if (age(st, p) >= CHILD.from && !travelling(st.agents[id]) && !unplanned(st, id)) members.push(p);
     }
-    const pairs = [];
+    const pairs = [],
+      memo = new Map();
     if (members.length) {
       const jobs = jobsFor(st, members[0]);
       VB.count.dayPair += (jobs.length ?? jobs.size) * members.length;
@@ -387,7 +396,7 @@ VB['sim/jobs'] = (() => {
         if (attentionOf(j) === 'full' && hoursLeft(st, j) <= 0) continue; // only its load is on the road
         for (const p of members) {
           if (!eligible(st, j, p)) continue;
-          const s = score(st, p, j, c);
+          const s = score(st, p, j, c, memo);
           if (s !== null && s > 0) pairs.push([s, p.id, j]);
         }
       }
@@ -441,7 +450,7 @@ VB['sim/jobs'] = (() => {
       if (!top || !busy || a.phase !== 'work' || a.job === top[1] || !isOpen(top[1])) continue;
       if (
         hoursLeft(st, a.job) > rateOf(st, p) &&
-        top[0] > MATCH.switchRatio * (score(st, p, a.job, c) ?? 0) + MATCH.switchMargin
+        top[0] > MATCH.switchRatio * (score(st, p, a.job, c, memo) ?? 0) + MATCH.switchMargin
       )
         issue(st, { actor: a.id, verb: 'work', target: top[1].key, source: 'planner' });
     }
@@ -508,18 +517,19 @@ VB['sim/jobs'] = (() => {
   // opinion of the holder. Bids on the helper basis only (sim/eligibility).
   function helpRound(st, idle, bidding, busy, c) {
     const offers = new Map(),
+      memo = new Map(),
       bids = [];
     for (const a of idle) {
       const p = st.pawns[a.id];
       if (bidding.has(a) || busy.has(a) || age(st, p) < HELP.minAge) continue;
       const v = villageOf(st, p);
-      if (!offers.has(v)) offers.set(v, offered(st, v, c));
+      if (!offers.has(v)) offers.set(v, offered(st, v, c, memo));
       const kin = kinNear(st, p.id);
       for (const j of offers.get(v)) {
         VB.count.helpBid++;
         const hh = st.households[j.owner.id];
         if (hh.id === p.household) continue;
-        const s = bid(st, a, j, c);
+        const s = bid(st, a, j, c, memo);
         if (s <= 0) continue;
         const f =
           HELP.factor +
@@ -530,7 +540,7 @@ VB['sim/jobs'] = (() => {
     if (bids.length) assign(st, bids, busy);
   }
   // What the households of village v offer helpers: each its most urgent open job of each kind help takes, waited long enough, in id order.
-  function offered(st, v, c) {
+  function offered(st, v, c, memo) {
     const out = [];
     for (const fid of st.villages[v].farmsteads) {
       const hid = st.farmsteads[fid].household,
@@ -542,7 +552,7 @@ VB['sim/jobs'] = (() => {
         if (!HELP.kinds.includes(j.kind) || !isOpen(j) || attentionOf(j) !== 'full') continue;
         if (st.t - j.posted < HELP.waitHours) continue;
         const b = best.get(j.kind);
-        if (!b || urgency(st, j, c) > urgency(st, b, c)) best.set(j.kind, j);
+        if (!b || urgency(st, j, c, memo) > urgency(st, b, c, memo)) best.set(j.kind, j);
       }
       for (const j of best.values()) out.push(j);
     }
