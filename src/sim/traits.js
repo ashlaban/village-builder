@@ -55,14 +55,17 @@ VB['sim/traits'] = (() => {
     );
   }
   const keep = (x) => Math.round(Math.min(TRAITS.bounds[1], Math.max(TRAITS.bounds[0], x)) * 1000) / 1000;
-  // One trait passed on (design.md, How a trait is passed on): mean + b × (the two parents' mean − mean) + chance, the chance normal with
-  // spread TRAITS.sd × √(1 − b²/2), drawn from the stream `traits`. A parent not on record (null) counts as the mean; b 0 is a draw from
-  // the distribution itself (a placed pawn).
-  function pass(st, mean, b, a = null, c = null) {
-    const pa = a === null ? mean : a,
-      pc = c === null ? mean : c,
-      chance = TRAITS.sd * Math.sqrt(1 - (b * b) / 2) * probit(rnd(st.rng.traits));
-    return keep(mean + b * ((pa + pc) / 2 - mean) + chance);
+  // One trait passed on (design.md, How a trait is passed on): mean + b × (the parents' mean − mean) + chance, drawn from the stream
+  // `traits`. `of` is how many parents the mean is over: 2 at birth, where a parent not on record (null) counts as the mean; at 15, the
+  // raisers counted (one alone is the whole mean; none, b is 0: a draw from the culture's distribution, as a placed pawn's). The chance is
+  // normal with spread TRAITS.sd × √(1 − b² × k / of²), k the parents known, so the spread stays TRAITS.sd from one generation to the next
+  // however many are known (√(1 − b²/2) for two, the design's; VB-519's review).
+  function pass(st, mean, b, a = null, c = null, of = 2) {
+    const k = (a === null ? 0 : 1) + (c === null ? 0 : 1),
+      bb = of > 0 ? b : 0,
+      pull = of > 0 ? ((a === null ? 0 : a - mean) + (c === null ? 0 : c - mean)) / of : 0,
+      chance = TRAITS.sd * Math.sqrt(1 - (bb * bb * k) / (of > 0 ? of * of : 1)) * probit(rnd(st.rng.traits));
+    return keep(mean + bb * pull + chance);
   }
   // The four means of the culture pawn `id` belongs to (its village's), or of culture 0, or of the archetype's (before any culture).
   function cultureValues(st, id) {
@@ -119,9 +122,9 @@ VB['sim/traits'] = (() => {
     const cv = cultureValues(st, id),
       by = raisers(st, id),
       a = by.length ? by[0] : null,
-      c = by.length > 1 ? by[1] : a;
+      c = by.length > 1 ? by[1] : null;
     for (let i = 0; i < VALUES.length; i++)
-      t[i] = pass(st, cv[NAMES[i]], TRAITS.b.values, traitOf(st, a, i), traitOf(st, c, i));
+      t[i] = pass(st, cv[NAMES[i]], TRAITS.b.values, traitOf(st, a, i), traitOf(st, c, i), by.length);
     const L = TRAITS.lean,
       share = Math.min(1, (p.leanDays || 0) / L.days);
     if (share > 0) {

@@ -44,6 +44,18 @@ const setSkill = (st, id, x) => { const t = st.pawns[id].traits; t[T.IDX.wits] =
     for (let k = 0; k < 2000; k++) kids.push(T.pass(st, m, b, T.pass(st, m, 0), T.pass(st, m, 0)));
     assert.ok(sd(kids) >= 0.14 && sd(kids) <= 0.16 && Math.abs(mean(kids) - m) < 0.015, `${g}: spread ${sd(kids).toFixed(3)}, mean ${mean(kids).toFixed(3)}`);
   }
+  // however many parents are known (VB-519's review): a birth with one parent on record; values set at 15 by two raisers, by one alone,
+  // by none; over generations, the spread stays the reference's
+  const m = 0.6, b = TRAITS.b.values, x = () => T.pass(st, m, 0);
+  const cases = { 'a birth, one parent known': () => T.pass(st, m, b, x(), null, 2), 'two raisers': () => T.pass(st, m, b, x(), x(), 2),
+    'one raiser': () => T.pass(st, m, b, x(), null, 1), 'no raiser': () => T.pass(st, m, b, null, null, 0) };
+  for (const [what, child] of Object.entries(cases)) {
+    const kids = Array.from({ length: 4000 }, child);
+    assert.ok(Math.abs(sd(kids) - 0.15) < 0.0075 && Math.abs(mean(kids) - m) < 0.01, `${what}: spread ${sd(kids).toFixed(4)}, mean ${mean(kids).toFixed(3)}`);
+  }
+  let gen = Array.from({ length: 2000 }, x);
+  for (let g = 0; g < 8; g++) gen = gen.map((_, k) => T.pass(st, m, b, gen[(k * 7919 + g) % gen.length], null, 1));
+  assert.ok(Math.abs(sd(gen) - 0.15) < 0.01, `eight generations raised by one: spread ${sd(gen).toFixed(4)}`);
 }
 
 // a birth: the child's twelve from its father and mother by birth (temperament and aptitudes around 0.5, values around its culture's
