@@ -1,6 +1,7 @@
 // @sys page/history: the History tab of the selection card, read from the record of events, and the names in a line as links (VB-099)
 // ======== history ========
-// The card of a pawn, a farm or a village has the tabs Details and History, and a village's has Customs (page/customs); the tab chosen
+// The card of a pawn, a farm or a village has the tabs Details and History, a village's has Customs (page/customs) and a lived-in farm's
+// has Stores, Land and Animals (page/cards, VB-664); the tab chosen
 // stays as the selection changes, so a name followed in one history opens the next. The filter by kind is the page's own state too.
 let cardTab = 'facts',
   historyGroup = '',
@@ -74,21 +75,29 @@ function renderHistory(q) {
 // The Customs tab (page/customs) is a village's: on another card Details shows in its place, and the choice is kept for the next village.
 function syncTabs() {
   const q = st && selectionPinned ? historySubject() : null,
-    village = q ? customsVillage() : -1;
-  const tab = !q || (cardTab === 'customs' && village < 0) ? 'facts' : cardTab;
+    village = q ? customsVillage() : -1,
+    house = q ? houseShown() : null; // the household whose farm the card shows (page/cards): its tabs Stores, Land and Animals
+  const mine = { customs: village >= 0, stores: !!house, land: !!house, animals: !!house };
+  const tab = !q || (cardTab in mine && !mine[cardTab]) ? 'facts' : cardTab;
   $('tileTabs').hidden = !q;
-  $('tabCustoms').hidden = village < 0;
-  $('tileFacts').hidden = tab !== 'facts';
-  $('tileHistory').hidden = tab !== 'history';
-  $('tileCustoms').hidden = tab !== 'customs';
   for (const b of $('tileTabs').children) {
     const on = b.dataset.tab === tab;
+    if (b.dataset.tab in mine) b.hidden = !mine[b.dataset.tab];
     b.setAttribute('aria-selected', on);
     b.tabIndex = on ? 0 : -1;
   }
+  $('tileFacts').hidden = tab !== 'facts';
+  $('tileHistory').hidden = tab !== 'history';
+  $('tileCustoms').hidden = tab !== 'customs';
+  $('tileHouse').hidden = !(tab in mine) || tab === 'customs';
+  $('tileHouse').setAttribute(
+    'aria-labelledby',
+    tab === 'land' ? 'tabLand' : tab === 'animals' ? 'tabAnimals' : 'tabStores',
+  );
   for (const b of $('historyKinds').children) b.setAttribute('aria-pressed', b.dataset.history === historyGroup);
   if (tab === 'history') renderHistory(q);
   if (tab === 'customs') renderCustoms(village);
+  if (!$('tileHouse').hidden) renderHouse(tab, house);
 }
 $('tile').addEventListener('click', (e) => {
   const tab = e.target.closest('[data-tab]'),

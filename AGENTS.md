@@ -37,7 +37,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 A sub-agent of an orchestrated run (`docs/agents/worker.md`) follows `.claude/agents/vb-task.md`, which replaces what steps 3, 6 and 7
 write to shared files: it leaves notes in the inbox, and the orchestrator writes the backlog, the questions and the PR.
 
-## Deciding without Kim (Kim, 12, 14 and 15 November)
+## Deciding without Kim (Kim, 12, 14, 15 and 16 November)
 A question goes to Kim only if it moves a Decided point of `design.md`, or lets the player do something no existing system covers.
 Otherwise decide by these, write the decision and its reason in the task file, and go on. Nothing below stops work: where no principle
 covers a decision, or two pull apart, decide, go on, and surface it (Surfacing, below).
@@ -91,7 +91,11 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
 14. **The future is someone's estimate** (Kim, 15 November). What the player is shown of what will happen (when a task ends, whether a
     store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
     knowledge; what has happened is shown as it was. A view that foretells says whose estimate it shows.
-15. **Every act is a pawn's** (Kim, 16 November). An act is done by a pawn who chose it, through a verb whose check holds for any
+15. **Like is shown alike, and pictures before words** (Kim, 16 November). Every thing of one kind (a level, a store, a trait, a
+    person's row, a link, a tab) has one presentation, used wherever it appears; an exception needs a motive, written in its task.
+    The page favours clear, indicative icons, and images and graphs where they apply, before text; a level is a meter, the same
+    meter everywhere, and words are its label. Traits are not hidden: they are shown as icons. Desktop first; the phone comes later.
+16. **Every act is a pawn's** (Kim, 16 November). An act is done by a pawn who chose it, through a verb whose check holds for any
     pawn alike. A household, a village or the calendar never acts: a household's head does; a village's meeting first elects an
     alderman, who carries out what the meeting decided. The player has what its pawn has, no more and no less: a choice the player is
     given is a choice every pawn makes, and a new verb widens the game for both. Natural processes need no pawn (birth, death,

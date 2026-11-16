@@ -24,6 +24,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   carries rain over the map on it (`w.rain`) and deals the tiles' moisture (`w.hm`) out by that rain, so biomes follow the weather; its
   numbers are `CLIMATE`. Nothing in play reads the wind or the rain yet.
   What a tile's cover holds (a wood's trees at full cover, a meadow's stones) is `src/gen/cover.js`, read by `gen.js` as it lays the land.
+- The panels' shared pieces are `src/page/meter.js` (VB-664; `AGENTS.md`, Deciding without Kim, 15): `meter(o)`, the one meter every level is
+  shown on (its scale is the caller's argument: VB-665), `stat(o)` and `stats(list)` (a good or a measure: its icon from `goodIcon` of
+  `src/page/icons.js`, its word, its value, its meter where it is a level) and `traitsHTML(id)`. A new panel shows a level, a store or a
+  trait through these, and a person or a farm by `memberRow` and `farmRow` of `src/page/cards.js`; a household is told of only on its
+  farm's card (`houseStats`, `renderHouse`: the tabs Stores, Land and Animals), and the People sheet only finds.
 - The archipelago editor is `src/page/editor.js`: a world alone on the stage with no run (`edit`, page state as the showcase island is), its
   tools' panels in one scene, Regenerate, and Play, which calls the loader's `build` with the generation options and `apply(wd)`. The
   terrain brush changes a world only before a run is seeded on it, through `VB['gen/cover'].set` (a land tile's cover) and the geology's

@@ -241,16 +241,9 @@ function renderActions() {
   let h = '';
   const hh = p.household !== null ? st.households[p.household] : null,
     f = hh ? st.farmsteads[hh.farmstead] : null;
-  const days = hh ? foodDays(hh) : null,
-    wood = hh ? Math.round(hh.wood) : 0;
-  const food = !hh
-    ? ''
-    : ` ${esc(f.name)}: food for ${days === null ? 'no one' : `${days} ${days === 1 ? 'day' : 'days'}`}, firewood ${wood} ${
-        wood === 1 ? 'load' : 'loads'
-      }.`;
   h += `<div class="play-head"><h3>You play ${esc(Sim.fullName(p))}</h3><button type="button" data-play="find">Find</button></div>`;
-  const cold = hh && hh.cold > 0 ? ', cold: no firewood' : '';
-  h += `<p class="needs">Hunger ${Math.round(p.hunger * 100)}%${cold}, health ${Math.round(p.health)}.${food}</p>`;
+  // the pawn's levels and its household's food and firewood, as its card and the farm's show them (VB-664: one unit, one meter)
+  h += `<div class="needs">${pawnStats(id)}${hh ? `<h3 class="card-sec">${esc(f.name)}</h3>${stats([foodStat(hh), woodStat(hh)])}` : ''}</div>`;
   h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
   h +=
     `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>` +

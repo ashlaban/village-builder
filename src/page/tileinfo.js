@@ -1,5 +1,6 @@
 // @sys page/tileinfo: the tile info panel
 // ---- tile info ----
+let tileWhere = ''; // the selected tile's column, row and region, for Debug
 function showTile(i) {
   const box = $('tile');
   if (i < 0 || !w) {
@@ -59,19 +60,30 @@ function showTile(i) {
   const claims = claimLines(i),
     cutBy = st && Sim.woodOf(st, i); // the village whose wood the tile is (VB-326)
   if (cutBy) claims.push(`Cut for firewood by ${cutBy.name}`);
-  if (farm) card(farm[0], [...farm[1], ...(of.house ? [] : ownLine), ...claims, where], '', tileExtras(of));
-  else
-    card(b.name, [
-      line,
-      ...river,
-      ...worn,
-      ...ownLine,
-      ...claims,
-      ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
-      ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []),
-      ...groundLines(i),
-      where,
-    ]);
+  tileWhere = where; // the tile's place in numbers is Debug's (page/drawer), not the player's card's (VB-664)
+  const strength = claimStats(i);
+  if (farm) {
+    const more = tileExtras(of);
+    card(farm[0], [...farm[1], ...(of.house ? [] : ownLine), ...claims], '', {
+      ...more,
+      stats: (more.stats || '') + strength,
+    });
+  } else
+    card(
+      b.name,
+      [
+        line,
+        ...river,
+        ...worn,
+        ...ownLine,
+        ...claims,
+        ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
+        ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []),
+        ...groundLines(i),
+      ],
+      '',
+      { stats: strength },
+    );
 }
 // What lies in the ground (gen/geology): the bedrock, and a deposit with the loads left in it. Nothing digs yet. An upland ore shows only
 // as the viewer knows it (page/ground's depositShown).
@@ -110,7 +122,7 @@ function claimLines(i) {
   const out = Sim.claimsOn(st, i).map((c) =>
     c.state === 'realised'
       ? `Held ${WHY[c.why]} by ${who(c.by)}${c.until !== null ? ` until year ${Math.floor(c.until / Sim.YEAR) + 1}` : ''}`
-      : `Claimed by ${who(c.by)} ${WHY[c.why]}, ${Math.round(Sim.claimStrength(st, c) * 100)}% strong`,
+      : `Claimed by ${who(c.by)} ${WHY[c.why]}`,
   );
   const cairn = st.cairns && st.cairns.get(i);
   if (cairn)
@@ -118,6 +130,32 @@ function claimLines(i) {
       `A cairn between ${st.villages[cairn.a].name} and ${st.villages[cairn.b].name}, set in year ${Math.floor(cairn.t / Sim.YEAR) + 1}`,
     );
   return out;
+}
+// How strong each open claim on a tile is, on the one meter (VB-664), in the order of claimLines.
+function claimStats(i) {
+  if (!st) return '';
+  const open = Sim.claimsOn(st, i).filter((c) => c.state !== 'realised');
+  return open.length
+    ? stats(
+        open.map((c) => {
+          const x = Math.round(Sim.claimStrength(st, c) * 100),
+            by =
+              c.by.type === 'village'
+                ? st.villages[c.by.id].name
+                : c.by.type === 'household'
+                  ? st.farmsteads[st.households[c.by.id].farmstead].name
+                  : Sim.fullName(st.pawns[c.by.id]);
+          return {
+            icon: 'tile',
+            label: 'Claim',
+            value: x,
+            note: by,
+            title: `How strong the claim of ${by} is`,
+            meter: { value: x },
+          };
+        }),
+      )
+    : '';
 }
 function pick(sx, sy, inspect = true) {
   if (!w || document.body.classList.contains('ui-hidden') || startOpen()) return; // the start's picture is only dragged and zoomed
