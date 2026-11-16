@@ -101,6 +101,11 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
     given is a choice every pawn makes, and a new verb widens the game for both. Natural processes need no pawn (birth, death,
     growth, spoilage, an animal eating); debug verbs are the world's, not a pawn's. An agent that finds an act with no pawn, or a
     choice only the player has, opens a task for it (arch `acts`) and goes on, as for a teleport.
+17. **Goods are made of a material, and its kind sets their quality** (Kim, 16 November). A good is what it is for (a whetstone, a
+    vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze)
+    makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long
+    it lasts, how fast it works, what it can hold); its worth in gifts and standing follows from custom. A deposit needs no use
+    of its own, only a property that matters.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with
