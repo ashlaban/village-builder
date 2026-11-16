@@ -175,7 +175,7 @@ const section = (title) => `<h3 class="card-sec">${title}</h3>`;
 function storesTab(hh) {
   const f = st.farmsteads[hh.farmstead],
     C = VB['sim/carts'],
-    seed = Sim.seedReserve(st, hh),
+    seed = Math.round(Sim.seedReserve(st, hh)),
     quern = hh.quern ? Sim.quernYears(st, hh) : 0,
     n = (x) => Math.round(x || 0);
   const goods = [
@@ -421,7 +421,7 @@ function showVillage(id) {
       !plot.steps
         ? `Plot cleared, for ${name(plot.holder)}; the cottage is built`
         : plot.open < 1
-          ? `Clearing a plot for ${name(plot.intended)}: ${Math.round(Sim.plotProgress(st, plot) * 100)}% done`
+          ? ''
           : `Plot cleared${plot.to !== null ? `, for ${name(plot.to)}` : ''}; ${
               X.cottageAt(plot) < 3
                 ? `the cottage: ${['foundation', 'walls', 'roof'][X.cottageAt(plot)]} is next`
@@ -441,6 +441,20 @@ function showVillage(id) {
           meter: { value: worst * 100 },
         }
       : { icon: 'fence', label: 'Fence', value: 'none yet', wide: true },
+    // a plot being cleared: how far the work has come, which is exact (what is done is shown as it was: principle 14)
+    ...plots
+      .filter((plot) => plot.steps && plot.open < 1)
+      .map((plot) => {
+        const x = Math.round(Sim.plotProgress(st, plot) * 100);
+        return {
+          img: actIcon('spade'),
+          label: 'Clearing',
+          value: x,
+          note: `for ${name(plot.intended)}`,
+          title: `Clearing a plot for ${name(plot.intended)}: how much is done`,
+          meter: { value: x },
+        };
+      }),
   ]);
   const list = `<h3>Farms</h3>${farms.map(farmRow).join('')}`;
   card(v.name, lines, '', {

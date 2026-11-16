@@ -37,7 +37,7 @@ function stat(o) {
     `<span class="stat-val">${esc(String(o.value))}${o.note ? `<small>${esc(o.note)}</small>` : ''}</span></div>`
   );
 }
-const stats = (list) => `<div class="stats">${list.filter(Boolean).map(stat).join('')}</div>`;
+const stats = (list) => `<div class="stat-grid">${list.filter(Boolean).map(stat).join('')}</div>`;
 // A pawn's traits (sim/traits): all twelve, each its icon over the one meter, in their three groups; one beyond the labels' bounds
 // (TRAITS.label) is marked and named by its word. Shown for every pawn that has them: traits are not hidden.
 const TRAIT_GROUPS = ['Values', 'Temperament', 'Aptitudes'];

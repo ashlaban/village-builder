@@ -116,7 +116,7 @@ function renderSettlers() {
     const population = households.reduce((sum, item) => sum + item.members.length, 0),
       meta = `${population} people · ${households.length} ${households.length === 1 ? 'household' : 'households'}`;
     const body = expanded
-      ? row(`data-village="${v.id}"`, iconImg(villageIcon(v), 'mini'), v.name, 'The village', ICON.chevron) +
+      ? row(`data-village="${v.id}"`, iconImg(villageIcon(v), 'mini'), v.name, 'The village', actIcon('next')) +
         households
           .map(({ f, members }) => `${farmRow(f)}<div class="finder-members">${members.map(memberRow).join('')}</div>`)
           .join('')
@@ -290,7 +290,7 @@ function showRelations(id) {
         .filter(Boolean)
         .join(' · ');
       const tone = x.opinion >= 0.25 ? 'pos' : cold(x.opinion) ? 'neg' : '';
-      return `<button type="button" data-pawn="${x.id}">${faceImg(
+      return `<button type="button" class="op" data-pawn="${x.id}">${faceImg(
         x.id,
         'mini',
       )}${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i>${meter({
