@@ -16,7 +16,7 @@ JavaScript repo: sketches of shape and ownership, not code to build. The full ba
 
 Revised in place on 9 November 2026 after a review of this target against the code (Kim's decisions 25 to 30, section 8). Two
 conventions for the sketches follow from it: `| Refusal` on an owner's write means the paired query refuses (4.1, Workflows), and a
-`step(st, dt)` is built under the rules for cost (`docs/roadmap.md`, 5.3: decay lazily, schedule what falls due), not as a daily pass.
+`step(st, dt)` is built under the rules for cost (`docs/cost.md`, 1.3: decay lazily, schedule what falls due), not as a daily pass.
 
 ## 1. In short
 
@@ -985,7 +985,7 @@ VB-173 to VB-180 (`ownership.md` section 7) fit this target unchanged in order. 
 ### 11.3 Proposed tasks, in order of dependency
 
 Unnumbered here; each would be written up under the task rules in `BACKLOG.md`, behaviour-preserving first where it can be.
-`docs/roadmap.md` (the slices) has since set the order; this list stays as the inventory of what the target asks for.
+`docs/slices.md` (the slices) has since set the order; this list stays as the inventory of what the target asks for.
 
 1. The rules registry, with `deathRoll` as its first rule, unchanged in behaviour; `tools/rules.js`.
 2. Reduced-scenario harness and nightly band reports (6.2); `tools/loops.js`.

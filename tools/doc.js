@@ -1,4 +1,4 @@
-// Section reader for the long Markdown documents (design.md, target-v2, the roadmap, REVIEW.md): a table of contents with each section's
+// Section reader for the long Markdown documents (design.md, target-v2, the slices, the cost, REVIEW.md): a table of contents with each section's
 // size, or one section, so a task reads the section its Design ref names instead of the whole file. Headings in code blocks are ignored.
 const fs = require('fs'), path = require('path');
 const USAGE = `usage: node tools/doc.js [FILE.md] [QUERY] [--toc] [--line N] [--shallow]
