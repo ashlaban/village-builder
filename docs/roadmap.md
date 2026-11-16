@@ -331,6 +331,12 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
   - what a mill costs and its toll.
 - **Done when:** the idle share in the slack seasons has fallen and is reported (no limit is set: Kim, 10 November); mills are built where they pay; "the smith" emerges by
   hours worked.
+- **16 November update (the plan of VB-702;** `design.md`, Goods, production and animals, The metals and the stones**):** the
+  slice's second half also brings the island's own metals and the stones' other goods (Kim, 16 November, moving the decision of
+  11 November that left the metals for the ship): goods carry the kind of their material, which sets their quality (principle 17);
+  mining a found vein by hand, prospecting, the furnace; the copper kettle, bronze for the cast pot and the village's bell; silver,
+  gold and amber as things of worth, and the hoard; whetstones and grindstones; soapstone pots, marble for lime, the memorial
+  stone; tin twice as likely (VB-733 to VB-745). Coin and the church's uses stay with 3.8.
 
 ### 3.7 Talk travels
 
@@ -374,6 +380,10 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
   - the disease model: one compartment model per settlement, feeding a contribution to `death.hazard`, so the cost is per
     settlement, not per pair of pawns;
   - what establishment does.
+- **16 November update (the plan of VB-702):** the island's own metals no longer wait for this slice (3.6). When the ship comes,
+  silver and gold are already in households as things of worth, kept, given, worn and buried, and bronze is cast: "silver by
+  weight" here becomes silver as a means of exchange, and coin when the Crown mints, first from the island's own silver. The slice
+  keeps the church's uses (the bell, lead for roofs and windows, fonts and altars, soapstone carving, amber) and pewter's lead.
 - **16 November update (the plan of VB-405;** `design.md`, People, Marriage, nursing and growth; Balance loops and targets, The
   growth budget**):** there is no immigration before the ship (Kim, 13 November), so the settling families are this slice's: VB-636
   holds the proposal (a family lands at the harbour and walks to a plot or an empty farm; one in 2 years while fewer than 300
