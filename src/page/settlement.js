@@ -12,6 +12,7 @@ const YARD = {
   heap: [-17.5, -1],
   curb: [1, 19],
   booth: [10, 6],
+  cart: [-3, 21],
 };
 const INK = 0x2c201c; // the contour of what is drawn straight onto the map, as MP.line of the farm art
 const place = (tex, x, y, ax, ay, layer = L.objects, sc = ART_S) => {
@@ -48,6 +49,7 @@ function clearSettlement() {
   deerSprites = [];
   meadowSprites = [];
   teamDraw = new Map();
+  cartDraw = [];
 }
 async function buildSettlement(wd, s) {
   clearSettlement();
@@ -207,6 +209,7 @@ function buildFarms(wd) {
   deerSprites = [];
   meadowSprites = [];
   teamDraw = new Map();
+  cartDraw = [];
   L.objects.sortableChildren = true;
   for (const f of st.farmsteads) {
     const hx = wd.hx[f.house],

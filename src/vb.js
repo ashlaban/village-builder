@@ -14,13 +14,18 @@ VB.COUNTERS = {
   reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
-  walkStep: 'Agent records walked by the six-minute step (the awake ones, sim/agents)',
-  walkAwake: 'Agent records walked to rebuild the awake list, once a game hour (VB-205)',
+  talkTurn:
+    'Pawns asked by the talk round at their talk turn, every SOCIAL.talk.every waking hours (sim/relations, VB-521)',
+  talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',
+  walkStep: 'Legs a step takes from the due-queue as they end: walks and waits (sim/agents stepAgents; VB-473)',
+  walkAwake:
+    "Pawn records looked at by the working day's start, for those waiting for it, once a day (sim/agents dayStart; VB-473)",
   idleStroll: 'Idle pawns sent strolling by idleAbout when the planner found them no work (VB-205)',
   companyWeighed: 'Idle pawns drawn and weighed as company in companyFor (VB-205)',
   workReckon:
     'Tasks under work reckoned, with their hours since (sim/agents settle: a hand joins or leaves, the end of work, the meal; VB-472)',
-  walkPoint: 'Path points walked past by moveAgent (VB-205)',
+  walkPoint: 'Path points passed, their tiles trodden as a walk ends or is cut (sim/agents treadTo; VB-205, VB-473)',
+  walkPlace: 'Places worked out along a walk (placeOf of a walking pawn: talk, nearness, company, a cut; VB-473)',
   walkDaily: 'Pawn records walked by dailyLife and Culture.dailyStep',
   walkTies:
     "Ties walked to put a pawn's ties back on today's scale, or to make room under the cap (sim/relations, VB-127)",

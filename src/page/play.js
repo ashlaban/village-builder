@@ -333,8 +333,9 @@ function followCamera() {
   const a = st.agents[id],
     f = farmOf(st.pawns[id]);
   if (a.inside && !f) return;
-  cam.x = a.inside ? w.hx[f.house] : a.x;
-  cam.y = a.inside ? w.hy[f.house] : a.y;
+  const [x, y] = Sim.placeOf(st, a); // a walker's place from its leg (VB-473)
+  cam.x = a.inside ? w.hx[f.house] : x;
+  cam.y = a.inside ? w.hy[f.house] : y;
   vel.x = vel.y = 0;
 }
 // The played pawn's mark on the map: a gold pointer over its head, or over its house while it is indoors, the same size on screen at

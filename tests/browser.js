@@ -27,7 +27,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
         + 'tool: () => tool && { kind: tool.kind, sites: tool.sites.slice() }, '
         + 'drawings: () => { const h = app.renderer.graphicsContext._gpuContextHash; let n = 0; for (const k in h) if (h[k]) n++; return n; }, render: () => app.render(), '
         + 'set st(v) { st = v; }, world: () => w, ticker: () => app.ticker, setSpeed: (v) => { speed = v; }, advance: (dt) => advanceSimulation(dt), '
-        + 'place: () => { placePawns(); return { drawX, drawY, prevX, prevY, prevIn, prevN, stepShare, drawBetween: drawingBetween() }; } };')),
+        + 'place: () => { placePawns(); return { drawX, drawY, stepShare }; } };')),
   }));
   await page.goto('https://village.test/');
   await page.waitForFunction(() => !document.getElementById('landing').hidden, null, { timeout: 60000 });
@@ -46,7 +46,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     for (const [fps, speed] of [[60, 30], [24, 10]]) {
       runs.push(await page.evaluate(([fps, speed, data]) => {
         const P = window.__play, { Sim } = P, home = P.st, R = VB['sim/rules'], w = P.world();
-        const st = Sim.load(w, JSON.parse(data)), tick0 = st.tick, faults = [];
+        const st = Sim.load(w, JSON.parse(data)), tick0 = st.tick, faults = [], last = [];
         const far = (R.SPEED * w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6;
         P.st = st; P.setSpeed(speed);
         let frames = 0, between = 0;
@@ -62,12 +62,13 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
                 if (!(Math.hypot(x - st.w.hx[a.job.site], y - st.w.hy[a.job.site]) <= 19)) faults.push(`frame ${frames}: pawn ${i} off its field's rows`);
                 continue;
               }
-              const ok = i < d.prevN && !d.prevIn[i] && !a.inside && Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]) <= far;
-              if (!ok) { if (x !== a.x || y !== a.y) faults.push(`frame ${frames}: pawn ${i} not drawn where it is`); continue; }
-              const seg = Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]);
-              if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(a.x - x,
-                a.y - y) > seg + 1e-6) faults.push(`frame ${frames}: pawn ${i} off its segment`);
-              else if (seg > 0 && d.stepShare > 0) between++;
+              const [ax, ay] = Sim.placeOf(st, a); // a walker's place from its leg (VB-473)
+              // drawn where it is, or ahead along its leg by less than a step, and from one frame to the next never further than a step
+              const dev = Math.hypot(x - ax, y - ay), jump = last[i] ? Math.hypot(x - last[i][0], y - last[i][1]) - far * (st.tick - last[i][2]) : 0;
+              if (dev > far) faults.push(`frame ${frames}: pawn ${i} more than a step from where it is`);
+              else if (jump > far) faults.push(`frame ${frames}: pawn ${i} jumped`);
+              else if (dev > 0 && d.stepShare > 0) between++;
+              last[i] = [x, y, st.tick];
             }
           }
         } finally { P.st = home; P.setSpeed(0); }
