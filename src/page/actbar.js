@@ -252,9 +252,10 @@ function workAct(id, kind, holder) {
   barMsg = r === true ? { text: `Queued: ${commandWords(open[0])}.` } : { text: r, bad: true };
 }
 // ---- the tool: an act that waits for a tile ----
-// tool: {kind ('walk', 'work' or 'give'), icon, title, needs (what to tap), keep (true: it stays in hand until Done, for repeated work),
-// work and holder (the kind of work and whose), sites (the tiles marked as taking it), msg (the last tap's answer)}. The banner names it;
-// the next click on the map (page/tileinfo asks first) is toolTap's. A refused tap says why and waits for another.
+// tool: {kind ('walk', 'work', 'give' or 'plan': a tile of the plan panel's, page/plan), icon, title, needs (what to tap), keep (true:
+// it stays in hand until Done, for repeated work), work and holder (the kind of work and whose), sites (the tiles marked as taking it),
+// msg (the last tap's answer)}. The banner names it; the next click on the map (page/tileinfo asks first) is toolTap's. A refused tap
+// says why and waits for another.
 function startTool(t) {
   tool = { sites: [], msg: null, ...t };
   barMenu = null;
@@ -304,6 +305,7 @@ function toolTap(pw, named, i) {
       tool.msg = r === true ? { text: `Queued: ${commandWords(o)}.` } : { text: r, bad: true };
     }
   } else if (tool.kind === 'give') pickGift(pw, named, i);
+  else if (tool.kind === 'plan') planTap(i); // the plan panel's tile (page/plan)
   renderActions();
 }
 // a tool that is done after one tap: put away, with a line in the banner for a moment
