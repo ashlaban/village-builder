@@ -2,7 +2,7 @@
 <!-- Mock, third round (16 Nov 2026, after VB-664; the second round is supply-meter.html): the supply component, season by season.
      Throwaway: the numbers are invented, nothing here is game code. The frame is the year: this year's four seasons and the first two of
      the next, with a mark at today. What is behind the mark is shown as it was; what is ahead is the head's estimate (principle 14),
-     made at its review. Spoilage is taken once, off the end of the whole run. Seasons are icons. The second card tries four ways of
+     made at its review; its doubt (a range) is added later (Kim, 16 Nov). Spoilage is taken once, off the end of the whole run. Seasons are icons. The second card tries four ways of
      showing hay, which is only needed in winter; the third tries other shapes of the same thing. -->
 <html lang="en">
 <meta charset="utf-8">
@@ -24,7 +24,7 @@
   .state.safe { color: var(--good); } .state.warn { color: var(--gold); } .state.bad { color: var(--bad); }
   .state svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
   .more { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--edge); background: #fbfdfc; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
-  .more svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .more svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   svg.bar { width: 216px; display: block; overflow: visible; }
   .key { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; padding-top: 9px; border-top: 1px solid var(--edge); font-size: 12.5px; color: var(--muted); }
   .key span { display: inline-flex; align-items: center; gap: 5px; } .key svg { width: 26px; height: 12px; overflow: visible; }
@@ -77,8 +77,7 @@ function cell(r, k, x0, cw, h = 18) {
     <rect x="${x0}" y="0" width="${cw * all}" height="${h}" rx="4" fill="url(#come)"/>
     <rect x="${x0 + cw * all}" y="0" width="${cw * lost}" height="${h}" fill="url(#spoil)"/>
     <rect x="${x0}" y="0" width="${cw * own}" height="${h}" rx="4" fill="#23685a"/>
-    ${past ? `<rect x="${x0}" y="0" width="${past}" height="${h}" rx="4" fill="#8aa39f"/>` : ''}
-    ${lo < all && all > own ? `<line x1="${x0 + cw * lo}" x2="${x0 + cw * all}" y1="${h + 4}" y2="${h + 4}" stroke="#23685a" stroke-width="1.5"/>` : ''}`;
+    ${past ? `<rect x="${x0}" y="0" width="${past}" height="${h}" rx="4" fill="#8aa39f"/>` : ''}`;
 }
 const idleCell = (x0, cw, h = 18) => `<rect x="${x0}" y="0" width="${cw}" height="${h}" rx="4" fill="url(#idle)" stroke="#526d75" stroke-opacity=".3"/>`;
 const comes = (r, y) => `<path d="M${(r.in[0] / N) * W} ${y}v-4H${(r.in[1] / N) * W}v4" fill="none" stroke="#17313a" stroke-width="1.3"/>`;
@@ -89,7 +88,7 @@ const svg = (body, h = 38, top = -12) => `<svg class="bar" viewBox="0 ${top} ${W
 const header = `<div class="row" style="min-height:22px"><i></i><i></i>${svg([0, 1, 2, 3, 4, 5].map((k) => sIcon(k, k * CW + CW / 2 - 7, -8, k >= 4)).join('') + yearLine(-10, 8), 20, -10)}<i></i><i></i></div>`;
 const CHECK = '<svg viewBox="0 0 16 16"><path d="M3 8.5l3.5 3.5L13 4.5"/></svg>', WARN = '<svg viewBox="0 0 16 16"><path d="M8 3v6M8 12.5v.01"/></svg>';
 const state = (s) => `<span class="state ${s[0]}">${s[0] === 'safe' ? CHECK : WARN}${s[1]}</span>`;
-const more = '<span class="more" title="The numbers"><svg viewBox="0 0 16 16"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg></span>';
+const more = '<span class="more" title="The numbers"><svg viewBox="0 0 16 16"><path d="M8 7.2v4.3M8 4.4v.01"/></svg></span>'; // i for info: the hard numbers open from it
 const row = (r, body, label = r.name) => `<div class="row"><svg class="ico" viewBox="0 0 24 24">${r.icon}</svg><span class="name">${label}</span>${body}${state(r.state)}${more}</div>`;
 
 // ---- card 1: the frame ----
@@ -157,7 +156,7 @@ const K = {
 };
 const C1 = `<div class="card"><h1>C. The year, season by season</h1><p class="sub">The frame is the year: its four seasons and the first two of the next. A mark stands at today. Behind it, what was; ahead of it, the head's reckoning.</p>
   <p class="whose">By Gunnar's reckoning, at his last review</p>${header}${ROWS.map((r) => row(r, cells(r))).join('')}
-  <div class="key">${[K.was, K.own, K.come, K.spoil, K.short, K.now, K.when, K.sure].join('')}</div></div>`;
+  <div class="key">${[K.was, K.own, K.come, K.spoil, K.short, K.now, K.when].join('')}</div></div>`;
 const C2 = `<div class="card"><h1>Hay, four ways</h1><p class="sub">Hay is eaten in winter only, so five of its six cells have nothing to say. Four ways to treat them; the same numbers in each.</p>
   ${header}
   ${row(HAY, cells(HAY), 'a. Dotted')}<p class="note">Every supply keeps the same six cells; the dotted ones say "no need then". Honest, a little busy.</p>
