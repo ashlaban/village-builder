@@ -4,7 +4,8 @@ VB['sim/hunger'] = (() => {
   const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS, PEAT } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'],
-    Pot = VB['sim/pot'];
+    Pot = VB['sim/pot'],
+    { hungryDay } = VB['sim/traits'];
   const Rules = VB['sim/registry'];
   // The seed kept for a field: the standing plan's target (from its culture's template, sim/plans; VB-252), the crop's seed (barley's) before it has one.
   function seedPer(st, hh) {
@@ -252,6 +253,7 @@ VB['sim/hunger'] = (() => {
     let sum = 0;
     for (const p of mem) {
       ate(st, p, eaten.get(p), need.get(p), cold);
+      hungryDay(p); // a child's hungry days, for its traits at 15 (sim/traits, VB-519)
       sum += p.hunger;
     }
     hh.hunger = mem.length ? sum / mem.length : 0;

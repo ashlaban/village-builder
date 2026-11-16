@@ -11,7 +11,7 @@ VB['sim/saves'] = (() => {
     Plans = VB['sim/plans'],
     { BREAK_HOURS } = VB['sim/fields'],
     { seedPer } = VB['sim/hunger'];
-  const { TICKS } = VB['sim/rules'];
+  const { TICKS, TRAITS } = VB['sim/rules'];
   const { makeStream } = VB['sim/rng'];
   const { reckonWood } = VB['sim/territory'];
   const { initFish } = VB['sim/fish'],
@@ -431,6 +431,8 @@ VB['sim/saves'] = (() => {
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
+    // VB-519: nor a culture's values (each starts at its archetype's), nor the twelve traits (those it has kept), nor a child's hungry days
+    if (st.cenv) for (const c of st.cenv.cultures) if (!c.values) c.values = { ...TRAITS.culture.oldNordic };
     VB['sim/traits'].seedTraits(st); // VB-254: nor the traits themselves (VB-249's diligence kept)
     // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
     const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
