@@ -108,7 +108,19 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
     of its own, only a property that matters.
     A made good also has a grade of workmanship, one of five (shoddy, sound, good, fine, masterwork), drawn at its making by
     odds that shift with the maker's skill; the grade scales everything the kind's properties do, and its worth. Skill makes a
-    made good better as well as faster; it never multiplies a crop's yield.
+    made good better as well as faster; it never multiplies a crop's yield. A made good is graded; a built thing (a house, a fence, a
+    mill) is not.
+18. **Practice before institution** (Kim, 16 November). A venue, an office or a good the design names before the institution that
+    keeps it exists is built as the practice that produced it, which the institution later takes over: the ale evening before the
+    town's alehouse, the rite before the Church's service.
+19. **A wait is the thing waited for** (Kim, 16 November). No rule holds a pawn back by a chance or a count of years alone: model
+    what makes it wait (8), and the wait is what that takes.
+20. **A label is read, never a switch** (Kim, 16 November). A place's or a person's name for what it is (market place, town, smith,
+    landed) is read from what people do and feeds no rule; a label gets a cut point only where a measure falls into two groups,
+    else the measure is shown and no word is put on it. Stricter than target-v2's principle 7, which lets a categorical view feed
+    a rule through hysteresis: where the two meet, this one holds.
+21. **What does not wear needs a way out** (Kim, 16 November). A good that does not wear (silver, gold, a stone) leaves play by a
+    process: given, buried, lost with its keeper's knowledge.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with

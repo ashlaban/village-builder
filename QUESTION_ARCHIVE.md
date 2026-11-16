@@ -2,6 +2,14 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 16 November 2026 (review of design.md for Kim's questions)
+
+## Decisions made for Kim to overturn, and principle candidates (review of 16 November 2026)
+1. **Four points of `design.md` stood as the orchestrator's decision for Kim to overturn or accept**, all built: the marriage offer answered after the round, and a wished partner passing the round's rules and its lowest accepted score (Marriage as a negotiation; VB-233); Taken in before it starves (Households short of people; VB-283, VB-308); the showcase island as the scenario's picture (VB-340). **P:** accept as built; VB-682 may revisit the offer.
+   **A (Kim, 16 Nov):** Accepted, all four.
+2. **Five principle candidates surfaced and not yet in `AGENTS.md`:** practice before institution (VB-186); a wait is the thing waited for (VB-405); a label is read, never a switch (VB-189); what does not wear needs a way out (VB-702, D5); a made good is graded, a built thing is not (VB-702). A sixth, noted by VB-611 with no wording kept.
+   **A (Kim, 16 Nov):** Accepted: `AGENTS.md`, Deciding without Kim, 18 to 21, and a clause of 17. VB-611's is dropped.
+
 # Archived 16 November 2026 (VB-702)
 
 ## VB-702: Goods by kind (the plan of VB-702): a maker's skill and quality; granite millstones (raised 16 November 2026)
