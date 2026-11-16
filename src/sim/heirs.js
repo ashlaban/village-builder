@@ -343,9 +343,11 @@ VB['sim/heirs'] = (() => {
     f.state = 'derelict';
     f.emptySince = st.t; // the house as it was kept (VB-306)
     abandoned(f);
+    // its plans go while it still stands: timber at a building step is put on its woodpile (sim/plans' leftWood), which a dissolved
+    // holder refuses (VB-779); Stores.close leaves the wood, so it stays with the derelict farm
+    dropPlan(st, 'household', hh.id);
     hh.dissolved = true;
     noteDissolved(st, hh);
-    dropPlan(st, 'household', hh.id);
     Stores.close(st, hh);
     dropStakes(st, hh);
     farmToVillage(st, f);
