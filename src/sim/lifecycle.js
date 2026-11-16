@@ -50,7 +50,7 @@ VB['sim/lifecycle'] = (() => {
   const { updateTie, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue, playerDied, clearMatchWish } = VB['sim/commands'];
   const { forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
-  const { wedding, funeral, VILLAGE_STEPS, villageTurn } = VB['sim/occasions'];
+  const { wedding, funeral, VILLAGE_STEPS } = VB['sim/occasions'];
   const { closeTrust, goBack, wardsOfAge, inheritedHeld } = VB['sim/trust'],
     { trustOfHolder } = VB['sim/ownership'];
   function killPawn(st, id, cause = 'killed') {
@@ -121,7 +121,8 @@ VB['sim/lifecycle'] = (() => {
     return true;
   }
   // The year's meetings (VB-278; design.md, A village's meeting): on autumn day 10, each village's meeting on its own 6-minute step from noon,
-  // in the order of village id (villageTurn, as the moving round's villages), then from 18:00 each culture's year, and on the next step the
+  // in the order of village id from `year mod villages` (villageTurn, as the moving round's villages), then from 18:00 each culture's year,
+  // and on the next step the
   // land meeting, which settles outland between villages. `meetingStage(st, n)`, n the step from noon, is each step's entry point; nothing
   // is kept from one step for the next, so nothing is saved: the step of the day says what is due. `holdMeetings` is every village's and the
   // cultures' at once, not the land meeting (the drawer's button, the tests).
@@ -129,12 +130,19 @@ VB['sim/lifecycle'] = (() => {
     MEETING_STAGES = VILLAGE_STEPS + 2;
   // The villages whose turn is step n of the window (sim/occasions, villageTurn): f(k) for each, in order.
   function villagesOfStep(st, n, f) {
-    const villages = st.villages.length;
+    const villages = st.villages.length,
+      year = cal(st.t).year,
+      at = (j) => (((j + year) % villages) + villages) % villages; // the village on slot j (villageSlot's inverse)
     if (villages <= VILLAGE_STEPS) {
-      if (n < villages) f(n);
+      if (n < villages) f(at(n));
       return;
     }
-    for (let k = Math.ceil((n * villages) / VILLAGE_STEPS); k < villages && villageTurn(k, villages) === n; k++) f(k);
+    for (
+      let j = Math.ceil((n * villages) / VILLAGE_STEPS);
+      j < villages && Math.floor((j * VILLAGE_STEPS) / villages) === n;
+      j++
+    )
+      f(at(j));
   }
   function meetingStage(st, n) {
     st.cenv.t = st.t / YEAR;
