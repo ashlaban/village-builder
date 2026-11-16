@@ -151,6 +151,8 @@ assert.ok(Number.isNaN(probe('growth-phase-scarce', few).value) && Number.isNaN(
 near(probe('growth-phase-free', few).value, g(0, 40), 'never scarce: growth before it is the whole run\'s');
 const small = samples.map((x) => (x.facts ? { ...x, facts: { ...x.facts, adults: 10, landWait: 5 } } : x));
 assert.ok(Number.isNaN(probe('land-scarce-year', small).value), 'fewer than 20 adults of age are not read');
+const placed = samples.map((x) => (x.year === 1 ? { ...x, facts: { ...x.facts, landWait: 50 } } : x));
+near(probe('land-scarce-year', placed).value, 20, 'the first year, whose round sorts out the placed start, is not read');
 const y1000 = probe('year-1000');
 assert.strictEqual(y1000.value, living.findIndex((n) => n >= 1000)); assert.strictEqual(y1000.note, undefined, 'measured, no note');
 const short = samples.slice(0, 21), worked = probe('year-1000', short);

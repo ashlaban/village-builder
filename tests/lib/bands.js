@@ -44,10 +44,11 @@ const growthOver = (s, from, to) => {
   return to > from && s[from].living > 0 ? Math.pow(s[to].living / s[from].living, 1 / (to - from)) - 1 : NaN;
 };
 // the first year at whose end a tenth or more of the adults of age (the least age to marry or over) wait for land (st.demand), or null;
-// a year with fewer than LAND_SCARCE_ADULTS of them is not read (a founders' servant waiting in year 1 is a tenth of ten)
+// a year with fewer than LAND_SCARCE_ADULTS of them is not read (a founders' servant waiting is a tenth of ten), nor the first year, whose
+// round sorts out the placed start (populous medium seed 7: 47 of 360 adults waited at the end of year 1, 7 at the end of year 2)
 const LAND_SCARCE = 0.1, LAND_SCARCE_ADULTS = 20;
 const scarceYear = (s) => {
-  const x = s.find((y) => y.year > 0 && y.facts && y.facts.adults >= LAND_SCARCE_ADULTS && y.facts.landWait / y.facts.adults >= LAND_SCARCE);
+  const x = s.find((y) => y.year > 1 && y.facts && y.facts.adults >= LAND_SCARCE_ADULTS && y.facts.landWait / y.facts.adults >= LAND_SCARCE);
   return x ? x.year : null;
 };
 const sumOf = (xs, f) => xs.reduce((n, x) => n + f(x), 0);
