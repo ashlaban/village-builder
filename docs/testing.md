@@ -52,15 +52,24 @@ Over 5 seconds in verify: `tests/lint.js` (6 to 7 s) and, on a loaded machine, `
 `occasions` 5, `forage` 5. With them the seven that were extended already (`start --people` 150, `bands` 50, `invariants` 44, `births` 38, `line` 32,
 `history` 15, `fixtures` 5).
 
-What a task no longer runs, until VB-409 and the tasks it was split into (VB-853 to VB-856) rebuild each on a small constructed state:
+What a task no longer runs, until VB-409 and the tasks it was split into (VB-853 to VB-856) rebuild each on a small constructed state
+(VB-853 and VB-854 have rebuilt theirs, below):
 - **The page at length.** `smoke` (jsdom, the tiny map) and the six Chromium scripts. A change under `src/page/` runs them by name;
   the lint still holds the page's contract (it only reads `st`), and `tests/speed.js`, `player.js` and `chronicle.js` its logic.
   Since VB-409 verify loads the page again: `tests/page.js` builds it in jsdom on a 36 by 26 island (a size the test adds to the
   page's own), starts founders from the address's hash, runs some days through the speed buttons and opens each panel once, in
   about 3 seconds (3.8 s here on a machine at load 12; 3.1 s of CPU). It and `smoke` share their harness, `tests/lib/dompage.js`,
   which fails on any error the page throws in a handler or a timer, not only on what it logs.
-- **Rules asserted only on generated islands**: among them `meals`, `stores`, `heirs`, `plans`, `offers`, `hunger`, `herds`,
-  `settle`, `layout`, `commands`, `record`, `plaindata`. A change to one of these systems runs its script by name.
+- **Rules asserted only on generated islands**: among them `herds`, `settle`, `layout`, `commands`, `record`, `plaindata`. A change
+  to one of these systems runs its script by name.
+- **The household's rules** (`meals`, `stores`, `hunger`, `heirs`, `guardian`, `kinship`, `kinlimit`, `owners`, `plans`, `offers`,
+  `exchange`, `occasions`): since VB-854 verify holds them again, each on the small islands of `tests/lib/probe.js` (`scenario`), in
+  1 to 5 seconds of CPU. What took years is constructed: the guardian's ward is brought to his eighteenth birthday by his birth date,
+  where it took 14 years; the scarcity and plenty pulls on the marriage limit are read at one moving round on a pedigree laid over the
+  heirs scenario's single adults (all first cousins, or strangers), where it took 8 years; `stores` reconciles founders three years and
+  populous one. The scenes found on the 120 by 85 island are found again on the small ones (`offers`, seeds 42 and 13; `occasions`, 11).
+  Two stay at night, saying so in their first lines: `heirs --extended` (the default island ten years on, and B3's lone holder bringing
+  in a crop at four seeds, a statistic over seeds) and `hunger --extended` (three years of founders at seeds 7 and 42, reported).
 - **Long save and load** (`saves`), and the generated-world cases of `clock`, `spread`, `paths` and `indexes` (`--extended`):
   since VB-853 verify holds them again, on small states, and only `paths --extended` stays at night. `saves` runs each scenario on a
   small generated island (36 by 26; heirs 48 by 34, which its two debug villages need; `tests/lib/probe.js`, `island` and

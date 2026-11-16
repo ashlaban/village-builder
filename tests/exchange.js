@@ -1,12 +1,12 @@
 // The gift (VB-216): the verb give settles a gift within the floor and the allowance and refuses one beyond them, unless the player's
-// pawn gives; allowance's terms are slack and reserve, and on a running village it equals help's surplus.
+// pawn gives; allowance's terms are slack and reserve, and on a running village it equals help's surplus. On the small islands (VB-854).
 const assert = require('assert');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rules = VB['sim/registry'];
+const VB = require('../src/load.js'), Sim = VB.sim, Rules = VB['sim/registry'];
+const { scenario } = require('./lib/probe.js');
 const { bufferOf } = VB['sim/traits']; // VB-520: the floor and the holder's reserve, by its generosity
 const { issue } = VB['sim/commands'], { surplus } = VB['sim/help'], { floorOf, dailyNeed } = VB['sim/hunger'], { HELP } = VB['sim/rules'];
-const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
 const fresh = () => {
-  const st = Sim.seed(r.value, 7, 'founders');
+  const st = scenario('founders');
   const [a, b] = st.households.filter((h) => !h.dissolved && h.holder !== null);
   return { st, a, b };
 };
@@ -85,8 +85,8 @@ let checks = 0;
   for (const c of bad) assert(typeof issue(st, { ...c, source: 'help' }) === 'string', `refused: ${JSON.stringify(c)}`);
   checks++;
 }
-{ // on a running village allowance names its two terms and equals help's surplus on every household
-  const st = Sim.seed(r.value, 7, 'populous'); Sim.advance(st, Sim.YEAR);
+{ // on a running village (a year of populous) allowance names its two terms and equals help's surplus on every household
+  const st = scenario('populous'); Sim.advance(st, Sim.YEAR);
   let n = 0, giving = 0;
   for (const hh of st.households) {
     if (hh.dissolved) continue;

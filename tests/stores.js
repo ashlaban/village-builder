@@ -1,13 +1,16 @@
-// Stores arithmetic, error handling and complete annual food reconciliation.
+// Stores arithmetic, error handling and complete annual food reconciliation, on the small islands (VB-854): founders two years (a household
+// dissolves in the second) and populous one (its journeys' provisions); the window of pruning is checked on the constructed state above it.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/stores'];
-const { tinyWorld, tinyState } = require('./lib/tiny.js');
+const { tinyWorld, tinyState } = require('./lib/tiny.js'), { scenario } = require('./lib/probe.js');
 const st = tinyState(tinyWorld(Array(12).fill('.'.repeat(20))), [{ at: [8, 6], farms: 2 }], { seed: 7 });
 const a = st.households[0], b = st.households[1], v = st.villages[0];
 S.start(st, a, { barley: 10 }); S.start(st, b, {});
 assert.strictEqual(S.move(st, a, b, 'grain', 20, 'gift'), 10);
 assert.strictEqual(S.grainOf(a), 0); assert.strictEqual(S.grainOf(b), 10);
-S.cook(st, b, 'grain', 4); assert.strictEqual(S.grainOf(b) + b.meals, 10);
-S.sheaf(st, b, 8); S.thresh(st, b); assert.strictEqual(S.grainOf(b) + b.meals, 18);
+// cooking turns grain into meals at its worth (grain unground, VB-009: 1 / ECON.unground a ration); threshing turns sheaves into grain
+const worth = VB['sim/rules'].FOODS.grain.worth;
+S.cook(st, b, 'grain', 4); assert.strictEqual(S.grainOf(b), 6); assert(Math.abs(b.meals - 4 * worth) < 1e-12, `meals ${b.meals}`);
+S.sheaf(st, b, 8); S.thresh(st, b); assert.strictEqual(S.grainOf(b), 14); assert(Math.abs(b.meals - 4 * worth) < 1e-12);
 for (const n of [-1, NaN, Infinity]) for (const op of ['put', 'take']) assert.throws(() => S[op](st, b, 'grain', n, 'gift'), /amount/);
 assert.throws(() => S.move(st, b, { ...a, dissolved: true }, 'grain', 1, 'gift'), /dissolved/);
 assert.strictEqual(S.grainOf(b), 14, 'invalid recipient must not debit sender');
@@ -29,7 +32,7 @@ assert.throws(() => S.put(st, b, 'grain/barley', 1, 'unknown'), /reason/);
   assert.strictEqual(h.ledger.length, n0, 'routine movements write no entry');
   const y = S.yearNow(c), grain = h.totals.find((x) => x.kind === 'cooking' && x.good === 'grain');
   assert.deepStrictEqual(grain, { year: y, kind: 'cooking', good: 'grain', n: -10, count: 2 });
-  assert.strictEqual(S.yearSum(h, 'cooking', y), 0, 'cooking moves grain into meals');
+  assert(Math.abs(S.yearSum(h, 'cooking', y) + 10 * (1 - worth)) < 1e-12, 'cooking moves grain into meals, at its worth');
   assert.strictEqual(h.totals.length, 3, 'one total per kind and good');
   const { YEAR, TICKS } = VB['sim/rules'], { moveClock } = require('./lib/clock.js');
   assert.strictEqual(S.yearNow({ tick: YEAR * TICKS }), 2, 'midnight at the year\'s turn belongs to the new year, as cal(hour)');
@@ -44,22 +47,23 @@ const isFood = (e) => !e.stake && ['grain', 'meals', 'sheaves'].includes(e.good)
 // Every holder's food since the seed equals its entries plus its yearly totals, checked at noon on each new year's first day, away
 // from the midnight work at the year's turn (VB-204). Nothing is pruned within three years; a dissolved household's ledger is emptied.
 let entries = 0, totals = 0;
-for (const scenario of ['founders', 'populous']) {
-  const it = VB.gen.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
-  const state = Sim.seed(r.value, 7, scenario), t = state.t;
+let dissolved = 0;
+for (const [name, years] of [['founders', 2], ['populous', 1]]) {
+  const state = scenario(name), t = state.t;
   const before = new Map([...state.households, ...state.villages].map((h) => [h, quantity(h)]));
-  for (let year = 1; year <= 3; year++) {
+  for (let year = 1; year <= years; year++) {
     Sim.advance(state, year * Sim.YEAR + 12 - state.t);
     for (const h of [...state.households, ...state.villages]) {
-      if (h.dissolved) { assert(!h.ledger.length && !h.totals.length, `${scenario}: dissolved household ${h.id} keeps a ledger`); continue; }
+      if (h.dissolved) { assert(!h.ledger.length && !h.totals.length, `${name}: dissolved household ${h.id} keeps a ledger`); dissolved++; continue; }
       const changes = h.ledger.filter((e) => e.t > t && isFood(e)), folded = h.totals.filter(isFood);
       const sum = changes.reduce((n, e) => n + e.n, 0) + folded.reduce((n, x) => n + x.n, 0);
-      if (year === 3) { entries += changes.length; totals += folded.reduce((n, x) => n + x.count, 0); }
+      if (year === years) { entries += changes.length; totals += folded.reduce((n, x) => n + x.count, 0); }
       assert(Math.abs(quantity(h) - (before.get(h) || 0) - sum) <= 1e-6 * Math.max(1, changes.length + folded.length),
-        `${scenario} to year ${year + 1} holder ${h.id}: change ${quantity(h) - (before.get(h) || 0)}, ledger ${sum}`);
+        `${name} to year ${year + 1} holder ${h.id}: change ${quantity(h) - (before.get(h) || 0)}, ledger ${sum}`);
     }
   }
 }
+assert(dissolved > 0, 'a household dissolved, and its ledger was emptied');
 // VB-347: grain is held by crop (tests/grain.js takes two crops); with barley alone the sum is the number itself, to the last bit.
 {
   const c = tinyState(tinyWorld(Array(12).fill('.'.repeat(20))), [{ at: [8, 6], farms: 2 }], { seed: 7 }), h = c.households[0];
