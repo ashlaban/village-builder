@@ -1,0 +1,177 @@
+<!doctype html>
+<!-- Mock, third round (16 Nov 2026, after VB-664; the second round is supply-meter.html): the supply component, season by season.
+     Throwaway: the numbers are invented, nothing here is game code. The frame is the year: this year's four seasons and the first two of
+     the next, with a mark at today. What is behind the mark is shown as it was; what is ahead is the head's estimate (principle 14),
+     made at its review. Spoilage is taken once, off the end of the whole run. Seasons are icons. The second card tries four ways of
+     showing hay, which is only needed in winter; the third tries other shapes of the same thing. -->
+<html lang="en">
+<meta charset="utf-8">
+<title>Supply component: season by season, round 3</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14); --accent: #23685a; --good: #2f7a4b; --bad: #a8432f; --gold: #b3862c;
+    --panel: #eef5f2; --track: rgba(23, 49, 58, 0.13); }
+  body { margin: 0; padding: 28px; background: #6f9a7c; font: 15px/1.4 'Alegreya Sans', 'Gill Sans', system-ui, sans-serif; color: var(--ink); }
+  .wrap { display: grid; grid-template-columns: repeat(3, 500px); gap: 24px; align-items: start; }
+  .card { background: var(--panel); border-radius: 16px; padding: 16px 18px 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
+  h1 { margin: 0 0 2px; font: italic 700 22px/1.2 'Alegreya', Georgia, serif; }
+  .sub { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; min-height: 57px; }
+  .whose { margin: 10px 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+  .row { display: grid; grid-template-columns: 22px 62px 216px 1fr 26px; gap: 7px; align-items: center; min-height: 40px; }
+  svg.ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; color: var(--accent); }
+  .name { color: var(--muted); font-size: 13px; line-height: 1.15; }
+  .state { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .state.safe { color: var(--good); } .state.warn { color: var(--gold); } .state.bad { color: var(--bad); }
+  .state svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .more { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--edge); background: #fbfdfc; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
+  .more svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  svg.bar { width: 216px; display: block; overflow: visible; }
+  .key { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; padding-top: 9px; border-top: 1px solid var(--edge); font-size: 12.5px; color: var(--muted); }
+  .key span { display: inline-flex; align-items: center; gap: 5px; } .key svg { width: 26px; height: 12px; overflow: visible; }
+  .note { margin: 4px 0 8px 29px; font-size: 12.5px; color: var(--muted); }
+  .idea { margin: 12px 0 2px; font-size: 13.5px; font-weight: 700; } .idea + p { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
+</style>
+<body>
+<div class="wrap" id="wrap"></div>
+<script>
+// Time in seasons from the new year (0) to the frame's end (6); today is NOW. own: how long the store lasts on its own. in: [from, to],
+// when more is laid in. with: [low, centre, high], how long store and intake last together, spoilage taken off; lost: the time spoilage
+// takes off the end of that run (shown once, there). need: the seasons it is needed in (hay: winter only). was: what each past season was
+// covered to (shown as it was).
+const NOW = 1.4, N = 6, W = 216, CW = W / N;
+const ICON = {
+  food: '<path d="M4 11h16a8 8 0 0 1-16 0zM9 19.5V21h6v-1.5M12 3v5M8.5 5v3M15.5 5v3"/>',
+  wood: '<circle cx="7" cy="16" r="3.5"/><circle cx="17" cy="16" r="3.5"/><circle cx="12" cy="8.5" r="3.5"/>',
+  hay: '<path d="M4 20c0-8 3-14 8-14s8 6 8 14zM9 20c0-4 1-7 3-9"/>',
+};
+const ROWS = [
+  { name: 'Food', icon: ICON.food, own: 3.6, in: [2.5, 2.9], with: [5.0, 5.6, 6.2], lost: 0.4, need: [0, 1, 2, 3, 4, 5], was: [1], state: ['warn', 'to next summer'] },
+  { name: 'Firewood', icon: ICON.wood, own: 3.2, in: [1.4, 3.0], with: [5.0, 6.6, 7], lost: 0, need: [0, 1, 2, 3, 4, 5], was: [1], state: ['safe', 'safe'] },
+  { name: 'Hay', icon: ICON.hay, own: 3.3, in: [1.3, 1.7], with: [3.55, 3.8, 4], lost: 0.1, need: [3], was: [], state: ['bad', 'short in winter'] },
+];
+// the seasons as icons, 14 by 14: a sprout, a sun, a leaf, a snowflake
+const SEASON = [
+  '<path d="M7 13V6M7 8C5 8 3.5 6.5 3.5 4.5 5.5 4.5 7 6 7 8zM7 6.5c0-2 1.5-3.5 3.5-3.5 0 2-1.5 3.5-3.5 3.5z"/>',
+  '<circle cx="7" cy="7" r="2.6"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.8 2.8l1 1M10.2 10.2l1 1M11.2 2.8l-1 1M3.8 10.2l-1 1"/>',
+  '<path d="M3 11c0-5 3-8 8-8 0 5-3 8-8 8zM3 11l5-5M2 12l1-1"/>',
+  '<path d="M7 1v12M1.8 4l10.4 6M12.2 4L1.8 10M5.5 2L7 3.5 8.5 2M5.5 12L7 10.5 8.5 12"/>',
+];
+const sIcon = (k, x0, y0, dim) => `<g transform="translate(${x0} ${y0})" fill="none" stroke="#526d75" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="${dim ? 0.55 : 1}">${SEASON[k % 4]}</g>`;
+const defs = `<defs>
+  <pattern id="spoil" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#eef5f2"/><rect width="2.4" height="5" fill="#a8432f"/></pattern>
+  <pattern id="come" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="6" height="6" fill="#dfeae6"/><rect width="2.2" height="6" fill="#23685a" opacity=".75"/></pattern>
+  <pattern id="idle" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".8" fill="#526d75" opacity=".45"/></pattern>
+</defs>`;
+const part = (t, k) => Math.max(0, Math.min(1, t - k));
+// One cell: how much of season k's need is covered. x0, cw: where and how wide. A past season is flat grey-green, as it was; the season
+// today is split at the mark. Ahead: solid from the store, striped from what is to come, a whisker for the head's range; the red hatch is
+// spoilage, once, at the end of the whole run; a red frame is a season not covered.
+function cell(r, k, x0, cw, h = 18) {
+  if (k + 1 <= NOW) {
+    const v = r.was[k] ?? 1;
+    return `<rect x="${x0}" y="0" width="${cw}" height="${h}" rx="4" fill="${v < 0.98 ? '#f6e4de' : 'var(--track)'}"/><rect x="${x0}" y="0" width="${cw * v}" height="${h}" rx="4" fill="#8aa39f"/>`;
+  }
+  const mid = r.with[1], own = part(r.own, k), all = Math.max(own, part(mid, k)), lost = part(mid + r.lost, k) - part(mid, k), lo = part(r.with[0], k);
+  const short = all + lost < 0.98, past = k < NOW ? (NOW - k) * cw : 0;
+  return `<rect x="${x0}" y="0" width="${cw}" height="${h}" rx="4" fill="${short ? '#f6e4de' : 'var(--track)'}" stroke="${short ? '#a8432f' : 'none'}" stroke-width="1.3"/>
+    <rect x="${x0}" y="0" width="${cw * all}" height="${h}" rx="4" fill="url(#come)"/>
+    <rect x="${x0 + cw * all}" y="0" width="${cw * lost}" height="${h}" fill="url(#spoil)"/>
+    <rect x="${x0}" y="0" width="${cw * own}" height="${h}" rx="4" fill="#23685a"/>
+    ${past ? `<rect x="${x0}" y="0" width="${past}" height="${h}" rx="4" fill="#8aa39f"/>` : ''}
+    ${lo < all && all > own ? `<line x1="${x0 + cw * lo}" x2="${x0 + cw * all}" y1="${h + 4}" y2="${h + 4}" stroke="#23685a" stroke-width="1.5"/>` : ''}`;
+}
+const idleCell = (x0, cw, h = 18) => `<rect x="${x0}" y="0" width="${cw}" height="${h}" rx="4" fill="url(#idle)" stroke="#526d75" stroke-opacity=".3"/>`;
+const comes = (r, y) => `<path d="M${(r.in[0] / N) * W} ${y}v-4H${(r.in[1] / N) * W}v4" fill="none" stroke="#17313a" stroke-width="1.3"/>`;
+const nowMark = (y0, y1) => `<line x1="${(NOW / N) * W}" x2="${(NOW / N) * W}" y1="${y0}" y2="${y1}" stroke="#17313a" stroke-width="1.6"/><path d="M${(NOW / N) * W - 4} ${y0 - 5}h8l-4 5z" fill="#17313a"/>`;
+const yearLine = (y0, y1) => `<line x1="${4 * CW}" x2="${4 * CW}" y1="${y0}" y2="${y1}" stroke="#526d75" stroke-dasharray="2 2" opacity=".7"/>`;
+const svg = (body, h = 38, top = -12) => `<svg class="bar" viewBox="0 ${top} ${W} ${h}" height="${h}">${defs}${body}</svg>`;
+// the header: the seasons as icons, this year and the next
+const header = `<div class="row" style="min-height:22px"><i></i><i></i>${svg([0, 1, 2, 3, 4, 5].map((k) => sIcon(k, k * CW + CW / 2 - 7, -8, k >= 4)).join('') + yearLine(-10, 8), 20, -10)}<i></i><i></i></div>`;
+const CHECK = '<svg viewBox="0 0 16 16"><path d="M3 8.5l3.5 3.5L13 4.5"/></svg>', WARN = '<svg viewBox="0 0 16 16"><path d="M8 3v6M8 12.5v.01"/></svg>';
+const state = (s) => `<span class="state ${s[0]}">${s[0] === 'safe' ? CHECK : WARN}${s[1]}</span>`;
+const more = '<span class="more" title="The numbers"><svg viewBox="0 0 16 16"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg></span>';
+const row = (r, body, label = r.name) => `<div class="row"><svg class="ico" viewBox="0 0 24 24">${r.icon}</svg><span class="name">${label}</span>${body}${state(r.state)}${more}</div>`;
+
+// ---- card 1: the frame ----
+const cells = (r, idle = 'dots') => svg(
+  [0, 1, 2, 3, 4, 5].map((k) => (r.need.includes(k) ? cell(r, k, k * CW + 2, CW - 4) : idle === 'dots' ? idleCell(k * CW + 2, CW - 4) : '')).join('') +
+    comes(r, -2) + nowMark(-4, 22) + yearLine(-8, 24));
+
+// ---- card 2: hay, four ways ----
+const HAY = ROWS[2];
+const hayB = cells(HAY, 'none'); // b: only the season it is needed in, in its place
+const hayC = svg(sIcon(3, 0, 2) + cell(HAY, 3, 22, W - 24)); // c: the frame dropped; one wide cell for the winter, a snowflake before it
+// d: spread over the year: the winter's need counted as if it were eaten evenly, so the cells fill left to right as food's do
+const HAYD = { ...HAY, own: 2.1, with: [3.9, 4.9, 5.4], lost: 0.4, need: [0, 1, 2, 3, 4, 5], was: [1], state: ['warn', 'to next spring'] };
+const hayD = cells(HAYD);
+
+// ---- card 3: other shapes ----
+// 1. The year as a wheel: four arcs, spring first from the top going round; an inner pair for next spring and summer; a hand at today.
+function wheel(r) {
+  const R = 13, c = 16, mid = r.with[1];
+  const arc = (k, rad, wdt) => {
+    const a0 = ((-90 + (k % 4) * 90 + 5) * Math.PI) / 180, a1 = ((-90 + (k % 4) * 90 + 85) * Math.PI) / 180;
+    const seg = (f, col, extra = '') => {
+      const b1 = a0 + (a1 - a0) * f;
+      return `<path d="M${c + rad * Math.cos(a0)} ${c + rad * Math.sin(a0)}A${rad} ${rad} 0 0 1 ${c + rad * Math.cos(b1)} ${c + rad * Math.sin(b1)}" fill="none" stroke="${col}" stroke-width="${wdt}" ${extra}/>`;
+    };
+    if (!r.need.includes(k)) return seg(1, '#526d75', 'stroke-dasharray="1 3" opacity=".6"');
+    if (k + 1 <= NOW) return seg(1, '#8aa39f');
+    const own = part(r.own, k), v = Math.max(own, part(mid, k));
+    return seg(1, v < 0.98 ? '#e9b5a8' : 'rgba(23,49,58,.13)') + (v > 0.02 ? seg(v, '#7fb3a3') : '') + (own > 0.02 ? seg(own, '#23685a') : '');
+  };
+  const a = ((-90 + NOW * 90) * Math.PI) / 180;
+  return `<svg viewBox="0 0 32 32" width="44" height="44">${[0, 1, 2, 3].map((k) => arc(k, R, 4.5)).join('')}${[4, 5].map((k) => arc(k, R - 6, 3)).join('')}
+    <line x1="${c}" y1="${c}" x2="${c + (R + 2) * Math.cos(a)}" y2="${c + (R + 2) * Math.sin(a)}" stroke="#17313a" stroke-width="1.6" stroke-linecap="round"/><circle cx="${c}" cy="${c}" r="1.8" fill="#17313a"/></svg>`;
+}
+// 2. The seasons' icons as the meters: each icon in a round that fills from below; a red rim where it is not covered.
+function rounds(r) {
+  const mid = r.with[1];
+  return svg([0, 1, 2, 3, 4, 5].map((k) => {
+    const cx = k * CW + CW / 2, need = r.need.includes(k), past = k + 1 <= NOW, own = past || !need ? 0 : part(r.own, k), v = !need ? 0 : past ? 1 : Math.max(own, part(mid, k));
+    const fill = (f, col) => `<rect x="${cx - 12}" y="${12 - 24 * f}" width="24" height="${24 * f}" fill="${col}" clip-path="url(#rc${r.name}${k})"/>`;
+    return `<clipPath id="rc${r.name}${k}"><circle cx="${cx}" cy="0" r="12"/></clipPath>
+      <circle cx="${cx}" cy="0" r="12" fill="${need ? 'rgba(23,49,58,.1)' : 'none'}" stroke="${!need ? '#526d75' : v < 0.98 ? '#a8432f' : 'none'}" stroke-width="1.3" ${need ? '' : 'stroke-dasharray="1 3"'}/>
+      ${need ? fill(v, past ? '#8aa39f' : '#9cc7b9') + fill(own, '#23685a') : ''}
+      <g transform="translate(${cx - 7} -7)" fill="none" stroke="${need && (own > 0.55 || past) ? '#f2f8f6' : '#17313a'}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="${need ? 1 : 0.45}">${SEASON[k % 4]}</g>`;
+  }).join(''), 30, -15);
+}
+// 3. The weakest season only: one chip a supply, for a list (a village's farms): a check, or the first season that goes short.
+function chip(r) {
+  const mid = r.with[1], k = r.need.find((q) => q + 1 > NOW && Math.max(part(r.own, q), part(mid, q)) < 0.98);
+  const col = k === undefined ? '#2f7a4b' : r.state[0] === 'bad' ? '#a8432f' : '#b3862c';
+  return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px 2px 5px;border-radius:99px;border:1.5px solid ${col};color:${col};margin-right:6px">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${r.icon}</svg>
+    ${k === undefined ? '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.5 3.5L13 4.5"/></svg>'
+      : `<svg viewBox="0 0 14 14" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${SEASON[k % 4]}</svg>${k >= 4 ? '<b style="font-size:11px">+1</b>' : ''}`}</span>`;
+}
+const K = {
+  was: '<span><svg viewBox="0 0 26 12"><rect y="1" width="26" height="10" rx="4" fill="#8aa39f"/></svg>as it was</span>',
+  own: '<span><svg viewBox="0 0 26 12"><rect y="1" width="26" height="10" rx="4" fill="#23685a"/></svg>the store</span>',
+  come: `<span><svg viewBox="0 0 26 12">${defs}<rect y="1" width="26" height="10" rx="4" fill="url(#come)"/></svg>still to come</span>`,
+  spoil: `<span><svg viewBox="0 0 26 12">${defs}<rect y="1" width="26" height="10" fill="url(#spoil)"/></svg>lost to spoilage</span>`,
+  short: '<span><svg viewBox="0 0 26 12"><rect x=".7" y="1.7" width="24.6" height="8.6" rx="3" fill="#f6e4de" stroke="#a8432f" stroke-width="1.3"/></svg>not covered</span>',
+  now: '<span><svg viewBox="0 0 26 12"><line x1="13" x2="13" y1="4" y2="12" stroke="#17313a" stroke-width="1.6"/><path d="M9 0h8l-4 5z" fill="#17313a"/></svg>today</span>',
+  when: '<span><svg viewBox="0 0 26 12"><path d="M4 10V6h18v4" fill="none" stroke="#17313a" stroke-width="1.3"/></svg>when it is laid in</span>',
+  sure: '<span><svg viewBox="0 0 26 12"><line x1="2" x2="24" y1="6" y2="6" stroke="#23685a" stroke-width="1.5"/></svg>the head\'s doubt</span>',
+};
+const C1 = `<div class="card"><h1>C. The year, season by season</h1><p class="sub">The frame is the year: its four seasons and the first two of the next. A mark stands at today. Behind it, what was; ahead of it, the head's reckoning.</p>
+  <p class="whose">By Gunnar's reckoning, at his last review</p>${header}${ROWS.map((r) => row(r, cells(r))).join('')}
+  <div class="key">${[K.was, K.own, K.come, K.spoil, K.short, K.now, K.when, K.sure].join('')}</div></div>`;
+const C2 = `<div class="card"><h1>Hay, four ways</h1><p class="sub">Hay is eaten in winter only, so five of its six cells have nothing to say. Four ways to treat them; the same numbers in each.</p>
+  ${header}
+  ${row(HAY, cells(HAY), 'a. Dotted')}<p class="note">Every supply keeps the same six cells; the dotted ones say "no need then". Honest, a little busy.</p>
+  ${row(HAY, hayB, 'b. Hidden')}<p class="note">Only the winter is drawn, in its place under the snowflake. Quiet, and it still lines up with food and firewood.</p>
+  ${row(HAY, hayC, 'c. One winter')}<p class="note">The frame is dropped: one wide cell for the coming winter. The most room for store, intake and spoilage; it no longer lines up.</p>
+  ${row(HAYD, hayD, 'd. Averaged')}<p class="note">The winter's need spread over the year, as if eaten evenly. Uniform with food, but it says the hay runs out in spring, which is not when it is short.</p></div>`;
+const C3 = `<div class="card"><h1>Other shapes</h1><p class="sub">The same reckoning in three other forms, to compare. Each trades detail for size.</p>
+  <p class="idea">1. The year as a wheel</p><p>Four arcs for this year's seasons, an inner pair for next spring and summer, a hand at today. One small dial a supply.</p>
+  <div style="display:flex;gap:18px;margin:4px 0 4px 6px">${ROWS.map((r) => `<span style="display:inline-flex;align-items:center;gap:6px"><svg class="ico" viewBox="0 0 24 24">${r.icon}</svg>${wheel(r)}</span>`).join('')}</div>
+  <p class="idea">2. The seasons' icons as the meters</p><p>No bar: each season's icon stands in a round that fills. Icons first; the fill is coarser, and spoilage and doubt have no room.</p>
+  ${ROWS.map((r) => row(r, rounds(r))).join('')}
+  <p class="idea">3. Only the weakest season</p><p>For a list, such as a village's farms: one chip a supply, a check, or the first season that goes short (+1: next year).</p>
+  <div style="margin:6px 0 2px 6px">${ROWS.map(chip).join('')}</div></div>`;
+document.getElementById('wrap').innerHTML = C1 + C2 + C3;
+</script>
+</body>
+</html>
