@@ -12,5 +12,5 @@
  "sim/agents": 32,
  "sim/commands": 16,
  "sim/plans": 34,
- "sim/heirs": 17
+ "sim/heirs": 16
 }

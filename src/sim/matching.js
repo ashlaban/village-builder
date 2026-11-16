@@ -44,12 +44,34 @@ VB['sim/matching'] = (() => {
       places = new Map(),
       handed = new Map(),
       means = new Map();
+    const readers = new Map(); // pawn id -> the households whose cached ranking read that pawn
     const rank = (h) => {
-      if (!ranks.has(h)) ranks.set(h, heirRanking(st, st.households[h]));
+      if (!ranks.has(h)) {
+        const deps = new Set();
+        ranks.set(h, heirRanking(st, st.households[h], null, false, null, deps));
+        for (const id of deps) {
+          if (readers.has(id)) readers.get(id).add(h);
+          else readers.set(id, new Set([h]));
+        }
+      }
       return ranks.get(h);
     };
     const clear = () => {
-      for (const m of [ranks, places, handed, means]) m.clear();
+      for (const m of [ranks, places, handed, means, readers]) m.clear();
+    };
+    // After a marriage that moved only `pawns` (neither holds a farm) between households `homes`: the rankings of those homes and of every
+    // household whose ranking read one of the pawns are cleared, and the places of the pawns and of the members of the cleared households.
+    const touched = (pawns, homes) => {
+      const hs = new Set(homes);
+      for (const id of pawns) for (const h of readers.get(id) || []) hs.add(h);
+      for (const h of hs) ranks.delete(h);
+      for (const id of pawns) places.delete(id);
+      for (const id of [...places.keys()]) {
+        const q = st.pawns[id].household;
+        if (q !== null && hs.has(q)) places.delete(id);
+      }
+      handed.clear();
+      means.clear();
     };
     const place = (id) => {
       if (!places.has(id)) {
@@ -103,7 +125,7 @@ VB['sim/matching'] = (() => {
       }
       return means.get(h);
     };
-    return { rank, place, homeFor, affords, clear };
+    return { rank, place, homeFor, affords, clear, touched };
   }
   // Why the match of pawns a and b (ids, either sex) may not be made at the round now ({why}), or the match ({man, woman, home}: pawns and
   // a household id). The round's rules: both alive, single, of age, fed, not retired and in no open offer; the kin degree the man's village's
