@@ -95,7 +95,9 @@ function checkState(st) {
           plan.reasons['grain/barley'] !== 'seed') {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
         }
-        if (!(T.seed >= 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+        // T.seed > 0: the template's rule 'year.seed' is CROPS.barley.seed and no custom contributes to it; one that took it to 0 would be
+        // the one exception (VB-485)
+        if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
         // VB-254: the plan's head is its household's holder, since a time not after now, with a bias on each of the four targets within
         // Traits.HEAD.bias of 1; none while the household has no holder
         const H = plan.head, hhH = st.households[id].holder, most = globalThis.VB['sim/traits'].HEAD.bias + 1e-9;
@@ -343,6 +345,10 @@ function checkState(st) {
     if (!Array.isArray(CL) || CL.length > HD || CL.some((x) => !within(x, 0, 1))) bad.push(`households[${h.id}]: coldLog ${JSON.stringify(CL)}`);
     else if (!within(h.cold, 0, 1) || Math.abs(h.cold - CL.reduce((n, x) => n + x, 0) / HD) > 1e-9 || (CL.length > 0) !== CL.some((x) => x > 0))
       bad.push(`households[${h.id}]: cold ${h.cold} against its log ${JSON.stringify(CL)}`);
+    const DL = h.dryLog; // the dry days (VB-331): as the cold, each 0 or 1
+    if (!Array.isArray(DL) || DL.length > HD || DL.some((x) => x !== 0 && x !== 1)) bad.push(`households[${h.id}]: dryLog ${JSON.stringify(DL)}`);
+    else if (!within(h.dry, 0, 1) || Math.abs(h.dry - DL.reduce((n, x) => n + x, 0) / HD) > 1e-9 || (DL.length > 0) !== DL.some((x) => x > 0))
+      bad.push(`households[${h.id}]: dry ${h.dry} against its log ${JSON.stringify(DL)}`);
     if (h.dissolved) { if (h.members.length) bad.push(`households[${h.id}]: dissolved but has members ${h.members}`); continue; }
     if (new Set(h.members).size !== h.members.length) bad.push(`households[${h.id}]: duplicate members ${h.members}`);
     for (const id of h.members) {

@@ -61,6 +61,7 @@ VB['sim/agents'] = (() => {
     }
   }
   function stillAtDeath(st, a) {
+    delete a.moving;
     dropJourney(st, a.id); // a pawn who dies on the road dies there (VB-287)
     release(st, a);
     dropSides(st, a);
@@ -159,8 +160,17 @@ VB['sim/agents'] = (() => {
   }
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
-    // a load on its way home is put down in its farm's barn first (VB-335: a wedding or a move at the round found a pawn mid-haul)
-    if (a.load > 0 && a.phase === 'back' && a.job) deposit(st, a, a.job.farm);
+    // A load on its way home is not brought in from the road: a hand that can walk on is not released until it has (VB-581: `moved`
+    // waits for the delivery, and the planner, the occasions, the orders and the working day's end find it on its way home and leave it).
+    // One released here stands where the load lies: in its own field or meadow the load goes back with the stooks or the mown hay; elsewhere
+    // (its death on the road, its household dissolving) it is put down in the farm's barn, a teleport left for a task (VB-581).
+    if (a.load > 0 && a.phase === 'back' && a.job) {
+      const K = KINDS[a.job.kind];
+      if (K.setDown && here(st, a) === a.job.site) {
+        K.setDown(st, a.job, a);
+        a.carry = null;
+      } else deposit(st, a, a.job.farm);
+    }
     const left = a.job;
     if (left) settle(st, left);
     if (left) {
@@ -321,7 +331,8 @@ VB['sim/agents'] = (() => {
       const a = st.agents[id];
       if (!a || a.phase !== 'back' || !a.job || !st.pawns[id].alive) continue;
       release(st, a);
-      standStill(st, a);
+      if (a.moving) finishMove(st, a);
+      else standStill(st, a);
       a.anim = 'idle';
     }
     for (const j of jobs) {
@@ -392,8 +403,10 @@ VB['sim/agents'] = (() => {
       a.inside = !!K.inside;
       a.leg = { kind: 'work', t: st.tick, x: a.x, y: a.y, seg: 0 }; // the work leg (the page walks a field's rows from it)
       rerate(st, a.job);
-    } else if (a.phase === 'back') deposit(st, a);
-    else if (a.phase === 'home') {
+    } else if (a.phase === 'back') {
+      deposit(st, a);
+      if (a.moving) finishMove(st, a); // the move it was told of while on the road (VB-581)
+    } else if (a.phase === 'home') {
       a.inside = true;
       a.phase = null;
       driveHome(st, st.households[st.pawns[a.id].household], a.id); // the herds it brought home are by the farm (VB-136)
@@ -1007,9 +1020,14 @@ VB['sim/agents'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     if (old) driveHome(st, old, a.id); // the old household's herds it had out are left by that farm (its herder is no longer a member)
     if (travelling(a)) return retarget(st, a, f.house);
+    if (a.load > 0 && a.phase === 'back' && a.job) {
+      // a hand with a load on its way home brings it in first, and then goes (VB-581: the load is carried, not booked from the road)
+      if (!a.moving) a.moving = { old: old ? old.id : null, carry };
+      return;
+    }
     release(st, a);
     dropSides(st, a);
-    a.carry = null; // a load on its way home was put down by release
+    a.carry = null; // the load of a hand in its own field was set down by release
     const from = old ? st.farmsteads[old.farmstead] : null,
       at = here(st, a);
     if (from ? from.village !== f.village : hoursTo(st, null, at, f.village) > TRAVEL.dayWalk)
@@ -1026,6 +1044,13 @@ VB['sim/agents'] = (() => {
       return;
     }
     goHome(st, a);
+  }
+  // @state agent.moving: absent, or {old (the household it left, or null), carry}: a move it was told of with a load on its way home, made when
+  //   the load is in (VB-581); the pawn's household is already the new one.
+  function finishMove(st, a) {
+    const { old, carry } = a.moving;
+    delete a.moving;
+    moved(st, a, old === null ? null : st.households[old], st.households[st.pawns[a.id].household], carry);
   }
   // A child born to a mother on the road (VB-425; no teleporting): it is where she is, outdoors, and walks to its home as she does.
   function placeBorn(st, a, mother, hh) {

@@ -84,7 +84,15 @@ VB['sim/commands'] = (() => {
       // a gift carried (VB-291): by an adult of the giving household who is not on the road
       const p = st.pawns[c.args.carrier];
       if (!('farmstead' in from) || !('farmstead' in to)) return 'only a household carries a gift to a household';
-      if (!p || !p.alive || p.household !== from.id || p.age < 14 || p.age >= 60 || free(st, p.id))
+      if (
+        !p ||
+        !p.alive ||
+        p.household !== from.id ||
+        p.age < 14 ||
+        p.age >= 60 ||
+        free(st, p.id) ||
+        st.agents[p.id].phase === 'back'
+      )
         return `pawn ${c.args.carrier} cannot carry the gift`;
       o.carrier = p.id;
     }

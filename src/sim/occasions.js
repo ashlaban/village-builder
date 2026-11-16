@@ -33,9 +33,14 @@ VB['sim/occasions'] = (() => {
     funeral: { from: 16, to: 21, overrides: true, at: 'At a funeral ale', go: 'Walking to a funeral ale' },
   };
   // The villages' turns (VB-277, VB-278): the moving round and the meetings hold a village a 6-minute step from noon, in the order of
-  // village id, in a window of VILLAGE_STEPS steps; village k of n on step k while n is at most VILLAGE_STEPS, else on floor(k * steps / n).
+  // village id, in a window of VILLAGE_STEPS steps. The first turns by the year (VB-280): the window starts at village `year mod n` and goes
+  // on in id order, wrapping, so village k holds slot j = (k - year) mod n, on step j while n is at most VILLAGE_STEPS, else floor(j * steps / n).
   const VILLAGE_STEPS = 60;
-  const villageTurn = (k, n) => (n <= VILLAGE_STEPS ? k : Math.floor((k * VILLAGE_STEPS) / n));
+  const villageSlot = (k, n, year) => (((k - year) % n) + n) % n;
+  const villageTurn = (k, n, year) => {
+    const j = villageSlot(k, n, year);
+    return n <= VILLAGE_STEPS ? j : Math.floor((j * VILLAGE_STEPS) / n);
+  };
   const REACH = 12; // a day's walk, in hours (design.md, Between villages: Near and far): kin further away are not asked
   const MIN_AGE = SOCIAL.talk.minAge; // younger children stay at home
   const dayOf = (t) => Math.floor(t / DAY) * DAY;
@@ -159,7 +164,7 @@ VB['sim/occasions'] = (() => {
         ids,
         ids.map(() => 0),
         [],
-        villageTurn(v.id, n) / TICKS,
+        villageTurn(v.id, n, cal(st.t).year) / TICKS,
       );
     }
   }
