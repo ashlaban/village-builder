@@ -41,6 +41,14 @@ whole generated island or a run of years goes to extended, and the rule it prote
 
 Over 5 seconds in verify: `tests/lint.js` (6 to 7 s) and, on a loaded machine, `tests/fish.js` (5 s).
 
+16 November (VB-856), after VB-853 to VB-856 moved the night's scripts back: `npm run verify` holds 172 scripts, 321 s of CPU over them
+(the runner now prints each script's CPU and the sum: `tests/lib/runner.js` reads the children's CPU as each exits), 272 s of wall time
+on a machine shared with other runs (load 10 to 30 on 4 cores), so a description; by the CPU alone, at least 80 s on 4 cores, over the
+minute. The largest are not of the groups moved: `service` 7.4 s of CPU, `review-tools` 6.6, `spread` 6.2, `fish` 5.9, `format` 5.6,
+`pot` 5.4. `tests/lint.js` fell from 7.4 s of CPU to 1.1 (the small islands for the keys of a world and a state, where it generated
+the default island three times); the 23 scripts of VB-853 to VB-855 on the probe's islands from 64 to 53 s of CPU (VB-872's copies).
+Before VB-853 to VB-856: verify 86 scripts in 35 s (2 min of CPU), the night's 53 scripts 245 s in the old verify.
+
 ## What runs only at night
 
 53 scripts, moved as they are when verify was cut to scripts under 5 seconds; seconds each, measured inside the 245-second verify: `browser` 53,
@@ -60,8 +68,18 @@ What a task no longer runs, until VB-409 and the tasks it was split into (VB-853
   page's own), starts founders from the address's hash, runs some days through the speed buttons and opens each panel once, in
   about 3 seconds (3.8 s here on a machine at load 12; 3.1 s of CPU). It and `smoke` share their harness, `tests/lib/dompage.js`,
   which fails on any error the page throws in a handler or a timer, not only on what it logs.
-- **Rules asserted only on generated islands**: among them `settle`, `layout`, `commands`, `record`, `plaindata`. A change
-  to one of these systems runs its script by name.
+- **Land and geography, and the tools** (`rivers`, `stones`, `geology`, `layout`, `settle`, `plots`, `names`, `populous`, `tools`,
+  `review-tools`, `bench`, `commands`, `record`, `regress`, `plaindata`, `--expose-gc registry`, `notable`, `manual`): since VB-856
+  verify holds them again, on the small islands of `tests/lib/probe.js` (36 by 26, 48 by 34, and 60 by 44 where a test needs villages
+  well apart or a village of 8 farms), in 1 to 4 seconds of CPU each; `review-hours` is the hours half of `review-tools`, apart. The
+  islands are generated once per seed and size in a process and handed out as copies (VB-872, built with VB-856); `generate()` makes
+  one anew where a test checks the generator's determinism. `tools/sim.js`, `balance.js` and `rules.js` take `--map probe`, the 36 by
+  26 island. Four stay at night, saying so in their first lines: `rivers --extended` (the default island: ten sources or more, a course
+  through a lake, more than 20 crossings), `layout --extended` (heirs three years and founders ten on the default island; red before and
+  after VB-856, a green laid in play beside fields: VB-887), `populous --extended` (the four map sizes: the population each seeds and the
+  village size bands) and `tools --extended` (the reports that take a run of their own each, and `tools/balance.js`). `stones` and
+  `geology` lost their long runs. `help` (food help) is on the small island but stays at night: it is red since VB-461 (a kin gift is
+  set aside and fetched, the test expects it at once), until VB-889.
 - **The household's rules** (`meals`, `stores`, `hunger`, `heirs`, `guardian`, `kinship`, `kinlimit`, `owners`, `plans`, `offers`,
   `exchange`, `occasions`): since VB-854 verify holds them again, each on the small islands of `tests/lib/probe.js` (`scenario`), in
   1 to 5 seconds of CPU. What took years is constructed: the guardian's ward is brought to his eighteenth birthday by his birth date,
