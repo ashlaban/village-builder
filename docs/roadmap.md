@@ -336,7 +336,9 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
   11 November that left the metals for the ship): goods carry the kind of their material, which sets their quality (principle 17);
   mining a found vein by hand, prospecting, the furnace; the copper kettle, bronze for the cast pot and the village's bell; silver,
   gold and amber as things of worth, and the hoard; whetstones and grindstones; soapstone pots, marble for lime, the memorial
-  stone; tin twice as likely (VB-733 to VB-745). Coin and the church's uses stay with 3.8.
+  stone; tin twice as likely (VB-733 to VB-745). Coin and the church's uses stay with 3.8. Later the same day Kim moved two more
+  points of 11 November: a maker's skill sets the quality of a made good as well as its speed, in five counted grades of
+  workmanship (VB-761 to VB-763), and a millstone may be granite, a fifth slower (VB-093); and tin alone is raised, not copper.
 
 ### 3.7 Talk travels
 
