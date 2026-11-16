@@ -8,7 +8,7 @@ require('./help.js')(__filename);
 const fs = require('fs'), path = require('path');
 const SYSTEMS = {
   'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'takeDay', 'helpers', 'lookForWork'] },
-  'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/society': ['outdoors'] },
+  'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/encounters': ['outdoors', 'partners'] },
   'daily life and births': { 'sim/lifecycle': ['dailyLife', 'dailyDeaths', 'nightCulture'], 'sim/births': ['dailyBirths'] },
   'hunger and meals': { 'sim/hunger': ['feedHousehold', 'spoilGrain'], 'sim/help': ['shareFood'] },
   // Slice 1, kin help booked (VB-219): what it added to help, the gift's check (the floor and the allowance) and goodwill's booking,

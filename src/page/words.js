@@ -31,6 +31,18 @@ function jobsLine(list) {
     )
     .join('; ');
 }
+// The household's carts and their condition, as the card tells of the boat (VB-410): worn ones are named, and the one out on the road.
+function cartWords(hh) {
+  if (!hh.carts || !hh.carts.length) return 'No cart.';
+  const C = VB['sim/carts'],
+    name = (c) => {
+      const kind = c.kind === 'ox' ? 'an ox cart' : 'a hand cart',
+        worn = c.cond < C.CART.mendAt ? ', worn: it wants mending' : '',
+        road = C.out(st, c) ? ', out on the road' : '';
+      return `${kind} (${Math.round(c.cond * 100)}% sound${worn}${road})`;
+    };
+  return `Carts: ${hh.carts.map(name).join(', ')}.`;
+}
 function fieldSummary(f) {
   const n = {},
     word = {
@@ -167,6 +179,7 @@ function renderSettlers() {
                 }`
               : ''
           }.</p>
+          <p>${cartWords(hh)}</p>
           <p>Tar ${hh.tar || 0} barrels${hh.tarPit ? '; a tar pit in the pine wood' : ''}${
             hh.farmstead !== null && Sim.houseTarred(st, st.farmsteads[hh.farmstead]) ? '; the house is tarred' : ''
           }.</p>

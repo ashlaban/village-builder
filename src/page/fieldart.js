@@ -241,6 +241,17 @@ function makeArt(R) {
     curb: T(curbCanvas()),
     stook: [0, 1].map((v) => T(stookCanvas(v))),
     yard: T(yardCanvas()),
+    cart: Object.fromEntries(
+      ['hand', 'ox'].map((kind) => [
+        kind,
+        Object.fromEntries(
+          ['none', 'sheaf', 'hay', 'logs'].map((load) => [
+            load,
+            [false, true].map((worn) => T(cartCanvas(kind, load, worn))),
+          ]),
+        ),
+      ]),
+    ),
     puff: T(puffCanvas()),
     byre: T(byreCanvas()),
     lit: T(stugaLitCanvas()),
