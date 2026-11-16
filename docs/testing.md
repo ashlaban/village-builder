@@ -52,9 +52,13 @@ Over 5 seconds in verify: `tests/lint.js` (6 to 7 s) and, on a loaded machine, `
 `occasions` 5, `forage` 5. With them the seven that were extended already (`start --people` 150, `bands` 50, `invariants` 44, `births` 38, `line` 32,
 `history` 15, `fixtures` 5).
 
-What a task no longer runs, until VB-409 rebuilds each on a small constructed state:
-- **The page.** `smoke` (jsdom) and the six Chromium scripts. A change under `src/page/` runs them by name; the lint still holds
-  the page's contract (it only reads `st`), and `tests/speed.js`, `player.js` and `chronicle.js` its logic.
+What a task no longer runs, until VB-409 and the tasks it was split into (VB-853 to VB-856) rebuild each on a small constructed state:
+- **The page at length.** `smoke` (jsdom, the tiny map) and the six Chromium scripts. A change under `src/page/` runs them by name;
+  the lint still holds the page's contract (it only reads `st`), and `tests/speed.js`, `player.js` and `chronicle.js` its logic.
+  Since VB-409 verify loads the page again: `tests/page.js` builds it in jsdom on a 36 by 26 island (a size the test adds to the
+  page's own), starts founders from the address's hash, runs some days through the speed buttons and opens each panel once, in
+  about 3 seconds (3.8 s here on a machine at load 12; 3.1 s of CPU). It and `smoke` share their harness, `tests/lib/dompage.js`,
+  which fails on any error the page throws in a handler or a timer, not only on what it logs.
 - **Rules asserted only on generated islands**: among them `meals`, `stores`, `heirs`, `plans`, `offers`, `hunger`, `herds`,
   `settle`, `layout`, `commands`, `record`, `plaindata`. A change to one of these systems runs its script by name.
 - **Long save and load** (`saves`), and the generated-world cases of `clock`, `spread`, `paths` and `indexes` (`--extended`);
