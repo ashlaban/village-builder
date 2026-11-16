@@ -61,6 +61,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-442](backlog/VB-442.md) | Rebuild only the farms that changed, not every farm, fence and pawn | - | 3 | M | buildFarms takes down and redraws the whole settlement layer about 85 times a game year on populous tiny (255 steps in 3 years, seed 18), for a single broken field, a birth or a death. Rebuild what the change touched. |
 | [VB-443](backlog/VB-443.md) | Refactor: split gen by concern (terrain and land cover, the baked drawing) | - | 3 | M | src/gen.js is over its baseline since its land cover thresholds were named (COVER); split it by concern so that the lint's length line holds. |
 | [VB-451](backlog/VB-451.md) | Refactor: split sim/routes by concern (walking costs and reach, the route cache, the hours between villages) | - | 3 | M | sim/routes has 18 exports over its baseline of 17 (VB-452 added reachTiles): walking costs and what is in walking reach, the route search and its cache, and the villages' table of hours are three concerns. |
+| [VB-596](backlog/VB-596.md) | Refactor: split page/farmart by concern | - | 3 | S | page/farmart is 958 formatted lines (VB-410 added the cart art, 57) over its baseline of 901; split it |
 
 ## Waiting for Kim
 
