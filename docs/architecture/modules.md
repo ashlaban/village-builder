@@ -107,6 +107,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   bands (`pawn.bands`). Opinion is derived when read (`opinionOf`): kin standing, plus affinity (the pair's compatibility, shown as the tie
   grows), plus the memories. Talk grows the tie only; its kind is the bubble's. A band is checked by `touch` where a pair's tie or memories
   change (a talk, a job together, the day's hours at home, the kin floor, `remember`, the season's pass), never by a pass over pairs.
+- Encounters (VB-521): `src/sim/encounters.js` owns who meets whom, a table `ENCOUNTERS` of kinds (`house`, `outdoors`, `pasture`,
+  `occasion`), each with who is present, how a partner is drawn and the mix that lets strangers meet; the talk round of `sim/relations` asks
+  it for partners at each pawn's turn (every `SOCIAL.talk.every` waking hours, by id). `present` reads those who came to an occasion and
+  `said` is the one door by which something is made known to them all. It keeps no state, reads no plan and has only social effects.
 - Occasions (VB-126): `src/sim/occasions.js` calls a gathering at a place from a start to an end (the village meeting on the green on autumn
   day 10, for its village's turn, a wedding the day after a marriage, a funeral ale the day after a death), asks its guests and keeps `st.occasions`, a due-queue the
   six-minute step reads at its head only. Those asked set out by the verb `attend` and stand about the spot until the end (`agent.occasion`);
@@ -164,7 +168,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/pot`, `sim/hunger`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058).
-- Social: `culture`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
+- Social: `culture`, `sim/encounters`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
 - Agency: `sim/agents`, `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle`, `sim/eligibility`, `sim/plans`.
