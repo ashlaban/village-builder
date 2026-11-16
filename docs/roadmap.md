@@ -345,6 +345,15 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
   - story kinds and their numbers, from the experiment.
 - **Done when:** the bands of target-v2 10.2 hold. Talk must cost less at the end of this slice than at its start.
 - **9 November update:** courting no longer replaces the round's matches; it feeds the negotiation between households (VB-233).
+- **15 November update (the plan, VB-186;** `design.md`, People, Traits, talk and stories; Customs, A culture's values**):**
+  - the saving first: the talk round by turns (four a pawn a day, not sixteen), with venues as kinds of one encounter table (VB-521);
+  - traits (VB-519) and the two rules each changes, with chemistry and Like seeks like (VB-520);
+  - the venues are the ale evening, a holder's open house on a barrel of its own, and the season's rite, which the Church's service
+    takes over in slice 8 (VB-522); herders meet on the pasture, at calling distance;
+  - stories (VB-523), then lies, counter-stories and what the player hears; courting (VB-036, rewritten) and births outside marriage;
+    mood (VB-062, rewritten);
+  - the wrap-up is VB-063, with VB-040's report merged into it: the bands of target-v2 10.2 measured on the game, trait drift, and
+    talk's share at the slice's start (55.3 ms a game day at `medium-ref`, 10 November) and end.
 
 ### 3.8 The ship
 

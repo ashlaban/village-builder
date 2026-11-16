@@ -109,7 +109,10 @@ let made;
 { // the targets: within their bounds, lasting over the season's plan, cleared; the order, until the next season's plan
   const { st, hh, plan } = scene({ herds: true });
   Sim.inhabit(st, hh.holder);
-  const T = plan.targets, before = snap(st, hh), was = { hay: T.hayWinters, wood: [...T.wood], fields: T.fields };
+  // a head that reacts, with no bias (VB-254): its rule's targets are the template's
+  st.pawns[hh.holder].traits.fill(0, 0, 2); // wits and husbandry
+  plan.head.bias = { wood: 1, hay: 1, seed: 1, fields: 1 };
+  const E = st.ECON, T = plan.targets, before = snap(st, hh), was = { hay: 2, wood: [E.woodTarget, E.woodWinter, E.woodWinter, E.woodTarget] };
   refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3.5 }), /hay must be from 0 to 3/, 'hay over three winters');
   refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: -1 }), /hay must be from 0 to 3/, 'hay below none');
   refused(st, hh, Sim.head(st, 'target', { store: 'fields', n: T.workable + 1 }), /fields must be from 0 to/, 'more fields than the hands can till');
@@ -125,7 +128,7 @@ let made;
   assert.strictEqual(Sim.head(st, 'target', { store: 'cow', n: 0 }), true);
   assert.deepStrictEqual([T.hayWinters, T.wood, T.fields], [3, Array(4).fill(2 * st.ECON.woodWinter), 0], 'the targets are the head\'s at once');
   const V = Sim.headView(st, hh.id);
-  assert.deepStrictEqual(V.targets.hay, { now: 3, chosen: 3, bounds: [0, 3] }, 'the page reads the target, the choice and the bounds');
+  assert.deepStrictEqual(V.targets.hay, { now: 3, custom: 2, chosen: 3, bounds: [0, 3] }, 'the page reads the target, the custom\'s, the choice and the bounds');
   assert.deepStrictEqual(V.targets.fields.bounds, [0, T.workable]);
   { // a save carries the choices
     const st2 = Sim.load(st.w, JSON.parse(JSON.stringify(Sim.save(st))));

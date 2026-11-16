@@ -38,7 +38,8 @@ VB['sim/heirs'] = (() => {
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/herds'];
   const { abandoned } = VB['sim/fields'],
-    { dropPlan } = VB['sim/plans'];
+    { dropPlan } = VB['sim/plans'],
+    { emit } = VB['sim/events'];
   // Who would inherit this farm now, in order, under the practice of its village.
   function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null) {
     VB.count.heirRank++;
@@ -193,6 +194,7 @@ VB['sim/heirs'] = (() => {
     hh.holder = heir;
     f.line = heir;
     noteHolder(st, hh);
+    if (old !== heir) emit(st, 'newHead', { household: hh.id }); // the head's bias, drawn once (sim/plans, VB-254)
     noteLine(st, f);
     // at a retirement or a holder's death, a share of the old holder's goodwill passes to the new holder (design.md, The gift: Who books)
     if (old !== null && old !== heir && (reason === 'retirement' || reason === 'death'))
@@ -439,6 +441,7 @@ VB['sim/heirs'] = (() => {
     ) {
       hh.holder = spouse;
       noteHolder(st, hh);
+      emit(st, 'newHead', { household: hh.id });
       if (cu.widow === 'outright') {
         f.line = spouse;
         noteLine(st, f);

@@ -95,7 +95,13 @@ function checkState(st) {
           plan.reasons['grain/barley'] !== 'seed') {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
         }
-        if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+        if (!(T.seed >= 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+        // VB-254: the plan's head is its household's holder, since a time not after now, with a bias on each of the four targets within
+        // Traits.HEAD.bias of 1; none while the household has no holder
+        const H = plan.head, hhH = st.households[id].holder, most = globalThis.VB['sim/traits'].HEAD.bias + 1e-9;
+        if (hhH === null || hhH === undefined ? H !== null : !H || H.pawn !== hhH || !(H.since <= st.t) || !H.bias ||
+          Object.keys(H.bias).join() !== 'wood,hay,seed,fields' || !Object.values(H.bias).every((x) => Math.abs(x - 1) <= most))
+          bad.push(`plans: household ${id}'s head ${JSON.stringify(H)} is not its holder ${hhH}'s`);
         // VB-390: a want of a cow names no giver, or another household of the same village (one dissolved since is let go at the next
         // review), a heifer or a cow, by kin or by a deal
         const W = plan.want, villageOf = (h) => st.farmsteads[st.households[h].farmstead].village;
@@ -259,6 +265,13 @@ function checkState(st) {
     if (!F || !pos(F.shortAt) || !pos(F.longAt) || (P && !(pos(P.shortEnd) && pos(P.longEnd) && P.shortEnd >= F.shortAt && P.longEnd >= F.longAt
       && P.shortNext >= F.shortAt && P.shortNext <= P.shortEnd && P.longNext >= F.longAt &&
         P.longNext <= P.longEnd))) bad.push(`recordFold: ${JSON.stringify(F)}`);
+  }
+  // the stand-in traits (VB-254): every living pawn has the five, each in [0, 1); none keeps VB-249's diligence beside them
+  const NAMES = globalThis.VB['sim/traits'].NAMES;
+  for (const id of st.living) {
+    const t = st.pawns[id].traits;
+    if (!Array.isArray(t) || t.length !== NAMES.length || !t.every((x) => x >= 0 && x < 1) || 'diligence' in st.pawns[id])
+      bad.push(`pawn ${id}: traits ${JSON.stringify(t)}`);
   }
   // a pawn's events (VB-199), those added since the last check: positions in the record, each its own event or one folded since
   for (const p of st.pawns) {

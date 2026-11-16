@@ -108,6 +108,7 @@ const INTEGRATION = [
   ['node', 'tests/oxen.js'],
   ['node', 'tests/stakes.js'],
   ['node', 'tests/head.js'],
+  ['node', 'tests/traits.js'],
   ['node', 'tests/ale.js'],
   ['node', 'tests/attention.js'],
   ['node', 'tests/start.js'],
