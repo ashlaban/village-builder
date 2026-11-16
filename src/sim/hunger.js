@@ -5,7 +5,7 @@ VB['sim/hunger'] = (() => {
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'],
-    { hungryDay } = VB['sim/traits'];
+    { hungryDay, bufferOf, act } = VB['sim/traits'];
   const Rules = VB['sim/registry'];
   // The seed kept for a field: the standing plan's target (from its culture's template, sim/plans; VB-252), the crop's seed (barley's) before it has one.
   function seedPer(st, hh) {
@@ -128,7 +128,7 @@ VB['sim/hunger'] = (() => {
     source: 'sim/hunger',
     key: 'food',
     label: 'Food against the year ahead',
-    tunables: ['HELP.bufferDays', 'NEED.empty', 'NEED.beyond', 'NEED.lacking'],
+    tunables: ['TRAITS.acts.generosity.reserve', 'HELP.floorDays', 'NEED.empty', 'NEED.beyond', 'NEED.lacking'],
     value: (st, c) => {
       const r = c.n * c.good.quantum * c.good.rations;
       if (r === 0) return 0;
@@ -137,7 +137,7 @@ VB['sim/hunger'] = (() => {
         held = foodHeld(hh, st);
       if (!(need > 0)) return NEED.beyond * r;
       const days = toHarvest(st.t),
-        buffer = hh.holder !== null ? st.pawns[hh.holder].buffer : HELP.bufferDays[1];
+        buffer = bufferOf(st, hh.holder);
       const reach = reserved(st, hh, 'grain') + (days + buffer) * need,
         ample = Math.max(reach, NEED.beyondYears * YEAR_DAYS * need);
       const worth = stockWorth(held + r, reach, ample) - stockWorth(held, reach, ample);
@@ -324,7 +324,7 @@ VB['sim/hunger'] = (() => {
     if (p.hunger > 0) p.health -= HEALTH.drain * p.hunger * p.hunger * frail;
     if (cold > 0) p.health -= HEALTH.cold * cold * frail;
     if (dry > 0) p.health -= HEALTH.dry * frail;
-    if (cold <= 0 && dry <= 0 && fed) p.health += HEALTH.recover;
+    if (cold <= 0 && dry <= 0 && fed) p.health += HEALTH.recover * act(st, p.id, 'body', 'recover'); // 2.5 to 3.5 by body (VB-520)
     p.health = Math.max(0, Math.min(100, p.health));
   }
   // Grain in the barn spoils a little each day (balance review): ECON.storeLoss a year of the first year's need held, of the second, and of the

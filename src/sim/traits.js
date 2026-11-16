@@ -5,7 +5,7 @@
 // mean of its adults' (the hook addValues, for culture's yearly reckoning and its split)
 VB['sim/traits'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { YEAR, TRAITS } = VB['sim/rules'];
+  const { YEAR, TRAITS, HELP } = VB['sim/rules'];
   const { settlementIdOf, spouseOf } = VB['sim/records'];
   // @state pawn.traits (VB-254, VB-519): the twelve traits in the order of TRAITS.names (an array, to keep the save small), each to a
   //   thousandth within TRAITS.bounds; written at birth (Traits.born), at seed for those a scenario places and for every pawn of a save
@@ -149,6 +149,7 @@ VB['sim/traits'] = (() => {
         for (const [k, x] of had) if (Number.isFinite(x)) t[IDX[k]] = keep(x);
       }
       if (p.diligence !== undefined) delete p.diligence; // lint-allow: owner VB-249's field becomes the trait of the same name
+      if (p.buffer !== undefined) delete p.buffer; // lint-allow: owner VB-216's drawn reserve becomes generosity's (VB-520)
       if (p.leanDays === undefined) p.leanDays = p.alive && p.age < TRAITS.setAge ? 0 : null;
     }
   }
@@ -158,6 +159,18 @@ VB['sim/traits'] = (() => {
     const t = st.pawns[id].traits;
     return t ? t[IDX[name]] : 0.5;
   }
+  // What trait `name` does to `rule` for pawn id (VB-520; TRAITS.acts): the act's value at 0 and at 1, linear between, the midpoint at
+  // 0.5. Reads one trait; allocates nothing.
+  const ACTS = TRAITS.acts,
+    MOST = Math.max(ACTS.generosity.reserve[0], ACTS.generosity.reserve[1]);
+  function act(st, id, name, rule) {
+    const r = ACTS[name][rule];
+    return r[0] + (r[1] - r[0]) * of(st, id, name);
+  }
+  // The days of its household's need a holder keeps before it gives or lets go of grain (sim/help, sim/hunger, sim/farmclaims, sim/settle):
+  // the floor and its own reserve, by its generosity; a household without a holder (id null) keeps the most (VB-520, after VB-484).
+  const bufferOf = (st, id) =>
+    HELP.floorDays + (id === null || id === undefined ? MOST : act(st, id, 'generosity', 'reserve'));
   // The words of a pawn's traits beyond the reference's 15th and 85th percentiles (TRAITS.label; design.md, The twelve traits), in the
   // order of TRAITS.names: the low word, or the high one. Nothing of a trait between.
   const WORDS = Object.freeze({
@@ -174,6 +187,13 @@ VB['sim/traits'] = (() => {
     husbandry: ['no hand with beasts', 'good with beasts and crops'],
     wits: ['slow', 'sharp'],
   });
+  // The word of one trait of pawn id, or null between the labels: for a rule explained to the player ("own reserve: open-handed").
+  function wordOf(st, id, name) {
+    const p = st.pawns[id],
+      x = of(st, id, name),
+      w = x < TRAITS.label.low ? WORDS[name][0] : x > TRAITS.label.high ? WORDS[name][1] : null;
+    return w === null || typeof w === 'string' ? w : w[p.sex];
+  }
   function labelsOf(st, id) {
     const p = st.pawns[id],
       t = p.traits,
@@ -201,5 +221,21 @@ VB['sim/traits'] = (() => {
     );
   // A head's multiplier on one target, of skill s: within HEAD.bias × (1 - s) either way of 1, uniform; drawn from the stream `traits`.
   const biasOf = (st, s) => Math.round((1 + HEAD.bias * (1 - s) * (2 * rnd(st.rng.traits) - 1)) * 1000) / 1000; // to a thousandth
-  return { NAMES, IDX, HEAD, pass, born, setAtAge, hungryDay, seedTraits, of, labelsOf, addValues, skill, biasOf };
+  return {
+    IDX,
+    HEAD,
+    pass,
+    born,
+    setAtAge,
+    hungryDay,
+    seedTraits,
+    of,
+    act,
+    bufferOf,
+    wordOf,
+    labelsOf,
+    addValues,
+    skill,
+    biasOf,
+  };
 })();

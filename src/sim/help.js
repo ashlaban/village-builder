@@ -8,22 +8,21 @@ VB['sim/help'] = (() => {
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
-  const Rules = VB['sim/registry'];
-  // allowance's second term (VB-216): the holder's own reserve beyond the floor, from 0 to 40 days of the household's need, a stand-in for
-  // generosity until traits; a household without a holder keeps the most, as surplus does
+  const Rules = VB['sim/registry'],
+    { bufferOf } = VB['sim/traits'];
+  // allowance's second term (VB-216): the holder's own reserve beyond the floor, 40 to 0 days of the household's need by its generosity
+  // (TRAITS.acts.generosity.reserve; VB-520, after VB-484); a household without a holder keeps the most, as surplus does
   Rules.contribute({
     rule: 'allowance',
     source: 'sim/help',
     key: 'reserve',
     label: 'Own reserve',
-    tunables: ['HELP.bufferDays', 'HELP.floorDays'],
-    value: (st, c) =>
-      -((c.giver !== null ? st.pawns[c.giver].buffer : HELP.bufferDays[1]) - HELP.floorDays) * dailyNeed(st, c.from),
+    tunables: ['TRAITS.acts.generosity.reserve', 'HELP.floorDays'],
+    value: (st, c) => -(bufferOf(st, c.giver) - HELP.floorDays) * dailyNeed(st, c.from),
   });
   // grain a household would give: what is above its holder's buffer and its seed reserve
   const surplus = (st, hh) => {
-    const holder = hh.holder !== null ? st.pawns[hh.holder] : null,
-      buffer = (holder ? holder.buffer : HELP.bufferDays[1]) * dailyNeed(st, hh);
+    const buffer = bufferOf(st, hh.holder) * dailyNeed(st, hh);
     return Math.max(0, grainOf(hh) - reserved(st, hh, 'grain') - buffer);
   };
   const spare = (st, hh) => Math.max(0, grainOf(hh) - reserved(st, hh, 'grain'));

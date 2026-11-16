@@ -45,6 +45,7 @@ check(!a.bands.has(cf.id) && told(a, 'closeFriend') === 1, `left close friendshi
 a.tieT += 3 * YEAR_DAYS * DAY;
 // memories of things that happened, each within its cap; enough of them make an enemy, told once
 const c = adults.find((x) => unrelated(x) && x !== cf);
+a.traits[VB['sim/traits'].IDX.honour] = 0.5; // a breach felt as at 0.5 (VB-520: 0.5 to 1.5 times by honour; tests/traitacts.js)
 for (let k = 0; k < 5; k++) { R.remember(st, a.id, c.id, 'claim'); R.remember(st, a.id, c.id, 'refusedMatch'); }
 check(Math.abs(a.rel.get(c.id).mem.claim.v - K.claim.cap) < 1e-9, `claims capped at ${K.claim.cap}: ${a.rel.get(c.id).mem.claim.v}`);
 const o = R.opinionOf(st, a.id, c.id), aff = AF.weight * R.compat(st, a.id, c.id) * Math.min(1, R.tieOf(st, a.id, c.id) / AF.known);
