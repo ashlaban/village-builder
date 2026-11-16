@@ -327,7 +327,7 @@ VB['sim/agents'] = (() => {
   }
   // Household hh is going (sim/heirs' extinct): the jobs it posted and those on its farm f go, and those working them stop, as freeHands
   // stops them (a neighbour helping, VB-106, would finish a job of no household); a load on its way home, its own people's or a helper's,
-  // is put down in its barn first, while it stands, as at a move (VB-335): brought in after, it went to a household gone and threw.
+  // is put down first where its carrier stands (release), for the task's owner to fetch (VB-611; one of the household going rots at the frost).
   function stopWorkFor(st, hh, f) {
     const jobs = new Set(st.jobsBy.get(`household:${hh.id}`));
     for (const j of st.jobs.values()) if (j.farm === f) jobs.add(j);
