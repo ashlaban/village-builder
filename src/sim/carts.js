@@ -207,6 +207,8 @@ VB['sim/carts'] = (() => {
     home,
     missed,
     oxOut,
+    out,
+    cartOf,
     cartsYear,
     seedCarts,
   };
