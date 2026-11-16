@@ -74,7 +74,9 @@ const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the f
   const st = fresh(), a = st.households[0], v = st.villages[st.farmsteads[a.farmstead].village];
   v.grain = { barley: 0 }; for (const hh of st.households) hh.grain = { barley: seedReserve(st, hh) };
   a.grain.barley += bufferOf(st, a.holder) * dailyNeed(st, a) + 400;
-  fillStores(st);
+  fillStores(st); // carried to the green a load a trip (VB-849): the store holds it when the hauls are over
+  for (let s = 0; s < 6 * 48 && st.journeys.some((j) => j.why === 'haul'); s++) Sim.advance(st, 0.5);
+  assert(!st.journeys.some((j) => j.why === 'haul'), 'the hauls are over');
   assert(Math.abs(Sim.grainOf(v) - 100) < 1e-6, `store holds ${Sim.grainOf(v)}, expected 25% of 400`);
 }
 { // a run keeps every invariant: two years, through two moving rounds (seven and a half years of 360 days before VB-856; the long runs
