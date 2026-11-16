@@ -73,7 +73,7 @@ const QUANTITIES = [
     none: 'nothing yet: fleeces only accumulate until the winter crafts spin them (VB-121, VB-362)' },
   { id: 'water', of: 'household', name: 'the day\'s water', unit: 'a day\'s (fetched or not)', fields: ['household.waterDay'],
     kinds: ['water'],
-    none: 'nothing: a day without water costs nothing (VB-331)' },
+    none: 'no cooking that day (the meal is eaten uncooked) and each member loses a little health (VB-331)' },
   { id: 'house', of: 'farm', name: 'house condition', unit: '0..1', fields: ['farmstead.condition'], kinds: ['repair', 'restore'],
     covers: ['farmstead.condAt', 'farmstead.tarredUntil'],
     none: 'a worn house gives less prestige (houseTerm, sim/rules); an empty farm wears to a ruin under 0.15 and takes its claimant '
@@ -111,7 +111,7 @@ const NOT_STOCKS = {
     'household.herds', 'household.dissolved', 'farmstead.id', 'farmstead.house', 'farmstead.village', 'farmstead.household', 'farmstead.name',
     'farmstead.line', 'farmstead.rowAngle', 'village.id', 'village.name', 'village.center', 'village.farmsteads', 'village.wood', 'village.plots'],
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'household.spoilt', 'household.hungryDays',
-    'household.hunger', 'household.cold', 'household.coldLog', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals', 'village.workday'],
+    'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
     'farmstead.booth', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
       'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded'],

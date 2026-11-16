@@ -358,7 +358,7 @@ VB['sim/rules'] = (() => {
 
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and by a cold house (VB-327: `cold` times the day's cold,
   // 0..1), and restored by a full meal on a warm day; at 0 the pawn dies of starvation ----
-  const HEALTH = { drain: 4, cold: 2, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+  const HEALTH = { drain: 4, cold: 2, dry: 1, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
 
   // ---- relationships (sim/relations; docs/review-relationships.md; VB-240, Kim 10 Nov): one pawn's opinion of another (-1..1) is derived:
   // the standing's value (kin, spouse, housemate), plus affinity, affinity.weight * compatibility * min(1, tie / affinity.known), the pair's
@@ -862,6 +862,8 @@ VB['sim/rules'] = (() => {
       waterMorning: 1.4,
       waterMorningHour: 10,
       water: 1,
+      waterLate: 3.3, // VB-331: from waterLateHour, 1.5 times cookEvening: the water comes before the cooking
+      waterLateHour: 14,
       cookEvening: 2.2,
       cookEveningHour: 15,
       cook: 0.6,
