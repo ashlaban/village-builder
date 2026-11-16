@@ -29,13 +29,10 @@ for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, '../src/manifest
     };
   }
 }
-const VB = globalThis.VB, Sim = VB.sim, G = VB.gen, { canon } = require('./lib/canon.js');
+const VB = globalThis.VB, Sim = VB.sim, { canon } = require('./lib/canon.js');
 const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS } = VB['sim/rules'], { NIGHT_STEPS, ROUND_STEPS } = VB['sim/lifecycle'];
-const world = (seed, size) => { const it = G.generate(seed, size); let r; while (!(r = it.next()).done); return r.value; };
-const TINY = { cols: 120, rows: 85 };
-const extended = process.argv.includes('--extended'), probe = require('./lib/probe.js');
-const seed = () => extended ? Sim.seed(world(7, TINY), 7, 'populous') : probe.state();
-const restoreWorld = (data) => extended ? world(data.seed, { cols: data.cols, rows: data.rows }) : probe.world();
+// On the probe village alone since VB-853: the populous run on the tiny map (--extended) asserted the same rules, and was deleted.
+const probe = require('./lib/probe.js'), seed = probe.state, restoreWorld = probe.world;
 const st = seed();
 assert.strictEqual(YEAR, YEAR_H);
 // to the day before the round, then across it and the next night in uneven advances

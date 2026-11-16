@@ -24,8 +24,8 @@ VB['sim/heirs'] = (() => {
     noteLine,
     householdsOfLine,
     ancestorsOf,
-    wishOf,
   } = VB['sim/records'];
+  const { wishOf } = VB['sim/wishes'];
   const { moved, journeyOf, stopWorkFor } = VB['sim/agents'];
   const { farmToVillage, heldFarms } = VB['sim/ownership'];
   const { issue } = VB['sim/commands'];
@@ -526,7 +526,7 @@ VB['sim/heirs'] = (() => {
               (sp === null || !isHolder(st, sp)) &&
               !st.liveHouseholds.some((hid) => st.households[hid].guardian === id) &&
               (wishOf(st, id, 'claim') ?? hh.farmstead) === hh.farmstead
-            ); // the player's wish: no farm, or only the one it names (VB-212)
+            ); // its wish: no farm, or only the one it names (VB-212, VB-680)
           })
           .sort((a, b) => (at(b).landWait || 0) - (at(a).landWait || 0) || at(a).born - at(b).born || a - b)[0];
     const stays = keeps || (claim === undefined && heir !== null) ? heir : null;
@@ -593,7 +593,7 @@ VB['sim/heirs'] = (() => {
     if (isHolder(st, p.id) || (sp !== null && isHolder(st, sp))) return 'holds a farm, or is married to its holder';
     if (wish !== true && placeIfMarried(st, p.id, own) !== null) return 'heir to the farm at home';
     if (claimOf(st, p.id)) return 'restoring a farm it claimed'; // (sim/farmclaims)
-    if (wish !== null) return wish ? null : 'its player wishes it to stay'; // an heir's wait is the pawn's wish: the player's stands in (VB-212)
+    if (wish !== null) return wish ? null : 'it wishes to stay'; // an heir's wait is the pawn's wish (sim/wishes, VB-680)
     if (heirs) {
       if (heirs.has(p.id)) return 'heir to a farm';
     } // heir somewhere else

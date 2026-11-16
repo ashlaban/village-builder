@@ -302,6 +302,17 @@ function checkState(st) {
       bad.push(`pawn ${p.id}: traits ${JSON.stringify(t)}`);
     if (!(p.leanDays === null || (Number.isInteger(p.leanDays) && p.leanDays >= 0))) bad.push(`pawn ${p.id}: leanDays ${p.leanDays}`);
   }
+  // a pawn's wish at the moving round (VB-680): absent or null (the default), else a ranking that holds each rung once, a farm that exists
+  // or null, a pawn of the other sex or null; a living pawn's is not the default written out
+  const RUNGS = globalThis.VB['sim/rules'].WISH.rungs;
+  for (const p of st.pawns) {
+    const w = p.wish;
+    if (w === undefined || w === null) continue;
+    if (!Array.isArray(w.rank) || w.rank.length !== RUNGS.length || RUNGS.some((r) => !w.rank.includes(r))
+      || !(w.farm === null || (Number.isInteger(w.farm) && !!st.farmsteads[w.farm]))
+      || !(w.partner === null || (Number.isInteger(w.partner) && !!st.pawns[w.partner] && st.pawns[w.partner].sex !== p.sex))
+      || (p.alive && w.farm === null && w.partner === null && w.rank.every((r, i) => r === RUNGS[i]))) bad.push(`pawn ${p.id}: wish ${JSON.stringify(w)}`);
+  }
   // a culture's values (VB-519): the four means, each within the bounds
   if (st.cenv) for (const c of st.cenv.cultures) {
     const v = c.values;
@@ -929,43 +940,49 @@ function checkState(st) {
         bad.push(`player.left: ${JSON.stringify(lf)}, queue ${pl.queue.length}`);
       }
     }
-    // its wishes for the moving round (VB-212): out and serve null or a boolean; claim null, false or a farm that exists
-    const ws = pl.wishes || {}, tri = (x) => x === null || typeof x === 'boolean';
-    if (Object.keys(ws).sort().join() !== 'claim,match,out,serve' || !tri(ws.out) || !tri(ws.serve)
-      || !(ws.claim === null || ws.claim === false ||
-        (Number.isInteger(ws.claim) && !!st.farmsteads[ws.claim]))) bad.push(`player.wishes: ${JSON.stringify(pl.wishes)}`);
-    // a wish for a match: null, false or a living pawn of the other sex than the played pawn's, while the played pawn lives
-    const mw = ws.match;
-    if (!(mw === null || mw === false || (Number.isInteger(mw) && !!st.pawns[mw] && st.pawns[mw].alive && st.pawns[mw].sex !== st.pawns[pl.pawn].sex
-      && st.pawns[pl.pawn].alive))) bad.push(`player.wishes.match: ${JSON.stringify(mw)}`);
+    // its wishes are its pawn's (pawn.wish, VB-680): a wished partner is living while the played pawn lives
+    const pw = st.pawns[pl.pawn] && st.pawns[pl.pawn].wish, mw = pw ? pw.partner : null;
+    if (!(mw === null || (st.pawns[mw].alive && st.pawns[pl.pawn].alive))) bad.push(`player's pawn's partner: ${mw}`);
+    if ('wishes' in pl) bad.push('player.wishes: the wishes are the pawn\'s (VB-680)');
     if (!(r === null || (typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`player.refused: ${JSON.stringify(r)}`);
   }
-  // the open marriage offers (VB-293): sorted by due, each due at most MARRIAGE.offerDays after it was made, ids below st.offerSeq and
-  // unique, no pawn in two; the answers are the man's and the woman's (by them) and at most one spokesman's a side (by another pawn: a
-  // spokesman who is the one to marry gives one answer), none a no and one at least still to give (an offer closes at a no or at all yes).
-  // Who spoke for whom is checked where the offer is made (tests/offers.js): a spokesman may have changed since.
+  // the open offers (VB-293, VB-690): sorted by due, made by now and due after, within a year, and no later than the basis's wait after
+  // it was made when the played pawn's answer extended it; ids below st.offerSeq and unique; a known basis; answers by pawns, keys unique,
+  // none a no and one at least still to give (an offer closes at a no or at all yes). A match: a man and a woman, neither in two open
+  // matches; the answers are theirs (by them) and at most one spokesman's a side (by another pawn); its home a household. Goods (a gift,
+  // an ask): the parties are households or villages, the terms a positive amount of a good, the asked one answer (key 'to'). Who spoke
+  // for whom is checked where the offer is made (tests/offers.js): a spokesman may have changed since.
   if (st.offers !== undefined) {
-    const { DAY: D, MARRIAGE: MR } = globalThis.VB['sim/rules'], seen = new Set(), ids = new Set();
+    const { YEAR: Y } = globalThis.VB['sim/rules'], { BASES } = globalThis.VB['sim/offers'], seen = new Set(), ids = new Set();
     if (!Array.isArray(st.offers) || !Number.isInteger(st.offerSeq) || st.offerSeq < 0) bad.push(`offers: ${typeof st.offers}, offerSeq ${st.offerSeq}`);
     else st.offers.forEach((o, n) => {
       const at = `offers[${n}] (id ${o.id})`;
       if (n > 0 && st.offers[n - 1].due > o.due) bad.push(`${at}: due ${o.due} before the one ahead of it`);
-      if (!(o.made <= st.t && o.due > o.made && o.due <= o.made + MR.offerDays * D)) bad.push(`${at}: made ${o.made}, due ${o.due}`);
+      if (!(o.made <= st.t && o.due > o.made && o.due <= o.made + Y)) bad.push(`${at}: made ${o.made}, due ${o.due}`);
       if (!Number.isInteger(o.id) || o.id < 0 || o.id >= st.offerSeq || ids.has(o.id)) bad.push(`${at}: id against offerSeq ${st.offerSeq}`);
       ids.add(o.id);
-      if (!st.pawns[o.man] || !st.pawns[o.woman] || st.pawns[o.man].sex !== 'm' ||
-        st.pawns[o.woman].sex !== 'f') bad.push(`${at}: man ${o.man}, woman ${o.woman}`);
-      for (const id of [o.man, o.woman]) { if (seen.has(id)) bad.push(`${at}: pawn ${id} is in two open offers`); seen.add(id); }
-      if (!st.households[o.home] || !Number.isInteger(o.village)) bad.push(`${at}: home ${o.home}, village ${o.village}`);
+      if (!BASES[o.basis]) { bad.push(`${at}: basis ${o.basis}`); return; }
       const keys = (o.answers || []).map((x) => x.key);
-      if (!keys.includes('man') || !keys.includes('woman') || new Set(keys).size !== keys.length) bad.push(`${at}: answers ${keys.join()}`);
-      for (const x of o.answers || []) {
-        const own = x.key === 'man' ? o.man : x.key === 'woman' ? o.woman : null, side = x.key === 'manSide' ? o.man : x.key === 'womanSide' ? o.woman : null;
-        if (own === null && side === null) bad.push(`${at}: an answer of ${x.key}`);
-        else if (own !== null ? x.by !== own : !st.pawns[x.by] || x.by === side) bad.push(`${at}: ${x.key} answered by ${x.by}`);
-        if (!(x.yes === null || x.yes === true)) bad.push(`${at}: ${x.key} answered ${x.yes}, and the offer is open`);
-      }
+      if (new Set(keys).size !== keys.length || !(o.answers || []).every((x) => !!st.pawns[x.by])) bad.push(`${at}: answers ${JSON.stringify(o.answers)}`);
+      for (const x of o.answers || []) if (!(x.yes === null || x.yes === true)) bad.push(`${at}: ${x.key} answered ${x.yes}, and the offer is open`);
       if ((o.answers || []).every((x) => x.yes === true)) bad.push(`${at}: all have said yes, and the offer is open`);
+      if (o.basis === 'match') {
+        const man = o.gives && o.gives.man, woman = o.wants && o.wants.woman, home = o.gives && o.gives.home;
+        if (!st.pawns[man] || !st.pawns[woman] || st.pawns[man].sex !== 'm' || st.pawns[woman].sex !== 'f') bad.push(`${at}: man ${man}, woman ${woman}`);
+        for (const id of [man, woman]) { if (seen.has(id)) bad.push(`${at}: pawn ${id} is in two open offers`); seen.add(id); }
+        if (!st.households[home] || !Number.isInteger(o.village)) bad.push(`${at}: home ${home}, village ${o.village}`);
+        if (!keys.includes('man') || !keys.includes('woman')) bad.push(`${at}: answers ${keys.join()}`);
+        for (const x of o.answers || []) {
+          const own = x.key === 'man' ? man : x.key === 'woman' ? woman : null, side = x.key === 'manSide' ? man : x.key === 'womanSide' ? woman : null;
+          if (own === null && side === null) bad.push(`${at}: an answer of ${x.key}`);
+          else if (own !== null ? x.by !== own : x.by === side) bad.push(`${at}: ${x.key} answered by ${x.by}`);
+        }
+      } else {
+        const t = o.gives || o.wants, party = (r) => r && (r.household !== undefined ? !!st.households[r.household] : r.village !== undefined && !!st.villages[r.village]);
+        if (!!o.gives === !!o.wants || !t || typeof t.good !== 'string' || !(t.n > 0)) bad.push(`${at}: gives ${JSON.stringify(o.gives)}, wants ${JSON.stringify(o.wants)}`);
+        if (!o.parties || !party(o.parties.from) || !party(o.parties.to)) bad.push(`${at}: parties ${JSON.stringify(o.parties)}`);
+        if (keys.join() !== (Number.isInteger(o.to) ? 'to' : '') || (Number.isInteger(o.to) && o.answers[0].by !== o.to)) bad.push(`${at}: answers ${keys.join()} of ${JSON.stringify(o.to)}`);
+      }
     });
   }
   // the journeys (VB-287): in the order they set out (by id; VB-473: their legs are their pawns'), ids below st.journeySeq and unique, each pawn living and in at most one, `to` its household's house,

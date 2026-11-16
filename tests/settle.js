@@ -29,7 +29,7 @@ const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach(
   const state = { w, used: new Set([used]), owner: new Int32Array(w.N), claims: new Map([[claimed, []]]),
     villages: [{ center: 0, plots: [{ tiles: [{ tile: 1, kind: 'house' }, { tile: 17, kind: 'field' }] }] }],
     farmsteads: [{ house: 0, fields: [{ tile: 1 }, { tile: 18 }], household: 0 }],
-    plans: { projects: { household: new Map([[0, [{ steps: [{ place: w.N - 1 }], open: 0 }]]]), village: new Map(), pawn: new Map() } } }; // its project (VB-123)
+    plans: { projects: { household: new Map([[0, [{ steps: [{ place: w.N - 1 }], open: 0 }]]]), village: new Map(), pawn: new Map(), heirPlots: [] } } }; // its project (VB-123)
   state.owner[owned] = 1;
   const use = S.landInUse(state), expected = new Set();
   for (const t of marks) for (const [j] of bfs(w, t, SETTLE.apart - 1, () => true).dist) expected.add(j);
@@ -151,6 +151,38 @@ const founders = () => {
   const t = founders(), n = t.st.villages.length; fill(t.st, t.lone);
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'with no room at the lone farm, the settler founds');
+}
+// 5. The wish to settle (VB-392, on VB-680's wishes): true passes the draws to lead and to follow, false never leads or follows, null
+// draws as before; the round's other rules decide as for anyone. Every pawn holds it; the played pawn's is set by the wish verb.
+{
+  const Wi = VB['sim/wishes'];
+  const never = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0.9999; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } };
+  const scene = (wm, ws, how) => {
+    const t = setUp(); fill(t.st, t.v);
+    t.st.demand = [t.m.id, t.sib.id]; t.m.landWait = 2; t.sib.landWait = 2; t.m.stake = 300;
+    if (wm !== null) Wi.setWish(t.st, t.m.id, 'settle', wm);
+    if (ws !== null) Wi.setWish(t.st, t.sib.id, 'settle', ws);
+    const n = t.st.villages.length;
+    how(t.st, () => S.settleRound(t.st));
+    const nv = t.st.villages[n], hh = nv && t.st.households[t.st.farmsteads[nv.farmsteads[0]].household];
+    return { led: !!nv && nv.founded.by === t.m.id, followed: !!hh && hh.members.includes(t.sib.id), st: t.st };
+  };
+  let r = scene(null, null, never);
+  check(!r.led, 'with no wish and the draws against it, nobody leaves');
+  r = scene(true, null, never);
+  check(r.led && !r.followed, `wishing to settle, the settler leads past the draw, and the sibling with no wish stays by its draw (${JSON.stringify(r)})`);
+  r = scene(true, true, never);
+  check(r.led && r.followed, 'and a sibling who wishes to settle follows past the draw');
+  r = scene(false, null, roll);
+  check(!r.led, 'wishing never to settle, the settler does not lead though every chance comes up');
+  r = scene(null, false, roll);
+  check(r.led && !r.followed, 'and a sibling who wishes never to settle does not follow');
+  check(checkState(r.st).length === 0, `invariants after the wishes to settle: ${checkState(r.st).slice(0, 3)}`);
+  // the played pawn's, by the wish verb: the same record
+  const t = setUp(); Sim.inhabit(t.st, t.m.id);
+  check(Sim.wish(t.st, 'settle', true) === true && Sim.wishesOf(t.st, t.m.id).settle === true && Wi.wishOf(t.st, t.m.id, 'settle') === true,
+    'the player wishes its pawn to settle, on the pawn');
+  check(typeof Sim.wish(t.st, 'settle', 3) === 'string', 'settle is null, true or false');
 }
 if (failed) process.exit(1);
 console.log(`settle ok: ${m.given} founded ${nv.name} ${steps} steps from ${v.name}; cottage built on day ${built}, first field sown on day ${sown}${joined}`);
