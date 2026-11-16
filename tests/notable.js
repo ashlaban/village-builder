@@ -68,7 +68,9 @@ assert.strictEqual(Sim.eventLine(st, old), `${Sim.fullName(st.pawns[old.pawn])} 
   for (const e of built) {
     assert.deepStrictEqual(Sim.notable(s2, e), ['farm']);
     assert.strictEqual(s2.record.filter((x) => x.kind === 'joined' && x.farm === e.farm && x.pawn === e.pawn).length, 1, 'its holder joined it once');
-    const told = Sim.chronicle(s2, { pawn: e.pawn }).filter((x) => x.ev.t === e.t).map((x) => x.ev.kind);
+    // a band of opinion crossed the same hour (sim/relations' touch, when a pair is touched) is an event of its own, not the move told
+    // again: at heirs 7 since VB-519's traits (affinity by compatibility), Gunnar becomes the enemy of a neighbour the hour he moves
+    const told = Sim.chronicle(s2, { pawn: e.pawn }).filter((x) => x.ev.t === e.t && !['enemy', 'closeFriend'].includes(x.ev.kind)).map((x) => x.ev.kind);
     assert.deepStrictEqual(told, ['cottage'], 'and its history tells the move once (VB-099)');
   }
 }
