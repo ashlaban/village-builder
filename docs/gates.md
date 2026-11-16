@@ -54,12 +54,12 @@ used as saved). `tools/bench.js` and `tools/bands.js` were not rerun (minutes an
 | 15 | `tests/scaling.js`, structure | the probe exercises every counter | exact | test | pass | hard: an unexercised counter is a broken test |
 | 16 | `tests/scaling.js`, exponent | work per day from 2 to 4 villages grows with exponent at most 1.15 | `LIMITS.scaling` in `tests/lib/cost.js`; three ceilings in `tests/cost-baseline.json` (routeExpand 1.18, routeRefresh 1.74, roundPairs 2.00) | test | pass, with the three ceilings | target: the ceilings are residuals recorded as permissions |
 | 17 | `tests/history.js`, counters | work per living pawn-day, `small-y40` over `small-y5`, at most 1.25 | `LIMITS.history`; six ceilings in `tests/cost-baseline.json` (routeExpand 1.26, routeRefresh 1.81, roundPairs 1.33, and since 10 November oppAsk 1.35, planReview 1.34, cookFarm 1.39) | verify | **fails**: see below | target: depends on fixtures that move with behaviour; it failed on `main` on 10 November |
-| 18 | `tests/history.js`, timings | wall-clock ratio and the 60 ms step at `small-y40` | 1.25 and 60 ms, in roadmap 5.2 | verify | reported only | target (as now) |
+| 18 | `tests/history.js`, timings | wall-clock ratio and the 60 ms step at `small-y40` | 1.25 and 60 ms, in cost 1.2 | verify | reported only | target (as now) |
 | 19 | `tests/cost-baseline.json` ratchet (`tests/cost-rules.js`) | a ceiling may only fall, never be added by `--update`; every counter checked | the file | test | pass | the ratchet goes: ceilings become the residuals' first records; `cost-rules.js` tests the reporter instead |
 | 20 | `tests/bands.js`, invariants band | no invariant violation at a year end, reduced runs | 0, `tests/lib/bands.js` | verify | pass | hard |
 | 21 | `tests/bands.js`, balance bands | populous tiny, 8 years, seeds 3, 7, 11, 42: population ratio at least 1, no village emptied, hunger deaths at most 10%, worst hungry household at most 80% | `FLOORS` and their `reduced` ranges in `tests/lib/bands.js` (loosened from 2% and 30% for the reduced run) | verify | pass; at 30% seeds 3 (0.48) and 42 (0.46) would be out | target: these are balance, and the reduced ranges were widened to keep them passing |
 | 22 | `tools/bands.js`, full runs | the same floors at full strength, populous and founders small (4 seeds), heirs (2) | `tests/lib/bands.js`; appended to `docs/bench/bands.jsonl` | by hand, nightly | 17 of 50 out (`bcd9bf2`): hunger deaths and hungry households on all three runs, population on heirs | target (already: "never failing") |
-| 23 | `tools/bench.js`, the budget lines | mean 200 ms a game day, no step over 60 ms, save and load 0.5 s, gzip 10 MB, at `medium-ref` | roadmap 5.2; `LINES` in `tools/bench.js`; `docs/bench/budget.md` | by hand, nightly | `bcd9bf2`: mean 177 in; longest step 84.7 out; save 852 and load 631 ms out; gzip in | target (already reported) |
+| 23 | `tools/bench.js`, the budget lines | mean 200 ms a game day, no step over 60 ms, save and load 0.5 s, gzip 10 MB, at `medium-ref` | cost 1.2; `LINES` in `tools/bench.js`; `docs/bench/budget.md` | by hand, nightly | `bcd9bf2`: mean 177 in; longest step 84.7 out; save 852 and load 631 ms out; gzip in | target (already reported) |
 | 24 | `tools/bench.js`, system shares | each system's ms a game day within its share of 192 | `SYSTEM_BUDGETS` in `tools/bench.js`; `docs/bench/closure.md` | by hand, nightly | `bcd9bf2`: 9 of 15 over (largest: idle strolls 35.9 of 33, agents walking 26.6 of 23) | target |
 | 25 | `tools/bench.js`, drift flag | a measure 20% over the median of the last five runs | `flags()` in `tools/bench.js` | nightly | reported | target (a residual against the recent past, not a line) |
 | 26 | The demographic gate | populous small, 30 years, seeds 1 to 12: marriages a year and first-marriage age within 5% of before, never-married women 45 to 54 within 2 points | the criteria of VB-196 and VB-201, `tools/marriage-demography.js` | by hand, per task | passed in VB-201 after Kim's second answer | target, with the spread over seeds as its noise |
@@ -142,7 +142,7 @@ fixtures loading, the page). Checks come back on pull requests running exactly t
 - `AGENTS.md`: Working rules, "until VB-261 says how": replace with the PR's Targets section and the rule that targets never fail and
   are never raised to hide a residual; Commands: `tools/targets.js` and `targets.jsonl`; Cost growth: `tests/scaling.js` and
   `tests/history.js` report targets, and "`--update` only lowers excesses" goes; Taking a task, step 5: "report the targets out".
-- `docs/roadmap.md`, section 5.2: the lines are targets with residuals, read nightly; the history line 1.25 and the 60 ms step stay as
+- `docs/cost.md`, section 1.2: the lines are targets with residuals, read nightly; the history line 1.25 and the 60 ms step stay as
   targets. Section 6: the work counters and the scaling exponent are "reported with tight targets", not "asserted with tight bands";
   "Where it runs" gains the targets file.
 - `BACKLOG.md`, How this backlog works: the refactor rules' "the PR's Checks pass" becomes "the hard checks pass"; "Golden file, work
@@ -159,5 +159,5 @@ fixtures loading, the page). Checks come back on pull requests running exactly t
 | VB-264 | `tests/counters.js` and the reduced bands report targets; their structure and the invariants band stay hard | VB-262, Kim |
 | VB-265 | `tools/bench.js`, `tools/bands.js` and `tools/marriage-demography.js` write records, with noise; paired runs | VB-262, Kim |
 | VB-266 | Checks back on pull requests, hard checks only | VB-263, VB-264, Kim |
-| VB-267 | `AGENTS.md`, roadmap 5.2 and 6, `BACKLOG.md` and the open tasks' criteria brought in line (section 3) | VB-263, Kim |
+| VB-267 | `AGENTS.md`, cost 1.2 and 2, `BACKLOG.md` and the open tasks' criteria brought in line (section 3) | VB-263, Kim |
 | VB-268 | recordFold, the one history excess with no ceiling and no task | Kim |

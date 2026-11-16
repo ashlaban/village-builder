@@ -52,6 +52,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   from: the same runs from both trees, the world and the state compared leaf by leaf, nothing recorded. Its line goes into the PR.
 - Targets: `node tools/targets.js [--name PATTERN] [--since DATE]` prints each target's latest value, residual and last five
   (`docs/bench/targets.jsonl`, written by `--record` on the checks that are targets, the bench, the bands and the nightly; `docs/bench/targets.md`).
+- Roadmap: `node tools/roadmap.js [--out FILE] [--today DATE] [--json]` writes `docs/roadmap.html` (derived, never committed; the Pages
+  workflow makes it): tasks created and done by day from the backlog and its git history, each arch day by day in the order of work, and
+  the estimate of when the rest is done (the tool's, from the backlog's pace and growth). Kim's decisions on its axis are a list in the tool.
+  Needs the full history (`git fetch --unshallow`). Its model is checked on a constructed backlog by `tests/roadmap-tool.js`.
 - Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
   `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`.
 - Cost growth: `node tests/scaling.js` (verify; population exponent at most 1.15) and `node tests/history.js` (extended, from `small-y5` and

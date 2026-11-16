@@ -10,7 +10,9 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
   holds the task rules (statuses, archs and phases, the refactor rules). Read and change it with `tools/backlog.js`, not through its tables.
 - `QUESTIONS.md`: the questions only Kim can answer (Deciding without Kim), answered ones in `QUESTION_ARCHIVE.md`; read, answer and move
   them with `tools/questions.js`. `docs/tuning.md`: the parameters and measured shortfalls that wait for a tuning run Kim starts.
-- `docs/roadmap.md`: the order of work (vertical slices, each an arch of the backlog), the late-game budget and cheap measurement.
+- `docs/slices.md`: the slices (vertical slices, each an arch of the backlog), what each brings, and their order; `docs/cost.md`: the
+  late-game budget, the ten rules for cost and cheap measurement; `docs/roadmap.html` (made by `tools/roadmap.js`, not committed): the
+  timeline of what was built when, and the estimate of when the rest is done.
 - `docs/architecture/target-v2.md`: where the code is going (five layers; principles in section 2; Kim's decisions in section 8). A target,
   not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
 - `docs/architecture/modules.md`: where each system lives; `docs/architecture/ownership.md`: who writes each piece of state.
@@ -229,7 +231,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - When a change would add the third special case of one pattern, propose the general rule instead (or a task for it, in the PR).
 - A refactor makes the code simpler, not only spread over more files: its PR says what fell (lines, couplings, duplicated rules).
 
-## Rules for cost (Kim's; `docs/roadmap.md`, section 5)
+## Rules for cost (Kim's; `docs/cost.md`, section 1)
 Budget at the late reference, the first year populous medium reaches 1,000 living (`medium-ref`, made by VB-202): 200 ms of simulation a game day,
 a whole year's mean, for the systems built so far (half of the finished game's 400 ms, a quarter of the main thread at 30×; each slice's plan
 claims its line from the rest; each system's share is in `tools/bench.js`, VB-203), no 6-minute step over 60 ms on `medium-ref` and
