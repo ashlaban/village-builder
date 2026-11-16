@@ -158,6 +158,7 @@ function rowPlace(a, at) {
   return [cx + c * along - sn * row, cy + sn * along + c * row, Math.abs(c) > 0.05 ? Math.sign(c * dir) : a.face, d];
 }
 function placePawns() {
+  Sim.walkerPlaces(st); // a walker's place for the step now, from its leg (VB-473; until the page draws from legs, VB-474)
   const n = st.agents.length,
     R = VB['sim/rules'];
   if (drawX.length < n) {

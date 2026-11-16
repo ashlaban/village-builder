@@ -52,6 +52,7 @@ function syncSteps() {
 }
 // copies each agent's place before a step: once a frame at most, before the frame's last step
 function notePlaces() {
+  Sim.walkerPlaces(st); // a walker's place is worked out from its leg (VB-473; until the page draws from legs, VB-474)
   const n = st.agents.length;
   if (prevX.length < n) {
     const cap = Math.max(64, n * 2);

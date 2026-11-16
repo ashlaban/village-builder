@@ -6,8 +6,20 @@ VB['sim/jobs'] = (() => {
   const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age, kinNear } = VB['sim/records'];
-  const { freeHands, ownerKey, dropJob, rateOf, tileAt, offerWhy, attentionOf, heldAt, workSpot, travelling, doneOf } =
-    VB['sim/agents'];
+  const {
+    freeHands,
+    ownerKey,
+    dropJob,
+    rateOf,
+    tileAt,
+    offerWhy,
+    attentionOf,
+    heldAt,
+    workSpot,
+    travelling,
+    doneOf,
+    placeOf,
+  } = VB['sim/agents'];
   const { companyFor, opinionOf } = VB['sim/relations'];
   const { issue, unplanned } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
@@ -559,9 +571,10 @@ VB['sim/jobs'] = (() => {
     if (bg) {
       const [x, y] = workSpot(st, a, bg);
       go(bg.site, x + (rnd(st.rng.work) - 0.5) * 16, y + (rnd(st.rng.work) - 0.5) * 8);
-    } else if (mate)
-      go(tileAt(st, mate.x, mate.y), mate.x + (rnd(st.rng.work) - 0.5) * 16, mate.y + (rnd(st.rng.work) - 0.5) * 8);
-    else {
+    } else if (mate) {
+      const [mx, my] = placeOf(st, mate); // where it is now, a walker along its leg (VB-473)
+      go(tileAt(st, mx, my), mx + (rnd(st.rng.work) - 0.5) * 16, my + (rnd(st.rng.work) - 0.5) * 8);
+    } else {
       const p = st.pawns[a.id],
         f = st.farmsteads[st.households[p.household].farmstead];
       const v = st.villages[f.village],
