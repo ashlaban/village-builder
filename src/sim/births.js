@@ -4,7 +4,8 @@ VB['sim/births'] = (() => {
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
   const { joinHousehold, person, personEvent, lifeEvent, log, fullName, spouseOf, atHousehold, kinNear } =
     VB['sim/records'];
-  const Culture = VB['culture'];
+  const Culture = VB['culture'],
+    Traits = VB['sim/traits'];
   const { initRelations, raiseTie, floorKin } = VB['sim/relations'];
   const { placeBorn } = VB['sim/agents'];
   const { refreshRoles } = VB['sim/heirs'];
@@ -50,6 +51,7 @@ VB['sim/births'] = (() => {
     p.alive = true;
     p.age = 0;
     joinHousehold(st, hh, id);
+    Traits.draw(st, id); // the stand-in traits (VB-254)
     Culture.initPerson(
       p,
       Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2),

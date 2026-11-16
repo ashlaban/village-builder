@@ -46,7 +46,7 @@ const page_ = path.join(os.tmpdir(), `vb-village-shot-${process.pid}.html`); fs.
 // In the page: one village of `farms` farms on the best site of world w.
 function seedVillage(w, seed, farms) {
   const VB = window.VB, { settlementGenerator, findSite } = VB['sim/layout'], { populousHouseholds, drawSize } = VB['sim/people'];
-  const { fromState, drawer, splitStreams } = VB['sim/rng'], comp = VB['sim/hex'].landComponents(w);
+  const { fromState, drawer } = VB['sim/rng'], comp = VB['sim/hex'].landComponents(w);
   const S = fromState((seed * 2654435761) ^ 0x7177), rand = drawer(S), gen = settlementGenerator(w, rand), sizes = [];
   let big = 0; for (let i = 0; i < w.N; i++) if (!w.water[i]) big = Math.max(big, comp.size[comp.id[i]]);
   const centre = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] === big); // on the largest island
@@ -59,7 +59,7 @@ function seedVillage(w, seed, farms) {
   for (const hh of st.households) hh.grain = { barley: 400 }; // enough for the years of a shot; nobody's balance is judged here
   VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st);
   VB['sim/territory'].seedOutland(st, true);
-  splitStreams(st, seed);
+  VB['sim/scenarios'].startStreams(st, seed);
   return st;
 }
 

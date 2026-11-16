@@ -111,7 +111,7 @@ let report = '';
   const child = st.pawns.find((p) => p.alive && p.age >= 8 && p.age < 16 && p.household !== null && p.household !== c.c.id && !R.isHolder(st, p.id));
   moveTo(st, child.id, c.a.id);
   moveTo(st, c.holder.id, c.c.id);
-  c.a.holder = child.id; R.noteHolder(st, c.a); // the child holds the farm alone
+  c.a.holder = child.id; R.noteHolder(st, c.a); VB['sim/events'].emit(st, 'newHead', { household: c.a.id }); // the child holds the farm alone
   child.father = c.c.holder; child.mother = null;
   S.careForOrphans(st);
   const t = trustOf(st, c.a.id);
