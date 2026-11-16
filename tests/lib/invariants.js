@@ -303,7 +303,8 @@ function checkState(st) {
       const a = st.agents[id], l = a && a.leg, at = `legDue[${n}] (pawn ${id})`;
       if (!living.has(id)) bad.push(`${at}: not living`);
       if (!l || (l.kind !== 'walk' && l.kind !== 'wait')) { bad.push(`${at}: its leg is ${l && l.kind}`); return; }
-      if (!Number.isInteger(l.due) || !(l.due > l.t || (l.kind === "wait" && l.due === l.t))) bad.push(`${at}: due ${l.due}, begun ${l.t}`); // not after now: a test may set the clock forward, and the next step takes it
+      // after the step now (a step takes all that is due); in a state whose clock a test set forward by hand (tests/lib/clock.js), after its start
+      if (!Number.isInteger(l.due) || !(st.clockSet ? l.due > l.t || (l.kind === 'wait' && l.due === l.t) : l.due > st.tick)) bad.push(`${at}: due ${l.due}, begun ${l.t}, at tick ${st.tick}`);
       const p = n > 0 && st.agents[q[n - 1]].leg;
       if (p && (p.due > l.due || (p.due === l.due && q[n - 1] >= id))) bad.push(`${at}: out of order`);
     });

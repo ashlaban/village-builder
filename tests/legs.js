@@ -114,6 +114,15 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   for (const x of old.state.journeys) x.due = 0;
   A.loaded(st);
   assert(j.rate > 0 && j.at === st.tick && st.workDue.includes(j), "an older save's task under work is reckoned and queued at load");
+  // a save made before VB-473 held a background task minded (its due set) out of st.workDue: loading queues its end
+  const side = (x) => (KINDS[x.kind].attention || 'full') === 'background' && x.rate > 0;
+  for (let k = 0; k < 20 * DAY * TICKS && ![...st.jobs.values()].some(side); k++) Sim.advance(st, 1 / TICKS);
+  const bg = [...st.jobs.values()].find(side);
+  assert(bg, 'a herd minded at the side');
+  st.workDue.splice(st.workDue.indexOf(bg), 1);
+  A.loaded(st);
+  assert(st.workDue.includes(bg) && bg.due > st.tick, "an older save's background task is queued at load, to end at its due");
+  assert.deepStrictEqual(checkState(st), [], 'invariants after loading it');
   const back = Sim.load(st.w, old);
   assert.deepStrictEqual(checkState(back), [], 'a save with no legs loads with every pawn in its leg');
   const walking = back.living.filter((id) => back.agents[id].path && back.agents[id].phase !== 'road');

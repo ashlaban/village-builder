@@ -223,7 +223,12 @@ VB['sim/agents'] = (() => {
     if (!a.side.partial && !a.side.background) delete a.side;
     rerate(st, j);
   }
+  // A walk in hand is trodden up to here first, at the weight of the herds it drives, and goes on from there (treadTo reads the side tasks).
   function dropSides(st, a) {
+    if (a.side && a.path && a.leg && a.leg.kind === 'walk') {
+      halt(st, a, true, true);
+      begin(st, a);
+    }
     if (a.side) for (const slot of ['partial', 'background']) if (a.side && a.side[slot]) unhold(st, a, a.side[slot]);
   }
   // The matcher offers a pawn that holds a background task only tasks within its reach (a full one beyond it never, until the urgency
@@ -959,6 +964,8 @@ VB['sim/agents'] = (() => {
     for (const j of st.jobs.values()) {
       delete j.cast;
       if ((j.at === undefined || j.at === null) && j.claims.length) rerate(st, j, false);
+      // a background task minded in a save made before VB-473 had its due but was not queued: its end is queued now
+      else if (j.rate > 0 && attentionOf(j) === 'background' && !(st.workDue || []).includes(j)) rerate(st, j, false);
     }
   }
   // ---- journeys (VB-287; design.md, Between villages: A journey, Provisions and the season) ----

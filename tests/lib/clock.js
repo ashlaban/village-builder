@@ -6,6 +6,8 @@ function setClock(st, hours) {
   if (!(Math.abs(x - whole) < 1e-6)) throw new Error(`setClock: ${hours} hours is not a whole number of 6-minute steps`);
   st.tick = whole;
   st.t = st.tick / TICKS;
+  // legs and tasks due before the new time are taken at the next step (tests/lib/invariants.js allows them in a state set by hand)
+  if (!Object.prototype.hasOwnProperty.call(st, 'clockSet')) Object.defineProperty(st, 'clockSet', { value: true, writable: true });
 }
 const moveClock = (st, hours) => setClock(st, st.t + hours);
 module.exports = { setClock, moveClock };
