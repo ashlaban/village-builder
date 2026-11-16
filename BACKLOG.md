@@ -105,7 +105,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-766](backlog/VB-766.md) | Crowding: a contribution to death.hazard by the people within 2 steps of a house | town | 3 | S | Living close costs lives by a named rule (CROWD: free to 36 people within 2 steps, +0.035 each beyond, at most 2.5), wherever it happens; no rule reads "town". |
 | [VB-767](backlog/VB-767.md) | A head's remembered yield of each source of food | town | 3 | S | Each household keeps eight years of rations by source (fields, animals, fish, wild food, craft, hired days, gifts); the head reads a poor year and a mean. Nothing reads it yet. |
 | [VB-776](backlog/VB-776.md) | Plan: a third mock: does a shared facility gather makers? | town | 3 | M | Throwaway research: a kiln or bloomery, costly to build and worth sharing, in the second mock's world; compared with elite demand and outside demand; states what result reopens the town's design. |
-| [VB-777](backlog/VB-777.md) | Plan: target-v2 brought into line with the town's design: labels, crowding, strata by work | town | 3 | S | A design pass of target-v2 sections 2, 4.4, 4.6, 6.1 and 6.3, which still say settlement tier by market potential, urban hazard and strata by relation to production. |
+| [VB-834](backlog/VB-834.md) | Measure: does a gathering's host change its customs faster, by contact alone | town | 3 | S | A report of attitude drift at villages by how many people their pawns meet at venues, to settle target-v2 4.4's Proposed reading (no town term in attitude.malleability) |
 
 ## Waiting for Kim
 
