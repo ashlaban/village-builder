@@ -24,7 +24,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       .replace('let st = null,\n  speed = 1,\n  selPawn = -1;', 'let st = null,\n  speed = 1,\n  selPawn = -1; window.__play = { get st() { return st; }, Sim, focusPawn, '
         + 'get speed() { return speed; }, get choose() { return choose; }, '
         + 'look: (i) => { stopIntro(); followPlayed = false; cam.x = w.hx[i]; cam.y = w.hy[i]; cam.z = zt = 1.5; vel.x = vel.y = 0; }, '
-        + 'tool: () => tool && { kind: tool.kind, sites: tool.sites.slice() }, '
+        + 'tool: () => tool && { kind: tool.kind, sites: tool.sites.slice() }, selectFarm, '
         + 'drawings: () => { const h = app.renderer.graphicsContext._gpuContextHash; let n = 0; for (const k in h) if (h[k]) n++; return n; }, render: () => app.render(), '
         + 'set st(v) { st = v; }, world: () => w, ticker: () => app.ticker, setSpeed: (v) => { speed = v; }, advance: (dt) => advanceSimulation(dt), '
         + 'place: () => { placePawns(); return { drawX, drawY, stepShare }; } };')),
@@ -252,6 +252,60 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if (idle) fail(`automatic behaviour off: ${idle}`);
   await page.waitForTimeout(600);
   if (!/off/.test(await page.locator('#playBox [data-play="auto"]').textContent())) fail('the switch does not show off');
+  // the plan panel (VB-256): as head, the farm's Plan tab raises the hay target with its stepper, and its "Choose the tile" takes the next
+  // field's tile from a click on the map: the house is refused with its reason, an open tile is named; the tab shows both
+  {
+    const hh = await page.evaluate((id) => {
+      const { st } = window.__play, h = st.households.find((x) => !x.dissolved && x.holder === id);
+      window.__play.selectFarm(h.farmstead); return h.id;
+    }, played);
+    await page.click('#tabPlan');
+    const raise = '#tileHouse [data-plan="target"][data-store="hay"][aria-label^="Raise"]';
+    await page.waitForSelector(raise);
+    const view = () => page.evaluate((id) => window.__play.Sim.headView(window.__play.st, id), hh);
+    const before = (await view()).targets.hay.now;
+    await page.click(raise);
+    const hay = (await view()).targets.hay, row = await page.locator('#tileHouse [data-target="hay"]').textContent();
+    if (!(hay.chosen > before) || hay.now !== hay.chosen) fail(`the hay target was not raised: ${before} to ${JSON.stringify(hay)}`);
+    if (!row.includes(`/ ${Math.round(hay.now * 100) / 100}`) || !/chosen/.test(row)) fail(`the Plan tab does not show the hay target chosen: ${row}`);
+    // a made good's target (VB-865): ale raised by one barrel, then cleared back to the household's need
+    await page.click('#tileHouse [data-plan="target"][data-store="ale"][aria-label^="Raise"]');
+    const ale = (await view()).goods.ale;
+    if (ale.chosen === null || ale.now !== ale.chosen || !/chosen/.test(await page.locator('#tileHouse [data-target="ale"]').textContent())) {
+      fail(`the ale target was not set: ${JSON.stringify(ale)}`); }
+    await page.click('#tileHouse [data-plan="target"][data-store="ale"][data-n="null"]');
+    if ((await view()).goods.ale.chosen !== null || await page.locator('#tileHouse [data-plan="target"][data-store="ale"][data-n="null"]').count()) {
+      fail('the ale target was not cleared'); }
+    await page.click('#tileHouse [data-plan="tile"][data-what="field"]:not([data-clear])');
+    if ((await page.evaluate(() => window.__play.tool()))?.kind !== 'plan') fail('Choose the tile did not put the plan\'s tool in hand');
+    const box = await page.locator('canvas').first().boundingBox(), mid = [box.x + box.width / 2, box.y + box.height / 2];
+    const spots = await page.evaluate((id) => {
+      const { st } = window.__play, h = st.households[id], f = st.farmsteads[h.farmstead], F = VB['sim/fields'];
+      let open = -1;
+      for (let t = 0; t < st.w.N && open < 0; t++) if (F.fieldWhy(st, f, h, t) === null) open = t;
+      return { house: f.house, open };
+    }, hh);
+    await page.evaluate((i) => window.__play.look(i), spots.house);
+    await page.mouse.click(...mid); await page.waitForTimeout(300);
+    const refused = await page.locator('#actBanner').textContent();
+    if (!/house stands there/.test(refused) || (await view()).tiles.field !== -1) fail(`the house was not refused with its reason: ${refused}`);
+    if (spots.open < 0) fail('no tile will take a field');
+    await page.evaluate((i) => window.__play.look(i), spots.open);
+    await page.mouse.click(...mid); await page.waitForTimeout(300);
+    const named = (await view()).tiles.field;
+    await page.waitForSelector('#tabPlan[aria-selected="true"]', { timeout: 5000 }).catch(() => fail('the card did not come back to its Plan tab'));
+    const shown = await page.locator('#tileHouse [data-tile="field"]').textContent();
+    if (named !== spots.open || await page.evaluate(() => !!window.__play.tool())) fail(`the field's tile was not named: ${named}, not ${spots.open}`);
+    if (!shown.includes(`tile ${spots.open}`) || !(await page.locator('#tileHouse [data-target="hay"]').textContent()).includes('chosen')) {
+      fail(`the Plan tab does not show both choices: ${shown}`); }
+    if (process.argv.includes('--shot')) { // the tab from its top: the targets
+      await page.evaluate(() => { document.getElementById('tileDetails').scrollTop = 0; });
+      await page.screenshot({ path: path.join(root, 'docs/img/vb256-plan.png') });
+    }
+    console.log(`browser: the plan panel raised hay from ${before} to ${hay.now} winters and named tile ${named} for the next field`);
+    await page.evaluate((id) => window.__play.focusPawn(id), played); // the played pawn selected again, as the tests below take it
+    await page.click('#tabFacts');
+  }
   // the wishes for the moving round (VB-212): a wish is set from the panel, shown as pressed, and taken back
   await page.click('#actBar [data-group="self"]'); await page.click('#actMenu [data-view="round"]');
   const stay = '#actMenu [data-play="wish"][data-kind="out"][data-value="false"]';
@@ -380,5 +434,5 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.waitForTimeout(1000);
   await browser.close();
   if (errors.length) { console.log(`browser: ${errors.length} error(s)`); process.exit(1); }
-  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, culture, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours, a skip to the next event, its death and going on as its heir, a marriage offer answered No)');
+  console.log('browser: no console or page errors (generate, skip a year, land on, settlers, culture, tree, land off, the History tab of a village, a farm and a pawn; play a pawn: queue a job and see it worked, Walk here, a wish for the moving round, the automatic behaviour off and the pawn idle in working hours, the plan panel as head, a skip to the next event, its death and going on as its heir, a marriage offer answered No)');
 })().catch((e) => { console.error(e); process.exit(1); });

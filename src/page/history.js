@@ -1,7 +1,7 @@
 // @sys page/history: the History tab of the selection card, read from the record of events, and the names in a line as links (VB-099)
 // ======== history ========
 // The card of a pawn, a farm or a village has the tabs Details and History, a village's has Customs (page/customs) and a lived-in farm's
-// has Stores, Land and Animals (page/cards, VB-664); the tab chosen
+// has Stores, Land, Animals (page/cards, VB-664) and Plan (page/plan, VB-256); the tab chosen
 // stays as the selection changes, so a name followed in one history opens the next. The filter by kind is the page's own state too.
 let cardTab = 'facts',
   historyGroup = '',
@@ -76,8 +76,8 @@ function renderHistory(q) {
 function syncTabs() {
   const q = st && selectionPinned ? historySubject() : null,
     village = q ? customsVillage() : -1,
-    house = q ? houseShown() : null; // the household whose farm the card shows (page/cards): its tabs Stores, Land and Animals
-  const mine = { customs: village >= 0, stores: !!house, land: !!house, animals: !!house };
+    house = q ? houseShown() : null; // the household whose farm the card shows (page/cards): its tabs Stores, Land, Animals and Plan
+  const mine = { customs: village >= 0, stores: !!house, land: !!house, animals: !!house, plan: !!house };
   const tab = !q || (cardTab in mine && !mine[cardTab]) ? 'facts' : cardTab;
   $('tileTabs').hidden = !q;
   for (const b of $('tileTabs').children) {
@@ -92,7 +92,7 @@ function syncTabs() {
   $('tileHouse').hidden = !(tab in mine) || tab === 'customs';
   $('tileHouse').setAttribute(
     'aria-labelledby',
-    tab === 'land' ? 'tabLand' : tab === 'animals' ? 'tabAnimals' : 'tabStores',
+    tab === 'land' ? 'tabLand' : tab === 'animals' ? 'tabAnimals' : tab === 'plan' ? 'tabPlan' : 'tabStores',
   );
   for (const b of $('historyKinds').children) b.setAttribute('aria-pressed', b.dataset.history === historyGroup);
   if (tab === 'history') renderHistory(q);

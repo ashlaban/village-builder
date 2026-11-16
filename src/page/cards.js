@@ -353,7 +353,8 @@ function animalsTab(hh) {
 }
 let houseHTML = '';
 function renderHouse(tab, hh) {
-  const h = tab === 'land' ? landTab(hh) : tab === 'animals' ? animalsTab(hh) : storesTab(hh);
+  const h =
+    tab === 'land' ? landTab(hh) : tab === 'animals' ? animalsTab(hh) : tab === 'plan' ? planTab(hh) : storesTab(hh);
   if (h !== houseHTML) {
     houseHTML = h;
     $('tileHouse').innerHTML = h;
