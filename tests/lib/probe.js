@@ -10,14 +10,16 @@ const state = () => tinyState(world(), [{ at: [7, 9], farms: 2, sizes: [6, 5] },
 // one function (the colour sampler, which reads only the generator's own fields) shared.
 const SMALL = { cols: 36, rows: 26 }, ROOMY = { cols: 48, rows: 34 }, made = new Map();
 const copy = (v) => (ArrayBuffer.isView(v) ? v.slice() : typeof v === 'function' || v === null || typeof v !== 'object' ? v : structuredClone(v));
+// generate() makes one anew, for a test of the generator's determinism, which a copy cannot show.
+const generate = (seed = 7, size = SMALL) => {
+  const it = require('../../src/load.js').gen.generate(seed, { cols: size.cols, rows: size.rows }); let r;
+  while (!(r = it.next()).done);
+  return r.value;
+};
 const island = (seed = 7, size = SMALL) => {
   const key = `${seed} ${size.cols} ${size.rows}`;
-  if (!made.has(key)) {
-    const it = require('../../src/load.js').gen.generate(seed, { cols: size.cols, rows: size.rows }); let r;
-    while (!(r = it.next()).done);
-    made.set(key, r.value);
-  }
+  if (!made.has(key)) made.set(key, generate(seed, size));
   return Object.fromEntries(Object.entries(made.get(key)).map(([k, v]) => [k, copy(v)]));
 };
 const scenario = (name, seed = 7) => require('../../src/load.js').sim.seed(island(seed, name === 'heirs' ? ROOMY : SMALL), seed, name);
-module.exports = { world, state, island, scenario, SMALL, ROOMY };
+module.exports = { world, state, island, generate, scenario, SMALL, ROOMY };

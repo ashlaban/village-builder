@@ -7,7 +7,7 @@
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
   'plans', 'calendar', 'reach', 'waiting'];
-const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map tiny|small|medium|large] [--years Y]
+const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
   --json            the report as JSON
@@ -27,7 +27,8 @@ if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-2
   process.exit(0);
 }
 const perf = process.argv.includes('perf') ? require('./perf.js') : null, VB = perf ? perf.load() : require('../src/load.js'), G = VB.gen, Sim = VB.sim;
-const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/page/loader.js)
+// as the generation screen (src/page/loader.js), and probe, the 36 by 26 island of tests/lib/probe.js, for the tools' own tests (VB-856)
+const SIZES = { probe: [36, 26], tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0 ? args[i + 1] : dflt; };
 const fs = require('fs'), zlib = require('zlib'), saveTo = opt('save', null), loadFrom = opt('load', null);
