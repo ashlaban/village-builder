@@ -73,7 +73,7 @@ const QUANTITIES = [
     none: 'nothing yet: fleeces only accumulate until the winter crafts spin them (VB-121, VB-362)' },
   { id: 'water', of: 'household', name: 'the day\'s water', unit: 'a day\'s (fetched or not)', fields: ['household.waterDay'],
     kinds: ['water'],
-    none: 'nothing: a day without water costs nothing (VB-331)' },
+    none: 'no cooking that day (the meal is eaten uncooked) and each member loses a little health (VB-331)' },
   { id: 'house', of: 'farm', name: 'house condition', unit: '0..1', fields: ['farmstead.condition'], kinds: ['repair', 'restore'],
     covers: ['farmstead.condAt', 'farmstead.tarredUntil'],
     none: 'a worn house gives less prestige (houseTerm, sim/rules); an empty farm wears to a ruin under 0.15 and takes its claimant '
@@ -86,6 +86,10 @@ const QUANTITIES = [
     none: 'a household short of food gets nothing from the village when its kin cannot help (sim/help), and a common field is not sown (VB-100)' },
   { id: 'provisions', of: 'journey', name: 'the food a pawn on a journey carries', unit: 'rations', fields: ['st.journeys'], kinds: [],
     none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (sim/agents, VB-287)' },
+  { id: 'lying', of: 'tile', name: 'a load lying where its carrier fell', unit: 'its kind\'s loads (rations of sheaves, hay loads, firewood, stone)',
+    fields: ['st.lying'], covers: ['st.lyingSeq'], kinds: [], losses: ['sim/lying:frost'],
+    none: 'nothing lies on the road: every load is in hand or home; one left lying is fetched by its owner\'s next hand (the fetch kinds) '
+      + 'or rots at the autumn frost (sim/lying, VB-611)' },
   { id: 'trees', of: 'tile', name: 'a tile\'s trees', unit: 'trees', fields: ['w.trees'], kinds: ['fell', 'grub'], covers: ['w.treesMax'],
     none: 'a tile cut bare: firewood is cut on another tile of the village\'s wood; with none left, no firewood job is posted (sim/territory); '
       + 'the bare tile is meadow, and the forest spreads back into it where it borders forest and nothing keeps it open (sim/spread, VB-091)' },
@@ -111,7 +115,7 @@ const NOT_STOCKS = {
     'household.herds', 'household.dissolved', 'farmstead.id', 'farmstead.house', 'farmstead.village', 'farmstead.household', 'farmstead.name',
     'farmstead.line', 'farmstead.rowAngle', 'village.id', 'village.name', 'village.center', 'village.farmsteads', 'village.wood', 'village.plots'],
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'household.spoilt', 'household.hungryDays',
-    'household.hunger', 'household.cold', 'household.coldLog', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals', 'village.workday'],
+    'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
     'farmstead.booth', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
       'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded'],

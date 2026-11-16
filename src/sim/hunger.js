@@ -4,7 +4,8 @@ VB['sim/hunger'] = (() => {
   const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS, PEAT, BUILD } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'],
-    Pot = VB['sim/pot'];
+    Pot = VB['sim/pot'],
+    { hungryDay } = VB['sim/traits'];
   const Rules = VB['sim/registry'];
   // The seed kept for a field: the standing plan's target (from its culture's template, sim/plans; VB-252), the crop's seed (barley's) before it has one.
   function seedPer(st, hh) {
@@ -206,7 +207,8 @@ VB['sim/hunger'] = (() => {
   function feedHousehold(st, hh, season) {
     const E = st.ECON,
       mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null && !onRoad(st, p.id));
-    const cold = season === undefined ? 0 : warmHouse(st, hh, season);
+    const cold = season === undefined ? 0 : warmHouse(st, hh, season),
+      dry = season === undefined ? 0 : dryHouse(st, hh);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])),
       total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
@@ -251,7 +253,8 @@ VB['sim/hunger'] = (() => {
     }
     let sum = 0;
     for (const p of mem) {
-      ate(st, p, eaten.get(p), need.get(p), cold);
+      ate(st, p, eaten.get(p), need.get(p), cold, dry);
+      hungryDay(p); // a child's hungry days, for its traits at 15 (sim/traits, VB-519)
       sum += p.hunger;
     }
     hh.hunger = mem.length ? sum / mem.length : 0;
@@ -282,12 +285,28 @@ VB['sim/hunger'] = (() => {
     }
     return day;
   }
+  // A day without water (VB-331): the day that ends, if its water was not fetched (hh.waterDay behind it), costs each member HEALTH.dry and the
+  // meal restores nothing. hh.dry is the mean of the last HUNGER.days days (hh.dryLog, 1 a dry day) as hh.cold is. Returns 1 on a dry day.
+  // One comparison a live household a day.
+  function dryHouse(st, hh) {
+    const day = hh.waterDay < Math.floor(st.t / DAY) - 1 ? 1 : 0;
+    if (day > 0 || hh.dry > 0) {
+      hh.dryLog.push(day);
+      if (hh.dryLog.length > HUNGER.days) hh.dryLog.shift();
+      hh.dry = hh.dryLog.reduce((s, x) => s + x, 0) / HUNGER.days;
+      if (!hh.dryLog.some((x) => x > 0)) {
+        hh.dryLog.length = 0;
+        hh.dry = 0;
+      }
+    }
+    return day;
+  }
   // The day's meal of pawn p: `eaten` of its `need` rations, into its hunger log, its hunger and its health.
-  function ate(st, p, eaten, need, cold = 0) {
+  function ate(st, p, eaten, need, cold = 0, dry = 0) {
     p.hungerLog.push(1 - eaten / need);
     if (p.hungerLog.length > HUNGER.days) p.hungerLog.shift();
     p.hunger = p.hungerLog.reduce((s, x) => s + x, 0) / HUNGER.days;
-    updateHealth(st, p, eaten >= need, cold);
+    updateHealth(st, p, eaten >= need, cold, dry);
   }
   // A pawn's day's need in rations.
   const rationOf = (st, p) => (age(st, p) >= 14 ? st.ECON.ration.adult : st.ECON.ration.child);
@@ -299,12 +318,13 @@ VB['sim/hunger'] = (() => {
   }
   // Health after the meal: hunger drains it, and the day's cold in the house (VB-327), both faster for the very young and the old; a full meal
   // restores some on a warm day, nothing on a cold one.
-  function updateHealth(st, p, fed, cold = 0) {
+  function updateHealth(st, p, fed, cold = 0, dry = 0) {
     const a = age(st, p),
       frail = a < 5 || a >= 60 ? HEALTH.frail : 1;
     if (p.hunger > 0) p.health -= HEALTH.drain * p.hunger * p.hunger * frail;
     if (cold > 0) p.health -= HEALTH.cold * cold * frail;
-    else if (fed) p.health += HEALTH.recover;
+    if (dry > 0) p.health -= HEALTH.dry * frail;
+    if (cold <= 0 && dry <= 0 && fed) p.health += HEALTH.recover;
     p.health = Math.max(0, Math.min(100, p.health));
   }
   // What a household's farm loses to spoilage, as a share of a farm without a barn: BUILD.barn.loss with one (VB-255; farmstead.barn, sim/building).

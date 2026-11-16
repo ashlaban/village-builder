@@ -9,8 +9,20 @@ VB['sim/kinds'] = (() => {
   const { scrubHours, SPREAD } = VB['sim/spread'];
   const { dailyNeed, floorOf } = VB['sim/hunger'],
     { reserved } = Stores;
-  const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, carried, binned, reclaimed, weeded } =
-    VB['sim/fields'];
+  const {
+    finishClear,
+    finishBreak,
+    manureWanted,
+    manureDone,
+    hoed,
+    sown,
+    reaped,
+    carried,
+    laidDown,
+    binned,
+    reclaimed,
+    weeded,
+  } = VB['sim/fields'];
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
   const { plotJobs } = VB['sim/expansion'];
@@ -20,7 +32,8 @@ VB['sim/kinds'] = (() => {
     Pot = VB['sim/pot'],
     Green = VB['sim/green'],
     Workdays = VB['sim/workdays'],
-    Commons = VB['sim/commons'];
+    Commons = VB['sim/commons'],
+    Lying = VB['sim/lying'];
   const { ground: forageGround, gather } = VB['sim/forage'],
     Drying = VB['sim/drying'];
   // A kind's fields:
@@ -109,8 +122,10 @@ VB['sim/kinds'] = (() => {
       : null;
   }
   // The household has fewer meals than the coming meal needs, grain, fresh food (VB-119) or seed it would eat (VB-388) to cook it from, and
-  // wood in the pile (VB-327: an empty pile cannot cook; the pot burns no wood of its own, the day's use is the hearth's).
-  const cookWanted = (st, hh, c) => hh.cookDay !== c.day && hh.wood > 0 && Pot.cookable(st, hh, dailyNeed(st, hh));
+  // wood in the pile (VB-327: an empty pile cannot cook; the pot burns no wood of its own, the day's use is the hearth's) and the day's water
+  // in (VB-331: a dry day's meal is eaten uncooked).
+  const cookWanted = (st, hh, c) =>
+    hh.cookDay !== c.day && hh.waterDay === c.day && hh.wood > 0 && Pot.cookable(st, hh, dailyNeed(st, hh));
   // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
   // seed reserve): a household never brews grain it needs.
   const brewWanted = (st, hh) =>
@@ -249,6 +264,7 @@ VB['sim/kinds'] = (() => {
       urgency: (st, j, c, U) => U.haul,
       load: (st, a, j, cap) => (a.load = carried(j.field, cap)),
       again: (j) => j.field.stage === 'stooks',
+      setDown: (st, j, a) => laidDown(j.field, a.load),
       deliver: (st, j, hh, f, a) => {
         if (j.common) return Commons.brought(st, j, a); // a common field's, into the village store (VB-100)
         binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.field.crop));
@@ -327,7 +343,9 @@ VB['sim/kinds'] = (() => {
           ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8]
           : [w.hx[j.site] - 1, w.hy[j.site] + 4];
       },
-      urgency: (st, j, c, U) => (c.hour < U.waterMorningHour ? U.waterMorning : U.water),
+      // from 14:00, the cook's hour, above cooking's (VB-331): the hand that would cook fetches the water first
+      urgency: (st, j, c, U) =>
+        c.hour >= U.waterLateHour ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
       deliver: (st, j, hh) => {
         hh.waterDay = cal(st.t).day;
       },
@@ -786,11 +804,17 @@ VB['sim/kinds'] = (() => {
   KINDS.hunt = { ...VB['sim/deer'].KIND, urgency: (st, j, c, U) => spareUrgency(st, j, U) };
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   Object.assign(KINDS, VB['sim/tar'].KINDS); // the tar pit, burning tar, tarring the house and the boat (VB-301): sim/tar's
+  // a load left lying where its carrier fell is fetched by its owner (VB-611): a fetch kind for each kind that carries a load (sim/lying)
+  for (const [k, K] of Object.entries(KINDS))
+    if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
-  // Each role's rank of every kind: its exception for the kind, else its rank of the kind's type of work, else 0.
+  // Each role's rank of every kind: its exception for the kind (a fetch kind's: the kind it fetches for, VB-611), else its rank of the
+  // kind's type of work, else 0.
   for (const r of Object.values(ROLES))
-    r.prio = Object.fromEntries(Object.entries(KINDS).map(([k, K]) => [k, r.except[k] ?? r.work[K.type] ?? 0]));
+    r.prio = Object.fromEntries(
+      Object.entries(KINDS).map(([k, K]) => [k, r.except[k] ?? r.except[K.fetch] ?? r.work[K.type] ?? 0]),
+    );
   // Where refreshJobs (sim/jobs) asks, in this order: for each occupied farm in turn, at each of its fields (field), at the farm (farm),
   // and at the farm again after the household's plans for land (farmAfterPlans); then at each village (village), then once for the island
   // (island). An entry is [kind, rule]: a kind's own rule posts that kind; a shared rule (kind null) names its jobs' kinds. A job's id is its
@@ -824,6 +848,7 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart'), rule('hunt'), rule('lead'));
   ASK.farmAfterPlans.push(rule('grind'), rule('hewQuern')); // the hand quern (VB-009, sim/quern)
   ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
+  (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy };
 })();

@@ -116,7 +116,7 @@ check(ECON.uncooked === 0.75, 'uncooked grain: a ration feeds 0.75');
 {
   const { st, hh } = home(0), f = st.farmsteads[hh.farmstead], need = dailyNeed(st, hh);
   VB['sim/plans'].makeProject(st, 'household', hh.id, VB['sim/fields'].fieldProject(st, hh, f.house)); // a new field's seed held back
-  const seed = VB['sim/hunger'].seedReserve(st, hh); hh.grain = { barley: seed }; hh.fresh = []; hh.cookDay = -1;
+  const seed = VB['sim/hunger'].seedReserve(st, hh); hh.grain = { barley: seed }; hh.fresh = []; hh.cookDay = -1; hh.waterDay = 15;
   const c = { season: 1, sday: 3, day: 15, hour: 15 }, asked = [];
   KINDS.cook.available(st, hh, f, c, (key) => asked.push(key));
   check(seed > need && asked.length === 1, `a household with only its seed posts a cook (${asked.length})`);

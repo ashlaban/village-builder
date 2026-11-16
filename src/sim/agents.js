@@ -20,6 +20,7 @@ VB['sim/agents'] = (() => {
   const { finishStep } = VB['sim/expansion'];
   const { worked: prospected } = VB['sim/prospect'];
   const { KINDS } = VB['sim/kinds'];
+  const Lying = VB['sim/lying'];
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
@@ -62,6 +63,7 @@ VB['sim/agents'] = (() => {
     }
   }
   function stillAtDeath(st, a) {
+    delete a.moving;
     dropJourney(st, a.id); // a pawn who dies on the road dies there (VB-287)
     release(st, a);
     dropSides(st, a);
@@ -160,8 +162,21 @@ VB['sim/agents'] = (() => {
   }
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
-    // a load on its way home is put down in its farm's barn first (VB-335: a wedding or a move at the round found a pawn mid-haul)
-    if (a.load > 0 && a.phase === 'back' && a.job) deposit(st, a, a.job.farm);
+    // A load on its way home is not brought in from the road: a hand that can walk on is not released until it has (VB-581: `moved`
+    // waits for the delivery, and the planner, the occasions, the orders and the working day's end find it on its way home and leave it).
+    // One released here puts the load down where it stands: in its own field or meadow it goes back with the stooks or the mown hay;
+    // elsewhere (its death on the road, its household dissolving) it lies there for the task's owner to fetch (VB-611, sim/lying). A task
+    // that has no more loads to give is done with.
+    let laid = null;
+    if (a.load > 0 && a.phase === 'back' && a.job) {
+      const K = KINDS[a.job.kind],
+        [x, y] = placeOf(st, a),
+        at = tileAt(st, x, y);
+      if (K.setDown && at === a.job.site) K.setDown(st, a.job, a);
+      else Lying.lay(st, a, a.job, K.fetch || a.job.kind, at, x, y);
+      a.carry = null;
+      laid = a.job;
+    }
     const left = a.job;
     if (left) settle(st, left);
     if (left) {
@@ -172,6 +187,7 @@ VB['sim/agents'] = (() => {
     }
     a.phase = null;
     if (left) rerate(st, left); // a hand gone: the end is told again
+    if (laid && !(KINDS[laid.kind].again && KINDS[laid.kind].again(laid))) dropJob(st, laid);
     a.basis = null;
     a.load = 0; // wood cut and stacked, not yet on its way, is left
     const hid = st.pawns[a.id].household;
@@ -312,7 +328,7 @@ VB['sim/agents'] = (() => {
   }
   // Household hh is going (sim/heirs' extinct): the jobs it posted and those on its farm f go, and those working them stop, as freeHands
   // stops them (a neighbour helping, VB-106, would finish a job of no household); a load on its way home, its own people's or a helper's,
-  // is put down in its barn first, while it stands, as at a move (VB-335): brought in after, it went to a household gone and threw.
+  // is put down first where its carrier stands (release), for the task's owner to fetch (VB-611; one of the household going rots at the frost).
   function stopWorkFor(st, hh, f) {
     const jobs = new Set(st.jobsBy.get(`household:${hh.id}`));
     for (const j of st.jobs.values()) if (j.farm === f) jobs.add(j);
@@ -322,7 +338,8 @@ VB['sim/agents'] = (() => {
       const a = st.agents[id];
       if (!a || a.phase !== 'back' || !a.job || !st.pawns[id].alive) continue;
       release(st, a);
-      standStill(st, a);
+      if (a.moving) finishMove(st, a);
+      else standStill(st, a);
       a.anim = 'idle';
     }
     for (const j of jobs) {
@@ -359,10 +376,10 @@ VB['sim/agents'] = (() => {
     dropJob(st, j);
   }
   // Home with the load: the kind says what it brings.
-  function deposit(st, a, farm = null) {
+  function deposit(st, a) {
     const j = a.job,
       K = KINDS[j.kind];
-    const hh = farm && farm.household !== null ? st.households[farm.household] : workFor(st, a, j);
+    const hh = workFor(st, a, j);
     helped(st, j, [a.id]); // a load brought in is a task done
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
     Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears
@@ -393,8 +410,10 @@ VB['sim/agents'] = (() => {
       a.inside = !!K.inside;
       a.leg = { kind: 'work', t: st.tick, x: a.x, y: a.y, seg: 0 }; // the work leg (the page walks a field's rows from it)
       rerate(st, a.job);
-    } else if (a.phase === 'back') deposit(st, a);
-    else if (a.phase === 'home') {
+    } else if (a.phase === 'back') {
+      deposit(st, a);
+      if (a.moving) finishMove(st, a); // the move it was told of while on the road (VB-581)
+    } else if (a.phase === 'home') {
       a.inside = true;
       a.phase = null;
       driveHome(st, st.households[st.pawns[a.id].household], a.id); // the herds it brought home are by the farm (VB-136)
@@ -1028,9 +1047,14 @@ VB['sim/agents'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     if (old) driveHome(st, old, a.id); // the old household's herds it had out are left by that farm (its herder is no longer a member)
     if (travelling(a)) return retarget(st, a, f.house);
+    if (a.load > 0 && a.phase === 'back' && a.job) {
+      // a hand with a load on its way home brings it in first, and then goes (VB-581: the load is carried, not booked from the road)
+      if (!a.moving) a.moving = { old: old ? old.id : null, carry };
+      return;
+    }
     release(st, a);
     dropSides(st, a);
-    a.carry = null; // a load on its way home was put down by release
+    a.carry = null; // the load of a hand in its own field was set down by release
     const from = old ? st.farmsteads[old.farmstead] : null,
       at = here(st, a);
     if (from ? from.village !== f.village : hoursTo(st, null, at, f.village) > TRAVEL.dayWalk)
@@ -1047,6 +1071,13 @@ VB['sim/agents'] = (() => {
       return;
     }
     goHome(st, a);
+  }
+  // @state agent.moving: absent, or {old (the household it left, or null), carry}: a move it was told of with a load on its way home, made when
+  //   the load is in (VB-581); the pawn's household is already the new one.
+  function finishMove(st, a) {
+    const { old, carry } = a.moving;
+    delete a.moving;
+    moved(st, a, old === null ? null : st.households[old], st.households[st.pawns[a.id].household], carry);
   }
   // A child born to a mother on the road (VB-425; no teleporting): it is where she is, outdoors, and walks to its home as she does.
   function placeBorn(st, a, mother, hh) {

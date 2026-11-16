@@ -6,6 +6,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
+const { templateHeads } = require('./lib/heads.js');
 const { checkState } = require('./lib/invariants.js');
 const { setClock } = require('./lib/clock.js');
 const Plans = VB['sim/plans'], Green = VB['sim/green'], X = VB['sim/expansion'], Stores = VB['sim/stores'], S = VB['sim/settle'];
@@ -24,7 +25,7 @@ const map = [
   '......................',
   '......................',
 ];
-const st = tinyState(tinyWorld(map), [{ at: [6, 5], farms: 1 }, { at: [16, 5], farms: 2, sizes: [7, 7] }], { seed: 7 });
+const st = templateHeads(VB, tinyState(tinyWorld(map), [{ at: [6, 5], farms: 1 }, { at: [16, 5], farms: 2, sizes: [7, 7] }], { seed: 7 })); // heads by the template: the green's tile is not moved by a head's fields (VB-519)
 const v = st.villages[0], plan = Plans.planOf(st, 'village', v.id);
 const greens = () => st.record.filter((e) => typeof e === 'object' && e.kind === 'green' && e.village === v.id);
 const review = () => {

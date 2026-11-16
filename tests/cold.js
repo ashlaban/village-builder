@@ -74,6 +74,7 @@ check([0, 1, 2].every((s) => near(U[s] / U[WINTER], [0.22, 0.19, 0.31][s], 0.01)
 // --- no cooking without wood: no cook job, and the grain is eaten uncooked, at ECON.uncooked a ration
 {
   const st = make(), { hh } = setup(st), c = { day: 99 }, need = dailyNeed(st, hh);
+  hh.waterDay = 99;
   hh.wood = 5; check(cookWanted(st, hh, c), 'with wood and grain the cook is wanted');
   hh.wood = 0; check(!cookWanted(st, hh, c), 'an empty pile: no cook job');
   const g0 = Sim.grainOf(hh); feedHousehold(st, hh, WINTER);
@@ -103,6 +104,33 @@ check([0, 1, 2].every((s) => near(U[s] / U[WINTER], [0.22, 0.19, 0.31][s], 0.01)
     if (failed) break;
   }
   check(checkState(st).length === 0, `invariants after 40 days: ${checkState(st).slice(0, 3)}`);
+}
+// --- a day without water (VB-331): no cook job, the meal uncooked, each member loses HEALTH.dry (the frail more) and the meal restores nothing
+{
+  const st = make(), { hh, a, b, c } = setup(st), day = (n) => { st.t = n * DAY; };
+  check(HEALTH.dry === 1 && near(MATCH.urgency.waterLate, 1.5 * MATCH.urgency.cookEvening), 'HEALTH.dry 1; waterLate 1.5 cookEvening');
+  check(KINDS.water.urgency(st, {}, { hour: 14 }, MATCH.urgency) > KINDS.cook.urgency(st, {}, { hour: 15 }, MATCH.urgency), 'from 14:00 the water outranks the cooking');
+  hh.wood = 50; hh.waterDay = 5;
+  check(!cookWanted(st, hh, { day: 6 }) && cookWanted(st, hh, { day: 5 }), 'no cook job until the day\'s water is in');
+  day(7); hh.waterDay = 6; hh.wood = 1e4; // day 6 ends: its water was fetched
+  feedHousehold(st, hh, SUMMER);
+  check(hh.dry === 0 && a.health === 83 && b.health === 83, `with water: health ${a.health}, ${b.health}`);
+  day(8); // day 7 ends with no water fetched
+  const g0 = Sim.grainOf(hh); feedHousehold(st, hh, SUMMER);
+  check(near(hh.dryLog[0], 1) && near(hh.dry, 1 / HUNGER.days), `a dry day: dry ${hh.dry}`);
+  check(near(a.health, 82) && near(b.health, 81.5) && near(c.health, 81.5), `health ${a.health}, ${b.health}, ${c.health}`);
+  check(near(g0 - Sim.grainOf(hh), dailyNeed(st, hh) / E.uncooked), 'the dry day\'s meal is eaten uncooked');
+  check(checkState(st).filter((x) => !x.startsWith('t:')).length === 0, `invariants: ${checkState(st).slice(0, 3)}`);
+  for (let d = 9; d < 9 + HUNGER.days; d++) { day(d); hh.waterDay = d - 1; feedHousehold(st, hh, SUMMER); }
+  check(hh.dry === 0 && hh.dryLog.length === 0, 'twelve watered days: the dry log empties');
+}
+// --- a save without the dry days loads with 0
+{
+  const st = make(); setup(st);
+  const data = JSON.parse(JSON.stringify(Sim.save(st)));
+  for (const h of data.households || []) { delete h.dry; delete h.dryLog; }
+  const back = Sim.load(tinyWorld(rows), data);
+  check(back.households.every((h) => h.dry === 0 && Array.isArray(h.dryLog) && !h.dryLog.length), 'an older save loads with dry 0');
 }
 void YEAR_DAYS;
 if (failed) { console.error(`cold: ${failed} failed`); process.exit(1); }
