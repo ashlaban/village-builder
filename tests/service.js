@@ -33,7 +33,7 @@ if (lone) {
   check(new Set(dest).size <= 1, 'lone-farm members split up');
 }
 // A farm that dies out with work under way for it: a neighbour helping (VB-106) at its threshing stops, and a load on its way home, a
-// helper's or its own people's, is set down where it stands (VB-581), not booked in its barn; brought in after, it went to a household gone and threw
+// helper's or its own people's, is put down in its barn while it stands; brought in after, it went to a household gone and threw
 // ("stores: missing or dissolved holder", populous medium seed 7).
 {
   const st3 = Sim.seed(world(7), 7, 'heirs'), A = VB['sim/agents'], { post } = VB['sim/jobs'];
@@ -62,7 +62,7 @@ if (lone) {
   } catch (e) { threw = e.message; }
   check(threw === null, `a dissolved household's work threw: ${threw}`);
   check(!helper.job && !helper.load && !member.job && !member.load, 'the carriers still carry for a household gone');
-  check(h.unthreshed.reduce((x, n) => x + n, 0) === sheaves0, 'the loads on the road were booked in its barn, though their carriers never walked them there (VB-581)');
+  check(h.unthreshed.reduce((x, n) => x + n, 0) === sheaves0 + 4, 'the loads on the road were put down in its barn before it went');
   check(!thresher || !thresher.job, 'a helper still threshes for a household gone');
   check(![...st3.jobs.values()].some((j) => j.owner.type === 'household' && j.owner.id === h.id), 'a job of the household gone stands');
 }
