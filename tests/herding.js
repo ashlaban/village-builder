@@ -2,11 +2,10 @@
 // a herder of 8 or more takes; it takes the herds to a pasture within 8 steps (open land or wood, not a field or another household's),
 // minds them 9 hours within reach, adding pressure, then brings them home. The pressure halves each year in closed form. A herd left by
 // the farm gives half its milk (tests/milk.js) and may get into a crop through a broken fence: the crop loses 10%, the holder remembers it.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Z = VB['sim/grazing'], Y = VB['sim/byre'], Fd = VB['sim/fields'];
+const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js'), Z = VB['sim/grazing'], Y = VB['sim/byre'], Fd = VB['sim/fields'];
 const { KINDS } = VB['sim/kinds'], { hexSteps } = VB['sim/hex'], { tread } = VB['sim/paths'];
 const HD = Sim.HERD, H = HD.herding;
 let failed = 0, remembered = 'no memory to check'; const check = (ok, m) => { if (!ok) { failed++; console.error('HERDING FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
 
 // --- the kind and who herds (Kim, 31 Oct)
 const K = KINDS.herd, prio = (role) => Sim.ROLES[role].prio.herd;
@@ -14,8 +13,8 @@ check(K.attention === 'background' && K.minAge === 8 && K.hours === 9 && K.windo
 check(prio('child') === 8 && prio('daughter') === 6 && prio('son') === 5 && prio('retired') === 4 && prio('farmhand') === 3 && prio('farmer') === 2
   && !prio('wife') && !prio('maid'), 'herding priorities are not child 8, daughter 6, son 5, retired 4, farmhand 3, farmer 2');
 
-// --- populous tiny, seed 7: a summer morning
-const st = Sim.seed(world(7), 7, 'populous');
+// --- populous, seed 7, on the small island of tests/lib/probe.js (VB-855): a summer morning
+const st = scenario('populous', 7);
 Sim.advance(st, 15 * Sim.DAY + 10 - st.t); // summer day 3, 10:00
 const day = Sim.cal(st.t).day, herdJobs = [...st.jobs.values()].filter((j) => j.kind === 'herd');
 const withAnimals = st.liveHouseholds.map((id) => st.households[id]).filter((hh) => Z.herdLoad(st, hh) > 0);
@@ -59,7 +58,7 @@ check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the 
 
 // --- a herd keeps its pasture: the same tile the next day, at least keepDays days, and until it is grazed down or may not be grazed
 {
-  const s = Sim.seed(world(7), 7, 'populous');
+  const s = scenario('populous', 7);
   Sim.advance(s, 15 * Sim.DAY + 7 - s.t);
   const hh = s.liveHouseholds.map((id) => s.households[id]).find((h) => h.pasture), c = Sim.cal(s.t), p = hh.pasture.tile;
   const next = (d) => ({ ...c, day: c.day + d });
@@ -94,7 +93,7 @@ check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the 
 
 // --- a herd on the move wears the tiles it crosses, a quarter crossing a head
 {
-  const s = Sim.seed(world(7), 7, 'populous'), hh = s.households.find((h) => Z.heads(s, h)[0] > 0), id = hh.members[0];
+  const s = scenario('populous', 7), hh = s.households.find((h) => Z.heads(s, h)[0] > 0), id = hh.members[0];
   const n = Z.heads(s, hh)[0] + Z.heads(s, hh)[1];
   check(Z.driven(s, id) === 0, 'a pawn drives herds it has not taken out');
   Z.driveOut(s, hh, id, Sim.cal(s.t));
@@ -108,7 +107,7 @@ check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the 
 
 // --- a herd left by the farm gets into a standing crop through a broken stretch of fence
 {
-  const s = Sim.seed(world(7), 7, 'populous');
+  const s = scenario('populous', 7);
   Sim.advance(s, 15 * Sim.DAY + 1 - s.t);
   const c = Sim.cal(s.t), v = s.villages.find((x) => x.fence.length && x.farmsteads.filter((f) => s.farmsteads[f].household !== null).length >= 2);
   const farms = v.farmsteads.map((id) => s.farmsteads[id]).filter((f) => f.household !== null);
@@ -151,5 +150,5 @@ check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the 
 }
 
 if (failed) process.exit(1);
-console.log(`herding ok: populous 7 tiny, summer day 3: ${held.length} of ${herdJobs.length} herd jobs held by 10:00, ${done.length} done by 20:00; `
+console.log(`herding ok: populous 7, small island, summer day 3: ${held.length} of ${herdJobs.length} herd jobs held by 10:00, ${done.length} done by 20:00; `
   + `pressure halves a year in closed form; herds wear the way; a broken fence lets cattle into the crop, ${remembered}`);
