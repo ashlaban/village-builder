@@ -72,6 +72,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   years (too hungry, nobody free, kin, no home, the score, the means, free), with the age at first marriage by sex, the share never married
   at 45, marriages a year per 1,000, those put off for the means and the share of adults waiting for land.
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
+- Where the food goes: `node tools/foodflow.js --scenario populous --seed 7 --map small --year 10 [--village N|NAME] [--save FILE|--load FILE] [--json]`:
+  one village's food account over one game year, from the sources (the harvest by crop, fish, gathered food, meat, milk, butter) through
+  the stores (grain, fresh, larder, meals, the village store) to the outlets (seed, eaten, brewed, rotted, other villages, an empty farm,
+  the change in stores), each pool closed with its `unexplained`; links ready for a Sankey. `tests/foodflow.js` checks it closes.
   `node tools/store-flows.js --scenario populous --seeds 7 --years 15 [--rule NAME]`: the village stores' yearly flows (VB-406).
 - Also: `node tools/gossip.js` (VB-187's experiment: stories against opinion averaging in a reduced scenario; `docs/gossip-experiment.md`), `node
   tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies and cycles), `node
