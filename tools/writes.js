@@ -52,7 +52,7 @@ const CONV = {
 const HINTS = {
   culture: { p: 'pawn', s: 'settlement', c: 'culture', nc: 'culture', a: 'local' }, // the culture's people are st.pawns
   'sim/saves': { v: 'local', h: 'household|village' }, 'sim/byre': { a: 'candidate' }, // byre: a candidate for slaughter {herd, head | sheep}
-  'sim/rng': { r: 'st.rng' }, 'sim/records': { R: 'st', x: 'st.idx', l: 'st.idx', s: 'local' }, 'sim/people': { R: 'st' },
+  'sim/rng': { r: 'st.rng' }, 'sim/wishes': { rest: 'local' }, 'sim/records': { R: 'st', x: 'st.idx', l: 'st.idx', s: 'local' }, 'sim/people': { R: 'st' },
   'sim/layout': { used: 'st.used', farmsteads: 'st.farmsteads', villages: 'st.villages' },
   'sim/byhand': { used: 'st.used', farmsteads: 'st.farmsteads', villages: 'st.villages' }, // a settlementGenerator's, as sim/layout's
   'sim/help': { from: 'household', to: 'household', a: 'pawn' }, 'sim/herds': { from: 'household', to: 'household', dest: 'herd', ramHerd: 'herd' },

@@ -1,15 +1,16 @@
 // VB-248: the hidden plans made explicit. A household's standing plan holds its targets (the woodpile by season, hay in winters, the fields
 // wanted), the land step with its seam for a tile the plan names, the year's herd count, and its reservation of seed in sim/stores.
+// On the small islands (VB-854).
 const assert = require('assert');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const VB = require('../src/load.js'), Sim = VB.sim;
+const { scenario } = require('./lib/probe.js');
 const { CROPS } = VB['sim/rules'];
 const { setClock } = require('./lib/clock.js');
 const Stores = VB['sim/stores'], Plans = VB['sim/plans'], { seedNeed } = VB['sim/hunger'], F = VB['sim/fields'];
 const { refreshJobs } = VB['sim/jobs'], { DAY, WORK, HERD, YEAR_DAYS, cal } = VB['sim/rules'];
 const { checkState } = require('./lib/invariants.js');
-const it = G.generate(7); let r; while (!(r = it.next()).done);
 const { templateHeads } = require('./lib/heads.js');
-const fresh = (sc = 'founders') => templateHeads(VB, Sim.seed(r.value, 7, sc)); // heads that plan by the template (VB-254)
+const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads that plan by the template (VB-254)
 
 { // every household's plan has its targets and its seed reservation from the start; the reservation is the fields' need, read live
   const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);

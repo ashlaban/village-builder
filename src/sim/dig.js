@@ -10,10 +10,12 @@ VB['sim/dig'] = (() => {
   const { bfs } = VB['sim/hex'],
     { passable } = VB['sim/routes'];
   const { isOutland } = VB['sim/territory'],
-    Stores = VB['sim/stores'];
+    Stores = VB['sim/stores'],
+    Targets = VB['sim/targets'];
   // Proposed (VB-359, 11 Nov), until slice 6's plan gives the goods a use: hours a load; reach, walking steps from the house; stock,
-  // the loads of each good a household keeps and no more; regrow, the loads a worked bog iron tile regains a year, up to its first amount;
-  // urgency, the job's weight in a bid (MATCH.urgency's scale): the house's upkeep's, so that it is done in the household's slack.
+  // the loads of each good a household keeps (the default of its head's target, VB-698); regrow, the loads a worked bog iron tile regains
+  // a year, up to its first amount; urgency, the job's weight in a bid (MATCH.urgency's scale): the house's upkeep's, so that it is
+  // done in the household's slack.
   const DIG = { hours: 3, reach: 12, stock: 4, regrow: 1, urgency: 0.5 };
   // The goods dug, by deposit: the household's store (hh[good]) and the ledger's good.
   const GOODS = { [DEPOSIT.CLAY]: 'clay', [DEPOSIT.BOG_IRON]: 'bogOre', [DEPOSIT.PEAT]: 'peat' };
@@ -66,8 +68,29 @@ VB['sim/dig'] = (() => {
     const short = plan.targets.wood[1] - (hh.wood - Stores.reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0));
     return short > 1e-9 ? Math.ceil(short / (PEAT.worth * st.ECON.woodPerTrip)) : 0;
   }
-  // The goods the household still wants: clay and bog iron while it holds fewer than DIG.stock loads of them; peat while it is short of fuel.
-  const wants = (st, hh, good) => (good === 'peat' ? peatTrips(st, hh) > 0 : (hh[good] || 0) < DIG.stock);
+  // The goods the household still wants, below its head's target for each (VB-698): clay and bog iron while it holds fewer loads (by
+  // default DIG.stock); peat while it holds less than the target and is short of fuel, or, in summer, while the head chose a target (by
+  // default none of its own: the fuel pile's goal is the woodpile's, sim/plans).
+  function wants(st, hh, good) {
+    const T = Targets.target(st, hh, good),
+      held = hh[good] || 0;
+    if (good !== 'peat' || held >= T) return held < T;
+    return peatTrips(st, hh) > 0 || (T < Infinity && cal(st.t).season === 1);
+  }
+  // The dug goods as made goods: clay and bog iron by DIG.stock loads, peat by the fuel pile; beyond that, what the household's spare
+  // hours dig (a trip of peat brings ECON.woodPerTrip units), where its digging ground has the good (as last searched: the view reads
+  // no new search; a ground not yet searched is taken to have it).
+  const inReach = (hh, f, good) => !hh.digAt || !f || hh.digAt.house !== f.house || hh.digAt[good] >= 0;
+  for (const good of DUG)
+    Targets.made({
+      good,
+      unit: good === 'peat' ? 'unit' : 'load',
+      whole: good !== 'peat',
+      need: (st, hh) => (good === 'peat' ? Infinity : DIG.stock),
+      most: (st, hh, f, spare) =>
+        inReach(hh, f, good) ? Math.floor(spare / DIG.hours) * (good === 'peat' ? st.ECON.woodPerTrip : 1) : 0,
+      held: (st, hh) => hh[good] || 0,
+    });
   // @state household.digAt: {house, year, clay, bogOre} or undefined: the household's digging ground, searched from its house in the game
   //   year named, for each good the nearest tile it may dig within DIG.reach walking steps (-1 with none). Searched when the want opens and
   //   kept (rule 4): again only for a new house, a new year with a good not found, or a tile no longer to be dug.

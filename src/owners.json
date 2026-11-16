@@ -31,6 +31,7 @@
     "pawn.traits": "sim/traits",
     "pawn.leanDays": "sim/traits",
     "pawn.mods": "sim/mood",
+    "pawn.wish": "sim/wishes",
     "plan.head": "sim/plans",
     "plan.aim": "sim/aims",
     "farmstead.barn": "sim/building",

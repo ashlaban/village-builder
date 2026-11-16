@@ -128,8 +128,17 @@ function checkState(st) {
         // a whole number, wood 0 to twice the winter's goal, a cow 0 or 1), the hold on projects 'none' or null
         const Ch = plan.chosen, in01 = (x, most, whole) => x === null || (Number.isFinite(x) && x >= 0 && x <= most && (!whole || Number.isInteger(x)));
         if (Ch !== undefined && (!Ch || !in01(Ch.hay, 3) || !in01(Ch.fields, Infinity, true) || !in01(Ch.wood, 2 * st.ECON.woodWinter) ||
-          !in01(Ch.cow, 1, true) || (Ch.project !== null && Ch.project !== 'none') || Object.keys(Ch).length !== 5))
+          !in01(Ch.cow, 1, true) || (Ch.project !== null && Ch.project !== 'none') || Object.keys(Ch).length !== (Ch.goods ? 6 : 5)))
           bad.push(`plans: household ${id}'s head chose ${JSON.stringify(Ch)}`);
+        // VB-698: the head's target on each made good, absent before the first review, then one for every made good, none below 0 (Infinity
+        // where the maker has no cap of its own), whole where the good is counted whole; a chosen one null or a number from 0, and the
+        // compiled target is the choice
+        const G = T.goods, MADE = globalThis.VB['sim/targets'].MADE;
+        if (G !== undefined && (Object.keys(G).length !== MADE.size ||
+          ![...MADE.values()].every((m) => G[m.good] >= 0 && (!m.whole || !Number.isFinite(G[m.good]) || Number.isInteger(G[m.good])))))
+          bad.push(`plans: household ${id}'s targets on its goods ${JSON.stringify(G)}`);
+        if (Ch && Ch.goods && !Object.entries(Ch.goods).every(([g, n]) => MADE.has(g) && (n === null || (Number.isFinite(n) && n >= 0 && (!G || G[g] === n)))))
+          bad.push(`plans: household ${id}'s head chose ${JSON.stringify(Ch.goods)} of its goods`);
         if (Ch && Ch.fields !== null && T.fields > Ch.fields) bad.push(`plans: household ${id} wants ${T.fields} fields over its head's ${Ch.fields}`);
       }
     }
@@ -292,6 +301,17 @@ function checkState(st) {
     if (!Array.isArray(t) || t.length !== TR.names.length || !t.every((x) => Number.isFinite(x) && x >= lo && x <= hi) || 'diligence' in p)
       bad.push(`pawn ${p.id}: traits ${JSON.stringify(t)}`);
     if (!(p.leanDays === null || (Number.isInteger(p.leanDays) && p.leanDays >= 0))) bad.push(`pawn ${p.id}: leanDays ${p.leanDays}`);
+  }
+  // a pawn's wish at the moving round (VB-680): absent or null (the default), else a ranking that holds each rung once, a farm that exists
+  // or null, a pawn of the other sex or null; a living pawn's is not the default written out
+  const RUNGS = globalThis.VB['sim/rules'].WISH.rungs;
+  for (const p of st.pawns) {
+    const w = p.wish;
+    if (w === undefined || w === null) continue;
+    if (!Array.isArray(w.rank) || w.rank.length !== RUNGS.length || RUNGS.some((r) => !w.rank.includes(r))
+      || !(w.farm === null || (Number.isInteger(w.farm) && !!st.farmsteads[w.farm]))
+      || !(w.partner === null || (Number.isInteger(w.partner) && !!st.pawns[w.partner] && st.pawns[w.partner].sex !== p.sex))
+      || (p.alive && w.farm === null && w.partner === null && w.rank.every((r, i) => r === RUNGS[i]))) bad.push(`pawn ${p.id}: wish ${JSON.stringify(w)}`);
   }
   // a culture's values (VB-519): the four means, each within the bounds
   if (st.cenv) for (const c of st.cenv.cultures) {
@@ -923,15 +943,10 @@ function checkState(st) {
         bad.push(`player.left: ${JSON.stringify(lf)}, queue ${pl.queue.length}`);
       }
     }
-    // its wishes for the moving round (VB-212): out and serve null or a boolean; claim null, false or a farm that exists
-    const ws = pl.wishes || {}, tri = (x) => x === null || typeof x === 'boolean';
-    if (Object.keys(ws).sort().join() !== 'claim,match,out,serve' || !tri(ws.out) || !tri(ws.serve)
-      || !(ws.claim === null || ws.claim === false ||
-        (Number.isInteger(ws.claim) && !!st.farmsteads[ws.claim]))) bad.push(`player.wishes: ${JSON.stringify(pl.wishes)}`);
-    // a wish for a match: null, false or a living pawn of the other sex than the played pawn's, while the played pawn lives
-    const mw = ws.match;
-    if (!(mw === null || mw === false || (Number.isInteger(mw) && !!st.pawns[mw] && st.pawns[mw].alive && st.pawns[mw].sex !== st.pawns[pl.pawn].sex
-      && st.pawns[pl.pawn].alive))) bad.push(`player.wishes.match: ${JSON.stringify(mw)}`);
+    // its wishes are its pawn's (pawn.wish, VB-680): a wished partner is living while the played pawn lives
+    const pw = st.pawns[pl.pawn] && st.pawns[pl.pawn].wish, mw = pw ? pw.partner : null;
+    if (!(mw === null || (st.pawns[mw].alive && st.pawns[pl.pawn].alive))) bad.push(`player's pawn's partner: ${mw}`);
+    if ('wishes' in pl) bad.push('player.wishes: the wishes are the pawn\'s (VB-680)');
     if (!(r === null || (typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`player.refused: ${JSON.stringify(r)}`);
   }
   // the open offers (VB-293, VB-690): sorted by due, made by now and due after, within a year, and no later than the basis's wait after

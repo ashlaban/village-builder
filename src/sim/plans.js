@@ -17,6 +17,7 @@ VB['sim/plans'] = (() => {
   const { meadowWhy, pickMeadow, beginMeadow, wantsMeadow, wantsFirstMeadow } = VB['sim/meadows'];
   const { issue } = VB['sim/commands'];
   const { reviewWant } = VB['sim/exchange'];
+  const Targets = VB['sim/targets'];
   const { buildStep } = VB['sim/building'];
   const Green = VB['sim/green'],
     Workdays = VB['sim/workdays'],
@@ -46,12 +47,15 @@ VB['sim/plans'] = (() => {
   //   perHand (fields a working adult can till): copied from the template when its seasonal plan is made, each times its head's bias (VB-254);
   //   fields, workable (the fields wanted, times the bias, and those its hands can till, written at each review, which takes the land step);
   //   ahead (VB-254): {season, wood, hay}, what the head's horizon added at the last review to that season's woodpile goal and to the hay,
-  //   taken off again at the next}. Read by wood (sim/kinds), hayWanted (sim/meadows), seedNeed (sim/hunger), the review and its land step.
+  //   taken off again at the next}; goods (VB-698): {[made good]: the head's target on it, its choice or its household's need (sim/targets),
+  //   compiled at each review, at a retarget and when the head sets one; absent before the first}. Read by wood (sim/kinds), hayWanted
+  //   (sim/meadows), seedNeed (sim/hunger), the review and its land step; goods by the makers' rules through Targets.target.
   // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none;
   //   named by the head's verb `tile` (VB-253), used once and cleared by the land step, or cleared there when it no longer passes.
   //   plan.counted: the year its herds were last counted for the cull (sim/byre), or null.
   // @state plan.chosen (a household's; VB-253): absent until its head first chooses through a verb (the player as head), then {hay (winters),
-  //   fields, wood (loads), cow (0 or 1): the head's targets in place of the template's and the holder's rule's, each null for none;
+  //   fields, wood (loads), cow (0 or 1), goods ({[made good]: n}, VB-698; absent until one is chosen): the head's targets in place of the
+  //   template's and the holder's rule's, each null for none;
   //   project: 'none' (no project of the household's is begun by its own rule until cleared) or null}. Each lasts until cleared.
   //   Written only by the head's verbs (setTarget, holdProject), applied by seasonal and reviewed; cow is read by sim/exchange.
   // @state plan.routines (a village's; VB-257): the keys of VILLAGE_ROUTINES the village does this year, at most MAX_ROUTINES, each a source
@@ -386,6 +390,7 @@ VB['sim/plans'] = (() => {
       T.fields = headFields(plan, fieldsWanted(st, hh, Infinity), T.workable);
       chosenTargets(plan);
     }
+    goodTargets(st, plan, hh);
   }
   // Every household's head at the start of a run, once the streams are split and the living have their traits; its targets made again.
   function startHeads(st) {
@@ -790,6 +795,7 @@ VB['sim/plans'] = (() => {
     T.fields = headFields(plan, fieldsWanted(st, hh, Infinity), T.workable);
     chosenTargets(plan);
     project(st, plan, c);
+    goodTargets(st, plan, hh);
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed');
     reviewWant(st, plan, hh, why); // a cow wanted (VB-390): plan.want, sim/exchange's
@@ -847,7 +853,9 @@ VB['sim/plans'] = (() => {
   // A target's bounds, [least, most], for the household's plan now: hay 0 to 3 winters' need, fields 0 to what its hands can till, the
   // woodpile 0 to twice the winter's goal, a cow 0 (none wanted) or 1 (wanted while it holds a meadow and has no cattle).
   const HAY_MOST = 3;
+  // A made good's (VB-698): 0 to its need and what the place and the hands allow beyond it (sim/targets).
   function targetBounds(st, plan, store) {
+    if (Targets.isMade(store)) return Targets.bounds(st, st.households[plan.holder.id], store);
     if (store === 'hay') return [0, HAY_MOST];
     if (store === 'fields') return [0, plan.targets.workable];
     if (store === 'wood') return [0, 2 * st.ECON.woodWinter];
@@ -861,7 +869,8 @@ VB['sim/plans'] = (() => {
     if (!b) return `there is no target ${store}`;
     if (n === null) return null;
     if (!Number.isFinite(n) || n < b[0] || n > b[1]) return `${store} must be from ${b[0]} to ${b[1]}`;
-    return (store === 'fields' || store === 'cow') && !Number.isInteger(n) ? `${store} must be a whole number` : null;
+    const whole = store === 'fields' || store === 'cow' || (Targets.isMade(store) && Targets.MADE.get(store).whole);
+    return whole && !Number.isInteger(n) ? `${store} must be a whole number` : null;
   }
   const choices = (plan) =>
     plan.chosen || (plan.chosen = { hay: null, fields: null, wood: null, cow: null, project: null });
@@ -876,11 +885,28 @@ VB['sim/plans'] = (() => {
     if (T.ahead && C.wood !== null) T.ahead.wood = 0;
     if (C.fields !== null) T.fields = Math.min(C.fields, T.workable);
   }
-  // The target of `store` becomes n (null: the template's and the holder's rule's again, from the next season's plan or review).
+  // The target of `store` becomes n (null: the template's and the holder's rule's again, from the next season's plan or review; a made
+  // good's at once).
   function setTarget(st, id, store, n) {
-    const plan = st.plans.households.get(id);
-    choices(plan)[store] = n;
+    const plan = st.plans.households.get(id),
+      C = choices(plan);
+    if (Targets.isMade(store)) {
+      (C.goods || (C.goods = {}))[store] = n;
+      goodTargets(st, plan, st.households[id]);
+      return;
+    }
+    C[store] = n;
     chosenTargets(plan);
+  }
+  // The head's target on each good its household makes (VB-698): its choice, else its rule's need now (sim/targets). On the head's
+  // planning day, at a retarget and when one is chosen: a few reads a made good, never in a step.
+  function goodTargets(st, plan, hh) {
+    const G = plan.targets.goods || (plan.targets.goods = {}),
+      C = plan.chosen && plan.chosen.goods;
+    for (const good of Targets.MADE.keys()) {
+      const n = C ? C[good] : undefined;
+      G[good] = n === undefined || n === null ? Targets.need(st, hh, good) : n;
+    }
   }
   // The tile of the next field or meadow (`what`) becomes `tile`, or none (-1): the land step takes it when the household wants one.
   function nameTile(st, id, what, tile) {
@@ -962,6 +988,7 @@ VB['sim/plans'] = (() => {
         wood: target('wood', T.wood[c.season], M.wood[c.season]),
         cow: target('cow', plan.want ? 1 : 0, null),
       },
+      goods: Targets.view(st, hh, C.goods),
       head: plan.head
         ? { pawn: plan.head.pawn, skill, horizon: horizonOf(skill), keepsOrder: skill >= ORDER_LEAST }
         : null,

@@ -40,6 +40,7 @@ const Sim = (() => {
   const { save, load } = VB['sim/saves'];
   const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head } = VB['sim/commands'];
   const { headView } = VB['sim/plans'];
+  const { wishesOf } = VB['sim/wishes']; // a pawn's wish at the moving round, kind by kind (VB-680)
   const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
@@ -76,6 +77,7 @@ const Sim = (() => {
     unqueue,
     setAuto,
     wish,
+    wishesOf,
     opportunities,
     successors,
     succeed,

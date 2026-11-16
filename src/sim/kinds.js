@@ -1,7 +1,8 @@
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'],
-    Projects = VB['sim/projects'];
+    Projects = VB['sim/projects'],
+    { target } = VB['sim/targets'];
   const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition, PEAT } = VB['sim/rules'],
     Carts = VB['sim/carts'];
   const { log, atFarm } = VB['sim/records'];
@@ -126,10 +127,10 @@ VB['sim/kinds'] = (() => {
   // in (VB-331: a dry day's meal is eaten uncooked).
   const cookWanted = (st, hh, c) =>
     hh.cookDay !== c.day && hh.waterDay === c.day && hh.wood > 0 && Pot.cookable(st, hh, dailyNeed(st, hh));
-  // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
-  // seed reserve): a household never brews grain it needs.
+  // Ale is wanted (VB-305) while the household holds fewer barrels than its head's target (VB-698; BREW.stock by default) and has the grain
+  // for one above its floor (which holds the seed reserve): a household never brews grain it needs.
   const brewWanted = (st, hh) =>
-    Stores.aleOf(st, hh) < BREW.stock && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
+    Stores.aleOf(st, hh) < target(st, hh, 'ale') && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.

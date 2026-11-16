@@ -43,7 +43,8 @@ checks += 6;
 // ---- need, on a seeded founders run ----
 const it = G.generate(3, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, 3, 'founders');
-assert(!JSON.stringify(Sim.save(st)).includes('dried fish'), 'nothing of the goods in saved state');
+// the registry is code: no row of it is saved (a plan's target on a made good names the good, VB-698, as a store names its field)
+assert(!['"lump"', 'keepsDays', '"quantum"', '"keeping"'].some((k) => JSON.stringify(Sim.save(st)).includes(k)), 'nothing of the goods in saved state');
 assert.throws(() => Stores.declareGood({ id: 'cloth' }), /load time/, 'goods close with the rules registry');
 checks += 2;
 // a household whose pot lacks a source below more than a sack of it (10 rations): the fifth of its need to the harvest (the first

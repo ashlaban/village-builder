@@ -1,18 +1,17 @@
 // Meals: meals are eaten first, grain covers a missed cook (uncooked, at a penalty: tests/pot.js), the cook makes the next meal (of the seed a short
-// household would eat too, VB-388) and may leave other work after 14:00.
+// household would eat too, VB-388) and may leave other work after 14:00. On the small islands (VB-854).
 const assert = require('assert');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const VB = require('../src/load.js'), Sim = VB.sim;
+const { scenario } = require('./lib/probe.js');
 const { setClock } = require('./lib/clock.js');
 const { feedHousehold, dailyNeed, seedReserve } = VB['sim/hunger'], { refreshJobs } = VB['sim/jobs'], { complete, start } = VB['sim/agents'];
 const { DAY, cal } = VB['sim/rules'];
-const it = G.generate(7); let r; while (!(r = it.next()).done);
-const fresh = () => Sim.seed(r.value, 7, 'founders');
+const fresh = () => scenario('founders');
 const setup = (st, hh) => { for (const fd of st.farmsteads[hh.farmstead].fields) fd.stage = 'growing'; VB['sim/plans'].dropAll(st, 'household', hh.id); };
 
 // every household starts with two days of meals, in every scenario
 for (const sc of ['founders', 'heirs', 'populous']) {
-  const it2 = G.generate(7); let r2; while (!(r2 = it2.next()).done);
-  const st = Sim.seed(r2.value, 7, sc);
+  const st = scenario(sc);
   for (const hh of st.households) assert(Math.abs(hh.meals - 2 * dailyNeed(st, hh)) < 1e-9 && hh.meals > 0, `${sc}: two days of meals`);
 }
 { // meals are eaten before grain; a household whose cook was busy all day still eats from grain; with nothing it is short
