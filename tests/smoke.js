@@ -68,6 +68,24 @@ const iv = setInterval(async () => {
     if (vis() !== before + 1) fail(`a farm given a hand cart draws ${vis() - before} more sprites, not 1`);
     hh.carts.pop(); tick(3);
     if (vis() !== before) fail('a cart taken away is still drawn');
+    // a cart out with a pawn (VB-410), taken as the simulation takes it (sim/carts take): drawn at the pawn, not below the house, with the
+    // team ahead of an ox cart; home again, it stands below the house
+    {
+      const C = win.VB['sim/carts'], hh2 = simSt.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => simSt.agents[m] && !simSt.agents[m].inside));
+      const a = simSt.agents[hh2.members.find((m) => !simSt.agents[m].inside)];
+      hh2.carts.length = 0; hh2.carts.push({ kind: 'hand', cond: 1, built: simSt.t, by: null }); tick(3);
+      const home = vis(), objs = APP.stage.children[0].children[13].children;
+      const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load };
+      a.job = a.job || { kind: 'haul', farm: simSt.farmsteads[hh2.farmstead] }; a.phase = 'back'; a.carry = 'hay'; a.load = 60;
+      C.take(simSt, hh2, a.id, false); tick(3);
+      const near = objs.filter((o) => o.visible && o.anchor.y === 0.85 && Math.hypot(o.position.x - a.x, o.position.y - a.y) < 14);
+      if (!C.out(simSt, hh2.carts[0])) fail('the cart given to a pawn is not out');
+      if (near.length !== 1) fail(`a cart out with its pawn is drawn ${near.length} times at the pawn`);
+      if (vis() !== home) fail(`a cart out leaves ${vis() - home} more sprites visible than at home: it is drawn twice`);
+      C.leave(simSt, hh2, a.id); Object.assign(a, saved); tick(3);
+      if (objs.some((o) => o.visible && o.anchor.y === 0.85 && Math.hypot(o.position.x - a.x, o.position.y - a.y) < 1)) fail('a cart home is still drawn at its pawn');
+      if (vis() !== home) fail('a cart home is not drawn below the house again');
+    }
   }
   console.log('clock:', doc.getElementById('clockDate').textContent, '|', doc.getElementById('clockYear').textContent, '| scenario', doc.getElementById('genScenario').value);
   // the shown clock follows simulation time within a 6-minute step and 5 game minutes, in whole 5-minute steps: it shows the time the

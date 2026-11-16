@@ -11,6 +11,7 @@
 //   --ui          keep the interface in the shots (hidden by default)
 //   --clouds      keep the clouds (cleared by default: they hide the village on the whole-island shot)
 //   --land        with the Land overlay on
+//   --cart-out    put a pawn of each of the first farms out with its cart, hay on it (VB-410)
 //   --scale S     device pixel ratio (default 2: 2880 by 1800 pixels; 1 for a quick look)
 //   --tag NAME    the files' prefix (default village-<seed>-<farms>f-y<years>)
 //   --html FILE   another build of the page (default: built from src/ for the run, tests/lib/page.js)
@@ -88,6 +89,16 @@ async function shootSeed(browser, seed) {
     for (let d = 0; d < n * Sim.YEAR_DAYS; d++) { Sim.advance(st, Sim.DAY); if (d % 12 === 11) await new Promise((r) => setTimeout(r, 0)); }
     st.visualDirty = true;
   }, years);
+  if (has('cart-out')) await page.evaluate(() => { // a pawn of each of the first farms hauling hay home with its cart (the ox cart where there is one)
+    const st = window.__vb.st, C = window.VB['sim/carts'], A = (id) => st.agents[id];
+    for (const hh of st.households.slice(0, 4)) {
+      const a = hh.members.map(A).find((x) => x && st.pawns[x.id].age >= 16), f = st.farmsteads[hh.farmstead];
+      if (!a || !hh.carts.length) continue;
+      a.job = { kind: 'haul', farm: f }; a.phase = 'back'; a.carry = 'hay'; a.load = 90; a.x = st.w.hx[f.house] + 40; a.y = st.w.hy[f.house] + 20; a.path = null; a.inside = false;
+      C.take(st, hh, a.id, hh.carts.some((c) => c.kind === 'ox'));
+    }
+    st.visualDirty = true;
+  });
   if (has('land')) await page.evaluate(() => document.getElementById('landBtn').click());
   if (!has('clouds')) await page.evaluate(() => window.__vb.clearSky());
   if (!has('ui')) { await page.evaluate(() => document.getElementById('uiToggle').click()); await page.addStyleTag({ content: '#uiToggle, #lod { visibility: hidden !important; }' }); }

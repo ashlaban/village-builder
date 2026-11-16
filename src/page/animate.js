@@ -140,7 +140,7 @@ function drawCarts(show) {
           if (o.texture !== tex) o.texture = tex;
           o.visible = true;
           o.scale.set(dir * COW_SCALE.ox, COW_SCALE.ox);
-          o.position.set(x + dir * (16 + k * 2), y - 4 + k * 5 + sway);
+          o.position.set(x + dir * (11 + k * 2), y - 4 + k * 5 + sway);
           o.zIndex = y - 4 + k * 5;
         });
       }
