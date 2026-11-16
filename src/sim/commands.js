@@ -21,6 +21,7 @@ VB['sim/commands'] = (() => {
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
+  const { setWish, resetWish, endPartner } = VB['sim/wishes'];
   const { assessGift, settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/clock) find them when they run.
   const later = (key) => VB[key];
@@ -592,11 +593,7 @@ VB['sim/commands'] = (() => {
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
   //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
-  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve, match}: what
-  //   the player wishes for its pawn at the moving round, each null for "as the pawn would"; out true (move out, though heir to a farm) or
-  //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline);
-  //   match false (not this year) or a pawn id (that partner). Set by wish, kept
-  //   across rounds until changed, read through sim/records' wishOf where the round asks what a pawn wants), left (null while the pawn
+  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), left (null while the pawn
   //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
   //   it thought friends, best first)}: what a death erases and the player's succession needs, VB-213)}; plain data, saved with the run
   const QUEUE_MAX = 8,
@@ -629,9 +626,9 @@ VB['sim/commands'] = (() => {
       queue: [],
       refused: null,
       since: st.t,
-      wishes: { out: null, claim: null, serve: null, match: null },
       left: null,
     };
+    resetWish(st, id); // the player starts from the default wish (VB-680): its wishes are the pawn's (pawn.wish, sim/wishes)
     personEvent(st, id, 'player', 'Played by the player');
     return true;
   }
@@ -708,17 +705,20 @@ VB['sim/commands'] = (() => {
     st.player.auto = !!on;
     return true;
   }
-  // The player's wish for its pawn at the moving round (VB-212): it stands in where the round asks what the pawn itself wants, and the round
-  // decides by its rules, so a wish is not checked against them here; it stays until changed. True, or why it is not a wish.
+  // The wish verb (VB-212, VB-680): the played pawn's wish at the moving round, written on the pawn as every pawn's is (pawn.wish,
+  // sim/wishes); the round reads it as anyone's and decides by its rules, so a wish is not checked against them here; it stays until
+  // changed. True, or why it is not a wish.
   function wish(st, kind, value) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';
-    if (kind !== 'out' && kind !== 'claim' && kind !== 'serve' && kind !== 'match') return `there is no wish ${kind}`;
-    // claim takes a farm id and match a pawn id (of the other sex, living and single), else null or false; out and serve null, true or false
+    if (!['out', 'claim', 'serve', 'match', 'settle', 'rank'].includes(kind)) return `there is no wish ${kind}`;
+    // claim takes a farm id and match a pawn id (of the other sex, living and single), else null or false; out, serve and settle null,
+    // true or false; rank a whole ranking (sim/wishes)
     const id = (kind === 'claim' || kind === 'match') && Number.isInteger(value);
     const target = kind === 'claim' ? st.farmsteads[value] : st.pawns[value];
     if (
-      id ? !target : !(value === null || value === false || (value === true && kind !== 'claim' && kind !== 'match'))
+      kind !== 'rank' &&
+      (id ? !target : !(value === null || value === false || (value === true && kind !== 'claim' && kind !== 'match')))
     ) {
       return id
         ? `there is no ${kind === 'claim' ? 'farm' : 'pawn'} ${value}`
@@ -726,19 +726,10 @@ VB['sim/commands'] = (() => {
     }
     if (kind === 'match' && id && (target.sex === st.pawns[pl.pawn].sex || !target.alive))
       return `${value} is not one the pawn may marry`;
-    pl.wishes[kind] = value;
-    return true;
+    return setWish(st, pl.pawn, kind, value);
   }
-  // The wish for a match ends when the played pawn or the wished partner marries (a and b have married) or dies (a is b).
-  function clearMatchWish(st, a, b) {
-    const pl = st.player;
-    if (
-      pl &&
-      pl.wishes.match !== null &&
-      (pl.pawn === a || pl.pawn === b || pl.wishes.match === a || pl.wishes.match === b)
-    )
-      pl.wishes.match = null;
-  }
+  // A wish for a match ends when the one who wished or the wished partner marries (a and b have married) or dies (a is b).
+  const clearMatchWish = (st, a, b) => endPartner(st, a, b);
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
   function playerStep(st) {

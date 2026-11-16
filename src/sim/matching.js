@@ -157,5 +157,18 @@ VB['sim/matching'] = (() => {
     }
     return { man: m, woman: f, home };
   }
-  return { kinOk, matchScore, matchRules, matchBar };
+  // The wished matches of village v's round (VB-274, VB-680): of `wishers` ([pawn, the partner it wishes]), those that pass matchBar, by
+  // the man's id ({man, woman, home, wisher}), when he is of v; a woman wished by a man of a village whose round comes later is held for
+  // him in `taken`.
+  function wishedMatches(st, wishers, v, rules, taken) {
+    const out = new Map();
+    for (const [w, partner] of wishers) {
+      const wished = matchBar(st, w, partner, rules),
+        wv = wished.man ? settlementIdOf(st, wished.man) : null;
+      if (wv === v) out.set(wished.man.id, { ...wished, wisher: w });
+      else if (wv !== null && wv > v) taken.add(wished.woman.id);
+    }
+    return out;
+  }
+  return { kinOk, matchScore, matchRules, matchBar, wishedMatches };
 })();

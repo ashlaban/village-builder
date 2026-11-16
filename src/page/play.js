@@ -69,8 +69,8 @@ const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a 
 function oppRow(o) {
   return `<li class="opp${o.why ? ' barred' : ''}"><span>${esc(commandWords(o))}</span><i>${esc(o.why || BASIS[o.basis])}</i></li>`;
 }
-// The moving round's acts (VB-212): the player's wishes for its pawn, st.player.wishes, set through Sim.wish and kept until changed. A
-// wish may always be made; the round decides by its rules, so each act says what bars it now, the wishes counted in.
+// The moving round's acts (VB-212): the played pawn's wishes, on the pawn as every pawn's are (Sim.wishesOf, VB-680), set through Sim.wish
+// and kept until changed. A wish may always be made; the round decides by its rules, so each act says what bars it now, the wishes counted in.
 function roundBox(id, acts, wishes) {
   const pick = (kind, value, label, on = wishes[kind] === value) =>
     `<button type="button" data-play="wish" data-kind="${kind}" data-value="${esc(JSON.stringify(value))}" aria-pressed="${on}">${label}</button>`;
@@ -103,6 +103,10 @@ function roundBox(id, acts, wishes) {
     : '<p class="hint">No farm of your village stands empty.</p>';
   h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As you would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
   h += `<ul class="opps">${serve.map((o) => oppRow(o)).join('')}</ul>`;
+  // new land (VB-392): leading a party from a crowded village, or following a sibling who leads one
+  const land = `${pick('settle', null, 'As you would')}${pick('settle', true, 'Lead or follow')}${pick('settle', false, 'Never')}`;
+  h += `<h5>New land</h5><div class="switches">${land}</div>`;
+  h += '<p class="hint">Only from a crowded village, with grain for the journey and land within reach.</p>';
   const partners = acts.filter((o) => o.verb === 'match' && o.target !== null);
   if (acts.some((o) => o.verb === 'match')) {
     h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As you would')}${pick('match', false, 'Not this year')}</div>`;

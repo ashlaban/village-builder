@@ -3,8 +3,8 @@
 // in trust (VB-309); service where labour is short (VB-090)
 VB['sim/service'] = (() => {
   const { setServant, takePeopleCheck } = VB['sim/records'];
-  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold, wishOf } =
-    VB['sim/records'];
+  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
+  const { wishOf } = VB['sim/wishes'];
   const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   // The end of the log line of one whose new home lies in another village, who set out on a journey (sim/agents, VB-287).
   const setsOut = (st, id) => (st.journeys.some((j) => j.pawn === id) ? ', and sets out for it' : '');
@@ -197,7 +197,7 @@ VB['sim/service'] = (() => {
     if (!lone.length) return { taken, moved };
     // Service changes residence only: marriage, holdings, guardians and plots stay fixed during this pass.
     // Keep demand order for ties, but evaluate those eligibility rules once rather than for every lone holder.
-    // Whether it would serve is the pawn's own wish (anyone who wants out would), and the player's stands in: false declines (VB-212).
+    // Whether it would serve is the pawn's own wish (anyone who wants out would), its wish (sim/wishes) may decline it (VB-212, VB-680).
     const available = willServe(st);
     for (const hh of lone) {
       const t = trustOf(st, hh.id);

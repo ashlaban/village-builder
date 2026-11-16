@@ -5,6 +5,7 @@ VB['sim/settle'] = (() => {
   const { B } = VB['gen'];
   const { DAY, SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
   const { bufferOf, act } = VB['sim/traits'];
+  const { wishOf } = VB['sim/wishes'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
   const { walkable, villageAdded, costChanged } = VB['sim/routes'];
@@ -55,7 +56,8 @@ VB['sim/settle'] = (() => {
   }
   // ---- the party and its provisions ----
   // Who goes with settler p: their spouse, waiting unmarried siblings who choose to follow (each with SETTLE.follow, at most SETTLE.maxFollow,
-  // in id order), and the children under 18 of any of them who live with them, unless the child holds a farm or is a ward.
+  // in id order; one whose wish heads with new land follows without the draw, one who wishes never to settle stays: VB-392), and the
+  // children under 18 of any of them who live with them, unless the child holds a farm or is a ward.
   function partyOf(st, p, waiting, taken) {
     const all = [p.id],
       followers = [],
@@ -71,7 +73,8 @@ VB['sim/settle'] = (() => {
         guardian(st, id)
       )
         continue;
-      if (rnd(st.rng.settle) < SETTLE.follow) followers.push(id);
+      const wish = wishOf(st, id, 'settle');
+      if (wish === true || (wish === null && rnd(st.rng.settle) < SETTLE.follow)) followers.push(id);
     }
     all.push(...followers);
     for (const id of [...all])
@@ -329,8 +332,8 @@ VB['sim/settle'] = (() => {
     return C[k - 1] + (C[k] - C[k - 1]) * (felt - k);
   }
   // At the moving round, after plots are started: in each crowded village, the waiting adults of SETTLE.ages, longest waiting first, then
-  // oldest, may leave (leaveChance, by rounds waited and ambition) with their party, if it has provisions: to a small village nearby that
-  // is not crowded (VB-147), else to found a new one where there is land.
+  // oldest, may leave (leaveChance, by rounds waited and ambition; its wish may pass the draw or refuse it, VB-392) with their party, if
+  // it has provisions: to a small village nearby that is not crowded (VB-147), else to found a new one where there is land.
   function settleRound(st) {
     const waiting = markCrowded(st);
     let use = null;
@@ -346,7 +349,12 @@ VB['sim/settle'] = (() => {
       for (const id of ids) {
         const p = st.pawns[id];
         if (taken.has(id) || !p.alive || p.age < SETTLE.ages[0] || p.age > SETTLE.ages[1] || guardian(st, id)) continue;
-        if (rnd(st.rng.settle) >= leaveChance(p.landWait / act(st, id, 'ambition', 'settle'))) continue;
+        const wish = wishOf(st, id, 'settle');
+        if (
+          wish === false ||
+          (wish === null && rnd(st.rng.settle) >= leaveChance(p.landWait / act(st, id, 'ambition', 'settle')))
+        )
+          continue;
         const party = partyOf(st, p, ids, taken),
           prov = provisions(st, party.all);
         if (!prov) {

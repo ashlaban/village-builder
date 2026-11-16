@@ -432,8 +432,12 @@ VB['sim/saves'] = (() => {
         hh.cartMiss = 0;
       } // nor carts (sim/carts): older saves' teams drew an unnamed one
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
-    if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
-    if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
+    if (st.player && st.player.wishes) {
+      // VB-680: the player's wishes (VB-212, VB-274) become its pawn's (pawn.wish, sim/wishes), set as the wish verb sets them
+      for (const [kind, value] of Object.entries(st.player.wishes))
+        if (value !== null && value !== undefined) VB['sim/wishes'].setWish(st, st.player.pawn, kind, value);
+      delete st.player.wishes;
+    }
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
     // VB-519: nor a culture's values (each starts at its archetype's), nor the twelve traits (those it has kept), nor a child's hungry days

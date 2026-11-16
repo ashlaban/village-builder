@@ -256,10 +256,14 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('#actBar [data-group="self"]'); await page.click('#actMenu [data-view="round"]');
   const stay = '#actMenu [data-play="wish"][data-kind="out"][data-value="false"]';
   await page.click(stay);
-  if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== false) fail('the wish to stay was not set');
+  if ((await page.evaluate(() => (({ st, Sim }) => Sim.wishesOf(st, st.player.pawn).out)(window.__play))) !== false) fail('the wish to stay was not set');
   if ((await page.locator(stay).getAttribute('aria-pressed')) !== 'true') fail('the wish to stay does not show as pressed');
   await page.click('#actMenu [data-play="wish"][data-kind="out"][data-value="null"]');
-  if ((await page.evaluate(() => window.__play.st.player.wishes.out)) !== null) fail('the wish to stay was not taken back');
+  if ((await page.evaluate(() => (({ st, Sim }) => Sim.wishesOf(st, st.player.pawn).out)(window.__play))) !== null) fail('the wish to stay was not taken back');
+  // the wish to settle new land (VB-392), shown with the others
+  await page.click('#actMenu [data-play="wish"][data-kind="settle"][data-value="true"]');
+  if ((await page.evaluate(() => (({ st, Sim }) => Sim.wishesOf(st, st.player.pawn).settle)(window.__play))) !== true) fail('the wish to settle was not set');
+  await page.click('#actMenu [data-play="wish"][data-kind="settle"][data-value="null"]');
   // the wish for a match (VB-274): played as a single adult, "not this year" and a partner are set from the panel
   const single = await page.evaluate(() => {
     const { st, Sim } = window.__play, p = st.living.map((i) => st.pawns[i]).find((q) => q.household !== null && Sim.spouseOf(st, q.id) === null && q.age >= 20
@@ -271,15 +275,15 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   const notYear = '#actMenu [data-play="wish"][data-kind="match"][data-value="false"]';
   await page.waitForSelector(notYear);
   await page.click(notYear);
-  if ((await page.evaluate(() => window.__play.st.player.wishes.match)) !== false) fail('the wish not to marry this year was not set');
+  if ((await page.evaluate(() => (({ st, Sim }) => Sim.wishesOf(st, st.player.pawn).match)(window.__play))) !== false) fail('the wish not to marry this year was not set');
   if ((await page.locator(notYear).getAttribute('aria-pressed')) !== 'true') fail('the wish not to marry does not show as pressed');
   const partner = '#actMenu [data-play="wish"][data-kind="match"]:not([data-value="false"]):not([data-value="null"])';
   if (await page.locator(partner).count()) {
     await page.locator(partner).first().click();
-    if (!Number.isInteger(await page.evaluate(() => window.__play.st.player.wishes.match))) fail('the wished partner was not set');
+    if (!Number.isInteger(await page.evaluate(() => (({ st, Sim }) => Sim.wishesOf(st, st.player.pawn).match)(window.__play)))) fail('the wished partner was not set');
   }
   await page.click('#actMenu [data-play="wish"][data-kind="match"][data-value="null"]');
-  if ((await page.evaluate(() => window.__play.st.player.wishes.match)) !== null) fail('the wish for a match was not taken back');
+  if ((await page.evaluate(() => (({ st, Sim }) => Sim.wishesOf(st, st.player.pawn).match)(window.__play))) !== null) fail('the wish for a match was not taken back');
   await stopPlaying();
   if (await page.evaluate(() => window.__play.st.player !== null)) fail('Stop playing left a pawn played');
   // skip to the next event (VB-234): offered while a pawn is played; the run goes ahead and the page pauses at a named stop

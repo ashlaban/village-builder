@@ -293,6 +293,17 @@ function checkState(st) {
       bad.push(`pawn ${p.id}: traits ${JSON.stringify(t)}`);
     if (!(p.leanDays === null || (Number.isInteger(p.leanDays) && p.leanDays >= 0))) bad.push(`pawn ${p.id}: leanDays ${p.leanDays}`);
   }
+  // a pawn's wish at the moving round (VB-680): absent or null (the default), else a ranking that holds each rung once, a farm that exists
+  // or null, a pawn of the other sex or null; a living pawn's is not the default written out
+  const RUNGS = globalThis.VB['sim/rules'].WISH.rungs;
+  for (const p of st.pawns) {
+    const w = p.wish;
+    if (w === undefined || w === null) continue;
+    if (!Array.isArray(w.rank) || w.rank.length !== RUNGS.length || RUNGS.some((r) => !w.rank.includes(r))
+      || !(w.farm === null || (Number.isInteger(w.farm) && !!st.farmsteads[w.farm]))
+      || !(w.partner === null || (Number.isInteger(w.partner) && !!st.pawns[w.partner] && st.pawns[w.partner].sex !== p.sex))
+      || (p.alive && w.farm === null && w.partner === null && w.rank.every((r, i) => r === RUNGS[i]))) bad.push(`pawn ${p.id}: wish ${JSON.stringify(w)}`);
+  }
   // a culture's values (VB-519): the four means, each within the bounds
   if (st.cenv) for (const c of st.cenv.cultures) {
     const v = c.values;
@@ -920,15 +931,10 @@ function checkState(st) {
         bad.push(`player.left: ${JSON.stringify(lf)}, queue ${pl.queue.length}`);
       }
     }
-    // its wishes for the moving round (VB-212): out and serve null or a boolean; claim null, false or a farm that exists
-    const ws = pl.wishes || {}, tri = (x) => x === null || typeof x === 'boolean';
-    if (Object.keys(ws).sort().join() !== 'claim,match,out,serve' || !tri(ws.out) || !tri(ws.serve)
-      || !(ws.claim === null || ws.claim === false ||
-        (Number.isInteger(ws.claim) && !!st.farmsteads[ws.claim]))) bad.push(`player.wishes: ${JSON.stringify(pl.wishes)}`);
-    // a wish for a match: null, false or a living pawn of the other sex than the played pawn's, while the played pawn lives
-    const mw = ws.match;
-    if (!(mw === null || mw === false || (Number.isInteger(mw) && !!st.pawns[mw] && st.pawns[mw].alive && st.pawns[mw].sex !== st.pawns[pl.pawn].sex
-      && st.pawns[pl.pawn].alive))) bad.push(`player.wishes.match: ${JSON.stringify(mw)}`);
+    // its wishes are its pawn's (pawn.wish, VB-680): a wished partner is living while the played pawn lives
+    const pw = st.pawns[pl.pawn] && st.pawns[pl.pawn].wish, mw = pw ? pw.partner : null;
+    if (!(mw === null || (st.pawns[mw].alive && st.pawns[pl.pawn].alive))) bad.push(`player's pawn's partner: ${mw}`);
+    if ('wishes' in pl) bad.push('player.wishes: the wishes are the pawn\'s (VB-680)');
     if (!(r === null || (typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`player.refused: ${JSON.stringify(r)}`);
   }
   // the open marriage offers (VB-293): sorted by due, each due at most MARRIAGE.offerDays after it was made, ids below st.offerSeq and
