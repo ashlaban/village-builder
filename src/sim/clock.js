@@ -32,6 +32,7 @@ VB['sim/clock'] = (() => {
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
+  const { frost: lyingFrost } = VB['sim/lying'];
   const { byreDay, autumnCounts, strays, shearing } = VB['sim/byre'];
   const { herdsBack, halveGraze } = VB['sim/grazing'];
   const { recount, deerGraze, browseCrops } = VB['sim/deer'];
@@ -266,6 +267,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/meadows',
       note: 'the autumn frost rots hay still lying',
       run: (st) => meadowsFrost(st),
+    },
+    {
+      every: 'year',
+      at: FROST,
+      owner: 'sim/lying',
+      note: 'the autumn frost rots the loads left lying where their carrier fell (VB-611)',
+      run: (st) => lyingFrost(st),
     },
     {
       every: 'day',

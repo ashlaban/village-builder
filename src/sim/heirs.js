@@ -327,7 +327,7 @@ VB['sim/heirs'] = (() => {
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
-    // its work stops first, while it stands: a load on its way home is put down in its barn (sim/agents)
+    // its work stops first, while it stands: a load on its way home is put down where it is (sim/agents, VB-611)
     stopWorkFor(st, hh, f);
     // a farm it held in trust goes back to its holder first (VB-309, sim/trust)
     for (const g of heldFarms(st, hh.id))
