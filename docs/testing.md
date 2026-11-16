@@ -52,13 +52,25 @@ Over 5 seconds in verify: `tests/lint.js` (6 to 7 s) and, on a loaded machine, `
 `occasions` 5, `forage` 5. With them the seven that were extended already (`start --people` 150, `bands` 50, `invariants` 44, `births` 38, `line` 32,
 `history` 15, `fixtures` 5).
 
-What a task no longer runs, until VB-409 rebuilds each on a small constructed state:
-- **The page.** `smoke` (jsdom) and the six Chromium scripts. A change under `src/page/` runs them by name; the lint still holds
-  the page's contract (it only reads `st`), and `tests/speed.js`, `player.js` and `chronicle.js` its logic.
+What a task no longer runs, until VB-409 and the tasks it was split into (VB-853 to VB-856) rebuild each on a small constructed state:
+- **The page at length.** `smoke` (jsdom, the tiny map) and the six Chromium scripts. A change under `src/page/` runs them by name;
+  the lint still holds the page's contract (it only reads `st`), and `tests/speed.js`, `player.js` and `chronicle.js` its logic.
+  Since VB-409 verify loads the page again: `tests/page.js` builds it in jsdom on a 36 by 26 island (a size the test adds to the
+  page's own), starts founders from the address's hash, runs some days through the speed buttons and opens each panel once, in
+  about 3 seconds (3.8 s here on a machine at load 12; 3.1 s of CPU). It and `smoke` share their harness, `tests/lib/dompage.js`,
+  which fails on any error the page throws in a handler or a timer, not only on what it logs.
 - **Rules asserted only on generated islands**: among them `meals`, `stores`, `heirs`, `plans`, `offers`, `hunger`, `herds`,
   `settle`, `layout`, `commands`, `record`, `plaindata`. A change to one of these systems runs its script by name.
-- **Long save and load** (`saves`), and the generated-world cases of `clock`, `spread`, `paths` and `indexes` (`--extended`);
-  their small cases stay in `npm test`.
+- **Long save and load** (`saves`), and the generated-world cases of `clock`, `spread`, `paths` and `indexes` (`--extended`):
+  since VB-853 verify holds them again, on small states, and only `paths --extended` stays at night. `saves` runs each scenario on a
+  small generated island (36 by 26; heirs 48 by 34, which its two debug villages need; `tests/lib/probe.js`, `island` and
+  `scenario`), loaded into the island generated again from the save, and the probe village saved mid-hour and mid-day. `clock
+  --integration` runs the probe a year and a day by three chunk sizes, through every yearly entry of the calendar. `paths
+  --integration` checks the scenarios' worn-in start and a populous season on the small islands, then lays lanes by hand round each
+  house and green (and a green of open land) for the ways' rules. `indexes --integration` compares the indexes with full scans each
+  season of the three scenarios and after deaths by `Sim.killPawn` that pass a holding on and end a household. `spread
+  --extended` asserted what its probe case does, and was deleted with the long runs of the others. `paths --extended` keeps the
+  default island's populous year: how many houses a year's traffic gives a way to their door is a statistic of a whole island.
 
 A generated default island costs 1.8 s to make and a founders year on it 0.3 s; a 30 by 22 island 0.03 s and 0.13 s. The slow
 scripts are slow from runs of years and from several islands, not from one generation, so no single switch makes them quick.
@@ -71,11 +83,11 @@ is repaired by a task of its own.
 
 - The old default suite had 120 scripts and took about 294 seconds in the review environment (one dependency failure subsequently
   passed on rerun). Existing scripts remain inventoried; only `golden.js` and its permanent data are deleted.
-- `clock`, `paths`, `indexes`, and `spread` have small default probes and retain generated-world coverage through `--extended`
-  in the **extended** tier. The flag selects the larger case; it is distinct from the runner's long-duration `extended` tier.
+- `clock`, `paths`, `indexes`, and `spread` have small default probes in `npm test`; `clock`, `paths` and `indexes` add their
+  `--integration` case in verify (VB-853), and only `paths --extended` (the default island's populous year) stays in the **extended** tier.
 - Index checks explicitly append children/unions, end a union, move a member and change a holder, comparing queries to independent scans.
 - `continuity` compares independently constructed current runs, checks daily invariants, then compares JSON save/load continuation
-  including modified world tiles. Longer generated-world continuation remains in `saves` and player continuity in `line`.
+  including modified world tiles. Generated-world continuation of each scenario is in `saves` (verify) and player continuity in `line`.
 - `journeys` (VB-287) walks a move within a village and a bride's two-leg journey between two tiny villages with the page closed: legs
   at 6:00, stops on the route at 18:00, provisions out of the old household's store and no share of the new one's meal, a save on the
   road continued, a death on the road and an unprovisioned walk.

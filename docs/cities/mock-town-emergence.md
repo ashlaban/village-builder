@@ -8,6 +8,9 @@ rule reads; no threshold switches anything on; plots are grown; the 600 / 325 / 
 **Part two** (below, after part one's choices) is the second mock, `move.js`, made after Kim answered those choices on 16 November:
 makers who may move, and dealing that rides on gatherings. It withdraws three things said here (its section "What part two withdraws").
 
+**Part three** (at the end) is the third mock, `share.js` (VB-776): a shared facility, an elite household and a ship's buyer, tried
+in part two's toy. None gathers makers at parameters near the game's, and part two's finding stands.
+
 Each finding names the run that gives it. `craft.js` takes 12 seconds and `market.js` 40; both are seeded and print the same tables each time.
 
 ## Findings
@@ -377,3 +380,195 @@ first guesses of who buys by their walk (1, 0.6, 0.3, 0.1, 0); giving up at two 
   fullest place when two households from elsewhere were enough to hold one).
 - **No number here is good to better than a factor of two;** the spread of makers (finding 15) is the one result that held through
   every variant.
+
+# Part three: a shared facility, an elite household and a ship (VB-776, 16 November 2026)
+
+**Nothing in this part is evidence about the game beyond a factor of two.** It is the second mock's toy with three things switched
+on, on one generated map, with numbers that are mostly made up (listed below). Its shares are good to a factor of two and its
+directions (what raises a share, what does not) are the result; no cell of a table is a measurement of the game.
+
+The third mock, asked for by Kim on 16 November when the finding of part two (no town before the ship) was accepted:
+`docs/cities/mocks/share.js` (`--only` takes one table; it runs `move.js`'s toy, whose own tables C1 to C9 read as before with the
+three switched off). The question: does a facility that is costly to build and worth sharing gather makers, where free movement and
+dealing at gatherings did not? And, in the same toy, the two other candidates of `design.md`, What the town waits for: an elite
+household as buyer and patron, and a ship's buyer at one harbour.
+
+**The answer: no.** A facility at the game's planned costs changes nothing. A costly one raises the fullest village's share from
+14% to about 22%, by leaving the island with fewer makers and not by making a place larger. Neither candidate beside it, nor all
+three together, brings a place to a third of the island's makers at parameters near the game's. What does, in the toy, is demand at
+a point that cannot be served from a walk away, and a great deal of it: a ship that takes only of the makers who live at its harbour.
+
+## Findings (`node docs/cities/mocks/share.js`; D1 to D7 are its tables)
+
+26. **The planned facilities are too cheap to matter, and the sweep the task asked for lies far outside them.** A household's year of
+    spare hours is 959 (three adults at 576 hours, idle 55% of them). The planned bloomery is 20 hours and 6 loads, about 0.03 of
+    that; a brick or lime kiln 0.04; a loom 0.01; a mill 0.10 to 0.15; pots are fired in a pit with no facility at all. Twice the
+    dearest of them is 0.3 of a year. The sweep of 0.5 to 4 years is 17 to 132 times a bloomery: it asks what a facility would do if
+    it cost what a house or a ship costs, which nothing planned does.
+27. **At the planned cost the facility does nothing** (D1, D2, D4). The fullest village holds 12% of the island's maker households at
+    year 60 against 14% without (10 seeds, the real map), 17% against 23% on the medium map (3 seeds), 12% against 13% at four times
+    the households (one seed, some 80 makers). A maker builds its own in a fortnight; 48 are built in 60 years and 28 newcomers take a
+    place at one standing.
+28. **A costly facility raises the share by thinning the island, not by filling a place** (D1, D4). At 2 years of spare hours, open
+    to any maker for a due: the island has 13.9 maker households where it had 19.6, the fullest village 3.1 where it had 2.8, and so
+    22% where it had 14%. One seed in ten reaches a third at year 60 (none of them had it at year 30). What changed is who can
+    begin: a landless would-be maker cannot live through a two-year build, so 40 find no place where 19 did, and the makers left are
+    those who took a place at a standing facility (26) or had fields to build on (13). At four times the households the share is 11%.
+29. **Capacity never binds, because a place's makers of one craft share one custom** (D4, D5). A facility in use has 1.1 to 1.5
+    makers, the most at one 2 to 4, whether it takes 2, 4 or 8; none to 5% of those in use are full. A kiln gathers potters, and the
+    second potter at a kiln halves the first one's buyers: part two's finding 15, unchanged. One workshop serving all three crafts
+    (which nothing plans) gives 21% (D5).
+30. **Who may use it moves the answer little** (D4; 2 seeds a cell, so read the columns and not a cell). Its builder's household
+    only: 12% to 19% at year 60 across the costs. Any maker for a due: 12%, 17%, 15%, 28%, 27% at 0.03, 0.5, 1, 2 and 4 years. The
+    village's, raised in common as a mill: 14%, 14%, 28%, 18%; at 2 years a village needs 10 farms to raise one, and the larger
+    villages get the makers; at 4 years none on this map can (20 farms), and it falls back to a maker's own. The step is between 1
+    and 2 years, where a build outlasts a year's spare hours.
+31. **A place begun gathered holds a generation longer, and still comes apart** (D2; 4 runs). With all six first makers at one
+    middling village and their facilities standing: 4.1 maker households at year 10, 1.9 at year 30 and 1.3 at year 60 without a
+    facility (part two: 4.6 and 1.4); at the planned cost 4.2, 1.5 and 1.0; with a costly one 4.9 to 5.3, 3.3 to 3.5 and 2.1 to 2.5,
+    which is 24% to 25% of the island's makers at year 30 and 16% to 21% at year 60. It leads at year 60 in 3 of 4 runs when a
+    facility is its builder's only (a newcomer takes up one left standing: the place is inherited), 1 of 4 for a due, 0 of 4 without.
+32. **The leader still wanders; the places with a facility stay** (D3; the same map, deposits and first makers, 10 runs). Four
+    villages led at year 60 with a costly facility, as without; the same one led at years 20 and 60 in 3 runs of 10 (4 without), at
+    years 40 and 60 in 7 (4 without). Of the villages with a facility at year 20, 94% have one at year 60. So a facility fixes where
+    a craft is done, one or two households of it, and does not make that place grow.
+33. **The due can be paid in the game's terms, and it becomes a rent** (D4). A maker who uses a facility that is not its own leaves a
+    fifth of its make there; the owner lives beside it and deals the pieces as its own, so nothing is carried but by the maker who
+    made it, to the place it was made. 8 to 11 of the island's makers pay one, 18 to 41 rations' worth a year each. But 66% to 100%
+    of the dues go to a builder's heir who is no maker: the builder's household ended and the kiln outlived it. That is a toy's
+    assumption (an heir keeps the facility and the due), and it is also how a small rentier would arise: a claim sized at about a
+    seventh of a household's need for each user (Deciding without Kim, 13).
+34. **What stops the place is custom, then land; not ore, and not fuel at these sizes** (D5; one thing changed on the costly
+    facility, 2 seeds). Material carried at no cost: 15.1 maker households against 15.2, the fullest place 4.4 against 4.3. Wants
+    twice as often: 16.2, the place 3.7. Three times the would-be makers: 17.2, the place 4.5, and 175 who found no place. A full
+    island (farms at 1.0 to 1.25 of need): 11.5, the place 2.9, wants unmet 31% against 22%. Fields free at 30% of those held: 33.8
+    makers and the share falls to 12%, since with land a newcomer can build anywhere and they spread again. Fuel is arithmetic here,
+    nothing burns: a bloom takes 6 loads of wood and a hearth 35 a year, and the mock's smiths sell 4 to 8 blooms, one hearth more
+    each; a smith who did nothing else would burn as 11 hearths, which a place of eight smiths would feel and a place of two does not.
+35. **An elite household as buyer adds its custom and no more** (D6; the real map, the elite at the most central village). Wanting 5
+    farms' goods: the fullest village 15% at year 60; 20 farms': 15%, with 3.3 maker households at its village as before. Twenty
+    farms' worth is 474 rations a year, two maker households' living, and its servant walks to a maker within half a day as any
+    household does. Wanting 80 farms' goods and dealing only with makers of its own village (D6b, outside the 5 to 20 of slice 5):
+    5.2 maker households there, 25%.
+36. **A ship's buyer on known days feeds the makers within a walk of the harbour, not the harbour** (D6). Taking 500, 1,000 and
+    2,000 rations' worth a year (the island's farms give its makers about 3,060): the island has 23.7, 24.1 and 26.1 maker households
+    against 19.6, the harbour village 2.3, 2.5 and 3.3, the villages within half a day of it 16 to 19, and the fullest village 12%,
+    15% and 17%. A maker an hour away carries its cloth to the ship for two hours' walk three days a year; it has no reason to move.
+37. **All three together, at parameters near the game's, do not reach a third** (D6). The planned facility, an elite wanting 20
+    farms' goods and a ship taking 1,000, both at the harbour: 17% at year 60 (6 seeds). The same with the costly facility: 25% at
+    year 30, 24% at year 60, no seed of 10 at a third.
+
+    | The fullest village's share of the island's maker households | Seeds | Maker households, year 60 | At the fullest, year 60 | Year 30 | Year 60 | Seeds at a third, year 60 |
+    | --- | --- | --- | --- | --- | --- | --- |
+    | None (part two) | 10 | 19.6 | 2.8 | 14% | 14% | 0 |
+    | A facility at the planned cost | 10 | 19.0 | 2.4 | 15% | 12% | 0 |
+    | A costly facility (2 years, a due) | 10 | 13.9 | 3.1 | 21% | 22% | 1 |
+    | An elite household wanting 5 farms' goods | 3 | 22.3 | 3.4 | 15% | 15% | 0 |
+    | Wanting 20 | 3 | 22.1 | 3.3 | 15% | 15% | 0 |
+    | A ship's buyer taking 500 a year | 3 | 23.7 | 2.8 | 14% | 12% | 0 |
+    | Taking 1,000 | 3 | 24.1 | 3.7 | 17% | 15% | 0 |
+    | Taking 2,000 | 3 | 26.1 | 4.3 | 16% | 17% | 0 |
+    | All together, the facility at the planned cost | 6 | 24.4 | 4.2 | 15% | 17% | 0 |
+    | All together, the facility costly | 10 | 18.4 | 4.5 | 25% | 24% | 0 |
+
+38. **What does gather, in the toy: demand at a point that only those who live there can serve** (D6b; all of it beyond what is
+    planned). A ship that takes 2,000 only of makers who live at the harbour: 6.2 maker households there, 26%. Taking 4,000, more
+    than all the island's farms give its makers: 12.0 there, 41%, 3 seeds of 3 at a third. All together and all at the harbour (a
+    costly facility, an elite that deals at home, such a ship taking 2,000): 7.5 there, 36% at year 60, 4 seeds of 5 at a third, but
+    24% at year 30: the place is still growing at the end, it was not held. The same with the facility at the planned cost: 29%,
+    1 seed of 3. So the lever is whether outside demand can be met from a walk away. Where it can, it raises the country's makers;
+    where it cannot (a ship whose day nobody knows, goods too heavy to carry to it, a buyer who deals only with those under its
+    roof), it makes a place.
+
+## What the place's measures read (D7)
+
+Over 2,280 to 2,313 village-years (villages of 3 households or more, years 31 to 60, up to 4 seeds):
+
+| Measure | None | A costly facility | All together, the facility costly | A natural cut? |
+| --- | --- | --- | --- | --- |
+| Outsiders on the green a year: 0, 1 to 2, 3 to 11, 12 to 23, 24 and more | 73%, 13%, 9%, 0%, 5% | 72%, 14%, 8%, 0%, 5% | 69%, 11%, 11%, 4%, 5% | The one of part two, and the facility leaves it alone. The ship's harbour reads 13.8 a year and fills the gap between the two groups: with a ship the cut at 12 falls on a place, and wants looking at again when the ship is planned |
+| Dealing days on the green a year: 0, 1 to 2, 3 to 4, 5 to 7, 8 and more | 66%, 28%, 6%, 0%, 0% | 68%, 26%, 6%, 0%, 0% | 63%, 26%, 6%, 5%, 0% | No. Capped by the calendar as before; the ship's three days make the harbour a second kind of host |
+| Work that is not farming per 1,000: median, nine in ten under, the most | 259, 325, 525 | 239, 307, 422 | 243, 325, 558 | No. At the fullest place 267, 301 and 396: it rises, smoothly |
+
+So nothing here gives "town" a cut point. The fullest place of the best case reads 396 per 1,000 of its work not farming and 8
+outsiders a year on its green, less than a gathering's host (25): its makers sell at their doors and to the ship. A place that held
+a third of the makers would be told from the rest by its maker households, a count, and not by any measure the label reads today.
+
+## What reopens the town's design, and whether it happened
+
+The test (`design.md`, What the town waits for): a variant, at parameters within a factor of two of the game's planned costs, in
+which the fullest place holds a third or more of the island's maker households and still holds them at year 60, in most of 10 seeds.
+Read here as: a facility of up to 0.3 of a year (finding 26), an elite within slice 5's 5 to 20 farms' goods, and a third counted
+only at a place of three maker households or more (one maker of three is not a town).
+
+**It did not happen.** No variant within those bounds has a seed at a third: 0 of 10 with the planned facility, 0 of 6 with all three
+together. Outside them, a costly facility has 1 seed of 10, and all three with a costly facility 0 of 10. The finding of part two
+stands, and the town waits for slice 5 and the ship. Two things are handed on:
+
+- **To the ship's plan:** whether its demand is a point or a district decides whether the ship makes a town (findings 36 and 38). A
+  buyer on known days whom any maker within half a day can walk to raises the country's makers by a quarter and the harbour's by one
+  household. This mock cannot say which the ship should be; it says the plan must choose, and that the worth it takes must be of the
+  order of what the island's farms give its makers (3,000 rations a year at 130 households) before a place holds a third.
+- **To slice 6 (the mill and the loom):** nothing to change. Its facilities are cheap, a household builds its own, and they fix where
+  a craft is done without gathering anyone. A facility dear enough to matter (a year or more of spare hours) keeps the landless out
+  of the craft and turns its builder's heir into a collector of dues (findings 28 and 33); if one is ever planned, that is its price.
+
+## Method (part three)
+
+`move.js`'s run (part two's method, unchanged) with three options, each off by default:
+
+- **A facility.** A maker makes only at a facility of its craft in its village: a bloomery, a kiln, a loom's house. It costs a
+  multiple of 959 hours and takes 2, 4 or 8 makers. The six first makers have theirs (the world a run starts with is placed). A
+  would-be maker, or a maker thinking of moving, weighs each village as in part two, and now also: a standing facility there with a
+  place free (under a due, a fifth off its craft's worth); or one the village would raise (under "the village's", if the work is
+  within a tenth of its farms' spare hours for two years, and it has three farms); or one to build itself, the hours spread over 10
+  years in its weighing. A builder's spare hours go to the facility first and it sells nothing until it stands; if the build is longer
+  than a year's spare hours, it takes what fields it can and must reach 0.85 of its need on fields, garden and cows, or it does not
+  go. A facility whose builder's household ends stands, with the heir its owner; under "its builder's only" one newcomer may take
+  it up. One nobody uses for 10 years falls in.
+- **An elite household** at the most central village (a gathering's host), or at the harbour in the rows that say so: it wants 5, 20
+  or 80 farms' worth of iron, pots and cloth, always has the grain to pay, walks and attends as any household, and feeds the makers
+  of its village in a lean year (none of them gives up for hunger). "Deals at home": it buys only of makers of its own village.
+- **A ship's buyer** on the green of the best-placed village by the sea, summer days 9 to 11: it takes a fixed worth a year, a third
+  of each craft, of the makers standing on that green, at the makers' usual worths. A maker within half a day comes if its
+  remembered sales there pay the walk, as for any green; it reckons the ship's custom as shared among the makers of its craft who
+  can reach it. "Only of those who live there": the reach is the harbour village alone.
+
+The measure is the fullest village's share of the island's maker households, the mean of years 26 to 30 and of years 56 to 60, a
+household still building counted. 60 years a run. Seeds: 13, 26, ... (10 for the rows the test rests on, 2 to 6 for the rest, said
+in each table); D2 and D3 keep the map's deposits and first makers fixed (their own stream, seed 5) and differ by chance (19, 38,
+...). The real map is `populous-small-7-y30` (129 households, 21 villages); D1 adds `populous-medium-7-y0` (136) and the real map at
+four times its households. The whole script is some 165 runs, about 0.15 s each on a quiet machine; on the shared machine of the
+night it took 73 s with a load of 12 on 4 cores, and each table by `--only` under half of that.
+
+## What was invented (part three; `numbers.js`, `INVENTED.share`, and the options named in `share.js`)
+
+From the game or its plans: the facilities' costs (VB-364: a bloomery 20 hours, 4 loads of stone and 2 of clay; VB-368: a kiln 30
+hours and 6 loads of stone; VB-362: a loom 12 hours; the mill 100 to 140 hours), the mill as a thing a village of 3 farms raises,
+the 5 to 20 farms' goods of an elite household (slice 5, by the task), and everything part two took.
+
+Invented: that every craft needs a facility (in the game pots are fired in a pit and a loom stands in the house); 959 hours as "a
+household's year of spare hours" (the idle hours of a farm's three adults); the multiples above 0.15; the capacities; the due of a
+fifth (the mill's toll is 1 in 16); 10 years to spread a build over; 10 years unused before one falls in; a tenth of a farm's spare
+hours for two years as what a village gives to common work; that a builder sells nothing until the facility stands; that an heir
+keeps it and its due; that one newcomer may take up a private one left standing; that the elite always has grain and feeds its
+village's makers; where the elite and the ship are; the ship's three days, its worths (500 to 4,000), its equal thirds, and that
+what it cannot spend in a day it carries over by at most a day's worth; that the ship pays in rations at the makers' worths and
+brings nothing to sell; the reading of the test (0.3 of a year; three households).
+
+## What remains a toy (part three)
+
+- **A lump on the supply side only.** The facility saves a newcomer the build. It does not make work faster, better or cheaper per
+  piece when shared (a kiln fired full, charcoal burnt for several hearths), and since part two's makers are short of buyers and not
+  of hours (finding 24), a saving of hours would move little. A facility that makes a *better* good (workmanship, `design.md`, The
+  metals and the stones) is not here: a buyer who walks further for a master's work is demand that concentrates, the same lever as
+  finding 38, and the likeliest thing this mock leaves out.
+- **Goods every farm wants, sold a piece at a time.** Still three goods at fixed worths. Nothing is made of another maker's output
+  (a smith's iron for a wright), so no maker is another's buyer; that link is what makes crafts sit together and is slice 6's and
+  later slices' to give.
+- **The elite is one household with a number.** No retinue, no rent carried in, no feast, no hall that hires. The mock tests its
+  purchases only.
+- **The ship is a purse.** It sells nothing, brings no one, grants no market, and its harbour is no better a place to live. A
+  ship's goods drawing the country's households to the harbour green would add outsiders there (D7), which this cannot show.
+- **No people, as before:** would-be makers appear at a made-up rate, which sets how many makers there are; nobody inherits a craft.
+- **One map for most tables,** and 2 to 3 seeds in the sweeps. A cell of D4 or D5 moves by a third between seeds.
