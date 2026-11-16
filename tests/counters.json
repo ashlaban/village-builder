@@ -6,6 +6,7 @@
   "reachSettled": 0,
   "routeEvict": 0,
   "talkWeighed": 4.825879043600563,
+  "offerWeighed": 0,
   "talkTurn": 4.0011251758087205,
   "talkBucket": 0.06638537271448663,
   "walkStep": 7.0548523206751055,

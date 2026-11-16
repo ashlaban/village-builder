@@ -119,7 +119,7 @@ function menuHTML(id, opps) {
       h += actRow(
         'data-bar="sheet"',
         'offer',
-        'A match is offered',
+        by.offers.every((o) => o.offer.basis === 'match') ? 'A match is offered' : 'An offer is made',
         `${by.offers.length} waiting for your answer`,
         null,
         true,

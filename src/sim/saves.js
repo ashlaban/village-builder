@@ -453,6 +453,16 @@ VB['sim/saves'] = (() => {
       st.offers = [];
       st.offerSeq = 0;
     } // VB-293: nor marriage offers
+    for (const o of st.offers)
+      if (o.basis === undefined) {
+        // VB-690: a marriage offer saved before offers had a basis, as the basis `match` (its spokesmen, its terms)
+        const by = (k) => (o.answers.find((a) => a.key === k + 'Side') || o.answers.find((a) => a.key === k)).by;
+        Object.assign(o, { from: by('man'), to: by('woman'), basis: 'match', gives: { man: o.man, home: o.home } });
+        o.wants = { woman: o.woman };
+        delete o.man;
+        delete o.woman;
+        delete o.home;
+      }
     if (!st.occasions) {
       st.occasions = [];
       st.occasionSeq = 0;

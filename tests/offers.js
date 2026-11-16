@@ -51,7 +51,7 @@ const play = (id) => (st) => { assert.strictEqual(Sim.inhabit(st, id), true); };
 // his (to give) and his father's (yes, unplayed).
 const offered = () => {
   const s = scene(play(man)), o = s.st.offers[0];
-  assert.ok(o && o.man === man && o.woman === woman && o.home === home, `an offer is stored: ${JSON.stringify(s.st.offers)}`);
+  assert.ok(o && o.gives.man === man && o.wants.woman === woman && o.gives.home === home, `an offer is stored: ${JSON.stringify(s.st.offers)}`);
   return { ...s, o };
 };
 {
@@ -65,8 +65,8 @@ const offered = () => {
   roll(st, () => Sim.movingRound(st));
   assert.strictEqual(R.spouseOf(st, woman), null, 'a later round leaves the held woman alone');
   assert.strictEqual(st.offers.length, 1);
-  // only the played pawn answers, once, and only an open offer
-  assert.ok(/not the player's pawn/.test(Sim.command(st, { actor: head, verb: 'answer', target: o.id, args: { yes: true }, source: 'player' })));
+  // only a pawn with an answer still to give answers, once, and only an open offer (VB-690: the verb is any pawn's)
+  assert.ok(/no answer to give/.test(Sim.command(st, { actor: head, verb: 'answer', target: o.id, args: { yes: true }, source: 'player' })));
   assert.ok(/no open offer/.test(Sim.answer(st, o.id + 1, true)));
   assert.ok(/cannot answer/.test(Sim.answer(st, o.id, 'yes')));
 }
@@ -116,7 +116,7 @@ const offered = () => {
 // 6. The player as head: a son's match waits for the head's answer, and the son's own answer is yes.
 {
   const { st } = scene(play(head)), o = st.offers[0];
-  assert.ok(o && o.man === man, 'the son\'s match waits for the head');
+  assert.ok(o && o.gives.man === man, 'the son\'s match waits for the head');
   assert.deepStrictEqual(o.answers.map((a) => [a.key, a.by, a.yes]), [['man', man, true], ['manSide', head, null], ['woman', woman, true]]);
   const was = opinionOf(st, head, man);
   assert.strictEqual(Sim.answer(st, o.id, false), true);
@@ -236,7 +236,7 @@ console.log(`offers ok: no player stores none; a played man's match waits, holds
   assert.strictEqual(R.spouseOf(round((st) => { Sim.inhabit(st, M); Sim.wish(st, 'match', false); }), W), LATER,
     'the scene: without him, the man of village 0 marries her');
   const st = round((st) => Sim.inhabit(st, M));
-  assert.deepStrictEqual(st.offers.map((o) => [o.man, o.woman, o.village]), [[M, W, 1]], 'the offer is made at village 1\'s round');
+  assert.deepStrictEqual(st.offers.map((o) => [o.gives.man, o.wants.woman, o.village]), [[M, W, 1]], 'the offer is made at village 1\'s round');
   assert.strictEqual(R.spouseOf(st, W), null, 'and the woman it holds is not chosen by the man of village 0 the same day');
   sound(st, 'an offer held across the villages\' rounds');
 }
