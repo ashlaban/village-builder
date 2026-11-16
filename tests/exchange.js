@@ -11,6 +11,8 @@ const fresh = () => {
   return { st, a, b };
 };
 const give = (st, from, to, n, source = 'help') => issue(st, { actor: from.holder, verb: 'give', target: to.id, args: { good: 'grain', n }, source });
+// a gift from another farmstead is set aside where it lies and fetched (VB-461): the receiver has it once its fetcher is home
+const fetchAll = (st) => { for (let k = 0; k < 96 && st.journeys.some((j) => j.why === 'fetch'); k++) Sim.advance(st, 0.5); };
 const ctx = (from, to) => ({ giver: from.holder, receiver: to.holder, from, to });
 let checks = 0;
 { // within the floor and the allowance: settled, both ledgers, the tie between the holders
@@ -20,8 +22,11 @@ let checks = 0;
   assert(Math.abs(allowance - surplus(st, b)) < 1e-9 && Math.abs(allowance - 100) < 1e-6, `allowance ${allowance}, surplus ${surplus(st, b)}`);
   const a0 = Sim.grainOf(a), b0 = Sim.grainOf(b), tie0 = st.pawns[b.holder].ties.get(a.holder) || 0;
   assert.strictEqual(give(st, b, a, 60), true);
-  assert(Math.abs(Sim.grainOf(a) - a0 - 60) < 1e-9 && Math.abs(b0 - Sim.grainOf(b) - 60) < 1e-9, 'what one gives the other gets');
-  assert(a.ledger.some((e) => e.kind === 'gift' && e.n === 60) && b.ledger.some((e) => e.kind === 'gift' && e.n === -60), 'gift in both ledgers');
+  assert(Math.abs(b0 - Sim.grainOf(b) - 60) < 1e-9 && Sim.grainOf(a) <= a0, 'set aside at once, not yet in');
+  fetchAll(st);
+  const gotIn = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0).reduce((x, e) => x + e.n, 0);
+  assert(Math.abs(gotIn(a) - 60) < 1e-9, 'what one gives the other gets');
+  assert(Math.abs(a.ledger.filter((e) => e.kind === 'gift' && e.n > 0).reduce((x, e) => x + e.n, 0) - 60) < 1e-9 && b.ledger.some((e) => e.kind === 'gift' && e.n === -60), 'gift in both ledgers');
   assert(Math.abs((st.pawns[b.holder].ties.get(a.holder) || 0) - tie0 - HELP.tieGain) < 1e-9, 'the gift raises the tie');
   checks++;
 }
@@ -63,7 +68,8 @@ let checks = 0;
   assert.strictEqual(JSON.stringify(Sim.save(st)), before, 'the warning writes nothing');
   const a0 = Sim.grainOf(a);
   assert.strictEqual(give(st, b, a, 30, 'player'), true, "the player's gift below the floor settles");
-  assert(Math.abs(Sim.grainOf(a) - a0 - 30) < 1e-9 && Math.abs(Sim.grainOf(b) - (floorOf(st, b) - 20)) < 1e-9, 'and moves the grain');
+  fetchAll(st);
+  assert(a.ledger.some((e) => e.kind === 'gift' && Math.abs(e.n - 30) < 1e-9) && Sim.grainOf(a) >= 0, 'and moves the grain');
   checks++;
 }
 { // the village store gives what it holds and takes the yearly filling; malformed gifts are refused

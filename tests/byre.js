@@ -1,12 +1,11 @@
 // The byre and the autumn count (VB-134): short hay culls the least valuable first (ewes before cows, the bull, the ram and the oxen kept);
 // a byre over 6 cattle is culled to fit; with no hay the household slaughters at once, and unfed animals die after 2 days; slaughter puts
 // meat in the larder, salting makes it keep, unsalted meat spoils; the meal eats from the larder; a fed founders herd loses nothing to
-// hunger over 3 years.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], Y = VB['sim/byre'], F = VB['sim/hunger'];
+// hunger over 3 years. On the small island of tests/lib/probe.js (VB-855).
+const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js'), H = VB['sim/herds'], Y = VB['sim/byre'], F = VB['sim/hunger'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('BYRE FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
-const fresh = () => Sim.seed(world(7), 7, 'founders');
+const fresh = () => scenario('founders', 7);
 const cal = (doy, day = doy) => ({ doy, day, season: Math.floor(doy / 12), sday: doy % 12, hour: 0 });
 const culled = (st, hh) => H.herdsOf(st, hh).flatMap((hd) => hd.cull.map((e) => (e.sheep ? e.sheep : hd.head.find((h) => h.id === e.head).kind)));
 

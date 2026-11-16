@@ -434,6 +434,23 @@ VB['sim/rules'] = (() => {
     seek: 0.5,
     seekSample: 4,
   };
+  // ---- mood (VB-062; design.md, Traits, talk and stories: Mood): 50 plus its modifiers' values, within 0 to 100; shown, read by no rule ----
+  // Starting values, each a feeling's weight on that scale (Kim, 30 Oct: "talked with a friend +5"). For a state, read from it: hungry,
+  // `value` × the pawn's hunger while over `over`; cold, `value` × its household's cold (VB-327, cold's weight as hunger's until Kim sets
+  // one); without water, `value` while its household's hh.dry is above 0 (VB-331); weak, `value` while health is under `under`. For an
+  // event, kept `days` from it (pawn.mods): married; a child born, both parents; grieving at the death of a spouse, child or parent;
+  // talked with a friend, read from the pawn's latest talk (agent.talk) with one it holds at SOCIAL.friend or above.
+  const MOOD = {
+    base: 50,
+    hungry: { value: -20, over: 0.1 },
+    cold: { value: -20 },
+    dry: { value: -10 },
+    weak: { value: -10, under: 50 },
+    married: { value: 10, days: 12 },
+    child: { value: 5, days: 12 },
+    grieving: { value: -15, days: 12 },
+    friend: { value: 5, days: 2 },
+  };
 
   // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
   const MARRIAGE = {
@@ -1043,6 +1060,7 @@ VB['sim/rules'] = (() => {
     FOODS,
     SOIL,
     SOCIAL,
+    MOOD,
     IDLE,
     SPEED,
     BREW,

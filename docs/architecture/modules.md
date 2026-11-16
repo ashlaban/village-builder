@@ -196,7 +196,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/events`, `sim/rng`, `sim/hex`, `sim/names`, `sim/routes`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
   head's skill and bias, VB-254), `sim/commands`.
-- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/pot`, `sim/hunger`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`,
+- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/plans` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/pot`, `sim/hunger`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058), `sim/lying` (loads left
   lying where their carrier fell, VB-611).
@@ -226,4 +226,9 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   field still standing is lost), `weeds` (rounds of weeding, else one every `ECON.weedEvery` days). A row without `seed` is a course, not a crop:
   `fallow` (tilled in its `sow` window, `mend` to the soil at the year's end); `sim/stores` holds as grain only the rows with seed (`CROP_LIST`).
   The table is a plain constant, never in saved state.
+- A new resource on the Stores tab (VB-668, Kim 16 November) goes in one of three sections, by what the player wants to know of it: a
+  **supply** is used up as time passes (how long does it last: a meter in days); a **material** is held until a work asks for it (is there
+  enough for what is planned: a count, and where a project plan asks for it, its framed work block with held against asked on the one
+  meter); a **gear** wears (what condition is it in). A material is one row of `MATERIALS` in `src/page/cards.js`, its kinds a list under
+  the total, shown only where more than one is held; a work's asks are read from the project plan's `build` reservations.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.

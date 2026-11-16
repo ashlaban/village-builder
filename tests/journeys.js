@@ -106,6 +106,18 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.ok(died && Number.isInteger(died.tile), 'the died event names where she fell');
   assert.deepStrictEqual(checkState(s), [], 'invariants after a death on the road');
 }
+// ---- the household a pawn joins gives nothing until she is there (VB-676; no teleporting) ----
+{
+  const s = far(), hh = s.households[0], from = s.households[1];
+  const id = adultOf(s, from);
+  to(s, 10);
+  Stores.take(s, from, 'grain', Stores.grainOf(from), 'spoilage');
+  Stores.put(s, hh, 'grain', 80, 'harvest', { barley: 80 });
+  const g0 = Stores.grainOf(hh);
+  moveTo(s, id, hh.id);
+  assert.strictEqual(s.journeys[0].food, 0, 'nothing carried: the old store was empty');
+  assert.strictEqual(Stores.grainOf(hh), g0, 'the store she joins gave nothing');
+}
 // ---- a child born to a mother on the road is born where she is, and walks on to the same home (VB-425; no teleporting) ----
 {
   const s = far(), hh = s.households[0], from = s.households[1];

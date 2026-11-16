@@ -13,6 +13,8 @@ VB['sim/commands'] = (() => {
     reachAfter,
     travelling,
     carryGift,
+    fetcherOf,
+    fetchGift,
   } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { emit } = VB['sim/events'];
@@ -54,6 +56,14 @@ VB['sim/commands'] = (() => {
   const free = (st, id) => living(st, id) || (travelling(st.agents[id]) ? `pawn ${id} is on the road` : null);
   // A `give` command as the offer of a gift (VB-690): to the receiving household's holder, or the household or village itself where no pawn
   // holds it; the terms are the command's args
+  // Why gift g (sim/offers giftOf) cannot be fetched, or null: one to a household from another farmstead or a village store, with no
+  // carrier, is set aside where it lies and fetched by a member of the receiving household (VB-461), who must be free to go.
+  const fetched = (g) =>
+    !g.carrier && 'farmstead' in g.to && !('farmstead' in g.from && g.from.farmstead === g.to.farmstead);
+  function fetchWhy(st, g) {
+    if (typeof g === 'string' || !fetched(g)) return null;
+    return fetcherOf(st, g.to) < 0 ? 'no one of the household can fetch it' : null;
+  }
   function giftOffer(st, c) {
     const t = c.target,
       hh = Number.isInteger(t) && home(st, t) ? st.households[t] : null,
@@ -192,22 +202,27 @@ VB['sim/commands'] = (() => {
     // store, to household `target` or the village store (target {village}); refused when it would take the giver below its floor or beyond
     // its allowance (sim/exchange). The receiver's holder answers it; a yes delivers it.
     give: {
-      check: (st, c) => later('sim/offers').cannotOffer(st, giftOffer(st, c)),
+      check: (st, c) =>
+        later('sim/offers').cannotOffer(st, giftOffer(st, c)) ||
+        fetchWhy(st, later('sim/offers').giftOf(st, c.actor, c.target, c.args, c.source)),
       // help (source 'help') answers a hungry household's ask (sim/help): its receiver said yes in asking
       run: (st, c) => later('sim/offers').make(st, giftOffer(st, c), c.source === 'help' ? ['to'] : []),
     },
     // deliver(target, {good, n, carrier}) (source 'offer' only: what a yes settles): the actor's household, or village store, hands over n
     // of good to household `target` or the village store; with a carrier (a pawn of the giving household) it is carried to the receiver
-    // and booked there when he arrives (VB-291). Refused when the goods are no longer there.
+    // and booked there when he arrives (VB-291); from another farmstead or a village store with none, it is set aside where it lies and
+    // fetched by a member of the receiving household (VB-461: fetchWhy). Refused when the goods are no longer there.
     deliver: {
       check: (st, c) => {
         if (c.source !== 'offer') return 'goods are delivered only as an offer settles';
         const g = later('sim/offers').delivery(st, c);
-        return typeof g === 'string' ? g : null;
+        return typeof g === 'string' ? g : fetchWhy(st, g);
       },
       run: (st, c) => {
         const g = later('sim/offers').delivery(st, c);
         if (g.carrier !== undefined) carryGift(st, g);
+        else if (fetched(g))
+          fetchGift(st, Object.assign(g, { fetcher: fetcherOf(st, g.to) })); // set aside, fetched (VB-461)
         else settleGift(st, g);
       },
     },
