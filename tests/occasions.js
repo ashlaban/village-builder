@@ -8,7 +8,7 @@ const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], O = VB['sim/occasions'];
 const { canon } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
-const { island, scenario } = require('./lib/probe.js'), SEED = 11;
+const { island, scenario } = require('./lib/probe.js'), SEED = 4;
 const roll = (st, f) => {
   const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; });
   try { f(); } finally { rs.forEach((r) => { delete r.fix; }); }
@@ -16,8 +16,8 @@ const roll = (st, f) => {
 const told = (st, from, kind) => st.record.slice(from).filter((e) => typeof e === 'object' && !e.self && e.kind === kind);
 const villageOf = (st, id) => R.settlementIdOf(st, st.pawns[id]);
 const near = (st, a, o) => Math.abs(a.x - o.x) < 16 && Math.abs(a.y - o.y) < 10;
-// Populous on the small island at seed 11 (at 3 and 7 its first round marries one couple; on the 120 by 85 island it was seed 3), natural
-// deaths off, every household with the means to marry, and the moving round at hour 0 of the first day.
+// Populous on the small island at seed 4 (at 11, 3 and 7 its first round marries one couple since VB-288's pool within reach; on the
+// 120 by 85 island it was seed 3), natural deaths off, every household with the means to marry, and the moving round at hour 0 of the first day.
 function scene() {
   const st = scenario('populous', SEED); st.naturalDeaths = false;
   for (const h of st.households) h.grain.barley += 5000;

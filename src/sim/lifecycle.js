@@ -37,7 +37,7 @@ VB['sim/lifecycle'] = (() => {
   const { stillAtDeath, travelling, tileAt, journeyOf, placeOf } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor } =
     VB['sim/heirs'];
-  const { kinOk, matchScore, matchRules, wishedMatches } = VB['sim/matching'];
+  const { kinOk, poolFor, matchScore, matchRules, wishedMatches } = VB['sim/matching'];
   const { startPlots } = VB['sim/expansion'];
   const { claimFarms, claimableFarm } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
@@ -270,8 +270,8 @@ VB['sim/lifecycle'] = (() => {
   const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
   // Scarcity and plenty of spouses push the marriage limit, a village's own at the end of its round (VB-277): one the step married to a
   // partner also allowed under the next stricter option pulls back, at half the weight; an unmatched man of the village, or an unmarried
-  // woman of it, not held by an offer, who finds no allowed partner among the free of the other sex in every village but would under the
-  // next looser option pulls towards it. The living's pushes are cleared at the first village's step, a pawn's at its marriage and death.
+  // woman of it, not held by an offer, who finds no allowed partner among the free of the other sex within reach (VB-288) but would under
+  // the next looser option pulls towards it. The living's pushes are cleared at the first village's step, a pawn's at marriage and death.
   function kinPressure(st, v, men, women, others, taken, married, homeFor) {
     const at = (cu) => kinOpts.indexOf(cu.kinLimit),
       wed = new Set();
@@ -383,27 +383,27 @@ VB['sim/lifecycle'] = (() => {
     st.visualDirty = true;
   }
   // A village's round (VB-277; design.md, A village's round): its households fill its store; its own unmarried men, those with a place first,
-  // then the oldest, each choose by the score among the unmarried women of every village (one married at an earlier village's round is no
-  // longer single, one held by an open offer is taken); its handovers, for its own farms and for the homes in other villages its marriages
+  // then the oldest, each choose by the score among the unmarried women within walking reach (VB-288; one married at an earlier village's
+  // round is no longer single, one held by an open offer is taken); its handovers, for its own farms and for the homes in other villages its marriages
   // chose; and its kin pressure. Heirs are ranked afresh: matchRules memoizes the rankings with the homes and the means, and the memos are
   // cleared after each marriage or handover the step makes.
   function villageRound(st, v) {
     let pairs = 0;
-    VB.count.roundWalk += st.living.length;
+    const pool = poolFor(st, v); // the living of the villages within walking reach (sim/matching, VB-288)
+    VB.count.roundWalk += pool.length;
     if (v === 0) refreshRoles(st);
+    if (v === 0) for (const id of st.living) st.pawns[id].kinPush = null; // the living's pushes, cleared once a round
     fillStores(st, v);
     // A pawn's wish for a match (VB-274, VB-680): false leaves it out of the round's matching; a partner it names is found in the walk.
     const wishers = [],
       fed = (p) => p.hunger < HUNGER.marryBelow;
-    // The pool, in one walk of the living: the village's men who may marry, the women of every village, and the other villages' men (for
-    // the kin pressure); the widowed among them (balance review). The living's pushes are cleared at the first village's round.
+    // The pool, in one walk: the village's men who may marry, the women, the other villages' men (kin pressure), the widowed among them.
     const men = [],
       women = [],
       others = [],
       widowed = new Set();
-    for (const id of st.living) {
+    for (const id of pool) {
       const p = st.pawns[id];
-      if (v === 0) p.kinPush = null;
       p.age = age(st, p);
       const wish = p.wish ? wishOf(st, id, 'match') : null;
       if (typeof wish === 'number') wishers.push([id, wish]);
