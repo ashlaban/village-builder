@@ -276,6 +276,7 @@ VB['sim/records'] = (() => {
       pregnantUntil: null,
       pregnantBy: null,
       nursingUntil: null,
+      nursling: null,
       hunger: 0,
       hungerLog: [],
       health: 100,

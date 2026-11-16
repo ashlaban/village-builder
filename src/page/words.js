@@ -365,8 +365,10 @@ function showPawn(id) {
         : 'Unmarried') +
     (p.pregnantUntil !== null
       ? ', expecting a child'
-      : p.nursingUntil !== null && st.t < p.nursingUntil
-        ? ', nursing a baby'
+      : p.nursingUntil !== null && st.t < p.nursingUntil && (p.nursling === null || st.pawns[p.nursling].alive)
+        ? p.nursling !== null
+          ? `, nursing ${st.pawns[p.nursling].given}`
+          : ', nursing a baby'
         : '');
   const v = st.villages[f.village];
   card(

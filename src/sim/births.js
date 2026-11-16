@@ -90,6 +90,7 @@ VB['sim/births'] = (() => {
     });
     placeBorn(st, st.agents[id], m.id, hh);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
+    m.nursling = id; // the child she nurses: its death ends the nursing (VB-632)
     lifeEvent(
       st,
       id,
@@ -104,13 +105,22 @@ VB['sim/births'] = (() => {
     st.rigDirty.add(id);
     st.rigDirty.add(m.id);
     st.visualDirty = true;
-    if (rnd(st.rng.births) < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
+    if (rnd(st.rng.births) < BIRTH.childbedDeath) {
+      killPawn(st, m.id, 'childbirth');
+      m.nursling = null;
+      m.nursingUntil = null;
+    }
   }
   function dailyBirths(st) {
     // Childbirth may remove the mother; newborns have no spouse to consider today.
     for (const liveId of st.living.slice()) {
       const m = st.pawns[liveId];
       if (!m.alive || m.sex !== 'f') continue;
+      if (m.nursling !== null && (st.t >= m.nursingUntil || !st.pawns[m.nursling].alive)) {
+        // the term is out, or the child has died: the nursing ends, read here and not pushed from the death (VB-632)
+        m.nursling = null;
+        m.nursingUntil = null;
+      }
       if (m.pregnantUntil !== null) {
         if (st.t >= m.pregnantUntil) giveBirth(st, m);
         continue;

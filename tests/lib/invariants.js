@@ -521,6 +521,12 @@ function checkState(st) {
       if (memberOf.has(p.id)) bad.push(`pawns[${p.id}]: dead but in household ${memberOf.get(p.id)}`);
       if (p.died === null) bad.push(`pawns[${p.id}]: dead without a died time`);
     }
+    if (p.alive && p.nursling !== null && p.nursling !== undefined) {
+      // VB-632: she nurses a child of hers, born within the nursing term, and while the term lies ahead (the step clears it a day late at most)
+      const c = st.pawns[p.nursling];
+      if (!c || c.mother !== p.id || st.t - c.born > LOADED['sim/rules'].BIRTH.nursingDays * LOADED['sim/rules'].DAY + 1e-6) bad.push(`pawns[${p.id}]: nursling ${p.nursling} is not her child born within the term`);
+      if (p.nursingUntil === null || st.t - p.nursingUntil > 2 * LOADED['sim/rules'].DAY) bad.push(`pawns[${p.id}]: nursling ${p.nursling} but nursingUntil ${p.nursingUntil}`);
+    }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
     if (p.rel) checkRel(st, p, bad);
     if (p.ties) checkTies(st, p, bad);
