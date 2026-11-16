@@ -290,7 +290,8 @@ function checkState(st) {
     for (const [v, l] of st.idlers.by) for (const b of l) if (st.agents[b.id] !== b) bad.push(`idlers: village ${v} lists ${b.id}, not an agent`);
   }
   // the awake agents of the hour (VB-205): increasing ids of living pawns, and, for the hour it is, every agent the step could move,
-  // set working or offer to the planner: walking, working, or in working hours free with its pause ending by the hour's end
+  // or offer to the planner: walking, or in working hours free with its pause ending by the hour's end (a pawn at work is not stepped:
+  // its task's end is in st.workDue, VB-472)
   if (st.awake) {
     const { ids, hour } = st.awake, living = new Set(st.living), { WORK, DAY } = globalThis.VB['sim/rules'];
     if (ids.some((id, i) => !living.has(id) || (i > 0 && id <= ids[i - 1]))) bad.push(`awake: ids ${ids} are not increasing living pawns`);
@@ -298,7 +299,7 @@ function checkState(st) {
       const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], has = new Set(ids);
       for (const id of st.living) {
         const a = st.agents[id];
-        if (!has.has(id) && a.phase !== 'road' && (a.path || a.phase === 'work' || (work && a.phase === null && a.idleUntil <= hour + 1))) {
+        if (!has.has(id) && a.phase !== 'road' && (a.path || (work && a.phase === null && a.idleUntil <= hour + 1))) {
           bad.push(`awake: agent ${id} may act in hour ${hour} but is not awake`);
         }
       }
@@ -746,6 +747,43 @@ function checkState(st) {
       const side = a && a.side && (a.side.partial === j || a.side.background === j);
       if (!a || (a.job !== j && !side)) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
     }
+  }
+  // work as a block (VB-472): a task's done, at (the tick it was reckoned at) and rate (its hands' hours a game hour); a task with a hand
+  // at work has a rate, and one with none none; done below its hours while worked; st.workDue holds each task of full attention under
+  // work once, posted, sorted by due then id, each due after the step now (a step takes all that is due), as reckoned from done and rate
+  {
+    const KS = globalThis.VB['sim/kinds'].KINDS, { TICKS } = globalThis.VB['sim/rules'], A = globalThis.VB['sim/agents'];
+    const q = st.workDue, inQ = new Set(q || []);
+    if (q !== undefined && !Array.isArray(q)) bad.push(`workDue: ${typeof q}`);
+    else if (q) {
+      if (inQ.size !== q.length) bad.push('workDue: a task twice');
+      q.forEach((j, n) => {
+        const at = `workDue[${n}] (${j.key})`;
+        if (st.jobs.get(j.key) !== j) bad.push(`${at}: not posted`);
+        if ((KS[j.kind].attention || 'full') !== 'full') bad.push(`${at}: a side task`);
+        if (!(j.rate > 0) || !Number.isInteger(j.due) || !(j.due > st.tick)) bad.push(`${at}: rate ${j.rate}, due ${j.due} at tick ${st.tick}`);
+        if (n > 0 && (q[n - 1].due > j.due || (q[n - 1].due === j.due && q[n - 1].id >= j.id))) bad.push(`${at}: out of order`);
+        const h = j.hours ?? KS[j.kind].hours, want = j.at + Math.max(1, Math.ceil(((h - j.done) / j.rate) * TICKS - 1e-7));
+        if (j.due !== want) bad.push(`${at}: due ${j.due}, its done and rate give ${want}`);
+      });
+    }
+    for (const j of st.jobs.values()) {
+      const at = `jobs[${j.key}]`, full = (KS[j.kind].attention || 'full') === 'full';
+      if (j.at === undefined) {
+        if (j.rate !== undefined) bad.push(`${at}: a rate ${j.rate} never reckoned`);
+        continue;
+      }
+      if (!Number.isInteger(j.at) || j.at > st.tick || !(j.rate >= 0) || !Number.isFinite(j.rate) || !(j.done >= 0)) bad.push(`${at}: at ${j.at}, rate ${j.rate}, done ${j.done}`);
+      if (full) {
+        const hands = j.claims.filter((id) => st.agents[id].job === j && st.agents[id].phase === 'work');
+        if (hands.length === 0 && j.rate > 0) bad.push(`${at}: a rate of ${j.rate} with no hand at work`);
+        if (hands.some((id) => A.rateOf(st, st.pawns[id]) > 0) && !(j.rate > 0)) bad.push(`${at}: hands at work (${hands}) and no rate`);
+        if (j.rate > 0 && !inQ.has(j)) bad.push(`${at}: under work, not in workDue`);
+        if (j.rate > 0 && !(j.done < (j.hours ?? KS[j.kind].hours))) bad.push(`${at}: done ${j.done} of ${j.hours ?? KS[j.kind].hours} while worked`);
+        if (A.doneOf(st, j) < j.done - 1e-9) bad.push(`${at}: progress now ${A.doneOf(st, j)} below its last reckoning ${j.done}`);
+      }
+    }
+    for (const a of st.agents) if ('work' in a) bad.push(`agents[${a.id}]: rows (a.work) in the state`);
   }
   // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
   // or while cutting the next load beside a cart with room (sim/agents stepWork, a kind's `stack`: firewood)

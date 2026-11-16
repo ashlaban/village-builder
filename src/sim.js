@@ -49,7 +49,7 @@ const Sim = (() => {
   const { advance } = VB['sim/clock'];
   const { HERD, SOIL, CLAIMS } = VB['sim/rules'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
-  const { withOxen } = VB['sim/agents'];
+  const { withOxen, doneOf } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
   const { houseTarred } = VB['sim/rules'],
@@ -123,7 +123,7 @@ const Sim = (() => {
     seedReserve,
     grainOf,
     fieldsWanted,
-    plotProgress,
+    plotProgress: (st, plot) => plotProgress(st, plot, (j) => doneOf(st, j)), // a task's progress now (VB-472)
     explainIdle,
     idleLine,
     RIVER,
