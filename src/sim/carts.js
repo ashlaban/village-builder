@@ -5,7 +5,7 @@
 // are to follow. Reads sim/herds (the team), sim/projects; writes household.carts and household.cartMiss, and begins and ends the cart's project.
 VB['sim/carts'] = (() => {
   const { TRAVEL } = VB['sim/rules'],
-    { hayLoad } = VB['sim/meadows'];
+    { hayLoad, hayLaid } = VB['sim/meadows'];
   // The tunables (the distance review, Kim, 12 Nov): a load is `load` rations on the back, `hand` on a hand cart and `cart` on an ox
   // cart (it was 90 with two oxen: Kim, 10 Nov; a back load is 25 to 30 kg, a hand cart's 100 to 150 kg on a track, an ox cart's 500 to
   // 800 kg, halved here since sheaves and hay fill a cart before they weigh it down; from memory, unchecked). pace: a laden pawn's speed
@@ -67,6 +67,11 @@ VB['sim/carts'] = (() => {
   function carting(st, hh, id, teamFree) {
     let c = cartOf(st, hh, id);
     if (!c && take(st, hh, id, teamFree) > TRAVEL.load) c = cartOf(st, hh, id);
+    return c ? CART.manure[c.kind] : 1;
+  }
+  // The same rate read only: with the cart the pawn has, or the one it would take now (teamFree as for `take`); 1 with none.
+  function cartingRate(st, hh, id, teamFree) {
+    const c = cartOf(st, hh, id) || (teamFree && free(st, hh, 'ox')) || free(st, hh, 'hand');
     return c ? CART.manure[c.kind] : 1;
   }
   // The ox cart is out (the team with it).
@@ -146,6 +151,7 @@ VB['sim/carts'] = (() => {
   const HAY = {
     load: (st, a, j, cap) => (a.load = hayLoad(j.meadow, cap)),
     again: (j) => j.meadow.held > 0,
+    setDown: (st, j, a) => hayLaid(j.meadow, a.load),
     reload: CART.reload,
   };
   const loads = (a) => Math.max(1, Math.round((a ? a.load : 0) / TRAVEL.load));
@@ -188,5 +194,23 @@ VB['sim/carts'] = (() => {
       },
     },
   };
-  return { KINDS, CART, HAY, loads, take, holds, leave, carting, pace, home, missed, oxOut, cartsYear, seedCarts };
+  return {
+    KINDS,
+    CART,
+    HAY,
+    loads,
+    take,
+    holds,
+    leave,
+    carting,
+    cartingRate,
+    pace,
+    home,
+    missed,
+    oxOut,
+    out,
+    cartOf,
+    cartsYear,
+    seedCarts,
+  };
 })();

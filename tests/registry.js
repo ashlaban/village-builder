@@ -1,10 +1,11 @@
 // VB-197: rule contracts, original death rolls, bounded heap use, and the registry's diagnostic CLI.
+const { readSource } = require('../tools/lib/source.js');
 const assert = require('assert'), fs = require('fs'), path = require('path'), vm = require('vm');
 const cp = require('child_process'), os = require('os'), zlib = require('zlib');
 const root = path.join(__dirname, '..');
 // An isolated load permits small rules without changing the simulation registry.
 const sandbox = { VB: { count: { ruleValue: 0 } } };
-vm.runInNewContext(fs.readFileSync(path.join(root, 'src/sim/registry.js'), 'utf8'), sandbox);
+vm.runInNewContext(readSource('src/sim/registry.js'), sandbox);
 const R = sandbox.VB['sim/registry'];
 const product = { id: 'product', owner: 'test', combine: 'product', base: () => 2 };
 R.declare(product); product.base = () => 100; // declarations copy their inputs
@@ -76,7 +77,7 @@ R.seal(); R.seal();
 assert.deepStrictEqual(Array.from(R.list().find((r) => r.rule === 'early').contributions.map((c) => c.key)), ['first', 'second', 'bad'], 'the declared order applies at seal');
 { // a declared order must name every contribution
   const box = { VB: { count: { ruleValue: 0 } } };
-  vm.runInNewContext(fs.readFileSync(path.join(root, 'src/sim/registry.js'), 'utf8'), box);
+  vm.runInNewContext(readSource('src/sim/registry.js'), box);
   const Q = box.VB['sim/registry'];
   Q.declare({ id: 'r', owner: 'test', combine: 'sum', base: () => 1, order: ['nope'] });
   Q.contribute({ ...factor, rule: 'r', key: 'k', range: undefined });
@@ -84,7 +85,7 @@ assert.deepStrictEqual(Array.from(R.list().find((r) => r.rule === 'early').contr
 }
 { // a rule that names causes refuses a factor that may fall below 1 (VB-207)
   const box = { VB: { count: { ruleValue: 0 } } };
-  vm.runInNewContext(fs.readFileSync(path.join(root, 'src/sim/registry.js'), 'utf8'), box);
+  vm.runInNewContext(readSource('src/sim/registry.js'), box);
   const Q = box.VB['sim/registry'];
   Q.declare({ id: 'r', owner: 'test', combine: 'product', base: () => 0.5, baseCause: () => 'base' });
   Q.contribute({ ...factor, rule: 'r', key: 'k', cause: 'c', range: [0.5, 2], value: () => 1 });
@@ -159,6 +160,10 @@ const row = (id) => rows.find((x) => x.rule === id);
 assert.deepStrictEqual(row('death.hazard').contributions.map((c) => c.key), ['hunger', 'frailty']);
 assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'goodwill', 'opinion', 'reserve']); // VB-216, VB-217, VB-220
 assert(invoke([]).includes('HEALTH.riskBelow'));
+// VB-520: what each trait does, with the contributions that read it
+const acts = JSON.parse(invoke(['--json', '--traits']));
+assert.deepStrictEqual(acts.find((a) => a.trait === 'generosity' && a.rule === 'reserve').contributions, ['allowance.reserve', 'need.food']);
+assert(invoke([]).includes('openness.malleability: 0.5 to 1.5'));
 const cliExplanation = JSON.parse(invoke(['--explain', '0', '--json']));
 assert.strictEqual(cliExplanation.pawn, 0);
 assert.strictEqual(cliExplanation.combine, 'product');

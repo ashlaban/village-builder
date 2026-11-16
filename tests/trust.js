@@ -54,14 +54,21 @@ let report = '';
   check(trustOfHolder(st, holder.id) === t, 'the holder is found by its trust');
   invariants(st, 'in trust');
   // a year on: the house kept its condition as an empty farm's, less its decay; the trustee posts the farm's field work as its own
-  Sim.advance(st, 65 * Sim.DAY); // a weeding round stands open (VB-334: rounds on days 6 and 15 of growth)
-  refreshJobs(st, cal(st.t), true);
-  const jobs = [...st.jobs.values()].filter((j) => j.farm === f);
+  // about 65 days on, on the first day a round of field work stands open (VB-334: weeding rounds on days 6 and 15 of growth; the day the
+  // farm was sown moves with its head's targets, VB-485)
+  Sim.advance(st, 58 * Sim.DAY);
+  let days = 58, jobs = [];
+  for (; days < 75; days++) {
+    Sim.advance(st, Sim.DAY);
+    refreshJobs(st, cal(st.t), true);
+    jobs = [...st.jobs.values()].filter((j) => j.farm === f);
+    if (jobs.length) { days++; break; }
+  }
   check(jobs.length > 0 && jobs.every((j) => j.owner.type === 'household' && j.owner.id === c.id), `the trustee's tasks on the farm (${jobs.map((j) => `${j.kind}:${j.owner.id}`).join(', ')})`);
   const worker = st.pawns[grown(st, c).find((id) => id !== holder.id)];
   check(jobs.length && eligible(st, jobs[0], worker) === 'member', 'a member of the trustee may take them, as a member');
   const cond = VB['sim/rules'].houseCondition(st, f);
-  const decay = (0.08 * 65) / VB['sim/rules'].YEAR_DAYS; // the clock's decay of an empty farm, 8% a year
+  const decay = (0.08 * days) / VB['sim/rules'].YEAR_DAYS; // the clock's decay of an empty farm, 8% a year
   check(Math.abs(cond0 - decay - cond) < 0.005, `the empty house decays as an empty farm's (${cond0.toFixed(3)} to ${cond.toFixed(3)})`);
   invariants(st, 'sixty days on');
   report = `${R.fullName(holder)} held at ${st.farmsteads[c.farmstead].name}, ${jobs.length} tasks on ${f.name}`;
@@ -111,7 +118,7 @@ let report = '';
   const child = st.pawns.find((p) => p.alive && p.age >= 8 && p.age < 16 && p.household !== null && p.household !== c.c.id && !R.isHolder(st, p.id));
   moveTo(st, child.id, c.a.id);
   moveTo(st, c.holder.id, c.c.id);
-  c.a.holder = child.id; R.noteHolder(st, c.a); // the child holds the farm alone
+  c.a.holder = child.id; R.noteHolder(st, c.a); VB['sim/events'].emit(st, 'newHead', { household: c.a.id }); // the child holds the farm alone
   child.father = c.c.holder; child.mother = null;
   S.careForOrphans(st);
   const t = trustOf(st, c.a.id);
@@ -121,6 +128,22 @@ let report = '';
   T.wardsOfAge(st);
   check(t.why === 'of age' && child.household === c.a.id, `the ward goes back at 18 (${t.why})`);
   invariants(st, 'the ward of age');
+}
+// 7. The trustee is itself put in trust (its people go to its own kin): the farm it held goes back to its holder first, as when a trustee
+// dies out (VB-473 repair: the trust stayed with a trustee its holder no longer lived with).
+{
+  const { st, a, c, holder, t } = intoTrust();
+  const d = st.households.find((x) => x !== a && x !== c && !x.dissolved && vOf(st, x) === vOf(st, c) && x.holder !== null && grown(st, x).length >= 2);
+  check(!!d, 'setup: a kin household for the trustee');
+  const ch = st.pawns[c.holder], dh = st.pawns[d.holder];
+  ch[dh.sex === 'm' ? 'father' : 'mother'] = dh.id; // the trustee's holder is the child of d's
+  check(T.trusteeFor(st, c) === d.id, `setup: d would hold the trustee's farm (${T.trusteeFor(st, c)})`);
+  check(issue(st, { actor: c.holder, verb: 'goToKin', target: c.id, args: { why: 'test' }, source: 'test' }) === true, 'the trustee goes to kin');
+  refreshRoles(st);
+  const u = trustOf(st, c.id);
+  check(u && u.trustee === d.id && ch.household === d.id, `the trustee's farm held by d (${JSON.stringify(u)})`);
+  check(t.why === 'trustee gone' && t.end !== null && !trustOf(st, a.id) && holder.household === a.id, `the farm it held goes back to its holder (${t.why})`);
+  invariants(st, 'the trustee in trust');
 }
 if (failed) process.exit(1);
 console.log(`trust ok: ${report}`);

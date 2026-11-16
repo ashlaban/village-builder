@@ -2,7 +2,7 @@
 // record of events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
-  const { DAY, YEAR_DAYS, YEAR, ECON, HELP, MALE, FEMALE, patronym } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
   // ---- the record of events (VB-075) ----
   // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self, cold, tile}, the fields that do
   // not apply absent (cold: a death in a cold house, VB-327; tile: where a pawn died on the road, VB-287). log and personEvent write their
@@ -51,6 +51,8 @@ VB['sim/records'] = (() => {
     stake: 0,
     stakeLapsed: 0,
     projectDropped: 0,
+    projectTaken: 0, // a head's project taken and finished (VB-255)
+    projectDone: 0,
     border: 0,
     oreFound: 0,
     custom: 0,
@@ -73,6 +75,7 @@ VB['sim/records'] = (() => {
     enemy: SHORT,
     friend: SHORT,
     fellOut: SHORT,
+    quarrel: SHORT, // cross words that became a quarrel (VB-520)
     helped: SHORT, // helped another household of the village with its work (VB-106)
     workday: SHORT, // a village's work day: who turned out and who stayed away (VB-120)
     gift: GENERATION,
@@ -276,12 +279,13 @@ VB['sim/records'] = (() => {
       pregnantUntil: null,
       pregnantBy: null,
       nursingUntil: null,
+      nursling: null,
       hunger: 0,
       hungerLog: [],
       health: 100,
       kinPush: null,
-      buffer: HELP.bufferDays[0] + R.rand() * (HELP.bufferDays[1] - HELP.bufferDays[0]),
     };
+    R.rand(); // the draw that was pawn.buffer's (VB-216), now generosity's (VB-520): kept, so the stream goes on as before
     if (p.died !== null) {
       p.born = p.died - o.age * YEAR;
     }
@@ -335,7 +339,9 @@ VB['sim/records'] = (() => {
       hunger: 0,
       cold: 0,
       coldLog: [],
-      waterDay: -1,
+      dry: 0,
+      dryLog: [],
+      waterDay: Math.floor((R.t || 0) / DAY), // the first day counts as fetched (VB-331; a scenario's record kit has no clock: day 0)
       cookDay: -1,
       dissolved: false,
       herds: [],

@@ -345,6 +345,15 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
   - story kinds and their numbers, from the experiment.
 - **Done when:** the bands of target-v2 10.2 hold. Talk must cost less at the end of this slice than at its start.
 - **9 November update:** courting no longer replaces the round's matches; it feeds the negotiation between households (VB-233).
+- **15 November update (the plan, VB-186;** `design.md`, People, Traits, talk and stories; Customs, A culture's values**):**
+  - the saving first: the talk round by turns (four a pawn a day, not sixteen), with venues as kinds of one encounter table (VB-521);
+  - traits (VB-519) and the two rules each changes, with chemistry and Like seeks like (VB-520);
+  - the venues are the ale evening, a holder's open house on a barrel of its own, and the season's rite, which the Church's service
+    takes over in slice 8 (VB-522); herders meet on the pasture, at calling distance;
+  - stories (VB-523), then lies, counter-stories and what the player hears; courting (VB-036, rewritten) and births outside marriage;
+    mood (VB-062, rewritten);
+  - the wrap-up is VB-063, with VB-040's report merged into it: the bands of target-v2 10.2 measured on the game, trait drift, and
+    talk's share at the slice's start (55.3 ms a game day at `medium-ref`, 10 November) and end.
 
 ### 3.8 The ship
 
@@ -365,6 +374,12 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
   - the disease model: one compartment model per settlement, feeding a contribution to `death.hazard`, so the cost is per
     settlement, not per pair of pawns;
   - what establishment does.
+- **16 November update (the plan of VB-405;** `design.md`, People, Marriage, nursing and growth; Balance loops and targets, The
+  growth budget**):** there is no immigration before the ship (Kim, 13 November), so the settling families are this slice's: VB-636
+  holds the proposal (a family lands at the harbour and walks to a plot or an empty farm; one in 2 years while fewer than 300
+  live, one in 10 after) for this slice's plan to confirm, and the ship's year decides when a founders' island passes 1,000
+  (about year 230 to 300 by births alone). Disease is designed for the town only, against its line of the budget (0.28 of a
+  point of yearly growth).
 
 ### 3.9 The town
 
@@ -377,6 +392,10 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
 - **Takes over:** the cities review's phase 4.
 - **Done when:** the 600 / 325 / 75 band (target-v2 6.3) is reported nightly; a town's natural decrease and its migrants match
   `M / (d - b)`.
+- **16 November update (the plan of VB-405):** the town is the second brake of the growth budget, not the first: its deaths at
+  about 1.5 times the farms' (Kim, 13 November; at 3.3 times life expectancy falls to 23), its line 0.54 of a point of yearly
+  growth. It takes its people from those the marriage gate already holds, so it decides where people live and the valve still
+  holds the number (`design.md`, Balance loops and targets, The growth budget).
 
 ### 3.10 Roads, boats and ice
 

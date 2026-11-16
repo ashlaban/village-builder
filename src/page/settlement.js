@@ -5,6 +5,7 @@ const ART_S = 0.2;
 const YARD = {
   byre: [-10, -3],
   lada: [6, -1],
+  barn: [19, -6], // the second barn a household builds as a project (VB-255), behind the storehouse
   harbre: [14, 7],
   stuga: [-4, 14],
   wood: [10, 15],
@@ -12,6 +13,7 @@ const YARD = {
   heap: [-17.5, -1],
   curb: [1, 19],
   booth: [10, 6],
+  cart: [-3, 21],
 };
 const INK = 0x2c201c; // the contour of what is drawn straight onto the map, as MP.line of the farm art
 const place = (tex, x, y, ax, ay, layer = L.objects, sc = ART_S) => {
@@ -48,6 +50,8 @@ function clearSettlement() {
   deerSprites = [];
   meadowSprites = [];
   teamDraw = new Map();
+  cartDraw = [];
+  ledDraw = new Map();
 }
 async function buildSettlement(wd, s) {
   clearSettlement();
@@ -207,6 +211,8 @@ function buildFarms(wd) {
   deerSprites = [];
   meadowSprites = [];
   teamDraw = new Map();
+  cartDraw = [];
+  ledDraw = new Map();
   L.objects.sortableChildren = true;
   for (const f of st.farmsteads) {
     const hx = wd.hx[f.house],
@@ -233,12 +239,14 @@ function buildFarms(wd) {
       const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
         harbre = place(art.harbre, hx + YARD.harbre[0], hy + YARD.harbre[1], 0.5, 0.95),
         stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92);
-      for (const b of [lada, harbre, stuga]) {
+      const barn = f.barn ? place(art.lada, hx + YARD.barn[0], hy + YARD.barn[1], 0.5, 0.93) : null; // farmstead.barn (VB-255)
+      for (const b of barn ? [lada, harbre, stuga, barn] : [lada, harbre, stuga]) {
         b.tint = tint;
         if (empty && !ruin) b.alpha = 0.9;
       }
       if (ruin) {
         lada.visible = harbre.visible = false;
+        if (barn) barn.visible = false;
         stuga.scale.y = ART_S * 0.55;
         stuga.alpha = 0.85;
       }

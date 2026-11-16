@@ -1,5 +1,5 @@
 // Job kinds (sim/kinds): every kind has its labels, hours and a type of work that some role ranks; carried kinds say where the load goes;
-// each role's priority of a kind is its exception for the kind, else its rank of the kind's type.
+// each role's priority of a kind is its exception for the kind (a fetch kind's: the kind it fetches for, VB-611), else its rank of the kind's type.
 const VB = require('../src/load.js'), Sim = VB.sim;
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('KINDS FAIL:', m); } };
 const types = new Set(Object.values(Sim.ROLES).flatMap((r) => Object.keys(r.work)));
@@ -13,7 +13,7 @@ for (const [k, K] of Object.entries(Sim.KINDS)) {
   if (K.field) check(typeof K.spot === 'function', `${k} is field work without a spot on the field`);
 }
 for (const [role, r] of Object.entries(Sim.ROLES)) for (const [k, K] of Object.entries(Sim.KINDS)) {
-  const want = r.except[k] ?? r.work[K.type] ?? 0;
+  const want = r.except[k] ?? r.except[K.fetch] ?? r.work[K.type] ?? 0;
   check(r.prio[k] === want, `${role} ranks ${k} ${r.prio[k]}, wanted ${want}`);
 }
 for (const [role, r] of Object.entries(Sim.ROLES)) for (const k of Object.keys(r.except)) check(Sim.KINDS[k], `${role} has an exception for unknown kind ${k}`);

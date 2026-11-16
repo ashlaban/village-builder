@@ -34,7 +34,8 @@ assert.strictEqual(st.pawns.length, n + 2);
 assert(mothers.every((m) => !m.alive)); compare(st);
 assert.deepStrictEqual(checkState(st), []);
 VB.resetCounts(); Sim.advance(st, 0.1);
-assert.strictEqual(VB.count.walkStep, st.living.length, 'a step counts living agents, excluding the dead records');
+assert.ok(VB.count.walkStep <= st.living.length && st.legDue.every((id) => st.pawns[id].alive),
+  'a step takes at most a leg a living pawn, and the queue holds no dead records (VB-473)');
 // The daily mortality walk may remove every current id, including adjacent ids, without skipping anyone.
 const dying = make(); for (const p of dying.pawns) p.health = 0;
 VB['sim/lifecycle'].dailyLife(dying); VB['sim/lifecycle'].dailyDeaths(dying);

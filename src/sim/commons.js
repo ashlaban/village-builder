@@ -6,7 +6,7 @@ VB['sim/commons'] = (() => {
   const Projects = VB['sim/projects'],
     Stores = VB['sim/stores'],
     Culture = VB['culture'];
-  const { COMMONS, ROLES, farmable, fertility } = VB['sim/rules'];
+  const { COMMONS, ROLES, CROPS, farmable, fertility, cal } = VB['sim/rules'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
@@ -14,7 +14,7 @@ VB['sim/commons'] = (() => {
   const { addClaim, realise } = VB['sim/claims'];
   const { log } = VB['sim/records'];
   const { emit } = VB['sim/events'];
-  const { dailyNeed } = VB['sim/hunger'];
+  const { dailyNeed, storeRoom } = VB['sim/hunger'];
   const { goodwillOf } = VB['sim/relations'];
   const { clearHours, clearStones, broken, builtTiles, BREAK_HOURS } = VB['sim/fields'];
   const { houses } = VB['sim/green'];
@@ -23,6 +23,8 @@ VB['sim/commons'] = (() => {
   // @state the common field's project plan (st.plans.projects.village; sim/projects): {what: 'commons', started (game hours), steps: [{kind
   //   'clear', place, hours, stake 'field'}, {kind 'break', place, hours, stake 'field'}]}, at most one a village; from its making its tile
   //   is claimed by the village (st.claims, why 'field'; renewed by the work) and in use (st.used); breaking makes it the village's.
+  //   village.commonSow: absent, or {year, sow}: the year's decision to sow the common fields (VB-457), taken on the first review of the village
+  //   in the crop's sowing window: sow only while its store lacks of its target (HELP.storeTarget); written only here.
   const NONE = [];
   const VILLAGE = (v) => ({ type: 'village', id: v.id });
   const fieldsOf = (v) => v.commonFields || NONE;
@@ -132,6 +134,12 @@ VB['sim/commons'] = (() => {
         village: v.id,
       });
   }
+  // Whether the common fields are sown this year (VB-457): decided once a year, at the village's first review in the sowing window, by its
+  // store under its target at that hour; otherwise they lie fallow, grazed as meadow. A field already sown is harvested whatever the store.
+  function sowThisYear(st, v, c) {
+    if (!v.commonSow || v.commonSow.year !== c.year) v.commonSow = { year: c.year, sow: storeRoom(st, v) > 1e-9 };
+    return v.commonSow.sow;
+  }
   // The village's review (sim/jobs), while its meeting chose the commons: the open step of the common field under way, and at each common
   // field the field kinds of its stage, as a farm's (fieldAt: sim/kinds' ASK.fieldAt), owned by the village; a common field's job carries
   // `common` and its village, and the haul brings the sheaves to the green.
@@ -145,6 +153,10 @@ VB['sim/commons'] = (() => {
     for (const fd of fieldsOf(v)) {
       const rules = fieldAt[fd.stage];
       if (!rules) continue;
+      if (fd.stage === 'stubble') {
+        const w = CROPS[fd.crop].sow;
+        if (c.season !== w[0] || c.sday < w[1] || c.sday > w[2] || !sowThisYear(st, v, c)) continue; // a field's hoeing is the sowing's start
+      }
       for (let i = 0; i < rules.length; i++) {
         const k = rules[i][0];
         rules[i][1](

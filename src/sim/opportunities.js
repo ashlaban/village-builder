@@ -151,13 +151,7 @@ VB['sim/opportunities'] = (() => {
       wishes = pl && pl.pawn === p.id ? pl.wishes : null;
     const stays = staysWhy(view, p, heirs);
     out.push(
-      item(
-        'leave',
-        null,
-        null,
-        stays,
-        wishes ? { ...atRound, own: staysWhy(view, p, heirs, null, null, null) } : atRound,
-      ),
+      item('leave', null, null, stays, wishes ? { ...atRound, own: staysWhy(view, p, heirs, null, null) } : atRound),
     );
     // an empty farm of its village: the round gives it to the first claimant among those who want out
     const bar =

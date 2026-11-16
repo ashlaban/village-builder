@@ -196,7 +196,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 | `att` **3** | culture ⁵ | culture 183; society 34; births 28 | - |
 | `rel` **3** | relations ⁵ | relations 62,64,66,77,79,80,87,88; society 35; births 29 | lifecycle |
 | `servant` **3** | records ² | heirs 84,175; service 66; settle 180 | - |
-| `interest` **2** | society | society 35,84,126; births 29 | culture |
+| `interest` **3** | society | society 35,84,126; births 29; lifecycle (killPawn: cleared at the death, VB-278) | culture |
 | `owed` **2** | stores (new) ¹ | heirs 113; cottage 62 | page |
 | `prestige` **2** | society | society 35,76,77; births 29 | culture |
 | `born` | births | births 27 | records, relations, deaths, expansion, farmclaims, heirs, service, society, settle, lifecycle, scenarios, page |
@@ -536,7 +536,7 @@ One row for each change of state, with its writer. *Past the owner* marks a writ
 | The task taken is carried out as a command | none in the planner | `jobs.js:205` → `issue` (`commands.js:132`) → verb `work` (`commands.js:22-26`) |
 | The job in hand is left, keeping its progress | `job.claims` (splice), `agent.job`, `agent.phase`, `agent.work` | `agents.js:55-58` (release) |
 | The pawn joins the job and sets out | `job.claims` (push), `agent.job`, `agent.phase = 'go'`, `agent.path`, `seg`, `inside`, `anim`; the route is cached in `st.pathCache` | `agents.js:44-50` (start), `agents.js:30-41` (walkTo), `routes.js:103` |
-| Walking | `agent.x`, `y`, `seg`, `face`, `stride`; worn paths `w.wear` | `agents.js:141-153` (moveAgent), `paths.js:17-20` (tread) |
+| Walking | `agent.x`, `y`, `seg`, `leg`, `st.legDue`; worn paths `w.wear` (`face`, `stride`: the page's shim `walkerPlaces` until VB-474) | `agents.js` (legs: begin, halt, walkEnd, treadTo; VB-473), `paths.js:17-20` (tread) |
 | Arrival | `agent.phase = 'work'`, `anim`, `inside`, `work` (the row being walked) | `agents.js:85-92` (arrived) |
 | Working | `job.done`; for a land project, its claim renewed (`claim.renewed`) | `agents.js:111`; `claims.js:32` through the kind's `worked` |
 | When the day is allotted anew, a much more urgent task, or one with a deadline today, calls its hand | as release and start | `jobs.js` (allot) |

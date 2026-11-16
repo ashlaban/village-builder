@@ -165,6 +165,9 @@ VB['sim/claims'] = (() => {
       for (const p of Projects.projectsOf(st, 'village', v.id))
         if (p.what === 'plot') for (const tr of p.steps[0].places) kind.set(tr.tile, 'plots');
         else greens.add(p.steps[0].place); // a green under way (VB-058)
+    // the households' plots for their heirs (VB-255)
+    if (st.plans && st.plans.projects)
+      for (const p of st.plans.projects.heirPlots) for (const tr of p.steps[0].places) kind.set(tr.tile, 'plots');
     const households = new Map(),
       villages = new Map();
     const row = (m, id, keys) => {

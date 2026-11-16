@@ -82,7 +82,8 @@ assert.deepStrictEqual(lp.workdays, { year: 2, came: 0, missed: 1 }, 'the lone h
 assert.ok(VB['sim/society'].prestigeParts(st, lp).some((x) => x[0] === 'Stayed away from the work day' && x[1] === WORKDAY.missed),
   'its holder loses standing for the year');
 const mem = st.pawns[h0].rel.get(lone.holder);
-assert.ok(mem && mem.mem.stayedAway && mem.mem.stayedAway.v === SOCIAL.memories.stayedAway.v, 'the tied holder remembers');
+const felt = VB['sim/traits'].act(st, h0, 'honour', 'breach'); // a breach felt by honour, 0.5 to 1.5 times (VB-520)
+assert.ok(mem && mem.mem.stayedAway && Math.abs(mem.mem.stayedAway.v - SOCIAL.memories.stayedAway.v * felt) < 1e-9, 'the tied holder remembers');
 assert.ok(!(st.pawns[h1].rel.get(lone.holder) || { mem: {} }).mem.stayedAway, 'an untied holder does not');
 assert.ok(!(tieOf(st, h1, lone.holder) > 0), 'and no tie is made for it');
 assert.deepStrictEqual(checkState(st), [], 'invariants');

@@ -6,24 +6,23 @@ VB['sim/help'] = (() => {
   const { hoursBetween } = VB['sim/routes'];
   const onRoad = (a) => a.phase === 'journey' || a.phase === 'road'; // as sim/agents' travelling, which loads after this module
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
-  const { dailyNeed } = VB['sim/hunger'],
+  const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
-  const Rules = VB['sim/registry'];
-  // allowance's second term (VB-216): the holder's own reserve beyond the floor, from 0 to 40 days of the household's need, a stand-in for
-  // generosity until traits; a household without a holder keeps the most, as surplus does
+  const Rules = VB['sim/registry'],
+    { bufferOf } = VB['sim/traits'];
+  // allowance's second term (VB-216): the holder's own reserve beyond the floor, 40 to 0 days of the household's need by its generosity
+  // (TRAITS.acts.generosity.reserve; VB-520, after VB-484); a household without a holder keeps the most, as surplus does
   Rules.contribute({
     rule: 'allowance',
     source: 'sim/help',
     key: 'reserve',
     label: 'Own reserve',
-    tunables: ['HELP.bufferDays', 'HELP.floorDays'],
-    value: (st, c) =>
-      -((c.giver !== null ? st.pawns[c.giver].buffer : HELP.bufferDays[1]) - HELP.floorDays) * dailyNeed(st, c.from),
+    tunables: ['TRAITS.acts.generosity.reserve', 'HELP.floorDays'],
+    value: (st, c) => -(bufferOf(st, c.giver) - HELP.floorDays) * dailyNeed(st, c.from),
   });
   // grain a household would give: what is above its holder's buffer and its seed reserve
   const surplus = (st, hh) => {
-    const holder = hh.holder !== null ? st.pawns[hh.holder] : null,
-      buffer = (holder ? holder.buffer : HELP.bufferDays[1]) * dailyNeed(st, hh);
+    const buffer = bufferOf(st, hh.holder) * dailyNeed(st, hh);
     return Math.max(0, grainOf(hh) - reserved(st, hh, 'grain') - buffer);
   };
   const spare = (st, hh) => Math.max(0, grainOf(hh) - reserved(st, hh, 'grain'));
@@ -134,13 +133,26 @@ VB['sim/help'] = (() => {
   }
   // At the moving round every household gives a share of its surplus to its village's store: a village's at its own round (VB-277), or
   // every village's when v is null.
+  // A household's quarter is taken only up to what the store lacks of its target, shared among the givers in proportion to what each would
+  // have given; the rest stays at home (VB-457).
   function fillStores(st, v = null) {
+    const gifts = new Map(); // village id -> [[household, n]]
     for (const liveId of st.liveHouseholds) {
-      const hh = st.households[liveId];
-      if (hh.dissolved || (v !== null && st.farmsteads[hh.farmstead].village !== v)) continue;
+      const hh = st.households[liveId],
+        vid = st.farmsteads[hh.farmstead].village;
+      if (hh.dissolved || (v !== null && vid !== v)) continue;
       const n = surplus(st, hh) * HELP.storeShare;
       if (n <= 1e-9) continue;
-      give(st, hh, st.villages[st.farmsteads[hh.farmstead].village], n);
+      if (!gifts.has(vid)) gifts.set(vid, []);
+      gifts.get(vid).push([hh, n]);
+    }
+    for (const [vid, list] of gifts) {
+      const village = st.villages[vid];
+      let total = 0;
+      for (const g of list) total += g[1];
+      const k = Math.min(1, storeRoom(st, village) / total);
+      if (!(k > 1e-9)) continue;
+      for (const [hh, n] of list) give(st, hh, village, n * k);
     }
   }
   return { surplus, kinHouseholds, shareFood, fillStores, askDaysAt, seasonOf, shortOfPeople };

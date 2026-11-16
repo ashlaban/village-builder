@@ -42,13 +42,13 @@ function drawTeams(show) {
       for (const q of e.oxen) q.visible = false;
       if (sp.texture !== tex) sp.texture = tex;
       sp.visible = true;
-      sp.scale.set(-a.face * COW_SCALE.cow, COW_SCALE.cow);
-      sp.position.set(ax + a.face * 8, ay - 1.5);
+      sp.scale.set(-drawFacing[a.id] * COW_SCALE.cow, COW_SCALE.cow);
+      sp.position.set(ax + drawFacing[a.id] * 8, ay - 1.5);
       sp.zIndex = ay - 1.5;
       e.g.clear();
       continue;
     }
-    const dir = a.face,
+    const dir = drawFacing[a.id],
       sway = Math.sin(time * 3 + a.id) * 0.6;
     oxen.forEach((h, k) => {
       const sp = e.oxen[k],
@@ -71,6 +71,126 @@ function drawTeams(show) {
       for (const sp of e.oxen) sp.visible = false;
       e.g.clear();
     }
+}
+// The led animal (VB-429): a pawn on the way home from fetching a cow (job `lead`, phase back, carry 'cow') has it on a halter, beside
+// and a little behind it; which animal is the household's want (sim/exchange), the coat from the pawn. A pool, refilled each frame.
+function drawLed(show) {
+  const used = new Set();
+  for (const a of st.agents) {
+    if (!show || a.inside || a.carry !== 'cow' || a.phase !== 'back' || !a.job || !rigs[a.id].root.visible) continue;
+    const plan = st.plans.households.get(st.pawns[a.id].household),
+      kind = plan && plan.want && plan.want.kind ? plan.want.kind : 'cow';
+    used.add(a.id);
+    let e = ledDraw.get(a.id);
+    if (!e) {
+      const sp = new PIXI.Sprite(art.cow[0][1]);
+      sp.anchor.set(0.5, 0.92);
+      L.objects.addChild(sp);
+      e = { sp, g: new PIXI.Graphics() };
+      L.objects.addChild(e.g);
+      ledDraw.set(a.id, e);
+    }
+    const dir = drawFacing[a.id],
+      x = drawX[a.id],
+      y = drawY[a.id],
+      sway = Math.sin(time * 3 + a.id) * 0.5,
+      tex = art.cow[(hash(a.id * 7 + 3) * COATS.length) | 0][1];
+    if (e.sp.texture !== tex) e.sp.texture = tex;
+    e.sp.visible = true;
+    e.sp.scale.set(dir * COW_SCALE[kind], COW_SCALE[kind]);
+    e.sp.position.set(x - dir * 13, y + 2 + sway);
+    e.sp.zIndex = y + 2;
+    e.g
+      .clear()
+      .moveTo(x + dir * 1, y - 6)
+      .lineTo(x - dir * 8, y - 3)
+      .stroke({ width: 1, color: 0x5a4128 });
+    e.g.zIndex = y + 2.1;
+  }
+  for (const [id, e] of ledDraw)
+    if (!used.has(id)) {
+      e.sp.visible = false;
+      e.g.clear();
+    }
+}
+// The carts (VB-410): a cart at home stands in the farm's yard, as many as the household has; one out is drawn with its pawn, behind it,
+// with the load it carries and, for the ox cart, the team before it (the team leaves the byre meanwhile, as at the plough). Which is out
+// is read as sim/carts reads it. A cart below the condition it is mended at is drawn worn. A pool of sprites, refilled each frame.
+function cartSprite(n) {
+  while (cartDraw.length <= n) {
+    const sp = new PIXI.Sprite(art.cart.hand.none[0]);
+    sp.anchor.set(0.5, 0.85);
+    sp.visible = false;
+    L.objects.addChild(sp);
+    const oxen = [0, 1].map(() => {
+      const o = new PIXI.Sprite(art.cow[0][1]);
+      o.anchor.set(0.5, 0.92);
+      o.visible = false;
+      L.objects.addChild(o);
+      return o;
+    });
+    cartDraw.push({ sp, oxen });
+  }
+  return cartDraw[n];
+}
+function drawCarts(show) {
+  let n = 0;
+  for (const h of houseInfo) {
+    const hh = st.households[h.f.household];
+    if (!hh || !hh.carts.length) continue;
+    const hx = w.hx[h.f.house],
+      hy = w.hy[h.f.house];
+    let home = 0;
+    for (const c of hh.carts) {
+      const a = c.by === null ? null : st.agents[c.by],
+        away = a && !a.inside && Carts.out(st, c) && rigs[a.id].root.visible,
+        e = cartSprite(n++),
+        worn = c.cond < Carts.CART.mendAt ? 1 : 0;
+      for (const o of e.oxen) o.visible = false;
+      if (!show) {
+        e.sp.visible = false;
+        continue;
+      }
+      e.sp.visible = true;
+      if (!away) {
+        const k = home++;
+        e.sp.texture = art.cart[c.kind].none[worn];
+        e.sp.scale.set(CART_S);
+        e.sp.position.set(hx + YARD.cart[0] - (k % 3) * 12, hy + YARD.cart[1] + ((k / 3) | 0) * 5);
+        e.sp.zIndex = e.sp.y;
+        continue;
+      }
+      const dir = drawFacing[a.id],
+        x = drawX[a.id],
+        y = drawY[a.id],
+        ox = c.kind === 'ox',
+        load = a.carry === 'sheaf' || a.carry === 'hay' || a.carry === 'logs' ? a.carry : 'none';
+      e.sp.texture = art.cart[c.kind][load][worn];
+      e.sp.scale.set(dir * CART_S, CART_S);
+      // the cart's far end (the shafts, or the yoke) is where the pawn's hand, or the team, is: the cart trails behind
+      e.sp.position.set(x - dir * (ox ? 4 : 8), y + 1.5);
+      e.sp.zIndex = y - 0.2;
+      if (ox) {
+        // the team walks ahead of the cart, the pawn at its flank
+        const oxen = Sim.team(st, hh),
+          sway = Math.sin(time * 3 + a.id) * 0.6;
+        oxen.slice(0, 2).forEach((q, k) => {
+          for (const t of [q.id]) teamOut.add(t);
+          const o = e.oxen[k],
+            tex = art.cow[(hash(q.id * 7 + 3) * COATS.length) | 0][1];
+          if (o.texture !== tex) o.texture = tex;
+          o.visible = true;
+          o.scale.set(dir * COW_SCALE.ox, COW_SCALE.ox);
+          o.position.set(x + dir * (11 + k * 2), y - 4 + k * 5 + sway);
+          o.zIndex = y - 4 + k * 5;
+        });
+      }
+    }
+  }
+  for (let k = n; k < cartDraw.length; k++) {
+    cartDraw[k].sp.visible = false;
+    for (const o of cartDraw[k].oxen) o.visible = false;
+  }
 }
 function drawHerds(c, show) {
   const out = Sim.stalled(c) || c.hour < 6 || c.hour >= 20,
@@ -109,7 +229,7 @@ function drawHerds(c, show) {
     // out with a herder (VB-136): at its heels on the way, on the pasture while it minds them there, else by the farm
     const hr = hd.herder !== null && st.agents[hd.herder] && !st.agents[hd.herder].inside ? st.agents[hd.herder] : null;
     const at = hr && !hr.path && hr.side && hr.side.background ? hr.side.background.site : -1;
-    const cx = at >= 0 ? w.hx[at] : hr ? drawX[hr.id] - hr.face * 16 : w.hx[hd.home],
+    const cx = at >= 0 ? w.hx[at] : hr ? drawX[hr.id] - drawFacing[hr.id] * 16 : w.hx[hd.home],
       cy = at >= 0 ? w.hy[at] : hr ? drawY[hr.id] + 3 : w.hy[hd.home];
     const on = show && !out && cx > x0 && cx < x1 && cy > y0 && cy < y1;
     for (const a of e.list) {
@@ -129,50 +249,71 @@ function drawHerds(c, show) {
 }
 // ---- where each pawn is drawn this frame (VB-244): between its place before the last step (page/speed) and its own, by the share of
 // the next step the frames have asked for; a pawn that went indoors, came out or was placed (moved more than a step's walk at the
-// fastest, on a lane) is drawn where it is. Page state only: nothing of it is written to st. ----
+// fastest, on a lane) is drawn where it is. A pawn at work on a field walks its rows (VB-472): the simulation has it stand at the start of
+// its first row, and the page walks it row by row from the tick its work began, at the drawn time. Page state only: nothing of it is
+// written to st. ----
 let drawX = new Float64Array(0),
   drawY = new Float64Array(0),
-  drawStride = new Float64Array(0);
+  drawStride = new Float64Array(0),
+  drawFacing = new Float64Array(0);
+const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind sets its own pace
+// The place on its rows of a pawn working a field at drawn tick `at`, [x, y, face, distance walked], or null: from the start of its row
+// (where its work leg began, a.leg), along rows 26 units long and 6 apart, five across the tile, turning at each end.
+function rowPlace(a, at) {
+  const j = a.job,
+    K = j && a.phase === 'work' && !a.inside && a.leg ? Sim.KINDS[j.kind] : null;
+  if (!K || !K.field) return null;
+  const th = VB['sim/kinds'].rowAngle(j),
+    cx = w.hx[j.site],
+    cy = w.hy[j.site],
+    c = Math.cos(th),
+    sn = Math.sin(th);
+  const row0 = Math.round((-sn * (a.leg.x - cx) + c * (a.leg.y - cy) + 12) / 6),
+    d = ((K.pace || ROW_PACE) * Math.max(0, at - a.leg.t)) / VB['sim/rules'].TICKS,
+    k = Math.floor(d / 26),
+    u = d - 26 * k,
+    dir = k % 2 ? -1 : 1,
+    along = dir > 0 ? -13 + u : 13 - u,
+    row = -12 + 6 * ((((row0 + k) % 5) + 5) % 5);
+  return [cx + c * along - sn * row, cy + sn * along + c * row, Math.abs(c) > 0.05 ? Math.sign(c * dir) : a.face, d];
+}
+const Carts = VB['sim/carts'],
+  CART_S = ART_S * 1.3; // a cart is drawn a little over the scale of the farm art, to read at the zoom the yard is seen from
 function placePawns() {
-  const n = st.agents.length,
-    R = VB['sim/rules'];
+  const n = st.agents.length;
   if (drawX.length < n) {
     const cap = Math.max(64, n * 2);
     drawX = new Float64Array(cap);
     drawY = new Float64Array(cap);
     drawStride = new Float64Array(cap);
+    drawFacing = new Float64Array(cap);
   }
-  const s = drawingBetween() ? stepShare : 1,
-    far = ((R.SPEED * w.HW) / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6,
-    far2 = far * far;
+  const at = st.tick + stepShare; // drawn along each walker's leg, ahead of the simulation by less than a step (VB-474)
   for (let i = 0; i < n; i++) {
-    const a = st.agents[i];
-    let x = a.x,
-      y = a.y,
-      stride = a.stride || 0;
-    if (s < 1 && i < prevN && !prevIn[i] && !a.inside) {
-      const dx = a.x - prevX[i],
-        dy = a.y - prevY[i];
-      if (dx * dx + dy * dy <= far2) {
-        x = prevX[i] + dx * s;
-        y = prevY[i] + dy * s;
-        stride = prevStride[i] + (stride - prevStride[i]) * s;
-      }
+    const a = st.agents[i],
+      [x, y, face, stride] = Sim.poseOf(st, a, at); // a walker's place from its leg (VB-473)
+    const rows = rowPlace(a, at);
+    if (rows) {
+      drawX[i] = rows[0];
+      drawY[i] = rows[1];
+      drawFacing[i] = rows[2];
+      drawStride[i] = stride + rows[3] / 3.4;
+      continue;
     }
     drawX[i] = x;
     drawY[i] = y;
+    drawFacing[i] = face;
     drawStride[i] = stride;
   }
 }
 let tAcc = 0;
-// The clock shown is the UI's own state: the time the pawns are drawn at, floored to 5 game minutes, redrawn only when that value
-// changes. While the pawns are drawn between steps (VB-244) that is the step before the last and the share of a step gone, so the
-// clock moves smoothly with them, at most a step behind st.t; otherwise it is st.t.
+// The clock shown is the UI's own state: the time the simulation has reached (st.tick), floored to 5 game minutes, redrawn only when
+// that value changes. The pawns are drawn up to a step ahead along their legs (VB-474), but the clock never shows a time the
+// simulation has not reached (principle 14): it is at most 5 minutes behind st.t, never ahead.
 let uiClock = null,
   uiClockSt = null;
 function updateClock() {
-  const drawn = drawingBetween() ? st.tick - 1 + stepShare : st.tick;
-  const step = Math.floor((drawn * 6) / 5 + 1e-9); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
+  const step = Math.floor((st.tick * 6) / 5 + 1e-9); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
   if (step === uiClock && st === uiClockSt) return;
   uiClock = step;
   uiClockSt = st;
@@ -228,17 +369,27 @@ function updateSettlement(dt) {
     const tk = a.talk,
       other = tk && !a.path && !a.job && st.t >= tk.at && st.t < tk.until ? st.agents[tk.with] : null;
     // a pawn fishing faces the water (VB-117)
-    const wet = !a.path && a.phase === 'work' && a.job && a.job.water !== undefined ? w.hx[a.job.water] - a.x : 0;
+    const wet =
+      !a.path && a.phase === 'work' && a.job && a.job.water !== undefined ? w.hx[a.job.water] - drawX[a.id] : 0;
     const face =
-      other && Math.abs(other.x - a.x) > 0.5 ? Math.sign(other.x - a.x) : Math.abs(wet) > 0.5 ? Math.sign(wet) : a.face;
+      other && Math.abs(drawX[other.id] - drawX[a.id]) > 0.5
+        ? Math.sign(drawX[other.id] - drawX[a.id])
+        : Math.abs(wet) > 0.5
+          ? Math.sign(wet)
+          : drawFacing[a.id];
     const x = drawX[a.id],
       y = drawY[a.id];
     R.root.position.set(x, y);
     R.root.scale.set((face * PAWN_S * k) / PX, (PAWN_S * k) / PX);
     R.root.zIndex = y;
-    pose(R, a, time, winter, drawStride[a.id]);
+    // a pawn with a cart pushes or draws it: the load is on the cart, and both hands are on the shafts (VB-410)
+    const cart = Carts.cartOf(st, st.households[pp.household], a.id);
+    pose(R, cart ? { ...a, carry: null } : a, time, winter, drawStride[a.id]);
+    if (cart) R.armF.rotation = R.armB.rotation = -0.9;
   }
   drawTeams(show);
+  drawCarts(show);
+  drawLed(show);
   drawHerds(c, show);
   drawDeer(c, show); // roe deer at the forest edges in the twilight (VB-139, page/deer)
   ring.clear();

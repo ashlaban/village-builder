@@ -6,6 +6,7 @@
 // bracket depth, a statement end (;) first, then the latest; continuation lines are indented 2 more. Lines it cannot wrap (long template
 // text) are listed for wrapping by hand. A wrapped file's token stream is checked against the original before it is written.
 require('./help.js')(__filename);
+const { readSource } = require('./lib/source.js');
 const fs = require('fs');
 const MAX = 160;
 const OPS = ['>>>=', '...', '===', '!==', '**=', '<<=', '>>=', '>>>', '&&=', '||=', '??=', '=>', '==', '!=', '<=', '>=', '&&', '||', '??', '?.',
@@ -130,7 +131,7 @@ if (require.main === module) {
   }
   const dry = args.includes('--dry');
   for (const f of args.filter((x) => x !== '--dry')) {
-    const src = fs.readFileSync(f, 'utf8'), { out, breaks, unwrapped } = wrap(src);
+    const src = readSource(f), { out, breaks, unwrapped } = wrap(src);
     if (tokenTexts(out).join('\n') !== tokenTexts(src).join('\n')) throw new Error(f + ': the token stream changed; nothing written');
     console.log(`${f}: ${breaks} breaks${unwrapped.length ? `; not wrapped, by hand: lines ${unwrapped.join(', ')}` : ''}`);
     if (!dry && breaks) fs.writeFileSync(f, out);

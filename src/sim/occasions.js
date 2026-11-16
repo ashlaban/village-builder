@@ -1,5 +1,6 @@
 // @sys sim/occasions: occasions (VB-126): a gathering at a place from a start to an end in game hours, of those asked: the village meeting
-//   on the green, the wedding feast and the funeral ale at a farm; who is asked, who sets out, and the due-queue that sends and ends them
+//   on the green (at its village's turn), the wedding feast and the funeral ale at a farm; who is asked, who sets out, and the due-queue that
+//   sends and ends them; the villages' turns of the meetings and the moving round
 // @state st.occasions[]: the occasions called and not yet over, sorted by `due` (after those due at the same time), each {id, kind
 //   ('meeting' | 'wedding' | 'funeral'), for[] (pawn ids it is held for: the couple, the dead; empty for a meeting), village, farm
 //   (farmstead id, or null for a meeting), tile, x, y (the spot, map units), start, end (game hours), overrides (work stops for it),
@@ -17,18 +18,28 @@ VB['sim/occasions'] = (() => {
     { remember } = VB['sim/relations'],
     Stores = VB['sim/stores'];
   const { BREW } = VB['sim/rules'];
-  // The occasions (Kim, 10 Nov; QUESTION_ARCHIVE.md, "VB-126"): their hours in the day, and whether work stops for them. The meeting is
-  // held at noon (sim/lifecycle's stages, from 12:00): its people stand about the green from 10:00 until its four steps are done.
+  // The occasions (Kim, 10 Nov; QUESTION_ARCHIVE.md, "VB-126"): their hours in the day, and whether work stops for them. A village's
+  // meeting is held on its own 6-minute step from noon (sim/lifecycle, VB-278): its people stand about the green from two hours before it
+  // until the step after it, so `from` and `to` are the hours of the first village's, and a later village's are its turn later.
   const OCCASIONS = {
     meeting: {
       from: 10,
-      to: 12.5,
+      to: 12 + 1 / TICKS,
       overrides: true,
       at: 'At the village meeting',
       go: 'Walking to the village meeting',
     },
     wedding: { from: 16, to: 21, overrides: false, at: 'At a wedding', go: 'Walking to a wedding' },
     funeral: { from: 16, to: 21, overrides: true, at: 'At a funeral ale', go: 'Walking to a funeral ale' },
+  };
+  // The villages' turns (VB-277, VB-278): the moving round and the meetings hold a village a 6-minute step from noon, in the order of
+  // village id, in a window of VILLAGE_STEPS steps. The first turns by the year (VB-280): the window starts at village `year mod n` and goes
+  // on in id order, wrapping, so village k holds slot j = (k - year) mod n, on step j while n is at most VILLAGE_STEPS, else floor(j * steps / n).
+  const VILLAGE_STEPS = 60;
+  const villageSlot = (k, n, year) => (((k - year) % n) + n) % n;
+  const villageTurn = (k, n, year) => {
+    const j = villageSlot(k, n, year);
+    return n <= VILLAGE_STEPS ? j : Math.floor((j * VILLAGE_STEPS) / n);
   };
   const REACH = 12; // a day's walk, in hours (design.md, Between villages: Near and far): kin further away are not asked
   const MIN_AGE = SOCIAL.talk.minAge; // younger children stay at home
@@ -41,9 +52,9 @@ VB['sim/occasions'] = (() => {
   }
   // Calls an occasion of `kind` at a tile and spot, on the day that begins at `day`, for the pawns `ids` with their walking hours; the
   // asked set out, each, `hours` before the start (not before the day's work begins), so that the far arrive in time.
-  function call(st, kind, day, place, ids, hours, forIds) {
+  function call(st, kind, day, place, ids, hours, forIds, later = 0) {
     const K = OCCASIONS[kind],
-      start = day + K.from,
+      start = day + K.from + later,
       asked = [];
     ids.forEach((id, n) =>
       asked.push({ id, leave: Math.max(day + WORK[0], start - Math.floor(hours[n])), hours: hours[n] }),
@@ -59,7 +70,7 @@ VB['sim/occasions'] = (() => {
       x: place.x,
       y: place.y,
       start,
-      end: day + K.to,
+      end: day + K.to + later,
       overrides: K.overrides,
       asked,
       come: [],
@@ -132,9 +143,10 @@ VB['sim/occasions'] = (() => {
     const g = guests(st, farm, [...hh.members, ...kinNear(st, id)], id);
     if (g.ids.length) call(st, 'funeral', day, yard(st, farm), g.ids, g.hours, [id]);
   }
-  // The day of the meetings (autumn day 10, at midnight; sim/clock): each village calls the people with a voice to its green.
+  // The day of the meetings (autumn day 10, at midnight; sim/clock): each village calls the people with a voice to its green, for its turn.
   function callMeetings(st) {
-    const day = dayOf(st.t);
+    const day = dayOf(st.t),
+      n = st.villages.length;
     for (const v of st.villages) {
       const s = st.cenv.settlements[v.id];
       if (!s) continue;
@@ -152,6 +164,7 @@ VB['sim/occasions'] = (() => {
         ids,
         ids.map(() => 0),
         [],
+        villageTurn(v.id, n, cal(st.t).year) / TICKS,
       );
     }
   }
@@ -282,5 +295,17 @@ VB['sim/occasions'] = (() => {
     const o = st.occasions.find((x) => x.id === a.occasion);
     return o ? OCCASIONS[o.kind][a.path ? 'go' : 'at'] : null;
   }
-  return { OCCASIONS, REACH, wedding, funeral, callMeetings, cannotAttend, join, occasionsDue, occasionLabel };
+  return {
+    OCCASIONS,
+    REACH,
+    VILLAGE_STEPS,
+    villageTurn,
+    wedding,
+    funeral,
+    callMeetings,
+    cannotAttend,
+    join,
+    occasionsDue,
+    occasionLabel,
+  };
 })();

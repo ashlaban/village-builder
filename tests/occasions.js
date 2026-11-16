@@ -1,7 +1,7 @@
 // Occasions (VB-126; design.md, Customs and culture, Meetings; Kim's answers in QUESTION_ARCHIVE.md, "VB-126"): a place, a start and an
 // end, and who is asked. A wedding the day after a marriage, 16:00 to 21:00 at the couple's farm, for the couple and the near kin of both
 // within a day's walk, takes those who are free; a funeral ale the day after a death, at the farm of the dead, for its household and near
-// kin, stops work; the village meeting gathers the people with a voice on the green from 10:00 until the meeting at noon, and stops work.
+// kin, stops work; the village meeting gathers the people with a voice on the green for two hours until its step from noon, and stops work.
 // Those who come stand about the spot and talk there; at the end they are free, and after work go home; a wedding and a funeral ale are
 // told in the log. A save made while one is under way plays on as the unbroken run.
 const assert = require('assert');
@@ -120,20 +120,30 @@ const aleLine = told(st, mark2, 'funeralAle');
 assert.strictEqual(aleLine.length, 1); assert.ok(aleLine[0].text.startsWith('The funeral ale for'), aleLine[0].text);
 sound(st, 'after the funeral ale');
 
-// 7. The meeting (autumn day 10): the people with a voice gather on the green from 10:00 and stand there until the meeting is done.
-const autumn10 = (2 * Sim.SEASON_DAYS + 9) * Sim.DAY;
+// 7. The meeting (autumn day 10): each village's people with a voice gather on its green from two hours before its own step from noon
+// (village k on step k, VB-278), and stand there until the step after it; then they are free.
+const autumn10 = (2 * Sim.SEASON_DAYS + 9) * Sim.DAY, TICKS = VB['sim/rules'].TICKS, turn = (o) => O.villageTurn(o.village, st.villages.length, VB['sim/rules'].cal(st.t).year) / TICKS;
 Sim.advance(st, autumn10 + 11 - st.t);
-const meetings = st.occasions.filter((o) => o.kind === 'meeting');
-assert.ok(meetings.length >= 1, 'the villages meet');
-for (const o of meetings) {
+const meetings = st.occasions.filter((o) => o.kind === 'meeting').sort((a, b) => a.village - b.village);
+assert.ok(meetings.length >= 2, 'the villages meet');
+for (const o of [...meetings].sort((a, b) => turn(a) - turn(b))) {
   const v = st.villages[o.village], s = st.cenv.settlements[v.id];
-  assert.strictEqual(o.tile, v.center, 'on the green'); assert.strictEqual(o.end, autumn10 + 12.5);
+  assert.strictEqual(o.tile, v.center, 'on the green');
+  assert.strictEqual(o.start, autumn10 + 10 + turn(o), `the ${v.name} meeting's people gather two hours before its step`);
+  assert.strictEqual(o.end, autumn10 + 12 + 1 / TICKS + turn(o), `the ${v.name} meeting ends a step after its own`);
   const voices = R.membersOf(st, v.id).filter((p) => R.voiceOf(st, p, s) > 0).map((p) => p.id);
   for (const id of voices) assert.ok(o.come.includes(id) || o.asked.some((g) => g.id === id), `voice ${id} is called to the ${v.name} meeting`);
   assert.ok(o.come.length >= Math.ceil(voices.length / 2), `the ${v.name} meeting is attended (${o.come.length} of ${voices.length})`);
 }
 sound(st, 'at the meetings');
-Sim.advance(st, 2);
+// at each village's step its people are on its green; at the step after, they are free
+const last = Math.max(...meetings.map(turn));
+for (const o of [...meetings].sort((a, b) => turn(a) - turn(b))) {
+  Sim.advance(st, autumn10 + 12 + turn(o) - st.t);
+  const there = o.come.filter((id) => st.agents[id].occasion === o.id).length;
+  assert.ok(there >= Math.ceil(o.come.length / 2), `at its step the ${st.villages[o.village].name} meeting's people are on the green (${there})`);
+}
+Sim.advance(st, autumn10 + 12 + last + 2 / TICKS - st.t);
 assert.strictEqual(st.occasions.filter((o) => o.kind === 'meeting').length, 0, 'the meetings are over');
 assert.ok(st.agents.every((a) => a.occasion === null), 'nobody is held');
 console.log(`occasions ok: ${weddings.length} weddings (${present} there at 20:00, ${talks} talking), a funeral ale that stops work, `

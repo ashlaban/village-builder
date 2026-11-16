@@ -358,22 +358,23 @@ VB['sim/rules'] = (() => {
 
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and by a cold house (VB-327: `cold` times the day's cold,
   // 0..1), and restored by a full meal on a warm day; at 0 the pawn dies of starvation ----
-  const HEALTH = { drain: 4, cold: 2, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+  const HEALTH = { drain: 4, cold: 2, dry: 1, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
 
   // ---- relationships (sim/relations; docs/review-relationships.md; VB-240, Kim 10 Nov): one pawn's opinion of another (-1..1) is derived:
   // the standing's value (kin, spouse, housemate), plus affinity, affinity.weight * compatibility * min(1, tie / affinity.known), the pair's
   // fixed compatibility shown as the two grow familiar, plus timed memories of things that happened. A memory gains v at each event, up to
   // cap, and fades to 0 over `days` from the last one.
-  // Talk: between 6:00 and 22:00 each pawn of minAge or more, not carrying a load, starts a talk at `chance` an hour with one nearby
-  // pawn (`sample` candidates at most), weighted by (1 + min(tie, 1)) * (1 + opinion). The talk is a chat, a good talk or cross words
-  // by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin for kin and housemates): its kind is the
-  // bubble's, and leaves no memory. Two unmarried pawns aged within `young` count `youngBonus` times in both the choice and the good talk.
-  // A talk adds ties.talk to the tie of both and shows a bubble for `bubbleHours`. closeFriend and enemy: an opinion reaching them is a
-  // life event; leaving needs `back` past the line. friend and dislike are the page's words only.
+  // Talk (VB-521: by turns): between 6:00 and 22:00 a pawn has a talk turn in the hours where (hour + id) % `every` is 0, four a day; at it,
+  // of minAge or more and not carrying a load, it starts a talk at `chance` with one partner sim/encounters finds (`sample` drawn at most
+  // outdoors), weighted by (1 + min(tie, 1)) * (1 + opinion), plus the encounter's mix; it may be drawn as a partner in any hour, once.
+  // The talk is a chat, a good talk or cross words by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin
+  // for kin and housemates): its kind is the bubble's, and leaves no memory. Two unmarried pawns aged within `young` count `youngBonus`
+  // times in both the choice and the good talk. A talk adds ties.talk to the tie of both and shows a bubble for `bubbleHours`. closeFriend
+  // and enemy: an opinion reaching them is a life event; leaving needs `back` past the line. friend and dislike are the page's words only.
   // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
   // An idle pawn the planner found no work looks again after wait[0] to wait[1] hours (VB-245; Kim, 10 Nov: 2 to 4, from 0.75 to 2). It hears of new
-  // work meanwhile through the hourly refresh and `awake` (sim/agents), which wakes those whose pause ends by the hour's end, and of an occasion by the asking.
-  const IDLE = { wait: [2, 4] };
+  // work meanwhile through the hourly refresh, looks again when its wait ends (a leg in sim/agents' queue, VB-473), and of an occasion by the asking.
+  const IDLE = { wait: [4, 8] };
   const SOCIAL = {
     situational: { spouse: 0.3, parent: 0.3, child: 0.3, sibling: 0.2, housemate: 0.1 },
     memories: {
@@ -390,11 +391,14 @@ VB['sim/rules'] = (() => {
       // sim/workdays: a holder of the village whose household stayed away from a work day; each other holder with a tie to it (VB-120; Kim,
       // 10 Nov: a small negative memory fading over a year; the numbers are the agent's starting values)
       stayedAway: { label: 'Stayed away from the work day', v: -0.05, cap: -0.15, days: YEAR_DAYS },
+      // sim/relations: cross words that became a quarrel, both ways (VB-520; design.md, The twelve traits: temper)
+      quarrel: { label: 'Quarrelled with us', v: -0.1, cap: -0.3, days: YEAR_DAYS },
     },
     talk: {
       from: 6,
       to: 22,
-      chance: 0.5,
+      every: 4,
+      chance: 1,
       minAge: 4,
       sample: 8,
       good: 0.15,
@@ -403,12 +407,21 @@ VB['sim/rules'] = (() => {
       young: [16, 30],
       youngBonus: 2,
       bubbleHours: 0.5,
+      quarrel: 0.05, // a talk of cross words becomes a quarrel at this times the two tempers' sum (VB-520)
     },
-    // Familiarity (VB-127; docs/review-relationships.md, proposal B): a tie grows by `talk` a talk, by `home` per 24 waking hours (the talk
-    // hours) two housemates spend in their house, counted once a day, and by `work` for each job two pawns finish together; it halves every
-    // year. Near kin never fall below `kin`. A pawn keeps at most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped
-    // when the pawn's ties are put back on today's scale, every `renorm` years.
-    ties: { talk: 0.5, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
+    // Chemistry (VB-520; design.md, Chemistry): a pair's compatibility is personal × the seeded term + likeness × how alike the two are in
+    // the four values and sociability (1 alike, 0 at `span`, the mean difference of two drawn at random, -1 at twice that) − friction ×
+    // (the two tempers' sum − 1) − customs × the share of customs on which they lean to different options (each weighed by 1 − its
+    // malleability), less the age gap, within -1..1. The last term is Like seeks like (Balance loops and targets; Decided, 12 Nov). The
+    // design's first weights were 0.7, 0.5, 0.3, 0.3; personal 0.9 and friction 0.4 keep the shares of close friends, friends, dislikes
+    // and enemies within a fifth of what they were (VB-520's five runs, populous small seed 7, 3 years).
+    chemistry: { personal: 0.9, likeness: 0.5, friction: 0.4, customs: 0.3, span: 0.17 },
+    // Familiarity (VB-127; docs/review-relationships.md, proposal B): a tie grows by `talk` a talk (VB-521: 0.8, a longer conversation at
+    // four turns a day; it was 0.5), by `home` per 24 waking hours (the talk hours) two housemates spend in their house, counted once a
+    // day, and by `work` for each job two pawns finish together; it halves every year. Near kin never fall below `kin`. A pawn keeps at
+    // most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped when the pawn's ties are put back on today's scale,
+    // every `renorm` years.
+    ties: { talk: 0.8, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
     affinity: { weight: 0.6, known: 8 },
     friend: 0.25,
     dislike: -0.2,
@@ -606,12 +619,14 @@ VB['sim/rules'] = (() => {
   // it is SOCIAL.memories.ale.
   const BREW = { grain: 10, hours: 4, guests: 20, stock: 1, prestige: 0.05, maxBarrels: 4, years: 3 };
   const HELP = {
-    bufferDays: [20, 60], // days of the household's food a holder wants in store before giving; drawn uniformly per pawn
+    // a holder wants floorDays and its own reserve (TRAITS.acts.generosity.reserve, by its generosity: 0 to 40 days; VB-520) of the
+    // household's food in store before giving
     floorDays: 20, // the floor (VB-182): no deal takes a household below its seed reserve and this many days of its need
     askBelow: 3,
     askDays: 12, // a household asks when its spare grain covers fewer days than this, once a season, for food until the
     // next harvest and at least this many days (VB-222)
     storeShare: 0.25,
+    storeTarget: 0.5, // years of its village's need the store is filled to, and under which its common fields are sown (VB-457)
     tieGain: 0.5, // share of its surplus a household gives the village store each year; tie gain between the holders
   };
   // ---- goodwill (sim/relations, VB-217; design.md, The gift): a balance between two pawns in customary rations ----
@@ -750,6 +765,10 @@ VB['sim/rules'] = (() => {
     wellHours: 40,
     sweepHours: 10,
     greenReach: 4,
+    // a barn (VB-255; Kim, 10 Nov: QUESTION_ARCHIVE.md, "VB-255: the barn as a project"): a second store building on the farm's block,
+    // built by a plot's cottage's stages (hours as theirs) with `timber` loads felled in the village's wood for its walls; a farm with one
+    // loses `loss` times the grain to spoilage (ECON.storeLoss, sim/hunger) and the barn hay (HERD.hayLoss, sim/byre)
+    barn: Object.freeze({ timber: 40, hours: Object.freeze([30, 60, 30]), loss: 0.5 }),
   };
   // Village work days (VB-120; Kim, 10 Nov; design, Jobs, owners and roles: Village work days): a routine the meeting may choose for a village
   // with a fence; chosen, the village works together on `days` ([season, day of the season, what]): spring's first day the fence, its stretches
@@ -858,6 +877,8 @@ VB['sim/rules'] = (() => {
       waterMorning: 1.4,
       waterMorningHour: 10,
       water: 1,
+      waterLate: 3.3, // VB-331: from waterLateHour, 1.5 times cookEvening: the water comes before the cooking
+      waterLateHour: 14,
       cookEvening: 2.2,
       cookEveningHour: 15,
       cook: 0.6,
@@ -882,6 +903,49 @@ VB['sim/rules'] = (() => {
       fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
     },
   };
+  // ---- the twelve traits (VB-519; design.md, People, Traits, talk and stories; Customs and culture, A culture's values) ----
+  // A pawn's traits, in the order of `names`: four values, four of temperament, four aptitudes. Every trait passes on by one equation,
+  // mean + b × (the two parents' mean − mean) + a normal chance of spread sd × √(1 − b²/2), so its spread stays `sd` from one generation to
+  // the next; within `bounds`. b: the share of the parents' departure from the mean a child keeps (twin studies, 0.4 to 0.5, for
+  // temperament; values from those who raised it and from the many, Cavalli-Sforza and Feldman 1981). setAge: the age its values set for
+  // good. lean: a hungry childhood (stunting) takes up to `body` from body and `wits` from wits, in proportion to the days of `days` the
+  // child went hungry (its hunger at `hunger` or more). label: the reference distribution's 15th and 85th percentiles, beyond which a
+  // trait is named. culture: the means of the four values an archetype's culture starts with (Old Nordic: a culture of one's word).
+  const TRAITS = Object.freeze({
+    names: Object.freeze([
+      ...['generosity', 'piety', 'ambition', 'honour'],
+      ...['sociability', 'temper', 'diligence', 'openness'],
+      ...['body', 'hands', 'husbandry', 'wits'],
+    ]),
+    sd: 0.15,
+    b: Object.freeze({ values: 0.6, temperament: 0.45, aptitudes: 0.5 }),
+    setAge: 15,
+    lean: Object.freeze({ body: 0.2, wits: 0.1, days: 96, hunger: 0.5 }),
+    bounds: Object.freeze([0.02, 0.98]),
+    label: Object.freeze({ low: 0.345, high: 0.655 }),
+    culture: Object.freeze({ oldNordic: Object.freeze({ generosity: 0.5, piety: 0.5, ambition: 0.5, honour: 0.6 }) }),
+    // What a trait does (VB-520; design.md, The twelve traits and the rules each changes): acts.<trait>.<rule> is [the value at 0, at 1],
+    // linear in the trait between (Traits.act), its midpoint the rule's value before traits, so a pawn at 0.5 acts as every pawn did.
+    // reserve: the holder's own reserve beyond HELP.floorDays, in days of the household's need (it was drawn per pawn, 0 to 40); one
+    // without a holder keeps the most. anchor: times the pull of what was learned young (culture's P.anchor). settle: times the pressure (the
+    // rounds waited in a crowded village) a pawn needs before it wishes to leave at the moving round (sim/settle reads SETTLE.chance there).
+    // breach: times the memories of a breach (`breach`, SOCIAL.memories) as this pawn feels them. talk: times the chance to start a talk at
+    // its turn (SOCIAL.talk.chance), at most 1; seek: times SOCIAL.seek. idleWait: times IDLE.wait (the design's 4 to 2 hours about its 3).
+    // malleability: times a custom's malleability in its attitudes' drift; cause: times the chance to take up a cause. recover: times
+    // HEALTH.recover (2.5 to 3.5). Temper acts through chemistry and the quarrel (SOCIAL.chemistry, SOCIAL.talk.quarrel); wits and
+    // husbandry through a head's skill (sim/traits).
+    acts: Object.freeze({
+      generosity: Object.freeze({ reserve: Object.freeze([40, 0]) }),
+      piety: Object.freeze({ anchor: Object.freeze([0.5, 1.5]) }),
+      ambition: Object.freeze({ settle: Object.freeze([1.5, 0.5]) }),
+      honour: Object.freeze({ breach: Object.freeze([0.5, 1.5]) }),
+      sociability: Object.freeze({ talk: Object.freeze([0.5, 1.5]), seek: Object.freeze([0.5, 1.5]) }),
+      diligence: Object.freeze({ idleWait: Object.freeze([4 / 3, 2 / 3]) }),
+      openness: Object.freeze({ malleability: Object.freeze([0.5, 1.5]), cause: Object.freeze([0, 2]) }),
+      body: Object.freeze({ recover: Object.freeze([2.5 / 3, 3.5 / 3]) }),
+    }),
+    breach: Object.freeze(['claim', 'border', 'refusedMatch', 'crop', 'stayedAway']),
+  });
   // ---- a well-kept house (VB-306; design.md, Goods of place and side crafts: A well-kept house) ----
   // A farmstead's condition 0..1 (f.condition) is the value at f.condAt (game hours; 0 when never set) for an occupied house, and it wears
   // by closed form from then (rule 3: no daily pass), 0.1 a year, 0.067 while tarred (f.tarredUntil, game hours: a barrel lasts 6 years;
@@ -918,6 +982,7 @@ VB['sim/rules'] = (() => {
     ((onStone(f) ? HOUSE.termStone : HOUSE.term) + (houseTarred(st, f) ? HOUSE.termTarred - HOUSE.term : 0)) *
     houseCondition(st, f);
   return {
+    TRAITS,
     DAY,
     SEASON_DAYS,
     YEAR_DAYS,

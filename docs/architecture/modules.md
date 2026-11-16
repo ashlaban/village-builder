@@ -55,11 +55,21 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   a pawn takes and its pace; wear, mending and the end of a cart; the head's count of misses, `household.cartMiss`, and the cart built as a
   project at the house; its tunables `CART`, with `TRAVEL` in `src/sim/rules.js`). `sim/agents` asks it at each load, `sim/kinds` takes its
   kinds (`cart`, `mendcart`) and the hay's loads from it, `sim/building` fells its timber, `sim/clock` runs its winter count.
+- Loads left lying (VB-611): `src/sim/lying.js` owns `st.lying` and `st.lyingSeq`: a load whose carrier died on the road or whose household
+  dissolved, put down where it was (`sim/agents` release), with its good, amount, tile and owner; a fetch kind for each kind that carries a
+  load (`fetchHaul`, `fetchHay`, `fetchWood`, `fetchWellstone`, registered by `sim/kinds`) and the rule that posts them for the owner; one
+  nobody fetches rots at the autumn frost (`sim/clock`).
 - Journeys (VB-287; design.md, Between villages): `src/sim/agents.js` owns `st.journeys` and `st.journeySeq`. `sim/heirs`' `moveTo`
   changes the household at the act and hands the pawn to `moved`: within a village it walks to the new door; to another village it sets
   out on a journey, its provisions (`TRAVEL.dayWalk` hours a ration) taken from the household it leaves through `sim/stores` (reason
-  `journey`), a leg a day from 6:00 to 18:00 as due entries the calendar reads at 6:00 (`dueJourneys`) and stops at 18:00
-  (`stopJourneys`); on the road it eats what it carries (`feedTravellers`, through `sim/hunger`'s `ate`), out of its household's meal.
+  `journey`), a leg a day from 6:00 to 18:00 in the pawns' one queue of legs (`st.legDue`, VB-473: a walk that stops for the night at
+  the last step before 18:00, a wait on the road until 6:00); on the road it eats what it carries (`feedTravellers`, through `sim/hunger`'s
+  `ate`), out of its household's meal.
+- Legs (VB-471 to VB-473; design.md section 7, A leg, and its end): `src/sim/agents.js` keeps every pawn in one leg, a walk, work or a
+  wait (`agent.leg`); the ends of walks and waits wait in `st.legDue`, those of tasks in `st.workDue`, and a step (`stepAgents`) takes
+  what is due and nothing else. A pawn's place is `placeOf` (a walker along its leg's hours); `sim/society`'s `outdoors`, `sim/jobs`'
+  company and `sim/lifecycle`'s death on the road read it, and the page reads walkers' places through the shim `Sim.walkerPlaces` until
+  VB-474.
 - Claims (VB-042, VB-155 to VB-158, VB-033): `src/sim/claims.js` (claims on tiles: strength, lapse, disputes by custom), `src/sim/territory.js` (the
   village's outland, borders and cairns), `src/sim/stakes.js` (a field or meadow project stakes its tile; contests) and `src/sim/farmclaims.js`
   (empty farms: the birthright, claimants by custom, restoration and moving in). Design and plan: `docs/review-claims.md`.
@@ -85,6 +95,13 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. `roundPhase(st, n)`
   is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
+- The meetings (`src/sim/lifecycle.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
+  step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
+  (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,
+  `src/sim/society.js`), the causes its adults take up and its meeting, whose lines go to the head of `st.meetingLog`; roles and prestige
+  island-wide, and the living of no settlement, at the first village's. At 18:00 each culture's year, at 18:06 the land meeting.
+  `meetingStage(st, n)` is the step's entry; `holdMeetings` runs the villages and the cultures. The meeting's occasion on each green is
+  called for its village's turn: from two hours before its step to the step after.
 - Saves (VB-074): `Sim.save(st)` and `Sim.load(w, data)` in `src/sim/saves.js`; a generic codec keeps shared objects, Maps, Sets and typed
   arrays, and the tiles the simulation changes are saved with the state (its `WORLD` list: a new world field the simulation writes goes there).
   `st` is plain data (VB-073, `tests/plaindata.js`): no functions, and no state kept aside in module closures, or a loaded run drifts
@@ -100,8 +117,12 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   bands (`pawn.bands`). Opinion is derived when read (`opinionOf`): kin standing, plus affinity (the pair's compatibility, shown as the tie
   grows), plus the memories. Talk grows the tie only; its kind is the bubble's. A band is checked by `touch` where a pair's tie or memories
   change (a talk, a job together, the day's hours at home, the kin floor, `remember`, the season's pass), never by a pass over pairs.
+- Encounters (VB-521): `src/sim/encounters.js` owns who meets whom, a table `ENCOUNTERS` of kinds (`house`, `outdoors`, `pasture`,
+  `occasion`), each with who is present, how a partner is drawn and the mix that lets strangers meet; the talk round of `sim/relations` asks
+  it for partners at each pawn's turn (every `SOCIAL.talk.every` waking hours, by id). `present` reads those who came to an occasion and
+  `said` is the one door by which something is made known to them all. It keeps no state, reads no plan and has only social effects.
 - Occasions (VB-126): `src/sim/occasions.js` calls a gathering at a place from a start to an end (the village meeting on the green on autumn
-  day 10, a wedding the day after a marriage, a funeral ale the day after a death), asks its guests and keeps `st.occasions`, a due-queue the
+  day 10, for its village's turn, a wedding the day after a marriage, a funeral ale the day after a death), asks its guests and keeps `st.occasions`, a due-queue the
   six-minute step reads at its head only. Those asked set out by the verb `attend` and stand about the spot until the end (`agent.occasion`);
   talk there is talk as anywhere. The gathering of villages (VB-295) is the next kind.
 - Notable events (VB-098): `Sim.notable(st, ev, about)` in `src/sim/notable.js` gives the reasons a record event is notable (keys of
@@ -125,7 +146,22 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `meadowWhy`), `order` (the season's routines), `project` (a field or meadow begun, or `none`: projects held off) and `dropProject`; only
   the household's head may issue them. The player's go through `Sim.head(st, verb, args)`, the holder's land step issues `project` with
   source `pawn`; the choices lie in `plan.chosen`, `plan.tiles` and the seasonal plan's `by` (`src/sim/plans.js`), and `Sim.headView` reads
-  them for the page (`tests/head.js`).
+  them for the page (`tests/head.js`), with the custom's targets beside the head's and the head's skill and horizon (VB-254).
+- Foresight (VB-254): `src/sim/traits.js` holds the stand-in traits (`pawn.traits`: wits, husbandry, diligence, ambition, generosity), drawn
+  from the stream `traits` at birth (`sim/births`) and for the living at the start (`sim/scenarios`' `startStreams`, after the streams are
+  split), and read only through `Traits.of`. `sim/plans` keeps each household's head as planner (`plan.head`: its pawn, since when, its bias
+  on the wood, hay, seed and fields targets), drawn at the plan's making and on the event `newHead` (`sim/heirs`, a succession), never at a
+  review; the bias multiplies the template's targets at the seasonal plan, and the head's horizon (by its skill) adds what it projects to the
+  woodpile and the hay at each review (`targets.ahead`). Tests written against the template's targets make their heads plan by it
+  (`tests/lib/heads.js`); `tests/traits.js` checks the rest.
+- A head's projects (VB-255): `src/sim/aims.js` (agency, after `sim/heirs`) hears `sim/plans`' `planReviewed` and `stepDone`; once a
+  year after the autumn count, and after a project of the head's ends, it reads the surplus (the plan's targets met, food over 1.5 years
+  of need and the seed, the hands idle over a third of the last season by `household.workHours`, which `sim/agents` counts as work is
+  reckoned), computes the menu (a field, a claim as a new meadow, a farm for the heir, a barn) and draws one from the stream `plans` by the
+  head's lean (`Traits.of`: ambition, generosity); it acts through the verbs `project`, `barn` and `heirFarm` (`sim/commands`; `heirFarm`
+  tells `sim/expansion` by the event `heirFarm`, which begins a plot held by the household, `plot.by`). It keeps `plan.aim` and drops its
+  project when the food has stood under the measure a season. The barn's stages are `sim/building`'s kinds, which set `farmstead.barn`;
+  `sim/hunger` and `sim/byre` halve the spoilage on a farm with one (`BUILD.barn.loss`). `tests/aims.js`.
   The player (VB-169) is one more source: `st.player` holds the inhabited pawn and its queue, written by `Sim.inhabit`, `uninhabit`, `queue`,
   `unqueue` and `setAuto`; `playerStep` issues the queue's head each step, and the planner's sites ask `commanded` and `unplanned` before they
   move a pawn (`tests/player.js`). The page plays it in `src/page/play.js` (VB-210, VB-221): the Actions sheet of the bottom bar, shown
@@ -153,11 +189,13 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 Each module's layer is in `src/layers.json` (a module without one fails `npm test`); target-v2 3.1 gives the rule: calls go downward, reads are
 free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
 - Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/events`, `sim/rng`, `sim/hex`, `sim/names`, `sim/routes`, `sim/paths`,
-  `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/commands`.
+  `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
+  head's skill and bias, VB-254), `sim/commands`.
 - Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/pot`, `sim/hunger`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
-  `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058).
-- Social: `culture`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
+  `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058), `sim/lying` (loads left
+  lying where their carrier fell, VB-611).
+- Social: `culture`, `sim/encounters`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
 - Agency: `sim/agents`, `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle`, `sim/eligibility`, `sim/plans`.
@@ -165,7 +203,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 
 ## Adding things
 - A module has no cap on its length (VB-413): over 700 formatted lines (`src/` is formatted by Prettier, `npm run format`) the lint asks for an open task titled "Refactor: split <key> ...", opened by the task that
-  takes it there (VB-414). The same task is asked for when a module over 15 exports gains one (VB-415; the `sim` facade is not counted). Put code where its concern lives, not where there is room.
+  takes it there (VB-414). The same task is asked for when a module over 15 exports gains one (VB-415; the `sim` facade is not counted, nor an export read only by a registry: a job kind's `done`, a calendar entry's `run`, a verb's body; the list is `REGISTRIES` in `tests/lint.js`, VB-454). Put code where its concern lives, not where there is room.
 - Tunables: `ECON`, `FIELDS`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `HERD`, `SOIL`, `RIVER`, `TERRAIN`, `SLOPE`, `ROUTE`, `PATHS`, `SETTLE`
   and `SERVICE` in `src/sim/rules.js`; `KINDS` (job kinds) in `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`
   (worn paths) in `src/gen/paths.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.

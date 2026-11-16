@@ -7,6 +7,8 @@ VB['sim/projects'] = (() => {
   //   taken from the holder's store when the step is done, or absent), timber and wood (loads it needs at its site and loads brought, or
   //   absent; VB-300's boat)}], open (the index of the open step), reserved, reasons (sim/stores)}.
   //   A finished or dropped plan is removed, and a holder with none has no entry (Rules for cost, 1). st.plans.projectSeq: the last plan's id.
+  //   st.plans.projects.heirPlots (VB-255): the households' plots for their heirs under way (the same plans as in `household`), an index
+  //   of the live ones so that a village's plots are found without walking its households; written with the record, by sim/plans.
   //   Written only by sim/plans (which hears the lower modules' changes by events: a step done, a right lost, a store short); read here.
   // The plans a holder has (an empty list for none; never written to).
   const NONE = [];
@@ -50,7 +52,7 @@ VB['sim/projects'] = (() => {
     return !!(plan && plan.chosen && plan.chosen.project === 'none');
   }
   // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
-  const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map() });
+  const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map(), heirPlots: [] });
   return {
     projectsOf,
     projectOf,

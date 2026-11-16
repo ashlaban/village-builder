@@ -60,15 +60,55 @@ const iv = setInterval(async () => {
   let t = Date.now(); tick(300); console.log('after intro (300 frames,', Date.now() - t, 'ms):', state(), '| lod:', doc.getElementById('lod').hidden ? 'idle' : doc.getElementById('lod').textContent);
   t = Date.now(); let n = 0; while (!doc.getElementById('lod').hidden && n < 2000) { tick(1); n++; } console.log('settled after', n, 'more frames', Date.now() - t, 'ms:', state());
   const q = (s) => doc.querySelector(s), qa = (s) => [...doc.querySelectorAll(s)];
+  // a farm with a cart draws one (VB-410): a hand cart given to a household adds one visible sprite to the objects layer (the 14th of the world's layers; `names` above is older)
+  {
+    const vis = () => APP.stage.children[0].children[13].children.filter((c) => c.visible).length;
+    const hh = simSt.households.find((h) => !h.dissolved && h.farmstead !== null), before = vis();
+    hh.carts.push({ kind: 'hand', cond: 0.3, built: simSt.t, by: null }); tick(3);
+    if (vis() !== before + 1) fail(`a farm given a hand cart draws ${vis() - before} more sprites, not 1`);
+    hh.carts.pop(); tick(3);
+    if (vis() !== before) fail('a cart taken away is still drawn');
+    // a cart out with a pawn (VB-410), taken as the simulation takes it (sim/carts take): drawn at the pawn, not below the house, with the
+    // team ahead of an ox cart; home again, it stands below the house
+    {
+      const C = win.VB['sim/carts'], hh2 = simSt.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => simSt.agents[m] && !simSt.agents[m].inside));
+      const a = simSt.agents[hh2.members.find((m) => !simSt.agents[m].inside)];
+      hh2.carts.length = 0; hh2.carts.push({ kind: 'hand', cond: 1, built: simSt.t, by: null }); tick(3);
+      const home = vis(), objs = APP.stage.children[0].children[13].children;
+      const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load };
+      a.job = a.job || { kind: 'haul', farm: simSt.farmsteads[hh2.farmstead] }; a.phase = 'back'; a.carry = 'hay'; a.load = 60;
+      C.take(simSt, hh2, a.id, false); tick(3);
+      const near = objs.filter((o) => o.visible && o.anchor.y === 0.85 && Math.hypot(o.position.x - a.x, o.position.y - a.y) < 14);
+      if (!C.out(simSt, hh2.carts[0])) fail('the cart given to a pawn is not out');
+      if (near.length !== 1) fail(`a cart out with its pawn is drawn ${near.length} times at the pawn`);
+      if (vis() !== home) fail(`a cart out leaves ${vis() - home} more sprites visible than at home: it is drawn twice`);
+      C.leave(simSt, hh2, a.id); Object.assign(a, saved); tick(3);
+      if (objs.some((o) => o.visible && o.anchor.y === 0.85 && Math.hypot(o.position.x - a.x, o.position.y - a.y) < 1)) fail('a cart home is still drawn at its pawn');
+      if (vis() !== home) fail('a cart home is not drawn below the house again');
+    }
+    // a pawn leading a cow home (VB-429), as sim/exchange's `lead` job has it (carry 'cow', phase 'back'): the animal is drawn beside it, and
+    // not once the pawn has delivered it
+    {
+      const hh3 = simSt.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => simSt.agents[m] && !simSt.agents[m].inside && !simSt.agents[m].job));
+      const a = simSt.agents[hh3.members.find((m) => !simSt.agents[m].inside && !simSt.agents[m].job)], objs = APP.stage.children[0].children[13].children;
+      const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load };
+      const cows = () => objs.filter((o) => o.visible && o.anchor.y === 0.92).length;
+      const base = cows();
+      a.job = { kind: 'lead', farm: simSt.farmsteads[hh3.farmstead] }; a.phase = 'back'; a.carry = 'cow'; a.load = 0; tick(3);
+      if (cows() !== base + 1) fail(`a pawn leading a cow is drawn with ${cows() - base} animals beside it, not 1`);
+      Object.assign(a, saved); tick(3);
+      if (cows() !== base) fail(`a cow delivered is still drawn at its leader (${cows()} cows drawn, ${base} before)`);
+    }
+  }
   console.log('clock:', doc.getElementById('clockDate').textContent, '|', doc.getElementById('clockYear').textContent, '| scenario', doc.getElementById('genScenario').value);
-  // the shown clock follows simulation time within a 6-minute step and 5 game minutes, in whole 5-minute steps: it shows the time the
-  // pawns are drawn at, between the last two steps (VB-244)
+  // the shown clock is the time the simulation has reached, floored to whole 5 minutes: never ahead of it, less than 5 minutes behind
+  // (VB-474; the pawns are drawn a fraction of a step ahead, the clock is not)
   const shownMin = () => { const m = /Year (\d+), (\d\d):(\d\d)/.exec(doc.getElementById('clockYear').textContent); return m ? (+m[2]) * 60 + (+m[3]) : -1; };
   for (const sp of [1, 3, 10, 30, Infinity]) {
     q(`[data-speed="${sp}"]`).click();
     for (let k = 0; k < (sp === Infinity ? 10 : 400); k++) {
       tick(1); const shown = shownMin(), real = Math.floor(simSt.t * 60 + 1e-6) % 1440, lag = (real - shown + 1440) % 1440;
-      if (shown < 0 || shown % 5 !== 0 || lag > 11) { fail(`clock at ${sp}x shows ${shown} min but simulation is at ${real} min`); break; }
+      if (shown < 0 || shown % 5 !== 0 || lag > 5) { fail(`clock at ${sp}x shows ${shown} min but simulation is at ${real} min`); break; }
     }
   }
   q('[data-speed="1"]').click();

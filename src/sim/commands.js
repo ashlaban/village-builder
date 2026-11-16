@@ -15,6 +15,7 @@ VB['sim/commands'] = (() => {
     carryGift,
   } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
+  const { emit } = VB['sim/events'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
@@ -84,7 +85,15 @@ VB['sim/commands'] = (() => {
       // a gift carried (VB-291): by an adult of the giving household who is not on the road
       const p = st.pawns[c.args.carrier];
       if (!('farmstead' in from) || !('farmstead' in to)) return 'only a household carries a gift to a household';
-      if (!p || !p.alive || p.household !== from.id || p.age < 14 || p.age >= 60 || free(st, p.id))
+      if (
+        !p ||
+        !p.alive ||
+        p.household !== from.id ||
+        p.age < 14 ||
+        p.age >= 60 ||
+        free(st, p.id) ||
+        st.agents[p.id].phase === 'back'
+      )
         return `pawn ${c.args.carrier} cannot carry the gift`;
       o.carrier = p.id;
     }
@@ -158,7 +167,7 @@ VB['sim/commands'] = (() => {
       run: (st, c) => {
         const x = c.args && c.args.x !== undefined ? c.args.x : st.w.hx[c.target],
           y = c.args && c.args.y !== undefined ? c.args.y : st.w.hy[c.target];
-        walkTo(st, st.agents[c.actor], c.target, x, y);
+        walkTo(st, st.agents[c.actor], c.target, x, y, !!(c.args && c.args.near));
       },
     },
     // goHome: walk home and go in (phase 'home')
@@ -267,6 +276,42 @@ VB['sim/commands'] = (() => {
         if (what === 'none' || what === null) P.holdProject(st, c.target, what === 'none');
         else P.beginLand(st, st.households[c.target], what, landTile(st, st.households[c.target], c.args));
       },
+    },
+    // barn(): begin a barn on the household's farm, a project at the house (VB-255; sim/building's barnSteps; its checks sim/aims' barnWhy)
+    barn: {
+      check: (st, c) => heads(st, c) || later('sim/aims').barnWhy(st, st.households[c.target]),
+      run: (st, c) => {
+        const f = st.farmsteads[st.households[c.target].farmstead];
+        later('sim/plans').makeProject(st, 'household', c.target, {
+          what: 'barn',
+          steps: later('sim/building').barnSteps(f.house),
+        });
+      },
+    },
+    // heirFarm({heir}): begin clearing a plot and building its cottage for pawn `heir`, an adult of the household with no farm, as the
+    // household's project (VB-255; sim/expansion's plot, held by the household; its checks sim/aims' heirWhy)
+    heirFarm: {
+      check: (st, c) => heads(st, c) || later('sim/aims').heirWhy(st, st.households[c.target], c.args && c.args.heir),
+      run: (st, c) => {
+        const hh = st.households[c.target];
+        emit(st, 'heirFarm', {
+          village: st.farmsteads[hh.farmstead].village,
+          heir: c.args.heir,
+          by: hh.id,
+        });
+      },
+    },
+    // plotToVillage({plan, why}): household target's plot for its heir (project plan `plan`) passes to its village, its tiles and work with
+    // it (VB-255; sim/expansion hears it by an event): its head gives it up, the household dissolves, the heir cannot take it
+    plotToVillage: {
+      check: (st, c) =>
+        later('sim/projects')
+          .projectsOf(st, 'household', c.target)
+          .some((p) => p.what === 'plot' && p.id === (c.args && c.args.plan))
+          ? null
+          : `household ${c.target} has no plot ${c.args && c.args.plan} under way`,
+      run: (st, c) =>
+        emit(st, 'plotToVillage', { household: c.target, plan: c.args.plan, why: c.args.why || 'given up' }),
     },
     // dropProject({id, hold}): give up the household's project under way (args.id, the plan's id, when given: a field, a meadow, a boat,
     // a tar pit, ...), and with hold, hold off projects as project 'none' does

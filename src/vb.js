@@ -14,11 +14,18 @@ VB.COUNTERS = {
   reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
-  walkStep: 'Agent records walked by the six-minute step (the awake ones, sim/agents)',
-  walkAwake: 'Agent records walked to rebuild the awake list, once a game hour (VB-205)',
+  talkTurn:
+    'Pawns asked by the talk round at their talk turn, every SOCIAL.talk.every waking hours (sim/relations, VB-521)',
+  talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',
+  walkStep: 'Legs a step takes from the due-queue as they end: walks and waits (sim/agents stepAgents; VB-473)',
+  walkAwake:
+    "Pawn records looked at by the working day's start, for those waiting for it, once a day (sim/agents dayStart; VB-473)",
   idleStroll: 'Idle pawns sent strolling by idleAbout when the planner found them no work (VB-205)',
   companyWeighed: 'Idle pawns drawn and weighed as company in companyFor (VB-205)',
-  walkPoint: 'Path points walked past by moveAgent (VB-205)',
+  workReckon:
+    'Tasks under work reckoned, with their hours since (sim/agents settle: a hand joins or leaves, the end of work, the meal; VB-472)',
+  walkPoint: 'Path points passed, their tiles trodden as a walk ends or is cut (sim/agents treadTo; VB-205, VB-473)',
+  walkPlace: 'Places worked out along a walk (placeOf of a walking pawn: talk, nearness, company, a cut; VB-473)',
   walkDaily: 'Pawn records walked by dailyLife and Culture.dailyStep',
   walkTies:
     "Ties walked to put a pawn's ties back on today's scale, or to make room under the cap (sim/relations, VB-127)",
@@ -26,6 +33,8 @@ VB.COUNTERS = {
     'Pairs given familiarity for waking hours at home (daily) or a job finished together (sim/relations, VB-127)',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   roundWalk: "Pawn records walked by a village's round to build its pool, once a village (sim/lifecycle, VB-277)",
+  meetingWalk:
+    "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
   storeWalk: 'Village stores and retained ledger entries visited for spoilage and pruning',
   recordFold: 'Record slots passed by the yearly fold of routine events (sim/records, VB-199)',
@@ -72,6 +81,12 @@ VB.COUNTERS = {
     'Tiles within reach of a house searched for its hunting ground, when its hunting is asked for in autumn and winter (sim/deer; VB-139)',
   workdayHolders:
     'Holders of a village weighed by a household that stayed away from its work day, twice a year (sim/workdays; VB-120)',
+  plotWalk:
+    "Holders with a project plan under way walked for the households' plots for their heirs, as a village's plots are asked for " +
+    '(sim/expansion livePlots; VB-255)',
+  aimMenu:
+    "A head's menu of projects computed (its options' tiles and sites), for a holder with a surplus and no project, at most once a " +
+    'year and when a project ends (sim/aims; VB-255)',
   frontTile: 'Tiles of the forest front visited by spreadForest, once a game day (sim/spread; VB-091)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',

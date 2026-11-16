@@ -1,5 +1,6 @@
 // Exercise the real writes scanner and ownership audit without changing repository files.
 const assert = require('assert'), fs = require('fs'), path = require('path');
+const { readSource } = require('../tools/lib/source.js');
 const { scan, build, OWNERS, markdown, fieldOf, ownerOf } = require('../tools/writes.js');
 const { collect, audit } = require('./ownership.js');
 const file = 'src/sim/deaths.js', mod = 'sim/deaths';
@@ -60,7 +61,7 @@ assert.deepStrictEqual(audit([], baseline, { update: true }), []);
 assert(audit(writes('hh.grain += 1;'), baseline, { update: true }).some((e) => e.includes('outside owner')));
 assert.deepStrictEqual(collect([]), {});
 // Plant a real out-of-owner write in an in-memory copy of a manifest module: the full scan and baseline must reject it.
-const src = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+const src = readSource(file);
 const report = build({ [file]: src + '\nst.owner[0] = 1;\n' }, { stateOnly: true });
 const base = JSON.parse(fs.readFileSync(path.join(__dirname, 'ownership-baseline.json'), 'utf8'));
 const errors = audit(report.fields.flatMap((f) => f.writes), base);
@@ -106,7 +107,7 @@ console.log('ownership rules ok: writes rejected, creation/signals/exemptions al
 // VB-243: a write through a parameter named `home` (the case found on 10 November) fails as an unplaced write, not unseen.
 {
   const { auditUnresolved } = require('./ownership.js');
-  const src = require('fs').readFileSync('src/sim/herds.js', 'utf8') + '\nfunction f(st, home) { home.grain = 0; }';
+  const src = readSource('src/sim/herds.js') + '\nfunction f(st, home) { home.grain = 0; }';
   const b = build({ 'src/sim/herds.js': src }, { stateOnly: true });
   assert(b.unresolved.some((u) => u.mod === 'sim/herds' && /home\.grain/.test(u.text)), 'home.grain reaches the unresolved list');
   assert(auditUnresolved(b.unresolved, {}).some((e) => /home\.grain/.test(e) && /herds\.js:\d+/.test(e)), 'and fails the unresolved check');

@@ -149,7 +149,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.locator('#settlers button[data-village]').first().click(); await oneSheet();
     if (await page.locator('#tileTabs').isHidden()) await page.click('#tile .sheet-expand');
     await page.click('#tabCustoms'); await fits('#tile');
-    assert.strictEqual(await page.locator('#tileCustoms .charter [data-phrase]').count(), 14, 'the charter has a phrase a custom');
+    assert.strictEqual(await page.locator('#tileCustoms .charter [data-phrase]').count(), require('../src/load.js').culture.DIMS.length, 'the charter has a phrase a custom');
     await page.locator('#tileCustoms [data-phrase]').first().click(); await page.locator('#tileCustoms .stand .way').first().waitFor({ state: 'visible' });
     await fits('#tile'); await page.click('#tabFacts');
     console.log('mobile: culture'); await page.click('#cultureBtn'); await oneSheet(); await fits('#drawer');

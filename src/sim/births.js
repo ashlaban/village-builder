@@ -4,7 +4,8 @@ VB['sim/births'] = (() => {
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
   const { joinHousehold, person, personEvent, lifeEvent, log, fullName, spouseOf, atHousehold, kinNear } =
     VB['sim/records'];
-  const Culture = VB['culture'];
+  const Culture = VB['culture'],
+    Traits = VB['sim/traits'];
   const { initRelations, raiseTie, floorKin } = VB['sim/relations'];
   const { placeBorn } = VB['sim/agents'];
   const { refreshRoles } = VB['sim/heirs'];
@@ -50,6 +51,7 @@ VB['sim/births'] = (() => {
     p.alive = true;
     p.age = 0;
     joinHousehold(st, hh, id);
+    Traits.born(st, id); // its traits, from its parents by birth and its culture (VB-519)
     Culture.initPerson(
       p,
       Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2),
@@ -82,13 +84,13 @@ VB['sim/births'] = (() => {
       stride: rnd(st.rng.people) * 6,
       ox: (rnd(st.rng.people) - 0.5) * 12,
       oy: (rnd(st.rng.people) - 0.5) * 8,
-      work: null,
       idleUntil: 0,
       talk: null,
       occasion: null,
     });
     placeBorn(st, st.agents[id], m.id, hh);
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
+    m.nursling = id; // the child she nurses: its death ends the nursing (VB-632)
     lifeEvent(
       st,
       id,
@@ -103,13 +105,22 @@ VB['sim/births'] = (() => {
     st.rigDirty.add(id);
     st.rigDirty.add(m.id);
     st.visualDirty = true;
-    if (rnd(st.rng.births) < BIRTH.childbedDeath) killPawn(st, m.id, 'childbirth');
+    if (rnd(st.rng.births) < BIRTH.childbedDeath) {
+      killPawn(st, m.id, 'childbirth');
+      m.nursling = null;
+      m.nursingUntil = null;
+    }
   }
   function dailyBirths(st) {
     // Childbirth may remove the mother; newborns have no spouse to consider today.
     for (const liveId of st.living.slice()) {
       const m = st.pawns[liveId];
       if (!m.alive || m.sex !== 'f') continue;
+      if (m.nursling !== null && (st.t >= m.nursingUntil || !st.pawns[m.nursling].alive)) {
+        // the term is out, or the child has died: the nursing ends, read here and not pushed from the death (VB-632)
+        m.nursling = null;
+        m.nursingUntil = null;
+      }
       if (m.pregnantUntil !== null) {
         if (st.t >= m.pregnantUntil) giveBirth(st, m);
         continue;

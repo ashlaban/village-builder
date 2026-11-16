@@ -3,6 +3,7 @@
 VB['sim/farmclaims'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { YEAR, CLAIMS, CROPS } = VB['sim/rules'];
+  const { bufferOf } = VB['sim/traits'];
   const { hoursBetween } = VB['sim/routes'];
   const {
     spouseOf,
@@ -294,7 +295,7 @@ VB['sim/farmclaims'] = (() => {
       if (have >= need) break;
       const hh = st.households[h],
         stay = hh.members.filter((m) => !members.includes(m));
-      const keep = reserved(st, hh, 'grain') + st.pawns[hh.holder].buffer * rationsOf(st, stay);
+      const keep = reserved(st, hh, 'grain') + bufferOf(st, hh.holder) * rationsOf(st, stay);
       const give = Math.min(need - have, Math.max(0, Math.floor(Stores.grainOf(hh) - keep)));
       if (give > 0) {
         Stores.take(st, hh, 'grain', give, 'provisions', grain);

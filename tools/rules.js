@@ -1,5 +1,6 @@
 // Inspect the load-time registry, or explain death.hazard for a pawn in a run or save.
-// node tools/rules.js [--explain ID --scenario populous --seed 7 --map tiny --years 0] [--load FILE[.gz]] [--json]
+// node tools/rules.js [--explain ID --scenario populous --seed 7 --map tiny --years 0] [--load FILE[.gz]] [--json [--traits]]
+// Without --explain: the rules and their contributions, then what each trait does (TRAITS.acts, VB-520); --json --traits gives the latter.
 require('./help.js')(__filename);
 const VB = require('../src/load.js'), Rules = VB['sim/registry'], Sim = VB.sim;
 const fs = require('fs'), zlib = require('zlib'), args = process.argv.slice(2);
@@ -12,11 +13,21 @@ function opt(key, fallback) {
 function run() {
   const id = opt('explain', null), json = args.includes('--json');
   if (id === null) {
-    if (json) console.log(JSON.stringify(Rules.list(), null, 2));
-    else for (const rule of Rules.list()) {
-      console.log(`${rule.rule} — owner ${rule.owner}, ${rule.combine}`);
-      if (rule.clamp) console.log(`  clamp [${rule.clamp}]`);
-      for (const c of rule.contributions) console.log(`  ${c.key}: ${c.source}, range [${c.range}], tunables ${c.tunables.join(', ')}`);
+    // what each trait does (VB-520): TRAITS.acts, [the value at 0, at 1], and the rules of the registry whose tunables name one
+    const acts = Object.entries(VB['sim/rules'].TRAITS.acts).flatMap(([trait, rules]) => Object.entries(rules).map(([rule, at]) => {
+      const name = `TRAITS.acts.${trait}.${rule}`;
+      const via = Rules.list().flatMap((r) => r.contributions.filter((c) => c.tunables.includes(name)).map((c) => `${r.rule}.${c.key}`));
+      return { trait, rule, at0: at[0], at1: at[1], contributions: via };
+    }));
+    if (json) console.log(JSON.stringify(args.includes('--traits') ? acts : Rules.list(), null, 2));
+    else {
+      for (const rule of Rules.list()) {
+        console.log(`${rule.rule} — owner ${rule.owner}, ${rule.combine}`);
+        if (rule.clamp) console.log(`  clamp [${rule.clamp}]`);
+        for (const c of rule.contributions) console.log(`  ${c.key}: ${c.source}, range [${c.range}], tunables ${c.tunables.join(', ')}`);
+      }
+      console.log('traits (TRAITS.acts: the value at 0 and at 1, 1 or the rule\'s own at 0.5)');
+      for (const a of acts) console.log(`  ${a.trait}.${a.rule}: ${+a.at0.toFixed(3)} to ${+a.at1.toFixed(3)}${a.contributions.length ? `, in ${a.contributions.join(', ')}` : ''}`);
     }
     return;
   }

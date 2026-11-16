@@ -31,6 +31,18 @@ function jobsLine(list) {
     )
     .join('; ');
 }
+// The household's carts and their condition, as the card tells of the boat (VB-410): worn ones are named, and the one out on the road.
+function cartWords(hh) {
+  if (!hh.carts || !hh.carts.length) return 'No cart.';
+  const C = VB['sim/carts'],
+    name = (c) => {
+      const kind = c.kind === 'ox' ? 'an ox cart' : 'a hand cart',
+        worn = c.cond < C.CART.mendAt ? ', worn: it wants mending' : '',
+        road = C.out(st, c) ? ', out on the road' : '';
+      return `${kind} (${Math.round(c.cond * 100)}% sound${worn}${road})`;
+    };
+  return `Carts: ${hh.carts.map(name).join(', ')}.`;
+}
 function fieldSummary(f) {
   const n = {},
     word = {
@@ -157,7 +169,7 @@ function renderSettlers() {
               : 'No hand quern: grain is cooked unground.'
           }</p>
           <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
-          <p>Firewood ${Math.round(hh.wood)} loads${hh.cold > 0 ? ', cold: no firewood' : ''}; stone ${hh.stone} loads.</p>
+          <p>Firewood ${Math.round(hh.wood)} loads${hh.cold > 0 ? ', cold: no firewood' : ''}${hh.dry > 0 ? ', no water' : ''}; stone ${hh.stone} loads.</p>
           <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads; peat ${hh.peat || 0} units.</p>
           <p>Wool ${Math.round(hh.wool || 0)} fleeces, unspun.</p>
           <p>Dried fish ${Math.round(Sim.larderOf(hh, 'dried fish'))} rations${hh.rack >= 0.5 ? `; ${Math.round(hh.rack)} fresh by the rack` : ''}${
@@ -167,6 +179,7 @@ function renderSettlers() {
                 }`
               : ''
           }.</p>
+          <p>${cartWords(hh)}</p>
           <p>Tar ${hh.tar || 0} barrels${hh.tarPit ? '; a tar pit in the pine wood' : ''}${
             hh.farmstead !== null && Sim.houseTarred(st, st.farmsteads[hh.farmstead]) ? '; the house is tarred' : ''
           }.</p>
@@ -311,7 +324,8 @@ function focusPawn(id) {
   }
   const a = st.agents[id],
     f = farmOf(p);
-  flyTo(a.inside ? w.hx[f.house] : a.x, a.inside ? w.hy[f.house] : a.y);
+  const [x, y] = Sim.placeOf(st, a); // a walker's place from its leg (VB-473)
+  flyTo(a.inside ? w.hx[f.house] : x, a.inside ? w.hy[f.house] : y);
   selectPawn(id);
 }
 function selectPawn(id, pinned = true) {
@@ -351,8 +365,10 @@ function showPawn(id) {
         : 'Unmarried') +
     (p.pregnantUntil !== null
       ? ', expecting a child'
-      : p.nursingUntil !== null && st.t < p.nursingUntil
-        ? ', nursing a baby'
+      : p.nursingUntil !== null && st.t < p.nursingUntil && (p.nursling === null || st.pawns[p.nursling].alive)
+        ? p.nursling !== null
+          ? `, nursing ${st.pawns[p.nursling].given}`
+          : ', nursing a baby'
         : '');
   const v = st.villages[f.village];
   card(
@@ -367,6 +383,7 @@ function showPawn(id) {
         : p.advocate
           ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`
           : '',
+      traitLine(id),
       p.age >= 16
         ? `Prestige ${p.prestige.toFixed(2)}: ${Sim.prestigeParts(st, p)
             .map(([l, v]) => `${l.toLowerCase()} ${v.toFixed(2)}`)
@@ -379,6 +396,11 @@ function showPawn(id) {
   );
   showRelations(id);
   renderPlay(id);
+}
+// A pawn's traits in words (VB-519): those beyond the reference's tails, and no number; '' for a pawn of none.
+function traitLine(id) {
+  const w = Sim.traitLabels(st, id);
+  return w.length ? w.join(', ').replace(/^./, (c) => c.toUpperCase()) : '';
 }
 // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
 let relHTML = '';
@@ -482,8 +504,9 @@ function pawnAt(x, y) {
     bd = 1e9;
   for (const a of st.agents) {
     if (a.inside || st.pawns[a.id].died !== null) continue;
-    const dx = x - a.x,
-      dy = y - (a.y - 9);
+    const [ax, ay] = Sim.placeOf(st, a), // a walker's place from its leg (VB-473)
+      dx = x - ax,
+      dy = y - (ay - 9);
     if (
       Math.abs(dx) < (coarse ? Math.max(6, 22 / cam.z) : 6) &&
       Math.abs(dy) < (coarse ? Math.max(10, 22 / cam.z) : 10)

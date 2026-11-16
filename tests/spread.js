@@ -1,5 +1,5 @@
-// Work spread over steps: the night's culture, a settlement a 6-minute step after midnight (VB-201); the autumn meetings' four stages on the
-// steps from noon of autumn day 10 (VB-206); the moving round on the steps from noon of the next day, a village's round a step, then its three
+// Work spread over steps: the night's culture, a settlement a 6-minute step after midnight (VB-201); the autumn meetings on the steps from
+// noon of autumn day 10, a village's a step, then the cultures' years and the land meeting (VB-206, VB-278); the moving round on the steps from noon of the next day, a village's round a step, then its three
 // island-wide phases from 18:00 (VB-201, VB-277). Each runs exactly once whatever the advance calls' sizes, and a run saved between two of
 // them goes on as the run that was never saved.
 const fs = require('fs'), path = require('path'), assert = require('assert');
@@ -9,8 +9,15 @@ for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, '../src/manifest
   require('../src/' + f);
   const key = f.slice(0, -3), mod = globalThis.VB[key];
   if (key === 'culture') {
-    const step = mod.settlementStep;
+    const step = mod.settlementStep, meeting = mod.meeting, year = mod.cultureYear;
     mod.settlementStep = (env, hk, dt, rand, s) => { calls.push({ kind: 'culture', t: env.t * YEAR_H, s: s ? s.id : null }); return step(env, hk, dt, rand, s); };
+    // the meetings (VB-278): a village's, a culture's year
+    mod.meeting = (env, hk, s) => { calls.push({ kind: 'meeting', t: env.t * YEAR_H, s: s.id }); return meeting(env, hk, s); };
+    mod.cultureYear = (env, hk, c) => { calls.push({ kind: 'cultureYear', t: env.t * YEAR_H, c: c.id }); return year(env, hk, c); };
+  }
+  if (key === 'sim/territory') {
+    const land = mod.landMeeting;
+    mod.landMeeting = (st) => { calls.push({ kind: 'land', t: st.t }); return land(st); };
   }
   if (key === 'sim/lifecycle') {
     const phase = mod.roundPhase;
@@ -23,7 +30,7 @@ for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, '../src/manifest
   }
 }
 const VB = globalThis.VB, Sim = VB.sim, G = VB.gen, { canon } = require('./lib/canon.js');
-const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS } = VB['sim/rules'], { NIGHT_STEPS, ROUND_STEPS, MEETING_STAGES } = VB['sim/lifecycle'];
+const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS } = VB['sim/rules'], { NIGHT_STEPS, ROUND_STEPS } = VB['sim/lifecycle'];
 const world = (seed, size) => { const it = G.generate(seed, size); let r; while (!(r = it.next()).done); return r.value; };
 const TINY = { cols: 120, rows: 85 };
 const extended = process.argv.includes('--extended'), probe = require('./lib/probe.js');
@@ -71,25 +78,36 @@ for (const [label, at] of [['between villages 0 and 1', start + DAY + 12], ['aft
   assert.deepStrictEqual(bad, [], `saved ${label}: the loaded run differs in ${bad.join(', ')}`);
   saved.push(label);
 }
-// The meetings (VB-206): the customs once, on the third step from noon of autumn day 10; saves before and between the stages go on.
+// The meetings (VB-278): on autumn day 10, village k's meeting on step k from noon, each culture's year at 18:00 and the land meeting at
+// 18:06, each once whatever the advances' sizes; saves between villages 0 and 1, in the middle of the window, after the last village and
+// between the cultures' years and the land meeting go on as the unbroken run.
 const mday = Math.floor(st.t / YEAR) * YEAR + (2 * SEASON_DAYS + 9) * DAY + YEAR; // next year's autumn day 10
 const m = seed();
 Sim.advance(m, mday + 11.5 - m.t);
-const seen = [], msizes = [0.2, 0.4, 0.1, 0.3, 0.7];
-for (let i = 0, end = mday + 13; m.t < end - 1e-9; i++) {
-  const before = m.lastMeeting; Sim.advance(m, Math.min(msizes[i % msizes.length], end - m.t));
-  if (m.lastMeeting !== before) seen.push(m.lastMeeting - mday);
-}
-assert.strictEqual(seen.length, 1, 'the customs run once');
-assert(seen[0] >= 12.19 && seen[0] <= 12.31, `on the third step from noon (at ${seen[0]})`);
-for (const at of [12, 12.1, 12.2]) {
+calls.length = 0;
+const msizes = [0.2, 0.4, 0.1, 0.3, 0.7, 1.9];
+for (let i = 0, end = mday + 19; m.t < end - 1e-9; i++) Sim.advance(m, Math.min(msizes[i % msizes.length], end - m.t));
+const at = (c) => Math.round((c.t - mday - 12) * TICKS); // the step from noon it ran on
+const met = calls.filter((c) => c.kind === 'meeting'), years = calls.filter((c) => c.kind === 'cultureYear'), lands = calls.filter((c) => c.kind === 'land');
+const mvillages = m.cenv.settlements.length;
+assert(m.villages.length === mvillages && mvillages <= 60, 'a village a step');
+const myear = VB['sim/rules'].cal(mday + 12).year, first = myear % mvillages; // the order turns by the year (VB-280)
+assert.deepStrictEqual(met.map((c) => c.s), [...Array(mvillages).keys()].map((j) => (j + first) % mvillages), 'each village meets once, in the order of id from year mod villages, wrapping');
+met.forEach((c, j) => assert.strictEqual(at(c), j, `the ${j}th village (${c.s}) meets on step ${j} from noon (at ${at(c)})`));
+assert.deepStrictEqual(years.map((c) => c.c), m.cenv.cultures.map((c) => c.id), "each culture's year once");
+assert(years.every((c) => at(c) === 60), "the cultures' years at 18:00");
+assert.strictEqual(lands.length, 1, 'the land meeting once');
+assert.strictEqual(at(lands[0]), 61, 'the land meeting at 18:06');
+assert.strictEqual(Math.round((m.lastMeeting - mday) * TICKS), 18 * TICKS, 'the meetings are done at 18:00');
+for (const [label, at] of [['between villages 0 and 1', 12], ['after the last village', 12 + mvillages / TICKS],
+  ["in the middle of the villages' window", 15], ['before the land meeting', 18]]) {
   const a = seed();
   Sim.advance(a, mday + at - a.t);
   const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(restoreWorld(data), data);
-  for (const run of [a, b]) Sim.advance(run, 1);
+  for (const run of [a, b]) Sim.advance(run, 6.5);
   const bad = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => k !== 'w' && canon(a[k]) !== canon(b[k]));
-  assert.deepStrictEqual(bad, [], `saved at meeting hour ${at}: the loaded run differs in ${bad.join(', ')}`);
-  saved.push(`meetings +${at} h`);
+  assert.deepStrictEqual(bad, [], `saved at the meetings, ${label}: the loaded run differs in ${bad.join(', ')}`);
+  saved.push(`the meetings ${label}`);
 }
-console.log(`spread ok: ${MEETING_STAGES} meeting stages, customs once; ${ROUND_STEPS} round steps once each from noon (${roundVillages} villages, then 3 phases), ${villages} settlements once a night in ${nights.length} nights, `
+console.log(`spread ok: ${mvillages} villages' meetings once each from noon, then the cultures' years and the land meeting; ${ROUND_STEPS} round steps once each from noon (${roundVillages} villages, then 3 phases), ${villages} settlements once a night in ${nights.length} nights, `
   + `saves ${saved.join(' and ')} go on unchanged (${YEAR_DAYS}-day year)`);

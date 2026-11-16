@@ -115,7 +115,7 @@ function contest(dispute, idle = 2, ties = 'contestor') {
   const taken = !!pj(st, f[2]) && pj(st, f[2]).tile === t;
   if (taken) {
     check(CL.claimOf(st, t, H(2)) && !CL.claimOf(st, t, H(0)) && !pj(st, f[0]), `${dispute}: household 2 stakes the tile, household 0's project ends`);
-    check(Math.abs(R.opinionOf(st, b, a) - (before + SOCIAL.memories.claim.v)) < 1e-9,
+    check(Math.abs(R.opinionOf(st, b, a) - (before + SOCIAL.memories.claim.v * VB['sim/traits'].act(st, b, 'honour', 'breach'))) < 1e-9, // VB-520
       `${dispute}: the loser's holder remembers it (${R.opinionOf(st, b, a) - before})`);
     check(hh[0].grievance && hh[0].grievance.rules.includes('first'),
       `${dispute}: the loser leans to the rules that would have kept it (${hh[0].grievance && hh[0].grievance.rules})`);

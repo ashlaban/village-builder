@@ -109,7 +109,10 @@ let made;
 { // the targets: within their bounds, lasting over the season's plan, cleared; the order, until the next season's plan
   const { st, hh, plan } = scene({ herds: true });
   Sim.inhabit(st, hh.holder);
-  const T = plan.targets, before = snap(st, hh), was = { hay: T.hayWinters, wood: [...T.wood], fields: T.fields };
+  // a head that reacts, with no bias (VB-254): its rule's targets are the template's
+  { const t = st.pawns[hh.holder].traits, I = VB['sim/traits'].IDX; t[I.wits] = t[I.husbandry] = 0.02; } // wits and husbandry
+  plan.head.bias = { wood: 1, hay: 1, seed: 1, fields: 1 };
+  const E = st.ECON, T = plan.targets, before = snap(st, hh), was = { hay: 2, wood: [E.woodTarget, E.woodWinter, E.woodWinter, E.woodTarget] };
   refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3.5 }), /hay must be from 0 to 3/, 'hay over three winters');
   refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: -1 }), /hay must be from 0 to 3/, 'hay below none');
   refused(st, hh, Sim.head(st, 'target', { store: 'fields', n: T.workable + 1 }), /fields must be from 0 to/, 'more fields than the hands can till');
@@ -125,7 +128,7 @@ let made;
   assert.strictEqual(Sim.head(st, 'target', { store: 'cow', n: 0 }), true);
   assert.deepStrictEqual([T.hayWinters, T.wood, T.fields], [3, Array(4).fill(2 * st.ECON.woodWinter), 0], 'the targets are the head\'s at once');
   const V = Sim.headView(st, hh.id);
-  assert.deepStrictEqual(V.targets.hay, { now: 3, chosen: 3, bounds: [0, 3] }, 'the page reads the target, the choice and the bounds');
+  assert.deepStrictEqual(V.targets.hay, { now: 3, custom: 2, chosen: 3, bounds: [0, 3] }, 'the page reads the target, the custom\'s, the choice and the bounds');
   assert.deepStrictEqual(V.targets.fields.bounds, [0, T.workable]);
   { // a save carries the choices
     const st2 = Sim.load(st.w, JSON.parse(JSON.stringify(Sim.save(st))));
@@ -182,7 +185,10 @@ for (const raise of [false, true]) {
   if (raise) sound(st, 'a raised hay target');
 }
 const w = (x) => x.toFixed(2);
-assert.ok(hay[0].atWinter >= 2 && hay[0].atWinter < 3, `by its template the household holds two winters' hay at the start of winter (${w(hay[0].atWinter)})`);
+// the template's overshoot is up to a meadow past three winters: the meadows taken together are mown to the end once begun (with the stepping's sum of
+// tenths falling short of a task's hours, the fourth was left 0.9 h short at nightfall and taken down; VB-472 ends it at its hours)
+const meadowHay = hay[0].expected / hay[0].meadows / hay[0].need; // one meadow's hay, in winters
+assert.ok(hay[0].atWinter >= 2 && hay[0].atWinter < 3 + meadowHay, `by its template the household holds two winters' hay at the start of winter, overshot by less than a meadow past three (${w(hay[0].atWinter)}, below ${w(3 + meadowHay)})`);
 assert.ok(hay[1].winters >= 3 && hay[1].atWinter >= 3,
   `by its head's choice three (${w(hay[1].atWinter)} winters of ${hay[1].need.toFixed(1)}, ${w(hay[1].winters)} at its peak; meadows give ${hay[1].expected})`);
 

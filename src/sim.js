@@ -35,6 +35,7 @@ const Sim = (() => {
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks, prestigeParts } = VB['sim/society'];
+  const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)
   const { save, load } = VB['sim/saves'];
   const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head } = VB['sim/commands'];
   const { headView } = VB['sim/plans'];
@@ -49,7 +50,7 @@ const Sim = (() => {
   const { advance } = VB['sim/clock'];
   const { HERD, SOIL, CLAIMS } = VB['sim/rules'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
-  const { withOxen } = VB['sim/agents'];
+  const { withOxen, doneOf, placeOf, poseOf } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
   const { houseTarred } = VB['sim/rules'],
@@ -110,6 +111,8 @@ const Sim = (() => {
     isHolder,
     holdingOf,
     prestigeParts,
+    traitLabels,
+    traitAct,
     settlementIdOf,
     membersOf,
     voiceOf,
@@ -123,7 +126,9 @@ const Sim = (() => {
     seedReserve,
     grainOf,
     fieldsWanted,
-    plotProgress,
+    plotProgress: (st, plot) => plotProgress(st, plot, (j) => doneOf(st, j)), // a task's progress now (VB-472)
+    placeOf, // a pawn's place now, a walker's worked out from its leg (VB-473)
+    poseOf, // and its facing and stride, for the page until it draws from legs (VB-474)
     explainIdle,
     idleLine,
     RIVER,
@@ -175,4 +180,5 @@ const Sim = (() => {
   };
 })();
 VB['sim'] = Sim;
+if (typeof globalThis !== 'undefined') globalThis.Sim = Sim; // the page script reads it; the bundle (VB-374) keeps the const local
 if (typeof module !== 'undefined') module.exports = Sim;

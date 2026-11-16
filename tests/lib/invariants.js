@@ -95,7 +95,28 @@ function checkState(st) {
           plan.reasons['grain/barley'] !== 'seed') {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
         }
+        // T.seed > 0: the template's rule 'year.seed' is CROPS.barley.seed and no custom contributes to it; one that took it to 0 would be
+        // the one exception (VB-485)
         if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+        // VB-254: the plan's head is its household's holder, since a time not after now, with a bias on each of the four targets within
+        // Traits.HEAD.bias of 1; none while the household has no holder
+        const H = plan.head, hhH = st.households[id].holder, most = globalThis.VB['sim/traits'].HEAD.bias + 1e-9;
+        if (hhH === null || hhH === undefined ? H !== null : !H || H.pawn !== hhH || !(H.since <= st.t) || !H.bias ||
+          Object.keys(H.bias).join() !== 'wood,hay,seed,fields' || !Object.values(H.bias).every((x) => Math.abs(x - 1) <= most))
+          bad.push(`plans: household ${id}'s head ${JSON.stringify(H)} is not its holder ${hhH}'s`);
+        // VB-255: the head's projects: its record absent, or its year, its project under way (a live project plan of the household's,
+        // with its kind) or none, and the times not after now
+        const Ai = plan.aim;
+        if (Ai !== undefined && !(Number.isInteger(Ai.year) && typeof Ai.surplus === 'boolean' && typeof Ai.again === 'boolean' &&
+          (Ai.project === null ? Ai.what === null && Ai.since === null && Ai.shortSince === null
+            : globalThis.VB['sim/aims'].KIND.includes(Ai.what) && Ai.since <= st.t && (Ai.shortSince === null || Ai.shortSince <= st.t) &&
+              (st.plans.projects.household.get(id) || []).some((q) => q.id === Ai.project))))
+          bad.push(`plans: household ${id}'s aim ${JSON.stringify(Ai)}`);
+        // VB-255: a household's plot for its heir is in the index of them, and, once cleared, goes to a pawn: one whose pawn cannot take it
+        // has passed to the village (no plot of a household stands with nobody to build it for)
+        for (const q of st.plans.projects.household.get(id) || [])
+          if (q.what === 'plot' && (!st.plans.projects.heirPlots.includes(q) || q.by !== id || (q.open >= 1 && q.to === null)))
+            bad.push(`plans: household ${id}'s plot ${q.id} (by ${q.by}, open ${q.open}, to ${q.to}) is not a plot for its heir under way`);
         // VB-390: a want of a cow names no giver, or another household of the same village (one dissolved since is let go at the next
         // review), a heifer or a cow, by kin or by a deal
         const W = plan.want, villageOf = (h) => st.farmsteads[st.households[h].farmstead].village;
@@ -152,6 +173,9 @@ function checkState(st) {
         bad.push(`plans: due-queue holds ${due.length} entries (${seen.size} distinct) for ${st.plans.households.size} households`);
       }
     }
+    for (const q of st.plans.projects.heirPlots || []) // the index of the households' plots holds only those (VB-255)
+      if (q.holder.type !== 'household' || q.what !== 'plot' || !(st.plans.projects.household.get(q.holder.id) || []).includes(q))
+        bad.push(`plans: plot ${q.id} in the index of the households' plots is no household's`);
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (typeof plan.dirty !== 'boolean' || plan.last === undefined) bad.push(`plans: ${plan.holder.type} ${plan.holder.id} lacks its review record`);
       // VB-466: a household's day, once allotted: the hour it was made, and for pawns of the state a list of task keys, each once
@@ -260,6 +284,21 @@ function checkState(st) {
       && P.shortNext >= F.shortAt && P.shortNext <= P.shortEnd && P.longNext >= F.longAt &&
         P.longNext <= P.longEnd))) bad.push(`recordFold: ${JSON.stringify(F)}`);
   }
+  // the twelve traits (VB-519): every pawn, living or dead, has the twelve, each finite within TRAITS.bounds; none keeps VB-249's diligence
+  // beside them. Its hungry days: a whole number for a child, null once its values have set (tests/traits.js checks when)
+  const TR = globalThis.VB['sim/rules'].TRAITS, [lo, hi] = TR.bounds;
+  for (const p of st.pawns) {
+    const t = p.traits;
+    if (!Array.isArray(t) || t.length !== TR.names.length || !t.every((x) => Number.isFinite(x) && x >= lo && x <= hi) || 'diligence' in p)
+      bad.push(`pawn ${p.id}: traits ${JSON.stringify(t)}`);
+    if (!(p.leanDays === null || (Number.isInteger(p.leanDays) && p.leanDays >= 0))) bad.push(`pawn ${p.id}: leanDays ${p.leanDays}`);
+  }
+  // a culture's values (VB-519): the four means, each within the bounds
+  if (st.cenv) for (const c of st.cenv.cultures) {
+    const v = c.values;
+    if (!v || Object.keys(v).join() !== TR.names.slice(0, 4).join() || !Object.values(v).every((x) => Number.isFinite(x) && x >= lo && x <= hi))
+      bad.push(`culture ${c.id}: values ${JSON.stringify(v)}`);
+  }
   // a pawn's events (VB-199), those added since the last check: positions in the record, each its own event or one folded since
   for (const p of st.pawns) {
     const ev = p.events, n0 = checked.get(ev) || 0;
@@ -276,20 +315,42 @@ function checkState(st) {
     if (!(st.idlers.hour <= Math.floor(st.t))) bad.push(`idlers: hour ${st.idlers.hour} is after ${Math.floor(st.t)}`);
     for (const [v, l] of st.idlers.by) for (const b of l) if (st.agents[b.id] !== b) bad.push(`idlers: village ${v} lists ${b.id}, not an agent`);
   }
-  // the awake agents of the hour (VB-205): increasing ids of living pawns, and, for the hour it is, every agent the step could move,
-  // set working or offer to the planner: walking, working, or in working hours free with its pause ending by the hour's end
-  if (st.awake) {
-    const { ids, hour } = st.awake, living = new Set(st.living), { WORK, DAY } = globalThis.VB['sim/rules'];
-    if (ids.some((id, i) => !living.has(id) || (i > 0 && id <= ids[i - 1]))) bad.push(`awake: ids ${ids} are not increasing living pawns`);
-    if (hour === Math.floor(st.t + 1e-9)) {
-      const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], has = new Set(ids);
-      for (const id of st.living) {
-        const a = st.agents[id];
-        if (!has.has(id) && a.phase !== 'road' && (a.path || a.phase === 'work' || (work && a.phase === null && a.idleUntil <= hour + 1))) {
-          bad.push(`awake: agent ${id} may act in hour ${hour} but is not awake`);
-        }
+  // legs (VB-473): st.legDue holds the walks and waits under way, each pawn once, a living one, sorted by due then id, each due after the
+  // step now (a step takes all that is due); each living pawn's leg agrees with what it does: walking a walk, resting on the road a wait,
+  // at work a work leg, free a wait or none (none only when its next look falls outside the working hours: the working day's start takes
+  // it); a walk's hours to each point rise, its end is the step they reach, its due its end or, on a journey, the night's stop before it.
+  // The awake list is gone.
+  if (st.awake !== undefined) bad.push('awake: the awake list is gone (VB-473)');
+  if (st.legDue !== undefined) {
+    const q = st.legDue, R = globalThis.VB['sim/rules'], living = new Set(st.living), inQ = new Set(Array.isArray(q) ? q : []);
+    const tickOf = (u) => { let k = Math.ceil(u * R.TICKS); if ((k - 1) / R.TICKS >= u) k--; if (k / R.TICKS < u) k++; return k; };
+    if (!Array.isArray(q) || inQ.size !== q.length) bad.push('legDue: not a list of distinct pawn ids');
+    else q.forEach((id, n) => {
+      const a = st.agents[id], l = a && a.leg, at = `legDue[${n}] (pawn ${id})`;
+      if (!living.has(id)) bad.push(`${at}: not living`);
+      if (!l || (l.kind !== 'walk' && l.kind !== 'wait')) { bad.push(`${at}: its leg is ${l && l.kind}`); return; }
+      // after the step now (a step takes all that is due); in a state whose clock a test set forward by hand (tests/lib/clock.js), after its start
+      if (!Number.isInteger(l.due) || !(st.clockSet ? l.due > l.t || (l.kind === 'wait' && l.due === l.t) : l.due > st.tick)) bad.push(`${at}: due ${l.due}, begun ${l.t}, at tick ${st.tick}`);
+      const p = n > 0 && st.agents[q[n - 1]].leg;
+      if (p && (p.due > l.due || (p.due === l.due && q[n - 1] >= id))) bad.push(`${at}: out of order`);
+    });
+    for (const id of st.living) {
+      const a = st.agents[id], l = a.leg || null, k = l && l.kind, at = `agents[${id}]`, free = !a.path && a.phase === null;
+      const want = a.phase === 'road' ? ['wait'] : a.path ? ['walk'] : a.phase === 'work' ? ['work'] : free ? [null, 'wait'] : [];
+      if (!want.includes(k)) bad.push(`${at}: phase ${a.phase}, ${a.path ? 'walking' : 'standing'}, in a leg ${k}`);
+      if ((k === 'walk' || k === 'wait') !== inQ.has(id)) bad.push(`${at}: a leg ${k}, ${inQ.has(id) ? '' : 'not '}in legDue`);
+      if (k === 'walk' && a.path) {
+        const n = a.path.length - l.seg - 1, last = n > 0 ? l.h[n - 1] : 0;
+        if (!Array.isArray(l.h) || l.h.length !== n || l.h.some((x, i) => !(x >= (i ? l.h[i - 1] : 0)))) bad.push(`${at}: a walk's hours ${l.h} to ${n} points`);
+        if (l.end !== l.t + Math.max(1, Math.ceil(last * R.TICKS - 1e-9)) || !(l.due <= l.end) || !(l.pace > 0)) bad.push(`${at}: a walk begun ${l.t}, end ${l.end}, due ${l.due}, pace ${l.pace}`);
+        if (l.due < l.end && a.phase !== 'journey') bad.push(`${at}: a walk stops short of its end, not on a journey`);
+      }
+      if (k === null && free) {
+        const next = Math.max(st.tick + 1, tickOf(a.idleUntil)), h = Math.floor(next / R.TICKS) % R.DAY;
+        if (h >= R.WORK[0] && h < R.WORK[1]) bad.push(`${at}: free, with no leg, and its next look in the working hours`);
       }
     }
+    for (const a of st.agents) if (!living.has(a.id) && a.leg) bad.push(`agents[${a.id}]: dead, in a leg ${a.leg.kind}`);
   }
   // random streams (VB-072): after seeding, exactly one stream per system, none shared, each a 32-bit state, none fixed by a test
   const keys = Object.keys(st.rng || {}).sort().join(), streams = Object.values(st.rng || {});
@@ -308,6 +369,10 @@ function checkState(st) {
     if (!Array.isArray(CL) || CL.length > HD || CL.some((x) => !within(x, 0, 1))) bad.push(`households[${h.id}]: coldLog ${JSON.stringify(CL)}`);
     else if (!within(h.cold, 0, 1) || Math.abs(h.cold - CL.reduce((n, x) => n + x, 0) / HD) > 1e-9 || (CL.length > 0) !== CL.some((x) => x > 0))
       bad.push(`households[${h.id}]: cold ${h.cold} against its log ${JSON.stringify(CL)}`);
+    const DL = h.dryLog; // the dry days (VB-331): as the cold, each 0 or 1
+    if (!Array.isArray(DL) || DL.length > HD || DL.some((x) => x !== 0 && x !== 1)) bad.push(`households[${h.id}]: dryLog ${JSON.stringify(DL)}`);
+    else if (!within(h.dry, 0, 1) || Math.abs(h.dry - DL.reduce((n, x) => n + x, 0) / HD) > 1e-9 || (DL.length > 0) !== DL.some((x) => x > 0))
+      bad.push(`households[${h.id}]: dry ${h.dry} against its log ${JSON.stringify(DL)}`);
     if (h.dissolved) { if (h.members.length) bad.push(`households[${h.id}]: dissolved but has members ${h.members}`); continue; }
     if (new Set(h.members).size !== h.members.length) bad.push(`households[${h.id}]: duplicate members ${h.members}`);
     for (const id of h.members) {
@@ -329,6 +394,10 @@ function checkState(st) {
       h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
     if (h.digAt !== undefined &&
       !['clay', 'bogOre', 'peat'].every((g) => h.digAt[g] === -1 || tileOk(h.digAt[g]))) bad.push(`households[${h.id}]: digAt ${JSON.stringify(h.digAt)}`);
+    // VB-255: the hours its hands worked this season and the last, counted as their work is reckoned (sim/agents)
+    const Wh = h.workHours;
+    if (Wh !== undefined && !(Array.isArray(Wh) && Wh.length === 3 && Number.isInteger(Wh[0]) && Wh[1] >= 0 && Wh[2] >= 0 &&
+      Number.isFinite(Wh[1]) && Number.isFinite(Wh[2]))) bad.push(`households[${h.id}]: workHours ${JSON.stringify(Wh)}`);
     // the catch waiting by the drying rack, and the household's boat: a shore tile next to water of the sea or a large lake (VB-300)
     if (h.rack !== undefined && !within(h.rack, 0, 1e6)) bad.push(`households[${h.id}]: rack is ${h.rack}`);
     const b = h.boat;
@@ -423,6 +492,9 @@ function checkState(st) {
         bad.push(`villages[${v.id}]: common field ${i} ${JSON.stringify({ tile: fd.tile, stage: fd.stage, owner: st.owner[fd.tile] })}`);
     });
   }
+  for (const v of st.villages)
+    if (v.commonSow !== undefined && !(Number.isInteger(v.commonSow.year) && typeof v.commonSow.sow === 'boolean'))
+      bad.push(`villages[${v.id}]: commonSow ${JSON.stringify(v.commonSow)}`);
   for (const v of st.villages) {
     if (grainBad(v.grain)) bad.push(`villages[${v.id}]: grain is ${JSON.stringify(v.grain)}`);
     // the reach test to fishing water (sim/drying, VB-300): tested for no more farms than the village has
@@ -471,13 +543,30 @@ function checkState(st) {
       if (!memberOf.has(p.id)) bad.push(`pawns[${p.id}]: alive but in no household`);
       else if (p.household !== memberOf.get(p.id)) bad.push(`pawns[${p.id}]: household field ${p.household}, member of ${memberOf.get(p.id)}`);
       if (p.died !== null) bad.push(`pawns[${p.id}]: alive with died ${p.died}`);
-      if (!within(p.buffer, 20, 60)) bad.push(`pawns[${p.id}]: buffer is ${p.buffer}`);
+      if (p.buffer !== undefined) bad.push(`pawns[${p.id}]: a drawn buffer (VB-520: the holder's reserve is its generosity's)`);
       if (!within(p.health, 0, 100)) bad.push(`pawns[${p.id}]: health is ${p.health}`);
     } else {
       if (memberOf.has(p.id)) bad.push(`pawns[${p.id}]: dead but in household ${memberOf.get(p.id)}`);
       if (p.died === null) bad.push(`pawns[${p.id}]: dead without a died time`);
     }
+    if (p.alive && p.nursling !== null && p.nursling !== undefined) {
+      // VB-632: she nurses a child of hers, born within the nursing term, and while the term lies ahead (the step clears it a day late at most)
+      const c = st.pawns[p.nursling];
+      if (!c || c.mother !== p.id || st.t - c.born > LOADED['sim/rules'].BIRTH.nursingDays * LOADED['sim/rules'].DAY + 1e-6) bad.push(`pawns[${p.id}]: nursling ${p.nursling} is not her child born within the term`);
+      if (p.nursingUntil === null || st.t - p.nursingUntil > 2 * LOADED['sim/rules'].DAY) bad.push(`pawns[${p.id}]: nursling ${p.nursling} but nursingUntil ${p.nursingUntil}`);
+    }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
+    // VB-520: a pawn with an attitude leans, a byte a custom, to the option it favours most (culture compiles it where it writes att)
+    if (p.att) {
+      const C = globalThis.VB.culture;
+      if (!(p.leans instanceof Uint8Array) || p.leans.length !== C.DIMS.length) bad.push(`pawns[${p.id}]: leans ${p.leans}`);
+      else for (let d = 0; d < C.DIMS.length; d++) {
+        const o = C.OFF[d], top = p.att[o + p.leans[d]];
+        let most = -Infinity;
+        for (let j = 0; j < C.NOPT[d]; j++) most = Math.max(most, p.att[o + j]);
+        if (p.leans[d] >= C.NOPT[d] || top !== most) { bad.push(`pawns[${p.id}]: leans ${p.leans[d]} on custom ${d}, not its strongest`); break; }
+      }
+    }
     if (p.rel) checkRel(st, p, bad);
     if (p.ties) checkTies(st, p, bad);
     if (p.goodwill) checkGoodwill(st, p, bad);
@@ -496,6 +585,9 @@ function checkState(st) {
   for (const f of st.farmsteads) {
     const want = f.household === null ? ['derelict', 'ruin'] : ['occupied'];
     if (!want.includes(f.state)) bad.push(`farmsteads[${f.id}]: state ${f.state} with household ${f.household}`);
+    // VB-255: the farm's barn, one at most, built at a time not after now
+    if (f.barn !== undefined && f.barn !== null && !(Object.keys(f.barn).join() === 'built' && f.barn.built <= st.t))
+      bad.push(`farmsteads[${f.id}]: barn ${JSON.stringify(f.barn)}`);
     // the house's condition (VB-306): 0..1 as last set, at a time not after now, and its tar not further than a barrel's years ahead
     if (f.condition !== undefined && !(f.condition >= 0 && f.condition <= 1)) bad.push(`farmsteads[${f.id}]: condition ${f.condition}`);
     if (f.condAt !== undefined && !(f.condAt <= st.t)) bad.push(`farmsteads[${f.id}]: condAt ${f.condAt} is in the future`);
@@ -734,6 +826,60 @@ function checkState(st) {
       if (!a || (a.job !== j && !side)) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
     }
   }
+  // work as a block (VB-472): a task's done, at (the tick it was reckoned at) and rate (its hands' hours a game hour); a task with a hand
+  // at work has a rate, and one with none none; done below its hours while worked; st.workDue holds each task of full attention under
+  // work once, posted, sorted by due then id, each due after the step now (a step takes all that is due), as reckoned from done and rate
+  {
+    const KS = globalThis.VB['sim/kinds'].KINDS, { TICKS } = globalThis.VB['sim/rules'], A = globalThis.VB['sim/agents'];
+    const q = st.workDue, inQ = new Set(q || []);
+    if (q !== undefined && !Array.isArray(q)) bad.push(`workDue: ${typeof q}`);
+    else if (q) {
+      if (inQ.size !== q.length) bad.push('workDue: a task twice');
+      q.forEach((j, n) => {
+        const at = `workDue[${n}] (${j.key})`;
+        if (st.jobs.get(j.key) !== j) bad.push(`${at}: not posted`);
+        if ((KS[j.kind].attention || 'full') === 'partial') bad.push(`${at}: a partial task`);
+        if (!(j.rate > 0) || !Number.isInteger(j.due) || !(j.due > st.tick)) bad.push(`${at}: rate ${j.rate}, due ${j.due} at tick ${st.tick}`);
+        if (n > 0 && (q[n - 1].due > j.due || (q[n - 1].due === j.due && q[n - 1].id >= j.id))) bad.push(`${at}: out of order`);
+        const h = j.hours ?? KS[j.kind].hours, want = j.at + Math.max(1, Math.ceil(((h - j.done) / j.rate) * TICKS - 1e-7));
+        if (j.due !== want) bad.push(`${at}: due ${j.due}, its done and rate give ${want}`);
+      });
+    }
+    for (const j of st.jobs.values()) {
+      const at = `jobs[${j.key}]`, full = (KS[j.kind].attention || 'full') === 'full';
+      if (j.at === undefined) {
+        if (j.rate !== undefined) bad.push(`${at}: a rate ${j.rate} never reckoned`);
+        continue;
+      }
+      if (!Number.isInteger(j.at) || j.at > st.tick || !(j.rate >= 0) || !Number.isFinite(j.rate) || !(j.done >= 0)) bad.push(`${at}: at ${j.at}, rate ${j.rate}, done ${j.done}`);
+      if (full) {
+        const hands = j.claims.filter((id) => st.agents[id].job === j && st.agents[id].phase === 'work');
+        if (hands.length === 0 && j.rate > 0) bad.push(`${at}: a rate of ${j.rate} with no hand at work`);
+        if (hands.some((id) => A.rateOf(st, st.pawns[id]) > 0) && !(j.rate > 0)) bad.push(`${at}: hands at work (${hands}) and no rate`);
+        if (j.rate > 0 && !inQ.has(j)) bad.push(`${at}: under work, not in workDue`);
+        if (j.rate > 0 && !(j.done < (j.hours ?? KS[j.kind].hours))) bad.push(`${at}: done ${j.done} of ${j.hours ?? KS[j.kind].hours} while worked`);
+        if (A.doneOf(st, j) < j.done - 1e-9) bad.push(`${at}: progress now ${A.doneOf(st, j)} below its last reckoning ${j.done}`);
+      } else if (j.rate > 0 && !inQ.has(j)) bad.push(`${at}: minded at the side, not in workDue`); // a background task (VB-473)
+    }
+    for (const a of st.agents) if ('work' in a) bad.push(`agents[${a.id}]: rows (a.work) in the state`);
+  }
+  // loads lying where their carrier fell (VB-611, sim/lying): absent or a non-empty list in the order put down, ids distinct, rising and
+  // within st.lyingSeq; each of a kind that carries a load (one with a fetch kind), a load above 0, on a tile of the map, put down this
+  // year at most (the autumn frost rots them all), owned by a household or village that exists
+  if (st.lying !== undefined) {
+    const KS = globalThis.VB['sim/kinds'].KINDS, L = globalThis.VB['sim/lying'], { YEAR } = globalThis.VB['sim/rules'];
+    if (!Array.isArray(st.lying) || !st.lying.length) bad.push(`lying: ${Array.isArray(st.lying) ? 'empty' : typeof st.lying}`);
+    else st.lying.forEach((l, n) => {
+      const at = `lying[${n}] (${l.id})`, prev = st.lying[n - 1], o = l.owner;
+      if (!Number.isInteger(l.id) || !(l.id <= st.lyingSeq) || (prev && !(prev.id < l.id && prev.t <= l.t))) bad.push(`${at}: id ${l.id} out of order, or past lyingSeq ${st.lyingSeq}`);
+      if (!KS[l.kind] || !KS[L.fetchKey(l.kind)]) bad.push(`${at}: kind ${l.kind} has no fetching`);
+      if (!(l.n > 0) || !Number.isFinite(l.n)) bad.push(`${at}: a load of ${l.n}`);
+      if (!Number.isInteger(l.tile) || l.tile < 0 || l.tile >= st.w.COLS * st.w.ROWS) bad.push(`${at}: on tile ${l.tile}`);
+      if (!(l.t <= st.t) || !(st.t - l.t < YEAR)) bad.push(`${at}: put down at ${l.t}, a year or more ago (the frost rots it)`);
+      if (!o || !((o.type === 'household' && st.households[o.id]) || (o.type === 'village' && st.villages[o.id]))) bad.push(`${at}: owner ${JSON.stringify(o)}`);
+      if (!l.of || !Number.isInteger(l.of.src)) bad.push(`${at}: no task tile`);
+    });
+  }
   // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
   // or while cutting the next load beside a cart with room (sim/agents stepWork, a kind's `stack`: firewood)
   for (const a of st.agents) if (a.load && !(a.load > 0 && (a.phase === 'back' || (a.phase === 'work' && a.job && VB['sim/kinds'].KINDS[a.job.kind].stack)))) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
@@ -813,14 +959,14 @@ function checkState(st) {
       if ((o.answers || []).every((x) => x.yes === true)) bad.push(`${at}: all have said yes, and the offer is open`);
     });
   }
-  // the journeys (VB-287): sorted by due, ids below st.journeySeq and unique, each pawn living and in at most one, `to` its household's house,
+  // the journeys (VB-287): in the order they set out (by id; VB-473: their legs are their pawns'), ids below st.journeySeq and unique, each pawn living and in at most one, `to` its household's house,
   // the food it carries never below 0; a pawn is in phase 'journey' or 'road' exactly when it is on one.
   if (st.journeys !== undefined) {
     const seen = new Set(), ids = new Set();
     if (!Array.isArray(st.journeys) || !Number.isInteger(st.journeySeq) || st.journeySeq < 0) bad.push(`journeys: ${typeof st.journeys}, seq ${st.journeySeq}`);
     else st.journeys.forEach((j, n) => {
       const at = `journeys[${n}] (id ${j.id})`, p = st.pawns[j.pawn];
-      if (n > 0 && st.journeys[n - 1].due > j.due) bad.push(`${at}: due ${j.due} before the one ahead of it`);
+      if (n > 0 && st.journeys[n - 1].id >= j.id) bad.push(`${at}: set out before the one ahead of it`);
       if (!Number.isInteger(j.id) || j.id < 0 || j.id >= st.journeySeq || ids.has(j.id)) bad.push(`${at}: id against journeySeq ${st.journeySeq}`);
       ids.add(j.id);
       if (!p || !p.alive || seen.has(j.pawn)) bad.push(`${at}: pawn ${j.pawn} dead, missing or on two journeys`);
@@ -828,7 +974,7 @@ function checkState(st) {
       const bearing = j.why === 'carry' && !j.back; // VB-291: a carrier bound for the receiver's house, with his gift
       if (bearing ? !j.gift || !(j.gift.n > 0) || st.farmsteads[st.households[j.gift.to].farmstead].house !== j.to : (j.gift || false) && j.gift !== null) bad.push(`${at}: a gift ${JSON.stringify(j.gift)} on a journey ${j.why}, back ${j.back}`);
       if (!bearing && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
-      if ((j.why !== 'move' && j.why !== 'carry') || !(j.food >= 0) || !Number.isFinite(j.due)) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
+      if ((j.why !== 'move' && j.why !== 'carry') || !(j.food >= 0) || 'due' in j) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
       const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
       if (ph !== 'journey' && ph !== 'road') bad.push(`${at}: its pawn is in phase ${ph}`);
     });
@@ -1000,8 +1146,10 @@ function checkRel(st, p, bad) {
     for (const k of kinds) {
       const K = SOCIAL.memories[k], m = r.mem[k];
       if (!K) { bad.push(`${where}: unknown memory ${k}`); continue; }
-      const lo = Math.min(0, K.cap), hi = Math.max(0, K.cap);
-      if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${K.cap}`);
+      // a breach is felt by honour, its cap up to the most of TRAITS.acts.honour.breach (VB-520)
+      const T = globalThis.VB['sim/rules'].TRAITS, felt = T.breach.includes(k) ? Math.max(...T.acts.honour.breach) : 1;
+      const cap = K.cap * felt, lo = Math.min(0, cap), hi = Math.max(0, cap);
+      if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${cap}`);
       if (!(m.t <= st.t)) bad.push(`${where}: ${k} remembered at ${m.t}, after now (${st.t})`);
     }
   }

@@ -3,8 +3,8 @@
 A village builder on a generated hex archipelago, in one HTML page (PixiJS 8). The page holds all its own code, but loads PixiJS from jsDelivr and its fonts from Google Fonts, so it needs a network connection; without the fonts it falls back to the browser's serif and sans-serif.
 
 - **Play online:** <https://ashlaban.github.io/village-builder/>
-- **Play locally:** `python3 build.py`, then open `index.html` in a browser.
-- **Build:** `python3 build.py` inlines `src/` into `index.html`, a derived file that is not kept in the repository; the Pages workflow builds it for the site.
+- **Play locally:** `node build.js`, then open `index.html` in a browser.
+- **Build:** `node build.js` inlines `src/` into `index.html`, a derived file that is not kept in the repository; the Pages workflow builds it for the site.
 - **Test:** `npm install && npm test` (cheap headless checks, Node 20+); `npm run verify` adds more rule checks on small constructed states (half a minute in all); the long runs and the browser checks run nightly (`node tests/run.js extended`). See [Testing](docs/testing.md) for coverage and runner options.
 - **Late-game fixtures:** a local cache under `tests/fixtures/<key>/`, keyed by the simulation's sources and made on demand
   (`node tools/fixtures.js status|make|clean`; `npm run nightly` prepares them once). Nothing is published or fetched.

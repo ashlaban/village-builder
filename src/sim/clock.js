@@ -12,12 +12,12 @@ VB['sim/clock'] = (() => {
   const Stores = VB['sim/stores'];
   const { shareFood } = VB['sim/help'];
   const Workdays = VB['sim/workdays'];
-  const { placeByDoor, release, dropJob, stepAgents, travelling, dueJourneys, stopJourneys, feedTravellers } =
+  const { placeByDoor, release, dropJob, stepAgents, rest, travelling, dropSides, feedTravellers, reckonAll, placeOf } =
     VB['sim/agents'];
   const { refreshJobs, takeDay, helpers, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
-  const { outdoors } = VB['sim/society'];
+  const { outdoors } = VB['sim/encounters'];
   const {
     meetingStage,
     MEETING_STAGES,
@@ -32,6 +32,7 @@ VB['sim/clock'] = (() => {
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
+  const { frost: lyingFrost } = VB['sim/lying'];
   const { byreDay, autumnCounts, strays, shearing } = VB['sim/byre'];
   const { herdsBack, halveGraze } = VB['sim/grazing'];
   const { recount, deerGraze, browseCrops } = VB['sim/deer'];
@@ -80,8 +81,8 @@ VB['sim/clock'] = (() => {
       at: { hour: [SOCIAL.talk.from, SOCIAL.talk.to] },
       when: cenv,
       owner: 'sim/relations',
-      note: 'talk, and the hours at home',
-      run: (st, c) => talkHour(st, c.hour, outdoors(st)),
+      note: 'talk at its turns, and the hours at home',
+      run: (st, c) => talkHour(st, c.hour, outdoors(st, placeOf)),
     },
     {
       every: 'hour',
@@ -104,29 +105,15 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'hour',
-      at: { hour: WORK[0] },
-      when: (st) => st.journeys.length > 0,
-      owner: 'sim/agents',
-      note: "a journey's leg due sets out (VB-287)",
-      run: (st) => dueJourneys(st),
-    },
-    {
-      every: 'hour',
-      at: { hour: WORK[1] },
-      when: (st) => st.journeys.length > 0,
-      owner: 'sim/agents',
-      note: 'those on the road stop where they stand for the night (VB-287)',
-      run: (st) => stopJourneys(st),
-    },
-    {
-      every: 'hour',
       at: { hour: WORK[1] },
       owner: 'sim/agents',
-      note: 'the work day ends: everyone free goes home',
+      note: 'the work day ends: the tasks under work are reckoned (VB-472), tasks at the side let go, and everyone free goes home',
       run: (st) => {
+        reckonAll(st);
         for (const liveId of st.living) {
           const a = st.agents[liveId];
           if (st.pawns[a.id].died) continue;
+          if (a.side) dropSides(st, a); // the herds are minded in the working hours only (VB-136)
           if (a.phase === 'back') continue; // finish the delivery first
           if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
           if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
@@ -172,6 +159,13 @@ VB['sim/clock'] = (() => {
           Stores.spoilAle(st, hh);
         }
       },
+    },
+    {
+      every: 'day',
+      when: (st) => !!(st.workDue && st.workDue.length),
+      owner: 'sim/agents',
+      note: "after the meal a hand's rate may differ: the tasks under work are reckoned (VB-472)",
+      run: (st) => reckonAll(st),
     },
     {
       every: 'day',
@@ -273,6 +267,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/meadows',
       note: 'the autumn frost rots hay still lying',
       run: (st) => meadowsFrost(st),
+    },
+    {
+      every: 'year',
+      at: FROST,
+      owner: 'sim/lying',
+      note: 'the autumn frost rots the loads left lying where their carrier fell (VB-611)',
+      run: (st) => lyingFrost(st),
     },
     {
       every: 'day',
@@ -428,16 +429,16 @@ VB['sim/clock'] = (() => {
       note: "the night's culture, a settlement a step (VB-201)",
       run: (st, c, n) => nightCulture(st, n),
     },
-    // ---- autumn: the meetings' stages from noon of day 10 (customs, then the outland; VB-206), the moving round's from noon of day 11:
-    // a village a step, then its three island-wide phases from 18:00 (VB-201, VB-277) ----
-    ...Array.from({ length: MEETING_STAGES }, (_, r) => ({
+    // ---- autumn: the meetings from noon of day 10, a village a step, then the cultures' years at 18:00 and the land meeting (VB-278);
+    // the moving round's from noon of day 11: a village's round a step, then its three island-wide phases from 18:00 (VB-201, VB-277) ----
+    {
       every: 'year',
-      at: { season: AUTUMN, sday: 9, hour: 12, tick: r },
+      at: { season: AUTUMN, sday: 9, hour: 12, tick: [0, MEETING_STAGES] },
       when: cenv,
       owner: 'sim/lifecycle',
-      note: `the meetings, stage ${r}`,
-      run: (st) => meetingStage(st, r),
-    })),
+      note: "the meetings: a village's meeting a step, then the cultures' years and the land meeting (VB-278)",
+      run: (st, c, n) => meetingStage(st, n - 12 * TICKS),
+    },
     {
       every: 'year',
       at: { season: AUTUMN, sday: 10, hour: 12, tick: [0, ROUND_STEPS] },
@@ -598,6 +599,7 @@ VB['sim/clock'] = (() => {
       if (got.size < idle.length) helpers(st, idle, got, c);
       for (const a of idle) if (!got.has(a)) idleAbout(st, a);
     }
+    rest(st, all); // one left free with nothing in hand looks again at the next step (VB-473)
   }
   const advance = (st, hours) => ticking(st, hours, step);
   return { CALENDAR, calendarRows, advance, ticking, stepsIn };

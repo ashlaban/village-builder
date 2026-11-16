@@ -6,7 +6,8 @@
 // Reported, never asserted: the tool never fails (a run that throws is printed and recorded as an error).
 //   (no argument)  populous small, seeds 3, 7, 11, 42, 30 years; founders small, sixteen seeds, 50 years; heirs small, seeds 7 and
 //                  42, 30 years (FULL in tests/lib/bands.js)
-//   --runs LIST    only these of the full runs (the names of FULL in tests/lib/bands.js)
+//   --runs LIST    only these of the full runs (the names of FULL in tests/lib/bands.js); the weekly runs (WEEKLY: populous-medium, 30
+//                  years, and founders-medium, 50 years, seeds 3, 7, 11, 42; VB-633) run only when named, and on Sundays by tools/nightly.js
 //   --years N      every run cut to N years, for a quick look (recorded with the cut)
 //   --if-new       does nothing when the history already holds a full run at HEAD (tools/nightly.js)
 //   --out FILE     the history to append to (default docs/bench/bands.jsonl)
@@ -23,7 +24,7 @@ function plan({ only = null, years = null } = {}) {
   for (const band of B.BANDS) {
     const r = band.report; if (!r) continue;
     const name = Object.keys(B.FULL).find((k) => B.FULL[k].scenario === r.scenario && B.FULL[k].map === r.map && B.FULL[k].years === r.years) || r.scenario;
-    if (only && !only.includes(name)) continue;
+    if (only ? !only.includes(name) : B.WEEKLY.includes(name)) continue; // the weekly runs only when named (VB-633)
     for (const seed of r.seeds) {
       const run = { name, scenario: r.scenario, map: r.map, years: years || r.years, seed }, key = JSON.stringify(run);
       if (!runs.has(key)) runs.set(key, { ...run, bands: [] });
@@ -74,7 +75,7 @@ async function main(args = process.argv.slice(2)) {
   }));
   const bands = runs.flatMap((run) => judgeRun(run).map((j) => ({ ...j, run: run.name, seed: run.seed })));
   console.log('\nbands (reported, never failing):');
-  for (const j of bands) console.log(j.kind === 'described' ? `      ${j.id} seed ${j.seed}: ${B.fmt(j.value)} (described)`
+  for (const j of bands) console.log(j.kind === 'described' ? `      ${j.id} seed ${j.seed}: ${B.fmt(j.value)} (described${j.note ? `; ${j.note}` : ''})`
     : `  ${j.ok ? 'in ' : 'OUT'} ${j.id} seed ${j.seed}: ${B.fmt(j.value)} (band ${B.fmt(j.lo)}..${B.fmt(j.hi)})`);
   const cpus = os.cpus(), entry = { schema: 1, date: new Date().toISOString(), commit, dirty: git(['status', '--porcelain']) !== '',
     node: process.version, cpu: { model: cpus[0]?.model || 'unknown', cores: cpus.length }, minutes: +((Date.now() - t0) / 60000).toFixed(1),
@@ -82,7 +83,7 @@ async function main(args = process.argv.slice(2)) {
     runs: runs.map((r) => ({ name: r.name, scenario: r.scenario, map: r.map, seed: r.seed, years: r.years,
       ...(r.result.error ? { error: r.result.error } : { secs: +r.result.secs.toFixed(1), ...r.summary }) })),
     bands: bands.map((j) => ({ id: j.id, seed: j.seed, value: Number.isFinite(j.value) ? +j.value.toFixed(4) : String(j.value),
-      ...(j.kind === 'described' ? {} : { ok: j.ok }) })) };
+      ...(j.note ? { note: j.note } : {}), ...(j.kind === 'described' ? {} : { ok: j.ok }) })) };
   // target records (docs/gates.md, row 22; VB-265): one per band and run, the mean over the seeds against the band's range, its noise
   // the standard error over the seeds (a residual within twice that is `noise`), the seeds' own values kept in the record
   const groups = new Map();

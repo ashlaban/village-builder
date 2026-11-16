@@ -3,6 +3,7 @@
 // is in saved state, and needValue allocates nothing.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rules = VB['sim/registry'], Culture = VB.culture;
+const { bufferOf } = VB['sim/traits']; // VB-520: the floor and the holder's reserve, by its generosity
 const Stores = VB['sim/stores'], { needValue, propriety, KEEPING } = VB['sim/exchange'];
 const { dailyNeed, toHarvest, NEED } = VB['sim/hunger'];
 const { HERD, YEAR_DAYS, DAY, SEASON_DAYS } = VB['sim/rules'];
@@ -48,7 +49,7 @@ checks += 2;
 // a household whose pot lacks a source below more than a sack of it (10 rations): the fifth of its need to the harvest (the first
 // household at this seed is too small for that since the villages were laid out anew, VB-402)
 const hh = st.households.find((h) => !h.dissolved && h.holder !== null && NEED.lackingShare * toHarvest(st.t) * dailyNeed(st, h) > 10);
-const need = dailyNeed(st, hh), days = toHarvest(st.t), buffer = st.pawns[hh.holder].buffer;
+const need = dailyNeed(st, hh), days = toHarvest(st.t), buffer = bufferOf(st, hh.holder);
 const reach = Stores.reserved(st, hh, 'grain') + (days + buffer) * need, ample = Math.max(reach, 2 * YEAR_DAYS * need);
 hh.larder = [{ kind: 'meat', n: 1e-9, until: st.t + DAY }]; // no butter, salt meat or dried fish: those sources the pot lacks
 const stock = (g) => { hh.grain = { barley: g }; };

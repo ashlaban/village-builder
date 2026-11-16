@@ -12,7 +12,15 @@ VB['sim/scenarios'] = (() => {
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } =
     VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
-  const { seedPlans } = VB['sim/plans'];
+  const { seedPlans, startHeads } = VB['sim/plans'];
+  const { seedTraits } = VB['sim/traits'];
+  // The end of seeding: a stream for each system, then the living's traits and each household's head (VB-254), from the stream `traits`.
+  // Also for a state made outside the scenarios (tests/lib/tiny.js).
+  function startStreams(st, seedNum) {
+    splitStreams(st, seedNum);
+    seedTraits(st);
+    startHeads(st);
+  }
   const { dailyNeed } = VB['sim/hunger'];
   const { startQuern } = VB['sim/quern'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
@@ -54,7 +62,7 @@ VB['sim/scenarios'] = (() => {
       village: village.id,
     });
     VB['sim/carts'].seedCarts(st, false);
-    splitStreams(st, seedNum);
+    startStreams(st, seedNum);
     return st;
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population (POPULATION's first number a
@@ -214,7 +222,7 @@ VB['sim/scenarios'] = (() => {
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
     VB['sim/carts'].seedCarts(st, true);
-    splitStreams(st, seedNum);
+    startStreams(st, seedNum);
     return st;
   }
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
@@ -350,7 +358,7 @@ VB['sim/scenarios'] = (() => {
       n: R.pawns.length,
     });
     VB['sim/carts'].seedCarts(st, true);
-    splitStreams(st, seedNum);
+    startStreams(st, seedNum);
     return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
@@ -365,8 +373,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // (pawn.events: the positions of its events in st.record, in the order they were written; sim/records, VB-199)
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
-    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
-    //   buffer (days of food a holder keeps before giving, 20..60; sim/help),
+    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), nursling (the child she nurses, or null; sim/births),
+    //   hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger),
     //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle),
     //   landWait (moving rounds waited for land in a crowded village, 0 otherwise; unset before the first round; sim/settle), ...}
@@ -383,7 +391,8 @@ VB['sim/scenarios'] = (() => {
     //   totals[] ({year, kind, good, n, count}; sim/stores; the routine kinds summed per calendar year, kind and good, n signed; three years),
     //   hungryDays, seedSeason (the season the seed was last eaten in and told; sim/hunger), hunger (mean of members'),
     //   cold (0..1, the mean of coldLog over HUNGER.days) and coldLog[] (the last days' cold, each the wood the fire lacked over winter's use;
-    //   empty when warm that long; sim/hunger, VB-327), waterDay, cookDay, dissolved,
+    //   empty when warm that long; sim/hunger, VB-327),
+    //   dry (0..1, the mean of dryLog, 1 a day its water was not fetched; VB-331), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
     //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter'|'dried fish' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fresh[] ({food 'fish'|'gathered' (rules FOODS held 'fresh'), day, qty (units)}: fresh food in batches by day; sim/pot, VB-119),
@@ -436,7 +445,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
     // @state st.journeys, st.journeySeq: the open journeys between villages and the next one's id (see sim/agents, VB-287)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
-    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
+    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
     // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
     // @state st.regrow: Set of tile indexes with some but not all trees, which grow back daily (see sim/forest)
@@ -446,6 +455,8 @@ VB['sim/scenarios'] = (() => {
     //   its lookups are hooks(st) (sim/society)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; a culture's preference among farm names: weights, the first heaviest
     // @state culture.practices: {noDecision: 'nothing' | 'asLastYear'}; the culture's practices that are not customs (culture.js PRACTICES; VB-257)
+    // @state culture.values: {generosity, piety, ambition, honour}; the means of its living adults' values (VB-519), each to a thousandth,
+    //   reckoned at its yearly reckoning and at a split (culture.js, through sim/traits' addValues); an archetype's at the start
     const st = {
       t: 6,
       tick: 6 * TICKS,
@@ -493,7 +504,6 @@ VB['sim/scenarios'] = (() => {
         stride: rand() * 6,
         ox: (rand() - 0.5) * 12,
         oy: (rand() - 0.5) * 8,
-        work: null,
         idleUntil: 0,
         talk: null,
         occasion: null,
@@ -564,5 +574,5 @@ VB['sim/scenarios'] = (() => {
         ? seedPopulous(w, seedNum)
         : seedFounders(w, seedNum);
   }
-  return { seedFounders, seedHeirs, seedPopulous, makeState, seed };
+  return { seedFounders, seedHeirs, seedPopulous, makeState, startStreams, seed };
 })();

@@ -64,6 +64,10 @@ VB['sim/fields'] = (() => {
       for (const p of Projects.projectsOf(st, 'village', v.id))
         if (p.what === 'plot') for (const tr of p.steps[0].places) if (tr.kind === 'house') out.add(tr.tile);
     }
+    // and the plots households clear for their heirs (VB-255)
+    if (st.plans && st.plans.projects)
+      for (const p of st.plans.projects.heirPlots)
+        for (const tr of p.steps[0].places) if (tr.kind === 'house') out.add(tr.tile);
     return out;
   }
   // Why tile t cannot be a field of farm f, beyond its reach (one of a few fixed words, so the search allocates nothing), or null:
@@ -283,6 +287,11 @@ VB['sim/fields'] = (() => {
     if (fd.held <= 0) hauled(fd);
     return n;
   }
+  // A load set down by a carrier released on the road (VB-581) lies with the stooks for the next hand: the field is not hauled after all.
+  function laidDown(fd, n) {
+    fd.held += n;
+    fd.stage = 'stooks';
+  }
   const binned = (fd, seq) => {
     fd.bin = seq;
   };
@@ -396,6 +405,7 @@ VB['sim/fields'] = (() => {
     trample,
     reaped,
     carried,
+    laidDown,
     binned,
     reclaimed,
     weeded,

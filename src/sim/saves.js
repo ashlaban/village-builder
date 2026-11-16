@@ -11,7 +11,7 @@ VB['sim/saves'] = (() => {
     Plans = VB['sim/plans'],
     { BREAK_HOURS } = VB['sim/fields'],
     { seedPer } = VB['sim/hunger'];
-  const { TICKS } = VB['sim/rules'];
+  const { TICKS, TRAITS } = VB['sim/rules'];
   const { makeStream } = VB['sim/rng'];
   const { reckonWood } = VB['sim/territory'];
   const { initFish } = VB['sim/fish'],
@@ -422,6 +422,11 @@ VB['sim/saves'] = (() => {
         hh.coldLog = []; // lint-allow: owner as above
       } // VB-327: nor the cold
     for (const hh of st.households)
+      if (!hh.dryLog) {
+        hh.dry = 0; // lint-allow: owner an older save's household, as sim/records makes one
+        hh.dryLog = []; // lint-allow: owner as above
+      } // VB-331: nor the dry days
+    for (const hh of st.households)
       if (!hh.carts) {
         hh.carts = [];
         hh.cartMiss = 0;
@@ -431,10 +436,14 @@ VB['sim/saves'] = (() => {
     if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
+    // VB-519: nor a culture's values (each starts at its archetype's), nor the twelve traits (those it has kept), nor a child's hungry days
+    if (st.cenv) for (const c of st.cenv.cultures) if (!c.values) c.values = { ...TRAITS.culture.oldNordic };
+    VB['sim/traits'].seedTraits(st); // VB-254: nor the traits themselves (VB-249's diligence kept)
     // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
     const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
     if (st.cenv) for (const c of st.cenv.cultures) if (!c.practices) c.practices = practices();
     if (st.cenv) newCustoms(st); // VB-100: nor the custom of the commons
+    for (const p of st.pawns) if (p.att) VB['culture'].compileLeans(p); // VB-520: compiled from the attitude, as it was saved or made
     oldGrain(st); // VB-347: nor grain by crop
     if (!st.plans)
       seedPlans(st); // VB-258: older saves have no plans
@@ -461,6 +470,7 @@ VB['sim/saves'] = (() => {
     // VB-326: older saves had one tile of wood a village (v.commonsWood) and a farm (f.woodlot); the village's wood is reckoned now
     if (!st.rng.forest) st.rng.forest = makeStream(data.seed, 'forest');
     if (!st.rng.deer) st.rng.deer = makeStream(data.seed, 'deer'); // VB-139: nor roe deer, nor their stream
+    if (!st.rng.plans) st.rng.plans = makeStream(data.seed, 'plans'); // VB-255: nor the heads' choice of projects
     if (!st.deer) VB['sim/deer'].initDeer(st);
     if (!st.front || !w.tended) VB['sim/spread'].initFront(st); // VB-091: nor the forest's front, nor the work on tiles
     for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
@@ -471,7 +481,9 @@ VB['sim/saves'] = (() => {
       }
     for (const f of st.farmsteads) if (f.grade === undefined) f.grade = 'ground'; // VB-332: older saves' houses stand on the ground
     for (const f of st.farmsteads) for (const fd of f.fields) if (fd.crop === undefined) fd.crop = 'barley'; // VB-346: older saves' fields held barley
+    for (const p of st.pawns) if (p.nursling === undefined) p.nursling = null; // VB-632: a mother nursing nurses to her term
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
+    VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now
     return st;
   }
   // A save made before a custom (VB-100: the commons) holds fewer customs than DIMS: each culture and settlement gets the archetype's option

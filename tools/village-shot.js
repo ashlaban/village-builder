@@ -11,6 +11,8 @@
 //   --ui          keep the interface in the shots (hidden by default)
 //   --clouds      keep the clouds (cleared by default: they hide the village on the whole-island shot)
 //   --land        with the Land overlay on
+//   --cart-out    put a pawn of each of the first farms out with its cart, hay on it (VB-410)
+//   --cow-led     put a pawn of each of the first farms out leading a cow home (VB-429)
 //   --scale S     device pixel ratio (default 2: 2880 by 1800 pixels; 1 for a quick look)
 //   --tag NAME    the files' prefix (default village-<seed>-<farms>f-y<years>)
 //   --html FILE   another build of the page (default: built from src/ for the run, tests/lib/page.js)
@@ -46,7 +48,7 @@ const page_ = path.join(os.tmpdir(), `vb-village-shot-${process.pid}.html`); fs.
 // In the page: one village of `farms` farms on the best site of world w.
 function seedVillage(w, seed, farms) {
   const VB = window.VB, { settlementGenerator, findSite } = VB['sim/layout'], { populousHouseholds, drawSize } = VB['sim/people'];
-  const { fromState, drawer, splitStreams } = VB['sim/rng'], comp = VB['sim/hex'].landComponents(w);
+  const { fromState, drawer } = VB['sim/rng'], comp = VB['sim/hex'].landComponents(w);
   const S = fromState((seed * 2654435761) ^ 0x7177), rand = drawer(S), gen = settlementGenerator(w, rand), sizes = [];
   let big = 0; for (let i = 0; i < w.N; i++) if (!w.water[i]) big = Math.max(big, comp.size[comp.id[i]]);
   const centre = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] === big); // on the largest island
@@ -59,14 +61,15 @@ function seedVillage(w, seed, farms) {
   for (const hh of st.households) hh.grain = { barley: 400 }; // enough for the years of a shot; nobody's balance is judged here
   VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st);
   VB['sim/territory'].seedOutland(st, true);
-  splitStreams(st, seed);
+  VB['sim/scenarios'].startStreams(st, seed);
+  VB['sim/carts'].seedCarts(st, true); // each farm stands with a hand cart, and an ox cart where it keeps a team (VB-410; after the live-household cache is built)
+  for (const hh of st.households) if (hh.id % 4 === 1 && hh.carts.length) hh.carts[0].cond = 0.3; // one in four is worn
   return st;
 }
 
 async function shootSeed(browser, seed) {
   const tag = opt('tag', null) ? opt('tag') + (seeds.length > 1 ? `-${seed}` : '') : `village-${seed}-${farms}f-y${years}`;
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: scale });
-  page.on('pageerror', (e) => console.error('page error:', e.message));
   await page.route(/^https?:\/\//, (r) => (/pixi(\.min)?\.js/.test(r.request().url())
     ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' })));
   await page.addInitScript(`window.__seedVillage = (w, seed) => (${seedVillage.toString()})(w, seed, ${farms});`);
@@ -87,6 +90,26 @@ async function shootSeed(browser, seed) {
     for (let d = 0; d < n * Sim.YEAR_DAYS; d++) { Sim.advance(st, Sim.DAY); if (d % 12 === 11) await new Promise((r) => setTimeout(r, 0)); }
     st.visualDirty = true;
   }, years);
+  if (has('cart-out')) await page.evaluate(() => { // a pawn of each of the first farms hauling hay home with its cart (the ox cart where there is one)
+    const st = window.__vb.st, C = window.VB['sim/carts'], A = (id) => st.agents[id];
+    for (const hh of st.households.slice(0, 4)) {
+      const a = hh.members.map(A).find((x) => x && st.pawns[x.id].age >= 16), f = st.farmsteads[hh.farmstead];
+      if (!a || !hh.carts.length) continue;
+      a.job = { kind: 'haul', farm: f }; a.phase = 'back'; a.carry = 'hay'; a.load = 90; a.x = st.w.hx[f.house] + 40; a.y = st.w.hy[f.house] + 20; a.path = null; a.inside = false;
+      C.take(st, hh, a.id, hh.carts.some((c) => c.kind === 'ox'));
+    }
+    st.visualDirty = true;
+  });
+  if (has('cow-led')) await page.evaluate(() => { // a pawn of each of the first farms leading a heifer home
+    const st = window.__vb.st, A = (id) => st.agents[id];
+    for (const hh of st.households.slice(0, 4)) {
+      const a = hh.members.map(A).find((x) => x && st.pawns[x.id].age >= 16), f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id);
+      if (!a) continue;
+      if (plan && !plan.want) plan.want = { what: 'cow', from: null, kind: 'heifer', by: null };
+      a.job = { kind: 'lead', farm: f }; a.phase = 'back'; a.carry = 'cow'; a.x = st.w.hx[f.house] + 40; a.y = st.w.hy[f.house] + 20; a.path = null; a.inside = false;
+    }
+    st.visualDirty = true;
+  });
   if (has('land')) await page.evaluate(() => document.getElementById('landBtn').click());
   if (!has('clouds')) await page.evaluate(() => window.__vb.clearSky());
   if (!has('ui')) { await page.evaluate(() => document.getElementById('uiToggle').click()); await page.addStyleTag({ content: '#uiToggle, #lod { visibility: hidden !important; }' }); }
