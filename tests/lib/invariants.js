@@ -906,8 +906,9 @@ function checkState(st) {
   for (const a of st.agents) if (a.load && !(a.load > 0 && (a.phase === 'back' || (a.phase === 'work' && a.job && VB['sim/kinds'].KINDS[a.job.kind].stack)))) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
   for (const h of st.households) if (h.threshed !== undefined &&
     !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
-  // the hour of a pawn's last talk with a friend (agent.talk.friendAt, VB-062): a finite hour, no later than its latest talk
-  for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= a.talk.at)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, latest talk at ${a.talk.at}`);
+  // the hour of a pawn's last talk with a friend (agent.talk.friendAt, VB-062): a finite hour, no later than a talk begun now can show (two
+  // talks in one hour may be shown in either order, so it may follow the latest talk's own hour)
+  for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= st.t + VB['sim/rules'].SOCIAL.talk.bubbleHours + 1e-9)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, after now (${st.t}) and a talk's bubble`);
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
   for (const a of st.agents) {

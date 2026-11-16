@@ -58,6 +58,7 @@ VB['sim/lifecycle'] = (() => {
     if (!p.alive) return;
     p.died = st.t;
     p.alive = false;
+    emit(st, 'died', { pawn: id }); // its kin grieve (sim/mood, VB-062), before the death ends its union
     p.kinPush = null; // the round's pushes are cleared on the living only (VB-277)
     p.interest = null; // and its interests, which the village's meeting refreshes for the living only (VB-278)
     noteDeath(st, id);
