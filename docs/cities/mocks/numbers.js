@@ -60,6 +60,36 @@ const INVENTED = {
   prior: 0.5, // what a household that has never been to a place's date expects of finding a good there
   tryChance: 0.3, // a host with a mind to it tries one new date a year with this chance
   hostBreakEven: 6, // households from other villages a date must draw for its host to call it again
+  // C, the second mock (move.js): makers who may move, dealing that rides on gatherings. All of this block is made up unless it says otherwise.
+  move: {
+    // a want is one purchase. The rations a farm gives a maker a year are mock A's (table A0: smith 4.7, potter 3.0, weaver 16), the gains
+    // mock B's; `loads` is the material carried for one purchase's worth (a bloom: 4 loads of ore, VB-364; two pots: half a firing's clay)
+    goods: [
+      { key: 'iron', craft: 'smith', rate: 0.157, worth: 30, gain: 15, wait: 1 / 48, mat: 'bog', loads: 4 },
+      { key: 'pots', craft: 'potter', rate: 0.5, worth: 6, gain: 6, wait: 1 / 96, mat: 'clay', loads: 0.5 },
+      { key: 'cloth', craft: 'weaver', rate: 0.4, worth: 40, gain: 20, wait: 1 / 96, mat: null, loads: 0 },
+      { key: 'fish', rate: 1, worth: 4, gain: 5, wait: 1 / 48, sea: true }, // dried fish, sold by fishers of villages by the sea, who do not move
+      { key: 'farm', rate: 0.5, worth: 0, gain: 8, wait: 1 / 96, any: true }, // something of another farm's: one household in twenty has it
+    ],
+    any: 0.05, // the chance that one other household has what a farm wants of a farm (mock B's)
+    fishers: 1 / 6, // of the households of a village by the sea, those with dried fish to deal
+    social: { meeting: 0.9, rite: 0.9, gathering: 0.8, ale: 10 }, // a household has someone at its village's meeting or rite; sends a goer to its gathering; households at an ale evening
+    dealHours: 2, // on the green beside the walk, for one who came only to deal (a rite is 2 hours: RITE.hours)
+    loadsPerTrip: 1, // a maker carries its material on its back (a plot household keeps no oxen); 3 with a cart (TRAVEL: 90 against 30)
+    makers: 2, // makers a craft at the start, each on a farm of its own, where its material is
+    entry: 0.01, // would-be makers a farm household a year: a younger son with a craft and no holding
+    turnover: 0.03, // a maker household ends in a year with nobody to take up the craft
+    youngNeed: 150, // rations a year of a new household, its first 8 years (two adults and small children)
+    plotCows: 2, // a plot household keeps a garden and two cows (mock A's plot household)
+    landSlack: 0.1, // fields free to be had at a village, as a share of the fields its farms hold (0: a full island)
+    kin: 20, // rations a year a household would give to stay among its kin (help in a bad year, the feast)
+    inertia: 0.15, // a move must better the household's year by this share of its need
+    newPlace: 0.8, // how far a head trusts its estimate of custom at a place it has not lived
+    moveReach: 12, // a maker knows the villages within a day's walk (TRAVEL.dayWalk)
+    dealMin: 3, // households dealing for a day to count as a dealing day (mock B's busy day)
+    prior: [1, 0.6, 0.3, 0.1, 0], // a maker's first guess of the share of households that buy of it, by their walk: at home, to 1.5 h, 3 h, 6 h, beyond
+    hungry: 0.85, // a landless maker fed under this share of its need two years running gives up the craft
+  },
 };
 // one seeded stream a run (mulberry32), as the game's own streams are
 const rng = (seed) => { let a = (seed * 2654435761 + 12345) >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1);

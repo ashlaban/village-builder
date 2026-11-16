@@ -5,6 +5,9 @@ not game code. It explores two things: (A) how a household with a craft moves fr
 market meets, and where. Kim's direction, which it works under: a market place or a town is a **label** read from what people do, which no
 rule reads; no threshold switches anything on; plots are grown; the 600 / 325 / 75 is counted by work.
 
+**Part two** (below, after part one's choices) is the second mock, `move.js`, made after Kim answered those choices on 16 November:
+makers who may move, and dealing that rides on gatherings. It withdraws three things said here (its section "What part two withdraws").
+
 Each finding names the run that gives it. `craft.js` takes 12 seconds and `market.js` 40; both are seeded and print the same tables each time.
 
 ## Findings
@@ -182,6 +185,9 @@ needs (6), two makers a good, and three deals for a busy day. The household of s
 
 ## Design choices for Kim
 
+Answered by Kim on 16 November 2026 (`docs/plans/VB-189.md`, section 1): 1 (d); 2 (b), against the proposal; 3 dealing days on the green;
+4 neither: no pawn calls a market, dealing rides on gatherings; 5 (b); 6 (b), after the second mock, which is part two. Kept as asked.
+
 1. **How does a head weigh a craft against its fields?**
    (a) As built: fields by need alone; a craft fills slack hours and never frees a field.
    (b) By its estimate of all its food, cautiously (the second worst year it remembers).
@@ -213,3 +219,161 @@ needs (6), two makers a good, and three deals for a busy day. The household of s
    (b) A maker may take a plot where buyers come and carry or buy its material, weighing the two walks.
    (c) A scenario places them.
    **Proposed: (b), with a second mock first.** Makers together turn 9 busy days into 32; no other lever in B came near it, and B did not model the move.
+
+# Part two: makers who may move, and dealing that rides on gatherings (16 November 2026)
+
+The second mock, asked for by Kim after the first: `docs/cities/mocks/move.js` (a minute and a half; seeded; `--only` takes one table).
+It works under Kim's answers of 16 November to the first part's choices (`docs/plans/VB-189.md`, section 1): nobody calls a market;
+pawns bring goods to gatherings that happen anyway, each by its own estimate; a gathering day's dealing is on the green; on other days
+a pawn may walk to a named household; a head sizes its fields against its estimate of all its food, by its trait; a plot household may
+hold what land it can get; and a maker may move to its buyers. The host-called date of part one (finding 13, choice 4) is gone.
+
+## Findings (`node docs/cities/mocks/move.js`; C1 to C9 are its tables)
+
+15. **Makers do not gather by positive feedback. They spread.** (C1, C2.) A farm gives a smith 4.7 rations a year, a potter 3.0, a
+    weaver 16, so a new household on a plot lives by the custom of 25, 39 or 7 farms, and a maker's best place is where no maker of
+    its craft has the buyers yet. On the real maps (129 to 147 households) the island ends with 17 to 21 maker households, one to 6 to
+    8 farms, and the fullest village holds 2.3 to 3.9 of them (13% to 19%); at twice the households 5.3 to 6.2 (12% to 14%), at four
+    times 8.1 to 12.6 (10% to 14%); at a populous start (54 to 56 households) 5 to 7 makers, 1.7 to 3.0 of them at the fullest.
+    Nothing changed that share: makers who judge a place by distance alone (15%), who do not count
+    their rivals (17% to 20%), with no yearly gathering (13% to 14%), or with nobody allowed to move (16%). Over 24 variants of C8 it
+    stayed between 10% and 22%.
+16. **A place begun gathered comes apart within a generation, so nothing locks in** (C4, C2). With all six first makers begun in one
+    middling village, it holds 4.6 maker households at year 10, 2.9 at 20, 2.0 at 40 and 1.4 at 60, and leads at year 60 in none of 30
+    runs. Begun in the most central village, it ends as the unforced runs do (3.1 against 2.8 makers at the fullest place; 5.9 against
+    6.2). (My first run of this table showed the opposite, 16 of 16: it had let a dead maker's farm stand as free fields for the next
+    maker. A farm is now taken up by a farming household.)
+17. **Where makers are is set by reach, smoothly, and by who hosts the gathering** (C3; 984 villages over ten maps at 1, 2 and 4 times
+    their households). Of villages with under 20 households within 3 hours' walk, 3% hold three or more makers; with 20 to 40, 16%;
+    40 to 80, 46%; 80 to 160, 65%; 160 to 320, 73%. No step. A village with all three crafts is rarer: 1%, 5%, 13%, 18%, 19%. The host
+    of a yearly gathering holds 1.3 to 1.8 times the makers of other villages of the same reach (4.2 against 3.3 at 40 to 80).
+18. **Which place leads wanders at the real maps' sizes, and settles on the most central host only with many more people** (C4; the
+    same map, deposits and first makers, 10 runs differing by chance). At 129 households four villages led at year 60, and the same
+    one led at years 20 and 60 in 4 runs of 10 (the leader has 2.6 makers: there is little to lead). At 272 (medium), six villages and
+    2 of 10. At 516 the most central host led in 10 of 10 and held 9.6. That is geography, not lock-in (finding 16).
+19. **How many places an island has.** Villages with three or more maker households: 0 to 1.5 on the real maps (780 to 900 people),
+    4 to 6 at twice that, 13 at four times (C1). With eight or more: none, 0 to 0.3, and 0.5 to 3.0. At the late reference (1,000
+    people, about 170 households) that is one to three villages with three makers and none with eight.
+20. **A place stops growing because its makers share one custom, not for want of food, unless the island is full** (C5). The fullest
+    place holds 3.1 maker households (19 people) with 82 farms within a day there and back, 6.0 (36) with 191, 8.4 (50) with 332, 12.7
+    (76) with 376. All makers in its reach take 25% to 30% of what those farms make over their need, and 4% to 10% of wants go unmet.
+    With three times the would-be makers the place has 14.6 households and still 1.6 half fed by their craft. On a full island (farms
+    at 1.0 to 1.25 of need) the makers take 46% and 26% of wants go unmet for want of grain; on a lean one (1.0 to 1.1), 40%. Crowding,
+    by the draft's rule, starts at about four plot households close together (factor 1.1) and reaches 1.5 to 1.63 at six and more
+    (arithmetic from the layout, not simulated).
+21. **Most of a place's makers are still part-farmers.** At the fullest place 63% to 85% of maker households hold a field (C5); over
+    the island 69% to 81% do, and 36% to 46% are half fed by their craft (C1: of 20.5 maker households, 5.0 hold no field and 7.3
+    are half fed by craft). Fields sized by need alone, as built, leaves 7.4 field-free against 12.6 (C8, 258 households): the
+    estimate of all food is what lets a maker put its fields down. A maker with no field ends under 0.85 of its need in 31% of years
+    on an ordinary island (C7), and of 56 would-be makers who found a place in 60 years, 15 gave up and 19 more found none (C1).
+22. **A bad year: the makers go short first on a full island, and the green empties** (C7; a harvest under 0.85, one year in eight).
+    Farms at 1.1 to 1.6 of need: a maker's craft brings 139 rations in other years and 124 in a bad one; makers under 0.85 of need go
+    from 15% to 19%. Farms at 1.0 to 1.25: 99 and 64 rations; wants filled 80% and 58%; hungry makers 19% and 33%, of those with no
+    field 42% and 58%; the island's green dealing days 44.6 and 30.1, its busy house days 11.2 and 3.5; the year after, a maker still
+    gets 80. Fields keep a maker fed in the bad year (food at 1.09 of need with fields, 1.12 without, against 1.41 and 1.57).
+23. **The gatherings carry a quarter to two fifths of the makers' dealing, and the yearly gathering most of that** (C1, C2, C9). Of
+    the makers' goods, 23% to 40% were dealt on a green; without the yearly gathering 14% to 24%. A host's calendar reads: ten and
+    more households dealing on each of the gathering's three days, one to seven on a rite day or the meeting, nothing between (C9).
+    Two things raise the green's share: rites held on each village's own days, not the same day everywhere (36% to 50%: a household
+    can then go to a neighbour's), and ale evenings counted as gatherings (59% at 6 a village a year, 73% at 24). Neither gathers makers.
+24. **The walk to the material did not decide where makers live** (C8). Carrying ore from a bog 3 hours off adds 24 hours to a bloom
+    of 16 to 34, clay 3 hours to two pots of 3 to 5; by cart or at no cost the island has 41 maker households against 45 and the same
+    spread. Makers are short of buyers, not of hours (finding 1), so hours spent carrying cost them little. What moved the counts: the
+    fields to be had (19 makers with none, 61 with fields free at 30% of those held), the would-be makers a year (20 to 60), how long
+    a maker's household lasts (29 to 51), and the farms' surplus (30 on a lean island).
+25. **Moving itself matters little.** With nobody moving, and a would-be maker settling only at home, the real map ends with 13.6
+    maker households against 20.5 and the medium one with 42.8 against 43.6 (C2): on a small island a third more find a place, and
+    wants filled stay at 89% to 92%. A maker moves 0.1 to 1.3 times in 30 years (0.2 if a move must better its year by 40% of its need).
+
+## What the label would read (C6)
+
+Over 10,471 village-years (villages of 3 households or more, years 31 to 60, six cases):
+
+| Measure | What it read | A natural cut? |
+| --- | --- | --- |
+| Dealing days on the green a year | 0 in 40% of village-years, 1 in 19%, 2 in 15%, 3 in 13%, 4 in 8%, 5 to 7 in 5%; never above 7 | No. It is capped by the calendar: a village has four gathering days of its own, a host seven. No gap anywhere |
+| Households of other villages that dealt on its green in a year | 0 in 75%, 1 to 2 in 12%, 3 to 11 in 5%, 12 to 23 in 3%, 24 and more in 5% | **Yes, one.** The upper group is the hosts of a gathering (27 to 37 a year at a host of the real map, 66 to 79 at four times the households); the rest see almost nobody |
+| Busy house days (3 or more households of other villages dealt at houses there) | 0 in 85%, 1 to 5 in 12%, 12 and more in 2% | No |
+| Work that is not farming, per 1,000 of hours worked there | 239 with no maker (the farms' own crafts); median 257 with one maker, 265 with two, 275 with five to seven, 287 with twelve and more; nine in ten under 313 to 341; the most 548 | No. It moves by 20 to 50 points between a village and the fullest place |
+
+So the mock gives one honest label, and it is not the one sought: **a market place is a green where the households of other villages
+deal**, which today means the host of a gathering. Entering at 12 such households a year and leaving under 6, over 3 year ends,
+separates the two groups of the second row; the numbers are read off the histogram and wait for a real run. For **town** the mock gives
+no cut point at all: nothing in it reaches what part one proposed (36 dealing days, half the work not farming), and the measures that
+would carry the word (work not farming, maker households) vary smoothly and little. The first part's table of labels (above, "What
+the mock says the labels are") is withdrawn, but for the household's own ladder, which stands.
+
+**The work line.** With all craft hours counted (Kim), the island reads 263 to 275 per 1,000 (C1): 239 from every farm's own dress,
+iron and pots, and 25 to 35 from the makers. So the band's lower edge is nearly met by the looms alone, and the line measures how
+much of the island's working time is not spent on food, not how many live by a craft. To read 325 the island needs 128 more hours of
+such work for each farm household a year, on top of 242 (`(0.325 x 1011 - 242) / 0.675`); the makers of the mock add about 45. And
+the line falls as work specialises: a master weaves a length in 71 hours, a novice in 153, so cloth bought of a weaver is fewer hours
+than cloth made at home (the mock does not take a buying farm's hours away, so its 263 to 275 is an upper reading).
+
+## What part two withdraws from part one
+
+- **Finding 11's lesson, "makers living in one village make the place".** It holds as arithmetic (if they did, the place would be
+  busy) and fails as a mechanism: given the choice, they do not, and placed together they leave (findings 15 and 16).
+- **"Can a town exist before the ship: yes, as 8 to 16 households ... if they live in one place."** The households exist, 17 to 21 to
+  an island of the real size; they do not live in one place. What the island has is village craftsmen, and a yearly market at each
+  district's host.
+- **Choice 6's proposal (b)** as the lever that gathers makers. It stands as a way for a would-be maker to find a place (finding 25).
+- **Choice 4, the host-called date,** by Kim's answer; and with it finding 13's break-even.
+
+## Method (part two)
+
+The households of a real map (`hours.json`) farm, and come to want five things as in part one: iron, pots and cloth of a maker, dried
+fish of a fisher by the sea, and something of another farm's. A farm pays in grain, from what it holds above a reserve. Each village
+has its meeting (autumn day 10) and, with three households or more, three rites (spring day 1, summer day 6, winter day 7); the most
+central villages host a yearly gathering of the villages within a day's walk (winter days 1 to 3; at least three villages). A household
+has someone at its own village's days with chance 0.9 and sends a goer to its gathering with chance 0.8. On a gathering day everyone
+there deals on the green with whoever is there; a household of another village comes only if its village's remembered share of wants
+met on that green pays the walk and two hours, and a maker of another village only if its remembered sales there do. Every third day
+a household with a want may walk to a village where a maker or a fisher lives, or wait for a gathering it will be at anyway.
+
+A maker's head sizes its fields each spring by its estimate of its craft's rations (its caution times the second lowest of the 8
+years it remembers, the rest its mean), a garden and two cows. At the round a maker, and each new would-be maker (one a year per 100
+farms, of a random craft, with no land), weighs every village within a day's walk: the households it believes would come there for
+its good (by how far it has seen its buyers walk, or because they are known to go there already), shared with the makers of its craft
+there and near; less the hours of carrying its material from the nearest deposit, the fields it could get there, and its kin (20
+rations a year). It asks for one place a year, moves if the place betters its year by 15% of its need, and is always given a plot. A
+maker's household ends with chance 3% a year; one with no land that is under 0.85 of its need two years running gives up. 60 years a
+run, the last 10 counted, 2 to 10 seeds a row.
+
+**What I assumed of the moving round** (VB-682's plan is not written; Kim's answers of 16 November to it are): an ask for a plot is
+an offer made at any time of the year and concluded at the round; a pawn pursues one rung at a time, so a maker asks one village a
+year; the move needs the maker's yes and the receiving village's (here always given; VB-697's alderman by custom is not modelled); an
+adult needs no leave from the head it leaves; its household goes with it.
+
+## What was invented (part two; `numbers.js`, `INVENTED.move`)
+
+From the game or its plans: the gatherings and their days (VB-522, VB-294, the village meeting), the three households for a green and a
+gathering, the day's walk, the loads of a bloom, the hours of each good and the skill that shortens them, the field, the cow, need.
+From part one: what a farm gives each craft a year (A0) and what a want filled is worth (B).
+
+Invented: the share of fishers by the sea (a sixth) and a want of fish (4 rations); the chances of being at one's own gathering days
+(0.9, 0.8); two hours on a green; material carried on the back, a load a trip; a would-be maker a year per 100 farms; a maker's
+household ending at 3% a year; a new household's need (150 for 8 years); two cows and a garden on a plot; fields to be had at a
+tenth of those held; kin worth 20 rations a year; the 15% a move must better; the trust in a place not lived in (0.8); what a maker
+first guesses of who buys by their walk (1, 0.6, 0.3, 0.1, 0); giving up at two lean years; the rule that picks the gathering's hosts
+(a stand-in for VB-294's choice); that a village knows at once who goes where (news, which the hard rule exempts).
+
+## What remains a toy
+
+- **Three goods that every farm wants, at fixed worths.** Makers spread because each good's buyers are everywhere and a buyer goes to
+  the nearest maker. A good few want (finding 15 tried wants a quarter as frequent: still spread, 11% at the fullest place) or that
+  only a few can make is not in it, nor a maker's name for better work (skill here only shortens the hours).
+- **No lump that is shared.** A bloomery, a kiln and a loom's house are facilities raised in stages (VB-361); a second maker beside a
+  standing kiln needs none. That is a force for gathering which the mock leaves out, and the likeliest one before the ship.
+- **No elite and no outside.** Rent carried to a landed household, its retinue and its feasts, a harbour, a granted market: what fed
+  and held most historical towns is slice 5's and the ship's.
+- **No people.** Nobody is born, marries, serves or dies of crowding; a would-be maker appears at a rate I made up, and that rate
+  sets how many makers there are (finding 24). The fields to be had are a number, not land.
+- **The receiving village always says yes,** and a plot always has a garden and grazing for two cows.
+- **The gatherings' social draw is a constant** (0.9, 0.8), and the hosts are fixed for a run.
+- **Buyers pay without weight, and a maker always has stock while it has hours.**
+- **Dealing days off the calendar cannot arise:** by Kim's answer 7 dealing on other days is at a house. Whether a customary day could
+  grow from people meeting at a maker's door is not tried here; part one's nearest evidence is finding 13 (3.6 dates a year at the
+  fullest place when two households from elsewhere were enough to hold one).
+- **No number here is good to better than a factor of two;** the spread of makers (finding 15) is the one result that held through
+  every variant.
