@@ -19,6 +19,11 @@ VB['sim/lying'] = (() => {
   function lay(st, a, j, kind, tile, x, y) {
     const of = { src: j.src ?? j.site };
     for (const k of OF) if (j[k] !== undefined) of[k] = j[k];
+    // the sheaves' crop and the barn entry of their harvest, as they were: the field may be sown anew before they are fetched
+    if (j.field) {
+      of.crop = j.field.crop;
+      if (j.field.bin !== undefined) of.bin = j.field.bin;
+    }
     if (!st.lying) st.lying = [];
     st.lyingSeq = (st.lyingSeq || 0) + 1;
     const l = { id: st.lyingSeq, kind, n: a.load, tile, x, y, t: st.t, owner: { ...j.owner }, of };
@@ -70,8 +75,17 @@ VB['sim/lying'] = (() => {
         j.left = left(st, j.lying);
         return a.load;
       },
+      // taken on the back with more left lying, it counts towards the head's missing carts (sim/carts missed), as a load from the
+      // field does: a real carrying need
       again: (j) => j.left > 0,
-      deliver: (st, j, hh, f, a) => K.deliver(st, { ...j, site: j.src }, hh, f, a),
+      deliver: (st, j, hh, f, a) =>
+        K.deliver(
+          st,
+          { ...j, site: j.src, ...(j.field ? { field: { ...j.field, crop: j.crop, bin: j.bin } } : {}) },
+          hh,
+          f,
+          a,
+        ),
     };
   }
   // The review's rule (sim/kinds' ASK, at the farm and the village): the loads lying that holder owns, each a task to fetch it.
@@ -94,7 +108,15 @@ VB['sim/lying'] = (() => {
           kind: 'frost',
           ...atHousehold(st, hh),
         });
-      else if (o.type === 'village' && st.villages[o.id])
+      else if (hh && hh.farmstead !== null && st.farmsteads[hh.farmstead]) {
+        // its household gone: the place is named, the farm it held
+        const f = st.farmsteads[hh.farmstead];
+        log(st, `A load of ${what} left lying for ${f.name}, whose household is gone, was lost to the frost.`, {
+          kind: 'frost',
+          farm: f.id,
+          village: f.village,
+        });
+      } else if (o.type === 'village' && st.villages[o.id])
         log(st, `A load of ${what} left lying for ${st.villages[o.id].name} was lost to the frost.`, {
           kind: 'frost',
           village: o.id,

@@ -218,7 +218,7 @@ VB['sim/green'] = (() => {
       type: 'duty',
       carry: 'basket',
       to: 'site',
-      load: (st, a, j) => stoneTaken(st, j),
+      load: (st, a, j) => (a.load = stoneTaken(st, j)), // a load of stone in hand (VB-611: one that falls lies, sim/lying)
       again: () => false,
       deliver: (st, j) => stoneLaid(st, j),
       available: greenWork,

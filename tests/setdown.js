@@ -113,4 +113,45 @@ const fetchJob = () => {
   assert(st.record.slice(n0).some((e) => e && e.kind === 'frost'), 'the frost on a lying load is not told');
   assert.strictEqual(sheaves(), b0);
 }
+// 6. the well's stone (sim/green): a carrier killed on the way to the green; the stone lies there, is fetched and reaches the well
+{
+  const Stores = VB['sim/stores'], v = st.villages[f.village], step = { kind: 'well', place: v.center, hours: 1, brought: 0 };
+  Stores.put(st, hh, 'stone', 3, 'clear');
+  const stone0 = hh.stone;
+  const grown = hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 14);
+  const villagers = st.households.filter((h) => !h.dissolved && st.farmsteads[h.farmstead].village === v.id)
+    .flatMap((h) => h.members).filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18 && id !== grown[0]);
+  const a = st.agents[grown[0]], b = st.agents[villagers[0]];
+  A.release(st, a);
+  A.placeAtHome(st, a);
+  const own = { type: 'village', id: v.id };
+  const j = J.post(st, 'wellstone:setdown', 'wellstone', own, f.house, { village: v.id, step, from: hh.id, dest: v.center });
+  j.claims.push(a.id); a.job = j; a.phase = 'back'; a.inside = false;
+  assert.strictEqual(KINDS.wellstone.load(st, a, j, 1), 1);
+  assert(a.load === 1 && hh.stone === stone0 - 1, 'the stone taken up is not in hand');
+  a.carry = 'basket';
+  a.x = st.w.hx[f.house] + 300; a.y = st.w.hy[f.house];
+  const at = A.tileAt(st, a.x, a.y);
+  VB['sim/lifecycle'].killPawn(st, a.id, 'illness');
+  assert.strictEqual(step.brought, 0, 'the stone reached the well from the road');
+  const l = (st.lying || []).find((x) => x.kind === 'wellstone');
+  assert(l && l.n === 1 && l.tile === at && l.owner.type === 'village', 'the stone does not lie where its carrier fell');
+  let fj = null;
+  Lying.fetchWork(st, v, v, null, (key, site, extra, k, owner) => (fj = J.post(st, key, k, owner, site, extra)));
+  assert(fj && fj.kind === 'fetchWellstone' && fj.site === at);
+  A.release(st, b);
+  A.start(st, b, fj);
+  for (let k = 0; k < 600 && step.brought === 0; k++) Sim.advance(st, 0.1);
+  assert.strictEqual(step.brought, 1, 'the fetched stone did not reach the well');
+  assert(!st.lying, 'the stone still lies after it was fetched');
+  assert.deepStrictEqual(checkState(st), []);
+}
+// 7. a load of sheaves fetched after its field was sown anew keeps its crop
+{
+  const of = { field: { crop: 'rye', stage: 'growing' }, crop: 'barley', bin: 5, src: fd.tile };
+  let seen = null;
+  const K = { ...KINDS.haul, deliver: (st_, j) => (seen = [j.field.crop, j.field.bin, j.site]) };
+  Lying.fetchKind('haul', K).deliver(st, { ...of }, hh, f, {});
+  assert.deepStrictEqual(seen, ['barley', 5, fd.tile], 'a fetched load takes the crop the field has now');
+}
 console.log('setdown ok');
