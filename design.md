@@ -492,7 +492,7 @@ This follows the Northwestern European pattern of household formation (Hajnal 19
 
 ### Marriage as a negotiation (9 November)
 
-From the gameplay review of 9 November. A peasant marriage between landholding families was a settlement between two households, of people, land and goods, and it is the largest choice of a life; so it is a negotiation the player takes part in, not a match the round makes over its head. The first row is Kim's; the rest was proposed with it and accepted the same day (`QUESTION_ARCHIVE.md`, "VB-233"). VB-233's plan (10 Nov) checked them against the code and corrected two rows to the form the round can carry, marked below; its tasks are VB-293 (offers), VB-273 (the offer in the page), VB-274 (the wish for a match), VB-275 (opinion, waiting for Kim) and VB-276 (terms, slice 4).
+From the gameplay review of 9 November. A peasant marriage between landholding families was a settlement between two households, of people, land and goods, and it is the largest choice of a life; so it is a negotiation the player takes part in, not a match the round makes over its head. The first row is Kim's; the rest was proposed with it and accepted the same day (`QUESTION_ARCHIVE.md`, "VB-233"). VB-233's plan (10 Nov) checked them against the code and corrected two rows to the form the round can carry, marked below; its tasks are VB-293 (offers), VB-273 (the offer in the page), VB-274 (the wish for a match), VB-275 (opinion; answered by Kim, 10 Nov, and built 11 Nov) and VB-276 (terms, slice 4).
 
 | Aspect | Design | Status |
 | --- | --- | --- |
@@ -1410,7 +1410,7 @@ Gender eligibility, number of heirs, timing of succession and claims on empty fa
 ### Meetings, culture and splits
 
 - **Village meeting:** practice moves from one option to another only if voice-weighted support beats it by a margin, about 25%. The margin grows with the village's tie to the centre and below 10 voices; returning to the culture's custom is easier. Agreed.
-- **A village's meeting** (Decided, 10 Nov; Kim, code review). Every village meets on autumn day 10, as today, each in its own six-minute step from noon, in the order of village id, and a lone farm meets as a village of one. In its step: the interests of its people, its tie to the centre, the causes its adults take up, and its meeting. The culture's reckoning follows once all its villages have met, and then the land meeting, which settles outland between villages (backlog VB-278; the turn of the first village by the year, VB-280, waits for Kim).
+- **A village's meeting** (Decided, 10 Nov; Kim, code review). Every village meets on autumn day 10, as today, each in its own six-minute step from noon, in the order of village id, and a lone farm meets as a village of one. In its step: the interests of its people, its tie to the centre, the causes its adults take up, and its meeting. The culture's reckoning follows once all its villages have met, and then the land meeting, which settles outland between villages (backlog VB-278; the first village turns by the year: Decided, Kim, 10 Nov; built by VB-280, 16 Nov).
 - **Culture reckoning:** support across settlements, weighted by size, tie and centrality. The margin grows with roughly the square root of the culture's size, with extra inertia below 40 people. Agreed.
 - **Tie to the centre:** travel distance, with sea crossings costing more, plus living kin across the gap. Distant villages drift more easily. Decided (principle), Agreed (measure).
 - **Fission:** automatic when a weakly tied settlement stays far from the culture's customs for 3 years; hard customs count most. The same split function can be called by events later. Decided.
@@ -1861,7 +1861,7 @@ The player's role is the largest open question; most proposals concern growth, t
 ### Added in v0.4 (3 November 2026)
 
 - [ ] What a pawn knows beyond all-know-all: knowledge with a source (news, rumour, prices heard at a fair) where it changes a choice; stories are its first content (slice 7).
-- [ ] Bodies: one membership graph with rules per kind, or a domain per kind (slice 5; Kim asked to iterate first). Measured by slice 5's plan, 11 Nov: the graph is cheap (Households and other bodies, Bodies); adopting it is `QUESTIONS.md`, VB-184, question 7.
+- [x] Bodies: one membership graph with rules per kind, or a domain per kind (slice 5; Kim asked to iterate first). Measured by slice 5's plan, 11 Nov: the graph is cheap (Households and other bodies, Bodies); adopted as Membership's truth (Kim, 13 Nov; `QUESTION_ARCHIVE.md`, VB-184, question 7).
 - [ ] What follows when a meeting fails to decide its yearly routines (slice 3).
 - [ ] Who mints, and when coin is taken (slice 8).
 - [x] The reading of 600 / 325 / 75 (slice 9). Decided, 16 Nov (Kim): counted by work, all craft hours counting, heads beside; household work apart (Balance loops and targets, Strata). The target is not expected to be met before the ship, and stands until Kim changes it.
