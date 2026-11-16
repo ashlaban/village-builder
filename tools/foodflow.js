@@ -5,6 +5,8 @@
 //   --save FILE   save the run at the year's start (.gz is gzipped), to account it again faster with --load
 //   --load FILE   go on from a save (its scenario, seed and map with it), made before the year's start or at it by --save
 //   --json        the account as data: {village, year, need, fed, nodes, links, pools, notes}
+//   --html FILE   the account as a page: a Sankey diagram of the flows, the account's tables and how to read them (tools/foodflow.html,
+//                 filled in); --bare writes the page without its document wrapper, as an Artifact is published
 // The village is its households (their farms' village) and its village store. Food is counted in rations as stored (a sheaf, a ration of
 // grain, flour, a meal, a fish, a ration of milk), in four household pools and the store: grain (sheaves in the barn, grain, flour, pawns'
 // stakes), fresh (the catch, gathered food, the rack's fish), the larder (meat, salt meat, milk, butter, dried fish), meals (cooked), and the
@@ -218,6 +220,15 @@ module.exports = (VB, st, { village = null } = {}) => {
   return { advanceYear, result, print };
 };
 
+// The page of an account (`--html`): tools/foodflow.html with its title and data filled in; bare, without the document around it.
+module.exports.page = (out, bare = false) => {
+  const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;'), data = JSON.stringify(out).replace(/</g, '\\u003c');
+  const page = require('fs').readFileSync(require('path').join(__dirname, 'foodflow.html'), 'utf8')
+    .replace('{{TITLE}}', () => esc(`Where ${out.village.name}'s food goes`)).replace('{{DATA}}', () => data);
+  return bare ? page : `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n` +
+    `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n</head>\n<body>\n${page}</body>\n</html>\n`;
+};
+
 if (require.main === module) {
   const fs = require('fs'), zlib = require('zlib');
   const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
@@ -244,4 +255,5 @@ if (require.main === module) {
   f.advanceYear();
   const out = { scenario, seed, map, ...f.result() };
   if (json) console.log(JSON.stringify(out, null, 1)); else { console.log(`${scenario}, seed ${seed}, ${map} map`); f.print(out); }
+  if (opt('html', null)) fs.writeFileSync(opt('html'), module.exports.page(out, args.includes('--bare')));
 }

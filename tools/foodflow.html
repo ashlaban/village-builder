@@ -1,0 +1,449 @@
+<title>{{TITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,500;1,700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<!-- The page tools/foodflow.js --html writes: one village's food account for one game year, as a Sankey diagram. The title and the
+     data are filled in by the tool (its two placeholders, in the title tag and the script); everything else is this file. The layout is its own (no library): columns by longest path, pass-through
+     lanes where a flow skips a column, crossings reduced by barycentre sweeps, then relaxed. -->
+<style>
+  /* Layout: one centred column; the figures, then the chart card, then the account as tables. Type and neutrals are the game's own
+     (src/head.html); the three food hues are validated all-pairs, light and dark, against the chart surfaces below. */
+  :root {
+    --bg: #f1f6f4;
+    --surface: #fbfdfc;
+    --ink: #17313a;
+    --ink-2: #33525b;
+    --muted: #526d75;
+    --hair: rgba(23, 49, 58, 0.14);
+    --accent: #23685a;
+    --grain: #b3862c;
+    --fresh: #2a78d6;
+    --larder: #e87ba4;
+    --cooked: #6b858c;
+    --book: #a9bcc0;
+    --sink: #17313a;
+    --halo: #fbfdfc;
+    --link-op: 0.48;
+    --display: 'Alegreya', Georgia, serif;
+    --sans: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1b22; --surface: #132a32; --ink: #e1ebe7; --ink-2: #c2d3cf; --muted: #93adae; --hair: rgba(225, 235, 231, 0.14);
+      --accent: #84c9b5; --grain: #c98500; --fresh: #3987e5; --larder: #d55181; --cooked: #8aa5a9; --book: #4f6a71; --sink: #c2d3cf;
+      --halo: #132a32; --link-op: 0.62; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1b22; --surface: #132a32; --ink: #e1ebe7; --ink-2: #c2d3cf; --muted: #93adae; --hair: rgba(225, 235, 231, 0.14);
+    --accent: #84c9b5; --grain: #c98500; --fresh: #3987e5; --larder: #d55181; --cooked: #8aa5a9; --book: #4f6a71; --sink: #c2d3cf;
+    --halo: #132a32; --link-op: 0.62; color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.5; }
+  .page { max-width: 1180px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+  header { display: grid; gap: 6px; }
+  .eyebrow { margin: 0; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+  h1 { margin: 0; font-family: var(--display); font-style: italic; font-weight: 700; font-size: clamp(2rem, 4.6vw, 3rem); line-height: 1.1;
+    text-wrap: balance; }
+  h2 { margin: 0; font-family: var(--display); font-style: italic; font-weight: 500; font-size: 1.45rem; text-wrap: balance; }
+  .lede { margin: 0; max-width: 68ch; color: var(--ink-2); }
+  .figures { display: flex; flex-wrap: wrap; gap: 0; border-block: 1px solid var(--hair); }
+  .figure { flex: 1 1 150px; min-width: 0; padding: 14px 18px 12px 0; display: grid; gap: 2px; }
+  .figure + .figure { padding-left: 18px; border-left: 1px solid var(--hair); }
+  .figure .v { font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+  .figure .k { font-size: 0.82rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .figure .s { font-size: 0.9rem; color: var(--ink-2); }
+  .card { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; padding: 18px 18px 8px; display: grid; gap: 10px;
+    min-width: 0; position: relative; }
+  .card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; list-style: none; font-size: 0.92rem; color: var(--ink-2); }
+  .legend li { display: flex; align-items: center; gap: 7px; }
+  .legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+  .scroll { overflow-x: auto; margin-inline: -6px; }
+  svg.sankey { display: block; width: 100%; min-width: 880px; height: auto; font-family: var(--sans); }
+  .lnk { fill: none; stroke-opacity: var(--link-op); transition: stroke-opacity 120ms; cursor: default; }
+  .lnk:focus { outline: none; }
+  .sankey.focusing .lnk { stroke-opacity: 0.1; }
+  .sankey.focusing .lnk.on { stroke-opacity: 0.85; }
+  .nd rect { shape-rendering: crispEdges; }
+  .nd:focus { outline: none; }
+  .nd:focus-visible rect, .lnk:focus-visible { stroke: var(--accent); stroke-width: 2; }
+  .lbl { font-size: 13.5px; fill: var(--ink); paint-order: stroke; stroke: var(--halo); stroke-width: 4px; stroke-linejoin: round;
+    pointer-events: none; }
+  .lbl .n { font-weight: 700; }
+  .lbl .q { fill: var(--muted); font-weight: 400; }
+  .need line { stroke: var(--ink); stroke-width: 1.5; }
+  .need text { font-size: 12px; fill: var(--muted); }
+  .f-grain { stroke: var(--grain); fill: var(--grain); }
+  .f-fresh { stroke: var(--fresh); fill: var(--fresh); }
+  .f-larder { stroke: var(--larder); fill: var(--larder); }
+  .f-cooked { stroke: var(--cooked); fill: var(--cooked); }
+  .f-book { stroke: var(--book); fill: var(--book); }
+  .f-sink { fill: var(--sink); stroke: none; }
+  .lnk.f-grain, .lnk.f-fresh, .lnk.f-larder, .lnk.f-cooked, .lnk.f-book { fill: none; }
+  .nd rect.f-grain, .nd rect.f-fresh, .nd rect.f-larder, .nd rect.f-cooked, .nd rect.f-book { stroke: none; }
+  .tip { position: absolute; z-index: 5; pointer-events: none; max-width: 300px; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--hair); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(10, 30, 36, 0.16); font-size: 0.9rem;
+    line-height: 1.35; display: grid; gap: 3px; }
+  .tip[hidden] { display: none; }
+  .tip .v { font-size: 1.15rem; font-weight: 700; }
+  .tip .r { color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+  .tip .key { width: 14px; height: 0; border-top: 3px solid currentColor; border-radius: 2px; flex: none; }
+  .tip .m { color: var(--muted); }
+  .hint { margin: 0; font-size: 0.85rem; color: var(--muted); }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 28px; align-items: start; }
+  .cols > * { min-width: 0; display: grid; gap: 10px; }
+  p { margin: 0; max-width: 68ch; }
+  .prose { display: grid; gap: 10px; color: var(--ink-2); }
+  .prose b { color: var(--ink); }
+  .tbl { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+  th:first-child, td:first-child, .lt { text-align: left; }
+  th { font-weight: 500; color: var(--muted); font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; }
+  tr.total td { font-weight: 700; border-bottom: none; }
+  td .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: -1px; }
+  details { border-top: 1px solid var(--hair); padding-top: 10px; }
+  summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 0.86em; background: var(--hair); padding: 1px 5px;
+    border-radius: 4px; overflow-wrap: anywhere; }
+  footer { color: var(--muted); font-size: 0.85rem; display: grid; gap: 4px; }
+  @media (prefers-reduced-motion: reduce) { .lnk { transition: none; } }
+</style>
+
+<main class="page">
+  <header>
+    <p class="eyebrow">Village builder · a year's food account</p>
+    <h1 id="title"></h1>
+    <p class="lede" id="lede"></p>
+  </header>
+  <section class="figures" id="figures" aria-label="The year in five numbers"></section>
+  <section class="card" aria-labelledby="chart-title">
+    <div class="card-head">
+      <h2 id="chart-title">From field, shore and byre to table, seed and rot</h2>
+      <ul class="legend" id="legend" aria-label="Colour: the store the food passed through"></ul>
+    </div>
+    <div class="scroll"><svg class="sankey" id="sankey" role="img" aria-labelledby="chart-title chart-desc"></svg></div>
+    <p class="hint" id="chart-desc">Rations as stored, left to right: where the year's food came from, the stores it passed through, and
+      where it went. A band's width is its rations. Hover or tab to a band or a bar for its numbers; every number is also in the tables below.</p>
+    <div class="tip" id="tip" hidden></div>
+  </section>
+  <section class="cols">
+    <div>
+      <h2>Reading it</h2>
+      <div class="prose" id="reading"></div>
+    </div>
+    <div>
+      <h2>The account, store by store</h2>
+      <div class="tbl"><table id="pools"></table></div>
+      <p class="hint">Each store closes: what came in, less what went out, less the change in what it holds, is its unexplained line.</p>
+    </div>
+  </section>
+  <section class="card">
+    <details>
+      <summary id="links-summary">Every flow</summary>
+      <div class="tbl"><table id="links"></table></div>
+    </details>
+  </section>
+  <footer>
+    <p><code id="made"></code></p>
+    <p>Counted by <code>tools/foodflow.js</code> from the stores' ledgers, read each day of the year; see its <code>--help</code>.</p>
+  </footer>
+</main>
+
+<script>
+const DATA = {{DATA}};
+(() => {
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const fmt = (x) => Math.round(x).toLocaleString('en');
+  const pct = (x, of) => (of > 0 ? Math.round((100 * x) / of) : 0) + '%';
+  const el = (tag, attrs = {}, parent) => {
+    const e = tag === 'svg' || /^(g|rect|path|text|tspan|line|title)$/.test(tag) ? document.createElementNS(SVGNS, tag) : document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) if (k === 'text') e.textContent = v; else e.setAttribute(k, v);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+
+  // ---- what the nodes and kinds are, in words ----
+  const POOL_FAMILY = { grain: 'grain', store: 'grain', fresh: 'fresh', larder: 'larder', meals: 'cooked' };
+  const FAMILY_OF = { Fish: 'fresh', Gathered: 'fresh', Meat: 'larder', Venison: 'larder', Milk: 'larder', Butter: 'larder', 'Gained in cooking': 'cooked' };
+  const FAMILIES = [['grain', 'Grain, flour & the village store'], ['fresh', 'Fresh food: fish & gathered'], ['larder', 'Larder: meat, milk, butter, dried fish'], ['cooked', 'Cooked meals'], ['book', 'Bookkeeping']];
+  const SINKS = ['Eaten', 'Brewed', 'Seed', 'Rotted', 'To other villages', 'Left in an empty farm', 'Put by', 'Lost in cooking', 'Unexplained loss'];
+  const FIRST = ['Fish', 'Gathered', 'Milk', 'Butter', 'Meat', 'Venison', 'From other villages', 'Drawn from stores', 'Gained in cooking', 'Unexplained gain',
+    'Grain & flour', 'Fresh food', 'Larder', 'Village store', 'Cooked meals'];
+  const ABOUT = {
+    'Grain & flour': "The households' barns and grain: sheaves, threshed grain, flour, and the stakes their people hold.",
+    'Fresh food': 'The catch and gathered food, which keep a few days, and the fish waiting by the drying rack.',
+    Larder: 'Meat, salt meat, milk, butter and dried fish, eaten as they are or cooked.',
+    'Cooked meals': 'Meals the cook made from grain, flour, fish, gathered food and dried fish.',
+    'Village store': "The village's own grain: the common fields' harvest and what households give it.",
+    Eaten: 'Meals, food eaten uncooked or fresh, and food from the larder.',
+    Seed: 'Grain sown on the fields, the households\' and the common ones.',
+    Rotted: 'Spoilt in store: grain in the barn and the village store, fresh food past its days, larder food past its keeping.',
+    Brewed: 'Grain made into ale.',
+    'Put by': 'What the stores hold more at the year\'s end than at its start.',
+    'Drawn from stores': 'What the stores hold less at the year\'s end than at its start.',
+    'To other villages': 'Net: gifts, shares and provisions that left, and stakes carried away by people who moved.',
+    'From other villages': 'Net: gifts, shares and provisions that came in from outside the village.',
+    'Left in an empty farm': 'Stores of a household that dissolved this year, still lying in its farm (backlog VB-650).',
+    'Gained in cooking': 'Meals made beyond the rations the cook took: a food worth more than a ration a unit.',
+    'Lost in cooking': 'Rations the cook took that made fewer meals: grain cooked unground.',
+    'Unexplained loss': 'What left a store without a movement on record.',
+    'Unexplained gain': 'What came into a store without a movement on record.',
+  };
+  const KIND = { harvest: 'harvested', catch: 'caught', gathering: 'gathered', meat: 'slaughtered', hunt: 'hunted', milk: 'milked', butter: 'churned',
+    cooking: 'cooked', drying: 'dried on the rack', gift: 'given', spoilage: 'rotted', seed: 'sown', raw: 'eaten uncooked', seedMeal: 'seed grain eaten',
+    brew: 'brewed', meal: 'eaten', larder: 'eaten from the larder (by difference)', stock: 'change in stores', exchange: 'net, with other villages',
+    empty: 'left in an empty farm', unexplained: 'no movement on record' };
+
+  // ---- the graph: one link per pair of nodes, opposite flows netted (a Sankey has no cycles) ----
+  const pools = new Map(DATA.nodes.filter((n) => n.pool).map((n) => [n.name, n.pool]));
+  const byPair = new Map();
+  for (const l of DATA.links) {
+    const [a, b] = l.source < l.target ? [l.source, l.target] : [l.target, l.source];
+    const k = a + '\u0000' + b;
+    if (!byPair.has(k)) byPair.set(k, { a, b, net: 0, parts: [] });
+    const p = byPair.get(k);
+    p.net += l.source === a ? l.value : -l.value;
+    p.parts.push(l);
+  }
+  const nodes = new Map();
+  const node = (name) => {
+    if (!nodes.has(name)) nodes.set(name, { name, ins: [], outs: [], pool: pools.get(name) || null });
+    return nodes.get(name);
+  };
+  const links = [];
+  for (const p of byPair.values()) {
+    if (Math.abs(p.net) < 0.05) continue;
+    const [s, t] = p.net > 0 ? [p.a, p.b] : [p.b, p.a];
+    const l = { s: node(s), t: node(t), value: Math.abs(p.net), parts: p.parts };
+    l.s.outs.push(l); l.t.ins.push(l); links.push(l);
+  }
+  const sum = (a, f) => a.reduce((x, y) => x + f(y), 0);
+  for (const n of nodes.values()) {
+    n.in = sum(n.ins, (l) => l.value); n.out = sum(n.outs, (l) => l.value); n.value = Math.max(n.in, n.out);
+    n.role = !n.ins.length ? 'source' : !n.outs.length ? 'sink' : 'pool';
+    n.family = n.pool ? POOL_FAMILY[n.pool] : FAMILY_OF[n.name] || (n.role === 'sink' ? 'sink' : null);
+  }
+  for (const n of nodes.values()) if (!n.family) n.family = n.outs.some((l) => l.t.pool === 'grain' || l.t.pool === 'store') && n.role === 'source' && !/stores|villages|Unexplained/.test(n.name) ? 'grain' : 'book';
+  for (const l of links) l.family = l.s.family === 'book' || l.s.family === 'sink' ? (l.t.pool ? l.t.family : 'book') : l.s.family;
+  for (const l of links) if (l.parts.every((p) => p.kind === 'unexplained')) l.family = 'book';
+
+  // ---- columns: longest path from the sources; sinks in the last column, a source just before its first target ----
+  const order = [], indeg = new Map([...nodes.values()].map((n) => [n, n.ins.length]));
+  const queue = [...nodes.values()].filter((n) => !n.ins.length);
+  while (queue.length) { const n = queue.shift(); order.push(n); for (const l of n.outs) { indeg.set(l.t, indeg.get(l.t) - 1); if (!indeg.get(l.t)) queue.push(l.t); } }
+  for (const n of order) n.col = n.ins.length ? Math.max(...n.ins.map((l) => l.s.col + 1)) : 0;
+  const last = Math.max(...order.map((n) => n.col));
+  for (const n of order) if (n.role === 'sink') n.col = last;
+  for (const n of order) if (n.role === 'source') n.col = Math.max(0, Math.min(...n.outs.map((l) => l.t.col)) - 1);
+  for (let pass = 0; pass < 3; pass++) for (const n of order) if (n.role === 'pool') n.col = Math.max(n.col, ...n.ins.map((l) => l.s.col + 1));
+
+  // ---- items of a column: the real nodes, and a lane for each link that passes through it ----
+  const cols = Array.from({ length: last + 1 }, () => []);
+  for (const n of order) { n.lane = false; cols[n.col].push(n); }
+  for (const l of links) {
+    l.path = [l.s];
+    for (let c = l.s.col + 1; c < l.t.col; c++) { const d = { lane: true, link: l, col: c, value: l.value, ins: [l], outs: [l] }; cols[c].push(d); l.path.push(d); }
+    l.path.push(l.t);
+  }
+  const prev = (it) => (it.lane ? [[it.link.path[it.link.path.indexOf(it) - 1], it.value]] : it.ins.map((l) => [l.path[l.path.length - 2], l.value]));
+  const next = (it) => (it.lane ? [[it.link.path[it.link.path.indexOf(it) + 1], it.value]] : it.outs.map((l) => [l.path[1], l.value]));
+
+  // ---- geometry ----
+  const W = 1120, H = 600, M = { l: 150, r: 214, t: 12, b: 12 }, NW = 12, PAD = 16, LANE = 2;
+  const colX = (c) => M.l + (c * (W - M.l - M.r - NW)) / last;
+  const gap = (a, b) => (a.lane && b.lane ? LANE : PAD);
+  const padOf = (items) => items.slice(1).reduce((s, it, i) => s + gap(items[i], it), 0);
+  const ky = Math.min(...cols.map((items) => (H - M.t - M.b - padOf(items)) / sum(items, (i) => i.value)));
+  const stack = (items) => {
+    let y = 0;
+    items.forEach((it, i) => { if (i) y += gap(items[i - 1], it); it.y0 = y; it.h = Math.max(1, it.value * ky); y += it.h; });
+    const off = M.t + (H - M.t - M.b - y) / 2;
+    for (const it of items) { it.y0 += off; it.y1 = it.y0 + it.h; }
+  };
+  const mid = (it) => (it.y0 + it.y1) / 2;
+  const centre = (pairs) => { const w = sum(pairs, (p) => p[1]); return w ? sum(pairs, (p) => mid(p[0]) * p[1]) / w : null; };
+
+  // order: a first guess by kind and size, then barycentre sweeps (the last column keeps its fixed order)
+  const rank = (n) => { const i = FIRST.indexOf(n.name); return i < 0 ? (n.role === 'source' ? -1e9 + -n.value : 1e6 - n.value) : i; };
+  for (const items of cols) items.sort((a, b) => (a.lane || b.lane ? 0 : a.role === 'sink' ? SINKS.indexOf(a.name) - SINKS.indexOf(b.name) : rank(a) - rank(b)));
+  cols.forEach(stack);
+  for (let it = 0; it < 12; it++) {
+    const forward = it % 2 === 0;
+    const seq = forward ? cols.map((_, c) => c).slice(1, last) : cols.map((_, c) => c).slice(0, last).reverse();
+    for (const c of seq) {
+      const items = cols[c], key = new Map(items.map((x) => [x, centre(forward ? prev(x) : next(x)) ?? mid(x)]));
+      items.sort((a, b) => key.get(a) - key.get(b));
+      stack(items);
+    }
+  }
+  // relax: each item toward its neighbours' centre, in order, without overlap (as d3-sankey does)
+  const settle = (items) => {
+    let y = M.t;
+    items.forEach((it, i) => { const g = i ? gap(items[i - 1], it) : 0; if (it.y0 < y + g) { const d = y + g - it.y0; it.y0 += d; it.y1 += d; } y = it.y1; });
+    y = H - M.b;
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i], g = i < items.length - 1 ? gap(it, items[i + 1]) : 0;
+      if (it.y1 > y - g) { const d = it.y1 - (y - g); it.y0 -= d; it.y1 -= d; }
+      y = it.y0;
+    }
+  };
+  for (let it = 0, alpha = 0.6; it < 16; it++, alpha *= 0.86) {
+    const seq = it % 2 === 0 ? cols.map((_, c) => c) : cols.map((_, c) => c).reverse();
+    for (const c of seq) {
+      for (const x of cols[c]) {
+        const t = centre([...prev(x), ...next(x)]);
+        if (t !== null) { const d = (t - mid(x)) * alpha; x.y0 += d; x.y1 += d; }
+      }
+      settle(cols[c]);
+    }
+  }
+  for (const items of cols) for (const it of items) { it.x0 = colX(it.col); it.x1 = it.x0 + NW; }
+
+  // ports: a node's links leave and arrive in the order of the item at their other end
+  for (const n of nodes.values()) {
+    const outs = n.outs.slice().sort((a, b) => mid(a.path[1]) - mid(b.path[1])), ins = n.ins.slice().sort((a, b) => mid(a.path[a.path.length - 2]) - mid(b.path[b.path.length - 2]));
+    let y = n.y0 + (n.y1 - n.y0 - n.out * ky) / 2;
+    for (const l of outs) { l.sy = y + (l.value * ky) / 2; y += l.value * ky; }
+    y = n.y0 + (n.y1 - n.y0 - n.in * ky) / 2;
+    for (const l of ins) { l.ty = y + (l.value * ky) / 2; y += l.value * ky; }
+  }
+
+  // ---- drawing ----
+  const svg = document.getElementById('sankey');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const gLinks = el('g', {}, svg), gNodes = el('g', {}, svg), gLabels = el('g', {}, svg);
+  const curve = (x0, y0, x1, y1) => { const m = (x0 + x1) / 2; return `C${m},${y0} ${m},${y1} ${x1},${y1}`; };
+  for (const l of links) {
+    const pts = [[l.s.x1, l.sy]];
+    for (const d of l.path.slice(1, -1)) { const y = (d.y0 + d.y1) / 2; pts.push([d.x0, y], [d.x1, y]); }
+    pts.push([l.t.x0, l.ty]);
+    let dPath = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 1; i < pts.length; i++) dPath += i % 2 === 0 ? `L${pts[i][0]},${pts[i][1]}` : curve(...pts[i - 1], ...pts[i]); // across a lane: straight
+    l.el = el('path', { d: dPath, class: `lnk f-${l.family}`, 'stroke-width': Math.max(1, l.value * ky), tabindex: 0, role: 'img',
+      'aria-label': `${l.s.name} to ${l.t.name}: ${fmt(l.value)} rations` }, gLinks);
+  }
+  const eaten = nodes.get('Eaten');
+  for (const n of nodes.values()) {
+    n.el = el('g', { class: 'nd', tabindex: 0, role: 'img', 'aria-label': `${n.name}: ${fmt(n.value)} rations` }, gNodes);
+    el('rect', { x: n.x0, y: n.y0, width: NW, height: Math.max(1, n.y1 - n.y0), rx: 2, class: `f-${n.family}` }, n.el);
+    el('rect', { x: n.x0 - 6, y: n.y0 - 4, width: NW + 12, height: Math.max(1, n.y1 - n.y0) + 8, fill: 'transparent', stroke: 'none' }, n.el);
+    const left = n.role === 'source';
+    let x = left ? n.x0 - 8 : n.x1 + 8;
+    if (n === eaten && DATA.need > 0) x += 18;
+    const y = (n.y0 + n.y1) / 2, two = n.role === 'sink' || n.y1 - n.y0 > 30;
+    const t = el('text', { x, y: two ? y - 2 : y + 4.5, class: 'lbl', 'text-anchor': left ? 'end' : 'start' }, gLabels);
+    el('tspan', { class: 'n', text: n.name }, t);
+    const share = n.role === 'sink' && DATA.produced > 0 ? ` · ${pct(n.value, DATA.produced)}` : '';
+    if (two) el('tspan', { x, dy: 16, class: 'q', text: n === eaten ? `${fmt(n.value)} · need ${fmt(DATA.need)}` : fmt(n.value) + share }, t);
+    else el('tspan', { class: 'q', dx: 6, text: fmt(n.value) }, t);
+  }
+  if (eaten && DATA.need > 0) { // the need, to the same scale, beside what was eaten
+    const g = el('g', { class: 'need' }, gLabels), x = eaten.x1 + 9, y0 = eaten.y0, y1 = eaten.y0 + DATA.need * ky;
+    el('line', { x1: x, y1: y0, x2: x, y2: y1 }, g);
+    el('line', { x1: x - 3, y1: y0, x2: x + 3, y2: y0 }, g);
+    el('line', { x1: x - 3, y1: y1, x2: x + 3, y2: y1 }, g);
+    el('title', { text: `The village's need for the year: ${fmt(DATA.need)} rations; fed ${fmt(DATA.fed)}` }, g);
+  }
+
+  // ---- hover and focus: the band or bar and its tooltip ----
+  const tip = document.getElementById('tip'), card = tip.parentElement;
+  const row = (text, cls, family) => { const r = el('div', { class: cls || 'r' }); if (family) { const k = el('span', { class: 'key' }, r); k.style.color = `var(--${family})`; } r.append(document.createTextNode(text)); return r; };
+  function show(parts, x, y) {
+    tip.replaceChildren(...parts); tip.hidden = false;
+    const box = card.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    let left = x - box.left + 14, top = y - box.top + 14;
+    if (left + w > box.width - 8) left = x - box.left - w - 14;
+    if (top + h > box.height - 8) top = y - box.top - h - 14;
+    tip.style.left = Math.max(8, left) + 'px'; tip.style.top = Math.max(8, top) + 'px';
+  }
+  function hide() { tip.hidden = true; svg.classList.remove('focusing'); for (const l of links) l.el.classList.remove('on'); }
+  function linkTip(l) {
+    const out = [row(`${fmt(l.value)} rations`, 'v'), row(`${l.s.name} → ${l.t.name}`, 'r', l.family)];
+    if (l.s.out > 0 && l.s.role !== 'source') out.push(row(`${pct(l.value, l.s.out)} of what left ${l.s.name}`, 'm'));
+    if (l.t.role === 'sink' && DATA.produced > 0) out.push(row(`${pct(l.value, DATA.produced)} of all food produced`, 'm'));
+    const kinds = new Map();
+    for (const p of l.parts) { const k = (p.source === l.s.name ? '' : 'back: ') + (KIND[p.kind] || p.kind); kinds.set(k, (kinds.get(k) || 0) + p.value); }
+    if (kinds.size > 1 || l.parts.some((p) => p.source !== l.s.name)) for (const [k, v] of kinds) out.push(row(`${k}: ${fmt(v)}`, 'm'));
+    else out.push(row([...kinds.keys()][0], 'm'));
+    return out;
+  }
+  function nodeTip(n) {
+    const out = [row(`${fmt(n.value)} rations`, 'v'), row(n.name, 'r', n.family === 'sink' ? null : n.family)];
+    if (ABOUT[n.name]) out.push(row(ABOUT[n.name], 'm'));
+    const top = (n.role === 'sink' ? n.ins : n.outs).slice().sort((a, b) => b.value - a.value).slice(0, 4);
+    for (const l of top) out.push(row(`${n.role === 'sink' ? 'from ' + l.s.name : 'to ' + l.t.name}: ${fmt(l.value)}`, 'm'));
+    return out;
+  }
+  const spot = (e, target) => { if (e.clientX !== undefined && e.type !== 'focus') return [e.clientX, e.clientY]; const b = target.getBoundingClientRect(); return [b.right, b.top + b.height / 2]; };
+  for (const l of links) {
+    const on = (e) => { hide(); svg.classList.add('focusing'); l.el.classList.add('on'); show(linkTip(l), ...spot(e, l.el)); };
+    l.el.addEventListener('pointermove', on); l.el.addEventListener('focus', on);
+    l.el.addEventListener('pointerleave', hide); l.el.addEventListener('blur', hide);
+  }
+  for (const n of nodes.values()) {
+    const on = (e) => { hide(); svg.classList.add('focusing'); for (const l of [...n.ins, ...n.outs]) l.el.classList.add('on'); show(nodeTip(n), ...spot(e, n.el)); };
+    n.el.addEventListener('pointermove', on); n.el.addEventListener('focus', on);
+    n.el.addEventListener('pointerleave', hide); n.el.addEventListener('blur', hide);
+  }
+
+  // ---- the words around it ----
+  const V = DATA.village, title = `Where ${V.name}'s food goes`;
+  document.getElementById('title').textContent = title;
+  const arrow = (a) => (a[0] === a[1] ? `${a[0]}` : `${a[0]} → ${a[1]}`);
+  document.getElementById('lede').textContent = `${V.name}, game year ${DATA.year} of a ${DATA.scenario} run (${DATA.map} map, seed ${DATA.seed}): ` +
+    `${arrow(V.households)} households, ${arrow(V.people)} people. Every number is rations as stored: a ration of grain, of flour, a meal, a fish.`;
+  const into = (name) => (nodes.get(name) ? nodes.get(name).in : 0);
+  const stockChange = sum(Object.values(DATA.pools), (p) => p.closing - p.opening);
+  const figs = [
+    ['Produced', DATA.produced, 'harvest, catch, byre and hunt'],
+    ['Eaten', into('Eaten'), `${pct(into('Eaten'), DATA.produced)} · need ${fmt(DATA.need)}`],
+    ['Rotted', into('Rotted'), `${pct(into('Rotted'), DATA.produced)} of what was produced`],
+    ['Sown again', into('Seed'), pct(into('Seed'), DATA.produced)],
+    [stockChange >= 0 ? 'Stores grew' : 'Stores fell', Math.abs(stockChange), 'net change in what is held'],
+  ];
+  const fig = document.getElementById('figures');
+  for (const [k, v, s] of figs) { const f = el('div', { class: 'figure' }, fig); el('span', { class: 'k', text: k }, f); el('span', { class: 'v', text: fmt(v) }, f); el('span', { class: 's', text: s }, f); }
+  const leg = document.getElementById('legend'), used = new Set(links.map((l) => l.family));
+  for (const [f, label] of FAMILIES) if (used.has(f)) { const li = el('li', {}, leg); el('i', {}, li).style.background = `var(--${f})`; li.append(document.createTextNode(label)); }
+
+  const per = (name) => Math.round((100 * into(name)) / DATA.produced);
+  const reading = document.getElementById('reading');
+  const para = (html) => { const p = el('p', {}, reading); for (const [t, bold] of html) { if (bold) el('b', { text: t }, p); else p.append(document.createTextNode(t)); } };
+  para([['Of every hundred rations the village produced, ', 0], [`${per('Eaten')} were eaten`, 1], [', ', 0], [`${per('Rotted')} rotted`, 1], [', ', 0],
+    [`${per('Seed')} were sown again`, 1], [' and ', 0], [`${per('Brewed')} brewed`, 1], ['. The rest left the village, was left behind, or changed what the stores hold.', 0]]);
+  para([[`${V.people[1]} people needed `, 0], [`${fmt(DATA.need)} rations`, 1], [' over the year and were fed ', 0], [`${fmt(DATA.fed)}`, 1],
+    [` (${pct(DATA.fed, DATA.need)}): grain eaten uncooked feeds three quarters of a ration, so "fed" is counted in rations of need. The bracket beside `, 0],
+    ['Eaten', 1], [' is that need, to the same scale.', 0]]);
+  const unexplained = sum(Object.values(DATA.pools), (p) => Math.abs(p.unexplained));
+  para([['The account closes store by store; ', 0], [unexplained < 1 ? 'nothing is left unexplained' : `${fmt(unexplained)} rations are left unexplained`, 1],
+    ['. What spoils in the larder is read from its lots as they leave it; what is eaten from it is the difference, since that is the one movement with no entry.', 0]]);
+
+  const pt = document.getElementById('pools');
+  const head = el('tr', {}, el('thead', {}, pt));
+  for (const h of ['Store', 'At the start', 'In', 'Out', 'At the end', 'Unexplained']) el('th', { text: h }, head);
+  const body = el('tbody', {}, pt), NAME = { grain: 'Grain & flour', fresh: 'Fresh food', larder: 'Larder', meals: 'Cooked meals', store: 'Village store' };
+  const tot = { opening: 0, in: 0, out: 0, closing: 0, unexplained: 0 };
+  for (const [p, x] of Object.entries(DATA.pools)) {
+    const tr = el('tr', {}, body), td = el('td', {}, tr);
+    el('span', { class: 'sw' }, td).style.background = `var(--${POOL_FAMILY[p]})`; td.append(document.createTextNode(NAME[p]));
+    for (const k of ['opening', 'in', 'out', 'closing', 'unexplained']) { el('td', { text: fmt(x[k]) }, tr); tot[k] += x[k]; }
+  }
+  const tr = el('tr', { class: 'total' }, body); el('td', { text: 'All stores' }, tr);
+  for (const k of ['opening', 'in', 'out', 'closing', 'unexplained']) el('td', { text: k === 'in' || k === 'out' ? '' : fmt(tot[k]) }, tr);
+
+  const lt = document.getElementById('links'), lh = el('tr', {}, el('thead', {}, lt));
+  for (const h of ['From', 'To', 'Rations', 'What']) el('th', { text: h, class: h === 'Rations' ? '' : 'lt' }, lh);
+  const lb = el('tbody', {}, lt);
+  for (const l of DATA.links.slice().sort((a, b) => b.value - a.value)) {
+    const r = el('tr', {}, lb);
+    el('td', { text: l.source }, r); el('td', { text: l.target, class: 'lt' }, r); el('td', { text: fmt(l.value) }, r); el('td', { text: KIND[l.kind] || l.kind, class: 'lt' }, r);
+  }
+  document.getElementById('links-summary').textContent = `Every flow (${DATA.links.length}), largest first`;
+  document.getElementById('made').textContent = `node tools/foodflow.js --scenario ${DATA.scenario} --seed ${DATA.seed} --map ${DATA.map} --year ${DATA.year} --village ${V.id} --html FILE`;
+})();
+</script>

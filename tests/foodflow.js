@@ -30,4 +30,10 @@ assert(crops > 0 && Math.abs(crops - r.raw['grain|harvest']) < 1, `harvest by cr
 assert(r.links.every((l) => l.value > 0 && l.source !== l.target), 'links are flows between two nodes');
 assert(r.need > 0 && r.fed > 0.8 * r.need && r.fed < 1.05 * r.need, `fed ${r.fed} against need ${r.need}`);
 for (const k of ['Seed', 'Eaten', 'Rotted']) assert(r.nodes.some((n) => n.name === k), `an outlet ${k}`);
+// 3. the page: its title and data filled in, the placeholders gone, and its data the account
+const page = Flow.page({ scenario: 'founders', seed: 7, map: 'tiny', ...r }), bare = Flow.page({ scenario: 'founders', seed: 7, map: 'tiny', ...r }, true);
+assert(page.startsWith('<!doctype html>') && !bare.startsWith('<!doctype') && bare.startsWith('<title>'), 'a document, or the bare page');
+assert(!/\{\{(TITLE|DATA)\}\}/.test(page) && page.includes(`<title>Where ${r.village.name}'s food goes</title>`), 'title and data filled in');
+const json = JSON.parse(page.match(/const DATA = (.*);\n/)[1]);
+assert.strictEqual(json.links.length, r.links.length, 'the page carries the account');
 console.log(`foodflow ok: ${r.village.name}, year ${r.year}: ${r.links.length} links, produced ${Math.round(r.produced)}, fed ${Math.round(r.fed)} of ${Math.round(r.need)}`);
