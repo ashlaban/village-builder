@@ -72,6 +72,47 @@ function drawTeams(show) {
       e.g.clear();
     }
 }
+// The led animal (VB-429): a pawn on the way home from fetching a cow (job `lead`, phase back, carry 'cow') has it on a halter, beside
+// and a little behind it; which animal is the household's want (sim/exchange), the coat from the pawn. A pool, refilled each frame.
+function drawLed(show) {
+  const used = new Set();
+  for (const a of st.agents) {
+    if (!show || a.inside || a.carry !== 'cow' || a.phase !== 'back' || !a.job || !rigs[a.id].root.visible) continue;
+    const plan = st.plans.households.get(st.pawns[a.id].household),
+      kind = plan && plan.want && plan.want.kind ? plan.want.kind : 'cow';
+    used.add(a.id);
+    let e = ledDraw.get(a.id);
+    if (!e) {
+      const sp = new PIXI.Sprite(art.cow[0][1]);
+      sp.anchor.set(0.5, 0.92);
+      L.objects.addChild(sp);
+      e = { sp, g: new PIXI.Graphics() };
+      L.objects.addChild(e.g);
+      ledDraw.set(a.id, e);
+    }
+    const dir = drawFacing[a.id],
+      x = drawX[a.id],
+      y = drawY[a.id],
+      sway = Math.sin(time * 3 + a.id) * 0.5,
+      tex = art.cow[(hash(a.id * 7 + 3) * COATS.length) | 0][1];
+    if (e.sp.texture !== tex) e.sp.texture = tex;
+    e.sp.visible = true;
+    e.sp.scale.set(dir * COW_SCALE[kind], COW_SCALE[kind]);
+    e.sp.position.set(x - dir * 13, y + 2 + sway);
+    e.sp.zIndex = y + 2;
+    e.g
+      .clear()
+      .moveTo(x + dir * 1, y - 6)
+      .lineTo(x - dir * 8, y - 3)
+      .stroke({ width: 1, color: 0x5a4128 });
+    e.g.zIndex = y + 2.1;
+  }
+  for (const [id, e] of ledDraw)
+    if (!used.has(id)) {
+      e.sp.visible = false;
+      e.g.clear();
+    }
+}
 // The carts (VB-410): a cart at home stands in the farm's yard, as many as the household has; one out is drawn with its pawn, behind it,
 // with the load it carries and, for the ox cart, the team before it (the team leaves the byre meanwhile, as at the plough). Which is out
 // is read as sim/carts reads it. A cart below the condition it is mended at is drawn worn. A pool of sprites, refilled each frame.
@@ -366,6 +407,7 @@ function updateSettlement(dt) {
   }
   drawTeams(show);
   drawCarts(show);
+  drawLed(show);
   drawHerds(c, show);
   drawDeer(c, show); // roe deer at the forest edges in the twilight (VB-139, page/deer)
   ring.clear();

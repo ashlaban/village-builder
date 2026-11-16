@@ -86,6 +86,19 @@ const iv = setInterval(async () => {
       if (objs.some((o) => o.visible && o.anchor.y === 0.85 && Math.hypot(o.position.x - a.x, o.position.y - a.y) < 1)) fail('a cart home is still drawn at its pawn');
       if (vis() !== home) fail('a cart home is not drawn below the house again');
     }
+    // a pawn leading a cow home (VB-429), as sim/exchange's `lead` job has it (carry 'cow', phase 'back'): the animal is drawn beside it, and
+    // not once the pawn has delivered it
+    {
+      const hh3 = simSt.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => simSt.agents[m] && !simSt.agents[m].inside && !simSt.agents[m].job));
+      const a = simSt.agents[hh3.members.find((m) => !simSt.agents[m].inside && !simSt.agents[m].job)], objs = APP.stage.children[0].children[13].children;
+      const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load };
+      const cows = () => objs.filter((o) => o.visible && o.anchor.y === 0.92).length;
+      const base = cows();
+      a.job = { kind: 'lead', farm: simSt.farmsteads[hh3.farmstead] }; a.phase = 'back'; a.carry = 'cow'; a.load = 0; tick(3);
+      if (cows() !== base + 1) fail(`a pawn leading a cow is drawn with ${cows() - base} animals beside it, not 1`);
+      Object.assign(a, saved); tick(3);
+      if (cows() !== base) fail(`a cow delivered is still drawn at its leader (${cows()} cows drawn, ${base} before)`);
+    }
   }
   console.log('clock:', doc.getElementById('clockDate').textContent, '|', doc.getElementById('clockYear').textContent, '| scenario', doc.getElementById('genScenario').value);
   // the shown clock follows simulation time within a 6-minute step and 5 game minutes, in whole 5-minute steps: it shows the time the

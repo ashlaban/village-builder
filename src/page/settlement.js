@@ -50,6 +50,7 @@ function clearSettlement() {
   meadowSprites = [];
   teamDraw = new Map();
   cartDraw = [];
+  ledDraw = new Map();
 }
 async function buildSettlement(wd, s) {
   clearSettlement();
@@ -210,6 +211,7 @@ function buildFarms(wd) {
   meadowSprites = [];
   teamDraw = new Map();
   cartDraw = [];
+  ledDraw = new Map();
   L.objects.sortableChildren = true;
   for (const f of st.farmsteads) {
     const hx = wd.hx[f.house],
