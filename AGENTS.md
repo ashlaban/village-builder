@@ -106,6 +106,9 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
     makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long
     it lasts, how fast it works, what it can hold); its worth in gifts and standing follows from custom. A deposit needs no use
     of its own, only a property that matters.
+    A made good also has a grade of workmanship, one of five (shoddy, sound, good, fine, masterwork), drawn at its making by
+    odds that shift with the maker's skill; the grade scales everything the kind's properties do, and its worth. Skill makes a
+    made good better as well as faster; it never multiplies a crop's yield.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with
