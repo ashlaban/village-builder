@@ -2,6 +2,14 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 16 November 2026 (VB-702)
+
+## VB-702: Goods by kind (the plan of VB-702): a maker's skill and quality; granite millstones (raised 16 November 2026)
+1. **Does a maker's skill make a better good, or only make it faster?** Skills are Decided (11 Nov) as rate: a novice works at 60%, a master at 130%. Principle 17 puts quality in the kind, and Kim set a single grade number aside (16 Nov). (a) Rate only: two whetstones of slate are alike, whoever cut them. (b) Skill also lengthens the life of a durable a household has one of (whetstone, grindstone, quern, kettle), by up to a fifth for a master; counted goods stay alike. (c) Every lot carries a grade. **P:** (a) now, and (b) when "the smith" should matter to those who buy from him: it costs one number on a record that exists.
+   **A (Kim, 16 Nov):** Skill sets the quality of a made good as well as its speed: five grades of workmanship (shoddy, sound, good, fine, masterwork), drawn at making by odds that shift with the maker's skill, acting on everything the kind's properties do and on worth; counted, no record a piece. Moves 11 Nov (rate only). Principle 17; plan of VB-702, section 13; VB-761.
+2. **May a millstone be granite, grinding slower?** Decided (11 Nov): a mill needs a pair of sandstone millstones, "so a village may have to trade before it can build". By principle 17 the quern's rule would carry over (granite, a fifth slower). (a) Sandstone only, as Decided: place decides who mills (principle 9). (b) Granite too, a fifth slower: most villages could build a mill unaided, and sandstone sells the better one. **P:** (a).
+   **A (Kim, 16 Nov):** (b): granite too, a fifth slower. Moves 11 Nov (sandstone only). VB-093.
+
 # Archived 15 November 2026 (VB-329)
 
 ## VB-329: nobody is sent over the sea (raised 13 November 2026)

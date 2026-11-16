@@ -74,7 +74,7 @@ Programmer*, 1999): a thin piece that runs end to end, then grows. Both citation
 | 6 | The mill and the loom | Build a mill with the village, learn a craft, spin and weave | Facilities and construction (4.3), recipes with subtypes, skills, the textile chain (5.6), occupation |
 | 7 | Talk travels | Hear what people say; carry a reputation; lie, and be found out | Traits (4.4), encounters at venues, stories (4.4, 10.2) |
 | 8 | The ship | Sell butter for silver, take passage, meet a priest | The outside world, silver, institutions and rank (4.4, 4.5); disease (10.3) |
-| 9 | The town | Move to town, take service there, buy food at the market | Settlement tier and regions (4.6), the urban sink (6.1) |
+| 9 | The town | Deal on the green at a rite or a meeting, walk to a maker's door, live partly by a craft and let fields go, ask for a plot where the custom is (16 Nov: the town itself waits, 3.9) | A place's label as a derived view (4.6, to be brought into line), crowding in `death.hazard`, the strata and the sink reported (6.1, 6.3) |
 | 10 | Roads, boats and ice | Cross the frozen sound to the winter fair; build a road or a bridge | Modes, vehicles and climate (4.2), built ways and passage (4.3) |
 
 Each slice below lists what it brings and what it takes over from today's backlog. It also says what must be designed concretely
@@ -331,6 +331,14 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
   - what a mill costs and its toll.
 - **Done when:** the idle share in the slack seasons has fallen and is reported (no limit is set: Kim, 10 November); mills are built where they pay; "the smith" emerges by
   hours worked.
+- **16 November update (the plan of VB-702;** `design.md`, Goods, production and animals, The metals and the stones**):** the
+  slice's second half also brings the island's own metals and the stones' other goods (Kim, 16 November, moving the decision of
+  11 November that left the metals for the ship): goods carry the kind of their material, which sets their quality (principle 17);
+  mining a found vein by hand, prospecting, the furnace; the copper kettle, bronze for the cast pot and the village's bell; silver,
+  gold and amber as things of worth, and the hoard; whetstones and grindstones; soapstone pots, marble for lime, the memorial
+  stone; tin twice as likely (VB-733 to VB-745). Coin and the church's uses stay with 3.8. Later the same day Kim moved two more
+  points of 11 November: a maker's skill sets the quality of a made good as well as its speed, in five counted grades of
+  workmanship (VB-761 to VB-763), and a millstone may be granite, a fifth slower (VB-093); and tin alone is raised, not copper.
 
 ### 3.7 Talk travels
 
@@ -374,6 +382,10 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
   - the disease model: one compartment model per settlement, feeding a contribution to `death.hazard`, so the cost is per
     settlement, not per pair of pawns;
   - what establishment does.
+- **16 November update (the plan of VB-702):** the island's own metals no longer wait for this slice (3.6). When the ship comes,
+  silver and gold are already in households as things of worth, kept, given, worn and buried, and bronze is cast: "silver by
+  weight" here becomes silver as a means of exchange, and coin when the Crown mints, first from the island's own silver. The slice
+  keeps the church's uses (the bell, lead for roofs and windows, fonts and altars, soapstone carving, amber) and pewter's lead.
 - **16 November update (the plan of VB-405;** `design.md`, People, Marriage, nursing and growth; Balance loops and targets, The
   growth budget**):** there is no immigration before the ship (Kim, 13 November), so the settling families are this slice's: VB-636
   holds the proposal (a family lands at the harbour and walks to a plot or an empty farm; one in 2 years while fewer than 300
@@ -383,19 +395,45 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
 
 ### 3.9 The town
 
+**Rewritten 16 November** (the plan of VB-189, `docs/plans/VB-189.md`, on Kim's answers of that day; `design.md`, Settlements,
+Towns and regions). The list this section held (settlement tier and regions by Harris potential, burgage plots, households that buy
+their food, urban hazard, the pull at the moving round) no longer stands: a market place and a town are labels no rule reads,
+nobody calls a market, and two mocks find that makers spread and do not gather, so **no town is expected before the ship**. Kim
+accepted that. The slice is now what the island has before the ship: village craftsmen who still farm, and a yearly market at each
+gathering's host.
+
 - **Brings:**
-  - settlement tier and regions by Harris potential, with hysteresis;
-  - burgage plots;
-  - households that buy their food;
-  - urban hazard and crowding;
-  - the pull at the moving round.
-- **Takes over:** the cities review's phase 4.
-- **Done when:** the 600 / 325 / 75 band (target-v2 6.3) is reported nightly; a town's natural decrease and its migrants match
-  `M / (d - b)`.
-- **16 November update (the plan of VB-405):** the town is the second brake of the growth budget, not the first: its deaths at
+  - the strata counted by work and by heads, and the sink's two bounds, as a report (VB-765);
+  - crowding, a contribution to `death.hazard` by the people within 2 steps of a house (VB-766);
+  - a head's memory of what each source of food brought, and fields sized against its estimate of all the household's food
+    (VB-767, VB-768): this changes today's farms that fish or keep cows, and is measured for it;
+  - dealing on the green on every gathering day, with goods carried there on the household's own estimate of that green (VB-769);
+  - the walk to a named household to deal, on other days (VB-770);
+  - rites on each village's own days, so that neighbours attend each other's (VB-775);
+  - a place's label and its report: "market place" by the households of other villages dealing on its green; no cut point for
+    "town" (VB-771);
+  - a landless maker's ask for a plot where its custom is best, through the offers of the reworked moving round (VB-772);
+  - the page (VB-773), and a test bed, the scenario "The market town", known to decay (VB-778).
+- **Waits, with the town itself:** something that gathers makers. A third mock (VB-776) tries the first candidate, a shared
+  facility that is costly to build (a kiln, a bloomery), and compares it with the other two: the elite's household as buyer and
+  patron (slice 5) and outside demand with a granted market (slice 8, the ship). Service and lodging in a town, the standing
+  alehouse, booths and "Marriage in town" wait with it.
+- **Hands on:** to the ship's plan (VB-188), the granted market, outside demand, coin and the town's disease; to the plan of roads,
+  boats and ice (VB-190), regions and market potential as reports that its changes of reach move (`docs/plans/VB-189.md`,
+  section 9).
+- **Order inside the slice:** VB-765, VB-766 and VB-767 wait for nothing, and VB-768 only for VB-767; the dealing tasks wait for
+  the fair (VB-302), offers (VB-690), targets (VB-698) and the rite (VB-522); the maker's plot waits for VB-682's tasks (VB-692,
+  VB-697) and for skills (VB-360).
+- **Done when:** the 600 / 325 / 75 target (target-v2 6.3) is reported nightly on the work line and the heads line, with its
+  residual, never failing; every place's measures (outsiders, dealing days, work that is not farming) and its sink, `M / (d - b)`
+  and `S / c`, are reported by decade. The target is not expected to be met before the ship (the second mock reads 263 to 275 on
+  the middle figure), and only Kim changes it.
+- **Takes over:** what is left of the cities review's phase 4 once the labels are views: its crowding and its sink.
+- **13 November, kept (the plan of VB-405):** the town is the second brake of the growth budget, not the first: its deaths at
   about 1.5 times the farms' (Kim, 13 November; at 3.3 times life expectancy falls to 23), its line 0.54 of a point of yearly
   growth. It takes its people from those the marriage gate already holds, so it decides where people live and the valve still
-  holds the number (`design.md`, Balance loops and targets, The growth budget).
+  holds the number (`design.md`, Balance loops and targets, The growth budget). With no town before the ship, the valve carries
+  that line until then.
 
 ### 3.10 Roads, boats and ice
 
@@ -421,7 +459,11 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
 5. **Slice 7 is the movable one.** It depends only on venues. If the budget binds sooner, VB-127 moves up into slice 0's
    neighbourhood.
 6. **The ship before the town:** imports feed the first specialists, silver arrives with ships, and disease comes first by sea.
-   Roads come last, since the winter fair (trace 7.3) needs everything else.
+   Roads come last, since the winter fair (trace 7.3) needs everything else. **Changed, 16 November** (Kim): the ship is taken
+   last of all, after the town and the roads. The town's plan (3.9) then found what this point had guessed: without the ship's
+   imports and demand no town forms. So slice 9 builds the craftsmen and the markets the island has before the ship, slice 10
+   widens their reach, and the town proper arrives with slice 8, unless the third mock (VB-776) or slice 5's elite gathers
+   makers sooner.
 
 **Alternatives weighed.**
 - *The fair first*, for the most new play soonest. It builds exchange on posted jobs, so its occasion and its loans' labour are
