@@ -488,7 +488,7 @@ VB['sim/agents'] = (() => {
   // reckoned again too, as the team goes to its earliest task with hands (withOxen).
   function rerate(st, j, others = true) {
     if (j.at === undefined || j.at === null) settle(st, j);
-    j.rate = st.jobs.get(j.key) === j ? manning(st, j, true) : 0;
+    j.rate = manning(st, j, true);
     queue(st, j);
     if (!others || !teamKind(j)) return;
     for (const q of st.jobsBy.get(ownerKey(j.owner)) || [])
@@ -548,7 +548,7 @@ VB['sim/agents'] = (() => {
       const j = q[0];
       settle(st, j);
       const id = j.claims.find((x) => atWork(st, j, x));
-      if (id === undefined || st.jobs.get(j.key) !== j) {
+      if (id === undefined) {
         q.shift();
         j.rate = 0;
         j.due = null;
