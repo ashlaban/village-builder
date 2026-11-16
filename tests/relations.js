@@ -71,7 +71,7 @@ Sim.killPawn(st, b.id, 'killed');
 check(!a.rel.has(b.id) && b.rel.size === 0 && !a.bands.has(b.id) && b.bands.size === 0, 'death ends relationships');
 check(checkState(st).length === 0, 'invariants after a death: ' + checkState(st).slice(0, 3).join('; '));
 // talk (VB-061): two pawns standing together outdoors in waking hours talk, and their tie grows by SOCIAL.ties.talk; it leaves no memory
-const S = VB['sim/society'], T = SOCIAL.talk, TIES = SOCIAL.ties, pair = adults.filter((x) => x.alive && x !== b && x !== c).slice(0, 2), [ta, tb] = pair.map((x) => st.agents[x.id]);
+const S = VB['sim/encounters'], T = SOCIAL.talk, TIES = SOCIAL.ties, pair = adults.filter((x) => x.alive && x !== b && x !== c).slice(0, 2), [ta, tb] = pair.map((x) => st.agents[x.id]);
 const stand = () => { for (const [g, dx] of [[ta, 0], [tb, 4]]) { VB['sim/agents'].release(st, g); g.inside = false; g.path = null; g.phase = null; g.carry = null; g.x = 5000 + dx; g.y = 5000; } };
 const tie0 = R.tieOf(st, pair[0].id, pair[1].id), talks0 = st.talks;
 for (const ag of st.agents) if (ag !== ta && ag !== tb) ag.inside = true; // nobody else outdoors

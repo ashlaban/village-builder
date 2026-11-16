@@ -5,11 +5,13 @@ const { canon } = require('./lib/canon.js');
 const TILES = ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn', 'tr', 'tg', 'tb'];
 const world = (seed, size) => { const it = G.generate(seed, size); let r; while (!(r = it.next()).done); return r.value; };
 let failed = 0; const out = [];
-// [scenario, seed, map size, hours before the save, hours after]; the last is saved mid-hour, when the idle pawns of the hour were drawn
-// earlier in it (st.idlers). Both runs make the same advance calls after the save: steps of 6 minutes add up differently in other chunks.
+// [scenario, seed, map size, hours before the save, hours after]; the last two are saved mid-hour, when the idle pawns of the hour were drawn
+// earlier in it (st.idlers); the last mid-day, between talk turns (VB-521). Both runs make the same advance calls after the save: steps
+// of 6 minutes add up differently in other chunks.
 const Y = Sim.YEAR, TINY = { cols: 120, rows: 85 };
 for (const [scenario, seed, size, before, after] of [['founders', 7, null, 2 * Y, Y], ['founders', 42, null, 2 * Y, Y], ['heirs', 7, null, 2 * Y, Y],
-  ['heirs', 42, null, 2 * Y, Y], ['populous', 7, TINY, Y, Y], ['populous', 7, TINY, 3000.7, 30 * Sim.DAY]]) {
+  ['heirs', 42, null, 2 * Y, Y], ['populous', 7, TINY, Y, Y], ['populous', 7, TINY, 3000.7, 30 * Sim.DAY],
+  ['populous', 7, TINY, 3010.5, 3 * Sim.DAY]]) {
   const st = Sim.seed(world(seed, size || undefined), seed, scenario);
   Sim.advance(st, before);
   const text = JSON.stringify(Sim.save(st));
