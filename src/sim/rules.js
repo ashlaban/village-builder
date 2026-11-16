@@ -412,8 +412,10 @@ VB['sim/rules'] = (() => {
     // Chemistry (VB-520; design.md, Chemistry): a pair's compatibility is personal × the seeded term + likeness × how alike the two are in
     // the four values and sociability (1 alike, 0 at `span`, the mean difference of two drawn at random, -1 at twice that) − friction ×
     // (the two tempers' sum − 1) − customs × the share of customs on which they lean to different options (each weighed by 1 − its
-    // malleability), less the age gap, within -1..1. The last term is Like seeks like (Balance loops and targets; Decided, 12 Nov).
-    chemistry: { personal: 0.7, likeness: 0.5, friction: 0.3, customs: 0.3, span: 0.17 },
+    // malleability), less the age gap, within -1..1. The last term is Like seeks like (Balance loops and targets; Decided, 12 Nov). The
+    // design's first weights were 0.7, 0.5, 0.3, 0.3; personal 0.9 and friction 0.4 keep the shares of close friends, friends, dislikes
+    // and enemies within a fifth of what they were (VB-520's five runs, populous small seed 7, 3 years).
+    chemistry: { personal: 0.9, likeness: 0.5, friction: 0.4, customs: 0.3, span: 0.17 },
     // Familiarity (VB-127; docs/review-relationships.md, proposal B): a tie grows by `talk` a talk (VB-521: 0.8, a longer conversation at
     // four turns a day; it was 0.5), by `home` per 24 waking hours (the talk hours) two housemates spend in their house, counted once a
     // day, and by `work` for each job two pawns finish together; it halves every year. Near kin never fall below `kin`. A pawn keeps at
