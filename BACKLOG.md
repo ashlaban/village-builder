@@ -121,6 +121,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-865](backlog/VB-865.md) | Page: the head's target on each made good in the plan panel | page | 2 | S | Show Sim.headView(...).goods as store meters with the target, and set or clear one through Sim.head(st, 'target') |
 | [VB-722](backlog/VB-722.md) | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 
 ## Blocked
