@@ -6,7 +6,8 @@
 // Reported, never asserted: the tool never fails (a run that throws is printed and recorded as an error).
 //   (no argument)  populous small, seeds 3, 7, 11, 42, 30 years; founders small, sixteen seeds, 50 years; heirs small, seeds 7 and
 //                  42, 30 years (FULL in tests/lib/bands.js)
-//   --runs LIST    only these of the full runs (the names of FULL in tests/lib/bands.js)
+//   --runs LIST    only these of the full runs (the names of FULL in tests/lib/bands.js); the weekly runs (WEEKLY: populous-medium, 30
+//                  years, and founders-medium, 50 years, seeds 3, 7, 11, 42; VB-633) run only when named, and on Sundays by tools/nightly.js
 //   --years N      every run cut to N years, for a quick look (recorded with the cut)
 //   --if-new       does nothing when the history already holds a full run at HEAD (tools/nightly.js)
 //   --out FILE     the history to append to (default docs/bench/bands.jsonl)
@@ -23,7 +24,7 @@ function plan({ only = null, years = null } = {}) {
   for (const band of B.BANDS) {
     const r = band.report; if (!r) continue;
     const name = Object.keys(B.FULL).find((k) => B.FULL[k].scenario === r.scenario && B.FULL[k].map === r.map && B.FULL[k].years === r.years) || r.scenario;
-    if (only && !only.includes(name)) continue;
+    if (only ? !only.includes(name) : B.WEEKLY.includes(name)) continue; // the weekly runs only when named (VB-633)
     for (const seed of r.seeds) {
       const run = { name, scenario: r.scenario, map: r.map, years: years || r.years, seed }, key = JSON.stringify(run);
       if (!runs.has(key)) runs.set(key, { ...run, bands: [] });

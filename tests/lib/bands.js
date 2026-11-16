@@ -22,10 +22,12 @@ const FULL = {
   founders: { scenario: 'founders', map: 'small', years: 50, seeds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 42] },
   heirs: { scenario: 'heirs', map: 'small', years: 30, seeds: [7, 42] },
   // VB-633: the medium map, for the year 1,000 is reached (populous, measured) and the pace of a founders' island (arithmetic); only the
-  // floors of the group `growth` (GROUPS, below) are reported on them
-  'populous-medium': { scenario: 'populous', map: 'medium', years: 30, seeds: [3, 7, 11, 42], groups: ['growth'] },
-  'founders-medium': { scenario: 'founders', map: 'medium', years: 50, seeds: [3, 7, 11, 42], groups: ['growth'] },
+  // floors of the group `growth` (GROUPS, below) are reported on them. `weekly`: left out of the night's default, since a populous medium run
+  // took 13 minutes of CPU (16 November, a shared machine), five times the rest of the bands; tools/nightly.js runs them on Sundays
+  'populous-medium': { scenario: 'populous', map: 'medium', years: 30, seeds: [3, 7, 11, 42], groups: ['growth'], weekly: true },
+  'founders-medium': { scenario: 'founders', map: 'medium', years: 50, seeds: [3, 7, 11, 42], groups: ['growth'], weekly: true },
 };
+const WEEKLY = Object.keys(FULL).filter((k) => FULL[k].weekly);
 // The reduced run (VB-163): populous on the tiny map at four seeds for 8 years, about 11 s a seed.
 const REDUCED = { setup: 'populous tiny', years: 8, seeds: [3, 7, 11, 42] };
 // A household present on fewer days of a year than this is not judged on that year (one founded on the year's last day and hungry
@@ -166,7 +168,7 @@ function growthTargets(ratios, years) {
 const BANDS = [];
 // The floors a run with `groups` reports: those of the group, and growth and the population ratio beside them (VB-633).
 const GROUPS = { growth: new Set(['growth', 'population']) };
-for (const f of FLOORS) for (const [name, { groups, ...run }] of Object.entries(FULL)) {
+for (const f of FLOORS) for (const [name, { groups, weekly, ...run }] of Object.entries(FULL)) {
   if (groups && !groups.some((g) => f.group === g || GROUPS[g].has(f.id))) continue;
   if (f.afterYear > 0 && f.afterYear >= run.years) continue; // a span the run does not reach
   const range = { ...(f.kind === 'described' ? {} : { lo: f.lo, hi: f.hi }), afterYear: f.afterYear,
@@ -252,4 +254,4 @@ function summary(samples, at = [1, 10, 20, 30, 50]) {
     hungryShare: hd ? sum('hungryDays') / hd : 0 };
 }
 const fmt = (x) => (Number.isNaN(x) ? 'none' : x === Infinity ? 'inf' : Number.isInteger(x) ? String(x) : x.toFixed(3));
-module.exports = { BANDS, PROBES, SETUPS, FULL, REDUCED, GROWTH, growthTargets, MAPS, MIN_DAYS, runScenario, sample, judge, summary, fmt };
+module.exports = { BANDS, PROBES, SETUPS, FULL, WEEKLY, REDUCED, GROWTH, growthTargets, MAPS, MIN_DAYS, runScenario, sample, judge, summary, fmt };
