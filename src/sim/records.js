@@ -335,7 +335,9 @@ VB['sim/records'] = (() => {
       hunger: 0,
       cold: 0,
       coldLog: [],
-      waterDay: -1,
+      dry: 0,
+      dryLog: [],
+      waterDay: Math.floor((R.t || 0) / DAY), // the first day counts as fetched (VB-331; a scenario's record kit has no clock: day 0)
       cookDay: -1,
       dissolved: false,
       herds: [],
