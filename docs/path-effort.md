@@ -57,9 +57,14 @@ None of this measures how far a person walks round to stay dry. That is a judgem
 
 1. **Does discomfort only steer the choice, or does it also tire the pawn?** Proposed: only the choice, for now. Tiring needs a
    state a pawn (fatigue), its owner and its effect on work, which is a system of its own.
+   **A (Kim, 2026-11-16):** Only the choice for now: discomfort alone. Fatigue is a system of its own.
 2. **Does load count?** Proposed: yes, in two classes, on the back and with a cart: a laden pawn minds bad footing more, and a cart
    minds it most. It is what makes a built road worth its cost.
+   **A (Kim, 2026-11-16):** Yes.
 3. **How far round is a dry crossing worth?** Proposed as the first value to tune, with this meaning: a walker goes up to twice the
    time round to a bridge sooner than wade a ford, and no further.
+   **A (Kim, 2026-11-16):** Yes.
 4. **Is the same weight right for everyone?** Proposed: yes until slice 7; then a trait may move it (the hardy and the careful).
+   **A (Kim, 2026-11-16):** Yes.
 5. **May it land switched off (weight 0) with the numbers reported, and be switched on by your tuning run?** Proposed: yes.
+   **A (Kim, 2026-11-16):** Yes, but it must be verified working first: shown to steer routes with the weight on, before it lands switched off.

@@ -39,7 +39,7 @@ expect("another task's reserved ID is refused", !r.ok && /not reserved/.test(r.o
 r = run('', 'note', A, 'task', `id=${N}`, 'name=x', 'priority=1', 'size=S', 'summary=s');
 expect('an ID is used once', !r.ok && /already has a note/.test(r.out), r.out);
 r = run('', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=x', 'priority=1', 'size=S', 'summary=s', 'status=ready');
-expect('a noted task is never ready', !r.ok && /blocked or needs-review/.test(r.out), r.out);
+expect('a noted task is ready only with its goal and criteria', !r.ok && /goal/.test(r.out), r.out);
 r = run('', 'note', A, 'tuning', 'parameter=X.y');
 expect('a note lacking keys says which', !r.ok && /means, measured, proposed/.test(r.out), r.out);
 r = run('', 'note', A, 'question', 'priority=2', 'title=a test');
@@ -61,14 +61,20 @@ expect('status: the done task, the running one with its claims, the open notes',
   && r.out.includes(`${B} running; editing src/sim/herds.js, src/sim/stores.js`) && /1 task, 1 question, 1 tuning, 1 candidate/.test(r.out), r.out);
 r = run('', 'results', '--json');
 expect('results as JSON', r.ok && JSON.parse(r.out).find((x) => x.task === A).size === 'M', r.out);
+r = run('- [ ] The check passes.', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=Mend a red check', 'priority=1', 'size=S', 'summary=Red.', 'status=ready',
+  'goal=the check passes', 'ref=tests/x.js', '--body', '-');
+expect('a ready task note, with its goal and criteria', r.ok, r.out);
 const before = file('BACKLOG.md');
 r = run('', 'apply', '--dry');
 expect('apply --dry writes nothing', r.ok && file('BACKLOG.md') === before && !fs.existsSync(path.join(dir, 'backlog', N + '.md')), r.out);
 r = run('', 'apply');
-expect('apply: the result, the task, the question and the tuning row', r.ok && /applied 4/.test(r.out), r.out);
+expect('apply: the result, the task, the question and the tuning row', r.ok && /applied 5/.test(r.out), r.out);
 expect('the done task left the Ready table', !file('BACKLOG.md').split('\n## Ready\n')[1].split('\n## ')[0].includes(`[${A}]`));
 expect('the noted task has its file, criteria and origin', /^Status: needs-review$/m.test(file(`backlog/${N}.md`))
   && file(`backlog/${N}.md`).includes('- [ ] The herd is led.') && file(`backlog/${N}.md`).includes(`Noted by ${A}, 2 January 2026.`));
+expect('the ready note is a ready task, first in line', /^Status: ready$/m.test(file(`backlog/${pad(last + 2)}.md`))
+  && file(`backlog/${pad(last + 2)}.md`).includes('- [ ] The check passes.')
+  && file('BACKLOG.md').split('\n## Ready\n')[1].split('\n## ')[0].includes(`[${pad(last + 2)}]`));
 expect('the question is filed under its task, in its priority', file('QUESTIONS.md').split('\n## Priority 2\n')[1].split('\n## ')[0]
   .includes(`### ${N}: the inbox test (raised 2 January 2026)\n1. Is it so? **P:** yes.`));
 expect('the tuning row, bars replaced', file('docs/tuning.md').includes(`| \`X.y\` 3 | a / thing | low | more | ${A} |`));
