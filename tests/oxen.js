@@ -38,6 +38,17 @@ check(Math.abs(other.j.rate - rate(other.ags[0])) < 1e-9 && !A.withOxen(st, othe
 for (const a of ags) A.release(st, a);
 if (second.ags.length) check(A.withOxen(st, second.ags[0]), 'the team does not move to the next field');
 if (second.ags.length) check(Math.abs(second.j.rate - rate(second.ags[0]) * T.rate) < 1e-9, `the next field's rate ${second.j.rate} is not reckoned with the team`);
+// VB-472: the first task's work done (not its hands let go), the next task takes the team at once, from that step
+for (const q of [j, second.j]) { for (const id of [...q.claims]) A.release(st, st.agents[id]); A.dropJob(st, q); }
+{
+  const two = adults(withT).slice(0, 2), first = hoe(withT, 0, two.slice(0, 1)), next = hoe(withT, 1, two.slice(1, 2));
+  check(first.j.id < next.j.id && A.withOxen(st, first.ags[0]) && !A.withOxen(st, next.ags[0]), 'the team is with the first task');
+  check(Math.abs(next.j.rate - rate(next.ags[0])) < 1e-9, `the next task is rated with the team while the first holds it (${next.j.rate})`);
+  first.j.done = first.j.hours ?? Sim.KINDS.plow.hours;
+  A.complete(st, first.ags[0]);
+  check(A.withOxen(st, next.ags[0]) && Math.abs(next.j.rate - rate(next.ags[0]) * T.rate) < 1e-9,
+    `the team is not handed on as the first task ends (rate ${next.j.rate}, wanted ${rate(next.ags[0]) * T.rate})`);
+}
 
 // --- founders at seed 7, small map, 2 years: tilling done per pawn-hour of breaking and hoeing, the oxen's farm against the others
 const s2 = Sim.seed(world(7, [180, 130]), 7, 'founders');

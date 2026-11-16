@@ -185,9 +185,10 @@ for (const raise of [false, true]) {
   if (raise) sound(st, 'a raised hay target');
 }
 const w = (x) => x.toFixed(2);
-// the template's overshoot is a meadow or more: the meadows taken together are mown to the end once begun (with the stepping's sum of
+// the template's overshoot is up to a meadow past three winters: the meadows taken together are mown to the end once begun (with the stepping's sum of
 // tenths falling short of a task's hours, the fourth was left 0.9 h short at nightfall and taken down; VB-472 ends it at its hours)
-assert.ok(hay[0].atWinter >= 2 && hay[0].atWinter <= hay[1].atWinter + 1e-9, `by its template the household holds two winters' hay at the start of winter, no more than by its head's choice (${w(hay[0].atWinter)}, ${w(hay[1].atWinter)})`);
+const meadowHay = hay[0].expected / hay[0].meadows / hay[0].need; // one meadow's hay, in winters
+assert.ok(hay[0].atWinter >= 2 && hay[0].atWinter < 3 + meadowHay, `by its template the household holds two winters' hay at the start of winter, overshot by less than a meadow past three (${w(hay[0].atWinter)}, below ${w(3 + meadowHay)})`);
 assert.ok(hay[1].winters >= 3 && hay[1].atWinter >= 3,
   `by its head's choice three (${w(hay[1].atWinter)} winters of ${hay[1].need.toFixed(1)}, ${w(hay[1].winters)} at its peak; meadows give ${hay[1].expected})`);
 

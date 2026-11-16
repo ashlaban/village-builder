@@ -43,3 +43,13 @@ assert(n.place > 100 && n.tasks > 20 && n.ended > 10 && n.reckoned > 5, 'the run
 assert.strictEqual(n.placeBad, 0, 'placeOf agrees with a.x, a.y at every step');
 assert.strictEqual(n.doneBad, 0, 'doneOf is the closed form of the last reckoning');
 assert.strictEqual(n.overdue, 0, 'no task is left past the step its reckoning foretold');
+// a save from before VB-471 (no job.cast) with a task under work: loading reckons it from now and queues its end; the run ends by day,
+// so a task is under work
+{
+  while (![...st.jobs.values()].some((x) => x.rate > 0 && (KINDS[x.kind].attention || 'full') === 'full')) Sim.advance(st, 1 / TICKS);
+  const j = [...st.jobs.values()].find((x) => x.rate > 0 && (KINDS[x.kind].attention || 'full') === 'full');
+  st.workDue.splice(st.workDue.indexOf(j), 1);
+  delete j.at; delete j.rate; delete j.due;
+  A.loaded(st);
+  assert(j.rate > 0 && j.at === st.tick && st.workDue.includes(j), "an older save's task under work is reckoned and queued at load");
+}

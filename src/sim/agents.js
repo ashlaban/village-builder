@@ -139,6 +139,7 @@ VB['sim/agents'] = (() => {
     if (st.jobs.get(j.key) === j) st.jobs.delete(j.key);
     const s = j.owner && st.jobsBy.get(ownerKey(j.owner));
     if (s) s.delete(j);
+    if (teamKind(j) && st.households[j.owner.id]) retune(st, st.households[j.owner.id]); // the ox team goes to the next task
   }
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
@@ -157,7 +158,10 @@ VB['sim/agents'] = (() => {
     a.basis = null;
     a.load = 0; // wood cut and stacked, not yet on its way, is left
     const hid = st.pawns[a.id].household;
-    if (hid !== null) Carts.leave(st, st.households[hid], a.id); // and its cart is free
+    if (hid !== null) {
+      Carts.leave(st, st.households[hid], a.id); // and its cart is free
+      retune(st, st.households[hid]);
+    }
   }
   // ---- attention (VB-251; design.md section 7): a pawn holds one task (a.job), and besides it one partial and one background task ----
   // @state agent.side: absent, or {partial, background}: the jobs the pawn holds besides its task, each a job of st.jobs listing the pawn
@@ -347,6 +351,7 @@ VB['sim/agents'] = (() => {
     helped(st, j, [a.id]); // a load brought in is a task done
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
     Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears
+    retune(st, st.households[st.pawns[a.id].household]);
     if (!K.again || !K.again(j)) dropJob(st, j);
     else {
       settle(st, j);
@@ -497,6 +502,16 @@ VB['sim/agents'] = (() => {
         rerate(st, q, false);
       }
   }
+  // The ox team or a cart of household hh is free again (a team task dropped, a cart home or left): its tasks under work that the team or
+  // a cart speeds are reckoned again, so the next takes them up at once, as the stepping did at its next step.
+  function retune(st, hh) {
+    if (!hh || hh.dissolved) return;
+    for (const q of [...(st.jobsBy.get(`household:${hh.id}`) || [])])
+      if (q.rate > 0 && (teamKind(q) || KINDS[q.kind].carted)) {
+        settle(st, q);
+        rerate(st, q, false);
+      }
+  }
   // Where job j stands in the sorted queue q (by due, then id), or where it would go.
   function slotOf(q, due, id) {
     let lo = 0,
@@ -578,7 +593,10 @@ VB['sim/agents'] = (() => {
         }
         if (cap === TRAVEL.load) Carts.missed(st, hhW);
       }
-      if (a.load <= TRAVEL.load) Carts.leave(st, hhW, a.id);
+      if (a.load <= TRAVEL.load) {
+        Carts.leave(st, hhW, a.id);
+        retune(st, hhW);
+      }
     }
     // a load taken from the field (VB-335), on the household's best free cart or on the back (sim/carts); a load on the back
     // with more left waiting is a miss the head counts
@@ -586,7 +604,10 @@ VB['sim/agents'] = (() => {
       cap = K.load ? Carts.take(st, hhL, a.id, teamFree(st, hhL)) : 0;
     const n = K.load ? K.load(st, a, j, cap) : null;
     if (K.load && cap === TRAVEL.load && n > 0 && K.again(j)) Carts.missed(st, hhL);
-    if (K.load && n <= TRAVEL.load) Carts.leave(st, hhL, a.id); // a load for the back needs no cart
+    if (K.load && n <= TRAVEL.load) {
+      Carts.leave(st, hhL, a.id); // a load for the back needs no cart
+      retune(st, hhL);
+    }
     if (K.carry && n !== 0) {
       if (n !== null && K.again(j)) {
         j.done = 0;
@@ -610,7 +631,10 @@ VB['sim/agents'] = (() => {
       walkTo(st, a, to, x, y);
     } else {
       complete(st, a);
-      if (K.carted) Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the dung cart is back, and wears
+      if (K.carted) {
+        Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the dung cart is back, and wears
+        retune(st, st.households[st.pawns[a.id].household]);
+      }
       a.job = null;
       a.basis = null;
       a.phase = null;
@@ -785,9 +809,8 @@ VB['sim/agents'] = (() => {
     st.awake = { hour: -Infinity, ids: [], at: 0, moving: st.tick };
     for (const a of st.agents) if ('work' in a) delete a.work;
     for (const j of st.jobs.values()) {
-      if (!('cast' in j)) continue;
       delete j.cast;
-      if (j.at === undefined && j.claims.length) rerate(st, j, false);
+      if ((j.at === undefined || j.at === null) && j.claims.length) rerate(st, j, false);
     }
   }
   // ---- journeys (VB-287; design.md, Between villages: A journey, Provisions and the season) ----
