@@ -113,4 +113,74 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   assert.ok(near(V.targets.wood.custom, goal(wi)) && V.targets.hay.custom === 2, 'the custom\'s targets beside the head\'s');
   assert.ok(V.head.horizon === 0 && V.head.keepsOrder, 'the head\'s horizon in the view');
 }
-console.log('traits ok: five stand-in traits drawn at birth and at the start, neutral on average; skill as head; horizon and bias at the review, which draws nothing');
+// the horizon on a season's first day, worked by hand (VB-254, as Decided: a poor head reacts, a good one projects ahead; VB-485's
+// replacement withdrawn): ECON.woodUse is 0.35, 0.3, 0.5 and 1.6 loads a day by season, 12 days a season; the stall is from day 32 to day
+// 5 of the year, 21 days a winter. Spring's first day (day 0): a head that reacts wants the template's 30 loads and 2 winters; one to the
+// season's end 30 + 0.35 × 12 = 34.2 and 2 + 5/21 (days 0 to 4 stalled); one a season further 34.2 + 0.3 × 12 = 37.8 and the same hay
+// (summer has no stall). Autumn's first day (day 24): 40; 40 + 0.5 × 12 = 46 and 2 + 4/21 (days 32 to 35); 46 + 1.6 × 12 = 65.2 and
+// 2 + 16/21 (days 32 to 47).
+{
+  const st = templateHeads(VB, make()), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = plan.targets;
+  const at = (wits) => {
+    st.pawns[hh.holder].traits.fill(wits, 0, 2);
+    plan.head.since = st.t;
+    P.reviewed(st, plan, cal(st.t), 'store');
+    return [Tg.wood[cal(st.t).season], Tg.hayWinters];
+  };
+  const same = (a, b, m) => assert.ok(near(a[0], b[0], 1e-6) && near(a[1], b[1], 1e-6), `${m}: ${a} against ${b}`);
+  st.t = YEAR + 8;
+  assert.strictEqual(cal(st.t).doy, 0);
+  same(at(0.1), [30, 2], 'spring: a head that reacts wants the template');
+  same(at(0.5), [34.2, 2 + 5 / 21], "spring: to the season's end");
+  same(at(0.9), [37.8, 2 + 5 / 21], 'spring: a season further');
+  st.t = YEAR + 24 * DAY + 8;
+  assert.strictEqual(cal(st.t).doy, 24);
+  same(at(0.1), [40, 2], 'autumn: a head that reacts wants the template');
+  same(at(0.5), [46, 2 + 4 / 21], "autumn: to the season's end");
+  same(at(0.9), [65.2, 2 + 16 / 21], 'autumn: a season further, into the winter');
+  same(at(0.1), [40, 2], 'and back: the projection is taken off at the next review');
+}
+
+// a new head's bias reaches its targets at once, at the succession, not at the next seasonal plan (VB-485)
+{
+  const st = make(), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = plan.targets;
+  st.naturalDeaths = false;
+  Sim.advance(st, DAY);
+  const sp0 = st.plans.seasons.get(hh.id), turned = [...sp0.steps].reverse(), made = sp0.made;
+  P.setOrder(st, hh.id, turned); // an order the old head set
+  st.rng.traits.fix = 0; // the new head's biases all at their least
+  killPawn(st, hh.holder, 'killed');
+  delete st.rng.traits.fix;
+  const sp1 = st.plans.seasons.get(hh.id);
+  assert.ok(sp1.by === 'head' && sp1.made === made && JSON.stringify(sp1.steps) === JSON.stringify(turned), "the season's plan and its order outlast the succession");
+  const b = plan.head.bias, M = Sim.headView(st, hh.id).targets;
+  assert.ok(b.wood < 1 && b.hay < 1 && b.seed < 1, 'the new head is biased under the custom');
+  assert.ok(near(Tg.seed, VB['sim/rules'].CROPS.barley.seed * b.seed), `its seed at once: ${Tg.seed}`);
+  assert.ok(near(Tg.hayWinters - Tg.ahead.hay, M.hay.custom * b.hay), `its hay at once: ${Tg.hayWinters}`);
+}
+
+// the fields' bias before the cap at what the hands can till (VB-485): over biases drawn symmetrically (fix on the stream), the mean of the
+// fields a hands-limited household's head wants is the unbiased one's within 2%; the cap no longer takes the high draws and leaves the low
+{
+  const st = make(), F = VB['sim/fields'];
+  const hh = st.households.find((h) => h.farmstead !== null), plan = P.planOf(st, 'household', hh.id), Tg = plan.targets;
+  const c = cal(st.t);
+  P.reviewed(st, plan, c, 'store');
+  Tg.perHand = 1; // few hands: the food asks more than they can till
+  const workable = F.fieldsWorkable(st, hh, Tg.perHand), want = F.fieldsWanted(st, hh, Infinity);
+  assert.ok(want > workable && workable >= 1, `hands-limited: wants ${want}, can till ${workable}`);
+  const fieldsAt = (b) => { plan.head.bias.fields = b; P.reviewed(st, plan, c, 'store'); return Tg.fields; };
+  const unbiased = fieldsAt(1);
+  assert.strictEqual(unbiased, workable, 'unbiased, it wants what its hands can till');
+  for (const skill of [0, 0.5]) {
+    let sum = 0;
+    const n = 101;
+    for (let k = 0; k < n; k++) {
+      st.rng.traits.fix = k / (n - 1) - (k === n - 1 ? 1e-9 : 0);
+      sum += fieldsAt(T.biasOf(st, skill));
+    }
+    delete st.rng.traits.fix;
+    assert.ok(Math.abs(sum / n - unbiased) <= 0.02 * unbiased, `skill ${skill}: mean ${(sum / n).toFixed(3)} against ${unbiased}`);
+  }
+}
+console.log('traits ok: five stand-in traits drawn at birth and at the start, neutral on average; skill as head; horizon and bias at the review, which draws nothing, worked by hand on two seasons\' first days; a new head\'s targets at once; the fields\' bias before the cap');

@@ -280,8 +280,7 @@ function rowPlace(a, at) {
 const Carts = VB['sim/carts'],
   CART_S = ART_S * 1.3; // a cart is drawn a little over the scale of the farm art, to read at the zoom the yard is seen from
 function placePawns() {
-  const n = st.agents.length,
-    R = VB['sim/rules'];
+  const n = st.agents.length;
   if (drawX.length < n) {
     const cap = Math.max(64, n * 2);
     drawX = new Float64Array(cap);
@@ -289,18 +288,10 @@ function placePawns() {
     drawStride = new Float64Array(cap);
     drawFacing = new Float64Array(cap);
   }
-  const between = drawingBetween(),
-    s = between ? stepShare : 1,
-    at = between ? st.tick - 1 + stepShare : st.tick,
-    far = ((R.SPEED * w.HW) / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6,
-    far2 = far * far;
+  const at = st.tick + stepShare; // drawn along each walker's leg, ahead of the simulation by less than a step (VB-474)
   for (let i = 0; i < n; i++) {
     const a = st.agents[i],
-      [ax, ay, af, as] = Sim.poseOf(st, a); // a walker's place from its leg (VB-473)
-    let x = ax,
-      y = ay,
-      stride = as;
-    drawFacing[i] = af;
+      [x, y, face, stride] = Sim.poseOf(st, a, at); // a walker's place from its leg (VB-473)
     const rows = rowPlace(a, at);
     if (rows) {
       drawX[i] = rows[0];
@@ -309,17 +300,9 @@ function placePawns() {
       drawStride[i] = stride + rows[3] / 3.4;
       continue;
     }
-    if (s < 1 && i < prevN && !prevIn[i] && !a.inside) {
-      const dx = ax - prevX[i],
-        dy = ay - prevY[i];
-      if (dx * dx + dy * dy <= far2) {
-        x = prevX[i] + dx * s;
-        y = prevY[i] + dy * s;
-        stride = prevStride[i] + (stride - prevStride[i]) * s;
-      }
-    }
     drawX[i] = x;
     drawY[i] = y;
+    drawFacing[i] = face;
     drawStride[i] = stride;
   }
 }
@@ -330,7 +313,7 @@ let tAcc = 0;
 let uiClock = null,
   uiClockSt = null;
 function updateClock() {
-  const drawn = drawingBetween() ? st.tick - 1 + stepShare : st.tick;
+  const drawn = st.tick + stepShare;
   const step = Math.floor((drawn * 6) / 5 + 1e-9); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
   if (step === uiClock && st === uiClockSt) return;
   uiClock = step;

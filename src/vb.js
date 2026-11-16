@@ -14,6 +14,9 @@ VB.COUNTERS = {
   reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
+  talkTurn:
+    'Pawns asked by the talk round at their talk turn, every SOCIAL.talk.every waking hours (sim/relations, VB-521)',
+  talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',
   walkStep: 'Legs a step takes from the due-queue as they end: walks and waits (sim/agents stepAgents; VB-473)',
   walkAwake:
     "Pawn records looked at by the working day's start, for those waiting for it, once a day (sim/agents dayStart; VB-473)",

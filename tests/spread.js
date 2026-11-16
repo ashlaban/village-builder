@@ -91,8 +91,9 @@ const at = (c) => Math.round((c.t - mday - 12) * TICKS); // the step from noon i
 const met = calls.filter((c) => c.kind === 'meeting'), years = calls.filter((c) => c.kind === 'cultureYear'), lands = calls.filter((c) => c.kind === 'land');
 const mvillages = m.cenv.settlements.length;
 assert(m.villages.length === mvillages && mvillages <= 60, 'a village a step');
-assert.deepStrictEqual(met.map((c) => c.s), [...Array(mvillages).keys()], 'each village meets once, in the order of id');
-met.forEach((c, k) => assert.strictEqual(at(c), k, `village ${k} meets on step ${k} from noon (at ${at(c)})`));
+const myear = VB['sim/rules'].cal(mday + 12).year, first = myear % mvillages; // the order turns by the year (VB-280)
+assert.deepStrictEqual(met.map((c) => c.s), [...Array(mvillages).keys()].map((j) => (j + first) % mvillages), 'each village meets once, in the order of id from year mod villages, wrapping');
+met.forEach((c, j) => assert.strictEqual(at(c), j, `the ${j}th village (${c.s}) meets on step ${j} from noon (at ${at(c)})`));
 assert.deepStrictEqual(years.map((c) => c.c), m.cenv.cultures.map((c) => c.id), "each culture's year once");
 assert(years.every((c) => at(c) === 60), "the cultures' years at 18:00");
 assert.strictEqual(lands.length, 1, 'the land meeting once');
