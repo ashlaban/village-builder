@@ -896,14 +896,14 @@ VB['sim/agents'] = (() => {
     if (!a.path || !l || l.kind !== 'walk' || !l.h.length) return 0;
     return Math.max(0, l.h[l.h.length - 1] - (workTick(st) - l.t) / TICKS);
   }
-  // The page's view of a pawn for the step now (until it draws from legs, VB-474): [x, y, face, stride], a walker's worked out from its
-  // leg, read only.
-  function poseOf(st, a) {
+  // The page's view of a pawn at time `at` (a tick, fractional: the page draws between steps, VB-474; the step now if absent): [x, y,
+  // face, stride], a walker's worked out from its leg, ahead of the simulation by less than a step and never past the leg's due; read only.
+  function poseOf(st, a, at = workTick(st)) {
     const l = a.leg;
     if (!a.path || !l || l.kind !== 'walk') return [a.x, a.y, a.face, a.stride || 0];
-    const e = Math.max(0, workTick(st) - l.t) / TICKS,
+    const e = Math.max(0, Math.min(at, l.due) - l.t) / TICKS,
       [i, x, y] = along(a, l, e);
-    return poseAt(a, l, e, i, x, y);
+    return poseAt(a, l, Math.min(e, l.h.length ? l.h[l.h.length - 1] : 0), i, x, y);
   }
   // ---- the step (VB-205, VB-473): the legs due end, and nothing else is touched ----
   // The working day's start (WORK[0]) is one event for those waiting for it: the free pawns with no leg look for work, or wait for their
