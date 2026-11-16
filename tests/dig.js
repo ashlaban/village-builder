@@ -2,29 +2,29 @@
 // (sim/stores dug, reason 'dig'); only up to 4 loads of each; the nearest tile within 12 walking steps of the household's own land, its
 // village's outland or wilderness, searched when the want opens and kept; an endless tile stays endless; bog iron regains a load a year up
 // to its first amount, clay nothing; a save keeps the tiles and the stores, and one without them loads with none dug.
-// Populous at seed 42, small map, a year: households dig and the state keeps its invariants.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Geo = VB['gen/geology'], D = VB['sim/dig'], Stores = VB['sim/stores'];
+// Populous at seed 8 on the small island of tests/lib/probe.js (VB-855), half a year: households dig and the state keeps its invariants.
+const VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js'), Geo = VB['gen/geology'], D = VB['sim/dig'], Stores = VB['sim/stores'];
 const { KINDS, ASK } = VB['sim/kinds'], { DAY, YEAR, MATCH } = VB['sim/rules'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DIG FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed, { cols: 180, rows: 130 }); let r; while (!(r = it.next()).done); return r.value; };
+const world = (seed) => island(seed), SEED = 8; // at 42 the small island has no bog iron (VB-855)
 const { DIG } = D, { DEPOSIT, ENDLESS } = Geo;
 
 // --- the kind
 const K = KINDS.dig;
 check(K === D.KIND && K.type === 'upkeep' && K.hands === 1 && K.hours === 3 && K.carry && K.to, 'dig: upkeep, 1 hand, 3 hours, carried home');
-check(K.urgency(null, null, null, MATCH.urgency) === MATCH.urgency.repair, 'dig weighs as the house\'s upkeep: done in the slack');
+check(K.urgency(null, { good: 'clay' }, null, MATCH.urgency) === MATCH.urgency.repair, 'dig weighs as the house\'s upkeep: done in the slack');
 check(ASK.farmAfterPlans.some((e) => e[0] === 'dig'), 'dig is asked at the farm');
 check(DIG.reach === 12 && DIG.stock === 4 && DIG.regrow === 1, 'reach 12, stock 4, regrowth 1 a year');
 
-const w = world(42), st = Sim.seed(w, 42, 'populous');
+const w = world(SEED), st = Sim.seed(w, SEED, 'populous');
 const live = st.liveHouseholds.map((id) => st.households[id]);
 check(live.every((hh) => hh.clay === 0 && hh.bogOre === 0), 'a new household holds no clay and no bog iron ore');
 // a household with clay in reach, and one with bog iron
 const posts = (hh) => { const f = st.farmsteads[hh.farmstead], out = []; K.available(st, hh, f, null, (key, site, extra) => out.push({ key, site, ...extra })); return out; };
 const withGood = (good) => live.find((hh) => { hh.digAt = undefined; const p = posts(hh); return p.length && p[0].good === good; });
 const hc = withGood('clay');
-check(!!hc, 'a household at seed 42 has clay in reach');
+check(!!hc, `a household at seed ${SEED} has clay in reach`);
 if (hc) {
   const f = st.farmsteads[hc.farmstead], [p] = posts(hc), t = p.site, before = w.depositLeft[t];
   check(w.deposit[t] === DEPOSIT.CLAY && D.mayDig(st, hc, f, t), 'the job is on a clay tile the household may dig');
@@ -67,7 +67,7 @@ if (hc) {
 }
 // bog iron grows back a load a year up to its first amount
 const bog = w.deposit.findIndex((k, i) => k === DEPOSIT.BOG_IRON && w.depositLeft[i] < ENDLESS);
-check(bog >= 0, 'seed 42 has bog iron');
+check(bog >= 0, `seed ${SEED} has bog iron`);
 if (bog >= 0) {
   const n0 = w.depositLeft[bog];
   for (let k = 0; k < 3; k++) D.digLoad(st, bog);
@@ -93,27 +93,27 @@ if (bog >= 0) {
 // --- a save keeps the tiles and the stores; one without them loads with none dug
 if (hc && bog >= 0) {
   const data = JSON.parse(JSON.stringify(Sim.save(st)));
-  const st2 = Sim.load(world(42), data), w2 = st2.w;
+  const st2 = Sim.load(world(SEED), data), w2 = st2.w;
   check(['depositLeft', 'depositFull', 'dugDay'].every((k) => w2[k] && w2[k].every((x, i) => x === w[k][i])), 'a save keeps the dug tiles');
   check(st2.households[hc.id].clay === hc.clay && D.left(st2, bog) === D.left(st, bog), 'and the stores and the bog iron grown back');
   const old = JSON.parse(JSON.stringify(data));
   for (const k of ['depositLeft', 'depositFull', 'dugDay']) delete old.world[k];
   for (const hh of old.state.households) { delete hh.clay; delete hh.bogOre; }
-  const fresh = world(42), st3 = Sim.load(world(42), old);
+  const fresh = world(SEED), st3 = Sim.load(world(SEED), old);
   check(!st3.w.dugDay && st3.w.depositLeft.every((x, i) => x === fresh.depositLeft[i]), 'an older save: no tile dug');
   check(st3.households.every((hh) => hh.clay === 0 && hh.bogOre === 0), 'an older save: no household holds dug loads');
 }
 
 // --- a year of populous: households dig, nothing beyond the stock, the state keeps its invariants
 {
-  const s = Sim.seed(world(42), 42, 'populous');
-  Sim.advance(s, YEAR);
+  const s = Sim.seed(world(SEED), SEED, 'populous');
+  Sim.advance(s, YEAR / 2);
   const hhs = s.liveHouseholds.map((id) => s.households[id]), diggers = hhs.filter((hh) => hh.clay + hh.bogOre > 0);
-  check(diggers.length > 0, 'in a year some household digs');
+  check(diggers.length > 0, 'in half a year some household digs');
   check(hhs.every((hh) => hh.clay <= DIG.stock && hh.bogOre <= DIG.stock), 'no household holds more than the stock');
   const bad = checkState(s);
-  check(bad.length === 0, 'invariants after a year: ' + bad.slice(0, 3).join('; '));
-  console.log(`dig ok: ${diggers.length} of ${hhs.length} households dug in a year, ${hhs.reduce((n, hh) => n + hh.clay, 0)} loads of clay, `
+  check(bad.length === 0, 'invariants after half a year: ' + bad.slice(0, 3).join('; '));
+  console.log(`dig ok: ${diggers.length} of ${hhs.length} households dug in half a year, ${hhs.reduce((n, hh) => n + hh.clay, 0)} loads of clay, `
     + `${hhs.reduce((n, hh) => n + hh.bogOre, 0)} of bog iron ore`);
 }
 if (failed) { console.error(`dig: ${failed} failed`); process.exit(1); }

@@ -111,6 +111,7 @@ const INTEGRATION = [
   ['node', 'tests/oxen.js'],
   ['node', 'tests/stakes.js'],
   ['node', 'tests/head.js'],
+  ['node', 'tests/made-targets.js'],
   ['node', 'tests/traits.js'],
   ['node', 'tests/aims.js'],
   ['node', 'tests/traitacts.js'], // VB-520: what each trait does, chemistry, the quarrel
@@ -143,6 +144,18 @@ const INTEGRATION = [
   ['node', 'tests/offers.js'],
   ['node', 'tests/exchange.js'],
   ['node', 'tests/occasions.js'],
+  // VB-855: the farming year, from new fields to digging, on small generated islands and constructed states
+  ['node', 'tests/newfields.js'],
+  ['node', 'tests/fieldswanted.js'],
+  ['node', 'tests/weeding.js'],
+  ['node', 'tests/soil.js'],
+  ['node', 'tests/hay.js'],
+  ['node', 'tests/byre.js'],
+  ['node', 'tests/herds.js'],
+  ['node', 'tests/herding.js'],
+  ['node', 'tests/drying.js'],
+  ['node', 'tests/forage.js'],
+  ['node', 'tests/dig.js'],
   ['node', 'tests/page.js'], // VB-409: the page in jsdom on a 36 by 26 island, a few days and each panel once; the tiny map's smoke at night
 ];
 const EXTENDED = [
@@ -166,7 +179,6 @@ const EXTENDED = [
   ['node', 'tests/stones.js'],
   ['node', 'tests/record.js'],
   ['node', 'tests/layout.js'],
-  ['node', 'tests/dig.js'],
   ['node', 'tests/commands.js'],
   ['node', 'tests/review-tools.js'],
   ['node', 'tests/regress.js'],
@@ -174,21 +186,12 @@ const EXTENDED = [
   ['node', 'tests/names.js'],
   ['node', 'tests/plots.js'],
   ['node', 'tests/help.js'],
-  ['node', 'tests/newfields.js'],
-  ['node', 'tests/fieldswanted.js'],
   ['node', 'tests/manual.js'],
-  ['node', 'tests/herds.js'],
-  ['node', 'tests/herding.js'],
   ['node', 'tests/bench.js'],
   ['node', '--expose-gc', 'tests/registry.js'],
   ['node', 'tests/geology.js'],
-  ['node', 'tests/hay.js'],
-  ['node', 'tests/weeding.js'],
-  ['node', 'tests/soil.js'],
+  ['node', 'tests/soil.js', '--extended'], // founders on the small map ten years: the soil of farms with and without cattle (VB-855)
   ['node', 'tests/notable.js'],
-  ['node', 'tests/drying.js'],
-  ['node', 'tests/byre.js'],
-  ['node', 'tests/forage.js'],
   // The page in real Chromium, one browser at a time.
   ['node', 'tests/browser.js'],
   ['node', 'tests/browser-saves.js'],
