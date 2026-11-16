@@ -4,7 +4,7 @@
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
-  const { BUILD, ECON, SEASON_DAYS, SPEED, houseCondition } = VB['sim/rules'];
+  const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, houseCondition } = VB['sim/rules'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
   const { walkable, findRoute } = VB['sim/routes'];
@@ -251,6 +251,22 @@ VB['sim/building'] = (() => {
         );
       },
       available: timberWork,
+    },
+    // Timber left lying at a boat's shore when its plan was given up (sim/plans' leftWood, VB-645): never posted, only fetched (sim/lying's
+    // fetch kind), home to the woodpile as firewood.
+    leftTimber: {
+      verb: 'Taking up timber',
+      go: 'Going for timber left lying',
+      name: 'Fetch timber left lying',
+      hours: 0.5,
+      label: 'Timber',
+      back: 'Carrying timber home from where it was left',
+      type: 'wood',
+      carry: 'logs',
+      to: 'woodpile',
+      load: () => 0,
+      deliver: (st, j, hh, f, a) =>
+        Stores.put(st, hh, 'wood', ECON.woodPerTrip * Math.max(1, Math.round(a.load / TRAVEL.load)), 'timber'),
     },
     pick: {
       verb: 'Picking stones',

@@ -242,36 +242,40 @@ function showPawn(id) {
   showRelations(id);
   renderPlay(id);
 }
-// A pawn's levels, the same wherever a pawn's state is shown (its card, the played pawn's sheet): health and hunger on the one meter,
-// its household's cold, and its prestige. Prestige is a sum with no upper bound, so it is a number and no meter, its parts in the title
-// (the exception VB-665 is to settle).
+// A pawn's levels, the same wherever a pawn's state is shown (its card, the played pawn's sheet): its mood on the one meter, the
+// modifiers in force under it (VB-062); health and hunger on the meter, its household's cold, and its prestige. Prestige is a sum with
+// no upper bound, so it is a number and no meter, its parts in the title (the exception VB-665 is to settle).
 function pawnStats(id) {
   const p = st.pawns[id],
     hh = p.household !== null ? st.households[p.household] : null,
     hunger = Math.round(p.hunger * 100),
-    health = Math.round(p.health);
-  return stats([
-    { icon: 'health', label: 'Health', value: health, tone: health < 50 ? 'bad' : '', meter: { value: health } },
-    {
-      icon: 'hunger',
-      label: 'Hunger',
-      value: hunger,
-      tone: hunger >= 50 ? 'bad' : hunger >= 10 ? 'warn' : '',
-      meter: { value: hunger },
-    },
-    hh && hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', wide: true } : null,
-    p.age >= 16
-      ? {
-          icon: 'prestige',
-          label: 'Prestige',
-          value: p.prestige.toFixed(2),
-          wide: true,
-          title: `Prestige: ${Sim.prestigeParts(st, p)
-            .map(([l, x]) => `${l.toLowerCase()} ${x.toFixed(2)}`)
-            .join(', ')}`,
-        }
-      : null,
-  ]);
+    health = Math.round(p.health),
+    mood = Sim.moodOf(st, id);
+  return (
+    (mood ? stats([moodStat(mood)]) + moodModsHTML(mood) : '') +
+    stats([
+      { icon: 'health', label: 'Health', value: health, tone: health < 50 ? 'bad' : '', meter: { value: health } },
+      {
+        icon: 'hunger',
+        label: 'Hunger',
+        value: hunger,
+        tone: hunger >= 50 ? 'bad' : hunger >= 10 ? 'warn' : '',
+        meter: { value: hunger },
+      },
+      hh && hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', wide: true } : null,
+      p.age >= 16
+        ? {
+            icon: 'prestige',
+            label: 'Prestige',
+            value: p.prestige.toFixed(2),
+            wide: true,
+            title: `Prestige: ${Sim.prestigeParts(st, p)
+              .map(([l, x]) => `${l.toLowerCase()} ${x.toFixed(2)}`)
+              .join(', ')}`,
+          }
+        : null,
+    ])
+  );
 }
 // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
 let relHTML = '';

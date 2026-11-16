@@ -29,6 +29,7 @@ const FAST = [
   ['node', 'tests/same-tool.js'],
   ['node', 'tests/wood.js'],
   ['node', 'tests/cold.js'],
+  ['node', 'tests/mood.js'],
   ['node', 'tests/timber.js'],
   ['node', 'tests/stone.js'],
   ['node', 'tests/crops.js'],
@@ -55,6 +56,7 @@ const FAST = [
   ['node', 'tests/continuity.js'],
   ['node', 'tests/legs.js'],
   ['node', 'tests/journeys.js'],
+  ['node', 'tests/fetch.js'], // a gift fetched where it lies, a load a trip (VB-461)
   ['node', 'tests/rng.js'],
   ['node', 'tests/cowwant.js'],
   ['node', 'tests/quern.js'], // the hand quern (VB-009): grinding, the pot's flour, wear and hewing, on the probe's small state
@@ -119,6 +121,7 @@ const INTEGRATION = [
   ['node', 'tests/ale.js'],
   ['node', 'tests/attention.js'],
   ['node', 'tests/setdown.js'],
+  ['node', 'tests/leftwood.js'], // VB-645: a dropped boat's timber lies at its shore
   ['node', 'tests/start.js'],
   ['node', 'tests/gossip.js'],
   ['node', 'tests/health.js'],

@@ -6,7 +6,7 @@
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
-  'plans', 'calendar', 'reach', 'waiting'];
+  'plans', 'calendar', 'reach', 'waiting', 'ground'];
 const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
@@ -19,6 +19,8 @@ const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--
   --load FILE       go on from a save, with its scenario, seed and map; --years counts on from the save's year
   --report reach    the table of walking hours between villages (tools/reach.js --help)
   --report waiting  who waits to marry and why, at the moving round's day, by 20 years (tools/waiting.js --help)
+  --report ground   by village, each rock and deposit in reach of the green, and the summary by kind (tools/ground.js --help):
+                    --reach 12,30 (walking steps), --seeds 3,7,11 (more maps, same scenario, map and years)
   --report calendar prints the clock's table (sim/clock CALENDAR, VB-241) in the order it runs, and runs nothing`;
 if (process.argv.includes('--help') || process.argv.includes('-h')) { console.log(USAGE); process.exit(0); }
 if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-241)
@@ -106,6 +108,10 @@ function plansOf(h) {
 }
 const tables = {
   reach: () => require('./reach.js')(st), // VB-286
+  ground: () => { // VB-735
+    const G2 = require('./ground.js'), more = G2.others(VB, opt('seeds', '').split(',').filter(Boolean).map(Number).filter((s) => s !== seedNum), { scenario, size: SIZES[map], years: last });
+    return G2.report(VB, [{ st, seed: seedNum }, ...more], opt('reach', '12,30').split(',').map(Number));
+  },
   counts: () => Object.keys(VB.COUNTERS).map((counter) => ({ counter, total: VB.count[counter],
     perDay: (st.t > countsFrom) ? VB.count[counter] / ((st.t - countsFrom) / Sim.DAY) : 0,
     perLivingPawnDay: pawnDays ? VB.count[counter] / pawnDays : 0 })),
@@ -224,6 +230,7 @@ if (out !== null && report === 'idle' && !json) {
   console.log('mean unclaimed jobs at end of work day:'); console.table(out.unclaimedAtEndOfDay);
 } else if (out !== null && report === 'hours' && !json) hours.print(out);
 else if (out !== null && report === 'waiting' && !json) waiting.print(out);
+else if (out !== null && report === 'ground' && !json) require('./ground.js').print(out);
 else if (out !== null && report === 'perf' && !json) {
   console.log(`${out.days} game days in ${out.totalMs} ms (${out.msPerDay} ms/day); time per system, exclusive:`); console.table(out.systems);
 } else if (out !== null && report === 'hunger' && !json) {

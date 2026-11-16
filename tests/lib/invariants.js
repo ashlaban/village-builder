@@ -587,6 +587,7 @@ function checkState(st) {
         if (p.leans[d] >= C.NOPT[d] || top !== most) { bad.push(`pawns[${p.id}]: leans ${p.leans[d]} on custom ${d}, not its strongest`); break; }
       }
     }
+    if (p.mods !== undefined) checkMods(st, p, bad);
     if (p.rel) checkRel(st, p, bad);
     if (p.ties) checkTies(st, p, bad);
     if (p.goodwill) checkGoodwill(st, p, bad);
@@ -905,6 +906,9 @@ function checkState(st) {
   for (const a of st.agents) if (a.load && !(a.load > 0 && (a.phase === 'back' || (a.phase === 'work' && a.job && VB['sim/kinds'].KINDS[a.job.kind].stack)))) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
   for (const h of st.households) if (h.threshed !== undefined &&
     !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
+  // the hour of a pawn's last talk with a friend (agent.talk.friendAt, VB-062): a finite hour, no later than a talk begun now can show (two
+  // talks in one hour may be shown in either order, so it may follow the latest talk's own hour)
+  for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= st.t + VB['sim/rules'].SOCIAL.talk.bubbleHours + 1e-9)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, after now (${st.t}) and a talk's bubble`);
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
   for (const a of st.agents) {
@@ -998,14 +1002,26 @@ function checkState(st) {
       if (!p || !p.alive || seen.has(j.pawn)) bad.push(`${at}: pawn ${j.pawn} dead, missing or on two journeys`);
       seen.add(j.pawn);
       const bearing = j.why === 'carry' && !j.back; // VB-291: a carrier bound for the receiver's house, with his gift
-      if (bearing ? !j.gift || !(j.gift.n > 0) || st.farmsteads[st.households[j.gift.to].farmstead].house !== j.to : (j.gift || false) && j.gift !== null) bad.push(`${at}: a gift ${JSON.stringify(j.gift)} on a journey ${j.why}, back ${j.back}`);
-      if (!bearing && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
-      if ((j.why !== 'move' && j.why !== 'carry') || !(j.food >= 0) || 'due' in j) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
+      // VB-461: a fetch with its gift is its pawn's household's; the grain in transit is on the pawn, bound for that house, and none is on
+      // him on his way out to the place its first stop names; each stop holds grain set aside, by crop
+      const g = j.why === 'fetch' && j.gift ? j.gift : null;
+      if (g) {
+        const house = st.farmsteads[st.households[g.to].farmstead].house, sum = (o) => Object.values(o || {}).reduce((x, y) => x + y, 0);
+        if (!p || p.household !== g.to) bad.push(`${at}: a fetch for household ${g.to} by pawn ${j.pawn} of ${p && p.household}`);
+        if (!(g.held >= 0) || Math.abs(sum(g.parts) - g.held) > 1e-6 * Math.max(1, g.held) || !Array.isArray(g.stops)) bad.push(`${at}: a fetch holding ${g.held}, parts ${JSON.stringify(g.parts)}`);
+        else if (g.held > 0 ? j.to !== house : !g.stops.length || j.to !== g.stops[0].at) bad.push(`${at}: a fetch holding ${g.held} bound for ${j.to}`);
+        for (const s of g.stops || []) if (!(s.left > 0) || Math.abs(sum(s.parts) - s.left) > 1e-6 * Math.max(1, s.left) || (s.from === null) === (s.village === null)) bad.push(`${at}: a stop ${JSON.stringify(s)}`);
+      } else if (bearing ? !j.gift || !(j.gift.n > 0) || st.farmsteads[st.households[j.gift.to].farmstead].house !== j.to : (j.gift || false) && j.gift !== null) bad.push(`${at}: a gift ${JSON.stringify(j.gift)} on a journey ${j.why}, back ${j.back}`);
+      if (!bearing && !g && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
+      if (!['move', 'carry', 'fetch'].includes(j.why) || !(j.food >= 0) || 'due' in j) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
       const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
       if (ph !== 'journey' && ph !== 'road') bad.push(`${at}: its pawn is in phase ${ph}`);
     });
     for (const a of st.agents) if ((a.phase === 'journey' || a.phase === 'road') && !seen.has(a.id)) bad.push(`agent ${a.id}: phase ${a.phase} and on no journey`);
   }
+  // the hard rule (VB-461): no gift's grain changes place at once between two farmsteads, or from a village store to a household
+  const VBc = globalThis.VB && globalThis.VB.count;
+  if (VBc && VBc.giftUncarried) bad.push(`gifts: ${VBc.giftUncarried} grain settled at once between two places`);
   // the occasions (VB-126): sorted by due, ids below st.occasionSeq and unique, due at most at the end, which is after the start (not
   // after now: a test may set the clock forward, and the next step ends it); the asked are in order of setting out, each once, and none of them has set out; a pawn at an occasion stands at one
   // that is in the queue and lists it among those who came.
@@ -1178,6 +1194,21 @@ function checkRel(st, p, bad) {
       if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${cap}`);
       if (!(m.t <= st.t)) bad.push(`${where}: ${k} remembered at ${m.t}, after now (${st.t})`);
     }
+  }
+}
+// A pawn's event modifiers (pawn.mods, sim/mood, VB-062): a list of {key, until}, each key one of sim/mood's event modifiers and at
+// most once, until a finite game hour no further ahead than its modifier lasts.
+function checkMods(st, p, bad) {
+  const { MOOD, DAY } = VB['sim/rules'], { EVENT } = VB['sim/mood'];
+  if (!Array.isArray(p.mods)) return void bad.push(`pawns[${p.id}].mods: ${JSON.stringify(p.mods)}, not a list`);
+  const seen = new Set();
+  for (const m of p.mods) {
+    const where = `pawns[${p.id}].mods<${m && m.key}>`;
+    if (!m || !EVENT.includes(m.key)) { bad.push(`${where}: unknown modifier`); continue; }
+    if (seen.has(m.key)) bad.push(`${where}: twice`);
+    seen.add(m.key);
+    if (!Number.isFinite(m.until)) bad.push(`${where}: until is ${m.until}`);
+    else if (m.until > st.t + MOOD[m.key].days * DAY + 1e-9) bad.push(`${where}: until ${m.until}, past ${MOOD[m.key].days} days from now`);
   }
 }
 module.exports = { checkState };

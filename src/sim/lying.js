@@ -30,6 +30,25 @@ VB['sim/lying'] = (() => {
     st.lying.push(l);
     return l;
   }
+  // Timber carried to a building step at `tile` whose plan is given up (sim/plans' leftWood) is put down where it lies, `n` in a.load's units:
+  // a load of the household's, fetched home as firewood (the kind leftTimber, sim/building) or rotting at the frost.
+  function leave(st, kind, n, tile, owner) {
+    if (!st.lying) st.lying = [];
+    st.lyingSeq = (st.lyingSeq || 0) + 1;
+    const l = {
+      id: st.lyingSeq,
+      kind,
+      n,
+      tile,
+      x: st.w.hx[tile] + 7,
+      y: st.w.hy[tile] + 16,
+      t: st.t,
+      owner: { ...owner },
+      of: { src: tile },
+    };
+    st.lying.push(l);
+    return l;
+  }
   const byId = (st, id) => (st.lying ? st.lying.find((l) => l.id === id) || null : null);
   const drop = (st, l) => {
     st.lying.splice(st.lying.indexOf(l), 1);
@@ -102,7 +121,16 @@ VB['sim/lying'] = (() => {
     for (const l of st.lying) {
       const o = l.owner,
         hh = o.type === 'household' ? st.households[o.id] : null;
-      const what = l.kind === 'haul' ? 'sheaves' : l.kind === 'hay' ? 'hay' : l.kind === 'wood' ? 'firewood' : 'stone';
+      const what =
+        l.kind === 'haul'
+          ? 'sheaves'
+          : l.kind === 'hay'
+            ? 'hay'
+            : l.kind === 'wood'
+              ? 'firewood'
+              : l.kind === 'leftTimber'
+                ? 'timber'
+                : 'stone';
       if (hh && !hh.dissolved)
         log(st, `A load of ${what} left lying for ${st.farmsteads[hh.farmstead].name} was lost to the frost.`, {
           kind: 'frost',
@@ -124,5 +152,5 @@ VB['sim/lying'] = (() => {
     }
     delete st.lying;
   }
-  return { lay, take, left, fetchKey, fetchKind, fetchWork, frost, LIFT };
+  return { lay, leave, take, left, fetchKey, fetchKind, fetchWork, frost, LIFT };
 })();

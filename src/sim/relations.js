@@ -272,12 +272,13 @@ VB['sim/relations'] = (() => {
         : 0;
   // a's opinion of b may have moved: its tie grew (a talk, a job done together, hours at home, the season's kin floor), a memory came, or
   // the season's pass. The band is checked for this pair only; reaching close friends or enemies is a life event of a. A line crossed
-  // lazily, as a tie or a memory fades, is told when the pair is next touched, dated then.
+  // lazily, as a tie or a memory fades, is told when the pair is next touched, dated then. Returns a's opinion of b as read.
   function touch(st, a, b) {
     const bands = st.pawns[a].bands,
       was = bands.get(b) || 0,
-      now = bandOf(was, opinionOf(st, a, b));
-    if (now === was) return;
+      o = opinionOf(st, a, b),
+      now = bandOf(was, o);
+    if (now === was) return o;
     if (now) bands.set(b, now);
     else bands.delete(b);
     if (now)
@@ -288,6 +289,7 @@ VB['sim/relations'] = (() => {
         `${now > 0 ? 'Became close friends with' : 'Became the enemy of'} ` + fullName(st.pawns[b]),
         { other: b, village: settlementIdOf(st, st.pawns[a]) },
       );
+    return o;
   }
   // a remembers an event with b: the memory of its kind gains v, up to its cap, and fades from now. A breach (TRAITS.breach) is felt by
   // a's honour, its v and cap 0.5 to 1.5 times (TRAITS.acts.honour.breach; VB-520).
@@ -458,7 +460,9 @@ VB['sim/relations'] = (() => {
   }
   // A talk is a chat, a good talk or cross words, by the pair's compatibility, for its bubble; it leaves no memory (VB-240): their tie
   // grows, which shows their compatibility, and their bands are checked.
-  // @state agent.talk: {with (pawn id), kind (chat, goodTalk or crossWords), at, until (game hours)} or null; the latest talk, for the bubble
+  // @state agent.talk: {with (pawn id), kind (chat, goodTalk or crossWords), at, until (game hours), friendAt (the hour of its last talk
+  //   with one it held at SOCIAL.friend or above, as the talk's band check read it; absent before one)} or null; the latest talk, for the
+  //   bubble, and talked with a friend for its mood (sim/mood, VB-062)
   function talk(st, a, b) {
     const i = a.id,
       j = b.id,
@@ -470,17 +474,21 @@ VB['sim/relations'] = (() => {
     const kind = x < 1 ? 'chat' : x < 1 + wg ? 'goodTalk' : 'crossWords';
     const at = st.t + rnd(st.rng.talk) * T.bubbleHours,
       until = at + T.bubbleHours;
-    grow(st, i, j, TIES.talk);
+    addTie(st, i, j, TIES.talk); // grow's, with the opinions its band checks read kept for the talk's friend (VB-062)
+    addTie(st, j, i, TIES.talk);
+    const oi = touch(st, i, j),
+      oj = touch(st, j, i);
     if (kind === 'crossWords') quarrelMaybe(st, i, j);
-    const show = (g, other) => {
+    const show = (g, other, o) => {
       const s = g.talk || (g.talk = {});
       s.with = other;
       s.kind = kind;
       s.at = at;
       s.until = until;
+      if (o >= SOCIAL.friend) s.friendAt = at;
     };
-    show(a, j);
-    show(b, i);
+    show(a, j, oi);
+    show(b, i, oj);
     // an idle pawn outdoors stops where it is until the talk is over
     const halt = (g) => issue(st, { actor: g.id, verb: 'haltForTalk', args: { until }, source: 'talk' });
     halt(a);
