@@ -76,11 +76,22 @@ function drawTeams(show) {
 // and a little behind it; which animal is the household's want (sim/exchange), the coat from the pawn. A pool, refilled each frame.
 function drawLed(show) {
   const used = new Set();
+  ledOut.clear();
   for (const a of st.agents) {
     if (!show || a.inside || a.carry !== 'cow' || a.phase !== 'back' || !a.job || !rigs[a.id].root.visible) continue;
     const plan = st.plans.households.get(st.pawns[a.id].household),
       kind = plan && plan.want && plan.want.kind ? plan.want.kind : 'cow';
     used.add(a.id);
+    // the animal is the first of its kind in the giver's herd, as sim/herds' giveAnimal takes it: until ledHome moves it, not drawn there too
+    const giver = plan && plan.want && plan.want.from !== null ? st.households[plan.want.from] : null;
+    if (giver)
+      for (const hd of Sim.herdsOf(st, giver)) {
+        const an = hd.head && hd.head.find((h) => h.kind === kind && !ledOut.has(h.id));
+        if (an) {
+          ledOut.add(an.id);
+          break;
+        }
+      }
     let e = ledDraw.get(a.id);
     if (!e) {
       const sp = new PIXI.Sprite(art.cow[0][1]);
@@ -233,7 +244,7 @@ function drawHerds(c, show) {
       cy = at >= 0 ? w.hy[at] : hr ? drawY[hr.id] + 3 : w.hy[hd.home];
     const on = show && !out && cx > x0 && cx < x1 && cy > y0 && cy < y1;
     for (const a of e.list) {
-      a.s.visible = on && !teamOut.has(a.id);
+      a.s.visible = on && !teamOut.has(a.id) && !ledOut.has(a.id);
       if (!a.s.visible) continue; // oxen at the plough are drawn with their driver
       const u = time * 0.06 + a.ph,
         x = cx + a.ox + Math.sin(u) * 4,
