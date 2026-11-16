@@ -104,6 +104,19 @@ function checkState(st) {
         if (hhH === null || hhH === undefined ? H !== null : !H || H.pawn !== hhH || !(H.since <= st.t) || !H.bias ||
           Object.keys(H.bias).join() !== 'wood,hay,seed,fields' || !Object.values(H.bias).every((x) => Math.abs(x - 1) <= most))
           bad.push(`plans: household ${id}'s head ${JSON.stringify(H)} is not its holder ${hhH}'s`);
+        // VB-255: the head's projects: its record absent, or its year, its project under way (a live project plan of the household's,
+        // with its kind) or none, and the times not after now
+        const Ai = plan.aim;
+        if (Ai !== undefined && !(Number.isInteger(Ai.year) && typeof Ai.surplus === 'boolean' && typeof Ai.again === 'boolean' &&
+          (Ai.project === null ? Ai.what === null && Ai.since === null && Ai.shortSince === null
+            : globalThis.VB['sim/aims'].KIND.includes(Ai.what) && Ai.since <= st.t && (Ai.shortSince === null || Ai.shortSince <= st.t) &&
+              (st.plans.projects.household.get(id) || []).some((q) => q.id === Ai.project))))
+          bad.push(`plans: household ${id}'s aim ${JSON.stringify(Ai)}`);
+        // VB-255: a household's plot for its heir is in the index of them, and, once cleared, goes to a pawn: one whose pawn cannot take it
+        // has passed to the village (no plot of a household stands with nobody to build it for)
+        for (const q of st.plans.projects.household.get(id) || [])
+          if (q.what === 'plot' && (!st.plans.projects.heirPlots.includes(q) || q.by !== id || (q.open >= 1 && q.to === null)))
+            bad.push(`plans: household ${id}'s plot ${q.id} (by ${q.by}, open ${q.open}, to ${q.to}) is not a plot for its heir under way`);
         // VB-390: a want of a cow names no giver, or another household of the same village (one dissolved since is let go at the next
         // review), a heifer or a cow, by kin or by a deal
         const W = plan.want, villageOf = (h) => st.farmsteads[st.households[h].farmstead].village;
@@ -160,6 +173,9 @@ function checkState(st) {
         bad.push(`plans: due-queue holds ${due.length} entries (${seen.size} distinct) for ${st.plans.households.size} households`);
       }
     }
+    for (const q of st.plans.projects.heirPlots || []) // the index of the households' plots holds only those (VB-255)
+      if (q.holder.type !== 'household' || q.what !== 'plot' || !(st.plans.projects.household.get(q.holder.id) || []).includes(q))
+        bad.push(`plans: plot ${q.id} in the index of the households' plots is no household's`);
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (typeof plan.dirty !== 'boolean' || plan.last === undefined) bad.push(`plans: ${plan.holder.type} ${plan.holder.id} lacks its review record`);
       // VB-466: a household's day, once allotted: the hour it was made, and for pawns of the state a list of task keys, each once
@@ -378,6 +394,10 @@ function checkState(st) {
       h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
     if (h.digAt !== undefined &&
       !['clay', 'bogOre', 'peat'].every((g) => h.digAt[g] === -1 || tileOk(h.digAt[g]))) bad.push(`households[${h.id}]: digAt ${JSON.stringify(h.digAt)}`);
+    // VB-255: the hours its hands worked this season and the last, counted as their work is reckoned (sim/agents)
+    const Wh = h.workHours;
+    if (Wh !== undefined && !(Array.isArray(Wh) && Wh.length === 3 && Number.isInteger(Wh[0]) && Wh[1] >= 0 && Wh[2] >= 0 &&
+      Number.isFinite(Wh[1]) && Number.isFinite(Wh[2]))) bad.push(`households[${h.id}]: workHours ${JSON.stringify(Wh)}`);
     // the catch waiting by the drying rack, and the household's boat: a shore tile next to water of the sea or a large lake (VB-300)
     if (h.rack !== undefined && !within(h.rack, 0, 1e6)) bad.push(`households[${h.id}]: rack is ${h.rack}`);
     const b = h.boat;
@@ -565,6 +585,9 @@ function checkState(st) {
   for (const f of st.farmsteads) {
     const want = f.household === null ? ['derelict', 'ruin'] : ['occupied'];
     if (!want.includes(f.state)) bad.push(`farmsteads[${f.id}]: state ${f.state} with household ${f.household}`);
+    // VB-255: the farm's barn, one at most, built at a time not after now
+    if (f.barn !== undefined && f.barn !== null && !(Object.keys(f.barn).join() === 'built' && f.barn.built <= st.t))
+      bad.push(`farmsteads[${f.id}]: barn ${JSON.stringify(f.barn)}`);
     // the house's condition (VB-306): 0..1 as last set, at a time not after now, and its tar not further than a barrel's years ahead
     if (f.condition !== undefined && !(f.condition >= 0 && f.condition <= 1)) bad.push(`farmsteads[${f.id}]: condition ${f.condition}`);
     if (f.condAt !== undefined && !(f.condAt <= st.t)) bad.push(`farmsteads[${f.id}]: condAt ${f.condAt} is in the future`);

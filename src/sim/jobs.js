@@ -40,6 +40,7 @@ VB['sim/jobs'] = (() => {
     if (changed && owner) changed.add(ownerKey(owner));
   };
   function post(st, key, kind, owner, site, extra) {
+    if (!Number.isInteger(site)) throw new Error(`a task ${key} posted on no tile (${site})`); // fails where it is made (VB-255)
     let j = st.jobs.get(key);
     if (!j) {
       j = { id: ++st.jobSeq, key, kind, owner, site, done: 0, claims: [], posted: st.t, ...extra };

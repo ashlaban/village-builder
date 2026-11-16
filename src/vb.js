@@ -81,6 +81,12 @@ VB.COUNTERS = {
     'Tiles within reach of a house searched for its hunting ground, when its hunting is asked for in autumn and winter (sim/deer; VB-139)',
   workdayHolders:
     'Holders of a village weighed by a household that stayed away from its work day, twice a year (sim/workdays; VB-120)',
+  plotWalk:
+    "Holders with a project plan under way walked for the households' plots for their heirs, as a village's plots are asked for " +
+    '(sim/expansion livePlots; VB-255)',
+  aimMenu:
+    "A head's menu of projects computed (its options' tiles and sites), for a holder with a surplus and no project, at most once a " +
+    'year and when a project ends (sim/aims; VB-255)',
   frontTile: 'Tiles of the forest front visited by spreadForest, once a game day (sim/spread; VB-091)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',

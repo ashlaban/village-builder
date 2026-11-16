@@ -154,6 +154,14 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   review; the bias multiplies the template's targets at the seasonal plan, and the head's horizon (by its skill) adds what it projects to the
   woodpile and the hay at each review (`targets.ahead`). Tests written against the template's targets make their heads plan by it
   (`tests/lib/heads.js`); `tests/traits.js` checks the rest.
+- A head's projects (VB-255): `src/sim/aims.js` (agency, after `sim/heirs`) hears `sim/plans`' `planReviewed` and `stepDone`; once a
+  year after the autumn count, and after a project of the head's ends, it reads the surplus (the plan's targets met, food over 1.5 years
+  of need and the seed, the hands idle over a third of the last season by `household.workHours`, which `sim/agents` counts as work is
+  reckoned), computes the menu (a field, a claim as a new meadow, a farm for the heir, a barn) and draws one from the stream `plans` by the
+  head's lean (`Traits.of`: ambition, generosity); it acts through the verbs `project`, `barn` and `heirFarm` (`sim/commands`; `heirFarm`
+  tells `sim/expansion` by the event `heirFarm`, which begins a plot held by the household, `plot.by`). It keeps `plan.aim` and drops its
+  project when the food has stood under the measure a season. The barn's stages are `sim/building`'s kinds, which set `farmstead.barn`;
+  `sim/hunger` and `sim/byre` halve the spoilage on a farm with one (`BUILD.barn.loss`). `tests/aims.js`.
   The player (VB-169) is one more source: `st.player` holds the inhabited pawn and its queue, written by `Sim.inhabit`, `uninhabit`, `queue`,
   `unqueue` and `setAuto`; `playerStep` issues the queue's head each step, and the planner's sites ask `commanded` and `unplanned` before they
   move a pawn (`tests/player.js`). The page plays it in `src/page/play.js` (VB-210, VB-221): the Actions sheet of the bottom bar, shown

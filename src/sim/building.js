@@ -9,6 +9,7 @@ VB['sim/building'] = (() => {
   const { bfs } = VB['sim/hex'];
   const { walkable, findRoute } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
+  const { emit } = VB['sim/events'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { building, livePlots, COTTAGE, boothJob, finishBoothStage } = VB['sim/expansion'];
   const { wantsStone } = VB['sim/quern'];
@@ -32,21 +33,19 @@ VB['sim/building'] = (() => {
       for (const plot of livePlots(st, v)) {
         // the site's timber is the walls step's (sim/expansion)
         if (building(plot))
-          ask(`timber:v${v.id}.${plot.plot}`, v, plot.steps[2], plot.open - 1, plot.steps[1].place, {
-            type: 'village',
-            id: v.id,
-          });
+          // the village's, or a household's for its heir (VB-255)
+          ask(`timber:v${v.id}.${plot.plot}`, v, plot.steps[2], plot.open - 1, plot.steps[1].place, plot.holder);
       }
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
         if (f.booth && f.household !== null)
           ask(`timber:f${f.id}`, v, f.booth, f.booth.i, f.house, { type: 'household', id: f.household });
         const s = f.household !== null && Projects.openOf(st, 'household', f.household); // a boat's timber, carried to its shore (VB-300)
-        if (s && (s.kind === 'boat' || s.kind === 'cart'))
+        if (s && (s.kind === 'boat' || s.kind === 'cart' || s.kind === 'barnwalls'))
           ask(`timber:b${f.id}`, v, s, 0, s.place, {
             type: 'household',
             id: f.household,
-          }); // and a cart's, to the house
+          }); // and a cart's and a barn's walls', to the house (VB-255)
       }
     }
   }
@@ -149,6 +148,44 @@ VB['sim/building'] = (() => {
     st.visualDirty = true;
     log(st, `The house at ${f.name} is raised onto a stone foundation.`, { kind: 'cottage', ...atFarm(f) });
   }
+  // ---- a barn (VB-255; BUILD.barn): a project of its household at the house, by the cottage's stages, its walls waiting for their timber ----
+  // @state farmstead.barn (VB-255): {built (game hours)} once the farm has a barn, a second store building on its block, drawn beside the
+  //   house; absent or null before. One a farm; it goes with the farm, not the household. Written only here, when its roof is on.
+  const BARN_STAGES = ['barnbase', 'barnwalls', 'barnroof'];
+  // The steps of a barn's project plan at house tile `house`: the three stages, the walls with the timber they wait for.
+  const barnSteps = (house) =>
+    BARN_STAGES.map((kind, i) => ({
+      kind,
+      place: house,
+      hours: BUILD.barn.hours[i],
+      ...(kind === 'barnwalls' ? { wood: 0, timber: BUILD.barn.timber } : {}),
+    }));
+  // A stage of the barn done: the next opens (sim/plans); with the roof on, the farm has its barn.
+  function barnStage(st, j) {
+    const hh = j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null, // the farm's, not the hand's who ends it
+      s = hh && Projects.openOf(st, 'household', hh.id),
+      f = j.farm;
+    if (!s || s.kind !== j.kind || s.place !== j.site) return;
+    if (j.kind === 'barnroof') {
+      f.barn = { built: st.t };
+      st.biomeDirty.add(f.house);
+      st.visualDirty = true;
+    }
+    emit(st, 'stepDone', { type: 'household', id: hh.id });
+  }
+  const barnStage_ = (verb, go, name, label, anim, i) => ({
+    verb,
+    go,
+    name,
+    label,
+    anim,
+    hours: BUILD.barn.hours[i],
+    hands: Infinity,
+    type: 'wood',
+    project: true,
+    spot: (st, a, j) => [st.w.hx[j.site] + 16 + a.ox * 0.4, st.w.hy[j.site] + 2 + a.oy * 0.3],
+    done: barnStage,
+  });
   // The job kinds of building (sim/kinds takes them in). The cottage's stages: a plot's are finished by sim/expansion (j.plot), a booth's
   // (j.booth, settlers) here; a plot's are posted by sim/kinds' plotWork.
   const stage = (verb, go, name, label, anim, hours) => ({
@@ -176,6 +213,16 @@ VB['sim/building'] = (() => {
     ),
     walls: stage('Raising the log walls', 'Going to raise the walls', 'Raise the walls', 'Walls', 'chop', 60),
     roof: stage('Laying the turf roof', 'Going to lay the roof', 'Lay the roof', 'Roof', 'mallet', 30),
+    barnbase: barnStage_(
+      "Laying the barn's sill stones",
+      'Going to build the barn',
+      "Lay the barn's sills",
+      'Barn',
+      'mallet',
+      0,
+    ),
+    barnwalls: barnStage_("Raising the barn's walls", 'Going to build the barn', 'Raise the barn', 'Barn', 'chop', 1),
+    barnroof: barnStage_('Roofing the barn', 'Going to build the barn', 'Roof the barn', 'Barn', 'mallet', 2),
     timber: {
       verb: 'Felling timber',
       go: 'Heading to the woods for timber',
@@ -272,5 +319,5 @@ VB['sim/building'] = (() => {
     plot.steps[2].wood = 0;
     return left;
   }
-  return { KINDS, boothWork, timberWork, shareWood, stoneWork, buildStep, stoneSource };
+  return { KINDS, boothWork, timberWork, shareWood, stoneWork, buildStep, stoneSource, barnSteps };
 })();

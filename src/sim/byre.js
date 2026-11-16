@@ -2,7 +2,7 @@
 VB['sim/byre'] = (() => {
   const Stores = VB['sim/stores'];
   const { next: rnd } = VB['sim/rng'];
-  const { HERD, FOODS, SOIL, WORK, DAY, YEAR_DAYS } = VB['sim/rules'];
+  const { HERD, FOODS, SOIL, WORK, DAY, YEAR_DAYS, BUILD } = VB['sim/rules'];
   const Rules = VB['sim/registry'],
     Culture = VB['culture'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
@@ -280,7 +280,8 @@ VB['sim/byre'] = (() => {
     hh.larder = hh.larder.filter((l) => l.kind !== 'meat');
     addFood(st, hh, 'salt meat', n, HERD.saltDays);
   }
-  // Barn hay spoils by winters of the animals now; mown hay still on a meadow is untouched (VB-159).
+  // Barn hay spoils by winters of the animals now; mown hay still on a meadow is untouched (VB-159); BUILD.barn.loss as much on a farm
+  // with a barn (VB-255).
   function spoilHay(st, hh) {
     const hay = hh.hay;
     if (!(hay > 0)) return;
@@ -288,10 +289,11 @@ VB['sim/byre'] = (() => {
       L = HERD.hayLoss;
     const first = Math.min(hay, winter),
       second = Math.min(Math.max(0, hay - winter), winter);
-    const lost =
+    let lost =
       first * (1 - Math.pow(1 - L[0], 1 / YEAR_DAYS)) +
       second * (1 - Math.pow(1 - L[1], 1 / YEAR_DAYS)) +
       Math.max(0, hay - 2 * winter) * (1 - Math.pow(1 - L[2], 1 / YEAR_DAYS));
+    if (hh.farmstead !== null && st.farmsteads[hh.farmstead].barn) lost *= BUILD.barn.loss; // a barn halves it (VB-255)
     hh.hay -= lost;
     hh.haySpoilt = (hh.haySpoilt || 0) + lost;
   }
