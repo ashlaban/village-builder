@@ -306,6 +306,24 @@ async function goodwillPanel() {
   }
   doc.getElementById('tabFacts').click(); tick(2);
   if (doc.getElementById('tileFacts').hidden || !doc.getElementById('tileHistory').hidden) fail('the Details tab did not come back');
+  // The village's overview (VB-162): food, the harvest, the hungry and idle hands as stats, people by age band, and a warning with the farm it
+  // concerns as a chip that selects it: a member of the farm's household made hungry on every day of the window, then restored.
+  {
+    const box = doc.getElementById('tileStats'), hh = st.households[farm.household], p = st.pawns[hh.members.find((m) => st.pawns[m].alive)];
+    const log = p.hungerLog.slice();
+    p.hungerLog = Array(Sim.OVERVIEW.window).fill(1);
+    settlers.querySelector(`button[data-village="${farm.village}"]`).click(); tick(5);
+    const S = Sim.villageSummary(st, farm.village, st.player ? st.player.pawn : null);
+    const words = [...box.querySelectorAll('.stat-name')].map((e) => e.textContent);
+    for (const n of ['Food', 'Harvest', 'Hungry', 'Idle hands', '0–14', '15–49', '50+']) if (!words.includes(n)) fail(`the village's overview lacks ${n}`);
+    const warned = Object.values(S.warnings).reduce((n, l) => n + l.length, 0), chips = box.querySelectorAll('.warning [data-farm]');
+    if (!S.warnings.hunger.includes(hh.id) || chips.length !== warned) fail(`the overview shows ${chips.length} farm chips for ${warned} warned`);
+    if (!doc.querySelector(`#tileList [data-farm="${farm.id}"] .warn-mark`)) fail("the warned farm's row is not marked");
+    console.log('village overview:', words.join(', '), '|', warned, 'warned', '|', [...box.querySelectorAll('.warning > span:not(.stat-ico)')].map((e) => e.textContent).join('; '));
+    const chip = box.querySelector(`.warning [data-farm="${farm.id}"]`);
+    if (chip) { chip.click(); tick(5); if (doc.getElementById('tileName').textContent !== farm.name) fail('a warning\'s chip did not select its farm'); }
+    p.hungerLog = log;
+  }
   // The Customs tab (VB-396) of a village's card: the customs as a charter, a phrase a custom; a phrase opens the ways of its custom, each
   // voice of the meeting by exactly one of them; a pawn's card has no such tab, and shows its Details while the choice is kept.
   {

@@ -556,6 +556,12 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .card-switch[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .card-sec { margin: 10px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .card-note { margin: 2px 0 6px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
+/* A village's warnings (VB-162): an icon and words, then the farms it concerns as chips; a farm's row marked by the same icon. */
+.warning { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; margin: 4px 0; font-size: 14px; }
+.warning .stat-ico, .warn-mark { color: var(--bad); }
+.warning .links { flex-basis: 100%; margin: 0 0 4px 27px; }
+.warn-mark { display: inline-flex; margin-right: 3px; vertical-align: -4px; }
+.warn-mark .ico { width: 16px; height: 16px; }
 .plan-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .plan-row > .stat { flex: 1 1 260px; }
 .plan-ctl { display: inline-flex; gap: 4px; flex: none; }

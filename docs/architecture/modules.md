@@ -204,7 +204,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
 - Agency: `sim/agents`, `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle`, `sim/eligibility`, `sim/plans`.
-- Derived views: `sim/notable`, `sim/opportunities` (read-only, computed when asked).
+- Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
 
 ## Adding things
 - A module has no cap on its length (VB-413): over 700 formatted lines (`src/` is formatted by Prettier, `npm run format`) the lint asks for an open task titled "Refactor: split <key> ...", opened by the task that

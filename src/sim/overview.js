@@ -1,0 +1,181 @@
+// @sys sim/overview: a village at a glance (VB-162): its food against its need, the year's harvest, its people by age band, its hungry
+// households and idle hands, and the warnings; computed when asked and stored nowhere. The warnings that foretell are a pawn's estimate.
+VB['sim/overview'] = (() => {
+  const { YEAR, YEAR_DAYS, SEASON_DAYS, WORK, HUNGER, FIELDS, cal } = VB['sim/rules'];
+  const { age } = VB['sim/records'];
+  const Stores = VB['sim/stores'];
+  const { toHarvest, foodHeld, dailyNeed } = VB['sim/hunger'];
+  const { fieldsWorkable } = VB['sim/fields'];
+  const { heirRanking } = VB['sim/heirs'];
+  const Plans = VB['sim/plans'],
+    Traits = VB['sim/traits'];
+  // The overview's bounds (VB-162; Kim, 10 November, as the task's criteria, read on the game's calendar): the window of the counted facts
+  // is the last HUNGER.days days, the days a pawn's hunger log holds (a season: the game's year is four seasons of SEASON_DAYS days, so the
+  // criteria's 30 days stand as one season); a household is warned of as hungry on `hungry` of them (the criteria's 5 of 30, the same
+  // share); a holder is old from `old`; the age bands start at 0, bands[0] and bands[1]; a working hand is of `hands`' ages, not retired
+  // (as sim/agents counts its hours, household.workHours).
+  const OVERVIEW = Object.freeze({
+    window: HUNGER.days,
+    hungry: Math.ceil((HUNGER.days * 5) / 30),
+    old: 60,
+    bands: Object.freeze([15, 50]),
+    hands: Object.freeze([14, 60]),
+  });
+  const AUTUMN = 2; // the season the harvest comes in (as sim/hunger's toHarvest)
+  const bandOf = (a) => (a < OVERVIEW.bands[0] ? 0 : a < OVERVIEW.bands[1] ? 1 : 2);
+  const live = (st, v) => {
+    const out = [];
+    for (const id of v.farmsteads) {
+      const f = st.farmsteads[id];
+      if (f.household !== null && !st.households[f.household].dissolved) out.push(st.households[f.household]);
+    }
+    return out;
+  };
+  // Whose estimate the warnings that foretell are (AGENTS.md, Deciding without Kim, 14): the viewer, a living pawn (the page passes the
+  // played pawn); else the village's eldest living holder, who speaks for it until it has an alderman; null in a village with no holder.
+  function viewerOf(st, v, viewer) {
+    if (viewer !== null && viewer !== undefined && st.pawns[viewer] && st.pawns[viewer].alive) return viewer;
+    let best = null;
+    for (const hh of live(st, v)) {
+      const p = hh.holder === null ? null : st.pawns[hh.holder];
+      if (p && p.alive && (best === null || p.born < st.pawns[best].born)) best = p.id;
+    }
+    return best;
+  }
+  // The pawn's estimate: how far ahead it looks, by its skill as head (sim/plans' foresight: a head that reacts sees a shortage only when it
+  // is on it, a day ahead; one that looks a season ahead, to the season's end; two, a season further), capped at the next harvest; and the
+  // fields a working hand can till by its own household's plan (its head's), FIELDS.perHand without one.
+  function estimateOf(st, id) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household],
+      plan = hh && st.plans ? st.plans.households.get(hh.id) : null,
+      heads = plan && plan.head && plan.head.pawn === id,
+      skill = heads ? Plans.headSkill(st, hh.id) : Traits.skill(st, id, st.t),
+      hz = Plans.horizonOf(skill),
+      c = cal(st.t),
+      harvest = toHarvest(st.t),
+      ahead = hz ? SEASON_DAYS - c.sday + (hz - 1) * SEASON_DAYS : 1;
+    const perHand = plan && plan.targets && plan.targets.perHand > 0 ? plan.targets.perHand : FIELDS.perHand;
+    return { pawn: id, horizon: hz, days: Math.min(harvest, ahead), toHarvest: harvest, perHand };
+  }
+  // A household's food in rations: what it may eat (sim/hunger's foodHeld: grain, flour, larder, fresh food) less the seed held back, its
+  // meals, and the sheaves in its barn, which are grain once threshed.
+  function foodOf(st, hh) {
+    let sheaves = 0;
+    for (const x of hh.unthreshed) sheaves += +x || 0;
+    return Math.max(0, foodHeld(hh, st) - Stores.reserved(st, hh, 'grain')) + hh.meals + sheaves;
+  }
+  // The rations a holder's harvest brought in calendar year `year` (0 the first): a household's sheaves, the village's grain (its ledger, kept three years).
+  function harvestOf(holder, year, good) {
+    let n = 0;
+    for (const e of holder.ledger || [])
+      if (e.kind === 'harvest' && e.good === good && e.n > 0 && Math.floor(e.t / YEAR) === year) n += e.n;
+    return n;
+  }
+  // The days of the window on which someone of the household ate short: the last `window` entries of each member's hunger log (a day's
+  // meal each, the newest last), a day counted once whoever went short.
+  function hungryDaysOf(st, hh) {
+    const W = OVERVIEW.window,
+      day = new Uint8Array(W);
+    for (const id of hh.members) {
+      const L = st.pawns[id].alive ? st.pawns[id].hungerLog : null;
+      if (L) for (let k = 0; k < W && k < L.length; k++) if (L[L.length - 1 - k] > 1e-9) day[k] = 1;
+    }
+    let n = 0;
+    for (let k = 0; k < W; k++) n += day[k];
+    return n;
+  }
+  // The household's working hands now.
+  function handsOf(st, hh) {
+    let n = 0;
+    for (const id of hh.members) {
+      const p = st.pawns[id];
+      if (p.alive && !p.retired && p.age >= OVERVIEW.hands[0] && p.age < OVERVIEW.hands[1]) n++;
+    }
+    return n;
+  }
+  // The hours its hands worked in the last SEASON_DAYS days, from sim/agents' count (this season's hours, and the season before's taken
+  // for the part of it still in the window, as if spread evenly over it), and the hours its hands had: each work day's WORK hours.
+  function hoursOf(st, hh, c, hands) {
+    const key = c.year * 4 + c.season,
+      W = hh.workHours,
+      span = WORK[1] - WORK[0],
+      now = W && W[0] === key ? W[1] : 0,
+      before = !W ? 0 : W[0] === key ? W[2] : W[0] === key - 1 ? W[1] : 0,
+      into = c.sday + Math.max(0, Math.min(1, (c.hour - WORK[0]) / span));
+    return { worked: now + (before * Math.max(0, SEASON_DAYS - into)) / SEASON_DAYS, had: hands * span * SEASON_DAYS };
+  }
+  // The summary of village `vid` (an id of st.villages) as pawn `viewer` would estimate what is ahead (null: the village's eldest holder):
+  //   {village, name, year (of cal), viewer (the estimate's: {pawn, horizon, days (it looks ahead), toHarvest, perHand}, or null),
+  //    households, people, food: {rations (the households' and the village store's), store (the village store's), need (a day's), days,
+  //    short (the rations do not reach the viewer's days)}, harvest: {year (of cal: this year's from autumn, when it comes in, last year's
+  //    before), rations, need (a year's), share}, bands: {now, ago} (people of 0 to
+  //    14, 15 to 49 and 50 on, now and a year ago), hungry: {window, households (ids hungry on any day of it)}, idle: {worked, had, share},
+  //    warnings: {food, hunger, heir, hands}: the households each concerns, by id}.
+  // People a year ago are those then alive whose household (their last, for the dead) is of the village: who moved in during the year
+  // counts as of it then. A walk of every pawn, made when the panel is drawn and never by a step (VB.count.overviewWalk).
+  function villageSummary(st, vid, viewer = null) {
+    const v = st.villages[vid],
+      c = cal(st.t),
+      year = c.year - 1 - (c.season < AUTUMN ? 1 : 0), // the latest harvest's (VB-162: in spring this year's is not in)
+      hhs = live(st, v),
+      who = viewerOf(st, v, viewer),
+      est = who === null ? null : estimateOf(st, who);
+    const store = Math.max(0, Stores.grainOf(v) - Stores.reserved(st, v, 'grain'));
+    const out = {
+      village: v.id,
+      name: v.name,
+      year: c.year,
+      viewer: est,
+      households: hhs.length,
+      people: 0,
+      food: { rations: store, store, need: 0, days: 0, short: false },
+      harvest: { year: year + 1, rations: harvestOf(v, year, 'grain'), need: 0, share: 0 },
+      bands: { now: [0, 0, 0], ago: [0, 0, 0] },
+      hungry: { window: OVERVIEW.window, households: [] },
+      idle: { worked: 0, had: 0, share: 0 },
+      warnings: { food: [], hunger: [], heir: [], hands: [] },
+    };
+    for (const hh of hhs) {
+      const need = dailyNeed(st, hh),
+        food = foodOf(st, hh),
+        f = st.farmsteads[hh.farmstead];
+      out.food.rations += food;
+      out.food.need += need;
+      out.harvest.rations += harvestOf(hh, year, 'sheaves');
+      const hungry = hungryDaysOf(st, hh);
+      if (hungry > 0) out.hungry.households.push(hh.id);
+      if (hungry >= OVERVIEW.hungry) out.warnings.hunger.push(hh.id);
+      const hands = handsOf(st, hh),
+        h = hoursOf(st, hh, c, hands);
+      out.idle.worked += h.worked;
+      out.idle.had += h.had;
+      if (est && need > 0 && food < need * est.days) out.warnings.food.push(hh.id);
+      const holder = hh.holder === null ? null : st.pawns[hh.holder];
+      if (holder && holder.alive && age(st, holder) >= OVERVIEW.old) {
+        const heir = heirRanking(st, hh).some(
+          (id) => id !== holder.id && st.pawns[id].alive && st.pawns[id].household === hh.id,
+        );
+        if (!heir) out.warnings.heir.push(hh.id);
+      }
+      if (est && f.fields.length > fieldsWorkable(st, hh, est.perHand)) out.warnings.hands.push(hh.id);
+    }
+    VB.count.overviewWalk += st.pawns.length;
+    const ago = st.t - YEAR;
+    for (const p of st.pawns) {
+      if (p.household === null || st.farmsteads[st.households[p.household].farmstead].village !== v.id) continue;
+      if (p.alive) {
+        out.people++;
+        out.bands.now[bandOf(age(st, p))]++;
+      }
+      if (p.born <= ago && (p.died === null || p.died > ago)) out.bands.ago[bandOf(age(st, p, ago))]++;
+    }
+    out.food.days = out.food.need > 0 ? out.food.rations / out.food.need : 0;
+    out.food.short = !!est && out.food.need > 0 && out.food.rations < out.food.need * est.days;
+    out.harvest.need = out.food.need * YEAR_DAYS;
+    out.harvest.share = out.harvest.need > 0 ? out.harvest.rations / out.harvest.need : 0;
+    out.idle.share = out.idle.had > 0 ? Math.max(0, Math.min(1, 1 - out.idle.worked / out.idle.had)) : 0;
+    return out;
+  }
+  return { OVERVIEW, villageSummary, viewerOf, estimateOf };
+})();
