@@ -49,7 +49,7 @@ const Sim = (() => {
   const { advance } = VB['sim/clock'];
   const { HERD, SOIL, CLAIMS } = VB['sim/rules'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
-  const { withOxen, doneOf, walkerPlaces } = VB['sim/agents'];
+  const { withOxen, doneOf, placeOf, poseOf } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
   const { houseTarred } = VB['sim/rules'],
@@ -124,7 +124,8 @@ const Sim = (() => {
     grainOf,
     fieldsWanted,
     plotProgress: (st, plot) => plotProgress(st, plot, (j) => doneOf(st, j)), // a task's progress now (VB-472)
-    walkerPlaces, // the page's shim until it draws from legs (VB-474): each walker's place for the step now (VB-473)
+    placeOf, // a pawn's place now, a walker's worked out from its leg (VB-473)
+    poseOf, // and its facing and stride, for the page until it draws from legs (VB-474)
     explainIdle,
     idleLine,
     RIVER,

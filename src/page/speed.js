@@ -52,7 +52,6 @@ function syncSteps() {
 }
 // copies each agent's place before a step: once a frame at most, before the frame's last step
 function notePlaces() {
-  Sim.walkerPlaces(st); // a walker's place is worked out from its leg (VB-473; until the page draws from legs, VB-474)
   const n = st.agents.length;
   if (prevX.length < n) {
     const cap = Math.max(64, n * 2);
@@ -62,10 +61,11 @@ function notePlaces() {
     prevIn = new Uint8Array(cap);
   }
   for (let i = 0; i < n; i++) {
-    const a = st.agents[i];
-    prevX[i] = a.x;
-    prevY[i] = a.y;
-    prevStride[i] = a.stride || 0;
+    const a = st.agents[i],
+      [x, y, , stride] = Sim.poseOf(st, a); // a walker's place from its leg (VB-473)
+    prevX[i] = x;
+    prevY[i] = y;
+    prevStride[i] = stride;
     prevIn[i] = a.inside ? 1 : 0;
   }
   prevN = n;

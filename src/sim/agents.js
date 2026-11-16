@@ -788,7 +788,7 @@ VB['sim/agents'] = (() => {
       const day = Math.floor((t + 1) / (DAY * TICKS));
       due = Math.min(end, Math.max(t + 1, (day * DAY + WORK[1]) * TICKS - 1));
     }
-    a.leg = { kind: 'walk', t, x: a.x, y: a.y, seg: a.seg, pace, h, end, due, s: a.stride || 0 };
+    a.leg = { kind: 'walk', t, x: a.x, y: a.y, seg: a.seg, pace, h, end, due };
     if (st.pawns[a.id].alive) enqueue(st, a);
     sideCheck(st, a);
   }
@@ -833,8 +833,22 @@ VB['sim/agents'] = (() => {
     const [, x, y] = along(a, l, (workTick(st) - l.t) / TICKS);
     return [x, y];
   }
-  // A walk is cut where it has come to: the tiles entered so far are trodden and the pawn stands there; `keep` keeps its route, to walk
-  // on from there (a journey's night, a pace changed); `quiet` leaves its side task to the walk that follows.
+  // The way the pawn faces and the stride it has come to, e hours into walk leg l, standing at point i, (x, y) (the page's pose).
+  function poseAt(a, l, e, i, x, y) {
+    const P = a.path,
+      dx = i + 1 < P.length ? P[i + 1][0] - x : x - (i > l.seg ? P[i - 1][0] : l.x);
+    return [x, y, Math.abs(dx) > 0.3 ? Math.sign(dx) : a.face, (a.stride || 0) + (e * l.pace) / 3.4];
+  }
+  // Walk leg l ends e hours in (its end, a cut, a journey's night): the tiles entered so far are trodden, and the pawn stands where its
+  // hours reach, facing the way it went (a.x, a.y, a.seg, and the page's face and stride: written at a leg's start and end only).
+  function stopAt(st, a, l, e) {
+    const [i, x, y] = along(a, l, e);
+    treadTo(st, a, l.seg, i);
+    [a.x, a.y, a.face, a.stride] = poseAt(a, l, e, i, x, y);
+    a.seg = i;
+  }
+  // A walk is cut where it has come to; `keep` keeps its route, to walk on from there (a pace changed); `quiet` leaves its side task to
+  // the walk that follows.
   function halt(st, a, keep = false, quiet = false) {
     const l = a.leg;
     if (!l || l.kind !== 'walk') {
@@ -842,11 +856,7 @@ VB['sim/agents'] = (() => {
       return;
     }
     unleg(st, a);
-    const [i, x, y] = along(a, l, Math.max(0, workTick(st) - l.t) / TICKS);
-    treadTo(st, a, l.seg, i);
-    a.x = x;
-    a.y = y;
-    a.seg = i;
+    stopAt(st, a, l, Math.max(0, workTick(st) - l.t) / TICKS);
     if (!keep) a.path = null;
     if (!quiet) sideCheck(st, a);
   }
@@ -864,22 +874,13 @@ VB['sim/agents'] = (() => {
   // Walk leg l is due: the pawn arrives (every tile of the rest of the way trodden), or, on a journey, stops for the night where it has come
   // to and rests there until 6:00.
   function walkEnd(st, a, l) {
-    const P = a.path;
     if (l.due >= l.end) {
-      treadTo(st, a, l.seg, P.length - 1);
-      const p = P[P.length - 1];
-      a.x = p[0];
-      a.y = p[1];
-      a.seg = P.length - 1;
+      stopAt(st, a, l, l.h.length ? l.h[l.h.length - 1] : 0); // at its route's end
       a.path = null;
       arrived(st, a);
       return;
     }
-    const [i, x, y] = along(a, l, (l.due - l.t) / TICKS);
-    treadTo(st, a, l.seg, i);
-    a.x = x;
-    a.y = y;
-    a.seg = i;
+    stopAt(st, a, l, (l.due - l.t) / TICKS);
     a.phase = 'road';
     a.anim = 'idle';
     roadWait(st, a);
@@ -890,21 +891,14 @@ VB['sim/agents'] = (() => {
     if (!a.path || !l || l.kind !== 'walk' || !l.h.length) return 0;
     return Math.max(0, l.h[l.h.length - 1] - (workTick(st) - l.t) / TICKS);
   }
-  // The page's shim until it draws from legs (VB-474): each walker's place, facing and stride written for the step now. Called by the page
-  // only; the simulation never reads a walker's a.x, a.y (placeOf).
-  function walkerPlaces(st) {
-    for (const id of st.legDue || []) {
-      const a = st.agents[id],
-        l = a.leg;
-      if (l.kind !== 'walk') continue;
-      const e = Math.max(0, workTick(st) - l.t) / TICKS,
-        [i, x, y] = along(a, l, e),
-        p = a.path[Math.min(i + 1, a.path.length - 1)];
-      if (Math.abs(p[0] - x) > 0.3) a.face = p[0] > x ? 1 : -1;
-      a.stride = l.s + (e * l.pace) / 3.4;
-      a.x = x;
-      a.y = y;
-    }
+  // The page's view of a pawn for the step now (until it draws from legs, VB-474): [x, y, face, stride], a walker's worked out from its
+  // leg, read only.
+  function poseOf(st, a) {
+    const l = a.leg;
+    if (!a.path || !l || l.kind !== 'walk') return [a.x, a.y, a.face, a.stride || 0];
+    const e = Math.max(0, workTick(st) - l.t) / TICKS,
+      [i, x, y] = along(a, l, e);
+    return poseAt(a, l, e, i, x, y);
   }
   // ---- the step (VB-205, VB-473): the legs due end, and nothing else is touched ----
   // The working day's start (WORK[0]) is one event for those waiting for it: the free pawns with no leg look for work, or wait for their
@@ -1202,7 +1196,7 @@ VB['sim/agents'] = (() => {
     withOxen,
     walkHours,
     placeOf,
-    walkerPlaces,
+    poseOf,
     standStill,
     doneOf,
     reckonAll,
