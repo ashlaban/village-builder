@@ -1,10 +1,9 @@
 // @sys sim/mood: a pawn's mood (VB-062), 50 plus its modifiers, computed when asked and stored nowhere; the event modifiers (pawn.mods),
 //   written at a wedding, a birth and a death. Read by the pawn's card only: no rule of the simulation reads it (tests/mood.js holds that)
 VB['sim/mood'] = (() => {
-  const { DAY, MOOD, SOCIAL } = VB['sim/rules'];
+  const { DAY, MOOD } = VB['sim/rules'];
   const { on } = VB['sim/events'];
   const { spouseOf, childrenOf } = VB['sim/records'];
-  const { opinionOf } = VB['sim/relations'];
   // The modifiers for an event (pawn.mods), each one kept MOOD[key].days from it.
   const EVENT = ['married', 'child', 'grieving'];
   const LABEL = {
@@ -60,13 +59,11 @@ VB['sim/mood'] = (() => {
     const sum = mods.reduce((s, m) => s + m.value, 0);
     return { mood: Math.max(0, Math.min(100, MOOD.base + sum)), mods: mods.filter((m) => m.value !== 0) };
   }
-  // The pawn's latest talk (agent.talk) was with one it holds a friend (SOCIAL.friend, the page's friend line), MOOD.friend.days ago at most.
+  // Talked with a friend: its last talk with one it held at SOCIAL.friend or above (agent.talk.friendAt, kept by talk where it checks the
+  // pair's band), MOOD.friend.days ago at most. The latest talk alone hid two in three of these (populous small, seed 7, a year).
   function friendTalk(st, id) {
-    const a = st.agents[id],
-      t = a && a.talk;
-    if (!t || st.t >= t.at + MOOD.friend.days * DAY) return false;
-    const q = st.pawns[t.with];
-    return !!q && q.alive && opinionOf(st, id, t.with) >= SOCIAL.friend;
+    const t = st.agents[id] && st.agents[id].talk;
+    return !!t && t.friendAt !== undefined && st.t < t.friendAt + MOOD.friend.days * DAY;
   }
   // A word for a mood: miserable under 25, low under 45, content under 65, happy.
   const word = (m) => (m < 25 ? 'miserable' : m < 45 ? 'low' : m < 65 ? 'content' : 'happy');

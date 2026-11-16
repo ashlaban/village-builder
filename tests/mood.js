@@ -57,21 +57,37 @@ check(Mood.word(24) === 'miserable' && Mood.word(25) === 'low' && Mood.word(45) 
   check(keys(st, couple) === '', 'the states gone, their modifiers too');
 }
 
-// --- talked with a friend: read from the latest talk, while the other is held at the friend line, for 2 days
+// --- talked with a friend: the hour of the last talk with one held at the friend line (agent.talk.friendAt), for 2 days
 {
   const a = st.agents[couple];
-  a.talk = { with: man, kind: 'chat', at: st.t, until: st.t + 1 };
-  const o = VB['sim/relations'].opinionOf(st, couple, man);
-  check(o >= SOCIAL.friend, `the probe's wife holds her husband a friend: ${o}`);
+  a.talk = { with: man, kind: 'chat', at: st.t, until: st.t + 1, friendAt: st.t };
   check(valueOf(st, couple, 'friend') === MOOD.friend.value, `talked with a friend: ${keys(st, couple)}`);
-  const other = st.living.find((id) => VB['sim/relations'].opinionOf(st, couple, id) < SOCIAL.friend && id !== couple);
-  if (other !== undefined) {
-    a.talk = { with: other, kind: 'chat', at: st.t, until: st.t + 1 };
-    check(valueOf(st, couple, 'friend') === undefined, 'a talk with one not a friend is no modifier');
-  }
-  a.talk = { with: man, kind: 'chat', at: st.t - MOOD.friend.days * DAY, until: st.t };
+  a.talk = { with: man, kind: 'chat', at: st.t, until: st.t + 1 };
+  check(valueOf(st, couple, 'friend') === undefined, 'a talk with one not a friend, and none before, is no modifier');
+  a.talk = { with: man, kind: 'chat', at: st.t, until: st.t + 1, friendAt: st.t - MOOD.friend.days * DAY + 1 };
+  check(valueOf(st, couple, 'friend') === MOOD.friend.value, 'an earlier talk with a friend, not hidden by the latest');
+  a.talk.friendAt = st.t - MOOD.friend.days * DAY;
   check(valueOf(st, couple, 'friend') === undefined, 'gone two days after the talk');
   a.talk = null;
+}
+// talk writes it, where it checks the pair's band: two days of a village's talk
+{
+  const s2 = probe.state(), R = VB['sim/relations'];
+  Sim.advance(s2, 2 * DAY);
+  const talked = s2.agents.filter((g) => g.talk),
+    friends = talked.filter((g) => g.talk.friendAt !== undefined);
+  check(talked.length > 0 && friends.length > 0, `talks ${talked.length}, with a friend ${friends.length}`);
+  // a latest talk with one held well over the line is the last talk with a friend; one well under it is not
+  for (const g of talked) {
+    const o = R.opinionOf(s2, g.id, g.talk.with);
+    if (o >= SOCIAL.friend + 0.05) check(g.talk.friendAt === g.talk.at, `agents[${g.id}]: talked with a friend at ${g.talk.at}, friendAt ${g.talk.friendAt}`);
+    if (o < SOCIAL.friend - 0.05) check(g.talk.friendAt !== g.talk.at, `agents[${g.id}]: friendAt set by a talk with one at ${o.toFixed(2)}`);
+  }
+  for (const g of friends) {
+    const has = Mood.of(s2, g.id) && Mood.of(s2, g.id).mods.some((x) => x.key === 'friend');
+    check(has === s2.t < g.talk.friendAt + MOOD.friend.days * DAY, `agents[${g.id}]: the friend modifier as friendAt says`);
+  }
+  check(checkState(s2).length === 0, `invariants after two days: ${checkState(s2).slice(0, 3)}`);
 }
 
 // --- the events: married, a child born (both parents), grieving (spouse, children, parents); gone on time
