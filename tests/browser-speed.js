@@ -66,9 +66,10 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
                 if (!(Math.hypot(x - st.w.hx[a.job.site], y - st.w.hy[a.job.site]) <= 19)) faults.push('position off its rows');
                 continue;
               }
-              const seg = i < d.prevN && !d.prevIn[i] ? Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]) : Infinity;
-              if (seg > far) { if (x !== a.x || y !== a.y) faults.push('position'); }
-              else if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(a.x - x, a.y - y) > seg + 1e-3) faults.push('position off its segment');
+              const [ax, ay] = Sim.placeOf(st, a); // a walker's place from its leg (VB-473)
+              const seg = i < d.prevN && !d.prevIn[i] ? Math.hypot(ax - d.prevX[i], ay - d.prevY[i]) : Infinity;
+              if (seg > far) { if (x !== ax || y !== ay) faults.push('position'); }
+              else if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(ax - x, ay - y) > seg + 1e-3) faults.push('position off its segment');
             }
             if (++frames < 8) return requestAnimationFrame(frame);
             clearTimeout(timeout); resolve({ faults, positions });

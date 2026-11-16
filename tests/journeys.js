@@ -114,7 +114,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   to(s, 10);
   moveTo(s, mid, hh.id);
   Sim.advance(s, 2);
-  const m = s.agents[mid], [mx, my] = [m.x, m.y];
+  const m = s.agents[mid], [mx, my] = VB['sim/agents'].placeOf(s, m); // a walker's place, from its leg (VB-473)
   assert.ok(m.phase === 'journey' && Math.hypot(mx - homeSpot(s, m)[0], my - homeSpot(s, m)[1]) > 200, 'the mother is far from home');
   const p = s.pawns[mid], n = s.pawns.length;
   p.pregnantUntil = s.t; p.pregnantBy = dad;

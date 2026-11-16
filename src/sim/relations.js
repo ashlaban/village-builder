@@ -358,8 +358,10 @@ VB['sim/relations'] = (() => {
       return;
     }
     const S = near.size,
-      cx = Math.floor(a.x / S),
-      cy = Math.floor(a.y / S);
+      X = near.x,
+      Y = near.y,
+      cx = Math.floor(X[a.id] / S),
+      cy = Math.floor(Y[a.id] / S);
     let n = 0;
     lists.length = 0;
     look++;
@@ -385,7 +387,7 @@ VB['sim/relations'] = (() => {
       }
       if (seen[b.id] === look) continue;
       seen[b.id] = look;
-      if (busy[b.id] !== round && Math.abs(a.x - b.x) < S && Math.abs(a.y - b.y) < S) found.push(b);
+      if (busy[b.id] !== round && Math.abs(X[a.id] - X[b.id]) < S && Math.abs(Y[a.id] - Y[b.id]) < S) found.push(b);
     }
   }
   // How much a would rather talk with b: more with the familiar and the liked, less with someone it dislikes. sa is a's tie scale (scaleOf).

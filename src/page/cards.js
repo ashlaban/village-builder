@@ -48,7 +48,10 @@ function centreSelection() {
   if (selPawn >= 0) {
     const a = st.agents[selPawn],
       f = farmOf(st.pawns[selPawn]);
-    if (a && (!a.inside || f)) flyTo(a.inside ? w.hx[f.house] : a.x, a.inside ? w.hy[f.house] : a.y);
+    if (a && (!a.inside || f)) {
+      const [x, y] = Sim.placeOf(st, a); // a walker's place from its leg (VB-473)
+      flyTo(a.inside ? w.hx[f.house] : x, a.inside ? w.hy[f.house] : y);
+    }
   } else if (selVillage >= 0) {
     const at = villageSpot(st.villages[selVillage]);
     flyTo(w.hx[at], w.hy[at], Math.max(cam.z, 0.9));

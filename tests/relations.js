@@ -72,23 +72,23 @@ check(!a.rel.has(b.id) && b.rel.size === 0 && !a.bands.has(b.id) && b.bands.size
 check(checkState(st).length === 0, 'invariants after a death: ' + checkState(st).slice(0, 3).join('; '));
 // talk (VB-061): two pawns standing together outdoors in waking hours talk, and their tie grows by SOCIAL.ties.talk; it leaves no memory
 const S = VB['sim/society'], T = SOCIAL.talk, TIES = SOCIAL.ties, pair = adults.filter((x) => x.alive && x !== b && x !== c).slice(0, 2), [ta, tb] = pair.map((x) => st.agents[x.id]);
-const stand = () => { for (const [g, dx] of [[ta, 0], [tb, 4]]) { VB['sim/agents'].release(st, g); g.inside = false; g.path = null; g.phase = null; g.carry = null; g.x = 5000 + dx; g.y = 5000; } };
+const stand = () => { for (const [g, dx] of [[ta, 0], [tb, 4]]) { VB['sim/agents'].release(st, g); VB['sim/agents'].standStill(st, g); g.inside = false; g.carry = null; g.x = 5000 + dx; g.y = 5000; } };
 const tie0 = R.tieOf(st, pair[0].id, pair[1].id), talks0 = st.talks;
 for (const ag of st.agents) if (ag !== ta && ag !== tb) ag.inside = true; // nobody else outdoors
 let hours = 0;
 ta.talk = null;
-while (!(ta.talk && ta.talk.with === pair[1].id) && hours < 40) { stand(); R.talkHour(st, 10, S.outdoors(st)); hours++; }
+while (!(ta.talk && ta.talk.with === pair[1].id) && hours < 40) { stand(); R.talkHour(st, 10, S.outdoors(st, VB['sim/agents'].placeOf)); hours++; }
 check(st.talks > talks0 && ta.talk, `no talk in ${hours} hours together`);
 check(!pair[0].rel.has(pair[1].id) && !pair[1].rel.has(pair[0].id), 'a talk leaves no memory (VB-240)');
 check(['chat', 'goodTalk', 'crossWords'].includes(ta.talk.kind) && ta.talk.kind === tb.talk.kind, `the bubble's kind: ${ta.talk.kind}`);
 const grew = (R.tieOf(st, pair[0].id, pair[1].id) - tie0) / TIES.talk; // housemates indoors talk too, so count the pair's talks by its tie
 check(grew >= 1 - 1e-9 && Math.abs(grew - Math.round(grew)) < 1e-9, `the tie grew by ${grew} talks' worth`);
 check(ta.talk && ta.talk.with === pair[1].id && tb.talk.with === pair[0].id && ta.talk.until - ta.talk.at === T.bubbleHours, 'the bubble names the other');
-const before = st.talks; stand(); R.talkHour(st, 23, S.outdoors(st)); stand(); R.talkHour(st, 3, S.outdoors(st));
+const before = st.talks; stand(); R.talkHour(st, 23, S.outdoors(st, VB['sim/agents'].placeOf)); stand(); R.talkHour(st, 3, S.outdoors(st, VB['sim/agents'].placeOf));
 check(st.talks === before, 'no talk at night');
 // in a busy hour each pawn is in one talk at most
-for (const ag of st.agents) { ag.talk = null; if (st.pawns[ag.id].alive) { ag.inside = false; ag.path = null; ag.carry = null; ag.x = 6000 + (ag.id % 5) * 6; ag.y = 6000; } }
-const t1 = st.talks; R.talkHour(st, 10, S.outdoors(st));
+for (const ag of st.agents) { ag.talk = null; if (st.pawns[ag.id].alive) { VB['sim/agents'].release(st, ag); VB['sim/agents'].standStill(st, ag); ag.inside = false; ag.carry = null; ag.x = 6000 + (ag.id % 5) * 6; ag.y = 6000; } }
+const t1 = st.talks; R.talkHour(st, 10, S.outdoors(st, VB['sim/agents'].placeOf));
 const talking = st.agents.filter((ag) => ag.talk).length;
 check(st.talks > t1 && talking === 2 * (st.talks - t1), `${st.talks - t1} talks, ${talking} pawns talking`);
 check(checkState(st).length === 0, 'invariants after talk: ' + checkState(st).slice(0, 3).join('; '));
@@ -110,7 +110,7 @@ R.addTie(st, x.id, fr.id, AF.known);
 for (let k = 0; k < 5; k++) { R.remember(st, x.id, foe.id, 'claim'); R.remember(st, x.id, foe.id, 'refusedMatch'); }
 const home = st.farmsteads[st.households[x.household].farmstead].house, hx = st.w.hx[home], hy = st.w.hy[home];
 for (const ag of st.agents) { ag.inside = true; ag.talk = null; }
-const idleAt = (p, dx) => { const g = st.agents[p.id]; VB['sim/agents'].release(st, g); g.inside = false; g.phase = null; g.path = null; g.x = hx + dx; g.y = hy; };
+const idleAt = (p, dx) => { const g = st.agents[p.id]; VB['sim/agents'].release(st, g); VB['sim/agents'].standStill(st, g); g.inside = false; g.x = hx + dx; g.y = hy; };
 idleAt(fr, 40); st.idlers = null; // the hour's idlers are a cache (sim/relations): the test placed them by hand
 const ax = st.agents[x.id];
 VB['sim/jobs'].idleAbout(st, ax); // the planner's idle choice (VB-168)
@@ -148,7 +148,7 @@ const [m0, m1] = hm.members, home0 = R.tieOf(st, m0, m1);
 for (const id of st.living) st.pawns[id].homeHours = 0;
 for (const ag of st.agents) { ag.inside = st.pawns[ag.id].household === hm.id; ag.talk = null; }
 const talks1 = st.talks;
-for (let h = 0; h < DAY; h++) { for (const ag of st.agents) ag.inside = st.pawns[ag.id].household === hm.id; R.talkHour(st, h, S.outdoors(st)); }
+for (let h = 0; h < DAY; h++) { for (const ag of st.agents) ag.inside = st.pawns[ag.id].household === hm.id; R.talkHour(st, h, S.outdoors(st, VB['sim/agents'].placeOf)); }
 check(st.pawns[m0].homeHours === T.to - T.from, `the talk hours counted at home: ${st.pawns[m0].homeHours}`);
 const talked = R.tieOf(st, m0, m1) - home0;
 R.dailyTies(st);

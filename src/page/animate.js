@@ -109,7 +109,7 @@ function drawHerds(c, show) {
     // out with a herder (VB-136): at its heels on the way, on the pasture while it minds them there, else by the farm
     const hr = hd.herder !== null && st.agents[hd.herder] && !st.agents[hd.herder].inside ? st.agents[hd.herder] : null;
     const at = hr && !hr.path && hr.side && hr.side.background ? hr.side.background.site : -1;
-    const cx = at >= 0 ? w.hx[at] : hr ? drawX[hr.id] - hr.face * 16 : w.hx[hd.home],
+    const cx = at >= 0 ? w.hx[at] : hr ? drawX[hr.id] - drawFacing[hr.id] * 16 : w.hx[hd.home],
       cy = at >= 0 ? w.hy[at] : hr ? drawY[hr.id] + 3 : w.hy[hd.home];
     const on = show && !out && cx > x0 && cx < x1 && cy > y0 && cy < y1;
     for (const a of e.list) {
@@ -173,11 +173,12 @@ function placePawns() {
     far = ((R.SPEED * w.HW) / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6,
     far2 = far * far;
   for (let i = 0; i < n; i++) {
-    const a = st.agents[i];
-    let x = a.x,
-      y = a.y,
-      stride = a.stride || 0;
-    drawFacing[i] = a.face;
+    const a = st.agents[i],
+      [ax, ay, af, as] = Sim.poseOf(st, a); // a walker's place from its leg (VB-473)
+    let x = ax,
+      y = ay,
+      stride = as;
+    drawFacing[i] = af;
     const rows = rowPlace(a, at);
     if (rows) {
       drawX[i] = rows[0];
@@ -187,8 +188,8 @@ function placePawns() {
       continue;
     }
     if (s < 1 && i < prevN && !prevIn[i] && !a.inside) {
-      const dx = a.x - prevX[i],
-        dy = a.y - prevY[i];
+      const dx = ax - prevX[i],
+        dy = ay - prevY[i];
       if (dx * dx + dy * dy <= far2) {
         x = prevX[i] + dx * s;
         y = prevY[i] + dy * s;
@@ -264,10 +265,11 @@ function updateSettlement(dt) {
     const tk = a.talk,
       other = tk && !a.path && !a.job && st.t >= tk.at && st.t < tk.until ? st.agents[tk.with] : null;
     // a pawn fishing faces the water (VB-117)
-    const wet = !a.path && a.phase === 'work' && a.job && a.job.water !== undefined ? w.hx[a.job.water] - a.x : 0;
+    const wet =
+      !a.path && a.phase === 'work' && a.job && a.job.water !== undefined ? w.hx[a.job.water] - drawX[a.id] : 0;
     const face =
-      other && Math.abs(other.x - a.x) > 0.5
-        ? Math.sign(other.x - a.x)
+      other && Math.abs(drawX[other.id] - drawX[a.id]) > 0.5
+        ? Math.sign(drawX[other.id] - drawX[a.id])
         : Math.abs(wet) > 0.5
           ? Math.sign(wet)
           : drawFacing[a.id];
