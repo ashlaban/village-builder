@@ -318,8 +318,18 @@ VB['sim/hunger'] = (() => {
     const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
     Stores.spoil(st, hh, lost);
   }
+  // The grain the village store lacks of its target (VB-457; HELP.storeTarget years of its members' need), 0 at or above it.
+  function storeRoom(st, v) {
+    let need = 0;
+    for (const id of v.farmsteads) {
+      const f = st.farmsteads[id];
+      if (f.household !== null) need += dailyNeed(st, st.households[f.household]);
+    }
+    return Math.max(0, HELP.storeTarget * need * YEAR_DAYS - Stores.grainOf(v));
+  }
   return {
     NEED,
+    storeRoom,
     toHarvest,
     foodHeld,
     daysOfFood,
