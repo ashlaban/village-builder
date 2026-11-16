@@ -26,6 +26,7 @@ The orchestrator writes those once, from your notes.
    nightly bench; and run nothing that appends to a shared record (`tools/bench.js`, `tools/bands.js`, `--record`).
 5. Leave a note (`node tools/inbox.js note ID KIND ...`) for each of these, as it comes up:
    - `task`: a follow-up task, with one of your reserved IDs, its criteria as the body;
+     with `status=ready`, `goal=` and `ref=` when its criteria are stated and it holds no question for Kim (`priority=1` if it mends a red check);
    - `tuning`: a shortfall left for the tuning run; `question`: one only Kim can answer, with its proposed answers;
    - `candidate`, `teleport`, `decision`: what `AGENTS.md`, Surfacing, asks for. A teleport found also gets a `task` note, arch `physical`.
 6. A measure you could not take, or a target that is out (Kim, 16 November: measurements and tuning do not block work): leave the

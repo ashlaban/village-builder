@@ -11,11 +11,11 @@ assert.deepStrictEqual(stale, [], 'tools/stocks.js lists fields no @state line n
 const more = new Map([...fields, ['household.lime', 'a test']]);
 assert.deepStrictEqual(Stocks.unlisted(more).missing, ['household.lime (a test)'], 'a quantity without a line is found');
 for (const q of Stocks.QUANTITIES) assert(q.none && q.none.length > 10 && q.fields.length && q.name, `${q.id}: a line says what happens at none`);
-// what the reviews of 10 and 11 November found: nothing reads the day's water (until VB-331 lands; then change this line); the woodpile is
-// read since VB-327 (the cold house, the cook), the stone heap since VB-332 (the foundation)
+// what the reviews of 10 and 11 November found is mended: the day's water is read since VB-331 (the cook, the dry day), the woodpile
+// since VB-327 (the cold house, the cook), the stone heap since VB-332 (the foundation)
 const rows = new Map(Stocks.build().map((r) => [r.id, r]));
 assert.strictEqual(rows.get('wood').mark, 'used', 'the woodpile is used by the hearth and the cook (VB-327)');
-assert.strictEqual(rows.get('water').mark, 'read by nothing', 'the day\'s water is read by nothing (VB-331)');
+assert.strictEqual(rows.get('water').mark, 'used', 'the day\'s water is used by the cook and the dry day (VB-331)');
 assert.strictEqual(rows.get('stone').mark, 'used', 'the stone heap is used by the foundation (VB-332)');
 for (const id of ['grain', 'meals', 'hay', 'villageGrain']) assert.strictEqual(rows.get(id).mark, 'used', `${id} is used`);
 assert(rows.get('wood').reads.some((r) => r.fn === 'cookWanted') && rows.get('wood').adds.some((a) => a.fn === 'wood.deliver'),

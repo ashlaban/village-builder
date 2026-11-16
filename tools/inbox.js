@@ -19,7 +19,8 @@
 //   report                     the PR's "For Kim" section, in Markdown: principle candidates, teleports found, close calls, questions, new tasks
 //   results [--json]           the results, for  node tools/agent-usage.js --results FILE
 // kinds, with their keys:
-//   task       id= (one reserved by start) name= priority= size= summary= [status=blocked|needs-review arch= waits= ref= goal=]; body: its criteria
+//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= ref= goal=]; body: its criteria
+//              (ready: goal=, ref= and the body given, and no question for Kim; priority=1 if it mends a red check)
 //   question   priority= title= [about=VB-NNN, the task it is filed under: default TASK]; body: the numbered questions, each with its proposed answer (**P:**), as in QUESTIONS.md
 //   tuning     parameter= means= measured= proposed=   a row of docs/tuning.md, Parameters waiting
 //   candidate  rule=   a principle candidate (AGENTS.md, Surfacing); body: the decisions behind it
@@ -130,7 +131,8 @@ if (cmd === 'init') {
   if (f.priority && !/^[1-3]$/.test(f.priority)) fail('priority is 1, 2 or 3');
   if (kind === 'task') {
     if (!/^(S|M|L)$/.test(f.size)) fail('size is S, M or L');
-    if (f.status && !['blocked', 'needs-review'].includes(f.status)) fail('a noted task is blocked or needs-review (the default): the orchestrator or Kim sets it ready');
+    if (f.status && !['blocked', 'needs-review', 'ready'].includes(f.status)) fail('a noted task is ready, blocked or needs-review (the default)');
+    if (f.status === 'ready' && !(f.goal && f.ref && body)) fail('a noted task is ready only with its goal (goal=), its design ref (ref=) and its criteria (--body), and no question for Kim; else needs-review (the default)');
   }
   const n = atomic(() => {
     if (kind === 'task') {
@@ -196,11 +198,13 @@ if (cmd === 'init') {
     const f = n.fields;
     if (n.kind === 'task') {
       const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
-      backlog('new', `id=${f.id}`, `status=${f.status || 'needs-review'}`, ...keys);
+      // a file is never made ready with "(to write)" in it (tools/backlog.js new): a ready note's task is made, filled, then set ready
+      backlog('new', `id=${f.id}`, `status=${f.status === 'ready' ? 'needs-review' : f.status || 'needs-review'}`, ...keys);
       if (n.body && !dry) {
         const p = path.join(root, 'backlog', f.id + '.md');
         fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('- [ ] (to write)\n', n.body + '\n') + `\nNoted by ${n.task}, ${date}.\n`);
       }
+      if (f.status === 'ready') backlog('set', f.id, 'status=ready');
     } else if (n.kind === 'question') {
       edit('QUESTIONS.md', (text) => {
         const head = `\n## Priority ${f.priority}\n`, at = text.indexOf(head);
