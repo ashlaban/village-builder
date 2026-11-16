@@ -130,13 +130,21 @@ const tables = {
   // herds (sim/herds): per household with animals, its herds by kind, names and ages, its hay and its winter's need
   herds: () => st.households.filter((h) => !h.dissolved && h.herds.length).map((h) => Sim.herdReport(st, h)),
   // villages (sim/settle, VB-148): farms (occupied, in a booth), people, adults waiting for land with no room (crowded), and where and when
-  // a village founded in play came from
+  // a village founded in play came from; then its overview (Sim.villageSummary, VB-162, the numbers its card shows): food in store and
+  // its days of need, the year's harvest in % of a year's need, people 0-14/15-49/50+ now and the change since a year ago, households
+  // hungry in the window, idle % of the hands' work hours, the households each warning concerns (food, hunger, heir, hands), and whose
+  // estimate the foretelling warnings are (the pawn, or with --pawn none, the village's eldest holder)
   villages: () => st.villages.map((v) => {
-    const farms = v.farmsteads.map((id) => st.farmsteads[id]), fd = v.founded;
-    const people = st.pawns.filter((p) => p.alive && p.household !== null && Sim.settlementIdOf(st, p) === v.id).length;
+    const farms = v.farmsteads.map((id) => st.farmsteads[id]), fd = v.founded, s = Sim.villageSummary(st, v.id);
+    const band = (b) => b.join('/'), W = s.warnings, ids = (l) => (l.length ? l.join(' ') : '-');
     return { id: v.id, name: v.name, farms: farms.length, occupied: farms.filter((f) => f.household !== null).length,
-      booths: farms.filter((f) => f.booth).length, people, crowded: v.crowded,
-      founded: fd ? `year ${Math.floor(fd.t / Sim.YEAR) + 1} from ${st.villages[fd.from].name} by ${Sim.fullName(st.pawns[fd.by])}` : '' };
+      booths: farms.filter((f) => f.booth).length, people: s.people, crowded: v.crowded,
+      founded: fd ? `year ${Math.floor(fd.t / Sim.YEAR) + 1} from ${st.villages[fd.from].name} by ${Sim.fullName(st.pawns[fd.by])}` : '',
+      food: Math.round(s.food.rations), foodDays: Math.floor(s.food.days), harvestPct: Math.round(100 * s.harvest.share),
+      ages: band(s.bands.now), change: band(s.bands.now.map((n, i) => (n - s.bands.ago[i] >= 0 ? '+' : '') + (n - s.bands.ago[i]))),
+      hungry: s.hungry.households.length, idlePct: Math.round(100 * s.idle.share),
+      warnFood: ids(W.food), warnHunger: ids(W.hunger), warnHeir: ids(W.heir), warnHands: ids(W.hands),
+      estimateBy: s.viewer ? `${s.viewer.pawn} (${s.viewer.days} days)` : '' };
   }),
   // plans (sim/plans, VB-252): per live household, its standing plan's targets and next review, and its seasonal plan's steps in order
   plans: () => st.liveHouseholds.map((id) => plansOf(st.households[id])),

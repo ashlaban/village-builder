@@ -42,6 +42,7 @@ const Sim = (() => {
   const { headView } = VB['sim/plans'];
   const { wishesOf } = VB['sim/wishes']; // a pawn's wish at the moving round, kind by kind (VB-680)
   const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];
+  const { villageSummary } = VB['sim/overview']; // a village at a glance, for its card and tools/sim.js (VB-162)
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
@@ -80,6 +81,7 @@ const Sim = (() => {
     wishesOf,
     opportunities,
     successors,
+    villageSummary,
     succeed,
     cal,
     age,
