@@ -13,8 +13,9 @@ VB['sim/encounters'] = (() => {
     if (seen.length < n) seen = new Int32Array(2 * n);
   };
   // Up to `sample` of the n pawns in the cell lists `lists` (indexes into `out`), drawn on the talk stream; all of them when there are at
-  // most sample + 1. Each drawn pawn not yet seen, not talking this hour (busy[id] === round) and passing ok(a, b, lim) goes into `found`.
-  function draw(st, a, out, sample, n, busy, round, found, ok, lim) {
+  // most sample + 1. Each drawn pawn not yet seen, not talking this hour (busy[id] === round) and passing ok(near, a, b, lim) goes into `found`.
+  function draw(st, a, near, sample, n, busy, round, found, ok, lim) {
+    const out = near.out;
     const draws = n <= sample + 1 ? n : sample;
     for (let d = 0; d < draws; d++) {
       let k = draws === n ? d : Math.floor(rnd(st.rng.talk) * n),
@@ -28,16 +29,18 @@ VB['sim/encounters'] = (() => {
       }
       if (seen[b.id] === look) continue;
       seen[b.id] = look;
-      if (busy[b.id] !== round && ok(a, b, lim)) found.push(b);
+      if (busy[b.id] !== round && ok(near, a.id, b.id, lim)) found.push(b);
     }
   }
-  const within = (p, b, S) => Math.abs(p.x - b.x) < S && Math.abs(p.y - b.y) < S, // face to face: within S in x and y
-    calling = (p, b, R) => (p.x - b.x) * (p.x - b.x) + (p.y - b.y) * (p.y - b.y) < R * R; // calling distance: within R
+  // Two pawns i and j by their places in `near` (placeOf's, VB-473: a walker where it has come to along its leg): face to face, within S
+  // in x and y; at calling distance, within R.
+  const within = (near, i, j, S) => Math.abs(near.x[i] - near.x[j]) < S && Math.abs(near.y[i] - near.y[j]) < S,
+    calling = (near, i, j, R) => (near.x[i] - near.x[j]) ** 2 + (near.y[i] - near.y[j]) ** 2 < R * R;
   // The cells of `grid` ({cells, size}) about a, into `lists`; their pawns counted.
   function around(grid, near, a) {
     const S = grid.size,
-      cx = Math.floor(a.x / S),
-      cy = Math.floor(a.y / S);
+      cx = Math.floor(near.x[a.id] / S),
+      cy = Math.floor(near.y[a.id] / S);
     let n = 0;
     lists.length = 0;
     for (let dx = -1; dx <= 1; dx++)
@@ -86,7 +89,7 @@ VB['sim/encounters'] = (() => {
         const S = near.size;
         look++;
         seen[a.id] = look;
-        draw(st, a, near.out, T.sample, around(near, near, a), busy, round, found, within, S);
+        draw(st, a, near, T.sample, around(near, near, a), busy, round, found, within, S);
         return ENCOUNTERS.outdoors.mix;
       },
       mix: 0,
@@ -100,7 +103,7 @@ VB['sim/encounters'] = (() => {
       present: (st, near) => near.herders.list.map((n) => near.out[n]),
       sample(st, a, near, busy, round, found) {
         const P = ENCOUNTERS.pasture;
-        draw(st, a, near.out, P.draws, around(near.herders, near, a), busy, round, found, calling, P.reach);
+        draw(st, a, near, P.draws, around(near.herders, near, a), busy, round, found, calling, P.reach);
         return P.mix;
       },
       mix: 0,
@@ -162,15 +165,25 @@ VB['sim/encounters'] = (() => {
 
   // The pawns outdoors in a talk hour, in cells of ENCOUNTERS.outdoors.size map units, and the herders among them in cells of the
   // pasture's reach, filled in the same pass: {out (agents), cells (cell key to indexes into out), cellOf (cell x, y to key), size,
-  // herders: {cells, size, list (indexes into out)}}; derived, not state. (Moved from sim/society's outdoors, VB-521.)
+  // herders: {cells, size, list (indexes into out)}, x, y (each one's place, by pawn id, from `placeOf` (sim/agents, passed in by the
+  // clock: a walker is found along its leg; VB-473)}; derived, not state. x and y are scratch arrays reused by every call, read only
+  // until the next. (Moved from sim/society's outdoors, VB-521.)
   const cellOf = (cx, cy) => cx * 65536 + cy;
-  function outdoors(st) {
+  let px = new Float64Array(0),
+    py = new Float64Array(0);
+  function outdoors(st, placeOf) {
     const NEAR = ENCOUNTERS.outdoors.size,
       FAR = ENCOUNTERS.pasture.reach;
     const out = [];
+    if (px.length < st.agents.length) {
+      px = new Float64Array(2 * st.agents.length);
+      py = new Float64Array(2 * st.agents.length);
+    }
     for (const id of st.living) {
       const a = st.agents[id];
-      if (!a.inside) out.push(a);
+      if (a.inside) continue;
+      out.push(a);
+      [px[id], py[id]] = placeOf(st, a);
     }
     const cells = new Map(),
       far = new Map(),
@@ -181,13 +194,13 @@ VB['sim/encounters'] = (() => {
       else m.set(k, [n]);
     };
     out.forEach((a, n) => {
-      put(cells, cellOf(Math.floor(a.x / NEAR), Math.floor(a.y / NEAR)), n);
+      put(cells, cellOf(Math.floor(px[a.id] / NEAR), Math.floor(py[a.id] / NEAR)), n);
       if (herding(a)) {
         list.push(n);
-        put(far, cellOf(Math.floor(a.x / FAR), Math.floor(a.y / FAR)), n);
+        put(far, cellOf(Math.floor(px[a.id] / FAR), Math.floor(py[a.id] / FAR)), n);
       }
     });
-    return { out, cells, cellOf, size: NEAR, herders: { cells: far, size: FAR, list } };
+    return { out, cells, cellOf, size: NEAR, herders: { cells: far, size: FAR, list }, x: px, y: py };
   }
   return { ENCOUNTERS, partners, outdoors, present, said };
 })();

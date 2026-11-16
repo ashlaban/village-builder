@@ -58,8 +58,14 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Journeys (VB-287; design.md, Between villages): `src/sim/agents.js` owns `st.journeys` and `st.journeySeq`. `sim/heirs`' `moveTo`
   changes the household at the act and hands the pawn to `moved`: within a village it walks to the new door; to another village it sets
   out on a journey, its provisions (`TRAVEL.dayWalk` hours a ration) taken from the household it leaves through `sim/stores` (reason
-  `journey`), a leg a day from 6:00 to 18:00 as due entries the calendar reads at 6:00 (`dueJourneys`) and stops at 18:00
-  (`stopJourneys`); on the road it eats what it carries (`feedTravellers`, through `sim/hunger`'s `ate`), out of its household's meal.
+  `journey`), a leg a day from 6:00 to 18:00 in the pawns' one queue of legs (`st.legDue`, VB-473: a walk that stops for the night at
+  the last step before 18:00, a wait on the road until 6:00); on the road it eats what it carries (`feedTravellers`, through `sim/hunger`'s
+  `ate`), out of its household's meal.
+- Legs (VB-471 to VB-473; design.md section 7, A leg, and its end): `src/sim/agents.js` keeps every pawn in one leg, a walk, work or a
+  wait (`agent.leg`); the ends of walks and waits wait in `st.legDue`, those of tasks in `st.workDue`, and a step (`stepAgents`) takes
+  what is due and nothing else. A pawn's place is `placeOf` (a walker along its leg's hours); `sim/society`'s `outdoors`, `sim/jobs`'
+  company and `sim/lifecycle`'s death on the road read it, and the page reads walkers' places through the shim `Sim.walkerPlaces` until
+  VB-474.
 - Claims (VB-042, VB-155 to VB-158, VB-033): `src/sim/claims.js` (claims on tiles: strength, lapse, disputes by custom), `src/sim/territory.js` (the
   village's outland, borders and cairns), `src/sim/stakes.js` (a field or meadow project stakes its tile; contests) and `src/sim/farmclaims.js`
   (empty farms: the birthright, claimants by custom, restoration and moving in). Design and plan: `docs/review-claims.md`.

@@ -62,11 +62,12 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
                 if (!(Math.hypot(x - st.w.hx[a.job.site], y - st.w.hy[a.job.site]) <= 19)) faults.push(`frame ${frames}: pawn ${i} off its field's rows`);
                 continue;
               }
-              const ok = i < d.prevN && !d.prevIn[i] && !a.inside && Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]) <= far;
-              if (!ok) { if (x !== a.x || y !== a.y) faults.push(`frame ${frames}: pawn ${i} not drawn where it is`); continue; }
-              const seg = Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]);
-              if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(a.x - x,
-                a.y - y) > seg + 1e-6) faults.push(`frame ${frames}: pawn ${i} off its segment`);
+              const [ax, ay] = Sim.placeOf(st, a); // a walker's place from its leg (VB-473)
+              const ok = i < d.prevN && !d.prevIn[i] && !a.inside && Math.hypot(ax - d.prevX[i], ay - d.prevY[i]) <= far;
+              if (!ok) { if (x !== ax || y !== ay) faults.push(`frame ${frames}: pawn ${i} not drawn where it is`); continue; }
+              const seg = Math.hypot(ax - d.prevX[i], ay - d.prevY[i]);
+              if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(ax - x,
+                ay - y) > seg + 1e-6) faults.push(`frame ${frames}: pawn ${i} off its segment`);
               else if (seg > 0 && d.stepShare > 0) between++;
             }
           }

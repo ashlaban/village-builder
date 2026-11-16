@@ -289,21 +289,42 @@ function checkState(st) {
     if (!(st.idlers.hour <= Math.floor(st.t))) bad.push(`idlers: hour ${st.idlers.hour} is after ${Math.floor(st.t)}`);
     for (const [v, l] of st.idlers.by) for (const b of l) if (st.agents[b.id] !== b) bad.push(`idlers: village ${v} lists ${b.id}, not an agent`);
   }
-  // the awake agents of the hour (VB-205): increasing ids of living pawns, and, for the hour it is, every agent the step could move,
-  // or offer to the planner: walking, or in working hours free with its pause ending by the hour's end (a pawn at work is not stepped:
-  // its task's end is in st.workDue, VB-472)
-  if (st.awake) {
-    const { ids, hour } = st.awake, living = new Set(st.living), { WORK, DAY } = globalThis.VB['sim/rules'];
-    if (ids.some((id, i) => !living.has(id) || (i > 0 && id <= ids[i - 1]))) bad.push(`awake: ids ${ids} are not increasing living pawns`);
-    if (hour === Math.floor(st.t + 1e-9)) {
-      const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], has = new Set(ids);
-      for (const id of st.living) {
-        const a = st.agents[id];
-        if (!has.has(id) && a.phase !== 'road' && (a.path || (work && a.phase === null && a.idleUntil <= hour + 1))) {
-          bad.push(`awake: agent ${id} may act in hour ${hour} but is not awake`);
-        }
+  // legs (VB-473): st.legDue holds the walks and waits under way, each pawn once, a living one, sorted by due then id, each due after the
+  // step now (a step takes all that is due); each living pawn's leg agrees with what it does: walking a walk, resting on the road a wait,
+  // at work a work leg, free a wait or none (none only when its next look falls outside the working hours: the working day's start takes
+  // it); a walk's hours to each point rise, its end is the step they reach, its due its end or, on a journey, the night's stop before it.
+  // The awake list is gone.
+  if (st.awake !== undefined) bad.push('awake: the awake list is gone (VB-473)');
+  if (st.legDue !== undefined) {
+    const q = st.legDue, R = globalThis.VB['sim/rules'], living = new Set(st.living), inQ = new Set(Array.isArray(q) ? q : []);
+    const tickOf = (u) => { let k = Math.ceil(u * R.TICKS); if ((k - 1) / R.TICKS >= u) k--; if (k / R.TICKS < u) k++; return k; };
+    if (!Array.isArray(q) || inQ.size !== q.length) bad.push('legDue: not a list of distinct pawn ids');
+    else q.forEach((id, n) => {
+      const a = st.agents[id], l = a && a.leg, at = `legDue[${n}] (pawn ${id})`;
+      if (!living.has(id)) bad.push(`${at}: not living`);
+      if (!l || (l.kind !== 'walk' && l.kind !== 'wait')) { bad.push(`${at}: its leg is ${l && l.kind}`); return; }
+      // after the step now (a step takes all that is due); in a state whose clock a test set forward by hand (tests/lib/clock.js), after its start
+      if (!Number.isInteger(l.due) || !(st.clockSet ? l.due > l.t || (l.kind === 'wait' && l.due === l.t) : l.due > st.tick)) bad.push(`${at}: due ${l.due}, begun ${l.t}, at tick ${st.tick}`);
+      const p = n > 0 && st.agents[q[n - 1]].leg;
+      if (p && (p.due > l.due || (p.due === l.due && q[n - 1] >= id))) bad.push(`${at}: out of order`);
+    });
+    for (const id of st.living) {
+      const a = st.agents[id], l = a.leg || null, k = l && l.kind, at = `agents[${id}]`, free = !a.path && a.phase === null;
+      const want = a.phase === 'road' ? ['wait'] : a.path ? ['walk'] : a.phase === 'work' ? ['work'] : free ? [null, 'wait'] : [];
+      if (!want.includes(k)) bad.push(`${at}: phase ${a.phase}, ${a.path ? 'walking' : 'standing'}, in a leg ${k}`);
+      if ((k === 'walk' || k === 'wait') !== inQ.has(id)) bad.push(`${at}: a leg ${k}, ${inQ.has(id) ? '' : 'not '}in legDue`);
+      if (k === 'walk' && a.path) {
+        const n = a.path.length - l.seg - 1, last = n > 0 ? l.h[n - 1] : 0;
+        if (!Array.isArray(l.h) || l.h.length !== n || l.h.some((x, i) => !(x >= (i ? l.h[i - 1] : 0)))) bad.push(`${at}: a walk's hours ${l.h} to ${n} points`);
+        if (l.end !== l.t + Math.max(1, Math.ceil(last * R.TICKS - 1e-9)) || !(l.due <= l.end) || !(l.pace > 0)) bad.push(`${at}: a walk begun ${l.t}, end ${l.end}, due ${l.due}, pace ${l.pace}`);
+        if (l.due < l.end && a.phase !== 'journey') bad.push(`${at}: a walk stops short of its end, not on a journey`);
+      }
+      if (k === null && free) {
+        const next = Math.max(st.tick + 1, tickOf(a.idleUntil)), h = Math.floor(next / R.TICKS) % R.DAY;
+        if (h >= R.WORK[0] && h < R.WORK[1]) bad.push(`${at}: free, with no leg, and its next look in the working hours`);
       }
     }
+    for (const a of st.agents) if (!living.has(a.id) && a.leg) bad.push(`agents[${a.id}]: dead, in a leg ${a.leg.kind}`);
   }
   // random streams (VB-072): after seeding, exactly one stream per system, none shared, each a 32-bit state, none fixed by a test
   const keys = Object.keys(st.rng || {}).sort().join(), streams = Object.values(st.rng || {});
@@ -763,7 +784,7 @@ function checkState(st) {
       q.forEach((j, n) => {
         const at = `workDue[${n}] (${j.key})`;
         if (st.jobs.get(j.key) !== j) bad.push(`${at}: not posted`);
-        if ((KS[j.kind].attention || 'full') !== 'full') bad.push(`${at}: a side task`);
+        if ((KS[j.kind].attention || 'full') === 'partial') bad.push(`${at}: a partial task`);
         if (!(j.rate > 0) || !Number.isInteger(j.due) || !(j.due > st.tick)) bad.push(`${at}: rate ${j.rate}, due ${j.due} at tick ${st.tick}`);
         if (n > 0 && (q[n - 1].due > j.due || (q[n - 1].due === j.due && q[n - 1].id >= j.id))) bad.push(`${at}: out of order`);
         const h = j.hours ?? KS[j.kind].hours, want = j.at + Math.max(1, Math.ceil(((h - j.done) / j.rate) * TICKS - 1e-7));
@@ -784,7 +805,7 @@ function checkState(st) {
         if (j.rate > 0 && !inQ.has(j)) bad.push(`${at}: under work, not in workDue`);
         if (j.rate > 0 && !(j.done < (j.hours ?? KS[j.kind].hours))) bad.push(`${at}: done ${j.done} of ${j.hours ?? KS[j.kind].hours} while worked`);
         if (A.doneOf(st, j) < j.done - 1e-9) bad.push(`${at}: progress now ${A.doneOf(st, j)} below its last reckoning ${j.done}`);
-      }
+      } else if (j.rate > 0 && !inQ.has(j)) bad.push(`${at}: minded at the side, not in workDue`); // a background task (VB-473)
     }
     for (const a of st.agents) if ('work' in a) bad.push(`agents[${a.id}]: rows (a.work) in the state`);
   }
@@ -867,14 +888,14 @@ function checkState(st) {
       if ((o.answers || []).every((x) => x.yes === true)) bad.push(`${at}: all have said yes, and the offer is open`);
     });
   }
-  // the journeys (VB-287): sorted by due, ids below st.journeySeq and unique, each pawn living and in at most one, `to` its household's house,
+  // the journeys (VB-287): in the order they set out (by id; VB-473: their legs are their pawns'), ids below st.journeySeq and unique, each pawn living and in at most one, `to` its household's house,
   // the food it carries never below 0; a pawn is in phase 'journey' or 'road' exactly when it is on one.
   if (st.journeys !== undefined) {
     const seen = new Set(), ids = new Set();
     if (!Array.isArray(st.journeys) || !Number.isInteger(st.journeySeq) || st.journeySeq < 0) bad.push(`journeys: ${typeof st.journeys}, seq ${st.journeySeq}`);
     else st.journeys.forEach((j, n) => {
       const at = `journeys[${n}] (id ${j.id})`, p = st.pawns[j.pawn];
-      if (n > 0 && st.journeys[n - 1].due > j.due) bad.push(`${at}: due ${j.due} before the one ahead of it`);
+      if (n > 0 && st.journeys[n - 1].id >= j.id) bad.push(`${at}: set out before the one ahead of it`);
       if (!Number.isInteger(j.id) || j.id < 0 || j.id >= st.journeySeq || ids.has(j.id)) bad.push(`${at}: id against journeySeq ${st.journeySeq}`);
       ids.add(j.id);
       if (!p || !p.alive || seen.has(j.pawn)) bad.push(`${at}: pawn ${j.pawn} dead, missing or on two journeys`);
@@ -882,7 +903,7 @@ function checkState(st) {
       const bearing = j.why === 'carry' && !j.back; // VB-291: a carrier bound for the receiver's house, with his gift
       if (bearing ? !j.gift || !(j.gift.n > 0) || st.farmsteads[st.households[j.gift.to].farmstead].house !== j.to : (j.gift || false) && j.gift !== null) bad.push(`${at}: a gift ${JSON.stringify(j.gift)} on a journey ${j.why}, back ${j.back}`);
       if (!bearing && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
-      if ((j.why !== 'move' && j.why !== 'carry') || !(j.food >= 0) || !Number.isFinite(j.due)) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
+      if ((j.why !== 'move' && j.why !== 'carry') || !(j.food >= 0) || 'due' in j) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
       const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
       if (ph !== 'journey' && ph !== 'road') bad.push(`${at}: its pawn is in phase ${ph}`);
     });

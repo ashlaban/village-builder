@@ -1,5 +1,5 @@
-// @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, journeys between villages, death and jobs; the six-minute
-// step of the awake agents
+// @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, journeys between villages, death and jobs; each pawn
+// in one leg (a walk, work or a wait) whose end waits in a due-queue, and the step that takes what is due
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
@@ -26,6 +26,7 @@ VB['sim/agents'] = (() => {
   // the spot by the door of the house on tile `house`, where pawn a would stand
   const spotAt = (st, a, house) => [st.w.hx[house] - 12 + a.ox * 0.3, st.w.hy[house] + 14 + a.oy * 0.15];
   function placeAtHome(st, a) {
+    unleg(st, a);
     const [x, y] = homeSpot(st, a);
     a.x = x;
     a.y = y;
@@ -44,25 +45,29 @@ VB['sim/agents'] = (() => {
     a.x = x;
     a.y = y;
   }
+  // The pawn looks for nothing to do until game time `until`: a free pawn's wait is told again; one walking waits from its arrival.
   function idle(st, a, until) {
     a.idleUntil = until;
-    wake(st, a.id);
+    if (!a.path && a.phase === null) waitLeg(st, a);
   }
-  // A talk stops only an idle pawn outdoors, not one on its way to an occasion (VB-126), and never shortens an existing pause.
+  // A talk stops only an idle pawn outdoors, not one on its way to an occasion (VB-126), and never shortens an existing pause: its walk is
+  // cut where it has come to, and it waits.
   function haltForTalk(st, g, until) {
     if (!g.inside && !g.job && g.phase === null && g.occasion === null) {
-      g.path = null;
+      if (g.path) halt(st, g);
       g.anim = 'idle';
       g.idleUntil = Math.max(g.idleUntil, until);
+      waitLeg(st, g);
     }
   }
   function stillAtDeath(st, a) {
     dropJourney(st, a.id); // a pawn who dies on the road dies there (VB-287)
     release(st, a);
     dropSides(st, a);
+    if (a.path) halt(st, a); // where its walk had come to
     a.path = null;
     a.inside = true;
-    sleep(st, a.id);
+    unleg(st, a);
     const p = st.pawns[a.id];
     if (p.household !== null) driveHome(st, st.households[p.household], a.id); // its herds are left by the farm
   }
@@ -87,10 +92,17 @@ VB['sim/agents'] = (() => {
     const col = q + ((r - (r & 1)) >> 1);
     return r >= 0 && r < w.ROWS && col >= 0 && col < w.COLS ? r * w.COLS + col : -1;
   }
+  // The tile the pawn is on now (placeOf: a walker along its leg).
+  const here = (st, a) => {
+    const [x, y] = placeOf(st, a);
+    return tileAt(st, x, y);
+  };
   // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
   // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
   // `near` (an idle stroll, VB-468): to a neighbouring tile it walks straight over, with no route search.
+  // A walk in hand is cut first, where it has come to; the new one is a leg from there (begin).
   function walkTo(st, a, tile, x, y, near) {
+    if (a.path) halt(st, a, false, true);
     const w = st.w,
       from = tileAt(st, a.x, a.y),
       k = near && from >= 0 ? w.nb.indexOf(tile, from * 6) : -1,
@@ -106,10 +118,9 @@ VB['sim/agents'] = (() => {
     }
     a.path.push([x, y, ok ? stepCost(w, p[p.length - 2], tile) : cost(tile), ok ? tile : -1]);
     a.seg = 0;
-    anchor(st, a);
     a.inside = false;
     a.anim = 'walk';
-    wake(st, a.id);
+    begin(st, a);
   }
   // Where on the site a pawn stands to do the job: as its kind says, else the middle of the tile.
   const workSpot = (st, a, j) =>
@@ -134,6 +145,11 @@ VB['sim/agents'] = (() => {
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
   function dropJob(st, j) {
+    // those holding it at the side let it go at once (VB-473: a herder's task taken down)
+    for (const id of [...(j.claims || [])]) {
+      const b = st.agents[id];
+      if (b && b.side && (b.side.partial === j || b.side.background === j)) unhold(st, b, j);
+    }
     unqueue(st, j);
     j.due = null;
     if (st.jobs.get(j.key) === j) st.jobs.delete(j.key);
@@ -162,6 +178,8 @@ VB['sim/agents'] = (() => {
       Carts.leave(st, st.households[hid], a.id); // and its cart is free
       retune(st, st.households[hid]);
     }
+    if (!a.path) waitLeg(st, a);
+    else repace(st, a); // a walk goes on, at the pace of what it now carries
   }
   // ---- attention (VB-251; design.md section 7): a pawn holds one task (a.job), and besides it one partial and one background task ----
   // @state agent.side: absent, or {partial, background}: the jobs the pawn holds besides its task, each a job of st.jobs listing the pawn
@@ -178,7 +196,7 @@ VB['sim/agents'] = (() => {
     const att = attentionOf(j);
     if (att === 'full') return `${j.key} is not a side task`;
     if (heldAt(a, att)) return `the pawn already holds a ${att} task`;
-    if (att === 'background' && a.job && !(inReach(st, j, tileAt(st, a.x, a.y)) && inReach(st, j, a.job.site)))
+    if (att === 'background' && a.job && !(inReach(st, j, here(st, a)) && inReach(st, j, a.job.site)))
       return `${j.key} is out of its reach`;
     return null;
   }
@@ -189,15 +207,14 @@ VB['sim/agents'] = (() => {
     if (!a.side) a.side = { partial: null, background: null };
     a.side[attentionOf(j)] = j;
     j.claims.push(a.id);
-    if (attentionOf(j) === 'background' && !a.job && !inReach(st, j, tileAt(st, a.x, a.y))) {
+    if (attentionOf(j) === 'background' && !a.job && !inReach(st, j, here(st, a))) {
       const [x, y] = workSpot(st, a, j);
       walkTo(st, a, j.site, x, y);
     }
     if (KINDS[j.kind].held) KINDS[j.kind].held(st, j, a, cal(st.t));
     rerate(st, j);
   }
-  // The pawn lets go of side task j, which stays posted, with its progress, for others; reckoned at tick t (stepSide: before the step's
-  // work).
+  // The pawn lets go of side task j, which stays posted, with its progress, for others; reckoned at tick t.
   function unhold(st, a, j, t = workTick(st)) {
     settle(st, j, t);
     const i = j.claims.indexOf(a.id);
@@ -206,7 +223,12 @@ VB['sim/agents'] = (() => {
     if (!a.side.partial && !a.side.background) delete a.side;
     rerate(st, j);
   }
+  // A walk in hand is trodden up to here first, at the weight of the herds it drives, and goes on from there (treadTo reads the side tasks).
   function dropSides(st, a) {
+    if (a.side && a.path && a.leg && a.leg.kind === 'walk') {
+      halt(st, a, true, true);
+      begin(st, a);
+    }
     if (a.side) for (const slot of ['partial', 'background']) if (a.side && a.side[slot]) unhold(st, a, a.side[slot]);
   }
   // The matcher offers a pawn that holds a background task only tasks within its reach (a full one beyond it never, until the urgency
@@ -223,55 +245,47 @@ VB['sim/agents'] = (() => {
     const bg = heldAt(a, 'background');
     if (bg && a.job && !inReach(st, bg, a.job.site)) unhold(st, a, bg);
   }
-  // Each step of a pawn that holds side tasks: a task finished or gone from the board is let go; a background task is done at its rate
-  // of the pawn's hours (VB-136: hours, not work: a child minds the herd as long as a man), with its kind's `worked`, while the pawn is
-  // within its reach; on its way into reach it is kept, not worked; it is let go out of reach, and outside the working hours. Its work
-  // done, a pawn with nothing else in hand goes home (VB-136: the herder brings the herds home).
-  // A pawn standing still (no path, no work) is where it was last step, so its reach is not looked at again: every walk out of reach is
-  // seen while it has its path, as this runs before the step's walking (VB-136, cost).
-  const SLOTS = ['partial', 'background'];
-  // A background task's progress is reckoned (VB-472), not added each step: its rate is looked at again each step its holder is stepped,
-  // and reckoned up to the step before (this step's work is done by the rate it finds); its end is its due step.
-  function stepSide(st, a, h) {
-    const t = st.tick - 1;
-    for (let k = 0; k < 2; k++) {
-      const slot = SLOTS[k],
-        j = heldAt(a, slot);
-      if (!j) continue;
-      if (st.jobs.get(j.key) !== j) {
-        unhold(st, a, j, t);
-        if (!a.side) return;
-        continue;
-      }
-      if (slot !== 'background') continue;
-      const K = KINDS[j.kind];
-      if (h < WORK[0] || h >= WORK[1]) {
-        unhold(st, a, j, t);
-        if (!a.side) return;
-        continue;
-      }
-      if ((a.path || a.phase !== null) && !inReach(st, j, tileAt(st, a.x, a.y))) {
-        const end = a.path && a.path[a.path.length - 1];
-        if (!end || !inReach(st, j, tileAt(st, end[0], end[1]))) {
-          unhold(st, a, j, t);
-          if (!a.side) return;
-          continue;
-        }
-      }
-      if (Math.abs(manning(st, j) - (j.rate || 0)) > 1e-12) {
-        settle(st, j, t);
-        rerate(st, j);
-      }
-      if (j.due !== null && j.due !== undefined && j.due <= st.tick) {
-        settle(st, j, st.tick);
-        unhold(st, a, j);
-        if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t));
-        prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours);
-        dropJob(st, j);
-        if (!a.job && !a.path && !a.inside && a.phase === null) goHome(st, a);
-        if (!a.side) return;
-      }
+  // A background task (VB-136) is reckoned in closed form, as a task under work is (VB-472): its holders minding it give its rate (a
+  // child minds the herd as long as a man: hours, not work), and its end waits in st.workDue (sideEnded). What its holder does is looked
+  // at when the holder's leg begins and ends (sideCheck, VB-473): a walk that ends out of its reach lets it go, one into reach keeps it,
+  // unworked, and a holder standing at other work out of its reach lets it go. A task taken down is let go at once (dropJob), and at the
+  // end of the working day every holder lets go (sim/clock). Its work done, a pawn with nothing else in hand goes home (VB-136: the
+  // herder brings the herds home).
+  const endTile = (st, a) => {
+    const p = a.path[a.path.length - 1];
+    return tileAt(st, p[0], p[1]);
+  };
+  // The holder's leg has begun or ended (its background task reckoned before it changed): out of reach the task is let go, else its rate
+  // is told again if its minding changed.
+  function sideCheck(st, a) {
+    const j = heldAt(a, 'background');
+    if (!j) return;
+    const walking = a.path && a.leg && a.leg.kind === 'walk';
+    if (walking ? !inReach(st, j, endTile(st, a)) : a.phase !== null && !inReach(st, j, tileAt(st, a.x, a.y)))
+      return unhold(st, a, j);
+    if (Math.abs(manning(st, j) - (j.rate || 0)) > 1e-12) {
+      settle(st, j);
+      rerate(st, j);
     }
+  }
+  // The background task j is due (dueWork): its first holder lets it go, its kind's `done` runs for that holder's household, and the task
+  // is taken down (the others let it go there); that holder, if it stands idle outdoors, goes home.
+  function sideEnded(st, j) {
+    let a = null;
+    for (const id of j.claims) if (heldAt(st.agents[id], 'background') === j && (!a || id < a.id)) a = st.agents[id];
+    if (!a) {
+      unqueue(st, j);
+      j.rate = 0;
+      j.due = null;
+      return;
+    }
+    const K = KINDS[j.kind];
+    if (j.done < hoursOfJob(j)) j.done = hoursOfJob(j); // the due step's work finishes it (rounding)
+    unhold(st, a, j);
+    if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t));
+    prospected(st, a.id, here(st, a), j.hours ?? K.hours);
+    dropJob(st, j);
+    if (!a.job && !a.path && !a.inside && a.phase === null) goHome(st, a);
   }
   // The work is done: everyone working the job but the one who finished it stops, and looks for other work; one that held it at the side
   // lets it go and keeps its task. (Over a copy: letting go takes the pawn out of j.claims, which skipped the next worker; VB-136.)
@@ -285,12 +299,12 @@ VB['sim/agents'] = (() => {
         unhold(st, b, j);
         continue;
       }
-      if (b.phase === 'go') b.path = null;
+      if (b.phase === 'go') halt(st, b); // it stands where its walk had come to
       b.job = null;
       b.phase = null;
       b.inside = false;
       b.anim = 'idle';
-      wake(st, id); // it looks for work at its next step
+      waitLeg(st, b); // it looks for work at once
     }
     j.claims = j.claims.filter((id) => id === finisher || st.agents[id].phase === 'back');
     rerate(st, j);
@@ -307,7 +321,7 @@ VB['sim/agents'] = (() => {
       const a = st.agents[id];
       if (!a || a.phase !== 'back' || !a.job || !st.pawns[id].alive) continue;
       release(st, a);
-      a.path = null;
+      standStill(st, a);
       a.anim = 'idle';
     }
     for (const j of jobs) {
@@ -334,7 +348,7 @@ VB['sim/agents'] = (() => {
     if (j.claims.length > 1) workedTogether(st, j.claims);
     helped(st, j, j.claims);
     freeHands(st, j, a.id);
-    prospected(st, a.id, tileAt(st, a.x, a.y), j.hours ?? K.hours ?? 0); // a hidden vein near the work may be come on (sim/prospect)
+    prospected(st, a.id, here(st, a), j.hours ?? K.hours ?? 0); // a hidden vein near the work may be come on (sim/prospect)
     if (j.plot) {
       finishStep(st, j);
       dropJob(st, j);
@@ -366,6 +380,8 @@ VB['sim/agents'] = (() => {
   }
   const wantsWork = (st, a, c) =>
     !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
+  // A walk has ended where it was going (walkEnd): what the pawn went for begins. One left with nothing in hand waits, and looks for work
+  // at the next step.
   function arrived(st, a) {
     a.anim = 'idle';
     if (a.phase === 'go') {
@@ -374,7 +390,7 @@ VB['sim/agents'] = (() => {
       a.phase = 'work';
       a.anim = K.anim || 'idle';
       a.inside = !!K.inside;
-      a.leg = { t: st.tick, x: a.x, y: a.y, seg: 0 }; // the work leg begins (the page walks a field's rows from it)
+      a.leg = { kind: 'work', t: st.tick, x: a.x, y: a.y, seg: 0 }; // the work leg (the page walks a field's rows from it)
       rerate(st, a.job);
     } else if (a.phase === 'back') deposit(st, a);
     else if (a.phase === 'home') {
@@ -382,6 +398,8 @@ VB['sim/agents'] = (() => {
       a.phase = null;
       driveHome(st, st.households[st.pawns[a.id].household], a.id); // the herds it brought home are by the farm (VB-136)
     } else if (a.phase === 'journey') endJourney(st, a);
+    if (!a.leg && !a.path && a.phase === null && st.pawns[a.id].alive) waitLeg(st, a, st.tick + 1);
+    sideCheck(st, a);
   }
   // Home, letting go of its side tasks (VB-136).
   function goHome(st, a) {
@@ -425,21 +443,27 @@ VB['sim/agents'] = (() => {
   //   its end, and at a cut. `done` is exact while no hand is at work, and below the task's hours otherwise. at and rate are absent until the
   //   task is first reckoned. Written only here; plain data, saved.
   // @state job.due: the tick at whose step the task's work is done, as last reckoned, or null with no hands at work (absent until reckoned).
-  // @state st.workDue: the tasks of full attention under work (rate > 0), each once, sorted by due, then id: a due-queue (Rules for cost 4),
-  //   bounded by the tasks under work; plain data, saved; absent until the first. A step takes what is due (dueWork) and nothing else.
-  // @state agent.leg, at work: {t, x, y, seg 0}, the tick and place its work began; the page walks a field's rows from it.
-  // A step's work is done as the step's agents begin (stepAgents, dueWork): the tick up to which the hands have worked, so a hand leaving
-  // at the calendar's hour (before the agents) does not work that step, and one joining in or after the agents works from the next.
-  const workTick = (st) => (st.awake && st.awake.moving === st.tick ? st.tick : st.tick - 1);
+  // @state st.workDue: the tasks under work (full attention with a hand at work, or background with a holder minding it; rate > 0), each
+  //   once, sorted by due, then id: a due-queue (Rules for cost 4), bounded by the tasks under work; plain data, saved; absent until the
+  //   first. A step takes what is due (dueWork) and nothing else.
+  // A step's work is done as the step's legs begin to be taken (stepAgents, dueWork): the tick up to which the hands have worked, so a hand
+  // leaving at the calendar's hour (before the legs) does not work that step, and one joining in or after them works from the next. Between
+  // steps (a fresh or a loaded run, st.stepAt absent or both its marks at the tick) the step now has been worked.
+  const workTick = (st) => (!st.stepAt || st.stepAt.moving === st.tick ? st.tick : st.tick - 1);
   const hoursOfJob = (j) => j.hours ?? KINDS[j.kind].hours;
   const atWork = (st, j, id) => {
     const b = st.agents[id];
     return b.job === j && b.phase === 'work';
   };
-  // A holder minds its background task while it stands (where it last stood was in reach) or is within reach; one walking into reach
-  // keeps it, unworked (stepSide lets one go that walks out of reach).
-  const minding = (st, b, j) =>
-    b.side && b.side.background === j && !((b.path || b.phase !== null) && !inReach(st, j, tileAt(st, b.x, b.y)));
+  // A holder minds its background task while it stands free (where it last stood was in reach), stands at other work within reach, or
+  // walks a leg that begins and ends within reach; one walking into reach keeps it, unworked (sideCheck lets go one walking out of reach).
+  // Constant over a leg, so the task's rate is told again only as its holders' legs begin and end.
+  function minding(st, b, j) {
+    if (!b.side || b.side.background !== j) return false;
+    const l = b.leg;
+    if (b.path && l && l.kind === 'walk') return inReach(st, j, tileAt(st, l.x, l.y)) && inReach(st, j, endTile(st, b));
+    return b.phase === null || inReach(st, j, tileAt(st, b.x, b.y));
+  }
   // The hours of work j's hands do together in a game hour now: rateOf, the ox team and the cart's part in carting (a hand at carting
   // takes a free cart as it is reckoned, as it did each step); a background task's kind rate for each holder minding it. `take` false
   // reads only.
@@ -538,7 +562,6 @@ VB['sim/agents'] = (() => {
     }
     const left = hoursOfJob(j) - j.done;
     j.due = j.at + Math.max(1, Math.ceil((left / j.rate) * TICKS - 1e-7));
-    if (attentionOf(j) !== 'full') return; // a background task's end is looked at by its holder's step (stepSide)
     const q = st.workDue || (st.workDue = []);
     q.splice(slotOf(q, j.due, j.id), 0, j);
   }
@@ -554,14 +577,18 @@ VB['sim/agents'] = (() => {
     if (!(j.rate > 0)) return j.done;
     return Math.min(hoursOfJob(j), j.done + (Math.max(0, workTick(st) - j.at) / TICKS) * j.rate);
   }
-  // The tick at whose step the job's work is finished, as last reckoned: null with no hands at work.
-  const dueOf = (st, j) => (j.due === undefined ? null : j.due);
-  // The tasks whose end is due at this step (stepAgents, as its agents begin): each is reckoned and ended by its first hand at work.
+  // The tasks whose end is due at this step (stepAgents, as its legs begin to be taken): each is reckoned and ended by its first hand at
+  // work, a background task by its first holder (sideEnded).
   function dueWork(st) {
     const q = st.workDue;
     while (q && q.length && q[0].due <= st.tick) {
       const j = q[0];
       settle(st, j);
+      if (attentionOf(j) === 'background') {
+        sideEnded(st, j);
+        if (q[0] === j && j.due <= st.tick) unqueue(st, j); // a guard: an end never waits on itself
+        continue;
+      }
       const id = j.claims.find((x) => atWork(st, j, x));
       if (id === undefined) {
         q.shift();
@@ -640,185 +667,314 @@ VB['sim/agents'] = (() => {
       a.phase = null;
       a.inside = false;
       if (K.inside) a.anim = 'idle';
-      wake(st, a.id);
+      waitLeg(st, a); // it looks for work at once
     }
   }
-  // ---- legs foretold (VB-471; design.md, A leg, and its end; docs/review-blocks.md) ----
-  // @state agent.leg: {t, x, y, seg}, the tick, place and path point at which the walk now in hand was last (re)started, or none: a.path
-  //   is walked from there at the pawn's pace, so `placeOf` and `walkHours` work out where it is and when it arrives with no stepping.
-  //   Written by walkTo, by a journey's leg that goes on, and as work begins (above); read-only otherwise. Plain data, saved.
-  // A walk begun before the step's walking moves its pawn that same step, so its start is the step before; one begun by the step's own
-  // walking, or after it, from the next.
-  const anchor = (st, a) => {
-    const w = st.awake,
-      moves = !w || w.moving !== st.tick || place(w.ids, a.id) > w.at;
-    a.leg = { t: moves ? st.tick - 1 : st.tick, x: a.x, y: a.y, seg: a.seg };
+  // ---- legs (VB-471, VB-473; design.md section 7, A leg, and its end; docs/review-blocks.md, step 3): a pawn is touched when its leg is due ----
+  // @state agent.leg: the leg the pawn is in, or null (none: free, waiting for the working day's start; or dead):
+  //   a walk {kind 'walk', t, x, y, seg, pace, h, end, due, s}: a.path walked from point seg, begun at place (x, y) after the step of tick t
+  //     (it moves from step t + 1), at `pace` (map units of meadow a game hour); h[k] the hours from its start to path point seg + 1 + k;
+  //     `end` the step it arrives at, `due` the step it ends at (its end, or a journey's stop for the night); s the stride at its start (the page's);
+  //   a wait {kind 'wait', t, due}: a free pawn (or one resting on the road) whose pause ends at step `due`, in the working hours;
+  //   work {kind 'work', t, x, y, seg 0}: the tick and place its work began (its end is its task's, in st.workDue; the page walks a
+  //     field's rows from it).
+  //   Written only here, at a leg's start and end; plain data, saved.
+  // @state st.legDue: the ids of the pawns whose walk or wait is under way, each once, sorted by their leg's due, then id: one due-queue for
+  //   walks, waits and the legs of journeys (Rules for cost 4), bounded by the living; plain data, saved; built from the pawns' state when
+  //   absent (a fresh run, an older save). A step takes what is due (stepAgents) and nothing else.
+  // @state st.stepAt: {moving, walked}, a cache owned here, not saved (non-enumerable): the tick whose legs have begun to be taken, and the
+  //   tick whose legs have all been taken. Between steps both are the tick (a loaded run).
+  // A walk begun before or while the step's legs are taken moves this step (its start is the step before); one begun after, from the next.
+  const walkTick = (st) => (!st.stepAt || st.stepAt.walked === st.tick ? st.tick : st.tick - 1);
+  // The first step a pawn freed now may look for work at: this one while its legs are being taken (or before), else the next.
+  const pollTick = (st) => (!st.stepAt || st.stepAt.walked === st.tick ? st.tick + 1 : st.tick);
+  // The first step at or after game time u (a pause ends when st.t reaches it).
+  function tickOf(u) {
+    let k = Math.ceil(u * TICKS);
+    if ((k - 1) / TICKS >= u) k--;
+    if (k / TICKS < u) k++;
+    return k;
+  }
+  const working = (k) => {
+    const h = Math.floor(k / TICKS) % DAY;
+    return h >= WORK[0] && h < WORK[1];
   };
-  // The pace of a walking pawn in map units of meadow a game hour (moveAgent).
+  // The pace of a walking pawn in map units of meadow a game hour.
   const paceOf = (st, a) => SPEED * st.w.HW * (a.carry ? Carts.pace(st, a) : 1);
-  // The hours a walk still takes from where the pawn is (stepped): each point's distance times its cost, at the pawn's pace.
-  function walkHours(st, a) {
-    if (!a.path) return 0;
-    let s = 0,
-      x = a.x,
-      y = a.y;
-    for (let i = a.seg + 1; i < a.path.length; i++) {
-      const p = a.path[i];
-      s += Math.hypot(p[0] - x, p[1] - y) * (p[2] === undefined ? 1 : p[2]);
-      x = p[0];
-      y = p[1];
-    }
-    return s / paceOf(st, a);
-  }
-  // Where the pawn is now, worked out from where its walk began, with no stepping: for a walk, the budget of the steps since along its
-  // route; else where it stands (a pawn at work stands at its task's spot: the rows of a field are the page's).
-  function placeOf(st, a) {
-    const l = a.leg;
-    if (!a.path || !l || a.phase === 'road') return [a.x, a.y];
-    let left = (Math.max(0, st.tick - l.t) / TICKS) * paceOf(st, a),
-      x = l.x,
-      y = l.y;
-    for (let i = l.seg + 1; i < a.path.length && left > 0; i++) {
-      const pt = a.path[i],
-        c = pt[2] === undefined ? 1 : pt[2],
-        d = Math.hypot(pt[0] - x, pt[1] - y);
-      if (d * c <= left) {
-        left -= d * c;
-        x = pt[0];
-        y = pt[1];
-      } else {
-        const r = left / c / d;
-        return [x + (pt[0] - x) * r, y + (pt[1] - y) * r];
-      }
-    }
-    return [x, y];
-  }
-  function moveAgent(st, a, dt) {
-    let left = SPEED * st.w.HW * dt * (a.carry ? Carts.pace(st, a) : 1); // map units of meadow walking; a step of cost c takes c of them per unit
-    while (left > 0 && a.seg < a.path.length - 1) {
-      const pt = a.path[a.seg + 1],
-        tx = pt[0],
-        ty = pt[1],
-        c = pt[2] === undefined ? 1 : pt[2];
-      const dx = tx - a.x,
-        dy = ty - a.y,
-        d = Math.hypot(dx, dy),
-        reach = left / c;
-      if (Math.abs(dx) > 0.3) a.face = dx > 0 ? 1 : -1;
-      const m = Math.min(d, reach);
-      a.stride += m / 3.4;
-      if (d <= reach) {
-        a.x = tx;
-        a.y = ty;
-        a.seg++;
-        VB.count.walkPoint++;
-        const t = a.path[a.seg][3] ?? -1;
-        // the herds it drives wear the way too (VB-136): only a herder out with them, or bringing them home, can drive any
-        if (t >= 0) tread(st.w, t, a.side || a.phase === 'home' ? 1 + HERD.herding.move * driven(st, a.id) : 1);
-      } else if (reach > 0) {
-        a.x += (dx / d) * reach;
-        a.y += (dy / d) * reach;
-      } else break; // a budget so small (a few 1e-324) that it moves nothing: it never shrinks, so stop until the next step
-      left -= m * c;
-    }
-    if (a.seg >= a.path.length - 1) {
-      a.path = null;
-      arrived(st, a);
-    }
-  }
-  // ---- the six-minute step (VB-205): only the agents that may act this hour are walked (rule 4) ----
-  // @state st.awake: {hour, ids, at}, a cache owned here, not saved (non-enumerable, like st.idx): the ids, in increasing order, of the
-  //   living agents that may act in game hour `hour`: those walking or holding a side task, and in working hours those with no task whose pause ends
-  //   by the hour's end. Rebuilt at the first step of each hour, after its onHour; between, only walkTo and idle can make an agent act, and
-  //   they wake it (add it here); a death takes it out. `at` is the step's place in ids, kept right when an agent is woken mid-step.
-  //   Read by stepAgents only, so an agent left out is one the step would have passed over. A pawn at work is not among them: its task's
-  //   end is in st.workDue (VB-472), and the hands it frees are woken. `moving`: the tick whose agents have begun (workTick, anchor).
-  function awake(st) {
-    const hour = Math.floor(st.tick / TICKS);
-    if (st.awake && st.awake.hour === hour) return st.awake;
-    const h = ((hour % DAY) + DAY) % DAY,
-      work = h >= WORK[0] && h <= WORK[1],
-      ids = [];
-    VB.count.walkAwake += st.living.length;
-    for (const id of st.living) {
-      const a = st.agents[id];
-      // a pawn holding a side task is stepped while it holds it (VB-136: the herder minds the herds while it waits)
-      // a pawn between the legs of a journey keeps its route but sleeps where it stopped (VB-287)
-      if ((a.path && a.phase !== 'road') || a.side || (work && a.phase === null && a.idleUntil <= hour + 1))
-        ids.push(id);
-    }
-    if (!st.awake) Object.defineProperty(st, 'awake', { value: null, writable: true });
-    st.awake = { hour, ids, at: ids.length };
-    return st.awake;
-  }
-  // Where id is in the sorted ids, or where it would go.
-  function place(ids, id) {
+  const dueAt = (st, id) => st.agents[id].leg.due;
+  // Where pawn id stands in the queue q (by due, then id), or where it would go.
+  function legSlot(st, q, due, id) {
     let lo = 0,
-      hi = ids.length;
+      hi = q.length;
     while (lo < hi) {
-      const m = (lo + hi) >> 1;
-      if (ids[m] < id) lo = m + 1;
+      const m = (lo + hi) >> 1,
+        d = dueAt(st, q[m]);
+      if (d < due || (d === due && q[m] < id)) lo = m + 1;
       else hi = m;
     }
     return lo;
   }
-  function wake(st, id) {
-    const w = st.awake;
-    if (!w) return;
-    const i = place(w.ids, id);
-    if (w.ids[i] === id) return;
-    w.ids.splice(i, 0, id);
-    if (i <= w.at) w.at++;
-  }
-  function sleep(st, id) {
-    const w = st.awake;
-    if (!w) return;
-    const i = place(w.ids, id);
-    if (w.ids[i] !== id) return;
-    w.ids.splice(i, 1);
-    if (i <= w.at) w.at--;
-  }
-  // The tasks due end (dueWork); then each awake agent walks, minds its side task, or, if it wants work, joins the list returned (in id
-  // order) for the planner (sim/clock). A whole 6-minute step, always: the page draws the pawns between steps (VB-244).
-  const STEP_HOURS = 1 / TICKS;
-  function stepAgents(st, c) {
-    const w = awake(st),
-      ids = w.ids,
-      out = [],
-      dt = STEP_HOURS;
-    w.moving = st.tick; // the step's work is done and its walking has begun (workTick, walkTo's `anchor`)
-    w.at = -1; // a walk begun by a task's end is walked this step
-    dueWork(st);
-    VB.count.walkStep += ids.length;
-    for (w.at = 0; w.at < ids.length; w.at++) {
-      const a = st.agents[ids[w.at]];
-      if (a.side) {
-        stepSide(st, a, c.hour);
-        if (a.path && a.leg && a.leg.t === st.tick) a.leg.t--; // a walk begun by the side task is walked at once, this step
+  // The queue, built from the pawns' state the first time it is needed (a fresh run, an older save).
+  function legsOf(st) {
+    if (!st.legDue) {
+      st.legDue = [];
+      for (const p of st.pawns) {
+        const a = st.agents[p.id];
+        if (!p.alive || !a) continue;
+        const was = a.leg;
+        a.leg = null;
+        if (a.phase === 'road') roadWait(st, a);
+        else if (a.path)
+          begin(st, a); // from where it stands now
+        else if (a.phase === 'work')
+          a.leg = was && was.t !== undefined ? { kind: 'work', t: was.t, x: was.x, y: was.y, seg: 0 } : workLeg(st, a);
+        else if (a.phase === null) waitLeg(st, a);
       }
-      if (a.path) moveAgent(st, a, dt);
-      else if (wantsWork(st, a, c)) out.push(a);
     }
-    return out;
+    return st.legDue;
   }
-  // A loaded run: the step's agents have begun (a save is made between steps), so a hand that leaves before the next step has worked
-  // this one; the cache is rebuilt at the next step.
-  // A save made before VB-472 stepped its workers (agent.work, the rows; job.cast, VB-471): its tasks under work are reckoned from now.
+  const workLeg = (st, a) => ({ kind: 'work', t: st.tick, x: a.x, y: a.y, seg: 0 });
+  function enqueue(st, a) {
+    const q = st.legDue;
+    q.splice(legSlot(st, q, a.leg.due, a.id), 0, a.id);
+  }
+  // The pawn's leg is over (or replaced): out of the queue.
+  function unleg(st, a) {
+    const l = a.leg,
+      q = st.legDue;
+    if (l && (l.kind === 'walk' || l.kind === 'wait') && q) {
+      const i = legSlot(st, q, l.due, a.id);
+      if (q[i] === a.id) q.splice(i, 1);
+    }
+    a.leg = null;
+  }
+  // A free pawn (no walk, no task in hand) waits: until its pause ends, and at least until step `from`; a wait that would end outside the
+  // working hours is none, and the working day's start takes it (dayStart).
+  function waitLeg(st, a, from = pollTick(st)) {
+    legsOf(st);
+    unleg(st, a);
+    if (!st.pawns[a.id].alive) return;
+    const due = Math.max(from, tickOf(a.idleUntil));
+    if (working(due)) {
+      a.leg = { kind: 'wait', t: st.tick, due };
+      enqueue(st, a);
+    }
+    sideCheck(st, a);
+  }
+  // A pawn on a journey rests on the road until its next leg, at the next 6:00 (VB-287).
+  function roadWait(st, a) {
+    legsOf(st);
+    unleg(st, a);
+    a.leg = { kind: 'wait', t: st.tick, due: nextLeg(st.t) * TICKS };
+    enqueue(st, a);
+  }
+  // The walk along a.path from where the pawn is (a.x, a.y, past point a.seg) is a leg: the hours to each point at its pace, its end the
+  // step they reach (whole steps: the clock stands), cut short on a journey at the night's stop (the last step before WORK[1]).
+  function begin(st, a) {
+    legsOf(st);
+    unleg(st, a);
+    const P = a.path,
+      pace = paceOf(st, a),
+      h = [];
+    let s = 0,
+      x = a.x,
+      y = a.y;
+    for (let i = a.seg + 1; i < P.length; i++) {
+      const p = P[i];
+      s += (Math.hypot(p[0] - x, p[1] - y) * (p[2] === undefined ? 1 : p[2])) / pace;
+      h.push(s);
+      x = p[0];
+      y = p[1];
+    }
+    const t = walkTick(st),
+      end = t + Math.max(1, Math.ceil(s * TICKS - 1e-9));
+    let due = end;
+    if (a.phase === 'journey') {
+      const day = Math.floor((t + 1) / (DAY * TICKS));
+      due = Math.min(end, Math.max(t + 1, (day * DAY + WORK[1]) * TICKS - 1));
+    }
+    a.leg = { kind: 'walk', t, x: a.x, y: a.y, seg: a.seg, pace, h, end, due };
+    if (st.pawns[a.id].alive) enqueue(st, a);
+    sideCheck(st, a);
+  }
+  // How far walk leg l has come e hours after its start: [the last path point passed, x, y].
+  function along(a, l, e) {
+    const h = l.h,
+      P = a.path;
+    if (!(e > 0) || !h.length) return [l.seg, l.x, l.y];
+    if (e >= h[h.length - 1]) {
+      const p = P[P.length - 1];
+      return [P.length - 1, p[0], p[1]];
+    }
+    let lo = 0,
+      hi = h.length - 1; // the first point not yet reached: h[lo] > e (halving: Rules for cost)
+    while (lo < hi) {
+      const m = (lo + hi) >> 1;
+      if (h[m] <= e) lo = m + 1;
+      else hi = m;
+    }
+    const i = l.seg + 1 + lo,
+      h0 = lo > 0 ? h[lo - 1] : 0,
+      p0 = lo > 0 ? P[i - 1] : [l.x, l.y],
+      p1 = P[i],
+      r = h[lo] > h0 ? (e - h0) / (h[lo] - h0) : 0;
+    return [i - 1, p0[0] + (p1[0] - p0[0]) * r, p0[1] + (p1[1] - p0[1]) * r];
+  }
+  // The tiles entered from point `from` to point `to` are trodden; the herds a herder drives wear the way too (VB-136): only a herder out
+  // with them, or bringing them home, can drive any.
+  function treadTo(st, a, from, to) {
+    for (let i = from + 1; i <= to; i++) {
+      VB.count.walkPoint++;
+      const t = a.path[i][3] ?? -1;
+      if (t >= 0) tread(st.w, t, a.side || a.phase === 'home' ? 1 + HERD.herding.move * driven(st, a.id) : 1);
+    }
+  }
+  // Where the pawn is now, worked out from its leg: for a walk, the hours since its start along its route; else where it stands (a pawn at
+  // work stands at its task's spot: the rows of a field are the page's).
+  function placeOf(st, a) {
+    const l = a.leg;
+    if (!a.path || !l || l.kind !== 'walk') return [a.x, a.y];
+    VB.count.walkPlace++;
+    const [, x, y] = along(a, l, (workTick(st) - l.t) / TICKS);
+    return [x, y];
+  }
+  // The way the pawn faces and the stride it has come to, e hours into walk leg l, standing at point i, (x, y) (the page's pose).
+  function poseAt(a, l, e, i, x, y) {
+    const P = a.path,
+      dx = i + 1 < P.length ? P[i + 1][0] - x : x - (i > l.seg ? P[i - 1][0] : l.x);
+    return [x, y, Math.abs(dx) > 0.3 ? Math.sign(dx) : a.face, (a.stride || 0) + (e * l.pace) / 3.4];
+  }
+  // Walk leg l ends e hours in (its end, a cut, a journey's night): the tiles entered so far are trodden, and the pawn stands where its
+  // hours reach, facing the way it went (a.x, a.y, a.seg, and the page's face and stride: written at a leg's start and end only).
+  function stopAt(st, a, l, e) {
+    const [i, x, y] = along(a, l, e);
+    treadTo(st, a, l.seg, i);
+    [a.x, a.y, a.face, a.stride] = poseAt(a, l, e, i, x, y);
+    a.seg = i;
+  }
+  // A walk is cut where it has come to; `keep` keeps its route, to walk on from there (a pace changed); `quiet` leaves its side task to
+  // the walk that follows.
+  function halt(st, a, keep = false, quiet = false) {
+    const l = a.leg;
+    if (!l || l.kind !== 'walk') {
+      if (!keep) a.path = null; // a route kept on the road, dropped
+      return;
+    }
+    unleg(st, a);
+    stopAt(st, a, l, Math.max(0, workTick(st) - l.t) / TICKS);
+    if (!keep) a.path = null;
+    if (!quiet) sideCheck(st, a);
+  }
+  // The pawn stops where it is: a walk in hand is cut there, and, with nothing in hand, it waits.
+  function standStill(st, a) {
+    if (a.path) halt(st, a);
+    if (a.phase === null) waitLeg(st, a);
+  }
+  // A walk's pace changed (what it carries): it goes on from where it has come to, at the new pace.
+  function repace(st, a) {
+    if (!a.path || !a.leg || a.leg.kind !== 'walk' || paceOf(st, a) === a.leg.pace) return;
+    halt(st, a, true, true);
+    begin(st, a);
+  }
+  // Walk leg l is due: the pawn arrives (every tile of the rest of the way trodden), or, on a journey, stops for the night where it has come
+  // to and rests there until 6:00.
+  function walkEnd(st, a, l) {
+    if (l.due >= l.end) {
+      stopAt(st, a, l, l.h.length ? l.h[l.h.length - 1] : 0); // at its route's end
+      a.path = null;
+      arrived(st, a);
+      return;
+    }
+    stopAt(st, a, l, (l.due - l.t) / TICKS);
+    a.phase = 'road';
+    a.anim = 'idle';
+    roadWait(st, a);
+  }
+  // The hours a walk still takes from now.
+  function walkHours(st, a) {
+    const l = a.leg;
+    if (!a.path || !l || l.kind !== 'walk' || !l.h.length) return 0;
+    return Math.max(0, l.h[l.h.length - 1] - (workTick(st) - l.t) / TICKS);
+  }
+  // The page's view of a pawn for the step now (until it draws from legs, VB-474): [x, y, face, stride], a walker's worked out from its
+  // leg, read only.
+  function poseOf(st, a) {
+    const l = a.leg;
+    if (!a.path || !l || l.kind !== 'walk') return [a.x, a.y, a.face, a.stride || 0];
+    const e = Math.max(0, workTick(st) - l.t) / TICKS,
+      [i, x, y] = along(a, l, e);
+    return poseAt(a, l, e, i, x, y);
+  }
+  // ---- the step (VB-205, VB-473): the legs due end, and nothing else is touched ----
+  // The working day's start (WORK[0]) is one event for those waiting for it: the free pawns with no leg look for work, or wait for their
+  // pause to end. Once a day over the living, where the awake list walked them every hour.
+  function dayStart(st, c, offer) {
+    for (const id of st.living) {
+      VB.count.walkAwake++;
+      const a = st.agents[id];
+      if (a.leg || a.path || a.phase !== null) continue;
+      if (wantsWork(st, a, c)) offer(a);
+      else waitLeg(st, a, st.tick);
+    }
+  }
+  // The tasks due end (dueWork); then the legs due: a walk arrives (or stops on the road for the night), a journey's rest ends and its
+  // next leg sets out, and a wait ends: a free pawn that wants work joins the list returned (in id order) for the planner (sim/clock),
+  // with those the working day's start finds waiting. A whole 6-minute step, always: the page draws the pawns between steps (VB-244).
+  function stepAgents(st, c) {
+    if (!st.stepAt) Object.defineProperty(st, 'stepAt', { value: { moving: -1, walked: -1 }, writable: true });
+    st.stepAt.moving = st.tick; // the step's work is done and its legs are being taken (workTick, walkTick)
+    const q = legsOf(st),
+      out = [],
+      seen = new Set(),
+      offer = (a) => {
+        if (!seen.has(a.id)) {
+          seen.add(a.id);
+          out.push(a);
+        }
+      };
+    dueWork(st);
+    if (st.tick % (DAY * TICKS) === WORK[0] * TICKS) dayStart(st, c, offer);
+    while (q.length && dueAt(st, q[0]) <= st.tick) {
+      const a = st.agents[q.shift()],
+        l = a.leg;
+      a.leg = null;
+      VB.count.walkStep++;
+      if (l.kind === 'walk') walkEnd(st, a, l);
+      else if (a.phase === 'road') leg(st, journeyOf(st, a.id));
+      else if (wantsWork(st, a, c)) offer(a);
+      else waitLeg(st, a, st.tick + 1);
+    }
+    st.stepAt.walked = st.tick;
+    return out.filter((a) => !a.leg && wantsWork(st, a, c)).sort((a, b) => a.id - b.id);
+  }
+  // After the planner (sim/clock): a pawn it was offered to and left free with nothing in hand (a side task taken up where it stands, a
+  // command refused, the player's pawn) looks again at the next step, as the stepping did.
+  function rest(st, all) {
+    for (const a of all) if (!a.leg && !a.path && a.phase === null && st.pawns[a.id].alive) waitLeg(st, a);
+  }
+  // A loaded run: a save is made between steps, so the step now has been worked and walked. A save made before VB-472 stepped its workers
+  // (agent.work, the rows; job.cast, VB-471): its tasks under work are reckoned from now. One made before VB-473 has no legs (an awake list,
+  // journeys with a due time): each pawn's leg is built from where it is and what it does.
   function loaded(st) {
-    if (!st.awake) Object.defineProperty(st, 'awake', { value: null, writable: true });
-    st.awake = { hour: -Infinity, ids: [], at: 0, moving: st.tick };
+    if (!st.stepAt) Object.defineProperty(st, 'stepAt', { value: null, writable: true });
+    st.stepAt = { moving: st.tick, walked: st.tick };
     for (const a of st.agents) if ('work' in a) delete a.work;
+    for (const j of st.journeys || []) delete j.due;
+    legsOf(st);
     for (const j of st.jobs.values()) {
       delete j.cast;
       if ((j.at === undefined || j.at === null) && j.claims.length) rerate(st, j, false);
+      // a background task minded in a save made before VB-473 had its due but was not queued: its end is queued now
+      else if (j.rate > 0 && attentionOf(j) === 'background' && !(st.workDue || []).includes(j)) rerate(st, j, false);
     }
   }
   // ---- journeys (VB-287; design.md, Between villages: A journey, Provisions and the season) ----
-  // @state st.journeys[]: the open journeys, sorted by due (after those due at the same time), each {id, pawn, to (tile: the house of the
-  //   pawn's household), why ('move'), due (game hours: its next leg's start, 6:00; while a leg is walked, the next day's 6:00), food (the
-  //   rations it carries), from (the farm it left, or null)}. Plain data, saved; a save without it loads with none.
+  // @state st.journeys[]: the open journeys, in the order they set out (by id), each {id, pawn, to (tile: the house of the pawn's
+  //   household), why ('move' or 'carry'), food (the rations it carries), from (the farm it left, or null)}. Plain data, saved; a save
+  //   without it loads with none. When its legs start and stop is its pawn's (st.legDue, VB-473): a walk that stops for the night, a wait
+  //   on the road until 6:00.
   // @state st.journeySeq: number; the next journey's id; ids are never reused
-  // A pawn on a journey is in phase 'journey' while it walks a leg and 'road' before its first leg and between legs, when it is not awake and
+  // A pawn on a journey is in phase 'journey' while it walks a leg and 'road' before its first leg and between legs, when it rests and
   // keeps its route (a.path, a.seg). Its household changed at the act; the journey changes only where it is and what it does until it arrives.
   const travelling = (a) => a.phase === 'journey' || a.phase === 'road';
   const journeyOf = (st, id) => {
@@ -829,14 +985,6 @@ VB['sim/agents'] = (() => {
   function nextLeg(t) {
     const day = Math.floor(t / DAY);
     return day * DAY + WORK[0] + (t - day * DAY < WORK[0] ? 0 : DAY);
-  }
-  // Journey j takes its place in st.journeys by its due time.
-  function queueJourney(st, j) {
-    const at = st.journeys.indexOf(j);
-    if (at >= 0) st.journeys.splice(at, 1);
-    let i = st.journeys.length;
-    while (i > 0 && st.journeys[i - 1].due > j.due) i--;
-    st.journeys.splice(i, 0, j);
   }
   function dropJourney(st, id) {
     const j = journeyOf(st, id);
@@ -863,17 +1011,18 @@ VB['sim/agents'] = (() => {
     dropSides(st, a);
     a.carry = null; // a load on its way home was put down by release
     const from = old ? st.farmsteads[old.farmstead] : null,
-      at = tileAt(st, a.x, a.y);
+      at = here(st, a);
     if (from ? from.village !== f.village : hoursTo(st, null, at, f.village) > TRAVEL.dayWalk)
       return setOut(st, a, old, hh, carry, hoursTo(st, from ? from.village : null, at, f.village));
     const h = cal(st.t).hour,
       same = from !== null && from.id === f.id;
     if (a.inside && (same || h < WORK[0] || h >= WORK[1])) {
       // in its own house it is home already; indoors elsewhere at night, it walks at 6:00
-      a.path = null;
+      if (a.path) halt(st, a);
       a.phase = null;
       a.anim = 'idle';
       if (same) placeAtHome(st, a);
+      waitLeg(st, a);
       return;
     }
     goHome(st, a);
@@ -881,9 +1030,11 @@ VB['sim/agents'] = (() => {
   // A child born to a mother on the road (VB-425; no teleporting): it is where she is, outdoors, and walks to its home as she does.
   function placeBorn(st, a, mother, hh) {
     const m = st.agents[mother];
-    if (!travelling(m)) return placeAtHome(st, a);
-    a.x = m.x;
-    a.y = m.y;
+    if (!travelling(m)) {
+      placeAtHome(st, a);
+      return waitLeg(st, a);
+    }
+    [a.x, a.y] = placeOf(st, m);
     a.inside = false;
     a.anim = 'idle';
     setOut(st, a, null, hh, false, hoursTo(st, null, tileAt(st, a.x, a.y), st.farmsteads[hh.farmstead].village));
@@ -898,7 +1049,6 @@ VB['sim/agents'] = (() => {
         pawn: a.id,
         to: f.house,
         why: gift ? 'carry' : 'move',
-        due: 0,
         food: 0,
         from: old ? old.farmstead : null,
       };
@@ -919,21 +1069,21 @@ VB['sim/agents'] = (() => {
     }
     const left = old ? st.farmsteads[old.farmstead].name : 'where it stood';
     personEvent(st, a.id, 'setOut', `Set out from ${left} for ${f.name}, ${Math.round(hours)} hours' walk`, false);
+    if (a.path) halt(st, a); // a walk in hand (to a task it was released from) ends where it has come to: the journey sets out from there
+    st.journeys.push(j);
     startLeg(st, a, j);
   }
-  // The first leg now if a day's walking is left (6:00 to 16:00), else at the next 6:00, from where the pawn stands.
+  // The first leg now if a day's walking is left (6:00 to 16:00), else at the next 6:00, from where the pawn stands (a wait on the road).
   function startLeg(st, a, j) {
     const h = cal(st.t).hour;
     if (h >= WORK[0] && h < WORK[1] - 2) {
       leg(st, j);
       return;
     }
-    a.path = null;
+    if (a.path) halt(st, a);
     a.phase = 'road';
     a.anim = 'idle';
-    sleep(st, a.id);
-    j.due = nextLeg(st.t);
-    queueJourney(st, j);
+    roadWait(st, a);
   }
   // A gift of n grain from household `from` to household `to`, further than a day's walk (VB-291; Kim, 10 Nov: carried, not sent): the
   // grain leaves the giver's store as the carrier, one of its adults, sets out; the receiver books it when he arrives (delivered).
@@ -948,21 +1098,19 @@ VB['sim/agents'] = (() => {
     const hours = hoursBetween(st, st.farmsteads[o.from.farmstead].village, st.farmsteads[o.to.farmstead].village);
     setOut(st, a, o.from, o.to, false, hours, { to: o.to.id, n: o.n, parts });
   }
-  // A leg: the route is found at the first (a journey costs one search), and walked on from where the pawn stopped at the others.
+  // A leg: the route is found at the first (a journey costs one search), and walked on from where the pawn stopped at the others. Its
+  // walk stops for the night at the last step before WORK[1] (begin), and its rest on the road ends at 6:00 (stepAgents).
   function leg(st, j) {
     const a = st.agents[j.pawn];
+    a.phase = 'journey';
     if (!a.path) {
       const [x, y] = spotAt(st, a, j.to);
       walkTo(st, a, j.to, x, y);
     } else {
-      anchor(st, a); // the walk goes on from where it stopped
       a.inside = false;
       a.anim = 'walk';
-      wake(st, a.id);
+      begin(st, a); // the walk goes on from where it stopped
     }
-    a.phase = 'journey';
-    j.due = nextLeg(st.t);
-    queueJourney(st, j);
   }
   // A pawn's household changed again on the road (a death at home, a handover): it walks to the new home, turning back if need be.
   function retarget(st, a, to) {
@@ -970,25 +1118,10 @@ VB['sim/agents'] = (() => {
     if (j.to === to || (j.why === 'carry' && !j.back)) return; // a carrier delivers first, and then walks to the home he has
     if (j.why === 'carry') j.back = true;
     j.to = to;
-    a.path = null;
     if (a.phase === 'journey') {
       const [x, y] = spotAt(st, a, to);
-      walkTo(st, a, to, x, y);
-    }
-  }
-  // The calendar's 6:00 (sim/clock): the legs due start. Only the first journey's due time is read (Rules for cost, 4).
-  function dueJourneys(st) {
-    while (st.journeys.length && st.journeys[0].due <= st.t) leg(st, st.journeys[0]);
-  }
-  // The calendar's 18:00: a pawn still on the road stops where it stands, outdoors, and sleeps there; its next leg is due at 6:00.
-  function stopJourneys(st) {
-    for (const j of st.journeys) {
-      const a = st.agents[j.pawn];
-      if (a.phase !== 'journey') continue;
-      a.phase = 'road';
-      a.anim = 'idle';
-      sleep(st, a.id);
-    }
+      walkTo(st, a, to, x, y); // from where its walk has come to
+    } else a.path = null; // resting on the road: its next leg finds its way from where it stopped
   }
   // The day's meal on the road (sim/clock, after the households' meals): each traveller eats what it carries, a ration a day (half below 14).
   function feedTravellers(st) {
@@ -1014,7 +1147,6 @@ VB['sim/agents'] = (() => {
     personEvent(st, a.id, 'arrived', `Arrived at ${f.name} with ${Math.round(g.n)} grain`, false);
     j.to = st.farmsteads[from.farmstead].house;
     a.anim = 'idle';
-    a.path = null;
     startLeg(st, a, j);
   }
   function endJourney(st, a) {
@@ -1071,12 +1203,13 @@ VB['sim/agents'] = (() => {
     withOxen,
     walkHours,
     placeOf,
+    poseOf,
+    standStill,
     doneOf,
-    dueOf,
     reckonAll,
     loaded,
-    moveAgent,
     stepAgents,
+    rest,
     describe,
     attentionOf,
     heldAt,
@@ -1090,8 +1223,6 @@ VB['sim/agents'] = (() => {
     journeyOf,
     moved,
     carryGift,
-    dueJourneys,
-    stopJourneys,
     feedTravellers,
   };
 })();
