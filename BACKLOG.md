@@ -43,7 +43,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-311](backlog/VB-311.md) | Land rights: own and use held apart, st.owner the user's cache | debt | 3 | M | A holding's owner and its user may differ; only holdings held apart are recorded; golden unchanged until a tenancy exists. |
 | [VB-313](backlog/VB-313.md) | Refactor: Decisions as a module, the meeting's votes asked through it | debt | 3 | M | Questions, procedures and ballots in one module; the custom votes go through it unchanged; ballots and margins kept. |
 | [VB-324](backlog/VB-324.md) | Measure VB-245 on the late saves: the bench and the bands | yardstick | 3 | S | VB-245's late-save numbers, never run: tools/bench.js at medium-y5 and medium-ref, tools/bands.js, populous seeds 11 and 42 at 15 years. |
-| [VB-331](backlog/VB-331.md) | A day without water: no cooking and a little health | - | 3 | S | A household that fetched no water that day cannot cook and its members lose a little health, as with an empty woodpile; today the water job is read by nothing. |
 | [VB-360](backlog/VB-360.md) | Skills: learnt by doing, faster with aptitude, fading unused | mill | 3 | M | A skill a craft and pawn from 0 to 1: a novice works at 60% and a master at 130%; halfway in 400 hours; a tenth lost a year unused, read in closed form. |
 | [VB-361](backlog/VB-361.md) | Facilities: a registry of built things, raised in stages | mill | 3 | M | st.facilities holds built things on sites with an owner, a kind, a condition and building stages that are plan steps; the bloomery, the loom's house, kilns and mills use it. |
 | [VB-375](backlog/VB-375.md) | One loader with a hook for timed and replaced functions | yardstick | 3 | M | An ES module's exports cannot be reassigned, and ten files do that today to count or time a function: `tools/perf.js` (about 25 functions of 12 module. |
@@ -65,6 +64,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-596](backlog/VB-596.md) | Refactor: split page/farmart by concern | - | 3 | S | page/farmart is 958 formatted lines (VB-410 added the cart art, 57) over its baseline of 901; split it |
 | [VB-611](backlog/VB-611.md) | Teleport: a load lies where its carrier fell | physical | 3 | M | A hand who dies on the road, or whose household dissolves, with a load on its way home: the load is booked at its barn from the road (release in sim/agents). |
 | [VB-616](backlog/VB-616.md) | The led cow is drawn once, not also in the giver's herd | animals | 3 | S | Until ledHome moves the animal, the herd still draws it besides the one led |
+| [VB-626](backlog/VB-626.md) | Measure why water goes unfetched after VB-331 | - | 3 | S | the numbers VB-331 left: why the water job went undone, meals uncooked, deaths |
 
 ## Waiting for Kim
 
@@ -76,6 +76,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | [VB-278](backlog/VB-278.md) | The meetings a village a step: each village's meeting in its own six-minute step | between | 2 | M | VB-206's four stages run the whole island at once; each village now holds its meeting in its own step (its people's interests, its tie, its causes, its meeting), then the cultures' reckoning and the land meeting; draws reorder, so customs are calibrated before and after. |
 | [VB-581](backlog/VB-581.md) | Teleport: a load is put down in the barn when its carrier is released on the road | physical | 2 | S | A teleport found by VB-473: release (VB-335) books a load on its way home at the farm's barn at once, wherever its carrier stands |
 | [VB-280](backlog/VB-280.md) | The order of villages turns by the year, so no village always asks first | between | 3 | S | In village id order the first villages' men ask first every year; start the round's and the meetings' order at village year mod count, deterministic and without a new draw, if Kim agrees. |
+| [VB-331](backlog/VB-331.md) | A day without water: no cooking and a little health | - | 3 | S | A household that fetched no water that day cannot cook and its members lose a little health, as with an empty woodpile; today the water job is read by nothing. |
 | [VB-432](backlog/VB-432.md) | A village's round clears only the memos a marriage touches | between | 3 | S | Rankings in the moving round rose four- to eightfold with VB-277; clear only the heirs' memos a marriage or handover touches. |
 | [VB-453](backlog/VB-453.md) | A job's urgency is worked out once a round, not once a bid | - | 3 | S | planRound and lookUp score each job for each idle pawn (about 3,000 bids a game day on populous tiny), and half of a score's time is the job's urgency, which does not depend on the pawn. |
 
