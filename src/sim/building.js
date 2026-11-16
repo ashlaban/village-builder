@@ -161,8 +161,9 @@ VB['sim/building'] = (() => {
       ...(kind === 'barnwalls' ? { wood: 0, timber: BUILD.barn.timber } : {}),
     }));
   // A stage of the barn done: the next opens (sim/plans); with the roof on, the farm has its barn.
-  function barnStage(st, j, hh) {
-    const s = hh && Projects.openOf(st, 'household', hh.id),
+  function barnStage(st, j) {
+    const hh = j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null, // the farm's, not the hand's who ends it
+      s = hh && Projects.openOf(st, 'household', hh.id),
       f = j.farm;
     if (!s || s.kind !== j.kind || s.place !== j.site) return;
     if (j.kind === 'barnroof') {

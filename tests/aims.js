@@ -109,7 +109,7 @@ function surplusState() {
     const s0 = Projects.openStep(p);
     assert.strictEqual(s0.kind, kind);
     if (s0.timber) s0.wood = s0.timber; // lint-allow: owner the timber carried to the site
-    K[kind].done(st, { kind, site: f.house, farm: f }, hh);
+    K[kind].done(st, { kind, site: f.house, farm: f, owner: { type: 'household', id: hh.id } }, st.households[1]); // ended by a neighbour's hand
   }
   assert.ok(f.barn && f.barn.built === st.t, 'the barn stands');
   assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, 'the project is finished');
@@ -170,6 +170,12 @@ function surplusState() {
       assert.ok(p && p.what === 'plot' && p.by === hh.id && p.intended === heir && p.village === f.village, 'a plot of the household');
       assert.ok(VB['sim/expansion'].livePlots(st, st.villages[f.village]).includes(p), "among the village's plots under way");
       assert.deepStrictEqual(checkState(st), [], 'invariants with a plot for the heir');
+      // its tasks are the plot's, posted as every plot's are, on tiles of the map (none of the household's land project's)
+      Sim.advance(st, 2 * DAY);
+      const jobs = [...st.jobs.values()];
+      assert.ok(jobs.every((j) => Number.isInteger(j.site)), 'every task on a tile');
+      assert.ok(jobs.some((j) => j.plot === p && j.owner.type === 'household' && j.owner.id === hh.id), "the plot's tasks are the household's");
+      assert.deepStrictEqual(checkState(st), [], 'invariants as the plot is cleared');
     }
   }
 }

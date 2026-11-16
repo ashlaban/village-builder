@@ -135,8 +135,10 @@ VB['sim/kinds'] = (() => {
       for (const [key, kind, extra] of byreJobs(st, hh, c)) post(key, f.house, { farm: f, ...extra }, kind);
   }
   // The open step of the household's project plan (a new field's clear and break, a meadow; sim/projects): made once the one before is done.
+  // A plot the household clears for its heir (VB-255) is posted as every plot is (plotWork).
   const landProject = (st, hh, f, c, post) => {
-    const s = Projects.openOf(st, 'household', hh.id); // not while it waits for timber (VB-300)
+    const p = Projects.projectOf(st, 'household', hh.id),
+      s = p && p.what !== 'plot' ? p.steps[p.open] : null; // not while it waits for timber (VB-300)
     if (s && Projects.supplied(s)) post(`${s.kind}:f${f.id}`, s.place, { farm: f, hours: s.hours }, s.kind);
   };
   // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
