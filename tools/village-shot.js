@@ -60,13 +60,14 @@ function seedVillage(w, seed, farms) {
   VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st);
   VB['sim/territory'].seedOutland(st, true);
   VB['sim/scenarios'].startStreams(st, seed);
+  VB['sim/carts'].seedCarts(st, true); // each farm stands with a hand cart, and an ox cart where it keeps a team (VB-410; after the live-household cache is built)
+  for (const hh of st.households) if (hh.id % 4 === 1 && hh.carts.length) hh.carts[0].cond = 0.3; // one in four is worn
   return st;
 }
 
 async function shootSeed(browser, seed) {
   const tag = opt('tag', null) ? opt('tag') + (seeds.length > 1 ? `-${seed}` : '') : `village-${seed}-${farms}f-y${years}`;
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: scale });
-  page.on('pageerror', (e) => console.error('page error:', e.message));
   await page.route(/^https?:\/\//, (r) => (/pixi(\.min)?\.js/.test(r.request().url())
     ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' })));
   await page.addInitScript(`window.__seedVillage = (w, seed) => (${seedVillage.toString()})(w, seed, ${farms});`);

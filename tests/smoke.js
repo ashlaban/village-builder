@@ -60,6 +60,15 @@ const iv = setInterval(async () => {
   let t = Date.now(); tick(300); console.log('after intro (300 frames,', Date.now() - t, 'ms):', state(), '| lod:', doc.getElementById('lod').hidden ? 'idle' : doc.getElementById('lod').textContent);
   t = Date.now(); let n = 0; while (!doc.getElementById('lod').hidden && n < 2000) { tick(1); n++; } console.log('settled after', n, 'more frames', Date.now() - t, 'ms:', state());
   const q = (s) => doc.querySelector(s), qa = (s) => [...doc.querySelectorAll(s)];
+  // a farm with a cart draws one (VB-410): a hand cart given to a household adds one visible sprite to the objects layer (the 14th of the world's layers; `names` above is older)
+  {
+    const vis = () => APP.stage.children[0].children[13].children.filter((c) => c.visible).length;
+    const hh = simSt.households.find((h) => !h.dissolved && h.farmstead !== null), before = vis();
+    hh.carts.push({ kind: 'hand', cond: 0.3, built: simSt.t, by: null }); tick(3);
+    if (vis() !== before + 1) fail(`a farm given a hand cart draws ${vis() - before} more sprites, not 1`);
+    hh.carts.pop(); tick(3);
+    if (vis() !== before) fail('a cart taken away is still drawn');
+  }
   console.log('clock:', doc.getElementById('clockDate').textContent, '|', doc.getElementById('clockYear').textContent, '| scenario', doc.getElementById('genScenario').value);
   // the shown clock follows simulation time within a 6-minute step and 5 game minutes, in whole 5-minute steps: it shows the time the
   // pawns are drawn at, between the last two steps (VB-244)
