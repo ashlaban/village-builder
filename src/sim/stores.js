@@ -105,6 +105,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
     if (kind === 'household' && good === 'peat') return good; // the peat stack (VB-367)
     if (kind === 'household' && good === 'tar') return good; // barrels of tar (VB-301, sim/tar)
+    if (kind === 'household' && good === 'hide') return 'hides'; // the hides of the hunt (VB-424, sim/deer)
     if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
@@ -188,6 +189,10 @@ VB['sim/stores'] = (() => {
   const setTar = (hh, n) => {
     hh.tar = n;
   };
+  // @state household.hides: hides of roe deer held, whole numbers (VB-424; a kill gives one, sim/deer; wanted for shoes and harness), 0 at the start
+  const setHides = (hh, n) => {
+    hh.hides = n;
+  };
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
@@ -195,6 +200,7 @@ VB['sim/stores'] = (() => {
     else if (good === 'peat') setPeat(holder, n);
     else if (good === 'fish') setRack(holder, n);
     else if (good === 'tar') setTar(holder, n);
+    else if (good === 'hide') setHides(holder, n);
     else if (good === 'flour') setFlour(holder, n);
     else setMeals(holder, n);
   }
@@ -680,6 +686,17 @@ VB['sim/stores'] = (() => {
     perish: { keepsDays: SEASON_DAYS },
     keeping: false,
   }); // poured for guests, not eaten as rations (VB-305)
+  declareGood({
+    id: 'hide',
+    kind: 'hide',
+    class: 'wares',
+    unit: 'hide',
+    quantum: 1,
+    lump: 'hide',
+    rations: 0,
+    perish: null,
+    keeping: true,
+  }); // a roe deer's hide (VB-424)
   declareGood({
     id: 'tar',
     kind: 'tar',

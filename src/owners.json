@@ -65,6 +65,7 @@
     "household.boat": "sim/drying",
     "household.tarPit": "sim/tar",
     "household.tar": "sim/stores",
+    "household.hides": "sim/stores",
     "farmstead.tarredUntil": "sim/tar",
     "household.carts": "sim/carts",
     "household.cartMiss": "sim/carts",
