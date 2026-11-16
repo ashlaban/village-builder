@@ -2,7 +2,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture;
 const { moveClock } = require('./lib/clock.js');
-const { feedHousehold } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HUNGER, YEAR, YEAR_DAYS } = VB['sim/rules'], { stepWork } = VB['sim/agents'];
+const { feedHousehold } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HUNGER, YEAR, YEAR_DAYS } = VB['sim/rules'], { rateOf } = VB['sim/agents'];
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const w7 = world(7), fresh = (scenario = 'founders') => {
   const st = Sim.seed(w7, 7, scenario);
@@ -76,9 +76,8 @@ for (const [order, check] of [
 
 // work: progress per hour is (1 - 0.4 h)
 for (const h of [0, 1]) {
-  const st = fresh(), a = st.agents[0]; st.pawns[0].hunger = h;
-  a.job = { kind: 'sow', done: 0 }; a.work = null; stepWork(st, a, 1);
-  assert(Math.abs(a.job.done - (1 - HUNGER.slow * h)) < 1e-9, `work at h = ${h}`);
+  const st = fresh(); st.pawns[0].hunger = h;
+  assert(Math.abs(rateOf(st, st.pawns[0]) - (1 - HUNGER.slow * h)) < 1e-9, `work at h = ${h}`);
 }
 
 // marriage: nobody with h >= 0.5 marries at the moving round

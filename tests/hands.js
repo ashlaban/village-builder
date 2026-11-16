@@ -21,8 +21,9 @@ function hoe(hands) {
       const j = st.jobs.get(`plow:f${f.id}.${fd.id}`);
       if (!j) continue;
       most = Math.max(most, j.claims.length);
-      const at = j.claims.map((id) => st.agents[id]).filter((a) => a.phase === 'work' && a.work);
-      rows = Math.max(rows, new Set(at.map((a) => a.work.row)).size);
+      // each starts on its own row: it stands at the row's start (the page walks the rows, VB-472)
+      const at = j.claims.map((id) => st.agents[id]).filter((a) => a.phase === 'work');
+      rows = Math.max(rows, new Set(at.map((a) => `${a.x.toFixed(1)},${a.y.toFixed(1)}`)).size);
     }
     return { hours: st.t - t0, most, rows, done: fd.stage !== 'stubble' };
   } finally { Sim.KINDS.plow.hands = keep; }

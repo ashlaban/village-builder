@@ -57,6 +57,11 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
             for (const a of st.agents) {
               if (st.pawns[a.id].died !== null) continue;
               const x = d.drawX[a.id], y = d.drawY[a.id], i = a.id;
+              // at work on a field it walks its rows (VB-472): drawn within the tile, from the tick its work began
+              if (a.phase === 'work' && a.job && Sim.KINDS[a.job.kind].field && !a.inside) {
+                if (!(Math.hypot(x - st.w.hx[a.job.site], y - st.w.hy[a.job.site]) <= 19)) faults.push(`frame ${frames}: pawn ${i} off its field's rows`);
+                continue;
+              }
               const ok = i < d.prevN && !d.prevIn[i] && !a.inside && Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]) <= far;
               if (!ok) { if (x !== a.x || y !== a.y) faults.push(`frame ${frames}: pawn ${i} not drawn where it is`); continue; }
               const seg = Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]);
