@@ -1035,7 +1035,7 @@ VB['sim/agents'] = (() => {
   function dropJourney(st, id) {
     const j = journeyOf(st, id);
     if (!j) return;
-    if (j.why === 'fetch' && j.gift) unfetched(st, j.gift);
+    if ((j.why === 'fetch' || j.why === 'haul') && j.gift) unfetched(st, j.gift);
     st.journeys.splice(st.journeys.indexOf(j), 1);
   }
   // Walking hours from village `from` (null: the village whose centre is nearest tile `at`) to village v, by the table of walking hours
@@ -1109,7 +1109,7 @@ VB['sim/agents'] = (() => {
         id: st.journeySeq++,
         pawn: a.id,
         to: fetch ? gift.stops[0].at : f.house,
-        why: fetch ? 'fetch' : gift ? 'carry' : 'move',
+        why: fetch ? (gift.haul ? 'haul' : 'fetch') : gift ? 'carry' : 'move',
         food: 0,
         from: old ? old.farmstead : null,
       };
@@ -1187,6 +1187,11 @@ VB['sim/agents'] = (() => {
   function fetcherOf(st, hh) {
     for (const j of st.journeys)
       if (j.why === 'fetch' && j.gift && j.gift.to === hh.id && st.pawns[j.pawn].household === hh.id) return j.pawn;
+    return haulerOf(st, hh);
+  }
+  // The youngest member of household hh of 14 or more who is not on the road nor carrying a load home, or -1: who goes for a gift, or
+  // takes the household's quarter to the green (VB-849)
+  function haulerOf(st, hh) {
     let best = -1;
     for (const id of hh.members) {
       const p = st.pawns[id],
@@ -1242,6 +1247,57 @@ VB['sim/agents'] = (() => {
       );
     }
     g.stops = [];
+  }
+  // A household's quarter for its village's store (VB-849: the yearly filling, carried): grain of o.from, o.n of it, is set aside at its
+  // house, and o.hauler, one of its members (haulerOf), carries it to the green (`v.center`) TRAVEL.load a trip; it is in the store only as
+  // each load arrives. The journey's gift is a fetch's, reversed: {to (the giving household), village, held, parts, stops: [its house]}.
+  function haulGift(st, o) {
+    const parts = {},
+      house = st.farmsteads[o.from.farmstead];
+    Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: 'the village store' }, parts);
+    const a = st.agents[o.hauler];
+    release(st, a);
+    dropSides(st, a);
+    a.carry = null;
+    setOut(st, a, o.from, o.from, false, 1, {
+      to: o.from.id,
+      village: o.to.id,
+      haul: true,
+      held: 0,
+      parts: {},
+      stops: [{ at: house.house, from: o.from.id, village: null, name: house.name, left: o.n, parts }],
+    });
+  }
+  // The hauler at the end of a walk: at the house he takes up a load and walks to the green; at the green it goes into the store, and he
+  // goes home for the next while any lies and he is still of the household; else the journey ends at his home.
+  function haulStop(st, a, j) {
+    const g = j.gift,
+      from = st.households[g.to],
+      v = st.villages[g.village];
+    a.anim = 'idle';
+    if (g.held === 0) {
+      const s = g.stops[0];
+      g.held = Math.min(TRAVEL.load, s.left);
+      g.parts = takeUp(st, j, g.held);
+      if (!(s.left > 1e-9)) g.stops.shift();
+      j.to = v.center;
+      return startLeg(st, a, j);
+    }
+    Stores.put(st, v, 'grain', g.held, { kind: 'gift', from: st.farmsteads[from.farmstead].name }, g.parts);
+    g.held = 0;
+    g.parts = {};
+    if (g.stops.length && !from.dissolved && st.pawns[a.id].household === from.id) {
+      provide(st, j, [from], rationOf(st, st.pawns[a.id])); // his meal for the next trip
+      j.to = g.stops[0].at;
+      return startLeg(st, a, j);
+    }
+    unfetched(st, g);
+    j.gift = null;
+    j.back = true;
+    const home = st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
+    if (home === v.center) return endJourney(st, a);
+    j.to = home;
+    startLeg(st, a, j);
   }
   // A load of n of the grain at journey j's first stop taken up, by crop: the rest of its crops stays.
   function takeUp(st, j, n) {
@@ -1309,7 +1365,7 @@ VB['sim/agents'] = (() => {
   // A pawn's household changed again on the road (a death at home, a handover): it walks to the new home, turning back if need be.
   function retarget(st, a, to) {
     const j = journeyOf(st, a.id);
-    if (j.why === 'fetch' && j.gift) {
+    if ((j.why === 'fetch' || j.why === 'haul') && j.gift) {
       if (j.gift.held > 0) return; // a fetcher brings his load in first (fetchStop), and then walks to the home he has
       unfetched(st, j.gift); // on his way out: what lies there is fetched no more
       j.gift = null;
@@ -1353,6 +1409,7 @@ VB['sim/agents'] = (() => {
     const j = journeyOf(st, a.id);
     if (j.why === 'carry' && !j.back) return delivered(st, a, j);
     if (j.why === 'fetch' && j.gift) return fetchStop(st, a, j);
+    if (j.why === 'haul' && j.gift) return haulStop(st, a, j);
     const hh = st.households[st.pawns[a.id].household];
     st.journeys.splice(st.journeys.indexOf(j), 1);
     if (j.food > 1e-9 && !hh.dissolved) Stores.put(st, hh, 'meals', j.food, { kind: 'journey', pawn: a.id });
@@ -1372,6 +1429,8 @@ VB['sim/agents'] = (() => {
     if (a.phase === 'home') return 'Walking home';
     if (travelling(a)) {
       const g = journeyOf(st, id).gift; // a fetch of a gift (VB-461)
+      if (g && g.haul)
+        return g.held > 0 ? 'Carrying grain to the store' : `Going for grain for the store at ${g.stops[0].name}`;
       if (g && g.stops)
         return g.held > 0 ? `Carrying grain home from ${g.from}` : `Going for grain at ${g.stops[0].name}`;
       const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
@@ -1428,7 +1487,9 @@ VB['sim/agents'] = (() => {
     moved,
     carryGift,
     fetcherOf,
+    haulerOf,
     fetchGift,
+    haulGift,
     feedTravellers,
   };
 })();
