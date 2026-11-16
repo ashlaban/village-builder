@@ -95,7 +95,7 @@ VB['sim/fields'] = (() => {
   function chooseTile(st, f, free = (t) => freeFor(st, t, f.village), built = builtTiles(st)) {
     const w = st.w,
       own = new Set(f.fields.map((fd) => fd.tile)),
-      may = farmedLand(w, st.villages, st.villages[f.village], f.house);
+      may = farmedLand(w, st.villages, st.villages[f.village], f.house, st);
     let best = -1,
       bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
@@ -122,7 +122,13 @@ VB['sim/fields'] = (() => {
     const d = bfs(st.w, f.house, REACH, walkable(st.w)).dist.get(t);
     if (d === undefined) return `the tile is not within ${REACH} steps' walk of the house`;
     if (d < 1) return 'the house stands there';
-    return fieldBar(st, t, mayTake(st, f, hh), built, farmedLand(st.w, st.villages, st.villages[f.village], f.house));
+    return fieldBar(
+      st,
+      t,
+      mayTake(st, f, hh),
+      built,
+      farmedLand(st.w, st.villages, st.villages[f.village], f.house, st),
+    );
   }
   // The holder's own choice of its next field's tile (VB-248's land step): the best free tile, or with none, the best stake it may contest;
   // -1 for none.

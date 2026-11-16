@@ -66,12 +66,26 @@ for (const id of v.farmsteads) Stores.put(st, st.households[st.farmsteads[id].ho
 const heaps = () => v.farmsteads.reduce((n, id) => n + st.households[st.farmsteads[id].household].stone, 0), before = heaps();
 
 // the green's tile: free and passable, nearest the farms' mean position among the open tiles near them
-const tile = Green.greenSite(st, v), hs = Green.houses(st, v), w = st.w;
+let tile = Green.greenSite(st, v);
+const hs = Green.houses(st, v), w = st.w;
 assert.ok(tile >= 0 && !w.water[tile] && !st.used.has(tile));
 const mx = (w.hx[hs[0]] + w.hx[hs[1]]) / 2, my = (w.hy[hs[0]] + w.hy[hs[1]]) / 2, d = (t) => (w.hx[t] - mx) ** 2 + (w.hy[t] - my) ** 2;
+const byField = (t) => Array.from(w.nb.slice(t * 6, t * 6 + 6)).some((j) => st.farmsteads.some((f) => f.fields.some((fd) => fd.tile === j)));
 for (let t = 0; t < w.N; t++) if (t !== tile && d(t) < d(tile) && !hs.includes(t))
-  assert.ok(w.dev[t] || st.used.has(t) || w.water[t] || st.owner[t] > 0 || st.claims.has(t), `tile ${t}, nearer the farms' mean, is taken`);
-assert.ok(hs.every((h) => hexSteps(w, h, tile) <= 2), 'between the farms');
+  assert.ok(w.dev[t] || byField(t) || st.used.has(t) || w.water[t] || st.owner[t] > 0 || st.claims.has(t), `tile ${t}, nearer the farms' mean, is taken`);
+assert.ok(hs.every((h) => hexSteps(w, h, tile) <= 3), 'between the farms');
+
+// no green beside a field (VB-887): a field set on a tile touching the best site moves the site to a tile touching no field
+const farm = st.farmsteads[v.farmsteads[0]], nbOf = (t) => Array.from(w.nb.slice(t * 6, t * 6 + 6));
+const fieldTile = nbOf(tile).find((j) => j >= 0 && !st.used.has(j) && !w.dev[j] && !w.water[j]);
+assert.ok(fieldTile !== undefined, 'a tile beside the site to put a field on');
+farm.fields.push({ tile: fieldTile });
+st.used.add(fieldTile);
+const other = Green.greenSite(st, v);
+farm.fields.pop();
+st.used.delete(fieldTile);
+assert.ok(other >= 0 && other !== tile && other !== fieldTile, 'the green lies elsewhere when a field touches the best site');
+assert.ok(!nbOf(other).includes(fieldTile), 'and touches no field');
 
 // a year from the farm's joining: the meeting chooses the work and the village builds it
 let seen = null;
@@ -81,7 +95,9 @@ while (!v.well && st.t < joined + YEAR) {
   if (p && !seen) {
     seen = p;
     assert.ok(plan.routines.includes('green'), 'begun as a routine of the meeting');
-    assert.strictEqual(p.steps[0].place, tile, 'on the tile chosen');
+    const site = p.steps[0].place; // fields made meanwhile may have moved the site (VB-887)
+    assert.ok(site === tile || !byField(site), 'on the tile chosen, or one beside no field');
+    tile = site;
     assert.strictEqual(st.owner[tile], -v.id - 1, 'the green is the village\'s');
     assert.deepStrictEqual(bad(), [], 'invariants while under way');
   }
