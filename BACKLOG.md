@@ -13,7 +13,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-409](backlog/VB-409.md) | Verify's page check and the nightly-only rule checks, rebuilt on small constructed states | - | 1 | L | 60 scripts run only at night since VB-408; each rule they hold gets a case on a constructed tiny state in verify, the page first. |
-| [VB-472](backlog/VB-472.md) | Work as a block: a worker is not stepped | - | 1 | M | A pawn at work is touched when its task's end falls due or is moved; a task holds its progress, when it was reckoned and its hands' rate; the kinds' `worked` hooks run at the reckoning; the field's row-by-row walk becomes the page's. |
 | [VB-473](backlog/VB-473.md) | Walks and waits as blocks: one queue of legs, and no awake list | - | 1 | M | A walk and a wait are legs with their ends in the same queue as work's; a pawn's place on a walk is worked out from its leg; the tiles are trodden at the walk's end or cut; journeys join the queue; `st.awake` and the per-step loop over agents go. |
 | [VB-062](backlog/VB-062.md) | Mood and its modifiers, shown in the pawn panel | talk | 2 | M | Each pawn has a mood made of timed modifiers ("Talked with a friend +5"); the pawn panel lists them. |
 | [VB-228](backlog/VB-228.md) | Refactor: split sim/commands: each domain registers its own verbs | - | 2 | M | Verbs are registered at load by the module that carries them out, as rules are; `sim/commands` imports no domain and `later()` goes. |
