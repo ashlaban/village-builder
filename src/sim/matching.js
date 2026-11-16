@@ -2,6 +2,7 @@
 // player's wish for a match (VB-274) are both checked against
 VB['sim/matching'] = (() => {
   const { MARRIAGE, YEAR_DAYS, HUNGER } = VB['sim/rules'];
+  const { heldBy } = VB['sim/offers'];
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
@@ -144,7 +145,7 @@ VB['sim/matching'] = (() => {
       if (age(st, p) < (p === m ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) return { why: `${nm} is too young to marry` };
       if (p.retired) return { why: `${nm} is retired` };
       if (!(p.hunger < HUNGER.marryBelow)) return { why: `${nm} is too hungry to marry` };
-      if (st.offers.some((o) => o.man === p.id || o.woman === p.id)) return { why: `${nm} is in an open offer` };
+      if (heldBy(st, p.id, 'match')) return { why: `${nm} is in an open offer` };
     }
     const cu = practice(st, settlementIdOf(st, m));
     if (!kinOk(st, m.id, f.id, cu)) return { why: 'too close kin for the custom of the village' };
