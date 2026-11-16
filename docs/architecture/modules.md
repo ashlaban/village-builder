@@ -55,6 +55,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   a pawn takes and its pace; wear, mending and the end of a cart; the head's count of misses, `household.cartMiss`, and the cart built as a
   project at the house; its tunables `CART`, with `TRAVEL` in `src/sim/rules.js`). `sim/agents` asks it at each load, `sim/kinds` takes its
   kinds (`cart`, `mendcart`) and the hay's loads from it, `sim/building` fells its timber, `sim/clock` runs its winter count.
+- Loads left lying (VB-611): `src/sim/lying.js` owns `st.lying` and `st.lyingSeq`: a load whose carrier died on the road or whose household
+  dissolved, put down where it was (`sim/agents` release), with its good, amount, tile and owner; a fetch kind for each kind that carries a
+  load (`fetchHaul`, `fetchHay`, `fetchWood`, `fetchWellstone`, registered by `sim/kinds`) and the rule that posts them for the owner; one
+  nobody fetches rots at the autumn frost (`sim/clock`).
 - Journeys (VB-287; design.md, Between villages): `src/sim/agents.js` owns `st.journeys` and `st.journeySeq`. `sim/heirs`' `moveTo`
   changes the household at the act and hands the pawn to `moved`: within a village it walks to the new door; to another village it sets
   out on a journey, its provisions (`TRAVEL.dayWalk` hours a ration) taken from the household it leaves through `sim/stores` (reason
@@ -181,7 +185,8 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   head's skill and bias, VB-254), `sim/commands`.
 - Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/pot`, `sim/hunger`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
-  `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058).
+  `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058), `sim/lying` (loads left
+  lying where their carrier fell, VB-611).
 - Social: `culture`, `sim/encounters`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).

@@ -69,6 +69,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-596](backlog/VB-596.md) | Refactor: split page/farmart by concern | - | 3 | S | page/farmart is 958 formatted lines (VB-410 added the cart art, 57) over its baseline of 901; split it |
 | [VB-616](backlog/VB-616.md) | The led cow is drawn once, not also in the giver's herd | animals | 3 | S | Until ledHome moves the animal, the herd still draws it besides the one led |
 | [VB-626](backlog/VB-626.md) | Measure why water goes unfetched after VB-331 | - | 3 | S | the numbers VB-331 left: why the water job went undone, meals uncooked, deaths |
+| [VB-649](backlog/VB-649.md) | Teleport: a cart and its team are home when their carrier is not | physical | 3 | S | A teleport found by VB-611: release (sim/agents) frees the cart a carrier had out at once (Carts.leave), so a cart left on the road with a dead carrier, and its ox team, are free at the farm the same step. |
+| [VB-650](backlog/VB-650.md) | Teleport: a household that dies out leaves its barn to no one | physical | 3 | M | A vanish found by VB-611: sim/heirs extinct closes the household's stores (Stores.close) and nothing passes its grain, hay, wood or other goods on (but for the married-away case, which moves the grain to another barn at once); may overlap the 13 November audit's handing on. |
 
 ## Waiting for Kim
 
@@ -78,13 +80,10 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 |----|------|------|-----|------|---------|
 | [VB-254](backlog/VB-254.md) | Foresight: stand-in traits, a head's horizon and its bias | year | 2 | M | A head plans from an estimate of its needs: wits, husbandry and years as head set the horizon and a persistent bias; the poorest tenth leave the template's order. |
 | [VB-278](backlog/VB-278.md) | The meetings a village a step: each village's meeting in its own six-minute step | between | 2 | M | VB-206's four stages run the whole island at once; each village now holds its meeting in its own step (its people's interests, its tie, its causes, its meeting), then the cultures' reckoning and the land meeting; draws reorder, so customs are calibrated before and after. |
-| [VB-581](backlog/VB-581.md) | Teleport: a load is put down in the barn when its carrier is released on the road | physical | 2 | S | A teleport found by VB-473: release (VB-335) books a load on its way home at the farm's barn at once, wherever its carrier stands |
 | [VB-280](backlog/VB-280.md) | The order of villages turns by the year, so no village always asks first | between | 3 | S | In village id order the first villages' men ask first every year; start the round's and the meetings' order at village year mod count, deterministic and without a new draw, if Kim agrees. |
 | [VB-331](backlog/VB-331.md) | A day without water: no cooking and a little health | - | 3 | S | A household that fetched no water that day cannot cook and its members lose a little health, as with an empty woodpile; today the water job is read by nothing. |
 | [VB-432](backlog/VB-432.md) | A village's round clears only the memos a marriage touches | between | 3 | S | Rankings in the moving round rose four- to eightfold with VB-277; clear only the heirs' memos a marriage or handover touches. |
 | [VB-453](backlog/VB-453.md) | A job's urgency is worked out once a round, not once a bid | - | 3 | S | planRound and lookUp score each job for each idle pawn (about 3,000 bids a game day on populous tiny), and half of a score's time is the job's urgency, which does not depend on the pawn. |
-| [VB-649](backlog/VB-649.md) | Teleport: a cart and its team are home when their carrier is not | physical | 3 | S | A teleport found by VB-611: release (sim/agents) frees the cart a carrier had out at once (Carts.leave), so a cart left on the road with a dead carrier, and its ox team, are free at the farm the same step. |
-| [VB-650](backlog/VB-650.md) | Teleport: a household that dies out leaves its barn to no one | physical | 3 | M | A vanish found by VB-611: sim/heirs extinct closes the household's stores (Stores.close) and nothing passes its grain, hay, wood or other goods on (but for the married-away case, which moves the grain to another barn at once); may overlap the 13 November audit's handing on. |
 
 ## Blocked
 
