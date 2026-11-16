@@ -28,8 +28,10 @@ The orchestrator writes those once, from your notes.
    - `task`: a follow-up task, with one of your reserved IDs, its criteria as the body;
    - `tuning`: a shortfall left for the tuning run; `question`: one only Kim can answer, with its proposed answers;
    - `candidate`, `teleport`, `decision`: what `AGENTS.md`, Surfacing, asks for. A teleport found also gets a `task` note, arch `physical`.
-6. A criterion you cannot meet, or could only meet in part (a measure not taken counts): keep your work and commit it, leave the
-   criterion unticked with the reason beside it in the task file, and end with `needs-review`, never `done`. A decision only Kim can
+6. A measure you could not take, or a target that is out (Kim, 16 November: measurements and tuning do not block work): leave the
+   criterion unticked with the reason beside it in the task file, note what is owed as a `task` note that names the collecting task it
+   belongs to (`BACKLOG.md`, Order and statuses), and end with `done`. Work you could not build: keep and commit what you have, leave
+   its criterion unticked with the reason, and end with `needs-review`. A decision only Kim can
    make: revert what depends on it, keep and commit what does not, note the `question`, and end with `needs-review`.
 7. To finish: `git merge` the run's branch again, run the checks `AGENTS.md` asks for on the result, and commit as `VB-NNN: <title>`
    on your worktree's branch. Do not push, and never leave uncommitted work, whatever the outcome. Then
