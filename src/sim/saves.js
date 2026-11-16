@@ -480,6 +480,7 @@ VB['sim/saves'] = (() => {
       }
     for (const f of st.farmsteads) if (f.grade === undefined) f.grade = 'ground'; // VB-332: older saves' houses stand on the ground
     for (const f of st.farmsteads) for (const fd of f.fields) if (fd.crop === undefined) fd.crop = 'barley'; // VB-346: older saves' fields held barley
+    for (const p of st.pawns) if (p.nursling === undefined) p.nursling = null; // VB-632: a mother nursing nurses to her term
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now
     return st;
