@@ -94,3 +94,37 @@ const back = Sim.load(st.w, JSON.parse(JSON.stringify(Sim.save(st))));
 assert.strictEqual(Commons.fieldsOf(back.villages[v.id]).length, Commons.fieldsOf(v).length);
 console.log(`commons ok: begun ${((made - start) / DAY).toFixed(0)} days in, sown ${((sown - start) / DAY).toFixed(0)}, ` +
   `${Math.round(harvest)} rations into the store at day ${((st.t - start) / DAY).toFixed(0)}; seed ${seed} from the store`);
+
+// VB-457: the store fills to HELP.storeTarget years of need and no further; the common fields are sown only in a year it is under
+{
+  const { HELP, YEAR_DAYS, SEASON_DAYS, CROPS, cal } = VB['sim/rules'], { fillStores } = VB['sim/help'], { storeRoom } = VB['sim/hunger'];
+  const s2 = tinyState(tinyWorld(Array(16).fill('.'.repeat(24)), { seed: 3 }), [{ at: [11, 8], farms: 3, sizes: [6, 6, 5] }], { seed: 5 });
+  const u = s2.villages[0], hhs = u.farmsteads.map((id) => s2.households[s2.farmsteads[id].household]);
+  const target = storeRoom(s2, u); // an empty store lacks the whole target
+  assert.ok(target > 0);
+  const own = (h) => h.grain.barley;
+  for (const h of hhs) h.grain.barley += 4000;
+  const q0 = hhs.map(own);
+  // just under the target: it takes only the difference, shared by what each would have given
+  u.grain.barley = target - 10;
+  fillStores(s2, u.id);
+  const sum = hhs.reduce((a, h, i) => a + q0[i] - own(h), 0);
+  assert.ok(Math.abs(sum - 10) < 1e-6 && Math.abs(Sim.grainOf(u) - target) < 1e-6, `takes only the difference (${sum})`);
+  // at the target: nothing taken, the households keep their quarter
+  const q1 = hhs.map(own);
+  fillStores(s2, u.id);
+  assert.deepStrictEqual(hhs.map(own), q1, 'a full store takes nothing');
+  // the commons: a field in stubble in the sowing window, posted only in a year the store lacks of its target
+  const w = CROPS.barley.sow, sowDay = (y) => ((y - 1) * YEAR_DAYS + w[0] * SEASON_DAYS + w[1]) * DAY + 1;
+  u.commonFields = [{ id: 0, tile: Commons.site(s2, u), crop: 'barley', stage: 'stubble', sown: null, held: 0, soil: 1 }];
+  const posted = (t) => {
+    const keys = [];
+    Commons.work(s2, u, cal(t), (k) => keys.push(k), VB['sim/kinds'].ASK.fieldAt);
+    return keys.filter((k) => k.startsWith('plow')).length;
+  };
+  assert.strictEqual(posted(sowDay(3)), 0, 'a full store: the field is not hoed');
+  assert.strictEqual(u.commonSow.sow, false);
+  u.grain.barley = 0; // the decision stands within the year
+  assert.strictEqual(posted(sowDay(3) + DAY), 0, 'decided once a year');
+  assert.strictEqual(posted(sowDay(4)), 1, 'the year after, under the target: it is sown');
+}

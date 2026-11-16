@@ -6,7 +6,7 @@ VB['sim/help'] = (() => {
   const { hoursBetween } = VB['sim/routes'];
   const onRoad = (a) => a.phase === 'journey' || a.phase === 'road'; // as sim/agents' travelling, which loads after this module
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
-  const { dailyNeed } = VB['sim/hunger'],
+  const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const Rules = VB['sim/registry'];
   // allowance's second term (VB-216): the holder's own reserve beyond the floor, from 0 to 40 days of the household's need, a stand-in for
@@ -134,13 +134,26 @@ VB['sim/help'] = (() => {
   }
   // At the moving round every household gives a share of its surplus to its village's store: a village's at its own round (VB-277), or
   // every village's when v is null.
+  // A household's quarter is taken only up to what the store lacks of its target, shared among the givers in proportion to what each would
+  // have given; the rest stays at home (VB-457).
   function fillStores(st, v = null) {
+    const gifts = new Map(); // village id -> [[household, n]]
     for (const liveId of st.liveHouseholds) {
-      const hh = st.households[liveId];
-      if (hh.dissolved || (v !== null && st.farmsteads[hh.farmstead].village !== v)) continue;
+      const hh = st.households[liveId],
+        vid = st.farmsteads[hh.farmstead].village;
+      if (hh.dissolved || (v !== null && vid !== v)) continue;
       const n = surplus(st, hh) * HELP.storeShare;
       if (n <= 1e-9) continue;
-      give(st, hh, st.villages[st.farmsteads[hh.farmstead].village], n);
+      if (!gifts.has(vid)) gifts.set(vid, []);
+      gifts.get(vid).push([hh, n]);
+    }
+    for (const [vid, list] of gifts) {
+      const village = st.villages[vid];
+      let total = 0;
+      for (const g of list) total += g[1];
+      const k = Math.min(1, storeRoom(st, village) / total);
+      if (!(k > 1e-9)) continue;
+      for (const [hh, n] of list) give(st, hh, village, n * k);
     }
   }
   return { surplus, kinHouseholds, shareFood, fillStores, askDaysAt, seasonOf, shortOfPeople };
