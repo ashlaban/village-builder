@@ -9,6 +9,7 @@ VB['sim/opportunities'] = (() => {
   const { claimable, barred: claimBar } = VB['sim/farmclaims'],
     { onFarm } = VB['sim/projects'];
   const { VERBS, goOnAs } = VB['sim/commands'];
+  const { advice, what: offerText } = VB['sim/offers'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { SOCIAL } = VB['sim/rules'];
   const { fit, jobsFor } = VB['sim/jobs'];
@@ -231,10 +232,12 @@ VB['sim/opportunities'] = (() => {
     }
   }
 
-  // ---- marriage offers that wait for pawn id (VB-273): one item for each, {verb: 'answer', target: the offer's id, when: 'offer', offer} ----
-  // offer: {id, man, woman ({id, name, age, farm}), home (a household id), farm (its farm's name), part ('the one to marry', or 'head of the household'
-  // for `for`, the pawn it speaks for), answers (who has said what so far: [{name, yes}]), daysLeft}. The player answers with Sim.answer.
-  function offers(view, id, out) {
+  // ---- offers that wait for pawn id (VB-273, VB-690): one item for each, {verb: 'answer', target: the offer's id, when: 'offer', offer} ----
+  // offer: {id, basis, text (what is offered, a sentence's object), part ('the one to marry', 'head of the household' for `for`, the pawn it
+  // speaks for, or 'the one asked'), answers (who has said what so far: [{name, key, yes}]), daysLeft, advice (what the pawn would answer
+  // by its own judgement: true, false; principle 14, that pawn's estimate)}, and for a match man, woman ({id, name, age, farm}), home (a
+  // household id), farm (its farm's name). The player answers with Sim.answer.
+  function offers(st, view, id, out) {
     const who = (i) => ({
       id: i,
       name: fullName(view.pawns[i]),
@@ -247,26 +250,31 @@ VB['sim/opportunities'] = (() => {
     for (const o of view.offers) {
       const mine = o.answers.find((a) => a.by === id && a.yes === null);
       if (!mine) continue;
-      const side =
-        mine.key === 'man' || mine.key === 'woman' ? null : o.answers.find((a) => a.key === mine.key.slice(0, -4)).by;
-      out.push(
-        item('answer', o.id, null, null, {
-          when: 'offer',
-          offer: {
-            id: o.id,
-            man: who(o.man),
-            woman: who(o.woman),
-            home: o.home,
-            farm: view.farmsteads[view.households[o.home].farmstead].name,
-            part: side === null ? 'the one to marry' : 'head of the household',
-            for: side,
-            answers: o.answers
-              .filter((a) => a.yes !== null)
-              .map((a) => ({ name: fullName(view.pawns[a.by]), key: a.key, yes: a.yes })),
-            daysLeft: Math.max(0, Math.ceil((o.due - view.t) / DAY)),
-          },
-        }),
-      );
+      const match = o.basis === 'match',
+        side =
+          !match || mine.key === 'man' || mine.key === 'woman'
+            ? null
+            : o.answers.find((a) => a.key === mine.key.slice(0, -4)).by,
+        offer = {
+          id: o.id,
+          basis: o.basis,
+          text: offerText(st, o),
+          part: !match ? 'the one asked' : side === null ? 'the one to marry' : 'head of the household',
+          for: side,
+          answers: o.answers
+            .filter((a) => a.yes !== null)
+            .map((a) => ({ name: fullName(view.pawns[a.by]), key: a.key, yes: a.yes })),
+          daysLeft: Math.max(0, Math.ceil((o.due - view.t) / DAY)),
+          advice: advice(st, o, id),
+        };
+      if (match)
+        Object.assign(offer, {
+          man: who(o.gives.man),
+          woman: who(o.wants.woman),
+          home: o.gives.home,
+          farm: view.farmsteads[view.households[o.gives.home].farmstead].name,
+        });
+      out.push(item('answer', o.id, null, null, { when: 'offer', offer }));
     }
   }
 
@@ -280,7 +288,7 @@ VB['sim/opportunities'] = (() => {
     if (housed) work(view, p, cal(view.t), out);
     own(view, p, near, out);
     causes(view, p, out);
-    offers(view, id, out);
+    offers(st, view, id, out);
     if (housed) round(view, p, out);
     return out;
   }

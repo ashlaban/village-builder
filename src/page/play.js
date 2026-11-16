@@ -200,17 +200,27 @@ function offerBox(id, opps) {
   let h = '';
   for (const o of asks) {
     const one = (w) => `${esc(w.name)}, ${w.age}${w.farm ? `, of ${esc(w.farm)}` : ''}`;
-    const part =
-      o.part === 'the one to marry'
-        ? 'You are the one to marry.'
-        : `You are head of the household of ${esc(Sim.fullName(st.pawns[o.for]))}.`;
+    const match = o.basis === 'match',
+      part =
+        o.part === 'the one to marry'
+          ? 'You are the one to marry.'
+          : o.part === 'the one asked'
+            ? 'You are the one asked.'
+            : `You are head of the household of ${esc(Sim.fullName(st.pawns[o.for]))}.`;
     const said = o.answers.map((a) => `${esc(a.name)} said ${a.yes ? 'yes' : 'no'}`).join('; ');
+    const title = match ? 'A match is offered' : o.basis === 'gift' ? 'A gift is offered' : 'You are asked';
+    const body = match
+      ? `${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}.`
+      : `${esc(o.text.charAt(0).toUpperCase() + o.text.slice(1))}.`;
+    // the pawn's own judgement, as advice (principle 14: whose estimate it is)
+    const advice =
+      o.advice === null ? '' : ` ${esc(Sim.fullName(st.pawns[id]))} would answer ${o.advice ? 'yes' : 'no'}.`;
     h +=
-      `<div class="offer" role="group" aria-label="A marriage offer"><h3>A match is offered</h3>` +
-      `<p>${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}. ${part}</p>` +
+      `<div class="offer" role="group" aria-label="${title}"><h3>${title}</h3>` +
+      `<p>${body} ${part}</p>` +
       `<p class="hint">${said ? `${said}. ` : ''}${o.daysLeft} ${
         o.daysLeft === 1 ? 'day' : 'days'
-      } left; unanswered, it is answered as you would unplayed.</p>` +
+      } left; unanswered, it is answered as your pawn would.${advice}</p>` +
       `<div class="switches"><button type="button" class="primary" data-play="answer" data-offer="${o.id}" data-yes="true">Yes</button>` +
       `<button type="button" data-play="answer" data-offer="${o.id}" data-yes="false">No</button></div></div>`;
   }

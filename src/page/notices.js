@@ -134,10 +134,10 @@ function watchOffers() {
   }
   const open = new Set();
   for (const o of st.offers) {
-    if (!o.answers.some((a) => a.by === pl.pawn)) continue;
+    if (o.basis !== 'match' || !o.answers.some((a) => a.by === pl.pawn)) continue;
     open.add(o.id);
     if (!offerSeen.has(o.id)) {
-      offerSeen.set(o.id, { man: o.man, woman: o.woman, made: o.made });
+      offerSeen.set(o.id, { man: o.gives.man, woman: o.wants.woman, made: o.made });
       offerEnd = null;
     }
   }
@@ -176,7 +176,13 @@ function updateNotices(dt) {
     else if (
       ev.kind === 'offered' &&
       st.player &&
-      st.offers.some((o) => o.man === ev.pawn && o.woman === ev.other && o.answers.some((a) => a.by === st.player.pawn))
+      st.offers.some(
+        (o) =>
+          o.basis === 'match' &&
+          o.gives.man === ev.pawn &&
+          o.wants.woman === ev.other &&
+          o.answers.some((a) => a.by === st.player.pawn),
+      )
     )
       toast(ev); // a match waits for the played pawn's answer (VB-273)
   }
