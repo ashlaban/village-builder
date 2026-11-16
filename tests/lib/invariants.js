@@ -567,6 +567,7 @@ function checkState(st) {
         if (p.leans[d] >= C.NOPT[d] || top !== most) { bad.push(`pawns[${p.id}]: leans ${p.leans[d]} on custom ${d}, not its strongest`); break; }
       }
     }
+    if (p.mods !== undefined) checkMods(st, p, bad);
     if (p.rel) checkRel(st, p, bad);
     if (p.ties) checkTies(st, p, bad);
     if (p.goodwill) checkGoodwill(st, p, bad);
@@ -1163,6 +1164,21 @@ function checkRel(st, p, bad) {
       if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${cap}`);
       if (!(m.t <= st.t)) bad.push(`${where}: ${k} remembered at ${m.t}, after now (${st.t})`);
     }
+  }
+}
+// A pawn's event modifiers (pawn.mods, sim/mood, VB-062): a list of {key, until}, each key one of sim/mood's event modifiers and at
+// most once, until a finite game hour no further ahead than its modifier lasts.
+function checkMods(st, p, bad) {
+  const { MOOD, DAY } = VB['sim/rules'], { EVENT } = VB['sim/mood'];
+  if (!Array.isArray(p.mods)) return void bad.push(`pawns[${p.id}].mods: ${JSON.stringify(p.mods)}, not a list`);
+  const seen = new Set();
+  for (const m of p.mods) {
+    const where = `pawns[${p.id}].mods<${m && m.key}>`;
+    if (!m || !EVENT.includes(m.key)) { bad.push(`${where}: unknown modifier`); continue; }
+    if (seen.has(m.key)) bad.push(`${where}: twice`);
+    seen.add(m.key);
+    if (!Number.isFinite(m.until)) bad.push(`${where}: until is ${m.until}`);
+    else if (m.until > st.t + MOOD[m.key].days * DAY + 1e-9) bad.push(`${where}: until ${m.until}, past ${MOOD[m.key].days} days from now`);
   }
 }
 module.exports = { checkState };

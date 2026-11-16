@@ -38,6 +38,39 @@ function stat(o) {
   );
 }
 const stats = (list) => `<div class="stat-grid">${list.filter(Boolean).map(stat).join('')}</div>`;
+// A pawn's mood (sim/mood, VB-062): a stat, its level on the one meter marked at the words' cut points (miserable under 25, low under
+// 45, content under 65, happy), the word beside the number; and each modifier in force as its icon and signed value, its label the title.
+const MOOD_CUTS = [
+  [25, 'miserable under 25'],
+  [45, 'low under 45'],
+  [65, 'content under 65, happy above'],
+];
+const MOOD_ICON = { hungry: 'hunger', cold: 'cold', dry: 'water', weak: 'health' };
+function moodStat(m) {
+  return {
+    icon: 'mood',
+    label: 'Mood',
+    value: m.mood,
+    note: Sim.moodWord(m.mood),
+    tone: m.mood < 25 ? 'bad' : m.mood < 45 ? 'warn' : '',
+    meter: {
+      value: m.mood,
+      text: `${m.mood}, ${Sim.moodWord(m.mood)}`,
+      marks: MOOD_CUTS.map(([at, label]) => ({ at, label })),
+    },
+  };
+}
+function moodModsHTML(m) {
+  if (!m.mods.length) return '';
+  const one = (x) => {
+    const said = `${x.label} ${x.value > 0 ? '+' : '−'}${Math.abs(x.value)}`;
+    return (
+      `<span class="mood-mod ${x.value > 0 ? 'up' : 'down'}" role="listitem" title="${esc(said)}" aria-label="${esc(said)}">` +
+      `${goodIcon(MOOD_ICON[x.key] || x.key)}<b>${x.value > 0 ? '+' : '−'}${Math.abs(x.value)}</b></span>`
+    );
+  };
+  return `<div class="mood-mods" role="list" aria-label="Mood">${m.mods.map(one).join('')}</div>`;
+}
 // A pawn's traits (sim/traits): all twelve, each its icon over the one meter, in their three groups; one beyond the labels' bounds
 // (TRAITS.label) is marked and named by its word. Shown for every pawn that has them: traits are not hidden.
 const TRAIT_GROUPS = ['Values', 'Temperament', 'Aptitudes'];

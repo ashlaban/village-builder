@@ -548,6 +548,12 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .stat-val small { margin-left: 4px; font-weight: 400; font-size: 12.5px; color: var(--muted); }
 .card-sec { margin: 10px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .card-note { margin: 2px 0 6px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
+/* A pawn's mood's modifiers in force (VB-062): each its icon and signed value, the label its title. */
+.mood-mods { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: -4px 0 8px 27px; }
+.mood-mod { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.mood-mod .ico { width: 18px; height: 18px; }
+.mood-mod.up { color: var(--good); }
+.mood-mod.down { color: var(--bad); }
 /* A pawn's traits: twelve icons, each over the meter; one beyond the labels is marked. */
 .traits { display: grid; gap: 4px; margin: 6px 0 8px; }
 .trait-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
