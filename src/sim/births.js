@@ -84,7 +84,6 @@ VB['sim/births'] = (() => {
       stride: rnd(st.rng.people) * 6,
       ox: (rnd(st.rng.people) - 0.5) * 12,
       oy: (rnd(st.rng.people) - 0.5) * 8,
-      work: null,
       idleUntil: 0,
       talk: null,
       occasion: null,

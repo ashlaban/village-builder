@@ -424,6 +424,63 @@ function woodpileCanvas(level) {
     }
   return K.c;
 }
+// A cart seen from the side, facing right (VB-410): the hand cart a box on one wheel with shafts to push, the ox cart longer, with a
+// yoke pole ahead; `load` heaps sheaves, hay or logs on its bed; a `worn` one is greyed, with a plank gone and the wheel out of true.
+function cartCanvas(kind, load, worn) {
+  const ox = kind === 'ox',
+    W = ox ? 52 : 40,
+    K = artKit(W, 28, (ox ? 7 : 3) + (worn ? 1 : 0)),
+    { g, ink, pole, jit, poly } = K,
+    wood = worn ? [150, 128, 104] : MP.logs[1],
+    bx = ox ? 8 : 6,
+    bw = ox ? 28 : 20;
+  K.shadow(W / 2 - 3, 25, W / 2 - 6, 2.6);
+  if (load === 'sheaf') {
+    for (let k = 0; k < (ox ? 4 : 3); k++) {
+      poly([
+        [bx + 1 + k * 7, 15],
+        [bx + 2.5 + k * 7, 7],
+        [bx + 5 + k * 7, 5.5],
+        [bx + 8 + k * 7, 15],
+      ]);
+      ink(jit(MP.straw, 0.05), 0.5);
+    }
+  } else if (load === 'hay') {
+    g.beginPath();
+    g.ellipse(bx + bw / 2, 11, bw / 2 + 1, 6, 0, 0, 7);
+    ink(jit(MP.straw, 0.05), 0.55);
+  } else if (load === 'logs') {
+    const n = ox ? 6 : 4;
+    for (let k = 0; k < n; k++) {
+      g.beginPath();
+      g.arc(bx + 3 + (k * (bw - 6)) / (n - 1), 12.5 - (k % 2) * 3, 2.6, 0, 7);
+      ink(jit(MP.logEnd, 0.06), 0.5);
+    }
+  }
+  g.beginPath();
+  g.rect(bx, 15, bw, 5);
+  ink(wood, 0.6);
+  if (worn) {
+    g.beginPath();
+    g.rect(bx + bw * 0.55, 15.4, 5, 2.2);
+    g.fillStyle = 'rgba(40,30,24,0.8)';
+    g.fill();
+  }
+  const fx = bx + bw;
+  pole(fx - 2, 19, fx + (ox ? 14 : 9), 17.5, MP.post, 1.5);
+  pole(bx - (ox ? 0 : 4), 14, bx + 2, 19, MP.post, 1.2);
+  if (ox) pole(fx + 13, 14.5, fx + 13, 21, MP.post, 1.3);
+  const wr = ox ? 5.2 : 4.4,
+    wx = bx + bw * 0.45,
+    tilt = worn ? 0.12 : 0;
+  g.beginPath();
+  g.ellipse(wx, 20.5, wr * (1 - tilt), wr, 0, 0, 7);
+  ink(worn ? [110, 92, 74] : MP.dark, 0.7);
+  g.beginPath();
+  g.ellipse(wx, 20.5, wr * 0.35, wr * 0.35, 0, 0, 7);
+  ink(MP.post, 0.4);
+  return K.c;
+}
 function wellSweepCanvas() {
   const K = artKit(100, 112, 3),
     { g, ink, pole } = K;

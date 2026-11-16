@@ -37,7 +37,7 @@ VB['sim/lifecycle'] = (() => {
   } = VB['sim/records'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { startInLife } = VB['sim/exchange'];
-  const { stillAtDeath, travelling, tileAt, journeyOf } = VB['sim/agents'];
+  const { stillAtDeath, travelling, tileAt, journeyOf, placeOf } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor } =
     VB['sim/heirs'];
   const { kinOk, matchScore, matchRules, matchBar } = VB['sim/matching'];
@@ -62,7 +62,7 @@ VB['sim/lifecycle'] = (() => {
     p.interest = null; // and its interests, which the village's meeting refreshes for the living only (VB-278)
     noteDeath(st, id);
     const a = st.agents[id],
-      road = travelling(a) ? tileAt(st, a.x, a.y) : null; // it dies where it fell on the road (VB-287)
+      road = travelling(a) ? tileAt(st, ...placeOf(st, a)) : null; // it dies where it fell on the road (VB-287)
     stillAtDeath(st, a);
     clearMatchWish(st, id, id);
     playerDied(st, id); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)

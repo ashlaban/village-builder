@@ -233,15 +233,16 @@ VB['sim/expansion'] = (() => {
       }
     return out;
   }
-  // 0..1: finished steps of the plot's tiles, with the hours already worked on the open ones.
-  function plotProgress(st, plot) {
+  // 0..1: finished steps of the plot's tiles, with the hours already worked on the open ones (`done`: a task's progress now, sim/agents'
+  // doneOf, given by the facade; its hours at the last reckoning by default).
+  function plotProgress(st, plot, done = (j) => j.done) {
     let total = 0,
       got = 0;
     for (const tr of tilesOf(plot)) {
       total += tr.steps.length;
       got += tr.i;
       if (tr.i < tr.steps.length) {
-        for (const j of st.jobs.values()) if (j.tr === tr) got += Math.min(1, j.done / j.hours);
+        for (const j of st.jobs.values()) if (j.tr === tr) got += Math.min(1, done(j) / j.hours);
       }
     }
     return total ? got / total : 1;

@@ -149,9 +149,10 @@ VB['sim/grazing'] = (() => {
     urgency: (st, j, c, U) => U.herd,
     draw: (st, j) => todaysPasture(st, st.households[j.owner.id], cal(st.t)),
     held: (st, j, a, c) => driveOut(st, st.households[j.owner.id], a.id, c),
-    // the pressure is added by whole hours on the pasture, as each is completed (a part hour left when the herder leaves is not counted)
-    worked: (st, j, dt) => {
-      if (Math.floor(j.done + 1e-9) > Math.floor(j.done - dt * KIND.rate + 1e-9))
+    // the pressure is added by whole hours on the pasture, as each is completed (a part hour left when the herder leaves is not counted);
+    // reckoned with the hours since (sim/agents, VB-472), from the hours done before
+    worked: (st, j, dt, a, from) => {
+      for (let n = Math.floor(j.done + 1e-9) - Math.floor(from + 1e-9); n > 0; n--)
         graze(st, j.site, herdLoad(st, st.households[j.owner.id]));
     },
     // each grazing day, from HERD.herding.from until HERD.herding.by, for a household with animals whose herds are not out today already

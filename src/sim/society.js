@@ -253,25 +253,6 @@ VB['sim/society'] = (() => {
       p.interest = it;
     }
   }
-  // The pawns outdoors in a talk hour, in cells of NEAR map units, for talk (sim/relations): {out (agents), cells (cell key to indexes into
-  // out), cellOf (cell x, y to key), size}; derived, not state. (Until VB-127 it also counted every pair near each other.)
-  const NEAR = 30,
-    cellOf = (cx, cy) => cx * 65536 + cy;
-  function outdoors(st) {
-    const out = [];
-    for (const id of st.living) {
-      const a = st.agents[id];
-      if (!a.inside) out.push(a);
-    }
-    const cells = new Map();
-    out.forEach((a, n) => {
-      const k = cellOf(Math.floor(a.x / NEAR), Math.floor(a.y / NEAR)),
-        l = cells.get(k);
-      if (l) l.push(n);
-      else cells.set(k, [n]);
-    });
-    return { out, cells, cellOf, size: NEAR };
-  }
   return {
     prestigeParts,
     hooks,
@@ -281,6 +262,5 @@ VB['sim/society'] = (() => {
     updateTie,
     refreshPrestige,
     refreshInterests,
-    outdoors,
   };
 })();
