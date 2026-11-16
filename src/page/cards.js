@@ -172,13 +172,95 @@ const houseStats = (hh) =>
     hh.hungryDays > 0 ? { icon: 'hunger', label: 'Hungry days', value: hh.hungryDays, tone: 'warn' } : null,
   ]);
 const section = (title) => `<h3 class="card-sec">${title}</h3>`;
+// ---- materials (VB-668): held until a work asks for them, so the question is whether there is enough for what is planned ----
+// A material: the good a project's step spends (its key, as sim/stores names it) or a heap the household holds; `kinds` is the list of
+// {label, n, tint} the heap holds of one material (today's state holds one kind of each, so it is empty), shown under the total only
+// where more than one kind is held.
+let allMaterials = false; // the "All materials" switch: the page's own state, kept as the selection changes
+const MATERIALS = [
+  { key: 'wood', label: 'Timber', icon: 'wood', field: 'wood', title: 'Timber, in loads (the woodpile)' },
+  { key: 'stone', label: 'Stone', icon: 'stone', field: 'stone', title: 'Stone, in loads' },
+  { key: 'clay', label: 'Clay', icon: 'clay', field: 'clay', title: 'Clay, in loads' },
+  { key: 'bogOre', label: 'Bog ore', icon: 'ore', field: 'bogOre', title: 'Bog iron ore, in loads' },
+  { key: 'tar', label: 'Tar', icon: 'tar', field: 'tar', title: 'Tar, in barrels' },
+  { key: 'wool', label: 'Wool', icon: 'wool', field: 'wool', title: 'Wool, in fleeces, unspun' },
+];
+const materialsOf = (hh) => MATERIALS.map((m) => ({ ...m, n: Math.round(hh[m.field] || 0), kinds: [] }));
+const WORK_WORD = { field: 'New field', meadow: 'New hay meadow', boat: 'A boat', plot: 'A plot for an heir' };
+// The works that ask for materials: the household's project plans, each with what it asks (what its plan holds back for its steps, `build`).
+function worksOf(hh) {
+  const works = [];
+  for (const plan of VB['sim/projects'].projectsOf(st, 'household', hh.id)) {
+    const asks = [];
+    for (const key in plan.reasons)
+      if (plan.reasons[key] === 'build' && plan.reserved[key] > 0) {
+        const m = MATERIALS.find((x) => x.key === key);
+        if (m) asks.push({ key, have: Math.round(hh[m.field] || 0), want: Math.ceil(plan.reserved[key] - 1e-9) });
+      }
+    if (asks.length) {
+      const step = plan.steps[plan.open];
+      works.push({
+        icon: plan.what === 'boat' ? 'boat' : plan.what === 'meadow' ? 'meadow' : 'field',
+        name: WORK_WORD[plan.what] || `New ${plan.what}`,
+        step: step ? Sim.KINDS[step.kind].name : '',
+        asks,
+      });
+    }
+  }
+  return works;
+}
+// The section's layout, from lists: mats [{key, label, icon, n, kinds, title}], works [{icon, name, step, asks: [{key, have, want}]}], all.
+function materialsHTML(mats, works, all) {
+  const asked = new Set(works.flatMap((w) => w.asks.map((a) => a.key)));
+  const by = (k) => mats.find((m) => m.key === k);
+  const frames = works
+    .map(
+      (w) =>
+        `<div class="work"><div class="work-head">${goodIcon(w.icon)}<b>${esc(w.name)}</b>${w.step ? `<small>${esc(w.step)} is next</small>` : ''}</div>` +
+        stats(
+          w.asks.map((a) => ({
+            icon: by(a.key).icon,
+            label: by(a.key).label,
+            value: `${a.have} of ${a.want}`,
+            tone: a.have < a.want ? 'warn' : 'good',
+            meter: { value: a.have, max: a.want * 1.25, marks: [{ at: a.want, label: `asked: ${a.want}` }] },
+          })),
+        ) +
+        '</div>',
+    )
+    .join('');
+  const shown = mats.filter((m) => all || m.n >= 1 || asked.has(m.key));
+  const tiles = shown.map((m) => {
+    const list = m.kinds && m.kinds.length > 1 ? m.kinds : [];
+    return (
+      stat({ icon: m.icon, label: m.label, value: m.n, title: m.title }) +
+      (list.length
+        ? `<div class="stat wide kinds">${list
+            .map(
+              (k) => `<span><i style="background:${esc(k.tint || 'var(--muted)')}"></i>${esc(k.label)} ${k.n}</span>`,
+            )
+            .join('')}</div>`
+        : '')
+    );
+  });
+  return (
+    frames +
+    `<div class="stat-grid">${tiles.join('')}</div>` +
+    `<button type="button" class="card-switch" data-all-materials aria-pressed="${all}">All materials</button>`
+  );
+}
+$('tileHouse').addEventListener('click', (e) => {
+  if (!e.target.closest('[data-all-materials]')) return;
+  allMaterials = !allMaterials;
+  syncTabs();
+});
 function storesTab(hh) {
   const f = st.farmsteads[hh.farmstead],
     C = VB['sim/carts'],
     seed = Math.round(Sim.seedReserve(st, hh)),
     quern = hh.quern ? Sim.quernYears(st, hh) : 0,
     n = (x) => Math.round(x || 0);
-  const goods = [
+  const supplies = [
     {
       icon: 'grain',
       label: 'Grain',
@@ -203,18 +285,7 @@ function storesTab(hh) {
     },
     woodStat(hh),
     hh.dry > 0 ? { icon: 'water', label: 'Water', value: 'none', tone: 'bad' } : null,
-    { icon: 'stone', label: 'Stone', value: n(hh.stone), title: 'Stone, in loads' },
-    { icon: 'clay', label: 'Clay', value: n(hh.clay), title: 'Clay, in loads' },
-    { icon: 'ore', label: 'Bog ore', value: n(hh.bogOre), title: 'Bog iron ore, in loads' },
     { icon: 'peat', label: 'Peat', value: n(hh.peat), title: 'Peat, in units' },
-    { icon: 'wool', label: 'Wool', value: n(hh.wool), title: 'Wool, in fleeces, unspun' },
-    {
-      icon: 'tar',
-      label: 'Tar',
-      value: n(hh.tar),
-      note: [hh.tarPit ? 'a pit' : '', Sim.houseTarred(st, f) ? 'house tarred' : ''].filter(Boolean).join(', '),
-      title: 'Tar, in barrels',
-    },
   ];
   const gear = [
     {
@@ -250,7 +321,10 @@ function storesTab(hh) {
   ];
   const low = Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)));
   return (
-    stats(goods) +
+    section('Supplies') +
+    stats(supplies) +
+    section('Materials') +
+    materialsHTML(materialsOf(hh), worksOf(hh), allMaterials) +
     section('Gear') +
     stats(gear) +
     section('Health') +
