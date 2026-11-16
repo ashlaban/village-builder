@@ -332,7 +332,7 @@ trait and 1 (or 0) at 0.5; where a row names a rule of a later slice, that slice
 | Diligence | idle, diligent | A head's planning day: every third day, every second, or daily (built, VB-249). How long an idle pawn waits before it looks for work again, 4 to 2 hours | A member's initiative outside the plan |
 | Openness | set in their ways, curious | How fast its attitudes move (malleability, 0.5 to 1.5 times). The chance to take up a cause, 0 to 2 times (today's norm entrepreneur) | Trying a new crop (Crops, How the head chooses) |
 | Body | frail, strong | The learning rate and the cap of skills of heavy work (felling, digging, threshing, carrying), each 0.75 to 1.25 times. Health regained on a fed day, 2.5 to 3.5 | |
-| Hands | clumsy, deft | The learning rate and the cap of the crafts' skills (spinning, weaving, smithing, pottery, building), each 0.75 to 1.25 times | Quality of what is made |
+| Hands | clumsy, deft | The learning rate and the cap of the crafts' skills (spinning, weaving, smithing, pottery, building), each 0.75 to 1.25 times | Quality of what is made: the odds of a piece's workmanship, as a tenth of skill either way (16 Nov; The metals and the stones, Workmanship) |
 | Husbandry | no hand with beasts, good with beasts and crops | The learning rate and the cap of field and herd skills, each 0.75 to 1.25 times. A head's skill (with wits; Work, foresight) | |
 | Wits | slow, sharp | A head's skill (with husbandry). How long a story is remembered, 0.5 to 1.5 times its half-life | Estimating a task's end; reckoning at the fair |
 
@@ -1080,7 +1080,7 @@ Predators, pigs, horses, poultry, disease, breeding and traits, summer farms (*f
 | Aspect | Design | Status |
 | --- | --- | --- |
 | Goods in subtypes | Goods are typed with subtypes (granite and marble are both stone; cow's and sheep's milk), each with the quantum that changes hands (one head, one sack) and how it perishes | Decided, 3 Nov (subtypes, Kim's description); Proposed (the rest, target-v2, section 4.3) |
-| A good, its material and its kind | A good is what it is for (a whetstone, a vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze) makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long it lasts, how fast it works, what it can hold); its worth in gifts and standing follows from custom. A deposit needs no use of its own, only a property that matters. The kind is the subtype, carried from the material into the good made of it (The metals and the stones, below) | Decided, 16 Nov (Kim's principle; `AGENTS.md`, Deciding without Kim, 17) |
+| A good, its material and its kind | A good is what it is for (a whetstone, a vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze) makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long it lasts, how fast it works, what it can hold); its worth in gifts and standing follows from custom. A deposit needs no use of its own, only a property that matters. The kind is the subtype, carried from the material into the good made of it (The metals and the stones, below). A made good also has a grade of workmanship, one of five (shoddy, sound, good, fine, masterwork), drawn at its making by odds that shift with the maker's skill; the grade scales everything the kind's properties do, and its worth. Skill makes a made good better as well as faster; it never multiplies a crop's yield (Workmanship, below) | Decided, 16 Nov (Kim's principle, and its second paragraph the same day; `AGENTS.md`, Deciding without Kim, 17) |
 | Title and custody | Who owns a thing and where it is are apart: a cow in a neighbour's byre, grain at the mill, cargo aboard | Proposed (target-v2, section 2) |
 | Recipes | Human transformation of goods; a recipe may bind the subtype it was given (any stone hewn into blocks of the same stone); building is a recipe whose output is a stage of a facility | Proposed (target-v2, section 4.3) |
 | Facilities | Built things on sites, from houses and mills to roads and harbours, each with an owner, perhaps an operator, its capabilities and who may use it | Proposed (target-v2, section 4.3) |
@@ -1096,13 +1096,13 @@ Decided; the numbers are Proposed, in the game's work hours (576 an adult a year
 
 | Aspect | Design | Status |
 | --- | --- | --- |
-| Skills | A skill a craft and pawn from 0 to 1, learnt by doing, faster with aptitude: a novice works at 60% of the rate and a master at 130%; halfway in about 400 hours; a tenth lost a year unused. So "the smith" and "the weaver" come of hours worked, and a beginner is still of use (VB-360) | Decided, 11 Nov (moderate); Proposed (numbers) |
+| Skills | A skill a craft and pawn from 0 to 1, learnt by doing, faster with aptitude: a novice works at 60% of the rate and a master at 130%; halfway in about 400 hours; a tenth lost a year unused. So "the smith" and "the weaver" come of hours worked, and a beginner is still of use (VB-360). Since 16 November skill also sets the quality of what is made: a piece's grade of workmanship is drawn by its maker's skill (The metals and the stones, Workmanship; VB-761). This moves the decision of 11 November, by which skill set only the rate of work; the rate stands as it was. Skill still never multiplies a crop's yield (Crops and rotations, Where skill acts: the orchestrator's assumption, stated to Kim on 16 November and not contradicted) | Decided, 11 Nov (moderate; rate only); moved, 16 Nov (Kim: for made goods, quality too); Proposed (numbers) |
 | Facilities | Built things on sites, kept in one registry: an owner, a kind, a condition, and building in stages, each stage a recipe of hours and loads and a step of the owner's plan. The bloomery, the kilns and the mill are the first; houses and barns move in when a slice needs it (VB-361) | Proposed (target-v2, 4.3, cut to the slice) |
 | Wool to cloth | A fleece is spun into a skein of yarn as background work indoors, beside minding the house, mostly in winter (40 hours); two skeins are woven into a length of cloth on a loom the household builds (12 hours, partial work). Cloth keeps and is a good of the fair. Dress for a household of six takes about a third of one adult's year, nearly all of it spinning (VB-144, VB-362) | Decided, 11 Nov (spin, weave, wear); Proposed (numbers) |
 | Dress | Each person wears a length of cloth out in about 3 years. In rags, winter's cold costs half as much health again and standing falls. Dyed and fine cloth wait for the ships (VB-363) | Decided, 11 Nov; Proposed (numbers) |
 | Who spins | A practice, "Spinning and weaving are": women's work (default) or everyone's indoor work. It decides whose winter is idle, and villages may drift apart on it (VB-362) | Decided, 11 Nov |
 | The quern | A hand quern makes grain go a quarter further. The stone is a good of place and wears out in about 20 years, so the need never ends: sandstone grinds at full speed, granite a fifth slower; a household without one eats its grain unground. The first households have one (VB-009). The first good whose kind sets its quality (Goods, recipes and facilities) | Decided, 11 Nov (a good of place, and it wears); Proposed (numbers) |
-| The mill | A village of 3 farms or more builds a water mill where it has a river in reach (100 hours), else a windmill (140 hours, as agreed on 30 Oct); it grinds 5 times as fast, and other villages pay a toll of 1 in 16. Both need a pair of sandstone millstones and iron fittings, so a village may have to trade before it can build (VB-093) | Decided, 11 Nov (water where possible, millstones and iron); Agreed, 30 Oct (hours, toll) |
+| The mill | A village of 3 farms or more builds a water mill where it has a river in reach (100 hours), else a windmill (140 hours, as agreed on 30 Oct); it grinds 5 times as fast, and other villages pay a toll of 1 in 16. Both need a pair of millstones and iron fittings, so a village may have to trade before it can build. The stones are of sandstone, or of granite grinding a fifth slower, as the quern: the mill then grinds 4 times as fast as the sandstone quern. This moves the decision of 11 November, which asked for sandstone (VB-093) | Decided, 11 Nov (water where possible, millstones and iron); moved, 16 Nov (Kim: granite millstones too, a fifth slower); Agreed, 30 Oct (hours, toll) |
 | Tools | A household's tools wear with field work and are mended in winter; work goes at 70 to 100% by their condition. Iron lifts the ceiling: without it tools mend only to half (wooden spades and ards, work at 85%), with it to full. Iron is worth trading for, and nobody starves without it (VB-121) | Decided, 11 Nov; Proposed (numbers) |
 | Iron | Two steps. A household with bog ore builds a bloomery, a small furnace, and smelts ore with wood into blooms (4 loads of ore and 6 of wood, 10 hours, a bloom); mending and making tools is winter craft work at home. A smithy comes when someone specialises; rock iron waits for mines (VB-364, on VB-359's digging) | Decided, 11 Nov (smelt, then forge); Proposed (numbers) |
 | Occupations | A pawn is called by the craft that leads its hours of the last three years, with hysteresis; a view only, read by no rule (VB-365) | Proposed |
@@ -1124,9 +1124,14 @@ from general reading not checked by search, for each task to report and the wrap
 | Aspect | Design | Status |
 | --- | --- | --- |
 | When the metals enter | The island's own metals (copper, tin, lead, silver, gold) enter with slice 6's second half, as goods of place: mined from found veins, smelted, and made into the goods below. The bell's use by the church, and coin, wait for the church and the Crown (slice 8). This moves the decision of 11 November, which left them for the ship | Decided, 16 Nov |
-| Quality | Quality acts through physical properties, and worth follows; there is no single grade number. Two things of one good and kind are alike | Decided, 16 Nov |
+| Quality | Two things make it. The kind's physical properties, with worth following: no single number stands for a kind. And the workmanship of the piece, one of five grades (Workmanship, below). Two things of one good, kind and grade are alike | Decided, 16 Nov |
+| Workmanship | A made good has a grade: shoddy (a malus), sound (neutral), good (a small bonus, quite common), fine (a medium bonus, rare), masterwork (a large bonus, rarer still). It is drawn when the piece is made, from odds that shift with the maker's skill at the craft: a novice's work is mostly shoddy, a practised maker's mostly sound or good, a master's mostly good with fine and masterwork possible. The grade acts on everything the kind's properties do (how long the piece lasts, how well it works) and on its worth: "a shoddily made spade will break more easily, and can have a worse edge" (Kim). Grades are counted; no piece has a record or a maker's name (VB-761) | Decided, 16 Nov (five grades; by the maker's skill; on all that the kind acts on, and worth; counted); Proposed (the numbers, below) |
+| Which goods are graded | The made goods a household keeps and uses or shows: a farm's tools (their ironwork), whetstone, grindstone, quern, millstones, pot, kettle, cloth and the dress made of it, bell, memorial stone. Not graded: materials (ore, blooms and bars, stone, lime, brick, tiles, yarn) and food and ale, whose making skill only speeds; the thing of worth, which goes by weight (a worked ornament is the town's silversmith's); and what is built (houses, facilities, boats, carts), whose quality is a condition | Proposed |
+| What a grade scales | Life: a durable's years, or the share that breaks a year, or the hours that wear a set of tools. Working: the effect the good's use reads, measured from having none (the wear a whetstone saves, a quern's speed, the edge tools give); not what a thing holds, which is its size. Worth: custom's, five multipliers a culture, rising faster than use. A good's table is kind by grade, compiled from the kind's properties and these rows | Proposed |
+| Choosing among grades | A head keeps the best for its own use (dress by rank in the household), pays what it owes in the least, and gives in the best where the gift is for standing; what is left it deals, each grade a lot at its own worth. A target is on a good or a kind, never on a grade: a head chooses who makes, the most skilled hand it has, or gets the piece from a better maker, by its estimate of what its own hand's work will be worth. The played pawn has the same choices | Proposed |
+| Workmanship in the page | One mark at the corner of the good's icon, the same wherever the good appears: none for sound, a notch for shoddy, one pip for good, two for fine, three for masterwork. A store's row shows its pieces by grade as one strip of five; a good's table of kind by grade opens from its icon; a pawn's skill shows the same strip as that pawn's own expectation. The word is workmanship: a house's grade is another thing (VB-763) | Proposed |
 | A good's kinds | A good has a small fixed list of kinds (at most 8): those whose properties let them do its work at all. They may come from more than one class of material where the purpose is one (a pot of fired clay, soapstone or bronze). A new kind is a row (extending a system) | Proposed |
-| Kind in state | A good's kind is its subtype in the goods registry (`whetstone/slate`; Goods in subtypes, above), which gains the good's material. A store counts a good by kind, as grain is counted by crop: the stone heap by its rock, ore, metal, pots, things of worth. A durable a household has one of (a quern, a whetstone, a grindstone, a kettle) is its kind and when it was made, worn out in closed form. No record for each item. A recipe binds its material's kind into its product; a use that takes any kind takes the one of least customary worth first | Proposed |
+| Kind in state | A good's kind is its subtype in the goods registry (`whetstone/slate`; Goods in subtypes, above), which gains the good's material. A store counts a good by kind, as grain is counted by crop: the stone heap by its rock, ore, metal, pots, things of worth. A durable a household has one of (a quern, a whetstone, a grindstone, a kettle) is its kind and when it was made, worn out in closed form. A graded good carries its grade in the same shapes: five counts a kind, and the durable's record gains its grade; the grade is not part of the good's id, and the ledger books the good, never its kind or grade. No record for each item. A recipe binds its material's kind into its product; a use that takes any kind takes the one of least customary worth first | Proposed |
 | Worth by kind | Custom's table of worth has a row for each good and kind; the properties never compute it | Proposed |
 | Mines | Any household digs a found vein on its own land, its village's outland or the wilderness, by hand, as clay is dug, a load a trip, and owns what it dug. The rock is broken by fire-setting, which takes wood (3 hours and a load of wood for a load of ore; twice the hours and half as much wood again once the tile is half dug). The pit is the tile: no facility. A mine in shares with a common furnace (the *bergslag*) comes later, as a kind of body after slice 5's bodies (VB-736) | Decided, 16 Nov (hands, as clay; whose ore; shares later); Proposed (numbers) |
 | Prospecting | A head who wants ore and knows no vein sends a pawn to the uplands for a day; the chance is that of work near a vein (In the ground). A verb any pawn has (VB-737) | Proposed |
@@ -1143,19 +1148,19 @@ from general reading not checked by search, for each task to report and the wrap
 | The heap by its rock | The stone heap keeps each load's rock, so a quern is of the stone it was hewn from, not of the rock under the green; quarrying reaches heath as well as hills and mountains, since limestone was quarried on flat ground (VB-733) | Proposed |
 | Marble | A kind of stone: it builds as any stone, burns to lime as limestone does, and is the finest kind of the memorial stone. Fonts and altars wait for the church (VB-744) | Proposed |
 | The memorial stone | When a holder dies the heir may raise a carved stone at the farm: the one carved good before the church. Its kinds are granite, sandstone, limestone, soapstone and marble, from the plain to the finest by custom; the heir gains a term of standing by the kind, fading over a generation, under one cap with the well-kept house (VB-745) | Proposed |
-| Tin | Tin's chance is doubled and it may lie in granite hills as well as the granite uplands, so that bronze by land trade is possible on most maps. Measured before: a village within 30 steps of tin on 6 of 21 small maps, and villages with copper and with tin on the same map on 4 of 21. A trial of the change gave 13 and 8 of 21; copper bounds the pair (11 of 21), so the task may raise copper's chance too (VB-734) | Decided, 16 Nov (twice as likely; granite hills; the aim); Proposed (the shares) |
+| Tin | Tin's chance is doubled and it may lie in granite hills as well as the granite uplands, so that bronze by land trade is possible on most maps. Measured before: a village within 30 steps of tin on 6 of 21 small maps, and villages with copper and with tin on the same map on 4 of 21. A trial of the change gave 13 and 8 of 21. Tin only is raised (Kim, 16 Nov): copper's chance stays, and since copper bounds the pair (a village within 30 steps of copper on 11 of 21 small maps), bronze by land is possible on about 8 maps of 21, not on most; the rest is left for the tuning run (VB-734) | Decided, 16 Nov (twice as likely; granite hills; tin only); Proposed (the shares) |
 | Waiting | Flint, until lighting a fire is a decision (a journey, a camp). For the church (slice 8): fonts, altars and soapstone carving; amber for rosaries and incense; lead for roofs and windows; the bell's church use; coin. For the town (slice 9): pewter, iron pans and cast cauldrons | Proposed |
-| Cost | About 30 numbers more a household (counts by kind, and three durables); properties compiled at load into a row a good and kind, read where a job or a planning day already runs. Mining and prospecting are jobs on the planning day through the digging's kept search; furnaces are few, indexed as facilities; a hoard is one record, a lost one a tile's worth in the world's layer. No pass over pairs, no daily pass | Proposed |
+| Cost | About 30 numbers more a household (counts by kind, and three durables); properties compiled at load into a row a good, kind and grade, read where a job or a planning day already runs. Workmanship at 1,000 living (about 190 households): a grade is one small number on some 2,000 records that exist without it (5 durables a household and a dress a pawn) and five counts in place of one for the 3 to 5 graded kinds a household holds; about 30 KB of a save, nothing in a step, some 1,000 draws a year. Mining and prospecting are jobs on the planning day through the digging's kept search; furnaces are few, indexed as facilities; a hoard is one record, a lost one a tile's worth in the world's layer. No pass over pairs, no daily pass | Proposed |
 
 **Goods by purpose.** The goods this plan adds or recasts; the others of the same shape are grain by crop, fuel (wood, and peat at
-half) and tools (wood, and iron).
+half) and tools (wood, and iron). Each row is the good's sound grade.
 
 | Good | For | Material | Kinds | The property that differs, and what reads it |
 | --- | --- | --- | --- | --- |
 | Whetstone | an edge kept | stone | slate, sandstone | grain: the wear of tools; hardness: its life |
 | Grindstone | an edge reground | stone | sandstone | grit: the hours of mending |
 | Quern | flour | stone | sandstone, granite | grit: grinding speed |
-| Millstone | the mill | stone | sandstone | grit |
+| Millstone | the mill | stone | sandstone, granite | grit: the mill's speed |
 | Pot | the store kept | fired clay, stone, metal | clay, soapstone, cast bronze | how long it lasts; worth by custom |
 | Kettle | a brewing, the dairy | metal | copper | what it holds; its wear |
 | Tools | the farm's work | wood, metal | wood, iron | hardness: the ceiling of mending |
@@ -1172,6 +1177,32 @@ half) and tools (wood, and iron).
 lime; takes a polish), flint (strikes a spark). Metal: iron (hard, takes an edge), copper (beaten to sheet; wears thin), tin (alloys),
 bronze (casts; does not crack; rings), lead (soft, heavy), silver and gold (neither spoil nor wear). Amber is a material of its own:
 light, brittle, washed ashore.
+
+**Workmanship (Kim, 16 November; the numbers Proposed).** What each grade multiplies, as named tunables (`WORKMANSHIP.life`,
+`WORKMANSHIP.work`; worth is a row of custom):
+
+| Grade | Life | Working | Worth, by custom |
+| --- | --- | --- | --- |
+| Shoddy | 0.7 | 0.85 | 0.6 |
+| Sound | 1 | 1 | 1 |
+| Good | 1.1 | 1.05 | 1.25 |
+| Fine | 1.25 | 1.12 | 2 |
+| Masterwork | 1.5 | 1.25 | 4 |
+
+The odds of each grade by the maker's skill (`WORKMANSHIP.odds`: named at three levels and read in a straight line between them;
+one draw a piece, from a stream of its own):
+
+| Maker's skill | Shoddy | Sound | Good | Fine | Masterwork |
+| --- | --- | --- | --- | --- | --- |
+| 0, a novice | 60% | 35% | 5% | none | none |
+| 0.5, practised | 15% | 45% | 33% | 6% | 1% |
+| 1, a master | 2% | 23% | 50% | 20% | 5% |
+
+A practised maker's pieces average the sound row (life 1.01, working 1.00), so the numbers of every good stand as written and the
+grades spread around them; a novice's average 0.83 of the life, a master's 1.12. A master works at 1.3 of the rate and its pieces
+are worth 1.47 sound ones, a novice at 0.6 and 0.77: an hour of the master's making is worth four of the novice's, which is what
+draws a village towards "the smith" and "the potter". The hands trait moves the odds as a tenth of skill either way (People,
+The twelve traits). A mishap (Work, The time taken) costs time, never a grade.
 
 ### Goods of place and side crafts (slice 4, 10 November)
 
@@ -1208,7 +1239,7 @@ November (Decided; the numbers are each slice's plan's to set):
 - Quarried stone (VB-332) is of the tile's bedrock. A foundation takes any kind; later uses want the right one. Picked field stone is granite.
 - What each is for (11 November; rewritten on 16 November by the plan of VB-702, on Kim's answers: The metals and the stones,
   above, holds the goods and their kinds): clay, limestone and sandstone with slice 6 (pots, daub and brick; lime burnt for mortar;
-  querns, millstones and grindstones, and the poorer whetstone); bog and rock iron with tools that wear (VB-121), rock iron from a
+  querns, millstones and grindstones, and the poorer whetstone; granite the slower quern and millstone); bog and rock iron with tools that wear (VB-121), rock iron from a
   mine; slate for the keener whetstone and the roof; soapstone for the pot that lasts; marble for lime and the finest memorial
   stone; copper, tin, lead, silver and gold with slice 6's second half (the kettle, bronze for the cast pot and the bell, things of
   worth), no longer with slice 8, which keeps coin and the church's uses. Amber is a thing of worth beside silver and gold. Peat is
@@ -1804,7 +1835,7 @@ The player's role is the largest open question; most proposals concern growth, t
 - [ ] Ambitions, postponed (Kim, 7 Nov): whether the game offers them at all, and which; designed late, since nothing else depends on them.
 - [x] Marriage as a negotiation (Decided, 9 Nov): who speaks for whom, consent, terms (dowry and morning gift), courting's place, and what the player answers. Agreed, 9 Nov (Inheritance, Marriage as a negotiation); VB-233 writes its tasks.
 - [x] What stops a skip to the next event. Agreed, 9 Nov (The player and what they see; VB-234).
-- [ ] Gaps no design pass has covered (target-v2, section 10.3): disease and epidemics; childcare and the household's division of labour; crime and law beyond debt; the quality of goods (answered, 16 Nov: quality is the kind's physical properties, read by the good's use, with no grade number; Goods, production and animals, The metals and the stones; whether a maker's skill adds to it is `QUESTIONS.md`, VB-702); legibility, and save versions across the changes.
+- [ ] Gaps no design pass has covered (target-v2, section 10.3): disease and epidemics; childcare and the household's division of labour; crime and law beyond debt; the quality of goods (answered, 16 Nov: quality is the kind's physical properties, read by the good's use, and the workmanship of the piece, one of five grades drawn by its maker's skill; Goods, production and animals, The metals and the stones); legibility, and save versions across the changes.
 
 ## Appendix: Systems overview (Proposed, review of 30 October 2026)
 
