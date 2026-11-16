@@ -122,6 +122,7 @@ const INTEGRATION = [
   ['node', 'tests/gossip.js'],
   ['node', 'tests/health.js'],
   ['node', 'tests/carts.js'],
+  ['node', 'tests/extinctwood.js'],
   ['node', 'tests/deer.js'],
 ];
 const EXTENDED = [
