@@ -364,12 +364,13 @@ VB['sim/rules'] = (() => {
   // the standing's value (kin, spouse, housemate), plus affinity, affinity.weight * compatibility * min(1, tie / affinity.known), the pair's
   // fixed compatibility shown as the two grow familiar, plus timed memories of things that happened. A memory gains v at each event, up to
   // cap, and fades to 0 over `days` from the last one.
-  // Talk: between 6:00 and 22:00 each pawn of minAge or more, not carrying a load, starts a talk at `chance` an hour with one nearby
-  // pawn (`sample` candidates at most), weighted by (1 + min(tie, 1)) * (1 + opinion). The talk is a chat, a good talk or cross words
-  // by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin for kin and housemates): its kind is the
-  // bubble's, and leaves no memory. Two unmarried pawns aged within `young` count `youngBonus` times in both the choice and the good talk.
-  // A talk adds ties.talk to the tie of both and shows a bubble for `bubbleHours`. closeFriend and enemy: an opinion reaching them is a
-  // life event; leaving needs `back` past the line. friend and dislike are the page's words only.
+  // Talk (VB-521: by turns): between 6:00 and 22:00 a pawn has a talk turn in the hours where (hour + id) % `every` is 0, four a day; at it,
+  // of minAge or more and not carrying a load, it starts a talk at `chance` with one partner sim/encounters finds (`sample` drawn at most
+  // outdoors), weighted by (1 + min(tie, 1)) * (1 + opinion), plus the encounter's mix; it may be drawn as a partner in any hour, once.
+  // The talk is a chat, a good talk or cross words by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin
+  // for kin and housemates): its kind is the bubble's, and leaves no memory. Two unmarried pawns aged within `young` count `youngBonus`
+  // times in both the choice and the good talk. A talk adds ties.talk to the tie of both and shows a bubble for `bubbleHours`. closeFriend
+  // and enemy: an opinion reaching them is a life event; leaving needs `back` past the line. friend and dislike are the page's words only.
   // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
   // An idle pawn the planner found no work looks again after wait[0] to wait[1] hours (VB-245; Kim, 10 Nov: 2 to 4, from 0.75 to 2). It hears of new
   // work meanwhile through the hourly refresh, looks again when its wait ends (a leg in sim/agents' queue, VB-473), and of an occasion by the asking.
@@ -394,7 +395,8 @@ VB['sim/rules'] = (() => {
     talk: {
       from: 6,
       to: 22,
-      chance: 0.5,
+      every: 4,
+      chance: 1,
       minAge: 4,
       sample: 8,
       good: 0.15,
@@ -404,11 +406,12 @@ VB['sim/rules'] = (() => {
       youngBonus: 2,
       bubbleHours: 0.5,
     },
-    // Familiarity (VB-127; docs/review-relationships.md, proposal B): a tie grows by `talk` a talk, by `home` per 24 waking hours (the talk
-    // hours) two housemates spend in their house, counted once a day, and by `work` for each job two pawns finish together; it halves every
-    // year. Near kin never fall below `kin`. A pawn keeps at most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped
-    // when the pawn's ties are put back on today's scale, every `renorm` years.
-    ties: { talk: 0.5, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
+    // Familiarity (VB-127; docs/review-relationships.md, proposal B): a tie grows by `talk` a talk (VB-521: 0.8, a longer conversation at
+    // four turns a day; it was 0.5), by `home` per 24 waking hours (the talk hours) two housemates spend in their house, counted once a
+    // day, and by `work` for each job two pawns finish together; it halves every year. Near kin never fall below `kin`. A pawn keeps at
+    // most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped when the pawn's ties are put back on today's scale,
+    // every `renorm` years.
+    ties: { talk: 0.8, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
     affinity: { weight: 0.6, known: 8 },
     friend: 0.25,
     dislike: -0.2,
