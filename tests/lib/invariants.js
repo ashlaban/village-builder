@@ -530,6 +530,17 @@ function checkState(st) {
       if (p.died === null) bad.push(`pawns[${p.id}]: dead without a died time`);
     }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
+    // VB-520: a pawn with an attitude leans, a byte a custom, to the option it favours most (culture compiles it where it writes att)
+    if (p.att) {
+      const C = globalThis.VB.culture;
+      if (!(p.leans instanceof Uint8Array) || p.leans.length !== C.DIMS.length) bad.push(`pawns[${p.id}]: leans ${p.leans}`);
+      else for (let d = 0; d < C.DIMS.length; d++) {
+        const o = C.OFF[d], top = p.att[o + p.leans[d]];
+        let most = -Infinity;
+        for (let j = 0; j < C.NOPT[d]; j++) most = Math.max(most, p.att[o + j]);
+        if (p.leans[d] >= C.NOPT[d] || top !== most) { bad.push(`pawns[${p.id}]: leans ${p.leans[d]} on custom ${d}, not its strongest`); break; }
+      }
+    }
     if (p.rel) checkRel(st, p, bad);
     if (p.ties) checkTies(st, p, bad);
     if (p.goodwill) checkGoodwill(st, p, bad);
