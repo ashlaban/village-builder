@@ -12,7 +12,7 @@ const fresh = () => {
 };
 const give = (st, from, to, n, source = 'help') => issue(st, { actor: from.holder, verb: 'give', target: to.id, args: { good: 'grain', n }, source });
 // a gift from another farmstead is set aside where it lies and fetched (VB-461): the receiver has it once its fetcher is home
-const fetchAll = (st) => { for (let k = 0; k < 96 && st.journeys.some((j) => j.why === 'fetch'); k++) Sim.advance(st, 0.5); };
+const fetchAll = (st) => { for (let k = 0; k < 96 && st.journeys.some((j) => j.why === 'fetch' || j.why === 'haul'); k++) Sim.advance(st, 0.5); };
 const ctx = (from, to) => ({ giver: from.holder, receiver: to.holder, from, to });
 let checks = 0;
 { // within the floor and the allowance: settled, both ledgers, the tie between the holders
@@ -80,7 +80,9 @@ let checks = 0;
   assert.strictEqual(vgive(30), true); assert(Sim.grainOf(v) === 0 && v.ledger.some((e) => e.kind === 'gift' && e.n === -30), 'the store gave');
   b.grain = { barley: floorOf(st, b) + 1000 };
   assert.strictEqual(issue(st, { actor: b.holder, verb: 'give', target: { village: v.id }, args: { good: 'grain', n: 5 }, source: 'help' }), true);
-  assert(Sim.grainOf(v) === 5, 'the filling reached the store');
+  assert(Sim.grainOf(v) === 0, 'the filling is on its way');
+  fetchAll(st);
+  assert(Math.abs(Sim.grainOf(v) - 5) < 1e-9, 'the filling reached the store');
   const bad = [
     { actor: b.holder, verb: 'give', target: a.id, args: { good: 'meals', n: 5 } },
     { actor: b.holder, verb: 'give', target: a.id, args: { good: 'grain', n: -5 } },
