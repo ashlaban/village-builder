@@ -12,6 +12,7 @@
 //   --clouds      keep the clouds (cleared by default: they hide the village on the whole-island shot)
 //   --land        with the Land overlay on
 //   --cart-out    put a pawn of each of the first farms out with its cart, hay on it (VB-410)
+//   --cow-led     put a pawn of each of the first farms out leading a cow home (VB-429)
 //   --scale S     device pixel ratio (default 2: 2880 by 1800 pixels; 1 for a quick look)
 //   --tag NAME    the files' prefix (default village-<seed>-<farms>f-y<years>)
 //   --html FILE   another build of the page (default: built from src/ for the run, tests/lib/page.js)
@@ -96,6 +97,16 @@ async function shootSeed(browser, seed) {
       if (!a || !hh.carts.length) continue;
       a.job = { kind: 'haul', farm: f }; a.phase = 'back'; a.carry = 'hay'; a.load = 90; a.x = st.w.hx[f.house] + 40; a.y = st.w.hy[f.house] + 20; a.path = null; a.inside = false;
       C.take(st, hh, a.id, hh.carts.some((c) => c.kind === 'ox'));
+    }
+    st.visualDirty = true;
+  });
+  if (has('cow-led')) await page.evaluate(() => { // a pawn of each of the first farms leading a heifer home
+    const st = window.__vb.st, A = (id) => st.agents[id];
+    for (const hh of st.households.slice(0, 4)) {
+      const a = hh.members.map(A).find((x) => x && st.pawns[x.id].age >= 16), f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id);
+      if (!a) continue;
+      if (plan && !plan.want) plan.want = { what: 'cow', from: null, kind: 'heifer', by: null };
+      a.job = { kind: 'lead', farm: f }; a.phase = 'back'; a.carry = 'cow'; a.x = st.w.hx[f.house] + 40; a.y = st.w.hy[f.house] + 20; a.path = null; a.inside = false;
     }
     st.visualDirty = true;
   });
