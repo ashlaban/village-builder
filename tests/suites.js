@@ -124,6 +124,11 @@ const INTEGRATION = [
   ['node', 'tests/carts.js'],
   ['node', 'tests/extinctwood.js'],
   ['node', 'tests/deer.js'],
+  // VB-853: the long save and load, and the year and the islands that clock, paths and indexes ran at night, on small states
+  ['node', 'tests/saves.js'],
+  ['node', 'tests/clock.js', '--integration'],
+  ['node', 'tests/paths.js', '--integration'],
+  ['node', 'tests/indexes.js', '--integration'],
   ['node', 'tests/page.js'], // VB-409: the page in jsdom on a 36 by 26 island, a few days and each panel once; the tiny map's smoke at night
 ];
 const EXTENDED = [
@@ -137,13 +142,9 @@ const EXTENDED = [
   ['node', 'tests/line.js'],
   // Generated islands and runs of years: each waits for a constructed case on a small state in the tiers above (docs/testing.md).
   ['node', 'tests/tools.js'],
-  ['node', 'tests/saves.js'],
   ['node', 'tests/smoke.js'], // the page on the tiny map, a year and the toasts; its quick case is tests/page.js in verify
   ['node', 'tests/populous.js'],
-  ['node', 'tests/spread.js', '--extended'],
-  ['node', 'tests/paths.js', '--extended'],
-  ['node', 'tests/clock.js', '--extended'],
-  ['node', 'tests/indexes.js', '--extended'],
+  ['node', 'tests/paths.js', '--extended'], // a whole island's traffic: how many houses a year gives a way to their door (VB-853)
   ['node', 'tests/rivers.js'],
   ['node', 'tests/settle.js'],
   ['node', 'tests/stones.js'],

@@ -1,5 +1,7 @@
-// The record indexes (children, spouse, holders, settlement members) agree with a full scan after 10 founders years and 3 populous years.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+// The record indexes (children, spouse, holders, settlement members) agree with a full scan: after each mutation of the record on the probe
+// village (npm test), and with --integration (verify, VB-853) every season of each scenario's runs on small generated islands, through births,
+// deaths, marriages and households that end; these replaced the runs of years on the tiny and medium maps (--extended), deleted.
+const VB = require('../src/load.js'), Sim = VB.sim, probe = require('./lib/probe.js');
 let failed = 0, n = 0; const check = (ok, m) => { n++; if (!ok) { failed++; if (failed < 20) console.error('INDEXES FAIL:', m); } };
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 function compare(st, label) {
@@ -22,13 +24,30 @@ function compare(st, label) {
     check(same(Sim.membersOf(st, s.id).map((p) => p.id), st.pawns.filter((p) => p.alive && Sim.settlementIdOf(st, p) === s.id).map((p) => p.id)), `${label}: members of ${s.id}`);
   }
 }
-function run(scenario, size, years) {
-  const it = G.generate(7, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done);
-  const st = Sim.seed(r.value, 7, scenario); compare(st, `${scenario} seed`);
-  for (let y = 1; y <= years; y++) { Sim.advance(st, Sim.YEAR); compare(st, `${scenario} year ${y}`); }
+const seen = { born: 0, died: 0, ended: 0, dissolved: 0 };
+function run(scenario, seasons) {
+  const st = probe.scenario(scenario, 7); compare(st, `${scenario} seed`);
+  const before = { born: st.pawns.length, died: st.pawns.filter((p) => !p.alive).length, ended: st.unions.filter((u) => u.end !== null).length,
+    dissolved: st.households.filter((h) => h.dissolved).length };
+  for (let k = 1; k <= seasons; k++) { Sim.advance(st, Sim.YEAR / 4); compare(st, `${scenario} season ${k}`); }
+  seen.born += st.pawns.length - before.born; seen.died += st.pawns.filter((p) => !p.alive).length - before.died;
+  seen.ended += st.unions.filter((u) => u.end !== null).length - before.ended;
+  seen.dissolved += st.households.filter((h) => h.dissolved).length - before.dissolved;
+  return st;
 }
-if (process.argv.includes('--extended')) {
-  run('founders', [120, 85], 10); run('populous', [180, 130], 3); run('heirs', [120, 85], 5);
+if (process.argv.includes('--integration')) {
+  run('founders', 4); run('heirs', 2);
+  const st = run('populous', 1);
+  // deaths the short runs may not bring, through the simulation's own: a holder dies (a widow, an heir takes the holding), and every
+  // member of another household dies, the holder last (the household ends, its farm goes empty)
+  const [a, b] = st.households.filter((h) => !h.dissolved && h.members.length > 1 && Sim.spouseOf(st, h.holder) !== null);
+  const dead = [a.holder, ...b.members.filter((id) => id !== b.holder), b.holder], widow = Sim.spouseOf(st, a.holder);
+  for (const id of dead) { Sim.killPawn(st, id); compare(st, `populous: ${id} died`); }
+  Sim.advance(st, 2 * Sim.DAY); compare(st, 'populous: two days after the deaths');
+  check(VB['sim/records'].wasWidowed(st, widow) && a.holder !== dead[0] && b.dissolved, `the deaths: widowed ${widow}, holder ${a.holder
+    } after ${dead[0]}, the household ${b.id} ${b.dissolved ? 'ended' : 'stands'}`);
+  console.log(`indexes: in the runs ${seen.born} born, ${seen.died} died, ${seen.ended} unions ended, ${seen.dissolved} households ended; `
+    + `then ${dead.length} deaths by hand, a holding passed on and a household ended`);
 } else {
   const st = require('./lib/probe.js').state(), R = VB['sim/records'];
   compare(st, 'seeded'); // warm the indexes before each mutation

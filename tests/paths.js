@@ -1,10 +1,13 @@
 // Worn paths (VB-094): crossings count on open land, fields and meadows, not on houses, greens or water, the count halves in a game year, stages with a margin, the page is told,
 // and in a run the wear sits where pawns walk; generated villages start worn in (VB-114); the map's trails reach their neighbours and keep
-// trees off paths and lanes.
+// trees off paths and lanes. Three cases: the thresholds, wear and fading on the probe village (npm test); with --integration (verify,
+// VB-853) the scenarios' worn-in start and a populous season on small generated islands, then lanes laid by hand round every house and
+// green for the ways' rules; with --extended (at night, as it shows what a small island cannot) the default island's populous year, whose
+// statistics (the worn-in counts, a quarter of the houses with a way to their door) need a whole island's traffic.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, P = VB['sim/paths'], Look = VB['gen/paths'];
 const { PATHS, YEAR_DAYS } = VB['sim/rules'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('PATHS FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
+const probe = require('./lib/probe.js');
 
 // Thresholds are tunables: test transitions and hysteresis around the current values.
 for (let stage = 1; stage <= 3; stage++) {
@@ -16,7 +19,7 @@ for (let stage = 1; stage <= 3; stage++) {
 }
 check(P.stageOf(0, 3) === 0, 'no wear has no stage');
 
-const st = require('./lib/probe.js').state(), w = st.w;
+const st = probe.state(), w = st.w;
 w.wear.fill(0); w.worn.fill(0);
 check(w.wear instanceof Float32Array && w.worn instanceof Uint8Array && w.wear.every((x) => x === 0), 'a new world has no wear');
 const house = st.farmsteads[0].house, open = w.nb.slice(house * 6, house * 6 + 6).find((j) => j >= 0 && !w.dev[j] && !w.water[j]);
@@ -37,18 +40,23 @@ check(w.wear[open] < PATHS.at[1] * PATHS.keep && w.worn[open] === 0, `an unused 
 for (let d = 0; d < 6 * YEAR_DAYS; d++) P.fadeWear(st);
 check(w.wear[open] === 0, 'a count under half a crossing is dropped');
 
-if (!process.argv.includes('--extended')) {
+const integration = process.argv.includes('--integration'), extended = process.argv.includes('--extended');
+if (!integration && !extended) {
   if (failed) process.exit(1);
   console.log('paths ok: crossings, excluded tiles, fading and hysteresis');
   process.exit(0);
 }
 // generated villages start worn in (VB-114), but the founders, who arrive on unmade land
-const pop = Sim.seed(world(7), 7, 'populous'), pw = pop.w, start = P.stageCounts(pw), heirs = P.stageCounts(Sim.seed(world(7), 7, 'heirs').w);
-check(start[1] > 60 && start[2] > 10, `populous starts with trodden/path/lane ${start.slice(1).join('/')}`);
+const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
+const island = (scenario) => extended ? Sim.seed(world(7), 7, scenario) : probe.scenario(scenario, 7);
+// (a 36 by 26 island has a tenth of the default's land: its 5 trodden tiles and a path stand for the default's 60 and 10)
+const pop = island('populous'), pw = pop.w, start = P.stageCounts(pw), heirs = P.stageCounts(island('heirs').w);
+check(extended ? start[1] > 60 && start[2] > 10 : start[1] > 5 && start[2] > 0, `populous starts with trodden/path/lane ${start.slice(1).join('/')}`);
 check(heirs[1] + heirs[2] > 0, `heirs start with trodden/path/lane ${heirs.slice(1).join('/')}`);
-check(P.stageCounts(Sim.seed(world(7), 7, 'founders').w).slice(1).every((n) => n === 0), 'the founders start with worn paths');
+check(P.stageCounts(island('founders').w).slice(1).every((n) => n === 0), 'the founders start with worn paths');
 // a populous run: wear where pawns walk, never on houses, greens or water, on fields and meadows too; stages agree with the counts
-Sim.advance(pop, Sim.YEAR);
+const ran = extended ? 'a populous year' : 'a populous season';
+Sim.advance(pop, extended ? Sim.YEAR : Sim.YEAR / 4);
 let worn = 0, onBuilt = 0, bad = 0, onFields = 0;
 for (let i = 0; i < pw.N; i++) {
   if (pw.wear[i] > 0 && (pw.water[i] || pw.dev[i] > 1)) onBuilt++;
@@ -56,11 +64,31 @@ for (let i = 0; i < pw.N; i++) {
   if (pw.worn[i]) worn++;
   if (!(pw.wear[i] >= 0) || pw.worn[i] > 3 || (pw.worn[i] && pw.wear[i] < PATHS.at[pw.worn[i]] * PATHS.keep)) bad++;
 }
-check(worn > 20, `only ${worn} worn tiles after a populous year`);
+check(worn > 20, `only ${worn} worn tiles after ${ran}`);
 check(onBuilt === 0, `${onBuilt} worn houses, greens or water tiles`);
-check(onFields > 0, 'no way is worn over a field or meadow after a populous year');
+check(onFields > 0, `no way is worn over a field or meadow after ${ran}`);
 check(bad === 0, `${bad} tiles whose stage does not fit their count`);
 const counts = P.stageCounts(pw);
+// On the small island too few households share a way for lanes to stand at every door and green: lay one by hand on each open tile round
+// every house and green, a little more worn round the clock, so that each of the rules below has many cases.
+const laid = new Set(), greens = [...pop.villages];
+if (integration) {
+  const lay = (c) => {
+    for (let k = 0; k < 6; k++) {
+      const j = pw.nb[c * 6 + k];
+      if (j < 0 || pw.water[j] || pw.dev[j] > 1 || pw.river[j] || laid.has(j)) continue;
+      laid.add(j); pw.wear[j] = PATHS.at[3] * (1.2 + k / 10); pw.worn[j] = P.stageOf(pw.wear[j], 0);
+    }
+  };
+  for (const f of pop.farmsteads) lay(f.house);
+  for (const v of pop.villages) if (v.green) lay(v.center);
+  // and a green of open land all round (houses close round the villages' own), so that sides beside a way join it
+  const open = (j) => j >= 0 && !pw.water[j] && !pw.dev[j] && !pw.river[j] && !laid.has(j);
+  const g = pw.dev.findIndex((d, i) => open(i) && [0, 1, 2, 3, 4, 5].every((k) => open(pw.nb[i * 6 + k])));
+  check(g >= 0, 'no open tile for a green');
+  if (g >= 0) { pw.dev[g] = 2; pw.wear[g] = 0; pw.worn[g] = 0; greens.push({ name: 'a green laid by hand', green: true, center: g }); lay(g); }
+  check(laid.size > 20 && [...laid].every((j) => pw.worn[j] === 3), `${laid.size} lanes laid by hand`);
+}
 // a way ends at a house's door and never goes on through the house: the house draws nothing, and of the tiles round it only its door,
 // the most worn of them, sends a way to it
 let doors = 0;
@@ -73,10 +101,11 @@ for (const f of pop.farmsteads) {
   }
   if (d >= 0 && pw.dev[d] !== 2) doors++;
 }
-check(doors > pop.farmsteads.length / 4, `only ${doors} of ${pop.farmsteads.length} houses have a way to their door`);
+// how many houses a year's traffic gives a way to their door is a statistic of a whole island (at night); laid by hand, enough have one
+check(doors > (extended ? pop.farmsteads.length / 4 : 0), `only ${doors} of ${pop.farmsteads.length} houses have a way to their door`);
 // the ways onto a green: at most three sides bring one, never two side by side; a trail tile on another side joins the way beside it
 let onto = 0, joined = 0;
-for (const v of pop.villages) {
+for (const v of greens) {
   if (!v.green) continue;
   const g = v.center, kept = Look.greenWays(pw, g);
   check(kept.length <= 3 && kept.every((k) => !kept.includes((k + 1) % 6)), `${v.name}: ways onto the green on sides ${kept.join(', ')}`);
@@ -92,7 +121,7 @@ for (const v of pop.villages) {
     check(d !== undefined && out.includes(d) && Look.exits(pw, to).includes((d + 3) % 6), `${v.name}: side ${k} does not join the way beside it`);
   }
 }
-check(onto > 0, 'no way runs onto any green after a populous year');
+check(onto > 0 && (extended || joined > 0), `${onto} ways run onto the greens and ${joined} trail tiles join one after ${ran}`);
 // trodden ground is walked and counted and draws nothing (LOOK.from)
 const faint = pw.worn.findIndex((s, i) => s === 1 && pw.dev[i] < 2 && !pw.river[i]);
 if (faint >= 0) check(Look.segments(pw, faint).length === 0, 'trodden ground draws a trail');
@@ -106,6 +135,7 @@ for (let i = 0; i < pw.N; i++) {
 }
 // decorations: an item on a lane (where its first curve ends) goes; one well clear of its trail stays
 const lane = pw.worn.findIndex((s, i) => s === 3 && !pw.dev[i] && !pw.river[i]);
+check(lane >= 0 || extended, 'no lane to thin decorations on');
 if (lane >= 0) {
   const segs3 = Look.segments(pw, lane), [bx, by] = [segs3[0][4], segs3[0][5]];
   const clear = (x, y) => segs3.every((g) => [0, 0.25, 0.5, 0.75, 1].every((t) => { // points along the quadratic curve
@@ -118,5 +148,5 @@ if (lane >= 0) {
   check(!items.some((it) => it.x === bx) && items.length === (free ? 1 : 0), `thin keeps ${items.length} items on and beside a lane`);
 }
 if (failed) process.exit(1);
-console.log(`paths ok: populous seed 7 trodden/path/lane worn in ${start.slice(1).join('/')}, after a year ${counts.slice(1).join(
-  '/')}; ${segs} trail segments`);
+console.log(`paths ok: populous seed 7 ${extended ? 'on the default island' : 'on a 36 by 26 island'} trodden/path/lane worn in ${start.slice(1).join(
+  '/')}, after ${ran} ${counts.slice(1).join('/')}${laid.size ? `, ${laid.size} lanes laid by hand round ${doors} doors and ${onto} ways onto greens` : ''}; ${segs} trail segments`);
