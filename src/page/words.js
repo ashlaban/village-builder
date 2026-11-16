@@ -8,7 +8,8 @@ const roleLine = (p) => {
   if (p.role === 'farmer' && p.sex === 'f')
     return isWidow(p) ? 'Widow holding the farm (änka)' : 'Holds the farm (bonde)';
   const r = Sim.ROLES[p.role];
-  return `${r.title} (${r.sv})`;
+  // the Swedish word is left out where it reads as an English one: a child's 'barn' beside the barn a farm may build (VB-664)
+  return r.sv === 'barn' ? r.title : `${r.title} (${r.sv})`;
 };
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
@@ -31,19 +32,8 @@ function jobsLine(list) {
     )
     .join('; ');
 }
-// The household's carts and their condition, as the card tells of the boat (VB-410): worn ones are named, and the one out on the road.
-function cartWords(hh) {
-  if (!hh.carts || !hh.carts.length) return 'No cart.';
-  const C = VB['sim/carts'],
-    name = (c) => {
-      const kind = c.kind === 'ox' ? 'an ox cart' : 'a hand cart',
-        worn = c.cond < C.CART.mendAt ? ', worn: it wants mending' : '',
-        road = C.out(st, c) ? ', out on the road' : '';
-      return `${kind} (${Math.round(c.cond * 100)}% sound${worn}${road})`;
-    };
-  return `Carts: ${hh.carts.map(name).join(', ')}.`;
-}
-function fieldSummary(f) {
+// A farm's fields counted by stage, in words: [[word, count]].
+function fieldCounts(f) {
   const n = {},
     word = {
       stubble: 'stubble',
@@ -60,20 +50,15 @@ function fieldSummary(f) {
     const s = fd.stage === 'stooks' ? 'stooks' : cropStage(fd);
     n[s] = (n[s] || 0) + 1;
   }
-  return Object.entries(n)
-    .map(([k, v]) => `${v} ${word[k]}`)
-    .join(', ');
+  return Object.entries(n).map(([k, v]) => [word[k], v]);
 }
+const fieldSummary = (f) =>
+  fieldCounts(f)
+    .map(([word, v]) => `${v} ${word}`)
+    .join(', ');
 const hungerWord = (hh) =>
   hh.hunger <= 0 ? 'Fed' : hh.hunger < 0.25 ? 'Short of food' : hh.hunger < 0.6 ? 'Hungry' : 'Starving';
 const hungerMark = (hh) => `<i class="mark ${hh.hunger <= 0 ? 'fed' : hh.hunger < 0.25 ? 'short' : 'hungry'}"></i>`;
-// The household's project plan (sim/plans, VB-123): what it makes, and its open step.
-const landWork = (hh) => {
-  const pj = VB['sim/plans'].projectOf(st, 'household', hh.id);
-  return pj
-    ? `<p>New ${pj.what === 'meadow' ? 'hay meadow' : esc(pj.what)} in progress: ${esc(pj.steps[pj.open].kind)}.</p>`
-    : '';
-};
 const emptyYears = (f) => Math.max(0, Math.floor((st.t - f.emptySince) / Sim.YEAR));
 let settlersHTML = '',
   peopleQuery = '';
@@ -100,25 +85,14 @@ function updatePanelHTML(box, html) {
   }
   if (scroll) scroll.scrollTop = top;
 }
+// The People sheet finds a person, a farm or a village (VB-664): a village's fold lists its farms and their people, each a row that
+// opens its card, where it is told of (page/cards). The rows are the cards' own (farmRow, memberRow).
 function renderSettlers() {
   if (!st || document.body.classList.contains('ui-hidden') || $('peopleSheet').classList.contains('collapsed')) return;
   const query = peopleQuery.trim().toLocaleLowerCase(),
     groups = new Map();
   let matches = 0,
-    total = 0,
-    jobsIndex = null;
-  const nm = (id) => `<button type="button" data-pawn="${id}">${esc(Sim.fullName(st.pawns[id]))}</button>`;
-  const jobsFor = (type, id) => {
-    if (!jobsIndex) {
-      jobsIndex = new Map();
-      for (const job of st.jobs.values()) {
-        const key = `${job.owner.type}:${job.owner.id}`;
-        if (!jobsIndex.has(key)) jobsIndex.set(key, []);
-        jobsIndex.get(key).push(job);
-      }
-    }
-    return jobsLine(jobsIndex.get(`${type}:${id}`) || []);
-  };
+    total = 0;
   for (const hh of st.households) {
     if (hh.dissolved) continue;
     total += hh.members.length;
@@ -133,147 +107,22 @@ function renderSettlers() {
     if (!groups.has(v.id)) groups.set(v.id, []);
     groups.get(v.id).push({ hh, f, members });
   }
-  const household = ({ hh, f, members }) => {
-    const key = `household-${hh.id}`,
-      expanded = !!query || foldOpen(key);
-    let body = '';
-    if (expanded) {
-      const heirs = Sim.heirRanking(st, hh).slice(0, 2);
-      body += `<div class="farm"><p><button type="button" class="show-map" data-farm="${f.id}">Show ${esc(f.name)} on the map</button></p>
-          <p>Held by ${nm(hh.holder)}${heirs.length ? `; heir ${heirs.map(nm).join(', then ')}` : '; no heir'}</p>`;
-      if (hh.guardian != null) body += `<p>Guardian: ${nm(hh.guardian)}</p>`;
-      if (f.booth)
-        body += `<p>Living in a booth; the cottage: ${['foundation', 'walls', 'roof'][f.booth.i]} is next.</p>`;
-      body += `<ul>${members
-        .map((id) => {
-          const pawn = st.pawns[id];
-          return `<li>${faceImg(id, 'mini')}<div>${nm(id)} <span>${pawn.age}, ${esc(roleLine(pawn))}</span><br><span class="doing">${esc(
-            Sim.describe(st, id),
-          )}</span></div></li>`;
-        })
-        .join('')}</ul>`;
-      const suppliesKey = `supplies-${hh.id}`,
-        fieldsKey = `fields-${hh.id}`,
-        animalsKey = `animals-${hh.id}`;
-      body += fold(
-        suppliesKey,
-        'Supplies & health',
-        foldOpen(suppliesKey)
-          ? `<p>Grain ${Math.round(Sim.grainOf(hh))} rations; ${Sim.seedReserve(st, hh)} set aside as seed.</p>
-          <p>Flour ${Math.round(hh.flour || 0)} rations, ground; meals ${Math.round(hh.meals)} rations, cooked.</p>
-          <p>${
-            hh.quern
-              ? Sim.quernYears(st, hh) > 0
-                ? `A hand quern of ${hh.quern.rock}, ${Math.ceil(Sim.quernYears(st, hh))} years left.`
-                : `A hand quern of ${hh.quern.rock}, worn out: grain is cooked unground.`
-              : 'No hand quern: grain is cooked unground.'
-          }</p>
-          <p>${Math.round(hh.unthreshed.reduce((sum, n) => sum + n, 0))} unthreshed in sheaves.</p>
-          <p>Firewood ${Math.round(hh.wood)} loads${hh.cold > 0 ? ', cold: no firewood' : ''}${hh.dry > 0 ? ', no water' : ''}; stone ${hh.stone} loads.</p>
-          <p>Dug: clay ${hh.clay || 0} loads; bog iron ore ${hh.bogOre || 0} loads; peat ${hh.peat || 0} units.</p>
-          <p>Wool ${Math.round(hh.wool || 0)} fleeces, unspun.</p>
-          <p>Dried fish ${Math.round(Sim.larderOf(hh, 'dried fish'))} rations${hh.rack >= 0.5 ? `; ${Math.round(hh.rack)} fresh by the rack` : ''}${
-            hh.boat
-              ? `; a fishing boat on the shore, tarred ${Math.floor(Sim.boatUntarred(st, hh.boat))} years ago${
-                  Sim.boatUntarred(st, hh.boat) >= 2 ? ': it leaks' : ''
-                }`
-              : ''
-          }.</p>
-          <p>${cartWords(hh)}</p>
-          <p>Tar ${hh.tar || 0} barrels${hh.tarPit ? '; a tar pit in the pine wood' : ''}${
-            hh.farmstead !== null && Sim.houseTarred(st, st.farmsteads[hh.farmstead]) ? '; the house is tarred' : ''
-          }.</p>
-          <p>${hh.hungryDays} hungry days; lowest health ${Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)))}.</p>`
-          : '',
-      );
-      body += fold(
-        fieldsKey,
-        'Fields & work',
-        foldOpen(fieldsKey)
-          ? `<p>Fields: ${fieldSummary(f) || 'none'}; ${f.meadows.length} hay meadows.</p>
-          ${landWork(hh)}
-          <p class="jobs">Jobs: ${esc(jobsFor('household', hh.id))}</p>`
-          : '',
-      );
-      let animals = '';
-      if (foldOpen(animalsKey)) {
-        const lots = [
-          ['salt meat', 'salt meat'],
-          ['meat', 'fresh meat'],
-          ['butter', 'butter'],
-          ['milk', 'milk'],
-          ['dried fish', 'dried fish'],
-        ]
-          .map(([kind, label]) => [Sim.larderOf(hh, kind), label])
-          .filter(([n]) => n >= 0.5);
-        animals = `<p>${esc(Sim.describeHerds(st, hh) || 'No animals')}.</p>
-            <p>Hay ${Math.round(hh.hay)}, ${Math.round(hh.haySpoilt || 0)} spoilt; a winter needs ${Math.round(Sim.winterNeed(st, hh))}.</p>
-            <p>Larder: ${lots.length ? lots.map(([n, label]) => `${Math.round(n)} ${label}`).join(', ') : 'empty'}.</p>`;
-      }
-      body += fold(animalsKey, 'Animals & larder', animals) + '</div>';
-    }
-    return `<details class="household-block" data-fold="${key}"${expanded ? ' open' : ''}>
-        <summary>${iconImg(farmIcon(f), 'mini')}${esc(f.name)}<span class="summary-meta">${hungerMark(hh)}${hh.members.length} people · ${hungerWord(
-          hh,
-        )}</span></summary>${body}</details>`;
-  };
   let h = '';
   for (const v of st.villages) {
     const households = groups.get(v.id) || [];
     if (!households.length && query) continue;
     const key = `village-${v.id}`,
       expanded = !!query || foldOpen(key);
-    let body = '';
-    if (expanded) {
-      body =
-        `<p><button type="button" class="show-map" data-village="${v.id}">Show ${esc(v.name)} on the map</button></p>` +
-        households.map(household).join('');
-      const commonsKey = `commons-${v.id}`;
-      let commons = '';
-      if (foldOpen(commonsKey)) {
-        const worst = Math.min(...v.fence.map((fence) => fence.cond));
-        const out = st.demand.filter((id) => st.pawns[id].alive && Sim.settlementIdOf(st, st.pawns[id]) === v.id);
-        const empties = st.farmsteads.filter((f) => f.village === v.id && f.household === null);
-        commons = `<div class="farm"><h2>${esc(v.name)} <span>village commons</span></h2>
-            <p>${v.fence.length ? `Fence in ${worst < 0.45 ? 'poor' : worst < 0.65 ? 'fair' : 'good'} repair.` : 'No fence yet.'}
-            ${v.well ? 'Shared well and woods.' : 'Shared woods.'}</p><p class="jobs">Jobs: ${esc(jobsFor('village', v.id))}</p>`;
-        if (v.founded)
-          commons += `<p>Founded in year ${Math.floor(v.founded.t / Sim.YEAR) + 1} from
-            ${esc(st.villages[v.founded.from].name)} by ${nm(v.founded.by)}.</p>`;
-        const daughters = st.villages.filter((u) => u.founded && u.founded.from === v.id);
-        if (daughters.length) commons += `<p>Daughter villages: ${daughters.map((u) => esc(u.name)).join(', ')}.</p>`;
-        if (v.crowded > 0)
-          commons += `<p>Crowded: ${v.crowded} adults wait for land, and there is no room to clear.</p>`;
-        commons += `<p>Wants to move out: ${out.length ? out.map(nm).join(', ') : 'nobody'}.</p>`;
-        // the plots built (v.plots) and under way (the village's project plans, VB-123), in the order begun
-        const X = VB['sim/expansion'],
-          plots = [...v.plots, ...X.livePlots(st, v)].sort((a, b) => (a.plot ?? a.id) - (b.plot ?? b.id));
-        for (const plot of plots) {
-          commons += !plot.steps
-            ? `<p>Plot cleared, for ${nm(plot.holder)}; the cottage is built.</p>`
-            : plot.open < 1
-              ? `<p>Clearing a plot for ${nm(plot.intended)}: ${Math.round(Sim.plotProgress(st, plot) * 100)}% done.</p>`
-              : `<p>Plot cleared${plot.to !== null ? `, for ${nm(plot.to)}` : ''}; ${
-                  X.cottageAt(plot) < 3
-                    ? `the cottage: ${['foundation', 'walls', 'roof'][X.cottageAt(plot)]} is next`
-                    : 'the cottage stands empty'
-                }.</p>`;
-        }
-        for (const f of empties)
-          commons += `<p>${esc(f.name)} stands empty, ${emptyYears(f)} years; buildings at
-            ${Math.round(f.condition * 100)}%${f.state === 'ruin' ? ', a ruin' : ''}.</p>`;
-        commons += '</div>';
-      }
-      body += fold(commonsKey, 'Village commons & expansion', commons);
-    }
-    const population = households.reduce((sum, item) => sum + item.members.length, 0);
+    const population = households.reduce((sum, item) => sum + item.members.length, 0),
+      meta = `${population} people · ${households.length} ${households.length === 1 ? 'household' : 'households'}`;
+    const body = expanded
+      ? row(`data-village="${v.id}"`, iconImg(villageIcon(v), 'mini'), v.name, 'The village', ICON.chevron) +
+        households
+          .map(({ f, members }) => `${farmRow(f)}<div class="finder-members">${members.map(memberRow).join('')}</div>`)
+          .join('')
+      : '';
     h += `<details class="village-block" data-fold="${key}"${expanded ? ' open' : ''}>
-        <summary>${iconImg(
-          villageIcon(v),
-          'mini',
-        )}${esc(v.name)}<span class="summary-meta">${population} people · ${households.length} ${
-          households.length === 1 ? 'household' : 'households'
-        }</span></summary>${body}</details>`;
+        <summary>${iconImg(villageIcon(v), 'mini')}${esc(v.name)}<span class="summary-meta">${meta}</span></summary>${body}</details>`;
   }
   // the village log: the last 40 of the record's events that are told to all (Sim.villageLog), with their names as links
   if (!query)
@@ -374,33 +223,55 @@ function showPawn(id) {
   card(
     Sim.fullName(p),
     [
-      `${roleLine(p)}, ${p.age}, health ${Math.round(p.health)}${
-        p.household !== null && st.households[p.household].cold > 0 ? ', cold: no firewood' : ''
-      }`,
+      `${roleLine(p)}, ${p.age}`,
       `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`,
       p.stake
         ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}`
         : p.advocate
           ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`
           : '',
-      traitLine(id),
-      p.age >= 16
-        ? `Prestige ${p.prestige.toFixed(2)}: ${Sim.prestigeParts(st, p)
-            .map(([l, v]) => `${l.toLowerCase()} ${v.toFixed(2)}`)
-            .join(', ')}`
-        : '',
       Sim.idleLine(st, id),
     ].filter(Boolean),
     Sim.describe(st, id),
-    { badge: faceImg(id, 'badge'), links: (sp !== null ? pawnChip(sp) : '') + farmChip(f) + villageChip(v) },
+    {
+      badge: faceImg(id, 'badge'),
+      stats: pawnStats(id) + traitsHTML(id),
+      links: (sp !== null ? pawnChip(sp) : '') + farmChip(f) + villageChip(v),
+    },
   );
   showRelations(id);
   renderPlay(id);
 }
-// A pawn's traits in words (VB-519): those beyond the reference's tails, and no number; '' for a pawn of none.
-function traitLine(id) {
-  const w = Sim.traitLabels(st, id);
-  return w.length ? w.join(', ').replace(/^./, (c) => c.toUpperCase()) : '';
+// A pawn's levels, the same wherever a pawn's state is shown (its card, the played pawn's sheet): health and hunger on the one meter,
+// its household's cold, and its prestige. Prestige is a sum with no upper bound, so it is a number and no meter, its parts in the title
+// (the exception VB-665 is to settle).
+function pawnStats(id) {
+  const p = st.pawns[id],
+    hh = p.household !== null ? st.households[p.household] : null,
+    hunger = Math.round(p.hunger * 100),
+    health = Math.round(p.health);
+  return stats([
+    { icon: 'health', label: 'Health', value: health, tone: health < 50 ? 'bad' : '', meter: { value: health } },
+    {
+      icon: 'hunger',
+      label: 'Hunger',
+      value: hunger,
+      tone: hunger >= 50 ? 'bad' : hunger >= 10 ? 'warn' : '',
+      meter: { value: hunger },
+    },
+    hh && hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', wide: true } : null,
+    p.age >= 16
+      ? {
+          icon: 'prestige',
+          label: 'Prestige',
+          value: p.prestige.toFixed(2),
+          wide: true,
+          title: `Prestige: ${Sim.prestigeParts(st, p)
+            .map(([l, x]) => `${l.toLowerCase()} ${x.toFixed(2)}`)
+            .join(', ')}`,
+        }
+      : null,
+  ]);
 }
 // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
 let relHTML = '';
@@ -422,7 +293,13 @@ function showRelations(id) {
       return `<button type="button" data-pawn="${x.id}">${faceImg(
         x.id,
         'mini',
-      )}${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i><b class="${tone}">${signed(x.opinion)}</b></button>`;
+      )}${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i>${meter({
+        value: x.opinion * 100,
+        signed: true,
+        tone: tone === 'pos' ? 'good' : tone === 'neg' ? 'bad' : '',
+        label: 'Opinion',
+        text: signed(x.opinion),
+      })}<b class="${tone}">${signed(x.opinion)}</b></button>`;
     })
     .join('');
   const owed = goodwillRows(id),
@@ -476,6 +353,7 @@ function card(title, lines, activity = '', more = {}) {
   }
   cardPart('tileBadge', more.badge);
   cardPart('tileKind', more.kind ? esc(more.kind) : '');
+  cardPart('tileStats', more.stats);
   cardPart('tileLinks', more.links);
   cardPart('tileList', more.list);
   $('tile').classList.toggle('peek', !selectionPinned);
@@ -529,24 +407,13 @@ function settlementTileInfo(i) {
       if (f.household === null)
         return [
           f.name,
-          [
-            `Empty for ${emptyYears(f)} years: ${f.state === 'ruin' ? 'a ruin' : 'buildings at ' + Math.round(f.condition * 100) + '%'}`,
-            'No heir took it; claims come in the next batch',
-          ],
+          [`Empty for ${emptyYears(f)} years`, 'No heir took it; claims come in the next batch'],
           { farm: f.id, house: true },
         ];
-      const hh = st.households[f.household],
-        heirs = Sim.heirRanking(st, hh)
-          .slice(0, 3)
-          .map((q) => Sim.fullName(st.pawns[q]));
+      const hh = st.households[f.household];
       return [
         f.name,
-        [
-          `Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`,
-          heirs.length ? `Heirs: ${heirs.join(', then ')}` : 'No heir in line',
-          `${hungerWord(hh)}: ${Math.round(Sim.grainOf(hh))} rations of grain, ${Math.round(hh.wood)} loads of firewood`,
-          ...(hh.cold > 0 ? ['Cold: no firewood'] : []),
-        ],
+        [`Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`],
         { farm: f.id, house: true },
       ];
     }
@@ -563,21 +430,32 @@ function settlementTileInfo(i) {
         fallow: 'Untended, gone to grass',
         scrub: 'Untended, gone to scrub',
       }[fd.stage === 'stooks' ? 'stooks' : cropStage(fd)];
-      const wet = Sim.byRiver(w, i) ? ', watered by the river' : '';
-      const worn =
-        fd.soil < 0.99
-          ? `, worn to ${Math.round(fd.soil * 100)}% by its crops`
-          : fd.soil > 1.01
-            ? `, dunged to ${Math.round(fd.soil * 100)}%`
-            : '';
+      // the soil as two levels on the one meter: what the ground is worth, and how its crops and its dung have left it (100 is unworn)
+      const cond = Math.round(fd.soil * 100);
       return [
         `Field of ${where}`,
-        [
-          word,
-          `Soil quality ${Math.round(fd.fert * 100)}%${wet}${worn}, ${f.household === null ? 'no one works it' : 'owned by the household'}`,
-        ],
+        [word, f.household === null ? 'No one works it' : 'Owned by the household'],
         {
           farm: f.id,
+          stats: stats([
+            {
+              icon: 'soil',
+              label: 'Soil',
+              value: Math.round(fd.fert * 100),
+              note: Sim.byRiver(w, i) ? 'watered by the river' : '',
+              title: 'The quality of the soil',
+              meter: { value: fd.fert * 100 },
+            },
+            {
+              icon: 'field',
+              label: 'Condition',
+              value: cond,
+              note: cond < 99 ? 'worn by its crops' : cond > 101 ? 'dunged' : '',
+              tone: cond < 99 ? 'warn' : '',
+              title: 'How the crops and the dung have left it: 100 is unworn',
+              meter: { value: cond, max: 150, marks: [{ at: 100, label: 'unworn at 100' }] },
+            },
+          ]),
         },
       ];
     }

@@ -379,7 +379,7 @@ body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.ba
 .act-row .nm small { display: block; font-size: 13.5px; font-weight: 400; color: var(--muted); margin-top: 2px; }
 .act-row .nm small::first-letter, .act-menu .act-msg::first-letter, .act-banner .txt span::first-letter { text-transform: uppercase; }
 .act-row[aria-disabled="true"] { color: var(--muted); }
-.act-row[aria-disabled="true"] .nm small { color: var(--bad); }
+.act-row[aria-disabled="true"] .nm small { font-style: italic; } /* why not: no warning, so not red (VB-664) */
 .act-row[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
 .act-menu .act-msg, .act-menu .act-empty { margin: 2px 8px 6px; font-size: 14px; }
 .act-menu .act-msg { font-weight: 500; }
@@ -504,10 +504,60 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--good); }
 .mark.short { background: var(--gold); }
 .mark.hungry { background: var(--bad); }
-.tabs { display: flex; gap: 6px; margin: 6px 0 8px; }
-.tabs button, .history .kinds button { min-height: 36px; padding: 5px 12px; font-size: 14px; }
-.tabs button[aria-selected="true"], .history .kinds button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+/* One control, one meaning (VB-664): a tab is underlined, a filter is a small pill that stays pressed, an act is a button. */
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 6px 0 10px; border-bottom: 1px solid var(--edge); }
+.tabs button { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 5px 10px; font-size: 14px; border: 0; border-bottom: 2px solid transparent;
+  border-radius: 6px 6px 0 0; background: none; margin-bottom: -1px; }
+.tabs button .ico { width: 16px; height: 16px; }
+.tabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
 .tabs button[aria-selected="false"] { color: var(--muted); }
+.history .kinds button { min-height: 28px; padding: 2px 10px; font-size: 13px; }
+.history .kinds button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+/* The one meter (page/meter): a level on its scale, marks at its targets, a signed one filled from its middle. */
+.meter { position: relative; display: inline-block; flex: 1; min-width: 44px; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 13%, transparent);
+  vertical-align: middle; }
+.meter > i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px; background: var(--accent); }
+.meter.good > i { background: var(--good); }
+.meter.warn > i { background: var(--gold); }
+.meter.bad > i { background: var(--bad); }
+.meter.over > i { border-radius: 4px 0 0 4px; }
+.meter.over::after { content: ''; position: absolute; right: -5px; top: -1px; border: 5px solid transparent; border-left-color: var(--accent); border-right: 0; }
+.meter.signed > i { border-radius: 0; }
+.meter > u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+.meter > b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
+.meter > b + b { background: var(--gold); }
+/* The People sheet as a finder: the cards' rows, a farm's people under it. */
+.settlers .row { font: inherit; color: var(--ink); }
+.settlers .row .who { flex: 1; min-width: 0; }
+.settlers .row .state { max-width: 46%; font-size: 13px; text-align: right; color: var(--muted); }
+.finder-members { margin: 0 0 6px 18px; padding-left: 10px; border-left: 1px solid var(--edge); }
+.chip.as .ico { width: 15px; height: 15px; margin-right: -4px; color: var(--gold); }
+.tile .rel button .meter { flex: 0 0 64px; }
+/* A stat: icon, word, meter, value; the grid of them. */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; margin: 4px 0 8px; }
+.stat { display: flex; align-items: center; gap: 7px; min-height: 30px; min-width: 0; font-size: 14px; color: var(--ink); }
+.stat.wide { grid-column: 1 / -1; }
+.stat-ico { display: inline-flex; flex: none; color: var(--accent); }
+.stat-ico .ico { width: 20px; height: 20px; }
+.stat.warn .stat-ico { color: var(--gold); }
+.stat.bad .stat-ico { color: var(--bad); }
+.stat-name { flex: none; color: var(--muted); font-size: 13px; }
+.stat.wide .stat-name { width: 84px; }
+.stat-val { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stat.wide .stat-val { min-width: 62px; text-align: right; }
+.stat-val small { margin-left: 4px; font-weight: 400; font-size: 12.5px; color: var(--muted); }
+.card-sec { margin: 10px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.card-note { margin: 2px 0 6px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
+/* A pawn's traits: twelve icons, each over the meter; one beyond the labels is marked. */
+.traits { display: grid; gap: 4px; margin: 6px 0 8px; }
+.trait-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.trait { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); }
+.trait .ico { width: 20px; height: 20px; }
+.trait .meter { width: 100%; flex: none; height: 5px; }
+.trait .meter > i { background: var(--muted); }
+.trait.high, .trait.low { color: var(--ink); }
+.trait.high .meter > i { background: var(--good); }
+.trait.low .meter > i { background: var(--gold); }
 .history .kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .history p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--ink); }
 .history p time, .history p i { display: block; font-style: normal; font-size: 12px; color: var(--muted); }

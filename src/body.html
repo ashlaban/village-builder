@@ -121,6 +121,9 @@
     <div class="sheet-content" id="tileDetails">
       <div class="tabs" id="tileTabs" role="tablist" aria-label="About the selection" hidden>
         <button type="button" role="tab" id="tabFacts" data-tab="facts" aria-selected="true" aria-controls="tileFacts">Details</button>
+        <button type="button" role="tab" id="tabStores" data-tab="stores" data-good="grain" aria-selected="false" aria-controls="tileHouse" tabindex="-1" hidden>Stores</button>
+        <button type="button" role="tab" id="tabLand" data-tab="land" data-good="field" aria-selected="false" aria-controls="tileHouse" tabindex="-1" hidden>Land</button>
+        <button type="button" role="tab" id="tabAnimals" data-tab="animals" data-good="beast" aria-selected="false" aria-controls="tileHouse" tabindex="-1" hidden>Animals</button>
         <button type="button" role="tab" id="tabHistory" data-tab="history" aria-selected="false" aria-controls="tileHistory" tabindex="-1">History</button>
         <button type="button" role="tab" id="tabCustoms" data-tab="customs" aria-selected="false" aria-controls="tileCustoms" tabindex="-1" hidden>Customs</button>
       </div>
@@ -129,12 +132,14 @@
         <span id="tileExtra" hidden></span>
         <span id="tileMore" hidden></span>
         <div id="tileRest"></div>
+        <div id="tileStats" hidden></div>
         <div id="cardPlay" class="play" hidden></div>
         <div id="tileLinks" class="links" hidden></div>
         <div id="tileList" class="roster" hidden></div>
         <button type="button" id="personFamily" hidden>View family records</button>
         <details id="relationsDetails"><summary>Relationships</summary><div class="rel" id="tileRel" hidden></div></details>
       </div>
+      <div id="tileHouse" role="tabpanel" hidden></div>
       <div id="tileHistory" class="history" role="tabpanel" aria-labelledby="tabHistory" hidden>
         <div class="kinds" id="historyKinds" role="group" aria-label="Kinds of event"></div>
         <div id="historyList"></div>

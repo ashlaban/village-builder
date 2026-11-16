@@ -1,5 +1,6 @@
 // @sys page/tileinfo: the tile info panel
 // ---- tile info ----
+let tileWhere = ''; // the selected tile's column, row and region, for Debug
 function showTile(i) {
   const box = $('tile');
   if (i < 0 || !w) {
@@ -59,7 +60,8 @@ function showTile(i) {
   const claims = claimLines(i),
     cutBy = st && Sim.woodOf(st, i); // the village whose wood the tile is (VB-326)
   if (cutBy) claims.push(`Cut for firewood by ${cutBy.name}`);
-  if (farm) card(farm[0], [...farm[1], ...(of.house ? [] : ownLine), ...claims, where], '', tileExtras(of));
+  tileWhere = where; // the tile's place in numbers is Debug's (page/drawer), not the player's card's (VB-664)
+  if (farm) card(farm[0], [...farm[1], ...(of.house ? [] : ownLine), ...claims], '', tileExtras(of));
   else
     card(b.name, [
       line,
@@ -70,7 +72,6 @@ function showTile(i) {
       ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
       ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []),
       ...groundLines(i),
-      where,
     ]);
 }
 // What lies in the ground (gen/geology): the bedrock, and a deposit with the loads left in it. Nothing digs yet. An upland ore shows only
