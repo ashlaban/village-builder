@@ -1,5 +1,5 @@
 // Inspect the load-time registry, or explain death.hazard for a pawn in a run or save.
-// node tools/rules.js [--explain ID --scenario populous --seed 7 --map tiny --years 0] [--load FILE[.gz]] [--json [--traits]]
+// node tools/rules.js [--explain ID --scenario populous --seed 7 --map tiny --years 0] (--map probe: the 36 by 26 island of tests/lib/probe.js) [--load FILE[.gz]] [--json [--traits]]
 // Without --explain: the rules and their contributions, then what each trait does (TRAITS.acts, VB-520); --json --traits gives the latter.
 require('./help.js')(__filename);
 const VB = require('../src/load.js'), Rules = VB['sim/registry'], Sim = VB.sim;
@@ -31,7 +31,7 @@ function run() {
     }
     return;
   }
-  const sizes = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
+  const sizes = { probe: [36, 26], tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
   const file = opt('load', null);
   const data = file ? JSON.parse((file.endsWith('.gz') ? zlib.gunzipSync(fs.readFileSync(file)) : fs.readFileSync(file)).toString()) : null;
   const size = sizes[opt('map', 'tiny')], seed = data ? data.seed : Number(opt('seed', 7));

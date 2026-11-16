@@ -1,18 +1,18 @@
 // Food help: a household above its buffer gives, one below does not; kin are asked before the village store; a household asks once a
-// season, for food until the next harvest (VB-222); stores fill from surpluses.
+// season, for food until the next harvest (VB-222); stores fill from surpluses. On the small island of tests/lib/probe.js (VB-856; the
+// default island before).
 const assert = require('assert');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js'), { checkState } = require('./lib/invariants.js');
 const { setClock, moveClock } = require('./lib/clock.js');
 const { shareFood, fillStores, surplus, askDaysAt, seasonOf } = VB['sim/help'], { dailyNeed, seedReserve } = VB['sim/hunger'], { HELP } = VB['sim/rules'];
-const it = G.generate(7); let r; while (!(r = it.next()).done);
 const fresh = () => {
-  const st = Sim.seed(r.value, 7, 'founders');
+  const st = Sim.seed(island(7), 7, 'founders');
   for (const hh of st.households) VB['sim/plans'].dropAll(st, 'household', hh.id);
   for (const hh of st.households) { hh.grain = { barley: seedReserve(st, hh) }; hh.meals = 0; }
   return st;
 };
 const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the floor and the holder's reserve, by its generosity
-{ const st = Sim.seed(r.value, 7, 'populous'); for (const p of st.pawns) { const b = bufferOf(st, p.id); assert(b >= HELP.floorDays && b <= HELP.floorDays + 40, 'buffer 20..60 days by generosity'); } }
+{ const st = Sim.seed(island(7), 7, 'populous'); for (const p of st.pawns) { const b = bufferOf(st, p.id); assert(b >= HELP.floorDays && b <= HELP.floorDays + 40, 'buffer 20..60 days by generosity'); } }
 { // a household above its buffer gives to a hungry kin household; one below its buffer does not
   const st = fresh(), [a, b, c] = st.households, v = st.villages[st.farmsteads[a.farmstead].village];
   st.pawns[a.members[0]].father = b.members[0]; // b holds a parent of a member of a
@@ -69,8 +69,10 @@ const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the f
   fillStores(st);
   assert(Math.abs(Sim.grainOf(v) - 100) < 1e-6, `store holds ${Sim.grainOf(v)}, expected 25% of 400`);
 }
-{ // a long run keeps every invariant
-  const st = Sim.seed(r.value, 7, 'founders'); for (let y = 0; y < 3; y++) Sim.advance(st, 24 * 360);
+{ // a run keeps every invariant: two years, through two moving rounds (seven and a half years of 360 days before VB-856; the long runs
+  // of tests/invariants.js check every invariant at night)
+  const st = Sim.seed(island(7), 7, 'founders'); for (let y = 0; y < 2; y++) Sim.advance(st, Sim.YEAR);
   assert(st.villages.every((v) => Sim.grainOf(v) >= 0 && Number.isFinite(Sim.grainOf(v))), 'village stores stay non-negative');
+  assert.deepStrictEqual(checkState(st), [], 'the invariants hold');
 }
 console.log('help ok');
