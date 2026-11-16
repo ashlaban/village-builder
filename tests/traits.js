@@ -108,6 +108,7 @@ const born = (st, hh) => {
   for (let d = 0; d < 48; d++) T.hungryDay(p);
   assert.strictEqual(p.leanDays, 48, 'a hungry day is');
   p.born = st.t - 15 * YEAR;
+  Object.assign(st.pawns[p.mother], { nursling: null, nursingUntil: null }); // aged by hand: she nurses it no longer (VB-632)
   const fed = { ...p, traits: [...before], leanDays: 0 }; // the same child, fed: set by the same draws (the stream fixed)
   st.pawns[kid] = fed;
   T.setAtAge(st, kid);
