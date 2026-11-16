@@ -10,6 +10,16 @@ function positive(value, fallback, name) {
   return n;
 }
 const workers = (value) => positive(value, os.availableParallelism?.() || os.cpus().length, 'VB_TEST_JOBS');
+// CPU seconds of the children reaped so far (user and system, Linux's /proc; null elsewhere): read as each script exits, the step is that
+// script's CPU (VB-856), a measure that holds on a loaded machine where its wall time does not. Two that exit in the same tick share a step.
+const TICK = 100; // clock ticks a second (getconf CLK_TCK; 100 on Linux)
+function childCpu() {
+  try {
+    const f = require('fs').readFileSync('/proc/self/stat', 'utf8'), rest = f.slice(f.lastIndexOf(')') + 2).split(' ');
+    return (+rest[13] + +rest[14]) / TICK; // cutime and cstime, the 16th and 17th fields
+  } catch { return null; }
+}
+let cpuSeen = childCpu();
 const isBrowser = (cmd) => cmd.some((a) => /^tests\/browser(?:-[\w-]+)?\.js$/.test(a));
 function run(cmd, { cwd, timeoutMs = 120000, graceMs = 500 } = {}) {
   return new Promise((resolve) => {
@@ -20,11 +30,13 @@ function run(cmd, { cwd, timeoutMs = 120000, graceMs = 500 } = {}) {
       try { if (grouped && child.pid) process.kill(-child.pid, sig); else child.kill(sig); }
       catch (e) { if (e.code !== 'ESRCH') error ||= e; }
     };
+    let cpu = null;
     const finish = () => { active.delete(stop); resolve({ cmd, code, signal, output, error, timedOut,
-      ok: code === 0 && !signal && !error && !timedOut, ms: Date.now() - started }); };
+      ok: code === 0 && !signal && !error && !timedOut, ms: Date.now() - started, cpu }); };
     child.stdout.on('data', (d) => { output += d; });
     child.stderr.on('data', (d) => { output += d; });
     child.on('error', (e) => { error = e; });
+    child.on('exit', () => { const now = childCpu(); if (now !== null && cpuSeen !== null) { cpu = now - cpuSeen; cpuSeen = now; } });
     function stop() {
       if (timedOut) return;
       timedOut = true; kill('SIGTERM');

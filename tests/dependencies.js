@@ -7,6 +7,16 @@ const r = build();
 assert.deepStrictEqual(violations(r.deps), []);
 assert(!r.deps.find((d) => d.mod === 'sim/expansion').lookups.some((l) => l.key === 'sim/farmclaims'));
 assert(r.loops.every((l) => l.via.includes('sim/commands')), 'every cycle goes through command dispatch');
+// VB-172/174/175: the writes map's owners, and no direct founding lookup (in tests/tools.js until VB-856, on this same build)
+const fieldW = (k) => (r.fields.find((f) => f.field === k) || { writers: [] }).writers;
+assert.strictEqual(fieldW('st.owner').join(), 'sim/ownership', 'writes map: st.owner has one writer');
+for (const k of ['household.members', 'pawn.household', 'pawn.servant']) assert.strictEqual(fieldW(k).join(), 'sim/records', `writes map: ${k}`);
+assert(fieldW('household.grain').includes('sim/stores'), 'writes map: household grain owner not found');
+for (const [from, target] of [['sim/farmclaims', 'sim/heirs'], ['sim/expansion', 'sim/cottage']]) {
+  const dep = r.deps.find((d) => d.mod === from);
+  assert(dep && !dep.lookups.some((l) => l.key === target), `writes map: direct founding lookup ${from} → ${target}`);
+  assert(dep && dep.lookups.some((l) => l.key === 'sim/commands'), `writes map: missing command lookup in ${from}`);
+}
 
 function errors(src, mod = 'early') {
   const edges = dependencies(parse(src, { ecmaVersion: 'latest' }), src, mod);

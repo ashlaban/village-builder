@@ -140,9 +140,12 @@ const ENTITY = { household: 'household', farmstead: 'farmstead', village: 'villa
 const BLOCK = { 'st.households[]': 'household', 'st.farmsteads[]': 'farmstead', 'st.villages[]': 'village' };
 // A header (`@state household.clay, household.bogOre:`, `@state w.trees,treesMax:`) names its fields; a record's block (`@state st.households[]:
 // {...}` and its indented lines) names them in its text outside parentheses, kept where the code has such a field (the writes map).
+// The writes map, built once a process (both stateFields and build read it; it takes seconds to build).
+let writesMap = null;
+const writes = () => writesMap || (writesMap = Writes.build());
 function stateFields(known = null) {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8'));
-  known = known || new Set(Writes.build().fields.map((f) => f.field));
+  known = known || new Set(writes().fields.map((f) => f.field));
   const out = new Map();
   for (const f of manifest) {
     const lines = readSource('src/' + f).split('\n');
@@ -257,7 +260,7 @@ function grainReads(ast, src) {
 const ADD = new Set(['+=', '++', 'push', 'unshift']), TAKE = new Set(['-=', '--', 'filter', 'splice', 'shift', 'pop']);
 function build() {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8')).filter((f) => f !== 'vb.js');
-  const keyOf = (f) => f.replace(/\.js$/, ''), map = Writes.build(), byField = new Map(map.fields.map((f) => [f.field, f]));
+  const keyOf = (f) => f.replace(/\.js$/, ''), map = writes(), byField = new Map(map.fields.map((f) => [f.field, f]));
   // read sites by module, as the writes map finds them (its two passes: the functions' returns, then the reads)
   const sources = manifest.map((f) => ({ f, mod: keyOf(f), src: readSource('src/' + f) }));
   const returns = {};

@@ -158,6 +158,26 @@ const INTEGRATION = [
   ['node', 'tests/drying.js'],
   ['node', 'tests/forage.js'],
   ['node', 'tests/dig.js'],
+  // VB-856: land and geography, and the tools, on small generated islands and constructed states
+  ['node', 'tests/rivers.js'],
+  ['node', 'tests/stones.js'],
+  ['node', 'tests/geology.js'],
+  ['node', 'tests/layout.js'],
+  ['node', 'tests/settle.js'],
+  ['node', 'tests/plots.js'],
+  ['node', 'tests/names.js'],
+  ['node', 'tests/populous.js'],
+  ['node', 'tests/tools.js'],
+  ['node', 'tests/review-tools.js'],
+  ['node', 'tests/review-hours.js'],
+  ['node', 'tests/bench.js'],
+  ['node', 'tests/commands.js'],
+  ['node', 'tests/record.js'],
+  ['node', 'tests/regress.js'],
+  ['node', 'tests/plaindata.js'],
+  ['node', '--expose-gc', 'tests/registry.js'],
+  ['node', 'tests/notable.js'],
+  ['node', 'tests/manual.js'],
   ['node', 'tests/page.js'], // VB-409: the page in jsdom on a 36 by 26 island, a few days and each panel once; the tiny map's smoke at night
 ];
 const EXTENDED = [
@@ -169,31 +189,17 @@ const EXTENDED = [
   ['node', 'tests/history.js'],
   ['node', 'tests/bands.js'],
   ['node', 'tests/line.js'],
-  // Generated islands and runs of years: each waits for a constructed case on a small state in the tiers above (docs/testing.md).
-  ['node', 'tests/tools.js'],
+  // Generated islands and runs of years that a small state cannot show: statistics over seeds and whole islands (docs/testing.md).
   ['node', 'tests/smoke.js'], // the page on the tiny map, a year and the toasts; its quick case is tests/page.js in verify
-  ['node', 'tests/populous.js'],
+  ['node', 'tests/populous.js', '--extended'], // the four map sizes: the population each seeds, the village size bands (VB-856)
+  ['node', 'tests/tools.js', '--extended'], // the reports that take a run of their own each, and tools/balance.js (VB-856)
+  ['node', 'tests/rivers.js', '--extended'], // the default island: ten sources or more, a course through a lake, 20 crossings (VB-856)
+  ['node', 'tests/help.js'], // red since VB-461 (a kin gift is set aside and fetched, not given at once): back to verify by VB-889
+  ['node', 'tests/layout.js', '--extended'], // the default island, heirs three years and founders ten: a green laid in play (VB-856, VB-887)
   ['node', 'tests/paths.js', '--extended'], // a whole island's traffic: how many houses a year gives a way to their door (VB-853)
   ['node', 'tests/heirs.js', '--extended'], // the default island ten years on, and B3's crop at four seeds: a statistic over seeds (VB-854)
   ['node', 'tests/hunger.js', '--extended'], // three years of founders at seeds 7 and 42, reported: hungry days, deaths, marriages (VB-854)
-  ['node', 'tests/rivers.js'],
-  ['node', 'tests/settle.js'],
-  ['node', 'tests/stones.js'],
-  ['node', 'tests/record.js'],
-  ['node', 'tests/layout.js'],
-  ['node', 'tests/commands.js'],
-  ['node', 'tests/review-tools.js'],
-  ['node', 'tests/regress.js'],
-  ['node', 'tests/plaindata.js'],
-  ['node', 'tests/names.js'],
-  ['node', 'tests/plots.js'],
-  ['node', 'tests/help.js'],
-  ['node', 'tests/manual.js'],
-  ['node', 'tests/bench.js'],
-  ['node', '--expose-gc', 'tests/registry.js'],
-  ['node', 'tests/geology.js'],
   ['node', 'tests/soil.js', '--extended'], // founders on the small map ten years: the soil of farms with and without cattle (VB-855)
-  ['node', 'tests/notable.js'],
   // The page in real Chromium, one browser at a time.
   ['node', 'tests/browser.js'],
   ['node', 'tests/browser-saves.js'],

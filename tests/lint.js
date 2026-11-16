@@ -70,8 +70,10 @@ for (const f of files.filter((f) => f !== 'src/vb.js')) {
     for (const hit of counterUses(line, new Set(Object.keys(VB.COUNTERS)))) errors.push(`${f}:${i + 1} forbidden counter use: ${hit} (only standalone increments; use braces for conditional increments)`);
   });
 }
-const worldOf = (seed) => { const it = VB.gen.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
-const w = worldOf(7), states = [VB.sim.seed(worldOf(7), 7, 'founders'), VB.sim.seed(worldOf(7), 7, 'heirs')];
+// the keys of a world and of the states seeded on it, on the small islands of tests/lib/probe.js (VB-856: three default islands took 5 of the
+// lint's 6 to 7 seconds; the generator gives every size the same keys)
+const { generate, scenario } = require('./lib/probe.js');
+const w = generate(7), states = [scenario('founders', 7), scenario('heirs', 7)];
 for (const k of Object.keys(w)) if (!tagged.w.has(k)) errors.push(`src/gen.js: top-level key w.${k} has no @state tag`);
 for (const k of new Set(states.flatMap((s) => Object.keys(s)))) if (k !== 'w' && !tagged.st.has(k)) errors.push(`src/sim.js: top-level key st.${k} has no @state tag`);
 const readers = exportReaders(Object.fromEntries(files.filter((f) => f !== 'src/load.js').map((f) => [key(f), readSource(f)])), FACADES);

@@ -1,13 +1,16 @@
 // Rivers (VB-111): courses, catchment and sources; nothing built on a river; watered fields; village sites near rivers; decorations clear.
 // Fords (VB-112): deterministic, each joins two banks, one on every course of 5 land tiles or more; routes cross rivers only at fords.
+// Every rule on two 48 by 34 islands of tests/lib/probe.js (VB-856). --extended, at night: the default island at seeds 7 and 42, where
+// the counts are a statistic of whole islands' generated geography (ten sources or more, a course through a lake, more than 20 crossings).
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rv = VB['gen/rivers'];
 const { RIVER, FERTILITY, fertility, byRiver } = VB['sim/rules'], { findRoute, passable } = VB['sim/routes'], { siteScore } = VB['sim/layout'], { bfs, land, landComponents } = VB['sim/hex'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('RIVERS FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
+const EXT = process.argv.includes('--extended'), { island, generate, ROOMY } = require('./lib/probe.js');
+const world = (seed) => (EXT ? generate(seed, {}) : island(seed, ROOMY)), anew = (seed) => (EXT ? world(seed) : generate(seed, ROOMY));
 const SOURCES = [G.B.HILLS, G.B.MOUNTAIN, G.B.MARSH];
-let lakeCourses = 0, watered = 0, fords = 0, crossed = 0;
-for (const seed of [7, 42]) {
-  const w = world(seed), again = world(seed);
+let lakeCourses = 0, watered = 0, fords = 0, crossed = 0, made = 0;
+for (const seed of EXT ? [7, 42] : [11, 13]) {
+  const w = world(seed), again = anew(seed);
   check(Buffer.compare(Buffer.from(w.river.buffer), Buffer.from(again.river.buffer)) === 0, `seed ${seed}: river differs between generations`);
   check(Buffer.compare(Buffer.from(w.riverTo.buffer), Buffer.from(again.riverTo.buffer)) === 0, `seed ${seed}: riverTo differs between generations`);
   const up = new Int32Array(w.N);
@@ -26,7 +29,7 @@ for (const seed of [7, 42]) {
     if (!w.water[to]) check(w.river[to] >= w.river[i], `seed ${seed}: catchment falls from ${w.river[i]} to ${w.river[to]} at tile ${to}`);
     if (!up[i]) { sources.push(i); check(SOURCES.includes(w.biome[i]), `seed ${seed}: river rises at tile ${i} in biome ${w.biome[i]}`); }
   }
-  check(sources.length >= 10, `seed ${seed}: only ${sources.length} river sources`);
+  check(sources.length >= (EXT ? 10 : 1), `seed ${seed}: only ${sources.length} river sources`);
   // by drainage basin (VB-342): the mouth of the map's largest catchment is a river's, and it carries that catchment
   const { down, order } = Rv.drainage(w), acc = new Float64Array(w.N);
   for (const i of order) acc[i] = w.water[i] ? 1 : 0.5 + w.hm[i];
@@ -82,10 +85,11 @@ for (const seed of [7, 42]) {
   const t = sources[0], b = Rv.lines(w, t)[0][5], far = w.river.findIndex((x, i) => !x && !w.water[i] && !byRiver(w, i));
   const items = [{ t: 'stone', x: b[0], y: b[1] }, { t: 'stone', x: w.hx[far], y: w.hy[far] }];
   check(Rv.thin(w, items, G.hexLocator(w)).length === 1 && items[0].x === w.hx[far], `seed ${seed}: thin keeps ${items.length} items`);
-  // nothing built on a river; fields carry their watered fertility, also after a year of making new fields
+  // nothing built on a river; fields carry their watered fertility, also after a season of making new fields (a year at night)
   for (const scenario of ['founders', 'heirs']) {
     const st = Sim.seed(world(seed), seed, scenario);
-    Sim.advance(st, Sim.YEAR);
+    const n0 = st.farmsteads.reduce((n, f) => n + f.fields.length, 0); Sim.advance(st, EXT ? Sim.YEAR : Sim.SEASON_DAYS * Sim.DAY);
+    made += st.farmsteads.reduce((n, f) => n + f.fields.length, 0) - n0;
     for (const v of st.villages) check(!st.w.river[v.center], `seed ${seed} ${scenario}: village ${v.name} has its green on a river`);
     for (const f of st.farmsteads) {
       check(!st.w.river[f.house], `seed ${seed} ${scenario}: ${f.name} stands on a river`);
@@ -99,8 +103,9 @@ for (const seed of [7, 42]) {
     }
   }
 }
-check(lakeCourses > 0, 'no river runs through a lake at seeds 7 and 42');
-check(watered > 0, 'no field is watered by a river at seeds 7 and 42');
-check(crossed > 20, `only ${crossed} routes between the banks of a ford take a ford`);
+if (EXT) check(lakeCourses > 0, 'no river runs through a lake at seeds 7 and 42');
+check(watered > 0, 'no field is watered by a river');
+check(made > 0, 'no field is made in play');
+check(crossed > (EXT ? 20 : 0), `only ${crossed} routes between the banks of a ford take a ford`);
 if (failed) process.exit(1);
-console.log(`rivers ok: ${lakeCourses} lake tiles on courses, ${watered} watered fields, ${fords} fords, ${crossed} crossings`);
+console.log(`rivers ok: ${lakeCourses} lake tiles on courses, ${watered} watered fields, ${fords} fords, ${crossed} crossings, ${made} fields made in play`);

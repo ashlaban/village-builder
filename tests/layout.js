@@ -1,9 +1,12 @@
 // Village layout (VB-109, VB-113): a farm's fields are one block within 4 walking steps of its house, next to no green; the
 // houses of a village hang together with its green, through houses, yards and its fields; fields made in play keep the rules.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'];
+// Every rule on the small islands of tests/lib/probe.js (VB-856): populous at seeds 7 and 11 (at 42 the small island's crowded village
+// stands apart from its green), heirs half a year, founders a year. --extended, at night: the default island, heirs three years and
+// founders ten, the long run in which a lone farm's village gains its green in play (day 90 at seed 7, beside two fields: VB-887).
+const VB = require('../src/load.js'), Sim = VB.sim, { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'];
 const { findRoute } = VB['sim/routes'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('LAYOUT FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
+const EXT = process.argv.includes('--extended'), { island, generate, scenario, ROOMY } = require('./lib/probe.js');
 const nbs = (w, t) => Array.from(w.nb.slice(t * 6, t * 6 + 6)).filter((j) => j >= 0);
 const connected = (w, tiles) => {
   const set = new Set(tiles), seen = new Set([tiles[0]]), q = [tiles[0]];
@@ -27,8 +30,8 @@ function fieldRules(st, tag, loose = false) {
   }
   return blocks;
 }
-for (const seed of [7, 42]) {
-  const st = Sim.seed(world(seed), seed, 'populous'), w = st.w, tag = `populous seed ${seed}`;
+for (const seed of EXT ? [7, 42] : [7, 11]) {
+  const st = EXT ? Sim.seed(generate(seed, {}), seed, 'populous') : scenario('populous', seed), w = st.w, tag = `populous seed ${seed}`;
   fieldRules(st, tag);
   for (const v of st.villages) {
     if (v.farmsteads.length < 2) continue;
@@ -50,16 +53,17 @@ for (const seed of [7, 42]) {
   }
 }
 // heirs keep the rules; founders make their fields in play, as one block where they can, never next to a green; plots too
-const heirs = Sim.seed(world(7), 7, 'heirs');
+const heirs = EXT ? Sim.seed(generate(7, {}), 7, 'heirs') : scenario('heirs', 7);
 fieldRules(heirs, 'heirs seed 7');
-Sim.advance(heirs, 3 * Sim.YEAR);
-fieldRules(heirs, 'heirs seed 7 after 3 years', true);
+Sim.advance(heirs, EXT ? 3 * Sim.YEAR : Sim.YEAR / 2);
+fieldRules(heirs, `heirs seed 7 after ${EXT ? '3 years' : 'half a year'}`, true);
 const X = VB['sim/expansion'];
 for (const v of heirs.villages) for (const p of [...v.plots, ...X.livePlots(heirs, v)]) for (const tr of X.tilesOf(p)) if (tr.kind === 'field') {
   check(!nbs(heirs.w, tr.tile).some((j) => heirs.villages.some((v) => v.green && v.center === j)), `heirs: plot field ${tr.tile} touches a green`);
 }
-const founders = Sim.seed(world(7), 7, 'founders');
-Sim.advance(founders, 10 * Sim.YEAR);
-const withFields = founders.farmsteads.filter((f) => f.fields.length).length, blocks = fieldRules(founders, 'founders seed 7 after 10 years', true);
+const founders = EXT ? Sim.seed(generate(7, {}), 7, 'founders') : scenario('founders', 7);
+const YEARS = EXT ? 10 : 1;
+Sim.advance(founders, YEARS * Sim.YEAR);
+const withFields = founders.farmsteads.filter((f) => f.fields.length).length, blocks = fieldRules(founders, `founders seed 7 after ${YEARS} years`, true);
 if (failed) process.exit(1);
-console.log(`layout ok: founders seed 7 after 10 years, ${blocks} of ${withFields} farms have their fields in one block`);
+console.log(`layout ok: founders seed 7 after ${YEARS} year${YEARS > 1 ? 's' : ''}, ${blocks} of ${withFields} farms have their fields in one block`);

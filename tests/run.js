@@ -41,8 +41,13 @@ async function main() {
   console.log('slowest: ' + [...results].sort((a, b) => b.ms - a.ms).slice(0, 5)
     .map((r) => `${r.cmd.slice(1).join(' ')} ${(r.ms / 1000).toFixed(1)}s`).join('; '));
   // A script run for every task takes under 5 seconds (Kim, 13 November); one over is named, and never fails the run.
+  // On a loaded machine wall time says little: each script's CPU (tests/lib/runner.js) is printed beside it, and their sum (VB-856).
+  const cpuOf = (r) => (r.cpu === null || r.cpu === undefined ? '' : `, ${r.cpu.toFixed(1)}s CPU`);
   const over = suite === 'extended' ? [] : results.filter((r) => r.ms > 5000);
-  if (over.length) console.log('over 5 s: ' + over.map((r) => `${r.cmd.slice(1).join(' ')} ${(r.ms / 1000).toFixed(1)}s`).join('; '));
+  if (over.length) console.log('over 5 s: ' + over.map((r) => `${r.cmd.slice(1).join(' ')} ${(r.ms / 1000).toFixed(1)}s${cpuOf(r)}`).join('; '));
+  const cpus = results.filter((r) => Number.isFinite(r.cpu));
+  if (cpus.length) console.log(`CPU: ${cpus.reduce((a, r) => a + r.cpu, 0).toFixed(0)} s over the scripts (${jobs} at a time); most: ` + [...cpus]
+    .sort((a, b) => b.cpu - a.cpu).slice(0, 5).map((r) => `${r.cmd.slice(1).join(' ')} ${r.cpu.toFixed(1)}s`).join('; '));
   console.log(`${suite}: ${results.length - failed.length}/${cmds.length} passed, ${failed.length} failed in `
     + `${((Date.now() - started) / 1000).toFixed(1)} s; ${outs.length} targets out (advisory)`);
   if (failed.length) process.exitCode = 1;
