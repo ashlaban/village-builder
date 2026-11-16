@@ -54,7 +54,8 @@ VB['sim/targets'] = (() => {
   // The target household hh holds for a good: the one its plan compiled at its head's last review (sim/plans), else, before a first
   // review or with no plan, its need now. One read; allocates nothing.
   function target(st, hh, good) {
-    const plan = st.plans && st.plans.households.get(hh.id),
+    const P = st.plans && st.plans.households,
+      plan = P && P.get && P.get(hh.id),
       G = plan && plan.targets.goods;
     const n = G && G[good];
     return n === undefined ? need(st, hh, good) : n;
