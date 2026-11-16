@@ -373,8 +373,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // (pawn.events: the positions of its events in st.record, in the order they were written; sim/records, VB-199)
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
-    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
-    //   buffer (days of food a holder keeps before giving, 20..60; sim/help),
+    //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), nursling (the child she nurses, or null; sim/births),
+    //   hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger),
     //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle),
     //   landWait (moving rounds waited for land in a crowded village, 0 otherwise; unset before the first round; sim/settle), ...}
@@ -455,6 +455,8 @@ VB['sim/scenarios'] = (() => {
     //   its lookups are hooks(st) (sim/society)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; a culture's preference among farm names: weights, the first heaviest
     // @state culture.practices: {noDecision: 'nothing' | 'asLastYear'}; the culture's practices that are not customs (culture.js PRACTICES; VB-257)
+    // @state culture.values: {generosity, piety, ambition, honour}; the means of its living adults' values (VB-519), each to a thousandth,
+    //   reckoned at its yearly reckoning and at a split (culture.js, through sim/traits' addValues); an archetype's at the start
     const st = {
       t: 6,
       tick: 6 * TICKS,

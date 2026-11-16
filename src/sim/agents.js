@@ -19,6 +19,7 @@ VB['sim/agents'] = (() => {
   const { finishStep } = VB['sim/expansion'];
   const { worked: prospected } = VB['sim/prospect'];
   const { KINDS } = VB['sim/kinds'];
+  const Lying = VB['sim/lying'];
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
     return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
@@ -162,14 +163,18 @@ VB['sim/agents'] = (() => {
   function release(st, a) {
     // A load on its way home is not brought in from the road: a hand that can walk on is not released until it has (VB-581: `moved`
     // waits for the delivery, and the planner, the occasions, the orders and the working day's end find it on its way home and leave it).
-    // One released here stands where the load lies: in its own field or meadow the load goes back with the stooks or the mown hay; elsewhere
-    // (its death on the road, its household dissolving) it is put down in the farm's barn, a teleport left for a task (VB-581).
+    // One released here puts the load down where it stands: in its own field or meadow it goes back with the stooks or the mown hay;
+    // elsewhere (its death on the road, its household dissolving) it lies there for the task's owner to fetch (VB-611, sim/lying). A task
+    // that has no more loads to give is done with.
+    let laid = null;
     if (a.load > 0 && a.phase === 'back' && a.job) {
-      const K = KINDS[a.job.kind];
-      if (K.setDown && here(st, a) === a.job.site) {
-        K.setDown(st, a.job, a);
-        a.carry = null;
-      } else deposit(st, a, a.job.farm);
+      const K = KINDS[a.job.kind],
+        [x, y] = placeOf(st, a),
+        at = tileAt(st, x, y);
+      if (K.setDown && at === a.job.site) K.setDown(st, a.job, a);
+      else Lying.lay(st, a, a.job, K.fetch || a.job.kind, at, x, y);
+      a.carry = null;
+      laid = a.job;
     }
     const left = a.job;
     if (left) settle(st, left);
@@ -181,6 +186,7 @@ VB['sim/agents'] = (() => {
     }
     a.phase = null;
     if (left) rerate(st, left); // a hand gone: the end is told again
+    if (laid && !(KINDS[laid.kind].again && KINDS[laid.kind].again(laid))) dropJob(st, laid);
     a.basis = null;
     a.load = 0; // wood cut and stacked, not yet on its way, is left
     const hid = st.pawns[a.id].household;
@@ -321,7 +327,7 @@ VB['sim/agents'] = (() => {
   }
   // Household hh is going (sim/heirs' extinct): the jobs it posted and those on its farm f go, and those working them stop, as freeHands
   // stops them (a neighbour helping, VB-106, would finish a job of no household); a load on its way home, its own people's or a helper's,
-  // is put down in its barn first, while it stands, as at a move (VB-335): brought in after, it went to a household gone and threw.
+  // is put down first where its carrier stands (release), for the task's owner to fetch (VB-611; one of the household going rots at the frost).
   function stopWorkFor(st, hh, f) {
     const jobs = new Set(st.jobsBy.get(`household:${hh.id}`));
     for (const j of st.jobs.values()) if (j.farm === f) jobs.add(j);
@@ -369,10 +375,10 @@ VB['sim/agents'] = (() => {
     dropJob(st, j);
   }
   // Home with the load: the kind says what it brings.
-  function deposit(st, a, farm = null) {
+  function deposit(st, a) {
     const j = a.job,
       K = KINDS[j.kind];
-    const hh = farm && farm.household !== null ? st.households[farm.household] : workFor(st, a, j);
+    const hh = workFor(st, a, j);
     helped(st, j, [a.id]); // a load brought in is a task done
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
     Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears

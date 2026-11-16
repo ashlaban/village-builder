@@ -13,6 +13,7 @@ const starve = (p, age, days) => { // hunger 1 every day; the day on which the p
 };
 {
   const st = fresh(), p = st.pawns[0];
+  for (const x of st.pawns) x.traits[VB['sim/traits'].IDX.body] = 0.5; // a fed day restores HEALTH.recover at body 0.5 (VB-520: 2.5 to 3.5)
   assert.strictEqual(p.health, 100, 'health starts at 100');
   assert.strictEqual(starve(p, 30, 30), 25, 'an adult at h = 1 dies on day 25');
   assert.strictEqual(starve(p, 3, 40), 17, 'a child under 5 at h = 1 dies on day 17');

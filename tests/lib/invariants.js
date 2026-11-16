@@ -268,12 +268,20 @@ function checkState(st) {
       && P.shortNext >= F.shortAt && P.shortNext <= P.shortEnd && P.longNext >= F.longAt &&
         P.longNext <= P.longEnd))) bad.push(`recordFold: ${JSON.stringify(F)}`);
   }
-  // the stand-in traits (VB-254): every living pawn has the five, each in [0, 1); none keeps VB-249's diligence beside them
-  const NAMES = globalThis.VB['sim/traits'].NAMES;
-  for (const id of st.living) {
-    const t = st.pawns[id].traits;
-    if (!Array.isArray(t) || t.length !== NAMES.length || !t.every((x) => x >= 0 && x < 1) || 'diligence' in st.pawns[id])
-      bad.push(`pawn ${id}: traits ${JSON.stringify(t)}`);
+  // the twelve traits (VB-519): every pawn, living or dead, has the twelve, each finite within TRAITS.bounds; none keeps VB-249's diligence
+  // beside them. Its hungry days: a whole number for a child, null once its values have set (tests/traits.js checks when)
+  const TR = globalThis.VB['sim/rules'].TRAITS, [lo, hi] = TR.bounds;
+  for (const p of st.pawns) {
+    const t = p.traits;
+    if (!Array.isArray(t) || t.length !== TR.names.length || !t.every((x) => Number.isFinite(x) && x >= lo && x <= hi) || 'diligence' in p)
+      bad.push(`pawn ${p.id}: traits ${JSON.stringify(t)}`);
+    if (!(p.leanDays === null || (Number.isInteger(p.leanDays) && p.leanDays >= 0))) bad.push(`pawn ${p.id}: leanDays ${p.leanDays}`);
+  }
+  // a culture's values (VB-519): the four means, each within the bounds
+  if (st.cenv) for (const c of st.cenv.cultures) {
+    const v = c.values;
+    if (!v || Object.keys(v).join() !== TR.names.slice(0, 4).join() || !Object.values(v).every((x) => Number.isFinite(x) && x >= lo && x <= hi))
+      bad.push(`culture ${c.id}: values ${JSON.stringify(v)}`);
   }
   // a pawn's events (VB-199), those added since the last check: positions in the record, each its own event or one folded since
   for (const p of st.pawns) {
@@ -515,13 +523,30 @@ function checkState(st) {
       if (!memberOf.has(p.id)) bad.push(`pawns[${p.id}]: alive but in no household`);
       else if (p.household !== memberOf.get(p.id)) bad.push(`pawns[${p.id}]: household field ${p.household}, member of ${memberOf.get(p.id)}`);
       if (p.died !== null) bad.push(`pawns[${p.id}]: alive with died ${p.died}`);
-      if (!within(p.buffer, 20, 60)) bad.push(`pawns[${p.id}]: buffer is ${p.buffer}`);
+      if (p.buffer !== undefined) bad.push(`pawns[${p.id}]: a drawn buffer (VB-520: the holder's reserve is its generosity's)`);
       if (!within(p.health, 0, 100)) bad.push(`pawns[${p.id}]: health is ${p.health}`);
     } else {
       if (memberOf.has(p.id)) bad.push(`pawns[${p.id}]: dead but in household ${memberOf.get(p.id)}`);
       if (p.died === null) bad.push(`pawns[${p.id}]: dead without a died time`);
     }
+    if (p.alive && p.nursling !== null && p.nursling !== undefined) {
+      // VB-632: she nurses a child of hers, born within the nursing term, and while the term lies ahead (the step clears it a day late at most)
+      const c = st.pawns[p.nursling];
+      if (!c || c.mother !== p.id || st.t - c.born > LOADED['sim/rules'].BIRTH.nursingDays * LOADED['sim/rules'].DAY + 1e-6) bad.push(`pawns[${p.id}]: nursling ${p.nursling} is not her child born within the term`);
+      if (p.nursingUntil === null || st.t - p.nursingUntil > 2 * LOADED['sim/rules'].DAY) bad.push(`pawns[${p.id}]: nursling ${p.nursling} but nursingUntil ${p.nursingUntil}`);
+    }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
+    // VB-520: a pawn with an attitude leans, a byte a custom, to the option it favours most (culture compiles it where it writes att)
+    if (p.att) {
+      const C = globalThis.VB.culture;
+      if (!(p.leans instanceof Uint8Array) || p.leans.length !== C.DIMS.length) bad.push(`pawns[${p.id}]: leans ${p.leans}`);
+      else for (let d = 0; d < C.DIMS.length; d++) {
+        const o = C.OFF[d], top = p.att[o + p.leans[d]];
+        let most = -Infinity;
+        for (let j = 0; j < C.NOPT[d]; j++) most = Math.max(most, p.att[o + j]);
+        if (p.leans[d] >= C.NOPT[d] || top !== most) { bad.push(`pawns[${p.id}]: leans ${p.leans[d]} on custom ${d}, not its strongest`); break; }
+      }
+    }
     if (p.rel) checkRel(st, p, bad);
     if (p.ties) checkTies(st, p, bad);
     if (p.goodwill) checkGoodwill(st, p, bad);
@@ -815,6 +840,23 @@ function checkState(st) {
     }
     for (const a of st.agents) if ('work' in a) bad.push(`agents[${a.id}]: rows (a.work) in the state`);
   }
+  // loads lying where their carrier fell (VB-611, sim/lying): absent or a non-empty list in the order put down, ids distinct, rising and
+  // within st.lyingSeq; each of a kind that carries a load (one with a fetch kind), a load above 0, on a tile of the map, put down this
+  // year at most (the autumn frost rots them all), owned by a household or village that exists
+  if (st.lying !== undefined) {
+    const KS = globalThis.VB['sim/kinds'].KINDS, L = globalThis.VB['sim/lying'], { YEAR } = globalThis.VB['sim/rules'];
+    if (!Array.isArray(st.lying) || !st.lying.length) bad.push(`lying: ${Array.isArray(st.lying) ? 'empty' : typeof st.lying}`);
+    else st.lying.forEach((l, n) => {
+      const at = `lying[${n}] (${l.id})`, prev = st.lying[n - 1], o = l.owner;
+      if (!Number.isInteger(l.id) || !(l.id <= st.lyingSeq) || (prev && !(prev.id < l.id && prev.t <= l.t))) bad.push(`${at}: id ${l.id} out of order, or past lyingSeq ${st.lyingSeq}`);
+      if (!KS[l.kind] || !KS[L.fetchKey(l.kind)]) bad.push(`${at}: kind ${l.kind} has no fetching`);
+      if (!(l.n > 0) || !Number.isFinite(l.n)) bad.push(`${at}: a load of ${l.n}`);
+      if (!Number.isInteger(l.tile) || l.tile < 0 || l.tile >= st.w.COLS * st.w.ROWS) bad.push(`${at}: on tile ${l.tile}`);
+      if (!(l.t <= st.t) || !(st.t - l.t < YEAR)) bad.push(`${at}: put down at ${l.t}, a year or more ago (the frost rots it)`);
+      if (!o || !((o.type === 'household' && st.households[o.id]) || (o.type === 'village' && st.villages[o.id]))) bad.push(`${at}: owner ${JSON.stringify(o)}`);
+      if (!l.of || !Number.isInteger(l.of.src)) bad.push(`${at}: no task tile`);
+    });
+  }
   // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
   // or while cutting the next load beside a cart with room (sim/agents stepWork, a kind's `stack`: firewood)
   for (const a of st.agents) if (a.load && !(a.load > 0 && (a.phase === 'back' || (a.phase === 'work' && a.job && VB['sim/kinds'].KINDS[a.job.kind].stack)))) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
@@ -1081,8 +1123,10 @@ function checkRel(st, p, bad) {
     for (const k of kinds) {
       const K = SOCIAL.memories[k], m = r.mem[k];
       if (!K) { bad.push(`${where}: unknown memory ${k}`); continue; }
-      const lo = Math.min(0, K.cap), hi = Math.max(0, K.cap);
-      if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${K.cap}`);
+      // a breach is felt by honour, its cap up to the most of TRAITS.acts.honour.breach (VB-520)
+      const T = globalThis.VB['sim/rules'].TRAITS, felt = T.breach.includes(k) ? Math.max(...T.acts.honour.breach) : 1;
+      const cap = K.cap * felt, lo = Math.min(0, cap), hi = Math.max(0, cap);
+      if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${cap}`);
       if (!(m.t <= st.t)) bad.push(`${where}: ${k} remembered at ${m.t}, after now (${st.t})`);
     }
   }

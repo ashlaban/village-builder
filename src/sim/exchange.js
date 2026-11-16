@@ -132,7 +132,10 @@ VB['sim/exchange'] = (() => {
       h = st.pawns[receiver].household,
       to = h !== null ? st.households[h] : null;
     if (!from || !to || to === from || to.dissolved) return null;
-    return Rules.explain(st, 'allowance', { giver, receiver, from, to });
+    const out = Rules.explain(st, 'allowance', { giver, receiver, from, to }),
+      word = VB['sim/traits'].wordOf(st, giver, 'generosity'); // "own reserve: open-handed" (VB-520; design.md, The twelve traits)
+    if (word) for (const q of out.parts) if (q.key === 'reserve') q.label += ': ' + word;
+    return out;
   }
   // ---- goods at the fair (VB-299; design.md, The fair: Need and Keeping goods; target-v2 5.1). VB-302's deals read these. ----
   // need's term for ale (sim/hunger declares the rule; tar's is sim/tar's, VB-301): ale its worth with an occasion ahead (a wedding, a

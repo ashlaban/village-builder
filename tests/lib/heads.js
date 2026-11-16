@@ -5,7 +5,7 @@ function templateHeads(VB, st) {
   for (const plan of st.plans.households.values())
     if (plan.head) {
       const t = st.pawns[plan.head.pawn].traits, I = VB['sim/traits'].IDX;
-      t[I.wits] = t[I.husbandry] = 0;
+      t[I.wits] = t[I.husbandry] = VB['sim/rules'].TRAITS.bounds[0]; // the least of each (VB-519)
     }
   st.rng.traits.fix = 0.5;
   P.startHeads(st);
