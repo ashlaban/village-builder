@@ -53,7 +53,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-423](backlog/VB-423.md) | Refactor: split sim/hunger by concern (the meal, the need rule) | - | 3 | M | sim/hunger exports 20 names since journeys; split the need rule and the larder from the daily meal. |
 | [VB-424](backlog/VB-424.md) | Hides from the hunt | animals | 3 | S | A kill gives a hide once a system reads it (dress, VB-363, or trade); left out of VB-139. |
 | [VB-426](backlog/VB-426.md) | Young villages without wood at seed 11 | - | 3 | S | Four villages of populous small seed 11 have no wood within 27 steps; find whether their own cutting or an older village's far allotment took it. |
-| [VB-429](backlog/VB-429.md) | The led cow is drawn beside the pawn leading it | animals | 3 | S | The job lead (VB-390) walks a cow home; the page draws only the pawn. |
 | [VB-430](backlog/VB-430.md) | Refactor: split sim/relations by concern | - | 3 | M | sim/relations is 714 lines since neighbours' help (VB-106); split it by concern. |
 | [VB-442](backlog/VB-442.md) | Rebuild only the farms that changed, not every farm, fence and pawn | - | 3 | M | buildFarms takes down and redraws the whole settlement layer about 85 times a game year on populous tiny (255 steps in 3 years, seed 18), for a single broken field, a birth or a death. Rebuild what the change touched. |
 | [VB-443](backlog/VB-443.md) | Refactor: split gen by concern (terrain and land cover, the baked drawing) | - | 3 | M | src/gen.js is over its baseline since its land cover thresholds were named (COVER); split it by concern so that the lint's length line holds. |
@@ -77,6 +76,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | [VB-432](backlog/VB-432.md) | A village's round clears only the memos a marriage touches | between | 3 | S | Rankings in the moving round rose four- to eightfold with VB-277; clear only the heirs' memos a marriage or handover touches. |
 | [VB-453](backlog/VB-453.md) | A job's urgency is worked out once a round, not once a bid | - | 3 | S | planRound and lookUp score each job for each idle pawn (about 3,000 bids a game day on populous tiny), and half of a score's time is the job's urgency, which does not depend on the pawn. |
 | [VB-611](backlog/VB-611.md) | Teleport: a load lies where its carrier fell | physical | 3 | M | A hand who dies on the road, or whose household dissolves, with a load on its way home: the load is booked at its barn from the road (release in sim/agents). |
+| [VB-616](backlog/VB-616.md) | The led cow is drawn once, not also in the giver's herd | animals | 3 | S | Until ledHome moves the animal, the herd still draws it besides the one led |
 
 ## Blocked
 
