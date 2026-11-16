@@ -52,7 +52,8 @@ console.log(`  rankings by line: ${c.checked} match the full list; another farm'
     const it2 = G.generate(sd); let r2; while (!(r2 = it2.next()).done);
     const s2 = Sim.seed(r2.value, sd, 'heirs'), farm = s2.farmsteads[s2.households[4].farmstead], was = farm.fields.map((fd) => fd.stage), by = [0, 0, 0];
     s2.rng.traits.fix = 0.5;
-    for (const id of s2.living) T.draw(s2, id);
+    // VB-519 replaced the stand-ins' draw: every living pawn's twelve traits are set at 0.5 (the stream forced for the heads' biases).
+    for (const id of s2.living) s2.pawns[id].traits = Object.keys(T.IDX).map(() => 0.5);
     P.startHeads(s2);
     delete s2.rng.traits.fix;
     assert.strictEqual(P.headSkill(s2, 4), 0.5, 'a head of skill 0.5');
