@@ -101,14 +101,14 @@ const iv = setInterval(async () => {
     }
   }
   console.log('clock:', doc.getElementById('clockDate').textContent, '|', doc.getElementById('clockYear').textContent, '| scenario', doc.getElementById('genScenario').value);
-  // the shown clock follows simulation time within a 6-minute step and 5 game minutes, in whole 5-minute steps: it shows the time the
-  // pawns are drawn at, between the last two steps (VB-244)
+  // the shown clock is the time the simulation has reached, floored to whole 5 minutes: never ahead of it, less than 5 minutes behind
+  // (VB-474; the pawns are drawn a fraction of a step ahead, the clock is not)
   const shownMin = () => { const m = /Year (\d+), (\d\d):(\d\d)/.exec(doc.getElementById('clockYear').textContent); return m ? (+m[2]) * 60 + (+m[3]) : -1; };
   for (const sp of [1, 3, 10, 30, Infinity]) {
     q(`[data-speed="${sp}"]`).click();
     for (let k = 0; k < (sp === Infinity ? 10 : 400); k++) {
       tick(1); const shown = shownMin(), real = Math.floor(simSt.t * 60 + 1e-6) % 1440, lag = (real - shown + 1440) % 1440;
-      if (shown < 0 || shown % 5 !== 0 || lag > 11) { fail(`clock at ${sp}x shows ${shown} min but simulation is at ${real} min`); break; }
+      if (shown < 0 || shown % 5 !== 0 || lag > 5) { fail(`clock at ${sp}x shows ${shown} min but simulation is at ${real} min`); break; }
     }
   }
   q('[data-speed="1"]').click();
