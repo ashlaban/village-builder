@@ -1,12 +1,12 @@
 // Herds (VB-131): the founders' herds as Kim decided; calves and lambs each spring; no calf without a bull within reach; populous herds fit
 // the byre and each village with cattle has its bull; a dissolved household's herds go to its people's new home; the state invariants hold.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], { checkState } = require('./lib/invariants.js');
+// On the small islands of tests/lib/probe.js (VB-855).
+const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js'), H = VB['sim/herds'], { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('HERDS FAIL:', m); } };
-const world = (seed, cols, rows) => { const it = G.generate(seed, { cols, rows }); let r; while (!(r = it.next()).done); return r.value; };
 const kinds = (hd) => hd.head.map((h) => h.kind).sort().join(',');
 
 // --- founders, seed 7: three farms with cattle, the first with the bull and oxen; two with sheep, the first with the ram; the lone farm none
-let st = Sim.seed(world(7, 120, 85), 7, 'founders');
+let st = scenario('founders', 7);
 const hhs = st.households.filter((h) => !h.dissolved), loneOf = (h) => st.villages[st.farmsteads[h.farmstead].village].farmsteads.length < 2;
 const cattle = hhs.map((h) => H.herdOf(st, h, 'cattle')), sheep = hhs.map((h) => H.herdOf(st, h, 'sheep'));
 check(hhs.length === 4 && loneOf(hhs[3]), `founders: expected three village farms and a lone farm, got ${hhs.length}`);
@@ -32,7 +32,7 @@ check(!checkState(st).length, 'founders year 2: ' + checkState(st).slice(0, 3).j
 const report = `founders seed 7, year 2: ${calves} calves, ${lambs} lambs; ` + hhs.filter((h) => h.herds.length).map((h) => H.describeHerds(st, h)).join(' / ');
 
 // --- without a bull no cow calves
-st = Sim.seed(world(7, 120, 85), 7, 'founders');
+st = scenario('founders', 7);
 for (const hd of st.herds) if (hd.head) hd.head = hd.head.filter((h) => h.kind !== 'bull');
 Sim.advance(st, Sim.YEAR + Sim.HERD.springDay * Sim.DAY + 6);
 check(st.herds.every((hd) => !hd.head || !hd.head.some((h) => h.kind === 'calf')), 'no bull: a cow calved');
@@ -43,8 +43,8 @@ H.passHerds(st, from, to.id);
 check(H.herdOf(st, to, 'cattle').head.length === before && !from.herds.length && from.hay === 0, 'passHerds: the cattle did not all move');
 check(!checkState(st).length, 'after passHerds: ' + checkState(st).slice(0, 3).join('; '));
 
-// --- populous, tiny map: every herd fits the byre; a village with cattle has a bull, one with sheep a ram
-st = Sim.seed(world(7, 120, 85), 7, 'populous');
+// --- populous: every herd fits the byre; a village with cattle has a bull, one with sheep a ram
+st = scenario('populous', 7);
 for (const hd of st.herds) if (hd.head) check(H.byreRoom(hd) <= Sim.HERD.byre, `populous: herd ${hd.id} needs ${H.byreRoom(hd)} places in the byre`);
 for (const v of st.villages) {
   const vh = st.herds.filter((hd) => st.farmsteads[st.households[hd.household].farmstead].village === v.id);
@@ -54,13 +54,13 @@ for (const v of st.villages) {
 const share = st.households.filter((h) => H.herdOf(st, h, 'cattle')).length / st.households.length;
 check(share > 0.55 && share < 0.95, `populous: ${Math.round(share * 100)}% of farms keep cattle`);
 check(!checkState(st).length, 'populous at the start: ' + checkState(st).slice(0, 3).join('; '));
-Sim.advance(st, Sim.YEAR);
-check(!checkState(st).length, 'populous after a year: ' + checkState(st).slice(0, 3).join('; '));
+Sim.advance(st, (Sim.HERD.stall[0] + 2) * Sim.DAY); // into the byre season, past the autumn count (the spring's births are founders')
+check(!checkState(st).length, 'populous in the byre: ' + checkState(st).slice(0, 3).join('; '));
 
 // --- shares and a new household's start (VB-140): a cow and two ewes, when the old household keeps a cow and its winter hay
 {
   const live = (s) => s.households.filter((h) => !h.dissolved);
-  const s2 = Sim.seed(world(7, 120, 85), 7, 'founders'), old = live(s2)[1], nw = live(s2)[2];
+  const s2 = scenario('founders', 7), old = live(s2)[1], nw = live(s2)[2];
   const oc = H.herdOf(s2, old, 'cattle'), os = H.herdOf(s2, old, 'sheep'), cows0 = oc.head.length, ewes0 = os.ewes;
   check(H.startHerd(s2, old, nw) === 3, 'start: a cow and two ewes move');
   check(oc.head.length === cows0 - 1 && os.ewes === ewes0 - 2, 'start: the old household gives up one cow and two ewes');
@@ -68,14 +68,14 @@ check(!checkState(st).length, 'populous after a year: ' + checkState(st).slice(0
   check(old.hay >= H.winterNeed(s2, old), `start: the old household keeps its winter hay (${old.hay} of ${H.winterNeed(s2, old)})`);
   check(oc.head.some((h) => h.kind === 'cow'), 'start: a cow stays');
   check(!checkState(s2).length, 'start: ' + checkState(s2).slice(0, 3).join('; '));
-  const s3 = Sim.seed(world(7, 120, 85), 7, 'founders'), o3 = live(s3)[1], n3 = live(s3)[2];
+  const s3 = scenario('founders', 7), o3 = live(s3)[1], n3 = live(s3)[2];
   o3.hay = 0; check(H.startHerd(s3, o3, n3) === 0, 'start: no hay, no animals');
-  const s4 = Sim.seed(world(7, 120, 85), 7, 'founders'), o4 = live(s4)[1], n4 = live(s4)[2];
+  const s4 = scenario('founders', 7), o4 = live(s4)[1], n4 = live(s4)[2];
   const paid = H.payInAnimals(s4, o4, n4, 70);
   check(paid === 64, `share in animals: ${paid} of 70 rations paid`);
   check(!checkState(s4).length, 'share: ' + checkState(s4).slice(0, 3).join('; '));
   // an animal marked for slaughter that is given away leaves the cull list with it (found by tests/invariants.js, VB-342)
-  const s5 = Sim.seed(world(7, 120, 85), 7, 'founders'), o5 = live(s5)[1], n5 = live(s5)[2], c5 = H.herdOf(s5, o5, 'cattle');
+  const s5 = scenario('founders', 7), o5 = live(s5)[1], n5 = live(s5)[2], c5 = H.herdOf(s5, o5, 'cattle');
   const cow = c5.head.find((h) => h.kind === 'cow');
   c5.cull.push({ id: c5.cullSeq++, head: cow.id, lean: false });
   check(H.startHerd(s5, o5, n5) > 0 && !c5.head.includes(cow) && !c5.cull.length, `start: the marked cow went and its mark with it (${c5.cull.length} left)`);

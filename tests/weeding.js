@@ -1,7 +1,7 @@
-// Summer upkeep: growing fields post weeding jobs, and a tended field yields more than an untended one.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+// Summer upkeep: growing fields post weeding jobs, and a tended field yields more than an untended one. Founders on the small island of
+// tests/lib/probe.js (VB-855).
+const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('WEEDING FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const E = Sim.ECON, K = Sim.KINDS.weed;
 check(K && K.hours === 5 && E.weedDays.join() === '6,15' && Math.abs(E.weedCut - 0.2) < 1e-9 && Math.abs(E.weedCutMax - 0.4) < 1e-9, 'weed job is not two rounds of 5 hours, a 20% cut, at most 40%');
 for (const role of Object.keys(Sim.ROLES).filter((r) => r !== 'child')) check((Sim.ROLES[role].prio.weed || 0) === (Sim.ROLES[role].prio.sow || 0), `role ${role}: weed priority differs from sow`);
@@ -10,9 +10,9 @@ for (const role of Object.keys(Sim.ROLES).filter((r) => r !== 'child')) check((S
 const harvest = (tended) => {
   const keep = K.hours; if (!tended) K.hours = 1e9;
   try {
-    const st = Sim.seed(world(7), 7, 'founders'); st.naturalDeaths = false;
+    const st = scenario('founders', 7); st.naturalDeaths = false;
     let posted = 0, miss = 0;
-    for (let day = 0; day < Sim.YEAR_DAYS; day++) {
+    for (let day = 0; day < 3 * Sim.SEASON_DAYS; day++) { // to the end of autumn: the harvest is in
       Sim.advance(st, Sim.DAY);
       for (const j of st.jobs.values()) if (j.kind === 'weed') posted++;
       for (const f of st.farmsteads) for (const fd of f.fields) miss = Math.max(miss, fd.weedMiss);

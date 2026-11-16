@@ -1,12 +1,12 @@
 // Gathering (VB-118): a forest or heath tile's stock falls 0.2 a trip and is full again each spring; a trip brings home 2.5 rations times the
 // stock home as fresh food (VB-119); the ground is the nearest such tile within 5 steps with at least 0.2 left; posted from summer day 6 to the
 // end of autumn, a second trip under 12 days of spare food; the urgency is fishing's; ranks as foraging, gathering 3 for son and farmhand.
-// Founders at seed 7, 2 years: food is gathered, the state keeps its invariants, a save keeps the stocks.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/forage'], Stores = VB['sim/stores'];
+// Founders at seed 7 on the small island of tests/lib/probe.js (VB-855), to the end of its first autumn: food is gathered, the state keeps
+// its invariants, a save keeps the stocks.
+const VB = require('../src/load.js'), Sim = VB.sim, { island, scenario } = require('./lib/probe.js'), F = VB['sim/forage'], Stores = VB['sim/stores'];
 const { KINDS } = VB['sim/kinds'], { ROLES, FORAGE, MATCH, DAY, YEAR_DAYS } = VB['sim/rules'], { dailyNeed } = VB['sim/hunger'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FORAGE FAIL:', m); } };
-const world = (seed, size = [180, 130]) => { const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };
 const cal = (season, sday, hour = 8) => ({ season, sday, doy: season * 12 + sday, day: season * 12 + sday, hour });
 const near = (a, b) => Math.abs(a - b) < 1e-6;
 
@@ -17,7 +17,7 @@ const want = { farmer: 3, wife: 4, farmhand: 3, maid: 5, son: 3, daughter: 6, re
 for (const [r, n] of Object.entries(want)) check(ROLES[r].prio.gather === n, `${r} ranks gathering ${ROLES[r].prio.gather}, not ${n}`);
 
 // --- stocks
-const st = Sim.seed(world(7), 7, 'founders'), w = st.w;
+const st = scenario('founders', 7), w = st.w;
 check(w.forage instanceof Float32Array && w.forage.every((x) => x === 1), 'a new world: every stock full');
 const wood = w.biome.findIndex((_, i) => F.wild(w, i));
 st.t = 15 * DAY;
@@ -52,13 +52,13 @@ if (f) {
 }
 
 // --- a run: food is gathered in the season, the state keeps its invariants, a save carries the stocks
-const run = Sim.seed(world(7), 7, 'founders');
-Sim.advance(run, 48 * DAY * 1.5);
+const run = scenario('founders', 7);
+Sim.advance(run, 3 * 12 * DAY); // to the end of autumn, the gathering season's end
 let got = 0;
 for (const hh of run.households) for (const x of hh.totals) if (x.kind === 'gathering') got += x.n;
-check(got > 0, 'founders at seed 7: nothing gathered in a year and a half');
+check(got > 0, 'founders at seed 7: nothing gathered by the end of the first autumn');
 const bad = checkState(run); check(!bad.length, 'invariants: ' + bad.slice(0, 3).join('; '));
-const back = Sim.load(world(7), JSON.parse(JSON.stringify(Sim.save(run))));
+const back = Sim.load(island(7), JSON.parse(JSON.stringify(Sim.save(run))));
 check(back.w.forage.every((x, i) => x === run.w.forage[i]) && back.w.forageYear.every((x, i) => x === run.w.forageYear[i]), 'a save keeps the stocks');
 if (failed) { console.error(`${failed} gathering checks failed`); process.exit(1); }
 console.log('gathering: ok');
