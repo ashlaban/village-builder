@@ -16,6 +16,7 @@ let fieldSprites = [],
 let herdSprites = new Map(); // herd id -> {sig, list of {s, ox, oy, ph, k}}; rebuilt only when the herd changes (see drawHerds)
 let teamDraw = new Map();
 let cartDraw = []; // the sprites of the carts drawn (page/animate, drawCarts), a pool refilled each frame
+const ledOut = new Set(); // the giver's animals being led home (animal ids), not drawn in its herd (page/animate, drawLed)
 let ledDraw = new Map(); // the led animals drawn, by leader (page/animate, drawLed)
 const teamOut = new Set(); // oxen at the plough (drawTeams): driver's pawn id -> {oxen: [sprites], g}; oxen out
 const ring = new PIXI.Graphics();

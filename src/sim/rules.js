@@ -466,6 +466,9 @@ VB['sim/rules'] = (() => {
     widowedGapWeight: 0.15,
     sameVillage: 2,
     noise: 1.5, // score bonus for the same village; amplitude of the random term
+    // walking hours over which the villages' term falls by e (VB-288): sameVillage x exp(-hours / nearHours), 0.45 at a day's walk (12 h);
+    // the tie's own scale (its decay exp(-d / 25) in steps is about 8 h of walking)
+    nearHours: 8,
     liking: 1, // score per point of the mean of the two young's opinions of each other (VB-275); a stranger's opinion is 0
     minScore: -1.5,
     goAhead: 0.75, // lowest score accepted; chance that an accepted match goes ahead

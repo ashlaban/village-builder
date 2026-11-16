@@ -148,6 +148,8 @@ const hm = st.households.find((h) => !h.dissolved && h.members.length >= 2 && h.
 const [m0, m1] = hm.members, home0 = R.tieOf(st, m0, m1);
 for (const id of st.living) st.pawns[id].homeHours = 0;
 for (const ag of st.agents) { ag.inside = st.pawns[ag.id].household === hm.id; ag.talk = null; }
+const hf = st.farmsteads[hm.farmstead].house;
+for (const m of hm.members) { st.agents[m].x = st.w.hx[hf] - 12; st.agents[m].y = st.w.hy[hf] + 14; } // by the door of their own house (VB-561)
 const talks1 = st.talks;
 for (let h = 0; h < DAY; h++) { for (const ag of st.agents) ag.inside = st.pawns[ag.id].household === hm.id; R.talkHour(st, h, S.outdoors(st, VB['sim/agents'].placeOf)); }
 check(st.pawns[m0].homeHours === T.to - T.from, `the talk hours counted at home: ${st.pawns[m0].homeHours}`);
