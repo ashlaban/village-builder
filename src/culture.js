@@ -259,7 +259,10 @@ const Culture = (() => {
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
   // nameCulture(s, from), onSplit(nc, from, cause) and, if given, decide(s, dim, option) for a meeting's change (VB-170); the caller builds
   // them (sim/society hooks(st), or tests/calibrate.js). The environment itself (cultures, settlements, people, driftMul) is plain data.
-  function makeCulture(env, name, customs, centre, parent = null) {
+  // `values`: the means of its people's four values (VB-519; Customs and culture, A culture's values), as given (an archetype's) or else
+  // its parent's, until its people's are reckoned.
+  function makeCulture(env, name, customs, centre, parent = null, values = null) {
+    const from = parent !== null ? env.cultures[parent] : null;
     const prefs =
       parent !== null && env.cultures[parent] && env.cultures[parent].namePrefs
         ? env.cultures[parent].namePrefs
@@ -277,6 +280,7 @@ const Culture = (() => {
         parent !== null && env.cultures[parent] && env.cultures[parent].practices
           ? { ...env.cultures[parent].practices }
           : basePractices(),
+      values: values ? { ...values } : from && from.values ? { ...from.values } : null,
     };
     env.cultures.push(c);
     return c;
@@ -545,15 +549,33 @@ const Culture = (() => {
     }
     return changes;
   }
+  // A culture's values reckoned (VB-519): a sum of each of its values, at 0, where the caller gives hooks.addValues(p, sum) (which adds a
+  // living adult's and says whether it did) and the culture holds values; else null. setValues: the mean, to a thousandth, where any
+  // adult was counted.
+  const valueSum = (hooks, c) =>
+    hooks.addValues && c.values ? Object.fromEntries(Object.keys(c.values).map((k) => [k, 0])) : null;
+  function setValues(c, sum, n) {
+    if (sum && n > 0) for (const k of Object.keys(sum)) c.values[k] = Math.round((sum[k] / n) * 1000) / 1000;
+  }
   // ---- yearly reckoning of the whole culture ----
   function cultureYear(env, hooks, c) {
     const setts = env.settlements.filter((s) => s.culture === c.id);
     const agg = new Float32Array(TOTAL);
     let W = 0,
       N = 0;
+    // its values: the mean of its living adults', in the same walk of its villages' people (VB-519), through the caller's addValues
+    const sum = valueSum(hooks, c);
+    let adults = 0;
     for (const s of setts) {
-      if (!s.lastSupport || !s.lastVoices) continue;
-      const size = hooks.membersOf(s).filter((p) => p.alive).length;
+      const met = s.lastSupport && s.lastVoices;
+      if (!met && !sum) continue;
+      let size = 0;
+      for (const p of hooks.membersOf(s))
+        if (p.alive) {
+          size++;
+          if (sum && hooks.addValues(p, sum)) adults++;
+        }
+      if (!met) continue;
       N += size;
       const w = size * (0.3 + 0.7 * s.tie) * (c.centres.includes(s.id) ? 2 : 1) * (s.kind === 'city' ? 3 : 1);
       for (let k = 0; k < TOTAL; k++) agg[k] += w * s.lastSupport[k];
@@ -585,6 +607,7 @@ const Culture = (() => {
     }
     c.lastAgg = agg;
     c.size = N;
+    setValues(c, sum, adults);
     const splits = [];
     for (const s of setts) {
       if (c.centres.includes(s.id)) {
@@ -619,6 +642,13 @@ const Culture = (() => {
       s.fissionYears = 0;
       s.divergence = 0;
     }
+    // its values at once: the mean of its own adults' (VB-519), or its parent's if it has none
+    const sum = valueSum(hooks, nc);
+    let adults = 0;
+    if (sum)
+      for (const s of env.settlements)
+        if (s.culture === nc.id) for (const p of hooks.membersOf(s)) if (hooks.addValues(p, sum)) adults++;
+    setValues(nc, sum, adults);
     nc.history.push({ t: env.t, cause, from: from.id });
     if (hooks.onSplit) hooks.onSplit(nc, from, cause);
     return nc;

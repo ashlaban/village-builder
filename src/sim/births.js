@@ -51,7 +51,7 @@ VB['sim/births'] = (() => {
     p.alive = true;
     p.age = 0;
     joinHousehold(st, hh, id);
-    Traits.draw(st, id); // the stand-in traits (VB-254)
+    Traits.born(st, id); // its traits, from its parents by birth and its culture (VB-519)
     Culture.initPerson(
       p,
       Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2),

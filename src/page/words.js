@@ -383,6 +383,7 @@ function showPawn(id) {
         : p.advocate
           ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`
           : '',
+      traitLine(id),
       p.age >= 16
         ? `Prestige ${p.prestige.toFixed(2)}: ${Sim.prestigeParts(st, p)
             .map(([l, v]) => `${l.toLowerCase()} ${v.toFixed(2)}`)
@@ -395,6 +396,11 @@ function showPawn(id) {
   );
   showRelations(id);
   renderPlay(id);
+}
+// A pawn's traits in words (VB-519): those beyond the reference's tails, and no number; '' for a pawn of none.
+function traitLine(id) {
+  const w = Sim.traitLabels(st, id);
+  return w.length ? w.join(', ').replace(/^./, (c) => c.toUpperCase()) : '';
 }
 // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
 let relHTML = '';

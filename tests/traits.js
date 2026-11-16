@@ -1,5 +1,5 @@
-// VB-254 (design.md section 7, foresight; Traits before slice 7): the stand-in traits, drawn at birth and for the living at the start, read
-// through Traits.of; a head's skill (wits and husbandry, and years as head); its horizon (it reacts, projects to the season's end, or a
+// VB-254, VB-519 (design.md, People, Traits, talk and stories): the twelve traits, passed on at birth and set at 15, read through
+// Traits.of and named by Traits.labelsOf, and a culture's values; a head's skill (wits and husbandry, and years as head); its horizon (it reacts, projects to the season's end, or a
 // season further) and its bias on each target, drawn once when it becomes head, never at a review. On a tiny village.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim;
@@ -9,33 +9,169 @@ const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = requ
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const make = () => tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }], { seed: 4, herds: true });
 const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
+const mean = (xs) => xs.reduce((a, x) => a + x, 0) / xs.length, sd = (xs) => Math.sqrt(mean(xs.map((x) => (x - mean(xs)) ** 2)));
+const { TRAITS } = VB['sim/rules'], { leaveHousehold, joinHousehold, spouseOf } = VB['sim/records'];
+const setSkill = (st, id, x) => { const t = st.pawns[id].traits; t[T.IDX.wits] = t[T.IDX.husbandry] = x; };
 
-// the traits: every living pawn has the five, in [0, 1), from the stream `traits`; their mean near the middle (neutral on average)
+// the traits (VB-519): every pawn, living or dead, has the twelve, within the bounds; a placed pawn draws each from its culture's
+// distribution, so neutral on average with the reference's spread; one draw of the stream `traits` a trait, and `fix` 0.5 is no chance
 {
   const st = make();
-  for (const id of st.living) assert.strictEqual(st.pawns[id].traits.length, T.NAMES.length, `pawn ${id} has the five traits`);
+  for (const p of st.pawns) assert.strictEqual(p.traits.length, 12, `pawn ${p.id} has the twelve traits`);
+  assert.deepStrictEqual(T.NAMES, ['generosity', 'piety', 'ambition', 'honour', 'sociability', 'temper', 'diligence', 'openness', 'body', 'hands', 'husbandry', 'wits']);
+  assert.deepStrictEqual(Object.keys(TRAITS.culture.oldNordic), T.NAMES.slice(0, 4), 'a culture holds the four values, in order');
   assert.deepStrictEqual(checkState(st), [], 'invariants at the start');
+  const id = st.living[0];
+  T.NAMES.forEach((k, i) => assert.strictEqual(T.of(st, id, k), st.pawns[id].traits[i], `read through Traits.of: ${k}`));
   const s0 = { ...st.rng.traits };
-  const t = T.draw(st, st.living[0]);
+  T.pass(st, 0.5, 0);
   assert.notDeepStrictEqual(st.rng.traits, s0, 'drawn from the stream traits');
-  T.NAMES.forEach((k, i) => assert.strictEqual(T.of(st, st.living[0], k), t[i], `read through Traits.of: ${k}`));
-  let sum = 0, n = 0;
-  for (let i = 0; i < 2000; i++) for (const x of T.draw(st, st.living[0])) { sum += x; n++; }
-  assert.ok(Math.abs(sum / n - 0.5) < 0.02, `uniform, so neutral on average: mean ${(sum / n).toFixed(3)}`);
-  st.rng.traits.fix = 0.25;
-  assert.ok(T.draw(st, st.living[0]).every((x) => x === 0.25), 'forced with fix');
+  const xs = Array.from({ length: 4000 }, () => T.pass(st, 0.5, 0));
+  assert.ok(Math.abs(mean(xs) - 0.5) < 0.01 && Math.abs(sd(xs) - 0.15) < 0.01, `neutral on average, spread 0.15: ${mean(xs).toFixed(3)}, ${sd(xs).toFixed(3)}`);
+  st.rng.traits.fix = 0.5;
+  assert.ok(near(T.pass(st, 0.5, 0.5, 0.9, 0.7), 0.65, 1e-9), 'mean + b × (the parents\' mean − mean), with no chance');
+  assert.ok(near(T.pass(st, 0.6, 0.6, null, null), 0.6, 1e-9), 'a parent not on record counts as the mean');
+  st.rng.traits.fix = 0.999999999;
+  assert.strictEqual(T.pass(st, 0.9, 0), 0.98, 'kept within the bounds');
+  delete st.rng.traits.fix;
 }
 
-// a birth draws the child's traits
+// the spread of 2,000 children of random pairs is the reference's, 0.15, for each group (the chance's spread is sd × √(1 − b²/2))
 {
-  const st = make(), hh = st.households[0], m = hh.members.map((id) => st.pawns[id]).find((p) => p.sex === 'f' && p.age >= 18);
+  const st = make();
+  for (const [g, b] of Object.entries(TRAITS.b)) {
+    const m = g === 'values' ? 0.6 : 0.5, kids = [];
+    for (let k = 0; k < 2000; k++) kids.push(T.pass(st, m, b, T.pass(st, m, 0), T.pass(st, m, 0)));
+    assert.ok(sd(kids) >= 0.14 && sd(kids) <= 0.16 && Math.abs(mean(kids) - m) < 0.015, `${g}: spread ${sd(kids).toFixed(3)}, mean ${mean(kids).toFixed(3)}`);
+  }
+  // however many parents are known (VB-519's review): a birth with one parent on record; values set at 15 by two raisers, by one alone,
+  // by none; over generations, the spread stays the reference's
+  const m = 0.6, b = TRAITS.b.values, x = () => T.pass(st, m, 0);
+  const cases = { 'a birth, one parent known': () => T.pass(st, m, b, x(), null, 2), 'two raisers': () => T.pass(st, m, b, x(), x(), 2),
+    'one raiser': () => T.pass(st, m, b, x(), null, 1), 'no raiser': () => T.pass(st, m, b, null, null, 0) };
+  for (const [what, child] of Object.entries(cases)) {
+    const kids = Array.from({ length: 4000 }, child);
+    assert.ok(Math.abs(sd(kids) - 0.15) < 0.0075 && Math.abs(mean(kids) - m) < 0.01, `${what}: spread ${sd(kids).toFixed(4)}, mean ${mean(kids).toFixed(3)}`);
+  }
+  let gen = Array.from({ length: 2000 }, x);
+  for (let g = 0; g < 8; g++) gen = gen.map((_, k) => T.pass(st, m, b, gen[(k * 7919 + g) % gen.length], null, 1));
+  assert.ok(Math.abs(sd(gen) - 0.15) < 0.01, `eight generations raised by one: spread ${sd(gen).toFixed(4)}`);
+}
+
+// a birth: the child's twelve from its father and mother by birth (temperament and aptitudes around 0.5, values around its culture's
+// means); a child of two high parents lies between them and the mean; it counts hungry days until 15
+const born = (st, hh) => {
+  const m = hh.members.map((id) => st.pawns[id]).find((p) => p.sex === 'f' && p.age >= 18 && p.alive);
   m.pregnantUntil = st.t;
-  m.pregnantBy = hh.members.find((id) => st.pawns[id].sex === 'm' && st.pawns[id].age >= 18);
+  m.pregnantBy = hh.members.find((id) => st.pawns[id].sex === 'm' && st.pawns[id].age >= 18 && st.pawns[id].alive);
   st.rng.births.fix = 0.99; // a boy or a girl, and the mother lives
   const n = st.pawns.length;
   dailyBirths(st);
+  delete st.rng.births.fix;
   assert.strictEqual(st.pawns.length, n + 1, 'a child is born');
-  assert.strictEqual(st.pawns[n].traits.length, T.NAMES.length, 'with its traits');
+  return { kid: n, mother: m.id, father: st.pawns[n].father };
+};
+{
+  const st = make(), hh = st.households[0];
+  const m = hh.members.map((id) => st.pawns[id]).find((p) => p.sex === 'f' && p.age >= 18), f = st.pawns[hh.members.find((id) => st.pawns[id].sex === 'm' && st.pawns[id].age >= 18)];
+  m.traits.fill(0.9);
+  f.traits.fill(0.8);
+  st.rng.traits.fix = 0.5;
+  const { kid } = born(st, hh), t = st.pawns[kid].traits, cv = st.cenv.cultures[0].values;
+  delete st.rng.traits.fix;
+  T.NAMES.forEach((k, i) => {
+    const mu = i < 4 ? cv[k] : 0.5, b = TRAITS.b[i < 4 ? 'values' : i < 8 ? 'temperament' : 'aptitudes'];
+    assert.ok(t[i] > mu && t[i] < 0.8, `${k}: between the parents and the mean (${t[i]})`);
+    assert.ok(near(t[i], Math.round((mu + b * (0.85 - mu)) * 1000) / 1000), `${k}: by the equation`);
+  });
+  assert.strictEqual(st.pawns[kid].leanDays, 0, 'a child counts its hungry days');
+  assert.deepStrictEqual(checkState(st), [], 'invariants after the birth');
+}
+
+// at 15, once: a child raised in another house takes its values from that house (its holder and mistress) and keeps the temperament and
+// aptitudes of its birth; a hungry childhood takes from body and wits and nothing else; the hungry days counted at hunger 0.5 and over
+{
+  const st = make(), [h0, h1] = st.households;
+  st.rng.traits.fix = 0.5;
+  const { kid } = born(st, h0), p = st.pawns[kid];
+  leaveHousehold(st, kid);
+  joinHousehold(st, h1, kid);
+  const H = h1.holder, M = spouseOf(st, H);
+  assert.ok(H !== null && M !== null, 'the other house has a holder and a mistress');
+  st.pawns[H].traits.fill(0.9, 0, 4);
+  st.pawns[M].traits.fill(0.7, 0, 4);
+  const before = [...p.traits], cv = st.cenv.cultures[0].values;
+  p.hunger = 0.4;
+  T.hungryDay(p);
+  assert.strictEqual(p.leanDays, 0, 'a fed day is not counted');
+  p.hunger = 0.5;
+  for (let d = 0; d < 48; d++) T.hungryDay(p);
+  assert.strictEqual(p.leanDays, 48, 'a hungry day is');
+  p.born = st.t - 15 * YEAR;
+  const fed = { ...p, traits: [...before], leanDays: 0 }; // the same child, fed: set by the same draws (the stream fixed)
+  st.pawns[kid] = fed;
+  T.setAtAge(st, kid);
+  st.pawns[kid] = p;
+  VB['sim/lifecycle'].dailyLife(st);
+  const t = p.traits, tf = fed.traits;
+  assert.ok(p.leanDays === null && fed.leanDays === null, 'set once, and the hungry days dropped');
+  T.NAMES.slice(0, 4).forEach((k, i) => assert.ok(near(t[i], Math.round((cv[k] + 0.6 * (0.8 - cv[k])) * 1000) / 1000), `${k}: from the house that raised it (${t[i]})`));
+  for (let i = 4; i < 12; i++) if (i !== T.IDX.body && i !== T.IDX.wits) assert.strictEqual(t[i], before[i], `${T.NAMES[i]}: of its birth`);
+  assert.ok(near(t[T.IDX.body], Math.max(0.02, before[T.IDX.body] - 0.1), 1e-9) && near(t[T.IDX.wits], Math.max(0.02, before[T.IDX.wits] - 0.05), 1e-9), 'half of 96 days hungry: 0.1 off body, 0.05 off wits');
+  T.NAMES.forEach((k, i) => { if (i !== T.IDX.body && i !== T.IDX.wits) assert.strictEqual(t[i], tf[i], `${k}: as the fed child's`); });
+  assert.ok(tf[T.IDX.body] === before[T.IDX.body] && tf[T.IDX.wits] === before[T.IDX.wits], 'a fed childhood takes nothing');
+  delete st.rng.traits.fix;
+  const s1 = JSON.stringify(st.rng.traits);
+  VB['sim/lifecycle'].dailyLife(st);
+  assert.strictEqual(JSON.stringify(st.rng.traits), s1, 'only once');
+  VB['sim/heirs'].refreshRoles(st); // she was moved and aged by hand
+  assert.deepStrictEqual(checkState(st), [], 'invariants at 15');
+}
+
+// a culture's values: at its yearly reckoning, the mean of its living adults'; a culture that splits takes its own adults' at once
+{
+  const st = tinyState(tinyWorld(rows), [{ at: [4, 7], farms: 2 }, { at: [12, 7], farms: 2 }], { seed: 5 });
+  const env = st.cenv, hk = VB['sim/society'].hooks(st), C = VB['culture'];
+  assert.deepStrictEqual(env.cultures[0].values, TRAITS.culture.oldNordic, 'Old Nordic: 0.5, and 0.6 for honour');
+  const adults = (v) => VB['sim/records'].membersOf(st, v).filter((p) => p.age >= 15);
+  const avg = (ps, i) => Math.round((ps.reduce((a, p) => a + p.traits[i], 0) / ps.length) * 1000) / 1000;
+  for (const p of adults(1)) p.traits.fill(0.8, 0, 4);
+  C.cultureYear(env, hk, env.cultures[0]);
+  const all = [...adults(0), ...adults(1)];
+  T.NAMES.slice(0, 4).forEach((k, i) => assert.ok(near(env.cultures[0].values[k], avg(all, i)), `${k}: the mean of its adults`));
+  const nc = C.split(env, hk, [1], 'test');
+  T.NAMES.slice(0, 4).forEach((k) => assert.strictEqual(nc.values[k], 0.8, `${k}: the split culture's, its own adults'`));
+  assert.notStrictEqual(nc.values, env.cultures[0].values, 'its own record');
+  // a child born there draws its values around its own culture's means
+  const hh = st.households.find((h) => st.farmsteads[h.farmstead].village === 1 && !h.dissolved);
+  for (const id of hh.members) st.pawns[id].traits.fill(0.8, 0, 4);
+  st.rng.traits.fix = 0.5;
+  const { kid } = born(st, hh);
+  delete st.rng.traits.fix;
+  assert.ok(st.pawns[kid].traits.slice(0, 4).every((x) => near(x, 0.8)), 'around its culture\'s mean, from parents at it');
+  assert.deepStrictEqual(checkState(st), [], 'invariants after the split');
+}
+
+// the labels: the words beyond the 15th and 85th percentiles, none between; a save made before the twelve keeps what it has
+{
+  const st = make(), id = st.living.find((i) => st.pawns[i].sex === 'f'), t = st.pawns[id].traits;
+  t.fill(0.5);
+  assert.deepStrictEqual(T.labelsOf(st, id), [], 'none in the middle');
+  t[T.IDX.generosity] = 0.344; t[T.IDX.honour] = 0.656; t[T.IDX.openness] = 0.2; t[T.IDX.wits] = 0.345;
+  assert.deepStrictEqual(T.labelsOf(st, id), ['tight-fisted', 'a woman of her word', 'set in her ways'], 'the words of the tails');
+  assert.deepStrictEqual(Sim.traitLabels(st, id), T.labelsOf(st, id), 'through the Sim API');
+  // an old save: VB-254's five, in its order, no hungry days and no culture's values
+  const old = st.living.slice(0, 3);
+  for (const i of old) { st.pawns[i].traits = [0.1, 0.2, 0.3, 0.4, 0.5]; delete st.pawns[i].leanDays; }
+  delete st.cenv.cultures[0].values;
+  const data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(st.w, data);
+  for (const i of old) {
+    const b = back.pawns[i];
+    assert.deepStrictEqual([b.traits[T.IDX.wits], b.traits[T.IDX.husbandry], b.traits[T.IDX.diligence], b.traits[T.IDX.ambition], b.traits[T.IDX.generosity]], [0.1, 0.2, 0.3, 0.4, 0.5], 'the five kept');
+    assert.ok(b.leanDays === (b.age < 15 ? 0 : null), 'its hungry days begun if a child');
+  }
+  assert.deepStrictEqual(back.cenv.cultures[0].values, TRAITS.culture.oldNordic, 'the culture starts at its archetype\'s');
+  assert.deepStrictEqual(checkState(back), [], 'invariants after the load');
 }
 
 // skill as head: the mean of wits and husbandry, 0.02 a year as head up to 0.2, capped at 1; the horizon by its thirds
@@ -76,7 +212,7 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   assert.deepStrictEqual(plan.head.bias, { wood: 1, hay: 1, seed: 1, fields: 1 }, 'no bias');
   const goal = (c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   const at = (wits, c) => {
-    st.pawns[hh.holder].traits.fill(wits, 0, 2);
+    setSkill(st, hh.holder, wits);
     plan.head.since = st.t;
     const s0 = JSON.stringify(st.rng);
     P.reviewed(st, plan, c, 'store');
@@ -102,7 +238,7 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   assert.ok(stall > 0 && near(hay, 2 + stall / HERD.stallDays), `the hay for the stall days ahead: ${hay}`);
   // the bias multiplies the plan's targets, not the template's, from the next season's plan
   plan.head.bias = { wood: 0.8, hay: 1.2, seed: 0.9, fields: 1 };
-  st.pawns[hh.holder].traits.fill(0.1, 0, 2);
+  setSkill(st, hh.holder, 0.1);
   st.t = (3 * SEASON_DAYS + 1) * DAY + 8;
   const wi = cal(st.t);
   P.reviewed(st, plan, wi, 'store');
@@ -122,7 +258,7 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
 {
   const st = templateHeads(VB, make()), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = plan.targets;
   const at = (wits) => {
-    st.pawns[hh.holder].traits.fill(wits, 0, 2);
+    setSkill(st, hh.holder, wits);
     plan.head.since = st.t;
     P.reviewed(st, plan, cal(st.t), 'store');
     return [Tg.wood[cal(st.t).season], Tg.hayWinters];
@@ -183,4 +319,4 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
     assert.ok(Math.abs(sum / n - unbiased) <= 0.02 * unbiased, `skill ${skill}: mean ${(sum / n).toFixed(3)} against ${unbiased}`);
   }
 }
-console.log('traits ok: five stand-in traits drawn at birth and at the start, neutral on average; skill as head; horizon and bias at the review, which draws nothing, worked by hand on two seasons\' first days; a new head\'s targets at once; the fields\' bias before the cap');
+console.log('traits ok: twelve traits passed on at birth and set at 15, a hungry childhood, a culture\'s values reckoned and split, labels, an old save; skill as head; horizon and bias at the review, which draws nothing, worked by hand on two seasons\' first days; a new head\'s targets at once; the fields\' bias before the cap');
