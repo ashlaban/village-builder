@@ -1,0 +1,37 @@
+{
+ "W": 8754,
+ "H": 5474,
+ "t": 3462,
+ "pop": 13,
+ "claims": 12,
+ "villages": [
+  {
+   "id": 0,
+   "name": "Asklunda",
+   "x": 6353.16259765625,
+   "y": 2506,
+   "farms": 4,
+   "land": {
+    "green": 1,
+    "farms": 0,
+    "plots": 0,
+    "outland": 20,
+    "claims": 1
+   }
+  },
+  {
+   "id": 1,
+   "name": "Vallen",
+   "x": 6765.390625,
+   "y": 2968,
+   "farms": 2,
+   "land": {
+    "green": 1,
+    "farms": 0,
+    "plots": 0,
+    "outland": 6,
+    "claims": 10
+   }
+  }
+ ]
+}
