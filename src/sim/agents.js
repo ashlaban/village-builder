@@ -1114,10 +1114,11 @@ VB['sim/agents'] = (() => {
       j.back = false;
     }
     // provisions (design: Provisions and the season): a ration (half below 14) a day of walking, from the grain above the seed of the
-    // household it leaves, then of the one it joins; with none to give it goes unprovisioned, and hungry
+    // household it leaves, never of the one it joins (VB-676: nothing is carried from a store the pawn has not reached); with none to give
+    // it goes unprovisioned, and hungry. Settlers (carry false) walk on the stakes booked to their new household
     const want = Math.ceil(hours / TRAVEL.dayWalk) * (gift ? 2 : 1) * rationOf(st, p), // a carrier's way back as well
       R = 1 / st.ECON.uncooked;
-    for (const src of gift ? [old] : carry && old && !old.dissolved ? [old, hh] : [hh]) {
+    for (const src of gift ? [old] : carry ? (old && !old.dissolved ? [old] : []) : [hh]) {
       const n = Math.min(want - j.food, Math.max(0, Stores.grainOf(src) - Stores.reserved(st, src, 'grain')) / R);
       if (n > 1e-9) {
         Stores.takeSpare(st, src, n * R, { kind: 'journey', pawn: a.id });
