@@ -245,6 +245,15 @@ const GOOD_PATHS = {
   soil: '<path d="M3 13c3-2 6-2 9 0s6 2 9 0M3 18c3-2 6-2 9 0s6 2 9 0M12 10V4M12 6c-2 0-3-1-3-3M12 7c2 0 3-1 3-3"/>',
   heir: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14.5 8.5l2 2"/>',
   holder: ACT_PATHS.home,
+  // a pawn's mood and its modifiers for an event (VB-062): a face; two rings; a swaddled child; a falling tear
+  mood: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.5c2 2 5 2 7 0M9 9.5h.01M15 9.5h.01"/>',
+  married: '<circle cx="9" cy="13" r="5"/><circle cx="15" cy="13" r="5"/><path d="M10.5 6l1.5-2.5L13.5 6"/>',
+  child:
+    '<circle cx="12" cy="6.5" r="3"/><path d="M8 11c0-1 1.5-1.5 4-1.5s4 .5 4 1.5v6c0 2.5-1.5 3.5-4 3.5s-4-1-4-3.5zM8 14h8"/>',
+  grieving:
+    '<circle cx="12" cy="10" r="7"/><path d="M8.5 13c2-1.5 5-1.5 7 0M9 8.5h.01M15 8.5h.01M16.5 12c1 2 1.5 3 1.5 4a1.5 1.5 0 0 1-3 0c0-1 .5-2 1.5-4z"/>',
+  friend:
+    '<circle cx="7.5" cy="8" r="2.5"/><circle cx="16.5" cy="8" r="2.5"/><path d="M3 19c0-3.5 2-6 4.5-6s4.5 2.5 4.5 6M12 19c0-3.5 2-6 4.5-6s4.5 2.5 4.5 6"/>',
   tile: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/>',
 };
 const goodIcon = (k) => svgIcon(24, 24, GOOD_PATHS[k] || GOOD_PATHS.tile, ICON_STROKE);
