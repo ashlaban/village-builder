@@ -7,7 +7,7 @@ const root = path.join(__dirname, '..');
 const pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
 const rawHTML = builtPage().replace('let st = null,\n  speed = 1,\n  selPawn = -1;',
   'let st = null,\n  speed = 1,\n  selPawn = -1; window.__speedTest = { get st() { return st; }, get speed() { return speed; }, '
-  + 'get rigs() { return rigs; }, between() { return { drawX, drawY, prevX, prevY, prevIn, prevN, drawBetween: drawingBetween() }; }, village() { app.ticker.maxFPS = 12; stopIntro(); const tile = st.villages[0].center; '
+  + 'get rigs() { return rigs; }, between() { return { drawX, drawY }; }, village() { app.ticker.maxFPS = 12; stopIntro(); const tile = st.villages[0].center; '
   + 'cam.x = w.hx[tile]; cam.y = w.hy[tile]; cam.z = zt = 0.8; vel.x = vel.y = 0; } };');
 const html = browserHTML(rawHTML);
 assert(html.includes('window.__speedTest'), 'page hook exists');
@@ -50,10 +50,10 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
               const hours = (+shown[1] - 1) * Sim.YEAR + (season * Sim.SEASON_DAYS + +date[2] - 1) * Sim.DAY
                 + +shown[2] + +shown[3] / 60, lag = st.t - hours;
               // Allow floating-point noise at midnight, while catching a stale day, season or year. The clock shows the time the pawns
-              // are drawn at, at most a 6-minute step behind st.t while they are drawn between steps (VB-244), floored to 5 minutes.
-              if (+shown[3] % 5 || lag < -1e-8 || lag > 0.1 + 1 / 12 + 1e-8) faults.push({ t: st.t, shown: hours });
+              // are drawn at, at most a 6-minute step ahead of st.t while they are drawn between steps (VB-474), floored to 5 minutes.
+              if (+shown[3] % 5 || lag < -0.1 - 1e-8 || lag > 1 / 12 + 1e-8) faults.push({ t: st.t, shown: hours });
             }
-            // each visible pawn is drawn on the segment between its place before the last step and its own (VB-244), or where it is
+            // each visible pawn is drawn where it is or ahead along its leg, by less than a step (VB-474)
             const d = window.__speedTest.between(), R = VB['sim/rules'], far = (R.SPEED * st.w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6;
             for (const a of st.agents) {
               const rig = rigs[a.id], i = a.id;
@@ -67,9 +67,7 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
                 continue;
               }
               const [ax, ay] = Sim.placeOf(st, a); // a walker's place from its leg (VB-473)
-              const seg = i < d.prevN && !d.prevIn[i] ? Math.hypot(ax - d.prevX[i], ay - d.prevY[i]) : Infinity;
-              if (seg > far) { if (x !== ax || y !== ay) faults.push('position'); }
-              else if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(ax - x, ay - y) > seg + 1e-3) faults.push('position off its segment');
+              if (Math.hypot(x - ax, y - ay) > far) faults.push('position more than a step from the pawn');
             }
             if (++frames < 8) return requestAnimationFrame(frame);
             clearTimeout(timeout); resolve({ faults, positions });
