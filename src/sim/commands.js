@@ -14,7 +14,9 @@ VB['sim/commands'] = (() => {
     travelling,
     carryGift,
     fetcherOf,
+    haulerOf,
     fetchGift,
+    haulGift,
   } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { emit } = VB['sim/events'];
@@ -60,7 +62,11 @@ VB['sim/commands'] = (() => {
   // carrier, is set aside where it lies and fetched by a member of the receiving household (VB-461), who must be free to go.
   const fetched = (g) =>
     !g.carrier && 'farmstead' in g.to && !('farmstead' in g.from && g.from.farmstead === g.to.farmstead);
+  // A household's gift to its village's store, with no carrier, is carried to the green by a member of the giving household (VB-849).
+  const hauled = (g) => !g.carrier && 'farmstead' in g.from && !('farmstead' in g.to);
   function fetchWhy(st, g) {
+    if (typeof g !== 'string' && hauled(g))
+      return haulerOf(st, g.from) < 0 ? 'no one of the household can carry it' : null;
     if (typeof g === 'string' || !fetched(g)) return null;
     return fetcherOf(st, g.to) < 0 ? 'no one of the household can fetch it' : null;
   }
@@ -221,6 +227,8 @@ VB['sim/commands'] = (() => {
       run: (st, c) => {
         const g = later('sim/offers').delivery(st, c);
         if (g.carrier !== undefined) carryGift(st, g);
+        else if (hauled(g))
+          haulGift(st, Object.assign(g, { hauler: haulerOf(st, g.from) })); // set aside, carried to the green (VB-849)
         else if (fetched(g))
           fetchGift(st, Object.assign(g, { fetcher: fetcherOf(st, g.to) })); // set aside, fetched (VB-461)
         else settleGift(st, g);

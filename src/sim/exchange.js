@@ -122,8 +122,8 @@ VB['sim/exchange'] = (() => {
   }
   // Settles an accepted gift; only the verb `give` calls it (tests/commands.js).
   function settleGift(st, o) {
-    // grain that changes place at once between two farmsteads (VB-461: the verb has it fetched; tests/lib/invariants.js holds this at 0)
-    if (isHousehold(o.to) && (!isHousehold(o.from) || o.from.farmstead !== o.to.farmstead))
+    // grain that changes place at once between two farmsteads (VB-461, VB-849: the verb has it fetched or hauled; tests/lib/invariants.js holds this at 0)
+    if (!isHousehold(o.to) ? isHousehold(o.from) : !isHousehold(o.from) || o.from.farmstead !== o.to.farmstead)
       VB.count.giftUncarried += o.n;
     if (!isHousehold(o.to))
       Stores.move(st, o.from, o.to, 'grain', o.n, { kind: 'gift', to: 'the village store' }); // the yearly filling
