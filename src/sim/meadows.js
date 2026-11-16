@@ -264,6 +264,11 @@ VB['sim/meadows'] = (() => {
     }
     return take / TRAVEL.hay;
   }
+  // A load of hay set down by a carrier released on the road (VB-581) lies in the mown meadow for the next hand.
+  function hayLaid(m, n) {
+    m.held += n * TRAVEL.hay;
+    m.stage = 'mown';
+  }
   // A load of hay is in the barn; with the farm's last one, the log tells how the hay stands against the winter.
   function hayIn(st, m, hh, f, a) {
     hh.hay += a.load * TRAVEL.hay;
@@ -317,6 +322,7 @@ VB['sim/meadows'] = (() => {
     mowDone,
     hayIn,
     hayLoad,
+    hayLaid,
     meadowsSpring,
     meadowsFrost,
     meadowFert,

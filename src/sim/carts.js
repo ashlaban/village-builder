@@ -5,7 +5,7 @@
 // are to follow. Reads sim/herds (the team), sim/projects; writes household.carts and household.cartMiss, and begins and ends the cart's project.
 VB['sim/carts'] = (() => {
   const { TRAVEL } = VB['sim/rules'],
-    { hayLoad } = VB['sim/meadows'];
+    { hayLoad, hayLaid } = VB['sim/meadows'];
   // The tunables (the distance review, Kim, 12 Nov): a load is `load` rations on the back, `hand` on a hand cart and `cart` on an ox
   // cart (it was 90 with two oxen: Kim, 10 Nov; a back load is 25 to 30 kg, a hand cart's 100 to 150 kg on a track, an ox cart's 500 to
   // 800 kg, halved here since sheaves and hay fill a cart before they weigh it down; from memory, unchecked). pace: a laden pawn's speed
@@ -151,6 +151,7 @@ VB['sim/carts'] = (() => {
   const HAY = {
     load: (st, a, j, cap) => (a.load = hayLoad(j.meadow, cap)),
     again: (j) => j.meadow.held > 0,
+    setDown: (st, j, a) => hayLaid(j.meadow, a.load),
     reload: CART.reload,
   };
   const loads = (a) => Math.max(1, Math.round((a ? a.load : 0) / TRAVEL.load));

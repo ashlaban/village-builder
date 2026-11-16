@@ -159,8 +159,11 @@ VB['sim/agents'] = (() => {
   }
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
-    // a load on its way home is put down in its farm's barn first (VB-335: a wedding or a move at the round found a pawn mid-haul)
-    if (a.load > 0 && a.phase === 'back' && a.job) deposit(st, a, a.job.farm);
+    // a load on its way home is set down where the pawn stands (VB-581; it was booked at the barn from the road, VB-335): the kind
+    // says how it lies for the next hand to fetch (the sheaves back in the stooks, the hay mown), and a load with no place to lie
+    // (firewood, the tree not yet felled) stays uncut; it is never brought in by one who has not walked it there
+    if (a.load > 0 && a.phase === 'back' && a.job && KINDS[a.job.kind].setDown) KINDS[a.job.kind].setDown(st, a.job, a);
+    if (a.phase === 'back') a.carry = null;
     const left = a.job;
     if (left) settle(st, left);
     if (left) {
