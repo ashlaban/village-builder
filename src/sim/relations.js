@@ -6,7 +6,7 @@ VB['sim/relations'] = (() => {
   const Traits = VB['sim/traits'],
     { DIMS } = VB['culture'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf, age } = VB['sim/records'];
-  const { partners } = VB['sim/encounters'];
+  const { partners, atHome } = VB['sim/encounters'];
   const { on } = VB['sim/events'],
     issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories; // the land's memories, from events (sim/stakes, sim/territory, sim/herds), are the three `on` below
@@ -419,7 +419,7 @@ VB['sim/relations'] = (() => {
       ids = turnsOf(st)[(T.every - (h % T.every)) % T.every],
       n = ids.length;
     VB.count.talkTurn += n;
-    for (const id of ids) if (ag[id].inside) st.pawns[id].homeHours += T.every;
+    for (const id of ids) if (atHome(st, ag[id])) st.pawns[id].homeHours += T.every;
     const start = Math.floor(rnd(st.rng.talk) * n); // a random place in the turn, and on round it from there
     if (busy.length < ag.length) busy = new Int32Array(2 * ag.length);
     round++;
