@@ -159,18 +159,18 @@ const rows = JSON.parse(invoke(['--json']));
 const row = (id) => rows.find((x) => x.rule === id);
 assert.deepStrictEqual(row('death.hazard').contributions.map((c) => c.key), ['hunger', 'frailty']);
 assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'goodwill', 'opinion', 'reserve']); // VB-216, VB-217, VB-220
-assert(invoke([]).includes('HEALTH.riskBelow'));
+const text = invoke([]); // VB-856: read once
+assert(text.includes('HEALTH.riskBelow'));
 // VB-520: what each trait does, with the contributions that read it
 const acts = JSON.parse(invoke(['--json', '--traits']));
 assert.deepStrictEqual(acts.find((a) => a.trait === 'generosity' && a.rule === 'reserve').contributions, ['allowance.reserve', 'need.food']);
-assert(invoke([]).includes('openness.malleability: 0.5 to 1.5'));
-const cliExplanation = JSON.parse(invoke(['--explain', '0', '--json']));
+assert(text.includes('openness.malleability: 0.5 to 1.5'));
+const cliExplanation = JSON.parse(invoke(['--explain', '0', '--map', 'probe', '--json'])); // the 36 by 26 island (VB-856; tiny before)
 assert.strictEqual(cliExplanation.pawn, 0);
 assert.strictEqual(cliExplanation.combine, 'product');
 assert.strictEqual(cliExplanation.unclamped, cliExplanation.value);
 assert.strictEqual(cliExplanation.clamp, null);
-const it = VB.gen.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
-const run = Sim.seed(r.value, 7, 'populous'), dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-rules-'));
+const run = require('./lib/probe.js').scenario('populous', 7), dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-rules-'));
 try {
   const saved = JSON.stringify(Sim.save(run));
   for (const ext of ['.json', '.json.gz']) {

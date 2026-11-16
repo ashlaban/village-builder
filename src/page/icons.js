@@ -255,6 +255,9 @@ const GOOD_PATHS = {
   friend:
     '<circle cx="7.5" cy="8" r="2.5"/><circle cx="16.5" cy="8" r="2.5"/><path d="M3 19c0-3.5 2-6 4.5-6s4.5 2.5 4.5 6M12 19c0-3.5 2-6 4.5-6s4.5 2.5 4.5 6"/>',
   tile: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/>',
+  // ale (VB-698's made good): a tankard; the household's plan (VB-256): a list of what is to be done, ticked
+  ale: '<path d="M5 6h10v14H5zM15 9h2.5a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H15M5 9.5h10M8 6V4.5h4V6"/>',
+  plan: '<path d="M6 3h12v18H6zM9 8l1.2 1.2L12.5 7M14 8.5h2M9 13l1.2 1.2 2.3-2.2M14 13.5h2M9 18h7"/>',
 };
 const goodIcon = (k) => svgIcon(24, 24, GOOD_PATHS[k] || GOOD_PATHS.tile, ICON_STROKE);
 // The twelve traits (sim/traits, TRAITS.names), one icon each: traits are not hidden (Kim, 16 Nov), and are shown as icons.

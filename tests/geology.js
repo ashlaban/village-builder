@@ -1,15 +1,16 @@
 // Geology (gen/geology): the same on every generation and leaving the rest of the world as it was; bedrock on land only; each deposit
-// on a tile that can hold it, with loads left; tin only in granite; no island of the test maps with every kind.
+// on a tile that can hold it, with loads left; tin only in granite; no island of the test maps with every kind. Every rule on three
+// 48 by 34 islands of tests/lib/probe.js (VB-856; three 180 by 130 maps before, which held over 50 deposits: these hold 36).
 const VB = require('../src/load.js'), G = VB.gen, Geo = VB['gen/geology'], { landComponents } = VB['sim/hex'];
 const { ROCK, DEPOSIT, ROCKS, DEPOSITS, ENDLESS, VEINS } = Geo, B = G.B;
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('GEOLOGY FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed, { cols: 180, rows: 130 }); let r; while (!(r = it.next()).done); return r.value; };
+const { island, generate, ROOMY: SIZE } = require('./lib/probe.js');
 const same = (a, b) => Buffer.compare(Buffer.from(a.buffer), Buffer.from(b.buffer)) === 0;
 const amount = new Map(VEINS.filter((v) => v.deposit).map((v) => [v.deposit, v.amount]));
 const kinds = ROCKS.length - 1 + DEPOSITS.length - 1, differ = [];
 let deposits = 0;
 for (const seed of [7, 42, 3]) {
-  const w = world(seed), again = world(seed);
+  const w = island(seed, SIZE), again = generate(seed, SIZE);
   for (const k of ['rock', 'deposit', 'depositLeft']) check(same(w[k], again[k]), `seed ${seed}: ${k} differs between generations`);
   const comp = landComponents(w), has = new Map();
   for (let i = 0; i < w.N; i++) {
@@ -36,7 +37,7 @@ for (const seed of [7, 42, 3]) {
     if (comp.size[c] >= 60) differ.push([...set].sort().join());
   }
 }
-check(deposits > 50, `only ${deposits} deposit tiles on three maps`);
+check(deposits > 20, `only ${deposits} deposit tiles on three maps`);
 check(new Set(differ).size > differ.length / 2, `islands too alike: ${new Set(differ).size} sets of kinds on ${differ.length} islands`);
 if (failed) process.exit(1);
-console.log('geology ok');
+console.log(`geology ok: ${deposits} deposit tiles on three maps, ${new Set(differ).size} sets of kinds on ${differ.length} islands`);

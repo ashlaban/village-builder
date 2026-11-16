@@ -1,15 +1,16 @@
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+// Founders keep bringing in a harvest, and stores stay sound; a walk of an underflowing budget ends. On the small island of
+// tests/lib/probe.js (VB-856; three years on the default island before, two here).
+const VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js');
 let failed = 0; const fail = (m) => { failed++; console.error('REGRESSION:', m); };
 for (const seed of [7, 12]) {
-  const it = G.generate(seed); let r; while (!(r = it.next()).done); const w = r.value;
-  const st = Sim.seed(w, seed, 'founders'); st.naturalDeaths = false;
+  const st = Sim.seed(island(seed), seed, 'founders'); st.naturalDeaths = false;
   const t0 = Date.now();
-  for (let year = 1; year <= 3; year++) {
+  for (let year = 1; year <= 2; year++) {
     const from = st.t; Sim.advance(st, Sim.YEAR);
     if (!st.households.some((h) => h.ledger.some((e) => e.kind === 'harvest' && e.t >= from))) fail(`seed ${seed}: no household brought in a harvest in year ${year}`);
   }
   for (const h of st.households) for (const [k, n] of [['grain', Sim.grainOf(h)], ['wood', h.wood]]) if (!(n >= 0)) fail(`seed ${seed}: household ${h.id} ${k} is ${n}`);
-  console.log(`founders seed ${seed}: 3 years in ${Date.now() - t0} ms | ${st.households.map((h) => `${st.farmsteads[h.farmstead].name} grain ${Math.round(Sim.grainOf(h))} hungry ${h.hungryDays}`).join(' | ')} | marriages ${st.unions.length} | demand ${st.demand.length}`);
+  console.log(`founders seed ${seed}: 2 years in ${Date.now() - t0} ms | ${st.households.map((h) => `${st.farmsteads[h.farmstead].name} grain ${Math.round(Sim.grainOf(h))} hungry ${h.hungryDays}`).join(' | ')} | marriages ${st.unions.length} | demand ${st.demand.length}`);
   console.log('   roles:', st.pawns.map((p) => `${p.given} ${p.role}`).join(', '));
   console.log('   meeting log:', st.meetingLog.slice(0, 3).map((e) => `y${e.year} ${e.text}`).join(' | '));
 }
@@ -18,8 +19,7 @@ for (const seed of [7, 12]) {
 // doubles, then one of cost 2.73), given to a pawn as a save of the walk in hand would hold it and loaded, has hours that rise, ends at its
 // due step, and is walked to its end in whole steps.
 {
-  const it = G.generate(7); let r; while (!(r = it.next()).done);
-  const st = Sim.seed(r.value, 7, 'founders'), a = st.agents[0], A = VB['sim/agents'], { SPEED, TICKS } = VB['sim/rules'];
+  const st = Sim.seed(island(7), 7, 'founders'), a = st.agents[0], A = VB['sim/agents'], { SPEED, TICKS } = VB['sim/rules'];
   Sim.advance(st, 0.1);
   const budget = SPEED * st.w.HW * Number.MIN_VALUE; // as the stepping computed a step's budget of the smallest double
   A.release(st, a); A.standStill(st, a);

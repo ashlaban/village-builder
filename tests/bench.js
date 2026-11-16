@@ -63,7 +63,8 @@ try {
   B.appendHistory(fresh, run(4));
   assert.strictEqual(B.readHistory(fresh).length, 1);
 } finally { fs.rmSync(dir, { recursive: true, force: true }); }
-// Exercise the complete measurement on a reduced fixture, and the missing-fixture IPC path.
+// Exercise the complete measurement on a reduced fixture (populous on the 36 by 26 island of tests/lib/probe.js since VB-856; 120 by 85
+// before), and the missing-fixture IPC path.
 const child = spawnSync(process.execPath, ['-e', `
   const {fork} = require('child_process');
   const F = require.resolve('./tests/lib/fixtures.js');
@@ -73,12 +74,12 @@ const child = spawnSync(process.execPath, ['-e', `
   const perf = require('./tools/perf.js');
   let st;
   fixtures.loadFixture = () => {
-    const ns = globalThis.VB, it = ns.gen.generate(7, {cols:120,rows:85});
+    const ns = globalThis.VB, it = ns.gen.generate(7, {cols:36,rows:26});
     let r; while (!(r=it.next()).done);
     st = ns.sim.seed(r.value,7,'populous');
     return {st, stamp:{commit:'reduced-test'}};
   };
-  fixtures.spec = () => ({cols:120,rows:85});
+  fixtures.spec = () => ({cols:36,rows:26});
   const result = B.measure('medium-y5');
   assert.strictEqual(result.days,48);
   assert(result.movingRoundMs>0 && result.meetingsMs>0, 'a whole year holds the round and the meetings');

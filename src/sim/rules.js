@@ -140,7 +140,10 @@ VB['sim/rules'] = (() => {
     graze: 1.5,
     spots: 3,
     crop: { below: 0.45, chance: 0.04, loss: 0.05 },
-    hunt: { reach: 6, hours: 4, chance: 0.3, least: 1, meat: 3, minAge: 14 },
+    hunt: { reach: 6, hours: 4, chance: 0.3, least: 1, meat: 3, minAge: 14, hide: 1 },
+    // leather for shoes and harness (VB-424): a household wants `leather` hides a year for each of its people, so a kill's hide is worth
+    // to it what is lacking of them, at the fair or in a gift
+    leather: 0.25,
   };
   const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
   // ---- rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it ----

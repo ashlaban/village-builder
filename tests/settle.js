@@ -1,13 +1,15 @@
 // Moving to new land (VB-146, VB-147): a waiting adult of a crowded village leaves with a sibling who follows and founds a village of one
 // farm 10 to 30 walking steps away, in a booth until the cottage is built; the household sows its first field. A village with room founds
-// nothing, and a party without provisions stays. With a small village nearby that has room, the settler joins it instead.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, S = VB['sim/settle'];
+// nothing, and a party without provisions stays. With a small village nearby that has room, the settler joins it instead. On the small
+// islands of tests/lib/probe.js since VB-856 (heirs at seed 13, the 48 by 34 island's first seed whose crowded village founds; on the default
+// island it was seed 7).
+const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/settle'];
 const { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'], { SETTLE } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SETTLE FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
-// The heirs scenario at seed 7: a waiting adult of village A with an unmarried adult sibling who also waits. Natural deaths off.
+const { scenario } = require('./lib/probe.js');
+// The heirs scenario at seed 13: a waiting adult of village A with an unmarried adult sibling who also waits. Natural deaths off.
 function setUp() {
-  const st = Sim.seed(world(7), 7, 'heirs'); st.naturalDeaths = false;
+  const st = scenario('heirs', 13); st.naturalDeaths = false;
   const inA = (p) => p.alive && p.age >= 18 && p.age <= 45 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id) && Sim.spouseOf(st, p.id) === null;
   const m = st.pawns.find((p) => inA(p) && Sim.siblingsOf(st, p.id).some((q) => inA(st.pawns[q])));
   const sib = m && Sim.siblingsOf(st, m.id).map((q) => st.pawns[q]).find(inA);
@@ -117,9 +119,9 @@ let joined = '';
 // lives in the village (seed 7 had one until the villages were laid out anew, VB-402).
 const grown = (st) => st.pawns.find((p) => p.alive && p.age >= 18 && p.age <= 45 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)
   && Sim.spouseOf(st, p.id) === null);
-const foundersSeed = [7, 1, 5, 6, 42].find((seed) => grown(Sim.seed(world(seed), seed, 'founders')));
+const foundersSeed = [7, 1, 5, 6, 42].find((seed) => grown(scenario('founders', seed)));
 const founders = () => {
-  const st = Sim.seed(world(foundersSeed), foundersSeed, 'founders'); st.naturalDeaths = false;
+  const st = scenario('founders', foundersSeed); st.naturalDeaths = false;
   const v = st.villages[0], lone = st.villages[1], m = grown(st);
   fill(st, v); st.demand = [m.id]; m.landWait = 3; m.stake = 300;
   return { st, v, lone, m };

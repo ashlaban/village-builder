@@ -1,7 +1,7 @@
 // @sys gen/geology: what lies in the ground: each land tile's bedrock, and the deposits of clay and ores laid as patches and veins, by island
 // ===== Geology: bedrock provinces, lenses of rare stone, and finite deposits of clay and ore (generation only: nothing digs yet) =====
 // Listed before gen.js, which calls lay; it reads no other module, so gen.js passes in the arrays, a random source and the biome codes.
-// Measure: node docs/plans/VB-702-reach.js [--map small|medium] [--seeds 1,2,3] [--reach 12,30]: villages with each deposit in reach.
+// Measure: node tools/sim.js --scenario populous --map small --years 0 --report ground --seeds 1,2,3 [--reach 12,30]: villages with each deposit in reach.
 // The setting is Europe of 1300 to 1700, continental and Scandinavian: granite and gneiss are the common ground, limestone and sandstone
 // the building stones, slate, marble and soapstone the rarer ones; iron comes from bogs and from rock, silver with lead, tin only in
 // granite (uplands and hills).
