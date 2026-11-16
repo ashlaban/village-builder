@@ -2,7 +2,7 @@
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
 // diligence, and the due-queue that opens the time-bound kinds at their hours; the village's routines, set by its meeting
 VB['sim/plans'] = (() => {
-  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, CROPS, cal } = VB['sim/rules'];
+  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, CROPS, TRAVEL, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   const Traits = VB['sim/traits'];
   const Stores = VB['sim/stores'],
@@ -17,6 +17,7 @@ VB['sim/plans'] = (() => {
   const { meadowWhy, pickMeadow, beginMeadow, wantsMeadow, wantsFirstMeadow } = VB['sim/meadows'];
   const { issue } = VB['sim/commands'];
   const { reviewWant } = VB['sim/exchange'];
+  const Lying = VB['sim/lying'];
   const { buildStep } = VB['sim/building'];
   const Green = VB['sim/green'],
     Workdays = VB['sim/workdays'],
@@ -131,6 +132,9 @@ VB['sim/plans'] = (() => {
     for (let i = plan.open; i < plan.steps.length && f; i++) {
       const s = plan.steps[i];
       if (s.place === f.house && s.wood > 0) Stores.put(st, hh, 'wood', s.wood, 'timber');
+      // timber carried to a boat's shore (VB-300) lies there, for its household to fetch home or for the frost (sim/lying; VB-645)
+      else if (s.wood > 0)
+        Lying.leave(st, 'leftTimber', (s.wood / st.ECON.woodPerTrip) * TRAVEL.load, s.place, plan.holder);
     }
   }
   // Why the plan's open step is no longer possible, or null: its holder is gone; the claim it works under is lost (contested away, lapsed;
