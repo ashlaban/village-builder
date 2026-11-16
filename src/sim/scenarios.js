@@ -442,7 +442,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
-    // @state st.offers, st.offerSeq: the open marriage offers and the next offer's id (see sim/lifecycle)
+    // @state st.offers, st.offerSeq: the open offers and the next offer's id (see sim/offers)
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
     // @state st.journeys, st.journeySeq: the open journeys between villages and the next one's id (see sim/agents, VB-287)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)

@@ -4,6 +4,7 @@ VB['sim/notable'] = (() => {
   const { index, ancestorsOf, fullName, age, settlementIdOf } = VB['sim/records'];
   const { CAUSES, COLD } = VB['sim/deaths'];
   const { YEAR, DAY, SEASON_DAYS, WORK } = VB['sim/rules'];
+  const { what: offerText } = VB['sim/offers'];
   // An event of the record in full that every view reads: not a folded slot (a number, sim/records), nor a pawn's own telling of an event
   // recorded beside it (`self`), which only its life reads.
   const told = (e) => typeof e === 'object' && !e.self;
@@ -213,7 +214,7 @@ VB['sim/notable'] = (() => {
     farm: 'A farm inherited in its household or line, or left empty, claimed or built in its village',
     custom: 'A change of custom in its village',
     hunger: 'Hunger in its household',
-    offer: 'A marriage offer that waits for its answer',
+    offer: 'An offer that waits for its answer',
     refused: 'A command refused',
     idle: 'Nothing queued, with its automatic behaviour off',
     round: 'The eve of the moving round',
@@ -289,7 +290,10 @@ VB['sim/notable'] = (() => {
       from.offer = o.id + 1;
       return {
         why: 'offer',
-        text: `A match waits for an answer: ${fullName(st.pawns[o.man])} and ${fullName(st.pawns[o.woman])}.`,
+        text:
+          o.basis === 'match'
+            ? `A match waits for an answer: ${fullName(st.pawns[o.gives.man])} and ${fullName(st.pawns[o.wants.woman])}.`
+            : `An offer waits for an answer: ${offerText(st, o)}.`,
       };
     }
     if (pl.refused && pl.refused.t > from.t)
