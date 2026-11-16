@@ -13,6 +13,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-409](backlog/VB-409.md) | Verify's page check and the nightly-only rule checks, rebuilt on small constructed states | - | 1 | L | 60 scripts run only at night since VB-408; each rule they hold gets a case on a constructed tiny state in verify, the page first. |
+| [VB-472](backlog/VB-472.md) | Work as a block: a worker is not stepped | - | 1 | M | A pawn at work is touched when its task's end falls due or is moved; a task holds its progress, when it was reckoned and its hands' rate; the kinds' `worked` hooks run at the reckoning; the field's row-by-row walk becomes the page's. |
 | [VB-473](backlog/VB-473.md) | Walks and waits as blocks: one queue of legs, and no awake list | - | 1 | M | A walk and a wait are legs with their ends in the same queue as work's; a pawn's place on a walk is worked out from its leg; the tiles are trodden at the walk's end or cut; journeys join the queue; `st.awake` and the per-step loop over agents go. |
 | [VB-062](backlog/VB-062.md) | Mood and its modifiers, shown in the pawn panel | talk | 2 | M | Each pawn has a mood made of timed modifiers ("Talked with a friend +5"); the pawn panel lists them. |
 | [VB-228](backlog/VB-228.md) | Refactor: split sim/commands: each domain registers its own verbs | - | 2 | M | Verbs are registered at load by the module that carries them out, as rules are; `sim/commands` imports no domain and `later()` goes. |
@@ -75,7 +76,8 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | [VB-278](backlog/VB-278.md) | The meetings a village a step: each village's meeting in its own six-minute step | between | 2 | M | VB-206's four stages run the whole island at once; each village now holds its meeting in its own step (its people's interests, its tie, its causes, its meeting), then the cultures' reckoning and the land meeting; draws reorder, so customs are calibrated before and after. |
 | [VB-432](backlog/VB-432.md) | A village's round clears only the memos a marriage touches | between | 3 | S | Rankings in the moving round rose four- to eightfold with VB-277; clear only the heirs' memos a marriage or handover touches. |
 | [VB-484](backlog/VB-484.md) | Generosity read from the stand-in traits: the holder's own reserve | year | 3 | S | pawn.buffer, help's stand-in for generosity, becomes a reading of Traits.of(st, pawn, 'generosity') (VB-254) |
-| [VB-514](backlog/VB-514.md) | Refactor: every read of a task's progress through its closed form | refactor | 3 | S | isOpen and the cottage, booth and restore copies read the closed form, not the reckoned job.done |
+| [VB-514](backlog/VB-514.md) | Refactor: every read of a task's progress through its closed form | - | 3 | S | isOpen and the cottage, booth and restore copies read the closed form, not the reckoned job.done |
+| [VB-539](backlog/VB-539.md) | A handover clears only the memos it touches | between | 3 | S | Handover still clears all matchRules memos (VB-432 did marriages only) |
 
 ## Blocked
 
