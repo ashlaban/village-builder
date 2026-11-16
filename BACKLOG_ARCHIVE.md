@@ -411,3 +411,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-256](backlog/VB-256.md) | The plan panel: a holder's plan read and changed in the page | year | 2 | M | The household panel shows routines and targets, next steps, the project, reservations and who holds which task; the player as head changes them. |
 | [VB-865](backlog/VB-865.md) | Page: the head's target on each made good in the plan panel | - | 2 | S | Show Sim.headView(...).goods as store meters with the target, and set or clear one through Sim.head(st, 'target') |
 | [VB-872](backlog/VB-872.md) | Tests: a small island generated once per seed in tests/lib/probe.js | - | 2 | S | offers and other probe scripts spend most of their time generating the same small island again |
+| [VB-889](backlog/VB-889.md) | Tests: food help asserts VB-461's fetched gift (help.js red) | - | 1 | S | help.js expects a kin gift at once; since VB-461 it is set aside and fetched |
