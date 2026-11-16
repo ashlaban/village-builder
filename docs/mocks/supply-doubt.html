@@ -45,20 +45,22 @@
 // Time in seasons from the start of the season we are in (0) to the frame's end (6). own: how long the store lasts on its own. in: when
 // more is laid in. with: [low, centre, high], how long store and intake last together, spoilage off; lost: the time spoilage takes off
 // the end of that run. A one-season supply (hay) is one wide cell: its numbers are shares of that season's need.
-const N = 6, W = 216, CW = W / N, FIRST = 1; // the frame starts in summer
+const N = 4, W = 216, CW = W / N, FIRST = 1; // four seasons ahead (Kim, 16 Nov: will they make it through the year); the frame starts in summer
 const ICON = {
   food: '<path d="M4 11h16a8 8 0 0 1-16 0zM9 19.5V21h6v-1.5M12 3v5M8.5 5v3M15.5 5v3"/>',
   wood: '<circle cx="7" cy="16" r="3.5"/><circle cx="17" cy="16" r="3.5"/><circle cx="12" cy="8.5" r="3.5"/>',
   hay: '<path d="M4 20c0-8 3-14 8-14s8 6 8 14zM9 20c0-4 1-7 3-9"/>',
   farm: '<path d="M4 11l8-7 8 7M6 10v9h12v-9M10 19v-5h4v5"/>',
 };
+// Spoilage is inside the projection (Kim, 16 Nov): the run "with" is net of it, and its doubt is part of the head's range; the amount
+// is among the numbers behind the i. "with" counts every intake the plan expects within the frame.
 const SURE = [
-  { name: 'Food', icon: ICON.food, own: 2.3, in: [1.1, 1.5], with: [4.1, 4.6, 5.0], lost: 0.4, state: ['warn', 'to next summer'] },
-  { name: 'Firewood', icon: ICON.wood, own: 1.8, in: [0, 1.7], with: [5.4, 6.5, 7], lost: 0, state: ['safe', 'safe'] },
-  { name: 'Hay', icon: ICON.hay, one: 2, own: 0.3, in: [0.1, 0.3], with: [0.7, 0.85, 0.95], lost: 0.1, state: ['bad', 'short in winter'] },
+  { name: 'Food', icon: ICON.food, own: 2.3, in: [1.1, 1.5], with: [3.3, 3.7, 4.3], lost: 0, state: ['warn', 'short in spring'] },
+  { name: 'Firewood', icon: ICON.wood, own: 1.8, in: [0, 1.7], with: [3.7, 4.6, 5], lost: 0, state: ['safe', 'safe'] },
+  { name: 'Hay', icon: ICON.hay, one: 2, own: 0.3, in: [0.1, 0.3], with: [0.7, 0.85, 0.95], lost: 0, state: ['bad', 'short in winter'] },
 ];
 // the same household under a poorer head: the same centres, a wider range
-const UNSURE = SURE.map((r) => ({ ...r, with: r.one !== undefined ? [0.45, 0.85, 1.2] : r.name === 'Food' ? [3.0, 4.6, 6.2] : [3.6, 6.5, 7] }));
+const UNSURE = SURE.map((r) => ({ ...r, with: r.one !== undefined ? [0.45, 0.85, 1.2] : r.name === 'Food' ? [2.5, 3.7, 4.6] : [2.8, 4.6, 5] }));
 const SEASON = [
   '<path d="M7 13V6M7 8C5 8 3.5 6.5 3.5 4.5 5.5 4.5 7 6 7 8zM7 6.5c0-2 1.5-3.5 3.5-3.5 0 2-1.5 3.5-3.5 3.5z"/>',
   '<circle cx="7" cy="7" r="2.6"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.500 7H13M2.8 2.8l1 1M10.2 10.2l1 1M11.2 2.8l-1 1M3.8 10.2l-1 1"/>',
@@ -73,7 +75,7 @@ const defs = `<defs>
   <linearGradient id="fadeout" x1="0" x2="1"><stop offset="0" stop-color="#eef5f2" stop-opacity="0"/><stop offset="1" stop-color="#e1e9e6" stop-opacity="1"/></linearGradient>
 </defs>`;
 // The cells a row is drawn in: six a season's wide, or one wide cell for a one-season supply (after that season's icon).
-const cellsOf = (r) => (r.one !== undefined ? [{ k: 0, x0: 22, cw: W - 24 }] : [0, 1, 2, 3, 4, 5].map((k) => ({ k, x0: k * CW + 2, cw: CW - 4 })));
+const cellsOf = (r) => (r.one !== undefined ? [{ k: 0, x0: 22, cw: W - 24 }] : [0, 1, 2, 3].map((k) => ({ k, x0: k * CW + 2, cw: CW - 4 })));
 // A stretch of time t0 to t1 drawn in every cell it crosses.
 const span = (r, t0, t1, attrs, h = 18, y = 0) => cellsOf(r).map(({ k, x0, cw }) => {
   const a = Math.max(0, Math.min(1, t0 - k)), b = Math.max(0, Math.min(1, t1 - k));
@@ -113,7 +115,7 @@ const weights = (r) => {
   return svg(lead(r) + base(r, mid) + span(r, 0, lo, 'rx="4" fill="url(#come)"') + span(r, lo, mid, 'fill="url(#thin)"') + spoil(r, mid) +
     span(r, mid + r.lost, Math.min(hi, end(r)), 'fill="none" stroke="#23685a" stroke-width="1.2" stroke-dasharray="2 2"', 14, 2) + own(r) + comes(r));
 };
-const header = `<div class="row" style="min-height:22px"><i></i><i></i>${svg([0, 1, 2, 3, 4, 5].map((k) => sIcon(k, k * CW + CW / 2 - 7, -8, k >= 3 ? 0.55 : 1)).join(''), 20, -10)}<i></i><i></i></div>`;
+const header = `<div class="row" style="min-height:22px"><i></i><i></i>${svg([0, 1, 2, 3].map((k) => sIcon(k, k * CW + CW / 2 - 7, -8)).join(''), 20, -10)}<i></i><i></i></div>`;
 const CHECK = '<svg viewBox="0 0 16 16"><path d="M3 8.5l3.5 3.5L13 4.5"/></svg>', WARN = '<svg viewBox="0 0 16 16"><path d="M8 3v6M8 12.5v.01"/></svg>';
 const state = (s) => `<span class="state ${s[0]}">${s[0] === 'safe' ? CHECK : WARN}${s[1]}</span>`;
 const more = '<span class="more" title="The numbers"><svg viewBox="0 0 16 16"><path d="M8 7.2v4.3M8 4.4v.01"/></svg></span>';
@@ -131,8 +133,11 @@ const FARMS = [
   ['Östergården', 'Held by Sven Ivarsson', 9, ['warn', 'Short of food'], [[ICON.food, 0, 'bad'], [ICON.wood, 3, 'warn'], [ICON.hay, null]]],
   ['Lunden', 'Held by Jöns Eriksson', 6, ['', 'Fed'], [[ICON.food, null], [ICON.wood, 3, 'bad'], [ICON.hay, 3, 'warn']]],
 ];
+const PEOPLE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2.5-7 6-7s6 3 6 7M15.5 5.5a2.5 2.5 0 1 1 0 5M17.5 13.5c2 .7 3.5 3 3.5 6.5"/></svg>';
+// with the chips: the people as an icon and a number; a chip only for a supply about to fall short, none for one that is safe
 const farm = (f, chips) => `<div class="farm"><svg class="ico" viewBox="0 0 24 24">${ICON.farm}</svg><span class="who">${f[0]}<i>${f[1]}</i></span>
-  <span class="st">${chips ? `${f[2]} people ${f[4].map((c) => chip(...c)).join('')}` : `<i class="dot ${f[3][0]}"></i>${f[2]} people · ${f[3][1]}`}</span></div>`;
+  <span class="st">${chips ? `${f[4].filter((c) => c[1] !== null).map((c) => chip(...c)).join('')}<span style="display:inline-flex;align-items:center;gap:3px;margin-left:4px" title="${f[2]} people">${PEOPLE}${f[2]}</span>`
+    : `<i class="dot ${f[3][0]}"></i>${f[2]} people · ${f[3][1]}`}</span></div>`;
 
 const K = {
   own: '<span><svg viewBox="0 0 26 12"><rect y="1" width="26" height="10" rx="4" fill="#23685a"/></svg>the store</span>',
@@ -144,23 +149,16 @@ const K = {
 const ideas = (title, sub, draw, key, note) => `<div class="card"><h1>${title}</h1><p class="sub">${sub}</p>
   ${block('Gunnar, a good head: sure of it', SURE, draw)}${block('The same farm under a poor head: unsure', UNSURE, draw)}
   <div class="key">${key}</div><p class="note">${note}</p></div>`;
+const whiskerKey = '<span><svg viewBox="0 0 26 12"><path d="M2 6h22M2 3v6M24 3v6" stroke="#17313a" stroke-width="1.5" fill="none"/><circle cx="13" cy="6" r="3" fill="#17313a"/></svg>worst, likeliest, best</span>';
+const softKey = `<span><svg viewBox="0 0 26 12">${defs}<rect y="1" width="26" height="10" fill="url(#come)"/><rect y="0" width="26" height="12" fill="url(#fadeout)"/></svg>the head's doubt</span>`;
 document.getElementById('wrap').innerHTML = `
-  <div class="card"><h1>Settled so far, and the chips</h1><p class="sub">The frame rolls: it starts at the season we are in. Hay is one wide cell for its winter. An i opens the numbers. No doubt is shown yet.</p>
-    ${block("By Gunnar's reckoning, at his last review", SURE, plain)}
-    <div class="key">${[K.own, K.come, K.spoil, K.short, K.when].join('')}</div>
-    <div class="two"><div><h2>A village's farms today</h2>${FARMS.map((f) => farm(f, false)).join('')}</div>
-    <div><h2>With the chips</h2>${FARMS.map((f) => farm(f, true)).join('')}</div></div>
-    <p class="note">A chip a supply: a check, or the first season it goes short in (gold: a little; red: badly). The dot says only whether the household ate today; the chips say what is coming, for three supplies. They take about as much room.</p></div>
-  ${ideas('Doubt 1. A soft end', 'The striped run is firm as far as the head is sure of it, and fades out over its doubt. Nothing new to learn: a blurred end is an unsure one.', soft,
-    [K.own, K.come, `<span><svg viewBox="0 0 26 12">${defs}<rect y="1" width="26" height="10" fill="url(#come)"/><rect y="0" width="26" height="12" fill="url(#fadeout)"/></svg>the head's doubt</span>`, K.spoil].join(''),
-    'Quietest. Weak point: a short fade is easy to miss, and spoilage sits inside the fade.')}
-  ${ideas('Doubt 2. A whisker', 'A line under the cells from the worst the head expects to the best, with a dot at the likeliest. The cells themselves do not change.', whisker,
-    [K.own, K.come, '<span><svg viewBox="0 0 26 12"><path d="M2 6h22M2 3v6M24 3v6" stroke="#17313a" stroke-width="1.5" fill="none"/><circle cx="13" cy="6" r="3" fill="#17313a"/></svg>worst, likeliest, best</span>', K.spoil].join(''),
-    'Most exact, and it can be switched off without touching the cells. Costs a line of height in every row.')}
-  ${ideas('Doubt 3. Three weights', 'Dense stripes for what holds even in a bad year, thin stripes for what is likely, a dashed outline for what a good year would add.', weights,
-    [K.own, K.come.replace('still to come', 'even in a bad year'), `<span><svg viewBox="0 0 26 12">${defs}<rect y="1" width="26" height="10" fill="url(#thin)"/></svg>likely</span>`,
-      '<span><svg viewBox="0 0 26 12"><rect x="1" y="2" width="24" height="8" fill="none" stroke="#23685a" stroke-width="1.2" stroke-dasharray="2 2"/></svg>in a good year</span>', K.spoil].join(''),
-    'Says the most in words a player would use (bad year, likely, good year). The busiest of the three.')}`.replace(/(\.\d)00\b/g, '$1');
+  ${ideas('The supply component', 'Four seasons ahead, from the season we are in: will they make it through the year. Spoilage is inside the projection; the line under the cells is the head\'s doubt about the outcome.', whisker,
+    [K.own, K.come, K.short, K.when, whiskerKey].join(''), 'A red frame is a season the likeliest outcome does not cover. Where the whisker reaches into a red cell, a good year would cover it; where it stops short of a full one, a bad year would not.')}
+  ${ideas('The same, with a soft end', 'For comparison: the doubt as a fade at the end of the striped run, with no line under the cells.', soft,
+    [K.own, K.come, K.short, K.when, softKey].join(''), 'A row lower in height. The poor head\'s doubt is a long fade; the good head\'s is easy to miss.')}
+  <div class="card" style="grid-column: 1 / -1; max-width: 520px"><h1>The farm rows</h1><p class="sub">The people as an icon and a number. A chip only for a supply about to fall short: the supply and the first season it is short in (gold: a little; red: badly). A farm with nothing to worry about shows no chip.</p>
+    <div class="two"><div><h2>Today</h2>${FARMS.map((f) => farm(f, false)).join('')}</div>
+    <div><h2>With the chips</h2>${FARMS.map((f) => farm(f, true)).join('')}</div></div></div>`.replace(/(\.\d)00\b/g, '$1');
 </script>
 </body>
 </html>
