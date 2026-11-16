@@ -1,0 +1,153 @@
+<!doctype html>
+<!-- Mock, sixth round (16 Nov 2026; earlier: supply-meter.html, supply-seasons.html, supply-doubt.html). Throwaway: the numbers are
+     invented, nothing here is game code. Settled with Kim: season cells four seasons ahead, spoilage inside the projection, the head's
+     doubt as a whisker, no mark for when it is laid in, an i for the numbers, chips in the farm rows. This round: how it scales to other
+     resources. The answer tried here: three kinds of thing, each with one presentation, as sections of one Stores tab.
+       Supplies: used up as time passes (food, fuel, hay). The question is how long they last: season cells.
+       Materials: held until a work asks for them (timber, stone, clay, ore, iron, tar, wool). The question is whether there is enough
+         for what is planned: a count, and the one meter against the work that asks for it.
+       Gear: wears (quern, cart, boat). The question is its condition: the one meter, with a mark where it wants mending. -->
+<html lang="en">
+<meta charset="utf-8">
+<title>Supply component: how it scales to other resources</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14); --accent: #23685a; --good: #2f7a4b; --bad: #a8432f; --gold: #b3862c;
+    --panel: #eef5f2; --track: rgba(23, 49, 58, 0.13); }
+  body { margin: 0; padding: 28px; background: #6f9a7c; font: 15px/1.4 'Alegreya Sans', 'Gill Sans', system-ui, sans-serif; color: var(--ink); }
+  .wrap { display: grid; grid-template-columns: 500px 500px; gap: 24px; align-items: start; }
+  .card { background: var(--panel); border-radius: 16px; padding: 16px 18px 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
+  h1 { margin: 0 0 2px; font: italic 700 22px/1.2 'Alegreya', Georgia, serif; }
+  .sub { margin: 0 0 8px; color: var(--muted); font-size: 13.5px; }
+  h2 { margin: 14px 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); display: flex; gap: 8px; align-items: baseline; }
+  h2 small { font-weight: 400; letter-spacing: 0; text-transform: none; font-size: 12.5px; }
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--edge); margin: 6px 0 4px; font-size: 14px; color: var(--muted); }
+  .tabs span { padding: 5px 10px; border-bottom: 2px solid transparent; margin-bottom: -1px; } .tabs .on { color: var(--ink); font-weight: 700; border-bottom-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 22px 62px 216px 1fr 26px; gap: 7px; align-items: center; min-height: 40px; }
+  svg.ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; color: var(--accent); flex: none; }
+  .name { color: var(--muted); font-size: 13px; line-height: 1.15; }
+  .state { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .state.safe { color: var(--good); } .state.warn { color: var(--gold); } .state.bad { color: var(--bad); }
+  .state svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .more { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--edge); background: #fbfdfc; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
+  .more.open { background: var(--accent); color: #f2f8f6; border-color: transparent; }
+  .more svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  svg.bar { width: 216px; display: block; overflow: visible; }
+  .nums { margin: 0 0 8px 29px; padding: 8px 10px; border-radius: 10px; background: rgba(23, 49, 58, 0.06); font-size: 13px; }
+  .nums p { margin: 0 0 6px; color: var(--muted); } .nums div { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
+  .nums div span:nth-child(odd) { color: var(--muted); } .nums div span:nth-child(even) { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 12px; }
+  .tile { display: flex; align-items: center; gap: 6px; min-height: 30px; font-size: 13px; color: var(--muted); }
+  .tile b { margin-left: auto; color: var(--ink); font-variant-numeric: tabular-nums; } .tile.none { opacity: 0.5; }
+  .kinds { grid-column: 1 / -1; margin: -2px 0 2px 26px; font-size: 12.5px; color: var(--muted); display: flex; gap: 12px; }
+  .kinds i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .work { margin: 6px 0 2px; padding: 8px 10px 6px; border: 1px solid var(--edge); border-radius: 10px; }
+  .work header { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; margin-bottom: 2px; } .work header small { font-weight: 400; color: var(--muted); }
+  .need { display: grid; grid-template-columns: 22px 62px 1fr 66px; gap: 7px; align-items: center; min-height: 28px; font-size: 13px; }
+  .need .v { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; } .need .v small { font-weight: 400; color: var(--muted); }
+  .meter { position: relative; height: 8px; border-radius: 4px; background: var(--track); }
+  .meter i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); } .meter.warn i { background: var(--gold); }
+  .meter b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
+  .chain { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 13px; color: var(--muted); min-height: 30px; }
+  .chain b { color: var(--ink); margin: 0 2px 0 3px; font-variant-numeric: tabular-nums; } .chain .arr { color: var(--muted); opacity: 0.7; margin: 0 2px; }
+  .note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 6px; } td, th { text-align: left; padding: 5px 8px 5px 0; vertical-align: top; border-top: 1px solid var(--edge); }
+  th { font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-top: 0; } td:first-child { font-weight: 700; white-space: nowrap; }
+</style>
+<body>
+<div class="wrap" id="wrap"></div>
+<script>
+const P = {
+  food: '<path d="M4 11h16a8 8 0 0 1-16 0zM9 19.5V21h6v-1.5M12 3v5M8.5 5v3M15.5 5v3"/>',
+  fuel: '<circle cx="7" cy="16" r="3.5"/><circle cx="17" cy="16" r="3.5"/><circle cx="12" cy="8.5" r="3.5"/>',
+  hay: '<path d="M4 20c0-8 3-14 8-14s8 6 8 14zM9 20c0-4 1-7 3-9"/>',
+  timber: '<path d="M3 9h15v6H3zM18 9c2 0 3 1.300 3 3s-1 3-3 3M7 9v6M12 9v6"/>',
+  stone: '<path d="M4 18l2-7 5-4 6 1 3 6-2 4zM11 7l1 5 6 2M12 12l-6 1"/>',
+  clay: '<path d="M4 9h10v6H4zM14 9l5-3v6l-5 3M4 9l5-3h10"/>',
+  ore: '<path d="M5 19l-1-6 4-6 6-2 5 4 1 7-4 3zM8 7l3 5-2 6M11 12l6-1"/>',
+  iron: '<path d="M4 15h16l-3 4H7zM7 15V9h10v6M10 9V6h4v3"/>',
+  tar: '<path d="M7 4h10c1.500 3 1.500 13 0 16H7C5.500 17 5.500 7 7 4zM5.900 9h12.200M5.900 15h12.200"/>',
+  wool: '<path d="M7 17a4 4 0 0 1-1-7.800A4 4 0 0 1 12 6a4 4 0 0 1 6 3.200A4 4 0 0 1 17 17zM9 17v3M15 17v3"/>',
+  peat: '<path d="M3 15h8v5H3zM13 15h8v5h-8zM8 9h8v5H8z"/>',
+  grain: '<path d="M12 21V8M12 8c-2-1-2.500-3 0-5 2.500 2 2 4 0 5zM12 12c-3 0-4-2-4-4 2.500 0 4 1.500 4 4zM12 12c3 0 4-2 4-4-2.500 0-4 1.500-4 4zM12 16.500c-3 0-4-2-4-4 2.500 0 4 1.500 4 4zM12 16.500c3 0 4-2 4-4-2.500 0-4 1.500-4 4z"/>',
+  sheaves: '<path d="M8 21l2-9M16 21l-2-9M12 21v-9M7 12h10M10 12L7 4M12 12V3M14 12l3-8M9 12L4 7M15 12l5-5"/>',
+  flour: '<path d="M9 4h6l-1.500 3c3.500 1.500 5.500 5 5.500 8 0 3-2 5-7 5s-7-2-7-5c0-3 2-6.500 5.500-8zM9.500 7h5"/>',
+  pot: '<path d="M4 10h16M6 10v6a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-6M9 7c0-1 1-2 0-3M14 7c0-1 1-2 0-3"/>',
+  quern: '<ellipse cx="12" cy="15" rx="8" ry="3.500"/><path d="M4 15v3c0 2 3.500 3.500 8 3.500s8-1.500 8-3.500v-3M6 11.500c0-2 2.700-3.500 6-3.500s6 1.500 6 3.500M15 9V4"/>',
+  cart: '<path d="M3 8h13l1.500 6H5zM17.500 14l3.500-7"/><circle cx="9" cy="17" r="3"/>',
+  boat: '<path d="M3 14h18l-3 5H6zM12 14V4l6 7h-6"/>',
+  barn: '<path d="M4 20V10l8-6 8 6v10zM9 20v-6h6v6M4 10h16"/>',
+};
+const ico = (k) => `<svg class="ico" viewBox="0 0 24 24">${P[k]}</svg>`;
+const SEASON = [
+  '<path d="M7 13V6M7 8C5 8 3.500 6.500 3.500 4.500 5.500 4.500 7 6 7 8zM7 6.500c0-2 1.500-3.500 3.500-3.500 0 2-1.500 3.500-3.500 3.500z"/>',
+  '<circle cx="7" cy="7" r="2.600"/><path d="M7 1v1.500M7 11.500V13M1 7h1.500M11.500 7H13M2.800 2.800l1 1M10.200 10.200l1 1M11.200 2.800l-1 1M3.800 10.200l-1 1"/>',
+  '<path d="M3 11c0-5 3-8 8-8 0 5-3 8-8 8zM3 11l5-5M2 12l1-1"/>',
+  '<path d="M7 1v12M1.800 4l10.400 6M12.200 4L1.800 10M5.500 2L7 3.500 8.500 2M5.500 12L7 10.500 8.500 12"/>',
+];
+const N = 4, W = 216, CW = W / N, FIRST = 1;
+const sIcon = (k, x0, y0) => `<g transform="translate(${x0} ${y0})" fill="none" stroke="#526d75" stroke-width="1.200" stroke-linecap="round" stroke-linejoin="round">${SEASON[(k + FIRST) % 4]}</g>`;
+const defs = `<defs><pattern id="come" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="6" height="6" fill="#dfeae6"/><rect width="2.200" height="6" fill="#23685a" opacity=".75"/></pattern></defs>`;
+const SUP = [
+  { name: 'Food', icon: 'food', own: 2.3, with: [3.3, 3.7, 4.3], state: ['warn', 'short in spring'] },
+  { name: 'Fuel', icon: 'fuel', own: 1.8, with: [3.7, 4.6, 5], state: ['safe', 'safe'] },
+  { name: 'Hay', icon: 'hay', one: 2, own: 0.3, with: [0.7, 0.85, 0.95], state: ['bad', 'short in winter'] },
+];
+const cellsOf = (r) => (r.one !== undefined ? [{ k: 0, x0: 22, cw: W - 24 }] : [0, 1, 2, 3].map((k) => ({ k, x0: k * CW + 2, cw: CW - 4 })));
+const span = (r, t0, t1, attrs) => cellsOf(r).map(({ k, x0, cw }) => { const a = Math.max(0, Math.min(1, t0 - k)), b = Math.max(0, Math.min(1, t1 - k));
+  return b - a > 0.005 ? `<rect x="${x0 + cw * a}" y="0" width="${cw * (b - a)}" height="18" ${attrs}/>` : ''; }).join('');
+const xAt = (r, t) => { const c = cellsOf(r), k = Math.min(c.length - 1, Math.max(0, Math.floor(t))); return c[k].x0 + c[k].cw * Math.max(0, Math.min(1, t - k)); };
+const end = (r) => (r.one !== undefined ? 1 : N);
+function cells(r) {
+  const [lo, mid, hi] = r.with, short = (k) => mid < k + 0.98;
+  return `<svg class="bar" viewBox="0 -4 ${W} 32" height="32">${defs}${r.one !== undefined ? sIcon(r.one, 0, 2) : ''}
+    ${cellsOf(r).map(({ k, x0, cw }) => `<rect x="${x0}" y="0" width="${cw}" height="18" rx="4" fill="${short(k) ? '#f6e4de' : 'var(--track)'}" stroke="${short(k) ? '#a8432f' : 'none'}" stroke-width="1.300"/>`).join('')}
+    ${span(r, 0, mid, 'rx="4" fill="url(#come)"')}${span(r, 0, r.own, 'rx="4" fill="#23685a"')}
+    <path d="M${xAt(r, lo)} 23H${xAt(r, Math.min(hi, end(r)))}M${xAt(r, lo)} 20v6M${xAt(r, Math.min(hi, end(r)))} 20v6" stroke="#17313a" stroke-width="1.500" fill="none"/><circle cx="${xAt(r, Math.min(mid, end(r)))}" cy="23" r="3" fill="#17313a"/></svg>`;
+}
+const CHECK = '<svg viewBox="0 0 16 16"><path d="M3 8.500l3.500 3.500L13 4.500"/></svg>', WARN = '<svg viewBox="0 0 16 16"><path d="M8 3v6M8 12.500v.010"/></svg>';
+const info = (open) => `<span class="more${open ? ' open' : ''}" title="The numbers"><svg viewBox="0 0 16 16"><path d="M8 7.200v4.300M8 4.400v.010"/></svg></span>`;
+const header = `<div class="row" style="min-height:20px"><i></i><i></i><svg class="bar" viewBox="0 -10 ${W} 18" height="18">${[0, 1, 2, 3].map((k) => sIcon(k, k * CW + CW / 2 - 7, -9)).join('')}</svg><i></i><i></i></div>`;
+const sup = (r, open) => `<div class="row">${ico(r.icon)}<span class="name">${r.name}</span>${cells(r)}<span class="state ${r.state[0]}">${r.state[0] === 'safe' ? CHECK : WARN}${r.state[1]}</span>${info(open)}</div>`;
+const HAYINFO = `<div class="nums"><p>Hay is eaten by the animals while they stand in the byre over winter. Out of winter they graze, and none is needed.</p><div>
+  <span>In the barn</span><span>45</span><span>The winter needs, for 3 cows, 2 oxen and 6 ewes</span><span>150</span>
+  <span>Still to mow: 4 meadows, by Gunnar's reckoning</span><span>70 to 100</span><span>Of that, he expects to lose in the barn</span><span>about 8</span>
+  <span>Likeliest outcome</span><span>85% of the winter</span></div></div>`;
+const tile = (k, name, n, extra = '') => `<div class="tile${n ? '' : ' none'}">${ico(k)}${name}<b>${n}</b></div>${extra}`;
+const need = (k, name, have, want) => `<div class="need">${ico(k)}<span class="name">${name}</span><div class="meter${have < want ? ' warn' : ''}"><i style="width:${Math.min(100, (have / (want * 1.25)) * 100)}%"></i><b style="left:80%" title="asked: ${want}"></b></div>
+  <span class="v">${have}<small> of ${want}</small></span></div>`;
+const gear = (k, name, v, at, note) => `<div class="need">${ico(k)}<span class="name">${name}</span>${v === null ? `<span class="name">${note}</span>` : `<div class="meter${v < at ? ' warn' : ''}"><i style="width:${v}%"></i><b style="left:${at}%" title="below this it wants mending"></b></div>`}
+  <span class="v">${v === null ? '' : v}${v !== null && note ? `<small> ${note}</small>` : ''}</span></div>`;
+const arr = '<span class="arr">→</span>';
+document.getElementById('wrap').innerHTML = `
+  <div class="card"><h1>Mellangården</h1><p class="sub">The Stores tab, with every kind of resource in it. Three sections, one presentation each.</p>
+    <div class="tabs"><span>Details</span><span class="on">Stores</span><span>Land</span><span>Animals</span><span>History</span></div>
+    <h2>Supplies <small>used up as time passes: how long do they last?</small></h2>
+    ${header}${sup(SUP[0])}${sup(SUP[1])}${sup(SUP[2], true)}${HAYINFO}
+    <h2>Materials <small>held until a work asks for them: is there enough?</small></h2>
+    <div class="work"><header>${ico('barn')}A barn <small>the head's project: the walls are next</small></header>
+      ${need('timber', 'Timber', 28, 40)}${need('stone', 'Stone', 6, 6)}</div>
+    <div class="tiles">${tile('timber', 'Timber', 28)}${tile('stone', 'Stone', 9, '')}${tile('clay', 'Clay', 4)}
+      <div class="kinds"><span><i style="background:#8d8f96"></i>granite 5</span><span><i style="background:#c9a36b"></i>sandstone 3</span><span><i style="background:#7c8f86"></i>soapstone 1</span></div>
+      ${tile('ore', 'Bog ore', 4)}${tile('iron', 'Iron', 0)}${tile('tar', 'Tar', 2)}${tile('wool', 'Wool', 6)}</div>
+    <h2>Gear <small>wears: what condition is it in?</small></h2>
+    ${gear('quern', 'Hand quern', null, 0, 'sandstone, 19 years left')}${gear('cart', 'Hand cart', 68, 50, 'on the road')}${gear('boat', 'Boat', 35, 50, 'leaks')}
+  </div>
+  <div class="card"><h1>How a new resource finds its place</h1><p class="sub">One question sorts it: what does the player want to know about it?</p>
+    <table><tr><th>Kind</th><th>The question</th><th>Shown as</th><th>Examples</th></tr>
+      <tr><td>Supply</td><td>How long will it last?</td><td>Season cells, whisker, chip in the farm row</td><td>Food, fuel (firewood and peat), hay; later salt, ale, fodder</td></tr>
+      <tr><td>Material</td><td>Is there enough for what is planned?</td><td>A count; the meter against the work that asks for it</td><td>Timber, stone by kind, clay, ore, iron and other metals, tar, wool</td></tr>
+      <tr><td>Gear</td><td>What condition is it in?</td><td>The meter, with a mark where it wants mending</td><td>Quern, cart, boat; later tools, the house</td></tr></table>
+    <h2>Kinds within a material</h2>
+    <p class="sub">Stone, and later metals, come in kinds. The tile shows the total; the kinds sit under it only where the household holds more than one, each with the tint the Ground overlay gives that rock. A work that asks for one kind names it in its row ("Sandstone, for a quern").</p>
+    <h2>Fuel is one supply</h2>
+    <p class="sub">Peat burns in place of firewood, so the two share one row, Fuel, and its numbers say how much of each. The same would hold for anything that stands in for another: the row is the need, not the good.</p>
+    <h2>Things on their way to being something else</h2>
+    <p class="sub">Some goods are steps of one chain. A strip shows the chain, so a pile-up at one step (sheaves nobody threshed) is seen:</p>
+    <div class="chain">${ico('sheaves')}Sheaves<b>12</b>${arr}${ico('grain')}Grain<b>298</b>${arr}${ico('flour')}Flour<b>25</b>${arr}${ico('pot')}Meals<b>1</b></div>
+    <div class="chain">${ico('ore')}Bog ore<b>4</b>${arr}${ico('iron')}Iron<b>0</b>${arr}<span style="opacity:.6">tools (later)</span></div>
+    <p class="note">The food chain's total is what the Food supply counts. No separate resources panel is needed while a household holds this much; if the list of materials grows past a dozen, Materials can become its own tab with the same pieces.</p>
+  </div>`.replace(/(\.\d)00\b/g, '$1').replace(/\.010\b/g, '.01');
+</script>
+</body>
+</html>
