@@ -43,6 +43,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   the tiny map at four seeds for 8 years; `node tools/bands.js` makes the full runs (populous small at four seeds, founders small at
   sixteen, heirs at two), prints each band and appends to `docs/bench/bands.jsonl`, never failing (`npm run nightly` runs it for a new
   commit). Growth is a target over a scenario's seeds; a household's hunger is described, with no target (Deciding without Kim, 1 and 2).
+  The marriage valve and the pace of growth (VB-633) are described bands of every full run: growth by 20 years and before and after land
+  grows scarce, the year 1,000 is reached (or worked out, marked "arithmetic"), the swing between decades, the age at first marriage, the
+  never married at 45 and who waits by cause. Its two runs on the medium map are weekly, not nightly (a populous medium run is 13 minutes
+  of CPU): `node tools/bands.js --runs populous-medium,founders-medium`, which `npm run nightly` adds on Sundays.
 - No golden file (retired by VB-408, Kim, 12 November): where an older task or document asks for `tests/golden.js` or a re-recorded
   `tests/golden.json`, `docs/testing.md` stands instead. A refactor shows its behaviour unchanged with `node tools/same.js --base REF`, REF the commit it started
   from: the same runs from both trees, the world and the state compared leaf by leaf, nothing recorded. Its line goes into the PR.
@@ -60,6 +64,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Review tools (VB-337): `node tools/sim.js --report hours [--from Y] [--fields N] [--team] [--household N] [--json]` (pawn-hours a
   household-year by job kind, work and walking, against its hands' and workers' working hours, and the farming year's days; `tools/hours.js`);
   `node tools/stocks.js [--json]` (each stored quantity's adders, takers and readers, and what happens at none; marks those read by nothing).
+  `node tools/sim.js --report waiting [--json]` (VB-633, `tools/waiting.js`): who waits to marry and why, at the moving round's day, by 20
+  years (too hungry, nobody free, kin, no home, the score, the means, free), with the age at first marriage by sex, the share never married
+  at 45, marriages a year per 1,000, those put off for the means and the share of adults waiting for land.
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
   `node tools/store-flows.js --scenario populous --seeds 7 --years 15 [--rule NAME]`: the village stores' yearly flows (VB-406).
 - Also: `node tools/gossip.js` (VB-187's experiment: stories against opinion averaging in a reduced scenario; `docs/gossip-experiment.md`), `node

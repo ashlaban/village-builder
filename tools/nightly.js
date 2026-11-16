@@ -1,4 +1,4 @@
-// Prepare all late fixtures once, run extended correctness checks, then advisory measurements.
+// Prepare all late fixtures once, run extended correctness checks, then advisory measurements (on Sundays also the bands' weekly runs).
 // Failures to prepare or execute a check are failures; out-of-range measurements remain advisory.
 require('./help.js')(__filename);
 const F = require('../tests/lib/fixtures.js');
@@ -14,6 +14,9 @@ async function nightly() {
   if (!checks.ok) throw new Error(`extended checks failed: ${checks.error?.message || checks.signal || checks.code}`);
   await require('./bench.js').runBench();
   await require('./bands.js').main(['--if-new']);
+  // VB-633: the bands' weekly runs on the medium map (tests/lib/bands.js, WEEKLY), on Sundays
+  const weekly = require('../tests/lib/bands.js').WEEKLY;
+  if (new Date().getUTCDay() === 0 && weekly.length) await require('./bands.js').main(['--runs', weekly.join(',')]);
   console.log('nightly: measurements in docs/bench; targets are advisory');
 }
 nightly().catch((e) => { console.error('nightly: ' + e.message); process.exitCode = 1; });

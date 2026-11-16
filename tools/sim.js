@@ -1,11 +1,12 @@
 // A command-line view of a run: seeds a scenario, advances it and prints one line per year, then optionally a report.
 // node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|hours|paths|relations|herds|villages|hunger|perf|counts|land] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years; --household N --report plans: its plans)
+//   --report waiting                             (VB-633: who waits to marry and why, by 20 years; tools/waiting.js --help)
 //   --report hours [--from Y] [--every step|hour] [--fields N] [--team] [--household N]   (VB-337: tools/hours.js; its --help)
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
-  'plans', 'calendar', 'reach'];
+  'plans', 'calendar', 'reach', 'waiting'];
 const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
@@ -17,6 +18,7 @@ const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--
   --save FILE       save the run at its end (.gz is gzipped)
   --load FILE       go on from a save, with its scenario, seed and map; --years counts on from the save's year
   --report reach    the table of walking hours between villages (tools/reach.js --help)
+  --report waiting  who waits to marry and why, at the moving round's day, by 20 years (tools/waiting.js --help)
   --report calendar prints the clock's table (sim/clock CALENDAR, VB-241) in the order it runs, and runs nothing`;
 if (process.argv.includes('--help') || process.argv.includes('-h')) { console.log(USAGE); process.exit(0); }
 if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-241)
@@ -65,11 +67,12 @@ let perfMs = 0;
 const countsFrom = st.t;
 if (report === 'counts') VB.resetCounts();
 const hunger = report === 'hunger' ? require('./hunger.js')(Sim, st) : null;
+const waiting = report === 'waiting' ? require('./waiting.js').report(VB, st) : null;
 const hours = report === 'hours' ? require('./hours.js')(VB, st, { from: +opt('from', 1), every: opt('every', 'step'), fields: opt('fields', null),
   team: args.includes('--team'), household: hhId }) : null;
 for (let y = start + 1; y <= last; y++) {
   const t0 = Date.now(), hungry0 = st.households.reduce((s, h) => s + h.hungryDays, 0);
-  if (idle) idle.advanceYear(); else if (hours) hours.advanceYear(); else if (hunger) hunger.advanceYear(); else if (perf) perfMs += perf.timeAdvance(Sim, st, Sim.YEAR); else Sim.advance(st, Sim.YEAR);
+  if (idle) idle.advanceYear(); else if (hours) hours.advanceYear(); else if (hunger) hunger.advanceYear(); else if (waiting) waiting.advanceYear(); else if (perf) perfMs += perf.timeAdvance(Sim, st, Sim.YEAR); else Sim.advance(st, Sim.YEAR);
   const ms = (Date.now() - t0) / Sim.YEAR_DAYS, live = st.households.filter((h) => !h.dissolved);
   const births = st.pawns.filter((p) => !p.founder && p.born >= (y - 1) * Sim.YEAR && p.born < y * Sim.YEAR).length;
   const deaths = {}; for (const p of st.pawns) if (p.died !== null && p.died >= (y - 1) * Sim.YEAR && p.died < y * Sim.YEAR) { const c = causeOf(p) || 'unknown'; deaths[c] = (deaths[c] || 0) + 1; }
@@ -203,6 +206,7 @@ if (pawnId !== null) {
   const p = st.pawns[+pawnId]; if (!p) { console.error('no such pawn'); process.exit(1); }
   out = { ...plain(p), name: Sim.fullName(p), life: Sim.recordOf(st, { pawn: p.id, life: true }) };
 } else if (hhId !== null && report === 'hours') out = hours.result();
+else if (waiting) out = waiting.result();
 else if (hhId !== null) {
   const h = st.households[+hhId]; if (!h) { console.error('no such household'); process.exit(1); }
   if (report === 'plans') out = plansOf(h);
@@ -218,6 +222,7 @@ if (out !== null && report === 'idle' && !json) {
   console.log('job switches per pawn per year:'); console.table(out.switchesPerPawnYear);
   console.log('mean unclaimed jobs at end of work day:'); console.table(out.unclaimedAtEndOfDay);
 } else if (out !== null && report === 'hours' && !json) hours.print(out);
+else if (out !== null && report === 'waiting' && !json) waiting.print(out);
 else if (out !== null && report === 'perf' && !json) {
   console.log(`${out.days} game days in ${out.totalMs} ms (${out.msPerDay} ms/day); time per system, exclusive:`); console.table(out.systems);
 } else if (out !== null && report === 'hunger' && !json) {
