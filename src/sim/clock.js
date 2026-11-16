@@ -12,8 +12,17 @@ VB['sim/clock'] = (() => {
   const Stores = VB['sim/stores'];
   const { shareFood } = VB['sim/help'];
   const Workdays = VB['sim/workdays'];
-  const { placeByDoor, release, dropJob, stepAgents, travelling, dueJourneys, stopJourneys, feedTravellers } =
-    VB['sim/agents'];
+  const {
+    placeByDoor,
+    release,
+    dropJob,
+    stepAgents,
+    travelling,
+    dueJourneys,
+    stopJourneys,
+    feedTravellers,
+    reckonAll,
+  } = VB['sim/agents'];
   const { refreshJobs, takeDay, helpers, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
@@ -122,8 +131,9 @@ VB['sim/clock'] = (() => {
       every: 'hour',
       at: { hour: WORK[1] },
       owner: 'sim/agents',
-      note: 'the work day ends: everyone free goes home',
+      note: 'the work day ends: the tasks under work are reckoned (VB-472), and everyone free goes home',
       run: (st) => {
+        reckonAll(st);
         for (const liveId of st.living) {
           const a = st.agents[liveId];
           if (st.pawns[a.id].died) continue;
@@ -172,6 +182,13 @@ VB['sim/clock'] = (() => {
           Stores.spoilAle(st, hh);
         }
       },
+    },
+    {
+      every: 'day',
+      when: (st) => !!(st.workDue && st.workDue.length),
+      owner: 'sim/agents',
+      note: "after the meal a hand's rate may differ: the tasks under work are reckoned (VB-472)",
+      run: (st) => reckonAll(st),
     },
     {
       every: 'day',

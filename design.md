@@ -292,20 +292,142 @@ Every pawn is a person on record with parents, marriages and life events; househ
 | Births | Natural births drive growth; very limited immigration by boat comes in a later stage. Children are spaced by explicit pregnancy and nursing; some are born outside marriage, from courting and relationships between pawns, with the man she was with as father; an unmarried mother and the father often marry quickly. Starting targets: about 7 births for a woman married at 20 and 5.5 at 25; about 20% of children die before age 1 and a third before 15; 1% of mothers die in childbirth | Decided (growth from births, spacing), Agreed (starting targets); **Under revision** (balance review, 12 Nov; Balance loops and targets, The balance review; backlog VB-405): marriage and nursing as the levers that hold growth, and how an island reaches 1,000 |
 | Courting | Unmarried pawns may court from 16; marriage stays at 18 for women and 20 for men, and still needs a place to live and kin no closer than the limit, and is made as an offer at the moving round that both households answer. Hunger of 0.5 or more postpones the marriage, not the courting. About 5% of births at first come while courting, and about 3 in 4 such couples marry within the year if they can. The true father is recorded and, for now, known to all. A widow or widower minds the age gap half as much, so a widowed holder may marry a younger landless adult and bring the farm to the marriage (balance review; remarriage was common in pre-industrial Sweden, Lundh 2007) | Decided (from 16; true father), Agreed (rest), 30 Oct; Agreed (remarriage), 2 Nov; from 9 Nov a courting couple marries through the households' negotiation: their wish moves their heads to an offer at the moving round, and is enough by itself for those who speak for themselves (Inheritance, Marriage as a negotiation: Decided 9 Nov; the courting row Agreed 9 Nov; brought in line by VB-233, 10 Nov); **Under revision** (balance review, 12 Nov; Balance loops and targets, The balance review; backlog VB-405): whether the age answers to scarcity |
 | Pawn interactions | Pawns who meet (working near each other, at the well, on the green, at home) may interact, each pair at most once a game hour; the first kind is talk. A relationship holds familiarity (the tie), an opinion from −1 to 1 and a courting flag; kin links stay in the family records. Opinion has a direction and is the sum of the standing (spouse, parent, child, sibling, housemate) and timed memories that gain up to a cap and fade, as in RimWorld; becoming friends or falling out is a life event. In each waking hour a pawn talks with at most one partner, chosen by familiarity and liking; by the pair's fixed compatibility the talk is a chat, a good talk or cross words. Idle pawns seek out those they like. Talk shows as a short bubble near the camera, and the pawn panel lists the people a pawn knows best and mood modifiers such as “talked with a friend +5” | Decided (talk first; mood shown; 30 Oct), Agreed (rest, 30 Oct); Decided (opinion from memories, one partner an hour, numbers in backlog VB-060, VB-061, VB-125; 31 Oct) |
-| Stats and traits | Come later | Decided; **Under revision** (slice 7, VB-186): twelve traits, Decided 3 Nov (below) |
-| Inherited traits | Whether founders get hidden values that children inherit (parents' average plus noise) | Open; **Under revision** (slice 7, VB-186): partly inherited, Decided 3 Nov (below) |
+| Stats and traits | Twelve traits, each acting on at least two rules (Traits, talk and stories, below) | Decided, 3 Nov; the rules and numbers Proposed, 15 Nov (VB-186) (was: come later) |
+| Inherited traits | Founders draw hidden values from their culture, and children take after their parents in part: the two parents' mean, drawn toward the mean, plus chance (How a trait is passed on, below) | Decided, 3 Nov (partly inherited); the numbers Proposed, 15 Nov (VB-186) |
 | Family tree | Generations in rows, spouses linked, children under their parents; the dead greyed, heirs marked; father, mother, spouse with kinship, children, siblings and life events per person | Decided (a view), Agreed (content) |
 
-### Traits, talk and stories (to be written: slice 7, VB-186)
+### Traits, talk and stories (slice 7, 15 November)
+
+Slice 7's plan (VB-186), on Kim's decisions of 3 November (twelve traits; stories, after the experiment; pawns and the player may lie)
+and the gossip experiment's seven answers of 12 November (`docs/gossip-experiment.md`), which stand as starting values. The shape is
+Decided where a row says so; every number is Proposed, a starting value its task reports and the wrap-up (VB-063) hands to a tuning
+run. A trait is neutral at 0.5: a population of average pawns behaves as today's.
 
 | Aspect | Design | Status |
 | --- | --- | --- |
-| Traits | Twelve, continuous and latent, shown only as labels at the tails: values (generosity, piety, ambition, honour), temperament (sociability, temper, diligence, openness) and aptitudes (body, hands, husbandry, wits). Values come mostly from upbringing, temperament and aptitudes partly by inheritance. A trait acts on at least two rules and never chooses for the player (target-v2, section 4.4) | Decided, 3 Nov (twelve, as sketched); numbers Open |
-| Personal values | Held as traits; each culture gives their distribution | Decided, 3 Nov |
-| Skills | Learnt by doing, faster with the matching aptitude; they fade unused | Proposed (target-v2, section 4.4) |
-| Opinion | Derived, never stored: a's opinion of b is the kin standing's value (spouse, parent, child, sibling, housemate), plus affinity, 0.6 × the pair's fixed compatibility × min(1, a's tie to b / 8), plus a's memories of things that happened between them (a claim taken, a border lost, a bull lent, a refused match), clamped to -1..1; goodwill's gratitude adds to the same sum. Talk grows the tie only: its kind (a chat, a good talk, cross words) is drawn from compatibility for the bubble and leaves no memory, so two compatible neighbours become friends at the pace their tie grows. Only reaching close friends (0.45) or enemies (-0.5) is an event, left only 0.1 past its line; friend (0.25) and dislike (-0.2) are the page's words. The band is checked where the pair's tie or memories change, never by a pass over pairs (VB-240) | Decided (Kim), 10 Nov |
-| Gossip | Stories: an event and who was in it, passed on where people meet, believed by the hearer's opinion of the teller and the story's fit; tested first against opinion averaging in an experiment (backlog VB-187) | Decided, 3 Nov |
+| Traits | Twelve, continuous and latent (0 to 1), shown only as labels at the tails: values (generosity, piety, ambition, honour), temperament (sociability, temper, diligence, openness) and aptitudes (body, hands, husbandry, wits). Values come mostly from upbringing, temperament and aptitudes partly by inheritance. A trait acts on at least two rules and never chooses for the player (target-v2, section 4.4). The tables below give the rules, the labels and how a trait is passed on | Decided, 3 Nov (twelve, as sketched); the rules and numbers Proposed, 15 Nov (VB-186) |
+| Personal values | Held as traits; each culture gives their distribution (Customs and culture, A culture's values) | Decided, 3 Nov |
+| Skills | Learnt by doing, faster with the matching aptitude; they fade unused (The mill and the loom; backlog VB-360) | Proposed (target-v2, section 4.4) |
+| Opinion | Derived, never stored: a's opinion of b is the kin standing's value (spouse, parent, child, sibling, housemate), plus affinity, 0.6 × the pair's compatibility × min(1, a's tie to b / 8), plus a's memories of things that happened between them (a claim taken, a border lost, a bull lent, a refused match) and of what a has heard of b (Stories, below), clamped to -1..1; goodwill's gratitude adds to the same sum. Talk grows the tie only: its kind (a chat, a good talk, cross words) is drawn from compatibility for the bubble and leaves no memory, so two compatible neighbours become friends at the pace their tie grows. Only reaching close friends (0.45) or enemies (-0.5) is an event, left only 0.1 past its line; friend (0.25) and dislike (-0.2) are the page's words. The band is checked where the pair's tie or memories change, never by a pass over pairs (VB-240) | Decided (Kim), 10 Nov; what is heard, Proposed, 15 Nov |
+| Gossip | Stories: an event and who was in it, passed on where people meet, believed by the hearer's opinion of the teller and the story's fit. The experiment (VB-187) compared it with opinion averaging, which stays for attitudes to customs only | Decided, 3 Nov; after the experiment, 12 Nov |
 | Slander | Pawns and the player alike may lie; a discovered lie is the source of a counter-story about the liar, of higher valence, scaled by the culture's values | Decided, 3 Nov |
+
+#### The twelve traits and the rules each changes (Proposed, 15 November)
+
+A trait acts only as a contribution to a declared rule, or as a weight in a pawn's own choice. Each contribution is linear in the
+trait and 1 (or 0) at 0.5; where a row names a rule of a later slice, that slice's task reads the trait through `Traits.of`.
+
+| Trait | At the tails | Acts on (at 0, to 1) | Later |
+| --- | --- | --- | --- |
+| Generosity | tight-fisted, open-handed | The holder's own reserve in allowance, 40 to 0 days of need (it was drawn per pawn; never the floor). The share of its surplus a host lays out at a feast, 0.5 to 1.5 times the custom's quarter | Lodging a stranger |
+| Piety | irreverent, devout | Going to the season's rite (chance 0.3 to 0.9). The pull of what was learned young on its attitudes (the anchor), 0.5 to 1.5 times | The doctrine's side in a contested key; offerings (slice 8) |
+| Ambition | content, ambitious | The wish to move out or claim a farm at the moving round (the pressure it needs, 1.5 to 0.5 times). Calling an ale evening (chance 0.5 to 1.5 times); with low honour, inventing a story about an enemy | Pressing a debt, standing for office (slice 5); craft and trade priority (slices 6 and 9) |
+| Honour | slippery, a man or woman of their word | How a breach is felt: the memories of a claim taken, a border lost, a refused match, cattle in the crop and a work day shirked, 0.5 to 1.5 times. How a lie is judged: the counter-story's valence as this pawn holds it, 0.5 to 1.5 times; and its own lies (none at 1) | Keeping a deal's terms (slice 5) |
+| Sociability | reserved, sociable | Starting a talk at its turn (chance 0.5 to 1, reached at 0.5) and seeking company when idle (0.25 to 0.75). Passing a story on in a talk (0.15 to 0.45), which is the reach of gossip; going to an ale evening and, by its own wish, to the gathering | |
+| Temper | mild, hot-tempered | Friction in chemistry (below): two hot tempers like each other less, so their talks are more often cross words. A talk of cross words turns into a quarrel, which both remember and others tell of (chance 0.05 × the two tempers' sum) | |
+| Diligence | idle, diligent | A head's planning day: every third day, every second, or daily (built, VB-249). How long an idle pawn waits before it looks for work again, 4 to 2 hours | A member's initiative outside the plan |
+| Openness | set in their ways, curious | How fast its attitudes move (malleability, 0.5 to 1.5 times). The chance to take up a cause, 0 to 2 times (today's norm entrepreneur) | Trying a new crop (Crops, How the head chooses) |
+| Body | frail, strong | The learning rate and the cap of skills of heavy work (felling, digging, threshing, carrying), each 0.75 to 1.25 times. Health regained on a fed day, 2.5 to 3.5 | |
+| Hands | clumsy, deft | The learning rate and the cap of the crafts' skills (spinning, weaving, smithing, pottery, building), each 0.75 to 1.25 times | Quality of what is made |
+| Husbandry | no hand with beasts, good with beasts and crops | The learning rate and the cap of field and herd skills, each 0.75 to 1.25 times. A head's skill (with wits; Work, foresight) | |
+| Wits | slow, sharp | A head's skill (with husbandry). How long a story is remembered, 0.5 to 1.5 times its half-life | Estimating a task's end; reckoning at the fair |
+
+A label is shown beyond the 15th and 85th percentiles of the reference distribution (under 0.345, over 0.655), not of the living: a
+culture high in honour then shows more people of their word, which is what it is. The pawn panel lists a pawn's labels and nothing
+else of its traits; a rule that a trait moved says so where the rule is explained ("own reserve 12 days: open-handed").
+
+#### How a trait is passed on (Proposed, 15 November)
+
+One equation for all twelve: `value = mean + b × (the two parents' mean − mean) + chance`, the chance normal with spread
+`0.15 × √(1 − b²/2)`, so that the spread of a trait stays 0.15 from one generation to the next, and the value kept within 0.02 to 0.98.
+A trait is written twice in a life, at birth and at 15, and never by a daily pass.
+
+| Group | b | The parents | The mean | Set |
+| --- | --- | --- | --- | --- |
+| Temperament | 0.45 (twin studies of the Big Five: 0.4 to 0.5) | Father and mother by birth | 0.5 | At birth |
+| Aptitudes | 0.5 | Father and mother by birth | 0.5 | At birth; at 15 a hungry childhood takes up to 0.2 from body and 0.1 from wits (the days the child's household was hungry, of 96; stunting) |
+| Values | 0.6 (Cavalli-Sforza and Feldman 1981: children take values from parents and from the many) | Those who raised it: the holder and the mistress of the household it lives in at 15 (its own parents where it lives with them; a child in service takes after the house it serves in) | Its culture's mean for that value | At birth from its parents by birth, as a child's value; at 15 for good |
+
+A founder, and anyone a scenario places, draws from its culture's distribution. This answers the open question on inherited traits:
+yes, and no trait is copied.
+
+#### Chemistry (Proposed, 15 November)
+
+The pair's compatibility, which was a seeded number alone, becomes what target-v2 sketched: `0.7 × the seeded personal term (today's)
++ 0.5 × likeness − 0.3 × friction − 0.3 × the customs between them`, less the age gap as today, within -1..1. Likeness is how close
+the two are in the four values and in sociability, 0 for a pair as far apart as two drawn at random; friction is the two tempers' sum
+less 1; the customs between them is the share of customs, hard ones counting most, on which they lean to different options. The last
+term is Like seeks like (Balance loops and targets; Decided, 12 Nov): pawns whose customs differ think less of each other, and it is
+only ever a loss, so it keeps a difference that exists and does not make one. Compatibility is still a function of the two pawns and
+nothing stored for the pair; it moves while a value is still a child's and with the pair's attitudes, slowly. The weights are tuned
+so that the shares of close friends, friends, dislikes and enemies stay about what they are.
+
+#### Where pawns meet (Proposed, 15 November)
+
+`sim/encounters` owns who meets whom: a table of kinds, each saying who is present, whom a pawn may draw as a partner, how strangers
+mix and what else happens there. Encounters have only social effects; deals, matches and hiring arise elsewhere from who is present.
+
+| Kind | Present | A partner is drawn from | Else |
+| --- | --- | --- | --- |
+| House | The members inside | The housemates, by familiarity and liking | As built |
+| Outdoors | Those within 30 units | Up to 8 near, by familiarity and liking | As built |
+| Pasture | Herders at their herds | Herders within 120 units, calling distance | Herding calls carried far, and herders kept company by them: the answer to VB-136's question, yes, herders meet on the pasture |
+| Occasion | Those who came: the meeting, a wedding, a funeral ale, a feast, an ale evening, the season's rite; the gathering's green (VB-296) | Up to 8 of those present, by familiarity and liking plus a floor for strangers (0.5 at an ale evening and the gathering, 0.2 elsewhere), so that people who did not know each other meet | What is said to all, at a meeting or a rite, everyone present knows first-hand |
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| The talk round, by turns | A pawn has a talk turn every fourth waking hour, four a day, spread by its id, and may be drawn as a partner in any hour, so still at most one talk an hour. A talk stands for a longer conversation: the tie gains 0.8 a talk (it was 0.5, at about 6.6 talks a pawn a day; now about 4.2), so a day's talk builds the tie it built. The hours at home that also grow a tie are counted at the turn. This is the slice's saving: the hourly round asks a quarter of the living, not all | Proposed, 15 Nov (a trial on populous small, seed 7, 3 years, at 0.7 a talk: close friends 2.8% of relations before and after, friends 7.2 to 7.3%, dislikes 6.7 to 6.2%; marriages and births the same) |
+| The ale evening | A holder with a barrel of ale that no coming wedding, feast or gathering needs may open its house for an evening, from the end of work to 22: the small, frequent sibling of the feast, and the village alehouse before there is a town to keep one. Chance a day 0.1, times its sociability and its ambition (each 0.5 to 1.5); one a village a day. Asked: the adults of its village and of villages within 1.5 walking hours; each comes by its own wish, by its sociability, its opinion of the host and the walk (chance 0.25 × (0.5 + sociability) at home, falling to 0 at 1.5 hours), at most the 20 a barrel serves. The host pours as at a wedding (Ale and standing): the guests remember it and the host gains standing. Guests walk there and home; the barrel is the host's own. The standing alehouse, which sells ale, comes with the town (slice 9) | Proposed, 15 Nov |
+| The season's rite | Three times a year (spring day 1, summer day 6, winter day 7; autumn has the meeting) a village with a green holds a rite on it at noon, for two hours: the spiritual life pawns have before any Church (Kim, 3 Nov, decision 8), and the service once there is one. Each adult of the village, and of a lone farm within 2 walking hours, comes by its piety; work is not stopped for it. The one who leads is the holder present highest in piety times prestige, read each time and never an office: it tells the gathering the story it holds most worth telling, which all present then know first-hand, and each who came knows it a little better (a tie of 0.25 to the leader only, never between all pairs), so a devout, respected holder pulls on the village's attitudes. An established Church (slice 8) takes the rite over | Proposed, 15 Nov |
+| Mood | Each pawn has a mood of 50 plus its modifiers, shown in its panel and read by nothing yet. A modifier for a state (hungry, cold, without water, weak) is read from that state when shown; one for an event (newly married, a child born, grieving) is written at the event with its end; "talked with a friend" is read from the latest talk, which talk already keeps, so no talk writes for it (backlog VB-062) | Decided, 30 Oct (mood shown); how it is kept, Proposed, 15 Nov |
+
+#### Stories (Decided, 3 November: the model; the numbers Proposed, 15 November, from the experiment)
+
+| Aspect | Design |
+| --- | --- |
+| What a story is | An event of the record of a kind worth telling, its subject (a pawn), the other party if any, and a valence. The first kinds are those opinion already remembers first-hand, each in a domain: law (a claim taken, -0.5; cattle let into a crop, -0.3; a work day shirked, -0.2), kin (a match refused, -0.3; a quarrel, -0.2; a child outside marriage, -0.3) and dealings (help given in hunger, +0.4; ale poured or a feast laid out, +0.3). A later slice adds its kinds by a line each (a debt defaulted, a hard deal at the fair, a breach of the gathering's peace) |
+| Who knows it first | The parties, the adults of their households, and those at the occasion where it happened; what is said to all at a meeting or a rite, all who came |
+| What a pawn keeps | At most 8 stories, each with the valence as it heard it, the number of mouths it came through, its strength and its zeal; a ninth takes the place of the one of least valence times strength. A story no living pawn holds is dropped from the state |
+| Telling | In a talk each side tells a story at chance 0.3, times its sociability. It picks among those it holds by valence × zeal × strength, 1.3 times for bad news, more by the hearer's tie to the subject, against a weight of 1 for talk of other things. Nobody tells a pawn a story about itself but a close friend, which is how it learns what is said of it |
+| Saturation | Telling a story to someone who already holds it halves the teller's zeal for it, and under 0.05 it tells it no more. Zeal is kept twice, for the teller's own village and for people from elsewhere, so old news is fresh at the gathering and at an ale evening |
+| Sharpening | Each retelling makes the valence 8% stronger, with a little noise, within -1..1 |
+| Belief | The hearer believes at chance 0.6, raised or lowered by half its trust in the teller less 0.5 (trust: its tie and its opinion of the teller) and by half the story's fit (its opinion of the subject, times the story's sign): it believes ill of those it dislikes |
+| What a believed story does | The hearer holds it, and remembers the subject by it: a memory of what it has heard, of the told valence × 0.8 for each mouth it came through, at most 0.4 either way for one subject, fading as memories do. So a stranger's opinion is about a third of a witness's, and fades with the story |
+| Forgetting | A story's strength halves every 40 game days untold or unheard (a first-hand one every 120), times 0.5 to 1.5 by the pawn's wits, and under 0.2 it is forgotten; telling or hearing it again restores it. Read in closed form when the story is next weighed, never by a daily pass |
+| Lies | A pawn may invent a story about an enemy: at its talk turn, at chance 0.005 × (1 − its honour) × (0.5 + its ambition), of a kind above, and one lie about one pawn at a time. It then tells it as any story. The player's pawn may do the same by choice (the act Speak ill of, with whom and what), and is exposed as any liar is |
+| Exposure | A lie told to a hearer with a first-hand memory of the subject, in the story's domain and of the other sign, is not believed: the hearer knows better. It then holds, first-hand, a counter-story about the one who made the lie up (a lie carries its author's name, as "Olof says the smith's iron is soft" does), of 1.5 times the lie's valence, times the hearer's honour (0.5 to 1.5) and its culture's mean honour (0.5 to 1.5); the teller is told it and stops telling the lie |
+| Bands (target-v2, section 10.2; the measures are Kim's answers of 12 Nov) | A notable breach is held by over half of its village's adults within a season, and of the villages that share an ale evening or a gathering with it within a year; an island across water hears nothing until something joins them. Three years on, a story is held by under half of those who held it at its peak. A slander with a living witness reaches fewer than a true story of its kind, and its counter-story more than the lie. Stories do not polarise: under a quarter of held opinions at 0.8 or beyond, and no village with a fifth on each side of ±0.3 over one subject. The wrap-up fits belief (the most sensitive number) and the ale evening's draw from neighbouring villages, which is what carries news between villages |
+| What the player hears | The pawn panel gains Heard: the stories that pawn holds, each a line saying whom it is about, what, from whom it was last heard, through how many mouths, and how well it is remembered. It is that pawn's belief and says so (Principles, The future is someone's estimate, applies to hearsay as to estimates): a lie is never marked as one, and an exposed lie shows as the counter-story. A story about the played pawn's own household that it comes to hear is a notable event, and stops Skip to the next event. The record and the History tabs show what happened, as before; stories are the first knowledge with a source, and the actor view still filters nothing else |
+
+#### Courting (Decided, 30 October and 9 November: the shape; the numbers Agreed or Proposed as each says)
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| Starting | Two unmarried pawns of 16 or more, of opposite sex and no closer kin than the marriage limit, court once each holds the other at an opinion of 0.4 with a tie of 1.5: checked when the two have a good talk, never by a pass over pairs. A pawn courts one at a time; it is a life event of both | Agreed, 30 and 31 Oct (the gate measured: 16% of such pairs after two populous years) |
+| Ending | When either's opinion of the other falls under 0.2, when one marries another or dies, or after 3 years unmarried | Proposed, 15 Nov |
+| The wish at the round | A courting couple's wish is offered at the moving round before the matcher chooses, as the player's wish for a match is, if the round's rules allow it (ages 18 and 20, a place to live by the residence custom, the kin limit, the means, hunger under 0.5). It skips the matcher's lowest-score test, since their liking replaces it; those who speak for themselves need nothing more, and a spokesman answers by opinion as for any offer | Agreed, 9 Nov; the skipped test, Proposed (VB-233's plan) |
+| A refusal | A couple whose head refuses keeps courting, and each remembers the head for it (as a refused match is remembered, -0.2). At the next round each may wish for service in another household (chance 0.5), where they may marry once they have a place | Proposed, 15 Nov |
+| A child on the way | A courting woman may conceive, at a chance set so that about 5% of births come while courting (a starting value of 0.08 a year). When the pregnancy is known the couple's offer is made at once, out of the round, by the round's acts and under its rules. Whether they marry within the year is reported, not set (Kim's "about 3 in 4, if they can" is the band: 0.6 to 0.9) | Agreed, 30 Oct (5%; the band); the offer out of the round, Proposed (VB-233's plan) |
+| A child outside marriage | Lives with its mother's household; the father is recorded and known. It inherits by the custom Children born outside marriage (Custom dimensions), and counts as born in marriage from the day its parents marry. Its birth is a story (kin) | Agreed, 30 Oct; legitimation by the parents' marriage, Proposed, 15 Nov |
+
+#### Cost, named before building (rule 9), at about 1,000 living
+
+Talk and contacts take 55.3 ms a game day at `medium-ref` (the bench of 10 November), against a share of 55; the slice must end
+under where it starts. On populous small, year 1, the hourly round over all the living and the search for partners were 48% of talk's
+time (a profile of 15 November), and both go with the number of pawns asked.
+
+| System | Entities × cadence × work | Expected |
+| --- | --- | --- |
+| The talk round, by turns | 1,000 pawns × 4 turns a day (it was 16 hours) × up to 8 partners weighed; about 4,200 talks a day (it was 6,600) | Talk's share down by a quarter to a third (the trial's profile: 7.7% of the run to 5.2%, with the round still walking everyone; counters `talkTurn` 4 a pawn-day, `talkWeighed` 6.5 to 6.2) |
+| Chemistry | 12 numbers and a byte a custom per pawn, read where compatibility is read today; nothing stored per pair | No new loop |
+| Traits | Written at birth and at 15 (about 40 births a year); read as an array index; 12 numbers a pawn in the save, about 0.1 MB of JSON | Nothing daily |
+| Stories | 4,200 talks × 2 sides × 0.3 × up to 8 stories weighed, about 20,000 weights a day; a hearer does one lookup, and a write only when it first believes; at most 8 held a pawn (8,000, about 0.4 MB of JSON), and the live stories are those someone holds | About 2 ms a day, inside the saving |
+| Occasions as venues | At most one ale evening a village a day × up to 20 guests; 3 rites a year × villages × those who come; partners sampled, never paired | Under 0.5 ms a day |
+| Courting | A check at a good talk of two young unmarried pawns; conception in the births step that already walks women | No new loop |
+| Mood | Read when a panel is open | Nothing |
+
+The slice claims nothing from the budget's rest: talk's share stays 55 ms and the wrap-up (VB-063) reports the share at the slice's
+start and end on `medium-ref` and `small-y40`.
 
 ## 5. Inheritance, expansion and other bodies
 
@@ -1155,7 +1277,7 @@ A village with a 10% tie forms local practice after about 1.5 generations, again
 
 | Aspect | Design | Status |
 | --- | --- | --- |
-| Kinds of custom | Practice (a shared rule with options: today's customs), norm (a usual quantity learned from what people do, such as what a cow is worth), doctrine (an institution's rule on the keys it claims), and each culture's distribution of personal values | Proposed (target-v2, section 4.4) |
+| Kinds of custom | Practice (a shared rule with options: today's customs), norm (a usual quantity learned from what people do, such as what a cow is worth), doctrine (an institution's rule on the keys it claims), and each culture's distribution of personal values (A culture's values, below) | Proposed (target-v2, section 4.4) |
 | Who holds values | Individuals, institutions (the Church) and social bodies (a village, a city, a court) | Decided, 3 Nov (Kim's description) |
 | Doctrine against practice | A resolver tips practice to doctrine at some point; while a key is contested, attitudes change fast, and a splinter faction of the Church may form | Decided, 3 Nov |
 | New customs | About ten new practices and four norms arrive with the slices that need them, each read through one door | Proposed (target-v2, section 4.4) |
@@ -1170,6 +1292,21 @@ Slice 5's practices (Proposed, 11 November 2026; VB-184), with default and malle
 | Who judges a case | The meeting's voices; the alderman | The meeting's voices | 0.3 |
 | One's own cause | The parties stand aside; the parties vote | The parties stand aside | 0.35 |
 | How the alderman is chosen | Elected by the meeting; by turns among the farms | Elected by the meeting | 0.3 |
+
+### A culture's values (slice 7, 15 November)
+
+The fourth kind of custom (Practice, norm and doctrine): what a culture's people hold dear, as the distribution of the four value
+traits (People, Traits, talk and stories). Proposed by slice 7's plan (VB-186) on Kim's decision of 3 November that personal values
+are traits and each culture gives their distribution.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| What a culture holds | A mean for each of generosity, piety, ambition and honour; the spread is the reference's, 0.15, for every culture. Old Nordic starts at 0.5 for all but honour, 0.6: a culture of one's word and one's name | Proposed, 15 Nov |
+| What it does | It is the mean a child's values are drawn toward when they set at 15 (How a trait is passed on), and the distribution a founder or a placed pawn draws from. It scales how a discovered lie is judged (its mean honour, 0.5 to 1.5 times the counter-story). Nothing else reads it: a culture's values act through its people | Proposed, 15 Nov |
+| How it moves | It is never set: at the culture's yearly reckoning it becomes the mean of its living adults' values, so it follows who lives, marries, leaves and raises children. No pull holds it to where it began; with a few hundred adults it wanders about 0.01 a generation by chance alone, and further only where a value changes who survives or who has children | Proposed, 15 Nov |
+| A split | A culture that splits off (Meetings, culture and splits) takes the mean of its own adults at once, so two villages that differed in values before the split differ as cultures after it | Proposed, 15 Nov |
+| Values and customs | Values do not vote: a practice changes by attitudes, as before. They move attitudes only through the rules of the traits (openness and piety on how fast and how far a pawn's attitudes move), and they join chemistry, so people of like values befriend each other | Proposed, 15 Nov |
+| Watched | The wrap-up (VB-063) reports each culture's four means over 150 years, and each trait's mean and spread among the living: a trait whose spread collapses or whose mean runs to a tail has been selected for, and the report names the rule that did it. Reported, with no target (the island is not held to a distribution) | Proposed, 15 Nov |
 
 ## 11. Settlements, towns and regions
 

@@ -468,8 +468,16 @@ VB['sim/lifecycle'] = (() => {
         makeOffer(st, m.id, best.f.id, best.home, answers);
         continue;
       }
+      // Neither holding a farm nor held in trust, they change only their own households and spouses: clear only the memos that read them.
+      const plain = [m.id, best.f.id].every((id) => holdingOf(st, id) === null && !trustOfHolder(st, id)),
+        homes = [m.household, best.f.household, best.home];
       issue(st, { actor: m.id, verb: 'marry', target: best.f.id, args: { home: best.home }, source: 'round' });
-      rules.clear();
+      if (plain)
+        rules.touched(
+          [m.id, best.f.id],
+          homes.filter((h) => h !== null),
+        );
+      else rules.clear();
       housed = null;
       married.push([m.id, best.f.id]);
       if (st.farmsteads[st.households[best.home].farmstead].village !== v) away.add(best.home);

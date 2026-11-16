@@ -95,7 +95,13 @@ function checkState(st) {
           plan.reasons['grain/barley'] !== 'seed') {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
         }
-        if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+        if (!(T.seed >= 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+        // VB-254: the plan's head is its household's holder, since a time not after now, with a bias on each of the four targets within
+        // Traits.HEAD.bias of 1; none while the household has no holder
+        const H = plan.head, hhH = st.households[id].holder, most = globalThis.VB['sim/traits'].HEAD.bias + 1e-9;
+        if (hhH === null || hhH === undefined ? H !== null : !H || H.pawn !== hhH || !(H.since <= st.t) || !H.bias ||
+          Object.keys(H.bias).join() !== 'wood,hay,seed,fields' || !Object.values(H.bias).every((x) => Math.abs(x - 1) <= most))
+          bad.push(`plans: household ${id}'s head ${JSON.stringify(H)} is not its holder ${hhH}'s`);
         // VB-390: a want of a cow names no giver, or another household of the same village (one dissolved since is let go at the next
         // review), a heifer or a cow, by kin or by a deal
         const W = plan.want, villageOf = (h) => st.farmsteads[st.households[h].farmstead].village;
@@ -260,6 +266,13 @@ function checkState(st) {
       && P.shortNext >= F.shortAt && P.shortNext <= P.shortEnd && P.longNext >= F.longAt &&
         P.longNext <= P.longEnd))) bad.push(`recordFold: ${JSON.stringify(F)}`);
   }
+  // the stand-in traits (VB-254): every living pawn has the five, each in [0, 1); none keeps VB-249's diligence beside them
+  const NAMES = globalThis.VB['sim/traits'].NAMES;
+  for (const id of st.living) {
+    const t = st.pawns[id].traits;
+    if (!Array.isArray(t) || t.length !== NAMES.length || !t.every((x) => x >= 0 && x < 1) || 'diligence' in st.pawns[id])
+      bad.push(`pawn ${id}: traits ${JSON.stringify(t)}`);
+  }
   // a pawn's events (VB-199), those added since the last check: positions in the record, each its own event or one folded since
   for (const p of st.pawns) {
     const ev = p.events, n0 = checked.get(ev) || 0;
@@ -277,7 +290,8 @@ function checkState(st) {
     for (const [v, l] of st.idlers.by) for (const b of l) if (st.agents[b.id] !== b) bad.push(`idlers: village ${v} lists ${b.id}, not an agent`);
   }
   // the awake agents of the hour (VB-205): increasing ids of living pawns, and, for the hour it is, every agent the step could move,
-  // set working or offer to the planner: walking, working, or in working hours free with its pause ending by the hour's end
+  // or offer to the planner: walking, or in working hours free with its pause ending by the hour's end (a pawn at work is not stepped:
+  // its task's end is in st.workDue, VB-472)
   if (st.awake) {
     const { ids, hour } = st.awake, living = new Set(st.living), { WORK, DAY } = globalThis.VB['sim/rules'];
     if (ids.some((id, i) => !living.has(id) || (i > 0 && id <= ids[i - 1]))) bad.push(`awake: ids ${ids} are not increasing living pawns`);
@@ -285,7 +299,7 @@ function checkState(st) {
       const h = ((hour % DAY) + DAY) % DAY, work = h >= WORK[0] && h <= WORK[1], has = new Set(ids);
       for (const id of st.living) {
         const a = st.agents[id];
-        if (!has.has(id) && a.phase !== 'road' && (a.path || a.phase === 'work' || (work && a.phase === null && a.idleUntil <= hour + 1))) {
+        if (!has.has(id) && a.phase !== 'road' && (a.path || (work && a.phase === null && a.idleUntil <= hour + 1))) {
           bad.push(`awake: agent ${id} may act in hour ${hour} but is not awake`);
         }
       }
@@ -736,6 +750,43 @@ function checkState(st) {
       const side = a && a.side && (a.side.partial === j || a.side.background === j);
       if (!a || (a.job !== j && !side)) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
     }
+  }
+  // work as a block (VB-472): a task's done, at (the tick it was reckoned at) and rate (its hands' hours a game hour); a task with a hand
+  // at work has a rate, and one with none none; done below its hours while worked; st.workDue holds each task of full attention under
+  // work once, posted, sorted by due then id, each due after the step now (a step takes all that is due), as reckoned from done and rate
+  {
+    const KS = globalThis.VB['sim/kinds'].KINDS, { TICKS } = globalThis.VB['sim/rules'], A = globalThis.VB['sim/agents'];
+    const q = st.workDue, inQ = new Set(q || []);
+    if (q !== undefined && !Array.isArray(q)) bad.push(`workDue: ${typeof q}`);
+    else if (q) {
+      if (inQ.size !== q.length) bad.push('workDue: a task twice');
+      q.forEach((j, n) => {
+        const at = `workDue[${n}] (${j.key})`;
+        if (st.jobs.get(j.key) !== j) bad.push(`${at}: not posted`);
+        if ((KS[j.kind].attention || 'full') !== 'full') bad.push(`${at}: a side task`);
+        if (!(j.rate > 0) || !Number.isInteger(j.due) || !(j.due > st.tick)) bad.push(`${at}: rate ${j.rate}, due ${j.due} at tick ${st.tick}`);
+        if (n > 0 && (q[n - 1].due > j.due || (q[n - 1].due === j.due && q[n - 1].id >= j.id))) bad.push(`${at}: out of order`);
+        const h = j.hours ?? KS[j.kind].hours, want = j.at + Math.max(1, Math.ceil(((h - j.done) / j.rate) * TICKS - 1e-7));
+        if (j.due !== want) bad.push(`${at}: due ${j.due}, its done and rate give ${want}`);
+      });
+    }
+    for (const j of st.jobs.values()) {
+      const at = `jobs[${j.key}]`, full = (KS[j.kind].attention || 'full') === 'full';
+      if (j.at === undefined) {
+        if (j.rate !== undefined) bad.push(`${at}: a rate ${j.rate} never reckoned`);
+        continue;
+      }
+      if (!Number.isInteger(j.at) || j.at > st.tick || !(j.rate >= 0) || !Number.isFinite(j.rate) || !(j.done >= 0)) bad.push(`${at}: at ${j.at}, rate ${j.rate}, done ${j.done}`);
+      if (full) {
+        const hands = j.claims.filter((id) => st.agents[id].job === j && st.agents[id].phase === 'work');
+        if (hands.length === 0 && j.rate > 0) bad.push(`${at}: a rate of ${j.rate} with no hand at work`);
+        if (hands.some((id) => A.rateOf(st, st.pawns[id]) > 0) && !(j.rate > 0)) bad.push(`${at}: hands at work (${hands}) and no rate`);
+        if (j.rate > 0 && !inQ.has(j)) bad.push(`${at}: under work, not in workDue`);
+        if (j.rate > 0 && !(j.done < (j.hours ?? KS[j.kind].hours))) bad.push(`${at}: done ${j.done} of ${j.hours ?? KS[j.kind].hours} while worked`);
+        if (A.doneOf(st, j) < j.done - 1e-9) bad.push(`${at}: progress now ${A.doneOf(st, j)} below its last reckoning ${j.done}`);
+      }
+    }
+    for (const a of st.agents) if ('work' in a) bad.push(`agents[${a.id}]: rows (a.work) in the state`);
   }
   // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
   // or while cutting the next load beside a cart with room (sim/agents stepWork, a kind's `stack`: firewood)

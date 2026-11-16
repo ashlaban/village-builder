@@ -61,6 +61,11 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
               positions++;
               const x = rig.root.position.x, y = rig.root.position.y;
               if (x !== d.drawX[i] || y !== d.drawY[i]) faults.push('position not the drawn place');
+              // at work on a field it walks its rows (VB-472): drawn within the tile, from the tick its work began
+              if (a.phase === 'work' && a.job && Sim.KINDS[a.job.kind].field && !a.inside) {
+                if (!(Math.hypot(x - st.w.hx[a.job.site], y - st.w.hy[a.job.site]) <= 19)) faults.push('position off its rows');
+                continue;
+              }
               const seg = i < d.prevN && !d.prevIn[i] ? Math.hypot(a.x - d.prevX[i], a.y - d.prevY[i]) : Infinity;
               if (seg > far) { if (x !== a.x || y !== a.y) faults.push('position'); }
               else if (Math.hypot(x - d.prevX[i], y - d.prevY[i]) + Math.hypot(a.x - x, a.y - y) > seg + 1e-3) faults.push('position off its segment');

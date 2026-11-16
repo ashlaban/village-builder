@@ -12,7 +12,15 @@ VB['sim/scenarios'] = (() => {
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } =
     VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
-  const { seedPlans } = VB['sim/plans'];
+  const { seedPlans, startHeads } = VB['sim/plans'];
+  const { seedTraits } = VB['sim/traits'];
+  // The end of seeding: a stream for each system, then the living's traits and each household's head (VB-254), from the stream `traits`.
+  // Also for a state made outside the scenarios (tests/lib/tiny.js).
+  function startStreams(st, seedNum) {
+    splitStreams(st, seedNum);
+    seedTraits(st);
+    startHeads(st);
+  }
   const { dailyNeed } = VB['sim/hunger'];
   const { startQuern } = VB['sim/quern'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
@@ -54,7 +62,7 @@ VB['sim/scenarios'] = (() => {
       village: village.id,
     });
     VB['sim/carts'].seedCarts(st, false);
-    splitStreams(st, seedNum);
+    startStreams(st, seedNum);
     return st;
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population (POPULATION's first number a
@@ -214,7 +222,7 @@ VB['sim/scenarios'] = (() => {
     seedOutland(st, true); // villages that have stood a while hold their outland
     log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
     VB['sim/carts'].seedCarts(st, true);
-    splitStreams(st, seedNum);
+    startStreams(st, seedNum);
     return st;
   }
   // Debug scenario: two villages, three generations on record, adult children, an empty farm and a ruin.
@@ -350,7 +358,7 @@ VB['sim/scenarios'] = (() => {
       n: R.pawns.length,
     });
     VB['sim/carts'].seedCarts(st, true);
-    splitStreams(st, seedNum);
+    startStreams(st, seedNum);
     return st;
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
@@ -436,7 +444,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
     // @state st.journeys, st.journeySeq: the open journeys between villages and the next one's id (see sim/agents, VB-287)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
-    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, work, idleUntil, talk (sim/relations)};
+    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
     // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
     // @state st.regrow: Set of tile indexes with some but not all trees, which grow back daily (see sim/forest)
@@ -493,7 +501,6 @@ VB['sim/scenarios'] = (() => {
         stride: rand() * 6,
         ox: (rand() - 0.5) * 12,
         oy: (rand() - 0.5) * 8,
-        work: null,
         idleUntil: 0,
         talk: null,
         occasion: null,
@@ -564,5 +571,5 @@ VB['sim/scenarios'] = (() => {
         ? seedPopulous(w, seedNum)
         : seedFounders(w, seedNum);
   }
-  return { seedFounders, seedHeirs, seedPopulous, makeState, seed };
+  return { seedFounders, seedHeirs, seedPopulous, makeState, startStreams, seed };
 })();
