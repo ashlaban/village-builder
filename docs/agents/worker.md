@@ -37,7 +37,8 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
      not taken is not this case (Kim, 16 November): that task is done, and you add what it owes to the collecting task its note names.
    - A noted task lands `ready` when its note says so (its goal, ref and criteria stated, no question). One that landed
      `needs-review` with no question in it: fill in what it lacks and set it `ready`, priority 1 if it mends a red check.
-   - A task whose notes begin "Flag: Kim takes part" is never given to a sub-agent: it is taken in a session with Kim.
+   - A task whose notes begin "Flag: Kim takes part" is never given to a sub-agent: it is taken in a session with Kim, who
+     reviews the ideas and motivations of its plan before any code moves.
 4. `node tools/inbox.js apply` marks the task in the backlog and writes the notes (new tasks, questions, tuning rows); commit as
    "Backlog: VB-NNN <done or needs-review>" and push.
 5. After the first push, open a draft PR "Nightly <YYYY-MM-DD>" to `main`. After each task, its description is: `node tools/inbox.js
