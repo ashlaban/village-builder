@@ -2,6 +2,7 @@
 //   and its marriage offers (sim/offers' basis `match`, VB-690), and the daily life step
 VB['sim/lifecycle'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
+  const { emit } = VB['sim/events'];
   const Culture = VB['culture'];
   const { landMeeting } = VB['sim/territory'];
   const { DAY, YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE, SOCIAL, TRAITS } = VB['sim/rules'];
@@ -328,6 +329,7 @@ VB['sim/lifecycle'] = (() => {
       personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === mId ? fId : mId])}`, false);
       st.rigDirty.add(id); // recorded below
     }
+    emit(st, 'wed', { a: mId, b: fId }); // newly married (sim/mood, VB-062)
     const fm = st.farmsteads[st.households[home].farmstead],
       away = [m, f].filter((q) => journeyOf(st, q.id)); // from another village: and sets out for it (VB-287)
     const out = away.length

@@ -1,6 +1,7 @@
 // @sys sim/births: conception, pregnancy, childbirth and nursing of married women
 VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
+  const { emit } = VB['sim/events'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
   const { joinHousehold, person, personEvent, lifeEvent, log, fullName, spouseOf, atHousehold, kinNear } =
     VB['sim/records'];
@@ -69,6 +70,7 @@ VB['sim/births'] = (() => {
       } // kin elsewhere, till their turn (sim/relations)
     personEvent(st, m.id, 'child', `Child born: ${given}`, false);
     personEvent(st, fatherId, 'child', `Child born: ${given}`, false); // the born event below
+    emit(st, 'born', { child: id, mother: m.id, father: fatherId }); // both parents glad (sim/mood, VB-062)
     st.agents.push({
       id,
       x: 0,

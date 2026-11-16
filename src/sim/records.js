@@ -3,6 +3,7 @@
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
+  const { emit } = VB['sim/events'];
   // ---- the record of events (VB-075) ----
   // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self, cold, tile}, the fields that do
   // not apply absent (cold: a death in a cold house, VB-327; tile: where a pawn died on the road, VB-287). log and personEvent write their
@@ -247,6 +248,7 @@ VB['sim/records'] = (() => {
     return q;
   }
   function noteDeath(st, id) {
+    emit(st, 'died', { pawn: id }); // its kin grieve (sim/mood, VB-062), before the death ends its union
     const i = st.living.indexOf(id);
     if (i >= 0) st.living.splice(i, 1);
   }
