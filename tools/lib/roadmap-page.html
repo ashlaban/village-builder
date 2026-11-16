@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Village builder roadmap</title>
+<!-- The template of docs/roadmap.html: tools/roadmap.js puts the data in place of the DATA comment. The page is derived; edit this. -->
+<style>
+:root{
+  --bg:#f7f5f0; --panel:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e8e5de; --line:#e2ddd2;
+  --s1:#2a78d6; --s2:#eb6834; --open:#cfcac0; --today:#9c3d2e; --mark:#8a8478;
+  --q1:#dbe8f8; --q2:#a9c8ee; --q3:#6fa3e2; --q4:#2a78d6; --q5:#1b4f8f;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141413; --panel:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#2c2b28; --line:#33312d;
+  --s1:#3987e5; --s2:#d95926; --open:#45433e; --today:#e07a63; --mark:#8f8a80;
+  --q1:#1d2c40; --q2:#22406a; --q3:#2c5f9e; --q4:#3987e5; --q5:#8bb8f0; } }
+:root[data-theme="dark"]{
+  --bg:#141413; --panel:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#2c2b28; --line:#33312d;
+  --s1:#3987e5; --s2:#d95926; --open:#45433e; --today:#e07a63; --mark:#8f8a80;
+  --q1:#1d2c40; --q2:#22406a; --q3:#2c5f9e; --q4:#3987e5; --q5:#8bb8f0; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,sans-serif}
+main{max-width:1320px;margin:0 auto;padding:20px 16px 60px}
+h1{font:600 26px/1.2 Georgia,serif;margin:0 0 4px} h2{font:600 18px/1.2 Georgia,serif;margin:26px 0 6px}
+a{color:var(--s1)}
+.sub{color:var(--ink2);margin:0 0 14px;font-size:14px}
+.note{color:var(--ink2);font-size:13px;margin:6px 0}
+.tiles{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;min-width:150px}
+.tile b{display:block;font-size:20px;font-weight:600} .tile span{color:var(--ink2);font-size:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto}
+svg text{font-family:system-ui,sans-serif;fill:var(--ink)}
+svg text.m{fill:var(--ink2)} svg text.b{font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin:6px 0}
+.sw{display:inline-block;width:14px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.swl{display:inline-block;width:18px;height:2px;vertical-align:3px;margin-right:4px}
+.tip{position:fixed;pointer-events:none;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font:12px/1.45 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.18);display:none;z-index:5;max-width:280px}
+details{margin-top:8px;font-size:13px} table{border-collapse:collapse;font-size:12px} td,th{padding:2px 8px;border-bottom:1px solid var(--line);text-align:right} td:first-child,th:first-child{text-align:left}
+</style>
+</head>
+<body>
+<main>
+<h1>Village builder: the roadmap</h1>
+<p class="sub" id="sub"></p>
+<div class="tiles" id="tiles"></div>
+
+<h2>The backlog: created and done</h2>
+<div class="legend"><span><i class="swl" style="background:var(--s1)"></i>tasks created</span><span><i class="swl" style="background:var(--s2)"></i>tasks done</span><span><i class="sw" style="background:var(--s1);opacity:.15"></i>open</span><span><i class="sw" style="background:var(--s1);opacity:.3"></i>created, projected</span><span><i class="sw" style="background:var(--s2);opacity:.3"></i>done, projected</span><span>▼ Kim's decision</span></div>
+<div class="panel"><svg id="burn" role="img" aria-label="Tasks created and done by day, with the projection"></svg></div>
+<details><summary>The numbers by day</summary><div id="table"></div></details>
+
+<h2>Each arch, day by day</h2>
+<div class="legend"><span>tasks done that day:</span><span><i class="sw" style="background:var(--q1)"></i>1–2</span><span><i class="sw" style="background:var(--q2)"></i>3–5</span><span><i class="sw" style="background:var(--q3)"></i>6–10</span><span><i class="sw" style="background:var(--q4)"></i>11–20</span><span><i class="sw" style="background:var(--q5)"></i>over 20</span><span><i class="sw" style="border:1px dashed var(--ink2)"></i>estimated span, darker where it may end</span></div>
+<div class="panel"><svg id="strip" role="img" aria-label="Tasks done each day by arch, with each arch's estimated end"></svg></div>
+<p class="note">Rows in the estimate's order: the slices in Kim's order (the Archs table of <a href="../BACKLOG.html#archs">the backlog</a>), each side arch (◇) before the first slice that began after it, side archs not begun before the last slice. Hover a cell.</p>
+
+<details><summary>How the estimate is made</summary><div class="note" id="how"></div></details>
+<p class="note">The budget for cost and how it is measured: <a href="cost.html">docs/cost.md</a>. The open tasks: <a href="../BACKLOG.html">BACKLOG.md</a>. Made by <code>tools/roadmap.js</code>.</p>
+</main>
+<div class="tip" id="tip"></div>
+<script>
+const D=/*DATA*/;
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAY0=Date.parse(D.day0), idx=s=>Math.round((Date.parse(s)-DAY0)/864e5), TODAY=D.N-1;
+const END=Math.max(TODAY+14,(D.finish?idx(D.finish[1]):TODAY)+9);
+const fmt=i=>{const d=new Date(DAY0+i*864e5);return d.getUTCDate()+' '+MONTHS[d.getUTCMonth()];};
+const rng=([a,b])=>{const A=fmt(idx(a)),B=fmt(idx(b));if(A===B)return A;const [n1,m1]=A.split(' '),[n2,m2]=B.split(' ');return m1===m2?`${n1}–${n2} ${m2}`:`${A} – ${B}`;};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const NS='http://www.w3.org/2000/svg';
+const S=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;};
+const T=(p,x,y,txt,a={})=>{const e=S('text',{x,y,'font-size':11,...a},p);e.textContent=txt;return e;};
+const tip=document.getElementById('tip');
+const hov=(el,html)=>{el.addEventListener('mousemove',e=>{tip.innerHTML=typeof html==='function'?html(e):html;tip.style.display='block';tip.style.left=Math.min(e.clientX+14,innerWidth-290)+'px';tip.style.top=(e.clientY+14)+'px';});el.addEventListener('mouseleave',()=>tip.style.display='none');};
+const sum=a=>a.reduce((x,y)=>x+y,0), cum=a=>{let s=0;return a.map(v=>s+=v);};
+function axis(svg,X,top,bottom,{labels=true}={}){
+  for(let i=0;i<=END;i++){const mon=new Date(DAY0+i*864e5).getUTCDay()===1;
+    if(mon)S('line',{x1:X(i),x2:X(i),y1:top,y2:bottom,stroke:css('--grid'),'stroke-width':1},svg);
+    if(labels&&(mon||i===0))T(svg,X(i),top-6,fmt(i),{'text-anchor':'middle','font-size':10,class:'m'});}
+  S('rect',{x:X(TODAY+1),y:top,width:X(END+1)-X(TODAY+1),height:bottom-top,fill:css('--grid'),opacity:.45},svg);
+  S('line',{x1:X(TODAY+1),x2:X(TODAY+1),y1:top-2,y2:bottom,stroke:css('--today'),'stroke-width':1.5},svg);
+  T(svg,X(TODAY+1)+4,top+10,'today',{fill:css('--today'),'font-size':10,class:'b'});
+  D.kim.forEach(([d,t])=>{const i=idx(d);if(i<0||i>END)return;const x=X(i+.5);S('path',{d:`M${x-5},${top} L${x+5},${top} L${x},${top+7} Z`,fill:css('--mark')},svg);
+    hov(S('rect',{x:x-7,y:top-2,width:14,height:12,fill:'transparent'},svg),`<b>${fmt(i)} · Kim</b><br>${t}`);});
+}
+function burn(){
+  const svg=document.getElementById('burn');svg.innerHTML='';const W=1280,H=460,ml=46,mr=150,mt=26,mb=28;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('width',W);svg.setAttribute('height',H);
+  const p=D.all,cc=cum(p.c),cd=cum(p.d),N=TODAY+1,scope=D.scope,est=D.finish;
+  const ym=Math.max(scope[1],cc.at(-1))*1.08||1,step=ym>1500?300:ym>600?150:ym>200?50:10;
+  const X=i=>ml+i*(W-ml-mr)/(END+1),Y=v=>H-mb-v*(H-mt-mb)/ym;
+  for(let v=0;v<=ym;v+=step){S('line',{x1:ml,x2:W-mr,y1:Y(v),y2:Y(v),stroke:css('--grid')},svg);T(svg,ml-5,Y(v)+4,v,{'text-anchor':'end','font-size':10,class:'m'});}
+  axis(svg,X,mt,H-mb,{labels:false});
+  for(let i=0;i<=END;i++)if(new Date(DAY0+i*864e5).getUTCDay()===1)T(svg,X(i),H-mb+16,fmt(i),{'text-anchor':'middle','font-size':10,class:'m'});
+  S('polygon',{points:[...cc.map((v,i)=>`${X(i+1)},${Y(v)}`),...cd.map((v,i)=>`${X(i+1)},${Y(v)}`).reverse()].join(' '),fill:css('--s1'),opacity:.12},svg);
+  if(est){const d0=cd.at(-1),c0=cc.at(-1),x0=X(N),tL=idx(est[0])+1-N,tH=idx(est[1])+1-N;
+    const C=(S1,TT,t)=>TT<=0||t>=TT?S1:S1-(S1-c0)*Math.exp(-3*t/TT);
+    const up=[],dn=[];for(let t=0;t<=END+1-N;t++){up.push(`${X(N+t)},${Y(C(scope[1],tH,t))}`);dn.push(`${X(N+t)},${Y(C(scope[0],tL,t))}`);}
+    S('polygon',{points:[...up,...dn.reverse()].join(' '),fill:css('--s1'),opacity:.25},svg);
+    const lo=X(idx(est[0])+1),hi=X(idx(est[1])+1);
+    S('polygon',{points:`${x0},${Y(d0)} ${lo},${Y(scope[0])} ${hi},${Y(scope[1])}`,fill:css('--s2'),opacity:.25},svg);
+    S('line',{x1:lo,x2:hi,y1:H-mb-3,y2:H-mb-3,stroke:css('--s2'),'stroke-width':5,'stroke-linecap':'round'},svg);
+    T(svg,X(END+1)+6,Y((scope[0]+scope[1])/2)+4,`final size ${Math.round(scope[0])}–${Math.round(scope[1])}`,{});
+    T(svg,(lo+hi)/2,H-mb-10,'all done '+rng(est)+' (est.)',{'text-anchor':'middle',class:'b'});}
+  const pl=(a,col)=>S('path',{d:'M'+X(0)+','+Y(0)+' '+a.map((v,i)=>'L'+X(i+1)+','+Y(v)).join(' '),fill:'none',stroke:col,'stroke-width':2,'stroke-linejoin':'round'},svg);
+  pl(cc,css('--s1'));pl(cd,css('--s2'));
+  T(svg,X(N)+6,Y(cc.at(-1))-4,`created ${cc.at(-1)}`);T(svg,X(N)+6,Y(cd.at(-1))+14,`done ${cd.at(-1)}`);
+  const hl=S('line',{y1:mt,y2:H-mb,stroke:css('--ink2'),opacity:0},svg),hit=S('rect',{x:ml,y:mt,width:X(N)-ml,height:H-mt-mb,fill:'transparent'},svg);
+  hov(hit,e=>{const r=svg.getBoundingClientRect(),sx=(e.clientX-r.left)*W/r.width,i=Math.max(0,Math.min(N-1,Math.round((sx-ml)/((W-ml-mr)/(END+1)))-1));
+    hl.setAttribute('x1',X(i+1));hl.setAttribute('x2',X(i+1));hl.setAttribute('opacity',1);
+    return `<b>${fmt(i)}</b><br>created ${p.c[i]} · done ${p.d[i]}<br>open at the end of the day: ${cc[i]-cd[i]}`;});
+  hit.addEventListener('mouseleave',()=>hl.setAttribute('opacity',0));
+  document.getElementById('table').innerHTML='<table><tr><th>day</th><th>created</th><th>done</th><th>open</th></tr>'+p.c.map((c,i)=>`<tr><td>${fmt(i)}</td><td>${c}</td><td>${p.d[i]}</td><td>${cc[i]-cd[i]}</td></tr>`).join('')+'</table>';
+}
+function strip(){
+  const svg=document.getElementById('strip');svg.innerHTML='';
+  const L=210,R=150,PX=19,W=L+(END+1)*PX+R,RH=20,top=34,X=i=>L+i*PX;
+  const q=v=>v<=0?null:v<=2?'--q1':v<=5?'--q2':v<=10?'--q3':v<=20?'--q4':'--q5';
+  let y=top+14;const rows=[{k:'*',y}];y+=RH+8;
+  const groups=[['',D.per.first?['first']:[]],['In the estimate’s order',D.order],['',D.per['-']?['-']:[]]];
+  groups.forEach(([g,ks])=>{if(!ks.length)return;if(g){y+=8;rows.push({g,y});y+=18;}else y+=6;ks.forEach(k=>{rows.push({k,y});y+=RH;});});
+  const H=y+10;svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('width',W);svg.setAttribute('height',H);
+  axis(svg,X,top,H-6);
+  for(const r of rows){
+    if(r.g){T(svg,8,r.y+12,r.g.toUpperCase(),{'font-size':10,class:'m b','letter-spacing':'.05em'});continue;}
+    const all=r.k==='*',p=all?D.all:(D.per[r.k]||{c:Array(D.N).fill(0),d:Array(D.N).fill(0)}),cy=r.y+RH/2,side=D.side.includes(r.k);
+    const name=all?'All tasks':D.names[r.k],est=all?D.finish:D.est[r.k];
+    T(svg,8,cy+4,(side?'◇ ':'')+name,{'font-size':12,class:all?'b':side?'m':''});
+    const first=p.c.findIndex(v=>v>0);
+    if(first>=0)S('line',{x1:X(first),x2:X(TODAY+1),y1:cy,y2:cy,stroke:css('--open'),'stroke-width':1},svg);
+    p.d.forEach((v,i)=>{const c=q(v);const cell=S('rect',{x:X(i)+1,y:r.y+2,width:PX-2,height:RH-4,rx:2,fill:c?css(c):'transparent'},svg);
+      hov(cell,`<b>${name}, ${fmt(i)}</b><br>${v} done, ${p.c[i]} created`+(est?`<br>all done ${rng(est)} (est.)`:''));});
+    if(est){const lo=X(idx(est[0])+1),hi=X(idx(est[1])+1),s=X(TODAY+1)+1;
+      S('rect',{x:s,y:r.y+3,width:Math.max(hi-s,2),height:RH-6,rx:3,fill:'none',stroke:css('--ink2'),'stroke-dasharray':'3 3'},svg);
+      S('rect',{x:lo,y:r.y+3,width:Math.max(hi-lo,2),height:RH-6,rx:3,fill:css('--ink2'),opacity:.18},svg);
+      T(svg,hi+6,cy+4,rng(est),{'font-size':10,class:'m'});}
+    T(svg,W-8,cy+4,`${sum(p.d)}/${sum(p.c)}`,{'text-anchor':'end','font-size':11,class:'m'});
+  }
+}
+function text(){const cc=sum(D.all.c),cd=sum(D.all.d),d0=D.all.c[0]-D.all.d[0];
+  document.getElementById('sub').textContent=`What was built, when, and when the rest may be done, as of ${fmt(TODAY)} ${D.today.slice(0,4)}. The estimate is this page's, from the backlog's history: not a plan, and not Kim's.`;
+  document.getElementById('tiles').innerHTML=[[`${cd}`,`tasks done since ${fmt(0)}`],[`${cc-cd}`,`open, from ${d0} on ${fmt(0)}`],[`${Math.round(D.scope[0])}–${Math.round(D.scope[1])}`,'tasks in all, at the end (est.)'],[`${Math.round(D.rate[0])}–${Math.round(D.rate[1])} a day`,'pace, allowing for slow days'],[D.finish?rng(D.finish):'–','all done (est.)']].map(([b,s])=>`<div class="tile"><b>${b}</b><span>${s}</span></div>`).join('');
+  document.getElementById('how').innerHTML=`<p><b>Pace.</b> On a full day (10 or more tasks done) ${Math.round(D.paceFull)} tasks are done. ${Math.round(D.share14*100)}% of the last 14 days and ${Math.round(D.shareAll*100)}% of all days were full; the rest were design passes, waiting for Kim's answers, or quiet. So ${Math.round(D.rate[0])} to ${Math.round(D.rate[1])} tasks a day.</p>
+  <p><b>Growth.</b> A plan writes an arch's tasks, and more follow: the slices planned at least five days ago grew to ${D.gLo.toFixed(1)} to ${D.gHi.toFixed(1)} times their size at the plan (the middle half). Each arch's remaining work is its open tasks plus that growth; an arch whose plan is still to come counts as ${Math.round(D.sizeLo)} to ${Math.round(D.sizeHi)} tasks. Tasks with no arch grow by the same factor.</p>
+  <p><b>Created, projected.</b> The tasks still to be written approach the final size, most of them early, as plans write their tasks at once.</p>
+  <p><b>Order.</b> The archs are done one after another, in the order of the rows above; the tasks with no arch are done alongside, in proportion. The early end of each range takes the fast pace and the small growth; the late end the slow pace and the large growth.</p>
+  ${D.undated?`<p>${D.undated} tasks have no date in the backlog's history and are left out of the charts.</p>`:''}`;}
+function draw(){text();burn();strip();}
+draw();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
+</script>
+</body>
+</html>
