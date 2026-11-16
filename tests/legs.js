@@ -130,3 +130,49 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   Sim.advance(back, DAY);
   assert.deepStrictEqual(checkState(back), [], 'and goes on');
 }
+
+// ---- a task whose completion moves its pawn (a farm restored: it founds a household there) sets it out on a journey: the journey is its
+// own, the task's end leaves it be, and it arrives (VB-473 repair: the end of the task wiped the journey's phase, and the pawn was in 'go')
+{
+  const s = state(), { moveTo, refreshRoles } = VB['sim/heirs'];
+  const plain = (j) => {
+    const K = KINDS[j.kind];
+    return (K.attention || 'full') === 'full' && !K.carry && !K.load && !K.stack && !j.plot;
+  };
+  let a = null;
+  for (let k = 0; k < 4 * DAY * TICKS && !a; k++) {
+    Sim.advance(s, 1 / TICKS);
+    const id = s.living.find((x) => {
+      const b = s.agents[x];
+      return b.phase === 'work' && b.job && b.job.due > s.tick + 1 && plain(b.job);
+    });
+    if (id !== undefined) a = s.agents[id];
+  }
+  assert.ok(a, 'a pawn at work on a task that completes where it is done');
+  const j = a.job, K = KINDS[j.kind], was = K.done, from = s.pawns[a.id].household;
+  const v = s.farmsteads[s.households[from].farmstead].village;
+  const to = s.households.find((h) => !h.dissolved && s.farmsteads[h.farmstead].village !== v);
+  K.done = (st2, x, hh, c) => {
+    if (was) was(st2, x, hh, c);
+    if (x !== j) return;
+    moveTo(st2, a.id, to.id); // the completion moves its pawn to a household of the other village
+    refreshRoles(st2);
+  };
+  try {
+    for (let k = 0; k < 2 * DAY * TICKS && a.job === j; k++) Sim.advance(s, 1 / TICKS);
+  } finally {
+    K.done = was;
+  }
+  const trip = s.journeys.find((x) => x.pawn === a.id);
+  assert.ok(a.job !== j && s.pawns[a.id].household === to.id, 'the task ended and moved its pawn');
+  assert.ok(trip && (a.phase === 'journey' || a.phase === 'road') && !a.job, `on its journey (phase ${a.phase})`);
+  assert.deepStrictEqual(checkState(s), [], 'invariants as it sets out');
+  for (let k = 0; k < 6 * DAY * TICKS && s.journeys.includes(trip); k++) {
+    Sim.advance(s, 1 / TICKS);
+    if (k % TICKS === 0) assert.deepStrictEqual(checkState(s), [], `invariants on the road, step ${k}`);
+  }
+  assert.ok(!s.journeys.includes(trip) && a.phase !== 'journey' && a.phase !== 'road', 'it arrives, and its journey ends');
+  assert.strictEqual(A.tileAt(s, ...A.placeOf(s, a)) >= 0 && s.pawns[a.id].household, to.id, 'a member of its new home');
+  assert.deepStrictEqual(checkState(s), [], 'invariants after the arrival');
+  console.log(`legs: a completion set pawn ${a.id} out (${j.kind}); it arrived`);
+}
