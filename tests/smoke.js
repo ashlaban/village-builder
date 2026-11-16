@@ -65,6 +65,21 @@ const iv = setInterval(async () => {
       const base = cows();
       a.job = { kind: 'lead', farm: P.st.farmsteads[hh3.farmstead] }; a.phase = 'back'; a.carry = 'cow'; a.load = 0; tick(3);
       if (cows() !== base + 1) fail(`a pawn leading a cow is drawn with ${cows() - base} animals beside it, not 1`);
+      // with the household's want naming a giver that has a cow, the animal is the giver's: its herd does not draw it as well (VB-616)
+      const givers = P.st.households.filter((h) => !h.dissolved && h.herds.some((id) => P.st.herds[id].head && P.st.herds[id].head.some((x) => x.kind === 'cow')));
+      const plan = P.st.plans.households.get(hh3.id), want = plan.want;
+      const cam0 = { x: win.cam.x, y: win.cam.y }; let best = 0;
+      for (const giver of givers) {
+        const hd = P.st.herds[giver.herds.find((id) => P.st.herds[id].head && P.st.herds[id].head.some((x) => x.kind === 'cow'))];
+        win.cam.x = P.st.w.hx[hd.home]; win.cam.y = P.st.w.hy[hd.home]; plan.want = null; tick(2); // the giver's farm in view
+        const alone = cows();
+        plan.want = { what: 'cow', from: giver.id, kind: 'cow', by: 'deal' }; tick(2);
+        const hidden = alone - cows();
+        if (hidden !== 0 && hidden !== 1) fail(`a cow being led is drawn ${hidden} fewer sprites in its giver's herd, not 0 or 1`);
+        best = Math.max(best, hidden);
+      }
+      if (givers.length && !best) fail('a cow being led is drawn in the giver herd as well: no giver in view loses a sprite');
+      plan.want = want; win.cam.x = cam0.x; win.cam.y = cam0.y;
       Object.assign(a, saved); tick(3);
       if (cows() !== base) fail(`a cow delivered is still drawn at its leader (${cows()} cows drawn, ${base} before)`);
     }
