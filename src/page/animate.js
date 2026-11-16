@@ -307,14 +307,13 @@ function placePawns() {
   }
 }
 let tAcc = 0;
-// The clock shown is the UI's own state: the time the pawns are drawn at, floored to 5 game minutes, redrawn only when that value
-// changes. While the pawns are drawn between steps (VB-244) that is the step before the last and the share of a step gone, so the
-// clock moves smoothly with them, at most a step behind st.t; otherwise it is st.t.
+// The clock shown is the UI's own state: the time the simulation has reached (st.tick), floored to 5 game minutes, redrawn only when
+// that value changes. The pawns are drawn up to a step ahead along their legs (VB-474), but the clock never shows a time the
+// simulation has not reached (principle 14): it is at most 5 minutes behind st.t, never ahead.
 let uiClock = null,
   uiClockSt = null;
 function updateClock() {
-  const drawn = st.tick + stepShare;
-  const step = Math.floor((drawn * 6) / 5 + 1e-9); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
+  const step = Math.floor((st.tick * 6) / 5 + 1e-9); // 5-minute steps from the clock's 6-minute ones (st.tick, VB-235)
   if (step === uiClock && st === uiClockSt) return;
   uiClock = step;
   uiClockSt = st;

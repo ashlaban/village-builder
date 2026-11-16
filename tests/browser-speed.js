@@ -49,9 +49,9 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
               if (+date[2] < 1 || +date[2] > Sim.SEASON_DAYS || +shown[2] >= 24 || +shown[3] >= 60) faults.push('clock range');
               const hours = (+shown[1] - 1) * Sim.YEAR + (season * Sim.SEASON_DAYS + +date[2] - 1) * Sim.DAY
                 + +shown[2] + +shown[3] / 60, lag = st.t - hours;
-              // Allow floating-point noise at midnight, while catching a stale day, season or year. The clock shows the time the pawns
-              // are drawn at, at most a 6-minute step ahead of st.t while they are drawn between steps (VB-474), floored to 5 minutes.
-              if (+shown[3] % 5 || lag < -0.1 - 1e-8 || lag > 1 / 12 + 1e-8) faults.push({ t: st.t, shown: hours });
+              // Allow floating-point noise at midnight, while catching a stale day, season or year. The clock shows the time the simulation
+              // has reached, floored to 5 minutes: never ahead of st.t, at most 5 minutes behind (VB-474).
+              if (+shown[3] % 5 || lag < -1e-8 || lag > 1 / 12 + 1e-8) faults.push({ t: st.t, shown: hours });
             }
             // each visible pawn is drawn where it is or ahead along its leg, by less than a step (VB-474)
             const d = window.__speedTest.between(), R = VB['sim/rules'], far = (R.SPEED * st.w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6;
