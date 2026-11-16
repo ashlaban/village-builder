@@ -4,6 +4,7 @@ VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL, MATCH } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf, age } = VB['sim/records'];
+  const { partners } = VB['sim/encounters'];
   const { on } = VB['sim/events'],
     issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories; // the land's memories, from events (sim/stakes, sim/territory, sim/herds), are the three `on` below
@@ -27,7 +28,7 @@ VB['sim/relations'] = (() => {
   // TIES.renorm years, on a day spread by the pawn's id.
   // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
   //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
-  //   in its house since midnight. All initialized and changed only here.
+  //   in its house since midnight, counted at its talk turns, SOCIAL.talk.every hours at a time (VB-521). All initialized and changed only here.
   const TIES = SOCIAL.ties; // scaleOf and tieOf, the reads, are in sim/records (read by sim/claims below this layer)
   function initRelations(st, p) {
     p.ties = new Map();
@@ -331,85 +332,55 @@ VB['sim/relations'] = (() => {
     p.bands.clear();
   }
 
-  // ---- talk: in each waking hour a pawn may start one talk, with a pawn in its house or near it outdoors (VB-061) ----
+  // ---- talk: at its turn in the waking hours a pawn may start one talk, with a partner sim/encounters finds for it (VB-061, VB-521) ----
   const T = SOCIAL.talk;
   const young = (st, p) => p.age >= T.young[0] && p.age <= T.young[1] && spouseOf(st, p.id) === null;
   const able = (st, a) => {
     const p = st.pawns[a.id];
     return p.alive && p.age >= T.minAge && !a.carry;
   };
-  // Scratch for the hourly round (derived, not state): busy[id] === round marks a pawn talking this hour, seen[id] === look a pawn already
-  // drawn as a partner; found holds the partners of one pawn.
+  // Scratch for the hourly round (derived, not state): busy[id] === round marks a pawn talking this hour; found holds the partners of
+  // one pawn (sim/encounters fills it).
   let busy = new Int32Array(1024),
-    seen = new Int32Array(1024),
-    round = 0,
-    look = 0;
-  const found = [],
-    lists = [];
-  // Who a could talk with, into `found`: the housemates in the house with it; outdoors, up to T.sample pawns drawn from the cells around
-  // it (`near`, from outdoors in sim/society), within near.size in x and y. Pawns talking already this hour are left out.
-  function partnersOf(st, a, near) {
-    found.length = 0;
-    if (a.inside) {
-      const hh = st.households[st.pawns[a.id].household];
-      if (hh)
-        for (const m of hh.members)
-          if (m !== a.id && st.agents[m].inside && busy[m] !== round) found.push(st.agents[m]);
-      return;
-    }
-    const S = near.size,
-      X = near.x,
-      Y = near.y,
-      cx = Math.floor(X[a.id] / S),
-      cy = Math.floor(Y[a.id] / S);
-    let n = 0;
-    lists.length = 0;
-    look++;
-    seen[a.id] = look;
-    for (let dx = -1; dx <= 1; dx++)
-      for (let dy = -1; dy <= 1; dy++) {
-        const l = near.cells.get(near.cellOf(cx + dx, cy + dy));
-        if (l) {
-          lists.push(l);
-          n += l.length;
-        }
-      }
-    const draws = n <= T.sample + 1 ? n : T.sample;
-    for (let d = 0; d < draws; d++) {
-      let k = draws === n ? d : Math.floor(rnd(st.rng.talk) * n),
-        b = null;
-      for (const l of lists) {
-        if (k < l.length) {
-          b = near.out[l[k]];
-          break;
-        }
-        k -= l.length;
-      }
-      if (seen[b.id] === look) continue;
-      seen[b.id] = look;
-      if (busy[b.id] !== round && Math.abs(X[a.id] - X[b.id]) < S && Math.abs(Y[a.id] - Y[b.id]) < S) found.push(b);
-    }
-  }
+    round = 0;
+  const found = [];
   // How much a would rather talk with b: more with the familiar and the liked, less with someone it dislikes. sa is a's tie scale (scaleOf).
   function talkWeight(st, a, b, ya, sa) {
     const tie = (st.pawns[a].ties.get(b) || 0) * sa;
     return (1 + Math.min(tie, 1)) * (1 + opinionAt(st, a, b, tie)) * (ya && young(st, st.pawns[b]) ? T.youngBonus : 1);
   }
-  // Waking hour h: each pawn in its house counts the hour (pawn.homeHours, for dailyTies); then the pawns, from a random one on, each start a
-  // talk at chance T.chance, unless already talking this hour.
+  // The talk turns (VB-521; design.md, Where pawns meet): the living bucketed by id % T.every, each in the order of st.living; a cache
+  // derived from st.living, written only here, rebuilt when the living have changed (their array, its length or its last id: ids only
+  // grow, so a list of the same length and last id is the same list).
+  const turns = { of: null, n: -1, last: -1, every: 0, by: [] };
+  function turnsOf(st) {
+    const L = st.living,
+      last = L.length ? L[L.length - 1] : -1;
+    if (turns.of !== L || turns.n !== L.length || turns.last !== last || turns.every !== T.every) {
+      turns.of = L;
+      turns.n = L.length;
+      turns.last = last;
+      turns.every = T.every;
+      turns.by = Array.from({ length: T.every }, () => []);
+      VB.count.talkBucket += L.length;
+      for (const id of L) turns.by[id % T.every].push(id);
+    }
+    return turns.by;
+  }
+  // Waking hour h: the pawns whose talk turn it is ((h + id) % T.every is 0) each count the T.every hours to their next turn in their
+  // house, if they are in it (pawn.homeHours, for dailyTies); then, from a random one on, each starts a talk at chance T.chance with a
+  // partner sim/encounters finds, unless already talking this hour. Anyone may be drawn as a partner in any hour, once.
   const cand = [],
     wts = [];
   function talkHour(st, h, near) {
     if (h < T.from || h >= T.to) return;
     const ag = st.agents,
-      ids = st.living,
+      ids = turnsOf(st)[(T.every - (h % T.every)) % T.every],
       n = ids.length;
-    for (const id of ids) if (ag[id].inside) st.pawns[id].homeHours++;
-    const start = Math.floor(rnd(st.rng.talk) * n); // a random place in the living, and on round them from there
-    if (busy.length < ag.length) {
-      busy = new Int32Array(2 * ag.length);
-      seen = new Int32Array(2 * ag.length);
-    }
+    VB.count.talkTurn += n;
+    for (const id of ids) if (ag[id].inside) st.pawns[id].homeHours += T.every;
+    const start = Math.floor(rnd(st.rng.talk) * n); // a random place in the turn, and on round it from there
+    if (busy.length < ag.length) busy = new Int32Array(2 * ag.length);
     round++;
     let weighed = 0;
     for (let k = 0; k < n; k++) {
@@ -420,11 +391,11 @@ VB['sim/relations'] = (() => {
       let tot = 0;
       cand.length = 0;
       wts.length = 0;
-      partnersOf(st, a, near);
+      const mix = partners(st, a, near, busy, round, found);
       for (const b of found) {
         if (!able(st, b)) continue;
         weighed++;
-        const w = talkWeight(st, a.id, b.id, ya, sa);
+        const w = Math.max(0, talkWeight(st, a.id, b.id, ya, sa)) + mix;
         if (w > 0) {
           cand.push(b);
           wts.push(w);

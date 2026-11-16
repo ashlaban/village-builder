@@ -17,7 +17,7 @@ VB['sim/clock'] = (() => {
   const { refreshJobs, takeDay, helpers, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
-  const { outdoors } = VB['sim/society'];
+  const { outdoors } = VB['sim/encounters'];
   const {
     meetingStage,
     MEETING_STAGES,
@@ -80,7 +80,7 @@ VB['sim/clock'] = (() => {
       at: { hour: [SOCIAL.talk.from, SOCIAL.talk.to] },
       when: cenv,
       owner: 'sim/relations',
-      note: 'talk, and the hours at home',
+      note: 'talk at its turns, and the hours at home',
       run: (st, c) => talkHour(st, c.hour, outdoors(st, placeOf)),
     },
     {
