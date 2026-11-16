@@ -23,7 +23,8 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
    one is of the arch `physical` while it has a ready one (`node tools/backlog.js list --status ready --arch physical`).
 2. Start: `node tools/inbox.js start VB-NNN` reserves the task's new IDs. Then a `vb-task` sub-agent, in the background, isolated in
    a worktree, with the prompt "Task VB-NNN; the run's branch is `claude/nightly-<date>`; your reserved task IDs are <IDs>", and the
-   model by size: `sonnet` for S, `opus` for M and L. If that agent type is not offered, start a general-purpose one with the same
+   model by size: `sonnet` for S, `opus` for M and L. A plan task runs on the strongest model offered, whatever its size (Kim, 16 November):
+   its size measures the diff, not the judgement, and the tasks written from it inherit its quality. If that agent type is not offered, start a general-purpose one with the same
    model, told to read `.claude/agents/vb-task.md` and follow it for that task.
 3. When one ends, merge it, one at a time: `git merge --no-ff <its branch>` into the run's branch, then `npm test`.
    - `index.html` is derived and no longer in the repository (VB-450): a branch from before that may still conflict in it; take

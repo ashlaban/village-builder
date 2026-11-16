@@ -16,7 +16,7 @@ The prompt of each scheduled task, with its role and file:
 > answer questions. Clone the repository, then read `docs/agents/<file>` on `main` and follow it.
 
 The worker orchestrates: it takes the ready tasks in order and hands each to a `vb-task` sub-agent with a fresh context (Sonnet for
-size S, Opus for M and L), three or four side by side, each in a worktree of its own, keeping only the result, so the cost of a
+size S, Opus for M and L, the strongest model offered for a plan), three or four side by side, each in a worktree of its own, keeping only the result, so the cost of a
 night grows with its tasks and not with their square (`docs/review-agent-workflow.md`, sections 7 and 8). The sub-agents share nothing
 but the inbox (`tools/inbox.js`, a local SQLite file, never committed): reserved task IDs, who edits which file, and notes; the
 orchestrator alone merges, writes the backlog, the questions and the tuning rows from those notes, and pushes. What Kim should see
