@@ -80,6 +80,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-660](backlog/VB-660.md) | The round's fate of those free to marry on the eve | - | 3 | S | VB-633's census finds 95-98% of populous's pool free to marry on the eve, since it takes the best over every pawn; report what the round did with them |
 | [VB-662](backlog/VB-662.md) | Measurements owed: the late fixtures and the long seeds, for the tasks closed on 16 November | - | 3 | M | Tasks closed with a measure untaken (VB-255, VB-278, VB-280, VB-432, VB-453): each taken once on a quiet machine with the night's fixtures, reported in its task's file; nothing is reopened. |
 | [VB-663](backlog/VB-663.md) | Investigations, collected: small questions the closed tasks left (up to ten) | - | 3 | M | A list of at most ten small investigations left by tasks that are done; each an hour with a throwaway script, its answer a paragraph here and a task where it finds a defect; an item may be addressed to Kim. |
+| [VB-670](backlog/VB-670.md) | Second consistency pass: tile cards, the Land overlay's key, action rows | - | 3 | S | Desktop: a tile's levels on the meter and its ownership said once; a key for the Land overlay as Ground and Reach have; an action row's count as a number, and village work's icons told apart |
 
 ## Waiting for Kim
 
@@ -187,6 +188,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-478](backlog/VB-478.md) | Wrap-up: work as blocks | - | 3 | S | VB-477, VB-470 | Check the blocks, the estimate and the timetable with long runs: cost early and on medium-ref against the budget, the idle share, households by their head's skill; add the bands and propose tuning. |
 | [VB-637](backlog/VB-637.md) | A servant's portion: a year's wage, owed as a share is owed | - | 3 | M | VB-310, VB-634 | SERVICE.wage 12 rations a year served, an obligation of the master's household; it lies in the master's store as the servant's stake, is carried away when the servant leaves, and counts toward provisions for new land and the means to marry. Waits for VB-310 (Obligations) and VB-634 (servedSince). |
 | [VB-638](backlog/VB-638.md) | The marriage valve measured: long runs against the growth budget | - | 3 | M | VB-631, VB-634, VB-635, VB-036, VB-555, VB-654, VB-660 | The wrap-up of VB-405's tasks (they have no arch, so it does not carry the name): long runs against the growth budget, the setpoint's reach and goAhead measured, the overshoot shown; it names what a tuning run would move and tunes nothing. Waits for VB-631 to VB-635, VB-036 and VB-555. |
+| [VB-671](backlog/VB-671.md) | The choose screen and the family records on the shared pieces | - | 3 | S | VB-667 | Desktop: Whom to play and the family records show a person, a household, an heir, a tab and 'show on the map' as the cards do; a household's food by the supply component |
 
 ## Archs
 
