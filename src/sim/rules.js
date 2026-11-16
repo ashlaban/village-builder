@@ -735,6 +735,13 @@ VB['sim/rules'] = (() => {
     smallFarms: 3,
     join: 30,
   };
+  // A pawn's wish at the moving round (sim/wishes, VB-680; docs/plans/VB-682.md, section 3): `rungs`, the answers to "where do I live next
+  // year" in their default ranking, best first (heir to the farm it lives on, a match, an empty farm, a plot, new land, service, stay at
+  // home: the order of the round's steps); from ambition `landAmbition` a pawn ranks new land above a plot.
+  const WISH = Object.freeze({
+    rungs: Object.freeze(['heir', 'match', 'farm', 'plot', 'party', 'service', 'stay']),
+    landAmbition: 0.75,
+  });
   // The village's wood (VB-326; design, Land and ecology, The village's wood; Agreed, Kim, 10 Nov): an allotted area of wooded tiles, v.wood
   // (sim/territory), perHousehold tiles for each live household of the village (a household fells about 11 trees a year and a tile of 60 to 80
   // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre (4 hours each way on meadow,
@@ -1042,6 +1049,7 @@ VB['sim/rules'] = (() => {
     PATHS,
     SHARES,
     SETTLE,
+    WISH,
     SERVICE,
     TIE,
     MATCH,

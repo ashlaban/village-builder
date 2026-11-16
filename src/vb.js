@@ -34,6 +34,7 @@ VB.COUNTERS = {
     'Pairs given familiarity for waking hours at home (daily) or a job finished together (sim/relations, VB-127)',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   roundWalk: "Pawn records walked by a village's round to build its pool, once a village (sim/lifecycle, VB-277)",
+  wishWalk: "Pawn records walked by the pawns' own choosing of their wishes, once a moving round (sim/wishes, VB-680)",
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',

@@ -107,7 +107,7 @@ function menuHTML(id, opps) {
     `<h2 id="actMenuTitle">${m.view ? TITLES[m.view] : GROUPS[m.g]}</h2>` +
     `<button type="button" data-bar="close" data-k="close" aria-label="Close the list">${actIcon('no')}</button></div>`;
   if (barMsg) h += `<p class="act-msg${barMsg.bad ? ' bad' : ''}" role="status">${esc(barMsg.text)}</p>`;
-  if (m.view === 'round') return `${h}<div class="play">${roundBox(id, by.round, st.player.wishes)}</div>`;
+  if (m.view === 'round') return `${h}<div class="play">${roundBox(id, by.round, Sim.wishesOf(st, id))}</div>`;
   if (m.view === 'give') return h + giveHTML(id);
   if (m.g === 'self') {
     const home = by.self.find((o) => o.verb === 'goHome'),
@@ -129,7 +129,7 @@ function menuHTML(id, opps) {
         'data-bar="view" data-view="round"',
         'round',
         'At the moving round',
-        'Your wishes: moving out, a farm, service, a match',
+        'Your wishes: moving out, a farm, service, new land, a match',
         null,
         true,
       );

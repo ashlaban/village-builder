@@ -36,7 +36,7 @@ VB['sim/lifecycle'] = (() => {
   const { stillAtDeath, travelling, tileAt, journeyOf, placeOf } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor } =
     VB['sim/heirs'];
-  const { kinOk, matchScore, matchRules, matchBar } = VB['sim/matching'];
+  const { kinOk, matchScore, matchRules, wishedMatches } = VB['sim/matching'];
   const { startPlots } = VB['sim/expansion'];
   const { claimFarms, claimableFarm } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
@@ -45,6 +45,7 @@ VB['sim/lifecycle'] = (() => {
   const { fillStores } = VB['sim/help'];
   const { updateTie, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue, playerDied, clearMatchWish } = VB['sim/commands'];
+  const { chooseWishes, wishOf } = VB['sim/wishes'];
   const Offers = VB['sim/offers'],
     { heldBy } = Offers;
   const { forget, dropTies, raiseTie, dailyTies, endGoodwill, remember, opinionOf } = VB['sim/relations'];
@@ -361,6 +362,7 @@ VB['sim/lifecycle'] = (() => {
   }
   function roundPhase(st, n) {
     if (n < VILLAGE_STEPS) {
+      if (n === 0) chooseWishes(st); // each pawn comes to the round with its wish (sim/wishes, VB-680)
       villagesOfStep(st, n, (v) => villageRound(st, v));
       return;
     }
@@ -387,10 +389,9 @@ VB['sim/lifecycle'] = (() => {
     VB.count.roundWalk += st.living.length;
     if (v === 0) refreshRoles(st);
     fillStores(st, v);
-    // The played pawn's wish for a match (VB-274): false leaves it out of the round's matching; a pawn is checked before the matcher's loop.
-    const wishOf = st.player && st.pawns[st.player.pawn]?.alive ? st.player.wishes.match : null,
-      wisher = wishOf === null ? null : st.player.pawn;
-    const fed = (p) => p.hunger < HUNGER.marryBelow;
+    // A pawn's wish for a match (VB-274, VB-680): false leaves it out of the round's matching; a partner it names is found in the walk.
+    const wishers = [],
+      fed = (p) => p.hunger < HUNGER.marryBelow;
     // The pool, in one walk of the living: the village's men who may marry, the women of every village, and the other villages' men (for
     // the kin pressure); the widowed among them (balance review). The living's pushes are cleared at the first village's round.
     const men = [],
@@ -401,7 +402,9 @@ VB['sim/lifecycle'] = (() => {
       const p = st.pawns[id];
       if (v === 0) p.kinPush = null;
       p.age = age(st, p);
-      if (spouseOf(st, id) !== null || p.retired || !fed(p) || (wishOf === false && id === wisher)) continue;
+      const wish = p.wish ? wishOf(st, id, 'match') : null;
+      if (typeof wish === 'number') wishers.push([id, wish]);
+      if (spouseOf(st, id) !== null || p.retired || !fed(p) || wish === false) continue;
       if (p.age < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) continue;
       if (wasWidowed(st, id)) widowed.add(id);
       (p.sex === 'f' ? women : settlementIdOf(st, p) === v ? men : others).push(p);
@@ -411,32 +414,31 @@ VB['sim/lifecycle'] = (() => {
       { place, homeFor, affords } = rules;
     men.sort((x, y) => (place(y.id) !== null) - (place(x.id) !== null) || x.born - y.born);
     // A pawn in an open offer is not free to anyone, and counts as matched (VB-293): `taken` holds the matched women and the held.
-    const taken = new Set(),
-      played = st.player ? st.player.pawn : null;
+    const taken = new Set();
     for (const o of st.offers)
       if (o.basis === 'match') {
         taken.add(o.gives.man);
         taken.add(o.wants.woman);
       }
-    // A wished partner who passes the round's rules is the first match of the man's village, and an offer the played pawn has said yes to:
-    // no draw is made. The rounds of the villages before his hold the woman for it.
-    const wished = typeof wishOf === 'number' ? matchBar(st, wisher, wishOf, rules) : null,
-      wv = wished && wished.man ? settlementIdOf(st, wished.man) : null,
-      forced = wv === v ? wished : null;
-    if (wv !== null && wv > v) taken.add(wished.woman.id);
+    // A wished partner who passes the round's rules is a first match of the man's village, and an offer the wisher has said yes to: no
+    // draw is made. The rounds of the villages before his hold the woman for it.
+    const forcedBy = wishedMatches(st, wishers, v, rules, taken);
     const cu = practice(st, v),
       married = [],
       away = new Set(); // the homes in other villages the marriages chose
     let putOff = 0,
       housed = null;
-    for (const m of forced ? [forced.man, ...men.filter((x) => x !== forced.man)] : men) {
+    const first = [...forcedBy.values()].map((x) => x.man);
+    for (const m of first.length ? [...first, ...men.filter((x) => !forcedBy.has(x.id))] : men) {
       if (taken.has(m.id)) continue; // held by an open offer
       let best = null,
         bs = -Infinity;
       const pm = place(m.id),
-        isWish = forced !== null && m === forced.man;
+        wished = forcedBy.get(m.id),
+        isWish = !!wished;
       if (isWish) {
-        best = { f: forced.woman, home: forced.home };
+        if (taken.has(wished.woman.id)) continue;
+        best = { f: wished.woman, home: wished.home };
         bs = Infinity;
       }
       // With land residence and no place of his own, only women with a place can be candidates.
@@ -461,7 +463,7 @@ VB['sim/lifecycle'] = (() => {
       taken.add(best.f.id);
       // The match is an offer (VB-690's basis `match`; VB-293, VB-275), made by the man's spokesman to the woman's, which the two and their
       // spokesmen answer: an unplayed side answers by opinion at once; one that waits for the player is kept, the two held; a no closes
-      // it; all yes, the round marries them here. A wish is the played pawn's own yes.
+      // it; all yes, the round marries them here. A wish is the wisher's own yes.
       const r = issue(st, {
         actor: spokesmanOf(st, m.id),
         verb: 'offer',
@@ -470,7 +472,7 @@ VB['sim/lifecycle'] = (() => {
           basis: 'match',
           gives: { man: m.id, home: best.home },
           wants: { woman: best.f.id },
-          given: isWish ? ['man', 'woman'].filter((k) => (k === 'man' ? m.id : best.f.id) === played) : [],
+          given: isWish ? ['man', 'woman'].filter((k) => (k === 'man' ? m.id : best.f.id) === wished.wisher) : [],
         },
         source: 'round',
       });
