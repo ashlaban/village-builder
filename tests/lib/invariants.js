@@ -268,12 +268,20 @@ function checkState(st) {
       && P.shortNext >= F.shortAt && P.shortNext <= P.shortEnd && P.longNext >= F.longAt &&
         P.longNext <= P.longEnd))) bad.push(`recordFold: ${JSON.stringify(F)}`);
   }
-  // the stand-in traits (VB-254): every living pawn has the five, each in [0, 1); none keeps VB-249's diligence beside them
-  const NAMES = globalThis.VB['sim/traits'].NAMES;
-  for (const id of st.living) {
-    const t = st.pawns[id].traits;
-    if (!Array.isArray(t) || t.length !== NAMES.length || !t.every((x) => x >= 0 && x < 1) || 'diligence' in st.pawns[id])
-      bad.push(`pawn ${id}: traits ${JSON.stringify(t)}`);
+  // the twelve traits (VB-519): every pawn, living or dead, has the twelve, each finite within TRAITS.bounds; none keeps VB-249's diligence
+  // beside them. Its hungry days: a whole number for a child, null once its values have set (tests/traits.js checks when)
+  const TR = globalThis.VB['sim/rules'].TRAITS, [lo, hi] = TR.bounds;
+  for (const p of st.pawns) {
+    const t = p.traits;
+    if (!Array.isArray(t) || t.length !== TR.names.length || !t.every((x) => Number.isFinite(x) && x >= lo && x <= hi) || 'diligence' in p)
+      bad.push(`pawn ${p.id}: traits ${JSON.stringify(t)}`);
+    if (!(p.leanDays === null || (Number.isInteger(p.leanDays) && p.leanDays >= 0))) bad.push(`pawn ${p.id}: leanDays ${p.leanDays}`);
+  }
+  // a culture's values (VB-519): the four means, each within the bounds
+  if (st.cenv) for (const c of st.cenv.cultures) {
+    const v = c.values;
+    if (!v || Object.keys(v).join() !== TR.names.slice(0, 4).join() || !Object.values(v).every((x) => Number.isFinite(x) && x >= lo && x <= hi))
+      bad.push(`culture ${c.id}: values ${JSON.stringify(v)}`);
   }
   // a pawn's events (VB-199), those added since the last check: positions in the record, each its own event or one folded since
   for (const p of st.pawns) {

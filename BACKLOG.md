@@ -67,7 +67,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-561](backlog/VB-561.md) | Talk indoors: a pawn inside another house is not at home | talk | 3 | S | The house kind of sim/encounters, and pawn.homeHours, read agent.inside, which does not say which house: a pawn indoors at another house (moved at night, waiting for its journey's first leg, VB-287) counts as inside its own, so its housemates may draw it and its hours at home grow |
 | [VB-571](backlog/VB-571.md) | Foresight's hunger, by a measure one household cannot swing | year | 3 | M | VB-485's hungry household-days over four seeds move by 20 to 50% between versions that differ only in a head's targets; measure on more seeds and by household-years before tuning foresight |
 | [VB-596](backlog/VB-596.md) | Refactor: split page/farmart by concern | - | 3 | S | page/farmart is 958 formatted lines (VB-410 added the cart art, 57) over its baseline of 901; split it |
-| [VB-611](backlog/VB-611.md) | Teleport: a load lies where its carrier fell | physical | 3 | M | A hand who dies on the road, or whose household dissolves, with a load on its way home: the load is booked at its barn from the road (release in sim/agents). |
 | [VB-616](backlog/VB-616.md) | The led cow is drawn once, not also in the giver's herd | animals | 3 | S | Until ledHome moves the animal, the herd still draws it besides the one led |
 | [VB-626](backlog/VB-626.md) | Measure why water goes unfetched after VB-331 | - | 3 | S | the numbers VB-331 left: why the water job went undone, meals uncooked, deaths |
 
@@ -84,6 +83,8 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | [VB-331](backlog/VB-331.md) | A day without water: no cooking and a little health | - | 3 | S | A household that fetched no water that day cannot cook and its members lose a little health, as with an empty woodpile; today the water job is read by nothing. |
 | [VB-432](backlog/VB-432.md) | A village's round clears only the memos a marriage touches | between | 3 | S | Rankings in the moving round rose four- to eightfold with VB-277; clear only the heirs' memos a marriage or handover touches. |
 | [VB-453](backlog/VB-453.md) | A job's urgency is worked out once a round, not once a bid | - | 3 | S | planRound and lookUp score each job for each idle pawn (about 3,000 bids a game day on populous tiny), and half of a score's time is the job's urgency, which does not depend on the pawn. |
+| [VB-649](backlog/VB-649.md) | Teleport: a cart and its team are home when their carrier is not | physical | 3 | S | A teleport found by VB-611: release (sim/agents) frees the cart a carrier had out at once (Carts.leave), so a cart left on the road with a dead carrier, and its ox team, are free at the farm the same step. |
+| [VB-650](backlog/VB-650.md) | Teleport: a household that dies out leaves its barn to no one | physical | 3 | M | A vanish found by VB-611: sim/heirs extinct closes the household's stores (Stores.close) and nothing passes its grain, hay, wood or other goods on (but for the married-away case, which moves the grain to another barn at once); may overlap the 13 November audit's handing on. |
 
 ## Blocked
 

@@ -9,7 +9,7 @@ VB['sim/lifecycle'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const Culture = VB['culture'];
   const { landMeeting } = VB['sim/territory'];
-  const { DAY, YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE, SOCIAL } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS, YEAR, cal, HUNGER, MARRIAGE, SOCIAL, TRAITS } = VB['sim/rules'];
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved } = VB['sim/stores'];
   const { deathRoll, CAUSES, COLD } = VB['sim/deaths'];
@@ -37,6 +37,7 @@ VB['sim/lifecycle'] = (() => {
   } = VB['sim/records'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { startInLife } = VB['sim/exchange'];
+  const { setAtAge } = VB['sim/traits'];
   const { stillAtDeath, travelling, tileAt, journeyOf, placeOf } = VB['sim/agents'];
   const { heirRanking, moveTo, transfer, succession, comeOfAge, refreshRoles, countDemand, handOn, heirFor } =
     VB['sim/heirs'];
@@ -637,6 +638,7 @@ VB['sim/lifecycle'] = (() => {
     for (const id of st.living) {
       const p = st.pawns[id];
       p.age = age(st, p);
+      if (typeof p.leanDays === 'number' && p.age >= TRAITS.setAge) setAtAge(st, id); // its values set for good (sim/traits, VB-519)
     }
     comeOfAge(st);
     wardsOfAge(st); // a ward of 18 goes back to the farm held in trust for it (sim/trust, VB-309)
