@@ -37,5 +37,13 @@ assert(farming && farming.farming.reaped.fields > 0 && farming.farming.threshed.
 const one = require('../tools/hours.js')(VB, Sim.seed(world(), 7, 'founders'), { household: 0 });
 one.advanceYear();
 assert(one.result().years.length === 1, 'one household\'s table');
+
+// 3. Who waits to marry (VB-633, tools/waiting.js; its cases are tests/waiting.js): its --help, and tools/sim.js knows the report
+{
+  const cp = require('child_process'), help = (f) =>
+    cp.execFileSync('node', [require('path').join(__dirname, '..', 'tools', f), '--help'], { encoding: 'utf8' });
+  assert.ok(/--report waiting/.test(help('waiting.js')) && /hungry/.test(help('waiting.js')), 'tools/waiting.js answers --help');
+  assert.ok(/--report waiting/.test(help('sim.js')) && /\|waiting/.test(help('sim.js')), 'tools/sim.js lists the waiting report');
+}
 console.log(`review tools ok: ${fields.size} @state fields, ${Stocks.QUANTITIES.length} quantities; read by nothing: ${[...rows.values()]
   .filter((x) => x.mark === 'read by nothing').map((x) => x.id).join(', ')}; the hours report leaves the run as it was`);

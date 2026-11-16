@@ -74,7 +74,7 @@ async function main(args = process.argv.slice(2)) {
   }));
   const bands = runs.flatMap((run) => judgeRun(run).map((j) => ({ ...j, run: run.name, seed: run.seed })));
   console.log('\nbands (reported, never failing):');
-  for (const j of bands) console.log(j.kind === 'described' ? `      ${j.id} seed ${j.seed}: ${B.fmt(j.value)} (described)`
+  for (const j of bands) console.log(j.kind === 'described' ? `      ${j.id} seed ${j.seed}: ${B.fmt(j.value)} (described${j.note ? `; ${j.note}` : ''})`
     : `  ${j.ok ? 'in ' : 'OUT'} ${j.id} seed ${j.seed}: ${B.fmt(j.value)} (band ${B.fmt(j.lo)}..${B.fmt(j.hi)})`);
   const cpus = os.cpus(), entry = { schema: 1, date: new Date().toISOString(), commit, dirty: git(['status', '--porcelain']) !== '',
     node: process.version, cpu: { model: cpus[0]?.model || 'unknown', cores: cpus.length }, minutes: +((Date.now() - t0) / 60000).toFixed(1),
@@ -82,7 +82,7 @@ async function main(args = process.argv.slice(2)) {
     runs: runs.map((r) => ({ name: r.name, scenario: r.scenario, map: r.map, seed: r.seed, years: r.years,
       ...(r.result.error ? { error: r.result.error } : { secs: +r.result.secs.toFixed(1), ...r.summary }) })),
     bands: bands.map((j) => ({ id: j.id, seed: j.seed, value: Number.isFinite(j.value) ? +j.value.toFixed(4) : String(j.value),
-      ...(j.kind === 'described' ? {} : { ok: j.ok }) })) };
+      ...(j.note ? { note: j.note } : {}), ...(j.kind === 'described' ? {} : { ok: j.ok }) })) };
   // target records (docs/gates.md, row 22; VB-265): one per band and run, the mean over the seeds against the band's range, its noise
   // the standard error over the seeds (a residual within twice that is `noise`), the seeds' own values kept in the record
   const groups = new Map();
