@@ -455,6 +455,8 @@ VB['sim/scenarios'] = (() => {
     //   its lookups are hooks(st) (sim/society)
     // @state culture.namePrefs: {farm: [generator names of sim/names, preferred first]}; a culture's preference among farm names: weights, the first heaviest
     // @state culture.practices: {noDecision: 'nothing' | 'asLastYear'}; the culture's practices that are not customs (culture.js PRACTICES; VB-257)
+    // @state culture.values: {generosity, piety, ambition, honour}; the means of its living adults' values (VB-519), each to a thousandth,
+    //   reckoned at its yearly reckoning and at a split (culture.js, through sim/traits' addValues); an archetype's at the start
     const st = {
       t: 6,
       tick: 6 * TICKS,

@@ -888,6 +888,28 @@ VB['sim/rules'] = (() => {
       fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
     },
   };
+  // ---- the twelve traits (VB-519; design.md, People, Traits, talk and stories; Customs and culture, A culture's values) ----
+  // A pawn's traits, in the order of `names`: four values, four of temperament, four aptitudes. Every trait passes on by one equation,
+  // mean + b × (the two parents' mean − mean) + a normal chance of spread sd × √(1 − b²/2), so its spread stays `sd` from one generation to
+  // the next; within `bounds`. b: the share of the parents' departure from the mean a child keeps (twin studies, 0.4 to 0.5, for
+  // temperament; values from those who raised it and from the many, Cavalli-Sforza and Feldman 1981). setAge: the age its values set for
+  // good. lean: a hungry childhood (stunting) takes up to `body` from body and `wits` from wits, in proportion to the days of `days` the
+  // child went hungry (its hunger at `hunger` or more). label: the reference distribution's 15th and 85th percentiles, beyond which a
+  // trait is named. culture: the means of the four values an archetype's culture starts with (Old Nordic: a culture of one's word).
+  const TRAITS = Object.freeze({
+    names: Object.freeze([
+      ...['generosity', 'piety', 'ambition', 'honour'],
+      ...['sociability', 'temper', 'diligence', 'openness'],
+      ...['body', 'hands', 'husbandry', 'wits'],
+    ]),
+    sd: 0.15,
+    b: Object.freeze({ values: 0.6, temperament: 0.45, aptitudes: 0.5 }),
+    setAge: 15,
+    lean: Object.freeze({ body: 0.2, wits: 0.1, days: 96, hunger: 0.5 }),
+    bounds: Object.freeze([0.02, 0.98]),
+    label: Object.freeze({ low: 0.345, high: 0.655 }),
+    culture: Object.freeze({ oldNordic: Object.freeze({ generosity: 0.5, piety: 0.5, ambition: 0.5, honour: 0.6 }) }),
+  });
   // ---- a well-kept house (VB-306; design.md, Goods of place and side crafts: A well-kept house) ----
   // A farmstead's condition 0..1 (f.condition) is the value at f.condAt (game hours; 0 when never set) for an occupied house, and it wears
   // by closed form from then (rule 3: no daily pass), 0.1 a year, 0.067 while tarred (f.tarredUntil, game hours: a barrel lasts 6 years;
@@ -924,6 +946,7 @@ VB['sim/rules'] = (() => {
     ((onStone(f) ? HOUSE.termStone : HOUSE.term) + (houseTarred(st, f) ? HOUSE.termTarred - HOUSE.term : 0)) *
     houseCondition(st, f);
   return {
+    TRAITS,
     DAY,
     SEASON_DAYS,
     YEAR_DAYS,

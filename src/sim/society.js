@@ -4,7 +4,8 @@ VB['sim/society'] = (() => {
   const { issue } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
-  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal } = VB['sim/rules'];
+  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal, TRAITS } = VB['sim/rules'];
+  const { addValues } = VB['sim/traits'];
   const { hexSteps } = VB['sim/hex'];
   const { hoursBetween } = VB['sim/routes'];
   const {
@@ -38,6 +39,7 @@ VB['sim/society'] = (() => {
       decide: (s, dim, option) =>
         issue(st, { actor: { settlement: s.id }, verb: 'decide', args: { dim, option }, source: 'meeting' }) === true,
       membersOf: (s) => membersOf(st, s.id),
+      addValues, // a culture's values, the mean of its living adults' (sim/traits, VB-519)
       nameCulture: (s) => `${s.name.replace(/(by|sta|vik|nes|inge|berga|tuna|säter)$/, '') || s.name}folk`,
       onSplit: (nc, from) =>
         log(
@@ -51,7 +53,7 @@ VB['sim/society'] = (() => {
     const env = (st.cenv = { t: st.t / YEAR, cultures: [], settlements: [], people: st.pawns, driftMul: 1 });
     const customs = Culture.fromArchetype('oldNordic');
     for (const [key, opt] of Object.entries(overrides)) customs[Culture.IDX[key]] = Culture.optIndex(key, opt);
-    const c = Culture.makeCulture(env, 'Nordic', customs, 0);
+    const c = Culture.makeCulture(env, 'Nordic', customs, 0, null, TRAITS.culture.oldNordic);
     for (const v of st.villages) addSettlement(st, v, c.id, customs, v.id === 0 ? 1 : 0.5);
     for (const p of st.pawns) {
       p.alive = p.died === null;
