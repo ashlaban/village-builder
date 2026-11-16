@@ -60,6 +60,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-849](backlog/VB-849.md) | Help is carried: the village store's yearly filling is carried to the green at the moving round | physical | 2 | S | fillStores' quarter goes into the village store with no carrier; carry it to the green, a load a trip |
 | [VB-850](backlog/VB-850.md) | Nothing vanishes: a gift's grain on the back of a carrier or fetcher who dies on the road is laid down where he fell | physical | 2 | S | a carrier (VB-291) or fetcher (VB-461) who dies on the road loses the grain on his back; lay it down as a lying load (sim/lying) for its owner to fetch |
 | [VB-861](backlog/VB-861.md) | Offers settle goods through VB-461's custody | physical | 2 | S | A yes of a gift or an ask sets the goods aside where they lie and posts the fetch or carry, through VB-461's custody |
+| [VB-865](backlog/VB-865.md) | Page: the head's target on each made good in the plan panel | - | 2 | S | Show Sim.headView(...).goods as store meters with the target, and set or clear one through Sim.head(st, 'target') |
 | [VB-872](backlog/VB-872.md) | Tests: a small island generated once per seed in tests/lib/probe.js | - | 2 | S | offers and other probe scripts spend most of their time generating the same small island again |
 | [VB-043](backlog/VB-043.md) | One scope model: a membership graph of entities | debt | 3 | M | The membership graph of typed edges, with scopes on it; as Membership's truth if Kim adopts it (measured 0.55 ms at year 12). |
 | [VB-188](backlog/VB-188.md) | Plan: the ship: the outside world, silver, institutions and disease (slice 8) | ship | 3 | S | Design ships, silver, the Church and the Crown, rank, tithe and tax, and disease by sea. |
@@ -121,7 +122,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-865](backlog/VB-865.md) | Page: the head's target on each made good in the plan panel | page | 2 | S | Show Sim.headView(...).goods as store meters with the target, and set or clear one through Sim.head(st, 'target') |
 | [VB-722](backlog/VB-722.md) | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 
 ## Blocked
@@ -154,6 +154,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-298](backlog/VB-298.md) | Marriages between villages are made at the gathering | fair | 3 | S | VB-295, VB-288, VB-289 | The matcher pairs pawns of different villages only if both were at one gathering within 3 years; reported: marriages across villages. |
 | [VB-303](backlog/VB-303.md) | The gathering and the fair in the page: packing, the green, the report | fair | 3 | M | VB-302 | Loads and carts on the paths, the green full for three days, a gathering report in the log, and the player's doors: go or stay, propose a swap, a voice in a border case. |
 | [VB-304](backlog/VB-304.md) | Wrap-up: the gathering and the fair | fair | 3 | S | VB-276, VB-296, VB-297, VB-298, VB-303 | Long runs of the slice as a whole: districts and hosts, marriages across villages, borders settled, what the fair moved and what failed for want of change; bands and tuning. |
+| [VB-866](backlog/VB-866.md) | Quern stones beyond a household's own: a store of loose stones, so a quern target above 1 makes querns to exchange | fair | 3 | S | VB-699 | sim/targets bounds the quern at its own; a loose stone needs a store, its invariants and stocks line |
 | [VB-314](backlog/VB-314.md) | The alderman: chosen at the meeting, presides, the village's agent | debt | 2 | S | VB-313 | The village's first office: chosen by a new practice, casts the deciding voice, books the village store's help to himself. |
 | [VB-034](backlog/VB-034.md) | Splitting land between heirs | debt | 3 | M | VB-310, VB-311 | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. |
 | [VB-035](backlog/VB-035.md) | Wrap-up: debt and land | debt | 3 | S | VB-034, VB-044, VB-082, VB-092, VB-095, VB-320, VB-321 | Slice 5's probes at four seeds (land Gini, tenancy share, landed per 1,000, elite turnover) against bands, with the expansion and claims wrap-ups merged in. |
