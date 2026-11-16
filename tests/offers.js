@@ -22,10 +22,14 @@ function scene(before = () => {}) {
   roll(st, () => Sim.movingRound(st));
   return { st, mark };
 }
-// The round with no player: its first marriage is a son of the house (his father speaks for him) and a woman who speaks for herself, and
-// the farm passes to him at the marriage (the handover custom 'marriage').
-const plain = scene(), wed = told(plain.st, plain.mark, 'married')[0];
-const man = wed.pawn, woman = wed.other, home = wed.household, head = Sim.seed(world(54), 54, 'populous').households[home].holder;
+// The round with no player: its first marriage of a son of the house (his father speaks for him) and a woman who speaks for herself, and
+// the farm passes to him at the marriage (the handover custom 'marriage'). The first such, not the round's first marriage: since the
+// villages' order turns by the year (VB-280), which village asks first depends on the year, so the scene is found, not assumed.
+const plain = scene(), start = Sim.seed(world(54), 54, 'populous');
+const wed = told(plain.st, plain.mark, 'married').find((e) => R.spokesmanOf(start, e.other) === e.other
+  && start.households[e.household].holder !== e.pawn && R.spokesmanOf(start, e.pawn) === start.households[e.household].holder);
+assert.ok(wed, 'the scene: a marriage in the round with a bride who speaks for herself');
+const man = wed.pawn, woman = wed.other, home = wed.household, head = start.households[home].holder;
 assert.ok(man !== undefined && head !== man && plain.st.households[home].holder === man, 'the scene: a son marries and takes over the farm');
 assert.deepStrictEqual(plain.st.offers, [], 'no player, no offer stored');
 assert.strictEqual(plain.st.offerSeq, 0);
@@ -77,7 +81,7 @@ const offered = () => {
   sound(st, 'an offer accepted');
 }
 
-// 4. No leaves both unmarried and logs the refusal; the father, whose match it was, thinks less of his son by 0.2.
+// 4. No leaves both unmarried and logs the refusal; the father, whose match it was, thinks less of his son by 0.2, as his honour feels it (VB-520).
 {
   const { st, o } = offered(), was = opinionOf(st, head, man);
   assert.strictEqual(Sim.answer(st, o.id, false), true);
@@ -85,7 +89,9 @@ const offered = () => {
   const ev = told(st, 0, 'matchRefused');
   assert.ok(ev.length === 1 && ev[0].pawn === man && ev[0].other === woman && ev[0].text.startsWith(Sim.fullName(st.pawns[man])),
     'the refusal names who refused');
-  assert.ok(Math.abs(opinionOf(st, head, man) - (was - 0.2)) < 1e-9, `the head's opinion falls by 0.2 (${was} to ${opinionOf(st, head, man)})`);
+  // a breach, felt by the head's honour (VB-520: TRAITS.acts.honour.breach, 0.5 to 1.5 times the memory's -0.2)
+  const fall = 0.2 * VB['sim/traits'].act(st, head, 'honour', 'breach');
+  assert.ok(Math.abs(opinionOf(st, head, man) - (was - fall)) < 1e-9, `the head's opinion falls by 0.2 times his honour's (${fall}; ${was} to ${opinionOf(st, head, man)})`);
   assert.strictEqual(st.households[home].holder, head, 'no marriage, no handover');
   assert.deepStrictEqual(st.offers, []);
   assert.ok(/no open offer/.test(Sim.answer(st, o.id, true)), 'a closed offer takes no answer');
@@ -157,7 +163,7 @@ const offered = () => {
   assert.ok(!stop || stop.why !== 'offer', 'an offer open at the start does not stop the skip');
 }
 console.log(`offers ok: no player stores none; a played man's match waits, holds the woman, and yes, no and silence close it (the handover`
-  + ' following); the head answers for a son; refusing a head\'s match costs 0.2 of its opinion; a death lapses it; saved and loaded; a skip stops on it');
+  + ' following); the head answers for a son; refusing a head\'s match costs 0.2 of its opinion, times its honour\'s; a death lapses it; saved and loaded; a skip stops on it');
 
 // 10. Opinion in the negotiation (VB-275): the score, the young's no and the spokesmen's no, with opinions set through relations' remember.
 // Enmity: two kinds of memory that together pass SOCIAL.enemy (claim -0.45 and border -0.3 at most).
@@ -210,23 +216,27 @@ console.log(`offers ok: no player stores none; a played man's match waits, holds
 }
 
 // 11. Each village holds its own round, a village a step (VB-277): the offer is made in the round of the man's village, and the woman it
-// holds is not chosen by a man of a later village the same day. Populous tiny at seed 61: man 8 of village 0 marries woman 24; with him
-// left out (his wish: not this year), man 32 of village 1 marries her; with him played, his offer holds her, and she stays unmarried.
+// holds is not chosen by a man of a later village the same day. Since the order turns by the year (VB-280: village year mod villages asks
+// first), at populous tiny, seed 61, year 1, four villages, village 1 asks first and village 0 last: man 32 of village 1 marries woman 24;
+// with him left out (his wish: not this year), man 8 of village 0 marries her; with him played, his offer holds her, and she stays
+// unmarried. (Before VB-280 the scene was its mirror: man 8 of village 0 asked first, man 32 of village 1 later.)
 {
-  const S = 61, M = 8, W = 24, LATER = 32;
+  const S = 61, M = 32, W = 24, LATER = 8;
   const round = (before) => {
     const st = Sim.seed(world(S), S, 'populous'); st.naturalDeaths = false;
     for (const h of st.households) h.grain.barley += 5000;
     before(st); roll(st, () => Sim.movingRound(st)); return st;
   };
   const base = Sim.seed(world(S), S, 'populous'), villageOf = (id) => R.settlementIdOf(base, base.pawns[id]);
-  assert.deepStrictEqual([villageOf(M), villageOf(LATER)], [0, 1], 'the scene: a man of village 0 and one of village 1');
-  assert.strictEqual(R.spouseOf(round(() => {}), M), W, 'the scene: the round marries the man of village 0 to her');
+  const n = base.villages.length, first = Sim.cal(base.t).year % n;
+  assert.deepStrictEqual([n, first, villageOf(M), villageOf(LATER)], [4, 1, 1, 0],
+    'the scene: a man of village 1, which asks first this year, and one of village 0, which asks last');
+  assert.strictEqual(R.spouseOf(round(() => {}), M), W, 'the scene: the round marries the man of village 1 to her');
   assert.strictEqual(R.spouseOf(round((st) => { Sim.inhabit(st, M); Sim.wish(st, 'match', false); }), W), LATER,
-    'the scene: without him, the man of village 1 marries her');
+    'the scene: without him, the man of village 0 marries her');
   const st = round((st) => Sim.inhabit(st, M));
-  assert.deepStrictEqual(st.offers.map((o) => [o.man, o.woman, o.village]), [[M, W, 0]], 'the offer is made at village 0\'s round');
-  assert.strictEqual(R.spouseOf(st, W), null, 'and the woman it holds is not chosen by the man of village 1 the same day');
+  assert.deepStrictEqual(st.offers.map((o) => [o.man, o.woman, o.village]), [[M, W, 1]], 'the offer is made at village 1\'s round');
+  assert.strictEqual(R.spouseOf(st, W), null, 'and the woman it holds is not chosen by the man of village 0 the same day');
   sound(st, 'an offer held across the villages\' rounds');
 }
-console.log('offers ok: an offer made at village 0\'s round holds the woman from village 1\'s (VB-277)');
+console.log('offers ok: an offer made at the round of the village that asks first holds the woman from a later village\'s (VB-277, VB-280)');
