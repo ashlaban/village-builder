@@ -1,0 +1,144 @@
+<!doctype html>
+<!-- Mock, second round (16 Nov 2026, after VB-664): the supply component as a runway. Throwaway: the numbers are invented, nothing here is
+     game code. The bar's axis is time, a year and a half ahead from today, so every supply is on one scale and "projected to when" has an
+     answer: how long the store lasts. Spoilage shortens both the store's run and the run with what is still to be laid in. A supply that
+     lasts past the bar's end fills it and is marked safe. The numbers are behind a button (the Firewood row is shown opened).
+     What is ahead is the head's estimate (principle 14), so it has a range. -->
+<html lang="en">
+<meta charset="utf-8">
+<title>Supply component: the runway, three variations</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14); --accent: #23685a; --good: #2f7a4b; --bad: #a8432f; --gold: #b3862c;
+    --panel: #eef5f2; --track: rgba(23, 49, 58, 0.13); }
+  body { margin: 0; padding: 28px; background: #6f9a7c; font: 15px/1.4 'Alegreya Sans', 'Gill Sans', system-ui, sans-serif; color: var(--ink); }
+  .wrap { display: grid; grid-template-columns: repeat(3, 450px); gap: 24px; align-items: start; }
+  .card { background: var(--panel); border-radius: 16px; padding: 16px 18px 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
+  h1 { margin: 0 0 2px; font: italic 700 22px/1.2 'Alegreya', Georgia, serif; }
+  .sub { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; min-height: 57px; }
+  .whose { margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+  .row, .axis { display: grid; grid-template-columns: 22px 62px 1fr 92px 26px; gap: 7px; align-items: center; }
+  .row { min-height: 42px; }
+  svg.ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; color: var(--accent); }
+  .name { color: var(--muted); font-size: 13px; }
+  .state { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .state.safe { color: var(--good); } .state.warn { color: var(--gold); } .state.bad { color: var(--bad); }
+  .state svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .more { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--edge); background: #fbfdfc; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
+  .more svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .more.open { background: var(--accent); color: #f2f8f6; border-color: transparent; }
+  svg.bar { width: 100%; display: block; overflow: visible; }
+  .axis { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .axis .ax { display: flex; width: 100%; padding-right: 10px; box-sizing: border-box; } .axis b { flex: 1 1 0; min-width: 0; text-align: center; font-weight: 500; font-size: 10.5px; }
+  .axis b:nth-child(n + 5) { opacity: 0.65; }
+  .nums { margin: 0 0 8px 29px; padding: 8px 10px; border-radius: 10px; background: rgba(23, 49, 58, 0.06); font-size: 13px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
+  .nums span:nth-child(odd) { color: var(--muted); } .nums span:nth-child(even) { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+  .key { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; padding-top: 9px; border-top: 1px solid var(--edge); font-size: 12.5px; color: var(--muted); }
+  .key span { display: inline-flex; align-items: center; gap: 5px; } .key svg { width: 26px; height: 10px; overflow: visible; }
+  .note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+</style>
+<body>
+<div class="wrap" id="wrap"></div>
+<script>
+// Time in seasons from today (0) to the bar's end (6: a year and a half). own0: how long the store would last if nothing spoilt; own: how
+// long it lasts. in: [from, to], when the head expects to lay more in. with: [low, centre, high], how long it lasts with that, spoilage
+// taken off; lost: the time spoilage takes off that run. idle: seasons with no need of it (hay out of winter).
+const SEASONS = ['Spr', 'Sum', 'Aut', 'Win', 'Spr', 'Sum'];
+const ROWS = [
+  { name: 'Food', own0: 4.9, own: 4.4, in: [2.5, 2.9], with: [5.0, 5.6, 6.3], lost: 0.5, idle: [], state: ['warn', 'to next summer'], comes: 'the harvest',
+    icon: '<path d="M4 11h16a8 8 0 0 1-16 0zM9 19.5V21h6v-1.5M12 3v5M8.5 5v3M15.5 5v3"/>' },
+  { name: 'Firewood', own0: 3.3, own: 3.3, in: [1.2, 3.0], with: [5.2, 6.6, 7], lost: 0, idle: [], state: ['safe', 'safe'], comes: 'cutting',
+    icon: '<circle cx="7" cy="16" r="3.5"/><circle cx="17" cy="16" r="3.5"/><circle cx="12" cy="8.5" r="3.5"/>' },
+  { name: 'Hay', own0: 3.35, own: 3.3, in: [1.3, 1.7], with: [3.6, 3.85, 6.5], lost: 0.1, idle: [0, 1, 2, 4, 5], state: ['bad', 'short in winter'], comes: 'haymaking',
+    icon: '<path d="M4 20c0-8 3-14 8-14s8 6 8 14zM9 20c0-4 1-7 3-9"/>' },
+];
+const N = 6, W = 216, x = (t) => (Math.min(N, Math.max(0, t)) / N) * W;
+const defs = `<defs>
+  <pattern id="spoil" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#eef5f2"/><rect width="2.4" height="5" fill="#a8432f"/></pattern>
+  <pattern id="come" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="6" height="6" fill="#dfeae6"/><rect width="2.2" height="6" fill="#23685a" opacity=".75"/></pattern>
+  <pattern id="idle" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".8" fill="#526d75" opacity=".45"/></pattern>
+</defs>`;
+const grid = (y0, h) => [1, 2, 3, 4, 5].map((t) => `<line x1="${x(t)}" x2="${x(t)}" y1="${y0 - 2}" y2="${y0 + h + 2}" stroke="#eef5f2" stroke-width="1.5"/>`).join('');
+// when more is laid in: a bracket over its days, with an arrow into the bar
+const comes = (r, y) => `<path d="M${x(r.in[0])} ${y}v-4H${x(r.in[1])}v4" fill="none" stroke="#17313a" stroke-width="1.3"/><path d="M${(x(r.in[0]) + x(r.in[1])) / 2 - 3.5} ${y - 9}h7l-3.5 4.500z" fill="#17313a"><title>${r.comes}</title></path>`;
+const safeCap = (y, h) => `<path d="M${W - 1} ${y}l7 ${h / 2}-7 ${h / 2}z" fill="#2f7a4b"/>`;
+
+// A: one bar. Solid: how long the store lasts. Striped beyond it: how long it lasts with what is still to come. Red hatch at the end of
+// each: the time spoilage takes off. The whisker: how sure the head is.
+function barA(r) {
+  const h = 11, mid = r.with[1], safe = mid >= N;
+  return `<svg class="bar" viewBox="-2 -12 ${W + 12} 36" height="36">${defs}
+    <rect x="0" y="0" width="${W}" height="${h}" rx="5.500" fill="var(--track)"/>
+    <rect x="0" y="0" width="${x(mid)}" height="${h}" rx="5.500" fill="url(#come)"/>
+    ${r.lost && mid < N ? `<rect x="${x(mid)}" y="0" width="${x(r.lost)}" height="${h}" fill="url(#spoil)" opacity=".8"/>` : ''}
+    <rect x="0" y="0" width="${x(r.own)}" height="${h}" rx="5.500" fill="${safe ? '#2f7a4b' : '#23685a'}"/>
+    ${r.own0 > r.own ? `<rect x="${x(r.own)}" y="0" width="${x(r.own0 - r.own)}" height="${h}" fill="url(#spoil)"/>` : ''}
+    ${r.idle.map((k) => `<rect x="${x(k)}" y="0" width="${W / N}" height="${h}" fill="#eef5f2" opacity=".55"/><rect x="${x(k)}" y="0" width="${W / N}" height="${h}" fill="url(#idle)"/>`).join('')}
+    ${grid(0, h)}${safe ? safeCap(0, h) : ''}
+    <line x1="${x(r.with[0])}" x2="${x(r.with[2])}" y1="${h + 6}" y2="${h + 6}" stroke="#23685a" stroke-width="1.5"/>
+    <circle cx="${x(mid)}" cy="${h + 6}" r="2.600" fill="#23685a"/>${comes(r, -2)}</svg>`;
+}
+// B: two lanes. Above: on the store alone. Below: with what is still to come, as a band over the head's range.
+function barB(r) {
+  const h = 8, mid = r.with[1], safe = mid >= N, y2 = 13;
+  const idle = (y) => r.idle.map((k) => `<rect x="${x(k)}" y="${y}" width="${W / N}" height="${h}" fill="#eef5f2" opacity=".55"/><rect x="${x(k)}" y="${y}" width="${W / N}" height="${h}" fill="url(#idle)"/>`).join('');
+  return `<svg class="bar" viewBox="-2 -12 ${W + 12} 36" height="36">${defs}
+    <rect x="0" y="0" width="${W}" height="${h}" rx="4" fill="var(--track)"/>
+    <rect x="0" y="0" width="${x(r.own)}" height="${h}" rx="4" fill="#23685a"/>
+    ${r.own0 > r.own ? `<rect x="${x(r.own)}" y="0" width="${x(r.own0 - r.own)}" height="${h}" fill="url(#spoil)"/>` : ''}${idle(0)}
+    <rect x="0" y="${y2}" width="${W}" height="${h}" rx="4" fill="var(--track)"/>
+    <rect x="0" y="${y2}" width="${x(r.with[0])}" height="${h}" rx="4" fill="url(#come)"/>
+    <rect x="${x(r.with[0])}" y="${y2}" width="${x(r.with[2]) - x(r.with[0])}" height="${h}" fill="#23685a" opacity=".22"/>
+    ${r.lost && mid < N ? `<rect x="${x(mid)}" y="${y2}" width="${Math.min(x(r.lost), W - x(mid))}" height="${h}" fill="url(#spoil)" opacity=".8"/>` : ''}
+    <line x1="${x(mid)}" x2="${x(mid)}" y1="${y2 - 2}" y2="${y2 + h + 2}" stroke="#17313a" stroke-width="2"/>${idle(y2)}
+    ${grid(0, y2 + h)}${safe ? safeCap(y2, h) : ''}${comes(r, -2)}</svg>`;
+}
+// C: season by season. One cell a season: how much of that season's need is covered. Solid from the store, striped from what is still to
+// come, red hatch what spoils, an empty red cell what is not covered, a dotted cell a season with no need.
+function barC(r) {
+  const cw = W / N - 4, h = 18, mid = r.with[1], cells = [];
+  for (let k = 0; k < N; k++) {
+    const x0 = x(k) + 2, part = (t) => Math.max(0, Math.min(1, t - k));
+    if (r.idle.includes(k)) { cells.push(`<rect x="${x0}" y="0" width="${cw}" height="${h}" rx="4" fill="url(#idle)" stroke="#526d75" stroke-opacity=".3"/>`); continue; }
+    const own = part(r.own), sp = part(r.own0) - own, all = Math.max(own + sp, part(mid)), lost = mid < N ? part(mid + r.lost) - part(mid) : 0, lo = part(r.with[0]);
+    const short = all + lost < 0.98;
+    cells.push(`<rect x="${x0}" y="0" width="${cw}" height="${h}" rx="4" fill="${short ? '#f6e4de' : 'var(--track)'}" stroke="${short ? '#a8432f' : 'none'}" stroke-width="1.3"/>
+      <rect x="${x0}" y="0" width="${cw * all}" height="${h}" rx="4" fill="url(#come)"/>
+      <rect x="${x0 + cw * all}" y="0" width="${cw * lost}" height="${h}" fill="url(#spoil)" opacity=".8"/>
+      <rect x="${x0}" y="0" width="${cw * own}" height="${h}" rx="4" fill="#23685a"/>
+      <rect x="${x0 + cw * own}" y="0" width="${cw * sp}" height="${h}" fill="url(#spoil)"/>
+      ${lo < all && all > own ? `<line x1="${x0 + cw * lo}" x2="${x0 + cw * all}" y1="${h + 4}" y2="${h + 4}" stroke="#23685a" stroke-width="1.5"/>` : ''}`);
+  }
+  return `<svg class="bar" viewBox="-2 -12 ${W + 12} 36" height="36">${defs}${cells.join('')}${comes(r, -2)}</svg>`;
+}
+const CHECK = '<svg viewBox="0 0 16 16"><path d="M3 8.500l3.500 3.500L13 4.500"/></svg>', WARN = '<svg viewBox="0 0 16 16"><path d="M8 3v6M8 12.500v.010"/></svg>';
+const NUMS = `<div class="nums"><span>In the woodpile</span><span>18 loads</span><span>Burns in a year, 19 of it in winter</span><span>33 loads</span>
+  <span>Lasts on its own</span><span>to early winter</span><span>The plan: cut to 40 before winter</span><span>8 trips, about 30 hours</span>
+  <span>Gunnar reckons the hands allow</span><span>5 to 9 trips</span><span>Spoils</span><span>nothing</span></div>`;
+const row = (r, bar) => `<div class="row"><svg class="ico" viewBox="0 0 24 24">${r.icon}</svg><span class="name">${r.name}</span>${bar(r)}
+  <span class="state ${r.state[0]}">${r.state[0] === 'safe' ? CHECK : WARN}${r.state[1]}</span>
+  <span class="more${r.name === 'Firewood' ? ' open' : ''}" title="The numbers"><svg viewBox="0 0 16 16"><path d="${r.name === 'Firewood' ? 'M3.500 10l4.500-4.500L12.500 10' : 'M3.500 6l4.500 4.500L12.500 6'}"/></svg></span></div>${r.name === 'Firewood' ? NUMS : ''}`;
+const axis = `<div class="axis"><i></i><i></i><div class="ax">${SEASONS.map((s) => `<b>${s}</b>`).join('')}</div><i></i><i></i></div>`;
+const K = {
+  own: '<span><svg viewBox="0 0 26 10"><rect width="26" height="10" rx="5" fill="#23685a"/></svg>lasts on the store</span>',
+  come: `<span><svg viewBox="0 0 26 10">${defs}<rect width="26" height="10" rx="5" fill="url(#come)"/></svg>with what is still to come</span>`,
+  spoil: `<span><svg viewBox="0 0 26 10">${defs}<rect width="26" height="10" fill="url(#spoil)"/></svg>lost to spoilage</span>`,
+  when: '<span><svg viewBox="0 0 26 10"><path d="M4 9V5h18v4" fill="none" stroke="#17313a" stroke-width="1.3"/><path d="M9.500 0h7L13 4.500z" fill="#17313a"/></svg>when it is laid in</span>',
+  sure: '<span><svg viewBox="0 0 26 10"><line x1="2" x2="24" y1="5" y2="5" stroke="#23685a" stroke-width="1.5"/><circle cx="13" cy="5" r="2.600" fill="#23685a"/></svg>how sure the head is</span>',
+  idle: `<span><svg viewBox="0 0 26 10">${defs}<rect width="26" height="10" rx="3" fill="url(#idle)" stroke="#526d75" stroke-opacity=".3"/></svg>no need then</span>`,
+  short: '<span><svg viewBox="0 0 26 10"><rect x=".7" y=".7" width="24.600" height="8.600" rx="3" fill="#f6e4de" stroke="#a8432f" stroke-width="1.3"/></svg>not covered</span>',
+};
+const CARDS = [
+  ['A. One runway', 'One bar, a year and a half ahead. The solid part is how long the store lasts; the striped part is how much further it lasts with what is still to come.', barA,
+    [K.own, K.come, K.spoil, K.when, K.sure, K.idle], 'Smallest. A bar filled to its end has an arrow and reads as safe.'],
+  ['B. Two runways', 'The same axis, two lanes: on the store alone above, with what is still to come below, its end a band over the head\'s range.', barB,
+    [K.own, K.come.replace('with what is still to come', 'with what is still to come (the line: most likely; the band: range)'), K.spoil, K.when, K.idle], 'The store and the plan never overlap, so each is read by itself; the doubt is the most visible here.'],
+  ['C. Season by season', 'One cell a season: how much of that season\'s need is covered. It replaces the graph: no line to follow, only which seasons are full.', barC,
+    [K.own, K.come, K.spoil, K.short, K.idle, K.when], 'Coarser, and the quickest to read: an empty red cell is the season that goes short.'],
+];
+document.getElementById('wrap').innerHTML = CARDS.map(([t, sub, bar, key, note]) => `<div class="card"><h1>${t}</h1><p class="sub">${sub}</p>
+  <p class="whose">How long supplies last, by Gunnar's reckoning</p>${axis}${ROWS.map((r) => row(r, bar)).join('')}
+  <div class="key">${key.join('')}</div><p class="note">${note}</p></div>`).join('').replace(/(\.\d)00\b/g, '$1');
+</script>
+</body>
+</html>

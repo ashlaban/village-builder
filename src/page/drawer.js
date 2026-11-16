@@ -159,6 +159,7 @@ function buildDebug() {
       <div class="dbg-row"><select id="advDim" aria-label="Custom">${dims}</select><select id="advOpt" aria-label="Option"></select></div>
       <div class="dbg-row"><button type="button" data-act="advP">Make them argue for it</button><button
         type="button" data-act="advV">Rally a fifth of the village</button></div>
+      <h3 class="dh3">Selected tile</h3><p class="dm" id="dbgTile"></p>
       <h3 class="dh3">Wants to move out</h3><p class="dm" id="dbgOut"></p>
       <p class="dm" id="dbgMsg" aria-live="polite"></p>`;
   const fillOpts = () => {
@@ -187,6 +188,7 @@ function updateDebug() {
         p.advocate ? `; argues for “${optLabel(p.advocate.dim, p.advocate.opt).toLowerCase()}”` : ''
       }`
     : 'Select someone on the map, in the People panel or in the family records.';
+  $('dbgTile').textContent = sel >= 0 && tileWhere ? tileWhere : 'Select a tile on the map.';
   const out = st.demand.filter((q) => st.pawns[q].alive);
   $('dbgOut').textContent = out.length
     ? out

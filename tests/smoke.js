@@ -124,10 +124,30 @@ const iv = setInterval(async () => {
   const expand = (selector) => qa(selector).forEach((el) => {
     el.open = true; el.dispatchEvent(new win.Event('toggle'));
   });
-  expand('.village-block'); expand('.household-block'); expand('[data-fold^="commons-"]');
-  console.log('settlers:', qa('#settlers .farm h2').map((h) => h.textContent).join(' / '));
-  console.log('village block:', q('#settlers .farm').textContent.replace(/\s+/g, ' ').slice(0, 300));
-  if (qa('#settlers .farm h2').length === 0) fail('settlers list is empty');
+  expand('.village-block');
+  // The People sheet finds (VB-664): a village's fold lists its farms and their people, each a row that opens its card; a household is
+  // told of on its farm's card, whose tabs Stores, Land and Animals are stats (an icon, a value, the one meter where it is a level).
+  console.log('settlers:', qa('#settlers button[data-farm] .who').map((h) => h.firstChild.textContent).join(' / '));
+  if (qa('#settlers button[data-farm]').length === 0) fail('settlers list is empty');
+  if (q('#settlers .household-block, #settlers .show-map')) fail('the People sheet still tells of a household in folds');
+  {
+    const lived = qa('#settlers button[data-farm]').find((b) => /people/.test(b.textContent));
+    lived.click(); tick(5);
+    const shown = (id) => !doc.getElementById(id).hidden;
+    if (!q('#tileStats .stat .meter[role="meter"]')) fail("a farm's card shows no meter of its food");
+    for (const [tab, want] of [['tabStores', /Grain/], ['tabLand', /Hay meadows/], ['tabAnimals', /Larder/]]) {
+      if (doc.getElementById(tab).hidden) { fail(`a lived-in farm's card has no tab ${tab}`); continue; }
+      doc.getElementById(tab).click(); tick(2);
+      const house = doc.getElementById('tileHouse');
+      if (!shown('tileHouse') || !want.test(house.textContent) || !house.querySelector('.stat .stat-ico svg')) fail(`the tab ${tab} shows no stats with icons`);
+    }
+    console.log('farm card:', doc.getElementById('tileName').textContent, '|', doc.getElementById('tileHouse').textContent.replace(/\s+/g, ' ').slice(0, 160));
+    if (/Tile \d+, \d+/.test(doc.getElementById('tile').textContent)) fail("a card shows the tile's numbers, which are Debug's");
+    doc.getElementById('tabFacts').click(); tick(2);
+    qa('#tileList button[data-pawn]')[0].click(); tick(5);
+    if (qa('#tileStats .traits .trait svg').length !== 12) fail("a pawn's card does not show its twelve traits as icons");
+    if (!doc.getElementById('tabStores').hidden) fail("a pawn's card keeps the household's tabs");
+  }
   // The Culture pane (VB-397): titled by the culture; a row a village; the culture's own charter, a phrase a custom, and a phrase opened
   // to its ways; the meetings; a village's row opens its card at the Customs tab, whose culture link comes back here.
   {
@@ -241,7 +261,7 @@ async function goodwillPanel() {
   if (doc.getElementById('peopleSheet').classList.contains('collapsed')) doc.getElementById('settlersBtn').click();
   tick(2);
   // each toggle redraws the list, so the next closed fold is found afresh
-  for (let el, k = 0; k < 500 && (el = settlers.querySelector('.village-block:not([open]), .household-block:not([open])')); k++) {
+  for (let el, k = 0; k < 500 && (el = settlers.querySelector('.village-block:not([open])')); k++) {
     el.open = true; el.dispatchEvent(new win.Event('toggle'));
   }
   tick(2);
