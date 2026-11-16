@@ -1,8 +1,10 @@
 // @sys gen/geology: what lies in the ground: each land tile's bedrock, and the deposits of clay and ores laid as patches and veins, by island
 // ===== Geology: bedrock provinces, lenses of rare stone, and finite deposits of clay and ore (generation only: nothing digs yet) =====
 // Listed before gen.js, which calls lay; it reads no other module, so gen.js passes in the arrays, a random source and the biome codes.
+// Measure: node docs/plans/VB-702-reach.js [--map small|medium] [--seeds 1,2,3] [--reach 12,30]: villages with each deposit in reach.
 // The setting is Europe of 1300 to 1700, continental and Scandinavian: granite and gneiss are the common ground, limestone and sandstone
-// the building stones, slate, marble and soapstone the rarer ones; iron comes from bogs and from rock, silver with lead, tin only in granite.
+// the building stones, slate, marble and soapstone the rarer ones; iron comes from bogs and from rock, silver with lead, tin only in
+// granite (uplands and hills).
 VB['gen/geology'] = (() => {
   // Bedrock, w.rock's codes. weight: a province's chance of each of the four common rocks; marble and soapstone are lenses (VEINS).
   const ROCK = { NONE: 0, GRANITE: 1, LIMESTONE: 2, SANDSTONE: 3, SLATE: 4, MARBLE: 5, SOAPSTONE: 6 };
@@ -72,7 +74,7 @@ VB['gen/geology'] = (() => {
     {
       deposit: DEPOSIT.TIN,
       host: 'tin',
-      chance: 0.25,
+      chance: 0.5,
       full: 40,
       per: 500,
       most: 2,
@@ -268,7 +270,7 @@ VB['gen/geology'] = (() => {
       marble: (i) => rock[i] === ROCK.LIMESTONE && hp[i] > 0.6 && biome[i] !== B.SNOW, // limestone changed by the mountain's heat
       soapstone: (i) => upland(i) && (rock[i] === ROCK.GRANITE || rock[i] === ROCK.SLATE),
       peak: (i) => hp[i] > 0.85 && biome[i] !== B.SNOW,
-      tin: (i) => upland(i) && rock[i] === ROCK.GRANITE,
+      tin: (i) => (upland(i) || biome[i] === B.HILLS) && rock[i] === ROCK.GRANITE, // granite hills as well as uplands
       upland,
       bog: (i) => biome[i] === B.MARSH || (lakeside[i] && soil(i) && hp[i] < 0.5), // marsh and the shores of lakes (myrmalm, sjömalm)
       shore: (i) => biome[i] === B.BEACH, // amber, washed up on sandy shores
