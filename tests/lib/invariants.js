@@ -128,8 +128,17 @@ function checkState(st) {
         // a whole number, wood 0 to twice the winter's goal, a cow 0 or 1), the hold on projects 'none' or null
         const Ch = plan.chosen, in01 = (x, most, whole) => x === null || (Number.isFinite(x) && x >= 0 && x <= most && (!whole || Number.isInteger(x)));
         if (Ch !== undefined && (!Ch || !in01(Ch.hay, 3) || !in01(Ch.fields, Infinity, true) || !in01(Ch.wood, 2 * st.ECON.woodWinter) ||
-          !in01(Ch.cow, 1, true) || (Ch.project !== null && Ch.project !== 'none') || Object.keys(Ch).length !== 5))
+          !in01(Ch.cow, 1, true) || (Ch.project !== null && Ch.project !== 'none') || Object.keys(Ch).length !== (Ch.goods ? 6 : 5)))
           bad.push(`plans: household ${id}'s head chose ${JSON.stringify(Ch)}`);
+        // VB-698: the head's target on each made good, absent before the first review, then one for every made good, none below 0 (Infinity
+        // where the maker has no cap of its own), whole where the good is counted whole; a chosen one null or a number from 0, and the
+        // compiled target is the choice
+        const G = T.goods, MADE = globalThis.VB['sim/targets'].MADE;
+        if (G !== undefined && (Object.keys(G).length !== MADE.size ||
+          ![...MADE.values()].every((m) => G[m.good] >= 0 && (!m.whole || !Number.isFinite(G[m.good]) || Number.isInteger(G[m.good])))))
+          bad.push(`plans: household ${id}'s targets on its goods ${JSON.stringify(G)}`);
+        if (Ch && Ch.goods && !Object.entries(Ch.goods).every(([g, n]) => MADE.has(g) && (n === null || (Number.isFinite(n) && n >= 0 && (!G || G[g] === n)))))
+          bad.push(`plans: household ${id}'s head chose ${JSON.stringify(Ch.goods)} of its goods`);
         if (Ch && Ch.fields !== null && T.fields > Ch.fields) bad.push(`plans: household ${id} wants ${T.fields} fields over its head's ${Ch.fields}`);
       }
     }
