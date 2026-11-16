@@ -16,7 +16,9 @@ VB['sim/drying'] = (() => {
     Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
   const { dailyNeed, larderOf, floorOf } = VB['sim/hunger'];
-  const Pot = VB['sim/pot'];
+  const Pot = VB['sim/pot'],
+    Targets = VB['sim/targets'],
+    { hands } = Targets;
   // Proposed (VB-300, the orchestrator's starting values for Kim): a household dries enough fish for the winter's fish share of its pot
   // (sim/pot's WINTER_FISH, VB-388) over the days without fresh fish (the winter and spring's first FISH.from days, under the ice), in
   // whole lots of `lot` rations; it fishes for the rack from spring day FISH.from + 1 to the end of autumn (VB-388: the season of fishing
@@ -90,7 +92,7 @@ VB['sim/drying'] = (() => {
     Pot.putFresh(st, hh, 'fish', catchOf(st, j), 'catch');
     if (!drying(cal(st.t))) return 0;
     const need = dailyNeed(st, hh),
-      room = wanted(st, hh) - larderOf(hh, 'dried fish') - (hh.rack || 0),
+      room = Targets.target(st, hh, 'dried fish') - larderOf(hh, 'dried fish') - (hh.rack || 0),
       n = Math.min(room, Pot.freshHeld(st, hh, 'fish') - need * FOODS.fish.keeps);
     if (!(n > 1e-9)) return 0;
     const got = Pot.takeFresh(st, hh, n, 'drying', 'fish').fish || 0;
@@ -112,15 +114,6 @@ VB['sim/drying'] = (() => {
       }
     }
     return null;
-  }
-  function hands(st, hh) {
-    let n = 0;
-    for (const id of hh.members) {
-      const p = st.pawns[id],
-        a = age(st, p);
-      if (p.died === null && a >= 14 && a < 60 && !p.retired) n++;
-    }
-    return n;
   }
   // VB-393 (Kim, 12 Nov): a boat is built only by a household that can spare it: grain above its floor (which holds the seed reserve)
   // and a year's need besides, and BOAT.hands working hands that its fields do not need (FIELDS.perHand fields a hand).
@@ -218,12 +211,13 @@ VB['sim/drying'] = (() => {
       deliver: (st, j, hh) => {
         Stores.put(st, hh, 'fish', catchOf(st, j), 'catch');
       },
-      // in the drying season, in a village by fishing water, while the household holds less dried fish than it wants and no catch waits
+      // in the drying season, in a village by fishing water, while the household holds less dried fish than its head's target (by default
+      // the dried fish wanted, VB-698) and no catch waits
       available: (st, hh, f, c, post) => {
         if (
           !drying(c) ||
           hh.rack > 0 ||
-          larderOf(hh, 'dried fish') >= wanted(st, hh) ||
+          larderOf(hh, 'dried fish') >= Targets.target(st, hh, 'dried fish') ||
           !villageFishes(st, st.villages[f.village])
         )
           return;
@@ -264,6 +258,21 @@ VB['sim/drying'] = (() => {
       done: (st, j, hh) => boatBuilt(st, j, hh),
     },
   };
+  // Dried fish as a made good (VB-698): its default target the dried fish wanted; its top bound, in a village by fishing water (as last
+  // tested: the view reads no new test), what the household's spare hours bring at a bank's catch a trip (twice from a boat), each trip
+  // fished and hung.
+  Targets.made({
+    good: 'dried fish',
+    unit: 'ration',
+    whole: false,
+    need: (st, hh) => wanted(st, hh),
+    most: (st, hh, f, spare) => {
+      const v = f && st.villages[f.village];
+      if (!v || (v.fishing && !v.fishing.near)) return 0;
+      return Math.floor((spare * FISH.trip * (hh.boat ? BOAT.catch : 1)) / (KINDS.rackfish.hours + DRY.hours));
+    },
+    held: (st, hh) => larderOf(hh, 'dried fish'),
+  });
   return {
     DRY,
     BOAT,
