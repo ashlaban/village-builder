@@ -2,6 +2,7 @@
 // player's wish for a match (VB-274) are both checked against
 VB['sim/matching'] = (() => {
   const { MARRIAGE, YEAR_DAYS, HUNGER } = VB['sim/rules'];
+  const { heldBy } = VB['sim/offers'];
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
@@ -144,7 +145,7 @@ VB['sim/matching'] = (() => {
       if (age(st, p) < (p === m ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) return { why: `${nm} is too young to marry` };
       if (p.retired) return { why: `${nm} is retired` };
       if (!(p.hunger < HUNGER.marryBelow)) return { why: `${nm} is too hungry to marry` };
-      if (st.offers.some((o) => o.man === p.id || o.woman === p.id)) return { why: `${nm} is in an open offer` };
+      if (heldBy(st, p.id, 'match')) return { why: `${nm} is in an open offer` };
     }
     const cu = practice(st, settlementIdOf(st, m));
     if (!kinOk(st, m.id, f.id, cu)) return { why: 'too close kin for the custom of the village' };
@@ -157,5 +158,18 @@ VB['sim/matching'] = (() => {
     }
     return { man: m, woman: f, home };
   }
-  return { kinOk, matchScore, matchRules, matchBar };
+  // The wished matches of village v's round (VB-274, VB-680): of `wishers` ([pawn, the partner it wishes]), those that pass matchBar, by
+  // the man's id ({man, woman, home, wisher}), when he is of v; a woman wished by a man of a village whose round comes later is held for
+  // him in `taken`.
+  function wishedMatches(st, wishers, v, rules, taken) {
+    const out = new Map();
+    for (const [w, partner] of wishers) {
+      const wished = matchBar(st, w, partner, rules),
+        wv = wished.man ? settlementIdOf(st, wished.man) : null;
+      if (wv === v) out.set(wished.man.id, { ...wished, wisher: w });
+      else if (wv !== null && wv > v) taken.add(wished.woman.id);
+    }
+    return out;
+  }
+  return { kinOk, matchScore, matchRules, matchBar, wishedMatches };
 })();

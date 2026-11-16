@@ -221,3 +221,92 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   assert.strictEqual(issue(a, { actor: id, verb: 'argue', args, source: 'player' }), true, 'after the years, a new cause');
   assert.ok(Math.abs(pa.att[o] - (was + C.P.advocacyJump * (1 - was))) < 1e-6 && pa.causeSince === a.cenv.t, 'its own attitude steps towards it at once');
 }
+
+// ---- offer and answer (VB-690): one verb pair for every crossing between households (sim/offers' bases gift, ask and match) ----
+{
+  const Offers = VB['sim/offers'], { opinionOf, balance } = VB['sim/relations'], { HELP } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
+  const fresh = () => {
+    const s = Sim.seed(r.value, 7, 'founders');
+    const [a, b] = s.households.filter((h) => !h.dissolved && h.holder !== null
+      && h.members.some((id) => id !== h.holder && s.pawns[id].age >= 14 && s.pawns[id].age < 60));
+    b.grain = { barley: 5000 };
+    return { s, a, b };
+  };
+  const sound = (s, what) => assert.deepStrictEqual(checkState(s), [], `invariants, ${what}`);
+  const offer = (s, actor, target, args, source = 'pawn') => issue(s, { actor, verb: 'offer', target, args, source });
+  const gift = (n) => ({ basis: 'gift', gives: { good: 'grain', n } });
+  const told = (s, kind, f = () => true) => s.record.some((e) => typeof e === 'object' && e.kind === kind && f(e));
+  // (a) a gift between unplayed pawns: the receiver's holder answers yes at once; nothing is kept, the grain moves, goodwill is booked
+  {
+    const { s, a, b } = fresh(), a0 = Sim.grainOf(a), b0 = Sim.grainOf(b);
+    assert.strictEqual(offer(s, b.holder, a.holder, gift(30)), true);
+    assert.deepStrictEqual([s.offers, s.offerSeq], [[], 0], 'answered at once: never kept');
+    assert.ok(Math.abs(b0 - Sim.grainOf(b) - 30) < 1e-9 && Sim.grainOf(a) <= a0, 'the gift is set aside where it lies (VB-461)');
+    assert.ok(s.journeys.some((j) => j.why === 'fetch' && s.pawns[j.pawn].household === a.id), 'and a member of the receiving household fetches it');
+    for (let k = 0; k < 96 && s.journeys.length; k++) Sim.advance(s, 0.5);
+    assert.ok(a.ledger.some((e) => e.kind === 'gift' && Math.abs(e.n - 30) < 1e-9), 'the gift settles as it comes in');
+    assert.ok(balance(s, b.holder, a.holder) > 0, 'the giver is owed its worth: goodwill');
+    for (const [args, why] of [[{ basis: 'loan' }, /no basis/], [{ ...gift(30), wants: { good: 'grain', n: 1 } }, /wants nothing/],
+      [{ ...gift(30), due: s.t - 1 }, /cannot be due/], [gift(-1), /cannot give/]])
+      assert.ok(why.test(offer(s, b.holder, a.holder, args)), `refused: ${JSON.stringify(args)}`);
+    assert.ok(/no open offer/.test(issue(s, { actor: a.holder, verb: 'answer', target: 0, args: { yes: true }, source: 'pawn' })), 'no open offer to answer');
+    assert.ok(/only as an offer settles/.test(issue(s, { actor: b.holder, verb: 'deliver', target: a.id, args: { good: 'grain', n: 5 }, source: 'player' })),
+      'goods are delivered only by an offer');
+    sound(s, 'a gift');
+  }
+  // (b) the played pawn is asked: the offer is kept for HELP.answerDays, its pawn's judgement shown as advice; a no is a memory of both
+  {
+    const { s, a, b } = fresh(), a0 = Sim.grainOf(a);
+    assert.strictEqual(Sim.inhabit(s, a.holder), true);
+    const ob = opinionOf(s, b.holder, a.holder), oa = opinionOf(s, a.holder, b.holder);
+    assert.strictEqual(offer(s, b.holder, a.holder, gift(30)), true);
+    const o = s.offers[0];
+    assert.ok(o && o.basis === 'gift' && o.due === o.made + HELP.answerDays * Sim.DAY && o.answers[0].by === a.holder, `kept: ${JSON.stringify(s.offers)}`);
+    sound(s, 'a gift waits for the player');
+    const item = Sim.opportunities(s, a.holder).find((x) => x.verb === 'answer' && x.target === o.id);
+    assert.ok(item && item.offer.advice === true && item.offer.basis === 'gift' && /a gift of 30 grain/.test(item.offer.text), 'the advice: the pawn\'s own yes');
+    assert.ok(/no answer to give/.test(issue(s, { actor: b.holder, verb: 'answer', target: o.id, args: { yes: true }, source: 'pawn' })), 'the giver has none to give');
+    assert.strictEqual(Sim.answer(s, o.id, false), true);
+    assert.deepStrictEqual(s.offers, [], 'a no closes it');
+    assert.strictEqual(Sim.grainOf(a), a0, 'nothing moves');
+    assert.ok(opinionOf(s, b.holder, a.holder) < ob && opinionOf(s, a.holder, b.holder) < oa, 'both remember the refusal');
+    assert.ok(told(s, 'offerRefused', (e) => e.pawn === a.holder), 'the refusal is told');
+    // silence: at its due time it is answered as the pawn would, yes, and settles
+    assert.strictEqual(offer(s, b.holder, a.holder, gift(20)), true);
+    assert.strictEqual(s.offers.length, 1);
+    Sim.advance(s, 2 * Sim.DAY);
+    assert.deepStrictEqual(s.offers, []);
+    for (let k = 0; k < 96 && s.journeys.some((j) => j.why === 'fetch'); k++) Sim.advance(s, 0.5); // fetched (VB-461)
+    assert.ok(a.ledger.some((e) => e.kind === 'gift' && Math.abs(e.n - 20) < 1e-9), 'settled at its due time');
+  }
+  // (c) an ask: a holder asks another for grain; the asked weighs it as the gift it would make, and a yes posts the carry
+  {
+    const { s, a, b } = fresh(), b0 = Sim.grainOf(b);
+    assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 20 } }), true);
+    const j = s.journeys.find((x) => x.why === 'carry');
+    assert.ok(j && s.pawns[j.pawn].household === b.id && j.gift.n === 20, `a carrier of the asked household sets out: ${JSON.stringify(s.journeys)}`);
+    const took = b0 - Sim.grainOf(b); // and the carrier's meal for the way (VB-461: a day's at least)
+    assert.ok(took >= 20 - 1e-9 && took <= 20 + 2 / s.ECON.uncooked, `the grain is taken up to be carried: ${took}`);
+    assert.ok(/own household/.test(offer(s, a.holder, a.holder, { basis: 'ask', wants: { good: 'grain', n: 20 } })), 'not of one\'s own');
+    // beyond what the asked would give: no, and both remember it
+    const ob = opinionOf(s, a.holder, b.holder);
+    assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 50000 } }), true);
+    assert.ok(opinionOf(s, a.holder, b.holder) < ob, 'the asker remembers the refusal');
+    assert.ok(told(s, 'offerRefused', (e) => e.pawn === b.holder), 'the refusal is told');
+    sound(s, 'an ask');
+  }
+  // (d) an offer due later is kept and answered once, at its due time, by the unplayed pawn's judgement
+  {
+    const { s, a, b } = fresh(), n0 = VB.count.offerWeighed;
+    assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 20 }, due: s.t + 2 * Sim.DAY }), true);
+    assert.ok(s.offers.length === 1 && s.offers[0].answers[0].yes === null && VB.count.offerWeighed === n0, 'not weighed before it is due');
+    sound(s, 'an ask due later');
+    Sim.advance(s, 3 * Sim.DAY);
+    assert.deepStrictEqual(s.offers, [], 'answered at its due time');
+    assert.strictEqual(VB.count.offerWeighed, n0 + 1, 'one evaluation');
+    assert.ok(a.ledger.some((e) => e.kind === 'gift') || s.journeys.some((x) => x.why === 'carry'), 'and carried');
+  }
+  assert.ok(['gift', 'ask', 'match'].every((k) => Offers.BASES[k] && typeof Offers.BASES[k].weigh === 'function'), 'the table of bases');
+}
+console.log('commands ok: offer and answer (VB-690): a gift and an ask settle at once between the unplayed, carried; the played pawn is asked, with '
+  + 'its advice; a no is a memory of both; an offer due later is weighed once, at its due time');

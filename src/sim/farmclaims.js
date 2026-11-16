@@ -17,8 +17,8 @@ VB['sim/farmclaims'] = (() => {
     personEvent,
     atFarm,
     atHousehold,
-    wishOf,
   } = VB['sim/records'];
+  const { wishOf } = VB['sim/wishes'];
   const CL = VB['sim/claims'];
   const { dailyNeed } = VB['sim/hunger'],
     { reserved } = VB['sim/stores'];
@@ -102,7 +102,7 @@ VB['sim/farmclaims'] = (() => {
   //   anyone    any landless adult of a village within reach
   //   assembly  the meeting assigns it to one of its own: most voice-weighted support through ties first (sim/claims, support)
   // Then married couples before singles, then the oldest. One of a married couple stands for both (the first of them).
-  // Which farm a pawn would take is its own wish, any it may, and the player's stands in (st.player.wishes.claim, VB-212); the order is a rule.
+  // Which farm a pawn would take is its own wish (pawn.wish, sim/wishes; the player's for the played pawn, VB-212, VB-680); the order is a rule.
   function claimants(st, f, ids = st.demand, rule = practice(st, f.village).claims) {
     const vid = f.village,
       right = rule === 'kin' ? birthrightOn(st, f) : null;
@@ -117,7 +117,7 @@ VB['sim/farmclaims'] = (() => {
     const keep = (id) => {
       if (!free(st, id)) return false;
       const wish = wishOf(st, id, 'claim');
-      if (wish !== null && wish !== f.id) return false; // the player's: no farm, or only the one it names
+      if (wish !== null && wish !== f.id) return false; // its wish: no farm, or only the one it names
       if (rule === 'kin') return home(id) === vid || (degree.has(id) && near(id));
       if (rule === 'assembly') return home(id) === vid;
       return near(id);

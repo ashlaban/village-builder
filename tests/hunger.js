@@ -1,11 +1,13 @@
-// Hunger: each rule on constructed households, then a report of hungry days, deaths by cause and marriages (reported, not asserted).
+// Hunger: each rule on constructed households of the small islands (VB-854). With --extended (at night), then a report of hungry days,
+// deaths by cause and marriages over three years of founders on the default island at seeds 7 and 42 (reported, not asserted).
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture;
 const { moveClock } = require('./lib/clock.js');
 const { feedHousehold } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HUNGER, YEAR, YEAR_DAYS } = VB['sim/rules'], { rateOf } = VB['sim/agents'];
+const { scenario } = require('./lib/probe.js');
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
-const w7 = world(7), fresh = (scenario = 'founders') => {
-  const st = Sim.seed(w7, 7, scenario);
+const fresh = (name = 'founders') => {
+  const st = scenario(name);
   for (const hh of st.households) hh.meals = 0; // these checks run on grain alone (tests/meals.js covers meals)
   return st;
 };
@@ -106,7 +108,7 @@ for (const h of [0, 1]) {
   assert(parent && parent.interest[o + j] === 1, 'a parent of a young child wants children first');
 }
 
-for (const seed of [7, 42]) {
+if (process.argv.includes('--extended')) for (const seed of [7, 42]) {
   const st = Sim.seed(world(seed), seed, 'founders'), rows = [];
   for (let y = 1; y <= 3; y++) {
     const d0 = st.pawns.filter((p) => p.died !== null).length, h0 = st.households.reduce((s, h) => s + h.hungryDays, 0), u0 = st.unions.length;
