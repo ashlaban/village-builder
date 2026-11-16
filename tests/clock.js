@@ -1,18 +1,18 @@
 // The clock counts whole 6-minute steps (VB-235): st.tick is its source of truth, so the same seed is the same run by any chunks of whole
 // steps, and every hour's work runs in the step that reaches its hour, over decades, with no tolerance on a float.
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim, G = VB.gen, { sha, canon } = require('./lib/canon.js');
+const VB = require('../src/load.js'), Sim = VB.sim, { sha, canon } = require('./lib/canon.js');
 const { DAY, YEAR, TICKS } = VB['sim/rules'], { ticking } = VB['sim/clock'];
 const { checkState } = require('./lib/invariants.js');
 
-// 1. Populous, seed 7, tiny map, 2 years: the same state by chunks of a year, a day, an hour and 0.1 hours.
-const world = () => { const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
-const extended = process.argv.includes('--extended');
-const { state: probeState } = require('./lib/probe.js');
-const make = () => extended ? Sim.seed(world(), 7, 'populous') : probeState();
-const duration = extended ? 2 * YEAR : 2 * DAY;
+// 1. The probe village (two villages, four farms, herds): the same state by chunks of the whole, a day, an hour and 0.1 hours over two days;
+// with --integration (verify; VB-853) by chunks of the whole, a day and 0.1 hours over a year and a day, through every yearly entry of the
+// calendar (the autumn meetings, the moving round, harvest, the year's turn). The populous year on the tiny map it replaced was deleted.
+const year = process.argv.includes('--integration');
+const { state: make } = require('./lib/probe.js');
+const duration = year ? YEAR + DAY : 2 * DAY;
 const hashes = [];
-for (const chunk of [duration, DAY, 1, 0.1]) {
+for (const chunk of year ? [duration, DAY, 0.1] : [duration, DAY, 1, 0.1]) {
   const st = make(), t0 = st.t;
   for (let n = Math.round(duration / chunk), k = 0; k < n; k++) Sim.advance(st, chunk);
   assert.strictEqual(st.tick, Math.round(t0 * TICKS) + duration * TICKS, `chunks of ${chunk} h: whole steps across the probe`);
@@ -22,6 +22,10 @@ for (const chunk of [duration, DAY, 1, 0.1]) {
   hashes.push({ chunk, hash: sha(keys.map((k) => `${k}:${canon(st[k])}`).join('\n')), living: st.living.length });
 }
 for (const h of hashes.slice(1)) assert.strictEqual(h.hash, hashes[0].hash, `chunks of ${h.chunk} h give the same run`);
+if (year) {
+  console.log(`clock ok: ${duration} hours, one state by chunks of ${hashes.map((h) => h.chunk).join(', ')} h (${hashes[0].living} living)`);
+  process.exit(0);
+}
 
 // 2. The clock's arithmetic alone over 60 years, by whole steps of several sizes: every hour begins exactly once, in order, on the step
 // that reaches it, where st.t is that hour exactly; the hour read from the count never disagrees with the hour of st.t.
