@@ -9,8 +9,20 @@ VB['sim/kinds'] = (() => {
   const { scrubHours, SPREAD } = VB['sim/spread'];
   const { dailyNeed, floorOf } = VB['sim/hunger'],
     { reserved } = Stores;
-  const { finishClear, finishBreak, manureWanted, manureDone, hoed, sown, reaped, carried, binned, reclaimed, weeded } =
-    VB['sim/fields'];
+  const {
+    finishClear,
+    finishBreak,
+    manureWanted,
+    manureDone,
+    hoed,
+    sown,
+    reaped,
+    carried,
+    laidDown,
+    binned,
+    reclaimed,
+    weeded,
+  } = VB['sim/fields'];
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
   const { plotJobs } = VB['sim/expansion'];
@@ -247,6 +259,7 @@ VB['sim/kinds'] = (() => {
       urgency: (st, j, c, U) => U.haul,
       load: (st, a, j, cap) => (a.load = carried(j.field, cap)),
       again: (j) => j.field.stage === 'stooks',
+      setDown: (st, j, a) => laidDown(j.field, a.load),
       deliver: (st, j, hh, f, a) => {
         if (j.common) return Commons.brought(st, j, a); // a common field's, into the village store (VB-100)
         binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.field.crop));
