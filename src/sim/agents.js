@@ -382,6 +382,7 @@ VB['sim/agents'] = (() => {
     const hh = workFor(st, a, j);
     helped(st, j, [a.id]); // a load brought in is a task done
     if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
+    if (a.job !== j) return; // a delivery that moved its pawn released it (as `ended` after a completion)
     Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears
     retune(st, st.households[st.pawns[a.id].household]);
     if (!K.again || !K.again(j)) dropJob(st, j);
@@ -698,6 +699,9 @@ VB['sim/agents'] = (() => {
       walkTo(st, a, to, x, y);
     } else {
       complete(st, a);
+      // a completion that moved its pawn (a farm restored: it founds a household there) released it and set it out, or home: its new
+      // walk or journey is its own, and is left be
+      if (a.job !== j) return;
       if (K.carted) {
         Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the dung cart is back, and wears
         retune(st, st.households[st.pawns[a.id].household]);

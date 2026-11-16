@@ -69,6 +69,10 @@ VB['sim/trust'] = (() => {
   // own (sim/jobs), and its harvest comes to the trustee's barn as any of its work's does. `why`: the end of the log line.
   function holdInTrust(st, hh, why, ward = null) {
     const trustee = trusteeFor(st, hh, ward);
+    // a farm hh itself holds in trust goes back to its holder first, as when a trustee dies out (sim/heirs' extinct: the goBack verb,
+    // 'trustee gone'); its people leave hh before hh's own go to kin
+    for (const id of st.liveTrusts ? st.liveTrusts.slice() : [])
+      if (st.trusts[id].trustee === hh.id) goBack(st, st.trusts[id], 'trustee gone', 'trust');
     const f = farmOf(st, hh),
       k = st.households[trustee],
       holder = st.pawns[hh.holder];

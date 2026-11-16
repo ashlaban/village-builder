@@ -129,5 +129,21 @@ let report = '';
   check(t.why === 'of age' && child.household === c.a.id, `the ward goes back at 18 (${t.why})`);
   invariants(st, 'the ward of age');
 }
+// 7. The trustee is itself put in trust (its people go to its own kin): the farm it held goes back to its holder first, as when a trustee
+// dies out (VB-473 repair: the trust stayed with a trustee its holder no longer lived with).
+{
+  const { st, a, c, holder, t } = intoTrust();
+  const d = st.households.find((x) => x !== a && x !== c && !x.dissolved && vOf(st, x) === vOf(st, c) && x.holder !== null && grown(st, x).length >= 2);
+  check(!!d, 'setup: a kin household for the trustee');
+  const ch = st.pawns[c.holder], dh = st.pawns[d.holder];
+  ch[dh.sex === 'm' ? 'father' : 'mother'] = dh.id; // the trustee's holder is the child of d's
+  check(T.trusteeFor(st, c) === d.id, `setup: d would hold the trustee's farm (${T.trusteeFor(st, c)})`);
+  check(issue(st, { actor: c.holder, verb: 'goToKin', target: c.id, args: { why: 'test' }, source: 'test' }) === true, 'the trustee goes to kin');
+  refreshRoles(st);
+  const u = trustOf(st, c.id);
+  check(u && u.trustee === d.id && ch.household === d.id, `the trustee's farm held by d (${JSON.stringify(u)})`);
+  check(t.why === 'trustee gone' && t.end !== null && !trustOf(st, a.id) && holder.household === a.id, `the farm it held goes back to its holder (${t.why})`);
+  invariants(st, 'the trustee in trust');
+}
 if (failed) process.exit(1);
 console.log(`trust ok: ${report}`);
