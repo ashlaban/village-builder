@@ -300,7 +300,7 @@ async function goodwillPanel() {
     settlers.querySelector(`button[data-village="${farm.village}"]`).click(); tick(5);
     const S = Sim.villageSummary(st, farm.village, st.player ? st.player.pawn : null);
     const words = [...box.querySelectorAll('.stat-name')].map((e) => e.textContent);
-    for (const n of ['Food', 'Harvest', 'Hungry', 'Idle hands', '0–14', '15–49', '50 and over']) if (!words.includes(n)) fail(`the village's overview lacks ${n}`);
+    for (const n of ['Food', 'Harvest', 'Hungry', 'Idle hands', '0–14', '15–49', '50+']) if (!words.includes(n)) fail(`the village's overview lacks ${n}`);
     const warned = Object.values(S.warnings).reduce((n, l) => n + l.length, 0), chips = box.querySelectorAll('.warning [data-farm]');
     if (!S.warnings.hunger.includes(hh.id) || chips.length !== warned) fail(`the overview shows ${chips.length} farm chips for ${warned} warned`);
     if (!doc.querySelector(`#tileList [data-farm="${farm.id}"] .warn-mark`)) fail("the warned farm's row is not marked");

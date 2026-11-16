@@ -523,7 +523,7 @@ function overviewStats(S) {
 const BANDS = [
   ['child', '0–14'],
   ['people', '15–49'],
-  ['holder', '50 and over'],
+  ['holder', '50+'],
 ];
 function peopleHTML(S) {
   return (
