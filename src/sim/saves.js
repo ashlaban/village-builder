@@ -443,6 +443,7 @@ VB['sim/saves'] = (() => {
     const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
     if (st.cenv) for (const c of st.cenv.cultures) if (!c.practices) c.practices = practices();
     if (st.cenv) newCustoms(st); // VB-100: nor the custom of the commons
+    for (const p of st.pawns) if (p.att) VB['culture'].compileLeans(p); // VB-520: compiled from the attitude, as it was saved or made
     oldGrain(st); // VB-347: nor grain by crop
     if (!st.plans)
       seedPlans(st); // VB-258: older saves have no plans

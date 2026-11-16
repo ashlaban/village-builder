@@ -543,7 +543,7 @@ function checkState(st) {
       if (!memberOf.has(p.id)) bad.push(`pawns[${p.id}]: alive but in no household`);
       else if (p.household !== memberOf.get(p.id)) bad.push(`pawns[${p.id}]: household field ${p.household}, member of ${memberOf.get(p.id)}`);
       if (p.died !== null) bad.push(`pawns[${p.id}]: alive with died ${p.died}`);
-      if (!within(p.buffer, 20, 60)) bad.push(`pawns[${p.id}]: buffer is ${p.buffer}`);
+      if (p.buffer !== undefined) bad.push(`pawns[${p.id}]: a drawn buffer (VB-520: the holder's reserve is its generosity's)`);
       if (!within(p.health, 0, 100)) bad.push(`pawns[${p.id}]: health is ${p.health}`);
     } else {
       if (memberOf.has(p.id)) bad.push(`pawns[${p.id}]: dead but in household ${memberOf.get(p.id)}`);
@@ -556,6 +556,17 @@ function checkState(st) {
       if (p.nursingUntil === null || st.t - p.nursingUntil > 2 * LOADED['sim/rules'].DAY) bad.push(`pawns[${p.id}]: nursling ${p.nursling} but nursingUntil ${p.nursingUntil}`);
     }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
+    // VB-520: a pawn with an attitude leans, a byte a custom, to the option it favours most (culture compiles it where it writes att)
+    if (p.att) {
+      const C = globalThis.VB.culture;
+      if (!(p.leans instanceof Uint8Array) || p.leans.length !== C.DIMS.length) bad.push(`pawns[${p.id}]: leans ${p.leans}`);
+      else for (let d = 0; d < C.DIMS.length; d++) {
+        const o = C.OFF[d], top = p.att[o + p.leans[d]];
+        let most = -Infinity;
+        for (let j = 0; j < C.NOPT[d]; j++) most = Math.max(most, p.att[o + j]);
+        if (p.leans[d] >= C.NOPT[d] || top !== most) { bad.push(`pawns[${p.id}]: leans ${p.leans[d]} on custom ${d}, not its strongest`); break; }
+      }
+    }
     if (p.rel) checkRel(st, p, bad);
     if (p.ties) checkTies(st, p, bad);
     if (p.goodwill) checkGoodwill(st, p, bad);
@@ -1135,8 +1146,10 @@ function checkRel(st, p, bad) {
     for (const k of kinds) {
       const K = SOCIAL.memories[k], m = r.mem[k];
       if (!K) { bad.push(`${where}: unknown memory ${k}`); continue; }
-      const lo = Math.min(0, K.cap), hi = Math.max(0, K.cap);
-      if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${K.cap}`);
+      // a breach is felt by honour, its cap up to the most of TRAITS.acts.honour.breach (VB-520)
+      const T = globalThis.VB['sim/rules'].TRAITS, felt = T.breach.includes(k) ? Math.max(...T.acts.honour.breach) : 1;
+      const cap = K.cap * felt, lo = Math.min(0, cap), hi = Math.max(0, cap);
+      if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${cap}`);
       if (!(m.t <= st.t)) bad.push(`${where}: ${k} remembered at ${m.t}, after now (${st.t})`);
     }
   }

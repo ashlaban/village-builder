@@ -2,6 +2,7 @@
 // pawn gives; allowance's terms are slack and reserve, and on a running village it equals help's surplus.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rules = VB['sim/registry'];
+const { bufferOf } = VB['sim/traits']; // VB-520: the floor and the holder's reserve, by its generosity
 const { issue } = VB['sim/commands'], { surplus } = VB['sim/help'], { floorOf, dailyNeed } = VB['sim/hunger'], { HELP } = VB['sim/rules'];
 const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
 const fresh = () => {
@@ -14,7 +15,7 @@ const ctx = (from, to) => ({ giver: from.holder, receiver: to.holder, from, to }
 let checks = 0;
 { // within the floor and the allowance: settled, both ledgers, the tie between the holders
   const { st, a, b } = fresh();
-  b.grain = { barley: floorOf(st, b) + (st.pawns[b.holder].buffer - HELP.floorDays) * dailyNeed(st, b) + 100 };
+  b.grain = { barley: floorOf(st, b) + (bufferOf(st, b.holder) - HELP.floorDays) * dailyNeed(st, b) + 100 };
   const allowance = Rules.value(st, 'allowance', ctx(b, a));
   assert(Math.abs(allowance - surplus(st, b)) < 1e-9 && Math.abs(allowance - 100) < 1e-6, `allowance ${allowance}, surplus ${surplus(st, b)}`);
   const a0 = Sim.grainOf(a), b0 = Sim.grainOf(b), tie0 = st.pawns[b.holder].ties.get(a.holder) || 0;
@@ -26,8 +27,8 @@ let checks = 0;
 }
 { // beyond the allowance, and below the floor: refused, nothing changes; the player's pawn may give either
   const { st, a, b } = fresh();
-  st.pawns[b.holder].buffer = HELP.bufferDays[1]; // room between the allowance and the floor: the reserve
-  const reserve = (HELP.bufferDays[1] - HELP.floorDays) * dailyNeed(st, b);
+  st.pawns[b.holder].traits[VB['sim/traits'].IDX.generosity] = 0; // room between the allowance and the floor: the reserve, 40 days (VB-520)
+  const reserve = (bufferOf(st, b.holder) - HELP.floorDays) * dailyNeed(st, b);
   b.grain = { barley: floorOf(st, b) + reserve + 100 };
   const a0 = Sim.grainOf(a), b0 = Sim.grainOf(b), l0 = a.ledger.length;
   const over = give(st, b, a, 100 + reserve / 2);

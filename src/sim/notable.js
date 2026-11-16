@@ -147,6 +147,7 @@ VB['sim/notable'] = (() => {
     'enemy',
     'friend',
     'fellOut',
+    'quarrel',
     'cause',
     'player',
     'share',

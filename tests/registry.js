@@ -160,6 +160,10 @@ const row = (id) => rows.find((x) => x.rule === id);
 assert.deepStrictEqual(row('death.hazard').contributions.map((c) => c.key), ['hunger', 'frailty']);
 assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'goodwill', 'opinion', 'reserve']); // VB-216, VB-217, VB-220
 assert(invoke([]).includes('HEALTH.riskBelow'));
+// VB-520: what each trait does, with the contributions that read it
+const acts = JSON.parse(invoke(['--json', '--traits']));
+assert.deepStrictEqual(acts.find((a) => a.trait === 'generosity' && a.rule === 'reserve').contributions, ['allowance.reserve', 'need.food']);
+assert(invoke([]).includes('openness.malleability: 0.5 to 1.5'));
 const cliExplanation = JSON.parse(invoke(['--explain', '0', '--json']));
 assert.strictEqual(cliExplanation.pawn, 0);
 assert.strictEqual(cliExplanation.combine, 'product');

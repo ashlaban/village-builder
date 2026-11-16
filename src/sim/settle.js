@@ -4,6 +4,7 @@ VB['sim/settle'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
   const { DAY, SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
+  const { bufferOf, act } = VB['sim/traits'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
   const { walkable, villageAdded, costChanged } = VB['sim/routes'];
@@ -112,9 +113,9 @@ VB['sim/settle'] = (() => {
       if (have >= need) break;
       const hh = st.households[h];
       if (wedThisRound(st, hh)) continue;
-      const stay = hh.members.filter((m) => !all.includes(m)),
-        holder = st.pawns[hh.holder];
-      const keep = reserved(st, hh, 'grain') + Math.max(holder.buffer, SETTLE.provisionDays) * rationsOf(st, stay);
+      const stay = hh.members.filter((m) => !all.includes(m));
+      const keep =
+        reserved(st, hh, 'grain') + Math.max(bufferOf(st, hh.holder), SETTLE.provisionDays) * rationsOf(st, stay);
       const give = Math.min(need - have, Math.max(0, Math.floor(Stores.grainOf(hh) - keep)));
       if (give > 0) {
         gifts.push([h, give]);
@@ -317,9 +318,19 @@ VB['sim/settle'] = (() => {
     villageAdded(st); // VB-286: its row of the table of walking hours, at once
     return f;
   }
+  // The chance to leave after `felt` rounds of waiting: SETTLE.chance[k] at k + 1 rounds, the last from then on, in a line between them
+  // and from none at 0. The rounds felt are those waited over the pressure the pawn needs (TRAITS.acts.ambition.settle, 1 at ambition 0.5,
+  // where it is SETTLE.chance by rounds waited; VB-520).
+  function leaveChance(felt) {
+    const C = SETTLE.chance;
+    if (felt >= C.length) return C[C.length - 1];
+    if (felt <= 1) return C[0] * Math.max(0, felt);
+    const k = Math.floor(felt);
+    return C[k - 1] + (C[k] - C[k - 1]) * (felt - k);
+  }
   // At the moving round, after plots are started: in each crowded village, the waiting adults of SETTLE.ages, longest waiting first, then
-  // oldest, may leave (SETTLE.chance by rounds waited) with their party, if it has provisions: to a small village nearby that is not
-  // crowded (VB-147), else to found a new one where there is land.
+  // oldest, may leave (leaveChance, by rounds waited and ambition) with their party, if it has provisions: to a small village nearby that
+  // is not crowded (VB-147), else to found a new one where there is land.
   function settleRound(st) {
     const waiting = markCrowded(st);
     let use = null;
@@ -335,7 +346,7 @@ VB['sim/settle'] = (() => {
       for (const id of ids) {
         const p = st.pawns[id];
         if (taken.has(id) || !p.alive || p.age < SETTLE.ages[0] || p.age > SETTLE.ages[1] || guardian(st, id)) continue;
-        if (rnd(st.rng.settle) >= SETTLE.chance[Math.min(p.landWait, SETTLE.chance.length) - 1]) continue;
+        if (rnd(st.rng.settle) >= leaveChance(p.landWait / act(st, id, 'ambition', 'settle'))) continue;
         const party = partyOf(st, p, ids, taken),
           prov = provisions(st, party.all);
         if (!prov) {
@@ -422,6 +433,7 @@ VB['sim/settle'] = (() => {
     foundedName,
     settleFarm,
     found,
+    leaveChance,
     settleRound,
   };
 })();

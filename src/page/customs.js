@@ -203,7 +203,17 @@ function voiceNote(c, f, s) {
     pct = (v) => `${Math.round(v * 100)}%`;
   const near = Sim.membersOf(st, s.id).filter((q) => q.alive && q.age >= 12);
   const mean = near.length ? near.reduce((a, q) => a + q.att[k], 0) / near.length : null;
-  const w = VB['sim/leanings'].pulls(p, c.k, f.top, (id) => st.pawns[id], mean, s.kind),
+  const pace = (t, r) => Sim.traitAct(st, f.id, t, r), // VB-520: openness and piety, as the drift reads them
+    w = VB['sim/leanings'].pulls(
+      p,
+      c.k,
+      f.top,
+      (id) => st.pawns[id],
+      mean,
+      s.kind,
+      pace('openness', 'malleability'),
+      pace('piety', 'anchor'),
+    ),
     name = (id) => esc(st.pawns[id].given);
   const best = ['upbringing', 'company', 'cause', 'interest'].reduce((x, y) => (w[y] > w[x] ? y : x));
   const why = w.own

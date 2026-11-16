@@ -35,7 +35,7 @@ const Sim = (() => {
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks, prestigeParts } = VB['sim/society'];
-  const { labelsOf: traitLabels } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519)
+  const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)
   const { save, load } = VB['sim/saves'];
   const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head } = VB['sim/commands'];
   const { headView } = VB['sim/plans'];
@@ -112,6 +112,7 @@ const Sim = (() => {
     holdingOf,
     prestigeParts,
     traitLabels,
+    traitAct,
     settlementIdOf,
     membersOf,
     voiceOf,

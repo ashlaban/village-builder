@@ -123,6 +123,7 @@
     "culture.values": "culture",
     "pawn.anc": "culture",
     "pawn.advocate": "culture",
+    "pawn.leans": "culture",
     "pawn.causeSince": "culture",
     "farmstead.fields": "sim/fields",
     "st.visualDirty": "signal",
