@@ -61,10 +61,11 @@ function notePlaces() {
     prevIn = new Uint8Array(cap);
   }
   for (let i = 0; i < n; i++) {
-    const a = st.agents[i];
-    prevX[i] = a.x;
-    prevY[i] = a.y;
-    prevStride[i] = a.stride || 0;
+    const a = st.agents[i],
+      [x, y, , stride] = Sim.poseOf(st, a); // a walker's place from its leg (VB-473)
+    prevX[i] = x;
+    prevY[i] = y;
+    prevStride[i] = stride;
     prevIn[i] = a.inside ? 1 : 0;
   }
   prevN = n;

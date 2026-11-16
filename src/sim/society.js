@@ -254,23 +254,33 @@ VB['sim/society'] = (() => {
     }
   }
   // The pawns outdoors in a talk hour, in cells of NEAR map units, for talk (sim/relations): {out (agents), cells (cell key to indexes into
-  // out), cellOf (cell x, y to key), size}; derived, not state. (Until VB-127 it also counted every pair near each other.)
+  // out), cellOf (cell x, y to key), size, x, y (each one's place, by pawn id, from `placeOf` (sim/agents, passed in by the clock: a
+  // walker is found along its leg; VB-473)}; derived, not state. (Until VB-127 it also counted every pair near each other.) x and y are
+  // scratch arrays reused by every call, read only until the next.
   const NEAR = 30,
     cellOf = (cx, cy) => cx * 65536 + cy;
-  function outdoors(st) {
+  let px = new Float64Array(0),
+    py = new Float64Array(0);
+  function outdoors(st, placeOf) {
     const out = [];
+    if (px.length < st.agents.length) {
+      px = new Float64Array(2 * st.agents.length);
+      py = new Float64Array(2 * st.agents.length);
+    }
     for (const id of st.living) {
       const a = st.agents[id];
-      if (!a.inside) out.push(a);
+      if (a.inside) continue;
+      out.push(a);
+      [px[id], py[id]] = placeOf(st, a);
     }
     const cells = new Map();
     out.forEach((a, n) => {
-      const k = cellOf(Math.floor(a.x / NEAR), Math.floor(a.y / NEAR)),
+      const k = cellOf(Math.floor(px[a.id] / NEAR), Math.floor(py[a.id] / NEAR)),
         l = cells.get(k);
       if (l) l.push(n);
       else cells.set(k, [n]);
     });
-    return { out, cells, cellOf, size: NEAR };
+    return { out, cells, cellOf, size: NEAR, x: px, y: py };
   }
   return {
     prestigeParts,

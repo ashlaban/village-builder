@@ -324,7 +324,8 @@ function focusPawn(id) {
   }
   const a = st.agents[id],
     f = farmOf(p);
-  flyTo(a.inside ? w.hx[f.house] : a.x, a.inside ? w.hy[f.house] : a.y);
+  const [x, y] = Sim.placeOf(st, a); // a walker's place from its leg (VB-473)
+  flyTo(a.inside ? w.hx[f.house] : x, a.inside ? w.hy[f.house] : y);
   selectPawn(id);
 }
 function selectPawn(id, pinned = true) {
@@ -495,8 +496,9 @@ function pawnAt(x, y) {
     bd = 1e9;
   for (const a of st.agents) {
     if (a.inside || st.pawns[a.id].died !== null) continue;
-    const dx = x - a.x,
-      dy = y - (a.y - 9);
+    const [ax, ay] = Sim.placeOf(st, a), // a walker's place from its leg (VB-473)
+      dx = x - ax,
+      dy = y - (ay - 9);
     if (
       Math.abs(dx) < (coarse ? Math.max(6, 22 / cam.z) : 6) &&
       Math.abs(dy) < (coarse ? Math.max(10, 22 / cam.z) : 10)
