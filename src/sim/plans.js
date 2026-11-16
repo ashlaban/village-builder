@@ -330,12 +330,23 @@ VB['sim/plans'] = (() => {
     for (const k of Object.keys(UNBIASED)) bias[k] = Traits.biasOf(st, s);
     plan.head = { pawn: id, since: st.t, bias };
   }
-  // The household's targets made again for its new head, at once (VB-485): the season's plan from the template with the head's bias, and
-  // the fields it wants, so that neither waits for the next season or review.
+  // The household's targets made again for its new head, at once (VB-485): the template's of this season times the new head's bias, its
+  // projection, and the fields it wants, so that none waits for the next season or review. The season's plan itself is kept: its order
+  // of routines (the template's, or one set by the player or the old head, sp.by 'head') and its making day stand to the season's end, as
+  // a target the head chose does (plan.chosen), since a succession changes who plans, not what the season's work was set to be.
   function retarget(st, plan) {
     const hh = st.households[plan.holder.id],
-      T = plan.targets;
-    seasonal(st, plan, cal(st.t));
+      T = plan.targets,
+      c = cal(st.t);
+    if (!seasonOf(st, hh.id)) {
+      seasonal(st, plan, c);
+    } else {
+      const M = templateOf(st, cultureOf(st, hh), c);
+      biased(plan, M);
+      T.perHand = M.perHand;
+      chosenTargets(plan);
+      project(st, plan, c);
+    }
     if (hh.farmstead !== null) {
       T.workable = fieldsWorkable(st, hh, T.perHand);
       T.fields = headFields(plan, fieldsWanted(st, hh, Infinity), T.workable);
@@ -389,32 +400,21 @@ VB['sim/plans'] = (() => {
     const wood = hz ? use[c.season] * (SEASON_DAYS - c.sday) + (hz > 1 ? use[(c.season + 1) % 4] * SEASON_DAYS : 0) : 0;
     return [wood, stall / HERD.stallDays];
   }
-  // The head's horizon in place of the template's look-ahead, at a review (VB-485): the template's targets (woodWinter, hay's winters)
-  // are the custom's look-ahead, the one a head that projects to the season's end keeps, so such a head wants them as they are. A head
-  // that reacts does not count what the rest of the season will burn and feed: its targets are less by that. A far-seeing head wants
-  // what it projects to its horizon's end only where that is more than the template's target, where the template's own look-ahead is
-  // shorter; nowhere else more. The difference is kept in targets.ahead so that the next review takes it off before adding its own; none
-  // on a target the head chose (VB-253); no target goes under nothing. The seed is held back from the harvest by every head
-  // (Reservations: the seed kept for sowing is the first), so the horizon does not move it; only the bias does. A few multiplications
-  // and a walk over the horizon's days; draws nothing.
+  // What the head projects the household will burn and feed before its horizon ends, at a review (design.md, How a holder chooses:
+  // foresight: a poor head reacts when a store crosses its target, a good one projects ahead): the template's target is the reserve
+  // every head keeps; a head that reacts projects nothing, and one that projects lays in besides what the hearth will burn and the herd
+  // eat in the stall days to its horizon's end (burnAhead). Kept in targets.ahead so that the next review takes it off before adding its
+  // own; none on a target the head chose (VB-253). The seed is held back from the harvest by every head (Reservations: the seed kept for
+  // sowing is the first), so the horizon does not move it; only the bias does. A few multiplications and a walk over the horizon's days;
+  // draws nothing. (VB-485 had put the horizon in place of the template's look-ahead; withdrawn by the orchestrator, 16 Nov, as against
+  // the Decided mechanism: backlog/VB-485.md.)
   function project(st, plan, c) {
     const P = plan.targets,
       A = P.ahead || (P.ahead = { season: c.season, wood: 0, hay: 0 }),
-      C = plan.chosen,
-      hz = horizonOf(headSkill(st, plan.holder.id));
+      C = plan.chosen;
     P.wood[A.season] -= A.wood;
     P.hayWinters -= A.hay;
-    let wood = 0,
-      hay = 0;
-    if (hz === 0) {
-      const [w, h] = burnAhead(st, c, 1);
-      wood = -Math.min(w, P.wood[c.season]);
-      hay = -Math.min(h, P.hayWinters);
-    } else if (hz > 1) {
-      const [w, h] = burnAhead(st, c, hz);
-      wood = Math.max(0, w - P.wood[c.season]);
-      hay = Math.max(0, h - P.hayWinters);
-    }
+    let [wood, hay] = burnAhead(st, c, horizonOf(headSkill(st, plan.holder.id)));
     if (C && C.wood !== null) wood = 0;
     if (C && C.hay !== null) hay = 0;
     P.wood[c.season] += wood;
@@ -916,6 +916,8 @@ VB['sim/plans'] = (() => {
       chosen: C[store] ?? null,
       bounds: targetBounds(st, plan, store),
     });
+    // the custom's fields beside the head's: both capped at what the hands can till; the head's bias is applied before that cap (VB-485),
+    // so the two differ only where the bias moves the fields under it
     const wanted = hh.farmstead === null ? 0 : fieldsWanted(st, hh, T.workable);
     return {
       targets: {

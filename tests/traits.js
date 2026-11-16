@@ -69,13 +69,12 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'plan invariants after the succession');
 }
 
-// the horizon at a review, in place of the template's look-ahead (VB-485): on each season's first day a head of skill 0.5 and no bias wants
-// the template's wood and hay; a far-seeing one wants more only where its horizon's burn is more than the template's target; one that
-// reacts wants less by what the rest of the season burns and feeds; the template's own targets are untouched; a review draws nothing
+// the horizon at a review: a head that reacts keeps the template's goal; one that projects adds the wood burnt to the season's end, and a
+// far-seeing one a season more and the stall days within it; the template's own targets are untouched; a review draws nothing
 {
   const st = templateHeads(VB, make()), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = plan.targets, E = st.ECON;
   assert.deepStrictEqual(plan.head.bias, { wood: 1, hay: 1, seed: 1, fields: 1 }, 'no bias');
-  const goal = (c) => (c.season === 1 || c.season === 2 ? st.ECON.woodWinter : st.ECON.woodTarget);
+  const goal = (c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   const at = (wits, c) => {
     st.pawns[hh.holder].traits.fill(wits, 0, 2);
     plan.head.since = st.t;
@@ -84,34 +83,27 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
     assert.strictEqual(JSON.stringify(st.rng), s0, 'a review draws nothing');
     return [Tg.wood[c.season], Tg.hayWinters];
   };
-  const stallIn = (c, days) => {
-    let n = 0;
-    for (let d = 0; d < days; d++) { const doy = (c.doy + d) % 48; if (doy >= HERD.stall[0] || doy < HERD.stall[1]) n++; }
-    return n / HERD.stallDays;
-  };
-  const first = (y, s) => { st.t = y * YEAR + s * SEASON_DAYS * DAY + 8; return cal(st.t); };
-  for (let s = 0; s < 4; s++) {
-    const c = first(1, s);
-    assert.strictEqual(c.sday, 0, 'the season\'s first day');
-    assert.deepStrictEqual(at(0.5, c), [goal(c), 2], `season ${s}: a head of skill 0.5 wants the template's wood and hay`);
-    const burn = E.woodUse[s] * SEASON_DAYS, burn2 = burn + E.woodUse[(s + 1) % 4] * SEASON_DAYS;
-    assert.deepStrictEqual(at(0.9, c), [Math.max(goal(c), burn2), Math.max(2, stallIn(c, 2 * SEASON_DAYS))], `season ${s}: a far-seeing head, no more where the template looks as far`);
-    const [w0, h0] = at(0.1, c);
-    assert.ok(near(w0, goal(c) - burn) && near(h0, 2 - stallIn(c, SEASON_DAYS)) && w0 < goal(c), `season ${s}: a head that reacts wants less: ${w0}, ${h0}`);
-    assert.deepStrictEqual(at(0.5, c), [goal(c), 2], `season ${s}: and back: the difference is taken off at the next review`);
-  }
-  // where the template's own look-ahead is shorter (a woodpile goal of 10 in winter, under the 23.4 burnt to spring's end), the far-seeing
-  // head wants its projection, the middling one the template's, and the one that reacts none under nothing
-  st.ECON = { ...E, woodTarget: 10 };
-  const w3 = first(2, 3), burn2 = E.woodUse[3] * SEASON_DAYS + E.woodUse[0] * SEASON_DAYS;
-  assert.ok(near(at(0.9, w3)[0], burn2) && burn2 > 10, 'a longer horizon wants more where the template looks less far');
-  assert.strictEqual(at(0.5, w3)[0], 10, 'the middling head the template\'s');
-  assert.strictEqual(at(0.1, w3)[0], 0, 'the one that reacts less, not under nothing');
-  st.ECON = E;
+  const c = cal(st.t);
+  assert.deepStrictEqual(at(0.1, c), [goal(c), 2], 'a head that reacts plans by the template');
+  const left = SEASON_DAYS - c.sday;
+  const [w1] = at(0.5, c);
+  assert.ok(near(w1, goal(c) + E.woodUse[c.season] * left), `to the season's end: ${w1}`);
+  const [w2] = at(0.9, c);
+  assert.ok(near(w2, goal(c) + E.woodUse[c.season] * left + E.woodUse[(c.season + 1) % 4] * SEASON_DAYS), `a season further: ${w2}`);
+  const back = at(0.1, c);
+  assert.ok(near(back[0], goal(c)) && near(back[1], 2), 'and back: the projection is taken off at the next review');
+  // in autumn, a far-seeing head looks into the winter's stall days
+  st.t = (2 * SEASON_DAYS + 1) * DAY + 8;
+  const au = cal(st.t);
+  P.reviewed(st, plan, au, 'store');
+  const [, hay] = at(0.9, au);
+  let stall = 0;
+  for (let d = 0; d < 2 * SEASON_DAYS - au.sday; d++) { const doy = (au.doy + d) % 48; if (doy >= HERD.stall[0] || doy < HERD.stall[1]) stall++; }
+  assert.ok(stall > 0 && near(hay, 2 + stall / HERD.stallDays), `the hay for the stall days ahead: ${hay}`);
   // the bias multiplies the plan's targets, not the template's, from the next season's plan
   plan.head.bias = { wood: 0.8, hay: 1.2, seed: 0.9, fields: 1 };
-  st.pawns[hh.holder].traits.fill(0.4, 0, 2);
-  st.t = 3 * YEAR + (3 * SEASON_DAYS + 1) * DAY + 8;
+  st.pawns[hh.holder].traits.fill(0.1, 0, 2);
+  st.t = (3 * SEASON_DAYS + 1) * DAY + 8;
   const wi = cal(st.t);
   P.reviewed(st, plan, wi, 'store');
   assert.ok(near(Tg.wood[wi.season], 0.8 * goal(wi)) && near(Tg.hayWinters, 2.4) && near(Tg.seed, 0.9 * VB['sim/rules'].CROPS.barley.seed), 'the head\'s targets');
@@ -119,16 +111,48 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   P.reviewed(st, other, wi, 'store');
   const V = Sim.headView(st, hh.id);
   assert.ok(near(V.targets.wood.custom, goal(wi)) && V.targets.hay.custom === 2, 'the custom\'s targets beside the head\'s');
-  assert.ok(V.head.horizon === 1 && V.head.keepsOrder, 'the head\'s horizon in the view');
+  assert.ok(V.head.horizon === 0 && V.head.keepsOrder, 'the head\'s horizon in the view');
 }
+// the horizon on a season's first day, worked by hand (VB-254, as Decided: a poor head reacts, a good one projects ahead; VB-485's
+// replacement withdrawn): ECON.woodUse is 0.35, 0.3, 0.5 and 1.6 loads a day by season, 12 days a season; the stall is from day 32 to day
+// 5 of the year, 21 days a winter. Spring's first day (day 0): a head that reacts wants the template's 30 loads and 2 winters; one to the
+// season's end 30 + 0.35 × 12 = 34.2 and 2 + 5/21 (days 0 to 4 stalled); one a season further 34.2 + 0.3 × 12 = 37.8 and the same hay
+// (summer has no stall). Autumn's first day (day 24): 40; 40 + 0.5 × 12 = 46 and 2 + 4/21 (days 32 to 35); 46 + 1.6 × 12 = 65.2 and
+// 2 + 16/21 (days 32 to 47).
+{
+  const st = templateHeads(VB, make()), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = plan.targets;
+  const at = (wits) => {
+    st.pawns[hh.holder].traits.fill(wits, 0, 2);
+    plan.head.since = st.t;
+    P.reviewed(st, plan, cal(st.t), 'store');
+    return [Tg.wood[cal(st.t).season], Tg.hayWinters];
+  };
+  const same = (a, b, m) => assert.ok(near(a[0], b[0], 1e-6) && near(a[1], b[1], 1e-6), `${m}: ${a} against ${b}`);
+  st.t = YEAR + 8;
+  assert.strictEqual(cal(st.t).doy, 0);
+  same(at(0.1), [30, 2], 'spring: a head that reacts wants the template');
+  same(at(0.5), [34.2, 2 + 5 / 21], "spring: to the season's end");
+  same(at(0.9), [37.8, 2 + 5 / 21], 'spring: a season further');
+  st.t = YEAR + 24 * DAY + 8;
+  assert.strictEqual(cal(st.t).doy, 24);
+  same(at(0.1), [40, 2], 'autumn: a head that reacts wants the template');
+  same(at(0.5), [46, 2 + 4 / 21], "autumn: to the season's end");
+  same(at(0.9), [65.2, 2 + 16 / 21], 'autumn: a season further, into the winter');
+  same(at(0.1), [40, 2], 'and back: the projection is taken off at the next review');
+}
+
 // a new head's bias reaches its targets at once, at the succession, not at the next seasonal plan (VB-485)
 {
   const st = make(), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = plan.targets;
   st.naturalDeaths = false;
   Sim.advance(st, DAY);
+  const sp0 = st.plans.seasons.get(hh.id), turned = [...sp0.steps].reverse(), made = sp0.made;
+  P.setOrder(st, hh.id, turned); // an order the old head set
   st.rng.traits.fix = 0; // the new head's biases all at their least
   killPawn(st, hh.holder, 'killed');
   delete st.rng.traits.fix;
+  const sp1 = st.plans.seasons.get(hh.id);
+  assert.ok(sp1.by === 'head' && sp1.made === made && JSON.stringify(sp1.steps) === JSON.stringify(turned), "the season's plan and its order outlast the succession");
   const b = plan.head.bias, M = Sim.headView(st, hh.id).targets;
   assert.ok(b.wood < 1 && b.hay < 1 && b.seed < 1, 'the new head is biased under the custom');
   assert.ok(near(Tg.seed, VB['sim/rules'].CROPS.barley.seed * b.seed), `its seed at once: ${Tg.seed}`);
@@ -159,4 +183,4 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
     assert.ok(Math.abs(sum / n - unbiased) <= 0.02 * unbiased, `skill ${skill}: mean ${(sum / n).toFixed(3)} against ${unbiased}`);
   }
 }
-console.log('traits ok: five stand-in traits drawn at birth and at the start, neutral on average; skill as head; horizon in place of the template\'s look-ahead, and bias, at the review, which draws nothing; a new head\'s targets at once; the fields\' bias before the cap');
+console.log('traits ok: five stand-in traits drawn at birth and at the start, neutral on average; skill as head; horizon and bias at the review, which draws nothing, worked by hand on two seasons\' first days; a new head\'s targets at once; the fields\' bias before the cap');
