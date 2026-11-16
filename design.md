@@ -123,6 +123,10 @@ below do not; `AGENTS.md`, Deciding without Kim, is their working form and says 
 - **The future is someone's estimate** (Kim, 15 November). What the player is shown of what will happen (when a task ends, whether a
   store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
   knowledge; what has happened is shown as it was (section 7, The estimate and The timetable).
+- **Like is shown alike, and pictures before words** (Kim, 16 November). Every thing of one kind (a level, a store, a trait, a
+  person's row, a link) has one presentation, used wherever it appears, unless an exception is well motivated. Presentation favours
+  clear, indicative icons, and images and graphs where they apply, before text; a level is shown on a meter, the same meter
+  everywhere (its scales are under review with Kim: VB-665). Traits are not hidden information: they are shown as icons.
 - **References.** Founders is the reference for the early game, populous for the late game (many pawns).
 
 ## 2. World, climate and travel
