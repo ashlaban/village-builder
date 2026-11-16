@@ -1,0 +1,1084 @@
+{
+ "session": "b026077a-57d1-5175-b8c8-489b873bc82d",
+ "label": "worker",
+ "models": [
+  "claude-fable-5-2",
+  "<synthetic>"
+ ],
+ "start": "2026-11-15T23:00:31.397Z",
+ "end": "2026-11-16T09:44:02.107Z",
+ "wallMin": 643.5,
+ "activeMin": 381.3,
+ "prompts": 12,
+ "calls": 200,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 470,
+  "cacheWrite": 570504,
+  "cacheRead": 49633299,
+  "output": 124078
+ },
+ "context": {
+  "first": 85718,
+  "peak": 418555,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 100,
+   "bytes": 122678,
+   "seconds": 2601.3
+  },
+  "Read": {
+   "calls": 3,
+   "bytes": 436649,
+   "seconds": 65.1
+  },
+  "AskUserQuestion": {
+   "calls": 1,
+   "bytes": 787,
+   "seconds": 157.7
+  },
+  "Agent": {
+   "calls": 46,
+   "bytes": 48254,
+   "seconds": 94.6
+  },
+  "ToolSearch": {
+   "calls": 2,
+   "bytes": 195,
+   "seconds": 0.2
+  },
+  "mcp__github__create_pull_request": {
+   "calls": 1,
+   "bytes": 80,
+   "seconds": 2.2
+  },
+  "mcp__github__update_pull_request": {
+   "calls": 2,
+   "bytes": 160,
+   "seconds": 4
+  },
+  "SendMessage": {
+   "calls": 17,
+   "bytes": 3062,
+   "seconds": 50.4
+  }
+ },
+ "largest": [
+  {
+   "tool": "Read",
+   "what": "docs/img/vb-410-carts-out.jpg",
+   "calls": 1,
+   "bytes": 436095
+  },
+  {
+   "tool": "Agent",
+   "what": "",
+   "calls": 46,
+   "bytes": 48254
+  },
+  {
+   "tool": "Bash",
+   "what": "/tmp/claude-0/-home-user-village-builder/b026077a-57d1-5175-",
+   "calls": 32,
+   "bytes": 30825
+  },
+  {
+   "tool": "Bash",
+   "what": "cat docs/agents/README.md",
+   "calls": 1,
+   "bytes": 18879
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 4,
+   "bytes": 16692
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 5,
+   "bytes": 11609
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/inbox.js",
+   "calls": 5,
+   "bytes": 11439
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 7,
+   "bytes": 6515
+  },
+  {
+   "tool": "Bash",
+   "what": "set -e",
+   "calls": 1,
+   "bytes": 3123
+  },
+  {
+   "tool": "SendMessage",
+   "what": "",
+   "calls": 17,
+   "bytes": 3062
+  },
+  {
+   "tool": "Bash",
+   "what": "node -e",
+   "calls": 4,
+   "bytes": 2702
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 7,
+   "bytes": 2451
+  }
+ ],
+ "weighted": 6297320,
+ "subagents": [
+  {
+   "agent": "a1f9f5d9",
+   "task": "VB-471",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 50,
+   "tokens": {
+    "input": 100,
+    "cacheWrite": 85559,
+    "cacheRead": 3131325,
+    "output": 30294
+   },
+   "weighted": 571651,
+   "first": 16765,
+   "boot": 51305,
+   "peak": 85561,
+   "activeMin": 13.9,
+   "start": "2026-11-15T23:04:00.532Z"
+  },
+  {
+   "agent": "a0577a5f",
+   "task": "VB-254",
+   "size": "M",
+   "status": "needs-review",
+   "model": "claude-opus-5-5",
+   "calls": 151,
+   "tokens": {
+    "input": 306,
+    "cacheWrite": 424821,
+    "cacheRead": 21011235,
+    "output": 82500
+   },
+   "weighted": 3044956,
+   "first": 16753,
+   "boot": 96159,
+   "peak": 218727,
+   "activeMin": 49.3,
+   "start": "2026-11-15T23:04:00.540Z"
+  },
+  {
+   "agent": "a764bbf5",
+   "task": "VB-278",
+   "size": "M",
+   "status": "needs-review",
+   "model": "claude-opus-5-5",
+   "calls": 95,
+   "tokens": {
+    "input": 190,
+    "cacheWrite": 148144,
+    "cacheRead": 9321412,
+    "output": 48008
+   },
+   "weighted": 1357551,
+   "first": 16753,
+   "boot": 88721,
+   "peak": 148146,
+   "activeMin": 24.6,
+   "start": "2026-11-15T23:04:00.545Z"
+  },
+  {
+   "agent": "ace5c185",
+   "task": "VB-373",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 20,
+   "tokens": {
+    "input": 40,
+    "cacheWrite": 38369,
+    "cacheRead": 563180,
+    "output": 10253
+   },
+   "weighted": 155584,
+   "first": 16759,
+   "boot": 25081,
+   "peak": 38371,
+   "activeMin": 3.9,
+   "start": "2026-11-15T23:04:00.549Z"
+  },
+  {
+   "agent": "aaa4aea8",
+   "task": "VB-374",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 29,
+   "tokens": {
+    "input": 58,
+    "cacheWrite": 70872,
+    "cacheRead": 848547,
+    "output": 11126
+   },
+   "weighted": 229133,
+   "first": 16759,
+   "boot": 0,
+   "peak": 41282,
+   "activeMin": 14.1,
+   "start": "2026-11-15T23:08:36.859Z"
+  },
+  {
+   "agent": "a6127bef",
+   "task": "VB-472",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 219,
+   "tokens": {
+    "input": 439,
+    "cacheWrite": 630117,
+    "cacheRead": 46527637,
+    "output": 148866
+   },
+   "weighted": 6185179,
+   "first": 16842,
+   "boot": 135607,
+   "peak": 331000,
+   "activeMin": 68.7,
+   "start": "2026-11-15T23:19:00.013Z"
+  },
+  {
+   "agent": "a9a1a93b",
+   "task": "VB-278",
+   "size": "M",
+   "status": "needs-review",
+   "model": "claude-opus-5-5",
+   "calls": 12,
+   "tokens": {
+    "input": 24,
+    "cacheWrite": 102511,
+    "cacheRead": 984779,
+    "output": 6841
+   },
+   "weighted": 260846,
+   "first": 67576,
+   "boot": 0,
+   "peak": 102513,
+   "activeMin": 1.5,
+   "start": "2026-11-15T23:30:00.629Z"
+  },
+  {
+   "agent": "ae37bac1",
+   "task": "VB-186",
+   "size": "M",
+   "status": "needs-review",
+   "model": "claude-fable-5-2",
+   "calls": 61,
+   "tokens": {
+    "input": 122,
+    "cacheWrite": 247047,
+    "cacheRead": 8015289,
+    "output": 108823
+   },
+   "weighted": 1654575,
+   "first": 17078,
+   "boot": 173455,
+   "peak": 247049,
+   "activeMin": 28.6,
+   "start": "2026-11-15T23:30:00.665Z"
+  },
+  {
+   "agent": "ad829cb9",
+   "task": "VB-454",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 24,
+   "tokens": {
+    "input": 48,
+    "cacheWrite": 48941,
+    "cacheRead": 955403,
+    "output": 15141
+   },
+   "weighted": 232470,
+   "first": 16757,
+   "boot": 36513,
+   "peak": 55631,
+   "activeMin": 5.6,
+   "start": "2026-11-15T23:30:00.677Z"
+  },
+  {
+   "agent": "a9a9200b",
+   "task": "VB-279",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 18,
+   "tokens": {
+    "input": 36,
+    "cacheWrite": 40790,
+    "cacheRead": 635536,
+    "output": 7089
+   },
+   "weighted": 150022,
+   "first": 16834,
+   "boot": 0,
+   "peak": 47480,
+   "activeMin": 7.7,
+   "start": "2026-11-15T23:32:26.025Z"
+  },
+  {
+   "agent": "a6c239fe",
+   "task": "VB-504",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 16,
+   "tokens": {
+    "input": 32,
+    "cacheWrite": 18633,
+    "cacheRead": 326250,
+    "output": 2590
+   },
+   "weighted": 68898,
+   "first": 16793,
+   "boot": 0,
+   "peak": 25323,
+   "activeMin": 4,
+   "start": "2026-11-15T23:36:28.428Z"
+  },
+  {
+   "agent": "ac68916c",
+   "task": "VB-432",
+   "size": "S",
+   "status": "needs-review",
+   "model": "claude-sonnet-5-5",
+   "calls": 40,
+   "tokens": {
+    "input": 82,
+    "cacheWrite": 263974,
+    "cacheRead": 1624443,
+    "output": 18573
+   },
+   "weighted": 585359,
+   "first": 16997,
+   "boot": 0,
+   "peak": 63865,
+   "activeMin": 37.4,
+   "start": "2026-11-15T23:42:00.841Z"
+  },
+  {
+   "agent": "ae2cf4e7",
+   "task": "VB-468",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 26,
+   "tokens": {
+    "input": 52,
+    "cacheWrite": 39678,
+    "cacheRead": 842266,
+    "output": 9059
+   },
+   "weighted": 179171,
+   "first": 16941,
+   "boot": 0,
+   "peak": 46368,
+   "activeMin": 9.1,
+   "start": "2026-11-15T23:42:00.848Z"
+  },
+  {
+   "agent": "a7146786",
+   "task": "VB-457",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 51,
+   "tokens": {
+    "input": 102,
+    "cacheWrite": 408039,
+    "cacheRead": 2580331,
+    "output": 23249
+   },
+   "weighted": 884429,
+   "first": 16879,
+   "boot": 0,
+   "peak": 85167,
+   "activeMin": 35.6,
+   "start": "2026-11-15T23:51:45.989Z"
+  },
+  {
+   "agent": "a87e9093",
+   "task": "VB-254",
+   "size": "M",
+   "status": "needs-review",
+   "model": "claude-opus-5-5",
+   "calls": 20,
+   "tokens": {
+    "input": 40,
+    "cacheWrite": 113699,
+    "cacheRead": 1857140,
+    "output": 12998
+   },
+   "weighted": 392868,
+   "first": 67886,
+   "boot": 0,
+   "peak": 113701,
+   "activeMin": 2.9,
+   "start": "2026-11-15T23:57:49.377Z"
+  },
+  {
+   "agent": "a003b184",
+   "task": "VB-521",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 138,
+   "tokens": {
+    "input": 277,
+    "cacheWrite": 1165038,
+    "cacheRead": 17517461,
+    "output": 77558
+   },
+   "weighted": 3596111,
+   "first": 16950,
+   "boot": 60324,
+   "peak": 208572,
+   "activeMin": 83.1,
+   "start": "2026-11-16T00:00:27.239Z"
+  },
+  {
+   "agent": "ae275fc2",
+   "task": "VB-485",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 131,
+   "tokens": {
+    "input": 263,
+    "cacheWrite": 1291007,
+    "cacheRead": 13378892,
+    "output": 74156
+   },
+   "weighted": 3322691,
+   "first": 17017,
+   "boot": 85341,
+   "peak": 176309,
+   "activeMin": 87.3,
+   "start": "2026-11-16T00:01:48.545Z"
+  },
+  {
+   "agent": "a420a081",
+   "task": "VB-472",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 26,
+   "tokens": {
+    "input": 52,
+    "cacheWrite": 141647,
+    "cacheRead": 2885560,
+    "output": 21913
+   },
+   "weighted": 575232,
+   "first": 67991,
+   "boot": 0,
+   "peak": 141649,
+   "activeMin": 4.9,
+   "start": "2026-11-16T00:11:34.118Z"
+  },
+  {
+   "agent": "a7e0a92c",
+   "task": "VB-280",
+   "size": "S",
+   "status": "needs-review",
+   "model": "claude-sonnet-5-5",
+   "calls": 58,
+   "tokens": {
+    "input": 114,
+    "cacheWrite": 513558,
+    "cacheRead": 2242621,
+    "output": 19242
+   },
+   "weighted": 962534,
+   "first": 16967,
+   "boot": 47295,
+   "peak": 65829,
+   "activeMin": 63.2,
+   "start": "2026-11-16T00:27:27.251Z"
+  },
+  {
+   "agent": "a3f0434c",
+   "task": "VB-473",
+   "size": "S",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 220,
+   "tokens": {
+    "input": 441,
+    "cacheWrite": 885604,
+    "cacheRead": 63200459,
+    "output": 213711
+   },
+   "weighted": 8496047,
+   "first": 17137,
+   "boot": 146251,
+   "peak": 457344,
+   "activeMin": 68.7,
+   "start": "2026-11-16T00:29:03.017Z"
+  },
+  {
+   "agent": "a9ec1785",
+   "task": "VB-387",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 10,
+   "tokens": {
+    "input": 20,
+    "cacheWrite": 25042,
+    "cacheRead": 239773,
+    "output": 3814
+   },
+   "weighted": 74370,
+   "first": 17029,
+   "boot": 0,
+   "peak": 31732,
+   "activeMin": 1.5,
+   "start": "2026-11-16T00:50:24.962Z"
+  },
+  {
+   "agent": "a3cd8731",
+   "task": "VB-453",
+   "size": "S",
+   "status": "needs-review",
+   "model": "claude-sonnet-5-5",
+   "calls": 17,
+   "tokens": {
+    "input": 36,
+    "cacheWrite": 30922,
+    "cacheRead": 499229,
+    "output": 5225
+   },
+   "weighted": 114736,
+   "first": 17087,
+   "boot": 0,
+   "peak": 37614,
+   "activeMin": 6.6,
+   "start": "2026-11-16T00:52:42.848Z"
+  },
+  {
+   "agent": "a4e30c37",
+   "task": "VB-410",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 89,
+   "tokens": {
+    "input": 184,
+    "cacheWrite": 119824,
+    "cacheRead": 7178256,
+    "output": 37957
+   },
+   "weighted": 1057575,
+   "first": 16988,
+   "boot": 48497,
+   "peak": 126514,
+   "activeMin": 48.6,
+   "start": "2026-11-16T01:00:21.066Z"
+  },
+  {
+   "agent": "a8d00b2b",
+   "task": "VB-473",
+   "size": "S",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 50,
+   "tokens": {
+    "input": 100,
+    "cacheWrite": 197041,
+    "cacheRead": 6519609,
+    "output": 37666
+   },
+   "weighted": 1086692,
+   "first": 68216,
+   "boot": 0,
+   "peak": 197043,
+   "activeMin": 8.8,
+   "start": "2026-11-16T01:26:25.929Z"
+  },
+  {
+   "agent": "a08cdf9a",
+   "task": "VB-485",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 10,
+   "tokens": {
+    "input": 20,
+    "cacheWrite": 51560,
+    "cacheRead": 858991,
+    "output": 9119
+   },
+   "weighted": 195964,
+   "first": 67941,
+   "boot": 0,
+   "peak": 102212,
+   "activeMin": 2.2,
+   "start": "2026-11-16T01:34:14.438Z"
+  },
+  {
+   "agent": "acf2acbe",
+   "task": "VB-521",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 8,
+   "tokens": {
+    "input": 16,
+    "cacheWrite": 60444,
+    "cacheRead": 671144,
+    "output": 9108
+   },
+   "weighted": 188225,
+   "first": 68127,
+   "boot": 0,
+   "peak": 111096,
+   "activeMin": 2,
+   "start": "2026-11-16T01:39:58.585Z"
+  },
+  {
+   "agent": "a1a1986c",
+   "task": "VB-474",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 22,
+   "tokens": {
+    "input": 43,
+    "cacheWrite": 112418,
+    "cacheRead": 1012602,
+    "output": 11450
+   },
+   "weighted": 299076,
+   "first": 17081,
+   "boot": 48291,
+   "peak": 66237,
+   "activeMin": 13.2,
+   "start": "2026-11-16T01:44:07.380Z"
+  },
+  {
+   "agent": "af450568",
+   "task": "VB-581",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 75,
+   "tokens": {
+    "input": 152,
+    "cacheWrite": 245893,
+    "cacheRead": 4574844,
+    "output": 33810
+   },
+   "weighted": 934053,
+   "first": 17099,
+   "boot": 51860,
+   "peak": 115452,
+   "activeMin": 36.6,
+   "start": "2026-11-16T01:44:07.393Z"
+  },
+  {
+   "agent": "ad142edf",
+   "task": "VB-429",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 38,
+   "tokens": {
+    "input": 76,
+    "cacheWrite": 51127,
+    "cacheRead": 1585926,
+    "output": 13427
+   },
+   "weighted": 289712,
+   "first": 17174,
+   "boot": 34913,
+   "peak": 57817,
+   "activeMin": 23.5,
+   "start": "2026-11-16T01:50:17.084Z"
+  },
+  {
+   "agent": "ac83c399",
+   "task": "VB-519",
+   "size": "S",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 150,
+   "tokens": {
+    "input": 301,
+    "cacheWrite": 631109,
+    "cacheRead": 20752234,
+    "output": 90563
+   },
+   "weighted": 3317226,
+   "first": 17213,
+   "boot": 95145,
+   "peak": 229837,
+   "activeMin": 63.3,
+   "start": "2026-11-16T01:52:17.845Z"
+  },
+  {
+   "agent": "a6854f91",
+   "task": "VB-331",
+   "size": "S",
+   "status": "needs-review",
+   "model": "claude-sonnet-5-5",
+   "calls": 51,
+   "tokens": {
+    "input": 102,
+    "cacheWrite": 146826,
+    "cacheRead": 3014441,
+    "output": 24387
+   },
+   "weighted": 607014,
+   "first": 17030,
+   "boot": 0,
+   "peak": 90891,
+   "activeMin": 22.6,
+   "start": "2026-11-16T02:00:57.308Z"
+  },
+  {
+   "agent": "a18953ec",
+   "task": "VB-405",
+   "size": "M",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 60,
+   "tokens": {
+    "input": 118,
+    "cacheWrite": 500464,
+    "cacheRead": 7369088,
+    "output": 79040
+   },
+   "weighted": 1757807,
+   "first": 17523,
+   "boot": 114434,
+   "peak": 214286,
+   "activeMin": 27.6,
+   "start": "2026-11-16T02:00:57.325Z"
+  },
+  {
+   "agent": "ac29fc3b",
+   "task": "VB-255",
+   "size": "L",
+   "status": "needs-review",
+   "model": "claude-opus-5-5",
+   "calls": 301,
+   "tokens": {
+    "input": 602,
+    "cacheWrite": 1649518,
+    "cacheRead": 78494448,
+    "output": 181605
+   },
+   "weighted": 10819969,
+   "first": 17270,
+   "boot": 132151,
+   "peak": 428403,
+   "activeMin": 122.3,
+   "start": "2026-11-16T02:10:22.954Z"
+  },
+  {
+   "agent": "ab2f5595",
+   "task": "VB-611",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 135,
+   "tokens": {
+    "input": 272,
+    "cacheWrite": 213906,
+    "cacheRead": 20141613,
+    "output": 77735
+   },
+   "weighted": 2670491,
+   "first": 17445,
+   "boot": 126937,
+   "peak": 220596,
+   "activeMin": 38,
+   "start": "2026-11-16T06:53:15.015Z"
+  },
+  {
+   "agent": "ae42bc60",
+   "task": "VB-519",
+   "size": "S",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 12,
+   "tokens": {
+    "input": 24,
+    "cacheWrite": 108457,
+    "cacheRead": 1031359,
+    "output": 10341
+   },
+   "weighted": 290436,
+   "first": 68447,
+   "boot": 0,
+   "peak": 108459,
+   "activeMin": 1.9,
+   "start": "2026-11-16T06:56:09.751Z"
+  },
+  {
+   "agent": "a3097861",
+   "task": "VB-632",
+   "size": "S",
+   "status": "needs-review",
+   "model": "claude-sonnet-5-5",
+   "calls": 81,
+   "tokens": {
+    "input": 170,
+    "cacheWrite": 415607,
+    "cacheRead": 4492262,
+    "output": 29561
+   },
+   "weighted": 1116710,
+   "first": 17114,
+   "boot": 47664,
+   "peak": 92415,
+   "activeMin": 41.4,
+   "start": "2026-11-16T07:04:28.264Z"
+  },
+  {
+   "agent": "ab58c39f",
+   "task": "VB-633",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 121,
+   "tokens": {
+    "input": 242,
+    "cacheWrite": 1423035,
+    "cacheRead": 15668187,
+    "output": 85425
+   },
+   "weighted": 3772979,
+   "first": 17251,
+   "boot": 88972,
+   "peak": 215309,
+   "activeMin": 63.7,
+   "start": "2026-11-16T07:04:28.270Z"
+  },
+  {
+   "agent": "a141efb8",
+   "task": "VB-611",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 16,
+   "tokens": {
+    "input": 32,
+    "cacheWrite": 120740,
+    "cacheRead": 1493837,
+    "output": 14623
+   },
+   "weighted": 373456,
+   "first": 68532,
+   "boot": 0,
+   "peak": 120742,
+   "activeMin": 2.7,
+   "start": "2026-11-16T07:22:33.697Z"
+  },
+  {
+   "agent": "a883295b",
+   "task": "VB-520",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 201,
+   "tokens": {
+    "input": 402,
+    "cacheWrite": 280308,
+    "cacheRead": 34777932,
+    "output": 117010
+   },
+   "weighted": 4413630,
+   "first": 17468,
+   "boot": 93022,
+   "peak": 286998,
+   "activeMin": 56.9,
+   "start": "2026-11-16T07:23:34.190Z"
+  },
+  {
+   "agent": "a758e27a",
+   "task": "VB-561",
+   "size": null,
+   "status": "running",
+   "model": "claude-sonnet-5-5",
+   "calls": 31,
+   "tokens": {
+    "input": 62,
+    "cacheWrite": 38238,
+    "cacheRead": 1031655,
+    "output": 8734
+   },
+   "weighted": 194695,
+   "first": 17218,
+   "boot": 41497,
+   "peak": 44928,
+   "activeMin": 12.7,
+   "start": "2026-11-16T07:23:34.195Z"
+  },
+  {
+   "agent": "a10110db",
+   "task": "VB-255",
+   "size": "L",
+   "status": "needs-review",
+   "model": "claude-opus-5-5",
+   "calls": 24,
+   "tokens": {
+    "input": 48,
+    "cacheWrite": 137598,
+    "cacheRead": 2624278,
+    "output": 13011
+   },
+   "weighted": 499528,
+   "first": 68609,
+   "boot": 0,
+   "peak": 137600,
+   "activeMin": 2.6,
+   "start": "2026-11-16T08:13:36.980Z"
+  },
+  {
+   "agent": "a8939553",
+   "task": "VB-520",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 17,
+   "tokens": {
+    "input": 34,
+    "cacheWrite": 141818,
+    "cacheRead": 1910926,
+    "output": 13005
+   },
+   "weighted": 433424,
+   "first": 68526,
+   "boot": 0,
+   "peak": 141820,
+   "activeMin": 2.4,
+   "start": "2026-11-16T08:20:44.837Z"
+  },
+  {
+   "agent": "ad75cd8c",
+   "task": "VB-473",
+   "size": "S",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 84,
+   "tokens": {
+    "input": 172,
+    "cacheWrite": 480265,
+    "cacheRead": 9713286,
+    "output": 29065
+   },
+   "weighted": 1717157,
+   "first": 68454,
+   "boot": 0,
+   "peak": 166955,
+   "activeMin": 37.3,
+   "start": "2026-11-16T08:41:02.426Z"
+  },
+  {
+   "agent": "a2acdf01",
+   "task": "VB-474",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 16,
+   "tokens": {
+    "input": 32,
+    "cacheWrite": 34992,
+    "cacheRead": 420126,
+    "output": 6639
+   },
+   "weighted": 118980,
+   "first": 17669,
+   "boot": 0,
+   "peak": 34994,
+   "activeMin": 6.2,
+   "start": "2026-11-16T08:43:48.167Z"
+  },
+  {
+   "agent": "ae40f35a",
+   "task": "VB-473",
+   "size": "S",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 60,
+   "tokens": {
+    "input": 120,
+    "cacheWrite": 188236,
+    "cacheRead": 4083652,
+    "output": 26344
+   },
+   "weighted": 775500,
+   "first": 18329,
+   "boot": 43682,
+   "peak": 99101,
+   "activeMin": 16.1,
+   "start": "2026-11-16T09:24:06.553Z"
+  },
+  {
+   "agent": "a91101fc",
+   "task": "VB-519",
+   "size": "S",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 63,
+   "tokens": {
+    "input": 126,
+    "cacheWrite": 83112,
+    "cacheRead": 3356143,
+    "output": 27318
+   },
+   "weighted": 576220,
+   "first": 18104,
+   "boot": 44316,
+   "peak": 83114,
+   "activeMin": 13.7,
+   "start": "2026-11-16T09:24:06.557Z"
+  }
+ ],
+ "summary": {
+  "weightedTotal": 76898252,
+  "orchestratorShare": 0.082,
+  "bootMedian": 60324,
+  "readMedian": 43374,
+  "weightedPerDoneTask": 2330250,
+  "perSize": {
+   "S": {
+    "n": 21,
+    "median": 299076
+   },
+   "M": {
+    "n": 12,
+    "median": 2214149
+   }
+  },
+  "firstPass": 0.73,
+  "tasks": 45
+ }
+}

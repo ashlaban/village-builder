@@ -74,7 +74,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-659](backlog/VB-659.md) | Invariants out in the full bands: a trust's holder away from its trustee, a journey's pawn left in phase go | - | 1 | S | The bands' invariants band is out on the run's branch: populous small 37-51 violations a run, founders seed 11 four |
 | [VB-254](backlog/VB-254.md) | Foresight: stand-in traits, a head's horizon and its bias | year | 2 | M | A head plans from an estimate of its needs: wits, husbandry and years as head set the horizon and a persistent bias; the poorest tenth leave the template's order. |
 | [VB-255](backlog/VB-255.md) | Projects: a head with a surplus takes one, by its values | year | 2 | M | With targets met and hands and stores to spare, a head takes one project from the menu (more fields, a claim, a farm or cottage for the heir, a barn), weighted by ambition and generosity. |
 | [VB-278](backlog/VB-278.md) | The meetings a village a step: each village's meeting in its own six-minute step | between | 2 | M | VB-206's four stages run the whole island at once; each village now holds its meeting in its own step (its people's interests, its tie, its causes, its meeting), then the cultures' reckoning and the land meeting; draws reorder, so customs are calibrated before and after. |
