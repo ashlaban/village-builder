@@ -422,6 +422,11 @@ VB['sim/saves'] = (() => {
         hh.coldLog = []; // lint-allow: owner as above
       } // VB-327: nor the cold
     for (const hh of st.households)
+      if (!hh.dryLog) {
+        hh.dry = 0; // lint-allow: owner an older save's household, as sim/records makes one
+        hh.dryLog = []; // lint-allow: owner as above
+      } // VB-331: nor the dry days
+    for (const hh of st.households)
       if (!hh.carts) {
         hh.carts = [];
         hh.cartMiss = 0;
