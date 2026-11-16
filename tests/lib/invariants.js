@@ -1117,8 +1117,10 @@ function checkRel(st, p, bad) {
     for (const k of kinds) {
       const K = SOCIAL.memories[k], m = r.mem[k];
       if (!K) { bad.push(`${where}: unknown memory ${k}`); continue; }
-      const lo = Math.min(0, K.cap), hi = Math.max(0, K.cap);
-      if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${K.cap}`);
+      // a breach is felt by honour, its cap up to the most of TRAITS.acts.honour.breach (VB-520)
+      const T = globalThis.VB['sim/rules'].TRAITS, felt = T.breach.includes(k) ? Math.max(...T.acts.honour.breach) : 1;
+      const cap = K.cap * felt, lo = Math.min(0, cap), hi = Math.max(0, cap);
+      if (!(Number.isFinite(m.v) && m.v >= lo - 1e-9 && m.v <= hi + 1e-9)) bad.push(`${where}: ${k} is ${m.v}, outside 0..${cap}`);
       if (!(m.t <= st.t)) bad.push(`${where}: ${k} remembered at ${m.t}, after now (${st.t})`);
     }
   }
