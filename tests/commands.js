@@ -1,9 +1,10 @@
 // Commands (VB-167): a work command is carried out as start was; a refused command changes nothing; outside sim/commands and sim/agents
-// nothing in src/sim calls start (or the other acts the command verbs wrap).
+// nothing in src/sim calls start (or the other acts the command verbs wrap). On the small islands of tests/lib/probe.js (VB-856; the default
+// island before): founders on 36 by 26, heirs on 48 by 34.
 const assert = require('assert');
 const { readSource } = require('../tools/lib/source.js');
 const fs = require('fs'), path = require('path'), { tokenize } = require('../tools/wrap.js');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['sim/commands'], { isOpen } = VB['sim/kinds'];
+const VB = require('../src/load.js'), { island, ROOMY } = require('./lib/probe.js'), Sim = VB.sim, { issue } = VB['sim/commands'], { isOpen } = VB['sim/kinds'];
 const { canon } = require('./lib/canon.js');
 
 // static: the acts a verb wraps are called only from sim/commands, or inside the module that defines them (an act built of others there)
@@ -25,8 +26,7 @@ for (const f of files) {
 }
 assert.deepStrictEqual(calls, [], `acts called outside sim/commands: ${calls.join(', ')}`);
 
-const it = G.generate(7); let r; while (!(r = it.next()).done);
-const st = Sim.seed(r.value, 7, 'founders');
+const st = Sim.seed(island(7), 7, 'founders');
 Sim.advance(st, 3 * Sim.DAY + 4); // a working morning: jobs posted
 const snap = () => { const { w, ...rest } = st; return canon(rest); };
 const j = [...st.jobs.values()].find((x) => isOpen(x) && x.claims.length === 0);
@@ -90,7 +90,7 @@ for (const [cmd, why] of [
 ]) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap(), before2, 'refused walk, home and idle commands change nothing');
 // the meeting's decide and the debug verbs (VB-170), on the heirs scenario, which has farms with heirs
-const hw = (() => { const it2 = G.generate(7); let q; while (!(q = it2.next()).done); return q.value; })();
+const hw = island(7, ROOMY);
 const st2 = Sim.seed(hw, 7, 'heirs'); Sim.advance(st2, 2 * Sim.DAY);
 const snap2 = () => { const { w, ...rest } = st2; return canon(rest); };
 const C = VB.culture, s0 = st2.cenv.settlements[0], d0 = C.IDX.voice, now = s0.practice[d0], other = (now + 1) % C.NOPT[d0];
@@ -122,7 +122,7 @@ for (const [cmd, why] of [
 ]) { const res = issue(st2, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap2(), before3, 'refused meeting and debug commands change nothing');
 // the moving round's verbs (VB-171), on a fresh heirs state
-const st3 = Sim.seed((() => { const it3 = G.generate(7); let q; while (!(q = it3.next()).done); return q.value; })(), 7, 'heirs');
+const st3 = Sim.seed(island(7, ROOMY), 7, 'heirs');
 Sim.advance(st3, Sim.DAY);
 const snap3 = () => { const { w, ...rest } = st3; return canon(rest); };
 const single = (sex) => st3.pawns.find((p) => p.died === null && p.age >= 18 && p.sex === sex && Sim.spouseOf(st3, p.id) === null && !Sim.isHolder(st3, p.id));
@@ -193,7 +193,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
 // the player's cause (VB-211): the same advocate slot as a natural cause, so the same pull on the pawn's attitude and its ties'; dropCause ends it
 {
   // each on a world of its own: a and b are live together, and a world's fish stocks (w.fish, w.fishDay) belong to one run
-  const land = () => { const it4 = G.generate(7); let q; while (!(q = it4.next()).done); return q.value; };
+  const land = () => island(7, ROOMY);
   const make = () => { const s = Sim.seed(land(), 7, 'heirs'); Sim.advance(s, 2 * Sim.DAY); return s; };
   const a = make(), b = make(), id = a.pawns.findIndex((p) => p.died === null && p.age >= 18), dim = d0, opt = (a.cenv.settlements[0].practice[dim] + 1) % C.NOPT[dim];
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), 'the pawn argues no cause', 'dropCause is refused with no cause');
@@ -226,7 +226,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
 {
   const Offers = VB['sim/offers'], { opinionOf, balance } = VB['sim/relations'], { HELP } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
   const fresh = () => {
-    const s = Sim.seed(r.value, 7, 'founders');
+    const s = Sim.seed(island(7), 7, 'founders');
     const [a, b] = s.households.filter((h) => !h.dissolved && h.holder !== null
       && h.members.some((id) => id !== h.holder && s.pawns[id].age >= 14 && s.pawns[id].age < 60));
     b.grain = { barley: 5000 };

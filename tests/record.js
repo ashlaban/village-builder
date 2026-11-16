@@ -2,7 +2,7 @@
 // every union a married event; recordOf filters by pawn, place, kind and time and returns time order. VB-199: a pawn's events are
 // positions in the record and read as they did, every kind is in HISTORY, and the routine kinds fold into yearly counts.
 const assert = require('assert');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const VB = require('../src/load.js'), Sim = VB.sim;
 const { readSource } = require('../tools/lib/source.js');
 const fs = require('fs'), path = require('path'), { tokenize } = require('../tools/wrap.js');
 
@@ -36,10 +36,12 @@ for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 's
 }
 const unlisted = [...written].filter((k) => !(k in H));
 assert.deepStrictEqual(unlisted, [], `kinds written but not in HISTORY (sim/records): ${unlisted.join(', ')}`);
-const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).done); return r.value; };
+// On the small islands of tests/lib/probe.js (VB-856; founders ten years and heirs three on the default island before): founders three years
+// and twelve days, saved and loaded in the third year's fold on the way.
+const { island, ROOMY } = require('./lib/probe.js'), world = () => island(7);
 // The life view must return the indexed life events, regardless of how the simulation's stories evolve.
 {
-  const st = Sim.seed(world(), 7, 'heirs');
+  const st = Sim.seed(island(7, ROOMY), 7, 'heirs');
   for (const p of st.pawns) {
     const events = Sim.recordOf(st, { pawn: p.id, life: true });
     assert.deepStrictEqual(events.map((e) => e.at), p.events);
@@ -49,8 +51,19 @@ const world = () => { const it = G.generate(7); let r; while (!(r = it.next()).d
     }
   }
 }
-const st = Sim.seed(world(), 7, 'founders');
-Sim.advance(st, 10 * Sim.YEAR + 12 * Sim.DAY); // the fold of the tenth year's turn has ended
+const st = Sim.seed(world(), 7, 'founders'), YEARS = 3;
+// a save in the middle of a fold goes on as the run does
+{
+  const a = st;
+  Sim.advance(a, 3 * Sim.YEAR); // the third year's fold has begun, its first slice folded
+  assert.ok(a.recordFold.pass && a.recordFold.pass.shortNext > a.recordFold.shortAt, `a fold under way: ${JSON.stringify(a.recordFold)}`);
+  const b = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(a))));
+  for (const s of [a, b]) Sim.advance(s, 6 * Sim.DAY);
+  assert.strictEqual(a.recordFold.pass, null);
+  assert.strictEqual(JSON.stringify([b.record, b.recordYears, b.recordFold]), JSON.stringify([a.record, a.recordYears, a.recordFold]),
+    'loaded, the fold ends as it would have');
+}
+Sim.advance(st, YEARS * Sim.YEAR + 12 * Sim.DAY - st.t); // the fold of the last year's turn has ended
 const live = st.record.filter((e) => typeof e === 'object'), told = live.filter((e) => !e.self);
 const of = (kind) => { const m = new Map(); for (const e of told) if (e.kind === kind) m.set(e.pawn, (m.get(e.pawn) || 0) + 1); return m; };
 const born = of('born'), died = of('died');
@@ -72,24 +85,13 @@ for (const e of live) {
   if (H[e.kind]) assert.ok(e.t >= (Y - H[e.kind]) * Sim.YEAR, `a ${e.kind} event of year ${Math.floor(e.t / Sim.YEAR)} not folded in year ${Y}`);
 }
 st.record.forEach((e) => { if (typeof e === 'number') slots.set(e, (slots.get(e) || 0) + 1); });
-assert.ok(st.recordYears.length && st.recordYears.every((c) => H[c.kind] === 2), 'ten years fold close friends and enemies only');
+assert.ok(st.recordYears.length && st.recordYears.every((c) => H[c.kind] === 2), 'the years fold close friends and enemies only');
 st.recordYears.forEach((c, k) => assert.strictEqual(slots.get(k), c.tally, `count ${k} ${JSON.stringify(c)}: ${slots.get(k)} slots`));
 const keys = new Set(st.recordYears.map((c) => `${c.kind}|${c.village}|${c.year}`));
 assert.strictEqual(keys.size, st.recordYears.length, 'one count per kind, village and year');
 const kept = st.pawns.find((p) => p.events.some((at) => typeof st.record[at] === 'number'));
 const gone = Sim.recordOf(st, { pawn: kept.id, life: true }).find((e) => e.folded);
 assert.ok(gone && gone.text === undefined && H[gone.kind] && gone.folded === st.recordYears[st.record[gone.at]].tally, 'a folded event reads as its count');
-// a save in the middle of a fold goes on as the run does
-{
-  const a = Sim.seed(world(), 7, 'heirs');
-  Sim.advance(a, 3 * Sim.YEAR); // the third year's fold has begun, its first slice folded
-  assert.ok(a.recordFold.pass && a.recordFold.pass.shortNext > a.recordFold.shortAt, `a fold under way: ${JSON.stringify(a.recordFold)}`);
-  const b = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(a))));
-  for (const s of [a, b]) Sim.advance(s, 6 * Sim.DAY);
-  assert.strictEqual(a.recordFold.pass, null);
-  assert.strictEqual(JSON.stringify([b.record, b.recordYears, b.recordFold]), JSON.stringify([a.record, a.recordYears, a.recordFold]),
-    'loaded, the fold ends as it would have');
-}
 // queries
 const all = Sim.recordOf(st);
 assert.strictEqual(all.length, told.length);
@@ -98,9 +100,9 @@ const kid = st.pawns.find((p) => p.born > 0 && p.mother !== null), mine = Sim.re
 assert.ok(mine.some((e) => e.kind === 'born' && e.pawn === kid.id), 'a mother finds the birth of her child (as other)');
 const v0 = Sim.recordOf(st, { village: 0, kinds: ['died'] });
 assert.ok(v0.every((e) => e.village === 0 && e.kind === 'died'));
-const y5 = Sim.recordOf(st, { from: 4 * Sim.YEAR, to: 5 * Sim.YEAR });
-assert.ok(y5.length && y5.every((e) => e.t >= 4 * Sim.YEAR && e.t < 5 * Sim.YEAR));
+const y2 = Sim.recordOf(st, { from: Sim.YEAR, to: 2 * Sim.YEAR });
+assert.ok(y2.length && y2.every((e) => e.t >= Sim.YEAR && e.t < 2 * Sim.YEAR));
 const kinds = {}; for (const e of live) kinds[e.kind] = (kinds[e.kind] || 0) + 1;
 const folded = st.recordYears.reduce((a, c) => a + c.tally, 0);
-console.log(`record ok: founders 7 after 10 years: ${st.pawns.length} pawns, ${st.unions.length} unions, ${st.record.length} events, ${folded} `
+console.log(`record ok: founders 7 after ${YEARS} years: ${st.pawns.length} pawns, ${st.unions.length} unions, ${st.record.length} events, ${folded} `
   + `folded into ${st.recordYears.length} counts (${Object.entries(kinds).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', ')})`);

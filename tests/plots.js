@@ -1,10 +1,11 @@
 // Clearing a new plot: a village with waiting people and a free site starts a project; the newLand custom picks who gets the plot.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, X = VB['sim/expansion'];
+// On the small islands of tests/lib/probe.js (VB-856; the default island and a 180 by 130 one before).
+const VB = require('../src/load.js'), Sim = VB.sim, X = VB['sim/expansion'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('PLOTS FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
+const { scenario } = require('./lib/probe.js');
 // A fresh heirs-scenario state with villager `a` (single, older), a married couple `b`, `c` and a plot started for `a`.
 function setup(newLand) {
-  const st = Sim.seed(world(7), 7, 'heirs'), v = st.villages[0];
+  const st = scenario('heirs', 7), v = st.villages[0];
   const adults = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id) && Sim.spouseOf(st, p.id) === null);
   const men = adults.filter((p) => p.sex === 'm'), women = adults.filter((p) => p.sex === 'f');
   const a = men[0], b = men[1], c = women[0];
@@ -36,16 +37,20 @@ for (const rule of ['village', 'labour', 'intended']) {
   check(plot.to === want, `${rule}: expected ${want}, got ${plot.to}`);
   check(X.plotProgress(st, plot) === 1, `${rule}: progress is 1 when done`);
 }
-// VB-142: founders seed 7, small map, two years (96 days): no pawn holds two cleared plots.
+// VB-142: founders seed 7, the small island, two years (96 days): no pawn holds two cleared plots.
+let cleared = 0;
 {
-  const it = G.generate(7, { cols: 180, rows: 130 }); let r; while (!(r = it.next()).done);
-  const st = Sim.seed(r.value, 7, 'founders');
+  const st = scenario('founders', 7), seen = new Set();
   for (let d = 0; d < 2 * 48; d++) {
     Sim.advance(st, 24);
     const held = new Map();
-    for (const v of st.villages) for (const pl of X.livePlots(st, v)) if (pl.open >= 1 && pl.to !== null) held.set(pl.to, (held.get(pl.to) || 0) + 1);
+    for (const v of st.villages) for (const pl of X.livePlots(st, v)) if (pl.open >= 1 && pl.to !== null) {
+      held.set(pl.to, (held.get(pl.to) || 0) + 1);
+      if (!seen.has(pl)) { seen.add(pl); cleared++; }
+    }
     for (const [id, n] of held) check(n <= 1, `founders seed 7: pawn ${id} holds ${n} cleared plots on day ${d + 1}`);
   }
 }
+check(cleared > 0, 'founders seed 7: no plot is cleared for anyone in two years');
 if (failed) process.exit(1);
-console.log('plots ok');
+console.log(`plots ok: ${cleared} plots cleared for someone in two years of founders`);
