@@ -13,6 +13,8 @@ VB['sim/commands'] = (() => {
     reachAfter,
     travelling,
     carryGift,
+    fetcherOf,
+    fetchGift,
   } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { emit } = VB['sim/events'];
@@ -96,6 +98,10 @@ VB['sim/commands'] = (() => {
       )
         return `pawn ${c.args.carrier} cannot carry the gift`;
       o.carrier = p.id;
+    } else if ('farmstead' in to && !('farmstead' in from && from.farmstead === to.farmstead)) {
+      // from another place, it is set aside where it lies and fetched by a member of the receiving household (VB-461)
+      o.fetcher = fetcherOf(st, to);
+      if (o.fetcher < 0) return 'no one of the household can fetch it';
     }
     return o;
   }
@@ -218,6 +224,7 @@ VB['sim/commands'] = (() => {
       run: (st, c) => {
         const o = giftOf(st, c);
         if (o.carrier !== undefined) carryGift(st, o);
+        else if (o.fetcher !== undefined) fetchGift(st, o);
         else settleGift(st, o);
       },
     },

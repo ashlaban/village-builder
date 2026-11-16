@@ -86,6 +86,9 @@ const QUANTITIES = [
     none: 'a household short of food gets nothing from the village when its kin cannot help (sim/help), and a common field is not sown (VB-100)' },
   { id: 'provisions', of: 'journey', name: 'the food a pawn on a journey carries', unit: 'rations', fields: ['st.journeys'], kinds: [],
     none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (sim/agents, VB-287)' },
+  { id: 'giftGrain', of: 'journey', name: 'a gift\'s grain on its way: on a carrier\'s back, or set aside where it lies until it is fetched', unit: 'rations',
+    fields: ['st.journeys'], kinds: [],
+    none: 'nothing is on its way: the gift has come in, or what was left lying went back to its giver\'s store when its fetcher died or left the household (sim/agents, VB-291, VB-461)' },
   { id: 'lying', of: 'tile', name: 'a load lying where its carrier fell', unit: 'its kind\'s loads (rations of sheaves, hay loads, firewood, stone)',
     fields: ['st.lying'], covers: ['st.lyingSeq'], kinds: [], losses: ['sim/lying:frost'],
     none: 'nothing lies on the road: every load is in hand or home; one left lying is fetched by its owner\'s next hand (the fetch kinds) '

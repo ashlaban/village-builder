@@ -88,8 +88,9 @@ VB['sim/help'] = (() => {
       if (need <= 0 || spare(st, hh) >= HELP.askBelow * need) continue;
       let moved = false,
         want = askDaysAt(st) * need - spare(st, hh);
-      // kin within a day's walk give at once, then the village store, then kin further away, nearest first, each by a carrier on a journey
-      // (VB-291; kin over the sea or beyond reach are not asked)
+      // kin within a day's walk, then the village store: their gift is set aside where it lies and fetched by a member of the household
+      // (VB-461, the verb's; at once only from a household of the same farmstead), and with no one to fetch it the ask goes on; then kin
+      // further away, nearest first, each by a carrier on a journey (VB-291; kin over the sea or beyond reach are not asked)
       const near = [],
         far = [];
       for (const k of kinHouseholds(st, hh)) {

@@ -79,9 +79,14 @@ VB['sim/exchange'] = (() => {
     return below > TOLERANCE ? { below, days: HELP.floorDays, hungry: servedLast(st, from) } : null;
   }
   // The gift's moves and records, as help made them (help.js, VB-039): the receiver's grain (in the crops the giver's take gave, `parts`)
-  // and its holder's event, then the giver's, the tie between the two holders, and the goodwill booked between them.
+  // and its records (booked).
   function receive(st, from, to, n, fromName, parts) {
     Stores.put(st, to, 'grain', n, { kind: 'gift', from: fromName }, parts);
+    booked(st, from, to, n, fromName);
+  }
+  // A gift's records: the receiving holder's event, then the giver's, the tie between the two holders, and the goodwill booked between
+  // them. Rights move at once (AGENTS.md, the hard rule): a gift that is fetched is booked at the ask, its grain at each arrival (VB-461).
+  function booked(st, from, to, n, fromName) {
     const ht = to.holder !== null ? st.pawns[to.holder] : null;
     if (ht)
       personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`, {
@@ -115,6 +120,9 @@ VB['sim/exchange'] = (() => {
   }
   // Settles an accepted gift; only the verb `give` calls it (tests/commands.js).
   function settleGift(st, o) {
+    // grain that changes place at once between two farmsteads (VB-461: the verb has it fetched; tests/lib/invariants.js holds this at 0)
+    if (isHousehold(o.to) && (!isHousehold(o.from) || o.from.farmstead !== o.to.farmstead))
+      VB.count.giftUncarried += o.n;
     if (!isHousehold(o.to))
       Stores.move(st, o.from, o.to, 'grain', o.n, { kind: 'gift', to: 'the village store' }); // the yearly filling
     else {
@@ -355,6 +363,7 @@ VB['sim/exchange'] = (() => {
     assessGift,
     settleGift,
     receive,
+    booked,
     explainAllowance,
     giftWarning,
     needValue,
