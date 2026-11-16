@@ -14,10 +14,11 @@ const P = openPage({
   url: `https://x.test/#sx${SEED}`,
   patch: (html) => html
     .replace(/const SIZES = \{ t:/, () => { patched++; return 'const SIZES = { x: [36, 26], t:'; })
+    .replace('let allMaterials = false;', () => { patched++; return 'let allMaterials = false; window.__materialsHTML = (...a) => materialsHTML(...a);'; })
     .replace('/^#([shp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([shp]?)([tsmlx]?)(\\d{1,9})$/'; }),
 });
 const { doc, win, fail, tick, q, qa, $ } = P;
-if (patched !== 2) { fail(`the page's sizes or its hash were not found to add the small island (${patched} of 2 patched)`); process.exit(1); }
+if (patched !== 3) { fail(`the page's sizes or its hash were not found to add the small island (${patched} of 3 patched)`); process.exit(1); }
 const shown = (id) => !$(id).hidden;
 const click = (el, what) => { if (!el) { fail(`no ${what} to click`); return false; } el.click(); tick(2); return true; };
 
@@ -63,6 +64,20 @@ async function main() {
       $(tab).click(); tick(2);
       if (!shown('tileHouse') || !want.test($('tileHouse').textContent) || !q('#tileHouse .stat .stat-ico svg')) fail(`the tab ${tab} shows no stats with icons`);
     }
+    // the Stores tab: three sections; the switch lists every material, those of none too, and is kept
+    $('tabStores').click(); tick(2);
+    const secs = qa('#tileHouse .card-sec').map((e) => e.textContent).join('|');
+    if (!/^Supplies\|Materials\|Gear/.test(secs)) fail(`the Stores tab's sections are ${secs}`);
+    const nStat = () => qa('#tileHouse .stat-grid')[1].children.length;
+    const few = nStat();
+    click(q('#tileHouse [data-all-materials]'), 'All materials switch'); tick(2);
+    if (nStat() !== 6 || !q('#tileHouse [data-all-materials][aria-pressed="true"]')) fail(`All materials lists ${nStat()} of 6 (${few} by default)`);
+    // the layout takes a list of kinds and a work's asks: kinds show under the total only where more than one is held
+    const mat = (key, n, kinds) => ({ key, label: key, icon: 'stone', n, kinds, title: key });
+    const lay = win.__materialsHTML([mat('stone', 9, [{ label: 'granite', n: 5 }, { label: 'sandstone', n: 4 }]), mat('clay', 4, [{ label: 'one', n: 4 }])],
+      [{ icon: 'field', name: 'A barn', step: 'Walls', asks: [{ key: 'stone', have: 6, want: 10 }] }], false);
+    if ((lay.match(/class="stat wide kinds"/g) || []).length !== 1 || !/granite 5/.test(lay) || !/6 of 10/.test(lay) || !/asked: 10/.test(lay)) fail('the materials layout of a constructed list is wrong');
+    click(q('#tileHouse [data-all-materials]'), 'All materials switch'); tick(2);
     $('tabFacts').click(); tick(2);
     // a pawn's card: its twelve traits as icons, no household tabs; its History tab lists dated lines
     if (click(q('#tileList button[data-pawn]'), "pawn on the farm's card")) {
