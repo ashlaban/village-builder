@@ -1,7 +1,7 @@
 // @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health;
 // the need rule (VB-299) and its food term
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS, PEAT } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS, PEAT, BUILD } = VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'];
@@ -307,6 +307,11 @@ VB['sim/hunger'] = (() => {
     else if (fed) p.health += HEALTH.recover;
     p.health = Math.max(0, Math.min(100, p.health));
   }
+  // What a household's farm loses to spoilage, as a share of a farm without a barn: BUILD.barn.loss with one (VB-255; farmstead.barn, sim/building).
+  function barnLoss(st, hh) {
+    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    return f && f.barn ? BUILD.barn.loss : 1;
+  }
   // Grain in the barn spoils a little each day (balance review): ECON.storeLoss a year of the first year's need held, of the second, and of the
   // rest, so a good farm's store levels off at a year or two of need instead of growing for ever. hh.spoilt counts the rations lost.
   function spoilGrain(st, hh) {
@@ -315,7 +320,7 @@ VB['sim/hunger'] = (() => {
       g = grainOf(hh);
     if (!(g > 0)) return;
     const parts = [Math.min(g, year), Math.min(Math.max(0, g - year), year), Math.max(0, g - 2 * year)];
-    const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0);
+    const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0) * barnLoss(st, hh);
     Stores.spoil(st, hh, lost);
   }
   // The grain the village store lacks of its target (VB-457; HELP.storeTarget years of its members' need), 0 at or above it.

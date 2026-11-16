@@ -6,7 +6,7 @@ VB['sim/expansion'] = (() => {
   const { fertility, farmable, FIELDS, BUILD, ECON } = VB['sim/rules'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
-    { emit } = VB['sim/events'];
+    { emit, on } = VB['sim/events'];
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
   const { walkable, costChanged } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
@@ -28,7 +28,20 @@ VB['sim/expansion'] = (() => {
   //   the steps are its clearing, of several places (each {tile, kind 'house' | 'field', steps (fell, grub, clear, break), i, fresh}, one
   //   task a place, worked side by side), then the cottage's stages at the house ({kind, place, hours, done (hours worked)}; the walls also
   //   `wood`, the timber brought to the site, which nothing else may take: VB-328).
-  const livePlots = (st, v) => Projects.projectsOf(st, 'village', v.id).filter((p) => p.what === 'plot'); // not its green (VB-058)
+  //   A plot for a head's heir (VB-255: a project of the head, sim/aims) is a project plan of the heir's household with the same steps,
+  //   and `village` (the village it lies in) and `by` (the household building it); `village` is on every plot made since (a village's
+  //   plot without it lies in its holder's village: villageOf).
+  const villageOf = (p) => (p.village !== undefined ? p.village : p.holder.id);
+  // The plots under way in village v: its own (not its green, VB-058), then those its households build for their heirs (VB-255).
+  function livePlots(st, v) {
+    const out = Projects.projectsOf(st, 'village', v.id).filter((p) => p.what === 'plot');
+    for (const id of v.farmsteads) {
+      const h = st.farmsteads[id].household,
+        p = h === null ? null : Projects.projectOf(st, 'household', h);
+      if (p && p.what === 'plot') out.push(p);
+    }
+    return out;
+  }
   const tilesOf = (p) => (p.steps ? p.steps[0].places : p.tiles);
   const activePlots = (st, v) => livePlots(st, v).filter((p) => p.open < 1);
   const building = (p) => p.open >= 1 && p.to !== null;
@@ -139,7 +152,8 @@ VB['sim/expansion'] = (() => {
     }
     return !best || best.field < 0 ? null : best;
   }
-  function startPlot(st, v, intended) {
+  // A plot begun in village v for pawn `intended`: the village's, or (by, a household id) that household's project for its heir (VB-255).
+  function startPlot(st, v, intended, by = null) {
     const site = findSite(st, v);
     if (!site) return false;
     const w = st.w,
@@ -167,10 +181,12 @@ VB['sim/expansion'] = (() => {
       ...(kind === 'walls' ? { wood: 0 } : {}),
     }));
     emit(st, 'projectBegun', {
-      type: 'village',
-      id: v.id,
+      type: by === null ? 'village' : 'household',
+      id: by === null ? v.id : by,
       project: {
         what: 'plot',
+        village: v.id,
+        ...(by === null ? {} : { by }),
         plot: v.plots.length + livePlots(st, v).length,
         intended,
         to: null,
@@ -180,13 +196,19 @@ VB['sim/expansion'] = (() => {
       },
     });
     st.visualDirty = true;
-    log(st, `${v.name} sets out to clear a plot for ${fullName(st.pawns[intended])}.`, {
-      kind: 'plotStarted',
-      pawn: intended,
-      village: v.id,
-    });
+    if (by === null)
+      log(st, `${v.name} sets out to clear a plot for ${fullName(st.pawns[intended])}.`, {
+        kind: 'plotStarted',
+        pawn: intended,
+        village: v.id,
+      }); // a household's for its heir is told as its head's project (sim/aims)
     return true;
   }
+  // A head's farm for its heir (VB-255): the verb heirFarm (sim/commands, below this module, tells it by an event) begins the plot as
+  // the household's project.
+  on('heirFarm', (st, d) => {
+    startPlot(st, st.villages[d.village], d.heir, d.by);
+  });
   // A plot already waits for the pawn, or for their spouse, until a cottage stands on it (VB-032): no second plot.
   function hasPlot(st, id) {
     const sp = spouseOf(st, id);
@@ -201,7 +223,7 @@ VB['sim/expansion'] = (() => {
         (id) => st.pawns[id].alive && settlementIdOf(st, st.pawns[id]) === v.id && mayStart(id) && !hasPlot(st, id),
       );
       for (const id of waiting) {
-        if (activePlots(st, v).length >= MAX_PLOTS) break;
+        if (activePlots(st, v).filter((p) => p.holder.type === 'village').length >= MAX_PLOTS) break;
         if (hasPlot(st, id)) continue;
         if (!startPlot(st, v, id)) break;
       }
@@ -271,6 +293,9 @@ VB['sim/expansion'] = (() => {
     live.sort((a, b) => couple(a) - couple(b) || st.pawns[a].born - st.pawns[b].born || a - b);
     return live.length ? live[0] : null;
   }
+  // A household's plot for its heir (VB-255) goes to the heir it was cleared for while that pawn is alive and still without a farm; else
+  // to nobody (the cottage stands empty), since the household built it for its own.
+  const heirOpen = (st, plot) => (st.pawns[plot.intended].alive && open(st, plot.intended) ? plot.intended : null);
   function allot(st, v, plot) {
     const waiting = st.demand.filter((id) => settlementIdOf(st, st.pawns[id]) === v.id);
     const rule = practice(st, v.id).newLand,
@@ -293,7 +318,7 @@ VB['sim/expansion'] = (() => {
     const w = st.w,
       { plot, tr } = j,
       step = tr.steps[tr.i],
-      v = st.villages[plot.holder.id],
+      v = st.villages[villageOf(plot)],
       walls = plot.steps[2];
     if (step === 'fell') {
       // the trees felled are the plot's wood, 3 loads a tree, kept for its walls (VB-328)
@@ -315,8 +340,8 @@ VB['sim/expansion'] = (() => {
     st.biomeDirty.add(tr.tile);
     st.visualDirty = true;
     if (!tilesOf(plot).every((q) => q.i >= q.steps.length)) return;
-    emit(st, 'stepDone', { type: 'village', id: v.id, plan: plot }); // its tiles cleared: the cottage's first stage opens (sim/plans)
-    plot.to = allot(st, v, plot);
+    emit(st, 'stepDone', { type: plot.holder.type, id: plot.holder.id, plan: plot }); // its tiles cleared: the cottage's first stage opens (sim/plans)
+    plot.to = plot.by === undefined ? allot(st, v, plot) : heirOpen(st, plot);
     if (plot.to === null) {
       log(st, `${v.name} has cleared a new plot; nobody is left to claim it.`, { kind: 'plot', village: v.id });
       return;
@@ -336,7 +361,7 @@ VB['sim/expansion'] = (() => {
     st.biomeDirty.add(k.place);
     st.visualDirty = true;
     if (plot.open < plot.steps.length - 1) {
-      emit(st, 'stepDone', { type: 'village', id: plot.holder.id, plan: plot });
+      emit(st, 'stepDone', { type: plot.holder.type, id: plot.holder.id, plan: plot });
       return;
     } // the next stage
     k.done = k.hours; // the roof is on: the household moves in, and the plan is finished (sim/cottage)
@@ -344,7 +369,7 @@ VB['sim/expansion'] = (() => {
       actor: null,
       verb: 'finishCottage',
       target: plot.plot,
-      args: { village: plot.holder.id },
+      args: { village: villageOf(plot) },
       source: 'construction',
     });
   }

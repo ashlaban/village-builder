@@ -15,6 +15,7 @@ VB['sim/commands'] = (() => {
     carryGift,
   } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
+  const { emit } = VB['sim/events'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
@@ -266,6 +267,30 @@ VB['sim/commands'] = (() => {
           what = c.args.what;
         if (what === 'none' || what === null) P.holdProject(st, c.target, what === 'none');
         else P.beginLand(st, st.households[c.target], what, landTile(st, st.households[c.target], c.args));
+      },
+    },
+    // barn(): begin a barn on the household's farm, a project at the house (VB-255; sim/building's barnSteps; its checks sim/aims' barnWhy)
+    barn: {
+      check: (st, c) => heads(st, c) || later('sim/aims').barnWhy(st, st.households[c.target]),
+      run: (st, c) => {
+        const f = st.farmsteads[st.households[c.target].farmstead];
+        later('sim/plans').makeProject(st, 'household', c.target, {
+          what: 'barn',
+          steps: later('sim/building').barnSteps(f.house),
+        });
+      },
+    },
+    // heirFarm({heir}): begin clearing a plot and building its cottage for pawn `heir`, an adult of the household with no farm, as the
+    // household's project (VB-255; sim/expansion's plot, held by the household; its checks sim/aims' heirWhy)
+    heirFarm: {
+      check: (st, c) => heads(st, c) || later('sim/aims').heirWhy(st, st.households[c.target], c.args && c.args.heir),
+      run: (st, c) => {
+        const hh = st.households[c.target];
+        emit(st, 'heirFarm', {
+          village: st.farmsteads[hh.farmstead].village,
+          heir: c.args.heir,
+          by: hh.id,
+        });
       },
     },
     // dropProject({id, hold}): give up the household's project under way (args.id, the plan's id, when given: a field, a meadow, a boat,

@@ -132,6 +132,8 @@ VB['sim/notable'] = (() => {
         'stake',
         'border',
         'oreFound',
+        'projectTaken',
+        'projectDone',
         'service',
         'guardian',
       ],

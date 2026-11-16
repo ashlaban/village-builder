@@ -3,6 +3,7 @@
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
+  const HANDS = [14, 60]; // the ages of a working hand, as sim/drying's hands (VB-255's count of work)
   const { route, stepCost, tileCost, hoursBetween } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age, personEvent } = VB['sim/records'];
@@ -510,6 +511,26 @@ VB['sim/agents'] = (() => {
       if (!atWork(st, j, id)) continue;
       if (K.worked) K.worked(st, j, dt, st.agents[id], from);
       if (j.plot) j.plot.hours[id] = (j.plot.hours[id] || 0) + dt;
+      countWork(st, id, dt, t);
+    }
+  }
+  // @state household.workHours (VB-255): [season (year * 4 + season of cal, of the hours counted), hours, last]: the hours its working hands
+  //   (Traits' hands: 14 to 59, not retired) worked at full attention on any task this season, and `last` those of the season before (0
+  //   when that season was not the one before); absent until its first hour of work. Counted as a task's work is reckoned (settle), so it
+  //   costs an addition a hand; read by sim/aims (idleShare) at a head's review. Written only here.
+  function countWork(st, id, dt, t) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household];
+    if (!hh || p.retired || p.age < HANDS[0] || p.age >= HANDS[1]) return;
+    const c = cal(t / TICKS),
+      key = c.year * 4 + c.season,
+      W = hh.workHours;
+    if (!W) hh.workHours = [key, dt, 0];
+    else if (W[0] === key) W[1] += dt;
+    else {
+      W[2] = W[0] === key - 1 ? W[1] : 0;
+      W[0] = key;
+      W[1] = dt;
     }
   }
   const teamKind = (j) => j.owner && j.owner.type === 'household' && HERD.team.kinds.includes(j.kind);

@@ -754,6 +754,10 @@ VB['sim/rules'] = (() => {
     wellHours: 40,
     sweepHours: 10,
     greenReach: 4,
+    // a barn (VB-255; Kim, 10 Nov: QUESTION_ARCHIVE.md, "VB-255: the barn as a project"): a second store building on the farm's block,
+    // built by a plot's cottage's stages (hours as theirs) with `timber` loads felled in the village's wood for its walls; a farm with one
+    // loses `loss` times the grain to spoilage (ECON.storeLoss, sim/hunger) and the barn hay (HERD.hayLoss, sim/byre)
+    barn: Object.freeze({ timber: 40, hours: Object.freeze([30, 60, 30]), loss: 0.5 }),
   };
   // Village work days (VB-120; Kim, 10 Nov; design, Jobs, owners and roles: Village work days): a routine the meeting may choose for a village
   // with a fence; chosen, the village works together on `days` ([season, day of the season, what]): spring's first day the fence, its stretches

@@ -12,7 +12,7 @@ VB['sim/plans'] = (() => {
   const { seedNeed } = VB['sim/hunger'];
   const { fieldsWanted, fieldsWorkable, fieldWhy, pickField, beginField } = VB['sim/fields'];
   const Projects = VB['sim/projects'],
-    { on } = VB['sim/events'],
+    { on, emit } = VB['sim/events'],
     { log } = VB['sim/records'];
   const { meadowWhy, pickMeadow, beginMeadow, wantsMeadow, wantsFirstMeadow } = VB['sim/meadows'];
   const { issue } = VB['sim/commands'];
@@ -759,6 +759,7 @@ VB['sim/plans'] = (() => {
     Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed');
     reviewWant(st, plan, hh, why); // a cow wanted (VB-390): plan.want, sim/exchange's
     plan.build = buildStep(st, plan, hh); // the building step (VB-332): open while the house is to be raised onto stone, and where its stone comes from
+    emit(st, 'planReviewed', { plan, c }); // the head's projects (sim/aims, VB-255)
   }
   // A village's review: while its routines hold the green and well and it has none under way, its green's project plan is made where a
   // tile is found (sim/green, VB-058).

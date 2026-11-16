@@ -26,7 +26,7 @@ VB['sim/cottage'] = (() => {
   // Their stakes (shares already paid out, VB-032) become the household's grain; shares still owed stay a debt of the farm they came from.
   // `plot`: the plot's project plan (sim/plans), finished here and kept as the village's record of the plot (village.plots, sim/expansion).
   function finishCottage(st, plot) {
-    const v = st.villages[plot.holder.id],
+    const v = st.villages[plot.village !== undefined ? plot.village : plot.holder.id], // a household's plot for its heir names it (VB-255)
       holder = st.pawns[plot.to],
       sp = spouseOf(st, holder.id),
       tiles = plot.steps[0].places;
@@ -56,8 +56,9 @@ VB['sim/cottage'] = (() => {
       started: plot.started,
       farmstead: f.id,
       tiles: tiles.map((t) => ({ tile: t.tile, kind: t.kind })),
+      ...(plot.by !== undefined ? { by: plot.by } : {}), // built by a household for its heir (VB-255)
     });
-    emit(st, 'stepDone', { type: 'village', id: v.id, plan: plot }); // the roof on: the plan is finished (sim/plans)
+    emit(st, 'stepDone', { type: plot.holder.type, id: plot.holder.id, plan: plot }); // the roof on: the plan is finished (sim/plans)
     const members = [holder.id];
     if (sp !== null && st.pawns[sp].alive) members.push(sp);
     const from = new Set(members.map((id) => st.pawns[id].household));

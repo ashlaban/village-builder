@@ -51,6 +51,8 @@ VB['sim/records'] = (() => {
     stake: 0,
     stakeLapsed: 0,
     projectDropped: 0,
+    projectTaken: 0, // a head's project taken and finished (VB-255)
+    projectDone: 0,
     border: 0,
     oreFound: 0,
     custom: 0,
