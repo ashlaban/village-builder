@@ -140,7 +140,7 @@ One finite, seeded archipelago of 280 × 200 hex tiles, each about 10–12 m acr
 | Map | One finite archipelago per seed, regenerable | Decided |
 | Tiles | Pointy-top hexes | Decided |
 | Terrain | Deep sea, sea, shallows, lakes, sandy shore, meadow, heath, broadleaf forest, pine forest, marsh, hills, mountains, snowfields | Agreed |
-| Ground | Under the terrain, a layer a tile, for a Europe of 1300 to 1700, continental and Scandinavian. Bedrock on all land: granite (the common ground), limestone, sandstone and slate in provinces, with lenses of marble and soapstone. Deposits on few tiles, as veins: clay in low, damp ground; bog iron in marsh and on lake shores; iron, copper and lead with silver (one ore) in the uplands; tin only in upland granite; gold in the high mountains; peat in marsh; flint in low limestone and on its shores; amber, rare, on sandy shores; salt springs, rare, inland on limestone or sandstone, which flow on. Each island draws which kinds it has, by tuned chance: an island with everything is uncommon, and islands commonly differ. Deposits are finite, counted in loads, and a few sources do not run out (to be weighed when play is balanced). Nothing digs yet (backlog VB-357) | Decided, 11 Nov (the kinds, the layer, chance by island, finite); Proposed (the shares and amounts) |
+| Ground | Under the terrain, a layer a tile, for a Europe of 1300 to 1700, continental and Scandinavian. Bedrock on all land: granite (the common ground), limestone, sandstone and slate in provinces, with lenses of marble and soapstone. Deposits on few tiles, as veins: clay in low, damp ground; bog iron in marsh and on lake shores; iron, copper and lead with silver (one ore) in the uplands; tin in granite uplands and granite hills, twice as likely as first laid (Kim, 16 Nov: so that bronze by land trade is possible on most maps; VB-734); gold in the high mountains; peat in marsh; flint in low limestone and on its shores; amber, rare, on sandy shores; salt springs, rare, inland on limestone or sandstone, which flow on. Each island draws which kinds it has, by tuned chance: an island with everything is uncommon, and islands commonly differ. Deposits are finite, counted in loads, and a few sources do not run out (to be weighed when play is balanced). Nothing digs yet (backlog VB-357) | Decided, 11 Nov (the kinds, the layer, chance by island, finite); Decided, 16 Nov (tin); Proposed (the shares and amounts) |
 | Mountains | Multi-tile rock relief; no peak glyphs | Decided |
 | Rivers | The world has rivers | Decided, 30 Oct |
 | River courses | Rivers rise in hills, mountains and marshes and run downhill to a lake or the sea, a few on each large island; brooks are narrow, larger rivers a tile wide; they carry fresh water and fish, drive water mills, and wet the ground along their banks, where hay grows well. Crossing is at fords and, later, bridges | Proposed |
@@ -1080,6 +1080,7 @@ Predators, pigs, horses, poultry, disease, breeding and traits, summer farms (*f
 | Aspect | Design | Status |
 | --- | --- | --- |
 | Goods in subtypes | Goods are typed with subtypes (granite and marble are both stone; cow's and sheep's milk), each with the quantum that changes hands (one head, one sack) and how it perishes | Decided, 3 Nov (subtypes, Kim's description); Proposed (the rest, target-v2, section 4.3) |
+| A good, its material and its kind | A good is what it is for (a whetstone, a vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze) makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long it lasts, how fast it works, what it can hold); its worth in gifts and standing follows from custom. A deposit needs no use of its own, only a property that matters. The kind is the subtype, carried from the material into the good made of it (The metals and the stones, below) | Decided, 16 Nov (Kim's principle; `AGENTS.md`, Deciding without Kim, 17) |
 | Title and custody | Who owns a thing and where it is are apart: a cow in a neighbour's byre, grain at the mill, cargo aboard | Proposed (target-v2, section 2) |
 | Recipes | Human transformation of goods; a recipe may bind the subtype it was given (any stone hewn into blocks of the same stone); building is a recipe whose output is a stage of a facility | Proposed (target-v2, section 4.3) |
 | Facilities | Built things on sites, from houses and mills to roads and harbours, each with an owner, perhaps an operator, its capabilities and who may use it | Proposed (target-v2, section 4.3) |
@@ -1089,7 +1090,8 @@ Predators, pigs, horses, poultry, disease, breeding and traits, summer farms (*f
 
 Slice 6's plan (backlog VB-185), on Kim's answers of 11 November. The slice is built in two halves: the mill and the loom first (the
 quern and the mill, wool to cloth and dress, tools and iron, skills, occupations), taking from the ground only iron and the stone of
-querns and millstones; then the kiln and the quarry (pots, peat, brick, tiles and lime, and the two better houses). The shape is
+querns and millstones; then the kiln and the quarry (pots, peat, brick, tiles and lime, and the two better houses), and with it, since 16 November, the
+island's own metals and the stones' other goods (The metals and the stones, below). The shape is
 Decided; the numbers are Proposed, in the game's work hours (576 an adult a year), each task reporting its own and the wrap-up tuning them.
 
 | Aspect | Design | Status |
@@ -1099,7 +1101,7 @@ Decided; the numbers are Proposed, in the game's work hours (576 an adult a year
 | Wool to cloth | A fleece is spun into a skein of yarn as background work indoors, beside minding the house, mostly in winter (40 hours); two skeins are woven into a length of cloth on a loom the household builds (12 hours, partial work). Cloth keeps and is a good of the fair. Dress for a household of six takes about a third of one adult's year, nearly all of it spinning (VB-144, VB-362) | Decided, 11 Nov (spin, weave, wear); Proposed (numbers) |
 | Dress | Each person wears a length of cloth out in about 3 years. In rags, winter's cold costs half as much health again and standing falls. Dyed and fine cloth wait for the ships (VB-363) | Decided, 11 Nov; Proposed (numbers) |
 | Who spins | A practice, "Spinning and weaving are": women's work (default) or everyone's indoor work. It decides whose winter is idle, and villages may drift apart on it (VB-362) | Decided, 11 Nov |
-| The quern | A hand quern makes grain go a quarter further. The stone is a good of place and wears out in about 20 years, so the need never ends: sandstone grinds at full speed, granite a fifth slower; a household without one eats its grain unground. The first households have one (VB-009) | Decided, 11 Nov (a good of place, and it wears); Proposed (numbers) |
+| The quern | A hand quern makes grain go a quarter further. The stone is a good of place and wears out in about 20 years, so the need never ends: sandstone grinds at full speed, granite a fifth slower; a household without one eats its grain unground. The first households have one (VB-009). The first good whose kind sets its quality (Goods, recipes and facilities) | Decided, 11 Nov (a good of place, and it wears); Proposed (numbers) |
 | The mill | A village of 3 farms or more builds a water mill where it has a river in reach (100 hours), else a windmill (140 hours, as agreed on 30 Oct); it grinds 5 times as fast, and other villages pay a toll of 1 in 16. Both need a pair of sandstone millstones and iron fittings, so a village may have to trade before it can build (VB-093) | Decided, 11 Nov (water where possible, millstones and iron); Agreed, 30 Oct (hours, toll) |
 | Tools | A household's tools wear with field work and are mended in winter; work goes at 70 to 100% by their condition. Iron lifts the ceiling: without it tools mend only to half (wooden spades and ards, work at 85%), with it to full. Iron is worth trading for, and nobody starves without it (VB-121) | Decided, 11 Nov; Proposed (numbers) |
 | Iron | Two steps. A household with bog ore builds a bloomery, a small furnace, and smelts ore with wood into blooms (4 loads of ore and 6 of wood, 10 hours, a bloom); mending and making tools is winter craft work at home. A smithy comes when someone specialises; rock iron waits for mines (VB-364, on VB-359's digging) | Decided, 11 Nov (smelt, then forge); Proposed (numbers) |
@@ -1108,8 +1110,68 @@ Decided; the numbers are Proposed, in the game's work hours (576 an adult a year
 | Peat | A household short of wood near a bog cuts peat in summer; dried, two loads burn as one of wood. It spares the forest near marsh villages (VB-367) | Decided, 11 Nov; Proposed (numbers) |
 | Brick, tiles and lime | A brick kiln fires clay into brick and roof tiles; a lime kiln burns limestone to lime; both eat much wood (VB-368) | Decided, 11 Nov (brick after pots; lime for mortared walls); Proposed (numbers) |
 | The houses | Four grades. The cottage on the bare ground; the cottage on a dry stone foundation (VB-332); the fine timber house, of hewn lumber on that foundation, not mortared, with a roof of slate or tiles and a brick hearth (VB-369); and the stone house, the most prestigious, its walls of stone or brick laid in lime mortar (VB-370). Each grade gives more standing through the well-kept house and wears more slowly; a village with no limestone must get its lime by exchange | Decided, 11 Nov (the four grades; no mortar under timber; mortar for stone); Proposed (numbers) |
-| Left for the ships | Salt from springs, flint and amber; copper, tin, lead, silver and gold; marble and soapstone for the church (slice 8) | Decided, 11 Nov |
+| Left for the ships | As decided on 11 November: salt from springs, flint and amber; copper, tin, lead, silver and gold; marble and soapstone for the church (slice 8). Moved since: salt is boiled at a spring with the fair (VB-700); the metals, amber, soapstone and marble enter with this slice's second half (Kim, 16 Nov; The metals and the stones, below). Left: flint, the church's own uses, lead, pewter and coin | Decided, 11 Nov; moved, 16 Nov (Kim) |
 | Cost | Every craft is a job on its household's planning day; skills, dress, querns and the store's pots are values read in closed form, with no yearly pass; facilities are few and indexed by owner and tile. Each task names its line, and the wrap-up measures the slice on the late saves (VB-371) | Proposed |
+
+### The metals and the stones: goods by purpose, kinds by property (slice 6's second half, 16 November)
+
+The plan of VB-702 (`docs/plans/VB-702.md`, with its measures), on Kim's answers of 16 November in a session. Kim's principle
+(`AGENTS.md`, Deciding without Kim, 17) orders it: a good is what it is for and is made of a material; the kind makes a better or
+worse one, not a different good; quality is the kind's physical properties, read by the good's use; worth follows from custom; a
+deposit needs no use of its own, only a property that matters. The shape is Decided where Kim answered; every number is Proposed,
+from general reading not checked by search, for each task to report and the wrap-up to tune.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| When the metals enter | The island's own metals (copper, tin, lead, silver, gold) enter with slice 6's second half, as goods of place: mined from found veins, smelted, and made into the goods below. The bell's use by the church, and coin, wait for the church and the Crown (slice 8). This moves the decision of 11 November, which left them for the ship | Decided, 16 Nov |
+| Quality | Quality acts through physical properties, and worth follows; there is no single grade number. Two things of one good and kind are alike | Decided, 16 Nov |
+| A good's kinds | A good has a small fixed list of kinds (at most 8): those whose properties let them do its work at all. They may come from more than one class of material where the purpose is one (a pot of fired clay, soapstone or bronze). A new kind is a row (extending a system) | Proposed |
+| Kind in state | A good's kind is its subtype in the goods registry (`whetstone/slate`; Goods in subtypes, above), which gains the good's material. A store counts a good by kind, as grain is counted by crop: the stone heap by its rock, ore, metal, pots, things of worth. A durable a household has one of (a quern, a whetstone, a grindstone, a kettle) is its kind and when it was made, worn out in closed form. No record for each item. A recipe binds its material's kind into its product; a use that takes any kind takes the one of least customary worth first | Proposed |
+| Worth by kind | Custom's table of worth has a row for each good and kind; the properties never compute it | Proposed |
+| Mines | Any household digs a found vein on its own land, its village's outland or the wilderness, by hand, as clay is dug, a load a trip, and owns what it dug. The rock is broken by fire-setting, which takes wood (3 hours and a load of wood for a load of ore; twice the hours and half as much wood again once the tile is half dug). The pit is the tile: no facility. A mine in shares with a common furnace (the *bergslag*) comes later, as a kind of body after slice 5's bodies (VB-736) | Decided, 16 Nov (hands, as clay; whose ore; shares later); Proposed (numbers) |
+| Prospecting | A head who wants ore and knows no vein sends a pawn to the uplands for a day; the chance is that of work near a vein (In the ground). A verb any pawn has (VB-737) | Proposed |
+| Smelting | Ore is heavy, so it is smelted near the mine and the metal is what travels. Rock iron ore goes to the bloomery at a better yield than bog ore (ore is a good whose kinds differ in richness); copper, tin and lead-silver ore need a furnace, a facility a household builds. Lead-silver ore gives lead and a little silver; lead is stored and waits for the church and the town (VB-738) | Proposed |
+| Iron first | Iron is the need (tools that wear); bronze is plenty and standing. Bronze is no kind of tool | Decided, 16 Nov |
+| The kettle | A copper kettle, beaten from sheet, is the household's vessel for a brewing, later for the dairy and the dye. A brewing with one gives two barrels for 6 hours where one without gives a barrel for 4. It wears through in 30 years: copper's recurring sink, and a good a copper village has without tin (VB-739) | Decided, 16 Nov (a copper kettle for brewing and dairy, that wears); Proposed (numbers) |
+| Bronze | An alloy of copper and tin (a seventh tin), made by whoever holds both: each metal is carried to the caster. Tin lies apart from copper, so bronze is the good two places make together | Decided, 16 Nov (household goods and the bell); Proposed (the mix) |
+| The pot's kinds | One good, the household's pot (Pots, above), of three kinds. Fired clay: a quarter break a year. Soapstone, carved: a twentieth break a year, so a soapstone village has a pot every household wants. Cast bronze: does not break; a dowry good and an heirloom, inherited as movable worth (VB-739, VB-744) | Decided, 16 Nov (the cast bronze pot as dowry and heirloom); Proposed (soapstone as a kind; numbers) |
+| The bell | A village's meeting decides to have a bell and its alderman carries it out: the holders give the bronze, a caster casts it in a pit by the green, and the village's holders gain a term of standing at the gathering. It cracks rarely and is recast. Its use by the church waits (VB-740) | Decided, 16 Nov (the meeting decides, the alderman carries out); Proposed (numbers) |
+| Things of worth | Silver, gold and amber are kinds of one good: worth that neither spoils nor wears. Before coin they are goods of worth only: kept, given (a dowry, a morning gift, a fine, a gift to a follower), worn (an icon on the pawn, and a term of standing under a cap), buried. At a swap they count at their customary worth like any good: barter until coin stands (The fair). Gold is as silver at about ten times the worth. Amber, gathered on the shores that hold it and bored into beads, is the third kind (VB-741) | Decided, 16 Nov (silver and gold); Proposed (amber as a kind; numbers) |
+| The hoard | The sink of what does not wear: a pawn buries worth at its house; where it lies is that pawn's knowledge, told to the heir at death if it could be, else lost with it. The worth stays on the tile, and work there may find it again, as a vein is found (VB-742) | Decided, 16 Nov (the lost hoard is silver's sink); Proposed (numbers) |
+| The whetstone | One good, a hand hone, cut from slate or sandstone. Slate gives the keener edge: a farm's tools wear at 0.75 with it, 0.9 with sandstone's; a slate whetstone lasts 5 years, a sandstone one 3. "Slate" stands for the fissile fine-grained rocks (VB-743) | Decided, 16 Nov (one good, two kinds, slate the keener); Proposed (numbers) |
+| The grindstone | A turned wheel that regrinds a worn edge, so the winter's mending takes 0.7 of the hours. Sandstone is its only kind; it lasts 20 years (VB-743) | Decided, 16 Nov (sandstone the only grindstone); Proposed (numbers) |
+| The heap by its rock | The stone heap keeps each load's rock, so a quern is of the stone it was hewn from, not of the rock under the green; quarrying reaches heath as well as hills and mountains, since limestone was quarried on flat ground (VB-733) | Proposed |
+| Marble | A kind of stone: it builds as any stone, burns to lime as limestone does, and is the finest kind of the memorial stone. Fonts and altars wait for the church (VB-744) | Proposed |
+| The memorial stone | When a holder dies the heir may raise a carved stone at the farm: the one carved good before the church. Its kinds are granite, sandstone, limestone, soapstone and marble, from the plain to the finest by custom; the heir gains a term of standing by the kind, fading over a generation, under one cap with the well-kept house (VB-745) | Proposed |
+| Tin | Tin's chance is doubled and it may lie in granite hills as well as the granite uplands, so that bronze by land trade is possible on most maps. Measured before: a village within 30 steps of tin on 6 of 21 small maps, and villages with copper and with tin on the same map on 4 of 21. A trial of the change gave 13 and 8 of 21; copper bounds the pair (11 of 21), so the task may raise copper's chance too (VB-734) | Decided, 16 Nov (twice as likely; granite hills; the aim); Proposed (the shares) |
+| Waiting | Flint, until lighting a fire is a decision (a journey, a camp). For the church (slice 8): fonts, altars and soapstone carving; amber for rosaries and incense; lead for roofs and windows; the bell's church use; coin. For the town (slice 9): pewter, iron pans and cast cauldrons | Proposed |
+| Cost | About 30 numbers more a household (counts by kind, and three durables); properties compiled at load into a row a good and kind, read where a job or a planning day already runs. Mining and prospecting are jobs on the planning day through the digging's kept search; furnaces are few, indexed as facilities; a hoard is one record, a lost one a tile's worth in the world's layer. No pass over pairs, no daily pass | Proposed |
+
+**Goods by purpose.** The goods this plan adds or recasts; the others of the same shape are grain by crop, fuel (wood, and peat at
+half) and tools (wood, and iron).
+
+| Good | For | Material | Kinds | The property that differs, and what reads it |
+| --- | --- | --- | --- | --- |
+| Whetstone | an edge kept | stone | slate, sandstone | grain: the wear of tools; hardness: its life |
+| Grindstone | an edge reground | stone | sandstone | grit: the hours of mending |
+| Quern | flour | stone | sandstone, granite | grit: grinding speed |
+| Millstone | the mill | stone | sandstone | grit |
+| Pot | the store kept | fired clay, stone, metal | clay, soapstone, cast bronze | how long it lasts; worth by custom |
+| Kettle | a brewing, the dairy | metal | copper | what it holds; its wear |
+| Tools | the farm's work | wood, metal | wood, iron | hardness: the ceiling of mending |
+| Roofing | the fine house | stone, fired clay | slate, tiles | none read yet |
+| Building stone | foundations, walls | stone | any | hardness: hours to hew, for walls |
+| Lime | mortar, limewash | stone, burnt | limestone, marble | none |
+| Memorial stone | the dead remembered | stone | granite, sandstone, limestone, soapstone, marble | grain and hardness: hours to carve; worth by custom |
+| Thing of worth | plenty that waits | metal, amber | silver, gold, amber | worth by custom; amber is brittle |
+| Bell | the village's standing | metal | bronze | none |
+| Ore | the furnace | ore | bog, rock iron, copper, tin, lead-silver | richness: metal a load |
+
+**The kinds.** Each with the properties its goods read. Stone: granite (hard, coarse, slow to hew), sandstone (an even grit), limestone
+(soft; burns to lime), slate (fine grain; splits into sheets), soapstone (cut with a knife; unharmed by fire), marble (burns to
+lime; takes a polish), flint (strikes a spark). Metal: iron (hard, takes an edge), copper (beaten to sheet; wears thin), tin (alloys),
+bronze (casts; does not crack; rings), lead (soft, heavy), silver and gold (neither spoil nor wear). Amber is a material of its own:
+light, brittle, washed ashore.
 
 ### Goods of place and side crafts (slice 4, 10 November)
 
@@ -1140,15 +1202,17 @@ November (Decided; the numbers are each slice's plan's to set):
 - Known and found. Bedrock, clay, peat and bog iron are known to all: they show at the surface. The upland ores (iron, copper, lead and
   silver, tin, gold) are found: a vein is unknown until a pawn has worked or herded near it for a season, or prospects for it, and the
   views show only what is known. Built (VB-358): knowledge is the village's; a finished job within 2 tiles of a vein finds it with chance
-  work hours / 60; a played pawn sees what its village knows, a watcher everything, the unfound faint. Prospecting as work of its own waits
-  for the first good that needs ore.
+  work hours / 60; a played pawn sees what its village knows, a watcher everything, the unfound faint. Prospecting as work of its own
+  comes with the first good that needs ore (16 Nov: VB-737; The metals and the stones).
 - Bog iron grows back, slowly, up to what the tile began with: the peasant's lasting source, where rock iron is the rich and finite one.
 - Quarried stone (VB-332) is of the tile's bedrock. A foundation takes any kind; later uses want the right one. Picked field stone is granite.
-- What each is for: clay, limestone and sandstone with slice 6 (pots, daub and brick; lime burnt for mortar; querns, whetstones and
-  grindstones); bog and rock iron with tools that wear (VB-121), rock iron from a mine; slate, marble and soapstone for standing (roof,
-  church, carving); copper, tin, lead, silver and gold with slice 8 (coin, bells and vessels). Peat, flint, amber and salt springs
-  are laid and have no use yet (Proposed: peat as fuel where wood is short, flint for fire, amber for standing and the ships, a spring
-  for salt where the ships do not reach).
+- What each is for (11 November; rewritten on 16 November by the plan of VB-702, on Kim's answers: The metals and the stones,
+  above, holds the goods and their kinds): clay, limestone and sandstone with slice 6 (pots, daub and brick; lime burnt for mortar;
+  querns, millstones and grindstones, and the poorer whetstone); bog and rock iron with tools that wear (VB-121), rock iron from a
+  mine; slate for the keener whetstone and the roof; soapstone for the pot that lasts; marble for lime and the finest memorial
+  stone; copper, tin, lead, silver and gold with slice 6's second half (the kettle, bronze for the cast pot and the bell, things of
+  worth), no longer with slice 8, which keeps coin and the church's uses. Amber is a thing of worth beside silver and gold. Peat is
+  fuel (VB-367) and a spring gives salt (VB-700). Flint is laid and waits (Proposed: for fire, when lighting one is a decision).
 - Amounts and the share of endless sources stay placeholders until the first good that digs names a year's use: then a village's vein
   should last about three generations, and an endless source be worth a town.
 
@@ -1164,7 +1228,12 @@ grounds each and when it could come. Dried fish, tar and ale are Agreed for slic
 | Furs and hides | Forest and wilderness with game | Need: winter dress and footwear. Standing: dress | With roe deer (VB-139) |
 | Honey and wax | Broadleaf wood and meadow | Standing: mead at a feast; later wax for the Church | Slice 6 or 8 |
 | Lumber and hewn stone | Pine forest; stone ground | Standing: the fancier houses of Long work need both, and a village without them must get them | Slice 6 |
-| Querns and whetstones | Stone ground | Need: flour goes further than grain (Milling at home); edged tools | Slice 6 |
+| Querns, whetstones and grindstones | Stone ground: sandstone or granite for the quern; slate or sandstone for the whetstone; sandstone for the grindstone | Need: flour goes further than grain (Milling at home); edges kept, so tools wear more slowly and mend sooner | Slice 6 |
+| Pots | Clay; soapstone; a caster with copper and tin | Need: the store kept from damp and mice. Standing: the cast bronze pot, a dowry and an heirloom | Slice 6 |
+| The copper kettle | A copper vein, a furnace and a smith | Need: more ale a brewing, later the dairy. It wears through | Slice 6, second half |
+| Things of worth: silver, gold, amber | A lead-silver or gold vein; a shore with amber | Standing: worn. A dowry, a morning gift, a fine, a gift to a follower; plenty that waits, and may be buried and lost | Slice 6, second half; coin slice 8 |
+| The bell | Where copper and tin meet | Standing: the village's, at the gathering; its meeting decides | Slice 6, second half; the church slice 8 |
+| The memorial stone | Stone ground; finest in marble | Standing: an heir's, for the dead of the house (Proposed) | Slice 6, second half |
 | Bog iron | Marsh, with charcoal from pine | Need: tools that wear and are mended (VB-121), so faster work | With VB-121 |
 | Salt | Ships | Need: keeping meat, fish and butter | Slice 8 |
 | Cloth | Every farm with sheep; fine cloth from ships | Need: dress. Standing: dyed and fine cloth. It keeps its worth | Slice 6; fine cloth slice 8 |
@@ -1735,7 +1804,7 @@ The player's role is the largest open question; most proposals concern growth, t
 - [ ] Ambitions, postponed (Kim, 7 Nov): whether the game offers them at all, and which; designed late, since nothing else depends on them.
 - [x] Marriage as a negotiation (Decided, 9 Nov): who speaks for whom, consent, terms (dowry and morning gift), courting's place, and what the player answers. Agreed, 9 Nov (Inheritance, Marriage as a negotiation); VB-233 writes its tasks.
 - [x] What stops a skip to the next event. Agreed, 9 Nov (The player and what they see; VB-234).
-- [ ] Gaps no design pass has covered (target-v2, section 10.3): disease and epidemics; childcare and the household's division of labour; crime and law beyond debt; the quality of goods; legibility, and save versions across the changes.
+- [ ] Gaps no design pass has covered (target-v2, section 10.3): disease and epidemics; childcare and the household's division of labour; crime and law beyond debt; the quality of goods (answered, 16 Nov: quality is the kind's physical properties, read by the good's use, with no grade number; Goods, production and animals, The metals and the stones; whether a maker's skill adds to it is `QUESTIONS.md`, VB-702); legibility, and save versions across the changes.
 
 ## Appendix: Systems overview (Proposed, review of 30 October 2026)
 
