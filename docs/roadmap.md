@@ -22,7 +22,7 @@ game's reference, `design.md` v0.4 as a skeleton the slices fill in, the budget,
   their first consumer, not before. There are ten slices, plus slice 0, the yardstick that measures the others.
 - **The order** (Decided, Kim, 3 Nov): 0, the yardstick; then 1, kin help booked as goodwill (the walking skeleton), beside 2, a life (the player inhabits a
   pawn); 3, the household's year (opportunities, plans, tasks); 4, the autumn fair; 5, debt and land; 6, the mill and the loom;
-  7, talk travels; 8, the ship; 9, the town; 10, roads, boats and ice. The gossip experiment runs beside them from slice 0 on.
+  7, talk travels; 8, the ship; 9, the town; 10, roads, boats and ice. Kim, 16 November: slice 8, the ship (the dealings with the outside world), is taken last of all, after the town and the roads; the numbers stay as names. The gossip experiment runs beside them from slice 0 on.
 - **Why this order:** the riskiest framework bets go first: plans replacing posted jobs, and goodwill as a currency. After them comes
   the cities review's road (fair, credit, specialists, ships, town). Each slice is playable on its own.
 - **Each slice is an arch.** Its plan task is the design pass that makes its systems concrete and writes them into `design.md` v0.4.
