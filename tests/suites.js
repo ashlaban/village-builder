@@ -124,6 +124,7 @@ const INTEGRATION = [
   ['node', 'tests/carts.js'],
   ['node', 'tests/extinctwood.js'],
   ['node', 'tests/deer.js'],
+  ['node', 'tests/page.js'], // VB-409: the page in jsdom on a 36 by 26 island, a few days and each panel once; the tiny map's smoke at night
 ];
 const EXTENDED = [
   // The slowest first, so that none starts last and runs on alone. First the long runs of whole islands, which load the late fixtures.
@@ -137,7 +138,7 @@ const EXTENDED = [
   // Generated islands and runs of years: each waits for a constructed case on a small state in the tiers above (docs/testing.md).
   ['node', 'tests/tools.js'],
   ['node', 'tests/saves.js'],
-  ['node', 'tests/smoke.js'],
+  ['node', 'tests/smoke.js'], // the page on the tiny map, a year and the toasts; its quick case is tests/page.js in verify
   ['node', 'tests/populous.js'],
   ['node', 'tests/spread.js', '--extended'],
   ['node', 'tests/paths.js', '--extended'],
