@@ -69,7 +69,7 @@ Programmer*, 1999): a thin piece that runs end to end, then grows. Both citation
 | 6 | The mill and the loom | Build a mill with the village, learn a craft, spin and weave | Facilities and construction (4.3), recipes with subtypes, skills, the textile chain (5.6), occupation |
 | 7 | Talk travels | Hear what people say; carry a reputation; lie, and be found out | Traits (4.4), encounters at venues, stories (4.4, 10.2) |
 | 8 | The ship | Sell butter for silver, take passage, meet a priest | The outside world, silver, institutions and rank (4.4, 4.5); disease (10.3) |
-| 9 | The town | Deal on the green at a rite or a meeting, walk to a maker's door, live partly by a craft and let fields go, ask for a plot where the custom is (16 Nov: the town itself waits, 3.9) | A place's label as a derived view (4.6, to be brought into line), crowding in `death.hazard`, the strata and the sink reported (6.1, 6.3) |
+| 9 | The town | Deal on the green at a rite or a meeting, walk to a maker's door, live partly by a craft and let fields go, ask for a plot where the custom is (16 Nov: the town itself waits, 3.9) | A place's label as a derived view (4.6), crowding in `death.hazard`, the strata and the sink reported (6.1, 6.3) |
 | 10 | Roads, boats and ice | Cross the frozen sound to the winter fair; build a road or a bridge | Modes, vehicles and climate (4.2), built ways and passage (4.3) |
 
 Each slice below lists what it brings and what it takes over from today's backlog. It also says what must be designed concretely
