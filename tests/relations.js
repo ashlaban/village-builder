@@ -96,7 +96,7 @@ check(checkState(st).length === 0, 'invariants after talk: ' + checkState(st).sl
 
 // company: an idle pawn joins someone it likes who idles in its village, never someone it dislikes
 const A = VB['sim/agents'], seek0 = SOCIAL.seek, vill = (p) => Sim.settlementIdOf(st, p);
-SOCIAL.seek = 1;
+SOCIAL.seek = 4; // past the sociability trait's 0.25 to 0.75 (VB-520): it always seeks, whatever the run before drew
 const [x, fr, foe] = (() => {
   for (const p of adults) {
     if (!p.alive) continue;
