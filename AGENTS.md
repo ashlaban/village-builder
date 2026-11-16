@@ -91,6 +91,12 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
 14. **The future is someone's estimate** (Kim, 15 November). What the player is shown of what will happen (when a task ends, whether a
     store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
     knowledge; what has happened is shown as it was. A view that foretells says whose estimate it shows.
+15. **Every act is a pawn's** (Kim, 16 November). An act is done by a pawn who chose it, through a verb whose check holds for any
+    pawn alike. A household, a village or the calendar never acts: a household's head does; a village's meeting first elects an
+    alderman, who carries out what the meeting decided. The player has what its pawn has, no more and no less: a choice the player is
+    given is a choice every pawn makes, and a new verb widens the game for both. Natural processes need no pawn (birth, death,
+    growth, spoilage, an animal eating); debug verbs are the world's, not a pawn's. An agent that finds an act with no pawn, or a
+    choice only the player has, opens a task for it (arch `acts`) and goes on, as for a teleport.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with
