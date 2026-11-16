@@ -95,6 +95,12 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
     person's row, a link, a tab) has one presentation, used wherever it appears; an exception needs a motive, written in its task.
     The page favours clear, indicative icons, and images and graphs where they apply, before text; a level is a meter, the same
     meter everywhere, and words are its label. Traits are not hidden: they are shown as icons. Desktop first; the phone comes later.
+16. **Every act is a pawn's** (Kim, 16 November). An act is done by a pawn who chose it, through a verb whose check holds for any
+    pawn alike. A household, a village or the calendar never acts: a household's head does; a village's meeting first elects an
+    alderman, who carries out what the meeting decided. The player has what its pawn has, no more and no less: a choice the player is
+    given is a choice every pawn makes, and a new verb widens the game for both. Natural processes need no pawn (birth, death,
+    growth, spoilage, an animal eating); debug verbs are the world's, not a pawn's. An agent that finds an act with no pawn, or a
+    choice only the player has, opens a task for it (arch `acts`) and goes on, as for a teleport.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with
