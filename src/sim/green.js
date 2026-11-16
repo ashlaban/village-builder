@@ -49,7 +49,7 @@ VB['sim/green'] = (() => {
     );
   };
   // The green's tile: of the open tiles within BUILD.greenReach walking steps of an occupied farm's house, the nearest to the houses' mean
-  // position (so it lies between them), the lowest id between equals; -1 for none, or fewer than two farms.
+  // position (so it lies between them), none beside a field, the lowest id between equals; -1 for none, or fewer than two farms.
   function greenSite(st, v) {
     const w = st.w,
       hs = houses(st, v);
@@ -61,11 +61,15 @@ VB['sim/green'] = (() => {
       my += w.hy[h] / hs.length;
     }
     const wood = new Set(v.wood);
+    // tiles beside a field of any farm: a field is next to no green (VB-109)
+    const byField = new Set();
+    for (const f of st.farmsteads)
+      for (const fd of f.fields) for (let k = 0; k < 6; k++) byField.add(w.nb[fd.tile * 6 + k]);
     let best = -1,
       bd = Infinity;
     for (const h of hs)
       for (const t of bfs(w, h, BUILD.greenReach, walkable(w)).dist.keys()) {
-        if (!open(st, v, t, wood)) continue;
+        if (byField.has(t) || !open(st, v, t, wood)) continue;
         const d = (w.hx[t] - mx) ** 2 + (w.hy[t] - my) ** 2;
         if (d < bd || (d === bd && t < best)) {
           best = t;

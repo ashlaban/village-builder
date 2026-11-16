@@ -519,9 +519,17 @@ VB['sim/layout'] = (() => {
   // Where farmed land may lie in play (a field or a meadow a household makes, a plot's field; Kim, 12 Nov), as the generator lays it: not
   // on the ring of tiles round any village's green, which stays open, and no nearer the green of its own village v than its house, so
   // the green stays the centre; it may touch a house. Gives the test of a tile, for the farm whose house is `house`.
-  function farmedLand(w, villages, v, house) {
+  // `st`, in play: the ring of a green under way too (its project's tile, sim/green), so that no field is laid beside it before it is built.
+  function farmedLand(w, villages, v, house, st) {
     const ring = new Set();
-    for (const u of villages) if (u.green) for (let k = 0; k < 6; k++) ring.add(w.nb[u.center * 6 + k]);
+    for (const u of villages) {
+      const planned =
+        st && st.plans && st.plans.projects
+          ? (st.plans.projects.village.get(u.id) || []).find((p) => p.what === 'green')
+          : null;
+      const c = u.green ? u.center : planned ? planned.steps[0].place : -1;
+      if (c >= 0) for (let k = 0; k < 6; k++) ring.add(w.nb[c * 6 + k]);
+    }
     const c = v && v.green ? v.center : -1,
       dh = c >= 0 ? hexSteps(w, c, house) : 0;
     return (t) => !ring.has(t) && (c < 0 || hexSteps(w, c, t) >= dh);
