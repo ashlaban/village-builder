@@ -615,6 +615,7 @@ VB['sim/rules'] = (() => {
     askDays: 12, // a household asks when its spare grain covers fewer days than this, once a season, for food until the
     // next harvest and at least this many days (VB-222)
     storeShare: 0.25,
+    storeTarget: 0.5, // years of its village's need the store is filled to, and under which its common fields are sown (VB-457)
     tieGain: 0.5, // share of its surplus a household gives the village store each year; tie gain between the holders
   };
   // ---- goodwill (sim/relations, VB-217; design.md, The gift): a balance between two pawns in customary rations ----
