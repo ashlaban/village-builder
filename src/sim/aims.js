@@ -54,12 +54,17 @@ VB['sim/aims'] = (() => {
     const store = Stores.grainOf(hh) + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
     return store - Stores.reserved(st, hh, 'grain') - AIMS.years * YEAR_DAYS * dailyNeed(st, hh);
   }
-  // Every target of the plan met now: the fields it wants, the woodpile's goal of the season, the hay for its herds' winters.
+  // Every target of the plan met now: the fields it wants, the woodpile's goal of the season, the hay for its herds' winters; the stores
+  // against the head's reserve (the template's targets times its bias), not what its horizon adds to lay in before the season's end
+  // (targets.ahead, VB-254): a far-seeing head lays that in from what it has, and a capable head reaches a surplus more often (design.md
+  // section 7, projects).
   function targetsMet(st, plan, hh, f, c) {
-    const T = plan.targets;
-    if (f.fields.length < T.fields || hh.wood < T.wood[c.season]) return false;
-    return !hh.herds.length || hh.hay >= T.hayWinters * winterNeed(st, hh);
+    const T = plan.targets,
+      A = T.ahead || NO_AHEAD;
+    if (f.fields.length < T.fields || hh.wood < T.wood[c.season] - (A.season === c.season ? A.wood : 0)) return false;
+    return !hh.herds.length || hh.hay >= (T.hayWinters - A.hay) * winterNeed(st, hh);
   }
+  const NO_AHEAD = Object.freeze({ season: -1, wood: 0, hay: 0 });
   // Does the household have a surplus now ({met, food, idle}: each part, and all).
   function surplusOf(st, plan, hh, f, c) {
     const met = targetsMet(st, plan, hh, f, c),
@@ -103,8 +108,11 @@ VB['sim/aims'] = (() => {
     const meadow = pickMeadow(st, f, hh);
     if (meadow >= 0) out.push({ what: 'claim', weight: AIMS.base * ambition, tile: meadow });
     const [heir, ranked] = heirOf(st, hh);
-    if (heir !== null && findSite(st, st.villages[f.village]))
-      out.push({ what: 'heir', weight: (ranked >= 2 ? AIMS.heirs : AIMS.base) * generosity, heir });
+    if (heir !== null) {
+      VB.count.aimMenu++; // a search of the village's reach for a site (findSite), counted with the menus
+      if (findSite(st, st.villages[f.village]))
+        out.push({ what: 'heir', weight: (ranked >= 2 ? AIMS.heirs : AIMS.base) * generosity, heir });
+    }
     if (!f.barn && !f.booth && st.villages[f.village].wood.length) out.push({ what: 'barn', weight: AIMS.base });
     return out;
   }
@@ -155,11 +163,23 @@ VB['sim/aims'] = (() => {
   // The head's project under way, by its id, or null.
   const underWay = (st, hh, A) => Projects.projectsOf(st, 'household', hh.id).find((p) => p.id === A.project) || null;
   // The project given up: its surplus gone a whole season. Its stakes go with it (sim/claims), as when a head gives one up (sim/plans).
+  // A plot for the heir is not dropped but passes to the village, its tiles and work with it (the verb plotToVillage, VB-255).
   function giveUp(st, hh, f, A, p) {
-    for (const s of p.steps) if (s.stake) VB['sim/claims'].dropClaim(st, s.place, p.holder);
     const text = `${f.name} gives up building ${DONE[A.what]}: its surplus is gone.`;
     personEvent(st, hh.holder, 'projectDropped', text, false); // recorded below
-    Plans.drop(st, p, text, { pawn: hh.holder, ...atHousehold(st, hh) });
+    if (p.what === 'plot') {
+      log(st, text, { kind: 'projectDropped', pawn: hh.holder, ...atHousehold(st, hh) });
+      issue(st, {
+        actor: null,
+        verb: 'plotToVillage',
+        target: hh.id,
+        args: { plan: p.id, why: 'its surplus is gone' },
+        source: 'pawn',
+      });
+    } else {
+      for (const s of p.steps) if (s.stake) VB['sim/claims'].dropClaim(st, s.place, p.holder);
+      Plans.drop(st, p, text, { pawn: hh.holder, ...atHousehold(st, hh) });
+    }
     A.project = A.what = A.since = A.shortSince = null;
   }
   // At each review of a household's plan (sim/plans' event planReviewed): a project of the head's under way is watched for its surplus;
@@ -214,6 +234,14 @@ VB['sim/aims'] = (() => {
     A.project = A.what = A.since = A.shortSince = null;
     A.again = true;
   });
+  // A household's plot for its heir passed to its village (sim/expansion): the head's project is over, and it looks again.
+  on('projectHanded', (st, d) => {
+    const plan = d.plan.by !== undefined ? st.plans.households.get(d.plan.by) : null,
+      A = plan && plan.aim;
+    if (!A || A.project !== d.plan.id) return;
+    A.project = A.what = A.since = A.shortSince = null;
+    A.again = true;
+  });
   // Why household hh may not begin a barn now, or null (the verb barn): a farm of its own with none, no booth, no project under way, a
   // village wood to fell its timber in.
   function barnWhy(st, hh) {
@@ -226,7 +254,7 @@ VB['sim/aims'] = (() => {
     return p ? `household ${hh.id} has a ${p.what} under way` : null;
   }
   // Why household hh may not begin a farm for pawn `heir` now, or null (the verb heirFarm): an adult of the household with no farm nor
-  // plot, no project under way, and a site in its village.
+  // plot, and no project under way (the site is the plot's to find).
   function heirWhy(st, hh, heir) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
@@ -235,9 +263,7 @@ VB['sim/aims'] = (() => {
     if (isHolder(st, heir) || hasPlot(st, heir) || awaitsCottage(st, heir)) return `pawn ${heir} has a farm or a plot`;
     const q = Projects.projectOf(st, 'household', hh.id);
     if (q) return `household ${hh.id} has a ${q.what} under way`;
-    return findSite(st, st.villages[f.village])
-      ? null
-      : `there is no room for a farm in ${st.villages[f.village].name}`;
+    return null; // the site is found as the plot is begun (sim/expansion's startPlot), and none begins where there is no room
   }
   return { AIMS, KIND, idleShare, surplusOf, menu, choose, heirOf, barnWhy, heirWhy };
 })();

@@ -301,6 +301,18 @@ VB['sim/commands'] = (() => {
         });
       },
     },
+    // plotToVillage({plan, why}): household target's plot for its heir (project plan `plan`) passes to its village, its tiles and work with
+    // it (VB-255; sim/expansion hears it by an event): its head gives it up, the household dissolves, the heir cannot take it
+    plotToVillage: {
+      check: (st, c) =>
+        later('sim/projects')
+          .projectsOf(st, 'household', c.target)
+          .some((p) => p.what === 'plot' && p.id === (c.args && c.args.plan))
+          ? null
+          : `household ${c.target} has no plot ${c.args && c.args.plan} under way`,
+      run: (st, c) =>
+        emit(st, 'plotToVillage', { household: c.target, plan: c.args.plan, why: c.args.why || 'given up' }),
+    },
     // dropProject({id, hold}): give up the household's project under way (args.id, the plan's id, when given: a field, a meadow, a boat,
     // a tar pit, ...), and with hold, hold off projects as project 'none' does
     dropProject: {

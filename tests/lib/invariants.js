@@ -112,6 +112,11 @@ function checkState(st) {
             : globalThis.VB['sim/aims'].KIND.includes(Ai.what) && Ai.since <= st.t && (Ai.shortSince === null || Ai.shortSince <= st.t) &&
               (st.plans.projects.household.get(id) || []).some((q) => q.id === Ai.project))))
           bad.push(`plans: household ${id}'s aim ${JSON.stringify(Ai)}`);
+        // VB-255: a household's plot for its heir is in the index of them, and, once cleared, goes to a pawn: one whose pawn cannot take it
+        // has passed to the village (no plot of a household stands with nobody to build it for)
+        for (const q of st.plans.projects.household.get(id) || [])
+          if (q.what === 'plot' && (!st.plans.projects.heirPlots.includes(q) || q.by !== id || (q.open >= 1 && q.to === null)))
+            bad.push(`plans: household ${id}'s plot ${q.id} (by ${q.by}, open ${q.open}, to ${q.to}) is not a plot for its heir under way`);
         // VB-390: a want of a cow names no giver, or another household of the same village (one dissolved since is let go at the next
         // review), a heifer or a cow, by kin or by a deal
         const W = plan.want, villageOf = (h) => st.farmsteads[st.households[h].farmstead].village;
@@ -168,6 +173,9 @@ function checkState(st) {
         bad.push(`plans: due-queue holds ${due.length} entries (${seen.size} distinct) for ${st.plans.households.size} households`);
       }
     }
+    for (const q of st.plans.projects.heirPlots || []) // the index of the households' plots holds only those (VB-255)
+      if (q.holder.type !== 'household' || q.what !== 'plot' || !(st.plans.projects.household.get(q.holder.id) || []).includes(q))
+        bad.push(`plans: plot ${q.id} in the index of the households' plots is no household's`);
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (typeof plan.dirty !== 'boolean' || plan.last === undefined) bad.push(`plans: ${plan.holder.type} ${plan.holder.id} lacks its review record`);
       // VB-466: a household's day, once allotted: the hour it was made, and for pawns of the state a list of task keys, each once

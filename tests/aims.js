@@ -179,4 +179,90 @@ function surplusState() {
     }
   }
 }
-console.log('aims ok: surplus, menu, choice, barn and its halvings, drop after a season');
+// the heir's plot never stands with nobody to build it for: whatever befalls the heir, the plot passes to the village with its work
+const X = VB['sim/expansion'], { killPawn } = VB['sim/lifecycle'];
+function heirPlot(pick = null) {
+  const o = surplusState(), { st, hh } = o;
+  const heir = pick ? pick(st, hh) : A.heirOf(st, hh)[0];
+  assert.strictEqual(issue(st, { actor: hh.holder, verb: 'heirFarm', target: hh.id, args: { heir }, source: 'pawn' }), true);
+  const p = Projects.projectOf(st, 'household', hh.id);
+  o.plan.aim = { year: o.c.year, surplus: true, again: false, project: p.id, what: 'heir', since: st.t, shortSince: null }; // lint-allow: owner the head's project
+  return { ...o, heir, p, v: st.villages[o.f.village] };
+}
+// every tile's steps done but its last, then the last of each: the plot is cleared (sim/expansion's finishStep)
+function clear(st, p) {
+  for (const tr of p.steps[0].places) tr.i = tr.steps.length - 1;
+  for (const tr of p.steps[0].places) X.finishStep(st, { plot: p, tr });
+}
+const passed = (st, hh, p, v) => {
+  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, "the household's project is over");
+  assert.ok(Projects.projectsOf(st, 'village', v.id).includes(p) && p.by === undefined, "the plot is the village's now");
+  assert.ok(!st.plans.projects.heirPlots.includes(p), "and out of the index of the households' plots");
+  for (const tr of p.steps[0].places) assert.ok(st.used.has(tr.tile), "its tiles stay in use, as the plot's");
+  assert.deepStrictEqual(checkState(st), [], 'invariants once it passed');
+};
+const roofOn = (st, hh, p) => {
+  while (p.open < p.steps.length - 1) VB['sim/events'].emit(st, 'stepDone', { type: p.holder.type, id: p.holder.id, plan: p });
+  p.steps[p.steps.length - 1].done = p.steps[p.steps.length - 1].hours; // lint-allow: owner the roof is on
+  VB['sim/cottage'].finishCottage(st, p);
+};
+{ // the heir dies before the plot is cleared: cleared, it passes to the village, which allots it by its custom
+  const { st, hh, heir, p, v, plan, c } = heirPlot();
+  killPawn(st, heir, 'killed');
+  clear(st, p);
+  assert.ok(p.open >= 1, 'cleared');
+  passed(st, hh, p, v);
+  assert.ok(p.to === null || (p.to !== heir && st.pawns[p.to].alive), 'allotted to a living pawn, or to nobody');
+  P.reviewed(st, plan, c);
+  const q = Projects.projectOf(st, 'household', hh.id);
+  assert.ok(plan.aim.project !== p.id && (q === null || (q !== p && plan.aim.project === q.id)), 'the head is free to take another project');
+}
+{ // the heir dies once it is cleared: as the roof goes on, the plot passes to the village
+  const { st, hh, heir, p, v } = heirPlot();
+  clear(st, p);
+  assert.strictEqual(p.to, heir, 'cleared for the heir');
+  killPawn(st, heir, 'killed');
+  roofOn(st, hh, p);
+  if (p.to === null) passed(st, hh, p, v); // nobody waiting: the cottage stands empty, the village's
+  else assert.ok(st.pawns[p.to].alive && p.to !== heir, 'or another moved in');
+  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null);
+}
+{ // the heir marries onto another farm before the roof is on
+  // the farm is for an adult of the household of the other sex than the next farm's holder (the verb takes any adult at home)
+  const otherOf = (st, hh) => st.households.find((h) => !h.dissolved && h.id !== hh.id && h.holder !== null);
+  const { st, hh, heir, p } = heirPlot((st, hh) => {
+    const o = otherOf(st, hh), RS = VB['sim/records'];
+    return hh.members.find((id) => id !== hh.holder && id !== RS.spouseOf(st, hh.holder) && st.pawns[id].age >= 18 &&
+      st.pawns[id].sex !== st.pawns[o.holder].sex);
+  });
+  assert.ok(heir !== undefined, 'an adult of the other sex at home');
+  clear(st, p);
+  const other = otherOf(st, hh);
+  const sp = VB['sim/records'].spouseOf(st, other.holder);
+  if (sp !== null) killPawn(st, sp, 'killed');
+  assert.strictEqual(issue(st, { actor: other.holder, verb: 'marry', target: heir, args: { home: other.id }, source: 'debug' }), true);
+  roofOn(st, hh, p);
+  assert.notStrictEqual(p.to, heir, 'not to the married heir');
+  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, "the household's project is over");
+  assert.deepStrictEqual(checkState(st), [], 'invariants');
+}
+{ // given up as the surplus is gone, the plot passes to the village, its heir still to have it
+  const { st, hh, heir, p, v, plan, c } = heirPlot();
+  clear(st, p);
+  Stores.take(st, hh, Stores.grainGood('barley'), Stores.grainOf(hh) - 1, 'harvest');
+  plan.aim.shortSince = st.t - SEASON_DAYS * DAY; // lint-allow: owner a season short
+  P.reviewed(st, plan, c);
+  passed(st, hh, p, v);
+  assert.strictEqual(p.to, heir, 'the heir keeps it');
+}
+// a barn given up: the timber at its walls goes onto the farm's woodpile (one place: nothing carried, nothing lost)
+{
+  const { st, hh } = surplusState();
+  assert.strictEqual(issue(st, { actor: hh.holder, verb: 'barn', target: hh.id, args: {}, source: 'pawn' }), true);
+  const p = Projects.projectOf(st, 'household', hh.id);
+  p.steps[1].wood = 21; // lint-allow: owner timber carried to the site
+  const w0 = hh.wood;
+  P.drop(st, p);
+  assert.ok(near(hh.wood, w0 + 21), `the walls' timber on the woodpile: ${w0} -> ${hh.wood}`);
+}
+console.log("aims ok: surplus, menu, choice, barn and its halvings, drop after a season; the heir's plot passes to the village; timber kept");

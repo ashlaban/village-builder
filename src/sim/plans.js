@@ -68,6 +68,8 @@ VB['sim/plans'] = (() => {
       i = list.indexOf(plan);
     if (i >= 0) list.splice(i, 1);
     if (!list.length) map.delete(plan.holder.id);
+    const k = st.plans.projects.heirPlots.indexOf(plan);
+    if (k >= 0) st.plans.projects.heirPlots.splice(k, 1);
   }
   // A project plan for holder {type, id}, from {what, steps, hold, ...its own fields} (sim/fields' fieldProject, sim/meadows', a plot): what
   // its steps spend is reserved from the holder's free stock (null, and no plan, when another plan holds it), `hold` kept back for after it.
@@ -88,6 +90,7 @@ VB['sim/plans'] = (() => {
     };
     if (!P[type].has(id)) P[type].set(id, []);
     P[type].get(id).push(plan);
+    if (type === 'household' && what === 'plot') P.heirPlots.push(plan);
     for (const s of steps) for (const good in s.spends || {}) spend[good] = (spend[good] || 0) + s.spends[good];
     for (const good in spend)
       if (!Stores.reserve(st, holder, plan, good, spend[good], 'build')) {
@@ -116,7 +119,19 @@ VB['sim/plans'] = (() => {
   function dropProject(st, plan, text = null, at = {}) {
     Stores.releaseAll(plan);
     remove(st, plan);
+    leftWood(st, plan);
     if (text) log(st, text, { kind: 'projectDropped', ...at });
+  }
+  // Timber carried to a step at its household's house and not yet built in (a barn's walls, a cart's: VB-255) goes onto that farm's
+  // woodpile as the plan is dropped: the farmstead is one place, so nothing is carried, and nothing vanishes.
+  function leftWood(st, plan) {
+    if (plan.holder.type !== 'household') return;
+    const hh = st.households[plan.holder.id],
+      f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    for (let i = plan.open; i < plan.steps.length && f; i++) {
+      const s = plan.steps[i];
+      if (s.place === f.house && s.wood > 0) Stores.put(st, hh, 'wood', s.wood, 'timber');
+    }
   }
   // Why the plan's open step is no longer possible, or null: its holder is gone; the claim it works under is lost (contested away, lapsed;
   // st.claims read as sim/claims keeps it); the holder's stock no longer covers what its steps will spend (the reserved good lost).
@@ -149,8 +164,18 @@ VB['sim/plans'] = (() => {
     return false;
   }
   // Every plan of a holder that ends (a household dissolved), without a word: the end of its holder is told.
+  // A household's plot for its heir is not dropped but passes to its village (the verb plotToVillage; VB-255), its tiles and work with it.
   const dropAll = (st, type, id) => {
-    for (const plan of [...projectsOf(st, type, id)]) dropProject(st, plan);
+    for (const plan of [...projectsOf(st, type, id)])
+      if (plan.what === 'plot' && type === 'household')
+        issue(st, {
+          actor: null,
+          verb: 'plotToVillage',
+          target: id,
+          args: { plan: plan.id, why: 'the household is no more' },
+          source: 'construction',
+        });
+      else dropProject(st, plan);
   };
   // A claim lost on a tile (sim/stakes; -1: all; `told`, or `text` and `at`); a store short (sim/stores); a step done (sim/fields,
   // sim/meadows, sim/expansion, sim/cottage: `plan` names it when the holder has several); a plot begun (sim/expansion).
@@ -169,6 +194,15 @@ VB['sim/plans'] = (() => {
   });
   on('projectBegun', (st, d) => {
     makeProject(st, d.type, d.id, d.project);
+  });
+  // A plan passes to another holder (sim/expansion: a household's plot for its heir, to its village; VB-255), its steps and work with it.
+  on('projectHanded', (st, d) => {
+    const P = st.plans.projects,
+      plan = d.plan;
+    remove(st, plan);
+    plan.holder = { type: d.type, id: d.id };
+    if (!P[d.type].has(d.id)) P[d.type].set(d.id, []);
+    P[d.type].get(d.id).push(plan);
   });
   // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
   // A culture's year as rules of sim/registry, so that a culture, a head's foresight (VB-254) or the player (VB-253) changes one row: for
@@ -709,6 +743,7 @@ VB['sim/plans'] = (() => {
       st.plans.projects = Projects.emptyProjects();
       st.plans.projectSeq = 0;
     } // VB-123: project plans
+    if (!st.plans.projects.heirPlots) st.plans.projects.heirPlots = []; // VB-255: nor the index of the households' plots
     for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
       if (!plan.reserved) {
         // a save made before reservations gets empty ones (sim/stores writes them)

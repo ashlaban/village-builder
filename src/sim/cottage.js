@@ -10,6 +10,7 @@ VB['sim/cottage'] = (() => {
   const Stores = VB['sim/stores'],
     { emit } = VB['sim/events'];
   const names = VB['sim/names'];
+  const { issue } = VB['sim/commands'];
   // A new farm's name (VB-026, VB-401): by the generators the village's culture prefers, their order drawn by weight, not one another
   // farm of the village has; owner is its first holder. Drawn from the house tile's own stream, not st.rng.
   function farmName(st, v, f, owner = null) {
@@ -22,12 +23,31 @@ VB['sim/cottage'] = (() => {
       names.farmOrder(names.prefsOf(st, v.id).farm, rand),
     );
   }
+  // Whether pawn id can move into a new farm: alive, and neither it nor a living spouse holds one (VB-153).
+  function canMoveIn(st, id) {
+    if (id === null || !st.pawns[id].alive || isHolder(st, id)) return false;
+    const sp = spouseOf(st, id);
+    return !(sp !== null && st.pawns[sp].alive && isHolder(st, sp));
+  }
   // The roof is on: the plot's holder and spouse (and their minor children) move into a new farmstead of the plot's house and field.
   // Their stakes (shares already paid out, VB-032) become the household's grain; shares still owed stay a debt of the farm they came from.
   // `plot`: the plot's project plan (sim/plans), finished here and kept as the village's record of the plot (village.plots, sim/expansion).
   function finishCottage(st, plot) {
-    const v = st.villages[plot.village !== undefined ? plot.village : plot.holder.id], // a household's plot for its heir names it (VB-255)
-      holder = st.pawns[plot.to],
+    // a household's plot whose heir can no longer take it passes to the village, which allots it (VB-255)
+    if (plot.by !== undefined && !canMoveIn(st, plot.to))
+      issue(st, {
+        actor: null,
+        verb: 'plotToVillage',
+        target: plot.by,
+        args: { plan: plot.id, why: 'the heir it was built for cannot take it' },
+        source: 'construction',
+      });
+    const v = st.villages[plot.village !== undefined ? plot.village : plot.holder.id]; // a household's plot for its heir names it (VB-255)
+    if (plot.to === null) {
+      log(st, `The new cottage in ${v.name} stands empty.`, { kind: 'empty', village: v.id });
+      return;
+    }
+    const holder = st.pawns[plot.to],
       sp = spouseOf(st, holder.id),
       tiles = plot.steps[0].places;
     // the holder died, or took another farm or married onto one (VB-153) meanwhile: the roof stands, nobody is to live there

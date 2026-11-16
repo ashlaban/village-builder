@@ -776,6 +776,7 @@ VB['sim/agents'] = (() => {
   const workLeg = (st, a) => ({ kind: 'work', t: st.tick, x: a.x, y: a.y, seg: 0 });
   function enqueue(st, a) {
     const q = st.legDue;
+    if (!Number.isFinite(a.leg.due)) throw new Error(`pawn ${a.id}'s ${a.leg.kind} leg is due at no step`); // a NaN jams the queue (VB-255)
     q.splice(legSlot(st, q, a.leg.due, a.id), 0, a.id);
   }
   // The pawn's leg is over (or replaced): out of the queue.
