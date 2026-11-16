@@ -107,6 +107,15 @@ for (const r of ['farmer', 'farmhand', 'son']) check(ROLES[r].prio.hunt === ROLE
   check(D.hunt(st, hh, j.site) === 0 && near(D.stock(st, 0), n) && larderOf(hh, 'meat') === meat, 'a kill against the chance');
   st.rng.deer.fix = 0;
   check(D.hunt(st, hh, j.site) === 1 && near(D.stock(st, 0), n - 1) && near(larderOf(hh, 'meat'), meat + DEER.hunt.meat), 'a kill: meat and a deer fewer');
+  check(hh.hides === DEER.hunt.hide, 'a kill brings one hide home');
+  check(hh.ledger.some((e) => e.good === 'hide') || hh.totals.some((x) => x.kind === 'hunt' && x.good === 'hide'), 'the hide is in the ledger');
+  const Rules = VB['sim/registry'], hideGood = VB['sim/stores'].goodOf('hide'), Cul = VB['culture'];
+  const want = Math.ceil(hh.members.length * DEER.leather);
+  hh.hides = 0;
+  check(near(Rules.value(st, 'need', { hh, good: hideGood, n: 1, kept: 0 }), Cul.norm('worth', 'hide')), 'a household with no hide values one at its worth');
+  hh.hides = want;
+  check(Rules.value(st, 'need', { hh, good: hideGood, n: 1, kept: 0 }) === 0, 'a household with hides enough values no more');
+  hh.hides = DEER.hunt.hide;
   check(hh.larder.some((l) => l.kind === 'meat' && near(l.until, st.t + HERD.freshDays * DAY)), 'the meat is fresh, to be salted');
   // a region hunted below DEER.hunt.least: no hunting ground there, no kill
   st.deer.head[0] = DEER.hunt.least / 2; st.deer.since[0] = Math.floor(st.t / DAY);
@@ -132,7 +141,7 @@ for (const id of hunters) {
   const p = run.pawns[id];
   check(['farmer', 'farmhand', 'son'].includes(p.role) && Sim.age(run, p) >= 14, `a hunter ${id}: ${p.role} of ${Sim.age(run, p)}`);
 }
-const kills = run.households.reduce((n, hh) => n + hh.totals.filter((x) => x.kind === 'hunt').reduce((m, x) => m + x.count, 0), 0);
+const kills = run.households.reduce((n, hh) => n + hh.totals.filter((x) => x.kind === 'hunt' && x.good === 'meat').reduce((m, x) => m + x.count, 0), 0);
 check(kills > 0, 'no kill in a month of autumn');
 check(D.stock(run, 0) < run.deer.cap[0] - kills + 1, `${kills} kills, ${D.stock(run, 0).toFixed(2)} deer of ${run.deer.cap[0]}`);
 check(bad.length === 0, `invariants: ${bad.slice(0, 3).join('; ')}`);

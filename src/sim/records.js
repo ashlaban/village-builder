@@ -354,6 +354,7 @@ VB['sim/records'] = (() => {
       rack: 0,
       boat: null,
       tar: 0,
+      hides: 0,
       tarPit: null, // tar: barrels held (sim/stores), tarPit: the household's tar pit (sim/tar; VB-301)
       carts: [],
       cartMiss: 0, // carts, cartMiss: sim/carts; clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
