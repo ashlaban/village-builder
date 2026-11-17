@@ -114,6 +114,14 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   day; after the last day what is open of the round lapses. A pawn holds one open offer about its future (`pawn.ask`, `sim/offers`).
   `roundPhase(st, n, d)` is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
+- The asking day (`src/sim/asking.js`, VB-823; plan VB-682, sections 2 and 7): each pawn who seeks (unmarried, or grown and holding no
+  place) has one entry in the due-queue `st.asking` (`sim/wishes`: written at a birth for the first asking day after the 18th birthday,
+  at a widowing, a marriage, a new head and a move, dropped at death or on taking a place), on season day `id mod SEASON_DAYS` at
+  `ASK.hour`. A daily entry of the clock reads its head: the pawn's wish is reviewed (`chooseWish`) and, holding no open offer, it makes
+  the offer of its best open rung, due at the round: a man's match by his spokesman (`askMatch`: the unmarried women of the queue within
+  reach, nearest villages first, at most `ASK.pool` weighed, none asked by `ASK.held` open matches; the round's ask anew uses it too),
+  or an empty farm (`askLand`); a plot, new land and service are left to the round's walk. An open offer whose people died, married or
+  took a place lapses where it is next read (`staleWhy`: the asker's asking, or the round's step).
   The means to marry is the registry rule `marriage.means` (declared there, base `MARRIAGE.means`, context the home's household; VB-631), read by `affords` and by `Sim.meansOf`, which also feeds `matchBar`'s reason and the pawn panel (`marryStanding`). A later contribution (a custom, a head's caution, a servant's portion: VB-637) joins by `Rules.contribute({ rule: 'marriage.means', ... })` from its own module.
 - The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
@@ -218,7 +226,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Social: `culture`, `sim/encounters`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
-- Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/meetings`, `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
+- Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
   `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
