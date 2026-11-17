@@ -453,6 +453,10 @@ function checkState(st) {
     else for (const c of h.carts) {
       if (!((c.kind === 'hand' || c.kind === 'ox') && c.cond > 0 && c.cond <= 1 && c.built <= st.t && (c.by === null || !!st.pawns[c.by]))) {
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)}`); }
+      // a cart standing out (VB-649): no carrier, and a lying 'leftCart' load of the household names it
+      if (c.at !== undefined && !(c.by === null && Number.isInteger(c.at.tile) && c.at.t <= st.t &&
+        (st.lying || []).some((l) => l.kind === 'leftCart' && l.owner.type === 'household' && l.owner.id === h.id && l.of.cart.kind === c.kind && l.of.cart.built === c.built)))
+        bad.push(`households[${h.id}]: cart ${JSON.stringify(c)} stands out with no carrier's lying cart`);
     }
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
     const FOODS = globalThis.VB['sim/rules'].FOODS;
@@ -495,6 +499,32 @@ function checkState(st) {
     const line = f && f.line !== null && f.line !== undefined ? f.line : h.holder;
     if (line !== null && !globalThis.VB['sim/records'].householdsOfLine(st, line).includes(h.id))
       bad.push(`households[${h.id}]: not in the index of lines under ${line}`);
+  }
+  // the feast (VB-458): a feast of the last day left its host at or above its seed and FEAST.above years of need (the entry's keep), and
+  // what it served is what those who ate there ate (pawn.feast), each one feast a day
+  {
+    const DAY = globalThis.VB['sim/rules'].DAY, recent = new Map();
+    for (const id of st.liveHouseholds) {
+      const h = st.households[id];
+      for (let i = h.ledger.length - 1; i >= 0 && st.t - h.ledger[i].t < DAY; i--) {
+        const e = h.ledger[i];
+        if (e.kind !== 'feast') continue;
+        if (!(e.n < 0) || !(e.guests > 0) || !(e.booked >= 0)) bad.push(`households[${h.id}]: invalid feast ${JSON.stringify(e)}`);
+        recent.set(`${h.id}:${e.t}`, { e, ate: 0, eaters: 0 });
+      }
+    }
+    for (const p of st.pawns) {
+      if (p.feast === undefined) continue;
+      const x = p.feast;
+      if (!(x.n > 0) || !(x.t <= st.t) || !st.households[x.host]) bad.push(`pawns[${p.id}]: invalid feast ${JSON.stringify(x)}`);
+      const r = recent.get(`${x.host}:${x.t}`);
+      if (r) { r.ate += x.n; r.eaters++; }
+    }
+    for (const [key, r] of recent) {
+      if (Math.abs(r.ate + r.e.n) > 1e-6 || r.eaters !== r.e.guests)
+        bad.push(`feast ${key}: served ${-r.e.n} to ${r.e.guests}, eaten ${r.ate} by ${r.eaters}`);
+      if (!(r.e.left >= r.e.keep - 1e-6)) bad.push(`feast ${key}: left its host ${r.e.left}, below its seed and years of need (${r.e.keep})`);
+    }
   }
   const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
   const WOODS = ['wood', 'timber', 'stone']; // the woodpile and timber at a building site (VB-328), the stone heap (VB-332)
@@ -918,6 +948,8 @@ function checkState(st) {
       if (!(l.t <= st.t) || !(st.t - l.t < YEAR)) bad.push(`${at}: put down at ${l.t}, a year or more ago (the frost rots it)`);
       if (!o || !((o.type === 'household' && st.households[o.id]) || (o.type === 'village' && st.villages[o.id]))) bad.push(`${at}: owner ${JSON.stringify(o)}`);
       if (!l.of || !Number.isInteger(l.of.src)) bad.push(`${at}: no task tile`);
+      if (l.kind === 'leftCart' && !(o && o.type === 'household' && st.households[o.id] && st.households[o.id].carts.some((c) => c.at && c.kind === l.of.cart.kind && c.built === l.of.cart.built)))
+        bad.push(`${at}: a cart left standing that its household does not have out`);
     });
   }
   // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number

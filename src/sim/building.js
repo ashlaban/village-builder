@@ -105,6 +105,14 @@ VB['sim/building'] = (() => {
     st.booths.push(b);
     return b;
   }
+  // A night's fire in booth b (VB-785): what its wood holds of `want`, taken (a booth's wood is its own, written only here and by the trips
+  // and the raising); returns the amount burnt.
+  function burnBooth(st, booth, want) {
+    const b = st.booths[st.booths.indexOf(booth)],
+      n = Math.min(b.wood || 0, want);
+    b.wood = (b.wood || 0) - n;
+    return n;
+  }
   // The raising is done: the booth stands, whole, from now.
   function finishBooth(st, j) {
     const b = j.booth;
@@ -443,6 +451,7 @@ VB['sim/building'] = (() => {
     boothAt,
     boothCondition,
     boothOpenTo,
+    burnBooth,
     raiseBoothWhy,
     raiseBooth,
     rotBooths,

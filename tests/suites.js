@@ -60,6 +60,7 @@ const FAST = [
   ['node', 'tests/journeys.js'],
   ['node', 'tests/away.js'], // sleeping away from home: a lodger's stay, its pack and meals, a guest (VB-783)
   ['node', 'tests/booth.js'], // a booth: staked, raised in 12 hours with its wood, four beds, rots away (VB-784)
+  ['node', 'tests/night.js'], // a night without a roof is cold and wet by the house's rule: the road in winter, a booth with wood (VB-785)
   ['node', 'tests/fetch.js'], // a gift fetched where it lies, a load a trip (VB-461)
   ['node', 'tests/rng.js'],
   ['node', 'tests/cowwant.js'],
@@ -129,6 +130,7 @@ const INTEGRATION = [
   ['node', 'tests/ale.js'],
   ['node', 'tests/attention.js'],
   ['node', 'tests/setdown.js'],
+  ['node', 'tests/standingcart.js'], // VB-649: a dead carter's cart and team stand on the road
   ['node', 'tests/leftwood.js'], // VB-645: a dropped boat's timber lies at its shore
   ['node', 'tests/start.js'],
   ['node', 'tests/gossip.js'],
@@ -154,6 +156,7 @@ const INTEGRATION = [
   ['node', 'tests/offers.js'],
   ['node', 'tests/exchange.js'],
   ['node', 'tests/occasions.js'],
+  ['node', 'tests/feast.js'], // VB-458: the feast at a wedding or a funeral ale, its sitting, the meal eaten once, goodwill booked
   // VB-855: the farming year, from new fields to digging, on small generated islands and constructed states
   ['node', 'tests/newfields.js'],
   ['node', 'tests/fieldswanted.js'],

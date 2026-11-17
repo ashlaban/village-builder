@@ -276,6 +276,13 @@ VB['sim/clock'] = (() => {
       run: (st) => lyingFrost(st),
     },
     {
+      every: 'year',
+      at: FROST,
+      owner: 'sim/carts',
+      note: 'a cart left standing that nobody fetched is lost with the loads lying (VB-649)',
+      run: (st) => cartsYear(st, true),
+    },
+    {
       every: 'day',
       owner: 'sim/byre',
       note: 'food spoils, manure rots, the stalled herds eat their hay',
