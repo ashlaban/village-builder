@@ -34,8 +34,8 @@ const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 // ---- task files
 const dir = path.join(root, 'backlog');
 const tasks = new Map();
-for (const f of fs.readdirSync(dir).filter((f) => /^VB-\d{3}\.md$/.test(f)).sort()) {
-  const text = fs.readFileSync(path.join(dir, f), 'utf8'), head = text.match(/^# (VB-\d{3}): (.+)$/m);
+for (const f of fs.readdirSync(dir).filter((f) => /^VB-\d{3,}\.md$/.test(f)).sort((a, b) => num(a.slice(0, -3)) - num(b.slice(0, -3)))) {
+  const text = fs.readFileSync(path.join(dir, f), 'utf8'), head = text.match(/^# (VB-\d{3,}): (.+)$/m);
   if (!head) fail(`backlog/${f}: line 1 must be "# VB-NNN: <name>"`);
   const field = (k) => ((text.match(new RegExp(`^${k}: (.*)$`, 'm')) || [])[1] || '').trim();
   const waits = field('Waits for');
@@ -86,10 +86,10 @@ function replaceRows(file, heading, rows) {
 const summaries = new Map(), placed = new Map();
 for (const [status, [file, heading]] of Object.entries(TABLES)) {
   for (const line of tableRows(file, heading)) {
-    const cells = cellsOf(line), id = (cells[0].match(/^\[(VB-\d{3})\]/) || [])[1];
+    const cells = cellsOf(line), id = (cells[0].match(/^\[(VB-\d{3,})\]/) || [])[1];
     if (!id) fail(`${file}: "${line.slice(0, 40)}..." under "## ${heading}" is not a task row`);
     // a row's own layout, not its table's: after a merge a blocked row may sit in another table, or another row under Blocked
-    const waits = cells.length > 6 && /^(VB-\d{3}|Kim)(, (VB-\d{3}|Kim))*$/.test(cells[5]), summary = cells.slice(waits ? 6 : 5).join(' | ');
+    const waits = cells.length > 6 && /^(VB-\d{3,}|Kim)(, (VB-\d{3,}|Kim))*$/.test(cells[5]), summary = cells.slice(waits ? 6 : 5).join(' | ');
     if (summary || !summaries.get(id)) summaries.set(id, summary);
     placed.set(id, status);
   }

@@ -57,6 +57,8 @@ VB.COUNTERS = {
   occasionAsked:
     "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
     '(sim/occasions, VB-126)',
+  feastServed:
+    'Pawns served at a feast, each eating its portion and its household booked at most once (sim/occasions, VB-458)',
   takeInWeighed:
     'Pawns of st.demand weighed for a household short of people whose ask for food fell short, as kin and then as servants ' +
     '(sim/service, takeIn; VB-308)',

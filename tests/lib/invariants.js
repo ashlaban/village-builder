@@ -500,6 +500,32 @@ function checkState(st) {
     if (line !== null && !globalThis.VB['sim/records'].householdsOfLine(st, line).includes(h.id))
       bad.push(`households[${h.id}]: not in the index of lines under ${line}`);
   }
+  // the feast (VB-458): a feast of the last day left its host at or above its seed and FEAST.above years of need (the entry's keep), and
+  // what it served is what those who ate there ate (pawn.feast), each one feast a day
+  {
+    const DAY = globalThis.VB['sim/rules'].DAY, recent = new Map();
+    for (const id of st.liveHouseholds) {
+      const h = st.households[id];
+      for (let i = h.ledger.length - 1; i >= 0 && st.t - h.ledger[i].t < DAY; i--) {
+        const e = h.ledger[i];
+        if (e.kind !== 'feast') continue;
+        if (!(e.n < 0) || !(e.guests > 0) || !(e.booked >= 0)) bad.push(`households[${h.id}]: invalid feast ${JSON.stringify(e)}`);
+        recent.set(`${h.id}:${e.t}`, { e, ate: 0, eaters: 0 });
+      }
+    }
+    for (const p of st.pawns) {
+      if (p.feast === undefined) continue;
+      const x = p.feast;
+      if (!(x.n > 0) || !(x.t <= st.t) || !st.households[x.host]) bad.push(`pawns[${p.id}]: invalid feast ${JSON.stringify(x)}`);
+      const r = recent.get(`${x.host}:${x.t}`);
+      if (r) { r.ate += x.n; r.eaters++; }
+    }
+    for (const [key, r] of recent) {
+      if (Math.abs(r.ate + r.e.n) > 1e-6 || r.eaters !== r.e.guests)
+        bad.push(`feast ${key}: served ${-r.e.n} to ${r.e.guests}, eaten ${r.ate} by ${r.eaters}`);
+      if (!(r.e.left >= r.e.keep - 1e-6)) bad.push(`feast ${key}: left its host ${r.e.left}, below its seed and years of need (${r.e.keep})`);
+    }
+  }
   const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
   const WOODS = ['wood', 'timber', 'stone']; // the woodpile and timber at a building site (VB-328), the stone heap (VB-332)
   const FISHES = ['fish', 'dried fish', 'gathered']; // the catch by the drying rack and the fish hung on it (VB-300), fresh food (VB-119)
