@@ -43,6 +43,7 @@ const Sim = (() => {
   const { wishesOf } = VB['sim/wishes']; // a pawn's wish at the moving round, kind by kind (VB-680)
   const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];
   const { villageSummary, OVERVIEW } = VB['sim/overview']; // a village at a glance, for its card and tools/sim.js (VB-162)
+  const { meansOf, marryStanding } = VB['sim/matching']; // the means to marry a home holds, and what stands between a pawn and a marriage (VB-631)
   const { supplyOutlook } = VB['sim/outlook']; // how long a household's supplies last, by its head's last review (VB-666)
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
@@ -151,6 +152,8 @@ const Sim = (() => {
     opinionWord,
     relationsOf,
     reasonsOf,
+    meansOf,
+    marryStanding,
     HERD,
     SOIL,
     herdsOf,
