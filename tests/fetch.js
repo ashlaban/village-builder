@@ -60,6 +60,33 @@ const gifts = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.
   assert.ok(Math.abs(Stores.grainOf(giver) - g0) < 1e-9, 'the grain lies where it was, the giver\'s');
   assert.deepStrictEqual(checkState(st), [], 'invariants after a death');
 }
+// ---- a fetcher who dies on his way home with a load: it lies where he fell, the receiver's (VB-850) ----
+{
+  VB.resetCounts();
+  const st = probe.state();
+  to(st, 7);
+  const [giver, rec] = st.households.filter((h) => villageOf(st, h) === 0);
+  Stores.put(st, giver, 'grain', 200, 'harvest', { barley: 150, rye: 50 });
+  const n = 3 * TRAVEL.load;
+  issue(st, { actor: giver.holder, verb: 'give', target: rec.id, args: { good: 'grain', n }, source: 'help' });
+  const j = st.journeys.find((x) => x.why === 'fetch');
+  for (let s = 0; s < 6 * 48 && !(j.gift.held > 0); s++) Sim.advance(st, 0.5);
+  assert.ok(j.gift.held > 0, 'he has a load on his back');
+  const held = j.gift.held, g1 = Stores.grainOf(giver), pawn = j.pawn, still = j.gift.stops.reduce((a, x) => a + x.left, 0);
+  assert.ok(still > 0, 'some still lies at the stop');
+  killPawn(st, pawn);
+  assert.strictEqual(st.lying.length, 1, 'a load lies where he fell');
+  const l = st.lying[0];
+  assert.ok(l.kind === 'leftGrain' && Math.abs(l.n - held) < 1e-9 && l.owner.type === 'household' && l.owner.id === rec.id, 'the receiver\'s, the size he carried');
+  assert.ok(Math.abs(Object.values(l.of.parts).reduce((a, b) => a + b, 0) - held) < 1e-9, 'by crop');
+  assert.ok(Math.abs(Stores.grainOf(giver) - g1 - still) < 1e-9, 'what lay at the stop is the giver\'s again');
+  assert.deepStrictEqual(checkState(st), [], 'invariants after the death');
+  // its owner's next hand fetches it
+  const r0 = Stores.grainOf(rec);
+  for (let s = 0; s < 3 * 48 && st.lying; s++) Sim.advance(st, 0.5);
+  if (!st.lying) assert.ok(Stores.grainOf(rec) - r0 > held - 1e-6, 'fetched home to the receiver\'s store');
+  assert.deepStrictEqual(checkState(st), [], 'invariants after the fetching');
+}
 console.log('fetch: a gift set aside at once and fetched a load a trip, a store\'s on the same journey; one left lying goes back');
 
 // ---- the yearly filling is carried (VB-849): a household's quarter lies at its house and a member hauls it to the green ----

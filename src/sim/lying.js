@@ -32,7 +32,8 @@ VB['sim/lying'] = (() => {
   }
   // Timber carried to a building step at `tile` whose plan is given up (sim/plans' leftWood) is put down where it lies, `n` in a.load's units:
   // a load of the household's, fetched home as firewood (the kind leftTimber, sim/building) or rotting at the frost.
-  function leave(st, kind, n, tile, owner) {
+  // `at` {x, y, of}: where it lies, if not the tile's foot, and what its delivery reads (VB-850: the grain of a gift, `of.parts` by crop).
+  function leave(st, kind, n, tile, owner, at = {}) {
     if (!st.lying) st.lying = [];
     st.lyingSeq = (st.lyingSeq || 0) + 1;
     const l = {
@@ -40,11 +41,11 @@ VB['sim/lying'] = (() => {
       kind,
       n,
       tile,
-      x: st.w.hx[tile] + 7,
-      y: st.w.hy[tile] + 16,
+      x: at.x ?? st.w.hx[tile] + 7,
+      y: at.y ?? st.w.hy[tile] + 16,
       t: st.t,
       owner: { ...owner },
-      of: { src: tile },
+      of: { src: tile, ...at.of },
     };
     st.lying.push(l);
     return l;
@@ -130,7 +131,9 @@ VB['sim/lying'] = (() => {
               ? 'firewood'
               : l.kind === 'leftTimber'
                 ? 'timber'
-                : 'stone';
+                : l.kind === 'leftGrain'
+                  ? 'grain'
+                  : 'stone';
       if (hh && !hh.dissolved)
         log(st, `A load of ${what} left lying for ${st.farmsteads[hh.farmstead].name} was lost to the frost.`, {
           kind: 'frost',
