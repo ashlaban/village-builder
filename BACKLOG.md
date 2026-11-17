@@ -60,7 +60,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-416](backlog/VB-416.md) | Refactor: split sim/stores by concern (goods registry, reservations, ale) | - | 3 | M | sim/stores is 537 lines unpacked, and holds five concerns: the store operations and grain by crop, the ledger, ale, reservations, the goods registry |
 | [VB-419](backlog/VB-419.md) | Refactor: split sim/rules by concern | - | 3 | M | sim/rules is over 700 formatted lines (821 after VB-348's crops) and exports 59 names: split it by concern, each move checked with tools/same.js. |
 | [VB-423](backlog/VB-423.md) | Refactor: split sim/hunger by concern (the meal, the need rule) | - | 3 | M | sim/hunger exports 20 names since journeys; split the need rule and the larder from the daily meal. |
-| [VB-426](backlog/VB-426.md) | Young villages without wood at seed 11 | - | 3 | S | Four villages of populous small seed 11 have no wood within 27 steps; find whether their own cutting or an older village's far allotment took it. |
 | [VB-430](backlog/VB-430.md) | Refactor: split sim/relations by concern | - | 3 | M | sim/relations is 714 lines since neighbours' help (VB-106); split it by concern. |
 | [VB-442](backlog/VB-442.md) | Rebuild only the farms that changed, not every farm, fence and pawn | - | 3 | M | buildFarms takes down and redraws the whole settlement layer about 85 times a game year on populous tiny (255 steps in 3 years, seed 18), for a single broken field, a birth or a death. Rebuild what the change touched. |
 | [VB-443](backlog/VB-443.md) | Refactor: split gen by concern (terrain and land cover, the baked drawing) | - | 3 | M | src/gen.js is over its baseline since its land cover thresholds were named (COVER); split it by concern so that the lint's length line holds. |
@@ -101,6 +100,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-911](backlog/VB-911.md) | Hides become leather: shoes and harness wear | animals | 3 | M | A pawn's job tans a hide and makes shoes or harness, which wear and are replaced. |
 | [VB-926](backlog/VB-926.md) | Measure: the village overview's build time at populous medium (for VB-662) | - | 3 | S | Time Sim.villageSummary at populous medium on a quiet machine; owed to VB-662 |
 | [VB-966](backlog/VB-966.md) | The village store's outlook, shown as a supply on the village card | - | 3 | M | VB-927 left this unticked: the store has no outlook to read |
+| [VB-972](backlog/VB-972.md) | The cold-households band counts a household with no members as cold | - | 3 | S | an orphan ward's empty farm shows cold 48 winter days a year |
 | [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
 | [VB-984](backlog/VB-984.md) | A booth's maker lets a pawn in | far | 3 | S | verb letIn adds a guest to a booth |
 | [VB-985](backlog/VB-985.md) | Test: a booth's wood fetched from the village wood | far | 3 | S | cover the fetched-wood path of the booth job |
