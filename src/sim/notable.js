@@ -139,7 +139,7 @@ VB['sim/notable'] = (() => {
         'guardian',
       ],
     },
-    custom: { label: 'Customs and meetings', kinds: ['custom', 'split', 'cause', 'meetingFailed'] },
+    custom: { label: 'Customs and meetings', kinds: ['custom', 'split', 'cause', 'meetingFailed', 'gathering'] },
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
   // the village log, nor of a farm's history.

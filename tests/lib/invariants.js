@@ -280,6 +280,29 @@ function checkState(st) {
       }
     }
   }
+  // the gathering (VB-294): a village's choice names hosts with a green within a day's walk, each once, and offers only with a green; its
+  // host has a green, is within a day's walk, and hosts its own gathering of the same winter, which at least GATHERING.least villages
+  // attend. That the host was inhabited is checked when it is settled (tests/gathering.js), as a village may empty before the winter.
+  {
+    // the table of hours is compiled anew each autumn (day 9), so reach is checked for the choice of this year
+    const R = globalThis.VB['sim/rules'], year = R.cal(st.t).year, near = (a, b) => a === b || (st.villageHours[a][b] !== null && st.villageHours[a][b] <= R.TRAVEL.dayWalk);
+    const size = new Map();
+    for (const v of st.villages) {
+      const g = v.gathering;
+      if (g === undefined || g === null) continue;
+      if (!Array.isArray(g.prefs) || new Set(g.prefs).size !== g.prefs.length
+        || g.prefs.some((h) => !st.villages[h] || !st.villages[h].green || (g.chosen === year && !near(v.id, h))))
+        bad.push(`gathering: village ${v.id} names hosts ${JSON.stringify(g.prefs)}`);
+      if (g.hosting && !v.green) bad.push(`gathering: village ${v.id} offers to host with no green`);
+      if (!['meeting', 'nothing', 'asLastYear'].includes(g.by)) bad.push(`gathering: village ${v.id} chose by ${g.by}`);
+      if (g.host === null) continue;
+      const h = st.villages[g.host], hg = h && h.gathering;
+      if (!h || !h.green || (g.year === year && !near(v.id, g.host)) || !hg || hg.host !== g.host || hg.year !== g.year)
+        bad.push(`gathering: village ${v.id} goes to ${g.host}, not a host within a day's walk`);
+      else size.set(g.host, (size.get(g.host) || 0) + 1);
+    }
+    for (const [h, n] of size) if (n < globalThis.VB['sim/rules'].GATHERING.least) bad.push(`gathering: ${h}'s has ${n} villages`);
+  }
   // the record of events (VB-075), the events appended since the last check: a kind, a time not after now, ids that exist
   // (a slot folded since, VB-199, is the index of a count of st.recordYears)
   const from = checked.get(st.record) || 0, Y = st.recordYears || [];

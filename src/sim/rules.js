@@ -666,6 +666,25 @@ VB['sim/rules'] = (() => {
   // holder's generosity, TRAITS.acts.generosity.feast), and at most `perGuest` rations a ration of need of those who came (a day's food
   // three times over, the ale poured counted at its grain). Those who ate have eaten the day's meal; guest households owe the host goodwill.
   const FEAST = { above: 2, share: 0.25, perGuest: 3 };
+  // The gathering (VB-294; design.md, The gathering; Kim, 10 Nov): a village's effective hours to a host are the walk between the greens,
+  // less `kin` hours for each household of kin in the villages that went there last winter (at most `kinMax`), less or plus up to
+  // `disposition` hours by the pull between the two villages' holders, less `held` if it was held last winter, less `ale` an hour for each
+  // barrel its host poured there (at most `aleMax`); a village goes to the host with the fewest, under TRAVEL.dayWalk. A gathering stands
+  // with `least` villages or more; a host lodges `lodge` guests a farm, `goers` from each household of a village beyond `homeHours` of
+  // walk. `dates`: when it is held, by the key of its date (`harvest`: winter days 1 to 3, after the threshing; VB-809's custom adds others).
+  const GATHERING = {
+    kin: 0.5,
+    kinMax: 2,
+    disposition: 2,
+    held: 1,
+    ale: 0.25,
+    aleMax: 1,
+    least: 3,
+    lodge: 10,
+    goers: 3,
+    homeHours: 2,
+    dates: { harvest: { season: 3, from: 0, days: 3 } },
+  };
   const HELP = {
     // a holder wants floorDays and its own reserve (TRAITS.acts.generosity.reserve, by its generosity: 0 to 40 days; VB-520) of the
     // household's food in store before giving
@@ -1103,6 +1122,7 @@ VB['sim/rules'] = (() => {
     SPEED,
     BREW,
     FEAST,
+    GATHERING,
     TERRAIN,
     SLOPE,
     ROUTE,

@@ -74,6 +74,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   `node tools/sim.js --report outlook [--village N] [--json]` (VB-666, `tools/outlook.js`): each household of a village, its supply outlook
   (food, fuel, hay: the season it expects to go short in, or safe) beside the season it did first go short in over the frame, which runs
   on past `--years`; a description with no target.
+  `node tools/sim.js --report gathering [--json]` (VB-294, `tools/gathering.js`): by year, the gatherings settled at the autumn meetings
+  (host, its villages, how many villages named each host in their choice) and the villages with none; then gatherings a year, how often a
+  village's host changed from the year before, and the share of village-years with no gathering.
   `node tools/sim.js --report ground [--reach 12,30] [--seeds 3,7,11] [--json]` (VB-735, `tools/ground.js`): by village, each rock (any tile, and a quarry tile) and deposit within the reach of its green, hidden ores found or not, the rock under the green, and a summary by kind (villages, and maps with several seeds), with the pairs copper and tin and any iron; at any year (`--years`, `--at`, `--load`).
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
   `node tools/store-flows.js --scenario populous --seeds 7 --years 15 [--rule NAME]`: the village stores' yearly flows (VB-406).
