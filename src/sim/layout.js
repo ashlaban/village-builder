@@ -492,6 +492,11 @@ VB['sim/layout'] = (() => {
           yards,
           homes,
         );
+        // a green where no first farm fits is no village: it is dropped (its centre stays in `used`, so no site is tried twice)
+        if (!v.farmsteads.length) {
+          used.add(center);
+          return v;
+        }
         villages.push(v);
         return v;
       },
