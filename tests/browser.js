@@ -306,6 +306,10 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     if (!/house stands there/.test(refused) || (await view()).tiles.field !== -1) fail(`the house was not refused with its reason: ${refused}`);
     if (spots.open < 0) fail('no tile will take a field');
     await page.evaluate((i) => window.__play.look(i), spots.open);
+    // VB-1027: pointing at a tile with the tool in hand tells what it is, in the banner
+    await page.mouse.move(mid[0] + 3, mid[1] + 3); await page.mouse.move(...mid); await page.waitForTimeout(200);
+    const facts = await page.locator('#actBanner [data-facts]').allTextContents();
+    if (!/fertility \d+.*from the house.*would do/.test(facts.join(''))) fail(`the tile pointed at is not told with the tool in hand: ${facts}`);
     await page.mouse.click(...mid); await page.waitForTimeout(300);
     const named = (await view()).tiles.field;
     await page.waitForSelector('#tabPlan[aria-selected="true"]', { timeout: 5000 }).catch(() => fail('the card did not come back to its Plan tab'));
