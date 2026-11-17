@@ -290,15 +290,16 @@ VB['sim/farmclaims'] = (() => {
         ? `the empty farm ${st.farmsteads[o.wants.farm].name} for ${fullName(st.pawns[o.from])}`
         : `a plot in ${st.villages[o.wants.plot].name} for ${fullName(st.pawns[o.from])}`,
   });
-  // Pawn id asks for land in village vid (wants: {farm} or {plot, house, field}) at the moving round, due at once (the round's choosers)
-  function askLand(st, id, vid, wants) {
+  // Pawn id asks for land in village vid (wants: {farm} or {plot, house, field}) at the moving round, due at once (the round's choosers),
+  // or at `due`, the round's time, from its asking day (sim/asking, VB-823)
+  function askLand(st, id, vid, wants, due = null) {
     const sp = speakerOf(st, vid);
     return issue(st, {
       actor: id,
       verb: 'offer',
       target: sp === null ? id : sp,
-      args: { basis: 'land', wants },
-      source: 'round',
+      args: { basis: 'land', wants, ...(due !== null ? { due, round: true } : {}) },
+      source: due !== null ? 'asking' : 'round',
     });
   }
   // The farm pawn id may claim now, or null (sim/expansion clears a plot only for those with none).

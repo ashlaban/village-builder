@@ -2,7 +2,7 @@
 //   (VB-690): what may be offered, who answers, what a yes, a no and a lapse do (split from sim/lifecycle, VB-876)
 VB['sim/marriage'] = (() => {
   const { emit } = VB['sim/events'];
-  const { MARRIAGE, SOCIAL } = VB['sim/rules'];
+  const { MARRIAGE, SOCIAL, ASK } = VB['sim/rules'];
   const { personEvent, log, fullName, spouseOf, settlementIdOf, farmPractice, holdingOf, atHousehold, spokesmanOf } =
     VB['sim/records'];
   const { startInLife } = VB['sim/exchange'];
@@ -135,8 +135,8 @@ VB['sim/marriage'] = (() => {
   // ---- the basis `match` of sim/offers (VB-690): an offer {from (the man's spokesman), to (the woman's), gives {man, home}, wants
   // {woman}, village (the man's settlement)} ----
   const names = (st, o) => `${fullName(st.pawns[o.gives.man])} and ${fullName(st.pawns[o.wants.woman])}`;
-  // What may be offered: a man and a woman, living, unmarried and in no other open match, a home for them, made by the man's spokesman
-  // to the woman's; the offer gains the man's village (or why not)
+  // What may be offered: a man and a woman, living and unmarried, he in no other open match and she asked by fewer than ASK.held (VB-823),
+  // a home for them, made by the man's spokesman to the woman's; the offer gains the man's village (or why not)
   function matchWhy(st, o) {
     const man = o.gives && o.gives.man,
       woman = o.wants && o.wants.woman,
@@ -148,7 +148,9 @@ VB['sim/marriage'] = (() => {
     if (!hh || hh.dissolved) return `there is no household ${o.gives.home}`;
     if (o.from !== spokesmanOf(st, man) || o.to !== spokesmanOf(st, woman))
       return "a match is offered by the man's spokesman to the woman's";
-    if (heldBy(st, man, 'match') || heldBy(st, woman, 'match')) return 'one of them is in an open offer';
+    if (heldBy(st, man, 'match')) return 'he is in an open offer';
+    if (st.offers.filter((x) => x.basis === 'match' && x.wants.woman === woman).length >= ASK.held)
+      return `she is asked by ${ASK.held} open offers already`;
     return { village: settlementIdOf(st, st.pawns[man]) };
   }
   // The answers a match asks for, all unanswered: the man's and the woman's, and each one's spokesman's where another speaks for them;
