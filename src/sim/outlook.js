@@ -6,7 +6,7 @@
 // ordinary year (sim/meadows' expectedHay), the woodpile's goal of each season (plan.targets.wood); no weather to come is read. Nothing
 // reads the outlook to decide: it is a view the review keeps, so that the page never computes one.
 VB['sim/outlook'] = (() => {
-  const { SEASON_DAYS, YEAR_DAYS, CROPS, FIELDS, HERD, BUILD, cal } = VB['sim/rules'];
+  const { SEASON_DAYS, YEAR_DAYS, CROPS, FIELDS, HERD, BUILD, PEAT, cal } = VB['sim/rules'];
   const { on } = VB['sim/events'];
   const Stores = VB['sim/stores'];
   const Pot = VB['sim/pot'];
@@ -125,7 +125,7 @@ VB['sim/outlook'] = (() => {
   // Its intakes: each field's crop, FIELDS.expect of its full yield less the seed it takes back (stooks: what lies in them, less the seed).
   function food(st, hh, f, c, F, end) {
     const D = dailyNeed(st, hh),
-      seed = Stores.reserved(st, hh, 'grain'),
+      seed = hh.farmstead === null ? 0 : Stores.reserved(st, hh, 'grain'), // a household with no farm keeps no seed
       rot = Math.max(0, Stores.grainOf(hh) - seed),
       sheaves = (hh.unthreshed || []).reduce((s, x) => s + (+x || 0), 0),
       keep =
@@ -167,7 +167,7 @@ VB['sim/outlook'] = (() => {
   // the season we are in); none with no farm or no wood in its village's reach. Firewood does not spoil.
   function fuel(st, hh, f, plan, c, F, end) {
     const use = st.ECON.woodUse,
-      keep = Math.max(0, fuelFree(st, hh)),
+      keep = Math.max(0, hh.farmstead === null ? (hh.wood || 0) + PEAT.worth * (hh.peat || 0) : fuelFree(st, hh)),
       goal = plan.targets && plan.targets.wood,
       wood = f && st.villages[f.village] && st.villages[f.village].wood,
       cap = hands(st, hh) * OUTLOOK.woodTrips * st.ECON.woodPerTrip,
