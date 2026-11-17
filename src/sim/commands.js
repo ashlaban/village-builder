@@ -130,7 +130,7 @@ VB['sim/commands'] = (() => {
         free(st, c.actor) ||
         (!st.jobs.has(c.target)
           ? `there is no job ${c.target}`
-          : !isOpen(st.jobs.get(c.target))
+          : !isOpen(st, st.jobs.get(c.target))
             ? `job ${c.target} has no room`
             : attentionOf(st.jobs.get(c.target)) !== 'full'
               ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))

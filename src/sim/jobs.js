@@ -285,7 +285,8 @@ VB['sim/jobs'] = (() => {
   }
   function bid(st, a, j, c, memo) {
     const p = st.pawns[a.id];
-    if (!isOpen(j) || !eligible(st, j, p) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j))) return -1;
+    if (!isOpen(st, j) || !eligible(st, j, p) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j)))
+      return -1;
     const s = score(st, p, j, c, memo);
     return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * joined(j, j.claims.length);
   }
@@ -303,7 +304,7 @@ VB['sim/jobs'] = (() => {
   function fit(st, p, j, c) {
     const pr = prioOf(st, p, j),
       row = { bid: null, reason: null };
-    if (!isOpen(j)) row.reason = 'taken';
+    if (!isOpen(st, j)) row.reason = 'taken';
     else if (pr <= 0 || tooYoung(st, p, j)) row.reason = 'not their work';
     else {
       const here = st.farmsteads[st.households[p.household].farmstead].house;
@@ -366,7 +367,7 @@ VB['sim/jobs'] = (() => {
     bids.sort((x, y) => y[0] - x[0]);
     for (let i = 0; i < bids.length; i++) {
       const [s, a, j, k] = bids[i];
-      if (busy.has(a) || !isOpen(j)) continue;
+      if (busy.has(a) || !isOpen(st, j)) continue;
       if (j.claims.length > k) {
         const b = [s * joined(j, j.claims.length - k), a, j, j.claims.length];
         bids.splice(slot(bids, i + 1, b[0]), 0, b);
@@ -455,13 +456,13 @@ VB['sim/jobs'] = (() => {
         dj = due.get(p.id),
         top = given.get(p.id),
         busy = !!a.job && attentionOf(a.job) === 'full';
-      if (dj && a.job !== dj && isOpen(dj) && c.hour <= WORK[1]) {
+      if (dj && a.job !== dj && isOpen(st, dj) && c.hour <= WORK[1]) {
         // the deadline calls: from work, from the road to it, or from idling (waiting, or out for company; not at an occasion)
         if (busy ? a.phase === 'work' || a.phase === 'go' : !a.job && a.phase === null && a.occasion === null)
           issue(st, { actor: a.id, verb: 'work', target: dj.key, source: 'planner' });
         continue;
       }
-      if (!top || !busy || a.phase !== 'work' || a.job === top[1] || !isOpen(top[1])) continue;
+      if (!top || !busy || a.phase !== 'work' || a.job === top[1] || !isOpen(st, top[1])) continue;
       if (
         hoursLeft(st, a.job) > rateOf(st, p) &&
         top[0] > MATCH.switchRatio * (score(st, p, a.job, c, memo) ?? 0) + MATCH.switchMargin
@@ -491,7 +492,9 @@ VB['sim/jobs'] = (() => {
   }
   // Whether pawn a can take job j of its list now: there is room, it still may, and a task held at the side is in reach.
   const canTake = (st, a, j) =>
-    isOpen(j) && !!eligible(st, j, st.pawns[a.id]) && !((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j));
+    isOpen(st, j) &&
+    !!eligible(st, j, st.pawns[a.id]) &&
+    !((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j));
   // Each idle pawn takes the first task of its list that it can (a task held at the side leaves it free for the next one, next step). A
   // household with no day yet, or a member its day does not know (it moved in, or was born, since), has its day allotted first. The
   // pawns that got work.
@@ -563,7 +566,7 @@ VB['sim/jobs'] = (() => {
       const best = new Map();
       for (const j of js) {
         VB.count.helpOffer++;
-        if (!HELP.kinds.includes(j.kind) || !isOpen(j) || attentionOf(j) !== 'full') continue;
+        if (!HELP.kinds.includes(j.kind) || !isOpen(st, j) || attentionOf(j) !== 'full') continue;
         if (st.t - j.posted < HELP.waitHours) continue;
         const b = best.get(j.kind);
         if (!b || urgency(st, j, c, memo) > urgency(st, b, c, memo)) best.set(j.kind, j);

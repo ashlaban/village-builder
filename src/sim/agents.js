@@ -19,7 +19,9 @@ VB['sim/agents'] = (() => {
   const { emit } = VB['sim/events'];
   const { finishStep } = VB['sim/expansion'];
   const { worked: prospected } = VB['sim/prospect'];
-  const { KINDS } = VB['sim/kinds'];
+  const { KINDS } = VB['sim/kinds'],
+    Progress = VB['sim/progress'],
+    { workTick } = Progress;
   const Lying = VB['sim/lying'];
   function homeSpot(st, a) {
     const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
@@ -459,7 +461,7 @@ VB['sim/agents'] = (() => {
   // ---- work as a block (VB-472; design.md section 7, A leg, and its end; docs/review-blocks.md, step 2): a worker is not stepped ----
   // @state job.done, job.at, job.rate: the task's hours done when it was last reckoned, the tick it was reckoned at, and the hours of work
   //   its hands at work (or a background task's holders minding it) do together in a game hour since; its progress now is
-  //   done + rate × the hours since (doneOf, the only read of progress outside this module). Reckoned, and its end queued again, when a
+  //   done + rate × the hours since (doneOf; sim/progress holds its closed form, read by every other module). Reckoned, and its end queued again, when a
   //   hand joins or leaves, when a hand's rate may have changed (after the meal; an ox team gone to another task), at the end of work, at
   //   its end, and at a cut. `done` is exact while no hand is at work, and below the task's hours otherwise. at and rate are absent until the
   //   task is first reckoned. Written only here; plain data, saved.
@@ -470,7 +472,6 @@ VB['sim/agents'] = (() => {
   // A step's work is done as the step's legs begin to be taken (stepAgents, dueWork): the tick up to which the hands have worked, so a hand
   // leaving at the calendar's hour (before the legs) does not work that step, and one joining in or after them works from the next. Between
   // steps (a fresh or a loaded run, st.stepAt absent or both its marks at the tick) the step now has been worked.
-  const workTick = (st) => (!st.stepAt || st.stepAt.moving === st.tick ? st.tick : st.tick - 1);
   const hoursOfJob = (j) => j.hours ?? KINDS[j.kind].hours;
   const atWork = (st, j, id) => {
     const b = st.agents[id];
@@ -614,10 +615,7 @@ VB['sim/agents'] = (() => {
     }
   }
   // The job's hours done now, worked out from its last reckoning with no stepping.
-  function doneOf(st, j) {
-    if (!(j.rate > 0)) return j.done;
-    return Math.min(hoursOfJob(j), j.done + (Math.max(0, workTick(st) - j.at) / TICKS) * j.rate);
-  }
+  const doneOf = (st, j) => Progress.doneOf(st, j, hoursOfJob(j));
   // The tasks whose end is due at this step (stepAgents, as its legs begin to be taken): each is reckoned and ended by its first hand at
   // work, a background task by its first holder (sideEnded).
   function dueWork(st) {
