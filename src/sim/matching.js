@@ -11,6 +11,29 @@ VB['sim/matching'] = (() => {
   const { opinionOf } = VB['sim/relations'];
   const { hoursBetween } = VB['sim/routes'];
   const { wishOf } = VB['sim/wishes'];
+  const Rules = VB['sim/registry'];
+
+  // ---- the means to marry (VB-153, VB-631; design.md, Marriage, nursing and growth: The setpoint) ----
+  // A rule of the registry, `marriage.means`: the years of food a home must hold above its seed for its members and one more. Base
+  // MARRIAGE.means, no contribution yet; a later one (a custom, a head's caution, a servant's portion: VB-637) joins with
+  // `Rules.contribute({ rule: 'marriage.means', ... })` from its own module, the context the home's household, and shows with its cause in
+  // the pawn panel's words through meansOf's `asked`. Its value is moved only in a tuning run.
+  Rules.declare({ id: 'marriage.means', owner: 'sim/matching', combine: 'product', base: () => MARRIAGE.means });
+  // One formula for the gate (`affords`) and the words (the pawn panel, matchBar's reason): {held, asked, exempt} of household h. held:
+  // years of food above the seed for its members and one more (grain, grain in sheaf, meals, the larder, less what is reserved); asked: the
+  // rule's value; exempt: fewer than two adults, who need the spouse's hands.
+  const fig = (n) => (Math.round(Math.max(0, n) * 10) / 10).toString();
+  function meansOf(st, h) {
+    const hh = st.households[h],
+      store = grainOf(hh) + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
+    let grown = 0;
+    for (const id of hh.members) if (st.pawns[id].alive && st.pawns[id].age >= 18) grown++;
+    return {
+      held: (store - reserved(st, hh, 'grain')) / (YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult)),
+      asked: Rules.value(st, 'marriage.means', hh),
+      exempt: grown < 2,
+    };
+  }
 
   // ---- the rules of a match (the moving round's marriages, and what the player's wish for a match is checked against, VB-274) ----
   // The closest degree each kinLimit option allows; siblings, half-siblings and direct lines (degree 2 or less) never marry.
@@ -141,15 +164,8 @@ VB['sim/matching'] = (() => {
     };
     const affords = (h) => {
       if (!means.has(h)) {
-        const hh = st.households[h],
-          store = grainOf(hh) + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
-        const grown = hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18).length;
-        means.set(
-          h,
-          grown < 2 ||
-            store - reserved(st, hh, 'grain') >=
-              MARRIAGE.means * YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult),
-        );
+        const m = meansOf(st, h);
+        means.set(h, m.exempt || m.held >= m.asked);
       }
       return means.get(h);
     };
@@ -191,7 +207,10 @@ VB['sim/matching'] = (() => {
             why: `${fullName(p)} is in service: ${p.sex === 'm' ? 'his' : 'her'} master's house is no home for a couple`,
           };
     if (home === null) return { why: 'no home for them: neither has a farm to live on' };
-    if (!rules.affords(home)) return { why: 'their home cannot feed another mouth' };
+    if (!rules.affords(home)) {
+      const m = meansOf(st, home);
+      return { why: `their home holds ${fig(m.held)} of the ${fig(m.asked)} years of food it needs` };
+    }
     const widowed = wasWidowed(st, m.id) || wasWidowed(st, f.id);
     if (matchScore(st, { ...m, age: age(st, m) }, { ...f, age: age(st, f) }, 0.5, widowed) < MARRIAGE.minScore) {
       return { why: 'the two are ill matched: the gap of their ages, or their villages' };
@@ -215,5 +234,19 @@ VB['sim/matching'] = (() => {
     }
     return out;
   }
-  return { kinOk, poolFor, matchScore, matchRules, matchBar, wishedMatches };
+  // What stands between an unmarried pawn of age and a marriage, as the home holds today (counted, no forecast; VB-631), the first that
+  // holds: {kind: 'hungry'|'nohome'|'short'|'means'|'hands', held, asked}; null for a pawn that is not unmarried and of age. The home is
+  // the place the pawn would live on (the land custom), else its own household, the partner not being known.
+  function marryStanding(st, id) {
+    const p = st.pawns[id];
+    if (!p || !p.alive || spouseOf(st, id) !== null || p.household === null) return null;
+    if (age(st, p) < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) return null;
+    if (!(p.hunger < HUNGER.marryBelow)) return { kind: 'hungry' };
+    const cu = practice(st, settlementIdOf(st, p));
+    const home = cu.residence === 'land' ? matchRules(st).place(id) : p.servant ? null : p.household;
+    if (home === null) return { kind: 'nohome' };
+    const m = meansOf(st, home);
+    return { kind: m.exempt ? 'hands' : m.held >= m.asked ? 'means' : 'short', held: m.held, asked: m.asked };
+  }
+  return { kinOk, poolFor, matchScore, matchRules, matchBar, wishedMatches, meansOf, marryStanding };
 })();

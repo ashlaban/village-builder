@@ -283,8 +283,16 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       const { st } = window.__play, h = st.households[id], f = st.farmsteads[h.farmstead], F = VB['sim/fields'];
       let open = -1;
       for (let t = 0; t < st.w.N && open < 0; t++) if (F.fieldWhy(st, f, h, t) === null) open = t;
-      return { house: f.house, open };
+      const sites = window.__play.tool().sites;
+      return { house: f.house, open, sites, marked: sites.every((t) => F.fieldWhy(st, f, h, t) === null) };
     }, hh);
+    // VB-894: the tiles that would take the field are marked, read at the tool's start, and every one is a tile the rule takes
+    if (!spots.sites.length || !spots.marked || !spots.sites.includes(spots.open)) fail(`the tiles that would do are not marked: ${JSON.stringify(spots.sites)}`);
+    spots.open = spots.sites[spots.sites.length >> 1]; // a marked tile is the one clicked
+    if (process.argv.includes('--shot')) { // the marked tiles, the tool in hand
+      await page.evaluate((i) => window.__play.look(i), spots.open); await page.waitForTimeout(400);
+      await page.screenshot({ path: path.join(root, 'docs/img/vb894-marks.png') });
+    }
     await page.evaluate((i) => window.__play.look(i), spots.house);
     await page.mouse.click(...mid); await page.waitForTimeout(300);
     const refused = await page.locator('#actBanner').textContent();
@@ -296,7 +304,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     await page.waitForSelector('#tabPlan[aria-selected="true"]', { timeout: 5000 }).catch(() => fail('the card did not come back to its Plan tab'));
     const shown = await page.locator('#tileHouse [data-tile="field"]').textContent();
     if (named !== spots.open || await page.evaluate(() => !!window.__play.tool())) fail(`the field's tile was not named: ${named}, not ${spots.open}`);
-    if (!shown.includes(`tile ${spots.open}`) || !(await page.locator('#tileHouse [data-target="hay"]').textContent()).includes('chosen')) {
+    if (!shown.includes(`tile ${spots.open}`) || !(await page.locator(`#tileHouse [data-tile="field"] [data-plan="fly"][data-tile="${spots.open}"]`).count()) || !(await page.locator('#tileHouse [data-target="hay"]').textContent()).includes('chosen')) {
       fail(`the Plan tab does not show both choices: ${shown}`); }
     if (process.argv.includes('--shot')) { // the tab from its top: the targets
       await page.evaluate(() => { document.getElementById('tileDetails').scrollTop = 0; });
