@@ -122,10 +122,7 @@ VB['sim/lying'] = (() => {
     for (const l of st.lying) {
       const o = l.owner,
         hh = o.type === 'household' ? st.households[o.id] : null;
-      if (l.kind === 'leftCart') {
-        VB['sim/kinds'].KINDS.leftCart.lost(st, hh, l.of.cart.kind, l.of.cart.built); // a cart nobody fetched is gone, and named (VB-649)
-        continue;
-      }
+      if (l.kind === 'leftCart') continue; // its cart is gone with it, and named (sim/carts' frost sweep, VB-649)
       const what =
         l.kind === 'haul'
           ? 'sheaves'

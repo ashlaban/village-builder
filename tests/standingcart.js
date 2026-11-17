@@ -39,5 +39,6 @@ cart.at = { tile: at, x: 0, y: 0, t: st.t }; cart.by = null;
 Lying.leave(st, 'leftCart', 1, at, { type: 'household', id: hh.id }, { of: { cart: { kind: 'ox', built: cart.built } } });
 const n0 = st.record.length, nc = hh.carts.length;
 Lying.frost(st);
+VB['sim/carts'].cartsYear(st, true);
 assert(hh.carts.length === nc - 1 && st.record.slice(n0).some((e) => e && e.kind === 'cartGone'), 'the cart is lost and named');
 console.log('standingcart ok');

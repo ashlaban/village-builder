@@ -77,10 +77,9 @@ VB['sim/carts'] = (() => {
     if (c) delete c.at;
     return c;
   }
-  function lost(st, hh, kind, built) {
-    const c = standing(hh, kind, built),
-      f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!c) return;
+  // A cart left standing that nobody fetched is lost at the frost, and named.
+  function lost(st, hh, c) {
+    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     hh.carts.splice(hh.carts.indexOf(c), 1);
     if (f)
       log(
@@ -140,7 +139,11 @@ VB['sim/carts'] = (() => {
   }
   // At the winter's start the head counts the year's misses: at CART.misses or more, and with no project under way, the household builds
   // another cart: an ox cart if it keeps a team and has none, else a hand cart. The count starts again.
-  function cartsYear(st) {
+  function cartsYear(st, frost = false) {
+    if (frost) {
+      for (const hh of st.households) for (const c of hh.carts.filter((q) => q.at)) lost(st, hh, c);
+      return;
+    }
     for (const v of st.villages)
       for (const fid of v.farmsteads) {
         const f = st.farmsteads[fid],
@@ -209,7 +212,6 @@ VB['sim/carts'] = (() => {
       carry: 'sack',
       to: 'barn',
       load: () => 0,
-      lost, // at the frost (sim/lying), nobody having come
       deliver: (st, j, hh) => fetched(st, hh, j.cart.kind, j.cart.built),
     },
     cart: {
