@@ -2,10 +2,10 @@
 //   village ranks the hosts it would walk to, by effective hours; once all have met, each goes to one gathering that stands (three villages
 //   or more, the host among them, lodged by its farms); the district is the villages of one gathering, read from the choice
 // @state village.gathering: null or absent (no choice made yet), else {chosen (the year of the meeting's last choice), by ('meeting' |
-//   'asLastYear' | 'nothing'), offer (the village offers to host that year's gathering), prefs[] (village ids of the hosts it would go to,
+//   'asLastYear' | 'nothing'), hosting (the village offers to host that year's gathering), prefs[] (village ids of the hosts it would go to,
 //   best first, each with a green and within a day's walk), year (the year of the winter the village's gathering is for), host (the village
 //   whose gathering it attends that winter, or null for none; its own id when it hosts one that stands), ale (barrels its host poured at
-//   the gathering it hosted that winter: 0 until VB-295 holds it)}. The meeting's verb `gathering` writes chosen, by, offer and prefs
+//   the gathering it hosted that winter: 0 until VB-295 holds it)}. The meeting's verb `gathering` writes chosen, by, hosting and prefs
 //   (setGathering); the evening's settling writes year, host and ale (settleGatherings); between the two, year and host are last year's.
 VB['sim/gathering'] = (() => {
   const { GATHERING, TRAVEL, YEAR, SEASON_DAYS, DAY, cal } = VB['sim/rules'];
@@ -114,26 +114,26 @@ VB['sim/gathering'] = (() => {
     if (!v) return;
     let by = 'meeting',
       prefs = [],
-      offer = false;
+      hosting = false;
     if (quorum) {
       prefs = rank(st, v, people).map((x) => x[1]);
-      offer = prefs[0] === v.id;
+      hosting = prefs[0] === v.id;
     } else {
       by = Culture.practiceOf(st.cenv.cultures[s.culture], 'noDecision');
       const g = choiceOf(st, v.id);
       if (by === 'asLastYear' && g) {
         prefs = g.prefs.filter((h) => withinDay(st, v.id, h) && canHost(st, st.villages[h]));
-        offer = g.offer && canHost(st, v);
+        hosting = g.hosting && canHost(st, v);
       }
     }
-    issue(st, { actor: { settlement: s.id }, verb: 'gathering', args: { offer, prefs, by }, source: 'meeting' });
+    issue(st, { actor: { settlement: s.id }, verb: 'gathering', args: { hosting, prefs, by }, source: 'meeting' });
   }
   // Why a choice may not be village vid's, or null (the verb's check).
   function choiceWhy(st, vid, a) {
-    if (!a || typeof a.offer !== 'boolean' || !Array.isArray(a.prefs))
-      return 'a choice is an offer and a list of hosts';
+    if (!a || typeof a.hosting !== 'boolean' || !Array.isArray(a.prefs))
+      return 'a choice is whether to host and a list of hosts';
     if (!['meeting', 'nothing', 'asLastYear'].includes(a.by)) return `a choice cannot be made by ${a.by}`;
-    if (a.offer && !canHost(st, st.villages[vid])) return `village ${vid} cannot host`;
+    if (a.hosting && !canHost(st, st.villages[vid])) return `village ${vid} cannot host`;
     if (new Set(a.prefs).size !== a.prefs.length) return 'a host is named twice';
     for (const h of a.prefs) {
       if (!Number.isInteger(h) || !st.villages[h]) return `there is no village ${h}`;
@@ -142,11 +142,11 @@ VB['sim/gathering'] = (() => {
     }
     return null;
   }
-  // The choice becomes village vid's (the verb's act; the one writer of chosen, by, offer and prefs).
+  // The choice becomes village vid's (the verb's act; the one writer of chosen, by, hosting and prefs).
   function setGathering(st, vid, a) {
     const v = st.villages[vid],
       was = v.gathering || { year: null, host: null, ale: 0 };
-    v.gathering = { ...was, chosen: cal(st.t).year, by: a.by, offer: a.offer, prefs: [...a.prefs] };
+    v.gathering = { ...was, chosen: cal(st.t).year, by: a.by, hosting: a.hosting, prefs: [...a.prefs] };
   }
   // ---- the evening's settling, once every village has met (sim/meetings, culture step) ----
   // Which villages go to which gathering this winter (design.md, The gathering; the rules of who comes and lodging): each village goes to its
@@ -169,7 +169,7 @@ VB['sim/gathering'] = (() => {
       for (const h of g.prefs) {
         VB.count.gatherSettle++;
         const hg = choiceOf(st, h);
-        if (hg && hg.chosen === year && hg.offer && hg.prefs[0] === h && canHost(st, vs[h])) list.push(h);
+        if (hg && hg.chosen === year && hg.hosting && hg.prefs[0] === h && canHost(st, vs[h])) list.push(h);
       }
       prefs.set(v.id, list);
       if (list[0] === v.id) room.set(v.id, G.lodge * farmsOf(st, vs[v.id]));
