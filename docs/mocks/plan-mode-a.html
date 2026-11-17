@@ -136,7 +136,8 @@
   .tchip { position: absolute; transform: translate(-50%, -50%); width: 62px; padding: 3px 4px; border-radius: 8px; background: rgba(255, 255, 255, 0.95); font-size: 11px; line-height: 1;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); display: grid; gap: 3px; }
   .tchip.pick { background: var(--plan); box-shadow: 0 0 0 2px var(--plan-edge), 0 2px 8px rgba(0, 0, 0, 0.5); }
-  .tchip .r { display: flex; align-items: center; gap: 3px; } .tchip .r b { margin-left: auto; font-size: 11.5px; }
+  .tchip.pick { width: 74px; }
+  .tchip .r { display: flex; align-items: center; gap: 3px; min-width: 0; } .tchip .r b { margin-left: auto; font-size: 11.5px; }
   .tchip .meter { height: 5px; min-width: 20px; }
   .tchip.no { width: auto; display: flex; align-items: center; gap: 3px; padding: 3px 6px; background: rgba(40, 30, 28, 0.85); color: #fff; font-size: 11.5px; white-space: nowrap; }
   .range { position: relative; flex: 1; min-width: 20px; height: 5px; border-radius: 3px; background: var(--track); }
@@ -298,7 +299,7 @@ function budget(view, m) {
   const ch = MEM[m].chores, cl = PLAN[view].claim[m], free = 12 - ch - cl, pc = (x) => ((Math.min(x, 12) / 12) * 100).toFixed(1);
   return `<span class="meter days${free < 0 ? ' over' : ''}" title="12 days: ${ch} on the daily chores, ${cl} claimed by the plan"><i class="ch" style="width:${pc(ch)}%"></i>` +
     `<i class="pl" style="left:${pc(ch)}%;width:${pc(Math.min(cl, 12 - ch))}%"></i></span>` +
-    `<b class="${free < 0 ? 'bad' : free > 0 ? 'good' : 'muted'}" style="white-space:nowrap">${free < 0 ? `${days(-free)} over` : free > 0 ? `${days(free)} free` : 'full'}</b>`;
+    `<b class="${free < 0 ? 'bad' : free > 0 ? 'good' : 'muted'}" style="white-space:nowrap;margin-left:${free < 0 ? 5 : 0}px">${free < 0 ? `${days(-free)} over` : free > 0 ? `${days(free)} free` : 'full'}</b>`;
 }
 // a member's lane of the season: h pixels high, the chores' band at its foot, the bars above; `labels` writes each bar's name
 function lane(view, m, h, labels) {
@@ -360,7 +361,7 @@ const lastHTML = () => {
   const row = (k, tone, value, at, v) => `<div class="stat ${tone}">${ic(k, 18)}${meter({ value, tone, marks: [{ at, cls: 'was' }] })}<span class="v ${tone === 'bad' ? 'bad' : ''}">${v}</span></div>`;
   return `<div class="key"><span><u class="was"></u>Torsten reckoned</span><span><u class="fill"></u>it came to</span></div>` +
     row('hay', '', 18, 12, 'lasted') + row('wood', '', 24, 14, '7 left') + row('fish', 'bad', 6, 57, '2 <small>/ 17</small>') +
-    `<div class="stat bad">${ic('people', 18)}<span style="flex:1;display:flex;gap:4px;align-items:center">${face('t', true)}${face('m', true)}${face('a', true)}<small class="muted">Astrid left</small></span><span class="v bad">2 <small>/ 3</small></span></div>` +
+    `<div class="stat bad">${ic('people', 18)}<span style="flex:1;display:flex;gap:4px;align-items:center">${face('t', true)}${face('m', true)}${face('a', true)}<small class="muted" style="white-space:nowrap">left</small></span><span class="v bad">2 <small>/ 3</small></span></div>` +
     `<div class="stat">${ic('plan', 18)}<span style="flex:1;display:flex;align-items:center"><span class="kept good">${ic('sack', 16)}${ic('tick', 13)}</span><span class="kept good">${ic('chop', 16)}${ic('tick', 13)}</span>` +
     `<span class="kept bad">${ic('build', 16)}<small>4 d late</small></span></span></div>`;
 };
@@ -387,7 +388,8 @@ function drawMap(view, o = {}) {
     s += `<polygon points="${hex(x + dx, y)}" fill="${picked ? 'rgba(255,210,63,.45)' : L.fill}" stroke="${picked ? '#ffd23f' : '#fff'}" stroke-width="${picked ? 4 : 1.5}"/>`;
     if (o.big) s += `<text x="${x + dx}" y="${y + 8}" text-anchor="middle" font-size="24" font-weight="700" fill="#fff" stroke="rgba(0,0,0,.55)" stroke-width="4" paint-order="stroke">${L.y}</text>`;
     else c += `<div class="tchip${picked ? ' pick' : ''}" style="left:${x + dx}px;top:${y}px"><span class="r">${ic('soil', 11)}${meter({ value: L.soil, title: 'the soil’s fertility' })}${ic('walk', 11)}${w}</span>` +
-      `<span class="r">${ic('grain', 11)}${range(L)}<b>${L.y}</b></span></div>`;
+      `<span class="r">${ic('grain', 11)}${range(L)}<b>${L.y}</b></span>` +
+      (picked ? `<span class="r" style="justify-content:center;font-weight:700">5${ic('spade', 12)}${o.faces ? face('t', true) : ''}<span class="bad" style="display:inline-flex;align-items:center">${ic('next', 10)}${seasonIc(1, 12)}</span></span>` : '') + '</div>';
   }
   for (const [x, y, why] of REFUSED) {
     s += `<polygon points="${hex(x + dx, y)}" fill="rgba(40,30,28,.45)" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/>`;
@@ -395,11 +397,10 @@ function drawMap(view, o = {}) {
   }
   for (const [x, y, n] of FIELDS) {
     s += `<polygon points="${hex(x + dx, y)}" fill="${o.big ? 'rgba(255,255,255,.12)' : 'none'}" stroke="#fff" stroke-width="2.5"/>`;
-    if (!o.big) c += `<div class="fchip col" style="left:${x + dx}px;top:${y}px"><span class="r">${ic('field', 13)}${n}${ic('hoe', 13)}${ic('sow', 13)}${o.faces ? face(V.who.sow, true) : ''}</span>${mini(view, 'sow')}</div>`;
+    if (!o.big) c += `<div class="fchip col" style="left:${x + dx}px;top:${y}px"><span class="r">${n}${ic('hoe', 13)}${ic('sow', 13)}${o.faces ? face(V.who.sow, true) : ''}</span>${mini(view, 'sow')}</div>`;
   }
   if (!o.big) {
     c += `<div class="fchip col${mine ? ' pick' : ''}" style="left:${648 + dx}px;top:${290}px"><span class="r">6 ${ic('meadow', 14)}${ic('rake', 14)}${o.faces ? face(V.who.rake, true) : ''}</span>${mini(view, 'rake')}</div>`;
-    if (mine) c += `<div class="fchip col pick" style="left:${503 + dx}px;top:${398}px"><span class="r">${ic('field', 13)}5${ic('spade', 13)}${o.faces ? face('t', true) : ''}<span class="bad" style="display:inline-flex;align-items:center">${ic('next', 11)}${seasonIc(1, 12)}</span></span></div>`;
   }
   return { svg: s, chips: c };
 }
