@@ -199,14 +199,10 @@ VB['sim/hunger'] = (() => {
   // unsown), uncooked too; when that is not enough, what there is goes by the household's feedOrder, in groups served one after the other.
   // Amounts below are in rations of need; grain is taken at 1 / uncooked a ration. Given the day's season, the day's fire burns first
   // (warmHouse), and its cold reaches each member's health; without it (a meal alone, as tests feed one) the day is warm.
-  // A pawn on a journey (VB-287; sim/agents' phases 'journey' and 'road') eats what it carries, not its household's meal.
-  const onRoad = (st, id) => {
-    const ph = st.agents[id].phase;
-    return ph === 'journey' || ph === 'road';
-  };
+  // A pawn away from home (VB-287, VB-783: on the road or lodging; sim/away's agent.away) eats what it carries, not its household's meal.
   function feedHousehold(st, hh, season) {
     const E = st.ECON,
-      mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null && !onRoad(st, p.id));
+      mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null && st.agents[p.id].away === undefined);
     const cold = season === undefined ? 0 : warmHouse(st, hh, season),
       dry = season === undefined ? 0 : dryHouse(st, hh);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])),

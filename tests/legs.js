@@ -111,7 +111,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   const old = JSON.parse(JSON.stringify(Sim.save(st)));
   delete old.state.legDue;
   for (const a of old.state.agents) if (a.leg && a.leg.kind !== 'work') delete a.leg; else if (a.leg) delete a.leg.kind;
-  for (const x of old.state.journeys) x.due = 0;
+  for (const x of old.state.away) x.due = 0;
   A.loaded(st);
   assert(j.rate > 0 && j.at === st.tick && st.workDue.includes(j), "an older save's task under work is reckoned and queued at load");
   // a save made before VB-473 held a background task minded (its due set) out of st.workDue: loading queues its end
@@ -163,15 +163,15 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   } finally {
     K.done = was;
   }
-  const trip = s.journeys.find((x) => x.pawn === a.id);
+  const trip = s.away.find((x) => x.pawn === a.id);
   assert.ok(a.job !== j && s.pawns[a.id].household === to.id, 'the task ended and moved its pawn');
   assert.ok(trip && (a.phase === 'journey' || a.phase === 'road') && !a.job, `on its journey (phase ${a.phase})`);
   assert.deepStrictEqual(checkState(s), [], 'invariants as it sets out');
-  for (let k = 0; k < 6 * DAY * TICKS && s.journeys.includes(trip); k++) {
+  for (let k = 0; k < 6 * DAY * TICKS && s.away.includes(trip); k++) {
     Sim.advance(s, 1 / TICKS);
     if (k % TICKS === 0) assert.deepStrictEqual(checkState(s), [], `invariants on the road, step ${k}`);
   }
-  assert.ok(!s.journeys.includes(trip) && a.phase !== 'journey' && a.phase !== 'road', 'it arrives, and its journey ends');
+  assert.ok(!s.away.includes(trip) && a.phase !== 'journey' && a.phase !== 'road', 'it arrives, and its journey ends');
   assert.strictEqual(A.tileAt(s, ...A.placeOf(s, a)) >= 0 && s.pawns[a.id].household, to.id, 'a member of its new home');
   assert.deepStrictEqual(checkState(s), [], 'invariants after the arrival');
   console.log(`legs: a completion set pawn ${a.id} out (${j.kind}); it arrived`);

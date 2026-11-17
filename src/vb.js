@@ -95,6 +95,8 @@ VB.COUNTERS = {
   giftUncarried:
     'Grain a gift settled at once between two farmsteads, or from a village store to a household: none, by the hard rule (sim/exchange; ' +
     'VB-461)',
+  awayMeals:
+    'Meals eaten from a pack by the pawns away from home, on a journey or lodging, a meal a day each (sim/away feedAway; VB-783)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };

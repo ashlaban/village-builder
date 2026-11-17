@@ -22,7 +22,7 @@ const gifts = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.
   assert.strictEqual(issue(st, { actor: giver.holder, verb: 'give', target: rec.id, args: { good: 'grain', n }, source: 'help' }), true, 'the gift is agreed');
   assert.ok(Math.abs(g0 - Stores.grainOf(giver) - n) < 1e-9, 'it is the receiver\'s at once: set aside, out of the giver\'s store');
   assert.strictEqual(gifts(rec), got0, 'and has not come in yet');
-  const j = st.journeys.find((x) => x.why === 'fetch');
+  const j = st.away.find((x) => x.why === 'fetch');
   assert.ok(j && st.pawns[j.pawn].household === rec.id && j.gift.stops[0].left === n, 'a member of the receiving household goes for it');
   assert.strictEqual(j.to, st.farmsteads[giver.farmstead].house, 'to the giver\'s house, where it lies');
   assert.deepStrictEqual(checkState(st), [], 'invariants at the ask');
@@ -30,17 +30,17 @@ const gifts = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.
   const v = st.villages[0];
   Stores.put(st, v, 'grain', 20, 'harvest', { barley: 20 });
   assert.strictEqual(issue(st, { actor: { village: v.id }, verb: 'give', target: rec.id, args: { good: 'grain', n: 15 }, source: 'help' }), true, 'the store gives');
-  assert.strictEqual(st.journeys.filter((x) => x.why === 'fetch').length, 1, 'one fetcher for the day\'s gifts');
+  assert.strictEqual(st.away.filter((x) => x.why === 'fetch').length, 1, 'one fetcher for the day\'s gifts');
   assert.strictEqual(j.gift.stops[1].at, v.center, 'the store\'s grain lies on the green');
   const e0 = rec.ledger.length;
-  for (let s = 0; s < 6 * 48 && st.journeys.length; s++) {
+  for (let s = 0; s < 6 * 48 && st.away.length; s++) {
     Sim.advance(st, 0.5);
-    if (st.journeys.length) assert.ok(j.gift === null || j.gift.held <= TRAVEL.load + 1e-9, 'he carries at most a load');
+    if (st.away.length) assert.ok(j.gift === null || j.gift.held <= TRAVEL.load + 1e-9, 'he carries at most a load');
     assert.deepStrictEqual(checkState(st), [], 'invariants on the way, step ' + s);
   }
   const loads = rec.ledger.slice(e0).filter((e) => e.kind === 'gift' && e.n > 0 && e.from !== undefined);
   assert.ok(loads.every((e) => e.n <= TRAVEL.load + 1e-9), 'at most a load a trip');
-  assert.strictEqual(st.journeys.length, 0, 'the fetch is over');
+  assert.strictEqual(st.away.length, 0, 'the fetch is over');
   assert.strictEqual(loads.length, 4, 'three loads from the kin and one from the store');
   assert.ok(Math.abs(gifts(rec) - got0 - n - 15) < 1e-6, 'all of it came in');
   assert.strictEqual(VB.count.giftUncarried, 0, 'none moved at once');
@@ -54,9 +54,9 @@ const gifts = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.
   Stores.put(st, giver, 'grain', 100, 'harvest', { barley: 100 });
   const g0 = Stores.grainOf(giver);
   assert.strictEqual(issue(st, { actor: giver.holder, verb: 'give', target: rec.id, args: { good: 'grain', n: 20 }, source: 'help' }), true);
-  const j = st.journeys.find((x) => x.why === 'fetch');
+  const j = st.away.find((x) => x.why === 'fetch');
   killPawn(st, j.pawn);
-  assert.strictEqual(st.journeys.length, 0, 'his journey ends');
+  assert.strictEqual(st.away.length, 0, 'his journey ends');
   assert.ok(Math.abs(Stores.grainOf(giver) - g0) < 1e-9, 'the grain lies where it was, the giver\'s');
   assert.deepStrictEqual(checkState(st), [], 'invariants after a death');
 }
@@ -69,7 +69,7 @@ const gifts = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.
   Stores.put(st, giver, 'grain', 200, 'harvest', { barley: 150, rye: 50 });
   const n = 3 * TRAVEL.load;
   issue(st, { actor: giver.holder, verb: 'give', target: rec.id, args: { good: 'grain', n }, source: 'help' });
-  const j = st.journeys.find((x) => x.why === 'fetch');
+  const j = st.away.find((x) => x.why === 'fetch');
   for (let s = 0; s < 6 * 48 && !(j.gift.held > 0); s++) Sim.advance(st, 0.5);
   assert.ok(j.gift.held > 0, 'he has a load on his back');
   const held = j.gift.held, g1 = Stores.grainOf(giver), pawn = j.pawn, still = j.gift.stops.reduce((a, x) => a + x.left, 0);
@@ -100,14 +100,14 @@ console.log('fetch: a gift set aside at once and fetched a load a trip, a store\
   assert.strictEqual(issue(st, { actor: giver.holder, verb: 'give', target: { village: 0 }, args: { good: 'grain', n }, source: 'help' }), true);
   assert.ok(g0 - Stores.grainOf(giver) > n - 1e-9, 'out of the giver\'s store (and his meals)');
   assert.strictEqual(Stores.grainOf(v), v0, 'not yet in the village\'s');
-  const j = st.journeys.find((x) => x.why === 'haul');
+  const j = st.away.find((x) => x.why === 'haul');
   assert.ok(j && st.pawns[j.pawn].household === giver.id, 'a member of the giving household goes');
-  for (let s = 0; s < 6 * 48 && st.journeys.length; s++) {
+  for (let s = 0; s < 6 * 48 && st.away.length; s++) {
     Sim.advance(st, 0.5);
     assert.ok(j.gift === null || j.gift.held <= TRAVEL.load + 1e-9, 'at most a load');
     assert.deepStrictEqual(checkState(st), [], 'invariants on the way, step ' + s);
   }
-  assert.strictEqual(st.journeys.length, 0, 'the haul is over');
+  assert.strictEqual(st.away.length, 0, 'the haul is over');
   assert.ok(Stores.grainOf(v) - v0 > n - 1e-6, 'all of it came in');
   assert.strictEqual(VB.count.giftUncarried, 0, 'none moved at once');
   // no member who can go: the quarter stays at home
