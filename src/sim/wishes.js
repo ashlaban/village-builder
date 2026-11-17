@@ -1,10 +1,10 @@
 // @sys sim/wishes: every pawn's wish at the moving round (VB-680; docs/plans/VB-682.md, section 3): a ranking of rungs, each one answer
 // to "where do I live next year", chosen by the pawn before the round (its ambition, its hunger) and by the player for the pawn it plays
-// (the wish verb); wishOf, the one read of it, where the round asks what a pawn itself wants
+// (the wish verb); wishOf, the one read of it, where the round asks what a pawn itself wants; and whose yes a move needs (moveWhy)
 VB['sim/wishes'] = (() => {
   const { HUNGER, MARRIAGE, WISH } = VB['sim/rules'];
   const { of: traitOf } = VB['sim/traits'];
-  const { age } = VB['sim/records'];
+  const { age, spokesmanOf } = VB['sim/records'];
   // @state pawn.wish (VB-680): absent or null for the default wish (WISH.rungs as ranked, any farm, whoever the round finds), else
   //   {rank (WISH.rungs in the pawn's order, best first; a rung ranked after 'stay' is one it would not take), farm (a farm id: only that
   //   farm, or null), partner (a pawn id: that partner, or null)}. Written by the pawn's own choosing at the start of the moving round
@@ -120,5 +120,39 @@ VB['sim/wishes'] = (() => {
         write(st.pawns[id], w.rank, w.farm, null);
     }
   }
-  return { RUNGS, chooseWishes, wishOf, wishesOf, setWish, resetWish, endPartner };
+  // ---- whose yes a move needs (VB-692), read by every basis of a life's offer and by the move verb ----
+  // Whose yes pawn id's move to household hh (an id, or null for a household not yet founded: new land) for `reason` needs (VB-692; plan
+  // VB-682, section 5; Kim, 16 November): [{key, by}], or why it cannot be. The pawn's own ('self') and the receiving head's ('head', the
+  // holder, where another holds it), always; the head it leaves ('left') only for a marriage (its spokesman, where another speaks for
+  // it) or for one under 18 (the holder of its household); an adult leaves for service or new land without leave. A minor whose keeper
+  // (a parent, or its guardian) lives with it goes into service only with that keeper (it follows, `with`, and is not asked); one with
+  // none left at home is placed, by its kin (`care`, its own yes not asked) or in service, as a dissolved household's people are.
+  const kept = (st, p) =>
+    p.household !== null &&
+    !st.households[p.household].dissolved && // a dissolved household's people are each placed (sim/heirs' extinct)
+    ([p.father, p.mother].some((q) => q !== null && st.pawns[q].alive && st.pawns[q].household === p.household) ||
+      (st.households[p.household].ward === p.id && Number.isInteger(st.households[p.household].guardian)));
+  function moveWhy(st, id, hh, reason) {
+    const p = st.pawns[id],
+      minor = !(p.age >= 18),
+      out = [];
+    if (minor && reason === 'service' && kept(st, p))
+      return 'a minor goes into service only with the grown pawn who keeps it';
+    if (!(minor && reason === 'care')) out.push({ key: 'self', by: id });
+    const to = hh === null || hh === undefined ? null : st.households[hh],
+      head = to && !to.dissolved ? to.holder : null;
+    if (head !== null && head !== id) out.push({ key: 'head', by: head });
+    const from = p.household === null ? null : st.households[p.household],
+      left =
+        from === null || from.id === hh
+          ? null
+          : reason === 'marriage'
+            ? spokesmanOf(st, id)
+            : minor && reason !== 'care'
+              ? from.holder
+              : null;
+    if (left !== null && left !== id && left !== head) out.push({ key: 'left', by: left });
+    return out;
+  }
+  return { RUNGS, chooseWishes, wishOf, wishesOf, setWish, resetWish, endPartner, moveWhy };
 })();

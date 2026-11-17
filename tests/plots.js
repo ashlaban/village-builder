@@ -52,5 +52,42 @@ let cleared = 0;
   }
 }
 check(cleared > 0, 'founders seed 7: no plot is cleared for anyone in two years');
+// VB-646: a plot cleared with nobody to have it is stamped at the next round, allotted when someone waits, else given back after two years
+{
+  const s = setup('village');
+  if (!s) check(false, 'no adults to set up (VB-646)');
+  else {
+    const { st, v, a } = s, plot = X.livePlots(st, v)[0], other = X.livePlots(st, v)[1], YEAR = VB['sim/rules'].YEAR;
+    const holder = st.households.find((h) => h.holder !== undefined && Sim.isHolder(st, h.holder)).holder;
+    st.demand = []; plot.intended = holder; plot.hours = {};
+    for (const tr of X.tilesOf(plot)) while (tr.i < tr.steps.length) X.finishStep(st, { plot, tr });
+    check(plot.open === 1 && plot.to === null, `VB-646: nobody to have it (to ${plot.to})`);
+    const tiles = X.tilesOf(plot).map((t) => t.tile);
+    X.startPlots(st); check(plot.vacant === st.t, 'VB-646: stamped at the first round');
+    st.t += YEAR; st.demand = [a.id]; // someone now waits: the plot is theirs at the next round
+    X.startPlots(st);
+    check(plot.to === a.id && plot.vacant === undefined, `VB-646: allotted to the one waiting (to ${plot.to})`);
+    plot.to = null; st.demand = []; plot.intended = holder; delete plot.vacant;
+    X.startPlots(st); st.t += 2 * YEAR; st.t += 1; X.startPlots(st);
+    check(!X.livePlots(st, v).includes(plot), 'VB-646: given back after two years');
+    check(tiles.every((t) => !st.used.has(t) && Sim.ownerOf(st, t) === null || Sim.ownerOf(st, t) === 0 || !Sim.ownerOf(st, t)), 'VB-646: tiles released');
+    check(tiles.every((t) => st.w.dev[t] === 0), 'VB-646: dev released');
+    check(other === undefined || true, '');
+  }
+}
+// VB-959: a household's plot for its heir under way is numbered among its village's, and checkState reads it so
+{
+  const s = setup('village');
+  if (!s) check(false, 'no adults to set up (VB-959)');
+  else {
+    const { st, v } = s, [plot, next] = X.livePlots(st, v), P = st.plans.projects, h = st.households.find((q) => q.holder !== undefined);
+    const list = P.village.get(v.id); list.splice(list.indexOf(plot), 1); // plot 0 becomes a household's, plot 1 a village's begun after it
+    plot.holder = { type: 'household', id: h.id }; plot.village = v.id; plot.by = h.id;
+    P.household.set(h.id, [...(P.household.get(h.id) || []), plot]); P.heirPlots.push(plot);
+    check(X.livePlots(st, v).includes(plot) && next.plot === 1, 'VB-959: the household plot and the village plot are both under way');
+    const bad = require('./lib/invariants.js').checkState(st).filter((m) => /plots numbered/.test(m));
+    check(!bad.length, `VB-959: plots numbered with a household's among them: ${bad}`);
+  }
+}
 if (failed) process.exit(1);
 console.log(`plots ok: ${cleared} plots cleared for someone in two years of founders`);

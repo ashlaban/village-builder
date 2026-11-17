@@ -15,6 +15,7 @@ VB.COUNTERS = {
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
   offerWeighed: 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)',
+  offersAnswered: 'Open offers answered at a village step of the moving round, a day of it each (sim/round, VB-692)',
   talkTurn:
     'Pawns asked by the talk round at their talk turn, every SOCIAL.talk.every waking hours (sim/relations, VB-521)',
   talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',
@@ -37,6 +38,7 @@ VB.COUNTERS = {
   wishWalk: "Pawn records walked by the pawns' own choosing of their wishes, once a moving round (sim/wishes, VB-680)",
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
+  rotationWalk: "Farms walked by a village's meeting for its usual rotation, a village a year (sim/fields, VB-350)",
   overviewWalk:
     'Pawn records walked by a village overview, once a summary asked (a view, never a step: sim/overview, VB-162)',
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',

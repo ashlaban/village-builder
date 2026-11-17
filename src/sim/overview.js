@@ -1,11 +1,13 @@
 // @sys sim/overview: a village at a glance (VB-162): its food against its need, the year's harvest, its people by age band, its hungry
 // households and idle hands, and the warnings; computed when asked and stored nowhere. The warnings that foretell are a pawn's estimate.
 VB['sim/overview'] = (() => {
-  const { YEAR, YEAR_DAYS, SEASON_DAYS, WORK, HUNGER, FIELDS, cal } = VB['sim/rules'];
+  const { YEAR, YEAR_DAYS, SEASON_DAYS, WORK, HUNGER, FIELDS, CROPS, cal } = VB['sim/rules'];
   const { age } = VB['sim/records'];
   const Stores = VB['sim/stores'];
   const { toHarvest, foodHeld, dailyNeed } = VB['sim/hunger'];
   const { fieldsWorkable } = VB['sim/fields'];
+  // The fields a farm sows: a fallow course does not count against the hands (VB-350; design.md, The rotation, Fallow and the hands).
+  const sownFields = (f) => f.fields.filter((fd) => !CROPS[fd.crop].fallow).length;
   const { heirRanking } = VB['sim/heirs'];
   const Plans = VB['sim/plans'],
     Traits = VB['sim/traits'];
@@ -158,7 +160,7 @@ VB['sim/overview'] = (() => {
         );
         if (!heir) out.warnings.heir.push(hh.id);
       }
-      if (est && f.fields.length > fieldsWorkable(st, hh, est.perHand)) out.warnings.hands.push(hh.id);
+      if (est && sownFields(f) > fieldsWorkable(st, hh, est.perHand)) out.warnings.hands.push(hh.id);
     }
     VB.count.overviewWalk += st.pawns.length;
     const ago = st.t - YEAR;
@@ -177,5 +179,8 @@ VB['sim/overview'] = (() => {
     out.idle.share = out.idle.had > 0 ? Math.max(0, Math.min(1, 1 - out.idle.worked / out.idle.had)) : 0;
     return out;
   }
-  return { OVERVIEW, villageSummary, viewerOf, estimateOf };
+  // The village store's supply outlook (VB-966) as pawn `viewer` (null: the village's eldest holder) would reckon it; computed when asked.
+  const villageOutlookOf = (st, vid, viewer = null) =>
+    VB['sim/outlook'].villageOutlook(st, vid, viewerOf(st, st.villages[vid], viewer));
+  return { OVERVIEW, villageSummary, viewerOf, estimateOf, villageOutlookOf };
 })();

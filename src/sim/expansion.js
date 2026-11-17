@@ -4,7 +4,7 @@ VB['sim/expansion'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);
   const { B } = VB['gen'];
   const { doneOf } = VB['sim/progress'];
-  const { fertility, farmable, FIELDS, BUILD, ECON } = VB['sim/rules'];
+  const { fertility, farmable, FIELDS, BUILD, ECON, YEAR } = VB['sim/rules'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
     { emit, on } = VB['sim/events'];
@@ -19,6 +19,7 @@ VB['sim/expansion'] = (() => {
   const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand } = VB['sim/layout'];
   const COTTAGE = ['foundation', 'walls', 'roof'],
     COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
+  const VACANT_YEARS = 2; // moving rounds a cleared plot waits for someone to have it before the village gives it up (VB-646)
   const MAX_PLOTS = 2,
     REACH = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
@@ -158,8 +159,7 @@ VB['sim/expansion'] = (() => {
     return !best || best.field < 0 ? null : best;
   }
   // A plot begun in village v for pawn `intended`: the village's, or (by, a household id) that household's project for its heir (VB-255).
-  function startPlot(st, v, intended, by = null) {
-    const site = findSite(st, v);
+  function startPlot(st, v, intended, by = null, site = findSite(st, v)) {
     if (!site) return false;
     const w = st.w,
       tiles = [
@@ -247,6 +247,12 @@ VB['sim/expansion'] = (() => {
   on('heirFarm', (st, d) => {
     startPlot(st, st.villages[d.village], d.heir, d.by);
   });
+  // A plot asked for at the moving round and granted (the basis `land`, sim/farmclaims; VB-692): begun for the asker at the site the
+  // round found, or, with none named, at one found now.
+  on('plotGranted', (st, d) => {
+    const v = st.villages[d.village];
+    startPlot(st, v, d.pawn, null, d.site || findSite(st, v));
+  });
   // A plot already waits for the pawn, or for their spouse, until a cottage stands on it (VB-032): no second plot.
   function hasPlot(st, id) {
     const sp = spouseOf(st, id);
@@ -254,18 +260,65 @@ VB['sim/expansion'] = (() => {
     const built = (p) => p.holder === id || (sp !== null && p.holder === sp);
     return st.villages.some((v) => v.plots.some(built) || livePlots(st, v).some(mine));
   }
-  // At the moving round: the caller filters out farm claimants; two plots are cleared at a time per village.
-  function startPlots(st, mayStart = () => true) {
+  // At the moving round: the caller filters out farm claimants; two plots are cleared at a time per village. Each who waits, in turn,
+  // asks for a plot at the site the village would clear next (`ask`: the round's, the basis `land` of sim/farmclaims, due at once;
+  // VB-692; by default the plot is begun); none found, the village stops. One who holds an open offer about its future takes part only in that offer's step.
+  function startPlots(st, mayStart = () => true, ask = (v, id, site) => startPlot(st, v, id, null, site)) {
     for (const v of st.villages) {
+      reallot(st, v);
       const waiting = st.demand.filter(
-        (id) => st.pawns[id].alive && settlementIdOf(st, st.pawns[id]) === v.id && mayStart(id) && !hasPlot(st, id),
+        (id) =>
+          st.pawns[id].alive &&
+          settlementIdOf(st, st.pawns[id]) === v.id &&
+          mayStart(id) &&
+          !hasPlot(st, id) &&
+          (st.pawns[id].ask === undefined || st.pawns[id].ask === null),
       );
       for (const id of waiting) {
         if (activePlots(st, v).filter((p) => p.holder.type === 'village').length >= MAX_PLOTS) break;
         if (hasPlot(st, id)) continue;
-        if (!startPlot(st, v, id)) break;
+        const site = findSite(st, v);
+        if (!site) break;
+        ask(v, id, site);
       }
     }
+  }
+  // A village's plot cleared (or roofed) with nobody to have it waits for the one the round finds then (VB-646): at each moving round it is
+  // allotted afresh, to one then waiting; the first round that finds it unclaimed stamps `vacant`, and once VACANT_YEARS rounds have passed
+  // unclaimed the village gives the ground back (releasePlot). The wait is the rounds in which someone might come for it.
+  function reallot(st, v) {
+    for (const plot of [...livePlots(st, v)]) {
+      if (plot.open < 1 || plot.to !== null || plot.by !== undefined) continue;
+      const pick = allot(st, v, plot);
+      if (pick !== null) {
+        plot.to = pick;
+        delete plot.vacant;
+        allotted(st, v, plot);
+        if (cottageAt(plot) === 3)
+          issue(st, {
+            actor: null,
+            verb: 'finishCottage',
+            target: plot.plot,
+            args: { village: v.id },
+            source: 'construction',
+          });
+      } else if (plot.vacant === undefined) plot.vacant = st.t;
+      else if (st.t - plot.vacant >= VACANT_YEARS * YEAR) releasePlot(st, v, plot);
+    }
+  }
+  // The village gives a plot up: its tiles go back to the common ground (owner, st.used, w.dev), the plan is dropped, and what was built on
+  // it, its cleared ground, its walls' timber and the cottage's stages, is left to the weather: told.
+  function releasePlot(st, v, plot) {
+    for (const tr of tilesOf(plot)) {
+      setOwner(st, tr.tile, null);
+      st.used.delete(tr.tile);
+      st.w.dev[tr.tile] = 0;
+      costChanged(st, tr.tile);
+      st.biomeDirty.add(tr.tile);
+    }
+    emit(st, 'plotReleased', { plan: plot });
+    st.visualDirty = true;
+    log(st, `${v.name} gives up a cleared plot that nobody came for.`, { kind: 'plot', village: v.id });
   }
   // The open jobs of all active plots: one per tile, for the tile's current step. [key, kind, site, extra]
   function plotJobs(st) {

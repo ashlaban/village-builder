@@ -2,15 +2,16 @@
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
 // diligence, and the due-queue that opens the time-bound kinds at their hours; the village's routines, set by its meeting
 VB['sim/plans'] = (() => {
-  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, CROPS, TRAVEL, cal } = VB['sim/rules'];
+  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, CROPS, ROTATIONS, TRAVEL, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   const Traits = VB['sim/traits'];
   const Stores = VB['sim/stores'],
     SEED_CROP = 'barley',
-    SEED = Stores.grainGood(SEED_CROP); // the seed reserved: barley's until rotations (VB-350)
+    SEED = Stores.grainGood(SEED_CROP), // the seed reserved: barley's, and each other crop's its rotation sows (VB-350)
+    OTHER_CROPS = Stores.CROP_LIST.filter((k) => k !== SEED_CROP);
   const { KINDS } = VB['sim/kinds'];
   const { seedNeed } = VB['sim/hunger'];
-  const { fieldsWanted, fieldsWorkable, fieldWhy, pickField, beginField } = VB['sim/fields'];
+  const { fieldsWanted, holdRotation, fieldsWorkable, fieldWhy, pickField, beginField } = VB['sim/fields'];
   const Projects = VB['sim/projects'],
     { on, emit } = VB['sim/events'],
     { log } = VB['sim/records'];
@@ -212,6 +213,8 @@ VB['sim/plans'] = (() => {
     if (!P[d.type].has(d.id)) P[d.type].set(d.id, []);
     P[d.type].get(d.id).push(plan);
   });
+  // A village gives up a cleared plot nobody came for (sim/expansion, VB-646): the plan goes, its reservations released.
+  on('plotReleased', (st, d) => dropProject(st, d.plan));
   // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
   // A culture's year as rules of sim/registry, so that a culture, a head's foresight (VB-254) or the player (VB-253) changes one row: for
   // each season the routines in the order the work is done (year.order: a routine's place in the season, -1 when it is not done then), and
@@ -391,7 +394,7 @@ VB['sim/plans'] = (() => {
     }
     if (hh.farmstead !== null) {
       T.workable = fieldsWorkable(st, hh, T.perHand);
-      T.fields = headFields(plan, fieldsWanted(st, hh, Infinity), T.workable);
+      T.fields = fieldsWanted(st, hh, T.workable, headBias(plan));
       chosenTargets(plan);
     }
     goodTargets(st, plan, hh);
@@ -466,11 +469,10 @@ VB['sim/plans'] = (() => {
     A.wood = wood;
     A.hay = hay;
   }
-  // The fields the head wants, of the `wanted` its household's food asks before its hands cap it: times its bias, whole, then at least one
-  // and at most `workable` (VB-485: the bias before the cap, so that a hands-limited household's head is not cut by a low bias more often
-  // than it is raised by a high one).
-  const headFields = (plan, wanted, workable) =>
-    Math.max(1, Math.min(workable, Math.round(wanted * (plan.head ? plan.head.bias.fields : 1))));
+  // The head's bias on the fields its household's food asks (sim/fields' fieldsWanted applies it to the sown fields, whole, before the
+  // hands cap them and the fallow ones go on top: VB-485, so that a hands-limited household's head is not cut by a low bias more often
+  // than it is raised by a high one; VB-350).
+  const headBias = (plan) => (plan.head ? plan.head.bias.fields : 1);
   // The hours at which plans may be reviewed and the due-queue is asked: every hour from one before work starts to the end of work
   // (sim/clock calls refreshJobs then).
   const reviewHour = (h) => h >= WORK[0] - 1 && h <= WORK[1];
@@ -679,11 +681,23 @@ VB['sim/plans'] = (() => {
     const T = plan.targets;
     if (hh.farmstead !== null) {
       T.workable = fieldsWorkable(st, hh, T.perHand);
-      T.fields = headFields(plan, fieldsWanted(st, hh, Infinity), T.workable);
+      T.fields = fieldsWanted(st, hh, T.workable, headBias(plan));
     }
     plan.tiles = { field: -1, meadow: -1 };
     plan.counted = null;
-    Stores.reserve(st, hh, plan, SEED, hh.farmstead !== null ? seedNeed(st, hh, SEED_CROP) : 0, 'seed');
+    reserveSeed(st, hh, plan);
+  }
+  // The seed a household's plan holds back (VB-350; design.md, Seed, The reserve): of each crop of its farm's rotation, for the fields
+  // that sow it next (sim/hunger's seedNeed, which the stores follow between reviews); a crop it no longer sows is no longer held back.
+  function reserveSeed(st, hh, plan) {
+    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
+      R = f && f.fields.length ? ROTATIONS[f.fields[0].rotation].courses : [];
+    Stores.reserve(st, hh, plan, SEED, f ? seedNeed(st, hh, SEED_CROP) : 0, 'seed');
+    for (const k of OTHER_CROPS) {
+      const g = Stores.grainGood(k);
+      if (R.includes(k)) Stores.reserve(st, hh, plan, g, seedNeed(st, hh, k), 'seed');
+      else if (plan.reasons[g] === 'seed') Stores.release(st, hh, plan, g, 'seed');
+    }
   }
   // A village's first routines, until its first meeting: what its founders would choose from the work it has (a tie: all of it, the first
   // MAX_ROUTINES in their order). Also at the load of a save made before routines.
@@ -795,13 +809,15 @@ VB['sim/plans'] = (() => {
       T = plan.targets,
       sp = seasonOf(st, hh.id);
     if (sp.year !== c.year || sp.season !== c.season) seasonal(st, plan, c);
+    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    if (f && f.household === hh.id) holdRotation(st, f, hh, c); // the rotation it holds (VB-350)
     T.workable = fieldsWorkable(st, hh, T.perHand);
-    T.fields = headFields(plan, fieldsWanted(st, hh, Infinity), T.workable);
+    T.fields = fieldsWanted(st, hh, T.workable, headBias(plan));
     chosenTargets(plan);
     project(st, plan, c);
     goodTargets(st, plan, hh);
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
-    Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed');
+    reserveSeed(st, hh, plan);
     reviewWant(st, plan, hh, why); // a cow wanted (VB-390): plan.want, sim/exchange's
     plan.build = buildStep(st, plan, hh); // the building step (VB-332): open while the house is to be raised onto stone, and where its stone comes from
     emit(st, 'planReviewed', { plan, c, why }); // the head's projects (sim/aims, VB-255), its supply outlook (sim/outlook, VB-666)
@@ -840,7 +856,7 @@ VB['sim/plans'] = (() => {
       if (!Projects.projectOf(st, 'household', hh.id) && (wantsMeadow(st, f, hh) || wantsFirstMeadow(st, f, hh)))
         landBy(st, plan, f, hh, 'meadow', built);
     }
-    Stores.reserve(st, hh, plan, SEED, seedNeed(st, hh, SEED_CROP), 'seed'); // a project begun holds its seed from now
+    reserveSeed(st, hh, plan); // a project begun holds its seed from now
   }
   // The holder's rule for the land project `what`: the plan's named tile, or its own pick, begun through the verb.
   function landBy(st, plan, f, hh, what, built) {

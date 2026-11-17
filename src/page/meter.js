@@ -159,6 +159,7 @@ function supplyNums(O, r, s) {
   if (one) lines.push([`The ${seasonWord(O, oneSeason(s))} needs`, n(P.need[oneSeason(s)])]);
   else lines.push(['The need, season by season', P.need.map((x) => Math.round(x)).join(' · ')]);
   for (const x of P.intakes) lines.push([`${intakeWord(x.what)}, in ${seasonWord(O, x.season)}`, n(x.n)]);
+  if (P.target !== undefined) lines.push(["The store's target", `${n(P.target)}`]);
   if (P.spoilt >= 0.5) lines.push(['Expected to spoil', `about ${n(P.spoilt)}`]);
   lines.push([
     'Likeliest outcome',
@@ -193,7 +194,7 @@ function supplyWhose(O) {
   const p = O.head === null || O.head === undefined ? null : st.pawns[O.head],
     mine = !!(p && st.player && st.player.pawn === p.id),
     his = mine ? 'your' : p && p.sex === 'f' ? 'her' : 'his',
-    when = O.stale ? `at ${his} review in the ${Sim.SEASONS[O.season]}` : `at ${his} last review`;
+    when = O.village ? 'today' : O.stale ? `at ${his} review in the ${Sim.SEASONS[O.season]}` : `at ${his} last review`;
   if (mine) return `By your reckoning, ${when}`;
   return p ? `By ${Sim.fullName(p)}'s reckoning, ${when}` : `By the custom's reckoning, ${when}`;
 }
@@ -236,4 +237,5 @@ document.addEventListener('click', (e) => {
   if (supplyOpen.has(k)) supplyOpen.delete(k);
   else supplyOpen.add(k);
   syncTabs();
+  if (selPawn < 0 && selVillage >= 0) showVillage(selVillage); // a village's card draws on a timer, not here
 });

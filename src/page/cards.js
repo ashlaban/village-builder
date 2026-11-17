@@ -663,7 +663,13 @@ function showVillage(id) {
   card(v.name, lines, '', {
     badge: iconImg(villageIcon(v)),
     kind: v.green || farms.length >= 2 ? 'Village' : 'Lone farm',
-    stats: villageStats + peopleHTML(S) + warningsHTML(S) + land,
+    stats:
+      villageStats +
+      section('Store') +
+      suppliesHTML(Sim.villageOutlook(st, id, st.player ? st.player.pawn : null), ['food']) +
+      peopleHTML(S) +
+      warningsHTML(S) +
+      land,
     links: mother ? villageChip(mother) : '',
     list,
   });

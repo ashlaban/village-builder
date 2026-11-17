@@ -6,7 +6,7 @@
 // ordinary year (sim/meadows' expectedHay), the woodpile's goal of each season (plan.targets.wood); no weather to come is read. Nothing
 // reads the outlook to decide: it is a view the review keeps, so that the page never computes one.
 VB['sim/outlook'] = (() => {
-  const { SEASON_DAYS, YEAR_DAYS, CROPS, FIELDS, HERD, BUILD, PEAT, cal } = VB['sim/rules'];
+  const { SEASON_DAYS, YEAR_DAYS, CROPS, ROTATIONS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'];
   const { on } = VB['sim/events'];
   const Stores = VB['sim/stores'];
   const Pot = VB['sim/pot'];
@@ -109,18 +109,42 @@ VB['sim/outlook'] = (() => {
     const f = hh.farmstead === null || hh.farmstead === undefined ? null : st.farmsteads[hh.farmstead];
     return f && f.household === hh.id ? f : null;
   };
-  // The day a field's crop comes in, by the head's reckoning (absolute day), or null for none: a crop standing is in at its sowing day and
-  // the crop's days to ripe; a field to be sown is sown on the first day of its crop's next window (today, inside it); stooks are in today.
-  function cropDay(fd, c) {
-    const C = CROPS[fd.crop];
-    if (!C || C.fallow || !(C.seed > 0) || fd.stage === 'fallow' || fd.stage === 'scrub') return null;
-    if (fd.stage === 'stooks' || fd.stage === 'ripe') return c.day;
-    if (fd.sown !== null && fd.sown !== undefined) return Math.max(c.day, fd.sown + C.ripe);
-    const y0 = c.day - c.doy,
-      first = y0 + C.sow[0] * SEASON_DAYS + C.sow[1],
-      last = y0 + C.sow[0] * SEASON_DAYS + C.sow[2];
-    const sow = c.day <= last ? Math.max(c.day, first) : first + YEAR_DAYS;
-    return sow + C.ripe;
+  // The crops a field brings in before day `end`, by the head's reckoning, each as fn(absolute day, crop, first): its rotation walked
+  // from its present course (VB-350). A crop standing is in at its sowing day and the crop's days to ripe; stooks are in today; a course to
+  // be sown is sown on the first day of its crop's next window from the day the course before it ends (today, inside it); a fallow course
+  // ends on the autumn's first day after a summer it stood (sim/fields). `first`: the present course's crop.
+  function cropDays(fd, c, end, fn) {
+    if (fd.stage === 'fallow' || fd.stage === 'scrub') return;
+    const R = ROTATIONS[fd.rotation] ? ROTATIONS[fd.rotation].courses : [fd.crop],
+      y0 = c.day - c.doy,
+      yearOf = (d) => y0 + Math.floor((d - y0) / YEAR_DAYS) * YEAR_DAYS, // the first day of the year of day d
+      next = (d, season, day) => {
+        const x = yearOf(d) + season * SEASON_DAYS + day;
+        return x >= d ? x : x + YEAR_DAYS;
+      }; // the first day on or after d that is `day` of `season`
+    let from = c.day,
+      step = fd.step || 0;
+    for (let n = 0; n <= R.length && from < end; n++) {
+      const first = n === 0,
+        k = first ? fd.crop : R[step],
+        C = CROPS[k];
+      step = (step + 1) % R.length;
+      if (!C) return;
+      if (C.fallow) {
+        from = next(first && fd.rest !== undefined ? from : next(from, 1, 0), 2, 0);
+        continue;
+      }
+      let day;
+      if (first && (fd.stage === 'stooks' || fd.stage === 'ripe')) day = c.day;
+      else if (first && fd.sown !== null && fd.sown !== undefined) day = Math.max(c.day, fd.sown + C.ripe);
+      else {
+        const open = yearOf(from) + C.sow[0] * SEASON_DAYS + C.sow[1],
+          last = yearOf(from) + C.sow[0] * SEASON_DAYS + C.sow[2];
+        day = (from <= last ? Math.max(from, open) : open + YEAR_DAYS) + C.ripe;
+      }
+      if (day < end) fn(day, k, first);
+      from = day;
+    }
   }
   // Food: grain above the seed (it spoils), and the meals, flour, sheaves, larder and fresh food (kept), over the household's daily need.
   // Its intakes: each field's crop, FIELDS.expect of its full yield less the seed it takes back (stooks: what lies in them, less the seed).
@@ -137,13 +161,12 @@ VB['sim/outlook'] = (() => {
         (hh.fresh && hh.fresh.length ? Pot.freshHeld(st, hh) : 0);
     const ins = [];
     if (f) {
-      const back = seedPer(st, hh);
-      for (const fd of f.fields) {
-        const day = cropDay(fd, c);
-        if (day === null || day >= end) continue;
-        const gross = fd.stage === 'stooks' ? fd.held || 0 : FIELDS.expect * CROPS[fd.crop].yield;
-        ins.push([day, fd.crop, Math.max(0, gross - back)]);
-      }
+      const per = seedPer(st, hh);
+      for (const fd of f.fields)
+        cropDays(fd, c, end, (day, k, first) => {
+          const gross = first && fd.stage === 'stooks' ? fd.held || 0 : FIELDS.expect * CROPS[k].yield;
+          ins.push([day, k, Math.max(0, gross - (k === 'barley' ? per : CROPS[k].seed))]);
+        });
     }
     ins.sort((a, b) => a[0] - b[0]);
     const barn = f && f.barn ? BUILD.barn.loss : 1,
@@ -336,5 +359,56 @@ VB['sim/outlook'] = (() => {
       head: plan.head ? plan.head.pawn : null, // whose estimate it is (AGENTS.md, Deciding without Kim, 14)
     };
   }
-  return { OUTLOOK, FRAME, SUPPLIES, STATES, reckon, supplyOutlook };
+  // The village store's outlook (VB-966), made when asked and kept nowhere: how long its grain lasts, on the household's scale, at the daily need
+  // of the village's households, the store losing ECON.villageStoreLoss a year; no intake is reckoned (what the households give in and
+  // what the common fields bring is not promised: VB-849's filling is hauled to the green), so own and with are the same. Its target
+  // (HELP.storeTarget years of need, VB-457) is in parts.target. Shaped as a household's outlook (food only; fuel and hay 'none'), with
+  // `head`, whose estimate it is: the viewer's (the played pawn), else the village's eldest holder, who speaks for it until it has an
+  // alderman (as sim/overview's warnings; a village never acts or estimates, a pawn does: AGENTS.md, Deciding without Kim, 14 and 16).
+  // One pass over the village's farmsteads, with the card; stores nothing.
+  function villageOutlook(st, vid, head = null) {
+    const v = st.villages[vid],
+      c = cal(st.t),
+      F = c.day - c.sday,
+      end = F + FRAME * SEASON_DAYS;
+    let D = 0;
+    for (const id of v.farmsteads) {
+      const f = st.farmsteads[id];
+      if (f.household !== null && !st.households[f.household].dissolved) D += dailyNeed(st, st.households[f.household]);
+    }
+    const store = Math.max(0, Stores.grainOf(v) - Stores.reserved(st, v, 'grain')),
+      share = 1 - Math.pow(1 - st.ECON.villageStoreLoss, 1 / YEAR_DAYS);
+    const w = walk({
+      from: c.day,
+      to: end,
+      F,
+      keep: 0,
+      rot: store,
+      need: () => D,
+      loss: (x) => x * share,
+      intoRot: true,
+    });
+    const food = supply(w, w, D > 0, [0, 1, 2, 3], store, [], D);
+    food.parts.target = r1(HELP.storeTarget * D * YEAR_DAYS);
+    const none = {
+      own: FRAME,
+      with: FRAME,
+      state: 'none',
+      season: null,
+      seasons: [0, 1, 2, 3],
+      parts: { store: 0, need: [0, 0, 0, 0], intakes: [], spoilt: 0 },
+    };
+    return {
+      year: c.year,
+      season: c.season,
+      day: c.day,
+      stale: false,
+      village: true, // the store's: reckoned when asked, not at a review
+      head, // whose estimate it is: sim/overview chooses (viewerOf)
+      food,
+      fuel: none,
+      hay: { ...none, seasons: [3] },
+    };
+  }
+  return { OUTLOOK, FRAME, SUPPLIES, STATES, reckon, supplyOutlook, villageOutlook };
 })();

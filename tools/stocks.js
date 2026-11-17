@@ -100,7 +100,8 @@ const QUANTITIES = [
   { id: 'lying', of: 'tile', name: 'a load lying where its carrier fell', unit: 'its kind\'s loads (rations of sheaves, hay loads, firewood, stone)',
     fields: ['st.lying'], covers: ['st.lyingSeq'], kinds: [], losses: ['sim/lying:frost'],
     none: 'nothing lies on the road: every load is in hand or home; one left lying is fetched by its owner\'s next hand (the fetch kinds) '
-      + 'or rots at the autumn frost (sim/lying, VB-611)' },
+      + 'or rots at the autumn frost (sim/lying, VB-611); a cart left standing with its load (household.carts[].at, VB-649) is fetched home with its team '
+      + 'by a hand of its household, or is lost at the frost and named (cartGone)' },
   { id: 'trees', of: 'tile', name: 'a tile\'s trees', unit: 'trees', fields: ['w.trees'], kinds: ['fell', 'grub'], covers: ['w.treesMax'],
     none: 'a tile cut bare: firewood is cut on another tile of the village\'s wood; with none left, no firewood job is posted (sim/territory); '
       + 'the bare tile is meadow, and the forest spreads back into it where it borders forest and nothing keeps it open (sim/spread, VB-091)' },
@@ -129,7 +130,8 @@ const NOT_STOCKS = {
     'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
     'farmstead.booth', 'farmstead.barn', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
-      'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded'],
+      'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded',
+      'village.rotation'],
   'the generated world': ['w.seed', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',
     'w.shade', 'w.macro', 'w.cdist', 'w.chex', 'w.csample', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',

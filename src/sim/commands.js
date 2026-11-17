@@ -22,7 +22,7 @@ VB['sim/commands'] = (() => {
     VB['sim/records'];
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
-  const { setWish, resetWish, endPartner } = VB['sim/wishes'];
+  const { setWish, resetWish, endPartner, moveWhy } = VB['sim/wishes'];
   const { settleGift } = VB['sim/exchange'];
   // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/marriage, sim/clock) find them when they run.
   const later = (key) => VB[key];
@@ -484,6 +484,8 @@ VB['sim/commands'] = (() => {
         if (st.pawns[c.actor].household === c.target) return `pawn ${c.actor} lives there already`;
         if (!MOVE_REASONS.includes(a.reason)) return `there is no reason ${a.reason} to move`;
         if (a.with !== undefined && !Array.isArray(a.with)) return 'those who follow must be a list';
+        const whose = moveWhy(st, c.actor, c.target, a.reason);
+        if (typeof whose === 'string') return whose;
         for (const m of a.with || []) {
           const why =
             living(st, m) || (keeps(st, c.actor, m) ? null : `pawn ${m} is not a minor whom ${c.actor} keeps`);

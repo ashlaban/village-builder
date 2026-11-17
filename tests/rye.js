@@ -4,9 +4,9 @@
 // in summer days 7-12, and is threshed into rye; barley follows in spring. Checked: the stages on their days, the harvest, the soil at
 // each year's end, the invariants every day (across the year's turn under rye). Then on constructed states: sowing refused without a
 // field's seed, with the reason; an untilled fallow rests half; a manured field keeps its soil; a ripe rye field left standing to autumn
-// day 1 is lost; the frost spares rye; a fallow field reserves no seed.
+// day 1 is lost; the frost spares rye; a fallow field reserves the seed sown on it next (VB-350: the rotation moves the field on; village and farm hold three courses).
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
-const { CROPS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
+const { CROPS, ROTATIONS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
 const { KINDS, sowWhy } = VB['sim/kinds'];
 const { fieldsDay, fieldsFrost } = VB['sim/fields'];
 const { seedNeed } = VB['sim/hunger'];
@@ -22,22 +22,23 @@ const w = tinyWorld(Array.from({ length: 18 }, () => '.'.repeat(24)));
 const st = tinyState(w, [{ at: [8, 8], farms: 1, sizes: [6] }], { seed: 7 });
 const f = st.farmsteads[0], hh = st.households[f.household], fd = f.fields[0];
 assert(fd, 'the farm has a field');
-fd.crop = 'fallow';
+// the farm and its village in three courses (VB-350), the field followed at fallow and the others staggered after it: the rotation moves
+// it on (fallow to rye on the autumn's first day, rye to barley once its crop is in)
+st.villages[f.village].rotation = 'three';
+f.fields.forEach((q, i) => Object.assign(q, { rotation: 'three', step: i % 3, crop: ROTATIONS.three.courses[i % 3] }));
 fd.soil = 0.9;
 Sim.advance(st, DAY - (st.t % DAY) - 0.1); // to the last step before a midnight: each step below is one day, its midnight and its work
 const log = [], yearEnd = [], hours = {};
 let rye = null, barley = null, ryeMax = 0, prev = null;
 for (let d = 1; d < 3 * YEAR_DAYS; d++) {
   const c = when(d);
-  // the courses forced: rye from the autumn's first day of year 1, with a little over a field's seed (grain spoils in store) held back as
-  // the standing plan holds barley's (the plan reserves each crop's from VB-350); barley once the rye is in
+  // on the autumn's first day of year 1, a little over a field's seed of rye (grain spoils in store) for each field that sows it now (the
+  // plan holds it back, VB-350)
   if (c.year === 1 && c.season === 2 && c.sday === 0) {
-    fd.crop = 'rye';
-    Stores.put(st, hh, Stores.grainGood('rye'), CROPS.rye.seed + 5, 'start');
+    const sow = f.fields.filter((q) => q.crop === 'rye').length;
+    Stores.put(st, hh, Stores.grainGood('rye'), sow * CROPS.rye.seed + 5, 'start');
     Stores.put(st, hh, Stores.grainGood('barley'), 200, 'start'); // fed until the harvest is threshed: a hungry household eats its seed
-    Stores.reserve(st, hh, st.plans.households.get(hh.id), Stores.grainGood('rye'), 0, 'seed');
   }
-  if (fd.crop === 'rye' && fd.stage === 'stubble' && fd.reaped !== null) fd.crop = 'barley';
   for (let h = 0; h < DAY; h++) {
     Sim.advance(st, 1); // an hour at a time, to see the field's jobs while they are posted
     for (const j of st.jobs.values()) if (j.field === fd) hours[fd.crop + '.' + j.kind] = j.hours ?? KINDS[j.kind].hours;
@@ -118,9 +119,11 @@ for (const [soil, tillIt, after] of [[0.8, false, 0.84], [0.8, true, 0.88], [0.9
   fieldsDay(st2, cal(st2.t));
   assert(near(g.soil, after) && g.rest === undefined, `fallow from ${soil}, tilled ${tillIt}: ${g.soil}, not ${after}`);
 }
-// a fallow field holds back no seed; fallow is no grain
+// a fallow field holds back the seed of the crop its rotation sows on it next (VB-350): in three courses rye, and no barley; fallow is no grain
+Object.assign(g, { rotation: 'three', step: 0, crop: 'fallow', stage: 'stubble', sown: null });
 const others = f2.fields.filter((q) => q !== g && (q.stage === 'stubble' || q.stage === 'plowed')).length;
-assert.equal(seedNeed(st2, hh2), others * VB['sim/hunger'].seedPer(st2, hh2), 'a fallow field reserves no seed');
+assert.equal(seedNeed(st2, hh2, 'barley'), others * VB['sim/hunger'].seedPer(st2, hh2), 'a fallow field holds back no barley');
+assert.equal(seedNeed(st2, hh2, 'rye'), CROPS.rye.seed, 'a fallow field in three courses holds back the rye sown on it next');
 assert.deepStrictEqual(Stores.CROP_LIST, ['barley', 'rye', 'peas'], 'fallow is no grain');
 console.log(
   `rye: fallow tilled on summer day ${tilled.sday + 1}; rye sown autumn day ${rs.sday + 1}, reaped summer day ${rr.sday + 1} (${rye.held}); ` +

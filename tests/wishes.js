@@ -228,7 +228,8 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
     Sim.movingRound(st);
     assert.strictEqual(married(st, m), f, 'the wished partner is offered at the round and married at its close');
     assert.strictEqual(W(st).match, null, 'and the wish is cleared by the marriage');
-    assert.strictEqual(st.offers.length, 0, 'the other side answered at once: no offer is left waiting');
+    // the other side answered at once: no match is left waiting; the handover the marriage brings asks the played heir (VB-692)
+    assert.ok(st.offers.every((o) => o.basis === 'handover' && o.to === m), 'the other side answered at once: no match is left waiting');
     sound(st, 'the wished match made');
     const w = world(seed); Sim.inhabit(w, f); Sim.wish(w, 'match', m); Sim.movingRound(w);
     assert.strictEqual(married(w, f), m, 'wished by the woman, the same');

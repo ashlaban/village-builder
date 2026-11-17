@@ -32,7 +32,7 @@ const archs = file('BACKLOG.md').split('\n'), last = archs.findLastIndex((l) => 
 archs.splice(last + 1, 0, '| zz-test | Test arch | A test goal. | none |');
 fs.writeFileSync(path.join(dir, 'BACKLOG.md'), archs.join('\n'));
 
-const next = Math.max(...fs.readdirSync(path.join(dir, 'backlog')).map((f) => +f.slice(3, 6))) + 1;
+const next = Math.max(...fs.readdirSync(path.join(dir, 'backlog')).map((f) => +f.slice(3).replace('.md', ''))) + 1;
 const A = 'VB-' + String(next).padStart(3, '0'), B = 'VB-' + String(next + 1).padStart(3, '0');
 r = run(dir, 'new', 'name=Plan: test one', 'status=needs-review', 'priority=1', 'size=S', 'arch=zz-test', 'summary=One.');
 expect(`new ${A} in Waiting for Kim`, r.ok && section('BACKLOG.md', 'Waiting for Kim').includes(`[${A}]`)
