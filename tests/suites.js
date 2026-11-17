@@ -17,6 +17,7 @@ const FAST = [
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
   ['node', 'tests/wishes.js'],
+  ['node', 'tests/roundoffers.js'],
   ['node', 'tests/succession.js'],
   ['node', 'tests/chronicle.js'],
   ['node', 'tests/opportunities.js'],
@@ -131,6 +132,7 @@ const INTEGRATION = [
   ['node', 'tests/ale.js'],
   ['node', 'tests/attention.js'],
   ['node', 'tests/setdown.js'],
+  ['node', 'tests/standingcart.js'], // VB-649: a dead carter's cart and team stand on the road
   ['node', 'tests/leftwood.js'], // VB-645: a dropped boat's timber lies at its shore
   ['node', 'tests/start.js'],
   ['node', 'tests/gossip.js'],

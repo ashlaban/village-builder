@@ -71,12 +71,17 @@ const offered = () => {
   assert.ok(/cannot answer/.test(Sim.answer(st, o.id, 'yes')));
 }
 
-// 3. Yes marries them at once in the round's home, and the handover follows as it would have.
+// 3. Yes marries them at once in the round's home, and the handover follows as it would have, once the played heir says yes to it.
 {
   const { st, o } = offered();
   assert.strictEqual(Sim.answer(st, o.id, true), true);
   assert.strictEqual(R.spouseOf(st, man), woman);
   assert.strictEqual(st.pawns[woman].household, home); assert.strictEqual(st.pawns[man].household, home);
+  // the handover the marriage brings is the holder's offer, which the played heir answers (VB-692)
+  const h = st.offers.find((x) => x.basis === 'handover');
+  assert.ok(h && h.to === man && st.offers.length === 1, `the handover asks the played heir: ${JSON.stringify(st.offers)}`);
+  sound(st, 'the handover offered');
+  assert.strictEqual(Sim.answer(st, h.id, true), true);
   assert.strictEqual(st.households[home].holder, plain.st.households[home].holder, 'the farm passes to him as at the round');
   assert.deepStrictEqual(st.offers, []);
   sound(st, 'an offer accepted');
@@ -105,9 +110,11 @@ const offered = () => {
   Sim.advance(st, 6 * Sim.DAY);
   assert.strictEqual(st.offers.length, 1, 'open until its due time');
   Sim.advance(st, 2 * Sim.DAY);
-  assert.deepStrictEqual(st.offers, []);
+  assert.ok(st.offers.every((x) => x.basis === 'handover' && x.to === man), 'the match is closed; the handover asks the played heir (VB-692)');
   assert.strictEqual(R.spouseOf(st, man), woman, 'married at the due time');
-  assert.strictEqual(st.pawns[woman].household, home); assert.strictEqual(st.households[home].holder, man, 'and the handover follows');
+  Sim.advance(st, 8 * Sim.DAY);
+  assert.deepStrictEqual(st.offers, []);
+  assert.strictEqual(st.pawns[woman].household, home); assert.strictEqual(st.households[home].holder, man, 'and the handover follows, unanswered, at its due time');
   const m = told(st, 0, 'married').find((e) => e.pawn === man);
   assert.ok(m && m.t >= o.due && m.t < o.due + Sim.DAY, 'at the day\'s end after the due time');
   sound(st, 'an offer closed at its due time');
@@ -191,7 +198,8 @@ console.log(`offers ok: no player stores none; a played man's match waits, holds
   {
     let was;
     const { st, mark } = scene((s) => { hate(s, man, woman); was = opinionOf(s, head, man); });
-    assert.strictEqual(R.spouseOf(st, man), null, 'the young man at enmity does not marry her');
+    // (refused on the round's first day, his side asks another anew, due the next: VB-692)
+    assert.notStrictEqual(R.spouseOf(st, man), woman, 'the young man at enmity does not marry her');
     assert.deepStrictEqual(st.offers, [], 'a no never waits');
     const no = asked(st, mark).find((e) => e.pawn === man && e.other === woman);
     assert.ok(no, `the refusal is told: ${asked(st, mark).map((e) => e.text)}`);
@@ -203,7 +211,7 @@ console.log(`offers ok: no player stores none; a played man's match waits, holds
   {
     let was;
     const { st, mark } = scene((s) => { hate(s, head, woman); was = opinionOf(s, head, man); });
-    assert.strictEqual(R.spouseOf(st, man), null, 'the father at enmity with the bride does not make the match');
+    assert.notStrictEqual(R.spouseOf(st, man), woman, 'the father at enmity with the bride does not make the match');
     const no = asked(st, mark).find((e) => e.pawn === man && e.other === woman);
     assert.ok(no && no.text.startsWith(Sim.fullName(st.pawns[head])), `the father refuses: ${asked(st, mark).map((e) => e.text)}`);
     assert.ok(Math.abs(opinionOf(st, head, man) - was) < 1e-9, 'his opinion of his son is untouched');

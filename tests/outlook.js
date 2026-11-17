@@ -111,5 +111,17 @@ at(st, YEAR + SEASON_DAYS * DAY + 6);
 check(Sim.supplyOutlook(st, h0.id).stale, 'stale in the next season');
 P.reviewed(st, p0, cal(st.t));
 check(!Sim.supplyOutlook(st, h0.id).stale && p0.outlook.season === 1, 'made anew at its first review');
+// the village store's outlook (VB-966): computed when asked, shaped as a household's, with its target, and whose estimate it is
+{
+  const v = st.villages[0], need = [h0, h1].reduce((n, hh) => n + dailyNeed(st, hh), 0), before = JSON.stringify(st.villages[0].grain);
+  v.grain = { barley: need * SEASON_DAYS * 2 };
+  const V = Sim.villageOutlook(st, 0, null);
+  check(V.village && !V.stale && V.head !== null && st.pawns[V.head].alive, `the village's outlook names a living pawn: ${V.head}`);
+  check(V.food.state !== 'safe' && V.food.own === V.food.with && V.food.own > 1.5 && V.food.own < 2, `two seasons of grain, a little spoiled: ${V.food.own}`);
+  check(near(V.food.parts.target, need * 0.5 * VB['sim/rules'].YEAR_DAYS, 0.2), `the target is half a year's need: ${V.food.parts.target}`);
+  check(V.fuel.state === 'none' && V.hay.state === 'none', 'a store holds no fuel or hay');
+  check(JSON.stringify(Sim.villageOutlook(st, 0, h0.holder)) !== undefined && Sim.villageOutlook(st, 0, h1.holder).head === h1.holder, "the viewer's estimate when given");
+  v.grain = JSON.parse(before);
+}
 if (failed) process.exit(1);
 console.log('outlook ok: a year\'s food and a month\'s; fuel for the summer, not the winter; hay for half a winter and the meadows to mow; review, wake, save, stale');

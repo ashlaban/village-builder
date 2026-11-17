@@ -32,6 +32,7 @@
     "pawn.leanDays": "sim/traits",
     "pawn.mods": "sim/mood",
     "pawn.wish": "sim/wishes",
+    "pawn.ask": "sim/offers",
     "pawn.feast": "sim/occasions",
     "plan.head": "sim/plans",
     "plan.aim": "sim/aims",

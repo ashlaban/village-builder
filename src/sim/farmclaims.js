@@ -2,7 +2,8 @@
 // "Claims on empty farms" custom, the claim at the moving round, the restoration, and the claimants moving in
 VB['sim/farmclaims'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
-  const { YEAR, CLAIMS, CROPS } = VB['sim/rules'];
+  const { YEAR, CLAIMS, CROPS, MARRIAGE } = VB['sim/rules'];
+  const Offers = VB['sim/offers'];
   const { bufferOf } = VB['sim/traits'];
   const { withinDay } = VB['sim/routes'];
   const { doneOf } = VB['sim/progress'];
@@ -19,7 +20,7 @@ VB['sim/farmclaims'] = (() => {
     atFarm,
     atHousehold,
   } = VB['sim/records'];
-  const { wishOf } = VB['sim/wishes'];
+  const { wishOf, moveWhy: whose } = VB['sim/wishes'];
   const CL = VB['sim/claims'];
   const { dailyNeed } = VB['sim/hunger'],
     { reserved } = VB['sim/stores'];
@@ -213,13 +214,92 @@ VB['sim/farmclaims'] = (() => {
   };
   // At the moving round, after st.demand is counted and before plots are started (sim/expansion): each farm that may be claimed, in id order,
   // goes to its first claimant (claimants) who has not claimed another this round. Claims whose claimant died or took land end first.
+  // The first claimant asks the one who speaks for the farm's village for it (the basis `land`, due at once: VB-692); one who holds an
+  // open offer about its future takes part only in that offer's step.
   function claimFarms(st) {
     for (const f of st.farmsteads) if (onFarm(st, f.id) && !valid(st, f)) ended(st, f);
     for (const f of st.farmsteads) {
       if (!claimable(st, f)) continue;
-      const pick = claimants(st, f)[0];
-      if (pick !== undefined) issue(st, { actor: pick, verb: 'claim', target: f.id, source: 'round' });
+      const pick = claimants(st, f).find((id) => st.pawns[id].ask === undefined || st.pawns[id].ask === null);
+      if (pick !== undefined) askLand(st, pick, f.village, { farm: f.id });
     }
+  }
+  // ---- the basis `land` of sim/offers (VB-692; plan VB-682, sections 2 and 4.4): {from (a landless adult), to (who speaks for the
+  // village: its eldest living holder until it has an alderman, VB-314), wants {farm} (an empty farm's id) or {plot (a village id), house,
+  // field (the site, or absent for the village to find one)}}. The one asked answers by the village's custom, today's rule: a farm to the
+  // first of its claimants (claimants), a plot to one with none coming; where the asker speaks for the village itself, nobody else is
+  // asked. A yes is the claim (the claim verb) or the plot begun for the asker (sim/expansion, on the event plotGranted). A no is told,
+  // and nobody remembers it (a custom's no; the grievance is the claims review's). ----
+  function speakerOf(st, vid) {
+    let best = null;
+    for (const id of st.villages[vid].farmsteads) {
+      const f = st.farmsteads[id],
+        hh = f.household === null ? null : st.households[f.household],
+        p = hh && !hh.dissolved && hh.holder !== null ? st.pawns[hh.holder] : null;
+      if (p && p.alive && (best === null || p.born < st.pawns[best].born)) best = p.id;
+    }
+    return best;
+  }
+  const landVillage = (st, w) => (w.farm !== undefined ? st.farmsteads[w.farm].village : w.plot);
+  const moveWhy = (st, id) => whose(st, id, null, 'found');
+  function landWhy(st, o) {
+    const w = o.wants || {},
+      p = Number.isInteger(o.from) ? st.pawns[o.from] : null;
+    if (!p || !p.alive || p.household === null) return `pawn ${o.from} is not a living pawn with a home`;
+    if (landed(st, p.id)) return `pawn ${p.id} has land`;
+    if (w.farm !== undefined) {
+      if (!st.farmsteads[w.farm] || !claimable(st, st.farmsteads[w.farm])) return `farm ${w.farm} cannot be claimed`;
+    } else if (!st.villages[w.plot]) return 'land is an empty farm or a plot in a village';
+    else if ((w.house === undefined) !== (w.field === undefined)) return "a plot's site is a house and a field";
+    else if (hasPlot(st, p.id)) return `pawn ${p.id} has a plot coming`;
+    const sp = speakerOf(st, landVillage(st, w));
+    if (o.to !== (sp === null ? p.id : sp)) return 'land is asked of the one who speaks for its village';
+    const whose = moveWhy(st, p.id);
+    return typeof whose === 'string' ? whose : {};
+  }
+  const landAnswers = (st, o) =>
+    [{ key: 'to', by: o.to }, ...moveWhy(st, o.from)]
+      .filter((a) => a.by !== o.from)
+      .map((a) => ({ key: a.key, by: a.by, yes: null }));
+  function landYes(st, o, a) {
+    const w = o.wants;
+    if (a.key !== 'to') return true;
+    if (w.farm === undefined) return !hasPlot(st, o.from);
+    const ids = st.demand.includes(o.from) ? st.demand : [...st.demand, o.from];
+    return claimants(st, st.farmsteads[w.farm], ids)[0] === o.from;
+  }
+  function settleLand(st, o) {
+    const w = o.wants;
+    if (w.farm !== undefined) return issue(st, { actor: o.from, verb: 'claim', target: w.farm, source: 'round' });
+    const site = w.house === undefined ? null : { house: w.house, field: w.field };
+    emit(st, 'plotGranted', { village: w.plot, pawn: o.from, site });
+    return hasPlot(st, o.from) ? true : `no site for a plot is left in ${st.villages[w.plot].name}`;
+  }
+  Offers.basis('land', {
+    books: 'nothing',
+    memory: false,
+    wait: () => MARRIAGE.offerDays,
+    check: landWhy,
+    answers: landAnswers,
+    weigh: landYes,
+    settle: settleLand,
+    subject: (st, o) => o.from,
+    where: (st, o) => landVillage(st, o.wants),
+    what: (st, o) =>
+      o.wants.farm !== undefined
+        ? `the empty farm ${st.farmsteads[o.wants.farm].name} for ${fullName(st.pawns[o.from])}`
+        : `a plot in ${st.villages[o.wants.plot].name} for ${fullName(st.pawns[o.from])}`,
+  });
+  // Pawn id asks for land in village vid (wants: {farm} or {plot, house, field}) at the moving round, due at once (the round's choosers)
+  function askLand(st, id, vid, wants) {
+    const sp = speakerOf(st, vid);
+    return issue(st, {
+      actor: id,
+      verb: 'offer',
+      target: sp === null ? id : sp,
+      args: { basis: 'land', wants },
+      source: 'round',
+    });
   }
   // The farm pawn id may claim now, or null (sim/expansion clears a plot only for those with none).
   const claimableFarm = (st, id) =>
@@ -370,6 +450,7 @@ VB['sim/farmclaims'] = (() => {
     workClaim,
     restored,
     lapsedFarmClaims,
+    askLand,
     moveIn,
     barred,
   };

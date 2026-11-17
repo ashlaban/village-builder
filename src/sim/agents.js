@@ -173,6 +173,18 @@ VB['sim/agents'] = (() => {
         at = tileAt(st, x, y);
       if (K.setDown && at === a.job.site) K.setDown(st, a.job, a);
       else Lying.lay(st, a, a.job, K.fetch || a.job.kind, at, x, y);
+      // its cart stands where it was, with the team that drew it, until a hand fetches them (VB-649)
+      const hh = st.pawns[a.id].household !== null ? st.households[st.pawns[a.id].household] : null,
+        cart = hh && Carts.leave(st, hh, a.id, { tile: at, x, y });
+      if (cart)
+        Lying.leave(
+          st,
+          'leftCart',
+          1,
+          at,
+          { type: 'household', id: hh.id },
+          { x, y, of: { cart: { kind: cart.kind, built: cart.built } } },
+        );
       a.carry = null;
       laid = a.job;
     }
