@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..'), rows = new Map(), stack = [];
 let active = false;
 const targets = {
   'sim/heirs': ['handOn', 'countDemand', 'refreshRoles'],
-  'sim/lifecycle': ['movingRound', 'kinPressure', 'wed'],
+  'sim/round': ['movingRound', 'kinPressure'], 'sim/marriage': ['wed'],
   'sim/help': ['fillStores'], 'sim/farmclaims': ['claimFarms'], 'sim/expansion': ['startPlots'],
   'sim/settle': ['settleRound'], 'sim/service': ['takeServants'], 'sim/cottage': ['payOwed'],
   'sim/society': ['refreshPrestige'],

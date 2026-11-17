@@ -48,7 +48,9 @@ const Sim = (() => {
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
   const { explainAllowance, giftWarning } = VB['sim/exchange'];
   const { kinHouseholds } = VB['sim/help'];
-  const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
+  const { killPawn, retireHolder } = VB['sim/lifecycle'],
+    { holdMeetings } = VB['sim/meetings'],
+    { movingRound } = VB['sim/round'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
   const { HERD, SOIL, CLAIMS } = VB['sim/rules'];

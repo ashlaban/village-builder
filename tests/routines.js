@@ -5,7 +5,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { setClock } = require('./lib/clock.js');
-const Plans = VB['sim/plans'], L = VB['sim/lifecycle'], Culture = VB.culture, { issue } = VB['sim/commands'];
+const Plans = VB['sim/plans'], L = VB['sim/meetings'], Culture = VB.culture, { issue } = VB['sim/commands'];
 const { refreshJobs } = VB['sim/jobs'], { eligible } = VB['sim/eligibility'], { DAY, WORK, cal } = VB['sim/rules'];
 const { villageOf } = VB['sim/records'];
 const { checkState } = require('./lib/invariants.js');

@@ -18,8 +18,9 @@ VB['sim/clock'] = (() => {
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
   const { outdoors } = VB['sim/encounters'];
-  const { meetingStage, MEETING_STAGES, roundPhase, ROUND_STEPS, dailyLife, dailyDeaths, nightCulture, NIGHT_STEPS } =
-    VB['sim/lifecycle'];
+  const { dailyLife, dailyDeaths } = VB['sim/lifecycle'];
+  const { meetingStage, MEETING_STAGES, nightCulture, NIGHT_STEPS } = VB['sim/meetings'];
+  const { roundPhase, ROUND_STEPS } = VB['sim/round'];
   const { dueOffers } = VB['sim/offers'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
@@ -417,7 +418,7 @@ VB['sim/clock'] = (() => {
       every: 'step',
       at: { tick: [1, NIGHT_STEPS + 1] },
       when: cenv,
-      owner: 'sim/lifecycle',
+      owner: 'sim/meetings',
       note: "the night's culture, a settlement a step (VB-201)",
       run: (st, c, n) => nightCulture(st, n),
     },
@@ -427,7 +428,7 @@ VB['sim/clock'] = (() => {
       every: 'year',
       at: { season: AUTUMN, sday: 9, hour: 12, tick: [0, MEETING_STAGES] },
       when: cenv,
-      owner: 'sim/lifecycle',
+      owner: 'sim/meetings',
       note: "the meetings: a village's meeting a step, then the cultures' years and the land meeting (VB-278)",
       run: (st, c, n) => meetingStage(st, n - 12 * TICKS),
     },
@@ -435,7 +436,7 @@ VB['sim/clock'] = (() => {
       every: 'year',
       at: { season: AUTUMN, sday: 10, hour: 12, tick: [0, ROUND_STEPS] },
       when: cenv,
-      owner: 'sim/lifecycle',
+      owner: 'sim/round',
       note: "the moving round: a village's round a step, then demand, settlement and service (VB-277)",
       run: (st, c, n) => roundPhase(st, n - 12 * TICKS),
     },
