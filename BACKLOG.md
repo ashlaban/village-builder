@@ -45,7 +45,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-733](backlog/VB-733.md) | Goods by kind: the registry's material and kinds, and the stone heap by its rock | mill | 2 | M | A good declares its material and its kinds with the properties its use reads; a store counts a good by kind as grain is counted by crop; the stone heap keeps each load's rock, so the quern is of the stone it was hewn from. |
 | [VB-780](backlog/VB-780.md) | The journey scale built: 8 tiles an hour, the forested island, dear ground, a 67-hour reach | far | 2 | M | SPEED 8, COVER heath 0.07 and meadow 0.2, TERRAIN doubled above meadow, ROUTE.hours 67: the values of VB-444's plan, built together and measured over the seeds |
 | [VB-862](backlog/VB-862.md) | Tests: verify's total CPU under four minutes, and no script over 5 s | - | 2 | M | VB-856 left verify at 321 s of CPU over 172 scripts (80 s on four cores at best); the largest are service 7.4, spread 6.2, fish 5.9, format 5.6 |
-| [VB-962](backlog/VB-962.md) | A pawn's pack is carried as grain, lies where it fell, and comes home as grain | physical | 2 | S | The pack of a pawn away vanishes at its death, and comes home as meals though it left as grain (a quarter of it lost): carry it as grain, lay it down where it fell, put it back in the grain |
 | [VB-043](backlog/VB-043.md) | One scope model: a membership graph of entities | debt | 3 | M | The membership graph of typed edges, with scopes on it; as Membership's truth if Kim adopts it (measured 0.55 ms at year 12). |
 | [VB-108](backlog/VB-108.md) | Wrap-up: the household's year | year | 3 | S | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
 | [VB-188](backlog/VB-188.md) | Plan: the ship: the outside world, silver, institutions and disease (slice 8) | ship | 3 | S | Design ships, silver, the Church and the Crown, rank, tithe and tax, and disease by sea. |
@@ -105,6 +104,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-926](backlog/VB-926.md) | Measure: the village overview's build time at populous medium (for VB-662) | - | 3 | S | Time Sim.villageSummary at populous medium on a quiet machine; owed to VB-662 |
 | [VB-966](backlog/VB-966.md) | The village store's outlook, shown as a supply on the village card | - | 3 | M | VB-927 left this unticked: the store has no outlook to read |
 | [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
+| [VB-984](backlog/VB-984.md) | A booth's maker lets a pawn in | far | 3 | S | verb letIn adds a guest to a booth |
+| [VB-985](backlog/VB-985.md) | Test: a booth's wood fetched from the village wood | far | 3 | S | cover the fetched-wood path of the booth job |
 
 ## Waiting for Kim
 
