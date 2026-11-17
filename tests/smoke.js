@@ -160,10 +160,10 @@ const iv = setInterval(async () => {
       q('#tileHouse [data-supply-more="food"]').click(); q('#tileHouse [data-supply-more="hay"]').click(); tick(2);
       if (q('#tileHouse [data-supply-nums]')) fail('the numbers do not close');
       doc.getElementById('settlers').querySelector(`button[data-village="${f.village}"]`).click(); tick(5);
-      const row = q(`#tileList [data-farm="${f.id}"]`), chips = row ? [...row.querySelectorAll('.supply-chip')] : [];
+      const row = q(`#tileList [data-farm="${f.id}"]`), chips = row ? [...row.querySelectorAll('.supply-chip:not([data-warning])')] : [];
       if (chips.length !== 2 || !chips[0].classList.contains('bad') || !chips[1].classList.contains('warn') || chips[0].querySelectorAll('svg').length !== 2) fail(`the short farm's row shows ${chips.map((c) => c.className).join(', ') || 'no chips'}, not a red food chip and a gold hay chip`);
       if (!row || !row.querySelector('.ppl') || /Fed|Short of food/.test(row.querySelector('.state').textContent) || !row.title) fail("the farm's row lacks its people or its title, or still has the words");
-      console.log('supplies:', [...row.querySelectorAll('.supply-chip')].map((c) => c.title).join('; '));
+      console.log('supplies:', [...row.querySelectorAll('.supply-chip:not([data-warning])')].map((c) => c.title).join('; '));
       plan.outlook = kept;
       lived.click(); tick(5);
     }
@@ -366,7 +366,7 @@ async function goodwillPanel() {
     for (const n of ['Food', 'Harvest', 'Hungry', 'Idle hands', '0–14', '15–49', '50+']) if (!words.includes(n)) fail(`the village's overview lacks ${n}`);
     const warned = Object.values(S.warnings).reduce((n, l) => n + l.length, 0), chips = box.querySelectorAll('.warning [data-farm]');
     if (!S.warnings.hunger.includes(hh.id) || chips.length !== warned) fail(`the overview shows ${chips.length} farm chips for ${warned} warned`);
-    if (!doc.querySelector(`#tileList [data-farm="${farm.id}"] .warn-mark`)) fail("the warned farm's row is not marked");
+    if (!doc.querySelector(`#tileList [data-farm="${farm.id}"] .supply-chip[data-warning="hunger"]`)) fail("the warned farm's row has no chip for its warning");
     console.log('village overview:', words.join(', '), '|', warned, 'warned', '|', [...box.querySelectorAll('.warning > span:not(.stat-ico)')].map((e) => e.textContent).join('; '));
     const chip = box.querySelector(`.warning [data-farm="${farm.id}"]`);
     if (chip) { chip.click(); tick(5); if (doc.getElementById('tileName').textContent !== farm.name) fail('a warning\'s chip did not select its farm'); }
