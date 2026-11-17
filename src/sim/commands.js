@@ -27,7 +27,7 @@ VB['sim/commands'] = (() => {
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner } = VB['sim/wishes'];
   const { settleGift } = VB['sim/exchange'];
-  // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/clock) find them when they run.
+  // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/marriage, sim/clock) find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
     !(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length)
@@ -412,7 +412,7 @@ VB['sim/commands'] = (() => {
             : !home(st, c.args && c.args.home)
               ? `there is no household ${c.args && c.args.home}`
               : null),
-      run: (st, c) => later('sim/lifecycle').wed(st, c.actor, c.target, c.args.home),
+      run: (st, c) => later('sim/marriage').wed(st, c.actor, c.target, c.args.home),
     },
     // handOn(target, {household, reason}): the actor, holding household args.household, hands it to the heir `target`
     handOn: {
