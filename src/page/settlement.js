@@ -79,7 +79,7 @@ const labelSigOf = () =>
   st.villages
     .map((v) =>
       byName(v)
-        ? `${v.name}@${v.center}${v.green ? 'g' : ''}`
+        ? `${v.name}@${v.center}${v.green ? 'g' : ''}:${v.farmsteads.length}`
         : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'),
     )
     .join('/');
@@ -105,13 +105,38 @@ function buildLabels(wd) {
       },
       resolution: 2,
     });
-    t.anchor.set(0.5, 1);
+    t.anchor.set(0.5, of.below ? 0 : 1);
     L.labels.addChild(t);
     labels.push({ t, x, y, ...of });
   };
+  // Is a house of village v on the row of tiles `row` rows from its centre (-1 above, 1 below, -2 two above), within `wide` tile
+  // radii to either side: where its name would lie over the house?
+  const houseOn = (v, row, wide) =>
+    v.farmsteads.some((id) => {
+      const h = st.farmsteads[id].house;
+      return (
+        Math.abs(wd.hx[h] - wd.hx[v.center]) < wd.R * wide &&
+        Math.abs(wd.hy[h] - wd.hy[v.center] - row * 1.5 * wd.R) < wd.R * 0.5
+      );
+    });
   for (const v of st.villages) {
-    if (byName(v)) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, v.green ? 30 : 26, { village: v.id });
-    else
+    if (byName(v)) {
+      // the name over the centre; where a house stands on the row above, under the centre, or with a house there too, raised over
+      // that row: so that the name and a farm (and its mark, when it is chosen: page/choose) do not hide each other (VB-1027)
+      const up = houseOn(v, -1, 1.5),
+        below = up && !houseOn(v, 1, 1.5),
+        raised = up && !below && !houseOn(v, -2, 1);
+      mkLabel(
+        v.name,
+        wd.hx[v.center],
+        wd.hy[v.center] + wd.R * (below ? 1.2 : raised ? -2.6 : -1.7),
+        v.green ? 30 : 26,
+        {
+          village: v.id,
+          below,
+        },
+      );
+    } else
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
         mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24, { farm: f.id });
