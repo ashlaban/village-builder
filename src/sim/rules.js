@@ -661,8 +661,9 @@ VB['sim/rules'] = (() => {
   // (0.5 + sociability) and (0.5 + ambition), asked at its planning day's review; one evening a village a day. `reach`: the walking hours
   // between villages (sim/routes' table) within which a village's adults are asked. `come`: an adult's chance to come, times (0.5 +
   // sociability), (1 + its opinion of the host) and (1 - its walk / reach); counted until `guests` (a barrel's) have said yes. `mix`: the
-  // floor for strangers among the partners drawn there (sim/encounters).
-  const ALE_EVENING = { call: 0.1, reach: 1.5, come: 0.25, guests: 20, mix: 0.5, until: 22 };
+  // floor for strangers among the partners drawn there (sim/encounters). `reach` 2, not the design's 1.5 (VB-522's runs, populous small
+  // seed 7: at 1.5 a twelfth of the guests came from another village, at 2 a fifth, at 2.5 over a third).
+  const ALE_EVENING = { call: 0.1, reach: 2, come: 0.25, guests: 20, mix: 0.5, until: 22 };
   // The season's rite (VB-522; design.md, Where pawns meet): on each village green, on day sday of `days`' seasons (spring day 1, summer
   // day 6, winter day 7), from `hour` for `hours`. An adult of the village, and of a lone farm within `reach` walking hours of a green,
   // comes at chance `come` + `piety` × its piety; work is not stopped for it. Its leader is the holder present highest in piety × prestige;

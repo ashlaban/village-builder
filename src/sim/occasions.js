@@ -528,15 +528,13 @@ VB['sim/occasions'] = (() => {
       const g = owing(st, host, st.pawns[id]);
       if (g) owed.set(g, (owed.get(g) || 0) + each);
     }
-    const booked = bookAll(st, host, owed);
+    bookAll(st, host, owed);
     const by = st.pawns[host.holder],
       from = far ? `, ${far} of them from other villages` : '';
     log(st, `${fullName(by)} opened ${f.name} for an ale evening: ${guests.length} came${from}.`, {
       kind: 'aleEvening',
       pawn: by.id,
       n: guests.length,
-      far,
-      booked: Math.round(booked),
       ...atFarm(f),
     });
   }
@@ -614,7 +612,6 @@ VB['sim/occasions'] = (() => {
       kind: 'rite',
       pawn: by.id,
       n: present.length,
-      far,
       village: v.id,
     });
   }

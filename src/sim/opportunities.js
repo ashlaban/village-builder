@@ -19,6 +19,8 @@ VB['sim/opportunities'] = (() => {
   const { wishesOf } = VB['sim/wishes'];
   const { MARRIAGE } = VB['sim/rules'];
   const { unfit, handsLeft } = VB['sim/service'];
+  const { ALE_EVENING, RITE } = VB['sim/rules'],
+    { hoursBetween } = VB['sim/routes'];
   // What pawn `id` may read of the state. It filters nothing for now: every pawn knows everything (design.md, What a pawn knows). It is
   // the seam: forPawn reads the world only through its view, so what a pawn has not heard can later be left out here.
   const actorView = (st) => st;
@@ -104,9 +106,34 @@ VB['sim/opportunities'] = (() => {
     );
     const until = view.t + 1;
     out.push(item('idle', null, { until }, check(view, p.id, 'idle', null, { until })));
+    occasions(view, p, out);
     if (near === null || near === undefined) return;
     const open = Number.isInteger(near) && near >= 0 && near < view.w.N && walkable(view.w)(near);
     out.push(item('walkTo', near, null, open ? check(view, p.id, 'walkTo', near, null) : 'no one can walk there'));
+  }
+
+  // ---- an ale evening (VB-522): a holder may open its house, for its household; and the ale evenings and rites called within their reach
+  // of its village, each an item {verb: 'attend', target: the occasion's id, occasion: {kind, place (the farm's or the village's name)}} ----
+  function occasions(view, p, out) {
+    if (p.household === null) return;
+    const hh = view.households[p.household],
+      v = villageOf(view, p);
+    if (hh.holder === p.id)
+      out.push(
+        item('callAle', null, null, check(view, p.id, 'callAle', null, null), {
+          holder: { type: 'household', id: hh.id },
+          basis: 'member',
+        }),
+      );
+    for (const o of view.occasions) {
+      if (o.kind !== 'ale' && o.kind !== 'rite') continue;
+      const reach = o.kind === 'ale' ? ALE_EVENING.reach : RITE.reach;
+      if (o.village !== v && !(view.villageHours && hoursBetween(view, v, o.village) <= reach)) continue;
+      const place = o.farm === null ? view.villages[o.village].name : view.farmsteads[o.farm].name;
+      out.push(
+        item('attend', o.id, null, check(view, p.id, 'attend', o.id, null), { occasion: { kind: o.kind, place } }),
+      );
+    }
   }
 
   // ---- a cause: each custom's options other than its village's practice, and dropping the cause it has ----

@@ -93,6 +93,8 @@ function menuHTML(id, opps) {
     if (o.when === 'offer') by.offers.push(o);
     else if (o.when === 'round') by.round.push(o);
     else if (o.verb === 'work') by[o.holder && o.holder.type === 'village' ? 'village' : 'house'].push(o);
+    else if (o.verb === 'callAle')
+      by.house.push(o); // the household's act, its holder's to choose (VB-522)
     else if (o.verb === 'argue' || o.verb === 'dropCause')
       continue; // a cause is no act: the dock's Agenda (page/drawer)
     else by.self.push(o);
@@ -115,6 +117,17 @@ function menuHTML(id, opps) {
     h += actRow('data-bar="walk"', 'walk', 'Walk here', `Then ${tapWord} an open tile on the map`);
     h += actRow(cmdAttrs(home), 'home', 'Go home', 'Indoors, for yourself', home.why);
     h += actRow(cmdAttrs(idle), 'idle', 'Rest an hour', 'You wait where you are', idle.why);
+    // the ale evenings and rites called within reach (VB-522)
+    for (const o of by.self.filter((x) => x.verb === 'attend')) {
+      const ale = o.occasion.kind === 'ale';
+      h += actRow(
+        cmdAttrs(o),
+        ale ? 'ale' : 'green',
+        ale ? `Go to the ale evening at ${o.occasion.place}` : 'Go to the rite',
+        ale ? 'From the end of work until ten' : `On the green of ${o.occasion.place}, at noon`,
+        o.why,
+      );
+    }
     if (by.offers.length)
       h += actRow(
         'data-bar="sheet"',
@@ -137,7 +150,11 @@ function menuHTML(id, opps) {
   }
   if (m.g === 'house') {
     if (!hh) return `${h}<p class="act-empty">You belong to no household.</p>`;
-    h += by.house.length ? workRows(by.house) : '<p class="act-empty">No work of your household you may take now.</p>';
+    const work = by.house.filter((o) => o.verb === 'work'),
+      ale = by.house.find((o) => o.verb === 'callAle');
+    h += work.length ? workRows(work) : '<p class="act-empty">No work of your household you may take now.</p>';
+    if (ale)
+      h += actRow(cmdAttrs(ale), 'ale', 'Open the house for an ale evening', 'Tonight, on a barrel to spare', ale.why);
     const own = givesFor(id);
     h += actRow(
       'data-bar="view" data-view="give"',

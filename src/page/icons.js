@@ -165,6 +165,7 @@ const ACT_PATHS = {
   weed: '<path d="M12 21v-7M12 14c-1-4-4-5-7-5 0 3 3 5 7 5zM12 12c1-5 4-6 7-6 0 4-3 6-7 6zM4 21h16"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
+  ale: '<path d="M6 7h10v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 10h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2M6 7c0-2 2-3 4-2 1-1.5 4-1.5 5 .5"/>', // a tankard
 };
 const actIcon = (k) => svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE);
 // a job kind's icon (sim/kinds); a kind not named here takes the hoe
