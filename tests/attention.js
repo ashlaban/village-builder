@@ -56,7 +56,7 @@ try {
   // taking full work out of reach (the urgency switch) drops the background task, and reopens it
   assert.strictEqual(go(farFull), true);
   assert.strictEqual(a.side, undefined, 'the background task is dropped');
-  assert.ok(!bg.claims.includes(a.id) && isOpen(bg), 'and reopened for others');
+  assert.ok(!bg.claims.includes(a.id) && isOpen(st, bg), 'and reopened for others');
   // within reach a background task is minded at its rate, in closed form, its end queued (VB-472, VB-473); a walk out of reach drops it
   A.release(st, a); walk(near); assert.strictEqual(go(bg), true);
   assert.ok(bg.rate === KINDS[bg.kind].rate && bg.due > st.tick && st.workDue.includes(bg), 'minded at the side, its end queued');
@@ -64,7 +64,7 @@ try {
   st.tick++; st.t = st.tick / TICKS; A.stepAgents(st, Sim.cal(st.t));
   assert.ok(Math.abs(A.doneOf(st, bg) - was - KINDS[bg.kind].rate / TICKS) < 1e-9, 'a step of minding, worked out with no stepping');
   A.walkTo(st, a, far, st.w.hx[far], st.w.hy[far]); // looked at as its leg begins: it ends out of reach
-  assert.strictEqual(a.side, undefined, 'out of reach, dropped'); assert.ok(isOpen(bg) && !st.workDue.includes(bg));
+  assert.strictEqual(a.side, undefined, 'out of reach, dropped'); assert.ok(isOpen(st, bg) && !st.workDue.includes(bg));
   // with no task in hand, a background task out of reach is taken up and set out for; walking into reach it is kept, unworked
   arrive(); A.release(st, a); walk(here);
   assert.strictEqual(go(farBg), true); assert.strictEqual(a.side.background, farBg); assert.ok(a.path, 'it sets out');

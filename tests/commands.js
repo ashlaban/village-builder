@@ -31,7 +31,7 @@ assert.deepStrictEqual(calls, [], `acts called outside sim/commands: ${calls.joi
 const st = Sim.seed(island(7), 7, 'founders');
 Sim.advance(st, 3 * Sim.DAY + 4); // a working morning: jobs posted
 const snap = () => { const { w, ...rest } = st; return canon(rest); };
-const j = [...st.jobs.values()].find((x) => isOpen(x) && x.claims.length === 0);
+const j = [...st.jobs.values()].find((x) => isOpen(st, x) && x.claims.length === 0);
 const a = st.agents.find((x) => st.pawns[x.id].died === null && x.job !== j);
 assert.ok(j && a, 'an open job and a living pawn');
 const had = a.job;
@@ -48,7 +48,7 @@ const refusals = [
   [{ actor: a.id, verb: 'fly', target: j.key }, /there is no verb/],
 ];
 refusals.push([{ actor: dead.id, verb: 'work', target: j.key }, /not a living pawn/]);
-const full = [...st.jobs.values()].find((x) => !isOpen(x));
+const full = [...st.jobs.values()].find((x) => !isOpen(st, x));
 assert.ok(full, 'a job with no room');
 refusals.push([{ actor: a.id, verb: 'work', target: full.key }, /has no room/]);
 for (const [cmd, why] of refusals) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
