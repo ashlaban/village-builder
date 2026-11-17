@@ -49,7 +49,7 @@ function parse() {
 }
 let blocks = parse();
 function find(query) {
-  if (/^VB-\d{3}$/.test(query)) {
+  if (/^VB-\d{3,}$/.test(query)) {
     const named = blocks.filter((b) => new RegExp(`\\b${query}\\b`).test(b.title));
     return named.length ? named : blocks.filter((b) => b.text.includes(query));
   }
@@ -99,7 +99,7 @@ if (cmd === 'list') {
   if (whole) lines.splice(b.from, b.to - b.from + (lines[b.to] === '' ? 1 : 0));
   else for (const q of [...moving].reverse()) lines.splice(q.from, q.to - q.from);
   // into the archive: the newest group, if it is this date's and occasion's, else a new group before it
-  const occasion = group || (b.title.match(/VB-\d{3}/) || [])[0] || fail('give the archive group with --group OCCASION');
+  const occasion = group || (b.title.match(/VB-\d{3,}/) || [])[0] || fail('give the archive group with --group OCCASION');
   const heading = `# Archived ${longDate} (${occasion})`, arch = fs.readFileSync(A, 'utf8').split('\n');
   const first = arch.findIndex((l) => /^# Archived /.test(l));
   if (first < 0) fail('QUESTION_ARCHIVE.md has no "# Archived ..." group to insert before');
