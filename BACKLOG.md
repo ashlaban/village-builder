@@ -100,7 +100,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-908](backlog/VB-908.md) | Means meter on the pawn panel | - | 3 | S | marryStanding's held and asked on the level meter |
 | [VB-911](backlog/VB-911.md) | Hides become leather: shoes and harness wear | animals | 3 | M | A pawn's job tans a hide and makes shoes or harness, which wear and are replaced. |
 | [VB-926](backlog/VB-926.md) | Measure: the village overview's build time at populous medium (for VB-662) | - | 3 | S | Time Sim.villageSummary at populous medium on a quiet machine; owed to VB-662 |
-| [VB-972](backlog/VB-972.md) | The cold-households band counts a household with no members as cold | - | 3 | S | an orphan ward's empty farm shows cold 48 winter days a year |
 | [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
 | [VB-984](backlog/VB-984.md) | A booth's maker lets a pawn in | far | 3 | S | verb letIn adds a guest to a booth |
 | [VB-990](backlog/VB-990.md) | Measure VB-785's night cost on small-y40 loaded a year | - | 3 | S | Measure the night cost on a late save |
