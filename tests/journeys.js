@@ -188,8 +188,8 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   Sim.advance(s, 3);
   killPawn(s, id, 'killed');
   assert.strictEqual(s.away.length, 0, 'the journey ends');
-  assert.ok(s.lying && s.lying.length === 1, 'the gift lies where he fell');
-  const l = s.lying[0];
+  assert.ok(s.lying && s.lying.length >= 1, 'the gift lies where he fell (and his pack with it, VB-962: the giver\'s)');
+  const l = s.lying.find((x) => x.owner.type === 'household' && x.owner.id === rec.id);
   assert.ok(l.kind === 'leftGrain' && Math.abs(l.n - 25) < 1e-9 && l.owner.type === 'household' && l.owner.id === rec.id, 'the receiver\'s, 25 of it');
   assert.deepStrictEqual(checkState(s), [], 'invariants after a carrier\'s death');
 }
