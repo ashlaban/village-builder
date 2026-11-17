@@ -764,7 +764,8 @@ function checkState(st) {
     // plots built (village.plots) and under way (the village's project plans, VB-123): numbered 0, 1, ... in the village; the timber at the
     // site within range (VB-328); a built one's farmstead exists
     const projects = st.plans && st.plans.projects ? st.plans.projects.village.get(v.id) || [] : [],
-      live = projects.filter((pl) => pl.what === 'plot');
+      // as sim/expansion's livePlots: the village's own plans and its households' plots for their heirs (VB-255, VB-959)
+      live = [...projects.filter((pl) => pl.what === 'plot'), ...((st.plans && st.plans.projects && st.plans.projects.heirPlots) || []).filter((pl) => pl.village === v.id)];
     // VB-646: a village's plot cleared with nobody to have it is allotted at a moving round or given back: none stands unclaimed past the
     // rounds it waits (two years, and a year's slack to the next round)
     for (const pl of live)

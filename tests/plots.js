@@ -75,5 +75,19 @@ check(cleared > 0, 'founders seed 7: no plot is cleared for anyone in two years'
     check(other === undefined || true, '');
   }
 }
+// VB-959: a household's plot for its heir under way is numbered among its village's, and checkState reads it so
+{
+  const s = setup('village');
+  if (!s) check(false, 'no adults to set up (VB-959)');
+  else {
+    const { st, v } = s, [plot, next] = X.livePlots(st, v), P = st.plans.projects, h = st.households.find((q) => q.holder !== undefined);
+    const list = P.village.get(v.id); list.splice(list.indexOf(plot), 1); // plot 0 becomes a household's, plot 1 a village's begun after it
+    plot.holder = { type: 'household', id: h.id }; plot.village = v.id; plot.by = h.id;
+    P.household.set(h.id, [...(P.household.get(h.id) || []), plot]); P.heirPlots.push(plot);
+    check(X.livePlots(st, v).includes(plot) && next.plot === 1, 'VB-959: the household plot and the village plot are both under way');
+    const bad = require('./lib/invariants.js').checkState(st).filter((m) => /plots numbered/.test(m));
+    check(!bad.length, `VB-959: plots numbered with a household's among them: ${bad}`);
+  }
+}
 if (failed) process.exit(1);
 console.log(`plots ok: ${cleared} plots cleared for someone in two years of founders`);
