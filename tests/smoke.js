@@ -367,6 +367,13 @@ async function goodwillPanel() {
     const warned = Object.values(S.warnings).reduce((n, l) => n + l.length, 0), chips = box.querySelectorAll('.warning [data-farm]');
     if (!S.warnings.hunger.includes(hh.id) || chips.length !== warned) fail(`the overview shows ${chips.length} farm chips for ${warned} warned`);
     if (!doc.querySelector(`#tileList [data-farm="${farm.id}"] .supply-chip[data-warning="hunger"]`)) fail("the warned farm's row has no chip for its warning");
+    // the store's supply row (VB-966): food by the component's cells, its target in the numbers, and whose estimate it is
+    const row = box.querySelector('.supplies [data-supply="food"]');
+    if (!row || row.querySelectorAll('.cell').length !== 4) fail("the village card has no store row of four season cells");
+    if (!/reckoning/.test(box.querySelector('.supplies .card-note').textContent)) fail("the store's row does not say whose estimate it is");
+    row.querySelector('[data-supply-more]').click(); tick(2);
+    if (!/target/.test(box.querySelector('[data-supply-nums="food"]').textContent)) fail("the store's numbers lack its target");
+    box.querySelector('[data-supply-more]').click(); tick(2);
     console.log('village overview:', words.join(', '), '|', warned, 'warned', '|', [...box.querySelectorAll('.warning > span:not(.stat-ico)')].map((e) => e.textContent).join('; '));
     const chip = box.querySelector(`.warning [data-farm="${farm.id}"]`);
     if (chip) { chip.click(); tick(5); if (doc.getElementById('tileName').textContent !== farm.name) fail('a warning\'s chip did not select its farm'); }
