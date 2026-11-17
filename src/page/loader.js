@@ -188,9 +188,10 @@ async function build(seed, scenario, size, save = null, quick = false) {
   document.title = `${wd.name}, a hex archipelago`;
 
   // Opening move: start on the whole chart, then glide down through the clouds to the village; for a new game, to the farm of the
-  // scenario's suggestion, where whom to play opens (page/choose).
+  // scenario's suggestion, where whom to play opens (page/choose); for a loaded one with a pawn played, to its farm (VB-1027).
   const sug = !save && !sim.player ? suggestedPawn() : -1,
-    sugFarm = sug >= 0 ? farmOf(sim.pawns[sug]) : null;
+    mine = save && sim.player && sim.pawns[sim.player.pawn].died === null ? sim.player.pawn : -1, // a loaded game opens on the played pawn's farm
+    sugFarm = sug >= 0 ? farmOf(sim.pawns[sug]) : mine >= 0 ? farmOf(sim.pawns[mine]) : null;
   let best = sugFarm ? sugFarm.house : sim ? sim.villages[0].center : -1,
     bd = sim ? -1 : Infinity;
   for (let i = 0; i < wd.N && bd >= 0; i++) {

@@ -186,6 +186,20 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   });
   await playSelected();
   if ((await page.evaluate(() => window.__play.st.player && window.__play.st.player.pawn)) !== played) fail('Play as did not inhabit the pawn');
+  // VB-1027: Play as leaves the camera on the played pawn's farm, wherever the pawn is; and opening the People sheet does not move it
+  {
+    await page.waitForTimeout(1800);
+    const at = () => page.evaluate(() => { const { st } = window.__play, w = window.__play.world(), c = window.__play.cam(),
+      f = st.farmsteads[st.households[st.pawns[st.player.pawn].household].farmstead];
+      return { off: Math.hypot(c.x - w.hx[f.house], c.y - w.hy[f.house]) / w.R, x: c.x, y: c.y }; });
+    const a = await at(); // the glide's last frame may still settle: a move is more than a world unit
+    if (!(a.off < 1)) fail(`Play as left the camera ${a.off.toFixed(1)} tiles from the played pawn's farm`);
+    await page.click('#settlersBtn'); await page.waitForTimeout(1500);
+    const b = await at();
+    if (Math.hypot(b.x - a.x, b.y - a.y) > 1) fail(`opening the People sheet moved the camera: ${JSON.stringify(a)} to ${JSON.stringify(b)}`);
+    await page.click('#debugBtn'); await page.click('[data-act="play"]'); await page.waitForSelector('#playBox [data-play="auto"]'); // the sheet as Play as left it
+    await page.waitForTimeout(1500);
+  }
   if (!(await page.locator('#actBar').isVisible())) fail('the action bar is not shown with the played pawn\'s sheet');
   for (const g of ['self', 'house', 'village']) {
     await page.click(`#actBar [data-group="${g}"]`);

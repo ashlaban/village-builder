@@ -290,6 +290,11 @@ function renderActions() {
     $('playRest').innerHTML = rest;
   }
 }
+// The camera brought to pawn id's farm (VB-1027): where a player starts, whatever errand the pawn is on at that hour.
+function flyToFarmOf(id) {
+  const f = farmOf(st.pawns[id]);
+  if (f) flyTo(w.hx[f.house], w.hy[f.house]);
+}
 function playAs(id) {
   const r = Sim.inhabit(st, id);
   playMsg = r === true ? null : { id, text: r };
