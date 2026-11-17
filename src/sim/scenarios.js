@@ -101,8 +101,9 @@ VB['sim/scenarios'] = (() => {
         comp.size[comp.id[i]] >= 60 && !gen.used.has(i) && centres.every((x) => hexSteps(w, x, i) >= VILLAGE_SPACING);
       const c = findSite(w, rand, comp, free, scores);
       if (c < 0) break;
-      centres.push(c);
-      for (const fid of gen.addVillage(c, farms).farmsteads) {
+      const laid = gen.addVillage(c, farms).farmsteads;
+      if (laid.length) centres.push(c);
+      for (const fid of laid) {
         sizes[fid] = drawSize(rand);
         pop += sizes[fid];
         if (sizes[fid] >= 7) gen.addField(fid); // a big household works a fourth field

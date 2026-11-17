@@ -35,6 +35,13 @@ for (const [name, [cols, rows, lo, hi]] of Object.entries(SIZES)) for (const see
   check(again.pawns.length === st.pawns.length && again.farmsteads.map((f) => f.house).join() === st.farmsteads.map((f) => f.house).join(), `${tag}: not deterministic`);
 }
 
+// a cramped island: a green where no first farm fits is dropped (VB-888), so every village has a farm and a name
+for (const [cols, rows] of [[36, 26], [48, 34]]) for (const seed of [7, 42]) {
+  const st = Sim.seed(island(seed, { cols, rows }), seed, 'populous'), tag = `${cols} by ${rows} seed ${seed}`;
+  check(st.villages.length > 0 && st.villages.every((v, i) => v.id === i && v.farmsteads.length && v.name), `${tag}: a village with no farm or no name`);
+  check(new Set(st.villages.map((v) => v.name)).size === st.villages.length, `${tag}: two villages share a name`);
+}
+
 // the one generator: a field added to its output appears in every scenario
 L.farmHooks.push((w, f) => { f.fields.push({ id: f.fields.length, tile: -1, stage: 'stubble', sown: null, reaped: null, held: 0, fert: 1, marker: true }); });
 try {
