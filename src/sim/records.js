@@ -9,7 +9,7 @@ VB['sim/records'] = (() => {
   // event as they write their text; `false` for ev says another call records the event.
   // A pawn's own events (pawn.events) are positions in it, not copies (VB-199). A slot is never removed, so a position stays good: a
   // routine event, once folded, becomes the index of its count in st.recordYears.
-  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text', 'self', 'cold', 'tile'];
+  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text', 'self', 'cold', 'tile', 'reason'];
   function record(st, ev, t = st.t) {
     const e = { t, kind: ev.kind };
     for (const k of FIELDS) if (ev[k] !== undefined && ev[k] !== null) e[k] = ev[k];
@@ -274,6 +274,7 @@ VB['sim/records'] = (() => {
       household: null,
       role: 'child',
       servant: !!o.servant,
+      servedSince: o.servant ? R.t || 0 : null,
       retired: false,
       look: (R.rand() * 1e9) >>> 0,
       events: [],
@@ -397,8 +398,12 @@ VB['sim/records'] = (() => {
   function clearMembers(st, hh) {
     hh.members = [];
   } // an empty household is skipped by the check, so it is not noted
+  // @state pawn.servedSince: the game hour a pawn entered service (null outside it), kept with pawn.servant (VB-634).
   function setServant(st, id, servant) {
-    st.pawns[id].servant = servant;
+    const p = st.pawns[id];
+    if (servant && !p.servant) p.servedSince = st.t || 0;
+    else if (!servant) p.servedSince = null;
+    p.servant = servant;
   }
   function settlementIdOf(st, p) {
     const hh = p.household !== null ? st.households[p.household] : null;

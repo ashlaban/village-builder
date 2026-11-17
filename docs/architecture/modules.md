@@ -92,15 +92,15 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   which holds the farm in trust (`src/sim/trust.js`, VB-309: `st.trusts`, the verbs `goToKin` and `goBack`; the trustee posts the farm's
   field work as its own in `src/sim/jobs.js`, and `src/sim/ownership.js` reads which farms are held); an orphaned heir with no guardian is
   held for the same way; at the moving round a landless adult from a household with hands to
-  spare goes into service where labour is short, by hands per field (`serveWhereShort`, VB-090; the placement `reachSteps` is shared); marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/lifecycle.js`
+  spare goes into service where labour is short, by hands per field (`serveWhereShort`, VB-090; the placement `reachSteps` is shared); marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/marriage.js`
   and `src/sim/heirs.js`.
-- The moving round (`src/sim/lifecycle.js`, VB-201, VB-277): on autumn day 11, each village's own round (`villageRound`) a village a 6-minute
+- The moving round (`src/sim/round.js`, its marriages in `src/sim/marriage.js`, VB-201, VB-277): on autumn day 11, each village's own round (`villageRound`) a village a 6-minute
   step from noon in the order of village id (village k on step k up to 60 villages, else `floor(k * 60 / n)`): its store filled, its own men
   matched with the women of every village, its handovers (its farms, and the homes in other villages its marriages chose) and its kin
   pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. `roundPhase(st, n)`
   is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
-- The meetings (`src/sim/lifecycle.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
+- The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
   (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,
   `src/sim/society.js`), the causes its adults take up and its meeting, whose lines go to the head of `st.meetingLog`; roles and prestige
@@ -143,7 +143,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Customs on the page (VB-396 to VB-398): `src/page/customs.js` is the Customs tab of a village's card, the customs as sentences (`SAID`; a
   new custom or option gets its phrase there), who stands by which way, and a voice's note (its pulls from `src/sim/leanings.js`, a
   read-only view, weighed by `Culture.WEIGH`, the factors the daily drift itself reads, so the note and the drift cannot disagree); `src/page/culture.js` is the dock's Culture pane: a culture's villages, its own charter, the meetings.
-- Commands (VB-167 to VB-171): `src/sim/commands.js` holds the verbs (`work`, `walkTo`, `goHome`, `idle`, `attend`; `decide`; `marry`, `handOn`, `serve`,
+- Commands (VB-167 to VB-171): `src/sim/commands.js` holds the verbs (`work`, `walkTo`, `goHome`, `idle`, `attend`; `decide`; `marry`, `handOn`, `move`,
   `claim`, `leave`; debug `kill`, `retire`, `argue`, `rally`, `skip`). The planner, the meeting, the moving round and the debug drawer act by
   `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.
   A new act a pawn or the round chooses gets a verb; `tests/commands.js` checks statically that only the verbs call the acts they wrap.
@@ -203,7 +203,9 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Social: `culture`, `sim/encounters`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
-- Agency: `sim/agents`, `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle`, `sim/eligibility`, `sim/plans`.
+- Agency: `sim/agents`, `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/meetings`, `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
+  `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review; kept
+  in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
 
 ## Adding things

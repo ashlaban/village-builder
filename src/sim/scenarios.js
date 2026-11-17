@@ -101,8 +101,9 @@ VB['sim/scenarios'] = (() => {
         comp.size[comp.id[i]] >= 60 && !gen.used.has(i) && centres.every((x) => hexSteps(w, x, i) >= VILLAGE_SPACING);
       const c = findSite(w, rand, comp, free, scores);
       if (c < 0) break;
-      centres.push(c);
-      for (const fid of gen.addVillage(c, farms).farmsteads) {
+      const laid = gen.addVillage(c, farms).farmsteads;
+      if (laid.length) centres.push(c);
+      for (const fid of laid) {
         sizes[fid] = drawSize(rand);
         pop += sizes[fid];
         if (sizes[fid] >= 7) gen.addField(fid); // a big household works a fourth field
@@ -432,7 +433,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
     // @state st.meetingLog[]: {year, text}; newest first. (The village log is a view of st.record: sim/notable, villageLog.)
-    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self}; every event, append-only (sim/records, VB-075);
+    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self, tile, reason (of a `joined` event: why it
+    //   moved, VB-822)}; every event, append-only (sim/records, VB-075);
     //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start.
     //   A routine event's slot becomes, once folded, the index of its count in st.recordYears (VB-199); slots are never removed.
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends; sim/routes), oldest first, emptied each day a tile

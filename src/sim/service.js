@@ -2,12 +2,10 @@
 // servant for a household of at most one grown member whose ask for food fell short (VB-308), and with nobody to come, kin who hold its farm
 // in trust (VB-309); service where labour is short (VB-090)
 VB['sim/service'] = (() => {
-  const { setServant, takePeopleCheck } = VB['sim/records'];
+  const { takePeopleCheck } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
   const { wishOf } = VB['sim/wishes'];
-  const { moveTo, refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
-  // The end of the log line of one whose new home lies in another village, who set out on a journey (sim/agents, VB-287).
-  const setsOut = (st, id) => (st.journeys.some((j) => j.pawn === id) ? ', and sets out for it' : '');
+  const { refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hoursBetween } = VB['sim/routes'];
   const { SERVICE } = VB['sim/rules'];
@@ -60,6 +58,16 @@ VB['sim/service'] = (() => {
       }
     return out;
   }
+  // The family of id moves to household target (the move command, VB-822): id first, then the spouse with the minor children who follow.
+  function moveFamily(st, id, target, reason) {
+    const fam = familyOf(st, id),
+      sp = fam.length > 1 && fam[1] === spouseOf(st, id) ? fam[1] : null,
+      kids = fam.slice(sp === null ? 1 : 2),
+      go = (actor, args) => issue(st, { actor, verb: 'move', target, args, source: 'help' });
+    if (sp === null) return go(id, { reason, with: kids });
+    go(id, { reason });
+    go(sp, { reason, with: kids });
+  }
   function careForOrphans(st) {
     // The households whose membership changed since the last round (VB-323); extinction may dissolve one while this round is in progress.
     for (const liveId of takePeopleCheck(st)) {
@@ -85,7 +93,7 @@ VB['sim/service'] = (() => {
       }
       const guardian = best[0] || best[1];
       if (guardian) {
-        for (const id of familyOf(st, guardian.id)) moveTo(st, id, hh.id);
+        moveFamily(st, guardian.id, hh.id, 'guardian');
         setGuardian(st, hh, ward.id);
         personEvent(st, guardian.id, 'guardian', `Became guardian of ${fullName(ward)} at ${f.name}`, false); // recorded below
         log(
@@ -114,25 +122,25 @@ VB['sim/service'] = (() => {
   // land (st.demand) as farmhand or maid, if that adult's household keeps at least SERVICE.keepHands working hands without them: from the
   // holder's village first, then from the nearest village within SERVICE.hours walking hours; among them, the one whose household
   // keeps the most hands, then the oldest. The servant still wants land, as VB-090 has it, and may marry the holder.
-  // A landless adult goes into service with the holder of household hh, who lives alone (the serve command, VB-171).
-  function enterService(st, id, hhId) {
-    const best = st.pawns[id],
-      hh = st.households[hhId],
-      holder = st.pawns[hh.holder],
-      v = farmOf(st, hh).village;
-    const from = farmIn(st, st.households[best.household], v),
+  // A landless adult goes into service with the holder of household hh (VB-171): the move command's terms, its reason and its words.
+  function serving(st, id, hhId) {
+    const p = st.pawns[id],
+      hh = st.households[hhId];
+    if (!p || !hh || p.household === null || hh.holder === null) return { reason: 'service' };
+    const holder = st.pawns[hh.holder],
+      from = farmIn(st, st.households[p.household], farmOf(st, hh).village),
       alone = hh.members.length === 1;
-    moveTo(st, best.id, hh.id);
-    setServant(st, best.id, true);
-    personEvent(st, best.id, 'service', `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`, false); // recorded below
-    log(
-      st,
-      `${fullName(best)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, ${
+    return {
+      reason: 'service',
+      other: holder.id,
+      event: `Went into service with ${fullName(holder)} at ${farmIn(st, hh)}`,
+      line: `${fullName(p)} of ${from} goes into service with ${fullName(holder)} at ${farmIn(st, hh)}, ${
         alone ? 'who lived alone' : 'which was short of hands'
-      }${setsOut(st, best.id)}.`,
-      { kind: 'service', pawn: best.id, other: holder.id, ...atHousehold(st, hh) },
-    );
+      }`,
+    };
   }
+  const serve = (st, id, hhId, source) =>
+    issue(st, { actor: id, verb: 'move', target: hhId, args: serving(st, id, hhId), source });
   // Why q may not go into service at all, or null: it must be free to move, unmarried and of serving age.
   function unfit(st, q) {
     if (!free(st, q))
@@ -206,7 +214,7 @@ VB['sim/service'] = (() => {
       if (!best) continue;
       const back = { actor: hh.holder, verb: 'goBack', target: hh.id, args: { why: 'servant' }, source: 'round' };
       if (t && issue(st, back) !== true) continue;
-      if (issue(st, { actor: best.id, verb: 'serve', target: hh.id, source: 'round' }) === true) {
+      if (serve(st, best.id, hh.id, 'round') === true) {
         taken.add(hh.id);
         moved.add(best.id);
       }
@@ -270,7 +278,7 @@ VB['sim/service'] = (() => {
         }
       }
       if (best < 0) continue;
-      if (issue(st, { actor: q.id, verb: 'serve', target: short[best].id, source: 'round' }) !== true) continue;
+      if (serve(st, q.id, short[best].id, 'round') !== true) continue;
       short.splice(best, 1);
       moved.add(q.id);
     }
@@ -311,7 +319,7 @@ VB['sim/service'] = (() => {
       }
       if (best) {
         const from = farmIn(st, st.households[best.household], farmOf(st, hh).village);
-        for (const m of familyOf(st, best.id)) moveTo(st, m, hh.id);
+        moveFamily(st, best.id, hh.id, 'care');
         personEvent(
           st,
           best.id,
@@ -333,8 +341,7 @@ VB['sim/service'] = (() => {
         if (!available) available = willServe(st);
         VB.count.takeInWeighed += available.length;
         const s = servantFor(st, hh, available);
-        if (s && issue(st, { actor: s.id, verb: 'serve', target: hh.id, source: 'help' }) === true)
-          available = available.filter((x) => x !== s.id);
+        if (s && serve(st, s.id, hh.id, 'help') === true) available = available.filter((x) => x !== s.id);
         else {
           const args = { why: 'was short of food and hands, with nobody to come' };
           if (issue(st, { actor: hh.holder, verb: 'goToKin', target: hh.id, args, source: 'help' }) !== true) continue;
@@ -349,7 +356,6 @@ VB['sim/service'] = (() => {
     takeServants,
     serveWhereShort,
     takeIn,
-    enterService,
     hands,
     handsPerField,
     unfit,

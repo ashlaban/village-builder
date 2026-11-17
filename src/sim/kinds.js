@@ -851,5 +851,5 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy };
+  return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy, fuelFree };
 })();

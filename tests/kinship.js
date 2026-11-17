@@ -14,7 +14,7 @@ check(D(0, 5) === 0 && D(5, 0) === 0 && D(9, 0) === 0, 'a direct line is degree 
 const opts = C.DIMS[C.IDX.kinLimit].opts.map((o) => o[0]);
 check(opts.join() === 'second,first,close,uncle', 'kinLimit options are second, first, close, uncle');
 for (const o of opts) {
-  const cu = { kinLimit: o }, ok = (a, b) => VB['sim/lifecycle'].kinOk(st, a, b, cu);
+  const cu = { kinLimit: o }, ok = (a, b) => VB['sim/matching'].kinOk(st, a, b, cu);
   check(!ok(2, 3) && !ok(2, 11) && !ok(0, 5) && !ok(5, 0), `${o}: siblings, half-siblings and direct lines never marry`);
   check(ok(3, 5) === (rules.MARRIAGE.kinDegree[o] <= 3), `${o}: uncle-niece`); check(ok(5, 7) === (rules.MARRIAGE.kinDegree[o] <= 4), `${o}: first cousins`);
   check(ok(8, 7) === (rules.MARRIAGE.kinDegree[o] <= 5), `${o}: first cousins once removed`); check(ok(13, 5), `${o}: unrelated`);

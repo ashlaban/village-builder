@@ -1,7 +1,7 @@
 // Marriage (VB-153, stability review): two holders may marry: the couple lives on one farm and the other passes on (to an heir who can keep
 // it, a landless adult of its village, or it stands empty); a holder marries a spouse who is only first heir elsewhere, who leaves that line;
 // and a couple marries only when the farm it will live on holds food above its seed for MARRIAGE.means years of its people and one more.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], H = VB['sim/heirs'], { movingRound, killPawn } = VB['sim/lifecycle'];
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], H = VB['sim/heirs'], { killPawn } = VB['sim/lifecycle'], { movingRound } = VB['sim/round'];
 const { checkState } = require('./lib/invariants.js');
 const assert = require('assert');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('MARRIAGE FAIL:', m); } };
@@ -49,7 +49,7 @@ for (const grain of [0, 5000]) {
     if (h.members.filter((id) => st.pawns[id].age >= 18).length < 2) continue;
     const cu = R.practice(st, R.settlementIdOf(st, p));
     woman = st.pawns.find((q) => q.alive && q.sex === 'f' && q.age >= 18 && R.spouseOf(st, q.id) === null && !R.isHolder(st, q.id)
-      && H.placeIfMarried(st, q.id) === null && R.settlementIdOf(st, q) === R.settlementIdOf(st, p) && VB['sim/lifecycle'].kinOk(st, p.id, q.id, cu));
+      && H.placeIfMarried(st, q.id) === null && R.settlementIdOf(st, q) === R.settlementIdOf(st, p) && VB['sim/matching'].kinOk(st, p.id, q.id, cu));
     if (woman) { man = p; break; }
   }
   if (!man) { console.error('MARRIAGE FAIL: no first heir living with grown kin'); process.exit(1); }
@@ -76,7 +76,7 @@ for (const grain of [0, 5000]) {
       return o !== h && p && p.sex === 'm' && p.age >= 20 && p.household === o.id && R.spouseOf(st, p.id) === null
         // the same village and within twelve years of each other, so the match scores above MARRIAGE.minScore (it loses
         // MARRIAGE.gapWeight a year off the preferred gap; the first such woman at this seed was 25 years the elder, VB-402)
-        && VB['sim/lifecycle'].kinOk(st, p.id, w.id, cu) && vOf(p) === vOf(w) && Math.abs(p.age - w.age) <= 12;
+        && VB['sim/matching'].kinOk(st, p.id, w.id, cu) && vOf(p) === vOf(w) && Math.abs(p.age - w.age) <= 12;
     });
     if (c) { b = h; man = st.pawns[H.heirRanking(st, c)[0]]; break; }
   }
