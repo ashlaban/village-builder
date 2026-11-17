@@ -67,7 +67,7 @@ for (const id of st.liveHouseholds) {
   assert.strictEqual(a.job, null, 'its task let go');
   const got = Jobs.takeDay(s2, [a], Sim.cal(s2.t));
   assert.ok(got.has(a) && a.job && list.includes(a.job.key), `it takes a task of its list (${a.job && a.job.key}; it had ${had})`);
-  const open = list.find((k) => s2.jobs.get(k) && (VB['sim/kinds'].isOpen(s2.jobs.get(k)) || s2.jobs.get(k) === a.job));
+  const open = list.find((k) => s2.jobs.get(k) && (VB['sim/kinds'].isOpen(s2, s2.jobs.get(k)) || s2.jobs.get(k) === a.job));
   assert.strictEqual(a.job.key, open, 'the first that has room');
 }
 
