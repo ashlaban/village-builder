@@ -1,7 +1,7 @@
 // The gatherings of a run (VB-294), for tools/sim.js --report gathering: after each year, the gatherings settled at that autumn's meetings,
 // their hosts and villages, how many villages named each host in their choice, and the villages with none; then the summary over the run:
 // gatherings standing a year, how often a village's host changed from the year before, and the share of villages with no gathering.
-// Reads the choice (village.gathering) only.
+// Reads the choice (village.gathering) only, and the work counters of sim/gathering since the start.
 module.exports = (VB, st) => {
   const Gt = VB['sim/gathering'], rows = [];
   let changed = 0, kept = 0;
@@ -29,7 +29,8 @@ module.exports = (VB, st) => {
           none: r.none.join(',') || '-', namedEachGreen: Object.entries(r.named).map(([h, k]) => `${h}:${k}`).join(' ') })),
         summary: { years: n, gatheringsAYear: n ? +(rows.reduce((s, r) => s + r.gatherings.length, 0) / n).toFixed(2) : 0,
           hostChanges: changed, hostKept: kept, hostChangeShare: changed + kept ? +(changed / (changed + kept)).toFixed(3) : 0,
-          noneShare: villageYears ? +(noneYears / villageYears).toFixed(3) : 0 },
+          noneShare: villageYears ? +(noneYears / villageYears).toFixed(3) : 0,
+          counters: Object.fromEntries(Object.keys(VB.COUNTERS).filter((k) => k.startsWith('gather')).map((k) => [k, VB.count[k]])) },
       };
     },
   };
