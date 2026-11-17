@@ -92,8 +92,9 @@ function memberRow(id) {
     esc(Sim.describe(st, id)),
   );
 }
-// marks: icons put before its state (a village's card marks the farms its warnings concern, VB-162). Its state is a chip for each supply
-// about to fall short, by its head's last reckoning (VB-667: one stored outlook a farm, read), and its people as an icon and a number; a
+// marks: chips put before its state (a village's card puts a chip of VB-667's kind on the farms its warnings concern, VB-162, VB-927). Its
+// state is a chip for each supply about to fall short, by its head's last reckoning (VB-667: one stored outlook a farm, read), and its
+// people as an icon and a number; a
 // title says how the household eats today.
 function farmRow(f, marks = '') {
   const hh = f.household === null ? null : st.households[f.household];
@@ -527,15 +528,23 @@ const WARNINGS = [
     key: 'food',
     icon: goodIcon('hunger'),
     word: (S) => `Food short of the ${S.viewer.days} days ahead`,
+    tone: 'bad',
     foretells: true,
   },
   {
     key: 'hunger',
     icon: goodIcon('hunger'),
     word: (S) => `Hungry ${Sim.OVERVIEW.hungry} or more of the last ${S.hungry.window} days`,
+    tone: 'bad',
   },
-  { key: 'heir', icon: goodIcon('heir'), word: () => 'Holder over 60, no heir at home' },
-  { key: 'hands', icon: goodIcon('field'), word: () => 'More fields than hands to work them', foretells: true },
+  { key: 'heir', icon: goodIcon('heir'), word: () => 'Holder over 60, no heir at home', tone: 'warn' },
+  {
+    key: 'hands',
+    icon: goodIcon('field'),
+    word: () => 'More fields than hands to work them',
+    tone: 'warn',
+    foretells: true,
+  },
 ];
 function warningsHTML(S) {
   const on = WARNINGS.filter((x) => S.warnings[x.key].length);
@@ -645,7 +654,10 @@ function showVillage(id) {
     f.household === null
       ? ''
       : WARNINGS.filter((x) => S.warnings[x.key].includes(f.household))
-          .map((x) => `<span class="warn-mark" title="${esc(x.word(S))}">${x.icon}</span>`)
+          .map(
+            (x) =>
+              `<span class="supply-chip ${x.tone}" data-warning="${x.key}" title="${esc(x.word(S))}" aria-label="${esc(x.word(S))}">${x.icon}</span>`,
+          )
           .join('');
   const list = `<h3>Farms</h3>${farms.map((f) => farmRow(f, marks(f))).join('')}`;
   card(v.name, lines, '', {
