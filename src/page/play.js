@@ -256,8 +256,8 @@ function renderActions() {
   const hh = p.household !== null ? st.households[p.household] : null,
     f = hh ? st.farmsteads[hh.farmstead] : null;
   h += `<div class="play-head"><h3>You play ${esc(Sim.fullName(p))}</h3><button type="button" data-play="find">Find</button></div>`;
-  // the pawn's levels and its household's food and firewood, as its card and the farm's show them (VB-664: one unit, one meter)
-  h += `<div class="needs">${pawnStats(id)}${hh ? `<h3 class="card-sec">${esc(f.name)}</h3>${stats([foodStat(hh), woodStat(hh)])}` : ''}</div>`;
+  // the pawn's levels and its household's supplies, as its card and the farm's show them (VB-664: one meter; VB-667: one supply component)
+  h += `<div class="needs">${pawnStats(id)}${hh ? `<h3 class="card-sec">${esc(f.name)}</h3>${suppliesHTML(Sim.supplyOutlook(st, hh.id))}` : ''}</div>`;
   h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
   h +=
     `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>` +

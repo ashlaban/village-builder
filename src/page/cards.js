@@ -92,17 +92,21 @@ function memberRow(id) {
     esc(Sim.describe(st, id)),
   );
 }
-// marks: icons put before its state (a village's card marks the farms its warnings concern, VB-162)
+// marks: icons put before its state (a village's card marks the farms its warnings concern, VB-162). Its state is a chip for each supply
+// about to fall short, by its head's last reckoning (VB-667: one stored outlook a farm, read), and its people as an icon and a number; a
+// title says how the household eats today.
 function farmRow(f, marks = '') {
   const hh = f.household === null ? null : st.households[f.household];
+  const n = hh ? hh.members.length : 0,
+    people = `<span class="ppl" title="${n} people" aria-label="${n} people">${goodIcon('people')}${n}</span>`;
   return row(
-    `data-farm="${f.id}"`,
+    `data-farm="${f.id}"${hh ? ` title="${esc(hungerWord(hh))}"` : ''}`,
     iconImg(farmIcon(f), hh ? 'mini' : 'mini gone'),
     f.name,
     hh
       ? `Held by ${Sim.fullName(st.pawns[hh.holder])}`
       : `Empty for ${emptyYears(f)} years${f.state === 'ruin' ? ', a ruin' : ''}`,
-    hh ? `${marks}${hungerMark(hh)}${hh.members.length} people · ${hungerWord(hh)}` : marks,
+    hh ? `${marks}${supplyChips(Sim.supplyOutlook(st, hh.id))}${people}` : marks,
   );
 }
 // One listener for every link: a person, a farm or a village.
@@ -123,19 +127,6 @@ const houseShown = () => {
   const f = st.farmsteads[selFarm];
   return f.household === null ? null : st.households[f.household];
 };
-// Food is counted in one unit wherever it is shown: days of the household's need (page/play, foodDays), on a meter of one year.
-const hungerTone = (hh) => (hh.hunger <= 0 ? 'good' : hh.hunger < 0.25 ? 'warn' : 'bad');
-function foodStat(hh) {
-  const days = foodDays(hh);
-  return {
-    icon: 'hunger',
-    label: 'Food',
-    value: days === null ? 'none to feed' : `${days} ${days === 1 ? 'day' : 'days'}`,
-    title: `Food in store, in days of the household's need: ${hungerWord(hh).toLowerCase()}`,
-    tone: hungerTone(hh),
-    meter: { value: days || 0, max: Sim.YEAR_DAYS, marks: [] },
-  };
-}
 const loads = (n) => `${n} ${n === 1 ? 'load' : 'loads'}`;
 const woodStat = (hh) => ({
   icon: 'wood',
@@ -145,28 +136,12 @@ const woodStat = (hh) => ({
   tone: hh.cold > 0 ? 'bad' : '',
   title: hh.cold > 0 ? 'Cold: no firewood' : 'Firewood',
 });
-function hayStat(hh) {
-  const need = Math.round(Sim.winterNeed(st, hh)),
-    hay = Math.round(hh.hay);
-  if (!need && !hay) return null;
-  return {
-    icon: 'hay',
-    label: 'Hay',
-    value: `${hay}`,
-    tone: hay < need ? 'warn' : '',
-    meter: {
-      value: hay,
-      max: Math.max(1, need * 1.5),
-      marks: need ? [{ at: need, label: `a winter needs ${need}` }] : [],
-    },
-  };
-}
-// What the card's first tab says of the household at a glance: food, firewood, hay, and what is wrong.
+// What the card's first tab says of the household at a glance: its supplies, as the Stores tab shows them (VB-667), and what is wrong
+// today.
 const houseStats = (hh) =>
+  suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
   stats([
-    foodStat(hh),
-    woodStat(hh),
-    hayStat(hh),
+    hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
     hh.dry > 0
       ? { icon: 'water', label: 'Water', value: 'none', tone: 'bad', title: 'No water: nothing is cooked' }
       : null,
@@ -323,6 +298,7 @@ function storesTab(hh) {
   const low = Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)));
   return (
     section('Supplies') +
+    suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
     stats(supplies) +
     section('Materials') +
     materialsHTML(materialsOf(hh), worksOf(hh), allMaterials) +
@@ -426,7 +402,8 @@ function animalsTab(hh) {
   const spoilt = Math.round(hh.haySpoilt || 0);
   return (
     (beasts.length ? stats(beasts) : '<p class="card-note">No animals.</p>') +
-    stats([hayStat(hh), spoilt ? { icon: 'hay', label: 'Hay spoilt', value: spoilt, tone: 'warn' } : null]) +
+    suppliesHTML(Sim.supplyOutlook(st, hh.id), ['hay']) +
+    stats([spoilt ? { icon: 'hay', label: 'Hay spoilt', value: spoilt, tone: 'warn' } : null]) +
     section('Larder') +
     (larder.length ? stats(larder) : '<p class="card-note">The larder is empty.</p>')
   );
