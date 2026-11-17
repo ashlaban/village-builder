@@ -2,9 +2,29 @@
 // order, the next steps of its fields and their windows, the project, the named tiles and what is reserved; read-only, but for the played
 // pawn that is its head, whose controls choose through the head's verbs (Sim.head, VB-253) and say why a choice is refused
 // ======== the plan panel ========
-// The page's own state: the last choice's answer (planMsg: {text, bad}), shown at the head of the tab until the next. What the plan says of
-// the year ahead is its head's reckoning (AGENTS.md, Deciding without Kim, 14): the targets are the head's, by its foresight and bias.
+// The page's own state: the last choice's answer (planMsg: {text, bad, key}), shown at the head of the tab until the next choice, until
+// the plan next changes (key: what the plan held when the answer was first shown, planKey) or until the tab is closed (drawPlanMarks):
+// an answer is of its moment (VB-1027). What the plan says of the year ahead is its head's reckoning (AGENTS.md, Deciding without Kim,
+// 14): the targets are the head's, by its foresight and bias.
 let planMsg = null;
+// What the plan holds, as one string: its targets, named tiles, order and project. A change of it retires the answer shown.
+const planKey = (V) =>
+  JSON.stringify([
+    Object.values(V.targets).map((t) => t.now),
+    Object.values(V.goods || {}).map((g) => g.now),
+    V.tiles,
+    V.order,
+    V.project,
+    V.heldOff,
+  ]);
+// The tile a household's project works on (its open step's place), or -1: the page reads sim/projects, as the Reserved rows do.
+function projectTile(hh) {
+  const p = VB['sim/projects'].projectOf(st, 'household', hh.id),
+    s = p ? p.steps[p.open] : null;
+  return s && Number.isInteger(s.place) ? s.place : -1;
+}
+// A "Show on map" link to tile t (VB-894): the same wherever the tab names a tile.
+const flyBtn = (t, of) => planBtn({ plan: 'fly', tile: t }, 'Show on map', `Fly to the ${of}'s tile on the map`);
 // The step of a stepper, by target: hay in quarter winters, the woodpile by the load, fields and the cow whole; a made good by one unit.
 const PLAN_STEP = { hay: 0.25, wood: 1, fields: 1, cow: 1 };
 // A made good's icon and its name in a row (sim/targets' MADE): its good's icon where the store has one.
@@ -231,19 +251,23 @@ function tilesHTML(hh, V, mine) {
   return ['field', 'meadow']
     .map((what) => {
       const t = V.tiles[what],
-        name = what === 'field' ? 'Next field' : 'Next hay meadow';
+        name = what === 'field' ? 'Next field' : 'Next hay meadow',
+        // the project under way is making one of this kind: the row below names its tile, and this one is the one after it
+        making = t < 0 && V.project && V.project.what === what;
       const h = stat({
         icon: what === 'field' ? 'field' : 'meadow',
         label: name,
-        value: t >= 0 ? '' : "the head's pick",
+        value: t >= 0 ? '' : making ? 'after the one being made' : "the head's pick",
         note: t >= 0 ? `tile ${t}` : '',
         wide: true,
-        title: t >= 0 ? `${name}: the tile chosen` : `${name}: the head picks its tile when it wants one`,
+        title:
+          t >= 0
+            ? `${name}: the tile chosen`
+            : making
+              ? `${name}: one is being made (the project below shows where); the head picks the tile of the one after it when it wants one`
+              : `${name}: the head picks its tile when it wants one`,
       });
-      const fly =
-        t >= 0
-          ? planBtn({ plan: 'fly', tile: t }, 'Show on map', `Fly to the ${name.toLowerCase()}'s tile on the map`)
-          : '';
+      const fly = t >= 0 ? flyBtn(t, name.toLowerCase()) : '';
       const ctl = mine
         ? `<span class="plan-ctl">${fly}${planBtn(
             { plan: 'tile', what },
@@ -263,14 +287,17 @@ function tilesHTML(hh, V, mine) {
 }
 // The project under way and its step, or none; the head begins one from the menu, gives it up, or holds off projects.
 function projectHTML(hh, V, mine) {
-  const pj = V.project;
+  const pj = V.project,
+    at = pj ? projectTile(hh) : -1,
+    fly = at >= 0 ? `<span class="plan-ctl">${flyBtn(at, 'project')}</span>` : '';
   const h = pj
     ? stat({
         img: actIcon('spade'),
         label: `New ${pj.what === 'meadow' ? 'hay meadow' : pj.what}`,
         value: pj.step,
+        note: at >= 0 ? `tile ${at}` : '',
         wide: true,
-        title: "The household's project, and its step under way",
+        title: "The household's project, its step under way and the tile it is on",
       })
     : stat({
         img: actIcon('spade'),
@@ -279,7 +306,7 @@ function projectHTML(hh, V, mine) {
         wide: true,
         title: V.heldOff ? 'The head holds off projects' : 'No project under way',
       });
-  if (!mine) return `<div class="plan-row" data-project>${h}</div>`;
+  if (!mine) return `<div class="plan-row" data-project>${h}${fly}</div>`;
   const menu = pj
     ? planBtn({ plan: 'drop' }, 'Give it up', 'Give up the project under way', true, 'wide')
     : planBtn(
@@ -305,7 +332,7 @@ function projectHTML(hh, V, mine) {
         'wide',
       )
     : planBtn({ plan: 'project', what: 'none' }, 'Hold off', 'Begin no project by the rule until told', true, 'wide');
-  return `<div class="plan-row" data-project>${h}<span class="plan-ctl menu">${menu}${hold}</span></div>`;
+  return `<div class="plan-row" data-project>${h}${fly}<span class="plan-ctl menu">${menu}${hold}</span></div>`;
 }
 // What is reserved, by good: the plan's own (the seed) and its projects' (what their steps will spend).
 function reservedHTML(hh) {
@@ -340,6 +367,11 @@ function planTab(hh) {
   if (!V) return '<p class="card-note">This household has no plan.</p>';
   const mine = planMine(hh),
     head = V.head ? Sim.fullName(st.pawns[V.head.pawn]) : null;
+  if (planMsg) {
+    const key = planKey(V);
+    if (planMsg.key === undefined) planMsg.key = key;
+    else if (planMsg.key !== key) planMsg = null; // the plan has changed since: the answer is of an earlier plan
+  }
   const msg =
     mine && planMsg ? `<p class="plan-msg${planMsg.bad ? ' bad' : ''}" role="status">${esc(planMsg.text)}</p>` : '';
   return (
@@ -366,6 +398,10 @@ function planTab(hh) {
 function planClick(b, hh) {
   const d = b.dataset;
   let r;
+  if (d.plan === 'fly') {
+    flyTo(w.hx[+d.tile], w.hy[+d.tile]);
+    return;
+  }
   if (d.plan === 'target') r = Sim.head(st, 'target', { store: d.store, n: d.n === 'null' ? null : +d.n });
   else if (d.plan === 'order') {
     const steps = Sim.headView(st, hh.id).order,
@@ -374,16 +410,23 @@ function planClick(b, hh) {
     r = Sim.head(st, 'order', { steps });
   } else if (d.plan === 'tile' && d.clear) r = Sim.head(st, 'tile', { what: d.what, tile: null });
   else if (d.plan === 'tile') {
+    const { sites, why } = planSites(d.what, hh),
+      title = d.what === 'field' ? 'The next field' : 'The next hay meadow';
+    // no tile would do: said at once, with the rule's reason, and the tool stays out of hand (VB-1027)
+    if (!sites.length) {
+      planMsg = { text: `${title}: no tile will take it; ${why}.`, bad: true };
+      return;
+    }
     planMsg = null;
     startTool({
       kind: 'plan',
       what: d.what,
       farm: hh.farmstead,
       icon: 'spade',
-      title: d.what === 'field' ? 'The next field' : 'The next hay meadow',
+      title,
       needs: 'a tile for it',
       keep: false,
-      sites: planSites(d.what, hh),
+      sites,
     });
     renderActions();
     return;
@@ -393,16 +436,22 @@ function planClick(b, hh) {
   planMsg = r === true ? { text: `Done: ${b.getAttribute('aria-label')}.` } : { text: r, bad: true };
 }
 // The tiles that would take the next field or meadow, read once at the tool's start: those within the farm's reach (the walk of the rule,
-// REACH_FIELD or REACH_MEADOW steps) that the rule's own check (fieldWhy, meadowWhy) lets through, the same as the verb's.
+// REACH_FIELD or REACH_MEADOW steps) that the rule's own check (fieldWhy, meadowWhy) lets through, the same as the verb's. With them, for
+// when there is none, why: the rule's reason that refuses the most tiles within reach (the house's own tile aside), in the rule's words.
 const PLAN_REACH = { field: 4, meadow: 6 };
 function planSites(what, hh) {
   const f = st.farmsteads[hh.farmstead],
     why = what === 'field' ? VB['sim/fields'].fieldWhy : VB['sim/meadows'].meadowWhy,
     built = VB['sim/fields'].builtTiles(st),
-    out = [];
-  for (const t of VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[what], VB['sim/routes'].walkable(st.w)).dist.keys())
-    if (why(st, f, hh, t, built) === null) out.push(t);
-  return out;
+    sites = [],
+    reasons = new Map();
+  for (const t of VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[what], VB['sim/routes'].walkable(st.w)).dist.keys()) {
+    const r = why(st, f, hh, t, built);
+    if (r === null) sites.push(t);
+    else if (t !== f.house) reasons.set(r, (reasons.get(r) || 0) + 1);
+  }
+  const top = [...reasons].sort((a, b) => b[1] - a[1])[0];
+  return { sites, why: top ? top[0] : 'no tile is within reach of the house' };
 }
 // The tiles the plan names, marked in the plan's colour while the farm's Plan tab is open (called each frame, page/animate); redrawn when
 // they or the zoom change.
@@ -412,8 +461,9 @@ L.hover.addChild(planG);
 function drawPlanMarks() {
   const hh = cardTab === 'plan' && !$('tileHouse').hidden && st ? houseShown() : null,
     plan = hh && st.plans.households.get(hh.id),
-    named = plan ? [plan.tiles.field, plan.tiles.meadow].filter((t) => t >= 0) : [],
+    named = plan ? [plan.tiles.field, plan.tiles.meadow, projectTile(hh)].filter((t) => t >= 0) : [],
     key = named.length ? `${named.join(',')}|${cam.z.toFixed(3)}` : '';
+  if (!hh && planMsg && !(tool && tool.kind === 'plan')) planMsg = null; // the tab is closed: its answer goes with it (VB-1027)
   if (key === planMarkKey) return;
   planMarkKey = key;
   planG.clear();
