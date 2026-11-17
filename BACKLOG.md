@@ -69,7 +69,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-626](backlog/VB-626.md) | Measure why water goes unfetched after VB-331 | - | 3 | S | the numbers VB-331 left: why the water job went undone, meals uncooked, deaths |
 | [VB-635](backlog/VB-635.md) | Founders: the couples' ages, and what a pool of ten costs | - | 3 | S | Sixteen founders seeds over 80 years reported by what bars marriage; the founders' ages as named values, tried younger in at most five runs; the count of ten and the kin limit untouched. Waits for VB-633 (its report). |
 | [VB-646](backlog/VB-646.md) | A village's plot with nobody to have it does not stand open for ever | year | 3 | S | A village plot cleared or roofed with plot.to null keeps its project plan open with nothing posted (found by VB-255's review) |
-| [VB-649](backlog/VB-649.md) | Teleport: a cart and its team are home when their carrier is not | physical | 3 | S | A teleport found by VB-611: release (sim/agents) frees the cart a carrier had out at once (Carts.leave), so a cart left on the road with a dead carrier, and its ox team, are free at the farm the same step. |
 | [VB-650](backlog/VB-650.md) | Teleport: a household that dies out leaves its barn to no one | physical | 3 | M | A vanish found by VB-611: sim/heirs extinct closes the household's stores (Stores.close) and nothing passes its grain, hay, wood or other goods on (but for the married-away case, which moves the grain to another barn at once); may overlap the 13 November audit's handing on. |
 | [VB-654](backlog/VB-654.md) | VB-632 numbers: marriages put off and hungry household-days | - | 3 | S | The two measures VB-632 could not take |
 | [VB-660](backlog/VB-660.md) | The round's fate of those free to marry on the eve | - | 3 | S | VB-633's census finds 95-98% of populous's pool free to marry on the eve, since it takes the best over every pawn; report what the round did with them |
@@ -105,8 +104,10 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-984](backlog/VB-984.md) | A booth's maker lets a pawn in | far | 3 | S | verb letIn adds a guest to a booth |
 | [VB-985](backlog/VB-985.md) | Test: a booth's wood fetched from the village wood | far | 3 | S | cover the fetched-wood path of the booth job |
 | [VB-990](backlog/VB-990.md) | Measure VB-785's night cost on small-y40 loaded a year | - | 3 | S | Measure the night cost on a late save |
+| [VB-993](backlog/VB-993.md) | Teleport: a cart held at its work is home when its pawn is released | physical | 3 | S | the dung or firewood cart is free at the farm when its pawn is released at the field |
 | [VB-996](backlog/VB-996.md) | The household's panel says why it does or does not feast | - | 3 | S | Show the rule feast (Sim.explainFeast) on the household's panel |
 | [VB-997](backlog/VB-997.md) | VB-458's numbers at populous seeds 3 and 11, 30 years | - | 3 | S | Owed measures of the feast, for VB-662 |
+| [VB-999](backlog/VB-999.md) | Rotations: a new field's seed and the window-closing reviews for every crop | crops | 3 | S | fieldProject holds barley's seed and sim/plans closing() reads barley's window, whatever the farm's rotation |
 
 ## Waiting for Kim
 
