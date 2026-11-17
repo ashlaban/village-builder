@@ -31,7 +31,7 @@ assert.deepStrictEqual(calls, [], `acts called outside sim/commands: ${calls.joi
 const st = Sim.seed(island(7), 7, 'founders');
 Sim.advance(st, 3 * Sim.DAY + 4); // a working morning: jobs posted
 const snap = () => { const { w, ...rest } = st; return canon(rest); };
-const j = [...st.jobs.values()].find((x) => isOpen(x) && x.claims.length === 0);
+const j = [...st.jobs.values()].find((x) => isOpen(st, x) && x.claims.length === 0);
 const a = st.agents.find((x) => st.pawns[x.id].died === null && x.job !== j);
 assert.ok(j && a, 'an open job and a living pawn');
 const had = a.job;
@@ -48,7 +48,7 @@ const refusals = [
   [{ actor: a.id, verb: 'fly', target: j.key }, /there is no verb/],
 ];
 refusals.push([{ actor: dead.id, verb: 'work', target: j.key }, /not a living pawn/]);
-const full = [...st.jobs.values()].find((x) => !isOpen(x));
+const full = [...st.jobs.values()].find((x) => !isOpen(st, x));
 assert.ok(full, 'a job with no room');
 refusals.push([{ actor: a.id, verb: 'work', target: full.key }, /has no room/]);
 for (const [cmd, why] of refusals) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
@@ -244,8 +244,8 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
     assert.strictEqual(offer(s, b.holder, a.holder, gift(30)), true);
     assert.deepStrictEqual([s.offers, s.offerSeq], [[], 0], 'answered at once: never kept');
     assert.ok(Math.abs(b0 - Sim.grainOf(b) - 30) < 1e-9 && Sim.grainOf(a) <= a0, 'the gift is set aside where it lies (VB-461)');
-    assert.ok(s.journeys.some((j) => j.why === 'fetch' && s.pawns[j.pawn].household === a.id), 'and a member of the receiving household fetches it');
-    for (let k = 0; k < 96 && s.journeys.length; k++) Sim.advance(s, 0.5);
+    assert.ok(s.away.some((j) => j.why === 'fetch' && s.pawns[j.pawn].household === a.id), 'and a member of the receiving household fetches it');
+    for (let k = 0; k < 96 && s.away.length; k++) Sim.advance(s, 0.5);
     assert.ok(a.ledger.some((e) => e.kind === 'gift' && Math.abs(e.n - 30) < 1e-9), 'the gift settles as it comes in');
     assert.ok(balance(s, b.holder, a.holder) > 0, 'the giver is owed its worth: goodwill');
     for (const [args, why] of [[{ basis: 'loan' }, /no basis/], [{ ...gift(30), wants: { good: 'grain', n: 1 } }, /wants nothing/],
@@ -278,16 +278,16 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
     assert.strictEqual(s.offers.length, 1);
     Sim.advance(s, 2 * Sim.DAY);
     assert.deepStrictEqual(s.offers, []);
-    for (let k = 0; k < 96 && s.journeys.some((j) => j.why === 'fetch'); k++) Sim.advance(s, 0.5); // fetched (VB-461)
+    for (let k = 0; k < 96 && s.away.some((j) => j.why === 'fetch'); k++) Sim.advance(s, 0.5); // fetched (VB-461)
     assert.ok(a.ledger.some((e) => e.kind === 'gift' && Math.abs(e.n - 20) < 1e-9), 'settled at its due time');
   }
   // (c) an ask: a holder asks another for grain; the asked weighs it as the gift it would make, and a yes sets the grain aside, fetched by the asker
   {
     const { s, a, b } = fresh(), b0 = Sim.grainOf(b);
     assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 20 } }), true);
-    const j = s.journeys.find((x) => x.why === 'fetch');
-    assert.ok(j && s.pawns[j.pawn].household === a.id && j.gift.stops[0].left === 20, `a member of the asking household sets out to fetch: ${JSON.stringify(s.journeys)}`);
-    assert.ok(!s.journeys.some((x) => x.why === 'carry'), 'no carrier of the asked household takes it up at the start');
+    const j = s.away.find((x) => x.why === 'fetch');
+    assert.ok(j && s.pawns[j.pawn].household === a.id && j.gift.stops[0].left === 20, `a member of the asking household sets out to fetch: ${JSON.stringify(s.away)}`);
+    assert.ok(!s.away.some((x) => x.why === 'carry'), 'no carrier of the asked household takes it up at the start');
     const took = b0 - Sim.grainOf(b); // the grain is set aside where it lies, no more
     assert.ok(Math.abs(took - 20) < 1e-9, `the grain is set aside: ${took}`);
     assert.ok(/own household/.test(offer(s, a.holder, a.holder, { basis: 'ask', wants: { good: 'grain', n: 20 } })), 'not of one\'s own');
@@ -307,7 +307,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
     Sim.advance(s, 3 * Sim.DAY);
     assert.deepStrictEqual(s.offers, [], 'answered at its due time');
     assert.strictEqual(VB.count.offerWeighed, n0 + 1, 'one evaluation');
-    assert.ok(a.ledger.some((e) => e.kind === 'gift') || s.journeys.some((x) => x.why === 'fetch'), 'and fetched');
+    assert.ok(a.ledger.some((e) => e.kind === 'gift') || s.away.some((x) => x.why === 'fetch'), 'and fetched');
   }
   assert.ok(['gift', 'ask', 'match'].every((k) => Offers.BASES[k] && typeof Offers.BASES[k].weigh === 'function'), 'the table of bases');
 }

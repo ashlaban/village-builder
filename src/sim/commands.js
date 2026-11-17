@@ -12,12 +12,7 @@ VB['sim/commands'] = (() => {
     hold,
     reachAfter,
     travelling,
-    carryGift,
-    fetcherOf,
-    haulerOf,
-    fetchGift,
-    haulGift,
-    journeyOf,
+    stayOf,
   } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { emit } = VB['sim/events'];
@@ -80,9 +75,9 @@ VB['sim/commands'] = (() => {
   const hauled = (g) => !g.carrier && 'farmstead' in g.from && !('farmstead' in g.to);
   function fetchWhy(st, g) {
     if (typeof g !== 'string' && hauled(g))
-      return haulerOf(st, g.from) < 0 ? 'no one of the household can carry it' : null;
+      return later('sim/away').haulerOf(st, g.from) < 0 ? 'no one of the household can carry it' : null;
     if (typeof g === 'string' || !fetched(g)) return null;
-    return fetcherOf(st, g.to) < 0 ? 'no one of the household can fetch it' : null;
+    return later('sim/away').fetcherOf(st, g.to) < 0 ? 'no one of the household can fetch it' : null;
   }
   function giftOffer(st, c) {
     const t = c.target,
@@ -130,7 +125,7 @@ VB['sim/commands'] = (() => {
         free(st, c.actor) ||
         (!st.jobs.has(c.target)
           ? `there is no job ${c.target}`
-          : !isOpen(st.jobs.get(c.target))
+          : !isOpen(st, st.jobs.get(c.target))
             ? `job ${c.target} has no room`
             : attentionOf(st.jobs.get(c.target)) !== 'full'
               ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))
@@ -166,6 +161,29 @@ VB['sim/commands'] = (() => {
       check: (st, c) =>
         free(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
       run: (st, c) => goHome(st, st.agents[c.actor]),
+    },
+    // lodge(tile, {why, days, jobs, host}) (VB-783; design.md, Sleeping away from home): walk to the tile and sleep there, working only
+    // the tasks `jobs` names, on a pack of a ration a day for `days` (at most AWAY.pack) from the household's food above its seed; with
+    // `host`, a guest in that household's house, with its head's yes (sim/away lodgeWhy)
+    lodge: {
+      check: (st, c) => free(st, c.actor) || later('sim/away').lodgeWhy(st, c.actor, c.target, c.args),
+      run: (st, c) => {
+        const a = st.agents[c.actor];
+        later('sim/away').lodge(st, a, c.target, c.args);
+        goHome(st, a); // to its bed
+      },
+    },
+    // comeHome: a pawn lodging away turns for home, now in the working hours or when it is outdoors, else at 6:00; its stay ends at home
+    comeHome: {
+      check: (st, c) => living(st, c.actor) || later('sim/away').comeHomeWhy(st, c.actor),
+      run: (st, c) => {
+        const a = st.agents[c.actor],
+          h = cal(st.t).hour;
+        later('sim/away').comeHome(st, a);
+        if (a.inside && (h < WORK[0] || h >= WORK[1])) return; // it walks when its day starts (sim/away dayAway)
+        release(st, a);
+        goHome(st, a);
+      },
     },
     // idle(until): look for nothing to do until game time args.until
     idle: {
@@ -240,11 +258,11 @@ VB['sim/commands'] = (() => {
       },
       run: (st, c) => {
         const g = later('sim/offers').delivery(st, c);
-        if (g.carrier !== undefined) carryGift(st, g);
+        if (g.carrier !== undefined) later('sim/away').carryGift(st, g);
         else if (hauled(g))
-          haulGift(st, Object.assign(g, { hauler: haulerOf(st, g.from) })); // set aside, carried to the green (VB-849)
+          later('sim/away').haulGift(st, Object.assign(g, { hauler: later('sim/away').haulerOf(st, g.from) })); // set aside, carried to the green (VB-849)
         else if (fetched(g))
-          fetchGift(st, Object.assign(g, { fetcher: fetcherOf(st, g.to) })); // set aside, fetched (VB-461)
+          later('sim/away').fetchGift(st, Object.assign(g, { fetcher: later('sim/away').fetcherOf(st, g.to) })); // set aside, fetched (VB-461)
         else settleGift(st, g);
       },
     },
@@ -468,7 +486,7 @@ VB['sim/commands'] = (() => {
         const at = st.farmsteads[hh.farmstead].name;
         setServant(st, c.actor, true);
         personEvent(st, c.actor, 'service', a.event || `Went into service at ${at}`, false); // recorded below
-        const out = journeyOf(st, c.actor) ? ', and sets out for it' : ''; // its new home lies in another village (VB-287)
+        const out = stayOf(st, c.actor) ? ', and sets out for it' : ''; // its new home lies in another village (VB-287)
         log(st, `${a.line || `${fullName(st.pawns[c.actor])} goes into service at ${at}`}${out}.`, {
           kind: 'service',
           pawn: c.actor,

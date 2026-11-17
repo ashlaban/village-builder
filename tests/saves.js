@@ -42,5 +42,31 @@ for (const [label, make, restore, before, after] of [
     if (!new RegExp(`format ${old}, this build reads 4`).test(why || '')) { failed++; console.error(`SAVES FAIL: a format-${old} save was not refused (${why})`); }
   }
 }
+{ // VB-783: a save made before the stays, with an open journey (st.journeys, st.journeySeq; its provisions' kind 'journey'), loads it as a
+  // stay away whose bed is where its leg ends, indexed by its pawn's agent.away, and plays on as the save made today
+  const { tinyWorld, tinyState } = require('./lib/tiny.js');
+  const world = () => tinyWorld(Array(9).fill('.'.repeat(180)), { seed: 7 });
+  const st = tinyState(world(), [{ at: [6, 4], farms: 1, sizes: [5] }, { at: [172, 4], farms: 1, sizes: [5] }], { seed: 7 });
+  Sim.advance(st, 15 - (st.t % DAY) + DAY);
+  const left = st.households[1], bride = left.members.find((id) => id !== left.holder && st.pawns[id].age >= 14);
+  VB['sim/stores'].put(st, left, 'grain', 50, 'harvest', { barley: 50 });
+  VB['sim/commands'].issue(st, { actor: bride, verb: 'move', target: st.households[0].id, args: { reason: 'home' }, source: 'debug' });
+  Sim.advance(st, 2);
+  const now = JSON.parse(JSON.stringify(Sim.save(st))), s = Sim.load(world(), JSON.parse(JSON.stringify(now)));
+  s.journeys = s.away.map(({ bed, roof, ...j }) => j); // the state as it was saved before VB-783
+  s.journeySeq = s.awaySeq;
+  delete s.away;
+  delete s.awaySeq;
+  for (const x of s.agents) delete x.away;
+  for (const hh of s.households) for (const e of hh.ledger || []) if (e.kind === 'away') e.kind = 'journey';
+  const old = JSON.parse(JSON.stringify(Sim.save(s)));
+  const a = Sim.load(world(), now), b = Sim.load(world(), old);
+  const ok = b.away.length === 1 && b.away[0].bed === null && b.away[0].roof === 'none' && b.agents[bride].away === b.away[0].id &&
+    !('journeys' in b) && b.awaySeq === a.awaySeq && b.households[1].ledger.some((e) => e.kind === 'away');
+  for (const x of [a, b]) Sim.advance(x, 2 * DAY);
+  const bad = ['away', 'awaySeq', 'agents', 'pawns', 'households'].filter((k) => canon(a[k]) !== canon(b[k]));
+  if (!ok || bad.length) { failed++; console.error(`SAVES FAIL: a save's journey loads as a stay (${ok}), and plays on alike (${bad.join(', ')} differ)`); }
+  out.push('an old save\'s journey as a stay');
+}
 if (failed) process.exit(1);
 console.log(`saves ok: saved, loaded into a new world and advanced, each run matches the unbroken one (${out.join(', ')})`);
