@@ -104,7 +104,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-908](backlog/VB-908.md) | Means meter on the pawn panel | - | 3 | S | marryStanding's held and asked on the level meter |
 | [VB-911](backlog/VB-911.md) | Hides become leather: shoes and harness wear | animals | 3 | M | A pawn's job tans a hide and makes shoes or harness, which wear and are replaced. |
 | [VB-926](backlog/VB-926.md) | Measure: the village overview's build time at populous medium (for VB-662) | - | 3 | S | Time Sim.villageSummary at populous medium on a quiet machine; owed to VB-662 |
-| [VB-927](backlog/VB-927.md) | The village card's store and warnings as VB-667's supply cells and chips | - | 3 | S | Village store as a supply and warning chips on farm rows, after VB-667 |
+| [VB-966](backlog/VB-966.md) | The village store's outlook, shown as a supply on the village card | - | 3 | M | VB-927 left this unticked: the store has no outlook to read |
 
 ## Waiting for Kim
 
