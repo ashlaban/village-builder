@@ -274,6 +274,7 @@ VB['sim/records'] = (() => {
       household: null,
       role: 'child',
       servant: !!o.servant,
+      servedSince: o.servant ? R.t || 0 : null,
       retired: false,
       look: (R.rand() * 1e9) >>> 0,
       events: [],
@@ -397,8 +398,12 @@ VB['sim/records'] = (() => {
   function clearMembers(st, hh) {
     hh.members = [];
   } // an empty household is skipped by the check, so it is not noted
+  // @state pawn.servedSince: the game hour a pawn entered service (null outside it), kept with pawn.servant (VB-634).
   function setServant(st, id, servant) {
-    st.pawns[id].servant = servant;
+    const p = st.pawns[id];
+    if (servant && !p.servant) p.servedSince = st.t || 0;
+    else if (!servant) p.servedSince = null;
+    p.servant = servant;
   }
   function settlementIdOf(st, p) {
     const hh = p.household !== null ? st.households[p.household] : null;

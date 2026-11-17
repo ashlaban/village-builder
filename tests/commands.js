@@ -179,7 +179,7 @@ R.leaveHousehold(membership, 0);
 assert.strictEqual(membership.pawns[0].household, null);
 R.joinHousehold(membership, membership.households[1], 0, false);
 assert.deepStrictEqual(membership.households[1].members, [0]);
-assert.deepStrictEqual(membership.pawns[0], { household: 1, servant: false });
+assert.deepStrictEqual(membership.pawns[0], { household: 1, servant: false, servedSince: null });
 R.setServant(membership, 0, true);
 assert.strictEqual(membership.pawns[0].servant, true);
 const before5 = snap3(), lead = st3.pawns.find((p) => p.died === null && p.age >= 18);
@@ -281,14 +281,15 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
     for (let k = 0; k < 96 && s.journeys.some((j) => j.why === 'fetch'); k++) Sim.advance(s, 0.5); // fetched (VB-461)
     assert.ok(a.ledger.some((e) => e.kind === 'gift' && Math.abs(e.n - 20) < 1e-9), 'settled at its due time');
   }
-  // (c) an ask: a holder asks another for grain; the asked weighs it as the gift it would make, and a yes posts the carry
+  // (c) an ask: a holder asks another for grain; the asked weighs it as the gift it would make, and a yes sets the grain aside, fetched by the asker
   {
     const { s, a, b } = fresh(), b0 = Sim.grainOf(b);
     assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 20 } }), true);
-    const j = s.journeys.find((x) => x.why === 'carry');
-    assert.ok(j && s.pawns[j.pawn].household === b.id && j.gift.n === 20, `a carrier of the asked household sets out: ${JSON.stringify(s.journeys)}`);
-    const took = b0 - Sim.grainOf(b); // and the carrier's meal for the way (VB-461: a day's at least)
-    assert.ok(took >= 20 - 1e-9 && took <= 20 + 2 / s.ECON.uncooked, `the grain is taken up to be carried: ${took}`);
+    const j = s.journeys.find((x) => x.why === 'fetch');
+    assert.ok(j && s.pawns[j.pawn].household === a.id && j.gift.stops[0].left === 20, `a member of the asking household sets out to fetch: ${JSON.stringify(s.journeys)}`);
+    assert.ok(!s.journeys.some((x) => x.why === 'carry'), 'no carrier of the asked household takes it up at the start');
+    const took = b0 - Sim.grainOf(b); // the grain is set aside where it lies, no more
+    assert.ok(Math.abs(took - 20) < 1e-9, `the grain is set aside: ${took}`);
     assert.ok(/own household/.test(offer(s, a.holder, a.holder, { basis: 'ask', wants: { good: 'grain', n: 20 } })), 'not of one\'s own');
     // beyond what the asked would give: no, and both remember it
     const ob = opinionOf(s, a.holder, b.holder);
@@ -306,7 +307,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
     Sim.advance(s, 3 * Sim.DAY);
     assert.deepStrictEqual(s.offers, [], 'answered at its due time');
     assert.strictEqual(VB.count.offerWeighed, n0 + 1, 'one evaluation');
-    assert.ok(a.ledger.some((e) => e.kind === 'gift') || s.journeys.some((x) => x.why === 'carry'), 'and carried');
+    assert.ok(a.ledger.some((e) => e.kind === 'gift') || s.journeys.some((x) => x.why === 'fetch'), 'and fetched');
   }
   assert.ok(['gift', 'ask', 'match'].every((k) => Offers.BASES[k] && typeof Offers.BASES[k].weigh === 'function'), 'the table of bases');
 }

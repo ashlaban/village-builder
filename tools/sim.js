@@ -2,11 +2,12 @@
 // node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|hours|paths|relations|herds|villages|hunger|perf|counts|land] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years; --household N --report plans: its plans)
 //   --report waiting                             (VB-633: who waits to marry and why, by 20 years; tools/waiting.js --help)
+//   --report outlook [--village N]               (VB-666: each household's supply outlook beside what came of it; tools/outlook.js --help)
 //   --report hours [--from Y] [--every step|hour] [--fields N] [--team] [--household N]   (VB-337: tools/hours.js; its --help)
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
-  'plans', 'calendar', 'reach', 'waiting', 'ground'];
+  'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook'];
 const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
@@ -21,6 +22,8 @@ const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--
   --report waiting  who waits to marry and why, at the moving round's day, by 20 years (tools/waiting.js --help)
   --report ground   by village, each rock and deposit in reach of the green, and the summary by kind (tools/ground.js --help):
                     --reach 12,30 (walking steps), --seeds 3,7,11 (more maps, same scenario, map and years)
+  --report outlook  each household of a village (--village N, default 0): its supply outlook beside what came of it over the frame,
+                    which runs on past --years (tools/outlook.js --help)
   --report calendar prints the clock's table (sim/clock CALENDAR, VB-241) in the order it runs, and runs nothing`;
 if (process.argv.includes('--help') || process.argv.includes('-h')) { console.log(USAGE); process.exit(0); }
 if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-241)
@@ -222,6 +225,7 @@ if (pawnId !== null) {
   out = { ...plain(p), name: Sim.fullName(p), life: Sim.recordOf(st, { pawn: p.id, life: true }) };
 } else if (hhId !== null && report === 'hours') out = hours.result();
 else if (waiting) out = waiting.result();
+else if (report === 'outlook') out = require('./outlook.js').report(VB, st, { village: +opt('village', 0) });
 else if (hhId !== null) {
   const h = st.households[+hhId]; if (!h) { console.error('no such household'); process.exit(1); }
   if (report === 'plans') out = plansOf(h);
@@ -238,6 +242,7 @@ if (out !== null && report === 'idle' && !json) {
   console.log('mean unclaimed jobs at end of work day:'); console.table(out.unclaimedAtEndOfDay);
 } else if (out !== null && report === 'hours' && !json) hours.print(out);
 else if (out !== null && report === 'waiting' && !json) waiting.print(out);
+else if (out !== null && report === 'outlook' && !json) require('./outlook.js').print(out);
 else if (out !== null && report === 'ground' && !json) require('./ground.js').print(out);
 else if (out !== null && report === 'perf' && !json) {
   console.log(`${out.days} game days in ${out.totalMs} ms (${out.msPerDay} ms/day); time per system, exclusive:`); console.table(out.systems);

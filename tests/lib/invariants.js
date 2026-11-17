@@ -112,6 +112,19 @@ function checkState(st) {
             : globalThis.VB['sim/aims'].KIND.includes(Ai.what) && Ai.since <= st.t && (Ai.shortSince === null || Ai.shortSince <= st.t) &&
               (st.plans.projects.household.get(id) || []).some((q) => q.id === Ai.project))))
           bad.push(`plans: household ${id}'s aim ${JSON.stringify(Ai)}`);
+        // VB-666: the supply outlook, absent before the first review, made not after now; each supply's values finite, from 0 to the
+        // frame, its state a known word, its first short season within the frame (null when safe or not needed), its parts at least 0
+        const O = plan.outlook, OL = globalThis.VB['sim/outlook'];
+        if (O !== undefined) {
+          const okNum = (x) => Number.isFinite(x) && x >= 0;
+          const okSupply = (s) => s && okNum(s.own) && okNum(s.with) && s.own <= OL.FRAME && s.with <= OL.FRAME &&
+            OL.STATES.includes(s.state) && (s.state === 'short' || s.state === 'bad'
+              ? Number.isInteger(s.season) && s.season >= 0 && s.season < OL.FRAME : s.season === null) &&
+            okNum(s.parts.store) && s.parts.need.length === OL.FRAME && s.parts.need.every(okNum) && okNum(s.parts.spoilt) &&
+            s.parts.intakes.every((x) => okNum(x.n) && x.season >= 0 && x.season < OL.FRAME);
+          if (!(O.day <= Math.floor(st.t / LOADED['sim/rules'].DAY) && OL.SUPPLIES.every((k) => okSupply(O[k]))))
+            bad.push(`plans: household ${id}'s outlook ${JSON.stringify(O)}`);
+        }
         // VB-255: a household's plot for its heir is in the index of them, and, once cleared, goes to a pawn: one whose pawn cannot take it
         // has passed to the village (no plot of a household stands with nobody to build it for)
         for (const q of st.plans.projects.household.get(id) || [])
@@ -239,6 +252,11 @@ function checkState(st) {
       if (d !== undefined && !(d >= 0 && d < 1)) bad.push(`pawn ${id}: diligence ${d}`);
     }
   } else bad.push('plans: missing');
+  // service is dated (VB-634): servedSince is set exactly when the pawn is a servant
+  for (const id of st.living) {
+    const p = st.pawns[id];
+    if (p.servant !== (typeof p.servedSince === 'number')) bad.push(`pawn ${id}: servant ${p.servant} with servedSince ${p.servedSince}`);
+  }
   // a cause is an agenda: the year it was taken up (culture), null or undefined for none yet, and never in the future
   for (const id of st.living) {
     const cs = st.pawns[id].causeSince;
