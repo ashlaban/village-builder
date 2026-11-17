@@ -116,8 +116,8 @@ VB['sim/round'] = (() => {
   }
   // ---- the offers due at the round (VB-692; plan VB-682, section 2) ----
   // Village v's step on day d (`now`, its time): the open offers due by now that its people are asked (the basis's `where`), in the order
-  // of ASK.order, each answered once (conclude: the unanswered by their pawns' judgement); a match refused asks anew (askAgain). The queue
-  // is read up to the first offer not yet due (it is sorted by due).
+  // of ASK.order, each answered once (conclude: the unanswered by their pawns' judgement); a match refused, or lapsed for her marriage to
+  // another (VB-823), asks anew (askAgain). The queue is read up to the first offer not yet due (it is sorted by due).
   function answerDue(st, v, d, now) {
     let due = null;
     for (const o of st.offers) {
@@ -133,7 +133,8 @@ VB['sim/round'] = (() => {
       VB.count.offersAnswered++;
       const r = conclude(st, o, staleWhy(st, o)); // lapsed where one of its people has died, married or taken a place (VB-823)
       changed = changed || r === 'yes';
-      if (r === 'no' && o.basis === 'match') askAgain(st, o.gives.man, o.wants.woman, d, now);
+      // refused, or lapsed for her marriage to another asker (VB-823), the man asks anew
+      if ((r === 'no' || r === 'lapsed') && o.basis === 'match') askAgain(st, o.gives.man, o.wants.woman, d, now);
     }
     if (changed) refreshRoles(st);
   }
