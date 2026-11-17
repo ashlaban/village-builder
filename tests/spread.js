@@ -19,7 +19,7 @@ for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, '../src/manifest
     const land = mod.landMeeting;
     mod.landMeeting = (st) => { calls.push({ kind: 'land', t: st.t }); return land(st); };
   }
-  if (key === 'sim/lifecycle') {
+  if (key === 'sim/round') {
     const phase = mod.roundPhase;
     // a village's round is told by the counter of its walk of the living (VB-277), which only villageRound adds to
     mod.roundPhase = (st, n) => {
@@ -30,7 +30,7 @@ for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, '../src/manifest
   }
 }
 const VB = globalThis.VB, Sim = VB.sim, { canon } = require('./lib/canon.js');
-const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS } = VB['sim/rules'], { NIGHT_STEPS, ROUND_STEPS } = VB['sim/lifecycle'];
+const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS } = VB['sim/rules'], { NIGHT_STEPS } = VB['sim/meetings'], { ROUND_STEPS } = VB['sim/round'];
 // On the probe village alone since VB-853: the populous run on the tiny map (--extended) asserted the same rules, and was deleted.
 const probe = require('./lib/probe.js'), seed = probe.state, restoreWorld = probe.world;
 const st = seed();

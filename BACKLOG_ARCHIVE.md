@@ -418,3 +418,6 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-616](backlog/VB-616.md) | The led cow is drawn once, not also in the giver's herd | animals | 3 | S | Until ledHome moves the animal, the herd still draws it besides the one led |
 | [VB-887](backlog/VB-887.md) | Layout: a green laid in play lies beside fields (layout --extended red) | - | 1 | S | greenSite takes a tile beside a field; the layout rule fails at night |
 | [VB-162](backlog/VB-162.md) | A village overview: food, people, idle hands and warnings | year | 3 | M | One panel per village: food against need, people by age, hungry households, idle hands, and warnings that name the households. |
+| [VB-876](backlog/VB-876.md) | Refactor: split sim/lifecycle by concern | - | 2 | M | VB-062 took sim/lifecycle to 703 lines; the lint asks for the task that splits it |
+| [VB-888](backlog/VB-888.md) | Populous seeding leaves an empty, nameless village on small islands | - | 2 | S | a village with no farm and name '' on 48 by 34 at seeds 7 and 42 |
+| [VB-928](backlog/VB-928.md) | Tests: smoke's led-cow check reads win.cam, which is undefined (VB-616) | - | 1 | S | Smoke stops at VB-616's led-cow check: win.cam undefined |
