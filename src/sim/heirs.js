@@ -25,14 +25,14 @@ VB['sim/heirs'] = (() => {
     ancestorsOf,
   } = VB['sim/records'];
   const { wishOf } = VB['sim/wishes'];
-  const { moved, stopWorkFor } = VB['sim/agents'];
+  const { stopWorkFor } = VB['sim/agents'];
   const { farmToVillage, heldFarms } = VB['sim/ownership'];
   const { issue } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { hoursBetween, byLand } = VB['sim/routes'];
   const { SHARES, GOODWILL, houseCondition } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/herds'];
@@ -166,14 +166,14 @@ VB['sim/heirs'] = (() => {
   }
   // The act of moving (the move command, VB-822, its only caller): pawn id changes to household hhId, for `reason`; text: the 'moved' life
   // event, when the caller says more than the farm's name (sim/settle). The pawn walks to its new home, on a journey when it lies in another
-  // village (sim/agents' moved, VB-287); carry false: its provisions come from the new household (settlers).
+  // village (sim/away's moved, VB-287, by sim/events); carry false: its provisions come from the new household (settlers).
   function moveTo(st, id, hhId, text = null, carry = true, reason = null) {
     const p = st.pawns[id],
       old = p.household !== null ? st.households[p.household] : null;
     leaveHousehold(st, id);
     const hh = st.households[hhId];
     joinHousehold(st, hh, id, false);
-    moved(st, st.agents[id], old, hh, carry);
+    emit(st, 'rehoused', { a: st.agents[id], old, hh, carry }); // it walks to its new home (sim/away's moved)
     if (old && old.farmstead !== hh.farmstead) {
       // on the record as `joined`, beside the event that tells the move itself
       personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, {
@@ -265,8 +265,7 @@ VB['sim/heirs'] = (() => {
     st.visualDirty = true;
   }
   // Whether households a's and b's villages lie within walking reach of each other (VB-290).
-  const reachable = (st, a, b) =>
-    hoursBetween(st, st.farmsteads[a.farmstead].village, st.farmsteads[b.farmstead].village) < Infinity;
+  const reachable = (st, a, b) => byLand(st, st.farmsteads[a.farmstead].village, st.farmsteads[b.farmstead].village);
   // The smallest undissolved household of the village, or of the nearest village by walking hours when it has none (VB-290); with none
   // within walking reach, of the nearest by hexSteps between centres (until slice 10's boats).
   function serviceHome(st, hh) {

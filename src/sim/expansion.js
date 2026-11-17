@@ -3,6 +3,7 @@
 VB['sim/expansion'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);
   const { B } = VB['gen'];
+  const { doneOf } = VB['sim/progress'];
   const { fertility, farmable, FIELDS, BUILD, ECON } = VB['sim/rules'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
@@ -300,22 +301,21 @@ VB['sim/expansion'] = (() => {
           key = `plot:v${v.id}.${plot.plot}.cottage`,
           live = st.jobs.get(key);
         if (cottageAt(plot) >= COTTAGE.length) continue; // the roof is on
-        if (live) k.done = live.done; // hours worked on the open stage persist while the job is dropped and posted again
+        if (live) k.done = doneOf(st, live, k.hours); // hours worked on the open stage persist while the job is dropped and posted again
         if (waitsForTimber(plot.steps[2], plot.open - 1)) continue; // the walls wait for their timber (sim/building)
         out.push([key, k.kind, k.place, { plot, cottage: true, done: k.done, hours: k.hours }]);
       }
     return out;
   }
-  // 0..1: finished steps of the plot's tiles, with the hours already worked on the open ones (`done`: a task's progress now, sim/agents'
-  // doneOf, given by the facade; its hours at the last reckoning by default).
-  function plotProgress(st, plot, done = (j) => j.done) {
+  // 0..1: finished steps of the plot's tiles, with the hours already worked on the open ones (a task's progress now, sim/progress).
+  function plotProgress(st, plot) {
     let total = 0,
       got = 0;
     for (const tr of tilesOf(plot)) {
       total += tr.steps.length;
       got += tr.i;
       if (tr.i < tr.steps.length) {
-        for (const j of st.jobs.values()) if (j.tr === tr) got += Math.min(1, done(j) / j.hours);
+        for (const j of st.jobs.values()) if (j.tr === tr) got += Math.min(1, doneOf(st, j, j.hours) / j.hours);
       }
     }
     return total ? got / total : 1;
@@ -438,7 +438,7 @@ VB['sim/expansion'] = (() => {
     if (!k) return null;
     const key = `booth:f${f.id}`,
       live = st.jobs.get(key);
-    if (live) k.done = live.done;
+    if (live) k.done = doneOf(st, live, COTTAGE_HOURS[COTTAGE[k.i]]);
     if (waitsForTimber(k, k.i)) return null;
     return [key, COTTAGE[k.i], { farm: f, booth: true, done: k.done, hours: COTTAGE_HOURS[COTTAGE[k.i]] }];
   }

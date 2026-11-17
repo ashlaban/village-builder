@@ -12,8 +12,9 @@ VB['sim/clock'] = (() => {
   const Stores = VB['sim/stores'];
   const { shareFood } = VB['sim/help'];
   const Workdays = VB['sim/workdays'];
-  const { placeByDoor, release, dropJob, stepAgents, rest, travelling, dropSides, feedTravellers, reckonAll, placeOf } =
+  const { placeByDoor, release, dropJob, stepAgents, rest, travelling, dropSides, reckonAll, placeOf } =
     VB['sim/agents'];
+  const { feedAway, dayAway } = VB['sim/away'];
   const { refreshJobs, takeDay, helpers, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
@@ -162,10 +163,10 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'day',
-      when: (st) => st.journeys.length > 0,
-      owner: 'sim/agents',
-      note: 'those on the road eat what they carry (VB-287)',
-      run: (st) => feedTravellers(st),
+      when: (st) => st.away.length > 0,
+      owner: 'sim/away',
+      note: 'those away from home eat what they carry (VB-287, VB-783), and a lodger whose stay is over comes home',
+      run: (st) => feedAway(st),
     },
     { every: 'day', owner: 'sim/stores', note: 'the village store spoils too', run: (st) => Stores.villageDay(st) },
     { every: 'day', owner: 'sim/forest', note: 'trees grow', run: (st) => growTrees(st) },
@@ -224,6 +225,12 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'day',
+      owner: 'sim/building',
+      note: 'booths unkept rot away (VB-784)',
+      run: (st) => VB['sim/building'].rotBooths(st),
+    },
+    {
+      every: 'day',
       owner: 'sim/clock',
       note: 'fences decay',
       run: (st, c) => {
@@ -267,6 +274,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/lying',
       note: 'the autumn frost rots the loads left lying where their carrier fell (VB-611)',
       run: (st) => lyingFrost(st),
+    },
+    {
+      every: 'year',
+      at: FROST,
+      owner: 'sim/carts',
+      note: 'a cart left standing that nobody fetched is lost with the loads lying (VB-649)',
+      run: (st) => cartsYear(st, true),
     },
     {
       every: 'day',
@@ -582,7 +596,8 @@ VB['sim/clock'] = (() => {
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
     const c = cal(st.t),
       all = stepAgents(st, c),
-      idle = st.player ? all.filter((a) => !unplanned(st, a.id)) : all;
+      mine = st.player ? all.filter((a) => !unplanned(st, a.id)) : all,
+      idle = st.away.length ? dayAway(st, mine) : mine; // a lodger works only what its stay names (VB-783)
     if (idle.length) {
       // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted
       // anew (VB-249), and take again; those still without help a neighbour (VB-106)

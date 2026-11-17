@@ -27,7 +27,8 @@ VB['sim/kinds'] = (() => {
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
   const { plotJobs } = VB['sim/expansion'];
-  const { renewClaim } = VB['sim/claims'];
+  const { renewClaim } = VB['sim/claims'],
+    { doneOf } = VB['sim/progress'];
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
   const Building = VB['sim/building'],
     Pot = VB['sim/pot'],
@@ -809,7 +810,9 @@ VB['sim/kinds'] = (() => {
   for (const [k, K] of Object.entries(KINDS))
     if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
-  const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
+  const isOpen = (st, j) =>
+    j.claims.length < KINDS[j.kind].hands &&
+    doneOf(st, j, j.hours ?? KINDS[j.kind].hours) < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind (a fetch kind's: the kind it fetches for, VB-611), else its rank of the
   // kind's type of work, else 0.
   for (const r of Object.values(ROLES))

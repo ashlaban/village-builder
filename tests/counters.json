@@ -36,6 +36,7 @@
   "helpOffer": 2.4618846694796064,
   "helpBid": 0.2509142053445851,
   "occasionAsked": 0.010126582278481013,
+  "feastServed": 0,
   "takeInWeighed": 0,
   "labourWeighed": 0,
   "forageGround": 15.051476793248945,
@@ -51,6 +52,7 @@
   "plotWalk": 0,
   "aimMenu": 0,
   "frontTile": 0,
+  "awayMeals": 0,
   "giftUncarried": 0,
   "deerCrop": 0,
   "roundRank": 0.02250351617440225

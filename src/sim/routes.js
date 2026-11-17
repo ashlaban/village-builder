@@ -1,7 +1,7 @@
 // @sys sim/routes: walking costs by terrain and slope, the kept lists of what is in walking reach, the route search (A*) and the route
 // cache with its daily refresh
 VB['sim/routes'] = (() => {
-  const { TERRAIN, SLOPE, ROUTE, PATHS, SPEED } = VB['sim/rules'];
+  const { TERRAIN, SLOPE, ROUTE, PATHS, SPEED, TRAVEL } = VB['sim/rules'];
   const { hexSteps, bfs } = VB['sim/hex'];
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
   // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
@@ -349,7 +349,15 @@ VB['sim/routes'] = (() => {
     const h = st.villageHours[a][b];
     return h === null ? Infinity : h;
   }
+  // The three reaches between two villages (ids), the only ones a rule may ask (VB-685): the same village; within a day's walk (at most
+  // `hours` walking hours, TRAVEL.dayWalk unless a rule's own tunable is given: a farm's claim, CLAIMS.farmHours); any way by land.
+  const sameVillage = (st, a, b) => a === b;
+  const withinDay = (st, a, b, hours = TRAVEL.dayWalk) => hoursBetween(st, a, b) <= hours;
+  const byLand = (st, a, b) => hoursBetween(st, a, b) < Infinity;
   return {
+    sameVillage,
+    withinDay,
+    byLand,
     tileCost,
     passable,
     walkable,

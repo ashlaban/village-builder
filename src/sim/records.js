@@ -91,6 +91,7 @@ VB['sim/records'] = (() => {
     seedEaten: GENERATION,
     wedding: GENERATION,
     funeralAle: GENERATION,
+    feast: GENERATION, // food laid out at a wedding or a funeral ale (VB-458)
     noWood: GENERATION,
     cattleInCrop: GENERATION,
     cartGone: GENERATION, // a cart worn out (VB-327)

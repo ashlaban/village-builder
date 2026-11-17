@@ -24,7 +24,7 @@ const Sim = (() => {
   const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } =
     VB['sim/notable'];
   const { describe: doing } = VB['sim/agents'],
-    { occasionLabel } = VB['sim/occasions'];
+    { occasionLabel, explainFeast } = VB['sim/occasions'];
   // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
@@ -57,10 +57,11 @@ const Sim = (() => {
   const { advance } = VB['sim/clock'];
   const { HERD, SOIL, CLAIMS } = VB['sim/rules'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
-  const { withOxen, doneOf, placeOf, poseOf } = VB['sim/agents'];
+  const { withOxen, placeOf, poseOf } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
-  const { houseTarred } = VB['sim/rules'],
+  const { boothCondition } = VB['sim/building'], // VB-784: a booth's condition now
+    { houseTarred } = VB['sim/rules'],
     { untarred: boatUntarred } = VB['sim/drying']; // VB-301: a house tarred, a boat's years since its tarring
   const { claimsOn, strength, holdings } = VB['sim/claims'];
   const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];
@@ -139,7 +140,7 @@ const Sim = (() => {
     seedReserve,
     grainOf,
     fieldsWanted,
-    plotProgress: (st, plot) => plotProgress(st, plot, (j) => doneOf(st, j)), // a task's progress now (VB-472)
+    plotProgress, // a task's progress now (VB-472)
     placeOf, // a pawn's place now, a walker's worked out from its leg (VB-473)
     poseOf, // and its facing and stride, for the page until it draws from legs (VB-474)
     explainIdle,
@@ -166,6 +167,7 @@ const Sim = (() => {
     larderOf,
     quernYears,
     houseTarred,
+    boothCondition,
     boatUntarred,
     team,
     withOxen,
@@ -178,6 +180,7 @@ const Sim = (() => {
     depositKnown,
     goodwillOf,
     explainAllowance,
+    explainFeast, // why a household does or does not lay out a feast (VB-458)
     depositLeftNow,
     woodOf,
     giftWarning,

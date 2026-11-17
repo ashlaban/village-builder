@@ -87,15 +87,21 @@ const QUANTITIES = [
   { id: 'villageGrain', of: 'village', name: 'the village store\'s grain', unit: 'rations', fields: ['village.grain'], good: 'grain', holder: 'village',
     kinds: ['haul'],
     none: 'a household short of food gets nothing from the village when its kin cannot help (sim/help), and a common field is not sown (VB-100)' },
-  { id: 'provisions', of: 'journey', name: 'the food a pawn on a journey carries', unit: 'rations', fields: ['st.journeys'], kinds: [],
-    none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (sim/agents, VB-287)' },
-  { id: 'giftGrain', of: 'journey', name: 'a gift\'s grain on its way: on a carrier\'s back, or set aside where it lies until it is fetched', unit: 'rations',
-    fields: ['st.journeys'], kinds: [],
-    none: 'nothing is on its way: the gift has come in, or what was left lying went back to its giver\'s store when its fetcher died or left the household (sim/agents, VB-291, VB-461)' },
+  { id: 'pack', of: 'stay', name: 'the pack: the food a pawn away from home carries, on a journey or lodging', unit: 'rations', fields: ['st.away'],
+    covers: ['st.awaySeq', 'agent.away'], kinds: [],
+    none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (VB-287); a lodger '
+      + 'comes home when its pack is down to the walk home\'s ration, and a household with nothing to spare sends nobody (sim/away, VB-783)' },
+  { id: 'booth', of: 'tile', name: 'a booth\'s condition: poles, bark and turf, worn by closed form from when it was raised', unit: '0..1',
+    fields: ['booth.cond'], covers: ['booth.condAt', 'st.boothSeq'], kinds: [],
+    none: 'the booth is gone and its tile as it was; a stay that slept there is under the open sky (sim/building, VB-784)' },
+  { id: 'giftGrain', of: 'stay', name: 'a gift\'s grain on its way: on a carrier\'s back, or set aside where it lies until it is fetched', unit: 'rations',
+    fields: ['st.away'], kinds: [],
+    none: 'nothing is on its way: the gift has come in, or what was left lying went back to its giver\'s store when its fetcher died or left the household (sim/away, VB-291, VB-461)' },
   { id: 'lying', of: 'tile', name: 'a load lying where its carrier fell', unit: 'its kind\'s loads (rations of sheaves, hay loads, firewood, stone)',
     fields: ['st.lying'], covers: ['st.lyingSeq'], kinds: [], losses: ['sim/lying:frost'],
     none: 'nothing lies on the road: every load is in hand or home; one left lying is fetched by its owner\'s next hand (the fetch kinds) '
-      + 'or rots at the autumn frost (sim/lying, VB-611)' },
+      + 'or rots at the autumn frost (sim/lying, VB-611); a cart left standing with its load (household.carts[].at, VB-649) is fetched home with its team '
+      + 'by a hand of its household, or is lost at the frost and named (cartGone)' },
   { id: 'trees', of: 'tile', name: 'a tile\'s trees', unit: 'trees', fields: ['w.trees'], kinds: ['fell', 'grub'], covers: ['w.treesMax'],
     none: 'a tile cut bare: firewood is cut on another tile of the village\'s wood; with none left, no firewood job is posted (sim/territory); '
       + 'the bare tile is meadow, and the forest spreads back into it where it borders forest and nothing keeps it open (sim/spread, VB-091)' },

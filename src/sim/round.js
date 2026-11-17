@@ -316,8 +316,14 @@ VB['sim/round'] = (() => {
       (h) => away.has(h) || st.farmsteads[st.households[h].farmstead].village === v,
     );
     for (const h of farms) {
-      if (handover(st, st.households[h], rules.rank) === null) continue;
-      rules.clear();
+      const hh = st.households[h],
+        old = hh.holder,
+        heir = handover(st, hh, rules.rank);
+      if (heir === null) continue;
+      // The heir already lives there (handover's rule), so no pawn moves: the holder changes, and the old holder and the pair's spouses
+      // retire. Clear only the memos that read those pawns and this household.
+      const changed = [old, heir, spouseOf(st, old), spouseOf(st, heir)].filter((id) => id !== null);
+      rules.touched(changed, [h]);
       handed++;
     }
     if (married.length || handed) refreshRoles(st);

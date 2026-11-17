@@ -58,6 +58,8 @@ VB.COUNTERS = {
   occasionAsked:
     "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
     '(sim/occasions, VB-126)',
+  feastServed:
+    'Pawns served at a feast, each eating its portion and its household booked at most once (sim/occasions, VB-458)',
   takeInWeighed:
     'Pawns of st.demand weighed for a household short of people whose ask for food fell short, as kin and then as servants ' +
     '(sim/service, takeIn; VB-308)',
@@ -96,6 +98,8 @@ VB.COUNTERS = {
   giftUncarried:
     'Grain a gift settled at once between two farmsteads, or from a village store to a household: none, by the hard rule (sim/exchange; ' +
     'VB-461)',
+  awayMeals:
+    'Meals eaten from a pack by the pawns away from home, on a journey or lodging, a meal a day each (sim/away feedAway; VB-783)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };

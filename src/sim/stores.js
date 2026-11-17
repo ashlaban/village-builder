@@ -27,6 +27,7 @@ VB['sim/stores'] = (() => {
     'brew',
     'pour',
   ];
+  KINDS.push('feast'); // VB-458: the food a host lays out at a wedding or a funeral ale, eaten there by those who came (sim/occasions)
   KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
@@ -40,8 +41,9 @@ VB['sim/stores'] = (() => {
   KINDS.push('build');
   // VB-300: a catch hung on the drying rack (sim/drying), out of the rack's store into the larder; VB-119: 'raw', grain eaten uncooked (sim/hunger)
   KINDS.push('drying', 'raw');
-  // VB-287: provisions given to a pawn who sets out on a journey (sim/agents), and what it carried back into its new home's meals
-  KINDS.push('journey');
+  // VB-287, VB-783: the pack given to a pawn who goes away from home, on a journey or to lodge (sim/away), and what it carried back into its
+  // home's meals
+  KINDS.push('away');
   ROUTINE.push('drying', 'raw');
   // VB-139: a roe deer's meat, brought home from a hunt (sim/deer), folded as the catch is.
   KINDS.push('hunt');

@@ -36,7 +36,7 @@ S.start(st, a, { barley: 300, rye: 100 }); S.start(st, b, {});
 const e0 = b.ledger.length;
 assert.strictEqual(issue(st, { actor: a.holder, verb: 'give', target: b.id, args: { good: 'grain', n: 40 }, source: 'player' }), true, 'the gift is given');
 near(S.grainOf(a), 360, 'the giver gave 40');
-for (let k = 0; k < 96 && st.journeys.length; k++) Sim.advance(st, 0.5); // a member of b fetches it from a's house (VB-461)
+for (let k = 0; k < 96 && st.away.length; k++) Sim.advance(st, 0.5); // a member of b fetches it from a's house (VB-461)
 near(b.grain.barley, 30, 'the receiver gets barley'); near(b.grain.rye, 10, 'and rye, as the giver holds them');
 const fetched = b.ledger.slice(e0).filter((e) => e.kind === 'gift' && e.good === 'grain' && e.n > 0).reduce((s, e) => s + e.n, 0);
 near(fetched, 40, 'the ledger counts grain whatever its crop');

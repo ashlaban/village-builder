@@ -503,6 +503,13 @@ VB['sim/rules'] = (() => {
     hayCart: 60,
     dayWalk: 12,
   };
+  // ---- sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
+  // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
+  // worked from a bed there rather than from home (a third of the working day) ----
+  const AWAY = { pack: 12, walk: 4 };
+  // A booth (bod; VB-784; design.md, Moving to new land, The booth): a shelter of poles, bark and turf, `hours` of work and `wood` loads at its
+  // tile, `sleeps` at most; unkept it wears `wear` of its condition a year (poles and bark: about three years) and is gone at none.
+  const BOOTH = { hours: 12, wood: 2, sleeps: 4, wear: 1 / 3 };
   const HERD = {
     hayLoss: [0.05, 0.25, 0.5], // annual barn losses by winters of need held (VB-159)
     hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
@@ -644,6 +651,11 @@ VB['sim/rules'] = (() => {
   // an occasion gives the host `prestige` for `years` years, at most `maxBarrels` barrels counted (a cap of 0.2); each guest's memory of
   // it is SOCIAL.memories.ale.
   const BREW = { grain: 10, hours: 4, guests: 20, stock: 1, prestige: 0.05, maxBarrels: 4, years: 3 };
+  // The feast (VB-458; design.md, The gift: The feast, What a feast books; Kim, 13 Nov): at a wedding or a funeral ale at its farm, a
+  // household whose grain stands above its seed and `above` years of its need lays out food: `share` of what it holds beyond that (times its
+  // holder's generosity, TRAITS.acts.generosity.feast), and at most `perGuest` rations a ration of need of those who came (a day's food
+  // three times over, the ale poured counted at its grain). Those who ate have eaten the day's meal; guest households owe the host goodwill.
+  const FEAST = { above: 2, share: 0.25, perGuest: 3 };
   const HELP = {
     // a holder wants floorDays and its own reserve (TRAITS.acts.generosity.reserve, by its generosity: 0 to 40 days; VB-520) of the
     // household's food in store before giving
@@ -970,7 +982,8 @@ VB['sim/rules'] = (() => {
     // What a trait does (VB-520; design.md, The twelve traits and the rules each changes): acts.<trait>.<rule> is [the value at 0, at 1],
     // linear in the trait between (Traits.act), its midpoint the rule's value before traits, so a pawn at 0.5 acts as every pawn did.
     // reserve: the holder's own reserve beyond HELP.floorDays, in days of the household's need (it was drawn per pawn, 0 to 40); one
-    // without a holder keeps the most. anchor: times the pull of what was learned young (culture's P.anchor). settle: times the pressure (the
+    // without a holder keeps the most; feast: times FEAST.share of its surplus it lays out at a feast (VB-458). anchor: times the pull of
+    // what was learned young (culture's P.anchor). settle: times the pressure (the
     // rounds waited in a crowded village) a pawn needs before it wishes to leave at the moving round (sim/settle reads SETTLE.chance there).
     // breach: times the memories of a breach (`breach`, SOCIAL.memories) as this pawn feels them. talk: times the chance to start a talk at
     // its turn (SOCIAL.talk.chance), at most 1; seek: times SOCIAL.seek. idleWait: times IDLE.wait (the design's 4 to 2 hours about its 3).
@@ -978,7 +991,7 @@ VB['sim/rules'] = (() => {
     // HEALTH.recover (2.5 to 3.5). Temper acts through chemistry and the quarrel (SOCIAL.chemistry, SOCIAL.talk.quarrel); wits and
     // husbandry through a head's skill (sim/traits).
     acts: Object.freeze({
-      generosity: Object.freeze({ reserve: Object.freeze([40, 0]) }),
+      generosity: Object.freeze({ reserve: Object.freeze([40, 0]), feast: Object.freeze([0.5, 1.5]) }),
       piety: Object.freeze({ anchor: Object.freeze([0.5, 1.5]) }),
       ambition: Object.freeze({ settle: Object.freeze([1.5, 0.5]) }),
       honour: Object.freeze({ breach: Object.freeze([0.5, 1.5]) }),
@@ -1066,6 +1079,8 @@ VB['sim/rules'] = (() => {
     HELP,
     GOODWILL,
     TRAVEL,
+    AWAY,
+    BOOTH,
     HERD,
     stalled,
     GRAZE,
@@ -1076,6 +1091,7 @@ VB['sim/rules'] = (() => {
     IDLE,
     SPEED,
     BREW,
+    FEAST,
     TERRAIN,
     SLOPE,
     ROUTE,

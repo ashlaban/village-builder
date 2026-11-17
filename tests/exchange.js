@@ -12,7 +12,7 @@ const fresh = () => {
 };
 const give = (st, from, to, n, source = 'help') => issue(st, { actor: from.holder, verb: 'give', target: to.id, args: { good: 'grain', n }, source });
 // a gift from another farmstead is set aside where it lies and fetched (VB-461): the receiver has it once its fetcher is home
-const fetchAll = (st) => { for (let k = 0; k < 96 && st.journeys.some((j) => j.why === 'fetch' || j.why === 'haul'); k++) Sim.advance(st, 0.5); };
+const fetchAll = (st) => { for (let k = 0; k < 96 && st.away.some((j) => j.why === 'fetch' || j.why === 'haul'); k++) Sim.advance(st, 0.5); };
 const ctx = (from, to) => ({ giver: from.holder, receiver: to.holder, from, to });
 let checks = 0;
 { // within the floor and the allowance: settled, both ledgers, the tie between the holders

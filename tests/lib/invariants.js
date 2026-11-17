@@ -453,6 +453,10 @@ function checkState(st) {
     else for (const c of h.carts) {
       if (!((c.kind === 'hand' || c.kind === 'ox') && c.cond > 0 && c.cond <= 1 && c.built <= st.t && (c.by === null || !!st.pawns[c.by]))) {
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)}`); }
+      // a cart standing out (VB-649): no carrier, and a lying 'leftCart' load of the household names it
+      if (c.at !== undefined && !(c.by === null && Number.isInteger(c.at.tile) && c.at.t <= st.t &&
+        (st.lying || []).some((l) => l.kind === 'leftCart' && l.owner.type === 'household' && l.owner.id === h.id && l.of.cart.kind === c.kind && l.of.cart.built === c.built)))
+        bad.push(`households[${h.id}]: cart ${JSON.stringify(c)} stands out with no carrier's lying cart`);
     }
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
     const FOODS = globalThis.VB['sim/rules'].FOODS;
@@ -495,6 +499,32 @@ function checkState(st) {
     const line = f && f.line !== null && f.line !== undefined ? f.line : h.holder;
     if (line !== null && !globalThis.VB['sim/records'].householdsOfLine(st, line).includes(h.id))
       bad.push(`households[${h.id}]: not in the index of lines under ${line}`);
+  }
+  // the feast (VB-458): a feast of the last day left its host at or above its seed and FEAST.above years of need (the entry's keep), and
+  // what it served is what those who ate there ate (pawn.feast), each one feast a day
+  {
+    const DAY = globalThis.VB['sim/rules'].DAY, recent = new Map();
+    for (const id of st.liveHouseholds) {
+      const h = st.households[id];
+      for (let i = h.ledger.length - 1; i >= 0 && st.t - h.ledger[i].t < DAY; i--) {
+        const e = h.ledger[i];
+        if (e.kind !== 'feast') continue;
+        if (!(e.n < 0) || !(e.guests > 0) || !(e.booked >= 0)) bad.push(`households[${h.id}]: invalid feast ${JSON.stringify(e)}`);
+        recent.set(`${h.id}:${e.t}`, { e, ate: 0, eaters: 0 });
+      }
+    }
+    for (const p of st.pawns) {
+      if (p.feast === undefined) continue;
+      const x = p.feast;
+      if (!(x.n > 0) || !(x.t <= st.t) || !st.households[x.host]) bad.push(`pawns[${p.id}]: invalid feast ${JSON.stringify(x)}`);
+      const r = recent.get(`${x.host}:${x.t}`);
+      if (r) { r.ate += x.n; r.eaters++; }
+    }
+    for (const [key, r] of recent) {
+      if (Math.abs(r.ate + r.e.n) > 1e-6 || r.eaters !== r.e.guests)
+        bad.push(`feast ${key}: served ${-r.e.n} to ${r.e.guests}, eaten ${r.ate} by ${r.eaters}`);
+      if (!(r.e.left >= r.e.keep - 1e-6)) bad.push(`feast ${key}: left its host ${r.e.left}, below its seed and years of need (${r.e.keep})`);
+    }
   }
   const ledgerKinds = globalThis.VB['sim/stores'].KINDS;
   const WOODS = ['wood', 'timber', 'stone']; // the woodpile and timber at a building site (VB-328), the stone heap (VB-332)
@@ -918,6 +948,8 @@ function checkState(st) {
       if (!(l.t <= st.t) || !(st.t - l.t < YEAR)) bad.push(`${at}: put down at ${l.t}, a year or more ago (the frost rots it)`);
       if (!o || !((o.type === 'household' && st.households[o.id]) || (o.type === 'village' && st.villages[o.id]))) bad.push(`${at}: owner ${JSON.stringify(o)}`);
       if (!l.of || !Number.isInteger(l.of.src)) bad.push(`${at}: no task tile`);
+      if (l.kind === 'leftCart' && !(o && o.type === 'household' && st.households[o.id] && st.households[o.id].carts.some((c) => c.at && c.kind === l.of.cart.kind && c.built === l.of.cart.built)))
+        bad.push(`${at}: a cart left standing that its household does not have out`);
     });
   }
   // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
@@ -1028,18 +1060,32 @@ function checkState(st) {
       if (!o || !B.subject || B.subject(st, o) !== p.id) bad.push(`pawn ${p.id}: ask ${p.ask} is no open offer about its future`);
     }
   }
-  // the journeys (VB-287): in the order they set out (by id; VB-473: their legs are their pawns'), ids below st.journeySeq and unique, each pawn living and in at most one, `to` its household's house,
-  // the food it carries never below 0; a pawn is in phase 'journey' or 'road' exactly when it is on one.
-  if (st.journeys !== undefined) {
+  // the stays away (VB-783; the journeys, VB-287, among them): in the order they began (by id; VB-473: a journey's legs are its pawn's), ids below
+  // st.awaySeq and unique, one stay a pawn, each pawn living, the food it carries never below 0, agent.away its index (the stay's id on its
+  // pawn's agent, absent on every other). A journey (bed null, roof 'none'): `to` its household's house, and its pawn in phase 'journey' or
+  // 'road' exactly when it is on one. A lodger: its bed a tile and its walk there, `to` its bed, roof 'none' or 'house', a guest's bed the
+  // house of its host, another household; its pawn never on the road.
+  if (st.away !== undefined) {
     const seen = new Set(), ids = new Set();
-    if (!Array.isArray(st.journeys) || !Number.isInteger(st.journeySeq) || st.journeySeq < 0) bad.push(`journeys: ${typeof st.journeys}, seq ${st.journeySeq}`);
-    else st.journeys.forEach((j, n) => {
-      const at = `journeys[${n}] (id ${j.id})`, p = st.pawns[j.pawn];
-      if (n > 0 && st.journeys[n - 1].id >= j.id) bad.push(`${at}: set out before the one ahead of it`);
-      if (!Number.isInteger(j.id) || j.id < 0 || j.id >= st.journeySeq || ids.has(j.id)) bad.push(`${at}: id against journeySeq ${st.journeySeq}`);
+    if (!Array.isArray(st.away) || !Number.isInteger(st.awaySeq) || st.awaySeq < 0) bad.push(`away: ${typeof st.away}, seq ${st.awaySeq}`);
+    else st.away.forEach((j, n) => {
+      const at = `away[${n}] (id ${j.id})`, p = st.pawns[j.pawn];
+      if (n > 0 && st.away[n - 1].id >= j.id) bad.push(`${at}: began before the one ahead of it`);
+      if (!Number.isInteger(j.id) || j.id < 0 || j.id >= st.awaySeq || ids.has(j.id)) bad.push(`${at}: id against awaySeq ${st.awaySeq}`);
       ids.add(j.id);
-      if (!p || !p.alive || seen.has(j.pawn)) bad.push(`${at}: pawn ${j.pawn} dead, missing or on two journeys`);
+      if (!p || !p.alive || seen.has(j.pawn)) bad.push(`${at}: pawn ${j.pawn} dead, missing or away twice`);
       seen.add(j.pawn);
+      if (!st.agents[j.pawn] || st.agents[j.pawn].away !== j.id) bad.push(`${at}: its pawn's agent.away is ${st.agents[j.pawn] && st.agents[j.pawn].away}`);
+      if (!(j.food >= 0)) bad.push(`${at}: food ${j.food}`);
+      if (j.bed !== null) {
+        const host = j.host === undefined ? null : st.households[j.host];
+        if (!Number.isInteger(j.bed) || j.bed < 0 || j.bed >= st.w.N || j.to !== j.bed || !(j.walk >= 0) || !Array.isArray(j.jobs)) bad.push(`${at}: a lodger's bed ${j.bed}, to ${j.to}, walk ${j.walk}`);
+        if (host ? j.roof !== 'house' || st.farmsteads[host.farmstead].house !== j.bed || (p && p.household === host.id) : j.roof !== 'none' && j.roof !== 'booth') bad.push(`${at}: roof ${j.roof}, host ${j.host}`);
+        const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
+        if (ph === 'journey' || ph === 'road') bad.push(`${at}: a lodger in phase ${ph}`);
+        return;
+      }
+      if (j.roof !== 'none') bad.push(`${at}: a journey under roof ${j.roof}`);
       const bearing = j.why === 'carry' && !j.back; // VB-291: a carrier bound for the receiver's house, with his gift
       // VB-461: a fetch with its gift is its pawn's household's; the grain in transit is on the pawn, bound for that house, and none is on
       // him on his way out to the place its first stop names; each stop holds grain set aside, by crop
@@ -1052,11 +1098,31 @@ function checkState(st) {
         for (const s of g.stops || []) if (!(s.left > 0) || Math.abs(sum(s.parts) - s.left) > 1e-6 * Math.max(1, s.left) || (s.from === null) === (s.village === null)) bad.push(`${at}: a stop ${JSON.stringify(s)}`);
       } else if (bearing ? !j.gift || !(j.gift.n > 0) || st.farmsteads[st.households[j.gift.to].farmstead].house !== j.to : (j.gift || false) && j.gift !== null) bad.push(`${at}: a gift ${JSON.stringify(j.gift)} on a journey ${j.why}, back ${j.back}`);
       if (!bearing && !g && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
-      if (!['move', 'carry', 'fetch', 'haul'].includes(j.why) || !(j.food >= 0) || 'due' in j) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
+      if (!['move', 'carry', 'fetch', 'haul'].includes(j.why) || 'due' in j) bad.push(`${at}: why ${j.why}, due ${j.due}`);
       const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
       if (ph !== 'journey' && ph !== 'road') bad.push(`${at}: its pawn is in phase ${ph}`);
     });
-    for (const a of st.agents) if ((a.phase === 'journey' || a.phase === 'road') && !seen.has(a.id)) bad.push(`agent ${a.id}: phase ${a.phase} and on no journey`);
+    for (const a of st.agents) {
+      if ((a.phase === 'journey' || a.phase === 'road') && !seen.has(a.id)) bad.push(`agent ${a.id}: phase ${a.phase} and on no journey`);
+      if (a.away !== undefined && !seen.has(a.id)) bad.push(`agent ${a.id}: away ${a.away}, and in no stay`);
+    }
+  }
+  // the booths (VB-784): ids below st.boothSeq, unique and in order, on a tile with nobody else's booth, for a household, a built one's condition
+  // in 0..1 at a time not after now (a gone one is not here), and a stay under a booth's roof at a standing booth's tile, at most BOOTH.sleeps
+  if (st.booths !== undefined) {
+    const tiles = new Set(), under = new Map();
+    for (const s of st.away) if (s.roof === 'booth') under.set(s.bed, (under.get(s.bed) || 0) + 1);
+    st.booths.forEach((b, n) => {
+      const at = `booths[${n}] (id ${b.id})`;
+      if (!Number.isInteger(b.id) || b.id < 0 || b.id >= st.boothSeq || (n > 0 && st.booths[n - 1].id >= b.id)) bad.push(`${at}: id against boothSeq ${st.boothSeq}`);
+      if (tiles.has(b.tile)) bad.push(`${at}: two booths on tile ${b.tile}`);
+      tiles.add(b.tile);
+      if (!st.households[b.by]) bad.push(`${at}: for no household`);
+      if (b.built !== null && (!(b.cond >= 0 && b.cond <= 1) || b.condAt < b.built || b.condAt > st.t)) bad.push(`${at}: condition ${b.cond} at ${b.condAt}, built ${b.built}`);
+      if (b.built === null && under.has(b.tile)) bad.push(`${at}: slept in before it is raised`);
+      if ((under.get(b.tile) || 0) > VB['sim/rules'].BOOTH.sleeps) bad.push(`${at}: more than it sleeps`);
+    });
+    for (const t of under.keys()) if (!tiles.has(t)) bad.push(`a stay under a booth's roof at tile ${t}, where none stands`);
   }
   // the hard rule (VB-461): no gift's grain changes place at once between two farmsteads, or from a village store to a household
   const VBc = globalThis.VB && globalThis.VB.count;

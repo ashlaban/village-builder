@@ -5,7 +5,8 @@ VB['sim/farmclaims'] = (() => {
   const { YEAR, CLAIMS, CROPS, MARRIAGE } = VB['sim/rules'];
   const Offers = VB['sim/offers'];
   const { bufferOf } = VB['sim/traits'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { withinDay } = VB['sim/routes'];
+  const { doneOf } = VB['sim/progress'];
   const {
     spouseOf,
     childrenOf,
@@ -108,7 +109,7 @@ VB['sim/farmclaims'] = (() => {
     const vid = f.village,
       right = rule === 'kin' ? birthrightOn(st, f) : null;
     const home = (id) => settlementIdOf(st, st.pawns[id]);
-    const near = (id) => hoursBetween(st, home(id), vid) <= CLAIMS.farmHours; // there and back in a day (VB-290)
+    const near = (id) => withinDay(st, home(id), vid, CLAIMS.farmHours); // there and back in a day (VB-290)
     const degree = new Map();
     if (right)
       for (const id of ids) {
@@ -318,7 +319,7 @@ VB['sim/farmclaims'] = (() => {
       const hid = st.pawns[c.by].household,
         key = `restore:f${f.id}.h${hid}`,
         live = st.jobs.get(key);
-      if (live) c.done = c.plan.steps[0].done = live.done;
+      if (live) c.done = c.plan.steps[0].done = doneOf(st, live, c.hours);
       out.push([
         key,
         'restore',

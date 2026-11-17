@@ -472,10 +472,11 @@ VB['sim/saves'] = (() => {
       st.occasions = [];
       st.occasionSeq = 0;
     } // VB-126: nor occasions, nor their stream
-    if (!st.journeys) {
-      st.journeys = [];
-      st.journeySeq = 0;
-    } // VB-287: nor journeys
+    if (!st.booths) {
+      st.booths = [];
+      st.boothSeq = 0;
+    } // VB-784: a save before booths has none
+    migrateAway(st); // VB-287: nor journeys; VB-783: a save's journeys are stays away
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
     if (!st.finds) {
       st.finds = new Map();
@@ -501,6 +502,17 @@ VB['sim/saves'] = (() => {
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now
     return st;
+  }
+  // VB-783: a save's st.journeys (VB-287) are stays away whose bed is where the leg ends (st.away, sim/away), each indexed by its pawn's
+  // agent.away; a save with neither has none. The store movements of their provisions, kind 'journey', are the pack's, 'away'.
+  function migrateAway(st) {
+    if (st.away) return;
+    st.away = (st.journeys || []).map((j) => ({ ...j, bed: null, roof: 'none' }));
+    st.awaySeq = st.journeySeq || 0;
+    delete st.journeys;
+    delete st.journeySeq;
+    for (const s of st.away) st.agents[s.pawn].away = s.id;
+    for (const hh of st.households) for (const e of hh.ledger || []) if (e.kind === 'journey') e.kind = 'away';
   }
   // A save made before a custom (VB-100: the commons) holds fewer customs than DIMS: each culture and settlement gets the archetype's option
   // of each custom it lacks, and each person an attitude and anchor that prefer it (as seeding would, without its draws).

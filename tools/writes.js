@@ -51,14 +51,14 @@ const CONV = {
 // per module, names whose binding the scan cannot see (parameters, records made at seeding under other names); a judgement, kept short
 const HINTS = {
   culture: { p: 'pawn', s: 'settlement', c: 'culture', nc: 'culture', a: 'local' }, // the culture's people are st.pawns
-  'sim/saves': { v: 'local', h: 'household|village' }, 'sim/byre': { a: 'candidate' }, // byre: a candidate for slaughter {herd, head | sheep}
+  'sim/saves': { v: 'local', h: 'household|village', e: 'local' }, 'sim/byre': { a: 'candidate' }, // byre: a candidate for slaughter {herd, head | sheep}
   'sim/rng': { r: 'st.rng' }, 'sim/wishes': { rest: 'local' }, 'sim/records': { R: 'st', x: 'st.idx', l: 'st.idx', s: 'local' }, 'sim/people': { R: 'st' },
   'sim/layout': { used: 'st.used', farmsteads: 'st.farmsteads', villages: 'st.villages' },
   'sim/byhand': { used: 'st.used', farmsteads: 'st.farmsteads', villages: 'st.villages' }, // a settlementGenerator's, as sim/layout's
   'sim/help': { from: 'household', to: 'household', a: 'pawn' }, 'sim/herds': { from: 'household', to: 'household', dest: 'herd', ramHerd: 'herd' },
   'sim/heirs': { from: 'household', to: 'household', old: 'household', family: 'local' }, 'sim/relations': { g: 'agent', s: 'agent.talk', r: 'pawn.rel[]' },
   'sim/claims': { c: 'claim', r: 'local' }, 'sim/trust': { t: 'st.trusts' }, 'sim/offers': { o: 'st.offers' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
-  'sim/commands': { q: 'pawn' }, 'sim/agents': { g: 'agent' }, 'sim/expansion': { live: 'local' }, 'sim/pot': { units: 'local' },
+  'sim/commands': { q: 'pawn' }, 'sim/agents': { g: 'agent' }, 'sim/away': { g: 'local', rest: 'local' }, 'sim/expansion': { live: 'local' }, 'sim/pot': { units: 'local' },
   'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/meetings': { people: 'local' }, 'sim/plans': { T: 'plan.targets' }, 'sim/aims': { A: 'plan.aim', B: 'plan.aim' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
     R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead', f: 'farmstead' },
 };

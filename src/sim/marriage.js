@@ -6,7 +6,7 @@ VB['sim/marriage'] = (() => {
   const { personEvent, log, fullName, spouseOf, settlementIdOf, farmPractice, holdingOf, atHousehold, spokesmanOf } =
     VB['sim/records'];
   const { startInLife } = VB['sim/exchange'];
-  const { journeyOf } = VB['sim/agents'];
+  const { stayOf } = VB['sim/agents'];
   const { heirRanking, refreshRoles, handOn } = VB['sim/heirs'];
   const { issue, clearMatchWish } = VB['sim/commands'];
   const { moveWhy } = VB['sim/wishes'];
@@ -36,7 +36,7 @@ VB['sim/marriage'] = (() => {
     }
     emit(st, 'wed', { a: mId, b: fId }); // newly married (sim/mood, VB-062)
     const fm = st.farmsteads[st.households[home].farmstead],
-      away = [m, f].filter((q) => journeyOf(st, q.id)); // from another village: and sets out for it (VB-287)
+      away = [m, f].filter((q) => stayOf(st, q.id)); // from another village: and sets out for it (VB-287)
     const out = away.length
       ? `, and ${away.map((q) => q.given).join(' and ')} ${away.length > 1 ? 'set' : 'sets'} out for it`
       : '';

@@ -12,12 +12,16 @@ VB['sim/occasions'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, SPEED, WORK, SOCIAL, TICKS, cal } = VB['sim/rules'];
   const { findRoute, routeCost } = VB['sim/routes'];
-  const { kinNear, membersOf, voiceOf, fullName, log, atFarm } = VB['sim/records'];
+  const { kinNear, membersOf, voiceOf, fullName, log, atFarm, age } = VB['sim/records'];
   const { issue, unplanned } = VB['sim/commands'];
   const { emit } = VB['sim/events'],
     { remember } = VB['sim/relations'],
     Stores = VB['sim/stores'];
-  const { BREW } = VB['sim/rules'];
+  const { BREW, FEAST, YEAR_DAYS } = VB['sim/rules'];
+  const Rules = VB['sim/registry'],
+    Traits = VB['sim/traits'],
+    { book } = VB['sim/relations'],
+    { dailyNeed } = VB['sim/hunger'];
   // The occasions (Kim, 10 Nov; QUESTION_ARCHIVE.md, "VB-126"): their hours in the day, and whether work stops for them. A village's
   // meeting is held on its own 6-minute step from noon (sim/lifecycle, VB-278): its people stand about the green from two hours before it
   // until the step after it, so `from` and `to` are the hours of the first village's, and a later village's are its turn later.
@@ -197,8 +201,7 @@ VB['sim/occasions'] = (() => {
     !unplanned(st, a.id) &&
     !held(a, o) &&
     a.phase !== 'back' &&
-    a.phase !== 'journey' &&
-    a.phase !== 'road' && // on the road (VB-287)
+    a.away === undefined && // on the road (VB-287), or lodging away (VB-783)
     (o.overrides || (!a.job && (a.phase === null || a.phase === 'home')));
   // The occasion o's turn: those whose time to set out has come go if they can; one who cannot yet is looked at again in an hour (at the
   // next step if it is carrying a load home), while it
@@ -245,6 +248,86 @@ VB['sim/occasions'] = (() => {
     emit(st, 'alePoured', { host: hh.holder, household: hh.id, barrels });
     return barrels;
   }
+  // ---- the feast (VB-458; design.md, The gift: The feast, What a feast books) ----
+  // The rule 'feast', with the context {hh}: the grain the household holds beyond its seed and FEAST.above years of its need, which it
+  // feasts from when above 0; the household's panel explains it (Sim.explainFeast). Allocates nothing.
+  Rules.declare({ id: 'feast', owner: 'sim/occasions', combine: 'sum', base: (st, c) => Stores.grainOf(c.hh) });
+  Rules.contribute({
+    rule: 'feast',
+    source: 'sim/occasions',
+    key: 'seed',
+    label: 'Seed for its fields',
+    tunables: [],
+    value: (st, c) => -Stores.reserved(st, c.hh, 'grain'),
+  });
+  Rules.contribute({
+    rule: 'feast',
+    source: 'sim/occasions',
+    key: 'keep',
+    label: 'Years of food kept',
+    tunables: ['FEAST.above'],
+    value: (st, c) => -FEAST.above * YEAR_DAYS * dailyNeed(st, c.hh),
+  });
+  const fctx = { hh: null }; // reused, so the rule's value allocates nothing
+  function surplus(st, hh) {
+    fctx.hh = hh;
+    const v = Rules.value(st, 'feast', fctx);
+    fctx.hh = null;
+    return v;
+  }
+  const explainFeast = (st, hh) => Rules.explain(st, 'feast', { hh });
+  const ration = (st, p) => (age(st, p) >= 14 ? st.ECON.ration.adult : st.ECON.ration.child); // as sim/hunger's day's need
+  // The host household of farm f lays out food for those `present` (its own members too) after `barrels` of ale were poured, if its holder
+  // lives and its grain stands above the rule 'feast': its share of the surplus (FEAST.share, times the holder's generosity), at most
+  // FEAST.perGuest a ration of need of those who eat, less the ale's grain. A feast too small to make each a day's meal is not laid out.
+  // Each eats its part by its ration, and has eaten the day's meal (pawn.feast; sim/hunger feeds it no more that day); each guest
+  // household with a living holder owes the host's holder the worth of what its members ate and drank, ale at its grain (relations'
+  // book, the gift's rule). Returns {eaten, rations} or null.
+  // @state pawn.feast: absent, or {t (game hour), n (rations it ate), host (the household that laid it out)}: the last feast the pawn ate
+  //   at; written only here, read by sim/hunger (the day's meal) and the invariants.
+  function feast(st, f, present, barrels) {
+    if (f.household === null) return null;
+    const hh = st.households[f.household];
+    if (hh.dissolved || hh.holder === null || !st.pawns[hh.holder].alive) return null;
+    const excess = surplus(st, hh);
+    if (!(excess > 0)) return null;
+    const eaters = present.filter((id) => {
+      const p = st.pawns[id];
+      return p.alive && (p.feast === undefined || st.t - p.feast.t >= DAY); // one feast a day
+    });
+    let need = 0;
+    for (const id of eaters) need += ration(st, st.pawns[id]);
+    const ale = barrels * BREW.grain,
+      offered = FEAST.share * Traits.act(st, hh.holder, 'generosity', 'feast') * excess,
+      served = Math.min(offered, FEAST.perGuest * need - ale);
+    if (!(need > 0) || served < need) return null;
+    const keep = Stores.grainOf(hh) - excess,
+      owed = new Map(),
+      aleEach = ale / present.length;
+    for (const id of eaters) {
+      const p = st.pawns[id],
+        n = (served * ration(st, p)) / need;
+      VB.count.feastServed++;
+      p.feast = { t: st.t, n, host: hh.id };
+      const g = p.household === null ? null : st.households[p.household];
+      if (!g || g === hh || g.holder === null || g.holder === hh.holder || !st.pawns[g.holder].alive) continue;
+      owed.set(g, (owed.get(g) || 0) + n + aleEach);
+    }
+    let booked = 0;
+    for (const [g, worth] of owed) {
+      book(st, hh.holder, g.holder, worth); // the host's holder is owed the worth (What a feast books: the two holders)
+      booked += worth;
+    }
+    const left = Stores.grainOf(hh) - served; // above keep, as served is a share of the excess (tests/lib/invariants.js)
+    Stores.takeSpare(st, hh, served, { kind: 'feast', guests: eaters.length, booked, keep, left });
+    const host = st.pawns[hh.holder];
+    log(
+      st,
+      `${fullName(host)} laid out a feast at ${f.name}: ${eaters.length} ate, ${Math.round(served)} rations of food.`,
+      { kind: 'feast', pawn: host.id, n: Math.round(served), ...atFarm(f) },
+    );
+    return { eaten: eaters.length, rations: served };
+  }
   // The occasion ends: those who came are free; outside working hours those outdoors go home. A wedding or a funeral ale is told in the log.
   function finish(st, o) {
     st.occasions.splice(st.occasions.indexOf(o), 1);
@@ -270,6 +353,7 @@ VB['sim/occasions'] = (() => {
     const f = st.farmsteads[o.farm],
       n = o.come.length,
       barrels = pourAle(st, f, present);
+    feast(st, f, present, barrels);
     const ale = barrels ? `; ${barrels === 1 ? 'a barrel' : barrels + ' barrels'} of ale poured` : '';
     const came = `${n} came${far ? `, ${far} of them from other villages` : ''}${ale}`;
     const at = atFarm(f);
@@ -307,5 +391,6 @@ VB['sim/occasions'] = (() => {
     join,
     occasionsDue,
     occasionLabel,
+    explainFeast,
   };
 })();

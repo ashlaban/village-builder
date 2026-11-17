@@ -12,7 +12,7 @@ const fresh = () => {
   return st;
 };
 // VB-461: a gift from another farmstead or the village store is set aside at the ask and fetched; run the day's fetches to their end
-const settle = (st) => { for (let s = 0; s < 6 * 48 && st.journeys.some((j) => j.why === 'fetch'); s++) Sim.advance(st, 0.5); assert(!st.journeys.some((j) => j.why === 'fetch'), 'the fetches are over'); };
+const settle = (st) => { for (let s = 0; s < 6 * 48 && st.away.some((j) => j.why === 'fetch'); s++) Sim.advance(st, 0.5); assert(!st.away.some((j) => j.why === 'fetch'), 'the fetches are over'); };
 const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the floor and the holder's reserve, by its generosity
 { const st = Sim.seed(island(7), 7, 'populous'); for (const p of st.pawns) { const b = bufferOf(st, p.id); assert(b >= HELP.floorDays && b <= HELP.floorDays + 40, 'buffer 20..60 days by generosity'); } }
 { // a household above its buffer gives to a hungry kin household; one below its buffer does not
@@ -27,7 +27,7 @@ const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the f
   const given = Math.min(want, bs);
   assert.strictEqual(Sim.grainOf(a), g0, 'the gift has not come in yet: it lies at the giver\'s');
   assert(Math.abs(Sim.grainOf(b) - (seedReserve(st, b) + buf(b) + 500 - given)) < 1e-6, 'set aside at once: the giver lost what the taker is given');
-  assert(st.journeys.some((j) => j.why === 'fetch' && st.pawns[j.pawn].household === a.id), 'a member of the asking household goes for it');
+  assert(st.away.some((j) => j.why === 'fetch' && st.pawns[j.pawn].household === a.id), 'a member of the asking household goes for it');
   settle(st);
   const came = a.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.from !== undefined).reduce((t, e) => t + e.n, 0); // the household eats as it comes in
   assert(Math.abs(came - given) < 1e-6, `kin gave ${came}, expected ${given}`);
@@ -75,8 +75,8 @@ const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the f
   v.grain = { barley: 0 }; for (const hh of st.households) hh.grain = { barley: seedReserve(st, hh) };
   a.grain.barley += bufferOf(st, a.holder) * dailyNeed(st, a) + 400;
   fillStores(st); // carried to the green a load a trip (VB-849): the store holds it when the hauls are over
-  for (let s = 0; s < 6 * 48 && st.journeys.some((j) => j.why === 'haul'); s++) Sim.advance(st, 0.5);
-  assert(!st.journeys.some((j) => j.why === 'haul'), 'the hauls are over');
+  for (let s = 0; s < 6 * 48 && st.away.some((j) => j.why === 'haul'); s++) Sim.advance(st, 0.5);
+  assert(!st.away.some((j) => j.why === 'haul'), 'the hauls are over');
   assert(Math.abs(Sim.grainOf(v) - 100) < 1e-6, `store holds ${Sim.grainOf(v)}, expected 25% of 400`);
 }
 { // a run keeps every invariant: two years, through two moving rounds (seven and a half years of 360 days before VB-856; the long runs
