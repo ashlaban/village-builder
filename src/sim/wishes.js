@@ -128,10 +128,10 @@ VB['sim/wishes'] = (() => {
   // (a parent, or its guardian) lives with it goes into service only with that keeper (it follows, `with`, and is not asked); one with
   // none left at home is placed, by its kin (`care`, its own yes not asked) or in service, as a dissolved household's people are.
   const kept = (st, p) =>
-    [p.father, p.mother].some((q) => q !== null && st.pawns[q].alive && st.pawns[q].household === p.household) ||
-    (p.household !== null &&
-      st.households[p.household].ward === p.id &&
-      Number.isInteger(st.households[p.household].guardian));
+    p.household !== null &&
+    !st.households[p.household].dissolved && // a dissolved household's people are each placed (sim/heirs' extinct)
+    ([p.father, p.mother].some((q) => q !== null && st.pawns[q].alive && st.pawns[q].household === p.household) ||
+      (st.households[p.household].ward === p.id && Number.isInteger(st.households[p.household].guardian)));
   function moveWhy(st, id, hh, reason) {
     const p = st.pawns[id],
       minor = !(p.age >= 18),
