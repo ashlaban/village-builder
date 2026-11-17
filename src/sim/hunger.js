@@ -309,6 +309,18 @@ VB['sim/hunger'] = (() => {
     }
     return day;
   }
+  // The day's cold and wet of a night away (VB-785), by the house's rule read for the stay's roof: none, as a house with no wood and no
+  // roof; a booth, as a heated house when its wood covers the day's fire (`fire`, the booth's, burnt once a day for all in it), else an
+  // unheated one; a guest's, its host's today (the last of the host's logs, which its meal wrote before). Returns [cold, dry].
+  function nightCost(st, season, roof, host, fire) {
+    const use = st.ECON.woodUse;
+    if (roof === 'house' && host && !host.dissolved) {
+      const c = host.coldLog.length ? host.coldLog[host.coldLog.length - 1] : 0;
+      return [c, host.dryLog.length ? host.dryLog[host.dryLog.length - 1] : 0];
+    }
+    if (roof === 'booth') return [Math.max(0, use[season] - fire) / use[3], 0];
+    return [use[season] / use[3], 1];
+  }
   // The day's meal of pawn p: `eaten` of its `need` rations, into its hunger log, its hunger and its health.
   function ate(st, p, eaten, need, cold = 0, dry = 0) {
     p.hungerLog.push(1 - eaten / need);
@@ -369,6 +381,7 @@ VB['sim/hunger'] = (() => {
     stockWorth,
     feedHousehold,
     ate,
+    nightCost,
     rationOf,
     feedGroups,
     servedLast,
