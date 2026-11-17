@@ -104,7 +104,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-972](backlog/VB-972.md) | The cold-households band counts a household with no members as cold | - | 3 | S | an orphan ward's empty farm shows cold 48 winter days a year |
 | [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
 | [VB-984](backlog/VB-984.md) | A booth's maker lets a pawn in | far | 3 | S | verb letIn adds a guest to a booth |
-| [VB-985](backlog/VB-985.md) | Test: a booth's wood fetched from the village wood | far | 3 | S | cover the fetched-wood path of the booth job |
 | [VB-990](backlog/VB-990.md) | Measure VB-785's night cost on small-y40 loaded a year | - | 3 | S | Measure the night cost on a late save |
 | [VB-996](backlog/VB-996.md) | The household's panel says why it does or does not feast | - | 3 | S | Show the rule feast (Sim.explainFeast) on the household's panel |
 | [VB-997](backlog/VB-997.md) | VB-458's numbers at populous seeds 3 and 11, 30 years | - | 3 | S | Owed measures of the feast, for VB-662 |
