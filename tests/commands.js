@@ -177,7 +177,7 @@ R.leaveHousehold(membership, 0);
 assert.strictEqual(membership.pawns[0].household, null);
 R.joinHousehold(membership, membership.households[1], 0, false);
 assert.deepStrictEqual(membership.households[1].members, [0]);
-assert.deepStrictEqual(membership.pawns[0], { household: 1, servant: false });
+assert.deepStrictEqual(membership.pawns[0], { household: 1, servant: false, servedSince: null });
 R.setServant(membership, 0, true);
 assert.strictEqual(membership.pawns[0].servant, true);
 const before5 = snap3(), lead = st3.pawns.find((p) => p.died === null && p.age >= 18);
