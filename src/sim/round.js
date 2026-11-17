@@ -142,12 +142,12 @@ VB['sim/round'] = (() => {
   }
   // The man m, refused by woman `not` on day d of the round, asks anew that evening through his spokesman, due the next day (VB-692):
   // the best-scoring woman of those within reach (VB-288) whom the round's rules allow him, as villageRound chooses, she excepted. Not on
-  // the last day (no next day), and not where the played pawn speaks for him (the player asks by the offer verb).
+  // the last day (no next day), and not for the played pawn or where it speaks for him (the player asks by the offer verb).
   function askAgain(st, m, not, d, now) {
     const p = st.pawns[m],
       played = st.player ? st.player.pawn : null;
     if (d >= ASK.passes - 1 || !p.alive || spouseOf(st, m) !== null || heldBy(st, m, 'match')) return;
-    if (spokesmanOf(st, m) === played || (p.ask !== undefined && p.ask !== null)) return;
+    if (m === played || spokesmanOf(st, m) === played || (p.ask !== undefined && p.ask !== null)) return;
     const v = settlementIdOf(st, p),
       pool = poolFor(st, v),
       cu = practice(st, v),
@@ -212,6 +212,7 @@ VB['sim/round'] = (() => {
       const wish = p.wish ? wishOf(st, id, 'match') : null;
       if (typeof wish === 'number') wishers.push([id, wish]);
       if (spouseOf(st, id) !== null || p.retired || !fed(p) || wish === false) continue;
+      if (p.ask !== undefined && p.ask !== null && !heldBy(st, id, 'match')) continue; // in another basis's step only (VB-692)
       if (p.age < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) continue;
       if (wasWidowed(st, id)) widowed.add(id);
       (p.sex === 'f' ? women : settlementIdOf(st, p) === v ? men : others).push(p);
