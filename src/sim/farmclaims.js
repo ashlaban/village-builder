@@ -4,7 +4,12 @@ VB['sim/farmclaims'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { YEAR, CLAIMS, CROPS } = VB['sim/rules'];
   const { bufferOf } = VB['sim/traits'];
+<<<<<<< HEAD
   const { withinDay } = VB['sim/routes'];
+=======
+  const { doneOf } = VB['sim/progress'];
+  const { hoursBetween } = VB['sim/routes'];
+>>>>>>> claude/happy-bardeen-bcg39a
   const {
     spouseOf,
     childrenOf,
@@ -238,7 +243,7 @@ VB['sim/farmclaims'] = (() => {
       const hid = st.pawns[c.by].household,
         key = `restore:f${f.id}.h${hid}`,
         live = st.jobs.get(key);
-      if (live) c.done = c.plan.steps[0].done = live.done;
+      if (live) c.done = c.plan.steps[0].done = doneOf(st, live, c.hours);
       out.push([
         key,
         'restore',

@@ -197,8 +197,7 @@ VB['sim/occasions'] = (() => {
     !unplanned(st, a.id) &&
     !held(a, o) &&
     a.phase !== 'back' &&
-    a.phase !== 'journey' &&
-    a.phase !== 'road' && // on the road (VB-287)
+    a.away === undefined && // on the road (VB-287), or lodging away (VB-783)
     (o.overrides || (!a.job && (a.phase === null || a.phase === 'home')));
   // The occasion o's turn: those whose time to set out has come go if they can; one who cannot yet is looked at again in an hour (at the
   // next step if it is carrying a load home), while it

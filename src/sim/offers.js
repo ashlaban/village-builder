@@ -16,7 +16,7 @@ VB['sim/offers'] = (() => {
   const { grainOf } = VB['sim/stores'];
   const home = (st, id) => Number.isInteger(id) && !!st.households[id] && !st.households[id].dissolved;
   const alive = (st, id) => Number.isInteger(id) && !!st.pawns[id] && st.pawns[id].died === null;
-  const onRoad = (a) => a.phase === 'journey' || a.phase === 'road'; // as sim/agents' travelling, which loads after this module
+  const onRoad = (a) => a.away !== undefined; // away from home (sim/away's agent.away, VB-783), as on the road
   // The party a ref names ({household} or {village}), or null
   const partyOf = (st, ref) =>
     ref && ref.household !== undefined

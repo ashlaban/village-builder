@@ -3,8 +3,12 @@
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
+<<<<<<< HEAD
   const { hoursBetween, withinDay, byLand } = VB['sim/routes'];
   const onRoad = (a) => a.phase === 'journey' || a.phase === 'road'; // as sim/agents' travelling, which loads after this module
+=======
+  const { hoursBetween } = VB['sim/routes'];
+>>>>>>> claude/happy-bardeen-bcg39a
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
@@ -42,7 +46,7 @@ VB['sim/help'] = (() => {
     let best = -1;
     for (const id of hh.members) {
       const p = st.pawns[id];
-      if (!p.alive || p.age < 14 || p.age >= 60 || onRoad(st.agents[id])) continue;
+      if (!p.alive || p.age < 14 || p.age >= 60 || st.agents[id].away !== undefined) continue;
       if (best < 0 || p.age < st.pawns[best].age) best = id;
     }
     return best;
