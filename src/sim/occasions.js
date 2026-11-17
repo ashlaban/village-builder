@@ -318,7 +318,8 @@ VB['sim/occasions'] = (() => {
       book(st, hh.holder, g.holder, worth); // the host's holder is owed the worth (What a feast books: the two holders)
       booked += worth;
     }
-    Stores.takeSpare(st, hh, served, { kind: 'feast', guests: eaters.length, booked, keep });
+    const left = Stores.grainOf(hh) - served; // above keep, as served is a share of the excess (tests/lib/invariants.js)
+    Stores.takeSpare(st, hh, served, { kind: 'feast', guests: eaters.length, booked, keep, left });
     const host = st.pawns[hh.holder];
     log(
       st,
