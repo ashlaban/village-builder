@@ -173,9 +173,9 @@ VB['sim/exchange'] = (() => {
         source: 'offer',
       }),
   });
-  // ask: {wants: {good, n}}: a pawn asks a holder for goods for its own household; the holder weighs it as the gift it would make (its floor
-  // and its allowance toward the asker's household) and needs a free adult of its household to carry it (Offers.carrierOf). A yes: the
-  // holder delivers it, carried; the worth is booked as goodwill, as a gift's.
+  // ask: {wants: {good, n}}: a pawn asks a holder for grain for its own household; the holder weighs it as the gift it would make (its floor
+  // and its allowance toward the asker's household). A yes needs a member of the asker's household free to fetch it (deliver refuses else).
+  // The holder delivers it, set aside where it lies and fetched; the worth is booked as goodwill, as a gift's.
   Offers.basis('ask', {
     books: 'goodwill',
     wait: () => HELP.answerDays,
@@ -199,19 +199,17 @@ VB['sim/exchange'] = (() => {
       return (
         !from.dissolved &&
         !to.dissolved &&
-        Offers.carrierOf(st, from) !== null &&
         assessGift(st, { from, to, good: o.wants.good, n: o.wants.n, source: 'ask' }).accept
       );
     },
     settle: (st, o) => {
-      const from = Offers.partyOf(st, o.parties.to),
-        carrier = from.dissolved ? null : Offers.carrierOf(st, from);
-      if (carrier === null) return `no one of ${st.farmsteads[from.farmstead].name} is free to carry it`;
+      const from = Offers.partyOf(st, o.parties.to);
+      // the grain is set aside where it lies and fetched by the asker's household (VB-461, VB-861), not taken up at the start by a carrier
       return issue(st, {
         actor: from.holder !== null ? from.holder : { household: from.id },
         verb: 'deliver',
         target: o.parties.from.household,
-        args: { good: o.wants.good, n: o.wants.n, carrier },
+        args: { good: o.wants.good, n: o.wants.n },
         source: 'offer',
       });
     },
