@@ -248,16 +248,19 @@ VB['sim/opportunities'] = (() => {
     for (const o of view.offers) {
       const mine = o.answers.find((a) => a.by === id && a.yes === null);
       if (!mine) continue;
+      // a spokesman answers for the one its key names; the head of the home a match moves one into (VB-692) is asked, as for any basis
       const match = o.basis === 'match',
-        side =
-          !match || mine.key === 'man' || mine.key === 'woman'
-            ? null
-            : o.answers.find((a) => a.key === mine.key.slice(0, -4)).by,
+        side = match && mine.key.endsWith('Side') ? o.answers.find((a) => a.key === mine.key.slice(0, -4)).by : null,
         offer = {
           id: o.id,
           basis: o.basis,
           text: offerText(st, o),
-          part: !match ? 'the one asked' : side === null ? 'the one to marry' : 'head of the household',
+          part:
+            !match || mine.key === 'head'
+              ? 'the one asked'
+              : side === null
+                ? 'the one to marry'
+                : 'head of the household',
           for: side,
           answers: o.answers
             .filter((a) => a.yes !== null)

@@ -1006,7 +1006,10 @@ function checkState(st) {
   // none a no and one at least still to give (an offer closes at a no or at all yes). A match: a man and a woman, neither in two open
   // matches; the answers are theirs (by them) and at most one spokesman's a side (by another pawn); its home a household. Goods (a gift,
   // an ask): the parties are households or villages, the terms a positive amount of a good, the asked one answer (key 'to'). Who spoke
-  // for whom is checked where the offer is made (tests/offers.js): a spokesman may have changed since.
+  // for whom is checked where the offer is made (tests/offers.js): a spokesman may have changed since. A match may also be answered by
+  // the head of the home one of them moves to (key 'head', VB-692). An offer about a life (handover, land, party, place; VB-692): its
+  // terms of its basis, its answers by pawns; its subject (the basis's) a living pawn who holds it as pawn.ask; `round`, when present,
+  // true. And each pawn's ask (VB-692): null or absent, or the id of an open offer of which it is the subject.
   if (st.offers !== undefined) {
     const { YEAR: Y } = globalThis.VB['sim/rules'], { BASES } = globalThis.VB['sim/offers'], seen = new Set(), ids = new Set();
     if (!Array.isArray(st.offers) || !Number.isInteger(st.offerSeq) || st.offerSeq < 0) bad.push(`offers: ${typeof st.offers}, offerSeq ${st.offerSeq}`);
@@ -1029,16 +1032,33 @@ function checkState(st) {
         if (!keys.includes('man') || !keys.includes('woman')) bad.push(`${at}: answers ${keys.join()}`);
         for (const x of o.answers || []) {
           const own = x.key === 'man' ? man : x.key === 'woman' ? woman : null, side = x.key === 'manSide' ? man : x.key === 'womanSide' ? woman : null;
+          if (x.key === 'head') { if (x.by === man || x.by === woman) bad.push(`${at}: head answered by ${x.by}`); continue; }
           if (own === null && side === null) bad.push(`${at}: an answer of ${x.key}`);
           else if (own !== null ? x.by !== own : x.by === side) bad.push(`${at}: ${x.key} answered by ${x.by}`);
         }
+      } else if (BASES[o.basis].subject) {
+        const g = o.gives || {}, w = o.wants || {};
+        const terms = o.basis === 'handover' ? !!st.households[g.household] && ['marriage', 'retirement'].includes(g.reason)
+          : o.basis === 'place' ? !!st.households[g.household]
+          : o.basis === 'party' ? !!st.villages[g.from] && Array.isArray(g.all) && g.all[0] === o.from
+          : o.basis === 'land' ? (w.farm !== undefined ? !!st.farmsteads[w.farm] : !!st.villages[w.plot]) : false;
+        if (!terms) bad.push(`${at}: ${o.basis}: gives ${JSON.stringify(o.gives)}, wants ${JSON.stringify(o.wants)}`);
+        if (!(o.answers || []).length) bad.push(`${at}: ${o.basis} with no answer to give`);
       } else {
         const t = o.gives || o.wants, party = (r) => r && (r.household !== undefined ? !!st.households[r.household] : r.village !== undefined && !!st.villages[r.village]);
         if (!!o.gives === !!o.wants || !t || typeof t.good !== 'string' || !(t.n > 0)) bad.push(`${at}: gives ${JSON.stringify(o.gives)}, wants ${JSON.stringify(o.wants)}`);
         if (!o.parties || !party(o.parties.from) || !party(o.parties.to)) bad.push(`${at}: parties ${JSON.stringify(o.parties)}`);
         if (keys.join() !== (Number.isInteger(o.to) ? 'to' : '') || (Number.isInteger(o.to) && o.answers[0].by !== o.to)) bad.push(`${at}: answers ${keys.join()} of ${JSON.stringify(o.to)}`);
       }
+      if (o.round !== undefined && o.round !== true) bad.push(`${at}: round ${o.round}`);
+      const sub = BASES[o.basis].subject ? BASES[o.basis].subject(st, o) : null;
+      if (BASES[o.basis].subject && !(st.pawns[sub] && st.pawns[sub].ask === o.id)) bad.push(`${at}: its subject ${sub} does not hold it`);
     });
+    for (const p of st.pawns) {
+      if (p.ask === undefined || p.ask === null) continue;
+      const o = Array.isArray(st.offers) ? st.offers.find((x) => x.id === p.ask) : null, B = o && BASES[o.basis];
+      if (!o || !B.subject || B.subject(st, o) !== p.id) bad.push(`pawn ${p.id}: ask ${p.ask} is no open offer about its future`);
+    }
   }
   // the stays away (VB-783; the journeys, VB-287, among them): in the order they began (by id; VB-473: a journey's legs are its pawn's), ids below
   // st.awaySeq and unique, one stay a pawn, each pawn living, the food it carries never below 0, agent.away its index (the stay's id on its

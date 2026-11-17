@@ -777,6 +777,15 @@ VB['sim/rules'] = (() => {
     rungs: Object.freeze(['heir', 'match', 'farm', 'plot', 'party', 'service', 'stay']),
     landAmbition: 0.75,
   });
+  // The moving round as offers (VB-692; docs/plans/VB-682.md, section 2; Proposed): it lasts `passes` days from autumn day `day` + 1 (sday
+  // `day`, 0-based: days 11 to 13), each day every village in its step; a village's step answers the offers due to its people in `order`
+  // (a home handed on before a match that needs it, land before the party that would leave for want of it, service last, for those
+  // nothing else took); one refused on a day asks anew that evening, due the next day; what is open after the last day lapses.
+  const ASK = Object.freeze({
+    passes: 3,
+    day: 10,
+    order: Object.freeze(['handover', 'match', 'land', 'party', 'place']),
+  });
   // The village's wood (VB-326; design, Land and ecology, The village's wood; Agreed, Kim, 10 Nov): an allotted area of wooded tiles, v.wood
   // (sim/territory), perHousehold tiles for each live household of the village (a household fells about 11 trees a year and a tile of 60 to 80
   // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre (4 hours each way on meadow,
@@ -1090,6 +1099,7 @@ VB['sim/rules'] = (() => {
     SHARES,
     SETTLE,
     WISH,
+    ASK,
     SERVICE,
     TIE,
     MATCH,

@@ -158,8 +158,7 @@ VB['sim/expansion'] = (() => {
     return !best || best.field < 0 ? null : best;
   }
   // A plot begun in village v for pawn `intended`: the village's, or (by, a household id) that household's project for its heir (VB-255).
-  function startPlot(st, v, intended, by = null) {
-    const site = findSite(st, v);
+  function startPlot(st, v, intended, by = null, site = findSite(st, v)) {
     if (!site) return false;
     const w = st.w,
       tiles = [
@@ -247,6 +246,12 @@ VB['sim/expansion'] = (() => {
   on('heirFarm', (st, d) => {
     startPlot(st, st.villages[d.village], d.heir, d.by);
   });
+  // A plot asked for at the moving round and granted (the basis `land`, sim/farmclaims; VB-692): begun for the asker at the site the
+  // round found, or, with none named, at one found now.
+  on('plotGranted', (st, d) => {
+    const v = st.villages[d.village];
+    startPlot(st, v, d.pawn, null, d.site || findSite(st, v));
+  });
   // A plot already waits for the pawn, or for their spouse, until a cottage stands on it (VB-032): no second plot.
   function hasPlot(st, id) {
     const sp = spouseOf(st, id);
@@ -254,16 +259,25 @@ VB['sim/expansion'] = (() => {
     const built = (p) => p.holder === id || (sp !== null && p.holder === sp);
     return st.villages.some((v) => v.plots.some(built) || livePlots(st, v).some(mine));
   }
-  // At the moving round: the caller filters out farm claimants; two plots are cleared at a time per village.
-  function startPlots(st, mayStart = () => true) {
+  // At the moving round: the caller filters out farm claimants; two plots are cleared at a time per village. Each who waits, in turn,
+  // asks for a plot at the site the village would clear next (`ask`: the round's, the basis `land` of sim/farmclaims, due at once;
+  // VB-692; by default the plot is begun); none found, the village stops. One who holds an open offer about its future takes part only in that offer's step.
+  function startPlots(st, mayStart = () => true, ask = (v, id, site) => startPlot(st, v, id, null, site)) {
     for (const v of st.villages) {
       const waiting = st.demand.filter(
-        (id) => st.pawns[id].alive && settlementIdOf(st, st.pawns[id]) === v.id && mayStart(id) && !hasPlot(st, id),
+        (id) =>
+          st.pawns[id].alive &&
+          settlementIdOf(st, st.pawns[id]) === v.id &&
+          mayStart(id) &&
+          !hasPlot(st, id) &&
+          (st.pawns[id].ask === undefined || st.pawns[id].ask === null),
       );
       for (const id of waiting) {
         if (activePlots(st, v).filter((p) => p.holder.type === 'village').length >= MAX_PLOTS) break;
         if (hasPlot(st, id)) continue;
-        if (!startPlot(st, v, id)) break;
+        const site = findSite(st, v);
+        if (!site) break;
+        ask(v, id, site);
       }
     }
   }

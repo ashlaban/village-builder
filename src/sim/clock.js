@@ -1,7 +1,7 @@
 // @sys sim/clock: the calendar (one ordered table of what runs each step, hour, day, season and year) and Sim.advance
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, SOCIAL, HERD, FISH } = VB['sim/rules'];
+  const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, SOCIAL, HERD, FISH, ASK } = VB['sim/rules'];
   const { log, startFold, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { spreadForest } = VB['sim/spread'];
@@ -446,14 +446,21 @@ VB['sim/clock'] = (() => {
       note: "the meetings: a village's meeting a step, then the cultures' years and the land meeting (VB-278)",
       run: (st, c, n) => meetingStage(st, n - 12 * TICKS),
     },
-    {
+    // the moving round lasts ASK.passes days (VB-692): on each, a village a step answers the offers due to its people; on the first, its
+    // matches are offered, then demand, settlement and service from 18:00
+    ...Array.from({ length: ASK.passes }, (_, d) => ({
       every: 'year',
-      at: { season: AUTUMN, sday: 10, hour: 12, tick: [0, ROUND_STEPS] },
+      at: { season: AUTUMN, sday: ASK.day + d, hour: 12, tick: [0, ROUND_STEPS] },
       when: cenv,
       owner: 'sim/round',
-      note: "the moving round: a village's round a step, then demand, settlement and service (VB-277)",
-      run: (st, c, n) => roundPhase(st, n - 12 * TICKS),
-    },
+      note:
+        d === 0
+          ? "the moving round, day 1: a village's step a step (its due offers, its matches), then demand, settlement and service " +
+            '(VB-277, VB-692)'
+          : `the moving round, day ${d + 1}: a village's step a step, its due offers answered` +
+            `${d === ASK.passes - 1 ? '; then what is open lapses' : ''} (VB-692)`,
+      run: (st, c, n) => roundPhase(st, n - 12 * TICKS, d),
+    })),
   ];
   function decayFence(st, s, decay) {
     const before = s.cond;
