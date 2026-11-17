@@ -130,7 +130,8 @@ const NOT_STOCKS = {
     'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
     'farmstead.booth', 'farmstead.barn', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
-      'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded'],
+      'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded',
+      'village.rotation'],
   'the generated world': ['w.seed', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',
     'w.shade', 'w.macro', 'w.cdist', 'w.chex', 'w.csample', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
@@ -139,6 +140,7 @@ const NOT_STOCKS = {
     'w.veinNear'],
   'ways (the wear of walking, fords and bridges)': ['w.wear', 'w.worn', 'w.crossing'],
   'when a tile was last worked (a day, not an amount; sim/spread)': ['w.tended'],
+  'choices of the village\'s meeting (a decision, not an amount)': ['village.gathering'],
 };
 
 // ---- the @state lines: the fields of households, farms, villages and tiles they name ----

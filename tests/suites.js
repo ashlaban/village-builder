@@ -40,6 +40,7 @@ const FAST = [
   ['node', 'tests/forest-spread.js'],
   ['node', 'tests/rye.js'],
   ['node', 'tests/peas.js'],
+  ['node', 'tests/rotations.js'],
   ['node', 'tests/kinds.js'],
   ['node', 'tests/routes.js'],
   ['node', 'tests/tiny.js'],
@@ -108,6 +109,7 @@ const INTEGRATION = [
   ['node', 'tests/service-marriage.js'], // VB-634: the master's house is no home; service is by the year
   ['node', 'tests/projects.js'],
   ['node', 'tests/routines.js'],
+  ['node', 'tests/gathering.js'], // VB-294: the village's choice of gathering, who hosts and who goes
   ['node', 'tests/green.js'],
   ['node', 'tests/workdays.js'],
   ['node', 'tests/commons.js'],

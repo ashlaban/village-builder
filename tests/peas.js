@@ -3,7 +3,7 @@
 // field at soil 1, the soil mended 0.04 to at most 1.0 (a manured field keeps its soil); a pea left to the frost is lost as barley is.
 // Then the pot: barley and peas are two sources and go 10% further; peas alone are one source; peas held for seed are not cooked.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
-const { CROPS, FOODS, ECON, DAY, YEAR_DAYS, cal } = VB['sim/rules'];
+const { CROPS, ROTATIONS, FOODS, ECON, DAY, YEAR_DAYS, cal } = VB['sim/rules'];
 const { KINDS } = VB['sim/kinds'];
 const { fieldsFrost } = VB['sim/fields'];
 const Stores = VB['sim/stores'], Pot = VB['sim/pot'];
@@ -23,12 +23,13 @@ assert(FOODS.pulses.worth === 1 && FOODS.pulses.keeps === null && FOODS.pulses.s
 // ---- a field of peas, run by the simulation ----
 const st = tinyState(w, [{ at: [8, 8], farms: 1, sizes: [6] }], { seed: 7 });
 const f = st.farmsteads[0], hh = st.households[f.household], fd = f.fields[0];
-fd.crop = 'peas';
+// the farm and its village hold barley and peas by turns (VB-350), the field followed at peas and the others staggered after it
+st.villages[f.village].rotation = 'peas';
+f.fields.forEach((q, i) => Object.assign(q, { rotation: 'peas', step: (i + 1) % 2, crop: ROTATIONS.peas.courses[(i + 1) % 2] }));
 fd.soil = 0.9;
 fd.stage = 'stubble'; // to be hoed first
 Stores.put(st, hh, Stores.grainGood('peas'), P.seed + 5, 'start');
 Stores.put(st, hh, Stores.grainGood('barley'), 300, 'start'); // fed meanwhile: a hungry household eats its seed
-Stores.reserve(st, hh, st.plans.households.get(hh.id), Stores.grainGood('peas'), 0, 'seed');
 const hours = {};
 let seen = null, max = 0;
 for (let d = 0; d < YEAR_DAYS && !(fd.stage === 'stubble' && fd.reaped !== null); d++) {

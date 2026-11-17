@@ -1,5 +1,5 @@
-// @sys sim/meetings: the year's meetings (a village a step, then the cultures and the land meeting), the village's routines chosen at its
-//   meeting, and the night's drift of attitudes, a settlement a step (split from sim/lifecycle, VB-876)
+// @sys sim/meetings: the year's meetings (a village a step, then the cultures and the land meeting), the village's routines and its choice
+//   of gathering (sim/gathering) made at its meeting, and the night's drift of attitudes, a settlement a step (split from sim/lifecycle, VB-876)
 VB['sim/meetings'] = (() => {
   const { drawer } = VB['sim/rng'];
   const Culture = VB['culture'];
@@ -11,6 +11,8 @@ VB['sim/meetings'] = (() => {
   const { updateTie, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
   const { VILLAGE_STEPS } = VB['sim/occasions'];
+  const { chooseGathering, settleGatherings } = VB['sim/gathering'];
+  const { usualRotation } = VB['sim/fields'];
   // The year's meetings (VB-278; design.md, A village's meeting): on autumn day 10, each village's meeting on its own 6-minute step from noon,
   // in the order of village id from `year mod villages` (villageTurn, as the moving round's villages), then from 18:00 each culture's year,
   // and on the next step the
@@ -38,8 +40,10 @@ VB['sim/meetings'] = (() => {
   function meetingStage(st, n) {
     st.cenv.t = st.t / YEAR;
     if (n < VILLAGE_STEPS) villagesOfStep(st, n, (v) => villageMeeting(st, v));
-    else if (n === CULTURE_STEP) culturesYear(st);
-    else if (n === CULTURE_STEP + 1) landMeeting(st);
+    else if (n === CULTURE_STEP) {
+      settleGatherings(st); // VB-294: once every village has chosen, who goes to which gathering this winter
+      culturesYear(st);
+    } else if (n === CULTURE_STEP + 1) landMeeting(st);
   }
   // Village v's meeting: its living's interests, its tie to its culture's centre, the causes its adults take up, and its meeting, whose lines
   // go to the head of st.meetingLog. At the first village's step, the island's roles and prestige (every meeting reads them), and the living
@@ -49,6 +53,7 @@ VB['sim/meetings'] = (() => {
       s = env.settlements[v],
       c = cal(st.t);
     const people = membersOf(st, v); // its living, in id order (the order of st.living)
+    usualRotation(st, st.villages[v]); // its usual rotation, the one most of its farms hold (sim/fields, VB-350)
     VB.count.meetingWalk += people.length;
     const all = people.slice();
     if (v === 0) {
@@ -84,6 +89,8 @@ VB['sim/meetings'] = (() => {
     );
     const txt = routinesMeeting(st, s, held, people);
     if (txt) out.push({ year: c.year, text: txt });
+    if (people.length) chooseGathering(st, s, quorumAt(st, s, held, people), people); // VB-294: its choice of gathering
+
     toMeetingLog(st, out);
   }
   function toMeetingLog(st, lines) {
@@ -116,14 +123,19 @@ VB['sim/meetings'] = (() => {
   // what follows: no village work this year ('nothing') or last year's again ('asLastYear'), told in the log as a notable event of the
   // village. A village with no one living holds no meeting, and its routines stand. Returns the log's line of a failure, or null.
   const QUORUM = 0.5;
-  function routinesMeeting(st, s, o, people = membersOf(st, s.id)) {
-    const v = st.villages[s.id];
-    if (!v || !people.length) return null;
+  // Who of those with a voice came to the meeting o, and whether they make a quorum.
+  function attendance(st, s, o, people) {
     let voices = 0,
       came = 0;
     for (const p of people) if (voiceOf(st, p, s) > 0) voices++;
     if (o) for (const id of o.come) if (st.pawns[id].alive && st.agents[id].occasion === o.id) came++;
-    const quorum = voices > 0 && came >= voices * QUORUM,
+    return { voices, came, quorum: voices > 0 && came >= voices * QUORUM };
+  }
+  const quorumAt = (st, s, o, people) => attendance(st, s, o, people).quorum;
+  function routinesMeeting(st, s, o, people = membersOf(st, s.id)) {
+    const v = st.villages[s.id];
+    if (!v || !people.length) return null;
+    const { voices, came, quorum } = attendance(st, s, o, people),
       list = quorum ? chooseRoutines(st, v) : null;
     if (list) {
       issue(st, {

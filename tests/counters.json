@@ -29,6 +29,7 @@
   "roundWalk": 0.06526019690576652,
   "wishWalk": 0.03263009845288326,
   "meetingWalk": 0,
+  "rotationWalk": 0,
   "overviewWalk": 0,
   "heirRank": 0.020253164556962026,
   "storeWalk": 0.06751054852320675,
@@ -60,5 +61,9 @@
   "giftUncarried": 0,
   "awayMeals": 0,
   "deerCrop": 0,
-  "roundRank": 0.020253164556962026
+  "roundRank": 0.020253164556962026,
+  "gatherChoice": 0,
+  "gatherDisposition": 0,
+  "gatherKin": 0,
+  "gatherSettle": 0
 }

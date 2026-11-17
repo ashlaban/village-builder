@@ -240,7 +240,7 @@ function checkState(st) {
           if (!(n >= 0) || !['field', 'build'].includes(why)) bad.push(`${where} reserves ${n} ${good} for ${why}`);
           if (why === 'build' && n > (h[good] || 0) + 1e-6) bad.push(`${where} reserves ${n} ${good}, more than its holder's ${h[good] || 0}`);
           const sp = type === 'pawn' ? null : (type === 'household' ? st.plans.households : st.plans.villages).get(id), why0 = sp && sp.reasons[good];
-          const own = !why0 ? 0 : why0 === 'seed' ? globalThis.VB['sim/hunger'].seedNeed(st, h) : sp.reserved[good];
+          const own = !why0 ? 0 : why0 === 'seed' ? globalThis.VB['sim/hunger'].seedNeed(st, h, good.split('/')[1]) /* by crop, VB-350 */ : sp.reserved[good];
           const projects = list.reduce((x, q) => x + (q.reasons[good] ? q.reserved[good] : 0), 0);
           if (Math.abs(STORES.reserved(st, h, good) - own - projects) > 1e-6) bad.push(`${where}: the store's count of ${good} is not its plans'`);
         }
@@ -279,6 +279,29 @@ function checkState(st) {
           ((h === null) !== (T[u][v] === null) || (h !== null && Math.abs(h - T[u][v]) > 1e-9))) bad.push(`villageHours[${v}][${u}]: not symmetric`);
       }
     }
+  }
+  // the gathering (VB-294): a village's choice names hosts with a green within a day's walk, each once, and offers only with a green; its
+  // host has a green, is within a day's walk, and hosts its own gathering of the same winter, which at least GATHERING.least villages
+  // attend. That the host was inhabited is checked when it is settled (tests/gathering.js), as a village may empty before the winter.
+  {
+    // the table of hours is compiled anew each autumn (day 9), so reach is checked for the choice of this year
+    const R = globalThis.VB['sim/rules'], year = R.cal(st.t).year, near = (a, b) => a === b || (st.villageHours[a][b] !== null && st.villageHours[a][b] <= R.TRAVEL.dayWalk);
+    const size = new Map();
+    for (const v of st.villages) {
+      const g = v.gathering;
+      if (g === undefined || g === null) continue;
+      if (!Array.isArray(g.prefs) || new Set(g.prefs).size !== g.prefs.length
+        || g.prefs.some((h) => !st.villages[h] || !st.villages[h].green || (g.chosen === year && !near(v.id, h))))
+        bad.push(`gathering: village ${v.id} names hosts ${JSON.stringify(g.prefs)}`);
+      if (g.hosting && !v.green) bad.push(`gathering: village ${v.id} offers to host with no green`);
+      if (!['meeting', 'nothing', 'asLastYear'].includes(g.by)) bad.push(`gathering: village ${v.id} chose by ${g.by}`);
+      if (g.host === null) continue;
+      const h = st.villages[g.host], hg = h && h.gathering;
+      if (!h || !h.green || (g.year === year && !near(v.id, g.host)) || !hg || hg.host !== g.host || hg.year !== g.year)
+        bad.push(`gathering: village ${v.id} goes to ${g.host}, not a host within a day's walk`);
+      else size.set(g.host, (size.get(g.host) || 0) + 1);
+    }
+    for (const [h, n] of size) if (n < globalThis.VB['sim/rules'].GATHERING.least) bad.push(`gathering: ${h}'s has ${n} villages`);
   }
   // the record of events (VB-075), the events appended since the last check: a kind, a time not after now, ids that exist
   // (a slot folded since, VB-199, is the index of a count of st.recordYears)
@@ -764,7 +787,13 @@ function checkState(st) {
     // plots built (village.plots) and under way (the village's project plans, VB-123): numbered 0, 1, ... in the village; the timber at the
     // site within range (VB-328); a built one's farmstead exists
     const projects = st.plans && st.plans.projects ? st.plans.projects.village.get(v.id) || [] : [],
-      live = projects.filter((pl) => pl.what === 'plot');
+      // as sim/expansion's livePlots: the village's own plans and its households' plots for their heirs (VB-255, VB-959)
+      live = [...projects.filter((pl) => pl.what === 'plot'), ...((st.plans && st.plans.projects && st.plans.projects.heirPlots) || []).filter((pl) => pl.village === v.id)];
+    // VB-646: a village's plot cleared with nobody to have it is allotted at a moving round or given back: none stands unclaimed past the
+    // rounds it waits (two years, and a year's slack to the next round)
+    for (const pl of live)
+      if (pl.open >= 1 && pl.to === null && pl.vacant !== undefined && st.t - pl.vacant > 3 * LOADED['sim/rules'].YEAR)
+        bad.push(`villages[${v.id}]: plot ${pl.plot} has stood cleared with nobody to have it since ${pl.vacant}`);
     // the green and well (VB-058): a well only with a green; a green under way at most once, only while there is no well: its three steps
     // on one tile, the village's and in use, open ground off any river, its stone brought at most what the well takes
     if (v.well && !v.green) bad.push(`villages[${v.id}]: a well without a green`);
@@ -1255,6 +1284,20 @@ function checkHerds(st, bad) {
     if (standing && Math.floor(st.t / VB['sim/rules'].DAY / VB['sim/rules'].SEASON_DAYS) % 4 === 3 && !C.winter && f.household !== null) bad.push(`${at}: ${fd.crop} ${fd.stage} in winter`);
     if (fd.weeds !== undefined && !(Number.isInteger(fd.weeds) && fd.weeds >= 1 && fd.weeds <= (C.weeds || 0))) bad.push(`${at}: weeds ${fd.weeds}`);
     if (fd.rest !== undefined && fd.rest !== 0.5 && fd.rest !== 1) bad.push(`${at}: rest ${fd.rest}`);
+  }
+  // VB-350: a field's rotation is a known key, the same on every field of its farm (and barley every year on a village's common field);
+  // its step is inside the rotation, and the field's crop is the step's course; a village's usual rotation is a known key
+  const { ROTATIONS } = VB['sim/rules'];
+  const rotOk = (fd, at, only) => {
+    const R = ROTATIONS[fd.rotation];
+    if (!R || (only && fd.rotation !== only)) bad.push(`${at}: rotation ${fd.rotation}`);
+    else if (!(Number.isInteger(fd.step) && fd.step >= 0 && fd.step < R.courses.length) || R.courses[fd.step] !== fd.crop)
+      bad.push(`${at}: step ${fd.step} of ${fd.rotation} with ${fd.crop}`);
+  };
+  for (const f of st.farmsteads) for (const fd of f.fields) rotOk(fd, `farmsteads[${f.id}].fields[${fd.id}]`, f.fields[0].rotation);
+  for (const v of st.villages) {
+    if (!ROTATIONS[v.rotation]) bad.push(`villages[${v.id}]: rotation ${v.rotation}`);
+    for (const fd of v.commonFields || []) rotOk(fd, `villages[${v.id}].commonFields[${fd.id}]`, 'every');
   }
   // the barn's crops (VB-348): absent, or one known crop for each unthreshed entry
   for (const h of st.households) if (h.sheafCrops !== undefined && !(Array.isArray(h.sheafCrops) && h.sheafCrops.length === h.unthreshed.length &&
