@@ -74,13 +74,14 @@ VB['sim/outlook'] = (() => {
   }
   // A day's loss of a store spoiling by tiers (ECON.storeLoss of grain, HERD.hayLoss of hay): a share a year of what is held up to one
   // `unit` (a year's need of food, a winter's of hay), of the next unit, and of the rest; times the barn's (BUILD.barn.loss with one).
-  function tierLoss(x, unit, L, barn) {
+  // q: the daily shares of the tiers (daily(L)), reckoned once a supply.
+  const daily = (L) => L.map((s) => 1 - Math.pow(1 - s, 1 / YEAR_DAYS));
+  function tierLoss(x, unit, q, barn) {
     if (!(unit > 0)) return 0;
     const a = Math.min(x, unit),
       b = Math.min(Math.max(0, x - unit), unit),
       c = Math.max(0, x - 2 * unit);
-    const day = (s) => 1 - Math.pow(1 - s, 1 / YEAR_DAYS);
-    return (a * day(L[0]) + b * day(L[1]) + c * day(L[2])) * barn;
+    return (a * q[0] + b * q[1] + c * q[2]) * barn;
   }
   // A supply's value and state from a walk on the seasons scale: when it first ran short, capped at the frame, and how much of that season's
   // need it covered.
@@ -147,7 +148,8 @@ VB['sim/outlook'] = (() => {
     ins.sort((a, b) => a[0] - b[0]);
     const barn = f && f.barn ? BUILD.barn.loss : 1,
       year = D * YEAR_DAYS,
-      loss = (g) => (g > 0 ? (tierLoss(g + seed, year, st.ECON.storeLoss, barn) * g) / (g + seed) : 0);
+      q = daily(st.ECON.storeLoss),
+      loss = (g) => (g > 0 ? (tierLoss(g + seed, year, q, barn) * g) / (g + seed) : 0);
     const base = { from: c.day, to: end, F, keep, rot, need: () => D, loss, intoRot: true };
     let j = 0;
     const own = walk(base),
@@ -221,7 +223,8 @@ VB['sim/outlook'] = (() => {
     }
     ins.sort((a, b) => a[0] - b[0]);
     const barn = f && f.barn ? BUILD.barn.loss : 1,
-      loss = (x) => tierLoss(x, W, HERD.hayLoss, barn),
+      q = daily(HERD.hayLoss),
+      loss = (x) => tierLoss(x, W, q, barn),
       base = {
         from: c.day,
         to,
@@ -308,12 +311,16 @@ VB['sim/outlook'] = (() => {
       hay: hay(st, hh, f, plan, c, F),
     };
   }
-  // At each review of a household's plan (sim/plans' event planReviewed): the head reckons its outlook again. Draws nothing.
+  // At a review of a household's plan (sim/plans' event planReviewed) the head reckons its outlook again: on its planning day ('day'),
+  // when a store crossed a target ('store': the harvest stacked wakes it), and at the first review of a season, where the one it holds is
+  // stale; a review for a window closing ('window') keeps the outlook it has. Draws nothing.
   on('planReviewed', (st, d) => {
     const plan = d.plan;
     if (plan.holder.type !== 'household') return;
-    const hh = st.households[plan.holder.id];
+    const hh = st.households[plan.holder.id],
+      O = plan.outlook;
     if (!hh || hh.dissolved) return;
+    if (d.why === 'window' && O && O.year === d.c.year && O.season === d.c.season) return;
     plan.outlook = reckon(st, hh, plan, d.c);
   });
   // The outlook household id's head made at its last review, for the page (Sim.supplyOutlook): a copy, with `stale` true when it was made
