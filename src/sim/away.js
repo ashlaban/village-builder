@@ -6,7 +6,7 @@ VB['sim/away'] = (() => {
   const { route, routeCost, hoursBetween } = VB['sim/routes'];
   const { age, personEvent } = VB['sim/records'];
   const Stores = VB['sim/stores'];
-  const { ate, rationOf } = VB['sim/hunger'];
+  const { ate, rationOf, nightCost } = VB['sim/hunger'];
   const { receive, booked } = VB['sim/exchange'];
   const { hexSteps } = VB['sim/hex'];
   const { opinionOf } = VB['sim/relations'];
@@ -86,14 +86,24 @@ VB['sim/away'] = (() => {
   }
   // The day's meal away (sim/clock, after the households' meals): each pawn away eats from its pack, a ration a day (half below 14). A
   // lodger whose stay is over by its meal (stayOver) comes home.
+  // Its night has the cold and the wet of its roof (VB-785, sim/hunger nightCost): a booth's fire burns once for all who sleep in it.
   function feedAway(st) {
+    const season = cal(st.t - 1).season,
+      fires = new Map();
     for (const j of st.away) {
       VB.count.awayMeals++;
       const p = st.pawns[j.pawn],
         need = rationOf(st, p),
         eat = Math.min(j.food, need);
       j.food = Math.max(0, j.food - eat);
-      ate(st, p, eat, need);
+      let fire = 0,
+        booth = null;
+      if (j.roof === 'booth' && (booth = VB['sim/building'].boothAt(st, j.bed))) {
+        if (!fires.has(booth)) fires.set(booth, VB['sim/building'].burnBooth(st, booth, st.ECON.woodUse[season]));
+        fire = fires.get(booth);
+      }
+      const [cold, dry] = nightCost(st, season, j.roof, j.host == null ? null : st.households[j.host], fire);
+      ate(st, p, eat, need, cold, dry);
       if (j.bed !== null && !j.back && stayOver(st, j, eat < need - 1e-9))
         issue(st, { actor: j.pawn, verb: 'comeHome', source: 'pawn' });
     }
