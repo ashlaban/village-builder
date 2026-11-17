@@ -23,6 +23,7 @@
   "roundWalk": 0.06526019690576652,
   "wishWalk": 0.03263009845288326,
   "meetingWalk": 0,
+  "rotationWalk": 0,
   "heirRank": 0.020253164556962026,
   "storeWalk": 0.06751054852320675,
   "recordFold": 0,

@@ -1,7 +1,8 @@
 // @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health;
 // the need rule (VB-299) and its food term
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS, PEAT, BUILD } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS, ROTATIONS, PEAT, BUILD } =
+    VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'],
@@ -15,20 +16,33 @@ VB['sim/hunger'] = (() => {
   // The seed the household's fields not yet sown this year need: the standing plan's reservation of grain (sim/plans reserves it at each
   // review; sim/stores counts it with this rule when it is read, so a field sown since counts at once); a land project holds back its new
   // field's seed itself (sim/projects, VB-123). Only the day's meal reaches below the seed, and only when the day would otherwise fall short
-  // (feedHousehold; Kim, 10 November: the hungry household eats its seed). By crop (VB-347): the fields that bear or last bore it (their
-  // next crop, until rotations choose it, VB-350); without one, every field of a sown crop (not fallow, VB-348).
-  // A village's (VB-100): its common fields', a crop's seed each.
+  // (feedHousehold; Kim, 10 November: the hungry household eats its seed). By crop (VB-347, VB-350): the fields its rotation sows with it
+  // next (sownNext: a fallow field's next sown course); without one, every field to be sown. A field's seed is the plan's for barley
+  // (seedPer), the crop's own for another. A village's (VB-100): its common fields', a crop's seed each.
   function seedNeed(st, hh, crop) {
     const village = !('farmstead' in hh),
       fields = village ? hh.commonFields || [] : st.farmsteads[hh.farmstead].fields;
-    let n = 0;
-    for (const fd of fields)
-      if (
-        (fd.stage === 'stubble' || fd.stage === 'plowed') &&
-        (crop === undefined ? CROPS[fd.crop].seed > 0 : fd.crop === crop)
-      )
-        n++;
-    return n * (village ? CROPS.barley.seed : seedPer(st, hh));
+    let barley = 0,
+      other = 0;
+    for (const fd of fields) {
+      if (fd.stage !== 'stubble' && fd.stage !== 'plowed') continue;
+      const k = sownNext(fd);
+      if (k === null || (crop !== undefined && k !== crop)) continue;
+      if (k === 'barley') barley++;
+      else other += CROPS[k].seed;
+    }
+    return (barley ? barley * (village ? CROPS.barley.seed : seedPer(st, hh)) : 0) + other;
+  }
+  // The crop a field is sown with next (VB-350): its course's, or after a fallow course the next sown course of its rotation; null for none.
+  function sownNext(fd) {
+    if (CROPS[fd.crop].seed > 0) return fd.crop;
+    const R = fd.rotation === undefined ? null : ROTATIONS[fd.rotation].courses;
+    if (!R) return null;
+    for (let i = 1; i <= R.length; i++) {
+      const k = R[(fd.step + i) % R.length];
+      if (CROPS[k].seed > 0) return k;
+    }
+    return null;
   }
   Stores.follow('seed', seedNeed);
   const { reserved, grainOf } = Stores;
@@ -362,6 +376,7 @@ VB['sim/hunger'] = (() => {
     servedLast,
     dailyNeed,
     seedNeed,
+    sownNext,
     seedPer,
     seedReserve,
     floorOf,

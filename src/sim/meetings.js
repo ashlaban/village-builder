@@ -11,6 +11,7 @@ VB['sim/meetings'] = (() => {
   const { updateTie, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
   const { VILLAGE_STEPS } = VB['sim/occasions'];
+  const { usualRotation } = VB['sim/fields'];
   // The year's meetings (VB-278; design.md, A village's meeting): on autumn day 10, each village's meeting on its own 6-minute step from noon,
   // in the order of village id from `year mod villages` (villageTurn, as the moving round's villages), then from 18:00 each culture's year,
   // and on the next step the
@@ -49,6 +50,7 @@ VB['sim/meetings'] = (() => {
       s = env.settlements[v],
       c = cal(st.t);
     const people = membersOf(st, v); // its living, in id order (the order of st.living)
+    usualRotation(st, st.villages[v]); // its usual rotation, the one most of its farms hold (sim/fields, VB-350)
     VB.count.meetingWalk += people.length;
     const all = people.slice();
     if (v === 0) {

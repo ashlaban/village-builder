@@ -303,6 +303,7 @@ VB['sim/settle'] = (() => {
       name: foundedName(st, p, home, site.house),
       center: site.house,
       farmsteads: [],
+      rotation: home.rotation, // the mother village's usual rotation, as its practice (VB-350)
       fence: [],
       wood: [],
       grain: {},

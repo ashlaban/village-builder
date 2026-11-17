@@ -497,6 +497,10 @@ VB['sim/saves'] = (() => {
       }
     for (const f of st.farmsteads) if (f.grade === undefined) f.grade = 'ground'; // VB-332: older saves' houses stand on the ground
     for (const f of st.farmsteads) for (const fd of f.fields) if (fd.crop === undefined) fd.crop = 'barley'; // VB-346: older saves' fields held barley
+    // VB-350: older saves' fields and villages farmed barley every year
+    for (const x of [...st.farmsteads.map((f) => f.fields), ...st.villages.map((v) => v.commonFields || [])])
+      for (const fd of x) if (fd.rotation === undefined) Object.assign(fd, { rotation: 'every', step: 0 });
+    for (const v of st.villages) if (v.rotation === undefined) v.rotation = 'every';
     for (const p of st.pawns) if (p.nursling === undefined) p.nursling = null; // VB-632: a mother nursing nurses to her term
     for (const p of st.pawns) if (p.servedSince === undefined) p.servedSince = p.servant ? st.t : null; // VB-634
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
