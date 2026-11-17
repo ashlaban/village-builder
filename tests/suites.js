@@ -155,6 +155,7 @@ const INTEGRATION = [
   ['node', 'tests/offers.js'],
   ['node', 'tests/exchange.js'],
   ['node', 'tests/occasions.js'],
+  ['node', 'tests/feast.js'], // VB-458: the feast at a wedding or a funeral ale, its sitting, the meal eaten once, goodwill booked
   // VB-855: the farming year, from new fields to digging, on small generated islands and constructed states
   ['node', 'tests/newfields.js'],
   ['node', 'tests/fieldswanted.js'],
