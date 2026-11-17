@@ -17,12 +17,14 @@ VB['sim/commands'] = (() => {
     haulerOf,
     fetchGift,
     haulGift,
+    journeyOf,
   } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { emit } = VB['sim/events'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
-  const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
+  const { holdingOf, membersOf, voiceOf, spouseOf, personEvent, childrenOf, setServant, log, fullName, atHousehold } =
+    VB['sim/records'];
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner } = VB['sim/wishes'];
@@ -56,6 +58,18 @@ VB['sim/commands'] = (() => {
     st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`;
   // A living pawn not on a journey (VB-287): on the road it takes no work, walks nowhere else and goes to no occasion.
   const free = (st, id) => living(st, id) || (travelling(st.agents[id]) ? `pawn ${id} is on the road` : null);
+  // Why a pawn changes household (VB-822; docs/plans/VB-682.md, section 5); whether pawn id keeps the minor m: its child, its spouse's
+  // child or its ward, under 18.
+  const MOVE_REASONS = ['marriage', 'heir', 'service', 'guardian', 'care', 'home', 'settle', 'found'];
+  const keeps = (st, id, m) => {
+    if (m === id || !(st.pawns[m].age < 18)) return false;
+    const sp = spouseOf(st, id);
+    return (
+      childrenOf(st, id).includes(m) ||
+      (sp !== null && childrenOf(st, sp).includes(m)) ||
+      st.liveHouseholds.some((h) => st.households[h].guardian === id && st.households[h].ward === m)
+    );
+  };
   // A `give` command as the offer of a gift (VB-690): to the receiving household's holder, or the household or village itself where no pawn
   // holds it; the terms are the command's args
   // Why gift g (sim/offers giftOf) cannot be fetched, or null: one to a household from another farmstead or a village store, with no
@@ -424,16 +438,44 @@ VB['sim/commands'] = (() => {
             : living(st, c.target),
       run: (st, c) => later('sim/heirs').transfer(st, st.households[c.args.household], c.target, c.args.reason),
     },
-    // serve(target): the actor goes into service with the holder of household `target`
-    serve: {
-      check: (st, c) =>
-        living(st, c.actor) ||
-        (!home(st, c.target)
-          ? `there is no household ${c.target}`
-          : st.pawns[c.actor].household === c.target
-            ? `pawn ${c.actor} lives there already`
-            : null),
-      run: (st, c) => later('sim/service').enterService(st, c.actor, c.target),
+    // move(target, {reason, with, text}): the actor changes to household `target` (VB-822), the one act for every change of household; the
+    // acts that change a right as well (marry, handOn, goToKin, goBack, the foundings) issue it for their people. `with`: the minors who
+    // follow, after it, each its child, its spouse's child or its ward; `text`: the 'moved' life event, when the issuer says more than the
+    // farm's name. Settlers (reason 'settle') walk on their stakes; reason 'service' makes the actor a servant, with the service event and
+    // log line (args.event, args.line, args.other: the issuer's words, else the plain ones). Whose yes it needs is moveWhy's (VB-692).
+    move: {
+      check: (st, c) => {
+        const a = c.args || {},
+          dead = living(st, c.actor);
+        if (dead) return dead;
+        if (!home(st, c.target)) return `there is no household ${c.target}`;
+        if (st.pawns[c.actor].household === c.target) return `pawn ${c.actor} lives there already`;
+        if (!MOVE_REASONS.includes(a.reason)) return `there is no reason ${a.reason} to move`;
+        if (a.with !== undefined && !Array.isArray(a.with)) return 'those who follow must be a list';
+        for (const m of a.with || []) {
+          const why =
+            living(st, m) || (keeps(st, c.actor, m) ? null : `pawn ${m} is not a minor whom ${c.actor} keeps`);
+          if (why) return why;
+        }
+        return null;
+      },
+      run: (st, c) => {
+        const a = c.args,
+          hh = st.households[c.target];
+        for (const id of [c.actor, ...(a.with || [])])
+          later('sim/heirs').moveTo(st, id, c.target, a.text ?? null, a.reason !== 'settle', a.reason);
+        if (a.reason !== 'service') return;
+        const at = st.farmsteads[hh.farmstead].name;
+        setServant(st, c.actor, true);
+        personEvent(st, c.actor, 'service', a.event || `Went into service at ${at}`, false); // recorded below
+        const out = journeyOf(st, c.actor) ? ', and sets out for it' : ''; // its new home lies in another village (VB-287)
+        log(st, `${a.line || `${fullName(st.pawns[c.actor])} goes into service at ${at}`}${out}.`, {
+          kind: 'service',
+          pawn: c.actor,
+          ...(a.other !== undefined ? { other: a.other } : {}),
+          ...atHousehold(st, hh),
+        });
+      },
     },
     // claim(target): the actor claims the empty farm `target` and sets about restoring it
     claim: {

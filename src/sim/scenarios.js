@@ -433,7 +433,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
     // @state st.meetingLog[]: {year, text}; newest first. (The village log is a view of st.record: sim/notable, villageLog.)
-    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self}; every event, append-only (sim/records, VB-075);
+    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self, tile, reason (of a `joined` event: why it
+    //   moved, VB-822)}; every event, append-only (sim/records, VB-075);
     //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start.
     //   A routine event's slot becomes, once folded, the index of its count in st.recordYears (VB-199); slots are never removed.
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends; sim/routes), oldest first, emptied each day a tile

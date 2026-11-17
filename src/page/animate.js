@@ -414,6 +414,7 @@ function updateSettlement(dt) {
   drawLens();
   drawPlayMark();
   drawToolMarks();
+  drawPlanMarks();
   offerSuccession();
   // The hearth is lit while someone cooks and, where there is wood, in the evening until bedtime, round daybreak, and all through the
   // winter; it is banked for the night otherwise. A lit hearth sends smoke out of the smoke hole, and after dark its light shows.

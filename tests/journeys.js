@@ -179,4 +179,18 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.ok(arrived && !s.journeys.length, 'he delivered and walked home');
   assert.ok(s.pawns[id].events.some((k) => s.record[k].kind === 'arrived'), 'arrived in his record');
 }
+// ---- a carrier who dies on the road lays the gift down where he fell, the receiver's (VB-850) ----
+{
+  const s = far(), rec = s.households[0], giv = s.households[1], id = adultOf(s, giv);
+  to(s, 8);
+  Stores.put(s, giv, 'grain', 200, 'harvest', { barley: 200 });
+  VB['sim/commands'].issue(s, { actor: giv.holder, verb: 'give', target: rec.id, args: { good: 'grain', n: 25, carrier: id }, source: 'player' });
+  Sim.advance(s, 3);
+  killPawn(s, id, 'killed');
+  assert.strictEqual(s.journeys.length, 0, 'the journey ends');
+  assert.ok(s.lying && s.lying.length === 1, 'the gift lies where he fell');
+  const l = s.lying[0];
+  assert.ok(l.kind === 'leftGrain' && Math.abs(l.n - 25) < 1e-9 && l.owner.type === 'household' && l.owner.id === rec.id, 'the receiver\'s, 25 of it');
+  assert.deepStrictEqual(checkState(s), [], 'invariants after a carrier\'s death');
+}
 console.log(`journeys: a walk home within a village; a bride across ${Math.round(hours)} hours in ${stops + 1} legs, provisioned for ${days} days; save, death and hunger on the road`);

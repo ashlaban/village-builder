@@ -184,7 +184,7 @@ VB['sim/opportunities'] = (() => {
         continue;
       lone++;
       out.push(
-        item('serve', hh.id, null, spare || check(view, p.id, 'serve', hh.id, null), {
+        item('serve', hh.id, null, spare || check(view, p.id, 'move', hh.id, { reason: 'service' }), {
           ...atRound,
           holder: { type: 'household', id: hh.id },
         }),

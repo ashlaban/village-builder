@@ -1035,8 +1035,24 @@ VB['sim/agents'] = (() => {
   function dropJourney(st, id) {
     const j = journeyOf(st, id);
     if (!j) return;
-    if ((j.why === 'fetch' || j.why === 'haul') && j.gift) unfetched(st, j.gift);
+    if ((j.why === 'fetch' || j.why === 'haul') && j.gift) {
+      // the grain on his back is put down where he fell (VB-850; sim/lying), for the household it is the gift of to fetch; what lies at the
+      // stops goes back
+      if (j.gift.held > 0) layGift(st, st.agents[id], j.gift.held, j.gift.parts, j.gift.to);
+      unfetched(st, j.gift);
+    } else if (j.why === 'carry' && j.gift && !j.back) layGift(st, st.agents[id], j.gift.n, j.gift.parts, j.gift.to);
     st.journeys.splice(st.journeys.indexOf(j), 1);
+  }
+  // A bearer who dies on the road lays n of grain (by crop, `parts`) down where he fell: the household `to`'s (its village's, if it is gone),
+  // a carried or fetched gift's receiver; a quarter hauled to the green is still its giver's (`to`) until it is in the store.
+  function layGift(st, a, n, parts, to) {
+    const hh = st.households[to],
+      [x, y] = placeOf(st, a),
+      at = tileAt(st, x, y);
+    const owner = hh.dissolved
+      ? { type: 'village', id: st.farmsteads[hh.farmstead].village }
+      : { type: 'household', id: to };
+    Lying.leave(st, 'leftGrain', n, at, owner, { x, y, of: { parts: { ...parts } } });
   }
   // Walking hours from village `from` (null: the village whose centre is nearest tile `at`) to village v, by the table of walking hours
   // (sim/routes); with no table, or no route by land within reach, the straight line from `at` at SPEED.
