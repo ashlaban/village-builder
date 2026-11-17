@@ -180,6 +180,7 @@ VB['sim/heirs'] = (() => {
         ...atHousehold(st, hh),
         kind: 'joined',
         reason, // why it moved (the move command's reason, VB-822)
+        fromFarm: old.farmstead, // the farm it left, whose history tells the leaving from this one event (sim/notable; VB-1027)
       });
     }
   }

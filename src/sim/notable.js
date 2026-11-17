@@ -159,13 +159,30 @@ VB['sim/notable'] = (() => {
     'joined',
     'helped',
   ]);
+  // A member's move between farms (a `joined` event that names the farm left, `fromFarm`: sim/heirs' moveTo), as farm `farm` tells it
+  // (VB-1027): the farm left tells the leaving, the farm come to the coming; a servant's and a settler's in their own words. One event of
+  // the record, read from either end: no second record is made for the farm left.
+  const movedAt = (e, farm) =>
+    e.kind === 'joined' && e.fromFarm !== undefined && (e.farm === farm || e.fromFarm === farm);
+  function moveLine(st, e, farm) {
+    const who = fullName(st.pawns[e.pawn]),
+      to = st.farmsteads[e.farm].name,
+      from = st.farmsteads[e.fromFarm].name,
+      fresh = e.reason === 'settle' || e.reason === 'found';
+    if (farm === e.fromFarm)
+      return e.reason === 'service'
+        ? `${who} left ${from} to serve at ${to}.`
+        : `${who} left ${from} for ${fresh ? 'the new farmstead ' : ''}${to}.`;
+    return `${who} came to ${to} from ${from}${e.reason === 'service' ? ', to serve' : ''}.`;
+  }
   // The events that tell a farm is lived in again, which end a spell of standing empty.
   const SETTLES = new Set(['holds', 'inherited', 'moved', 'cottage', 'left']);
   const whole = (n) => `${n} ${n === 1 ? 'year' : 'years'}`;
   // The history of q = {pawn}, {farm} or {village}, of the kinds of CHRONICLE[group] (all kinds without one), newest first: rows
   // {ev, text, note}. A farm's history follows the farm across households: the record names the farm in every event that happened there.
   // A pawn's has what it did and what befell it, in its own words where it has them, and what it took part in as `other` (a child born
-  // to it, a farm taken over from it). A farm's or village's leaves out the personal events; an `empty` event's note says how long the
+  // to it, a farm taken over from it). A farm's or village's leaves out the personal events, but a farm's tells who left it and who
+  // came to it (moveLine); an `empty` event's note says how long the
   // farm stood empty. One pass over the record, on demand (the page keeps the result until the record grows): no step calls this.
   function chronicle(st, q, group = null) {
     const kinds = group ? new Set(CHRONICLE[group].kinds) : null,
@@ -174,8 +191,10 @@ VB['sim/notable'] = (() => {
     const base = st.record.filter(
       (e) =>
         told(e) &&
-        (mine ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind)) : !PERSONAL.has(e.kind)) &&
-        (q.farm === undefined || e.farm === q.farm) &&
+        (mine
+          ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind))
+          : !PERSONAL.has(e.kind) || (q.farm !== undefined && movedAt(e, q.farm))) &&
+        (q.farm === undefined || e.farm === q.farm || movedAt(e, q.farm)) &&
         (q.village === undefined || e.village === q.village),
     );
     const list = base
@@ -195,7 +214,7 @@ VB['sim/notable'] = (() => {
         const years = Math.floor(((next ? next.t : st.t) - e.t) / YEAR);
         note = next ? `Empty for ${whole(years)}` : `Empty since, ${whole(years)}`;
       }
-      rows.push({ ev: e, text: eventLine(st, e), note });
+      rows.push({ ev: e, text: !mine && e.kind === 'joined' ? moveLine(st, e, q.farm) : eventLine(st, e), note });
     }
     return rows.reverse();
   }

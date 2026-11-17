@@ -25,6 +25,7 @@ function linkNames(text, ev) {
   if (ev.pawn !== undefined) names.push([Sim.fullName(st.pawns[ev.pawn]), `data-pawn="${ev.pawn}"`]);
   if (ev.other !== undefined) names.push([Sim.fullName(st.pawns[ev.other]), `data-pawn="${ev.other}"`]);
   if (ev.farm !== undefined) names.push([st.farmsteads[ev.farm].name, `data-farm="${ev.farm}"`]);
+  if (ev.fromFarm !== undefined) names.push([st.farmsteads[ev.fromFarm].name, `data-farm="${ev.fromFarm}"`]);
   if (ev.village !== undefined) names.push([st.villages[ev.village].name, `data-village="${ev.village}"`]);
   names.sort((a, b) => b[0].length - a[0].length); // the longer name first, where one holds another
   for (const [name, attr] of names) {
