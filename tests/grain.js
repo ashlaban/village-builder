@@ -46,7 +46,7 @@ const g0 = { ...v.grain }; S.villageDay(st); near(v.grain.rye / v.grain.barley, 
 const f = st.farmsteads[a.farmstead], plan = VB['sim/plans'].planOf(st, 'household', a.id);
 for (const fd of f.fields) { fd.stage = 'harvested'; } f.fields[0].stage = 'stubble'; f.fields[0].crop = 'rye';
 S.reserve(st, a, plan, S.grainGood('rye'), 0, 'seed');
-const seed = VB['sim/hunger'].seedPer(st, a), held = () =>
+const seed = CROPS.rye.seed, held = () => // a crop's own seed, barley's the plan's (VB-350)
   S.reserved(st, a, 'grain') - S.reserved(st, a, S.grainGood('barley')) - S.reserved(st, a, S.grainGood('rye'));
 near(S.reserved(st, a, S.grainGood('rye')), seed, 'the rye field\'s seed is rye\'s');
 near(S.reserved(st, a, S.grainGood('barley')), 0, 'barley holds no seed for it'); near(held(), 0, 'the sum is the crops\'');
