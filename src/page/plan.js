@@ -235,12 +235,17 @@ function tilesHTML(hh, V, mine) {
       const h = stat({
         icon: what === 'field' ? 'field' : 'meadow',
         label: name,
-        value: t >= 0 ? `tile ${t}` : "the head's pick",
+        value: t >= 0 ? '' : "the head's pick",
+        note: t >= 0 ? `tile ${t}` : '',
         wide: true,
         title: t >= 0 ? `${name}: the tile chosen` : `${name}: the head picks its tile when it wants one`,
       });
+      const fly =
+        t >= 0
+          ? planBtn({ plan: 'fly', tile: t }, 'Show on map', `Fly to the ${name.toLowerCase()}'s tile on the map`)
+          : '';
       const ctl = mine
-        ? `<span class="plan-ctl">${planBtn(
+        ? `<span class="plan-ctl">${fly}${planBtn(
             { plan: 'tile', what },
             'Choose the tile',
             `Choose the tile of the ${name.toLowerCase()} on the map`,
@@ -252,7 +257,7 @@ function tilesHTML(hh, V, mine) {
               : ''
           }</span>`
         : '';
-      return `<div class="plan-row" data-tile="${what}">${h}${ctl}</div>`;
+      return `<div class="plan-row" data-tile="${what}">${h}${mine ? ctl : fly ? `<span class="plan-ctl">${fly}</span>` : ''}</div>`;
     })
     .join('');
 }
@@ -378,6 +383,7 @@ function planClick(b, hh) {
       title: d.what === 'field' ? 'The next field' : 'The next hay meadow',
       needs: 'a tile for it',
       keep: false,
+      sites: planSites(d.what, hh),
     });
     renderActions();
     return;
@@ -385,6 +391,37 @@ function planClick(b, hh) {
   else if (d.plan === 'drop') r = Sim.head(st, 'dropProject', {});
   else return;
   planMsg = r === true ? { text: `Done: ${b.getAttribute('aria-label')}.` } : { text: r, bad: true };
+}
+// The tiles that would take the next field or meadow, read once at the tool's start: those within the farm's reach (the walk of the rule,
+// REACH_FIELD or REACH_MEADOW steps) that the rule's own check (fieldWhy, meadowWhy) lets through, the same as the verb's.
+const PLAN_REACH = { field: 4, meadow: 6 };
+function planSites(what, hh) {
+  const f = st.farmsteads[hh.farmstead],
+    why = what === 'field' ? VB['sim/fields'].fieldWhy : VB['sim/meadows'].meadowWhy,
+    built = VB['sim/fields'].builtTiles(st),
+    out = [];
+  for (const t of VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[what], VB['sim/routes'].walkable(st.w)).dist.keys())
+    if (why(st, f, hh, t, built) === null) out.push(t);
+  return out;
+}
+// The tiles the plan names, marked in the plan's colour while the farm's Plan tab is open (called each frame, page/animate); redrawn when
+// they or the zoom change.
+let planMarkKey = '';
+const planG = new PIXI.Graphics();
+L.hover.addChild(planG);
+function drawPlanMarks() {
+  const hh = cardTab === 'plan' && !$('tileHouse').hidden && st ? houseShown() : null,
+    plan = hh && st.plans.households.get(hh.id),
+    named = plan ? [plan.tiles.field, plan.tiles.meadow].filter((t) => t >= 0) : [],
+    key = named.length ? `${named.join(',')}|${cam.z.toFixed(3)}` : '';
+  if (key === planMarkKey) return;
+  planMarkKey = key;
+  planG.clear();
+  for (const i of named)
+    planG
+      .poly(hexPoly(i, 0.9))
+      .fill({ color: 0xffd23f, alpha: 0.25 })
+      .stroke({ width: 3 / cam.z, color: 0xffd23f, alpha: 0.95 });
 }
 $('tileHouse').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-plan]'),
