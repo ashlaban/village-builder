@@ -17,7 +17,7 @@ VB['sim/jobs'] = (() => {
     attentionOf,
     heldAt,
     workSpot,
-    travelling,
+    bed,
     doneOf,
     placeOf,
   } = VB['sim/agents'];
@@ -280,7 +280,7 @@ VB['sim/jobs'] = (() => {
     if (tooYoung(st, p, j)) return null;
     const pr = prioOf(st, p, j);
     if (pr <= 0) return null;
-    const here = st.farmsteads[st.households[p.household].farmstead].house;
+    const here = bed(st, st.agents[p.id]); // the walk from where its day starts (VB-783)
     return floored(pr, pr * urgency(st, j, c, memo) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
   }
   function bid(st, a, j, c, memo) {
@@ -306,7 +306,7 @@ VB['sim/jobs'] = (() => {
     if (!isOpen(j)) row.reason = 'taken';
     else if (pr <= 0 || tooYoung(st, p, j)) row.reason = 'not their work';
     else {
-      const here = st.farmsteads[st.households[p.household].farmstead].house;
+      const here = bed(st, st.agents[p.id]);
       row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
       if (row.bid + MATCH.noise <= 0) {
         // as bid: a score that the noise can lift above nothing is one the pawn may bid with (VB-254: was bid <= 0)
@@ -398,8 +398,8 @@ VB['sim/jobs'] = (() => {
       const p = st.pawns[id];
       if (p.died !== null) continue;
       lists[id] = [];
-      // not a child under 7, one on a journey, or the player's pawn while it is commanded: the head allots around them
-      if (age(st, p) >= CHILD.from && !travelling(st.agents[id]) && !unplanned(st, id)) members.push(p);
+      // not a child under 7, one away from home (VB-287, VB-783), or the player's pawn while it is commanded: the head allots around them
+      if (age(st, p) >= CHILD.from && st.agents[id].away === undefined && !unplanned(st, id)) members.push(p);
     }
     const pairs = [],
       memo = new Map();
