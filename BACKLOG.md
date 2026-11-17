@@ -67,7 +67,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-443](backlog/VB-443.md) | Refactor: split gen by concern (terrain and land cover, the baked drawing) | - | 3 | M | src/gen.js is over its baseline since its land cover thresholds were named (COVER); split it by concern so that the lint's length line holds. |
 | [VB-448](backlog/VB-448.md) | Routes weigh effort and comfort beside time | far | 3 | M | A pawn chooses its way by time and by how unpleasant the ground is (wet, overgrown, uneven), so that it goes far round to a bridge and keeps to a path through rough ground; the clock still runs on time alone. Waits for Kim's answers to the note's questions. |
 | [VB-451](backlog/VB-451.md) | Refactor: split sim/routes by concern (walking costs and reach, the route cache, the hours between villages) | - | 3 | M | sim/routes has 18 exports over its baseline of 17 (VB-452 added reachTiles): walking costs and what is in walking reach, the route search and its cache, and the villages' table of hours are three concerns. |
-| [VB-539](backlog/VB-539.md) | A handover clears only the memos it touches | between | 3 | S | Handover still clears all matchRules memos (VB-432 did marriages only) |
 | [VB-571](backlog/VB-571.md) | Foresight's hunger, by a measure one household cannot swing | year | 3 | M | VB-485's hungry household-days over four seeds move by 20 to 50% between versions that differ only in a head's targets; measure on more seeds and by household-years before tuning foresight |
 | [VB-626](backlog/VB-626.md) | Measure why water goes unfetched after VB-331 | - | 3 | S | the numbers VB-331 left: why the water job went undone, meals uncooked, deaths |
 | [VB-635](backlog/VB-635.md) | Founders: the couples' ages, and what a pool of ten costs | - | 3 | S | Sixteen founders seeds over 80 years reported by what bars marriage; the founders' ages as named values, tried younger in at most five runs; the count of ten and the kin limit untouched. Waits for VB-633 (its report). |
@@ -105,6 +104,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-911](backlog/VB-911.md) | Hides become leather: shoes and harness wear | animals | 3 | M | A pawn's job tans a hide and makes shoes or harness, which wear and are replaced. |
 | [VB-926](backlog/VB-926.md) | Measure: the village overview's build time at populous medium (for VB-662) | - | 3 | S | Time Sim.villageSummary at populous medium on a quiet machine; owed to VB-662 |
 | [VB-966](backlog/VB-966.md) | The village store's outlook, shown as a supply on the village card | - | 3 | M | VB-927 left this unticked: the store has no outlook to read |
+| [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
 
 ## Waiting for Kim
 
