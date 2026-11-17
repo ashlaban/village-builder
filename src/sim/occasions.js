@@ -1,11 +1,13 @@
 // @sys sim/occasions: occasions (VB-126): a gathering at a place from a start to an end in game hours, of those asked: the village meeting
-//   on the green (at its village's turn), the wedding feast and the funeral ale at a farm; who is asked, who sets out, and the due-queue that
-//   sends and ends them; the villages' turns of the meetings and the moving round
+//   on the green (at its village's turn), the wedding feast and the funeral ale at a farm, the ale evening at a holder's farm and the
+//   season's rite on the green (VB-522); who is asked, who sets out, and the due-queue that sends and ends them; the villages' turns of the
+//   meetings and the moving round
 // @state st.occasions[]: the occasions called and not yet over, sorted by `due` (after those due at the same time), each {id, kind
-//   ('meeting' | 'wedding' | 'funeral'), for[] (pawn ids it is held for: the couple, the dead; empty for a meeting), village, farm
-//   (farmstead id, or null for a meeting), tile, x, y (the spot, map units), start, end (game hours), overrides (work stops for it),
-//   asked[] ({id, leave (the game hour it sets out), hours (its walk there)}, in order of leave, each taken off once it sets out or cannot
-//   come), come[] (the ids that set out), due (game hours: the next time the step looks at it)}. Plain data, saved; ended ones are dropped.
+//   ('meeting' | 'wedding' | 'funeral' | 'ale' | 'rite'), for[] (pawn ids it is held for: the couple, the dead, an ale evening's host;
+//   empty for a meeting and a rite), village, farm (farmstead id, or null on a green), tile, x, y (the spot, map units), start, end
+//   (game hours), overrides (work stops for it), asked[] ({id, leave (the game hour it sets out), hours (its walk there)}, in order of
+//   leave, each taken off once it sets out or cannot come), come[] (the ids that set out), due (game hours: the next time the step
+//   looks at it)}. Plain data, saved; ended ones are dropped.
 // @state st.occasionSeq: number; the next occasion's id; ids are never reused
 // @state agent.occasion: the id of the occasion the pawn set out for and stands at until its end, or null
 VB['sim/occasions'] = (() => {
@@ -17,7 +19,11 @@ VB['sim/occasions'] = (() => {
   const { emit } = VB['sim/events'],
     { remember } = VB['sim/relations'],
     Stores = VB['sim/stores'];
-  const { BREW, FEAST, YEAR_DAYS } = VB['sim/rules'];
+  const { BREW, FEAST, YEAR_DAYS, ALE_EVENING, RITE, WORK: WORK_HOURS } = VB['sim/rules'];
+  const { hoursBetween } = VB['sim/routes'],
+    { opinionOf, addTie } = VB['sim/relations'],
+    { on } = VB['sim/events'],
+    Encounters = VB['sim/encounters'];
   const Rules = VB['sim/registry'],
     Traits = VB['sim/traits'],
     { book } = VB['sim/relations'],
@@ -35,6 +41,21 @@ VB['sim/occasions'] = (() => {
     },
     wedding: { from: 16, to: 21, overrides: false, at: 'At a wedding', go: 'Walking to a wedding' },
     funeral: { from: 16, to: 21, overrides: true, at: 'At a funeral ale', go: 'Walking to a funeral ale' },
+    // the ale evening (VB-522): from the end of work to ALE_EVENING.until; the season's rite: at RITE.hour for RITE.hours. Neither stops work.
+    ale: {
+      from: WORK_HOURS[1],
+      to: ALE_EVENING.until,
+      overrides: false,
+      at: 'At an ale evening',
+      go: 'Walking to an ale evening',
+    },
+    rite: {
+      from: RITE.hour,
+      to: RITE.hour + RITE.hours,
+      overrides: false,
+      at: 'At the rite',
+      go: 'Walking to the rite',
+    },
   };
   // The villages' turns (VB-277, VB-278): the moving round and the meetings hold a village a 6-minute step from noon, in the order of
   // village id, in a window of VILLAGE_STEPS steps. The first turns by the year (VB-280): the window starts at village `year mod n` and goes
@@ -235,13 +256,13 @@ VB['sim/occasions'] = (() => {
     enqueue(st, o);
   }
   // The host household pours its ale for those who came (VB-305; a barrel serves BREW.guests): as many barrels as it has for them, used up through
-  // sim/stores with the reason 'pour'. Each guest of another household remembers the host's holder for it (SOCIAL.memories.ale), and the host's
-  // standing is told to sim/society ('alePoured'). Returns the barrels poured.
-  function pourAle(st, f, present) {
+  // sim/stores with the reason 'pour', at most `most` (an ale evening's one). Each guest of another household remembers the host's holder
+  // for it (SOCIAL.memories.ale), and the host's standing is told to sim/society ('alePoured'). Returns the barrels poured.
+  function pourAle(st, f, present, most = Infinity) {
     if (f.household === null) return 0;
     const hh = st.households[f.household];
     if (hh.dissolved || hh.holder === null || !st.pawns[hh.holder].alive) return 0;
-    const barrels = Stores.pour(st, hh, Math.min(Stores.aleOf(st, hh), Math.ceil(present.length / BREW.guests)));
+    const barrels = Stores.pour(st, hh, Math.min(Stores.aleOf(st, hh), Math.ceil(present.length / BREW.guests), most));
     if (!barrels) return 0;
     for (const id of present)
       if (st.pawns[id].alive && st.pawns[id].household !== hh.id) remember(st, id, hh.holder, 'ale');
@@ -276,6 +297,21 @@ VB['sim/occasions'] = (() => {
     return v;
   }
   const explainFeast = (st, hh) => Rules.explain(st, 'feast', { hh });
+  // What a feast books (design.md, The gift): what pawn p ate and drank at household hh's is owed to the host's holder by p's household,
+  // when it has a living holder not the host's (that household, else null). bookAll books each sum of `owed` (household to worth) by the
+  // gift's booking between the two holders (relations' book) and returns the whole.
+  function owing(st, hh, p) {
+    const g = p.household === null ? null : st.households[p.household];
+    return !g || g === hh || g.holder === null || g.holder === hh.holder || !st.pawns[g.holder].alive ? null : g;
+  }
+  function bookAll(st, hh, owed) {
+    let booked = 0;
+    for (const [g, worth] of owed) {
+      book(st, hh.holder, g.holder, worth); // the host's holder is owed the worth (What a feast books: the two holders)
+      booked += worth;
+    }
+    return booked;
+  }
   const ration = (st, p) => (age(st, p) >= 14 ? st.ECON.ration.adult : st.ECON.ration.child); // as sim/hunger's day's need
   // The host household of farm f lays out food for those `present` (its own members too) after `barrels` of ale were poured, if its holder
   // lives and its grain stands above the rule 'feast': its share of the surplus (FEAST.share, times the holder's generosity), at most
@@ -309,15 +345,10 @@ VB['sim/occasions'] = (() => {
         n = (served * ration(st, p)) / need;
       VB.count.feastServed++;
       p.feast = { t: st.t, n, host: hh.id };
-      const g = p.household === null ? null : st.households[p.household];
-      if (!g || g === hh || g.holder === null || g.holder === hh.holder || !st.pawns[g.holder].alive) continue;
-      owed.set(g, (owed.get(g) || 0) + n + aleEach);
+      const g = owing(st, hh, p);
+      if (g) owed.set(g, (owed.get(g) || 0) + n + aleEach);
     }
-    let booked = 0;
-    for (const [g, worth] of owed) {
-      book(st, hh.holder, g.holder, worth); // the host's holder is owed the worth (What a feast books: the two holders)
-      booked += worth;
-    }
+    const booked = bookAll(st, hh, owed);
     const left = Stores.grainOf(hh) - served; // above keep, as served is a share of the excess (tests/lib/invariants.js)
     Stores.takeSpare(st, hh, served, { kind: 'feast', guests: eaters.length, booked, keep, left });
     const host = st.pawns[hh.holder];
@@ -330,6 +361,7 @@ VB['sim/occasions'] = (() => {
   }
   // The occasion ends: those who came are free; outside working hours those outdoors go home. A wedding or a funeral ale is told in the log.
   function finish(st, o) {
+    const led = o.kind === 'rite' ? lead(st, o) : null; // read while those present still stand there
     st.occasions.splice(st.occasions.indexOf(o), 1);
     const h = cal(st.t).hour,
       late = h >= WORK[1] || h < WORK[0];
@@ -350,6 +382,14 @@ VB['sim/occasions'] = (() => {
         issue(st, { actor: id, verb: 'goHome', source: 'occasion' });
     }
     if (o.kind === 'meeting') return;
+    if (o.kind === 'rite') {
+      riteEnds(st, o, led, present, far);
+      return;
+    }
+    if (o.kind === 'ale') {
+      aleEnds(st, o, present, far);
+      return;
+    }
     const f = st.farmsteads[o.farm],
       n = o.come.length,
       barrels = pourAle(st, f, present);
@@ -367,6 +407,216 @@ VB['sim/occasions'] = (() => {
       const names = o.for.map((id) => fullName(st.pawns[id])).join(' and ');
       log(st, `The funeral ale for ${names} at ${f.name}: ${came}.`, { kind: 'funeralAle', pawn: o.for[0], n, ...at });
     }
+  }
+  // ---- the ale evening (VB-522; design.md, Where pawns meet: The ale evening) ----
+  const ADULT = 16; // who is asked to an ale evening or comes to the rite: the adults
+  // The barrels household hh holds that no occasion called at its farm needs: those called keep a barrel for each BREW.guests asked or
+  // come (at least one). The occasions called are few (live only), so the walk is short.
+  function spareAle(st, hh) {
+    let kept = 0;
+    for (const o of st.occasions)
+      if (o.farm === hh.farmstead) kept += Math.max(1, Math.ceil((o.asked.length + o.come.length) / BREW.guests));
+    return Stores.aleOf(st, hh) - kept;
+  }
+  // The ale evening called today in village v, or null.
+  function aleToday(st, v) {
+    const day = dayOf(st.t);
+    for (const o of st.occasions) if (o.kind === 'ale' && o.village === v && dayOf(o.start) === day) return o;
+    return null;
+  }
+  // Why pawn id may not open its house for an ale evening now (the verb callAle), or null: it holds its household's farm, its
+  // household holds a barrel no occasion at its farm needs, the working day is not over, and no other farm of its village has one tonight.
+  function cannotCallAle(st, id) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household];
+    if (!hh || hh.dissolved || hh.holder !== id) return "only a household's holder opens its house";
+    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    if (!f || f.household !== hh.id) return 'its household holds no farm of its own';
+    if (cal(st.t).hour >= OCCASIONS.ale.from)
+      return 'too late in the day: an ale evening is called before the end of work';
+    if (Stores.aleOf(st, hh) < 1) return 'its household holds no barrel of ale';
+    if (spareAle(st, hh) < 1) return 'its ale is kept for an occasion at its farm';
+    const o = aleToday(st, f.village);
+    if (o) return `${st.farmsteads[o.farm].name} holds the village's ale evening tonight`;
+    return null;
+  }
+  // The holder id opens its house tonight (the verb callAle, its check passed): the adults of its village and of the villages within
+  // ALE_EVENING.reach walking hours of it (the table of walking hours) are asked, the near villages first, and each comes by its own wish
+  // until ALE_EVENING.guests have said yes; the household's own come. One pass over the live households, and a draw for each adult asked.
+  // A pawn on a journey or hungry at 0.5 or more stays at home; one at work when it should set out stays too (canGo). Called only when
+  // someone said yes; returns the occasion or null.
+  function callAle(st, id) {
+    const E = ALE_EVENING,
+      host = st.households[st.pawns[id].household],
+      f = st.farmsteads[host.farmstead],
+      v = f.village,
+      walk = new Map([[v, 0]]);
+    if (st.villageHours)
+      for (const u of st.villages) {
+        const h = u.id === v ? 0 : hoursBetween(st, v, u.id);
+        if (h < E.reach) walk.set(u.id, h);
+      }
+    const by = new Map(); // village id to its households, in id order
+    for (const k of st.liveHouseholds) {
+      const hh = st.households[k],
+        u = hh.farmstead === null ? null : st.farmsteads[hh.farmstead].village;
+      if (u === null || !walk.has(u) || hh === host) continue;
+      if (!by.has(u)) by.set(u, []);
+      by.get(u).push(hh);
+    }
+    const ids = [],
+      hours = [];
+    for (const m of host.members)
+      if (st.pawns[m].alive && age(st, st.pawns[m]) >= MIN_AGE) {
+        ids.push(m);
+        hours.push(0);
+      }
+    let yes = 0;
+    const order = [...by.keys()].sort((a, b) => walk.get(a) - walk.get(b) || a - b);
+    for (const u of order) {
+      const h = walk.get(u);
+      for (const hh of by.get(u))
+        for (const m of hh.members) {
+          if (yes >= E.guests) break;
+          const p = st.pawns[m];
+          if (!p.alive || age(st, p) < ADULT) continue;
+          VB.count.occasionAsked++;
+          if (p.hunger >= 0.5 || st.agents[m].away !== undefined) continue;
+          const chance =
+            E.come * (0.5 + Traits.of(st, m, 'sociability')) * (1 + opinionOf(st, m, id)) * (1 - h / E.reach);
+          if (!(rnd(st.rng.occasions) < chance)) continue;
+          yes++;
+          ids.push(m);
+          hours.push(h);
+        }
+    }
+    if (!yes) return null;
+    VB.count.aleCalled++;
+    return call(st, 'ale', dayOf(st.t), yard(st, f), ids, hours, [id]);
+  }
+  // A holder decides at its planning day's review (sim/plans' planReviewed, why 'day'; no pass of its own) whether to open its house: while
+  // its household holds a barrel, at ALE_EVENING.call × (0.5 + sociability) × (0.5 + ambition) a day, for the days its reviews are apart.
+  // The played pawn decides for itself (the verb, from the action bar).
+  on('planReviewed', (st, d) => {
+    if (d.why !== 'day' || d.plan.holder.type !== 'household') return;
+    const hh = st.households[d.plan.holder.id],
+      id = hh.holder;
+    if (id === null || id === undefined || !st.pawns[id].alive || unplanned(st, id)) return;
+    if (Stores.aleOf(st, hh) < 1) return;
+    const days = Math.max(1, Math.round((d.plan.nextReview - st.t) / DAY)),
+      day = Math.min(
+        1,
+        ALE_EVENING.call * (0.5 + Traits.of(st, id, 'sociability')) * (0.5 + Traits.of(st, id, 'ambition')),
+      );
+    if (rnd(st.rng.occasions) >= 1 - (1 - day) ** days) return;
+    if (cannotCallAle(st, id) === null) issue(st, { actor: id, verb: 'callAle', source: 'occasion' });
+  });
+  // An ale evening ends: if a guest of another household came, the host pours its one barrel for those present (pourAle: the guests'
+  // memory, the host's standing), and each guest household owes the host's holder what its members drank, at its grain, as a feast books
+  // it (owing, bookAll). Told in the log.
+  function aleEnds(st, o, present, far) {
+    const f = st.farmsteads[o.farm],
+      host = f.household === null ? null : st.households[f.household];
+    if (!host) return;
+    const guests = present.filter((id) => st.pawns[id].household !== host.id);
+    if (!guests.length) return;
+    const barrels = pourAle(st, f, present, 1);
+    if (!barrels) return;
+    const owed = new Map(),
+      each = (barrels * BREW.grain) / present.length;
+    for (const id of present) {
+      const g = owing(st, host, st.pawns[id]);
+      if (g) owed.set(g, (owed.get(g) || 0) + each);
+    }
+    const booked = bookAll(st, host, owed);
+    const by = st.pawns[host.holder],
+      from = far ? `, ${far} of them from other villages` : '';
+    log(st, `${fullName(by)} opened ${f.name} for an ale evening: ${guests.length} came${from}.`, {
+      kind: 'aleEvening',
+      pawn: by.id,
+      n: guests.length,
+      far,
+      booked: Math.round(booked),
+      ...atFarm(f),
+    });
+  }
+  // ---- the season's rite (VB-522; design.md, Where pawns meet: The season's rite) ----
+  const riteDay = (c) => RITE.days.some((d) => c.season === d[0] && c.sday === d[1]);
+  // On a rite's day, at midnight (sim/clock): each village with a green calls a rite there; its adults come, and those of a village with
+  // no green (a lone farm) within RITE.reach walking hours of one go to the nearest, each at RITE.come + RITE.piety × its piety. One pass
+  // over the live households, a draw for each adult.
+  function callRites(st) {
+    const greens = st.villages.filter((v) => v.green);
+    if (!greens.length) return;
+    const goes = new Map(); // village id to [the green's village, the walk]
+    for (const v of st.villages) {
+      if (v.green) {
+        goes.set(v.id, [v.id, 0]);
+        continue;
+      }
+      if (!st.villageHours) continue;
+      let best = null;
+      for (const g of greens) {
+        const h = hoursBetween(st, v.id, g.id);
+        if (h <= RITE.reach && (!best || h < best[1])) best = [g.id, h];
+      }
+      if (best) goes.set(v.id, best);
+    }
+    const asked = new Map(); // a green's village to {ids, hours}
+    for (const k of st.liveHouseholds) {
+      const hh = st.households[k],
+        g = hh.farmstead === null ? null : goes.get(st.farmsteads[hh.farmstead].village);
+      if (!g) continue;
+      for (const m of hh.members) {
+        const p = st.pawns[m];
+        if (!p.alive || age(st, p) < ADULT) continue;
+        VB.count.occasionAsked++;
+        if (!(rnd(st.rng.occasions) < RITE.come + RITE.piety * Traits.of(st, m, 'piety'))) continue;
+        if (!asked.has(g[0])) asked.set(g[0], { ids: [], hours: [] });
+        asked.get(g[0]).ids.push(m);
+        asked.get(g[0]).hours.push(g[1]);
+      }
+    }
+    const day = dayOf(st.t);
+    for (const v of greens) {
+      const a = asked.get(v.id);
+      if (!a) continue;
+      VB.count.riteCalled++;
+      const c = v.center,
+        place = { village: v.id, farm: null, tile: c, x: st.w.hx[c], y: st.w.hy[c] + 6 };
+      call(st, 'rite', day, place, a.ids, a.hours, []);
+    }
+  }
+  // The rite's leader: of those standing at it, the holder highest in piety × prestige (read now, stored nowhere but in its event); with
+  // no holder there, whoever stands highest. Null when nobody stands there; else {id, heard (Encounters.said: all present but it)}.
+  function lead(st, o) {
+    let best = null,
+      bv = -Infinity;
+    for (const id of Encounters.present(st, o.id)) {
+      const p = st.pawns[id],
+        holder = p.household !== null && st.households[p.household].holder === id,
+        v = (holder ? 1e6 : 0) + Traits.of(st, id, 'piety') * (p.prestige ?? 1);
+      if (v > bv) {
+        bv = v;
+        best = id;
+      }
+    }
+    return best === null ? null : { id: best, heard: Encounters.said(st, o.id, best) };
+  }
+  // The rite ends: those who heard the leader each gain SOCIAL.ties.rite to it, one way and to it only; told in the log.
+  function riteEnds(st, o, led, present, far) {
+    if (!led) return;
+    for (const id of led.heard) if (st.pawns[id].alive) addTie(st, id, led.id, SOCIAL.ties.rite);
+    const v = st.villages[o.village],
+      by = st.pawns[led.id],
+      from = far ? `, ${far} of them from other villages` : '';
+    log(st, `The rite on the green of ${v.name}, led by ${fullName(by)}: ${present.length} came${from}.`, {
+      kind: 'rite',
+      pawn: by.id,
+      n: present.length,
+      far,
+      village: v.id,
+    });
   }
   // Each six-minute step (sim/clock): the occasions due, each staying in the queue while its turn is taken (the attend verb finds it
   // there). Only the first one's due time is read, so nothing is polled (Rules for cost, 4).
@@ -392,5 +642,10 @@ VB['sim/occasions'] = (() => {
     occasionsDue,
     occasionLabel,
     explainFeast,
+    cannotCallAle,
+    callAle,
+    spareAle,
+    riteDay,
+    callRites,
   };
 })();
