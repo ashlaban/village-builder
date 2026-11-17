@@ -4,7 +4,7 @@ VB['sim/farmclaims'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { YEAR, CLAIMS, CROPS } = VB['sim/rules'];
   const { bufferOf } = VB['sim/traits'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { withinDay } = VB['sim/routes'];
   const {
     spouseOf,
     childrenOf,
@@ -107,7 +107,7 @@ VB['sim/farmclaims'] = (() => {
     const vid = f.village,
       right = rule === 'kin' ? birthrightOn(st, f) : null;
     const home = (id) => settlementIdOf(st, st.pawns[id]);
-    const near = (id) => hoursBetween(st, home(id), vid) <= CLAIMS.farmHours; // there and back in a day (VB-290)
+    const near = (id) => withinDay(st, home(id), vid, CLAIMS.farmHours); // there and back in a day (VB-290)
     const degree = new Map();
     if (right)
       for (const id of ids) {
