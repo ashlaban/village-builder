@@ -155,7 +155,7 @@ VB['sim/asking'] = (() => {
         if (Number.isInteger(p.ask)) return 'farm';
         continue;
       }
-      return 'round'; // a plot, new land, service: the round's walk asks for them, and an heir stays (VB-697, VB-696, VB-694)
+      return tried ? 'nobody' : 'round'; // a plot, new land, service: the round's walk asks for them, and an heir stays (VB-697, VB-696, VB-694)
     }
     return tried ? 'nobody' : 'stay';
   }
