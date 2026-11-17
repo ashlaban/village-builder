@@ -123,6 +123,7 @@
     "pawn.rel": "sim/relations",
     "pawn.workdays": "sim/workdays",
     "village.workday": "sim/workdays",
+    "village.gathering": "sim/gathering",
     "village.rotation": "sim/fields",
     "village.commonFields": "sim/commons",
     "village.commonSow": "sim/commons",

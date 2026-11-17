@@ -7,7 +7,7 @@
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
-  'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook'];
+  'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook', 'gathering'];
 const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
@@ -25,6 +25,8 @@ const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--
                     --reach 12,30 (walking steps), --seeds 3,7,11 (more maps, same scenario, map and years)
   --report outlook  each household of a village (--village N, default 0): its supply outlook beside what came of it over the frame,
                     which runs on past --years (tools/outlook.js --help)
+  --report gathering by year, the gatherings settled at the autumn meetings (host, villages, how many named each host) and the villages
+                    with none; then gatherings a year, host changes and the share with none (VB-294; tools/gathering.js)
   --report calendar prints the clock's table (sim/clock CALENDAR, VB-241) in the order it runs, and runs nothing`;
 if (process.argv.includes('--help') || process.argv.includes('-h')) { console.log(USAGE); process.exit(0); }
 if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-241)
@@ -75,11 +77,13 @@ const countsFrom = st.t;
 if (report === 'counts') VB.resetCounts();
 const hunger = report === 'hunger' ? require('./hunger.js')(Sim, st) : null;
 const waiting = report === 'waiting' ? require('./waiting.js').report(VB, st) : null;
+const gathering = report === 'gathering' ? require('./gathering.js')(VB, st) : null;
 const hours = report === 'hours' ? require('./hours.js')(VB, st, { from: +opt('from', 1), every: opt('every', 'step'), fields: opt('fields', null),
   team: args.includes('--team'), household: hhId }) : null;
 for (let y = start + 1; y <= last; y++) {
   const t0 = Date.now(), hungry0 = st.households.reduce((s, h) => s + h.hungryDays, 0);
   if (idle) idle.advanceYear(); else if (hours) hours.advanceYear(); else if (hunger) hunger.advanceYear(); else if (waiting) waiting.advanceYear(); else if (perf) perfMs += perf.timeAdvance(Sim, st, Sim.YEAR); else Sim.advance(st, Sim.YEAR);
+  if (gathering) gathering.year(y);
   const ms = (Date.now() - t0) / Sim.YEAR_DAYS, live = st.households.filter((h) => !h.dissolved);
   const births = st.pawns.filter((p) => !p.founder && p.born >= (y - 1) * Sim.YEAR && p.born < y * Sim.YEAR).length;
   const deaths = {}; for (const p of st.pawns) if (p.died !== null && p.died >= (y - 1) * Sim.YEAR && p.died < y * Sim.YEAR) { const c = causeOf(p) || 'unknown'; deaths[c] = (deaths[c] || 0) + 1; }
@@ -111,6 +115,7 @@ function plansOf(h) {
     season: `${Sim.SEASONS[sp.season]} of year ${sp.year} (made on day ${sp.made})`, steps: sp.steps.join(', ') };
 }
 const tables = {
+  gathering: () => gathering.result(), // VB-294
   reach: () => require('./reach.js')(st), // VB-286
   ground: () => { // VB-735
     const G2 = require('./ground.js'), more = G2.others(VB, opt('seeds', '').split(',').filter(Boolean).map(Number).filter((s) => s !== seedNum), { scenario, size: SIZES[map], years: last });
@@ -245,6 +250,7 @@ if (out !== null && report === 'idle' && !json) {
 else if (out !== null && report === 'waiting' && !json) waiting.print(out);
 else if (out !== null && report === 'outlook' && !json) require('./outlook.js').print(out);
 else if (out !== null && report === 'ground' && !json) require('./ground.js').print(out);
+else if (out !== null && report === 'gathering' && !json) { console.table(out.years); console.log(JSON.stringify(out.summary)); }
 else if (out !== null && report === 'perf' && !json) {
   console.log(`${out.days} game days in ${out.totalMs} ms (${out.msPerDay} ms/day); time per system, exclusive:`); console.table(out.systems);
 } else if (out !== null && report === 'hunger' && !json) {

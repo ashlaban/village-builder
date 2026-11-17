@@ -68,6 +68,7 @@ VB['sim/records'] = (() => {
     offerLapsed: 0,
     offerRefused: 0, // goods offered or asked for, refused (sim/offers, VB-690)
     meetingFailed: 0,
+    gathering: 0, // the villages that go to a host's gathering this winter (VB-294)
     cartBuilt: 0, // a household's new cart (VB-327)
     tarPit: 0, // a household's tar pit dug (VB-301)
     setOut: 0, // a journey to a new home in another village (VB-287)

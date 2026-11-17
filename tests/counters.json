@@ -58,5 +58,9 @@
   "giftUncarried": 0,
   "awayMeals": 0,
   "deerCrop": 0,
-  "roundRank": 0.020253164556962026
+  "roundRank": 0.020253164556962026,
+  "gatherChoice": 0,
+  "gatherDisposition": 0,
+  "gatherKin": 0,
+  "gatherSettle": 0
 }

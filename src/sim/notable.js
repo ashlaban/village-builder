@@ -141,7 +141,7 @@ VB['sim/notable'] = (() => {
     },
     custom: {
       label: 'Customs and meetings',
-      kinds: ['custom', 'split', 'cause', 'meetingFailed', 'rite', 'aleEvening'],
+      kinds: ['custom', 'split', 'cause', 'meetingFailed', 'gathering', 'rite', 'aleEvening'],
     },
   };
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
