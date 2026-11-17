@@ -58,6 +58,7 @@ const FAST = [
   ['node', 'tests/continuity.js'],
   ['node', 'tests/legs.js'],
   ['node', 'tests/journeys.js'],
+  ['node', 'tests/away.js'], // sleeping away from home: a lodger's stay, its pack and meals, a guest (VB-783)
   ['node', 'tests/fetch.js'], // a gift fetched where it lies, a load a trip (VB-461)
   ['node', 'tests/rng.js'],
   ['node', 'tests/cowwant.js'],
