@@ -15,6 +15,7 @@ VB.COUNTERS = {
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
   offerWeighed: 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)',
+  offersAnswered: 'Open offers answered at a village step of the moving round, a day of it each (sim/round, VB-692)',
   talkTurn:
     'Pawns asked by the talk round at their talk turn, every SOCIAL.talk.every waking hours (sim/relations, VB-521)',
   talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',

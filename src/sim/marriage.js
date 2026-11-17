@@ -9,6 +9,7 @@ VB['sim/marriage'] = (() => {
   const { journeyOf } = VB['sim/agents'];
   const { heirRanking, refreshRoles, handOn } = VB['sim/heirs'];
   const { issue, clearMatchWish } = VB['sim/commands'];
+  const { moveWhy } = VB['sim/wishes'];
   const Offers = VB['sim/offers'],
     { heldBy } = Offers;
   const { raiseTie, remember, opinionOf } = VB['sim/relations'];
@@ -74,15 +75,51 @@ VB['sim/marriage'] = (() => {
           ? 'retirement'
           : null;
     if (!why) return null;
+    // the holder offers the holding to the heir (the basis `handover`, due at once; VB-692): the heir's yes hands it on
     issue(st, {
       actor: hh.holder,
-      verb: 'handOn',
+      verb: 'offer',
       target: heir,
-      args: { household: hh.id, reason: why },
+      args: { basis: 'handover', gives: { household: hh.id, reason: why } },
       source: 'round',
     });
-    return heir;
+    return hh.holder === heir ? heir : null;
   }
+  // ---- the basis `handover` of sim/offers (VB-692; plan VB-682, sections 2 and 4.6): {from (the holder of gives.household), to (the
+  // heir), gives {household, reason ('marriage' or 'retirement': the custom's timing)}}. Those whose yes the heir's move needs answer
+  // (moveWhy: the heir, and the holder, who answers what the round offers in his name); each says yes, today's rule (the heir takes
+  // it). A yes is the handOn verb. A no is told, and nobody remembers it. ----
+  function handoverWhy(st, o) {
+    const hh = o.gives && st.households[o.gives.household],
+      p = Number.isInteger(o.to) ? st.pawns[o.to] : null;
+    if (!hh || hh.dissolved) return `there is no household ${o.gives && o.gives.household}`;
+    if (hh.holder !== o.from) return `pawn ${o.from} does not hold household ${hh.id}`;
+    if (!p || !p.alive || p.id === o.from) return `pawn ${o.to} cannot take the holding`;
+    const whose = moveWhy(st, p.id, hh.id, 'heir');
+    return typeof whose === 'string' ? whose : {};
+  }
+  Offers.basis('handover', {
+    books: 'nothing',
+    memory: false,
+    wait: () => MARRIAGE.offerDays,
+    check: handoverWhy,
+    answers: (st, o) => moveWhy(st, o.to, o.gives.household, 'heir').map((a) => ({ key: a.key, by: a.by, yes: null })),
+    weigh: () => true,
+    settle: (st, o) =>
+      st.households[o.gives.household].holder !== o.from
+        ? 'the holding has passed'
+        : issue(st, {
+            actor: o.from,
+            verb: 'handOn',
+            target: o.to,
+            args: { household: o.gives.household, reason: o.gives.reason },
+            source: 'round',
+          }),
+    subject: (st, o) => o.to,
+    where: (st, o) => st.farmsteads[st.households[o.gives.household].farmstead].village,
+    what: (st, o) =>
+      `the handover of ${st.farmsteads[st.households[o.gives.household].farmstead].name} to ${fullName(st.pawns[o.to])}`,
+  });
   // An unplayed pawn's answer (VB-275): no at enmity or below towards the one it weighs: the other one to marry, or, for a spokesman,
   // the other side's spokesman.
   function unplayedNo(st, answers, a) {
@@ -112,9 +149,11 @@ VB['sim/marriage'] = (() => {
     if (heldBy(st, man, 'match') || heldBy(st, woman, 'match')) return 'one of them is in an open offer';
     return { village: settlementIdOf(st, st.pawns[man]) };
   }
-  // The answers a match asks for, all unanswered: the man's and the woman's, and each one's spokesman's where another speaks for them.
-  const matchAnswers = (st, o) =>
-    [
+  // The answers a match asks for, all unanswered: the man's and the woman's, and each one's spokesman's where another speaks for them;
+  // and, where neither is, the head of the home one of them moves to (moveWhy, VB-692: the receiving head's yes, always).
+  const movers = (st, o) => [o.gives.man, o.wants.woman].filter((id) => st.pawns[id].household !== o.gives.home);
+  function matchAnswers(st, o) {
+    const out = [
       ['man', o.gives.man],
       ['woman', o.wants.woman],
     ].flatMap(([key, id]) => {
@@ -122,7 +161,16 @@ VB['sim/marriage'] = (() => {
         own = { key, by: id, yes: null };
       return s === id ? [own] : [own, { key: key + 'Side', by: s, yes: null }];
     });
-  const matchYes = (st, o, a) => !unplayedNo(st, o.answers, a);
+    for (const id of movers(st, o))
+      for (const a of moveWhy(st, id, o.gives.home, 'marriage'))
+        if (!out.some((b) => b.by === a.by)) out.push({ key: a.key, by: a.by, yes: null });
+    return out;
+  }
+  // The head of the home says no at enmity or below towards one who would move in; the others as unplayedNo.
+  const matchYes = (st, o, a) =>
+    a.key === 'head'
+      ? movers(st, o).every((id) => opinionOf(st, a.by, id) > SOCIAL.enemy)
+      : !unplayedNo(st, o.answers, a);
   // A match kept for the player's answer is told.
   function toldMatch(st, o) {
     const { man, home } = o.gives,
@@ -183,6 +231,8 @@ VB['sim/marriage'] = (() => {
     refused: refusedMatch,
     lapsed: lapsedMatch,
     opened: toldMatch,
+    subject: (st, o) => o.gives.man, // the man's side asks (plan VB-682, section 4.1)
+    where: (st, o) => settlementIdOf(st, st.pawns[o.wants.woman]), // her village's step answers (Proposed)
   });
   return {
     wed,

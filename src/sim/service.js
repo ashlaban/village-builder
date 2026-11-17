@@ -4,11 +4,12 @@
 VB['sim/service'] = (() => {
   const { takePeopleCheck } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
-  const { wishOf } = VB['sim/wishes'];
+  const { wishOf, moveWhy } = VB['sim/wishes'];
   const { refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hoursBetween } = VB['sim/routes'];
-  const { SERVICE } = VB['sim/rules'];
+  const { SERVICE, MARRIAGE } = VB['sim/rules'];
+  const Offers = VB['sim/offers'];
   const { hasPlot } = VB['sim/expansion'];
   const { trustOf } = VB['sim/ownership'];
   const adult = (p) => p.alive && p.age >= 18;
@@ -141,6 +142,51 @@ VB['sim/service'] = (() => {
   }
   const serve = (st, id, hhId, source) =>
     issue(st, { actor: id, verb: 'move', target: hhId, args: serving(st, id, hhId), source });
+  // ---- the basis `place` of sim/offers (VB-692; plan VB-682, sections 2 and 4.2): {from (the head of household gives.household), to (the
+  // adult it would take), gives {household}}. Those whose yes the move needs answer (moveWhy: the adult and the head, who answers what the
+  // round offers in his name, the played head as he likes); the adult says
+  // yes by today's rule, as the round chose it (willServe: fit, and not declining service by its wish). A yes is the move, reason service.
+  // Made by the round's choosers (takeServants, serveWhereShort) due at once; a no is told, and nobody remembers it. ----
+  const placeHome = (st, o) => {
+    const h = o.gives && st.households[o.gives.household];
+    return h && !h.dissolved ? h : null;
+  };
+  function placeWhy(st, o) {
+    const hh = placeHome(st, o),
+      q = Number.isInteger(o.to) ? st.pawns[o.to] : null;
+    if (!hh || hh.holder === null) return `there is no household ${o.gives && o.gives.household} with a head`;
+    if (o.from !== hh.holder) return `pawn ${o.from} is not the head of household ${hh.id}`;
+    if (!q || !q.alive || q.household === null) return `pawn ${o.to} is not a living pawn with a home`;
+    if (q.household === hh.id) return `pawn ${o.to} lives there already`;
+    const whose = moveWhy(st, q.id, hh.id, 'service');
+    return typeof whose === 'string' ? whose : {};
+  }
+  Offers.basis('place', {
+    books: 'nothing',
+    memory: false,
+    wait: () => MARRIAGE.offerDays,
+    check: placeWhy,
+    answers: (st, o) =>
+      moveWhy(st, o.to, o.gives.household, 'service').map((a) => ({ key: a.key, by: a.by, yes: null })),
+    weigh: (st, o, a) =>
+      a.key !== 'self' || (unfit(st, st.pawns[o.to]) === null && wishOf(st, o.to, 'serve') !== false),
+    settle: (st, o) => (placeHome(st, o) ? serve(st, o.to, o.gives.household, 'round') : 'the household is gone'),
+    subject: (st, o) => o.to,
+    where: (st, o) => farmOf(st, st.households[o.gives.household]).village,
+    what: (st, o) =>
+      `a place in service at ${farmOf(st, st.households[o.gives.household]).name} for ${fullName(st.pawns[o.to])}`,
+  });
+  // Head `from` offers pawn id a place in household hhId at the moving round, due at once (the round's choosers): true when it moved in.
+  function offerPlace(st, from, id, hhId) {
+    issue(st, {
+      actor: from,
+      verb: 'offer',
+      target: id,
+      args: { basis: 'place', gives: { household: hhId } },
+      source: 'round',
+    });
+    return st.pawns[id].household === hhId;
+  }
   // Why q may not go into service at all, or null: it must be free to move, unmarried and of serving age.
   function unfit(st, q) {
     if (!free(st, q))
@@ -166,8 +212,14 @@ VB['sim/service'] = (() => {
     return from.dissolved || from.members.length < 2 ? -1 : hands(st, from) - (q.age >= 14 && q.age < 60 ? 1 : 0);
   }
   // Those who would serve now, in demand order: fit (unfit null), and not declining by the player's wish (VB-212).
+  // One who holds an open offer about its future takes part only in that offer's step (VB-692).
   const willServe = (st) =>
-    st.demand.filter((id) => unfit(st, st.pawns[id]) === null && wishOf(st, id, 'serve') !== false);
+    st.demand.filter(
+      (id) =>
+        unfit(st, st.pawns[id]) === null &&
+        wishOf(st, id, 'serve') !== false &&
+        (st.pawns[id].ask === undefined || st.pawns[id].ask === null),
+    );
   // The placement every service rule shares (village first, then the nearest village within a day's walk; VB-090, VB-308, VB-290): the
   // walking hours between the greens of households a's and b's villages (sim/routes), 0 in one village, or null beyond SERVICE.hours or
   // by no route by land. Ranking by it puts the own village first. One table entry.
@@ -214,7 +266,7 @@ VB['sim/service'] = (() => {
       if (!best) continue;
       const back = { actor: hh.holder, verb: 'goBack', target: hh.id, args: { why: 'servant' }, source: 'round' };
       if (t && issue(st, back) !== true) continue;
-      if (serve(st, best.id, hh.id, 'round') === true) {
+      if (offerPlace(st, hh.holder, best.id, hh.id)) {
         taken.add(hh.id);
         moved.add(best.id);
       }
@@ -278,7 +330,7 @@ VB['sim/service'] = (() => {
         }
       }
       if (best < 0) continue;
-      if (serve(st, q.id, short[best].id, 'round') !== true) continue;
+      if (!offerPlace(st, short[best].holder, q.id, short[best].id)) continue;
       short.splice(best, 1);
       moved.add(q.id);
     }

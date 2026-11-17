@@ -9,6 +9,9 @@
 //   at once never enters and takes no id, so with no player and nothing due later the queue stays empty. Plain data, saved; an answered
 //   or lapsed offer leaves it.
 // @state st.offerSeq: number; the next kept offer's id; ids are never reused
+// @state pawn.ask (VB-692): absent or null, else the id of the one open offer about the pawn's own future it holds (the basis's subject: the
+//   one a match would marry for the man's side, the claimant, the leader of a party, the servant, the heir); written when such an offer
+//   is kept and cleared when it closes, so a pawn holds at most one (plan VB-682, section 2, Caps). Plain data, saved with the pawn.
 VB['sim/offers'] = (() => {
   const { DAY, YEAR } = VB['sim/rules'];
   const { remember } = VB['sim/relations'];
@@ -32,8 +35,11 @@ VB['sim/offers'] = (() => {
   // => why the offer may not be made, or the basis's own fields to add to it ({} or null for none): what may be offered and wanted), answers ((st, o) =>
   // [{key, by, yes: null}]: who must say yes), weigh ((st, o, a) => the unplayed pawn's answer, and the played pawn's advice), settle
   // ((st, o) => true, or why it lapsed: what a yes does, by verbs), and optionally refused ((st, o, no): what a no leaves; by default a
-  // memory of both), lapsed ((st, o, why)) and opened ((st, o): told when it is kept). The rows: gift and ask (sim/exchange), match
-  // (sim/lifecycle). ----
+  // memory of both), lapsed ((st, o, why)) and opened ((st, o): told when it is kept); and for an offer about a life (VB-692) subject
+  // ((st, o) => the pawn whose own future it is, who holds it as pawn.ask), where ((st, o) => the village whose step of the moving round
+  // answers it), what ((st, o) => its words, as `what`) and memory (false: a no is told, and nobody remembers it). The rows: gift and
+  // ask (sim/exchange), match and handover (sim/marriage), land (sim/farmclaims), party (sim/settle) and place (sim/service). An offer
+  // made with args.round is due at the moving round: sim/round answers it there, or it lapses when the round ends. ----
   const BASES = {};
   function basis(name, row) {
     if (BASES[name]) throw new Error(`basis ${name} is declared twice`);
@@ -41,6 +47,7 @@ VB['sim/offers'] = (() => {
   }
   // A sentence's object for offer o: "the match of A and B", "a gift of 40 grain from X", "an ask of 40 grain by X"
   function what(st, o) {
+    if (BASES[o.basis].what) return BASES[o.basis].what(st, o);
     if (o.basis === 'match')
       return `the match of ${fullName(st.pawns[o.gives.man])} and ${fullName(st.pawns[o.wants.woman])}`;
     const t = o.gives || o.wants || {},
@@ -48,9 +55,10 @@ VB['sim/offers'] = (() => {
       by = nameOf(st, partyOf(st, o.parties && o.parties.from));
     return `${gift ? 'a gift' : `an ${o.basis}`} of ${Math.round(t.n)} ${t.good} ${gift ? 'from' : 'by'} ${by}`;
   }
-  // A refusal (the default): both remember it (SOCIAL.memories refusedUs and refusedThem), and opinion follows; nothing else
+  // A refusal (the default): both remember it (SOCIAL.memories refusedUs and refusedThem; not for a row with memory false), and opinion
+  // follows; nothing else
   function refused(st, o, no) {
-    if (alive(st, o.from) && alive(st, no.by) && o.from !== no.by) {
+    if (BASES[o.basis].memory !== false && alive(st, o.from) && alive(st, no.by) && o.from !== no.by) {
       remember(st, o.from, no.by, 'refusedUs');
       remember(st, no.by, o.from, 'refusedThem');
     }
@@ -127,18 +135,6 @@ VB['sim/offers'] = (() => {
     if (typeof g === 'string') return g;
     return grainOf(g.from) < g.n - 1e-9 ? `${nameOf(st, g.from)} has no longer ${Math.round(g.n)} grain` : g;
   }
-  // The youngest adult of 14 to 59 of household hh who is free to set out (not on the road, nor walking back), or null: who carries what
-  // the household agreed to give
-  function carrierOf(st, hh) {
-    let best = null;
-    for (const id of hh.members) {
-      const p = st.pawns[id],
-        a = st.agents[id];
-      if (!p.alive || p.age < 14 || p.age >= 60 || !a || onRoad(a) || a.phase === 'back') continue;
-      if (best === null || p.age < st.pawns[best].age) best = id;
-    }
-    return best;
-  }
 
   // ---- offers ----
   // The offer a command `offer` describes (actor from, target to; args {basis, gives, wants, due}), or why there is none. The basis's
@@ -158,9 +154,20 @@ VB['sim/offers'] = (() => {
       made: st.t,
       due,
     };
+    if (a.round === true) o.round = true;
     const r = B.check(st, o, c);
-    return typeof r === 'string' ? r : Object.assign(o, r);
+    if (typeof r === 'string') return r;
+    Object.assign(o, r);
+    const s = B.subject ? B.subject(st, o) : null,
+      held = Number.isInteger(s) && st.pawns[s] ? st.pawns[s].ask : null;
+    return held !== null && held !== undefined ? `pawn ${s} holds an open offer about its future already` : o;
   }
+  // The pawn whose own future offer o is (its basis's subject), or null
+  const subjectOf = (st, o) => {
+    const B = BASES[o.basis],
+      s = B && B.subject ? B.subject(st, o) : null;
+    return Number.isInteger(s) && st.pawns[s] ? s : null;
+  };
   // Why the actor's offer cannot be made, or null
   const cannotOffer = (st, c) => {
     const o = offerOf(st, c);
@@ -177,6 +184,8 @@ VB['sim/offers'] = (() => {
     let i = st.offers.length;
     while (i > 0 && st.offers[i - 1].due > o.due) i--;
     st.offers.splice(i, 0, o);
+    const s = subjectOf(st, o);
+    if (s !== null) st.pawns[s].ask = o.id;
   }
   // Make the offer of command c (the verb `offer`, and `give` for a gift), checked. Its answers are drawn up; `given` lists the keys said
   // yes in the making (the played pawn's own wish). Due at once, the unplayed answer now; one that waits for the played pawn is kept for
@@ -200,6 +209,8 @@ VB['sim/offers'] = (() => {
   function close(st, o) {
     const at = st.offers.indexOf(o);
     if (at >= 0) st.offers.splice(at, 1);
+    const s = o.id === undefined ? null : subjectOf(st, o);
+    if (s !== null && st.pawns[s].ask === o.id) st.pawns[s].ask = null;
     const B = BASES[o.basis],
       no = o.answers.find((a) => a.yes === false);
     if (no) {
@@ -235,11 +246,21 @@ VB['sim/offers'] = (() => {
   // At the day's end: the offers due close, each unanswered answer given by its pawn's judgement. Only the first offer's due time is read
   // (Rules for cost, 4).
   function dueOffers(st) {
-    while (st.offers.length && st.offers[0].due <= st.t) {
-      const o = st.offers[0];
+    while (st.offers.length && st.offers[0].due <= st.t) conclude(st, st.offers[0]);
+  }
+  // The open offer o ends now (VB-692): each unanswered answer given by its pawn's judgement (once each), and it closes; or, given `why`
+  // (the moving round ended with it open), it lapses unanswered. 'yes', 'no' or 'lapsed'.
+  function conclude(st, o, why = null) {
+    if (why === null) {
       for (const a of o.answers) if (a.yes === null) a.yes = judge(st, o, a);
-      close(st, o);
+      return close(st, o);
     }
+    const at = st.offers.indexOf(o);
+    if (at >= 0) st.offers.splice(at, 1);
+    const s = subjectOf(st, o);
+    if (s !== null && st.pawns[s].ask === o.id) st.pawns[s].ask = null;
+    (BASES[o.basis].lapsed || lapsed)(st, o, why);
+    return 'lapsed';
   }
   // Is pawn id held by an open offer of `basis`: one of the two a match would marry, else the one who made it
   const heldBy = (st, id, basis) =>
@@ -255,10 +276,10 @@ VB['sim/offers'] = (() => {
     answer,
     advice,
     dueOffers,
+    conclude,
     heldBy,
     giftOf,
     delivery,
-    carrierOf,
     partyOf,
     refOf,
     what,
