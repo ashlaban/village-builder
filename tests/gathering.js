@@ -102,4 +102,11 @@ const gatherIssues = (st) => checkState(st).filter((x) => /gathering/.test(x));
   Gt.chooseGathering(st, st.cenv.settlements[1], false, membersOf(st, 1));
   assert.deepStrictEqual(st.villages[1].gathering.prefs, was, 'last year again');
 }
+{ // the choice is saved with the village and loaded as it was
+  const st = make();
+  meet(st); Gt.settleGatherings(st);
+  const back = VB.sim.load(st.w, JSON.parse(JSON.stringify(VB.sim.save(st))));
+  assert.deepStrictEqual(back.villages.map((v) => v.gathering), st.villages.map((v) => v.gathering));
+  assert.deepStrictEqual(Gt.gatherings(back), Gt.gatherings(st));
+}
 console.log('gathering: ok');
