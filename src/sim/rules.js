@@ -661,6 +661,11 @@ VB['sim/rules'] = (() => {
   // an occasion gives the host `prestige` for `years` years, at most `maxBarrels` barrels counted (a cap of 0.2); each guest's memory of
   // it is SOCIAL.memories.ale.
   const BREW = { grain: 10, hours: 4, guests: 20, stock: 1, prestige: 0.05, maxBarrels: 4, years: 3 };
+  // The feast (VB-458; design.md, The gift: The feast, What a feast books; Kim, 13 Nov): at a wedding or a funeral ale at its farm, a
+  // household whose grain stands above its seed and `above` years of its need lays out food: `share` of what it holds beyond that (times its
+  // holder's generosity, TRAITS.acts.generosity.feast), and at most `perGuest` rations a ration of need of those who came (a day's food
+  // three times over, the ale poured counted at its grain). Those who ate have eaten the day's meal; guest households owe the host goodwill.
+  const FEAST = { above: 2, share: 0.25, perGuest: 3 };
   const HELP = {
     // a holder wants floorDays and its own reserve (TRAITS.acts.generosity.reserve, by its generosity: 0 to 40 days; VB-520) of the
     // household's food in store before giving
@@ -978,7 +983,8 @@ VB['sim/rules'] = (() => {
     // What a trait does (VB-520; design.md, The twelve traits and the rules each changes): acts.<trait>.<rule> is [the value at 0, at 1],
     // linear in the trait between (Traits.act), its midpoint the rule's value before traits, so a pawn at 0.5 acts as every pawn did.
     // reserve: the holder's own reserve beyond HELP.floorDays, in days of the household's need (it was drawn per pawn, 0 to 40); one
-    // without a holder keeps the most. anchor: times the pull of what was learned young (culture's P.anchor). settle: times the pressure (the
+    // without a holder keeps the most; feast: times FEAST.share of its surplus it lays out at a feast (VB-458). anchor: times the pull of
+    // what was learned young (culture's P.anchor). settle: times the pressure (the
     // rounds waited in a crowded village) a pawn needs before it wishes to leave at the moving round (sim/settle reads SETTLE.chance there).
     // breach: times the memories of a breach (`breach`, SOCIAL.memories) as this pawn feels them. talk: times the chance to start a talk at
     // its turn (SOCIAL.talk.chance), at most 1; seek: times SOCIAL.seek. idleWait: times IDLE.wait (the design's 4 to 2 hours about its 3).
@@ -986,7 +992,7 @@ VB['sim/rules'] = (() => {
     // HEALTH.recover (2.5 to 3.5). Temper acts through chemistry and the quarrel (SOCIAL.chemistry, SOCIAL.talk.quarrel); wits and
     // husbandry through a head's skill (sim/traits).
     acts: Object.freeze({
-      generosity: Object.freeze({ reserve: Object.freeze([40, 0]) }),
+      generosity: Object.freeze({ reserve: Object.freeze([40, 0]), feast: Object.freeze([0.5, 1.5]) }),
       piety: Object.freeze({ anchor: Object.freeze([0.5, 1.5]) }),
       ambition: Object.freeze({ settle: Object.freeze([1.5, 0.5]) }),
       honour: Object.freeze({ breach: Object.freeze([0.5, 1.5]) }),
@@ -1087,6 +1093,7 @@ VB['sim/rules'] = (() => {
     IDLE,
     SPEED,
     BREW,
+    FEAST,
     TERRAIN,
     SLOPE,
     ROUTE,

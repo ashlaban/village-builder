@@ -24,7 +24,7 @@ const Sim = (() => {
   const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } =
     VB['sim/notable'];
   const { describe: doing } = VB['sim/agents'],
-    { occasionLabel } = VB['sim/occasions'];
+    { occasionLabel, explainFeast } = VB['sim/occasions'];
   // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
@@ -180,6 +180,7 @@ const Sim = (() => {
     depositKnown,
     goodwillOf,
     explainAllowance,
+    explainFeast, // why a household does or does not lay out a feast (VB-458)
     depositLeftNow,
     woodOf,
     giftWarning,
