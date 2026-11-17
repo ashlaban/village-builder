@@ -159,6 +159,20 @@ VB['sim/agents'] = (() => {
     if (s) s.delete(j);
     if (teamKind(j) && st.households[j.owner.id]) retune(st, st.households[j.owner.id]); // the ox team goes to the next task
   }
+  // The cart pawn `a` has out stands at (at, x, y), with a lying `leftCart` for its household's hands to fetch (VB-649).
+  function standCart(st, a, at, x, y) {
+    const hh = st.pawns[a.id].household !== null ? st.households[st.pawns[a.id].household] : null,
+      cart = hh && Carts.leave(st, hh, a.id, { tile: at, x, y });
+    if (cart)
+      Lying.leave(
+        st,
+        'leftCart',
+        1,
+        at,
+        { type: 'household', id: hh.id },
+        { x, y, of: { cart: { kind: cart.kind, built: cart.built } } },
+      );
+  }
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
     // A load on its way home is not brought in from the road: a hand that can walk on is not released until it has (VB-581: `moved`
@@ -173,20 +187,16 @@ VB['sim/agents'] = (() => {
         at = tileAt(st, x, y);
       if (K.setDown && at === a.job.site) K.setDown(st, a.job, a);
       else Lying.lay(st, a, a.job, K.fetch || a.job.kind, at, x, y);
-      // its cart stands where it was, with the team that drew it, until a hand fetches them (VB-649)
-      const hh = st.pawns[a.id].household !== null ? st.households[st.pawns[a.id].household] : null,
-        cart = hh && Carts.leave(st, hh, a.id, { tile: at, x, y });
-      if (cart)
-        Lying.leave(
-          st,
-          'leftCart',
-          1,
-          at,
-          { type: 'household', id: hh.id },
-          { x, y, of: { cart: { kind: cart.kind, built: cart.built } } },
-        );
+      standCart(st, a, at, x, y); // its cart stands where it was, with the team that drew it, until a hand fetches them (VB-649)
       a.carry = null;
       laid = a.job;
+    }
+    // a pawn released at its work (dung carted, firewood cut beside the cart) leaves the cart there too, away from the farm (VB-993)
+    if (!laid && a.job && st.pawns[a.id].household !== null) {
+      const [x, y] = placeOf(st, a),
+        at = tileAt(st, x, y),
+        hh = st.households[st.pawns[a.id].household];
+      if (hh.farmstead !== null && at !== st.farmsteads[hh.farmstead].house) standCart(st, a, at, x, y);
     }
     const left = a.job;
     if (left) settle(st, left);

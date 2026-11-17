@@ -41,4 +41,21 @@ const n0 = st.record.length, nc = hh.carts.length;
 Lying.frost(st);
 VB['sim/carts'].cartsYear(st, true);
 assert(hh.carts.length === nc - 1 && st.record.slice(n0).some((e) => e && e.kind === 'cartGone'), 'the cart is lost and named');
+// released at its work (VB-993): a dung cart's pawn, away from the farm, leaves cart and team standing there
+{
+  const st2 = Sim.seed(r.value, 7, 'populous');
+  const h2 = st2.households.find((h) => !h.dissolved && h.members.length >= 3 && VB['sim/herds'].hasTeam(st2, h));
+  const f2 = st2.farmsteads[h2.farmstead];
+  const p2 = st2.agents[h2.members.filter((id) => st2.pawns[id].alive && st2.pawns[id].age >= 14)[1]];
+  A.release(st2, p2); A.placeAtHome(st2, p2);
+  const j2 = J.post(st2, 'manure:cart' + st2.t, 'manure', { type: 'household', id: h2.id }, f2.fields[0].tile, { field: f2.fields[0], farm: f2 });
+  j2.claims.push(p2.id); p2.job = j2; p2.phase = 'work'; p2.load = 0;
+  assert(Carts.take(st2, h2, p2.id, true) > 0, 'a cart taken');
+  p2.x = st2.w.hx[f2.fields[0].tile] + 400; p2.y = st2.w.hy[f2.fields[0].tile];
+  A.release(st2, p2);
+  const c2 = h2.carts.find((c) => c.at);
+  assert(c2 && c2.by === null && Carts.oxOut(st2, h2) === (c2.kind === 'ox'), 'the cart stands where the pawn was');
+  assert(st2.lying.some((l) => l.kind === 'leftCart'), 'a hand is to fetch it');
+  assert.deepStrictEqual(checkState(st2), []);
+}
 console.log('standingcart ok');
