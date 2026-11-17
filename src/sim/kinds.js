@@ -269,7 +269,8 @@ VB['sim/kinds'] = (() => {
       setDown: (st, j, a) => laidDown(j.field, a.load),
       deliver: (st, j, hh, f, a) => {
         if (j.common) return Commons.brought(st, j, a); // a common field's, into the village store (VB-100)
-        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.field.crop));
+        // the crop the task was posted for: the field goes on to its next course once its last load is taken up (VB-350)
+        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.crop ?? j.field.crop));
         if (
           f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
           !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].phase === 'back')
@@ -279,7 +280,7 @@ VB['sim/kinds'] = (() => {
       stages: ['stooks'],
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays)
-          post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+          post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, crop: fd.crop });
       },
     },
     wood: {

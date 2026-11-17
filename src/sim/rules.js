@@ -110,6 +110,16 @@ VB['sim/rules'] = (() => {
     // at most SOIL.start
     fallow: { fallow: true, sow: [1, 0, SEASON_DAYS - 1], mend: 0.08, hours: { plow: 10 } },
   };
+  // ---- rotations (VB-350; design.md, Crops and rotations, The rotation): a field holds one (`fd.rotation`, a key) and the step it is at
+  // (`fd.step`); its crop is the step's course (a key of CROPS, fallow among them). A plain table, as CROPS. Barley every year is today's
+  // farming; in three courses a field is fallow a year, then rye sown that autumn, then barley the spring after its rye is in. ----
+  const ROTATIONS = {
+    every: { courses: ['barley'], label: 'barley every year' },
+    two: { courses: ['barley', 'fallow'], label: 'two courses' },
+    three: { courses: ['fallow', 'rye', 'barley'], label: 'three courses' },
+    peas: { courses: ['barley', 'peas'], label: 'barley and peas by turns' },
+    peasRye: { courses: ['peas', 'rye', 'barley'], label: 'peas, rye, barley' },
+  };
   // ---- fields a household wants (balance review, 1 Nov 2026): enough for `want` times a year's rations at `expect` of the full yield, but no more
   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
   // room (stability review, VB-154): a new farm (a plot, a settler's farm, a new village) needs this many free farmable tiles within FIELD_REACH
@@ -1054,6 +1064,7 @@ VB['sim/rules'] = (() => {
     dark,
     ECON,
     CROPS,
+    ROTATIONS,
     FIELDS,
     FISH,
     FORAGE,

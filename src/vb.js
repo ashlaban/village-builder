@@ -38,6 +38,7 @@ VB.COUNTERS = {
   wishWalk: "Pawn records walked by the pawns' own choosing of their wishes, once a moving round (sim/wishes, VB-680)",
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
+  rotationWalk: "Farms walked by a village's meeting for its usual rotation, a village a year (sim/fields, VB-350)",
   overviewWalk:
     'Pawn records walked by a village overview, once a summary asked (a view, never a step: sim/overview, VB-162)',
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
