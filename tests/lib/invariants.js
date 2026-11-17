@@ -1055,6 +1055,23 @@ function checkState(st) {
       if (a.away !== undefined && !seen.has(a.id)) bad.push(`agent ${a.id}: away ${a.away}, and in no stay`);
     }
   }
+  // the booths (VB-784): ids below st.boothSeq, unique and in order, on a tile with nobody else's booth, for a household, a built one's condition
+  // in 0..1 at a time not after now (a gone one is not here), and a stay under a booth's roof at a standing booth's tile, at most BOOTH.sleeps
+  if (st.booths !== undefined) {
+    const tiles = new Set(), under = new Map();
+    for (const s of st.away) if (s.roof === 'booth') under.set(s.bed, (under.get(s.bed) || 0) + 1);
+    st.booths.forEach((b, n) => {
+      const at = `booths[${n}] (id ${b.id})`;
+      if (!Number.isInteger(b.id) || b.id < 0 || b.id >= st.boothSeq || (n > 0 && st.booths[n - 1].id >= b.id)) bad.push(`${at}: id against boothSeq ${st.boothSeq}`);
+      if (tiles.has(b.tile)) bad.push(`${at}: two booths on tile ${b.tile}`);
+      tiles.add(b.tile);
+      if (!st.households[b.by]) bad.push(`${at}: for no household`);
+      if (b.built !== null && (!(b.cond >= 0 && b.cond <= 1) || b.condAt < b.built || b.condAt > st.t)) bad.push(`${at}: condition ${b.cond} at ${b.condAt}, built ${b.built}`);
+      if (b.built === null && under.has(b.tile)) bad.push(`${at}: slept in before it is raised`);
+      if ((under.get(b.tile) || 0) > VB['sim/rules'].BOOTH.sleeps) bad.push(`${at}: more than it sleeps`);
+    });
+    for (const t of under.keys()) if (!tiles.has(t)) bad.push(`a stay under a booth's roof at tile ${t}, where none stands`);
+  }
   // the hard rule (VB-461): no gift's grain changes place at once between two farmsteads, or from a village store to a household
   const VBc = globalThis.VB && globalThis.VB.count;
   if (VBc && VBc.giftUncarried) bad.push(`gifts: ${VBc.giftUncarried} grain settled at once between two places`);

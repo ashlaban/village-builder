@@ -91,6 +91,9 @@ const QUANTITIES = [
     covers: ['st.awaySeq', 'agent.away'], kinds: [],
     none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (VB-287); a lodger '
       + 'comes home when its pack is down to the walk home\'s ration, and a household with nothing to spare sends nobody (sim/away, VB-783)' },
+  { id: 'booth', of: 'tile', name: 'a booth\'s condition: poles, bark and turf, worn by closed form from when it was raised', unit: '0..1',
+    fields: ['booth.cond'], covers: ['booth.condAt', 'st.boothSeq'], kinds: [],
+    none: 'the booth is gone and its tile as it was; a stay that slept there is under the open sky (sim/building, VB-784)' },
   { id: 'giftGrain', of: 'stay', name: 'a gift\'s grain on its way: on a carrier\'s back, or set aside where it lies until it is fetched', unit: 'rations',
     fields: ['st.away'], kinds: [],
     none: 'nothing is on its way: the gift has come in, or what was left lying went back to its giver\'s store when its fetcher died or left the household (sim/away, VB-291, VB-461)' },

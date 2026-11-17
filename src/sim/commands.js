@@ -173,6 +173,14 @@ VB['sim/commands'] = (() => {
         goHome(st, a); // to its bed
       },
     },
+    // raiseBooth(tile, {guests}) (VB-784): stake a booth on ground nobody else owns or has staked, for the pawn's household and the guests
+    // named; its household's pawns raise it (the wood, then BOOTH.hours of work)
+    raiseBooth: {
+      check: (st, c) => free(st, c.actor) || later('sim/building').raiseBoothWhy(st, c.actor, c.target),
+      run: (st, c) => {
+        later('sim/building').raiseBooth(st, st.agents[c.actor], c.target, c.args);
+      },
+    },
     // comeHome: a pawn lodging away turns for home, now in the working hours or when it is outdoors, else at 6:00; its stay ends at home
     comeHome: {
       check: (st, c) => living(st, c.actor) || later('sim/away').comeHomeWhy(st, c.actor),

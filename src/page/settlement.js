@@ -145,15 +145,9 @@ function cottageStage(g, x, y, n) {
       .fill(0x7aa258)
       .stroke({ width: 0.9, color: INK, join: 'round' });
 }
-// A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
-// rising log walls, the turf roof; a ring while the work goes on (VB-148).
-function drawBooth(wd, f, empty) {
-  const x = wd.hx[f.house],
-    y = wd.hy[f.house],
-    g = new PIXI.Graphics(),
-    n = f.booth.i,
-    bx = x + YARD.booth[0],
-    by = y + YARD.booth[1];
+// The booth's tent itself, of leaning poles and bark: one presentation for the settlers' booth by their house tile and a booth that stands
+// by itself on a tile (VB-784).
+function tent(g, bx, by) {
   for (const dx of [-2.4, 0, 2.4])
     g.moveTo(bx + dx, by - 11)
       .lineTo(bx + dx * 2.6, by - 15)
@@ -169,6 +163,17 @@ function drawBooth(wd, f, empty) {
       .lineTo(bx + dx * 0.25, by - 9.5)
       .stroke({ width: 0.5, color: INK, alpha: 0.5 });
   g.poly([bx - 1.9, by, bx - 1.2, by - 5.4, bx + 1.2, by - 5.4, bx + 1.9, by]).fill(0x30241f); // the opening
+}
+// A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
+// rising log walls, the turf roof; a ring while the work goes on (VB-148).
+function drawBooth(wd, f, empty) {
+  const x = wd.hx[f.house],
+    y = wd.hy[f.house],
+    g = new PIXI.Graphics(),
+    n = f.booth.i,
+    bx = x + YARD.booth[0],
+    by = y + YARD.booth[1];
+  tent(g, bx, by);
   cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, n);
   if (!empty) g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
   if (empty) g.alpha = 0.55;
@@ -214,6 +219,19 @@ function buildFarms(wd) {
   cartDraw = [];
   ledDraw = new Map();
   L.objects.sortableChildren = true;
+  // booths on their own tile (VB-784): a raised one stands, one being raised is a ring of stakes, a worn one fades
+  for (const b of st.booths) {
+    const g = new PIXI.Graphics(),
+      bx = wd.hx[b.tile],
+      by = wd.hy[b.tile];
+    if (b.built === null) g.circle(bx, by - 3, 6).stroke({ width: 1, color: INK, alpha: 0.6 });
+    else {
+      tent(g, bx, by);
+      g.alpha = 0.55 + 0.45 * Sim.boothCondition(st, b);
+    }
+    g.zIndex = by + 8;
+    L.objects.addChild(g);
+  }
   for (const f of st.farmsteads) {
     const hx = wd.hx[f.house],
       hy = wd.hy[f.house],
