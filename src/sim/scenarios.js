@@ -2,7 +2,7 @@
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
-  const { YEAR, TICKS, ECON, CROPS, FERTILITY, farmable } = VB['sim/rules'];
+  const { YEAR, TICKS, ECON, CROPS, FERTILITY, SEASON_DAYS, cal, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable, buildHours } = VB['sim/routes'];
@@ -26,7 +26,7 @@ VB['sim/scenarios'] = (() => {
   const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
-  const { yearlyRations, fieldsWanted } = VB['sim/fields'];
+  const { yearlyRations, fieldsWanted, restagger } = VB['sim/fields'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
   const { initDeer } = VB['sim/deer'];
@@ -571,14 +571,37 @@ VB['sim/scenarios'] = (() => {
     return st;
   }
 
-  // places: what was placed by hand, for the 'manual' scenario (seedManual).
-  function seed(w, seedNum, scenario = 'founders', places = null) {
+  // A test switch (VB-350; tools/sim.js and tools/balance.js --rye): every village is given rye and farms in three courses, placed at the
+  // start, not carried. Each farm's fields are staggered (sim/fields, restagger); a field at the rye course was sown last autumn (day 3) and
+  // stands, weeded; of the barley its household brought for seed, a field's seed for each fallow field is rye, to sow on it this autumn.
+  // Not a scenario's preset (VB-353 brings those): a way to measure the rotation on today's scenarios.
+  function giveRye(st) {
+    const c = cal(st.t),
+      sown = c.day - c.doy - 2 * SEASON_DAYS + 2;
+    for (const v of st.villages) v.rotation = 'three';
+    for (const f of st.farmsteads) {
+      if (f.household === null || !f.fields.length) continue; // a farm still to break its fields (founders) farms as its household chooses
+      const hh = st.households[f.household];
+      restagger(f, 'three');
+      let fallow = 0;
+      for (const fd of f.fields)
+        if (fd.crop === 'rye') Object.assign(fd, { stage: 'growing', sown, weeds: CROPS.rye.weeds });
+        else if (fd.crop === 'fallow') fallow++;
+      const n = Math.min(hh.grain.barley || 0, fallow * CROPS.rye.seed);
+      if (n > 0) hh.grain = { ...hh.grain, barley: hh.grain.barley - n, rye: n };
+    }
+  }
+  // places: what was placed by hand, for the 'manual' scenario (seedManual). opts: {rye} (giveRye).
+  function seed(w, seedNum, scenario = 'founders', places = null, opts = null) {
     if (scenario === 'manual') return seedManual(w, seedNum, places);
-    return scenario === 'heirs'
-      ? seedHeirs(w, seedNum)
-      : scenario === 'populous'
-        ? seedPopulous(w, seedNum)
-        : seedFounders(w, seedNum);
+    const st =
+      scenario === 'heirs'
+        ? seedHeirs(w, seedNum)
+        : scenario === 'populous'
+          ? seedPopulous(w, seedNum)
+          : seedFounders(w, seedNum);
+    if (opts && opts.rye) giveRye(st);
+    return st;
   }
   return { seedFounders, seedHeirs, seedPopulous, makeState, startStreams, seed };
 })();

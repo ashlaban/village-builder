@@ -371,7 +371,15 @@ VB['sim/stores'] = (() => {
     const th = hh.threshed || 0,
       i = seq - th,
       old = i >= 0 && i < hh.unthreshed.length; // a field's loads add to its entry
-    record(st, hh, 'sheaves', n, seq < 0 ? { kind: 'harvest', first: true } : 'harvest'); // first: its first load
+    // first: its first load; crop: a crop other than barley (VB-350: the balance reads the harvest by crop)
+    const first = seq < 0 ? { first: true } : null;
+    record(
+      st,
+      hh,
+      'sheaves',
+      n,
+      crop === 'barley' ? (first ? { kind: 'harvest', ...first } : 'harvest') : { kind: 'harvest', ...first, crop },
+    );
     if (!hh.unthreshed.length) wake(st, hh);
     if (old) {
       hh.unthreshed[i] += n;

@@ -2,8 +2,22 @@
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
-  const { ECON, CROPS, ROTATIONS, FIELDS, SOIL, HERD, DEER, farmable, fertility, DAY, SEASON_DAYS, YEAR_DAYS, YEAR } =
-    VB['sim/rules'];
+  const {
+    ECON,
+    CROPS,
+    ROTATIONS,
+    FIELDS,
+    SOIL,
+    HERD,
+    DEER,
+    farmable,
+    fertility,
+    cal,
+    DAY,
+    SEASON_DAYS,
+    YEAR_DAYS,
+    YEAR,
+  } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable, costChanged } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
@@ -323,16 +337,26 @@ VB['sim/fields'] = (() => {
     }
   }
   // A new field takes the farm's rotation (with no field yet, the household's: rotationOf) and the step fewest of the farm's fields are
-  // at; of those, a sown course before fallow, then the first.
+  // at; of those, the course sown soonest from today (fallow last), then the first.
   function placeField(st, f, hh, fd) {
     const others = f.fields.filter((q) => q !== fd),
       key = others.length ? others[0].rotation : hh ? rotationOf(st, hh) : 'every',
       R = ROTATIONS[key].courses,
       at = R.map((k, i) => others.filter((q) => q.step === i).length),
-      least = Math.min(...at);
+      least = Math.min(...at),
+      c = cal(st.t),
+      wait = (k) => {
+        const W = CROPS[k].sow,
+          first = W[0] * SEASON_DAYS + W[1],
+          last = W[0] * SEASON_DAYS + W[2];
+        return CROPS[k].fallow
+          ? Infinity
+          : c.doy >= first && c.doy <= last
+            ? 0
+            : (first - c.doy + YEAR_DAYS) % YEAR_DAYS;
+      }; // days until course k is sown
     let i = -1;
-    for (let j = 0; j < R.length; j++)
-      if (at[j] === least && (i < 0 || (CROPS[R[i]].fallow && !CROPS[R[j]].fallow))) i = j;
+    for (let j = 0; j < R.length; j++) if (at[j] === least && (i < 0 || wait(R[j]) < wait(R[i]))) i = j;
     fd.rotation = key;
     fd.step = i;
     fd.crop = R[i];

@@ -18,7 +18,9 @@ VB['sim/hunger'] = (() => {
   // field's seed itself (sim/projects, VB-123). Only the day's meal reaches below the seed, and only when the day would otherwise fall short
   // (feedHousehold; Kim, 10 November: the hungry household eats its seed). By crop (VB-347, VB-350): the fields its rotation sows with it
   // next (sownNext: a fallow field's next sown course); without one, every field to be sown. A field's seed is the plan's for barley
-  // (seedPer), the crop's own for another. A village's (VB-100): its common fields', a crop's seed each.
+  // (seedPer), the crop's own for another. And a crop of the farm's rotation that no field bears or sows next (between its harvest and
+  // its field's turn: two fields in three courses) keeps a field's seed, so that it is lost only by hunger (design.md, Seed, What is
+  // eaten first). A village's (VB-100): its common fields', a crop's seed each.
   function seedNeed(st, hh, crop) {
     const village = !('farmstead' in hh),
       fields = village ? hh.commonFields || [] : st.farmsteads[hh.farmstead].fields;
@@ -31,7 +33,24 @@ VB['sim/hunger'] = (() => {
       if (k === 'barley') barley++;
       else other += CROPS[k].seed;
     }
+    const R = !village && fields.length ? ROTATIONS[fields[0].rotation].courses : null;
+    if (R && R.length > 1)
+      for (let i = 0; i < R.length; i++) {
+        const k = R[i];
+        if (!(CROPS[k].seed > 0) || (crop !== undefined && k !== crop) || R.indexOf(k) !== i || kept(fields, k))
+          continue;
+        if (k === 'barley') barley++;
+        else other += CROPS[k].seed;
+      }
     return (barley ? barley * (village ? CROPS.barley.seed : seedPer(st, hh)) : 0) + other;
+  }
+  // Does a field bear crop k now, or sow it next?
+  function kept(fields, k) {
+    for (const fd of fields) {
+      const s = fd.stage;
+      if (s === 'stubble' || s === 'plowed' ? sownNext(fd) === k : fd.crop === k) return true;
+    }
+    return false;
   }
   // The crop a field is sown with next (VB-350): its course's, or after a fallow course the next sown course of its rotation; null for none.
   function sownNext(fd) {
