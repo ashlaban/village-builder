@@ -7,7 +7,7 @@ VB['sim/marriage'] = (() => {
     VB['sim/records'];
   const { startInLife } = VB['sim/exchange'];
   const { journeyOf } = VB['sim/agents'];
-  const { heirRanking, moveTo, refreshRoles, handOn } = VB['sim/heirs'];
+  const { heirRanking, refreshRoles, handOn } = VB['sim/heirs'];
   const { issue, clearMatchWish } = VB['sim/commands'];
   const Offers = VB['sim/offers'],
     { heldBy } = Offers;
@@ -28,7 +28,8 @@ VB['sim/marriage'] = (() => {
     st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
     const olds = [mId, fId].map((id) => st.pawns[id].household).filter((h) => h !== null && h !== home);
     for (const id of [mId, fId]) {
-      if (st.pawns[id].household !== home) moveTo(st, id, home);
+      if (st.pawns[id].household !== home)
+        issue(st, { actor: id, verb: 'move', target: home, args: { reason: 'marriage' }, source: 'round' });
       personEvent(st, id, 'married', `Married ${fullName(st.pawns[id === mId ? fId : mId])}`, false);
       st.rigDirty.add(id); // recorded below
     }
