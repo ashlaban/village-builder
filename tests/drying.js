@@ -5,12 +5,12 @@
 // VB-119); the catch for the pot beyond what the household eats before it spoils laid by the rack (VB-388); fishing for the pot waits
 // while fresh fish covers 2 days (VB-388); the boat: a project plan begun at spring day 3
 // by a household by the sea or a large lake, its step waiting for 6 loads of timber felled in the village's wood, 20 hours of work,
-// then twice the bank's catch from it. Founders at seed 7, a year and a half: dried fish made and eaten, boats built, invariants, a save.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Stores = VB['sim/stores'], D = VB['sim/drying'], Projects = VB['sim/projects'];
+// then twice the bank's catch from it. Founders at seed 7 on the small island of tests/lib/probe.js (VB-855), to the winter: dried fish made
+// and eaten, invariants, a save; boats built are counted.
+const VB = require('../src/load.js'), Sim = VB.sim, { island, scenario } = require('./lib/probe.js'), Stores = VB['sim/stores'], D = VB['sim/drying'], Projects = VB['sim/projects'];
 const { KINDS } = VB['sim/kinds'], { ROLES, FISH, DAY, YEAR_DAYS } = VB['sim/rules'], { dailyNeed, larderOf, feedHousehold } = VB['sim/hunger'];
 const { boatYear } = D, { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DRYING FAIL:', m); } };
-const world = (seed, size = [180, 130]) => { const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };
 const cal = (season, sday, hour = 8) => ({ season, sday, doy: season * 12 + sday, day: season * 12 + sday, hour });
 const near = (a, b) => Math.abs(a - b) < 1e-6;
 const posts = (st, kind, hh, f, c) => { const out = []; KINDS[kind].available(st, hh, f, c, (key, site, extra) => out.push({ key, site, ...extra }), f); return out; };
@@ -21,7 +21,7 @@ check(KINDS.rackfish.type === 'foraging' && KINDS.rackfish.carry && near(KINDS.r
 check(KINDS.dry.hours === 1 && near(KINDS.dry.urgency(), 1.6) && KINDS.boat.hours === 20, 'hanging 1 hour at 1.6; the boat 20 hours');
 check(ROLES.wife.prio.rackfish === ROLES.wife.work.foraging, 'roles rank fishing for the rack as foraging');
 
-const st = Sim.seed(world(7), 7, 'founders'), w = st.w;
+const st = scenario('founders', 7), w = st.w;
 // --- the village's reach: tested once, kept, tested again for a new farm
 const v = st.villages.find((x) => D.villageFishes(st, x));
 check(!!v && v.fishing && v.fishing.farms === v.farmsteads.length && v.fishing.near, 'a founders village at seed 7 is by fishing water');
@@ -72,7 +72,7 @@ check(r1.dried === 0 && r1.k === 2 && near(r1.meals, 8), 'fresh fish 0.8 of the 
 
 // --- the catch for the pot (VB-388): fishing waits while fresh fish covers 2 days; a catch beyond what is eaten before it spoils goes to the rack
 {
-  const s3 = Sim.seed(world(7), 7, 'founders'), h3 = s3.households[hh.id], f3 = s3.farmsteads[h3.farmstead], n3 = dailyNeed(s3, h3);
+  const s3 = scenario('founders', 7), h3 = s3.households[hh.id], f3 = s3.farmsteads[h3.farmstead], n3 = dailyNeed(s3, h3);
   s3.t = (12 + 3) * DAY + 8; h3.fresh = []; h3.larder = []; h3.rack = 0;
   check(posts(s3, 'fish', h3, f3, cal(1, 3)).length >= 1, 'no fresh fish: fishing for the pot is posted');
   Pot.putFresh(s3, h3, 'fish', 2 * n3, 'catch');
@@ -98,7 +98,7 @@ check(r1.dried === 0 && r1.k === 2 && near(r1.meals, 8), 'fresh fish 0.8 of the 
 }
 
 // --- the boat: begun by a household by the sea, its timber, its work, its catch
-const st2 = Sim.seed(world(7), 7, 'founders');
+const st2 = scenario('founders', 7);
 st2.t = FISH.from * DAY;
 boatYear(st2);
 let plan = null, bf = null;
@@ -128,19 +128,21 @@ if (plan) {
   check(!again.length, 'a household with a boat begins no other');
 }
 
-// --- a run: dried fish made and eaten, boats built, invariants, a save
-const run = Sim.seed(world(7), 7, 'founders');
-Sim.advance(run, YEAR_DAYS * DAY * 1.5);
+// --- a run: dried fish made and eaten, invariants, a save. Boats are counted, not asserted: since VB-393 (a boat only from a surplus of a
+// year's need and two free hands) and VB-255 (the head's one project at a time) no household of founders or populous at seed 7 begins one in
+// five years on the small island, nor of founders in a year and a half on the small map; the boat's building is the scene above.
+const run = scenario('founders', 7);
+Sim.advance(run, (3 * 12 + 6) * DAY); // to winter day 6: the summer's drying, and dried fish in the winter pot
 let dried = 0, cooked = 0;
 for (const h of run.households) for (const x of h.totals) {
   if (x.kind === 'drying' && x.good === 'dried fish') dried += x.n;
   if (x.kind === 'cooking' && x.good === 'dried fish') cooked -= x.n;
 }
 const boats = run.households.filter((h) => h.boat).length;
-check(dried > 0 && cooked > 0 && boats > 0, `founders at seed 7, a year and a half: ${dried} dried, ${cooked} cooked, ${boats} boats`);
+check(dried > 0 && cooked > 0, `founders at seed 7, to winter day 6: ${dried} dried, ${cooked} cooked`);
 const bad = checkState(run); check(!bad.length, 'invariants: ' + bad.slice(0, 3).join('; '));
-const back = Sim.load(world(7), JSON.parse(JSON.stringify(Sim.save(run))));
+const back = Sim.load(island(7), JSON.parse(JSON.stringify(Sim.save(run))));
 check(back.households.every((h, i) => JSON.stringify(h.boat) === JSON.stringify(run.households[i].boat) && h.rack === run.households[i].rack),
   'a save keeps the boats and the racks');
 if (failed) { console.error(`${failed} drying checks failed`); process.exit(1); }
-console.log(`drying: ok (founders 7, 1.5 years: ${Math.round(dried)} rations dried, ${Math.round(cooked)} cooked, ${boats} boats)`);
+console.log(`drying: ok (founders 7, to winter day 6: ${Math.round(dried)} rations dried, ${Math.round(cooked)} cooked, ${boats} boats)`);

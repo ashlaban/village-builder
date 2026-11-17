@@ -27,6 +27,7 @@ VB['sim/stores'] = (() => {
     'brew',
     'pour',
   ];
+  KINDS.push('feast'); // VB-458: the food a host lays out at a wedding or a funeral ale, eaten there by those who came (sim/occasions)
   KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
@@ -40,8 +41,9 @@ VB['sim/stores'] = (() => {
   KINDS.push('build');
   // VB-300: a catch hung on the drying rack (sim/drying), out of the rack's store into the larder; VB-119: 'raw', grain eaten uncooked (sim/hunger)
   KINDS.push('drying', 'raw');
-  // VB-287: provisions given to a pawn who sets out on a journey (sim/agents), and what it carried back into its new home's meals
-  KINDS.push('journey');
+  // VB-287, VB-783: the pack given to a pawn who goes away from home, on a journey or to lodge (sim/away), and what it carried back into its
+  // home's meals
+  KINDS.push('away');
   ROUTINE.push('drying', 'raw');
   // VB-139: a roe deer's meat, brought home from a hunt (sim/deer), folded as the catch is.
   KINDS.push('hunt');
@@ -105,6 +107,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
     if (kind === 'household' && good === 'peat') return good; // the peat stack (VB-367)
     if (kind === 'household' && good === 'tar') return good; // barrels of tar (VB-301, sim/tar)
+    if (kind === 'household' && good === 'hide') return 'hides'; // the hides of the hunt (VB-424, sim/deer)
     if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
@@ -188,6 +191,10 @@ VB['sim/stores'] = (() => {
   const setTar = (hh, n) => {
     hh.tar = n;
   };
+  // @state household.hides: hides of roe deer held, whole numbers (VB-424; a kill gives one, sim/deer; wanted for shoes and harness), 0 at the start
+  const setHides = (hh, n) => {
+    hh.hides = n;
+  };
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
@@ -195,6 +202,7 @@ VB['sim/stores'] = (() => {
     else if (good === 'peat') setPeat(holder, n);
     else if (good === 'fish') setRack(holder, n);
     else if (good === 'tar') setTar(holder, n);
+    else if (good === 'hide') setHides(holder, n);
     else if (good === 'flour') setFlour(holder, n);
     else setMeals(holder, n);
   }
@@ -364,7 +372,15 @@ VB['sim/stores'] = (() => {
     const th = hh.threshed || 0,
       i = seq - th,
       old = i >= 0 && i < hh.unthreshed.length; // a field's loads add to its entry
-    record(st, hh, 'sheaves', n, seq < 0 ? { kind: 'harvest', first: true } : 'harvest'); // first: its first load
+    // first: its first load; crop: a crop other than barley (VB-350: the balance reads the harvest by crop)
+    const first = seq < 0 ? { first: true } : null;
+    record(
+      st,
+      hh,
+      'sheaves',
+      n,
+      crop === 'barley' ? (first ? { kind: 'harvest', ...first } : 'harvest') : { kind: 'harvest', ...first, crop },
+    );
     if (!hh.unthreshed.length) wake(st, hh);
     if (old) {
       hh.unthreshed[i] += n;
@@ -680,6 +696,17 @@ VB['sim/stores'] = (() => {
     perish: { keepsDays: SEASON_DAYS },
     keeping: false,
   }); // poured for guests, not eaten as rations (VB-305)
+  declareGood({
+    id: 'hide',
+    kind: 'hide',
+    class: 'wares',
+    unit: 'hide',
+    quantum: 1,
+    lump: 'hide',
+    rations: 0,
+    perish: null,
+    keeping: true,
+  }); // a roe deer's hide (VB-424)
   declareGood({
     id: 'tar',
     kind: 'tar',

@@ -1,15 +1,12 @@
-// @sys sim/agents: pawn movement and work: routes, walking, talks, home placement, journeys between villages, death and jobs; each pawn
+// @sys sim/agents: pawn movement and work: routes, walking, talks, home placement and the bed, a journey's legs, death and jobs; each pawn
 // in one leg (a walk, work or a wait) whose end waits in a due-queue, and the step that takes what is due
 VB['sim/agents'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
   const HANDS = [14, 60]; // the ages of a working hand, as sim/drying's hands (VB-255's count of work)
-  const { route, stepCost, tileCost, hoursBetween } = VB['sim/routes'];
+  const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
-  const { age, personEvent } = VB['sim/records'];
-  const Stores = VB['sim/stores'];
-  const { ate, rationOf } = VB['sim/hunger'];
-  const { receive } = VB['sim/exchange'];
+  const { age } = VB['sim/records'];
   const { hexSteps } = VB['sim/hex'];
   const { eligible } = VB['sim/eligibility'];
   const { hasTeam } = VB['sim/herds'];
@@ -19,17 +16,19 @@ VB['sim/agents'] = (() => {
   const { emit } = VB['sim/events'];
   const { finishStep } = VB['sim/expansion'];
   const { worked: prospected } = VB['sim/prospect'];
-  const { KINDS } = VB['sim/kinds'];
+  const { KINDS } = VB['sim/kinds'],
+    Progress = VB['sim/progress'],
+    { workTick } = Progress;
   const Lying = VB['sim/lying'];
-  function homeSpot(st, a) {
-    const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
-    return [st.w.hx[f.house] - 12 + a.ox * 0.3, st.w.hy[f.house] + 14 + a.oy * 0.15]; // by the cottage door
-  }
   // the spot by the door of the house on tile `house`, where pawn a would stand
   const spotAt = (st, a, house) => [st.w.hx[house] - 12 + a.ox * 0.3, st.w.hy[house] + 14 + a.oy * 0.15];
+  // By the door of pawn a's household's house, wherever it sleeps: where an indoor task is done, and a load for the door is brought.
+  const homeSpot = (st, a) => spotAt(st, a, st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house);
+  // Where pawn a lies down: by the door of its bed (VB-783: its household's house, unless it is away).
+  const bedSpot = (st, a) => spotAt(st, a, bed(st, a));
   function placeAtHome(st, a) {
     unleg(st, a);
-    const [x, y] = homeSpot(st, a);
+    const [x, y] = bedSpot(st, a);
     a.x = x;
     a.y = y;
     a.inside = true;
@@ -42,7 +41,7 @@ VB['sim/agents'] = (() => {
   // Dawn repositions an indoor pawn without clearing its movement or work state; one indoors at another house (moved at night, or waiting
   // there for its journey's first leg; VB-287) stays where it is, and walks when its day starts.
   function placeByDoor(st, a) {
-    const [x, y] = homeSpot(st, a);
+    const [x, y] = bedSpot(st, a);
     if (travelling(a) || Math.hypot(a.x - x, a.y - y) > st.w.R) return;
     a.x = x;
     a.y = y;
@@ -64,7 +63,7 @@ VB['sim/agents'] = (() => {
   }
   function stillAtDeath(st, a) {
     delete a.moving;
-    dropJourney(st, a.id); // a pawn who dies on the road dies there (VB-287)
+    if (a.away !== undefined) emit(st, 'stillAway', a); // a pawn who dies away dies there (VB-287); a gift still to fetch stays where it lies
     release(st, a);
     dropSides(st, a);
     if (a.path) halt(st, a); // where its walk had come to
@@ -160,6 +159,20 @@ VB['sim/agents'] = (() => {
     if (s) s.delete(j);
     if (teamKind(j) && st.households[j.owner.id]) retune(st, st.households[j.owner.id]); // the ox team goes to the next task
   }
+  // The cart pawn `a` has out stands at (at, x, y), with a lying `leftCart` for its household's hands to fetch (VB-649).
+  function standCart(st, a, at, x, y) {
+    const hh = st.pawns[a.id].household !== null ? st.households[st.pawns[a.id].household] : null,
+      cart = hh && Carts.leave(st, hh, a.id, { tile: at, x, y });
+    if (cart)
+      Lying.leave(
+        st,
+        'leftCart',
+        1,
+        at,
+        { type: 'household', id: hh.id },
+        { x, y, of: { cart: { kind: cart.kind, built: cart.built } } },
+      );
+  }
   // The pawn leaves its job, which keeps its progress for whoever takes it up.
   function release(st, a) {
     // A load on its way home is not brought in from the road: a hand that can walk on is not released until it has (VB-581: `moved`
@@ -174,8 +187,16 @@ VB['sim/agents'] = (() => {
         at = tileAt(st, x, y);
       if (K.setDown && at === a.job.site) K.setDown(st, a.job, a);
       else Lying.lay(st, a, a.job, K.fetch || a.job.kind, at, x, y);
+      standCart(st, a, at, x, y); // its cart stands where it was, with the team that drew it, until a hand fetches them (VB-649)
       a.carry = null;
       laid = a.job;
+    }
+    // a pawn released at its work (dung carted, firewood cut beside the cart) leaves the cart there too, away from the farm (VB-993)
+    if (!laid && a.job && st.pawns[a.id].household !== null) {
+      const [x, y] = placeOf(st, a),
+        at = tileAt(st, x, y),
+        hh = st.households[st.pawns[a.id].household];
+      if (hh.farmstead !== null && at !== st.farmsteads[hh.farmstead].house) standCart(st, a, at, x, y);
     }
     const left = a.job;
     if (left) settle(st, left);
@@ -338,7 +359,8 @@ VB['sim/agents'] = (() => {
       const a = st.agents[id];
       if (!a || a.phase !== 'back' || !a.job || !st.pawns[id].alive) continue;
       release(st, a);
-      if (a.moving) finishMove(st, a);
+      if (a.moving)
+        emit(st, 'moveOn', a); // the move it was told of (sim/away's moved)
       else standStill(st, a);
       a.anim = 'idle';
     }
@@ -413,21 +435,23 @@ VB['sim/agents'] = (() => {
       rerate(st, a.job);
     } else if (a.phase === 'back') {
       deposit(st, a);
-      if (a.moving) finishMove(st, a); // the move it was told of while on the road (VB-581)
+      if (a.moving) emit(st, 'moveOn', a); // the move it was told of while on the road (VB-581; sim/away's moved)
     } else if (a.phase === 'home') {
       a.inside = true;
       a.phase = null;
-      driveHome(st, st.households[st.pawns[a.id].household], a.id); // the herds it brought home are by the farm (VB-136)
-    } else if (a.phase === 'journey') endJourney(st, a);
+      if (a.away === undefined)
+        driveHome(st, st.households[st.pawns[a.id].household], a.id); // the herds it brought home are by the farm (VB-136)
+      else emit(st, 'atBed', a); // at the bed of its stay, or home from it (sim/away)
+    } else if (a.phase === 'journey') emit(st, 'legEnd', a); // a journey's leg has arrived (sim/away)
     if (!a.leg && !a.path && a.phase === null && st.pawns[a.id].alive) waitLeg(st, a, st.tick + 1);
     sideCheck(st, a);
   }
   // Home, letting go of its side tasks (VB-136).
   function goHome(st, a) {
-    const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead],
-      [x, y] = homeSpot(st, a);
+    const to = bed(st, a),
+      [x, y] = spotAt(st, a, to);
     dropSides(st, a);
-    walkTo(st, a, f.house, x, y);
+    walkTo(st, a, to, x, y);
     a.phase = 'home';
   }
   // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
@@ -459,7 +483,7 @@ VB['sim/agents'] = (() => {
   // ---- work as a block (VB-472; design.md section 7, A leg, and its end; docs/review-blocks.md, step 2): a worker is not stepped ----
   // @state job.done, job.at, job.rate: the task's hours done when it was last reckoned, the tick it was reckoned at, and the hours of work
   //   its hands at work (or a background task's holders minding it) do together in a game hour since; its progress now is
-  //   done + rate × the hours since (doneOf, the only read of progress outside this module). Reckoned, and its end queued again, when a
+  //   done + rate × the hours since (doneOf; sim/progress holds its closed form, read by every other module). Reckoned, and its end queued again, when a
   //   hand joins or leaves, when a hand's rate may have changed (after the meal; an ox team gone to another task), at the end of work, at
   //   its end, and at a cut. `done` is exact while no hand is at work, and below the task's hours otherwise. at and rate are absent until the
   //   task is first reckoned. Written only here; plain data, saved.
@@ -470,7 +494,6 @@ VB['sim/agents'] = (() => {
   // A step's work is done as the step's legs begin to be taken (stepAgents, dueWork): the tick up to which the hands have worked, so a hand
   // leaving at the calendar's hour (before the legs) does not work that step, and one joining in or after them works from the next. Between
   // steps (a fresh or a loaded run, st.stepAt absent or both its marks at the tick) the step now has been worked.
-  const workTick = (st) => (!st.stepAt || st.stepAt.moving === st.tick ? st.tick : st.tick - 1);
   const hoursOfJob = (j) => j.hours ?? KINDS[j.kind].hours;
   const atWork = (st, j, id) => {
     const b = st.agents[id];
@@ -614,10 +637,7 @@ VB['sim/agents'] = (() => {
     }
   }
   // The job's hours done now, worked out from its last reckoning with no stepping.
-  function doneOf(st, j) {
-    if (!(j.rate > 0)) return j.done;
-    return Math.min(hoursOfJob(j), j.done + (Math.max(0, workTick(st) - j.at) / TICKS) * j.rate);
-  }
+  const doneOf = (st, j) => Progress.doneOf(st, j, hoursOfJob(j));
   // The tasks whose end is due at this step (stepAgents, as its legs begin to be taken): each is reckoned and ended by its first hand at
   // work, a background task by its first holder (sideEnded).
   function dueWork(st) {
@@ -985,7 +1005,8 @@ VB['sim/agents'] = (() => {
       a.leg = null;
       VB.count.walkStep++;
       if (l.kind === 'walk') walkEnd(st, a, l);
-      else if (a.phase === 'road') leg(st, journeyOf(st, a.id));
+      else if (a.phase === 'road')
+        emit(st, 'legDue', a); // a journey's rest on the road is over (sim/away)
       else if (wantsWork(st, a, c)) offer(a);
       else waitLeg(st, a, st.tick + 1);
     }
@@ -1004,7 +1025,7 @@ VB['sim/agents'] = (() => {
     if (!st.stepAt) Object.defineProperty(st, 'stepAt', { value: null, writable: true });
     st.stepAt = { moving: st.tick, walked: st.tick };
     for (const a of st.agents) if ('work' in a) delete a.work;
-    for (const j of st.journeys || []) delete j.due;
+    for (const j of st.away || []) delete j.due;
     legsOf(st);
     for (const j of st.jobs.values()) {
       delete j.cast;
@@ -1013,207 +1034,84 @@ VB['sim/agents'] = (() => {
       else if (j.rate > 0 && attentionOf(j) === 'background' && !(st.workDue || []).includes(j)) rerate(st, j, false);
     }
   }
-  // ---- journeys (VB-287; design.md, Between villages: A journey, Provisions and the season) ----
-  // @state st.journeys[]: the open journeys, in the order they set out (by id), each {id, pawn, to (tile: the house of the pawn's
-  //   household), why ('move' or 'carry'), food (the rations it carries), from (the farm it left, or null)}. Plain data, saved; a save
-  //   without it loads with none. When its legs start and stop is its pawn's (st.legDue, VB-473): a walk that stops for the night, a wait
-  //   on the road until 6:00.
-  // @state st.journeySeq: number; the next journey's id; ids are never reused
+  // ---- away from home (VB-783; design.md, Sleeping away from home): the stays are sim/away's (st.away, agent.away); what is left here is
+  // the walking of a journey's legs and the bed, which every walk home reads. sim/away loads after this module, and hears by sim/events of
+  // a leg's end, a rest's end on the road, a death, a move made once a load is in, and an arrival at the bed of one away ----
   // A pawn on a journey is in phase 'journey' while it walks a leg and 'road' before its first leg and between legs, when it rests and
-  // keeps its route (a.path, a.seg). Its household changed at the act; the journey changes only where it is and what it does until it arrives.
+  // keeps its route (a.path, a.seg).
   const travelling = (a) => a.phase === 'journey' || a.phase === 'road';
-  const journeyOf = (st, id) => {
-    for (const j of st.journeys) if (j.pawn === id) return j;
+  // The open stay of pawn id (st.away, by the index agent.away), or null.
+  function stayOf(st, id) {
+    const k = st.agents[id].away;
+    if (k === undefined) return null;
+    for (const s of st.away) if (s.id === k) return s;
     return null;
-  };
+  }
+  // The bed (design: Sleeping away from home, The bed): the tile pawn a's day starts from and ends at. Its household's house; away, its
+  // stay's bed; on the road, where it stands; walking home from a stay, the house again.
+  function bed(st, a) {
+    const s = a.away === undefined ? null : stayOf(st, a.id);
+    if (s !== null && s.bed === null) return here(st, a);
+    if (s !== null && !s.back) return s.bed;
+    return st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
+  }
   // The next 6:00 after game time t (t itself excluded at 6:00 sharp).
   function nextLeg(t) {
     const day = Math.floor(t / DAY);
     return day * DAY + WORK[0] + (t - day * DAY < WORK[0] ? 0 : DAY);
   }
-  function dropJourney(st, id) {
-    const j = journeyOf(st, id);
-    if (j) st.journeys.splice(st.journeys.indexOf(j), 1);
-  }
-  // Walking hours from village `from` (null: the village whose centre is nearest tile `at`) to village v, by the table of walking hours
-  // (sim/routes); with no table, or no route by land within reach, the straight line from `at` at SPEED.
-  function hoursTo(st, from, at, v) {
-    if (from === null && at >= 0)
-      for (const u of st.villages)
-        if (from === null || hexSteps(st.w, at, u.center) < hexSteps(st.w, at, st.villages[from].center)) from = u.id;
-    const h = from !== null && st.villageHours ? hoursBetween(st, from, v) : Infinity;
-    return Number.isFinite(h) ? h : (at >= 0 ? hexSteps(st.w, at, st.villages[v].center) : 0) / SPEED;
-  }
-  // Pawn a changed household (sim/heirs' moveTo), from household `old` (or none) to hh: it is released from its job and goes to its new
-  // home on foot. To another village (from no household: further than TRAVEL.dayWalk hours), on a journey; within one, home to the new
-  // door at once (one indoors at night walks when its day starts, at 6:00). A pawn already on the road walks on to the new home. `carry`
-  // false: its provisions come from the new household (settlers, who walk on their stakes).
-  function moved(st, a, old, hh, carry = true) {
-    const f = st.farmsteads[hh.farmstead];
-    if (old) driveHome(st, old, a.id); // the old household's herds it had out are left by that farm (its herder is no longer a member)
-    if (travelling(a)) return retarget(st, a, f.house);
-    if (a.load > 0 && a.phase === 'back' && a.job) {
-      // a hand with a load on its way home brings it in first, and then goes (VB-581: the load is carried, not booked from the road)
-      if (!a.moving) a.moving = { old: old ? old.id : null, carry };
-      return;
-    }
-    release(st, a);
-    dropSides(st, a);
-    a.carry = null; // the load of a hand in its own field was set down by release
-    const from = old ? st.farmsteads[old.farmstead] : null,
-      at = here(st, a);
-    if (from ? from.village !== f.village : hoursTo(st, null, at, f.village) > TRAVEL.dayWalk)
-      return setOut(st, a, old, hh, carry, hoursTo(st, from ? from.village : null, at, f.village));
-    const h = cal(st.t).hour,
-      same = from !== null && from.id === f.id;
-    if (a.inside && (same || h < WORK[0] || h >= WORK[1])) {
-      // in its own house it is home already; indoors elsewhere at night, it walks at 6:00
-      if (a.path) halt(st, a);
-      a.phase = null;
-      a.anim = 'idle';
-      if (same) placeAtHome(st, a);
-      waitLeg(st, a);
-      return;
-    }
-    goHome(st, a);
-  }
-  // @state agent.moving: absent, or {old (the household it left, or null), carry}: a move it was told of with a load on its way home, made when
-  //   the load is in (VB-581); the pawn's household is already the new one.
-  function finishMove(st, a) {
-    const { old, carry } = a.moving;
-    delete a.moving;
-    moved(st, a, old === null ? null : st.households[old], st.households[st.pawns[a.id].household], carry);
-  }
-  // A child born to a mother on the road (VB-425; no teleporting): it is where she is, outdoors, and walks to its home as she does.
-  function placeBorn(st, a, mother, hh) {
-    const m = st.agents[mother];
-    if (!travelling(m)) {
-      placeAtHome(st, a);
-      return waitLeg(st, a);
-    }
-    [a.x, a.y] = placeOf(st, m);
-    a.inside = false;
-    a.anim = 'idle';
-    setOut(st, a, null, hh, false, hoursTo(st, null, tileAt(st, a.x, a.y), st.farmsteads[hh.farmstead].village));
-  }
-  // A journey starts: provisions from the household it leaves, its record, and the first leg now if a day's walking is left (6:00 to
-  // 16:00), else at the next 6:00, from where it stands.
-  function setOut(st, a, old, hh, carry, hours, gift = null) {
-    const p = st.pawns[a.id],
-      f = st.farmsteads[hh.farmstead],
-      j = {
-        id: st.journeySeq++,
-        pawn: a.id,
-        to: f.house,
-        why: gift ? 'carry' : 'move',
-        food: 0,
-        from: old ? old.farmstead : null,
-      };
-    if (gift) {
-      j.gift = gift; // VB-291: {to (household), n (grain), parts (by crop)}; null from its arrival on, the pawn walking home
-      j.back = false;
-    }
-    // provisions (design: Provisions and the season): a ration (half below 14) a day of walking, from the grain above the seed of the
-    // household it leaves, then of the one it joins; with none to give it goes unprovisioned, and hungry
-    const want = Math.ceil(hours / TRAVEL.dayWalk) * (gift ? 2 : 1) * rationOf(st, p), // a carrier's way back as well
-      R = 1 / st.ECON.uncooked;
-    for (const src of gift ? [old] : carry && old && !old.dissolved ? [old, hh] : [hh]) {
-      const n = Math.min(want - j.food, Math.max(0, Stores.grainOf(src) - Stores.reserved(st, src, 'grain')) / R);
-      if (n > 1e-9) {
-        Stores.takeSpare(st, src, n * R, { kind: 'journey', pawn: a.id });
-        j.food += n;
-      }
-    }
-    const left = old ? st.farmsteads[old.farmstead].name : 'where it stood';
-    personEvent(st, a.id, 'setOut', `Set out from ${left} for ${f.name}, ${Math.round(hours)} hours' walk`, false);
-    if (a.path) halt(st, a); // a walk in hand (to a task it was released from) ends where it has come to: the journey sets out from there
-    st.journeys.push(j);
-    startLeg(st, a, j);
-  }
-  // The first leg now if a day's walking is left (6:00 to 16:00), else at the next 6:00, from where the pawn stands (a wait on the road).
-  function startLeg(st, a, j) {
-    const h = cal(st.t).hour;
-    if (h >= WORK[0] && h < WORK[1] - 2) {
-      leg(st, j);
-      return;
-    }
+  // A journey's pawn rests on the road where it stands until its next leg, at the next 6:00.
+  function restOnRoad(st, a) {
     if (a.path) halt(st, a);
     a.phase = 'road';
     a.anim = 'idle';
     roadWait(st, a);
   }
-  // A gift of n grain from household `from` to household `to`, further than a day's walk (VB-291; Kim, 10 Nov: carried, not sent): the
-  // grain leaves the giver's store as the carrier, one of its adults, sets out; the receiver books it when he arrives (delivered).
-  // Only the verb `give` calls it.
-  function carryGift(st, o) {
-    const a = st.agents[o.carrier],
-      parts = {};
-    Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }, parts);
-    release(st, a);
-    dropSides(st, a);
-    a.carry = null;
-    const hours = hoursBetween(st, st.farmsteads[o.from.farmstead].village, st.farmsteads[o.to.farmstead].village);
-    setOut(st, a, o.from, o.to, false, hours, { to: o.to.id, n: o.n, parts });
-  }
-  // A leg: the route is found at the first (a journey costs one search), and walked on from where the pawn stopped at the others. Its
-  // walk stops for the night at the last step before WORK[1] (begin), and its rest on the road ends at 6:00 (stepAgents).
-  function leg(st, j) {
-    const a = st.agents[j.pawn];
+  // A journey's leg to tile `to`: the route is found at the first (a journey costs one search), and walked on from where the pawn stopped
+  // at the others. Its walk stops for the night at the last step before WORK[1] (begin), and its rest on the road ends at 6:00.
+  function walkLeg(st, a, to) {
     a.phase = 'journey';
     if (!a.path) {
-      const [x, y] = spotAt(st, a, j.to);
-      walkTo(st, a, j.to, x, y);
+      const [x, y] = spotAt(st, a, to);
+      walkTo(st, a, to, x, y);
     } else {
       a.inside = false;
       a.anim = 'walk';
       begin(st, a); // the walk goes on from where it stopped
     }
   }
-  // A pawn's household changed again on the road (a death at home, a handover): it walks to the new home, turning back if need be.
-  function retarget(st, a, to) {
-    const j = journeyOf(st, a.id);
-    if (j.to === to || (j.why === 'carry' && !j.back)) return; // a carrier delivers first, and then walks to the home he has
-    if (j.why === 'carry') j.back = true;
-    j.to = to;
+  // A journey's pawn turns for tile `to`: walking, from where its walk has come to; resting on the road, its next leg finds its way from
+  // where it stopped.
+  function turnTo(st, a, to) {
     if (a.phase === 'journey') {
       const [x, y] = spotAt(st, a, to);
-      walkTo(st, a, to, x, y); // from where its walk has come to
-    } else a.path = null; // resting on the road: its next leg finds its way from where it stopped
+      walkTo(st, a, to, x, y);
+    } else a.path = null;
   }
-  // The day's meal on the road (sim/clock, after the households' meals): each traveller eats what it carries, a ration a day (half below 14).
-  function feedTravellers(st) {
-    for (const j of st.journeys) {
-      const p = st.pawns[j.pawn],
-        need = rationOf(st, p),
-        eat = Math.min(j.food, need);
-      j.food = Math.max(0, j.food - eat);
-      ate(st, p, eat, need);
-    }
+  // Pawn a lets go of what it has in hand (its task, its side tasks, a load of its own field) before it sets out.
+  function setDown(st, a) {
+    release(st, a);
+    dropSides(st, a);
+    a.carry = null; // the load of a hand in its own field was set down by release
   }
-  // Arrival: the journey ends, what is left of its provisions goes into the new home's meals, and the pawn is at home.
-  // A carrier arrives with his gift: the receiving household books it (its village's store, if the household is gone) and he turns for home.
-  function delivered(st, a, j) {
-    const g = j.gift,
-      from = st.households[st.pawns[a.id].household],
-      to = st.households[g.to],
-      f = st.farmsteads[to.farmstead];
-    j.gift = null;
-    j.back = true;
-    if (to.dissolved) Stores.put(st, st.villages[f.village], 'grain', g.n, { kind: 'gift', from: f.name }, g.parts);
-    else receive(st, from && !from.dissolved ? from : null, to, g.n, st.farmsteads[j.from].name, g.parts);
-    personEvent(st, a.id, 'arrived', `Arrived at ${f.name} with ${Math.round(g.n)} grain`, false);
-    j.to = st.farmsteads[from.farmstead].house;
+  // A walk in hand ends where it has come to.
+  function stop(st, a) {
+    if (a.path) halt(st, a);
+  }
+  // A pawn moved at night, or in its own house (sim/away's moved), stays where it is and walks when its day starts; in its own house
+  // (`same`) it is home already.
+  function waitIndoors(st, a, same) {
+    if (a.path) halt(st, a);
+    a.phase = null;
     a.anim = 'idle';
-    startLeg(st, a, j);
+    if (same) placeAtHome(st, a);
+    waitLeg(st, a);
   }
-  function endJourney(st, a) {
-    const j = journeyOf(st, a.id);
-    if (j.why === 'carry' && !j.back) return delivered(st, a, j);
-    const hh = st.households[st.pawns[a.id].household];
-    st.journeys.splice(st.journeys.indexOf(j), 1);
-    if (j.food > 1e-9 && !hh.dissolved) Stores.put(st, hh, 'meals', j.food, { kind: 'journey', pawn: a.id });
-    placeAtHome(st, a);
-    personEvent(st, a.id, 'arrived', `Arrived at ${st.farmsteads[hh.farmstead].name}`, false);
+  // A child born to a mother away from home (VB-425; no teleporting) is where she is, outdoors.
+  function standBy(st, a, m) {
+    [a.x, a.y] = placeOf(st, m);
+    a.inside = false;
+    a.anim = 'idle';
   }
   function describe(st, id) {
     const a = st.agents[id];
@@ -1225,12 +1123,18 @@ VB['sim/agents'] = (() => {
     }
     const bg = heldAt(a, 'background');
     if (bg) return a.path ? KINDS[bg.kind].go : KINDS[bg.kind].verb; // VB-136: with the herds
-    if (a.phase === 'home') return 'Walking home';
+    const s = a.away === undefined || travelling(a) ? null : stayOf(st, id); // a stay at a bed (VB-783)
+    if (a.phase === 'home') return s && !s.back ? 'Walking to where it sleeps away' : 'Walking home';
     if (travelling(a)) {
+      const g = stayOf(st, id).gift; // a fetch of a gift (VB-461)
+      if (g && g.haul)
+        return g.held > 0 ? 'Carrying grain to the store' : `Going for grain for the store at ${g.stops[0].name}`;
+      if (g && g.stops)
+        return g.held > 0 ? `Carrying grain home from ${g.from}` : `Going for grain at ${g.stops[0].name}`;
       const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
       return a.phase === 'journey' ? `On the road to ${f.name}` : `Resting on the road to ${f.name}`;
     }
-    if (a.inside) return 'At home';
+    if (a.inside) return s ? 'Away from home' : 'At home';
     return a.path ? 'Strolling' : 'Resting';
   }
   return {
@@ -1238,7 +1142,6 @@ VB['sim/agents'] = (() => {
     dropJob,
     homeSpot,
     placeAtHome,
-    placeBorn,
     placeByDoor,
     idle,
     haltForTalk,
@@ -1277,9 +1180,14 @@ VB['sim/agents'] = (() => {
     dropSides,
     reachAfter,
     travelling,
-    journeyOf,
-    moved,
-    carryGift,
-    feedTravellers,
+    stayOf,
+    bed,
+    restOnRoad,
+    walkLeg,
+    turnTo,
+    setDown,
+    stop,
+    waitIndoors,
+    standBy,
   };
 })();

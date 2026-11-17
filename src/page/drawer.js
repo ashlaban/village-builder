@@ -257,8 +257,10 @@ drawer.addEventListener('click', (e) => {
         break;
       }
       const res = playAs(id);
-      if (res === true) openPanel('actions');
-      else dmsg(`Not done: ${res}.`);
+      if (res === true) {
+        openPanel('actions');
+        flyToFarmOf(id);
+      } else dmsg(`Not done: ${res}.`);
       break;
     }
     case 'unplay': {

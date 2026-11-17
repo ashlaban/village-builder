@@ -1,22 +1,25 @@
 // Food balance of farms (VB-048, the balance review): per household and game year, rations made by source (grain net of seed, milk drunk
 // fresh, butter, meat) against what its members need, grouped by household size, by cattle and by the year's weather.
 // node tools/balance.js --scenario founders|heirs|populous --seeds 3,7,11,42 --map small --years 30 [--from 3] [--json]
+//   --map probe|tiny|small|medium|large (probe: the 36 by 26 island of tests/lib/probe.js)
 //   --from Y: count years from Y on (the first years of a scenario are settling in); --json prints the household-years as well.
+//   --rye: every village given rye and farming in three courses from the start (the test switch of VB-350, sim/scenarios giveRye).
+// Grain is also reported by crop (barley, rye, peas: the harvest of each, net of the seed its fields took; VB-350).
 require('./help.js')(__filename);
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], F = VB['sim/hunger'], Stores = VB['sim/stores'];
 const { CROPS } = VB['sim/rules'];
-const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
+const SIZES = { probe: [36, 26], tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // probe: as tools/sim.js
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'founders'), seeds = opt('seeds', '7').split(',').map(Number), map = opt('map', 'small');
-const years = +opt('years', 10), from = +opt('from', 2), json = args.includes('--json');
-const SOURCES = ['grain', 'milk', 'butter', 'meat'];
+const years = +opt('years', 10), from = +opt('from', 2), json = args.includes('--json'), rye = args.includes('--rye');
+const SOURCES = ['grain', 'milk', 'butter', 'meat'], GRAINS = Stores.CROP_LIST;
 const rows = []; // one per household and year
 
 function cattleOf(st, hh) { return H.herdsOf(st, hh).reduce((s, hd) => s + (hd.species === 'cattle' ? hd.head.length : 0), 0); }
 function sheepOf(st, hh) { return H.herdsOf(st, hh).reduce((s, hd) => s + (hd.species === 'sheep' ? hd.ewes + hd.rams + hd.lambs : 0), 0); }
 function run(seed) {
   const it = G.generate(seed, { cols: SIZES[map][0], rows: SIZES[map][1] }); let r; while (!(r = it.next()).done);
-  const st = Sim.seed(r.value, seed, scenario), E = st.ECON;
+  const st = Sim.seed(r.value, seed, scenario, null, { rye }), E = st.ECON;
   for (let y = 1; y <= years; y++) {
     const t0 = (y - 1) * Sim.YEAR + 1, t1 = y * Sim.YEAR + 1;
     if (st.t < t0) Sim.advance(st, t0 - st.t);
@@ -28,9 +31,14 @@ function run(seed) {
       if (hh.dissolved || !before.has(hh.id)) continue;
       const b = before.get(hh.id), f = st.farmsteads[hh.farmstead], made = Object.fromEntries(SOURCES.map((k) => [k, 0]));
       let gifts = 0;
+      const crops = Object.fromEntries(GRAINS.map((k) => [k, 0]));
       for (const e of hh.ledger) {
         if (e.t < t0 || e.t >= t1) continue;
-        if (e.kind === 'harvest') made.grain += e.n - (e.first ? CROPS.barley.seed : 0); // a field's loads are entries; the seed was sown from the store
+        if (e.kind === 'harvest') { // a field's loads are entries; the seed was sown from the store; its crop, barley unless named (VB-350)
+          const k = e.crop || 'barley', net = e.n - (e.first ? CROPS[k].seed : 0);
+          made.grain += net;
+          crops[k] += net;
+        }
         else if (e.kind in made) made[e.kind] += e.n;
         else if (e.kind === 'gift') gifts += e.n;
       }
@@ -40,7 +48,8 @@ function run(seed) {
       const soil = f.fields.length ? f.fields.reduce((s, q) => s + q.soil, 0) / f.fields.length : null;
       rows.push({ seed, year: y, household: hh.id, weather: +weather.toFixed(3), size, members: hh.members.length, fields: f.fields.length,
         meadows: f.meadows.length, cattle: b.cattle, sheep: b.sheep, soil: soil === null ? null : +soil.toFixed(3),
-        ...Object.fromEntries(SOURCES.map((k) => [k, +made[k].toFixed(1)])), total: +total.toFixed(1), need, gifts: +gifts.toFixed(1),
+        ...Object.fromEntries(SOURCES.map((k) => [k, +made[k].toFixed(1)])), ...Object.fromEntries(GRAINS.map((k) => [k, +crops[k].toFixed(1)])),
+        fallow: f.fields.filter((q) => CROPS[q.crop].fallow).length, total: +total.toFixed(1), need, gifts: +gifts.toFixed(1),
         hungryDays: hh.hungryDays - b.hungry, store: Math.round(Stores.grainOf(hh) + hh.meals), storeChange: Math.round(Stores.grainOf(hh) + hh.meals - b.grain) });
     }
   }
@@ -56,10 +65,11 @@ function group(key, label) {
   const out = [...g].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([k, l]) => ({
     [label]: k, 'household-years': l.length,
     ...Object.fromEntries(SOURCES.map((s) => [s, +mean(l, (r) => r[s]).toFixed(1)])),
+    ...Object.fromEntries(GRAINS.map((s) => [s, +mean(l, (r) => r[s]).toFixed(1)])),
     made: +mean(l, (r) => r.total).toFixed(1), need: +mean(l, (r) => r.need).toFixed(1),
     'made/need': +mean(l, (r) => r.total / Math.max(1, r.need)).toFixed(2), 'from animals %': +(100 * mean(l, (r) => (r.total - r.grain) / Math.max(1, r.total))).toFixed(0),
     'hungry %': +(100 * l.filter((r) => r.hungryDays > 0).length / l.length).toFixed(0), 'hungry days': +mean(l, (r) => r.hungryDays).toFixed(1),
-    store: Math.round(mean(l, (r) => r.store)), fields: +mean(l, (r) => r.fields).toFixed(1), cattle: +mean(l, (r) => r.cattle).toFixed(1),
+    store: Math.round(mean(l, (r) => r.store)), fields: +mean(l, (r) => r.fields).toFixed(1), fallow: +mean(l, (r) => r.fallow).toFixed(1), cattle: +mean(l, (r) => r.cattle).toFixed(1),
     soil: +mean(l.filter((r) => r.soil !== null), (r) => r.soil).toFixed(2),
   }));
   return out;

@@ -24,7 +24,7 @@ const Sim = (() => {
   const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } =
     VB['sim/notable'];
   const { describe: doing } = VB['sim/agents'],
-    { occasionLabel } = VB['sim/occasions'];
+    { occasionLabel, explainFeast } = VB['sim/occasions'];
   // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
@@ -35,25 +35,33 @@ const Sim = (() => {
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks, prestigeParts } = VB['sim/society'];
+  const { of: moodOf, word: moodWord } = VB['sim/mood']; // a pawn's mood and its modifiers, for its card (VB-062)
   const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)
   const { save, load } = VB['sim/saves'];
   const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head } = VB['sim/commands'];
   const { headView } = VB['sim/plans'];
+  const { wishesOf } = VB['sim/wishes']; // a pawn's wish at the moving round, kind by kind (VB-680)
   const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];
+  const { villageSummary, villageOutlookOf, OVERVIEW } = VB['sim/overview']; // a village at a glance, for its card and tools/sim.js (VB-162)
+  const { meansOf, marryStanding } = VB['sim/matching']; // the means to marry a home holds, and what stands between a pawn and a marriage (VB-631)
+  const { supplyOutlook } = VB['sim/outlook']; // how long a household's supplies last, by its head's last review (VB-666)
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
   const { compat, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
   const { explainAllowance, giftWarning } = VB['sim/exchange'];
   const { kinHouseholds } = VB['sim/help'];
-  const { killPawn, holdMeetings, movingRound, retireHolder } = VB['sim/lifecycle'];
+  const { killPawn, retireHolder } = VB['sim/lifecycle'],
+    { holdMeetings } = VB['sim/meetings'],
+    { movingRound } = VB['sim/round'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
   const { HERD, SOIL, CLAIMS } = VB['sim/rules'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
-  const { withOxen, doneOf, placeOf, poseOf } = VB['sim/agents'];
+  const { withOxen, placeOf, poseOf } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
-  const { houseTarred } = VB['sim/rules'],
+  const { boothCondition } = VB['sim/building'], // VB-784: a booth's condition now
+    { houseTarred } = VB['sim/rules'],
     { untarred: boatUntarred } = VB['sim/drying']; // VB-301: a house tarred, a boat's years since its tarring
   const { claimsOn, strength, holdings } = VB['sim/claims'];
   const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];
@@ -75,8 +83,13 @@ const Sim = (() => {
     unqueue,
     setAuto,
     wish,
+    wishesOf,
     opportunities,
     successors,
+    villageSummary,
+    OVERVIEW,
+    supplyOutlook,
+    villageOutlook: villageOutlookOf,
     succeed,
     cal,
     age,
@@ -111,6 +124,8 @@ const Sim = (() => {
     isHolder,
     holdingOf,
     prestigeParts,
+    moodOf,
+    moodWord,
     traitLabels,
     traitAct,
     settlementIdOf,
@@ -126,7 +141,7 @@ const Sim = (() => {
     seedReserve,
     grainOf,
     fieldsWanted,
-    plotProgress: (st, plot) => plotProgress(st, plot, (j) => doneOf(st, j)), // a task's progress now (VB-472)
+    plotProgress, // a task's progress now (VB-472)
     placeOf, // a pawn's place now, a walker's worked out from its leg (VB-473)
     poseOf, // and its facing and stride, for the page until it draws from legs (VB-474)
     explainIdle,
@@ -139,6 +154,8 @@ const Sim = (() => {
     opinionWord,
     relationsOf,
     reasonsOf,
+    meansOf,
+    marryStanding,
     HERD,
     SOIL,
     herdsOf,
@@ -151,6 +168,7 @@ const Sim = (() => {
     larderOf,
     quernYears,
     houseTarred,
+    boothCondition,
     boatUntarred,
     team,
     withOxen,
@@ -163,6 +181,7 @@ const Sim = (() => {
     depositKnown,
     goodwillOf,
     explainAllowance,
+    explainFeast, // why a household does or does not lay out a feast (VB-458)
     depositLeftNow,
     woodOf,
     giftWarning,

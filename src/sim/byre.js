@@ -12,6 +12,7 @@ VB['sim/byre'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { trample } = VB['sim/fields'];
   const { emit } = VB['sim/events'];
+  const Targets = VB['sim/targets'];
   // A herd's cull[]: animals to slaughter, {id (within the herd), head (cattle head id) or sheep ('ewe'|'ram'|'lamb'), lean}; herd.cullSeq
   // numbers them. herd.lean counts stall days without fodder since the last count; herd.unfed stall days running without full hay (VB-134).
 
@@ -256,7 +257,7 @@ VB['sim/byre'] = (() => {
   }
   // Milked (VB-135): each cow in milk gives HERD.milk rations, less for the lean days of the winter, and half after a grazing day by the
   // farm with no herder (VB-136: milked in the morning, the cows give what yesterday's grazing made); part is churned to butter that keeps,
-  // the rest is drunk fresh within the day.
+  // the rest is drunk fresh within the day; no more is churned than brings the butter held to its head's target (VB-698; by default all).
   function milkDone(st, hh, c) {
     hh.milkDay = c.day;
     let cows = 0;
@@ -267,13 +268,45 @@ VB['sim/byre'] = (() => {
         (unherded(st, herd, c) ? HERD.herding.milk : 1);
     }
     const r = cows * HERD.milk,
-      butter = r * HERD.butter;
+      butter = Math.max(0, Math.min(r * HERD.butter, Targets.target(st, hh, 'butter') - larderOf(hh, 'butter')));
     if (r <= 0) return;
     addFood(st, hh, 'milk', r - butter, FOODS.milk.keeps);
     addFood(st, hh, 'butter', butter, HERD.butterDays);
     Stores.record(st, hh, 'milk', r - butter, 'milk');
     Stores.record(st, hh, 'butter', butter, 'butter');
   }
+  // Butter and salt meat as made goods (VB-698): what the milk and the meat give, with no cap by default (Infinity); a head's target caps
+  // the churning, the rest drunk fresh, and the salting, the fresh meat left to be eaten or spoil. Their top bound: what is held, and
+  // what the cows give over the butter's keeping days, or the fresh meat and the herds' carcasses.
+  const cattleOf = (hd) => (hd.species === 'cattle' ? hd.head : []);
+  Targets.made({
+    good: 'butter',
+    unit: 'ration',
+    whole: false,
+    need: () => Infinity,
+    most: (st, hh) => {
+      let cows = 0;
+      for (const id of hh.herds) for (const h of cattleOf(st.herds[id])) if (h.kind === 'cow') cows++;
+      return Math.ceil(larderOf(hh, 'butter') + cows * HERD.milk * HERD.butter * HERD.butterDays);
+    },
+    held: (st, hh) => larderOf(hh, 'butter'),
+  });
+  Targets.made({
+    good: 'salt meat',
+    unit: 'ration',
+    whole: false,
+    need: () => Infinity,
+    most: (st, hh) => {
+      let n = larderOf(hh, 'salt meat') + larderOf(hh, 'meat');
+      for (const id of hh.herds) {
+        const hd = st.herds[id];
+        for (const h of cattleOf(hd)) n += HERD.meat[h.kind] || 0;
+        if (hd.species !== 'cattle') n += HERD.meat.ewe * hd.ewes + HERD.meat.ram * hd.rams + HERD.meat.lamb * hd.lambs;
+      }
+      return Math.ceil(n);
+    },
+    held: (st, hh) => larderOf(hh, 'salt meat'),
+  });
   // Salted: the fresh meat keeps a year.
   function saltDone(st, hh) {
     const n = larderOf(hh, 'meat');
@@ -449,7 +482,8 @@ VB['sim/byre'] = (() => {
         ]);
     }
     const meat = hh.larder.length ? larderOf(hh, 'meat') : 0;
-    if (meat > 0) out.push([`salt:h${hh.id}`, 'salt', { hours: Math.max(1, meat / HERD.saltPerHour) }]);
+    if (meat > 0 && larderOf(hh, 'salt meat') < Targets.target(st, hh, 'salt meat'))
+      out.push([`salt:h${hh.id}`, 'salt', { hours: Math.max(1, meat / HERD.saltPerHour) }]);
     // milking from 6:00 while the herds are out (VB-135); the cows in milk are counted only then (no cow is in milk in the byre, VB-227)
     const due = hh.milkDay !== c.day && c.hour >= WORK[0] && !stalled(c),
       cows = due ? milkCows(st, hh, c) : 0,

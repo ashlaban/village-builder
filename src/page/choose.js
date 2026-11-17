@@ -177,6 +177,7 @@ $('choose').addEventListener('click', (e) => {
     }
     closeChoose();
     focusPawn(id);
+    flyToFarmOf(id); // the camera on its farm, not on the meadow it is crossing (VB-1027)
     openBar(!mobileUI.matches); // on a narrow screen the bar alone: the sheet would cover the farm
   }
 });

@@ -26,7 +26,8 @@ hh.members.pop();
 // A birthday can leave a child role until the next social refresh. Check it strictly immediately after a refresh.
 const child = st.pawns.find((p) => p.role === 'daughter'), born = child.born;
 child.born = st.t - 14 * VB.sim.YEAR; child.age = 14; child.role = 'child';
-assert.deepStrictEqual(checkState(st), []);
+// (made younger by hand, she keeps her asking entry of a grown woman: VB-823's queue is not what this checks)
+assert.deepStrictEqual(checkState(st).filter((e) => !e.startsWith('asking[')), []);
 assert(checkRoles(st, VB).some((e) => e.includes('role cache')), 'strict check must reject stale roles at refresh boundaries');
 VB.sim.refreshRoles(st);
 assert.deepStrictEqual(checkRoles(st, VB), []);

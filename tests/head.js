@@ -119,7 +119,7 @@ let made;
   refused(st, hh, Sim.head(st, 'target', { store: 'fields', n: 1.5 }), /whole number/, 'half a field');
   refused(st, hh, Sim.head(st, 'target', { store: 'wood', n: 2 * st.ECON.woodWinter + 1 }), /wood must be from 0 to/, "wood over twice the winter's goal");
   refused(st, hh, Sim.head(st, 'target', { store: 'cow', n: 2 }), /cow must be from 0 to 1/, 'two cows');
-  refused(st, hh, Sim.head(st, 'target', { store: 'ale', n: 1 }), /no target ale/, 'no such target');
+  refused(st, hh, Sim.head(st, 'target', { store: 'wool', n: 1 }), /no target wool/, 'no such target');
   refused(st, hh, Sim.head(st, 'target', { store: 'hay' }), /names n/, 'no number');
   assert.strictEqual(snap(st, hh), before, 'refused targets change nothing');
   assert.strictEqual(Sim.head(st, 'target', { store: 'hay', n: 3 }), true);

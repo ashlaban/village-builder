@@ -26,7 +26,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   What a tile's cover holds (a wood's trees at full cover, a meadow's stones) is `src/gen/cover.js`, read by `gen.js` as it lays the land.
 - The panels' shared pieces are `src/page/meter.js` (VB-664; `AGENTS.md`, Deciding without Kim, 15): `meter(o)`, the one meter every level is
   shown on (its scale is the caller's argument: VB-665), `stat(o)` and `stats(list)` (a good or a measure: its icon from `goodIcon` of
-  `src/page/icons.js`, its word, its value, its meter where it is a level) and `traitsHTML(id)`. A new panel shows a level, a store or a
+  `src/page/icons.js`, its word, its value, its meter where it is a level), `traitsHTML(id)`, and the supply component (VB-667):
+  `suppliesHTML(O, only)` draws a household's food, fuel and hay as season cells from its argument, the outlook `Sim.supplyOutlook` reads
+  (VB-666; the page computes none), with whose reckoning it is and an i for the numbers, and `supplyChips(O)` the chips of a farm's row
+  (`seasonIcon` of `src/page/icons.js` for the seasons). A supply is shown only through these. A new panel shows a level, a store or a
   trait through these, and a person or a farm by `memberRow` and `farmRow` of `src/page/cards.js`; a household is told of only on its
   farm's card (`houseStats`, `renderHouse`: the tabs Stores, Land and Animals), and the People sheet only finds.
 - The archipelago editor is `src/page/editor.js`: a world alone on the stage with no run (`edit`, page state as the showcase island is), its
@@ -64,12 +67,18 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   dissolved, put down where it was (`sim/agents` release), with its good, amount, tile and owner; a fetch kind for each kind that carries a
   load (`fetchHaul`, `fetchHay`, `fetchWood`, `fetchWellstone`, registered by `sim/kinds`) and the rule that posts them for the owner; one
   nobody fetches rots at the autumn frost (`sim/clock`).
-- Journeys (VB-287; design.md, Between villages): `src/sim/agents.js` owns `st.journeys` and `st.journeySeq`. `sim/heirs`' `moveTo`
-  changes the household at the act and hands the pawn to `moved`: within a village it walks to the new door; to another village it sets
-  out on a journey, its provisions (`TRAVEL.dayWalk` hours a ration) taken from the household it leaves through `sim/stores` (reason
-  `journey`), a leg a day from 6:00 to 18:00 in the pawns' one queue of legs (`st.legDue`, VB-473: a walk that stops for the night at
-  the last step before 18:00, a wait on the road until 6:00); on the road it eats what it carries (`feedTravellers`, through `sim/hunger`'s
-  `ate`), out of its household's meal.
+- Away from home (VB-783; design.md, Moving to new land, Sleeping away from home): `src/sim/away.js` owns the open stays (`st.away`,
+  `st.awaySeq`) and their index `agent.away` (a cache, one writer); it loads after `sim/agents` and hears from it by `sim/events`
+  (`legEnd`, `legDue`, `stillAway`, `moveOn`, `atBed`), and from `sim/heirs` (`rehoused`) and `sim/births` (`placeBorn`). A journey
+  (VB-287; design.md, Between villages) is a stay whose bed is where its leg ends: `moveTo` changes the household at the act and the
+  `rehoused` event hands the pawn to `moved`: within a village it walks to the new door; to another village it sets out, its provisions
+  (`TRAVEL.dayWalk` hours a ration) taken from the household it leaves through `sim/stores` (reason `away`), a leg a day from 6:00 to
+  18:00 in the pawns' one queue of legs (`st.legDue`, VB-473), whose walking (`walkLeg`, `restOnRoad`, `turnTo`) stays in `sim/agents`.
+  A lodger is a stay at a bed (a tile, or a guest's in another household's house), by the verbs `lodge` and `comeHome`: a pack of a
+  ration a day planned (at most `AWAY.pack`), the tasks its stay names only (`dayAway`, before the household's day), home when its pack
+  is down to the walk home's ration. Every pawn away eats from its pack (`feedAway`), out of its household's meal by the one test of
+  `agent.away`. `sim/agents`' `bed` is the tile a pawn's day starts from and ends at, which the walk home, a job's reach and the day's
+  end read.
 - Legs (VB-471 to VB-473; design.md section 7, A leg, and its end): `src/sim/agents.js` keeps every pawn in one leg, a walk, work or a
   wait (`agent.leg`); the ends of walks and waits wait in `st.legDue`, those of tasks in `st.workDue`, and a step (`stepAgents`) takes
   what is due and nothing else. A pawn's place is `placeOf` (a walker along its leg's hours); `sim/society`'s `outdoors`, `sim/jobs`'
@@ -92,19 +101,36 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   which holds the farm in trust (`src/sim/trust.js`, VB-309: `st.trusts`, the verbs `goToKin` and `goBack`; the trustee posts the farm's
   field work as its own in `src/sim/jobs.js`, and `src/sim/ownership.js` reads which farms are held); an orphaned heir with no guardian is
   held for the same way; at the moving round a landless adult from a household with hands to
-  spare goes into service where labour is short, by hands per field (`serveWhereShort`, VB-090; the placement `reachSteps` is shared); marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/lifecycle.js`
+  spare goes into service where labour is short, by hands per field (`serveWhereShort`, VB-090; the placement `reachSteps` is shared); marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/marriage.js`
   and `src/sim/heirs.js`.
-- The moving round (`src/sim/lifecycle.js`, VB-201, VB-277): on autumn day 11, each village's own round (`villageRound`) a village a 6-minute
+- The moving round (`src/sim/round.js`, its marriages in `src/sim/marriage.js`, VB-201, VB-277): on autumn day 11, each village's own round (`villageRound`) a village a 6-minute
   step from noon in the order of village id (village k on step k up to 60 villages, else `floor(k * 60 / n)`): its store filled, its own men
   matched with the women of every village, its handovers (its farms, and the homes in other villages its marriages chose) and its kin
-  pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. `roundPhase(st, n)`
-  is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
+  pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. The round lasts
+  `ASK.passes` days (autumn days 11 to 13, VB-692): on each, a village's step first answers the offers due to its people (`answerDue`, in
+  the order of `ASK.order`: handover, match, land, party, place); its choosers run on the first day only, and each of their picks is an
+  offer due at once on its basis (`match` and `handover` in `sim/marriage`, `land` in `sim/farmclaims`, `party` in `sim/settle`, `place` in
+  `sim/service`), whose answers are whose yes the move needs (`moveWhy`, `sim/wishes`); a match refused asks anew that evening, due the next
+  day; after the last day what is open of the round lapses. A pawn holds one open offer about its future (`pawn.ask`, `sim/offers`).
+  `roundPhase(st, n, d)` is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
-- The meetings (`src/sim/lifecycle.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
+- The asking day (`src/sim/asking.js`, VB-823; plan VB-682, sections 2 and 7): each pawn who seeks (unmarried, or grown and holding no
+  place) has one entry in the due-queue `st.asking` (`sim/wishes`: written at a birth for the first asking day after the 18th birthday,
+  at a widowing, a marriage, a new head and a move, dropped at death or on taking a place), on season day `id mod SEASON_DAYS` at
+  `ASK.hour`. A daily entry of the clock reads its head: the pawn's wish is reviewed (`chooseWish`) and, holding no open offer, it makes
+  the offer of its best open rung, due at the round: a man's match by his spokesman (`askMatch`: the unmarried women of the queue within
+  reach, nearest villages first, at most `ASK.pool` weighed, none asked by `ASK.held` open matches; the round's ask anew uses it too),
+  or an empty farm (`askLand`); a plot, new land and service are left to the round's walk. An open offer whose people died, married or
+  took a place lapses where it is next read (`staleWhy`: the asker's asking, or the round's step).
+  The means to marry is the registry rule `marriage.means` (declared there, base `MARRIAGE.means`, context the home's household; VB-631), read by `affords` and by `Sim.meansOf`, which also feeds `matchBar`'s reason and the pawn panel (`marryStanding`). A later contribution (a custom, a head's caution, a servant's portion: VB-637) joins by `Rules.contribute({ rule: 'marriage.means', ... })` from its own module.
+- The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
   (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,
   `src/sim/society.js`), the causes its adults take up and its meeting, whose lines go to the head of `st.meetingLog`; roles and prestige
-  island-wide, and the living of no settlement, at the first village's. At 18:00 each culture's year, at 18:06 the land meeting.
+  island-wide, and the living of no settlement, at the first village's; then its choice of gathering (`chooseGathering`,
+  `src/sim/gathering.js`, VB-294: the hosts it would walk to, ranked by effective hours from its row of `st.villageHours`, and whether it
+  offers to host, by the meeting's verb `gathering`). At 18:00 the gatherings are settled (`settleGatherings`: who goes where, lodging,
+  three villages or more; the district is read by `district`), then each culture's year; at 18:06 the land meeting.
   `meetingStage(st, n)` is the step's entry; `holdMeetings` runs the villages and the cultures. The meeting's occasion on each green is
   called for its village's turn: from two hours before its step to the step after.
 - Saves (VB-074): `Sim.save(st)` and `Sim.load(w, data)` in `src/sim/saves.js`; a generic codec keeps shared objects, Maps, Sets and typed
@@ -143,7 +169,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Customs on the page (VB-396 to VB-398): `src/page/customs.js` is the Customs tab of a village's card, the customs as sentences (`SAID`; a
   new custom or option gets its phrase there), who stands by which way, and a voice's note (its pulls from `src/sim/leanings.js`, a
   read-only view, weighed by `Culture.WEIGH`, the factors the daily drift itself reads, so the note and the drift cannot disagree); `src/page/culture.js` is the dock's Culture pane: a culture's villages, its own charter, the meetings.
-- Commands (VB-167 to VB-171): `src/sim/commands.js` holds the verbs (`work`, `walkTo`, `goHome`, `idle`, `attend`; `decide`; `marry`, `handOn`, `serve`,
+- Commands (VB-167 to VB-171): `src/sim/commands.js` holds the verbs (`work`, `walkTo`, `goHome`, `idle`, `attend`; `decide`; `marry`, `handOn`, `move`,
   `claim`, `leave`; debug `kill`, `retire`, `argue`, `rally`, `skip`). The planner, the meeting, the moving round and the debug drawer act by
   `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.
   A new act a pawn or the round chooses gets a verb; `tests/commands.js` checks statically that only the verbs call the acts they wrap.
@@ -196,15 +222,17 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/events`, `sim/rng`, `sim/hex`, `sim/names`, `sim/routes`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
   head's skill and bias, VB-254), `sim/commands`.
-- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/pot`, `sim/hunger`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`,
+- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/plans` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/pot`, `sim/hunger`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058), `sim/lying` (loads left
   lying where their carrier fell, VB-611).
 - Social: `culture`, `sim/encounters`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
-- Agency: `sim/agents`, `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle`, `sim/eligibility`, `sim/plans`.
-- Derived views: `sim/notable`, `sim/opportunities` (read-only, computed when asked).
+- Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
+  `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review; kept
+  in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
+- Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
 
 ## Adding things
 - A module has no cap on its length (VB-413): over 700 formatted lines (`src/` is formatted by Prettier, `npm run format`) the lint asks for an open task titled "Refactor: split <key> ...", opened by the task that
@@ -226,4 +254,9 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   field still standing is lost), `weeds` (rounds of weeding, else one every `ECON.weedEvery` days). A row without `seed` is a course, not a crop:
   `fallow` (tilled in its `sow` window, `mend` to the soil at the year's end); `sim/stores` holds as grain only the rows with seed (`CROP_LIST`).
   The table is a plain constant, never in saved state.
+- A new resource on the Stores tab (VB-668, Kim 16 November) goes in one of three sections, by what the player wants to know of it: a
+  **supply** is used up as time passes (how long does it last: a meter in days); a **material** is held until a work asks for it (is there
+  enough for what is planned: a count, and where a project plan asks for it, its framed work block with held against asked on the one
+  meter); a **gear** wears (what condition is it in). A material is one row of `MATERIALS` in `src/page/cards.js`, its kinds a list under
+  the total, shown only where more than one is held; a work's asks are read from the project plan's `build` reservations.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.

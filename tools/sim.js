@@ -2,15 +2,17 @@
 // node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report households|pawns|jobs|customs|events|farms|idle|hours|paths|relations|herds|villages|hunger|perf|counts|land] [--json]
 //   [--pawn ID] [--household ID] [--at Y]      (--at Y stops at year Y, overriding --years; --household N --report plans: its plans)
 //   --report waiting                             (VB-633: who waits to marry and why, by 20 years; tools/waiting.js --help)
+//   --report outlook [--village N]               (VB-666: each household's supply outlook beside what came of it; tools/outlook.js --help)
 //   --report hours [--from Y] [--every step|hour] [--fields N] [--team] [--household N]   (VB-337: tools/hours.js; its --help)
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
-  'plans', 'calendar', 'reach', 'waiting'];
-const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map tiny|small|medium|large] [--years Y]
+  'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook', 'gathering'];
+const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
   --json            the report as JSON
+  --rye             every village given rye, farming in three courses from the start (VB-350's test switch: sim/scenarios giveRye)
   --pawn ID, --household ID   one pawn or household in detail; with --report plans, that household's plans; with --report hours, its hours
   --report hours    pawn-hours a household by job kind, and the farming year's days (tools/hours.js --help):
                     --from Y (sample from year Y), --every step|hour, --fields N, --team
@@ -19,6 +21,12 @@ const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--
   --load FILE       go on from a save, with its scenario, seed and map; --years counts on from the save's year
   --report reach    the table of walking hours between villages (tools/reach.js --help)
   --report waiting  who waits to marry and why, at the moving round's day, by 20 years (tools/waiting.js --help)
+  --report ground   by village, each rock and deposit in reach of the green, and the summary by kind (tools/ground.js --help):
+                    --reach 12,30 (walking steps), --seeds 3,7,11 (more maps, same scenario, map and years)
+  --report outlook  each household of a village (--village N, default 0): its supply outlook beside what came of it over the frame,
+                    which runs on past --years (tools/outlook.js --help)
+  --report gathering by year, the gatherings settled at the autumn meetings (host, villages, how many named each host) and the villages
+                    with none; then gatherings a year, host changes and the share with none (VB-294; tools/gathering.js)
   --report calendar prints the clock's table (sim/clock CALENDAR, VB-241) in the order it runs, and runs nothing`;
 if (process.argv.includes('--help') || process.argv.includes('-h')) { console.log(USAGE); process.exit(0); }
 if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-241)
@@ -27,7 +35,8 @@ if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-2
   process.exit(0);
 }
 const perf = process.argv.includes('perf') ? require('./perf.js') : null, VB = perf ? perf.load() : require('../src/load.js'), G = VB.gen, Sim = VB.sim;
-const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as the generation screen (src/page/loader.js)
+// as the generation screen (src/page/loader.js), and probe, the 36 by 26 island of tests/lib/probe.js, for the tools' own tests (VB-856)
+const SIZES = { probe: [36, 26], tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf('--' + name); return i >= 0 ? args[i + 1] : dflt; };
 const fs = require('fs'), zlib = require('zlib'), saveTo = opt('save', null), loadFrom = opt('load', null);
@@ -56,7 +65,7 @@ function plain(v, seen = new Map(), where = '$') {
 
 const it = G.generate(seedNum, { cols: SIZES[map][0], rows: SIZES[map][1] });
 let r; while (!(r = it.next()).done);
-const st = loaded ? Sim.load(r.value, loaded) : Sim.seed(r.value, seedNum, scenario), say = (...a) => { if (!json) console.log(...a); };
+const st = loaded ? Sim.load(r.value, loaded) : Sim.seed(r.value, seedNum, scenario, null, { rye: args.includes('--rye') }), say = (...a) => { if (!json) console.log(...a); };
 const causeOf = (p) => { const e = Sim.recordOf(st, { pawn: p.id, life: true }).find((x) => x.kind === 'died'); return e ? e.cause : null; };
 const yearOf = (t) => Math.floor(t / Sim.YEAR) + 1;
 const start = Math.floor(st.t / Sim.YEAR), last = opt('at', null) !== null ? years : start + years; // years done before, and the last to run
@@ -68,11 +77,13 @@ const countsFrom = st.t;
 if (report === 'counts') VB.resetCounts();
 const hunger = report === 'hunger' ? require('./hunger.js')(Sim, st) : null;
 const waiting = report === 'waiting' ? require('./waiting.js').report(VB, st) : null;
+const gathering = report === 'gathering' ? require('./gathering.js')(VB, st) : null;
 const hours = report === 'hours' ? require('./hours.js')(VB, st, { from: +opt('from', 1), every: opt('every', 'step'), fields: opt('fields', null),
   team: args.includes('--team'), household: hhId }) : null;
 for (let y = start + 1; y <= last; y++) {
   const t0 = Date.now(), hungry0 = st.households.reduce((s, h) => s + h.hungryDays, 0);
   if (idle) idle.advanceYear(); else if (hours) hours.advanceYear(); else if (hunger) hunger.advanceYear(); else if (waiting) waiting.advanceYear(); else if (perf) perfMs += perf.timeAdvance(Sim, st, Sim.YEAR); else Sim.advance(st, Sim.YEAR);
+  if (gathering) gathering.year(y);
   const ms = (Date.now() - t0) / Sim.YEAR_DAYS, live = st.households.filter((h) => !h.dissolved);
   const births = st.pawns.filter((p) => !p.founder && p.born >= (y - 1) * Sim.YEAR && p.born < y * Sim.YEAR).length;
   const deaths = {}; for (const p of st.pawns) if (p.died !== null && p.died >= (y - 1) * Sim.YEAR && p.died < y * Sim.YEAR) { const c = causeOf(p) || 'unknown'; deaths[c] = (deaths[c] || 0) + 1; }
@@ -104,7 +115,12 @@ function plansOf(h) {
     season: `${Sim.SEASONS[sp.season]} of year ${sp.year} (made on day ${sp.made})`, steps: sp.steps.join(', ') };
 }
 const tables = {
+  gathering: () => gathering.result(), // VB-294
   reach: () => require('./reach.js')(st), // VB-286
+  ground: () => { // VB-735
+    const G2 = require('./ground.js'), more = G2.others(VB, opt('seeds', '').split(',').filter(Boolean).map(Number).filter((s) => s !== seedNum), { scenario, size: SIZES[map], years: last });
+    return G2.report(VB, [{ st, seed: seedNum }, ...more], opt('reach', '12,30').split(',').map(Number));
+  },
   counts: () => Object.keys(VB.COUNTERS).map((counter) => ({ counter, total: VB.count[counter],
     perDay: (st.t > countsFrom) ? VB.count[counter] / ((st.t - countsFrom) / Sim.DAY) : 0,
     perLivingPawnDay: pawnDays ? VB.count[counter] / pawnDays : 0 })),
@@ -123,13 +139,21 @@ const tables = {
   // herds (sim/herds): per household with animals, its herds by kind, names and ages, its hay and its winter's need
   herds: () => st.households.filter((h) => !h.dissolved && h.herds.length).map((h) => Sim.herdReport(st, h)),
   // villages (sim/settle, VB-148): farms (occupied, in a booth), people, adults waiting for land with no room (crowded), and where and when
-  // a village founded in play came from
+  // a village founded in play came from; then its overview (Sim.villageSummary, VB-162, the numbers its card shows): food in store and
+  // its days of need, the year's harvest in % of a year's need, people 0-14/15-49/50+ now and the change since a year ago, households
+  // hungry in the window, idle % of the hands' work hours, the households each warning concerns (food, hunger, heir, hands), and whose
+  // estimate the foretelling warnings are (the pawn, or with --pawn none, the village's eldest holder)
   villages: () => st.villages.map((v) => {
-    const farms = v.farmsteads.map((id) => st.farmsteads[id]), fd = v.founded;
-    const people = st.pawns.filter((p) => p.alive && p.household !== null && Sim.settlementIdOf(st, p) === v.id).length;
+    const farms = v.farmsteads.map((id) => st.farmsteads[id]), fd = v.founded, s = Sim.villageSummary(st, v.id);
+    const band = (b) => b.join('/'), W = s.warnings, ids = (l) => (l.length ? l.join(' ') : '-');
     return { id: v.id, name: v.name, farms: farms.length, occupied: farms.filter((f) => f.household !== null).length,
-      booths: farms.filter((f) => f.booth).length, people, crowded: v.crowded,
-      founded: fd ? `year ${Math.floor(fd.t / Sim.YEAR) + 1} from ${st.villages[fd.from].name} by ${Sim.fullName(st.pawns[fd.by])}` : '' };
+      booths: farms.filter((f) => f.booth).length, people: s.people, crowded: v.crowded,
+      founded: fd ? `year ${Math.floor(fd.t / Sim.YEAR) + 1} from ${st.villages[fd.from].name} by ${Sim.fullName(st.pawns[fd.by])}` : '',
+      food: Math.round(s.food.rations), foodDays: Math.floor(s.food.days), harvestPct: Math.round(100 * s.harvest.share),
+      ages: band(s.bands.now), change: band(s.bands.now.map((n, i) => (n - s.bands.ago[i] >= 0 ? '+' : '') + (n - s.bands.ago[i]))),
+      hungry: s.hungry.households.length, idlePct: Math.round(100 * s.idle.share),
+      warnFood: ids(W.food), warnHunger: ids(W.hunger), warnHeir: ids(W.heir), warnHands: ids(W.hands),
+      estimateBy: s.viewer ? `${s.viewer.pawn} (${s.viewer.days} days)` : '' };
   }),
   // plans (sim/plans, VB-252): per live household, its standing plan's targets and next review, and its seasonal plan's steps in order
   plans: () => st.liveHouseholds.map((id) => plansOf(st.households[id])),
@@ -207,6 +231,7 @@ if (pawnId !== null) {
   out = { ...plain(p), name: Sim.fullName(p), life: Sim.recordOf(st, { pawn: p.id, life: true }) };
 } else if (hhId !== null && report === 'hours') out = hours.result();
 else if (waiting) out = waiting.result();
+else if (report === 'outlook') out = require('./outlook.js').report(VB, st, { village: +opt('village', 0) });
 else if (hhId !== null) {
   const h = st.households[+hhId]; if (!h) { console.error('no such household'); process.exit(1); }
   if (report === 'plans') out = plansOf(h);
@@ -223,6 +248,9 @@ if (out !== null && report === 'idle' && !json) {
   console.log('mean unclaimed jobs at end of work day:'); console.table(out.unclaimedAtEndOfDay);
 } else if (out !== null && report === 'hours' && !json) hours.print(out);
 else if (out !== null && report === 'waiting' && !json) waiting.print(out);
+else if (out !== null && report === 'outlook' && !json) require('./outlook.js').print(out);
+else if (out !== null && report === 'ground' && !json) require('./ground.js').print(out);
+else if (out !== null && report === 'gathering' && !json) { console.table(out.years); console.log(JSON.stringify(out.summary)); }
 else if (out !== null && report === 'perf' && !json) {
   console.log(`${out.days} game days in ${out.totalMs} ms (${out.msPerDay} ms/day); time per system, exclusive:`); console.table(out.systems);
 } else if (out !== null && report === 'hunger' && !json) {

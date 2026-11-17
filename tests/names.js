@@ -1,16 +1,17 @@
 // Names (VB-026, VB-399, VB-400): a village by its site, the largest of a map as its old centre, a daughter by its founder or its mother;
 // farms of a village by six generators in an order drawn by weight, numbered only when every generator fails; a lone farm's village
 // bears its farm's name, unique on the island, so the map's labels (a village of two or more farms by its name, a lone farm by its
-// farm's) repeat no name; each culture keeps its order of preference and a split culture inherits it.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, N = VB['sim/names'], Culture = VB['culture'];
+// farm's) repeat no name; each culture keeps its order of preference and a split culture inherits it. On 60 by 44 islands (tests/lib/probe.js,
+// VB-856; populous on the medium map and a 120 by 85 one before), where the biggest village has 8 farms or more (12 on the medium map).
+const VB = require('../src/load.js'), Sim = VB.sim, N = VB['sim/names'], Culture = VB['culture'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('NAMES FAIL:', m); } };
-const world = (seed, cols, rows) => { const it = G.generate(seed, { cols, rows }); let r; while (!(r = it.next()).done); return r.value; };
+const { island } = require('./lib/probe.js'), world = (seed) => island(seed, { cols: 60, rows: 44 });
 const labels = (st) => st.villages.flatMap((v) => (v.green || v.farmsteads.length >= 2 ? [v.name] : v.farmsteads.map((id) => st.farmsteads[id].name)));
 const dupes = (xs) => xs.filter((x, i) => xs.indexOf(x) !== i);
 const out = [];
-// 1. Seeding: populous medium at seeds 7 and 42
+// 1. Seeding: populous at seeds 7 and 42
 for (const seed of [7, 42]) {
-  const st = Sim.seed(world(seed, 280, 200), seed, 'populous'), tag = `populous medium seed ${seed}`;
+  const st = Sim.seed(world(seed), seed, 'populous'), tag = `populous seed ${seed}`;
   let biggest = null;
   for (const v of st.villages) {
     const nm = v.farmsteads.map((id) => st.farmsteads[id].name);
@@ -19,7 +20,7 @@ for (const seed of [7, 42]) {
     check(nm.every((x) => !/ \d+$/.test(x)), `${tag}: ${v.name} numbers a farm (${nm.join(', ')})`);
     if (nm.length === 1) check(v.name === nm[0], `${tag}: the lone farm ${nm[0]} and its village ${v.name} differ`);
   }
-  check(biggest.length >= 12, `${tag}: the biggest village has ${biggest.length} farms`);
+  check(biggest.length >= 8, `${tag}: the biggest village has ${biggest.length} farms`);
   check(!dupes(st.villages.map((v) => v.name)).length, `${tag}: two villages named ${dupes(st.villages.map((v) => v.name))[0]}`);
   check(!dupes(labels(st)).length, `${tag}: map labels repeat ${dupes(labels(st)).join(', ')}`);
   check(st.cenv.cultures.every((c) => c.namePrefs.farm.join() === Culture.NAME_PREFS.farm.join()), `${tag}: a culture's name preference`);
@@ -33,7 +34,7 @@ for (const seed of [7, 42]) {
 // 2. The farm generators (VB-026, VB-401): each by itself, a given order, and the order drawn by weight; the farm's own stream (tileRand)
 // gives the same name every time
 {
-  const st = Sim.seed(world(7, 120, 85), 7, 'populous'), v = st.villages.find((u) => u.farmsteads.length >= 3);
+  const st = Sim.seed(world(7), 7, 'populous'), v = st.villages.find((u) => u.farmsteads.length >= 3);
   const farms = v.farmsteads.map((id) => st.farmsteads[id]), f = farms[1], olof = { given: 'Olof', sex: 'm' }, hans = { given: 'Hans', sex: 'm' };
   const ctx = { w: st.w, f, village: v, owner: olof, farms }, rand = () => N.tileRand(f.house), strict = ['compass', 'landmark', 'owner'];
   const compass = N.compass(ctx), land = N.landmark(ctx, rand());
@@ -84,7 +85,7 @@ for (const seed of [7, 42]) {
 }
 // 3. Village names (VB-399): one function by the site, from a stream of the centre tile's own
 {
-  const st = Sim.seed(world(42, 280, 200), 42, 'populous'), many = st.villages.filter((v) => v.farmsteads.length >= 2);
+  const st = Sim.seed(world(42), 42, 'populous'), many = st.villages.filter((v) => v.farmsteads.length >= 2);
   const vctx = (v) => ({ w: st.w, site: v.center, founder: null, mother: null });
   // joining: the link -e-, no vowel against a vowel, no part joined to itself, three of a letter made two
   check(N.join('Ek', 'by') === 'Ekeby' && N.join('Ek', 'vik') === 'Ekvik' && N.join('Al', 'by') === 'Alby', 'the link -e- of some trees before -by');

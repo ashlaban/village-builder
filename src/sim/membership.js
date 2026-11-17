@@ -5,7 +5,8 @@ VB['sim/membership'] = (() => {
   const Stores = VB['sim/stores'];
   const { ECON, MATCH } = VB['sim/rules'];
   const { makePlan } = VB['sim/plans'];
-  const { moveTo, refreshRoles } = VB['sim/heirs'];
+  const { refreshRoles } = VB['sim/heirs'];
+  const { issue } = VB['sim/commands'];
   // Found on an existing farm. Supplies are booked before membership changes so stakes remain in the old household's ledger.
   // Its first wood (VB-328): `wood` loads from its plot (a cottage's), then from the piles of the homes its members leave, up to ECON.startWood
   // in all and never leaving a pile under MATCH.urgency.woodLow; settlers (`carry` false) bring none and cut on arrival.
@@ -37,7 +38,10 @@ VB['sim/membership'] = (() => {
     }
     for (const id of members) {
       if (unhomed && st.pawns[id].household === null) joinHousehold(st, hh, id);
-      else moveTo(st, id, hh.id, text, carry);
+      else {
+        const args = { reason: carry ? 'found' : 'settle', ...(text !== null ? { text } : {}) };
+        issue(st, { actor: id, verb: 'move', target: hh.id, args, source: 'found' });
+      }
       st.rigDirty.add(id);
     }
     for (const id of followers) setServant(st, id, true);

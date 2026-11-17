@@ -4,7 +4,6 @@ VB['sim/heirs'] = (() => {
     joinHousehold,
     leaveHousehold,
     clearMembers,
-    setServant,
     noteDissolved,
     personEvent,
     log,
@@ -24,16 +23,16 @@ VB['sim/heirs'] = (() => {
     noteLine,
     householdsOfLine,
     ancestorsOf,
-    wishOf,
   } = VB['sim/records'];
-  const { moved, journeyOf, stopWorkFor } = VB['sim/agents'];
+  const { wishOf } = VB['sim/wishes'];
+  const { stopWorkFor } = VB['sim/agents'];
   const { farmToVillage, heldFarms } = VB['sim/ownership'];
   const { issue } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { hoursBetween, byLand } = VB['sim/routes'];
   const { SHARES, GOODWILL, houseCondition } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/herds'];
@@ -165,27 +164,30 @@ VB['sim/heirs'] = (() => {
     }
     return out;
   }
-  // The end of an act's log line for a pawn whose new home lies in another village, so that it set out on a journey (VB-287).
-  const setsOut = (st, id) => (journeyOf(st, id) ? ', and sets out for it' : '');
-  // text: the 'moved' life event, when the caller says more than the farm's name (sim/settle). The pawn walks to its new home, on a
-  // journey when it lies in another village (sim/agents' moved, VB-287); carry false: its provisions come from the new household (settlers).
-  function moveTo(st, id, hhId, text = null, carry = true) {
+  // The act of moving (the move command, VB-822, its only caller): pawn id changes to household hhId, for `reason`; text: the 'moved' life
+  // event, when the caller says more than the farm's name (sim/settle). The pawn walks to its new home, on a journey when it lies in another
+  // village (sim/away's moved, VB-287, by sim/events); carry false: its provisions come from the new household (settlers).
+  function moveTo(st, id, hhId, text = null, carry = true, reason = null) {
     const p = st.pawns[id],
       old = p.household !== null ? st.households[p.household] : null;
     leaveHousehold(st, id);
     const hh = st.households[hhId];
     joinHousehold(st, hh, id, false);
-    moved(st, st.agents[id], old, hh, carry);
+    emit(st, 'rehoused', { a: st.agents[id], old, hh, carry }); // it walks to its new home (sim/away's moved)
     if (old && old.farmstead !== hh.farmstead) {
       // on the record as `joined`, beside the event that tells the move itself
       personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, {
         ...atHousehold(st, hh),
         kind: 'joined',
+        reason, // why it moved (the move command's reason, VB-822)
+        fromFarm: old.farmstead, // the farm it left, whose history tells the leaving from this one event (sim/notable; VB-1027)
       });
     }
   }
   // reason: 'death', 'marriage', 'retirement', 'married away' (the holder married onto a spouse's farm) or 'claim' (a landless adult takes a
   // farm left with no heir; nobody is owed shares of it).
+  // Pawn id moves to household target (the move command), for this module's acts.
+  const move = (st, id, target, args) => issue(st, { actor: id, verb: 'move', target, args, source: 'succession' });
   function transfer(st, hh, heir, reason) {
     const f = st.farmsteads[hh.farmstead],
       cu = farmPractice(st, f),
@@ -198,9 +200,11 @@ VB['sim/heirs'] = (() => {
       const kids = childrenOf(st, heir).filter(
         (c) => st.pawns[c].alive && st.pawns[c].age < 18 && st.pawns[c].household === hp.household && !isHolder(st, c),
       ); // a child who holds a farm of their own stays on it
-      moveTo(st, heir, hh.id);
-      if (sp !== null && st.pawns[sp].alive && from && st.pawns[sp].household === from.id) moveTo(st, sp, hh.id);
-      for (const c of kids) moveTo(st, c, hh.id);
+      // the spouse who lives with the heir comes, and their minor children after them
+      if (sp !== null && st.pawns[sp].alive && from && st.pawns[sp].household === from.id) {
+        move(st, heir, hh.id, { reason: 'heir' });
+        move(st, sp, hh.id, { reason: 'heir', with: kids });
+      } else move(st, heir, hh.id, { reason: 'heir', with: kids });
     }
     hh.holder = heir;
     f.line = heir;
@@ -262,8 +266,7 @@ VB['sim/heirs'] = (() => {
     st.visualDirty = true;
   }
   // Whether households a's and b's villages lie within walking reach of each other (VB-290).
-  const reachable = (st, a, b) =>
-    hoursBetween(st, st.farmsteads[a.farmstead].village, st.farmsteads[b.farmstead].village) < Infinity;
+  const reachable = (st, a, b) => byLand(st, st.farmsteads[a.farmstead].village, st.farmsteads[b.farmstead].village);
   // The smallest undissolved household of the village, or of the nearest village by walking hours when it has none (VB-290); with none
   // within walking reach, of the nearest by hexSteps between centres (until slice 10's boats).
   function serviceHome(st, hh) {
@@ -343,9 +346,11 @@ VB['sim/heirs'] = (() => {
     f.state = 'derelict';
     f.emptySince = st.t; // the house as it was kept (VB-306)
     abandoned(f);
+    // its plans go while it still stands: timber at a building step is put on its woodpile (sim/plans' leftWood), which a dissolved
+    // holder refuses (VB-779); Stores.close leaves the wood, so it stays with the derelict farm
+    dropPlan(st, 'household', hh.id);
     hh.dissolved = true;
     noteDissolved(st, hh);
-    dropPlan(st, 'household', hh.id);
     Stores.close(st, hh);
     dropStakes(st, hh);
     farmToVillage(st, f);
@@ -362,28 +367,7 @@ VB['sim/heirs'] = (() => {
       const near = kin.find((q) => reachable(st, hh, st.households[q.household])) || kin[0]; // within walking reach first (VB-290)
       const kinHome = near ? near.household : p.age < 18 ? kinHomeFor(st, id, hh) : null;
       const target = kinHome !== null ? kinHome : serviceHome(st, hh);
-      if (target !== null) {
-        moveTo(st, id, target);
-        if (kinHome === null) {
-          setServant(st, id, true);
-          personEvent(
-            st,
-            id,
-            'service',
-            `Went into service at ${st.farmsteads[st.households[target].farmstead].name}`,
-            false,
-          ); // recorded below
-          log(
-            st,
-            `${fullName(p)} goes into service at ${st.farmsteads[st.households[target].farmstead].name}${setsOut(st, id)}.`,
-            {
-              kind: 'service',
-              pawn: id,
-              ...atHousehold(st, st.households[target]),
-            },
-          );
-        }
-      }
+      if (target !== null) move(st, id, target, { reason: kinHome !== null ? 'care' : 'service' });
     }
     // the animals go with the first of its people to find a new home
     const first = hh.members.map((id) => st.pawns[id]).find((p) => p.alive && p.household !== hh.id);
@@ -524,15 +508,17 @@ VB['sim/heirs'] = (() => {
               (sp === null || !isHolder(st, sp)) &&
               !st.liveHouseholds.some((hid) => st.households[hid].guardian === id) &&
               (wishOf(st, id, 'claim') ?? hh.farmstead) === hh.farmstead
-            ); // the player's wish: no farm, or only the one it names (VB-212)
+            ); // its wish: no farm, or only the one it names (VB-212, VB-680)
           })
           .sort((a, b) => (at(b).landWait || 0) - (at(a).landWait || 0) || at(a).born - at(b).born || a - b)[0];
     const stays = keeps || (claim === undefined && heir !== null) ? heir : null;
-    for (const c of childrenOf(st, giver)) {
+    const kids = childrenOf(st, giver).filter((c) => {
       const k = st.pawns[c];
-      if (c !== stays && k.alive && k.age < 18 && k.household === hh.id && !isHolder(st, c)) moveTo(st, c, home);
-    }
-    if (st.pawns[giver].household === hh.id) moveTo(st, giver, home);
+      return c !== stays && k.alive && k.age < 18 && k.household === hh.id && !isHolder(st, c);
+    });
+    // the giver goes with its minor children
+    if (st.pawns[giver].household === hh.id) move(st, giver, home, { reason: 'marriage', with: kids });
+    else for (const c of kids) move(st, c, home, { reason: 'marriage' });
     if (stays !== null) {
       if (st.pawns[stays].age < 18) setGuardian(st, hh, stays);
       transfer(st, hh, stays, 'married away');
@@ -591,7 +577,7 @@ VB['sim/heirs'] = (() => {
     if (isHolder(st, p.id) || (sp !== null && isHolder(st, sp))) return 'holds a farm, or is married to its holder';
     if (wish !== true && placeIfMarried(st, p.id, own) !== null) return 'heir to the farm at home';
     if (claimOf(st, p.id)) return 'restoring a farm it claimed'; // (sim/farmclaims)
-    if (wish !== null) return wish ? null : 'its player wishes it to stay'; // an heir's wait is the pawn's wish: the player's stands in (VB-212)
+    if (wish !== null) return wish ? null : 'it wishes to stay'; // an heir's wait is the pawn's wish (sim/wishes, VB-680)
     if (heirs) {
       if (heirs.has(p.id)) return 'heir to a farm';
     } // heir somewhere else

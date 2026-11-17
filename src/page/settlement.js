@@ -79,7 +79,7 @@ const labelSigOf = () =>
   st.villages
     .map((v) =>
       byName(v)
-        ? `${v.name}@${v.center}${v.green ? 'g' : ''}`
+        ? `${v.name}@${v.center}${v.green ? 'g' : ''}:${v.farmsteads.length}`
         : v.farmsteads.map((id) => st.farmsteads[id].name).join('|'),
     )
     .join('/');
@@ -105,13 +105,38 @@ function buildLabels(wd) {
       },
       resolution: 2,
     });
-    t.anchor.set(0.5, 1);
+    t.anchor.set(0.5, of.below ? 0 : 1);
     L.labels.addChild(t);
     labels.push({ t, x, y, ...of });
   };
+  // Is a house of village v on the row of tiles `row` rows from its centre (-1 above, 1 below, -2 two above), within `wide` tile
+  // radii to either side: where its name would lie over the house?
+  const houseOn = (v, row, wide) =>
+    v.farmsteads.some((id) => {
+      const h = st.farmsteads[id].house;
+      return (
+        Math.abs(wd.hx[h] - wd.hx[v.center]) < wd.R * wide &&
+        Math.abs(wd.hy[h] - wd.hy[v.center] - row * 1.5 * wd.R) < wd.R * 0.5
+      );
+    });
   for (const v of st.villages) {
-    if (byName(v)) mkLabel(v.name, wd.hx[v.center], wd.hy[v.center] - wd.R * 1.7, v.green ? 30 : 26, { village: v.id });
-    else
+    if (byName(v)) {
+      // the name over the centre; where a house stands on the row above, under the centre, or with a house there too, raised over
+      // that row: so that the name and a farm (and its mark, when it is chosen: page/choose) do not hide each other (VB-1027)
+      const up = houseOn(v, -1, 1.5),
+        below = up && !houseOn(v, 1, 1.5),
+        raised = up && !below && !houseOn(v, -2, 1);
+      mkLabel(
+        v.name,
+        wd.hx[v.center],
+        wd.hy[v.center] + wd.R * (below ? 1.2 : raised ? -2.6 : -1.7),
+        v.green ? 30 : 26,
+        {
+          village: v.id,
+          below,
+        },
+      );
+    } else
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
         mkLabel(f.name, wd.hx[f.house], wd.hy[f.house] - wd.R * 1.5, 24, { farm: f.id });
@@ -145,15 +170,9 @@ function cottageStage(g, x, y, n) {
       .fill(0x7aa258)
       .stroke({ width: 0.9, color: INK, join: 'round' });
 }
-// A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
-// rising log walls, the turf roof; a ring while the work goes on (VB-148).
-function drawBooth(wd, f, empty) {
-  const x = wd.hx[f.house],
-    y = wd.hy[f.house],
-    g = new PIXI.Graphics(),
-    n = f.booth.i,
-    bx = x + YARD.booth[0],
-    by = y + YARD.booth[1];
+// The booth's tent itself, of leaning poles and bark: one presentation for the settlers' booth by their house tile and a booth that stands
+// by itself on a tile (VB-784).
+function tent(g, bx, by) {
   for (const dx of [-2.4, 0, 2.4])
     g.moveTo(bx + dx, by - 11)
       .lineTo(bx + dx * 2.6, by - 15)
@@ -169,6 +188,17 @@ function drawBooth(wd, f, empty) {
       .lineTo(bx + dx * 0.25, by - 9.5)
       .stroke({ width: 0.5, color: INK, alpha: 0.5 });
   g.poly([bx - 1.9, by, bx - 1.2, by - 5.4, bx + 1.2, by - 5.4, bx + 1.9, by]).fill(0x30241f); // the opening
+}
+// A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
+// rising log walls, the turf roof; a ring while the work goes on (VB-148).
+function drawBooth(wd, f, empty) {
+  const x = wd.hx[f.house],
+    y = wd.hy[f.house],
+    g = new PIXI.Graphics(),
+    n = f.booth.i,
+    bx = x + YARD.booth[0],
+    by = y + YARD.booth[1];
+  tent(g, bx, by);
   cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, n);
   if (!empty) g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
   if (empty) g.alpha = 0.55;
@@ -214,6 +244,19 @@ function buildFarms(wd) {
   cartDraw = [];
   ledDraw = new Map();
   L.objects.sortableChildren = true;
+  // booths on their own tile (VB-784): a raised one stands, one being raised is a ring of stakes, a worn one fades
+  for (const b of st.booths) {
+    const g = new PIXI.Graphics(),
+      bx = wd.hx[b.tile],
+      by = wd.hy[b.tile];
+    if (b.built === null) g.circle(bx, by - 3, 6).stroke({ width: 1, color: INK, alpha: 0.6 });
+    else {
+      tent(g, bx, by);
+      g.alpha = 0.55 + 0.45 * Sim.boothCondition(st, b);
+    }
+    g.zIndex = by + 8;
+    L.objects.addChild(g);
+  }
   for (const f of st.farmsteads) {
     const hx = wd.hx[f.house],
       hy = wd.hy[f.house],

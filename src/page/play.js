@@ -69,8 +69,8 @@ const BASIS = { member: 'as a member', servant: 'as a servant', villager: 'as a 
 function oppRow(o) {
   return `<li class="opp${o.why ? ' barred' : ''}"><span>${esc(commandWords(o))}</span><i>${esc(o.why || BASIS[o.basis])}</i></li>`;
 }
-// The moving round's acts (VB-212): the player's wishes for its pawn, st.player.wishes, set through Sim.wish and kept until changed. A
-// wish may always be made; the round decides by its rules, so each act says what bars it now, the wishes counted in.
+// The moving round's acts (VB-212): the played pawn's wishes, on the pawn as every pawn's are (Sim.wishesOf, VB-680), set through Sim.wish
+// and kept until changed. A wish may always be made; the round decides by its rules, so each act says what bars it now, the wishes counted in.
 function roundBox(id, acts, wishes) {
   const pick = (kind, value, label, on = wishes[kind] === value) =>
     `<button type="button" data-play="wish" data-kind="${kind}" data-value="${esc(JSON.stringify(value))}" aria-pressed="${on}">${label}</button>`;
@@ -103,6 +103,10 @@ function roundBox(id, acts, wishes) {
     : '<p class="hint">No farm of your village stands empty.</p>';
   h += `<h5>Service</h5><div class="switches">${pick('serve', null, 'As you would', wishes.serve !== false)}${pick('serve', false, 'Decline')}</div>`;
   h += `<ul class="opps">${serve.map((o) => oppRow(o)).join('')}</ul>`;
+  // new land (VB-392): leading a party from a crowded village, or following a sibling who leads one
+  const land = `${pick('settle', null, 'As you would')}${pick('settle', true, 'Lead or follow')}${pick('settle', false, 'Never')}`;
+  h += `<h5>New land</h5><div class="switches">${land}</div>`;
+  h += '<p class="hint">Only from a crowded village, with grain for the journey and land within reach.</p>';
   const partners = acts.filter((o) => o.verb === 'match' && o.target !== null);
   if (acts.some((o) => o.verb === 'match')) {
     h += `<h5>A match</h5><div class="switches">${pick('match', null, 'As you would')}${pick('match', false, 'Not this year')}</div>`;
@@ -200,17 +204,27 @@ function offerBox(id, opps) {
   let h = '';
   for (const o of asks) {
     const one = (w) => `${esc(w.name)}, ${w.age}${w.farm ? `, of ${esc(w.farm)}` : ''}`;
-    const part =
-      o.part === 'the one to marry'
-        ? 'You are the one to marry.'
-        : `You are head of the household of ${esc(Sim.fullName(st.pawns[o.for]))}.`;
+    const match = o.basis === 'match',
+      part =
+        o.part === 'the one to marry'
+          ? 'You are the one to marry.'
+          : o.part === 'the one asked'
+            ? 'You are the one asked.'
+            : `You are head of the household of ${esc(Sim.fullName(st.pawns[o.for]))}.`;
     const said = o.answers.map((a) => `${esc(a.name)} said ${a.yes ? 'yes' : 'no'}`).join('; ');
+    const title = match ? 'A match is offered' : o.basis === 'gift' ? 'A gift is offered' : 'You are asked';
+    const body = match
+      ? `${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}.`
+      : `${esc(o.text.charAt(0).toUpperCase() + o.text.slice(1))}.`;
+    // the pawn's own judgement, as advice (principle 14: whose estimate it is)
+    const advice =
+      o.advice === null ? '' : ` ${esc(Sim.fullName(st.pawns[id]))} would answer ${o.advice ? 'yes' : 'no'}.`;
     h +=
-      `<div class="offer" role="group" aria-label="A marriage offer"><h3>A match is offered</h3>` +
-      `<p>${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}. ${part}</p>` +
+      `<div class="offer" role="group" aria-label="${title}"><h3>${title}</h3>` +
+      `<p>${body} ${part}</p>` +
       `<p class="hint">${said ? `${said}. ` : ''}${o.daysLeft} ${
         o.daysLeft === 1 ? 'day' : 'days'
-      } left; unanswered, it is answered as you would unplayed.</p>` +
+      } left; unanswered, it is answered as your pawn would.${advice}</p>` +
       `<div class="switches"><button type="button" class="primary" data-play="answer" data-offer="${o.id}" data-yes="true">Yes</button>` +
       `<button type="button" data-play="answer" data-offer="${o.id}" data-yes="false">No</button></div></div>`;
   }
@@ -242,8 +256,8 @@ function renderActions() {
   const hh = p.household !== null ? st.households[p.household] : null,
     f = hh ? st.farmsteads[hh.farmstead] : null;
   h += `<div class="play-head"><h3>You play ${esc(Sim.fullName(p))}</h3><button type="button" data-play="find">Find</button></div>`;
-  // the pawn's levels and its household's food and firewood, as its card and the farm's show them (VB-664: one unit, one meter)
-  h += `<div class="needs">${pawnStats(id)}${hh ? `<h3 class="card-sec">${esc(f.name)}</h3>${stats([foodStat(hh), woodStat(hh)])}` : ''}</div>`;
+  // the pawn's levels and its household's supplies, as its card and the farm's show them (VB-664: one meter; VB-667: one supply component)
+  h += `<div class="needs">${pawnStats(id)}${hh ? `<h3 class="card-sec">${esc(f.name)}</h3>${suppliesHTML(Sim.supplyOutlook(st, hh.id))}` : ''}</div>`;
   h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
   h +=
     `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>` +
@@ -275,6 +289,11 @@ function renderActions() {
     $('playTop').innerHTML = h;
     $('playRest').innerHTML = rest;
   }
+}
+// The camera brought to pawn id's farm (VB-1027): where a player starts, whatever errand the pawn is on at that hour.
+function flyToFarmOf(id) {
+  const f = farmOf(st.pawns[id]);
+  if (f) flyTo(w.hx[f.house], w.hy[f.house]);
 }
 function playAs(id) {
   const r = Sim.inhabit(st, id);

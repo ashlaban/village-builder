@@ -13,7 +13,7 @@ VB['sim/lying'] = (() => {
   //   data, saved (with the sharing of the fields and meadows it names); absent until the first and once empty.
   // @state st.lyingSeq: the last lying load's id (ids are never reused); absent until the first.
   // What a kind's delivery reads of its task, kept with the load.
-  const OF = ['field', 'meadow', 'farm', 'village', 'common', 'dest', 'step', 'from'];
+  const OF = ['cart', 'field', 'meadow', 'farm', 'village', 'common', 'dest', 'step', 'from'];
   // Pawn a, released on its way home with its load of task j (sim/agents' release), puts the load down at (x, y) on `tile`; `kind` the
   // kind that took it up (a fetch's, the kind it fetches for).
   function lay(st, a, j, kind, tile, x, y) {
@@ -21,12 +21,32 @@ VB['sim/lying'] = (() => {
     for (const k of OF) if (j[k] !== undefined) of[k] = j[k];
     // the sheaves' crop and the barn entry of their harvest, as they were: the field may be sown anew before they are fetched
     if (j.field) {
-      of.crop = j.field.crop;
+      of.crop = j.crop ?? j.field.crop; // the task's crop: its field may be on its next course (VB-350)
       if (j.field.bin !== undefined) of.bin = j.field.bin;
     }
     if (!st.lying) st.lying = [];
     st.lyingSeq = (st.lyingSeq || 0) + 1;
     const l = { id: st.lyingSeq, kind, n: a.load, tile, x, y, t: st.t, owner: { ...j.owner }, of };
+    st.lying.push(l);
+    return l;
+  }
+  // Timber carried to a building step at `tile` whose plan is given up (sim/plans' leftWood) is put down where it lies, `n` in a.load's units:
+  // a load of the household's, fetched home as firewood (the kind leftTimber, sim/building) or rotting at the frost.
+  // `at` {x, y, of}: where it lies, if not the tile's foot, and what its delivery reads (VB-850: the grain of a gift, `of.parts` by crop).
+  function leave(st, kind, n, tile, owner, at = {}) {
+    if (!st.lying) st.lying = [];
+    st.lyingSeq = (st.lyingSeq || 0) + 1;
+    const l = {
+      id: st.lyingSeq,
+      kind,
+      n,
+      tile,
+      x: at.x ?? st.w.hx[tile] + 7,
+      y: at.y ?? st.w.hy[tile] + 16,
+      t: st.t,
+      owner: { ...owner },
+      of: { src: tile, ...at.of },
+    };
     st.lying.push(l);
     return l;
   }
@@ -102,7 +122,19 @@ VB['sim/lying'] = (() => {
     for (const l of st.lying) {
       const o = l.owner,
         hh = o.type === 'household' ? st.households[o.id] : null;
-      const what = l.kind === 'haul' ? 'sheaves' : l.kind === 'hay' ? 'hay' : l.kind === 'wood' ? 'firewood' : 'stone';
+      if (l.kind === 'leftCart') continue; // its cart is gone with it, and named (sim/carts' frost sweep, VB-649)
+      const what =
+        l.kind === 'haul'
+          ? 'sheaves'
+          : l.kind === 'hay'
+            ? 'hay'
+            : l.kind === 'wood'
+              ? 'firewood'
+              : l.kind === 'leftTimber'
+                ? 'timber'
+                : l.kind === 'leftGrain'
+                  ? 'grain'
+                  : 'stone';
       if (hh && !hh.dissolved)
         log(st, `A load of ${what} left lying for ${st.farmsteads[hh.farmstead].name} was lost to the frost.`, {
           kind: 'frost',
@@ -124,5 +156,5 @@ VB['sim/lying'] = (() => {
     }
     delete st.lying;
   }
-  return { lay, take, left, fetchKey, fetchKind, fetchWork, frost, LIFT };
+  return { lay, leave, take, left, fetchKey, fetchKind, fetchWork, frost, LIFT };
 })();

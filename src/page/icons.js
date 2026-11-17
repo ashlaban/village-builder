@@ -165,6 +165,7 @@ const ACT_PATHS = {
   weed: '<path d="M12 21v-7M12 14c-1-4-4-5-7-5 0 3 3 5 7 5zM12 12c1-5 4-6 7-6 0 4-3 6-7 6zM4 21h16"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
+  ale: '<path d="M6 7h10v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 10h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2M6 7c0-2 2-3 4-2 1-1.5 4-1.5 5 .5"/>', // a tankard
 };
 const actIcon = (k) => svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE);
 // a job kind's icon (sim/kinds); a kind not named here takes the hoe
@@ -245,9 +246,36 @@ const GOOD_PATHS = {
   soil: '<path d="M3 13c3-2 6-2 9 0s6 2 9 0M3 18c3-2 6-2 9 0s6 2 9 0M12 10V4M12 6c-2 0-3-1-3-3M12 7c2 0 3-1 3-3"/>',
   heir: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14.5 8.5l2 2"/>',
   holder: ACT_PATHS.home,
+  // a pawn's mood and its modifiers for an event (VB-062): a face; two rings; a swaddled child; a falling tear
+  mood: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.5c2 2 5 2 7 0M9 9.5h.01M15 9.5h.01"/>',
+  married: '<circle cx="9" cy="13" r="5"/><circle cx="15" cy="13" r="5"/><path d="M10.5 6l1.5-2.5L13.5 6"/>',
+  child:
+    '<circle cx="12" cy="6.5" r="3"/><path d="M8 11c0-1 1.5-1.5 4-1.5s4 .5 4 1.5v6c0 2.5-1.5 3.5-4 3.5s-4-1-4-3.5zM8 14h8"/>',
+  grieving:
+    '<circle cx="12" cy="10" r="7"/><path d="M8.5 13c2-1.5 5-1.5 7 0M9 8.5h.01M15 8.5h.01M16.5 12c1 2 1.5 3 1.5 4a1.5 1.5 0 0 1-3 0c0-1 .5-2 1.5-4z"/>',
+  friend:
+    '<circle cx="7.5" cy="8" r="2.5"/><circle cx="16.5" cy="8" r="2.5"/><path d="M3 19c0-3.5 2-6 4.5-6s4.5 2.5 4.5 6M12 19c0-3.5 2-6 4.5-6s4.5 2.5 4.5 6"/>',
   tile: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/>',
+  // ale (VB-698's made good): a tankard; the household's plan (VB-256): a list of what is to be done, ticked
+  ale: '<path d="M5 6h10v14H5zM15 9h2.5a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H15M5 9.5h10M8 6V4.5h4V6"/>',
+  plan: '<path d="M6 3h12v18H6zM9 8l1.2 1.2L12.5 7M14 8.5h2M9 13l1.2 1.2 2.3-2.2M14 13.5h2M9 18h7"/>',
 };
 const goodIcon = (k) => svgIcon(24, 24, GOOD_PATHS[k] || GOOD_PATHS.tile, ICON_STROKE);
+// The four seasons (sim/rules SEASONS, spring first), one icon each, on a 14 box (VB-667: the supply component's header and its chips): a
+// sprout, a sun, a leaf, a snowflake.
+const SEASON_PATHS = [
+  '<path d="M7 13V6M7 8C5 8 3.5 6.5 3.5 4.5 5.5 4.5 7 6 7 8zM7 6.5c0-2 1.5-3.5 3.5-3.5 0 2-1.5 3.5-3.5 3.5z"/>',
+  '<circle cx="7" cy="7" r="2.6"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.8 2.8l1 1M10.2 10.2l1 1M11.2 2.8l-1 1M3.8 10.2l-1 1"/>',
+  '<path d="M3 11c0-5 3-8 8-8 0 5-3 8-8 8zM3 11l5-5M2 12l1-1"/>',
+  '<path d="M7 1v12M1.8 4l10.4 6M12.2 4L1.8 10M5.5 2L7 3.5 8.5 2M5.5 12L7 10.5 8.5 12"/>',
+];
+const seasonIcon = (k) =>
+  svgIcon(
+    14,
+    14,
+    SEASON_PATHS[((k % 4) + 4) % 4],
+    ' fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"',
+  );
 // The twelve traits (sim/traits, TRAITS.names), one icon each: traits are not hidden (Kim, 16 Nov), and are shown as icons.
 const TRAIT_PATHS = {
   generosity:

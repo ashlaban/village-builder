@@ -61,7 +61,12 @@ $('tileFocus').addEventListener('click', centreSelection);
 // A name on the map under a point of the world, while it shows.
 function labelAt(x, y) {
   for (const l of labels)
-    if (l.t.visible && l.t.alpha > 0.3 && Math.abs(x - l.x) < l.t.width / 2 && y < l.y && y > l.y - l.t.height)
+    if (
+      l.t.visible &&
+      l.t.alpha > 0.3 &&
+      Math.abs(x - l.x) < l.t.width / 2 &&
+      (l.below ? y > l.y && y < l.y + l.t.height : y < l.y && y > l.y - l.t.height) // a village's name may lie under its centre
+    )
       return l;
   return null;
 }
@@ -92,16 +97,22 @@ function memberRow(id) {
     esc(Sim.describe(st, id)),
   );
 }
-function farmRow(f) {
+// marks: chips put before its state (a village's card puts a chip of VB-667's kind on the farms its warnings concern, VB-162, VB-927). Its
+// state is a chip for each supply about to fall short, by its head's last reckoning (VB-667: one stored outlook a farm, read), and its
+// people as an icon and a number; a
+// title says how the household eats today.
+function farmRow(f, marks = '') {
   const hh = f.household === null ? null : st.households[f.household];
+  const n = hh ? hh.members.length : 0,
+    people = `<span class="ppl" title="${n} people" aria-label="${n} people">${goodIcon('people')}${n}</span>`;
   return row(
-    `data-farm="${f.id}"`,
+    `data-farm="${f.id}"${hh ? ` title="${esc(hungerWord(hh))}"` : ''}`,
     iconImg(farmIcon(f), hh ? 'mini' : 'mini gone'),
     f.name,
     hh
       ? `Held by ${Sim.fullName(st.pawns[hh.holder])}`
       : `Empty for ${emptyYears(f)} years${f.state === 'ruin' ? ', a ruin' : ''}`,
-    hh ? `${hungerMark(hh)}${hh.members.length} people · ${hungerWord(hh)}` : '',
+    hh ? `<span class="farm-state">${marks}${supplyChips(Sim.supplyOutlook(st, hh.id))}${people}</span>` : marks,
   );
 }
 // One listener for every link: a person, a farm or a village.
@@ -122,19 +133,6 @@ const houseShown = () => {
   const f = st.farmsteads[selFarm];
   return f.household === null ? null : st.households[f.household];
 };
-// Food is counted in one unit wherever it is shown: days of the household's need (page/play, foodDays), on a meter of one year.
-const hungerTone = (hh) => (hh.hunger <= 0 ? 'good' : hh.hunger < 0.25 ? 'warn' : 'bad');
-function foodStat(hh) {
-  const days = foodDays(hh);
-  return {
-    icon: 'hunger',
-    label: 'Food',
-    value: days === null ? 'none to feed' : `${days} ${days === 1 ? 'day' : 'days'}`,
-    title: `Food in store, in days of the household's need: ${hungerWord(hh).toLowerCase()}`,
-    tone: hungerTone(hh),
-    meter: { value: days || 0, max: Sim.YEAR_DAYS, marks: [] },
-  };
-}
 const loads = (n) => `${n} ${n === 1 ? 'load' : 'loads'}`;
 const woodStat = (hh) => ({
   icon: 'wood',
@@ -144,41 +142,107 @@ const woodStat = (hh) => ({
   tone: hh.cold > 0 ? 'bad' : '',
   title: hh.cold > 0 ? 'Cold: no firewood' : 'Firewood',
 });
-function hayStat(hh) {
-  const need = Math.round(Sim.winterNeed(st, hh)),
-    hay = Math.round(hh.hay);
-  if (!need && !hay) return null;
-  return {
-    icon: 'hay',
-    label: 'Hay',
-    value: `${hay}`,
-    tone: hay < need ? 'warn' : '',
-    meter: {
-      value: hay,
-      max: Math.max(1, need * 1.5),
-      marks: need ? [{ at: need, label: `a winter needs ${need}` }] : [],
-    },
-  };
-}
-// What the card's first tab says of the household at a glance: food, firewood, hay, and what is wrong.
+// What the card's first tab says of the household at a glance: its supplies, as the Stores tab shows them (VB-667), and what is wrong
+// today.
 const houseStats = (hh) =>
+  suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
   stats([
-    foodStat(hh),
-    woodStat(hh),
-    hayStat(hh),
+    hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
     hh.dry > 0
       ? { icon: 'water', label: 'Water', value: 'none', tone: 'bad', title: 'No water: nothing is cooked' }
       : null,
     hh.hungryDays > 0 ? { icon: 'hunger', label: 'Hungry days', value: hh.hungryDays, tone: 'warn' } : null,
   ]);
 const section = (title) => `<h3 class="card-sec">${title}</h3>`;
+// ---- materials (VB-668): held until a work asks for them, so the question is whether there is enough for what is planned ----
+// A material: the good a project's step spends (its key, as sim/stores names it) or a heap the household holds; `kinds` is the list of
+// {label, n, tint} the heap holds of one material (today's state holds one kind of each, so it is empty), shown under the total only
+// where more than one kind is held.
+let allMaterials = false; // the "All materials" switch: the page's own state, kept as the selection changes
+const MATERIALS = [
+  { key: 'wood', label: 'Timber', icon: 'wood', field: 'wood', title: 'Timber, in loads (the woodpile)' },
+  { key: 'stone', label: 'Stone', icon: 'stone', field: 'stone', title: 'Stone, in loads' },
+  { key: 'clay', label: 'Clay', icon: 'clay', field: 'clay', title: 'Clay, in loads' },
+  { key: 'bogOre', label: 'Bog ore', icon: 'ore', field: 'bogOre', title: 'Bog iron ore, in loads' },
+  { key: 'tar', label: 'Tar', icon: 'tar', field: 'tar', title: 'Tar, in barrels' },
+  { key: 'wool', label: 'Wool', icon: 'wool', field: 'wool', title: 'Wool, in fleeces, unspun' },
+];
+const materialsOf = (hh) => MATERIALS.map((m) => ({ ...m, n: Math.round(hh[m.field] || 0), kinds: [] }));
+const WORK_WORD = { field: 'New field', meadow: 'New hay meadow', boat: 'A boat', plot: 'A plot for an heir' };
+// The works that ask for materials: the household's project plans, each with what it asks (what its plan holds back for its steps, `build`).
+function worksOf(hh) {
+  const works = [];
+  for (const plan of VB['sim/projects'].projectsOf(st, 'household', hh.id)) {
+    const asks = [];
+    for (const key in plan.reasons)
+      if (plan.reasons[key] === 'build' && plan.reserved[key] > 0) {
+        const m = MATERIALS.find((x) => x.key === key);
+        if (m) asks.push({ key, have: Math.round(hh[m.field] || 0), want: Math.ceil(plan.reserved[key] - 1e-9) });
+      }
+    if (asks.length) {
+      const step = plan.steps[plan.open];
+      works.push({
+        icon: plan.what === 'boat' ? 'boat' : plan.what === 'meadow' ? 'meadow' : 'field',
+        name: WORK_WORD[plan.what] || `New ${plan.what}`,
+        step: step ? Sim.KINDS[step.kind].name : '',
+        asks,
+      });
+    }
+  }
+  return works;
+}
+// The section's layout, from lists: mats [{key, label, icon, n, kinds, title}], works [{icon, name, step, asks: [{key, have, want}]}], all.
+function materialsHTML(mats, works, all) {
+  const asked = new Set(works.flatMap((w) => w.asks.map((a) => a.key)));
+  const by = (k) => mats.find((m) => m.key === k);
+  const frames = works
+    .map(
+      (w) =>
+        `<div class="work"><div class="work-head">${goodIcon(w.icon)}<b>${esc(w.name)}</b>${w.step ? `<small>${esc(w.step)} is next</small>` : ''}</div>` +
+        stats(
+          w.asks.map((a) => ({
+            icon: by(a.key).icon,
+            label: by(a.key).label,
+            value: `${a.have} of ${a.want}`,
+            tone: a.have < a.want ? 'warn' : 'good',
+            meter: { value: a.have, max: a.want * 1.25, marks: [{ at: a.want, label: `asked: ${a.want}` }] },
+          })),
+        ) +
+        '</div>',
+    )
+    .join('');
+  const shown = mats.filter((m) => all || m.n >= 1 || asked.has(m.key));
+  const tiles = shown.map((m) => {
+    const list = m.kinds && m.kinds.length > 1 ? m.kinds : [];
+    return (
+      stat({ icon: m.icon, label: m.label, value: m.n, title: m.title }) +
+      (list.length
+        ? `<div class="stat wide kinds">${list
+            .map(
+              (k) => `<span><i style="background:${esc(k.tint || 'var(--muted)')}"></i>${esc(k.label)} ${k.n}</span>`,
+            )
+            .join('')}</div>`
+        : '')
+    );
+  });
+  return (
+    frames +
+    `<div class="stat-grid">${tiles.join('')}</div>` +
+    `<button type="button" class="card-switch" data-all-materials aria-pressed="${all}">All materials</button>`
+  );
+}
+$('tileHouse').addEventListener('click', (e) => {
+  if (!e.target.closest('[data-all-materials]')) return;
+  allMaterials = !allMaterials;
+  syncTabs();
+});
 function storesTab(hh) {
   const f = st.farmsteads[hh.farmstead],
     C = VB['sim/carts'],
     seed = Math.round(Sim.seedReserve(st, hh)),
     quern = hh.quern ? Sim.quernYears(st, hh) : 0,
     n = (x) => Math.round(x || 0);
-  const goods = [
+  const supplies = [
     {
       icon: 'grain',
       label: 'Grain',
@@ -203,18 +267,7 @@ function storesTab(hh) {
     },
     woodStat(hh),
     hh.dry > 0 ? { icon: 'water', label: 'Water', value: 'none', tone: 'bad' } : null,
-    { icon: 'stone', label: 'Stone', value: n(hh.stone), title: 'Stone, in loads' },
-    { icon: 'clay', label: 'Clay', value: n(hh.clay), title: 'Clay, in loads' },
-    { icon: 'ore', label: 'Bog ore', value: n(hh.bogOre), title: 'Bog iron ore, in loads' },
     { icon: 'peat', label: 'Peat', value: n(hh.peat), title: 'Peat, in units' },
-    { icon: 'wool', label: 'Wool', value: n(hh.wool), title: 'Wool, in fleeces, unspun' },
-    {
-      icon: 'tar',
-      label: 'Tar',
-      value: n(hh.tar),
-      note: [hh.tarPit ? 'a pit' : '', Sim.houseTarred(st, f) ? 'house tarred' : ''].filter(Boolean).join(', '),
-      title: 'Tar, in barrels',
-    },
   ];
   const gear = [
     {
@@ -250,7 +303,11 @@ function storesTab(hh) {
   ];
   const low = Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)));
   return (
-    stats(goods) +
+    section('Supplies') +
+    suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
+    stats(supplies) +
+    section('Materials') +
+    materialsHTML(materialsOf(hh), worksOf(hh), allMaterials) +
     section('Gear') +
     stats(gear) +
     section('Health') +
@@ -260,23 +317,28 @@ function storesTab(hh) {
     ])
   );
 }
-function landTab(hh) {
-  const f = st.farmsteads[hh.farmstead],
-    pj = VB['sim/plans'].projectOf(st, 'household', hh.id),
-    n = {};
+// The work a household or a village has posted, a stat a kind: its icon, how many, and how many are under way (a farm's Land tab, a
+// village's card: one presentation, VB-162).
+function workStats(type, id) {
+  const n = {};
   for (const job of st.jobs.values()) {
-    if (job.owner.type !== 'household' || job.owner.id !== hh.id) continue;
+    if (job.owner.type !== type || job.owner.id !== id) continue;
     const k = job.kind;
     n[k] = n[k] || { open: 0, taken: 0 };
     n[k][job.claims.length ? 'taken' : 'open']++;
   }
-  const jobs = Object.entries(n).map(([k, v]) => ({
+  return Object.entries(n).map(([k, v]) => ({
     img: actIcon(KIND_ICON[k] || 'hoe'),
     label: Sim.KINDS[k].name,
     value: v.open + v.taken > 1 ? `×${v.open + v.taken}` : '',
     note: v.taken ? (v.open ? `${v.taken} under way` : 'under way') : 'open',
     wide: true,
   }));
+}
+function landTab(hh) {
+  const f = st.farmsteads[hh.farmstead],
+    pj = VB['sim/plans'].projectOf(st, 'household', hh.id),
+    jobs = workStats('household', hh.id);
   return (
     stats([
       ...fieldCounts(f).map(([word, k]) => ({ icon: 'field', label: `Fields ${word}`, value: k })),
@@ -346,14 +408,16 @@ function animalsTab(hh) {
   const spoilt = Math.round(hh.haySpoilt || 0);
   return (
     (beasts.length ? stats(beasts) : '<p class="card-note">No animals.</p>') +
-    stats([hayStat(hh), spoilt ? { icon: 'hay', label: 'Hay spoilt', value: spoilt, tone: 'warn' } : null]) +
+    suppliesHTML(Sim.supplyOutlook(st, hh.id), ['hay']) +
+    stats([spoilt ? { icon: 'hay', label: 'Hay spoilt', value: spoilt, tone: 'warn' } : null]) +
     section('Larder') +
     (larder.length ? stats(larder) : '<p class="card-note">The larder is empty.</p>')
   );
 }
 let houseHTML = '';
 function renderHouse(tab, hh) {
-  const h = tab === 'land' ? landTab(hh) : tab === 'animals' ? animalsTab(hh) : storesTab(hh);
+  const h =
+    tab === 'land' ? landTab(hh) : tab === 'animals' ? animalsTab(hh) : tab === 'plan' ? planTab(hh) : storesTab(hh);
   if (h !== houseHTML) {
     houseHTML = h;
     $('tileHouse').innerHTML = h;
@@ -386,6 +450,132 @@ function tileExtras(of) {
     list,
   };
 }
+// ---- the village's overview (VB-162; Sim.villageSummary): food, the harvest, hungry households and idle hands as stats, people by age
+// band as a graph, and the warnings, each with the farms it concerns. What is counted is exact; what foretells (food, hands) is the
+// estimate of a pawn, named (principle 14). ----
+function overviewStats(S) {
+  const days = Math.floor(S.food.days),
+    pct = Math.round(100 * S.harvest.share),
+    idle = Math.round(100 * S.idle.share),
+    hungry = S.hungry.households.length;
+  return [
+    {
+      icon: 'hunger',
+      label: 'Food',
+      value: `${days} ${days === 1 ? 'day' : 'days'}`,
+      note: S.food.store >= 1 ? `${Math.round(S.food.store)} in the village store` : '',
+      title: "Food in store, the households' and the village store's, in days of the village's need",
+      tone: S.food.short ? 'bad' : '',
+      meter: {
+        value: days,
+        max: Sim.YEAR_DAYS,
+        marks: S.viewer ? [{ at: S.viewer.toHarvest, label: `the harvest begins in ${S.viewer.toHarvest} days` }] : [],
+      },
+    },
+    S.harvest.year < 1
+      ? { icon: 'sheaves', label: 'Harvest', value: 'none yet', wide: true }
+      : {
+          icon: 'sheaves',
+          label: 'Harvest',
+          value: `${pct}%`,
+          note: `of a year's need, year ${S.harvest.year}`,
+          title: `The harvest of year ${S.harvest.year}, against a year of the village's need now`,
+          tone: pct < 100 ? 'warn' : '',
+          meter: { value: pct, max: 200, marks: [{ at: 100, label: "a year's need" }] },
+        },
+    {
+      icon: 'hunger',
+      label: 'Hungry',
+      value: `${hungry} of ${S.households}`,
+      note: `households, last ${S.hungry.window} days`,
+      title: `Households in which someone ate short on any of the last ${S.hungry.window} days`,
+      tone: hungry ? 'warn' : '',
+      meter: { value: hungry, max: Math.max(1, S.households) },
+    },
+    {
+      img: actIcon('idle'),
+      label: 'Idle hands',
+      value: `${idle}%`,
+      note: `last ${S.hungry.window} days`,
+      title: `The share of the working hands' hours (14 to 59) not at work on a task, over the last ${S.hungry.window} days`,
+      meter: { value: idle },
+    },
+  ];
+}
+// People by age band, now, on one meter each against the village's people, and the change since a year ago.
+const BANDS = [
+  ['child', '0–14'],
+  ['people', '15–49'],
+  ['holder', '50+'],
+];
+function peopleHTML(S) {
+  return (
+    section('People') +
+    stats(
+      BANDS.map(([icon, label], i) => {
+        const n = S.bands.now[i],
+          d = n - S.bands.ago[i];
+        return {
+          icon,
+          label,
+          value: n,
+          note: d ? `${d > 0 ? '+' : '−'}${Math.abs(d)} in a year` : 'as a year ago',
+          title: `People aged ${label}: ${n} now, ${S.bands.ago[i]} a year ago`,
+          meter: { value: n, max: Math.max(1, S.people, ...S.bands.ago) },
+        };
+      }),
+    )
+  );
+}
+// The warnings: an icon and words each, and the farms it concerns as chips (a chip selects the farm, whose card is its household's).
+const WARNINGS = [
+  {
+    key: 'food',
+    icon: goodIcon('hunger'),
+    word: (S) => `Food short of the ${S.viewer.days} days ahead`,
+    tone: 'bad',
+    foretells: true,
+  },
+  {
+    key: 'hunger',
+    icon: goodIcon('hunger'),
+    word: (S) => `Hungry ${Sim.OVERVIEW.hungry} or more of the last ${S.hungry.window} days`,
+    tone: 'bad',
+  },
+  { key: 'heir', icon: goodIcon('heir'), word: () => 'Holder over 60, no heir at home', tone: 'warn' },
+  {
+    key: 'hands',
+    icon: goodIcon('field'),
+    word: () => 'More fields than hands to work them',
+    tone: 'warn',
+    foretells: true,
+  },
+];
+function warningsHTML(S) {
+  const on = WARNINGS.filter((x) => S.warnings[x.key].length);
+  if (!on.length) return '';
+  const whose = S.viewer
+    ? `<p class="card-note">${esc(
+        `Food and hands by ${Sim.fullName(st.pawns[S.viewer.pawn])}'s reckoning, ${S.viewer.days} ${
+          S.viewer.days === 1 ? 'day' : 'days'
+        } ahead`,
+      )}</p>`
+    : '';
+  return (
+    section('Warnings') +
+    (on.some((x) => x.foretells) ? whose : '') +
+    on
+      .map(
+        (x) =>
+          `<div class="warning" title="${esc(x.word(S))}"><span class="stat-ico">${x.icon}</span><span>${esc(
+            x.word(S),
+          )}</span><div class="links">${S.warnings[x.key]
+            .map((h) => farmChip(st.farmsteads[st.households[h].farmstead]))
+            .join('')}</div></div>`,
+      )
+      .join('')
+  );
+}
 function showVillage(id) {
   const v = st.villages[id],
     farms = v.farmsteads.map((k) => st.farmsteads[k]),
@@ -400,9 +590,8 @@ function showVillage(id) {
     name = (id) => Sim.fullName(st.pawns[id]),
     out = st.demand.filter((q) => st.pawns[q].alive && Sim.settlementIdOf(st, st.pawns[q]) === v.id),
     daughters = st.villages.filter((u) => u.founded && u.founded.from === v.id),
-    plots = [...v.plots, ...X.livePlots(st, v)].sort((a, b) => (a.plot ?? a.id) - (b.plot ?? b.id)),
-    work = [];
-  for (const job of st.jobs.values()) if (job.owner.type === 'village' && job.owner.id === v.id) work.push(job);
+    plots = [...v.plots, ...X.livePlots(st, v)].sort((a, b) => (a.plot ?? a.id) - (b.plot ?? b.id));
+  const S = Sim.villageSummary(st, id, st.player ? st.player.pawn : null); // the overview (VB-162): the played pawn's estimate
   const lines = [
     `${people} people in ${lived.length} ${lived.length === 1 ? 'household' : 'households'}${empty ? `, ${empty} empty` : ''}`,
     v.well ? 'A shared well and woods' : 'Shared woods',
@@ -410,11 +599,6 @@ function showVillage(id) {
       ? `Founded in year ${Math.floor(v.founded.t / Sim.YEAR) + 1} from ${mother.name} by ${name(v.founded.by)}`
       : '',
     v.crowded > 0 ? `Crowded: ${v.crowded} adults wait for land, and there is no room to clear` : '',
-    // its common fields and their stage (VB-100), and the one being cleared
-    ...(v.commonFields || []).map(
-      (fd, i) => `Common field ${i + 1}: ${fieldSummary({ fields: [fd] }).replace(/^1 /, '')}`,
-    ),
-    VB['sim/commons'].underWay(st, v) ? 'Clearing a common field for the village store' : '',
     daughters.length ? `Daughter villages: ${daughters.map((u) => u.name).join(', ')}` : '',
     out.length ? `Want to move out: ${out.map(name).join(', ')}` : '',
     ...plots.map((plot) =>
@@ -428,9 +612,9 @@ function showVillage(id) {
                 : 'the cottage stands empty'
             }`,
     ),
-    work.length ? `Village work: ${jobsLine(work)}` : '',
   ].filter(Boolean);
   const villageStats = stats([
+    ...overviewStats(S),
     v.fence.length
       ? {
           icon: 'fence',
@@ -456,11 +640,41 @@ function showVillage(id) {
         };
       }),
   ]);
-  const list = `<h3>Farms</h3>${farms.map(farmRow).join('')}`;
+  // its common fields (VB-100) and its work as a farm's Land tab shows a farm's (one presentation, VB-162)
+  const common = v.commonFields || [],
+    work = workStats('village', v.id),
+    commons = common.length || VB['sim/commons'].underWay(st, v);
+  const land =
+    (commons ? section('Common fields') : '') +
+    (commons
+      ? stats([
+          ...fieldCounts({ fields: common }).map(([word, k]) => ({ icon: 'field', label: `Fields ${word}`, value: k })),
+          VB['sim/commons'].underWay(st, v)
+            ? { img: actIcon('spade'), label: 'Clearing a common field', value: '', wide: true }
+            : null,
+        ])
+      : '') +
+    (work.length ? section('Village work') + stats(work) : '');
+  const marks = (f) =>
+    f.household === null
+      ? ''
+      : WARNINGS.filter((x) => S.warnings[x.key].includes(f.household))
+          .map(
+            (x) =>
+              `<span class="supply-chip ${x.tone}" data-warning="${x.key}" title="${esc(x.word(S))}" aria-label="${esc(x.word(S))}">${x.icon}</span>`,
+          )
+          .join('');
+  const list = `<h3>Farms</h3>${farms.map((f) => farmRow(f, marks(f))).join('')}`;
   card(v.name, lines, '', {
     badge: iconImg(villageIcon(v)),
     kind: v.green || farms.length >= 2 ? 'Village' : 'Lone farm',
-    stats: villageStats,
+    stats:
+      villageStats +
+      section('Store') +
+      suppliesHTML(Sim.villageOutlook(st, id, st.player ? st.player.pawn : null), ['food']) +
+      peopleHTML(S) +
+      warningsHTML(S) +
+      land,
     links: mother ? villageChip(mother) : '',
     list,
   });

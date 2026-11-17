@@ -9,6 +9,7 @@ VB['sim/quern'] = (() => {
   const Stores = VB['sim/stores'],
     { grainOf, reserved } = Stores;
   const { dailyNeed } = VB['sim/hunger'];
+  const Targets = VB['sim/targets'];
   // Proposed (slice 6's plan, VB-185, 11 Nov): years, a quern's life from when it was made; renewYears, how long before its end a new one is
   // wanted; granite, its grinding speed against sandstone's; perHour, grain ground an hour on sandstone, 1 grain to 1 flour (design.md:
   // about 1 work hour per 4 units); grindHours, one grinding job's work on sandstone (on granite it takes 1 / granite as long for the same
@@ -57,8 +58,14 @@ VB['sim/quern'] = (() => {
   // ground is sandstone or granite (elsewhere it comes from the fair: the good 'quern', when VB-302's fair trades).
   const wanted = (st, hh) => !hh.quern || st.t >= hh.quern.made + (QUERN.years - QUERN.renewYears) * YEAR;
   const canHew = (st, hh) => hh.farmstead !== null && hewable(rockOf(st, hh));
+  // The quern as a made good (VB-698): its head's target the working querns the household keeps, 1 by default; one it holds is counted
+  // while it is not yet due for renewal, so a new one is hewn while the target is above that (a target of 0 lets the quern wear out,
+  // to be got elsewhere). None beyond its own: a quern hewn is set in the house, and no store holds a loose one yet (VB-699 reads the asks).
+  const held = (st, hh) => (wanted(st, hh) ? 0 : 1);
+  const hewWanted = (st, hh) => held(st, hh) < Targets.target(st, hh, 'quern');
+  Targets.made({ good: 'quern', unit: 'stone', whole: true, need: () => 1, most: () => 0, held });
   // The heap lacks the load a wanted quern is hewn from (sim/building's building step fetches one).
-  const wantsStone = (st, hh) => hh.stone < 1 && wanted(st, hh) && canHew(st, hh);
+  const wantsStone = (st, hh) => hh.stone < 1 && hewWanted(st, hh) && canHew(st, hh);
   // ---- grinding: a job at home while the household holds grain above its seed reserve and fewer than QUERN.flourDays of its need in flour ----
   const flourWanted = (st, hh) =>
     hh.flour < QUERN.flourDays * dailyNeed(st, hh) && grainOf(hh) - reserved(st, hh, 'grain') > 1e-9;
@@ -71,7 +78,7 @@ VB['sim/quern'] = (() => {
   }
   // ---- hewing: a load of sandstone or granite off the heap, QUERN.hewHours at home; in winter, or in any season with no working quern ----
   function hewn(st, hh) {
-    if (!wanted(st, hh) || !canHew(st, hh) || hh.stone < 1) return false;
+    if (!hewWanted(st, hh) || !canHew(st, hh) || hh.stone < 1) return false;
     Stores.take(st, hh, 'stone', 1, 'quern');
     setQuern(hh, { rock: rockOf(st, hh), made: st.t });
     return true;
@@ -118,7 +125,7 @@ VB['sim/quern'] = (() => {
       },
       // while a new quern is wanted, the village's ground gives its stone and the heap holds a load: in winter, or at once with none working
       available: (st, hh, f, c, post) => {
-        if (hh.stone < 1 || !wanted(st, hh) || !canHew(st, hh)) return;
+        if (hh.stone < 1 || !hewWanted(st, hh) || !canHew(st, hh)) return;
         if (c.season === 3 || !quernOf(st, hh)) post(`hewQuern:h${hh.id}`, f.house, { farm: f });
       },
     },

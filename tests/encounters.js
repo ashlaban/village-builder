@@ -109,6 +109,33 @@ check(E.ENCOUNTERS.occasion.mix === mix0, 'the default mix is kept');
 end(o);
 st.pawns[a].rel.delete(b);
 st.pawns[a].bands.delete(b);
+// 5. (VB-561) Indoors at another house is not at home: a pawn waiting inside a farm not its own is drawn by none of its housemates and
+// draws none; the same pawn by its own door is, and counts its hours at home
+{
+  const hh = st.households.find((x) => !x.dissolved && x.members.length >= 2 && x.id !== hostHh.id);
+  const [m1, m2] = hh.members;
+  const own = st.farmsteads[hh.farmstead], ox = st.w.hx[own.house] - 12, oy = st.w.hy[own.house] + 14;
+  const reset = () => { for (const id of st.living) { ag[id].talk = null; ag[id].occasion = null; } };
+  const found = [], busy = new Int32Array(st.agents.length + 8);
+  const near = E.outdoors(st, A.placeOf);
+  place([]); reset();
+  ag[m1].x = ox; ag[m1].y = oy; ag[m2].x = ox; ag[m2].y = oy;
+  check(E.atHome(st, ag[m1]), 'indoors by its own door is at home');
+  E.partners(st, ag[m1], near, busy, 1, found);
+  check(found.some((g) => g.id === m2), 'at home, a pawn draws its housemate at home');
+  ag[m2].x = hx; ag[m2].y = hy; // m2 waits indoors at the other farm
+  check(ag[m2].inside && !E.atHome(st, ag[m2]), 'indoors at another farm is not at home');
+  E.partners(st, ag[m1], near, busy, 2, found);
+  check(!found.some((g) => g.id === m2), 'its housemates at home do not draw a pawn indoors elsewhere');
+  E.partners(st, ag[m2], near, busy, 3, found);
+  check(found.length === 0, 'a pawn indoors elsewhere draws none');
+  const h = hourOf(m2), before = st.pawns[m2].homeHours, b1 = st.pawns[m1].homeHours;
+  R.talkHour(st, h, E.outdoors(st, A.placeOf));
+  check(st.pawns[m2].homeHours === before, 'its turn adds no hours at home');
+  if (turnOf(m1, h)) check(st.pawns[m1].homeHours === b1 + T.every, 'a pawn at home counts its turn');
+  for (const id of st.living) st.pawns[id].homeHours = 0;
+}
+
 for (const id of st.living) st.pawns[id].homeHours = 0; // the hours above were walked more than once
 check(checkState(st).length === 0, 'invariants: ' + checkState(st).slice(0, 3).join('; '));
 

@@ -2,7 +2,7 @@
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
-  const { YEAR, TICKS, ECON, CROPS, FERTILITY, farmable } = VB['sim/rules'];
+  const { YEAR, TICKS, ECON, CROPS, FERTILITY, SEASON_DAYS, cal, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable, buildHours } = VB['sim/routes'];
@@ -14,19 +14,21 @@ VB['sim/scenarios'] = (() => {
   const { placeAtHome } = VB['sim/agents'];
   const { seedPlans, startHeads } = VB['sim/plans'];
   const { seedTraits } = VB['sim/traits'];
+  const { seedAsking } = VB['sim/wishes'];
   // The end of seeding: a stream for each system, then the living's traits and each household's head (VB-254), from the stream `traits`.
   // Also for a state made outside the scenarios (tests/lib/tiny.js).
   function startStreams(st, seedNum) {
     splitStreams(st, seedNum);
     seedTraits(st);
     startHeads(st);
+    seedAsking(st); // each who seeks, or will, on its asking day (VB-823)
   }
   const { dailyNeed } = VB['sim/hunger'];
   const { startQuern } = VB['sim/quern'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
-  const { yearlyRations, fieldsWanted } = VB['sim/fields'];
+  const { yearlyRations, fieldsWanted, restagger } = VB['sim/fields'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
   const { initDeer } = VB['sim/deer'];
@@ -101,8 +103,9 @@ VB['sim/scenarios'] = (() => {
         comp.size[comp.id[i]] >= 60 && !gen.used.has(i) && centres.every((x) => hexSteps(w, x, i) >= VILLAGE_SPACING);
       const c = findSite(w, rand, comp, free, scores);
       if (c < 0) break;
-      centres.push(c);
-      for (const fid of gen.addVillage(c, farms).farmsteads) {
+      const laid = gen.addVillage(c, farms).farmsteads;
+      if (laid.length) centres.push(c);
+      for (const fid of laid) {
         sizes[fid] = drawSize(rand);
         pop += sizes[fid];
         if (sizes[fid] >= 7) gen.addField(fid); // a big household works a fourth field
@@ -432,7 +435,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob
     // @state st.meetingLog[]: {year, text}; newest first. (The village log is a view of st.record: sim/notable, villageLog.)
-    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self}; every event, append-only (sim/records, VB-075);
+    // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self, tile, reason (of a `joined` event: why it
+    //   moved, VB-822)}; every event, append-only (sim/records, VB-075);
     //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start.
     //   A routine event's slot becomes, once folded, the index of its count in st.recordYears (VB-199); slots are never removed.
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends; sim/routes), oldest first, emptied each day a tile
@@ -442,9 +446,10 @@ VB['sim/scenarios'] = (() => {
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
-    // @state st.offers, st.offerSeq: the open marriage offers and the next offer's id (see sim/lifecycle)
+    // @state st.offers, st.offerSeq: the open offers and the next offer's id (see sim/offers)
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
-    // @state st.journeys, st.journeySeq: the open journeys between villages and the next one's id (see sim/agents, VB-287)
+    // @state st.away, st.awaySeq: the open stays away from home, journeys among them, and the next one's id (see sim/away, VB-783)
+    // @state st.booths, st.boothSeq: the booths raised or being raised, and the next one's id (see sim/building, VB-784)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
@@ -523,8 +528,10 @@ VB['sim/scenarios'] = (() => {
       offerSeq: 0,
       occasions: [],
       occasionSeq: 0,
-      journeys: [],
-      journeySeq: 0,
+      away: [],
+      awaySeq: 0,
+      booths: [],
+      boothSeq: 0,
       finds: new Map(),
       deer: null,
     };
@@ -566,14 +573,37 @@ VB['sim/scenarios'] = (() => {
     return st;
   }
 
-  // places: what was placed by hand, for the 'manual' scenario (seedManual).
-  function seed(w, seedNum, scenario = 'founders', places = null) {
+  // A test switch (VB-350; tools/sim.js and tools/balance.js --rye): every village is given rye and farms in three courses, placed at the
+  // start, not carried. Each farm's fields are staggered (sim/fields, restagger); a field at the rye course was sown last autumn (day 3) and
+  // stands, weeded; of the barley its household brought for seed, a field's seed for each fallow field is rye, to sow on it this autumn.
+  // Not a scenario's preset (VB-353 brings those): a way to measure the rotation on today's scenarios.
+  function giveRye(st) {
+    const c = cal(st.t),
+      sown = c.day - c.doy - 2 * SEASON_DAYS + 2;
+    for (const v of st.villages) v.rotation = 'three';
+    for (const f of st.farmsteads) {
+      if (f.household === null || !f.fields.length) continue; // a farm still to break its fields (founders) farms as its household chooses
+      const hh = st.households[f.household];
+      restagger(f, 'three');
+      let fallow = 0;
+      for (const fd of f.fields)
+        if (fd.crop === 'rye') Object.assign(fd, { stage: 'growing', sown, weeds: CROPS.rye.weeds });
+        else if (fd.crop === 'fallow') fallow++;
+      const n = Math.min(hh.grain.barley || 0, fallow * CROPS.rye.seed);
+      if (n > 0) hh.grain = { ...hh.grain, barley: hh.grain.barley - n, rye: n };
+    }
+  }
+  // places: what was placed by hand, for the 'manual' scenario (seedManual). opts: {rye} (giveRye).
+  function seed(w, seedNum, scenario = 'founders', places = null, opts = null) {
     if (scenario === 'manual') return seedManual(w, seedNum, places);
-    return scenario === 'heirs'
-      ? seedHeirs(w, seedNum)
-      : scenario === 'populous'
-        ? seedPopulous(w, seedNum)
-        : seedFounders(w, seedNum);
+    const st =
+      scenario === 'heirs'
+        ? seedHeirs(w, seedNum)
+        : scenario === 'populous'
+          ? seedPopulous(w, seedNum)
+          : seedFounders(w, seedNum);
+    if (opts && opts.rye) giveRye(st);
+    return st;
   }
   return { seedFounders, seedHeirs, seedPopulous, makeState, startStreams, seed };
 })();

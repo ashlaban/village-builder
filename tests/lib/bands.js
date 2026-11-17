@@ -193,7 +193,8 @@ function runScenario({ scenario, map, seed, years }) {
       Sim.advance(st, DAY);
       for (const id of st.liveHouseholds) {
         days.set(id, (days.get(id) || 0) + 1); if (!hungry0.has(id)) hungry0.set(id, 0);
-        const log = st.households[id].coldLog; if (log.length && log[log.length - 1] > 0) coldDays++; // the day's fire lacked wood
+        const hh = st.households[id], log = hh.coldLog;
+        if (hh.members.length && log.length && log[log.length - 1] > 0) coldDays++; // the day's fire lacked wood, with someone in the house (VB-972)
       }
     }
     samples.push(sample(st, y, { from, hungry0, days, coldDays, waiting, t0 }));

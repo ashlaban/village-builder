@@ -1,8 +1,13 @@
 // Populous Villages and the shared generators: population by map size, village size bands, two generations, the generator hook.
+// Verify (VB-856): every rule but the bands on 60 by 44 islands of tests/lib/probe.js, and the hook on the small ones. --extended, at
+// night: the four map sizes at seeds 7 and 42, for the population each size seeds and the village size bands of the medium and large
+// maps, a statistic of generated land that a small island cannot hold.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, L = VB['sim/layout'];
+const EXT = process.argv.includes('--extended'), { island, generate, scenario } = require('./lib/probe.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('POPULOUS FAIL:', m); } };
-const SIZES = { tiny: [120, 85, 130, 170], small: [180, 130, 320, 380], medium: [280, 200, 800, 950], large: [380, 270, 800, 950] };
-const world = (seed, cols, rows) => { const it = G.generate(seed, { cols, rows }); let r; while (!(r = it.next()).done); return r.value; };
+const SIZES = EXT ? { tiny: [120, 85, 130, 170], small: [180, 130, 320, 380], medium: [280, 200, 800, 950], large: [380, 270, 800, 950] }
+  : { probe: [60, 44, 1, Infinity] };
+const world = (seed, cols, rows) => (EXT ? generate(seed, { cols, rows }) : island(seed, { cols, rows }));
 const band = (n) => (n >= 2 && n <= 5 ? 'small' : n >= 6 && n <= 10 ? 'medium' : n >= 12 && n <= 16 ? 'large' : 'other');
 // mean and spread of drawSize, from 20,000 seeded draws: a map's mean household size lies within 3 standard errors of that mean
 // (on a Tiny map of about 20 households, about 6.2 +- 1.0; on Medium, of about 130, +- 0.4)
@@ -25,16 +30,24 @@ for (const [name, [cols, rows, lo, hi]] of Object.entries(SIZES)) for (const see
   const bands = new Set(st.villages.map((v) => band(v.farmsteads.length)));
   if (name === 'medium' || name === 'large') for (const b of ['small', 'medium', 'large']) check(bands.has(b), `${tag}: no ${b} village (sizes ${st.villages.map((v) => v.farmsteads.length)})`);
   check(st.cenv.settlements.length === st.villages.length, `${tag}: villages without a meeting`);
-  const again = Sim.seed(world(seed, cols, rows), seed, 'populous');
+  check(st.villages.every((v) => v.farmsteads.length && v.name), `${tag}: a village with no farm or no name`);
+  const again = Sim.seed(generate(seed, { cols, rows }), seed, 'populous');
   check(again.pawns.length === st.pawns.length && again.farmsteads.map((f) => f.house).join() === st.farmsteads.map((f) => f.house).join(), `${tag}: not deterministic`);
 }
 
+// a cramped island: a green where no first farm fits is dropped (VB-888), so every village has a farm and a name
+for (const [cols, rows] of [[36, 26], [48, 34]]) for (const seed of [7, 42]) {
+  const st = Sim.seed(island(seed, { cols, rows }), seed, 'populous'), tag = `${cols} by ${rows} seed ${seed}`;
+  check(st.villages.length > 0 && st.villages.every((v, i) => v.id === i && v.farmsteads.length && v.name), `${tag}: a village with no farm or no name`);
+  check(new Set(st.villages.map((v) => v.name)).size === st.villages.length, `${tag}: two villages share a name`);
+}
+
 // the one generator: a field added to its output appears in every scenario
-L.farmHooks.push((w, f) => { f.fields.push({ id: f.fields.length, tile: -1, stage: 'stubble', sown: null, reaped: null, held: 0, fert: 1, marker: true }); });
+L.farmHooks.push((w, f) => { f.fields.push({ id: f.fields.length, tile: -1, crop: 'barley', rotation: 'every', step: 0, stage: 'stubble', sown: null, reaped: null, held: 0, fert: 1, marker: true }); });
 try {
-  for (const scenario of ['founders', 'heirs', 'populous']) {
-    const st = Sim.seed(world(7, 280, 200), 7, scenario);
-    check(st.farmsteads.length > 0 && st.farmsteads.every((f) => f.fields.some((fd) => fd.marker)), `${scenario}: hook field missing from a farm`);
+  for (const name of ['founders', 'heirs', 'populous']) {
+    const st = EXT ? Sim.seed(world(7, 280, 200), 7, name) : scenario(name, 7);
+    check(st.farmsteads.length > 0 && st.farmsteads.every((f) => f.fields.some((fd) => fd.marker)), `${name}: hook field missing from a farm`);
   }
 } finally { L.farmHooks.length = 0; }
 if (failed) process.exit(1);

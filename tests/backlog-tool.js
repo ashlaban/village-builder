@@ -12,7 +12,7 @@ const expect = (what, cond, out) => { if (!cond) errors.push(what + (out ? '\n  
 let r = run(null, 'sync', '--dry');
 expect('sync --dry on this checkout writes nothing', r.ok && /would write nothing/.test(r.out), r.out);
 r = run(null, 'next', '1');
-expect('next prints the first ready task and the counts', r.ok && /^VB-\d{3} P\d [SML] /.test(r.out) && /\d+ ready/.test(r.out), r.out);
+expect('next prints the first ready task and the counts', r.ok && /^VB-\d{3,} P\d [SML] /.test(r.out) && /\d+ ready/.test(r.out), r.out);
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-backlog-'));
 for (const f of ['BACKLOG.md', 'BACKLOG_ARCHIVE.md']) fs.copyFileSync(path.join(root, f), path.join(dir, f));
@@ -32,7 +32,7 @@ const archs = file('BACKLOG.md').split('\n'), last = archs.findLastIndex((l) => 
 archs.splice(last + 1, 0, '| zz-test | Test arch | A test goal. | none |');
 fs.writeFileSync(path.join(dir, 'BACKLOG.md'), archs.join('\n'));
 
-const next = Math.max(...fs.readdirSync(path.join(dir, 'backlog')).map((f) => +f.slice(3, 6))) + 1;
+const next = Math.max(...fs.readdirSync(path.join(dir, 'backlog')).map((f) => +f.slice(3).replace('.md', ''))) + 1;
 const A = 'VB-' + String(next).padStart(3, '0'), B = 'VB-' + String(next + 1).padStart(3, '0');
 r = run(dir, 'new', 'name=Plan: test one', 'status=needs-review', 'priority=1', 'size=S', 'arch=zz-test', 'summary=One.');
 expect(`new ${A} in Waiting for Kim`, r.ok && section('BACKLOG.md', 'Waiting for Kim').includes(`[${A}]`)

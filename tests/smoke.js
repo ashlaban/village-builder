@@ -1,40 +1,9 @@
-const { JSDOM } = require('jsdom');
-const { createCanvas } = require('@napi-rs/canvas');
-const fs = require('fs');
-const html = require('./lib/page').builtPage().replace(/<script src=[^>]+><\/script>/, '');
-const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://x.test/' });
-const win = dom.window, doc = win.document;
-let failed = 0; const fail = (m) => { failed++; console.error('SMOKE FAIL:', m); };
-win.console.error = (...a) => fail('page console.error: ' + a.map((x) => (x && x.stack) || String(x)).join(' '));
-win.matchMedia = () => ({ matches: false });
-doc.hasFocus = () => true;
-Object.defineProperty(doc, 'fonts', { value: { load: () => Promise.resolve() } });
-const origCreate = doc.createElement.bind(doc);
-doc.createElement = (t) => t === 'canvas' ? createCanvas(1, 1) : origCreate(t);
-win.HTMLCanvasElement.prototype.getContext = function () { if (!this._c) this._c = createCanvas(Math.max(1, this.width), Math.max(1, this.height)); if (this._c.width !== this.width) { this._c.width = Math.max(1, this.width); this._c.height = Math.max(1, this.height); } return this._c.getContext('2d'); };
-Object.defineProperty(doc.getElementById('minimap'), 'clientWidth', { value: 200 });
-const calls = {}; let destroyed = 0;
-const P = () => ({ x: 1, y: 1, set(a, b) { this.x = a; this.y = b ?? a; }, copyFrom(p) { this.x = p.x; this.y = p.y; } });
-class Obj { constructor(o) { this.children = []; this.scale = P(); this.position = P(); this.anchor = P(); this.tilePosition = { x: 0, y: 0 }; this.tileScale = P(); this.alpha = 1; this.visible = true; this.x = 0; this.y = 0; this.opts = o; this.texture = o && o.source ? o : { source: { update() {} } }; }
-  get width() { return 400 * this.scale.x; }
-  addChild(c) { this.children.push(c); c.parent = this; return c; } removeChildren() { const c = this.children; this.children = []; return c; }
-  destroy() { destroyed++; this._dead = true; if (this.parent) this.parent.children = this.parent.children.filter((x) => x !== this); } }
-class Graphics extends Obj { constructor() { super(); ['moveTo', 'lineTo', 'stroke', 'poly', 'rect', 'roundRect', 'fill', 'clear', 'ellipse', 'circle'].forEach((m) => { this[m] = (...a) => { if (this._dead) throw new Error('Graphics.' + m + ' after destroy'); calls[m] = (calls[m] || 0) + 1; return this; }; }); } }
-const tickers = []; let APP;
-class Application { constructor() { APP = this; } async init(o) { this.canvas = origCreate('div'); this.screen = { width: 1440, height: 900 }; this.renderer = { gl: null }; this.ticker = { add: (f) => tickers.push(f) }; this.stage = new Obj(); } }
-class Rectangle { constructor(x, y, w, h) { Object.assign(this, { x, y, width: w, height: h }); } }
-class Text extends Obj { constructor(o) { super(o); this.text = o.text; } }
-win.PIXI = { Rectangle, Text, Application, Container: Obj, Sprite: Obj, TilingSprite: Obj, Graphics, Texture: class { constructor(o) { this.o = o; } }, CanvasSource: class { constructor(o) { if (!o.resource) throw new Error('no resource'); } } };
-for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) win.eval(m[1].replace(/^const (\w+) =/gm, 'var $1 ='));
-// Terrain pixels are painted in full for the first three chunks of each level of detail and left blank after that: nothing here reads
-// them, and painting every chunk the page asks for (it repaints as trees and fields change) was three fifths of this test's time.
-// The rest of a chunk's job (rivers, paths, decoration, the texture) runs for every chunk; the Chromium tests paint them all.
-const baked = [0, 0, 0]; let blank = 0;
-{ const G = win.ArchGen, bake = G.bakeChunk; G.bakeChunk = function* (w, l, cx, cy, img) { if (baked[l]++ < 3) yield* bake(w, l, cx, cy, img); else blank++; }; }
-let simSt = null; { const adv = win.Sim.advance; win.Sim.advance = (st, h) => { simSt = st; return adv(st, h); }; }
+// The page in jsdom, at night (docs/testing.md): the tiny map, its panels, a year skipped, regenerating, the toasts, the goodwill rows and
+// the action bar. Its quick sibling in verify is tests/page.js; the harness both load the page with is tests/lib/dompage.js.
+const P = require('./lib/dompage').openPage({ label: 'SMOKE' });
+const { win, doc, fail, tick } = P;
 const names = ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows', 'clouds'];
-const state = () => { const lay = APP.stage.children[0].children; return names.map((n, k) => `${n}:${lay[k].children.length}/${lay[k].children.filter((c) => c.visible).length}`).join(' '); };
-const tick = (n) => { for (let k = 0; k < n; k++) for (const f of tickers) { try { f({ deltaMS: 16 }); } catch (e) { if (!globalThis.__err) { globalThis.__err = 1; console.log('FRAME ERROR:', e.message); fail('frame error: ' + e.message); } throw e; } } };
+const state = () => { const lay = P.APP.stage.children[0].children; return names.map((n, k) => `${n}:${lay[k].children.length}/${lay[k].children.filter((c) => c.visible).length}`).join(' '); };
 const start = Date.now();
 const generate = (scenario, size, seed) => {
   doc.getElementById('genScenario').value = scenario; doc.getElementById('genSize').value = size; doc.getElementById('genSeed').value = seed;
@@ -62,40 +31,63 @@ const iv = setInterval(async () => {
   const q = (s) => doc.querySelector(s), qa = (s) => [...doc.querySelectorAll(s)];
   // a farm with a cart draws one (VB-410): a hand cart given to a household adds one visible sprite to the objects layer (the 14th of the world's layers; `names` above is older)
   {
-    const vis = () => APP.stage.children[0].children[13].children.filter((c) => c.visible).length;
-    const hh = simSt.households.find((h) => !h.dissolved && h.farmstead !== null), before = vis();
-    hh.carts.push({ kind: 'hand', cond: 0.3, built: simSt.t, by: null }); tick(3);
+    const vis = () => P.APP.stage.children[0].children[13].children.filter((c) => c.visible).length;
+    const hh = P.st.households.find((h) => !h.dissolved && h.farmstead !== null), before = vis();
+    hh.carts.push({ kind: 'hand', cond: 0.3, built: P.st.t, by: null }); tick(3);
     if (vis() !== before + 1) fail(`a farm given a hand cart draws ${vis() - before} more sprites, not 1`);
     hh.carts.pop(); tick(3);
     if (vis() !== before) fail('a cart taken away is still drawn');
     // a cart out with a pawn (VB-410), taken as the simulation takes it (sim/carts take): drawn at the pawn, not below the house, with the
     // team ahead of an ox cart; home again, it stands below the house
     {
-      const C = win.VB['sim/carts'], hh2 = simSt.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => simSt.agents[m] && !simSt.agents[m].inside));
-      const a = simSt.agents[hh2.members.find((m) => !simSt.agents[m].inside)];
-      hh2.carts.length = 0; hh2.carts.push({ kind: 'hand', cond: 1, built: simSt.t, by: null }); tick(3);
-      const home = vis(), objs = APP.stage.children[0].children[13].children;
+      const C = win.VB['sim/carts'], hh2 = P.st.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => P.st.agents[m] && !P.st.agents[m].inside));
+      const a = P.st.agents[hh2.members.find((m) => !P.st.agents[m].inside)];
+      hh2.carts.length = 0; hh2.carts.push({ kind: 'hand', cond: 1, built: P.st.t, by: null }); tick(3);
+      const home = vis(), objs = P.APP.stage.children[0].children[13].children;
       const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load };
-      a.job = a.job || { kind: 'haul', farm: simSt.farmsteads[hh2.farmstead] }; a.phase = 'back'; a.carry = 'hay'; a.load = 60;
-      C.take(simSt, hh2, a.id, false); tick(3);
+      a.job = a.job || { kind: 'haul', farm: P.st.farmsteads[hh2.farmstead] }; a.phase = 'back'; a.carry = 'hay'; a.load = 60;
+      C.take(P.st, hh2, a.id, false); tick(3);
       const near = objs.filter((o) => o.visible && o.anchor.y === 0.85 && Math.hypot(o.position.x - a.x, o.position.y - a.y) < 14);
-      if (!C.out(simSt, hh2.carts[0])) fail('the cart given to a pawn is not out');
+      if (!C.out(P.st, hh2.carts[0])) fail('the cart given to a pawn is not out');
       if (near.length !== 1) fail(`a cart out with its pawn is drawn ${near.length} times at the pawn`);
       if (vis() !== home) fail(`a cart out leaves ${vis() - home} more sprites visible than at home: it is drawn twice`);
-      C.leave(simSt, hh2, a.id); Object.assign(a, saved); tick(3);
+      C.leave(P.st, hh2, a.id); Object.assign(a, saved); tick(3);
       if (objs.some((o) => o.visible && o.anchor.y === 0.85 && Math.hypot(o.position.x - a.x, o.position.y - a.y) < 1)) fail('a cart home is still drawn at its pawn');
       if (vis() !== home) fail('a cart home is not drawn below the house again');
     }
     // a pawn leading a cow home (VB-429), as sim/exchange's `lead` job has it (carry 'cow', phase 'back'): the animal is drawn beside it, and
     // not once the pawn has delivered it
     {
-      const hh3 = simSt.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => simSt.agents[m] && !simSt.agents[m].inside && !simSt.agents[m].job));
-      const a = simSt.agents[hh3.members.find((m) => !simSt.agents[m].inside && !simSt.agents[m].job)], objs = APP.stage.children[0].children[13].children;
-      const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load };
+      const hh3 = P.st.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => P.st.agents[m] && !P.st.agents[m].inside && !P.st.agents[m].job));
+      const a = P.st.agents[hh3.members.find((m) => !P.st.agents[m].inside && !P.st.agents[m].job)], objs = P.APP.stage.children[0].children[13].children;
+      const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load, x: a.x, y: a.y, path: a.path };
       const cows = () => objs.filter((o) => o.visible && o.anchor.y === 0.92).length;
       const base = cows();
-      a.job = { kind: 'lead', farm: simSt.farmsteads[hh3.farmstead] }; a.phase = 'back'; a.carry = 'cow'; a.load = 0; tick(3);
+      a.job = { kind: 'lead', farm: P.st.farmsteads[hh3.farmstead] }; a.phase = 'back'; a.carry = 'cow'; a.load = 0; tick(3);
       if (cows() !== base + 1) fail(`a pawn leading a cow is drawn with ${cows() - base} animals beside it, not 1`);
+      // with the household's want naming a giver that has a cow, the animal is the giver's: its herd does not draw it as well (VB-616)
+      const givers = P.st.households.filter((h) => !h.dissolved && h.herds.some((id) => P.st.herds[id].head && P.st.herds[id].head.some((x) => x.kind === 'cow')));
+      const plan = P.st.plans.households.get(hh3.id), want = plan.want;
+      // the page keeps its camera in its closure: the check moves it as a player does, by a press on the minimap (which maps its box to the world)
+      const mm = q('#minimap'), W = P.st.w.W, H = P.st.w.H, look = (x, y) => {
+        mm.setPointerCapture = () => {}; mm.getBoundingClientRect = () => ({ left: 0, top: 0, width: W, height: H });
+        mm.dispatchEvent(new win.MouseEvent('pointerdown', { clientX: x, clientY: y, bubbles: true }));
+      };
+      let best = 0;
+      // herds are drawn only by day and out of the stall (animate, drawHerds): the page is shown a calendar ten days on while the check looks;
+      // the simulation's own time is left alone
+      const cal = win.Sim.cal; win.Sim.cal = (t) => cal(t + 10 * 24);
+      for (const giver of givers) {
+        const hd = P.st.herds[giver.herds.find((id) => P.st.herds[id].head && P.st.herds[id].head.some((x) => x.kind === 'cow'))];
+        look(P.st.w.hx[hd.home], P.st.w.hy[hd.home]); a.path = null; a.x = P.st.w.hx[hd.home]; a.y = P.st.w.hy[hd.home]; plan.want = null; tick(2); // the giver's farm in view, and the leader with it (a pawn out of view is not drawn)
+        const alone = cows();
+        plan.want = { what: 'cow', from: giver.id, kind: 'cow', by: 'deal' }; tick(2);
+        const hidden = alone - cows();
+        if (hidden !== 0 && hidden !== 1) fail(`a cow being led is drawn ${hidden} fewer sprites in its giver's herd, not 0 or 1`);
+        best = Math.max(best, hidden);
+      }
+      if (givers.length && !best) fail('a cow being led is drawn in the giver herd as well: no giver in view loses a sprite');
+      plan.want = want; win.Sim.cal = cal;
       Object.assign(a, saved); tick(3);
       if (cows() !== base) fail(`a cow delivered is still drawn at its leader (${cows()} cows drawn, ${base} before)`);
     }
@@ -107,7 +99,7 @@ const iv = setInterval(async () => {
   for (const sp of [1, 3, 10, 30, Infinity]) {
     q(`[data-speed="${sp}"]`).click();
     for (let k = 0; k < (sp === Infinity ? 10 : 400); k++) {
-      tick(1); const shown = shownMin(), real = Math.floor(simSt.t * 60 + 1e-6) % 1440, lag = (real - shown + 1440) % 1440;
+      tick(1); const shown = shownMin(), real = Math.floor(P.st.t * 60 + 1e-6) % 1440, lag = (real - shown + 1440) % 1440;
       if (shown < 0 || shown % 5 !== 0 || lag > 5) { fail(`clock at ${sp}x shows ${shown} min but simulation is at ${real} min`); break; }
     }
   }
@@ -131,10 +123,50 @@ const iv = setInterval(async () => {
   if (qa('#settlers button[data-farm]').length === 0) fail('settlers list is empty');
   if (q('#settlers .household-block, #settlers .show-map')) fail('the People sheet still tells of a household in folds');
   {
-    const lived = qa('#settlers button[data-farm]').find((b) => /people/.test(b.textContent));
+    const lived = qa('#settlers button[data-farm]').find((b) => b.querySelector('.ppl'));
     lived.click(); tick(5);
     const shown = (id) => !doc.getElementById(id).hidden;
-    if (!q('#tileStats .stat .meter[role="meter"]')) fail("a farm's card shows no meter of its food");
+    if (!q('#tileStats .supplies, #tileStats .card-note')) fail("a farm's card shows no supplies");
+    // The supply component (VB-667) on a constructed short household: its head's outlook made by sim/outlook, then food set to last half
+    // the season we are in on the store and 1.4 seasons with what is to come, short badly in the next. The Stores tab draws four cells
+    // (the first half solid, the second 40% striped, the last three framed red), its state in words, its numbers under the i; hay one
+    // wide cell; the farm's row on its village's card a red chip, and none for a safe supply.
+    {
+      const f = P.st.farmsteads[+lived.dataset.farm], hh = P.st.households[f.household], plan = P.st.plans.households.get(hh.id);
+      const kept = plan.outlook, O = win.VB['sim/outlook'].reckon(P.st, hh, plan);
+      O.food = { own: 0.5, with: 1.4, state: 'bad', season: 1, seasons: [0, 1, 2, 3], parts: { store: 30, need: [60, 60, 60, 60], intakes: [{ what: 'barley', season: 1, n: 50 }], spoilt: 2 } };
+      O.fuel = { ...O.fuel, own: 4, with: 4, state: 'safe', season: null };
+      O.hay = { own: 3.3, with: 3.6, state: 'short', season: 3, seasons: [3], parts: { store: 20, need: [0, 0, 0, 50], intakes: [], spoilt: 1, share: 0.6 } };
+      O.season = win.Sim.cal(P.st.t).season; O.year = win.Sim.cal(P.st.t).year;
+      plan.outlook = O;
+      doc.getElementById('tabStores').click(); tick(2);
+      const food = q('#tileHouse .supply[data-supply="food"]'), cells = food ? [...food.querySelectorAll('.cell')] : [];
+      const w = (c, k) => c && parseFloat(c.querySelector(`i.${k}`).style.width);
+      if (cells.length !== 4) fail(`the food supply draws ${cells.length} season cells, not 4`);
+      else {
+        if (w(cells[0], 'own') !== 50 || w(cells[0], 'with') !== 100 || w(cells[1], 'with') !== 40 || w(cells[1], 'own') !== 0) fail(`the food cells are filled ${cells.map((c) => `${w(c, 'own')}/${w(c, 'with')}`).join(' ')}`);
+        if (cells.map((c) => c.classList.contains('short')).join() !== 'false,true,true,true') fail('the food cells the outlook does not cover are not framed red');
+      }
+      const next = win.Sim.SEASONS[(O.season + 1) % 4];
+      if (!food || food.querySelector('.supply-state').textContent !== `short in ${next}` || !food.classList.contains('bad')) fail(`the food supply's state reads "${food && food.querySelector('.supply-state').textContent}"`);
+      if (qa('#tileHouse .supply.head .cell-season svg').length !== 4) fail('the Supplies section has no header of four seasons');
+      if (qa('#tileHouse .supply[data-supply="hay"] .cell').length !== 1) fail('hay is not one wide cell');
+      if (!/By .+'s reckoning|By your reckoning/.test(q('#tileHouse .supplies .card-note').textContent)) fail('the Supplies section does not say whose reckoning it is');
+      q('#tileHouse [data-supply-more="food"]').click(); tick(2);
+      const nums = q('#tileHouse [data-supply-nums="food"]');
+      if (!nums || !/In store\s*30 rations/.test(nums.textContent) || !/barley harvest/.test(nums.textContent) || !/spoil/.test(nums.textContent)) fail(`the food's numbers read "${nums && nums.textContent}"`);
+      q('#tileHouse [data-supply-more="hay"]').click(); tick(2);
+      if (!/byre over winter/.test((q('#tileHouse [data-supply-nums="hay"]') || {}).textContent || '')) fail("hay's numbers do not open with its sentence");
+      q('#tileHouse [data-supply-more="food"]').click(); q('#tileHouse [data-supply-more="hay"]').click(); tick(2);
+      if (q('#tileHouse [data-supply-nums]')) fail('the numbers do not close');
+      doc.getElementById('settlers').querySelector(`button[data-village="${f.village}"]`).click(); tick(5);
+      const row = q(`#tileList [data-farm="${f.id}"]`), chips = row ? [...row.querySelectorAll('.supply-chip:not([data-warning])')] : [];
+      if (chips.length !== 2 || !chips[0].classList.contains('bad') || !chips[1].classList.contains('warn') || chips[0].querySelectorAll('svg').length !== 2) fail(`the short farm's row shows ${chips.map((c) => c.className).join(', ') || 'no chips'}, not a red food chip and a gold hay chip`);
+      if (!row || !row.querySelector('.ppl') || /Fed|Short of food/.test(row.querySelector('.state').textContent) || !row.title) fail("the farm's row lacks its people or its title, or still has the words");
+      console.log('supplies:', [...row.querySelectorAll('.supply-chip:not([data-warning])')].map((c) => c.title).join('; '));
+      plan.outlook = kept;
+      lived.click(); tick(5);
+    }
     for (const [tab, want] of [['tabStores', /Grain/], ['tabLand', /Hay meadows/], ['tabAnimals', /Larder/]]) {
       if (doc.getElementById(tab).hidden) { fail(`a lived-in farm's card has no tab ${tab}`); continue; }
       doc.getElementById(tab).click(); tick(2);
@@ -153,7 +185,7 @@ const iv = setInterval(async () => {
   {
     const nDims = require('../src/load.js').culture.DIMS.length, body = doc.getElementById('drawerBody'), pane = (sel) => [...body.querySelectorAll(sel)];
     doc.getElementById('cultureBtn').click(); tick(5);
-    const title = doc.getElementById('drawerTitle').textContent, rows = pane('[data-charter]').length, villages = simSt.cenv.settlements.length;
+    const title = doc.getElementById('drawerTitle').textContent, rows = pane('[data-charter]').length, villages = P.st.cenv.settlements.length;
     if (!/ culture$/.test(title)) fail(`the Culture pane is titled ${title}`);
     if (rows !== villages) fail(`the Culture pane lists ${rows} villages of ${villages}`);
     body.querySelector('[data-ctab="custom"]').click(); tick(2);
@@ -236,9 +268,9 @@ const iv = setInterval(async () => {
   if (doc.getElementById('genScreen').hidden || doc.getElementById('genSeed').value !== '7' || doc.getElementById('genScenario').value !== 'heirs') fail('the generation screen did not keep the last choices');
   generate('populous', 't', '7');
   const iv2 = setInterval(() => { if (!doc.getElementById('menuBtn').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('menuBtn').disabled) { clearInterval(iv2); doc.getElementById('chooseWatch').click(); let ok = true; try { tick(10); } catch (e) { ok = false; }
-    const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(APP.stage, 'stage'); doc.getElementById('settlersBtn').click(); if (!doc.querySelector('#settlers .village-block')) fail('settlers list is empty after regenerating');
+    const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(P.APP.stage, 'stage'); doc.getElementById('settlersBtn').click(); if (!doc.querySelector('#settlers .village-block')) fail('settlers list is empty after regenerating');
     if (!ok) fail('frame error after regenerating');
-    console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(notices).then(actionBar).then(() => process.exit(failed ? 1 : 0)); } }, 50);
+    console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(notices).then(actionBar).then(() => process.exit(P.failed ? 1 : 0)); } }, 50);
 }, 50);
 // The pawn panel's goodwill balances (VB-218): after a year of populous 7 on the tiny map, with its gifts, a holder with a balance toward
 // another household shows its rows, each with what it would give and the parts of that allowance on hover.
@@ -248,7 +280,7 @@ async function goodwillPanel() {
   for (let k = 0; k < 6000 && !msg.textContent.startsWith('Skipped'); k++) await new Promise((r) => setTimeout(r, 5));
   if (!msg.textContent.startsWith('Skipped')) { fail('"Skip a year" did not finish on the tiny map'); return; }
   tick(5);
-  const st = simSt;
+  const st = P.st;
   // A well-fed island makes no gifts (hunger drives them), and populous 7 on the tiny map has no hungry household in its first years, so
   // the run has no balance to show: the panel is tested on a balance made by hand, a gift of 20 rations between two holders (VB-427).
   const hs = st.pawns.filter((p) => p.alive && Sim.isHolder(st, p.id));
@@ -322,6 +354,31 @@ async function goodwillPanel() {
   }
   doc.getElementById('tabFacts').click(); tick(2);
   if (doc.getElementById('tileFacts').hidden || !doc.getElementById('tileHistory').hidden) fail('the Details tab did not come back');
+  // The village's overview (VB-162): food, the harvest, the hungry and idle hands as stats, people by age band, and a warning with the farm it
+  // concerns as a chip that selects it: a member of the farm's household made hungry on every day of the window, then restored.
+  {
+    const box = doc.getElementById('tileStats'), hh = st.households[farm.household], p = st.pawns[hh.members.find((m) => st.pawns[m].alive)];
+    const log = p.hungerLog.slice();
+    p.hungerLog = Array(Sim.OVERVIEW.window).fill(1);
+    settlers.querySelector(`button[data-village="${farm.village}"]`).click(); tick(5);
+    const S = Sim.villageSummary(st, farm.village, st.player ? st.player.pawn : null);
+    const words = [...box.querySelectorAll('.stat-name')].map((e) => e.textContent);
+    for (const n of ['Food', 'Harvest', 'Hungry', 'Idle hands', '0–14', '15–49', '50+']) if (!words.includes(n)) fail(`the village's overview lacks ${n}`);
+    const warned = Object.values(S.warnings).reduce((n, l) => n + l.length, 0), chips = box.querySelectorAll('.warning [data-farm]');
+    if (!S.warnings.hunger.includes(hh.id) || chips.length !== warned) fail(`the overview shows ${chips.length} farm chips for ${warned} warned`);
+    if (!doc.querySelector(`#tileList [data-farm="${farm.id}"] .supply-chip[data-warning="hunger"]`)) fail("the warned farm's row has no chip for its warning");
+    // the store's supply row (VB-966): food by the component's cells, its target in the numbers, and whose estimate it is
+    const row = box.querySelector('.supplies [data-supply="food"]');
+    if (!row || row.querySelectorAll('.cell').length !== 4) fail("the village card has no store row of four season cells");
+    if (!/reckoning/.test(box.querySelector('.supplies .card-note').textContent)) fail("the store's row does not say whose estimate it is");
+    row.querySelector('[data-supply-more]').click(); tick(2);
+    if (!/target/.test(box.querySelector('[data-supply-nums="food"]').textContent)) fail("the store's numbers lack its target");
+    box.querySelector('[data-supply-more]').click(); tick(2);
+    console.log('village overview:', words.join(', '), '|', warned, 'warned', '|', [...box.querySelectorAll('.warning > span:not(.stat-ico)')].map((e) => e.textContent).join('; '));
+    const chip = box.querySelector(`.warning [data-farm="${farm.id}"]`);
+    if (chip) { chip.click(); tick(5); if (doc.getElementById('tileName').textContent !== farm.name) fail('a warning\'s chip did not select its farm'); }
+    p.hungerLog = log;
+  }
   // The Customs tab (VB-396) of a village's card: the customs as a charter, a phrase a custom; a phrase opens the ways of its custom, each
   // voice of the meeting by exactly one of them; a pawn's card has no such tab, and shows its Details while the choice is kept.
   {
@@ -381,7 +438,7 @@ async function goodwillPanel() {
 // farm and takes the toast away, deaths of one day in one village share a toast, at most 3 show, a kind turned off raises none and the
 // choice is kept, and a toast goes after 6 s.
 function notices() {
-  const Sim = win.Sim, st = simSt, q = (s) => doc.querySelector(s), shown = () => [...doc.querySelectorAll('#toasts .toast')];
+  const Sim = win.Sim, st = P.st, q = (s) => doc.querySelector(s), shown = () => [...doc.querySelectorAll('#toasts .toast')];
   const texts = () => shown().map((b) => b.textContent).join(' / ');
   q('[data-speed="0"]').click(); tick(400);
   if (shown().length) fail(`toasts still up after 6 s: ${texts()}`);
@@ -407,7 +464,7 @@ function notices() {
   // three deaths of one day in one village share a toast, and no more than 3 toasts show
   tick(400);
   for (const id of ids.slice(1, 4)) kill(id);
-  tick(2); console.log('chunks asked for by level:', baked.join(', '), '| painted in full', baked.reduce((n, x) => n + x, 0) - blank, '| left blank', blank); if (!baked[2] || !baked[0]) fail('no chunk was painted in full');
+  tick(2); console.log('chunks asked for by level:', P.baked.join(', '), '| painted in full', P.baked.reduce((n, x) => n + x, 0) - P.blank, '| left blank', P.blank); if (!P.baked[2] || !P.baked[0]) fail('no chunk was painted in full');
   console.log('merged:', texts());
   if (!shown().some((b) => b.textContent === `3 deaths in ${v.name}`)) fail(`3 deaths in a day did not merge: ${texts()}`);
   if (shown().length > 3) fail(`${shown().length} toasts at once`);
@@ -430,7 +487,7 @@ function notices() {
 // from the Myself list, a gift from the Household list's form (Give all the same, if the floor's warning asks), and Walk here's tool takes
 // the tile tapped on the map, the camera following the pawn.
 async function actionBar() {
-  const Sim = win.Sim, st = simSt, q = (sel) => doc.querySelector(sel), queue = () => st.player.queue.map((c) => c.verb);
+  const Sim = win.Sim, st = P.st, q = (sel) => doc.querySelector(sel), queue = () => st.player.queue.map((c) => c.verb);
   q('[data-speed="0"]').click();
   const holder = st.pawns.find((p) => p.alive && p.age >= 18 && Sim.isHolder(st, p.id) && Sim.holdingOf(st, p.id)
     && Sim.grainOf(Sim.holdingOf(st, p.id)) - Sim.seedReserve(st, Sim.holdingOf(st, p.id)) >= 5);

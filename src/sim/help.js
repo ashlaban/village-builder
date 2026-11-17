@@ -3,8 +3,7 @@
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
-  const { hoursBetween } = VB['sim/routes'];
-  const onRoad = (a) => a.phase === 'journey' || a.phase === 'road'; // as sim/agents' travelling, which loads after this module
+  const { hoursBetween, withinDay, byLand } = VB['sim/routes'];
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
@@ -42,7 +41,7 @@ VB['sim/help'] = (() => {
     let best = -1;
     for (const id of hh.members) {
       const p = st.pawns[id];
-      if (!p.alive || p.age < 14 || p.age >= 60 || onRoad(st.agents[id])) continue;
+      if (!p.alive || p.age < 14 || p.age >= 60 || st.agents[id].away !== undefined) continue;
       if (best < 0 || p.age < st.pawns[best].age) best = id;
     }
     return best;
@@ -88,14 +87,16 @@ VB['sim/help'] = (() => {
       if (need <= 0 || spare(st, hh) >= HELP.askBelow * need) continue;
       let moved = false,
         want = askDaysAt(st) * need - spare(st, hh);
-      // kin within a day's walk give at once, then the village store, then kin further away, nearest first, each by a carrier on a journey
-      // (VB-291; kin over the sea or beyond reach are not asked)
+      // kin within a day's walk, then the village store: their gift is set aside where it lies and fetched by a member of the household
+      // (VB-461, the verb's; at once only from a household of the same farmstead), and with no one to fetch it the ask goes on; then kin
+      // further away, nearest first, each by a carrier on a journey (VB-291; kin over the sea or beyond reach are not asked)
       const near = [],
         far = [];
       for (const k of kinHouseholds(st, hh)) {
-        const h = hoursOf(st, k, hh);
-        if (h <= TRAVEL.dayWalk) near.push(k);
-        else if (h < Infinity) far.push(k);
+        const a = st.farmsteads[st.households[k].farmstead].village,
+          b = st.farmsteads[hh.farmstead].village;
+        if (withinDay(st, a, b)) near.push(k);
+        else if (byLand(st, a, b)) far.push(k);
       }
       far.sort((a, b) => hoursOf(st, a, hh) - hoursOf(st, b, hh) || a - b);
       for (const k of near) {

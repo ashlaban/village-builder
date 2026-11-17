@@ -3,7 +3,7 @@
 //   partners. Encounters read no plan and have only social effects.
 VB['sim/encounters'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { SOCIAL } = VB['sim/rules'];
+  const { SOCIAL, ALE_EVENING, RITE } = VB['sim/rules'];
   const T = SOCIAL.talk;
   // Scratch (derived, not state): seen[id] === look marks a pawn already drawn for the pawn whose partners are sought; lists, the cells read.
   let seen = new Int32Array(1024),
@@ -56,6 +56,15 @@ VB['sim/encounters'] = (() => {
   // A herder at its herds: a pawn outdoors holding a herding task at the side (VB-136; sim/agents' agent.side, sim/grazing's kind 'herd').
   const herding = (a) => !a.inside && !!a.side && !!a.side.background && a.side.background.kind === 'herd';
   // A pawn at an occasion it has arrived at, and one standing at occasion o: it set out for it and has arrived (no path left to walk).
+  // A pawn inside its own household's house: indoors, and by that house's door (within a map radius of it; sim/agents' homeSpot, placeByDoor).
+  // One indoors at another house (moved at night, waiting there for its journey's first leg; VB-287) is not at home (VB-561).
+  function atHome(st, a) {
+    if (!a.inside) return false;
+    const hh = st.households[st.pawns[a.id].household];
+    if (!hh) return false;
+    const h = st.farmsteads[hh.farmstead].house;
+    return Math.hypot(a.x - (st.w.hx[h] - 12), a.y - (st.w.hy[h] + 14)) <= st.w.R + 12;
+  }
   const atOccasion = (a) => a.occasion !== null && a.path === null;
   const standing = (st, a, o) => a.occasion === o.id && a.path === null && st.pawns[a.id].alive;
   const occasionOf = (st, id) => {
@@ -69,12 +78,12 @@ VB['sim/encounters'] = (() => {
   const ENCOUNTERS = {
     // the members inside a house: a pawn inside draws from its housemates inside (one standing at an occasion is there, not at home)
     house: {
-      present: (st, hh) => hh.members.filter((m) => st.agents[m].inside),
+      present: (st, hh) => hh.members.filter((m) => atHome(st, st.agents[m])),
       sample(st, a, near, busy, round, found) {
         const hh = st.households[st.pawns[a.id].household];
         if (hh)
           for (const m of hh.members)
-            if (m !== a.id && st.agents[m].inside && !atOccasion(st.agents[m]) && busy[m] !== round)
+            if (m !== a.id && atHome(st, st.agents[m]) && !atOccasion(st.agents[m]) && busy[m] !== round)
               found.push(st.agents[m]);
         return ENCOUNTERS.house.mix;
       },
@@ -115,7 +124,7 @@ VB['sim/encounters'] = (() => {
     occasion: {
       draws: 8,
       mix: 0.2,
-      kinds: {},
+      kinds: { ale: ALE_EVENING, rite: RITE }, // their mix: 0.5 at an ale evening, 0.2 at the rite (VB-522)
       present: (st, id) => present(st, id),
       sample(st, a, near, busy, round, found) {
         const O = ENCOUNTERS.occasion,
@@ -157,7 +166,7 @@ VB['sim/encounters'] = (() => {
     found.length = 0;
     fit(st.agents.length);
     if (atOccasion(a)) return ENCOUNTERS.occasion.sample(st, a, near, busy, round, found);
-    if (a.inside) return ENCOUNTERS.house.sample(st, a, near, busy, round, found);
+    if (a.inside) return atHome(st, a) ? ENCOUNTERS.house.sample(st, a, near, busy, round, found) : 0; // indoors elsewhere: nobody to draw (VB-561)
     const mix = ENCOUNTERS.outdoors.sample(st, a, near, busy, round, found);
     if (herding(a)) ENCOUNTERS.pasture.sample(st, a, near, busy, round, found); // seen carries over: no pawn drawn twice
     return mix;
@@ -202,5 +211,5 @@ VB['sim/encounters'] = (() => {
     });
     return { out, cells, cellOf, size: NEAR, herders: { cells: far, size: FAR, list }, x: px, y: py };
   }
-  return { ENCOUNTERS, partners, outdoors, present, said };
+  return { ENCOUNTERS, atHome, partners, outdoors, present, said };
 })();

@@ -69,6 +69,9 @@ const QUANTITIES = [
     none: 'stalled animals go unfed: they grow lean and, after HERD.starveDays, the weakest die (sim/byre); the autumn count culls to the hay (sim/byre)' },
   { id: 'manure', of: 'household', name: 'the manure heap', unit: 'loads', fields: ['household.manure'], kinds: ['manure'],
     none: 'fields are not manured: their soil is not raised (sim/fields)' },
+  { id: 'hides', of: 'household', name: 'hides of the hunt', unit: 'hides', fields: ['household.hides'], good: 'hide', holder: 'household',
+    kinds: ['hunt'],
+    none: 'no leather for shoes and harness: a household lacking hides values one at DEER.leather a head a year, and takes one at the fair or as a gift (sim/deer, VB-424)' },
   { id: 'wool', of: 'household', name: 'fleeces', unit: 'fleeces', fields: ['household.wool'], kinds: [],
     none: 'nothing yet: fleeces only accumulate until the winter crafts spin them (VB-121, VB-362)' },
   { id: 'water', of: 'household', name: 'the day\'s water', unit: 'a day\'s (fetched or not)', fields: ['household.waterDay'],
@@ -84,12 +87,21 @@ const QUANTITIES = [
   { id: 'villageGrain', of: 'village', name: 'the village store\'s grain', unit: 'rations', fields: ['village.grain'], good: 'grain', holder: 'village',
     kinds: ['haul'],
     none: 'a household short of food gets nothing from the village when its kin cannot help (sim/help), and a common field is not sown (VB-100)' },
-  { id: 'provisions', of: 'journey', name: 'the food a pawn on a journey carries', unit: 'rations', fields: ['st.journeys'], kinds: [],
-    none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (sim/agents, VB-287)' },
+  { id: 'pack', of: 'stay', name: 'the pack: the food a pawn away from home carries, on a journey or lodging', unit: 'rations', fields: ['st.away'],
+    covers: ['st.awaySeq', 'agent.away'], kinds: [],
+    none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (VB-287); a lodger '
+      + 'comes home when its pack is down to the walk home\'s ration, and a household with nothing to spare sends nobody (sim/away, VB-783)' },
+  { id: 'booth', of: 'tile', name: 'a booth\'s condition: poles, bark and turf, worn by closed form from when it was raised', unit: '0..1',
+    fields: ['booth.cond'], covers: ['booth.condAt', 'st.boothSeq'], kinds: [],
+    none: 'the booth is gone and its tile as it was; a stay that slept there is under the open sky (sim/building, VB-784)' },
+  { id: 'giftGrain', of: 'stay', name: 'a gift\'s grain on its way: on a carrier\'s back, or set aside where it lies until it is fetched', unit: 'rations',
+    fields: ['st.away'], kinds: [],
+    none: 'nothing is on its way: the gift has come in, or what was left lying went back to its giver\'s store when its fetcher died or left the household (sim/away, VB-291, VB-461)' },
   { id: 'lying', of: 'tile', name: 'a load lying where its carrier fell', unit: 'its kind\'s loads (rations of sheaves, hay loads, firewood, stone)',
     fields: ['st.lying'], covers: ['st.lyingSeq'], kinds: [], losses: ['sim/lying:frost'],
     none: 'nothing lies on the road: every load is in hand or home; one left lying is fetched by its owner\'s next hand (the fetch kinds) '
-      + 'or rots at the autumn frost (sim/lying, VB-611)' },
+      + 'or rots at the autumn frost (sim/lying, VB-611); a cart left standing with its load (household.carts[].at, VB-649) is fetched home with its team '
+      + 'by a hand of its household, or is lost at the frost and named (cartGone)' },
   { id: 'trees', of: 'tile', name: 'a tile\'s trees', unit: 'trees', fields: ['w.trees'], kinds: ['fell', 'grub'], covers: ['w.treesMax'],
     none: 'a tile cut bare: firewood is cut on another tile of the village\'s wood; with none left, no firewood job is posted (sim/territory); '
       + 'the bare tile is meadow, and the forest spreads back into it where it borders forest and nothing keeps it open (sim/spread, VB-091)' },
@@ -118,7 +130,8 @@ const NOT_STOCKS = {
     'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
     'farmstead.booth', 'farmstead.barn', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
-      'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded'],
+      'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded',
+      'village.rotation'],
   'the generated world': ['w.seed', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',
     'w.shade', 'w.macro', 'w.cdist', 'w.chex', 'w.csample', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
@@ -127,6 +140,7 @@ const NOT_STOCKS = {
     'w.veinNear'],
   'ways (the wear of walking, fords and bridges)': ['w.wear', 'w.worn', 'w.crossing'],
   'when a tile was last worked (a day, not an amount; sim/spread)': ['w.tended'],
+  'choices of the village\'s meeting (a decision, not an amount)': ['village.gathering'],
 };
 
 // ---- the @state lines: the fields of households, farms, villages and tiles they name ----
@@ -134,9 +148,12 @@ const ENTITY = { household: 'household', farmstead: 'farmstead', village: 'villa
 const BLOCK = { 'st.households[]': 'household', 'st.farmsteads[]': 'farmstead', 'st.villages[]': 'village' };
 // A header (`@state household.clay, household.bogOre:`, `@state w.trees,treesMax:`) names its fields; a record's block (`@state st.households[]:
 // {...}` and its indented lines) names them in its text outside parentheses, kept where the code has such a field (the writes map).
+// The writes map, built once a process (both stateFields and build read it; it takes seconds to build).
+let writesMap = null;
+const writes = () => writesMap || (writesMap = Writes.build());
 function stateFields(known = null) {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8'));
-  known = known || new Set(Writes.build().fields.map((f) => f.field));
+  known = known || new Set(writes().fields.map((f) => f.field));
   const out = new Map();
   for (const f of manifest) {
     const lines = readSource('src/' + f).split('\n');
@@ -251,7 +268,7 @@ function grainReads(ast, src) {
 const ADD = new Set(['+=', '++', 'push', 'unshift']), TAKE = new Set(['-=', '--', 'filter', 'splice', 'shift', 'pop']);
 function build() {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8')).filter((f) => f !== 'vb.js');
-  const keyOf = (f) => f.replace(/\.js$/, ''), map = Writes.build(), byField = new Map(map.fields.map((f) => [f.field, f]));
+  const keyOf = (f) => f.replace(/\.js$/, ''), map = writes(), byField = new Map(map.fields.map((f) => [f.field, f]));
   // read sites by module, as the writes map finds them (its two passes: the functions' returns, then the reads)
   const sources = manifest.map((f) => ({ f, mod: keyOf(f), src: readSource('src/' + f) }));
   const returns = {};

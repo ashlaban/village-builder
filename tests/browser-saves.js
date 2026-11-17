@@ -20,7 +20,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   page.on('pageerror', (e) => fail('page error: ' + (e.stack || e.message)));
   await page.route(/^https?:\/\//, (r) => /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
   await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(builtPage()
-    .replace(HOOK, HOOK + ' window.__play = { get st() { return st; }, Sim, listSaves: () => listSaves(), saveTx: (...a) => saveTx(...a) };')) }));
+    .replace(HOOK, HOOK + ' window.__play = { get st() { return st; }, Sim, get speed() { return speed; }, listSaves: () => listSaves(), saveTx: (...a) => saveTx(...a) };')) }));
   const shot = async (name) => { if (out) await page.screenshot({ path: path.join(out, name) }); };
   const done = () => page.waitForFunction(() => document.getElementById('loader').classList.contains('done') && !!window.__play.st
     && document.getElementById('genScreen').hidden && document.getElementById('landing').hidden
@@ -117,7 +117,11 @@ const check = (ok, m) => { if (!ok) fail(m); };
     'from the main menu the Saves overlay is not titled Load archipelago, with Close');
   check(text.includes(OTHER), 'no message for a save of another build: ' + text);
   await pause();
-  await page.click(`#savesBody [data-load="${P7}:1"]`); await done(); await pause();
+  await page.evaluate(() => document.querySelector('[data-speed="1"]').click()); // the page runs at 1× when the save is loaded
+  await page.click(`#savesBody [data-load="${P7}:1"]`); await done();
+  // VB-1027: a loaded game opens paused, whatever speed the page had
+  check(await page.evaluate(() => window.__play.speed === 0 && document.querySelector('[data-speed="0"]').getAttribute('aria-pressed') === 'true'), 'a loaded game did not open paused');
+  await pause();
   check((await hash()) === h1, 'Continue after a reload: ' + (await hash()) + ' against ' + h1);
   check(await page.locator('#choose').isHidden(), 'a load opens whom to play'); // VB-339: only a new game does
   await page.click('#menuBtn'); await landing(); await savesOpen();
