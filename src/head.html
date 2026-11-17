@@ -558,7 +558,7 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
    store and striped from what is still to come, a red frame where the likeliest outcome does not cover the season. */
 .supplies { margin: 2px 0 8px; }
 .supplies.stale .cells { opacity: 0.6; }
-.supply { display: grid; grid-template-columns: 20px 40px minmax(120px, 216px) 1fr 24px; gap: 7px; align-items: center; min-height: 32px; font-size: 14px; }
+.supply { display: grid; grid-template-columns: 20px 40px minmax(0, 1fr) 112px 24px; gap: 7px; align-items: center; min-height: 32px; font-size: 14px; }
 .supply.head { min-height: 18px; }
 .supply .stat-name { width: auto; }
 .supply .cells { display: flex; gap: 4px; align-items: center; min-width: 0; }
@@ -571,7 +571,7 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .supply .cell > i.with { background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--accent) 75%, transparent) 0 2px, transparent 2px 6px); }
 .supply .cell > i.own { background: var(--accent); }
 .supply .cell.short > i { box-shadow: inset 0 0 0 1.3px var(--bad); }
-.supply-state { justify-self: end; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.supply .supply-state { justify-self: end; margin: 0; font-size: 13px; font-weight: 700; white-space: nowrap; }
 .supply.safe .supply-state { color: var(--good); }
 .supply.warn .supply-state { color: var(--gold); }
 .supply.bad .supply-state { color: var(--bad); }
@@ -584,11 +584,12 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .supply-nums dt { color: var(--muted); }
 .supply-nums dd { margin: 0; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
 /* a farm's row: a chip for each supply about to fall short (gold a little, red badly), then its people as an icon and a number */
-.supply-chip { display: inline-flex; align-items: center; gap: 1px; margin-right: 4px; padding: 0 5px 0 3px; border: 1.5px solid; border-radius: 99px; color: var(--gold); vertical-align: middle; }
+.tile .supply-chip, .supply-chip { display: inline-flex; align-items: center; gap: 1px; margin-right: 4px; padding: 0 5px 0 3px; border: 1.5px solid; border-radius: 99px; color: var(--gold); vertical-align: middle; }
 .supply-chip.bad { color: var(--bad); }
 .supply-chip .ico { width: 15px; height: 15px; }
 .supply-chip .ico + .ico { width: 13px; height: 13px; }
-.ppl { display: inline-flex; align-items: center; gap: 3px; margin-left: 2px; vertical-align: middle; white-space: nowrap; }
+.tile .farm-state, .farm-state { display: inline-flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
+.tile .ppl, .ppl { display: inline-flex; align-items: center; gap: 3px; margin-left: 2px; vertical-align: middle; white-space: nowrap; }
 .ppl .ico { width: 15px; height: 15px; }
 .card-sec { margin: 10px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .card-note { margin: 2px 0 6px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }

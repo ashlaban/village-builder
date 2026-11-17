@@ -106,7 +106,7 @@ function farmRow(f, marks = '') {
     hh
       ? `Held by ${Sim.fullName(st.pawns[hh.holder])}`
       : `Empty for ${emptyYears(f)} years${f.state === 'ruin' ? ', a ruin' : ''}`,
-    hh ? `${marks}${supplyChips(Sim.supplyOutlook(st, hh.id))}${people}` : marks,
+    hh ? `<span class="farm-state">${marks}${supplyChips(Sim.supplyOutlook(st, hh.id))}${people}</span>` : marks,
   );
 }
 // One listener for every link: a person, a farm or a village.
