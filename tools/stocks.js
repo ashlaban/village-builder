@@ -139,6 +139,7 @@ const NOT_STOCKS = {
     'w.veinNear'],
   'ways (the wear of walking, fords and bridges)': ['w.wear', 'w.worn', 'w.crossing'],
   'when a tile was last worked (a day, not an amount; sim/spread)': ['w.tended'],
+  'choices of the village\'s meeting (a decision, not an amount)': ['village.gathering'],
 };
 
 // ---- the @state lines: the fields of households, farms, villages and tiles they name ----
