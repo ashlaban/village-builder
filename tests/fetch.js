@@ -75,8 +75,8 @@ const gifts = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.
   const held = j.gift.held, g1 = Stores.grainOf(giver), pawn = j.pawn, still = j.gift.stops.reduce((a, x) => a + x.left, 0);
   assert.ok(still > 0, 'some still lies at the stop');
   killPawn(st, pawn);
-  assert.strictEqual(st.lying.length, 1, 'a load lies where he fell');
-  const l = st.lying[0];
+  assert.ok(st.lying.length >= 1, 'a load lies where he fell (and his pack, VB-962)');
+  const l = st.lying.find((x) => x.owner.type === 'household' && x.owner.id === rec.id);
   assert.ok(l.kind === 'leftGrain' && Math.abs(l.n - held) < 1e-9 && l.owner.type === 'household' && l.owner.id === rec.id, 'the receiver\'s, the size he carried');
   assert.ok(Math.abs(Object.values(l.of.parts).reduce((a, b) => a + b, 0) - held) < 1e-9, 'by crop');
   assert.ok(Math.abs(Stores.grainOf(giver) - g1 - still) < 1e-9, 'what lay at the stop is the giver\'s again');

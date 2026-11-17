@@ -33,7 +33,8 @@ VB['sim/away'] = (() => {
   // @state st.away[]: the open stays, in the order they began (by id), each {id, pawn, why, bed, roof, food, from, to}: why 'move', 'carry',
   //   'fetch' or 'haul' for a journey (VB-287, VB-291, VB-461, VB-849), else the lodger's (the caller's word: 'work', 'visit'); bed the
   //   tile it sleeps at, null on the road (a journey's bed is where its leg ends, sim/agents' bed); roof 'none', 'booth' or 'house' (a
-  //   guest's); food the rations of its pack; from the farm it left (a lodger's household's), or null; to the tile it walks to (a journey:
+  //   guest's); food the rations of its pack, parts the grain it was taken as, by crop (VB-962: home as grain, or lying where it fell);
+  //   from the farm it left (a lodger's household's), or null; to the tile it walks to (a journey:
   //   the house of the pawn's household, a carrier's receiver's, a fetcher's stop; a lodger: its bed). A journey's carrier or fetcher
   //   also holds its gift and back (VB-291, VB-461: fetchGift); a lodger its jobs (the keys of the tasks it is away for), walk (the hours
   //   from its house to its bed, its estimate when it set out), host (a guest's: the household whose house it sleeps in) and back (true
@@ -58,10 +59,30 @@ VB['sim/away'] = (() => {
     for (const src of from) {
       const n = Math.min(want - j.food, Math.max(0, Stores.grainOf(src) - Stores.reserved(st, src, 'grain')) / R);
       if (n > 1e-9) {
-        Stores.takeSpare(st, src, n * R, { kind: 'away', pawn: j.pawn });
+        if (!j.parts) j.parts = {};
+        Stores.takeSpare(st, src, n * R, { kind: 'away', pawn: j.pawn }, j.parts);
         j.food += n;
       }
     }
+  }
+  // What is left of stay j's pack as grain, by crop (VB-962): the crops it was taken as, in the same mix, for the rations left (each cost
+  // 1 / ECON.uncooked of grain). Null when none is left (or an old save's pack, which has no crops).
+  function packLeft(st, j) {
+    const n = j.food / st.ECON.uncooked,
+      parts = {};
+    let sum = 0;
+    for (const c in j.parts || {}) sum += j.parts[c];
+    if (!(n > 1e-9) || !(sum > 0)) return null;
+    for (const c in j.parts) parts[c] = (j.parts[c] * n) / sum;
+    return { n, parts };
+  }
+  // What is left of the pack goes into the store of the household it came from, as the grain it was (home: the household's barn; with the
+  // household gone, its village's), not into meals: no grain becomes meals without a cook.
+  function packHome(st, j, hh) {
+    const g = packLeft(st, j);
+    if (!g) return;
+    const at = hh.dissolved ? st.villages[st.farmsteads[hh.farmstead].village] : hh;
+    Stores.put(st, at, 'grain', g.n, { kind: 'away', pawn: j.pawn }, g.parts);
   }
   // The day's meal away (sim/clock, after the households' meals): each pawn away eats from its pack, a ration a day (half below 14). A
   // lodger whose stay is over by its meal (stayOver) comes home.
@@ -188,7 +209,7 @@ VB['sim/away'] = (() => {
     if (!s || !s.back || s.bed === null) return;
     const hh = st.households[st.pawns[a.id].household];
     close(st, s);
-    if (s.food > 1e-9 && !hh.dissolved) Stores.put(st, hh, 'meals', s.food, { kind: 'away', pawn: a.id });
+    packHome(st, s, hh);
     driveHome(st, hh, a.id);
   }
   // ---- journeys (VB-287; design.md, Between villages: A journey, Provisions and the season): a stay whose bed is where its leg ends ----
@@ -201,7 +222,14 @@ VB['sim/away'] = (() => {
       if (j.gift.held > 0) layGift(st, a, j.gift.held, j.gift.parts, j.gift.to);
       unfetched(st, j.gift);
     } else if (j.why === 'carry' && j.gift && !j.back) layGift(st, a, j.gift.n, j.gift.parts, j.gift.to);
+    layPack(st, a, j);
     close(st, j);
+  }
+  // What is left of a pack lies where its bearer fell (sim/lying), for the household it came from to fetch (as a gift's grain is laid).
+  function layPack(st, a, j) {
+    const g = packLeft(st, j),
+      hh = st.pawns[a.id].household;
+    if (g && hh !== null) layGift(st, a, g.n, g.parts, hh);
   }
   // A bearer who dies on the road lays n of grain (by crop, `parts`) down where he fell: the household `to`'s (its village's, if it is gone),
   // a carried or fetched gift's receiver; a quarter hauled to the green is still its giver's (`to`) until it is in the store.
@@ -525,7 +553,7 @@ VB['sim/away'] = (() => {
     if (j.why === 'haul' && j.gift) return haulStop(st, a, j);
     const hh = st.households[st.pawns[a.id].household];
     close(st, j);
-    if (j.food > 1e-9 && !hh.dissolved) Stores.put(st, hh, 'meals', j.food, { kind: 'away', pawn: a.id });
+    packHome(st, j, hh);
     placeAtHome(st, a);
     personEvent(st, a.id, 'arrived', `Arrived at ${st.farmsteads[hh.farmstead].name}`, false);
   }

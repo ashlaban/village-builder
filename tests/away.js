@@ -119,7 +119,34 @@ assert.deepStrictEqual(checkState(st), [], 'invariants once home');
   assert.strictEqual(issue(s3, { actor: id3, verb: 'comeHome', source: 'player' }), true, 'it turns for home');
   to(s3, 10);
   assert.ok(s3.agents[id3].away === undefined && !s3.away.length, 'home the next morning, its stay over');
-  assert.ok(h1.ledger.some((e) => e.kind === 'away' && e.pawn === id3 && e.n > 0 && e.good === 'meals'), 'what was left of its pack is back in its household\'s meals');
+  assert.ok(h1.ledger.some((e) => e.kind === 'away' && e.pawn === id3 && e.n > 0 && e.good === 'grain'), 'what was left of its pack is back in its household\'s grain, not its meals');
   assert.deepStrictEqual(checkState(s3), [], 'invariants after the guest came home');
+}
+// ---- a pack is grain: home it goes back into the barn; a lodger who dies at its bed leaves it lying there (VB-962) ----
+{
+  const s4 = make(), h4 = s4.households[0], id4 = adultOf(s4, h4), R4 = 1 / s4.ECON.uncooked;
+  to(s4, WORK[1] + 1);
+  Stores.put(s4, h4, 'grain', 60, 'harvest', { barley: 60 });
+  const g0 = Stores.grainOf(h4);
+  assert.strictEqual(issue(s4, { actor: id4, verb: 'lodge', target: site, args: { why: 'work', days: 3 }, source: 'pawn' }), true, 'it lodges');
+  const j4 = stayOf(s4, id4), left = j4.food;
+  assert.ok(j4.parts && Math.abs(j4.parts.barley - left * R4) < 1e-9, 'its pack is grain, by crop');
+  assert.ok(Math.abs(g0 - Stores.grainOf(h4) - left * R4) < 1e-9, 'taken from the barn');
+  issue(s4, { actor: id4, verb: 'comeHome', source: 'player' });
+  to(s4, 14);
+  assert.ok(s4.agents[id4].away === undefined, 'home');
+  const back4 = h4.ledger.filter((e) => e.kind === 'away' && e.pawn === id4 && e.n > 0);
+  assert.ok(back4.length === 1 && back4[0].good === 'grain' && back4[0].n <= left * R4 + 1e-9, 'what is left of the pack is back in the grain, none in meals');
+  // dies at its bed
+  const s5 = make(), h5 = s5.households[0], id5 = adultOf(s5, h5);
+  to(s5, WORK[1] + 1);
+  Stores.put(s5, h5, 'grain', 60, 'harvest', { barley: 60 });
+  issue(s5, { actor: id5, verb: 'lodge', target: site, args: { why: 'work', days: 3 }, source: 'pawn' });
+  const j5 = stayOf(s5, id5), grain5 = j5.food * R4, lie0 = Object.keys(s5.lying || {}).length + (Array.isArray(s5.lying) ? s5.lying.length : 0);
+  VB['sim/lifecycle'].killPawn(s5, id5, 'killed');
+  assert.ok(!s5.away.includes(j5), 'its stay ended');
+  const lay = JSON.stringify(s5.lying || null);
+  assert.ok(lay.includes('leftGrain') && lay.includes(String(Math.round(grain5 * 1000) / 1000).slice(0, 4)), `its pack lies where it fell: ${lay.slice(0, 200)}`);
+  assert.ok(lie0 === 0, 'nothing lay before');
 }
 console.log(`away: a pawn lodged ${s.walk.toFixed(1)} hours from home on a pack of 3, worked two days, ate from its pack, walked home on the third; a household at its seed sent nobody; a guest; a save in the middle`);
