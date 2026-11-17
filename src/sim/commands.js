@@ -24,7 +24,7 @@ VB['sim/commands'] = (() => {
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner } = VB['sim/wishes'];
   const { settleGift } = VB['sim/exchange'];
-  // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/marriage, sim/clock) find them when they run.
+  // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/marriage, sim/gathering, sim/clock) find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
     !(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length)
@@ -409,6 +409,12 @@ VB['sim/commands'] = (() => {
             ? `routines cannot be set by ${c.args && c.args.by}`
             : later('sim/plans').routinesWhy(c.args.routines)),
       run: (st, c) => later('sim/plans').setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
+    },
+    // gathering({offer, prefs, by}): the village's choice of gathering this year (VB-294): whether it offers to host, and the hosts it
+    // would go to, best first; made by its meeting (by 'meeting') or, when it did not decide, by its culture's practice (sim/gathering)
+    gathering: {
+      check: (st, c) => settlement(st, c) || later('sim/gathering').choiceWhy(st, c.actor.settlement, c.args),
+      run: (st, c) => later('sim/gathering').setGathering(st, c.actor.settlement, c.args),
     },
     // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
     // goBack(target, {why}): the actor, holder of household `target`'s farm held in trust by kin (VB-309, sim/trust), goes back to it with

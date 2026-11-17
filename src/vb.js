@@ -35,6 +35,11 @@ VB.COUNTERS = {
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   roundWalk: "Pawn records walked by a village's round to build its pool, once a village (sim/lifecycle, VB-277)",
   wishWalk: "Pawn records walked by the pawns' own choosing of their wishes, once a moving round (sim/wishes, VB-680)",
+  gatherChoice: "Villages weighed as hosts by a village's choice of gathering, at its meeting (sim/gathering, VB-294)",
+  gatherDisposition:
+    "Counterparts of a village's holders read for the pull between villages, at its meeting (sim/gathering, VB-294)",
+  gatherKin: "Kin households read for a village's choice of gathering, at its meeting (sim/gathering, VB-294)",
+  gatherSettle: 'Hosts named and asked in the settling of the gatherings, once a year (sim/gathering, VB-294)',
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
   overviewWalk:
