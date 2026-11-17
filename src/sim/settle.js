@@ -1,11 +1,12 @@
 // @sys sim/settle: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
 VB['sim/settle'] = (() => {
   const { issue } = VB['sim/commands'];
+  const Offers = VB['sim/offers'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { DAY, SETTLE, ECON, CROPS, FIELDS, WOOD, fertility, farmable } = VB['sim/rules'];
+  const { DAY, SETTLE, ECON, CROPS, FIELDS, WOOD, MARRIAGE, fertility, farmable } = VB['sim/rules'];
   const { bufferOf, act } = VB['sim/traits'];
-  const { wishOf } = VB['sim/wishes'];
+  const { wishOf, moveWhy } = VB['sim/wishes'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
   const { walkable, villageAdded, costChanged } = VB['sim/routes'];
@@ -322,6 +323,49 @@ VB['sim/settle'] = (() => {
     villageAdded(st); // VB-286: its row of the table of walking hours, at once
     return f;
   }
+  // ---- the basis `party` of sim/offers (VB-692; plan VB-682, sections 2 and 4.5): {from (the one who would leave), to (the first grown
+  // one of the party after it, else itself), gives {from (the village left), all (the party, the caller first), followers, house, field,
+  // village (a small village joined, or absent to found one)}}. The grown of the party answer, and say yes by today's rule, as the round
+  // drew them (partyOf); its minor children are not asked, and the caller leaves without leave (moveWhy). A yes is the leave verb. ----
+  function partyWhy(st, o) {
+    const g = o.gives || {},
+      p = Number.isInteger(o.from) ? st.pawns[o.from] : null;
+    if (!p || !p.alive) return `pawn ${o.from} is not a living pawn`;
+    if (!st.villages[g.from] || !Array.isArray(g.all) || g.all[0] !== p.id || !Array.isArray(g.followers))
+      return 'a party is called by its first, from its village';
+    const whose = moveWhy(st, p.id, null, 'settle');
+    return typeof whose === 'string' ? whose : {};
+  }
+  const partyAnswers = (st, o) => [
+    ...moveWhy(st, o.from, null, 'settle')
+      .filter((a) => a.by !== o.from)
+      .map((a) => ({ key: a.key, by: a.by, yes: null })),
+    ...o.gives.all
+      .slice(1)
+      .filter((id) => st.pawns[id].age >= 18)
+      .map((id) => ({ key: `with${id}`, by: id, yes: null })),
+  ];
+  Offers.basis('party', {
+    books: 'nothing',
+    memory: false,
+    wait: () => MARRIAGE.offerDays,
+    check: partyWhy,
+    answers: partyAnswers,
+    weigh: () => true,
+    settle: (st, o) => {
+      const g = o.gives,
+        { from, all, followers, house, field, village } = g;
+      return issue(st, {
+        actor: o.from,
+        verb: 'leave',
+        args: { from, party: { all, followers }, house, field, ...(village !== undefined ? { village } : {}) },
+        source: 'round',
+      });
+    },
+    subject: (st, o) => o.from,
+    where: (st, o) => o.gives.from,
+    what: (st, o) => `the party of ${fullName(st.pawns[o.from])} for new land`,
+  });
   // The chance to leave after `felt` rounds of waiting: SETTLE.chance[k] at k + 1 rounds, the last from then on, in a line between them
   // and from none at 0. The rounds felt are those waited over the pressure the pawn needs (TRAITS.acts.ambition.settle, 1 at ambition 0.5,
   // where it is SETTLE.chance by rounds waited; VB-520).
@@ -349,7 +393,15 @@ VB['sim/settle'] = (() => {
         noLand = false;
       for (const id of ids) {
         const p = st.pawns[id];
-        if (taken.has(id) || !p.alive || p.age < SETTLE.ages[0] || p.age > SETTLE.ages[1] || guardian(st, id)) continue;
+        if (
+          taken.has(id) ||
+          !p.alive ||
+          p.age < SETTLE.ages[0] ||
+          p.age > SETTLE.ages[1] ||
+          guardian(st, id) ||
+          (p.ask !== undefined && p.ask !== null)
+        )
+          continue;
         const wish = wishOf(st, id, 'settle');
         if (
           wish === false ||
@@ -370,18 +422,18 @@ VB['sim/settle'] = (() => {
         if (!reach) reach = reachOf(st, v);
         let f = null,
           steps = 0;
-        // the leave command; the new farm is the last one added, and its house and field are marked used for the rest of the round
+        // the call to the party (the basis `party`, due at once: VB-692), whose yes is the leave command; the new farm is the last one
+        // added, and its house and field are marked used for the rest of the round
         const leave = (args) => {
           const n = st.farmsteads.length;
-          if (
-            issue(st, {
-              actor: p.id,
-              verb: 'leave',
-              args: { from: v.id, party: { all: party.all, followers: party.followers }, ...args },
-              source: 'round',
-            }) !== true
-          )
-            return null;
+          issue(st, {
+            actor: p.id,
+            verb: 'offer',
+            target: party.all.slice(1).find((q) => st.pawns[q].age >= 18) ?? p.id,
+            args: { basis: 'party', gives: { from: v.id, all: party.all, followers: party.followers, ...args } },
+            source: 'round',
+          });
+          if (st.farmsteads.length === n) return null;
           for (const t of [args.house, args.field]) markUsed(st.w, use, t);
           return st.farmsteads[n];
         };

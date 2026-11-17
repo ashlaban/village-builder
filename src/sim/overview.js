@@ -179,5 +179,8 @@ VB['sim/overview'] = (() => {
     out.idle.share = out.idle.had > 0 ? Math.max(0, Math.min(1, 1 - out.idle.worked / out.idle.had)) : 0;
     return out;
   }
-  return { OVERVIEW, villageSummary, viewerOf, estimateOf };
+  // The village store's supply outlook (VB-966) as pawn `viewer` (null: the village's eldest holder) would reckon it; computed when asked.
+  const villageOutlookOf = (st, vid, viewer = null) =>
+    VB['sim/outlook'].villageOutlook(st, vid, viewerOf(st, st.villages[vid], viewer));
+  return { OVERVIEW, villageSummary, viewerOf, estimateOf, villageOutlookOf };
 })();

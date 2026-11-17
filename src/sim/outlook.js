@@ -6,7 +6,7 @@
 // ordinary year (sim/meadows' expectedHay), the woodpile's goal of each season (plan.targets.wood); no weather to come is read. Nothing
 // reads the outlook to decide: it is a view the review keeps, so that the page never computes one.
 VB['sim/outlook'] = (() => {
-  const { SEASON_DAYS, YEAR_DAYS, CROPS, ROTATIONS, FIELDS, HERD, BUILD, PEAT, cal } = VB['sim/rules'];
+  const { SEASON_DAYS, YEAR_DAYS, CROPS, ROTATIONS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'];
   const { on } = VB['sim/events'];
   const Stores = VB['sim/stores'];
   const Pot = VB['sim/pot'];
@@ -359,5 +359,56 @@ VB['sim/outlook'] = (() => {
       head: plan.head ? plan.head.pawn : null, // whose estimate it is (AGENTS.md, Deciding without Kim, 14)
     };
   }
-  return { OUTLOOK, FRAME, SUPPLIES, STATES, reckon, supplyOutlook };
+  // The village store's outlook (VB-966), made when asked and kept nowhere: how long its grain lasts, on the household's scale, at the daily need
+  // of the village's households, the store losing ECON.villageStoreLoss a year; no intake is reckoned (what the households give in and
+  // what the common fields bring is not promised: VB-849's filling is hauled to the green), so own and with are the same. Its target
+  // (HELP.storeTarget years of need, VB-457) is in parts.target. Shaped as a household's outlook (food only; fuel and hay 'none'), with
+  // `head`, whose estimate it is: the viewer's (the played pawn), else the village's eldest holder, who speaks for it until it has an
+  // alderman (as sim/overview's warnings; a village never acts or estimates, a pawn does: AGENTS.md, Deciding without Kim, 14 and 16).
+  // One pass over the village's farmsteads, with the card; stores nothing.
+  function villageOutlook(st, vid, head = null) {
+    const v = st.villages[vid],
+      c = cal(st.t),
+      F = c.day - c.sday,
+      end = F + FRAME * SEASON_DAYS;
+    let D = 0;
+    for (const id of v.farmsteads) {
+      const f = st.farmsteads[id];
+      if (f.household !== null && !st.households[f.household].dissolved) D += dailyNeed(st, st.households[f.household]);
+    }
+    const store = Math.max(0, Stores.grainOf(v) - Stores.reserved(st, v, 'grain')),
+      share = 1 - Math.pow(1 - st.ECON.villageStoreLoss, 1 / YEAR_DAYS);
+    const w = walk({
+      from: c.day,
+      to: end,
+      F,
+      keep: 0,
+      rot: store,
+      need: () => D,
+      loss: (x) => x * share,
+      intoRot: true,
+    });
+    const food = supply(w, w, D > 0, [0, 1, 2, 3], store, [], D);
+    food.parts.target = r1(HELP.storeTarget * D * YEAR_DAYS);
+    const none = {
+      own: FRAME,
+      with: FRAME,
+      state: 'none',
+      season: null,
+      seasons: [0, 1, 2, 3],
+      parts: { store: 0, need: [0, 0, 0, 0], intakes: [], spoilt: 0 },
+    };
+    return {
+      year: c.year,
+      season: c.season,
+      day: c.day,
+      stale: false,
+      village: true, // the store's: reckoned when asked, not at a review
+      head, // whose estimate it is: sim/overview chooses (viewerOf)
+      food,
+      fuel: none,
+      hay: { ...none, seasons: [3] },
+    };
+  }
+  return { OUTLOOK, FRAME, SUPPLIES, STATES, reckon, supplyOutlook, villageOutlook };
 })();

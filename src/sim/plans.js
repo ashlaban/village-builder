@@ -213,6 +213,8 @@ VB['sim/plans'] = (() => {
     if (!P[d.type].has(d.id)) P[d.type].set(d.id, []);
     P[d.type].get(d.id).push(plan);
   });
+  // A village gives up a cleared plot nobody came for (sim/expansion, VB-646): the plan goes, its reservations released.
+  on('plotReleased', (st, d) => dropProject(st, d.plan));
   // ---- the template of the year (design.md section 7, How a holder chooses: the year; VB-252) ----
   // A culture's year as rules of sim/registry, so that a culture, a head's foresight (VB-254) or the player (VB-253) changes one row: for
   // each season the routines in the order the work is done (year.order: a routine's place in the season, -1 when it is not done then), and

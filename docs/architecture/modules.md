@@ -106,8 +106,13 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - The moving round (`src/sim/round.js`, its marriages in `src/sim/marriage.js`, VB-201, VB-277): on autumn day 11, each village's own round (`villageRound`) a village a 6-minute
   step from noon in the order of village id (village k on step k up to 60 villages, else `floor(k * 60 / n)`): its store filled, its own men
   matched with the women of every village, its handovers (its farms, and the homes in other villages its marriages chose) and its kin
-  pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. `roundPhase(st, n)`
-  is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
+  pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. The round lasts
+  `ASK.passes` days (autumn days 11 to 13, VB-692): on each, a village's step first answers the offers due to its people (`answerDue`, in
+  the order of `ASK.order`: handover, match, land, party, place); its choosers run on the first day only, and each of their picks is an
+  offer due at once on its basis (`match` and `handover` in `sim/marriage`, `land` in `sim/farmclaims`, `party` in `sim/settle`, `place` in
+  `sim/service`), whose answers are whose yes the move needs (`moveWhy`, `sim/wishes`); a match refused asks anew that evening, due the next
+  day; after the last day what is open of the round lapses. A pawn holds one open offer about its future (`pawn.ask`, `sim/offers`).
+  `roundPhase(st, n, d)` is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
   The means to marry is the registry rule `marriage.means` (declared there, base `MARRIAGE.means`, context the home's household; VB-631), read by `affords` and by `Sim.meansOf`, which also feeds `matchBar`'s reason and the pawn panel (`marryStanding`). A later contribution (a custom, a head's caution, a servant's portion: VB-637) joins by `Rules.contribute({ rule: 'marriage.means', ... })` from its own module.
 - The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute

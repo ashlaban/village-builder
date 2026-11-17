@@ -100,7 +100,8 @@ const QUANTITIES = [
   { id: 'lying', of: 'tile', name: 'a load lying where its carrier fell', unit: 'its kind\'s loads (rations of sheaves, hay loads, firewood, stone)',
     fields: ['st.lying'], covers: ['st.lyingSeq'], kinds: [], losses: ['sim/lying:frost'],
     none: 'nothing lies on the road: every load is in hand or home; one left lying is fetched by its owner\'s next hand (the fetch kinds) '
-      + 'or rots at the autumn frost (sim/lying, VB-611)' },
+      + 'or rots at the autumn frost (sim/lying, VB-611); a cart left standing with its load (household.carts[].at, VB-649) is fetched home with its team '
+      + 'by a hand of its household, or is lost at the frost and named (cartGone)' },
   { id: 'trees', of: 'tile', name: 'a tile\'s trees', unit: 'trees', fields: ['w.trees'], kinds: ['fell', 'grub'], covers: ['w.treesMax'],
     none: 'a tile cut bare: firewood is cut on another tile of the village\'s wood; with none left, no firewood job is posted (sim/territory); '
       + 'the bare tile is meadow, and the forest spreads back into it where it borders forest and nothing keeps it open (sim/spread, VB-091)' },
