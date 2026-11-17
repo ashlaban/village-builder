@@ -4,12 +4,8 @@ VB['sim/farmclaims'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { YEAR, CLAIMS, CROPS } = VB['sim/rules'];
   const { bufferOf } = VB['sim/traits'];
-<<<<<<< HEAD
   const { withinDay } = VB['sim/routes'];
-=======
   const { doneOf } = VB['sim/progress'];
-  const { hoursBetween } = VB['sim/routes'];
->>>>>>> claude/happy-bardeen-bcg39a
   const {
     spouseOf,
     childrenOf,

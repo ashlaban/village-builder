@@ -3,12 +3,7 @@
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
-<<<<<<< HEAD
   const { hoursBetween, withinDay, byLand } = VB['sim/routes'];
-  const onRoad = (a) => a.phase === 'journey' || a.phase === 'road'; // as sim/agents' travelling, which loads after this module
-=======
-  const { hoursBetween } = VB['sim/routes'];
->>>>>>> claude/happy-bardeen-bcg39a
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
