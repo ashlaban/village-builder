@@ -201,11 +201,13 @@ function showPawn(id) {
     ? `Holds ${f.name}`
     : heirs.length
       ? `Heir to ${heirs.map((x) => x.name).join(' and ')}`
-      : p.retired
-        ? `Retired at ${f.name}`
-        : p.age >= 18 && st.demand.includes(id)
-          ? `Landless at ${f.name}, wants to move out`
-          : `Lives at ${f.name}`;
+      : p.servant && typeof p.servedSince === 'number'
+        ? `In service at ${f.name} since year ${yearStr(Math.floor(p.servedSince / Sim.YEAR) + 1)}, and marries by leaving service at the moving round`
+        : p.retired
+          ? `Retired at ${f.name}`
+          : p.age >= 18 && st.demand.includes(id)
+            ? `Landless at ${f.name}, wants to move out`
+            : `Lives at ${f.name}`;
   const rel =
     (sp !== null
       ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}`

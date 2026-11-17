@@ -239,6 +239,11 @@ function checkState(st) {
       if (d !== undefined && !(d >= 0 && d < 1)) bad.push(`pawn ${id}: diligence ${d}`);
     }
   } else bad.push('plans: missing');
+  // service is dated (VB-634): servedSince is set exactly when the pawn is a servant
+  for (const id of st.living) {
+    const p = st.pawns[id];
+    if (p.servant !== (typeof p.servedSince === 'number')) bad.push(`pawn ${id}: servant ${p.servant} with servedSince ${p.servedSince}`);
+  }
   // a cause is an agenda: the year it was taken up (culture), null or undefined for none yet, and never in the future
   for (const id of st.living) {
     const cs = st.pawns[id].causeSince;

@@ -130,9 +130,14 @@ VB['sim/matching'] = (() => {
       if (hm && hf && handsOnWell(pm) !== handsOnWell(pf)) return handsOnWell(pm) > handsOnWell(pf) ? pf : pm;
       return fieldsAt(pf) > fieldsAt(pm) ? pf : pm;
     };
-    const homeFor = (m, f, cu, pm = place(m.id), pf = place(f.id)) => {
+    const homeBy = (m, f, cu, pm = place(m.id), pf = place(f.id)) => {
       if (cu.residence === 'land') return pm !== null && pf !== null ? both(m, f, pm, pf) : pm !== null ? pm : pf;
       return cu.residence === 'husband' ? m.household : f.household;
+    };
+    // The master's house is no home for a couple (VB-634): where the home would be one a spouse serves in, there is none.
+    const homeFor = (m, f, cu, pm, pf) => {
+      const h = homeBy(m, f, cu, pm, pf);
+      return h !== null && ((m.servant && m.household === h) || (f.servant && f.household === h)) ? null : h;
     };
     const affords = (h) => {
       if (!means.has(h)) {
@@ -154,7 +159,7 @@ VB['sim/matching'] = (() => {
   // a household id). The round's rules: both alive, single, of age, fed, not retired and in no open offer; the woman's village within
   // walking reach of the man's (VB-288); the kin degree the man's village's
   // custom allows; a home that affords it; and a score, with the noise at its mean, that reaches the lowest accepted score.
-  function matchBar(st, a, b, rules = matchRules(st)) {
+  function matchBar(st, a, b, rules = matchRules(st), occasion = 'round') {
     const pa = st.pawns[a],
       pb = st.pawns[b];
     if (!pa || !pb) return { why: 'there is no such pawn' };
@@ -169,6 +174,8 @@ VB['sim/matching'] = (() => {
       if (p.retired) return { why: `${nm} is retired` };
       if (!(p.hunger < HUNGER.marryBelow)) return { why: `${nm} is too hungry to marry` };
       if (heldBy(st, p.id, 'match')) return { why: `${nm} is in an open offer` };
+      // Service is by the year (VB-634): an offer out of the round waits for the round, when a servant leaves service to marry.
+      if (p.servant && occasion !== 'round') return { why: `${nm} is in service until the moving round` };
     }
     const vm = settlementIdOf(st, m),
       vf = settlementIdOf(st, f);
@@ -177,6 +184,12 @@ VB['sim/matching'] = (() => {
     const cu = practice(st, vm);
     if (!kinOk(st, m.id, f.id, cu)) return { why: 'too close kin for the custom of the village' };
     const home = rules.homeFor(m, f, cu);
+    if (home === null)
+      for (const p of [m, f])
+        if (p.servant)
+          return {
+            why: `${fullName(p)} is in service: ${p.sex === 'm' ? 'his' : 'her'} master's house is no home for a couple`,
+          };
     if (home === null) return { why: 'no home for them: neither has a farm to live on' };
     if (!rules.affords(home)) return { why: 'their home cannot feed another mouth' };
     const widowed = wasWidowed(st, m.id) || wasWidowed(st, f.id);

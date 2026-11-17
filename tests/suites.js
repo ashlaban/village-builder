@@ -98,6 +98,7 @@ const INTEGRATION = [
   ['node', 'tests/villagehours.js'],
   ['node', 'tests/roundreach.js'],
   ['node', 'tests/matchreach.js'],
+  ['node', 'tests/service-marriage.js'], // VB-634: the master's house is no home; service is by the year
   ['node', 'tests/projects.js'],
   ['node', 'tests/routines.js'],
   ['node', 'tests/green.js'],
