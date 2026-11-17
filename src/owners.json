@@ -34,6 +34,7 @@
     "pawn.wish": "sim/wishes",
     "plan.head": "sim/plans",
     "plan.aim": "sim/aims",
+    "plan.outlook": "sim/outlook",
     "farmstead.barn": "sim/building",
     "household.workHours": "sim/agents",
     "st.offers": "sim/offers",
