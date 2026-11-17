@@ -1187,8 +1187,11 @@ function checkState(st) {
   if (VBc && VBc.giftUncarried) bad.push(`gifts: ${VBc.giftUncarried} grain settled at once between two places`);
   // the occasions (VB-126): sorted by due, ids below st.occasionSeq and unique, due at most at the end, which is after the start (not
   // after now: a test may set the clock forward, and the next step ends it); the asked are in order of setting out, each once, and none of them has set out; a pawn at an occasion stands at one
-  // that is in the queue and lists it among those who came.
+  // that is in the queue and lists it among those who came. An ale evening (VB-522) is held for its host, the holder of the farm's
+  // household, from the end of work, one a village a day, for at most ALE_EVENING.guests besides the household; a rite on a green at
+  // RITE.hour, for nobody in particular.
   if (st.occasions !== undefined) {
+    const { ALE_EVENING, RITE, DAY: D } = globalThis.VB['sim/rules'], aleDays = new Set();
     const O = globalThis.VB['sim/occasions'].OCCASIONS, live = new Map();
     if (!Array.isArray(st.occasions) || !Number.isInteger(st.occasionSeq) || st.occasionSeq < 0) {
       bad.push(`occasions: ${typeof st.occasions}, seq ${st.occasionSeq}`);
@@ -1202,7 +1205,17 @@ function checkState(st) {
       if (!(o.tile >= 0 && o.tile < st.w.N) || !st.villages[o.village] || (o.farm !== null && !st.farmsteads[o.farm])) {
         bad.push(`${at}: tile ${o.tile}, village ${o.village}, farm ${o.farm}`);
       }
-      if ((o.kind === 'meeting') !== (o.farm === null)) bad.push(`${at}: a ${o.kind} at farm ${o.farm}`);
+      if ((o.kind === 'meeting' || o.kind === 'rite') !== (o.farm === null)) bad.push(`${at}: a ${o.kind} at farm ${o.farm}`);
+      if (o.kind === 'ale') {
+        const hh = o.farm === null ? null : st.households[st.farmsteads[o.farm].household];
+        const day = `${o.village} ${Math.floor(o.start / D)}`, own = hh ? hh.members : [];
+        if (o.for.length !== 1 || !hh || hh.holder !== o.for[0]) bad.push(`${at}: an ale evening for ${o.for.join()}, not its farm's holder`);
+        if (aleDays.has(day)) bad.push(`${at}: a second ale evening in village ${o.village} that day`);
+        aleDays.add(day);
+        const guests = [...o.asked.map((g) => g.id), ...o.come].filter((id) => !own.includes(id)).length;
+        if (guests > ALE_EVENING.guests) bad.push(`${at}: ${guests} guests asked, over ${ALE_EVENING.guests}`);
+      }
+      if (o.kind === 'rite' && (o.for.length || ((o.start % D) + D) % D !== RITE.hour)) bad.push(`${at}: a rite for ${o.for.join()} at ${o.start}`);
       const asked = new Set(o.asked.map((g) => g.id));
       if (asked.size !== o.asked.length || o.asked.some((g, k) => !st.pawns[g.id] || (k > 0 && o.asked[k - 1].leave > g.leave) || !(g.hours >= 0))) {
         bad.push(`${at}: asked ${JSON.stringify(o.asked)}`);

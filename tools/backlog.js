@@ -96,7 +96,7 @@ for (const [status, [file, heading]] of Object.entries(TABLES)) {
 }
 const archKeys = (file, heading) => tableRows(file, heading).map((l) => cellsOf(l)[0]);
 let openArchs = archKeys('BACKLOG.md', 'Archs');
-const doneOrder = tableRows('BACKLOG_ARCHIVE.md', 'Done tasks').map((l) => cellsOf(l)[0].slice(1, 7));
+const doneOrder = tableRows('BACKLOG_ARCHIVE.md', 'Done tasks').map((l) => (cellsOf(l)[0].match(/VB-\d+/) || [''])[0]);
 const rowOf = (t) => `| [${t.id}](backlog/${t.id}.md) | ${t.name.replace(/\|/g, '/')} | ${t.arch} | ${t.priority} | ${t.size} |`
   + (t.status === 'blocked' ? ` ${t.waits.join(', ')} |` : '') + ` ${summaries.get(t.id)} |`;
 const archRank = (a) => (openArchs.includes(a) ? openArchs.indexOf(a) : openArchs.length);

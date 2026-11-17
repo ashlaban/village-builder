@@ -34,7 +34,7 @@ VB['sim/clock'] = (() => {
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
-  const { occasionsDue, callMeetings } = VB['sim/occasions'];
+  const { occasionsDue, callMeetings, riteDay, callRites } = VB['sim/occasions'];
   const { takeIn } = VB['sim/service'];
   const { trustOf } = VB['sim/ownership'];
   const { boatYear } = VB['sim/drying'],
@@ -409,6 +409,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/occasions',
       note: "the meeting's people called to the green (VB-126)",
       run: (st) => callMeetings(st),
+    },
+    {
+      every: 'day',
+      when: (st, c) => riteDay(c),
+      owner: 'sim/occasions',
+      note: "the season's rite called on each village green (VB-522)",
+      run: (st) => callRites(st),
     },
     // ---- the year ----
     { every: 'year', owner: 'sim/clock', note: 'the year begins: its weather', run: (st, c) => newYear(st, c) },

@@ -437,7 +437,7 @@ VB['sim/rules'] = (() => {
     // day, and by `work` for each job two pawns finish together; it halves every year. Near kin never fall below `kin`. A pawn keeps at
     // most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped when the pawn's ties are put back on today's scale,
     // every `renorm` years.
-    ties: { talk: 0.8, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
+    ties: { talk: 0.8, home: 1, work: 0.5, kin: 0.4, rite: 0.25, cap: 150, forget: 0.02, renorm: 4 }, // rite: to the rite's leader (VB-522)
     affinity: { weight: 0.6, known: 8 },
     friend: 0.25,
     dislike: -0.2,
@@ -666,6 +666,31 @@ VB['sim/rules'] = (() => {
   // holder's generosity, TRAITS.acts.generosity.feast), and at most `perGuest` rations a ration of need of those who came (a day's food
   // three times over, the ale poured counted at its grain). Those who ate have eaten the day's meal; guest households owe the host goodwill.
   const FEAST = { above: 2, share: 0.25, perGuest: 3 };
+  // The ale evening (VB-522; design.md, Where pawns meet): a holder whose household holds a barrel no occasion called at its farm needs
+  // opens its house from the end of work to `until`, the small, frequent sibling of the feast. `call`: a holder's chance a day, times
+  // (0.5 + sociability) and (0.5 + ambition), asked at its planning day's review; one evening a village a day. `reach`: the walking hours
+  // between villages (sim/routes' table) within which a village's adults are asked. `come`: an adult's chance to come, times (0.5 +
+  // sociability), (1 + its opinion of the host) and (1 - its walk / reach); counted until `guests` (a barrel's) have said yes. `mix`: the
+  // floor for strangers among the partners drawn there (sim/encounters). `reach` 2, not the design's 1.5 (VB-522's runs, populous small
+  // seed 7: at 1.5 a twelfth of the guests came from another village, at 2 a fifth, at 2.5 over a third).
+  const ALE_EVENING = { call: 0.1, reach: 2, come: 0.25, guests: 20, mix: 0.5, until: 22 };
+  // The season's rite (VB-522; design.md, Where pawns meet): on each village green, on day sday of `days`' seasons (spring day 1, summer
+  // day 6, winter day 7), from `hour` for `hours`. An adult of the village, and of a lone farm within `reach` walking hours of a green,
+  // comes at chance `come` + `piety` × its piety; work is not stopped for it. Its leader is the holder present highest in piety × prestige;
+  // each who came gains SOCIAL.ties.rite to it. `mix`: the floor for strangers there (sim/encounters).
+  const RITE = {
+    hour: 12,
+    hours: 2,
+    reach: 2,
+    come: 0.3,
+    piety: 0.6,
+    mix: 0.2,
+    days: [
+      [0, 0],
+      [1, 5],
+      [3, 6],
+    ],
+  };
   // The gathering (VB-294; design.md, The gathering; Kim, 10 Nov): a village's effective hours to a host are the walk between the greens,
   // less `kin` hours for each household of kin in the villages that went there last winter (at most `kinMax`), less or plus up to
   // `disposition` hours by the pull between the two villages' holders, less `held` if it was held last winter, less `ale` an hour for each
@@ -1128,6 +1153,8 @@ VB['sim/rules'] = (() => {
     SPEED,
     BREW,
     FEAST,
+    ALE_EVENING,
+    RITE,
     GATHERING,
     TERRAIN,
     SLOPE,
