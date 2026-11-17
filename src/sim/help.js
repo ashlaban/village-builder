@@ -3,7 +3,7 @@
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { hoursBetween, withinDay, byLand } = VB['sim/routes'];
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
@@ -93,9 +93,10 @@ VB['sim/help'] = (() => {
       const near = [],
         far = [];
       for (const k of kinHouseholds(st, hh)) {
-        const h = hoursOf(st, k, hh);
-        if (h <= TRAVEL.dayWalk) near.push(k);
-        else if (h < Infinity) far.push(k);
+        const a = st.farmsteads[st.households[k].farmstead].village,
+          b = st.farmsteads[hh.farmstead].village;
+        if (withinDay(st, a, b)) near.push(k);
+        else if (byLand(st, a, b)) far.push(k);
       }
       far.sort((a, b) => hoursOf(st, a, hh) - hoursOf(st, b, hh) || a - b);
       for (const k of near) {

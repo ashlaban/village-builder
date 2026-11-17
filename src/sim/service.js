@@ -7,7 +7,7 @@ VB['sim/service'] = (() => {
   const { wishOf } = VB['sim/wishes'];
   const { refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { hoursBetween, withinDay, byLand } = VB['sim/routes'];
   const { SERVICE } = VB['sim/rules'];
   const { hasPlot } = VB['sim/expansion'];
   const { trustOf } = VB['sim/ownership'];
@@ -84,7 +84,7 @@ VB['sim/service'] = (() => {
         if (!free(st, q) || q.household === hh.id) continue;
         const k = kinship(st, ward.id, id, memo);
         if (k <= 0) continue;
-        const near = hoursBetween(st, farmOf(st, st.households[q.household]).village, f.village) < Infinity;
+        const near = byLand(st, farmOf(st, st.households[q.household]).village, f.village);
         for (const i of near ? [0, 1] : [1])
           if (!best[i] || k > bk[i] || (k === bk[i] && q.born < best[i].born)) {
             best[i] = q;
@@ -172,8 +172,9 @@ VB['sim/service'] = (() => {
   // walking hours between the greens of households a's and b's villages (sim/routes), 0 in one village, or null beyond SERVICE.hours or
   // by no route by land. Ranking by it puts the own village first. One table entry.
   const reachHours = (st, a, b) => {
-    const h = hoursBetween(st, farmOf(st, a).village, farmOf(st, b).village);
-    return h > SERVICE.hours ? null : h;
+    const u = farmOf(st, a).village,
+      v = farmOf(st, b).village;
+    return withinDay(st, u, v, SERVICE.hours) ? hoursBetween(st, u, v) : null;
   };
   // The servant for household hh among `available`, or null: one whose household keeps SERVICE.keepHands working hands without it, from
   // hh's village first, then the nearest village within SERVICE.hours walking hours; then the household that keeps the most hands, then the oldest.

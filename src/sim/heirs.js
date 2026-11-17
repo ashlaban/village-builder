@@ -32,7 +32,7 @@ VB['sim/heirs'] = (() => {
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { hoursBetween, byLand } = VB['sim/routes'];
   const { SHARES, GOODWILL, houseCondition } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/herds'];
@@ -265,8 +265,7 @@ VB['sim/heirs'] = (() => {
     st.visualDirty = true;
   }
   // Whether households a's and b's villages lie within walking reach of each other (VB-290).
-  const reachable = (st, a, b) =>
-    hoursBetween(st, st.farmsteads[a.farmstead].village, st.farmsteads[b.farmstead].village) < Infinity;
+  const reachable = (st, a, b) => byLand(st, st.farmsteads[a.farmstead].village, st.farmsteads[b.farmstead].village);
   // The smallest undissolved household of the village, or of the nearest village by walking hours when it has none (VB-290); with none
   // within walking reach, of the nearest by hexSteps between centres (until slice 10's boats).
   function serviceHome(st, hh) {

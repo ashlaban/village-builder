@@ -9,7 +9,7 @@ VB['sim/matching'] = (() => {
   const { heirRanking, heirFor } = VB['sim/heirs'];
   const { trustOfHolder } = VB['sim/ownership'];
   const { opinionOf } = VB['sim/relations'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { hoursBetween, byLand } = VB['sim/routes'];
   const { wishOf } = VB['sim/wishes'];
   const Rules = VB['sim/registry'];
 
@@ -50,7 +50,7 @@ VB['sim/matching'] = (() => {
       n = st.villages.length;
     for (let k = -1; k < n; k++) {
       const u = k < 0 ? v : k;
-      if ((k >= 0 && u === v) || hoursBetween(st, v, u) === Infinity) continue;
+      if ((k >= 0 && u === v) || !byLand(st, v, u)) continue;
       for (const fid of st.villages[u].farmsteads) {
         const h = st.farmsteads[fid].household,
           hh = h === null ? null : st.households[h];
@@ -195,7 +195,7 @@ VB['sim/matching'] = (() => {
     }
     const vm = settlementIdOf(st, m),
       vf = settlementIdOf(st, f);
-    if (vm !== null && vf !== null && hoursBetween(st, vm, vf) === Infinity)
+    if (vm !== null && vf !== null && !byLand(st, vm, vf))
       return { why: `${fullName(f)} lives beyond walking reach of ${fullName(m)}'s village` };
     const cu = practice(st, vm);
     if (!kinOk(st, m.id, f.id, cu)) return { why: 'too close kin for the custom of the village' };
