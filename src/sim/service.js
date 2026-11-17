@@ -170,7 +170,12 @@ VB['sim/service'] = (() => {
       moveWhy(st, o.to, o.gives.household, 'service').map((a) => ({ key: a.key, by: a.by, yes: null })),
     weigh: (st, o, a) =>
       a.key !== 'self' || (unfit(st, st.pawns[o.to]) === null && wishOf(st, o.to, 'serve') !== false),
-    settle: (st, o) => (placeHome(st, o) ? serve(st, o.to, o.gives.household, 'round') : 'the household is gone'),
+    settle: (st, o) => {
+      if (!placeHome(st, o)) return 'the household is gone';
+      const r = serve(st, o.to, o.gives.household, 'round');
+      if (r === true && o.id !== undefined) refreshRoles(st); // answered after the round's step, which refreshes its own
+      return r;
+    },
     subject: (st, o) => o.to,
     where: (st, o) => farmOf(st, st.households[o.gives.household]).village,
     what: (st, o) =>

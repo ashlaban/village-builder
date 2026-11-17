@@ -105,16 +105,18 @@ VB['sim/marriage'] = (() => {
     check: handoverWhy,
     answers: (st, o) => moveWhy(st, o.to, o.gives.household, 'heir').map((a) => ({ key: a.key, by: a.by, yes: null })),
     weigh: () => true,
-    settle: (st, o) =>
-      st.households[o.gives.household].holder !== o.from
-        ? 'the holding has passed'
-        : issue(st, {
-            actor: o.from,
-            verb: 'handOn',
-            target: o.to,
-            args: { household: o.gives.household, reason: o.gives.reason },
-            source: 'round',
-          }),
+    settle: (st, o) => {
+      if (st.households[o.gives.household].holder !== o.from) return 'the holding has passed';
+      const r = issue(st, {
+        actor: o.from,
+        verb: 'handOn',
+        target: o.to,
+        args: { household: o.gives.household, reason: o.gives.reason },
+        source: 'round',
+      });
+      if (r === true && o.id !== undefined) refreshRoles(st); // answered after the round's step, which refreshes its own
+      return r;
+    },
     subject: (st, o) => o.to,
     where: (st, o) => st.farmsteads[st.households[o.gives.household].farmstead].village,
     what: (st, o) =>
