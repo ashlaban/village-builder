@@ -29,7 +29,7 @@ function carrier(a) {
   carrier(a);
   const n = a.load, held = fd.held;
   st.pawns[id].household = other.id; // as moveTo has it
-  A.moved(st, a, hh, other);
+  VB['sim/away'].moved(st, a, hh, other);
   assert.strictEqual(sheaves(), b0, 'the load was booked at the barn from the road');
   assert(a.moving && a.phase === 'back' && a.load === n && fd.held === held, 'the hand is not still carrying its load');
   A.arrived(st, a); // home with the load
