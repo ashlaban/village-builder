@@ -123,10 +123,50 @@ const iv = setInterval(async () => {
   if (qa('#settlers button[data-farm]').length === 0) fail('settlers list is empty');
   if (q('#settlers .household-block, #settlers .show-map')) fail('the People sheet still tells of a household in folds');
   {
-    const lived = qa('#settlers button[data-farm]').find((b) => /people/.test(b.textContent));
+    const lived = qa('#settlers button[data-farm]').find((b) => b.querySelector('.ppl'));
     lived.click(); tick(5);
     const shown = (id) => !doc.getElementById(id).hidden;
-    if (!q('#tileStats .stat .meter[role="meter"]')) fail("a farm's card shows no meter of its food");
+    if (!q('#tileStats .supplies, #tileStats .card-note')) fail("a farm's card shows no supplies");
+    // The supply component (VB-667) on a constructed short household: its head's outlook made by sim/outlook, then food set to last half
+    // the season we are in on the store and 1.4 seasons with what is to come, short badly in the next. The Stores tab draws four cells
+    // (the first half solid, the second 40% striped, the last three framed red), its state in words, its numbers under the i; hay one
+    // wide cell; the farm's row on its village's card a red chip, and none for a safe supply.
+    {
+      const f = P.st.farmsteads[+lived.dataset.farm], hh = P.st.households[f.household], plan = P.st.plans.households.get(hh.id);
+      const kept = plan.outlook, O = win.VB['sim/outlook'].reckon(P.st, hh, plan);
+      O.food = { own: 0.5, with: 1.4, state: 'bad', season: 1, seasons: [0, 1, 2, 3], parts: { store: 30, need: [60, 60, 60, 60], intakes: [{ what: 'barley', season: 1, n: 50 }], spoilt: 2 } };
+      O.fuel = { ...O.fuel, own: 4, with: 4, state: 'safe', season: null };
+      O.hay = { own: 3.3, with: 3.6, state: 'short', season: 3, seasons: [3], parts: { store: 20, need: [0, 0, 0, 50], intakes: [], spoilt: 1, share: 0.6 } };
+      O.season = win.Sim.cal(P.st.t).season; O.year = win.Sim.cal(P.st.t).year;
+      plan.outlook = O;
+      doc.getElementById('tabStores').click(); tick(2);
+      const food = q('#tileHouse .supply[data-supply="food"]'), cells = food ? [...food.querySelectorAll('.cell')] : [];
+      const w = (c, k) => c && parseFloat(c.querySelector(`i.${k}`).style.width);
+      if (cells.length !== 4) fail(`the food supply draws ${cells.length} season cells, not 4`);
+      else {
+        if (w(cells[0], 'own') !== 50 || w(cells[0], 'with') !== 100 || w(cells[1], 'with') !== 40 || w(cells[1], 'own') !== 0) fail(`the food cells are filled ${cells.map((c) => `${w(c, 'own')}/${w(c, 'with')}`).join(' ')}`);
+        if (cells.map((c) => c.classList.contains('short')).join() !== 'false,true,true,true') fail('the food cells the outlook does not cover are not framed red');
+      }
+      const next = win.Sim.SEASONS[(O.season + 1) % 4];
+      if (!food || food.querySelector('.supply-state').textContent !== `short in ${next}` || !food.classList.contains('bad')) fail(`the food supply's state reads "${food && food.querySelector('.supply-state').textContent}"`);
+      if (qa('#tileHouse .supply.head .cell-season svg').length !== 4) fail('the Supplies section has no header of four seasons');
+      if (qa('#tileHouse .supply[data-supply="hay"] .cell').length !== 1) fail('hay is not one wide cell');
+      if (!/By .+'s reckoning|By your reckoning/.test(q('#tileHouse .supplies .card-note').textContent)) fail('the Supplies section does not say whose reckoning it is');
+      q('#tileHouse [data-supply-more="food"]').click(); tick(2);
+      const nums = q('#tileHouse [data-supply-nums="food"]');
+      if (!nums || !/In store\s*30 rations/.test(nums.textContent) || !/barley harvest/.test(nums.textContent) || !/spoil/.test(nums.textContent)) fail(`the food's numbers read "${nums && nums.textContent}"`);
+      q('#tileHouse [data-supply-more="hay"]').click(); tick(2);
+      if (!/byre over winter/.test((q('#tileHouse [data-supply-nums="hay"]') || {}).textContent || '')) fail("hay's numbers do not open with its sentence");
+      q('#tileHouse [data-supply-more="food"]').click(); q('#tileHouse [data-supply-more="hay"]').click(); tick(2);
+      if (q('#tileHouse [data-supply-nums]')) fail('the numbers do not close');
+      doc.getElementById('settlers').querySelector(`button[data-village="${f.village}"]`).click(); tick(5);
+      const row = q(`#tileList [data-farm="${f.id}"]`), chips = row ? [...row.querySelectorAll('.supply-chip')] : [];
+      if (chips.length !== 2 || !chips[0].classList.contains('bad') || !chips[1].classList.contains('warn') || chips[0].querySelectorAll('svg').length !== 2) fail(`the short farm's row shows ${chips.map((c) => c.className).join(', ') || 'no chips'}, not a red food chip and a gold hay chip`);
+      if (!row || !row.querySelector('.ppl') || /Fed|Short of food/.test(row.querySelector('.state').textContent) || !row.title) fail("the farm's row lacks its people or its title, or still has the words");
+      console.log('supplies:', [...row.querySelectorAll('.supply-chip')].map((c) => c.title).join('; '));
+      plan.outlook = kept;
+      lived.click(); tick(5);
+    }
     for (const [tab, want] of [['tabStores', /Grain/], ['tabLand', /Hay meadows/], ['tabAnimals', /Larder/]]) {
       if (doc.getElementById(tab).hidden) { fail(`a lived-in farm's card has no tab ${tab}`); continue; }
       doc.getElementById(tab).click(); tick(2);
