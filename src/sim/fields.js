@@ -1,4 +1,5 @@
-// @sys sim/fields: new fields (each a project plan of sim/plans), crop lifecycle and daily growth, weeding, frost and abandonment; soil and manure
+// @sys sim/fields: new fields (each a project plan of sim/plans), crop lifecycle and daily growth, weeding, frost and abandonment; rotations (a
+//   field's courses, the holder's and the village's usual one, VB-350); soil and manure
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
@@ -55,10 +56,12 @@ VB['sim/fields'] = (() => {
     }
     return Math.floor(hands * perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
   }
-  // Sown fields a household wants: enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield, net of the seed a
-  // field takes back, VB-389; a rotation's sown courses by their mean, VB-350), as many as its hands can till.
+  // Fields a household wants: sown fields enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield, net of the
+  // seed a field takes back, VB-389; its rotation's sown courses by their mean, VB-350), times the head's `bias` (sim/plans, VB-485), as
+  // many as its hands can till; and its rotation's fallow courses on top, in their share of its courses (VB-350; design.md, The rotation,
+  // Fallow and the hands: two courses, as many again; three, half as many again).
   // `workable`: fieldsWorkable(st, hh), when the caller has it (the plan's review writes both, sim/plans).
-  function sownWanted(st, hh, workable = fieldsWorkable(st, hh)) {
+  function fieldsWanted(st, hh, workable = fieldsWorkable(st, hh), bias = 1) {
     const R = ROTATIONS[rotationOf(st, hh)].courses;
     let net = 0,
       n = 0;
@@ -67,18 +70,10 @@ VB['sim/fields'] = (() => {
         net += FIELDS.expect * CROPS[k].yield - CROPS[k].seed;
         n++;
       }
-    return Math.max(1, Math.min(workable, Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (net / n))));
+    const food = Math.max(1, Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (net / n))),
+      sown = Math.max(1, Math.min(workable, bias === 1 ? food : Math.round(food * bias)));
+    return n < R.length ? Math.ceil((sown * R.length) / n) : sown;
   }
-  // Fields a household wants for `sown` sown ones (VB-350; design.md, The rotation, Fallow and the hands): the fallow courses of its
-  // rotation on top, in their share of its courses (two courses: as many again; three: half as many again).
-  function withFallow(st, hh, sown) {
-    const R = ROTATIONS[rotationOf(st, hh)].courses;
-    let rest = 0;
-    for (const k of R) if (CROPS[k].fallow) rest++;
-    return rest ? Math.ceil((sown * R.length) / (R.length - rest)) : sown;
-  }
-  // Fields a household wants: its sown fields, and the fallow ones on top.
-  const fieldsWanted = (st, hh, workable = fieldsWorkable(st, hh)) => withFallow(st, hh, sownWanted(st, hh, workable));
   // Hours of clearing a tile: brush, plus the stones in proportion, plus the scrub the forest has grown on it (sim/spread, VB-091).
   const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255 + scrubHours(st, tile);
   // Houses and greens, standing or planned (a plot's house): no field is made next to one (VB-113).
@@ -627,9 +622,6 @@ VB['sim/fields'] = (() => {
     yearlyRations,
     fieldsWorkable,
     fieldsWanted,
-    sownWanted,
-    withFallow,
-    rotationOf,
     holdRotation,
     usualRotation,
     restagger,

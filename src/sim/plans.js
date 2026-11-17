@@ -11,8 +11,7 @@ VB['sim/plans'] = (() => {
     OTHER_CROPS = Stores.CROP_LIST.filter((k) => k !== SEED_CROP);
   const { KINDS } = VB['sim/kinds'];
   const { seedNeed } = VB['sim/hunger'];
-  const { fieldsWanted, sownWanted, withFallow, holdRotation, fieldsWorkable, fieldWhy, pickField, beginField } =
-    VB['sim/fields'];
+  const { fieldsWanted, holdRotation, fieldsWorkable, fieldWhy, pickField, beginField } = VB['sim/fields'];
   const Projects = VB['sim/projects'],
     { on, emit } = VB['sim/events'],
     { log } = VB['sim/records'];
@@ -393,7 +392,7 @@ VB['sim/plans'] = (() => {
     }
     if (hh.farmstead !== null) {
       T.workable = fieldsWorkable(st, hh, T.perHand);
-      T.fields = withFallow(st, hh, headFields(plan, sownWanted(st, hh, Infinity), T.workable));
+      T.fields = fieldsWanted(st, hh, T.workable, headBias(plan));
       chosenTargets(plan);
     }
     goodTargets(st, plan, hh);
@@ -468,11 +467,10 @@ VB['sim/plans'] = (() => {
     A.wood = wood;
     A.hay = hay;
   }
-  // The fields the head wants, of the `wanted` its household's food asks before its hands cap it: times its bias, whole, then at least one
-  // and at most `workable` (VB-485: the bias before the cap, so that a hands-limited household's head is not cut by a low bias more often
-  // than it is raised by a high one).
-  const headFields = (plan, wanted, workable) =>
-    Math.max(1, Math.min(workable, Math.round(wanted * (plan.head ? plan.head.bias.fields : 1))));
+  // The head's bias on the fields its household's food asks (sim/fields' fieldsWanted applies it to the sown fields, whole, before the
+  // hands cap them and the fallow ones go on top: VB-485, so that a hands-limited household's head is not cut by a low bias more often
+  // than it is raised by a high one; VB-350).
+  const headBias = (plan) => (plan.head ? plan.head.bias.fields : 1);
   // The hours at which plans may be reviewed and the due-queue is asked: every hour from one before work starts to the end of work
   // (sim/clock calls refreshJobs then).
   const reviewHour = (h) => h >= WORK[0] - 1 && h <= WORK[1];
@@ -681,7 +679,7 @@ VB['sim/plans'] = (() => {
     const T = plan.targets;
     if (hh.farmstead !== null) {
       T.workable = fieldsWorkable(st, hh, T.perHand);
-      T.fields = withFallow(st, hh, headFields(plan, sownWanted(st, hh, Infinity), T.workable));
+      T.fields = fieldsWanted(st, hh, T.workable, headBias(plan));
     }
     plan.tiles = { field: -1, meadow: -1 };
     plan.counted = null;
@@ -812,7 +810,7 @@ VB['sim/plans'] = (() => {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (f && f.household === hh.id) holdRotation(st, f, hh, c); // the rotation it holds (VB-350)
     T.workable = fieldsWorkable(st, hh, T.perHand);
-    T.fields = withFallow(st, hh, headFields(plan, sownWanted(st, hh, Infinity), T.workable));
+    T.fields = fieldsWanted(st, hh, T.workable, headBias(plan));
     chosenTargets(plan);
     project(st, plan, c);
     goodTargets(st, plan, hh);
