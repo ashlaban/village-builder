@@ -25,7 +25,7 @@
   "wishWalk": 0.03263009845288326,
   "meetingWalk": 0,
   "overviewWalk": 0,
-  "heirRank": 0.02250351617440225,
+  "heirRank": 0.020253164556962026,
   "storeWalk": 0.06751054852320675,
   "recordFold": 0,
   "ruleValue": 1.0745428973277074,
@@ -55,5 +55,5 @@
   "awayMeals": 0,
   "giftUncarried": 0,
   "deerCrop": 0,
-  "roundRank": 0.02250351617440225
+  "roundRank": 0.020253164556962026
 }
