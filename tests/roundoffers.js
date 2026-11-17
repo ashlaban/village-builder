@@ -61,6 +61,11 @@ const keys = (w) => (typeof w === 'string' ? w : w.map((a) => `${a.key} ${a.by}`
   // one under 18 needs the head it leaves, and goes into service only with the grown pawn who keeps it
   assert.strictEqual(keys(moveWhy(st, 9, 0, 'guardian')), 'self 9, head 0, left 6', 'a minor: the head left');
   assert.strictEqual(typeof moveWhy(st, 9, 0, 'service'), 'string', 'a minor does not go into service alone');
+  // one whose keepers no longer live with it (a dissolved household's child, placed by sim/heirs' extinct) is placed in service
+  const { father, mother } = st.pawns[9];
+  st.pawns[9].father = st.pawns[9].mother = null;
+  assert.strictEqual(keys(moveWhy(st, 9, 0, 'service')), 'self 9, head 0, left 6', 'a minor with no keeper at home is placed');
+  Object.assign(st.pawns[9], { father, mother });
   assert.strictEqual(keys(moveWhy(st, 9, 0, 'care')), 'head 0', 'under a care offer its kin answer for it');
   const why = issue(st, { actor: 9, verb: 'move', target: 0, args: { reason: 'service' }, source: 'round' });
   assert.ok(typeof why === 'string' && st.pawns[9].household === 1, `the move verb reads it: ${why}`);

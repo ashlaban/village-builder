@@ -124,13 +124,20 @@ VB['sim/wishes'] = (() => {
   // Whose yes pawn id's move to household hh (an id, or null for a household not yet founded: new land) for `reason` needs (VB-692; plan
   // VB-682, section 5; Kim, 16 November): [{key, by}], or why it cannot be. The pawn's own ('self') and the receiving head's ('head', the
   // holder, where another holds it), always; the head it leaves ('left') only for a marriage (its spokesman, where another speaks for
-  // it) or for one under 18 (the holder of its household); an adult leaves for service or new land without leave. A minor goes into
-  // service only with the grown pawn who keeps it (it follows, `with`, and is not asked); under a `care` offer its kin answer for it.
+  // it) or for one under 18 (the holder of its household); an adult leaves for service or new land without leave. A minor whose keeper
+  // (a parent, or its guardian) lives with it goes into service only with that keeper (it follows, `with`, and is not asked); one with
+  // none left at home is placed, by its kin (`care`, its own yes not asked) or in service, as a dissolved household's people are.
+  const kept = (st, p) =>
+    [p.father, p.mother].some((q) => q !== null && st.pawns[q].alive && st.pawns[q].household === p.household) ||
+    (p.household !== null &&
+      st.households[p.household].ward === p.id &&
+      Number.isInteger(st.households[p.household].guardian));
   function moveWhy(st, id, hh, reason) {
     const p = st.pawns[id],
       minor = !(p.age >= 18),
       out = [];
-    if (minor && reason === 'service') return 'a minor goes into service only with the grown pawn who keeps it';
+    if (minor && reason === 'service' && kept(st, p))
+      return 'a minor goes into service only with the grown pawn who keeps it';
     if (!(minor && reason === 'care')) out.push({ key: 'self', by: id });
     const to = hh === null || hh === undefined ? null : st.households[hh],
       head = to && !to.dissolved ? to.holder : null;
