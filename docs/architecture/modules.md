@@ -26,7 +26,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   What a tile's cover holds (a wood's trees at full cover, a meadow's stones) is `src/gen/cover.js`, read by `gen.js` as it lays the land.
 - The panels' shared pieces are `src/page/meter.js` (VB-664; `AGENTS.md`, Deciding without Kim, 15): `meter(o)`, the one meter every level is
   shown on (its scale is the caller's argument: VB-665), `stat(o)` and `stats(list)` (a good or a measure: its icon from `goodIcon` of
-  `src/page/icons.js`, its word, its value, its meter where it is a level) and `traitsHTML(id)`. A new panel shows a level, a store or a
+  `src/page/icons.js`, its word, its value, its meter where it is a level), `traitsHTML(id)`, and the supply component (VB-667):
+  `suppliesHTML(O, only)` draws a household's food, fuel and hay as season cells from its argument, the outlook `Sim.supplyOutlook` reads
+  (VB-666; the page computes none), with whose reckoning it is and an i for the numbers, and `supplyChips(O)` the chips of a farm's row
+  (`seasonIcon` of `src/page/icons.js` for the seasons). A supply is shown only through these. A new panel shows a level, a store or a
   trait through these, and a person or a farm by `memberRow` and `farmRow` of `src/page/cards.js`; a household is told of only on its
   farm's card (`houseStats`, `renderHouse`: the tabs Stores, Land and Animals), and the People sheet only finds.
 - The archipelago editor is `src/page/editor.js`: a world alone on the stage with no run (`edit`, page state as the showcase island is), its
@@ -106,6 +109,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. `roundPhase(st, n)`
   is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
+  The means to marry is the registry rule `marriage.means` (declared there, base `MARRIAGE.means`, context the home's household; VB-631), read by `affords` and by `Sim.meansOf`, which also feeds `matchBar`'s reason and the pawn panel (`marryStanding`). A later contribution (a custom, a head's caution, a servant's portion: VB-637) joins by `Rules.contribute({ rule: 'marriage.means', ... })` from its own module.
 - The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
   (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,

@@ -55,10 +55,10 @@ async function main() {
   for (const el of qa('.village-block')) { el.open = true; el.dispatchEvent(new win.Event('toggle')); }
   tick(2);
   if (q('#settlers .household-block, #settlers .show-map')) fail('the People sheet tells of a household in folds');
-  const farmB = qa('#settlers button[data-farm]').find((b) => /people/.test(b.textContent));
+  const farmB = qa('#settlers button[data-farm]').find((b) => b.querySelector('.ppl'));
   if (click(farmB, 'lived-in farm')) {
     tick(3);
-    if (!q('#tileStats .stat .meter[role="meter"]')) fail("a farm's card shows no meter of its food");
+    if (!q('#tileStats .supplies, #tileStats .card-note')) fail("a farm's card shows no supplies");
     for (const [tab, want] of [['tabStores', /Grain/], ['tabLand', /Hay meadows/], ['tabAnimals', /Larder/]]) {
       if ($(tab).hidden) { fail(`a lived-in farm's card has no tab ${tab}`); continue; }
       $(tab).click(); tick(2);
