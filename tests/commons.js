@@ -108,8 +108,8 @@ console.log(`commons ok: begun ${((made - start) / DAY).toFixed(0)} days in, sow
   u.grain.barley = target - 10;
   fillStores(s2, u.id);
   // each quarter is carried to the green (VB-849): the store has it as the loads arrive
-  for (let k = 0; k < 40 * 24 && s2.journeys.some((j) => j.why === 'haul'); k++) Sim.advance(s2, 1);
-  assert.ok(!s2.journeys.some((j) => j.why === 'haul'), 'the hauls are over');
+  for (let k = 0; k < 40 * 24 && s2.away.some((j) => j.why === 'haul'); k++) Sim.advance(s2, 1);
+  assert.ok(!s2.away.some((j) => j.why === 'haul'), 'the hauls are over');
   assert.ok(Math.abs(Sim.grainOf(u) - target) < 1e-6, `takes only the difference (${Sim.grainOf(u)} of ${target})`);
   // at the target: nothing taken, the households keep their quarter
   const q1 = hhs.map(own);

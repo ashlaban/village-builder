@@ -1008,18 +1008,32 @@ function checkState(st) {
       }
     });
   }
-  // the journeys (VB-287): in the order they set out (by id; VB-473: their legs are their pawns'), ids below st.journeySeq and unique, each pawn living and in at most one, `to` its household's house,
-  // the food it carries never below 0; a pawn is in phase 'journey' or 'road' exactly when it is on one.
-  if (st.journeys !== undefined) {
+  // the stays away (VB-783; the journeys, VB-287, among them): in the order they began (by id; VB-473: a journey's legs are its pawn's), ids below
+  // st.awaySeq and unique, one stay a pawn, each pawn living, the food it carries never below 0, agent.away its index (the stay's id on its
+  // pawn's agent, absent on every other). A journey (bed null, roof 'none'): `to` its household's house, and its pawn in phase 'journey' or
+  // 'road' exactly when it is on one. A lodger: its bed a tile and its walk there, `to` its bed, roof 'none' or 'house', a guest's bed the
+  // house of its host, another household; its pawn never on the road.
+  if (st.away !== undefined) {
     const seen = new Set(), ids = new Set();
-    if (!Array.isArray(st.journeys) || !Number.isInteger(st.journeySeq) || st.journeySeq < 0) bad.push(`journeys: ${typeof st.journeys}, seq ${st.journeySeq}`);
-    else st.journeys.forEach((j, n) => {
-      const at = `journeys[${n}] (id ${j.id})`, p = st.pawns[j.pawn];
-      if (n > 0 && st.journeys[n - 1].id >= j.id) bad.push(`${at}: set out before the one ahead of it`);
-      if (!Number.isInteger(j.id) || j.id < 0 || j.id >= st.journeySeq || ids.has(j.id)) bad.push(`${at}: id against journeySeq ${st.journeySeq}`);
+    if (!Array.isArray(st.away) || !Number.isInteger(st.awaySeq) || st.awaySeq < 0) bad.push(`away: ${typeof st.away}, seq ${st.awaySeq}`);
+    else st.away.forEach((j, n) => {
+      const at = `away[${n}] (id ${j.id})`, p = st.pawns[j.pawn];
+      if (n > 0 && st.away[n - 1].id >= j.id) bad.push(`${at}: began before the one ahead of it`);
+      if (!Number.isInteger(j.id) || j.id < 0 || j.id >= st.awaySeq || ids.has(j.id)) bad.push(`${at}: id against awaySeq ${st.awaySeq}`);
       ids.add(j.id);
-      if (!p || !p.alive || seen.has(j.pawn)) bad.push(`${at}: pawn ${j.pawn} dead, missing or on two journeys`);
+      if (!p || !p.alive || seen.has(j.pawn)) bad.push(`${at}: pawn ${j.pawn} dead, missing or away twice`);
       seen.add(j.pawn);
+      if (!st.agents[j.pawn] || st.agents[j.pawn].away !== j.id) bad.push(`${at}: its pawn's agent.away is ${st.agents[j.pawn] && st.agents[j.pawn].away}`);
+      if (!(j.food >= 0)) bad.push(`${at}: food ${j.food}`);
+      if (j.bed !== null) {
+        const host = j.host === undefined ? null : st.households[j.host];
+        if (!Number.isInteger(j.bed) || j.bed < 0 || j.bed >= st.w.N || j.to !== j.bed || !(j.walk >= 0) || !Array.isArray(j.jobs)) bad.push(`${at}: a lodger's bed ${j.bed}, to ${j.to}, walk ${j.walk}`);
+        if (host ? j.roof !== 'house' || st.farmsteads[host.farmstead].house !== j.bed || (p && p.household === host.id) : j.roof !== 'none' && j.roof !== 'booth') bad.push(`${at}: roof ${j.roof}, host ${j.host}`);
+        const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
+        if (ph === 'journey' || ph === 'road') bad.push(`${at}: a lodger in phase ${ph}`);
+        return;
+      }
+      if (j.roof !== 'none') bad.push(`${at}: a journey under roof ${j.roof}`);
       const bearing = j.why === 'carry' && !j.back; // VB-291: a carrier bound for the receiver's house, with his gift
       // VB-461: a fetch with its gift is its pawn's household's; the grain in transit is on the pawn, bound for that house, and none is on
       // him on his way out to the place its first stop names; each stop holds grain set aside, by crop
@@ -1032,11 +1046,14 @@ function checkState(st) {
         for (const s of g.stops || []) if (!(s.left > 0) || Math.abs(sum(s.parts) - s.left) > 1e-6 * Math.max(1, s.left) || (s.from === null) === (s.village === null)) bad.push(`${at}: a stop ${JSON.stringify(s)}`);
       } else if (bearing ? !j.gift || !(j.gift.n > 0) || st.farmsteads[st.households[j.gift.to].farmstead].house !== j.to : (j.gift || false) && j.gift !== null) bad.push(`${at}: a gift ${JSON.stringify(j.gift)} on a journey ${j.why}, back ${j.back}`);
       if (!bearing && !g && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
-      if (!['move', 'carry', 'fetch', 'haul'].includes(j.why) || !(j.food >= 0) || 'due' in j) bad.push(`${at}: why ${j.why}, food ${j.food}, due ${j.due}`);
+      if (!['move', 'carry', 'fetch', 'haul'].includes(j.why) || 'due' in j) bad.push(`${at}: why ${j.why}, due ${j.due}`);
       const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
       if (ph !== 'journey' && ph !== 'road') bad.push(`${at}: its pawn is in phase ${ph}`);
     });
-    for (const a of st.agents) if ((a.phase === 'journey' || a.phase === 'road') && !seen.has(a.id)) bad.push(`agent ${a.id}: phase ${a.phase} and on no journey`);
+    for (const a of st.agents) {
+      if ((a.phase === 'journey' || a.phase === 'road') && !seen.has(a.id)) bad.push(`agent ${a.id}: phase ${a.phase} and on no journey`);
+      if (a.away !== undefined && !seen.has(a.id)) bad.push(`agent ${a.id}: away ${a.away}, and in no stay`);
+    }
   }
   // the hard rule (VB-461): no gift's grain changes place at once between two farmsteads, or from a village store to a household
   const VBc = globalThis.VB && globalThis.VB.count;

@@ -503,6 +503,10 @@ VB['sim/rules'] = (() => {
     hayCart: 60,
     dayWalk: 12,
   };
+  // ---- sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
+  // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
+  // worked from a bed there rather than from home (a third of the working day) ----
+  const AWAY = { pack: 12, walk: 4 };
   const HERD = {
     hayLoss: [0.05, 0.25, 0.5], // annual barn losses by winters of need held (VB-159)
     hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
@@ -1057,6 +1061,7 @@ VB['sim/rules'] = (() => {
     HELP,
     GOODWILL,
     TRAVEL,
+    AWAY,
     HERD,
     stalled,
     GRAZE,
