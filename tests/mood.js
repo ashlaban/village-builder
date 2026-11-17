@@ -5,7 +5,7 @@
 const VB = require('../src/load.js'), Sim = VB.sim;
 const fs = require('fs'), path = require('path');
 const { DAY, MOOD, SOCIAL, TICKS, YEAR } = VB['sim/rules'], Mood = VB['sim/mood'];
-const { spouseOf, childrenOf } = VB['sim/records'], { killPawn, wed } = VB['sim/lifecycle'], { dailyBirths } = VB['sim/births'];
+const { spouseOf, childrenOf } = VB['sim/records'], { killPawn } = VB['sim/lifecycle'], { wed } = VB['sim/marriage'], { dailyBirths } = VB['sim/births'];
 const { readSource } = require('../tools/lib/source.js');
 const probe = require('./lib/probe.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0;
