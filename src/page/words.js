@@ -208,6 +208,17 @@ function showPawn(id) {
           : p.age >= 18 && st.demand.includes(id)
             ? `Landless at ${f.name}, wants to move out`
             : `Lives at ${f.name}`;
+  const bar = Sim.marryStanding(st, id),
+    yrs = (n) => (Math.round(Math.max(0, n) * 10) / 10).toString();
+  const marryLine = !bar
+    ? ''
+    : {
+        hungry: 'Too hungry to marry',
+        nohome: 'No holding to marry onto',
+        short: `Cannot marry yet: the home holds ${yrs(bar.held)} of the ${yrs(bar.asked)} years it needs`,
+        means: `The home has the means to marry: it holds ${yrs(bar.held)} of the ${yrs(bar.asked)} years asked`,
+        hands: "The home needs a spouse's hands: no means are asked",
+      }[bar.kind];
   const rel =
     (sp !== null
       ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}`
@@ -232,6 +243,7 @@ function showPawn(id) {
         : p.advocate
           ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`
           : '',
+      marryLine,
       Sim.idleLine(st, id),
     ].filter(Boolean),
     Sim.describe(st, id),

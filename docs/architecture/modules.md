@@ -100,6 +100,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. `roundPhase(st, n)`
   is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
+  The means to marry is the registry rule `marriage.means` (declared there, base `MARRIAGE.means`, context the home's household; VB-631), read by `affords` and by `Sim.meansOf`, which also feeds `matchBar`'s reason and the pawn panel (`marryStanding`). A later contribution (a custom, a head's caution, a servant's portion: VB-637) joins by `Rules.contribute({ rule: 'marriage.means', ... })` from its own module.
 - The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
   (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,

@@ -86,7 +86,7 @@ assert.strictEqual(bar(free.st, free), null, 'free: the round\'s bar agrees');
     starve(st, rules(st).homeFor(m, f, R.practice(st, R.settlementIdOf(st, m))));
     return W.pairOutcome(VB, st, m, f, rules(st)) === 5;
   });
-  assert.ok(/cannot feed/.test(bar(c.st, c)), `means: the round's bar agrees (${bar(c.st, c)})`);
+  assert.ok(/home holds .* years of food it needs/.test(bar(c.st, c)), `means: the round's bar agrees (${bar(c.st, c)})`);
   assert.strictEqual(counted(c.st, c.m), 'means'); assert.strictEqual(counted(c.st, c.f), 'means');
 }
 { // the best outcome over the others: a woman free with one man and kin to another is free
