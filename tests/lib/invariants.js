@@ -761,6 +761,11 @@ function checkState(st) {
     // site within range (VB-328); a built one's farmstead exists
     const projects = st.plans && st.plans.projects ? st.plans.projects.village.get(v.id) || [] : [],
       live = projects.filter((pl) => pl.what === 'plot');
+    // VB-646: a village's plot cleared with nobody to have it is allotted at a moving round or given back: none stands unclaimed past the
+    // rounds it waits (two years, and a year's slack to the next round)
+    for (const pl of live)
+      if (pl.open >= 1 && pl.to === null && pl.vacant !== undefined && st.t - pl.vacant > 3 * LOADED['sim/rules'].YEAR)
+        bad.push(`villages[${v.id}]: plot ${pl.plot} has stood cleared with nobody to have it since ${pl.vacant}`);
     // the green and well (VB-058): a well only with a green; a green under way at most once, only while there is no well: its three steps
     // on one tile, the village's and in use, open ground off any river, its stone brought at most what the well takes
     if (v.well && !v.green) bad.push(`villages[${v.id}]: a well without a green`);
