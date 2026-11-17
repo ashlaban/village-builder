@@ -114,7 +114,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
   (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,
   `src/sim/society.js`), the causes its adults take up and its meeting, whose lines go to the head of `st.meetingLog`; roles and prestige
-  island-wide, and the living of no settlement, at the first village's. At 18:00 each culture's year, at 18:06 the land meeting.
+  island-wide, and the living of no settlement, at the first village's; then its choice of gathering (`chooseGathering`,
+  `src/sim/gathering.js`, VB-294: the hosts it would walk to, ranked by effective hours from its row of `st.villageHours`, and whether it
+  offers to host, by the meeting's verb `gathering`). At 18:00 the gatherings are settled (`settleGatherings`: who goes where, lodging,
+  three villages or more; the district is read by `district`), then each culture's year; at 18:06 the land meeting.
   `meetingStage(st, n)` is the step's entry; `holdMeetings` runs the villages and the cultures. The meeting's occasion on each green is
   called for its village's turn: from two hours before its step to the step after.
 - Saves (VB-074): `Sim.save(st)` and `Sim.load(w, data)` in `src/sim/saves.js`; a generic codec keeps shared objects, Maps, Sets and typed
@@ -213,7 +216,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Social: `culture`, `sim/encounters`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
-- Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/meetings`, `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
+- Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
   `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
