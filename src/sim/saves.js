@@ -399,6 +399,7 @@ VB['sim/saves'] = (() => {
       } // VB-359: nor dug loads
     for (const hh of st.households) if (hh.peat === undefined) hh.peat = 0; // VB-367: nor peat
     for (const hh of st.households) if (hh.wool === undefined) hh.wool = 0; // VB-144: nor fleeces
+    for (const hh of st.households) if (hh.hides === undefined) hh.hides = 0; // lint-allow: owner VB-424: nor hides
     for (const hh of st.households)
       if (hh.rack === undefined) {
         hh.rack = 0;
@@ -432,8 +433,12 @@ VB['sim/saves'] = (() => {
         hh.cartMiss = 0;
       } // nor carts (sim/carts): older saves' teams drew an unnamed one
     if (st.player === undefined) st.player = null; // VB-169: older saves have no player
-    if (st.player && !st.player.wishes) st.player.wishes = { out: null, claim: null, serve: null }; // VB-212: nor a player's wishes
-    if (st.player && st.player.wishes.match === undefined) st.player.wishes.match = null; // VB-274: nor a wish for a match
+    if (st.player && st.player.wishes) {
+      // VB-680: the player's wishes (VB-212, VB-274) become its pawn's (pawn.wish, sim/wishes), set as the wish verb sets them
+      for (const [kind, value] of Object.entries(st.player.wishes))
+        if (value !== null && value !== undefined) VB['sim/wishes'].setWish(st, st.player.pawn, kind, value);
+      delete st.player.wishes;
+    }
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
     if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
     // VB-519: nor a culture's values (each starts at its archetype's), nor the twelve traits (those it has kept), nor a child's hungry days
@@ -453,14 +458,26 @@ VB['sim/saves'] = (() => {
       st.offers = [];
       st.offerSeq = 0;
     } // VB-293: nor marriage offers
+    if (!st.asking) VB['sim/wishes'].seedAsking(st); // VB-823: nor the askings' queue
+    for (const o of st.offers)
+      if (o.basis === undefined) {
+        // VB-690: a marriage offer saved before offers had a basis, as the basis `match` (its spokesmen, its terms)
+        const by = (k) => (o.answers.find((a) => a.key === k + 'Side') || o.answers.find((a) => a.key === k)).by;
+        Object.assign(o, { from: by('man'), to: by('woman'), basis: 'match', gives: { man: o.man, home: o.home } });
+        o.wants = { woman: o.woman };
+        delete o.man;
+        delete o.woman;
+        delete o.home;
+      }
     if (!st.occasions) {
       st.occasions = [];
       st.occasionSeq = 0;
     } // VB-126: nor occasions, nor their stream
-    if (!st.journeys) {
-      st.journeys = [];
-      st.journeySeq = 0;
-    } // VB-287: nor journeys
+    if (!st.booths) {
+      st.booths = [];
+      st.boothSeq = 0;
+    } // VB-784: a save before booths has none
+    migrateAway(st); // VB-287: nor journeys; VB-783: a save's journeys are stays away
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
     if (!st.finds) {
       st.finds = new Map();
@@ -481,10 +498,26 @@ VB['sim/saves'] = (() => {
       }
     for (const f of st.farmsteads) if (f.grade === undefined) f.grade = 'ground'; // VB-332: older saves' houses stand on the ground
     for (const f of st.farmsteads) for (const fd of f.fields) if (fd.crop === undefined) fd.crop = 'barley'; // VB-346: older saves' fields held barley
+    // VB-350: older saves' fields and villages farmed barley every year
+    for (const x of [...st.farmsteads.map((f) => f.fields), ...st.villages.map((v) => v.commonFields || [])])
+      for (const fd of x) if (fd.rotation === undefined) Object.assign(fd, { rotation: 'every', step: 0 });
+    for (const v of st.villages) if (v.rotation === undefined) v.rotation = 'every';
     for (const p of st.pawns) if (p.nursling === undefined) p.nursling = null; // VB-632: a mother nursing nurses to her term
+    for (const p of st.pawns) if (p.servedSince === undefined) p.servedSince = p.servant ? st.t : null; // VB-634
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now
     return st;
+  }
+  // VB-783: a save's st.journeys (VB-287) are stays away whose bed is where the leg ends (st.away, sim/away), each indexed by its pawn's
+  // agent.away; a save with neither has none. The store movements of their provisions, kind 'journey', are the pack's, 'away'.
+  function migrateAway(st) {
+    if (st.away) return;
+    st.away = (st.journeys || []).map((j) => ({ ...j, bed: null, roof: 'none' }));
+    st.awaySeq = st.journeySeq || 0;
+    delete st.journeys;
+    delete st.journeySeq;
+    for (const s of st.away) st.agents[s.pawn].away = s.id;
+    for (const hh of st.households) for (const e of hh.ledger || []) if (e.kind === 'journey') e.kind = 'away';
   }
   // A save made before a custom (VB-100: the commons) holds fewer customs than DIMS: each culture and settlement gets the archetype's option
   // of each custom it lacks, and each person an attitude and anchor that prefer it (as seeding would, without its draws).

@@ -1,13 +1,13 @@
 // @sys sim/births: conception, pregnancy, childbirth and nursing of married women
 VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
+  const { emit } = VB['sim/events'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
   const { joinHousehold, person, personEvent, lifeEvent, log, fullName, spouseOf, atHousehold, kinNear } =
     VB['sim/records'];
   const Culture = VB['culture'],
     Traits = VB['sim/traits'];
   const { initRelations, raiseTie, floorKin } = VB['sim/relations'];
-  const { placeBorn } = VB['sim/agents'];
   const { refreshRoles } = VB['sim/heirs'];
   const { killPawn } = VB['sim/lifecycle'];
   // chance per game day that a married woman of this age conceives, when she is neither pregnant nor nursing
@@ -69,6 +69,7 @@ VB['sim/births'] = (() => {
       } // kin elsewhere, till their turn (sim/relations)
     personEvent(st, m.id, 'child', `Child born: ${given}`, false);
     personEvent(st, fatherId, 'child', `Child born: ${given}`, false); // the born event below
+    emit(st, 'born', { child: id, mother: m.id, father: fatherId }); // both parents glad (sim/mood, VB-062)
     st.agents.push({
       id,
       x: 0,
@@ -88,7 +89,7 @@ VB['sim/births'] = (() => {
       talk: null,
       occasion: null,
     });
-    placeBorn(st, st.agents[id], m.id, hh);
+    emit(st, 'placeBorn', { a: st.agents[id], mother: m.id, hh }); // at home, or where its mother is (sim/away)
     m.nursingUntil = st.t + BIRTH.nursingDays * DAY;
     m.nursling = id; // the child she nurses: its death ends the nursing (VB-632)
     lifeEvent(

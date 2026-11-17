@@ -14,7 +14,8 @@ VB['sim/tar'] = (() => {
     { emit } = VB['sim/events'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
-  const Drying = VB['sim/drying'];
+  const Drying = VB['sim/drying'],
+    Targets = VB['sim/targets'];
   // Proposed (VB-301, the task's numbers; the pit's and the tarring's hours are this task's own, for Kim's review): a barrel takes `barrelHours`
   // of work at the pit and one pine tree of the village's wood (a load of pine wood), burnt from summer day 0 to `burnDays` (early summer,
   // between the sowing and the haymaking: the slack); a pit is dug in `pitHours` by `hands` hands; tarring a house or a boat takes
@@ -80,7 +81,7 @@ VB['sim/tar'] = (() => {
           hh = f.household === null ? null : st.households[f.household];
         if (!hh || hh.dissolved || f.booth || Projects.projectOf(st, 'household', hh.id) || Projects.heldOff(st, hh.id))
           continue;
-        const n = Drying.hands(st, hh);
+        const n = Targets.hands(st, hh);
         if (n > most) {
           most = n;
           best = hh;
@@ -116,8 +117,20 @@ VB['sim/tar'] = (() => {
     if (!f) return 0;
     return (houseDue(st, f) ? 1 : 0) + (Drying.boatDue(st, hh, f, TAR.lead) ? 1 : 0);
   }
-  // The barrels the pit's household keeps ready: one for its house, and one for its boat if it has one.
-  const stock = (st, hh, f) => 1 + (hh.boat && hh.boat.house === f.house ? 1 : 0);
+  // The barrels the pit's household keeps ready: one for its house, and one for its boat if it has one. The default of its head's target
+  // on tar (VB-698): tar as a made good, its top bound beyond that the barrels its spare hours burn, at a pit in a wood with pine.
+  const stock = (st, hh, f) => (f ? 1 + (hh.boat && hh.boat.house === f.house ? 1 : 0) : 0);
+  Targets.made({
+    good: 'tar',
+    unit: 'barrel',
+    whole: true,
+    need: stock,
+    most: (st, hh, f, spare) =>
+      f && pitOf(st, hh, f) && villageTar(st, st.villages[f.village])
+        ? Math.floor(spare / (TAR.barrelHours * TAR.hands))
+        : 0,
+    held: (st, hh) => hh.tar || 0,
+  });
   // A barrel burnt: a pine tree of the village's wood felled into the pit (none left: nothing burnt), a barrel into the store.
   function burnt(st, hh) {
     const f = st.farmsteads[hh.farmstead],
@@ -192,9 +205,10 @@ VB['sim/tar'] = (() => {
       done: (st, j, hh) => {
         burnt(st, hh);
       },
-      // in early summer, at the household's pit, while it holds fewer barrels than it keeps and its village's wood holds pine
+      // in early summer, at the household's pit, while it holds fewer barrels than its head's target (by default those it keeps, VB-698)
+      // and its village's wood holds pine
       available: (st, hh, f, c, post) => {
-        if (c.season !== SUMMER || c.sday >= TAR.burnDays || (hh.tar || 0) >= stock(st, hh, f)) return;
+        if (c.season !== SUMMER || c.sday >= TAR.burnDays || (hh.tar || 0) >= Targets.target(st, hh, 'tar')) return;
         const pit = pitOf(st, hh, f);
         if (pit && villageTar(st, st.villages[f.village])) post(`burntar:h${hh.id}`, pit.tile, { farm: f });
       },

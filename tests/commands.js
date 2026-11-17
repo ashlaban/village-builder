@@ -1,13 +1,14 @@
 // Commands (VB-167): a work command is carried out as start was; a refused command changes nothing; outside sim/commands and sim/agents
-// nothing in src/sim calls start (or the other acts the command verbs wrap).
+// nothing in src/sim calls start (or the other acts the command verbs wrap). On the small islands of tests/lib/probe.js (VB-856; the default
+// island before): founders on 36 by 26, heirs on 48 by 34.
 const assert = require('assert');
 const { readSource } = require('../tools/lib/source.js');
 const fs = require('fs'), path = require('path'), { tokenize } = require('../tools/wrap.js');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['sim/commands'], { isOpen } = VB['sim/kinds'];
+const VB = require('../src/load.js'), { island, ROOMY } = require('./lib/probe.js'), Sim = VB.sim, { issue } = VB['sim/commands'], { isOpen } = VB['sim/kinds'];
 const { canon } = require('./lib/canon.js');
 
 // static: the acts a verb wraps are called only from sim/commands, or inside the module that defines them (an act built of others there)
-const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'enterService', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'carryGift', 'setRoutines', 'endTrust', 'holdInTrust',
+const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'carryGift', 'setRoutines', 'setGathering', 'endTrust', 'holdInTrust',
   'setTarget', 'nameTile', 'setOrder', 'holdProject', 'beginLand', 'giveUp'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
 const text = Object.fromEntries(files.map((f) => [f, readSource(f)]));
@@ -18,6 +19,8 @@ for (const f of files) {
   const src = text[f], toks = tokenize(src).filter((t) => t.t !== 'com');
   toks.forEach((t, i) => {
     const prev = toks[i - 1];
+    // moveTo: the move verb is its only caller, even in sim/heirs, which defines it (VB-822)
+    if (t.t === 'word' && t.v === 'moveTo' && toks[i + 1] && toks[i + 1].v === '(' && !(prev && prev.v === 'function')) calls.push(`${f}:${src.slice(0, t.s).split('\n').length} moveTo`);
     if (t.t === 'word' && WRAPPED.includes(t.v) && definedIn[t.v] !== f && toks[i + 1] && toks[i + 1].v === '(' && !(prev && (prev.v === '.' || prev.v === 'function'))) {
       calls.push(`${f}:${src.slice(0, t.s).split('\n').length} ${t.v}`);
     }
@@ -25,11 +28,10 @@ for (const f of files) {
 }
 assert.deepStrictEqual(calls, [], `acts called outside sim/commands: ${calls.join(', ')}`);
 
-const it = G.generate(7); let r; while (!(r = it.next()).done);
-const st = Sim.seed(r.value, 7, 'founders');
+const st = Sim.seed(island(7), 7, 'founders');
 Sim.advance(st, 3 * Sim.DAY + 4); // a working morning: jobs posted
 const snap = () => { const { w, ...rest } = st; return canon(rest); };
-const j = [...st.jobs.values()].find((x) => isOpen(x) && x.claims.length === 0);
+const j = [...st.jobs.values()].find((x) => isOpen(st, x) && x.claims.length === 0);
 const a = st.agents.find((x) => st.pawns[x.id].died === null && x.job !== j);
 assert.ok(j && a, 'an open job and a living pawn');
 const had = a.job;
@@ -46,7 +48,7 @@ const refusals = [
   [{ actor: a.id, verb: 'fly', target: j.key }, /there is no verb/],
 ];
 refusals.push([{ actor: dead.id, verb: 'work', target: j.key }, /not a living pawn/]);
-const full = [...st.jobs.values()].find((x) => !isOpen(x));
+const full = [...st.jobs.values()].find((x) => !isOpen(st, x));
 assert.ok(full, 'a job with no room');
 refusals.push([{ actor: a.id, verb: 'work', target: full.key }, /has no room/]);
 for (const [cmd, why] of refusals) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
@@ -90,7 +92,7 @@ for (const [cmd, why] of [
 ]) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap(), before2, 'refused walk, home and idle commands change nothing');
 // the meeting's decide and the debug verbs (VB-170), on the heirs scenario, which has farms with heirs
-const hw = (() => { const it2 = G.generate(7); let q; while (!(q = it2.next()).done); return q.value; })();
+const hw = island(7, ROOMY);
 const st2 = Sim.seed(hw, 7, 'heirs'); Sim.advance(st2, 2 * Sim.DAY);
 const snap2 = () => { const { w, ...rest } = st2; return canon(rest); };
 const C = VB.culture, s0 = st2.cenv.settlements[0], d0 = C.IDX.voice, now = s0.practice[d0], other = (now + 1) % C.NOPT[d0];
@@ -122,7 +124,7 @@ for (const [cmd, why] of [
 ]) { const res = issue(st2, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap2(), before3, 'refused meeting and debug commands change nothing');
 // the moving round's verbs (VB-171), on a fresh heirs state
-const st3 = Sim.seed((() => { const it3 = G.generate(7); let q; while (!(q = it3.next()).done); return q.value; })(), 7, 'heirs');
+const st3 = Sim.seed(island(7, ROOMY), 7, 'heirs');
 Sim.advance(st3, Sim.DAY);
 const snap3 = () => { const { w, ...rest } = st3; return canon(rest); };
 const single = (sex) => st3.pawns.find((p) => p.died === null && p.age >= 18 && p.sex === sex && Sim.spouseOf(st3, p.id) === null && !Sim.isHolder(st3, p.id));
@@ -136,7 +138,7 @@ assert.strictEqual(issue(st3, { actor: old3, verb: 'handOn', target: heir3, args
 assert.strictEqual(hh3.holder, heir3);
 const servant = st3.pawns.find((p) => p.died === null && p.age >= 15 && !Sim.isHolder(st3, p.id) && p.id !== groom.id && p.id !== bride.id);
 const master = st3.households.find((h) => !h.dissolved && h.id !== servant.household);
-assert.strictEqual(issue(st3, { actor: servant.id, verb: 'serve', target: master.id, source: 'round' }), true);
+assert.strictEqual(issue(st3, { actor: servant.id, verb: 'move', target: master.id, args: { reason: 'service' }, source: 'round' }), true);
 assert.strictEqual(servant.household, master.id); assert.strictEqual(servant.servant, true);
 const empty = st3.farmsteads.find((f) => VB['sim/farmclaims'].claimable(st3, f));
 if (empty) {
@@ -150,7 +152,7 @@ R3.push([{ actor: groom.id, verb: 'marry', target: groom.id, args: { home: wedHo
   [{ actor: groom.id, verb: 'marry', target: single('f') ? single('f').id : bride.id, args: { home: wedHome } }, /married/],
   [{ actor: servant.id, verb: 'marry', target: single('f') ? single('f').id : bride.id, args: { home: 999 } }, /no household|married/],
   [{ actor: old3, verb: 'handOn', target: heir3, args: { household: hh3.id, reason: 'retirement' } }, /does not hold/],
-  [{ actor: servant.id, verb: 'serve', target: master.id }, /lives there already/], [{ actor: servant.id, verb: 'claim', target: 9999 }, /no farm/]);
+  [{ actor: servant.id, verb: 'move', target: master.id, args: { reason: 'service' } }, /lives there already/], [{ actor: servant.id, verb: 'claim', target: 9999 }, /no farm/]);
 for (const [cmd, why] of R3) { const res = issue(st3, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap3(), before4, 'refused round commands change nothing');
 // leave: a settler founds a village on a site the round would choose
@@ -177,7 +179,7 @@ R.leaveHousehold(membership, 0);
 assert.strictEqual(membership.pawns[0].household, null);
 R.joinHousehold(membership, membership.households[1], 0, false);
 assert.deepStrictEqual(membership.households[1].members, [0]);
-assert.deepStrictEqual(membership.pawns[0], { household: 1, servant: false });
+assert.deepStrictEqual(membership.pawns[0], { household: 1, servant: false, servedSince: null });
 R.setServant(membership, 0, true);
 assert.strictEqual(membership.pawns[0].servant, true);
 const before5 = snap3(), lead = st3.pawns.find((p) => p.died === null && p.age >= 18);
@@ -193,7 +195,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
 // the player's cause (VB-211): the same advocate slot as a natural cause, so the same pull on the pawn's attitude and its ties'; dropCause ends it
 {
   // each on a world of its own: a and b are live together, and a world's fish stocks (w.fish, w.fishDay) belong to one run
-  const land = () => { const it4 = G.generate(7); let q; while (!(q = it4.next()).done); return q.value; };
+  const land = () => island(7, ROOMY);
   const make = () => { const s = Sim.seed(land(), 7, 'heirs'); Sim.advance(s, 2 * Sim.DAY); return s; };
   const a = make(), b = make(), id = a.pawns.findIndex((p) => p.died === null && p.age >= 18), dim = d0, opt = (a.cenv.settlements[0].practice[dim] + 1) % C.NOPT[dim];
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), 'the pawn argues no cause', 'dropCause is refused with no cause');
@@ -221,3 +223,148 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   assert.strictEqual(issue(a, { actor: id, verb: 'argue', args, source: 'player' }), true, 'after the years, a new cause');
   assert.ok(Math.abs(pa.att[o] - (was + C.P.advocacyJump * (1 - was))) < 1e-6 && pa.causeSince === a.cenv.t, 'its own attitude steps towards it at once');
 }
+
+// ---- offer and answer (VB-690): one verb pair for every crossing between households (sim/offers' bases gift, ask and match) ----
+{
+  const Offers = VB['sim/offers'], { opinionOf, balance } = VB['sim/relations'], { HELP } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
+  const fresh = () => {
+    const s = Sim.seed(island(7), 7, 'founders');
+    const [a, b] = s.households.filter((h) => !h.dissolved && h.holder !== null
+      && h.members.some((id) => id !== h.holder && s.pawns[id].age >= 14 && s.pawns[id].age < 60));
+    b.grain = { barley: 5000 };
+    return { s, a, b };
+  };
+  const sound = (s, what) => assert.deepStrictEqual(checkState(s), [], `invariants, ${what}`);
+  const offer = (s, actor, target, args, source = 'pawn') => issue(s, { actor, verb: 'offer', target, args, source });
+  const gift = (n) => ({ basis: 'gift', gives: { good: 'grain', n } });
+  const told = (s, kind, f = () => true) => s.record.some((e) => typeof e === 'object' && e.kind === kind && f(e));
+  // (a) a gift between unplayed pawns: the receiver's holder answers yes at once; nothing is kept, the grain moves, goodwill is booked
+  {
+    const { s, a, b } = fresh(), a0 = Sim.grainOf(a), b0 = Sim.grainOf(b);
+    assert.strictEqual(offer(s, b.holder, a.holder, gift(30)), true);
+    assert.deepStrictEqual([s.offers, s.offerSeq], [[], 0], 'answered at once: never kept');
+    assert.ok(Math.abs(b0 - Sim.grainOf(b) - 30) < 1e-9 && Sim.grainOf(a) <= a0, 'the gift is set aside where it lies (VB-461)');
+    assert.ok(s.away.some((j) => j.why === 'fetch' && s.pawns[j.pawn].household === a.id), 'and a member of the receiving household fetches it');
+    for (let k = 0; k < 96 && s.away.length; k++) Sim.advance(s, 0.5);
+    assert.ok(a.ledger.some((e) => e.kind === 'gift' && Math.abs(e.n - 30) < 1e-9), 'the gift settles as it comes in');
+    assert.ok(balance(s, b.holder, a.holder) > 0, 'the giver is owed its worth: goodwill');
+    for (const [args, why] of [[{ basis: 'loan' }, /no basis/], [{ ...gift(30), wants: { good: 'grain', n: 1 } }, /wants nothing/],
+      [{ ...gift(30), due: s.t - 1 }, /cannot be due/], [gift(-1), /cannot give/]])
+      assert.ok(why.test(offer(s, b.holder, a.holder, args)), `refused: ${JSON.stringify(args)}`);
+    assert.ok(/no open offer/.test(issue(s, { actor: a.holder, verb: 'answer', target: 0, args: { yes: true }, source: 'pawn' })), 'no open offer to answer');
+    assert.ok(/only as an offer settles/.test(issue(s, { actor: b.holder, verb: 'deliver', target: a.id, args: { good: 'grain', n: 5 }, source: 'player' })),
+      'goods are delivered only by an offer');
+    sound(s, 'a gift');
+  }
+  // (b) the played pawn is asked: the offer is kept for HELP.answerDays, its pawn's judgement shown as advice; a no is a memory of both
+  {
+    const { s, a, b } = fresh(), a0 = Sim.grainOf(a);
+    assert.strictEqual(Sim.inhabit(s, a.holder), true);
+    const ob = opinionOf(s, b.holder, a.holder), oa = opinionOf(s, a.holder, b.holder);
+    assert.strictEqual(offer(s, b.holder, a.holder, gift(30)), true);
+    const o = s.offers[0];
+    assert.ok(o && o.basis === 'gift' && o.due === o.made + HELP.answerDays * Sim.DAY && o.answers[0].by === a.holder, `kept: ${JSON.stringify(s.offers)}`);
+    sound(s, 'a gift waits for the player');
+    const item = Sim.opportunities(s, a.holder).find((x) => x.verb === 'answer' && x.target === o.id);
+    assert.ok(item && item.offer.advice === true && item.offer.basis === 'gift' && /a gift of 30 grain/.test(item.offer.text), 'the advice: the pawn\'s own yes');
+    assert.ok(/no answer to give/.test(issue(s, { actor: b.holder, verb: 'answer', target: o.id, args: { yes: true }, source: 'pawn' })), 'the giver has none to give');
+    assert.strictEqual(Sim.answer(s, o.id, false), true);
+    assert.deepStrictEqual(s.offers, [], 'a no closes it');
+    assert.strictEqual(Sim.grainOf(a), a0, 'nothing moves');
+    assert.ok(opinionOf(s, b.holder, a.holder) < ob && opinionOf(s, a.holder, b.holder) < oa, 'both remember the refusal');
+    assert.ok(told(s, 'offerRefused', (e) => e.pawn === a.holder), 'the refusal is told');
+    // silence: at its due time it is answered as the pawn would, yes, and settles
+    assert.strictEqual(offer(s, b.holder, a.holder, gift(20)), true);
+    assert.strictEqual(s.offers.length, 1);
+    Sim.advance(s, 2 * Sim.DAY);
+    assert.deepStrictEqual(s.offers, []);
+    for (let k = 0; k < 96 && s.away.some((j) => j.why === 'fetch'); k++) Sim.advance(s, 0.5); // fetched (VB-461)
+    assert.ok(a.ledger.some((e) => e.kind === 'gift' && Math.abs(e.n - 20) < 1e-9), 'settled at its due time');
+  }
+  // (c) an ask: a holder asks another for grain; the asked weighs it as the gift it would make, and a yes sets the grain aside, fetched by the asker
+  {
+    const { s, a, b } = fresh(), b0 = Sim.grainOf(b);
+    assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 20 } }), true);
+    const j = s.away.find((x) => x.why === 'fetch');
+    assert.ok(j && s.pawns[j.pawn].household === a.id && j.gift.stops[0].left === 20, `a member of the asking household sets out to fetch: ${JSON.stringify(s.away)}`);
+    assert.ok(!s.away.some((x) => x.why === 'carry'), 'no carrier of the asked household takes it up at the start');
+    const took = b0 - Sim.grainOf(b); // the grain is set aside where it lies, no more
+    assert.ok(Math.abs(took - 20) < 1e-9, `the grain is set aside: ${took}`);
+    assert.ok(/own household/.test(offer(s, a.holder, a.holder, { basis: 'ask', wants: { good: 'grain', n: 20 } })), 'not of one\'s own');
+    // beyond what the asked would give: no, and both remember it
+    const ob = opinionOf(s, a.holder, b.holder);
+    assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 50000 } }), true);
+    assert.ok(opinionOf(s, a.holder, b.holder) < ob, 'the asker remembers the refusal');
+    assert.ok(told(s, 'offerRefused', (e) => e.pawn === b.holder), 'the refusal is told');
+    sound(s, 'an ask');
+  }
+  // (d) an offer due later is kept and answered once, at its due time, by the unplayed pawn's judgement
+  {
+    const { s, a, b } = fresh(), n0 = VB.count.offerWeighed;
+    assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 20 }, due: s.t + 2 * Sim.DAY }), true);
+    assert.ok(s.offers.length === 1 && s.offers[0].answers[0].yes === null && VB.count.offerWeighed === n0, 'not weighed before it is due');
+    sound(s, 'an ask due later');
+    Sim.advance(s, 3 * Sim.DAY);
+    assert.deepStrictEqual(s.offers, [], 'answered at its due time');
+    assert.strictEqual(VB.count.offerWeighed, n0 + 1, 'one evaluation');
+    assert.ok(a.ledger.some((e) => e.kind === 'gift') || s.away.some((x) => x.why === 'fetch'), 'and fetched');
+  }
+  assert.ok(['gift', 'ask', 'match'].every((k) => Offers.BASES[k] && typeof Offers.BASES[k].weigh === 'function'), 'the table of bases');
+}
+console.log('commands ok: offer and answer (VB-690): a gift and an ask settle at once between the unplayed, carried; the played pawn is asked, with '
+  + 'its advice; a no is a memory of both; an offer due later is weighed once, at its due time');
+
+// move (VB-822): the one act for every change of household, with its reason and the minors who follow; each refusal changes nothing
+{
+  const s = Sim.seed(island(7, ROOMY), 7, 'heirs');
+  Sim.advance(s, Sim.DAY);
+  const snap = () => { const { w, ...rest } = s; return canon(rest); };
+  const live = (p) => p.died === null && p.household !== null;
+  const parent = s.pawns.find((p) => live(p) && p.age >= 18 && Sim.childrenOf(s, p.id).some((c) => live(s.pawns[c]) && s.pawns[c].age < 18 && s.pawns[c].household === p.household));
+  assert.ok(parent, 'a parent living with a minor child');
+  const kid = Sim.childrenOf(s, parent.id).find((c) => live(s.pawns[c]) && s.pawns[c].age < 18 && s.pawns[c].household === parent.household);
+  const stranger = s.pawns.find((p) => live(p) && p.age < 18 && !Sim.childrenOf(s, parent.id).includes(p.id) && (Sim.spouseOf(s, parent.id) === null || !Sim.childrenOf(s, Sim.spouseOf(s, parent.id)).includes(p.id)));
+  const grown = s.pawns.find((p) => live(p) && p.age >= 18 && p.id !== parent.id);
+  const other = s.households.find((h) => !h.dissolved && h.id !== parent.household);
+  const go = (actor, target, args) => issue(s, { actor, verb: 'move', target, args, source: 'test' });
+  const before = snap();
+  for (const [actor, target, args, why] of [
+    [9999, other.id, { reason: 'care' }, /not a living pawn/],
+    [parent.id, 9999, { reason: 'care' }, /no household/],
+    [parent.id, parent.household, { reason: 'care' }, /lives there already/],
+    [parent.id, other.id, { reason: 'whim' }, /no reason whim/],
+    [parent.id, other.id, undefined, /no reason/],
+    [parent.id, other.id, { reason: 'care', with: kid }, /must be a list/],
+    [parent.id, other.id, { reason: 'care', with: [9999] }, /not a living pawn/],
+    [parent.id, other.id, { reason: 'care', with: [stranger.id] }, /not a minor whom/],
+    [parent.id, other.id, { reason: 'care', with: [grown.id] }, /not a minor whom/],
+    [parent.id, other.id, { reason: 'care', with: [parent.id] }, /not a minor whom/],
+  ]) {
+    const res = go(actor, target, args);
+    assert.ok(typeof res === 'string' && why.test(res), `move ${JSON.stringify(args)}: ${res}`);
+  }
+  assert.strictEqual(snap(), before, 'a refused move changes nothing');
+  // the minors who follow: the parent with its child, both in the new household, after it; the record's `joined` carries the reason
+  const n = s.record.length;
+  assert.strictEqual(go(parent.id, other.id, { reason: 'care', with: [kid] }), true);
+  assert.ok(parent.household === other.id && s.pawns[kid].household === other.id, 'the parent and the child moved');
+  const tail = (from) => s.record.slice(from).filter((e) => e.kind === 'joined');
+  assert.ok(tail(n).every((e) => e.reason === 'care'), 'the joined events carry the reason');
+  assert.deepStrictEqual(tail(n).map((e) => e.pawn), [parent.id, kid], 'the parent first, the child after it');
+  // each reason moves; settlers walk on their stakes; service makes a servant, with its event and its log line
+  const homes = s.households.filter((h) => !h.dissolved);
+  const movers = s.pawns.filter((p) => live(p) && p.age >= 18 && p.id !== parent.id && !Sim.isHolder(s, p.id));
+  const REASONS = ['marriage', 'heir', 'service', 'guardian', 'care', 'home', 'settle', 'found'];
+  assert.ok(movers.length >= REASONS.length, 'enough pawns to move');
+  REASONS.forEach((reason, k) => {
+    const p = movers[k], to = homes.find((h) => h.id !== p.household && s.farmsteads[h.farmstead].id !== s.households[p.household].farmstead);
+    const m = s.record.length;
+    assert.strictEqual(go(p.id, to.id, { reason }), true, reason);
+    assert.strictEqual(p.household, to.id, `${reason}: moved`);
+    assert.ok(tail(m).some((e) => e.pawn === p.id && e.reason === reason), `${reason}: the joined event carries it`);
+    assert.strictEqual(p.servant === true, reason === 'service', `${reason}: a servant only by service`);
+    if (reason === 'service') assert.ok(s.record.slice(m).some((e) => e.kind === 'service' && e.pawn === p.id), 'the service event');
+  });
+}
+console.log('commands ok: move (VB-822): each refusal changes nothing; each reason moves, on the record; the minors follow; service makes a servant');
+

@@ -1,7 +1,8 @@
 // @sys sim/hunger: the daily meal shared out by custom, the larder of stored food, grain spoiling in store, each pawn's hunger level and health;
 // the need rule (VB-299) and its food term
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS, PEAT, BUILD } = VB['sim/rules'];
+  const { HUNGER, HEALTH, HERD, HELP, FOODS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, CROPS, ROTATIONS, PEAT, BUILD } =
+    VB['sim/rules'];
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'],
@@ -15,20 +16,52 @@ VB['sim/hunger'] = (() => {
   // The seed the household's fields not yet sown this year need: the standing plan's reservation of grain (sim/plans reserves it at each
   // review; sim/stores counts it with this rule when it is read, so a field sown since counts at once); a land project holds back its new
   // field's seed itself (sim/projects, VB-123). Only the day's meal reaches below the seed, and only when the day would otherwise fall short
-  // (feedHousehold; Kim, 10 November: the hungry household eats its seed). By crop (VB-347): the fields that bear or last bore it (their
-  // next crop, until rotations choose it, VB-350); without one, every field of a sown crop (not fallow, VB-348).
-  // A village's (VB-100): its common fields', a crop's seed each.
+  // (feedHousehold; Kim, 10 November: the hungry household eats its seed). By crop (VB-347, VB-350): the fields its rotation sows with it
+  // next (sownNext: a fallow field's next sown course); without one, every field to be sown. A field's seed is the plan's for barley
+  // (seedPer), the crop's own for another. And a crop of the farm's rotation that no field bears or sows next (between its harvest and
+  // its field's turn: two fields in three courses) keeps a field's seed, so that it is lost only by hunger (design.md, Seed, What is
+  // eaten first). A village's (VB-100): its common fields', a crop's seed each.
   function seedNeed(st, hh, crop) {
     const village = !('farmstead' in hh),
       fields = village ? hh.commonFields || [] : st.farmsteads[hh.farmstead].fields;
-    let n = 0;
-    for (const fd of fields)
-      if (
-        (fd.stage === 'stubble' || fd.stage === 'plowed') &&
-        (crop === undefined ? CROPS[fd.crop].seed > 0 : fd.crop === crop)
-      )
-        n++;
-    return n * (village ? CROPS.barley.seed : seedPer(st, hh));
+    let barley = 0,
+      other = 0;
+    for (const fd of fields) {
+      if (fd.stage !== 'stubble' && fd.stage !== 'plowed') continue;
+      const k = sownNext(fd);
+      if (k === null || (crop !== undefined && k !== crop)) continue;
+      if (k === 'barley') barley++;
+      else other += CROPS[k].seed;
+    }
+    const R = !village && fields.length ? ROTATIONS[fields[0].rotation].courses : null;
+    if (R && R.length > 1)
+      for (let i = 0; i < R.length; i++) {
+        const k = R[i];
+        if (!(CROPS[k].seed > 0) || (crop !== undefined && k !== crop) || R.indexOf(k) !== i || kept(fields, k))
+          continue;
+        if (k === 'barley') barley++;
+        else other += CROPS[k].seed;
+      }
+    return (barley ? barley * (village ? CROPS.barley.seed : seedPer(st, hh)) : 0) + other;
+  }
+  // Does a field bear crop k now, or sow it next?
+  function kept(fields, k) {
+    for (const fd of fields) {
+      const s = fd.stage;
+      if (s === 'stubble' || s === 'plowed' ? sownNext(fd) === k : fd.crop === k) return true;
+    }
+    return false;
+  }
+  // The crop a field is sown with next (VB-350): its course's, or after a fallow course the next sown course of its rotation; null for none.
+  function sownNext(fd) {
+    if (CROPS[fd.crop].seed > 0) return fd.crop;
+    const R = fd.rotation === undefined ? null : ROTATIONS[fd.rotation].courses;
+    if (!R) return null;
+    for (let i = 1; i <= R.length; i++) {
+      const k = R[(fd.step + i) % R.length];
+      if (CROPS[k].seed > 0) return k;
+    }
+    return null;
   }
   Stores.follow('seed', seedNeed);
   const { reserved, grainOf } = Stores;
@@ -199,14 +232,14 @@ VB['sim/hunger'] = (() => {
   // unsown), uncooked too; when that is not enough, what there is goes by the household's feedOrder, in groups served one after the other.
   // Amounts below are in rations of need; grain is taken at 1 / uncooked a ration. Given the day's season, the day's fire burns first
   // (warmHouse), and its cold reaches each member's health; without it (a meal alone, as tests feed one) the day is warm.
-  // A pawn on a journey (VB-287; sim/agents' phases 'journey' and 'road') eats what it carries, not its household's meal.
-  const onRoad = (st, id) => {
-    const ph = st.agents[id].phase;
-    return ph === 'journey' || ph === 'road';
-  };
+  // A pawn away from home (VB-287, VB-783: on the road or lodging; sim/away's agent.away) eats what it carries, not its household's meal.
+  // A pawn who ate at a feast in the last day (VB-458; sim/occasions writes pawn.feast) has had the day's meal: it is not fed again.
+  const feasted = (st, p) => p.feast !== undefined && st.t - p.feast.t < DAY;
   function feedHousehold(st, hh, season) {
-    const E = st.ECON,
-      mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null && !onRoad(st, p.id));
+    const E = st.ECON;
+    let mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null && st.agents[p.id].away === undefined);
+    const fed = mem.some((p) => feasted(st, p)) ? mem.filter((p) => feasted(st, p)) : null;
+    if (fed) mem = mem.filter((p) => !feasted(st, p));
     const cold = season === undefined ? 0 : warmHouse(st, hh, season),
       dry = season === undefined ? 0 : dryHouse(st, hh);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])),
@@ -257,7 +290,15 @@ VB['sim/hunger'] = (() => {
       hungryDay(p); // a child's hungry days, for its traits at 15 (sim/traits, VB-519)
       sum += p.hunger;
     }
-    hh.hunger = mem.length ? sum / mem.length : 0;
+    if (fed)
+      for (const p of fed) {
+        const n = rationOf(st, p);
+        ate(st, p, n, n, cold, dry); // fed at the feast; the night's cold and a dry house still reach it at home
+        hungryDay(p);
+        sum += p.hunger;
+      }
+    const n = mem.length + (fed ? fed.length : 0);
+    hh.hunger = n ? sum / n : 0;
   }
   // The day's fire (VB-327; design.md, Fuel): the hearth burns the season's use (ECON.woodUse), or what the pile holds. A household whose pile
   // does not cover it is cold that day by the part it lacked times the season's use over winter's, which is the wood it lacked over winter's
@@ -300,6 +341,18 @@ VB['sim/hunger'] = (() => {
       }
     }
     return day;
+  }
+  // The day's cold and wet of a night away (VB-785), by the house's rule read for the stay's roof: none, as a house with no wood and no
+  // roof; a booth, as a heated house when its wood covers the day's fire (`fire`, the booth's, burnt once a day for all in it), else an
+  // unheated one; a guest's, its host's today (the last of the host's logs, which its meal wrote before). Returns [cold, dry].
+  function nightCost(st, season, roof, host, fire) {
+    const use = st.ECON.woodUse;
+    if (roof === 'house' && host && !host.dissolved) {
+      const c = host.coldLog.length ? host.coldLog[host.coldLog.length - 1] : 0;
+      return [c, host.dryLog.length ? host.dryLog[host.dryLog.length - 1] : 0];
+    }
+    if (roof === 'booth') return [Math.max(0, use[season] - fire) / use[3], 0];
+    return [use[season] / use[3], 1];
   }
   // The day's meal of pawn p: `eaten` of its `need` rations, into its hunger log, its hunger and its health.
   function ate(st, p, eaten, need, cold = 0, dry = 0) {
@@ -361,11 +414,13 @@ VB['sim/hunger'] = (() => {
     stockWorth,
     feedHousehold,
     ate,
+    nightCost,
     rationOf,
     feedGroups,
     servedLast,
     dailyNeed,
     seedNeed,
+    sownNext,
     seedPer,
     seedReserve,
     floorOf,

@@ -1,7 +1,8 @@
-// New fields: founders start without fields, clear and break meadow tiles they own; heirs keep their fields.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+// New fields: founders start without fields, clear and break meadow tiles they own; heirs keep their fields. On the small islands of
+// tests/lib/probe.js (VB-855).
+const VB = require('../src/load.js'), Sim = VB.sim, { island, scenario } = require('./lib/probe.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('NEWFIELDS FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
+const world = (seed) => island(seed);
 for (const seed of [7, 42]) {
   const w = world(seed), stones0 = w.stones.slice(), st = Sim.seed(w, seed, 'founders');
   for (const f of st.farmsteads) check(f.fields.length === 0, `seed ${seed}: ${f.name} starts with fields`);
@@ -19,7 +20,7 @@ for (const seed of [7, 42]) {
   }
   check(st.households.some((h) => h.stone > 0) || st.farmsteads.some((f) => f.fields.some((fd) => stones0[fd.tile] >= 13)), `seed ${seed}: no stone gathered`);
 }
-const heirs = Sim.seed(world(7), 7, 'heirs');
+const heirs = scenario('heirs', 7);
 check(heirs.farmsteads.every((f) => f.fields.length > 0), 'heirs: a farm lost its fields');
 if (failed) process.exit(1);
 console.log('newfields ok');

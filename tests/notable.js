@@ -1,9 +1,9 @@
 // Notable events (VB-098): `Sim.notable(st, ev, about)` gives the reasons a record event is notable (keys of `Sim.NOTABLE`) or null, and
-// `Sim.eventLine` tells an event in one sentence, a death as the village log told it. The heirs scenario at seed 7.
+// `Sim.eventLine` tells an event in one sentence, a death as the village log told it. The heirs scenario at seed 7, on the 48 by 34 island
+// of tests/lib/probe.js (VB-856; the default island before).
 const assert = require('assert');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
-const it = G.generate(7); let r; while (!(r = it.next()).done);
-const st = Sim.seed(r.value, 7, 'heirs'); st.naturalDeaths = false;
+const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js');
+const st = scenario('heirs', 7); st.naturalDeaths = false;
 const died = (id) => st.record.filter((e) => e.kind === 'died' && e.pawn === id).pop();
 const living = (hh) => hh.members.map((id) => st.pawns[id]).filter((p) => p.alive);
 const stranger = (hh) => st.pawns.find((p) => p.alive && p.household !== null && p.household !== hh.id
@@ -61,15 +61,14 @@ assert.strictEqual(Sim.eventLine(st, old), `${Sim.fullName(st.pawns[old.pawn])} 
 
 // a cottage built on a cleared plot is told as a cottage, once, and its holder's move as a move, once (an untouched year of heirs 7)
 {
-  const it2 = G.generate(7); let r2; while (!(r2 = it2.next()).done);
-  const s2 = Sim.seed(r2.value, 7, 'heirs'); Sim.advance(s2, Sim.YEAR);
+  const s2 = scenario('heirs', 7); Sim.advance(s2, Sim.YEAR);
   const built = s2.record.filter((e) => e.kind === 'cottage' && / moves into the new farmstead /.test(e.text));
   assert.ok(built.length, 'no cottage was built on a cleared plot in a year of heirs 7');
   for (const e of built) {
     assert.deepStrictEqual(Sim.notable(s2, e), ['farm']);
     assert.strictEqual(s2.record.filter((x) => x.kind === 'joined' && x.farm === e.farm && x.pawn === e.pawn).length, 1, 'its holder joined it once');
     // a band of opinion crossed the same hour (sim/relations' touch, when a pair is touched) is an event of its own, not the move told
-    // again: at heirs 7 since VB-519's traits (affinity by compatibility), Gunnar becomes the enemy of a neighbour the hour he moves
+    // again: at heirs 7 on the default island since VB-519's traits (affinity by compatibility), Gunnar became the enemy of a neighbour the hour he moved
     const told = Sim.chronicle(s2, { pawn: e.pawn }).filter((x) => x.ev.t === e.t && !['enemy', 'closeFriend'].includes(x.ev.kind)).map((x) => x.ev.kind);
     assert.deepStrictEqual(told, ['cottage'], 'and its history tells the move once (VB-099)');
   }

@@ -17,6 +17,8 @@ const FAST = [
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
   ['node', 'tests/wishes.js'],
+  ['node', 'tests/roundoffers.js'],
+  ['node', 'tests/asking.js'],
   ['node', 'tests/succession.js'],
   ['node', 'tests/chronicle.js'],
   ['node', 'tests/opportunities.js'],
@@ -29,12 +31,16 @@ const FAST = [
   ['node', 'tests/same-tool.js'],
   ['node', 'tests/wood.js'],
   ['node', 'tests/cold.js'],
+  ['node', 'tests/mood.js'],
+  ['node', 'tests/overview.js'],
+  ['node', 'tests/outlook.js'],
   ['node', 'tests/timber.js'],
   ['node', 'tests/stone.js'],
   ['node', 'tests/crops.js'],
   ['node', 'tests/forest-spread.js'],
   ['node', 'tests/rye.js'],
   ['node', 'tests/peas.js'],
+  ['node', 'tests/rotations.js'],
   ['node', 'tests/kinds.js'],
   ['node', 'tests/routes.js'],
   ['node', 'tests/tiny.js'],
@@ -55,6 +61,10 @@ const FAST = [
   ['node', 'tests/continuity.js'],
   ['node', 'tests/legs.js'],
   ['node', 'tests/journeys.js'],
+  ['node', 'tests/away.js'], // sleeping away from home: a lodger's stay, its pack and meals, a guest (VB-783)
+  ['node', 'tests/booth.js'], // a booth: staked, raised in 12 hours with its wood, four beds, rots away (VB-784)
+  ['node', 'tests/night.js'], // a night without a roof is cold and wet by the house's rule: the road in winter, a booth with wood (VB-785)
+  ['node', 'tests/fetch.js'], // a gift fetched where it lies, a load a trip (VB-461)
   ['node', 'tests/rng.js'],
   ['node', 'tests/cowwant.js'],
   ['node', 'tests/quern.js'], // the hand quern (VB-009): grinding, the pot's flour, wear and hewing, on the probe's small state
@@ -86,6 +96,7 @@ const INTEGRATION = [
   ['node', 'tests/children.js'],
   ['node', 'tests/hands.js'],
   ['node', 'tests/helpers.js'],
+  ['node', 'tests/help.js'], // food help, with VB-461's fetched gift (VB-889)
   ['node', 'tests/interrupts.js'],
   ['node', 'tests/day.js'],
   ['node', 'tests/ownheir.js'],
@@ -93,8 +104,12 @@ const INTEGRATION = [
   ['node', 'tests/service.js'],
   ['node', 'tests/villagehours.js'],
   ['node', 'tests/roundreach.js'],
+  ['node', 'tests/matchreach.js'],
+  ['node', 'tests/means.js'], // VB-631: marriage.means, one formula for the gate and the words
+  ['node', 'tests/service-marriage.js'], // VB-634: the master's house is no home; service is by the year
   ['node', 'tests/projects.js'],
   ['node', 'tests/routines.js'],
+  ['node', 'tests/gathering.js'], // VB-294: the village's choice of gathering, who hosts and who goes
   ['node', 'tests/green.js'],
   ['node', 'tests/workdays.js'],
   ['node', 'tests/commons.js'],
@@ -111,6 +126,7 @@ const INTEGRATION = [
   ['node', 'tests/oxen.js'],
   ['node', 'tests/stakes.js'],
   ['node', 'tests/head.js'],
+  ['node', 'tests/made-targets.js'],
   ['node', 'tests/traits.js'],
   ['node', 'tests/aims.js'],
   ['node', 'tests/traitacts.js'], // VB-520: what each trait does, chemistry, the quarrel
@@ -118,11 +134,67 @@ const INTEGRATION = [
   ['node', 'tests/ale.js'],
   ['node', 'tests/attention.js'],
   ['node', 'tests/setdown.js'],
+  ['node', 'tests/standingcart.js'], // VB-649: a dead carter's cart and team stand on the road
+  ['node', 'tests/leftwood.js'], // VB-645: a dropped boat's timber lies at its shore
   ['node', 'tests/start.js'],
   ['node', 'tests/gossip.js'],
   ['node', 'tests/health.js'],
   ['node', 'tests/carts.js'],
+  ['node', 'tests/extinctwood.js'],
   ['node', 'tests/deer.js'],
+  // VB-853: the long save and load, and the year and the islands that clock, paths and indexes ran at night, on small states
+  ['node', 'tests/saves.js'],
+  ['node', 'tests/clock.js', '--integration'],
+  ['node', 'tests/paths.js', '--integration'],
+  ['node', 'tests/indexes.js', '--integration'],
+  // VB-854: the household's rules, from meals to occasions, on small generated islands and constructed states
+  ['node', 'tests/meals.js'],
+  ['node', 'tests/stores.js'],
+  ['node', 'tests/hunger.js'],
+  ['node', 'tests/heirs.js'],
+  ['node', 'tests/guardian.js'],
+  ['node', 'tests/kinship.js'],
+  ['node', 'tests/kinlimit.js'],
+  ['node', 'tests/owners.js'],
+  ['node', 'tests/plans.js'],
+  ['node', 'tests/offers.js'],
+  ['node', 'tests/exchange.js'],
+  ['node', 'tests/occasions.js'],
+  ['node', 'tests/feast.js'], // VB-458: the feast at a wedding or a funeral ale, its sitting, the meal eaten once, goodwill booked
+  ['node', 'tests/aleevening.js'], // VB-522: the ale evening (who calls, who is asked, the barrel) and the season's rite (its leader, the ties)
+  // VB-855: the farming year, from new fields to digging, on small generated islands and constructed states
+  ['node', 'tests/newfields.js'],
+  ['node', 'tests/fieldswanted.js'],
+  ['node', 'tests/weeding.js'],
+  ['node', 'tests/soil.js'],
+  ['node', 'tests/hay.js'],
+  ['node', 'tests/byre.js'],
+  ['node', 'tests/herds.js'],
+  ['node', 'tests/herding.js'],
+  ['node', 'tests/drying.js'],
+  ['node', 'tests/forage.js'],
+  ['node', 'tests/dig.js'],
+  // VB-856: land and geography, and the tools, on small generated islands and constructed states
+  ['node', 'tests/rivers.js'],
+  ['node', 'tests/stones.js'],
+  ['node', 'tests/geology.js'],
+  ['node', 'tests/layout.js'],
+  ['node', 'tests/settle.js'],
+  ['node', 'tests/plots.js'],
+  ['node', 'tests/names.js'],
+  ['node', 'tests/populous.js'],
+  ['node', 'tests/tools.js'],
+  ['node', 'tests/review-tools.js'],
+  ['node', 'tests/review-hours.js'],
+  ['node', 'tests/bench.js'],
+  ['node', 'tests/commands.js'],
+  ['node', 'tests/record.js'],
+  ['node', 'tests/regress.js'],
+  ['node', 'tests/plaindata.js'],
+  ['node', '--expose-gc', 'tests/registry.js'],
+  ['node', 'tests/notable.js'],
+  ['node', 'tests/manual.js'],
+  ['node', 'tests/page.js'], // VB-409: the page in jsdom on a 36 by 26 island, a few days and each panel once; the tiny map's smoke at night
 ];
 const EXTENDED = [
   // The slowest first, so that none starts last and runs on alone. First the long runs of whole islands, which load the late fixtures.
@@ -133,55 +205,16 @@ const EXTENDED = [
   ['node', 'tests/history.js'],
   ['node', 'tests/bands.js'],
   ['node', 'tests/line.js'],
-  // Generated islands and runs of years: each waits for a constructed case on a small state in the tiers above (docs/testing.md).
-  ['node', 'tests/tools.js'],
-  ['node', 'tests/saves.js'],
-  ['node', 'tests/smoke.js'],
-  ['node', 'tests/populous.js'],
-  ['node', 'tests/spread.js', '--extended'],
-  ['node', 'tests/paths.js', '--extended'],
-  ['node', 'tests/clock.js', '--extended'],
-  ['node', 'tests/indexes.js', '--extended'],
-  ['node', 'tests/rivers.js'],
-  ['node', 'tests/settle.js'],
-  ['node', 'tests/stones.js'],
-  ['node', 'tests/plans.js'],
-  ['node', 'tests/record.js'],
-  ['node', 'tests/layout.js'],
-  ['node', 'tests/dig.js'],
-  ['node', 'tests/commands.js'],
-  ['node', 'tests/offers.js'],
-  ['node', 'tests/review-tools.js'],
-  ['node', 'tests/regress.js'],
-  ['node', 'tests/owners.js'],
-  ['node', 'tests/plaindata.js'],
-  ['node', 'tests/kinlimit.js'],
-  ['node', 'tests/hunger.js'],
-  ['node', 'tests/meals.js'],
-  ['node', 'tests/names.js'],
-  ['node', 'tests/plots.js'],
-  ['node', 'tests/stores.js'],
-  ['node', 'tests/help.js'],
-  ['node', 'tests/guardian.js'],
-  ['node', 'tests/newfields.js'],
-  ['node', 'tests/fieldswanted.js'],
-  ['node', 'tests/manual.js'],
-  ['node', 'tests/herds.js'],
-  ['node', 'tests/herding.js'],
-  ['node', 'tests/heirs.js'],
-  ['node', 'tests/kinship.js'],
-  ['node', 'tests/bench.js'],
-  ['node', '--expose-gc', 'tests/registry.js'],
-  ['node', 'tests/geology.js'],
-  ['node', 'tests/hay.js'],
-  ['node', 'tests/weeding.js'],
-  ['node', 'tests/soil.js'],
-  ['node', 'tests/notable.js'],
-  ['node', 'tests/drying.js'],
-  ['node', 'tests/byre.js'],
-  ['node', 'tests/exchange.js'],
-  ['node', 'tests/occasions.js'],
-  ['node', 'tests/forage.js'],
+  // Generated islands and runs of years that a small state cannot show: statistics over seeds and whole islands (docs/testing.md).
+  ['node', 'tests/smoke.js'], // the page on the tiny map, a year and the toasts; its quick case is tests/page.js in verify
+  ['node', 'tests/populous.js', '--extended'], // the four map sizes: the population each seeds, the village size bands (VB-856)
+  ['node', 'tests/tools.js', '--extended'], // the reports that take a run of their own each, and tools/balance.js (VB-856)
+  ['node', 'tests/rivers.js', '--extended'], // the default island: ten sources or more, a course through a lake, 20 crossings (VB-856)
+  ['node', 'tests/layout.js', '--extended'], // the default island, heirs three years and founders ten: a green laid in play (VB-856, VB-887)
+  ['node', 'tests/paths.js', '--extended'], // a whole island's traffic: how many houses a year gives a way to their door (VB-853)
+  ['node', 'tests/heirs.js', '--extended'], // the default island ten years on, and B3's crop at four seeds: a statistic over seeds (VB-854)
+  ['node', 'tests/hunger.js', '--extended'], // three years of founders at seeds 7 and 42, reported: hungry days, deaths, marriages (VB-854)
+  ['node', 'tests/soil.js', '--extended'], // founders on the small map ten years: the soil of farms with and without cattle (VB-855)
   // The page in real Chromium, one browser at a time.
   ['node', 'tests/browser.js'],
   ['node', 'tests/browser-saves.js'],

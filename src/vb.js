@@ -14,6 +14,14 @@ VB.COUNTERS = {
   reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
+  offerWeighed: 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)',
+  offersAnswered: 'Open offers answered at a village step of the moving round, a day of it each (sim/round, VB-692)',
+  askings: 'Askings held: a pawn who seeks, on its asking day once a season (sim/asking, VB-823)',
+  asksMade: 'Offers made at an asking (sim/asking, VB-823)',
+  asksNobody: 'Askings whose rungs found nobody to ask (sim/asking, VB-823)',
+  asksWeighed: 'Candidates weighed at an asking or an ask anew: at most ASK.pool a call (sim/asking askMatch, VB-823)',
+  askWalk:
+    'Entries of the asking queue read for the unmarried women within reach, a match asked (sim/asking askMatch, VB-823)',
   talkTurn:
     'Pawns asked by the talk round at their talk turn, every SOCIAL.talk.every waking hours (sim/relations, VB-521)',
   talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',
@@ -33,8 +41,17 @@ VB.COUNTERS = {
     'Pairs given familiarity for waking hours at home (daily) or a job finished together (sim/relations, VB-127)',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   roundWalk: "Pawn records walked by a village's round to build its pool, once a village (sim/lifecycle, VB-277)",
+  wishWalk: "Pawn records walked by the pawns' own choosing of their wishes, once a moving round (sim/wishes, VB-680)",
+  gatherChoice: "Villages weighed as hosts by a village's choice of gathering, at its meeting (sim/gathering, VB-294)",
+  gatherDisposition:
+    "Counterparts of a village's holders read for the pull between villages, at its meeting (sim/gathering, VB-294)",
+  gatherKin: "Kin households read for a village's choice of gathering, at its meeting (sim/gathering, VB-294)",
+  gatherSettle: 'Hosts named and asked in the settling of the gatherings, once a year (sim/gathering, VB-294)',
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
+  rotationWalk: "Farms walked by a village's meeting for its usual rotation, a village a year (sim/fields, VB-350)",
+  overviewWalk:
+    'Pawn records walked by a village overview, once a summary asked (a view, never a step: sim/overview, VB-162)',
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',
   storeWalk: 'Village stores and retained ledger entries visited for spoilage and pruning',
   recordFold: 'Record slots passed by the yearly fold of routine events (sim/records, VB-199)',
@@ -52,7 +69,11 @@ VB.COUNTERS = {
   helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',
   occasionAsked:
     "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
-    '(sim/occasions, VB-126)',
+    '(sim/occasions, VB-126), the adults asked to an ale evening and to the rite (VB-522)',
+  aleCalled: 'Ale evenings called, each one pass over the live households (sim/occasions callAle, VB-522)',
+  riteCalled: "Rites called on the villages' greens, three days a year (sim/occasions callRites, VB-522)",
+  feastServed:
+    'Pawns served at a feast, each eating its portion and its household booked at most once (sim/occasions, VB-458)',
   takeInWeighed:
     'Pawns of st.demand weighed for a household short of people whose ask for food fell short, as kin and then as servants ' +
     '(sim/service, takeIn; VB-308)',
@@ -88,6 +109,11 @@ VB.COUNTERS = {
     "A head's menu of projects computed (its options' tiles and sites), for a holder with a surplus and no project, at most once a " +
     'year and when a project ends (sim/aims; VB-255)',
   frontTile: 'Tiles of the forest front visited by spreadForest, once a game day (sim/spread; VB-091)',
+  giftUncarried:
+    'Grain a gift settled at once between two farmsteads, or from a village store to a household: none, by the hard rule (sim/exchange; ' +
+    'VB-461)',
+  awayMeals:
+    'Meals eaten from a pack by the pawns away from home, on a journey or lodging, a meal a day each (sim/away feedAway; VB-783)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };

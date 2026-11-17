@@ -67,7 +67,7 @@ VB['sim/meadows'] = (() => {
     const w = st.w,
       own = new Set(f.meadows.map((m) => m.tile)),
       fields = new Set(f.fields.map((fd) => fd.tile));
-    const may = farmedLand(w, st.villages, st.villages[f.village], f.house);
+    const may = farmedLand(w, st.villages, st.villages[f.village], f.house, st);
     let best = -1,
       bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
@@ -94,7 +94,13 @@ VB['sim/meadows'] = (() => {
     const d = bfs(st.w, f.house, REACH, walkable(st.w)).dist.get(t);
     if (d === undefined) return `the tile is not within ${REACH} steps' walk of the house`;
     if (d < 1) return 'the house stands there';
-    return meadowBar(st, t, mayTake(st, f, hh), built, farmedLand(st.w, st.villages, st.villages[f.village], f.house));
+    return meadowBar(
+      st,
+      t,
+      mayTake(st, f, hh),
+      built,
+      farmedLand(st.w, st.villages, st.villages[f.village], f.house, st),
+    );
   }
   // The holder's own choice of its next meadow's tile: the best free tile, or with none, the best stake it may contest; -1 for none.
   function pickMeadow(st, f, hh, built = builtTiles(st)) {

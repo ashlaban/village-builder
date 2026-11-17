@@ -24,7 +24,7 @@ const phaseOf = (name) => (/^Plan:/.test(name) ? 'plan' : /^Wrap-up:/.test(name)
 const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort();
 const tasks = {};
 for (const f of files) {
-  const text = fs.readFileSync(path.join(dir, f), 'utf8'), head = text.match(/^# (VB-\d{3}): (.+)$/m);
+  const text = fs.readFileSync(path.join(dir, f), 'utf8'), head = text.match(/^# (VB-\d{3,}): (.+)$/m);
   const field = (k) => ((text.match(new RegExp(`^${k}: (.*)$`, 'm')) || [])[1] || '').trim();
   if (!head || !text.startsWith(head[0])) { errors.push(`backlog/${f}:1 line 1 must be "# VB-NNN: <name>"`); continue; }
   if (f !== head[1] + '.md') errors.push(`backlog/${f}:1 file name must be ${head[1]}.md`);
@@ -48,7 +48,7 @@ for (const [id, t] of Object.entries(tasks)) {
   if (!t.waits) { errors.push(`backlog/${id}.md is blocked: add a "Waits for:" line naming the open tasks (VB-NNN) or Kim it waits for`); continue; }
   for (const item of t.waits.split(', ')) {
     if (item === 'Kim') continue;
-    if (!/^VB-\d{3}$/.test(item)) errors.push(`backlog/${id}.md: "Waits for:" item "${item}" must be VB-NNN or Kim, separated by ", "`);
+    if (!/^VB-\d{3,}$/.test(item)) errors.push(`backlog/${id}.md: "Waits for:" item "${item}" must be VB-NNN or Kim, separated by ", "`);
     else if (item === id || !tasks[item]) errors.push(`backlog/${id}.md: waits for ${item}, ${item === id ? 'itself' : 'which has no file'}`);
     else if (tasks[item].status === 'done') errors.push(`backlog/${id}.md waits for ${item}, which is done: drop it, and set the task ready if nothing is left`);
   }
@@ -62,9 +62,9 @@ for (const [file, text] of Object.entries(texts)) {
   for (const line of text.split('\n')) {
     const h = line.match(/^## (.+)$/);
     if (h) { heading = h[1]; list = { file, heading, rows: [] }; sections.push(list); continue; }
-    if (!/^\| \[?VB-\d{3}/.test(line)) continue;
+    if (!/^\| \[?VB-\d{3,}/.test(line)) continue;
     const cells = line.replace(/^\| | \|\s*$/g, '').split(' | ');
-    const m = cells[0].match(/^\[(VB-\d{3})\]\(backlog\/(VB-\d{3})\.md\)$/), blocked = heading === 'Blocked';
+    const m = cells[0].match(/^\[(VB-\d{3,})\]\(backlog\/(VB-\d{3,})\.md\)$/), blocked = heading === 'Blocked';
     if (!m || m[1] !== m[2] || cells.length < (blocked ? 7 : 6)) {
       errors.push(`${file}: "${line.slice(0, 40)}..." must be | [VB-NNN](backlog/VB-NNN.md) | name | arch | priority | size |${blocked ? ' waits for |' : ''} summary |`);
       continue;

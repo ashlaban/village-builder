@@ -3,7 +3,7 @@
 // ward's coming of age, the trustee's end or the holder's death
 VB['sim/trust'] = (() => {
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold, kinship } = VB['sim/records'];
-  const { moveTo, refreshRoles, handOn } = VB['sim/heirs'];
+  const { refreshRoles, handOn } = VB['sim/heirs'];
   const { freeHands, dropJob } = VB['sim/agents'];
   const { issue } = VB['sim/commands'];
   const { houseCondition } = VB['sim/rules'];
@@ -11,8 +11,7 @@ VB['sim/trust'] = (() => {
   const Stores = VB['sim/stores'];
   const { kinHouseholds, shortOfPeople } = VB['sim/help'];
   const { trustOf } = VB['sim/ownership'];
-  const { hexSteps } = VB['sim/hex'];
-  const { SERVICE } = VB['sim/rules'];
+  const { withinDay } = VB['sim/routes'];
   // @state st.trusts: every farm ever held in trust (design.md, Households short of people: Held by kin when nobody can come), by id, never
   //   reused: {id, household (the household whose farm is held; its holder, owner and line unchanged), trustee (the kin household that works
   //   it), ward (its holder while a minor, else null), people (the members who went to the trustee), start, end (null while it holds), why
@@ -29,13 +28,9 @@ VB['sim/trust'] = (() => {
         dropJob(st, j);
       }
   }
-  // Whether household g lies within the service reach of household hh: one village, or village centres SERVICE.reach steps apart or less
-  // (the placement of every service rule, sim/service's reachSteps).
-  function inReach(st, g, hh) {
-    const u = farmOf(st, g).village,
-      v = farmOf(st, hh).village;
-    return u === v || hexSteps(st.w, st.villages[u].center, st.villages[v].center) <= SERVICE.reach;
-  }
+  // Whether household g lies within a day's walk of household hh (sim/routes withinDay: one village, or village greens TRAVEL.dayWalk
+  // walking hours apart or less; VB-685, it had read SERVICE.reach, which does not exist, so only one village was in reach).
+  const inReach = (st, g, hh) => withinDay(st, farmOf(st, g).village, farmOf(st, hh).village);
   // The kin household that would hold hh's farm in trust, or null: the first of its kin households (sim/help's kinHouseholds: parents and
   // children before siblings, then by id) within reach that is not itself short of people nor held in trust. For an orphaned heir (`ward`)
   // with none, the household of its nearest grown kin within reach that is not short of people, by kinship then the oldest, as the children
@@ -95,7 +90,9 @@ VB['sim/trust'] = (() => {
     Stores.move(st, hh, k, 'grain', Stores.grainOf(hh), 'handingOn');
     passHerds(st, hh, trustee);
     const at = farmOf(st, k).name;
-    for (const id of t.people) moveTo(st, id, trustee, `Moved to kin at ${at}, who hold ${f.name} in trust`);
+    const text = `Moved to kin at ${at}, who hold ${f.name} in trust`;
+    for (const id of t.people)
+      issue(st, { actor: id, verb: 'move', target: trustee, args: { reason: 'care', text }, source: 'trust' });
     log(st, `${fullName(holder)} of ${f.name} ${why}, and goes to kin at ${at}, who hold the farm in trust.`, {
       kind: 'moved',
       pawn: holder.id,
@@ -139,7 +136,9 @@ VB['sim/trust'] = (() => {
     const n = (Stores.grainOf(k) * going.length) / Math.max(1, k.members.length);
     closeTrust(st, t, why);
     if (n > 0) Stores.move(st, k, hh, 'grain', n, 'handingOn');
-    for (const id of going) moveTo(st, id, hh.id, `Went back to ${farmOf(st, hh).name}`);
+    const text = `Went back to ${farmOf(st, hh).name}`;
+    for (const id of going)
+      issue(st, { actor: id, verb: 'move', target: hh.id, args: { reason: 'home', text }, source: 'trust' });
     personEvent(st, holder, 'moved', `Went back to ${farmOf(st, hh).name}, held in trust by kin until then`, false); // below
     log(st, `${fullName(st.pawns[holder])} goes back to ${farmOf(st, hh).name}.`, {
       kind: 'moved',

@@ -1,9 +1,8 @@
-// Haymaking (VB-133): populous tiny at seed 3 rakes its meadows in spring and mows and carries at least 90% of them by autumn day 4; the hay
-// goes into the household's barn; founders at seed 7 bring in hay in year 1; hay left lying at the frost rots; every spring the meadows are
-// grass again. Reports each household's hay against its winter's need.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, M = VB['sim/meadows'], { checkState } = require('./lib/invariants.js');
+// Haymaking (VB-133), on the small islands of tests/lib/probe.js (VB-855): populous at seed 3 rakes its meadows in spring and mows and
+// carries at least 90% of them by autumn day 4; the hay goes into the household's barn; founders at seed 7 bring in hay in year 1; hay left
+// lying at the frost rots; every spring the meadows are grass again. Reports each household's hay against its winter's need.
+const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js'), M = VB['sim/meadows'], { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('HAY FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
 const at = (st, doy) => Sim.advance(st, doy * Sim.DAY + 6 - st.t); // to 6:00 on that day of year 1
 const meadows = (st) => st.farmsteads.flatMap((f) => f.meadows);
 
@@ -11,7 +10,7 @@ const meadows = (st) => st.farmsteads.flatMap((f) => f.meadows);
 const { spoilHay, byreDay } = VB['sim/byre'];
 const barnState = { herds: [{ species: 'sheep', ewes: 5, rams: 0, lambs: 0 }] };
 const winter = Sim.winterNeed(barnState, { herds: [0] });
-const barn = (n, herds = [0]) => ({ hay: n, haySpoilt: 0, herds });
+const barn = (n, herds = [0]) => ({ hay: n, haySpoilt: 0, herds, farmstead: null }); // no farmstead, so no barn building (VB-255)
 const yearLoss = (hh) => { for (let d = 0; d < Sim.YEAR_DAYS; d++) spoilHay(barnState, hh); return hh.haySpoilt; };
 let hh = barn(winter);
 check(Math.abs(yearLoss(hh) - winter * 0.05) < 1e-9, 'one winter loses 5% in a year');
@@ -34,7 +33,7 @@ byreDay({ ...barnState, liveHouseholds: [0], households: [hh], farmsteads: [{ me
 check(hh.hay < 100 && hh.haySpoilt > 0, 'daily hook spoils hay even without animals');
 check(lying.held === 25, 'barn spoilage leaves mown meadow hay alone');
 
-let st = Sim.seed(world(3), 3, 'populous');
+let st = scenario('populous', 3);
 st.naturalDeaths = false; // haymaking is tested, not who lives: a holder who dies in spring leaves a widow whose hay lies mown (VB-402's seed)
 // Old saves have no loss counter; loading starts it at zero without accepting invalid new values.
 const savedLoss = st.households[0].haySpoilt;
@@ -68,12 +67,12 @@ check(st.households.reduce((s, h) => s + h.hay, 0) === hayBefore, 'frost: rotted
 at(st, Sim.YEAR_DAYS + 1);
 check(meadows(st).every((m) => m.stage === 'grass' && !m.mown), 'spring: meadows not grass again');
 
-st = Sim.seed(world(7), 7, 'founders');
+st = scenario('founders', 7);
 const fStart = new Map(st.households.map((h) => [h.id, h.hay]));
 at(st, 28);
 for (const h of st.households.filter((x) => x.herds.length)) check(h.hay > fStart.get(h.id), `founders: household ${h.id} brought in no hay in year 1`);
 check(Sim.villageLog(st, Infinity).some((e) => /has its hay in/.test(e.text)), 'founders: no log line for the hay');
 
 if (failed) process.exit(1);
-console.log(`hay ok: populous 3 tiny: ${Math.round(raked * 100)}% raked, ${Math.round(done * 100)}% in by autumn day 4; hay / winter need ` +
+console.log(`hay ok: populous 3, small island: ${Math.round(raked * 100)}% raked, ${Math.round(done * 100)}% in by autumn day 4; hay / winter need ` +
   `min ${ratio[0].toFixed(2)}, median ${ratio[ratio.length >> 1].toFixed(2)}, max ${ratio[ratio.length - 1].toFixed(2)} (${fed.length} households)`);

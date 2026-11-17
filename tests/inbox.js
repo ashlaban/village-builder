@@ -15,7 +15,7 @@ const run = (input, ...args) => {
 const expect = (what, cond, out) => { if (!cond) errors.push(what + (out ? '\n    ' + out.trim().split('\n').join('\n    ') : '')); };
 const file = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
 const pad = (n) => 'VB-' + String(n).padStart(3, '0');
-const last = Math.max(...fs.readdirSync(path.join(dir, 'backlog')).map((f) => +f.slice(3, 6)));
+const last = Math.max(...fs.readdirSync(path.join(dir, 'backlog')).map((f) => +f.slice(3).replace('.md', '')));
 const ready = (file('BACKLOG.md').split('\n## Ready\n')[1].match(/\[(VB-\d+)\]/g) || []).map((s) => s.slice(1, -1));
 const [A, B] = ready, N = pad(last + 1);
 

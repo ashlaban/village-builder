@@ -90,6 +90,18 @@ const INVENTED = {
     prior: [1, 0.6, 0.3, 0.1, 0], // a maker's first guess of the share of households that buy of it, by their walk: at home, to 1.5 h, 3 h, 6 h, beyond
     hungry: 0.85, // a landless maker fed under this share of its need two years running gives up the craft
   },
+  // D, the third mock (share.js, on move.js's run): a facility a craft, an elite household, a ship's buyer. All of this block is made up.
+  share: {
+    fac: {
+      access: 'due', cap: 4, // who may use it and how many makers it takes, unless a table says otherwise
+      due: 0.2, // the share of its make a maker leaves at a facility that is not its own (the mill's toll is 1 in 16; a fifth is mine)
+      amort: 10, // the years over which a head spreads the hours of a build when it weighs a place
+      idle: 10, // a facility nobody has used for this many years falls in
+      common: 0.1, commonYears: 2, // a village raises one in common if it is within this share of its farms' spare hours, for this many years (and it has 3 farms)
+    },
+    elite: { feeds: true }, // the makers of its village are fed at its table in a lean year, so none of them gives up for hunger
+    ship: { days: [20, 21, 22] }, // the ship lies at the harbour on summer days 9 to 11
+  },
 };
 // one seeded stream a run (mulberry32), as the game's own streams are
 const rng = (seed) => { let a = (seed * 2654435761 + 12345) >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1);

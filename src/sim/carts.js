@@ -36,12 +36,17 @@ VB['sim/carts'] = (() => {
   //   winter's start. Written only here.
   // A cart is out while the pawn named in `by` is at the job it took it for: carrying a load home, cutting a further load of firewood
   // beside it, or carting dung; a `by` left by a pawn that died or dropped the job is free again.
+  // @state household.carts[].at: absent, or {tile, x, y, t}: a cart left standing where its carrier was released on the road with a load
+  //   (VB-649: it dies or its household dissolves), until a hand of the household fetches it home (the lying load 'leftCart', sim/lying);
+  //   while it stands the cart is out, and the team that drew it stands with it. Written only here; removed at the autumn frost if nobody
+  //   came (sim/lying).
   const out = (st, c) => {
+    if (c.at) return true;
     const a = c.by === null ? null : st.agents[c.by];
     return !!a && !!a.job && (a.phase === 'back' || a.phase === 'work');
   };
   const free = (st, hh, kind) => hh.carts.find((c) => c.kind === kind && !out(st, c)) || null;
-  const cartOf = (st, hh, id) => hh.carts.find((c) => c.by === id && out(st, c)) || null;
+  const cartOf = (st, hh, id) => hh.carts.find((c) => c.by === id && !c.at && out(st, c)) || null;
   // The load pawn `id` of household hh may take now, and the cart it takes for it: `teamFree` says whether the team could draw the ox cart
   // (sim/agents: the household has one, and it is at no plough and no other cart).
   function take(st, hh, id, teamFree) {
@@ -56,8 +61,39 @@ VB['sim/carts'] = (() => {
     const c = cartOf(st, hh, id);
     return c ? (c.kind === 'ox' ? TRAVEL.cart : TRAVEL.hand) : 0;
   };
-  function leave(st, hh, id) {
-    const i = hh.carts.findIndex((c) => c.by === id);
+  // The pawn is released on the road with its load: the cart it has out stands where it is (tile, x, y), with the team that drew it (VB-649);
+  // that cart, or null when it had none. Its fetching is the lying load the caller puts down.
+  function strand(st, hh, id, { tile, x, y }) {
+    const c = hh.carts.find((q) => q.by === id && !q.at && out(st, q));
+    if (!c) return null;
+    c.by = null;
+    c.at = { tile, x, y, t: st.t };
+    return c;
+  }
+  // The cart (kind, built) standing out is fetched home: it is free again, with its team; or it is lost, by the frost, and is gone.
+  const standing = (hh, kind, built) => hh.carts.find((c) => c.at && c.kind === kind && c.built === built) || null;
+  function fetched(st, hh, kind, built) {
+    const c = standing(hh, kind, built);
+    if (c) delete c.at;
+    return c;
+  }
+  // A cart left standing that nobody fetched is lost at the frost, and named.
+  function lost(st, hh, c) {
+    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    hh.carts.splice(hh.carts.indexOf(c), 1);
+    if (f)
+      log(
+        st,
+        `${f.name}'s ${c.kind === 'ox' ? 'ox cart' : 'hand cart'}, left standing on the road, was lost to the frost.`,
+        {
+          kind: 'cartGone',
+          ...atFarm(f),
+        },
+      );
+  }
+  function leave(st, hh, id, at = null) {
+    if (at) return strand(st, hh, id, at);
+    const i = hh.carts.findIndex((c) => c.by === id && !c.at);
     if (i >= 0) {
       const c = hh.carts[i];
       c.by = null;
@@ -84,7 +120,7 @@ VB['sim/carts'] = (() => {
   }
   // A load is home: the cart it came on wears, and one worn out is gone.
   function home(st, hh, id) {
-    const i = hh.carts.findIndex((c) => c.by === id);
+    const i = hh.carts.findIndex((c) => c.by === id && !c.at);
     if (i < 0) return;
     const c = hh.carts[i],
       f = st.farmsteads[hh.farmstead];
@@ -103,7 +139,11 @@ VB['sim/carts'] = (() => {
   }
   // At the winter's start the head counts the year's misses: at CART.misses or more, and with no project under way, the household builds
   // another cart: an ox cart if it keeps a team and has none, else a hand cart. The count starts again.
-  function cartsYear(st) {
+  function cartsYear(st, frost = false) {
+    if (frost) {
+      for (const hh of st.households) for (const c of hh.carts.filter((q) => q.at)) lost(st, hh, c);
+      return;
+    }
     for (const v of st.villages)
       for (const fid of v.farmsteads) {
         const f = st.farmsteads[fid],
@@ -159,6 +199,21 @@ VB['sim/carts'] = (() => {
   const atHouse = (st, a, j) => [st.w.hx[j.farm.house] + 6 + a.ox * 0.3, st.w.hy[j.farm.house] + 4 + a.oy * 0.2];
   const worst = (st, hh) => hh.carts.filter((c) => !out(st, c)).sort((a, b) => a.cond - b.cond)[0] || null;
   const KINDS = {
+    // A cart left standing on the road (VB-649; sim/lying's fetch kind is made from this): never posted, only fetched. A hand walks to it,
+    // takes it up with the team and leads both home; it is free (and the team) once it is at the house.
+    leftCart: {
+      verb: 'Taking up the cart',
+      go: 'Going for a cart left standing',
+      name: 'Fetch a cart left standing',
+      hours: 0.5,
+      label: 'Cart',
+      back: 'Leading the cart and its team home',
+      type: 'upkeep',
+      carry: 'sack',
+      to: 'barn',
+      load: () => 0,
+      deliver: (st, j, hh) => fetched(st, hh, j.cart.kind, j.cart.built),
+    },
     cart: {
       verb: 'Building a cart',
       go: 'Going to build the cart',

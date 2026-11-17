@@ -12,13 +12,13 @@ const near = (a, b, what) => { assert(Math.abs(a - b) < 1e-6, `${what}: ${a}, wa
 
 // ---- the registry: every good the fair trades, and nothing else; worth as the agreed table ----
 const WANT = { grain: 10, butter: 15, 'salt meat': 15, 'dried fish': 15, tar: 8, ale: 14, 'cattle/cow': 40, 'cattle/ox': 50, 'cattle/heifer': 20,
-  'cattle/steer': 20, sheep: 6, quern: 25 }; // the hand quern (VB-009; Proposed)
+  'cattle/steer': 20, sheep: 6, quern: 25, hide: 6 }; // the hand quern (VB-009; Proposed)
 assert.deepStrictEqual(Stores.goods().map((g) => g.id).sort(), Object.keys(WANT).sort(), 'the goods of the fair');
 for (const [id, w] of Object.entries(WANT)) {
   near(Culture.norm('worth', id), w, `worth of ${id}`);
   near(Rules.value(null, 'worth', { good: Stores.goodOf(id) }), w, `the worth rule for ${id}`);
 }
-assert.deepStrictEqual(Stores.goods().filter((g) => g.keeping).map((g) => g.id).sort(), ['butter', 'dried fish', 'quern', 'salt meat', 'sheep', 'tar']);
+assert.deepStrictEqual(Stores.goods().filter((g) => g.keeping).map((g) => g.id).sort(), ['butter', 'dried fish', 'hide', 'quern', 'salt meat', 'sheep', 'tar']);
 for (const id of ['grain', 'butter', 'salt meat', 'dried fish']) {
   const g = Stores.goodOf(id); assert(g.class === 'food' && g.quantum === 10 && g.rations === 1 && g.unit === 'ration', id);
 }
@@ -43,7 +43,8 @@ checks += 6;
 // ---- need, on a seeded founders run ----
 const it = G.generate(3, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, 3, 'founders');
-assert(!JSON.stringify(Sim.save(st)).includes('dried fish'), 'nothing of the goods in saved state');
+// the registry is code: no row of it is saved (a plan's target on a made good names the good, VB-698, as a store names its field)
+assert(!['"lump"', 'keepsDays', '"quantum"', '"keeping"'].some((k) => JSON.stringify(Sim.save(st)).includes(k)), 'nothing of the goods in saved state');
 assert.throws(() => Stores.declareGood({ id: 'cloth' }), /load time/, 'goods close with the rules registry');
 checks += 2;
 // a household whose pot lacks a source below more than a sack of it (10 rations): the fifth of its need to the harvest (the first

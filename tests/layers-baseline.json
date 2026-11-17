@@ -1,5 +1,5 @@
 {
-  "total": 20,
+  "total": 19,
   "pairs": {
     "sim/names -> culture": 1,
     "sim/records -> culture": 1,
@@ -19,7 +19,6 @@
     "sim/heirs -> sim/plans": 1,
     "sim/membership -> sim/plans": 1,
     "sim/settle -> sim/plans": 1,
-    "sim/births -> sim/agents": 1,
     "sim/births -> sim/lifecycle": 1
   }
 }

@@ -9,7 +9,7 @@ VB['sim/records'] = (() => {
   // event as they write their text; `false` for ev says another call records the event.
   // A pawn's own events (pawn.events) are positions in it, not copies (VB-199). A slot is never removed, so a position stays good: a
   // routine event, once folded, becomes the index of its count in st.recordYears.
-  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text', 'self', 'cold', 'tile'];
+  const FIELDS = ['pawn', 'other', 'household', 'farm', 'village', 'n', 'text', 'self', 'cold', 'tile', 'reason'];
   function record(st, ev, t = st.t) {
     const e = { t, kind: ev.kind };
     for (const k of FIELDS) if (ev[k] !== undefined && ev[k] !== null) e[k] = ev[k];
@@ -66,7 +66,9 @@ VB['sim/records'] = (() => {
     offered: 0,
     matchRefused: 0,
     offerLapsed: 0,
+    offerRefused: 0, // goods offered or asked for, refused (sim/offers, VB-690)
     meetingFailed: 0,
+    gathering: 0, // the villages that go to a host's gathering this winter (VB-294)
     cartBuilt: 0, // a household's new cart (VB-327)
     tarPit: 0, // a household's tar pit dug (VB-301)
     setOut: 0, // a journey to a new home in another village (VB-287)
@@ -90,6 +92,9 @@ VB['sim/records'] = (() => {
     seedEaten: GENERATION,
     wedding: GENERATION,
     funeralAle: GENERATION,
+    feast: GENERATION, // food laid out at a wedding or a funeral ale (VB-458)
+    aleEvening: SHORT, // a holder's open house on a barrel of its ale (VB-522)
+    rite: GENERATION, // the season's rite on a village green, and who led it (VB-522)
     noWood: GENERATION,
     cattleInCrop: GENERATION,
     cartGone: GENERATION, // a cart worn out (VB-327)
@@ -273,6 +278,7 @@ VB['sim/records'] = (() => {
       household: null,
       role: 'child',
       servant: !!o.servant,
+      servedSince: o.servant ? R.t || 0 : null,
       retired: false,
       look: (R.rand() * 1e9) >>> 0,
       events: [],
@@ -353,6 +359,7 @@ VB['sim/records'] = (() => {
       rack: 0,
       boat: null,
       tar: 0,
+      hides: 0,
       tarPit: null, // tar: barrels held (sim/stores), tarPit: the household's tar pit (sim/tar; VB-301)
       carts: [],
       cartMiss: 0, // carts, cartMiss: sim/carts; clay, bogOre: loads dug (VB-359); rack, boat: VB-300 (sim/drying)
@@ -395,8 +402,12 @@ VB['sim/records'] = (() => {
   function clearMembers(st, hh) {
     hh.members = [];
   } // an empty household is skipped by the check, so it is not noted
+  // @state pawn.servedSince: the game hour a pawn entered service (null outside it), kept with pawn.servant (VB-634).
   function setServant(st, id, servant) {
-    st.pawns[id].servant = servant;
+    const p = st.pawns[id];
+    if (servant && !p.servant) p.servedSince = st.t || 0;
+    else if (!servant) p.servedSince = null;
+    p.servant = servant;
   }
   function settlementIdOf(st, p) {
     const hh = p.household !== null ? st.households[p.household] : null;
@@ -538,12 +549,6 @@ VB['sim/records'] = (() => {
     return null;
   };
   const isHolder = (st, id) => holdingOf(st, id) !== null;
-  // The player's wish for pawn id at the moving round (`kind`: 'out', 'claim', 'serve' or 'match'; st.player.wishes, sim/commands), or null: no one
-  // plays the pawn, or the player leaves it to the pawn. The round reads it only where it asks what a pawn itself wants (VB-212).
-  const wishOf = (st, id, kind) => {
-    const pl = st.player;
-    return pl && pl.pawn === id ? pl.wishes[kind] : null;
-  };
   // Who speaks for pawn id in a match (design.md, Marriage as a negotiation: Who negotiates; VB-293): the holder of its household when it
   // lives there as a son or daughter of the house (a child of the holder, of the holder's spouse or of the holder's parent, not in service,
   // and not the holder); otherwise the pawn itself. O(1): the holder, its spouse and its two parents.
@@ -752,7 +757,6 @@ VB['sim/records'] = (() => {
     noteLine,
     householdsOfLine,
     ancestorsOf,
-    wishOf,
     spokesmanOf,
   };
 })();

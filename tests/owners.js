@@ -1,7 +1,8 @@
 // Villages and tile owners: every farm has a village, seeding gives the owners (houses, fields, meadows), an empty farm passes to its village.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+// On the small islands (VB-854).
+const VB = require('../src/load.js'), Sim = VB.sim;
+const { scenario } = require('./lib/probe.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('OWNERS FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const same = (a, b) => (!a && !b) || (a && b && a.type === b.type && a.id === b.id);
 function checkSeeding(st, label) {
   const own = (t) => Sim.ownerOf(st, t), houses = new Set(st.farmsteads.map((f) => f.house));
@@ -33,18 +34,18 @@ function checkSeeding(st, label) {
   }
   check(st.cenv.settlements.length === st.villages.length, `${label}: settlements and villages differ`);
 }
-for (const [scenario, seed] of [['founders', 7], ['founders', 42], ['heirs', 7], ['populous', 7]]) {
-  const st = Sim.seed(world(seed), seed, scenario);
-  checkSeeding(st, `${scenario} ${seed}`);
-  if (scenario === 'founders') check(st.villages.some((v) => v.farmsteads.length === 1), 'founders: no one-farm village');
+for (const [name, seed] of [['founders', 7], ['founders', 42], ['heirs', 7], ['populous', 7]]) {
+  const st = scenario(name, seed);
+  checkSeeding(st, `${name} ${seed}`);
+  if (name === 'founders') check(st.villages.some((v) => v.farmsteads.length === 1), 'founders: no one-farm village');
   // succession within a household leaves owners alone; extinction passes the farm to the village
   const hh = st.households.find((h) => !h.dissolved), f = st.farmsteads[hh.farmstead];
   const before = Sim.ownerOf(st, f.house);
   VB['sim/heirs'].transfer(st, hh, hh.members.find((m) => m !== hh.holder) ?? hh.holder, 'death');
-  check(same(Sim.ownerOf(st, f.house), before), `${scenario}: transfer changed the owner`);
+  check(same(Sim.ownerOf(st, f.house), before), `${name}: transfer changed the owner`);
   VB['sim/heirs'].extinct(st, hh);
   for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) {
-    check(same(Sim.ownerOf(st, t), { type: 'village', id: f.village }), `${scenario}: tile ${t} not handed to the village`);
+    check(same(Sim.ownerOf(st, t), { type: 'village', id: f.village }), `${name}: tile ${t} not handed to the village`);
   }
 }
 if (failed) process.exit(1);

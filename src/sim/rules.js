@@ -110,6 +110,16 @@ VB['sim/rules'] = (() => {
     // at most SOIL.start
     fallow: { fallow: true, sow: [1, 0, SEASON_DAYS - 1], mend: 0.08, hours: { plow: 10 } },
   };
+  // ---- rotations (VB-350; design.md, Crops and rotations, The rotation): a field holds one (`fd.rotation`, a key) and the step it is at
+  // (`fd.step`); its crop is the step's course (a key of CROPS, fallow among them). A plain table, as CROPS. Barley every year is today's
+  // farming; in three courses a field is fallow a year, then rye sown that autumn, then barley the spring after its rye is in. ----
+  const ROTATIONS = {
+    every: { courses: ['barley'], label: 'barley every year' },
+    two: { courses: ['barley', 'fallow'], label: 'two courses' },
+    three: { courses: ['fallow', 'rye', 'barley'], label: 'three courses' },
+    peas: { courses: ['barley', 'peas'], label: 'barley and peas by turns' },
+    peasRye: { courses: ['peas', 'rye', 'barley'], label: 'peas, rye, barley' },
+  };
   // ---- fields a household wants (balance review, 1 Nov 2026): enough for `want` times a year's rations at `expect` of the full yield, but no more
   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
   // room (stability review, VB-154): a new farm (a plot, a settler's farm, a new village) needs this many free farmable tiles within FIELD_REACH
@@ -140,7 +150,10 @@ VB['sim/rules'] = (() => {
     graze: 1.5,
     spots: 3,
     crop: { below: 0.45, chance: 0.04, loss: 0.05 },
-    hunt: { reach: 6, hours: 4, chance: 0.3, least: 1, meat: 3, minAge: 14 },
+    hunt: { reach: 6, hours: 4, chance: 0.3, least: 1, meat: 3, minAge: 14, hide: 1 },
+    // leather for shoes and harness (VB-424): a household wants `leather` hides a year for each of its people, so a kill's hide is worth
+    // to it what is lacking of them, at the fair or in a gift
+    leather: 0.25,
   };
   const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
   // ---- rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it ----
@@ -384,6 +397,9 @@ VB['sim/rules'] = (() => {
       // sim/lifecycle: the pawn refused a match its spokesman made (consent's cost; design.md, Marriage as a negotiation; VB-293)
       ale: { label: 'Poured us ale', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/occasions: a barrel poured at a wedding or a funeral ale (VB-305)
       refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
+      // sim/offers: a refusal of goods offered or asked for (VB-690) is a memory of both: the one refused, and, fainter, the one who refused
+      refusedUs: { label: 'Refused what we offered', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
+      refusedThem: { label: 'We refused them', v: -0.05, cap: -0.15, days: YEAR_DAYS },
       // sim/byre: an unherded herd got into the field through a broken stretch of fence; about the holder of the stretch's keeper (VB-136)
       crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
       // sim/agents: a helper finished a job of another household of its village, both ways with each adult there (VB-106; Kim, 10 Nov)
@@ -421,7 +437,7 @@ VB['sim/rules'] = (() => {
     // day, and by `work` for each job two pawns finish together; it halves every year. Near kin never fall below `kin`. A pawn keeps at
     // most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped when the pawn's ties are put back on today's scale,
     // every `renorm` years.
-    ties: { talk: 0.8, home: 1, work: 0.5, kin: 0.4, cap: 150, forget: 0.02, renorm: 4 },
+    ties: { talk: 0.8, home: 1, work: 0.5, kin: 0.4, rite: 0.25, cap: 150, forget: 0.02, renorm: 4 }, // rite: to the rite's leader (VB-522)
     affinity: { weight: 0.6, known: 8 },
     friend: 0.25,
     dislike: -0.2,
@@ -430,6 +446,23 @@ VB['sim/rules'] = (() => {
     enemy: -0.5,
     seek: 0.5,
     seekSample: 4,
+  };
+  // ---- mood (VB-062; design.md, Traits, talk and stories: Mood): 50 plus its modifiers' values, within 0 to 100; shown, read by no rule ----
+  // Starting values, each a feeling's weight on that scale (Kim, 30 Oct: "talked with a friend +5"). For a state, read from it: hungry,
+  // `value` × the pawn's hunger while over `over`; cold, `value` × its household's cold (VB-327, cold's weight as hunger's until Kim sets
+  // one); without water, `value` while its household's hh.dry is above 0 (VB-331); weak, `value` while health is under `under`. For an
+  // event, kept `days` from it (pawn.mods): married; a child born, both parents; grieving at the death of a spouse, child or parent;
+  // talked with a friend, read from the pawn's latest talk (agent.talk) with one it holds at SOCIAL.friend or above.
+  const MOOD = {
+    base: 50,
+    hungry: { value: -20, over: 0.1 },
+    cold: { value: -20 },
+    dry: { value: -10 },
+    weak: { value: -10, under: 50 },
+    married: { value: 10, days: 12 },
+    child: { value: 5, days: 12 },
+    grieving: { value: -15, days: 12 },
+    friend: { value: 5, days: 2 },
   };
 
   // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
@@ -443,6 +476,9 @@ VB['sim/rules'] = (() => {
     widowedGapWeight: 0.15,
     sameVillage: 2,
     noise: 1.5, // score bonus for the same village; amplitude of the random term
+    // walking hours over which the villages' term falls by e (VB-288): sameVillage x exp(-hours / nearHours), 0.45 at a day's walk (12 h);
+    // the tie's own scale (its decay exp(-d / 25) in steps is about 8 h of walking)
+    nearHours: 8,
     liking: 1, // score per point of the mean of the two young's opinions of each other (VB-275); a stranger's opinion is 0
     minScore: -1.5,
     goAhead: 0.75, // lowest score accepted; chance that an accepted match goes ahead
@@ -477,6 +513,13 @@ VB['sim/rules'] = (() => {
     hayCart: 60,
     dayWalk: 12,
   };
+  // ---- sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
+  // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
+  // worked from a bed there rather than from home (a third of the working day) ----
+  const AWAY = { pack: 12, walk: 4 };
+  // A booth (bod; VB-784; design.md, Moving to new land, The booth): a shelter of poles, bark and turf, `hours` of work and `wood` loads at its
+  // tile, `sleeps` at most; unkept it wears `wear` of its condition a year (poles and bark: about three years) and is gone at none.
+  const BOOTH = { hours: 12, wood: 2, sleeps: 4, wear: 1 / 3 };
   const HERD = {
     hayLoss: [0.05, 0.25, 0.5], // annual barn losses by winters of need held (VB-159)
     hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
@@ -618,10 +661,60 @@ VB['sim/rules'] = (() => {
   // an occasion gives the host `prestige` for `years` years, at most `maxBarrels` barrels counted (a cap of 0.2); each guest's memory of
   // it is SOCIAL.memories.ale.
   const BREW = { grain: 10, hours: 4, guests: 20, stock: 1, prestige: 0.05, maxBarrels: 4, years: 3 };
+  // The feast (VB-458; design.md, The gift: The feast, What a feast books; Kim, 13 Nov): at a wedding or a funeral ale at its farm, a
+  // household whose grain stands above its seed and `above` years of its need lays out food: `share` of what it holds beyond that (times its
+  // holder's generosity, TRAITS.acts.generosity.feast), and at most `perGuest` rations a ration of need of those who came (a day's food
+  // three times over, the ale poured counted at its grain). Those who ate have eaten the day's meal; guest households owe the host goodwill.
+  const FEAST = { above: 2, share: 0.25, perGuest: 3 };
+  // The ale evening (VB-522; design.md, Where pawns meet): a holder whose household holds a barrel no occasion called at its farm needs
+  // opens its house from the end of work to `until`, the small, frequent sibling of the feast. `call`: a holder's chance a day, times
+  // (0.5 + sociability) and (0.5 + ambition), asked at its planning day's review; one evening a village a day. `reach`: the walking hours
+  // between villages (sim/routes' table) within which a village's adults are asked. `come`: an adult's chance to come, times (0.5 +
+  // sociability), (1 + its opinion of the host) and (1 - its walk / reach); counted until `guests` (a barrel's) have said yes. `mix`: the
+  // floor for strangers among the partners drawn there (sim/encounters). `reach` 2, not the design's 1.5 (VB-522's runs, populous small
+  // seed 7: at 1.5 a twelfth of the guests came from another village, at 2 a fifth, at 2.5 over a third).
+  const ALE_EVENING = { call: 0.1, reach: 2, come: 0.25, guests: 20, mix: 0.5, until: 22 };
+  // The season's rite (VB-522; design.md, Where pawns meet): on each village green, on day sday of `days`' seasons (spring day 1, summer
+  // day 6, winter day 7), from `hour` for `hours`. An adult of the village, and of a lone farm within `reach` walking hours of a green,
+  // comes at chance `come` + `piety` × its piety; work is not stopped for it. Its leader is the holder present highest in piety × prestige;
+  // each who came gains SOCIAL.ties.rite to it. `mix`: the floor for strangers there (sim/encounters).
+  const RITE = {
+    hour: 12,
+    hours: 2,
+    reach: 2,
+    come: 0.3,
+    piety: 0.6,
+    mix: 0.2,
+    days: [
+      [0, 0],
+      [1, 5],
+      [3, 6],
+    ],
+  };
+  // The gathering (VB-294; design.md, The gathering; Kim, 10 Nov): a village's effective hours to a host are the walk between the greens,
+  // less `kin` hours for each household of kin in the villages that went there last winter (at most `kinMax`), less or plus up to
+  // `disposition` hours by the pull between the two villages' holders, less `held` if it was held last winter, less `ale` an hour for each
+  // barrel its host poured there (at most `aleMax`); a village goes to the host with the fewest, under TRAVEL.dayWalk. A gathering stands
+  // with `least` villages or more; a host lodges `lodge` guests a farm, `goers` from each household of a village beyond `homeHours` of
+  // walk. `dates`: when it is held, by the key of its date (`harvest`: winter days 1 to 3, after the threshing; VB-809's custom adds others).
+  const GATHERING = {
+    kin: 0.5,
+    kinMax: 2,
+    disposition: 2,
+    held: 1,
+    ale: 0.25,
+    aleMax: 1,
+    least: 3,
+    lodge: 10,
+    goers: 3,
+    homeHours: 2,
+    dates: { harvest: { season: 3, from: 0, days: 3 } },
+  };
   const HELP = {
     // a holder wants floorDays and its own reserve (TRAITS.acts.generosity.reserve, by its generosity: 0 to 40 days; VB-520) of the
     // household's food in store before giving
     floorDays: 20, // the floor (VB-182): no deal takes a household below its seed reserve and this many days of its need
+    answerDays: 1, // an offer of goods (a gift, an ask) the played pawn must answer stays open this many days (sim/offers, VB-690)
     askBelow: 3,
     askDays: 12, // a household asks when its spare grain covers fewer days than this, once a season, for food until the
     // next harvest and at least this many days (VB-222)
@@ -731,6 +824,28 @@ VB['sim/rules'] = (() => {
     smallFarms: 3,
     join: 30,
   };
+  // A pawn's wish at the moving round (sim/wishes, VB-680; docs/plans/VB-682.md, section 3): `rungs`, the answers to "where do I live next
+  // year" in their default ranking, best first (heir to the farm it lives on, a match, an empty farm, a plot, new land, service, stay at
+  // home: the order of the round's steps); from ambition `landAmbition` a pawn ranks new land above a plot.
+  const WISH = Object.freeze({
+    rungs: Object.freeze(['heir', 'match', 'farm', 'plot', 'party', 'service', 'stay']),
+    landAmbition: 0.75,
+  });
+  // The moving round as offers (VB-692; docs/plans/VB-682.md, section 2; Proposed): it lasts `passes` days from autumn day `day` + 1 (sday
+  // `day`, 0-based: days 11 to 13), each day every village in its step; a village's step answers the offers due to its people in `order`
+  // (a home handed on before a match that needs it, land before the party that would leave for want of it, service last, for those
+  // nothing else took); one refused on a day asks anew that evening, due the next day; what is open after the last day lapses.
+  // The asking day (VB-823; plan, sections 2 and 7): a pawn who seeks reviews its wish once a season, on season day id mod SEASON_DAYS
+  // at `hour`, and makes an offer due at the round; nobody is asked on one basis by more than `held` open offers (the next asker turns
+  // to its next best), and an asking weighs at most `pool` candidates, the nearest villages first.
+  const ASK = Object.freeze({
+    passes: 3,
+    day: 10,
+    order: Object.freeze(['handover', 'match', 'land', 'party', 'place']),
+    hour: 6,
+    held: 5,
+    pool: 40,
+  });
   // The village's wood (VB-326; design, Land and ecology, The village's wood; Agreed, Kim, 10 Nov): an allotted area of wooded tiles, v.wood
   // (sim/territory), perHousehold tiles for each live household of the village (a household fells about 11 trees a year and a tile of 60 to 80
   // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre (4 hours each way on meadow,
@@ -927,7 +1042,8 @@ VB['sim/rules'] = (() => {
     // What a trait does (VB-520; design.md, The twelve traits and the rules each changes): acts.<trait>.<rule> is [the value at 0, at 1],
     // linear in the trait between (Traits.act), its midpoint the rule's value before traits, so a pawn at 0.5 acts as every pawn did.
     // reserve: the holder's own reserve beyond HELP.floorDays, in days of the household's need (it was drawn per pawn, 0 to 40); one
-    // without a holder keeps the most. anchor: times the pull of what was learned young (culture's P.anchor). settle: times the pressure (the
+    // without a holder keeps the most; feast: times FEAST.share of its surplus it lays out at a feast (VB-458). anchor: times the pull of
+    // what was learned young (culture's P.anchor). settle: times the pressure (the
     // rounds waited in a crowded village) a pawn needs before it wishes to leave at the moving round (sim/settle reads SETTLE.chance there).
     // breach: times the memories of a breach (`breach`, SOCIAL.memories) as this pawn feels them. talk: times the chance to start a talk at
     // its turn (SOCIAL.talk.chance), at most 1; seek: times SOCIAL.seek. idleWait: times IDLE.wait (the design's 4 to 2 hours about its 3).
@@ -935,7 +1051,7 @@ VB['sim/rules'] = (() => {
     // HEALTH.recover (2.5 to 3.5). Temper acts through chemistry and the quarrel (SOCIAL.chemistry, SOCIAL.talk.quarrel); wits and
     // husbandry through a head's skill (sim/traits).
     acts: Object.freeze({
-      generosity: Object.freeze({ reserve: Object.freeze([40, 0]) }),
+      generosity: Object.freeze({ reserve: Object.freeze([40, 0]), feast: Object.freeze([0.5, 1.5]) }),
       piety: Object.freeze({ anchor: Object.freeze([0.5, 1.5]) }),
       ambition: Object.freeze({ settle: Object.freeze([1.5, 0.5]) }),
       honour: Object.freeze({ breach: Object.freeze([0.5, 1.5]) }),
@@ -998,6 +1114,7 @@ VB['sim/rules'] = (() => {
     dark,
     ECON,
     CROPS,
+    ROTATIONS,
     FIELDS,
     FISH,
     FORAGE,
@@ -1023,21 +1140,30 @@ VB['sim/rules'] = (() => {
     HELP,
     GOODWILL,
     TRAVEL,
+    AWAY,
+    BOOTH,
     HERD,
     stalled,
     GRAZE,
     FOODS,
     SOIL,
     SOCIAL,
+    MOOD,
     IDLE,
     SPEED,
     BREW,
+    FEAST,
+    ALE_EVENING,
+    RITE,
+    GATHERING,
     TERRAIN,
     SLOPE,
     ROUTE,
     PATHS,
     SHARES,
     SETTLE,
+    WISH,
+    ASK,
     SERVICE,
     TIE,
     MATCH,

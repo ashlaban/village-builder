@@ -12,17 +12,20 @@ VB['sim/commands'] = (() => {
     hold,
     reachAfter,
     travelling,
-    carryGift,
+    stayOf,
   } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { emit } = VB['sim/events'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
-  const { holdingOf, membersOf, voiceOf, spouseOf, personEvent } = VB['sim/records'];
+  const { holdingOf, membersOf, voiceOf, spouseOf, personEvent, childrenOf, setServant, log, fullName, atHousehold } =
+    VB['sim/records'];
   const { cal, WORK, SOCIAL, TICKS } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
-  const { assessGift, settleGift } = VB['sim/exchange'];
-  // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/clock) find them when they run.
+  const { setWish, resetWish, endPartner, moveWhy } = VB['sim/wishes'];
+  const { settleGift } = VB['sim/exchange'];
+  // Verbs carried out by systems loaded after this module (sim/heirs, sim/trust, sim/lifecycle, sim/marriage, sim/gathering, sim/clock)
+  // find them when they run.
   const later = (key) => VB[key];
   const option = (c) =>
     !(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length)
@@ -51,53 +54,37 @@ VB['sim/commands'] = (() => {
     st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`;
   // A living pawn not on a journey (VB-287): on the road it takes no work, walks nowhere else and goes to no occasion.
   const free = (st, id) => living(st, id) || (travelling(st.agents[id]) ? `pawn ${id} is on the road` : null);
-  // The gift a `give` command describes, {from, to, good, n, source}, or why there is none: the actor is the giving household's holder,
-  // {household} for a household without one, or {village} for its store; the target a household, or {village} for the yearly filling.
-  function giftOf(st, c) {
-    const a = c.actor,
-      t = c.target,
-      n = c.args && c.args.n;
-    let from;
-    if (Number.isInteger(a)) {
-      const dead = living(st, a);
-      if (dead) return dead;
-      from = holdingOf(st, a);
-      if (!from || from.dissolved) return `pawn ${a} holds no household`;
-    } else if (a && a.household !== undefined) {
-      if (!home(st, a.household)) return `there is no household ${a.household}`;
-      from = st.households[a.household];
-      if (from.holder !== null) return `household ${a.household} gives through its holder`;
-    } else if (a && st.villages[a.village]) from = st.villages[a.village];
-    else return 'there is no giver';
-    const to = Number.isInteger(t)
-      ? home(st, t)
-        ? st.households[t]
-        : null
-      : t && st.villages[t.village]
-        ? st.villages[t.village]
-        : null;
-    if (!to) return `there is no household or village ${JSON.stringify(t)}`;
-    if (to === from) return 'one cannot give to oneself';
-    if (!(c.args && c.args.good === 'grain')) return 'only grain is given';
-    if (!(Number.isFinite(n) && n > 0)) return `cannot give ${n}`;
-    const o = { from, to, good: 'grain', n, source: c.source };
-    if (c.args.carrier !== undefined) {
-      // a gift carried (VB-291): by an adult of the giving household who is not on the road
-      const p = st.pawns[c.args.carrier];
-      if (!('farmstead' in from) || !('farmstead' in to)) return 'only a household carries a gift to a household';
-      if (
-        !p ||
-        !p.alive ||
-        p.household !== from.id ||
-        p.age < 14 ||
-        p.age >= 60 ||
-        free(st, p.id) ||
-        st.agents[p.id].phase === 'back'
-      )
-        return `pawn ${c.args.carrier} cannot carry the gift`;
-      o.carrier = p.id;
-    }
-    return o;
+  // Why a pawn changes household (VB-822; docs/plans/VB-682.md, section 5); whether pawn id keeps the minor m: its child, its spouse's
+  // child or its ward, under 18.
+  const MOVE_REASONS = ['marriage', 'heir', 'service', 'guardian', 'care', 'home', 'settle', 'found'];
+  const keeps = (st, id, m) => {
+    if (m === id || !(st.pawns[m].age < 18)) return false;
+    const sp = spouseOf(st, id);
+    return (
+      childrenOf(st, id).includes(m) ||
+      (sp !== null && childrenOf(st, sp).includes(m)) ||
+      st.liveHouseholds.some((h) => st.households[h].guardian === id && st.households[h].ward === m)
+    );
+  };
+  // A `give` command as the offer of a gift (VB-690): to the receiving household's holder, or the household or village itself where no pawn
+  // holds it; the terms are the command's args
+  // Why gift g (sim/offers giftOf) cannot be fetched, or null: one to a household from another farmstead or a village store, with no
+  // carrier, is set aside where it lies and fetched by a member of the receiving household (VB-461), who must be free to go.
+  const fetched = (g) =>
+    !g.carrier && 'farmstead' in g.to && !('farmstead' in g.from && g.from.farmstead === g.to.farmstead);
+  // A household's gift to its village's store, with no carrier, is carried to the green by a member of the giving household (VB-849).
+  const hauled = (g) => !g.carrier && 'farmstead' in g.from && !('farmstead' in g.to);
+  function fetchWhy(st, g) {
+    if (typeof g !== 'string' && hauled(g))
+      return later('sim/away').haulerOf(st, g.from) < 0 ? 'no one of the household can carry it' : null;
+    if (typeof g === 'string' || !fetched(g)) return null;
+    return later('sim/away').fetcherOf(st, g.to) < 0 ? 'no one of the household can fetch it' : null;
+  }
+  function giftOffer(st, c) {
+    const t = c.target,
+      hh = Number.isInteger(t) && home(st, t) ? st.households[t] : null,
+      to = hh && hh.holder !== null ? hh.holder : Number.isInteger(t) ? { household: t } : t;
+    return { actor: c.actor, verb: 'offer', target: to, args: { basis: 'gift', gives: c.args }, source: c.source };
   }
   // The head of household c.target, or why the actor is not: a living pawn that holds it, or {household} for a household with no holder
   // (its own rule); the household has a standing plan (VB-253).
@@ -139,7 +126,7 @@ VB['sim/commands'] = (() => {
         free(st, c.actor) ||
         (!st.jobs.has(c.target)
           ? `there is no job ${c.target}`
-          : !isOpen(st.jobs.get(c.target))
+          : !isOpen(st, st.jobs.get(c.target))
             ? `job ${c.target} has no room`
             : attentionOf(st.jobs.get(c.target)) !== 'full'
               ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))
@@ -176,6 +163,37 @@ VB['sim/commands'] = (() => {
         free(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
       run: (st, c) => goHome(st, st.agents[c.actor]),
     },
+    // lodge(tile, {why, days, jobs, host}) (VB-783; design.md, Sleeping away from home): walk to the tile and sleep there, working only
+    // the tasks `jobs` names, on a pack of a ration a day for `days` (at most AWAY.pack) from the household's food above its seed; with
+    // `host`, a guest in that household's house, with its head's yes (sim/away lodgeWhy)
+    lodge: {
+      check: (st, c) => free(st, c.actor) || later('sim/away').lodgeWhy(st, c.actor, c.target, c.args),
+      run: (st, c) => {
+        const a = st.agents[c.actor];
+        later('sim/away').lodge(st, a, c.target, c.args);
+        goHome(st, a); // to its bed
+      },
+    },
+    // raiseBooth(tile, {guests}) (VB-784): stake a booth on ground nobody else owns or has staked, for the pawn's household and the guests
+    // named; its household's pawns raise it (the wood, then BOOTH.hours of work)
+    raiseBooth: {
+      check: (st, c) => free(st, c.actor) || later('sim/building').raiseBoothWhy(st, c.actor, c.target),
+      run: (st, c) => {
+        later('sim/building').raiseBooth(st, st.agents[c.actor], c.target, c.args);
+      },
+    },
+    // comeHome: a pawn lodging away turns for home, now in the working hours or when it is outdoors, else at 6:00; its stay ends at home
+    comeHome: {
+      check: (st, c) => living(st, c.actor) || later('sim/away').comeHomeWhy(st, c.actor),
+      run: (st, c) => {
+        const a = st.agents[c.actor],
+          h = cal(st.t).hour;
+        later('sim/away').comeHome(st, a);
+        if (a.inside && (h < WORK[0] || h >= WORK[1])) return; // it walks when its day starts (sim/away dayAway)
+        release(st, a);
+        goHome(st, a);
+      },
+    },
     // idle(until): look for nothing to do until game time args.until
     idle: {
       check: (st, c) =>
@@ -206,19 +224,61 @@ VB['sim/commands'] = (() => {
         idle(st, a, until);
       },
     },
-    // ---- gifts (source 'help', later 'player'; VB-216) ----
-    // give(target, {good, n, carrier}): with a carrier (a pawn of the giving household), the gift is carried to the receiver and booked there when he
-    // arrives (VB-291); the actor's household, or village store, gives n of good to household `target`, or to the village store
-    // (target {village}); refused when it would take the giver below its floor or beyond its allowance (sim/exchange)
+    // callAle: the actor, its household's holder, opens its house tonight for an ale evening on a barrel no occasion at its farm needs
+    // (sim/occasions, VB-522); its village and the villages within reach are asked
+    callAle: {
+      check: (st, c) => free(st, c.actor) || later('sim/occasions').cannotCallAle(st, c.actor),
+      run: (st, c) => later('sim/occasions').callAle(st, c.actor),
+    },
+    // ---- offers (VB-690): one pawn offers another a crossing between households, the other answers (sim/offers' BASES) ----
+    // offer(target, {basis, gives, wants, due, given}): the actor offers pawn `target` the terms of `basis`; due at args.due (game hours,
+    // within a year; at once when absent); `given` (the round only) the answer keys the played pawn's own wish has said yes to
+    offer: {
+      check: (st, c) =>
+        living(st, c.actor) ||
+        (c.args && c.args.given && c.args.given.length && c.source !== 'round'
+          ? 'only the round makes an offer with answers given'
+          : later('sim/offers').cannotOffer(st, c)),
+      run: (st, c) => later('sim/offers').make(st, c, (c.args && c.args.given) || []),
+    },
+    // answer(target, {yes}): the actor answers the open offer `target`, all its answers in it at once; the offer closes at a no, or when
+    // all have said yes (an unplayed pawn answers by its own judgement when the offer falls due: sim/offers)
+    answer: {
+      check: (st, c) =>
+        living(st, c.actor) ||
+        (!(c.args && typeof c.args.yes === 'boolean')
+          ? `cannot answer ${JSON.stringify(c.args && c.args.yes)}`
+          : later('sim/offers').cannotAnswer(st, c.actor, c.target)),
+      run: (st, c) => later('sim/offers').answer(st, c.actor, c.target, c.args.yes),
+    },
+    // give(target, {good, n, carrier}) (source 'help', 'player'; VB-216): the offer of a gift, made by the actor's household, or its village
+    // store, to household `target` or the village store (target {village}); refused when it would take the giver below its floor or beyond
+    // its allowance (sim/exchange). The receiver's holder answers it; a yes delivers it.
     give: {
+      check: (st, c) =>
+        later('sim/offers').cannotOffer(st, giftOffer(st, c)) ||
+        fetchWhy(st, later('sim/offers').giftOf(st, c.actor, c.target, c.args, c.source)),
+      // help (source 'help') answers a hungry household's ask (sim/help): its receiver said yes in asking
+      run: (st, c) => later('sim/offers').make(st, giftOffer(st, c), c.source === 'help' ? ['to'] : []),
+    },
+    // deliver(target, {good, n, carrier}) (source 'offer' only: what a yes settles): the actor's household, or village store, hands over n
+    // of good to household `target` or the village store; with a carrier (a pawn of the giving household) it is carried to the receiver
+    // and booked there when he arrives (VB-291); from another farmstead or a village store with none, it is set aside where it lies and
+    // fetched by a member of the receiving household (VB-461: fetchWhy). Refused when the goods are no longer there.
+    deliver: {
       check: (st, c) => {
-        const o = giftOf(st, c);
-        return typeof o === 'string' ? o : assessGift(st, o).why;
+        if (c.source !== 'offer') return 'goods are delivered only as an offer settles';
+        const g = later('sim/offers').delivery(st, c);
+        return typeof g === 'string' ? g : fetchWhy(st, g);
       },
       run: (st, c) => {
-        const o = giftOf(st, c);
-        if (o.carrier !== undefined) carryGift(st, o);
-        else settleGift(st, o);
+        const g = later('sim/offers').delivery(st, c);
+        if (g.carrier !== undefined) later('sim/away').carryGift(st, g);
+        else if (hauled(g))
+          later('sim/away').haulGift(st, Object.assign(g, { hauler: later('sim/away').haulerOf(st, g.from) })); // set aside, carried to the green (VB-849)
+        else if (fetched(g))
+          later('sim/away').fetchGift(st, Object.assign(g, { fetcher: later('sim/away').fetcherOf(st, g.to) })); // set aside, fetched (VB-461)
+        else settleGift(st, g);
       },
     },
     // ---- the head's plan (VB-253; design.md section 7, The player as head; section 15, Parity of command): household `target`'s head
@@ -357,6 +417,12 @@ VB['sim/commands'] = (() => {
             : later('sim/plans').routinesWhy(c.args.routines)),
       run: (st, c) => later('sim/plans').setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
     },
+    // gathering({offer, prefs, by}): the village's choice of gathering this year (VB-294): whether it offers to host, and the hosts it
+    // would go to, best first; made by its meeting (by 'meeting') or, when it did not decide, by its culture's practice (sim/gathering)
+    gathering: {
+      check: (st, c) => settlement(st, c) || later('sim/gathering').choiceWhy(st, c.actor.settlement, c.args),
+      run: (st, c) => later('sim/gathering').setGathering(st, c.actor.settlement, c.args),
+    },
     // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
     // goBack(target, {why}): the actor, holder of household `target`'s farm held in trust by kin (VB-309, sim/trust), goes back to it with
     // its people, and the trust ends: at its marriage, a servant at the round, its coming of age or the trustee's end (args.why)
@@ -399,19 +465,7 @@ VB['sim/commands'] = (() => {
             : !home(st, c.args && c.args.home)
               ? `there is no household ${c.args && c.args.home}`
               : null),
-      run: (st, c) => later('sim/lifecycle').wed(st, c.actor, c.target, c.args.home),
-    },
-    // answer(target, {yes}): the player's pawn (source 'player') answers the open marriage offer `target` (st.offers, sim/lifecycle; VB-293),
-    // all its answers in it at once; the offer closes at a no, or when all have said yes
-    answer: {
-      check: (st, c) =>
-        !st.player || st.player.pawn !== c.actor
-          ? `pawn ${c.actor} is not the player's pawn`
-          : living(st, c.actor) ||
-            (!(c.args && typeof c.args.yes === 'boolean')
-              ? `cannot answer ${JSON.stringify(c.args && c.args.yes)}`
-              : later('sim/lifecycle').cannotAnswer(st, c.actor, c.target)),
-      run: (st, c) => later('sim/lifecycle').answerOffer(st, c.actor, c.target, c.args.yes),
+      run: (st, c) => later('sim/marriage').wed(st, c.actor, c.target, c.args.home),
     },
     // handOn(target, {household, reason}): the actor, holding household args.household, hands it to the heir `target`
     handOn: {
@@ -423,16 +477,46 @@ VB['sim/commands'] = (() => {
             : living(st, c.target),
       run: (st, c) => later('sim/heirs').transfer(st, st.households[c.args.household], c.target, c.args.reason),
     },
-    // serve(target): the actor goes into service with the holder of household `target`
-    serve: {
-      check: (st, c) =>
-        living(st, c.actor) ||
-        (!home(st, c.target)
-          ? `there is no household ${c.target}`
-          : st.pawns[c.actor].household === c.target
-            ? `pawn ${c.actor} lives there already`
-            : null),
-      run: (st, c) => later('sim/service').enterService(st, c.actor, c.target),
+    // move(target, {reason, with, text}): the actor changes to household `target` (VB-822), the one act for every change of household; the
+    // acts that change a right as well (marry, handOn, goToKin, goBack, the foundings) issue it for their people. `with`: the minors who
+    // follow, after it, each its child, its spouse's child or its ward; `text`: the 'moved' life event, when the issuer says more than the
+    // farm's name. Settlers (reason 'settle') walk on their stakes; reason 'service' makes the actor a servant, with the service event and
+    // log line (args.event, args.line, args.other: the issuer's words, else the plain ones). Whose yes it needs is moveWhy's (VB-692).
+    move: {
+      check: (st, c) => {
+        const a = c.args || {},
+          dead = living(st, c.actor);
+        if (dead) return dead;
+        if (!home(st, c.target)) return `there is no household ${c.target}`;
+        if (st.pawns[c.actor].household === c.target) return `pawn ${c.actor} lives there already`;
+        if (!MOVE_REASONS.includes(a.reason)) return `there is no reason ${a.reason} to move`;
+        if (a.with !== undefined && !Array.isArray(a.with)) return 'those who follow must be a list';
+        const whose = moveWhy(st, c.actor, c.target, a.reason);
+        if (typeof whose === 'string') return whose;
+        for (const m of a.with || []) {
+          const why =
+            living(st, m) || (keeps(st, c.actor, m) ? null : `pawn ${m} is not a minor whom ${c.actor} keeps`);
+          if (why) return why;
+        }
+        return null;
+      },
+      run: (st, c) => {
+        const a = c.args,
+          hh = st.households[c.target];
+        for (const id of [c.actor, ...(a.with || [])])
+          later('sim/heirs').moveTo(st, id, c.target, a.text ?? null, a.reason !== 'settle', a.reason);
+        if (a.reason !== 'service') return;
+        const at = st.farmsteads[hh.farmstead].name;
+        setServant(st, c.actor, true);
+        personEvent(st, c.actor, 'service', a.event || `Went into service at ${at}`, false); // recorded below
+        const out = stayOf(st, c.actor) ? ', and sets out for it' : ''; // its new home lies in another village (VB-287)
+        log(st, `${a.line || `${fullName(st.pawns[c.actor])} goes into service at ${at}`}${out}.`, {
+          kind: 'service',
+          pawn: c.actor,
+          ...(a.other !== undefined ? { other: a.other } : {}),
+          ...atHousehold(st, hh),
+        });
+      },
     },
     // claim(target): the actor claims the empty farm `target` and sets about restoring it
     claim: {
@@ -592,11 +676,7 @@ VB['sim/commands'] = (() => {
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
   //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
-  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), wishes ({out, claim, serve, match}: what
-  //   the player wishes for its pawn at the moving round, each null for "as the pawn would"; out true (move out, though heir to a farm) or
-  //   false (stay); claim a farm id (only that farm) or false (none); serve true (as the pawn would) or false (decline);
-  //   match false (not this year) or a pawn id (that partner). Set by wish, kept
-  //   across rounds until changed, read through sim/records' wishOf where the round asks what a pawn wants), left (null while the pawn
+  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), left (null while the pawn
   //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
   //   it thought friends, best first)}: what a death erases and the player's succession needs, VB-213)}; plain data, saved with the run
   const QUEUE_MAX = 8,
@@ -629,9 +709,9 @@ VB['sim/commands'] = (() => {
       queue: [],
       refused: null,
       since: st.t,
-      wishes: { out: null, claim: null, serve: null, match: null },
       left: null,
     };
+    resetWish(st, id); // the player starts from the default wish (VB-680): its wishes are the pawn's (pawn.wish, sim/wishes)
     personEvent(st, id, 'player', 'Played by the player');
     return true;
   }
@@ -708,17 +788,20 @@ VB['sim/commands'] = (() => {
     st.player.auto = !!on;
     return true;
   }
-  // The player's wish for its pawn at the moving round (VB-212): it stands in where the round asks what the pawn itself wants, and the round
-  // decides by its rules, so a wish is not checked against them here; it stays until changed. True, or why it is not a wish.
+  // The wish verb (VB-212, VB-680): the played pawn's wish at the moving round, written on the pawn as every pawn's is (pawn.wish,
+  // sim/wishes); the round reads it as anyone's and decides by its rules, so a wish is not checked against them here; it stays until
+  // changed. True, or why it is not a wish.
   function wish(st, kind, value) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';
-    if (kind !== 'out' && kind !== 'claim' && kind !== 'serve' && kind !== 'match') return `there is no wish ${kind}`;
-    // claim takes a farm id and match a pawn id (of the other sex, living and single), else null or false; out and serve null, true or false
+    if (!['out', 'claim', 'serve', 'match', 'settle', 'rank'].includes(kind)) return `there is no wish ${kind}`;
+    // claim takes a farm id and match a pawn id (of the other sex, living and single), else null or false; out, serve and settle null,
+    // true or false; rank a whole ranking (sim/wishes)
     const id = (kind === 'claim' || kind === 'match') && Number.isInteger(value);
     const target = kind === 'claim' ? st.farmsteads[value] : st.pawns[value];
     if (
-      id ? !target : !(value === null || value === false || (value === true && kind !== 'claim' && kind !== 'match'))
+      kind !== 'rank' &&
+      (id ? !target : !(value === null || value === false || (value === true && kind !== 'claim' && kind !== 'match')))
     ) {
       return id
         ? `there is no ${kind === 'claim' ? 'farm' : 'pawn'} ${value}`
@@ -726,19 +809,10 @@ VB['sim/commands'] = (() => {
     }
     if (kind === 'match' && id && (target.sex === st.pawns[pl.pawn].sex || !target.alive))
       return `${value} is not one the pawn may marry`;
-    pl.wishes[kind] = value;
-    return true;
+    return setWish(st, pl.pawn, kind, value);
   }
-  // The wish for a match ends when the played pawn or the wished partner marries (a and b have married) or dies (a is b).
-  function clearMatchWish(st, a, b) {
-    const pl = st.player;
-    if (
-      pl &&
-      pl.wishes.match !== null &&
-      (pl.pawn === a || pl.pawn === b || pl.wishes.match === a || pl.wishes.match === b)
-    )
-      pl.wishes.match = null;
-  }
+  // A wish for a match ends when the one who wished or the wished partner marries (a and b have married) or dies (a is b).
+  const clearMatchWish = (st, a, b) => endPartner(st, a, b);
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
   function playerStep(st) {

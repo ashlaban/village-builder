@@ -36,6 +36,7 @@ const BR = [0.5, 1.5, 3, 6]; // a maker's experience of who buys, by the buyer's
 const bracket = (h) => { for (let i = 0; i < BR.length; i++) if (h <= BR[i]) return i; return BR.length; };
 const RATES = GOODS.reduce((s, g) => s + g.rate, 0);
 const RITES = [0, 17, 42], MEETING = 33, GATHERING = [36, 37, 38]; // days of the year: spring 1, summer 6, winter 7; autumn 10; winter 1 to 3
+const SPARE = G.household.hands * G.adultHours * mean(G.idle); // the hours a farm household's adults stand idle a year (959): "a household's year of spare hours" (share.js)
 const homeCraft = 242, farmWork = G.household.hands * G.adultHours * (1 - mean(G.idle)); // mock A, table A5: craft hours and hours worked a farm a year
 
 function run(mapKey, seed, o = {}) {
@@ -76,13 +77,36 @@ function run(mapKey, seed, o = {}) {
   const reachV = size.map((_, a) => size.map((_, b) => b).filter((b) => H[a][b] <= REACH));
   const stagger = (a) => (o.stagger ? (a % 4) * 3 : 0); // a variant: each village's rite days fixed by its own custom, 0, 3, 6 or 9 days later
   // what is remembered: a village's share of wants met on a green's gathering days (by kind of day); the households of b seen at c in a year
-  const est = size.map(() => size.map(() => [GOODS.map(() => I.prior), GOODS.map(() => I.prior)]));
+  const est = size.map(() => size.map(() => [GOODS.map(() => I.prior), GOODS.map(() => I.prior), GOODS.map(() => I.prior)]));
   const visit = size.map((_, b) => size.map((_, c) => (b === c ? 1 : 0)));
-  const stats = [], events = { asks: 0, moves: 0, founded: 0, noPlace: 0, quit: 0, ended: 0, movedHome: 0 };
+  const stats = [], events = { asks: 0, moves: 0, founded: 0, noPlace: 0, quit: 0, ended: 0, movedHome: 0, built: 0, villageBuilt: 0, buildHours: 0, joined: 0 };
   // what a maker leaves: a farm of its own is taken up by a farming household (its heir, or whoever claims it); fields had as a plot household go back to be had
   const farm = (v) => ({ v, id: hh.length, wants: [], need: need * (0.6 + 0.8 * r()), ratio: ratio[0] + (ratio[1] - ratio[0]) * r(), store: 0, budget: 0, fisher: false, gath: false });
-  const release = (k) => { if (k.farm) { hh.push(farm(k.v)); farmCount[k.v]++; k.farm = false; } else slack[k.v] += k.held; };
+  const release = (k) => { leave(k); if (k.farm) { hh.push(farm(k.v)); farmCount[k.v]++; k.farm = false; } else slack[k.v] += k.held; };
   const sellersAt = () => { const s = size.map(() => CRAFTS.map(() => [])); for (const k of makers) s[k.v][k.ci].push(k); return s; };
+  // ---- the third mock (share.js; all of it off unless asked for, and then C1 to C9 read as before). o.fac: a maker makes only at a
+  // facility of its craft in its village (a bloomery, a kiln, a loom's house), which costs `cost` years of a household's spare hours to build
+  // and takes `cap` makers; `access` says who may use it: 'own' (its builder's household; one newcomer may take up one left standing),
+  // 'due' (any maker of the craft who lives there, for a share of its make left at the facility, where its owner lives), 'village' (the
+  // village's farms raise it in common, as a mill, if the work is within what they give; its makers use it free). o.elite: one household
+  // at a village that wants `mult` farms' worth of the makers' goods, always has the grain to pay, and feeds the makers of its village in a
+  // lean year (`home`: it deals only with makers who live at its village). o.ship: a buyer on the green of one harbour on `days`, taking `worth`
+  // rations' worth of the makers' goods a year of the makers who live within `reach` hours (half a day: its days are known; 0.2: only those who live there).
+  const FAC = o.fac ? { ...I.share.fac, ...o.fac } : null, facs = [];
+  const facCost = FAC ? (FAC.hours ?? FAC.cost * SPARE) : 0;
+  const usersOf = (f) => makers.reduce((n, k) => n + (k.fac === f ? 1 : 0), 0);
+  const openFac = (ci, c) => (FAC ? facs.find((f) => (FAC.anyCraft || f.ci === ci) && f.v === c && (FAC.access === 'own' ? f.owner === -1 && usersOf(f) === 0 : usersOf(f) < FAC.cap)) : null) || null;
+  const villageCan = (c) => FAC.access === 'village' && farmCount[c] >= 3 && facCost <= FAC.common * FAC.commonYears * SPARE * farmCount[c];
+  const leave = (k) => { if (k.fac && k.fac.owner === k.id) k.fac.owner = -1; k.fac = null; k.build = 0; }; // a facility left stands, its builder's heir its owner
+  const attach = (k, w) => { if (!FAC) return; const f = w.fac && openFac(k.ci, w.c) === w.fac ? w.fac : null;
+    if (f) { k.fac = f; events.joined++; if (FAC.access === 'own') f.owner = k.id; } else if (w.build === 'village') { k.fac = { ci: k.ci, v: w.c, owner: 'village', idle: 0 }; facs.push(k.fac); events.villageBuilt++; events.buildHours += facCost; } else k.build = facCost; };
+  const keepOf = (k, f) => (FAC.access === 'due' && f.owner !== k.id ? 1 - FAC.due : 1);
+  if (FAC) for (const k of makers) { const f = FAC.access === 'own' ? null : openFac(k.ci, k.v); if (f) k.fac = f; else { k.fac = { ci: k.ci, v: k.v, owner: FAC.access === 'village' ? 'village' : k.id, idle: 0 }; facs.push(k.fac); } } // the world a run starts with is placed
+  const EL = o.elite ? { ...I.share.elite, ...o.elite } : null, SH = o.ship ? { ...I.share.ship, reach: REACH, ...o.ship } : null, CR = CRAFTS.reduce((t, g) => t + g.rate, 0), shipLeft = CRAFTS.map(() => 0);
+  if (EL) hh.push({ v: EL.v, id: hh.length, wants: [], need: 0, ratio: 1, store: 0, budget: 0, fisher: false, gath: true, elite: true });
+  const wgt = (b, c) => farmCount[b] + (EL && EL.v === b && (!EL.home || c === undefined || c === b) ? EL.mult : 0); // the buyers at a village, in farms (as seen from a maker at c)
+  const shipCustom = (k, c) => { if (!SH || H[c][SH.v] > SH.reach) return 0; const riv = makers.reduce((n, x) => n + (x !== k && x.ci === k.ci && H[x.v][SH.v] <= SH.reach ? 1 : 0), 0); return SH.worth / CRAFTS.length / CRAFTS[k.ci].worth / (1 + riv); };
+  let byId = new Map();
 
   for (let y = 0; y < years; y++) {
     const hf = harvest(r);
@@ -94,6 +118,8 @@ function run(mapKey, seed, o = {}) {
       f.budget = Math.max(0, f.store - I.reserve * f.need) * budgetShare; f.gath = r() < P.social.gathering;
     }
     const spare = size.map(() => 0); for (const f of hh) spare[f.v] += f.budget;
+    if (EL) for (const f of hh) if (f.elite) f.store = f.budget = 1e9; // rent is carried to it (slice 5): it always has the grain to pay
+    if (FAC) byId = new Map(makers.map((k) => [k.id, k]));
     // spring: each maker's head sizes its fields against its own estimate of all its food
     for (const k of makers) {
       const s = [...k.mem].sort((a, b) => a - b), poor = s.length >= 3 ? s[1] : 0, mn = s.length >= 3 ? mean(s) : s.length ? mean(s) * 0.5 : 0;
@@ -102,6 +128,9 @@ function run(mapKey, seed, o = {}) {
       k.F = Math.max(0, Math.min(k.held, Math.ceil((G.want * k.needNow - k.estCraft - plotFood) / fieldEst)));
       k.hoursLeft = pool - k.F * fieldHours - plotHours; k.sold = 0; k.n = 0; k.hoursCraft = 0; k.to.fill(0); k.gath = r() < P.social.gathering; k.soldGreen = 0;
       k.L = k.cum / (k.cum + G.skills.half);
+      if (FAC && !k.fac) { // building: its spare hours go to the facility first, and it makes nothing until it stands
+        const b = Math.min(k.build > 0 ? k.build : 0, Math.max(0, k.hoursLeft)); k.build -= b; k.hoursLeft -= b; events.buildHours += b;
+        if (k.build <= 0) { k.fac = { ci: k.ci, v: k.v, owner: k.id, idle: 0 }; facs.push(k.fac); events.built++; } else k.hoursLeft = 0; }
     }
     const S = sellersAt(), has = size.map((_, a) => GOODS.map((g, gi) => (g.craft ? S[a][gi].length > 0 : g.sea ? fishers[a] > 0 : false)));
     // the year's gathering days
@@ -114,14 +143,17 @@ function run(mapKey, seed, o = {}) {
       for (let k = 0; k < (o.ale || 0); k++) { const at = new Set(); let n = 0; for (let b = 0; b < V; b++) if (H[a][b] <= 1.5) { at.add(b); n += size[b]; } days[Math.floor(r() * G.yearDays)].push({ g: a, cls: 0, kind: 'ale', att: at, p: Math.min(1, P.social.ale / n) }); }
     }
     for (const b of hosts) { const att = new Set(); hostOf.forEach((x, a) => { if (x === b) att.add(a); }); for (const d of GATHERING) days[d].push({ g: b, cls: 1, kind: 'gathering', att, p: 1 }); }
+    if (SH) for (const d of SH.days) days[d].push({ g: SH.v, cls: 2, kind: 'ship', att: new Set([SH.v]), p: 1 });
     // each village's view of the calendar: the gatherings its people are at anyway, those within a day there and back, and what is coming
     const mine = days.map((evs) => size.map((_, v) => evs.map((_, e) => e).filter((e) => evs[e].att.has(v))));
     const near = days.map((evs) => size.map((_, v) => evs.map((_, e) => e).filter((e) => H[v][evs[e].g] <= REACH)));
     const soonFor = days.map((_, d) => { const out = size.map(() => []); for (let a = 1; a <= 12; a++) { const d2 = (d + a) % G.yearDays;
       for (const ev of days[d2]) for (const v of ev.att) out[v].push([ev, a]); } return out; });
     const Y = { y, hf, spare, surplus, dGreen: size.map(() => 0), dHouse: size.map(() => 0), greenDeals: size.map(() => 0), houseDeals: size.map(() => 0), outGreen: size.map(() => 0), worth: size.map(() => 0),
-      born: 0, filled: 0, lapsed: 0, poor: 0, trips: size.map(() => size.map(() => 0)), greenDays: size.map(() => 0), byDay: o.byDay ? size.map(() => new Array(G.yearDays).fill(0)) : null };
-    const sell = (h, k, g, gi, place) => { const ph = pieceHours[g.craft](k.L) + extra[k.ci][k.v]; h.budget -= g.worth; h.store -= g.worth; k.sold += g.worth; k.n++; k.hoursLeft -= ph; k.hoursCraft += ph; k.to[bracket(H[k.v][h.v])]++; Y.worth[place] += g.worth; };
+      born: 0, filled: 0, lapsed: 0, poor: 0, due: 0, dueHeir: 0, ship: 0, trips: size.map(() => size.map(() => 0)), greenDays: size.map(() => 0), byDay: o.byDay ? size.map(() => new Array(G.yearDays).fill(0)) : null };
+    // what a sale brings its maker: all of it, or under 'due' all but the share left at the facility for its owner (a maker's is its income; an heir farm's is its own)
+    const credit = (k, worth) => { k.sold += worth; if (FAC && FAC.access === 'due' && k.fac && k.fac.owner !== k.id) { const d = worth * FAC.due; k.sold -= d; Y.due += d; const ow = byId.get(k.fac.owner); if (ow) ow.sold += d; else Y.dueHeir += d; } };
+    const sell = (h, k, g, gi, place) => { const ph = pieceHours[g.craft](k.L) + extra[k.ci][k.v]; h.budget -= g.worth; h.store -= g.worth; credit(k, g.worth); k.n++; k.hoursLeft -= ph; k.hoursCraft += ph; k.to[bracket(H[k.v][h.v])]++; Y.worth[place] += g.worth; };
     const maker = (list, g) => { const ok = list.filter((k) => k.hoursLeft >= pieceHours[g.craft](k.L) + extra[k.ci][k.v]); return ok.length ? ok[Math.floor(r() * ok.length)] : null; };
     for (let d = 0; d < G.yearDays; d++) {
       const now = y * G.yearDays + d, hv = hourValue[Math.floor(d / G.seasonDays)] * walk, today = days[d];
@@ -130,7 +162,8 @@ function run(mapKey, seed, o = {}) {
       for (const k of makers) {
         k.away = -1; let best = -1, bv = 0; const g = CRAFTS[k.ci];
         today.forEach((ev, e) => {
-          const anyway = ev.g === k.v || (ev.att.has(k.v) && (ev.cls ? k.gath : true)), e0 = k.exp.get(ev.g * 2 + ev.cls) ?? 1;
+          if (ev.kind === 'ship' && H[k.v][ev.g] > SH.reach) return;
+          const anyway = ev.g === k.v || (ev.att.has(k.v) && (ev.cls ? k.gath : true)), e0 = k.exp.get(ev.g * 4 + ev.cls) ?? 1;
           const val = e0 * g.worth * 0.8 - (anyway ? 0 : H[k.v][ev.g] > REACH ? Infinity : (2 * H[k.v][ev.g] + P.dealHours) * hv) + (anyway ? 0.01 : 0);
           if (val > bv) { bv = val; best = e; }
         });
@@ -138,6 +171,7 @@ function run(mapKey, seed, o = {}) {
       }
       const goers = today.map(() => []), dealtOut = new Map();
       for (const h of hh) {
+        if (h.elite) for (let i = 1; i < EL.mult; i++) { const u2 = r() * G.yearDays; if (u2 < CR * often) { let gi = 0, c = CRAFTS[0].rate * often; while (u2 >= c) c += CRAFTS[++gi].rate * often; Y.born++; h.wants.push({ gi, born: now }); } }
         const u = r() * G.yearDays; // a want is born: one draw a household a day, the good by its rate
         if (u < RATES * often) { let gi = 0, c = GOODS[0].rate * often; while (u >= c) c += GOODS[++gi].rate * often; Y.born++; if (GOODS[gi].any && r() < 1 - Math.pow(1 - P.any, size[h.v] - 1)) Y.filled++; else h.wants.push({ gi, born: now }); }
         // is someone of the household at a gathering today anyway
@@ -150,8 +184,8 @@ function run(mapKey, seed, o = {}) {
         const live = h.wants.filter((w) => GOODS[w.gi].worth <= h.budget); if (!live.length) continue;
         const worth = (w, at) => GOODS[w.gi].gain * Math.max(0, 1 - GOODS[w.gi].wait * (at - w.born));
         let best = 0, how = null;
-        if (turn) for (const a of reachV[h.v]) { let val = 0; for (const w of live) if (has[a][w.gi]) val += worth(w, now); if (!val) continue; val -= 2 * H[h.v][a] * hv; if (val > best) { best = val; how = { visit: a }; } }
-        for (const e of near[d][h.v]) { const ev = today[e]; let val = -(2 * H[h.v][ev.g] + P.dealHours) * hv;
+        if (turn) for (const a of h.elite && EL.home ? [h.v] : reachV[h.v]) { let val = 0; for (const w of live) if (has[a][w.gi]) val += worth(w, now); if (!val) continue; val -= 2 * H[h.v][a] * hv; if (val > best) { best = val; how = { visit: a }; } }
+        for (const e of near[d][h.v]) { const ev = today[e]; if (h.elite && EL.home && ev.g !== h.v) continue; let val = -(2 * H[h.v][ev.g] + P.dealHours) * hv;
           for (const w of live) val += worth(w, now) * (GOODS[w.gi].craft && here[e][w.gi].length ? 1 : est[h.v][ev.g][ev.cls][w.gi]); if (val > best) { best = val; how = { ev: e }; } }
         let later = 0;
         for (const [ev, ahead] of soonFor[d][h.v]) { if (ev.cls && !h.gath) continue; // or wait for a gathering it will be at anyway, if it expects more of that
@@ -176,7 +210,10 @@ function run(mapKey, seed, o = {}) {
             est[h.v][gp][ev.cls][w.gi] = 0.7 * est[h.v][gp][ev.cls][w.gi] + 0.3 * (found ? 1 : 0); if (found) n++; return !found; });
           if (n) { dealt++; if (h.v !== gp) out++; Y.filled += n; Y.greenDeals[gp] += n; }
         }
-        for (const list of here[e]) for (const k of list) k.exp.set(gp * 2 + ev.cls, 0.7 * (k.exp.get(gp * 2 + ev.cls) ?? 1) + 0.3 * k.soldToday);
+        if (ev.kind === 'ship') CRAFTS.forEach((g, ci) => { const perDay = SH.worth / SH.days.length / CRAFTS.length; let left = perDay + shipLeft[ci]; // the ship's buyer takes what the makers on the green have, a craft's part of the day's worth each
+          while (left >= g.worth) { const k = maker(here[e][ci], g); if (!k) break; const ph = pieceHours[g.craft](k.L) + extra[k.ci][k.v]; credit(k, g.worth); k.n++; k.hoursLeft -= ph; k.hoursCraft += ph; k.soldToday++; k.soldGreen += g.worth; Y.worth[gp] += g.worth; Y.ship += g.worth; sellersDealt.add(k.id); left -= g.worth; }
+          shipLeft[ci] = Math.min(left, perDay); });
+        for (const list of here[e]) for (const k of list) k.exp.set(gp * 4 + ev.cls, 0.7 * (k.exp.get(gp * 4 + ev.cls) ?? 1) + 0.3 * k.soldToday);
         Y.greenDays[gp]++;
         if (dealt + sellersDealt.size >= P.dealMin) { Y.dGreen[gp]++; if (Y.byDay) Y.byDay[gp][d] += dealt; } Y.outGreen[gp] += out;
       });
@@ -188,43 +225,51 @@ function run(mapKey, seed, o = {}) {
       const g = CRAFTS[k.ci];
       k.food = k.sold + k.F * (G.field.yield * hf - G.field.seed) + plotFood; k.craftShare = k.sold / Math.max(1, k.food);
       k.mem.push(k.sold); if (k.mem.length > I.memory) k.mem.shift(); k.cum = k.cum * (1 - G.skills.fade) + k.hoursCraft;
-      const riv = 1 + rival(k.ci, k.v, k), inB = BR.map(() => 0).concat(0); for (let b = 0; b < V; b++) inB[bracket(H[k.v][b])] += farmCount[b];
+      const riv = 1 + rival(k.ci, k.v, k), inB = BR.map(() => 0).concat(0); for (let b = 0; b < V; b++) inB[bracket(H[k.v][b])] += wgt(b, k.v);
       inB.forEach((n, i) => { if (n) k.q[i] = 0.5 * k.q[i] + 0.5 * Math.min(1, (k.to[i] * riv) / (n * g.rate * often)); });
-      k.lean = k.food < P.hungry * k.needNow ? k.lean + 1 : 0;
+      k.lean = k.food < P.hungry * k.needNow && !(EL && EL.feeds && k.v === EL.v) ? k.lean + 1 : 0;
     }
     const mk = (f) => size.map((_, a) => makers.filter((k) => k.v === a && f(k)).length);
     Object.assign(Y, { makers: mk(() => true), fieldFree: mk((k) => k.F === 0), half: mk((k) => k.craftShare > 0.5), landless: mk((k) => !k.held), hungry: mk((k) => k.food < P.hungry * k.needNow),
       craftHours: size.map((_, a) => makers.filter((k) => k.v === a).reduce((s, k) => s + k.hoursCraft, 0)), farmHours: size.map((_, a) => makers.filter((k) => k.v === a).reduce((s, k) => s + k.F * fieldHours + plotHours + G.chores, 0)),
       crafts: size.map((_, a) => new Set(makers.filter((k) => k.v === a).map((k) => k.ci)).size), craftFood: size.map((_, a) => makers.filter((k) => k.v === a).reduce((s, k) => s + k.sold, 0)), greenSold: makers.reduce((s, k) => s + k.soldGreen, 0), sold: makers.reduce((s, k) => s + k.sold, 0),
       foodShare: makers.length ? mean(makers.map((k) => k.food / k.needNow)) : NaN, foodPlot: mean(makers.filter((k) => !k.F).map((k) => k.food / k.needNow)), foodField: mean(makers.filter((k) => k.F).map((k) => k.food / k.needNow)), hungryPlot: mean(makers.filter((k) => !k.F).map((k) => (k.food < P.hungry * k.needNow ? 1 : 0))), farms: farmCount.slice(), ev: { ...events } });
+    if (FAC) Object.assign(Y, { facs: size.map((_, a) => facs.filter((f) => f.v === a).length), facUsers: facs.map(usersOf), building: mk((k) => !k.fac), payers: makers.filter((k) => k.fac && FAC.access === 'due' && k.fac.owner !== k.id).length });
     stats.push(Y);
     for (let i = makers.length - 1; i >= 0; i--) { const k = makers[i]; const end = r() < P.turnover, quit = !k.held && k.lean >= 2; if (end || quit) { release(k); makers.splice(i, 1); events[end ? 'ended' : 'quit']++; } }
+    if (FAC) for (let i = facs.length - 1; i >= 0; i--) { const f = facs[i]; if (usersOf(f)) f.idle = 0; else if (++f.idle > FAC.idle) facs.splice(i, 1); } // one nobody uses falls in
     if (o.noMove && o.noEntry) continue;
     // a maker's estimate of its custom at c: the households it believes would come there for its good, shared with those of its craft there
     const custom = (k, c, noSelf) => { const g = CRAFTS[k.ci]; let n = 0;
-      for (let b = 0; b < V; b++) { if (!farmCount[b]) continue; const far = k.q[bracket(H[c][b])]; n += farmCount[b] * g.rate * often * Math.max(far, o.noFeedback ? 0 : visit[b][c] * k.q[0]); }
-      return n / (1 + rival(k.ci, c, noSelf ? null : k)); };
+      for (let b = 0; b < V; b++) { if (!wgt(b, c)) continue; const far = k.q[bracket(H[c][b])]; n += wgt(b, c) * g.rate * often * Math.max(far, o.noFeedback ? 0 : visit[b][c] * k.q[0]); }
+      return n / (1 + rival(k.ci, c, noSelf ? null : k)) + shipCustom(k, c); };
     const weigh = (k, c, home) => { const g = CRAFTS[k.ci], s = [...k.mem].sort((a, b) => a - b), trust = s.length >= 3 && mean(s) > 0 ? (k.caution * s[1] + (1 - k.caution) * mean(s)) / mean(s) : 1 - 0.4 * k.caution;
       const ph = pieceHours[g.craft](k.L) + extra[k.ci][c] * (o.matCost ?? 1); let n = custom(k, c) , fields = home ? k.held : 0;
       const craftMax = (pool - plotHours) / ph; n = Math.min(n, craftMax);
-      const craft = n * g.worth * trust * (home ? 1 : P.newPlace), wantF = Math.max(0, Math.ceil((G.want * k.needNow - craft - plotFood) / fieldEst));
+      // the facility there: one standing with a place free (the due comes off the craft), one the village would raise, or one to build itself
+      let keep = 1, cost = 0, fac = null, build = null, okB = true;
+      if (FAC) { if (home) { if (k.fac) keep = keepOf(k, k.fac); else cost = k.build; } else if ((fac = openFac(k.ci, c))) keep = FAC.access === 'due' ? 1 - FAC.due : 1; else if (villageCan(c)) build = 'village'; else { build = 'self'; cost = facCost; } }
+      const craft = n * g.worth * trust * (home ? 1 : P.newPlace) * keep, wantF = Math.max(0, Math.ceil((G.want * k.needNow - craft - plotFood) / fieldEst));
       const F = Math.min(wantF, home ? k.held : Math.floor(slack[c])), food = craft + F * fieldEst + plotFood, hours = n * ph + F * fieldHours + plotHours;
-      return { c, F, food, u: Math.min(food, 1.5 * k.needNow) - hours * hourWorth - (c === k.origin ? 0 : P.kin * (o.kinCost ?? 1)), ok: food >= G.want * k.needNow && hours <= pool }; };
+      let held = F; // a build longer than a year's spare hours must be lived through on fields, garden and cows alone
+      if (build === 'self' && cost > pool - F * fieldHours - plotHours) { held = Math.min(Math.max(0, Math.ceil((G.want * k.needNow - plotFood) / fieldEst)), Math.floor(slack[c])); okB = held * fieldEst + plotFood >= P.hungry * k.needNow && pool - held * fieldHours - plotHours > 0; }
+      const shipWalk = SH && c !== SH.v && H[c][SH.v] <= SH.reach ? SH.days.length * (2 * H[c][SH.v] + P.dealHours) * hourWorth : 0;
+      return { c, F: held, food, fac, build, u: Math.min(food, 1.5 * k.needNow) - hours * hourWorth - (c === k.origin ? 0 : P.kin * (o.kinCost ?? 1)) - (FAC ? (cost * hourWorth) / FAC.amort : 0) - shipWalk, ok: food >= G.want * k.needNow && hours <= pool && okB }; };
     if (!o.noMove) for (const k of [...makers].sort(() => r() - 0.5)) {
       if (y - k.since < 3) continue; k.needNow = need;
       const home = weigh(k, k.v, true); let best = null;
       for (let c = 0; c < V; c++) { if (c === k.v || H[k.v][c] > P.moveReach) continue; const w = weigh(k, c, false); if (w.ok && (!best || w.u > best.u)) best = w; }
       if (!best) continue; if (best.u > home.u) events.asks++;
-      if (best.u > home.u + P.inertia * need) { release(k); slack[best.c] -= best.F; if (best.c === k.origin) events.movedHome++; k.v = best.c; k.held = best.F; k.since = y; k.exp = new Map(); events.moves++; }
+      if (best.u > home.u + P.inertia * need) { release(k); slack[best.c] -= best.F; if (best.c === k.origin) events.movedHome++; k.v = best.c; k.held = best.F; k.since = y; k.exp = new Map(); events.moves++; attach(k, best); }
     }
     if (!o.noEntry) for (let a = 0; a < V; a++) if (r() < Math.min(1, (o.entry ?? P.entry) * farmCount[a])) {
       const k = newMaker(Math.floor(r() * CRAFTS.length), a, 0, r); k.young = true; k.born = y + 1; k.needNow = P.youngNeed; k.since = y; let best = null;
       for (let c = 0; c < V; c++) { if (H[a][c] > P.moveReach || (o.noMove && c !== a)) continue; const w = weigh(k, c, false); if (w.ok && (!best || w.u > best.u)) best = w; }
       if (!best) { events.noPlace++; continue; }
-      slack[best.c] -= best.F; k.v = best.c; k.held = best.F; makers.push(k); events.founded++;
+      slack[best.c] -= best.F; k.v = best.c; k.held = best.F; makers.push(k); events.founded++; attach(k, best);
     }
   }
-  return { m, V, H, size, potential, within, stats, events, hosts, mat, makersLeft: makers, farmCount };
+  return { m, V, H, size, potential, within, stats, events, hosts, mat, makersLeft: makers, farmCount, facs };
 }
 
 // ---- readings
@@ -254,7 +299,7 @@ function many(mapKey, o = {}, seeds = 4) {
 }
 const only = opt('only', ''), BASE = 'populous-small-7-y30', MED = 'populous-medium-7-y0';
 const show = (title, rows, first) => { console.log('\n' + title); table(rows, [first, ...Object.keys(rows[0]).filter((k) => k !== first)]); };
-const on = (k) => !only || only === k;
+const on = (k) => require.main === module && (!only || only === k); // share.js (the third mock) requires this file for `run` and prints its own tables
 const central = (key, d) => top(run(key, 1, { years: 1, density: d }).potential);
 
 if (on('base')) {
@@ -360,3 +405,4 @@ if (on('days')) {
     console.log([0, 1, 2, 3].map((s) => cal.slice(s * 12, s * 12 + 12).map((n) => (n < 0.25 ? '.' : n >= 10 ? '#' : String(Math.max(1, Math.round(n))))).join('')).join(' | '));
   }
 }
+module.exports = { run, read, avgV, lastN, workShare, top, sum, f1, f2, pc, central, REACH, SPARE, MAPS, CRAFTS, need, BASE, MED, pieceHours, hourWorth, pool, plotHours, plotFood, fieldEst, fieldHours };

@@ -10,6 +10,8 @@ VB['sim/exchange'] = (() => {
   const { herdsOf, winterNeed, payInAnimals } = VB['sim/herds'];
   const { floorOf, dailyNeed, servedLast, daysOfFood } = VB['sim/hunger'];
   const Culture = VB['culture'];
+  const Offers = VB['sim/offers'];
+  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. Switched on by GOODWILL.acts (VB-220).
@@ -79,9 +81,14 @@ VB['sim/exchange'] = (() => {
     return below > TOLERANCE ? { below, days: HELP.floorDays, hungry: servedLast(st, from) } : null;
   }
   // The gift's moves and records, as help made them (help.js, VB-039): the receiver's grain (in the crops the giver's take gave, `parts`)
-  // and its holder's event, then the giver's, the tie between the two holders, and the goodwill booked between them.
+  // and its records (booked).
   function receive(st, from, to, n, fromName, parts) {
     Stores.put(st, to, 'grain', n, { kind: 'gift', from: fromName }, parts);
+    booked(st, from, to, n, fromName);
+  }
+  // A gift's records: the receiving holder's event, then the giver's, the tie between the two holders, and the goodwill booked between
+  // them. Rights move at once (AGENTS.md, the hard rule): a gift that is fetched is booked at the ask, its grain at each arrival (VB-461).
+  function booked(st, from, to, n, fromName) {
     const ht = to.holder !== null ? st.pawns[to.holder] : null;
     if (ht)
       personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`, {
@@ -115,6 +122,9 @@ VB['sim/exchange'] = (() => {
   }
   // Settles an accepted gift; only the verb `give` calls it (tests/commands.js).
   function settleGift(st, o) {
+    // grain that changes place at once between two farmsteads (VB-461, VB-849: the verb has it fetched or hauled; tests/lib/invariants.js holds this at 0)
+    if (!isHousehold(o.to) ? isHousehold(o.from) : !isHousehold(o.from) || o.from.farmstead !== o.to.farmstead)
+      VB.count.giftUncarried += o.n;
     if (!isHousehold(o.to))
       Stores.move(st, o.from, o.to, 'grain', o.n, { kind: 'gift', to: 'the village store' }); // the yearly filling
     else {
@@ -125,6 +135,85 @@ VB['sim/exchange'] = (() => {
       receive(st, isHousehold(o.from) ? o.from : null, o.to, o.n, fromName, parts);
     }
   }
+  // ---- the goods bases of sim/offers (VB-690): a gift, and an ask ----
+  // The receiving party a gift's `to` names, as giftOf's target: the household a pawn holds, a household with no holder, or a village; or
+  // why there is none
+  function receiverOf(st, to) {
+    if (Number.isInteger(to)) {
+      const hh = st.pawns[to] && st.pawns[to].died === null ? holdingOf(st, to) : null;
+      return hh ? hh.id : `pawn ${to} holds no household`;
+    }
+    if (to && to.household !== undefined && st.households[to.household] && st.households[to.household].holder !== null)
+      return `household ${to.household} takes through its holder`;
+    return to && to.household !== undefined ? to.household : to;
+  }
+  // gift: {gives: {good, n, carrier?}}: a household (its holder), or the village store, gives goods; the receiver's holder answers, and
+  // takes a gift (no rule refuses one yet). The giver weighs it before making it: its floor and its allowance (assessGift; the player's
+  // pawn passes both). A yes delivers it, carried by gives.carrier or settled where it lies; the worth is booked as goodwill (receive).
+  Offers.basis('gift', {
+    books: 'goodwill',
+    wait: () => HELP.answerDays,
+    check: (st, o, c) => {
+      if (o.wants) return 'a gift wants nothing';
+      const t = receiverOf(st, o.to),
+        g = typeof t === 'string' ? t : Offers.giftOf(st, o.from, t, o.gives, c.source);
+      if (typeof g === 'string') return g;
+      const why = assessGift(st, g).why;
+      if (why) return why;
+      return { parties: { from: Offers.refOf(g.from), to: Offers.refOf(g.to) } };
+    },
+    answers: (st, o) => (Number.isInteger(o.to) ? [{ key: 'to', by: o.to, yes: null }] : []),
+    weigh: () => true,
+    settle: (st, o) =>
+      issue(st, {
+        actor: o.from,
+        verb: 'deliver',
+        target: o.parties.to.household !== undefined ? o.parties.to.household : o.parties.to,
+        args: o.gives,
+        source: 'offer',
+      }),
+  });
+  // ask: {wants: {good, n}}: a pawn asks a holder for grain for its own household; the holder weighs it as the gift it would make (its floor
+  // and its allowance toward the asker's household). A yes needs a member of the asker's household free to fetch it (deliver refuses else).
+  // The holder delivers it, set aside where it lies and fetched; the worth is booked as goodwill, as a gift's.
+  Offers.basis('ask', {
+    books: 'goodwill',
+    wait: () => HELP.answerDays,
+    check: (st, o) => {
+      const p = Number.isInteger(o.from) && st.pawns[o.from],
+        to = Number.isInteger(o.to) && st.pawns[o.to] && st.pawns[o.to].died === null ? holdingOf(st, o.to) : null,
+        want = o.wants;
+      if (!p || p.died !== null) return 'the ask is made by a living pawn';
+      if (p.household === null || st.households[p.household].dissolved) return `pawn ${o.from} lives in no household`;
+      if (!to || to.dissolved) return `pawn ${o.to} holds no household`;
+      if (to.id === p.household) return "one cannot ask one's own household";
+      if (o.gives) return 'an ask gives nothing';
+      if (!(want && want.good === 'grain')) return 'only grain is asked for';
+      if (!(Number.isFinite(want.n) && want.n > 0)) return `cannot ask for ${want.n}`;
+      return { parties: { from: { household: p.household }, to: { household: to.id } } };
+    },
+    answers: (st, o) => [{ key: 'to', by: o.to, yes: null }],
+    weigh: (st, o) => {
+      const from = Offers.partyOf(st, o.parties.to),
+        to = Offers.partyOf(st, o.parties.from);
+      return (
+        !from.dissolved &&
+        !to.dissolved &&
+        assessGift(st, { from, to, good: o.wants.good, n: o.wants.n, source: 'ask' }).accept
+      );
+    },
+    settle: (st, o) => {
+      const from = Offers.partyOf(st, o.parties.to);
+      // the grain is set aside where it lies and fetched by the asker's household (VB-461, VB-861), not taken up at the start by a carrier
+      return issue(st, {
+        actor: from.holder !== null ? from.holder : { household: from.id },
+        verb: 'deliver',
+        target: o.parties.from.household,
+        args: { good: o.wants.good, n: o.wants.n },
+        source: 'offer',
+      });
+    },
+  });
   // For the panel (VB-218): what giver would give up to receiver (pawn ids) in one deal toward receiver's household, and its parts, as
   // Rules.explain returns them; null unless giver holds a household and receiver lives in another. Reads only; its own context.
   function explainAllowance(st, giver, receiver) {
@@ -355,6 +444,7 @@ VB['sim/exchange'] = (() => {
     assessGift,
     settleGift,
     receive,
+    booked,
     explainAllowance,
     giftWarning,
     needValue,

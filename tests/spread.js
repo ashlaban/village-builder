@@ -19,23 +19,20 @@ for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, '../src/manifest
     const land = mod.landMeeting;
     mod.landMeeting = (st) => { calls.push({ kind: 'land', t: st.t }); return land(st); };
   }
-  if (key === 'sim/lifecycle') {
+  if (key === 'sim/round') {
     const phase = mod.roundPhase;
     // a village's round is told by the counter of its walk of the living (VB-277), which only villageRound adds to
-    mod.roundPhase = (st, n) => {
-      const walked = globalThis.VB.count.roundWalk, count = st.villages.length, r = phase(st, n);
-      calls.push({ kind: 'round', t: st.t, tick: st.tick, n, count, villages: (globalThis.VB.count.roundWalk - walked) / st.living.length });
+    mod.roundPhase = (st, n, d = 0) => {
+      const walked = globalThis.VB.count.roundWalk, count = st.villages.length, r = phase(st, n, d);
+      calls.push({ kind: 'round', t: st.t, tick: st.tick, n, d, count, villages: (globalThis.VB.count.roundWalk - walked) / st.living.length });
       return r;
     };
   }
 }
-const VB = globalThis.VB, Sim = VB.sim, G = VB.gen, { canon } = require('./lib/canon.js');
-const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS } = VB['sim/rules'], { NIGHT_STEPS, ROUND_STEPS } = VB['sim/lifecycle'];
-const world = (seed, size) => { const it = G.generate(seed, size); let r; while (!(r = it.next()).done); return r.value; };
-const TINY = { cols: 120, rows: 85 };
-const extended = process.argv.includes('--extended'), probe = require('./lib/probe.js');
-const seed = () => extended ? Sim.seed(world(7, TINY), 7, 'populous') : probe.state();
-const restoreWorld = (data) => extended ? world(data.seed, { cols: data.cols, rows: data.rows }) : probe.world();
+const VB = globalThis.VB, Sim = VB.sim, { canon } = require('./lib/canon.js');
+const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, ASK } = VB['sim/rules'], { NIGHT_STEPS } = VB['sim/meetings'], { ROUND_STEPS } = VB['sim/round'];
+// On the probe village alone since VB-853: the populous run on the tiny map (--extended) asserted the same rules, and was deleted.
+const probe = require('./lib/probe.js'), seed = probe.state, restoreWorld = probe.world;
 const st = seed();
 assert.strictEqual(YEAR, YEAR_H);
 // to the day before the round, then across it and the next night in uneven advances
@@ -44,8 +41,16 @@ Sim.advance(st, start + 23 - st.t);
 calls.length = 0;
 const sizes = [0.2, 0.4, 1.3, 0.1, 0.3, 2.5, 0.1, 0.1, 0.7]; // whole steps of uneven sizes (VB-244)
 for (let i = 0, end = start + 3 * DAY; st.t < end - 1e-9; i++) Sim.advance(st, Math.min(sizes[i % sizes.length], end - st.t));
-const round = calls.filter((c) => c.kind === 'round'), roundVillages = round[0].count;
+const days = calls.filter((c) => c.kind === 'round'), round = days.filter((c) => c.d === 0), roundVillages = round[0].count;
 assert.strictEqual(ROUND_STEPS, 63, 'sixty steps for the villages, from noon to 18:00, then three phases');
+// the round lasts ASK.passes days (VB-692): each day's steps once each, in order, from noon of autumn day 11 + d; the window above runs
+// to the third day's midnight, so it holds the first two days, each in full
+assert(ASK.passes >= 2, 'the round lasts more than a day');
+for (const d of [0, 1]) {
+  const day = days.filter((c) => c.d === d);
+  assert.deepStrictEqual(day.map((c) => c.n), [...Array(ROUND_STEPS).keys()], `day ${d + 1}: each step of the round runs once, in order`);
+  assert(day.every((c) => c.tick - (start + DAY + d * DAY) * TICKS === 12 * TICKS + c.n), `day ${d + 1} runs from noon`);
+}
 assert.deepStrictEqual(round.map((c) => c.n), [...Array(ROUND_STEPS).keys()], 'each step of the round runs once, in order');
 for (const c of round) {
   const at = c.tick - (start + DAY) * TICKS; // in 6-minute steps since the round's midnight (sim/clock counts them, VB-235)

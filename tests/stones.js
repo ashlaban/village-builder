@@ -1,9 +1,10 @@
-// Stones on meadow tiles: seeding, hills fall-off, fields start clear.
+// Stones on meadow tiles: seeding, hills fall-off, fields start clear. On two 48 by 34 islands of tests/lib/probe.js (VB-856; the
+// default island at seeds 7 and 42 before), which hold as many meadows near hills and far from them as the test asks.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('STONES FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
-for (const seed of [7, 42]) {
-  const w = world(seed), again = world(seed);
+const { island, generate, ROOMY } = require('./lib/probe.js'), world = (seed) => island(seed, ROOMY);
+for (const seed of [11, 13]) {
+  const w = world(seed), again = generate(seed, ROOMY);
   check(Buffer.compare(Buffer.from(w.stones), Buffer.from(again.stones)) === 0, `seed ${seed}: stones differ between generations`);
   // steps to the nearest hills tile
   const dist = new Int16Array(w.N).fill(99), q = [];

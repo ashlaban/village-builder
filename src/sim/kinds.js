@@ -1,7 +1,8 @@
 // @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
 VB['sim/kinds'] = (() => {
   const Stores = VB['sim/stores'],
-    Projects = VB['sim/projects'];
+    Projects = VB['sim/projects'],
+    { target } = VB['sim/targets'];
   const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition, PEAT } = VB['sim/rules'],
     Carts = VB['sim/carts'];
   const { log, atFarm } = VB['sim/records'];
@@ -26,7 +27,8 @@ VB['sim/kinds'] = (() => {
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
   const { plotJobs } = VB['sim/expansion'];
-  const { renewClaim } = VB['sim/claims'];
+  const { renewClaim } = VB['sim/claims'],
+    { doneOf } = VB['sim/progress'];
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
   const Building = VB['sim/building'],
     Pot = VB['sim/pot'],
@@ -126,10 +128,10 @@ VB['sim/kinds'] = (() => {
   // in (VB-331: a dry day's meal is eaten uncooked).
   const cookWanted = (st, hh, c) =>
     hh.cookDay !== c.day && hh.waterDay === c.day && hh.wood > 0 && Pot.cookable(st, hh, dailyNeed(st, hh));
-  // Ale is wanted (VB-305) while the household holds fewer than BREW.stock barrels and has the grain for one above its floor (which holds the
-  // seed reserve): a household never brews grain it needs.
+  // Ale is wanted (VB-305) while the household holds fewer barrels than its head's target (VB-698; BREW.stock by default) and has the grain
+  // for one above its floor (which holds the seed reserve): a household never brews grain it needs.
   const brewWanted = (st, hh) =>
-    Stores.aleOf(st, hh) < BREW.stock && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
+    Stores.aleOf(st, hh) < target(st, hh, 'ale') && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
   // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
@@ -267,7 +269,8 @@ VB['sim/kinds'] = (() => {
       setDown: (st, j, a) => laidDown(j.field, a.load),
       deliver: (st, j, hh, f, a) => {
         if (j.common) return Commons.brought(st, j, a); // a common field's, into the village store (VB-100)
-        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.field.crop));
+        // the crop the task was posted for: the field goes on to its next course once its last load is taken up (VB-350)
+        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.crop ?? j.field.crop));
         if (
           f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
           !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].phase === 'back')
@@ -277,7 +280,7 @@ VB['sim/kinds'] = (() => {
       stages: ['stooks'],
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays)
-          post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f });
+          post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, crop: fd.crop });
       },
     },
     wood: {
@@ -808,7 +811,9 @@ VB['sim/kinds'] = (() => {
   for (const [k, K] of Object.entries(KINDS))
     if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
-  const isOpen = (j) => j.claims.length < KINDS[j.kind].hands && j.done < (j.hours ?? KINDS[j.kind].hours);
+  const isOpen = (st, j) =>
+    j.claims.length < KINDS[j.kind].hands &&
+    doneOf(st, j, j.hours ?? KINDS[j.kind].hours) < (j.hours ?? KINDS[j.kind].hours);
   // Each role's rank of every kind: its exception for the kind (a fetch kind's: the kind it fetches for, VB-611), else its rank of the
   // kind's type of work, else 0.
   for (const r of Object.values(ROLES))
@@ -850,5 +855,5 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy };
+  return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy, fuelFree };
 })();

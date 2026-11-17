@@ -201,11 +201,24 @@ function showPawn(id) {
     ? `Holds ${f.name}`
     : heirs.length
       ? `Heir to ${heirs.map((x) => x.name).join(' and ')}`
-      : p.retired
-        ? `Retired at ${f.name}`
-        : p.age >= 18 && st.demand.includes(id)
-          ? `Landless at ${f.name}, wants to move out`
-          : `Lives at ${f.name}`;
+      : p.servant && typeof p.servedSince === 'number'
+        ? `In service at ${f.name} since year ${yearStr(Math.floor(p.servedSince / Sim.YEAR) + 1)}, and marries by leaving service at the moving round`
+        : p.retired
+          ? `Retired at ${f.name}`
+          : p.age >= 18 && st.demand.includes(id)
+            ? `Landless at ${f.name}, wants to move out`
+            : `Lives at ${f.name}`;
+  const bar = Sim.marryStanding(st, id),
+    yrs = (n) => (Math.round(Math.max(0, n) * 10) / 10).toString();
+  const marryLine = !bar
+    ? ''
+    : {
+        hungry: 'Too hungry to marry',
+        nohome: 'No holding to marry onto',
+        short: `Cannot marry yet: the home holds ${yrs(bar.held)} of the ${yrs(bar.asked)} years it needs`,
+        means: `The home has the means to marry: it holds ${yrs(bar.held)} of the ${yrs(bar.asked)} years asked`,
+        hands: "The home needs a spouse's hands: no means are asked",
+      }[bar.kind];
   const rel =
     (sp !== null
       ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}`
@@ -230,6 +243,7 @@ function showPawn(id) {
         : p.advocate
           ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`
           : '',
+      marryLine,
       Sim.idleLine(st, id),
     ].filter(Boolean),
     Sim.describe(st, id),
@@ -242,36 +256,40 @@ function showPawn(id) {
   showRelations(id);
   renderPlay(id);
 }
-// A pawn's levels, the same wherever a pawn's state is shown (its card, the played pawn's sheet): health and hunger on the one meter,
-// its household's cold, and its prestige. Prestige is a sum with no upper bound, so it is a number and no meter, its parts in the title
-// (the exception VB-665 is to settle).
+// A pawn's levels, the same wherever a pawn's state is shown (its card, the played pawn's sheet): its mood on the one meter, the
+// modifiers in force under it (VB-062); health and hunger on the meter, its household's cold, and its prestige. Prestige is a sum with
+// no upper bound, so it is a number and no meter, its parts in the title (the exception VB-665 is to settle).
 function pawnStats(id) {
   const p = st.pawns[id],
     hh = p.household !== null ? st.households[p.household] : null,
     hunger = Math.round(p.hunger * 100),
-    health = Math.round(p.health);
-  return stats([
-    { icon: 'health', label: 'Health', value: health, tone: health < 50 ? 'bad' : '', meter: { value: health } },
-    {
-      icon: 'hunger',
-      label: 'Hunger',
-      value: hunger,
-      tone: hunger >= 50 ? 'bad' : hunger >= 10 ? 'warn' : '',
-      meter: { value: hunger },
-    },
-    hh && hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', wide: true } : null,
-    p.age >= 16
-      ? {
-          icon: 'prestige',
-          label: 'Prestige',
-          value: p.prestige.toFixed(2),
-          wide: true,
-          title: `Prestige: ${Sim.prestigeParts(st, p)
-            .map(([l, x]) => `${l.toLowerCase()} ${x.toFixed(2)}`)
-            .join(', ')}`,
-        }
-      : null,
-  ]);
+    health = Math.round(p.health),
+    mood = Sim.moodOf(st, id);
+  return (
+    (mood ? stats([moodStat(mood)]) + moodModsHTML(mood) : '') +
+    stats([
+      { icon: 'health', label: 'Health', value: health, tone: health < 50 ? 'bad' : '', meter: { value: health } },
+      {
+        icon: 'hunger',
+        label: 'Hunger',
+        value: hunger,
+        tone: hunger >= 50 ? 'bad' : hunger >= 10 ? 'warn' : '',
+        meter: { value: hunger },
+      },
+      hh && hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', wide: true } : null,
+      p.age >= 16
+        ? {
+            icon: 'prestige',
+            label: 'Prestige',
+            value: p.prestige.toFixed(2),
+            wide: true,
+            title: `Prestige: ${Sim.prestigeParts(st, p)
+              .map(([l, x]) => `${l.toLowerCase()} ${x.toFixed(2)}`)
+              .join(', ')}`,
+          }
+        : null,
+    ])
+  );
 }
 // The people a pawn knows best, by tie, and any it dislikes besides: kin, the opinion in words and as a number, and its largest memory.
 let relHTML = '';

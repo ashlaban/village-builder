@@ -33,17 +33,20 @@ const into = {}; S.take(st, a, 'grain', 2.9, 'provisions', into); near(into.barl
 near(into.rye / (into.barley + into.rye), 5 / 29, 'in the proportion held');
 // a gift through the verb (the giver's take first, then the receiver's put of the same crops)
 S.start(st, a, { barley: 300, rye: 100 }); S.start(st, b, {});
+const e0 = b.ledger.length;
 assert.strictEqual(issue(st, { actor: a.holder, verb: 'give', target: b.id, args: { good: 'grain', n: 40 }, source: 'player' }), true, 'the gift is given');
-near(b.grain.barley, 30, 'the receiver gets barley'); near(b.grain.rye, 10, 'and rye, as the giver holds them');
 near(S.grainOf(a), 360, 'the giver gave 40');
-assert(b.ledger.some((e) => e.kind === 'gift' && e.good === 'grain' && Math.abs(e.n - 40) < 1e-9), 'the ledger counts grain whatever its crop');
+for (let k = 0; k < 96 && st.away.length; k++) Sim.advance(st, 0.5); // a member of b fetches it from a's house (VB-461)
+near(b.grain.barley, 30, 'the receiver gets barley'); near(b.grain.rye, 10, 'and rye, as the giver holds them');
+const fetched = b.ledger.slice(e0).filter((e) => e.kind === 'gift' && e.good === 'grain' && e.n > 0).reduce((s, e) => s + e.n, 0);
+near(fetched, 40, 'the ledger counts grain whatever its crop');
 // the village spoils each crop by its share
 const g0 = { ...v.grain }; S.villageDay(st); near(v.grain.rye / v.grain.barley, g0.rye / g0.barley, 'the village store spoils each crop alike');
 // the seed reserved by crop: a field under rye reserves rye; the cook and the meal take unreserved grain whatever its crop
 const f = st.farmsteads[a.farmstead], plan = VB['sim/plans'].planOf(st, 'household', a.id);
 for (const fd of f.fields) { fd.stage = 'harvested'; } f.fields[0].stage = 'stubble'; f.fields[0].crop = 'rye';
 S.reserve(st, a, plan, S.grainGood('rye'), 0, 'seed');
-const seed = VB['sim/hunger'].seedPer(st, a), held = () =>
+const seed = CROPS.rye.seed, held = () => // a crop's own seed, barley's the plan's (VB-350)
   S.reserved(st, a, 'grain') - S.reserved(st, a, S.grainGood('barley')) - S.reserved(st, a, S.grainGood('rye'));
 near(S.reserved(st, a, S.grainGood('rye')), seed, 'the rye field\'s seed is rye\'s');
 near(S.reserved(st, a, S.grainGood('barley')), 0, 'barley holds no seed for it'); near(held(), 0, 'the sum is the crops\'');

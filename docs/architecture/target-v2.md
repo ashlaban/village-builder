@@ -18,6 +18,11 @@ Revised in place on 9 November 2026 after a review of this target against the co
 conventions for the sketches follow from it: `| Refusal` on an owner's write means the paired query refuses (4.1, Workflows), and a
 `step(st, dt)` is built under the rules for cost (`docs/cost.md`, 1.3: decay lazily, schedule what falls due), not as a daily pass.
 
+Revised in place on 16 November 2026 (VB-777) to say what `design.md` decided that day for the town (Settlements, Towns and
+regions; Balance loops and targets: Strata, Deaths, The urban sink; the plan is `docs/plans/VB-189.md`): a place has measures and
+a label that no rule reads, not a tier (principle 7, 4.1, 4.6); the urban penalty is crowding by household (6.1); the 600 / 325 /
+75 is counted by work (6.3). What a town does to the drift of customs had rested on the tier and is Proposed anew (4.4, 6.1).
+
 ## 1. In short
 
 - **The form holds.** Domains own truth, processes coordinate, infrastructure serves: the external review's three parts, and what
@@ -26,7 +31,7 @@ conventions for the sketches follow from it: `| Refusal` on an owner's write mea
   free; influence goes upward only by commands, events, or three declared hooks (section 3).
 - **The review's domain list was reshaped in five places:** one Obligations domain for every explicit claim (goodwill, debt, rent,
   tithe, tax, toll, wage, shares); Exchange narrowed to mechanisms; typed resources with subtypes; culture as a policy provider;
-  derived views for strata, settlement tiers, regions and balance probes.
+  derived views for strata, a place's measures and label, regions and balance probes.
 - **Goodwill is a currency.** A pawn-pawn balance beside opinion, coupled to it by custom; trade in whole lumps leaves a residual that
   goodwill absorbs; silver, divisible by weight, shrinks it. Need decides whether a deal is accepted; customary worth decides what
   it was worth.
@@ -60,8 +65,11 @@ These are the invariants. Each later section applies them; a change that breaks 
    whose grain and which mill holds it; whose cargo and which boat carries it; whose building and whose land it stands on.
 6. **Rights point at rights, not at holders.** A tenant's use right hangs off the owner's own right, so the own right can pass and
    the tenancy stands.
-7. **Class, occupation, settlement tier and region are derived, with hysteresis.** They are computed from rights, obligations,
-   stores and hours of work, never stored as truth. Only rank (frälse, clergy, burgher) is stored: an institution grants it.
+7. **Class, occupation, a place's label and region are derived, with hysteresis.** They are computed from rights, obligations,
+   stores, hours of work and where people deal, never stored as truth. Only rank (frälse, clergy, burgher) is stored: an
+   institution grants it. Class may feed a rule, through its hysteretic value only (4.1). A place's label (market place, town) and
+   its region feed no rule at all (Decided, Kim, 16 Nov; `AGENTS.md`, Deciding without Kim, 20): a place has measures, not a tier,
+   no threshold on them switches anything on, and a rule that wants what a town was thought to give reads the measure itself.
 8. **A body exists only when something needs its identity:** holdings, obligations owed to or by it, an agent, or a succession
    distinct from its members'. Otherwise it is a derived view.
 9. **Every explicit claim is an obligation;** goodwill is the unspecific balance between persons. Obligations name what is owed;
@@ -97,7 +105,7 @@ These are the invariants. Each later section applies them; a change that breaks 
 
 | Layer | Modules | What they own |
 |---|---|---|
-| Derived views (read-only) | `derived` | Class and occupation, settlement tier, regions and central places, desire lines, probes and loops |
+| Derived views (read-only) | `derived` | Class and occupation, a place's measures and label, regions, desire lines, probes and loops |
 | Agency and coordination | `decisions`, `plans`, `work`, `exchange`, `enforcement`, `outside` | Questions and sittings; plans, occasions and tasks; matching; deals; cases; voyages |
 | Social | `persons`, `relations`, `membership`, `obligations`, `culture`, `encounters`, `institutions` | Traits and skills; opinion, goodwill, memories, stories; bodies and roles; claims; attitudes, drift and what changes custom; who meets whom; the Crown and the Church |
 | Material and land | `stores`, `land`, `facilities`, `production` | Goods and custody; holdings and rights; built things, ways included; recipes and their runs |
@@ -191,7 +199,8 @@ Rules named so far, in two groups. **Quantities** combine into one number: `deat
 `allowance` (owned by relations), `attitude.malleability`, `move.cost` (compiled into a cost grid per mode set and season).
 **Scores** feed a chooser that their owner keeps: `marriage.ready` (a gate), `work.priority` (per pawn and task), `leisure.choice`
 (among options); the registry gives each option's score, never the choice. A continuous derived value may feed a contribution
-directly; a categorical one (class, tier) only through its hysteretic value.
+directly; a categorical one (class) only through its hysteretic value. A place's label is not among them: it feeds no rule
+(principle 7; 16 Nov), and what a rule needs of a place it reads as a measure (the people living close, those met at a venue).
 
 Built so far (VB-197): `declare`, `contribute`, `value`, `explain`, `list`, with `product` and `sum`. The review of 9 November adds:
 
@@ -496,8 +505,13 @@ differs leaves the key **contested**, which is a state, not an error. **The reso
 with the institution's enforcement, the share of pawns favouring the doctrine (sermons push it) and the years contested; past a
 threshold the practice tips to the doctrine; while contested the key's malleability is raised, so minds move fast both ways; a
 polarised faction with dense ties and a leader can split off as a splinter of the institution, as cultures split today. Per-person
-malleability is the rule `attitude.malleability` (the key's own, openness, a contested key, a town's faster drift). About ten new
-practices and four norms join today's 14 customs (about 80 attitude options per pawn); `tools/customs.js` lists each key's readers.
+malleability is the rule `attitude.malleability` (the key's own, openness, a contested key). It has no term for a town, since a
+rule cannot read "town" (principle 7). **Proposed** (VB-777, 16 Nov): a busy place drifts faster by the mechanism already there,
+attitudes moving by contact, since its people meet more people, and more of other villages, at its venues (Encounters, below;
+`design.md`, The gathering, Customs drawn together); nothing is added to malleability. Whether that is fast enough is open
+(`design.md`, Open questions, Cities); a term added later reads the people a pawn met at venues over the year, not crowding.
+About ten new practices and four norms join today's 14 customs (about 80 attitude options per pawn); `tools/customs.js` lists
+each key's readers.
 
 **Encounters** own who meets whom. Today's two kinds stay exactly as built (housemates inside; outdoors within 30 units, by cells),
 so the golden file holds; venues and work sites add kinds. An occasion is a plan (4.5); Plans opens and closes a venue's gathering
@@ -635,16 +649,25 @@ interface Outside { step(st, t): void; arrive(st, v: Voyage): void; depart(st, v
 
 ### 4.6 Derived views
 
-Read-only, recomputed at their cadence, never stored as truth, categorical ones with hysteresis.
+Read-only, recomputed at their cadence, never stored as truth, categorical ones with hysteresis. Class may feed a rule through
+its hysteretic value; a place's label and its region feed none (principle 7).
 
 - **Class** (`landless`, `cottager`, `peasant`, `specialist`, `landed`): from rights, obligations owed and held, and stores. A
   household enters `landed` when rents and stores cover its need 1.5 times for three years and leaves only after three years below
   1.1 (the cities review's master household). The implicit elite.
 - **Occupation:** where a pawn's or household's hours went and which facility it operates: the household that runs the mill and
   spends its hours grinding is the miller's. No pawn types.
-- **Settlement tier** (village, market place, town, city) and **regions:** central places by market potential (Harris 1954: people
-  within reach weighted by `exp(-cost / 12)`, as the cities review computes it), each village belonging to the centre it reaches
-  most cheaply, with hysteresis (after Christaller 1933). About two cities a map should emerge from geography, not a quota.
+- **A place's measures and label** (16 Nov; `design.md`, Towns and regions, which holds the numbers): every village has measures,
+  read at each year's end over the last 3 years from where people deal and what they work at: outsiders (the households of other
+  villages that dealt on its green in a year), dealing days beside it, and the share of its people's work that is not farming. A
+  label is a word put on a measure only where the measure falls into two groups: **market place** is the one label with a cut
+  point (outsiders, entered and left at different counts, each held 3 year ends running). **Town and city have no cut point** until
+  the rules produce a place that a measure sets apart; until then the measures are shown and no word is put on them. There are
+  no tiers, and nothing is switched on by a label.
+- **Regions:** a village's market is the green where its households dealt most over 3 years, and a region is the villages of one
+  such green (Proposed, VB-189). Market potential (Harris 1954: people within reach weighted by `exp(-cost / 12)`, as the cities
+  review computes it) is shown beside them as an explanation and places nothing: no centre is set by it and no village assigned.
+  About two cities a map should emerge from geography, not a quota.
 - **Desire lines:** where a way would pay (heavy wear on hard ground; the pairs of places a way would bring closest), offered to
   planners as opportunities. It builds nothing.
 - **Probes and loops** (section 6).
@@ -728,7 +751,7 @@ or a process, with sign and lag), its setpoints (the tunables that move the equi
 |---|---|---|---|
 | Food store | balancing (built) | grain held | spoil rates, fair sale threshold |
 | Land and people | balancing | people per farm, landless adults | yield, marriage custom, hazard; vents: settling, town, emigration |
-| Urban sink | balancing | people in towns, a town's natural decrease | urban hazard and crowding, servant demand; disease (section 10) |
+| Urban sink | balancing | people living close (a household's crowding), a place's natural decrease; `M / (d - b)` and `S / c` by village | crowding by household in `death.hazard` (`CROWD`: free, per, max), wherever people live close, standing in for disease (section 10); servant demand waits for a place short of hands |
 | Extraction | balancing | rural surplus after rent, tithe, tax | rates, who may take |
 | Export | balancing | grain sold to ships after good years | ships' demand, prices |
 | Imports | reinforcing | specialists supplied (iron for the smith) | voyages, prices |
@@ -743,7 +766,7 @@ or a process, with sign and lag), its setpoints (the tunables that move the equi
 | Centralisation and bypass | reinforcing | the largest centre against the second; hinterlands | way costs, potential's distance scale |
 | Doctrine tipping | balancing | contested keys | enforcement, sermon pull, threshold |
 | Splinters | reinforcing | factions in a contested key | fission thresholds |
-| Culture drift | balancing (built) | attitude spread within and between settlements | anchor, social pull, towns' rate |
+| Culture drift | balancing (built) | attitude spread within and between settlements | anchor, social pull, contacts at a venue (the cap on new ones); no rate of a town's (4.4, Proposed) |
 | Trait drift | watched, not tuned | each trait's mean by generation and village | heritability, the learned share |
 
 Six loops are reinforcing and one names what opposes it. Each reinforcing loop's plan names its opposer or the ceiling that stops
@@ -761,7 +784,8 @@ opposer, it is tuned by its ceiling, not by the opposer: land concentration runs
 debtors' politics and elite turnover in decades and generations, and the 75 of section 6.3 rests on that pair. Before tuning a town, find the
 constraint that binds: its population settles near `M / (d - b)`
 (migrants a year over its excess of deaths over births) and cannot exceed `S / c` (the surplus that reaches it over each person's
-need); if food binds, the urban hazard changes how many die getting there, not how many live there.
+need); if food binds, crowding's hazard changes how many die getting there, not how many live there. Both are reported for every
+village, with which binds (16 Nov); no town is expected before the ship, so there is none to tune until then.
 
 **Bands** (Decided, Kim, 3 Nov): full-simulation bands are reported, run nightly on any commit not yet benchmarked, and never fail;
 reduced scenarios (a tiny map, a few years, toy setups) are asserted in `npm run verify`.
@@ -785,10 +809,18 @@ Kim's end-game target: 600 farming, 325 in towns and specialised work, 75 elite,
 Scandinavia (pre-industrial urbanisation peaked near 8 to 15%, Bairoch 1988; Sweden near 4% around 1500, both in the cities review),
 closer to the early-modern Low Countries. It needs net food output near 1.67 times farmers' own need before losses and the elite's
 larger share, against 1.1 to 1.5 measured today, which the licensed higher productivity and a working route for the surplus can give.
-**Proposed reading:** a band for a developed island at the end game, not a quota; strata counted by relation to production, not
-residence (a rural smith or miller is in the 325); 75 is about 12 to 15 elite households, a cast the player can know. The 600 is set
-by land and people, extraction and the urban sink together; the 75 by land concentration against debtors' politics and elite
-turnover; elite turnover also feeds the 325.
+**The reading** (Decided, Kim, 16 Nov; `design.md`, Balance loops and targets, Strata; it replaces the Proposed reading of 3
+November, "by relation to production, not residence"): a band for a developed island at the end game, not a quota, and **counted
+by work**, in full-time equivalents of hours worked. All craft hours count in the 325, a farm's own dress and tools included, with
+carrying to deal, dealing and service; farming is the getting of food and its carrying; the elite's hours are those of an elite
+household's members. Heads are reported beside it (households by their relation to production: elite by the class view, the rest
+by the ladder), and household work (cooking, water, firewood, grinding, building and upkeep) apart, outside the three figures. So
+the middle figure reads how much of the island's working time is not spent getting food, not how many specialists there are, nor
+who lives in a town. 75 is about 12 to 15 elite households, a cast the player can know. The 600 is set by land and people,
+extraction and the urban sink together; the 75 by land concentration against debtors' politics and elite turnover; elite turnover
+also feeds the 325. **The target is not expected to be met before the ship:** the 325 needs about half as much craft work again
+as a farm's own, and the 75 needs the elite of slice 5. It stands until Kim changes it; it is reported with its residual and
+never fails.
 
 ## 7. Traces
 
@@ -919,7 +951,9 @@ absent from the Crown's place in the jurisdiction list (4.4).
   household hot path behind a cache; cardinality declared rather than implicit) are named in 4.4. Kim asked to iterate before
   deciding (decision 3); the next iteration is a measurement: the cache's build and update cost at populous medium, which VB-043
   already bounds (under 50 ms).
-- **The 600 / 325 / 75 reading** of section 6.3 is Proposed.
+- **The 600 / 325 / 75 reading** of section 6.3 was Proposed; Decided on 16 November (counted by work). Its band's width is not.
+- **What gathers makers into a town,** and so where a cut point for "town" would fall (4.6): no town is expected before the ship.
+- **How much faster a busy place changes its customs** (4.4): by contact alone is Proposed.
 - **The player and the floor.** May the player accept a deal that takes its household below the floor that binds every pawn?
 - **A meeting that fails to decide** its yearly routines (no quorum, a tie): no fence work that year, or a fallback by custom?
 - **Who mints, and when** coin is taken: an established Crown, a norm for acceptance (5.2), and whether a town may mint.
@@ -945,7 +979,7 @@ crowded town may show it, villages with witnesses near may not.
 
 ### 10.3 Gaps no batch has sketched
 
-- **Disease and epidemics:** a contribution to `death.hazard`; ships bringing sickness; crowding in towns. The largest gap, and the
+- **Disease and epidemics:** a contribution to `death.hazard`; ships bringing sickness; crowding, which stands in for it (6.1). The largest gap, and the
   most historical part of the urban sink.
 - **Childcare and the household's division of labour:** minding as a partial-attention task; nursing deciding who can take which
   work (acoup, part IVd), on which culture's practices of who does what rest.

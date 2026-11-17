@@ -35,7 +35,7 @@ check(all.most > 1, `with all hands only ${all.most} pawn hoed the field`);
 check(all.rows === all.most || all.rows >= 2, `workers on the field share rows (${all.rows} rows for ${all.most} workers)`);
 check(all.hours < 0.6 * one.hours, `all hands took ${all.hours} h, one hoer ${one.hours} h; wanted under 60%`);
 // a carried job whose work is done waits for its carrier: it is not open, whatever its hands
-check(!isOpen({ kind: 'haul', claims: [1], done: 0.7 }) && isOpen({ kind: 'haul', claims: [1], done: 0.3 }) && !isOpen({ kind: 'wood', claims: [1], done: 0 }),
+check(!isOpen({}, { kind: 'haul', claims: [1], done: 0.7 }) && isOpen({}, { kind: 'haul', claims: [1], done: 0.3 }) && !isOpen({}, { kind: 'wood', claims: [1], done: 0 }),
   'open jobs: a finished haul or a taken firewood job counts as open, or a haul with work left does not');
 console.log(`hands ok: one hoer ${one.hours.toFixed(1)} h, all hands ${all.hours.toFixed(1)} h with up to ${all.most} hoers on ${all.rows} rows`);
 if (failed) process.exit(1);

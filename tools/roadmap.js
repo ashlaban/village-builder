@@ -43,7 +43,7 @@ const archRows = (text, heading) => {
 };
 function readBacklog(root) {
   const tasks = [];
-  for (const f of fs.readdirSync(path.join(root, 'backlog')).filter((f) => /^VB-\d+\.md$/.test(f)).sort()) {
+  for (const f of fs.readdirSync(path.join(root, 'backlog')).filter((f) => /^VB-\d+\.md$/.test(f)).sort((a, b) => parseInt(a.slice(3)) - parseInt(b.slice(3)))) {
     const t = fs.readFileSync(path.join(root, 'backlog', f), 'utf8');
     const status = (t.match(/^Status: (.*)$/m) || [])[1] || '';
     tasks.push({ id: f.slice(0, -3), name: (t.match(/^# VB-\d+: (.*)$/m) || [])[1] || '', arch: (t.match(/^Arch: (\S+)/m) || [])[1] || '-',

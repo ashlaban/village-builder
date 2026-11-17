@@ -1,5 +1,5 @@
-// The player's wishes at the moving round (VB-212): where the round asks what a pawn itself wants, the player's wish stands in, and the
-// round decides by its rules. A landless adult wished to stay is left out of st.demand, and neither claims nor leaves; an heir wished to
+// The wishes at the moving round (VB-212, VB-680): every pawn's wish is on the pawn (pawn.wish, sim/wishes), the player's for the pawn it
+// plays; where the round asks what a pawn itself wants it reads the wish, and decides by its rules. A landless adult wished to stay is left out of st.demand, and neither claims nor leaves; an heir wished to
 // move out enters it; a wish never passes a rule; a wish for one farm, for none, and against service narrow what the round gives; with no
 // wish made, a played pawn's round is anyone's; the wishes are saved, and what the pawn may do at the round says what they bar.
 const assert = require('assert');
@@ -13,6 +13,8 @@ const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const ask = (st, id) => O.forPawn(st, O.actorView(st, id), id).filter((o) => o.when === 'round');
 const NONE = { out: null, claim: null, serve: null, match: null };
+// the played pawn's wishes, by the kinds of VB-212 and VB-274 (Sim.wishesOf reads them off the pawn)
+const W = (st, id = st.player.pawn) => { const { out, claim, serve, match } = Sim.wishesOf(st, id); return { out, claim, serve, match }; };
 // Four farms: household 2 has grown children; household 3's holder is left alone; household 1 dies out and its farm stands empty.
 let SEED = 1;
 function scene() {
@@ -47,20 +49,23 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const { st, empty } = scene();
   assert.ok(/no pawn is played/.test(Sim.wish(st, 'out', true)), 'no wishes without a played pawn');
   Sim.inhabit(st, cast.claimant);
-  assert.deepStrictEqual(st.player.wishes, NONE, 'a played pawn starts with no wishes');
+  assert.deepStrictEqual(W(st), NONE, 'a played pawn starts with no wishes');
   for (const [kind, value] of [['out', true], ['out', false], ['claim', empty.id], ['claim', false], ['serve', true], ['serve', false]]) {
-    assert.strictEqual(Sim.wish(st, kind, value), true, `${kind} ${value}`); assert.strictEqual(st.player.wishes[kind], value);
+    // serve true is as the pawn would: it reads null
+    assert.strictEqual(Sim.wish(st, kind, value), true, `${kind} ${value}`); assert.strictEqual(W(st)[kind], kind === 'serve' && value ? null : value);
     sound(st, `wish ${kind} ${value}`);
   }
   for (const [kind, value] of [['marry', true], ['out', 1], ['out', undefined], ['claim', true], ['claim', 999], ['claim', -1], ['serve', 'yes']]) {
     assert.ok(typeof Sim.wish(st, kind, value) === 'string', `${kind} ${value} is no wish`);
   }
-  assert.deepStrictEqual(st.player.wishes, { out: false, claim: false, serve: false, match: null }, 'a refused wish leaves the wishes as they were');
+  assert.deepStrictEqual(W(st), { out: false, claim: false, serve: false, match: null }, 'a refused wish leaves the wishes as they were');
   Sim.movingRound(st);
-  assert.deepStrictEqual(st.player.wishes, { out: false, claim: false, serve: false, match: null }, 'the wishes are kept across the round');
+  assert.deepStrictEqual(W(st), { out: false, claim: false, serve: false, match: null }, 'the wishes are kept across the round');
   for (const kind of ['out', 'claim', 'serve']) assert.strictEqual(Sim.wish(st, kind, null), true);
+  const first = st.player.pawn;
   Sim.wish(st, 'out', false); Sim.inhabit(st, cast.heir);
-  assert.deepStrictEqual(st.player.wishes, NONE, 'another pawn starts with none');
+  assert.deepStrictEqual(W(st), NONE, 'another pawn starts with none');
+  assert.strictEqual(W(st, first).out, false, 'and the pawn left keeps its wish until its own choosing at the next round');
 }
 
 // 2. With no wish made, a played pawn's round is anyone's: the run hashes as the one with no player, the player's marks taken out.
@@ -70,6 +75,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   for (const st of [plain, played]) { Sim.movingRound(st); Sim.advance(st, Sim.DAY); }
   dropKind(played, 'player');
   played.player = null;
+  for (const st of [plain, played]) delete st.pawns[cast.claimant].wish; // the player's mark: its pawn chose no wish of its own
   assert.strictEqual(hash(played), hash(plain), 'a played pawn with no wishes changes nothing at the round');
 }
 
@@ -78,14 +84,17 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const { st, empty } = scene(), id = cast.single, home = st.pawns[id].household;
   assert.ok(st.demand.includes(id), 'the scene: an unmarried adult who wants out, and would be given a plot at the round');
   Sim.inhabit(st, id); Sim.wish(st, 'out', false);
-  assert.strictEqual(H.staysWhy(st, st.pawns[id]), 'its player wishes it to stay');
+  assert.strictEqual(H.staysWhy(st, st.pawns[id]), 'it wishes to stay');
   H.countDemand(st);
   assert.ok(!st.demand.includes(id), 'wished to stay, it is left out of st.demand');
   // the wish for a match is another wish (VB-274): one old enough to marry is offered it whatever it wishes about moving out
-  assert.ok(ask(st, id).every((o) => o.verb === 'match' || /wishes it to stay/.test(o.why)), 'and every act of the round about moving says so');
+  assert.ok(ask(st, id).every((o) => o.verb === 'match' || /wishes to stay/.test(o.why)), 'and every act of the round about moving says so');
   assert.deepStrictEqual([...new Set(ask(st, id).map((o) => o.verb))].filter((v) => v !== 'match').sort(), ['claim', 'leave', 'serve']);
   assert.strictEqual(ask(st, id).find((o) => o.verb === 'leave').own, null, 'though the pawn itself would move out');
-  assert.ok(!FC.claimants(st, empty).includes(id) && FC.claimants(st, empty, [id]).length === 1, 'no claimant, though the rules would let it claim');
+  // staying ranks Stay above every rung that leaves home (VB-680), so it is no claimant even when asked alone; the rules would let it
+  assert.ok(!FC.claimants(st, empty).includes(id) && FC.claimants(st, empty, [id]).length === 0, 'no claimant');
+  Sim.wish(st, 'out', null); assert.strictEqual(FC.claimants(st, empty, [id]).length, 1, 'though the rules would let it claim');
+  Sim.wish(st, 'out', false);
   Sim.movingRound(st);
   assert.ok(!st.demand.includes(id) && st.pawns[id].household === home && !st.pawns[id].servant, 'after the round it is at home still');
   assert.ok(!X.hasPlot(st, id), 'no plot is cleared for it');
@@ -168,12 +177,14 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const { st, empty } = scene();
   Sim.inhabit(st, cast.claimant); Sim.wish(st, 'out', true); Sim.wish(st, 'claim', empty.id); Sim.wish(st, 'serve', false);
   const world = () => tinyWorld(rows), data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(world(), data);
-  assert.deepStrictEqual(back.player.wishes, { out: true, claim: empty.id, serve: false, match: null }, 'the wishes come back as saved');
+  assert.deepStrictEqual(W(back), { out: true, claim: empty.id, serve: false, match: null }, 'the wishes come back as saved');
   for (const s of [st, back]) { Sim.movingRound(s); Sim.advance(s, Sim.DAY); }
   assert.strictEqual(hash(back), hash(st), 'the loaded run and the saved one agree after a round and a day');
-  const old = JSON.parse(JSON.stringify(Sim.save(st))); delete old.state.player.wishes;
-  const older = Sim.load(world(), old);
-  assert.deepStrictEqual(older.player.wishes, NONE, 'a save from before the wishes loads with none');
+  // a save from before VB-680 holds the player's wishes on st.player: they load as its pawn's
+  delete st.pawns[cast.claimant].wish; st.player.wishes = { out: true, claim: empty.id, serve: false, match: null };
+  const older = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(st))));
+  assert.ok(!('wishes' in older.player), 'the player keeps no wishes of its own');
+  assert.deepStrictEqual(W(older), { out: true, claim: empty.id, serve: false, match: null }, 'an older save\'s wishes load as its pawn\'s');
   sound(older, 'loaded from an older save');
 }
 // 9. The wish for a match (VB-274): false keeps the played pawn out of the round's matching; a partner who passes the round's rules is
@@ -211,13 +222,14 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
     const st = world(seed); Sim.inhabit(st, m);
     assert.ok(typeof Sim.wish(st, 'match', m) === 'string', 'one cannot wish for oneself');
     assert.ok(typeof Sim.wish(st, 'match', true) === 'string' && typeof Sim.wish(st, 'match', 99999) === 'string', 'a wish for a match is false, null or a pawn');
-    assert.strictEqual(Sim.wish(st, 'match', f), true); assert.strictEqual(st.player.wishes.match, f);
+    assert.strictEqual(Sim.wish(st, 'match', f), true); assert.strictEqual(W(st).match, f);
     assert.strictEqual(matchItem(st, m, f).why, null, 'nothing bars the wished match');
     sound(st, 'a wish for a match');
     Sim.movingRound(st);
     assert.strictEqual(married(st, m), f, 'the wished partner is offered at the round and married at its close');
-    assert.strictEqual(st.player.wishes.match, null, 'and the wish is cleared by the marriage');
-    assert.strictEqual(st.offers.length, 0, 'the other side answered at once: no offer is left waiting');
+    assert.strictEqual(W(st).match, null, 'and the wish is cleared by the marriage');
+    // the other side answered at once: no match is left waiting; the handover the marriage brings asks the played heir (VB-692)
+    assert.ok(st.offers.every((o) => o.basis === 'handover' && o.to === m), 'the other side answered at once: no match is left waiting');
     sound(st, 'the wished match made');
     const w = world(seed); Sim.inhabit(w, f); Sim.wish(w, 'match', m); Sim.movingRound(w);
     assert.strictEqual(married(w, f), m, 'wished by the woman, the same');
@@ -232,7 +244,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
     assert.ok(hit, 'the scene: a round that marries someone');
     const st = after(hit.sd, false, hit.id);
     assert.strictEqual(married(st, hit.id), null, 'not this year: the pawn is unmarried after a round that would have married it');
-    assert.strictEqual(st.player.wishes.match, false, 'and the wish stays until changed');
+    assert.strictEqual(W(st).match, false, 'and the wish stays until changed');
     assert.strictEqual(st.pawns[hit.id].kinPush, null, 'and is not counted by kinPressure');
     sound(st, 'not this year');
   }
@@ -271,17 +283,51 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
     assert.strictEqual(list[0].target, null, 'the first item says the pawn may wish');
     assert.ok(list.length - 1 <= 8 && list.slice(1).every((o) => st.pawns[o.target].sex === 'f' && R.spouseOf(st, o.target) === null), 'at most 8 unmarried women');
     Sim.wish(st, 'match', f); Sim.killPawn(st, f, 'illness');
-    assert.strictEqual(st.player.wishes.match, null, 'the wish is cleared when the wished partner dies');
+    assert.strictEqual(W(st).match, null, 'the wish is cleared when the wished partner dies');
     sound(st, 'wished partner died');
   }
   // the wish is saved; a save from before it loads with null
   {
     const st = world(seed); Sim.inhabit(st, m); Sim.wish(st, 'match', f);
     const data = JSON.parse(JSON.stringify(Sim.save(st)));
-    assert.strictEqual(Sim.load(tinyWorld(rows), data).player.wishes.match, f, 'the wish is saved');
-    delete data.state.player.wishes.match;
-    assert.strictEqual(Sim.load(tinyWorld(rows), data).player.wishes.match, null, 'an older save loads with match: null');
+    assert.strictEqual(W(Sim.load(tinyWorld(rows), data)).match, f, 'the wish is saved');
+    delete st.pawns[m].wish; st.player.wishes = { out: null, claim: null, serve: null };
+    const older = Sim.load(tinyWorld(rows), JSON.parse(JSON.stringify(Sim.save(st))));
+    assert.strictEqual(W(older).match, null, 'a save from before the wish for a match loads with match: null');
   }
 }
-console.log('wishes ok: a wish to stay keeps a landless adult out of st.demand, and it neither claims nor leaves; an heir wished out enters it; '
+// 10. Every pawn has wishes (VB-680): its own choosing before the round ranks the rungs by its ambition and its hunger, leaves a pawn
+// with the default holding none (the save stays small), passes over the played pawn and children; the round reads an unplayed pawn's
+// wish as the played pawn's; a whole ranking is a wish too.
+{
+  const Wi = VB['sim/wishes'], T = VB['sim/traits'], { WISH, HUNGER } = VB['sim/rules'];
+  const { st } = scene(), amb = T.IDX.ambition;
+  const adults = st.living.filter((id) => st.pawns[id].age >= 18), [a, b, c] = adults;
+  st.pawns[a].traits[amb] = 0.9; st.pawns[b].traits[amb] = 0.5; st.pawns[b].hunger = HUNGER.marryBelow; st.pawns[c].traits[amb] = 0.5;
+  st.pawns[c].hunger = 0;
+  Sim.inhabit(st, cast.child); Wi.chooseWishes(st);
+  assert.deepStrictEqual(st.pawns[a].wish.rank, ['heir', 'match', 'farm', 'party', 'plot', 'service', 'stay'], 'the ambitious rank new land above a plot');
+  assert.deepStrictEqual(W(st, a), NONE, 'which bars nothing the round reads today');
+  assert.strictEqual(Wi.wishOf(st, b, 'match'), false, 'the hungry rank Stay above Marry: not this year');
+  assert.ok(!st.pawns[c].wish, 'a pawn with the default wish holds none');
+  assert.ok(!st.pawns[cast.child].wish && W(st, cast.child).out === null, 'the played pawn is the player\'s to choose for');
+  st.pawns[b].hunger = 0; Wi.chooseWishes(st);
+  assert.strictEqual(st.pawns[b].wish, null, 'fed again, it wishes as by default');
+  sound(st, 'the pawns\' own wishes');
+  // the round reads an unplayed pawn's wish as it reads the played pawn's
+  const plain = scene(), other = scene(), id = cast.servant;
+  Wi.setWish(other.st, id, 'serve', false);
+  S.takeServants(plain.st); S.takeServants(other.st);
+  assert.ok(plain.st.pawns[id].servant && !other.st.pawns[id].servant, 'an unplayed pawn who declines service is passed by');
+  assert.ok(/no service/.test(ask(other.st, id).find((o) => o.verb === 'serve').why), 'and what it may do at the round says so');
+  // a whole ranking
+  Sim.inhabit(st, a);
+  assert.ok(typeof Sim.wish(st, 'rank', ['heir', 'stay']) === 'string', 'a ranking holds every rung once');
+  assert.strictEqual(Sim.wish(st, 'rank', ['service', 'heir', 'stay', 'match', 'farm', 'plot', 'party']), true);
+  assert.deepStrictEqual(Sim.wishesOf(st, a), { out: null, claim: false, serve: null, match: false, settle: false,
+    rank: ['service', 'heir', 'stay', 'match', 'farm', 'plot', 'party'] }, 'the rungs after Stay are declined');
+  Sim.wish(st, 'rank', [...WISH.rungs]);
+  assert.strictEqual(st.pawns[a].wish, null, 'and the default ranking is no wish');
+}
+console.log('wishes ok: every pawn\'s own wish (ambition, hunger), read alike for the unplayed; a wish to stay keeps a landless adult out of st.demand, and it neither claims nor leaves; an heir wished out enters it; '
   + 'no wish passes a rule; a farm wished for, none, and service declined; no wishes change nothing; saved and loaded; a wish for a match: not this year, a partner offered at the round, and the rules it never passes');

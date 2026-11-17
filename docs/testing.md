@@ -41,6 +41,14 @@ whole generated island or a run of years goes to extended, and the rule it prote
 
 Over 5 seconds in verify: `tests/lint.js` (6 to 7 s) and, on a loaded machine, `tests/fish.js` (5 s).
 
+16 November (VB-856), after VB-853 to VB-856 moved the night's scripts back: `npm run verify` holds 172 scripts, 321 s of CPU over them
+(the runner now prints each script's CPU and the sum: `tests/lib/runner.js` reads the children's CPU as each exits), 272 s of wall time
+on a machine shared with other runs (load 10 to 30 on 4 cores), so a description; by the CPU alone, at least 80 s on 4 cores, over the
+minute. The largest are not of the groups moved: `service` 7.4 s of CPU, `review-tools` 6.6, `spread` 6.2, `fish` 5.9, `format` 5.6,
+`pot` 5.4. `tests/lint.js` fell from 7.4 s of CPU to 1.1 (the small islands for the keys of a world and a state, where it generated
+the default island three times); the 23 scripts of VB-853 to VB-855 on the probe's islands from 64 to 53 s of CPU (VB-872's copies).
+Before VB-853 to VB-856: verify 86 scripts in 35 s (2 min of CPU), the night's 53 scripts 245 s in the old verify.
+
 ## What runs only at night
 
 53 scripts, moved as they are when verify was cut to scripts under 5 seconds; seconds each, measured inside the 245-second verify: `browser` 53,
@@ -52,13 +60,54 @@ Over 5 seconds in verify: `tests/lint.js` (6 to 7 s) and, on a loaded machine, `
 `occasions` 5, `forage` 5. With them the seven that were extended already (`start --people` 150, `bands` 50, `invariants` 44, `births` 38, `line` 32,
 `history` 15, `fixtures` 5).
 
-What a task no longer runs, until VB-409 rebuilds each on a small constructed state:
-- **The page.** `smoke` (jsdom) and the six Chromium scripts. A change under `src/page/` runs them by name; the lint still holds
-  the page's contract (it only reads `st`), and `tests/speed.js`, `player.js` and `chronicle.js` its logic.
-- **Rules asserted only on generated islands**: among them `meals`, `stores`, `heirs`, `plans`, `offers`, `hunger`, `herds`,
-  `settle`, `layout`, `commands`, `record`, `plaindata`. A change to one of these systems runs its script by name.
-- **Long save and load** (`saves`), and the generated-world cases of `clock`, `spread`, `paths` and `indexes` (`--extended`);
-  their small cases stay in `npm test`.
+What a task no longer runs, until VB-409 and the tasks it was split into (VB-853 to VB-856) rebuild each on a small constructed state
+(VB-853, VB-854 and VB-855 have rebuilt theirs, below):
+- **The page at length.** `smoke` (jsdom, the tiny map) and the six Chromium scripts. A change under `src/page/` runs them by name;
+  the lint still holds the page's contract (it only reads `st`), and `tests/speed.js`, `player.js` and `chronicle.js` its logic.
+  Since VB-409 verify loads the page again: `tests/page.js` builds it in jsdom on a 36 by 26 island (a size the test adds to the
+  page's own), starts founders from the address's hash, runs some days through the speed buttons and opens each panel once, in
+  about 3 seconds (3.8 s here on a machine at load 12; 3.1 s of CPU). It and `smoke` share their harness, `tests/lib/dompage.js`,
+  which fails on any error the page throws in a handler or a timer, not only on what it logs.
+- **Land and geography, and the tools** (`rivers`, `stones`, `geology`, `layout`, `settle`, `plots`, `names`, `populous`, `tools`,
+  `review-tools`, `bench`, `commands`, `record`, `regress`, `plaindata`, `--expose-gc registry`, `notable`, `manual`): since VB-856
+  verify holds them again, on the small islands of `tests/lib/probe.js` (36 by 26, 48 by 34, and 60 by 44 where a test needs villages
+  well apart or a village of 8 farms), in 1 to 4 seconds of CPU each; `review-hours` is the hours half of `review-tools`, apart. The
+  islands are generated once per seed and size in a process and handed out as copies (VB-872, built with VB-856); `generate()` makes
+  one anew where a test checks the generator's determinism. `tools/sim.js`, `balance.js` and `rules.js` take `--map probe`, the 36 by
+  26 island. Four stay at night, saying so in their first lines: `rivers --extended` (the default island: ten sources or more, a course
+  through a lake, more than 20 crossings), `layout --extended` (heirs three years and founders ten on the default island; red before and
+  after VB-856, a green laid in play beside fields: VB-887), `populous --extended` (the four map sizes: the population each seeds and the
+  village size bands) and `tools --extended` (the reports that take a run of their own each, and `tools/balance.js`). `stones` and
+  `geology` lost their long runs. `help` (food help) is on the small island but stays at night: it is red since VB-461 (a kin gift is
+  set aside and fetched, the test expects it at once), until VB-889.
+- **The household's rules** (`meals`, `stores`, `hunger`, `heirs`, `guardian`, `kinship`, `kinlimit`, `owners`, `plans`, `offers`,
+  `exchange`, `occasions`): since VB-854 verify holds them again, each on the small islands of `tests/lib/probe.js` (`scenario`), in
+  1 to 5 seconds of CPU. What took years is constructed: the guardian's ward is brought to his eighteenth birthday by his birth date,
+  where it took 14 years; the scarcity and plenty pulls on the marriage limit are read at one moving round on a pedigree laid over the
+  heirs scenario's single adults (all first cousins, or strangers), where it took 8 years; `stores` reconciles founders three years and
+  populous one. The scenes found on the 120 by 85 island are found again on the small ones (`offers`, seeds 42 and 13; `occasions`, 11).
+  Two stay at night, saying so in their first lines: `heirs --extended` (the default island ten years on, and B3's lone holder bringing
+  in a crop at four seeds, a statistic over seeds) and `hunger --extended` (three years of founders at seeds 7 and 42, reported).
+- **The farming year** (`newfields`, `fieldswanted`, `weeding`, `soil`, `hay`, `byre`, `herds`, `herding`, `drying`, `forage`,
+  `dig`): since VB-855 verify holds them again, on the small islands of `tests/lib/probe.js` (`island`, `scenario`), in 1 to 5
+  seconds of CPU; `fieldswanted` never needed an island. The runs are cut to what the rule needs: weeding's year to the harvest, gathering's
+  and drying's year and a half to the autumn and to winter day 6, digging's populous year to half of one (at seed 8: the small island at
+  42 has no bog iron), populous's herds to the autumn count; the soil's ten years become a spring's carting, with every field's soil set
+  below the cap a year on. One stays at night, saying so in its first line: `soil --extended` (founders ten years on the small map, the
+  farms with cattle keeping their soil: a balance of a decade). Three were red on the run's branch and assert what it does: `hay`'s
+  constructed barns had no farmstead since VB-255; `dig`'s urgency reads its job since VB-367; `drying`'s run no longer builds a boat
+  (VB-393, VB-255: none in five years of founders or populous on the small island), so it counts boats, and the boat's building is its
+  constructed scene.
+- **Long save and load** (`saves`), and the generated-world cases of `clock`, `spread`, `paths` and `indexes` (`--extended`):
+  since VB-853 verify holds them again, on small states, and only `paths --extended` stays at night. `saves` runs each scenario on a
+  small generated island (36 by 26; heirs 48 by 34, which its two debug villages need; `tests/lib/probe.js`, `island` and
+  `scenario`), loaded into the island generated again from the save, and the probe village saved mid-hour and mid-day. `clock
+  --integration` runs the probe a year and a day by three chunk sizes, through every yearly entry of the calendar. `paths
+  --integration` checks the scenarios' worn-in start and a populous season on the small islands, then lays lanes by hand round each
+  house and green (and a green of open land) for the ways' rules. `indexes --integration` compares the indexes with full scans each
+  season of the three scenarios and after deaths by `Sim.killPawn` that pass a holding on and end a household. `spread
+  --extended` asserted what its probe case does, and was deleted with the long runs of the others. `paths --extended` keeps the
+  default island's populous year: how many houses a year's traffic gives a way to their door is a statistic of a whole island.
 
 A generated default island costs 1.8 s to make and a founders year on it 0.3 s; a 30 by 22 island 0.03 s and 0.13 s. The slow
 scripts are slow from runs of years and from several islands, not from one generation, so no single switch makes them quick.
@@ -71,11 +120,11 @@ is repaired by a task of its own.
 
 - The old default suite had 120 scripts and took about 294 seconds in the review environment (one dependency failure subsequently
   passed on rerun). Existing scripts remain inventoried; only `golden.js` and its permanent data are deleted.
-- `clock`, `paths`, `indexes`, and `spread` have small default probes and retain generated-world coverage through `--extended`
-  in the **extended** tier. The flag selects the larger case; it is distinct from the runner's long-duration `extended` tier.
+- `clock`, `paths`, `indexes`, and `spread` have small default probes in `npm test`; `clock`, `paths` and `indexes` add their
+  `--integration` case in verify (VB-853), and only `paths --extended` (the default island's populous year) stays in the **extended** tier.
 - Index checks explicitly append children/unions, end a union, move a member and change a holder, comparing queries to independent scans.
 - `continuity` compares independently constructed current runs, checks daily invariants, then compares JSON save/load continuation
-  including modified world tiles. Longer generated-world continuation remains in `saves` and player continuity in `line`.
+  including modified world tiles. Generated-world continuation of each scenario is in `saves` (verify) and player continuity in `line`.
 - `journeys` (VB-287) walks a move within a village and a bride's two-leg journey between two tiny villages with the page closed: legs
   at 6:00, stops on the route at 18:00, provisions out of the old household's store and no share of the new one's meal, a save on the
   road continued, a death on the road and an unprovisioned walk.

@@ -3,12 +3,12 @@
 // within a day's walk, takes those who are free; a funeral ale the day after a death, at the farm of the dead, for its household and near
 // kin, stops work; the village meeting gathers the people with a voice on the green for two hours until its step from noon, and stops work.
 // Those who come stand about the spot and talk there; at the end they are free, and after work go home; a wedding and a funeral ale are
-// told in the log. A save made while one is under way plays on as the unbroken run.
+// told in the log. A save made while one is under way plays on as the unbroken run. On a small populous island (VB-854).
 const assert = require('assert');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], O = VB['sim/occasions'];
+const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], O = VB['sim/occasions'];
 const { canon } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
-const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
+const { island, scenario } = require('./lib/probe.js'), SEED = 4;
 const roll = (st, f) => {
   const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; });
   try { f(); } finally { rs.forEach((r) => { delete r.fix; }); }
@@ -16,9 +16,10 @@ const roll = (st, f) => {
 const told = (st, from, kind) => st.record.slice(from).filter((e) => typeof e === 'object' && !e.self && e.kind === kind);
 const villageOf = (st, id) => R.settlementIdOf(st, st.pawns[id]);
 const near = (st, a, o) => Math.abs(a.x - o.x) < 16 && Math.abs(a.y - o.y) < 10;
-// Populous at seed 3 (at seed 7 the first round marries one couple, since villages were laid out by their land), natural deaths off, every household with the means to marry, and the moving round at hour 0 of the first day.
+// Populous on the small island at seed 4 (at 11, 3 and 7 its first round marries one couple since VB-288's pool within reach; on the
+// 120 by 85 island it was seed 3), natural deaths off, every household with the means to marry, and the moving round at hour 0 of the first day.
 function scene() {
-  const st = Sim.seed(world(3), 3, 'populous'); st.naturalDeaths = false;
+  const st = scenario('populous', SEED); st.naturalDeaths = false;
   for (const h of st.households) h.grain.barley += 5000;
   const mark = st.record.length;
   roll(st, () => Sim.movingRound(st));
@@ -88,7 +89,7 @@ for (const e of lines) {
 }
 sound(st, 'after the weddings');
 {
-  const back = Sim.load(world(3), JSON.parse(text));
+  const back = Sim.load(island(SEED), JSON.parse(text));
   Sim.advance(back, 6.1);
   const bad = [...new Set([...Object.keys(st), ...Object.keys(back)])].filter((k) => k !== 'w' && canon(st[k]) !== canon(back[k]));
   assert.deepStrictEqual(bad, [], 'the loaded run plays as the unbroken one');

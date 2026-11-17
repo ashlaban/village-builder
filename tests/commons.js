@@ -79,7 +79,8 @@ const k = C.OFF[C.IDX.commons] + C.optIndex('commons', 'first'), adult = st.pawn
 refreshInterests(st);
 const before = adult.interest[k];
 assert.strictEqual(Commons.helpLean(st, adult, v.id), null, 'no help received: no lean');
-book(st, h2.holder, h1.holder, 20 * VB['sim/hunger'].dailyNeed(st, h1)); // twenty days of need given
+// twenty days of need given, net of what the two holders owed each other before (an ale evening's share, VB-522)
+book(st, h2.holder, h1.holder, 20 * VB['sim/hunger'].dailyNeed(st, h1) - VB['sim/relations'].balance(st, h2.holder, h1.holder));
 const lean = Commons.helpLean(st, adult, v.id);
 assert.strictEqual(lean.to, C.optIndex('commons', 'first'), 'towards the option above `fair`');
 assert.ok(Math.abs(lean.w - COMMONS.pull * 20 / COMMONS.fullDays) < 1e-6, `in proportion to the days owed (${lean.w})`);
@@ -104,12 +105,13 @@ console.log(`commons ok: begun ${((made - start) / DAY).toFixed(0)} days in, sow
   assert.ok(target > 0);
   const own = (h) => h.grain.barley;
   for (const h of hhs) h.grain.barley += 4000;
-  const q0 = hhs.map(own);
   // just under the target: it takes only the difference, shared by what each would have given
   u.grain.barley = target - 10;
   fillStores(s2, u.id);
-  const sum = hhs.reduce((a, h, i) => a + q0[i] - own(h), 0);
-  assert.ok(Math.abs(sum - 10) < 1e-6 && Math.abs(Sim.grainOf(u) - target) < 1e-6, `takes only the difference (${sum})`);
+  // each quarter is carried to the green (VB-849): the store has it as the loads arrive
+  for (let k = 0; k < 40 * 24 && s2.away.some((j) => j.why === 'haul'); k++) Sim.advance(s2, 1);
+  assert.ok(!s2.away.some((j) => j.why === 'haul'), 'the hauls are over');
+  assert.ok(Math.abs(Sim.grainOf(u) - target) < 1e-6, `takes only the difference (${Sim.grainOf(u)} of ${target})`);
   // at the target: nothing taken, the households keep their quarter
   const q1 = hhs.map(own);
   fillStores(s2, u.id);
