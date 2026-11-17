@@ -472,6 +472,10 @@ VB['sim/saves'] = (() => {
       st.occasions = [];
       st.occasionSeq = 0;
     } // VB-126: nor occasions, nor their stream
+    if (!st.booths) {
+      st.booths = [];
+      st.boothSeq = 0;
+    } // VB-784: a save before booths has none
     migrateAway(st); // VB-287: nor journeys; VB-783: a save's journeys are stays away
     if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
     if (!st.finds) {

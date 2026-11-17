@@ -4,7 +4,7 @@
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
-  const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, houseCondition } = VB['sim/rules'];
+  const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH, houseCondition } = VB['sim/rules'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
   const { walkable, findRoute } = VB['sim/routes'];
@@ -13,6 +13,7 @@ VB['sim/building'] = (() => {
   const { fellTree, drawWood } = VB['sim/forest'];
   const { building, livePlots, COTTAGE, boothJob, finishBoothStage } = VB['sim/expansion'];
   const { wantsStone } = VB['sim/quern'];
+  const { freeFor } = VB['sim/territory'];
   // Design (Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's walls take BUILD.timber loads (six trees, 3 loads a tree as a firewood
   // trip's); a plot's felled tiles give their trees as its wood (sim/expansion, plot.wood); a cottage or booth short of it fells the rest in
   // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: plot.wood, or f.booth.wood).
@@ -53,6 +54,74 @@ VB['sim/building'] = (() => {
   function boothWork(st, hh, f, c, post) {
     const bj = boothJob(st, f);
     if (bj) post(bj[0], f.house, bj[2], bj[1]);
+    // the booths its household has staked and not yet raised (VB-784): the wood first, then the raising
+    if (st.booths.length)
+      for (const b of st.booths) {
+        if (b.by !== hh.id || b.built !== null) continue;
+        if (b.wood < BOOTH.wood) {
+          const v = st.villages[f.village];
+          // felled on the tile where it is wooded, else fetched from the village's wood (within WOOD.reach, as a timber trip is)
+          if (st.w.trees[b.tile] > 0)
+            post(`timber:o${b.id}`, b.tile, { village: v.id, timberFor: b, dest: b.tile, onSite: true }, 'timber');
+          else if (v.wood.length)
+            post(`timber:o${b.id}`, v.wood[0], { village: v.id, timberFor: b, dest: b.tile }, 'timber');
+        } else post(`booth:o${b.id}`, b.tile, { booth: b, farm: f }, 'booth');
+      }
+  }
+  // ---- a booth (VB-784; design.md, Moving to new land, The booth) ----
+  // @state st.booths[]: the booths raised or being raised, live ones only (one that has rotted away is taken out), each {id, tile, by (the
+  //   household it is for), maker (the pawn who staked it), guests (pawns its maker lets in besides the household's), built (game hours, null
+  //   while it is raised), wood (loads lying at its tile), cond (0..1 at condAt), condAt}; st.boothSeq: the next id, never reused
+  const boothAt = (st, tile) => (st.booths.length ? st.booths.find((b) => b.tile === tile) || null : null);
+  // A booth's condition now: it wears by closed form from condAt, whoever sleeps in it (a stay renews nothing).
+  const boothCondition = (st, b) =>
+    b.built === null ? 1 : Math.max(0, b.cond - ((st.t - b.condAt) / YEAR) * BOOTH.wear);
+  // Whether pawn id may sleep in booth b: its household's own, or whom its maker let in.
+  const boothOpenTo = (st, b, id) => st.pawns[id].household === b.by || b.guests.includes(id);
+  // Why pawn id cannot raise a booth at `tile`, or null: ground nobody else owns or has staked, and no booth on it.
+  function raiseBoothWhy(st, id, tile) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household];
+    if (!hh || hh.dissolved || hh.farmstead === null) return `pawn ${id} has no household to raise a booth for`;
+    if (!(Number.isInteger(tile) && tile >= 0 && tile < st.w.N)) return `there is no tile ${tile}`;
+    if (st.w.water[tile] || st.used.has(tile)) return `tile ${tile} is not open ground`;
+    if (boothAt(st, tile)) return `a booth stands on tile ${tile}`;
+    return freeFor(st, tile, st.farmsteads[hh.farmstead].village) ? null : `tile ${tile} is owned or staked by another`;
+  }
+  // Pawn a stakes a booth at tile (the verb `raiseBooth`, its only caller), for its household and the pawns args.guests names; the wood and
+  // the raising are posted for the household by boothWork.
+  function raiseBooth(st, a, tile, args) {
+    const b = {
+      id: st.boothSeq++,
+      tile,
+      by: st.pawns[a.id].household,
+      maker: a.id,
+      guests: [...((args && args.guests) || [])],
+      built: null,
+      wood: 0,
+      cond: 1,
+      condAt: st.t,
+    };
+    st.booths.push(b);
+    return b;
+  }
+  // The raising is done: the booth stands, whole, from now.
+  function finishBooth(st, j) {
+    const b = j.booth;
+    b.built = st.t;
+    b.cond = 1;
+    b.condAt = st.t;
+    st.visualDirty = true;
+  }
+  // Booths worn to nothing are gone and their tile is as it was; a stay that slept there is under the open sky from then. Daily, over the
+  // live booths only.
+  function rotBooths(st) {
+    if (!st.booths.length) return;
+    const gone = st.booths.filter((b) => b.built !== null && boothCondition(st, b) <= 0);
+    if (!gone.length) return;
+    for (const b of gone) emit(st, 'boothGone', b.tile);
+    st.booths = st.booths.filter((b) => !gone.includes(b));
+    st.visualDirty = true;
   }
   // ---- a stone foundation (VB-332; design, Land and ecology, Stone, and Goods of place, A well-kept house) ----
   // A house is built on the bare ground (f.grade 'ground'); its household may raise it onto stone ('stone'), which lifts its prestige term and
@@ -236,7 +305,7 @@ VB['sim/building'] = (() => {
       carry: 'logs',
       to: 'site',
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
-      draw: (st, j) => drawWood(st, st.villages[j.village]),
+      draw: (st, j) => (j.onSite ? j.site : drawWood(st, st.villages[j.village])),
       // a tree felled on the drawn tile; its load lies at the site, and the ledger of the village or household building says so
       deliver: (st, j) => {
         const v = st.villages[j.village];
@@ -251,6 +320,19 @@ VB['sim/building'] = (() => {
         );
       },
       available: timberWork,
+    },
+    // A booth's raising (VB-784): BOOTH.hours at its tile once its wood lies there
+    booth: {
+      verb: 'Raising a booth',
+      go: 'Going to raise a booth',
+      name: 'Raise a booth',
+      label: 'Booth',
+      anim: 'mallet',
+      hours: BOOTH.hours,
+      hands: Infinity,
+      type: 'wood',
+      done: finishBooth,
+      available: boothWork,
     },
     // Timber left lying at a boat's shore when its plan was given up (sim/plans' leftWood, VB-645): never posted, only fetched (sim/lying's
     // fetch kind), home to the woodpile as firewood.
@@ -356,5 +438,20 @@ VB['sim/building'] = (() => {
     plot.steps[2].wood = 0;
     return left;
   }
-  return { KINDS, boothWork, timberWork, shareWood, stoneWork, buildStep, stoneSource, barnSteps };
+  return {
+    KINDS,
+    boothAt,
+    boothCondition,
+    boothOpenTo,
+    raiseBoothWhy,
+    raiseBooth,
+    rotBooths,
+    boothWork,
+    timberWork,
+    shareWood,
+    stoneWork,
+    buildStep,
+    stoneSource,
+    barnSteps,
+  };
 })();

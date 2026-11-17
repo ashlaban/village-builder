@@ -60,7 +60,8 @@ const Sim = (() => {
   const { withOxen, doneOf, placeOf, poseOf } = VB['sim/agents'];
   const { larderOf } = VB['sim/hunger'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
-  const { houseTarred } = VB['sim/rules'],
+  const { boothCondition } = VB['sim/building'], // VB-784: a booth's condition now
+    { houseTarred } = VB['sim/rules'],
     { untarred: boatUntarred } = VB['sim/drying']; // VB-301: a house tarred, a boat's years since its tarring
   const { claimsOn, strength, holdings } = VB['sim/claims'];
   const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];
@@ -166,6 +167,7 @@ const Sim = (() => {
     larderOf,
     quernYears,
     houseTarred,
+    boothCondition,
     boatUntarred,
     team,
     withOxen,

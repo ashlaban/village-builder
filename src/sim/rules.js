@@ -507,6 +507,9 @@ VB['sim/rules'] = (() => {
   // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
   // worked from a bed there rather than from home (a third of the working day) ----
   const AWAY = { pack: 12, walk: 4 };
+  // A booth (bod; VB-784; design.md, Moving to new land, The booth): a shelter of poles, bark and turf, `hours` of work and `wood` loads at its
+  // tile, `sleeps` at most; unkept it wears `wear` of its condition a year (poles and bark: about three years) and is gone at none.
+  const BOOTH = { hours: 12, wood: 2, sleeps: 4, wear: 1 / 3 };
   const HERD = {
     hayLoss: [0.05, 0.25, 0.5], // annual barn losses by winters of need held (VB-159)
     hay: { cow: 1, bull: 1, ox: 1, heifer: 0.6, steer: 0.6, calf: 0.4, ewe: 0.2, ram: 0.2, lamb: 0.1 },
@@ -1062,6 +1065,7 @@ VB['sim/rules'] = (() => {
     GOODWILL,
     TRAVEL,
     AWAY,
+    BOOTH,
     HERD,
     stalled,
     GRAZE,

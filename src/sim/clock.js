@@ -225,6 +225,12 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'day',
+      owner: 'sim/building',
+      note: 'booths unkept rot away (VB-784)',
+      run: (st) => VB['sim/building'].rotBooths(st),
+    },
+    {
+      every: 'day',
       owner: 'sim/clock',
       note: 'fences decay',
       run: (st, c) => {

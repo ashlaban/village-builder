@@ -1,7 +1,7 @@
 // @sys sim/away: the nights a pawn spends away from its household's house (VB-783): the open stays, a journey's (a bed where its leg
 // ends) and a lodger's (a bed at a place, or a guest's in another house), their packs and meals, and a journey's arrivals and gifts
 VB['sim/away'] = (() => {
-  const { cal, WORK, SPEED, HEALTH, TRAVEL, AWAY } = VB['sim/rules'];
+  const { cal, WORK, SPEED, HEALTH, TRAVEL, AWAY, BOOTH } = VB['sim/rules'];
   const HANDS = [14, 60]; // the ages of a working hand, as sim/agents' (who goes for a gift or carries the quarter)
   const { route, routeCost, hoursBetween } = VB['sim/routes'];
   const { age, personEvent } = VB['sim/records'];
@@ -103,10 +103,28 @@ VB['sim/away'] = (() => {
       if (opinionOf(st, host.holder, id) < 0)
         return `the head of household ${o.host} will not have pawn ${id} as a guest`;
     } else if (!(Number.isInteger(at) && at >= 0 && at < st.w.N)) return `there is no tile ${at}`;
+    else {
+      // a booth's bed (VB-784): for its household and whom its maker let in, BOOTH.sleeps at most
+      const b = VB['sim/building'].boothAt(st, at);
+      if (b && b.built !== null) {
+        if (!VB['sim/building'].boothOpenTo(st, b, id)) return `the booth at tile ${at} is not for pawn ${id}`;
+        if (st.away.filter((s) => s.bed === at && s.roof === 'booth').length >= BOOTH.sleeps)
+          return `the booth at tile ${at} sleeps ${BOOTH.sleeps}, and its beds are taken`;
+      }
+    }
     const R = 1 / st.ECON.uncooked,
       spare = Math.max(0, Stores.grainOf(hh) - Stores.reserved(st, hh, 'grain')) / R;
     return spare + 1e-9 < packOf(st, p, o.days) ? `household ${hh.id} has no food to spare for the pack` : null;
   }
+  // The roof over a bed on tile b: a standing booth's (VB-784), else the open sky.
+  const roofAt = (st, b) => {
+    const k = VB['sim/building'].boothAt(st, b);
+    return k && k.built !== null ? 'booth' : 'none';
+  };
+  // The booth at tile t is gone (sim/building's rot): the stays that slept under it are under the open sky.
+  const unroof = (st, t) => {
+    for (const s of st.away) if (s.bed === t && s.roof === 'booth') s.roof = 'none';
+  };
   // Pawn a lodges (the verb `lodge`, its only caller): it lets go of what it has in hand, takes its pack from its household's food above
   // the seed, and its stay is open; the verb walks it to its bed (sim/agents' goHome reads the bed). With args.host its bed is that
   // household's house, roof 'house'; else tile `at`, under the open sky until a booth is built there.
@@ -120,7 +138,7 @@ VB['sim/away'] = (() => {
         pawn: a.id,
         why: args.why,
         bed: b,
-        roof: host ? 'house' : 'none',
+        roof: host ? 'house' : roofAt(st, b),
         food: 0,
         from: hh.farmstead,
         to: b,
@@ -536,6 +554,7 @@ VB['sim/away'] = (() => {
   on('stillAway', dropStay);
   on('moveOn', finishMove);
   on('atBed', atBed);
+  on('boothGone', unroof); // VB-784: a booth rotted away
   // A pawn's household changed (sim/heirs' moveTo); a child is born (sim/births).
   on('rehoused', (st, d) => moved(st, d.a, d.old, d.hh, d.carry));
   on('placeBorn', (st, d) => placeBorn(st, d.a, d.mother, d.hh));

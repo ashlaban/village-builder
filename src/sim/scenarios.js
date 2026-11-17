@@ -447,6 +447,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.offers, st.offerSeq: the open offers and the next offer's id (see sim/offers)
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
     // @state st.away, st.awaySeq: the open stays away from home, journeys among them, and the next one's id (see sim/away, VB-783)
+    // @state st.booths, st.boothSeq: the booths raised or being raised, and the next one's id (see sim/building, VB-784)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
@@ -527,6 +528,8 @@ VB['sim/scenarios'] = (() => {
       occasionSeq: 0,
       away: [],
       awaySeq: 0,
+      booths: [],
+      boothSeq: 0,
       finds: new Map(),
       deer: null,
     };

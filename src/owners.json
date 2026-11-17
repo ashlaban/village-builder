@@ -42,6 +42,8 @@
     "st.occasions": "sim/occasions",
     "st.away": "sim/away",
     "st.awaySeq": "sim/away",
+    "st.booths": "sim/building",
+    "st.boothSeq": "sim/building",
     "agent.away": {"owner": "sim/away", "category": "cache"},
     "st.occasionSeq": "sim/occasions",
     "agent.occasion": "sim/occasions",
