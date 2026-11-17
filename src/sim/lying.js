@@ -21,7 +21,7 @@ VB['sim/lying'] = (() => {
     for (const k of OF) if (j[k] !== undefined) of[k] = j[k];
     // the sheaves' crop and the barn entry of their harvest, as they were: the field may be sown anew before they are fetched
     if (j.field) {
-      of.crop = j.field.crop;
+      of.crop = j.crop ?? j.field.crop; // the task's crop: its field may be on its next course (VB-350)
       if (j.field.bin !== undefined) of.bin = j.field.bin;
     }
     if (!st.lying) st.lying = [];

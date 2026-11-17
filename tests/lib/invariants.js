@@ -240,7 +240,7 @@ function checkState(st) {
           if (!(n >= 0) || !['field', 'build'].includes(why)) bad.push(`${where} reserves ${n} ${good} for ${why}`);
           if (why === 'build' && n > (h[good] || 0) + 1e-6) bad.push(`${where} reserves ${n} ${good}, more than its holder's ${h[good] || 0}`);
           const sp = type === 'pawn' ? null : (type === 'household' ? st.plans.households : st.plans.villages).get(id), why0 = sp && sp.reasons[good];
-          const own = !why0 ? 0 : why0 === 'seed' ? globalThis.VB['sim/hunger'].seedNeed(st, h) : sp.reserved[good];
+          const own = !why0 ? 0 : why0 === 'seed' ? globalThis.VB['sim/hunger'].seedNeed(st, h, good.split('/')[1]) /* by crop, VB-350 */ : sp.reserved[good];
           const projects = list.reduce((x, q) => x + (q.reasons[good] ? q.reserved[good] : 0), 0);
           if (Math.abs(STORES.reserved(st, h, good) - own - projects) > 1e-6) bad.push(`${where}: the store's count of ${good} is not its plans'`);
         }
@@ -787,7 +787,8 @@ function checkState(st) {
     // plots built (village.plots) and under way (the village's project plans, VB-123): numbered 0, 1, ... in the village; the timber at the
     // site within range (VB-328); a built one's farmstead exists
     const projects = st.plans && st.plans.projects ? st.plans.projects.village.get(v.id) || [] : [],
-      live = projects.filter((pl) => pl.what === 'plot');
+      // as sim/expansion's livePlots: the village's own plans and its households' plots for their heirs (VB-255, VB-959)
+      live = [...projects.filter((pl) => pl.what === 'plot'), ...((st.plans && st.plans.projects && st.plans.projects.heirPlots) || []).filter((pl) => pl.village === v.id)];
     // VB-646: a village's plot cleared with nobody to have it is allotted at a moving round or given back: none stands unclaimed past the
     // rounds it waits (two years, and a year's slack to the next round)
     for (const pl of live)
@@ -1254,6 +1255,20 @@ function checkHerds(st, bad) {
     if (standing && Math.floor(st.t / VB['sim/rules'].DAY / VB['sim/rules'].SEASON_DAYS) % 4 === 3 && !C.winter && f.household !== null) bad.push(`${at}: ${fd.crop} ${fd.stage} in winter`);
     if (fd.weeds !== undefined && !(Number.isInteger(fd.weeds) && fd.weeds >= 1 && fd.weeds <= (C.weeds || 0))) bad.push(`${at}: weeds ${fd.weeds}`);
     if (fd.rest !== undefined && fd.rest !== 0.5 && fd.rest !== 1) bad.push(`${at}: rest ${fd.rest}`);
+  }
+  // VB-350: a field's rotation is a known key, the same on every field of its farm (and barley every year on a village's common field);
+  // its step is inside the rotation, and the field's crop is the step's course; a village's usual rotation is a known key
+  const { ROTATIONS } = VB['sim/rules'];
+  const rotOk = (fd, at, only) => {
+    const R = ROTATIONS[fd.rotation];
+    if (!R || (only && fd.rotation !== only)) bad.push(`${at}: rotation ${fd.rotation}`);
+    else if (!(Number.isInteger(fd.step) && fd.step >= 0 && fd.step < R.courses.length) || R.courses[fd.step] !== fd.crop)
+      bad.push(`${at}: step ${fd.step} of ${fd.rotation} with ${fd.crop}`);
+  };
+  for (const f of st.farmsteads) for (const fd of f.fields) rotOk(fd, `farmsteads[${f.id}].fields[${fd.id}]`, f.fields[0].rotation);
+  for (const v of st.villages) {
+    if (!ROTATIONS[v.rotation]) bad.push(`villages[${v.id}]: rotation ${v.rotation}`);
+    for (const fd of v.commonFields || []) rotOk(fd, `villages[${v.id}].commonFields[${fd.id}]`, 'every');
   }
   // the barn's crops (VB-348): absent, or one known crop for each unthreshed entry
   for (const h of st.households) if (h.sheafCrops !== undefined && !(Array.isArray(h.sheafCrops) && h.sheafCrops.length === h.unthreshed.length &&

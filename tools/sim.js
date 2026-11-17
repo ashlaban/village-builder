@@ -12,6 +12,7 @@ const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
   --json            the report as JSON
+  --rye             every village given rye, farming in three courses from the start (VB-350's test switch: sim/scenarios giveRye)
   --pawn ID, --household ID   one pawn or household in detail; with --report plans, that household's plans; with --report hours, its hours
   --report hours    pawn-hours a household by job kind, and the farming year's days (tools/hours.js --help):
                     --from Y (sample from year Y), --every step|hour, --fields N, --team
@@ -64,7 +65,7 @@ function plain(v, seen = new Map(), where = '$') {
 
 const it = G.generate(seedNum, { cols: SIZES[map][0], rows: SIZES[map][1] });
 let r; while (!(r = it.next()).done);
-const st = loaded ? Sim.load(r.value, loaded) : Sim.seed(r.value, seedNum, scenario), say = (...a) => { if (!json) console.log(...a); };
+const st = loaded ? Sim.load(r.value, loaded) : Sim.seed(r.value, seedNum, scenario, null, { rye: args.includes('--rye') }), say = (...a) => { if (!json) console.log(...a); };
 const causeOf = (p) => { const e = Sim.recordOf(st, { pawn: p.id, life: true }).find((x) => x.kind === 'died'); return e ? e.cause : null; };
 const yearOf = (t) => Math.floor(t / Sim.YEAR) + 1;
 const start = Math.floor(st.t / Sim.YEAR), last = opt('at', null) !== null ? years : start + years; // years done before, and the last to run

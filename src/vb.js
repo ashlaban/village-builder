@@ -43,6 +43,7 @@ VB.COUNTERS = {
   gatherSettle: 'Hosts named and asked in the settling of the gatherings, once a year (sim/gathering, VB-294)',
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
+  rotationWalk: "Farms walked by a village's meeting for its usual rotation, a village a year (sim/fields, VB-350)",
   overviewWalk:
     'Pawn records walked by a village overview, once a summary asked (a view, never a step: sim/overview, VB-162)',
   heirRank: 'All heirRanking calls, including nested rankings and indirect callers',

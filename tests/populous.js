@@ -43,7 +43,7 @@ for (const [cols, rows] of [[36, 26], [48, 34]]) for (const seed of [7, 42]) {
 }
 
 // the one generator: a field added to its output appears in every scenario
-L.farmHooks.push((w, f) => { f.fields.push({ id: f.fields.length, tile: -1, stage: 'stubble', sown: null, reaped: null, held: 0, fert: 1, marker: true }); });
+L.farmHooks.push((w, f) => { f.fields.push({ id: f.fields.length, tile: -1, crop: 'barley', rotation: 'every', step: 0, stage: 'stubble', sown: null, reaped: null, held: 0, fert: 1, marker: true }); });
 try {
   for (const name of ['founders', 'heirs', 'populous']) {
     const st = EXT ? Sim.seed(world(7, 280, 200), 7, name) : scenario(name, 7);
