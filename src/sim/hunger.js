@@ -200,9 +200,13 @@ VB['sim/hunger'] = (() => {
   // Amounts below are in rations of need; grain is taken at 1 / uncooked a ration. Given the day's season, the day's fire burns first
   // (warmHouse), and its cold reaches each member's health; without it (a meal alone, as tests feed one) the day is warm.
   // A pawn away from home (VB-287, VB-783: on the road or lodging; sim/away's agent.away) eats what it carries, not its household's meal.
+  // A pawn who ate at a feast in the last day (VB-458; sim/occasions writes pawn.feast) has had the day's meal: it is not fed again.
+  const feasted = (st, p) => p.feast !== undefined && st.t - p.feast.t < DAY;
   function feedHousehold(st, hh, season) {
-    const E = st.ECON,
-      mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null && st.agents[p.id].away === undefined);
+    const E = st.ECON;
+    let mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null && st.agents[p.id].away === undefined);
+    const fed = mem.some((p) => feasted(st, p)) ? mem.filter((p) => feasted(st, p)) : null;
+    if (fed) mem = mem.filter((p) => !feasted(st, p));
     const cold = season === undefined ? 0 : warmHouse(st, hh, season),
       dry = season === undefined ? 0 : dryHouse(st, hh);
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])),
@@ -253,7 +257,15 @@ VB['sim/hunger'] = (() => {
       hungryDay(p); // a child's hungry days, for its traits at 15 (sim/traits, VB-519)
       sum += p.hunger;
     }
-    hh.hunger = mem.length ? sum / mem.length : 0;
+    if (fed)
+      for (const p of fed) {
+        const n = rationOf(st, p);
+        ate(st, p, n, n, cold, dry); // fed at the feast; the night's cold and a dry house still reach it at home
+        hungryDay(p);
+        sum += p.hunger;
+      }
+    const n = mem.length + (fed ? fed.length : 0);
+    hh.hunger = n ? sum / n : 0;
   }
   // The day's fire (VB-327; design.md, Fuel): the hearth burns the season's use (ECON.woodUse), or what the pile holds. A household whose pile
   // does not cover it is cold that day by the part it lacked times the season's use over winter's, which is the wood it lacked over winter's
