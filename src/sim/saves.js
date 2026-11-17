@@ -458,6 +458,7 @@ VB['sim/saves'] = (() => {
       st.offers = [];
       st.offerSeq = 0;
     } // VB-293: nor marriage offers
+    if (!st.asking) VB['sim/wishes'].seedAsking(st); // VB-823: nor the askings' queue
     for (const o of st.offers)
       if (o.basis === undefined) {
         // VB-690: a marriage offer saved before offers had a basis, as the basis `match` (its spokesmen, its terms)

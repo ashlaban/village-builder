@@ -781,10 +781,16 @@ VB['sim/rules'] = (() => {
   // `day`, 0-based: days 11 to 13), each day every village in its step; a village's step answers the offers due to its people in `order`
   // (a home handed on before a match that needs it, land before the party that would leave for want of it, service last, for those
   // nothing else took); one refused on a day asks anew that evening, due the next day; what is open after the last day lapses.
+  // The asking day (VB-823; plan, sections 2 and 7): a pawn who seeks reviews its wish once a season, on season day id mod SEASON_DAYS
+  // at `hour`, and makes an offer due at the round; nobody is asked on one basis by more than `held` open offers (the next asker turns
+  // to its next best), and an asking weighs at most `pool` candidates, the nearest villages first.
   const ASK = Object.freeze({
     passes: 3,
     day: 10,
     order: Object.freeze(['handover', 'match', 'land', 'party', 'place']),
+    hour: 6,
+    held: 5,
+    pool: 40,
   });
   // The village's wood (VB-326; design, Land and ecology, The village's wood; Agreed, Kim, 10 Nov): an allotted area of wooded tiles, v.wood
   // (sim/territory), perHousehold tiles for each live household of the village (a household fells about 11 trees a year and a tile of 60 to 80

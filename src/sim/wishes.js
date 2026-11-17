@@ -1,10 +1,12 @@
 // @sys sim/wishes: every pawn's wish at the moving round (VB-680; docs/plans/VB-682.md, section 3): a ranking of rungs, each one answer
 // to "where do I live next year", chosen by the pawn before the round (its ambition, its hunger) and by the player for the pawn it plays
-// (the wish verb); wishOf, the one read of it, where the round asks what a pawn itself wants; and whose yes a move needs (moveWhy)
+// (the wish verb); wishOf, the one read of it, where the round asks what a pawn itself wants; whose yes a move needs (moveWhy); and
+// the asking day's due-queue, when each pawn who seeks next reviews its wish (VB-823)
 VB['sim/wishes'] = (() => {
-  const { HUNGER, MARRIAGE, WISH } = VB['sim/rules'];
+  const { HUNGER, MARRIAGE, WISH, ASK, DAY, YEAR, SEASON_DAYS } = VB['sim/rules'];
   const { of: traitOf } = VB['sim/traits'];
-  const { age, spokesmanOf } = VB['sim/records'];
+  const { age, spokesmanOf, spouseOf, holdingOf } = VB['sim/records'];
+  const { on } = VB['sim/events'];
   // @state pawn.wish (VB-680): absent or null for the default wish (WISH.rungs as ranked, any farm, whoever the round finds), else
   //   {rank (WISH.rungs in the pawn's order, best first; a rung ranked after 'stay' is one it would not take), farm (a farm id: only that
   //   farm, or null), partner (a pawn id: that partner, or null)}. Written by the pawn's own choosing at the start of the moving round
@@ -43,14 +45,16 @@ VB['sim/wishes'] = (() => {
   function chooseWishes(st) {
     const played = st.player ? st.player.pawn : null;
     VB.count.wishWalk += st.living.length;
-    for (const id of st.living) {
-      const p = st.pawns[id];
-      if (id === played || age(st, p) < FROM) continue;
-      let rank = RUNGS;
-      if (traitOf(st, id, 'ambition') >= WISH.landAmbition) rank = LAND_FIRST;
-      if (p.hunger >= HUNGER.marryBelow) rank = place(rank, 'match', 'decline');
-      write(p, rank, null, null);
-    }
+    for (const id of st.living) if (id !== played) chooseWish(st, id);
+  }
+  // One pawn's own choosing (the round's walk, and its asking day, VB-823): nothing for one under the age to marry.
+  function chooseWish(st, id) {
+    const p = st.pawns[id];
+    if (age(st, p) < FROM) return;
+    let rank = RUNGS;
+    if (traitOf(st, id, 'ambition') >= WISH.landAmbition) rank = LAND_FIRST;
+    if (p.hunger >= HUNGER.marryBelow) rank = place(rank, 'match', 'decline');
+    write(p, rank, null, null);
   }
   // ---- the read ----
   // What pawn id wishes at the round, by kind: 'out' (true: it would leave though heir to a farm; false: it would stay rather than take
@@ -154,5 +158,94 @@ VB['sim/wishes'] = (() => {
     if (left !== null && left !== id && left !== head) out.push({ key: 'left', by: left });
     return out;
   }
-  return { RUNGS, chooseWishes, wishOf, wishesOf, setWish, resetWish, endPartner, moveWhy };
+  // ---- the asking day (VB-823; plan VB-682, sections 2 and 7) ----
+  // @state st.asking[]: the due-queue of the askings, {t (game hours), pawn}, in order of t (after those due at the same time): one entry
+  //   a living pawn who seeks or will, at its next asking day (season day pawn mod SEASON_DAYS, at ASK.hour): one of 18 or more but the
+  //   married who hold a place (the holder or the holder's spouse), and a child for the first asking day after its 18th birthday (written
+  //   at its birth, so that nothing polls for its coming of age: Rules for cost, 4). Written at the birth, a widowing, a marriage, a new
+  //   head and a move (the events below), and by each asking for the next season (nextAsking); dropped where the pawn dies, or marries or
+  //   moves into a place. Plain data, saved; read only at its head (sim/asking).
+  const SEASON = SEASON_DAYS * DAY,
+    GROWN = 18;
+  // Pawn id's first asking day after time t
+  function askingAfter(id, t) {
+    const s = Math.floor(t / SEASON) * SEASON + (id % SEASON_DAYS) * DAY + ASK.hour;
+    return s > t ? s : s + SEASON;
+  }
+  // A married pawn who holds a place: the holder of a household, or its holder's spouse
+  const placed = (st, id) => {
+    const sp = spouseOf(st, id);
+    return sp !== null && (holdingOf(st, id) !== null || holdingOf(st, sp) !== null);
+  };
+  const entryOf = (st, id) => st.asking.findIndex((e) => e.pawn === id);
+  function enqueue(st, id, t) {
+    const q = st.asking;
+    let lo = 0,
+      hi = q.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (q[mid].t <= t) lo = mid + 1;
+      else hi = mid;
+    }
+    q.splice(lo, 0, { t, pawn: id });
+  }
+  // Pawn id's entry made right: dropped for the dead and the married who hold a place; else, where it has none, written for its next
+  // asking day (a child's, the first after it turns 18; the retired seek nothing). `widowed`: its spouse has just died (the union not
+  // yet ended), so it holds no place as a married pawn.
+  function seek(st, id, widowed = false) {
+    const p = st.pawns[id],
+      i = entryOf(st, id);
+    if (!p.alive || (!widowed && placed(st, id))) {
+      if (i >= 0) st.asking.splice(i, 1);
+      return;
+    }
+    if (i >= 0 || p.retired) return;
+    enqueue(st, id, age(st, p) >= GROWN ? askingAfter(id, st.t) : askingAfter(id, p.born + GROWN * YEAR - 1e-6));
+  }
+  // The pawn whose asking is due by now, taken from the head of the queue, and written for its next season if it still seeks; or null.
+  function nextAsking(st) {
+    const q = st.asking;
+    if (!q.length || q[0].t > st.t) return null;
+    const { pawn: id } = q.shift(),
+      p = st.pawns[id];
+    if (!p.alive || p.retired || placed(st, id)) return null; // left in the queue by a change no event told (it seeks no more)
+    enqueue(st, id, askingAfter(id, st.t));
+    return id;
+  }
+  // The queue at the start of a run (a scenario's people, an older save's): every living pawn, as seek writes it.
+  function seedAsking(st) {
+    st.asking = [];
+    for (const id of st.living) seek(st, id);
+  }
+  on('born', (st, d) => seek(st, d.child));
+  on('died', (st, d) => {
+    seek(st, d.pawn);
+    const sp = spouseOf(st, d.pawn);
+    if (sp !== null) seek(st, sp, true);
+  });
+  on('wed', (st, d) => {
+    seek(st, d.a);
+    seek(st, d.b);
+  });
+  on('newHead', (st, d) => {
+    const h = st.households[d.household].holder,
+      sp = h === null ? null : spouseOf(st, h);
+    if (h !== null) seek(st, h);
+    if (sp !== null) seek(st, sp);
+  });
+  on('rehoused', (st, d) => seek(st, d.a.id));
+  return {
+    RUNGS,
+    chooseWishes,
+    chooseWish,
+    wishOf,
+    wishesOf,
+    setWish,
+    resetWish,
+    endPartner,
+    moveWhy,
+    nextAsking,
+    seedAsking,
+    seek,
+  };
 })();

@@ -41,6 +41,7 @@
     "household.workHours": "sim/agents",
     "st.offers": "sim/offers",
     "st.offerSeq": "sim/offers",
+    "st.asking": "sim/wishes",
     "st.occasions": "sim/occasions",
     "st.away": "sim/away",
     "st.awaySeq": "sim/away",

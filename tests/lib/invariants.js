@@ -1011,7 +1011,7 @@ function checkState(st) {
   // terms of its basis, its answers by pawns; its subject (the basis's) a living pawn who holds it as pawn.ask; `round`, when present,
   // true. And each pawn's ask (VB-692): null or absent, or the id of an open offer of which it is the subject.
   if (st.offers !== undefined) {
-    const { YEAR: Y } = globalThis.VB['sim/rules'], { BASES } = globalThis.VB['sim/offers'], seen = new Set(), ids = new Set();
+    const { YEAR: Y, ASK: ASKS } = globalThis.VB['sim/rules'], { BASES } = globalThis.VB['sim/offers'], seen = new Set(), ids = new Set(), held = new Map();
     if (!Array.isArray(st.offers) || !Number.isInteger(st.offerSeq) || st.offerSeq < 0) bad.push(`offers: ${typeof st.offers}, offerSeq ${st.offerSeq}`);
     else st.offers.forEach((o, n) => {
       const at = `offers[${n}] (id ${o.id})`;
@@ -1027,7 +1027,10 @@ function checkState(st) {
       if (o.basis === 'match') {
         const man = o.gives && o.gives.man, woman = o.wants && o.wants.woman, home = o.gives && o.gives.home;
         if (!st.pawns[man] || !st.pawns[woman] || st.pawns[man].sex !== 'm' || st.pawns[woman].sex !== 'f') bad.push(`${at}: man ${man}, woman ${woman}`);
-        for (const id of [man, woman]) { if (seen.has(id)) bad.push(`${at}: pawn ${id} is in two open offers`); seen.add(id); }
+        if (seen.has(man)) bad.push(`${at}: pawn ${man} is in two open offers`);
+        seen.add(man);
+        held.set(woman, (held.get(woman) || 0) + 1); // she may be asked by up to ASK.held (VB-823)
+        if (held.get(woman) > ASKS.held || seen.has(woman)) bad.push(`${at}: pawn ${woman} is asked by ${held.get(woman)} open matches`);
         if (!st.households[home] || !Number.isInteger(o.village)) bad.push(`${at}: home ${home}, village ${o.village}`);
         if (!keys.includes('man') || !keys.includes('woman')) bad.push(`${at}: answers ${keys.join()}`);
         for (const x of o.answers || []) {
@@ -1059,6 +1062,32 @@ function checkState(st) {
       const o = Array.isArray(st.offers) ? st.offers.find((x) => x.id === p.ask) : null, B = o && BASES[o.basis];
       if (!o || !B.subject || B.subject(st, o) !== p.id) bad.push(`pawn ${p.id}: ask ${p.ask} is no open offer about its future`);
     }
+  }
+  // the askings' queue (VB-823; sim/wishes): entries {t, pawn} in order of t, at most one a pawn, each a living pawn's on its asking day
+  // (season day pawn mod SEASON_DAYS, at ASK.hour); none for the dead, the married who hold a place (holder or holder's spouse), and
+  // none due before a child comes of age (its entry, written at its birth, falls due at the first asking day after its 18th birthday).
+  if (st.asking !== undefined) {
+    const R = globalThis.VB['sim/rules'], Rec = globalThis.VB['sim/records'], once = new Set();
+    const SEASON = R.SEASON_DAYS * R.DAY, grown = (p) => p.born + 18 * R.YEAR;
+    if (!Array.isArray(st.asking)) bad.push(`asking: ${typeof st.asking}`);
+    else st.asking.forEach((e, n) => {
+      const at = `asking[${n}] (pawn ${e.pawn})`, p = st.pawns[e.pawn];
+      if (n > 0 && st.asking[n - 1].t > e.t) bad.push(`${at}: due ${e.t} before the one ahead of it`);
+      if (!p || once.has(e.pawn)) { bad.push(`${at}: no pawn, or a second entry`); return; }
+      once.add(e.pawn);
+      if (!p.alive) bad.push(`${at}: the pawn is dead`);
+      const day = (((e.t - R.ASK.hour) % SEASON) + SEASON) % SEASON;
+      if (Math.abs(day - (e.pawn % R.SEASON_DAYS) * R.DAY) > 1e-6) bad.push(`${at}: due ${e.t}, not on its asking day`);
+      if (grown(p) > st.t && e.t < grown(p)) bad.push(`${at}: due ${e.t}, before it comes of age (born ${p.born})`);
+      const sp = Rec.spouseOf(st, p.id);
+      if (sp !== null && (Rec.holdingOf(st, p.id) !== null || Rec.holdingOf(st, sp) !== null)) bad.push(`${at}: married, and holds a place`);
+    });
+    // and every living unmarried pawn not retired has its entry: the queue is the index of those an asking may ask (sim/asking)
+    if (Array.isArray(st.asking))
+      for (const id of st.living || []) {
+        const p = st.pawns[id];
+        if (!once.has(id) && !p.retired && Rec.spouseOf(st, id) === null) bad.push(`pawn ${id}: unmarried, and no asking`);
+      }
   }
   // the stays away (VB-783; the journeys, VB-287, among them): in the order they began (by id; VB-473: a journey's legs are its pawn's), ids below
   // st.awaySeq and unique, one stay a pawn, each pawn living, the food it carries never below 0, agent.away its index (the stay's id on its

@@ -1,8 +1,10 @@
 // @sys sim/matching: the rules of a marriage match: the pool within walking reach, kin degree, a home and its means, the score; what
 // the moving round's matcher and the player's wish for a match (VB-274) are both checked against
 VB['sim/matching'] = (() => {
-  const { MARRIAGE, YEAR_DAYS, HUNGER } = VB['sim/rules'];
+  const { MARRIAGE, YEAR_DAYS, HUNGER, ASK } = VB['sim/rules'];
   const { heldBy } = VB['sim/offers'];
+  // The open matches woman id is asked by: up to ASK.held may stand at once (VB-823)
+  const askedBy = (st, id) => st.offers.filter((o) => o.basis === 'match' && o.wants.woman === id).length;
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
@@ -172,8 +174,8 @@ VB['sim/matching'] = (() => {
     return { rank, place, homeFor, affords, clear, touched };
   }
   // Why the match of pawns a and b (ids, either sex) may not be made at the round now ({why}), or the match ({man, woman, home}: pawns and
-  // a household id). The round's rules: both alive, single, of age, fed, not retired and in no open offer; the woman's village within
-  // walking reach of the man's (VB-288); the kin degree the man's village's
+  // a household id). The round's rules: both alive, single, of age, fed, not retired, the man in no open offer and the woman asked by
+  // fewer than ASK.held (VB-823); the woman's village within walking reach of the man's (VB-288); the kin degree the man's village's
   // custom allows; a home that affords it; and a score, with the noise at its mean, that reaches the lowest accepted score.
   function matchBar(st, a, b, rules = matchRules(st), occasion = 'round') {
     const pa = st.pawns[a],
@@ -189,7 +191,8 @@ VB['sim/matching'] = (() => {
       if (age(st, p) < (p === m ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) return { why: `${nm} is too young to marry` };
       if (p.retired) return { why: `${nm} is retired` };
       if (!(p.hunger < HUNGER.marryBelow)) return { why: `${nm} is too hungry to marry` };
-      if (heldBy(st, p.id, 'match')) return { why: `${nm} is in an open offer` };
+      if (p === m ? heldBy(st, p.id, 'match') : askedBy(st, p.id) >= ASK.held)
+        return { why: `${nm} is in an open offer` };
       // Service is by the year (VB-634): an offer out of the round waits for the round, when a servant leaves service to marry.
       if (p.servant && occasion !== 'round') return { why: `${nm} is in service until the moving round` };
     }

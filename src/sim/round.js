@@ -23,6 +23,7 @@ VB['sim/round'] = (() => {
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { villagesOfStep } = VB['sim/meetings'];
   const { handover } = VB['sim/marriage'];
+  const { askMatch, staleWhy } = VB['sim/asking'];
   const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
   // Scarcity and plenty of spouses push the marriage limit, a village's own at the end of its round (VB-277): one the step married to a
   // partner also allowed under the next stricter option pulls back, at half the weight; an unmatched man of the village, or an unmarried
@@ -130,7 +131,7 @@ VB['sim/round'] = (() => {
     for (const o of due) {
       if (!st.offers.includes(o)) continue; // closed by an answer before it (one has married)
       VB.count.offersAnswered++;
-      const r = conclude(st, o);
+      const r = conclude(st, o, staleWhy(st, o)); // lapsed where one of its people has died, married or taken a place (VB-823)
       changed = changed || r === 'yes';
       if (r === 'no' && o.basis === 'match') askAgain(st, o.gives.man, o.wants.woman, d, now);
     }
@@ -141,50 +142,14 @@ VB['sim/round'] = (() => {
     for (const o of st.offers.filter((x) => x.round)) conclude(st, o, 'the moving round ended');
   }
   // The man m, refused by woman `not` on day d of the round, asks anew that evening through his spokesman, due the next day (VB-692):
-  // the best-scoring woman of those within reach (VB-288) whom the round's rules allow him, as villageRound chooses, she excepted. Not on
-  // the last day (no next day), and not for the played pawn or where it speaks for him (the player asks by the offer verb).
+  // by the matcher's rule for one man (sim/asking's askMatch), she excepted. Not on the last day (no next day), and not for the played
+  // pawn or where it speaks for him (the player asks by the offer verb).
   function askAgain(st, m, not, d, now) {
     const p = st.pawns[m],
       played = st.player ? st.player.pawn : null;
     if (d >= ASK.passes - 1 || !p.alive || spouseOf(st, m) !== null || heldBy(st, m, 'match')) return;
     if (m === played || spokesmanOf(st, m) === played || (p.ask !== undefined && p.ask !== null)) return;
-    const v = settlementIdOf(st, p),
-      pool = poolFor(st, v),
-      cu = practice(st, v),
-      rules = matchRules(st),
-      pm = rules.place(m);
-    VB.count.roundWalk += pool.length;
-    let best = null,
-      bs = -Infinity;
-    for (const id of pool) {
-      const f = st.pawns[id];
-      if (f.sex !== 'f' || id === not || spouseOf(st, id) !== null || f.retired || f.hunger >= HUNGER.marryBelow)
-        continue;
-      if (age(st, f) < MARRIAGE.womenFrom || heldBy(st, id, 'match') || (f.wish && wishOf(st, id, 'match') === false))
-        continue;
-      if (!kinOk(st, m, id, cu)) continue;
-      const home = rules.homeFor(p, f, cu, pm);
-      if (home === null) continue;
-      const s = matchScore(st, p, f, rnd(st.rng.society), wasWidowed(st, m) || wasWidowed(st, id));
-      if (s > bs) {
-        bs = s;
-        best = { f, home };
-      }
-    }
-    if (!best || bs < MARRIAGE.minScore || !rules.affords(best.home)) return;
-    issue(st, {
-      actor: spokesmanOf(st, m),
-      verb: 'offer',
-      target: spokesmanOf(st, best.f.id),
-      args: {
-        basis: 'match',
-        gives: { man: m, home: best.home },
-        wants: { woman: best.f.id },
-        due: Math.floor(now / DAY) * DAY + DAY + 12,
-        round: true,
-      },
-      source: 'round',
-    });
+    askMatch(st, m, Math.floor(now / DAY) * DAY + DAY + 12, { not });
   }
   // A village's round (VB-277; design.md, A village's round): its households fill its store; its own unmarried men, those with a place first,
   // then the oldest, each choose by the score among the unmarried women within walking reach (VB-288; one married at an earlier village's
