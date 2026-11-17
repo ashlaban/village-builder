@@ -110,7 +110,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1005](backlog/VB-1005.md) | Measurements owed: the ale evening and the rite at 30 and 50 years (VB-522), for VB-662 | - | 3 | S | VB-522's long seeds, brewing against rot, the hours report and the hosts' standing |
 | [VB-1006](backlog/VB-1006.md) | Occasions' ends as a table of kinds | - | 3 | S | finish in sim/occasions branches on five kinds; make each kind's end a row of OCCASIONS |
 | [VB-1008](backlog/VB-1008.md) | Measure the gathering: 40 populous years and its cost on medium-ref | fair | 3 | S | VB-294's owed measures, for the collecting task VB-662 |
-| [VB-1027](backlog/VB-1027.md) | Page: what a playthrough of founders found, small things worth fixing | - | 3 | M | Ten small defects and frictions of the Plan tab, the cards and the start, from playing founders seed 7 as a holder to year 3: each is small and stands alone. |
+| [VB-1028](backlog/VB-1028.md) | Page: opening the People sheet flies the camera out to the whole island (not reproduced) | - | 3 | S | Kim's playthrough of 17 November saw the camera fly out to the whole island on opening the People sheet; VB-1027 could not reproduce it and left a check that it does not |
 
 ## Waiting for Kim
 
