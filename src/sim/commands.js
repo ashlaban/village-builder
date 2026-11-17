@@ -224,6 +224,12 @@ VB['sim/commands'] = (() => {
         idle(st, a, until);
       },
     },
+    // callAle: the actor, its household's holder, opens its house tonight for an ale evening on a barrel no occasion at its farm needs
+    // (sim/occasions, VB-522); its village and the villages within reach are asked
+    callAle: {
+      check: (st, c) => free(st, c.actor) || later('sim/occasions').cannotCallAle(st, c.actor),
+      run: (st, c) => later('sim/occasions').callAle(st, c.actor),
+    },
     // ---- offers (VB-690): one pawn offers another a crossing between households, the other answers (sim/offers' BASES) ----
     // offer(target, {basis, gives, wants, due, given}): the actor offers pawn `target` the terms of `basis`; due at args.due (game hours,
     // within a year; at once when absent); `given` (the round only) the answer keys the played pawn's own wish has said yes to

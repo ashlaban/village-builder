@@ -79,7 +79,8 @@ const k = C.OFF[C.IDX.commons] + C.optIndex('commons', 'first'), adult = st.pawn
 refreshInterests(st);
 const before = adult.interest[k];
 assert.strictEqual(Commons.helpLean(st, adult, v.id), null, 'no help received: no lean');
-book(st, h2.holder, h1.holder, 20 * VB['sim/hunger'].dailyNeed(st, h1)); // twenty days of need given
+// twenty days of need given, net of what the two holders owed each other before (an ale evening's share, VB-522)
+book(st, h2.holder, h1.holder, 20 * VB['sim/hunger'].dailyNeed(st, h1) - VB['sim/relations'].balance(st, h2.holder, h1.holder));
 const lean = Commons.helpLean(st, adult, v.id);
 assert.strictEqual(lean.to, C.optIndex('commons', 'first'), 'towards the option above `fair`');
 assert.ok(Math.abs(lean.w - COMMONS.pull * 20 / COMMONS.fullDays) < 1e-6, `in proportion to the days owed (${lean.w})`);
