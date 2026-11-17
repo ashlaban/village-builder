@@ -173,6 +173,7 @@ async function build(seed, scenario, size, save = null, quick = false) {
   demoRun = null;
   document.body.classList.remove('demo');
   unsaved = !!custom;
+  if (save) setSpeed(0); // a loaded game opens paused (VB-1027): a save keeps no speed, and the one the page had was another game's
   await swapWorld(wd, sim, painted);
   const landRegions = wd.regions.filter((r) => r.land > 0).length;
   $('name').textContent = wd.name;
