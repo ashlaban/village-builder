@@ -64,12 +64,18 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   dissolved, put down where it was (`sim/agents` release), with its good, amount, tile and owner; a fetch kind for each kind that carries a
   load (`fetchHaul`, `fetchHay`, `fetchWood`, `fetchWellstone`, registered by `sim/kinds`) and the rule that posts them for the owner; one
   nobody fetches rots at the autumn frost (`sim/clock`).
-- Journeys (VB-287; design.md, Between villages): `src/sim/agents.js` owns `st.journeys` and `st.journeySeq`. `sim/heirs`' `moveTo`
-  changes the household at the act and hands the pawn to `moved`: within a village it walks to the new door; to another village it sets
-  out on a journey, its provisions (`TRAVEL.dayWalk` hours a ration) taken from the household it leaves through `sim/stores` (reason
-  `journey`), a leg a day from 6:00 to 18:00 in the pawns' one queue of legs (`st.legDue`, VB-473: a walk that stops for the night at
-  the last step before 18:00, a wait on the road until 6:00); on the road it eats what it carries (`feedTravellers`, through `sim/hunger`'s
-  `ate`), out of its household's meal.
+- Away from home (VB-783; design.md, Moving to new land, Sleeping away from home): `src/sim/away.js` owns the open stays (`st.away`,
+  `st.awaySeq`) and their index `agent.away` (a cache, one writer); it loads after `sim/agents` and hears from it by `sim/events`
+  (`legEnd`, `legDue`, `stillAway`, `moveOn`, `atBed`), and from `sim/heirs` (`rehoused`) and `sim/births` (`placeBorn`). A journey
+  (VB-287; design.md, Between villages) is a stay whose bed is where its leg ends: `moveTo` changes the household at the act and the
+  `rehoused` event hands the pawn to `moved`: within a village it walks to the new door; to another village it sets out, its provisions
+  (`TRAVEL.dayWalk` hours a ration) taken from the household it leaves through `sim/stores` (reason `away`), a leg a day from 6:00 to
+  18:00 in the pawns' one queue of legs (`st.legDue`, VB-473), whose walking (`walkLeg`, `restOnRoad`, `turnTo`) stays in `sim/agents`.
+  A lodger is a stay at a bed (a tile, or a guest's in another household's house), by the verbs `lodge` and `comeHome`: a pack of a
+  ration a day planned (at most `AWAY.pack`), the tasks its stay names only (`dayAway`, before the household's day), home when its pack
+  is down to the walk home's ration. Every pawn away eats from its pack (`feedAway`), out of its household's meal by the one test of
+  `agent.away`. `sim/agents`' `bed` is the tile a pawn's day starts from and ends at, which the walk home, a job's reach and the day's
+  end read.
 - Legs (VB-471 to VB-473; design.md section 7, A leg, and its end): `src/sim/agents.js` keeps every pawn in one leg, a walk, work or a
   wait (`agent.leg`); the ends of walks and waits wait in `st.legDue`, those of tasks in `st.workDue`, and a step (`stepAgents`) takes
   what is due and nothing else. A pawn's place is `placeOf` (a walker along its leg's hours); `sim/society`'s `outdoors`, `sim/jobs`'
@@ -203,7 +209,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Social: `culture`, `sim/encounters`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
-- Agency: `sim/agents`, `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/meetings`, `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
+- Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/meetings`, `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
   `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).

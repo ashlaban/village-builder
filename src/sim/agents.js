@@ -1162,7 +1162,6 @@ VB['sim/agents'] = (() => {
     travelling,
     stayOf,
     bed,
-    here,
     restOnRoad,
     walkLeg,
     turnTo,

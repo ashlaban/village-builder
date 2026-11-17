@@ -16,7 +16,6 @@ VB['sim/away'] = (() => {
   const {
     travelling,
     stayOf,
-    here,
     placeOf,
     tileAt,
     placeAtHome,
@@ -242,7 +241,7 @@ VB['sim/away'] = (() => {
     const s = stayOf(st, a.id);
     if (s) s.back = true; // lodging away: it goes to the new home from its bed (VB-783)
     const from = old ? st.farmsteads[old.farmstead] : null,
-      at = here(st, a);
+      at = tileAt(st, ...placeOf(st, a));
     if (from ? from.village !== f.village : hoursTo(st, null, at, f.village) > TRAVEL.dayWalk)
       return setOut(st, a, old, hh, carry, hoursTo(st, from ? from.village : null, at, f.village));
     const h = cal(st.t).hour,
