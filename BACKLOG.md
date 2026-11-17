@@ -93,7 +93,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-765](backlog/VB-765.md) | Strata: the heads line, the work line and the sink's report | town | 3 | S | A tool that counts 600 / 325 / 75 by work and by heads, with household work apart, and reports each village's sink; today's numbers recorded. |
 | [VB-766](backlog/VB-766.md) | Crowding: a contribution to death.hazard by the people within 2 steps of a house | town | 3 | S | Living close costs lives by a named rule (CROWD: free to 36 people within 2 steps, +0.035 each beyond, at most 2.5), wherever it happens; no rule reads "town". |
 | [VB-767](backlog/VB-767.md) | A head's remembered yield of each source of food | town | 3 | S | Each household keeps eight years of rations by source (fields, animals, fish, wild food, craft, hired days, gifts); the head reads a poor year and a mean. Nothing reads it yet. |
-| [VB-785](backlog/VB-785.md) | A night without a roof is cold and wet | far | 3 | S | A bed with no roof and no fire costs health as an unheated house does that night, so a winter journey is dear and a long stay wants a booth; measured on the journeys that exist. |
 | [VB-834](backlog/VB-834.md) | Measure: does a gathering's host change its customs faster, by contact alone | town | 3 | S | A report of attitude drift at villages by how many people their pawns meet at venues, to settle target-v2 4.4's Proposed reading (no town term in attitude.malleability) |
 | [VB-881](backlog/VB-881.md) | Measures owed by VB-288: demography over 12 seeds, roundPairs at medium-ref and history | - | 3 | S | Seeds 1 to 12 of the marriage demography, roundPairs at medium-ref, history.roundPairs, before and after VB-288 |
 | [VB-893](backlog/VB-893.md) | Page: the Plan tab shows stores by the supply component and the year ahead | - | 3 | S | The plan panel (VB-256) takes up VB-667's supply component and the year-ahead graph |
@@ -105,6 +104,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
 | [VB-984](backlog/VB-984.md) | A booth's maker lets a pawn in | far | 3 | S | verb letIn adds a guest to a booth |
 | [VB-985](backlog/VB-985.md) | Test: a booth's wood fetched from the village wood | far | 3 | S | cover the fetched-wood path of the booth job |
+| [VB-990](backlog/VB-990.md) | Measure VB-785's night cost on small-y40 loaded a year | - | 3 | S | Measure the night cost on a late save |
 
 ## Waiting for Kim
 
