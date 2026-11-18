@@ -128,6 +128,7 @@ function roundBox(id, acts, wishes) {
 }
 // The cause the pawn argues, when it ends, and how the village leaned on that custom at the last meeting: the cause's share of the support
 // against the practice's, and the margin it must pass (meeting: the practice's share times 1 + margin, more where there are few voices).
+const pc = (x) => `${Math.round(x * 100)}%`;
 function causeNote(p) {
   const a = p.advocate;
   if (!a) return '<p class="hint">You argue no cause.</p>';
@@ -147,8 +148,22 @@ function causeNote(p) {
     h +=
       x === a.opt
         ? ' It is the village practice.'
-        : ` At the last meeting “${esc(d.opts[a.opt][1])}” had ${Math.round(sup[o + a.opt] * 100)}% of the ` +
-          `support against ${Math.round(sup[o + x] * 100)}% for “${esc(d.opts[x][1])}”, the practice; it must pass it by ${Math.round(need * 100)}%.`;
+        : ` At the last meeting “${esc(d.opts[a.opt][1])}” had ${pc(sup[o + a.opt])} of the support against ` +
+          `${pc(sup[o + x])} for “${esc(d.opts[x][1])}”, the practice; it needs ${pc(sup[o + x] * (1 + need))} of the voice to pass it.`;
+    if (x !== a.opt) {
+      const mark = [{ at: sup[o + x] * (1 + need) * 100, label: 'the share it needs', kind: 'head' }];
+      h += `</p><div class="agenda-meters"><span>“${esc(d.opts[a.opt][1])}”</span>${meter({
+        value: sup[o + a.opt] * 100,
+        marks: mark,
+        label: 'The cause',
+        text: pc(sup[o + a.opt]),
+      })}<span>“${esc(d.opts[x][1])}” (practice)</span>${meter({
+        value: sup[o + x] * 100,
+        label: 'The practice',
+        text: pc(sup[o + x]),
+      })}</div>`;
+      return h;
+    }
   } else h += ' The village has not met yet.';
   return `${h}</p>`;
 }
@@ -386,6 +401,12 @@ function drawPlayMark() {
 // After the played pawn's death (VB-213): the page pauses once, and a box offers those the player may go on as, the heir first, for as
 // long as the choice is open; the world does not wait, so the list is read again twice a second. With none alive, any adult's card
 // offers "Go on as", and the break is recorded. Called each frame (page/animate).
+// The successor's position as Whom to play shows it (holds a farm, first heir to one, a child, retired), the farms an heir is heir to named.
+function successorPlace(id, why) {
+  const k = positionName(id),
+    farms = heirTo(id).map((f) => f.name);
+  return k ? (farms.length ? `${k} to ${farms.join(', ')}` : k) : why;
+}
 function offerSuccession() {
   const box = $('succession'),
     pl = st && st.player,
@@ -419,7 +440,7 @@ function offerSuccession() {
         const q = st.pawns[s.id];
         return `<li><button type="button" data-succeed="${s.id}">${esc(
           Sim.fullName(q),
-        )}<i>${esc(s.why)}, ${Sim.age(st, q)}</i></button></li>`;
+        )}<i>${esc(successorPlace(s.id, s.why))}, ${Sim.age(st, q)}</i></button></li>`;
       })
       .join('')}</ul>`;
   if (h !== succHTML) {

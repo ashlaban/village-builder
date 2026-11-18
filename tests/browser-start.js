@@ -19,7 +19,7 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
   const html = builtPage();
   if (!html.includes(HOOK)) throw new Error('hook not found');
   await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(html.replace(HOOK,
-    HOOK + ' window.__start = { get st() { return st; }, get demo() { return demo; }, get choosing() { return !!choose; } };')) }));
+    HOOK + ' window.__start = { get st() { return st; }, get demo() { return demo; }, get choosing() { return !!choose; }, get Sim() { return Sim; }, render() { renderChoose(); } };')) }));
   await page.goto('https://village.test/');
   await page.waitForFunction(() => !document.getElementById('landing').hidden);
   await page.click('#landNew');
@@ -97,6 +97,16 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
     await page.click('#landBack');
     if (await page.locator('#choose').isHidden()) fail(`${sc}: Back to game does not return to whom to play`);
   }
+  // one label rule (VB-1105): a 16-year-old servant is her role ("Maid (piga), 16"), not "a child"
+  const lab = await page.evaluate(() => {
+    const { st, Sim } = window.__start, hh = st.households.find((h) => !h.dissolved && h.members.length > 1);
+    const p = st.pawns[hh.members.find((m) => m !== hh.holder)];
+    p.born = st.t - 16 * Sim.YEAR; p.age = 16; p.role = 'maid'; p.servant = true; p.sex = 'f';
+    window.__start.render();
+    const b = [...document.querySelectorAll('#choose .person')].find((x) => +x.dataset.p === p.id);
+    return b ? b.textContent : null;
+  });
+  if (lab !== null && (/a child/.test(lab) || !/16, Maid \(piga\)/.test(lab))) fail(`the 16-year-old servant is labelled ${lab}`);
   // a game that is open is kept aside while the start shows its island, and Back to game returns to it
   await page.click('#chooseWatch'); await page.click('#menuBtn'); await page.click('#landNew');
   await page.waitForFunction(() => window.__start.demo && window.__start.st !== window.__game && document.querySelector('#startPins .pin'));

@@ -84,6 +84,8 @@ VB.COUNTERS = {
   riteCalled: "Rites called on the villages' greens, three days a year (sim/occasions callRites, VB-522)",
   feastServed:
     'Pawns served at a feast, each eating its portion and its household booked at most once (sim/occasions, VB-458)',
+  giftTiesWeighed:
+    'Ties of a holder weighed for the good-year gift, at most 32, on its one planning day a year (sim/help, VB-460)',
   takeInWeighed:
     'Pawns of st.demand weighed for a household short of people whose ask for food fell short, as kin and then as servants ' +
     '(sim/service, takeIn; VB-308)',

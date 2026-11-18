@@ -1,4 +1,4 @@
-// Haymaking (VB-133), on the small islands of tests/lib/probe.js (VB-855): populous at seed 3 rakes its meadows in spring and mows and
+// Haymaking (VB-133), on the small islands of tests/lib/probe.js (VB-855): populous at seed 6 (3 before VB-1107's new custom shifted the draws) rakes its meadows in spring and mows and
 // carries at least 90% of them by autumn day 4; the hay goes into the household's barn; founders at seed 7 bring in hay in year 1; hay left
 // lying at the frost rots; every spring the meadows are grass again. Reports each household's hay against its winter's need.
 const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js'), M = VB['sim/meadows'], { checkState } = require('./lib/invariants.js');
@@ -33,7 +33,7 @@ byreDay({ ...barnState, liveHouseholds: [0], households: [hh], farmsteads: [{ me
 check(hh.hay < 100 && hh.haySpoilt > 0, 'daily hook spoils hay even without animals');
 check(lying.held === 25, 'barn spoilage leaves mown meadow hay alone');
 
-let st = scenario('populous', 3);
+let st = scenario('populous', 6);
 st.naturalDeaths = false; // haymaking is tested, not who lives: a holder who dies in spring leaves a widow whose hay lies mown (VB-402's seed)
 // Old saves have no loss counter; loading starts it at zero without accepting invalid new values.
 const savedLoss = st.households[0].haySpoilt;

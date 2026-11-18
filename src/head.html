@@ -525,6 +525,7 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .history .kinds button { min-height: 28px; padding: 2px 10px; font-size: 13px; }
 .history .kinds button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 /* The one meter (page/meter): a level on its scale, marks at its targets, a signed one filled from its middle. */
+.agenda-meters { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; font-size: 12px; }
 .meter { position: relative; display: inline-block; flex: 1; min-width: 44px; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 13%, transparent);
   vertical-align: middle; }
 .meter > i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px; background: var(--accent); }

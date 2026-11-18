@@ -17,6 +17,7 @@ const FAST = [
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
   ['node', 'tests/wishes.js'],
+  ['node', 'tests/wishlapse.js'],
   ['node', 'tests/roundoffers.js'],
   ['node', 'tests/handover.js'],
   ['node', 'tests/asking.js'],
@@ -166,6 +167,7 @@ const INTEGRATION = [
   ['node', 'tests/offers.js'],
   ['node', 'tests/exchange.js'],
   ['node', 'tests/occasions.js'],
+  ['node', 'tests/gift.js'], // VB-460: the good-year gift, unasked, kin first, carried
   ['node', 'tests/feast.js'], // VB-458: the feast at a wedding or a funeral ale, its sitting, the meal eaten once, goodwill booked
   ['node', 'tests/aleevening.js'], // VB-522: the ale evening (who calls, who is asked, the barrel) and the season's rite (its leader, the ties)
   // VB-855: the farming year, from new fields to digging, on small generated islands and constructed states

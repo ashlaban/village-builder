@@ -117,7 +117,7 @@ function renderChoose() {
           return `<button type="button" class="person${hit ? ' hit' : ''}" data-p="${q}" aria-pressed="${q === id}"${minor ? ' disabled' : ''}>${faceImg(
             q,
             'pf',
-          )}<span>${esc(p.given)}</span><small>${Sim.age(st, p)}${minor ? ', a child' : ''}</small></button>`;
+          )}<span>${esc(p.given)}</span><small>${esc(placeLine(p))}</small></button>`;
         })
         .join('')}</div>`;
     }

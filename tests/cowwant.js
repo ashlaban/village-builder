@@ -29,9 +29,9 @@ function setUp() {
 // lead the want home: advance past the stall (spring day 5) hour by hour until the buyer has cattle; the lead job is seen claimed first
 function leadHome(st, buyer) {
   let claimed = false;
-  for (let h = 0; h < 24 * 20 && !cowsOf(st, buyer); h++) {
+  for (let h = 0; h < 24 * 200 && !cowsOf(st, buyer); h++) {
     for (const j of st.jobs.values()) if (j.kind === 'lead' && j.owner.id === buyer.id && j.claims.length) claimed = true;
-    Sim.advance(st, 1);
+    Sim.advance(st, 0.1);
   }
   return claimed;
 }

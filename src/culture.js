@@ -159,6 +159,16 @@ const Culture = (() => {
         ['first', 'Before the household’s own work'],
       ],
     },
+    {
+      key: 'affinity',
+      label: 'Kin by marriage who may marry',
+      m: 0.12,
+      opts: [
+        ['fourth', 'None within the fourth degree of affinity'],
+        ['line', 'None in the direct line (step-parent, parent-in-law)'],
+        ['free', 'No bar'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -185,6 +195,7 @@ const Culture = (() => {
       birthOrder: 'eldest',
       residence: 'land',
       kinLimit: 'first',
+      affinity: 'line',
       feedOrder: 'equal',
       ownHeir: 'behind',
       dispute: 'first',
@@ -307,6 +318,8 @@ const Culture = (() => {
     return a;
   }
 
+  // @state pawn.lastCause (VB-1112): null, or the pawn's last cause that ended: { dim, opt, since, end (years), how: 'lapsed' | 'won',
+  //   sup, vs, vsOpt, need } (the shares its village's last meeting gave it; null before one)
   // @state pawn.leans (VB-520): Uint8Array, one byte a custom (in the order of DIMS): the option the pawn's attitude favours most (the first
   //   of equals), compiled wherever its attitude is written (initPerson, advocate, the daily drift), for chemistry's customs between two
   //   pawns (sim/relations; design.md, Chemistry), which reads a byte a custom (Rules for cost, 6). Written only here.
@@ -331,6 +344,7 @@ const Culture = (() => {
     p.interest = null;
     p.advocate = null;
     p.causeSince = null;
+    p.lastCause = null;
   }
   // A cause is a long agenda: taken up at year t it moves the pawn's own attitude a step towards it at once (P.advocacyJump), and the pawn
   // may take up no other until P.causeEvery years have passed (causeFree), though it may lay the cause down (dim null) at any time.
@@ -349,6 +363,40 @@ const Culture = (() => {
     for (let j = 0; j < n; j++) p.att[o + j] += P.advocacyJump * ((j === opt ? 1 : 0) - p.att[o + j]);
     normBlock(p.att, o, n);
     leanOn(p, dim);
+  }
+  // A cause's end (VB-1112): `how` is 'lapsed' (its years ran out) or 'won' (its option became the practice). The pawn keeps the last
+  // cause and what its village's last meeting gave it (lastCause), for the Agenda and the record: the support for the option, the
+  // practice's (or, where the option is the practice, the best other's), and the share the option needed to pass the practice.
+  function endCause(env, hooks, p, adv, how) {
+    const s = hooks.settlementOf(p),
+      o = OFF[adv.dim],
+      n = NOPT[adv.dim],
+      S = s && s.lastSupport,
+      lc = {
+        dim: adv.dim,
+        opt: adv.opt,
+        since: p.causeSince,
+        end: env.t,
+        how,
+        sup: null,
+        vs: null,
+        vsOpt: null,
+        need: null,
+      };
+    if (S) {
+      const x = s.practice[adv.dim];
+      let y = x;
+      if (x === adv.opt) for (let j = 0; j < n; j++) if (j !== x && (y === x || S[o + j] > S[o + y])) y = j;
+      const h =
+        fewVoices(hooks.membersOf(s).filter((q) => hooks.voiceOf(q, s) > 0).length) *
+        margin(s, x, adv.opt, env.cultures[s.culture].customs[adv.dim]);
+      lc.sup = Math.round(S[o + adv.opt] * 100) / 100;
+      lc.vsOpt = y;
+      lc.vs = Math.round(S[o + y] * 100) / 100;
+      lc.need = Math.round(S[o + x] * (1 + h) * 100) / 100;
+    }
+    p.lastCause = lc;
+    return lc;
   }
   // The year from which the pawn may take up a new cause (it is free when t has reached it).
   const causeFree = (p) =>
@@ -499,10 +547,17 @@ const Culture = (() => {
   // breaks the symmetry of drift; concentrated effort (events, influential pawns, later perhaps the player) uses the same slot.
   function entrepreneurs(env, hooks, rand) {
     const out = [];
+    out.lapsed = []; // the pawns whose cause ran out at this meeting (each has its lastCause)
     for (const id of hooks.living || env.people.map((p) => p.id)) {
       const p = hooks.byId(id);
       if (!p.alive || p.age < 18) continue;
-      if (p.advocate && p.advocate.until !== undefined && p.advocate.until <= env.t) p.advocate = null;
+      if (p.advocate && p.advocate.until !== undefined && p.advocate.until <= env.t) {
+        if (!p.advocate.won) {
+          endCause(env, hooks, p, p.advocate, 'lapsed');
+          out.lapsed.push(p);
+        }
+        p.advocate = null;
+      }
       if (p.advocate || env.t < causeFree(p)) continue;
       const open = hooks.act ? hooks.act(p, 'openness', 'cause') : 1; // 0 to 2 times by openness (VB-520)
       for (let d = 0; d < DIMS.length; d++) {
@@ -746,6 +801,7 @@ const Culture = (() => {
     compileLeans: { value: compileLeans },
     advocate: { value: advocate },
     causeFree: { value: causeFree },
+    endCause: { value: endCause },
     norm: { value: norm },
     WORTH: { value: WORTH },
     CLASSES: { value: CLASSES },

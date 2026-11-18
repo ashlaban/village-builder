@@ -5,7 +5,7 @@
 VB['sim/wishes'] = (() => {
   const { HUNGER, MARRIAGE, WISH, ASK, DAY, YEAR, SEASON_DAYS } = VB['sim/rules'];
   const { of: traitOf } = VB['sim/traits'];
-  const { age, spokesmanOf, spouseOf, holdingOf } = VB['sim/records'];
+  const { age, spokesmanOf, spouseOf, holdingOf, personEvent, fullName, settlementIdOf } = VB['sim/records'];
   const { on } = VB['sim/events'];
   // @state pawn.wish (VB-680): absent or null for the default wish (WISH.rungs as ranked, any farm, whoever its spokesman's asking finds), else
   //   {rank (WISH.rungs in the pawn's order, best first; a rung ranked after 'stay' is one it would not take), farm (a farm id: only that
@@ -118,12 +118,27 @@ VB['sim/wishes'] = (() => {
   const resetWish = (st, id) => write(st.pawns[id], RUNGS, null, null);
   // A wished partner ends when the one who wished or the partner marries (a and b have married) or dies (a is b): the played pawn's,
   // and a's and b's own (sim/lifecycle). A pawn the player has left keeps its partner until its own choosing at the next round.
+  // The played pawn's wish for a match told as lapsed (VB-1113): the wished partner `q` married the other of the pair (a, b) or died
+  // (a is b). A personal event that stops a skip.
+  function lapsed(st, id, q, a, b) {
+    const w = st.pawns[q],
+      other = a === b ? null : st.pawns[q === a ? b : a],
+      why = other
+        ? `${w.sex === 'f' ? 'she' : 'he'} married ${fullName(other)}`
+        : `${w.sex === 'f' ? 'she' : 'he'} died`;
+    personEvent(st, id, 'wishLapsed', `Your wish for ${fullName(w)} lapsed: ${why}`, {
+      other: q,
+      village: settlementIdOf(st, st.pawns[id]),
+    });
+  }
   function endPartner(st, a, b) {
     const pl = st.player;
     for (const id of pl ? [a, b, pl.pawn] : [a, b]) {
       const w = st.pawns[id].wish;
-      if (w && w.partner !== null && (id === a || id === b || w.partner === a || w.partner === b))
+      if (w && w.partner !== null && (id === a || id === b || w.partner === a || w.partner === b)) {
+        if (pl && id === pl.pawn && id !== a && id !== b) lapsed(st, id, w.partner, a, b);
         write(st.pawns[id], w.rank, w.farm, null);
+      }
     }
   }
   // ---- whose yes a move needs (VB-692), read by every basis of a life's offer and by the move verb ----
