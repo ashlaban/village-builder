@@ -86,7 +86,7 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'plan invariants after a season');
   setClock(st, Math.ceil(st.t / DAY) * DAY + WORK[0]);
   refreshJobs(st, cal(st.t), true); // every holder reviewed now
-  for (const id of st.liveHouseholds) assert.strictEqual(Plans.planOf(st, 'household', id).reserved['grain/barley'], seedNeed(st, st.households[id], 'barley'), 'stored at review');
+  for (const id of st.liveHouseholds) assert.strictEqual(Plans.planOf(st, 'household', id).reserved['grain/barley'], seedNeed(st, st.households[id]), 'stored at review');
 }
 // ---- VB-249: windows and the due-queue, planning days ----
 { // the due-queue opens the time-bound kinds at their hour, with no review: water from 5:00, cooking from 14:00

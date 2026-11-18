@@ -61,9 +61,9 @@ assert.strictEqual(Sim.eventLine(st, old), `${Sim.fullName(st.pawns[old.pawn])} 
 
 // a cottage built on a cleared plot is told as a cottage, once, and its holder's move as a move, once (an untouched year of heirs 7)
 {
-  const s2 = scenario('heirs', 7); Sim.advance(s2, 4 * Sim.YEAR); // four years since VB-353: the heirs' farms hold fallow fields, and the plot's cottage comes later
+  const s2 = scenario('heirs', 7); Sim.advance(s2, Sim.YEAR);
   const built = s2.record.filter((e) => e.kind === 'cottage' && / moves into the new farmstead /.test(e.text));
-  assert.ok(built.length, 'no cottage was built on a cleared plot in four years of heirs 7');
+  assert.ok(built.length, 'no cottage was built on a cleared plot in a year of heirs 7');
   for (const e of built) {
     assert.deepStrictEqual(Sim.notable(s2, e), ['farm']);
     assert.strictEqual(s2.record.filter((x) => x.kind === 'joined' && x.farm === e.farm && x.pawn === e.pawn).length, 1, 'its holder joined it once');

@@ -51,8 +51,7 @@ check(near(hh0.manure, 0) && f0.fields[2].soil <= S.cap + 1e-9, 'spreading more 
 // --- founders seed 7, a year on: the heap of a farm that wintered animals is carted onto its fields in spring days 1-6, the poorest first
 st = scenario('founders', 7);
 Sim.advance(st, Sim.YEAR);
-// the carting test is of barley land in stubble (the scenarios' crops, VB-353, give fields other courses): every field is made so
-for (const f of st.farmsteads) for (const [k, q] of f.fields.entries()) Object.assign(q, { crop: 'barley', rotation: 'every', step: 0, stage: 'stubble', soil: S.start - 0.1 * (k % 3) - 0.01 * k }); // below the cap, the poorest apart
+for (const f of st.farmsteads) for (const [k, q] of f.fields.entries()) q.soil = S.start - 0.1 * (k % 3); // below the cap, the poorest apart
 const heaps = st.farmsteads.filter((f) => f.household !== null).map((f) => ({ f, h: st.households[f.household], heap: st.households[f.household].manure,
   soils: f.fields.map((q) => q.soil) }));
 Sim.advance(st, (S.window[1] + 1) * Sim.DAY);
@@ -62,12 +61,9 @@ for (const x of fed) {
   const up = x.f.fields.map((q, k) => q.soil - x.soils[k]);
   check(x.h.manure < x.heap && up.some((d) => d > 1e-9), `${x.f.name}: heap ${x.heap.toFixed(1)} -> ${x.h.manure.toFixed(1)}, soil rose ${up.map((d) => d.toFixed(2))}`);
   const poorest = x.soils.indexOf(Math.min(...x.soils));
-  // the poorest field not yet sown when the carting began: with five or six fields some are sown first (VB-353), so no manured field is
-  // richer than an unsown one left bare
-  const bareOpen = x.f.fields.filter((q, k) => up[k] <= 1e-9 && (q.stage === 'stubble' || q.stage === 'plowed'));
-  check(up[poorest] > 1e-9 || bareOpen.every((q) => x.soils.every((v, k) => up[k] <= 1e-9 || v <= x.soils[q.id] + 1e-9)), `${x.f.name}: the poorest field not manured`);
+  check(up[poorest] > 1e-9, `${x.f.name}: the poorest field not manured`);
 }
-for (const x of bare) check(x.f.fields.every((q, k) => k >= x.soils.length || q.soil === x.soils[k]), `${x.f.name}: no heap, yet its soil rose`);
+for (const x of bare) check(x.f.fields.every((q, k) => q.soil === x.soils[k]), `${x.f.name}: no heap, yet its soil rose`);
 { const bad = checkState(st); check(!bad.length, 'founders after the carting: ' + bad.slice(0, 3).join('; ')); }
 console.log(`soil ok: founders 7, spring of year 2: ${fed.map((x) => `${x.f.name} heap ${x.heap.toFixed(1)} -> ${x.h.manure.toFixed(1)}`).join('; ')}`);
 

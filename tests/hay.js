@@ -68,11 +68,9 @@ at(st, Sim.YEAR_DAYS + 1);
 check(meadows(st).every((m) => m.stage === 'grass' && !m.mown), 'spring: meadows not grass again');
 
 st = scenario('founders', 7);
-at(st, 2 * Sim.YEAR_DAYS - 1);
-// the hay is in each farm's log (with five or six fields to sow for its courses, VB-353, a founders farm's stock is eaten as fast as it is mown, so its
-// stock is no measure)
-const told = Sim.villageLog(st, Infinity).map((e) => e.text).join('\n');
-for (const h of st.households.filter((x) => x.herds.length)) check(told.includes(`${st.farmsteads[h.farmstead].name} has its hay in`), `founders: household ${h.id} brought in no hay by the end of year 2`);
+const fStart = new Map(st.households.map((h) => [h.id, h.hay]));
+at(st, 28);
+for (const h of st.households.filter((x) => x.herds.length)) check(h.hay > fStart.get(h.id), `founders: household ${h.id} brought in no hay in year 1`);
 check(Sim.villageLog(st, Infinity).some((e) => /has its hay in/.test(e.text)), 'founders: no log line for the hay');
 
 if (failed) process.exit(1);

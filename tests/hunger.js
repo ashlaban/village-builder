@@ -34,7 +34,6 @@ for (const [order, check] of [
 {
   const st = fresh('heirs'), hh = st.households[0], f = st.farmsteads[hh.farmstead], man = st.pawns[hh.members[0]];
   while (f.fields.length < 4) f.fields.push({ ...f.fields[0], id: f.fields.length });
-  for (const fd of f.fields) Object.assign(fd, { crop: 'barley', rotation: 'every', step: 0 }); // barley land: three fields keep 75 (VB-353: heirs' village A has three courses)
   hh.members = [man.id]; man.hunger = 0; man.hungerLog = [];
   f.fields.forEach((fd, k) => { fd.stage = k < 3 ? 'plowed' : 'growing'; });
   assert.strictEqual(f.fields.filter((fd) => fd.stage === 'plowed').length, 3);

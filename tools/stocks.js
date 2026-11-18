@@ -125,7 +125,7 @@ const QUANTITIES = [
 const NOT_STOCKS = {
   'identity, links and membership': ['household.id', 'household.farmstead', 'household.members', 'household.holder', 'household.guardian', 'household.ward',
     'household.herds', 'household.dissolved', 'farmstead.id', 'farmstead.house', 'farmstead.village', 'farmstead.household', 'farmstead.name',
-    'farmstead.line', 'farmstead.rowAngle', 'farmstead.firstRotation', 'farmstead.keeps', 'village.id', 'village.name', 'village.center', 'village.farmsteads', 'village.wood', 'village.plots'],
+    'farmstead.line', 'farmstead.rowAngle', 'village.id', 'village.name', 'village.center', 'village.farmsteads', 'village.wood', 'village.plots'],
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'household.spoilt', 'household.hungryDays',
     'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.giftedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',

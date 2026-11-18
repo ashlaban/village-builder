@@ -8,7 +8,7 @@ for (const seed of [7, 42]) {
   for (const f of st.farmsteads) check(f.fields.length === 0, `seed ${seed}: ${f.name} starts with fields`);
   for (const hh of st.households) {
     const want = Sim.fieldsWanted ? Sim.fieldsWanted(st, hh) : 0, rations = hh.members.length * 48;
-    check(Sim.grainOf(hh) >= rations && want >= 2 && want <= 6 /* sown and fallow courses, VB-353 */, `seed ${seed}: household ${hh.id} grain ${Sim.grainOf(hh)}, wants ${want}`);
+    check(Sim.grainOf(hh) >= rations && want >= 2 && want <= 4, `seed ${seed}: household ${hh.id} grain ${Sim.grainOf(hh)}, wants ${want}`);
   }
   Sim.advance(st, 24 * 20);
   for (const f of st.farmsteads) {
