@@ -1,35 +1,26 @@
-// @sys sim/kinds: job kinds, one record each: hours, type of work, labels, where to stand, urgency, and what finishing and delivering do
+// @sys sim/kinds: the registry of job kinds: it joins the records each domain module declares (KINDS), builds the fetch kinds and each role's
+// ranks, and holds the order in which sim/jobs asks the kinds' rules (ASK). A kind's record lives with its domain (VB-418)
 VB['sim/kinds'] = (() => {
-  const Stores = VB['sim/stores'],
-    Projects = VB['sim/projects'],
-    { target } = VB['sim/targets'];
-  const { ROLES, WORK, FISH, FORAGE, BREW, CROPS, cal, HOUSE, houseCondition, PEAT } = VB['sim/rules'],
-    Carts = VB['sim/carts'];
-  const { log, atFarm } = VB['sim/records'];
-  const { fellTree, drawWood } = VB['sim/forest'];
-  const { scrubHours, SPREAD } = VB['sim/spread'];
-  const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
-    { reserved } = Stores;
-  const Fieldwork = VB['sim/fieldwork'];
-  const Meadows = VB['sim/meadows'],
-    { meadowWork } = Meadows;
-  const Byre = VB['sim/byre'],
-    { byreWork } = Byre;
-  const Expansion = VB['sim/expansion'],
-    { plotWork } = Expansion;
-  const { workStake } = VB['sim/claims'],
-    { onProject, landProject } = Projects,
+  const { ROLES } = VB['sim/rules'],
     { doneOf } = VB['sim/progress'];
-  const Farmclaims = VB['sim/farmclaims'],
-    { claimWork } = Farmclaims;
-  const Building = VB['sim/building'],
-    Pot = VB['sim/pot'],
+  const Fieldwork = VB['sim/fieldwork'],
+    Chores = VB['sim/chores'],
+    Meadows = VB['sim/meadows'],
+    Byre = VB['sim/byre'],
+    Expansion = VB['sim/expansion'],
+    Farmclaims = VB['sim/farmclaims'],
+    Building = VB['sim/building'],
     Green = VB['sim/green'],
     Workdays = VB['sim/workdays'],
     Commons = VB['sim/commons'],
-    Lying = VB['sim/lying'];
-  const { ground: forageGround, gather } = VB['sim/forage'],
-    Drying = VB['sim/drying'];
+    Lying = VB['sim/lying'],
+    Drying = VB['sim/drying'],
+    Carts = VB['sim/carts'];
+  const { landProject } = VB['sim/projects'],
+    { meadowWork } = Meadows,
+    { byreWork } = Byre,
+    { plotWork } = Expansion,
+    { claimWork } = Farmclaims;
   // A kind's fields:
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
@@ -56,26 +47,13 @@ VB['sim/kinds'] = (() => {
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
   //   late: a job of the kind under way, its worker walking there or at work, is finished after the end of work (VB-119: the cook).
   //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/jobs).
-  // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
-  const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
-  // The fuel pile in wood loads: the woodpile less what a project plan holds back, and the peat held at PEAT.worth (VB-367).
-  const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
-  // The household has fewer meals than the coming meal needs, grain, fresh food (VB-119) or seed it would eat (VB-388) to cook it from, and
-  // wood in the pile (VB-327: an empty pile cannot cook; the pot burns no wood of its own, the day's use is the hearth's) and the day's water
-  // in (VB-331: a dry day's meal is eaten uncooked).
-  const cookWanted = (st, hh, c) =>
-    hh.cookDay !== c.day && hh.waterDay === c.day && hh.wood > 0 && Pot.cookable(st, hh, dailyNeed(st, hh));
-  // Ale is wanted (VB-305) while the household holds fewer barrels than its head's target (VB-698; BREW.stock by default) and has the grain
-  // for one above its floor (which holds the seed reserve): a household never brews grain it needs.
-  const brewWanted = (st, hh) =>
-    Stores.aleOf(st, hh) < target(st, hh, 'ale') && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // The village's common fields (VB-100): their kinds, as at a farm's fields, while its meeting chose the routine.
   function commonWork(st, v, at, c, post) {
     if (st.plans.villages.get(v.id).routines.includes('commons')) Commons.work(st, v, c, post, ASK.fieldAt);
   }
-  // Gathering: from summer day FORAGE.from + 1 to the end of autumn.
-  const gathering = (c) => (c.season === 1 && c.sday >= FORAGE.from) || c.season === 2;
+  // Every kind, in a fixed order: the order is part of saved state (st.plans.due holds an index into the windowed kinds, sim/plans) and of
+  // the fetch kinds' and the ranks' order, so a new kind is added at the end, whatever its module.
   // The field's kinds, and for a common field the three whose end is the village's (sim/commons).
   const F = Commons.common(Fieldwork.KINDS);
   const KINDS = {
@@ -83,129 +61,10 @@ VB['sim/kinds'] = (() => {
     sow: F.sow,
     reap: F.reap,
     haul: F.haul,
-    wood: {
-      verb: 'Cutting firewood',
-      go: 'Heading to the woods',
-      back: 'Carrying firewood home',
-      name: 'Cut firewood',
-      label: 'Firewood',
-      anim: 'chop',
-      hours: 3,
-      hands: 1,
-      type: 'wood',
-      carry: 'logs',
-      to: 'woodpile',
-      spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
-      // 3 in a cold house (VB-327: above cooking's 2.2); 2.2 when the pile is nearly out; else its shortfall of the goal, and more in autumn
-      urgency: (st, j, c, U) => {
-        const hh = st.households[j.farm.household];
-        if (hh.cold > 0) return U.woodColdUrgency;
-        const free = fuelFree(st, hh); // what a project plan holds back is not for the fire (VB-123)
-        if (free < U.woodLow) return U.woodLowUrgency;
-        const goal = woodTargets(st, hh).wood[c.season];
-        return (goal - free) / goal + (c.season === 2 ? U.woodSummer : 0);
-      },
-      // a tree felled on the tile drawn from the village's wood when the job was posted (VB-326), or on one drawn now if it was cut bare
-      deliver: (st, j, hh, f, a) => {
-        // a tree felled, and its wood home, for each load cut and stacked on the cart (sim/carts); one on the back
-        for (let k = Carts.loads(a); k > 0; k--) {
-          Stores.put(st, hh, 'wood', st.ECON.woodPerTrip, 'firewood');
-          fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.farm.village]));
-        }
-      },
-      stack: (st, j, hh, c, load) =>
-        fuelFree(st, hh) + st.ECON.woodPerTrip * Carts.loads({ load }) < woodTargets(st, hh).wood[c.season],
-      draw: (st, j) => drawWood(st, st.villages[j.farm.village]),
-      // while the village has a wood and the pile's free wood (VB-123) is below the plan's goal for the season; a second job below its woodSecond
-      available: (st, hh, f, c, post) => {
-        const wood = st.villages[f.village].wood,
-          T = woodTargets(st, hh),
-          free = fuelFree(st, hh);
-        if (wood.length && free < T.wood[c.season]) {
-          post(`wood:h${hh.id}`, wood[0], { farm: f });
-          if (free < T.woodSecond) post(`wood:h${hh.id}b`, wood[0], { farm: f });
-        }
-      },
-    },
-    water: {
-      verb: 'Drawing water',
-      go: 'Going for water',
-      back: 'Carrying water home',
-      name: 'Fetch water',
-      label: 'Water',
-      anim: 'draw',
-      hours: 0.5,
-      hands: 1,
-      type: 'household',
-      carry: 'buckets',
-      to: 'door',
-      window: { from: WORK[0] - 1 },
-      spot: (st, a, j) => {
-        const w = st.w;
-        return st.villages[j.farm.village].well
-          ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8]
-          : [w.hx[j.site] - 1, w.hy[j.site] + 4];
-      },
-      // from 14:00, the cook's hour, above cooking's (VB-331): the hand that would cook fetches the water first
-      urgency: (st, j, c, U) =>
-        c.hour >= U.waterLateHour ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
-      deliver: (st, j, hh) => {
-        hh.waterDay = cal(st.t).day;
-      },
-      // once a day, from the hour before work until its end, at the village well if it has one, else by the house
-      available: (st, hh, f, c, post) => {
-        const inWork = c.hour >= WORK[0] - 1 && c.hour < WORK[1];
-        if (inWork && hh.waterDay !== c.day)
-          post(`water:h${hh.id}:${c.day}`, st.villages[f.village].well ? st.villages[f.village].center : f.house, {
-            farm: f,
-          });
-      },
-    },
-    cook: {
-      verb: 'Cooking at the hearth',
-      go: 'Going home to cook',
-      name: 'Cook',
-      label: 'Cook',
-      anim: null,
-      hours: 2,
-      hands: 1,
-      type: 'household',
-      inside: true,
-      window: { from: 14 },
-      late: true, // a pot under way is finished after the end of work (VB-119; Kim, 11 Nov)
-      urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
-      // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain, the seed it would eat (sim/pot)
-      done: (st, j, hh, c) => {
-        Pot.cookMeal(st, hh, dailyNeed(st, hh));
-        hh.cookDay = j.day ?? c.day;
-      },
-      // from 14:00 to the end of work, while the household is short of meals and has grain or fresh food to cook (cookWanted)
-      available: (st, hh, f, c, post) => {
-        if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c))
-          post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f, day: c.day });
-      },
-    },
-    brew: {
-      verb: 'Brewing ale',
-      go: 'Going home to brew',
-      name: 'Brew ale',
-      label: 'Brewing',
-      anim: null,
-      hours: BREW.hours,
-      hands: 1,
-      type: 'household',
-      inside: true,
-      urgency: (st, j, c, U) => U.brew,
-      // a barrel from the grain, if it is still surplus when the work is done
-      done: (st, j, hh) => {
-        if (Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain) Stores.brew(st, hh);
-      },
-      // in autumn and winter, once the harvest is in, while ale is wanted (brewWanted)
-      available: (st, hh, f, c, post) => {
-        if ((c.season === 2 || c.season === 3) && brewWanted(st, hh))
-          post(`brew:h${hh.id}:${c.day}`, f.house, { farm: f });
-      },
-    },
+    wood: Chores.KINDS.wood,
+    water: Chores.KINDS.water,
+    cook: Chores.KINDS.cook,
+    brew: Chores.KINDS.brew,
     weed: F.weed,
     thresh: F.thresh,
     clear: F.clear,
@@ -229,33 +88,7 @@ VB['sim/kinds'] = (() => {
     mend: Building.UPKEEP.mend,
     repair: Building.UPKEEP.repair,
     fish: Drying.KINDS.fish,
-    gather: {
-      verb: 'Gathering berries, mushrooms and nuts',
-      go: 'Going to the woods to gather',
-      back: 'Carrying the baskets home',
-      name: 'Gather wild food',
-      label: 'Gathering',
-      anim: 'forage',
-      hours: 3,
-      hands: 1,
-      type: 'foraging',
-      carry: 'basket',
-      to: 'door',
-      urgency: (st, j, c, U) => spareUrgency(st, j, U),
-      // the baskets are fresh food, cooked in the pot or eaten as they are on a day without meals (sim/pot, VB-119)
-      deliver: (st, j, hh) => {
-        Pot.putFresh(st, hh, 'gathered', gather(st, j.site), 'gathering');
-      },
-      // in the gathering season, at the house's gathering ground (sim/forage): one trip, two while spare food covers fewer than FISH.secondDays
-      available: (st, hh, f, c, post) => {
-        if (!gathering(c)) return;
-        const t = forageGround(st, f.house);
-        if (t < 0) return;
-        // the key names the tile, so a ground picked bare is left for the next one at the following review
-        post(`gather:h${hh.id}:${t}`, t, { farm: f });
-        if (spareDays(st, hh) < FISH.secondDays) post(`gather:h${hh.id}:${t}b`, t, { farm: f });
-      },
-    },
+    gather: Chores.KINDS.gather,
   };
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
   KINDS.herd = VB['sim/grazing'].KIND;
@@ -312,5 +145,5 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, cookWanted, isOpen, fuelFree };
+  return { KINDS, ASK, isOpen };
 })();

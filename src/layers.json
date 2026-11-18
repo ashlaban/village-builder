@@ -6,7 +6,7 @@
       "sim/routes", "sim/paths", "sim/fish", "sim/forage", "sim/layout", "sim/byhand", "sim/forest", "sim/people", "sim/records", "sim/traits", "sim/wishes", "sim/prospect", "sim/commands"],
     "material": ["sim/stores", "sim/targets", "sim/projects", "sim/dig", "sim/pot", "sim/hunger", "sim/quern", "sim/fields", "sim/fieldwork", "sim/meadows", "sim/byre", "sim/deer", "sim/grazing", "sim/spread", "sim/herds", "sim/ownership", "sim/claims",
       "sim/stakes", "sim/territory", "sim/progress", "sim/expansion", "sim/building",
-      "sim/drying", "sim/tar", "sim/carts", "sim/green", "sim/lying"],
+      "sim/drying", "sim/tar", "sim/carts", "sim/chores", "sim/green", "sim/lying"],
     "social": ["culture", "sim/encounters", "sim/relations", "sim/mood", "sim/society", "sim/deaths", "sim/births", "sim/heirs", "sim/membership", "sim/cottage",
       "sim/settle", "sim/farmclaims", "sim/service", "sim/matching", "sim/courting", "sim/offers", "sim/obligations", "sim/workdays", "sim/commons"],
     "agency": ["sim/agents", "sim/away", "sim/gifts", "sim/occasions", "sim/player", "sim/trust", "sim/jobs", "sim/kinds", "sim/exchange", "sim/help", "sim/lifecycle", "sim/marriage", "sim/gathering", "sim/meetings", "sim/asking", "sim/visits", "sim/round", "sim/eligibility", "sim/plans", "sim/aims", "sim/outlook"],
