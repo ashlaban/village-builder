@@ -29,6 +29,7 @@ VB['sim/heirs'] = (() => {
   const { farmToVillage, heldFarms } = VB['sim/ownership'];
   const { issue } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
+  const { oweShare } = VB['sim/obligations'];
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
@@ -233,8 +234,7 @@ VB['sim/heirs'] = (() => {
         const qh = st.pawns[q].household; // grain short: animals (at their customary worth) go to a sibling's household of their own (VB-140)
         const animals = due > paid && qh !== null ? payInAnimals(st, hh, st.households[qh], due - paid) : 0,
           owed = due - paid - animals;
-        st.pawns[q].owed = (st.pawns[q].owed || 0) + owed;
-        if (owed) st.pawns[q].owedFrom = hh.id; // owedFrom: the farm that pays (sim/cottage)
+        if (owed) oweShare(st, hh, q, owed); // the farm that pays, at each moving round (sim/obligations; sim/cottage payOwed)
         if (due)
           personEvent(
             st,

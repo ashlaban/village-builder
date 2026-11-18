@@ -48,6 +48,30 @@ function checkState(st) {
       if (t.ward !== null && t.ward !== hh.holder) bad.push(`trust ${id}: ward ${t.ward} is not the holder`);
     }
   }
+  // VB-310: obligations: ids are indexes; a live one's parties exist; delivered at most what is owed, and all of it only when met; the
+  // due-queue holds exactly the running ones (open, part), by due then id, none past due by a year; the parties' lists exactly the live ones
+  if (st.obligations || st.obligationsDue || st.obligationsBy) {
+    const O = globalThis.VB['sim/obligations'], all = st.obligations || [], STATUS = ['open', 'part', 'overdue', 'met', 'forgiven', 'lapsed', 'defaulted'];
+    const exists = (x) => !!x && (x.kind === 'pawn' ? !!st.pawns[x.id] : x.kind === 'household' ? !!st.households[x.id] : x.kind === 'village' ? !!st.villages[x.id] : false);
+    all.forEach((o, i) => {
+      const at = `obligation ${i}`, n = o.owes && (o.owes.rations !== undefined ? o.owes.rations : o.owes.hours);
+      if (o.id !== i) bad.push(`${at}: id ${o.id}`);
+      if (!O.KINDS[o.kind] || !STATUS.includes(o.status)) bad.push(`${at}: kind ${o.kind}, status ${o.status}`);
+      if (!(n > 0) || !(o.delivered >= 0) || o.delivered > n + 1e-9) bad.push(`${at}: delivered ${o.delivered} of ${n}`);
+      if ((o.status === 'met') !== (o.delivered >= n - 1e-9)) bad.push(`${at}: ${o.status} with ${o.delivered} of ${n} delivered`);
+      if (o.status === 'open' && o.delivered > 0) bad.push(`${at}: open with ${o.delivered} delivered`);
+      if (!(o.since <= st.t) || !Number.isFinite(o.due)) bad.push(`${at}: since ${o.since}, due ${o.due}`);
+      if (['open', 'part', 'overdue'].includes(o.status) && !(exists(o.debtor) && exists(o.creditor) && (o.enforcer === null || exists(o.enforcer))))
+        bad.push(`${at}: a party of it does not exist (${JSON.stringify([o.debtor, o.creditor, o.enforcer])})`);
+    });
+    const made = O.rebuilt(st);
+    if (JSON.stringify(made.due) !== JSON.stringify(st.obligationsDue)) bad.push(`obligations: the due-queue ${JSON.stringify(st.obligationsDue)} is not the running ones ${JSON.stringify(made.due)}`);
+    for (const as of ['debtor', 'creditor']) {
+      const have = st.obligationsBy ? st.obligationsBy[as] : {}, keys = Object.keys(made.by[as]).sort();
+      if (JSON.stringify(Object.keys(have).sort()) !== JSON.stringify(keys) || keys.some((k) => JSON.stringify(have[k]) !== JSON.stringify(made.by[as][k])))
+        bad.push(`obligations: the ${as}s' lists differ from the live records`);
+    }
+  }
   // the clock (VB-235): st.tick, a non-negative whole count of 6-minute steps, is its source of truth; st.t is it in hours, whole steps
   // only (VB-244: the page keeps the part of a step)
   const TICKS = globalThis.VB['sim/rules'].TICKS;
