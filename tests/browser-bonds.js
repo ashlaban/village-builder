@@ -1,4 +1,4 @@
-// VB-1026: a portrait drawn in relation to someone carries its bonds as badges: in a person's Knows best rows and on the spouse's chip of
+// VB-1026, VB-1027: a portrait drawn in relation to someone carries its bonds as badges: in a person's Knows best rows and on the spouse's chip of
 // its card, with the word as the badge's label; a portrait drawn for nobody carries none.
 const { builtPage } = require('./lib/page');
 const assert = require('assert'), fs = require('fs'), path = require('path');
@@ -37,10 +37,15 @@ assert(html.includes('window.__bondTest'), 'page hook exists');
     const card = await page.evaluate(() => ({
       chip: [...document.querySelectorAll('#tileLinks .chip .bond, .links .chip .bond')].map((b) => [b.className, b.getAttribute('aria-label'), !!b.querySelector('svg')]),
       rows: [...document.querySelectorAll('#tileRel button.op')].map((r) => ({ pawn: +r.dataset.pawn,
-        bonds: [...r.querySelectorAll('.bond')].map((b) => [b.className, b.getAttribute('aria-label')]) })) }));
+        title: r.title, words: r.querySelector('i:not(.bond)').textContent,
+        bonds: [...r.querySelectorAll('.bond')].map((b) => [b.className, b.getAttribute('aria-label')]) })),
+      text: document.querySelector('.tile').textContent }));
     assert(card.chip.some(([cls, word, svg]) => /\bkin\b/.test(cls) && word === 'wife' && svg), `the spouse's chip says wife: ${JSON.stringify(card.chip)}`);
     const row = card.rows.find((r) => r.pawn === wife);
     assert(row && row.bonds.some(([cls, word]) => /\bkin\b/.test(cls) && word === 'wife'), `her Knows best row says wife: ${JSON.stringify(card.rows)}`);
+    // VB-1027: the words the badges carry are the row's tooltip, not its text, and the card does not write whom he is married to
+    assert(/\bwife\b/.test(row.title) && !/wife/.test(row.words), `her row's word is its tooltip: ${JSON.stringify(row)}`);
+    assert(!/Husband of/.test(card.text), 'the card leaves the spouse to the chip');
     // the function itself: every bond has an icon; kin both ways in the pawn's own word; nobody's portrait is bare; the opinion's tone
     const fn = await page.evaluate(([m, f]) => { const T = window.__bondTest, st = T.st, P = VB['sim/rules'].SOCIAL, has = (h, w) => h.includes(`aria-label="${w}"`);
       const bare = T.face(f, 'mini'), self = T.face(m, 'mini', m), hers = T.face(m, 'mini', f);
@@ -54,6 +59,10 @@ assert(html.includes('window.__bondTest'), 'page hook exists');
     assert(!fn.bare && !fn.self, 'a portrait for nobody, or of oneself, has no badge');
     assert(fn.husband, 'he is her husband');
     assert(fn.warm && fn.cold, `the opinion badge and its tone: ${JSON.stringify(fn)}`);
+    // VB-1027: a widower reads Widowed, as a widow does (the debug's death, as the Debug panel deals it)
+    const widowed = await page.evaluate(([m, f]) => { Sim.killPawn(window.__bondTest.st, f, 'illness'); window.__bondTest.select(m);
+      return document.querySelector('.tile').textContent; }, [man, wife]);
+    assert(/Widowed/.test(widowed) && !/Unmarried/.test(widowed), 'a widower is widowed');
     assert.deepStrictEqual(errors, [], 'no page errors');
     console.log(`browser-bonds: the chip and ${card.rows.length} Knows best rows carry their bonds; 9 icons`);
   } finally { await browser.close(); }

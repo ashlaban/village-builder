@@ -110,6 +110,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1005](backlog/VB-1005.md) | Measurements owed: the ale evening and the rite at 30 and 50 years (VB-522), for VB-662 | - | 3 | S | VB-522's long seeds, brewing against rot, the hours report and the hosts' standing |
 | [VB-1006](backlog/VB-1006.md) | Occasions' ends as a table of kinds | - | 3 | S | finish in sim/occasions branches on five kinds; make each kind's end a row of OCCASIONS |
 | [VB-1008](backlog/VB-1008.md) | Measure the gathering: 40 populous years and its cost on medium-ref | fair | 3 | S | VB-294's owed measures, for the collecting task VB-662 |
+| [VB-1028](backlog/VB-1028.md) | Births and deaths leave something to see: a grave, a lying-in, a wake | - | 3 | M | A death and a birth happen at midnight and leave no trace on the map: a grave marker where the dead are laid, and the household's lying-in or wake the day after, as states a pawn is in |
 
 ## Waiting for Kim
 

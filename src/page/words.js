@@ -4,6 +4,9 @@ const isWidow = (p) =>
   p.sex === 'f' &&
   Sim.spouseOf(st, p.id) === null &&
   st.unions.some((u) => (u.a === p.id || u.b === p.id) && u.end !== null);
+// Widowed, man or woman: unmarried now, with a marriage that ended (isWidow is the woman's, for her role's word)
+const isWidowed = (p) =>
+  Sim.spouseOf(st, p.id) === null && st.unions.some((u) => (u.a === p.id || u.b === p.id) && u.end !== null);
 const roleLine = (p) => {
   if (p.role === 'farmer' && p.sex === 'f')
     return isWidow(p) ? 'Widow holding the farm (änka)' : 'Holds the farm (bonde)';
@@ -219,25 +222,27 @@ function showPawn(id) {
         means: `The home has the means to marry: it holds ${yrs(bar.held)} of the ${yrs(bar.asked)} years asked`,
         hands: "The home needs a spouse's hands: no means are asked",
       }[bar.kind];
-  const rel =
-    (sp !== null
-      ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}`
-      : isWidow(p)
-        ? 'Widowed'
-        : 'Unmarried') +
-    (p.pregnantUntil !== null
-      ? ', expecting a child'
+  // whom it is married to is the spouse's chip, with the rings on its portrait (VB-1027): the words are for what has no chip
+  const rel = [
+    sp !== null ? '' : isWidowed(p) ? 'Widowed' : 'Unmarried',
+    p.pregnantUntil !== null
+      ? 'Expecting a child'
       : p.nursingUntil !== null && st.t < p.nursingUntil && (p.nursling === null || st.pawns[p.nursling].alive)
         ? p.nursling !== null
-          ? `, nursing ${st.pawns[p.nursling].given}`
-          : ', nursing a baby'
-        : '');
+          ? `Nursing ${st.pawns[p.nursling].given}`
+          : 'Nursing a baby'
+        : '',
+    kids.length ? `${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : '',
+  ]
+    .filter(Boolean)
+    .map((x, i) => (i ? x.charAt(0).toLowerCase() + x.slice(1) : x))
+    .join(', ');
   const v = st.villages[f.village];
   card(
     Sim.fullName(p),
     [
       `${roleLine(p)}, ${p.age}`,
-      `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`,
+      `${status}.${rel ? ` ${rel}` : ''}`,
       p.stake
         ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}`
         : p.advocate
@@ -304,15 +309,16 @@ function showRelations(id) {
       const word = Sim.opinionWord(x.opinion),
         kin = Sim.standingWord(st, id, x.id),
         why = Sim.reasonsOf(st, id, x.id).find((r) => r.label !== kin);
-      const detail = [kin, word === 'neutral' ? null : word, !kin && why ? why.label.toLowerCase() : null]
-        .filter(Boolean)
-        .join(' · ');
+      // the kin bond and the opinion's band are the portrait's badges (VB-1026); their words are the row's tooltip (VB-1027), and what
+      // is written is what has no icon: the largest memory of one who is no kin
+      const reason = !kin && why ? why.label.toLowerCase() : '',
+        tip = [kin, word === 'neutral' ? null : word, reason].filter(Boolean).join(' · ');
       const tone = x.opinion >= 0.25 ? 'pos' : cold(x.opinion) ? 'neg' : '';
-      return `<button type="button" class="op" data-pawn="${x.id}">${faceImg(
+      return `<button type="button" class="op" data-pawn="${x.id}"${tip ? ` title="${esc(tip)}"` : ''}>${faceImg(
         x.id,
         'mini',
         id,
-      )}${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i>${meter({
+      )}${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(reason)}</i>${meter({
         value: x.opinion * 100,
         signed: true,
         tone: tone === 'pos' ? 'good' : tone === 'neg' ? 'bad' : '',
