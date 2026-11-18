@@ -1,4 +1,4 @@
-// VB-1026, VB-1033, VB-1029: a portrait drawn in relation to someone carries its bonds as badges: in a person's Knows best rows and on the spouse's chip of
+// VB-1026, VB-1033, VB-1029, VB-1035: a portrait drawn in relation to someone carries its bonds as badges: in a person's Knows best rows and on the spouse's chip of
 // its card, with the word as the badge's label; a portrait drawn for nobody carries none.
 const { builtPage } = require('./lib/page');
 const assert = require('assert'), fs = require('fs'), path = require('path');
@@ -8,7 +8,7 @@ const root = path.join(__dirname, '..');
 const pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
 const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
 const rawHTML = builtPage().replace(HOOK, HOOK + ' window.__bondTest = { get st() { return st; }, select(id) { stopIntro(); selectPawn(id); }, '
-  + 'face: (id, cls, of) => faceImg(id, cls, of), kinds: () => Object.keys(BOND_PATHS), '
+  + 'face: (id, cls, of) => faceImg(id, cls, of), kinds: () => Object.keys(BOND_PATHS), states: () => Object.keys(STATE_PATHS), '
   + 'aged: (id, age) => agedLook(lookOf(st.pawns[id]), age), look: (id) => lookOf(st.pawns[id]), faceAt(id, age) { const p = st.pawns[id], was = p.age; p.age = age; clearPortraits(); '
   + 'const url = faceOf(id); p.age = was; clearPortraits(); return url; }, rigSig(id, age) { const p = st.pawns[id], was = p.age, R = makeRig(p, false); p.age = age; '
   + 'ageRig(R, p); p.age = was; return R.look.aged; } };');
@@ -74,10 +74,24 @@ assert(html.includes('window.__bondTest'), 'page hook exists');
     assert(age.boy === false && age.man, 'no beard on a boy; a man keeps the beard of his look');
     assert(age.rig[0] !== age.rig[1], 'the map figure is aged as the portrait');
     assert(age.wife[0] !== age.wife[1] && age.wife[0] === age.wife[2], 'a married woman\'s portrait ages, by its lines, and is the same again at the same age');
-    // VB-1033: a widower reads Widowed, as a widow does (the debug's death, as the Debug panel deals it)
-    const widowed = await page.evaluate(([m, f]) => { Sim.killPawn(window.__bondTest.st, f, 'illness'); window.__bondTest.select(m);
-      return document.querySelector('.tile').textContent; }, [man, wife]);
-    assert(/Widowed/.test(widowed) && !/Unmarried/.test(widowed), 'a widower is widowed');
+    // VB-1035: unmarried, widowed, expecting and nursing are marks on the card, an icon each with its words as the label, not text;
+    // VB-1033: a widower is widowed, as a widow is (the debug's death, as the Debug panel deals it)
+    const marks = () => page.evaluate(() => ({ marks: [...document.querySelectorAll('#tileLinks .state-mark')].map((m) => [m.getAttribute('aria-label'), m.title, !!m.querySelector('svg')]),
+      text: document.getElementById('tileFacts').textContent }));
+    const wed = await marks();
+    assert.deepStrictEqual(wed.marks, [], 'a married man has no mark: his wife\'s chip says it');
+    const mother = await page.evaluate(([m, f]) => { const T = window.__bondTest, p = T.st.pawns[f], was = [p.pregnantUntil, p.nursingUntil, p.nursling];
+      const read = () => { T.select(f); return [...document.querySelectorAll('#tileLinks .state-mark')].map((x) => x.getAttribute('aria-label')); };
+      p.pregnantUntil = T.st.t + 100; const expecting = read(); // set for the check, and put back: the page writes neither itself
+      p.pregnantUntil = null; p.nursingUntil = T.st.t + 100; p.nursling = null; const nursing = read();
+      [p.pregnantUntil, p.nursingUntil, p.nursling] = was; return { expecting, nursing }; }, [man, wife]);
+    assert.deepStrictEqual([mother.expecting, mother.nursing], [['Expecting a child'], ['Nursing a baby']], JSON.stringify(mother));
+    await page.evaluate(([m, f]) => { Sim.killPawn(window.__bondTest.st, f, 'illness'); window.__bondTest.select(m); }, [man, wife]);
+    const widower = await marks();
+    assert.deepStrictEqual(widower.marks, [['Widowed', 'Widowed', true]], `a widower is widowed, by its mark: ${JSON.stringify(widower.marks)}`);
+    assert(!/Widowed|Unmarried|Expecting|Nursing/.test(wed.text + widower.text), 'and none of it is written');
+    const kinds = await page.evaluate(() => window.__bondTest.states());
+    assert.deepStrictEqual(kinds.sort(), ['expecting', 'nursing', 'unmarried', 'widowed']);
     assert.deepStrictEqual(errors, [], 'no page errors');
     console.log(`browser-bonds: the chip and ${card.rows.length} Knows best rows carry their bonds; 9 icons; faces age`);
   } finally { await browser.close(); }

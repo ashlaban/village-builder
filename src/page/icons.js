@@ -318,6 +318,18 @@ const BOND_PATHS = {
   enemy: '<path d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5M17 17l3 3M7 17l-3 3"/>',
 };
 const bondIcon = (k) => svgIcon(24, 24, BOND_PATHS[k], ICON_STROKE);
+// A person's state in its family (VB-1035), where no other person's chip can say it: one ring; the two rings, one of them faded;
+// a figure great with child; a mother with a swaddled child.
+const STATE_PATHS = {
+  unmarried: '<circle cx="12" cy="14" r="5.5"/><path d="M10.5 6.5L12 4l1.5 2.5"/>',
+  widowed:
+    '<circle cx="9" cy="13" r="5"/><circle cx="15" cy="13" r="5" stroke-dasharray="1.6 2.8"/><path d="M7.5 6L9 3.5 10.5 6"/>',
+  expecting: '<circle cx="10.5" cy="5.5" r="2.8"/><path d="M9 10.5c-1.2 3.5-1.2 7 0 10.5h4.5v-3c4.2-.6 5-6-.5-7.5z"/>',
+  nursing:
+    '<circle cx="9" cy="6" r="2.8"/><path d="M4.5 21c0-5 1.5-9 4.5-9 1.8 0 3.2 1 4.2 2.8"/><circle cx="16.5" cy="13" r="1.9"/>' +
+    '<path d="M12.2 18.2c1.2-2.2 6.4-2.2 7.8-.2 0 2-1.8 3-3.9 3s-3.9-1-3.9-2.8z"/>',
+};
+const stateIcon = (k) => svgIcon(24, 24, STATE_PATHS[k], ICON_STROKE);
 // The occasions (sim/occasions; VB-1032), one icon a kind, each an icon the interface has already: the two bubbles of who speaks, the
 // cross of piety, the rings, the tear of the grieving, the tankard. The map's mark of a gathering draws the same path (page/gathering).
 const OCCASION_PATHS = {

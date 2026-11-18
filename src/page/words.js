@@ -222,21 +222,26 @@ function showPawn(id) {
         means: `The home has the means to marry: it holds ${yrs(bar.held)} of the ${yrs(bar.asked)} years asked`,
         hands: "The home needs a spouse's hands: no means are asked",
       }[bar.kind];
-  // whom it is married to is the spouse's chip, with the rings on its portrait (VB-1033): the words are for what has no chip
-  const rel = [
-    sp !== null ? '' : isWidowed(p) ? 'Widowed' : 'Unmarried',
-    p.pregnantUntil !== null
-      ? 'Expecting a child'
-      : p.nursingUntil !== null && st.t < p.nursingUntil && (p.nursling === null || st.pawns[p.nursling].alive)
-        ? p.nursling !== null
-          ? `Nursing ${st.pawns[p.nursling].given}`
-          : 'Nursing a baby'
-        : '',
-    kids.length ? `${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : '',
+  // Its state in its family (VB-1033, VB-1035): whom it is married to is the spouse's chip, with the rings on its portrait; unmarried,
+  // widowed, expecting and nursing are marks beside the chips, each an icon with its words as the label and tooltip. Only the count of
+  // its children is written.
+  const nursing =
+    p.pregnantUntil === null &&
+    p.nursingUntil !== null &&
+    st.t < p.nursingUntil &&
+    (p.nursling === null || st.pawns[p.nursling].alive);
+  const marks = [
+    sp !== null ? null : isWidowed(p) ? ['widowed', 'Widowed'] : p.age >= 14 ? ['unmarried', 'Unmarried'] : null,
+    p.pregnantUntil !== null ? ['expecting', 'Expecting a child'] : null,
+    nursing ? ['nursing', p.nursling !== null ? `Nursing ${st.pawns[p.nursling].given}` : 'Nursing a baby'] : null,
   ]
     .filter(Boolean)
-    .map((x, i) => (i ? x.charAt(0).toLowerCase() + x.slice(1) : x))
-    .join(', ');
+    .map(
+      ([k, words]) =>
+        `<span class="state-mark" role="img" aria-label="${esc(words)}" title="${esc(words)}">${stateIcon(k)}</span>`,
+    )
+    .join('');
+  const rel = kids.length ? `${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : '';
   const v = st.villages[f.village];
   card(
     Sim.fullName(p),
@@ -255,7 +260,7 @@ function showPawn(id) {
     {
       badge: faceImg(id, 'badge'),
       stats: pawnStats(id) + traitsHTML(id),
-      links: (sp !== null ? pawnChip(sp, '', id) : '') + farmChip(f) + villageChip(v),
+      links: marks + (sp !== null ? pawnChip(sp, '', id) : '') + farmChip(f) + villageChip(v),
     },
   );
   showRelations(id);
