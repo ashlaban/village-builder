@@ -17,8 +17,8 @@ The orchestrator writes those once, from your notes.
 1. Set up: `git merge` the run's branch, so that you start from its latest commit; then link what the main checkout already has,
    `M="$(git rev-parse --path-format=absolute --git-common-dir)/.."`: `ln -s "$M/node_modules" node_modules` if it is missing, and
    `ln -s "$M/tests/fixtures" tests/fixtures` likewise (the fixtures are keyed by the sources, so the cache is safe to share).
-2. Take the task as `AGENTS.md`, "Taking a task", says, from `node tools/brief.js ID` to ticking its criteria and writing its notes
-   in `backlog/ID.md`, which is yours to edit. Read sections, not files (`tools/doc.js`); learn a tool from its `--help`.
+2. Take the task as `AGENTS.md`, "Taking a task", says, from `node tools/brief.js ID` to ticking its criteria and writing its few lines of
+   notes in `backlog/ID.md`, which is yours to edit. Read sections, not files (`tools/doc.js`); learn a tool from its `--help`.
 3. Before you first edit a file under `src/`, `node tools/inbox.js claim ID FILE...`. If another task holds one, keep your change to
    that file small.
 4. Allowed: what the task specifies, and the tests it needs. No new dependencies, build changes or restructuring unless the task says so.
@@ -41,5 +41,6 @@ The orchestrator writes those once, from your notes.
 
 Your last message is all your caller sees, so make it the result and nothing else, in at most twelve lines:
 - `VB-NNN <title>: done <commit> on <branch>`, or `needs-review <commit> on <branch>: <the criteria unmet, or the question>`, or `failed: <what, and the state of the worktree>`;
-- the numbers `AGENTS.md` asks for (before and after, seeds and maps; counters changed, targets moved);
+- counters changed; numbers before and after only where a criterion of the task names them (the night measures the rest, once);
+  for a refactor, each change of behaviour in a line, or the line of `tools/same.js`;
 - the notes you left, by kind and count; the inbox holds their text.

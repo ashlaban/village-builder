@@ -29,8 +29,9 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 4. Work in small commits, with `npm test` after each change.
 5. Before the last commit: `npm run format`, then `npm run verify` (half a minute); for a change under `src/page/`, also `node tests/smoke.js` and the
    `tests/browser*.js` it touches. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
-   report it in the task file and the PR's Targets section (before, after, residual, cause).
-6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`. Measurements
+   report it in the PR's Targets section (before, after, residual, cause).
+6. Tick its criteria, then `node tools/backlog.js done ID`. A done task's notes are not read (Kim, 18 November): the task file gets
+   only each decision with its reason and what is left undone, in at most ten lines; the diff and the tests say the rest. Measurements
    and tuning do not block work (Kim, 16 November): a measure not taken, or a target out, leaves its criterion unticked with the reason,
    what is owed is added to a collecting task (`BACKLOG.md`, Order and statuses), and the task is done. Only work not built, or a
    question for Kim (step 3), keeps it open: `set ID status=needs-review`.
@@ -147,7 +148,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Tests (`tests/suites.js`, `docs/testing.md`): `npm test`, fast, 10 seconds; `npm run verify`, fast and integration, 40 seconds; one
   script, `node tests/NAME.js`. The extended tier, the fixtures, the bench and the bands run at night, never in a task. A new check is
   built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`) and gets a line in `tests/suites.js`.
-- No golden file: a refactor shows its behaviour unchanged with `node tools/same.js --base REF`, REF the commit it started from.
+- No golden file: a refactor that claims its behaviour unchanged shows it with `node tools/same.js --base REF`, REF the commit it started from.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report NAME] [--save FILE|--load FILE]`.
 - Numbers before and after: `node tools/balance.js` (food by source against need), `node tests/counters.js` (work counters; `--update`
   records an intended change), `node tools/targets.js` (each target's latest value and residual).
@@ -226,10 +227,12 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   and, if it is a stored quantity, its line in `tools/stocks.js` (what happens at none; `tests/review-tools.js` checks it).
 - Every PR of size M, or that adds a module or a state field, starts with a short impact note: the modules and state it reads and writes,
   any new coupling between systems, and, where it adds an abstraction or a special case, why the existing ones do not fit.
-- A change to behaviour reports numbers before and after (`tools/sim.js`, `tools/balance.js`, `node tests/run.js verify --verbose`)
-  at the seeds and maps it names, in the PR and in the task file, and says whether households, not only averages, are better off.
+- Numbers are measured once (Kim, 18 November): a PR's changes to behaviour are measured before and after on its final result (a
+  night's run: by its wrap-up, on the merged branch), and the PR reports them and says whether households, not only averages, are
+  better off. A task measures on its own only where a criterion names a number it is to move, or where it tunes (Deciding without Kim, 3).
 - When a change would add the third special case of one pattern, propose the general rule instead (or a task for it, in the PR).
 - A refactor makes the code simpler, not only spread over more files: its PR says what fell (lines, couplings, duplicated rules).
+  It may change behaviour where that makes the separation of responsibilities clearer (Kim, 18 November): it names each change in a line.
 
 ## Rules for cost (Kim's; `docs/cost.md`, section 1)
 Budget at the late reference, the first year populous medium reaches 1,000 living (`medium-ref`, made by VB-202): 200 ms of simulation a game day,

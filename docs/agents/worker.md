@@ -56,7 +56,8 @@ push. Candidates are never ready. Prefer small tasks that unblock others.
 
 ## 3. Wrap up, whenever you stop
 1. `npm run nightly`: it makes the late-game fixtures the sources lack (VB-272: a local cache keyed by the sources, about 2 minutes
-   for all four) and appends the bench history. Run nothing else meanwhile, since the bench times the machine. Commit
+   for all four) and appends the bench history. This is the night's one measurement of its changes to behaviour (Kim, 18 November):
+   write the PR's Targets section from it and `node tools/targets.js`. Run nothing else meanwhile, since the bench times the machine. Commit
    `docs/bench/history.jsonl` and `docs/bench/budget.md` to the PR.
 2. Measure the run: `mkdir -p work && node tools/inbox.js results --json > work/results.json`, then `node tools/agent-usage.js --label worker --out
    docs/agents/usage --results work/results.json`; commit the file it writes, and put its lines from "weighted cost" on in the PR
