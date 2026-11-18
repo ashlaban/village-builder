@@ -171,6 +171,9 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - A new act a pawn or the moving round chooses gets a verb, registered at load by the module that carries the act out
   (`register(verb, {check, run})` of `sim/commands`, VB-228) and reached by `issue(st, {actor, verb, target, args, source})`; a verb checks
   the act is possible and returns why not; `tests/commands.js` checks that only the verbs call the acts they wrap. `sim/commands` imports no domain.
+- A job kind's record is declared as `KINDS` by the module whose state its work changes, beside the rules it calls; `sim/kinds` is the
+  registry (the join in a fixed order, the fetch kinds, the roles' ranks, the asking order `ASK`) and holds no domain's rule (VB-418; how
+  to add one: `docs/architecture/modules.md`, Adding things).
 - Events are written by `log(st, text, event)` and `personEvent(...)` (`src/sim/records.js`); a log line names its event's kind, pawn and
   place (`atHousehold`, `atFarm`); `tests/record.js` checks every call. The village log and the History tabs are views of the record
   (`Sim.villageLog`, `Sim.chronicle`, `src/sim/notable.js`): there is no `st.events`.
