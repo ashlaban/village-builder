@@ -441,7 +441,13 @@ VB['sim/rules'] = (() => {
     affinity: { weight: 0.6, known: 8 },
     friend: 0.25,
     dislike: -0.2,
-    back: 0.1,
+    // VB-1106: at 0.1 one telling in five was a second telling of the same pair (populous small seed 7, 20 years); at 0.2, one in 75,
+    // and a close friendship is left where the two are no longer friends (the friend line)
+    back: 0.2,
+    // The age of account (VB-1106): the lawful age of the Norse and Anglo-Saxon laws, 12, below which a child answered for nothing it
+    // did. Between a pawn below it and anyone, chemistry counts only where it is liking (the opinion's affinity is not below 0), and
+    // cross words become no quarrel: no memory, no event. A physical fact of childhood, not a custom.
+    account: 12,
     closeFriend: 0.45,
     enemy: -0.5,
     seek: 0.5,
