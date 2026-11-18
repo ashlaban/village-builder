@@ -60,6 +60,22 @@ VB['sim/notable'] = (() => {
   const HUNGER = new Set(['hunger', 'starvation']);
   const FARM = new Set(['empty', 'claim', 'cottage', 'left', 'frost']);
   const CUSTOM = new Set(['custom', 'split']);
+  // What moves a pawn between homes or brings one in, for the played household (VB-1109); each stops a skip, since the household's hands, mouths
+  // or farm change: 'moved' (a child or holder goes to kin who hold its farm in trust, a ward comes back of age and the trust ends, a pawn comes
+  // to help a short household, a farm is taken up again), 'service' (a servant joins), 'joined' (a pawn rehoused: a child taken in).
+  const MOVE = new Set(['moved', 'service', 'joined']);
+  // A 'joined' whose reason has its own event (the trust's 'moved', the 'service', an inheritance or a marriage) is not a second stop.
+  const JOINED_TOLD = new Set([
+    'care',
+    'home',
+    'service',
+    'heir',
+    'death',
+    'marriage',
+    'retirement',
+    'married away',
+    'claim',
+  ]);
   const inLine = (st, a, b) =>
     a === b || ancestorsOf(st, [a], GENERATIONS).has(b) || ancestorsOf(st, [b], GENERATIONS).has(a);
   // Does a birth, marriage or death concern pawn `about`: it happened in its household, or to someone of its line.
@@ -427,6 +443,11 @@ VB['sim/notable'] = (() => {
     if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
     if (k === 'cause') return ev.reason === 'natural' && ev.pawn === about ? 'cause' : null;
     if (k === 'cottage' && !ev.pawn && ev.pawn !== 0) return null; // a house raised onto stone asks nothing (VB-1101); a settling names its pawn
+    if (MOVE.has(k) && !(k === 'joined' && JOINED_TOLD.has(ev.reason))) {
+      const hh = hid !== null ? st.households[hid] : null;
+      const mine = (id) => id !== undefined && (id === about || (hh !== null && hh.members.includes(id)));
+      return ev.household === hid || mine(ev.pawn) || mine(ev.other) ? 'farm' : null;
+    }
     if (FARM.has(k))
       return (vid !== null && ev.village === vid) || (hid !== null && ev.household === hid) || concerns(st, ev, about)
         ? 'farm'
