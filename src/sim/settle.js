@@ -288,7 +288,7 @@ VB['sim/settle'] = (() => {
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
     const grain = {}; // by crop (VB-347), as the stakes and the gifts are taken
     for (const id of party.all) Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions', grain);
-    for (const [h, n] of prov.gifts) Stores.take(st, st.households[h], 'grain', n, 'provisions', grain);
+    for (const [h, n] of prov.gifts) Stores.take(st, st.households[h], 'grain', n, 'provisions', grain, 'seedFirst');
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
     const hh = foundHousehold(st, f, party.all, settler.id, { grain, text, followers: party.followers, carry: false }); // no wood (VB-328)
     woodTaken(st, house);

@@ -210,7 +210,7 @@ VB['sim/pot'] = (() => {
       let got;
       if (food === 'grain') {
         got = takeSpare(st, hh, Math.min(n, Math.max(0, free - pulses)), 'cooking', undefined, 'peas');
-        if (n - got > 1e-12) got += take(st, hh, 'grain', n - got, 'seedMeal'); // the seed, of each crop as it is held (as sim/hunger's)
+        if (n - got > 1e-12) got += take(st, hh, 'grain', n - got, 'seedMeal', undefined, 'seedLast'); // the seed, of each crop as it is held (as sim/hunger's)
       } else if (food === 'pulses') got = take(st, hh, Stores.grainGood('peas'), n, 'cooking');
       else if (food === 'dried fish') {
         got = cookLarder(st, hh, food, n);
