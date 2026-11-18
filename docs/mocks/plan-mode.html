@@ -1,0 +1,221 @@
+<!doctype html>
+<!-- Mock (17 Nov 2026, after the playthrough of founders seed 7 to year 3): plan mode, the head's review as a place. Throwaway: the numbers
+     are invented, nothing here is game code; the backdrop is a screenshot of the game (img/plan-mode-map.jpg), and the tiles marked are
+     Norrgården's own. The game pauses on the head's planning day and opens this. Four things the Plan tab does not show:
+     1. the map is the surface: the tiles that would take the next field carry the head's estimate of their yield and the walk to them;
+        each field carries its next step and window; the tile chosen and the project's tile are marked;
+     2. hands against windows: the season as a strip of days, each routine a bar, with the hand-days there are and what the plan claims;
+     3. the custom's plan as a proposal and the head's changes as a difference, each with what it is estimated to cost;
+     4. what came of the last plan: the estimate beside the outcome.
+     What is ahead is the head's estimate (principle 14) and says so. Switch between "The custom's plan" and "Your plan" at the top:
+     the strip, the map and the changes follow. Drawn for 1440 by 900. -->
+<html lang="en">
+<meta charset="utf-8">
+<title>Plan mode: the head's review as a place</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14); --accent: #23685a; --good: #2f7a4b; --bad: #a8432f; --gold: #b3862c;
+    --panel: rgba(238, 245, 242, 0.95); --track: rgba(23, 49, 58, 0.13); --plan: #ffd23f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #223; font: 14px/1.35 'Alegreya Sans', 'Gill Sans', system-ui, sans-serif; color: var(--ink); }
+  .stage { position: relative; width: 1440px; height: 900px; margin: 0 auto; overflow: hidden; background: url(img/plan-mode-map.jpg) 0 0 / 1440px 900px; }
+  .stage svg.map { position: absolute; inset: 0; }
+  .panel { position: absolute; background: var(--panel); border-radius: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28); }
+  h1 { margin: 0; font: italic 700 21px/1.15 'Alegreya', Georgia, serif; }
+  h2 { margin: 9px 0 4px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  h2:first-child { margin-top: 0; }
+  .muted { color: var(--muted); } .good { color: var(--good); } .bad { color: var(--bad); } .gold { color: var(--gold); }
+  b { font-weight: 700; }
+  button { font: inherit; color: var(--ink); cursor: pointer; border: 1px solid var(--edge); background: #fff; border-radius: 999px; padding: 6px 13px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  /* ---- the top bar: whose plan, which view, and the way out ---- */
+  .top { left: 14px; right: 14px; top: 12px; height: 58px; display: flex; align-items: center; gap: 16px; padding: 0 16px; }
+  .top .when { font-size: 12.5px; color: var(--muted); }
+  .seg { display: inline-flex; background: var(--track); border-radius: 999px; padding: 3px; margin-left: auto; }
+  .seg button { border: 0; background: none; padding: 6px 14px; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: #fff; color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+  /* ---- the left panel ---- */
+  .side { left: 14px; top: 82px; width: 348px; bottom: 232px; padding: 10px 16px; overflow: hidden; }
+  .was { display: grid; grid-template-columns: 74px 1fr 1fr; gap: 3px 8px; font-size: 13px; align-items: baseline; }
+  .was .h { font-size: 11px; color: var(--muted); }
+  .chg { display: grid; grid-template-columns: 18px 1fr; gap: 2px 7px; padding: 4px 0; border-top: 1px solid var(--edge); font-size: 13.5px; }
+  .chg:first-of-type { border-top: 0; }
+  .chg .cost { grid-column: 2; font-size: 12.5px; color: var(--muted); }
+  .chg .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--plan); border: 1.5px solid #8a6d10; margin-top: 4px; }
+  .none { font-size: 13px; color: var(--muted); padding: 4px 0 2px; }
+  .tgt { display: grid; grid-template-columns: 66px 1fr 78px; gap: 8px; align-items: center; min-height: 21px; font-size: 13px; }
+  .meter { position: relative; height: 7px; border-radius: 4px; background: var(--track); }
+  .meter i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); }
+  .meter i.low { background: var(--gold); }
+  .meter u, .key u { position: absolute; top: -4px; width: 2.5px; height: 15px; background: var(--ink); border-radius: 1px; }
+  .meter u.mine, .key u.mine { background: var(--plan); outline: 1px solid #8a6d10; }
+  .tgt .v { text-align: right; font-variant-numeric: tabular-nums; }
+  .key { display: flex; gap: 14px; font-size: 11.5px; color: var(--muted); margin: -2px 0 4px; }
+  .key span { position: relative; padding-left: 9px; } .key u { left: 0; top: 1px; height: 12px; }
+  .hands { display: flex; gap: 8px; flex-wrap: wrap; }
+  .hand { display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid var(--edge); border-radius: 12px; padding: 4px 9px 4px 5px; font-size: 13px; }
+  .hand .face { width: 26px; height: 26px; border-radius: 50%; background: #c9b79a; display: grid; place-items: center; font-weight: 700; font-size: 12px; color: #5a4630; }
+  .hand.gone { opacity: 0.6; border-style: dashed; } .hand.offer { border-color: var(--accent); border-style: dashed; color: var(--accent); }
+  .hand small { display: block; font-size: 11px; color: var(--muted); line-height: 1.1; }
+  /* ---- the season strip: hands against windows ---- */
+  .strip { left: 14px; right: 14px; bottom: 12px; height: 212px; padding: 12px 16px 10px; }
+  .strip .head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+  .budget { margin-left: auto; font-size: 13px; }
+  .grid { position: relative; display: grid; grid-template-columns: 190px 1fr 210px; row-gap: 3px; column-gap: 10px; align-items: center; }
+  .days { display: grid; grid-template-columns: repeat(12, 1fr); font-size: 11px; color: var(--muted); text-align: center; }
+  .lane { position: relative; height: 20px; background: repeating-linear-gradient(90deg, transparent 0 calc(100% / 12 - 1px), var(--edge) calc(100% / 12 - 1px) calc(100% / 12)); border-radius: 4px; }
+  .lane .win { position: absolute; top: 0; bottom: 0; background: rgba(35, 104, 90, 0.11); border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+  .lane .bar { position: absolute; top: 3px; bottom: 3px; border-radius: 4px; background: var(--accent); transition: left 0.25s, width 0.25s; }
+  .lane .bar.late { background: var(--bad); } .lane .bar.mine { background: var(--plan); outline: 1px solid #8a6d10; }
+  .lane .bar.chore { background: rgba(23, 49, 58, 0.3); }
+  .rname { font-size: 13px; white-space: nowrap; } .rname small { color: var(--muted); }
+  .rnote { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+  .ord { display: inline-flex; gap: 2px; margin-right: 6px; } .ord button { padding: 0 5px; font-size: 11px; line-height: 16px; border-radius: 5px; }
+  /* ---- map labels ---- */
+  .chip { position: absolute; transform: translate(-50%, -50%); background: rgba(255, 255, 255, 0.94); border-radius: 9px; padding: 2px 7px; font-size: 11.5px; line-height: 1.2;
+    text-align: center; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); white-space: nowrap; pointer-events: none; }
+  .chip b { display: block; font-size: 12.5px; }
+  .chip.y { background: rgba(23, 49, 58, 0.82); color: #fff; padding: 1px 6px; font-weight: 700; }
+  .chip.pick { background: var(--plan); }
+  .legend { right: 14px; top: 82px; width: 232px; padding: 12px 14px; font-size: 12.5px; }
+  .legend .sw { display: inline-block; width: 16px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1.5px solid #fff; }
+  .legend p { margin: 3px 0; }
+  .tip { right: 14px; top: 262px; width: 232px; padding: 12px 14px; font-size: 13px; }
+  .tip p { margin: 2px 0; }
+  body.custom .only-mine, body.mine .only-custom { display: none; }
+</style>
+<body class="mine">
+<div class="stage">
+  <svg class="map" viewBox="0 0 1440 900" id="map"></svg>
+  <div id="chips"></div>
+
+  <div class="panel top">
+    <div><h1>The spring review at Norrgården</h1><div class="when">Year 3, spring, day 1 · paused · by Torsten Jönsson’s reckoning</div></div>
+    <div class="seg" role="group" aria-label="Which plan">
+      <button type="button" data-view="custom" aria-pressed="false">The custom’s plan</button>
+      <button type="button" data-view="mine" aria-pressed="true">Your plan</button>
+    </div>
+    <button type="button" class="primary">Done: go on with this plan</button>
+  </div>
+
+  <div class="panel side">
+    <h2>What came of the winter’s plan</h2>
+    <div class="was">
+      <span class="h"></span><span class="h">You reckoned</span><span class="h">It came to</span>
+      <span>Hay</span><span>to last to summer</span><span class="good">lasted · 32 spoilt</span>
+      <span>Firewood</span><span>29 loads burnt</span><span class="good">26 burnt</span>
+      <span>Dried fish</span><span>17 to spring</span><span class="bad">2 left</span>
+      <span>Hands</span><span>3</span><span class="bad">2 · Astrid took Backa</span>
+    </div>
+
+    <h2>Your changes to the custom’s plan</h2>
+    <div class="only-custom none">None: this is the plan as the custom has it. It is what Torsten does if you change nothing.</div>
+    <div class="only-mine">
+      <div class="chg"><i class="dot"></i><span><b>Rake the meadows first</b>, before the manure</span>
+        <span class="cost">Hay about +8% · sowing ends day 9, not day 7 (the window closes day 10)</span></div>
+      <div class="chg"><i class="dot"></i><span><b>A fifth field</b> on the river tile west of Field 2</span>
+        <span class="cost">9 hand-days · 27 barley for seed · no room this spring: it slips to summer</span></div>
+      <div class="chg"><i class="dot"></i><span><b>Dried fish</b> target 30 → 40</span>
+        <span class="cost">About 3 hand-days of fishing, taken after the sowing</span></div>
+    </div>
+
+    <h2>Targets</h2>
+    <div class="key"><span><u></u>the custom’s</span><span><u class="mine"></u>yours</span><span>fill: in store now</span></div>
+    <div class="tgt"><span>Hay</span><div class="meter"><i class="low" style="width:59%"></i><u style="left:75%"></u></div><span class="v">1.8 / 2.2 w.</span></div>
+    <div class="tgt"><span>Firewood</span><div class="meter"><i style="width:82%"></i><u style="left:72%"></u></div><span class="v">33 / 29 loads</span></div>
+    <div class="tgt"><span>Fields</span><div class="meter"><i style="width:80%"></i><u style="left:60%"></u><u class="mine only-mine" style="left:100%"></u></div><span class="v">4 / <span class="only-custom">3</span><span class="only-mine gold">5</span></span></div>
+    <div class="tgt"><span>Dried fish</span><div class="meter"><i class="low" style="width:5%"></i><u style="left:75%"></u><u class="mine only-mine" style="left:100%"></u></div><span class="v">2 / <span class="only-custom">30</span><span class="only-mine gold">40</span></span></div>
+
+    <h2>Hands this season</h2>
+    <div class="hands">
+      <div class="hand"><span class="face">T</span><span>Torsten<small>32 · farmer</small></span></div>
+      <div class="hand"><span class="face">M</span><span>Märta<small>29 · mistress</small></span></div>
+      <div class="hand gone"><span class="face">A</span><span>Astrid<small>left in winter</small></span></div>
+      <div class="hand offer"><span class="face" style="background:#d6e6df;color:#23685a">+</span><span>A farmhand<small>ask at the moving round</small></span></div>
+    </div>
+  </div>
+
+  <div class="panel legend">
+    <h2>The next field: what Torsten expects</h2>
+    <p><span class="sw" style="background:rgba(47,122,75,.75)"></span>best · meadow by the river</p>
+    <p><span class="sw" style="background:rgba(179,134,44,.7)"></span>fair · meadow</p>
+    <p><span class="sw" style="background:rgba(168,67,47,.6)"></span>poor · heath or hill</p>
+    <p class="muted">The number is barley for a year’s sowing; the feet, the walk from the house.</p>
+  </div>
+  <div class="panel tip only-mine">
+    <h2>Chosen</h2>
+    <p><b>River tile, 3 steps west</b></p>
+    <p>About <b>62 barley</b> a year (52 to 70) · few stones · Furuberga’s outland, free to take</p>
+    <p class="muted">Click another tile to move it; click it again to drop the field.</p>
+  </div>
+
+  <div class="panel strip">
+    <div class="head"><h1>Hands against the season</h1><span class="muted">each bar is the days a routine takes with the hands there are; the shaded span is its window</span>
+      <span class="budget"><b>24</b> hand-days · <b>9</b> on the daily chores · <b>15</b> free · the plan claims
+        <b class="only-custom good">14</b><b class="only-mine bad">26: 11 over</b></span></div>
+    <div class="grid" id="grid">
+      <span></span><div class="days" id="days"></div><span></span>
+    </div>
+  </div>
+</div>
+<script>
+// ---- the map: Norrgården's tiles on the screenshot (house at 720, 445; a tile is 72 wide and rows are 63 apart, every other row shifted) ----
+const hex = (x, y, r = 40) => [[0, -r], [r * 0.866, -r / 2], [r * 0.866, r / 2], [0, r], [-r * 0.866, r / 2], [-r * 0.866, -r / 2]].map(([a, b]) => `${x + a},${y + b}`).join(' ');
+const fields = [[647, 445, 'Field 1'], [575, 445, 'Field 2'], [611, 508, 'Field 3'], [647, 571, 'Field 4']];
+const meadows = [[756, 382], [648, 319], [684, 256], [612, 256], [540, 256], [828, 382]];
+// candidates for the next field: x, y, class, the estimate, the walk in steps
+const cands = [[503, 445, 'best', 62, 3], [431, 445, 'best', 62, 4], [539, 508, 'fair', 52, 3], [575, 571, 'fair', 52, 3], [467, 508, 'fair', 52, 4], [503, 571, 'fair', 52, 4],
+  [611, 634, 'fair', 52, 4], [539, 634, 'fair', 51, 4], [684, 508, 'fair', 52, 1], [684, 634, 'fair', 52, 3], [936, 445, 'poor', 36, 3], [1008, 445, 'poor', 34, 4], [972, 382, 'poor', 36, 4]];
+const fill = { best: 'rgba(47,122,75,.55)', fair: 'rgba(179,134,44,.42)', poor: 'rgba(168,67,47,.42)' };
+function drawMap(mine) {
+  let s = '', c = '';
+  for (const [x, y] of meadows) s += `<polygon points="${hex(x, y, 38)}" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  for (const [x, y, k, n, d] of cands) {
+    const picked = mine && x === 503 && y === 445;
+    s += `<polygon points="${hex(x, y, 38)}" fill="${picked ? 'rgba(255,210,63,.4)' : fill[k]}" stroke="${picked ? '#ffd23f' : '#fff'}" stroke-width="${picked ? 4 : 1.5}"/>`;
+    c += `<div class="chip y${picked ? ' pick' : ''}" style="left:${x}px;top:${y}px${picked ? ';color:#17313a' : ''}">${n}<span style="font-weight:400;opacity:.8"> · ${d}↝</span></div>`;
+  }
+  for (const [x, y, name] of fields) {
+    s += `<polygon points="${hex(x, y, 38)}" fill="none" stroke="#fff" stroke-width="2.5"/>`;
+    c += `<div class="chip" style="left:${x}px;top:${y}px"><b>${name}</b>hoe, sow · 1–10</div>`;
+  }
+  c += `<div class="chip" style="left:648px;top:300px"><b>6 meadows</b>${mine ? 'rake first' : 'rake after sowing'}</div>`;
+  if (mine) c += `<div class="chip pick" style="left:503px;top:404px"><b>Field 5</b>clear, break · summer</div>`;
+  document.getElementById('map').innerHTML = s;
+  document.getElementById('chips').innerHTML = c;
+}
+// ---- the strip: each routine's window and its bar, [start, days], in the custom's order and in the head's ----
+const rows = [
+  { name: 'Daily chores', small: 'water, cook, fodder, milk', chore: true, custom: [0, 12], mine: [0, 12], note: { custom: 'Märta, most of each day', mine: 'Märta, most of each day' } },
+  { name: 'Cart manure', win: [0, 6], custom: [0, 2], mine: [2, 2], note: { custom: 'days 1–2', mine: 'days 3–4' } },
+  { name: 'Hoe and sow 4 fields', win: [0, 10], custom: [2, 5], mine: [4, 5], note: { custom: 'done day 7 · 3 days to spare', mine: 'done day 9 · 1 day to spare' }, tight: { mine: true } },
+  { name: 'Rake 6 meadows', win: [0, 8], custom: [7, 2], mine: [0, 2], moved: true, note: { custom: 'days 8–9: late, hay about −8%', mine: 'days 1–2 · in time' }, late: { custom: true } },
+  { name: 'Clear and break Field 5', only: 'mine', win: [0, 12], mine: [9, 3], added: true, note: { mine: '3 of 9 hand-days: goes on in summer' } },
+  { name: 'Go fishing', win: [0, 12], custom: [9, 3], mine: [9, 0.1], note: { custom: 'days 10–12 · about 14 fish', mine: 'no days left: target 40 not met' }, late: { mine: true } },
+];
+function drawStrip(view) {
+  const g = document.getElementById('grid');
+  g.querySelectorAll('.r').forEach((e) => e.remove());
+  // the routines in the plan's order: the chores, then by when each begins
+  for (const r of rows.filter((r) => !r.only || r.only === view).sort((a, b) => (b.chore || 0) - (a.chore || 0) || a[view][0] - b[view][0])) {
+    const [a, n] = r[view], pc = (d) => (d / 12) * 100;
+    const cls = r.chore ? 'chore' : r.late && r.late[view] ? 'late' : view === 'mine' && (r.moved || r.added) ? 'mine' : '';
+    g.insertAdjacentHTML('beforeend',
+      `<span class="rname r">${r.chore ? '' : '<span class="ord"><button type="button">↑</button><button type="button">↓</button></span>'}${r.name}${r.small ? ` <small>${r.small}</small>` : ''}</span>` +
+      `<div class="lane r">${r.win ? `<span class="win" style="left:${pc(r.win[0])}%;width:${pc(r.win[1] - r.win[0])}%"></span>` : ''}` +
+      `<span class="bar ${cls}" style="left:${pc(a)}%;width:${pc(n)}%"></span></div>` +
+      `<span class="rnote r${r.late && r.late[view] ? ' bad' : r.tight && r.tight[view] ? ' gold' : ''}">${r.note[view]}</span>`);
+  }
+}
+document.getElementById('days').innerHTML = Array.from({ length: 12 }, (_, k) => `<span>${k + 1}</span>`).join('');
+function show(view) {
+  document.body.className = view;
+  document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
+  drawMap(view === 'mine');
+  drawStrip(view);
+}
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => show(b.dataset.view)));
+show(new URLSearchParams(location.search).get('view') === 'custom' ? 'custom' : 'mine');
+</script>
+</body>
+</html>

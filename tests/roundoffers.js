@@ -120,6 +120,7 @@ const steps = (st, d, now, to = VILLAGE_STEPS) => {
   VB['sim/heirs'].refreshRoles(st);
   offer(0, 3, { basis: 'handover', gives: { household: 0, reason: 'retirement' } });
   for (const o of st.offers) {
+    if (!BASES[o.basis].subject) continue; // a handover is nobody's ask (VB-824)
     const s = BASES[o.basis].subject(st, o);
     assert.strictEqual(st.pawns[s].ask, o.id, `${o.basis}: its subject holds it`);
   }

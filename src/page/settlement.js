@@ -207,7 +207,7 @@ function drawBooth(wd, f, empty) {
 }
 // A field's sprite and its stooks, its rows at angle th: a farm's, or a village's common field (VB-100).
 function addField(wd, fd, th) {
-  const sp = new PIXI.Sprite(fieldTex[cropStage(fd)] || fieldTex.stubble);
+  const sp = new PIXI.Sprite(fieldTex[fieldLook(fd)] || fieldTex.stubble);
   sp.anchor.set(0.5);
   sp.scale.set(0.5);
   sp.rotation = th;
@@ -225,7 +225,7 @@ function addField(wd, fd, th) {
     sk.visible = false;
     stooks.push(sk);
   }
-  fieldSprites.push({ sp, fd, stage: cropStage(fd), stooks });
+  fieldSprites.push({ sp, fd, stage: fieldLook(fd), stooks });
 }
 // Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty). What is taken down is destroyed with its
 // context (VB-441): PixiJS frees a Graphics' own geometry only when asked to, and the renderer otherwise keeps every fence ever drawn.
@@ -437,6 +437,18 @@ function cropStage(fd) {
   if (fd.stage === 'fallow' || fd.stage === 'scrub') return fd.stage;
   if (fd.stage !== 'growing') return fd.stage;
   return Math.floor(st.t / Sim.DAY) - fd.sown < 12 ? 'young' : 'growing';
+}
+// A field's picture (VB-355; a key of page/fieldart's FIELD_P): its crop at its stage, read from the field alone. Barley's are the
+// stages; rye, sown in autumn, stands green and lies under snow all winter; a fallow course lies in weedy stubble, then tilled.
+function fieldLook(fd) {
+  const s = cropStage(fd);
+  if (fd.stage === 'stubble' && VB['sim/rules'].CROPS[fd.crop].fallow) return fd.rest === 1 ? 'tilled' : 'lea';
+  if (fd.crop === 'rye' && (s === 'sown' || s === 'young' || s === 'growing')) {
+    if (Sim.cal(st.t).season === 3) return 'rye-snow';
+    if (s === 'growing' && Sim.cal(fd.sown * Sim.DAY).season === 2 && Sim.cal(st.t).season === 2) return 'rye-young';
+  }
+  const k = `${fd.crop}-${s}`;
+  return fieldTex[k] ? k : s;
 }
 // Herds by the farm (VB-131): in the grazing season, from 6:00 to 20:00, each herd's animals graze around its home tile, or its pasture when
 // out with a herder (VB-136, page/animate), wandering slowly and now and then looking up; inside the byre otherwise. Sprites are made per

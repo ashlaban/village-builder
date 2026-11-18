@@ -332,6 +332,12 @@ const GOOD_PATHS = {
     '<path d="M12 21V8M12 8c-2-1-2.5-3 0-5 2.5 2 2 4 0 5zM12 12c-3 0-4-2-4-4 2.5 0 4 1.5 4 4zM12 12' +
     'c3 0 4-2 4-4-2.5 0-4 1.5-4 4zM12 16.5c-3 0-4-2-4-4 2.5 0 4 1.5 4 4zM12 16.5c3 0 4-2 4-4-2.5 0-4 1.5-4 4z"/>',
   seed: ACT_PATHS.sow,
+  // a crop each (VB-355): rye's ear is slim and awned beside barley's (the grain icon); a pod of peas; fallow, the resting ground
+  rye: '<path d="M12 21V7M12 7l-1.3-4M12 7l1.3-4M12 10.5l-3-3.5M12 10.5l3-3.5M12 14l-3-3.5M12 14l3-3.5M12 17.5l-3-3.5M12 17.5l3-3.5"/>',
+  peas:
+    '<path d="M4 16c1-7 8-11 16-10-1 8-6 13-13 13-1.5 0-2.5-1.5-3-3z"/><circle cx="9.3" cy="14.2" r="1.5"/>' +
+    '<circle cx="12.8" cy="11.5" r="1.5"/><circle cx="16" cy="8.8" r="1.3"/>',
+  fallow: '<path d="M3 15c3-2 6-2 9 0s6 2 9 0M3 19c3-2 6-2 9 0s6 2 9 0M7 11l1-3M8 11l1.5-2M16 11l-1-3M15 11l-1.5-2"/>',
   flour: ACT_PATHS.sack,
   meals: ACT_PATHS.pot,
   sheaves: '<path d="M8 21l2-9M16 21l-2-9M12 21v-9M7 12h10M10 12L7 4M12 12V3M14 12l3-8M9 12L4 7M15 12l5-5"/>',

@@ -9,7 +9,7 @@ const { canon } = require('./lib/canon.js');
 
 // static: the acts a verb wraps are called only from sim/commands, or inside the module that defines them (an act built of others there)
 const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'carryGift', 'setRoutines', 'setGathering', 'endTrust', 'holdInTrust',
-  'setTarget', 'nameTile', 'setOrder', 'holdProject', 'beginLand', 'giveUp'], calls = [];
+  'setTarget', 'nameTile', 'setOrder', 'holdProject', 'beginLand', 'giveUp', 'planVisit'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
 const text = Object.fromEntries(files.map((f) => [f, readSource(f)]));
 const definedIn = Object.fromEntries(WRAPPED.map((n) => [n, files.find((f) => new RegExp(`function ${n}\\(`).test(text[f]))]));
@@ -27,6 +27,17 @@ for (const f of files) {
   });
 }
 assert.deepStrictEqual(calls, [], `acts called outside sim/commands: ${calls.join(', ')}`);
+// VB-1111: every caller of `give` is known and checked (help's near gift is fetched and its far one carried, tests/fetch.js and
+// tests/journeys.js; the page's form names its carrier or has it fetched), and settleGift is reached at one place, the last branch of
+// `deliver`, after the carried, the hauled and the fetched: a gift within one farmstead (tests/lib/invariants.js holds giftUncarried at 0)
+{
+  const pages = fs.readdirSync(path.join(__dirname, '../src/page')).map((x) => 'src/page/' + x);
+  const givers = files.concat(pages).filter((f) => /verb: 'give'/.test(text[f] || readSource(f))).sort();
+  assert.deepStrictEqual(givers, ['src/page/gift.js', 'src/sim/help.js'], 'a new caller of give says how its gift is carried');
+  const cmd = text['src/sim/commands.js'];
+  assert.strictEqual(cmd.split('settleGift(').length - 1, 1, 'settleGift is called once');
+  assert.ok(/carryGift\([^]*haulGift\([^]*fetchGift\([^]*else settleGift\(/.test(cmd), 'and only after the carried, hauled and fetched gifts');
+}
 
 const st = Sim.seed(island(7), 7, 'founders');
 Sim.advance(st, 3 * Sim.DAY + 4); // a working morning: jobs posted

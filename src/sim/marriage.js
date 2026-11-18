@@ -1,5 +1,6 @@
-// @sys sim/marriage: a marriage (wed, the marry verb's act), the handover by custom it brings, and the basis `match` of sim/offers
-//   (VB-690): what may be offered, who answers, what a yes, a no and a lapse do (split from sim/lifecycle, VB-876)
+// @sys sim/marriage: a marriage (wed, the marry verb's act), the handover in life (the holder's rule for offering it, and the basis
+//   `handover`: the first in line answers, a no passes it on; VB-824), and the basis `match` of sim/offers (VB-690): what may be offered,
+//   who answers, what a yes, a no and a lapse do (split from sim/lifecycle, VB-876)
 VB['sim/marriage'] = (() => {
   const { emit } = VB['sim/events'];
   const { MARRIAGE, SOCIAL, ASK } = VB['sim/rules'];
@@ -57,56 +58,107 @@ VB['sim/marriage'] = (() => {
     for (const h of olds) if (startInLife(st, st.households[home], st.households[h])) break;
     wedding(st, mId, fId, home); // the next day's feast at their farm (sim/occasions, VB-126)
   }
-  // The handover by custom that a marriage brings, for one household: when its first heir (rank(h)[0], `rank` a ranking function of
-  // household ids) is grown and, under 'marriage', has married and lives there, or, under 'age60', the holder is 60. The round runs it for
-  // every household after its marriages, an offer's close for the home of the marriage it makes (VB-293), a village's round for its farms
-  // (VB-277). The heir it is handed to, or null.
-  function handover(st, hh, rank) {
-    if (hh.dissolved) return null;
+  // ---- the handover in life (VB-824; design.md, Succession: Handed on, and taken up; plan VB-682, section 4.6) ----
+  // Household hh's line as its holder would ask it: [{id, no}] (heirRanking's `asked`), the grown only (a minor is not asked), those in
+  // `passed` (who have said no to this offer) left out.
+  function lineOf(st, hh, passed = null) {
+    const asked = [];
+    heirRanking(st, hh, null, false, null, null, asked);
+    return asked.filter((e) => st.pawns[e.id].age >= 18 && !(passed && passed.includes(e.id)));
+  }
+  // The holder of hh considers handing it on, by its own rule (Kim, 18 November: the elder chooses; the custom's time is when the
+  // village expects it): an unplayed holder offers at the custom's time, when the one it expects to take the farm (rank(h)[0], `rank` a
+  // ranking function of household ids) is grown and, under 'marriage', has married and lives there, or, under 'age60', the holder is
+  // 60; unless its opinion of that heir is ill (SOCIAL.enemy or below), when it holds out. Nothing offers for the played holder: it
+  // offers by the verb when it chooses. The offer (the basis `handover`) goes to the first in line, due at `due` (the moving round's
+  // time; at once when null, at the heir's wedding). Considered at a marriage into hh (settleMatch) and on the holder's birthday
+  // (sim/asking). The new holder if it was handed on at once, else null.
+  function handover(st, hh, rank, due = null) {
+    if (hh.dissolved || (st.player && st.player.pawn === hh.holder) || heldBy(st, hh.holder, 'handover')) return null;
     const f = st.farmsteads[hh.farmstead],
       cu = farmPractice(st, f),
-      holder = st.pawns[hh.holder],
+      old = hh.holder,
       heir = rank(hh.id)[0];
     if (heir === undefined || st.pawns[heir].age < 18) return null;
     const why =
       cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id
         ? 'marriage'
-        : cu.handover === 'age60' && holder.age >= 60
+        : cu.handover === 'age60' && st.pawns[old].age >= 60
           ? 'retirement'
           : null;
-    if (!why) return null;
-    // the holder offers the holding to the heir (the basis `handover`, due at once; VB-692): the heir's yes hands it on
+    if (!why || opinionOf(st, old, heir) <= SOCIAL.enemy) return null;
     issue(st, {
-      actor: hh.holder,
+      actor: old,
       verb: 'offer',
-      target: heir,
-      args: { basis: 'handover', gives: { household: hh.id, reason: why } },
-      source: 'round',
+      target: lineOf(st, hh)[0].id,
+      args: {
+        basis: 'handover',
+        gives: { household: hh.id, reason: why },
+        ...(due === null ? {} : { due, round: true }),
+      },
+      source: 'handover',
     });
-    return hh.holder === heir ? heir : null;
+    return hh.holder !== old ? hh.holder : null;
   }
-  // ---- the basis `handover` of sim/offers (VB-692; plan VB-682, sections 2 and 4.6): {from (the holder of gives.household), to (the
-  // heir), gives {household, reason ('marriage' or 'retirement': the custom's timing)}}. Those whose yes the heir's move needs answer
-  // (moveWhy: the heir, and the holder, who answers what the round offers in his name); each says yes, today's rule (the heir takes
-  // it). A yes is the handOn verb. A no is told, and nobody remembers it. ----
-  function handoverWhy(st, o) {
-    const hh = o.gives && st.households[o.gives.household],
+  // ---- the basis `handover` of sim/offers (VB-692, VB-824): {from (the holder of gives.household), to (the first in its line not yet
+  // asked), gives {household, reason ('marriage' or 'retirement': what the holder gives it up for), passed (those in line who have said
+  // no to it; only a refusal passes it on)}}: the holding, for the holder's keep on the farm for life (retired there). The one asked
+  // answers: yes, unless it holds a farm or lives on a spouse's (heirRanking's answers; a betrothal joins them with VB-825). A yes is
+  // the handOn verb, and the heir's move. A no is told, nobody remembers it, and the holder offers it to the next in line at once. It is
+  // nobody's `pawn.ask` (no subject): open from the holder's day to the round, it must not keep the holder or an unmarried heir from a
+  // match; a holder has one open at a time. ----
+  const reasons = ['marriage', 'retirement'];
+  function handoverWhy(st, o, c) {
+    const g = o.gives || {},
+      hh = st.households[g.household],
       p = Number.isInteger(o.to) ? st.pawns[o.to] : null;
-    if (!hh || hh.dissolved) return `there is no household ${o.gives && o.gives.household}`;
+    if (!hh || hh.dissolved) return `there is no household ${g.household}`;
     if (hh.holder !== o.from) return `pawn ${o.from} does not hold household ${hh.id}`;
     if (!p || !p.alive || p.id === o.from) return `pawn ${o.to} cannot take the holding`;
+    if (!reasons.includes(g.reason)) return `a holding is not handed on for ${JSON.stringify(g.reason)}`;
+    if (g.passed !== undefined && !(c && c.source === 'handover')) return 'only a refusal passes a handover on';
+    if (heldBy(st, o.from, 'handover')) return `${fullName(st.pawns[o.from])} has offered the holding already`;
+    const first = lineOf(st, hh, g.passed)[0];
+    if (!first || first.id !== o.to)
+      return `the holding is offered to the first in line${first ? `, ${fullName(st.pawns[first.id])}` : ', and there is none'}`;
     const whose = moveWhy(st, p.id, hh.id, 'heir');
     return typeof whose === 'string' ? whose : {};
+  }
+  // Why the one asked would not take hh, or null
+  const heirNo = (st, hh, id) => (lineOf(st, hh).find((e) => e.id === id) || { no: 'is not in line' }).no;
+  function refusedHandover(st, o) {
+    const hh = st.households[o.gives.household],
+      why = hh.dissolved ? null : heirNo(st, hh, o.to);
+    log(
+      st,
+      `${fullName(st.pawns[o.to])} would not take over ${st.farmsteads[hh.farmstead].name}${why ? `: ${why}` : ''}.`,
+      { kind: 'offerRefused', pawn: o.to, other: o.from, ...atHousehold(st, hh) },
+    );
+    if (hh.dissolved || hh.holder !== o.from || !st.pawns[o.from].alive) return;
+    const passed = [...(o.gives.passed || []), o.to],
+      next = lineOf(st, hh, passed)[0];
+    if (next)
+      issue(st, {
+        actor: o.from,
+        verb: 'offer',
+        target: next.id,
+        args: { basis: 'handover', gives: { household: hh.id, reason: o.gives.reason, passed } },
+        source: 'handover',
+      });
   }
   Offers.basis('handover', {
     books: 'nothing',
     memory: false,
     wait: () => MARRIAGE.offerDays,
     check: handoverWhy,
-    answers: (st, o) => moveWhy(st, o.to, o.gives.household, 'heir').map((a) => ({ key: a.key, by: a.by, yes: null })),
-    weigh: () => true,
+    answers: (st, o) => [{ key: 'self', by: o.to, yes: null }], // the holder's yes is the offer
+    weigh: (st, o) => heirNo(st, st.households[o.gives.household], o.to) === null,
+    refused: refusedHandover,
     settle: (st, o) => {
-      if (st.households[o.gives.household].holder !== o.from) return 'the holding has passed';
+      const hh = st.households[o.gives.household];
+      if (hh.dissolved || hh.holder !== o.from) return 'the holding has passed';
+      const no = heirNo(st, hh, o.to); // farms are not combined, whoever says yes
+      if (no) return `${fullName(st.pawns[o.to])} ${no}`;
       const r = issue(st, {
         actor: o.from,
         verb: 'handOn',
@@ -114,10 +166,9 @@ VB['sim/marriage'] = (() => {
         args: { household: o.gives.household, reason: o.gives.reason },
         source: 'round',
       });
-      if (r === true && o.id !== undefined) refreshRoles(st); // answered after the round's step, which refreshes its own
+      if (r === true) refreshRoles(st); // on any day, by whoever's answer: the roles follow the holder
       return r;
     },
-    subject: (st, o) => o.to,
     where: (st, o) => st.farmsteads[st.households[o.gives.household].farmstead].village,
     what: (st, o) =>
       `the handover of ${st.farmsteads[st.households[o.gives.household].farmstead].name} to ${fullName(st.pawns[o.to])}`,
@@ -189,8 +240,8 @@ VB['sim/marriage'] = (() => {
       ...atHousehold(st, hh),
     });
   }
-  // A yes: the marriage, through the marry verb; a match answered past the round brings the handover to its home. True, or why the
-  // verb refused (one has died or married).
+  // A yes: the marriage, through the marry verb, and the handover it brings to its home. True, or why the verb refused (one has died
+  // or married).
   function settleMatch(st, o) {
     const hh = st.households[o.gives.home],
       why = issue(st, {
@@ -201,10 +252,9 @@ VB['sim/marriage'] = (() => {
         source: 'round',
       });
     if (why !== true) return why;
-    if (o.id !== undefined) {
-      handover(st, hh, (h) => heirRanking(st, st.households[h]));
-      refreshRoles(st);
-    }
+    // the heir has married: the home's holder considers handing on (the custom 'marriage')
+    const handed = handover(st, hh, (h) => heirRanking(st, st.households[h]));
+    if (o.id !== undefined && handed === null) refreshRoles(st); // the handover refreshes its own
     return true;
   }
   // A no: the refusal is told; a pawn that refuses the match its spokesman made costs the spokesman's opinion of it

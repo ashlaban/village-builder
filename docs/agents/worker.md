@@ -44,7 +44,7 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
    "Backlog: VB-NNN <done or needs-review>" and push.
 5. After the first push, open a draft PR "Nightly <YYYY-MM-DD>" to `main`. After each task, its description is: `node tools/inbox.js
    report` at its head (the section "For Kim"), then each task's result as its sub-agent gave it (ID, title, done or `needs-review`,
-   the commit or the reason, its numbers, its screenshot).
+   the commit or the reason, its numbers).
 
 ## 2. When no ready task is left
 Start one general-purpose sub-agent on Opus with this section as its prompt, and "your task ID is VB-000; your reserved task IDs

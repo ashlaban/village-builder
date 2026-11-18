@@ -8,8 +8,8 @@
       "sim/stakes", "sim/territory", "sim/progress", "sim/expansion", "sim/building",
       "sim/drying", "sim/tar", "sim/carts", "sim/green", "sim/lying"],
     "social": ["culture", "sim/encounters", "sim/relations", "sim/mood", "sim/society", "sim/deaths", "sim/births", "sim/heirs", "sim/membership", "sim/cottage",
-      "sim/settle", "sim/farmclaims", "sim/service", "sim/matching", "sim/offers", "sim/occasions", "sim/workdays", "sim/commons"],
-    "agency": ["sim/agents", "sim/away", "sim/trust", "sim/jobs", "sim/kinds", "sim/exchange", "sim/help", "sim/lifecycle", "sim/marriage", "sim/gathering", "sim/meetings", "sim/asking", "sim/round", "sim/eligibility", "sim/plans", "sim/aims", "sim/outlook"],
+      "sim/settle", "sim/farmclaims", "sim/service", "sim/matching", "sim/offers", "sim/obligations", "sim/occasions", "sim/workdays", "sim/commons"],
+    "agency": ["sim/agents", "sim/away", "sim/trust", "sim/jobs", "sim/kinds", "sim/exchange", "sim/help", "sim/lifecycle", "sim/marriage", "sim/gathering", "sim/meetings", "sim/asking", "sim/visits", "sim/round", "sim/eligibility", "sim/plans", "sim/aims", "sim/outlook"],
     "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview"]
   }
 }

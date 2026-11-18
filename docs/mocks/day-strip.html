@@ -1,0 +1,175 @@
+<!doctype html>
+<!-- Mock (17 Nov 2026, second of the plan mocks; plan-mode.html is the first): the day strip, the plan read as today and the place where
+     the player steps in. Throwaway: the numbers are invented, nothing here is game code; the backdrop is a screenshot of the game.
+     The strip shows each of the household's hands through the working day, drawn from the plan: what each does now and next. It is one
+     object with plan mode's season strip, a day long instead of a season.
+     Three views, switched at the top of the strip:
+     1. The plan's day: nothing touched; the strip is what the head would do.
+     2. You step in: the player takes an act from the menu (carry grain to Astrid at Backa). It lands in the strip at now, in the plan's
+        colour; the task it cuts is shown where it was, as a ghost, and where it goes on; what no longer fits in the day is named, with
+        the head's estimate of what that costs (principle 14). Nothing is switched off: when the act is done the plan goes on.
+     3. You send Märta: the head gives a member of the household another task for today, the same gesture on her row.
+     The act is offered three ways: now, after the task in hand, or in the evening. Drawn for 1440 by 900. -->
+<html lang="en">
+<meta charset="utf-8">
+<title>The day strip: the plan as today, and stepping in</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14); --accent: #23685a; --good: #2f7a4b; --bad: #a8432f; --gold: #b3862c;
+    --panel: rgba(238, 245, 242, 0.95); --track: rgba(23, 49, 58, 0.1); --plan: #ffd23f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #223; font: 14px/1.35 'Alegreya Sans', 'Gill Sans', system-ui, sans-serif; color: var(--ink); }
+  .stage { position: relative; width: 1440px; height: 900px; margin: 0 auto; overflow: hidden; background: url(img/plan-mode-map.jpg) 0 0 / 1440px 900px; }
+  .stage svg.map { position: absolute; inset: 0; pointer-events: none; }
+  .panel { position: absolute; background: var(--panel); border-radius: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28); }
+  h1 { margin: 0; font: italic 700 21px/1.15 'Alegreya', Georgia, serif; }
+  h2 { margin: 0 0 6px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .muted { color: var(--muted); } .good { color: var(--good); } .bad { color: var(--bad); } .gold { color: var(--gold); }
+  button { font: inherit; color: var(--ink); cursor: pointer; border: 1px solid var(--edge); background: #fff; border-radius: 999px; padding: 6px 13px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  .seg { display: inline-flex; background: var(--track); border-radius: 999px; padding: 3px; }
+  .seg button { border: 0; background: none; padding: 5px 13px; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: #fff; color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+  /* the clock, as the game has it */
+  .clock { right: 14px; top: 12px; padding: 9px 16px; display: flex; gap: 14px; align-items: center; }
+  .clock small { display: block; color: var(--muted); font-size: 12px; }
+  .clock .pause { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; }
+  /* ---- the strip ---- */
+  .strip { left: 14px; right: 14px; bottom: 12px; height: 246px; padding: 12px 16px; }
+  .strip .head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+  .strip .head .seg { margin-left: auto; }
+  .grid { display: grid; grid-template-columns: 150px 1fr; column-gap: 12px; row-gap: 6px; align-items: center; }
+  .hours { position: relative; height: 16px; font-size: 11px; color: var(--muted); }
+  .hours span { position: absolute; transform: translateX(-50%); }
+  .who { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+  .who .face { width: 30px; height: 30px; border-radius: 50%; background: #c9b79a; display: grid; place-items: center; font-weight: 700; color: #5a4630; }
+  .who small { display: block; font-size: 11.5px; color: var(--muted); line-height: 1.1; }
+  .lane { position: relative; height: 60px; background: var(--track); border-radius: 8px; }
+  .lane .blk { position: absolute; top: 4px; bottom: 18px; border-radius: 6px; background: #fff; border: 1px solid var(--edge); padding: 3px 7px; font-size: 12.5px; line-height: 1.2;
+    overflow: hidden; white-space: nowrap; transition: left 0.25s, width 0.25s; }
+  .blk small { display: block; color: var(--muted); font-size: 11px; }
+  .blk.done { opacity: 0.55; } .blk.now { border-color: var(--accent); border-width: 2px; }
+  .blk.mine { background: var(--plan); border-color: #8a6d10; font-weight: 700; } .blk.mine small { color: #5c4a10; font-weight: 400; }
+  .blk.ghost { background: none; border: 1.5px dashed var(--muted); color: var(--muted); top: 45px; bottom: 2px; padding: 0 6px; font-size: 10.5px; line-height: 11px; }
+  .blk.moved { border-left: 3px solid var(--plan); }
+  .blk.rest { background: rgba(255, 255, 255, 0.45); color: var(--muted); }
+  .lane .nowline { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--bad); }
+  .lane.first .nowline::after { content: 'now'; position: absolute; top: -13px; left: -11px; font-size: 10.5px; font-weight: 700; color: var(--bad); }
+  .slip { font-size: 12.5px; margin-top: 2px; grid-column: 2; min-height: 18px; }
+  /* ---- the act menu and what the act costs ---- */
+  .menu { left: 14px; top: 14px; width: 340px; padding: 12px 14px; }
+  .act { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; padding: 6px 8px; border-radius: 9px; font-size: 13.5px; }
+  .act small { grid-column: 1 / 3; color: var(--muted); font-size: 12px; }
+  .act .t { color: var(--muted); font-size: 12.5px; }
+  .act.sel { background: #fff; outline: 2px solid var(--plan); }
+  .cost { left: 14px; top: 262px; width: 340px; padding: 12px 14px; font-size: 13.5px; }
+  .cost p { margin: 3px 0; }
+  .cost .btns { display: flex; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
+  .chip { position: absolute; transform: translate(-50%, -50%); background: rgba(255, 255, 255, 0.94); border-radius: 9px; padding: 2px 7px; font-size: 11.5px; line-height: 1.2;
+    text-align: center; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); white-space: nowrap; pointer-events: none; }
+  .chip b { display: block; font-size: 12.5px; } .chip.pick { background: var(--plan); }
+  body:not(.step) .only-step, body:not(.send) .only-send, body:not(.plan) .only-plan { display: none; }
+</style>
+<body class="step">
+<div class="stage">
+  <svg class="map" viewBox="0 0 1440 900" id="map"></svg>
+  <div id="chips"></div>
+
+  <div class="panel clock"><div><h1>Spring, day 4</h1><small>Year 3, 09:30 · paused while you choose</small></div><span class="pause">II</span></div>
+
+  <div class="panel menu only-step">
+    <h2>Household · what you may do now</h2>
+    <div class="act"><span>Cut firewood</span><span class="t">1 h</span><small>in today’s plan at 17:00</small></div>
+    <div class="act sel"><span><b>Carry grain to Backa</b></span><span class="t">1½ h</span><small>24 rations for Astrid Svensdotter · you carry it there and walk back</small></div>
+    <div class="act"><span>Go fishing</span><span class="t">3 h</span><small>not in today’s plan · would push Field 3 to tomorrow</small></div>
+    <div class="act"><span>Open the house for an ale evening</span><span class="t">evening</span><small>after work: displaces nothing</small></div>
+  </div>
+  <div class="panel menu only-send">
+    <h2>Märta · what you may ask of her today</h2>
+    <div class="act"><span>Cart manure</span><span class="t">3 h</span><small>in today’s plan at 13:00</small></div>
+    <div class="act sel"><span><b>Rake the river meadow</b></span><span class="t">3 h</span><small>the plan has it on day 8 · she may say no</small></div>
+    <div class="act"><span>Help hoe Field 2</span><span class="t">2 h</span><small>you finish Field 2 by noon</small></div>
+  </div>
+
+  <div class="panel cost only-step">
+    <h2>By your reckoning</h2>
+    <p><b>Carry grain to Backa</b>, now: back at the hoe by <b>11:00</b>.</p>
+    <p>Field 2 is done at 14:30, not 12:00. <span class="gold">Half an hour of Field 3 and the firewood slip to tomorrow.</span></p>
+    <p class="muted">The sowing still ends day 7; the window closes day 10. Astrid’s house has food for 3 days.</p>
+    <div class="btns"><button type="button" class="primary">Do it now</button><button type="button">After hoeing Field 2</button><button type="button">This evening</button><button type="button">Not today</button></div>
+  </div>
+  <div class="panel cost only-send">
+    <h2>By your reckoning</h2>
+    <p><b>Märta rakes the river meadow</b> this afternoon, in place of carting manure.</p>
+    <p><span class="gold">The manure slips to tomorrow</span>; Field 4 is sown a day later, on day 8.</p>
+    <p class="muted">The meadow is raked 4 days early: about 3% more hay from it. She follows the head’s word, as her role has it.</p>
+    <div class="btns"><button type="button" class="primary">Ask her</button><button type="button">Tomorrow instead</button><button type="button">Leave the plan</button></div>
+  </div>
+
+  <div class="panel strip">
+    <div class="head"><h1>Today at Norrgården</h1><span class="muted only-plan">from the plan: what each of you does, now and next</span>
+      <span class="muted only-step">your act is in yellow; the dashed block is where the plan had the task it cuts</span>
+      <span class="muted only-send">Märta’s afternoon changed; the plan goes on tomorrow</span>
+      <div class="seg" role="group" aria-label="The view">
+        <button type="button" data-view="plan">The plan’s day</button><button type="button" data-view="step">You step in</button><button type="button" data-view="send">You send Märta</button>
+      </div></div>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+<script>
+// ---- the working day, 06:00 to 20:00; a block is [from, to, name, note, class] ----
+const H0 = 6, H1 = 20, pc = (h) => ((h - H0) / (H1 - H0)) * 100, NOW = 9.5;
+const torsten = {
+  plan: [[6, 7, 'Fetch water', '', 'done'], [7, 12, 'Hoe Field 2', 'half done', 'now'], [12, 13, 'Meal', '', 'rest'], [13, 17, 'Hoe Field 3', '4 h', ''],
+    [17, 18, 'Cut firewood', '1 load', ''], [18, 20, 'At home', '', 'rest']],
+  step: [[6, 7, 'Fetch water', '', 'done'], [7, 9.5, 'Hoe Field 2', 'left off', 'done'], [9.5, 11, 'Carry grain to Backa', 'you chose this', 'mine'], [9.5, 12, 'Hoe Field 2', '', 'ghost'],
+    [11, 12, 'Hoe Field 2', 'goes on', 'moved'], [12, 13, 'Meal', '', 'rest'], [13, 14.5, 'Hoe Field 2', 'done 14:30', 'moved'], [14.5, 18, 'Hoe Field 3', '3½ of 4 h', 'moved'], [18, 20, 'At home', '', 'rest']],
+};
+torsten.send = torsten.plan;
+const marta = {
+  plan: [[6, 7, 'Milk', '', 'done'], [7, 8, 'Cook', '', 'done'], [8, 10, 'Grind grain', '', 'now'], [10, 12, 'Fodder, muck out', '', ''], [12, 13, 'Meal', '', 'rest'],
+    [13, 16, 'Cart manure', 'Field 4', ''], [16, 18, 'Cook', '', ''], [18, 20, 'At home', '', 'rest']],
+};
+marta.step = marta.plan;
+marta.send = marta.plan.map((b) => (b[2] === 'Cart manure' ? [13, 16, 'Rake the river meadow', 'you asked', 'mine'] : b)).concat([[13, 16, 'Cart manure', '', 'ghost']]);
+const slips = {
+  plan: ['', ''],
+  step: ['<span class="gold">Slips to tomorrow: ½ h of Field 3 · Cut firewood.</span> <span class="muted">Then the plan goes on as it was.</span>', ''],
+  send: ['', '<span class="gold">Slips to tomorrow: Cart manure.</span> <span class="muted">Field 4 is sown on day 8.</span>'],
+};
+const lane = (blocks, first) => `<div class="lane${first ? ' first' : ''}">${blocks.map(([a, b, n, s, c]) =>
+  `<span class="blk ${c}" style="left:calc(${pc(a)}% + 1px);width:calc(${pc(b) - pc(a)}% - 2px)">${c === 'ghost' ? `the plan had ${n} here` : n}${s && c !== 'ghost' ? `<small>${s}</small>` : ''}</span>`).join('')}<span class="nowline" style="left:${pc(NOW)}%"></span></div>`;
+function drawStrip(v) {
+  let h = '<span></span><div class="hours">' + Array.from({ length: (H1 - H0) / 2 + 1 }, (_, k) => `<span style="left:${pc(H0 + 2 * k)}%">${String(H0 + 2 * k).padStart(2, '0')}:00</span>`).join('') + '</div>';
+  h += `<span class="who"><span class="face">T</span><span>You, Torsten<small>farmer</small></span></span>${lane(torsten[v], true)}<div class="slip">${slips[v][0]}</div>`;
+  h += `<span class="who"><span class="face">M</span><span>Märta<small>mistress</small></span></span>${lane(marta[v])}<div class="slip">${slips[v][1]}</div>`;
+  document.getElementById('grid').innerHTML = h;
+}
+// ---- the map: where the work is, and the walk of the act (house 720, 445; Field 2 at 575, 445; Backa at 900, 510; the river meadow 756, 382) ----
+const hex = (x, y, r = 38) => [[0, -r], [r * 0.866, -r / 2], [r * 0.866, r / 2], [0, r], [-r * 0.866, r / 2], [-r * 0.866, -r / 2]].map(([a, b]) => `${x + a},${y + b}`).join(' ');
+function drawMap(v) {
+  let s = `<polygon points="${hex(575, 445)}" fill="none" stroke="#fff" stroke-width="2.5"/>`, c = '';
+  c += `<div class="chip" style="left:575px;top:445px"><b>Hoe Field 2</b>${v === 'step' ? 'left off · goes on 11:00' : 'you, until 12:00'}</div>`;
+  if (v === 'step') {
+    s += `<polyline points="590,470 720,470 800,500 880,520" fill="none" stroke="#ffd23f" stroke-width="4" stroke-dasharray="2 9" stroke-linecap="round"/>`;
+    s += `<polygon points="${hex(900, 510)}" fill="rgba(255,210,63,.3)" stroke="#ffd23f" stroke-width="4"/>`;
+    c += `<div class="chip pick" style="left:900px;top:462px"><b>Backa</b>24 grain · there by 10:15</div><div class="chip" style="left:720px;top:488px">fetch the grain at home</div>`;
+  }
+  if (v === 'send') {
+    s += `<polygon points="${hex(756, 382)}" fill="rgba(255,210,63,.3)" stroke="#ffd23f" stroke-width="4"/>`;
+    c += `<div class="chip pick" style="left:756px;top:336px"><b>Rake the river meadow</b>Märta, 13:00–16:00</div>`;
+  }
+  document.getElementById('map').innerHTML = s;
+  document.getElementById('chips').innerHTML = c;
+}
+function show(v) {
+  document.body.className = v;
+  document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+  drawStrip(v); drawMap(v);
+}
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => show(b.dataset.view)));
+const q = new URLSearchParams(location.search).get('view');
+show(['plan', 'step', 'send'].includes(q) ? q : 'step');
+</script>
+</body>
+</html>

@@ -626,6 +626,11 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .plan-btn { min-width: 28px; height: 26px; padding: 0 6px; border: 1px solid var(--edge); border-radius: var(--r-field); background: transparent; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
 .plan-btn:disabled { opacity: 0.35; cursor: default; }
 .plan-btn.wide { padding: 0 10px; }
+.field-ctl { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 8px; }
+.field-btn { display: inline-flex; align-items: center; gap: 4px; height: 28px; }
+.field-btn svg { width: 16px; height: 16px; flex: none; }
+.field-btn.on { border-color: var(--ink); font-weight: 700; }
+.field-btn.off { opacity: 0.45; }
 .plan-order { margin: 0 0 6px; padding: 0; list-style: none; counter-reset: routine; }
 .plan-order li { display: flex; align-items: center; gap: 7px; min-height: 28px; font-size: 14px; color: var(--ink); counter-increment: routine; }
 .plan-order li::before { content: counter(routine); width: 14px; color: var(--muted); font-size: 12px; text-align: right; }
