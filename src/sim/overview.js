@@ -1,8 +1,8 @@
 // @sys sim/overview: a village at a glance (VB-162): its food against its need, the year's harvest, its people by age band, its hungry
 // households and idle hands, and the warnings; computed when asked and stored nowhere. The warnings that foretell are a pawn's estimate.
 VB['sim/overview'] = (() => {
-  const { YEAR, YEAR_DAYS, SEASON_DAYS, WORK, HUNGER, FIELDS, CROPS, cal } = VB['sim/rules'];
-  const { age } = VB['sim/records'];
+  const { YEAR, YEAR_DAYS, SEASON_DAYS, WORK, HUNGER, FIELDS, CROPS, MARRIAGE, cal } = VB['sim/rules'];
+  const { age, spouseOf } = VB['sim/records'];
   const Stores = VB['sim/stores'];
   const { toHarvest, foodHeld, dailyNeed } = VB['sim/hunger'];
   const { fieldsWorkable } = VB['sim/fields'];
@@ -25,6 +25,8 @@ VB['sim/overview'] = (() => {
   });
   const AUTUMN = 2; // the season the harvest comes in (as sim/hunger's toHarvest)
   const bandOf = (a) => (a < OVERVIEW.bands[0] ? 0 : a < OVERVIEW.bands[1] ? 1 : 2);
+  // A living pawn of marrying age (the custom's: MARRIAGE.menFrom, womenFrom).
+  const adultOf = (st, p) => p.alive && age(st, p) >= (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom);
   const live = (st, v) => {
     const out = [];
     for (const id of v.farmsteads) {
@@ -113,7 +115,11 @@ VB['sim/overview'] = (() => {
   //    short (the rations do not reach the viewer's days)}, harvest: {year (of cal: this year's from autumn, when it comes in, last year's
   //    before), rations, need (a year's), share}, bands: {now, ago} (people of 0 to
   //    14, 15 to 49 and 50 on, now and a year ago), hungry: {window, households (ids hungry on any day of it)}, idle: {worked, had, share},
-  //    warnings: {food, hunger, heir, hands}: the households each concerns, by id}.
+  //    marry: {adults, single: {f, m} (adults of marrying age, and of them the unmarried, of the village's households), alone (the
+  //    households of one adult, by id), reach: {f, m} (the unmarried of the pool within walking reach, VB-288), by: 'f'|'m'|null (the sex
+  //    that outnumbers the other two to one there)},
+  //    warnings: {food, hunger, heir, hands, match}: the households each concerns, by id; `match`: those of the village with an
+  //    unmarried of the sex `marry.by`}.
   // People a year ago are those then alive whose household (their last, for the dead) is of the village: who moved in during the year
   // counts as of it then. A walk of every pawn, made when the panel is drawn and never by a step (VB.count.overviewWalk).
   function villageSummary(st, vid, viewer = null) {
@@ -136,8 +142,10 @@ VB['sim/overview'] = (() => {
       bands: { now: [0, 0, 0], ago: [0, 0, 0] },
       hungry: { window: OVERVIEW.window, households: [] },
       idle: { worked: 0, had: 0, share: 0 },
-      warnings: { food: [], hunger: [], heir: [], hands: [] },
+      marry: { adults: { f: 0, m: 0 }, single: { f: 0, m: 0 }, alone: [], reach: { f: 0, m: 0 }, by: null },
+      warnings: { food: [], hunger: [], heir: [], hands: [], match: [] },
     };
+    const single = new Set(); // households of the village holding an unmarried adult, by sex
     for (const hh of hhs) {
       const need = dailyNeed(st, hh),
         food = foodOf(st, hh),
@@ -160,6 +168,7 @@ VB['sim/overview'] = (() => {
         );
         if (!heir) out.warnings.heir.push(hh.id);
       }
+      if (hh.members.filter((id) => adultOf(st, st.pawns[id])).length === 1) out.marry.alone.push(hh.id);
       if (est && sownFields(f) > fieldsWorkable(st, hh, est.perHand)) out.warnings.hands.push(hh.id);
     }
     VB.count.overviewWalk += st.pawns.length;
@@ -167,11 +176,28 @@ VB['sim/overview'] = (() => {
     for (const p of st.pawns) {
       if (p.household === null || st.farmsteads[st.households[p.household].farmstead].village !== v.id) continue;
       if (p.alive) {
+        if (adultOf(st, p)) {
+          out.marry.adults[p.sex]++;
+          if (spouseOf(st, p.id) === null) {
+            out.marry.single[p.sex]++;
+            single.add(p.sex + p.household);
+          }
+        }
         out.people++;
         out.bands.now[bandOf(age(st, p))]++;
       }
       if (p.born <= ago && (p.died === null || p.died > ago)) out.bands.ago[bandOf(age(st, p, ago))]++;
     }
+    // within walking reach: the unmarried of the pool of marrying age (the round's, sim/matching)
+    const pool = VB['sim/matching'].poolFor(st, vid);
+    VB.count.overviewWalk += pool.length;
+    for (const id of pool) {
+      const p = st.pawns[id];
+      if (adultOf(st, p) && spouseOf(st, id) === null) out.marry.reach[p.sex]++;
+    }
+    const { f: rf, m: rm } = out.marry.reach;
+    out.marry.by = rm >= 2 * rf && rm > 0 ? 'm' : rf >= 2 * rm && rf > 0 ? 'f' : null;
+    if (out.marry.by) for (const hh of hhs) if (single.has(out.marry.by + hh.id)) out.warnings.match.push(hh.id);
     out.food.days = out.food.need > 0 ? out.food.rations / out.food.need : 0;
     out.food.short = !!est && out.food.need > 0 && out.food.rations < out.food.need * est.days;
     out.harvest.need = out.food.need * YEAR_DAYS;
