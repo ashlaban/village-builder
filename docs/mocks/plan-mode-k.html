@@ -1,0 +1,777 @@
+<!doctype html>
+<!-- Mock (18 Nov 2026), plan mode, variation K: J with the flow of replacing an action, as Kim set it. For VB-1123. Throwaway: the
+     numbers are invented and nothing here is game code. The icons' paths are copied from src/page/icons.js and the meter from
+     src/page/meter.js; new glyphs as in J, and a jar (pottery).
+     The case: Märta is given pottery in place of her raking. Two frames of one screen, ?step=1 (the default) and ?step=2.
+     The rules drawn:
+     1. A click on an action's bar selects it (the dark frame; its tiles are ringed on the map). With a bar selected, the action
+        chosen next takes its place. Frame 1: "Rake meadows" is selected, the house is clicked, and its menu says what it replaces.
+     2. A selected bar has a delete button at its corner; Backspace or Delete does the same.
+     3. Taking an action away moves the estimates, and it shows on the head's estimate of the outcome. Frame 2: with no one
+        raking, the hay's bar has lost a part (drawn hatched red, where it stood before), its poor year's pointer has moved back,
+        and the row is marked as changed; the meadows carry a problem's mark.
+     4. A member's bar shows where more would fit: the free stretch is a dashed box with the days of work it holds.
+     5. An action whose needs are not met can still be placed, and warns: pottery with no clay in store has the red mark in the
+        menu, with what is missing and where it is got, and after it is placed on its bar and on the house.
+     Also changed from J: no action is in hand for a tile, so the fertility overlay is off and the map is at rest; the day's
+     pointer is gone, since a new action goes to the bar selected or to the first free stretch.
+     Same household (Norrgården, year 3, spring: Torsten 32 and Märta 29, four fields, six meadows; Karin, hired at the moving
+     round, comes on the first day of summer). Drawn for 1440 by 900. -->
+<html lang="en">
+<meta charset="utf-8">
+<title>Plan mode K: replacing and deleting an action, room to fit more, a missing need of a craft</title>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ---- the page's tokens (src/head.html) and the mocks' one addition: --plan, the colour of what the head changed ---- */
+  :root { --ink: #17313a; --muted: #526d75; --edge: rgba(23, 49, 58, 0.14); --accent: #23685a; --on-accent: #f2f8f6; --good: #2f7a4b; --bad: #a8432f;
+    --gold: #b3862c; --panel: rgba(238, 245, 242, 0.96); --track: rgba(23, 49, 58, 0.13); --plan: #ffd23f; --plan-edge: #8a6d10; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #223; font: 14px/1.3 'Alegreya Sans', 'Gill Sans', system-ui, sans-serif; color: var(--ink); }
+  .stage { position: relative; width: 1440px; height: 900px; margin: 0 auto; overflow: hidden; background: #2b3b33 url(img/plan-mode-map.jpg) 0 0 / 1440px 900px no-repeat; }
+  .stage svg.map { position: absolute; inset: 0; pointer-events: none; }
+  .panel { position: absolute; background: var(--panel); border-radius: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28); }
+  h1 { margin: 0; font: italic 700 21px/1.15 'Alegreya', Georgia, serif; }
+  h2 { display: flex; align-items: center; gap: 6px; margin: 12px 0 5px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  h2:first-child { margin-top: 0; }
+  h2 .ico { color: var(--accent); }
+  .muted { color: var(--muted); } .good { color: var(--good); } .bad { color: var(--bad); } .gold { color: var(--gold); }
+  b { font-weight: 700; }
+  .ico { display: inline-block; flex: none; vertical-align: middle; }
+  button { font: inherit; color: var(--ink); cursor: pointer; border: 1px solid var(--edge); background: #fff; border-radius: 999px; padding: 5px 12px;
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+  button.sm { padding: 2px 9px 2px 6px; font-size: 12.5px; }
+  button.icon { padding: 3px; border-radius: 8px; color: var(--muted); }
+  .seg { display: inline-flex; background: var(--track); border-radius: 999px; padding: 3px; }
+  .seg button { border: 0; background: none; padding: 5px 13px; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: #fff; color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+  .when { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--muted); }
+  /* whose estimate: the wits icon marks every number that is the head's reckoning, and the bar's key says so once */
+  .est { color: var(--gold); margin-right: 1px; }
+  .whose { display: flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: rgba(179, 134, 44, 0.13); font-size: 12.5px; white-space: nowrap; }
+  .whose .meter { width: 44px; flex: none; } .whose small { color: var(--muted); font-size: 12px; }
+  /* ---- the page's one meter (src/head.html, .meter): fill, marks, tones, over; `with` is the supply cells' striped "still to come" ---- */
+  .meter { position: relative; display: inline-block; flex: 1; min-width: 30px; height: 8px; border-radius: 4px; background: var(--track); }
+  .meter > i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px; background: var(--accent); }
+  .meter > i.with { background: repeating-linear-gradient(-45deg, var(--accent) 0 2.5px, rgba(255, 255, 255, 0.7) 2.5px 5px); }
+  .meter.good > i { background: var(--good); } .meter.warn > i { background: var(--gold); } .meter.bad > i { background: var(--bad); }
+  .meter.over > i { border-radius: 4px 0 0 4px; }
+  .meter.over::after { content: ''; position: absolute; right: -5px; top: -1px; border: 5px solid transparent; border-left-color: var(--bad); border-right: 0; }
+  .meter > b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
+  .meter > b + b, .meter > b.mine { background: var(--plan); outline: 1px solid var(--plan-edge); }
+  .meter > b.was { background: var(--gold); width: 3px; }
+  /* a member's days on the one meter: the chores, what the plan claims, and what is left empty is free */
+  .meter.days { height: 10px; }
+  .meter.days > i.ch { background: rgba(23, 49, 58, 0.42); border-radius: 4px 0 0 4px; }
+  .meter.days > i.pl { border-radius: 0; }
+  .meter.days.over > i.pl { background: var(--bad); }
+  /* ---- a member: the face (an initial, as the first mock), the same wherever a member is shown ---- */
+  .face { display: inline-flex !important; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 50%; font-weight: 700; font-size: 12px; line-height: 1; }
+  .face.t { background: #d9c3a0; color: #5a4630; } .face.m { background: #a9d0c4; color: #17503f; }
+  .face.a, .face.k { background: transparent; color: var(--muted); border: 1.5px dashed var(--muted); }
+  .face.ask { background: transparent; color: var(--accent); border: 1.5px dashed var(--accent); }
+  .face.s { width: 17px; height: 17px; font-size: 10px; }
+  /* ---- a job in a member's hands: face, skill on the meter (striped: what the season adds), work days, the grade of a made good ---- */
+  .hand { display: flex; align-items: center; gap: 5px; min-height: 20px; font-size: 12.5px; white-space: nowrap; }
+  .hand .meter { flex: 1; min-width: 34px; }
+  .hand .d { min-width: 30px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .hand.off { opacity: 0.55; } .hand.off .d { font-weight: 400; }
+  .grade { display: inline-flex; gap: 1.5px; align-items: center; }
+  .grade i { width: 5px; height: 5px; transform: rotate(45deg); background: var(--track); }
+  .grade i.on { background: var(--gold); }
+  /* ---- the season's strip: one lane a member, a day a column; the grey band is the share of each day the chores take ---- */
+  .days12 { display: grid; grid-template-columns: repeat(12, 1fr); font-size: 11px; color: var(--muted); text-align: center; }
+  .lane { position: relative; border-radius: 6px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0 calc(100% / 12 - 1px), var(--edge) calc(100% / 12 - 1px) calc(100% / 12)); }
+  .lane .chores { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 3px; padding-left: 5px; overflow: hidden; color: #fff;
+    border-radius: 0 0 6px 6px; background: repeating-linear-gradient(-45deg, rgba(23, 49, 58, 0.36) 0 4px, rgba(23, 49, 58, 0.28) 4px 8px); }
+  .lane .bar { position: absolute; top: 0; display: flex; align-items: center; gap: 4px; padding: 0 5px; overflow: hidden; border-radius: 5px; background: var(--accent);
+    color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
+  .lane .bar.late { background: var(--bad); }
+  .lane .bar.mine { box-shadow: inset 0 0 0 2.5px var(--plan); }
+  .lane .bar.cut { border-radius: 5px 0 0 5px; background: linear-gradient(90deg, var(--accent) 70%, var(--bad)); }
+  .lane .rng { position: absolute; height: 9px; z-index: 2; border-left: 2px solid #fff; border-right: 2px solid #fff; background: linear-gradient(#fff, #fff) 0 50% / 100% 2px no-repeat; filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7)); }
+  .lane .win { position: absolute; top: -17px; bottom: 0; width: 0; border-left: 2px dashed var(--ink); z-index: 3; }
+  .lane .win span { position: absolute; top: -3px; left: -11px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: #fff; }
+  .lane .win.missed { border-color: var(--bad); } .lane .win.missed span { background: var(--bad); }
+  .lane .on { position: absolute; top: 0; right: 3px; z-index: 4; color: #fff; }
+  .lane.ghost { background: none; border: 1.5px dashed var(--edge); }
+  /* a small strip of the same season: a window's span and the bar in it (a field's chip, the matrix's last column) */
+  .mini { position: relative; display: inline-block; flex: none; width: 60px; height: 8px; border-radius: 2px; background: var(--track); }
+  .mini u { position: absolute; top: -2px; bottom: -2px; border-right: 2px solid var(--ink); }
+  .mini i { position: absolute; top: 1px; bottom: 1px; border-radius: 2px; background: var(--accent); }
+  .mini i.late { background: var(--bad); } .mini i.mine { background: var(--plan); outline: 1px solid var(--plan-edge); }
+  /* ---- what does not fit: the one red box, with why and what to change ---- */
+  .unfit { border-radius: 12px; padding: 8px 12px; background: rgba(168, 67, 47, 0.1); box-shadow: inset 0 0 0 1.5px var(--bad); }
+  .unfit h2 { color: var(--bad); margin-bottom: 6px; } .unfit h2 .ico { color: var(--bad); }
+  .unfit .it { display: grid; grid-template-columns: 26px 1fr; gap: 2px 8px; align-items: center; padding: 4px 0; }
+  .unfit .it + .it { border-top: 1px solid rgba(168, 67, 47, 0.25); }
+  .unfit .badge { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--bad); color: #fff; }
+  .unfit .what { font-size: 13.5px; } .unfit .why { color: var(--muted); font-size: 12.5px; }
+  .unfit .fix { grid-column: 2; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+  .allfit { border-radius: 12px; padding: 8px 12px; background: rgba(47, 122, 75, 0.1); color: var(--good); font-weight: 700; display: flex; gap: 6px; align-items: center; }
+  /* ---- the head's changes against the custom's plan ---- */
+  .chg { display: grid; grid-template-columns: 22px 1fr 22px; gap: 1px 7px; align-items: center; padding: 5px 0; border-top: 1px solid var(--edge); font-size: 13px; }
+  .chg:first-child { border-top: 0; }
+  .chg > .ico { color: var(--ink); grid-row: span 2; background: var(--plan); border-radius: 50%; padding: 3px; width: 22px; height: 22px; }
+  .chg .t { display: flex; align-items: center; gap: 4px; font-weight: 700; }
+  .chg .cg { grid-column: 2; display: flex; flex-wrap: wrap; gap: 3px 10px; font-size: 12.5px; color: var(--muted); }
+  .chg .cg span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .chg .cg .plus { color: var(--good); } .chg .cg .slip { color: var(--bad); font-weight: 700; }
+  .chg button.icon { grid-row: 1 / span 2; grid-column: 3; }
+  .none { font-size: 13px; color: var(--muted); padding: 2px 0; }
+  /* ---- a stat row, as the panels' (src/head.html, .stat): icon, meter, value ---- */
+  .stat { display: flex; align-items: center; gap: 7px; min-height: 24px; font-size: 13px; }
+  .stat > .ico { color: var(--accent); } .stat.warn > .ico { color: var(--gold); } .stat.bad > .ico { color: var(--bad); }
+  .stat .v { min-width: 50px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stat .v small { font-weight: 400; color: var(--muted); }
+  .key { display: flex; flex-wrap: wrap; gap: 3px 12px; font-size: 11.5px; color: var(--muted); margin: 0 0 3px; }
+  .key span { display: inline-flex; align-items: center; gap: 4px; }
+  .key u { display: inline-block; width: 3px; height: 11px; border-radius: 1px; background: var(--ink); }
+  .key u.mine { background: var(--plan); outline: 1px solid var(--plan-edge); } .key u.was { background: var(--gold); }
+  .key u.fill { width: 14px; height: 7px; border-radius: 3px; background: var(--accent); }
+  .key u.grow { width: 14px; height: 7px; border-radius: 3px; background: repeating-linear-gradient(-45deg, var(--accent) 0 2px, transparent 2px 5px); }
+  .key u.ch { width: 14px; height: 7px; border-radius: 2px; background: rgba(23, 49, 58, 0.42); }
+  .kept { display: inline-flex; align-items: center; gap: 2px; margin-right: 8px; }
+  /* ---- the people of the enterprise: who left, who joins, where a hand could be asked for ---- */
+  .who { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+  .who small { color: var(--muted); display: inline-flex; align-items: center; gap: 3px; }
+  .who.link { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 3px; }
+  .who.off { color: var(--muted); }
+  /* ---- the map's labels ---- */
+  .tchip { position: absolute; transform: translate(-50%, -50%); width: 62px; padding: 3px 4px; border-radius: 8px; background: rgba(255, 255, 255, 0.95); font-size: 11px; line-height: 1;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); display: grid; gap: 3px; }
+  .tchip.pick { background: var(--plan); box-shadow: 0 0 0 2px var(--plan-edge), 0 2px 8px rgba(0, 0, 0, 0.5); }
+  .tchip.pick { width: 74px; }
+  .tchip .r { display: flex; align-items: center; gap: 3px; min-width: 0; } .tchip .r b { margin-left: auto; font-size: 11.5px; }
+  .tchip .meter { height: 5px; min-width: 20px; }
+  .tchip.no { width: auto; display: flex; align-items: center; gap: 3px; padding: 3px 6px; background: rgba(40, 30, 28, 0.85); color: #fff; font-size: 11.5px; white-space: nowrap; }
+  .range { position: relative; flex: 1; min-width: 20px; height: 5px; border-radius: 3px; background: var(--track); }
+  .range i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: color-mix(in srgb, var(--gold) 60%, transparent); }
+  .range u { position: absolute; top: -2px; bottom: -2px; width: 3px; margin-left: -1.5px; border-radius: 1px; background: var(--ink); }
+  .fchip { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 3px; padding: 3px 5px; border-radius: 9px; background: rgba(255, 255, 255, 0.95);
+    font-size: 11.5px; font-weight: 700; line-height: 1; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); white-space: nowrap; }
+  .fchip.col { flex-direction: column; gap: 3px; padding: 4px 5px; }
+  .fchip .r { display: flex; align-items: center; gap: 3px; }
+  .fchip.pick { background: var(--plan); }
+  .fchip .mini { width: 44px; height: 6px; }
+  body.custom .only-mine, body.mine .only-custom { display: none !important; }
+  .tchip.lite { width: auto; display: flex; align-items: center; gap: 2px; padding: 3px 6px; font-size: 12px; white-space: nowrap; }
+  .tchip.lite b { display: inline-flex; align-items: center; gap: 2px; }
+  /* ======== this variation's own layout ======== */
+  .top { left: 12px; right: 12px; top: 10px; height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 14px; }
+  .top h1 { font-size: 19px; } .top .reset { margin-left: auto; }
+  .rgt { right: 12px; top: 68px; width: 262px; padding: 10px 12px; }
+  .rgt h2 { margin-top: 9px; } .rgt .stat { min-height: 22px; } .rgt .chg { padding: 3px 0; }
+  .ykey { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 12.5px; font-weight: 700; text-align: center; }
+  .ykey span { padding: 3px 0; border-radius: 6px; color: #fff; }
+  .strip { left: 12px; right: 12px; bottom: 10px; padding: 8px 14px 10px; display: grid; grid-template-columns: 268px 1fr 76px; column-gap: 12px; row-gap: 0; align-items: center; }
+  .tl { display: flex; gap: 14px; } .tl > .d { flex: 12; min-width: 0; position: relative; } .tl > .s { flex: 3; min-width: 0; }
+  .tl .d12 { display: grid; grid-template-columns: repeat(12, 1fr); } .tl .s3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; height: 100%; }
+  .hdr { font-size: 11px; color: var(--muted); text-align: center; } .hdr .s3 span { display: flex; justify-content: center; }
+  .mh { display: flex; align-items: center; gap: 7px; white-space: nowrap; margin-top: 19px; }
+  .mh b.n { font: italic 700 17px/1 'Alegreya', Georgia, serif; }
+  .mh .meter { flex: 1; min-width: 40px; margin-left: 4px; } .mh > b:last-child { min-width: 62px; text-align: right; font-size: 13px; }
+  .row { margin-top: 19px; }
+  .lane .bar { font-size: 13px; }
+  .cellq { position: relative; border-radius: 5px; overflow: hidden; background: rgba(255, 255, 255, 0.75); box-shadow: inset 0 0 0 1px var(--edge); }
+  .cellq > i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 3px; color: #fff; font: 700 12.5px 'Alegreya Sans', sans-serif;
+    background: repeating-linear-gradient(-45deg, var(--bad) 0 4px, color-mix(in srgb, var(--bad) 70%, #fff) 4px 8px); }
+  .pick { position: absolute; top: -16px; margin-left: -8px; border: 8px solid transparent; border-top: 11px solid var(--ink); z-index: 4; }
+  .pick::after { content: ''; position: absolute; left: -1px; top: 0; height: 54px; border-left: 2px solid var(--ink); }
+  .nod { display: flex; gap: 5px; margin-top: 19px; justify-content: flex-start; align-items: center; }
+  .nod span { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--bad); box-shadow: inset 0 0 0 2px var(--bad); border: 0; background: rgba(168, 67, 47, 0.1); }
+  .nod small { font-size: 12px; font-weight: 700; color: var(--bad); white-space: nowrap; }
+  .land { position: absolute; transform: translate(-50%, -50%); padding: 2px 9px; border-radius: 999px; background: #fff; font: italic 700 14px 'Alegreya', Georgia, serif; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45); white-space: nowrap; }
+  .menu .mt .sw { width: 16px; height: 16px; border-radius: 4px; box-shadow: 0 0 0 1px var(--edge); }
+  /* the tiles' marks: one disc a tile */
+  .disc { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--ink);
+    box-shadow: 0 0 0 2px #fff, 0 2px 5px rgba(0, 0, 0, 0.5); }
+  .disc.t { background: #d9c3a0; } .disc.m { background: #a9d0c4; } .disc.h { background: #fff; color: var(--accent); }
+  .disc.late { box-shadow: 0 0 0 3.5px var(--bad), 0 2px 5px rgba(0, 0, 0, 0.5); }
+  .disc.mine { box-shadow: 0 0 0 3.5px var(--plan), 0 0 0 4.5px var(--plan-edge), 0 2px 5px rgba(0, 0, 0, 0.5); }
+  .disc.no { width: 20px; height: 20px; background: rgba(40, 30, 28, 0.85); color: #fff; box-shadow: none; }
+  .whyno { position: absolute; transform: translate(-50%, 0); padding: 3px 8px; border-radius: 8px; background: rgba(40, 30, 28, 0.92); color: #fff; font-size: 12px; white-space: nowrap; }
+  /* the menu at the tile (E's) */
+  .menu { position: absolute; width: 268px; padding: 8px; border-radius: 14px; background: #fff; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); display: grid; gap: 4px; z-index: 5; }
+  .menu::before { content: ''; position: absolute; left: -7px; top: 26px; width: 14px; height: 14px; background: #fff; transform: rotate(45deg); }
+  .menu.r::before { left: auto; right: -7px; }
+  .menu .mt { display: flex; align-items: center; gap: 6px; padding: 0 4px 4px; font-weight: 700; font-size: 13.5px; border-bottom: 1px solid var(--edge); }
+  .menu .mt .to { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 3px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 12px; }
+  .menu .act { display: grid; grid-template-columns: 24px 1fr; gap: 1px 7px; align-items: center; padding: 5px 6px; border-radius: 9px; cursor: pointer; }
+  .menu .act > .ico { color: var(--accent); grid-row: span 3; align-self: start; margin-top: 1px; }
+  .menu .act .ti { font-weight: 700; font-size: 13.5px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .menu .act .ti small { margin-left: auto; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 2px; }
+  .menu .act.hot { background: rgba(255, 210, 63, 0.4); box-shadow: inset 0 0 0 1.5px var(--plan-edge); }
+  .menu .act.no { cursor: default; color: var(--muted); } .menu .act.no > .ico { color: var(--muted); }
+  .menu .act .why { margin-left: auto; font-size: 12.5px; font-weight: 400; color: var(--bad); display: inline-flex; align-items: center; gap: 3px; }
+  .menu .about { padding: 4px 6px 2px; border-top: 1px solid var(--edge); }
+  .menu .about .ti { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 13.5px; margin-bottom: 2px; }
+  .menu .about .ti .ico:last-child { margin-left: auto; color: var(--muted); }
+  .menu .about .stat { min-height: 21px; }
+  .tb { position: relative; width: 38px; height: 38px; padding: 0; justify-content: center; border-radius: 50%; }
+  .tb.reset { margin-left: auto; }
+  .tb:hover::after { content: attr(data-tip); position: absolute; right: 0; top: 44px; padding: 4px 9px; border-radius: 8px; background: var(--ink); color: #fff; font: 400 12.5px 'Alegreya Sans', sans-serif; white-space: nowrap; z-index: 9; }
+  .mh.kn, .row.kn { margin-top: 8px; } .mh.kn { color: var(--muted); } .mh.kn small { margin-left: auto; font-size: 12px; }
+  .cellq.come { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--accent); background: rgba(35, 104, 90, 0.12); white-space: nowrap; }
+  /* ---- H ---- */
+  .need, .nod span { position: relative; }
+  [data-tip]:hover::after { content: attr(data-tip); position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); padding: 4px 9px; border-radius: 8px; background: var(--ink); color: #fff;
+    font: 400 12.5px 'Alegreya Sans', sans-serif; white-space: nowrap; z-index: 20; }
+  .top .undo { margin-left: 14px; } .top .reset { margin-left: auto; }
+  .top .sep { width: 1px; height: 26px; background: var(--edge); margin: 0 6px; }
+  .tb[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .rgt { width: 276px; }
+  .need { display: grid; grid-template-columns: 20px 1fr 44px 22px; gap: 7px; align-items: center; min-height: 30px; font-size: 13px; }
+  .need > .ico { color: var(--accent); } .need.bad > .ico { color: var(--bad); }
+  .need .meter { height: 10px; } .need .meter > b { top: -4px; bottom: -4px; width: 3px; }
+  .need .w { font-weight: 700; text-align: right; } .need.safe .w { color: var(--good); } .need.bad .w { color: var(--bad); }
+  .need button { width: 22px; height: 22px; padding: 0; justify-content: center; border-radius: 50%; font: italic 700 12px/1 Georgia, serif; color: var(--muted); }
+  .need button[aria-expanded="true"] { background: var(--accent); color: #fff; border-color: transparent; }
+  .nums { margin: 0 0 6px 27px; padding: 6px 9px; border-radius: 8px; background: rgba(23, 49, 58, 0.06); font-size: 12.5px; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
+  .nums span { color: var(--muted); display: inline-flex; align-items: center; gap: 3px; } .nums b { text-align: right; white-space: nowrap; } .nums b.plus { color: var(--good); }
+  /* a bar: sure (solid), then how far it may run (striped); the yellow frame of a change goes round both */
+  .hl { position: relative; height: 52px; border-radius: 6px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0 calc(100% / 12 - 1px), var(--edge) calc(100% / 12 - 1px) calc(100% / 12)); }
+  .hl .foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 3px; padding-left: 5px; color: #fff; border-radius: 0 0 6px 6px;
+    background: repeating-linear-gradient(-45deg, rgba(23, 49, 58, 0.36) 0 4px, rgba(23, 49, 58, 0.28) 4px 8px); }
+  .hl .act { position: absolute; top: 0; display: flex; border-radius: 5px; overflow: hidden; }
+  .hl .act.mine { box-shadow: 0 0 0 2.5px var(--plan), 0 0 0 3.5px var(--plan-edge); }
+  .hl .act .sure { display: flex; align-items: center; gap: 5px; padding: 0 6px; min-width: 0; overflow: hidden; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .hl .act .may { flex: none; background: repeating-linear-gradient(-45deg, var(--accent) 0 3px, rgba(255, 255, 255, 0.75) 3px 6px); }
+  .hl .act.cut .sure { background: linear-gradient(90deg, var(--accent) 55%, var(--bad)); }
+  .hl .pin { position: absolute; top: -19px; margin-left: -9px; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: #fff; }
+  .hl .pin::after { content: ''; position: absolute; left: 8px; top: 18px; height: 7px; border-left: 2px solid var(--ink); }
+  .pick::after { height: 58px; }
+  /* a problem, on the tile it concerns */
+  .bang { position: absolute; transform: translate(-50%, -50%); width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--bad); color: #fff; font: 700 14px/1 'Alegreya Sans', sans-serif;
+    box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(0, 0, 0, 0.5); z-index: 3; cursor: pointer; }
+  .menu::before, .menu.r::before { top: var(--ay, 26px); }
+  .menu .prob { display: grid; grid-template-columns: 20px 1fr; gap: 2px 7px; padding: 6px 7px; border-radius: 9px; background: rgba(168, 67, 47, 0.1); box-shadow: inset 0 0 0 1.5px var(--bad); font-size: 13px; }
+  .menu .prob .bang { position: static; transform: none; box-shadow: none; }
+  .menu .prob .do { grid-column: 2; font-size: 12.5px; color: var(--accent); font-weight: 700; line-height: 1.5; } .menu .prob .do .ico, .menu .prob .do .face { vertical-align: -3px; margin: 0 2px; }
+  .okey { position: absolute; display: flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: var(--panel); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); font-size: 12.5px; white-space: nowrap; }
+  .okey i { width: 74px; height: 9px; border-radius: 5px; background: linear-gradient(90deg, rgba(70, 190, 110, 0.12), rgba(70, 190, 110, 0.95)); box-shadow: 0 0 0 1px var(--edge); }
+  .legend { background: #eef5f2; right: 12px; top: 64px; width: 330px; padding: 10px 14px 12px; z-index: 30; display: grid; gap: 5px; font-size: 13px; }
+  .legend[hidden] { display: none; }
+  .legend .lg { display: grid; grid-template-columns: 46px 1fr; gap: 9px; align-items: center; min-height: 22px; }
+  .legend .lg > :first-child { justify-self: center; }
+  .legend .sw { display: inline-block; width: 40px; height: 12px; border-radius: 3px; }
+  /* ---- I ---- */
+  :root { --grain: #c2942a; --peas: #5d9a57; --fishc: #4f86a8; --milk: #8b6a9c; --rye: #8a6f4d; }
+  .meter.food { height: 12px; overflow: visible; }
+  .meter.food > i { border-radius: 0; background: var(--c); } .meter.food > i:first-child { border-radius: 4px 0 0 4px; }
+  .meter.food > i.add { background: repeating-linear-gradient(-45deg, var(--c) 0 2.5px, rgba(255, 255, 255, 0.75) 2.5px 5px); }
+  .meter.food > b { top: -4px; bottom: -4px; width: 3px; }
+  .rgt { overflow: visible; }
+  .brk[hidden] { display: none; }
+  .brk { position: absolute; right: calc(100% + 10px); top: 28px; width: 290px; margin: 0; padding: 9px 11px; border-radius: 12px; background: #eef5f2; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); font-size: 12.5px; display: grid; grid-template-columns: 22px 1fr 44px 78px; gap: 3px 7px; align-items: center; }
+  .brk .h { font-size: 11px; color: var(--muted); text-align: right; } .brk b { text-align: right; white-space: nowrap; } .brk .pl { color: var(--good); } .brk .no { color: var(--muted); font-weight: 400; }
+  .brk .ci { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: #fff; background: var(--c); }
+  .brk .tot { grid-column: 1 / -1; display: flex; justify-content: space-between; border-top: 1px solid var(--edge); padding-top: 4px; margin-top: 2px; }
+  /* a field's disc: the crop's picture in the crop's colour, the ring how far it has come, the number its place in the planting */
+  .crop { position: absolute; transform: translate(-50%, -50%); width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
+    background: conic-gradient(var(--c) calc(var(--p) * 1%), rgba(255, 255, 255, 0.92) 0); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5); }
+  .crop > span { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: var(--c); }
+  .crop.t > span { background: #d9c3a0; } .crop.m > span { background: #a9d0c4; }
+  .crop > u { position: absolute; left: -5px; top: -5px; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: #fff; font: 700 11px/1 'Alegreya Sans', sans-serif; text-decoration: none; }
+  .hl .act .sure u { flex: none; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: var(--ink); font: 700 11px/1 'Alegreya Sans', sans-serif; text-decoration: none; }
+  .hl .act .sure .ci { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: var(--c); }
+  .mh .bang { position: static; transform: none; flex: none; box-shadow: none; }
+  .strip { grid-template-columns: 336px 1fr; }
+  .legend .dot { display: inline-block; width: 13px; height: 13px; border-radius: 50%; background: var(--c); margin: 0 1px; }
+  .mh { display: grid; grid-template-columns: 24px 74px 20px 20px 1fr 68px; gap: 6px; } .mh .meter { margin-left: 0; } .mh > b:last-child { min-width: 0; margin-left: 0 !important; }
+  .mh.kn { grid-template-columns: 24px 74px 20px 1fr; } .mh.kn small { text-align: right; }
+  .need .w { white-space: nowrap; }
+  /* ---- J ---- */
+  .mhw { display: grid; gap: 3px; margin-top: 19px; } .mhw.kn { margin-top: 8px; } .mhw .mh { margin-top: 0; cursor: pointer; }
+  .pills { display: flex; gap: 5px; padding-left: 30px; height: 21px; align-items: center; }
+  .pill { display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px 1px 3px; border-radius: 999px; background: rgba(23, 49, 58, 0.14); font-size: 12px; white-space: nowrap; cursor: grab; }
+  .pill::before { content: ''; width: 4px; height: 11px; margin: 0 1px 0 3px; background: radial-gradient(circle, var(--muted) 1.1px, transparent 1.4px) 0 0 / 4px 4px; }
+  .pill.slot { background: none; border: 1.5px dashed var(--muted); color: var(--muted); padding: 0 9px; cursor: default; } .pill.slot::before { display: none; }
+  .row.kn .lane.ghost { height: 44px !important; } .row.kn .s3 { height: 44px; }
+  .cellq.ld { display: grid; grid-template-rows: 1fr 9px; gap: 3px; padding: 5px 6px 6px; overflow: visible; }
+  .cellq.ld .ics { display: flex; gap: 3px; align-items: center; justify-content: center; color: var(--ink); font-size: 12px; font-weight: 700; }
+  .cellq.ld .ics .carry { color: var(--ink); background: var(--plan); border-radius: 4px; padding: 1px; }
+  .cellq.ld .meter { height: 7px; width: 100%; min-width: 0; }
+  .cellq.ld.over { box-shadow: inset 0 0 0 2px var(--bad); background: rgba(168, 67, 47, 0.1); }
+  .meter > s.low { position: absolute; top: calc(100% + 1px); margin-left: -5px; border: 5px solid transparent; border-bottom: 7px solid var(--ink); border-top: 0; }
+  .need.warn > .ico { color: var(--gold); } .need.warn .w { color: var(--gold); }
+  .surplus { margin: 5px 0 2px; padding: 6px 9px; border-radius: 9px; background: rgba(47, 122, 75, 0.1); font-size: 12.5px; display: grid; gap: 3px; }
+  .surplus .l { display: flex; align-items: center; gap: 5px; white-space: nowrap; } .surplus b { color: var(--good); font-size: 14px; }
+  .surplus .use { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px 1px 5px; border-radius: 999px; background: #fff; box-shadow: inset 0 0 0 1px var(--edge); font-weight: 700; cursor: pointer; }
+  .match { flex: none; margin-left: auto; display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; padding-left: 4px; }
+  .match i { width: 4px; border-radius: 1px; background: rgba(255, 255, 255, 0.35); } .match i.on { background: #fff; }
+  .match i { width: 3.5px; } .match i:nth-child(1) { height: 5px; } .match i:nth-child(2) { height: 8px; } .match i:nth-child(3) { height: 11px; } .match i:nth-child(4) { height: 14px; }
+  .match.dark i { background: var(--track); } .match.dark i.on { background: var(--accent); }
+  .card { position: absolute; left: 12px; bottom: 232px; width: 318px; padding: 12px 14px; border-radius: 16px; background: #eef5f2; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); z-index: 6; }
+  .card::after { content: ''; position: absolute; left: 30px; bottom: -7px; width: 14px; height: 14px; background: #eef5f2; transform: rotate(45deg); }
+  .card .ch { display: flex; align-items: center; gap: 8px; } .card .ch b { font: italic 700 19px/1 'Alegreya', Georgia, serif; } .card .ch small { color: var(--muted); font-size: 13px; }
+  .card .ch .face { width: 32px; height: 32px; font-size: 15px; }
+  .card h2 { margin: 9px 0 4px; }
+  .sk { display: grid; grid-template-columns: 20px 86px 1fr 46px; gap: 7px; align-items: center; min-height: 23px; font-size: 13px; }
+  .sk > .ico { color: var(--accent); } .sk .match { margin-left: 0; justify-self: end; }
+  .two2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; }
+  .tr { display: flex; align-items: center; gap: 6px; min-height: 22px; font-size: 12.5px; color: var(--muted); } .tr .meter { height: 6px; }
+  /* ---- K ---- */
+  .hl .act.selb { outline: 3px solid var(--ink); outline-offset: 2px; z-index: 3; }
+  .hl .act .del { position: absolute; right: -9px; top: -11px; width: 22px; height: 22px; padding: 0; justify-content: center; border-radius: 50%; background: var(--ink); color: #fff; border: 2px solid #fff; z-index: 5; }
+  .hl .act > .bang { position: absolute; left: -12px; top: -13px; transform: none; }
+  .hl .free { position: absolute; top: 0; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 5px; border: 2px dashed var(--good); color: var(--good); font-size: 12.5px; font-weight: 700; background: rgba(47, 122, 75, 0.08); white-space: nowrap; cursor: copy; }
+  .disc.selx { box-shadow: 0 0 0 3px var(--ink), 0 0 0 5px #fff, 0 2px 5px rgba(0, 0, 0, 0.5); }
+  .menu .rep { display: flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 8px; background: var(--ink); color: #fff; font-size: 12.5px; }
+  .menu .rep .ico { color: #fff; }
+  .menu .act .pre { grid-column: 2; display: flex; align-items: flex-start; gap: 6px; margin-top: 3px; padding: 4px 6px; border-radius: 7px; background: rgba(168, 67, 47, 0.12); font-size: 12.5px; color: var(--bad); line-height: 1.3; }
+  .menu .act .pre .bang { position: static; transform: none; box-shadow: none; flex: none; width: 17px; height: 17px; font-size: 12px; }
+  .menu .act.done { cursor: default; } .menu .act.done > .ico, .menu .act.done .ti { color: var(--muted); }
+  .meter > i.lost { background: repeating-linear-gradient(-45deg, rgba(168, 67, 47, 0.75) 0 2.5px, rgba(255, 255, 255, 0.7) 2.5px 5px); border-radius: 0; }
+  .need .chg { position: absolute; left: -9px; top: 50%; margin-top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--plan); outline: 1px solid var(--plan-edge); }
+  .need .w small { display: block; font-size: 11px; font-weight: 700; color: var(--bad); line-height: 1; }
+</style>
+<body class="mine">
+<div class="stage">
+  <svg class="map" viewBox="0 0 1440 900" id="map"></svg>
+  <div id="chips"></div>
+  <div id="menu"></div>
+  <div class="panel top" id="top"></div>
+  <div class="panel rgt" id="rgt"></div>
+  <div class="panel strip" id="strip"></div>
+  <div id="card"></div>
+  <div class="panel legend" id="legend" hidden></div>
+</div>
+<script>
+// ---- the page's icons, their paths copied from src/page/icons.js (ACT_PATHS, GOOD_PATHS, TRAIT_PATHS.wits, SEASON_PATHS, ICON.bell);
+//      one path is new, for a concept the set has no picture of: `tick`, a window kept ----
+const P = {
+  "fork": "<path d=\"M6 21L14 9M11 4.5l-1 5.5 4 3 5-2M13.5 6.2l-1 4.3M16.3 8l-1.8 3.8\"/>",
+  "hoe": "<path d=\"M6 21L16 5M16 5l4.5 1.5-2 5-4.5-3\"/>",
+  "sow": "<path d=\"M12 21v-9M12 12c0-4-3-6-7-6 0 4 3 6 7 6zM12 14c0-3 2.5-5 6.5-5 0 3.5-2.5 5-6.5 5z\"/>",
+  "rake": "<path d=\"M6 21L15 6M10 4l10 5M11.5 4.8l-1.3 3M14.5 6.2l-1.3 3M17.5 7.6l-1.3 3M20 9l-1.3 3\"/>",
+  "fish": "<path d=\"M3 12c3-4 8-5 12-2l5-3v10l-5-3c-4 3-9 2-12-2z\"/><circle cx=\"8\" cy=\"11.5\" r=\".6\"/>",
+  "pot": "<path d=\"M4 10h16M6 10v6a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-6M9 7c0-1 1-2 0-3M14 7c0-1 1-2 0-3\"/>",
+  "spade": "<path d=\"M7 20l8-10M13 6l5 4-2.5 5.5L10.5 12zM5.5 18.5l3 3\"/>",
+  "water": "<path d=\"M12 3c3 5 6 8 6 11a6 6 0 0 1-12 0c0-3 3-6 6-11z\"/>",
+  "pail": "<path d=\"M6 9h12l-1.5 11h-9zM6 9c0-3.5 3-6 6-6s6 2.5 6 6\"/>",
+  "hay": "<path d=\"M4 20c0-8 3-14 8-14s8 6 8 14zM9 20c0-4 1-7 3-9\"/>",
+  "chop": "<path d=\"M5 20L14 9M12 5l7 7c-2 2-5 2-7 .5l-1.5-1.5C9 9 10 6.5 12 5z\"/>",
+  "walk": "<circle cx=\"13\" cy=\"4\" r=\"1.8\"/><path d=\"M13 7l-3 5 3 3v5M10 12l-3 1M13 10l3 2 2-1M10 15l-2 5\"/>",
+  "round": "<path d=\"M3 11l7-6 7 6M5 10v9h7M15 14h6M18 11l3 3-3 3\"/>",
+  "plus": "<path d=\"M12 5v14M5 12h14\"/>",
+  "minus": "<path d=\"M5 12h14\"/>",
+  "no": "<path d=\"M6 6l12 12M18 6L6 18\"/>",
+  "back": "<path d=\"M14 6l-6 6 6 6\"/>",
+  "next": "<path d=\"M10 6l6 6-6 6\"/>",
+  "build": "<path d=\"M6 21l7-9M10 5l8 6-2 3-8-6z\"/>",
+  "sack": "<path d=\"M9 4h6l-1.5 3c3.5 1.5 5.5 5 5.5 8 0 3-2 5-7 5s-7-2-7-5c0-3 2-6.5 5.5-8zM9.5 7h5\"/>",
+  "home": "<path d=\"M4 11l8-7 8 7M6 10v9h12v-9M10 19v-5h4v5\"/>",
+  "clay": "<path d=\"M4 9h10v6H4zM14 9l5-3v6l-5 3M4 9l5-3h10\"/>",
+  "ale": "<path d=\"M5 6h10v14H5zM15 9h2.5a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H15M5 9.5h10M8 6V4.5h4V6\"/>",
+  "beast": "<path d=\"M4 9l2-3 1 2h8l3-2 2 2-1 3v3l-1 5h-2l-.5-4H9.5L9 19H7l-1-5c-1.5-1-2-3-2-5z\"/>",
+  "health": "<path d=\"M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z\"/>",
+  "mood": "<circle cx=\"12\" cy=\"12\" r=\"8.5\"/><path d=\"M8.5 14.5c2 2 5 2 7 0M9 9.5h.01M15 9.5h.01\"/>",
+  "hunger": "<path d=\"M4 11h16a8 8 0 0 1-16 0zM9 19.5V21h6v-1.5M12 3v5M8.5 5v3M15.5 5v3\"/>",
+  "grain": "<path d=\"M12 21V8M12 8c-2-1-2.5-3 0-5 2.5 2 2 4 0 5zM12 12c-3 0-4-2-4-4 2.5 0 4 1.5 4 4zM12 12c3 0 4-2 4-4-2.5 0-4 1.5-4 4zM12 16.5c-3 0-4-2-4-4 2.5 0 4 1.5 4 4zM12 16.5c3 0 4-2 4-4-2.5 0-4 1.5-4 4z\"/>",
+  "wood": "<circle cx=\"7\" cy=\"16\" r=\"3.5\"/><circle cx=\"17\" cy=\"16\" r=\"3.5\"/><circle cx=\"12\" cy=\"8.5\" r=\"3.5\"/><path d=\"M7 16h.01M17 16h.01M12 8.5h.01\"/>",
+  "field": "<path d=\"M3 19l4-13h10l4 13zM10 6l-2 13M14 6l2 13M5.2 12h13.6\"/>",
+  "meadow": "<path d=\"M3 20h18M6 20c0-4-1-6-2-8M8 20c0-5 1-8 2-10M12 20c0-4-.5-6-1.5-8M15 20c0-5 1-8 2.5-10M18 20c0-3 1-5 2-6\"/>",
+  "soil": "<path d=\"M3 13c3-2 6-2 9 0s6 2 9 0M3 18c3-2 6-2 9 0s6 2 9 0M12 10V4M12 6c-2 0-3-1-3-3M12 7c2 0 3-1 3-3\"/>",
+  "plan": "<path d=\"M6 3h12v18H6zM9 8l1.2 1.2L12.5 7M14 8.5h2M9 13l1.2 1.2 2.3-2.2M14 13.5h2M9 18h7\"/>",
+  "people": "<circle cx=\"9\" cy=\"8\" r=\"3\"/><path d=\"M3 20c0-4 2.5-7 6-7s6 3 6 7M15.5 5.5a2.5 2.5 0 1 1 0 5M17.5 13.5c2 .7 3.5 3 3.5 6.5\"/>",
+  "married": "<circle cx=\"9\" cy=\"13\" r=\"5\"/><circle cx=\"15\" cy=\"13\" r=\"5\"/><path d=\"M10.5 6l1.5-2.5L13.5 6\"/>",
+  "tile": "<path d=\"M12 3l8 4.5v9L12 21l-8-4.5v-9z\"/>",
+  "wits": "<path d=\"M9 18h6M10 21h4M8.5 15C6.5 13.5 6 11.5 6 10a6 6 0 0 1 12 0c0 1.5-.5 3.5-2.5 5z\"/>",
+  "body": "<path d=\"M2.5 9v6M5.5 6.5v11M18.5 6.5v11M21.5 9v6M5.5 12h13\"/>",
+  "hands": "<path d=\"M7 13V6.5a1.5 1.5 0 0 1 3 0V11V4.5a1.5 1.5 0 0 1 3 0V11V5.5a1.5 1.5 0 0 1 3 0V12v-3a1.5 1.5 0 0 1 3 0v6c0 4-2.5 6-6 6h-1c-2.5 0-4-1-5.5-3.5L4 14c-.8-1.5 1-2.8 2-1.5z\"/>",
+  "mow": "<path d=\"M6 21L15 4M15 4c4 0 6 3 6 7-2-3-5-4-8-3.5\"/>"
+};
+P.tick = '<path d="M5 12.5l4.5 4.5L19 7"/>';
+const SEASON = ["<path d=\"M7 13V6M7 8C5 8 3.5 6.5 3.5 4.5 5.5 4.5 7 6 7 8zM7 6.5c0-2 1.5-3.5 3.5-3.5 0 2-1.5 3.5-3.5 3.5z\"/>","<circle cx=\"7\" cy=\"7\" r=\"2.6\"/><path d=\"M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.8 2.8l1 1M10.2 10.2l1 1M11.2 2.8l-1 1M3.8 10.2l-1 1\"/>","<path d=\"M3 11c0-5 3-8 8-8 0 5-3 8-8 8zM3 11l5-5M2 12l1-1\"/>","<path d=\"M7 1v12M1.8 4l10.4 6M12.2 4L1.8 10M5.5 2L7 3.5 8.5 2M5.5 12L7 10.5 8.5 12\"/>"];
+const BELL = "<path d=\"M5 14V9a5 5 0 0 1 10 0v5l1.5 1.5h-13Z\"/><path d=\"M8.3 17.5a1.8 1.8 0 0 0 3.4 0\"/>";
+const svg = (box, sw, body, s, cls) =>
+  `<svg class="ico${cls ? ' ' + cls : ''}" viewBox="0 0 ${box} ${box}" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const ic = (k, s = 18, cls = '') => svg(24, 1.7, P[k], s, cls);
+const seasonIc = (k, s = 14) => svg(14, 1.3, SEASON[k], s);
+const bellIc = (s = 18) => svg(20, 1.7, BELL, s);
+// the mark of an estimate: the wits icon (wits is the trait a head estimates by), before every number that is the head's reckoning
+const est = (s = 12) => `<span class="est" title="Torsten’s estimate">${ic('wits', s)}</span>`;
+// ---- the page's one meter (src/page/meter.js), with the striped part for what is still to come ----
+function meter(o) {
+  const max = o.max ?? 100, pc = (x) => Math.max(0, Math.min(100, (x / max) * 100)).toFixed(1);
+  const marks = (o.marks || []).map((m) => `<b class="${m.cls || ''}" style="left:${pc(m.at)}%"></b>`).join('');
+  return `<span class="meter ${o.tone || ''}${o.value > max ? ' over' : ''}" role="meter" title="${o.title || ''}">${o.grow ? `<i class="with" style="width:${pc(o.grow)}%"></i>` : ''}<i style="width:${pc(o.value)}%"></i>${marks}</span>`;
+}
+// ---- the invented household: Norrgården, year 3, spring, day 1. A season is 12 days; days of work are a member's whole days ----
+const MEM = {
+  t: { n: 'Torsten', age: 32, chores: 2, choreIcons: ['hay', 'chop'] },
+  m: { n: 'Märta', age: 29, chores: 7, choreIcons: ['water', 'pot', 'pail'] },
+};
+const face = (m, small) => `<span class="face ${m}${small ? ' s' : ''}">${{ t: 'T', m: 'M', a: 'A', k: 'K', ask: '+' }[m]}</span>`;
+// a routine: its icon, its label, the day its window closes, and for each member the days of work it takes in those hands (d), the
+// skill at it now (s) and at the season's end if this member does it (g), and for a made good the likeliest grade of five
+const JOB = {
+  manure: { ic: 'fork', n: 'Cart manure', win: 6, by: { t: { d: 2, s: 62, g: 64 }, m: { d: 3, s: 30, g: 37 } } },
+  sow: { ic: 'sow', n: 'Hoe and sow', win: 10, by: { t: { d: 5, s: 70, g: 74 }, m: { d: 7, s: 45, g: 54 } } },
+  rake: { ic: 'rake', n: 'Rake meadows', win: 8, by: { t: { d: 2, s: 40, g: 44 }, m: { d: 1.5, s: 58, g: 62 } } },
+  brew: { ic: 'pot', n: 'Brew ale', win: 12, by: { t: { d: 2, s: 10, g: 19, grade: 1 }, m: { d: 1, s: 66, g: 68, grade: 3 } } },
+  fish: { ic: 'fish', n: 'Fish', win: 12, by: { t: { d: 3, s: 35, g: 40 }, m: { d: 5, s: 15, g: 24 } } },
+  clear: { ic: 'spade', n: 'Break Field 5', win: 12, by: { t: { d: 9, s: 55, g: 64 }, m: { d: 13, s: 20, g: 36 } } },
+};
+const GRADES = ['shoddy', 'sound', 'good', 'fine', 'masterwork'];
+const days = (d) => (d % 1 ? `${Math.floor(d) || ''}½` : String(d)) + ' d';
+const grade = (n) => `<span class="grade" title="${GRADES[n - 1]}">${[1, 2, 3, 4, 5].map((k) => `<i${k <= n ? ' class="on"' : ''}></i>`).join('')}</span>`;
+// a job in one member's hands: the same row in a card, a matrix cell and a popover
+function hand(job, m, on) {
+  const h = JOB[job].by[m];
+  return `<div class="hand${on ? '' : ' off'}">${face(m, true)}${meter({ value: h.s, grow: on ? h.g : 0, title: `skill ${h.s}${on ? `, ${h.g} by the season’s end` : ''}` })}` +
+    `${h.grade ? grade(h.grade) : ''}<span class="d">${est(10)}${days(h.d)}</span></div>`;
+}
+// the two plans: who has each routine; each member's bars in calendar days [job, from, to, range to]; the days of work claimed; each
+// routine's state (ok, late, short, slip, none) with its few words
+const PLAN = {
+  custom: {
+    who: { manure: 't', sow: 't', rake: 't', fish: 't', brew: 'm' },
+    bars: { t: [['manure', 0, 2.4], ['sow', 2.4, 8.4, 9.3], ['rake', 8.4, 10.8], ['fish', 10.8, 12]], m: [['brew', 0, 2.4]] },
+    claim: { t: 12, m: 1 },
+    state: { manure: ['ok'], sow: ['ok'], rake: ['late', '3 days late'], fish: ['short', '1 of 3 days'], brew: ['ok'] },
+    changed: {},
+  },
+  mine: {
+    who: { manure: 't', sow: 't', clear: 't', fish: 't', brew: 'm', rake: 'm' },
+    bars: { t: [['manure', 0, 2.4], ['sow', 2.4, 8.4, 9.3], ['clear', 8.4, 12]], m: [['brew', 0, 2.4], ['rake', 2.4, 6, 6.8]] },
+    claim: { t: 21, m: 2.5 },
+    state: { manure: ['ok'], sow: ['ok'], rake: ['ok'], brew: ['ok'], clear: ['slip', '3 of 9 days'], fish: ['none', 'no days'] },
+    changed: { rake: 1, clear: 1, fish: 1 },
+  },
+};
+const jobsOf = (view, m) => Object.keys(PLAN[view].who).filter((k) => PLAN[view].who[k] === m);
+// a member's days on the one meter: chores (grey), the plan's claim (green, red when over), free (empty); the words say what is left
+function budget(view, m) {
+  const ch = MEM[m].chores, cl = PLAN[view].claim[m], free = 12 - ch - cl, pc = (x) => ((Math.min(x, 12) / 12) * 100).toFixed(1);
+  return `<span class="meter days${free < 0 ? ' over' : ''}" title="12 days: ${ch} on the daily chores, ${cl} claimed by the plan"><i class="ch" style="width:${pc(ch)}%"></i>` +
+    `<i class="pl" style="left:${pc(ch)}%;width:${pc(Math.min(cl, 12 - ch))}%"></i></span>` +
+    `<b class="${free < 0 ? 'bad' : free > 0 ? 'good' : 'muted'}" style="white-space:nowrap;margin-left:${free < 0 ? 5 : 0}px">${free < 0 ? `${days(-free)} over` : free > 0 ? `${days(free)} free` : 'full'}</b>`;
+}
+// a member's lane of the season: h pixels high, the chores' band at its foot, the bars above; `labels` writes each bar's name
+function lane(view, m, h, labels) {
+  const band = Math.round((h * MEM[m].chores) / 12), top = h - band - 2, pc = (d) => ((d / 12) * 100).toFixed(2), V = PLAN[view];
+  let s = `<div class="lane" style="height:${h}px"><span class="chores" style="height:${band}px">${band >= 12 ? MEM[m].choreIcons.map((k) => ic(k, Math.min(band - 2, 14))).join('') : ''}</span>`;
+  for (const [k, a, b, r] of V.bars[m]) {
+    const J = JOB[k], st = V.state[k][0], cut = st === 'slip' || st === 'short';
+    s += `<span class="bar${st === 'late' ? ' late' : ''}${cut ? ' cut' : ''}${V.changed[k] ? ' mine' : ''}" style="left:${pc(a)}%;width:calc(${pc(b - a)}% - 2px);height:${top}px">` +
+      `${ic(J.ic, Math.min(top - 4, 18))}${labels && b - a > 2 && top > 16 ? J.n : ''}</span>`;
+    if (r) s += `<span class="rng" title="it may run to here" style="left:${pc(b - (r - b))}%;width:${pc((r - b) * 2)}%;top:${top - 11}px"></span>`;
+    if (J.win < 12) s += `<span class="win${st === 'late' ? ' missed' : ''}" style="left:${pc(J.win)}%"><span>${ic(J.ic, 13)}</span></span>`;
+    if (st === 'slip') s += `<span class="on" title="goes on in summer" style="top:${Math.max(0, top / 2 - 9)}px">${seasonIc(1, 18)}</span>`;
+  }
+  return s + '</div>';
+}
+// a small strip for one routine: its window's end and its bar
+function mini(view, k) {
+  const V = PLAN[view], m = V.who[k], bar = V.bars[m].find((b) => b[0] === k), J = JOB[k], pc = (d) => ((d / 12) * 100).toFixed(1), st = V.state[k][0];
+  return `<span class="mini" title="window to day ${J.win}"><u style="left:0;width:${pc(J.win)}%"></u>` +
+    (bar ? `<i class="${st === 'late' ? 'late' : V.changed[k] ? 'mine' : ''}" style="left:${pc(bar[1])}%;width:${pc(bar[2] - bar[1])}%"></i>` : '') + '</span>';
+}
+// what does not fit, why, and what to change: the same content in each variation
+const UNFIT = {
+  custom: [
+    { k: 'rake', what: '<b>Raking: 3 days late</b>', why: `Torsten sows until day 8 · ${est()}${ic('hay', 14)} −8%`,
+      fix: [`<button class="sm primary">${face('m', true)}Give to Märta · 4 d free</button>`] },
+    { k: 'fish', what: '<b>Fishing: 1 of 3 days</b>', why: `${ic('fish', 14)} ${est()}7 of 30`,
+      fix: [`<button class="sm">${face('m', true)}Märta fishes</button>`, `<button class="sm">${ic('minus', 13)}Lower the target</button>`] },
+  ],
+  mine: [
+    { k: 'clear', what: `<b>Field 5: 3 of 9 days</b> · the rest in ${seasonIc(1)} summer`, why: 'Torsten is 11 days over',
+      fix: [`<button class="sm primary">${ic('round', 14)}Ask for a hand</button>`, `<button class="sm">${ic('back', 13)}Undo</button>`] },
+    { k: 'fish', what: '<b>Fishing: no days</b>', why: `${ic('fish', 14)} stays at 2 of 40`,
+      fix: [`<button class="sm">${face('m', true)}Märta fishes · 2½ d free</button>`, `<button class="sm">${ic('back', 13)}Undo</button>`] },
+  ],
+};
+const unfitHTML = (view) =>
+  `<div class="unfit"><h2>${ic('no', 15)}Does not fit this season</h2>${UNFIT[view].map((u) =>
+    `<div class="it"><span class="badge">${ic(JOB[u.k].ic, 16)}</span><div><span class="what">${u.what}</span> <span class="why">· ${u.why}</span></div><div class="fix">${u.fix.join('')}</div></div>`).join('')}</div>`;
+// the head's changes against the custom's plan: what, its estimated cost and gain, and its undoing
+const changesHTML = (view) => view === 'custom'
+  ? `<div class="none">None. This is what Torsten does if you change nothing.</div>`
+  : `<div class="chg">${ic('rake', 22)}<span class="t">Raking ${face('t', true)}${ic('next', 13)}${face('m', true)}</span><button class="icon" title="undo">${ic('no', 14)}</button>` +
+      `<span class="cg"><span class="plus">${est()}${ic('hay', 14)} +8%</span><span>${face('m', true)} 1½ d</span></span></div>` +
+    `<div class="chg">${ic('field', 22)}<span class="t">A fifth field ${ic('plus', 12)}</span><button class="icon" title="undo">${ic('no', 14)}</button>` +
+      `<span class="cg"><span>${est()}${ic('spade', 14)} 9 d</span><span>${ic('sow', 14)} 27</span><span class="plus">${est()}${ic('grain', 14)} +62 a year</span><span class="slip">${ic('next', 12)}${seasonIc(1, 13)} slips</span></span></div>` +
+    `<div class="chg">${ic('fish', 22)}<span class="t">Fish target 30 ${ic('next', 13)} 40</span><button class="icon" title="undo">${ic('no', 14)}</button>` +
+      `<span class="cg"><span>${est()}${ic('fish', 14)} 5 d</span><span class="slip">no days</span></span></div>`;
+// the targets: in store on the meter, the custom's target as the dark mark and the head's as the yellow one
+const targetsHTML = (view) => {
+  const mine = view === 'mine', row = (k, tone, value, marks, v) => `<div class="stat ${tone}">${ic(k, 18)}${meter({ value, tone, marks })}<span class="v">${v}</span></div>`;
+  return `<div class="key"><span><u class="fill"></u>in store</span><span><u></u>the custom’s target</span><span class="only-mine"><u class="mine"></u>yours</span></div>` +
+    row('hay', 'warn', 59, [{ at: 75 }], '1.8 <small>/ 2.2</small>') + row('wood', '', 82, [{ at: 72 }], '33 <small>/ 29</small>') +
+    row('field', '', 80, mine ? [{ at: 60 }, { at: 99, cls: 'mine' }] : [{ at: 60 }], `4 <small>/ ${mine ? '5' : '3'}</small>`) +
+    row('fish', 'bad', 5, mine ? [{ at: 75 }, { at: 99, cls: 'mine' }] : [{ at: 75 }], `2 <small>/ ${mine ? '40' : '30'}</small>`);
+};
+// what came of the winter's plan: what Torsten reckoned as the mark, what it came to as the fill; what happened carries no estimate's mark
+const lastHTML = () => {
+  const row = (k, tone, value, at, v) => `<div class="stat ${tone}">${ic(k, 18)}${meter({ value, tone, marks: [{ at, cls: 'was' }] })}<span class="v ${tone === 'bad' ? 'bad' : ''}">${v}</span></div>`;
+  return `<div class="key"><span><u class="was"></u>Torsten reckoned</span><span><u class="fill"></u>it came to</span></div>` +
+    row('hay', '', 18, 12, 'lasted') + row('wood', '', 24, 14, '7 left') + row('fish', 'bad', 6, 57, '2 <small>/ 17</small>') +
+    `<div class="stat bad">${ic('people', 18)}<span style="flex:1;display:flex;gap:4px;align-items:center">${face('t', true)}${face('m', true)}${face('a', true)}<small class="muted" style="white-space:nowrap">left</small></span><span class="v bad">2 <small>/ 3</small></span></div>` +
+    `<div class="stat">${ic('plan', 18)}<span style="flex:1;display:flex;align-items:center"><span class="kept good">${ic('sack', 16)}${ic('tick', 13)}</span><span class="kept good">${ic('chop', 16)}${ic('tick', 13)}</span>` +
+    `<span class="kept bad">${ic('build', 16)}<small>4 d late</small></span></span></div>`;
+};
+// ---- the map: Norrgården's tiles on the screenshot (house at 720, 445; a tile is 72 wide, rows 63 apart, every other row shifted) ----
+const hex = (x, y, r = 38) => [[0, -r], [r * 0.866, -r / 2], [r * 0.866, r / 2], [0, r], [-r * 0.866, r / 2], [-r * 0.866, -r / 2]].map(([a, b]) => `${x + a},${y + b}`).join(' ');
+const FIELDS = [[647, 445, 1], [575, 445, 2], [611, 508, 3], [647, 571, 4]];
+const MEADOWS = [[756, 382], [648, 319], [684, 256], [612, 256], [540, 256], [828, 382]];
+// candidates for the next field: x, y, class, the walk in steps. The class gives the soil's fertility (the land's) and the yield Torsten
+// expects, with its range (his estimate)
+const CANDS = [[503, 445, 'best', 3], [431, 445, 'best', 4], [539, 508, 'fair', 3], [575, 571, 'fair', 3], [467, 508, 'fair', 4], [503, 571, 'fair', 4],
+  [611, 634, 'fair', 4], [539, 634, 'fair', 4], [684, 508, 'fair', 1], [684, 634, 'fair', 3], [936, 445, 'poor', 3], [1008, 445, 'poor', 4], [972, 382, 'poor', 4]];
+const LAND = { best: { soil: 84, y: 62, lo: 52, hi: 70, fill: 'rgba(47,122,75,.55)' }, fair: { soil: 61, y: 52, lo: 41, hi: 61, fill: 'rgba(179,134,44,.42)' },
+  poor: { soil: 36, y: 35, lo: 24, hi: 47, fill: 'rgba(168,67,47,.42)' } };
+// tiles that cannot take a field, each with its reason on the map at once
+const REFUSED = [[468, 382, 'too wet'], [719, 571, 'Backa’s']];
+const range = (L) => `<span class="range" title="${L.lo} to ${L.hi}"><i style="left:${((L.lo - 20) / 60) * 100}%;width:${((L.hi - L.lo) / 60) * 100}%"></i><u style="left:${((L.y - 20) / 60) * 100}%"></u></span>`;
+// o: dx (the map's shift), big (an inset drawn small: numbers only), faces (who has each field's step)
+function drawMap(view, o = {}) {
+  const dx = o.dx || 0, dy = o.dy || 0, mine = view === 'mine', V = PLAN[view];
+  let s = '', c = '';
+  for (const [x, y] of MEADOWS) s += `<polygon points="${hex(x + dx, y)}" fill="${mine && !o.big ? 'rgba(255,210,63,.16)' : 'none'}" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  for (const [x, y, k, w] of CANDS) {
+    const picked = mine && x === 503 && y === 445, L = LAND[k];
+    s += `<polygon points="${hex(x + dx, y)}" fill="${picked ? 'rgba(255,210,63,.45)' : L.fill}" stroke="${picked ? '#ffd23f' : '#fff'}" stroke-width="${picked ? 4 : 1.5}"/>`;
+    if (o.big) s += `<text x="${x + dx}" y="${y + 8}" text-anchor="middle" font-size="24" font-weight="700" fill="#fff" stroke="rgba(0,0,0,.55)" stroke-width="4" paint-order="stroke">${L.y}</text>`;
+    else if (o.lite) c += `<div class="tchip lite${picked ? ' pick' : ''}" style="left:${x + dx}px;top:${y + dy}px">${est(10)}${ic('grain', 12)}<b>${L.y}</b>${picked ? `<b>· 5${ic('spade', 12)}</b>` : ''}</div>`;
+    else c += `<div class="tchip${picked ? ' pick' : ''}" style="left:${x + dx}px;top:${y + dy}px"><span class="r">${ic('soil', 11)}${meter({ value: L.soil, title: 'the soil’s fertility' })}${ic('walk', 11)}${w}</span>` +
+      `<span class="r">${ic('grain', 11)}${range(L)}<b>${L.y}</b></span>` +
+      (picked ? `<span class="r" style="justify-content:center;font-weight:700">5${ic('spade', 12)}${o.faces ? face('t', true) : ''}<span class="bad" style="display:inline-flex;align-items:center">${ic('next', 10)}${seasonIc(1, 12)}</span></span>` : '') + '</div>';
+  }
+  for (const [x, y, why] of REFUSED) {
+    s += `<polygon points="${hex(x + dx, y)}" fill="rgba(40,30,28,.45)" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/>`;
+    if (!o.big) c += `<div class="tchip no" style="left:${x + dx}px;top:${y + dy}px">${ic('no', 11)}${why}</div>`;
+  }
+  for (const [x, y, n] of FIELDS) {
+    s += `<polygon points="${hex(x + dx, y)}" fill="${o.big ? 'rgba(255,255,255,.12)' : 'none'}" stroke="#fff" stroke-width="2.5"/>`;
+    if (!o.big) c += `<div class="fchip col" style="left:${x + dx}px;top:${y + dy}px"><span class="r">${n}${ic('hoe', 13)}${ic('sow', 13)}${o.faces ? face(V.who.sow, true) : ''}</span>${mini(view, 'sow')}</div>`;
+  }
+  if (!o.big) {
+    c += `<div class="fchip col${mine ? ' pick' : ''}" style="left:${648 + dx}px;top:${290 + dy}px"><span class="r">6 ${ic('meadow', 14)}${ic('rake', 14)}${o.faces ? face(V.who.rake, true) : ''}</span>${mini(view, 'rake')}</div>`;
+  }
+  return { svg: `<g transform="translate(0 ${dy})">${s}</g>`, chips: c };
+}
+// the key of a candidate tile's chip, and the tile chosen
+const tileKey = () => `<div class="key" style="gap:4px 14px"><span>${ic('soil', 13)}the soil</span><span>${est()}${ic('grain', 13)}barley a year, with its range</span><span>${ic('walk', 13)}the walk</span></div>`;
+const chosenHTML = () => `<div class="stat">${ic('soil', 18)}${meter({ value: 84 })}<span class="v">rich</span></div>` +
+  `<div class="stat">${est(13)}${ic('grain', 18)}${range(LAND.best)}<span class="v">62 <small>52–70</small></span></div>` +
+  `<div class="stat">${ic('walk', 18)}<span style="flex:1" class="muted">3 tiles west</span><span class="v">${ic('sow', 15)} 27</span></div>`;
+// the people of the enterprise, beyond those who work this season
+const PEOPLE = {
+  a: `<span class="who off">${face('a')}Astrid<small>left in ${seasonIc(3, 13)}winter</small></span>`,
+  k: `<span class="who off">${face('k')}Karin, 14<small>joins in ${seasonIc(1, 13)}summer</small></span>`,
+  round: `<span class="who link">${face('ask')}${ic('round', 16)}Ask for a hand<small>the moving round, ${seasonIc(2, 13)}autumn</small></span>`,
+  match: `<span class="who off">${face('ask')}${ic('married', 16)}A match<small>no one here unwed</small></span>`,
+};
+// the top bar's pieces: whose estimates these are, the reminder's switch, the two plans, the way out
+const whoseHTML = () => `<span class="whose">${est(14)}marks what Torsten reckons<small>· his judgement</small>${meter({ value: 58, title: 'his judgement (wits)' })}</span>`;
+const segHTML = () => `<span class="seg" role="group" aria-label="Which plan"><button type="button" data-view="custom">The custom’s plan</button><button type="button" data-view="mine">Your plan</button></span>`;
+const bellHTML = () => `<button type="button" class="icon" title="Remind me when a plan is due: on" aria-pressed="true" style="color:var(--accent)">${bellIc(18)}</button>`;
+// the switch between the custom's plan and the head's: `draw(view)` is each variation's own
+function start(draw) {
+  const show = (view) => {
+    document.body.className = view;
+    draw(view);
+    document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
+  };
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-view]'); if (b) show(b.dataset.view); });
+  show(new URLSearchParams(location.search).get('view') === 'custom' ? 'custom' : 'mine');
+}
+// ======== this variation's own drawing ========
+// new glyphs, each for a concept the page's set has no picture of
+P.chevron = '<path d="M5 9l7 7 7-7"/>';
+P.undo = '<path d="M4 9h10a5 5 0 0 1 0 10H9M4 9l4-4M4 9l4 4"/>'; // one change back
+P.reset = '<path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5M4 4v5h5"/>'; // back to the custom's plan
+P.pod = '<path d="M4 15c1-7 8-11 16-10-1 8-5 14-12 14-2.5 0-4-1.5-4-4z"/><path d="M9.5 14h.01M13 11h.01M16 8.5h.01"/>'; // peas
+P.key = '<path d="M9 9a3 3 0 1 1 4.5 2.6c-1 .6-1.5 1.2-1.5 2.4M12 18h.01"/>'; // the legend
+const tb = (icon, tip, cls = '', more = '') => `<button type="button" class="tb ${cls}" data-tip="${tip}" aria-label="${tip}"${more}>${icon}</button>`;
+document.getElementById('top').innerHTML = `<h1>The spring plan at Norrgården</h1><span class="when">${seasonIc(0)}Year 3, spring, day 1 · paused</span>` +
+  tb(ic('undo', 20), 'Undo the last change', 'undo') + tb(ic('reset', 20), 'Reset to the custom’s plan', 'reset') + '<span class="sep"></span>' +
+  tb(ic('key', 20), 'What the marks mean', '', ' id="keyBtn" aria-pressed="false"') + tb(bellIc(20), 'Remind me when a plan is due: on', '', ' style="color:var(--accent)"') + '<span class="sep"></span>' +
+  tb(ic('tick', 20), 'Go on with this plan', 'primary');
+const STEP = +new URLSearchParams(location.search).get('step') || 1; // 1: the raking selected and the house's menu open; 2: pottery in its place
+const SEL = { m: null };
+P.jar = '<path d="M9 3h6M9.5 3c0 3-4 4.5-4 9.5S8.5 21 12 21s6.5-3.5 6.5-8.5S14.5 6 14.5 3"/>'; // pottery
+JOB.pottery = { ic: 'jar', n: 'Pottery', win: 12, by: { m: { d: 2, s: 22, g: 31, grade: 1 }, t: { d: 3, s: 5, g: 16, grade: 1 } } };
+const CLAIM = { t: 16, m: STEP === 1 ? 2.5 : 3 }, CHANGED = STEP === 1 ? { rake: 1, clear: 1 } : { pottery: 1, clear: 1 }, WHO = { manure: 't', clear: 't', brew: 'm', rake: STEP === 1 ? 'm' : null };
+// the crops: a colour and a picture each; planting is an action a field, in the order of the numbers
+const CROP = { barley: { c: 'var(--grain)', ic: 'grain', n: 'Barley' }, rye: { c: 'var(--rye)', ic: 'grain', n: 'Rye' }, peas: { c: 'var(--peas)', ic: 'pod', n: 'Peas' } };
+// the fields: x, y, the field's number, its crop, how far the crop has come (%), its place in the planting (0: none this spring)
+const PLOTS = [[647, 445, 1, 'rye', 60, 0], [575, 445, 2, 'barley', 0, 1], [611, 508, 3, 'barley', 0, 2], [647, 571, 4, 'peas', 0, 3]];
+for (const [, , f, crop, , n] of PLOTS) if (n) JOB['p' + n] = { ic: CROP[crop].ic, n: `Plant ${CROP[crop].n.toLowerCase()}, Field ${f}`, short: CROP[crop].n, crop, order: n, win: 10 };
+// a member's actions, one after the other: [action, from, sure to, may run to]; the next begins where the last may end
+const BARS = { t: [['manure', 0, 2.2, 2.8], ['p1', 2.8, 4.6, 5.1], ['p2', 5.1, 6.9, 7.4], ['p3', 7.4, 9, 9.6], ['clear', 9.6, 12, 12]], m: STEP === 1 ? [['brew', 0, 2.2, 2.8], ['rake', 2.8, 5.4, 6]] : [['brew', 0, 2.2, 2.8], ['pottery', 2.8, 6.4, 7.2]] };
+// a member's skill at a job against a fixed scale, novice to master: one to four bars. [the skill now, what the job grows it to]
+const MATCH = { manure: [62, 64], p1: [70, 72], p2: [70, 72], p3: [70, 72], clear: [55, 64], brew: [66, 68], rake: [58, 62], pottery: [22, 31] };
+const LEVELS = ['novice', 'able', 'skilled', 'master'], level = (x) => (x < 25 ? 1 : x < 50 ? 2 : x < 75 ? 3 : 4);
+const matchIc = (x, cls = '') => `<span class="match ${cls}">${[1, 2, 3, 4].map((k) => `<i${k <= level(x) ? ' class="on"' : ''}></i>`).join('')}</span>`;
+// ---- the map: the farm's land bright inside its outline, the rest dimmed; while a field is being placed, the open tiles' fertility ----
+function mapHTML() {
+  let s = '', c = '';
+  const disc = (x, y, k, m) => `<div class="disc ${m}${CHANGED[k] ? ' mine' : ''}" data-tip="${JOB[k].n}: ${MEM[m].n}" style="left:${x}px;top:${y}px">${ic(JOB[k].ic, 17)}</div>`;
+  const own = [[720, 445], ...FIELDS, ...MEADOWS], all = [];
+  let fillD = '';
+  for (const [x, y] of own) {
+    const p = hex(x, y, 41.6).split(' ').map((q) => q.split(',').map(Number));
+    fillD += `M${p.join('L')}Z`;
+    for (let n = 0; n < 6; n++) all.push([p[n], p[(n + 1) % 6]]);
+  }
+  const mid = ([a, b]) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const border = all.filter((e) => all.filter((f) => Math.hypot(mid(e)[0] - mid(f)[0], mid(e)[1] - mid(f)[1]) < 4).length === 1).map(([a, b]) => `M${a}L${b}`).join('');
+  s += `<path d="M0 0H1440V900H0Z${fillD}" fill-rule="evenodd" fill="rgba(8,18,22,.42)"/>`;
+  // the overlay of "Break a field": the fertility of the open tiles in reach, stronger for richer soil
+  // no action is in hand for a tile, so no overlay: only the tile already chosen for Field 5, planned and not yet the farm's
+  s += `<polygon points="${hex(503, 445, 40)}" fill="rgba(255,210,63,.3)" stroke="#ffd23f" stroke-width="4" stroke-dasharray="9 6"/>`;
+  c += disc(503, 445, 'clear', 't') + `<div class="bang" data-tip="Does not fit this spring" style="left:516px;top:431px">!</div>`;
+  for (const [x, y, why] of REFUSED) c += `<div class="disc no" data-tip="${why === 'too wet' ? 'Too wet for a field' : 'Backa’s land'}" style="left:${x}px;top:${y}px">${ic('no', 12)}</div>`;
+  s += `<path d="${border}" fill="none" stroke="rgba(20,34,38,.8)" stroke-width="7" stroke-linecap="round"/><path d="${border}" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>`;
+  for (const [x, y] of MEADOWS) c += STEP === 1 ? disc(x, y, 'rake', 'm').replace('class="disc ', 'class="disc selx ') : `<div class="disc h" data-tip="Rake meadows: no one has it" style="left:${x}px;top:${y}px;color:var(--muted)">${ic('rake', 17)}</div>`;
+  if (STEP === 2) c += `<div class="bang" data-tip="No one rakes the meadows: less hay" style="left:${648 + 13}px;top:${319 - 14}px">!</div><div class="bang" data-tip="Pottery: no clay in store" style="left:733px;top:431px">!</div>`;
+  for (const [x, y, f, crop, p, n] of PLOTS) c += `<div class="crop${n ? ' t' : ''}" data-tip="Field ${f}: ${CROP[crop].n.toLowerCase()}, ${n ? `planted ${['', 'first', 'second', 'third'][n]}, by Torsten` : `sown in autumn, ${p} in 100 grown`}" ` +
+    `style="left:${x}px;top:${y}px;--c:${CROP[crop].c};--p:${p}"><span>${ic(CROP[crop].ic, 18)}</span>${n ? `<u>${n}</u>` : ''}</div>`;
+  c += `<div class="land" style="left:612px;top:206px">Norrgården’s land</div>` +
+    `<div class="disc h" data-tip="The house: brew, ask for a hand" style="left:720px;top:445px">${ic('home', 17)}</div>` +
+    `<div class="disc h" data-tip="The river: fish" style="left:742px;top:316px">${ic('fish', 17)}</div>` +
+    '';
+  return { svg: s, chips: c };
+}
+// ---- the menu at the tile clicked: the problem first, then the actions, then the tile ----
+const menu = () => STEP === 2 ? '' :
+  `<div class="menu" style="left:772px;top:330px;--ay:108px"><div class="mt">${ic('home', 18)}The house</div>` +
+  `<div class="rep">${ic('next', 13)}takes the place of ${ic('rake', 15)}<b>Rake meadows</b>${face('m', true)}</div>` +
+  `<div class="act hot">${ic('jar', 22)}<span class="ti">Pottery</span>${hand('pottery', 'm', true)}${hand('pottery', 't', false)}` +
+  `<span class="pre"><span class="bang">!</span><span><b>No clay in store.</b> It can be planned, and waits for clay: dig it at the bank, 5 tiles east.</span></span></div>` +
+  `<div class="act done">${ic('pot', 22)}<span class="ti">Brew ale<span class="why" style="color:var(--muted)">planned, days 1 to 3</span></span></div>` +
+  `<div class="act no">${ic('ale', 22)}<span class="ti">A feast<span class="why">no ale yet</span></span></div>` +
+  `<div class="act">${ic('round', 22)}<span class="ti">Ask for a hand</span></div>` +
+  `<div class="about"><div class="ti">${ic('tile', 20)}About the house${ic('next', 14)}</div></div></div>`;
+// ---- the needs: in store (solid), what this plan is expected to add (striped), the mark of what gets the household through the year ----
+const need = (icon, name, bar, word, open) => `<div class="need ${word === 'short' ? 'bad' : word === 'tight' ? 'warn' : 'safe'}" data-tip="${name}">${ic(icon, 19)}${bar}<span class="w">${word}</span>` +
+  `<button type="button"${open ? ' id="foodI"' : ''} aria-expanded="${!!open}" aria-label="${name}: the numbers">i</button></div>`;
+// food: a colour a source; [source, icon, in store, this plan adds, its range or why none], in rations
+const FOOD = [['grain', 'grain', 'Grain', 240, 530, '420–640'], ['peas', 'pod', 'Peas', 0, 90, '60–120'], ['fishc', 'fish', 'Dried fish', 8, 0, 'no day planned'], ['milk', 'pail', 'Milk, butter', 30, 110, '90–130']];
+const FOOD_NEED = 420, FOOD_MAX = 1100;
+function foodBar() {
+  let at = 0, s = '';
+  const seg = (c, n, add) => { const w = (n / FOOD_MAX) * 100; s += `<i class="${add ? 'add' : ''}" style="left:${at.toFixed(1)}%;width:${w.toFixed(1)}%;--c:var(--${c})"></i>`; at += w; };
+  for (const [c, , , store] of FOOD) if (store) seg(c, store);
+  for (const [c, , , , plan] of FOOD) if (plan) seg(c, plan, true);
+  return `<span class="meter food" role="meter">${s}<b style="left:${((FOOD_NEED / FOOD_MAX) * 100).toFixed(1)}%"></b><s class="low" style="left:${((848 / FOOD_MAX) * 100).toFixed(1)}%"></s></span>`;
+}
+const needsHTML = () => need('hunger', 'Food', foodBar(), 'safe', true) +
+  `<div class="brk" id="brk"><span></span><span></span><span class="h">in store</span><span class="h">${est(10)}this plan adds</span>` +
+  FOOD.map(([c, icon, name, store, plan, r]) => `<span class="ci" style="--c:var(--${c})">${ic(icon, 15)}</span><span>${name}</span><b>${store}</b>` +
+    (plan ? `<b class="pl">+${plan} <small class="muted">${r}</small></b>` : `<b class="no">${r}</b>`)).join('') +
+  `<span class="tot"><span>Needed to the next harvest</span><b>${est(10)}${FOOD_NEED} rations</b></span><span class="tot" style="border:0;padding:0;margin:0"><span>Above it, likely · in a poor year</span><b class="pl">+590 · +430</b></span></div>` +
+  (STEP === 1
+    ? need('hay', 'Hay: enough in a likely year, short in a poor one', meter({ value: 12, grow: 88, marks: [{ at: 72 }] }).replace('</span>', '<s class="low" style="left:64%"></s></span>'), 'tight')
+    : need('hay', 'Hay: less, with no one raking; short in a poor year', meter({ value: 12, grow: 80, marks: [{ at: 72 }] }).replace('</span>', '<i class="lost" style="left:80%;width:8%"></i><s class="low" style="left:57%"></s></span>'), 'tight')
+        .replace('<span class="w">tight</span>', '<span class="w">tight<small>less</small></span>').replace('</div>', '<i class="chg"></i></div>')) +
+  need('wood', 'Firewood', meter({ value: 80, marks: [{ at: 70 }] }), 'safe') +
+  `<div class="surplus"><span class="l">${est(12)}Surplus food <b>+590</b><span class="muted">· poor year +430</span></span>` +
+  `<span class="l"><span class="muted">for, at the house</span><span class="use">${ic('ale', 15)}a feast</span><span class="use">${ic('build', 15)}crafts</span></span></div>`;
+// ---- the strip ----
+const tl = (d, s) => `<div class="tl"><div class="d">${d}</div><div class="s">${s}</div></div>`;
+function budgetH(m) {
+  const ch = MEM[m].chores, cl = CLAIM[m], free = 12 - ch - cl, pc = (x) => ((Math.min(x, 12) / 12) * 100).toFixed(1);
+  return `<span class="meter days${free < 0 ? ' over' : ''}" data-tip="12 days: ${ch} on the daily chores, ${days(cl)} asked by the plan"><i class="ch" style="width:${pc(ch)}%"></i><i class="pl" style="left:${pc(ch)}%;width:${pc(Math.min(cl, 12 - ch))}%"></i></span>` +
+    `<b class="${free < 0 ? 'bad' : 'good'}" style="white-space:nowrap;margin-left:${free < 0 ? 5 : 0}px">${free < 0 ? `${days(-free)} over` : `${days(free)} free`}</b>`;
+}
+function laneH(m, h) {
+  const band = Math.round((h * MEM[m].chores) / 12), top = h - band - 2, pc = (d) => ((d / 12) * 100).toFixed(2);
+  let s = `<div class="hl" style="height:${h}px"><span class="foot" data-tip="Daily chores" style="height:${band}px">${band >= 12 ? MEM[m].choreIcons.map((k) => ic(k, 14)).join('') : ''}</span>`;
+  for (const [k, a, lo, hi] of BARS[m]) {
+    const J = JOB[k], cut = k === 'clear';
+    const selb = STEP === 1 && k === 'rake', warn = k === 'pottery';
+    s += `<span class="act${CHANGED[k] ? ' mine' : ''}${cut ? ' cut' : ''}${selb ? ' selb' : ''}" data-tip="${J.n} · ${MEM[m].n}: ${LEVELS[level(MATCH[k][0]) - 1]} (skill ${MATCH[k][0]}, grows to ${MATCH[k][1]})${hi > lo ? ' · may run to day ' + Math.ceil(hi) : ''}" style="left:${pc(a)}%;width:calc(${pc(hi - a)}% - 3px);height:${top}px;overflow:visible">` +
+      `<span class="sure" style="flex:${lo - a};border-radius:5px ${hi > lo ? '0 0' : '5px 5px'} 5px">${J.crop ? `<u>${J.order}</u><span class="ci" style="--c:${CROP[J.crop].c}">${ic(J.ic, 14)}</span>${J.short}` : ic(J.ic, Math.min(top - 4, 18)) + J.n}${matchIc(MATCH[k][0])}${cut ? `<span style="margin-left:4px;display:inline-flex">${seasonIc(1, 16)}</span>` : ''}</span>` +
+      (hi > lo ? `<span class="may" style="flex:${hi - lo};border-radius:0 5px 5px 0"></span>` : '') +
+      (selb ? `<button type="button" class="del" data-tip="Delete (Del or Backspace)" aria-label="Delete this action">${ic('no', 12)}</button>` : '') +
+      (warn ? '<span class="bang" data-tip="No clay in store: it waits for clay">!</span>' : '') + '</span>';
+    if (J.win < 12 && !(J.crop && J.order > 1)) s += `<span class="pin" data-tip="${J.crop ? 'Planting' : J.n}: its window ends day ${J.win}" style="left:${pc(J.win)}%">${ic(J.ic, 12)}</span>`;
+  }
+  // where more would fit: the stretch after the last action, with the days of work it holds
+  const end = BARS[m].length ? BARS[m][BARS[m].length - 1][3] : 0, room = ((12 - end) * (12 - MEM[m].chores)) / 12;
+  if (room >= 0.5) s += `<span class="free" data-tip="${MEM[m].n} has room here for ${days(Math.round(room * 2) / 2)} of work" style="left:calc(${pc(end)}% + 2px);width:calc(${pc(12 - end)}% - 4px);height:${top}px">${ic('plus', 13)}${days(Math.round(room * 2) / 2)} free</span>`;
+  return s + '</div>';
+}
+// the daily chores, each a thing to hand over: [icon, name, days in a season]
+const CHORES = { t: [['hay', 'Fodder', 1], ['chop', 'Firewood', 1]], m: [['water', 'Water', 1.5], ['pot', 'Cook', 3], ['pail', 'Milk', 2.5]] };
+const pills = (m) => `<div class="pills">${m === 'k' ? '<span class="pill slot" data-tip="Karin can take chores from summer: drag one here">chores, from summer</span>'
+  : CHORES[m].map(([icon, n, d]) => `<span class="pill" data-tip="${n}: ${days(d)} a season. Drag it to another’s name to hand it over">${ic(icon, 14)}${days(d)}</span>`).join('')}</div>`;
+// what is known of the seasons ahead, if this plan holds: [icons, the days asked, the days the member has, what it is]
+const AHEAD = {
+  t: [[['mow', 'grain'], 14, 10, 'mow the meadows, reap the rye, and Field 5’s 7 days', 'spade'], [['grain', 'sack', 'sow'], 9, 10, 'reap the barley and the peas, thresh, sow the rye'], [['chop'], 4, 10, 'fell and cut the firewood']],
+  m: [[['rake', 'hay'], 3, 5, 'rake and carry the hay'], [['sack'], 3, 5, 'thresh'], [['pot'], 1, 5, 'brew for the winter’s feast']],
+  k: [[[], 0, 9, 'nothing yet', null, true], [[], 0, 9, 'nothing yet'], [[], 0, 9, 'nothing yet']],
+};
+const SEASONS = ['summer', 'autumn', 'winter'];
+const ahead = (m) => `<div class="s3">${AHEAD[m].map(([ics, load, free, what, carry, come], q) =>
+  `<span class="cellq ld${load > free ? ' over' : ''}" data-tip="${MEM[m] ? MEM[m].n : 'Karin'}, ${SEASONS[q]}, known so far: ${what}. ${load} days asked of ${free}">` +
+  `<span class="ics">${come ? `${face('k', true)}day 1` : ''}${ics.map((k) => ic(k, 15)).join('')}${carry ? `<span class="carry">${ic(carry, 15)}</span>` : ''}</span>` +
+  `<span class="meter${load > free ? ' over bad' : ''}"><i style="width:${Math.min(100, (load / free) * 100)}%"></i></span></span>`).join('')}</div>`;
+const member = (m) => `<div class="mhw"><div class="mh" data-pawn="${m}">${face(m)}<b class="n">${MEM[m].n}</b><span class="muted">${MEM[m].age}</span>` +
+  `<span class="bang" ${m === 't' ? 'data-tip="Asked for 6 days more than he has"' : 'style="visibility:hidden"'}>!</span>${budgetH(m)}</div>${pills(m)}</div>` +
+  `<div class="row">${tl(laneH(m, 52) + (SEL.m === m ? `<span class="pick" data-tip="Day ${SEL.day}: the next action goes here" style="left:${((SEL.day - 0.5) / 12) * 100}%"></span>` : ''), ahead(m))}</div>`;
+// ---- a member's card, opened by a click on the member ----
+const SKILLS = { m: [['pot', 'Brewing', 66, 68], ['rake', 'Raking', 58, 62], ['sow', 'Planting', 45, 0], ['fork', 'Manure', 30, 0], ['spade', 'Breaking land', 20, 0], ['fish', 'Fishing', 15, 0]] };
+const cardHTML = (m) => `<div class="card"><div class="ch">${face(m)}<span><b>Märta Persdotter</b><br><small>29 · mistress of Norrgården · Torsten’s wife</small></span></div>` +
+  `<h2>${ic('hands', 15)}Skills <span style="margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400">novice to master</span></h2>` +
+  SKILLS[m].map(([icon, n, s, g]) => `<div class="sk" data-tip="${n}: ${LEVELS[level(s) - 1]}, ${s}${g ? `, ${g} by the season’s end` : ', no work at it this season'}">${ic(icon, 18)}<span>${n}</span>${meter({ value: s, grow: g })}${matchIc(s, 'dark')}</div>`).join('') +
+  `<h2>${ic('people', 15)}Aptitudes, and how she is</h2><div class="two2">` +
+  [['body', 'Body', 48], ['hands', 'Hands', 71], ['beast', 'Husbandry', 55], ['wits', 'Wits', 63], ['health', 'Health', 88], ['mood', 'Mood', 61]].map(([icon, n, v]) => `<div class="tr" data-tip="${n} ${v}">${ic(icon, 16)}${n}${meter({ value: v })}</div>`).join('') +
+  `</div><h2>${seasonIc(0)}This spring</h2><div class="tr" style="color:var(--ink)">${budgetH(m)}</div></div>`;
+// ---- the legend the key button unfolds ----
+const lg = (mark, words) => `<div class="lg"><span>${mark}</span><span>${words}</span></div>`;
+document.getElementById('legend').innerHTML = `<h2>${ic('key', 15)}What the marks mean</h2>` +
+  lg(`<span class="sw" style="background:var(--accent)"></span>`, 'planned: sure, by the head’s estimate') +
+  lg(`<span class="sw" style="background:repeating-linear-gradient(-45deg,var(--accent) 0 3px,rgba(255,255,255,.75) 3px 6px)"></span>`, 'it may run this long; on a need, what the plan adds') +
+  lg(`<span class="sw" style="background:repeating-linear-gradient(-45deg,rgba(23,49,58,.36) 0 4px,rgba(23,49,58,.28) 4px 8px)"></span>`, 'the share of a day the chores take') +
+  lg(`<span class="sw" style="background:none;box-shadow:0 0 0 2.5px var(--plan),0 0 0 3.5px var(--plan-edge)"></span>`, 'changed by you: undo puts it back') +
+  lg(`<span class="sw" style="background:var(--bad)"></span>`, 'does not fit, or falls short') +
+  lg(`<span class="bang" style="position:static;transform:none">!</span>`, 'a problem, on its tile or by its person: click it') +
+  lg(`<span class="hl" style="background:none;height:18px;display:block;width:18px"><span class="pin" style="position:static;margin:0">${ic('sow', 12)}</span></span>`, 'the day an action’s window ends') +
+  lg(`<span class="meter" style="width:40px"><i style="width:55%"></i><b style="left:75%"></b></span>`, 'in store, and the mark of what is needed') +
+  lg(`<span class="dot" style="--c:var(--grain)"></span><span class="dot" style="--c:var(--rye)"></span><span class="dot" style="--c:var(--peas)"></span>`, 'a crop: barley, rye, peas; the ring is how far it has grown') +
+  lg(`<span class="dot" style="--c:var(--fishc)"></span><span class="dot" style="--c:var(--milk)"></span>`, 'in the food: dried fish, milk and butter') +
+  lg(`<span class="crop" style="position:relative;transform:none;width:20px;height:20px;--p:0;box-shadow:none"><u style="left:1px;top:1px">1</u></span>`, 'a field’s place in the order of planting') +
+  lg(`${face('t', true)} ${face('m', true)}`, 'who has it: a member’s colour, on a disc as on a face') +
+  lg(matchIc(60, 'dark'), 'skill at the job: novice, able, skilled, master') +
+  lg(`<span class="meter" style="width:40px;margin-bottom:8px"><i style="width:70%"></i><s class="low" style="left:55%"></s></span>`, 'where a poor year would leave it') +
+  lg(`<span class="pill" style="padding:0 5px 0 2px">${ic('pot', 12)}</span>`, 'a daily chore: drag it to another to hand it over') +
+  lg(`<span class="meter" style="width:26px;height:6px"><i style="width:60%"></i></span>`, 'a later season: the days already asked of it') +
+  lg(`<span class="sw" style="background:none;outline:3px solid var(--ink)"></span>`, 'selected: the next action replaces it; Del removes it') +
+  lg(`<span class="sw" style="background:rgba(47,122,75,.08);border:2px dashed var(--good)"></span>`, 'room for more work') +
+  lg(`<span class="sw" style="background:repeating-linear-gradient(-45deg,rgba(168,67,47,.75) 0 2.5px,rgba(255,255,255,.7) 2.5px 5px)"></span>`, 'lost by the last change') +
+  lg(est(15), 'an estimate, the head’s') +
+  lg(`<span class="sw" style="background:rgba(8,18,22,.5)"></span>`, 'dimmed: not the farm’s land');
+const key = document.getElementById('keyBtn'), legend = document.getElementById('legend');
+const showKey = (on) => { legend.hidden = !on; key.setAttribute('aria-pressed', String(on)); };
+key.addEventListener('click', () => showKey(legend.hidden));
+// ---- draw ----
+document.body.className = 'mine';
+const M = mapHTML();
+document.getElementById('map').innerHTML = M.svg;
+document.getElementById('chips').innerHTML = M.chips;
+document.getElementById('menu').innerHTML = menu();
+document.getElementById('rgt').innerHTML = `<h2>${ic('sack', 15)}To get through the year</h2>${needsHTML()}<h2>${seasonIc(3)}What came of the winter’s plan</h2>${lastHTML()}`;
+document.getElementById('strip').innerHTML = `<div></div>` +
+  `<div class="hdr">${tl(`<div class="d12">${Array.from({ length: 12 }, (_, k) => `<span>${k + 1}</span>`).join('')}</div>`, `<div class="s3">${[1, 2, 3].map((q) => `<span>${seasonIc(q)}</span>`).join('')}</div>`)}</div>` +
+  member('t') + member('m') +
+  `<div class="mhw kn"><div class="mh kn" data-tip="Hired at the moving round; comes on the first day of summer">${face('k')}<b class="n">Karin</b><span class="muted">14</span><small>comes in summer</small></div>${pills('k')}</div>` +
+  `<div class="row kn">${tl('<div class="lane ghost" style="height:26px"></div>', ahead('k'))}</div>`;
+showKey(new URLSearchParams(location.search).get('legend') === '1');
+// toggles change nothing else's place: the key and the breakdown lie over the map, a problem's mark has its slot whether shown or not
+const foodI = document.getElementById('foodI'), brk = document.getElementById('brk');
+foodI.addEventListener('click', () => { brk.hidden = !brk.hidden; foodI.setAttribute('aria-expanded', String(!brk.hidden)); });
+// a click on a member opens the card; ?pawn=1 draws Märta's, with the tile's menu shut
+const card = document.getElementById('card'), showCard = (m) => { card.innerHTML = m ? cardHTML(m) : ''; document.getElementById('menu').hidden = !!m; };
+document.addEventListener('click', (e) => { const p = e.target.closest('[data-pawn]'); if (p) showCard(card.innerHTML ? null : 'm'); });
+if (new URLSearchParams(location.search).get('pawn') === '1') showCard('m');
+foodI.click(); // the breakdown is shut in these frames; the i opens it
+if (false) { foodI.click(); document.querySelectorAll('.bang').forEach((b) => (b.style.visibility = 'hidden')); }
+</script>
+</body>
+</html>
