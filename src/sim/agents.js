@@ -52,8 +52,12 @@ VB['sim/agents'] = (() => {
     if (!a.path && a.phase === null) waitLeg(st, a);
   }
   // A talk stops only an idle pawn outdoors, not one on its way to an occasion (VB-126), and never shortens an existing pause: its walk is
-  // cut where it has come to, and it waits.
+  // cut where it has come to, and it waits. Not a walk on an errand (VB-228; Kim, 18 Nov): an idle walk is a stroll towards company, so
+  // the talk is where it was going, and a walk let go of has nowhere left to go; a walk to a place the pawn chose is not broken off.
+  // @state agent.errand: true from the verb `walkTo` to a place (not a stroll, `near`) until the pawn's next walk or its release, else
+  //   absent: the walk is to somewhere of its own choosing. Written here only (walkTo, release); plain data, saved.
   function haltForTalk(st, g, until) {
+    if (g.path && g.errand) return;
     if (!g.inside && !g.job && g.phase === null && g.occasion === null) {
       if (g.path) halt(st, g);
       g.anim = 'idle';
@@ -102,8 +106,10 @@ VB['sim/agents'] = (() => {
   // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
   // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
   // `near` (an idle stroll, VB-468): to a neighbouring tile it walks straight over, with no route search.
-  // A walk in hand is cut first, where it has come to; the new one is a leg from there (begin).
-  function walkTo(st, a, tile, x, y, near) {
+  // A walk in hand is cut first, where it has come to; the new one is a leg from there (begin). `errand`: the verb's walk to a place.
+  function walkTo(st, a, tile, x, y, near, errand) {
+    if (errand) a.errand = true;
+    else delete a.errand;
     if (a.path) halt(st, a, false, true);
     const w = st.w,
       from = tileAt(st, a.x, a.y),
@@ -206,6 +212,7 @@ VB['sim/agents'] = (() => {
       if (i >= 0) c.splice(i, 1);
       a.job = null;
     }
+    delete a.errand;
     a.phase = null;
     if (left) rerate(st, left); // a hand gone: the end is told again
     if (laid && !(KINDS[laid.kind].again && KINDS[laid.kind].again(laid))) dropJob(st, laid);

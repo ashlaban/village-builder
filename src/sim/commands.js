@@ -176,7 +176,8 @@ VB['sim/commands'] = (() => {
       run: (st, c) => {
         const x = c.args && c.args.x !== undefined ? c.args.x : st.w.hx[c.target],
           y = c.args && c.args.y !== undefined ? c.args.y : st.w.hy[c.target];
-        walkTo(st, st.agents[c.actor], c.target, x, y, !!(c.args && c.args.near));
+        const near = !!(c.args && c.args.near);
+        walkTo(st, st.agents[c.actor], c.target, x, y, near, !near);
       },
     },
     // goHome: walk home and go in (phase 'home')

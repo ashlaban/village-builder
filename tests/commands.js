@@ -379,6 +379,29 @@ console.log('commands ok: offer and answer (VB-690): a gift and an ask settle at
 }
 console.log('commands ok: move (VB-822): each refusal changes nothing; each reason moves, on the record; the minors follow; service makes a servant');
 
+// VB-228 (Kim, 18 Nov): a talk cuts a stroll, and a walk let go of, but not a walk on an errand: any pawn's, and so the played pawn's queued walk
+{
+  const s2 = Sim.seed(island(7), 7, 'founders');
+  Sim.advance(s2, 3 * Sim.DAY + 4);
+  const g = s2.agents.find((x) => s2.pawns[x.id].died === null), R = VB['sim/agents'];
+  const far = s2.farmsteads.find((f) => f.house !== s2.farmsteads[s2.households[s2.pawns[g.id].household].farmstead].house).house;
+  const walk = (args) => { R.release(s2, g); g.inside = false; g.occasion = null; assert.strictEqual(issue(s2, { actor: g.id, verb: 'walkTo', target: far, args, source: 'test' }), true); };
+  const talk = () => issue(s2, { actor: g.id, verb: 'haltForTalk', args: { until: s2.t + 1 }, source: 'talk' });
+  walk({}); assert.strictEqual(g.errand, true);
+  const walking = JSON.stringify(g.path); talk();
+  assert.strictEqual(JSON.stringify(g.path), walking, 'a walk on an errand goes on through a talk'); assert.strictEqual(g.anim, 'walk');
+  R.release(s2, g); assert.strictEqual(g.errand, undefined, 'let go of, it is an errand no more');
+  talk(); assert.strictEqual(g.path, null, 'and a talk stops it');
+  walk({ near: true }); assert.strictEqual(g.errand, undefined, 'a stroll is no errand');
+  talk(); assert.strictEqual(g.path, null, 'a talk stops a stroll');
+  // the played pawn's queued walk outlasts a talk
+  walk({}); R.release(s2, g); g.path = null;
+  assert.strictEqual(Sim.inhabit(s2, g.id), true); assert.strictEqual(Sim.queue(s2, { actor: g.id, verb: 'walkTo', target: far }), true);
+  Sim.advance(s2, 0.2); assert.ok(g.path && s2.player.queue.length === 1 && s2.player.queue[0].begun !== null, 'the queued walk is under way');
+  const queued = JSON.stringify(g.path); talk();
+  assert.strictEqual(JSON.stringify(g.path), queued, 'and a talk does not cut it'); assert.strictEqual(s2.player.queue.length, 1);
+  Sim.advance(s2, 0.1); assert.strictEqual(s2.player.refused, null);
+}
 // VB-228: verbs are registered at load, once each, and the table closes with the registries (a state has been seeded above)
 {
   const { register, VERBS } = VB['sim/commands'], V = { check: () => null, run: () => {} };
