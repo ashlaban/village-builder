@@ -177,6 +177,12 @@ VB['sim/commands'] = (() => {
         goHome(st, a); // to its bed
       },
     },
+    // visit(village) (VB-289; design.md, Between villages: The suitor's visit): an unmarried pawn plans a winter's visit to a village beyond
+    // a day's walk, there and back on its household's food; it sets out on its winter morning (sim/visits)
+    visit: {
+      check: (st, c) => living(st, c.actor) || later('sim/visits').visitWhy(st, c.actor, c.target),
+      run: (st, c) => later('sim/visits').planVisit(st, c.actor, c.target),
+    },
     // raiseBooth(tile, {guests}) (VB-784): stake a booth on ground nobody else owns or has staked, for the pawn's household and the guests
     // named; its household's pawns raise it (the wood, then BOOTH.hours of work)
     raiseBooth: {

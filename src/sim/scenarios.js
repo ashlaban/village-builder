@@ -380,6 +380,7 @@ VB['sim/scenarios'] = (() => {
     //   hunger (0..1), hungerLog[] (last 12 daily shortfalls; sim/hunger),
     //   health (0..100, float; drained by hunger, 0 is death by starvation; sim/hunger),
     //   kinPush ({to: kinLimit option key, w} or null; the marriage limit pull of the last moving round; sim/lifecycle),
+    //   visited ({village, year} or null: its last suitor's visit; sim/visits, VB-289),
     //   landWait (moving rounds waited for land in a crowded village, 0 otherwise; unset before the first round; sim/settle), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
     //   ties, tieT, homeHours; rel (sim/relations)
@@ -530,6 +531,7 @@ VB['sim/scenarios'] = (() => {
       occasionSeq: 0,
       away: [],
       awaySeq: 0,
+      visits: [], // the suitors' visits planned (sim/visits, VB-289)
       booths: [],
       boothSeq: 0,
       finds: new Map(),

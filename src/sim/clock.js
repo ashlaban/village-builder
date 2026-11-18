@@ -24,6 +24,7 @@ VB['sim/clock'] = (() => {
   const { roundPhase, ROUND_STEPS } = VB['sim/round'];
   const { dueOffers } = VB['sim/offers'];
   const { askingDay } = VB['sim/asking'];
+  const { visitsDue } = VB['sim/visits'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
@@ -386,6 +387,14 @@ VB['sim/clock'] = (() => {
       owner: 'sim/asking',
       note: 'the askings due: each who seeks reviews its wish and makes its offer, due at the moving round (VB-823)',
       run: (st) => askingDay(st),
+    },
+    {
+      every: 'day',
+      at: { hour: WORK[0] },
+      when: (st) => st.visits.length > 0,
+      owner: 'sim/visits',
+      note: "the visits due set out: a suitor's winter journey to a village beyond a day's walk (VB-289)",
+      run: (st) => visitsDue(st),
     },
     {
       every: 'day',
