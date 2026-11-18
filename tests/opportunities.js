@@ -12,7 +12,7 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
 
 // ---- the list and the planner agree, over a game day ----
 {
-  const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4 }], { seed: 7, herds: true });
+  const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4 }], { seed: 5, herds: true });
   let asked = 0, may = 0, barred = 0, taken = 0, most = 0;
   const reasons = new Set();
   while (st.t < 6 + Sim.DAY) {

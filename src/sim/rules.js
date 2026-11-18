@@ -495,6 +495,7 @@ VB['sim/rules'] = (() => {
     minScore: -1.5, // lowest score accepted, by the spokesman who asks and by each who answers
     // score per point of a spokesman's opinion of the other side's spokesman (VB-693; plan VB-682, 4.1): 0 between strangers
     headsLiking: 0.5,
+    affinityDegree: { fourth: 8, line: 0, free: -1 }, // affinity: the widest civil degree from a spouse that bars (0 the direct line; -1 none)
     kinDegree: { second: 8, first: 6, close: 4, uncle: 3 }, // closest civil degree allowed per kinLimit custom; degree 2 or less never marries
     scarcePush: 1,
     plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
