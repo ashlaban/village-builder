@@ -2,7 +2,7 @@
 <!-- Mock (18 Nov 2026), plan mode, variation J: I after Kim's answers to its second review. For VB-1026. Throwaway: the numbers are
      invented and nothing here is game code. The icons' paths are copied from src/page/icons.js and the meter from src/page/meter.js;
      new glyphs, each for a concept the set has no picture of: a tick (go on), an arrow turned back (undo), a circling arrow (reset),
-     a question mark (the key), an exclamation mark (a problem), a pod (peas), three rising bars (how well a hand suits a job).
+     a question mark (the key), an exclamation mark (a problem), a pod (peas), four rising bars (skill at a job, novice to master).
      What changed from I:
      1. The seasons ahead are not empty. A later season's cell holds what is already known of it if this plan holds (the meadows to
         mow, the rye to reap, what this spring carries over) and a small meter of the days that asks against the days the member
@@ -13,9 +13,10 @@
         dragged to another's name. Karin, who comes in summer, has an empty place for them.
      4. The surplus is shown and what it is for: what the plan leaves above the food's need, in a likely year and a poor one, and
         the two things done with it at the house, a feast and crafts.
-     5. A work bar ends in three rising bars: how well the member's skill suits the job (three: the best hand here and practised;
-        one: another would do it clearly better). Pointed at, it says the skill and what the job grows it to.
-     6. A click on a member opens a card: skills on the one meter (striped for what this season's work adds), aptitudes, the days
+     5. A work bar ends in four rising bars: the member's skill at the job on a fixed scale (novice, able, skilled, master; Kim,
+        18 Nov: an absolute standard, not a comparison within the household). Pointed at, it says the level, the skill and
+        what the job grows it to.
+     6. A click on a member opens a card: skills on the one meter (striped for what this season's work adds) with the same four bars, aptitudes, the days
         of the season, health and mood. ?pawn=1 draws Märta's open, with the tile's menu shut.
      Kept from I: food as one bar of several sources, planting a field at a time with its crop, problems marked on a tile or by a
      name, striped uncertainty, dimmed land, the fertility overlay, the key (?legend=1), undo and reset apart, toggles that move
@@ -306,7 +307,7 @@
   .surplus .use { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px 1px 5px; border-radius: 999px; background: #fff; box-shadow: inset 0 0 0 1px var(--edge); font-weight: 700; cursor: pointer; }
   .match { flex: none; margin-left: auto; display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; padding-left: 4px; }
   .match i { width: 4px; border-radius: 1px; background: rgba(255, 255, 255, 0.35); } .match i.on { background: #fff; }
-  .match i:nth-child(1) { height: 6px; } .match i:nth-child(2) { height: 10px; } .match i:nth-child(3) { height: 14px; }
+  .match i { width: 3.5px; } .match i:nth-child(1) { height: 5px; } .match i:nth-child(2) { height: 8px; } .match i:nth-child(3) { height: 11px; } .match i:nth-child(4) { height: 14px; }
   .match.dark i { background: var(--track); } .match.dark i.on { background: var(--accent); }
   .card { position: absolute; left: 12px; bottom: 232px; width: 318px; padding: 12px 14px; border-radius: 16px; background: #eef5f2; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); z-index: 6; }
   .card::after { content: ''; position: absolute; left: 30px; bottom: -7px; width: 14px; height: 14px; background: #eef5f2; transform: rotate(45deg); }
@@ -591,10 +592,10 @@ const PLOTS = [[647, 445, 1, 'rye', 60, 0], [575, 445, 2, 'barley', 0, 1], [611,
 for (const [, , f, crop, , n] of PLOTS) if (n) JOB['p' + n] = { ic: CROP[crop].ic, n: `Plant ${CROP[crop].n.toLowerCase()}, Field ${f}`, short: CROP[crop].n, crop, order: n, win: 10 };
 // a member's actions, one after the other: [action, from, sure to, may run to]; the next begins where the last may end
 const BARS = { t: [['manure', 0, 2.2, 2.8], ['p1', 2.8, 4.6, 5.1], ['p2', 5.1, 6.9, 7.4], ['p3', 7.4, 9, 9.6], ['clear', 9.6, 12, 12]], m: [['brew', 0, 2.2, 2.8], ['rake', 2.8, 6, 7.2]] };
-// how well a member's skill suits a job, one to three: [bars, the skill now, what the job grows it to, the words]
-const MATCH = { manure: [3, 62, 64, 'the best hand here'], p1: [3, 70, 72, 'the best hand here'], p2: [3, 70, 72, 'the best hand here'], p3: [3, 70, 72, 'the best hand here'],
-  clear: [2, 55, 64, 'fair; no one here is better'], brew: [3, 66, 68, 'the best hand here'], rake: [2, 58, 62, 'fair, and better than Torsten (40)'] };
-const matchIc = (n, cls = '') => `<span class="match ${cls}">${[1, 2, 3].map((k) => `<i${k <= n ? ' class="on"' : ''}></i>`).join('')}</span>`;
+// a member's skill at a job against a fixed scale, novice to master: one to four bars. [the skill now, what the job grows it to]
+const MATCH = { manure: [62, 64], p1: [70, 72], p2: [70, 72], p3: [70, 72], clear: [55, 64], brew: [66, 68], rake: [58, 62] };
+const LEVELS = ['novice', 'able', 'skilled', 'master'], level = (x) => (x < 25 ? 1 : x < 50 ? 2 : x < 75 ? 3 : 4);
+const matchIc = (x, cls = '') => `<span class="match ${cls}">${[1, 2, 3, 4].map((k) => `<i${k <= level(x) ? ' class="on"' : ''}></i>`).join('')}</span>`;
 // ---- the map: the farm's land bright inside its outline, the rest dimmed; while a field is being placed, the open tiles' fertility ----
 function mapHTML() {
   let s = '', c = '';
@@ -668,7 +669,7 @@ function laneH(m, h) {
   let s = `<div class="hl" style="height:${h}px"><span class="foot" data-tip="Daily chores" style="height:${band}px">${band >= 12 ? MEM[m].choreIcons.map((k) => ic(k, 14)).join('') : ''}</span>`;
   for (const [k, a, lo, hi] of BARS[m]) {
     const J = JOB[k], cut = k === 'clear';
-    s += `<span class="act${CHANGED[k] ? ' mine' : ''}${cut ? ' cut' : ''}" data-tip="${J.n} · ${MEM[m].n}’s skill ${MATCH[k][1]}, ${MATCH[k][3]}; grows to ${MATCH[k][2]}${hi > lo ? ' · may run to day ' + Math.ceil(hi) : ''}" style="left:${pc(a)}%;width:calc(${pc(hi - a)}% - 3px);height:${top}px;overflow:visible">` +
+    s += `<span class="act${CHANGED[k] ? ' mine' : ''}${cut ? ' cut' : ''}" data-tip="${J.n} · ${MEM[m].n}: ${LEVELS[level(MATCH[k][0]) - 1]} (skill ${MATCH[k][0]}, grows to ${MATCH[k][1]})${hi > lo ? ' · may run to day ' + Math.ceil(hi) : ''}" style="left:${pc(a)}%;width:calc(${pc(hi - a)}% - 3px);height:${top}px;overflow:visible">` +
       `<span class="sure" style="flex:${lo - a};border-radius:5px ${hi > lo ? '0 0' : '5px 5px'} 5px">${J.crop ? `<u>${J.order}</u><span class="ci" style="--c:${CROP[J.crop].c}">${ic(J.ic, 14)}</span>${J.short}` : ic(J.ic, Math.min(top - 4, 18)) + J.n}${matchIc(MATCH[k][0])}${cut ? `<span style="margin-left:4px;display:inline-flex">${seasonIc(1, 16)}</span>` : ''}</span>` +
       (hi > lo ? `<span class="may" style="flex:${hi - lo};border-radius:0 5px 5px 0"></span>` : '') + '</span>';
     if (J.win < 12 && !(J.crop && J.order > 1)) s += `<span class="pin" data-tip="${J.crop ? 'Planting' : J.n}: its window ends day ${J.win}" style="left:${pc(J.win)}%">${ic(J.ic, 12)}</span>`;
@@ -694,10 +695,10 @@ const member = (m) => `<div class="mhw"><div class="mh" data-pawn="${m}">${face(
   `<span class="bang" ${m === 't' ? 'data-tip="Asked for 6 days more than he has"' : 'style="visibility:hidden"'}>!</span>${budgetH(m)}</div>${pills(m)}</div>` +
   `<div class="row">${tl(laneH(m, 52) + (SEL.m === m ? `<span class="pick" data-tip="Day ${SEL.day}: the next action goes here" style="left:${((SEL.day - 0.5) / 12) * 100}%"></span>` : ''), ahead(m))}</div>`;
 // ---- a member's card, opened by a click on the member ----
-const SKILLS = { m: [['pot', 'Brewing', 66, 68, 3], ['rake', 'Raking', 58, 62, 2], ['sow', 'Planting', 45, 0, 2], ['fork', 'Manure', 30, 0, 1], ['spade', 'Breaking land', 20, 0, 1], ['fish', 'Fishing', 15, 0, 1]] };
+const SKILLS = { m: [['pot', 'Brewing', 66, 68], ['rake', 'Raking', 58, 62], ['sow', 'Planting', 45, 0], ['fork', 'Manure', 30, 0], ['spade', 'Breaking land', 20, 0], ['fish', 'Fishing', 15, 0]] };
 const cardHTML = (m) => `<div class="card"><div class="ch">${face(m)}<span><b>Märta Persdotter</b><br><small>29 · mistress of Norrgården · Torsten’s wife</small></span></div>` +
-  `<h2>${ic('hands', 15)}Skills <span style="margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400">against Torsten</span></h2>` +
-  SKILLS[m].map(([icon, n, s, g, mt]) => `<div class="sk" data-tip="${n}: ${s}${g ? `, ${g} by the season’s end` : ', no work at it this season'}">${ic(icon, 18)}<span>${n}</span>${meter({ value: s, grow: g })}${matchIc(mt, 'dark')}</div>`).join('') +
+  `<h2>${ic('hands', 15)}Skills <span style="margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400">novice to master</span></h2>` +
+  SKILLS[m].map(([icon, n, s, g]) => `<div class="sk" data-tip="${n}: ${LEVELS[level(s) - 1]}, ${s}${g ? `, ${g} by the season’s end` : ', no work at it this season'}">${ic(icon, 18)}<span>${n}</span>${meter({ value: s, grow: g })}${matchIc(s, 'dark')}</div>`).join('') +
   `<h2>${ic('people', 15)}Aptitudes, and how she is</h2><div class="two2">` +
   [['body', 'Body', 48], ['hands', 'Hands', 71], ['beast', 'Husbandry', 55], ['wits', 'Wits', 63], ['health', 'Health', 88], ['mood', 'Mood', 61]].map(([icon, n, v]) => `<div class="tr" data-tip="${n} ${v}">${ic(icon, 16)}${n}${meter({ value: v })}</div>`).join('') +
   `</div><h2>${seasonIc(0)}This spring</h2><div class="tr" style="color:var(--ink)">${budgetH(m)}</div></div>`;
@@ -716,7 +717,7 @@ document.getElementById('legend').innerHTML = `<h2>${ic('key', 15)}What the mark
   lg(`<span class="dot" style="--c:var(--fishc)"></span><span class="dot" style="--c:var(--milk)"></span>`, 'in the food: dried fish, milk and butter') +
   lg(`<span class="crop" style="position:relative;transform:none;width:20px;height:20px;--p:0;box-shadow:none"><u style="left:1px;top:1px">1</u></span>`, 'a field’s place in the order of planting') +
   lg(`${face('t', true)} ${face('m', true)}`, 'who has it: a member’s colour, on a disc as on a face') +
-  lg(matchIc(2, 'dark'), 'how well the member’s skill suits the job') +
+  lg(matchIc(60, 'dark'), 'skill at the job: novice, able, skilled, master') +
   lg(`<span class="meter" style="width:40px;margin-bottom:8px"><i style="width:70%"></i><s class="low" style="left:55%"></s></span>`, 'where a poor year would leave it') +
   lg(`<span class="pill" style="padding:0 5px 0 2px">${ic('pot', 12)}</span>`, 'a daily chore: drag it to another to hand it over') +
   lg(`<span class="meter" style="width:26px;height:6px"><i style="width:60%"></i></span>`, 'a later season: the days already asked of it') +
