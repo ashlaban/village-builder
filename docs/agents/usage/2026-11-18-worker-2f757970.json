@@ -1,0 +1,364 @@
+{
+ "session": "2f757970-e331-5a50-a2f3-6b4d6bef0558",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-18T22:28:28.872Z",
+ "end": "2026-11-18T23:47:36.849Z",
+ "wallMin": 79.1,
+ "activeMin": 73.7,
+ "prompts": 4,
+ "calls": 75,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 169,
+  "cacheWrite": 106990,
+  "cacheRead": 9806861,
+  "output": 29051
+ },
+ "context": {
+  "first": 89495,
+  "peak": 169388,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 50,
+   "bytes": 55046,
+   "seconds": 683.7
+  },
+  "AskUserQuestion": {
+   "calls": 1,
+   "bytes": 495,
+   "seconds": 216
+  },
+  "Agent": {
+   "calls": 11,
+   "bytes": 11539,
+   "seconds": 28.8
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 285,
+   "seconds": 0
+  },
+  "mcp__github__create_pull_request": {
+   "calls": 1,
+   "bytes": 80,
+   "seconds": 2
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "cat docs/agents/README.md",
+   "calls": 1,
+   "bytes": 16559
+  },
+  {
+   "tool": "Agent",
+   "what": "",
+   "calls": 11,
+   "bytes": 11539
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 6,
+   "bytes": 9558
+  },
+  {
+   "tool": "Bash",
+   "what": "tail -4",
+   "calls": 2,
+   "bytes": 6476
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/nightly.js",
+   "calls": 1,
+   "bytes": 2998
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 1,
+   "bytes": 2605
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -nE",
+   "calls": 2,
+   "bytes": 2209
+  },
+  {
+   "tool": "Bash",
+   "what": "git merge",
+   "calls": 8,
+   "bytes": 1703
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 1608
+  },
+  {
+   "tool": "Bash",
+   "what": "git diff",
+   "calls": 1,
+   "bytes": 1603
+  },
+  {
+   "tool": "Bash",
+   "what": "node tests/bands.js",
+   "calls": 1,
+   "bytes": 1483
+  },
+  {
+   "tool": "Bash",
+   "what": "tail -25",
+   "calls": 1,
+   "bytes": 1297
+  }
+ ],
+ "weighted": 1259848,
+ "subagents": [
+  {
+   "agent": "a94975a5",
+   "task": "VB-1105",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 36,
+   "tokens": {
+    "input": 72,
+    "cacheWrite": 58529,
+    "cacheRead": 1589347,
+    "output": 12825
+   },
+   "weighted": 296293,
+   "first": 20168,
+   "boot": 0,
+   "peak": 58531,
+   "activeMin": 20.4,
+   "start": "2026-11-18T22:33:02.511Z"
+  },
+  {
+   "agent": "ae1e7852",
+   "task": "VB-1107",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 64,
+   "tokens": {
+    "input": 128,
+    "cacheWrite": 324485,
+    "cacheRead": 3267991,
+    "output": 21056
+   },
+   "weighted": 837813,
+   "first": 20176,
+   "boot": 0,
+   "peak": 76069,
+   "activeMin": 33.9,
+   "start": "2026-11-18T22:33:02.514Z"
+  },
+  {
+   "agent": "adda6b85",
+   "task": "VB-1191",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 19,
+   "tokens": {
+    "input": 38,
+    "cacheWrite": 35651,
+    "cacheRead": 532662,
+    "output": 4853
+   },
+   "weighted": 122133,
+   "first": 20172,
+   "boot": 0,
+   "peak": 35653,
+   "activeMin": 8.8,
+   "start": "2026-11-18T22:33:02.515Z"
+  },
+  {
+   "agent": "ad661f10",
+   "task": "VB-352",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 26,
+   "tokens": {
+    "input": 52,
+    "cacheWrite": 57902,
+    "cacheRead": 1130126,
+    "output": 10042
+   },
+   "weighted": 235652,
+   "first": 20163,
+   "boot": 0,
+   "peak": 57904,
+   "activeMin": 6.6,
+   "start": "2026-11-18T22:33:02.517Z"
+  },
+  {
+   "agent": "a22dec8d",
+   "task": "VB-353",
+   "size": "M",
+   "status": "needs-review",
+   "model": "claude-sonnet-5-5",
+   "calls": 95,
+   "tokens": {
+    "input": 190,
+    "cacheWrite": 346188,
+    "cacheRead": 8616579,
+    "output": 45264
+   },
+   "weighted": 1520903,
+   "first": 20169,
+   "boot": 94773,
+   "peak": 135372,
+   "activeMin": 34.7,
+   "start": "2026-11-18T22:40:29.548Z"
+  },
+  {
+   "agent": "a3d2d4f0",
+   "task": "VB-460",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 37,
+   "tokens": {
+    "input": 76,
+    "cacheWrite": 181248,
+    "cacheRead": 1788756,
+    "output": 15000
+   },
+   "weighted": 480512,
+   "first": 20175,
+   "boot": 59445,
+   "peak": 70971,
+   "activeMin": 15.7,
+   "start": "2026-11-18T22:42:38.017Z"
+  },
+  {
+   "agent": "a777a4c1",
+   "task": "VB-1109",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 21,
+   "tokens": {
+    "input": 42,
+    "cacheWrite": 35041,
+    "cacheRead": 717496,
+    "output": 6508
+   },
+   "weighted": 148133,
+   "first": 20168,
+   "boot": 0,
+   "peak": 43216,
+   "activeMin": 4.1,
+   "start": "2026-11-18T22:54:20.051Z"
+  },
+  {
+   "agent": "af48df3d",
+   "task": "VB-1125",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 15,
+   "tokens": {
+    "input": 30,
+    "cacheWrite": 29151,
+    "cacheRead": 430766,
+    "output": 6137
+   },
+   "weighted": 110230,
+   "first": 20182,
+   "boot": 31440,
+   "peak": 37326,
+   "activeMin": 8.7,
+   "start": "2026-11-18T22:55:49.124Z"
+  },
+  {
+   "agent": "a097fc6f",
+   "task": "VB-1112",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 34,
+   "tokens": {
+    "input": 68,
+    "cacheWrite": 51996,
+    "cacheRead": 1548668,
+    "output": 13328
+   },
+   "weighted": 286570,
+   "first": 20184,
+   "boot": 52342,
+   "peak": 60171,
+   "activeMin": 6.7,
+   "start": "2026-11-18T22:59:13.511Z"
+  },
+  {
+   "agent": "a3c01ebf",
+   "task": "VB-1150",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 22,
+   "tokens": {
+    "input": 44,
+    "cacheWrite": 34535,
+    "cacheRead": 710031,
+    "output": 9610
+   },
+   "weighted": 162266,
+   "first": 20188,
+   "boot": 31469,
+   "peak": 42710,
+   "activeMin": 5.2,
+   "start": "2026-11-18T23:05:16.530Z"
+  },
+  {
+   "agent": "a2659a4d",
+   "task": "VB-1113",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 22,
+   "tokens": {
+    "input": 44,
+    "cacheWrite": 49260,
+    "cacheRead": 890561,
+    "output": 8820
+   },
+   "weighted": 194775,
+   "first": 20182,
+   "boot": 0,
+   "peak": 57435,
+   "activeMin": 5.7,
+   "start": "2026-11-18T23:06:24.328Z"
+  }
+ ],
+ "summary": {
+  "weightedTotal": 5655128,
+  "orchestratorShare": 0.223,
+  "bootMedian": 52342,
+  "readMedian": 32158,
+  "weightedPerDoneTask": 565513,
+  "perSize": {
+   "S": {
+    "n": 10,
+    "median": 215214
+   }
+  },
+  "firstPass": 0.91,
+  "tasks": 11
+ }
+}
