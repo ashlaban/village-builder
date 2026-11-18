@@ -73,6 +73,7 @@ VB['sim/records'] = (() => {
     custom: 0,
     split: 0,
     cause: 0,
+    wishLapsed: 0, // the played pawn's wish for a match ended or passed by, with why (sim/wishes, VB-1113)
     kinBarred: 0,
     share: 0,
     player: 0,
@@ -463,6 +464,7 @@ VB['sim/records'] = (() => {
           spouse: new Map(),
           union: new Map(),
           widowed: new Set(),
+          spouses: new Map(),
           holds: new Map(),
           lines: new Map(),
           np: 0,
@@ -484,6 +486,14 @@ VB['sim/records'] = (() => {
     }
     for (; x.nu < st.unions.length; x.nu++) {
       const u = st.unions[x.nu];
+      for (const [i, j] of [
+        [u.a, u.b],
+        [u.b, u.a],
+      ]) {
+        const l = x.spouses.get(i);
+        if (l) l.push(j);
+        else x.spouses.set(i, [j]);
+      }
       if (u.end !== null) {
         x.widowed.add(u.a);
         x.widowed.add(u.b);
@@ -563,6 +573,8 @@ VB['sim/records'] = (() => {
     const uid = index(st).union.get(id);
     return uid === undefined ? null : st.unions[uid];
   };
+  // Everyone pawn id has been married to, in order of marriage (an ended union too: affinity outlives death).
+  const spousesOf = (st, id) => index(st).spouses.get(id) || [];
   const wasWidowed = (st, id) => index(st).widowed.has(id);
   const holdingOf = (st, id) => {
     for (const k of index(st).holds.get(id) || []) {
@@ -798,6 +810,7 @@ VB['sim/records'] = (() => {
     noteUnionEnd,
     unionOf,
     wasWidowed,
+    spousesOf,
     index,
     practice,
     farmPractice,

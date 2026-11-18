@@ -242,11 +242,13 @@ VB['sim/stores'] = (() => {
   }
   // Takes up to n of a good and says how much it got. Grain: 'grain/<crop>' from its crop, 'grain' from each crop in proportion to what is
   // held of it; `into`, when given, has the amounts by crop added (a pawn's stake gives STAKE_CROP).
-  function take(st, holder, good, n, why, into) {
+  // `how` (a take of 'grain' only, VB-352): 'seedFirst' gives a field's seed of each crop above its reservation before the rest (a start in
+  // life, settlers' provisions); 'seedLast' eats reserved seed the crop with most of it first, the last field's seed of each crop last of all.
+  function take(st, holder, good, n, why, into, how) {
     amount(n);
     const kind = type(holder),
       k = field(holder, good, kind);
-    if (k === GRAIN) return takeGrain(st, holder, good, n, why, into, kind, false);
+    if (k === GRAIN) return takeGrain(st, holder, good, n, why, into, kind, false, undefined, how);
     const before = holder[k] || 0,
       got = Math.min(before, n);
     record(st, holder, good, -got, why, kind);
@@ -264,7 +266,7 @@ VB['sim/stores'] = (() => {
     if (type(hh) !== 'household') throw new Error("stores: spare grain is a household's");
     return takeGrain(st, hh, GRAIN, n, why, into, 'household', true, skip);
   }
-  function takeGrain(st, holder, good, n, why, into, kind, spare, skip) {
+  function takeGrain(st, holder, good, n, why, into, kind, spare, skip, how) {
     const before = grainOf(holder);
     let got;
     if (good !== GRAIN) {
@@ -275,7 +277,9 @@ VB['sim/stores'] = (() => {
       if (into) into[c] = (into[c] || 0) + got;
     } else {
       got = Math.min(before - (skip ? holder.grain[skip] || 0 : 0), n);
-      split(st, holder, got, spare, into, skip);
+      if (how === 'seedFirst') seedFirst(st, holder, got, into);
+      else if (how === 'seedLast') seedLast(holder, got, into);
+      else split(st, holder, got, spare, into, skip);
     }
     record(st, holder, good, -got, why, kind);
     crossed(st, holder, kind, before);
@@ -315,6 +319,33 @@ VB['sim/stores'] = (() => {
       left -= takeCrop(holder, CROP_LIST[i], Math.min(holder.grain[CROP_LIST[i]] || 0, left), into);
     }
   }
+  // A field's seed of each crop held above its reservation, in the order of CROP_LIST, up to n; the rest by the crops' weights.
+  function seedFirst(st, holder, n, into) {
+    let left = n;
+    for (const c of CROP_LIST) {
+      const x = holder.grain[c] || 0;
+      if (left > 0 && x > 0)
+        left -= takeCrop(
+          holder,
+          c,
+          Math.min(left, CROPS[c].seed, Math.max(0, x - reserved(st, holder, CROP_GOOD[c]))),
+          into,
+        );
+    }
+    if (left > 0) split(st, holder, left, false, into);
+  }
+  // Seed eaten in hunger: first what each crop holds above its last field's seed, the crop with most of it first, then the last fields' seed,
+  // the crop with most first.
+  function seedLast(holder, n, into) {
+    let left = n;
+    for (const keep of [true, false]) {
+      const order = CROP_LIST.filter((c) => holder.grain[c] > 0).sort(
+        (a, b) => over(holder, b, keep) - over(holder, a, keep) || (a < b ? -1 : 1),
+      );
+      for (const c of order) if (left > 0) left -= takeCrop(holder, c, Math.min(left, over(holder, c, keep)), into);
+    }
+  }
+  const over = (holder, c, keep) => (holder.grain[c] || 0) - (keep ? Math.min(holder.grain[c] || 0, CROPS[c].seed) : 0);
   function takeCrop(holder, c, k, into) {
     if (k > 0) {
       setGrain(holder, c, holder.grain[c] - k);

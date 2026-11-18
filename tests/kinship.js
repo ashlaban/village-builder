@@ -14,7 +14,7 @@ check(D(0, 5) === 0 && D(5, 0) === 0 && D(9, 0) === 0, 'a direct line is degree 
 const opts = C.DIMS[C.IDX.kinLimit].opts.map((o) => o[0]);
 check(opts.join() === 'second,first,close,uncle', 'kinLimit options are second, first, close, uncle');
 for (const o of opts) {
-  const cu = { kinLimit: o }, ok = (a, b) => VB['sim/matching'].kinOk(st, a, b, cu);
+  const cu = { kinLimit: o, affinity: 'free' }, ok = (a, b) => VB['sim/matching'].kinOk(st, a, b, cu);
   check(!ok(2, 3) && !ok(2, 11) && !ok(0, 5) && !ok(5, 0), `${o}: siblings, half-siblings and direct lines never marry`);
   check(ok(3, 5) === (rules.MARRIAGE.kinDegree[o] <= 3), `${o}: uncle-niece`); check(ok(5, 7) === (rules.MARRIAGE.kinDegree[o] <= 4), `${o}: first cousins`);
   check(ok(8, 7) === (rules.MARRIAGE.kinDegree[o] <= 5), `${o}: first cousins once removed`); check(ok(13, 5), `${o}: unrelated`);
@@ -67,5 +67,17 @@ const none = drift(null), loose = drift({ to: 'uncle', w: rules.MARRIAGE.scarceP
 const noneS = drift(null, 'second'), strict = drift({ to: 'second', w: rules.MARRIAGE.plentyPush }, 'second');
 console.log('mean support for uncle', none.toFixed(3), '->', loose.toFixed(3), '| for second', noneS.toFixed(3), '->', strict.toFixed(3));
 check(loose > none * 1.1, 'scarcity pull raises support for the looser option'); check(strict > noneS, 'plenty pull raises support for the stricter option');
+// Affinity (VB-1107): a widow (1) and her late husband's (0) son (2) by an earlier wife (3); the widow's daughter (5) by another husband (6)
+{
+  const mp = (id, father, mother) => ({ id, father, mother, born: id }), M = VB['sim/matching'];
+  const s2 = { t: 100, households: [], farmsteads: [], pawns: [mp(0, null, null), mp(1, null, null), mp(2, 0, 3), mp(3, null, null), mp(4, null, null), mp(5, 6, 1), mp(6, null, null), mp(7, 4, null)],
+    unions: [{ id: 0, a: 0, b: 1, start: 10, end: 50 }, { id: 1, a: 6, b: 1, start: 0, end: 5 }] };
+  const ok = (a, b, o) => M.kinOk(s2, a, b, { kinLimit: 'uncle', affinity: o });
+  check(C.DIMS[C.IDX.affinity].opts.map((o) => o[0]).join() === 'fourth,line,free', 'affinity options');
+  for (const o of ['fourth', 'line']) check(!ok(1, 2, o) && !ok(2, 1, o), `${o}: a widow and her late husband's son are not matched`);
+  check(ok(1, 2, 'free') && ok(2, 1, 'free'), 'free: they are');
+  for (const o of ['fourth', 'line', 'free']) check(ok(2, 5, o), `${o}: step-siblings marry`);
+  check(M.kinOk(s2, 1, 2, { kinLimit: 'uncle' }) === false, 'the default is the direct line');
+}
 if (failed) process.exit(1);
 console.log('kinship ok');

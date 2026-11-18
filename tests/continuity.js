@@ -25,3 +25,11 @@ for (const k of ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn', 
   assert.strictEqual(canon(a.w[k]), canon(loaded.w[k]), `continued world ${k}`);
 assert.deepStrictEqual(checkState(loaded), [], 'loaded continuation invariants');
 console.log('continuity: repeatability, daily invariants and JSON save/load continuation pass');
+// VB-1191: a plot given up leaves a gap in a village's numbers, which is no fault; a number used twice is
+{
+  const s = state(), v = s.villages[0];
+  v.plots.push({ id: 0, village: v.id, farmstead: 0, tiles: [] }, { id: 2, village: v.id, farmstead: 0, tiles: [] });
+  assert(!checkState(s).some((m) => /plots numbered/.test(m)), 'a gap in plot numbers is allowed');
+  v.plots.push({ id: 2, village: v.id, farmstead: 0, tiles: [] });
+  assert(checkState(s).some((m) => /plots numbered/.test(m)), 'a number twice is caught');
+}

@@ -42,6 +42,10 @@ VB['sim/hunger'] = (() => {
         if (k === 'barley') barley++;
         else other += CROPS[k].seed;
       }
+    const keeps = village ? null : st.farmsteads[hh.farmstead].keeps; // crops the farm holds a field's seed of, not sown (VB-353)
+    if (keeps)
+      for (const k of keeps)
+        if ((crop === undefined || k === crop) && !(R && R.includes(k)) && !kept(fields, k)) other += CROPS[k].seed;
     return (barley ? barley * (village ? CROPS.barley.seed : seedPer(st, hh)) : 0) + other;
   }
   // Does a field bear crop k now, or sow it next?
@@ -366,7 +370,7 @@ VB['sim/hunger'] = (() => {
   // The seed a meal eats (VB-282): taken through the stores with its own reason, and the fields it leaves unsown told once a season at most
   // (sim/pot, which the cook's seed tells too, VB-388).
   function eatSeed(st, hh, n) {
-    Stores.take(st, hh, 'grain', n, 'seedMeal'); // of each crop as it is held (VB-352 orders it)
+    Stores.take(st, hh, 'grain', n, 'seedMeal', undefined, 'seedLast'); // the crop with most seed first, each crop's last field last (VB-352)
     Pot.seedTold(st, hh);
   }
   // Health after the meal: hunger drains it, and the day's cold in the house (VB-327), both faster for the very young and the old; a full meal

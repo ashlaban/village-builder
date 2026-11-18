@@ -5,7 +5,7 @@ VB['sim/meetings'] = (() => {
   const Culture = VB['culture'];
   const { landMeeting } = VB['sim/territory'];
   const { YEAR_DAYS, YEAR, cal } = VB['sim/rules'];
-  const { personEvent, log, membersOf, voiceOf, settlementIdOf } = VB['sim/records'];
+  const { personEvent, log, membersOf, voiceOf, settlementIdOf, fullName } = VB['sim/records'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { refreshRoles } = VB['sim/heirs'];
   const { updateTie, refreshStanding, refreshInterests, hooks } = VB['sim/society'];
@@ -75,6 +75,7 @@ VB['sim/meetings'] = (() => {
         { reason: 'natural', village: settlementIdOf(st, p) },
       );
     }
+    for (const p of starters.lapsed) causeEnded(st, p);
     if (!s) return;
     const out = [];
     const ch = Culture.meeting(env, { ...hk, membersOf: (x) => (x === s ? people : membersOf(st, x.id)) }, s);
@@ -83,6 +84,14 @@ VB['sim/meetings'] = (() => {
         txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”).`;
       log(st, txt, { kind: 'custom', village: s.id });
       out.push({ year: c.year, text: txt });
+      // the causes of its people whose option has become the practice
+      for (const p of people) {
+        const a = p.advocate;
+        if (!a || a.won || a.dim !== x.dim || a.opt !== x.to) continue;
+        a.won = true;
+        Culture.endCause(env, hk, p, a, 'won');
+        causeEnded(st, p);
+      }
     }
     // its meeting on its green today (sim/occasions)
     const held = st.occasions.find(
@@ -93,6 +102,25 @@ VB['sim/meetings'] = (() => {
     if (people.length) chooseGathering(st, s, quorumAt(st, s, held, people), people); // VB-294: its choice of gathering
 
     toMeetingLog(st, out);
+  }
+  // A cause's end (VB-1112), told in the pawn's record with the last vote its village's meeting gave it (p.lastCause, Culture.endCause).
+  const pct = (x) => `${Math.round(x * 100)}%`;
+  function causeEnded(st, p) {
+    const lc = p.lastCause,
+      d = Culture.DIMS[lc.dim],
+      years = Math.max(0, Math.round(lc.end - lc.since)),
+      name = `${fullName(p)}'s cause, ${d.label.toLowerCase()}: ${d.opts[lc.opt][1].toLowerCase()}`,
+      head =
+        lc.how === 'won'
+          ? `${name}, has won: it is now the practice, after ${years} ${years === 1 ? 'year' : 'years'}`
+          : `${name}, has lapsed after ${years} ${years === 1 ? 'year' : 'years'}`;
+    const tail =
+      lc.sup === null
+        ? ''
+        : lc.how === 'won'
+          ? `; at the last meeting it had ${pct(lc.sup)} against ${pct(lc.vs)} for ${d.opts[lc.vsOpt][1].toLowerCase()}`
+          : `; at the last meeting it had ${pct(lc.sup)} against ${pct(lc.vs)} for ${d.opts[lc.vsOpt][1].toLowerCase()}, and needed ${pct(lc.need)}`;
+    personEvent(st, p.id, 'cause', `${head}${tail}.`, { reason: lc.how, village: settlementIdOf(st, p) });
   }
   function toMeetingLog(st, lines) {
     st.meetingLog.unshift(...lines);

@@ -842,7 +842,7 @@ function checkState(st) {
   }
   for (const v of st.villages) {
     if (v.green && onRiver(v.center)) bad.push(`villages[${v.id}]: green on river tile ${v.center}`);
-    // plots built (village.plots) and under way (the village's project plans, VB-123): numbered 0, 1, ... in the village; the timber at the
+    // plots built (village.plots) and under way (the village's project plans, VB-123): numbered in the village, none twice; the timber at the
     // site within range (VB-328); a built one's farmstead exists
     const projects = st.plans && st.plans.projects ? st.plans.projects.village.get(v.id) || [] : [],
       // as sim/expansion's livePlots: the village's own plans and its households' plots for their heirs (VB-255, VB-959)
@@ -877,7 +877,8 @@ function checkState(st) {
       for (const [id, h] of Object.entries(wd.hoursOf)) if (!st.pawns[id] || !within(h, 0, 12.5)) bad.push(`villages[${v.id}]: work day hours ${id}: ${h}`);
     }
     const nums = [...(v.plots || []).map((pl) => pl.id), ...live.map((pl) => pl.plot)].sort((a, b) => a - b);
-    if (!nums.every((n, i) => n === i)) bad.push(`villages[${v.id}]: plots numbered ${nums}`);
+    // a plot given up leaves a gap (sim/expansion plotNumber numbers one past the highest): numbers are distinct, not contiguous
+    if (!nums.every((n, i) => Number.isInteger(n) && n >= 0 && (i === 0 || n !== nums[i - 1]))) bad.push(`villages[${v.id}]: plots numbered ${nums}`);
     for (const pl of live) {
       if (pl.what !== 'plot' || pl.steps.length !== 4 || !pl.steps[0].places ||
         !within(pl.steps[2].wood, -1e5, 1e5)) bad.push(`villages[${v.id}]: plot ${pl.plot} shape`);
@@ -1394,8 +1395,12 @@ function checkHerds(st, bad) {
     if (fd.turn !== undefined && fd.turn !== true) bad.push(`${at}: turn ${fd.turn}`);
   };
   for (const f of st.farmsteads) for (const fd of f.fields) rotOk(fd, `farmsteads[${f.id}].fields[${fd.id}]`, f.fields[0].rotation);
-  for (const f of st.farmsteads) // VB-355: the household whose head chose the farm's rotation to keep
+  for (const f of st.farmsteads) {
+    // VB-355: the household whose head chose the farm's rotation to keep; VB-353: the farm's first rotation, the crops it keeps seed of
+    if (f.firstRotation !== undefined && !LOADED['sim/rules'].ROTATIONS[f.firstRotation]) bad.push(`farmsteads[${f.id}]: firstRotation ${f.firstRotation}`);
+    if (f.keeps !== undefined && !(Array.isArray(f.keeps) && f.keeps.every((k) => LOADED['sim/stores'].CROP_LIST.includes(k)))) bad.push(`farmsteads[${f.id}]: keeps ${f.keeps}`);
     if (f.rotationBy !== undefined && !(Number.isInteger(f.rotationBy) && st.households[f.rotationBy])) bad.push(`farmsteads[${f.id}]: rotationBy ${f.rotationBy}`);
+  }
   for (const v of st.villages) {
     if (!ROTATIONS[v.rotation]) bad.push(`villages[${v.id}]: rotation ${v.rotation}`);
     for (const fd of v.commonFields || []) rotOk(fd, `villages[${v.id}].commonFields[${fd.id}]`, 'every');

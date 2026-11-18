@@ -14,6 +14,9 @@ const roleLine = (p) => {
   // the Swedish word is left out where it reads as an English one: a child's 'barn' beside the barn a farm may build (VB-664)
   return r.sv === 'barn' ? r.title : `${r.title} (${r.sv})`;
 };
+// One rule for how a person's place is labelled wherever they are listed: the role where there is one, "a child" only for the role the
+// simulation gives a small child ('child'); whether that person may be played is the page's play rule, never read from this label.
+const placeLine = (p) => `${p.age}, ${p.role === 'child' ? 'a child' : roleLine(p)}`;
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
 const farmOf = (p) =>
