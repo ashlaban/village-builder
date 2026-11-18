@@ -148,9 +148,27 @@ const woodStat = (hh) => ({
 });
 // What the card's first tab says of the household at a glance: its supplies, as the Stores tab shows them (VB-667), and what is wrong
 // today.
+const NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+// The head's estimate of the harvest before the frost (principle 14: whose reckoning it is is said), once a crop is ripe.
+const harvestStat = (hh) => {
+  const e = Sim.harvestEstimate(st, hh);
+  if (!e) return null;
+  const need = e.days === Infinity ? 'more days than there are' : `about ${e.days} ${e.days === 1 ? 'day' : 'days'}`,
+    hands = `${e.hands} ${e.hands === 1 ? 'hand' : 'hands'}`,
+    n = NUM[e.fields] || e.fields,
+    left = e.left <= 0 ? 'tomorrow' : `in about ${e.left} ${e.left === 1 ? 'day' : 'days'}`;
+  return {
+    icon: 'field',
+    label: 'Harvest',
+    value: `${n} ${e.fields === 1 ? 'field' : 'fields'} standing; frost ${left}`,
+    tone: e.late ? 'bad' : '',
+    title: `The head's reckoning: ${hands} need ${need} to reap them; ${e.late ? 'the frost may take some' : 'it should be in time'}`,
+  };
+};
 const houseStats = (hh) =>
   suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
   stats([
+    harvestStat(hh),
     hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
     hh.dry > 0
       ? { icon: 'water', label: 'Water', value: 'none', tone: 'bad', title: 'No water: nothing is cooked' }

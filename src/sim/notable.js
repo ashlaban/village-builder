@@ -58,7 +58,7 @@ VB['sim/notable'] = (() => {
   // A pawn's line: itself, its forebears and its descendants, this many generations up and down.
   const GENERATIONS = 4;
   const HUNGER = new Set(['hunger', 'starvation']);
-  const FARM = new Set(['empty', 'claim', 'cottage', 'left']);
+  const FARM = new Set(['empty', 'claim', 'cottage', 'left', 'frost']);
   const CUSTOM = new Set(['custom', 'split']);
   const inLine = (st, a, b) =>
     a === b || ancestorsOf(st, [a], GENERATIONS).has(b) || ancestorsOf(st, [b], GENERATIONS).has(a);
