@@ -38,7 +38,8 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
 A sub-agent of an orchestrated run (`docs/agents/worker.md`) follows `.claude/agents/vb-task.md`, which replaces what steps 3, 6 and 7
-write to shared files: it leaves notes in the inbox, and the orchestrator writes the backlog, the questions and the PR.
+write to shared files: it leaves notes in the inbox, and the orchestrator writes the backlog, the questions and the PR. It has a
+ceiling of 120 model calls (Kim, 18 November; `node tools/inbox.js calls`): at the ceiling it hands over, and a fresh sub-agent goes on.
 
 ## Deciding without Kim (Kim, 12, 14, 15 and 16 November)
 A question goes to Kim only if it moves a Decided point of `design.md`, or lets the player do something no existing system covers.
@@ -143,7 +144,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 `tools/help.js`). The full reference, with each tool's cadence, fixtures and measures, is `docs/commands.md`: grep it for a name.
 - A task's brief: `node tools/brief.js ID`. Backlog: `node tools/backlog.js next|list|show ID [--brief]`; `done`, `set`, `new`,
   `close-arch`, `sync` change it.
-- Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|result` (a sub-agent), `init|status|apply|report|results`.
+- Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|calls|result` (a sub-agent), `init|status|apply|report|results`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Format: `npm run format` after editing `src/` (Prettier). `index.html` is derived and not in the repository (VB-450): never commit it. The
   page's tests and tools build their own copy, and the Pages workflow builds the site's; `node build.js` writes one to open by hand.

@@ -34,6 +34,10 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
      `node tools/inbox.js result VB-NNN status=needs-review summary=<the reason>`. Never retry a task in the same night, and never
      fix it yourself.
    - It reported `failed`, or left no result (`node tools/inbox.js status`): the same, without merging.
+   - It reported `continue` (Kim, 18 November: a sub-agent has a ceiling of 120 model calls, since every call re-reads its context):
+     do not merge. Start a fresh `vb-task` sub-agent on the same model, with the prompt "Task VB-NNN, continued from `<its branch>` at
+     <commit>; the run's branch is ...; your reserved task IDs are <the same IDs>; the handover: <its last message>". This is the one
+     case a task is started again in a night; the inbox allows it twice a task, and the third sub-agent ends with `needs-review`.
    - It reported `needs-review` with a commit (work not built, or a question; Kim, 15 November): merge it as any other, since the hard
      checks decide a merge; the task stays open, under Waiting for Kim, and what is unmet goes under "For Kim" in the PR. A measure
      not taken is not this case (Kim, 16 November): that task is done, and you add what it owes to the collecting task its note names.

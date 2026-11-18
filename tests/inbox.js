@@ -97,6 +97,25 @@ r = run('', 'report');
 expect('report: the PR section', r.ok && r.out.startsWith('## For Kim') && r.out.includes('- Animals are led, never carried')
   && r.out.includes('hay jumps') && r.out.includes(`- ${N} Herds are led`), r.out);
 
+// the ceiling: calls are counted from the sub-agent's transcript, a model call a message id; a task is continued at most twice
+const sub = path.join(dir, 'config', 'projects', 'p', 's', 'subagents'); fs.mkdirSync(sub, { recursive: true });
+const entry = (i) => JSON.stringify({ type: 'assistant', message: { id: 'msg_' + i } });
+const calls = (n) => { fs.writeFileSync(path.join(sub, 'agent-abc123.jsonl'), [...Array(n).keys()].flatMap((i) => [entry(i), entry(i), '{"type":"user"}']).join('\n'));
+  const c = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), 'calls', 'abc123'], { encoding: 'utf8', env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(dir, 'config') } });
+  return c.stdout + c.stderr; };
+expect('calls: counted by message id', calls(40).trim() === '40 of 120 calls', calls(40));
+expect('calls: a warning near the ceiling', /^110 of 120 calls: 10 left/.test(calls(110)), calls(110));
+expect('calls: at the ceiling, hand over', /^125 of 120 calls: the ceiling is reached. Hand over now/.test(calls(125)), calls(125));
+r = run('', 'result', B, 'status=continue');
+expect('a continuation needs its commit', !r.ok && /commit=SHA/.test(r.out), r.out);
+r = run('', 'result', B, 'status=continue', 'commit=aaa1111', 'summary=half built');
+expect('a continuation, the first of two', r.ok && r.out.includes('continue (1 of 2)'), r.out);
+r = run('', 'apply');
+expect('a continued task is not applied', r.ok && /applied 0/.test(r.out), r.out);
+run('', 'result', B, 'status=continue', 'commit=aaa2222');
+r = run('', 'result', B, 'status=continue', 'commit=aaa3333');
+expect('no third continuation', !r.ok && /needs-review/.test(r.out), r.out);
+
 fs.rmSync(dir, { recursive: true, force: true });
 if (errors.length) { console.error('INBOX FAIL\n  ' + errors.join('\n  ')); process.exit(1); }
 console.log('inbox: reserved IDs, claims, notes by kind, apply once and the report on a copy of the backlog');

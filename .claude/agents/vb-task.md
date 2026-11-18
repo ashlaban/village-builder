@@ -38,10 +38,20 @@ The orchestrator writes those once, from your notes.
 7. To finish: `git merge` the run's branch again, run the checks `AGENTS.md` asks for on the result, and commit as `VB-NNN: <title>`
    on your worktree's branch. Do not push, and never leave uncommitted work, whatever the outcome. Then
    `node tools/inbox.js result ID status=done|needs-review|failed commit=SHA size=S|M|L summary=...`.
-8. Screenshots are never committed (Kim, 18 November): take one only to check your own work, and save it outside the repository.
+8. The ceiling: you have 120 model calls (Kim, 18 November: every call re-reads your whole context, so a long task goes on in a fresh
+   sub-agent). `node tools/inbox.js calls` prints your count from your transcript: run it in the same call as each `npm test`
+   (`npm test; node tools/inbox.js calls`). When it says to hand over, or you see that what is left will not fit, stop building:
+   merge the run's branch, commit what you have as `VB-NNN: <title> (work in progress)`, with `npm test` passing or the failing script
+   named, tick the criteria met, and `node tools/inbox.js result ID status=continue commit=SHA summary=...`. Your last message is then
+   `VB-NNN <title>: continue <commit> on <branch>` and the handover: what is built, what is left by criterion, where to start (file
+   and function), and what cost you calls to find out. A task is continued at most twice: after that the tool refuses, and you end
+   with `needs-review`. If your prompt says you continue a task, merge the branch it names as well as the run's, and start from the
+   handover: do not read again what it already tells you.
+9. Screenshots are never committed (Kim, 18 November): take one only to check your own work, and save it outside the repository.
 
 Your last message is all your caller sees, so make it the result and nothing else, in at most twelve lines:
-- `VB-NNN <title>: done <commit> on <branch>`, or `needs-review <commit> on <branch>: <the criteria unmet, or the question>`, or `failed: <what, and the state of the worktree>`;
+- `VB-NNN <title>: done <commit> on <branch>`, or `needs-review <commit> on <branch>: <the criteria unmet, or the question>`, or `failed: <what, and the state of the worktree>`
+  (or `continue`, with the handover: step 8);
 - counters changed; numbers before and after only where a criterion of the task names them (the night measures the rest, once);
   for a refactor, each change of behaviour in a line, or the line of `tools/same.js`;
 - the notes you left, by kind and count; the inbox holds their text.
