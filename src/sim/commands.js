@@ -16,6 +16,7 @@ VB['sim/commands'] = (() => {
   } = VB['sim/agents'];
   const { isOpen } = VB['sim/kinds'];
   const { emit } = VB['sim/events'];
+  const { atLoad } = VB['sim/registry'];
   const { eligible } = VB['sim/eligibility'];
   const Culture = VB['culture'];
   const { holdingOf, membersOf, voiceOf, spouseOf, personEvent, childrenOf, setServant, log, fullName, atHousehold } =
@@ -122,7 +123,17 @@ VB['sim/commands'] = (() => {
       ? later('sim/fields').pickField(st, st.farmsteads[hh.farmstead], hh)
       : later('sim/meadows').pickMeadow(st, st.farmsteads[hh.farmstead], hh);
   }
-  const VERBS = {
+  // Code, never saved state: verb -> {check, run}. A module registers its verbs at load, as it does rules (target-v2 3.2); closed with the
+  // registries, at the first seed or load. A verb is registered once.
+  const VERBS = {};
+  function register(verb, V) {
+    atLoad();
+    if (VERBS[verb]) throw new Error('Duplicate verb: ' + verb);
+    if (!V || typeof V.check !== 'function' || typeof V.run !== 'function')
+      throw new Error(`Verb ${verb} needs a check and a run`);
+    VERBS[verb] = V;
+  }
+  const HERE = {
     // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
     work: {
       check: (st, c) =>
@@ -702,6 +713,7 @@ VB['sim/commands'] = (() => {
       run: (st, c) => later('sim/clock').advance(st, c.args.hours),
     },
   };
+  for (const [verb, V] of Object.entries(HERE)) register(verb, V);
   // Carries out cmd, or changes nothing: true, or the reason it was refused.
   function issue(st, cmd) {
     const V = VERBS[cmd.verb];
@@ -901,6 +913,7 @@ VB['sim/commands'] = (() => {
   }
   return {
     issue,
+    register,
     VERBS,
     head,
     QUEUE_MAX,

@@ -379,3 +379,16 @@ console.log('commands ok: offer and answer (VB-690): a gift and an ask settle at
 }
 console.log('commands ok: move (VB-822): each refusal changes nothing; each reason moves, on the record; the minors follow; service makes a servant');
 
+// VB-228: verbs are registered at load, once each, and the table closes with the registries (a state has been seeded above)
+{
+  const { register, VERBS } = VB['sim/commands'], V = { check: () => null, run: () => {} };
+  assert.throws(() => register('work', V), /Rules may only be registered at load time/, 'sealed after the first seed');
+  assert.ok(Object.values(VERBS).every((x) => typeof x.check === 'function' && typeof x.run === 'function'), 'every verb has a check and a run');
+  const fresh = require('child_process').spawnSync(process.execPath, ['-e', `
+    const { register } = require('./src/load.js')['sim/commands'], V = { check: () => null, run: () => {} };
+    let dup = '', bad = '';
+    try { register('work', V); } catch (e) { dup = e.message; }
+    try { register('noRun', { check: () => null }); } catch (e) { bad = e.message; }
+    console.log(dup + '|' + bad);`], { cwd: path.join(__dirname, '..'), encoding: 'utf8' });
+  assert.strictEqual(fresh.stdout.trim(), 'Duplicate verb: work|Verb noRun needs a check and a run', fresh.stderr);
+}
