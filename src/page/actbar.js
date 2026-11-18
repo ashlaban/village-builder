@@ -128,6 +128,17 @@ function menuHTML(id, opps) {
         o.why,
       );
     }
+    // a winter's visit (VB-292): its own, or that of a son or daughter of the house it speaks for; planned at once, set out in winter
+    for (const o of by.self.filter((x) => x.verb === 'visit')) {
+      const v = o.visit;
+      h += actRow(
+        `data-play="visit" data-who="${v.who}" data-village="${o.target}"`,
+        'walk',
+        v.name ? `Send ${v.name} to visit ${v.place}` : `Visit ${v.place}`,
+        `${v.days} days away on ${+v.rations.toFixed(1)} rations of the farm's grain; sets out in winter`,
+        o.why,
+      );
+    }
     if (by.offers.length)
       h += actRow(
         'data-bar="sheet"',
@@ -222,6 +233,7 @@ $('actMenu').addEventListener('click', (e) => {
     const r = playClick(b);
     if (r !== true) barMsg = { text: r, bad: true };
     else if (b.dataset.play === 'do') barMsg = { text: `Queued: ${commandWords(JSON.parse(b.dataset.cmd))}.` };
+    else if (b.dataset.play === 'visit') barMsg = { text: 'The visit is planned: it sets out in winter.' };
   } else if (act === 'close') {
     const g = barMenu.g;
     closeBarMenu();
