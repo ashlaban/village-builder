@@ -67,10 +67,11 @@ function labelAt(x, y) {
 }
 
 // ---- links and rows ----
-// a pawn's chip may say what it is to the card's subject: its holder (a house) or an heir in line (a key)
+// a pawn's chip may say what it is to the card's subject: its holder (a house) or an heir in line (a key); `of` is the pawn whose card it is on, and the
+// chip's portrait then carries what the two are to each other (VB-1026)
 const CHIP_AS = { holder: 'Holds the farm', heir: 'Heir, in the order shown' };
-const pawnChip = (id, as = '') =>
-  `<button type="button" class="chip${as ? ' as' : ''}" data-pawn="${id}"${as ? ` title="${CHIP_AS[as]}"` : ''}>${faceImg(id, 'mini')}${esc(
+const pawnChip = (id, as = '', of = -1) =>
+  `<button type="button" class="chip${as ? ' as' : ''}" data-pawn="${id}"${as ? ` title="${CHIP_AS[as]}"` : ''}>${faceImg(id, 'mini', of)}${esc(
     Sim.fullName(st.pawns[id]),
   )}${as ? goodIcon(as) : ''}</button>`;
 const farmChip = (f) =>

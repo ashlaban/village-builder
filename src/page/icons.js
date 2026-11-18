@@ -299,6 +299,25 @@ const TRAIT_PATHS = {
   wits: '<path d="M9 18h6M10 21h4M8.5 15C6.5 13.5 6 11.5 6 10a6 6 0 0 1 12 0c0 1.5-.5 3.5-2.5 5z"/>',
 };
 const traitIcon = (k) => svgIcon(24, 24, TRAIT_PATHS[k], ICON_STROKE);
+// The bonds (VB-1026): what one person is to another, one icon each. The five kin bonds the simulation names (sim/relations, standing):
+// two rings; an elder with a staff; a swaddled child; two of one branch; two under one roof. The four opinion bands (opinionWord): a
+// heart, filled for a close friend; a heart struck through; two crossed blades.
+const HEART = 'M12 20c-5-3.5-8-6.5-8-10a4.2 4.2 0 0 1 8-1.8A4.2 4.2 0 0 1 20 10c0 3.5-3 6.5-8 10z';
+const BOND_PATHS = {
+  spouse: GOOD_PATHS.married,
+  parent: '<circle cx="10" cy="6.5" r="3.2"/><path d="M4 21c0-5 2.5-9 6-9s6 4 6 9M19.5 9v12M17.5 9.5c0-2 4-2 4 0"/>',
+  child: GOOD_PATHS.child,
+  sibling:
+    '<path d="M7 9V5h10v4M12 5V2.5"/><circle cx="7" cy="12" r="2.6"/><circle cx="17" cy="12" r="2.6"/>' +
+    '<path d="M3 21c0-3 1.7-4.5 4-4.5s4 1.5 4 4.5M13 21c0-3 1.7-4.5 4-4.5s4 1.5 4 4.5"/>',
+  housemate:
+    '<path d="M3 11l9-7.5 9 7.5M5.5 9.5V20h13V9.5"/><circle cx="9.5" cy="15" r="1.6"/><circle cx="14.5" cy="15" r="1.6"/>',
+  friend: `<path d="${HEART}"/>`,
+  'close friend': `<path d="${HEART}" fill="currentColor"/>`,
+  dislikes: `<path d="${HEART}M4 4l16 16"/>`,
+  enemy: '<path d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5M17 17l3 3M7 17l-3 3"/>',
+};
+const bondIcon = (k) => svgIcon(24, 24, BOND_PATHS[k], ICON_STROKE);
 for (const k of ['me', 'home', 'village', 'queue']) ICON['act-' + k] = actIcon(k);
 // A button marked data-icon="name" takes that icon before its content (a dock button keeps its label under it).
 for (const b of document.querySelectorAll('[data-icon]')) b.insertAdjacentHTML('afterbegin', ICON[b.dataset.icon]);

@@ -98,9 +98,33 @@ function faceOf(id) {
   e.day = day;
   return e.url;
 }
-const faceImg = (id, cls = 'face') => {
+// What pawn id is to pawn `of` (VB-1026), as the simulation has it: the kin bond, in id's own word (wife, father), and of's opinion of
+// id where it is not neutral (the living only: the dead hold and are held in no opinion). [{k (a key of BOND_PATHS), word, tone}].
+function bondsOf(of, id) {
+  const out = [],
+    kin = Sim.standing(st, of, id);
+  if (kin) out.push({ k: kin, word: Sim.standingWord(st, of, id), tone: '', at: 'kin' });
+  if (st.pawns[of].died === null && st.pawns[id].died === null) {
+    const word = Sim.opinionWord(Sim.opinionOf(st, of, id));
+    if (word !== 'neutral') out.push({ k: word, word, tone: word.includes('friend') ? 'good' : 'bad', at: 'op' });
+  }
+  return out;
+}
+// A portrait; with `of`, the portrait as that pawn sees it: the bonds as badges on its right corners, kin below and opinion above, each icon
+// the same wherever a bond is shown and the word its label.
+const faceImg = (id, cls = 'face', of = -1) => {
   const url = faceOf(id);
-  return url ? `<img class="${cls}${st.pawns[id].died !== null ? ' gone' : ''}" src="${url}" alt="">` : '';
+  if (!url) return '';
+  const img = `<img class="${cls}${st.pawns[id].died !== null ? ' gone' : ''}" src="${url}" alt="">`,
+    bonds = of >= 0 && of !== id ? bondsOf(of, id) : [];
+  if (!bonds.length) return img;
+  const badges = bonds
+    .map(
+      (b) =>
+        `<i class="bond ${b.at}${b.tone ? ' ' + b.tone : ''}" role="img" aria-label="${b.word}" title="${b.word}">${bondIcon(b.k)}</i>`,
+    )
+    .join('');
+  return `<span class="bonded ${cls.split(' ')[0]}">${img}${badges}</span>`;
 };
 function icon(key, draw) {
   if (!iconCache.has(key)) {

@@ -250,7 +250,7 @@ function showPawn(id) {
     {
       badge: faceImg(id, 'badge'),
       stats: pawnStats(id) + traitsHTML(id),
-      links: (sp !== null ? pawnChip(sp) : '') + farmChip(f) + villageChip(v),
+      links: (sp !== null ? pawnChip(sp, '', id) : '') + farmChip(f) + villageChip(v),
     },
   );
   showRelations(id);
@@ -311,6 +311,7 @@ function showRelations(id) {
       return `<button type="button" class="op" data-pawn="${x.id}">${faceImg(
         x.id,
         'mini',
+        id,
       )}${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i>${meter({
         value: x.opinion * 100,
         signed: true,
