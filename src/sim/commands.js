@@ -225,11 +225,7 @@ VB['sim/commands'] = (() => {
     haltForTalk: {
       check: (st, c) =>
         living(st, c.actor) ||
-        (!(c.args && c.args.until >= st.t)
-          ? `talk until ${c.args && c.args.until}, which is past`
-          : commanded(st, c.actor)
-            ? `pawn ${c.actor} is on the player's command`
-            : null),
+        (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past` : null),
       run: (st, c) => haltForTalk(st, st.agents[c.actor], c.args.until),
     },
     // attend(occasion): set out for the occasion with id `target` (sim/occasions; source 'occasion'), leaving the work in hand, walk to a spot
