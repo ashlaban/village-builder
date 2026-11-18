@@ -58,7 +58,7 @@ VB['sim/notable'] = (() => {
   // A pawn's line: itself, its forebears and its descendants, this many generations up and down.
   const GENERATIONS = 4;
   const HUNGER = new Set(['hunger', 'starvation']);
-  const FARM = new Set(['empty', 'claim', 'cottage', 'left']);
+  const FARM = new Set(['empty', 'claim', 'cottage', 'left', 'frost']);
   const CUSTOM = new Set(['custom', 'split']);
   const inLine = (st, a, b) =>
     a === b || ancestorsOf(st, [a], GENERATIONS).has(b) || ancestorsOf(st, [b], GENERATIONS).has(a);
@@ -205,7 +205,62 @@ VB['sim/notable'] = (() => {
   // to it, a farm taken over from it). A farm's or village's leaves out the personal events, but a farm's tells who left it and who
   // came to it (moveLine); an `empty` event's note says how long the
   // farm stood empty. One pass over the record, on demand (the page keeps the result until the record grows): no step calls this.
-  function chronicle(st, q, group = null) {
+  // The routine kinds a history folds, one line a kind and year (VB-1102), with the line's words from the events it holds (n: their count,
+  // `sum`: the total of their `n`, places: the farms, oldest first). Each is routine because it repeats through the year without one
+  // of them deciding anything: help is a day's work among neighbours, frost and a hard winter take a crop or a beast a time, the spring's
+  // births and the harvest come once a farm. Births, deaths, marriages, land and customs are never folded.
+  const ROUTINE = {
+    helped: ({ n, places }) => `Helped at ${places}: ${n} days`,
+    frost: ({ n, places }) => `Frost took ${n} crops${places ? ' at ' + places : ''}`,
+    herdBirths: ({ sum, places }) => `${sum} calves and lambs born${places ? ' at ' + places : ''}`,
+    herdDeath: ({ sum, places }) => `${sum} animals lost over the winter${places ? ' at ' + places : ''}`,
+    harvest: ({ places }) => `Harvest brought in at ${places}`,
+  };
+  const andList = (a) => (a.length > 1 ? `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}` : a[0] || '');
+  // Fold the rows of a chronicle (newest first), from the newest, until `limit` lines are made: a row {ev (the newest it holds), text, note,
+  // fold (the rows it holds, newest first, when it folds two or more)}. Rows left over are counted in `rest`. The view's: the record is as it was.
+  function foldRows(st, rows, limit) {
+    const out = [];
+    let i = 0;
+    for (; i < rows.length && out.length < limit; i++) {
+      const r = rows[i];
+      if (!r) continue;
+      const k = r.ev.kind;
+      if (!ROUTINE[k]) {
+        out.push(r);
+        continue;
+      }
+      const year = Math.floor(r.ev.t / YEAR),
+        held = [r];
+      for (let j = i + 1; j < rows.length && (!rows[j] || Math.floor(rows[j].ev.t / YEAR) >= year); j++)
+        if (rows[j] && rows[j].ev.kind === k) held.push(rows[j]);
+      if (held.length < 2) {
+        out.push(r);
+        continue;
+      }
+      const places = [];
+      let sum = 0;
+      for (let m = held.length - 1; m >= 0; m--) {
+        const e = held[m].ev;
+        sum += e.n || 1;
+        const name = e.farm !== undefined ? st.farmsteads[e.farm].name : null;
+        if (name && !places.includes(name)) places.push(name);
+      }
+      out.push({
+        ev: r.ev,
+        text: ROUTINE[k]({ n: held.length, sum, places: andList(places) }) + '.',
+        note: null,
+        fold: held,
+      });
+      const set = new Set(held);
+      for (let j = i + 1; j < rows.length && (!rows[j] || Math.floor(rows[j].ev.t / YEAR) >= year); j++)
+        if (set.has(rows[j])) rows[j] = null;
+    }
+    const rest = rows.slice(i).filter(Boolean);
+    out.rest = rest.length;
+    return out;
+  }
+  function chronicle(st, q, group = null, limit = 0) {
     const kinds = group ? new Set(CHRONICLE[group].kinds) : null,
       rows = [],
       mine = q.pawn !== undefined;
@@ -237,7 +292,8 @@ VB['sim/notable'] = (() => {
       }
       rows.push({ ev: e, text: !mine && e.kind === 'joined' ? moveLine(st, e, q.farm) : eventLine(st, e), note });
     }
-    return rows.reverse();
+    rows.reverse();
+    return limit ? foldRows(st, rows, limit) : rows;
   }
   // The village log: the last n events of the record that were lines of the log, newest first, as {t, text, ev}. Not the personal events,
   // nor the history seeded from before the start, which was never told. It walks back from the record's end only as far as it needs.
@@ -256,6 +312,7 @@ VB['sim/notable'] = (() => {
     family: 'A birth, marriage or death in its household or line',
     farm: 'A farm inherited in its household or line, or left empty, claimed or built in its village',
     custom: 'A change of custom in its village',
+    cause: 'It takes up a cause on its own',
     hunger: 'Hunger in its household',
     occasion: 'A wedding or a funeral ale that concerns it begins',
     offer: 'An offer that waits for its answer',
@@ -368,6 +425,8 @@ VB['sim/notable'] = (() => {
     const k = ev.kind;
     if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
     if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
+    if (k === 'cause') return ev.reason === 'natural' && ev.pawn === about ? 'cause' : null;
+    if (k === 'cottage' && !ev.pawn && ev.pawn !== 0) return null; // a house raised onto stone asks nothing (VB-1101); a settling names its pawn
     if (FARM.has(k))
       return (vid !== null && ev.village === vid) || (hid !== null && ev.household === hid) || concerns(st, ev, about)
         ? 'farm'
@@ -378,7 +437,7 @@ VB['sim/notable'] = (() => {
   // Asked after each step; it reads the events the record has gained since the last ask (from.n moves on; a stop leaves the rest of its
   // step's events for the next ask, or the next skip: skipFrom), st.player and the clock, and
   // writes nothing to st, so a skipped run is the run played (rule 7). The eve of the moving round always stops it, within a year.
-  function skipStop(st, from) {
+  function skipStop(st, from, aids = {}) {
     const pl = st.player;
     if (!pl) return { why: 'none', text: 'No pawn is played.' };
     const p = st.pawns[pl.pawn],
@@ -396,6 +455,11 @@ VB['sim/notable'] = (() => {
       }
       const ev = st.record[from.n++],
         why = stopsFor(st, ev, pl.pawn, hid, vid);
+      if (why === 'cause') {
+        // the event's text is "Took up the cause: <custom>, <option>"; the player is told the option
+        const what = ev.text.replace(/^Took up the cause: [^,]*, /, '');
+        return { why, text: `${fullName(p)} has taken up a cause: ${what}`, ev, agenda: true };
+      }
       if (why) return { why, text: eventLine(st, ev), ev };
     }
     if (hid !== from.homeId) {
@@ -429,7 +493,30 @@ VB['sim/notable'] = (() => {
       return { why: 'refused', text: `A command was refused: ${pl.refused.verb}, ${pl.refused.why}.` };
     if (!pl.auto && !pl.queue.length)
       return { why: 'idle', text: `${fullName(p)} has nothing queued, and its automatic behaviour is off.` };
-    return st.t >= from.eve ? { why: 'round', text: 'The moving round is tomorrow at noon.' } : null;
+    if (st.t < from.eve) return null;
+    // the eve (VB-1101): it stops the skip for a choice the round will read, else once SKIP_QUIET hours of a skip have gone (never longer than one
+    // and three quarters of a year) with the year in brief; with neither, the skip runs on, and the cursor looks for the next eve
+    const choice = aids.choice ? aids.choice(st, pl.pawn) : null;
+    if (choice) return { why: 'round', text: choice.text, farm: choice.farm };
+    if (st.t - from.t >= SKIP_QUIET) return { why: 'round', text: yearInBrief(st, from, vid, aids) };
+    from.eve = roundEve(st.t);
+    return null;
+  }
+  // How long a skip may pass eves with no choice before the next eve stops it with the year in brief: three quarters of a year.
+  const SKIP_QUIET = (YEAR * 3) / 4;
+  // The year in brief for the village vid, since game hour from.t: births, deaths (its own village's), and, from `aids.brief`, the harvest
+  // and the food. Reads the record from its end back to from.t, and writes nothing.
+  function yearInBrief(st, from, vid, aids) {
+    let born = 0,
+      died = 0;
+    for (let i = st.record.length - 1; i >= 0 && st.record[i].t >= from.t; i--) {
+      const e = st.record[i];
+      if (vid === null || e.village !== vid) continue;
+      if (e.kind === 'born') born++;
+      else if (e.kind === 'died') died++;
+    }
+    const more = aids.brief ? aids.brief(st, vid) : '';
+    return `The moving round is tomorrow. Since the skip began: ${born} born, ${died} dead${more ? `; ${more}` : ''}.`;
   }
   return {
     recordOf,

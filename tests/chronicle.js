@@ -85,3 +85,20 @@ assert.strictEqual(last.length, 40, 'its last 40 events'); assert.strictEqual(la
 assert.strictEqual(Sim.villageLog(st, 3).length, 3);
 console.log(`chronicle ok: a farm's history across households (${kindsOf(h).join(', ')}; "${h[2].note}"), a pawn's and a village's, the filters, `
   + `and the village log as the record's last 40 lines`);
+
+// VB-1102: a year's routine events fold into one line, opening to the events it holds; the record is unchanged
+{
+  const pw = st.households[0].holder, fm = st.farmsteads[st.households[0].farmstead];
+  const y0 = Math.floor(st.t / Sim.YEAR) + 1;
+  st.t = y0 * Sim.YEAR; const before = st.record.length;
+  personEvent(st, pw, 'born', 'A child', { kind: 'born', pawn: pw, farm: fm.id, village: fm.village });
+  const nb = st.record.length;
+  for (let d = 1; d <= 10; d++) { st.t = y0 * Sim.YEAR + (d + 5) * Sim.DAY; personEvent(st, pw, 'helped', `Helped at ${fm.name}`, { farm: fm.id, household: 0, village: fm.village }); }
+  const raw = Sim.chronicle(st, { pawn: pw }), lines = Sim.chronicle(st, { pawn: pw }, null, 50);
+  const mine = lines.filter((r) => Math.floor(r.ev.t / Sim.YEAR) === y0);
+  assert.strictEqual(mine.length, 2, mine.map((r) => r.text).join(' | '));
+  assert.ok(mine[0].fold && mine[0].fold.length === 10 && /^Helped at .*: 10 days\.$/.test(mine[0].text), mine[0].text);
+  assert.ok(mine[1].ev.t < mine[0].ev.t && !mine[1].fold, 'the birth, earlier, follows the fold in a newest-first list');
+  assert.strictEqual(raw.filter((r) => r.ev.kind === 'helped').length, 10, 'unfolded without a limit');
+  assert.strictEqual(st.record.length, nb + 10, 'the fold adds nothing to the record');
+}

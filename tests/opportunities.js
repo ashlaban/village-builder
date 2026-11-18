@@ -114,4 +114,20 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
   console.log(`  the round's acts among ${all.size}: ${open('leave')} may move out, ${open('claim')} claim the empty farm, ${open('serve')} serve; `
     + `barred: ${whys('leave').join('; ')}; ${whys('serve').join('; ')}`);
 }
+// ---- the wish for a match leaves out those barred by who they are, and fills from the next by tie (VB-1110) ----
+{
+  const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4 }], { seed: 7, herds: true });
+  const R = VB['sim/records'], single = (sex) => st.living.filter((id) => st.pawns[id].sex === sex && Sim.age(st, st.pawns[id]) >= 18 && R.spouseOf(st, id) === null);
+  const son = single('m')[0], [mother, other, retired] = single('f');
+  assert.ok(son !== undefined && retired !== undefined, `the tiny village holds the pawns: ${single('m')} ${single('f')}`);
+  st.pawns[other].father = st.pawns[other].mother = null; st.pawns[son].mother = mother; st.pawns[retired].retired = true;
+  const sp = st.pawns[son]; sp.ties.clear();
+  sp.ties.set(mother, 9); sp.ties.set(retired, 5); sp.ties.set(other, 1);
+  for (const id of [mother, other, retired]) st.pawns[id].courting = null;
+  VB['sim/player'].inhabit(st, son);
+  const targets = ask(st, son).filter((o) => o.verb === 'match' && o.target !== null).map((o) => o.target);
+  assert.ok(!targets.includes(mother), 'the widowed mother is not listed');
+  assert.ok(!targets.includes(retired), 'the retired is not listed');
+  assert.ok(targets.includes(other), `the next unmarried woman is listed: ${targets}`);
+}
 console.log('opportunities ok: the list and the planner agree over a day; asking changes nothing; own acts, causes and the round\'s acts, each with its bar');

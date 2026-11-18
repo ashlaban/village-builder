@@ -23,7 +23,7 @@ VB['sim/fields'] = (() => {
   const { walkable, costChanged } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
   const { nextTo, farmedLand, FIELD_NEAR } = VB['sim/layout'];
-  const { freeFor } = VB['sim/territory'];
+  const { freeFor, woodTaken } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const { team } = VB['sim/herds'];
   const Stores = VB['sim/stores'];
@@ -47,13 +47,17 @@ VB['sim/fields'] = (() => {
   }
   // Fields its hands can till: perHand for each working adult (the plan's target, from its culture's template, sim/plans; FIELDS.perHand
   // before the household has a plan), and more with a team of oxen.
-  function fieldsWorkable(st, hh, perHand = FIELDS.perHand) {
+  function handsOf(st, hh) {
     let hands = 0;
     for (const id of hh.members) {
       const p = st.pawns[id],
         a = age(st, p);
       if (p.died === null && a >= 14 && a < 60 && !p.retired) hands++;
     }
+    return hands;
+  }
+  function fieldsWorkable(st, hh, perHand = FIELDS.perHand) {
+    const hands = handsOf(st, hh);
     return Math.floor(hands * perHand + (team(st, hh) ? FIELDS.oxenHands : 0));
   }
   // Fields a household wants: sown fields enough for its food (FIELDS.want of its rations at FIELDS.expect of the full yield, net of the
@@ -225,6 +229,7 @@ VB['sim/fields'] = (() => {
       };
     tended(st, tile); // VB-091
     st.used.add(tile);
+    woodTaken(st, tile); // a wood tile broken to a field leaves its village's wood (VB-326)
     if (!w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     w.dev[tile] = 1;
     st.visualDirty = true;
@@ -713,16 +718,49 @@ VB['sim/fields'] = (() => {
   // The autumn frost, on the season's last day (sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still standing or in stooks is lost;
   // a winter crop (rye) standing green is not (VB-348).
   function fieldsFrost(st) {
+    const lost = new Map(); // one line a holder, not one a field: holder -> {stage: count}
     eachWorked(st, (f, fd) => {
       if (CROPS[fd.crop].winter && fd.stage === 'growing') return;
       if (['ripe', 'growing', 'stooks'].includes(fd.stage)) {
+        const k = fd.crop + ' ' + (STOOD[fd.stage] || fd.stage);
+        if (!lost.has(f)) lost.set(f, new Map());
+        lost.get(f).set(k, (lost.get(f).get(k) || 0) + 1);
         fd.stage = 'stubble';
         fd.sown = null;
         fd.held = 0;
         nextStep(fd); // VB-350
-        log(st, `A crop at ${placeName(f)} was lost to frost.`, { kind: 'frost', ...placeOf(f) });
       }
     });
+    for (const [f, m] of lost) {
+      const what = [...m].map(([k]) => k.split(' ')),
+        crops = [...new Set(what.map((w) => w[0]))],
+        stood = [...new Set(what.map((w) => w.slice(1).join(' ')))];
+      log(st, `Frost took the ${crops.join(' and ')} at ${placeName(f)}, ${stood.join(' and ')}.`, {
+        kind: 'frost',
+        ...placeOf(f),
+      });
+    }
+  }
+  const STOOD = { ripe: 'ripe and not yet reaped', stooks: 'in stooks', growing: 'still growing' };
+  // The head's estimate (principle 14: the head's own reckoning, by the hands it counts, not the simulation's knowledge) of the harvest
+  // before the frost, for household hh in autumn: {fields (ripe, to reap), days (of work they ask of its hands, HARVEST_DAY hours a hand a
+  // day), left (days to the frost), late (the work asks more than the days left)}, or null out of autumn or with nothing ripe.
+  const HARVEST_DAY = 8;
+  function harvestEstimate(st, hh) {
+    const c = cal(st.t);
+    if (c.season !== 2 || hh.farmstead === null || hh.farmstead === undefined) return null;
+    let n = 0,
+      hours = 0;
+    for (const fd of st.farmsteads[hh.farmstead].fields)
+      if (fd.stage === 'ripe') {
+        n++;
+        hours += CROPS[fd.crop].hours.reap;
+      }
+    if (!n) return null;
+    const hands = handsOf(st, hh),
+      days = hands ? Math.ceil(hours / (hands * HARVEST_DAY)) : Infinity,
+      left = SEASON_DAYS - 1 - c.sday;
+    return { fields: n, days, left, late: days > left, hands };
   }
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
   // Several hands on one field start on different rows: the nth worker on row -12 + 6n, five rows across the tile.
@@ -753,6 +791,7 @@ VB['sim/fields'] = (() => {
     abandoned,
     fieldsDay,
     fieldsFrost,
+    harvestEstimate,
     BREAK_HOURS,
     clearHours,
     yearlyRations,

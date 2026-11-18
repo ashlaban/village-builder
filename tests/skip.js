@@ -179,3 +179,45 @@ const HOLDER = 0, WIFE = 1;
 }
 console.log('skip ok: it ends by the eve of the moving round; a skipped run is the run played; family, farm and custom events of its own village, '
   + 'hunger come to the household, a refused command, an empty queue and a gathering as it begins stop it; two stops of one step are told in turn, by the next skip');
+
+// 7. Building news that asks nothing (VB-1101): a house raised onto stone, with no pawn, does not stop a skip; a settling that names one does.
+{
+  const st = make(); Sim.inhabit(st, HOLDER);
+  const from = Sim.skipFrom(st), vid = R.settlementIdOf(st, st.pawns[HOLDER]), hid = st.households[0].id;
+  R.log(st, 'The house is raised onto a stone foundation.', { kind: 'cottage', village: vid, household: hid });
+  assert.strictEqual(Sim.skipStop(st, from), null, 'a house on stone is no stop');
+  R.log(st, 'moves into the new farmstead', { kind: 'cottage', pawn: HOLDER, village: vid, household: hid });
+  const stop = Sim.skipStop(st, from);
+  assert.ok(stop && stop.why === 'farm', 'a settling still stops it');
+  console.log('skip ok: a house raised onto stone asks nothing');
+}
+
+// A cause the played pawn takes up on its own (the culture's natural draw, forced) stops the skip, and the Agenda may lay it down in its
+// first season with no wait (VB-1103); after that season, laying it down starts the wait as before.
+{
+  const C = VB['culture'], { issue } = VB['sim/commands'];
+  const st = make();
+  Sim.inhabit(st, HOLDER);
+  while (st.t < (2 * SEASON_DAYS + 9) * DAY) Sim.advance(st, 6); // to the day before the meeting, with nothing forced
+  const from = Sim.skipFrom(st);
+  st.rng.culture.fix = 0.001; // every draw of the culture's stream: the pawn takes a cause up at the meeting
+  let stop;
+  for (let n = 0; n < 800 && !((stop = Sim.skipStop(st, from)) && stop.why === "cause"); n++) Sim.advance(st, 0.1);
+  delete st.rng.culture.fix;
+  assert.strictEqual(stop.why, 'cause', JSON.stringify(stop));
+  assert.ok(/^.+ has taken up a cause: .+/.test(stop.text) && stop.ev.reason === 'natural', stop.text);
+  assert.ok(Sim.SKIP.cause);
+  const p = st.pawns[HOLDER];
+  assert.ok(p.advocate && p.advocate.natural, 'a natural cause');
+  delete st.rng.culture.fix;
+  const dim = p.advocate.dim, other = (p.advocate.opt + 1) % C.NOPT[dim], args = { dim, option: other };
+  assert.ok(/more before a new one/.test(issue(st, { actor: HOLDER, verb: 'argue', args, source: 'player' })), 'held: the wait');
+  assert.strictEqual(issue(st, { actor: HOLDER, verb: 'dropCause', source: 'player' }), true);
+  assert.strictEqual(p.causeSince, null, 'laid down in its season: no wait');
+  assert.strictEqual(issue(st, { actor: HOLDER, verb: 'argue', args, source: 'player' }), true, 'another at once');
+  // laid down after the season: the wait stays
+  p.causeSince = st.cenv.t - 2 * C.P.causeGrace;
+  assert.strictEqual(issue(st, { actor: HOLDER, verb: 'dropCause', source: 'player' }), true);
+  assert.ok(/more before a new one/.test(issue(st, { actor: HOLDER, verb: 'argue', args, source: 'player' })), 'after the season: the wait');
+  console.log('skip ok: a cause taken up on its own stops a skip; laid down in its season it starts no wait');
+}

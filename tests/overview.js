@@ -80,6 +80,23 @@ check(s.warnings.heir.join() === `${h1.id}`, `heir warning ${s.warnings.heir}`);
 v.grain = { barley: 40 };
 const s2 = Sim.villageSummary(st, 0, 0), store = Math.max(0, 40 - Stores.reserved(st, v, 'grain'));
 check(near(s2.food.store, store) && near(s2.food.rations, food0 + store), `village store ${s2.food.store}`);
+// who cannot marry (VB-1120), by hand: adults of marrying age are the men 0 and 6 (from 20) and the women 1 and 5 (from 18); of them 5 is
+// unmarried (6's wife 7 is 12); h1 is a household of one adult
+check(s.marry.adults.m === 2 && s.marry.adults.f === 2, `adults ${JSON.stringify(s.marry.adults)}`);
+check(s.marry.single.m === 0 && s.marry.single.f === 1, `unmarried ${JSON.stringify(s.marry.single)}`);
+check(s.marry.alone.join() === `${h1.id}`, `households of one adult ${s.marry.alone}`);
+{
+  const R = VB['sim/records'], isAdult = (p) => R.age(st, p) >= (p.sex === 'm' ? 20 : 18);
+  const r = { f: 0, m: 0 };
+  for (const id of VB['sim/matching'].poolFor(st, 0)) { const p = st.pawns[id]; if (isAdult(p) && R.spouseOf(st, id) === null) r[p.sex]++; }
+  check(r.f === s.marry.reach.f && r.m === s.marry.reach.m && r.f >= 1, `reach ${JSON.stringify(s.marry.reach)} against the pool's ${JSON.stringify(r)}`);
+  // 3 and 4 come of age, unmarried: the village's men outnumber its women two to one
+  for (const id of [3, 4]) { const p = st.pawns[id]; p.born = T - 25 * YEAR; p.age = 25; }
+  const s3 = Sim.villageSummary(st, 0, 0);
+  check(s3.marry.single.m === 2 && s3.marry.single.f === 1, `unmarried now ${JSON.stringify(s3.marry.single)}`);
+  const want = s3.marry.reach.m >= 2 * s3.marry.reach.f ? 'm' : null;
+  check(s3.marry.by === want && (want ? s3.warnings.match.join() === `${h0.id}` : s3.warnings.match.length === 0), `warning ${JSON.stringify(s3.marry)} ${s3.warnings.match}`);
+}
 if (failed) process.exit(1);
 console.log(`overview ok: ${s.people} people in bands ${s.bands.now} (a year ago ${s.bands.ago}), ${Math.round(s.food.days)} days of food, ` +
   `idle ${Math.round(100 * s.idle.share)}%, warnings ${Object.entries(s.warnings).map(([k, l]) => `${k} ${l.length}`).join(', ')}`);

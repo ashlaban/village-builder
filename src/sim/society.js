@@ -306,7 +306,7 @@ VB['sim/society'] = (() => {
     run: (st, c) => {
       const p = st.pawns[c.actor],
         d = Culture.DIMS[p.advocate.dim];
-      Culture.advocate(p, null);
+      Culture.advocate(p, null, undefined, undefined, st.cenv.t);
       personEvent(st, c.actor, 'cause', `Dropped the cause: ${d.label.toLowerCase()}`);
     },
   });

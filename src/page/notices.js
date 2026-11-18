@@ -195,7 +195,9 @@ function updateNotices(dt) {
   for (; noticeSeen < st.record.length; noticeSeen++) {
     const ev = st.record[noticeSeen],
       why = Sim.notable(st, ev, about >= 0 ? about : null);
-    if (why && why.some((k) => !noticeOff.has(k))) toast(ev);
+    if (skipNote && skipNote.stopEv === ev)
+      continue; // the skip's note tells it (VB-1101)
+    else if (why && why.some((k) => !noticeOff.has(k))) toast(ev);
     else if (
       ev.kind === 'offered' &&
       st.player &&

@@ -14,7 +14,7 @@ VB['sim/meadows'] = (() => {
   const { winterNeed } = VB['sim/herds'];
   const { builtTiles, onField } = VB['sim/fields'];
   const { workStake } = VB['sim/claims'];
-  const { freeFor } = VB['sim/territory'];
+  const { freeFor, woodTaken } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const Stores = VB['sim/stores'];
   const Projects = VB['sim/projects'],
@@ -136,6 +136,7 @@ VB['sim/meadows'] = (() => {
       held: 0,
     });
     st.used.add(tile);
+    woodTaken(st, tile); // a wood tile made a meadow leaves its village's wood (VB-326)
     if (!st.w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     st.w.dev[tile] = 1;
     st.biomeDirty.add(tile);

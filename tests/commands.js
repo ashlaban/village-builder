@@ -231,6 +231,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   Sim.advance(a, 5 * Sim.DAY); Sim.advance(b, 5 * Sim.DAY + 0.2);
   const o = C.OFF[dim] + opt, pa = a.pawns[id], pb = b.pawns[id];
   assert.ok(Math.abs(pa.att[o] - pb.att[o]) < 0.05, 'the player\'s cause pulls as a natural one does');
+  pa.causeSince -= 2 * C.P.causeGrace; // past its first season, so that the drop starts the wait (VB-1103)
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), true);
   assert.strictEqual(pa.advocate, null); assert.ok(Sim.recordOf(a, { pawn: id, life: true }).some((e) => /^Dropped the cause/.test(e.text)));
   assert.ok(typeof issue(a, { actor: id, verb: 'dropCause', source: 'player' }) === 'string', 'refused again');

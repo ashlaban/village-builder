@@ -148,9 +148,27 @@ const woodStat = (hh) => ({
 });
 // What the card's first tab says of the household at a glance: its supplies, as the Stores tab shows them (VB-667), and what is wrong
 // today.
+const NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+// The head's estimate of the harvest before the frost (principle 14: whose reckoning it is is said), once a crop is ripe.
+const harvestStat = (hh) => {
+  const e = Sim.harvestEstimate(st, hh);
+  if (!e) return null;
+  const need = e.days === Infinity ? 'more days than there are' : `about ${e.days} ${e.days === 1 ? 'day' : 'days'}`,
+    hands = `${e.hands} ${e.hands === 1 ? 'hand' : 'hands'}`,
+    n = NUM[e.fields] || e.fields,
+    left = e.left <= 0 ? 'tomorrow' : `in about ${e.left} ${e.left === 1 ? 'day' : 'days'}`;
+  return {
+    icon: 'field',
+    label: 'Harvest',
+    value: `${n} ${e.fields === 1 ? 'field' : 'fields'} standing; frost ${left}`,
+    tone: e.late ? 'bad' : '',
+    title: `The head's reckoning: ${hands} need ${need} to reap them; ${e.late ? 'the frost may take some' : 'it should be in time'}`,
+  };
+};
 const houseStats = (hh) =>
   suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
   stats([
+    harvestStat(hh),
     hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
     hh.dry > 0
       ? { icon: 'water', label: 'Water', value: 'none', tone: 'bad', title: 'No water: nothing is cooked' }
@@ -531,6 +549,32 @@ function peopleHTML(S) {
     )
   );
 }
+// Who can marry (VB-1120): the adults of marrying age and of them the unmarried, women to the left and men to the right as the start's age
+// pyramid has them, each as the one meter (the unmarried of the adults).
+function marryHTML(S) {
+  const M = S.marry;
+  return (
+    section('Marrying age') +
+    stats(
+      [
+        ['f', 'Women', 'people'],
+        ['m', 'Men', 'people'],
+      ].map(([k, label, icon]) => ({
+        icon,
+        label: `${label} of marrying age`,
+        value: M.single[k],
+        note: `unmarried, of ${M.adults[k]}`,
+        title: `${label} of marrying age: ${M.adults[k]}, of them ${M.single[k]} unmarried`,
+        meter: { value: M.single[k], max: Math.max(1, M.adults.f, M.adults.m) },
+      })),
+    ) +
+    (M.alone.length
+      ? `<div class="warning" title="Households of one adult"><span class="stat-ico">${goodIcon('heir')}</span><span>${M.alone.length} ${
+          M.alone.length === 1 ? 'household' : 'households'
+        } of one adult</span></div>`
+      : '')
+  );
+}
 // The warnings: an icon and words each, and the farms it concerns as chips (a chip selects the farm, whose card is its household's).
 const WARNINGS = [
   {
@@ -545,6 +589,18 @@ const WARNINGS = [
     icon: goodIcon('hunger'),
     word: (S) => `Hungry ${Sim.OVERVIEW.hungry} or more of the last ${S.hungry.window} days`,
     tone: 'bad',
+  },
+  {
+    key: 'match',
+    icon: goodIcon('people'),
+    word: (S) => {
+      const mf = S.marry.by === 'm',
+        n = S.marry.reach[mf ? 'm' : 'f'],
+        k = S.marry.reach[mf ? 'f' : 'm'],
+        noun = (x, man) => (x === 1 ? (man ? 'man' : 'woman') : man ? 'men' : 'women');
+      return `${n} unmarried ${noun(n, mf)}, ${k} unmarried ${noun(k, !mf)} within reach`;
+    },
+    tone: 'warn',
   },
   { key: 'heir', icon: goodIcon('heir'), word: () => 'Holder over 60, no heir at home', tone: 'warn' },
   {
@@ -677,6 +733,7 @@ function showVillage(id) {
       section('Store') +
       suppliesHTML(Sim.villageOutlook(st, id, st.player ? st.player.pawn : null), ['food']) +
       peopleHTML(S) +
+      marryHTML(S) +
       warningsHTML(S) +
       land,
     links: mother ? villageChip(mother) : '',
