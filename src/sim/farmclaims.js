@@ -447,7 +447,31 @@ VB['sim/farmclaims'] = (() => {
           : null),
     run: (st, c) => startClaim(st, st.farmsteads[c.target], c.actor),
   });
+  // Asked once for the island: empty farms being restored, each by its claimant's household while the claim holds (sim/farmclaims).
+  function claimWork(st, holder, at, c, post) {
+    for (const [key, kind, owner, site, extra] of claimJobs(st)) post(key, site, extra, kind, owner);
+  }
+  // The job kinds (sim/kinds joins them into KINDS; a kind's fields are described there).
+  const KINDS = {
+    restore: {
+      // an empty farm's house mended by its claimant (sim/farmclaims); its hours by the condition when claimed
+      verb: 'Mending an empty farm',
+      go: 'Going to mend an empty farm',
+      name: 'Mend an empty farm',
+      label: 'Mending a farm',
+      anim: 'mallet',
+      hours: 20,
+      hands: Infinity,
+      type: 'wood',
+      project: true,
+      worked: workClaim,
+      done: restored,
+      available: claimWork,
+    },
+  };
   return {
+    KINDS,
+    claimWork,
     claimOn,
     birthright,
     birthrightOn,
@@ -458,9 +482,7 @@ VB['sim/farmclaims'] = (() => {
     claimants,
     claimFarms,
     claimableFarm,
-    claimJobs,
     claimPrio,
-    workClaim,
     restored,
     lapsedFarmClaims,
     askLand,

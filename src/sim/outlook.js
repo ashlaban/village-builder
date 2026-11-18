@@ -13,7 +13,7 @@ VB['sim/outlook'] = (() => {
   const { dailyNeed, larderOf, seedPer } = VB['sim/hunger'];
   const { householdHay } = VB['sim/herds'];
   const { HAY } = VB['sim/meadows'];
-  const { fuelFree } = VB['sim/kinds'];
+  const { fuelFree } = VB['sim/chores'];
   const { hands } = VB['sim/targets'];
   // Proposed (VB-666): `little`, a first short season whose need is covered at least this share is short a little ('short'), else badly
   // ('bad'); `woodTrips`, the firewood trips a working hand makes in a season towards the pile's goal (ECON.woodPerTrip units each), which
@@ -186,7 +186,7 @@ VB['sim/outlook'] = (() => {
       });
     return supply(own, w, D > 0, [0, 1, 2, 3], keep + rot, rows(ins, F), D);
   }
-  // Fuel: firewood and peat as one supply (sim/kinds' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
+  // Fuel: firewood and peat as one supply (sim/chores' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
   // the season's ECON.woodUse. Its intake is the plan's: at the start of each season (today, for this one) the household cuts towards the
   // season's goal, plan.targets.wood[season], at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for
   // the season we are in); none with no farm or no wood in its village's reach. Firewood does not spoil.

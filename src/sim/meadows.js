@@ -12,11 +12,13 @@ VB['sim/meadows'] = (() => {
   const { HAND_REACH } = VB['sim/byhand'];
   const { hexSteps } = VB['sim/hex'];
   const { winterNeed } = VB['sim/herds'];
-  const { builtTiles } = VB['sim/fields'];
+  const { builtTiles, onField } = VB['sim/fields'];
+  const { workStake } = VB['sim/claims'];
   const { freeFor, woodTaken } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
   const Stores = VB['sim/stores'];
   const Projects = VB['sim/projects'],
+    { onProject, landProject } = Projects,
     { emit } = VB['sim/events'];
   const { seedPer } = VB['sim/hunger'];
   const { scrubHours, clearScrub } = VB['sim/spread'];
@@ -320,14 +322,89 @@ VB['sim/meadows'] = (() => {
           log(st, `Hay left lying at ${f.name} has rotted.`, { kind: 'hayRotted', ...atFarm(f) });
       }
   }
+  // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
+  // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
+  function meadowWork(st, hh, f, c, post) {
+    // whether hay is wanted, asked once, and only when a meadow could be raked or mown now (VB-227)
+    let hayW = null;
+    const want = () => (hayW === null ? (hayW = hayWanted(st, f, hh)) : hayW);
+    for (const m of f.meadows)
+      for (const [key, kind] of meadowJobs(f, m, c, want)) post(key, m.tile, { meadow: m, farm: f }, kind);
+  }
+  // The job kinds (sim/kinds joins them into KINDS; a kind's fields are described there).
+  const KINDS = {
+    meadow: {
+      verb: 'Clearing a hay meadow',
+      go: 'Going to clear a meadow',
+      name: 'Clear a hay meadow',
+      label: 'Meadow',
+      anim: 'hoe',
+      hours: 4,
+      hands: Infinity,
+      type: 'tilling',
+      field: true,
+      spot: onField,
+      project: true,
+      worked: workStake,
+      done: (st, j, hh) => onProject(st, j) && finishMeadow(st, j.farm, hh),
+      available: landProject,
+    },
+    rake: {
+      verb: 'Raking the meadow clean',
+      go: 'Going to rake a meadow',
+      name: 'Rake a meadow',
+      label: 'Raking',
+      anim: 'gather',
+      hours: 2,
+      hands: Infinity,
+      type: 'harvest',
+      field: true,
+      spot: onField,
+      urgency: (st, j, c, U) => U.rake,
+      done: (st, j) => {
+        j.meadow.raked = true;
+      },
+      available: meadowWork,
+    },
+    mow: {
+      verb: 'Mowing hay',
+      go: 'Going to mow a meadow',
+      name: 'Mow a meadow',
+      label: 'Mowing',
+      anim: 'mow',
+      hours: 16,
+      hands: Infinity,
+      type: 'harvest',
+      field: true,
+      spot: onField,
+      urgency: (st, j, c, U) => U.mow + Math.max(0, hayDay(c)) / U.mowPerDay,
+      done: (st, j, hh, c) => mowDone(st, j.meadow, c),
+      available: meadowWork,
+    },
+    hay: {
+      verb: 'Gathering the hay',
+      go: 'Going for the hay',
+      back: 'Carrying hay to the barn',
+      name: 'Bring in hay',
+      label: 'Hauling hay',
+      anim: 'gather',
+      hours: 1.5,
+      hands: Infinity,
+      type: 'harvest',
+      carry: 'hay',
+      to: 'barn',
+      spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6],
+      urgency: (st, j, c, U) => U.haul,
+      deliver: (st, j, hh, f, a) => hayIn(st, j.meadow, hh, f, a),
+      available: meadowWork, // by the load (sim/carts)
+    },
+  };
   return {
+    KINDS,
+    meadowWork,
     HAY,
     UNRAKED,
-    hayDay,
     hayWanted,
-    meadowJobs,
-    mowDone,
-    hayIn,
     hayLoad,
     hayLaid,
     meadowsSpring,
@@ -342,7 +419,6 @@ VB['sim/meadows'] = (() => {
     wantsFirstMeadow,
     addMeadow,
     meadowProject,
-    finishMeadow,
     placeMeadows,
     meadowAt,
   };

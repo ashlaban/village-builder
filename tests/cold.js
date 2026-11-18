@@ -4,7 +4,7 @@
 // (a ration of it feeds ECON.uncooked); the firewood job of a cold household is the most urgent; a death in a cold house is told so. With wood, nothing changes.
 // On a tiny village under a forest.
 const VB = require('../src/load.js'), Sim = VB.sim;
-const { feedHousehold, dailyNeed } = VB['sim/hunger'], { cookWanted, KINDS } = VB['sim/kinds'], { killPawn } = VB['sim/lifecycle'];
+const { feedHousehold, dailyNeed } = VB['sim/hunger'], { KINDS } = VB['sim/kinds'], { cookWanted } = VB['sim/chores'], { killPawn } = VB['sim/lifecycle'];
 const { HEALTH, HUNGER, MATCH, YEAR, DAY, YEAR_DAYS } = VB['sim/rules'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('COLD FAIL:', m); } };

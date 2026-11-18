@@ -7,7 +7,7 @@
 // day 1 is lost; the frost spares rye; a fallow field reserves the seed sown on it next (VB-350: the rotation moves the field on; village and farm hold three courses).
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
 const { CROPS, ROTATIONS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
-const { KINDS, sowWhy } = VB['sim/kinds'];
+const { KINDS } = VB['sim/kinds'], { sowWhy } = VB['sim/fieldwork'];
 const { fieldsDay, fieldsFrost } = VB['sim/fields'];
 const { seedNeed } = VB['sim/hunger'];
 const Stores = VB['sim/stores'];

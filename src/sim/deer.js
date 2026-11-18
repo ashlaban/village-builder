@@ -8,7 +8,7 @@ VB['sim/deer'] = (() => {
   const { reachTiles } = VB['sim/routes'];
   const { graze } = VB['sim/grazing'];
   const { trample } = VB['sim/fields'];
-  const { addFood } = VB['sim/hunger'];
+  const { addFood, spareUrgency } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
   const { log, atFarm } = VB['sim/records'];
@@ -176,6 +176,7 @@ VB['sim/deer'] = (() => {
     carry: 'game',
     to: 'door',
     spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.5, st.w.hy[j.site] + a.oy * 0.4],
+    urgency: (st, j, c, U) => spareUrgency(st, j, U), // fishing's, by the household's spare food
     deliver: (st, j, hh) => {
       hunt(st, hh, j.site);
     },
