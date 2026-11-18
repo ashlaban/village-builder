@@ -15,7 +15,8 @@ VB['sim/occasions'] = (() => {
   const { DAY, SPEED, WORK, SOCIAL, TICKS, cal } = VB['sim/rules'];
   const { findRoute, routeCost } = VB['sim/routes'];
   const { kinNear, membersOf, voiceOf, fullName, log, atFarm, age } = VB['sim/records'];
-  const { issue, unplanned } = VB['sim/commands'];
+  const { issue } = VB['sim/commands'];
+  const { unplanned } = VB['sim/records'];
   const { emit } = VB['sim/events'],
     { remember } = VB['sim/relations'],
     Stores = VB['sim/stores'];

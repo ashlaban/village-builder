@@ -9,7 +9,8 @@ VB['sim/marriage'] = (() => {
   const { startInLife } = VB['sim/exchange'];
   const { stayOf } = VB['sim/agents'];
   const { heirRanking, refreshRoles, handOn } = VB['sim/heirs'];
-  const { issue, clearMatchWish } = VB['sim/commands'];
+  const { issue } = VB['sim/commands'];
+  const { clearMatchWish } = VB['sim/player'];
   const { moveWhy, wishOf } = VB['sim/wishes'];
   const { meansOf, sideScore, askerOf, askedOf, askedBy, asksMatch } = VB['sim/matching'];
   const Courting = VB['sim/courting'];

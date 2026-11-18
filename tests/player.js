@@ -2,7 +2,7 @@
 // pawn does what any pawn would; with the automatic behaviour off it takes no work but still goes home at the end of work; a command
 // refused when its turn comes is dropped with its reason; the player and its queue are saved with the run.
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim, { WORK } = VB['sim/rules'], { QUEUE_MAX } = VB['sim/commands'];
+const VB = require('../src/load.js'), Sim = VB.sim, { WORK } = VB['sim/rules'], { QUEUE_MAX } = VB['sim/player'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const { dropKind } = require('./lib/record.js');
 // One village of three farms under a forest; household 0 is a farmer (pawn 0), his wife (1), a son and five daughters, the grown ones

@@ -13,7 +13,7 @@
     "st.legDue": "sim/agents",
     "st.claims": "sim/claims",
     "st.finds": "sim/prospect",
-    "st.player": "sim/commands",
+    "st.player": "sim/player",
     "st.plans": "sim/plans",
     "st.villageHours": "sim/routes",
     "plan.targets": "sim/plans",

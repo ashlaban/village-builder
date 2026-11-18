@@ -22,7 +22,8 @@ VB['sim/jobs'] = (() => {
     placeOf,
   } = VB['sim/agents'];
   const { companyFor, opinionOf } = VB['sim/relations'];
-  const { issue, unplanned } = VB['sim/commands'];
+  const { issue } = VB['sim/commands'];
+  const { unplanned } = VB['sim/records'];
   const { eligible } = VB['sim/eligibility'];
   const { KINDS, ASK, isOpen } = VB['sim/kinds'];
   const { builtTiles } = VB['sim/fields'];

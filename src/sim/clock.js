@@ -16,7 +16,9 @@ VB['sim/clock'] = (() => {
     VB['sim/agents'];
   const { feedAway, dayAway } = VB['sim/away'];
   const { refreshJobs, takeDay, helpers, idleAbout, lookForWork } = VB['sim/jobs'];
-  const { issue, commanded, unplanned, playerStep } = VB['sim/commands'];
+  const { issue } = VB['sim/commands'];
+  const { playerStep } = VB['sim/player'];
+  const { commanded, unplanned } = VB['sim/records'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
   const { outdoors } = VB['sim/encounters'];
   const { dailyLife, dailyDeaths } = VB['sim/lifecycle'];

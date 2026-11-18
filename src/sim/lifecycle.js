@@ -12,7 +12,7 @@ VB['sim/lifecycle'] = (() => {
   const { heirRanking, transfer, succession, comeOfAge, refreshRoles } = VB['sim/heirs'];
   const { careForOrphans } = VB['sim/service'];
   const { refreshStanding } = VB['sim/society'];
-  const { playerDied, clearMatchWish } = VB['sim/commands'];
+  const { playerDied, clearMatchWish } = VB['sim/player'];
   const { forget, dropTies, dailyTies, endGoodwill } = VB['sim/relations'];
   const { funeral } = VB['sim/occasions'];
   const { closeTrust, wardsOfAge, inheritedHeld } = VB['sim/trust'],
