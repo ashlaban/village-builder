@@ -17,6 +17,7 @@ const FAST = [
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
   ['node', 'tests/wishes.js'],
+  ['node', 'tests/wishlapse.js'],
   ['node', 'tests/roundoffers.js'],
   ['node', 'tests/handover.js'],
   ['node', 'tests/asking.js'],
