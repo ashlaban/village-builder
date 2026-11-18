@@ -22,6 +22,18 @@ and the Swedish provincial laws after them.
    direct line, or no bar; the Nordic default "none in the direct line". Step-siblings marry under every option. `backlog/VB-1107.md`
    holds the criteria; marriages and growth reported before and after.
 
+### VB-1122: handing on the farm in life (raised 18 November 2026)
+Kim, 18 November, deciding VB-1121 (the player succeeds only at death): "if you pass the farm on before death (should one be able
+to??) you continue playing as the same pawn". As built a farm passes in life by the timing custom alone, at the round (When the heir
+takes over: at the holder's death; when the heir marries; when the holder turns 60), and no holder chooses it. VB-824 (ready) makes it
+the holder's offer and lets a played holder offer at any time.
+1. May a holder hand on its farm before its death? **P:** yes, where the village's custom has it (the two options that hand on in life
+   stay; under "at the holder's death" nobody does), since the retirement contract is the setting's way for an heir to marry while the
+   old live; and it is the holder's own act (VB-824's offer), which the custom times and a holder may make earlier but not refuse past
+   the custom's time without a cost in the heir's opinion.
+2. May the played holder hold out against the custom's time, since it must then play out a retirement? **P:** as any pawn may, at that
+   cost; no rule for the player alone (principle 16). VB-1122 plans a retired life worth playing.
+
 ## Priority 2
 
 ### VB-445: Settling in steps: what the plan decided in your place (raised 16 November 2026)
