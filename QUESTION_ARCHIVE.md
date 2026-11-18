@@ -2,6 +2,20 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 18 November 2026 (VB-1107)
+
+## VB-1107: marriage to kin by marriage (raised 16 November 2026)
+From the playtest of 16 November (founders small seed 7, 80 years in the page): the round offered a widow of 52 her late husband's son of
+23, raised in her house. `kinOk` (`src/sim/matching.js`) judges kin by blood alone, and The gate (Decided, 13 Nov: "keep the gate, add
+nothing") allows no other bar; so a step-parent and stepchild, or a parent-in-law and child-in-law, may be matched. Every culture the
+setting draws on forbade at least the direct line: Leviticus 18, the Church's prohibited degrees of affinity (to the fourth from 1215),
+and the Swedish provincial laws after them.
+1. May kin by marriage bar a match, as a reading of the gate's "kin no closer than the custom's limit" and not as a fifth condition?
+   **P:** yes, as a custom of its own (principle 5), "Kin by marriage who may marry": none within the Church's fourth degree, none in the
+   direct line, or no bar; the Nordic default "none in the direct line". Step-siblings marry under every option. `backlog/VB-1107.md`
+   holds the criteria; marriages and growth reported before and after.
+   **A (Kim, 18 Nov):** Yes, as proposed: a custom of its own, "Kin by marriage who may marry" (none within the Church's fourth degree; none in the direct line; no bar), the Nordic default "none in the direct line"; step-siblings marry under every option.
+
 # Archived 18 November 2026 (VB-1122)
 
 ## VB-1122: handing on the farm in life (raised 18 November 2026)
