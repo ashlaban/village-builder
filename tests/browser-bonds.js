@@ -1,4 +1,4 @@
-// VB-1026, VB-1027, VB-1029: a portrait drawn in relation to someone carries its bonds as badges: in a person's Knows best rows and on the spouse's chip of
+// VB-1026, VB-1033, VB-1029: a portrait drawn in relation to someone carries its bonds as badges: in a person's Knows best rows and on the spouse's chip of
 // its card, with the word as the badge's label; a portrait drawn for nobody carries none.
 const { builtPage } = require('./lib/page');
 const assert = require('assert'), fs = require('fs'), path = require('path');
@@ -46,7 +46,7 @@ assert(html.includes('window.__bondTest'), 'page hook exists');
     assert(card.chip.some(([cls, word, svg]) => /\bkin\b/.test(cls) && word === 'wife' && svg), `the spouse's chip says wife: ${JSON.stringify(card.chip)}`);
     const row = card.rows.find((r) => r.pawn === wife);
     assert(row && row.bonds.some(([cls, word]) => /\bkin\b/.test(cls) && word === 'wife'), `her Knows best row says wife: ${JSON.stringify(card.rows)}`);
-    // VB-1027: the words the badges carry are the row's tooltip, not its text, and the card does not write whom he is married to
+    // VB-1033: the words the badges carry are the row's tooltip, not its text, and the card does not write whom he is married to
     assert(/\bwife\b/.test(row.title) && !/wife/.test(row.words), `her row's word is its tooltip: ${JSON.stringify(row)}`);
     assert(!/Husband of/.test(card.text), 'the card leaves the spouse to the chip');
     // the function itself: every bond has an icon; kin both ways in the pawn's own word; nobody's portrait is bare; the opinion's tone
@@ -74,7 +74,7 @@ assert(html.includes('window.__bondTest'), 'page hook exists');
     assert(age.boy === false && age.man, 'no beard on a boy; a man keeps the beard of his look');
     assert(age.rig[0] !== age.rig[1], 'the map figure is aged as the portrait');
     assert(age.wife[0] !== age.wife[1] && age.wife[0] === age.wife[2], 'a married woman\'s portrait ages, by its lines, and is the same again at the same age');
-    // VB-1027: a widower reads Widowed, as a widow does (the debug's death, as the Debug panel deals it)
+    // VB-1033: a widower reads Widowed, as a widow does (the debug's death, as the Debug panel deals it)
     const widowed = await page.evaluate(([m, f]) => { Sim.killPawn(window.__bondTest.st, f, 'illness'); window.__bondTest.select(m);
       return document.querySelector('.tile').textContent; }, [man, wife]);
     assert(/Widowed/.test(widowed) && !/Unmarried/.test(widowed), 'a widower is widowed');

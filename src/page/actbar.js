@@ -271,7 +271,8 @@ function workAct(id, kind, holder) {
 // ---- the tool: an act that waits for a tile ----
 // tool: {kind ('walk', 'work', 'give' or 'plan': a tile of the plan panel's, page/plan), icon, title, needs (what to tap), keep (true:
 // it stays in hand until Done, for repeated work), work and holder (the kind of work and whose), sites (the tiles marked as taking it),
-// msg (the last tap's answer)}. The banner names it; the next click on the map (page/tileinfo asks first) is toolTap's. A refused tap
+// msg (the last tap's answer), facts (the plan's tool: what the tile pointed at is, page/plan's planPoint)}.
+// The banner names it; the next click on the map (page/tileinfo asks first) is toolTap's. A refused tap
 // says why and waits for another.
 function startTool(t) {
   tool = { sites: [], msg: null, ...t };
@@ -342,7 +343,9 @@ function paintBanner() {
     h =
       `${actIcon(tool.icon)}<div class="txt"><b>${esc(tool.title)}</b>: ${tapWord} ${esc(tool.needs)}${
         tool.kind === 'work' && !tool.sites.length ? '<span class="bad">None is open to you now.</span>' : ''
-      }${tool.msg ? `<span class="${tool.msg.bad ? 'bad' : ''}">${esc(tool.msg.text)}</span>` : ''}` +
+      }${tool.facts ? `<span data-facts>${esc(tool.facts)}</span>` : ''}${
+        tool.msg ? `<span class="${tool.msg.bad ? 'bad' : ''}">${esc(tool.msg.text)}</span>` : ''
+      }` +
       `</div><button type="button" data-tool="end"${tool.keep ? ' class="primary"' : ''}>${tool.keep ? 'Done' : 'Cancel'}</button>`;
   } else if (flash && performance.now() < flash.until) h = `<div class="txt">${esc(flash.text)}</div>`;
   else flash = null;

@@ -174,6 +174,10 @@ function pick(sx, sy, inspect = true) {
     }
     return;
   }
+  if (!inspect && tool && tool.kind === 'plan') {
+    planPoint(loc(...toWorld(sx, sy), [0, 0])); // the plan's tool reads the tile pointed at into its banner (page/plan, VB-1027)
+    return;
+  }
   if (!inspect && (selectionPinned || barMenu || tool || (activePanel && activePanel !== 'tile'))) return; // no hover card over the action bar's list or tool
   if (inspect) selectionPinned = true;
   const [x, y] = toWorld(sx, sy),

@@ -222,7 +222,7 @@ function showPawn(id) {
         means: `The home has the means to marry: it holds ${yrs(bar.held)} of the ${yrs(bar.asked)} years asked`,
         hands: "The home needs a spouse's hands: no means are asked",
       }[bar.kind];
-  // whom it is married to is the spouse's chip, with the rings on its portrait (VB-1027): the words are for what has no chip
+  // whom it is married to is the spouse's chip, with the rings on its portrait (VB-1033): the words are for what has no chip
   const rel = [
     sp !== null ? '' : isWidowed(p) ? 'Widowed' : 'Unmarried',
     p.pregnantUntil !== null
@@ -309,7 +309,7 @@ function showRelations(id) {
       const word = Sim.opinionWord(x.opinion),
         kin = Sim.standingWord(st, id, x.id),
         why = Sim.reasonsOf(st, id, x.id).find((r) => r.label !== kin);
-      // the kin bond and the opinion's band are the portrait's badges (VB-1026); their words are the row's tooltip (VB-1027), and what
+      // the kin bond and the opinion's band are the portrait's badges (VB-1026); their words are the row's tooltip (VB-1033), and what
       // is written is what has no icon: the largest memory of one who is no kin
       const reason = !kin && why ? why.label.toLowerCase() : '',
         tip = [kin, word === 'neutral' ? null : word, reason].filter(Boolean).join(' · ');

@@ -63,7 +63,12 @@ $('tileFocus').addEventListener('click', centreSelection);
 // A name on the map under a point of the world, while it shows.
 function labelAt(x, y) {
   for (const l of labels)
-    if (l.t.visible && l.t.alpha > 0.3 && Math.abs(x - l.x) < l.t.width / 2 && y < l.y && y > l.y - l.t.height)
+    if (
+      l.t.visible &&
+      l.t.alpha > 0.3 &&
+      Math.abs(x - l.x) < l.t.width / 2 &&
+      (l.below ? y > l.y && y < l.y + l.t.height : y < l.y && y > l.y - l.t.height) // a village's name may lie under its centre
+    )
       return l;
   return null;
 }

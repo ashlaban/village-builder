@@ -534,6 +534,12 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .meter > u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
 .meter > b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
 .meter > b + b { background: var(--gold); }
+.meter > b.custom { background: var(--ink); }
+.meter > b.head { background: var(--gold); }
+.mark-key { display: flex; gap: 14px; margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
+.mark-key > span { display: inline-flex; align-items: center; gap: 5px; }
+.mark-key b { display: inline-block; width: 2px; height: 14px; border-radius: 1px; background: var(--ink); }
+.mark-key b.head { background: var(--gold); }
 /* The People sheet as a finder: the cards' rows, a farm's people under it. */
 .settlers .row { font: inherit; color: var(--ink); }
 .settlers .row .who { flex: 1; min-width: 0; }
@@ -610,6 +616,8 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .warning .links { flex-basis: 100%; margin: 0 0 4px 27px; }
 .plan-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .plan-row > .stat { flex: 1 1 260px; }
+.plan-row[data-target] .stat-val { line-height: 1.15; }
+.plan-row[data-target] .stat-val small { display: block; margin-left: 0; font-size: 11.5px; }
 .plan-ctl { display: inline-flex; gap: 4px; flex: none; }
 .plan-ctl.menu { flex-wrap: wrap; margin: 0 0 6px 27px; }
 .plan-btn { min-width: 28px; height: 26px; padding: 0 6px; border: 1px solid var(--edge); border-radius: var(--r-field); background: transparent; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
@@ -621,6 +629,8 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .plan-order li .ico { width: 20px; height: 20px; color: var(--accent); }
 .plan-order li > span:first-of-type { flex: 1; }
 .plan-steps .stat-val { white-space: normal; text-align: right; }
+.plan-daily { margin: 0 0 6px; }
+.plan-daily > summary { cursor: pointer; font-size: 13.5px; color: var(--muted); min-height: 28px; line-height: 28px; }
 .plan-msg { margin: 2px 0 6px; font-size: 13.5px; color: var(--ink); }
 .plan-msg.bad { color: var(--bad); }
 /* A pawn's mood's modifiers in force (VB-062): each its icon and signed value, the label its title. */

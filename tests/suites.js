@@ -223,6 +223,6 @@ const EXTENDED = [
   ['node', 'tests/browser-mobile.js'],
   ['node', 'tests/browser-speed.js'],
   ['node', 'tests/browser-gathering.js'], // a gathering while it is on: its notice, its mark and its card (VB-1031, VB-1032)
-  ['node', 'tests/browser-bonds.js'] // portraits: the bonds as badges (VB-1026), their words (VB-1027), ageing (VB-1029)
+  ['node', 'tests/browser-bonds.js'] // portraits: the bonds as badges (VB-1026), their words (VB-1033), ageing (VB-1029)
 ];
 module.exports = { FAST, INTEGRATION, EXTENDED };
