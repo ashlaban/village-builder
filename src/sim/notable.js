@@ -441,7 +441,10 @@ VB['sim/notable'] = (() => {
     const k = ev.kind;
     if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
     if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
-    if (k === 'cause') return ev.reason === 'natural' && ev.pawn === about ? 'cause' : null;
+    if (k === 'cause')
+      return ev.pawn === about && (ev.reason === 'natural' || ev.reason === 'lapsed' || ev.reason === 'won')
+        ? 'cause'
+        : null;
     if (k === 'cottage' && !ev.pawn && ev.pawn !== 0) return null; // a house raised onto stone asks nothing (VB-1101); a settling names its pawn
     if (MOVE.has(k) && !(k === 'joined' && JOINED_TOLD.has(ev.reason))) {
       const hh = hid !== null ? st.households[hid] : null;
@@ -476,6 +479,7 @@ VB['sim/notable'] = (() => {
       }
       const ev = st.record[from.n++],
         why = stopsFor(st, ev, pl.pawn, hid, vid);
+      if (why === 'cause' && ev.reason !== 'natural') return { why, text: ev.text, ev, agenda: true };
       if (why === 'cause') {
         // the event's text is "Took up the cause: <custom>, <option>"; the player is told the option
         const what = ev.text.replace(/^Took up the cause: [^,]*, /, '');
