@@ -729,7 +729,31 @@ VB['sim/records'] = (() => {
       w = p.ties.get(b);
     return w === undefined ? 0 : w * scaleOf(st, p);
   }
+  // Guards of the commands' checks (VB-228), lookups on the register: why id is not a living pawn, or null; whether id is a live household.
+  const living = (st, id) =>
+    st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`;
+  const home = (st, id) => Number.isInteger(id) && st.households[id] && !st.households[id].dissolved;
+  // Lookups on a pawn against st.player (sim/player writes it): the planner's sites ask these two (docs/review-life.md, section 2).
+  // commanded: a command of the player's is queued or under way for the
+  // pawn, so nothing else moves it. unplanned: that, or the player has turned its automatic behaviour off, so the planner gives it no work.
+  const commanded = (st, id) => {
+    const pl = st.player;
+    return !!pl && pl.pawn === id && pl.queue.length > 0;
+  };
+  const unplanned = (st, id) => {
+    const pl = st.player;
+    return !!pl && pl.pawn === id && (pl.queue.length > 0 || !pl.auto);
+  };
+  const settlement = (st, c) =>
+    c.actor && st.cenv && st.cenv.settlements[c.actor.settlement]
+      ? null
+      : `there is no settlement ${c.actor && c.actor.settlement}`;
   return {
+    settlement,
+    commanded,
+    unplanned,
+    living,
+    home,
     scaleOf,
     tieOf,
     rebuildLiving,

@@ -1,12 +1,13 @@
 // @sys sim/membership: founding a household on a farm, coordinating records, supplies, land and moving
 VB['sim/membership'] = (() => {
+  const { living } = VB['sim/records'];
   const { makeHousehold, joinHousehold, setServant } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const Stores = VB['sim/stores'];
   const { ECON, MATCH } = VB['sim/rules'];
   const { makePlan } = VB['sim/plans'];
   const { refreshRoles } = VB['sim/heirs'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   // Found on an existing farm. Supplies are booked before membership changes so stakes remain in the old household's ledger.
   // Its first wood (VB-328): `wood` loads from its plot (a cottage's), then from the piles of the homes its members leave, up to ECON.startWood
   // in all and never leaving a pile under MATCH.urgency.woodLow; settlers (`carry` false) bring none and cut on arrival.
@@ -50,5 +51,25 @@ VB['sim/membership'] = (() => {
     st.visualDirty = true;
     return hh;
   }
+  // A restored farm gains its household; construction keeps plot/farm-specific steps in their owners.
+  register('foundHousehold', {
+    check: (st, c) => {
+      const f = st.farmsteads[c.target],
+        a = c.args || {};
+      if (!f || f.household !== null) return 'there is no empty farm';
+      if (!Array.isArray(a.members) || !a.members.includes(c.actor) || new Set(a.members).size !== a.members.length) {
+        return 'the household must include its holder and unique members';
+      }
+      for (const id of a.members) {
+        const dead = living(st, id);
+        if (dead) return dead;
+      }
+      return Stores.partsOk(a.grain) ? null : 'invalid provisions';
+    },
+    run: (st, c) =>
+      foundHousehold(st, st.farmsteads[c.target], c.args.members, c.actor, {
+        grain: c.args.grain,
+      }),
+  });
   return { foundHousehold };
 })();

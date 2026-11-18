@@ -1,7 +1,9 @@
 // @sys sim/society: Culture wiring: settlements, ties, standing and interests of pawns (a village's, at its meeting)
 VB['sim/society'] = (() => {
+  const { living, settlement } = VB['sim/records'];
+  const { personEvent } = VB['sim/records'];
   const { next: rnd, drawer } = VB['sim/rng'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
   const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal, TRAITS } = VB['sim/rules'];
@@ -256,6 +258,71 @@ VB['sim/society'] = (() => {
       p.interest = it;
     }
   }
+  const option = (c) =>
+    !(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length)
+      ? `there is no custom ${c.args && c.args.dim}`
+      : !(Number.isInteger(c.args.option) && c.args.option >= 0 && c.args.option < Culture.NOPT[c.args.dim])
+        ? `custom ${c.args.dim} has no option ${c.args.option}`
+        : null;
+  const causeWait = (st, p) => {
+    // why the pawn may not take up a new cause yet, or null
+    const left = Culture.causeFree(p) - st.cenv.t;
+    return left > 0
+      ? `took up a cause ${(Culture.P.causeEvery - left).toFixed(1)} years ago: ${left.toFixed(1)} more before a new one`
+      : null;
+  };
+  // ---- a settlement's meeting (source 'meeting') ----
+  // decide({dim, option}): the settlement's practice of the custom becomes the option
+  register('decide', {
+    check: (st, c) =>
+      settlement(st, c) ||
+      option(c) ||
+      (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option
+        ? 'the practice is that already'
+        : null),
+    run: (st, c) => {
+      st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option;
+    },
+  });
+  // argue({dim, option}): the pawn takes up the cause for Culture.P.causeEvery years (the debug's, and the player's for its pawn: VB-211); it
+  // replaces any cause held. A cause is a long agenda: no new one within those years of the last one taken up (the debug's is not held to that).
+  register('argue', {
+    check: (st, c) =>
+      living(st, c.actor) || option(c) || (c.source === 'debug' ? null : causeWait(st, st.pawns[c.actor])),
+    run: (st, c) => {
+      const d = Culture.DIMS[c.args.dim];
+      Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
+      personEvent(
+        st,
+        c.actor,
+        'cause',
+        `Took up the cause: ${d.label.toLowerCase()}, ${d.opts[c.args.option][1].toLowerCase()}`,
+      );
+    },
+  });
+  // dropCause: the pawn lays down the cause it argues
+  register('dropCause', {
+    check: (st, c) => living(st, c.actor) || (st.pawns[c.actor].advocate ? null : 'the pawn argues no cause'),
+    run: (st, c) => {
+      const p = st.pawns[c.actor],
+        d = Culture.DIMS[p.advocate.dim];
+      Culture.advocate(p, null);
+      personEvent(st, c.actor, 'cause', `Dropped the cause: ${d.label.toLowerCase()}`);
+    },
+  });
+  // rally({dim, option}): a fifth of the settlement's voices, the most esteemed first, take up the cause
+  register('rally', {
+    check: (st, c) => settlement(st, c) || option(c),
+    run: (st, c) => {
+      const s = st.cenv.settlements[c.actor.settlement];
+      const voiced = membersOf(st, s.id)
+        .filter((q) => voiceOf(st, q, s) > 0)
+        .sort((x, y) => y.standing - x.standing);
+      const want = Math.max(1, Math.ceil(voiced.length * 0.2));
+      for (const q of voiced.slice(0, want))
+        Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
+    },
+  });
   return {
     standingParts,
     hooks,

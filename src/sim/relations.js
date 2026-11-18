@@ -7,8 +7,8 @@ VB['sim/relations'] = (() => {
     { DIMS } = VB['culture'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf, age } = VB['sim/records'];
   const { partners, atHome } = VB['sim/encounters'];
-  const { on, emit } = VB['sim/events'],
-    issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
+  const { on, emit } = VB['sim/events'];
+  const { issue } = VB['sim/commands'];
   const M = SOCIAL.memories; // the land's memories, from events (sim/stakes, sim/territory, sim/herds), are the three `on` below
   // ---- allowance (VB-216): how much one agent would give up to another in one deal, in rations, never below 0. Its context is
   //   {giver, receiver, from, to}: the two agents (pawn ids, or null for a household without a holder) and the two households, reused.

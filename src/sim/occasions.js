@@ -11,11 +11,13 @@
 // @state st.occasionSeq: number; the next occasion's id; ids are never reused
 // @state agent.occasion: the id of the occasion the pawn set out for and stands at until its end, or null
 VB['sim/occasions'] = (() => {
+  const { release, walkTo, idle, free } = VB['sim/agents'];
   const { next: rnd } = VB['sim/rng'];
   const { DAY, SPEED, WORK, SOCIAL, TICKS, cal } = VB['sim/rules'];
   const { findRoute, routeCost } = VB['sim/routes'];
   const { kinNear, membersOf, voiceOf, fullName, log, atFarm, age } = VB['sim/records'];
-  const { issue, unplanned } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
+  const { unplanned } = VB['sim/records'];
   const { emit } = VB['sim/events'],
     { remember } = VB['sim/relations'],
     Stores = VB['sim/stores'];
@@ -626,6 +628,24 @@ VB['sim/occasions'] = (() => {
     const o = st.occasions.find((x) => x.id === a.occasion);
     return o ? OCCASIONS[o.kind][a.path ? 'go' : 'at'] : null;
   }
+  // attend(occasion): set out for the occasion with id `target` (sim/occasions; source 'occasion'), leaving the work in hand, walk to a spot
+  // about it and stand there until its end
+  register('attend', {
+    check: (st, c) => free(st, c.actor) || cannotAttend(st, c.actor, c.target),
+    run: (st, c) => {
+      const a = st.agents[c.actor];
+      release(st, a);
+      const [tile, x, y, until] = join(st, a, c.target);
+      walkTo(st, a, tile, x, y);
+      idle(st, a, until);
+    },
+  });
+  // callAle: the actor, its household's holder, opens its house tonight for an ale evening on a barrel no occasion at its farm needs
+  // (sim/occasions, VB-522); its village and the villages within reach are asked
+  register('callAle', {
+    check: (st, c) => free(st, c.actor) || cannotCallAle(st, c.actor),
+    run: (st, c) => callAle(st, c.actor),
+  });
   return {
     OCCASIONS,
     REACH,

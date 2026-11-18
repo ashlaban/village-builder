@@ -1,0 +1,133 @@
+{
+ "session": "8ef16219-9d61-5509-9a02-f76ca8c98e00",
+ "label": "worker",
+ "models": [
+  "claude-fable-5-2"
+ ],
+ "start": "2026-11-18T17:57:31.022Z",
+ "end": "2026-11-18T19:24:41.930Z",
+ "wallMin": 87.2,
+ "activeMin": 57.4,
+ "prompts": 7,
+ "calls": 92,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 188,
+  "cacheWrite": 218793,
+  "cacheRead": 18601666,
+  "output": 86205
+ },
+ "context": {
+  "first": 90057,
+  "peak": 280031,
+  "firstEdit": 139062
+ },
+ "tools": {
+  "Bash": {
+   "calls": 85,
+   "bytes": 177432,
+   "seconds": 636.2
+  },
+  "Read": {
+   "calls": 1,
+   "bytes": 52504,
+   "seconds": 0.1
+  },
+  "Write": {
+   "calls": 1,
+   "bytes": 143,
+   "seconds": 0
+  },
+  "AskUserQuestion": {
+   "calls": 1,
+   "bytes": 1512,
+   "seconds": 1121.4
+  }
+ },
+ "largest": [
+  {
+   "tool": "Read",
+   "what": "src/sim/commands.js",
+   "calls": 1,
+   "bytes": 52504
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 14,
+   "bytes": 44968
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 8,
+   "bytes": 25131
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 3,
+   "bytes": 21181
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 4,
+   "bytes": 16328
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 21,
+   "bytes": 14558
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/commands.js",
+   "calls": 1,
+   "bytes": 8091
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 2,
+   "bytes": 7088
+  },
+  {
+   "tool": "Bash",
+   "what": "for m",
+   "calls": 1,
+   "bytes": 6676
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 2,
+   "bytes": 4744
+  },
+  {
+   "tool": "Bash",
+   "what": "cat >>",
+   "calls": 1,
+   "bytes": 3285
+  },
+  {
+   "tool": "Bash",
+   "what": "chk(){ f=$1",
+   "calls": 1,
+   "bytes": 2933
+  }
+ ],
+ "weighted": 2564871,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2564871,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

@@ -14,6 +14,8 @@
 //   one a match would marry for the man's side, the claimant, the leader of a party, the servant, the heir); written when such an offer
 //   is kept and cleared when it closes, so a pawn holds at most one (plan VB-682, section 2, Caps). Plain data, saved with the pawn.
 VB['sim/offers'] = (() => {
+  const { living } = VB['sim/records'];
+  const { register } = VB['sim/commands'];
   const { DAY, YEAR, TRAVEL } = VB['sim/rules'];
   const { remember } = VB['sim/relations'];
   const { log, fullName, holdingOf, atHousehold } = VB['sim/records'];
@@ -272,6 +274,27 @@ VB['sim/offers'] = (() => {
     st.offers.some(
       (o) => o.basis === basis && (basis === 'match' ? o.gives.man === id || o.wants.woman === id : o.from === id),
     );
+  // ---- offers (VB-690): one pawn offers another a crossing between households, the other answers (sim/offers' BASES) ----
+  // offer(target, {basis, gives, wants, due, given}): the actor offers pawn `target` the terms of `basis`; due at args.due (game hours,
+  // within a year; at once when absent); `given` (the round only) the answer keys the played pawn's own wish has said yes to
+  register('offer', {
+    check: (st, c) =>
+      living(st, c.actor) ||
+      (c.args && c.args.given && c.args.given.length && c.source !== 'round'
+        ? 'only the round makes an offer with answers given'
+        : cannotOffer(st, c)),
+    run: (st, c) => make(st, c, (c.args && c.args.given) || []),
+  });
+  // answer(target, {yes}): the actor answers the open offer `target`, all its answers in it at once; the offer closes at a no, or when
+  // all have said yes (an unplayed pawn answers by its own judgement when the offer falls due: sim/offers)
+  register('answer', {
+    check: (st, c) =>
+      living(st, c.actor) ||
+      (!(c.args && typeof c.args.yes === 'boolean')
+        ? `cannot answer ${JSON.stringify(c.args && c.args.yes)}`
+        : cannotAnswer(st, c.actor, c.target)),
+    run: (st, c) => answer(st, c.actor, c.target, c.args.yes),
+  });
   return {
     BASES,
     basis,

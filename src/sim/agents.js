@@ -1,6 +1,9 @@
 // @sys sim/agents: pawn movement and work: routes, walking, talks, home placement and the bed, a journey's legs, death and jobs; each pawn
 // in one leg (a walk, work or a wait) whose end waits in a due-queue, and the step that takes what is due
 VB['sim/agents'] = (() => {
+  const { living } = VB['sim/records'];
+  const { isOpen } = VB['sim/kinds'];
+  const { register } = VB['sim/commands'];
   const { next: rnd } = VB['sim/rng'];
   const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
   const HANDS = [14, 60]; // the ages of a working hand, as sim/drying's hands (VB-255's count of work)
@@ -52,8 +55,12 @@ VB['sim/agents'] = (() => {
     if (!a.path && a.phase === null) waitLeg(st, a);
   }
   // A talk stops only an idle pawn outdoors, not one on its way to an occasion (VB-126), and never shortens an existing pause: its walk is
-  // cut where it has come to, and it waits.
+  // cut where it has come to, and it waits. Not a walk on an errand (VB-228; Kim, 18 Nov): an idle walk is a stroll towards company, so
+  // the talk is where it was going, and a walk let go of has nowhere left to go; a walk to a place the pawn chose is not broken off.
+  // @state agent.errand: true from the verb `walkTo` to a place (not a stroll, `near`) until the pawn's next walk or its release, else
+  //   absent: the walk is to somewhere of its own choosing. Written here only (walkTo, release); plain data, saved.
   function haltForTalk(st, g, until) {
+    if (g.path && g.errand) return;
     if (!g.inside && !g.job && g.phase === null && g.occasion === null) {
       if (g.path) halt(st, g);
       g.anim = 'idle';
@@ -102,8 +109,10 @@ VB['sim/agents'] = (() => {
   // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
   // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
   // `near` (an idle stroll, VB-468): to a neighbouring tile it walks straight over, with no route search.
-  // A walk in hand is cut first, where it has come to; the new one is a leg from there (begin).
-  function walkTo(st, a, tile, x, y, near) {
+  // A walk in hand is cut first, where it has come to; the new one is a leg from there (begin). `errand`: the verb's walk to a place.
+  function walkTo(st, a, tile, x, y, near, errand) {
+    if (errand) a.errand = true;
+    else delete a.errand;
     if (a.path) halt(st, a, false, true);
     const w = st.w,
       from = tileAt(st, a.x, a.y),
@@ -206,6 +215,7 @@ VB['sim/agents'] = (() => {
       if (i >= 0) c.splice(i, 1);
       a.job = null;
     }
+    delete a.errand;
     a.phase = null;
     if (left) rerate(st, left); // a hand gone: the end is told again
     if (laid && !(KINDS[laid.kind].again && KINDS[laid.kind].again(laid))) dropJob(st, laid);
@@ -1146,7 +1156,68 @@ VB['sim/agents'] = (() => {
     if (a.inside) return s ? 'Away from home' : 'At home';
     return a.path ? 'Strolling' : 'Resting';
   }
+  // A living pawn not on a journey (VB-287): on the road it takes no work, walks nowhere else and goes to no occasion.
+  const free = (st, id) => living(st, id) || (travelling(st.agents[id]) ? `pawn ${id} is on the road` : null);
+  // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
+  register('work', {
+    check: (st, c) =>
+      free(st, c.actor) ||
+      (!st.jobs.has(c.target)
+        ? `there is no job ${c.target}`
+        : !isOpen(st, st.jobs.get(c.target))
+          ? `job ${c.target} has no room`
+          : attentionOf(st.jobs.get(c.target)) !== 'full'
+            ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))
+            : null),
+    run: (st, c) => {
+      const a = st.agents[c.actor],
+        j = st.jobs.get(c.target);
+      if (attentionOf(j) !== 'full') {
+        hold(st, a, j);
+        return;
+      } // a partial or background task is held beside the pawn's task (VB-251)
+      release(st, a);
+      start(st, a, j);
+      a.basis = eligible(st, j, st.pawns[a.id]);
+      if (a.side) reachAfter(st, a);
+    },
+  });
+  // walkTo(tile): walk to the tile, to the spot args {x, y} in map units (the tile's centre if absent), by the cheapest route
+  register('walkTo', {
+    // Not refused on a tile the walking rule closes: an idle walk to company may end on a river tile (twice in a founders year at seed 7),
+    // and the walk goes ahead as it always has; refusing it would change behaviour (VB-168). A player's walk should offer open tiles only.
+    check: (st, c) =>
+      free(st, c.actor) ||
+      (!(Number.isInteger(c.target) && c.target >= 0 && c.target < st.w.N) ? `there is no tile ${c.target}` : null),
+    run: (st, c) => {
+      const x = c.args && c.args.x !== undefined ? c.args.x : st.w.hx[c.target],
+        y = c.args && c.args.y !== undefined ? c.args.y : st.w.hy[c.target];
+      const near = !!(c.args && c.args.near);
+      walkTo(st, st.agents[c.actor], c.target, x, y, near, !near);
+    },
+  });
+  // goHome: walk home and go in (phase 'home')
+  register('goHome', {
+    check: (st, c) =>
+      free(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
+    run: (st, c) => goHome(st, st.agents[c.actor]),
+  });
+  // idle(until): look for nothing to do until game time args.until
+  register('idle', {
+    check: (st, c) =>
+      free(st, c.actor) ||
+      (!(c.args && c.args.until >= st.t) ? `idle until ${c.args && c.args.until}, which is past` : null),
+    run: (st, c) => idle(st, st.agents[c.actor], c.args.until),
+  });
+  // haltForTalk(until): pause an idle outdoor pawn until the talk ends, leaving work and indoor pawns alone
+  register('haltForTalk', {
+    check: (st, c) =>
+      living(st, c.actor) ||
+      (!(c.args && c.args.until >= st.t) ? `talk until ${c.args && c.args.until}, which is past` : null),
+    run: (st, c) => haltForTalk(st, st.agents[c.actor], c.args.until),
+  });
   return {
+    free,
     ownerKey,
     dropJob,
     homeSpot,

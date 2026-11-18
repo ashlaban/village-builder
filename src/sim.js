@@ -51,7 +51,8 @@ const Sim = (() => {
   const { of: moodOf, word: moodWord } = VB['sim/mood']; // a pawn's mood and its modifiers, for its card (VB-062)
   const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)
   const { save, load } = VB['sim/saves'];
-  const { issue: command, inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head } = VB['sim/commands'];
+  const { issue: command } = VB['sim/commands'];
+  const { inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head } = VB['sim/player'];
   const { headView } = VB['sim/plans'];
   const { wishesOf } = VB['sim/wishes']; // a pawn's wish at the moving round, kind by kind (VB-680)
   const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];

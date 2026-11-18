@@ -8,7 +8,8 @@ VB['sim/opportunities'] = (() => {
   const { ASK } = VB['sim/kinds'];
   const { claimable, barred: claimBar } = VB['sim/farmclaims'],
     { onFarm } = VB['sim/projects'];
-  const { VERBS, goOnAs } = VB['sim/commands'];
+  const { VERBS } = VB['sim/commands'];
+  const { goOnAs } = VB['sim/player'];
   const { advice, what: offerText } = VB['sim/offers'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { SOCIAL } = VB['sim/rules'];

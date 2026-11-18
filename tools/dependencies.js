@@ -15,15 +15,8 @@ function dependencies(tree, src, mod) {
       const key = prop(n), dynamic = typeof key !== 'string';
       const command = key === 'sim/commands' && parent?.type === 'MemberExpression' &&
         parent.object === n && prop(parent) === 'issue';
-      const dispatch = dynamic && mod === 'sim/commands' && fn === 'later' &&
-        n.computed && n.property.name === 'key';
-      if (!dispatch) out.push({ key: dynamic ? '*' : key, line: line(n), atLoad: depth <= 1,
+      out.push({ key: dynamic ? '*' : key, line: line(n), atLoad: depth <= 1,
         allowed: command, dynamic });
-    }
-    // Include the verb dispatcher in the graph rather than hiding its edges behind VB[key].
-    if (mod === 'sim/commands' && n.type === 'CallExpression' && n.callee.name === 'later') {
-      out.push({ key: n.arguments[0]?.value || '*', line: line(n), atLoad: false,
-        allowed: true, dynamic: typeof n.arguments[0]?.value !== 'string' });
     }
     for (const child of Object.values(n)) {
       if (Array.isArray(child)) child.forEach((c) => walk(c, n, depth, fn));

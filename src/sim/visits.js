@@ -3,6 +3,7 @@
 //   plans a visit there by the verb `visit`; the plans wait in a due-queue and are set out in winter (visitsDue), as journeys of sim/away;
 //   the villages any pawn might visit (visitChoices), a visit's state for its sheet and the played pawn's order for one (VB-292)
 VB['sim/visits'] = (() => {
+  const { living } = VB['sim/records'];
   const { DAY, YEAR, SEASON_DAYS, YEAR_DAYS, WORK, HUNGER, MARRIAGE, ASK, TRAVEL } = VB['sim/rules'];
   const { on } = VB['sim/events'];
   const { log, personEvent, age, spouseOf, wasWidowed, settlementIdOf, practice, fullName, atHousehold, spokesmanOf } =
@@ -14,7 +15,7 @@ VB['sim/visits'] = (() => {
   const { visit, visitDays } = VB['sim/away'];
   const { kinOk, matchScore, matchRules, meansOf, roundYear } = VB['sim/matching'];
   const { wishOf } = VB['sim/wishes'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   const WINTER = 3,
     SPREAD = 6; // the days from winter's first over which the visits planned at the round set out, by household (Rules for cost, 5)
   // @state st.visits[]: the visits planned and not yet set out, in the order of `due`, then of planning: {pawn, village, due, household}:
@@ -209,6 +210,12 @@ VB['sim/visits'] = (() => {
   });
   on('died', (st, d) => {
     st.pawns[d.pawn].visited = null;
+  });
+  // visit(village) (VB-289; design.md, Between villages: The suitor's visit): an unmarried pawn plans a winter's visit to a village beyond
+  // a day's walk, there and back on its household's food; it sets out on its winter morning (sim/visits)
+  register('visit', {
+    check: (st, c) => living(st, c.actor) || visitWhy(st, c.actor, c.target),
+    run: (st, c) => planVisit(st, c.actor, c.target),
   });
   return { visitWhy, planVisit, seekVisit, visitsDue, visitChoices, visitState, orderVisit };
 })();

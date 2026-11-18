@@ -1,6 +1,7 @@
 // @sys sim/settle: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
 VB['sim/settle'] = (() => {
-  const { issue } = VB['sim/commands'];
+  const { living } = VB['sim/records'];
+  const { issue, register } = VB['sim/commands'];
   const Offers = VB['sim/offers'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['gen'];
@@ -481,6 +482,32 @@ VB['sim/settle'] = (() => {
       }
     }
   }
+  // leave({from, party: {all, followers}, house, field, village}): the actor's party leaves village `from` to settle at `house` with its first
+  // `field`: in the small village `village` if given, else founding a new one; provisions as the round reckons them
+  register('leave', {
+    check: (st, c) => {
+      const a = c.args || {};
+      if (!st.villages[a.from]) return `there is no village ${a.from}`;
+      if (!a.party || !Array.isArray(a.party.all) || a.party.all[0] !== c.actor)
+        return 'the party must be led by the actor';
+      for (const id of a.party.all) {
+        const dead = living(st, id);
+        if (dead) return dead;
+      }
+      if (![a.house, a.field].every((t) => Number.isInteger(t) && t >= 0 && t < st.w.N))
+        return 'the house and field must be tiles';
+      if (a.village !== undefined && !st.villages[a.village]) return `there is no village ${a.village}`;
+      return provisions(st, a.party.all) ? null : 'the family cannot spare the grain';
+    },
+    run: (st, c) => {
+      const a = c.args,
+        home = st.villages[a.from],
+        party = { all: a.party.all, followers: a.party.followers || [] };
+      const prov = provisions(st, party.all);
+      if (a.village !== undefined) settleFarm(st, st.villages[a.village], home, party, a.house, a.field, prov);
+      else found(st, home, st.pawns[c.actor], party, { house: a.house, field: a.field }, prov);
+    },
+  });
   return {
     waitingByVillage,
     markCrowded,

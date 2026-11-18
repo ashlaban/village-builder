@@ -1,4 +1,5 @@
-// VB-176: enforce module order, including deferred lookups; command dispatch is the only upward door.
+// VB-176: enforce module order, including deferred lookups. VB-228: the verbs are registered by their modules, so the dispatcher has no
+// door upward and the modules form no cycle; `issue` may still be looked up from any module.
 const assert = require('assert'), { parse } = require('acorn');
 const { build } = require('../tools/writes.js'), { dependencies, violations } = require('../tools/dependencies.js');
 const fs = require('fs'), path = require('path');
@@ -6,7 +7,9 @@ const { loadLayers, missingLayers, upward } = require('../tools/dependencies.js'
 const r = build();
 assert.deepStrictEqual(violations(r.deps), []);
 assert(!r.deps.find((d) => d.mod === 'sim/expansion').lookups.some((l) => l.key === 'sim/farmclaims'));
-assert(r.loops.every((l) => l.via.includes('sim/commands')), 'every cycle goes through command dispatch');
+assert.deepStrictEqual(r.loops, [], 'the modules form no cycle');
+assert.deepStrictEqual(r.deps.find((d) => d.mod === 'sim/commands').imports, ['sim/registry'], 'sim/commands imports no domain');
+assert.deepStrictEqual(r.deps.find((d) => d.mod === 'sim/commands').lookups, [], 'and looks none up');
 // VB-172/174/175: the writes map's owners, and no direct founding lookup (in tests/tools.js until VB-856, on this same build)
 const fieldW = (k) => (r.fields.find((f) => f.field === k) || { writers: [] }).writers;
 assert.strictEqual(fieldW('st.owner').join(), 'sim/ownership', 'writes map: st.owner has one writer');
@@ -15,7 +18,7 @@ assert(fieldW('household.grain').includes('sim/stores'), 'writes map: household 
 for (const [from, target] of [['sim/farmclaims', 'sim/heirs'], ['sim/expansion', 'sim/cottage']]) {
   const dep = r.deps.find((d) => d.mod === from);
   assert(dep && !dep.lookups.some((l) => l.key === target), `writes map: direct founding lookup ${from} → ${target}`);
-  assert(dep && dep.lookups.some((l) => l.key === 'sim/commands'), `writes map: missing command lookup in ${from}`);
+  assert(dep && dep.imports.includes('sim/commands'), `writes map: ${from} founds through a command`);
 }
 
 function errors(src, mod = 'early') {
@@ -39,8 +42,7 @@ assert.deepStrictEqual(errors(wrap("const ok = () => VB['earlier'];")), []);
 assert.deepStrictEqual(errors(wrap("const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);")), []);
 assert.deepStrictEqual(errors(wrap("const issue = (st, cmd) => VB['sim/commands']['issue'](st, cmd);")), []);
 assert.deepStrictEqual(errors(wrap("// VB.late\nconst text = 'VB.late';")), []);
-assert.deepStrictEqual(errors(wrap("const later = (key) => VB[key]; const run = () => later('late').act();"), 'sim/commands'), []);
-assert(errors(wrap('const bad = (key) => VB[key];'), 'sim/commands').length === 1, 'no blanket commands exemption');
+assert(errors(wrap("const later = (key) => VB[key]; const run = () => later('late').act();"), 'sim/commands').length === 1, 'the dispatcher has no exemption (VB-228)');
 
 // VB-230: every module has a layer; upward calls (by pair of modules) are held to a baseline that only falls.
 const L = loadLayers(), BASE = path.join(__dirname, 'layers-baseline.json');
@@ -59,4 +61,4 @@ if (process.argv.includes('--update')) {
   if (total < base.total) console.log(`dependencies: ${total} upward calls, baseline ${base.total}: run --update to lower it`);
 }
 console.log(`dependencies: layers ${total} upward calls (baseline ${Math.min(base.total, total)});`);
-console.log(`dependencies: module order enforced; ${r.loops.length} cycle witnesses all through commands`);
+console.log('dependencies: module order enforced; no cycle');
