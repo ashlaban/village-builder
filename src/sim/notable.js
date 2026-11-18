@@ -312,6 +312,7 @@ VB['sim/notable'] = (() => {
     family: 'A birth, marriage or death in its household or line',
     farm: 'A farm inherited in its household or line, or left empty, claimed or built in its village',
     custom: 'A change of custom in its village',
+    cause: 'It takes up a cause on its own',
     hunger: 'Hunger in its household',
     occasion: 'A wedding or a funeral ale that concerns it begins',
     offer: 'An offer that waits for its answer',
@@ -424,6 +425,7 @@ VB['sim/notable'] = (() => {
     const k = ev.kind;
     if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
     if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
+    if (k === 'cause') return ev.reason === 'natural' && ev.pawn === about ? 'cause' : null;
     if (k === 'cottage' && !ev.pawn && ev.pawn !== 0) return null; // a house raised onto stone asks nothing (VB-1101); a settling names its pawn
     if (FARM.has(k))
       return (vid !== null && ev.village === vid) || (hid !== null && ev.household === hid) || concerns(st, ev, about)
@@ -453,6 +455,11 @@ VB['sim/notable'] = (() => {
       }
       const ev = st.record[from.n++],
         why = stopsFor(st, ev, pl.pawn, hid, vid);
+      if (why === 'cause') {
+        // the event's text is "Took up the cause: <custom>, <option>"; the player is told the option
+        const what = ev.text.replace(/^Took up the cause: [^,]*, /, '');
+        return { why, text: `${fullName(p)} has taken up a cause: ${what}`, ev, agenda: true };
+      }
       if (why) return { why, text: eventLine(st, ev), ev };
     }
     if (hid !== from.homeId) {
