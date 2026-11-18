@@ -22,6 +22,7 @@ at(st, YEAR + 8); // year 1, spring, day 0 of the season, 08:00
 const c = cal(st.t), [h0, h1] = st.villages[0].farmsteads.map((f) => st.households[st.farmsteads[f].household]);
 const p0 = st.plans.households.get(h0.id), p1 = st.plans.households.get(h1.id), f0 = st.farmsteads[h0.farmstead];
 for (const hh of [h0, h1]) empty(hh);
+for (const hh of [h0, h1]) { for (const id of hh.herds) { const hd = st.herds[id]; hd.household = null; hd.head = []; hd.ewes = hd.rams = hd.lambs = 0; } hh.herds = []; } // no herds, whatever the seeding's draws gave (VB-1107)
 check(Sim.supplyOutlook(st, h0.id) === null, 'before the first review, no outlook');
 check(Sim.supplyOutlook(st, 999) === null, 'no plan, no outlook');
 

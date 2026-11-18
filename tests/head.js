@@ -1,6 +1,6 @@
 // VB-253: the player as head. Every choice of a household's plan is a verb of sim/commands (target, tile, order, project, dropProject),
 // which the player in its head issues through Sim.head and the holder's own rule through the land step (source 'pawn'). On a tiny world
-// at seed 7: only the head may choose; a tile is chosen and the field is made there; a refused tile returns its reason; a raised hay
+// at seed 5 (7 before VB-1107's new custom shifted the draws): only the head may choose; a tile is chosen and the field is made there; a refused tile returns its reason; a raised hay
 // target is met by the next winter; a target, the hold on projects, the order and the project under way are set, checked and cleared.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim;
@@ -11,7 +11,7 @@ const Projects = VB['sim/projects'], { winterNeed } = VB['sim/herds'], { cowWant
 const map = Array.from({ length: 12 }, () => '.'.repeat(20));
 // One village of three farms: household 0 (8 people) wants more fields than it has.
 function scene(opt = {}) {
-  const st = tinyState(tinyWorld(map), [{ at: [9, 6], farms: 3, sizes: [8, 3, 6] }], { seed: 7, ...opt });
+  const st = tinyState(tinyWorld(map), [{ at: [9, 6], farms: 3, sizes: [8, 3, 6] }], { seed: 5, ...opt });
   const hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id);
   return { st, hh, f, plan };
 }

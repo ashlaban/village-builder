@@ -11,7 +11,8 @@ VB['sim/matching'] = (() => {
   const asksMatch = (st, id) => st.offers.some((o) => o.basis === 'match' && askerOf(o) === id);
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
-  const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age, personEvent } = VB['sim/records'];
+  const { settlementIdOf, kinDegree, spousesOf, wasWidowed, practice, fullName, spouseOf, age, personEvent } =
+    VB['sim/records'];
   const { heirRanking, heirFor } = VB['sim/heirs'];
   const { trustOfHolder } = VB['sim/ownership'];
   const { opinionOf } = VB['sim/relations'];
@@ -45,7 +46,20 @@ VB['sim/matching'] = (() => {
   // The closest degree each kinLimit option allows; siblings, half-siblings and direct lines (degree 2 or less) never marry.
   const kinOk = (st, a, b, cu, opt = cu.kinLimit) => {
     const d = kinDegree(st, a, b);
-    return d > 2 && d >= MARRIAGE.kinDegree[opt];
+    return d > 2 && d >= MARRIAGE.kinDegree[opt] && affinityOk(st, a, b, cu.affinity);
+  };
+  // Affinity (VB-1107): b is barred to a when b is blood kin of a spouse of a, within the option's civil degree (0 the direct line:
+  // a step-parent and stepchild, a parent-in-law and child-in-law), and the same the other way. A spouse's death does not end it. Reads
+  // the two pawns' spouses, each through kinDegree; no pass over pairs.
+  const affinityOk = (st, a, b, opt = 'line') => {
+    const lim = MARRIAGE.affinityDegree[opt];
+    if (lim < 0) return true;
+    for (const [x, y] of [
+      [a, b],
+      [b, a],
+    ])
+      for (const s of spousesOf(st, x)) if (s !== y && kinDegree(st, s, y) <= lim) return false;
+    return true;
   };
   // ---- a day's walk and the visit (VB-289; design.md, Between villages: The suitor's visit) ----
   // The year (floor(t / YEAR)) of the last moving round over by time t: this year's once its last day has ended, else last year's.
