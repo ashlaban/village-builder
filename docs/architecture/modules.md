@@ -155,6 +155,12 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   household can spare a ration a day away above its seed and its means (else the log says he stays, `visitOff`). The journey is
   `sim/away`'s (`visit`: there, a day as a guest at the green, and back; `2 x ceil(hours / 12) + TRAVEL.stay` days); on arrival
   `sim/away` emits `visited` and this module writes `pawn.visited = {village, year}` and the event.
+  The player's journey (VB-292): `visitChoices` lists, for any pawn, the villages it might visit (nearest first, at most 5, with
+  the days and the pack by its own reckoning), which `sim/opportunities` turns into items (`when: 'winter'`) for the pawn and for
+  each son or daughter of the house it speaks for; `orderVisit` (`Sim.orderVisit`) issues the same verb for the played pawn or one
+  it speaks for, the visitor as actor; `visitState` (`Sim.visitState`) is what the sheet shows of a visit planned or under way.
+  A woman's visit is read from her side: `poolFor` adds a woman who visited the village to its round's pool (one read of the
+  asking queue a village's round, `guestWalk`), since the round's men choose. The module loads after `sim/matching`.
 - The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
   (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,

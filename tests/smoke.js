@@ -513,6 +513,36 @@ async function actionBar() {
   if (home.getAttribute('aria-disabled') === 'true' ? !/^Go home: /.test(said) : !queue().includes('goHome') || !/^Queued: Go home/.test(said)) {
     fail(`Go home from the Myself list: ${said} ${queue()}`); }
   Sim.unqueue(st, 0);
+  // a winter's visit (VB-292): the Myself list offers it by village, with its days and its pack, for the pawn and for one it speaks for; a
+  // click plans it at once (Sim.orderVisit), and the sheet says what is planned and what is under way. On constructed items: the tiny
+  // map has no village beyond a day's walk (the simulation's side is tests/journeys.js).
+  {
+    const real = { o: Sim.opportunities, v: Sim.orderVisit, s: Sim.visitState }, calls = [], place = st.villages[0].name;
+    const it = (name, why) => ({ verb: 'visit', target: 0, args: null, holder: null, basis: 'self', fit: null, why, kind: null, when: 'winter',
+      visit: { who: holder.id, name, place, days: 5, rations: 5 } });
+    Sim.opportunities = (s, id, near) => [...real.o(s, id, near), it(null, null), it('Kari Olsdotter', 'Kari Olsdotter has planned a visit already')];
+    Sim.orderVisit = (s, who, v) => { calls.push([who, v]); return true; };
+    let state = null; Sim.visitState = () => state;
+    q('#actBar [data-group="self"]').click(); tick(1); if (q('#actMenu').hidden) { q('#actBar [data-group="self"]').click(); tick(1); }
+    const row = (name) => [...doc.querySelectorAll('#actMenu .act-row')].find((b) => b.querySelector('.nm').firstChild.textContent === name);
+    const own = row(`Visit ${place}`), sent = row(`Send Kari Olsdotter to visit ${place}`);
+    if (!own || !sent) fail(`the Myself list offers no visit: ${[...doc.querySelectorAll('#actMenu .act-row .nm')].map((n) => n.firstChild.textContent)}`);
+    else {
+      if (!/5 days away on 5 rations/.test(own.textContent) || !own.querySelector('svg')) fail(`the visit's row lacks its days, its pack or its icon: ${own.textContent}`);
+      if (sent.getAttribute('aria-disabled') !== 'true' || !/planned a visit already/.test(sent.textContent)) fail(`a barred visit does not say why: ${sent.textContent}`);
+      own.click(); tick(1);
+      const msg = q('#actMenu .act-msg') ? q('#actMenu .act-msg').textContent : '';
+      if (JSON.stringify(calls) !== JSON.stringify([[holder.id, 0]]) || !/^The visit is planned/.test(msg)) fail(`a visit clicked: ${JSON.stringify(calls)} "${msg}"`);
+      if (queue().length) fail('a visit is planned at once, not queued');
+      state = { village: 0, state: 'planned', due: st.t + Sim.DAY }; q('#queueBtn').click(); tick(1);
+      if (!new RegExp(`A visit to ${place} is planned: you set out on \\w+ day \\d+`).test(q('#playTop').textContent)) fail(`the sheet does not say the visit planned: ${q('#playTop').textContent.slice(0, 300)}`);
+      state = { village: 0, state: 'away', daysLeft: 3 }; win.renderActions ? win.renderActions() : tick(20);
+      if (!new RegExp(`On a visit to ${place}: 3 days left, by your pack`).test(q('#playTop').textContent)) fail(`the sheet does not say the days left: ${q('#playTop').textContent.slice(0, 300)}`);
+      q('#queueBtn').click(); tick(1);
+      console.log('action bar, a visit:', own.textContent, '|', sent.textContent);
+    }
+    Sim.opportunities = real.o; Sim.orderVisit = real.v; Sim.visitState = real.s;
+  }
   // the agenda: a cause is no act of the Village list; the dock's Agenda offers each custom's other options, queues one, and links to the customs
   q('#actBar [data-group="village"]').click(); tick(1);
   if ([...doc.querySelectorAll('#actMenu .act-row')].some((b) => /cause/i.test(b.textContent))) fail('the Village list still offers a cause');

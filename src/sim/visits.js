@@ -1,15 +1,16 @@
 // @sys sim/visits: the suitor's visit, planned (VB-289; design.md, Between villages: The suitor's visit): a man who found nobody to ask
 //   within a day's walk at his village's round chooses the nearest village beyond it that holds a woman he could marry (seekVisit) and
-//   plans a visit there by the verb `visit`; the plans wait in a due-queue and are set out in winter (visitsDue), as journeys of sim/away
+//   plans a visit there by the verb `visit`; the plans wait in a due-queue and are set out in winter (visitsDue), as journeys of sim/away;
+//   the villages any pawn might visit (visitChoices), a visit's state for its sheet and the played pawn's order for one (VB-292)
 VB['sim/visits'] = (() => {
   const { DAY, YEAR, SEASON_DAYS, YEAR_DAYS, WORK, HUNGER, MARRIAGE, ASK, TRAVEL } = VB['sim/rules'];
   const { on } = VB['sim/events'];
-  const { log, personEvent, age, spouseOf, wasWidowed, settlementIdOf, practice, fullName, atHousehold } =
+  const { log, personEvent, age, spouseOf, wasWidowed, settlementIdOf, practice, fullName, atHousehold, spokesmanOf } =
     VB['sim/records'];
   const { hoursBetween } = VB['sim/routes'];
   const { dailyNeed, rationOf } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
-  const { travelling } = VB['sim/agents'];
+  const { travelling, stayOf } = VB['sim/agents'];
   const { visit, visitDays } = VB['sim/away'];
   const { kinOk, matchScore, matchRules, meansOf, roundYear } = VB['sim/matching'];
   const { wishOf } = VB['sim/wishes'];
@@ -81,39 +82,97 @@ VB['sim/visits'] = (() => {
       { kind: 'visitOff', pawn: p.id, ...atHousehold(st, hh) },
     );
   }
+  // Those pawn p of village v might marry who live beyond a day's walk of it and within walking reach, the nearest village first: the
+  // unmarried of the other sex, of age, fed, not retired, not wishing otherwise, each {f (the pawn), fv (its village), h (the hours)}.
+  // Read from the asking queue, as an asking reads the unmarried; `counted`: a visit sought at the round (visitWalk).
+  function farSingles(st, p, v, counted) {
+    const cands = [];
+    for (const e of st.asking) {
+      if (counted) {
+        VB.count.visitWalk++;
+      }
+      const f = st.pawns[e.pawn];
+      if (f.sex === p.sex || !f.alive || f.retired || f.household === null || f.hunger >= HUNGER.marryBelow) continue;
+      if (age(st, f) < (f.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom) || spouseOf(st, f.id) !== null) continue;
+      if (f.wish && wishOf(st, f.id, 'match') === false) continue;
+      const fv = settlementIdOf(st, f),
+        h = fv === null || fv === v ? 0 : hoursBetween(st, v, fv);
+      if (h > TRAVEL.dayWalk && h < Infinity) cands.push({ f, fv, h });
+    }
+    return cands.sort((a, b) => a.h - b.h || a.fv - b.fv || a.f.id - b.f.id);
+  }
+  // Whether pawns p and q, a man and a woman, could be matched by the round's rules but for the way between them: the kin limit of the
+  // man's village's custom; a home under the residence custom; the score, its noise at the mean, reaching MARRIAGE.minScore.
+  function suits(st, p, q, rules) {
+    const [m, f] = p.sex === 'm' ? [p, q] : [q, p],
+      cu = practice(st, settlementIdOf(st, m));
+    if (!kinOk(st, m.id, f.id, cu) || rules.homeFor(m, f, cu, rules.place(m.id)) === null) return false;
+    const widowed = wasWidowed(st, m.id) || wasWidowed(st, f.id);
+    return matchScore(st, { ...m, age: age(st, m) }, { ...f, age: age(st, f) }, 0.5, widowed) >= MARRIAGE.minScore;
+  }
   // Man id found nobody he could ask at his village's round (sim/round): the nearest village beyond a day's walk and within walking reach
-  // that holds a free woman he could marry (unmarried, of age, fed, not retired, not wishing otherwise; the kin limit of his village's
-  // custom; a home under the residence custom; the score, its noise at the mean, reaching MARRIAGE.minScore), and his plan to visit it,
-  // by the verb. The unmarried women are read from the asking queue (visitWalk), as an asking reads them. A man whose household cannot
+  // that holds a free woman he could marry (farSingles, suits), and his plan to visit it, by the verb. A man whose household cannot
   // spare the food stays, and the log says so. `rules`: the round's memos of homes and heirs (sim/matching matchRules).
   function seekVisit(st, id, rules = matchRules(st)) {
     const p = st.pawns[id],
       hh = p.household === null ? null : st.households[p.household],
       v = settlementIdOf(st, p);
     if (!hh || v === null || p.servant || st.visits.some((e) => e.pawn === id)) return;
-    const cands = [];
-    for (const e of st.asking) {
-      VB.count.visitWalk++;
-      const f = st.pawns[e.pawn];
-      if (f.sex !== 'f' || !f.alive || f.retired || f.household === null || f.hunger >= HUNGER.marryBelow) continue;
-      if (age(st, f) < MARRIAGE.womenFrom || spouseOf(st, f.id) !== null) continue;
-      if (f.wish && wishOf(st, f.id, 'match') === false) continue;
-      const fv = settlementIdOf(st, f),
-        h = fv === null || fv === v ? 0 : hoursBetween(st, v, fv);
-      if (h > TRAVEL.dayWalk && h < Infinity) cands.push({ f, fv, h });
-    }
-    cands.sort((a, b) => a.h - b.h || a.fv - b.fv || a.f.id - b.f.id);
-    const cu = practice(st, v),
-      pm = rules.place(id),
-      me = { ...p, age: age(st, p) };
-    for (const { f, fv } of cands) {
-      if (!kinOk(st, id, f.id, cu) || rules.homeFor(p, f, cu, pm) === null) continue;
-      const widowed = wasWidowed(st, id) || wasWidowed(st, f.id);
-      if (matchScore(st, me, { ...f, age: age(st, f) }, 0.5, widowed) < MARRIAGE.minScore) continue;
+    for (const { f, fv } of farSingles(st, p, v, true)) {
+      if (!suits(st, p, f, rules)) continue;
       if (!spares(st, hh, visitDays(hoursFrom(st, hh, fv)) * rationOf(st, p))) return keptHome(st, p, hh, fv);
       issue(st, { actor: id, verb: 'visit', target: fv, source: 'round' });
       return;
     }
+  }
+  // The villages pawn id might visit (VB-292; what sim/opportunities lists, for any pawn): those beyond a day's walk and within walking
+  // reach that hold one it could marry (farSingles, suits), the nearest first, at most VISIT_CHOICES, each {village, days (away, there and
+  // back and as a guest), rations (its pack, from its household's grain)}: the pawn's own reckoning of the way (principle 14). None for
+  // one married, under age or of no household. Read-only, and not counted: it is asked for a view, never by a step.
+  const VISIT_CHOICES = 5;
+  function visitChoices(st, id) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household],
+      v = settlementIdOf(st, p),
+      out = [];
+    if (!p.alive || !hh || hh.dissolved || hh.farmstead === null || v === null || spouseOf(st, id) !== null) return out;
+    if (age(st, p) < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) return out;
+    const seen = new Set();
+    let rules = null;
+    for (const { f, fv } of farSingles(st, p, v, false)) {
+      if (seen.has(fv) || !suits(st, p, f, rules || (rules = matchRules(st)))) continue;
+      seen.add(fv);
+      const days = visitDays(hoursFrom(st, hh, fv));
+      out.push({ village: fv, days, rations: days * rationOf(st, p) });
+      if (out.length >= VISIT_CHOICES) break;
+    }
+    return out;
+  }
+  // Pawn id's visit, as its sheet shows it (VB-292): null, or {village, state: 'planned', due (the game time it sets out)}, or {village,
+  // state: 'away', daysLeft: the days its pack still feeds it, which is the visitor's own estimate of the days until it is home}.
+  function visitState(st, id) {
+    const e = st.visits.find((x) => x.pawn === id);
+    if (e) return { village: e.village, state: 'planned', due: e.due };
+    const a = st.agents[id],
+      j = a && a.away !== undefined ? stayOf(st, id) : null;
+    if (!j || j.why !== 'visit' || j.village === undefined) return null;
+    return {
+      village: j.village,
+      state: 'away',
+      daysLeft: Math.max(1, Math.ceil(j.food / rationOf(st, st.pawns[id]) - 1e-9)),
+    };
+  }
+  // The played pawn plans a winter's visit (VB-292; design.md, Between villages: The player's journey), for itself or, where it speaks
+  // for an unmarried son or daughter of its house (sim/records spokesmanOf), for that one: the visit is the visitor's own act, by the
+  // verb `visit`, whose check holds for any pawn; at once, not queued (a plan takes no time). True, or why not.
+  function orderVisit(st, who, v) {
+    const pl = st.player,
+      q = st.pawns[who];
+    if (!pl) return 'no pawn is played';
+    if (!q) return `there is no pawn ${who}`;
+    if (who !== pl.pawn && spokesmanOf(st, who) !== pl.pawn)
+      return `${fullName(st.pawns[pl.pawn])} does not speak for ${fullName(q)}`;
+    return issue(st, { actor: who, verb: 'visit', target: v, source: 'player' });
   }
   // Daily at 6:00: the visits due, from the head of the queue (Rules for cost, 4). A plan is dropped where its man has died, married,
   // retired, changed household (he took a farm, his home dissolved) or is away; one whose household can no longer spare the food, or who
@@ -151,5 +210,5 @@ VB['sim/visits'] = (() => {
   on('died', (st, d) => {
     st.pawns[d.pawn].visited = null;
   });
-  return { visitWhy, planVisit, seekVisit, visitsDue };
+  return { visitWhy, planVisit, seekVisit, visitsDue, visitChoices, visitState, orderVisit };
 })();

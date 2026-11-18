@@ -40,6 +40,7 @@ const VERB_WORDS = {
   claim: 'Claim an empty farm',
   serve: 'Take service',
   give: 'Give grain',
+  visit: 'Visit a village',
 };
 // A command in words: a queued one, or an opportunity (which also has its kind and holder).
 function commandWords(c) {
@@ -259,6 +260,17 @@ function renderActions() {
   // the pawn's levels and its household's supplies, as its card and the farm's show them (VB-664: one meter; VB-667: one supply component)
   h += `<div class="needs">${pawnStats(id)}${hh ? `<h3 class="card-sec">${esc(f.name)}</h3>${suppliesHTML(Sim.supplyOutlook(st, hh.id))}` : ''}</div>`;
   h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
+  // its winter's visit (VB-292): planned, with the day it sets out; under way, with the days left by its own pack (principle 14)
+  const vs = Sim.visitState(st, id);
+  if (vs) {
+    const place = esc(st.villages[vs.village].name),
+      c = Sim.cal(vs.due || 0);
+    h += `<p class="doing">${
+      vs.state === 'planned'
+        ? `A visit to ${place} is planned: you set out on ${Sim.SEASONS[c.season].toLowerCase()} day ${c.sday + 1}.`
+        : `On a visit to ${place}: ${vs.daysLeft} ${vs.daysLeft === 1 ? 'day' : 'days'} left, by your pack.`
+    }</p>`;
+  }
   h +=
     `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>` +
     `<button type="button" data-play="follow" aria-pressed="${followPlayed}">Follow</button></div>`;
@@ -317,6 +329,7 @@ function playClick(b) {
   } else if (act === 'follow') followPlayed = !followPlayed;
   else if (act === 'unqueue') r = Sim.unqueue(st, +b.dataset.i);
   else if (act === 'wish') r = Sim.wish(st, b.dataset.kind, JSON.parse(b.dataset.value));
+  else if (act === 'visit') r = Sim.orderVisit(st, +b.dataset.who, +b.dataset.village);
   else if (act === 'do') {
     const c = JSON.parse(b.dataset.cmd);
     r = Sim.queue(st, {
