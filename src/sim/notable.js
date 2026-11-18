@@ -249,19 +249,32 @@ VB['sim/notable'] = (() => {
     const eve = Math.floor(t / YEAR) * YEAR + (2 * SEASON_DAYS + 9) * DAY + WORK[0];
     return eve > t ? eve : eve + YEAR;
   }
-  // Where a skip begins, for skipStop: plain data the page keeps, {t, n (the record's length: events before it are passed), eve (the game
+  // Where a skip begins, for skipStop: plain data the page keeps, {t, pawn (the pawn played), n (the record's length: events before it
+  // are passed), at and end (the game hour and the record's length when it was last asked), pass (a stretch of the record to pass, or
+  // null: skipFrom, below), eve (the game
   // hour of the latest stop), homeId, short, hungry (the played pawn's household, its short meals so far, and whether it hungers
   // already), offer (the id the next offer will have, VB-293: the offers open when it began, and any older, do not stop it, and each
   // that does stops it once), occ (the ids of the occasions already judged, VB-1031: those on when it began, and each since)}; null when no
   // pawn is played.
-  function skipFrom(st) {
+  // A skip begun where the last one stopped (VB-1108): `last` is the last skip's cursor, and when the same pawn is played and no step
+  // has run since it was last asked (last.at), the new skip goes on with it: the events of the stopping step it had not reached are read
+  // first, and its hunger, offers and occasions stand as judged. What the record gained while the game stood (pass: the player's own
+  // acts, which it saw) is passed. Once a step has run between the two (the game ran at a speed), the new skip begins at the record's
+  // end, as with no `last`.
+  function skipFrom(st, last) {
     const pl = st.player;
     if (!pl) return null;
+    if (last && last.pawn === pl.pawn && last.at === st.t && last.end <= st.record.length)
+      return { ...last, t: st.t, eve: roundEve(st.t), pass: [last.end, st.record.length], occ: last.occ.slice() };
     const hid = st.pawns[pl.pawn].household,
       hh = hid !== null ? st.households[hid] : null;
     return {
       t: st.t,
+      pawn: pl.pawn,
       n: st.record.length,
+      at: st.t,
+      end: st.record.length,
+      pass: null,
       eve: roundEve(st.t),
       homeId: hid,
       short: hh ? hh.hungryDays : 0,
@@ -342,7 +355,8 @@ VB['sim/notable'] = (() => {
     return CUSTOM.has(k) && vid !== null && ev.village === vid ? 'custom' : null;
   }
   // Has a skip begun at `from` (skipFrom) reached a stop: null, or {why (a key of SKIP), text (a sentence), ev (the record event, if one)}.
-  // Asked after each step; it reads the events the record has gained since the last ask (from.n moves on), st.player and the clock, and
+  // Asked after each step; it reads the events the record has gained since the last ask (from.n moves on; a stop leaves the rest of its
+  // step's events for the next ask, or the next skip: skipFrom), st.player and the clock, and
   // writes nothing to st, so a skipped run is the run played (rule 7). The eve of the moving round always stops it, within a year.
   function skipStop(st, from) {
     const pl = st.player;
@@ -351,7 +365,15 @@ VB['sim/notable'] = (() => {
       hid = p.household,
       vid = settlementIdOf(st, p),
       hh = hid !== null ? st.households[hid] : null;
+    from.at = st.t;
+    from.end = st.record.length;
+    if (!from.occ) from.occ = []; // a cursor of before VB-1031
     while (from.n < st.record.length) {
+      if (from.pass && from.n >= from.pass[0]) {
+        from.n = Math.max(from.n, from.pass[1]); // what was written while the game stood, between two skips
+        from.pass = null;
+        continue;
+      }
       const ev = st.record[from.n++],
         why = stopsFor(st, ev, pl.pawn, hid, vid);
       if (why) return { why, text: eventLine(st, ev), ev };
@@ -368,7 +390,6 @@ VB['sim/notable'] = (() => {
         return { why: 'hunger', text: `${st.farmsteads[hh.farmstead].name} had too little to eat today.` };
       }
     }
-    if (!from.occ) from.occ = []; // a cursor of before VB-1031
     // a wedding or a funeral ale stops it; the rite, the meeting and an ale evening come round too often to (measured, VB-1031: 176 of
     // them in a founder's 24 years beside 45 other stops), and are told by the page's notice alone
     const g = gatherings(st, pl.pawn, from.occ).find((x) => x.rare);
