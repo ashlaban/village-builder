@@ -5,7 +5,8 @@
 //   where no pawn acts yet, the giving or taking party itself, {household} or {village}), basis (a key of BASES), gives, wants (the
 //   basis's terms, plain data, or null: a want with nothing given is an ask, a gift wants nothing), made, due (game hours), answers[]
 //   ({key, by (a pawn id), yes: null | true | false}: who must say yes, the asked first), and the basis's own fields (the parties of
-//   goods, {from, to} refs; a match's village, its `asker` where the woman's side asks, and the asking spokesman's `fancy`)}. An offer is kept only while an answer is owed past the moment it was made: one answered
+//   goods, {from, to} refs; a match's village, its `asker` where the woman's side asks, and the asking spokesman's `fancy`)}.
+//   An offer is kept only while an answer is owed past the moment it was made: one answered
 //   at once never enters and takes no id, so with no player and nothing due later the queue stays empty. Plain data, saved; an answered
 //   or lapsed offer leaves it.
 // @state st.offerSeq: number; the next kept offer's id; ids are never reused
