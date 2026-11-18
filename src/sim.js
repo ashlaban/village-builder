@@ -32,7 +32,7 @@ const Sim = (() => {
     villageLog,
     SKIP,
     skipFrom,
-    skipStop,
+    skipStop: skipStopWith,
     gatherings,
   } = VB['sim/notable'];
   const { describe: doing } = VB['sim/agents'],
@@ -55,11 +55,21 @@ const Sim = (() => {
   const { inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head } = VB['sim/player'];
   const { headView } = VB['sim/plans'];
   const { wishesOf } = VB['sim/wishes']; // a pawn's wish at the moving round, kind by kind (VB-680)
-  const { actorView, forPawn, successors, succeed } = VB['sim/opportunities'];
+  const { actorView, forPawn, successors, succeed, roundChoice } = VB['sim/opportunities'];
   const { visitState, orderVisit } = VB['sim/visits']; // a pawn's visit, planned or under way, and the played pawn's order for one (VB-292)
   const { villageSummary, villageOutlookOf, OVERVIEW } = VB['sim/overview']; // a village at a glance, for its card and tools/sim.js (VB-162)
   const { meansOf, marryStanding } = VB['sim/matching']; // the means to marry a home holds, and what stands between a pawn and a marriage (VB-631)
   const { supplyOutlook } = VB['sim/outlook']; // how long a household's supplies last, by its head's last review (VB-666)
+  // The skip's stop (VB-1101): sim/notable asks, at the round's eve, for a choice the round will read and for the year's food in brief.
+  const skipAids = {
+    choice: roundChoice,
+    brief(st, vid) {
+      if (vid === null) return '';
+      const s = villageSummary(st, vid);
+      return `the last harvest ${Math.round(s.harvest.rations)} rations, the village's food lasts ${Math.round(s.food.days)} days`;
+    },
+  };
+  const skipStop = (st, from) => skipStopWith(st, from, skipAids);
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
   const { compat, bond, bondWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
