@@ -318,6 +318,16 @@ const BOND_PATHS = {
   enemy: '<path d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5M17 17l3 3M7 17l-3 3"/>',
 };
 const bondIcon = (k) => svgIcon(24, 24, BOND_PATHS[k], ICON_STROKE);
+// The occasions (sim/occasions; VB-1032), one icon a kind, each an icon the interface has already: the two bubbles of who speaks, the
+// cross of piety, the rings, the tear of the grieving, the tankard. The map's mark of a gathering draws the same path (page/gathering).
+const OCCASION_PATHS = {
+  meeting: TRAIT_PATHS.sociability,
+  rite: TRAIT_PATHS.piety,
+  wedding: GOOD_PATHS.married,
+  funeral: GOOD_PATHS.grieving,
+  ale: GOOD_PATHS.ale,
+};
+const occasionIcon = (k) => svgIcon(24, 24, OCCASION_PATHS[k], ICON_STROKE);
 for (const k of ['me', 'home', 'village', 'queue']) ICON['act-' + k] = actIcon(k);
 // A button marked data-icon="name" takes that icon before its content (a dock button keeps its label under it).
 for (const b of document.querySelectorAll('[data-icon]')) b.insertAdjacentHTML('afterbegin', ICON[b.dataset.icon]);

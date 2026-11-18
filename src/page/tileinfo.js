@@ -182,6 +182,11 @@ function pick(sx, sy, inspect = true) {
     toolTap(pw, labelAt(x, y), loc(x, y, [0, 0]));
     return;
   } // the action bar's tool waits for a tile (page/actbar)
+  const og = inspect ? gatheringAt(x, y) : -1; // a gathering's mark, over its people's heads, opens its card (VB-1032, page/gathering)
+  if (og >= 0) {
+    selectGathering(og);
+    return;
+  }
   if (pw >= 0) {
     if (inspect || pw !== selPawn) selectPawn(pw, inspect);
     return;

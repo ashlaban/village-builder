@@ -446,7 +446,9 @@ function endSkip(stop) {
     id = st.player ? st.player.pawn : -1,
     f = ev && ev.farm !== undefined ? st.farmsteads[ev.farm] : null;
   setSpeed(0);
-  if (f) flyTo(w.hx[f.house], w.hy[f.house]);
+  if (stop.spot)
+    flyTo(stop.spot.x, stop.spot.y); // a gathering as it begins (VB-1031): where its people stand
+  else if (f) flyTo(w.hx[f.house], w.hy[f.house]);
   else if (ev && ev.pawn !== undefined && st.pawns[ev.pawn].died === null) focusPawn(ev.pawn);
   else if (id >= 0 && st.pawns[id].died === null) focusPawn(id);
   skipNote = document.createElement('button');

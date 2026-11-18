@@ -414,6 +414,7 @@ function updateSettlement(dt) {
   drawTalk(show);
   drawLens();
   drawPlayMark();
+  drawGatherings(show); // a mark over each gathering that is on (VB-1032, page/gathering)
   drawToolMarks();
   drawPlanMarks();
   offerSuccession();
@@ -494,7 +495,8 @@ function updateSettlement(dt) {
     if (drawerTab) renderDrawer();
     if (st) renderActions();
     if (activePanel === 'tile' && !document.body.classList.contains('ui-hidden')) {
-      if (selPawn >= 0) showPawn(selPawn);
+      if (gatheringShown()) showGathering();
+      else if (selPawn >= 0) showPawn(selPawn);
       else if (selVillage >= 0) showVillage(selVillage);
       else if (sel >= 0 && (selFarm >= 0 || w.treesMax[sel] > 0)) showTile(sel);
     }

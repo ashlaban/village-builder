@@ -45,7 +45,9 @@ function selectVillage(id, fly = true) {
 // The key F and the card's button: bring what is selected to the middle of the view.
 function centreSelection() {
   if (!st || activePanel !== 'tile') return;
-  if (selPawn >= 0) {
+  const o = gatheringShown() ? st.occasions.find((x) => x.id === selOcc) : null; // a gathering's card (page/gathering): its spot
+  if (o) flyTo(o.x, o.y);
+  else if (selPawn >= 0) {
     const a = st.agents[selPawn],
       f = farmOf(st.pawns[selPawn]);
     if (a && (!a.inside || f)) {

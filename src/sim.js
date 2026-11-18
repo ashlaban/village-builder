@@ -21,8 +21,19 @@ const Sim = (() => {
     membersOf,
     voiceOf,
   } = VB['sim/records'];
-  const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog, SKIP, skipFrom, skipStop } =
-    VB['sim/notable'];
+  const {
+    recordOf,
+    NOTABLE,
+    notable,
+    eventLine,
+    CHRONICLE,
+    chronicle,
+    villageLog,
+    SKIP,
+    skipFrom,
+    skipStop,
+    gatherings,
+  } = VB['sim/notable'];
   const { describe: doing } = VB['sim/agents'],
     { occasionLabel, explainFeast } = VB['sim/occasions'];
   // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
@@ -197,6 +208,7 @@ const Sim = (() => {
     SKIP,
     skipFrom,
     skipStop,
+    gatherings, // the occasions that concern a pawn, as they begin (VB-1031)
     answer,
   };
 })();
