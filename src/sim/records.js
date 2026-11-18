@@ -81,6 +81,7 @@ VB['sim/records'] = (() => {
     visited: 0, // a suitor's visit to another village (VB-289)
     visitOff: GENERATION, // kept home by the farm's food
     matchRefused: 0,
+    marriedAgainst: 0, // one who courted another married the one its spokesman chose (sim/marriage, VB-693)
     leftRefused: 0, // left home for service after a head refused the one it courts (sim/service, VB-036)
     offerLapsed: 0,
     offerRefused: 0, // goods offered or asked for, refused (sim/offers, VB-690)

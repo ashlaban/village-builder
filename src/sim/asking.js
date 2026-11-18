@@ -1,15 +1,15 @@
 // @sys sim/asking: the asking day (VB-823; plan VB-682, sections 2, 3 and 7): each pawn who seeks reviews its wish on a day of its own once
 //   a season (the due-queue st.asking of sim/wishes) and, holding no open offer about its future, makes the one its best open rung asks
-//   for, due at the moving round, which answers it: a match, by its spokesman (the matcher's rule for one man, askMatch, which the round
+//   for, due at the moving round, which answers it: a match, by its spokesman (askMatch, which the round
 //   also uses to ask anew after a refusal), or an empty farm (the basis land); a plot, new land and service are still asked by the round's
 //   own walk until VB-697, VB-696 and VB-694 make them askings. An open offer whose people have died, married or taken a place lapses
 //   where it is next read (staleWhy: an asking, or the round). A holder's own day is its birthday: it considers handing the farm on
 //   (sim/marriage's rule, VB-824), by an offer due at the round.
 VB['sim/asking'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK } = VB['sim/rules'];
-  const { age, spouseOf, wasWidowed, settlementIdOf, practice, spokesmanOf, holdingOf, fullName } = VB['sim/records'];
-  const { kinOk, matchScore, matchRules, courts } = VB['sim/matching'];
+  const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK, cal } = VB['sim/rules'];
+  const { age, spouseOf, settlementIdOf, practice, spokesmanOf, holdingOf, fullName } = VB['sim/records'];
+  const { kinOk, sideScore, matchRules, courts, askerOf, askedOf, askedBy } = VB['sim/matching'];
   const { hoursBetween, byLand } = VB['sim/routes'];
   const { claimableFarm, askLand } = VB['sim/farmclaims'];
   const { placeIfMarried, heirRanking } = VB['sim/heirs'];
@@ -44,71 +44,89 @@ VB['sim/asking'] = (() => {
       return `${fullName(st.pawns[o.from])} has taken a place`;
     return null;
   }
-  // ---- the match, asked for one man (VB-692's matcher, for one pawn; plan, sections 2 and 4.1) ----
-  // Man m's spokesman offers him in marriage, due at `due`, to the best-scoring woman the round's rules allow (unmarried, of age, fed,
-  // not retired, not wishing otherwise; the kin limit of his village's custom; a home under the residence custom), of those within
-  // a day's walk or of a village one of the two visited (VB-288, VB-289) and asked by fewer than ASK.held open matches (who is spoken
-  // for is news), the nearest villages first, at
-  // most ASK.pool of them weighed (asksWeighed). The unmarried women of 18 or more are read from the asking queue, which holds every one
-  // of them (askWalk). `not`: one he may not ask (she has just refused him); `only`: the one he wishes; `roll`: the go-ahead draw of the
-  // round's matcher (MARRIAGE.goAhead). 'made', or what stood in the way: 'nobody', 'means' (the home cannot feed another mouth) or why
-  // the offer was refused.
-  function askMatch(st, m, due, { not = null, only = null, roll = false } = {}) {
-    const p = st.pawns[m],
-      v = settlementIdOf(st, p);
+  // ---- the match, asked for one pawn (VB-823, VB-693; plan VB-682, sections 2 and 4.1) ----
+  // Pawn id's spokesman offers it in marriage, due at `due`, to the best-scoring partner the gate allows (unmarried, of age, fed, not
+  // retired, not wishing otherwise, courting nobody; the kin limit of the man's village's custom; a home under the residence custom:
+  // the means are read at the round, by those who answer), of those within a day's walk or of a village one of the two visited (VB-288,
+  // VB-289), who ask in no open match themselves and are asked by fewer than ASK.held (who is spoken for is news), the nearest
+  // villages first, at most ASK.pool of them weighed (asksWeighed). The score is the spokesman's own reading (sim/matching sideScore):
+  // the fancy is drawn once for each weighed and the best one's is kept on the offer, and his opinion of the other spokesman counts.
+  // The unmarried of 18 or more are read from the asking queue, which holds every one of them (askWalk). `not`: one it may not ask
+  // (who has just refused it); `only`: the one it wishes. 'made', or what stood in the way: 'nobody', or why the offer was refused.
+  function askMatch(st, id, due, { not = null, only = null } = {}) {
+    const p = st.pawns[id],
+      v = settlementIdOf(st, p),
+      man = p.sex === 'm';
     if (v === null || Number.isInteger(p.courting)) return 'nobody'; // one who courts asks no other (askCourted, VB-036)
-    const asked = new Map();
-    for (const o of st.offers) if (o.basis === 'match') asked.set(o.wants.woman, (asked.get(o.wants.woman) || 0) + 1);
+    const asked = new Map(),
+      asks = new Set();
+    for (const o of st.offers)
+      if (o.basis === 'match') {
+        asked.set(askedOf(o), (asked.get(askedOf(o)) || 0) + 1);
+        asks.add(askerOf(o));
+      }
     const cands = [];
     for (const e of st.asking) {
       VB.count.askWalk++;
-      const id = e.pawn,
-        f = st.pawns[id];
-      if (f.sex !== 'f' || id === not || (only !== null && id !== only) || !f.alive || f.retired) continue;
-      if (f.household === null || f.hunger >= HUNGER.marryBelow || age(st, f) < MARRIAGE.womenFrom) continue;
-      if (spouseOf(st, id) !== null || (asked.get(id) || 0) >= ASK.held) continue;
-      if (Number.isInteger(f.courting) || (f.wish && wishOf(st, id, 'match') === false)) continue;
-      const fv = settlementIdOf(st, f);
-      if (fv === null || (fv !== v && !(byLand(st, v, fv) && courts(st, p, f, v, fv)))) continue; // a day's walk, or visited (VB-289)
-      cands.push({ f, h: fv === v ? 0 : hoursBetween(st, v, fv) });
+      const q = st.pawns[e.pawn];
+      if (q.sex === p.sex || q.id === not || (only !== null && q.id !== only) || !q.alive || q.retired) continue;
+      if (q.household === null || q.hunger >= HUNGER.marryBelow) continue;
+      if (age(st, q) < (man ? MARRIAGE.womenFrom : MARRIAGE.menFrom)) continue;
+      if (spouseOf(st, q.id) !== null || asks.has(q.id) || (asked.get(q.id) || 0) >= ASK.held) continue;
+      if (Number.isInteger(q.courting) || (q.wish && wishOf(st, q.id, 'match') === false)) continue;
+      const qv = settlementIdOf(st, q);
+      if (qv === null) continue;
+      const [vm, vf] = man ? [v, qv] : [qv, v];
+      if (qv !== v && !(byLand(st, vm, vf) && courts(st, man ? p : q, man ? q : p, vm, vf))) continue; // a day's walk, or visited (VB-289)
+      cands.push({ q, h: qv === v ? 0 : hoursBetween(st, v, qv), cu: practice(st, vm) });
     }
     cands.sort((a, b) => a.h - b.h);
-    const cu = practice(st, v),
-      rules = matchRules(st),
-      pm = rules.place(m),
-      me = { ...p, age: age(st, p) }; // the score reads the ages as of now
+    const rules = matchRules(st),
+      mine = rules.place(id),
+      speaker = spokesmanOf(st, id);
     let best = null,
       bs = -Infinity,
       n = 0;
-    for (const { f } of cands) {
+    for (const { q, cu } of cands) {
       if (n >= ASK.pool) break;
-      if (!kinOk(st, m, f.id, cu)) continue;
-      const home = rules.homeFor(p, f, cu, pm);
+      const [m, f] = man ? [p, q] : [q, p];
+      if (!kinOk(st, m.id, f.id, cu)) continue;
+      const home = man ? rules.homeFor(m, f, cu, mine) : rules.homeFor(m, f, cu, undefined, mine);
       if (home === null) continue;
       n++;
       VB.count.asksWeighed++;
-      const s = matchScore(
-        st,
-        me,
-        { ...f, age: age(st, f) },
-        rnd(st.rng.society),
-        wasWidowed(st, m) || wasWidowed(st, f.id),
-      );
+      const fancy = rnd(st.rng.society),
+        s = sideScore(st, m, f, fancy, speaker, spokesmanOf(st, q.id));
       if (s > bs) {
         bs = s;
-        best = { f, home };
+        best = { m, f, home, fancy, to: q.id };
       }
     }
-    if (!best || bs < MARRIAGE.minScore || (roll && rnd(st.rng.society) > MARRIAGE.goAhead)) return 'nobody';
-    if (!rules.affords(best.home)) return 'means';
+    if (!best || bs < MARRIAGE.minScore) return 'nobody';
     const r = issue(st, {
-      actor: spokesmanOf(st, m),
+      actor: speaker,
       verb: 'offer',
-      target: spokesmanOf(st, best.f.id),
-      args: { basis: 'match', gives: { man: m, home: best.home }, wants: { woman: best.f.id }, due, round: true },
+      target: spokesmanOf(st, best.to),
+      args: {
+        basis: 'match',
+        gives: { man: best.m.id, home: best.home },
+        wants: { woman: best.f.id },
+        due,
+        round: true,
+        fancy: best.fancy,
+      },
       source: 'asking',
     });
     return r === true && Number.isInteger(p.ask) ? 'made' : r === true ? 'nobody' : r;
+  }
+  // Whether a woman's side asks a match now (VB-693; plan, section 4.1): one who holds a farm and speaks for herself asks as a man
+  // does; another, asked by nobody, from the asking day of season ASK.womenFrom until the round is over.
+  // `late`: as on the last asking day before the round, whatever the season (a check that goes straight to the round).
+  function herSideAsks(st, id, late) {
+    if (holdingOf(st, id) !== null && spokesmanOf(st, id) === id) return true;
+    const c = cal(st.t),
+      before = c.season < AUTUMN || (c.season === AUTUMN && c.sday < ASK.day + ASK.passes);
+    return (late || (before && c.season >= ASK.womenFrom)) && askedBy(st, id) === 0;
   }
   // ---- the courting pair's own offer (VB-036; plan VB-682, sections 3 and 4.1) ----
   // Pawn id courts: the pair's offer, due at `due` (the round), if they hold none and the gate allows them: the ages to marry, the kin
@@ -146,13 +164,14 @@ VB['sim/asking'] = (() => {
   // ---- the asking ----
   // Pawn id's asking (plan, section 3): an open offer it holds lapses if its people have died, married or taken a place (it asks again on
   // its next day); else it reviews its wish (not the played pawn's: the player sets it) and walks its rungs, best first, to Stay: Heir
-  // (first in line at home: it stays, and asks no rung that leaves home), Marry (a man of age: askMatch; a woman's side asks from VB-693),
+  // (first in line at home: it stays, and asks no rung that leaves home), Marry (one of age: askMatch, the man's side, and a woman's by herSideAsks),
   // An empty farm (a landless adult who is not the heir it wishes to be: the farm it may claim, by the basis land), and the rest, which
   // the round's walk still asks for (and where it finds an heir staying).
-  // The played pawn's own asking makes no offer for it (it asks by the verb when it likes); its spokesman, if another and unplayed, asks
-  // its match as any member's unless its wish says not this year. What came of it: 'held', 'played', 'match', 'farm', 'round', 'nobody'
-  // (a rung it could ask found nobody) or 'stay'.
-  function askFor(st, id) {
+  // The played pawn's match, and that of one it speaks for, is asked as any pawn's, by its wish (as it would, the one it names, or not
+  // this year: VB-693, the round's matcher having gone, which did this for it): the player answers the offer, and its own rungs that
+  // leave home are its own to ask. What came of it: 'held', 'match', 'farm', 'round', 'nobody' (a rung it could ask found nobody) or
+  // 'stay'.
+  function askFor(st, id, late = false) {
     VB.count.askings++;
     const p = st.pawns[id],
       played = st.player ? st.player.pawn : null;
@@ -170,8 +189,6 @@ VB['sim/asking'] = (() => {
       const r = askCourted(st, id);
       if (r !== 'wait') return r === 'made' ? 'match' : 'held';
     }
-    const speaker = spokesmanOf(st, id);
-    if (speaker === played) return 'played';
     const rank = wishesOf(st, id).rank;
     let heirFirst = false,
       tried = false;
@@ -182,11 +199,12 @@ VB['sim/asking'] = (() => {
         continue;
       }
       if (r === 'match') {
-        if (courting || p.sex !== 'm' || spouseOf(st, id) !== null || age(st, p) < MARRIAGE.menFrom) continue;
+        if (courting || spouseOf(st, id) !== null) continue;
+        if (age(st, p) < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) continue;
+        if (p.sex !== 'm' && !herSideAsks(st, id, late)) continue;
         const w = wishOf(st, id, 'match');
         tried = true;
-        if (askMatch(st, id, dueRound(st), { only: typeof w === 'number' ? w : null, roll: true }) === 'made')
-          return 'match';
+        if (askMatch(st, id, dueRound(st), { only: typeof w === 'number' ? w : null }) === 'made') return 'match';
         continue;
       }
       if (id === played) break; // the rungs that leave home: the played pawn's own to ask

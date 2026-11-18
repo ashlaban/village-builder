@@ -86,4 +86,13 @@ function setPractice(st, vid, customs) {
     s.practice[k] = o;
   }
 }
-module.exports = { tinyWorld, tinyState, tileAt, setPractice, CHARS };
+// Every pawn who seeks makes the asking of its day now (sim/asking askFor, in the order of the queue, as late in the year), and what
+// they asked is due at the round's time today: the year's askings, for a check that goes straight to the moving round (Sim.movingRound
+// at any time), which chooses nobody and answers only what was asked (VB-693).
+function askAll(st) {
+  const VB = require('../../src/load.js'), noon = Math.max(st.t, Math.floor(st.t / 24) * 24 + 12);
+  for (const e of [...st.asking]) if (st.pawns[e.pawn].alive) VB['sim/asking'].askFor(st, e.pawn, true);
+  for (const o of st.offers) if (o.round) o.due = Math.min(o.due, noon);
+  st.offers.sort((a, b) => a.due - b.due || a.id - b.id);
+}
+module.exports = { tinyWorld, tinyState, tileAt, setPractice, askAll, CHARS };
