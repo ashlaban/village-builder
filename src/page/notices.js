@@ -63,6 +63,7 @@ if (window.ResizeObserver) new ResizeObserver(barBottom).observe($('clock'));
 window.addEventListener('resize', barBottom);
 barBottom();
 let noticeSt = null,
+  gatherSeen = [], // the occasions Sim.gatherings has judged for the played pawn (VB-1031); the page's, never saved
   noticeSeen = 0,
   noticeAbout = -1,
   toasts = [];
@@ -86,9 +87,24 @@ function openNotice(t) {
       focusPawn(st.player.pawn);
       openPanel('actions');
     }
-  } else if (g.pawn !== undefined) focusPawn(g.pawn);
+  } else if (g.spot) flyTo(g.spot.x, g.spot.y);
+  else if (g.pawn !== undefined) focusPawn(g.pawn);
   else if (g.farm !== undefined) selectFarm(g.farm);
   else selectVillage(g.village);
+}
+// A toast of words alone, not of a record event: a click goes to its target.
+function sayToast(text, target) {
+  const t = { key: null, n: 1, target, left: TOAST_SECONDS, el: document.createElement('button') };
+  t.el.type = 'button';
+  t.el.className = 'toast panel';
+  t.el.textContent = text;
+  t.el.addEventListener('click', () => {
+    openNotice(t);
+    dropToast(t);
+  });
+  while (toasts.length >= TOAST_MAX) dropToast(toasts[0]);
+  toasts.push(t);
+  $('toasts').appendChild(t.el);
 }
 function toast(ev) {
   const inVillage = ev.village !== undefined,
@@ -163,8 +179,15 @@ function updateNotices(dt) {
     noticeSt = st;
     noticeSeen = st.record.length;
     noticeAbout = -1;
+    gatherSeen = st.occasions.map((o) => o.id); // those called before the run was opened are not told
     for (const t of [...toasts]) dropToast(t);
   }
+  // a gathering that concerns the played pawn, as it begins (VB-1031): the record tells it only when it is over. A skip passes them
+  // untold but for the one that stops it, which its own note tells (page/play).
+  const mine = st.player && st.pawns[st.player.pawn].died === null ? st.player.pawn : -1;
+  for (const g of Sim.gatherings(st, mine, gatherSeen))
+    if (!skipping && !skipCursor && !(skipNote && skipNote.dataset.why === 'occasion') && !noticeOff.has('gathering'))
+      sayToast(g.text, { spot: { x: g.x, y: g.y } });
   const pinned = selectionPinned && selPawn >= 0 ? selPawn : -1,
     about = pinned >= 0 ? pinned : noticeAbout;
   noticeAbout = pinned;

@@ -134,6 +134,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1006](backlog/VB-1006.md) | Occasions' ends as a table of kinds | - | 3 | S | finish in sim/occasions branches on five kinds; make each kind's end a row of OCCASIONS |
 | [VB-1008](backlog/VB-1008.md) | Measure the gathering: 40 populous years and its cost on medium-ref | fair | 3 | S | VB-294's owed measures, for the collecting task VB-662 |
 | [VB-1028](backlog/VB-1028.md) | Page: opening the People sheet flies the camera out to the whole island (not reproduced) | - | 3 | S | Kim's playthrough of 17 November saw the camera fly out to the whole island on opening the People sheet; VB-1027 could not reproduce it and left a check that it does not |
+| [VB-1030](backlog/VB-1030.md) | Refactor: split page/rigs: a pawn's look (colours, ageing) apart from its rig and poses | - | 3 | S | page/rigs is over its length baseline (1,004 lines of 977) since VB-1029: the look (palettes, lookOf, agedLook) leaves for a module of its own, which page/portraits reads too |
+| [VB-1034](backlog/VB-1034.md) | Births and deaths leave something to see: a grave, a lying-in, a wake | - | 3 | M | A death and a birth happen at midnight and leave no trace on the map: a grave marker where the dead are laid, and the household's lying-in or wake the day after, as states a pawn is in |
 
 ## Waiting for Kim
 

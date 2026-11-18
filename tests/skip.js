@@ -110,5 +110,25 @@ const HOLDER = 0, WIFE = 1;
   const waited = skip(st, DAY);
   assert.ok(waited.stop.why === 'idle' && waited.hours >= 1.9 && waited.hours <= 2.3, `and when the queue runs out (${waited.hours} h)`);
 }
+// 6. A gathering that concerns the played pawn stops the skip as it begins (VB-1031), not when the record tells it, at its end: the funeral
+// ale of its wife, once; one that was on when the skip began does not; another household's does not; asking writes nothing to the state.
+{
+  const st = make(); Sim.inhabit(st, HOLDER);
+  Sim.killPawn(st, WIFE, 'illness');
+  const o = st.occasions.find((x) => x.kind === 'funeral' && x.for.includes(WIFE));
+  assert.ok(o && o.start > st.t, 'a funeral ale is called');
+  const { stop } = skip(st, 3 * DAY);
+  assert.ok(stop && stop.why === 'occasion' && /funeral ale/.test(stop.text) && stop.spot.x === o.x && stop.spot.y === o.y, JSON.stringify(stop));
+  assert.ok(st.t >= o.start && st.t < o.start + 0.11 && st.t < o.end, `as it begins (${st.t} of ${o.start} to ${o.end})`);
+  const before = hash(st), seen = [];
+  assert.strictEqual(Sim.gatherings(st, HOLDER, seen).length, 1); assert.strictEqual(Sim.gatherings(st, HOLDER, seen).length, 0, 'told once');
+  assert.deepStrictEqual(seen, st.occasions.filter((x) => st.t >= x.start).map((x) => x.id), 'the list is the caller\'s');
+  assert.strictEqual(hash(st), before, 'asking writes nothing');
+  const again = skip(st, 0.3);
+  assert.ok(!again.stop || again.stop.why !== 'occasion', 'one on when the skip began does not stop it');
+  const other = st.pawns.find((q) => q.alive && q.household !== st.pawns[HOLDER].household && Sim.kinDegree(st, HOLDER, q.id) === null
+    && !o.asked.some((a) => a.id === q.id) && !o.come.includes(q.id));
+  if (other) assert.strictEqual(Sim.gatherings(st, other.id, []).filter((g) => g.id === o.id).length, 0, 'not one who is no kin and not asked');
+}
 console.log('skip ok: it ends by the eve of the moving round; a skipped run is the run played; family, farm and custom events of its own village, '
-  + 'hunger come to the household, a refused command and an empty queue stop it');
+  + 'hunger come to the household, a refused command, an empty queue and a gathering as it begins stop it');
