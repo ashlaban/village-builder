@@ -467,6 +467,7 @@ function endSkip(stop) {
   if (stop.spot)
     flyTo(stop.spot.x, stop.spot.y); // a gathering as it begins (VB-1031): where its people stand
   else if (f) flyTo(w.hx[f.house], w.hy[f.house]);
+  else if (stop.farm !== undefined) flyTo(w.hx[st.farmsteads[stop.farm].house], w.hy[st.farmsteads[stop.farm].house]);
   else if (ev && ev.pawn !== undefined && st.pawns[ev.pawn].died === null) focusPawn(ev.pawn);
   else if (id >= 0 && st.pawns[id].died === null) focusPawn(id);
   skipNote = document.createElement('button');
@@ -474,6 +475,7 @@ function endSkip(stop) {
   skipNote.className = 'toast panel skip-note';
   skipNote.id = 'skipNote';
   skipNote.dataset.why = stop.why;
+  skipNote.stopEv = ev || null; // the notice of this event is this note, not a toast as well (VB-1101)
   const c = Sim.cal(st.t);
   skipNote.textContent = `Skip stopped, ${Sim.SEASONS[c.season]} day ${c.sday + 1}, year ${c.year}: ${stop.text}`;
   skipNote.addEventListener('click', dropSkipNote);

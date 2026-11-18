@@ -179,3 +179,15 @@ const HOLDER = 0, WIFE = 1;
 }
 console.log('skip ok: it ends by the eve of the moving round; a skipped run is the run played; family, farm and custom events of its own village, '
   + 'hunger come to the household, a refused command, an empty queue and a gathering as it begins stop it; two stops of one step are told in turn, by the next skip');
+
+// 7. Building news that asks nothing (VB-1101): a house raised onto stone, with no pawn, does not stop a skip; a settling that names one does.
+{
+  const st = make(); Sim.inhabit(st, HOLDER);
+  const from = Sim.skipFrom(st), vid = R.settlementIdOf(st, st.pawns[HOLDER]), hid = st.households[0].id;
+  R.log(st, 'The house is raised onto a stone foundation.', { kind: 'cottage', village: vid, household: hid });
+  assert.strictEqual(Sim.skipStop(st, from), null, 'a house on stone is no stop');
+  R.log(st, 'moves into the new farmstead', { kind: 'cottage', pawn: HOLDER, village: vid, household: hid });
+  const stop = Sim.skipStop(st, from);
+  assert.ok(stop && stop.why === 'farm', 'a settling still stops it');
+  console.log('skip ok: a house raised onto stone asks nothing');
+}

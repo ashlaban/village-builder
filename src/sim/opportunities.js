@@ -348,6 +348,33 @@ VB['sim/opportunities'] = (() => {
     return out;
   }
 
+  // ---- a choice the moving round will read (VB-1101), for the skip's stop at the round's eve ----
+  // The first thing the played pawn, or a member of its household it answers for as head, may do at the round with its wish or custom
+  // letting it: {text, spot (a farm's house tile)} or null. Offers it holds are the skip's own stop. Reads only; writes nothing.
+  function roundChoice(st, id) {
+    const view = actorView(st),
+      p = view.pawns[id],
+      hh = p && p.household !== null ? view.households[p.household] : null;
+    if (!hh || hh.dissolved) return null;
+    const who = hh.holder === id ? hh.members.filter((m) => view.pawns[m].died === null) : [id];
+    for (const m of who.slice(0, 8)) {
+      const mine = m === id ? 'you' : fullName(view.pawns[m]),
+        out = [];
+      round(view, view.pawns[m], out);
+      for (const o of out) {
+        if (o.when !== 'round' || o.why !== null) continue;
+        const f = o.verb === 'claim' ? view.farmsteads[o.target] : null;
+        if (f) return { text: `${f.name} stands empty: ${mine} may claim it`, spot: null, farm: f.id };
+        if (o.verb === 'serve' && o.target !== null)
+          return { text: `${mine} may take service in a lone holder's house`, spot: null };
+        if (o.verb === 'match' && o.target !== null)
+          return { text: `${mine} may wish for a match with ${o.partner.name}`, spot: null };
+        if (o.verb === 'leave') return { text: `${mine} may move out, as the custom allows`, spot: null };
+      }
+    }
+    return null;
+  }
+
   // ---- the player's succession (VB-213): whom it may go on as after its pawn's death ----
   const KIN = { reach: 4, bySpouse: 2, spouses: 2 },
     SUCCESSORS_MAX = 40;
@@ -472,5 +499,5 @@ VB['sim/opportunities'] = (() => {
         : `A break in the line: the player went on as ${fullName(q)}`,
     );
   }
-  return { actorView, forPawn, successors, succeed };
+  return { actorView, forPawn, successors, succeed, roundChoice };
 })();

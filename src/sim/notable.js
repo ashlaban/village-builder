@@ -368,6 +368,7 @@ VB['sim/notable'] = (() => {
     const k = ev.kind;
     if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
     if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
+    if (k === 'cottage' && !ev.pawn && ev.pawn !== 0) return null; // a house raised onto stone asks nothing (VB-1101); a settling names its pawn
     if (FARM.has(k))
       return (vid !== null && ev.village === vid) || (hid !== null && ev.household === hid) || concerns(st, ev, about)
         ? 'farm'
@@ -378,7 +379,7 @@ VB['sim/notable'] = (() => {
   // Asked after each step; it reads the events the record has gained since the last ask (from.n moves on; a stop leaves the rest of its
   // step's events for the next ask, or the next skip: skipFrom), st.player and the clock, and
   // writes nothing to st, so a skipped run is the run played (rule 7). The eve of the moving round always stops it, within a year.
-  function skipStop(st, from) {
+  function skipStop(st, from, aids = {}) {
     const pl = st.player;
     if (!pl) return { why: 'none', text: 'No pawn is played.' };
     const p = st.pawns[pl.pawn],
@@ -429,7 +430,30 @@ VB['sim/notable'] = (() => {
       return { why: 'refused', text: `A command was refused: ${pl.refused.verb}, ${pl.refused.why}.` };
     if (!pl.auto && !pl.queue.length)
       return { why: 'idle', text: `${fullName(p)} has nothing queued, and its automatic behaviour is off.` };
-    return st.t >= from.eve ? { why: 'round', text: 'The moving round is tomorrow at noon.' } : null;
+    if (st.t < from.eve) return null;
+    // the eve (VB-1101): it stops the skip for a choice the round will read, else once SKIP_QUIET hours of a skip have gone (never longer than one
+    // and three quarters of a year) with the year in brief; with neither, the skip runs on, and the cursor looks for the next eve
+    const choice = aids.choice ? aids.choice(st, pl.pawn) : null;
+    if (choice) return { why: 'round', text: choice.text, farm: choice.farm };
+    if (st.t - from.t >= SKIP_QUIET) return { why: 'round', text: yearInBrief(st, from, vid, aids) };
+    from.eve = roundEve(st.t);
+    return null;
+  }
+  // How long a skip may pass eves with no choice before the next eve stops it with the year in brief: three quarters of a year.
+  const SKIP_QUIET = (YEAR * 3) / 4;
+  // The year in brief for the village vid, since game hour from.t: births, deaths (its own village's), and, from `aids.brief`, the harvest
+  // and the food. Reads the record from its end back to from.t, and writes nothing.
+  function yearInBrief(st, from, vid, aids) {
+    let born = 0,
+      died = 0;
+    for (let i = st.record.length - 1; i >= 0 && st.record[i].t >= from.t; i--) {
+      const e = st.record[i];
+      if (vid === null || e.village !== vid) continue;
+      if (e.kind === 'born') born++;
+      else if (e.kind === 'died') died++;
+    }
+    const more = aids.brief ? aids.brief(st, vid) : '';
+    return `The moving round is tomorrow. Since the skip began: ${born} born, ${died} dead${more ? `; ${more}` : ''}.`;
   }
   return {
     recordOf,
