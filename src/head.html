@@ -1162,3 +1162,25 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 :root[data-theme="mural"] .pchips { gap: 4px 16px; }
 :root[data-theme="mural"] .pchip { padding: 1px 0; border-radius: 0; background: none; }
 :root[data-theme="mural"] .hhead img { width: 48px; height: 48px; }
+/* the family tree (VB-1128): a person is a square plaster tag in an ink line, the chosen one in red ochre; kinship is drawn in ink */
+:root[data-theme="mural"] #treeSvg .tn rect { rx: 0; fill: var(--node); stroke: var(--ink); stroke-width: 1.5; }
+:root[data-theme="mural"] #treeSvg .tn.focus rect { stroke-width: 2.5; }
+:root[data-theme="mural"] #treeSvg .tn.sel rect, :root[data-theme="mural"] #treeSvg .tn.focus.sel rect { stroke: var(--accent); stroke-width: 3.5; }
+:root[data-theme="mural"] #treeSvg .chip rect { rx: 0; stroke: var(--ink); }
+:root[data-theme="mural"] #treeSvg .marriage, :root[data-theme="mural"] #treeSvg .descent { stroke: var(--ink); }
+:root[data-theme="mural"] .tree-info h3 { font-family: var(--head); font-style: normal; font-size: 26px; color: var(--accent); }
+:root[data-theme="mural"] :is(.tree-head, .tree-modes, .tree-caption) { border-bottom: 1.5px dotted var(--edge); }
+:root[data-theme="mural"] .tree-info { border-left: 1.5px dotted var(--edge); }
+:root[data-theme="mural"] .tree-card { padding: 8px 0; }
+/* a person or a place in a list (VB-1128): its picture a small medallion, its name in the scroll's hand; rows parted by a dotted line */
+:root[data-theme="mural"] img.mini { border: 1.5px solid var(--ink); border-radius: 50%; background: #e2c684; }
+:root[data-theme="mural"] .row { border-radius: 0; border-top: 1.5px dotted var(--edge); }
+:root[data-theme="mural"] .row .who { font: italic 700 15.5px/1.25 var(--scroll); }
+:root[data-theme="mural"] .row .who i { font: 400 13px/1.3 'Alegreya Sans', system-ui, sans-serif; }
+:root[data-theme="mural"] .roster { border-top: 0; }
+/* a supply's seasons (VB-1128): square cells in an ink line, what is held in green earth; red is kept for a shortfall */
+:root[data-theme="mural"] .supply .cell { border-radius: 0; background: color-mix(in srgb, var(--ink) 9%, transparent); box-shadow: inset 0 0 0 1.5px var(--ink); }
+:root[data-theme="mural"] .supply .cell > i.own { background: var(--good); box-shadow: inset 0 0 0 1.5px var(--ink); }
+:root[data-theme="mural"] .supply .cell > i.with { background: repeating-linear-gradient(-45deg, var(--good) 0 2px, transparent 2px 6px); }
+:root[data-theme="mural"] .supply .cell.short { background: color-mix(in srgb, var(--bad) 14%, transparent); box-shadow: inset 0 0 0 1.5px var(--bad); }
+:root[data-theme="mural"] .supply-nums { border-radius: 0; background: none; border: 1.5px dotted var(--edge); }
