@@ -201,4 +201,17 @@ for (const id of fake) cp.ties.delete(id);
   } finally { TS.cap = cap0; owner.ties = oldTies; }
 }
 check(checkState(st).length === 0, 'invariants after familiarity: ' + checkState(st).slice(0, 3).join('; '));
+// VB-1125: the age gap takes nothing off a parent and child; it still does between two unrelated pawns
+{
+  const kid = st.pawns.find((p) => p.father !== null && st.pawns[p.father].born < p.born - 30 * VB['sim/rules'].YEAR_DAYS * VB['sim/rules'].DAY);
+  if (kid) {
+    const par = st.pawns[kid.father], c1 = R.compat(st, kid.id, par.id), b0 = kid.born;
+    kid.born = par.born; const c0 = R.compat(st, kid.id, par.id); kid.born = b0;
+    check(c1 === c0, `parent and child: the gap changed compat ${c0} to ${c1}`);
+  } else check(false, 'a child more than 30 years younger than its father');
+  const x = st.pawns[a.id], y = st.pawns[b.id], yb = y.born;
+  y.born = x.born - 40 * VB['sim/rules'].YEAR; const far = R.compat(st, x.id, y.id); y.born = yb;
+  y.born = x.born; const same = R.compat(st, x.id, y.id); y.born = yb;
+  check(far < same || same === -1 || far === -1, 'unrelated pawns 40 years apart lose to the age gap');
+}
 if (failed) process.exitCode = 1; else console.log(`relations ok: ${n} pairs, mean compatibility ${(sum / n).toFixed(2)}; ${st.talks - t1} talks in one crowded hour`);

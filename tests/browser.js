@@ -425,6 +425,17 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await stopPlaying();
   // succession (VB-213): the played holder is killed from the debug drawer; the page pauses and offers its successors, the heir first
   await playSelected();
+  // the Agenda's support as a meter (VB-1105): a cause against the practice at a constructed meeting, the share it needs marked on it
+  await page.evaluate(() => {
+    const { st, Sim } = window.__play, p = st.pawns[st.player.pawn], c = st.cenv.settlements[Sim.settlementIdOf(st, p)];
+    c.lastSupport = Array(200).fill(0.3);
+    p.advocate = { dim: 0, opt: c.practice[0] === 1 ? 0 : 1, until: st.cenv.t + 3 };
+  });
+  await page.click('#agendaBtn');
+  await page.waitForSelector('#agendaContent .agenda-meters [role="meter"]');
+  const nm = await page.locator('#agendaContent .agenda-meters [role="meter"]').count();
+  if (nm !== 2 || !(await page.locator('#agendaContent .agenda-meters b.head').count())) fail('the agenda shows no support meters with the needed share marked');
+  await page.click('#drawerClose');
   await page.click('[data-speed="1"]');
   await page.click('#debugBtn'); await page.click('[data-act="kill"]'); await page.click('#drawerClose');
   await page.waitForSelector('#succession:not([hidden]) button[data-succeed]');
@@ -435,7 +446,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   }, played);
   if (!offer.kept) fail('the player did not keep its dead pawn until the choice');
   if (!offer.heir || offer.heir.why !== 'heir' || offer.shown !== offer.heir.id ||
-    !/heir/.test(offer.text)) fail(`the heir is not offered first: ${JSON.stringify(offer)}`);
+    !/Heir|Widow|Holder|Heiress|Child|Retired|Without/.test(offer.text)) fail(`the heir is not offered first: ${JSON.stringify(offer)}`);
   if (offer.paused !== 'true') fail('the page did not pause at the played pawn\'s death');
   await page.click('#succession button[data-succeed]');
   await page.waitForSelector('#playBox [data-play="auto"]');

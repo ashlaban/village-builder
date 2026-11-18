@@ -93,13 +93,7 @@ const row = (attr, img, name, note, state) =>
 // A person and a farm have one row each, wherever they are listed (a farm's card, a village's, the People sheet).
 function memberRow(id) {
   const p = st.pawns[id];
-  return row(
-    `data-pawn="${id}"`,
-    faceImg(id, 'mini'),
-    Sim.fullName(p),
-    `${p.age}, ${roleLine(p)}`,
-    esc(Sim.describe(st, id)),
-  );
+  return row(`data-pawn="${id}"`, faceImg(id, 'mini'), Sim.fullName(p), placeLine(p), esc(Sim.describe(st, id)));
 }
 // marks: chips put before its state (a village's card puts a chip of VB-667's kind on the farms its warnings concern, VB-162, VB-927). Its
 // state is a chip for each supply about to fall short, by its head's last reckoning (VB-667: one stored outlook a farm, read), and its

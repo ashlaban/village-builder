@@ -234,8 +234,9 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
 // no other beyond a day's walk. Three villages in a row: B 12.7 hours from A, C 15.8 hours ----
 {
   const Rec = VB['sim/records'], M = VB['sim/matching'], { YEAR, SEASON_DAYS, ASK } = VB['sim/rules'], { hoursBetween } = VB['sim/routes'];
+  const world3 = () => tinyWorld(Array(9).fill('.'.repeat(210)), { seed: 7 });
   const three = () => {
-    const s = tinyState(tinyWorld(Array(9).fill('.'.repeat(210)), { seed: 7 }),
+    const s = tinyState(world3(),
       [{ at: [6, 4], farms: 1, sizes: [5] }, { at: [156, 4], farms: 1, sizes: [5] }, { at: [196, 4], farms: 1, sizes: [5] }], { seed: 7 });
     // an unmarried child of each house, made a grown man of A and a grown woman of B and of C
     const grown = (hh, sex, years) => {
@@ -299,11 +300,11 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.ok(/visit already|this winter's visit/.test(visit(2)), 'no second visit this winter: ' + visit(2));
   // a save during the visit plays as the unbroken run
   assert.ok(onRoad, 'a save was made on the road');
-  const one = Sim.load(s.w, JSON.parse(JSON.stringify(onRoad))), two = Sim.load(s.w, JSON.parse(JSON.stringify(Sim.save(Sim.load(s.w, JSON.parse(JSON.stringify(onRoad)))))));
+  // each load gets a world of its own: they share none, as a plot's `fresh` mark reads the ground's `dev` the run before it changes it (VB-1150)
+  const one = Sim.load(world3(), JSON.parse(JSON.stringify(onRoad))), two = Sim.load(world3(), JSON.parse(JSON.stringify(Sim.save(Sim.load(world3(), JSON.parse(JSON.stringify(onRoad)))))));
   assert.ok(one.away.some((x) => x.why === 'visit' && !x.back), 'the save holds the visit');
   for (const x of [one, two]) Sim.advance(x, 6 * DAY);
-  // (not every agent: a plot's `fresh` mark drifts over a second save in this state, visit or none, and with it a stride; VB-1150)
-  for (const k of ['away', 'pawns', 'households', 'visits']) assert.strictEqual(canon(one[k]), canon(two[k]), `continued ${k}`);
+  for (const k of ['away', 'pawns', 'households', 'visits', 'agents']) assert.strictEqual(canon(one[k]), canon(two[k]), `continued ${k}`);
   assert.strictEqual(canon(one.agents[man]), canon(two.agents[man]), 'continued: the visitor');
   assert.deepStrictEqual(one.pawns[man].visited, p.visited, 'the loaded run makes the same visit');
   assert.ok(!one.away.some((x) => x.pawn === man), 'and comes home');

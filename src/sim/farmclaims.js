@@ -381,7 +381,7 @@ VB['sim/farmclaims'] = (() => {
       const keep = reserved(st, hh, 'grain') + bufferOf(st, hh.holder) * rationsOf(st, stay);
       const give = Math.min(need - have, Math.max(0, Math.floor(Stores.grainOf(hh) - keep)));
       if (give > 0) {
-        Stores.take(st, hh, 'grain', give, 'provisions', grain);
+        Stores.take(st, hh, 'grain', give, 'provisions', grain, 'seedFirst');
         have += give;
       }
     }
