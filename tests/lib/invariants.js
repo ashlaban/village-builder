@@ -307,7 +307,7 @@ function checkState(st) {
   // (a slot folded since, VB-199, is the index of a count of st.recordYears)
   const from = checked.get(st.record) || 0, Y = st.recordYears || [];
   for (let i = from; i < (st.record || []).length; i++) {
-    const e = st.record[i], ids = { pawn: st.pawns, other: st.pawns, household: st.households, farm: st.farmsteads, village: st.villages };
+    const e = st.record[i], ids = { pawn: st.pawns, other: st.pawns, household: st.households, farm: st.farmsteads, fromFarm: st.farmsteads, village: st.villages };
     if (typeof e === 'number') { if (!(Number.isInteger(e) && e >= 0 && e < Y.length)) bad.push(`record[${i}]: folded into no count, ${e}`); continue; }
     if (typeof e.kind !== 'string' || !e.kind || !(e.t <= st.t)) bad.push(`record[${i}]: ${JSON.stringify(e)}`);
     if ('self' in e && (e.self !== true || !('pawn' in e))) bad.push(`record[${i}].self: ${JSON.stringify(e)}`);

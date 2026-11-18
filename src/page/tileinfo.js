@@ -174,6 +174,10 @@ function pick(sx, sy, inspect = true) {
     }
     return;
   }
+  if (!inspect && tool && tool.kind === 'plan') {
+    planPoint(loc(...toWorld(sx, sy), [0, 0])); // the plan's tool reads the tile pointed at into its banner (page/plan, VB-1027)
+    return;
+  }
   if (!inspect && (selectionPinned || barMenu || tool || (activePanel && activePanel !== 'tile'))) return; // no hover card over the action bar's list or tool
   if (inspect) selectionPinned = true;
   const [x, y] = toWorld(sx, sy),
@@ -182,6 +186,11 @@ function pick(sx, sy, inspect = true) {
     toolTap(pw, labelAt(x, y), loc(x, y, [0, 0]));
     return;
   } // the action bar's tool waits for a tile (page/actbar)
+  const og = inspect ? gatheringAt(x, y) : -1; // a gathering's mark, over its people's heads, opens its card (VB-1032, page/gathering)
+  if (og >= 0) {
+    selectGathering(og);
+    return;
+  }
   if (pw >= 0) {
     if (inspect || pw !== selPawn) selectPawn(pw, inspect);
     return;

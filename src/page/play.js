@@ -290,6 +290,11 @@ function renderActions() {
     $('playRest').innerHTML = rest;
   }
 }
+// The camera brought to pawn id's farm (VB-1027): where a player starts, whatever errand the pawn is on at that hour.
+function flyToFarmOf(id) {
+  const f = farmOf(st.pawns[id]);
+  if (f) flyTo(w.hx[f.house], w.hy[f.house]);
+}
 function playAs(id) {
   const r = Sim.inhabit(st, id);
   playMsg = r === true ? null : { id, text: r };
@@ -446,7 +451,9 @@ function endSkip(stop) {
     id = st.player ? st.player.pawn : -1,
     f = ev && ev.farm !== undefined ? st.farmsteads[ev.farm] : null;
   setSpeed(0);
-  if (f) flyTo(w.hx[f.house], w.hy[f.house]);
+  if (stop.spot)
+    flyTo(stop.spot.x, stop.spot.y); // a gathering as it begins (VB-1031): where its people stand
+  else if (f) flyTo(w.hx[f.house], w.hy[f.house]);
   else if (ev && ev.pawn !== undefined && st.pawns[ev.pawn].died === null) focusPawn(ev.pawn);
   else if (id >= 0 && st.pawns[id].died === null) focusPawn(id);
   skipNote = document.createElement('button');

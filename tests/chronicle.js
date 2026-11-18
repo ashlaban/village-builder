@@ -44,6 +44,17 @@ assert.deepStrictEqual(kindsOf(h), ['moved', 'claim', 'empty', 'inherited', 'hol
 assert.strictEqual(h[2].note, 'Empty for 3 years'); assert.strictEqual(h[2].ev.t, emptied);
 assert.ok(h.every((r) => r.ev.farm === f.id) && new Set(h.map((r) => r.ev.household)).size > 1, 'across households');
 assert.ok(!kindsOf(Sim.chronicle(st, { farm: f.id })).some((k) => k === 'friend' || k === 'joined'), 'a farm\'s history has no personal events');
+// VB-1027: a move between farms is one event, told on both: the farm left tells the leaving, the farm come to the coming
+{
+  moveClock(st, Sim.DAY); // another hour than the claim's moving in, which would tell the coming in its place
+  const g = st.farmsteads[st.households[2].farmstead], who = st.households[2].members.find((m) => m !== st.households[2].holder) ?? st.households[2].holder;
+  personEvent(st, who, 'moved', `Moved to ${f.name}`, { household: 1, farm: f.id, village: f.village, kind: 'joined', reason: 'found', fromFarm: g.id });
+  const name = Sim.fullName(st.pawns[who]), left = Sim.chronicle(st, { farm: g.id }), came = Sim.chronicle(st, { farm: f.id }, 'land');
+  assert.ok(left.some((r) => r.text === `${name} left ${g.name} for the new farmstead ${f.name}.`), 'the farm left tells who left it, and for where');
+  assert.ok(came.some((r) => r.text === `${name} came to ${f.name} from ${g.name}.`), 'the farm come to tells who came, and from where');
+  assert.strictEqual(st.record.filter((e) => e.kind === 'joined' && e.pawn === who).length, 1, 'one event of the record, read from either end');
+  assert.ok(!Sim.chronicle(st, { village: f.village }).some((r) => r.ev.kind === 'joined'), 'the village\'s history does not tell it');
+}
 // while it stands empty the note counts to now
 {
   const g = st.farmsteads[st.households[2].farmstead]; log(st, `${g.name} stands empty.`, { kind: 'empty', ...atFarm(g) });

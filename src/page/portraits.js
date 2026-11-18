@@ -31,6 +31,7 @@ function tinted(part, colour) {
 function drawFace(p, married, winter) {
   if (!faceParts) faceParts = partCanvases(FACE);
   const look = lookOf(p),
+    aged = agedLook(look, p.age), // its hair as the years have it, and a beard from 18 (VB-1029), as on the map
     c = makeCanvas(BUST * FACE, BUST * FACE),
     g = c.getContext('2d'),
     k = 0.6 + 0.4 * sizeAt(p.age);
@@ -61,15 +62,32 @@ function drawFace(p, married, winter) {
     put('tunic', cloth, 0, -27);
     put('belt', null, 0, -11);
   }
-  if (p.sex === 'f' && !married) put('braid', rgb(look.hair, 0.9), hx - 9, hy - 16);
+  if (p.sex === 'f' && !married) put('braid', rgb(aged.hair, 0.9), hx - 9, hy - 16);
   put('head', rgb(look.skin), hx, hy, 0.46, 1);
+  if (aged.grey >= 2) {
+    // the old have lines in the face, which a hood or a headcloth does not hide: under the eye and by the mouth, and across the brow
+    // of the oldest (the portrait's own: the map's figure is too small for them)
+    g.strokeStyle = rgb(look.skin, 0.6);
+    g.lineWidth = 0.7;
+    g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(hx + 3.6, hy - 12.3);
+    g.quadraticCurveTo(hx + 5.4, hy - 11.2, hx + 7.4, hy - 12.2);
+    g.moveTo(hx + 6.2, hy - 8.6);
+    g.quadraticCurveTo(hx + 5.2, hy - 6.8, hx + 6.2, hy - 5.2);
+    if (aged.grey >= 3) {
+      g.moveTo(hx + 3.4, hy - 18.4);
+      g.quadraticCurveTo(hx + 5.4, hy - 19.2, hx + 7.6, hy - 18.4);
+    }
+    g.stroke();
+  }
   if (p.sex === 'm') {
-    if (look.beard) put('beard', rgb(look.hair, 0.95), hx + 3, hy - 9);
+    if (aged.beard) put('beard', rgb(aged.hair, 0.95), hx + 3, hy - 9);
     if (look.hood || winter) put('hood', rgb(look.hoodCol), hx, hy + 7, 0.47, 1);
-    else put('hair', rgb(look.hair), hx, hy - 2.5, 0.46, 1);
+    else put('hair', rgb(aged.hair), hx, hy - 2.5, 0.46, 1);
   } else if (married) put('headcloth', rgb(LINEN), hx, hy + 5, 0.46, 1);
   else {
-    put('hair', rgb(look.hair), hx, hy - 2.5, 0.46, 1);
+    put('hair', rgb(aged.hair), hx, hy - 2.5, 0.46, 1);
     put('band', null, hx, hy - 19, 0.5, 0.5, 1, -0.15);
   }
   put('sleeve', cloth, 3, -24);
@@ -83,7 +101,8 @@ function faceOf(id) {
   if (e && e.day === day) return e.url;
   const married = wedded(p),
     winter = Sim.cal(st.t).season === 3,
-    sig = `${married}|${winter}|${sizeAt(p.age)}`;
+    aged = agedLook(lookOf(p), p.age),
+    sig = `${married}|${winter}|${sizeAt(p.age)}|${aged.grey}|${aged.beard}`;
   if (!e || e.sig !== sig) {
     if (faceCache.size >= FACE_CAP) faceCache.clear();
     let url = '';
@@ -98,9 +117,33 @@ function faceOf(id) {
   e.day = day;
   return e.url;
 }
-const faceImg = (id, cls = 'face') => {
+// What pawn id is to pawn `of` (VB-1026), as the simulation has it: the kin bond, in id's own word (wife, father), and of's opinion of
+// id where it is not neutral (the living only: the dead hold and are held in no opinion). [{k (a key of BOND_PATHS), word, tone}].
+function bondsOf(of, id) {
+  const out = [],
+    kin = Sim.standing(st, of, id);
+  if (kin) out.push({ k: kin, word: Sim.standingWord(st, of, id), tone: '', at: 'kin' });
+  if (st.pawns[of].died === null && st.pawns[id].died === null) {
+    const word = Sim.opinionWord(Sim.opinionOf(st, of, id));
+    if (word !== 'neutral') out.push({ k: word, word, tone: word.includes('friend') ? 'good' : 'bad', at: 'op' });
+  }
+  return out;
+}
+// A portrait; with `of`, the portrait as that pawn sees it: the bonds as badges on its right corners, kin below and opinion above, each icon
+// the same wherever a bond is shown and the word its label.
+const faceImg = (id, cls = 'face', of = -1) => {
   const url = faceOf(id);
-  return url ? `<img class="${cls}${st.pawns[id].died !== null ? ' gone' : ''}" src="${url}" alt="">` : '';
+  if (!url) return '';
+  const img = `<img class="${cls}${st.pawns[id].died !== null ? ' gone' : ''}" src="${url}" alt="">`,
+    bonds = of >= 0 && of !== id ? bondsOf(of, id) : [];
+  if (!bonds.length) return img;
+  const badges = bonds
+    .map(
+      (b) =>
+        `<i class="bond ${b.at}${b.tone ? ' ' + b.tone : ''}" role="img" aria-label="${b.word}" title="${b.word}">${bondIcon(b.k)}</i>`,
+    )
+    .join('');
+  return `<span class="bonded ${cls.split(' ')[0]}">${img}${badges}</span>`;
 };
 function icon(key, draw) {
   if (!iconCache.has(key)) {
