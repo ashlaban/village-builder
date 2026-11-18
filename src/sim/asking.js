@@ -3,7 +3,8 @@
 //   for, due at the moving round, which answers it: a match, by its spokesman (the matcher's rule for one man, askMatch, which the round
 //   also uses to ask anew after a refusal), or an empty farm (the basis land); a plot, new land and service are still asked by the round's
 //   own walk until VB-697, VB-696 and VB-694 make them askings. An open offer whose people have died, married or taken a place lapses
-//   where it is next read (staleWhy: an asking, or the round).
+//   where it is next read (staleWhy: an asking, or the round). A holder's own day is its birthday: it considers handing the farm on
+//   (sim/marriage's rule, VB-824), by an offer due at the round.
 VB['sim/asking'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK } = VB['sim/rules'];
@@ -11,10 +12,12 @@ VB['sim/asking'] = (() => {
   const { kinOk, matchScore, matchRules } = VB['sim/matching'];
   const { hoursBetween, byLand } = VB['sim/routes'];
   const { claimableFarm, askLand } = VB['sim/farmclaims'];
-  const { placeIfMarried } = VB['sim/heirs'];
+  const { placeIfMarried, heirRanking } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { chooseWish, wishOf, wishesOf, nextAsking } = VB['sim/wishes'];
   const { conclude } = VB['sim/offers'];
+  const { handover } = VB['sim/marriage'],
+    { on } = VB['sim/events'];
   const AUTUMN = 2;
   // The time an offer made now is due at the moving round: the noon of the round's next day still to come (ASK.passes days from sday
   // ASK.day of autumn), this year's or the next's.
@@ -173,5 +176,11 @@ VB['sim/asking'] = (() => {
       }
     }
   }
+  // A holder's own day, its birthday (sim/lifecycle): it considers handing the farm on (sim/marriage's rule), by an offer due at the
+  // moving round (VB-824). One call a holder a year.
+  on('holderYear', (st, d) => {
+    const hh = holdingOf(st, d.pawn);
+    if (hh !== null) handover(st, hh, (h) => heirRanking(st, st.households[h]), dueRound(st));
+  });
   return { askingDay, askFor, askMatch, staleWhy, dueRound };
 })();

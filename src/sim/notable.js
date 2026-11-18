@@ -118,6 +118,7 @@ VB['sim/notable'] = (() => {
       kinds: [
         'holds',
         'inherited',
+        'renounced',
         'empty',
         'claim',
         'moved',

@@ -533,7 +533,10 @@ function checkState(st) {
         const e = h.ledger[i];
         if (e.kind !== 'feast') continue;
         if (!(e.n < 0) || !(e.guests > 0) || !(e.booked >= 0)) bad.push(`households[${h.id}]: invalid feast ${JSON.stringify(e)}`);
-        recent.set(`${h.id}:${e.t}`, { e, ate: 0, eaters: 0 });
+        // two occasions at one farm ending in the same hour (two weddings of the house) are two entries: summed (VB-824)
+        const key = `${h.id}:${e.t}`, was = recent.get(key);
+        const both = was && { n: was.e.n + e.n, guests: was.e.guests + e.guests, left: Math.min(was.e.left - was.e.keep, e.left - e.keep), keep: 0 };
+        recent.set(key, { e: both || e, ate: 0, eaters: 0 });
       }
     }
     for (const p of st.pawns) {
@@ -1068,7 +1071,7 @@ function checkState(st) {
           if (own === null && side === null) bad.push(`${at}: an answer of ${x.key}`);
           else if (own !== null ? x.by !== own : x.by === side) bad.push(`${at}: ${x.key} answered by ${x.by}`);
         }
-      } else if (BASES[o.basis].subject) {
+      } else if (BASES[o.basis].where) { // an offer about a life: answered at a village's step of the round (a handover has no subject, VB-824)
         const g = o.gives || {}, w = o.wants || {};
         const terms = o.basis === 'handover' ? !!st.households[g.household] && ['marriage', 'retirement'].includes(g.reason)
           : o.basis === 'place' ? !!st.households[g.household]

@@ -39,8 +39,10 @@ VB['sim/heirs'] = (() => {
   const { abandoned } = VB['sim/fields'],
     { dropPlan } = VB['sim/plans'],
     { emit } = VB['sim/events'];
-  // Who would inherit this farm now, in order, under the practice of its village.
-  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, deps = null) {
+  // Who would inherit this farm now, in order, under the practice of its village. The order is whom the holding is offered to, and the
+  // passing over is what each would answer (VB-824; design.md, Succession: Handed on, and taken up): `asked`, an array, gets the whole
+  // line in the order asked, {id, no (why this one would not take it, or null)}; those with no null, in that order, are the ranking.
+  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, deps = null, asked = null) {
     VB.count.heirRank++;
     const f = st.farmsteads[hh.farmstead],
       cu = cust || practice(st, f.village);
@@ -103,22 +105,33 @@ VB['sim/heirs'] = (() => {
       anc = parent;
       seen.add(parent);
     }
-    const ok = out.filter((id) => {
-      const p = st.pawns[id];
+    // Each one's answer: no, with why, when it holds a farm already or lives on a spouse's (farms are not combined)
+    const no = asked ? new Map() : null,
+      nameOf = (o) => st.farmsteads[o.farmstead].name,
+      says = (id, why) => (no ? !no.set(id, why(id)) : false);
+    const inLine = out.filter((id) => {
       if (deps) deps.add(id);
-      if (cu.heirSex === 'sons' && p.sex === 'f') return false;
+      return !(cu.heirSex === 'sons' && st.pawns[id].sex === 'f') && id !== hh.holder;
+    });
+    const ok = inLine.filter((id) => {
       const own = holdingOf(st, id);
-      if (own && own !== hh) return false; // already holds a farm
+      if (own && own !== hh) return says(id, () => `holds ${nameOf(own)}`); // already holds a farm
       const sp = spouseOf(st, id);
       if (deps && sp !== null) deps.add(sp);
       if (sp !== null) {
         const so = holdingOf(st, sp);
-        if (so && so !== hh) return false;
+        if (so && so !== hh) return says(id, () => `lives at ${nameOf(so)}`);
       } // lives on a spouse's farm
-      return id !== hh.holder;
+      return true;
     });
+    const ask = (ids) => {
+      if (asked) for (const id of ids) asked.push({ id, no: no.get(id) || null });
+    };
     if (nested) return ok.filter((id) => direct.has(id));
-    if (!ok.length) return ok; // No competing direct claim can change an empty ranking.
+    if (!ok.length) {
+      ask(inLine);
+      return ok; // No competing direct claim can change an empty ranking.
+    }
     // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
     // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
     // Only a farm whose line is a candidate's ancestor, at most four generations up (lineOf), can have the candidate first (VB-224).
@@ -144,10 +157,16 @@ VB['sim/heirs'] = (() => {
           (n === f.fields.length && (p.household === o || [p.father, p.mother].includes(st.households[o].holder)))
         );
       };
-      return ok.filter((id) => !claims.some((e) => e[0] === id && wins(id, e[1])));
+      const kept = ok.filter((id) => {
+        const won = claims.find((e) => e[0] === id && wins(id, e[1]));
+        return won ? says(id, () => `is heir to ${nameOf(st.households[won[1]])}`) : true;
+      });
+      ask(inLine);
+      return kept;
     }
     const ownFirst = new Set(claims.map((e) => e[0]));
     const back = (id) => !direct.has(id) && ownFirst.has(id);
+    ask([...inLine.filter((id) => !back(id)), ...inLine.filter(back)]);
     return [...ok.filter((id) => !back(id)), ...ok.filter(back)];
   }
   // [heir, household id] for the first direct heir of each household other than hh (all households when hh is null). Callers that rank many
@@ -428,7 +447,8 @@ VB['sim/heirs'] = (() => {
       dead = st.pawns[hh.holder];
     const sp = spouseOf(st, dead.id, dead.died - 0.01);
     const spouse = sp !== null && st.pawns[sp].alive && st.pawns[sp].household === hh.id ? sp : null;
-    const ranking = heirRanking(st, hh, cu),
+    const asked = [],
+      ranking = heirRanking(st, hh, cu, false, null, null, asked),
       heir = heirFor(st, hh, ranking, dead.id);
     if (
       spouse !== null &&
@@ -468,6 +488,18 @@ VB['sim/heirs'] = (() => {
       });
       st.visualDirty = true;
       return;
+    }
+    // The inheritance falls to the first in line, as a right; one who holds a place renounces it, and it falls to the next (VB-824). A
+    // minor is not asked.
+    for (const e of asked) {
+      if (e.id === heir) break;
+      if (e.no === null || st.pawns[e.id].age < 18) continue;
+      log(st, `${fullName(st.pawns[e.id])} renounces ${f.name}: ${e.no}.`, {
+        kind: 'renounced',
+        pawn: e.id,
+        other: dead.id,
+        ...atHousehold(st, hh),
+      });
     }
     if (heir === null) {
       extinct(st, hh);
