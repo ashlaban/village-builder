@@ -155,6 +155,8 @@ async function main() {
     if (root.dataset.theme !== 'mural' || q('[data-theme-choice="mural"]').getAttribute('aria-checked') !== 'true') fail('Mural was not set on the page');
     if (kept() !== undefined && kept() !== 'mural') fail(`the theme kept is ${kept()}, not mural`);
     if (!/--lo:0%;--hi:/.test((q('.meter') || { getAttribute: () => '' }).getAttribute('style') || '')) fail('a meter does not say where its fill starts and ends, for the mural\'s beads');
+    for (const sel of ['#settlersBtn .ico', '#pauseBtn .ico, [data-speed="0"] .ico', '.stat-ico .ico', '.trait .ico'])
+      if (q(sel) && !q(sel).querySelector('.i-sten')) fail(`an icon has no stencil for the mural theme (VB-1124, VB-1125): ${sel}`);
     click(q('[data-theme-choice="glass"]'), 'the Glass theme');
     if (root.dataset.theme) fail('Glass did not take the theme off the page');
     click($('optionsClose'), 'Close');

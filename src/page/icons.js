@@ -379,7 +379,90 @@ const GOOD_PATHS = {
   ale: '<path d="M5 6h10v14H5zM15 9h2.5a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H15M5 9.5h10M8 6V4.5h4V6"/>',
   plan: '<path d="M6 3h12v18H6zM9 8l1.2 1.2L12.5 7M14 8.5h2M9 13l1.2 1.2 2.3-2.2M14 13.5h2M9 18h7"/>',
 };
-const goodIcon = (k) => svgIcon(24, 24, GOOD_PATHS[k] || GOOD_PATHS.tile, ICON_STROKE);
+// The same goods and measures as stencils (VB-1125), by GOOD_PATHS' keys.
+const HEART_STEN =
+  'M12 20.5C5 15.5 3 12 3 8.8 3 6 5 4.2 7.3 4.2c1.9 0 3.6 1.1 4.7 3 1.1-1.9 2.8-3 4.7-3C19 4.2 21 6 21 8.8c0 3.2-2 6.7-9 11.7z';
+const CHILD_STEN =
+  '<circle cx="12" cy="6.3" r="3.2"/><path d="M8 11.5c0-1.2 1.5-1.8 4-1.8s4 .6 4 1.8v6c0 2.7-1.5 3.8-4 3.8s-4-1.1-4-3.8z"/>' +
+  '<path class="c" d="M8 14.5h8"/>';
+const RINGS_STEN =
+  '<circle class="l" cx="9" cy="13.5" r="4.8"/><circle class="l" cx="15" cy="13.5" r="4.8"/><path d="M10.5 6.5l1.5-3 1.5 3z"/>';
+const COLD_STEN =
+  '<path class="l" d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9M9.5 4.5L12 7l2.5-2.5M9.5 19.5L12 17l2.5 2.5"/>';
+const GOOD_STEN = {
+  grain:
+    '<path class="l" d="M12 22V8"/><path d="M12 2.8c1.7 1.5 1.7 3.6 0 5.1-1.7-1.5-1.7-3.6 0-5.1z"/>' +
+    '<path d="M11.2 9.4c-2.3.2-3.8-1.1-4.1-3.2 2.3-.2 3.8 1.1 4.1 3.2z"/>' +
+    '<path d="M12.8 9.4c2.3.2 3.8-1.1 4.1-3.2-2.3-.2-3.8 1.1-4.1 3.2z"/>' +
+    '<path d="M11.2 13.6c-2.3.2-3.8-1.1-4.1-3.2 2.3-.2 3.8 1.1 4.1 3.2z"/><path d="M12.8 13.6c2.3.2 3.8-1.1 4.1-3.2-2.3-.2-3.8 1.1-4.1 3.2z"/>' +
+    '<path d="M11.2 17.8c-2.3.2-3.8-1.1-4.1-3.2 2.3-.2 3.8 1.1 4.1 3.2z"/><path d="M12.8 17.8c2.3.2 3.8-1.1 4.1-3.2-2.3-.2-3.8 1.1-4.1 3.2z"/>',
+  seed: ACT_STEN.sow,
+  flour: ACT_STEN.sack,
+  meals: ACT_STEN.pot,
+  sheaves:
+    '<path d="M12 12.5C8 10 6.5 6.5 6.5 3 9.5 4 11.5 6 12 9c.5-3 2.5-5 5.5-6 0 3.5-1.5 7-5.5 9.5z"/>' +
+    '<path d="M10.5 12.5h3l4.5 9H6z"/><path class="c" d="M9 15.5h6"/>',
+  hay: ACT_STEN.hay,
+  wood:
+    '<circle cx="7.5" cy="16.5" r="4.2"/><circle cx="16.5" cy="16.5" r="4.2"/><circle cx="12" cy="8.7" r="4.2"/>' +
+    '<circle class="c" cx="7.5" cy="16.5" r="1.5"/><circle class="c" cx="16.5" cy="16.5" r="1.5"/><circle class="c" cx="12" cy="8.7" r="1.5"/>',
+  stone: '<path d="M4 18l2-7 5-4 6 1 3 6-2 4z"/><path class="c" d="M11 7l1 5 6 2M12 12l-6 1"/>',
+  clay: '<path d="M3.5 9.5h11V16h-11z"/><path d="M3.5 9.5l5-3h11l-5 3z"/><path d="M14.5 9.5l5-3V13l-5 3z"/>',
+  ore: '<path d="M5 19l-1-6 4-6 6-2 5 4 1 7-4 3z"/><path class="c" d="M8 7l3 5-2 6M11 12l6-1"/>',
+  peat: '<rect x="3" y="15" width="8" height="5.5"/><rect x="13" y="15" width="8" height="5.5"/><rect x="8" y="8.5" width="8" height="5.5"/>',
+  wool:
+    '<path d="M7 18.5a4.2 4.2 0 0 1-1-8.2A4.2 4.2 0 0 1 12 6.8a4.2 4.2 0 0 1 6 3.5 4.2 4.2 0 0 1-1 8.2z"/>' +
+    '<path class="c" d="M8 13.5c1-1.5 2.5-1.5 3.200 0M12.800 15c1-1.5 2.5-1.5 3.200 0M11 10.5c.8-1.200 2-1.200 2.700 0"/>',
+  fish: ACT_STEN.fish,
+  tar: '<path d="M7 3.5h10c1.7 3.2 1.7 13.8 0 17H7c-1.7-3.2-1.7-13.8 0-17z"/><path class="c" d="M5.9 9h12.2M5.9 15h12.2"/>',
+  water: ACT_STEN.water,
+  cart:
+    '<path d="M2.5 7.5h14L18 14H4.5z"/><path class="l" d="M18 14l3.5-7"/><circle cx="9.5" cy="17.5" r="3.5"/>' +
+    '<circle class="c" cx="9.5" cy="17.5" r="1"/>',
+  boat: '<path d="M2.5 14.5h19l-3.2 5.5H5.7z"/><path d="M12.8 13V3.5l6.2 9.5z"/><path class="l" d="M10.8 13.5V4"/>',
+  quern: ACT_STEN.quern,
+  meat:
+    '<path d="M14 3.5c4.2 0 6.5 3.2 6.5 6.5 0 4.3-4.3 7.5-9.5 6.5l-3.2 3.2-2.3-.5-.5-2.3 3.2-3.2C7 9 10 3.5 14 3.5z"/>' +
+    '<circle class="c" cx="14" cy="9.5" r="1.6"/>',
+  butter: '<path d="M7 10h10l-1 11H8z"/><path class="c" d="M7.5 14.5h9"/><path class="l" d="M12 9V3M9.5 3h5"/>',
+  milk: ACT_STEN.pail,
+  field: '<path d="M2.5 19.5l4.2-14h10.6l4.2 14z"/><path class="c" d="M10 5.5l-2 14M14 5.5l2 14M5 12.5h14"/>',
+  meadow:
+    '<path class="l" d="M3 20.5h18M6 19.5c0-3.5-1-5.5-2-7.5M9 19.5c0-5 1-8 2-10M13 19.5c0-4 .5-6.5 2.5-9.5M17.5 19.5c0-3 1-5 2.5-6.5"/>',
+  beast: '<path d="M4 9l2-3 1 2h8l3-2 2 2-1 3v3l-1 5h-2l-.5-4H9.5L9 19H7l-1-5c-1.5-1-2-3-2-5z"/>',
+  health: `<path d="${HEART_STEN}"/>`,
+  hunger: '<path d="M3 11h18c0 5.2-4 8.8-9 8.8S3 16.2 3 11z"/><path class="l" d="M12 3.5v4M8.3 5v2.5M15.7 5v2.5"/>',
+  prestige: '<path d="M3.5 19L2.3 8l5.2 4.2L12 5l4.5 7.2L21.7 8l-1.2 11z"/><path class="c" d="M4.5 16h15"/>',
+  people: PEOPLE_STEN,
+  fence:
+    '<path class="l" d="M3 10.5h18M3 16.5h18"/><path d="M4.5 21V6.5L6.2 4l1.7 2.5V21z"/><path d="M10.3 21V6.5L12 4l1.7 2.5V21z"/>' +
+    '<path d="M16.1 21V6.5L17.8 4l1.7 2.5V21z"/>',
+  cold: COLD_STEN,
+  soil:
+    '<path class="l" d="M3 14c3-2 6-2 9 0s6 2 9 0M3 19c3-2 6-2 9 0s6 2 9 0M12 10.5V5"/>' +
+    '<path d="M12 7C9.5 7 8.5 5.8 8.5 3.5 11 3.5 12 4.7 12 7z"/><path d="M12 8.5c2.5 0 3.5-1.2 3.5-3.5C13 5 12 6.2 12 8.5z"/>',
+  heir: '<path class="l" d="M11.5 12L20 3.5M17 6.5L19.5 9M14.5 9l2 2"/><circle cx="8" cy="15.5" r="4.5"/><circle class="c" cx="8" cy="15.5" r="1.5"/>',
+  holder: ACT_STEN.home,
+  mood: '<circle cx="12" cy="12" r="8.7"/><path class="c" d="M8.3 14.2c2 2.2 5.4 2.2 7.4 0M9 9.4v1.2M15 9.4v1.2"/>',
+  married: RINGS_STEN,
+  child: CHILD_STEN,
+  grieving:
+    '<circle cx="12" cy="10.5" r="7.5"/><path class="c" d="M8.5 13.5c2-1.5 5-1.5 7 0M9 8.3v1.2M15 8.3v1.2"/>' +
+    '<path d="M17.5 14c1.2 2.2 1.8 3.3 1.8 4.5a1.8 1.8 0 0 1-3.6 0c0-1.2.6-2.3 1.8-4.5z"/>',
+  friend:
+    '<path d="M2.5 20c0-4 2.2-6.8 5-6.8s5 2.8 5 6.8z"/><path d="M11.5 20c0-4 2.2-6.8 5-6.8s5 2.8 5 6.8z"/>' +
+    '<circle cx="7.5" cy="7.5" r="2.8"/><circle cx="16.5" cy="7.5" r="2.8"/>',
+  tile: '<path d="M12 2.5l8.5 4.8v9.4L12 21.5l-8.5-4.8V7.3z"/>',
+  ale: ACT_STEN.ale,
+  plan:
+    '<path d="M5.5 2.5h13v19h-13z"/>' +
+    '<path class="c" d="M8.5 8l1.3 1.3L12.3 7M14 8.5h2.5M8.5 13.5l1.3 1.3 2.5-2.3M14 14h2.5M8.5 18.5h8"/>',
+};
+const goodIcon = (k) =>
+  stencil(
+    svgIcon(24, 24, GOOD_PATHS[k] || GOOD_PATHS.tile, ICON_STROKE),
+    GOOD_PATHS[k] ? GOOD_STEN[k] : GOOD_STEN.tile,
+  );
 // The four seasons (sim/rules SEASONS, spring first), one icon each, on a 14 box (VB-667: the supply component's header and its chips): a
 // sprout, a sun, a leaf, a snowflake.
 const SEASON_PATHS = [
@@ -388,12 +471,23 @@ const SEASON_PATHS = [
   '<path d="M3 11c0-5 3-8 8-8 0 5-3 8-8 8zM3 11l5-5M2 12l1-1"/>',
   '<path d="M7 1v12M1.8 4l10.4 6M12.2 4L1.8 10M5.5 2L7 3.5 8.5 2M5.5 12L7 10.5 8.5 12"/>',
 ];
+// The seasons as stencils (VB-1125), drawn on the 24 box as the others are.
+const SEASON_STEN = [
+  ACT_STEN.sow,
+  '<circle cx="12" cy="12" r="4.8"/>' +
+    '<path class="l" d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M5 5l1.8 1.8M17.2 17.2L19 19M19 5l-1.8 1.8M6.8 17.2L5 19"/>',
+  '<path class="l" d="M3.5 20.5L5 19"/><path d="M5 19C5 10.5 10 5.5 19 5.5 19 14 14 19 5 19z"/><path class="c" d="M5.5 18.5L14 10"/>',
+  COLD_STEN,
+];
 const seasonIcon = (k) =>
-  svgIcon(
-    14,
-    14,
-    SEASON_PATHS[((k % 4) + 4) % 4],
-    ' fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"',
+  stencil(
+    svgIcon(
+      14,
+      14,
+      SEASON_PATHS[((k % 4) + 4) % 4],
+      ' fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"',
+    ),
+    SEASON_STEN[((k % 4) + 4) % 4],
   );
 // The twelve traits (sim/traits, TRAITS.names), one icon each: traits are not hidden (Kim, 16 Nov), and are shown as icons.
 const TRAIT_PATHS = {
@@ -417,7 +511,29 @@ const TRAIT_PATHS = {
   husbandry: GOOD_PATHS.beast,
   wits: '<path d="M9 18h6M10 21h4M8.5 15C6.5 13.5 6 11.5 6 10a6 6 0 0 1 12 0c0 1.5-.5 3.5-2.5 5z"/>',
 };
-const traitIcon = (k) => svgIcon(24, 24, TRAIT_PATHS[k], ICON_STROKE);
+// The same traits as stencils (VB-1125).
+const TRAIT_STEN = {
+  generosity:
+    '<path d="M12 10.5c-3.3-2.2-5-3.8-5-6a2.5 2.5 0 0 1 5-.9 2.5 2.5 0 0 1 5 .9c0 2.2-1.7 3.8-5 6z"/>' +
+    '<path d="M2.5 14.5c3-1.8 5.5-1.8 7.5-.8l4 1c1.3.4 1.3 2.3 0 2.5l4.5-2.2c1.7-.6 2.8 1.5 1.2 2.7L14 21.5H8l-5.5-1.2z"/>',
+  piety: '<path d="M10.3 3h3.4v5h5v3.4h-5V21h-3.4v-9.6h-5V8h5z"/>',
+  ambition: ICON_STEN.land,
+  honour:
+    '<path d="M12 2.8l8 2.7v6c0 5-3.5 8.3-8 10-4.5-1.7-8-5-8-10v-6z"/><path class="c" d="M8.5 12l2.5 2.5 4.5-4.8"/>',
+  sociability: '<path d="M2.5 4h12v8.5H8l-3 3v-3H2.5z"/><path d="M16 9h5.5v7.5h-2v3l-3-3h-5V14H16z"/>',
+  temper:
+    '<path d="M12 21.5c-4 0-6.5-2.7-6.5-6 0-3.5 3-5 3.5-9 .5 1.5 1.5 2.5 2 3.5.5-2.5 1.5-5 1-7.5 3.5 2.5 6.5 7 6.5 12.5 0 3.8-2.5 6.5-6.5 6.5z"/>',
+  diligence:
+    '<circle cx="12" cy="13.5" r="7.5"/><rect x="9.5" y="2.5" width="5" height="2.2"/><path class="c" d="M12 9.5v4l3 2"/>',
+  openness: '<circle cx="12" cy="12" r="9"/><path class="c" d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+  body:
+    '<path class="l" d="M8.5 12h7"/><rect x="2" y="9" width="2.6" height="6"/><rect x="5.5" y="6.5" width="2.8" height="11"/>' +
+    '<rect x="15.7" y="6.5" width="2.8" height="11"/><rect x="19.4" y="9" width="2.6" height="6"/>',
+  hands: '<path d="M7 21c-2-2.5-3.5-5-3.5-8l2-1L7 14.5V5h2.5v6h1V3.5H13V11h1V5h2.5v6.5h1V8H20v6c0 3-1 5-2.5 7z"/>',
+  husbandry: GOOD_STEN.beast,
+  wits: '<path d="M8.5 15.5C6.5 14 5.5 12 5.5 9.8a6.5 6.5 0 0 1 13 0c0 2.2-1 4.2-3 5.7z"/><rect x="9" y="17" width="6" height="3.8" rx="1"/>',
+};
+const traitIcon = (k) => stencil(svgIcon(24, 24, TRAIT_PATHS[k], ICON_STROKE), TRAIT_STEN[k]);
 // The bonds (VB-1026): what one person is to another, one icon each. The five kin bonds the simulation names (sim/relations, standing):
 // two rings; an elder with a staff; a swaddled child; two of one branch; two under one roof. The four opinion bands (opinionWord): a
 // heart, filled for a close friend; a heart struck through; two crossed blades.
@@ -436,7 +552,25 @@ const BOND_PATHS = {
   dislikes: `<path d="${HEART}M4 4l16 16"/>`,
   enemy: '<path d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5M17 17l3 3M7 17l-3 3"/>',
 };
-const bondIcon = (k) => svgIcon(24, 24, BOND_PATHS[k], ICON_STROKE);
+// The same bonds as stencils (VB-1125): a friend's heart is its outline, a close friend's is filled, a dislike's is broken.
+const BOND_STEN = {
+  spouse: RINGS_STEN,
+  parent:
+    '<path d="M3.5 21.5c0-5.5 2.7-9.5 6.5-9.5s6.5 4 6.5 9.5z"/><circle cx="10" cy="6.5" r="3.3"/>' +
+    '<path class="l" d="M19.5 9v12.5M17.5 9.5c0-2 4-2 4 0"/>',
+  child: CHILD_STEN,
+  sibling:
+    '<path class="l" d="M7 8.5V5h10v3.5M12 5V2.5"/><circle cx="7" cy="12.3" r="2.7"/><circle cx="17" cy="12.3" r="2.7"/>' +
+    '<path d="M2.8 21.5c0-3.3 1.8-5 4.2-5s4.2 1.7 4.2 5z"/><path d="M12.8 21.5c0-3.3 1.8-5 4.2-5s4.2 1.7 4.2 5z"/>',
+  housemate:
+    '<path d="M2.5 12L12 3.5l9.5 8.5h-3.8L12 7l-5.7 5z"/><path class="l" d="M6 13.5v7h12v-7"/>' +
+    '<circle cx="9.5" cy="16" r="1.8"/><circle cx="14.5" cy="16" r="1.8"/>',
+  friend: `<path class="l" d="${HEART}"/>`,
+  'close friend': `<path d="${HEART_STEN}"/>`,
+  dislikes: `<path d="${HEART_STEN}"/><path class="c" d="M12.5 6.5l-2.5 4.5 4 2.5-2.5 6"/>`,
+  enemy: '<path class="l" d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5M17 17l3 3M7 17l-3 3"/>',
+};
+const bondIcon = (k) => stencil(svgIcon(24, 24, BOND_PATHS[k], ICON_STROKE), BOND_STEN[k]);
 // A person's state in its family (VB-1035), where no other person's chip can say it: one ring; the two rings, one of them faded;
 // a figure great with child; a mother with a swaddled child.
 const STATE_PATHS = {
@@ -448,7 +582,18 @@ const STATE_PATHS = {
     '<circle cx="9" cy="6" r="2.8"/><path d="M4.5 21c0-5 1.5-9 4.5-9 1.8 0 3.2 1 4.2 2.8"/><circle cx="16.5" cy="13" r="1.9"/>' +
     '<path d="M12.2 18.2c1.2-2.2 6.4-2.2 7.8-.2 0 2-1.8 3-3.9 3s-3.9-1-3.9-2.8z"/>',
 };
-const stateIcon = (k) => svgIcon(24, 24, STATE_PATHS[k], ICON_STROKE);
+// The same states as stencils (VB-1125).
+const STATE_STEN = {
+  unmarried: '<circle class="l" cx="12" cy="14.5" r="5.5"/><path d="M10.5 7L12 4l1.5 3z"/>',
+  widowed:
+    '<circle class="l" cx="9" cy="13.5" r="4.8"/><circle class="l" cx="15" cy="13.5" r="4.8" stroke-dasharray="1.2 4.2"/>' +
+    '<path d="M7.5 6.5l1.5-3 1.5 3z"/>',
+  expecting: '<circle cx="10.5" cy="5.5" r="3"/><path d="M9 10.5c-1.2 3.5-1.2 7 0 10.5h4.5v-3c4.2-.6 5-6-.5-7.5z"/>',
+  nursing:
+    '<circle cx="9" cy="6" r="3"/><path d="M4 21.5c0-5.5 1.8-9.5 5-9.5 2 0 3.5 1.2 4.5 3l-2 6.5z"/><circle cx="16.5" cy="13" r="2"/>' +
+    '<path d="M12.2 18.2c1.2-2.2 6.4-2.2 7.8-.2 0 2-1.8 3.2-3.9 3.2s-3.9-1-3.9-3z"/>',
+};
+const stateIcon = (k) => stencil(svgIcon(24, 24, STATE_PATHS[k], ICON_STROKE), STATE_STEN[k]);
 // The occasions (sim/occasions; VB-1032), one icon a kind, each an icon the interface has already: the two bubbles of who speaks, the
 // cross of piety, the rings, the tear of the grieving, the tankard. The map's mark of a gathering draws the same path (page/gathering).
 const OCCASION_PATHS = {
@@ -458,7 +603,14 @@ const OCCASION_PATHS = {
   funeral: GOOD_PATHS.grieving,
   ale: GOOD_PATHS.ale,
 };
-const occasionIcon = (k) => svgIcon(24, 24, OCCASION_PATHS[k], ICON_STROKE);
+const OCCASION_STEN = {
+  meeting: TRAIT_STEN.sociability,
+  rite: TRAIT_STEN.piety,
+  wedding: RINGS_STEN,
+  funeral: GOOD_STEN.grieving,
+  ale: ACT_STEN.ale,
+};
+const occasionIcon = (k) => stencil(svgIcon(24, 24, OCCASION_PATHS[k], ICON_STROKE), OCCASION_STEN[k]);
 for (const k of ['me', 'home', 'village', 'queue']) ICON['act-' + k] = actIcon(k);
 // A button marked data-icon="name" takes that icon before its content (a dock button keeps its label under it).
 for (const b of document.querySelectorAll('[data-icon]')) b.insertAdjacentHTML('afterbegin', ICON[b.dataset.icon]);
