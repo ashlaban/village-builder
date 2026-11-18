@@ -24,7 +24,8 @@
 //   question   priority= title= [about=VB-NNN, the task it is filed under: default TASK]; body: the numbered questions, each with its proposed answer (**P:**), as in QUESTIONS.md
 //   tuning     parameter= means= measured= proposed=   a row of docs/tuning.md, Parameters waiting
 //   candidate  rule=   a principle candidate (AGENTS.md, Surfacing); body: the decisions behind it
-//   teleport   where= what= [task=VB-NNN]   a teleport found (AGENTS.md, the hard rule), and the task noted for it
+//   teleport   where= what=   a teleport found (AGENTS.md, the hard rule): apply adds it to the open collecting task, a line
+//   act        where= what=   an act with no pawn, or a choice only the player has (AGENTS.md, 16): collected likewise
 //   decision   what= why=   a close call, decided by Deciding without Kim, that Kim should see
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), { execFileSync, spawnSync } = require('child_process');
@@ -41,7 +42,15 @@ const asJson = flag('--json'), dry = flag('--dry'), fresh = flag('--fresh'), bod
 const today = option('--date') || new Date().toISOString().slice(0, 10);
 
 const KINDS = { task: ['id', 'name', 'priority', 'size', 'summary'], question: ['priority', 'title'], tuning: ['parameter', 'means', 'measured', 'proposed'],
-  candidate: ['rule'], teleport: ['where', 'what'], decision: ['what', 'why'] };
+  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'] };
+// Findings are collected, not given a task each (Kim, 18 November): one open task a kind holds them, a criterion a finding, and a
+// slice's wrap-up sweeps it. apply finds that task by its name, or makes the next one.
+const COLLECT = {
+  teleport: { name: "Teleports found, collected: swept at a slice's wrap-up", arch: 'physical', goal: 'Each teleport listed is mended or shown to be none: goods arrive by being carried',
+    summary: 'The teleports tasks found in the code, a line each; swept together when a slice wraps up' },
+  act: { name: "Acts with no pawn, collected: swept at a slice's wrap-up", arch: 'acts', goal: 'Each act listed is a pawn\'s, through a verb any pawn may use',
+    summary: 'The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up' },
+};
 const OPTIONAL = { task: ['status', 'arch', 'waits', 'ref', 'goal'], question: ['about'], teleport: ['task'] };
 const NEEDS_BODY = ['question'];
 
@@ -78,7 +87,7 @@ const notes = (where = '', ...p) => all(`SELECT * FROM notes ${where} ORDER BY n
 const headline = (n) => {
   const f = n.fields;
   return one({ task: `${f.id} ${f.name}`, question: f.title, tuning: `${f.parameter}: ${f.measured}`, candidate: f.rule,
-    teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, decision: `${f.what}: ${f.why}` }[n.kind]);
+    teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, act: `${f.where}: ${f.what}`, decision: `${f.what}: ${f.why}` }[n.kind]);
 };
 
 if (cmd === 'init') {
@@ -222,7 +231,30 @@ if (cmd === 'init') {
         lines.splice(lastRow + 1, 0, `| ${cell(f.parameter)} | ${cell(f.means)} | ${cell(f.measured)} | ${cell(f.proposed)} | ${n.task} |`);
         return lines.join('\n');
       });
-    } else continue; // candidates, teleports and decisions go to the PR (report), not to a file
+    } else if (COLLECT[n.kind]) {
+      const c = COLLECT[n.kind], line = `- [ ] From ${n.task}: ${one(f.where)}: ${one(f.what)}`;
+      const dirOf = path.join(root, 'backlog'), open = fs.readdirSync(dirOf).find((name) => {
+        const t = fs.readFileSync(path.join(dirOf, name), 'utf8');
+        return t.startsWith(`# ${name.replace('.md', '')}: ${c.name}\n`) && !/^Status: done/m.test(t);
+      });
+      if (open) {
+        edit('backlog/' + open, (text) => {
+          const lines = text.split('\n');
+          let at = lines.findLastIndex((l) => /^- \[[ x]\]/.test(l));
+          if (at < 0) return null;
+          while (/^ {2}\S/.test(lines[at + 1] || '')) at++;
+          lines.splice(at + 1, 0, line);
+          return lines.join('\n');
+        });
+      } else if (dry) console.log(`would open the collecting task "${c.name}"`);
+      else {
+        const id = atomic(() => { const next = +get("SELECT value FROM meta WHERE key = 'next'").value; run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + 1)); return pad(next); });
+        backlog('new', `id=${id}`, 'status=needs-review', `name=${c.name}`, 'priority=3', 'size=M', `summary=${c.summary}`, `arch=${c.arch}`, 'ref=AGENTS.md, Surfacing', `goal=${c.goal}`);
+        const p = path.join(dirOf, id + '.md');
+        fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('- [ ] (to write)\n', line + '\n'));
+        backlog('set', id, 'status=ready');
+      }
+    } else continue; // candidates and decisions go to the PR (report), not to a file
     mark('notes', 'n', n.n); count++;
   }
   console.log(`${dry ? 'would apply' : 'applied'} ${count}; the PR's section:  node tools/inbox.js report`);
@@ -231,6 +263,7 @@ if (cmd === 'init') {
   const section = (title, rows) => { if (rows.length) out.push('', `**${title}**`, ...rows); };
   section('Principle candidates', by('candidate').map((n) => `- ${one(n.fields.rule)} (${n.task})${n.body ? '\n' + n.body.split('\n').map((l) => '  ' + l).join('\n') : ''}`));
   section('Teleports found', by('teleport').map((n) => `- ${headline(n)}, found by ${n.task}`));
+  section('Acts with no pawn found', by('act').map((n) => `- ${headline(n)}, found by ${n.task}`));
   section('Tasks merged with a criterion unmet', all("SELECT * FROM results WHERE status = 'needs-review'").map((r) => `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));
   section('Close calls', by('decision').map((n) => `- ${n.task}: ${headline(n)}`));
   section('Questions (in `QUESTIONS.md`)', by('question').map((n) => `- ${n.task}: ${headline(n)} (priority ${n.fields.priority})`));

@@ -47,7 +47,8 @@ expect('a question needs its text', !r.ok && /--body/.test(r.out), r.out);
 r = run('1. Is it so? **P:** yes.', 'note', A, 'question', 'priority=2', 'title=the inbox test', `about=${N}`, '--body', '-');
 expect('a question note', r.ok, r.out);
 for (const a of [['tuning', 'parameter=`X.y` 3', 'means=a | thing', 'measured=low', 'proposed=more'], ['candidate', 'rule=Animals are led, never carried'],
-  ['teleport', 'where=src/sim/herds.js:420', 'what=hay jumps', `task=${N}`], ['decision', 'what=a', 'why=b']]) {
+  ['teleport', 'where=src/sim/herds.js:420', 'what=hay jumps'], ['teleport', 'where=src/sim/herds.js:99', 'what=wool jumps'],
+  ['act', 'where=src/sim/clock.js:7', 'what=the calendar culls'], ['decision', 'what=a', 'why=b']]) {
   r = run('', 'note', A, ...a);
   expect(`a ${a[0]} note`, r.ok, r.out);
 }
@@ -68,7 +69,12 @@ const before = file('BACKLOG.md');
 r = run('', 'apply', '--dry');
 expect('apply --dry writes nothing', r.ok && file('BACKLOG.md') === before && !fs.existsSync(path.join(dir, 'backlog', N + '.md')), r.out);
 r = run('', 'apply');
-expect('apply: the result, the task, the question and the tuning row', r.ok && /applied 5/.test(r.out), r.out);
+expect('apply: the result, the task, the question, the tuning row and the three findings', r.ok && /applied 8/.test(r.out), r.out);
+const collected = (name) => fs.readdirSync(path.join(dir, 'backlog')).map((f) => file('backlog/' + f)).filter((t) => t.includes(`: ${name}`) && !/^Status: done/m.test(t));
+expect('the teleports are lines of one open collecting task', collected('Teleports found, collected').length === 1
+  && collected('Teleports found, collected')[0].includes(`- [ ] From ${A}: src/sim/herds.js:420: hay jumps\n- [ ] From ${A}: src/sim/herds.js:99: wool jumps`));
+expect('the act is a line of its own collecting task, ready', collected('Acts with no pawn, collected').length === 1
+  && /^Status: ready$/m.test(collected('Acts with no pawn, collected')[0]) && collected('Acts with no pawn, collected')[0].includes('the calendar culls'));
 expect('the done task left the Ready table', !file('BACKLOG.md').split('\n## Ready\n')[1].split('\n## ')[0].includes(`[${A}]`));
 expect('the noted task has its file, criteria and origin', /^Status: needs-review$/m.test(file(`backlog/${N}.md`))
   && file(`backlog/${N}.md`).includes('- [ ] The herd is led.') && file(`backlog/${N}.md`).includes(`Noted by ${A}, 2 January 2026.`));

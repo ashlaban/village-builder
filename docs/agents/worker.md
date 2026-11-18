@@ -19,8 +19,9 @@ sub-agents leave notes in the inbox (`node tools/inbox.js --help`), a local file
 ## 1. Ready tasks, three or four at a time, until none are left
 Aim for at least one L task, three M or five S. Keep three or four sub-agents running; start the next when one ends.
 1. Choose: `node tools/backlog.js next 6` gives the ready tasks in order, with sizes and summaries. Take them in that order, but run
-   side by side only tasks of different archs, and run alone a task whose summary says so, a plan and a wrap-up. Of every four tasks,
-   one is of the arch `physical` while it has a ready one (`node tools/backlog.js list --status ready --arch physical`).
+   side by side only tasks of different archs, and run alone a task whose summary says so, a plan and a wrap-up. After a slice's
+   wrap-up, take the collecting tasks of findings next ("Teleports found, collected", "Acts with no pawn, collected"), whatever their
+   priority: findings are swept there, not interleaved a task each (Kim, 18 November).
 2. Start: `node tools/inbox.js start VB-NNN` reserves the task's new IDs. Then a `vb-task` sub-agent, in the background, isolated in
    a worktree, with the prompt "Task VB-NNN; the run's branch is `claude/nightly-<date>`; your reserved task IDs are <IDs>", and the
    model by size: `sonnet` for S, `opus` for M and L. A plan task runs on the strongest model offered, whatever its size (Kim, 16 November):

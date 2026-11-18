@@ -51,9 +51,9 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
 - Rights and knowledge are exempt, since following every fact through the world is not computable: ownership, obligations, goodwill and
   news move at once. So a gift, a share or a loan changes owner where it lies, and waits there until someone fetches it.
 - The world a scenario starts with is placed, not carried.
-- No task adds a teleport, however small or temporary. An agent that finds one in the code opens a task for it (arch `physical`) and
-  goes on; these tasks are taken interleaved with the slice's work, and each reports its numbers, since goods that take time to arrive
-  change hunger.
+- No task adds a teleport, however small or temporary. An agent that finds one in the code notes it and goes on
+  (Surfacing): findings are collected, a line each in one open task, and swept when a slice wraps up (Kim, 18 November); the sweep
+  reports its numbers, since goods that take time to arrive change hunger.
 
 1. **Hunger presses, the feast binds.** Shortage drives help, loans and land passing, and through them the landed class; help still
    books goodwill. What drives the goodwill economy is plenty: at a feast a household turns its surplus into goodwill and standing. A
@@ -103,7 +103,7 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
     alderman, who carries out what the meeting decided. The player has what its pawn has, no more and no less: a choice the player is
     given is a choice every pawn makes, and a new verb widens the game for both. Natural processes need no pawn (birth, death,
     growth, spoilage, an animal eating); debug verbs are the world's, not a pawn's. An agent that finds an act with no pawn, or a
-    choice only the player has, opens a task for it (arch `acts`) and goes on, as for a teleport.
+    choice only the player has, notes it and goes on, as for a teleport (Surfacing).
 17. **Goods are made of a material, and its kind sets their quality** (Kim, 16 November). A good is what it is for (a whetstone, a
     vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze)
     makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long
@@ -130,7 +130,9 @@ What Kim should see is surfaced, never waited for. A task notes, in its task fil
 no orchestrator, in its PR):
 - **A principle candidate**, when a decision had no principle to rest on, when two principles pulled apart, or when it is the third
   decision of one kind: one line of the rule proposed, and the decisions behind it (`candidate`).
-- **A teleport found**, with the task opened for it (`teleport`, and a `task` of the arch `physical`).
+- **A teleport found**, or an act with no pawn: one line, where and what (`teleport`, `act`). It gets no task of its own:
+  `inbox.js apply` adds it to its kind's open collecting task ("Teleports found, collected", "Acts with no pawn, collected"; with no
+  orchestrator, add the line there yourself), which a slice's wrap-up sweeps.
 - **A close call**: a decision another agent could as well have made the other way (`decision`).
 
 The orchestrator gathers these at the head of the night's PR, under "For Kim" (`node tools/inbox.js report`): the candidates first,
@@ -188,7 +190,9 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - A module's length is not capped (VB-413). Code goes where its concern lives, formatted by Prettier. Over 700 formatted lines (the
   400 of the packed sources, rescaled by the sweep of 13 November) the lint asks
   for an open task that splits the module (VB-414): the task that takes it over the line opens one, titled "Refactor: split <key> ..."
-  (`sim/heirs`), names it in its PR and goes on. Never place code elsewhere to make room. The seven modules the sweep left over the
+  (`sim/heirs`), names it in its PR and goes on. Never place code elsewhere to make room.
+  A split is not collected with the findings, and is where to think hardest (Kim, 18 November): its task says which responsibilities
+  the module holds and where each belongs, and the split follows those, not the line count. The seven modules the sweep left over the
   line are in `tests/lint-baseline.json` at their lengths, which only fall.
   Width the same way (VB-415): a module over 15 exports (`tests/width-baseline.json` holds today's 21 at their counts) may add one only
   with such a task open; the `sim` facade is not counted, nor an export read only by registries (`REGISTRIES` in `tests/lint.js`: `sim/kinds`, `sim/clock`, `sim/commands`; VB-454).
