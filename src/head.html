@@ -1144,3 +1144,21 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 :root[data-theme="mural"] .year div { border-top: 3px solid var(--accent); }
 :root[data-theme="mural"] :is(.genscreen, .saves-screen, .drawer, .editor) :is(input, select) { border: 1.5px solid var(--ink); }
 :root[data-theme="mural"] .start-bar { padding-top: 14px; padding-bottom: 14px; }
+/* Whom to play (VB-1127): a member of the household is a medallion with the name under it, the chosen one in the double ring with the
+   name on a red scroll; what a position can do is a fact, not a thing pressed, so it is an icon and its words with no scroll round them */
+:root[data-theme="mural"] .people { gap: 6px 4px; }
+:root[data-theme="mural"] .person { gap: 3px; padding: 4px 0 2px; border: 0; border-radius: 0; background: none; }
+:root[data-theme="mural"] .person img { width: 46px; height: 46px; padding: 3px 3px 0; border: 2px solid var(--ink); border-radius: 50%; background: #e2c684;
+  box-shadow: inset 0 0 0 2px var(--node); }
+:root[data-theme="mural"] .person[aria-pressed="true"] { background: none; }
+:root[data-theme="mural"] .person[aria-pressed="true"] img { box-shadow: inset 0 0 0 2px var(--node), 0 0 0 2px var(--node), 0 0 0 4px var(--accent); }
+:root[data-theme="mural"] .person span { padding: 0 6px; border: 1.5px solid transparent; border-radius: 0 8px 0 8px; font: italic 700 14px/1.25 var(--scroll); }
+:root[data-theme="mural"] .person[aria-pressed="true"] span { background: var(--accent); border-color: var(--ink); color: var(--on-accent); }
+:root[data-theme="mural"] .person:disabled img { background: var(--node); opacity: 0.6; }
+:root[data-theme="mural"] .person.hit img { filter: none; background: var(--gold); }
+@media (hover: hover) { :root[data-theme="mural"] .person:hover:not(:disabled) { background: none; }
+  :root[data-theme="mural"] .person:hover:not(:disabled):not([aria-pressed="true"]) span { border-color: var(--ink); } }
+:root[data-theme="mural"] .detail { border-top: 1.5px dotted var(--edge); }
+:root[data-theme="mural"] .pchips { gap: 4px 16px; }
+:root[data-theme="mural"] .pchip { padding: 1px 0; border-radius: 0; background: none; }
+:root[data-theme="mural"] .hhead img { width: 48px; height: 48px; }
