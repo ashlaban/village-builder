@@ -43,6 +43,8 @@ VB.COUNTERS = {
     "Ties walked to put a pawn's ties back on today's scale, or to make room under the cap (sim/relations, VB-127)",
   tiePairs:
     'Pairs given familiarity for waking hours at home (daily) or a job finished together (sim/relations, VB-127)',
+  courtCheck: 'Good talks read for the start of a courtship: one check a good talk (sim/courting, VB-036)',
+  courtWalk: 'Courting couples walked at the moving round: its review, and those a head refused (sim/courting, VB-036)',
   roundPairs: 'Candidate man/woman pairs visited in the moving round',
   roundWalk: "Pawn records walked by a village's round to build its pool, once a village (sim/lifecycle, VB-277)",
   wishWalk: "Pawn records walked by the pawns' own choosing of their wishes, once a moving round (sim/wishes, VB-680)",

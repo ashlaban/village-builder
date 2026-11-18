@@ -295,7 +295,7 @@ VB['sim/service'] = (() => {
   const handsPerField = (st, hh) => hands(st, hh) / fieldsOf(st, hh);
   const parentIn = (st, q, hh) =>
     [q.father, q.mother].some((id) => id !== null && st.pawns[id].alive && st.pawns[id].household === hh.id);
-  function serveWhereShort(st, { taken = new Set(), moved = new Set() } = {}) {
+  function serveWhereShort(st, { taken = new Set(), moved = new Set(), leavers = [] } = {}) {
     const short = st.liveHouseholds
       .map((id) => st.households[id])
       .filter(
@@ -308,7 +308,15 @@ VB['sim/service'] = (() => {
           handsPerField(st, h) < SERVICE.short,
       );
     if (!short.length) return;
-    const going = willServe(st)
+    // One of a courting couple a head refused (`leavers`: sim/courting, VB-036) asks for a place whatever the hands at home, and
+    // whether or not it waits for land: fit to serve, and holding no open offer about its future.
+    const leaving = new Set(
+      leavers.filter((id) => {
+        const q = st.pawns[id];
+        return unfit(st, q) === null && wishOf(st, id, 'serve') !== false && (q.ask === undefined || q.ask === null);
+      }),
+    );
+    const going = [...new Set([...willServe(st), ...leaving])]
       .map((id) => st.pawns[id])
       .filter((q) => !moved.has(q.id))
       .sort((a, b) => a.born - b.born || a.id - b.id);
@@ -317,8 +325,8 @@ VB['sim/service'] = (() => {
       const from = st.households[q.household];
       if (
         from.dissolved ||
-        handsPerField(st, from) <= SERVICE.spare ||
-        (hands(st, from) - 1) / fieldsOf(st, from) < SERVICE.short
+        (!leaving.has(q.id) &&
+          (handsPerField(st, from) <= SERVICE.spare || (hands(st, from) - 1) / fieldsOf(st, from) < SERVICE.short))
       )
         continue;
       let best = -1,
@@ -337,6 +345,17 @@ VB['sim/service'] = (() => {
       }
       if (best < 0) continue;
       if (!offerPlace(st, short[best].holder, q.id, short[best].id)) continue;
+      if (leaving.has(q.id) && Number.isInteger(q.courting))
+        personEvent(
+          st,
+          q.id,
+          'leftRefused',
+          `Left home: the match with ${fullName(st.pawns[q.courting])} was refused`,
+          {
+            other: q.courting,
+            village: farmOf(st, short[best]).village,
+          },
+        );
       short.splice(best, 1);
       moved.add(q.id);
     }

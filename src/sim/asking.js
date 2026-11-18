@@ -39,6 +39,7 @@ VB['sim/asking'] = (() => {
       if (!p || !p.alive) return `${p ? fullName(p) : 'one of them'} has died`;
       if (o.basis === 'match' && spouseOf(st, id) !== null) return `${fullName(p)} has married`;
     }
+    if (o.courted && st.pawns[o.gives.man].courting !== o.wants.woman) return 'they court no more';
     if (o.basis === 'land' && Number.isInteger(o.from) && landed(st, o.from))
       return `${fullName(st.pawns[o.from])} has taken a place`;
     return null;
@@ -55,7 +56,7 @@ VB['sim/asking'] = (() => {
   function askMatch(st, m, due, { not = null, only = null, roll = false } = {}) {
     const p = st.pawns[m],
       v = settlementIdOf(st, p);
-    if (v === null) return 'nobody';
+    if (v === null || Number.isInteger(p.courting)) return 'nobody'; // one who courts asks no other (askCourted, VB-036)
     const asked = new Map();
     for (const o of st.offers) if (o.basis === 'match') asked.set(o.wants.woman, (asked.get(o.wants.woman) || 0) + 1);
     const cands = [];
@@ -66,7 +67,7 @@ VB['sim/asking'] = (() => {
       if (f.sex !== 'f' || id === not || (only !== null && id !== only) || !f.alive || f.retired) continue;
       if (f.household === null || f.hunger >= HUNGER.marryBelow || age(st, f) < MARRIAGE.womenFrom) continue;
       if (spouseOf(st, id) !== null || (asked.get(id) || 0) >= ASK.held) continue;
-      if (f.wish && wishOf(st, id, 'match') === false) continue;
+      if (Number.isInteger(f.courting) || (f.wish && wishOf(st, id, 'match') === false)) continue;
       const fv = settlementIdOf(st, f);
       if (fv === null || (fv !== v && !(byLand(st, v, fv) && courts(st, p, f, v, fv)))) continue; // a day's walk, or visited (VB-289)
       cands.push({ f, h: fv === v ? 0 : hoursBetween(st, v, fv) });
@@ -109,6 +110,39 @@ VB['sim/asking'] = (() => {
     });
     return r === true && Number.isInteger(p.ask) ? 'made' : r === true ? 'nobody' : r;
   }
+  // ---- the courting pair's own offer (VB-036; plan VB-682, sections 3 and 4.1) ----
+  // Pawn id courts: the pair's offer, due at `due` (the round), if they hold none and the gate allows them: the ages to marry, the kin
+  // limit of the man's village, a home under the residence custom (the means and the two's hunger are read at the round, where it
+  // settles: sim/marriage). No score is asked: their liking replaces it. It is made by the man to the woman, or by her where she
+  // speaks for herself and he does not; the two, and a spokesman of either, answer it at the round as any match (by opinion).
+  // 'made', 'held' (an offer of theirs is open), or 'wait' (the gate does not yet allow them: they wait, courting).
+  function askCourted(st, id, due = dueRound(st)) {
+    const p = st.pawns[id],
+      q = st.pawns[p.courting],
+      [m, f] = p.sex === 'm' ? [p, q] : [q, p];
+    if (Number.isInteger(m.ask)) return 'held';
+    if (age(st, m) < MARRIAGE.menFrom || age(st, f) < MARRIAGE.womenFrom || m.retired || f.retired) return 'wait';
+    if (m.household === null || f.household === null) return 'wait';
+    const cu = practice(st, settlementIdOf(st, m));
+    if (!kinOk(st, m.id, f.id, cu)) return 'wait';
+    const home = matchRules(st).homeFor(m, f, cu);
+    if (home === null) return 'wait';
+    const hers = spokesmanOf(st, f.id) === f.id && spokesmanOf(st, m.id) !== m.id,
+      r = issue(st, {
+        actor: hers ? f.id : m.id,
+        verb: 'offer',
+        target: hers ? m.id : f.id,
+        args: { basis: 'match', gives: { man: m.id, home }, wants: { woman: f.id }, due, round: true },
+        source: 'courting',
+      });
+    return r === true && Number.isInteger(m.ask) ? 'made' : 'wait';
+  }
+  // The courtship begins (sim/courting): their offer is made at once, if the gate allows them
+  on('courting', (st, d) => {
+    if (askCourted(st, d.man) === 'made') {
+      VB.count.asksMade++;
+    }
+  });
   // ---- the asking ----
   // Pawn id's asking (plan, section 3): an open offer it holds lapses if its people have died, married or taken a place (it asks again on
   // its next day); else it reviews its wish (not the played pawn's: the player sets it) and walks its rungs, best first, to Stay: Heir
@@ -129,6 +163,13 @@ VB['sim/asking'] = (() => {
       return 'held';
     }
     if (id !== played) chooseWish(st, id);
+    // one who courts asks for the one it courts, whoever speaks for it, and for no other match (VB-036); the rungs of land stay open
+    // to it, which may be the place the two wait for
+    const courting = Number.isInteger(p.courting);
+    if (courting) {
+      const r = askCourted(st, id);
+      if (r !== 'wait') return r === 'made' ? 'match' : 'held';
+    }
     const speaker = spokesmanOf(st, id);
     if (speaker === played) return 'played';
     const rank = wishesOf(st, id).rank;
@@ -141,7 +182,7 @@ VB['sim/asking'] = (() => {
         continue;
       }
       if (r === 'match') {
-        if (p.sex !== 'm' || spouseOf(st, id) !== null || age(st, p) < MARRIAGE.menFrom) continue;
+        if (courting || p.sex !== 'm' || spouseOf(st, id) !== null || age(st, p) < MARRIAGE.menFrom) continue;
         const w = wishOf(st, id, 'match');
         tried = true;
         if (askMatch(st, id, dueRound(st), { only: typeof w === 'number' ? w : null, roll: true }) === 'made')
@@ -183,5 +224,5 @@ VB['sim/asking'] = (() => {
     const hh = holdingOf(st, d.pawn);
     if (hh !== null) handover(st, hh, (h) => heirRanking(st, st.households[h]), dueRound(st));
   });
-  return { askingDay, askFor, askMatch, staleWhy, dueRound };
+  return { askingDay, askFor, askMatch, askCourted, staleWhy, dueRound };
 })();

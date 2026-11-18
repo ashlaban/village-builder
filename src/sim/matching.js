@@ -209,6 +209,8 @@ VB['sim/matching'] = (() => {
       if (spouseOf(st, p.id) !== null) return { why: `${nm} is married` };
       if (age(st, p) < (p === m ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) return { why: `${nm} is too young to marry` };
       if (p.retired) return { why: `${nm} is retired` };
+      if (Number.isInteger(p.courting) && p.courting !== (p === m ? f : m).id)
+        return { why: `${nm} is courting another` };
       if (!(p.hunger < HUNGER.marryBelow)) return { why: `${nm} is too hungry to marry` };
       if (p === m ? heldBy(st, p.id, 'match') : askedBy(st, p.id) >= ASK.held)
         return { why: `${nm} is in an open offer` };

@@ -114,7 +114,19 @@ VB['sim/notable'] = (() => {
     life: { label: 'Births and deaths', kinds: ['born', 'died', 'funeralAle'] },
     marriage: {
       label: 'Marriages',
-      kinds: ['married', 'putOff', 'offered', 'visited', 'visitOff', 'matchRefused', 'offerLapsed', 'wedding'],
+      kinds: [
+        'married',
+        'putOff',
+        'offered',
+        'visited',
+        'visitOff',
+        'matchRefused',
+        'offerLapsed',
+        'wedding',
+        'courting',
+        'courtingEnded',
+        'leftRefused',
+      ],
     },
     land: {
       label: 'Land and farms',
@@ -152,6 +164,9 @@ VB['sim/notable'] = (() => {
   // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
   // the village log, nor of a farm's history.
   const PERSONAL = new Set([
+    'courting',
+    'courtingEnded',
+    'leftRefused',
     'closeFriend',
     'enemy',
     'friend',

@@ -81,6 +81,7 @@ VB['sim/records'] = (() => {
     visited: 0, // a suitor's visit to another village (VB-289)
     visitOff: GENERATION, // kept home by the farm's food
     matchRefused: 0,
+    leftRefused: 0, // left home for service after a head refused the one it courts (sim/service, VB-036)
     offerLapsed: 0,
     offerRefused: 0, // goods offered or asked for, refused (sim/offers, VB-690)
     renounced: 0, // an inheritance renounced by one in line who holds a place (sim/heirs, VB-824)
@@ -97,6 +98,8 @@ VB['sim/records'] = (() => {
     quarrel: SHORT, // cross words that became a quarrel (VB-520)
     helped: SHORT, // helped another household of the village with its work (VB-106)
     workday: SHORT, // a village's work day: who turned out and who stayed away (VB-120)
+    courting: GENERATION, // a courtship begun, and ended unmarried (sim/courting, VB-036)
+    courtingEnded: GENERATION,
     gift: GENERATION,
     harvest: GENERATION,
     hay: GENERATION,
