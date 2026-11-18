@@ -150,7 +150,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1173](backlog/VB-1173.md) | Refactor: split sim/away: the gift's carrying to sim/gifts | - | 3 | M | carryGift, haulGift and fetchGift, with haulerOf and fetcherOf, move out of sim/away to sim/gifts, which holds the verbs give and deliver since VB-228; sim/away keeps the nights away. |
 | [VB-1174](backlog/VB-1174.md) | Refactor: split sim/heirs by concern | - | 3 | M | sim/heirs passed 700 lines (711) when the verbs handOn and move came home in VB-228; split it by concern. |
 | [VB-1175](backlog/VB-1175.md) | Teleports found, collected: swept at a slice's wrap-up | physical | 3 | M | The teleports tasks found in the code, a line each; swept together when a slice wraps up |
-| [VB-1182](backlog/VB-1182.md) | Design: Skip row names the eve only with a choice, and the year in brief | - | 3 | S | design.md Skip row agrees with VB-1101 |
 
 ## Waiting for Kim
 
