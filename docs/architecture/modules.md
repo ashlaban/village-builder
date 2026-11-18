@@ -110,7 +110,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   and `src/sim/heirs.js`.
 - The moving round (`src/sim/round.js`, its marriages in `src/sim/marriage.js`, VB-201, VB-277): on autumn day 11, each village's own round (`villageRound`) a village a 6-minute
   step from noon in the order of village id (village k on step k up to 60 villages, else `floor(k * 60 / n)`): its store filled, its own men
-  matched with the women of every village, its handovers (its farms, and the homes in other villages its marriages chose) and its kin
+  matched with the women of every village (a wedding brings the handover its home's holder offers) and its kin
   pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. The round lasts
   `ASK.passes` days (autumn days 11 to 13, VB-692): on each, a village's step first answers the offers due to its people (`answerDue`, in
   the order of `ASK.order`: handover, match, land, party, place); its choosers run on the first day only, and each of their picks is an
@@ -119,6 +119,13 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   day; after the last day what is open of the round lapses. A pawn holds one open offer about its future (`pawn.ask`, `sim/offers`).
   `roundPhase(st, n, d)` is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
+- Succession, offered and taken up (VB-824; `src/sim/marriage.js`, `src/sim/heirs.js`): no step hands a farm on. `heirRanking`'s `asked`
+  gives a farm's line in the order asked, each with why it would not take it (it holds a farm, lives on a spouse's, or is heir to a larger
+  one under `ownHeir: keeps`); the ranking is its yes-sayers. In life an unplayed holder considers handing on (`handover`) at its heir's
+  wedding into the house (an offer due at once) and on its birthday (the event `holderYear` of `sim/lifecycle`, heard by `sim/asking`; an
+  offer due at the round), at the custom's time unless it is at enmity with the heir; a played holder offers by the verb when it chooses.
+  The basis `handover` asks the first grown one in line; a no is told, leaves no memory, and passes the offer to the next at once
+  (`gives.passed`). At a death `succession` logs who renounced (`renounced`) before the one who takes it up.
 - The asking day (`src/sim/asking.js`, VB-823; plan VB-682, sections 2 and 7): each pawn who seeks (unmarried, or grown and holding no
   place) has one entry in the due-queue `st.asking` (`sim/wishes`: written at a birth for the first asking day after the 18th birthday,
   at a widowing, a marriage, a new head and a move, dropped at death or on taking a place), on season day `id mod SEASON_DAYS` at

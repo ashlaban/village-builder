@@ -1,10 +1,11 @@
-// @sys sim/lifecycle: deaths (the day's death rolls, killPawn), retirement, and the daily life step (ages, coming of age, orphans, ties);
+// @sys sim/lifecycle: deaths (the day's death rolls, killPawn), retirement, and the daily life step (ages, a holder's birthday told as the
+//   event holderYear, coming of age, orphans, ties);
 //   the village meetings are sim/meetings, the moving round sim/round, marriage and its offers sim/marriage (VB-876)
 VB['sim/lifecycle'] = (() => {
   const { emit } = VB['sim/events'];
-  const { TRAITS } = VB['sim/rules'];
+  const { TRAITS, DAY, YEAR } = VB['sim/rules'];
   const { deathRoll, CAUSES, COLD } = VB['sim/deaths'];
-  const { leaveHousehold, unionOf, noteDeath, log, age, fullName, noteUnionEnd, atHousehold, lifeEvent } =
+  const { leaveHousehold, unionOf, noteDeath, log, age, fullName, noteUnionEnd, atHousehold, lifeEvent, isHolder } =
     VB['sim/records'];
   const { setAtAge } = VB['sim/traits'];
   const { stillAtDeath, travelling, tileAt, placeOf } = VB['sim/agents'];
@@ -87,11 +88,15 @@ VB['sim/lifecycle'] = (() => {
 
   function dailyLife(st) {
     VB.count.walkDaily += st.living.length;
+    let holders = null;
     for (const id of st.living) {
       const p = st.pawns[id];
       p.age = age(st, p);
       if (typeof p.leanDays === 'number' && p.age >= TRAITS.setAge) setAtAge(st, id); // its values set for good (sim/traits, VB-519)
+      if ((st.t - p.born) % YEAR < DAY && isHolder(st, id)) (holders || (holders = [])).push(id);
     }
+    // a holder's birthday: its day to consider handing the farm on (sim/asking, VB-824)
+    if (holders) for (const id of holders) emit(st, 'holderYear', { pawn: id });
     comeOfAge(st);
     wardsOfAge(st); // a ward of 18 goes back to the farm held in trust for it (sim/trust, VB-309)
     careForOrphans(st); // a household with no adult left takes in a guardian (sim/service)
