@@ -79,5 +79,21 @@ for (const [label, make, restore, before, after] of [
   if (!ok) { failed++; console.error('SAVES FAIL: an old save\'s prestige is not read as standing'); }
   out.push('an old save\'s prestige as standing');
 }
+{ // VB-1150: a save of a load plays as the load, while plots' cottages are built (each load on a world of its own)
+  const { tinyWorld, tinyState } = require('./lib/tiny.js'), Rec = VB['sim/records'];
+  const world = () => tinyWorld(Array(9).fill('.'.repeat(210)), { seed: 7 });
+  const st = tinyState(world(), [{ at: [6, 4], farms: 1, sizes: [5] }, { at: [156, 4], farms: 1, sizes: [5] }, { at: [196, 4], farms: 1, sizes: [5] }], { seed: 7 });
+  for (const hh of st.households) {
+    const id = hh.members.find((k) => k !== hh.holder && Rec.spouseOf(st, k) === null), p = st.pawns[id];
+    p.born = st.t - 25.5 * Y; p.age = 25;
+  }
+  VB['sim/wishes'].seedAsking(st); VB['sim/heirs'].refreshRoles(st);
+  while (!(st.t >= 3 * Sim.SEASON_DAYS * DAY && st.agents.some((a) => a.job && a.job.plot))) Sim.advance(st, DAY);
+  const text = JSON.stringify(Sim.save(st)), load = (d) => Sim.load(world(), JSON.parse(JSON.stringify(d)));
+  const one = load(JSON.parse(text)), two = load(Sim.save(load(JSON.parse(text))));
+  Sim.advance(one, 6 * DAY); Sim.advance(two, 6 * DAY);
+  if (canon(one.agents) !== canon(two.agents)) { failed++; console.error('SAVES FAIL: the agents of a second save differ while a cottage is built'); }
+  out.push('a second save while a cottage is built');
+}
 if (failed) process.exit(1);
 console.log(`saves ok: saved, loaded into a new world and advanced, each run matches the unbroken one (${out.join(', ')})`);
