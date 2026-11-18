@@ -143,6 +143,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-1123](backlog/VB-1123.md) | Page: plan mode: the household's season planned on the map, in place of the Plan tab | - | 2 | L | Plan mode replaces the Plan tab: a bar of the season a member with the actions on it, actions chosen from a tile's menu, problems marked where they are, and the outcome read on the needs (survival's thresholds, by the head's estimate); no target is stepped. Requirements, walks and Kim's decisions of 17 and 18 Nov; mocks A to L. |
 | [VB-722](backlog/VB-722.md) | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 
 ## Blocked
