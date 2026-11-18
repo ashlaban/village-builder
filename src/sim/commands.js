@@ -401,6 +401,36 @@ VB['sim/commands'] = (() => {
         if (c.args && c.args.hold) P.holdProject(st, c.target, true);
       },
     },
+    // rotation({rotation, hold, short}): the household's farm takes the rotation, any of the rules it has seed for, its fields staggered
+    // anew (VB-355; sim/fields' takeRotation, its checks rotationWhy: the seed of every crop of it, and no field under a crop it has
+    // not). hold: the head keeps it against the village's usual one; rotation null gives the choosing back to its rule, which reaches
+    // this verb with source 'pawn' (sim/plans; short: the crop whose seed ran out, when it falls back).
+    rotation: {
+      check: (st, c) => {
+        const why = heads(st, c) || farmOf(st, c);
+        if (why || !c.args || !('rotation' in c.args)) return why || 'a rotation is named';
+        const hh = st.households[c.target];
+        return later('sim/fields').rotationWhy(st, st.farmsteads[hh.farmstead], hh, c.args.rotation);
+      },
+      run: (st, c) => {
+        const hh = st.households[c.target];
+        later('sim/fields').takeRotation(st, st.farmsteads[hh.farmstead], hh, c.args.rotation, c.args);
+      },
+    },
+    // sowOutOfTurn({tile, crop}): the field on `tile` bears `crop` this year in place of its course, and then goes on in its rotation
+    // (VB-355; sim/fields' outOfTurn, its checks turnWhy: the field free, the crop's window open, a field's seed of it in the store).
+    // crop 'fallow' rests it a year; the field's own course puts it back to its turn.
+    sowOutOfTurn: {
+      check: (st, c) => {
+        const why = heads(st, c) || farmOf(st, c);
+        if (why) return why;
+        const hh = st.households[c.target],
+          a = c.args || {};
+        return later('sim/fields').turnWhy(st, st.farmsteads[hh.farmstead], hh, a.tile, a.crop, cal(st.t));
+      },
+      run: (st, c) =>
+        later('sim/fields').outOfTurn(st, st.farmsteads[st.households[c.target].farmstead], c.args.tile, c.args.crop),
+    },
     // ---- a settlement's meeting (source 'meeting') ----
     // decide({dim, option}): the settlement's practice of the custom becomes the option
     decide: {
@@ -860,7 +890,7 @@ VB['sim/commands'] = (() => {
   // The played pawn chooses as head of its household (VB-253, for the page's plan panel, VB-256): verb one of HEAD_VERBS, at once, not
   // queued (a choice of the plan takes no time); its target the household it holds, else the one it lives in, so a pawn that is not the
   // head is refused with the reason. True, or why not.
-  const HEAD_VERBS = ['target', 'tile', 'order', 'project', 'dropProject'];
+  const HEAD_VERBS = ['target', 'tile', 'order', 'project', 'dropProject', 'rotation', 'sowOutOfTurn'];
   function head(st, verb, args) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';

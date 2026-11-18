@@ -18,8 +18,20 @@ const FIELD_P = {
   ripe: { base: [238, 198, 94], row: [204, 152, 56], hi: [252, 228, 138] },
   fallow: { base: [158, 174, 98], row: [114, 142, 72], hi: [200, 204, 124] },
   scrub: { base: [138, 158, 88], row: [82, 116, 64], hi: [168, 184, 106] },
+  // each crop at its stage (VB-355), drawn as the stage `as` in its own colours; barley's are the stages above. Rye stands green in
+  // autumn and under snow in winter, bluer than barley as it grows and paler ripe; peas flower white and ripen olive; a fallow course
+  // lies in weedy stubble (lea) until it is tilled.
+  'rye-young': { as: 'young', base: [146, 172, 92], row: [108, 142, 68], hi: [188, 216, 122] },
+  'rye-snow': { as: 'young', base: [236, 240, 244], row: [204, 213, 224], hi: [112, 160, 88] },
+  'rye-growing': { as: 'growing', base: [112, 156, 108], row: [78, 122, 84], hi: [166, 198, 146] },
+  'rye-ripe': { as: 'ripe', base: [226, 208, 144], row: [186, 164, 96], hi: [246, 234, 182] },
+  'peas-young': { as: 'young', base: [164, 120, 80], row: [126, 86, 56], hi: [104, 166, 98] },
+  'peas-growing': { as: 'growing', base: [100, 154, 92], row: [66, 120, 68], hi: [244, 244, 238], dot: true },
+  'peas-ripe': { as: 'ripe', base: [184, 176, 102], row: [138, 132, 68], hi: [222, 214, 142] },
+  lea: { as: 'stubble', base: [200, 194, 124], row: [140, 156, 82], hi: [164, 190, 104] },
+  tilled: { as: 'plowed', base: [128, 90, 64], row: [92, 62, 44], hi: [164, 120, 86] },
 };
-function fieldCanvas(stage, R) {
+function fieldCanvas(look, R) {
   const S = 2,
     Wc = Math.ceil(Math.sqrt(3) * R * S) + 2,
     Hc = Math.ceil(2 * R * S) + 2,
@@ -28,8 +40,9 @@ function fieldCanvas(stage, R) {
   const cx = Wc / 2,
     cy = Hc / 2,
     rr0 = R * S * 0.92,
+    stage = FIELD_P[look].as || look,
     r = G.mulberry32(stage.length * 977 + 5),
-    P = FIELD_P[stage];
+    P = FIELD_P[look];
   const rgb = (a, f = 1) => `rgb(${(a[0] * f) | 0},${(a[1] * f) | 0},${(a[2] * f) | 0})`;
   g.save();
   hexClip(g, cx, cy, rr0);
@@ -113,6 +126,13 @@ function fieldCanvas(stage, R) {
         g.lineTo(x, y + 0.6);
         g.lineTo(x + 1.8, y - 3);
         g.stroke();
+        if (P.dot) {
+          // a flower on the row (peas)
+          g.fillStyle = rgb(P.hi);
+          g.beginPath();
+          g.arc(x, y - 3.2, 1.3, 0, 7);
+          g.fill();
+        }
       } else if (stage === 'ripe') {
         g.fillStyle = rgb(P.hi);
         g.beginPath();
@@ -229,8 +249,7 @@ function meadowCanvas(stage, R) {
 function makeArt(R) {
   const T = (c) => texFrom(c, { autoGenerateMipmaps: true, resolution: c.artK || 1 });
   fieldTex = {};
-  for (const k of ['stubble', 'plowed', 'sown', 'young', 'growing', 'ripe', 'fallow', 'scrub'])
-    fieldTex[k] = T(fieldCanvas(k, R));
+  for (const k of Object.keys(FIELD_P)) fieldTex[k] = T(fieldCanvas(k, R));
   for (const k of ['grass', 'mown', 'aftermath']) fieldTex['meadow-' + k] = T(meadowCanvas(k, R));
   art = {
     stuga: [0, 1, 2].map((v) => T(stugaCanvas(v))),

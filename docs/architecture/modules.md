@@ -191,6 +191,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   the household's head may issue them. The player's go through `Sim.head(st, verb, args)`, the holder's land step issues `project` with
   source `pawn`; the choices lie in `plan.chosen`, `plan.tiles` and the seasonal plan's `by` (`src/sim/plans.js`), and `Sim.headView` reads
   them for the page (`tests/head.js`), with the custom's targets beside the head's and the head's skill and horizon (VB-254).
+  The head's crops (VB-355): `rotation` (the farm takes any rotation it has seed for; `hold` keeps it against the village's usual one, `null`
+  gives the choosing back to the rule, which itself issues the verb with source `pawn`: `rotationChoice`, `sim/fields`) and `sowOutOfTurn`
+  (one field bears another crop, or rests, for a year: `fd.turn`); their checks are `rotationWhy` and `turnWhy`, and `Sim.fieldView` reads a
+  field, with each choice and why not, for its tile's card (`src/page/tileinfo.js`; `tests/sowing.js`).
 - Foresight (VB-254): `src/sim/traits.js` holds the stand-in traits (`pawn.traits`: wits, husbandry, diligence, ambition, generosity), drawn
   from the stream `traits` at birth (`sim/births`) and for the living at the start (`sim/scenarios`' `startStreams`, after the streams are
   split), and read only through `Traits.of`. `sim/plans` keeps each household's head as planner (`plan.head`: its pawn, since when, its bias
