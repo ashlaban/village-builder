@@ -218,4 +218,44 @@ const AT = [0, 0.5, 1];
   delete st.rng.talk.fix;
   assert.deepStrictEqual(checkState(st), []);
 }
-console.log('traitacts: each trait\'s acts at 0, 0.5 and 1; chemistry\'s four terms and Like seeks like; the quarrel');
+// VB-1106: a father and his son of 5 have cross words. Below the age of account (SOCIAL.account) it is no quarrel, at any draw: no
+// event, no memory; and the father's opinion of the boy, and the boy's of him, hold no chemistry but liking: the standing alone, where
+// the two do not get on. At 12 the same pair is two people who do not get on, and their cross words may be a quarrel.
+{
+  const st = make(), YEAR = VB.sim.YEAR, AF = SOCIAL.affinity;
+  const son = st.living.find((x) => st.pawns[x].sex === 'm' && st.pawns[x].father !== null && st.pawns[x].age < 12), p = st.pawns[son], father = p.father;
+  const aged = (y) => { p.age = y; p.born = st.t - y * YEAR; };
+  aged(5);
+  set(st, father, 'temper', 1); set(st, son, 'temper', 1);
+  R.addTie(st, father, son, 2 * AF.known); R.addTie(st, son, father, 2 * AF.known);
+  const c = R.compat(st, father, son), n0 = st.record.length;
+  assert.ok(c < -0.5, `a father and son who do not get on: ${c}`);
+  st.rng.talk.fix = 0;
+  R.quarrelMaybe(st, father, son); R.quarrelMaybe(st, son, father);
+  assert.strictEqual(st.record.length, n0, 'cross words with a boy of 5: no quarrel event');
+  assert.ok(!st.pawns[father].rel.has(son) && !p.rel.has(father), 'and neither remembers one');
+  assert.ok(near(R.opinionOf(st, father, son), SOCIAL.situational.child) && near(R.opinionOf(st, son, father), SOCIAL.situational.parent), `opinions ${R.opinionOf(st, father, son)}, ${R.opinionOf(st, son, father)}`);
+  assert.ok(!st.pawns[father].bands.has(son) && !p.bands.has(father), 'no enemy of a small child');
+  aged(SOCIAL.account);
+  const c12 = R.compat(st, father, son);
+  assert.ok(near(R.opinionOf(st, father, son), SOCIAL.situational.child + AF.weight * c12), `at ${SOCIAL.account} chemistry counts: ${R.opinionOf(st, father, son)}`);
+  R.quarrelMaybe(st, father, son);
+  assert.strictEqual(st.record[st.record.length - 1].kind, 'quarrel', 'and cross words may be a quarrel');
+  assert.ok(near(R.opinionOf(st, father, son), SOCIAL.situational.child + AF.weight * c12 + SOCIAL.memories.quarrel.v), 'remembered');
+  // liking counts from the start: a child and one it gets on with
+  const liked = st.living.find((x) => x !== son && R.compat(st, x, son) > 0.05 && R.standing(st, x, son) === null);
+  if (liked !== undefined) {
+    aged(5);
+    const cl = R.compat(st, liked, son);
+    R.addTie(st, liked, son, 2 * AF.known);
+    if (cl > 0) assert.ok(near(R.opinionOf(st, liked, son), AF.weight * cl), `liking a child of 5: ${R.opinionOf(st, liked, son)}`);
+  }
+  delete st.rng.talk.fix;
+}
+// VB-1106: a close friendship is left at the friend line (closeFriend − back), so one that dips and comes back is not told again
+{
+  assert.ok(near(SOCIAL.closeFriend - SOCIAL.back, SOCIAL.friend), 'left at the friend line');
+  assert.deepStrictEqual([R.bandOf(1, SOCIAL.friend + 0.01), R.bandOf(1, SOCIAL.friend - 0.01), R.bandOf(0, SOCIAL.closeFriend - 0.01)], [1, 0, 0]);
+  assert.deepStrictEqual([R.bandOf(-1, SOCIAL.enemy + SOCIAL.back - 0.01), R.bandOf(-1, SOCIAL.enemy + SOCIAL.back + 0.01)], [-1, 0]);
+}
+console.log('traitacts: each trait\'s acts at 0, 0.5 and 1; chemistry\'s four terms and Like seeks like; the quarrel; the age of account');

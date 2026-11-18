@@ -13,7 +13,7 @@
 //   one a match would marry for the man's side, the claimant, the leader of a party, the servant, the heir); written when such an offer
 //   is kept and cleared when it closes, so a pawn holds at most one (plan VB-682, section 2, Caps). Plain data, saved with the pawn.
 VB['sim/offers'] = (() => {
-  const { DAY, YEAR } = VB['sim/rules'];
+  const { DAY, YEAR, TRAVEL } = VB['sim/rules'];
   const { remember } = VB['sim/relations'];
   const { log, fullName, holdingOf, atHousehold } = VB['sim/records'];
   const { grainOf } = VB['sim/stores'];
@@ -84,7 +84,9 @@ VB['sim/offers'] = (() => {
   // ---- goods: what a gift or an ask names ----
   // The gift a giver's actor, target and terms describe, {from, to (households or villages), good, n, source, carrier?}, or why there is
   // none: the actor is the giving household's holder, {household} for a household without one, or {village} for its store; the target a
-  // household, or {village} for the yearly filling; with a carrier (VB-291), an adult of the giving household free to set out.
+  // household, or {village} for the yearly filling; with a carrier (VB-291), an adult of the giving household free to set out, to another
+  // farmstead (a farmstead is one place: nothing is carried within it), with at most a back-load (TRAVEL.load; VB-1111: a physical bound,
+  // which help and the good-year gift already kept; a larger gift is fetched, a load a trip).
   function giftOf(st, actor, target, args, source) {
     const n = args && args.n;
     let from;
@@ -125,6 +127,8 @@ VB['sim/offers'] = (() => {
         a.phase === 'back'
       )
         return `pawn ${args.carrier} cannot carry the gift`;
+      if (from.farmstead === to.farmstead) return 'nothing is carried within a farmstead';
+      if (n > TRAVEL.load + 1e-9) return `one pawn carries at most ${TRAVEL.load} rations: a larger gift is fetched`;
       g.carrier = p.id;
     }
     return g;

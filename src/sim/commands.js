@@ -77,6 +77,9 @@ VB['sim/commands'] = (() => {
   function fetchWhy(st, g) {
     if (typeof g !== 'string' && hauled(g))
       return later('sim/away').haulerOf(st, g.from) < 0 ? 'no one of the household can carry it' : null;
+    // a store's grain goes to a household, never at once to another store (VB-1111: what is left for settleGift is within one farmstead)
+    if (typeof g !== 'string' && !('farmstead' in g.from) && !('farmstead' in g.to))
+      return 'a village store gives only to a household';
     if (typeof g === 'string' || !fetched(g)) return null;
     return later('sim/away').fetcherOf(st, g.to) < 0 ? 'no one of the household can fetch it' : null;
   }
