@@ -68,5 +68,16 @@ for (const [label, make, restore, before, after] of [
   if (!ok || bad.length) { failed++; console.error(`SAVES FAIL: a save's journey loads as a stay (${ok}), and plays on alike (${bad.join(', ')} differ)`); }
   out.push('an old save\'s journey as a stay');
 }
+// VB-703: a save made while a pawn's standing was `prestige` is read: the field is renamed, with its value
+{
+  const now = JSON.parse(JSON.stringify(Sim.save(probe.state()))), s = Sim.load(probe.world(), JSON.parse(JSON.stringify(now)));
+  for (const p of s.pawns) { p.prestige = p.standing; delete p.standing; } // the state as it was saved before VB-703
+  const old = JSON.parse(JSON.stringify(Sim.save(s)));
+  const a = Sim.load(probe.world(), now), b = Sim.load(probe.world(), old);
+  const ok = /"prestige":1\.[0-9]/.test(JSON.stringify(old)) && b.pawns.some((p) => p.standing > 1) && b.pawns.every((p) => !('prestige' in p)) &&
+    canon(a.pawns) === canon(b.pawns);
+  if (!ok) { failed++; console.error('SAVES FAIL: an old save\'s prestige is not read as standing'); }
+  out.push('an old save\'s prestige as standing');
+}
 if (failed) process.exit(1);
 console.log(`saves ok: saved, loaded into a new world and advanced, each run matches the unbroken one (${out.join(', ')})`);

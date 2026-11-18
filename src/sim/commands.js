@@ -683,7 +683,7 @@ VB['sim/commands'] = (() => {
         const s = st.cenv.settlements[c.actor.settlement];
         const voiced = membersOf(st, s.id)
           .filter((q) => voiceOf(st, q, s) > 0)
-          .sort((x, y) => y.prestige - x.prestige);
+          .sort((x, y) => y.standing - x.standing);
         const want = Math.max(1, Math.ceil(voiced.length * 0.2));
         for (const q of voiced.slice(0, want))
           Culture.advocate(q, c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);

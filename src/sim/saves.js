@@ -513,6 +513,12 @@ VB['sim/saves'] = (() => {
     for (const v of st.villages) if (v.rotation === undefined) v.rotation = 'every';
     for (const p of st.pawns) if (p.nursling === undefined) p.nursling = null; // VB-632: a mother nursing nurses to her term
     for (const p of st.pawns) if (p.servedSince === undefined) p.servedSince = p.servant ? st.t : null; // VB-634
+    // VB-703: an older save's pawn held its standing as `prestige`
+    for (const p of st.pawns)
+      if ('prestige' in p) {
+        p.standing = p.prestige;
+        delete p.prestige;
+      }
     migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now
     return st;

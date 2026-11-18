@@ -14,7 +14,7 @@ function makeEnv(seed, { villages = 6, size = 50, ties = [1, 0.8, 0.7, 0.6, 0.6,
   hooks.byId = (id) => byIdMap.get(id);
   let nextId = 0;
   const mkPerson = (s, age, att, anc) => {
-    const p = { id: nextId++, alive: true, age, settlement: s.id, att, anc, ties: new Map(), prestige: 1, interest: null, advocate: null, landholder: false };
+    const p = { id: nextId++, alive: true, age, settlement: s.id, att, anc, ties: new Map(), standing: 1, interest: null, advocate: null, landholder: false };
     p.interest = new Float32Array(C.TOTAL);
     byIdMap.set(p.id, p); env.people.push(p); s.list.push(p);
     return p;
@@ -36,7 +36,7 @@ function makeEnv(seed, { villages = 6, size = 50, ties = [1, 0.8, 0.7, 0.6, 0.6,
       }
       // about a third of the adults hold land and speak at the meeting
       const adults = live.filter((p) => p.age >= 18).sort((a, b) => b.age - a.age);
-      adults.forEach((p, k) => { p.landholder = k < Math.ceil(adults.length * 0.33); p.prestige = p.landholder ? 1.5 : 1; });
+      adults.forEach((p, k) => { p.landholder = k < Math.ceil(adults.length * 0.33); p.standing = p.landholder ? 1.5 : 1; });
       // interests follow position: landholders favour the custom in force, most others one challenger option
       for (const p of live) C.DIMS.forEach((d, k) => {
         const o = C.OFF[k], n = C.NOPT[k], cur = env.cultures[0].customs[k], ch = env.challenger[k];

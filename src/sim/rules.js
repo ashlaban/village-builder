@@ -673,9 +673,9 @@ VB['sim/rules'] = (() => {
   // Ale (VB-305; design.md, Goods, Ale and standing; Kim, 10 Nov): a side craft in autumn and winter. `grain` rations of grain from the
   // household's surplus (above its floor, which holds the seed reserve) and `hours` of work in the house give a barrel, which keeps one season
   // (the good's perish, sim/stores) and serves `guests` guests; a household brews while it holds fewer than `stock` barrels. A barrel poured at
-  // an occasion gives the host `prestige` for `years` years, at most `maxBarrels` barrels counted (a cap of 0.2); each guest's memory of
+  // an occasion gives the host `standing` for `years` years, at most `maxBarrels` barrels counted (a cap of 0.2); each guest's memory of
   // it is SOCIAL.memories.ale.
-  const BREW = { grain: 10, hours: 4, guests: 20, stock: 1, prestige: 0.05, maxBarrels: 4, years: 3 };
+  const BREW = { grain: 10, hours: 4, guests: 20, stock: 1, standing: 0.05, maxBarrels: 4, years: 3 };
   // The feast (VB-458; design.md, The gift: The feast, What a feast books; Kim, 13 Nov): at a wedding or a funeral ale at its farm, a
   // household whose grain stands above its seed and `above` years of its need lays out food: `share` of what it holds beyond that (times its
   // holder's generosity, TRAITS.acts.generosity.feast), and at most `perGuest` rations a ration of need of those who came (a day's food
@@ -691,7 +691,7 @@ VB['sim/rules'] = (() => {
   const ALE_EVENING = { call: 0.1, reach: 2, come: 0.25, guests: 20, mix: 0.5, until: 22 };
   // The season's rite (VB-522; design.md, Where pawns meet): on each village green, on day sday of `days`' seasons (spring day 1, summer
   // day 6, winter day 7), from `hour` for `hours`. An adult of the village, and of a lone farm within `reach` walking hours of a green,
-  // comes at chance `come` + `piety` × its piety; work is not stopped for it. Its leader is the holder present highest in piety × prestige;
+  // comes at chance `come` + `piety` × its piety; work is not stopped for it. Its leader is the holder present highest in piety × standing;
   // each who came gains SOCIAL.ties.rite to it. `mix`: the floor for strangers there (sim/encounters).
   const RITE = {
     hour: 12,
@@ -913,7 +913,7 @@ VB['sim/rules'] = (() => {
   // with a fence; chosen, the village works together on `days` ([season, day of the season, what]): spring's first day the fence, its stretches
   // below `fenceBelow` (each `fenceHours`, as a mend), summer's second the commons, scrub cleared at the wood's edge (`clearHours` an adult of
   // the village). Every adult (from `minAge`) takes the work at role priority `prio`, whatever the role; it takes unlimited hands, all
-  // together. An adult who works `hours` gains `came` prestige for the year; a household none of whose adults worked their share (`hours`, or
+  // together. An adult who works `hours` gains `came` standing for the year; a household none of whose adults worked their share (`hours`, or
   // the day's work over its adults when that is less) is away: its holder loses `missed` (the agent's own reading of "at the work day").
   const WORKDAY = {
     days: [
@@ -1090,7 +1090,7 @@ VB['sim/rules'] = (() => {
   // A farmstead's condition 0..1 (f.condition) is the value at f.condAt (game hours; 0 when never set) for an occupied house, and it wears
   // by closed form from then (rule 3: no daily pass), 0.1 a year, 0.067 while tarred (f.tarredUntil, game hours: a barrel lasts 6 years;
   // nothing tars a house before VB-301). An empty farm's condition is worn by the daily pass of sim/clock, as before.
-  // Upkeep is offered under `mendBelow`; `hours` of work raise it `raise`; prestige gains `term` (tarred `termTarred`) times the condition.
+  // Upkeep is offered under `mendBelow`; `hours` of work raise it `raise`; standing gains `term` (tarred `termTarred`) times the condition.
   // A house raised onto a stone foundation (f.grade 'stone', VB-332) wears `wearStone` a year and its term is `termStone`; tar's gain adds on
   // either grade (the term's 0.03, wear a third less), so a house on the ground reads as before.
   const HOUSE = {

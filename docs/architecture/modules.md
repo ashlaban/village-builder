@@ -171,7 +171,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
   (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,
-  `src/sim/society.js`), the causes its adults take up and its meeting, whose lines go to the head of `st.meetingLog`; roles and prestige
+  `src/sim/society.js`), the causes its adults take up and its meeting, whose lines go to the head of `st.meetingLog`; roles and standing
   island-wide, and the living of no settlement, at the first village's; then its choice of gathering (`chooseGathering`,
   `src/sim/gathering.js`, VB-294: the hosts it would walk to, ranked by effective hours from its row of `st.villageHours`, and whether it
   offers to host, by the meeting's verb `gathering`). At 18:00 the gatherings are settled (`settleGatherings`: who goes where, lodging,

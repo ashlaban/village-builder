@@ -47,7 +47,7 @@ const Sim = (() => {
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
-  const { updateTies, refreshInterests, hooks, prestigeParts } = VB['sim/society'];
+  const { updateTies, refreshInterests, hooks, standingParts } = VB['sim/society'];
   const { of: moodOf, word: moodWord } = VB['sim/mood']; // a pawn's mood and its modifiers, for its card (VB-062)
   const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)
   const { save, load } = VB['sim/saves'];
@@ -146,7 +146,7 @@ const Sim = (() => {
     countDemand,
     isHolder,
     holdingOf,
-    prestigeParts,
+    standingParts,
     moodOf,
     moodWord,
     traitLabels,

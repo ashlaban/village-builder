@@ -326,7 +326,7 @@ const Culture = (() => {
     p.att = att;
     compileLeans(p);
     p.anc = Float32Array.from(p.att);
-    p.prestige = 1;
+    p.standing = 1;
     p.interest = null;
     p.advocate = null;
     p.causeSince = null;
@@ -352,7 +352,7 @@ const Culture = (() => {
     p.causeSince === null || p.causeSince === undefined ? -Infinity : p.causeSince + P.causeEvery;
 
   // ---- the daily step ----
-  // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), prestige, interest, advocate }]
+  // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), standing, interest, advocate }]
   const XI = new Float64Array(Math.max(...NOPT)); // scratch for one dimension's noise draws
   function dailyStep(env, hooks, dt, rand) {
     const mul = env.driftMul || 1;
@@ -421,7 +421,7 @@ const Culture = (() => {
   // read the same ones. tie: the weight of a tie of stored weight w0 to q; age: the young are moved more; social, cause and interest: the
   // rates of a custom of weight m; mixed: the company's share mixed with the settlement's mean; anchor: the pull back to what was learned young.
   const WEIGH = Object.freeze({
-    tie: (w0, q) => w0 * q.prestige * (q.advocate ? P.advocacyWeight : 1),
+    tie: (w0, q) => w0 * q.standing * (q.advocate ? P.advocacyWeight : 1),
     age: (age) => (age < 25 ? 1.5 : age < 50 ? 1 : 0.6),
     social: (m, rate, ageF) => m * P.social * rate * ageF,
     cause: (m, rate, ageF) => P.persuasion * Math.pow(m, 0.75) * rate * ageF,
@@ -438,7 +438,7 @@ const Culture = (() => {
       M = local ? local.mean : null;
     const kind = s ? s.kind : 'village',
       kindRate = local ? local.rate : P.kind[kind];
-    // social target: tie- and prestige-weighted mean of contacts, mixed with the settlement as a whole. A pawn's ties are stored on one decay
+    // social target: tie- and standing-weighted mean of contacts, mixed with the settlement as a whole. A pawn's ties are stored on one decay
     // scale (sim/relations, VB-127), which cancels in the division by wsum.
     tgt.fill(0);
     let wsum = 0;
@@ -536,7 +536,7 @@ const Culture = (() => {
     for (const p of members) {
       const v = voiceOf(p);
       if (v <= 0 || !p.alive) continue;
-      const w = v * p.prestige;
+      const w = v * p.standing;
       for (let k = 0; k < TOTAL; k++) S[k] += w * p.att[k];
       W += w;
     }

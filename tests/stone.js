@@ -1,5 +1,5 @@
 // Stone is used (VB-332): a house on the ground may be raised onto a stone foundation (12 loads from the heap, 40 hours, in the slack of
-// early summer or winter), which lifts its prestige term (0.20 against 0.15 times the condition) and slows its wear (0.08 a year against 0.1);
+// early summer or winter), which lifts its standing term (0.20 against 0.15 times the condition) and slows its wear (0.08 a year against 0.1);
 // the stone is picked on a stony meadow tile (lowering it as clearing does) or quarried on hills, a load a trip, only while the household's
 // plan holds its building step. On a tiny world, through the rules, not a run.
 const VB = require('../src/load.js'), Bld = VB['sim/building'], Plans = VB['sim/plans'], K = VB['sim/kinds'].KINDS;
@@ -50,8 +50,8 @@ const c0 = houseCondition(st, f); st.t += YEAR;
 check(Math.abs(c0 - houseCondition(st, f) - HOUSE.wearStone) < 1e-6, `the house wears ${(c0 - houseCondition(st, f)).toFixed(3)} a year on stone`);
 st.t -= YEAR;
 check(Bld.buildStep(st, plan, hh) === null, 'the step closes once the house is on stone');
-const p = st.pawns[hh.holder], parts = VB.sim.prestigeParts(st, p);
-check(parts.some(([l]) => l === 'A well-kept house on stone'), `the prestige parts name the grade (${parts.map((x) => x[0])})`);
+const p = st.pawns[hh.holder], parts = VB.sim.standingParts(st, p);
+check(parts.some(([l]) => l === 'A well-kept house on stone'), `the standing parts name the grade (${parts.map((x) => x[0])})`);
 const bad = checkState(st);
 check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
 if (failed) process.exit(1);

@@ -61,7 +61,7 @@ const LIFE_LINE = {
   holder: 'Secure. The most to decide from the first day.',
   widow: 'Secure while she lives.',
   bachelor: 'Secure, and a dead end unless he marries.',
-  spouse: 'Secure, with little formal say. Influence runs through ties and prestige.',
+  spouse: 'Secure, with little formal say. Influence runs through ties and standing.',
   heir: 'A waiting game: nothing is his until the farm passes.',
   heiress: 'Sought after. The marriage decides everything.',
   child: 'Open and insecure: every road leads away from home.',

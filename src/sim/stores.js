@@ -538,11 +538,11 @@ VB['sim/stores'] = (() => {
     if (hh.poured.length > BREW.maxBarrels) hh.poured.splice(0, hh.poured.length - BREW.maxBarrels);
     return got;
   }
-  // The host's standing from its pours: BREW.prestige a barrel poured in the last BREW.years years, counted up to BREW.maxBarrels.
+  // The host's standing from its pours: BREW.standing a barrel poured in the last BREW.years years, counted up to BREW.maxBarrels.
   function aleStanding(st, hh) {
     let n = 0;
     for (const t of hh.poured) if (st.t - t < BREW.years * YEAR) n++;
-    return n * BREW.prestige;
+    return n * BREW.standing;
   }
   // ---- reservations (VB-248; design.md section 7, Reservations): a plan holds back a count of a good in its holder's store, so that
   // two plans do not spend it twice and the holder's free stock is the rest. A count per holder, good and plan, kept on the plan (st.plans,

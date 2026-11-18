@@ -456,7 +456,7 @@ interface KindRules { kind: BodyKind; roles: Record<string, RoleRule>; agent(st,
 ```
 
 Succession is one pipeline for every kind: vacancy, candidates, the body's choice, eligibility, relinking, the move to the seat,
-the old holder's new role (`undantag`, former alderman), prestige, the claims of those passed over (the household's only kind-specific
+the old holder's new role (`undantag`, former alderman), standing, the claims of those passed over (the household's only kind-specific
 step: siblings' shares as obligations), derived roles, the record. Holdings and the body's own obligations need no step: they belong
 to the body. Goodwill is personal: at retirement a share passes to the new holder, set by custom (Decided, Kim, 3 Nov); at death
 `PersonalEstate` passes the pawn's own goods, land in its own name, personal debts and a share of its goodwill to its heirs as
@@ -543,11 +543,11 @@ interface Rank { grant(st, by: number, to: PawnId, rank: string, terms: { obliga
 **Decisions** aggregate and do nothing else. A question is posed by the domain that owns its consequences (Membership for heirs,
 Culture for customs, Enforcement for cases, Plans for projects, Institutions for appointments), with its options and a preference
 function read through each participant's view. Which procedure a body uses for which kind of question is a practice of its culture,
-with defaults from its kind's rules: one village's meeting votes by prestige, another's defers to its elders, a third needs consensus.
+with defaults from its kind's rules: one village's meeting votes by standing, another's defers to its elders, a third needs consensus.
 
 ```ts
 type Procedure = { kind: 'custom'; rank: string } | { kind: 'agent' } | { kind: 'consult' }
-  | { kind: 'vote'; voice: 'prestige' | 'equal' | 'land'; quorum?: number; majority?: number } | { kind: 'consensus'; veto: number }
+  | { kind: 'vote'; voice: 'standing' | 'equal' | 'land'; quorum?: number; majority?: number } | { kind: 'consensus'; veto: number }
   | { kind: 'appoint'; by: number } | { kind: 'policy'; id: string } | { kind: 'lot' };
 interface Question<T> { id; kind: QuestionKind; body: PartyRef; poser: string; options: T[];
   evaluate(view: ActorView, pawn: PawnId, option: T): number; interested?: PartyRef[]; deadline?: Tick; fallback?: T }
@@ -757,7 +757,7 @@ or a process, with sign and lag), its setpoints (the tunables that move the equi
 | Imports | reinforcing | specialists supplied (iron for the smith) | voyages, prices |
 | Silver and the elite | reinforcing | silver held by the landed | export prices, what silver buys |
 | Land concentration | reinforcing | land Gini, share of farms under tenancy | loan interest, "Debts are paid with" |
-| Debtors' politics | balancing, opposes the one above | the same | anchoring, voice by prestige |
+| Debtors' politics | balancing, opposes the one above | the same | anchoring, voice by standing |
 | Elite turnover | balancing | landed and ranked households | inheritance custom (younger sons to town, Church, service) |
 | Gossip and social control | balancing | reputation of those who break custom | story salience, belief, how lies are judged |
 | Norm learning | balancing | customary worth against deal prices | norms' rates, reach |
@@ -831,7 +831,7 @@ owners' interfaces; no step calls upward outside the declared hooks.
 
 | # | What happens | Interface | State changed |
 |---|---|---|---|
-| 1 | The meeting elects Olof alderman | `Membership.succeed(V, 'alderman')` by the village's procedure (a vote by prestige) | a role edge; his prestige |
+| 1 | The meeting elects Olof alderman | `Membership.succeed(V, 'alderman')` by the village's procedure (a vote by standing) | a role edge; his standing |
 | 2 | The office carries the use of a common meadow | `LandRights.grant(use, term: whileEdge)` | a use right that ends with the office |
 | 3 | Neighbours bring gifts; he settles quarrels | `Exchange.settle` (gift), `Goodwill.book` | balances with Olof the pawn |
 | 4 | In a lean year Bengt's household borrows grain | `Exchange.settle` (loan): `Stores.move`, `Obligations.create` (enforcer: the village) | grain; a loan |

@@ -12,7 +12,7 @@ VB['sim/workdays'] = (() => {
   //   hoursOf ({pawn id: hours worked at the day's jobs}), cleared (the commons' work done), judged (its end told)}. Written only here:
   //   begun by the first hour worked at the day's jobs (or, when nobody came, at its end), judged at the end of work (sim/clock).
   // @state pawn.workdays: {year (of cal), came (work days the pawn turned out to), missed (work days its household stayed away from, as its
-  //   holder)}, absent before its first; read by sim/society's prestige while year is this year.
+  //   holder)}, absent before its first; read by sim/society's standing while year is this year.
   const VILLAGE = (v) => ({ type: 'village', id: v.id });
   // The work day of calendar date c: 'fence', 'commons', or null.
   function dayOf(c) {

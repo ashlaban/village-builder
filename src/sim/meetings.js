@@ -8,7 +8,7 @@ VB['sim/meetings'] = (() => {
   const { personEvent, log, membersOf, voiceOf } = VB['sim/records'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { refreshRoles } = VB['sim/heirs'];
-  const { updateTie, refreshPrestige, refreshInterests, hooks } = VB['sim/society'];
+  const { updateTie, refreshStanding, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { chooseGathering, settleGatherings } = VB['sim/gathering'];
@@ -46,7 +46,7 @@ VB['sim/meetings'] = (() => {
     } else if (n === CULTURE_STEP + 1) landMeeting(st);
   }
   // Village v's meeting: its living's interests, its tie to its culture's centre, the causes its adults take up, and its meeting, whose lines
-  // go to the head of st.meetingLog. At the first village's step, the island's roles and prestige (every meeting reads them), and the living
+  // go to the head of st.meetingLog. At the first village's step, the island's roles and standing (every meeting reads them), and the living
   // of no settlement have their interests and causes with that village's.
   function villageMeeting(st, v) {
     const env = st.cenv,
@@ -58,7 +58,7 @@ VB['sim/meetings'] = (() => {
     const all = people.slice();
     if (v === 0) {
       refreshRoles(st);
-      refreshPrestige(st);
+      refreshStanding(st);
       VB.count.meetingWalk += st.living.length;
       for (const id of st.living) if (st.pawns[id].household === null) all.push(st.pawns[id]);
     }

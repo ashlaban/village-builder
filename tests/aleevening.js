@@ -111,14 +111,14 @@ const at = (st, t) => {
   assert.deepStrictEqual(errs, [], errs.join('\n'));
 }
 
-// 6. The rite: the leader is the holder present highest in piety × prestige; only it gains the ties of those who came.
+// 6. The rite: the leader is the holder present highest in piety × standing; only it gains the ties of those who came.
 {
   const st = state(), [h0, h1] = live(st), v = st.villages[0];
   at(st, evening(st));
   const come = [...h0.members, ...h1.members],
-    set = (id, piety, prestige) => {
+    set = (id, piety, standing) => {
       st.pawns[id].traits[PIETY] = piety; // lint-allow: owner a constructed state's trait
-      st.pawns[id].prestige = prestige; // lint-allow: owner a constructed state's standing
+      st.pawns[id].standing = standing; // lint-allow: owner a constructed state's standing
     };
   for (const id of come) set(id, 0.9, 1); // devout, but not holders
   set(h0.holder, 0.5, 1.8); // 0.9
