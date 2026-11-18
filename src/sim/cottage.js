@@ -8,6 +8,7 @@ VB['sim/cottage'] = (() => {
   const { shareWood } = VB['sim/building'];
   const { startHerd, payInAnimals } = VB['sim/herds'];
   const Stores = VB['sim/stores'],
+    Obligations = VB['sim/obligations'],
     { emit } = VB['sim/events'];
   const names = VB['sim/names'];
   const { issue } = VB['sim/commands'];
@@ -107,38 +108,44 @@ VB['sim/cottage'] = (() => {
     });
   }
   // At the moving round: shares still owed are paid from the debtor farm's grain above its reserve (the seed and the winter's food).
-  // The payment goes to the pawn's household, or to its stake while it has none.
+  // The payment goes to the pawn's household, or to its stake while it has none. A walk over the open shares (sim/obligations), by the
+  // sibling's id; a sibling's shares are one farm's (oweShare). What a dead sibling was owed lapses.
   function payOwed(st) {
-    for (const liveId of st.living) {
-      const p = st.pawns[liveId];
-      if (!p.alive || !(p.owed > 0) || p.owedFrom === undefined || p.owedFrom === null) continue;
-      const hh = st.households[p.owedFrom];
+    const why = (id) => ({ kind: 'share', pawn: id }),
+      open = (id) => Obligations.due(st, { kind: 'pawn', id }, 'creditor', 'share').map((o) => o.id);
+    for (const [id, shares] of Obligations.openShares(st)) {
+      const p = st.pawns[id];
+      if (!p.alive) {
+        for (const o of shares) Obligations.lapse(st, o.id, 'the one owed has died');
+        continue;
+      }
+      const hh = st.households[shares[0].debtor.id],
+        owed = Obligations.shareOwed(st, id);
       if (!hh || hh.dissolved) continue;
       const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember;
-      const pay = Math.min(p.owed, Math.max(0, Math.floor(Stores.grainOf(hh) - reserve)));
+      const pay = Math.min(owed, Math.max(0, Math.floor(Stores.grainOf(hh) - reserve)));
       const own = p.household !== null && p.household !== hh.id ? st.households[p.household] : null;
       // grain first; what grain cannot cover is paid in animals to the pawn's household, when it has another (VB-140)
-      const animals = own && !own.dissolved && p.owed - pay > 0 ? payInAnimals(st, hh, own, p.owed - pay) : 0;
+      const animals = own && !own.dissolved && owed - pay > 0 ? payInAnimals(st, hh, own, owed - pay) : 0;
       if (pay <= 0 && animals <= 0) continue;
-      p.owed -= pay + animals;
-      if (animals > 0)
+      const rest = owed - pay - animals;
+      if (animals > 0) {
+        Obligations.fulfil(st, open(id), animals, why(id)); // led by sim/herds: booked only
         personEvent(
           st,
           p.id,
           'share',
-          `Was paid animals worth ${animals} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`,
+          `Was paid animals worth ${animals} rations of the share owed${rest ? `, ${rest} still owed` : ''}`,
           { n: animals, ...atHousehold(st, hh) },
         );
+      }
       if (pay <= 0) continue;
       const to = own || p;
-      Stores.move(st, hh, to, 'grain', pay, { kind: 'share', pawn: p.id });
-      personEvent(
-        st,
-        p.id,
-        'share',
-        `Was paid ${pay} rations of the share owed${p.owed ? `, ${p.owed} still owed` : ''}`,
-        { n: pay, ...atHousehold(st, hh) },
-      );
+      Obligations.fulfil(st, open(id), pay, why(id), { from: hh, to, good: 'grain' });
+      personEvent(st, p.id, 'share', `Was paid ${pay} rations of the share owed${rest ? `, ${rest} still owed` : ''}`, {
+        n: pay,
+        ...atHousehold(st, hh),
+      });
     }
   }
   return { farmName, finishCottage, payOwed };

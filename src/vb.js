@@ -14,6 +14,7 @@ VB.COUNTERS = {
   reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
+  obligationsDue: 'Obligations whose term ended at a step, taken off the due-queue (sim/obligations, VB-310)',
   offerWeighed: 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)',
   offersAnswered: 'Open offers answered at a village step of the moving round, a day of it each (sim/round, VB-692)',
   askings: 'Askings held: a pawn who seeks, on its asking day once a season (sim/asking, VB-823)',
@@ -22,6 +23,9 @@ VB.COUNTERS = {
   asksWeighed: 'Candidates weighed at an asking or an ask anew: at most ASK.pool a call (sim/asking askMatch, VB-823)',
   askWalk:
     'Entries of the asking queue read for the unmarried women within reach, a match asked (sim/asking askMatch, VB-823)',
+  visits: 'Visits arrived at the village visited (sim/visits, VB-289)',
+  visitWalk:
+    "Entries of the asking queue read for the unmarried women beyond a day's walk, a visit sought (sim/visits seekVisit, VB-289)",
   talkTurn:
     'Pawns asked by the talk round at their talk turn, every SOCIAL.talk.every waking hours (sim/relations, VB-521)',
   talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',
