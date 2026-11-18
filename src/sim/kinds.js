@@ -27,7 +27,8 @@ VB['sim/kinds'] = (() => {
     firstRow,
     onField,
   } = VB['sim/fields'];
-  const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
+  const Meadows = VB['sim/meadows'],
+    { meadowWork } = Meadows;
   const Byre = VB['sim/byre'],
     { byreWork } = Byre;
   const { plotJobs } = VB['sim/expansion'];
@@ -114,15 +115,6 @@ VB['sim/kinds'] = (() => {
   const brewWanted = (st, hh) =>
     Stores.aleOf(st, hh) < target(st, hh, 'ale') && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
-  // A meadow is raked in early spring and mown in the haymaking window while the household wants hay; its hay is carried in once dry
-  // (sim/meadows). Asked at the farm: whether hay is wanted is the household's, once for all its meadows.
-  function meadowWork(st, hh, f, c, post) {
-    // whether hay is wanted, asked once, and only when a meadow could be raked or mown now (VB-227)
-    let hayW = null;
-    const want = () => (hayW === null ? (hayW = hayWanted(st, f, hh)) : hayW);
-    for (const m of f.meadows)
-      for (const [key, kind] of meadowJobs(f, m, c, want)) post(key, m.tile, { meadow: m, farm: f }, kind);
-  }
   // The village's common fields (VB-100): their kinds, as at a farm's fields, while its meeting chose the routine.
   function commonWork(st, v, at, c, post) {
     if (st.plans.villages.get(v.id).routines.includes('commons')) Commons.work(st, v, c, post, ASK.fieldAt);
@@ -434,22 +426,7 @@ VB['sim/kinds'] = (() => {
       done: (st, j) => (j.common ? Commons.brokenUp(st, j) : onProject(st, j) && finishBreak(st, j.farm)),
       available: landProject, // also a plot's step (plotWork)
     },
-    meadow: {
-      verb: 'Clearing a hay meadow',
-      go: 'Going to clear a meadow',
-      name: 'Clear a hay meadow',
-      label: 'Meadow',
-      anim: 'hoe',
-      hours: 4,
-      hands: Infinity,
-      type: 'tilling',
-      field: true,
-      spot: onField,
-      project: true,
-      worked: workStake,
-      done: (st, j, hh) => onProject(st, j) && finishMeadow(st, j.farm, hh),
-      available: landProject,
-    },
+    meadow: Meadows.KINDS.meadow,
     reclaim: {
       verb: 'Clearing an overgrown field',
       go: 'Going to clear an overgrown field',
@@ -484,56 +461,9 @@ VB['sim/kinds'] = (() => {
       done: restored,
       available: claimWork,
     },
-    rake: {
-      verb: 'Raking the meadow clean',
-      go: 'Going to rake a meadow',
-      name: 'Rake a meadow',
-      label: 'Raking',
-      anim: 'gather',
-      hours: 2,
-      hands: Infinity,
-      type: 'harvest',
-      field: true,
-      spot: onField,
-      urgency: (st, j, c, U) => U.rake,
-      done: (st, j) => {
-        j.meadow.raked = true;
-      },
-      available: meadowWork,
-    },
-    mow: {
-      verb: 'Mowing hay',
-      go: 'Going to mow a meadow',
-      name: 'Mow a meadow',
-      label: 'Mowing',
-      anim: 'mow',
-      hours: 16,
-      hands: Infinity,
-      type: 'harvest',
-      field: true,
-      spot: onField,
-      urgency: (st, j, c, U) => U.mow + Math.max(0, hayDay(c)) / U.mowPerDay,
-      done: (st, j, hh, c) => mowDone(st, j.meadow, c),
-      available: meadowWork,
-    },
-    hay: {
-      verb: 'Gathering the hay',
-      go: 'Going for the hay',
-      back: 'Carrying hay to the barn',
-      name: 'Bring in hay',
-      label: 'Hauling hay',
-      anim: 'gather',
-      hours: 1.5,
-      hands: Infinity,
-      type: 'harvest',
-      carry: 'hay',
-      to: 'barn',
-      spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6],
-      urgency: (st, j, c, U) => U.haul,
-      ...Carts.HAY,
-      deliver: (st, j, hh, f, a) => hayIn(st, j.meadow, hh, f, a),
-      available: meadowWork, // by the load (sim/carts)
-    },
+    rake: Meadows.KINDS.rake,
+    mow: Meadows.KINDS.mow,
+    hay: { ...Meadows.KINDS.hay, ...Carts.HAY }, // by the load: sim/carts imports sim/meadows, so the cart's part joins here
     fodder: Byre.KINDS.fodder,
     manure: {
       verb: 'Spreading manure on the field',
