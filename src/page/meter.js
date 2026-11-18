@@ -15,6 +15,10 @@ function meter(o) {
   const fill = o.signed
     ? `left:${Math.min(at, mid).toFixed(1)}%;width:${Math.abs(at - mid).toFixed(1)}%`
     : `width:${at.toFixed(1)}%`;
+  // where the fill starts and ends, for a theme that draws the level another way than as a bar's width (the mural's beads, VB-1161)
+  const span = o.signed
+    ? `--lo:${Math.min(at, mid).toFixed(1)}%;--hi:${Math.max(at, mid).toFixed(1)}%`
+    : `--lo:0%;--hi:${at.toFixed(1)}%`;
   const marks = (o.marks || [])
     .filter((m) => m.at >= lo && m.at <= hi)
     .map(
@@ -27,7 +31,8 @@ function meter(o) {
   const cls = ['meter', o.signed ? 'signed' : '', o.tone || '', o.value > hi ? 'over' : ''].filter(Boolean).join(' ');
   return (
     `<span class="${cls}" role="meter" aria-valuemin="${lo}" aria-valuemax="${hi}" aria-valuenow="${Math.round(o.value * 100) / 100}" ` +
-    `aria-label="${esc(said)}" title="${esc(said)}"><i style="${fill}"></i>${o.signed ? `<u style="left:${mid.toFixed(1)}%"></u>` : ''}${marks}</span>`
+    `aria-label="${esc(said)}" title="${esc(said)}" style="${span}"><i style="${fill}"></i>` +
+    `${o.signed ? `<u style="left:${mid.toFixed(1)}%"></u>` : ''}${marks}</span>`
   );
 }
 // The key of a meter's two marks (VB-1027): the custom's and the head's, each drawn as it is on the meter.
