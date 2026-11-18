@@ -744,7 +744,12 @@ VB['sim/records'] = (() => {
     const pl = st.player;
     return !!pl && pl.pawn === id && (pl.queue.length > 0 || !pl.auto);
   };
+  const settlement = (st, c) =>
+    c.actor && st.cenv && st.cenv.settlements[c.actor.settlement]
+      ? null
+      : `there is no settlement ${c.actor && c.actor.settlement}`;
   return {
+    settlement,
     commanded,
     unplanned,
     living,

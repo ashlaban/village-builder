@@ -311,6 +311,8 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-638](backlog/VB-638.md) | The marriage valve measured: long runs against the growth budget | - | 3 | M | VB-635, VB-555, VB-654, VB-660 | The wrap-up of VB-405's tasks (they have no arch, so it does not carry the name): long runs against the growth budget, the setpoint's reach and goAhead measured, the overshoot shown; it names what a tuning run would move and tunes nothing. Waits for VB-631 to VB-635, VB-036 and VB-555. |
 | [VB-688](backlog/VB-688.md) | The ways to a farm share one eligibility and one start in life | - | 3 | M | VB-675 | A pawn comes to a farm by a village plot, an heir's plot, a claim on an empty farm, joining or founding a village from a booth, or a trust, each with its own test of who may (ages, landed or not, crowding) and its own provisioning (all or nothing; what the old home spares; the stakes only); the site score is written three times. |
 | [VB-893](backlog/VB-893.md) | Page: the Plan tab shows stores by the supply component and the year ahead | - | 3 | S | VB-1123 | The plan panel (VB-256) takes up VB-667's supply component and the year-ahead graph |
+| [VB-1173](backlog/VB-1173.md) | Refactor: split sim/away: the gift's carrying to sim/gifts | - | 3 | M | VB-228 | carryGift, haulGift and fetchGift, with haulerOf and fetcherOf, move out of sim/away to sim/gifts, which holds the verbs give and deliver since VB-228; sim/away keeps the nights away. |
+| [VB-1174](backlog/VB-1174.md) | Refactor: split sim/heirs by concern | - | 3 | M | VB-228 | sim/heirs passed 700 lines (711) when the verbs handOn and move came home in VB-228; split it by concern. |
 
 ## Archs
 

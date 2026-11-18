@@ -1,7 +1,8 @@
 // @sys sim/farmclaims: claims on empty farms (VB-033): the old family's birthright, who may claim a farm in the order of the village's
 // "Claims on empty farms" custom, the claim at the moving round, the restoration, and the claimants moving in
 VB['sim/farmclaims'] = (() => {
-  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
+  const { living } = VB['sim/records'];
+  const { issue, register } = VB['sim/commands'];
   const { YEAR, CLAIMS, CROPS, MARRIAGE } = VB['sim/rules'];
   const Offers = VB['sim/offers'];
   const { bufferOf } = VB['sim/traits'];
@@ -435,6 +436,17 @@ VB['sim/farmclaims'] = (() => {
       },
     );
   }
+  // claim(target): the actor claims the empty farm `target` and sets about restoring it
+  register('claim', {
+    check: (st, c) =>
+      living(st, c.actor) ||
+      (!st.farmsteads[c.target]
+        ? `there is no farm ${c.target}`
+        : !claimable(st, st.farmsteads[c.target])
+          ? `farm ${c.target} cannot be claimed`
+          : null),
+    run: (st, c) => startClaim(st, st.farmsteads[c.target], c.actor),
+  });
   return {
     claimOn,
     birthright,

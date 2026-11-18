@@ -2,6 +2,8 @@
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
 // diligence, and the due-queue that opens the time-bound kinds at their hours; the village's routines, set by its meeting
 VB['sim/plans'] = (() => {
+  const { rotationWhy, takeRotation, turnWhy, outOfTurn } = VB['sim/fields'];
+  const { living, home, settlement } = VB['sim/records'];
   const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, CROPS, ROTATIONS, TRAVEL, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   const Traits = VB['sim/traits'];
@@ -16,7 +18,7 @@ VB['sim/plans'] = (() => {
     { on, emit } = VB['sim/events'],
     { log } = VB['sim/records'];
   const { meadowWhy, pickMeadow, beginMeadow, wantsMeadow, wantsFirstMeadow } = VB['sim/meadows'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   const { reviewWant } = VB['sim/exchange'];
   const Lying = VB['sim/lying'];
   const Targets = VB['sim/targets'];
@@ -1027,7 +1029,153 @@ VB['sim/plans'] = (() => {
       heldOff: C.project === 'none',
     };
   }
+  // The head of household c.target, or why the actor is not: a living pawn that holds it, or {household} for a household with no holder
+  // (its own rule); the household has a standing plan (VB-253).
+  function heads(st, c) {
+    const id = c.target;
+    if (!home(st, id) || !st.plans.households.has(id)) return `there is no household ${id} with a plan`;
+    const hh = st.households[id];
+    if (Number.isInteger(c.actor))
+      return (
+        living(st, c.actor) ||
+        (hh.holder !== c.actor
+          ? `pawn ${c.actor} is not the head of household ${id}: only its head changes its plan`
+          : null)
+      );
+    return c.actor && c.actor.household === id && hh.holder === null
+      ? null
+      : `only the head of household ${id} changes its plan`;
+  }
+  const farmOf = (st, c) => {
+    const hh = st.households[c.target];
+    return hh.farmstead !== null && st.farmsteads[hh.farmstead].household === hh.id
+      ? null
+      : `household ${c.target} has no farm of its own`;
+  };
+  const landWhat = (what) => (what === 'field' || what === 'meadow' ? null : `there is no land project ${what}`);
+  // The tile a land project `what` is begun on: args.tile, else the tile the plan names, else the holder's own pick (-1: none).
+  function landTile(st, hh, args) {
+    if (Number.isInteger(args.tile)) return args.tile;
+    const named = st.plans.households.get(hh.id).tiles[args.what];
+    if (named >= 0) return named;
+    return args.what === 'field'
+      ? pickField(st, st.farmsteads[hh.farmstead], hh)
+      : pickMeadow(st, st.farmsteads[hh.farmstead], hh);
+  }
+  // ---- the head's plan (VB-253; design.md section 7, The player as head; section 15, Parity of command): household `target`'s head
+  // chooses, the player in it (source 'player') or its own rule (source 'pawn'; the actor {household} for a household with no holder), and
+  // the same check binds both. A target or the hold on projects lasts until cleared, a tile until it is used, an order until the season's
+  // plan is made again ----
+  // target({store, n}): the plan's target of `store` becomes n, within its bounds (sim/plans' targetBounds: hay 0 to 3 winters, fields 0
+  // to what the hands can till, wood 0 to twice the winter's goal, cow 0 or 1); n null clears it, and the holder's rule sets it again
+  register('target', {
+    check: (st, c) =>
+      heads(st, c) ||
+      (!c.args || c.args.n === undefined
+        ? 'a target names n, or null to clear it'
+        : targetWhy(st, c.target, c.args.store, c.args.n)),
+    run: (st, c) => setTarget(st, c.target, c.args.store, c.args.n),
+  });
+  // tile({what, tile}): the tile of the next field or meadow (what) becomes `tile`, under the checks of the holder's own choice (sim/fields'
+  // fieldWhy, sim/meadows' meadowWhy: claims, reach, the farm's block); tile null or -1 clears it
+  register('tile', {
+    check: (st, c) => {
+      const why = heads(st, c) || farmOf(st, c) || landWhat(c.args && c.args.what);
+      if (why || c.args.tile === null || c.args.tile === -1) return why;
+      const hh = st.households[c.target];
+      return c.args.what === 'field'
+        ? fieldWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile)
+        : meadowWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile);
+    },
+    run: (st, c) => nameTile(st, c.target, c.args.what, c.args.tile === null ? -1 : c.args.tile),
+  });
+  // order({steps}): the season's routines in this order (the seasonal plan's, each once), until the next season's plan
+  register('order', {
+    check: (st, c) => heads(st, c) || orderWhy(st, c.target, c.args && c.args.steps),
+    run: (st, c) => setOrder(st, c.target, c.args.steps),
+  });
+  // project({what, tile}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
+  // refused while a project is under way, and under the tile's checks. The land step is the holder's rule for it (sim/plans, source
+  // 'pawn'). what 'none': the head holds off projects (its rule begins none: the land step, the boat, the tar pit); null clears that.
+  // VB-255's menu of projects adds its own whats.
+  register('project', {
+    check: (st, c) => {
+      const what = c.args && c.args.what,
+        why = heads(st, c);
+      if (why || what === 'none' || what === null) return why;
+      const bad = farmOf(st, c) || landWhat(what);
+      if (bad) return bad;
+      const hh = st.households[c.target],
+        tile = landTile(st, hh, c.args);
+      return tile < 0 ? `no tile within reach can be taken in for a ${what}` : landWhy(st, hh, what, tile);
+    },
+    run: (st, c) => {
+      const what = c.args.what;
+      if (what === 'none' || what === null) holdProject(st, c.target, what === 'none');
+      else beginLand(st, st.households[c.target], what, landTile(st, st.households[c.target], c.args));
+    },
+  });
+  // dropProject({id, hold}): give up the household's project under way (args.id, the plan's id, when given: a field, a meadow, a boat,
+  // a tar pit, ...), and with hold, hold off projects as project 'none' does
+  register('dropProject', {
+    check: (st, c) => {
+      const why = heads(st, c);
+      if (why) return why;
+      const p = Projects.projectOf(st, 'household', c.target);
+      return !p
+        ? `household ${c.target} has no project under way`
+        : c.args && c.args.id !== undefined && c.args.id !== p.id
+          ? `household ${c.target} has no project ${c.args.id} under way`
+          : null;
+    },
+    run: (st, c) => {
+      giveUp(st, st.households[c.target], Projects.projectOf(st, 'household', c.target));
+      if (c.args && c.args.hold) holdProject(st, c.target, true);
+    },
+  });
+  // rotation({rotation, hold, short}): the household's farm takes the rotation, any of the rules it has seed for, its fields staggered
+  // anew (VB-355; sim/fields' takeRotation, its checks rotationWhy: the seed of every crop of it, and no field under a crop it has
+  // not). hold: the head keeps it against the village's usual one; rotation null gives the choosing back to its rule, which reaches
+  // this verb with source 'pawn' (sim/plans; short: the crop whose seed ran out, when it falls back).
+  register('rotation', {
+    check: (st, c) => {
+      const why = heads(st, c) || farmOf(st, c);
+      if (why || !c.args || !('rotation' in c.args)) return why || 'a rotation is named';
+      const hh = st.households[c.target];
+      return rotationWhy(st, st.farmsteads[hh.farmstead], hh, c.args.rotation);
+    },
+    run: (st, c) => {
+      const hh = st.households[c.target];
+      takeRotation(st, st.farmsteads[hh.farmstead], hh, c.args.rotation, c.args);
+    },
+  });
+  // sowOutOfTurn({tile, crop}): the field on `tile` bears `crop` this year in place of its course, and then goes on in its rotation
+  // (VB-355; sim/fields' outOfTurn, its checks turnWhy: the field free, the crop's window open, a field's seed of it in the store).
+  // crop 'fallow' rests it a year; the field's own course puts it back to its turn.
+  register('sowOutOfTurn', {
+    check: (st, c) => {
+      const why = heads(st, c) || farmOf(st, c);
+      if (why) return why;
+      const hh = st.households[c.target],
+        a = c.args || {};
+      return turnWhy(st, st.farmsteads[hh.farmstead], hh, a.tile, a.crop, cal(st.t));
+    },
+    run: (st, c) => outOfTurn(st, st.farmsteads[st.households[c.target].farmstead], c.args.tile, c.args.crop),
+  });
+  // routines({routines, by}): the village's routines this year (VB-257) become args.routines, set by the meeting's decision (by
+  // 'meeting') or, when it did not decide, by its culture's practice (by 'nothing' or 'asLastYear'; sim/lifecycle)
+  register('routines', {
+    check: (st, c) =>
+      settlement(st, c) ||
+      (!st.plans.villages.has(c.actor.settlement)
+        ? `village ${c.actor.settlement} has no plan`
+        : !(c.args && ['meeting', 'nothing', 'asLastYear'].includes(c.args.by))
+          ? `routines cannot be set by ${c.args && c.args.by}`
+          : routinesWhy(c.args.routines)),
+    run: (st, c) => setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
+  });
   return {
+    heads,
     reviewHour,
     makePlan,
     dropPlan,

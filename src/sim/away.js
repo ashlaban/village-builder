@@ -2,6 +2,9 @@
 // ends) and a lodger's (a bed at a place, or a guest's in another house), their packs and meals, and a journey's arrivals and gifts; a
 // suitor's visit, the journey there and back (VB-289)
 VB['sim/away'] = (() => {
+  const { raiseBoothWhy, raiseBooth } = VB['sim/building'];
+  const { living } = VB['sim/records'];
+  const { release, goHome, free } = VB['sim/agents'];
   const { cal, WORK, SPEED, HEALTH, TRAVEL, AWAY, BOOTH } = VB['sim/rules'];
   const HANDS = [14, 60]; // the ages of a working hand, as sim/agents' (who goes for a gift or carries the quarter)
   const { route, routeCost, hoursBetween } = VB['sim/routes'];
@@ -29,7 +32,7 @@ VB['sim/away'] = (() => {
     standBy,
   } = VB['sim/agents'];
   // Acts this module's pawns choose (going home, coming home from a stay, work at it) go through the verbs (AGENTS.md, Every act is a pawn's).
-  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);
+  const { issue, register } = VB['sim/commands'];
   // ---- the stays (design.md, Moving to new land, Sleeping away from home) ----
   // @state st.away[]: the open stays, in the order they began (by id), each {id, pawn, why, bed, roof, food, from, to}: why 'move', 'carry',
   //   'fetch', 'haul' or 'visit' for a journey (VB-287, VB-291, VB-461, VB-849, VB-289), else the lodger's (the caller's word: 'work', 'visit'); bed the
@@ -654,6 +657,37 @@ VB['sim/away'] = (() => {
   // A pawn's household changed (sim/heirs' moveTo); a child is born (sim/births).
   on('rehoused', (st, d) => moved(st, d.a, d.old, d.hh, d.carry));
   on('placeBorn', (st, d) => placeBorn(st, d.a, d.mother, d.hh));
+  // lodge(tile, {why, days, jobs, host}) (VB-783; design.md, Sleeping away from home): walk to the tile and sleep there, working only
+  // the tasks `jobs` names, on a pack of a ration a day for `days` (at most AWAY.pack) from the household's food above its seed; with
+  // `host`, a guest in that household's house, with its head's yes (sim/away lodgeWhy)
+  register('lodge', {
+    check: (st, c) => free(st, c.actor) || lodgeWhy(st, c.actor, c.target, c.args),
+    run: (st, c) => {
+      const a = st.agents[c.actor];
+      lodge(st, a, c.target, c.args);
+      goHome(st, a); // to its bed
+    },
+  });
+  // comeHome: a pawn lodging away turns for home, now in the working hours or when it is outdoors, else at 6:00; its stay ends at home
+  register('comeHome', {
+    check: (st, c) => living(st, c.actor) || comeHomeWhy(st, c.actor),
+    run: (st, c) => {
+      const a = st.agents[c.actor],
+        h = cal(st.t).hour;
+      comeHome(st, a);
+      if (a.inside && (h < WORK[0] || h >= WORK[1])) return; // it walks when its day starts (sim/away dayAway)
+      release(st, a);
+      goHome(st, a);
+    },
+  });
+  // raiseBooth(tile, {guests}) (VB-784): stake a booth on ground nobody else owns or has staked, for the pawn's household and the guests
+  // named; its household's pawns raise it (the wood, then BOOTH.hours of work)
+  register('raiseBooth', {
+    check: (st, c) => free(st, c.actor) || raiseBoothWhy(st, c.actor, c.target),
+    run: (st, c) => {
+      raiseBooth(st, st.agents[c.actor], c.target, c.args);
+    },
+  });
   return {
     feedAway,
     dayAway,

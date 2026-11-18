@@ -1,5 +1,5 @@
-// Commands (VB-167): a work command is carried out as start was; a refused command changes nothing; outside sim/commands and sim/agents
-// nothing in src/sim calls start (or the other acts the command verbs wrap). On the small islands of tests/lib/probe.js (VB-856; the default
+// Commands (VB-167): a work command is carried out as start was; a refused command changes nothing; outside a verb (the `register(...)` of
+// the module that carries it out, VB-228) and the module that defines it, nothing in src/sim calls start (or the other acts the verbs wrap). On the small islands of tests/lib/probe.js (VB-856; the default
 // island before): founders on 36 by 26, heirs on 48 by 34.
 const assert = require('assert');
 const { readSource } = require('../tools/lib/source.js');
@@ -7,7 +7,8 @@ const fs = require('fs'), path = require('path'), { tokenize } = require('../too
 const VB = require('../src/load.js'), { island, ROOMY } = require('./lib/probe.js'), Sim = VB.sim, { issue } = VB['sim/commands'], { isOpen } = VB['sim/kinds'];
 const { canon } = require('./lib/canon.js');
 
-// static: the acts a verb wraps are called only from sim/commands, or inside the module that defines them (an act built of others there)
+// static: the acts a verb wraps are called only from a verb (inside a `register(` call), or inside the module that defines them (an act
+// built of others there)
 const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'carryGift', 'setRoutines', 'setGathering', 'endTrust', 'holdInTrust',
   'setTarget', 'nameTile', 'setOrder', 'holdProject', 'beginLand', 'giveUp', 'planVisit'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
@@ -15,10 +16,19 @@ const text = Object.fromEntries(files.map((f) => [f, readSource(f)]));
 const definedIn = Object.fromEntries(WRAPPED.map((n) => [n, files.find((f) => new RegExp(`function ${n}\\(`).test(text[f]))]));
 for (const n of WRAPPED) if (!definedIn[n]) throw new Error(`no module defines ${n}`);
 for (const f of files) {
-  if (f === 'src/sim/commands.js') continue;
   const src = text[f], toks = tokenize(src).filter((t) => t.t !== 'com');
+  const inVerb = new Set(); // the tokens inside a register(...) call
+  toks.forEach((t, i) => {
+    if (!(t.t === 'word' && t.v === 'register' && toks[i + 1] && toks[i + 1].v === '(' && !(toks[i - 1] && toks[i - 1].v === 'function'))) return;
+    for (let k = i + 1, depth = 0; k < toks.length; k++) {
+      if (toks[k].v === '(') depth++;
+      else if (toks[k].v === ')' && --depth === 0) break;
+      inVerb.add(k);
+    }
+  });
   toks.forEach((t, i) => {
     const prev = toks[i - 1];
+    if (inVerb.has(i)) return;
     // moveTo: the move verb is its only caller, even in sim/heirs, which defines it (VB-822)
     if (t.t === 'word' && t.v === 'moveTo' && toks[i + 1] && toks[i + 1].v === '(' && !(prev && prev.v === 'function')) calls.push(`${f}:${src.slice(0, t.s).split('\n').length} moveTo`);
     if (t.t === 'word' && WRAPPED.includes(t.v) && definedIn[t.v] !== f && toks[i + 1] && toks[i + 1].v === '(' && !(prev && (prev.v === '.' || prev.v === 'function'))) {
@@ -26,7 +36,7 @@ for (const f of files) {
     }
   });
 }
-assert.deepStrictEqual(calls, [], `acts called outside sim/commands: ${calls.join(', ')}`);
+assert.deepStrictEqual(calls, [], `acts called outside a verb: ${calls.join(', ')}`);
 // VB-1111: every caller of `give` is known and checked (help's near gift is fetched and its far one carried, tests/fetch.js and
 // tests/journeys.js; the page's form names its carrier or has it fetched), and settleGift is reached at one place, the last branch of
 // `deliver`, after the carried, the hauled and the fetched: a gift within one farmstead (tests/lib/invariants.js holds giftUncarried at 0)
@@ -34,7 +44,7 @@ assert.deepStrictEqual(calls, [], `acts called outside sim/commands: ${calls.joi
   const pages = fs.readdirSync(path.join(__dirname, '../src/page')).map((x) => 'src/page/' + x);
   const givers = files.concat(pages).filter((f) => /verb: 'give'/.test(text[f] || readSource(f))).sort();
   assert.deepStrictEqual(givers, ['src/page/gift.js', 'src/sim/help.js'], 'a new caller of give says how its gift is carried');
-  const cmd = text['src/sim/commands.js'];
+  const cmd = text['src/sim/gifts.js'];
   assert.strictEqual(cmd.split('settleGift(').length - 1, 1, 'settleGift is called once');
   assert.ok(/carryGift\([^]*haulGift\([^]*fetchGift\([^]*else settleGift\(/.test(cmd), 'and only after the carried, hauled and fetched gifts');
 }

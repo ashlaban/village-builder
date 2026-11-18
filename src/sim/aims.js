@@ -4,6 +4,8 @@
 // values: a field beyond those it needs, a claim on land (a new hay meadow), a farm for its heir, a barn; dropped when the surplus is gone
 // a whole season
 VB['sim/aims'] = (() => {
+  const { barnSteps } = VB['sim/building'];
+  const { emit } = VB['sim/events'];
   const { HERD, DAY, SEASON_DAYS, YEAR_DAYS, WORK, MARRIAGE } = VB['sim/rules'];
   const { next: rnd } = VB['sim/rng'];
   const Traits = VB['sim/traits'];
@@ -16,7 +18,7 @@ VB['sim/aims'] = (() => {
   const { pickField } = VB['sim/fields'];
   const { pickMeadow } = VB['sim/meadows'];
   const { findSite, hasPlot, awaitsCottage } = VB['sim/expansion'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   const Plans = VB['sim/plans'];
   const { heirRanking } = VB['sim/heirs'];
   // The surplus (design.md section 7, How a holder chooses: projects; the first values of VB-255's criteria): food beyond `years` of the
@@ -265,5 +267,39 @@ VB['sim/aims'] = (() => {
     if (q) return `household ${hh.id} has a ${q.what} under way`;
     return null; // the site is found as the plot is begun (sim/expansion's startPlot), and none begins where there is no room
   }
+  // barn(): begin a barn on the household's farm, a project at the house (VB-255; sim/building's barnSteps; its checks sim/aims' barnWhy)
+  register('barn', {
+    check: (st, c) => Plans.heads(st, c) || barnWhy(st, st.households[c.target]),
+    run: (st, c) => {
+      const f = st.farmsteads[st.households[c.target].farmstead];
+      Plans.makeProject(st, 'household', c.target, {
+        what: 'barn',
+        steps: barnSteps(f.house),
+      });
+    },
+  });
+  // heirFarm({heir}): begin clearing a plot and building its cottage for pawn `heir`, an adult of the household with no farm, as the
+  // household's project (VB-255; sim/expansion's plot, held by the household; its checks sim/aims' heirWhy)
+  register('heirFarm', {
+    check: (st, c) => Plans.heads(st, c) || heirWhy(st, st.households[c.target], c.args && c.args.heir),
+    run: (st, c) => {
+      const hh = st.households[c.target];
+      emit(st, 'heirFarm', {
+        village: st.farmsteads[hh.farmstead].village,
+        heir: c.args.heir,
+        by: hh.id,
+      });
+    },
+  });
+  // plotToVillage({plan, why}): household target's plot for its heir (project plan `plan`) passes to its village, its tiles and work with
+  // it (VB-255; sim/expansion hears it by an event): its head gives it up, the household dissolves, the heir cannot take it
+  register('plotToVillage', {
+    check: (st, c) =>
+      Projects.projectsOf(st, 'household', c.target).some((p) => p.what === 'plot' && p.id === (c.args && c.args.plan))
+        ? null
+        : `household ${c.target} has no plot ${c.args && c.args.plan} under way`,
+    run: (st, c) =>
+      emit(st, 'plotToVillage', { household: c.target, plan: c.args.plan, why: c.args.why || 'given up' }),
+  });
   return { AIMS, KIND, idleShare, surplusOf, menu, choose, heirOf, barnWhy, heirWhy };
 })();

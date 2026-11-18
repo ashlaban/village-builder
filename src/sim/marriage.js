@@ -2,6 +2,7 @@
 //   `handover`: the first in line answers, a no passes it on; VB-824), and the basis `match` of sim/offers (VB-690): what may be offered,
 //   who answers, what a yes, a no and a lapse do (split from sim/lifecycle, VB-876)
 VB['sim/marriage'] = (() => {
+  const { living, home } = VB['sim/records'];
   const { emit } = VB['sim/events'];
   const { MARRIAGE, SOCIAL, ASK, HUNGER } = VB['sim/rules'];
   const { personEvent, log, fullName, spouseOf, settlementIdOf, farmPractice, holdingOf, atHousehold, spokesmanOf } =
@@ -9,7 +10,7 @@ VB['sim/marriage'] = (() => {
   const { startInLife } = VB['sim/exchange'];
   const { stayOf } = VB['sim/agents'];
   const { heirRanking, refreshRoles, handOn } = VB['sim/heirs'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   const { clearMatchWish } = VB['sim/player'];
   const { moveWhy, wishOf } = VB['sim/wishes'];
   const { meansOf, sideScore, askerOf, askedOf, askedBy, asksMatch } = VB['sim/matching'];
@@ -430,6 +431,20 @@ VB['sim/marriage'] = (() => {
     opened: toldMatch,
     subject: (st, o) => askerOf(o), // the one whose side asks: the man, or the woman (plan VB-682, section 4.1; VB-693)
     where: (st, o) => settlementIdOf(st, st.pawns[askedOf(o)]), // the step of the village of the one asked answers (Proposed)
+  });
+  // marry(target, {home}): the actor and the target marry and live in household args.home
+  register('marry', {
+    check: (st, c) =>
+      living(st, c.actor) ||
+      living(st, c.target) ||
+      (c.actor === c.target
+        ? 'one cannot marry oneself'
+        : spouseOf(st, c.actor) !== null || spouseOf(st, c.target) !== null
+          ? 'one of them is married'
+          : !home(st, c.args && c.args.home)
+            ? `there is no household ${c.args && c.args.home}`
+            : null),
+    run: (st, c) => wed(st, c.actor, c.target, c.args.home),
   });
   return {
     wed,

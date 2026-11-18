@@ -2,6 +2,8 @@
 //   event holderYear, coming of age, orphans, ties);
 //   the village meetings are sim/meetings, the moving round sim/round, marriage and its offers sim/marriage (VB-876)
 VB['sim/lifecycle'] = (() => {
+  const { holdingOf, living } = VB['sim/records'];
+  const { register } = VB['sim/commands'];
   const { emit } = VB['sim/events'];
   const { TRAITS, DAY, YEAR } = VB['sim/rules'];
   const { deathRoll, CAUSES, COLD } = VB['sim/deaths'];
@@ -114,6 +116,25 @@ VB['sim/lifecycle'] = (() => {
       }
     }
   }
+  // ---- debug actions (source 'debug') ----
+  register('kill', {
+    check: (st, c) => living(st, c.actor),
+    run: (st, c) => killPawn(st, c.actor, 'killed'),
+  });
+  // retire: a holder hands the farm to the first heir
+  register('retire', {
+    check: (st, c) => {
+      const dead = living(st, c.actor);
+      if (dead) return dead;
+      const hh = holdingOf(st, c.actor);
+      return !hh || hh.dissolved
+        ? `pawn ${c.actor} holds no farm`
+        : !heirRanking(st, hh).length
+          ? 'the farm has no heir'
+          : null;
+    },
+    run: (st, c) => retireHolder(st, holdingOf(st, c.actor).id),
+  });
   return {
     killPawn,
     retireHolder,

@@ -16,7 +16,7 @@ VB['sim/clock'] = (() => {
     VB['sim/agents'];
   const { feedAway, dayAway } = VB['sim/away'];
   const { refreshJobs, takeDay, helpers, idleAbout, lookForWork } = VB['sim/jobs'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
   const { commanded, unplanned } = VB['sim/records'];
   const { talkHour, fadeRelations } = VB['sim/relations'];
@@ -651,5 +651,15 @@ VB['sim/clock'] = (() => {
     rest(st, all); // one left free with nothing in hand looks again at the next step (VB-473)
   }
   const advance = (st, hours) => ticking(st, hours, step);
+  // skip({hours}): the world goes on for that long (no actor), whole 6-minute steps (VB-244)
+  register('skip', {
+    check: (st, c) => {
+      const h = c.args && c.args.hours;
+      if (!(h > 0 && Number.isFinite(h))) return `cannot skip ${h} hours`;
+      const x = h * TICKS;
+      return Math.abs(x - Math.round(x)) < 1e-6 ? null : `cannot skip ${h} hours: not a whole number of 6-minute steps`;
+    },
+    run: (st, c) => advance(st, c.args.hours),
+  });
   return { CALENDAR, calendarRows, advance, ticking, stepsIn };
 })();
