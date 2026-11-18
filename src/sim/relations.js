@@ -197,14 +197,18 @@ VB['sim/relations'] = (() => {
     return x / LEAN_SUM;
   }
   // personal × the seeded term (-1..1, a triangle around 0) + likeness × likeness − friction × (the two tempers' sum − 1) − customs × the
-  // customs between them; less 0.02 a year of age gap beyond 5 years, at most 0.4; within -1..1. Allocates nothing.
+  // customs between them; less 0.02 a year of age gap beyond 5 years, at most 0.4, none between a parent and a child; within -1..1. Allocates nothing.
   function compat(st, a, b) {
     const i = Math.min(a, b),
       j = Math.max(a, b),
       s = st.w.seed >>> 0,
       pi = st.pawns[i],
       pj = st.pawns[j];
-    const gap = Math.abs(pi.born - pj.born) / YEAR,
+    // a parent and a child owe no chemistry to the years between them: what sets a family against itself is what happened (VB-1125)
+    const gap =
+        pi.father === j || pi.mother === j || pj.father === i || pj.mother === i
+          ? 0
+          : Math.abs(pi.born - pj.born) / YEAR,
       personal = unit(s, i, j) + unit(s ^ 0x5bd1e995, j, i) - 1,
       friction = traitAt(pi.traits, TI.temper) + traitAt(pj.traits, TI.temper) - 1;
     const c =
