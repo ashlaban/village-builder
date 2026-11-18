@@ -2,11 +2,14 @@
 // season, until the harvest), and the village store's yearly filling; each gift is a command `give`, settled by sim/exchange (VB-216)
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // read at each call: tools/store-flows.js caps the yearly filling by replacing it
-  const { HELP, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
+  const { HELP, GIFT, YEAR, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
   const { hoursBetween, withinDay, byLand } = VB['sim/routes'];
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
+  const { on } = VB['sim/events'],
+    { unplanned } = VB['sim/records'],
+    { assessGift } = VB['sim/exchange'];
   const Rules = VB['sim/registry'],
     { bufferOf } = VB['sim/traits'];
   // allowance's second term (VB-216): the holder's own reserve beyond the floor, 40 to 0 days of the household's need by its generosity
@@ -156,5 +159,89 @@ VB['sim/help'] = (() => {
       for (const [hh, n] of list) give(st, hh, village, n * k);
     }
   }
-  return { surplus, kinHouseholds, shareFood, fillStores, askDaysAt, seasonOf, shortOfPeople };
+  // ---- the good-year gift (VB-460; design.md, The gift: The good-year gift) ----
+  // @state household.giftedIn: the year (game years since the start) in which the household last gave unasked, or absent; written only here.
+  // On a holder's planning day from the harvest on, a household above the feast's threshold (rule 'feast') offers, once a year, to the first
+  // of its ties (kin, then by the tie's strength) within a day's walk and by land that holds under GIFT.shortBelow years of its need above its
+  // seed: its allowance, at most TRAVEL.load, at most what brings the receiver to a year; under GIFT.least no gift. The verb `give`'s, carried
+  // by one of the giver's own; the receiver's holder answers, and goodwill is booked on arrival (sim/exchange).
+  const yearOf = (t) => Math.floor(t / YEAR);
+  const { tieOf } = VB['sim/records'];
+  // Why household hh gives no unasked gift now, or the gift {to, n, carrier}
+  function goodYearGift(st, hh) {
+    const id = hh.holder;
+    if (Rules.value(st, 'feast', { hh }) <= 0) return "its grain is not above the feast's threshold";
+    const p = st.pawns[id],
+      kin = new Set(kinHouseholds(st, hh)),
+      ranked = [];
+    for (const [b] of p.ties) {
+      VB.count.giftTiesWeighed++;
+      const q = st.pawns[b];
+      if (!q.alive || q.household === null || q.household === hh.id) continue;
+      const k = st.households[q.household];
+      if (k.dissolved) continue;
+      ranked.push([kin.has(k.id) ? 0 : 1, -tieOf(st, id, b), k.id]);
+    }
+    for (const k of kin) if (!ranked.some((r) => r[2] === k)) ranked.push([0, 0, k]);
+    ranked.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+    let why = 'no one is short',
+      seen = new Set();
+    for (const [, , kid] of ranked) {
+      if (seen.has(kid)) continue;
+      seen.add(kid);
+      const to = st.households[kid],
+        need = dailyNeed(st, to) * YEAR_DAYS;
+      if (need <= 0 || spare(st, to) >= GIFT.shortBelow * need) continue;
+      const a = st.farmsteads[hh.farmstead].village,
+        b = st.farmsteads[to.farmstead].village;
+      if (a !== b && !(withinDay(st, a, b) && byLand(st, a, b))) {
+        why = 'no route to the one who is short';
+        continue;
+      }
+      const n = Math.min(
+        assessGift(st, { from: hh, to, n: Infinity, source: 'help' }).allowance,
+        TRAVEL.load,
+        need - spare(st, to),
+      );
+      if (n < GIFT.least) return 'the allowance is under a sack';
+      const carrier = carrierOf(st, hh);
+      if (carrier < 0) return 'no one of the household can carry it';
+      return { to, n, carrier };
+    }
+    return why;
+  }
+  // The verb `giveUnasked`'s act: the offer `give` makes, with the receiver's yes still to come
+  function giveUnasked(st, hh) {
+    const g = goodYearGift(st, hh);
+    if (typeof g === 'string') return g;
+    const r = issue(st, {
+      actor: hh.holder,
+      verb: 'give',
+      target: g.to.id,
+      args: { good: 'grain', n: g.n, carrier: g.carrier },
+      source: 'pawn',
+    });
+    if (r !== true) return r;
+    hh.giftedIn = yearOf(st.t);
+    return true;
+  }
+  on('planReviewed', (st, d) => {
+    if (d.why !== 'day' || d.plan.holder.type !== 'household' || cal(st.t).season < AUTUMN) return;
+    const hh = st.households[d.plan.holder.id],
+      id = hh.holder;
+    if (hh.dissolved || id === null || id === undefined || !st.pawns[id].alive || hh.giftedIn === yearOf(st.t)) return;
+    if (unplanned(st, id)) return;
+    giveUnasked(st, hh);
+  });
+  return {
+    goodYearGift,
+    giveUnasked,
+    surplus,
+    kinHouseholds,
+    shareFood,
+    fillStores,
+    askDaysAt,
+    seasonOf,
+    shortOfPeople,
+  };
 })();

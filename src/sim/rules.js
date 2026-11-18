@@ -681,6 +681,9 @@ VB['sim/rules'] = (() => {
   // holder's generosity, TRAITS.acts.generosity.feast), and at most `perGuest` rations a ration of need of those who came (a day's food
   // three times over, the ale poured counted at its grain). Those who ate have eaten the day's meal; guest households owe the host goodwill.
   const FEAST = { above: 2, share: 0.25, perGuest: 3 };
+  // The good-year gift (VB-460): a holder above FEAST.above gives unasked to a tie holding under shortBelow years of its need above its seed;
+  // under least rations (a sack) the walk is not worth it and none is made
+  const GIFT = { shortBelow: 1, least: 10 };
   // The ale evening (VB-522; design.md, Where pawns meet): a holder whose household holds a barrel no occasion called at its farm needs
   // opens its house from the end of work to `until`, the small, frequent sibling of the feast. `call`: a holder's chance a day, times
   // (0.5 + sociability) and (0.5 + ambition), asked at its planning day's review; one evening a village a day. `reach`: the walking hours
@@ -1177,6 +1180,7 @@ VB['sim/rules'] = (() => {
     SPEED,
     BREW,
     FEAST,
+    GIFT,
     ALE_EVENING,
     RITE,
     GATHERING,
