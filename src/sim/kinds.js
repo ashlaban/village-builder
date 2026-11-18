@@ -470,60 +470,8 @@ VB['sim/kinds'] = (() => {
     ...Building.KINDS, // the cottage's stages and the timber its walls take (sim/building)
     ...Green.KINDS, // the village green and well (sim/green, VB-058)
     ...Workdays.KINDS, // the village's work days (sim/workdays, VB-120)
-    mend: {
-      verb: 'Mending the fence',
-      go: 'Going to mend the fence',
-      name: 'Mend the fence',
-      label: 'Mending',
-      anim: 'mallet',
-      hours: 2.5,
-      hands: 1,
-      type: 'upkeep',
-      spot: (st, a, j) => {
-        const w = st.w,
-          s = j.stretch;
-        return [s.mx + (w.hx[j.site] - s.mx) * 0.25, s.my + (w.hy[j.site] - s.my) * 0.25 + 3];
-      },
-      urgency: (st, j, c, U) => (1 - j.stretch.cond) * U.mendPerCond,
-      done: (st, j) => {
-        j.stretch.cond = 1;
-        j.stretch.dirty = true;
-      },
-      // a stretch worn below fenceMendBelow: of the farm's fence, the household's; asked at a village (no farm), of the village's own
-      available: (st, holder, at, c, post, f) => {
-        const E = st.ECON;
-        if (f) {
-          if (f.fence)
-            for (const s of f.fence)
-              if (s.cond < E.fenceMendBelow) post(`mend:f${f.id}.${s.id}`, s.tile, { stretch: s, farm: f });
-          return;
-        }
-        for (const s of at.fence)
-          if (s.cond < E.fenceMendBelow)
-            post(`mend:v${at.id}.${s.id}`, s.tile, { stretch: s }, 'mend', { type: 'village', id: at.id });
-      },
-    },
-    repair: {
-      // the house's upkeep (VB-306): 4 work hours raise its condition 0.1, offered once it is under 0.8
-      verb: 'Mending the house',
-      go: 'Going to mend the house',
-      name: 'Mend the house',
-      label: 'House',
-      anim: 'mallet',
-      hours: HOUSE.hours,
-      hands: 1,
-      type: 'upkeep',
-      urgency: (st, j, c, U) => U.repair,
-      done: (st, j) => {
-        const f = j.farm;
-        f.condition = Math.min(1, houseCondition(st, f) + HOUSE.raise);
-        f.condAt = st.t;
-      },
-      available: (st, hh, f, c, post) => {
-        if (f.household === hh.id && !f.booth && houseCondition(st, f) < HOUSE.mendBelow)
-          post(`repair:f${f.id}`, f.house, { farm: f });
-      },
-    },
+    mend: Building.UPKEEP.mend,
+    repair: Building.UPKEEP.repair,
     fish: Drying.KINDS.fish,
     gather: {
       verb: 'Gathering berries, mushrooms and nuts',
