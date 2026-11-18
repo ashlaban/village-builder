@@ -143,6 +143,24 @@ async function main() {
       if (q('#actMenu').hidden || !q('#actMenu .act-row, #actMenu .act-empty')) fail(`the ${g} group's list did not open`);
     }
   }
+  // Options (VB-1123): the main menu opens it, a theme's card sets the theme on the page's root and keeps it, and Glass takes it off
+  click($('menuBtn'), 'main menu');
+  if (!shown('landing')) fail('the main menu did not open');
+  click($('landOptions'), 'Options');
+  if (!shown('optionsScreen') || qa('#themeList [role="radio"]').length !== 2) fail('Options did not open with its two themes');
+  else {
+    const root = doc.documentElement, kept = () => { try { return win.localStorage.getItem('vb.theme'); } catch (e) { return undefined; } };
+    if (root.dataset.theme) fail(`the page opened in the ${root.dataset.theme} theme, not the default`);
+    click(q('[data-theme-choice="mural"]'), 'the Mural theme');
+    if (root.dataset.theme !== 'mural' || q('[data-theme-choice="mural"]').getAttribute('aria-checked') !== 'true') fail('Mural was not set on the page');
+    if (kept() !== undefined && kept() !== 'mural') fail(`the theme kept is ${kept()}, not mural`);
+    if (!/--lo:0%;--hi:/.test((q('.meter') || { getAttribute: () => '' }).getAttribute('style') || '')) fail('a meter does not say where its fill starts and ends, for the mural\'s beads');
+    click(q('[data-theme-choice="glass"]'), 'the Glass theme');
+    if (root.dataset.theme) fail('Glass did not take the theme off the page');
+    click($('optionsClose'), 'Close');
+    if (shown('optionsScreen') || !shown('landing')) fail('Options did not close back to the main menu');
+  }
+  click($('landBack'), 'Back to game');
   tick(30);
   console.log('chunks asked for by level:', P.baked.join(', '), '| left blank', P.blank);
   console.log(`page ok: ${days} days run, ${nodes} in the tree, ${rows} villages; built in ${built} ms, ${Date.now() - t0} ms in all`);

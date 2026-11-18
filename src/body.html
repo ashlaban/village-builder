@@ -205,6 +205,7 @@
     <button id="landEdit" type="button">Archipelago editor<small>Shape a world of your own, and play it</small></button>
     <button id="landQuick" type="button">Quick start<small>A tiny island of populous villages</small></button>
     <button id="landLoad" type="button">Load archipelago</button>
+    <button id="landOptions" type="button">Options<small>The look of the interface</small></button>
     <button id="landBack" type="button" hidden>Back to game</button>
     <p class="gen-docs" id="genDocs"><a href="docs/roadmap.html" target="_blank" rel="noopener">Roadmap</a> ·
       <a href="BACKLOG.html" target="_blank" rel="noopener">Backlog</a> ·
@@ -401,6 +402,16 @@
   <div class="panel">
     <div class="screen-head"><h1 id="savesTitle">Saves</h1><button id="savesClose" type="button">Close</button></div>
     <div class="saves-body" id="savesBody"></div>
+  </div>
+</div>
+
+<!-- Options (VB-1123), opened from the main menu and taking its card's place as Saves does: the interface's theme, the page's choice -->
+<div class="saves-screen" id="optionsScreen" role="dialog" aria-modal="true" aria-labelledby="optionsTitle" hidden>
+  <div class="panel options">
+    <div class="screen-head"><h1 id="optionsTitle">Options</h1><button id="optionsClose" type="button">Close</button></div>
+    <p class="menu-label" id="themeLabel">Interface</p>
+    <div class="themes" id="themeList" role="radiogroup" aria-labelledby="themeLabel"></div>
+    <p class="options-kept">Kept in this browser, for every game on this device.</p>
   </div>
 </div>
 
