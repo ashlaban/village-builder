@@ -31,7 +31,8 @@ VB['sim/kinds'] = (() => {
     { meadowWork } = Meadows;
   const Byre = VB['sim/byre'],
     { byreWork } = Byre;
-  const { plotJobs } = VB['sim/expansion'];
+  const Expansion = VB['sim/expansion'],
+    { plotWork } = Expansion;
   const { workStake } = VB['sim/claims'],
     { onProject, landProject } = Projects,
     { doneOf } = VB['sim/progress'];
@@ -118,11 +119,6 @@ VB['sim/kinds'] = (() => {
   // The village's common fields (VB-100): their kinds, as at a farm's fields, while its meeting chose the routine.
   function commonWork(st, v, at, c, post) {
     if (st.plans.villages.get(v.id).routines.includes('commons')) Commons.work(st, v, c, post, ASK.fieldAt);
-  }
-  // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
-  // owned by the plot's village (sim/expansion).
-  function plotWork(st, holder, at, c, post) {
-    for (const [key, kind, site, extra] of plotJobs(st)) post(key, site, extra, kind, extra.plot.holder);
   }
   // Asked once for the island: empty farms being restored, each by its claimant's household while the claim holds (sim/farmclaims).
   function claimWork(st, holder, at, c, post) {
@@ -488,30 +484,8 @@ VB['sim/kinds'] = (() => {
     milk: Byre.KINDS.milk,
     slaughter: Byre.KINDS.slaughter,
     salt: Byre.KINDS.salt,
-    fell: {
-      verb: 'Felling trees',
-      go: 'Going to fell trees',
-      name: 'Fell trees',
-      label: 'Fell',
-      anim: 'chop',
-      hours: 10,
-      hands: Infinity,
-      type: 'wood',
-      available: plotWork,
-    },
-    grub: {
-      verb: 'Grubbing out stumps',
-      go: 'Going to grub out stumps',
-      name: 'Grub out stumps',
-      label: 'Grub',
-      anim: 'hoe',
-      hours: 6,
-      hands: Infinity,
-      type: 'tilling',
-      field: true,
-      spot: onField,
-      available: plotWork,
-    },
+    fell: Expansion.KINDS.fell,
+    grub: Expansion.KINDS.grub,
     ...Building.KINDS, // the cottage's stages and the timber its walls take (sim/building)
     ...Green.KINDS, // the village green and well (sim/green, VB-058)
     ...Workdays.KINDS, // the village's work days (sim/workdays, VB-120)
