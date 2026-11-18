@@ -56,17 +56,20 @@ function renderHistory(q) {
   const stamp = `${JSON.stringify(q)}|${historyGroup}|${st.record.length}`;
   if (stamp === historyStamp) return; // the record grows by appending: nothing new, nothing to tell
   historyStamp = stamp;
-  const rows = Sim.chronicle(st, q, historyGroup || null);
+  const rows = Sim.chronicle(st, q, historyGroup || null, HISTORY_ROWS);
+  const line = (r) =>
+    `<p><time>${whenOf(r.ev.t)}</time>${linkNames(r.text, r.ev)}${r.note ? `<i>${esc(r.note)}</i>` : ''}</p>`;
+  // a folded line (VB-1102) opens, in place, to the events it holds
   let h = rows
-    .slice(0, HISTORY_ROWS)
-    .map(
-      (r) => `<p><time>${whenOf(r.ev.t)}</time>${linkNames(r.text, r.ev)}${r.note ? `<i>${esc(r.note)}</i>` : ''}</p>`,
+    .map((r) =>
+      r.fold
+        ? `<details class="fold"><summary>${linkNames(r.text, r.ev)}</summary>${r.fold.map(line).join('')}</details>`
+        : line(r),
     )
     .join('');
   if (!rows.length)
     h = `<p class="more">${historyGroup ? 'Nothing of this kind on record.' : 'Nothing on record yet.'}</p>`;
-  if (rows.length > HISTORY_ROWS)
-    h += `<p class="more">${rows.length - HISTORY_ROWS} earlier events are not listed; choose a kind to reach them.</p>`;
+  if (rows.rest) h += `<p class="more">${rows.rest} earlier events are not listed; choose a kind to reach them.</p>`;
   if (h !== historyHTML) {
     historyHTML = h;
     updatePanelHTML($('historyList'), h);
