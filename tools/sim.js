@@ -152,7 +152,9 @@ const tables = {
       food: Math.round(s.food.rations), foodDays: Math.floor(s.food.days), harvestPct: Math.round(100 * s.harvest.share),
       ages: band(s.bands.now), change: band(s.bands.now.map((n, i) => (n - s.bands.ago[i] >= 0 ? '+' : '') + (n - s.bands.ago[i]))),
       hungry: s.hungry.households.length, idlePct: Math.round(100 * s.idle.share),
-      warnFood: ids(W.food), warnHunger: ids(W.hunger), warnHeir: ids(W.heir), warnHands: ids(W.hands),
+      warnFood: ids(W.food), warnHunger: ids(W.hunger), warnHeir: ids(W.heir), warnHands: ids(W.hands), warnMatch: ids(W.match),
+      adults: `${s.marry.adults.f}f/${s.marry.adults.m}m`, unmarried: `${s.marry.single.f}f/${s.marry.single.m}m`, oneAdult: ids(s.marry.alone),
+      reach: `${s.marry.reach.f}f/${s.marry.reach.m}m`,
       estimateBy: s.viewer ? `${s.viewer.pawn} (${s.viewer.days} days)` : '' };
   }),
   // plans (sim/plans, VB-252): per live household, its standing plan's targets and next review, and its seasonal plan's steps in order
