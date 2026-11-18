@@ -5,7 +5,7 @@ VB['sim/meetings'] = (() => {
   const Culture = VB['culture'];
   const { landMeeting } = VB['sim/territory'];
   const { YEAR_DAYS, YEAR, cal } = VB['sim/rules'];
-  const { personEvent, log, membersOf, voiceOf } = VB['sim/records'];
+  const { personEvent, log, membersOf, voiceOf, settlementIdOf } = VB['sim/records'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { refreshRoles } = VB['sim/heirs'];
   const { updateTie, refreshStanding, refreshInterests, hooks } = VB['sim/society'];
@@ -72,6 +72,7 @@ VB['sim/meetings'] = (() => {
         p.id,
         'cause',
         `Took up the cause: ${Culture.DIMS[p.advocate.dim].label.toLowerCase()}, ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`,
+        { reason: 'natural', village: settlementIdOf(st, p) },
       );
     }
     if (!s) return;

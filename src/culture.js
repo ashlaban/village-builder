@@ -216,6 +216,7 @@ const Culture = (() => {
     advocacyPull: 3,
     advocacyWeight: 3,
     advocacyJump: 0.25, // taking up a cause moves one's own attitude this share of the way to it, at once
+    causeGrace: 0.25, // years from taking a cause up in which laying it down does not start the wait for another (a season)
     causeEvery: 5, // years a cause lasts, and from taking one up before one may take up another (it may be laid down at any time)
     margin: 0.25,
     tieMargin: 0.6,
@@ -347,6 +348,8 @@ const Culture = (() => {
   function advocate(p, dim, opt, until, t, natural) {
     if (dim === null) {
       p.advocate = null;
+      // laid down within its first season (t: the year now), the cause starts no wait (P.causeGrace)
+      if (t !== undefined && p.causeSince !== null && t - p.causeSince < P.causeGrace) p.causeSince = null;
       return;
     }
     p.advocate = natural ? { dim, opt, until, natural: true } : { dim, opt, until };

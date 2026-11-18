@@ -51,6 +51,7 @@ function renderDrawer() {
 let agendaMsg = null,
   agendaHTML = '';
 const AGENDA_OTHERS = 6;
+const when = (y) => `year ${Math.floor(y) + 1}, ${Sim.SEASONS[Math.floor((y % 1) * 4) % 4]}`;
 const yrs = (x) => `${Math.max(0, x).toFixed(1)} ${Math.max(0, x).toFixed(1) === '1.0' ? 'year' : 'years'}`;
 function renderAgenda() {
   const id = played();
@@ -68,9 +69,13 @@ function renderAgenda() {
   let h = agendaMsg ? `<p class="${agendaMsg.bad ? 'refused' : 'hint'}" role="status">${esc(agendaMsg.text)}</p>` : '';
   h += `<h3>Your agenda</h3>${causeNote(p)}`;
   if (a) {
+    const graceEnd = p.causeSince + Culture.P.causeGrace,
+      inGrace = t < graceEnd;
     h +=
       `<p class="hint">Taken up ${yrs(t - p.causeSince)} ago. ${wait > 0 ? `You may take up another in ${yrs(wait)}` : 'You may take up another now'}` +
-      `; laying this one down does not shorten the wait.</p><div class="dbg-row"><button type="button" data-agenda="do" data-cmd="${esc(
+      `${inGrace ? `; laid down before ${when(graceEnd)}, it starts no wait` : '; laying this one down does not shorten the wait'}.</p>` +
+      (a.natural ? `<p class="hint">You took this up on your own in ${when(p.causeSince)}.</p>` : '') +
+      `<div class="dbg-row"><button type="button" data-agenda="do" data-cmd="${esc(
         JSON.stringify({ verb: 'dropCause' }),
       )}">Lay it down</button>${s ? link(a.dim, `${Culture.DIMS[a.dim].label} in ${s.name}`) : ''}</div>`;
   } else if (wait > 0) h += `<p class="hint">You may take up a cause in ${yrs(wait)}.</p>`;
