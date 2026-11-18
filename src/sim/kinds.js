@@ -121,8 +121,6 @@ VB['sim/kinds'] = (() => {
   function commonWork(st, v, at, c, post) {
     if (st.plans.villages.get(v.id).routines.includes('commons')) Commons.work(st, v, c, post, ASK.fieldAt);
   }
-  // Fishing: from spring day FISH.from + 1 to the end of autumn; the water is ice in winter.
-  const fishing = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
   // Gathering: from summer day FORAGE.from + 1 to the end of autumn.
   const gathering = (c) => (c.season === 1 && c.sday >= FORAGE.from) || c.season === 2;
   // Hoeing and sowing grow more urgent as the sowing window runs out.
@@ -526,43 +524,7 @@ VB['sim/kinds'] = (() => {
           post(`repair:f${f.id}`, f.house, { farm: f });
       },
     },
-    fish: {
-      verb: 'Fishing',
-      go: 'Going fishing',
-      back: 'Carrying the catch home',
-      name: 'Go fishing',
-      label: 'Fishing',
-      anim: 'fish',
-      hours: 3,
-      hands: 1,
-      type: 'foraging',
-      carry: 'fish',
-      to: 'door',
-      // at the water's edge: the edge of the lake or sea tile, or by the brook that runs through the middle of a river tile
-      spot: (st, a, j) => {
-        const w = st.w,
-          x = w.hx[j.site],
-          y = w.hy[j.site],
-          k = w.water[j.water] ? 0.45 : 0.7;
-        return [x + (w.hx[j.water] - x) * k + a.ox * 0.15, y + (w.hy[j.water] - y) * k + a.oy * 0.1];
-      },
-      // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
-      urgency: (st, j, c, U) => spareUrgency(st, j, U),
-      // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119); beyond it, to the rack (VB-388)
-      deliver: (st, j, hh) => {
-        Drying.potCatch(st, j, hh);
-      },
-      // in the fishing season, from its boat or the house's fishing ground (sim/drying): one trip, two while spare food is under FISH.secondDays
-      available: (st, hh, f, c, post) => {
-        if (!fishing(c) || Pot.fishCovered(st, hh, dailyNeed(st, hh))) return; // none while fresh fish covers 2 days (VB-388)
-        const g = Drying.fishingPlace(st, hh, f);
-        if (!g) return;
-        // the key names the bank, so a ground fished out is left for the next one at the following review
-        post(`fish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat, leaky: g.leaky });
-        if (spareDays(st, hh) < FISH.secondDays)
-          post(`fish:h${hh.id}:${g.shore}b`, g.shore, { farm: f, water: g.water, boat: g.boat, leaky: g.leaky });
-      },
-    },
+    fish: Drying.KINDS.fish,
     gather: {
       verb: 'Gathering berries, mushrooms and nuts',
       go: 'Going to the woods to gather',
@@ -595,8 +557,7 @@ VB['sim/kinds'] = (() => {
   KINDS.herd = VB['sim/grazing'].KIND;
   KINDS.lead = VB['sim/exchange'].KIND;
   Object.assign(KINDS, VB['sim/quern'].KINDS); // grinding and hewing a quern (VB-009): their records are sim/quern's
-  // hunting roe deer (VB-139): its record is sim/deer's, its urgency fishing's, by the household's spare food
-  KINDS.hunt = { ...VB['sim/deer'].KIND, urgency: (st, j, c, U) => spareUrgency(st, j, U) };
+  KINDS.hunt = VB['sim/deer'].KIND; // hunting roe deer (VB-139): its record is sim/deer's
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   Object.assign(KINDS, VB['sim/tar'].KINDS); // the tar pit, burning tar, tarring the house and the boat (VB-301): sim/tar's
   // a load left lying where its carrier fell is fetched by its owner (VB-611): a fetch kind for each kind that carries a load (sim/lying)
