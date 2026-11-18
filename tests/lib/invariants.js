@@ -48,6 +48,30 @@ function checkState(st) {
       if (t.ward !== null && t.ward !== hh.holder) bad.push(`trust ${id}: ward ${t.ward} is not the holder`);
     }
   }
+  // VB-310: obligations: ids are indexes; a live one's parties exist; delivered at most what is owed, and all of it only when met; the
+  // due-queue holds exactly the running ones (open, part), by due then id, none past due by a year; the parties' lists exactly the live ones
+  if (st.obligations || st.obligationsDue || st.obligationsBy) {
+    const O = globalThis.VB['sim/obligations'], all = st.obligations || [], STATUS = ['open', 'part', 'overdue', 'met', 'forgiven', 'lapsed', 'defaulted'];
+    const exists = (x) => !!x && (x.kind === 'pawn' ? !!st.pawns[x.id] : x.kind === 'household' ? !!st.households[x.id] : x.kind === 'village' ? !!st.villages[x.id] : false);
+    all.forEach((o, i) => {
+      const at = `obligation ${i}`, n = o.owes && (o.owes.rations !== undefined ? o.owes.rations : o.owes.hours);
+      if (o.id !== i) bad.push(`${at}: id ${o.id}`);
+      if (!O.KINDS[o.kind] || !STATUS.includes(o.status)) bad.push(`${at}: kind ${o.kind}, status ${o.status}`);
+      if (!(n > 0) || !(o.delivered >= 0) || o.delivered > n + 1e-9) bad.push(`${at}: delivered ${o.delivered} of ${n}`);
+      if ((o.status === 'met') !== (o.delivered >= n - 1e-9)) bad.push(`${at}: ${o.status} with ${o.delivered} of ${n} delivered`);
+      if (o.status === 'open' && o.delivered > 0) bad.push(`${at}: open with ${o.delivered} delivered`);
+      if (!(o.since <= st.t) || !Number.isFinite(o.due)) bad.push(`${at}: since ${o.since}, due ${o.due}`);
+      if (['open', 'part', 'overdue'].includes(o.status) && !(exists(o.debtor) && exists(o.creditor) && (o.enforcer === null || exists(o.enforcer))))
+        bad.push(`${at}: a party of it does not exist (${JSON.stringify([o.debtor, o.creditor, o.enforcer])})`);
+    });
+    const made = O.rebuilt(st);
+    if (JSON.stringify(made.due) !== JSON.stringify(st.obligationsDue)) bad.push(`obligations: the due-queue ${JSON.stringify(st.obligationsDue)} is not the running ones ${JSON.stringify(made.due)}`);
+    for (const as of ['debtor', 'creditor']) {
+      const have = st.obligationsBy ? st.obligationsBy[as] : {}, keys = Object.keys(made.by[as]).sort();
+      if (JSON.stringify(Object.keys(have).sort()) !== JSON.stringify(keys) || keys.some((k) => JSON.stringify(have[k]) !== JSON.stringify(made.by[as][k])))
+        bad.push(`obligations: the ${as}s' lists differ from the live records`);
+    }
+  }
   // the clock (VB-235): st.tick, a non-negative whole count of 6-minute steps, is its source of truth; st.t is it in hours, whole steps
   // only (VB-244: the page keeps the part of a step)
   const TICKS = globalThis.VB['sim/rules'].TICKS;
@@ -533,7 +557,10 @@ function checkState(st) {
         const e = h.ledger[i];
         if (e.kind !== 'feast') continue;
         if (!(e.n < 0) || !(e.guests > 0) || !(e.booked >= 0)) bad.push(`households[${h.id}]: invalid feast ${JSON.stringify(e)}`);
-        recent.set(`${h.id}:${e.t}`, { e, ate: 0, eaters: 0 });
+        // two occasions at one farm ending in the same hour (two weddings of the house) are two entries: summed (VB-824)
+        const key = `${h.id}:${e.t}`, was = recent.get(key);
+        const both = was && { n: was.e.n + e.n, guests: was.e.guests + e.guests, left: Math.min(was.e.left - was.e.keep, e.left - e.keep), keep: 0 };
+        recent.set(key, { e: both || e, ate: 0, eaters: 0 });
       }
     }
     for (const p of st.pawns) {
@@ -1068,7 +1095,7 @@ function checkState(st) {
           if (own === null && side === null) bad.push(`${at}: an answer of ${x.key}`);
           else if (own !== null ? x.by !== own : x.by === side) bad.push(`${at}: ${x.key} answered by ${x.by}`);
         }
-      } else if (BASES[o.basis].subject) {
+      } else if (BASES[o.basis].where) { // an offer about a life: answered at a village's step of the round (a handover has no subject, VB-824)
         const g = o.gives || {}, w = o.wants || {};
         const terms = o.basis === 'handover' ? !!st.households[g.household] && ['marriage', 'retirement'].includes(g.reason)
           : o.basis === 'place' ? !!st.households[g.household]
@@ -1118,6 +1145,26 @@ function checkState(st) {
         if (!once.has(id) && !p.retired && Rec.spouseOf(st, id) === null) bad.push(`pawn ${id}: unmarried, and no asking`);
       }
   }
+  // the visits planned (VB-289; sim/visits): in the order of their due, each due at a 6:00, one a pawn, to a village, from a household; and
+  // a pawn's last visit, {village, year}, null on the dead and the married
+  if (st.visits !== undefined) {
+    const R = globalThis.VB['sim/rules'], Rec = globalThis.VB['sim/records'], once = new Set();
+    if (!Array.isArray(st.visits)) bad.push(`visits: ${typeof st.visits}`);
+    else st.visits.forEach((e, n) => {
+      const at = `visits[${n}] (pawn ${e.pawn})`;
+      if (n > 0 && st.visits[n - 1].due > e.due) bad.push(`${at}: due ${e.due} before the one ahead of it`);
+      if (!st.pawns[e.pawn] || once.has(e.pawn)) bad.push(`${at}: no such pawn, or two plans`);
+      once.add(e.pawn);
+      if (!st.villages[e.village] || !st.households[e.household]) bad.push(`${at}: village ${e.village}, household ${e.household}`);
+      if (!Number.isFinite(e.due) || Math.abs(e.due - Math.floor(e.due / R.DAY) * R.DAY - R.WORK[0]) > 1e-6) bad.push(`${at}: due ${e.due}, not at ${R.WORK[0]}:00`);
+    });
+    for (const p of st.pawns) {
+      const v = p.visited;
+      if (v === undefined || v === null) continue;
+      if (!st.villages[v.village] || !Number.isInteger(v.year)) bad.push(`pawns[${p.id}]: visited ${JSON.stringify(v)}`);
+      if (!p.alive || Rec.spouseOf(st, p.id) !== null) bad.push(`pawns[${p.id}]: visited kept by one dead or married`);
+    }
+  }
   // the stays away (VB-783; the journeys, VB-287, among them): in the order they began (by id; VB-473: a journey's legs are its pawn's), ids below
   // st.awaySeq and unique, one stay a pawn, each pawn living, the food it carries never below 0, agent.away its index (the stay's id on its
   // pawn's agent, absent on every other). A journey (bed null, roof 'none'): `to` its household's house, and its pawn in phase 'journey' or
@@ -1155,8 +1202,10 @@ function checkState(st) {
         else if (g.held > 0 ? j.to !== house : !g.stops.length || j.to !== g.stops[0].at) bad.push(`${at}: a fetch holding ${g.held} bound for ${j.to}`);
         for (const s of g.stops || []) if (!(s.left > 0) || Math.abs(sum(s.parts) - s.left) > 1e-6 * Math.max(1, s.left) || (s.from === null) === (s.village === null)) bad.push(`${at}: a stop ${JSON.stringify(s)}`);
       } else if (bearing ? !j.gift || !(j.gift.n > 0) || st.farmsteads[st.households[j.gift.to].farmstead].house !== j.to : (j.gift || false) && j.gift !== null) bad.push(`${at}: a gift ${JSON.stringify(j.gift)} on a journey ${j.why}, back ${j.back}`);
-      if (!bearing && !g && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
-      if (!['move', 'carry', 'fetch', 'haul'].includes(j.why) || 'due' in j) bad.push(`${at}: why ${j.why}, due ${j.due}`);
+      const visiting = j.why === 'visit' && !j.back; // VB-289: a visitor bound for the green of the village he visits
+      if (j.why === 'visit' && (!st.villages[j.village] || !(j.stay >= 0) || typeof j.back !== 'boolean' || (visiting && j.to !== st.villages[j.village].center))) bad.push(`${at}: a visit to village ${j.village}, to ${j.to}, stay ${j.stay}, back ${j.back}`);
+      if (!bearing && !visiting && !g && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
+      if (!['move', 'carry', 'fetch', 'haul', 'visit'].includes(j.why) || 'due' in j) bad.push(`${at}: why ${j.why}, due ${j.due}`);
       const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
       if (ph !== 'journey' && ph !== 'road') bad.push(`${at}: its pawn is in phase ${ph}`);
     });
@@ -1304,10 +1353,13 @@ function checkHerds(st, bad) {
   const rotOk = (fd, at, only) => {
     const R = ROTATIONS[fd.rotation];
     if (!R || (only && fd.rotation !== only)) bad.push(`${at}: rotation ${fd.rotation}`);
-    else if (!(Number.isInteger(fd.step) && fd.step >= 0 && fd.step < R.courses.length) || R.courses[fd.step] !== fd.crop)
-      bad.push(`${at}: step ${fd.step} of ${fd.rotation} with ${fd.crop}`);
+    else if (!(Number.isInteger(fd.step) && fd.step >= 0 && fd.step < R.courses.length) || (R.courses[fd.step] !== fd.crop) !== (fd.turn === true))
+      bad.push(`${at}: step ${fd.step} of ${fd.rotation} with ${fd.crop}${fd.turn ? ', out of turn' : ''}`); // VB-355: out of turn, another crop than its course's
+    if (fd.turn !== undefined && fd.turn !== true) bad.push(`${at}: turn ${fd.turn}`);
   };
   for (const f of st.farmsteads) for (const fd of f.fields) rotOk(fd, `farmsteads[${f.id}].fields[${fd.id}]`, f.fields[0].rotation);
+  for (const f of st.farmsteads) // VB-355: the household whose head chose the farm's rotation to keep
+    if (f.rotationBy !== undefined && !(Number.isInteger(f.rotationBy) && st.households[f.rotationBy])) bad.push(`farmsteads[${f.id}]: rotationBy ${f.rotationBy}`);
   for (const v of st.villages) {
     if (!ROTATIONS[v.rotation]) bad.push(`villages[${v.id}]: rotation ${v.rotation}`);
     for (const fd of v.commonFields || []) rotOk(fd, `villages[${v.id}].commonFields[${fd.id}]`, 'every');

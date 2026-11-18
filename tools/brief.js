@@ -96,7 +96,7 @@ if (phase === 'plan') {
     'A new state field: its invariants (tests/lib/invariants.js), the WORLD list if the world holds it, a line in tools/stocks.js if it is a stored quantity. A new loop over a growing collection: a work counter.',
     'A parameter may be tried in at most five short runs, the values and results written in the task file (Deciding without Kim, 3).');
 }
-if (page) rules.push('The page changed: `node tests/smoke.js` and the `tests/browser*.js` it touches; a screenshot under docs/img/ (`node tools/shot.js --help`).');
+if (page) rules.push('The page changed: `node tests/smoke.js` and the `tests/browser*.js` it touches; a screenshot, if you take one to check your work, stays outside the repository (Kim, 18 November).');
 if (/\bms\b|counter|medium-ref|small-y40|\bcost\b/i.test(text.slice(0, text.length - rest.length))) rules.push('Cost: AGENTS.md, Rules for cost; report counters, and leave times to the nightly bench when others share the machine.');
 rules.push('To finish: `npm run format`, `npm run verify`; tick the criteria and write your notes in the task file.');
 out.push('## Rules for this task\n' + rules.map((r) => '- ' + r).join('\n'));

@@ -441,7 +441,13 @@ VB['sim/rules'] = (() => {
     affinity: { weight: 0.6, known: 8 },
     friend: 0.25,
     dislike: -0.2,
-    back: 0.1,
+    // VB-1106: at 0.1 one telling in five was a second telling of the same pair (populous small seed 7, 20 years); at 0.2, one in 75,
+    // and a close friendship is left where the two are no longer friends (the friend line)
+    back: 0.2,
+    // The age of account (VB-1106): the lawful age of the Norse and Anglo-Saxon laws, 12, below which a child answered for nothing it
+    // did. Between a pawn below it and anyone, chemistry counts only where it is liking (the opinion's affinity is not below 0), and
+    // cross words become no quarrel: no memory, no event. A physical fact of childhood, not a custom.
+    account: 12,
     closeFriend: 0.45,
     enemy: -0.5,
     seek: 0.5,
@@ -503,7 +509,8 @@ VB['sim/rules'] = (() => {
   // hand, cart: on a hand cart and an ox cart (sim/carts; it was 90 with two oxen); pace: a laden pawn's speed; hay, hayCart: units of hay a ration of load,
   // and what an ox cart takes at most (10 on the back, 60 on a cart: hay is light, so two oxen draw twice what a sheaf cart takes; VB-394);
   // dayWalk: the walking hours of a day on a journey, 6:00 to 18:00 (VB-287): a day's provisions for each dayWalk hours of the way, and a
-  // pawn with no household further than this from its new home walks there as a journey
+  // pawn with no household further than this from its new home walks there as a journey, and a village further than this is courted only
+  // after a visit (VB-289); stay: the days a visitor stays as the other village's guest
   const TRAVEL = {
     load: 30,
     hand: 90,
@@ -512,6 +519,7 @@ VB['sim/rules'] = (() => {
     hay: 1 / 3,
     hayCart: 60,
     dayWalk: 12,
+    stay: 1,
   };
   // ---- sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
   // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is

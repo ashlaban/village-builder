@@ -179,6 +179,41 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.ok(arrived && !s.away.length, 'he delivered and walked home');
   assert.ok(s.pawns[id].events.some((k) => s.record[k].kind === 'arrived'), 'arrived in his record');
 }
+// ---- the player's gift is carried (VB-1111): the giver's store falls when the load is taken up, the receiver's rises when the carrier
+// sets it down at its door, and not a step before; a back-load at most; nothing is carried within a farmstead ----
+{
+  const s = probe.state(), issue = VB['sim/commands'].issue;
+  to(s, 8);
+  const [giv, rec] = s.households.filter((h) => villageOf(s, h) === 0), id = giv.holder;
+  Stores.put(s, giv, 'grain', 200, 'harvest', { barley: 200 });
+  const gift = (n, carrier, target = rec.id) => ({ actor: giv.holder, verb: 'give', target, args: { good: 'grain', n, carrier }, source: 'player' });
+  assert.strictEqual(Sim.giftCarriers(s, giv, rec.id)[0], id, 'the holder, the played pawn, is the first who may carry');
+  assert.ok(Sim.giftCarriers(s, giv, rec.id).every((c) => s.pawns[c].household === giv.id && s.pawns[c].age >= 14 && s.pawns[c].age < 60), 'the carriers are its adults');
+  assert.ok(/at most/.test(JSON.stringify(issue(s, gift(TRAVEL.load + 1, id)))), 'more than a back-load is not carried by one pawn');
+  const g0 = Stores.grainOf(giv), r0 = Stores.grainOf(rec), count0 = VB.count.giftUncarried;
+  assert.strictEqual(issue(s, gift(25, id)), true, 'the gift is agreed');
+  const j = s.away.find((x) => x.pawn === id);
+  assert.ok(j && j.why === 'carry' && j.gift.n === 25, 'the holder sets out with it');
+  assert.ok(g0 - Stores.grainOf(giv) >= 25 - 1e-9, 'the giver\'s store falls as the load is taken up');
+  assert.strictEqual(Stores.grainOf(rec), r0, 'and the receiver\'s has not risen');
+  assert.strictEqual(Sim.giftCarriers(s, giv, rec.id).includes(id), false, 'on the road, he carries no second gift');
+  const arrivedAt = () => s.pawns[id].events.some((k) => s.record[k].kind === 'arrived');
+  let steps = 0;
+  while (!arrivedAt() && steps < 20 * 10) {
+    assert.strictEqual(Stores.grainOf(rec), r0, 'nothing reaches the receiver before the carrier does, step ' + steps);
+    Sim.advance(s, 0.1);
+    steps++;
+    assert.deepStrictEqual(checkState(s), [], 'invariants on the way, step ' + steps);
+  }
+  assert.ok(arrivedAt() && steps > 0, 'he arrived, after a walk: ' + steps + ' steps');
+  assert.ok(Math.abs(Stores.grainOf(rec) - r0 - 25) < 1e-9, 'the receiver\'s store rises by the load as it is set down');
+  assert.strictEqual(VB.count.giftUncarried, count0, 'none moved at once');
+  Sim.advance(s, DAY);
+  assert.ok(!s.away.some((x) => x.pawn === id), 'and he is home again');
+  // within one farmstead nothing is carried, and no one is named to carry
+  const same = s.households.find((h) => h !== giv && h.farmstead === giv.farmstead && !h.dissolved);
+  if (same) assert.deepStrictEqual(Sim.giftCarriers(s, giv, same.id), [], 'no carrier within a farmstead');
+}
 // ---- a carrier who dies on the road lays the gift down where he fell, the receiver's (VB-850) ----
 {
   const s = far(), rec = s.households[0], giv = s.households[1], id = adultOf(s, giv);
@@ -193,4 +228,100 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.ok(l.kind === 'leftGrain' && Math.abs(l.n - 25) < 1e-9 && l.owner.type === 'household' && l.owner.id === rec.id, 'the receiver\'s, 25 of it');
   assert.deepStrictEqual(checkState(s), [], 'invariants after a carrier\'s death');
 }
-console.log(`journeys: a walk home within a village; a bride across ${Math.round(hours)} hours in ${stops + 1} legs, provisioned for ${days} days; save, death and hunger on the road`);
+// ---- the suitor's visit (VB-289): a man with no woman within a day's walk plans a visit at his village's round, sets out on his winter
+// morning for the nearest village beyond it, stays a day as its guest and walks home; then he may choose a woman of that village, and of
+// no other beyond a day's walk. Three villages in a row: B 12.7 hours from A, C 15.8 hours ----
+{
+  const Rec = VB['sim/records'], M = VB['sim/matching'], { YEAR, SEASON_DAYS, ASK } = VB['sim/rules'], { hoursBetween } = VB['sim/routes'];
+  const three = () => {
+    const s = tinyState(tinyWorld(Array(9).fill('.'.repeat(210)), { seed: 7 }),
+      [{ at: [6, 4], farms: 1, sizes: [5] }, { at: [156, 4], farms: 1, sizes: [5] }, { at: [196, 4], farms: 1, sizes: [5] }], { seed: 7 });
+    // an unmarried child of each house, made a grown man of A and a grown woman of B and of C
+    const grown = (hh, sex, years) => {
+      const id = hh.members.find((k) => k !== hh.holder && Rec.spouseOf(s, k) === null), p = s.pawns[id];
+      p.sex = sex; p.born = s.t - (years + 0.5) * YEAR; p.age = years;
+      return id;
+    };
+    const ids = [grown(s.households[0], 'm', 25), grown(s.households[1], 'f', 22), grown(s.households[2], 'f', 22)];
+    VB['sim/wishes'].seedAsking(s);
+    refreshRoles(s);
+    return [s, ...ids];
+  };
+  const fed = (s) => { for (const p of s.pawns) { p.hunger = 0; p.hungerLog = []; } };
+  const roundDay = (2 * SEASON_DAYS + ASK.day) * DAY, off = (s) => s.record.filter((e) => e && e.kind === 'visitOff');
+  const [s, man, w1, w2] = three(), A = s.households[0], p = s.pawns[man], a = s.agents[man];
+  const hAB = hoursBetween(s, 0, 1), hAC = hoursBetween(s, 0, 2);
+  assert.ok(hAB > TRAVEL.dayWalk && hAC > hAB && hAC < Infinity, `B ${hAB} and C ${hAC} hours from A: both beyond a day's walk, B the nearer`);
+  Stores.put(s, A, 'grain', 3000, 'harvest', { barley: 3000 }); // the means to marry, and the visit's food above them
+  const visit = (v) => VB['sim/commands'].issue(s, { actor: man, verb: 'visit', target: v, source: 'player' });
+  assert.ok(/planned from the moving round/.test(visit(1)), 'in spring no visit is planned: ' + visit(1));
+  Sim.advance(s, roundDay + 11 - s.t);
+  fed(s);
+  assert.ok(/day's walk/.test(M.matchBar(s, man, w1).why), 'before the visit a woman of B is beyond his choosing: ' + M.matchBar(s, man, w1).why);
+  assert.ok(!M.poolFor(s, 0).includes(w1), "and not in his village's pool");
+  Sim.advance(s, 10); // the round's first day
+  const due = roundDay + (ASK.day < SEASON_DAYS ? SEASON_DAYS - ASK.day : 0) * DAY + (A.id % 6) * DAY + WORK[0];
+  assert.deepStrictEqual(s.visits, [{ pawn: man, village: 1, due, household: A.id }], 'at the round he plans a visit to B, the nearest: ' + JSON.stringify(s.visits));
+  assert.strictEqual(off(s).length, 0, 'and nothing keeps him home');
+  assert.ok(/planned a visit already/.test(visit(2)), 'one visit a year: ' + visit(2));
+  assert.deepStrictEqual(checkState(s), [], 'invariants with a visit planned');
+  const planned = JSON.parse(JSON.stringify(Sim.save(s)));
+  Sim.advance(s, due - 1 - s.t);
+  fed(s);
+  const g0 = Stores.grainOf(A), days = 2 * Math.ceil(hAB / TRAVEL.dayWalk) + TRAVEL.stay;
+  Sim.advance(s, 1.2);
+  const j = s.away.find((x) => x.pawn === man);
+  assert.ok(j && j.why === 'visit' && j.village === 1 && j.to === s.villages[1].center && !j.back, 'at 6:00 of his winter day he sets out for the green of B');
+  assert.strictEqual(s.visits.length, 0, 'the plan is taken from the queue');
+  assert.ok(Math.abs(j.food - days) < 1e-9 && days === 5, `a ration a day away, ${days} days: ${j.food}`);
+  assert.ok(Math.abs(g0 - Stores.grainOf(A) - days / s.ECON.uncooked) < 1e-6, "from his household's grain");
+  assert.strictEqual(a.phase, 'journey', 'he walks');
+  let onRoad = null, guest = 0, t0 = s.t, home = null;
+  for (let k = 0; k < 8 * 4 && s.away.length; k++) {
+    Sim.advance(s, DAY / 4);
+    assert.deepStrictEqual(checkState(s), [], 'invariants on the visit, step ' + k);
+    const x = s.away.find((y) => y.pawn === man);
+    if (!x) { home = s.t; break; }
+    if (!x.back && onRoad === null && a.phase === 'road') onRoad = JSON.parse(JSON.stringify(Sim.save(s)));
+    if (x.back && a.phase === 'road' && tileAt(s, a.x, a.y) !== undefined && Math.hypot(a.x - s.w.hx[s.villages[1].center], a.y - s.w.hy[s.villages[1].center]) < 4 * s.w.R) guest++;
+  }
+  assert.deepStrictEqual(p.visited, { village: 1, year: M.roundYear(s.t) }, 'on arrival the visit is his: ' + JSON.stringify(p.visited));
+  const kinds = p.events.map((k) => s.record[k]).filter((e) => e.t >= due).map((e) => e.kind);
+  assert.deepStrictEqual(kinds.filter((k) => ['setOut', 'visited', 'arrived'].includes(k)), ['setOut', 'visited', 'arrived'], 'setOut, visited and arrived in his record: ' + kinds);
+  assert.ok(s.record.some((e) => e && e.kind === 'visited' && e.pawn === man && e.village === 1 && !e.self), 'the visit names the village');
+  assert.ok(guest >= 4, `he stays a day at the green of B, its guest (${guest} quarter days there)`);
+  assert.ok(home !== null && home - t0 > (days - 2) * DAY && home - t0 < days * DAY, `home again within ${days} days: ${(home - t0) / DAY}`);
+  const pm = s.pawns[man];
+  assert.ok(M.courts(s, pm, s.pawns[w1], 0, 1), 'now he may choose a woman of B');
+  assert.ok(!M.courts(s, pm, s.pawns[w2], 0, 2), 'and none of C, beyond a day\'s walk and not visited');
+  assert.ok(M.poolFor(s, 0).includes(w1) && !M.poolFor(s, 0).includes(w2), "his village's pool holds B's people, not C's");
+  assert.ok(/visit already|this winter's visit/.test(visit(2)), 'no second visit this winter: ' + visit(2));
+  // a save during the visit plays as the unbroken run
+  assert.ok(onRoad, 'a save was made on the road');
+  const one = Sim.load(s.w, JSON.parse(JSON.stringify(onRoad))), two = Sim.load(s.w, JSON.parse(JSON.stringify(Sim.save(Sim.load(s.w, JSON.parse(JSON.stringify(onRoad)))))));
+  assert.ok(one.away.some((x) => x.why === 'visit' && !x.back), 'the save holds the visit');
+  for (const x of [one, two]) Sim.advance(x, 6 * DAY);
+  // (not every agent: a plot's `fresh` mark drifts over a second save in this state, visit or none, and with it a stride; VB-1150)
+  for (const k of ['away', 'pawns', 'households', 'visits']) assert.strictEqual(canon(one[k]), canon(two[k]), `continued ${k}`);
+  assert.strictEqual(canon(one.agents[man]), canon(two.agents[man]), 'continued: the visitor');
+  assert.deepStrictEqual(one.pawns[man].visited, p.visited, 'the loaded run makes the same visit');
+  assert.ok(!one.away.some((x) => x.pawn === man), 'and comes home');
+  // a household that can no longer spare the food on his winter morning keeps him home, and the log says so
+  {
+    const q = Sim.load(s.w, planned), hh = q.households[0];
+    assert.strictEqual(q.visits.length, 1, 'the save holds the plan');
+    Stores.take(q, hh, 'grain', Stores.grainOf(hh) - 150, 'spoilage'); // fed for now, and short of its means
+    Sim.advance(q, due + 1 - q.t);
+    assert.ok(!q.away.some((x) => x.why === 'visit') && q.visits.length === 0 && !q.pawns[man].visited, 'short of its means he does not set out');
+    assert.ok(off(q).length === 1 && off(q)[0].pawn === man && /cannot spare the food for a visit/.test(Sim.villageLog(q, 200).map((e) => e.text || e).join('\n')), 'and the log says why');
+  }
+  // a household short of its means at the round plans none, and logs it once
+  {
+    const [q, m2] = three();
+    Sim.advance(q, roundDay + 11 - q.t);
+    fed(q);
+    Sim.advance(q, 10);
+    assert.ok(q.visits.length === 0 && off(q).length === 1 && off(q)[0].pawn === m2, 'short of the means, he stays home: ' + JSON.stringify(off(q)));
+  }
+}
+console.log(`journeys: a walk home within a village; a bride across ${Math.round(hours)} hours in ${stops + 1} legs, provisioned for ${days} days; save, death and hunger on the road; a suitor's visit, there and back`);

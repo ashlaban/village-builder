@@ -8,7 +8,7 @@ VB['sim/round'] = (() => {
   const { cal, DAY, HUNGER, MARRIAGE, ASK } = VB['sim/rules'];
   const { log, age, spouseOf, wasWidowed, settlementIdOf, practice, holdingOf, spokesmanOf } = VB['sim/records'];
   const { countDemand, refreshRoles } = VB['sim/heirs'];
-  const { kinOk, poolFor, matchScore, matchRules, wishedMatches } = VB['sim/matching'];
+  const { kinOk, poolFor, matchScore, matchRules, wishedMatches, courts } = VB['sim/matching'];
   const { startPlots } = VB['sim/expansion'];
   const { claimFarms, claimableFarm, askLand } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
@@ -22,8 +22,8 @@ VB['sim/round'] = (() => {
   const { trustOfHolder } = VB['sim/ownership'];
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { villagesOfStep } = VB['sim/meetings'];
-  const { handover } = VB['sim/marriage'];
   const { askMatch, staleWhy } = VB['sim/asking'];
+  const { seekVisit } = VB['sim/visits'];
   const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
   // Scarcity and plenty of spouses push the marriage limit, a village's own at the end of its round (VB-277): one the step married to a
   // partner also allowed under the next stricter option pulls back, at half the weight; an unmatched man of the village, or an unmarried
@@ -154,12 +154,12 @@ VB['sim/round'] = (() => {
   }
   // A village's round (VB-277; design.md, A village's round): its households fill its store; its own unmarried men, those with a place first,
   // then the oldest, each choose by the score among the unmarried women within walking reach (VB-288; one married at an earlier village's
-  // round is no longer single, one held by an open offer is taken); its handovers, for its own farms and for the homes in other villages its marriages
-  // chose; and its kin pressure. Heirs are ranked afresh: matchRules memoizes the rankings with the homes and the means, and the memos are
+  // round is no longer single, one held by an open offer is taken), a wedding bringing the handover its home's holder offers (sim/marriage, VB-824);
+  // and its kin pressure. Heirs are ranked afresh: matchRules memoizes the rankings with the homes and the means, and the memos are
   // cleared after each marriage or handover the step makes.
   function villageRound(st, v) {
     let pairs = 0;
-    const pool = poolFor(st, v); // the living of the villages within walking reach (sim/matching, VB-288)
+    const pool = poolFor(st, v); // the living of the villages within a day's walk, and of those visited (sim/matching, VB-288, VB-289)
     VB.count.roundWalk += pool.length;
     if (v === 0) refreshRoles(st);
     if (v === 0) for (const id of st.living) st.pawns[id].kinPush = null; // the living's pushes, cleared once a round
@@ -171,7 +171,9 @@ VB['sim/round'] = (() => {
     const men = [],
       women = [],
       others = [],
-      widowed = new Set();
+      widowed = new Set(),
+      at = new Map(), // each woman's village
+      seekers = []; // the men who found nobody they could ask, or were refused (VB-289)
     for (const id of pool) {
       const p = st.pawns[id];
       p.age = age(st, p);
@@ -181,7 +183,9 @@ VB['sim/round'] = (() => {
       if (p.ask !== undefined && p.ask !== null && !heldBy(st, id, 'match')) continue; // in another basis's step only (VB-692)
       if (p.age < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) continue;
       if (wasWidowed(st, id)) widowed.add(id);
-      (p.sex === 'f' ? women : settlementIdOf(st, p) === v ? men : others).push(p);
+      const pv = settlementIdOf(st, p);
+      if (p.sex === 'f') at.set(id, pv);
+      (p.sex === 'f' ? women : pv === v ? men : others).push(p);
     }
     // Where each pawn would live if married, and whether the home affords it: matchRules' memos, cleared after each marriage and handover.
     const rules = matchRules(st),
@@ -198,8 +202,7 @@ VB['sim/round'] = (() => {
     // draw is made. The rounds of the villages before his hold the woman for it.
     const forcedBy = wishedMatches(st, wishers, v, rules, taken);
     const cu = practice(st, v),
-      married = [],
-      away = new Set(); // the homes in other villages the marriages chose
+      married = [];
     let putOff = 0,
       housed = null;
     const first = [...forcedBy.values()].map((x) => x.man);
@@ -220,7 +223,7 @@ VB['sim/round'] = (() => {
       if (cu.residence === 'land' && pm === null && !housed) housed = women.filter((p) => place(p.id) !== null);
       for (const f of isWish ? [] : cu.residence === 'land' && pm === null ? housed : women) {
         pairs++;
-        if (taken.has(f.id) || !kinOk(st, m.id, f.id, cu)) continue;
+        if (taken.has(f.id) || !courts(st, m, f, v, at.get(f.id)) || !kinOk(st, m.id, f.id, cu)) continue;
         const home = homeFor(m, f, cu, pm);
         if (home === null) continue;
         const s = matchScore(st, m, f, rnd(st.rng.society), widowed.has(m.id) || widowed.has(f.id));
@@ -229,7 +232,11 @@ VB['sim/round'] = (() => {
           best = { f, home };
         }
       }
-      if (!best || bs < MARRIAGE.minScore || (!isWish && rnd(st.rng.society) > MARRIAGE.goAhead)) continue;
+      if (!best || bs < MARRIAGE.minScore) {
+        seekers.push(m.id);
+        continue;
+      }
+      if (!isWish && rnd(st.rng.society) > MARRIAGE.goAhead) continue;
       if (!affords(best.home)) {
         putOff++;
         continue;
@@ -238,6 +245,7 @@ VB['sim/round'] = (() => {
       // The match is an offer (VB-690's basis `match`; VB-293, VB-275), made by the man's spokesman to the woman's, which the two and their
       // spokesmen answer: an unplayed side answers by opinion at once; one that waits for the player is kept, the two held; a no closes
       // it; all yes, the round marries them here. A wish is the wisher's own yes.
+      const old = st.households[best.home].holder;
       const r = issue(st, {
         actor: spokesmanOf(st, m.id),
         verb: 'offer',
@@ -255,6 +263,7 @@ VB['sim/round'] = (() => {
         else if (r === true && spouseOf(st, m.id) === null) {
           askAgain(st, m.id, best.f.id, 0, st.t); // refused: he asks anew, due the next day (VB-692)
           if (heldBy(st, m.id, 'match')) taken.add(m.id);
+          else seekers.push(m.id);
         }
         continue;
       }
@@ -267,32 +276,27 @@ VB['sim/round'] = (() => {
           homes.filter((h) => h !== null),
         );
       else rules.clear();
+      // The home's holder handed it on at the wedding (the custom 'marriage'; sim/marriage, VB-824). The heir lives there, so no pawn
+      // moves: the holder changes, and the old holder and the pair's spouses retire. Clear the memos that read them and the home.
+      const heir = st.households[best.home].holder;
+      if (heir !== old)
+        rules.touched(
+          [old, heir, spouseOf(st, old), spouseOf(st, heir)].filter((id) => id !== null),
+          [best.home],
+        );
       housed = null;
       married.push([m.id, best.f.id]);
-      if (st.farmsteads[st.households[best.home].farmstead].village !== v) away.add(best.home);
     }
     if (putOff) {
       const txt = `${putOff} couple${putOff > 1 ? 's' : ''} put off marrying: the farm cannot feed another mouth`;
       log(st, `At the ${st.villages[v].name} moving round, ${txt}.`, { kind: 'putOff', village: v, n: putOff });
     }
     kinPressure(st, v, men, women, others, taken, married, homeFor);
-    // handovers by custom, when the heir marries or the holder turns 60: the village's farms and the homes its marriages chose
-    let handed = 0;
-    const farms = st.liveHouseholds.filter(
-      (h) => away.has(h) || st.farmsteads[st.households[h].farmstead].village === v,
-    );
-    for (const h of farms) {
-      const hh = st.households[h],
-        old = hh.holder,
-        heir = handover(st, hh, rules.rank);
-      if (heir === null) continue;
-      // The heir already lives there (handover's rule), so no pawn moves: the holder changes, and the old holder and the pair's spouses
-      // retire. Clear only the memos that read those pawns and this household.
-      const changed = [old, heir, spouseOf(st, old), spouseOf(st, heir)].filter((id) => id !== null);
-      rules.touched(changed, [h]);
-      handed++;
-    }
-    if (married.length || handed) refreshRoles(st);
+    // One who found nobody to ask within a day's walk, or was refused and holds no offer, plans a winter's visit (sim/visits, VB-289).
+    for (const id of seekers) if (spouseOf(st, id) === null && !heldBy(st, id, 'match')) seekVisit(st, id, rules);
+    // No handover is made here (VB-824): a holder offers its farm at the heir's wedding or on its own day, and the step answers the
+    // offers due (answerDue).
+    if (married.length) refreshRoles(st);
     VB.count.roundPairs += pairs;
   }
   return {

@@ -24,7 +24,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       .replace('let st = null,\n  speed = 1,\n  selPawn = -1;', 'let st = null,\n  speed = 1,\n  selPawn = -1; window.__play = { get st() { return st; }, Sim, focusPawn, '
         + 'get speed() { return speed; }, get choose() { return choose; }, '
         + 'look: (i) => { stopIntro(); followPlayed = false; cam.x = w.hx[i]; cam.y = w.hy[i]; cam.z = zt = 1.5; vel.x = vel.y = 0; }, '
-        + 'tool: () => tool && { kind: tool.kind, sites: tool.sites.slice() }, selectFarm, cam: () => ({ x: cam.x, y: cam.y }), '
+        + 'tool: () => tool && { kind: tool.kind, sites: tool.sites.slice() }, selectFarm, cam: () => ({ x: cam.x, y: cam.y }), gliding: () => !!intro, '
         + 'drawings: () => { const h = app.renderer.graphicsContext._gpuContextHash; let n = 0; for (const k in h) if (h[k]) n++; return n; }, render: () => app.render(), '
         + 'set st(v) { st = v; }, world: () => w, ticker: () => app.ticker, setSpeed: (v) => { speed = v; }, advance: (dt) => advanceSimulation(dt), '
         + 'place: () => { placePawns(); return { drawX, drawY, stepShare }; } };')),
@@ -169,6 +169,9 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     for (const kind of await page.$$('#historyKinds button')) await kind.click();
     await page.click('#historyKinds [data-history=""]');
   }
+  // VB-1145: a glide lasts 1.1 s of frame time, and a frame counts for at most 50 ms (page/frame), so under 20 frames a second it
+  // outlasts any wait by the clock: the camera is read once the glide has ended, not after a time
+  const glided = () => page.waitForFunction(() => !window.__play.gliding(), null, { timeout: 60000 });
   // Playing a pawn (VB-210) through the action bar (VB-341): play as the scenario's suggestion; the dock's Actions shows the bar, its
   // Household list a kind of work, queued at once where it is open at one place, else in the tool mode, whose marked tile is clicked on the
   // map; the job is seen carried out. Then Walk here, from the Myself list: the tool takes an open tile clicked on the map.
@@ -188,17 +191,17 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if ((await page.evaluate(() => window.__play.st.player && window.__play.st.player.pawn)) !== played) fail('Play as did not inhabit the pawn');
   // VB-1027: Play as leaves the camera on the played pawn's farm, wherever the pawn is; and opening the People sheet does not move it
   {
-    await page.waitForTimeout(1800);
+    await page.waitForTimeout(300); await glided();
     const at = () => page.evaluate(() => { const { st } = window.__play, w = window.__play.world(), c = window.__play.cam(),
       f = st.farmsteads[st.households[st.pawns[st.player.pawn].household].farmstead];
       return { off: Math.hypot(c.x - w.hx[f.house], c.y - w.hy[f.house]) / w.R, x: c.x, y: c.y }; });
     const a = await at(); // the glide's last frame may still settle: a move is more than a world unit
     if (!(a.off < 1)) fail(`Play as left the camera ${a.off.toFixed(1)} tiles from the played pawn's farm`);
-    await page.click('#settlersBtn'); await page.waitForTimeout(1500);
+    await page.click('#settlersBtn'); await page.waitForTimeout(1500); await glided();
     const b = await at();
     if (Math.hypot(b.x - a.x, b.y - a.y) > 1) fail(`opening the People sheet moved the camera: ${JSON.stringify(a)} to ${JSON.stringify(b)}`);
     await page.click('#debugBtn'); await page.click('[data-act="play"]'); await page.waitForSelector('#playBox [data-play="auto"]'); // the sheet as Play as left it
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1500); await glided();
   }
   if (!(await page.locator('#actBar').isVisible())) fail('the action bar is not shown with the played pawn\'s sheet');
   for (const g of ['self', 'house', 'village']) {
@@ -358,7 +361,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       else {
         if (!/after the one being made/.test(await page.locator('#tileHouse [data-tile="field"]').textContent())) fail('Next field does not say one is being made');
         await page.evaluate((i) => window.__play.look(i), spots.house);
-        await page.click(link); await page.waitForTimeout(1500);
+        await page.click(link); await page.waitForTimeout(300); await glided();
         const near = await page.evaluate((i) => { const c = window.__play.cam(), w = window.__play.world(); return Math.hypot(c.x - w.hx[i], c.y - w.hy[i]) < w.R; }, at);
         if (!near) fail('Show on map did not bring the camera to the project\'s tile');
       }

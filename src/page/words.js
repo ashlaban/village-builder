@@ -249,7 +249,7 @@ function showPawn(id) {
       `${roleLine(p)}, ${p.age}`,
       `${status}.${rel ? ` ${rel}` : ''}`,
       p.stake
-        ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}`
+        ? `Share in hand: ${p.stake} rations${Sim.shareOwed(st, p.id) ? `, ${Sim.shareOwed(st, p.id)} still owed` : ''}`
         : p.advocate
           ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`
           : '',
@@ -460,14 +460,17 @@ function settlementTileInfo(i) {
         fallow: 'Untended, gone to grass',
         scrub: 'Untended, gone to scrub',
       }[fd.stage === 'stooks' ? 'stooks' : cropStage(fd)];
+      const more = fieldCard(i, fd, f); // its crop, its course and the head's choices (page/tileinfo, VB-355)
       // the soil as two levels on the one meter: what the ground is worth, and how its crops and its dung have left it (100 is unworn)
       const cond = Math.round(fd.soil * 100);
       return [
         `Field of ${where}`,
-        [word, f.household === null ? 'No one works it' : 'Owned by the household'],
+        [more.word || word, f.household === null ? 'No one works it' : 'Owned by the household'],
         {
           farm: f.id,
+          list: more.list,
           stats: stats([
+            ...more.stats,
             {
               icon: 'soil',
               label: 'Soil',

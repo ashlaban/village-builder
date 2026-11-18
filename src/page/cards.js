@@ -431,7 +431,7 @@ function renderHouse(tab, hh) {
 function tileExtras(of) {
   const f = st.farmsteads[of.farm],
     v = st.villages[f.village];
-  if (!of.house) return { links: farmChip(f) + villageChip(v), stats: of.stats };
+  if (!of.house) return { links: farmChip(f) + villageChip(v), stats: of.stats, list: of.list };
   const hh = f.household === null ? null : st.households[f.household];
   const list = hh ? `<h3>Lives here</h3>${hh.members.map(memberRow).join('')}` : '';
   const heirs = hh ? Sim.heirRanking(st, hh).slice(0, 3) : [];

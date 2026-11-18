@@ -24,6 +24,7 @@ VB['sim/clock'] = (() => {
   const { roundPhase, ROUND_STEPS } = VB['sim/round'];
   const { dueOffers } = VB['sim/offers'];
   const { askingDay } = VB['sim/asking'];
+  const { visitsDue } = VB['sim/visits'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
@@ -389,6 +390,14 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'day',
+      at: { hour: WORK[0] },
+      when: (st) => st.visits.length > 0,
+      owner: 'sim/visits',
+      note: "the visits due set out: a suitor's winter journey to a village beyond a day's walk (VB-289)",
+      run: (st) => visitsDue(st),
+    },
+    {
+      every: 'day',
       when: (st) => !!st.cenv && short.length > 0,
       owner: 'sim/service',
       note: 'the short of people taken in (VB-308)',
@@ -443,6 +452,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/occasions',
       note: 'those asked set out, and occasions end (VB-126)',
       run: (st) => occasionsDue(st),
+    },
+    {
+      every: 'step',
+      when: (st) => !!st.obligationsDue && st.obligationsDue.length > 0,
+      owner: 'sim/obligations',
+      note: 'the obligations whose term has ended go on to their next term, or are overdue (VB-310)',
+      run: (st) => VB['sim/obligations'].step(st),
     },
     {
       every: 'step',

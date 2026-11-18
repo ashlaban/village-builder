@@ -459,6 +459,14 @@ VB['sim/saves'] = (() => {
       st.offerSeq = 0;
     } // VB-293: nor marriage offers
     if (!st.asking) VB['sim/wishes'].seedAsking(st); // VB-823: nor the askings' queue
+    // VB-310: nor obligations: a share still owed lay on the sibling (pawn.owed, pawn.owedFrom)
+    for (const p of st.pawns) {
+      if (p.owed > 0 && p.owedFrom !== undefined && p.owedFrom !== null)
+        VB['sim/obligations'].oweShare(st, st.households[p.owedFrom], p.id, p.owed);
+      delete p.owed;
+      delete p.owedFrom;
+    }
+    if (!st.visits) st.visits = []; // VB-289: nor visits planned
     for (const o of st.offers)
       if (o.basis === undefined) {
         // VB-690: a marriage offer saved before offers had a basis, as the basis `match` (its spokesmen, its terms)

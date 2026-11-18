@@ -3,18 +3,21 @@
 //   for, due at the moving round, which answers it: a match, by its spokesman (the matcher's rule for one man, askMatch, which the round
 //   also uses to ask anew after a refusal), or an empty farm (the basis land); a plot, new land and service are still asked by the round's
 //   own walk until VB-697, VB-696 and VB-694 make them askings. An open offer whose people have died, married or taken a place lapses
-//   where it is next read (staleWhy: an asking, or the round).
+//   where it is next read (staleWhy: an asking, or the round). A holder's own day is its birthday: it considers handing the farm on
+//   (sim/marriage's rule, VB-824), by an offer due at the round.
 VB['sim/asking'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK } = VB['sim/rules'];
   const { age, spouseOf, wasWidowed, settlementIdOf, practice, spokesmanOf, holdingOf, fullName } = VB['sim/records'];
-  const { kinOk, matchScore, matchRules } = VB['sim/matching'];
+  const { kinOk, matchScore, matchRules, courts } = VB['sim/matching'];
   const { hoursBetween, byLand } = VB['sim/routes'];
   const { claimableFarm, askLand } = VB['sim/farmclaims'];
-  const { placeIfMarried } = VB['sim/heirs'];
+  const { placeIfMarried, heirRanking } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { chooseWish, wishOf, wishesOf, nextAsking } = VB['sim/wishes'];
   const { conclude } = VB['sim/offers'];
+  const { handover } = VB['sim/marriage'],
+    { on } = VB['sim/events'];
   const AUTUMN = 2;
   // The time an offer made now is due at the moving round: the noon of the round's next day still to come (ASK.passes days from sday
   // ASK.day of autumn), this year's or the next's.
@@ -43,7 +46,8 @@ VB['sim/asking'] = (() => {
   // ---- the match, asked for one man (VB-692's matcher, for one pawn; plan, sections 2 and 4.1) ----
   // Man m's spokesman offers him in marriage, due at `due`, to the best-scoring woman the round's rules allow (unmarried, of age, fed,
   // not retired, not wishing otherwise; the kin limit of his village's custom; a home under the residence custom), of those within
-  // walking reach (VB-288) and asked by fewer than ASK.held open matches (who is spoken for is news), the nearest villages first, at
+  // a day's walk or of a village one of the two visited (VB-288, VB-289) and asked by fewer than ASK.held open matches (who is spoken
+  // for is news), the nearest villages first, at
   // most ASK.pool of them weighed (asksWeighed). The unmarried women of 18 or more are read from the asking queue, which holds every one
   // of them (askWalk). `not`: one he may not ask (she has just refused him); `only`: the one he wishes; `roll`: the go-ahead draw of the
   // round's matcher (MARRIAGE.goAhead). 'made', or what stood in the way: 'nobody', 'means' (the home cannot feed another mouth) or why
@@ -64,7 +68,7 @@ VB['sim/asking'] = (() => {
       if (spouseOf(st, id) !== null || (asked.get(id) || 0) >= ASK.held) continue;
       if (f.wish && wishOf(st, id, 'match') === false) continue;
       const fv = settlementIdOf(st, f);
-      if (fv === null || (fv !== v && !byLand(st, v, fv))) continue;
+      if (fv === null || (fv !== v && !(byLand(st, v, fv) && courts(st, p, f, v, fv)))) continue; // a day's walk, or visited (VB-289)
       cands.push({ f, h: fv === v ? 0 : hoursBetween(st, v, fv) });
     }
     cands.sort((a, b) => a.h - b.h);
@@ -173,5 +177,11 @@ VB['sim/asking'] = (() => {
       }
     }
   }
+  // A holder's own day, its birthday (sim/lifecycle): it considers handing the farm on (sim/marriage's rule), by an offer due at the
+  // moving round (VB-824). One call a holder a year.
+  on('holderYear', (st, d) => {
+    const hh = holdingOf(st, d.pawn);
+    if (hh !== null) handover(st, hh, (h) => heirRanking(st, st.households[h]), dueRound(st));
+  });
   return { askingDay, askFor, askMatch, staleWhy, dueRound };
 })();

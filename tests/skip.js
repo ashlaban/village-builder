@@ -2,7 +2,7 @@
 // step, says when it has reached a stop and why. It stops on a birth, marriage or death in the pawn's household or line, on a farm's
 // event and a change of custom in its village but not elsewhere, on hunger come to its household, on a refused command, on an empty
 // queue with the automatic behaviour off, and at the latest on the eve of the moving round. Asking writes nothing: a skipped run is the
-// run played.
+// run played. A skip begun where the last one stopped goes on with its cursor (VB-1108).
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], N = VB['sim/notable'], { YEAR, DAY, SEASON_DAYS, cal } = VB['sim/rules'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js');
@@ -130,5 +130,52 @@ const HOLDER = 0, WIFE = 1;
     && !o.asked.some((a) => a.id === q.id) && !o.come.includes(q.id));
   if (other) assert.strictEqual(Sim.gatherings(st, other.id, []).filter((g) => g.id === o.id).length, 0, 'not one who is no kin and not asked');
 }
+// 7. A skip goes on where the last one stopped (VB-1108): two events of one step that both stop it (the played pawn's wedding, and a farm
+// taken over by its son the same hour) stop it twice, in the record's order; what the record gains while the game stands is passed; and
+// once the game has run at a speed, or another pawn is played, the next skip begins at the record's end. Asking writes nothing.
+{
+  const st = make(); Sim.inhabit(st, HOLDER);
+  const son = st.households[0].members.find((m) => m !== HOLDER && m !== WIFE), vid = R.settlementIdOf(st, st.pawns[HOLDER]);
+  const first = Sim.skipFrom(st);
+  Sim.advance(st, 0.1);
+  assert.strictEqual(Sim.skipStop(st, first), null, 'nothing yet');
+  const twoEvents = () => {
+    R.log(st, 'The played pawn marries.', { kind: 'married', pawn: HOLDER, other: st.households[3].members[2] });
+    R.log(st, 'A death far away.', { kind: 'custom', village: vid + 7 });
+    R.log(st, 'Its son takes over a farm.', { kind: 'inherited', pawn: son, household: 3 });
+  };
+  twoEvents();
+  const h0 = hash(st), one = Sim.skipStop(st, first);
+  assert.strictEqual(hash(st), h0, 'a stop writes nothing');
+  assert.ok(one && one.why === 'family' && one.ev.kind === 'married', JSON.stringify(one));
+  assert.strictEqual(Sim.skipStop(st, Sim.skipFrom(st)), null, 'a skip begun at the record\'s end loses the second (the defect)');
+  R.log(st, 'The player leaves a farm while the game stands.', { kind: 'empty', village: vid }); // its own act: seen, not told again
+  const next = Sim.skipFrom(st, first);
+  assert.ok(next !== first && next.t === st.t && next.eve === N.roundEve(st.t));
+  const two = Sim.skipStop(st, next);
+  assert.ok(two && two.why === 'farm' && two.ev.kind === 'inherited' && two.ev.pawn === son, JSON.stringify(two));
+  assert.ok(st.record.indexOf(one.ev) < st.record.indexOf(two.ev), 'in the record\'s order');
+  assert.strictEqual(Sim.skipStop(st, next), null, 'each once, and what was written while the game stood is passed');
+  assert.strictEqual(next.n, st.record.length);
+  const third = Sim.skipFrom(st, next);
+  assert.strictEqual(Sim.skipStop(st, third), null, 'nothing is told twice by a third skip');
+  R.log(st, 'A custom changed here.', { kind: 'custom', village: vid });
+  assert.strictEqual(Sim.skipStop(st, third).why, 'custom', 'and it reads on');
+  // the game runs at a speed between two skips: what passed is not read back
+  twoEvents();
+  assert.strictEqual(Sim.skipStop(st, third).ev.kind, 'married');
+  Sim.advance(st, 0.1);
+  const later = Sim.skipFrom(st, third);
+  assert.ok(later.n === st.record.length && later.pass === null && later.t === st.t, 'a skip after a step run at a speed begins at the record\'s end');
+  const got = Sim.skipStop(st, later);
+  assert.ok(!got || !got.ev || got.ev.kind !== 'inherited', 'the takeover that passed at a speed is not read back');
+  // another pawn played: its skip does not go on with the first one's cursor
+  twoEvents();
+  assert.strictEqual(Sim.skipStop(st, later).ev.kind, 'married');
+  Sim.inhabit(st, WIFE);
+  const hers = Sim.skipFrom(st, later);
+  assert.ok(hers.pawn === WIFE && hers.n === st.record.length && hers.pass === null);
+  const h1 = hash(st); Sim.skipFrom(st, hers); Sim.skipStop(st, hers); assert.strictEqual(hash(st), h1, 'asking writes nothing');
+}
 console.log('skip ok: it ends by the eve of the moving round; a skipped run is the run played; family, farm and custom events of its own village, '
-  + 'hunger come to the household, a refused command, an empty queue and a gathering as it begins stop it');
+  + 'hunger come to the household, a refused command, an empty queue and a gathering as it begins stop it; two stops of one step are told in turn, by the next skip');
