@@ -168,8 +168,9 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   `plannedOwners`; remove a planned name when its module lands.
 - `st` is plain data: no functions, and no state kept aside in module closures, or a loaded run drifts (`tests/plaindata.js`, `tests/saves.js`).
   A world field the simulation writes goes into the `WORLD` list of `src/sim/saves.js`.
-- A new act a pawn or the moving round chooses gets a verb in `src/sim/commands.js`, reached by `issue(st, {actor, verb, target, args, source})`;
-  a verb checks the act is possible and returns why not; `tests/commands.js` checks that only the verbs call the acts they wrap.
+- A new act a pawn or the moving round chooses gets a verb, registered at load by the module that carries the act out
+  (`register(verb, {check, run})` of `sim/commands`, VB-228) and reached by `issue(st, {actor, verb, target, args, source})`; a verb checks
+  the act is possible and returns why not; `tests/commands.js` checks that only the verbs call the acts they wrap. `sim/commands` imports no domain.
 - Events are written by `log(st, text, event)` and `personEvent(...)` (`src/sim/records.js`); a log line names its event's kind, pawn and
   place (`atHousehold`, `atFarm`); `tests/record.js` checks every call. The village log and the History tabs are views of the record
   (`Sim.villageLog`, `Sim.chronicle`, `src/sim/notable.js`): there is no `st.events`.
@@ -190,7 +191,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   (`sim/heirs`), names it in its PR and goes on. Never place code elsewhere to make room. The seven modules the sweep left over the
   line are in `tests/lint-baseline.json` at their lengths, which only fall.
   Width the same way (VB-415): a module over 15 exports (`tests/width-baseline.json` holds today's 21 at their counts) may add one only
-  with such a task open; the `sim` facade is not counted, nor an export read only by registries (`REGISTRIES` in `tests/lint.js`: `sim/kinds`, `sim/clock`, `sim/commands`; VB-454).
+  with such a task open; the `sim` facade is not counted, nor an export read only by registries (`REGISTRIES` in `tests/lint.js`: `sim/kinds`, `sim/clock`; VB-454).
 
 ## Architecture work
 - Read target-v2's principles (section 2) before adding a module, an owner or a call between modules. Before giving new state an owner, find
