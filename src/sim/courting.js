@@ -61,9 +61,15 @@ VB['sim/courting'] = (() => {
     p.courtingSince = null;
     if (p.courtRefused) p.courtRefused = null;
   }
-  // The courtship of pawn id ends: both court nobody, and what a head refused them is forgotten as a reason to leave. With `why`, a
-  // life event of each of the two still living; without (they have married each other), none: the marriage is the event.
-  function end(st, id, why = null) {
+  const WHY = {
+    cooled: 'their liking cooled',
+    years: `${COURT.years} years went by, and they had not married`,
+    married: 'one of them married another',
+    died: 'death parted them',
+  };
+  // The courtship of pawn id ends: both court nobody, and what a head refused them is forgotten as a reason to leave. With `reason` (a
+  // key of WHY), a life event of each of the two still living; without (they have married each other), none: the marriage is the event.
+  function end(st, id, reason = null, why = WHY[reason]) {
     const p = st.pawns[id],
       other = courts(p);
     if (other === null) return;
@@ -72,7 +78,7 @@ VB['sim/courting'] = (() => {
     if (at >= 0) st.courtships.splice(at, 1);
     clear(p);
     clear(q);
-    if (why === null) return;
+    if (reason === null) return;
     for (const [x, y] of [
       [p, q],
       [q, p],
@@ -81,16 +87,16 @@ VB['sim/courting'] = (() => {
         personEvent(st, x.id, 'courtingEnded', `No longer courting ${fullName(y)}: ${why}`, {
           other: y.id,
           village: village(st, x),
-          why,
+          reason,
         });
   }
   // Is the courtship of man m past COURT.years with no offer of theirs open (pawn.ask: the pair's offer is the man's)?
   const overdue = (st, p) => st.t - p.courtingSince > COURT.years * YEAR && (p.ask === undefined || p.ask === null);
   // Why the courtship of p and the one it courts has run out, or null: the liking of either has cooled, or its years are over.
   function ran(st, p, o = opinionOf(st, p.id, p.courting)) {
-    if (o < COURT.end || opinionOf(st, p.courting, p.id) < COURT.end) return 'their liking cooled';
+    if (o < COURT.end || opinionOf(st, p.courting, p.id) < COURT.end) return 'cooled';
     const m = p.sex === 'm' ? p : st.pawns[p.courting];
-    return overdue(st, m) ? `${COURT.years} years went by, and they had not married` : null;
+    return overdue(st, m) ? 'years' : null;
   }
   // The pair is touched (sim/relations' touch: a's opinion of b, the one it courts, read as o)
   on('courtTouched', (st, d) => {
@@ -102,9 +108,9 @@ VB['sim/courting'] = (() => {
       [d.a, d.b],
       [d.b, d.a],
     ])
-      end(st, id, courts(st.pawns[id]) === sp ? null : `${fullName(st.pawns[id])} married another`);
+      end(st, id, courts(st.pawns[id]) === sp ? null : 'married');
   });
-  on('died', (st, d) => end(st, d.pawn, `${fullName(st.pawns[d.pawn])} died`));
+  on('died', (st, d) => end(st, d.pawn, 'died'));
   // The moving round reads the couples, at its start: a courtship that has run out ends. One walk of the courting couples (courtWalk).
   function review(st) {
     VB.count.courtWalk += st.courtships.length;

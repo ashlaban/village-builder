@@ -378,6 +378,36 @@ function checkState(st) {
       || !(w.partner === null || (Number.isInteger(w.partner) && !!st.pawns[w.partner] && st.pawns[w.partner].sex !== p.sex))
       || (p.alive && w.farm === null && w.partner === null && w.rank.every((r, i) => r === RUNGS[i]))) bad.push(`pawn ${p.id}: wish ${JSON.stringify(w)}`);
   }
+  // courting (VB-036; sim/courting): pawn.courting is absent, null or the id of the one it courts, the same on both sides; the two are
+  // living, unmarried, of opposite sex, of COURT.minAge or more and never of a degree that may not marry (2 or less; the custom's limit
+  // is read where a courtship starts and where their offer is made, and may change under them); courtingSince is a time not after now,
+  // and courtRefused is held only while courting, of a pawn; st.courtships holds the man of each couple once, and no other
+  {
+    const C = globalThis.VB['sim/rules'].COURT, Rec = globalThis.VB['sim/records'], men = [];
+    for (const p of st.pawns) {
+      const c = p.courting, at = `pawn ${p.id}: courting ${c}`;
+      if (c === undefined || c === null) {
+        if (p.courtingSince !== undefined && p.courtingSince !== null) bad.push(`pawn ${p.id}: courts nobody since ${p.courtingSince}`);
+        if (p.courtRefused !== undefined && p.courtRefused !== null) bad.push(`pawn ${p.id}: refused, and courts nobody`);
+        continue;
+      }
+      const q = st.pawns[c];
+      if (!Number.isInteger(c) || !q) { bad.push(`${at}: no such pawn`); continue; }
+      if (q.courting !== p.id) bad.push(`${at}, who courts ${q.courting}`);
+      if (!p.alive || !q.alive) bad.push(`${at}: one of them is dead`);
+      if (p.sex === q.sex) bad.push(`${at}: of one sex`);
+      if (Rec.spouseOf(st, p.id) !== null) bad.push(`${at}, and is married`);
+      if (Rec.age(st, p) < C.minAge) bad.push(`${at}, aged ${Rec.age(st, p)}`);
+      if (Rec.kinDegree(st, p.id, c) <= 2) bad.push(`${at}: kin of degree ${Rec.kinDegree(st, p.id, c)}`);
+      if (!(Number.isFinite(p.courtingSince) && p.courtingSince <= st.t && p.courtingSince === q.courtingSince)) bad.push(`${at}: since ${p.courtingSince}`);
+      const r = p.courtRefused;
+      if (r !== undefined && r !== null && !(Number.isInteger(r.by) && st.pawns[r.by] && Number.isFinite(r.t) && r.t <= st.t)) bad.push(`${at}: refused ${JSON.stringify(r)}`);
+      if (p.sex === 'm') men.push(p.id);
+    }
+    if (st.courtships !== undefined) {
+      if (!Array.isArray(st.courtships) || [...st.courtships].sort((a, b) => a - b).join() !== men.join()) bad.push(`courtships ${JSON.stringify(st.courtships)}: the courting men are ${men.join()}`);
+    }
+  }
   // a culture's values (VB-519): the four means, each within the bounds
   if (st.cenv) for (const c of st.cenv.cultures) {
     const v = c.values;
