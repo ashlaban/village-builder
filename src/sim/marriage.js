@@ -327,13 +327,17 @@ VB['sim/marriage'] = (() => {
       if (m && !m.exempt && m.held < m.asked) return 'the farm cannot feed another mouth';
     }
     // one who yields: it courts another, and marries the one its spokesman chose (read before the wedding ends the courtship)
-    const yielded = o.courted
-      ? []
-      : [
-          ['man', o.gives.man, o.wants.woman],
-          ['woman', o.wants.woman, o.gives.man],
-        ].filter(([, id, sp]) => Number.isInteger(st.pawns[id].courting) && st.pawns[id].courting !== sp);
-    const courted = yielded.map(([, id]) => st.pawns[id].courting);
+    const yielded = [];
+    if (!o.courted)
+      for (const [key, id, sp] of [
+        ['man', o.gives.man, o.wants.woman],
+        ['woman', o.wants.woman, o.gives.man],
+      ]) {
+        const c = st.pawns[id].courting,
+          side = (o.answers || []).find((b) => b.key === key + 'Side');
+        if (Number.isInteger(c) && c !== sp && side && side.by !== id)
+          yielded.push({ id, sp, by: side.by, courted: c });
+      }
     const why = issue(st, {
       actor: o.gives.man,
       verb: 'marry',
@@ -342,22 +346,18 @@ VB['sim/marriage'] = (() => {
       source: 'round',
     });
     if (why !== true) return why;
-    yielded.forEach(([key, id, sp], k) => {
-      const side = (o.answers || []).find((b) => b.key === key + 'Side'),
-        who = fullName(st.pawns[courted[k]]);
-      if (side && side.by !== id && st.pawns[side.by].alive) remember(st, id, side.by, 'marriedAgainst');
-      personEvent(st, id, 'marriedAgainst', `Married ${fullName(st.pawns[sp])} against a wish for ${who}`, false);
-      log(
-        st,
-        `${fullName(st.pawns[id])} married ${fullName(st.pawns[sp])} against a wish: ${who} was the one courted.`,
-        {
-          kind: 'marriedAgainst',
-          pawn: id,
-          other: sp,
-          ...atHousehold(st, hh),
-        },
-      );
-    });
+    for (const y of yielded) {
+      const who = fullName(st.pawns[y.courted]),
+        sp = fullName(st.pawns[y.sp]);
+      if (st.pawns[y.by].alive) remember(st, y.id, y.by, 'marriedAgainst');
+      personEvent(st, y.id, 'marriedAgainst', `Married ${sp} against a wish for ${who}`, false);
+      log(st, `${fullName(st.pawns[y.id])} married ${sp} against a wish: ${who} was the one courted.`, {
+        kind: 'marriedAgainst',
+        pawn: y.id,
+        other: y.sp,
+        ...atHousehold(st, hh),
+      });
+    }
     // the heir has married: the home's holder considers handing on (the custom 'marriage')
     const handed = handover(st, hh, (h) => heirRanking(st, st.households[h]));
     if (o.id !== undefined && handed === null) refreshRoles(st); // the handover refreshes its own
@@ -378,7 +378,8 @@ VB['sim/marriage'] = (() => {
       no.by !== o.wants.woman
     )
       Courting.refused(st, o.gives.man, o.wants.woman, no.by);
-    const why = whyNo(st, o, no);
+    // why, by the pawn's own judgement; the played pawn's no is its player's, and no reason is read into it
+    const why = st.player && st.player.pawn === no.by ? null : whyNo(st, o, no);
     if (why === 'means') {
       log(st, `${names(st, o)} put off marrying: the farm cannot feed another mouth.`, {
         kind: 'putOff',

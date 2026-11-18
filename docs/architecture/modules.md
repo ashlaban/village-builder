@@ -109,15 +109,23 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   spare goes into service where labour is short, by hands per field (`serveWhereShort`, VB-090; the placement `reachSteps` is shared); marriage of two holders, handing a farm on (`handOn`) and the means to marry are in `src/sim/marriage.js`
   and `src/sim/heirs.js`.
 - The moving round (`src/sim/round.js`, its marriages in `src/sim/marriage.js`, VB-201, VB-277): on autumn day 11, each village's own round (`villageRound`) a village a 6-minute
-  step from noon in the order of village id (village k on step k up to 60 villages, else `floor(k * 60 / n)`): its store filled, its own men
-  matched with the women of every village (a wedding brings the handover its home's holder offers) and its kin
-  pressure; then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. The round lasts
+  step from noon in the order of village id (village k on step k up to 60 villages, else `floor(k * 60 / n)`): its store filled, the played pawn's wished match
+  offered, its kin pressure, and a visit planned by each of its men who holds no offer (the round chooses nobody, VB-693: a wedding
+  brings the handover its home's holder offers); then demand, claims and plots, settlement, and service, island-wide on fixed steps at 18:00, 18:06 and 18:12. The round lasts
   `ASK.passes` days (autumn days 11 to 13, VB-692): on each, a village's step first answers the offers due to its people (`answerDue`, in
-  the order of `ASK.order`: handover, match, land, party, place); its choosers run on the first day only, and each of their picks is an
+  the order of `ASK.order`: handover, match, land, party, place); of the matches, the best as the side asked reads it first (`matchRead`), so that one asked by several
+  takes the best and the rest lapse at its marriage; its choosers (land, party, place) run on the first day only, and each of their picks is an
   offer due at once on its basis (`match` and `handover` in `sim/marriage`, `land` in `sim/farmclaims`, `party` in `sim/settle`, `place` in
   `sim/service`), whose answers are whose yes the move needs (`moveWhy`, `sim/wishes`); a match refused asks anew that evening, due the next
   day; after the last day what is open of the round lapses. A pawn holds one open offer about its future (`pawn.ask`, `sim/offers`).
-  `roundPhase(st, n, d)` is the step's entry; `movingRound` runs them all. The rules of a match and their memos, heir rankings ranked afresh and cleared after each
+  `roundPhase(st, n, d)` is the step's entry; `movingRound` runs them all, after holding the asking of each who seeks (the year's askings
+  and the round in one: the drawer's button, the tests).
+  A match (VB-693; plan VB-682, 4.1) is asked by the spokesman of one who seeks (`sim/asking` `askMatch`: the man's side; a woman's from
+  the season `ASK.womenFrom` if nobody asks her, and a woman who holds a farm and speaks for herself as a man), scored by `sideScore`
+  (`matchScore`, the fancy drawn once and kept on the offer, and `MARRIAGE.headsLiking` a point of his opinion of the other spokesman),
+  and answered at the round by the two and their spokesmen (`sim/marriage` `whyNo`: enmity, courting another unless it yields, not this
+  year; a spokesman the score as he reads it and the means of the home). One who asks is asked by nobody, and one asked asks nobody.
+  Remembered: `refusedMatch`, `refusedSuit`, `marriedAgainst` (`SOCIAL.memories`). The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
 - Succession, offered and taken up (VB-824; `src/sim/marriage.js`, `src/sim/heirs.js`): no step hands a farm on. `heirRanking`'s `asked`
   gives a farm's line in the order asked, each with why it would not take it (it holds a farm, lives on a spouse's, or is heir to a larger
@@ -141,14 +149,13 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   round's start: `review`), when one marries another or dies, or after `COURT.years` with no offer of theirs open. The pair's own offer is
   `sim/asking`'s (`askCourted`: at the event `courting` and on either's asking day, if the ages, the kin limit and a home allow; due at the
   round), a match of `sim/marriage` marked `courted`: the means and the two's hunger are read where it settles, and a head's no is
-  remembered by both (`refused`: `SOCIAL.memories.refusedCourting`). One who courts is in no arranged match (`matchBar`, `askMatch`, the
-  round's matcher). At the next round one who holds the head who refused at an opinion under `COURT.leaveBelow` asks for a place in
+  remembered by both (`refused`: `SOCIAL.memories.refusedCourting`). One who courts is in no arranged match (`matchBar`, `askMatch`). At the next round one who holds the head who refused at an opinion under `COURT.leaveBelow` asks for a place in
   service whatever the hands at home (`leavers`, read by `serveWhereShort`).
   The means to marry is the registry rule `marriage.means` (declared there, base `MARRIAGE.means`, context the home's household; VB-631), read by `affords` and by `Sim.meansOf`, which also feeds `matchBar`'s reason and the pawn panel (`marryStanding`). A later contribution (a custom, a head's caution, a servant's portion: VB-637) joins by `Rules.contribute({ rule: 'marriage.means', ... })` from its own module.
 - The suitor's visit (`src/sim/visits.js`, VB-289; design, Between villages: The suitor's visit): a match joins two villages only
   within a day's walk (`TRAVEL.dayWalk`), or when one of the two has visited the other's village since the last round
-  (`sim/matching` `courts`, read by the round's matcher, the asking and `matchBar`; `poolFor` is the villages within a day's walk
-  and those visited). A man who found nobody he could ask at his village's round, or was refused and holds no offer, looks for the
+  (`sim/matching` `courts`, read by the asking and `matchBar`; `poolFor` is the villages within a day's walk
+  and those visited). A man who holds no offer at his village's round (he found nobody he could ask, or was refused) looks for the
   nearest village beyond a day's walk that holds a woman he could marry (`seekVisit`, one read of the asking queue, `visitWalk`)
   and plans a visit by the verb `visit`, whose check holds for any pawn; the plan waits in the due-queue `st.visits` for 6:00 of
   winter day 1 + (household id mod 6), when `visitsDue` sets him out if he is still single, of that household and at home, and the
@@ -160,7 +167,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   each son or daughter of the house it speaks for; `orderVisit` (`Sim.orderVisit`) issues the same verb for the played pawn or one
   it speaks for, the visitor as actor; `visitState` (`Sim.visitState`) is what the sheet shows of a visit planned or under way.
   A woman's visit is read from her side: `poolFor` adds a woman who visited the village to its round's pool (one read of the
-  asking queue a village's round, `guestWalk`), since the round's men choose. The module loads after `sim/matching`.
+  asking queue a village's round, `guestWalk`), for its kin pressure and the played pawn's wish; an asking reads a visit from either side (`courts`). The module loads after `sim/matching`.
 - The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
   (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,

@@ -86,8 +86,8 @@ VB['sim/matching'] = (() => {
         }
       }
     }
-    // A woman of a village outside these who has visited v since the last round is in its pool herself (VB-292): the round's men choose,
-    // so her visit is read from her side, as a man's puts her village in his. Read from the asking queue, which holds the unmarried.
+    // A woman of a village outside these who has visited v since the last round is in its pool herself (VB-292): her visit
+    // is read from her side, as a man's puts her village in his. Read from the asking queue, which holds the unmarried.
     for (const e of st.asking) {
       VB.count.guestWalk++;
       const p = st.pawns[e.pawn];
