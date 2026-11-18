@@ -4,7 +4,7 @@
 const CHARTER = [
   ['Land', ['claims', 'dispute', 'newLand']],
   ['Inheritance', ['handover', 'heirSex', 'birthOrder', 'heirCount', 'daughterShare', 'widow', 'ownHeir']],
-  ['Household', ['residence', 'kinLimit', 'feedOrder']],
+  ['Household', ['residence', 'kinLimit', 'affinity', 'feedOrder']],
   ['Meeting', ['voice', 'commons']],
 ];
 const SAID = {
@@ -85,6 +85,15 @@ const SAID = {
       first: 'second cousins or further',
       close: 'first cousins or further',
       uncle: 'uncle and niece or further',
+    },
+    '.',
+  ],
+  affinity: [
+    'A widow or widower may marry ',
+    {
+      fourth: 'no kin of the late spouse within the fourth degree',
+      line: 'any kin of the late spouse but a step-child or a parent-in-law',
+      none: 'any kin of the late spouse',
     },
     '.',
   ],

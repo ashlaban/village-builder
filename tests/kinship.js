@@ -69,3 +69,16 @@ console.log('mean support for uncle', none.toFixed(3), '->', loose.toFixed(3), '
 check(loose > none * 1.1, 'scarcity pull raises support for the looser option'); check(strict > noneS, 'plenty pull raises support for the stricter option');
 if (failed) process.exit(1);
 console.log('kinship ok');
+// Kin by marriage (VB-1107): pawn 1 the widow of 0, whose son by an earlier marriage (to 7) is 2; 8 is 0's half-brother (father 5);
+// 4 shares a mother (7) with 2, so is the widow's step-child's half-sibling, no kin of hers.
+{
+  const M = VB['sim/matching'], mk2 = (father, mother) => ({ father, mother, born: 0 });
+  const s2 = { t: 100, pawns: [mk2(5, null), mk2(null, null), mk2(0, 7), mk2(null, null), mk2(null, 7), mk2(null, null), mk2(null, null), mk2(null, null), mk2(5, null)],
+    unions: [{ id: 0, a: 0, b: 7, start: 0, end: 20, kind: 'marriage' }, { id: 1, a: 0, b: 1, start: 30, end: 60, kind: 'marriage' }], households: [], farmsteads: [] };
+  const ok = (a, b, affinity) => M.kinOk(s2, a, b, { kinLimit: 'second', affinity });
+  check(!ok(1, 2, 'fourth') && !ok(2, 1, 'fourth'), "a widow and her late husband's son: barred under fourth degree of affinity");
+  check(!ok(1, 2, 'line') && !ok(2, 1, 'line'), 'and barred in the direct line');
+  check(ok(1, 2, 'none'), 'and not barred under no bar');
+  check(ok(4, 1, 'fourth') && ok(4, 1, 'line'), 'a stranger to both is no bar');
+  check(!ok(1, 8, 'fourth') && ok(1, 8, 'line'), "the late husband's half-brother: barred only under fourth");
+}

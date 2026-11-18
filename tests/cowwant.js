@@ -19,7 +19,7 @@ function pair(st) {
   throw new Error('cowwant: the probe has no household without cattle beside one with a bull');
 }
 function setUp() {
-  const st = state(), [buyer, seller, away] = pair(st), f = st.farmsteads[buyer.farmstead];
+  const st = state(13), [buyer, seller, away] = pair(st), f = st.farmsteads[buyer.farmstead];
   check(!X.cowWanted(st, buyer), 'no meadow: no cow wanted');
   M.addMeadow(st, f, buyer, M.chooseMeadow(st, f));
   seller.hay = 200; // enough to spare a cow and its winter's hay, and grain for an allowance over a cow's worth
@@ -77,7 +77,7 @@ function leadHome(st, buyer) {
   check(!checkState(st).length, 'start in life: ' + checkState(st).slice(0, 3).join('; '));
 }
 { // a first meadow (VB-428): two hands, no herd, no meadow: the land step starts one; one hand, or a meadow already: none
-  const st = state(), [hh] = pair(st), f = st.farmsteads[hh.farmstead];
+  const st = state(13), [hh] = pair(st), f = st.farmsteads[hh.farmstead];
   check(!hh.herds.length && !f.meadows.length, 'the probe household has no herd and no meadow');
   // the land step begins it through the head's verb (VB-253); the fields' target is met first, so the meadow is the project begun
   const P = VB['sim/plans'], begun = (s, h) => VB['sim/projects'].projectOf(s, 'household', h.id);
@@ -86,7 +86,7 @@ function leadHome(st, buyer) {
   check(M.wantsFirstMeadow(st, f, hh), 'two hands, no herd, no meadow: a first meadow is wanted');
   P.landStep(st, plan, f, hh, VB['sim/fields'].builtTiles(st));
   check(begun(st, hh) && begun(st, hh).what === 'meadow', 'the land step starts the first meadow');
-  const lone = state(), [lh] = pair(lone), lf = lone.farmsteads[lh.farmstead], lplan = lone.plans.households.get(lh.id);
+  const lone = state(13), [lh] = pair(lone), lf = lone.farmsteads[lh.farmstead], lplan = lone.plans.households.get(lh.id);
   for (const id of lh.members) if (id !== lh.holder) lone.pawns[id].retired = true;
   lplan.targets.fields = lf.fields.length;
   check(!M.wantsFirstMeadow(lone, lf, lh), 'one hand: no first meadow is wanted');

@@ -11,7 +11,7 @@ const Projects = VB['sim/projects'], { winterNeed } = VB['sim/herds'], { cowWant
 const map = Array.from({ length: 12 }, () => '.'.repeat(20));
 // One village of three farms: household 0 (8 people) wants more fields than it has.
 function scene(opt = {}) {
-  const st = tinyState(tinyWorld(map), [{ at: [9, 6], farms: 3, sizes: [8, 3, 6] }], { seed: 7, ...opt });
+  const st = tinyState(tinyWorld(map), [{ at: [9, 6], farms: 3, sizes: [8, 3, 6] }], { seed: 5, ...opt });
   const hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id);
   return { st, hh, f, plan };
 }
