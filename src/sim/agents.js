@@ -1131,6 +1131,15 @@ VB['sim/agents'] = (() => {
         return g.held > 0 ? 'Carrying grain to the store' : `Going for grain for the store at ${g.stops[0].name}`;
       if (g && g.stops)
         return g.held > 0 ? `Carrying grain home from ${g.from}` : `Going for grain at ${g.stops[0].name}`;
+      const j = stayOf(st, id); // a suitor's visit (VB-289)
+      if (j.why === 'visit' && (j.guest || !j.back)) {
+        const name = st.villages[j.village].name;
+        return j.guest
+          ? `A guest at ${name}`
+          : a.phase === 'journey'
+            ? `On the road to visit ${name}`
+            : `Resting on the road to ${name}`;
+      }
       const f = st.farmsteads[st.households[st.pawns[a.id].household].farmstead];
       return a.phase === 'journey' ? `On the road to ${f.name}` : `Resting on the road to ${f.name}`;
     }

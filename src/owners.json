@@ -42,6 +42,8 @@
     "st.offers": "sim/offers",
     "st.offerSeq": "sim/offers",
     "st.asking": "sim/wishes",
+    "st.visits": "sim/visits",
+    "pawn.visited": "sim/visits",
     "st.occasions": "sim/occasions",
     "st.away": "sim/away",
     "st.awaySeq": "sim/away",

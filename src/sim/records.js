@@ -78,6 +78,8 @@ VB['sim/records'] = (() => {
     year: 0,
     hayRotted: 0,
     offered: 0,
+    visited: 0, // a suitor's visit to another village (VB-289)
+    visitOff: GENERATION, // kept home by the farm's food
     matchRefused: 0,
     offerLapsed: 0,
     offerRefused: 0, // goods offered or asked for, refused (sim/offers, VB-690)
@@ -304,6 +306,7 @@ VB['sim/records'] = (() => {
       hungerLog: [],
       health: 100,
       kinPush: null,
+      visited: null,
     };
     R.rand(); // the draw that was pawn.buffer's (VB-216), now generosity's (VB-520): kept, so the stream goes on as before
     if (p.died !== null) {

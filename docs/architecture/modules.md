@@ -123,6 +123,16 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   or an empty farm (`askLand`); a plot, new land and service are left to the round's walk. An open offer whose people died, married or
   took a place lapses where it is next read (`staleWhy`: the asker's asking, or the round's step).
   The means to marry is the registry rule `marriage.means` (declared there, base `MARRIAGE.means`, context the home's household; VB-631), read by `affords` and by `Sim.meansOf`, which also feeds `matchBar`'s reason and the pawn panel (`marryStanding`). A later contribution (a custom, a head's caution, a servant's portion: VB-637) joins by `Rules.contribute({ rule: 'marriage.means', ... })` from its own module.
+- The suitor's visit (`src/sim/visits.js`, VB-289; design, Between villages: The suitor's visit): a match joins two villages only
+  within a day's walk (`TRAVEL.dayWalk`), or when one of the two has visited the other's village since the last round
+  (`sim/matching` `courts`, read by the round's matcher, the asking and `matchBar`; `poolFor` is the villages within a day's walk
+  and those visited). A man who found nobody he could ask at his village's round, or was refused and holds no offer, looks for the
+  nearest village beyond a day's walk that holds a woman he could marry (`seekVisit`, one read of the asking queue, `visitWalk`)
+  and plans a visit by the verb `visit`, whose check holds for any pawn; the plan waits in the due-queue `st.visits` for 6:00 of
+  winter day 1 + (household id mod 6), when `visitsDue` sets him out if he is still single, of that household and at home, and the
+  household can spare a ration a day away above its seed and its means (else the log says he stays, `visitOff`). The journey is
+  `sim/away`'s (`visit`: there, a day as a guest at the green, and back; `2 x ceil(hours / 12) + TRAVEL.stay` days); on arrival
+  `sim/away` emits `visited` and this module writes `pawn.visited = {village, year}` and the event.
 - The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
   (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,
