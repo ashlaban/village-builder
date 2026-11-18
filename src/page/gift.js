@@ -1,9 +1,10 @@
-// @sys page/gift: the player's gift (VB-221), the action bar's form (VB-341): who, how much, the floor's warning; the household chosen from a
-// list or on the map
+// @sys page/gift: the player's gift (VB-221), the action bar's form (VB-341): who, who carries it (VB-1111), how much, the floor's warning;
+// the household chosen from a list or on the map
 // ---- the player's gift: while it plays a holder, grain to any household, by the verb give; below the floor it is warned ----
-// The draft: to (a household id), n (whole rations), warn (Sim.giftWarning's answer, waiting for the player to confirm) and msg. It is a view
+// The draft: to (a household id), by (who carries it: a pawn id, 'fetch', or null for the default, giftWay), n (whole rations), warn
+// (Sim.giftWarning's answer, waiting for the player to confirm) and msg. It is a view
 // of the bar's Household list (page/actbar), which is not redrawn while the player types in it, so the amount and the choice are kept.
-const newGift = () => ({ of: st, to: null, n: 10, warn: null, msg: '' });
+const newGift = () => ({ of: st, to: null, by: null, n: 10, warn: null, msg: '' });
 let gift = newGift();
 const householdName = (hh) => {
   const holder = hh.holder !== null ? Sim.fullName(st.pawns[hh.holder]) : 'no holder';
@@ -21,6 +22,18 @@ function giftChoices(hh) {
     (k) => k !== hh.id && !kin.includes(k) && st.farmsteads[st.households[k].farmstead].village === f.village,
   );
   return { kin, village, all: [...kin, ...village] };
+}
+// How the gift reaches the other farm (VB-1111; AGENTS.md, the hard rule): {carriers, by}. Carried by one of the giving household who may
+// (Sim.giftCarriers, the verb's own check), a back-load at most, or set aside where it lies for the receiver's household to fetch
+// ('fetch'). The default is the first who may carry, the played pawn before the others, since its gift is unasked, and an unasked gift is
+// brought by the giver's own, as the good-year gift is; with no one free to carry, it is fetched. Between two households of one farmstead
+// nothing is carried (by null).
+function giftWay(hh) {
+  const to = gift.to !== null ? st.households[gift.to] : null;
+  if (!to || to.farmstead === hh.farmstead) return { carriers: [], by: null };
+  const carriers = Sim.giftCarriers(st, hh, to.id),
+    carried = gift.by !== 'fetch' && carriers.length > 0;
+  return { carriers, by: !carried ? 'fetch' : carriers.includes(gift.by) ? gift.by : carriers[0] };
 }
 function giveHTML(id) {
   const hh = givesFor(id);
@@ -45,6 +58,31 @@ function giveHTML(id) {
     h += `<p class="hint">${esc(
       st.farmsteads[to.farmstead].name,
     )} has no holder: the gift is given, but no goodwill is owed for it.</p>`;
+  if (to && to.farmstead === hh.farmstead)
+    h +=
+      '<p class="hint">The two households share a farmstead: the grain stays where it lies, and nothing is carried.</p>';
+  else if (to) {
+    const way = giftWay(hh),
+      there = esc(st.farmsteads[to.farmstead].name),
+      load = Sim.TRAVEL.load,
+      sel = (v) => (way.by === v ? ' selected' : ''),
+      opts = way.carriers
+        .map(
+          (c) => `<option value="${c}"${sel(c)}>${esc(Sim.fullName(st.pawns[c]))}${c === id ? ' (you)' : ''}</option>`,
+        )
+        .join('');
+    h += `<label class="fl" for="giveBy">Carried by</label><select id="giveBy">${opts}<option value="fetch"${sel(
+      'fetch',
+    )}>One of ${there}, who fetches it</option></select>`;
+    h +=
+      way.by === 'fetch'
+        ? `<p class="hint">${
+            way.carriers.length ? '' : `No one of ${esc(f.name)} is free to carry it. `
+          }It is set aside here as theirs, and waits until one of ${there} fetches it, ${load} rations a trip.</p>`
+        : `<p class="hint">${esc(
+            Sim.fullName(st.pawns[way.by]),
+          )} walks there with it and home again: a back-load, ${load} rations at most.</p>`;
+  }
   h +=
     '<label class="fl" for="giveN">How much, in rations</label><div class="stepper">' +
     `<button type="button" data-give="less" data-k="less" aria-label="Five rations less">${actIcon('minus')}</button>` +
@@ -66,8 +104,9 @@ function giveHTML(id) {
   return `${h}</div>`;
 }
 $('actMenu').addEventListener('change', (e) => {
-  if (e.target.id !== 'giveTo') return;
-  gift.to = e.target.value === '' ? null : +e.target.value;
+  if (e.target.id !== 'giveTo' && e.target.id !== 'giveBy') return;
+  if (e.target.id === 'giveBy') gift.by = e.target.value === 'fetch' ? 'fetch' : +e.target.value;
+  else gift.to = e.target.value === '' ? null : +e.target.value;
   gift.warn = null;
   gift.msg = '';
   barHTML = '';
@@ -101,6 +140,8 @@ function giveClick(b, id) {
   else if (gift.to === null) gift.msg = 'Choose a household to give to.';
   else if (!(Number.isInteger(gift.n) && gift.n >= 1 && gift.n <= max))
     gift.msg = `Give a whole number of rations, from 1 to ${max}.`;
+  else if (Number.isInteger(giftWay(hh).by) && gift.n > Sim.TRAVEL.load)
+    gift.msg = `${Sim.fullName(st.pawns[giftWay(hh).by])} carries ${Sim.TRAVEL.load} rations at most: give less, or have it fetched.`;
   else if (act === 'confirm') queueGift(id);
   else {
     gift.warn = Sim.giftWarning(st, hh, gift.n);
@@ -108,9 +149,12 @@ function giveClick(b, id) {
   }
 }
 function queueGift(id) {
-  const r = Sim.queue(st, { actor: id, verb: 'give', target: gift.to, args: { good: 'grain', n: gift.n } });
+  const by = giftWay(givesFor(id)).by,
+    args = Number.isInteger(by) ? { good: 'grain', n: gift.n, carrier: by } : { good: 'grain', n: gift.n },
+    how = Number.isInteger(by) ? `, carried by ${Sim.fullName(st.pawns[by])}` : by ? ', for them to fetch' : '';
+  const r = Sim.queue(st, { actor: id, verb: 'give', target: gift.to, args });
   if (r === true)
-    barMsg = { text: `Queued: ${gift.n} grain to ${st.farmsteads[st.households[gift.to].farmstead].name}.` };
+    barMsg = { text: `Queued: ${gift.n} grain to ${st.farmsteads[st.households[gift.to].farmstead].name}${how}.` };
   else gift.msg = r;
   gift.warn = null;
 }

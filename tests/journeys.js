@@ -179,6 +179,41 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.ok(arrived && !s.away.length, 'he delivered and walked home');
   assert.ok(s.pawns[id].events.some((k) => s.record[k].kind === 'arrived'), 'arrived in his record');
 }
+// ---- the player's gift is carried (VB-1111): the giver's store falls when the load is taken up, the receiver's rises when the carrier
+// sets it down at its door, and not a step before; a back-load at most; nothing is carried within a farmstead ----
+{
+  const s = probe.state(), issue = VB['sim/commands'].issue;
+  to(s, 8);
+  const [giv, rec] = s.households.filter((h) => villageOf(s, h) === 0), id = giv.holder;
+  Stores.put(s, giv, 'grain', 200, 'harvest', { barley: 200 });
+  const gift = (n, carrier, target = rec.id) => ({ actor: giv.holder, verb: 'give', target, args: { good: 'grain', n, carrier }, source: 'player' });
+  assert.strictEqual(Sim.giftCarriers(s, giv, rec.id)[0], id, 'the holder, the played pawn, is the first who may carry');
+  assert.ok(Sim.giftCarriers(s, giv, rec.id).every((c) => s.pawns[c].household === giv.id && s.pawns[c].age >= 14 && s.pawns[c].age < 60), 'the carriers are its adults');
+  assert.ok(/at most/.test(JSON.stringify(issue(s, gift(TRAVEL.load + 1, id)))), 'more than a back-load is not carried by one pawn');
+  const g0 = Stores.grainOf(giv), r0 = Stores.grainOf(rec), count0 = VB.count.giftUncarried;
+  assert.strictEqual(issue(s, gift(25, id)), true, 'the gift is agreed');
+  const j = s.away.find((x) => x.pawn === id);
+  assert.ok(j && j.why === 'carry' && j.gift.n === 25, 'the holder sets out with it');
+  assert.ok(g0 - Stores.grainOf(giv) >= 25 - 1e-9, 'the giver\'s store falls as the load is taken up');
+  assert.strictEqual(Stores.grainOf(rec), r0, 'and the receiver\'s has not risen');
+  assert.strictEqual(Sim.giftCarriers(s, giv, rec.id).includes(id), false, 'on the road, he carries no second gift');
+  const arrivedAt = () => s.pawns[id].events.some((k) => s.record[k].kind === 'arrived');
+  let steps = 0;
+  while (!arrivedAt() && steps < 20 * 10) {
+    assert.strictEqual(Stores.grainOf(rec), r0, 'nothing reaches the receiver before the carrier does, step ' + steps);
+    Sim.advance(s, 0.1);
+    steps++;
+    assert.deepStrictEqual(checkState(s), [], 'invariants on the way, step ' + steps);
+  }
+  assert.ok(arrivedAt() && steps > 0, 'he arrived, after a walk: ' + steps + ' steps');
+  assert.ok(Math.abs(Stores.grainOf(rec) - r0 - 25) < 1e-9, 'the receiver\'s store rises by the load as it is set down');
+  assert.strictEqual(VB.count.giftUncarried, count0, 'none moved at once');
+  Sim.advance(s, DAY);
+  assert.ok(!s.away.some((x) => x.pawn === id), 'and he is home again');
+  // within one farmstead nothing is carried, and no one is named to carry
+  const same = s.households.find((h) => h !== giv && h.farmstead === giv.farmstead && !h.dissolved);
+  if (same) assert.deepStrictEqual(Sim.giftCarriers(s, giv, same.id), [], 'no carrier within a farmstead');
+}
 // ---- a carrier who dies on the road lays the gift down where he fell, the receiver's (VB-850) ----
 {
   const s = far(), rec = s.households[0], giv = s.households[1], id = adultOf(s, giv);

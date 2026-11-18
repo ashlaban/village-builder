@@ -1,7 +1,8 @@
 // @sys sim: the public Sim object, assembled from the sim/* modules
 const Sim = (() => {
   const Culture = VB['culture'];
-  const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, ROLES, WORK, dark, RIVER, byRiver } = VB['sim/rules'];
+  const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, TRAVEL, ROLES, WORK, dark, RIVER, byRiver } =
+    VB['sim/rules'];
   const { KINDS } = VB['sim/kinds'];
   const {
     age,
@@ -62,6 +63,14 @@ const Sim = (() => {
     VB['sim/relations'];
   const { explainAllowance, giftWarning } = VB['sim/exchange'];
   const { kinHouseholds } = VB['sim/help'];
+  // Who of household hh may carry a gift of its holder's to household `to` (VB-1111): its members the verb `give` takes as the carrier,
+  // by the verb's own check (sim/offers giftOf), the holder first, then the others by id; none within one farmstead, where nothing is carried.
+  const giftCarriers = (st, hh, to) =>
+    [hh.holder, ...hh.members.filter((id) => id !== hh.holder)].filter(
+      (id) =>
+        id !== null &&
+        typeof VB['sim/offers'].giftOf(st, hh.holder, to, { good: 'grain', n: 1, carrier: id }, 'player') !== 'string',
+    );
   const { killPawn, retireHolder } = VB['sim/lifecycle'],
     { holdMeetings } = VB['sim/meetings'],
     { movingRound } = VB['sim/round'];
@@ -120,6 +129,7 @@ const Sim = (() => {
     YEAR_DAYS,
     SEASON_DAYS,
     ECON,
+    TRAVEL,
     ROLES,
     KINDS,
     WORK,
@@ -198,6 +208,7 @@ const Sim = (() => {
     depositLeftNow,
     woodOf,
     giftWarning,
+    giftCarriers,
     kinHouseholds,
     NOTABLE,
     notable,
