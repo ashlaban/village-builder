@@ -8,8 +8,10 @@
 //   claim TASK FILE...         TASK will edit these files; prints who else holds one (exit 1) and claims them all the same
 //   note TASK KIND key=value... [--body FILE|-]
 //                              leave a note (kinds below); the body is Markdown, from a file or standard input
-//   result TASK status=done|needs-review|failed [commit=SHA] [size=S|M|L] [model=NAME] [summary=TEXT]
+//   result TASK status=done|needs-review|failed|continue [commit=SHA] [size=S|M|L] [model=NAME] [summary=TEXT]
 //                              TASK's outcome; frees its claims
+//                              continue: the ceiling on calls was reached and a fresh sub-agent goes on from commit= (at most twice a task)
+//   calls [AGENT]              a sub-agent's model calls so far against the ceiling of 120, from its own transcript (found by its worktree, agent-<id>)
 //   list [KIND] [--task TASK] [--json]
 //                              the notes, a line each
 //   status                     the tasks started, their claims and results, and the notes not yet applied
@@ -24,10 +26,11 @@
 //   question   priority= title= [about=VB-NNN, the task it is filed under: default TASK]; body: the numbered questions, each with its proposed answer (**P:**), as in QUESTIONS.md
 //   tuning     parameter= means= measured= proposed=   a row of docs/tuning.md, Parameters waiting
 //   candidate  rule=   a principle candidate (AGENTS.md, Surfacing); body: the decisions behind it
-//   teleport   where= what= [task=VB-NNN]   a teleport found (AGENTS.md, the hard rule), and the task noted for it
+//   teleport   where= what=   a teleport found (AGENTS.md, the hard rule): apply adds it to the open collecting task, a line
+//   act        where= what=   an act with no pawn, or a choice only the player has (AGENTS.md, 16): collected likewise
 //   decision   what= why=   a close call, decided by Deciding without Kim, that Kim should see
 require('./help.js')(__filename);
-const fs = require('fs'), path = require('path'), { execFileSync, spawnSync } = require('child_process');
+const os = require('os'), fs = require('fs'), path = require('path'), { execFileSync, spawnSync } = require('child_process');
 const emitWarning = process.emitWarning;
 process.emitWarning = (w, ...a) => (/SQLite/.test(String(w)) ? undefined : emitWarning.call(process, w, ...a)); // node:sqlite is marked experimental
 const { DatabaseSync } = require('node:sqlite');
@@ -41,9 +44,20 @@ const asJson = flag('--json'), dry = flag('--dry'), fresh = flag('--fresh'), bod
 const today = option('--date') || new Date().toISOString().slice(0, 10);
 
 const KINDS = { task: ['id', 'name', 'priority', 'size', 'summary'], question: ['priority', 'title'], tuning: ['parameter', 'means', 'measured', 'proposed'],
-  candidate: ['rule'], teleport: ['where', 'what'], decision: ['what', 'why'] };
+  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'] };
+// Findings are collected, not given a task each (Kim, 18 November): one open task a kind holds them, a criterion a finding, and a
+// slice's wrap-up sweeps it. apply finds that task by its name, or makes the next one.
+const COLLECT = {
+  teleport: { name: "Teleports found, collected: swept at a slice's wrap-up", arch: 'physical', goal: 'Each teleport listed is mended or shown to be none: goods arrive by being carried',
+    summary: 'The teleports tasks found in the code, a line each; swept together when a slice wraps up' },
+  act: { name: "Acts with no pawn, collected: swept at a slice's wrap-up", arch: 'acts', goal: 'Each act listed is a pawn\'s, through a verb any pawn may use',
+    summary: 'The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up' },
+};
 const OPTIONAL = { task: ['status', 'arch', 'waits', 'ref', 'goal'], question: ['about'], teleport: ['task'] };
 const NEEDS_BODY = ['question'];
+// The ceiling on a sub-agent's model calls (Kim, 18 November): every call re-reads the whole context, so a long task is handed to a
+// fresh sub-agent instead. On 15 November 10 tasks of 45 went past 120 calls and took 71% of the night's cost.
+const CEILING = 120, WARN = 15, CONTINUATIONS = 2;
 
 function dbFile() {
   const given = option('--db') || process.env.VB_INBOX;
@@ -78,7 +92,7 @@ const notes = (where = '', ...p) => all(`SELECT * FROM notes ${where} ORDER BY n
 const headline = (n) => {
   const f = n.fields;
   return one({ task: `${f.id} ${f.name}`, question: f.title, tuning: `${f.parameter}: ${f.measured}`, candidate: f.rule,
-    teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, decision: `${f.what}: ${f.why}` }[n.kind]);
+    teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, act: `${f.where}: ${f.what}`, decision: `${f.what}: ${f.why}` }[n.kind]);
 };
 
 if (cmd === 'init') {
@@ -146,7 +160,14 @@ if (cmd === 'init') {
   console.log(`note ${n} (${kind}) from ${task}`);
 } else if (cmd === 'result') {
   const task = taskId(rest[0]), f = pairs(rest.slice(1));
-  if (!['done', 'needs-review', 'failed'].includes(f.status)) fail('status=done, needs-review or failed');
+  if (!['done', 'needs-review', 'failed', 'continue'].includes(f.status)) fail('status=done, needs-review, failed or continue');
+  let nth = 0;
+  if (f.status === 'continue') {
+    if (!f.commit) fail('continue needs commit=SHA: commit what you have first');
+    nth = +(get('SELECT value FROM meta WHERE key = ?', 'continued:' + task) || { value: 0 }).value + 1;
+    if (nth > CONTINUATIONS) fail(`${task} has been continued ${CONTINUATIONS} times: end with status=needs-review, the unmet criteria in summary=`);
+    run('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', 'continued:' + task, String(nth));
+  }
   if (f.size && !/^(S|M|L)$/.test(f.size)) fail('size is S, M or L');
   atomic(() => {
     run('INSERT OR IGNORE INTO results (task, started) VALUES (?, ?)', task, new Date().toISOString());
@@ -154,7 +175,21 @@ if (cmd === 'init') {
       f.status, f.commit || null, f.size || null, f.model || null, f.summary ? one(f.summary) : null, new Date().toISOString(), task);
     run('DELETE FROM claims WHERE task = ?', task);
   });
-  console.log(`${task}: ${f.status}`);
+  console.log(`${task}: ${f.status}${nth ? ` (${nth} of ${CONTINUATIONS})` : ''}`);
+} else if (cmd === 'calls') {
+  const agent = rest[0] || (path.basename(root).match(/^agent-(\w+)$/) || [])[1];
+  if (!agent) fail('calls: not in a sub-agent\'s worktree (agent-<id>); give the agent id');
+  const base = path.join(process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'), 'projects'), name = `agent-${agent}.jsonl`;
+  const found = (fs.existsSync(base) ? fs.readdirSync(base) : []).flatMap((p) => fs.readdirSync(path.join(base, p)).map((s) => path.join(base, p, s, 'subagents', name))).find((p) => fs.existsSync(p));
+  if (!found) fail(`calls: no transcript ${name} under ${base}`);
+  const ids = new Set();
+  for (const line of fs.readFileSync(found, 'utf8').split('\n')) {
+    if (!line.includes('"assistant"')) continue;
+    try { const e = JSON.parse(line); if (e.type === 'assistant' && e.message && e.message.id) ids.add(e.message.id); } catch (e) { /* a line still being written */ }
+  }
+  const n = ids.size, left = CEILING - n;
+  console.log(`${n} of ${CEILING} calls` + (left > WARN ? '' : left > 0 ? `: ${left} left. Finish within them, or hand over now (.claude/agents/vb-task.md, The ceiling)`
+    : ': the ceiling is reached. Hand over now: commit, then  node tools/inbox.js result ID status=continue commit=SHA summary=...'));
 } else if (cmd === 'list') {
   const kind = rest[0];
   if (kind && !KINDS[kind]) fail(`kind "${kind}": one of ${Object.keys(KINDS).join(', ')}`);
@@ -222,7 +257,30 @@ if (cmd === 'init') {
         lines.splice(lastRow + 1, 0, `| ${cell(f.parameter)} | ${cell(f.means)} | ${cell(f.measured)} | ${cell(f.proposed)} | ${n.task} |`);
         return lines.join('\n');
       });
-    } else continue; // candidates, teleports and decisions go to the PR (report), not to a file
+    } else if (COLLECT[n.kind]) {
+      const c = COLLECT[n.kind], line = `- [ ] From ${n.task}: ${one(f.where)}: ${one(f.what)}`;
+      const dirOf = path.join(root, 'backlog'), open = fs.readdirSync(dirOf).find((name) => {
+        const t = fs.readFileSync(path.join(dirOf, name), 'utf8');
+        return t.startsWith(`# ${name.replace('.md', '')}: ${c.name}\n`) && !/^Status: done/m.test(t);
+      });
+      if (open) {
+        edit('backlog/' + open, (text) => {
+          const lines = text.split('\n');
+          let at = lines.findLastIndex((l) => /^- \[[ x]\]/.test(l));
+          if (at < 0) return null;
+          while (/^ {2}\S/.test(lines[at + 1] || '')) at++;
+          lines.splice(at + 1, 0, line);
+          return lines.join('\n');
+        });
+      } else if (dry) console.log(`would open the collecting task "${c.name}"`);
+      else {
+        const id = atomic(() => { const next = +get("SELECT value FROM meta WHERE key = 'next'").value; run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + 1)); return pad(next); });
+        backlog('new', `id=${id}`, 'status=needs-review', `name=${c.name}`, 'priority=3', 'size=M', `summary=${c.summary}`, `arch=${c.arch}`, 'ref=AGENTS.md, Surfacing', `goal=${c.goal}`);
+        const p = path.join(dirOf, id + '.md');
+        fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('- [ ] (to write)\n', line + '\n'));
+        backlog('set', id, 'status=ready');
+      }
+    } else continue; // candidates and decisions go to the PR (report), not to a file
     mark('notes', 'n', n.n); count++;
   }
   console.log(`${dry ? 'would apply' : 'applied'} ${count}; the PR's section:  node tools/inbox.js report`);
@@ -231,6 +289,7 @@ if (cmd === 'init') {
   const section = (title, rows) => { if (rows.length) out.push('', `**${title}**`, ...rows); };
   section('Principle candidates', by('candidate').map((n) => `- ${one(n.fields.rule)} (${n.task})${n.body ? '\n' + n.body.split('\n').map((l) => '  ' + l).join('\n') : ''}`));
   section('Teleports found', by('teleport').map((n) => `- ${headline(n)}, found by ${n.task}`));
+  section('Acts with no pawn found', by('act').map((n) => `- ${headline(n)}, found by ${n.task}`));
   section('Tasks merged with a criterion unmet', all("SELECT * FROM results WHERE status = 'needs-review'").map((r) => `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));
   section('Close calls', by('decision').map((n) => `- ${n.task}: ${headline(n)}`));
   section('Questions (in `QUESTIONS.md`)', by('question').map((n) => `- ${n.task}: ${headline(n)} (priority ${n.fields.priority})`));

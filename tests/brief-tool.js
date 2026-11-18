@@ -22,11 +22,11 @@ expect('its questions', r.out.includes('## Questions') && r.out.includes('Two wh
 expect('a row inside a subsection, and not the other rows', r.out.includes('| Loads | Thirty on the back. | Decided |') && !r.out.includes('| Wear |'), r.out);
 expect('a long section by its subsections', /KB: read with {2}node tools\/doc\.js design\.md "Long"/.test(r.out) && r.out.includes('Part one') && !r.out.includes('A long line of design. A long'), r.out);
 expect('who waits for it', r.out.includes('Waited for by VB-901.'), r.out);
-expect('the rules of a change of behaviour on the page', r.out.includes('## Rules for this task') && r.out.includes('numbers before and after') && r.out.includes('tests/smoke.js')
+expect('the rules of a change of behaviour on the page', r.out.includes('## Rules for this task') && r.out.includes('Numbers are measured once') && r.out.includes('tests/smoke.js')
   && !r.out.includes('tools/same.js'), r.out);
 r = run('VB-901');
 expect('a refactor: same.js, no design, no page', r.ok && r.out.includes('tools/same.js --base REF') && !r.out.includes('## Design') && !r.out.includes('tests/smoke.js')
-  && !r.out.includes('numbers before and after'), r.out);
+  && !r.out.includes('Numbers are measured once'), r.out);
 r = run('VB-999');
 expect('an unknown task', !r.ok && /no backlog\/VB-999\.md/.test(r.out), r.out);
 r = run('--help');

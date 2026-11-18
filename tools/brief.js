@@ -88,17 +88,17 @@ if (phase === 'plan') {
   rules.push('A wrap-up checks the arch against the design with long runs and reports the numbers; it names the parameters a tuning run would move, as rows of docs/tuning.md, and tunes nothing.',
     'It adds the arch\'s bands to tests/lib/bands.js (AGENTS.md, Working rules).');
 } else if (refactor) {
-  rules.push('Behaviour unchanged: `node tools/same.js --base REF` prints `same`, REF the commit you start from; its line goes into your result.',
-    'Code moves verbatim, no renames; a new module has an `@sys` header and its place in src/manifest.json (BACKLOG.md, How this backlog works, Refactor rules).',
+  rules.push('Behaviour may change where that makes the separation of responsibilities clearer: name each change in a line of your result. If you claim none, `node tools/same.js --base REF` prints `same`, REF the commit you start from.',
+    'A move, a rename and a change are separate commits; a new module has an `@sys` header and its place in src/manifest.json (BACKLOG.md, How this backlog works, Refactor rules).',
     'Say what fell: lines, couplings, duplicated rules.');
 } else {
-  rules.push('A change to behaviour reports numbers before and after, at named seeds and maps (tools/sim.js, tools/balance.js), and says whether households, not only averages, are better off.',
+  rules.push('Numbers are measured once, for the PR or the night: run them before and after (tools/sim.js, tools/balance.js) only where a criterion names a number to move.',
     'A new state field: its invariants (tests/lib/invariants.js), the WORLD list if the world holds it, a line in tools/stocks.js if it is a stored quantity. A new loop over a growing collection: a work counter.',
     'A parameter may be tried in at most five short runs, the values and results written in the task file (Deciding without Kim, 3).');
 }
 if (page) rules.push('The page changed: `node tests/smoke.js` and the `tests/browser*.js` it touches; a screenshot, if you take one to check your work, stays outside the repository (Kim, 18 November).');
 if (/\bms\b|counter|medium-ref|small-y40|\bcost\b/i.test(text.slice(0, text.length - rest.length))) rules.push('Cost: AGENTS.md, Rules for cost; report counters, and leave times to the nightly bench when others share the machine.');
-rules.push('To finish: `npm run format`, `npm run verify`; tick the criteria and write your notes in the task file.');
+rules.push('To finish: `npm run format`, `npm run verify`; tick the criteria; the task file gets only your decisions with their reasons and what is left undone, at most ten lines.');
 out.push('## Rules for this task\n' + rules.map((r) => '- ' + r).join('\n'));
 
 console.log(out.join('\n\n'));

@@ -19,8 +19,9 @@ sub-agents leave notes in the inbox (`node tools/inbox.js --help`), a local file
 ## 1. Ready tasks, three or four at a time, until none are left
 Aim for at least one L task, three M or five S. Keep three or four sub-agents running; start the next when one ends.
 1. Choose: `node tools/backlog.js next 6` gives the ready tasks in order, with sizes and summaries. Take them in that order, but run
-   side by side only tasks of different archs, and run alone a task whose summary says so, a plan and a wrap-up. Of every four tasks,
-   one is of the arch `physical` while it has a ready one (`node tools/backlog.js list --status ready --arch physical`).
+   side by side only tasks of different archs, and run alone a task whose summary says so, a plan and a wrap-up. After a slice's
+   wrap-up, take the collecting tasks of findings next ("Teleports found, collected", "Acts with no pawn, collected"), whatever their
+   priority: findings are swept there, not interleaved a task each (Kim, 18 November).
 2. Start: `node tools/inbox.js start VB-NNN` reserves the task's new IDs. Then a `vb-task` sub-agent, in the background, isolated in
    a worktree, with the prompt "Task VB-NNN; the run's branch is `claude/nightly-<date>`; your reserved task IDs are <IDs>", and the
    model by size: `sonnet` for S, `opus` for M and L. A plan task runs on the strongest model offered, whatever its size (Kim, 16 November):
@@ -33,6 +34,10 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
      `node tools/inbox.js result VB-NNN status=needs-review summary=<the reason>`. Never retry a task in the same night, and never
      fix it yourself.
    - It reported `failed`, or left no result (`node tools/inbox.js status`): the same, without merging.
+   - It reported `continue` (Kim, 18 November: a sub-agent has a ceiling of 120 model calls, since every call re-reads its context):
+     do not merge. Start a fresh `vb-task` sub-agent on the same model, with the prompt "Task VB-NNN, continued from `<its branch>` at
+     <commit>; the run's branch is ...; your reserved task IDs are <the same IDs>; the handover: <its last message>". This is the one
+     case a task is started again in a night; the inbox allows it twice a task, and the third sub-agent ends with `needs-review`.
    - It reported `needs-review` with a commit (work not built, or a question; Kim, 15 November): merge it as any other, since the hard
      checks decide a merge; the task stays open, under Waiting for Kim, and what is unmet goes under "For Kim" in the PR. A measure
      not taken is not this case (Kim, 16 November): that task is done, and you add what it owes to the collecting task its note names.
@@ -56,7 +61,8 @@ push. Candidates are never ready. Prefer small tasks that unblock others.
 
 ## 3. Wrap up, whenever you stop
 1. `npm run nightly`: it makes the late-game fixtures the sources lack (VB-272: a local cache keyed by the sources, about 2 minutes
-   for all four) and appends the bench history. Run nothing else meanwhile, since the bench times the machine. Commit
+   for all four) and appends the bench history. This is the night's one measurement of its changes to behaviour (Kim, 18 November):
+   write the PR's Targets section from it and `node tools/targets.js`. Run nothing else meanwhile, since the bench times the machine. Commit
    `docs/bench/history.jsonl` and `docs/bench/budget.md` to the PR.
 2. Measure the run: `mkdir -p work && node tools/inbox.js results --json > work/results.json`, then `node tools/agent-usage.js --label worker --out
    docs/agents/usage --results work/results.json`; commit the file it writes, and put its lines from "weighted cost" on in the PR
