@@ -1,5 +1,6 @@
 // @sys sim/away: the nights a pawn spends away from its household's house (VB-783): the open stays, a journey's (a bed where its leg
-// ends) and a lodger's (a bed at a place, or a guest's in another house), their packs and meals, and a journey's arrivals and gifts
+// ends) and a lodger's (a bed at a place, or a guest's in another house), their packs and meals, and a journey's arrivals and gifts; a
+// suitor's visit, the journey there and back (VB-289)
 VB['sim/away'] = (() => {
   const { cal, WORK, SPEED, HEALTH, TRAVEL, AWAY, BOOTH } = VB['sim/rules'];
   const HANDS = [14, 60]; // the ages of a working hand, as sim/agents' (who goes for a gift or carries the quarter)
@@ -11,7 +12,7 @@ VB['sim/away'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { opinionOf } = VB['sim/relations'];
   const { driveHome } = VB['sim/grazing'];
-  const { on } = VB['sim/events'];
+  const { on, emit } = VB['sim/events'];
   const Lying = VB['sim/lying'];
   const {
     travelling,
@@ -31,7 +32,7 @@ VB['sim/away'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);
   // ---- the stays (design.md, Moving to new land, Sleeping away from home) ----
   // @state st.away[]: the open stays, in the order they began (by id), each {id, pawn, why, bed, roof, food, from, to}: why 'move', 'carry',
-  //   'fetch' or 'haul' for a journey (VB-287, VB-291, VB-461, VB-849), else the lodger's (the caller's word: 'work', 'visit'); bed the
+  //   'fetch', 'haul' or 'visit' for a journey (VB-287, VB-291, VB-461, VB-849, VB-289), else the lodger's (the caller's word: 'work', 'visit'); bed the
   //   tile it sleeps at, null on the road (a journey's bed is where its leg ends, sim/agents' bed); roof 'none', 'booth' or 'house' (a
   //   guest's); food the rations of its pack, parts the grain it was taken as, by crop (VB-962: home as grain, or lying where it fell);
   //   from the farm it left (a lodger's household's), or null; to the tile it walks to (a journey:
@@ -39,7 +40,9 @@ VB['sim/away'] = (() => {
   //   also holds its gift and back (VB-291, VB-461: fetchGift); a lodger its jobs (the keys of the tasks it is away for), walk (the hours
   //   from its house to its bed, its estimate when it set out), host (a guest's: the household whose house it sleeps in) and back (true
   //   once it has turned for home). Plain data, saved; a save with st.journeys loads them as stays. When a journey's legs start and stop
-  //   is its pawn's (st.legDue, VB-473): a walk that stops for the night, a wait on the road until 6:00.
+  //   is its pawn's (st.legDue, VB-473): a walk that stops for the night, a wait on the road until 6:00. A visit (VB-289) also holds
+  //   village (the one visited), back (false until it has arrived there), stay (the days it has still to stay as a guest) and guest
+  //   (true while it is there).
   // @state st.awaySeq: number; the next stay's id; ids are never reused (a save's journeySeq)
   // @state agent.away: the id of the pawn's open stay, absent when it is at home: st.away's index, a cache written only here
   // A pawn's stay begins: it is in st.away, and its agent knows it.
@@ -362,6 +365,54 @@ VB['sim/away'] = (() => {
     if (!was) open(st, j);
     startLeg(st, a, j);
   }
+  // ---- the suitor's visit (VB-289; design.md, Between villages: The suitor's visit, Provisions and the season) ----
+  // The days away on a visit to a village `hours` off: there and back at a day for each TRAVEL.dayWalk hours, and TRAVEL.stay as a guest.
+  const visitDays = (hours) => 2 * Math.ceil(hours / TRAVEL.dayWalk) + TRAVEL.stay;
+  // Pawn a sets out on a visit to village v (sim/visits' due step, its only caller, carrying out the plan made by the verb `visit`): a
+  // journey to its green and back, on a ration a day
+  // away from its household's grain above the seed.
+  function visit(st, a, v) {
+    const p = st.pawns[a.id],
+      hh = st.households[p.household],
+      f = st.farmsteads[hh.farmstead],
+      hours = hoursBetween(st, f.village, v),
+      j = { id: st.awaySeq++, pawn: a.id, why: 'visit', bed: null, roof: 'none', food: 0, from: f.id, village: v };
+    j.to = st.villages[v].center;
+    j.back = false;
+    j.stay = TRAVEL.stay;
+    setDown(st, a);
+    provide(st, j, [hh], visitDays(hours) * rationOf(st, p));
+    personEvent(
+      st,
+      a.id,
+      'setOut',
+      `Set out from ${f.name} to visit ${st.villages[v].name}, ${Math.round(hours)} hours' walk`,
+      false,
+    );
+    stop(st, a);
+    open(st, j);
+    startLeg(st, a, j);
+  }
+  // The visitor arrives at the other village's green: the visit is his (sim/visits writes pawn.visited), and he rests there, its guest,
+  // until he walks home.
+  function visited(st, a, j) {
+    const hh = st.households[st.pawns[a.id].household];
+    emit(st, 'visited', { pawn: a.id, village: j.village });
+    j.back = true;
+    j.guest = true;
+    j.to = st.farmsteads[hh.farmstead].house;
+    restOnRoad(st, a);
+  }
+  // A journey's rest is over at 6:00: a guest with days to stay stays one more (he takes no work there), else the next leg sets out.
+  function legDue(st, a) {
+    const j = stayOf(st, a.id);
+    if (j.why === 'visit' && j.back && j.stay > 0) {
+      j.stay--;
+      return restOnRoad(st, a);
+    }
+    delete j.guest;
+    walkLeg(st, a, j.to);
+  }
   // The first leg now if a day's walking is left (6:00 to 16:00), else at the next 6:00, from where the pawn stands (a wait on the road).
   function startLeg(st, a, j) {
     const h = cal(st.t).hour;
@@ -554,6 +605,12 @@ VB['sim/away'] = (() => {
       j.gift = null;
       j.back = true;
     }
+    if (j.why === 'visit') {
+      // his home changed on the way (VB-289): the visit is over, and he walks to the home he has
+      j.back = true;
+      j.stay = 0;
+      delete j.guest;
+    }
     if (j.to === to || (j.why === 'carry' && !j.back)) return; // a carrier delivers first, and then walks to the home he has
     if (j.why === 'carry') j.back = true;
     j.to = to;
@@ -577,6 +634,7 @@ VB['sim/away'] = (() => {
   function endJourney(st, a) {
     const j = stayOf(st, a.id);
     if (j.why === 'carry' && !j.back) return delivered(st, a, j);
+    if (j.why === 'visit' && !j.back) return visited(st, a, j);
     if (j.why === 'fetch' && j.gift) return fetchStop(st, a, j);
     if (j.why === 'haul' && j.gift) return haulStop(st, a, j);
     const hh = st.households[st.pawns[a.id].household];
@@ -588,7 +646,7 @@ VB['sim/away'] = (() => {
   // What sim/agents tells of the pawns away (sim/events): a journey's leg has arrived; its rest on the road is over and the next leg sets
   // out; one away has died; a move it was told of with a load in hand is made; one away is at its bed.
   on('legEnd', endJourney);
-  on('legDue', (st, a) => walkLeg(st, a, stayOf(st, a.id).to));
+  on('legDue', legDue);
   on('stillAway', dropStay);
   on('moveOn', finishMove);
   on('atBed', atBed);
@@ -610,5 +668,7 @@ VB['sim/away'] = (() => {
     haulerOf,
     fetchGift,
     haulGift,
+    visit,
+    visitDays,
   };
 })();

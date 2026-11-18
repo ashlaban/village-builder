@@ -112,7 +112,10 @@ VB['sim/notable'] = (() => {
   // The kinds a history is filtered by, in the order the page offers them.
   const CHRONICLE = {
     life: { label: 'Births and deaths', kinds: ['born', 'died', 'funeralAle'] },
-    marriage: { label: 'Marriages', kinds: ['married', 'putOff', 'offered', 'matchRefused', 'offerLapsed', 'wedding'] },
+    marriage: {
+      label: 'Marriages',
+      kinds: ['married', 'putOff', 'offered', 'visited', 'visitOff', 'matchRefused', 'offerLapsed', 'wedding'],
+    },
     land: {
       label: 'Land and farms',
       kinds: [

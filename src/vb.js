@@ -23,6 +23,9 @@ VB.COUNTERS = {
   asksWeighed: 'Candidates weighed at an asking or an ask anew: at most ASK.pool a call (sim/asking askMatch, VB-823)',
   askWalk:
     'Entries of the asking queue read for the unmarried women within reach, a match asked (sim/asking askMatch, VB-823)',
+  visits: 'Visits arrived at the village visited (sim/visits, VB-289)',
+  visitWalk:
+    "Entries of the asking queue read for the unmarried women beyond a day's walk, a visit sought (sim/visits seekVisit, VB-289)",
   talkTurn:
     'Pawns asked by the talk round at their talk turn, every SOCIAL.talk.every waking hours (sim/relations, VB-521)',
   talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',

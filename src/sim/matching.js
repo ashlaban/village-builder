@@ -1,7 +1,7 @@
-// @sys sim/matching: the rules of a marriage match: the pool within walking reach, kin degree, a home and its means, the score; what
+// @sys sim/matching: the rules of a marriage match: the pool within a day's walk or visited (VB-289), kin degree, a home and its means, the score; what
 // the moving round's matcher and the player's wish for a match (VB-274) are both checked against
 VB['sim/matching'] = (() => {
-  const { MARRIAGE, YEAR_DAYS, HUNGER, ASK } = VB['sim/rules'];
+  const { MARRIAGE, DAY, YEAR, SEASON_DAYS, YEAR_DAYS, HUNGER, ASK, TRAVEL } = VB['sim/rules'];
   const { heldBy } = VB['sim/offers'];
   // The open matches woman id is asked by: up to ASK.held may stand at once (VB-823)
   const askedBy = (st, id) => st.offers.filter((o) => o.basis === 'match' && o.wants.woman === id).length;
@@ -43,21 +43,40 @@ VB['sim/matching'] = (() => {
     const d = kinDegree(st, a, b);
     return d > 2 && d >= MARRIAGE.kinDegree[opt];
   };
-  // ---- the pool and the villages' term (VB-288; design.md, Between villages: Ease of mixing) ----
-  // The villages within walking reach of village v (hoursBetween finite: by land, within ROUTE.reach; v itself first), and their living:
-  // the pool of v's round, built from those villages' households, not from the island's living filtered. A pawn of no household is in no
-  // village's pool. One table read a village, and a member read a pawn of the pool (counted as `roundWalk` by sim/lifecycle).
+  // ---- a day's walk and the visit (VB-289; design.md, Between villages: The suitor's visit) ----
+  // The year (floor(t / YEAR)) of the last moving round over by time t: this year's once its last day has ended, else last year's.
+  const roundYear = (t) => {
+    const y = Math.floor(t / YEAR);
+    return t >= y * YEAR + (2 * SEASON_DAYS + ASK.day + ASK.passes) * DAY ? y : y - 1;
+  };
+  // The village pawn p visited since the last round (pawn.visited, sim/visits), or null.
+  const visitOf = (st, p) => (p.visited && p.visited.year === roundYear(st.t) ? p.visited.village : null);
+  // Whether man m of village vm and woman f of village vf may be matched across their villages: one village, or two within a day's walk
+  // (TRAVEL.dayWalk hours between their greens), or one of the two has visited the other's village since the last round.
+  const courts = (st, m, f, vm, vf) =>
+    vm === vf || hoursBetween(st, vm, vf) <= TRAVEL.dayWalk || visitOf(st, m) === vf || visitOf(st, f) === vm;
+  // ---- the pool and the villages' term (VB-288, VB-289; design.md, Between villages: Ease of mixing) ----
+  // The villages within a day's walk of village v (v itself first) and those its living have visited since the last round, and their
+  // living: the pool of v's round, built from those villages' households, not from the island's living filtered. A pawn of no household
+  // is in no village's pool. One table read a village, and a member read a pawn of the pool (counted as `roundWalk` by sim/lifecycle).
   function poolFor(st, v) {
     const out = [],
-      n = st.villages.length;
+      n = st.villages.length,
+      seen = new Set();
     for (let k = -1; k < n; k++) {
       const u = k < 0 ? v : k;
-      if ((k >= 0 && u === v) || !byLand(st, v, u)) continue;
+      if (k >= 0 && (u === v || !(hoursBetween(st, v, u) <= TRAVEL.dayWalk || (seen.has(u) && byLand(st, v, u)))))
+        continue;
       for (const fid of st.villages[u].farmsteads) {
         const h = st.farmsteads[fid].household,
           hh = h === null ? null : st.households[h];
         if (!hh || hh.dissolved) continue;
-        for (const id of hh.members) if (st.pawns[id].alive) out.push(id);
+        for (const id of hh.members) {
+          const p = st.pawns[id];
+          if (!p.alive) continue;
+          out.push(id);
+          if (k < 0 && p.visited && visitOf(st, p) !== null) seen.add(p.visited.village);
+        }
       }
     }
     return out;
@@ -175,7 +194,7 @@ VB['sim/matching'] = (() => {
   }
   // Why the match of pawns a and b (ids, either sex) may not be made at the round now ({why}), or the match ({man, woman, home}: pawns and
   // a household id). The round's rules: both alive, single, of age, fed, not retired, the man in no open offer and the woman asked by
-  // fewer than ASK.held (VB-823); the woman's village within walking reach of the man's (VB-288); the kin degree the man's village's
+  // fewer than ASK.held (VB-823); the woman's village within a day's walk of the man's, or visited (VB-288, VB-289); the kin degree the man's village's
   // custom allows; a home that affords it; and a score, with the noise at its mean, that reaches the lowest accepted score.
   function matchBar(st, a, b, rules = matchRules(st), occasion = 'round') {
     const pa = st.pawns[a],
@@ -200,6 +219,10 @@ VB['sim/matching'] = (() => {
       vf = settlementIdOf(st, f);
     if (vm !== null && vf !== null && !byLand(st, vm, vf))
       return { why: `${fullName(f)} lives beyond walking reach of ${fullName(m)}'s village` };
+    if (vm !== null && vf !== null && !courts(st, m, f, vm, vf))
+      return {
+        why: `${fullName(f)} lives beyond a day's walk of ${fullName(m)}'s village, and neither has visited the other's`,
+      };
     const cu = practice(st, vm);
     if (!kinOk(st, m.id, f.id, cu)) return { why: 'too close kin for the custom of the village' };
     const home = rules.homeFor(m, f, cu);
@@ -251,5 +274,5 @@ VB['sim/matching'] = (() => {
     const m = meansOf(st, home);
     return { kind: m.exempt ? 'hands' : m.held >= m.asked ? 'means' : 'short', held: m.held, asked: m.asked };
   }
-  return { kinOk, poolFor, matchScore, matchRules, matchBar, wishedMatches, meansOf, marryStanding };
+  return { kinOk, poolFor, matchScore, matchRules, matchBar, wishedMatches, meansOf, marryStanding, roundYear, courts };
 })();

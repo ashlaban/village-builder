@@ -466,6 +466,7 @@ VB['sim/saves'] = (() => {
       delete p.owed;
       delete p.owedFrom;
     }
+    if (!st.visits) st.visits = []; // VB-289: nor visits planned
     for (const o of st.offers)
       if (o.basis === undefined) {
         // VB-690: a marriage offer saved before offers had a basis, as the basis `match` (its spokesmen, its terms)
