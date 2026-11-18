@@ -81,6 +81,30 @@ const HOLDER = 0, WIFE = 1;
   assert.strictEqual(Sim.skipStop(st, from).why, 'family');
 }
 
+// 3b. A move between homes (VB-1109): into, out of or within the played household stops it; another household's does not.
+{
+  const st = make(); Sim.inhabit(st, HOLDER);
+  const from = Sim.skipFrom(st), a = st.households[0], b = st.households[3];
+  const kid = a.members.find((m) => m !== HOLDER && m !== WIFE), far = b.members[2], far2 = st.households[2].members[2];
+  const at = (hh) => ({ household: hh.id, farm: hh.farmstead });
+  const kinds = [
+    ['moved', { pawn: kid, ...at(a) }, 'a child goes to kin who hold its farm in trust'],
+    ['moved', { pawn: far, other: HOLDER, ...at(b) }, 'a pawn comes to help the played one'],
+    ['moved', { pawn: HOLDER, ...at(a) }, 'a ward comes back and the trust ends'],
+    ['service', { pawn: far, ...at(a) }, 'a servant joins'],
+    ['service', { pawn: kid, ...at(b) }, 'a child goes into service'],
+    ['joined', { pawn: far, reason: 'orphaned', ...at(a) }, 'a child joins'],
+  ];
+  for (const [kind, f, why] of kinds) {
+    R.log(st, 'x', { kind, ...f, village: 0 });
+    assert.strictEqual((Sim.skipStop(st, from) || {}).why, 'farm', why);
+    R.log(st, 'x', { kind, pawn: far2, ...at(st.households[2]), village: 0 });
+    assert.strictEqual(Sim.skipStop(st, from), null, `${kind} of another household passes`);
+  }
+  R.log(st, 'x', { kind: 'joined', pawn: far, reason: 'care', ...at(a), village: 0 });
+  assert.strictEqual(Sim.skipStop(st, from), null, 'a joined told by the trust log is no second stop');
+}
+
 // 4. Hunger come to the household stops it once; a household hungry already does not stop the next skip.
 {
   const st = make(); Sim.inhabit(st, HOLDER);
