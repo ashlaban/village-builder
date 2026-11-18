@@ -36,7 +36,8 @@ VB['sim/kinds'] = (() => {
   const { workStake } = VB['sim/claims'],
     { onProject, landProject } = Projects,
     { doneOf } = VB['sim/progress'];
-  const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
+  const Farmclaims = VB['sim/farmclaims'],
+    { claimWork } = Farmclaims;
   const Building = VB['sim/building'],
     Pot = VB['sim/pot'],
     Green = VB['sim/green'],
@@ -119,10 +120,6 @@ VB['sim/kinds'] = (() => {
   // The village's common fields (VB-100): their kinds, as at a farm's fields, while its meeting chose the routine.
   function commonWork(st, v, at, c, post) {
     if (st.plans.villages.get(v.id).routines.includes('commons')) Commons.work(st, v, c, post, ASK.fieldAt);
-  }
-  // Asked once for the island: empty farms being restored, each by its claimant's household while the claim holds (sim/farmclaims).
-  function claimWork(st, holder, at, c, post) {
-    for (const [key, kind, owner, site, extra] of claimJobs(st)) post(key, site, extra, kind, owner);
   }
   // Fishing: from spring day FISH.from + 1 to the end of autumn; the water is ice in winter.
   const fishing = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
@@ -442,21 +439,7 @@ VB['sim/kinds'] = (() => {
           post('reclaim:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, hours: reclaimHours(st, fd) });
       },
     },
-    restore: {
-      // an empty farm's house mended by its claimant (sim/farmclaims); its hours by the condition when claimed
-      verb: 'Mending an empty farm',
-      go: 'Going to mend an empty farm',
-      name: 'Mend an empty farm',
-      label: 'Mending a farm',
-      anim: 'mallet',
-      hours: 20,
-      hands: Infinity,
-      type: 'wood',
-      project: true,
-      worked: workClaim,
-      done: restored,
-      available: claimWork,
-    },
+    restore: Farmclaims.KINDS.restore,
     rake: Meadows.KINDS.rake,
     mow: Meadows.KINDS.mow,
     hay: { ...Meadows.KINDS.hay, ...Carts.HAY }, // by the load: sim/carts imports sim/meadows, so the cart's part joins here
