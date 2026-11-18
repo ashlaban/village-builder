@@ -1304,10 +1304,13 @@ function checkHerds(st, bad) {
   const rotOk = (fd, at, only) => {
     const R = ROTATIONS[fd.rotation];
     if (!R || (only && fd.rotation !== only)) bad.push(`${at}: rotation ${fd.rotation}`);
-    else if (!(Number.isInteger(fd.step) && fd.step >= 0 && fd.step < R.courses.length) || R.courses[fd.step] !== fd.crop)
-      bad.push(`${at}: step ${fd.step} of ${fd.rotation} with ${fd.crop}`);
+    else if (!(Number.isInteger(fd.step) && fd.step >= 0 && fd.step < R.courses.length) || (R.courses[fd.step] !== fd.crop) !== (fd.turn === true))
+      bad.push(`${at}: step ${fd.step} of ${fd.rotation} with ${fd.crop}${fd.turn ? ', out of turn' : ''}`); // VB-355: out of turn, another crop than its course's
+    if (fd.turn !== undefined && fd.turn !== true) bad.push(`${at}: turn ${fd.turn}`);
   };
   for (const f of st.farmsteads) for (const fd of f.fields) rotOk(fd, `farmsteads[${f.id}].fields[${fd.id}]`, f.fields[0].rotation);
+  for (const f of st.farmsteads) // VB-355: the household whose head chose the farm's rotation to keep
+    if (f.rotationBy !== undefined && !(Number.isInteger(f.rotationBy) && st.households[f.rotationBy])) bad.push(`farmsteads[${f.id}]: rotationBy ${f.rotationBy}`);
   for (const v of st.villages) {
     if (!ROTATIONS[v.rotation]) bad.push(`villages[${v.id}]: rotation ${v.rotation}`);
     for (const fd of v.commonFields || []) rotOk(fd, `villages[${v.id}].commonFields[${fd.id}]`, 'every');

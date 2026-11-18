@@ -11,7 +11,7 @@ VB['sim/plans'] = (() => {
     OTHER_CROPS = Stores.CROP_LIST.filter((k) => k !== SEED_CROP);
   const { KINDS } = VB['sim/kinds'];
   const { seedNeed } = VB['sim/hunger'];
-  const { fieldsWanted, holdRotation, fieldsWorkable, fieldWhy, pickField, beginField } = VB['sim/fields'];
+  const { fieldsWanted, rotationChoice, fieldsWorkable, fieldWhy, pickField, beginField } = VB['sim/fields'];
   const Projects = VB['sim/projects'],
     { on, emit } = VB['sim/events'],
     { log } = VB['sim/records'];
@@ -810,7 +810,15 @@ VB['sim/plans'] = (() => {
       sp = seasonOf(st, hh.id);
     if (sp.year !== c.year || sp.season !== c.season) seasonal(st, plan, c);
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (f && f.household === hh.id) holdRotation(st, f, hh, c); // the rotation it holds (VB-350)
+    const turn = f && f.household === hh.id ? rotationChoice(st, f, hh, c) : null; // the rotation it holds (VB-350), by its rule
+    if (turn)
+      issue(st, {
+        actor: hh.holder === null ? { household: hh.id } : hh.holder,
+        verb: 'rotation',
+        target: hh.id,
+        args: { rotation: turn.to, short: turn.short },
+        source: 'pawn',
+      }); // through the verb the played head has (VB-355)
     T.workable = fieldsWorkable(st, hh, T.perHand);
     T.fields = fieldsWanted(st, hh, T.workable, headBias(plan));
     chosenTargets(plan);

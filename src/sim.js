@@ -41,7 +41,7 @@ const Sim = (() => {
   const { explainIdle, idleLine } = VB['sim/jobs'];
   const { seedReserve } = VB['sim/hunger'],
     { grainOf } = VB['sim/stores'];
-  const { fieldsWanted } = VB['sim/fields'];
+  const { fieldsWanted, fieldView } = VB['sim/fields'];
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
@@ -153,6 +153,7 @@ const Sim = (() => {
     seedReserve,
     grainOf,
     fieldsWanted,
+    fieldView, // a field as its tile's card shows it, with the head's choices (VB-355)
     plotProgress, // a task's progress now (VB-472)
     placeOf, // a pawn's place now, a walker's worked out from its leg (VB-473)
     poseOf, // and its facing and stride, for the page until it draws from legs (VB-474)
