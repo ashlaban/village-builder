@@ -121,7 +121,7 @@ VB['sim/asking'] = (() => {
   }
   // Whether a woman's side asks a match now (VB-693; plan, section 4.1): one who holds a farm and speaks for herself asks as a man
   // does; another, asked by nobody, from the asking day of season ASK.womenFrom until the round is over.
-  // `late`: as on the last asking day before the round, whatever the season (a check that goes straight to the round).
+  // `late`: as on the last asking day before the round, whatever the season (the round run at once: sim/round movingRound).
   function herSideAsks(st, id, late) {
     if (holdingOf(st, id) !== null && spokesmanOf(st, id) === id) return true;
     const c = cal(st.t),
@@ -167,11 +167,13 @@ VB['sim/asking'] = (() => {
   // (first in line at home: it stays, and asks no rung that leaves home), Marry (one of age: askMatch, the man's side, and a woman's by herSideAsks),
   // An empty farm (a landless adult who is not the heir it wishes to be: the farm it may claim, by the basis land), and the rest, which
   // the round's walk still asks for (and where it finds an heir staying).
-  // The played pawn's match, and that of one it speaks for, is asked as any pawn's, by its wish (as it would, the one it names, or not
-  // this year: VB-693, the round's matcher having gone, which did this for it): the player answers the offer, and its own rungs that
-  // leave home are its own to ask. What came of it: 'held', 'match', 'farm', 'round', 'nobody' (a rung it could ask found nobody) or
-  // 'stay'.
-  function askFor(st, id, late = false) {
+  // The played pawn's asking, and that of one it speaks for, is any pawn's, by the wish the player set (its ranking; for a match as it
+  // would, the one it names, or not this year: VB-693, the round's matcher having gone, which did this for it): the player answers
+  // the offer. `at`: the asking is held as the last before the round, its offer due at that time (the round run
+  // at once). What came of it: 'held', 'match', 'farm', 'round', 'nobody' (a rung it could ask found nobody) or 'stay'.
+  function askFor(st, id, at = null) {
+    const late = at !== null,
+      due = late ? at : dueRound(st);
     VB.count.askings++;
     const p = st.pawns[id],
       played = st.player ? st.player.pawn : null;
@@ -201,20 +203,20 @@ VB['sim/asking'] = (() => {
       if (r === 'match') {
         if (courting || spouseOf(st, id) !== null) continue;
         if (age(st, p) < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) continue;
-        if (p.sex !== 'm' && !herSideAsks(st, id, late)) continue;
+        // one asked by an open match asks none itself: its side answers the best it holds at the round (VB-693)
+        if (p.sex === 'm' ? askedBy(st, id) > 0 : !herSideAsks(st, id, late)) continue;
         const w = wishOf(st, id, 'match');
         tried = true;
-        if (askMatch(st, id, dueRound(st), { only: typeof w === 'number' ? w : null }) === 'made') return 'match';
+        if (askMatch(st, id, due, { only: typeof w === 'number' ? w : null }) === 'made') return 'match';
         continue;
       }
-      if (id === played) break; // the rungs that leave home: the played pawn's own to ask
       if (r === 'farm') {
         if (landed(st, id)) continue;
         const f = claimableFarm(st, id);
         if (f === null) continue;
         if (heirFirst && placeIfMarried(st, id) !== null) return 'stay'; // the heir stays
         tried = true;
-        askLand(st, id, f.village, { farm: f.id }, dueRound(st));
+        askLand(st, id, f.village, { farm: f.id }, due);
         if (Number.isInteger(p.ask)) return 'farm';
         continue;
       }

@@ -6,7 +6,7 @@ const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, H = VB['sim/heirs'], FC = VB['sim/farmclaims'], S = VB['sim/service'], O = VB['sim/opportunities'];
 const MT = VB['sim/matching'];
 const R = VB['sim/records'], X = VB['sim/expansion'];
-const { tinyWorld, tinyState, askAll } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
+const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const { dropKind } = require('./lib/record.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F'.repeat(18) : i === 11 ? '~'.repeat(18) : '.'.repeat(18)));
 const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
@@ -207,7 +207,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const after = (seed, wish, who) => {
     const st = world(seed);
     if (who !== undefined) { Sim.inhabit(st, who); if (wish !== undefined) assert.strictEqual(Sim.wish(st, 'match', wish), true); }
-    askAll(st); Sim.movingRound(st); return st;
+    Sim.movingRound(st); return st;
   };
   const matchItem = (st, who, partner) => O.forPawn(st, O.actorView(st, who), who).find((o) => o.verb === 'match' && o.target === partner);
   // a pair that passes the rules and that the round would not marry by itself
@@ -231,8 +231,15 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
     // the other side answered at once: no match is left waiting; the handover the marriage brings asks the played heir (VB-692)
     assert.ok(st.offers.every((o) => o.basis === 'handover' && o.to === m), 'the other side answered at once: no match is left waiting');
     sound(st, 'the wished match made');
-    const w = world(seed); Sim.inhabit(w, f); Sim.wish(w, 'match', m); Sim.movingRound(w);
-    assert.strictEqual(married(w, f), m, 'wished by the woman, the same');
+    // wished by the woman: her side asks him, and only him, at her asking (VB-693); his side answers the best offer it holds at the
+    // round, which may be another's: the player's wish is its pawn's offer, no more
+    const w = world(seed); Sim.inhabit(w, f); Sim.wish(w, 'match', m);
+    assert.strictEqual(VB['sim/asking'].askFor(w, f, Math.floor(w.t / Sim.DAY) * Sim.DAY + 12), 'match', 'her asking offers the one she wishes');
+    const hers = w.offers.find((o) => o.id === w.pawns[f].ask);
+    assert.ok(hers && hers.asker === 'woman' && hers.gives.man === m && hers.wants.woman === f, 'her side asks him');
+    Sim.movingRound(w);
+    assert.ok(married(w, m) !== null && !w.offers.some((o) => o.basis === 'match'), 'his side took the best offer it held, and the rest lapsed');
+    sound(w, 'wished by the woman');
   }
   // not this year: the played pawn is left out of the round's matching, and of kinPressure
   {
@@ -252,7 +259,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const asUsual = (sd, who, partner, why) => {
     const wished = world(sd); Sim.inhabit(wished, who); Sim.wish(wished, 'match', partner);
     assert.ok(why.test(matchItem(wished, who, partner).why), `bar ${why}: ${matchItem(wished, who, partner).why}`);
-    askAll(wished); Sim.movingRound(wished);
+    Sim.movingRound(wished);
     const plain = after(sd, undefined, who);
     assert.notStrictEqual(married(wished, who), partner, 'the barred wish makes no match');
     assert.strictEqual(married(wished, who), married(plain, who), 'and the played pawn is matched as usual');

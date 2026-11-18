@@ -408,8 +408,7 @@ VB['sim/marriage'] = (() => {
     log(st, `${who} refused the match of ${names(st, o)}${said}.`, {
       kind: 'matchRefused',
       by: no.by,
-      as: no.key,
-      ...(why ? { why } : {}),
+      ...(why ? { reason: why } : {}),
       ...at,
     });
   }

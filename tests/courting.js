@@ -152,7 +152,6 @@ const last = (st, id, kind) => st.pawns[id].events.map((i) => st.record[i]).filt
   const bar = VB['sim/matching'].matchBar(st, 8, 4);
   assert.ok(/is courting another/.test(bar.why), `the bar names it: ${bar.why}`);
   at(st, dueRound(st));
-  askFor(st, 8); // the one with a place asks a match, due now: the round is today
   movingRound(st);
   assert.ok(courting(st, 10, 4), 'they still court after the round');
   assert.ok(R.spouseOf(st, 10) === null && R.spouseOf(st, 4) === null, 'and neither was given to another');

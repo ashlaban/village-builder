@@ -20,9 +20,10 @@ VB.COUNTERS = {
   askings: 'Askings held: a pawn who seeks, on its asking day once a season (sim/asking, VB-823)',
   asksMade: 'Offers made at an asking (sim/asking, VB-823)',
   asksNobody: 'Askings whose rungs found nobody to ask (sim/asking, VB-823)',
-  asksWeighed: 'Candidates weighed at an asking or an ask anew: at most ASK.pool a call (sim/asking askMatch, VB-823)',
+  asksWeighed:
+    'Candidates weighed at an asking or an ask anew, by either side: at most ASK.pool a call (sim/asking askMatch, VB-823, VB-693)',
   askWalk:
-    'Entries of the asking queue read for the unmarried women within reach, a match asked (sim/asking askMatch, VB-823)',
+    'Entries of the asking queue read for the unmarried of the other sex within reach, a match asked (sim/asking askMatch, VB-823)',
   visits: 'Visits arrived at the village visited (sim/visits, VB-289)',
   visitWalk:
     "Entries of the asking queue read for the unmarried women beyond a day's walk, a visit sought (sim/visits seekVisit, VB-289)",
@@ -47,7 +48,8 @@ VB.COUNTERS = {
     'Pairs given familiarity for waking hours at home (daily) or a job finished together (sim/relations, VB-127)',
   courtCheck: 'Good talks read for the start of a courtship: one check a good talk (sim/courting, VB-036)',
   courtWalk: 'Courting couples walked at the moving round: its review, and those a head refused (sim/courting, VB-036)',
-  roundPairs: 'Candidate man/woman pairs visited in the moving round',
+  roundPairs:
+    'Candidate man/woman pairs visited in the moving round: none since the round chooses nobody (VB-693; see asksWeighed)',
   roundWalk: "Pawn records walked by a village's round to build its pool, once a village (sim/lifecycle, VB-277)",
   wishWalk: "Pawn records walked by the pawns' own choosing of their wishes, once a moving round (sim/wishes, VB-680)",
   gatherChoice: "Villages weighed as hosts by a village's choice of gathering, at its meeting (sim/gathering, VB-294)",

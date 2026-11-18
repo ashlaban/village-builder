@@ -4,10 +4,10 @@ VB['sim/records'] = (() => {
   const Culture = VB['culture'];
   const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
   // ---- the record of events (VB-075) ----
-  // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self, cold, tile, reason, fromFarm}, the fields that do
-  // not apply absent (cold: a death in a cold house, VB-327; tile: where a pawn died on the road, VB-287; fromFarm: the farm a `joined`
-  // pawn left, VB-1027). log and personEvent write their
-  // event as they write their text; `false` for ev says another call records the event.
+  // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self, cold, tile, reason,
+  // fromFarm, by}, the fields that do not apply absent (cold: a death in a cold house, VB-327; tile: where a pawn died on the road,
+  // VB-287; fromFarm: the farm a `joined` pawn left, VB-1027; by: the pawn who refused a match, VB-693, its `reason` why). log and
+  // personEvent write their event as they write their text; `false` for ev says another call records the event.
   // A pawn's own events (pawn.events) are positions in it, not copies (VB-199). A slot is never removed, so a position stays good: a
   // routine event, once folded, becomes the index of its count in st.recordYears.
   const FIELDS = [
@@ -23,6 +23,7 @@ VB['sim/records'] = (() => {
     'tile',
     'reason',
     'fromFarm',
+    'by',
   ];
   function record(st, ev, t = st.t) {
     const e = { t, kind: ev.kind };

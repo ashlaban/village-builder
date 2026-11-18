@@ -21,7 +21,7 @@ VB['sim/round'] = (() => {
   const { heldBy, conclude, BASES } = VB['sim/offers'];
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { villagesOfStep } = VB['sim/meetings'];
-  const { askMatch, staleWhy } = VB['sim/asking'];
+  const { askMatch, askFor, staleWhy } = VB['sim/asking'];
   const { review, leavers } = VB['sim/courting'];
   const { seekVisit } = VB['sim/visits'];
   const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
@@ -79,8 +79,13 @@ VB['sim/round'] = (() => {
   // what is open of the round lapses. Nothing is kept from one step for the next, so nothing is saved: the day and the step say what is
   // due. `movingRound` runs every step of every day at once (the drawer's button, the tests), each day's offers as due on its day.
   const ROUND_STEPS = VILLAGE_STEPS + 3;
+  // The round chooses nobody (VB-693), so run at once it first holds the asking of each who seeks and holds no offer, as its last
+  // before the round, due at the round's first step: the year's askings and the round in one (a debug verb, the world's).
   function movingRound(st) {
-    const from = Math.max(st.t, Math.floor(st.t / DAY) * DAY + 12); // the first day's noon, or now if later
+    // the first day's noon, or just after now if later, so that what is asked here is answered by the round's steps, not at once
+    const noon = Math.floor(st.t / DAY) * DAY + 12,
+      from = noon > st.t ? noon : st.t + 1 / 1024;
+    for (const e of [...st.asking]) if (st.pawns[e.pawn].alive) askFor(st, e.pawn, from);
     for (let d = 0; d < ASK.passes; d++) for (let n = 0; n < ROUND_STEPS; n++) roundPhase(st, n, d, from + d * DAY);
   }
   function roundPhase(st, n, d = 0, now = st.t) {
