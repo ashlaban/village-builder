@@ -1,0 +1,354 @@
+{
+ "session": "79b187f0-2966-553c-9468-6f9def1f15c3",
+ "label": "worker",
+ "models": [
+  "claude-fable-5-2"
+ ],
+ "start": "2026-11-18T20:44:44.166Z",
+ "end": "2026-11-18T21:56:52.218Z",
+ "wallMin": 72.1,
+ "activeMin": 56.8,
+ "prompts": 4,
+ "calls": 57,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 128,
+  "cacheWrite": 96444,
+  "cacheRead": 7182317,
+  "output": 19029
+ },
+ "context": {
+  "first": 90681,
+  "peak": 158967,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 37,
+   "bytes": 54426,
+   "seconds": 531.9
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 280,
+   "seconds": 0.9
+  },
+  "Agent": {
+   "calls": 11,
+   "bytes": 11539,
+   "seconds": 25.7
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "cat docs/agents/worker.md",
+   "calls": 1,
+   "bytes": 15261
+  },
+  {
+   "tool": "Agent",
+   "what": "",
+   "calls": 11,
+   "bytes": 11539
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 2,
+   "bytes": 7378
+  },
+  {
+   "tool": "Bash",
+   "what": "cat /tmp/claude-0/-home-user-village-builder/79b187f0-2966-5",
+   "calls": 2,
+   "bytes": 6902
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -A6",
+   "calls": 1,
+   "bytes": 5605
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 2,
+   "bytes": 3231
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 1,
+   "bytes": 2903
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tools/nightly.js",
+   "calls": 1,
+   "bytes": 1860
+  },
+  {
+   "tool": "Bash",
+   "what": "node -e",
+   "calls": 1,
+   "bytes": 1718
+  },
+  {
+   "tool": "Bash",
+   "what": "npm test",
+   "calls": 1,
+   "bytes": 1181
+  },
+  {
+   "tool": "Bash",
+   "what": "$S/land.sh VB-1101",
+   "calls": 1,
+   "bytes": 833
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 2,
+   "bytes": 808
+  }
+ ],
+ "weighted": 934060,
+ "subagents": [
+  {
+   "agent": "a9960fc7",
+   "task": "VB-1157",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 9,
+   "tokens": {
+    "input": 18,
+    "cacheWrite": 26128,
+    "cacheRead": 188593,
+    "output": 1767
+   },
+   "weighted": 60372,
+   "first": 20157,
+   "boot": 0,
+   "peak": 26130,
+   "activeMin": 1.8,
+   "start": "2026-11-18T20:45:27.845Z"
+  },
+  {
+   "agent": "a1346744",
+   "task": "VB-1158",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 18,
+   "tokens": {
+    "input": 36,
+    "cacheWrite": 35171,
+    "cacheRead": 488150,
+    "output": 4350
+   },
+   "weighted": 114565,
+   "first": 20153,
+   "boot": 0,
+   "peak": 35173,
+   "activeMin": 5.2,
+   "start": "2026-11-18T20:45:27.848Z"
+  },
+  {
+   "agent": "a5880c07",
+   "task": "VB-1159",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 51,
+   "tokens": {
+    "input": 102,
+    "cacheWrite": 219704,
+    "cacheRead": 1978877,
+    "output": 14500
+   },
+   "weighted": 545120,
+   "first": 20155,
+   "boot": 37995,
+   "peak": 59482,
+   "activeMin": 30,
+   "start": "2026-11-18T20:45:27.850Z"
+  },
+  {
+   "agent": "a6d45cd5",
+   "task": "VB-1101",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 43,
+   "tokens": {
+    "input": 86,
+    "cacheWrite": 75360,
+    "cacheRead": 2374495,
+    "output": 20151
+   },
+   "weighted": 432491,
+   "first": 20155,
+   "boot": 61223,
+   "peak": 75362,
+   "activeMin": 9.3,
+   "start": "2026-11-18T20:45:27.851Z"
+  },
+  {
+   "agent": "a22f186a",
+   "task": "VB-1107",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 68,
+   "tokens": {
+    "input": 138,
+    "cacheWrite": 151357,
+    "cacheRead": 3971093,
+    "output": 24074
+   },
+   "weighted": 706814,
+   "first": 20155,
+   "boot": 0,
+   "peak": 84627,
+   "activeMin": 23.3,
+   "start": "2026-11-18T20:47:49.893Z"
+  },
+  {
+   "agent": "aaa7653f",
+   "task": "VB-1116",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 32,
+   "tokens": {
+    "input": 64,
+    "cacheWrite": 50986,
+    "cacheRead": 1384575,
+    "output": 12989
+   },
+   "weighted": 267199,
+   "first": 20165,
+   "boot": 43335,
+   "peak": 59286,
+   "activeMin": 8.9,
+   "start": "2026-11-18T20:51:03.666Z"
+  },
+  {
+   "agent": "a23789be",
+   "task": "VB-1102",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 25,
+   "tokens": {
+    "input": 50,
+    "cacheWrite": 44820,
+    "cacheRead": 991571,
+    "output": 10836
+   },
+   "weighted": 209412,
+   "first": 20200,
+   "boot": 0,
+   "peak": 53120,
+   "activeMin": 5.7,
+   "start": "2026-11-18T20:55:17.196Z"
+  },
+  {
+   "agent": "a98b2594",
+   "task": "VB-1120",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 27,
+   "tokens": {
+    "input": 54,
+    "cacheWrite": 48636,
+    "cacheRead": 1125932,
+    "output": 12366
+   },
+   "weighted": 235272,
+   "first": 20202,
+   "boot": 46309,
+   "peak": 56936,
+   "activeMin": 4.4,
+   "start": "2026-11-18T21:00:42.796Z"
+  },
+  {
+   "agent": "aa989f4f",
+   "task": "VB-1103",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 44,
+   "tokens": {
+    "input": 88,
+    "cacheWrite": 62444,
+    "cacheRead": 2329286,
+    "output": 20770
+   },
+   "weighted": 414922,
+   "first": 20202,
+   "boot": 44764,
+   "peak": 70744,
+   "activeMin": 13.8,
+   "start": "2026-11-18T21:01:42.078Z"
+  },
+  {
+   "agent": "ac7d4ecb",
+   "task": "VB-1115",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 26,
+   "tokens": {
+    "input": 52,
+    "cacheWrite": 42971,
+    "cacheRead": 995778,
+    "output": 9166
+   },
+   "weighted": 199174,
+   "first": 20210,
+   "boot": 0,
+   "peak": 51271,
+   "activeMin": 4.8,
+   "start": "2026-11-18T21:05:43.009Z"
+  },
+  {
+   "agent": "a89b5d08",
+   "task": "VB-1110",
+   "size": "S",
+   "status": "done",
+   "model": "claude-sonnet-5-5",
+   "calls": 28,
+   "tokens": {
+    "input": 56,
+    "cacheWrite": 41539,
+    "cacheRead": 909918,
+    "output": 6710
+   },
+   "weighted": 176522,
+   "first": 20262,
+   "boot": 0,
+   "peak": 41541,
+   "activeMin": 2.9,
+   "start": "2026-11-18T21:37:58.719Z"
+  }
+ ],
+ "summary": {
+  "weightedTotal": 4295923,
+  "orchestratorShare": 0.217,
+  "bootMedian": 44764,
+  "readMedian": 24562,
+  "weightedPerDoneTask": 390538,
+  "perSize": {
+   "S": {
+    "n": 11,
+    "median": 235272
+   }
+  },
+  "firstPass": 1,
+  "tasks": 11
+ }
+}
