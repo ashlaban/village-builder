@@ -4,7 +4,8 @@ VB['sim/opportunities'] = (() => {
   const Culture = VB['culture'];
   const { cal, SERVICE, DAY, YEAR } = VB['sim/rules'];
   const { walkable } = VB['sim/routes'];
-  const { villageOf, settlementIdOf, fullName, spouseOf, childrenOf, holdingOf, spokesmanOf } = VB['sim/records'];
+  const { villageOf, settlementIdOf, practice, fullName, spouseOf, childrenOf, holdingOf, spokesmanOf } =
+    VB['sim/records'];
   const { ASK } = VB['sim/kinds'];
   const { claimable, barred: claimBar } = VB['sim/farmclaims'],
     { onFarm } = VB['sim/projects'];
@@ -16,7 +17,7 @@ VB['sim/opportunities'] = (() => {
   const { fit, jobsFor } = VB['sim/jobs'];
   const { eligible } = VB['sim/eligibility'];
   const { staysWhy, heirRanking } = VB['sim/heirs'];
-  const { matchBar, matchRules } = VB['sim/matching'];
+  const { matchBar, matchRules, kinOk } = VB['sim/matching'];
   const { visitChoices, visitWhy } = VB['sim/visits'];
   const { wishesOf } = VB['sim/wishes'];
   const { MARRIAGE } = VB['sim/rules'];
@@ -241,10 +242,17 @@ VB['sim/opportunities'] = (() => {
       q.sex !== p.sex &&
       spouseOf(view, q.id) === null &&
       yearsOld(view, q) >= (q.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom);
-    const ids = relationsOf(view, p.id)
-      .filter((r) => of(view.pawns[r.id]))
-      .slice(0, MATCH_PARTNERS)
-      .map((r) => r.id);
+    // Those barred for good by who they are (the retired, kin within the custom's limit) are left out before the best are taken, so the
+    // list fills to MATCH_PARTNERS from the next by tie (VB-1110); the custom is the man's village's, as in matchBar.
+    const ids = [];
+    for (const r of relationsOf(view, p.id)) {
+      if (ids.length >= MATCH_PARTNERS) break;
+      const q = view.pawns[r.id];
+      if (!of(q) || q.retired || p.retired) continue;
+      const m = p.sex === 'm' ? p : q;
+      if (!kinOk(view, p.id, q.id, practice(view, settlementIdOf(view, m)))) continue;
+      ids.push(q.id);
+    }
     if (typeof wishes.match === 'number' && !ids.includes(wishes.match)) ids.unshift(wishes.match);
     let rules = null;
     out.push(item('match', null, null, null, { when: 'round' })); // the pawn may wish for a match at all: "not this year", "as it would"
