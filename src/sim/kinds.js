@@ -28,7 +28,8 @@ VB['sim/kinds'] = (() => {
     onField,
   } = VB['sim/fields'];
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
-  const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
+  const Byre = VB['sim/byre'],
+    { byreWork } = Byre;
   const { plotJobs } = VB['sim/expansion'];
   const { workStake } = VB['sim/claims'],
     { onProject, landProject } = Projects,
@@ -72,8 +73,6 @@ VB['sim/kinds'] = (() => {
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   // The fuel pile in wood loads: the woodpile less what a project plan holds back, and the peat held at PEAT.worth (VB-367).
   const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
-  // By the byre door, left of the cottage (the page draws the byre there).
-  const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
   const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
   // A field the forest has grown into at half cover or more is felled and grubbed besides (sim/spread, VB-091).
   const reclaimHours = (st, fd) => {
@@ -127,11 +126,6 @@ VB['sim/kinds'] = (() => {
   // The village's common fields (VB-100): their kinds, as at a farm's fields, while its meeting chose the routine.
   function commonWork(st, v, at, c, post) {
     if (st.plans.villages.get(v.id).routines.includes('commons')) Commons.work(st, v, c, post, ASK.fieldAt);
-  }
-  // The byre's work at the cottage, for a household with herds or meat in its larder: fodder, slaughter, salting, milking (sim/byre).
-  function byreWork(st, hh, f, c, post) {
-    if (hh.herds.length || hh.larder.length)
-      for (const [key, kind, extra] of byreJobs(st, hh, c)) post(key, f.house, { farm: f, ...extra }, kind);
   }
   // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
   // owned by the plot's village (sim/expansion).
@@ -540,21 +534,7 @@ VB['sim/kinds'] = (() => {
       deliver: (st, j, hh, f, a) => hayIn(st, j.meadow, hh, f, a),
       available: meadowWork, // by the load (sim/carts)
     },
-    fodder: {
-      verb: 'Feeding and mucking out in the byre',
-      go: 'Going to the byre',
-      name: 'Fodder the animals',
-      label: 'Byre',
-      anim: 'gather',
-      hours: 1,
-      hands: 1,
-      type: 'husbandry',
-      spot: byreSpot,
-      window: { from: WORK[0] - 1 },
-      urgency: (st, j, c, U) => U.fodder,
-      done: (st, j, hh, c) => fodderDone(st, hh, c),
-      available: byreWork,
-    },
+    fodder: Byre.KINDS.fodder,
     manure: {
       verb: 'Spreading manure on the field',
       go: 'Carting manure to the field',
@@ -575,49 +555,9 @@ VB['sim/kinds'] = (() => {
         if (dung) post(`manure:f${f.id}.${dung[0].id}`, dung[0].tile, { field: dung[0], farm: f, hours: dung[1] });
       },
     },
-    milk: {
-      verb: 'Milking the cows',
-      go: 'Going to milk the cows',
-      name: 'Milk the cows',
-      label: 'Milking',
-      anim: 'milk',
-      hours: 0.5,
-      hands: 1,
-      type: 'husbandry',
-      spot: byreSpot,
-      window: { from: WORK[0] },
-      urgency: (st, j, c, U) => (c.hour < U.milkLateHour ? U.milk : U.milkLate),
-      done: (st, j, hh, c) => milkDone(st, hh, c),
-      available: byreWork,
-    },
-    slaughter: {
-      verb: 'Slaughtering',
-      go: 'Going to slaughter',
-      name: 'Slaughter an animal',
-      label: 'Slaughter',
-      anim: 'mallet',
-      hours: 3,
-      hands: 2,
-      type: 'husbandry',
-      spot: byreSpot,
-      urgency: (st, j, c, U) => (j.entry.lean ? U.slaughterNow : U.slaughter),
-      done: (st, j, hh) => slaughterDone(st, j.herd, j.entry, hh),
-      available: byreWork,
-    },
-    salt: {
-      verb: 'Salting meat',
-      go: 'Going home to salt the meat',
-      name: 'Salt the meat',
-      label: 'Salting',
-      anim: null,
-      hours: 1,
-      hands: 1,
-      type: 'household',
-      inside: true,
-      urgency: (st, j, c, U) => U.salt,
-      done: (st, j, hh) => saltDone(st, hh),
-      available: byreWork,
-    },
+    milk: Byre.KINDS.milk,
+    slaughter: Byre.KINDS.slaughter,
+    salt: Byre.KINDS.salt,
     fell: {
       verb: 'Felling trees',
       go: 'Going to fell trees',
