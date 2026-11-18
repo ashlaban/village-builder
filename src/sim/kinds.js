@@ -8,7 +8,7 @@ VB['sim/kinds'] = (() => {
   const { log, atFarm } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { scrubHours, SPREAD } = VB['sim/spread'];
-  const { dailyNeed, floorOf } = VB['sim/hunger'],
+  const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
     { reserved } = Stores;
   const {
     finishClear,
@@ -23,11 +23,15 @@ VB['sim/kinds'] = (() => {
     binned,
     reclaimed,
     weeded,
+    rowAngle,
+    firstRow,
+    onField,
   } = VB['sim/fields'];
   const { finishMeadow, hayDay, hayWanted, meadowJobs, mowDone, hayIn } = VB['sim/meadows'];
   const { slaughterDone, saltDone, milkDone, fodderDone, byreJobs } = VB['sim/byre'];
   const { plotJobs } = VB['sim/expansion'];
-  const { renewClaim } = VB['sim/claims'],
+  const { workStake } = VB['sim/claims'],
+    { onProject, landProject } = Projects,
     { doneOf } = VB['sim/progress'];
   const { workClaim, restored, claimJobs } = VB['sim/farmclaims'];
   const Building = VB['sim/building'],
@@ -68,28 +72,6 @@ VB['sim/kinds'] = (() => {
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   // The fuel pile in wood loads: the woodpile less what a project plan holds back, and the peat held at PEAT.worth (VB-367).
   const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
-  const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
-  // Several hands on one field start on different rows: the nth worker on row -12 + 6n, five rows across the tile.
-  const firstRow = (j, a) => -12 + 6 * (Math.max(0, j.claims.indexOf(a.id)) % 5);
-  // The start of the pawn's first row on a field tile.
-  function onField(st, a, j) {
-    const w = st.w,
-      th = rowAngle(j),
-      row = firstRow(j, a);
-    return [
-      w.hx[j.site] - Math.cos(th) * 13 - Math.sin(th) * row,
-      w.hy[j.site] - Math.sin(th) * 13 + Math.cos(th) * row,
-    ];
-  }
-  // The job is still the open step of its household's project plan (not given up or contested away meanwhile; sim/projects, sim/stakes).
-  const onProject = (st, j) => {
-    const s = Projects.openOf(st, 'household', j.owner.id);
-    return !!s && s.place === j.site && s.kind === j.kind;
-  };
-  // Work on a land project renews the household's stake on its tile (sim/stakes).
-  const workStake = (st, j) => {
-    renewClaim(st, j.site, j.owner);
-  };
   // By the byre door, left of the cottage (the page draws the byre there).
   const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
   const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
@@ -151,13 +133,6 @@ VB['sim/kinds'] = (() => {
     if (hh.herds.length || hh.larder.length)
       for (const [key, kind, extra] of byreJobs(st, hh, c)) post(key, f.house, { farm: f, ...extra }, kind);
   }
-  // The open step of the household's project plan (a new field's clear and break, a meadow; sim/projects): made once the one before is done.
-  // A plot the household clears for its heir (VB-255) is posted as every plot is (plotWork).
-  const landProject = (st, hh, f, c, post) => {
-    const p = Projects.projectOf(st, 'household', hh.id),
-      s = p && p.what !== 'plot' ? p.steps[p.open] : null; // not while it waits for timber (VB-300)
-    if (s && Projects.supplied(s)) post(`${s.kind}:f${f.id}`, s.place, { farm: f, hours: s.hours }, s.kind);
-  };
   // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
   // owned by the plot's village (sim/expansion).
   function plotWork(st, holder, at, c, post) {
@@ -167,18 +142,8 @@ VB['sim/kinds'] = (() => {
   function claimWork(st, holder, at, c, post) {
     for (const [key, kind, owner, site, extra] of claimJobs(st)) post(key, site, extra, kind, owner);
   }
-  // The household's spare food in days of its need: grain above the seed reserve, cooked meals and fresh food (sim/pot, VB-119).
-  const spareDays = (st, hh) => {
-    const need = dailyNeed(st, hh);
-    return need > 0 ? Pot.spareFood(st, hh) / need : Infinity;
-  };
   // Fishing: from spring day FISH.from + 1 to the end of autumn; the water is ice in winter.
   const fishing = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
-  // Fishing's and gathering's urgency: fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none.
-  const spareUrgency = (st, j, U) => {
-    const d = spareDays(st, st.households[j.farm.household]);
-    return d >= U.fishCalmDays ? U.fishCalm : U.fishLean - ((U.fishLean - U.fishCalm) * d) / U.fishCalmDays;
-  };
   // Gathering: from summer day FORAGE.from + 1 to the end of autumn.
   const gathering = (c) => (c.season === 1 && c.sday >= FORAGE.from) || c.season === 2;
   // Hoeing and sowing grow more urgent as the sowing window runs out.
@@ -855,5 +820,5 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, cookWanted, rowAngle, firstRow, isOpen, sowWhy, fuelFree };
+  return { KINDS, ASK, cookWanted, isOpen, sowWhy, fuelFree };
 })();

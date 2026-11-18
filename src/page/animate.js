@@ -274,7 +274,7 @@ function rowPlace(a, at) {
   const j = a.job,
     K = j && a.phase === 'work' && !a.inside && a.leg ? Sim.KINDS[j.kind] : null;
   if (!K || !K.field) return null;
-  const th = VB['sim/kinds'].rowAngle(j),
+  const th = VB['sim/fields'].rowAngle(j),
     cx = w.hx[j.site],
     cy = w.hy[j.site],
     c = Math.cos(th),
