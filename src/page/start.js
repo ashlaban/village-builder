@@ -52,7 +52,16 @@ const START_SIGNS = {
   gens: 'M12 3a2 2 0 1 0 0 4 2 2 0 1 0 0-4M6 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4M18 16a2 2 0 1 0 0 4 2 2 0 1 0 0-4M12 7v4M6 16v-2.5h12V16',
   village: 'M2 13l5-4 5 4M3.5 12v7h7v-7M12 11l5-4 5 4M13.5 10v9h7v-9',
 };
-const startSign = (k) => (SIGN_PATHS[k] ? sign(k) : svgIcon(24, 24, `<path d="${START_SIGNS[k]}"/>`, ICON_STROKE));
+const START_STEN = {
+  well: '<path class="l" d="M6 21.5V7M3 10l14-6M17 4v7M10 21.5h10"/><rect x="15" y="11" width="4.5" height="4.5"/>',
+  tree: '<path class="l" d="M12 21.5v-6"/><path d="M12 2.5l6.5 13h-13z"/>',
+  meadow:
+    '<path class="l" d="M12 21.5v-10M12 16.5c-3 0-4.5-1-5-3.5M12 18.5c3 0 4.5-1 5-3.5"/><circle cx="12" cy="8" r="3.5"/>',
+  gens: ICON_STEN.family,
+  village: ACT_STEN.village,
+};
+const startSign = (k) =>
+  SIGN_PATHS[k] ? sign(k) : stencil(svgIcon(24, 24, `<path d="${START_SIGNS[k]}"/>`, ICON_STROKE), START_STEN[k]);
 const NUMBER_WORDS = [
   'no',
   'one',

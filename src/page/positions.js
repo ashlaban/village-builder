@@ -21,7 +21,24 @@ const SIGN_PATHS = {
   shield: 'M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z',
   people: 'M6 8a3 3 0 1 0 6 0 3 3 0 1 0-6 0M3 20c0-5 3-7 6-7s6 2 6 7M15 5.5a2.5 2.5 0 1 1 0 5M17 13c2.5.5 4 2.5 4 6',
 };
-const sign = (k) => svgIcon(24, 24, `<path d="${SIGN_PATHS[k]}"/>`, ICON_STROKE);
+// The same signs as stencils, for the mural theme (VB-1164; page/icons, stencil): most are icons the interface has already.
+const SIGN_STEN = {
+  house: ACT_STEN.home,
+  field: GOOD_STEN.grain,
+  rings: RINGS_STEN,
+  key: GOOD_STEN.heir,
+  road: '<path class="l" d="M12 21.5V4"/><path d="M12.8 5H19l2.2 2.5L19 10h-6.2z"/><path d="M11.2 11.5H5L2.8 14 5 16.5h6.2z"/>',
+  sickle: '<path class="l" d="M5 21.5l5-5"/><path d="M9.5 17.5C4 10 10 2.5 19 5c-6 1-9 6-6.5 10z"/>',
+  voice: ACT_STEN.offer,
+  sack: ACT_STEN.sack,
+  flag: ICON_STEN.land,
+  sun: SEASON_STEN[1],
+  scroll: '<path d="M5.5 3.5h13v17h-13z"/><path class="c" d="M9 8h6M9 12h6M9 16h3"/>',
+  next: '<path class="l" d="M5 12h14M13 6l6 6-6 6"/>',
+  shield: '<path d="M12 2.8l8 2.7v6c0 5-3.5 8.3-8 10-4.5-1.7-8-5-8-10v-6z"/>',
+  people: PEOPLE_STEN,
+};
+const sign = (k) => stencil(svgIcon(24, 24, `<path d="${SIGN_PATHS[k]}"/>`, ICON_STROKE), SIGN_STEN[k]);
 // The scenario's suggestion (design.md, Which pawn), a filled star; what it means is written beside the cards, not only in a tooltip.
 const SUGGESTED =
   '<svg class="ico sug" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Suggested by the scenario" focusable="false">' +
