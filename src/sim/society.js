@@ -1,4 +1,4 @@
-// @sys sim/society: Culture wiring: settlements, ties, prestige and interests of pawns (a village's, at its meeting)
+// @sys sim/society: Culture wiring: settlements, ties, standing and interests of pawns (a village's, at its meeting)
 VB['sim/society'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { issue } = VB['sim/commands'];
@@ -75,7 +75,7 @@ VB['sim/society'] = (() => {
             raiseTie(st, q, p.id, 0.5);
           }
     updateTies(st);
-    refreshPrestige(st);
+    refreshStanding(st);
     refreshInterests(st);
   }
   // The Culture settlement of village v, with the same id: its culture, a copy of the practice it keeps and its tie to the centre.
@@ -132,9 +132,9 @@ VB['sim/society'] = (() => {
     }
     for (const s of st.cenv.settlements) updateTie(st, s.id, by.get(s.id) || []);
   }
-  // The parts of a pawn's prestige, [label, value]: standing (1.6 a holder, 1.3 a holder's spouse, else 1), age from 55, and for a holder and
+  // The parts of a pawn's standing, [label, value]: its position (1.6 a holder, 1.3 a holder's spouse, else 1), age from 55, and for a holder and
   // a holder's spouse the term of the house's condition (VB-306), read from the farm's closed form (nothing is stored beside the condition).
-  function prestigeParts(st, p) {
+  function standingParts(st, p) {
     const sp = spouseOf(st, p.id),
       holder = isHolder(st, p.id),
       spHolder = sp !== null && isHolder(st, sp);
@@ -156,22 +156,22 @@ VB['sim/society'] = (() => {
     }
     return parts;
   }
-  function refreshPrestige(st) {
+  function refreshStanding(st) {
     for (const id of st.living) {
       const p = st.pawns[id];
-      p.prestige = prestigeParts(st, p).reduce((s, x) => s + x[1], 0);
+      p.standing = standingParts(st, p).reduce((s, x) => s + x[1], 0);
     }
   }
   // A host poured ale (sim/occasions): its holder's standing gains at once, not at the year's round.
   on('alePoured', (st, e) => {
     const p = st.pawns[e.host];
-    if (p.alive) p.prestige = prestigeParts(st, p).reduce((n, x) => n + x[1], 0);
+    if (p.alive) p.standing = standingParts(st, p).reduce((n, x) => n + x[1], 0);
   });
   // A village's work day ended (sim/workdays): the standing of those who turned out, and of the holders who stayed away, at once.
   on('workDay', (st, e) => {
     for (const id of e.pawns) {
       const p = st.pawns[id];
-      if (p.alive) p.prestige = prestigeParts(st, p).reduce((n, x) => n + x[1], 0);
+      if (p.alive) p.standing = standingParts(st, p).reduce((n, x) => n + x[1], 0);
     }
   });
   // Self-interest follows position: what would this option do for me, or for my children? For `people` (pawn records; all the living when
@@ -257,13 +257,13 @@ VB['sim/society'] = (() => {
     }
   }
   return {
-    prestigeParts,
+    standingParts,
     hooks,
     initCulture,
     addSettlement,
     updateTies,
     updateTie,
-    refreshPrestige,
+    refreshStanding,
     refreshInterests,
   };
 })();

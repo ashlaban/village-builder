@@ -198,7 +198,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 | `servant` **3** | records ² | heirs 84,175; service 66; settle 180 | - |
 | `interest` **3** | society | society 35,84,126; births 29; lifecycle (killPawn: cleared at the death, VB-278) | culture |
 | `owed` **2** | stores (new) ¹ | heirs 113; cottage 62 | page |
-| `prestige` **2** | society | society 35,76,77; births 29 | culture |
+| `standing` **2** | society | society 35,76,77; births 29 | culture |
 | `born` | births | births 27 | records, relations, deaths, expansion, farmclaims, heirs, service, society, settle, lifecycle, scenarios, page |
 | `died` | lifecycle | lifecycle 26 | hunger, fields, commands, jobs, heirs, society, scenarios, clock, page |
 | `health` | hunger | hunger 62,63,64 | deaths, agents, page |
@@ -380,7 +380,7 @@ These are read and never written after creation. Each has one owner by construct
 | farmstead | `id`, `house`, `village`, `rowAngle`, `fence` | layout (`makeFarmstead`) |
 | village | `id`, `center`, `green`, `well` (set at seeding by layout and byhand; in play `center`, `green` and `well` only by `sim/green` when a village's well is done, VB-058) | layout, settle (`found`), green |
 | village | `workday` (the last work day: hours each adult worked, judged at its end, VB-120) | workdays |
-| pawn | `workdays` (the year's work days turned out to and stayed away from, read by society's prestige, VB-120) | workdays |
+| pawn | `workdays` (the year's work days turned out to and stayed away from, read by society's standing, VB-120) | workdays |
 | st | `booths`, `boothSeq` (the booths raised or being raised, live ones only: staked and raised by `sim/building`'s verb and job, rotted away by its daily rule, VB-784) | building |
 | union | `id`, `a`, `b`, `start`, `kind` | records (`marry`), lifecycle (`wed`) |
 | herd | `id`, `species` | herds (`makeHerd`) |
@@ -598,7 +598,7 @@ entry. A balance read from the ledger (`tools/balance.js`, VB-092's store views)
 
 | Event | State changed | Writer |
 | --- | --- | --- |
-| Born | `st.pawns.push` (`person`), the newborn's fields, **`pawn.household`**, **`household.members.push`**, culture fields (`att`, `anc`, `ties`, `rel`, `prestige`, `interest`, `advocate`), `ties` of the housemates, `pawn.events`, `st.agents.push` | `births.js:20-41` (giveBirth), `records.js:48` |
+| Born | `st.pawns.push` (`person`), the newborn's fields, **`pawn.household`**, **`household.members.push`**, culture fields (`att`, `anc`, `ties`, `rel`, `standing`, `interest`, `advocate`), `ties` of the housemates, `pawn.events`, `st.agents.push` | `births.js:20-41` (giveBirth), `records.js:48` |
 | Marries | `st.unions.push`; each spouse moves (`moveTo`); `pawn.ties`; a spouse who held a farm hands it on | verb `marry` → `lifecycle.js:107-119` (wed), `heirs.js:80-87` (moveTo), `heirs.js:248-272` (handOn) |
 | Moves house (`moveTo`) | the old `household.members` (filter), the new one's `members.push`, `pawn.household`, `pawn.servant = false`, the agent released and placed at home | `heirs.js:80-87` |
 | Takes over the farm | heir, spouse and minor children move; `household.holder`, `farmstead.line`, `pawn.retired` | `heirs.js:90-104` (transfer) |
@@ -664,7 +664,7 @@ Each domain and process of `target-architecture.md` (sections 3 and 4, and the i
 | Target | In the code | Class |
 | --- | --- | --- |
 | Society: identity, lifecycle, kinship | `sim/records` (people, the kin index `st.idx`), `sim/births`, `sim/deaths`, `sim/lifecycle` | Well represented; `pawn.alive` and `pawn.age` have three writers (seeding, births, lifecycle) |
-| Society: relationships, reputation | `sim/relations` (memories, bands), `sim/society` (ties, prestige, interest) | Present, ownership unclear: `pawn.ties` has 5 writer modules |
+| Society: relationships, reputation | `sim/relations` (memories, bands), `sim/society` (ties, standing, interest) | Present, ownership unclear: `pawn.ties` has 5 writer modules |
 | Society: skills, knowledge | Roles only; all is known to all (Decided, 30 October) | Future, not to build yet |
 | Households: membership | `moveTo` in `sim/heirs`, `joinHousehold` in `sim/records` | Present, ownership unclear: 5 writers |
 | Households: formation, division, dissolution | Founded in three places (cottage, settle, farmclaims), dissolved in `sim/heirs` (extinct) | Present, tightly coupled: three copies, two dependency cycles |
@@ -917,7 +917,7 @@ state, so the fields written rose while the unowned share fell.
 | Projects and plots | `farmstead.project` (stakes 3, fields 4, meadows 2, settle), `farmstead.meadows` (meadows 12, kinds), `village.plots` (expansion 12, building, agents, cottage 3, scenarios), `village.crowded` (settle 2, scenarios) | new |
 | Stores not yet moved | `household.hay` (herds 5, meadows, byre 3), `household.larder` (hunger 2, byre 2), `household.manure` (fields, byre 2) | 7.6 |
 | Herds and jobs | `herd.head` (herds 10, byre), `herd.cull` (herds, byre 5), `st.jobs` (agents, jobs), `st.jobsBy` (agents, jobs 4) | 7.9 |
-| Pawn fields | `pawn.alive` (society, lifecycle, births), `pawn.age` (society, lifecycle 2, births), `pawn.prestige` and `pawn.interest` (culture, society 2), `pawn.owed` (heirs, cottage), `st.unions` (records, lifecycle) | new |
+| Pawn fields | `pawn.alive` (society, lifecycle, births), `pawn.age` (society, lifecycle 2, births), `pawn.standing` and `pawn.interest` (culture, society 2), `pawn.owed` (heirs, cottage), `st.unions` (records, lifecycle) | new |
 | Collections of records | `st.farmsteads` (layout 3, cottage, settle), `village.farmsteads` (cottage, settle), `farmstead.name` (layout 2, settle), `st.demand` (farmclaims 2, heirs 2, settle) | new |
 | Smaller | `settlement.practice`, `settlement.tie` (culture, society, commands), `household.grievance` (claims, territory), `fence.cond`, `fence.dirty` (kinds, clock), `agent.basis` (agents 3, commands) | none yet |
 
@@ -1030,7 +1030,7 @@ encoding moved beside it; Society re-exports `pairKey` and `pairOf` unchanged.
 Death still retains the dead pawn's historical ties and removes reciprocal
 entries from contacts, matching the prior behavior.
 
-Culture's `initPerson` sets attitude, its independent anchor copy, prestige,
+Culture's `initPerson` sets attitude, its independent anchor copy, standing,
 interest and advocacy for both seeded and newborn pawns. `advocate` handles
 argue/rally command writes. These two simulation wiring operations are
 non-enumerable so the existing enumerable public Culture API stays unchanged.

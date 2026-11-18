@@ -273,7 +273,7 @@ function showPawn(id) {
   renderPlay(id);
 }
 // A pawn's levels, the same wherever a pawn's state is shown (its card, the played pawn's sheet): its mood on the one meter, the
-// modifiers in force under it (VB-062); health and hunger on the meter, its household's cold, and its prestige. Prestige is a sum with
+// modifiers in force under it (VB-062); health and hunger on the meter, its household's cold, and its standing. Standing is a sum with
 // no upper bound, so it is a number and no meter, its parts in the title (the exception VB-665 is to settle).
 function pawnStats(id) {
   const p = st.pawns[id],
@@ -295,11 +295,11 @@ function pawnStats(id) {
       hh && hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', wide: true } : null,
       p.age >= 16
         ? {
-            icon: 'prestige',
-            label: 'Prestige',
-            value: p.prestige.toFixed(2),
+            icon: 'standing',
+            label: 'Standing',
+            value: p.standing.toFixed(2),
             wide: true,
-            title: `Prestige: ${Sim.prestigeParts(st, p)
+            title: `Standing: ${Sim.standingParts(st, p)
               .map(([l, x]) => `${l.toLowerCase()} ${x.toFixed(2)}`)
               .join(', ')}`,
           }
@@ -318,7 +318,7 @@ function showRelations(id) {
   const rows = list
     .map((x) => {
       const word = Sim.opinionWord(x.opinion),
-        kin = Sim.standingWord(st, id, x.id),
+        kin = Sim.bondWord(st, id, x.id),
         why = Sim.reasonsOf(st, id, x.id).find((r) => r.label !== kin);
       // the kin bond and the opinion's band are the portrait's badges (VB-1026); their words are the row's tooltip (VB-1033), and what
       // is written is what has no icon: the largest memory of one who is no kin

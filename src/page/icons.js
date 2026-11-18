@@ -363,7 +363,7 @@ const GOOD_PATHS = {
   beast: '<path d="M4 9l2-3 1 2h8l3-2 2 2-1 3v3l-1 5h-2l-.5-4H9.5L9 19H7l-1-5c-1.5-1-2-3-2-5z"/>',
   health: '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
   hunger: '<path d="M4 11h16a8 8 0 0 1-16 0zM9 19.5V21h6v-1.5M12 3v5M8.5 5v3M15.5 5v3"/>',
-  prestige: '<path d="M4 18h16M5 15l-1-8 5 4 3-6 3 6 5-4-1 8z"/>',
+  standing: '<path d="M4 18h16M5 15l-1-8 5 4 3-6 3 6 5-4-1 8z"/>',
   people:
     '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2.5-7 6-7s6 3 6 7M15.5 5.5a2.5 2.5 0 1 1 0 5M17.5 13.5c2 .7 3.5 3 3.5 6.5"/>',
   fence: '<path d="M5 21V6l1.5-2L8 6v15M11 21V6l1.5-2L14 6v15M17 21V6l1.5-2L20 6v15M3 10h18M3 16h18"/>',
@@ -442,7 +442,7 @@ const GOOD_STEN = {
   beast: '<path d="M4 9l2-3 1 2h8l3-2 2 2-1 3v3l-1 5h-2l-.5-4H9.5L9 19H7l-1-5c-1.5-1-2-3-2-5z"/>',
   health: `<path d="${HEART_STEN}"/>`,
   hunger: '<path d="M3 11h18c0 5.2-4 8.8-9 8.8S3 16.2 3 11z"/><path class="l" d="M12 3.5v4M8.3 5v2.5M15.7 5v2.5"/>',
-  prestige: '<path d="M3.5 19L2.3 8l5.2 4.2L12 5l4.5 7.2L21.7 8l-1.2 11z"/><path class="c" d="M4.5 16h15"/>',
+  standing: '<path d="M3.5 19L2.3 8l5.2 4.2L12 5l4.5 7.2L21.7 8l-1.2 11z"/><path class="c" d="M4.5 16h15"/>',
   people: PEOPLE_STEN,
   fence:
     '<path class="l" d="M3 10.5h18M3 16.5h18"/><path d="M4.5 21V6.5L6.2 4l1.7 2.5V21z"/><path d="M10.3 21V6.5L12 4l1.7 2.5V21z"/>' +
@@ -544,7 +544,7 @@ const TRAIT_STEN = {
   wits: '<path d="M8.5 15.5C6.5 14 5.5 12 5.5 9.8a6.5 6.5 0 0 1 13 0c0 2.2-1 4.2-3 5.7z"/><rect x="9" y="17" width="6" height="3.8" rx="1"/>',
 };
 const traitIcon = (k) => stencil(svgIcon(24, 24, TRAIT_PATHS[k], ICON_STROKE), TRAIT_STEN[k]);
-// The bonds (VB-1026): what one person is to another, one icon each. The five kin bonds the simulation names (sim/relations, standing):
+// The bonds (VB-1026): what one person is to another, one icon each. The five kin bonds the simulation names (sim/relations, bond):
 // two rings; an elder with a staff; a swaddled child; two of one branch; two under one roof. The four opinion bands (opinionWord): a
 // heart, filled for a close friend; a heart struck through; two crossed blades.
 const HEART = 'M12 20c-5-3.5-8-6.5-8-10a4.2 4.2 0 0 1 8-1.8A4.2 4.2 0 0 1 20 10c0 3.5-3 6.5-8 10z';

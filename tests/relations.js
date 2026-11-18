@@ -1,4 +1,4 @@
-// Relationships (sim/relations): compatibility, opinion derived from standing, affinity (compatibility shown as a tie grows) and timed
+// Relationships (sim/relations): compatibility, opinion derived from the bond, affinity (compatibility shown as a tie grows) and timed
 // memories within their caps (VB-240), close friend and enemy bands told once and checked again each season, memories that fade and are
 // forgotten (once a season), and death ending relationships.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/relations'], { SOCIAL, YEAR_DAYS, SEASON_DAYS, DAY } = VB['sim/rules'];
@@ -20,7 +20,7 @@ check(Math.abs(sum / n) < 0.25, `mean compatibility ${(sum / n).toFixed(2)} over
 // two adults of different households with no kin between them
 const adults = st.pawns.filter((p) => p.alive && p.age >= 18);
 let a = null, b = null;
-for (const x of adults) for (const y of adults) if (!a && x.household !== y.household && R.standing(st, x.id, y.id) === null) { a = x; b = y; }
+for (const x of adults) for (const y of adults) if (!a && x.household !== y.household && R.bond(st, x.id, y.id) === null) { a = x; b = y; }
 check(a && b, 'two unrelated adults of different households');
 check(R.opinionOf(st, a.id, b.id) === 0 && !a.rel.has(b.id), 'strangers start at opinion 0 with no record');
 
@@ -33,7 +33,7 @@ R.addTie(st, a.id, b.id, AF.known);
 check(Math.abs(R.opinionOf(st, a.id, b.id) - AF.weight * cab) < 1e-9, `known well, the whole affinity: ${R.opinionOf(st, a.id, b.id)}`);
 check(R.opinionOf(st, b.id, a.id) === 0 && !a.rel.has(b.id), 'opinion has a direction: b does not know a; a tie makes no record');
 // a compatible stranger met at work: close friends once known well enough, told once
-const unrelated = (x) => x.alive && x !== a && x !== b && x.household !== a.household && R.standing(st, a.id, x.id) === null;
+const unrelated = (x) => x.alive && x !== a && x !== b && x.household !== a.household && R.bond(st, a.id, x.id) === null;
 const cf = adults.find((x) => unrelated(x) && R.compat(st, a.id, x.id) > SOCIAL.closeFriend / AF.weight + 0.02);
 check(cf, 'a stranger compatible enough to be a close friend');
 for (let k = 0; k < 2 * AF.known / SOCIAL.ties.work; k++) R.workedTogether(st, [a.id, cf.id]);
@@ -54,9 +54,9 @@ check(told(a, 'enemy') === 1 && a.bands.get(c.id) === -1, `became the enemy told
 check(R.opinionWord(o) === 'enemy', `word ${R.opinionWord(o)}`);
 check(R.reasonsOf(st, a.id, c.id).slice(0, 2).map((x) => x.label).join() === 'Took our claim,Refused the match I made', 'reasons, largest first');
 
-// standing: kin and housemates start above 0
+// the bond: kin and housemates start above 0
 const hh = st.households.find((h) => !h.dissolved && h.members.length >= 3), [h0, h1] = hh.members;
-check(R.opinionOf(st, h0, h1) > 0 && R.standing(st, h0, h1) !== null, `housemates ${h0}, ${h1}: ${R.standing(st, h0, h1)}`);
+check(R.opinionOf(st, h0, h1) > 0 && R.bond(st, h0, h1) !== null, `housemates ${h0}, ${h1}: ${R.bond(st, h0, h1)}`);
 
 // memories fade linearly and are forgotten once gone
 const half = R.memNow(st, 'claim', { v: -0.4, t: st.t - K.claim.days * DAY / 2 });
@@ -100,7 +100,7 @@ SOCIAL.seek = 4; // past the sociability trait's 0.25 to 0.75 (VB-520): it alway
 const [x, fr, foe] = (() => {
   for (const p of adults) {
     if (!p.alive) continue;
-    const same = adults.filter((q) => q.alive && q !== p && vill(q) === vill(p) && R.standing(st, p.id, q.id) === null);
+    const same = adults.filter((q) => q.alive && q !== p && vill(q) === vill(p) && R.bond(st, p.id, q.id) === null);
     const liked = same.find((q) => R.compat(st, p.id, q.id) > 0.2), other = same.find((q) => q !== liked);
     if (liked && other) return [p, liked, other];
   }

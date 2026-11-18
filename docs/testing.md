@@ -17,7 +17,7 @@ scenarios, heavily constructed on the smallest states; the longer tests run at n
 | `node tests/run.js extended` | At night; never part of a task | Everything long: generated islands and runs of years, the page in jsdom and all Chromium functionality, demography, daily multi-year invariants, late fixtures/history, bands, player-line continuity and the start screen's people table |
 | `npm run nightly` | Scheduled or manual | Prepare all late fixtures once, extended, then bench and multi-seed band measurements |
 | `node tests/NAME.js` | A change to what NAME covers | One script, whatever its tier: a page change runs `tests/smoke.js` and the `tests/browser*.js` it touches |
-| `node tools/same.js --base REF` | A behavior-preserving change | The same runs from REF and from the working tree, compared leaf by leaf; nothing recorded |
+| `node tools/same.js --base REF` | A behavior-preserving change | The same runs from REF and from the working tree, compared leaf by leaf; nothing recorded; `--renamed OLD=NEW` reads a renamed field by its new name |
 
 `tests/suites.js` is the explicit inventory. `--list` prints per-script timings; `--verbose` includes full output and advisory
 targets. Every suite reports its slowest five scripts.

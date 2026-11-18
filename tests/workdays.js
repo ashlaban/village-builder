@@ -1,7 +1,7 @@
 // VB-120: village work days. A village with a fence may choose work days at its meeting (never its founders: the meeting sets them for
 // the coming year); chosen, on spring's first day from 6:00 its fence stretches below 0.9 are village jobs with unlimited hands, all
 // together, at priority 8 for every adult whatever the role, and on summer's second a clearing at the commons wood's edge. At the day's end
-// each adult who worked 2 hours gains 0.05 prestige for the year; a household with no adult at it loses 0.1 of its holder's, and each other
+// each adult who worked 2 hours gains 0.05 standing for the year; a household with no adult at it loses 0.1 of its holder's, and each other
 // holder of the village tied to that holder remembers "Stayed away from the work day". The village log notes the day and who stayed away.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim;
@@ -69,7 +69,7 @@ assert.strictEqual(d[0].n, adults.filter((id) => hrs(id) > 0).length, 'the adult
 for (const id of adults) {
   const p = st.pawns[id], wd = p.workdays || { came: 0, missed: 0 };
   assert.strictEqual(wd.came, hrs(id) >= WORKDAY.hours ? 1 : 0, `pawn ${id}: two hours or more turned out`);
-  const part = VB['sim/society'].prestigeParts(st, p).find((x) => x[0] === 'Turned out for the work days');
+  const part = VB['sim/society'].standingParts(st, p).find((x) => x[0] === 'Turned out for the work days');
   assert.strictEqual(part ? part[1] : 0, wd.came * WORKDAY.came);
 }
 for (const hh of st.households.slice(0, 4)) {
@@ -79,7 +79,7 @@ for (const hh of st.households.slice(0, 4)) {
 }
 const lp = st.pawns[lone.holder];
 assert.deepStrictEqual(lp.workdays, { year: 2, came: 0, missed: 1 }, 'the lone household stayed away');
-assert.ok(VB['sim/society'].prestigeParts(st, lp).some((x) => x[0] === 'Stayed away from the work day' && x[1] === WORKDAY.missed),
+assert.ok(VB['sim/society'].standingParts(st, lp).some((x) => x[0] === 'Stayed away from the work day' && x[1] === WORKDAY.missed),
   'its holder loses standing for the year');
 const mem = st.pawns[h0].rel.get(lone.holder);
 const felt = VB['sim/traits'].act(st, h0, 'honour', 'breach'); // a breach felt by honour, 0.5 to 1.5 times (VB-520)
@@ -88,7 +88,7 @@ assert.ok(!(st.pawns[h1].rel.get(lone.holder) || { mem: {} }).mem.stayedAway, 'a
 assert.ok(!(tieOf(st, h1, lone.holder) > 0), 'and no tie is made for it');
 assert.deepStrictEqual(checkState(st), [], 'invariants');
 // the year after, the standing is gone
-assert.ok(!VB['sim/society'].prestigeParts({ ...st, t: st.t + YEAR_DAYS * DAY }, lp).some((x) => x[0] === 'Stayed away from the work day'));
+assert.ok(!VB['sim/society'].standingParts({ ...st, t: st.t + YEAR_DAYS * DAY }, lp).some((x) => x[0] === 'Stayed away from the work day'));
 
 // summer's second day: the commons cleared at the wood's edge, the work WORKDAY.clearHours an adult of the village
 const S2 = Y2 + (SEASON_DAYS + 1) * DAY;

@@ -96,7 +96,7 @@ function renderAgenda() {
     });
     const others = Sim.membersOf(st, s.id)
       .filter((q) => q.alive && q.advocate && q.id !== id)
-      .sort((x, y) => y.prestige - x.prestige);
+      .sort((x, y) => y.standing - x.standing);
     h +=
       `<h3>Also arguing in ${esc(s.name)}</h3>` +
       (others.length

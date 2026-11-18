@@ -585,7 +585,7 @@ VB['sim/occasions'] = (() => {
       call(st, 'rite', day, place, a.ids, a.hours, []);
     }
   }
-  // The rite's leader: of those standing at it, the holder highest in piety × prestige (read now, stored nowhere but in its event); with
+  // The rite's leader: of those standing at it, the holder highest in piety × standing (read now, stored nowhere but in its event); with
   // no holder there, whoever stands highest. Null when nobody stands there; else {id, heard (Encounters.said: all present but it)}.
   function lead(st, o) {
     let best = null,
@@ -593,7 +593,7 @@ VB['sim/occasions'] = (() => {
     for (const id of Encounters.present(st, o.id)) {
       const p = st.pawns[id],
         holder = p.household !== null && st.households[p.household].holder === id,
-        v = (holder ? 1e6 : 0) + Traits.of(st, id, 'piety') * (p.prestige ?? 1);
+        v = (holder ? 1e6 : 0) + Traits.of(st, id, 'piety') * (p.standing ?? 1);
       if (v > bv) {
         bv = v;
         best = id;

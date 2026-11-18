@@ -4,7 +4,7 @@ const assert = require('assert');
 const VB = require('../src/load.js'), C = VB.culture, L = VB['sim/leanings'];
 const d = C.IDX.feedOrder, o = C.OFF[d], equal = C.optIndex('feedOrder', 'equal'), children = C.optIndex('feedOrder', 'children');
 const att = (share) => { const a = new Float32Array(C.TOTAL).fill(0); share.forEach((v, j) => { a[o + j] = v; }); return a; };
-const person = (id, share, more = {}) => ({ id, alive: true, age: 40, prestige: 1, att: att(share), anc: att(share), ties: new Map(), interest: null,
+const person = (id, share, more = {}) => ({ id, alive: true, age: 40, standing: 1, att: att(share), anc: att(share), ties: new Map(), interest: null,
   advocate: null, ...more });
 const people = [], byId = (id) => people[id], add = (...a) => { const p = person(people.length, ...a); people.push(p); return p; };
 

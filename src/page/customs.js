@@ -134,7 +134,7 @@ const customsVillage = () =>
 function readCustoms(s) {
   const members = Sim.membersOf(st, s.id),
     voiced = members.filter((p) => p.alive && Sim.voiceOf(st, p, s) > 0);
-  const say = (p) => Sim.voiceOf(st, p, s) * p.prestige,
+  const say = (p) => Sim.voiceOf(st, p, s) * p.standing,
     W = voiced.reduce((a, p) => a + say(p), 0);
   const S = Culture.support(st.cenv, members, (p) => Sim.voiceOf(st, p, s)).S,
     cu = st.cenv.cultures[s.culture],

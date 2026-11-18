@@ -105,7 +105,7 @@ VB['sim/claims'] = (() => {
     const env = st.cenv,
       voiced = (sid) =>
         membersOf(st, sid)
-          .map((p) => [p, voiceOf(st, p, env.settlements[sid]) * p.prestige])
+          .map((p) => [p, voiceOf(st, p, env.settlements[sid]) * p.standing])
           .filter(([, v]) => v > 0);
     const here = vid === null || vid === undefined ? [] : voiced(vid);
     return claims.map((c) => {

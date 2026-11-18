@@ -15,7 +15,7 @@ VB['sim/round'] = (() => {
   const { takeServants, serveWhereShort } = VB['sim/service'];
   const { payOwed } = VB['sim/cottage'];
   const { fillStores } = VB['sim/help'];
-  const { refreshPrestige } = VB['sim/society'];
+  const { refreshStanding } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
   const { chooseWishes, wishOf } = VB['sim/wishes'];
   const { heldBy, conclude, BASES } = VB['sim/offers'];
@@ -75,7 +75,7 @@ VB['sim/round'] = (() => {
   // Each day, each village's step, a village a step in the order of village id from the one the year turns to (village k of n on step k
   // while n is at most VILLAGE_STEPS, else on floor(k * VILLAGE_STEPS / n)): the offers due to its people are answered (answerDue); on the
   // first day, then its own round (villageRound), and three phases on fixed steps from 18:00, island-wide: demand, claims on empty farms
-  // and plots; settlement; service, what is owed and prestige. Fixed, since settlement founds villages. After the last day's last step,
+  // and plots; settlement; service, what is owed and standing. Fixed, since settlement founds villages. After the last day's last step,
   // what is open of the round lapses. Nothing is kept from one step for the next, so nothing is saved: the day and the step say what is
   // due. `movingRound` runs every step of every day at once (the drawer's button, the tests), each day's offers as due on its day.
   const ROUND_STEPS = VILLAGE_STEPS + 3;
@@ -119,7 +119,7 @@ VB['sim/round'] = (() => {
       // head refused (sim/service, sim/courting)
       serveWhereShort(st, { ...takeServants(st), leavers: leavers(st) });
       payOwed(st);
-      refreshPrestige(st);
+      refreshStanding(st);
       if (ASK.passes === 1) lapseRound(st);
     }
     st.visualDirty = true;

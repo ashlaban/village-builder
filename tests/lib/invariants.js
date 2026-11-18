@@ -1436,7 +1436,7 @@ function checkTies(st, p, bad) {
 // Relationship records (sim/relations): about a living other pawn, with known memories within their caps (only of kinds in
 // SOCIAL.memories: talk leaves none, VB-240), and none for the dead. Bands (pawn.bands): 1 or -1, about another pawn, none for the dead,
 // and agreeing with the opinion within SOCIAL.back and the most it can drift with nothing touching the pair between the season's checks
-// (fadeRelations): a tie's affinity fading for a season, each memory fading for a season, and the housemate's standing lost.
+// (fadeRelations): a tie's affinity fading for a season, each memory fading for a season, and the housemate's bond lost.
 function checkRel(st, p, bad) {
   const { SOCIAL, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'], R = VB['sim/relations'];
   if (!p.alive) {

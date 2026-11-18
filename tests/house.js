@@ -1,8 +1,8 @@
 // A well-kept house (VB-306): the condition wears 0.1 a year by closed form (0.067 tarred), 4 hours of upkeep raise it 0.1, offered under 0.8;
-// prestige gains 0.15 times the condition for a holder and a holder's spouse (0.18 tarred); the pawn panel's parts name the term.
+// standing gains 0.15 times the condition for a holder and a holder's spouse (0.18 tarred); the pawn panel's parts name the term.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { KINDS } = VB['sim/kinds'], { houseCondition, houseTerm, YEAR } = VB['sim/rules'];
-const { refreshPrestige, prestigeParts } = VB['sim/society'];
+const { refreshStanding, standingParts } = VB['sim/society'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('HOUSE FAIL:', m); } };
 const near = (a, b) => Math.abs(a - b) < 1e-6;
 const it = G.generate(7, { cols: 180, rows: 130 }); let r; while (!(r = it.next()).done);
@@ -14,15 +14,15 @@ st.t = 2 * YEAR; check(near(houseCondition(st, f), 0.8), `two years of wear: ${h
 f.tarredUntil = YEAR; // tarred for the first year only
 check(near(houseCondition(st, f), 1 - 0.067 - 0.1), `a year tarred, a year not: ${houseCondition(st, f)}`);
 f.tarredUntil = 0; f.condition = 1; f.condAt = st.t; st.t += 20 * YEAR; check(houseCondition(st, f) === 0, 'never below 0');
-// prestige: holder 1.6 + 0.15 * condition; the spouse 1.3 + the same
-f.condition = 0.8; f.condAt = st.t; refreshPrestige(st);
-const base = (p) => prestigeParts(st, p)[0][1] + (p.age >= 55 ? 0.2 : 0);
-check(near(holder.prestige, base(holder) + 0.12), `holder prestige ${holder.prestige}`);
-if (sp !== null && st.pawns[sp].alive) check(near(st.pawns[sp].prestige, base(st.pawns[sp]) + 0.12), `spouse prestige ${st.pawns[sp].prestige}`);
-f.tarredUntil = st.t + 6 * YEAR; refreshPrestige(st);
-check(near(holder.prestige, base(holder) + 0.144), `tarred holder prestige ${holder.prestige}`);
+// standing: holder 1.6 + 0.15 * condition; the spouse 1.3 + the same
+f.condition = 0.8; f.condAt = st.t; refreshStanding(st);
+const base = (p) => standingParts(st, p)[0][1] + (p.age >= 55 ? 0.2 : 0);
+check(near(holder.standing, base(holder) + 0.12), `holder standing ${holder.standing}`);
+if (sp !== null && st.pawns[sp].alive) check(near(st.pawns[sp].standing, base(st.pawns[sp]) + 0.12), `spouse standing ${st.pawns[sp].standing}`);
+f.tarredUntil = st.t + 6 * YEAR; refreshStanding(st);
+check(near(holder.standing, base(holder) + 0.144), `tarred holder standing ${holder.standing}`);
 check(near(houseTerm(st, f), 0.144), 'tarred term 0.18 x 0.8');
-check(prestigeParts(st, holder).some(([l]) => /house/.test(l)), 'the parts name the house');
+check(standingParts(st, holder).some(([l]) => /house/.test(l)), 'the parts name the house');
 f.tarredUntil = 0;
 // the work: offered under 0.8, 4 hours, raises 0.1
 const K = KINDS.repair, posted = [];

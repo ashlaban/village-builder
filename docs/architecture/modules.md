@@ -171,7 +171,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - The meetings (`src/sim/meetings.js`, VB-206, VB-278): on autumn day 10, each village's meeting (`villageMeeting`) on its own 6-minute
   step from noon, in the order of village id, by the round's turns (`villageTurn` in `src/sim/occasions.js`): its living's interests
   (`refreshInterests` for those pawns, its households' first heirs ranked once each), its tie to its culture's centre (`updateTie`,
-  `src/sim/society.js`), the causes its adults take up and its meeting, whose lines go to the head of `st.meetingLog`; roles and prestige
+  `src/sim/society.js`), the causes its adults take up and its meeting, whose lines go to the head of `st.meetingLog`; roles and standing
   island-wide, and the living of no settlement, at the first village's; then its choice of gathering (`chooseGathering`,
   `src/sim/gathering.js`, VB-294: the hosts it would walk to, ranked by effective hours from its row of `st.villageHours`, and whether it
   offers to host, by the meeting's verb `gathering`). At 18:00 the gatherings are settled (`settleGatherings`: who goes where, lodging,
@@ -190,7 +190,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `st.recordYears`, one count per kind, village and year (a folded slot of the record becomes its count's index; slots are never removed).
 - Relationships (VB-127, VB-240): `src/sim/relations.js` owns familiarity (`pawn.ties`, on a decay scale per pawn), memories of events
   (`pawn.rel`, kinds of `SOCIAL.memories`, written by `remember`; a record exists only while it holds one) and the close-friend and enemy
-  bands (`pawn.bands`). Opinion is derived when read (`opinionOf`): kin standing, plus affinity (the pair's compatibility, shown as the tie
+  bands (`pawn.bands`). Opinion is derived when read (`opinionOf`): the kin bond, plus affinity (the pair's compatibility, shown as the tie
   grows), plus the memories. Talk grows the tie only; its kind is the bubble's. A band is checked by `touch` where a pair's tie or memories
   change (a talk, a job together, the day's hours at home, the kin floor, `remember`, the season's pass), never by a pass over pairs.
 - Encounters (VB-521): `src/sim/encounters.js` owns who meets whom, a table `ENCOUNTERS` of kinds (`house`, `outdoors`, `pasture`,

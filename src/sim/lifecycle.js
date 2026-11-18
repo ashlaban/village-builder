@@ -11,7 +11,7 @@ VB['sim/lifecycle'] = (() => {
   const { stillAtDeath, travelling, tileAt, placeOf } = VB['sim/agents'];
   const { heirRanking, transfer, succession, comeOfAge, refreshRoles } = VB['sim/heirs'];
   const { careForOrphans } = VB['sim/service'];
-  const { refreshPrestige } = VB['sim/society'];
+  const { refreshStanding } = VB['sim/society'];
   const { playerDied, clearMatchWish } = VB['sim/commands'];
   const { forget, dropTies, dailyTies, endGoodwill } = VB['sim/relations'];
   const { funeral } = VB['sim/occasions'];
@@ -71,7 +71,7 @@ VB['sim/lifecycle'] = (() => {
     inheritedHeld(st);
     endGoodwill(st, id); // after succession, which passes a holder's share on
     refreshRoles(st);
-    refreshPrestige(st);
+    refreshStanding(st);
     st.visualDirty = true;
   }
   function retireHolder(st, hhId) {
@@ -82,7 +82,7 @@ VB['sim/lifecycle'] = (() => {
     transfer(st, hh, r[0], 'retirement');
     inheritedHeld(st);
     refreshRoles(st);
-    refreshPrestige(st);
+    refreshStanding(st);
     return true;
   }
 

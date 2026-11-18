@@ -4,6 +4,7 @@
 // usage: node tools/same.js [--base REF] [--scenario founders,heirs] [--seeds 7,42] [--map tiny|small|medium|large] [--years N]
 //   defaults: base HEAD (so: the uncommitted work against the last commit), founders and heirs, seeds 7 and 42, tiny, 2 years
 //   --base REF   the commit the work started from (`git merge-base HEAD origin/main`), a branch or a tag
+//   --renamed OLD=NEW[,..]  a field renamed since the base (VB-703): the base's leaves under `.OLD` are read as `.NEW`, and the line says so
 //   --keep DIR   keep both trees' leaves under DIR (DIR/base, DIR/work: one file an entry and key, one line a leaf)
 //   prints `same: ...` and exits 0, or each differing entry and key with its first differing leaves (`pawns[41].household: 7 → 9`)
 //   and exits 1. A run takes about as long as `tools/sim.js` at the same scenario, map and years, the runs side by side.
@@ -31,21 +32,23 @@ function dump(tree, out, scenario, seed, map, years) {
 }
 
 // The differing leaves of two dumps: [{ file, count, first }], a file being `entry/key.txt`.
-function compare(a, b, show = 5) {
+function compare(a, b, show = 5, renamed = []) {
+  // a field renamed since the base: its leaves' keys, a whole segment of the path, read by the new name
+  const key = (k) => renamed.reduce((x, [was, now]) => x.split('.').map((seg) => seg.replace(/^[^[]+/, (n) => (n === was ? now : n))).join('.'), k);
   const files = (d) => (fs.existsSync(d) ? fs.readdirSync(d).flatMap((e) => fs.readdirSync(path.join(d, e)).map((f) => path.join(e, f))) : []);
   const read = (d, f) => { try { return fs.readFileSync(path.join(d, f), 'utf8'); } catch (e) { return ''; } };
   const out = [];
   for (const file of [...new Set([...files(a), ...files(b)])].sort()) {
     const ta = read(a, file), tb = read(b, file);
     if (ta === tb) continue;
-    const was = new Map(ta.split('\n').filter(Boolean).map((l) => l.split(' = '))), diffs = [];
+    const was = new Map(ta.split('\n').filter(Boolean).map((l) => l.split(' = ')).map(([k, v]) => [key(k), v])), diffs = [];
     for (const l of tb.split('\n').filter(Boolean)) {
       const [k, v] = l.split(' = ');
       if (!was.has(k)) diffs.push(`${k}: (absent) → ${v}`); else if (was.get(k) !== v) diffs.push(`${k}: ${was.get(k)} → ${v}`);
       was.delete(k);
     }
     for (const [k, v] of was) diffs.push(`${k}: ${v} → (absent)`);
-    out.push({ file, count: diffs.length, first: diffs.slice(0, show) });
+    if (diffs.length) out.push({ file, count: diffs.length, first: diffs.slice(0, show) });
   }
   return out;
 }
@@ -58,12 +61,14 @@ const run = (args) => new Promise((resolve, reject) => {
 
 async function main(argv) {
   const arg = (name, fallback) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : fallback; };
-  const known = ['--base', '--scenario', '--seeds', '--map', '--years', '--keep'];
+  const known = ['--base', '--scenario', '--seeds', '--map', '--years', '--keep', '--renamed'];
   const stray = argv.filter((a, i) => a.startsWith('--') ? !known.includes(a) : !known.includes(argv[i - 1]));
   if (stray.length) throw new Error(`unknown option ${stray[0]} (--help lists them)`);
   const base = arg('--base', 'HEAD'), map = arg('--map', 'tiny'), years = Number(arg('--years', 2));
   const scenarios = arg('--scenario', 'founders,heirs').split(','), seeds = arg('--seeds', '7,42').split(',').map(Number);
   if (!SIZES[map] || !Number.isInteger(years) || years < 0 || seeds.some((s) => !Number.isInteger(s))) throw new Error('bad --map, --years or --seeds');
+  const renamed = (arg('--renamed') || '').split(',').filter(Boolean).map((r) => r.split('='));
+  if (renamed.some((r) => r.length !== 2 || !r[0] || !r[1])) throw new Error('bad --renamed: OLD=NEW, comma-separated');
   const keep = arg('--keep'), tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-same-'));
   const out = keep ? path.resolve(keep) : path.join(tmp, 'out'), tree = path.join(tmp, 'base');
   const git = (...a) => cp.execFileSync('git', a, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -77,12 +82,12 @@ async function main(argv) {
       jobs.push([t, path.join(out, d), scenario, String(seed), map, String(years)]);
     const width = Math.max(1, os.availableParallelism?.() || os.cpus().length);
     await Promise.all(Array.from({ length: width }, async () => { while (jobs.length) await run(jobs.shift()); }));
-    diffs = compare(path.join(out, 'base'), path.join(out, 'work'));
+    diffs = compare(path.join(out, 'base'), path.join(out, 'work'), 5, renamed);
   } finally {
     git('worktree', 'remove', '--force', tree);
     if (!keep) fs.rmSync(tmp, { recursive: true, force: true });
   }
-  const what = `${scenarios.join(', ')} at seeds ${seeds.join(', ')}, ${map}, ${years} years, against ${base} (${commit})`;
+  const what = `${scenarios.join(', ')} at seeds ${seeds.join(', ')}, ${map}, ${years} years, against ${base} (${commit})${renamed.length ? `, with ${renamed.map(([a, b]) => `${a} read as ${b}`).join(', ')}` : ''}`;
   if (!diffs.length) { console.log(`same: the world and the state at seeding and each year's end, ${what}`); return; }
   for (const d of diffs) console.log(`${d.file.replace(/\.txt$/, '')}: ${d.count} differing leaves\n  ${d.first.join('\n  ')}`);
   console.log(`differs: ${diffs.length} keys, ${what}${keep ? `; leaves in ${keep}` : ' (--keep DIR keeps the leaves)'}`);

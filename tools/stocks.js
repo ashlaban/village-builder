@@ -79,7 +79,7 @@ const QUANTITIES = [
     none: 'no cooking that day (the meal is eaten uncooked) and each member loses a little health (VB-331)' },
   { id: 'house', of: 'farm', name: 'house condition', unit: '0..1', fields: ['farmstead.condition'], kinds: ['repair', 'restore'],
     covers: ['farmstead.condAt', 'farmstead.tarredUntil'],
-    none: 'a worn house gives less prestige (houseTerm, sim/rules); an empty farm wears to a ruin under 0.15 and takes its claimant '
+    none: 'a worn house gives less standing (houseTerm, sim/rules); an empty farm wears to a ruin under 0.15 and takes its claimant '
       + 'more hours to restore (sim/farmclaims)' },
   { id: 'fence', of: 'farm', name: 'fence condition', unit: '0..1 a stretch', fields: ['fence.cond'], kinds: ['mend'],
     covers: ['farmstead.fence', 'village.fence'],

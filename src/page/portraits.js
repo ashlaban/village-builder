@@ -121,8 +121,8 @@ function faceOf(id) {
 // id where it is not neutral (the living only: the dead hold and are held in no opinion). [{k (a key of BOND_PATHS), word, tone}].
 function bondsOf(of, id) {
   const out = [],
-    kin = Sim.standing(st, of, id);
-  if (kin) out.push({ k: kin, word: Sim.standingWord(st, of, id), tone: '', at: 'kin' });
+    kin = Sim.bond(st, of, id);
+  if (kin) out.push({ k: kin, word: Sim.bondWord(st, of, id), tone: '', at: 'kin' });
   if (st.pawns[of].died === null && st.pawns[id].died === null) {
     const word = Sim.opinionWord(Sim.opinionOf(st, of, id));
     if (word !== 'neutral') out.push({ k: word, word, tone: word.includes('friend') ? 'good' : 'bad', at: 'op' });

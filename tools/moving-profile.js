@@ -9,7 +9,7 @@ const targets = {
   'sim/round': ['movingRound', 'kinPressure'], 'sim/marriage': ['wed'],
   'sim/help': ['fillStores'], 'sim/farmclaims': ['claimFarms'], 'sim/expansion': ['startPlots'],
   'sim/settle': ['settleRound'], 'sim/service': ['takeServants'], 'sim/cottage': ['payOwed'],
-  'sim/society': ['refreshPrestige'],
+  'sim/society': ['refreshStanding'],
 };
 function wrap(fn, name) {
   return function (...args) {

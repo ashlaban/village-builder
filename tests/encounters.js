@@ -22,10 +22,10 @@ const place = (spots) => {
   }
 };
 const adults = st.living.filter((id) => st.pawns[id].age >= 16);
-// two adults of different households, of different turns, with no standing between them
+// two adults of different households, of different turns, with no bond between them
 let a = null, b = null;
 for (const x of adults) for (const y of adults)
-  if (a === null && st.pawns[x].household !== st.pawns[y].household && x % T.every !== y % T.every && R.standing(st, x, y) === null) { a = x; b = y; }
+  if (a === null && st.pawns[x].household !== st.pawns[y].household && x % T.every !== y % T.every && R.bond(st, x, y) === null) { a = x; b = y; }
 check(a !== null, 'two unrelated adults of different households and turns');
 const lone = (id) => st.pawns[id].household; // their housemates stay inside at home: nobody else can reach them
 
