@@ -697,7 +697,8 @@ VB['sim/plans'] = (() => {
     Stores.reserve(st, hh, plan, SEED, f ? seedNeed(st, hh, SEED_CROP) : 0, 'seed');
     for (const k of OTHER_CROPS) {
       const g = Stores.grainGood(k);
-      if (R.includes(k)) Stores.reserve(st, hh, plan, g, seedNeed(st, hh, k), 'seed');
+      if (R.includes(k) || (f && f.keeps && f.keeps.includes(k)))
+        Stores.reserve(st, hh, plan, g, seedNeed(st, hh, k), 'seed');
       else if (plan.reasons[g] === 'seed') Stores.release(st, hh, plan, g, 'seed');
     }
   }
