@@ -42,7 +42,11 @@ const page_ = path.join(os.tmpdir(), `vb-shot-${process.pid}.html`); fs.writeFil
     document.getElementById('genForm').dispatchEvent(new Event('submit', { cancelable: true }));
   }, [size, seed, scenario]);
   await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 180000 });
-  await page.click('[data-speed="0"]').catch(() => {});
+  // A new game opens on the choice of whom to play, which holds the game paused, covers the speed buttons and gives the game its speed back
+  // when it closes: leave it as Watch only does, then pause, so that the shots show the map alone and the run they were asked for.
+  await page.evaluate(() => { for (const q of ['#chooseWatch', '[data-speed="0"]']) { const b = document.querySelector(q); if (b) b.click(); } });
+  if (!await page.evaluate(() => document.querySelector('[data-speed="0"]').getAttribute('aria-pressed') === 'true' && document.getElementById('choose').hidden))
+    throw new Error('the page is not paused on the map: the choice of whom to play, or the speed buttons, changed');
   const t0 = Date.now();
   await page.evaluate(async ([n, h]) => {
     const st = window.__vb.st, Sim = window.__vb.Sim();

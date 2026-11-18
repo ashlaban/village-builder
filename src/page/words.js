@@ -4,6 +4,9 @@ const isWidow = (p) =>
   p.sex === 'f' &&
   Sim.spouseOf(st, p.id) === null &&
   st.unions.some((u) => (u.a === p.id || u.b === p.id) && u.end !== null);
+// Widowed, man or woman: unmarried now, with a marriage that ended (isWidow is the woman's, for her role's word)
+const isWidowed = (p) =>
+  Sim.spouseOf(st, p.id) === null && st.unions.some((u) => (u.a === p.id || u.b === p.id) && u.end !== null);
 const roleLine = (p) => {
   if (p.role === 'farmer' && p.sex === 'f')
     return isWidow(p) ? 'Widow holding the farm (änka)' : 'Holds the farm (bonde)';
@@ -219,25 +222,32 @@ function showPawn(id) {
         means: `The home has the means to marry: it holds ${yrs(bar.held)} of the ${yrs(bar.asked)} years asked`,
         hands: "The home needs a spouse's hands: no means are asked",
       }[bar.kind];
-  const rel =
-    (sp !== null
-      ? `${p.sex === 'f' ? 'Wife' : 'Husband'} of ${Sim.fullName(st.pawns[sp])}`
-      : isWidow(p)
-        ? 'Widowed'
-        : 'Unmarried') +
-    (p.pregnantUntil !== null
-      ? ', expecting a child'
-      : p.nursingUntil !== null && st.t < p.nursingUntil && (p.nursling === null || st.pawns[p.nursling].alive)
-        ? p.nursling !== null
-          ? `, nursing ${st.pawns[p.nursling].given}`
-          : ', nursing a baby'
-        : '');
+  // Its state in its family (VB-1033, VB-1035): whom it is married to is the spouse's chip, with the rings on its portrait; unmarried,
+  // widowed, expecting and nursing are marks beside the chips, each an icon with its words as the label and tooltip. Only the count of
+  // its children is written.
+  const nursing =
+    p.pregnantUntil === null &&
+    p.nursingUntil !== null &&
+    st.t < p.nursingUntil &&
+    (p.nursling === null || st.pawns[p.nursling].alive);
+  const marks = [
+    sp !== null ? null : isWidowed(p) ? ['widowed', 'Widowed'] : p.age >= 14 ? ['unmarried', 'Unmarried'] : null,
+    p.pregnantUntil !== null ? ['expecting', 'Expecting a child'] : null,
+    nursing ? ['nursing', p.nursling !== null ? `Nursing ${st.pawns[p.nursling].given}` : 'Nursing a baby'] : null,
+  ]
+    .filter(Boolean)
+    .map(
+      ([k, words]) =>
+        `<span class="state-mark" role="img" aria-label="${esc(words)}" title="${esc(words)}">${stateIcon(k)}</span>`,
+    )
+    .join('');
+  const rel = kids.length ? `${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : '';
   const v = st.villages[f.village];
   card(
     Sim.fullName(p),
     [
       `${roleLine(p)}, ${p.age}`,
-      `${status}. ${rel}${kids.length ? `, ${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : ''}`,
+      `${status}.${rel ? ` ${rel}` : ''}`,
       p.stake
         ? `Share in hand: ${p.stake} rations${p.owed ? `, ${p.owed} still owed` : ''}`
         : p.advocate
@@ -250,7 +260,7 @@ function showPawn(id) {
     {
       badge: faceImg(id, 'badge'),
       stats: pawnStats(id) + traitsHTML(id),
-      links: (sp !== null ? pawnChip(sp) : '') + farmChip(f) + villageChip(v),
+      links: marks + (sp !== null ? pawnChip(sp, '', id) : '') + farmChip(f) + villageChip(v),
     },
   );
   showRelations(id);
@@ -304,14 +314,16 @@ function showRelations(id) {
       const word = Sim.opinionWord(x.opinion),
         kin = Sim.standingWord(st, id, x.id),
         why = Sim.reasonsOf(st, id, x.id).find((r) => r.label !== kin);
-      const detail = [kin, word === 'neutral' ? null : word, !kin && why ? why.label.toLowerCase() : null]
-        .filter(Boolean)
-        .join(' · ');
+      // the kin bond and the opinion's band are the portrait's badges (VB-1026); their words are the row's tooltip (VB-1033), and what
+      // is written is what has no icon: the largest memory of one who is no kin
+      const reason = !kin && why ? why.label.toLowerCase() : '',
+        tip = [kin, word === 'neutral' ? null : word, reason].filter(Boolean).join(' · ');
       const tone = x.opinion >= 0.25 ? 'pos' : cold(x.opinion) ? 'neg' : '';
-      return `<button type="button" class="op" data-pawn="${x.id}">${faceImg(
+      return `<button type="button" class="op" data-pawn="${x.id}"${tip ? ` title="${esc(tip)}"` : ''}>${faceImg(
         x.id,
         'mini',
-      )}${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(detail)}</i>${meter({
+        id,
+      )}${esc(Sim.fullName(st.pawns[x.id]))}<i>${esc(reason)}</i>${meter({
         value: x.opinion * 100,
         signed: true,
         tone: tone === 'pos' ? 'good' : tone === 'neg' ? 'bad' : '',

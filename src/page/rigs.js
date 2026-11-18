@@ -630,6 +630,7 @@ const HAIRS = [
   [76, 58, 44],
 ];
 const LINEN = [242, 238, 226];
+const GREY = [218, 216, 210]; // hair gone grey (VB-1029)
 const hex = (c, f = 1) =>
   ((Math.min(255, c[0] * f) << 16) | (Math.min(255, c[1] * f) << 8) | Math.min(255, c[2] * f)) >>> 0;
 // A pawn's colours and headgear, from its `look` seed: the same on the map and in its portrait.
@@ -645,10 +646,29 @@ function lookOf(p) {
     beard: p.sex === 'm' && r() < 0.6,
     hood: p.sex === 'm' && r() < 0.45,
     hoodCol: pick(DYES),
+    greyFrom: 38 + r() * 14, // the age its hair begins to grey (drawn last: the picks before it stay as they were)
   };
+}
+// How a look has aged (VB-1029): hair greys in three steps of six years from the pawn's own age for it, to grey; a beard comes at 18.
+// {grey (0 to 3), hair (the colour now), beard}: the same on the map and in the portrait.
+const GREY_STEP = 6;
+function agedLook(look, age) {
+  const grey = age < look.greyFrom ? 0 : Math.min(3, 1 + Math.floor((age - look.greyFrom) / GREY_STEP)),
+    f = grey / 3;
+  return { grey, hair: look.hair.map((v, i) => Math.round(v + (GREY[i] - v) * f)), beard: look.beard && age >= 18 };
+}
+// A rig's hair and beard as its pawn's age has them: asked each frame the pawn is drawn, and applied when the age's step changes.
+function ageRig(R, p) {
+  const aged = agedLook(R.look, p.age),
+    sig = `${aged.grey}|${aged.beard}`;
+  if (R.look.aged === sig) return;
+  R.look.aged = sig;
+  for (const [sprite, f] of R.look.hairy) sprite.tint = hex(aged.hair, f);
+  if (R.look.beardSprite) R.look.beardSprite.visible = aged.beard;
 }
 function makeRig(p, married) {
   const look = lookOf(p);
+  look.hairy = []; // the sprites tinted by the hair's colour, each with its shade: ageRig tints them
   const S = (name, tint, ax = 0.5, ay = 0) => {
     const s = new PIXI.Sprite(atlas[name]);
     s.anchor.set(ax, ay);
@@ -717,6 +737,7 @@ function makeRig(p, married) {
     const b = S('braid', hex(look.hair, 0.9), 0.5, 0);
     b.position.set(-9, -16);
     head.addChild(b);
+    look.hairy.push([b, 0.9]);
   }
   head.addChild(S('head', hex(look.skin), 0.46, 1));
   if (p.sex === 'm') {
@@ -724,6 +745,8 @@ function makeRig(p, married) {
       const bd = S('beard', hex(look.hair, 0.95), 0.5, 0);
       bd.position.set(3, -9);
       head.addChild(bd);
+      look.hairy.push([bd, 0.95]);
+      look.beardSprite = bd;
     }
     const hood = S('hood', hex(look.hoodCol), 0.47, 1);
     hood.position.set(0, 7);
@@ -733,6 +756,7 @@ function makeRig(p, married) {
     hair.position.set(0, -2.5);
     hair.visible = !look.hood;
     head.addChild(hair);
+    look.hairy.push([hair, 1]);
     look.hoodSprite = hood;
     look.hairSprite = hair;
   } else if (married) {
@@ -743,6 +767,7 @@ function makeRig(p, married) {
     const hair = S('hair', hex(look.hair), 0.46, 1);
     hair.position.set(0, -2.5);
     head.addChild(hair);
+    look.hairy.push([hair, 1]);
     const band = S('band', undefined, 0.5, 0.5);
     band.position.set(0, -19);
     band.rotation = -0.15;
@@ -763,7 +788,9 @@ function makeRig(p, married) {
   const heldF = new PIXI.Sprite();
   heldF.anchor.set(0.5, 0.1);
   aF.hand.addChild(heldF);
-  return { root, legB, legF, upper, armB: aB.c, armF: aF.c, head, tool, back, shoulder, heldB, heldF, look, shadow };
+  const R = { root, legB, legF, upper, armB: aB.c, armF: aF.c, head, tool, back, shoulder, heldB, heldF, look, shadow };
+  ageRig(R, p);
+  return R;
 }
 
 // Poses: angles in radians. Arm 0 hangs down, negative swings forward and up. Upper body leans forward with positive angles.
