@@ -13,6 +13,11 @@
      4. The sections "Where a field could go" and "Your changes to the custom's plan" are gone. A candidate tile keeps its tint (the
         estimated yield, three classes); the number is in the menu of the tile clicked, whose head shows the tint beside it. What the
         head changed is marked in yellow where it lies (a bar's frame, a disc's ring); a single change is no longer undone alone.
+     Then, 18 November, five more: (5) the reset is an icon with a tooltip (a new glyph, an arrow turned back); (6) so is going on
+     with the plan; (7) the land's outline is one line round each group of joined tiles, with no tile drawn inside it; (8) the
+     top bar's "marks what Torsten reckons" is gone (the wits icon still stands before each estimate); (9) only known events are
+     shown: who left is the past and is in the winter's outcome, and Karin, hired at the moving round, has a row that is empty
+     until the day she comes. "A match" and "Astrid left" are no longer on the strip.
      Drawn: Torsten's day 9 chosen, the river tile clicked, "Break a field" placed; three of its nine days fit, six go to summer.
      Same household (Norrgården, year 3, spring: Torsten 32 and Märta 29, four fields, six meadows, the maid gone in winter).
      Drawn for 1440 by 900. -->
@@ -211,6 +216,11 @@
   .menu .about .ti { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 13.5px; margin-bottom: 2px; }
   .menu .about .ti .ico:last-child { margin-left: auto; color: var(--muted); }
   .menu .about .stat { min-height: 21px; }
+  .tb { position: relative; width: 38px; height: 38px; padding: 0; justify-content: center; border-radius: 50%; }
+  .tb.reset { margin-left: auto; }
+  .tb:hover::after { content: attr(data-tip); position: absolute; right: 0; top: 44px; padding: 4px 9px; border-radius: 8px; background: var(--ink); color: #fff; font: 400 12.5px 'Alegreya Sans', sans-serif; white-space: nowrap; z-index: 9; }
+  .mh.kn, .row.kn { margin-top: 8px; } .mh.kn { color: var(--muted); } .mh.kn small { margin-left: auto; font-size: 12px; }
+  .cellq.come { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--accent); background: rgba(35, 104, 90, 0.12); white-space: nowrap; }
 </style>
 <body class="mine">
 <div class="stage">
@@ -457,8 +467,11 @@ function start(draw) {
 }
 // ======== this variation's own drawing ========
 P.chevron = '<path d="M5 9l7 7 7-7"/>'; P.mow = "<path d=\"M6 21L15 4M15 4c4 0 6 3 6 7-2-3-5-4-8-3.5\"/>";
+P.undo = '<path d="M4 9h10a5 5 0 0 1 0 10H9M4 9l4-4M4 9l4 4"/>'; // new: put back, for the reset
 document.getElementById('top').innerHTML = `<h1>The spring plan at Norrgården</h1><span class="when">${seasonIc(0)}Year 3, spring, day 1 · paused</span>` +
-  whoseHTML() + `<button type="button" class="reset">${ic('back', 14)}Reset to the custom’s plan</button>` + bellHTML() + `<button type="button" class="primary">${ic('tick', 15)}Go on with this plan</button>`;
+  `<button type="button" class="tb reset" data-tip="Reset to the custom’s plan" aria-label="Reset to the custom’s plan">${ic('undo', 20)}</button>` +
+  `<button type="button" class="tb" data-tip="Remind me when a plan is due: on" aria-label="Reminders: on" style="color:var(--accent)">${bellIc(20)}</button>` +
+  `<button type="button" class="tb primary" data-tip="Go on with this plan" aria-label="Go on with this plan">${ic('tick', 20)}</button>`;
 const DY = 0;
 // the day chosen: where the next action goes
 const SEL = { mine: { m: 't', day: 9 } };
@@ -478,14 +491,17 @@ function quietMap(view) {
     if (why === 'too wet') c += `<div class="whyno" style="left:${x}px;top:${y + DY + 14}px">too wet for a field</div>`; // drawn pointed at
   }
   // the farm's land: the house, the fields and the meadows; an edge that only one of them has is the land's border
-  const own = [[720, 445], ...FIELDS, ...MEADOWS], edges = new Map();
+  // tiles are 72 apart, so a hex of that width (r 41.6) meets its neighbours; an edge whose middle no other edge shares is border
+  const own = [[720, 445], ...FIELDS, ...MEADOWS], all = [];
+  let fillD = '';
   for (const [x, y] of own) {
-    s += `<polygon points="${hex(x, y)}" fill="rgba(255,255,255,.2)" stroke="rgba(255,255,255,.45)" stroke-width="1"/>`;
-    const p = hex(x, y).split(' ').map((q) => q.split(',').map(Number));
-    for (let n = 0; n < 6; n++) { const a = p[n], b = p[(n + 1) % 6], key = `${Math.round((a[0] + b[0]) / 4)},${Math.round((a[1] + b[1]) / 4)}`; edges.has(key) ? edges.set(key, null) : edges.set(key, [a, b]); }
+    const p = hex(x, y, 41.6).split(' ').map((q) => q.split(',').map(Number));
+    fillD += `M${p.join('L')}Z`;
+    for (let n = 0; n < 6; n++) all.push([p[n], p[(n + 1) % 6]]);
   }
-  const border = [...edges.values()].filter(Boolean).map(([a, b]) => `M${a}L${b}`).join('');
-  s += `<path d="${border}" fill="none" stroke="rgba(20,34,38,.75)" stroke-width="7" stroke-linecap="round"/><path d="${border}" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>`;
+  const mid = ([a, b]) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const border = all.filter((e) => all.filter((f) => Math.hypot(mid(e)[0] - mid(f)[0], mid(e)[1] - mid(f)[1]) < 4).length === 1).map(([a, b]) => `M${a}L${b}`).join('');
+  s += `<path d="${fillD}" fill="rgba(255,255,255,.2)" stroke="none"/><path d="${border}" fill="none" stroke="rgba(20,34,38,.75)" stroke-width="7" stroke-linecap="round"/><path d="${border}" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>`;
   for (const [x, y] of MEADOWS) c += disc(x, y, 'rake', V.who.rake);
   for (const [x, y] of FIELDS) c += disc(x, y, 'sow', V.who.sow);
   c += `<div class="land" style="left:612px;top:${206 + DY}px">Norrgården’s land</div>`;
@@ -518,13 +534,15 @@ function draw(view) {
   const hint = {
     mine: [`${seasonIc(1)}the summer is free · ${ic('home', 14)}ask for a hand`, `${face('m', true)}Märta has 2½ d free · ${ic('fish', 14)}the river`] }[view];
   document.getElementById('lft').innerHTML = `<div class="unfit"><h2>${ic('no', 15)}Does not fit this season</h2>${UNFIT[view].map((u, i) =>
-    `<div class="it"><span class="badge">${ic(JOB[u.k].ic, 16)}</span><div><span class="what">${u.what}</span> <span class="why">· ${u.why}</span></div><div class="hint">${ic('next', 12)}${hint[i]}</div></div>`).join('')}</div>` +
-    `<div class="ppl">${PEOPLE.a}${PEOPLE.k}</div>`;
+    `<div class="it"><span class="badge">${ic(JOB[u.k].ic, 16)}</span><div><span class="what">${u.what}</span> <span class="why">· ${u.why}</span></div><div class="hint">${ic('next', 12)}${hint[i]}</div></div>`).join('')}</div>`;
   document.getElementById('rgt').innerHTML = `<h2>${ic('sack', 15)}Targets</h2>${targetsHTML(view)}<h2>${seasonIc(3)}What came of the winter’s plan</h2>${lastHTML()}`;
   document.getElementById('strip').innerHTML =
     `<div class="key" style="margin:0"><span><u class="ch"></u>daily chores</span><span><u style="width:0;height:0;background:none;border:5px solid transparent;border-top:7px solid var(--ink);margin-top:5px"></u>the day chosen</span></div>` +
     `<div class="hdr">${tl(`<div class="d12">${Array.from({ length: 12 }, (_, k) => `<span>${k + 1}</span>`).join('')}</div>`, `<div class="s3">${[1, 2, 3].map((q) => `<span>${seasonIc(q)}</span>`).join('')}</div>`)}</div>` +
-    `<div class="hdr" style="text-align:left">no day</div>` + member(view, 't') + member(view, 'm');
+    `<div class="hdr" style="text-align:left">no day</div>` + member(view, 't') + member(view, 'm') +
+    // a known event, at its date: Karin was hired at the moving round and comes on the first day of summer
+    `<div class="mh kn">${face('k')}<b class="n">Karin</b><span class="muted">14</span><small>hired at the moving round</small></div>` +
+    `<div class="row kn">${tl('<div class="lane ghost" style="height:26px"></div>', `<div class="s3"><span class="cellq come">${face('k', true)}day 1</span><span class="cellq"></span><span class="cellq"></span></div>`)}</div><div></div>`;
 }
 document.body.className = 'mine';
 draw('mine');
