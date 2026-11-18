@@ -989,7 +989,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .clock strong, .clock span { display: inline; }
   .tile .sheet-head strong { font-size: 16px; }
 }
-/* ---- Options (VB-1123): the themes as cards, each with a sample of its own look. A sample shows its theme whatever theme is on, so its
+/* ---- Options (VB-1161): the themes as cards, each with a sample of its own look. A sample shows its theme whatever theme is on, so its
    colours are written out here, not taken from the palette. ---- */
 .options .menu-label { margin: 0; }
 .themes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1012,7 +1012,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 .theme-pv.mural i { border: 1.5px solid #2c201c; background: #faf6e8; box-shadow: inset 0 0 0 1px #faf6e8, inset 0 0 0 2px #a04a30; }
 .theme-pv.mural i:first-of-type { background: #a04a30; box-shadow: inset 0 0 0 1px #a04a30, inset 0 0 0 2px #faf6e8; }
 
-/* ---- The mural theme (VB-1123): the interface as the map is painted, a church mural's flat pigment and dark contour on lime plaster. Its
+/* ---- The mural theme (VB-1161): the interface as the map is painted, a church mural's flat pigment and dark contour on lime plaster. Its
    pieces: a panel is the band (plaster between two sawtooth borders); a head is black letter in red ochre; a thing pressed is a ringed
    medallion, a name or a word a scroll, the two together a labelled button; pressed fills with red ochre; a level is counted beads.
    The palette and the pieces every panel shares are here; the icons and each screen's own pieces follow (the task's notes). ---- */
@@ -1114,7 +1114,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   box-shadow: 0 0 0 3px var(--node), 0 0 0 5px var(--accent), 0 0 0 6.5px var(--ink), 0 8px 16px rgba(20, 14, 10, 0.5); }
 :root[data-theme="mural"] .stat-ico, :root[data-theme="mural"] .trait.high, :root[data-theme="mural"] .trait.low { color: var(--accent); }
 :root[data-theme="mural"] .choose-bar { padding-top: 12px; padding-bottom: 12px; }
-/* the icons (VB-1124): an icon that carries a stencil (page/icons, stencil) shows it in this theme, in one pigment, its parts held apart
+/* the icons (VB-1162): an icon that carries a stencil (page/icons, stencil) shows it in this theme, in one pigment, its parts held apart
    by gaps in the colour of the ground it lies on; a pressed button's ground is the red ochre */
 .ico .i-sten { display: none; }
 :root[data-theme="mural"] .ico .i-line { display: none; }
@@ -1123,7 +1123,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 .i-sten > .l { fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; }
 .i-sten > .c { fill: none; stroke: var(--ico-bg, var(--node)); stroke-width: 1.5; stroke-linecap: round; }
 :root[data-theme="mural"] :is([aria-pressed="true"], [aria-selected="true"], .act-bar [aria-expanded="true"], button.primary) { --ico-bg: var(--accent); }
-/* the start screen (VB-1126): the scenario's name a head; a card with a picture a framed panel, square, the chosen one in a double
+/* the start screen (VB-1164): the scenario's name a head; a card with a picture a framed panel, square, the chosen one in a double
    ring; the island's picture framed as the minimap is; a callout a medallion with its words on a scroll; a field an ink line */
 :root[data-theme="mural"] :is(.start-side h2, .choose-card h2, .choose h1) { font-family: var(--head); font-style: normal; font-weight: 700; color: var(--accent); }
 :root[data-theme="mural"] .start-side h2 { font-size: 28px; }
@@ -1144,7 +1144,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 :root[data-theme="mural"] .year div { border-top: 3px solid var(--accent); }
 :root[data-theme="mural"] :is(.genscreen, .saves-screen, .drawer, .editor) :is(input, select) { border: 1.5px solid var(--ink); }
 :root[data-theme="mural"] .start-bar { padding-top: 14px; padding-bottom: 14px; }
-/* Whom to play (VB-1127): a member of the household is a medallion with the name under it, the chosen one in the double ring with the
+/* Whom to play (VB-1165): a member of the household is a medallion with the name under it, the chosen one in the double ring with the
    name on a red scroll; what a position can do is a fact, not a thing pressed, so it is an icon and its words with no scroll round them */
 :root[data-theme="mural"] .people { gap: 6px 4px; }
 :root[data-theme="mural"] .person { gap: 3px; padding: 4px 0 2px; border: 0; border-radius: 0; background: none; }
@@ -1162,7 +1162,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 :root[data-theme="mural"] .pchips { gap: 4px 16px; }
 :root[data-theme="mural"] .pchip { padding: 1px 0; border-radius: 0; background: none; }
 :root[data-theme="mural"] .hhead img { width: 48px; height: 48px; }
-/* the family tree (VB-1128): a person is a square plaster tag in an ink line, the chosen one in red ochre; kinship is drawn in ink */
+/* the family tree (VB-1166): a person is a square plaster tag in an ink line, the chosen one in red ochre; kinship is drawn in ink */
 :root[data-theme="mural"] #treeSvg .tn rect { rx: 0; fill: var(--node); stroke: var(--ink); stroke-width: 1.5; }
 :root[data-theme="mural"] #treeSvg .tn.focus rect { stroke-width: 2.5; }
 :root[data-theme="mural"] #treeSvg .tn.sel rect, :root[data-theme="mural"] #treeSvg .tn.focus.sel rect { stroke: var(--accent); stroke-width: 3.5; }
@@ -1172,19 +1172,19 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 :root[data-theme="mural"] :is(.tree-head, .tree-modes, .tree-caption) { border-bottom: 1.5px dotted var(--edge); }
 :root[data-theme="mural"] .tree-info { border-left: 1.5px dotted var(--edge); }
 :root[data-theme="mural"] .tree-card { padding: 8px 0; }
-/* a person or a place in a list (VB-1128): its picture a small medallion, its name in the scroll's hand; rows parted by a dotted line */
+/* a person or a place in a list (VB-1166): its picture a small medallion, its name in the scroll's hand; rows parted by a dotted line */
 :root[data-theme="mural"] img.mini { border: 1.5px solid var(--ink); border-radius: 50%; background: #e2c684; }
 :root[data-theme="mural"] .row { border-radius: 0; border-top: 1.5px dotted var(--edge); }
 :root[data-theme="mural"] .row .who { font: italic 700 15.5px/1.25 var(--scroll); }
 :root[data-theme="mural"] .row .who i { font: 400 13px/1.3 'Alegreya Sans', system-ui, sans-serif; }
 :root[data-theme="mural"] .roster { border-top: 0; }
-/* a supply's seasons (VB-1128): square cells in an ink line, what is held in green earth; red is kept for a shortfall */
+/* a supply's seasons (VB-1166): square cells in an ink line, what is held in green earth; red is kept for a shortfall */
 :root[data-theme="mural"] .supply .cell { border-radius: 0; background: color-mix(in srgb, var(--ink) 9%, transparent); box-shadow: inset 0 0 0 1.5px var(--ink); }
 :root[data-theme="mural"] .supply .cell > i.own { background: var(--good); box-shadow: inset 0 0 0 1.5px var(--ink); }
 :root[data-theme="mural"] .supply .cell > i.with { background: repeating-linear-gradient(-45deg, var(--good) 0 2px, transparent 2px 6px); }
 :root[data-theme="mural"] .supply .cell.short { background: color-mix(in srgb, var(--bad) 14%, transparent); box-shadow: inset 0 0 0 1.5px var(--bad); }
 :root[data-theme="mural"] .supply-nums { border-radius: 0; background: none; border: 1.5px dotted var(--edge); }
-/* the rest of the screens (VB-1129): the editor's heads, native boxes and sliders in the red ochre, the key of a meter's marks as the
+/* the rest of the screens (VB-1167): the editor's heads, native boxes and sliders in the red ochre, the key of a meter's marks as the
    wedges it draws, the loader as a painted band, and room for the band's borders on the small panels */
 :root[data-theme="mural"] { accent-color: var(--accent); }
 :root[data-theme="mural"] :is(.editor h2, .drawer h2, .play-offer h2, .game-name, .loader p) { font-family: var(--head); font-style: normal; font-weight: 700; }

@@ -15,7 +15,7 @@ function meter(o) {
   const fill = o.signed
     ? `left:${Math.min(at, mid).toFixed(1)}%;width:${Math.abs(at - mid).toFixed(1)}%`
     : `width:${at.toFixed(1)}%`;
-  // where the fill starts and ends, for a theme that draws the level another way than as a bar's width (the mural's beads, VB-1123)
+  // where the fill starts and ends, for a theme that draws the level another way than as a bar's width (the mural's beads, VB-1161)
   const span = o.signed
     ? `--lo:${Math.min(at, mid).toFixed(1)}%;--hi:${Math.max(at, mid).toFixed(1)}%`
     : `--lo:0%;--hi:${at.toFixed(1)}%`;

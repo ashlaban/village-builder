@@ -210,7 +210,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Saves in the page (VB-214) are `src/page/saves.js`: `{build, savedAt, label, save: Sim.save(st)}`, gzipped, in IndexedDB (an auto slot and
   three by hand for each archipelago) or a file; the build id is written by `build.py`, and a save of another build is refused by the
   page, not by `Sim.load`. The landing page and the loader (`src/page/loader.js`) lead to it; it keeps nothing in `st`.
-- The interface's theme (VB-1123) is `src/page/options.js`: the main menu's Options screen, and `glass` (the default, the stylesheet as it
+- The interface's theme (VB-1161) is `src/page/options.js`: the main menu's Options screen, and `glass` (the default, the stylesheet as it
   stands) or `mural`, set as `data-theme` on the page's root and kept in localStorage (`vb.theme`), never in `st` or a save. A theme is the
   rules under `:root[data-theme="..."]` at the end of `src/head.html`; the meter gives its fill's start and end as `--lo` and `--hi`, so a
   theme can draw a level another way than as a bar's width.

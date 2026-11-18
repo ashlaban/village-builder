@@ -143,7 +143,7 @@ async function main() {
       if (q('#actMenu').hidden || !q('#actMenu .act-row, #actMenu .act-empty')) fail(`the ${g} group's list did not open`);
     }
   }
-  // Options (VB-1123): the main menu opens it, a theme's card sets the theme on the page's root and keeps it, and Glass takes it off
+  // Options (VB-1161): the main menu opens it, a theme's card sets the theme on the page's root and keeps it, and Glass takes it off
   click($('menuBtn'), 'main menu');
   if (!shown('landing')) fail('the main menu did not open');
   click($('landOptions'), 'Options');
@@ -156,7 +156,7 @@ async function main() {
     if (kept() !== undefined && kept() !== 'mural') fail(`the theme kept is ${kept()}, not mural`);
     if (!/--lo:0%;--hi:/.test((q('.meter') || { getAttribute: () => '' }).getAttribute('style') || '')) fail('a meter does not say where its fill starts and ends, for the mural\'s beads');
     for (const sel of ['#settlersBtn .ico', '#pauseBtn .ico, [data-speed="0"] .ico', '.stat-ico .ico', '.trait .ico'])
-      if (q(sel) && !q(sel).querySelector('.i-sten')) fail(`an icon has no stencil for the mural theme (VB-1124, VB-1125): ${sel}`);
+      if (q(sel) && !q(sel).querySelector('.i-sten')) fail(`an icon has no stencil for the mural theme (VB-1162, VB-1163): ${sel}`);
     click(q('[data-theme-choice="glass"]'), 'the Glass theme');
     if (root.dataset.theme) fail('Glass did not take the theme off the page');
     click($('optionsClose'), 'Close');

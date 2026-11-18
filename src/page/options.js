@@ -1,4 +1,4 @@
-// @sys page/options: the main menu's Options screen and the interface's theme (VB-1123): glass or mural, the page's choice, kept in localStorage
+// @sys page/options: the main menu's Options screen and the interface's theme (VB-1161): glass or mural, the page's choice, kept in localStorage
 // ---- options: the interface's theme ----
 // A theme is a set of styles under :root[data-theme] in src/head.html; glass, the default, is the stylesheet as it stands and sets no
 // attribute. The choice is the page's and the device's: kept in localStorage, never in st or a save. A theme's card shows a sample of

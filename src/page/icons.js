@@ -3,7 +3,7 @@ const svgIcon = (w, h, body, attrs = '') =>
   `<svg class="ico" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" focusable="false"${attrs}>${body}</svg>`;
 const ICON_STROKE =
   ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
-// The mural theme's icons (VB-1124): each icon may carry a second drawing, a stencil, as the stencilled marks of a painted vault: flat
+// The mural theme's icons (VB-1162): each icon may carry a second drawing, a stencil, as the stencilled marks of a painted vault: flat
 // shapes in one pigment, held apart by gaps. Both drawings are in the icon, and the theme's styles show one of them (src/head.html), so
 // a change of theme redraws nothing. A stencil is drawn on a 24 box and scaled to its icon's; its shapes are filled, but for those of
 // class "l" (a line in the pigment: a handle, a stem) and "c" (a cut through a shape, in the ground's colour).
@@ -143,7 +143,7 @@ const ICON = {
   close: svgIcon(16, 16, '<path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/>', ICON_STROKE),
   chevron: svgIcon(16, 16, '<path d="M3.5 6l4.5 4.5L12.5 6"/>', ICON_STROKE),
 };
-// The stencils of the bars' and the panels' icons (VB-1124), by ICON's keys.
+// The stencils of the bars' and the panels' icons (VB-1162), by ICON's keys.
 const PEOPLE_STEN =
   '<path d="M10 20.5c0-5 2.2-8 5.5-8s5.5 3 5.5 8z"/><circle cx="15.5" cy="7.6" r="2.7"/>' +
   '<path d="M2.5 21.5c0-5.5 2.6-9 6-9s6 3.5 6 9z"/><circle cx="8.5" cy="8" r="3.1"/>';
@@ -228,7 +228,7 @@ const ACT_PATHS = {
   minus: '<path d="M5 12h14"/>',
   ale: '<path d="M6 7h10v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 10h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2M6 7c0-2 2-3 4-2 1-1.5 4-1.5 5 .5"/>', // a tankard
 };
-// The same acts as stencils (VB-1124), by ACT_PATHS' keys.
+// The same acts as stencils (VB-1162), by ACT_PATHS' keys.
 const HOUSE_STEN = 'M2.5 11.5l9.5-8.5 9.5 8.5h-2.8V21H5.3v-9.5z';
 const LEAVES_STEN =
   '<path d="M12 12.5c0-4.5-3-6.5-7.5-6.5 0 4.5 3 6.5 7.5 6.5z"/><path d="M12 14.5c0-3.5 2.5-5.5 7-5.5 0 4-2.5 5.5-7 5.5z"/>';
@@ -379,7 +379,7 @@ const GOOD_PATHS = {
   ale: '<path d="M5 6h10v14H5zM15 9h2.5a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H15M5 9.5h10M8 6V4.5h4V6"/>',
   plan: '<path d="M6 3h12v18H6zM9 8l1.2 1.2L12.5 7M14 8.5h2M9 13l1.2 1.2 2.3-2.2M14 13.5h2M9 18h7"/>',
 };
-// The same goods and measures as stencils (VB-1125), by GOOD_PATHS' keys.
+// The same goods and measures as stencils (VB-1163), by GOOD_PATHS' keys.
 const HEART_STEN =
   'M12 20.5C5 15.5 3 12 3 8.8 3 6 5 4.2 7.3 4.2c1.9 0 3.6 1.1 4.7 3 1.1-1.9 2.8-3 4.7-3C19 4.2 21 6 21 8.8c0 3.2-2 6.7-9 11.7z';
 const CHILD_STEN =
@@ -471,7 +471,7 @@ const SEASON_PATHS = [
   '<path d="M3 11c0-5 3-8 8-8 0 5-3 8-8 8zM3 11l5-5M2 12l1-1"/>',
   '<path d="M7 1v12M1.8 4l10.4 6M12.2 4L1.8 10M5.5 2L7 3.5 8.5 2M5.5 12L7 10.5 8.5 12"/>',
 ];
-// The seasons as stencils (VB-1125), drawn on the 24 box as the others are.
+// The seasons as stencils (VB-1163), drawn on the 24 box as the others are.
 const SEASON_STEN = [
   ACT_STEN.sow,
   '<circle cx="12" cy="12" r="4.8"/>' +
@@ -511,7 +511,7 @@ const TRAIT_PATHS = {
   husbandry: GOOD_PATHS.beast,
   wits: '<path d="M9 18h6M10 21h4M8.5 15C6.5 13.5 6 11.5 6 10a6 6 0 0 1 12 0c0 1.5-.5 3.5-2.5 5z"/>',
 };
-// The same traits as stencils (VB-1125).
+// The same traits as stencils (VB-1163).
 const TRAIT_STEN = {
   generosity:
     '<path d="M12 10.5c-3.3-2.2-5-3.8-5-6a2.5 2.5 0 0 1 5-.9 2.5 2.5 0 0 1 5 .9c0 2.2-1.7 3.8-5 6z"/>' +
@@ -552,7 +552,7 @@ const BOND_PATHS = {
   dislikes: `<path d="${HEART}M4 4l16 16"/>`,
   enemy: '<path d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5M17 17l3 3M7 17l-3 3"/>',
 };
-// The same bonds as stencils (VB-1125): a friend's heart is its outline, a close friend's is filled, a dislike's is broken.
+// The same bonds as stencils (VB-1163): a friend's heart is its outline, a close friend's is filled, a dislike's is broken.
 const BOND_STEN = {
   spouse: RINGS_STEN,
   parent:
@@ -582,7 +582,7 @@ const STATE_PATHS = {
     '<circle cx="9" cy="6" r="2.8"/><path d="M4.5 21c0-5 1.5-9 4.5-9 1.8 0 3.2 1 4.2 2.8"/><circle cx="16.5" cy="13" r="1.9"/>' +
     '<path d="M12.2 18.2c1.2-2.2 6.4-2.2 7.8-.2 0 2-1.8 3-3.9 3s-3.9-1-3.9-2.8z"/>',
 };
-// The same states as stencils (VB-1125).
+// The same states as stencils (VB-1163).
 const STATE_STEN = {
   unmarried: '<circle class="l" cx="12" cy="14.5" r="5.5"/><path d="M10.5 7L12 4l1.5 3z"/>',
   widowed:

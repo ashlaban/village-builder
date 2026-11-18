@@ -21,7 +21,7 @@ const SIGN_PATHS = {
   shield: 'M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z',
   people: 'M6 8a3 3 0 1 0 6 0 3 3 0 1 0-6 0M3 20c0-5 3-7 6-7s6 2 6 7M15 5.5a2.5 2.5 0 1 1 0 5M17 13c2.5.5 4 2.5 4 6',
 };
-// The same signs as stencils, for the mural theme (VB-1126; page/icons, stencil): most are icons the interface has already.
+// The same signs as stencils, for the mural theme (VB-1164; page/icons, stencil): most are icons the interface has already.
 const SIGN_STEN = {
   house: ACT_STEN.home,
   field: GOOD_STEN.grain,
