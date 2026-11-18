@@ -4,7 +4,7 @@ VB['sim/opportunities'] = (() => {
   const Culture = VB['culture'];
   const { cal, SERVICE, DAY, YEAR } = VB['sim/rules'];
   const { walkable } = VB['sim/routes'];
-  const { villageOf, settlementIdOf, fullName, spouseOf, childrenOf, holdingOf } = VB['sim/records'];
+  const { villageOf, settlementIdOf, fullName, spouseOf, childrenOf, holdingOf, spokesmanOf } = VB['sim/records'];
   const { ASK } = VB['sim/kinds'];
   const { claimable, barred: claimBar } = VB['sim/farmclaims'],
     { onFarm } = VB['sim/projects'];
@@ -16,6 +16,7 @@ VB['sim/opportunities'] = (() => {
   const { eligible } = VB['sim/eligibility'];
   const { staysWhy, heirRanking } = VB['sim/heirs'];
   const { matchBar, matchRules } = VB['sim/matching'];
+  const { visitChoices, visitWhy } = VB['sim/visits'];
   const { wishesOf } = VB['sim/wishes'];
   const { MARRIAGE } = VB['sim/rules'];
   const { unfit, handsLeft } = VB['sim/service'];
@@ -28,7 +29,7 @@ VB['sim/opportunities'] = (() => {
   //   {verb, target, args, holder ({type: 'household' | 'village', id}, or null for its own acts), basis ('member', 'servant', 'villager'
   //   or 'self'), fit (the planner's noise-free bid for work, else null), why (null when the command would be accepted now), kind (a job's
   //   kind, for work), site (the tile its work is done on, for work, else absent), when ('now', or 'round': an act the moving round carries
-  //   out, by its rules, for a pawn that wishes it)}.
+  //   out, by its rules, for a pawn that wishes it; 'winter': a visit, planned now and set out on its winter morning)}.
   const item = (verb, target, args, why, more = {}) => ({
     verb,
     target,
@@ -257,6 +258,30 @@ VB['sim/opportunities'] = (() => {
     }
   }
 
+  // ---- a winter's visit (VB-292; design.md, Between villages: The player's journey): for the pawn and for each unmarried son or daughter
+  // of the house it speaks for, the villages that one might visit (sim/visits visitChoices), nearest first, each an item {verb: 'visit',
+  // target: the village, when: 'winter', why: the verb's own check, visit: {who (the pawn who would go), name (null for the pawn itself),
+  // place (the village's name), days, rations}}: the days and the pack are the visitor's reckoning (principle 14) ----
+  function visits(view, p, out) {
+    const hh = view.households[p.household],
+      who = [p.id];
+    if (hh.holder === p.id) for (const m of hh.members) if (m !== p.id && spokesmanOf(view, m) === p.id) who.push(m);
+    for (const id of who)
+      for (const c of visitChoices(view, id))
+        out.push(
+          item('visit', c.village, null, visitWhy(view, id, c.village), {
+            when: 'winter',
+            visit: {
+              who: id,
+              name: id === p.id ? null : fullName(view.pawns[id]),
+              place: view.villages[c.village].name,
+              days: c.days,
+              rations: c.rations,
+            },
+          }),
+        );
+  }
+
   // ---- offers that wait for pawn id (VB-273, VB-690): one item for each, {verb: 'answer', target: the offer's id, when: 'offer', offer} ----
   // offer: {id, basis, text (what is offered, a sentence's object), part ('the one to marry', 'head of the household' for `for`, the pawn it
   // speaks for, or 'the one asked'), answers (who has said what so far: [{name, key, yes}]), daysLeft, advice (what the pawn would answer
@@ -318,6 +343,7 @@ VB['sim/opportunities'] = (() => {
     causes(view, p, out);
     offers(st, view, id, out);
     if (housed) round(view, p, out);
+    if (housed) visits(view, p, out);
     return out;
   }
 
