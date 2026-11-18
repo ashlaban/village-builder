@@ -134,6 +134,16 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   reach, nearest villages first, at most `ASK.pool` weighed, none asked by `ASK.held` open matches; the round's ask anew uses it too),
   or an empty farm (`askLand`); a plot, new land and service are left to the round's walk. An open offer whose people died, married or
   took a place lapses where it is next read (`staleWhy`: the asker's asking, or the round's step).
+- Courting (`src/sim/courting.js`, VB-036; design, Traits, talk and stories: Courting): `pawn.courting` (the other's id, on both sides),
+  `pawn.courtingSince`, `pawn.courtRefused` and the index `st.courtships` (the man of each couple). It starts at a good talk
+  (`sim/relations` emits `goodTalk`; one check, `courtCheck`, never a pass over pairs) when each holds the other at `COURT.opinion` with
+  a tie of `COURT.tie`, and ends when the liking cools under `COURT.end` (read where the pair is touched: `courtTouched`, and at the
+  round's start: `review`), when one marries another or dies, or after `COURT.years` with no offer of theirs open. The pair's own offer is
+  `sim/asking`'s (`askCourted`: at the event `courting` and on either's asking day, if the ages, the kin limit and a home allow; due at the
+  round), a match of `sim/marriage` marked `courted`: the means and the two's hunger are read where it settles, and a head's no is
+  remembered by both (`refused`: `SOCIAL.memories.refusedCourting`). One who courts is in no arranged match (`matchBar`, `askMatch`, the
+  round's matcher). At the next round one who holds the head who refused at an opinion under `COURT.leaveBelow` asks for a place in
+  service whatever the hands at home (`leavers`, read by `serveWhereShort`).
   The means to marry is the registry rule `marriage.means` (declared there, base `MARRIAGE.means`, context the home's household; VB-631), read by `affords` and by `Sim.meansOf`, which also feeds `matchBar`'s reason and the pawn panel (`marryStanding`). A later contribution (a custom, a head's caution, a servant's portion: VB-637) joins by `Rules.contribute({ rule: 'marriage.means', ... })` from its own module.
 - The suitor's visit (`src/sim/visits.js`, VB-289; design, Between villages: The suitor's visit): a match joins two villages only
   within a day's walk (`TRAVEL.dayWalk`), or when one of the two has visited the other's village since the last round
@@ -255,7 +265,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058), `sim/lying` (loads left
   lying where their carrier fell, VB-611).
-- Social: `culture`, `sim/encounters`, `sim/relations`, `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`, `sim/obligations`,
+- Social: `culture`, `sim/encounters`, `sim/relations`, `sim/courting` (VB-036), `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`, `sim/obligations`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
 - Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,

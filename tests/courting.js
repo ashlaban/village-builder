@@ -2,7 +2,7 @@
 // (tests/lib/tiny.js): the gate, each condition in turn; one at a time; the pair's own offer, made when the courtship starts, due at the
 // round, answered before the round's matcher and married when all say yes; a couple without a place to live waits, and is matched with
 // nobody else; a head's refusal leaves the memory, the couple courting, and one who holds that head ill asks for service at the next
-// round; each ending; the invariants hold throughout.
+// round; each ending; a match arranged for one who courts another; the played pawn; the invariants hold throughout.
 const assert = require('assert');
 const VB = require('../src/load.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
@@ -263,7 +263,35 @@ const last = (st, id, kind) => st.pawns[id].events.map((i) => st.record[i]).filt
   sound(st, 'old, and asked');
 }
 
-// 6. The played pawn courts as any pawn does, and its own answer waits for the player until the round
+// 6. A match arranged before the courtship began: the one who courts says no to it, unless it holds its spokesman dearer than the one
+//    it courts
+{
+  const st = world(true);
+  const arranged = () =>
+    issue(st, {
+      actor: 6,
+      verb: 'offer',
+      target: 0,
+      args: { basis: 'match', gives: { man: 8, home: 1 }, wants: { woman: 2 }, due: dueRound(st), round: true },
+      source: 'asking',
+    });
+  assert.strictEqual(arranged(), true, 'his father offers him to the neighbour’s daughter');
+  const o = st.offers.find((x) => x.id === st.pawns[8].ask);
+  assert.ok(o && !o.courted, 'an arranged match, open');
+  fond(st, 8, 4);
+  goodTalk(st, 8, 4);
+  assert.ok(courting(st, 8, 4), 'meanwhile he comes to court her sister');
+  const his = o.answers.find((a) => a.key === 'man');
+  assert.strictEqual(VB['sim/offers'].BASES.match.weigh(st, o, his), false, 'he says no to the arranged match');
+  for (let i = 0; i < 6; i++) Rel.remember(st, 8, 6, 'worked');
+  for (let i = 0; i < 4; i++) Rel.remember(st, 8, 6, 'ale');
+  for (let i = 0; i < 4; i++) Rel.remember(st, 8, 6, 'bull');
+  assert.ok(Rel.opinionOf(st, 8, 6) > Rel.opinionOf(st, 8, 4), 'he holds his father dearer');
+  assert.strictEqual(VB['sim/offers'].BASES.match.weigh(st, o, his), true, 'and yields');
+  sound(st, 'arranged, and courting another');
+}
+
+// 7. The played pawn courts as any pawn does, and its own answer waits for the player until the round
 {
   const st = world();
   assert.strictEqual(VB.sim.inhabit(st, 8), true);

@@ -232,10 +232,18 @@ VB['sim/marriage'] = (() => {
     return out;
   }
   // The head of the home says no at enmity or below towards one who would move in; the others as unplayedNo.
+  // One of the two who courts another says no to a match arranged for it, unless it holds the spokesman who made it dearer than the one
+  // it courts: then it yields (VB-036; design.md, Courting: The pair's own offer. What it remembers of yielding is VB-693's).
+  function courtsAnother(st, o, a) {
+    if ((a.key !== 'man' && a.key !== 'woman') || o.courted) return false;
+    const c = st.pawns[a.by].courting,
+      side = o.answers.find((b) => b.key === a.key + 'Side');
+    return Number.isInteger(c) && !(side && opinionOf(st, a.by, side.by) > opinionOf(st, a.by, c));
+  }
   const matchYes = (st, o, a) =>
     a.key === 'head'
       ? movers(st, o).every((id) => opinionOf(st, a.by, id) > SOCIAL.enemy)
-      : !unplayedNo(st, o.answers, a);
+      : !unplayedNo(st, o.answers, a) && !courtsAnother(st, o, a);
   // A match kept for the player's answer is told.
   function toldMatch(st, o) {
     const { man, home } = o.gives,
