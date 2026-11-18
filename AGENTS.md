@@ -29,15 +29,17 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 4. Work in small commits, with `npm test` after each change.
 5. Before the last commit: `npm run format`, then `npm run verify` (half a minute); for a change under `src/page/`, also `node tests/smoke.js` and the
    `tests/browser*.js` it touches. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
-   report it in the task file and the PR's Targets section (before, after, residual, cause).
-6. Tick its criteria and add implementation and validation notes to the task file, then `node tools/backlog.js done ID`. Measurements
+   report it in the PR's Targets section (before, after, residual, cause).
+6. Tick its criteria, then `node tools/backlog.js done ID`. A done task's notes are not read (Kim, 18 November): the task file gets
+   only each decision with its reason and what is left undone, in at most ten lines; the diff and the tests say the rest. Measurements
    and tuning do not block work (Kim, 16 November): a measure not taken, or a target out, leaves its criterion unticked with the reason,
    what is owed is added to a collecting task (`BACKLOG.md`, Order and statuses), and the task is done. Only work not built, or a
    question for Kim (step 3), keeps it open: `set ID status=needs-review`.
 7. Open the PR, with the impact note and numbers that Working rules ask for.
 
 A sub-agent of an orchestrated run (`docs/agents/worker.md`) follows `.claude/agents/vb-task.md`, which replaces what steps 3, 6 and 7
-write to shared files: it leaves notes in the inbox, and the orchestrator writes the backlog, the questions and the PR.
+write to shared files: it leaves notes in the inbox, and the orchestrator writes the backlog, the questions and the PR. It has a
+ceiling of 120 model calls (Kim, 18 November; `node tools/inbox.js calls`): at the ceiling it hands over, and a fresh sub-agent goes on.
 
 ## Deciding without Kim (Kim, 12, 14, 15 and 16 November)
 A question goes to Kim only if it moves a Decided point of `design.md`, or lets the player do something no existing system covers.
@@ -50,9 +52,9 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
 - Rights and knowledge are exempt, since following every fact through the world is not computable: ownership, obligations, goodwill and
   news move at once. So a gift, a share or a loan changes owner where it lies, and waits there until someone fetches it.
 - The world a scenario starts with is placed, not carried.
-- No task adds a teleport, however small or temporary. An agent that finds one in the code opens a task for it (arch `physical`) and
-  goes on; these tasks are taken interleaved with the slice's work, and each reports its numbers, since goods that take time to arrive
-  change hunger.
+- No task adds a teleport, however small or temporary. An agent that finds one in the code notes it and goes on
+  (Surfacing): findings are collected, a line each in one open task, and swept when a slice wraps up (Kim, 18 November); the sweep
+  reports its numbers, since goods that take time to arrive change hunger.
 
 1. **Hunger presses, the feast binds.** Shortage drives help, loans and land passing, and through them the landed class; help still
    books goodwill. What drives the goodwill economy is plenty: at a feast a household turns its surplus into goodwill and standing. A
@@ -102,7 +104,7 @@ someone who makes the journey; and nothing appears or vanishes but by a process 
     alderman, who carries out what the meeting decided. The player has what its pawn has, no more and no less: a choice the player is
     given is a choice every pawn makes, and a new verb widens the game for both. Natural processes need no pawn (birth, death,
     growth, spoilage, an animal eating); debug verbs are the world's, not a pawn's. An agent that finds an act with no pawn, or a
-    choice only the player has, opens a task for it (arch `acts`) and goes on, as for a teleport.
+    choice only the player has, notes it and goes on, as for a teleport (Surfacing).
 17. **Goods are made of a material, and its kind sets their quality** (Kim, 16 November). A good is what it is for (a whetstone, a
     vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze)
     makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long
@@ -129,7 +131,9 @@ What Kim should see is surfaced, never waited for. A task notes, in its task fil
 no orchestrator, in its PR):
 - **A principle candidate**, when a decision had no principle to rest on, when two principles pulled apart, or when it is the third
   decision of one kind: one line of the rule proposed, and the decisions behind it (`candidate`).
-- **A teleport found**, with the task opened for it (`teleport`, and a `task` of the arch `physical`).
+- **A teleport found**, or an act with no pawn: one line, where and what (`teleport`, `act`). It gets no task of its own:
+  `inbox.js apply` adds it to its kind's open collecting task ("Teleports found, collected", "Acts with no pawn, collected"; with no
+  orchestrator, add the line there yourself), which a slice's wrap-up sweeps.
 - **A close call**: a decision another agent could as well have made the other way (`decision`).
 
 The orchestrator gathers these at the head of the night's PR, under "For Kim" (`node tools/inbox.js report`): the candidates first,
@@ -140,14 +144,14 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 `tools/help.js`). The full reference, with each tool's cadence, fixtures and measures, is `docs/commands.md`: grep it for a name.
 - A task's brief: `node tools/brief.js ID`. Backlog: `node tools/backlog.js next|list|show ID [--brief]`; `done`, `set`, `new`,
   `close-arch`, `sync` change it.
-- Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|result` (a sub-agent), `init|status|apply|report|results`.
+- Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|calls|result` (a sub-agent), `init|status|apply|report|results`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Format: `npm run format` after editing `src/` (Prettier). `index.html` is derived and not in the repository (VB-450): never commit it. The
   page's tests and tools build their own copy, and the Pages workflow builds the site's; `node build.js` writes one to open by hand.
 - Tests (`tests/suites.js`, `docs/testing.md`): `npm test`, fast, 10 seconds; `npm run verify`, fast and integration, 40 seconds; one
   script, `node tests/NAME.js`. The extended tier, the fixtures, the bench and the bands run at night, never in a task. A new check is
   built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`) and gets a line in `tests/suites.js`.
-- No golden file: a refactor shows its behaviour unchanged with `node tools/same.js --base REF`, REF the commit it started from.
+- No golden file: a refactor that claims its behaviour unchanged shows it with `node tools/same.js --base REF`, REF the commit it started from.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report NAME] [--save FILE|--load FILE]`.
 - Numbers before and after: `node tools/balance.js` (food by source against need), `node tests/counters.js` (work counters; `--update`
   records an intended change), `node tools/targets.js` (each target's latest value and residual).
@@ -188,7 +192,9 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - A module's length is not capped (VB-413). Code goes where its concern lives, formatted by Prettier. Over 700 formatted lines (the
   400 of the packed sources, rescaled by the sweep of 13 November) the lint asks
   for an open task that splits the module (VB-414): the task that takes it over the line opens one, titled "Refactor: split <key> ..."
-  (`sim/heirs`), names it in its PR and goes on. Never place code elsewhere to make room. The seven modules the sweep left over the
+  (`sim/heirs`), names it in its PR and goes on. Never place code elsewhere to make room.
+  A split is not collected with the findings, and is where to think hardest (Kim, 18 November): its task says which responsibilities
+  the module holds and where each belongs, and the split follows those, not the line count. The seven modules the sweep left over the
   line are in `tests/lint-baseline.json` at their lengths, which only fall.
   Width the same way (VB-415): a module over 15 exports (`tests/width-baseline.json` holds today's 21 at their counts) may add one only
   with such a task open; the `sim` facade is not counted, nor an export read only by registries (`REGISTRIES` in `tests/lint.js`: `sim/kinds`, `sim/clock`; VB-454).
@@ -227,10 +233,12 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   and, if it is a stored quantity, its line in `tools/stocks.js` (what happens at none; `tests/review-tools.js` checks it).
 - Every PR of size M, or that adds a module or a state field, starts with a short impact note: the modules and state it reads and writes,
   any new coupling between systems, and, where it adds an abstraction or a special case, why the existing ones do not fit.
-- A change to behaviour reports numbers before and after (`tools/sim.js`, `tools/balance.js`, `node tests/run.js verify --verbose`)
-  at the seeds and maps it names, in the PR and in the task file, and says whether households, not only averages, are better off.
+- Numbers are measured once (Kim, 18 November): a PR's changes to behaviour are measured before and after on its final result (a
+  night's run: by its wrap-up, on the merged branch), and the PR reports them and says whether households, not only averages, are
+  better off. A task measures on its own only where a criterion names a number it is to move, or where it tunes (Deciding without Kim, 3).
 - When a change would add the third special case of one pattern, propose the general rule instead (or a task for it, in the PR).
 - A refactor makes the code simpler, not only spread over more files: its PR says what fell (lines, couplings, duplicated rules).
+  It may change behaviour where that makes the separation of responsibilities clearer (Kim, 18 November): it names each change in a line.
 
 ## Rules for cost (Kim's; `docs/cost.md`, section 1)
 Budget at the late reference, the first year populous medium reaches 1,000 living (`medium-ref`, made by VB-202): 200 ms of simulation a game day,
