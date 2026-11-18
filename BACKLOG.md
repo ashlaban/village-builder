@@ -161,6 +161,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1170](backlog/VB-1170.md) | Cost: kin pressure reads pairs of the free at a village's round, uncounted | yardstick | 3 | S | kinPressure (sim/round) asks, for each free man of the village and each free woman of it, whether any of the pool could marry it under the custom and under the next looser one: a pass over pairs of the unmatched, with no work counter (roundPairs counted the matcher's, which is gone with VB-693). Count it, measure it on a late save, and bound it if it grows. |
 | [VB-1173](backlog/VB-1173.md) | Refactor: split sim/away: the gift's carrying to sim/gifts | - | 3 | M | carryGift, haulGift and fetchGift, with haulerOf and fetcherOf, move out of sim/away to sim/gifts, which holds the verbs give and deliver since VB-228; sim/away keeps the nights away. |
 | [VB-1174](backlog/VB-1174.md) | Refactor: split sim/heirs by concern | - | 3 | M | sim/heirs passed 700 lines (711) when the verbs handOn and move came home in VB-228; split it by concern. |
+| [VB-1175](backlog/VB-1175.md) | Refactor: split sim/claims by concern | - | 3 | S | sim/claims went over its export baseline (17 to 18) when VB-418 gave it workStake, the stake a land project's work renews; split it by concern or say why it stays whole. |
 
 ## Waiting for Kim
 
