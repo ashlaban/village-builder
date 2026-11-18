@@ -10,8 +10,8 @@ VB['sim/marriage'] = (() => {
   const { stayOf } = VB['sim/agents'];
   const { heirRanking, refreshRoles, handOn } = VB['sim/heirs'];
   const { issue, clearMatchWish } = VB['sim/commands'];
-  const { moveWhy } = VB['sim/wishes'];
-  const { meansOf } = VB['sim/matching'];
+  const { moveWhy, wishOf } = VB['sim/wishes'];
+  const { meansOf, sideScore, askerOf, askedOf, askedBy, asksMatch } = VB['sim/matching'];
   const Courting = VB['sim/courting'];
   const Offers = VB['sim/offers'],
     { heldBy } = Offers;
@@ -175,8 +175,8 @@ VB['sim/marriage'] = (() => {
     what: (st, o) =>
       `the handover of ${st.farmsteads[st.households[o.gives.household].farmstead].name} to ${fullName(st.pawns[o.to])}`,
   });
-  // An unplayed pawn's answer (VB-275): no at enmity or below towards the one it weighs: the other one to marry, or, for a spokesman,
-  // the other side's spokesman.
+  // A courting pair's own offer, an unplayed pawn's answer (VB-275, VB-036): no at enmity or below towards the one it weighs: the other
+  // one to marry, or, for a spokesman, the other side's spokesman.
   function unplayedNo(st, answers, a) {
     const other = a.key.startsWith('man') ? 'woman' : 'man',
       side = answers.find((b) => b.key === other + 'Side');
@@ -185,14 +185,17 @@ VB['sim/marriage'] = (() => {
       SOCIAL.enemy
     );
   }
-  // ---- the basis `match` of sim/offers (VB-690): an offer {from (the man's spokesman), to (the woman's), gives {man, home}, wants
-  // {woman}, village (the man's settlement)}; and a courting pair's own offer (VB-036; plan VB-682, section 4.1), from one of the two to
-  // the other, marked `courted` (read from who courts whom, not from what the offer says): the two and their spokesmen answer it as any,
-  // the means of the home and the two's hunger are read where it settles (the round), and a head's no is remembered by both ----
+  // ---- the basis `match` of sim/offers (VB-690, VB-693): an offer {from (the spokesman of the one who asks: the man, or the woman where
+  // her side asks, `asker` 'woman'), to (the spokesman of the one asked), gives {man, home}, wants {woman}, village (the man's
+  // settlement), fancy (the asking spokesman's fancy, the score's noise drawn once at the asking: 0..1, absent for its mean)}; and a
+  // courting pair's own offer (VB-036; plan VB-682, section 4.1), from one of the two to the other, marked `courted` (read from who
+  // courts whom, not from what the offer says): the two and their spokesmen answer it as any, the means of the home and the two's hunger
+  // are read where it settles (the round), and a head's no is remembered by both ----
   const names = (st, o) => `${fullName(st.pawns[o.gives.man])} and ${fullName(st.pawns[o.wants.woman])}`;
-  // What may be offered: a man and a woman, living and unmarried, he in no other open match and she asked by fewer than ASK.held (VB-823),
-  // a home for them, made by the man's spokesman to the woman's; the offer gains the man's village (or why not)
-  function matchWhy(st, o) {
+  // What may be offered: a man and a woman, living and unmarried, a home for them, made by the spokesman of one to the spokesman of the
+  // other: the one who asks in no other open match, the one asked asking in none and asked by fewer than ASK.held (VB-823). The offer
+  // gains the man's village, who asks, and the fancy (or why not)
+  function matchWhy(st, o, c) {
     const man = o.gives && o.gives.man,
       woman = o.wants && o.wants.woman,
       hh = o.gives && st.households[o.gives.home];
@@ -202,17 +205,25 @@ VB['sim/marriage'] = (() => {
     if (spouseOf(st, man) !== null || spouseOf(st, woman) !== null) return 'one of them is married';
     if (!hh || hh.dissolved) return `there is no household ${o.gives.home}`;
     const courted = st.pawns[man].courting === woman,
-      own = courted && ((o.from === man && o.to === woman) || (o.from === woman && o.to === man));
-    if (!own && (o.from !== spokesmanOf(st, man) || o.to !== spokesmanOf(st, woman)))
-      return "a match is offered by the man's spokesman to the woman's, or by one of a courting pair to the other";
+      own = courted && ((o.from === man && o.to === woman) || (o.from === woman && o.to === man)),
+      his = own || (o.from === spokesmanOf(st, man) && o.to === spokesmanOf(st, woman)),
+      hers = !his && o.from === spokesmanOf(st, woman) && o.to === spokesmanOf(st, man);
+    if (!his && !hers)
+      return 'a match is offered by the spokesman of one to the spokesman of the other, or by one of a courting pair to the other';
     for (const id of [man, woman])
       if (!courted && Number.isInteger(st.pawns[id].courting)) return `${fullName(st.pawns[id])} is courting another`;
-    if (heldBy(st, man, 'match')) return 'he is in an open offer';
-    if (st.offers.filter((x) => x.basis === 'match' && x.wants.woman === woman).length >= ASK.held)
-      return `she is asked by ${ASK.held} open offers already`;
-    return courted
-      ? { village: settlementIdOf(st, st.pawns[man]), courted: true }
-      : { village: settlementIdOf(st, st.pawns[man]) };
+    const [a, b] = hers ? [woman, man] : [man, woman],
+      she = (id) => (id === woman ? 'she' : 'he');
+    if (heldBy(st, a, 'match') || asksMatch(st, b)) return `${she(heldBy(st, a, 'match') ? a : b)} is in an open offer`;
+    if (askedBy(st, b) >= ASK.held) return `${she(b)} is asked by ${ASK.held} open offers already`;
+    const fancy = c && c.args ? c.args.fancy : undefined,
+      out = { village: settlementIdOf(st, st.pawns[man]) };
+    if (fancy !== undefined && !(Number.isFinite(fancy) && fancy >= 0 && fancy <= 1)) return `a fancy is not ${fancy}`;
+    if (fancy !== undefined && c.source !== 'asking' && c.source !== 'round') return 'only an asking draws a fancy';
+    if (courted) out.courted = true;
+    if (hers) out.asker = 'woman';
+    if (fancy !== undefined) out.fancy = fancy;
+    return out;
   }
   // The answers a match asks for, all unanswered: the man's and the woman's, and each one's spokesman's where another speaks for them;
   // and, where neither is, the head of the home one of them moves to (moveWhy, VB-692: the receiving head's yes, always).
@@ -231,19 +242,65 @@ VB['sim/marriage'] = (() => {
         if (!out.some((b) => b.by === a.by)) out.push({ key: a.key, by: a.by, yes: null });
     return out;
   }
-  // The head of the home says no at enmity or below towards one who would move in; the others as unplayedNo.
   // One of the two who courts another says no to a match arranged for it, unless it holds the spokesman who made it dearer than the one
-  // it courts: then it yields (VB-036; design.md, Courting: The pair's own offer. What it remembers of yielding is VB-693's).
+  // it courts: then it yields, and remembers (VB-036; VB-693).
   function courtsAnother(st, o, a) {
     if ((a.key !== 'man' && a.key !== 'woman') || o.courted) return false;
     const c = st.pawns[a.by].courting,
       side = o.answers.find((b) => b.key === a.key + 'Side');
     return Number.isInteger(c) && !(side && opinionOf(st, a.by, side.by) > opinionOf(st, a.by, c));
   }
-  const matchYes = (st, o, a) =>
-    a.key === 'head'
-      ? movers(st, o).every((id) => opinionOf(st, a.by, id) > SOCIAL.enemy)
-      : !unplayedNo(st, o.answers, a) && !courtsAnother(st, o, a);
+  // Whether the home of offer o lacks the means to marry (sim/matching meansOf): the farm cannot feed another mouth
+  function meansShort(st, o) {
+    const hh = st.households[o.gives.home],
+      m = hh.dissolved ? null : meansOf(st, hh.id);
+    return !!m && !m.exempt && m.held < m.asked;
+  }
+  // Which of the two answer `a` of offer o speaks or answers for ('man' or 'woman'; null for the head of the home), and whether it
+  // answers as that one's spokesman: a `Side` answer, or the one to marry where no other speaks for it.
+  const sideOf = (a) => (a.key.startsWith('man') ? 'man' : a.key.startsWith('woman') ? 'woman' : null);
+  const speaks = (o, a) => a.key.endsWith('Side') || !o.answers.some((b) => b.key === a.key + 'Side');
+  const speakerOf = (o, side) =>
+    (o.answers.find((b) => b.key === side + 'Side') || o.answers.find((b) => b.key === side)).by;
+  // The score of offer o as the spokesman of `side` reads it (plan VB-682, 4.1): the same terms, his own opinion of the other side's
+  // spokesman, and the fancy drawn at the asking for the side that asked, the noise at its mean for the side that answers.
+  function readBy(st, o, side) {
+    const asked = (o.asker === 'woman' ? 'woman' : 'man') === side && o.fancy !== undefined;
+    return sideScore(
+      st,
+      st.pawns[o.gives.man],
+      st.pawns[o.wants.woman],
+      asked ? o.fancy : 0.5,
+      speakerOf(o, side),
+      speakerOf(o, side === 'man' ? 'woman' : 'man'),
+    );
+  }
+  // Why answer `a` of offer o is a no by its pawn's own judgement, or null for a yes: an unplayed pawn's answer, and the played pawn's
+  // advice (VB-275, VB-693; plan VB-682, 4.1). The head of the home says no at enmity or below towards one who would move in
+  // ('enmity'). One to marry says no at enmity or below towards the other, while it courts another unless it yields ('courting'), and
+  // under "not this year" (its wish ranks staying above a match, sim/wishes: 'wish'). A spokesman, and one who speaks for itself, weighs
+  // the score as it reads it, which must reach MARRIAGE.minScore ('score'), and the means of the home, read now ('means'). A courting
+  // pair's own offer asks no score: a spokesman says no to it at enmity or below towards the other side's (unplayedNo), and the means
+  // and the two's hunger are read where it settles.
+  function whyNo(st, o, a) {
+    if (a.key === 'head') return movers(st, o).every((id) => opinionOf(st, a.by, id) > SOCIAL.enemy) ? null : 'enmity';
+    if (o.courted) return unplayedNo(st, o.answers, a) ? 'enmity' : null;
+    const side = sideOf(a);
+    if (!a.key.endsWith('Side')) {
+      if (opinionOf(st, a.by, side === 'man' ? o.wants.woman : o.gives.man) <= SOCIAL.enemy) return 'enmity';
+      if (courtsAnother(st, o, a)) return 'courting';
+      if (wishOf(st, a.by, 'match') === false) return 'wish';
+    }
+    if (!speaks(o, a)) return null;
+    return readBy(st, o, side) < MARRIAGE.minScore ? 'score' : meansShort(st, o) ? 'means' : null;
+  }
+  const matchYes = (st, o, a) => whyNo(st, o, a) === null;
+  const WHY_NO = {
+    enmity: 'for ill will',
+    courting: 'courting another',
+    wish: 'not this year',
+    score: 'the two are ill matched',
+  };
   // A match kept for the player's answer is told.
   function toldMatch(st, o) {
     const { man, home } = o.gives,
@@ -269,6 +326,18 @@ VB['sim/marriage'] = (() => {
       const m = hh.dissolved ? null : meansOf(st, hh.id);
       if (m && !m.exempt && m.held < m.asked) return 'the farm cannot feed another mouth';
     }
+    // one who yields: it courts another, and marries the one its spokesman chose (read before the wedding ends the courtship)
+    const yielded = [];
+    if (!o.courted)
+      for (const [key, id, sp] of [
+        ['man', o.gives.man, o.wants.woman],
+        ['woman', o.wants.woman, o.gives.man],
+      ]) {
+        const c = st.pawns[id].courting,
+          side = (o.answers || []).find((b) => b.key === key + 'Side');
+        if (Number.isInteger(c) && c !== sp && side && side.by !== id)
+          yielded.push({ id, sp, by: side.by, courted: c });
+      }
     const why = issue(st, {
       actor: o.gives.man,
       verb: 'marry',
@@ -277,15 +346,30 @@ VB['sim/marriage'] = (() => {
       source: 'round',
     });
     if (why !== true) return why;
+    for (const y of yielded) {
+      const who = fullName(st.pawns[y.courted]),
+        sp = fullName(st.pawns[y.sp]);
+      if (st.pawns[y.by].alive) remember(st, y.id, y.by, 'marriedAgainst');
+      personEvent(st, y.id, 'marriedAgainst', `Married ${sp} against a wish for ${who}`, false);
+      log(st, `${fullName(st.pawns[y.id])} married ${sp} against a wish: ${who} was the one courted.`, {
+        kind: 'marriedAgainst',
+        pawn: y.id,
+        other: y.sp,
+        ...atHousehold(st, hh),
+      });
+    }
     // the heir has married: the home's holder considers handing on (the custom 'marriage')
     const handed = handover(st, hh, (h) => heirRanking(st, st.households[h]));
     if (o.id !== undefined && handed === null) refreshRoles(st); // the handover refreshes its own
     return true;
   }
-  // A no: the refusal is told; a pawn that refuses the match its spokesman made costs the spokesman's opinion of it
-  // (SOCIAL.memories.refusedMatch); no one else remembers it.
+  // A no (VB-293, VB-693): the refusal is told, by the log and in the lives of the two. A pawn that refuses the match its spokesman
+  // made costs the spokesman's opinion of it (SOCIAL.memories.refusedMatch). A spokesman of the side asked who refuses (hers, or she
+  // where she speaks for herself) is remembered by the spokesman who asked (refusedSuit). A home that cannot feed another mouth is no
+  // refusal of anyone: the couple put it off, nobody remembers it, and it is told as that (the kind `putOff`).
   function refusedMatch(st, o, no) {
-    const at = { pawn: o.gives.man, other: o.wants.woman, ...atHousehold(st, st.households[o.gives.home]) };
+    const hh = st.households[o.gives.home],
+      at = { pawn: o.gives.man, other: o.wants.woman, ...atHousehold(st, hh) };
     // a head refused a courting pair: each of the two remembers it, and they keep courting (sim/courting, VB-036)
     if (
       o.courted &&
@@ -294,15 +378,40 @@ VB['sim/marriage'] = (() => {
       no.by !== o.wants.woman
     )
       Courting.refused(st, o.gives.man, o.wants.woman, no.by);
+    // why, by the pawn's own judgement; the played pawn's no is its player's, and no reason is read into it
+    const why = st.player && st.player.pawn === no.by ? null : whyNo(st, o, no);
+    if (why === 'means') {
+      log(st, `${names(st, o)} put off marrying: the farm cannot feed another mouth.`, {
+        kind: 'putOff',
+        n: 1,
+        village: st.farmsteads[hh.farmstead].village,
+        ...at,
+      });
+      return;
+    }
     for (const a of o.answers) {
       const side = a.yes === false && o.answers.find((b) => b.key === a.key + 'Side');
       if (side && side.by !== a.by && st.pawns[side.by].alive) remember(st, side.by, a.by, 'refusedMatch');
-      if (a === no)
-        log(st, `${fullName(st.pawns[no.by])} refused the match of ${names(st, o)}.`, {
-          kind: 'matchRefused',
-          ...at,
-        });
     }
+    const asked = o.asker === 'woman' ? 'man' : 'woman';
+    if (!o.courted && sideOf(no) === asked && speaks(o, no) && no.by !== o.from && st.pawns[o.from].alive)
+      remember(st, o.from, no.by, 'refusedSuit');
+    const who = fullName(st.pawns[no.by]),
+      said = WHY_NO[why] ? `: ${WHY_NO[why]}` : '';
+    for (const id of [o.gives.man, o.wants.woman])
+      personEvent(
+        st,
+        id,
+        'matchRefused',
+        `${id === no.by ? 'Refused' : `${who} refused`} the match with ${fullName(st.pawns[id === o.gives.man ? o.wants.woman : o.gives.man])}${said}`,
+        false,
+      );
+    log(st, `${who} refused the match of ${names(st, o)}${said}.`, {
+      kind: 'matchRefused',
+      by: no.by,
+      ...(why ? { reason: why } : {}),
+      ...at,
+    });
   }
   function lapsedMatch(st, o, why) {
     const at = { pawn: o.gives.man, other: o.wants.woman, ...atHousehold(st, st.households[o.gives.home]) };
@@ -318,8 +427,8 @@ VB['sim/marriage'] = (() => {
     refused: refusedMatch,
     lapsed: lapsedMatch,
     opened: toldMatch,
-    subject: (st, o) => o.gives.man, // the man's side asks (plan VB-682, section 4.1)
-    where: (st, o) => settlementIdOf(st, st.pawns[o.wants.woman]), // her village's step answers (Proposed)
+    subject: (st, o) => askerOf(o), // the one whose side asks: the man, or the woman (plan VB-682, section 4.1; VB-693)
+    where: (st, o) => settlementIdOf(st, st.pawns[askedOf(o)]), // the step of the village of the one asked answers (Proposed)
   });
   return {
     wed,

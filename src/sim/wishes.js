@@ -7,7 +7,7 @@ VB['sim/wishes'] = (() => {
   const { of: traitOf } = VB['sim/traits'];
   const { age, spokesmanOf, spouseOf, holdingOf } = VB['sim/records'];
   const { on } = VB['sim/events'];
-  // @state pawn.wish (VB-680): absent or null for the default wish (WISH.rungs as ranked, any farm, whoever the round finds), else
+  // @state pawn.wish (VB-680): absent or null for the default wish (WISH.rungs as ranked, any farm, whoever its spokesman's asking finds), else
   //   {rank (WISH.rungs in the pawn's order, best first; a rung ranked after 'stay' is one it would not take), farm (a farm id: only that
   //   farm, or null), partner (a pawn id: that partner, or null)}. Written by the pawn's own choosing at the start of the moving round
   //   (chooseWishes) for every living pawn of an age to marry but the played one, and by the wish verb (setWish) for the played pawn; read
@@ -59,7 +59,7 @@ VB['sim/wishes'] = (() => {
   // ---- the read ----
   // What pawn id wishes at the round, by kind: 'out' (true: it would leave though heir to a farm; false: it would stay rather than take
   // land, new land or service; null: as its rungs fall), 'claim' (a farm id, only that one; false, none; null, any), 'serve' (false, it
-  // declines service; null, it would serve), 'match' (a pawn id, that partner; false, not this year; null, whoever the round finds),
+  // declines service; null, it would serve), 'match' (a pawn id, that partner; false, not this year; null, whoever the asking finds),
   // 'settle' (true: New land heads its ranking, so it leads or follows a party without the draws; false: never; null: the draws decide).
   function wishOf(st, id, kind) {
     const p = st.pawns[id],

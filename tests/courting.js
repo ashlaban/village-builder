@@ -133,16 +133,14 @@ const last = (st, id, kind) => st.pawns[id].events.map((i) => st.record[i]).filt
   assert.strictEqual(askFor(st, 8), 'held');
   sound(st, 'the offer open');
   at(st, dueRound(st));
-  st.rng.society.fix = 0.99; // the matcher's go-ahead never comes up: only their own offer can marry them
   movingRound(st);
-  delete st.rng.society.fix;
   assert.strictEqual(R.spouseOf(st, 8), 2, 'they marry at the round');
   assert.ok(st.pawns[8].courting === null && st.pawns[2].courting === null && st.courtships.length === 0, 'married, they court no more');
   assert.ok(!kinds(st, 8).includes('courtingEnded'), 'the marriage is the event');
   sound(st, 'married');
 }
 
-// 3. A couple without a place to live waits, courting: no offer, and the round's matcher gives neither to another
+// 3. A couple without a place to live waits, courting: no offer, and no spokesman's offer gives either to another
 {
   const st = world(true);
   fond(st, 10, 4);
@@ -154,11 +152,9 @@ const last = (st, id, kind) => st.pawns[id].events.map((i) => st.record[i]).filt
   const bar = VB['sim/matching'].matchBar(st, 8, 4);
   assert.ok(/is courting another/.test(bar.why), `the bar names it: ${bar.why}`);
   at(st, dueRound(st));
-  st.rng.society.fix = 0.1; // every go-ahead comes up
   movingRound(st);
-  delete st.rng.society.fix;
   assert.ok(courting(st, 10, 4), 'they still court after the round');
-  assert.ok(R.spouseOf(st, 10) === null && R.spouseOf(st, 4) === null, 'and the matcher gave neither to another');
+  assert.ok(R.spouseOf(st, 10) === null && R.spouseOf(st, 4) === null, 'and neither was given to another');
   assert.strictEqual(R.spouseOf(st, 8), 2, 'while the two with places were matched');
   // a couple under the age to marry waits too
   const st2 = world();

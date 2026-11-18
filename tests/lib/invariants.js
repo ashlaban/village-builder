@@ -1089,8 +1089,8 @@ function checkState(st) {
   }
   // the open offers (VB-293, VB-690): sorted by due, made by now and due after, within a year, and no later than the basis's wait after
   // it was made when the played pawn's answer extended it; ids below st.offerSeq and unique; a known basis; answers by pawns, keys unique,
-  // none a no and one at least still to give (an offer closes at a no or at all yes). A match: a man and a woman, neither in two open
-  // matches; the answers are theirs (by them) and at most one spokesman's a side (by another pawn); its home a household. Goods (a gift,
+  // none a no and one at least still to give (an offer closes at a no or at all yes). A match: a man and a woman, the one whose side asks in no other open
+  // match and the one asked asked by at most ASK.held (VB-693), its fancy within 0..1; the answers are theirs (by them) and at most one spokesman's a side (by another pawn); its home a household. Goods (a gift,
   // an ask): the parties are households or villages, the terms a positive amount of a good, the asked one answer (key 'to'). Who spoke
   // for whom is checked where the offer is made (tests/offers.js): a spokesman may have changed since. A match may also be answered by
   // the head of the home one of them moves to (key 'head', VB-692). An offer about a life (handover, land, party, place; VB-692): its
@@ -1113,10 +1113,15 @@ function checkState(st) {
       if (o.basis === 'match') {
         const man = o.gives && o.gives.man, woman = o.wants && o.wants.woman, home = o.gives && o.gives.home;
         if (!st.pawns[man] || !st.pawns[woman] || st.pawns[man].sex !== 'm' || st.pawns[woman].sex !== 'f') bad.push(`${at}: man ${man}, woman ${woman}`);
-        if (seen.has(man)) bad.push(`${at}: pawn ${man} is in two open offers`);
-        seen.add(man);
-        held.set(woman, (held.get(woman) || 0) + 1); // she may be asked by up to ASK.held (VB-823)
-        if (held.get(woman) > ASKS.held || seen.has(woman)) bad.push(`${at}: pawn ${woman} is asked by ${held.get(woman)} open matches`);
+        // the one whose side asks (the man, or the woman: `asker`, VB-693) is in no other open match; the one asked asks in none, and may
+        // be asked by up to ASK.held (VB-823)
+        const asker = o.asker === 'woman' ? woman : man, asked = o.asker === 'woman' ? man : woman;
+        if (o.asker !== undefined && o.asker !== 'woman') bad.push(`${at}: asker ${o.asker}`);
+        if (o.fancy !== undefined && !(o.fancy >= 0 && o.fancy <= 1)) bad.push(`${at}: fancy ${o.fancy}`);
+        if (seen.has(asker) || held.has(asker)) bad.push(`${at}: pawn ${asker} is in two open offers`);
+        seen.add(asker);
+        held.set(asked, (held.get(asked) || 0) + 1);
+        if (held.get(asked) > ASKS.held || seen.has(asked)) bad.push(`${at}: pawn ${asked} is asked by ${held.get(asked)} open matches`);
         if (!st.households[home] || !Number.isInteger(o.village)) bad.push(`${at}: home ${home}, village ${o.village}`);
         if (!keys.includes('man') || !keys.includes('woman')) bad.push(`${at}: answers ${keys.join()}`);
         for (const x of o.answers || []) {

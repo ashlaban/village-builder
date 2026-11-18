@@ -214,9 +214,9 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   let found = null;
   for (let seed = 1; seed < 60 && !found; seed++) {
     const plain = after(seed);
-    for (const [m, f] of pairs(world(seed))) if (married(plain, m) === null && married(plain, f) === null) { found = { seed, m, f }; break; }
+    for (const [m, f] of pairs(world(seed))) if (married(plain, m) !== f) { found = { seed, m, f }; break; }
   }
-  assert.ok(found, 'the scene: a pair the round would not marry by itself, that passes its rules');
+  assert.ok(found, 'the scene: a pair the askings would not marry to each other, that passes the rules');
   const { seed, m, f } = found;
   {
     const st = world(seed); Sim.inhabit(st, m);
@@ -231,8 +231,15 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
     // the other side answered at once: no match is left waiting; the handover the marriage brings asks the played heir (VB-692)
     assert.ok(st.offers.every((o) => o.basis === 'handover' && o.to === m), 'the other side answered at once: no match is left waiting');
     sound(st, 'the wished match made');
-    const w = world(seed); Sim.inhabit(w, f); Sim.wish(w, 'match', m); Sim.movingRound(w);
-    assert.strictEqual(married(w, f), m, 'wished by the woman, the same');
+    // wished by the woman: her side asks him, and only him, at her asking (VB-693); his side answers the best offer it holds at the
+    // round, which may be another's: the player's wish is its pawn's offer, no more
+    const w = world(seed); Sim.inhabit(w, f); Sim.wish(w, 'match', m);
+    assert.strictEqual(VB['sim/asking'].askFor(w, f, Math.floor(w.t / Sim.DAY) * Sim.DAY + 12), 'match', 'her asking offers the one she wishes');
+    const hers = w.offers.find((o) => o.id === w.pawns[f].ask);
+    assert.ok(hers && hers.asker === 'woman' && hers.gives.man === m && hers.wants.woman === f, 'her side asks him');
+    Sim.movingRound(w);
+    assert.ok(married(w, m) !== null && !w.offers.some((o) => o.basis === 'match'), 'his side took the best offer it held, and the rest lapsed');
+    sound(w, 'wished by the woman');
   }
   // not this year: the played pawn is left out of the round's matching, and of kinPressure
   {

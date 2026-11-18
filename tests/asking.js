@@ -1,7 +1,7 @@
 // The asking day (VB-823; docs/plans/VB-682.md, sections 2, 3 and 7), on a constructed state (tests/lib/tiny.js): the queue of askings
 // (st.asking, sim/wishes) and each pawn's day by its id; no offer while one is open; the cap of ASK.held open matches on one woman, and of
 // ASK.pool candidates weighed; an offer that lapses at the asker's next asking when the one asked has married another; the played
-// pawn's own asking makes no offer, and its spokesman asks for it; the invariants hold throughout.
+// pawn's match is asked as any pawn's; the invariants hold throughout.
 const assert = require('assert');
 const VB = require('../src/load.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
@@ -76,7 +76,7 @@ const onItsDay = (id, t) => Math.abs(((((t - ASK.hour) % SEASON) + SEASON) % SEA
 // 2. An asking makes the offer of its best open rung, due at the round; no second offer while it is open
 {
   const st = world();
-  st.rng.society.fix = 0.1; // every go-ahead comes up
+  st.rng.society.fix = 0.1;
   assert.strictEqual(askFor(st, 8), 'match', 'a man of age asks a match');
   const o = st.offers.find((x) => x.id === st.pawns[8].ask);
   assert.ok(o && o.basis === 'match' && o.gives.man === 8 && o.round === true, 'his spokesman offered him');
@@ -137,22 +137,22 @@ const onItsDay = (id, t) => Math.abs(((((t - ASK.hour) % SEASON) + SEASON) % SEA
   sound(st, 'after the lapse');
 }
 
-// 5. The played pawn: its own asking makes no offer; one whose spokesman is unplayed is asked for by him, unless it wishes not this year
+// 5. The played pawn: its match is asked as any pawn's (VB-693), by its spokesman or by itself, unless it wishes not this year
 {
   const st = world();
   st.rng.society.fix = 0.1;
   assert.strictEqual(VB.sim.inhabit(st, 8), true);
   assert.strictEqual(st.player && st.player.pawn, 8, 'the player plays the son');
   const spoken = R.spokesmanOf(st, 8);
-  if (spoken === 8) assert.strictEqual(askFor(st, 8), 'played', 'speaking for himself, the player asks by the verb');
-  else {
-    assert.strictEqual(askFor(st, 8), 'match', 'his father asks for him');
-    VB['sim/offers'].conclude(st, st.offers.find((x) => x.id === st.pawns[8].ask), 'the test');
-    VB.sim.wish(st, 'match', false);
-    assert.notStrictEqual(askFor(st, 8), 'match', 'not this year: no match is asked for him');
-  }
+  assert.strictEqual(askFor(st, 8), 'match', `his match is asked, by pawn ${spoken}`);
+  const mine = st.offers.find((x) => x.id === st.pawns[8].ask);
+  assert.ok(mine.answers.every((a) => a.yes === null), 'and the player answers it, as the others, by the round');
+  VB['sim/offers'].conclude(st, mine, 'the test');
+  VB.sim.wish(st, 'match', false);
+  assert.notStrictEqual(askFor(st, 8), 'match', 'not this year: no match is asked for him');
+  VB.sim.wish(st, 'match', null);
   assert.strictEqual(VB.sim.inhabit(st, 6), true);
-  assert.strictEqual(askFor(st, 8), 'played', 'his spokesman played: the player asks for him');
+  assert.strictEqual(askFor(st, 8), 'match', 'his spokesman played: the match is asked, and the player answers for his side');
   delete st.rng.society.fix;
   sound(st, 'the played pawn');
 }

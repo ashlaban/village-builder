@@ -58,6 +58,7 @@ let present = 0, talks = 0;
 for (const o of weddings) {
   for (const id of o.for) {
     const a = st.agents[id];
+    if (a.phase === 'back' && a.occasion === null) continue; // still carrying a load home: it sets out when the load is in (canGo)
     assert.strictEqual(a.occasion, o.id, `pawn ${id} is at its own wedding`);
     if (!a.path) { assert.ok(near(st, a, o), `pawn ${id} stands about the spot`); assert.strictEqual(a.idleUntil >= o.end, true); }
     assert.ok(/wedding/i.test(Sim.describe(st, id)), Sim.describe(st, id));

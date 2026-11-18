@@ -121,6 +121,7 @@ VB['sim/notable'] = (() => {
         'visited',
         'visitOff',
         'matchRefused',
+        'marriedAgainst',
         'offerLapsed',
         'wedding',
         'courting',

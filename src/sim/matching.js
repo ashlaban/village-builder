@@ -1,10 +1,14 @@
 // @sys sim/matching: the rules of a marriage match: the pool within a day's walk or visited (VB-289), kin degree, a home and its means, the score; what
-// the moving round's matcher and the player's wish for a match (VB-274) are both checked against
+// the asking (sim/asking), the offer's answers (sim/marriage) and the player's wish for a match (VB-274) are both checked against
 VB['sim/matching'] = (() => {
   const { MARRIAGE, DAY, YEAR, SEASON_DAYS, YEAR_DAYS, HUNGER, ASK, TRAVEL } = VB['sim/rules'];
   const { heldBy } = VB['sim/offers'];
-  // The open matches woman id is asked by: up to ASK.held may stand at once (VB-823)
-  const askedBy = (st, id) => st.offers.filter((o) => o.basis === 'match' && o.wants.woman === id).length;
+  // Who asks in match offer o, and who is asked (VB-693): the man's side asks, unless the offer was made by the woman's (`asker`)
+  const askerOf = (o) => (o.asker === 'woman' ? o.wants.woman : o.gives.man);
+  const askedOf = (o) => (o.asker === 'woman' ? o.gives.man : o.wants.woman);
+  // The open matches pawn id is asked by: up to ASK.held may stand at once (VB-823); and whether it asks in one itself
+  const askedBy = (st, id) => st.offers.filter((o) => o.basis === 'match' && askedOf(o) === id).length;
+  const asksMatch = (st, id) => st.offers.some((o) => o.basis === 'match' && askerOf(o) === id);
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
@@ -82,8 +86,8 @@ VB['sim/matching'] = (() => {
         }
       }
     }
-    // A woman of a village outside these who has visited v since the last round is in its pool herself (VB-292): the round's men choose,
-    // so her visit is read from her side, as a man's puts her village in his. Read from the asking queue, which holds the unmarried.
+    // A woman of a village outside these who has visited v since the last round is in its pool herself (VB-292): her visit
+    // is read from her side, as a man's puts her village in his. Read from the asking queue, which holds the unmarried.
     for (const e of st.asking) {
       VB.count.guestWalk++;
       const p = st.pawns[e.pawn];
@@ -108,6 +112,17 @@ VB['sim/matching'] = (() => {
       (MARRIAGE.liking * (opinionOf(st, m.id, f.id) + opinionOf(st, f.id, m.id))) / 2
     ); // opinion (VB-275)
   }
+  // The score of man m and woman f (pawns) as spokesman `by` reads it, who weighs the other side's spokesman `other` (VB-693; plan
+  // VB-682, 4.1): matchScore at the ages of now, and MARRIAGE.headsLiking a point of his opinion of the other (0 between strangers,
+  // and where one pawn speaks for both). `noise`: the fancy drawn at the asking for the side that asked, its mean for one who answers.
+  const sideScore = (st, m, f, noise, by, other) =>
+    matchScore(
+      st,
+      { ...m, age: age(st, m) },
+      { ...f, age: age(st, f) },
+      noise,
+      wasWidowed(st, m.id) || wasWidowed(st, f.id),
+    ) + (by === other ? 0 : MARRIAGE.headsLiking * opinionOf(st, by, other));
   // Where each pawn would live if married (placeIfMarried), memoized with the heir rankings it reads (`rank(h)`, heirRanking ranked afresh,
   // VB-277) until `clear()`, which a village's round calls after each marriage or handover it makes: ranking every farm's heirs for every
   // pair of candidates made the round cost about a second at populous medium. `homeFor(m, f, cu)`: where a couple would
@@ -224,7 +239,7 @@ VB['sim/matching'] = (() => {
       if (Number.isInteger(p.courting) && p.courting !== (p === m ? f : m).id)
         return { why: `${nm} is courting another` };
       if (!(p.hunger < HUNGER.marryBelow)) return { why: `${nm} is too hungry to marry` };
-      if (p === m ? heldBy(st, p.id, 'match') : askedBy(st, p.id) >= ASK.held)
+      if (p === m ? heldBy(st, p.id, 'match') : asksMatch(st, p.id) || askedBy(st, p.id) >= ASK.held)
         return { why: `${nm} is in an open offer` };
       // Service is by the year (VB-634): an offer out of the round waits for the round, when a servant leaves service to marry.
       if (p.servant && occasion !== 'round') return { why: `${nm} is in service until the moving round` };
@@ -288,5 +303,21 @@ VB['sim/matching'] = (() => {
     const m = meansOf(st, home);
     return { kind: m.exempt ? 'hands' : m.held >= m.asked ? 'means' : 'short', held: m.held, asked: m.asked };
   }
-  return { kinOk, poolFor, matchScore, matchRules, matchBar, wishedMatches, meansOf, marryStanding, roundYear, courts };
+  return {
+    kinOk,
+    poolFor,
+    matchScore,
+    sideScore,
+    askerOf,
+    askedOf,
+    askedBy,
+    asksMatch,
+    matchRules,
+    matchBar,
+    wishedMatches,
+    meansOf,
+    marryStanding,
+    roundYear,
+    courts,
+  };
 })();

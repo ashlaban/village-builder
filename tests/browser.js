@@ -448,7 +448,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     !/went on as the heir/.test(after.events[after.events.length - 1])) fail(`the heir was not gone on as: ${JSON.stringify(after)}`);
   await page.waitForFunction(() => document.getElementById('succession').hidden);
   await stopPlaying();
-  // a marriage offer in the page (VB-273): the played pawn's match waits at the moving round; the panel asks, the answer No leaves both unmarried
+  // a marriage offer in the page (VB-273): the played pawn's match waits from its asking; the panel asks, the answer No leaves both unmarried
   // and the refusal is in the pawn's History tab. The state is the same island at the round, made in the page as tests/offers.js makes it.
   {
     await page.evaluate(() => window.__play.setSpeed(0));
@@ -461,17 +461,26 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       const round = (s) => {
         const rs = new Set(Object.values(s.rng)); rs.forEach((r) => { r.fix = 0; });
         try { Sim.movingRound(s); } finally { rs.forEach((r) => { delete r.fix; }); } };
+      // the year's askings, each on its pawn's word (VB-693: a match is asked by a spokesman and answered at the round, so the offer
+      // waits for the played pawn from its asking); `waits`: the open offers the pawn has an answer to give in
+      const ask = (s) => {
+        const rs = new Set(Object.values(s.rng)); rs.forEach((r) => { r.fix = 0; });
+        try { for (const e of [...s.asking]) if (s.pawns[e.pawn].alive) VB['sim/asking'].askFor(s, e.pawn); } finally { rs.forEach((r) => { delete r.fix; }); } };
+      const waits = (s, id) => s.offers.filter((o) => o.answers.some((x) => x.by === id && x.yes === null));
+      window.__waits = (id) => waits(window.__play.st, id).length;
       let wed;
       for (; !wed && people < 40; wed || people++) {
         const a = make(), mark = a.record.length; round(a);
         wed = a.record.slice(mark).filter((e) => typeof e === 'object' && !e.self && e.kind === 'married')
-          .find((e) => { const probe = make(); Sim.inhabit(probe, e.pawn); round(probe); return probe.offers.length === 1; });
+          .find((e) => { const probe = make(); Sim.inhabit(probe, e.pawn); ask(probe); const w = waits(probe, e.pawn);
+            return w.length === 1 && w[0].basis === 'match' && w[0].gives.man === e.pawn; });
       }
-      const s = make(); Sim.inhabit(s, wed.pawn); P.st = s; P.focusPawn(wed.pawn); window.__round = () => round(s);
-      return { man: wed.pawn, woman: wed.other };
+      const s = make(); Sim.inhabit(s, wed.pawn); P.st = s; P.focusPawn(wed.pawn); window.__round = () => ask(s);
+      const o = (() => { const probe = make(); Sim.inhabit(probe, wed.pawn); ask(probe); return waits(probe, wed.pawn)[0]; })();
+      return { man: wed.pawn, woman: o.wants.woman };
     });
-    await page.waitForTimeout(500); // a frame sees the world, then the round runs and the page is told of its offer
-    ids.open = await page.evaluate(() => { window.__round(); return window.__play.st.offers.length; });
+    await page.waitForTimeout(500); // a frame sees the world, then the askings are held and the page is told of its offer
+    ids.open = await page.evaluate((id) => { window.__round(); return window.__waits(id); }, ids.man);
     if (ids.open !== 1) fail(`no offer waits for the played pawn: ${JSON.stringify(ids)}`);
     await page.waitForSelector('#toasts .toast', { timeout: 5000 }).catch(() => fail('no notice of the offer'));
     await page.click('#actionsBtn'); await page.click('#queueBtn');
@@ -487,7 +496,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     await page.waitForSelector('#playBox .offer-end', { timeout: 5000 });
     const done = await page.evaluate((ids) => {
       const { st, Sim } = window.__play, R = VB['sim/records'];
-      return { open: st.offers.length, spouses: [R.spouseOf(st, ids.man), R.spouseOf(st, ids.woman)],
+      return { open: window.__waits(ids.man), spouses: [R.spouseOf(st, ids.man), R.spouseOf(st, ids.woman)],
         end: document.querySelector('#playBox .offer-end').textContent, ask: !!document.querySelector('#playBox .offer') };
     }, ids);
     if (done.open || done.ask || done.spouses.some((x) => x !== null) || !/refused/.test(done.end)) fail(`the answer No: ${JSON.stringify(done)}`);

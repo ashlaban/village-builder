@@ -399,6 +399,10 @@ VB['sim/rules'] = (() => {
       refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
       // sim/courting: a head refused the match of a courting pair; each of the two remembers that head (VB-036; plan VB-682, 4.1)
       refusedCourting: { label: 'Refused our match', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
+      // sim/marriage (VB-693; plan VB-682, 4.1): a spokesman, of the spokesman who refused the match he offered (not when hers took a
+      // better offer, which is no slight); and one who yielded to a match made for it while it courted another, of its spokesman
+      refusedSuit: { label: 'Refused the match I offered', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
+      marriedAgainst: { label: 'Married me against my wish', v: -0.3, cap: -0.3, days: 5 * YEAR_DAYS },
       // sim/offers: a refusal of goods offered or asked for (VB-690) is a memory of both: the one refused, and, fainter, the one who refused
       refusedUs: { label: 'Refused what we offered', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
       refusedThem: { label: 'We refused them', v: -0.05, cap: -0.15, days: YEAR_DAYS },
@@ -488,8 +492,9 @@ VB['sim/rules'] = (() => {
     // the tie's own scale (its decay exp(-d / 25) in steps is about 8 h of walking)
     nearHours: 8,
     liking: 1, // score per point of the mean of the two young's opinions of each other (VB-275); a stranger's opinion is 0
-    minScore: -1.5,
-    goAhead: 0.75, // lowest score accepted; chance that an accepted match goes ahead
+    minScore: -1.5, // lowest score accepted, by the spokesman who asks and by each who answers
+    // score per point of a spokesman's opinion of the other side's spokesman (VB-693; plan VB-682, 4.1): 0 between strangers
+    headsLiking: 0.5,
     kinDegree: { second: 8, first: 6, close: 4, uncle: 3 }, // closest civil degree allowed per kinLimit custom; degree 2 or less never marries
     scarcePush: 1,
     plentyPush: 0.5, // self-interest pull on kinLimit towards the next looser option (scarcity) or stricter (plenty)
@@ -848,6 +853,8 @@ VB['sim/rules'] = (() => {
   // The asking day (VB-823; plan, sections 2 and 7): a pawn who seeks reviews its wish once a season, on season day id mod SEASON_DAYS
   // at `hour`, and makes an offer due at the round; nobody is asked on one basis by more than `held` open offers (the next asker turns
   // to its next best), and an asking weighs at most `pool` candidates, the nearest villages first.
+  // The man's side asks a match; a woman's side that holds no offer asks from the asking day of season `womenFrom` (1: the summer) until
+  // the round, and a woman who holds a farm and speaks for herself asks as a man does (VB-693; plan, section 4.1).
   const ASK = Object.freeze({
     passes: 3,
     day: 10,
@@ -855,6 +862,7 @@ VB['sim/rules'] = (() => {
     hour: 6,
     held: 5,
     pool: 40,
+    womenFrom: 1,
   });
   // Courting (VB-036; design.md, Traits, talk and stories: Courting): two unmarried pawns of `minAge` or more court once each holds the
   // other at an opinion of `opinion` with a tie of `tie`, read when the two have a good talk; it ends when either's opinion of the other
