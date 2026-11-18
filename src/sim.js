@@ -41,7 +41,8 @@ const Sim = (() => {
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
   const { seedReserve } = VB['sim/hunger'],
-    { grainOf } = VB['sim/stores'];
+    { grainOf } = VB['sim/stores'],
+    { shareOwed } = VB['sim/obligations'];
   const { fieldsWanted, fieldView } = VB['sim/fields'];
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
@@ -162,6 +163,7 @@ const Sim = (() => {
     setOwner,
     seedReserve,
     grainOf,
+    shareOwed,
     fieldsWanted,
     fieldView, // a field as its tile's card shows it, with the head's choices (VB-355)
     plotProgress, // a task's progress now (VB-472)

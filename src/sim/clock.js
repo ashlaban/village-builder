@@ -455,6 +455,13 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'step',
+      when: (st) => !!st.obligationsDue && st.obligationsDue.length > 0,
+      owner: 'sim/obligations',
+      note: 'the obligations whose term has ended go on to their next term, or are overdue (VB-310)',
+      run: (st) => VB['sim/obligations'].step(st),
+    },
+    {
+      every: 'step',
       at: { tick: [1, NIGHT_STEPS + 1] },
       when: cenv,
       owner: 'sim/meetings',

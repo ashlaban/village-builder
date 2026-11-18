@@ -43,9 +43,9 @@ check(Sim.recordOf(st, { pawn: m.id, life: true }).some((e) => /Moved/.test(e.te
 check(X.plotJobs(st).every((j) => !(j[3].cottage && j[3].plot === plot)), 'no more cottage jobs');
 // owed shares are paid from grain above the debtor farm's reserve
 const other = st.households.find((h) => !h.dissolved && h.id !== hh.id), p = st.pawns.find((q) => q.alive && q.household === hh.id && q.id === f.id);
-p.owed = 50; p.owedFrom = other.id; other.grain = { barley: 1000 };
+VB['sim/obligations'].oweShare(st, other, p.id, 50); other.grain = { barley: 1000 };
 VB['sim/cottage'].payOwed(st);
-check(p.owed === 0 && Sim.grainOf(hh) === 450 && Sim.grainOf(other) === 950, `owed share paid (owed ${p.owed}, grain ${Sim.grainOf(hh)}/${Sim.grainOf(other)})`);
+check(Sim.shareOwed(st, p.id) === 0 && st.obligations[0].status === 'met' && Sim.grainOf(hh) === 450 && Sim.grainOf(other) === 950, `owed share paid (owed ${Sim.shareOwed(st, p.id)}, grain ${Sim.grainOf(hh)}/${Sim.grainOf(other)})`);
 // the next spring: the household sows its field
 let sown = false;
 for (let d = 0; d < 400 * 24 && !sown; d += 24) { Sim.advance(st, 24); sown = fm.fields[0].stage !== 'stubble'; if (hh.dissolved) break; }
