@@ -15,6 +15,8 @@
         autumn, stands six tenths grown and has no action this spring. On the bar the same number and crop.
      4. Nothing is stepped: the mode shows thresholds of survival, not targets (Kim, 18 Nov: the stepping of targets is to leave
         the game, and this mode replaces the Plan tab).
+     5. Toggles move nothing: the key and the food's breakdown lie over the map beside what opened them, and a person's problem has
+        its slot by the name whether it is shown or not (?plain=1 draws the breakdown shut and no problem marked, to compare).
      Kept from H: a bar's uncertain end striped and the next action after it; land not the farm's dimmed; the fertility overlay
      while "Break a field" is in hand; the key as a button (?legend=1 opens it) and tooltips; undo and reset apart; a tile's
      problem as a red mark on the tile, opening its menu.
@@ -265,7 +267,9 @@
   .meter.food > i { border-radius: 0; background: var(--c); } .meter.food > i:first-child { border-radius: 4px 0 0 4px; }
   .meter.food > i.add { background: repeating-linear-gradient(-45deg, var(--c) 0 2.5px, rgba(255, 255, 255, 0.75) 2.5px 5px); }
   .meter.food > b { top: -4px; bottom: -4px; width: 3px; }
-  .brk { margin: 0 0 6px; padding: 6px 9px; border-radius: 8px; background: rgba(23, 49, 58, 0.06); font-size: 12.5px; display: grid; grid-template-columns: 22px 1fr 44px 78px; gap: 3px 7px; align-items: center; }
+  .rgt { overflow: visible; }
+  .brk[hidden] { display: none; }
+  .brk { position: absolute; right: calc(100% + 10px); top: 28px; width: 290px; margin: 0; padding: 9px 11px; border-radius: 12px; background: #eef5f2; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); font-size: 12.5px; display: grid; grid-template-columns: 22px 1fr 44px 78px; gap: 3px 7px; align-items: center; }
   .brk .h { font-size: 11px; color: var(--muted); text-align: right; } .brk b { text-align: right; white-space: nowrap; } .brk .pl { color: var(--good); } .brk .no { color: var(--muted); font-weight: 400; }
   .brk .ci { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: #fff; background: var(--c); }
   .brk .tot { grid-column: 1 / -1; display: flex; justify-content: space-between; border-top: 1px solid var(--edge); padding-top: 4px; margin-top: 2px; }
@@ -278,8 +282,11 @@
   .hl .act .sure u { flex: none; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: var(--ink); font: 700 11px/1 'Alegreya Sans', sans-serif; text-decoration: none; }
   .hl .act .sure .ci { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: var(--c); }
   .mh .bang { position: static; transform: none; flex: none; box-shadow: none; }
-  .strip { grid-template-columns: 290px 1fr; }
+  .strip { grid-template-columns: 336px 1fr; }
   .legend .dot { display: inline-block; width: 13px; height: 13px; border-radius: 50%; background: var(--c); margin: 0 1px; }
+  .mh { display: grid; grid-template-columns: 24px 74px 20px 20px 1fr 68px; gap: 6px; } .mh .meter { margin-left: 0; } .mh > b:last-child { min-width: 0; margin-left: 0 !important; }
+  .mh.kn { grid-template-columns: 24px 74px 20px 1fr; } .mh.kn small { text-align: right; }
+  .need .w { white-space: nowrap; }
 </style>
 <body class="mine">
 <div class="stage">
@@ -587,7 +594,7 @@ const menu = () =>
   `<div class="about"><div class="ti">${ic('tile', 20)}About this tile${ic('chevron', 14)}</div>${chosenHTML()}</div></div>`;
 // ---- the needs: in store (solid), what this plan is expected to add (striped), the mark of what gets the household through the year ----
 const need = (icon, name, bar, word, open) => `<div class="need ${word === 'short' ? 'bad' : 'safe'}" data-tip="${name}">${ic(icon, 19)}${bar}<span class="w">${word}</span>` +
-  `<button type="button" aria-expanded="${!!open}" aria-label="${name}: the numbers">i</button></div>`;
+  `<button type="button"${open ? ' id="foodI"' : ''} aria-expanded="${!!open}" aria-label="${name}: the numbers">i</button></div>`;
 // food: a colour a source; [source, icon, in store, this plan adds, its range or why none], in rations
 const FOOD = [['grain', 'grain', 'Grain', 240, 530, '420–640'], ['peas', 'pod', 'Peas', 0, 90, '60–120'], ['fishc', 'fish', 'Dried fish', 8, 0, 'no day planned'], ['milk', 'pail', 'Milk, butter', 30, 110, '90–130']];
 const FOOD_NEED = 420, FOOD_MAX = 1100;
@@ -599,7 +606,7 @@ function foodBar() {
   return `<span class="meter food" role="meter">${s}<b style="left:${((FOOD_NEED / FOOD_MAX) * 100).toFixed(1)}%"></b></span>`;
 }
 const needsHTML = () => need('hunger', 'Food', foodBar(), 'safe', true) +
-  `<div class="brk"><span></span><span></span><span class="h">in store</span><span class="h">${est(10)}this plan adds</span>` +
+  `<div class="brk" id="brk"><span></span><span></span><span class="h">in store</span><span class="h">${est(10)}this plan adds</span>` +
   FOOD.map(([c, icon, name, store, plan, r]) => `<span class="ci" style="--c:var(--${c})">${ic(icon, 15)}</span><span>${name}</span><b>${store}</b>` +
     (plan ? `<b class="pl">+${plan} <small class="muted">${r}</small></b>` : `<b class="no">${r}</b>`)).join('') +
   `<span class="tot"><span>Needed to the next harvest</span><b>${est(10)}${FOOD_NEED} rations</b></span></div>` +
@@ -623,7 +630,7 @@ function laneH(m, h) {
   }
   return s + '</div>';
 }
-const member = (m) => `<div class="mh">${face(m)}<b class="n">${MEM[m].n}</b><span class="muted">${MEM[m].age}</span>${m === 't' ? '<span class="bang" data-tip="Asked for 6 days more than he has">!</span>' : ''}${budgetH(m)}</div>` +
+const member = (m) => `<div class="mh">${face(m)}<b class="n">${MEM[m].n}</b><span class="muted">${MEM[m].age}</span><span class="bang" ${m === 't' ? 'data-tip="Asked for 6 days more than he has"' : 'style="visibility:hidden"'}>!</span>${budgetH(m)}</div>` +
   `<div class="row">${tl(laneH(m, 52) + (SEL.m === m ? `<span class="pick" data-tip="Day ${SEL.day}: the next action goes here" style="left:${((SEL.day - 0.5) / 12) * 100}%"></span>` : ''),
     `<div class="s3"><span class="cellq">${m === 't' ? `<i>${ic('spade', 15)}7 d</i>` : ''}</span><span class="cellq"></span><span class="cellq"></span></div>`)}</div>`;
 // ---- the legend the key button unfolds ----
@@ -659,6 +666,10 @@ document.getElementById('strip').innerHTML = `<div></div>` +
   `<div class="mh kn">${face('k')}<b class="n">Karin</b><span class="muted">14</span><small>hired at the moving round</small></div>` +
   `<div class="row kn">${tl('<div class="lane ghost" style="height:26px"></div>', `<div class="s3"><span class="cellq come">${face('k', true)}day 1</span><span class="cellq"></span><span class="cellq"></span></div>`)}</div>`;
 showKey(new URLSearchParams(location.search).get('legend') === '1');
+// toggles change nothing else's place: the key and the breakdown lie over the map, a problem's mark has its slot whether shown or not
+const foodI = document.getElementById('foodI'), brk = document.getElementById('brk');
+foodI.addEventListener('click', () => { brk.hidden = !brk.hidden; foodI.setAttribute('aria-expanded', String(!brk.hidden)); });
+if (new URLSearchParams(location.search).get('plain') === '1') { foodI.click(); document.querySelectorAll('.bang').forEach((b) => (b.style.visibility = 'hidden')); }
 </script>
 </body>
 </html>
