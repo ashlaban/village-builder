@@ -22,6 +22,7 @@ VB['sim/scenarios'] = (() => {
     seedTraits(st);
     startHeads(st);
     seedAsking(st); // each who seeks, or will, on its asking day (VB-823)
+    VB['sim/courting'].seedCourtships(st); // nobody courts at the start (VB-036)
   }
   const { dailyNeed } = VB['sim/hunger'];
   const { startQuern } = VB['sim/quern'];

@@ -23,6 +23,7 @@ VB['sim/round'] = (() => {
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { villagesOfStep } = VB['sim/meetings'];
   const { askMatch, staleWhy } = VB['sim/asking'];
+  const { review, leavers } = VB['sim/courting'];
   const { seekVisit } = VB['sim/visits'];
   const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
   // Scarcity and plenty of spouses push the marriage limit, a village's own at the end of its round (VB-277): one the step married to a
@@ -85,7 +86,10 @@ VB['sim/round'] = (() => {
   }
   function roundPhase(st, n, d = 0, now = st.t) {
     if (n < VILLAGE_STEPS) {
-      if (n === 0 && d === 0) chooseWishes(st); // each pawn comes to the round with its wish (sim/wishes, VB-680)
+      if (n === 0 && d === 0) {
+        review(st); // the courting couples are read: a courtship that has run out ends (sim/courting, VB-036)
+        chooseWishes(st); // each pawn comes to the round with its wish (sim/wishes, VB-680)
+      }
       villagesOfStep(st, n, (v) => {
         answerDue(st, v, d, now);
         if (d === 0) villageRound(st, v);
@@ -107,7 +111,9 @@ VB['sim/round'] = (() => {
     } else if (n === VILLAGE_STEPS + 1)
       settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
     else if (n === VILLAGE_STEPS + 2) {
-      serveWhereShort(st, takeServants(st)); // a holder who lives alone takes in a landless adult, then service where labour is short (sim/service)
+      // a holder who lives alone takes in a landless adult, then service where labour is short, and for those of a courting couple a
+      // head refused (sim/service, sim/courting)
+      serveWhereShort(st, { ...takeServants(st), leavers: leavers(st) });
       payOwed(st);
       refreshPrestige(st);
       if (ASK.passes === 1) lapseRound(st);
@@ -177,6 +183,8 @@ VB['sim/round'] = (() => {
     for (const id of pool) {
       const p = st.pawns[id];
       p.age = age(st, p);
+      // One who courts is in no arranged match: the pair's own offer is theirs (sim/asking), answered before this round chooses
+      if (Number.isInteger(p.courting)) continue;
       const wish = p.wish ? wishOf(st, id, 'match') : null;
       if (typeof wish === 'number') wishers.push([id, wish]);
       if (spouseOf(st, id) !== null || p.retired || !fed(p) || wish === false) continue;

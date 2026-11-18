@@ -397,6 +397,8 @@ VB['sim/rules'] = (() => {
       // sim/lifecycle: the pawn refused a match its spokesman made (consent's cost; design.md, Marriage as a negotiation; VB-293)
       ale: { label: 'Poured us ale', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/occasions: a barrel poured at a wedding or a funeral ale (VB-305)
       refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
+      // sim/courting: a head refused the match of a courting pair; each of the two remembers that head (VB-036; plan VB-682, 4.1)
+      refusedCourting: { label: 'Refused our match', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
       // sim/offers: a refusal of goods offered or asked for (VB-690) is a memory of both: the one refused, and, fainter, the one who refused
       refusedUs: { label: 'Refused what we offered', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
       refusedThem: { label: 'We refused them', v: -0.05, cap: -0.15, days: YEAR_DAYS },
@@ -854,6 +856,12 @@ VB['sim/rules'] = (() => {
     held: 5,
     pool: 40,
   });
+  // Courting (VB-036; design.md, Traits, talk and stories: Courting): two unmarried pawns of `minAge` or more court once each holds the
+  // other at an opinion of `opinion` with a tie of `tie`, read when the two have a good talk; it ends when either's opinion of the other
+  // falls under `end`, or `years` after it began with no offer of theirs open. A refusal sends one of the two to ask for service at the
+  // next round when it holds the head who refused at an opinion under `leaveBelow` (a threshold on what the pawn feels, in place of
+  // the design's first chance of 0.5: principle 19).
+  const COURT = Object.freeze({ minAge: 16, opinion: 0.4, tie: 1.5, end: 0.2, years: 3, leaveBelow: 0 });
   // The village's wood (VB-326; design, Land and ecology, The village's wood; Agreed, Kim, 10 Nov): an allotted area of wooded tiles, v.wood
   // (sim/territory), perHousehold tiles for each live household of the village (a household fells about 11 trees a year and a tile of 60 to 80
   // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre (4 hours each way on meadow,
@@ -1172,6 +1180,7 @@ VB['sim/rules'] = (() => {
     SETTLE,
     WISH,
     ASK,
+    COURT,
     SERVICE,
     TIE,
     MATCH,

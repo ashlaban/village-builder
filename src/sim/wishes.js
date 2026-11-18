@@ -68,7 +68,9 @@ VB['sim/wishes'] = (() => {
     if (kind === 'out') return !wanted(rank, 'heir') ? true : LEAVING.every((r) => !wanted(rank, r)) ? false : null;
     if (kind === 'claim') return !wanted(rank, 'farm') ? false : w ? w.farm : null;
     if (kind === 'serve') return wanted(rank, 'service') ? null : false;
-    if (kind === 'match') return !wanted(rank, 'match') ? false : w ? w.partner : null;
+    // a courting pawn's match is the one it courts, and it asks no other (VB-036)
+    if (kind === 'match')
+      return !wanted(rank, 'match') ? false : Number.isInteger(p.courting) ? p.courting : w ? w.partner : null;
     if (kind === 'settle') return rank[0] === 'party' ? true : wanted(rank, 'party') ? null : false;
     return null;
   }

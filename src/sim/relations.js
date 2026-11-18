@@ -7,7 +7,7 @@ VB['sim/relations'] = (() => {
     { DIMS } = VB['culture'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf, age } = VB['sim/records'];
   const { partners, atHome } = VB['sim/encounters'];
-  const { on } = VB['sim/events'],
+  const { on, emit } = VB['sim/events'],
     issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
   const M = SOCIAL.memories; // the land's memories, from events (sim/stakes, sim/territory, sim/herds), are the three `on` below
   // ---- allowance (VB-216): how much one agent would give up to another in one deal, in rations, never below 0. Its context is
@@ -283,6 +283,7 @@ VB['sim/relations'] = (() => {
       was = bands.get(b) || 0,
       o = opinionOf(st, a, b),
       now = bandOf(was, o);
+    if (st.pawns[a].courting === b) emit(st, 'courtTouched', { a, b, o }); // the courting pair is read (sim/courting, VB-036)
     if (now === was) return o;
     if (now) bands.set(b, now);
     else bands.delete(b);
@@ -484,6 +485,7 @@ VB['sim/relations'] = (() => {
     const oi = touch(st, i, j),
       oj = touch(st, j, i);
     if (kind === 'crossWords') quarrelMaybe(st, i, j);
+    else if (kind === 'goodTalk') emit(st, 'goodTalk', { a: i, b: j, oa: oi, ob: oj }); // two who like each other may court (sim/courting)
     const show = (g, other, o) => {
       const s = g.talk || (g.talk = {});
       s.with = other;
