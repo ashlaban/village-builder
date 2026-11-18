@@ -15,7 +15,7 @@ VB['sim/expansion'] = (() => {
   const { freeFor, woodTaken } = VB['sim/territory'];
   const { clearTile, FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
   const { thick, clearScrub, tended } = VB['sim/spread'];
-  const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fields'];
+  const { BREAK_HOURS, clearHours, builtTiles, onField } = VB['sim/fields'];
   const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand } = VB['sim/layout'];
   const COTTAGE = ['foundation', 'walls', 'roof'],
     COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
@@ -505,7 +505,41 @@ VB['sim/expansion'] = (() => {
       },
     );
   }
+  // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
+  // owned by the plot's village (sim/expansion).
+  function plotWork(st, holder, at, c, post) {
+    for (const [key, kind, site, extra] of plotJobs(st)) post(key, site, extra, kind, extra.plot.holder);
+  }
+  // The job kinds (sim/kinds joins them into KINDS; a kind's fields are described there).
+  const KINDS = {
+    fell: {
+      verb: 'Felling trees',
+      go: 'Going to fell trees',
+      name: 'Fell trees',
+      label: 'Fell',
+      anim: 'chop',
+      hours: 10,
+      hands: Infinity,
+      type: 'wood',
+      available: plotWork,
+    },
+    grub: {
+      verb: 'Grubbing out stumps',
+      go: 'Going to grub out stumps',
+      name: 'Grub out stumps',
+      label: 'Grub',
+      anim: 'hoe',
+      hours: 6,
+      hands: Infinity,
+      type: 'tilling',
+      field: true,
+      spot: onField,
+      available: plotWork,
+    },
+  };
   return {
+    KINDS,
+    plotWork,
     COTTAGE,
     building,
     livePlots,

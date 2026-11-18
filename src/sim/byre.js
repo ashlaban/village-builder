@@ -514,7 +514,77 @@ VB['sim/byre'] = (() => {
       }
     }
   }
+  // By the byre door, left of the cottage (the page draws the byre there).
+  const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
+  // The byre's work at the cottage, for a household with herds or meat in its larder: fodder, slaughter, salting, milking (sim/byre).
+  function byreWork(st, hh, f, c, post) {
+    if (hh.herds.length || hh.larder.length)
+      for (const [key, kind, extra] of byreJobs(st, hh, c)) post(key, f.house, { farm: f, ...extra }, kind);
+  }
+  // The job kinds (sim/kinds joins them into KINDS; a kind's fields are described there).
+  const KINDS = {
+    fodder: {
+      verb: 'Feeding and mucking out in the byre',
+      go: 'Going to the byre',
+      name: 'Fodder the animals',
+      label: 'Byre',
+      anim: 'gather',
+      hours: 1,
+      hands: 1,
+      type: 'husbandry',
+      spot: byreSpot,
+      window: { from: WORK[0] - 1 },
+      urgency: (st, j, c, U) => U.fodder,
+      done: (st, j, hh, c) => fodderDone(st, hh, c),
+      available: byreWork,
+    },
+    milk: {
+      verb: 'Milking the cows',
+      go: 'Going to milk the cows',
+      name: 'Milk the cows',
+      label: 'Milking',
+      anim: 'milk',
+      hours: 0.5,
+      hands: 1,
+      type: 'husbandry',
+      spot: byreSpot,
+      window: { from: WORK[0] },
+      urgency: (st, j, c, U) => (c.hour < U.milkLateHour ? U.milk : U.milkLate),
+      done: (st, j, hh, c) => milkDone(st, hh, c),
+      available: byreWork,
+    },
+    slaughter: {
+      verb: 'Slaughtering',
+      go: 'Going to slaughter',
+      name: 'Slaughter an animal',
+      label: 'Slaughter',
+      anim: 'mallet',
+      hours: 3,
+      hands: 2,
+      type: 'husbandry',
+      spot: byreSpot,
+      urgency: (st, j, c, U) => (j.entry.lean ? U.slaughterNow : U.slaughter),
+      done: (st, j, hh) => slaughterDone(st, j.herd, j.entry, hh),
+      available: byreWork,
+    },
+    salt: {
+      verb: 'Salting meat',
+      go: 'Going home to salt the meat',
+      name: 'Salt the meat',
+      label: 'Salting',
+      anim: null,
+      hours: 1,
+      hands: 1,
+      type: 'household',
+      inside: true,
+      urgency: (st, j, c, U) => U.salt,
+      done: (st, j, hh) => saltDone(st, hh),
+      available: byreWork,
+    },
+  };
   return {
+    KINDS,
+    byreWork,
     spoilHay,
     autumnCounts,
     strays,

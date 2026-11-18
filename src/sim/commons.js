@@ -205,7 +205,16 @@ VB['sim/commons'] = (() => {
       w: COMMONS.pull * Math.min(1, owed / need / COMMONS.fullDays),
     };
   }
+  // A common field shares the field's kinds (sim/fieldwork): three end otherwise for it. Its sheaves go into the village store, and its
+  // clearing and breaking are the village's project, not a household's (VB-100). K: the field's kinds; sim/kinds joins what this gives.
+  const common = (K) => ({
+    ...K,
+    haul: { ...K.haul, deliver: (st, j, hh, f, a) => (j.common ? brought(st, j, a) : K.haul.deliver(st, j, hh, f, a)) },
+    clear: { ...K.clear, done: (st, j, hh) => (j.common ? cleared(st, j, hh) : K.clear.done(st, j, hh)) },
+    break: { ...K.break, done: (st, j) => (j.common ? brokenUp(st, j) : K.break.done(st, j)) },
+  });
   return {
+    common,
     fieldsOf,
     underWay,
     storeDays,

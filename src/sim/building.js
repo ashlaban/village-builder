@@ -4,7 +4,7 @@
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
-  const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH, houseCondition } = VB['sim/rules'];
+  const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH, HOUSE, houseCondition } = VB['sim/rules'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
   const { walkable, findRoute } = VB['sim/routes'];
@@ -446,7 +446,66 @@ VB['sim/building'] = (() => {
     plot.steps[2].wood = 0;
     return left;
   }
+  // The upkeep of built things, the fence and the house: job kinds too, joined by sim/kinds after the green's and the work day's, where
+  // they stood (the order of the kinds is part of saved state: sim/plans' due-queue holds an index into the windowed ones).
+  const UPKEEP = {
+    mend: {
+      verb: 'Mending the fence',
+      go: 'Going to mend the fence',
+      name: 'Mend the fence',
+      label: 'Mending',
+      anim: 'mallet',
+      hours: 2.5,
+      hands: 1,
+      type: 'upkeep',
+      spot: (st, a, j) => {
+        const w = st.w,
+          s = j.stretch;
+        return [s.mx + (w.hx[j.site] - s.mx) * 0.25, s.my + (w.hy[j.site] - s.my) * 0.25 + 3];
+      },
+      urgency: (st, j, c, U) => (1 - j.stretch.cond) * U.mendPerCond,
+      done: (st, j) => {
+        j.stretch.cond = 1;
+        j.stretch.dirty = true;
+      },
+      // a stretch worn below fenceMendBelow: of the farm's fence, the household's; asked at a village (no farm), of the village's own
+      available: (st, holder, at, c, post, f) => {
+        const E = st.ECON;
+        if (f) {
+          if (f.fence)
+            for (const s of f.fence)
+              if (s.cond < E.fenceMendBelow) post(`mend:f${f.id}.${s.id}`, s.tile, { stretch: s, farm: f });
+          return;
+        }
+        for (const s of at.fence)
+          if (s.cond < E.fenceMendBelow)
+            post(`mend:v${at.id}.${s.id}`, s.tile, { stretch: s }, 'mend', { type: 'village', id: at.id });
+      },
+    },
+    repair: {
+      // the house's upkeep (VB-306): 4 work hours raise its condition 0.1, offered once it is under 0.8
+      verb: 'Mending the house',
+      go: 'Going to mend the house',
+      name: 'Mend the house',
+      label: 'House',
+      anim: 'mallet',
+      hours: HOUSE.hours,
+      hands: 1,
+      type: 'upkeep',
+      urgency: (st, j, c, U) => U.repair,
+      done: (st, j) => {
+        const f = j.farm;
+        f.condition = Math.min(1, houseCondition(st, f) + HOUSE.raise);
+        f.condAt = st.t;
+      },
+      available: (st, hh, f, c, post) => {
+        if (f.household === hh.id && !f.booth && houseCondition(st, f) < HOUSE.mendBelow)
+          post(`repair:f${f.id}`, f.house, { farm: f });
+      },
+    },
+  };
   return {
+    UPKEEP,
     KINDS,
     boothAt,
     boothCondition,

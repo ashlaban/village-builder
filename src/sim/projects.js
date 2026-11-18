@@ -53,7 +53,21 @@ VB['sim/projects'] = (() => {
   }
   // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
   const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map(), heirPlots: [] });
+  // The job is still the open step of its household's project plan (not given up or contested away meanwhile; sim/projects, sim/stakes).
+  const onProject = (st, j) => {
+    const s = openOf(st, 'household', j.owner.id);
+    return !!s && s.place === j.site && s.kind === j.kind;
+  };
+  // The open step of the household's project plan (a new field's clear and break, a meadow; sim/projects): made once the one before is done.
+  // A plot the household clears for its heir (VB-255) is posted as every plot is (plotWork).
+  const landProject = (st, hh, f, c, post) => {
+    const p = projectOf(st, 'household', hh.id),
+      s = p && p.what !== 'plot' ? p.steps[p.open] : null; // not while it waits for timber (VB-300)
+    if (s && supplied(s)) post(`${s.kind}:f${f.id}`, s.place, { farm: f, hours: s.hours }, s.kind);
+  };
   return {
+    onProject,
+    landProject,
     projectsOf,
     projectOf,
     openStep,

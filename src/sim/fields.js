@@ -724,7 +724,23 @@ VB['sim/fields'] = (() => {
       }
     });
   }
+  const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
+  // Several hands on one field start on different rows: the nth worker on row -12 + 6n, five rows across the tile.
+  const firstRow = (j, a) => -12 + 6 * (Math.max(0, j.claims.indexOf(a.id)) % 5);
+  // The start of the pawn's first row on a field tile.
+  function onField(st, a, j) {
+    const w = st.w,
+      th = rowAngle(j),
+      row = firstRow(j, a);
+    return [
+      w.hx[j.site] - Math.cos(th) * 13 - Math.sin(th) * row,
+      w.hy[j.site] - Math.sin(th) * 13 + Math.cos(th) * row,
+    ];
+  }
   return {
+    rowAngle,
+    firstRow,
+    onField,
     hoed,
     sown,
     trample,

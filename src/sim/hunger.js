@@ -405,7 +405,19 @@ VB['sim/hunger'] = (() => {
     }
     return Math.max(0, HELP.storeTarget * need * YEAR_DAYS - Stores.grainOf(v));
   }
+  // The household's spare food in days of its need: grain above the seed reserve, cooked meals and fresh food (sim/pot, VB-119).
+  const spareDays = (st, hh) => {
+    const need = dailyNeed(st, hh);
+    return need > 0 ? Pot.spareFood(st, hh) / need : Infinity;
+  };
+  // Fishing's and gathering's urgency: fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none.
+  const spareUrgency = (st, j, U) => {
+    const d = spareDays(st, st.households[j.farm.household]);
+    return d >= U.fishCalmDays ? U.fishCalm : U.fishLean - ((U.fishLean - U.fishCalm) * d) / U.fishCalmDays;
+  };
   return {
+    spareDays,
+    spareUrgency,
     NEED,
     storeRoom,
     toHarvest,

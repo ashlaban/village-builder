@@ -201,7 +201,12 @@ VB['sim/claims'] = (() => {
       }
     return { households, villages };
   }
+  // Work on a land project renews the household's stake on its tile (sim/stakes).
+  const workStake = (st, j) => {
+    renewClaim(st, j.site, j.owner);
+  };
   return {
+    workStake,
     claimsOn,
     claimOf,
     strength,

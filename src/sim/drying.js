@@ -15,7 +15,7 @@ VB['sim/drying'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
-  const { dailyNeed, larderOf, floorOf } = VB['sim/hunger'];
+  const { dailyNeed, larderOf, floorOf, spareDays, spareUrgency } = VB['sim/hunger'];
   const Pot = VB['sim/pot'],
     Targets = VB['sim/targets'],
     { hands } = Targets;
@@ -186,6 +186,8 @@ VB['sim/drying'] = (() => {
     st.w.hx[j.farm.house] + dx + a.ox * 0.3,
     st.w.hy[j.farm.house] + dy + a.oy * 0.2,
   ];
+  // Fishing: from spring day FISH.from + 1 to the end of autumn; the water is ice in winter.
+  const fishing = (c) => (c.season === 0 && c.sday >= FISH.from) || c.season === 1 || c.season === 2;
   const KINDS = {
     rackfish: {
       verb: 'Fishing for the drying rack',
@@ -256,6 +258,43 @@ VB['sim/drying'] = (() => {
       project: true,
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.3],
       done: (st, j, hh) => boatBuilt(st, j, hh),
+    },
+    fish: {
+      verb: 'Fishing',
+      go: 'Going fishing',
+      back: 'Carrying the catch home',
+      name: 'Go fishing',
+      label: 'Fishing',
+      anim: 'fish',
+      hours: 3,
+      hands: 1,
+      type: 'foraging',
+      carry: 'fish',
+      to: 'door',
+      // at the water's edge: the edge of the lake or sea tile, or by the brook that runs through the middle of a river tile
+      spot: (st, a, j) => {
+        const w = st.w,
+          x = w.hx[j.site],
+          y = w.hy[j.site],
+          k = w.water[j.water] ? 0.45 : 0.7;
+        return [x + (w.hx[j.water] - x) * k + a.ox * 0.15, y + (w.hy[j.water] - y) * k + a.oy * 0.1];
+      },
+      // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
+      urgency: (st, j, c, U) => spareUrgency(st, j, U),
+      // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119); beyond it, to the rack (VB-388)
+      deliver: (st, j, hh) => {
+        potCatch(st, j, hh);
+      },
+      // in the fishing season, from its boat or the house's fishing ground (sim/drying): one trip, two while spare food is under FISH.secondDays
+      available: (st, hh, f, c, post) => {
+        if (!fishing(c) || Pot.fishCovered(st, hh, dailyNeed(st, hh))) return; // none while fresh fish covers 2 days (VB-388)
+        const g = fishingPlace(st, hh, f);
+        if (!g) return;
+        // the key names the bank, so a ground fished out is left for the next one at the following review
+        post(`fish:h${hh.id}:${g.shore}`, g.shore, { farm: f, water: g.water, boat: g.boat, leaky: g.leaky });
+        if (spareDays(st, hh) < FISH.secondDays)
+          post(`fish:h${hh.id}:${g.shore}b`, g.shore, { farm: f, water: g.water, boat: g.boat, leaky: g.leaky });
+      },
     },
   };
   // Dried fish as a made good (VB-698): its default target the dried fish wanted; its top bound, in a village by fishing water (as last
