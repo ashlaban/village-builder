@@ -33,6 +33,7 @@ the holder's offer and lets a played holder offer at any time.
    the custom's time without a cost in the heir's opinion.
 2. May the played holder hold out against the custom's time, since it must then play out a retirement? **P:** as any pawn may, at that
    cost; no rule for the player alone (principle 16). VB-1122 plans a retired life worth playing.
+   **A (Kim, 18 Nov):** Yes, as proposed: the played holder may hold out as any pawn may, at that cost; no rule for the player alone.
 
 ## Priority 2
 
