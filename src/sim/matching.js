@@ -58,15 +58,18 @@ VB['sim/matching'] = (() => {
   // ---- the pool and the villages' term (VB-288, VB-289; design.md, Between villages: Ease of mixing) ----
   // The villages within a day's walk of village v (v itself first) and those its living have visited since the last round, and their
   // living: the pool of v's round, built from those villages' households, not from the island's living filtered. A pawn of no household
-  // is in no village's pool. One table read a village, and a member read a pawn of the pool (counted as `roundWalk` by sim/lifecycle).
+  // is in no village's pool. One table read a village, and a member read a pawn of the pool (counted as `roundWalk` by sim/lifecycle);
+  // and the asking queue read once for the women who came as guests (`guestWalk`).
   function poolFor(st, v) {
     const out = [],
       n = st.villages.length,
-      seen = new Set();
+      seen = new Set(),
+      inPool = new Set();
     for (let k = -1; k < n; k++) {
       const u = k < 0 ? v : k;
       if (k >= 0 && (u === v || !(hoursBetween(st, v, u) <= TRAVEL.dayWalk || (seen.has(u) && byLand(st, v, u)))))
         continue;
+      inPool.add(u);
       for (const fid of st.villages[u].farmsteads) {
         const h = st.farmsteads[fid].household,
           hh = h === null ? null : st.households[h];
@@ -78,6 +81,15 @@ VB['sim/matching'] = (() => {
           if (k < 0 && p.visited && visitOf(st, p) !== null) seen.add(p.visited.village);
         }
       }
+    }
+    // A woman of a village outside these who has visited v since the last round is in its pool herself (VB-292): the round's men choose,
+    // so her visit is read from her side, as a man's puts her village in his. Read from the asking queue, which holds the unmarried.
+    for (const e of st.asking) {
+      VB.count.guestWalk++;
+      const p = st.pawns[e.pawn];
+      if (p.sex !== 'f' || !p.visited || !p.alive || p.household === null || visitOf(st, p) !== v) continue;
+      const hh = st.households[p.household];
+      if (!hh.dissolved && hh.farmstead !== null && !inPool.has(st.farmsteads[hh.farmstead].village)) out.push(p.id);
     }
     return out;
   }

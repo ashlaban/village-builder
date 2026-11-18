@@ -26,6 +26,8 @@ VB.COUNTERS = {
   visits: 'Visits arrived at the village visited (sim/visits, VB-289)',
   visitWalk:
     "Entries of the asking queue read for the unmarried women beyond a day's walk, a visit sought (sim/visits seekVisit, VB-289)",
+  guestWalk:
+    "Entries of the asking queue read at a village's round for the women who visited it (sim/matching poolFor, VB-292)",
   talkTurn:
     'Pawns asked by the talk round at their talk turn, every SOCIAL.talk.every waking hours (sim/relations, VB-521)',
   talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',
