@@ -267,7 +267,8 @@ VB['sim/occasions'] = (() => {
     const barrels = Stores.pour(st, hh, Math.min(Stores.aleOf(st, hh), Math.ceil(present.length / BREW.guests), most));
     if (!barrels) return 0;
     for (const id of present)
-      if (st.pawns[id].alive && st.pawns[id].household !== hh.id) remember(st, id, hh.holder, 'ale');
+      if (id !== hh.holder && st.pawns[id].alive && st.pawns[id].household !== hh.id)
+        remember(st, id, hh.holder, 'ale');
     emit(st, 'alePoured', { host: hh.holder, household: hh.id, barrels });
     return barrels;
   }
