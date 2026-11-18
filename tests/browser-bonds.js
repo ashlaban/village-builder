@@ -1,4 +1,4 @@
-// VB-1026, VB-1027: a portrait drawn in relation to someone carries its bonds as badges: in a person's Knows best rows and on the spouse's chip of
+// VB-1026, VB-1027, VB-1029: a portrait drawn in relation to someone carries its bonds as badges: in a person's Knows best rows and on the spouse's chip of
 // its card, with the word as the badge's label; a portrait drawn for nobody carries none.
 const { builtPage } = require('./lib/page');
 const assert = require('assert'), fs = require('fs'), path = require('path');
@@ -8,7 +8,10 @@ const root = path.join(__dirname, '..');
 const pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
 const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
 const rawHTML = builtPage().replace(HOOK, HOOK + ' window.__bondTest = { get st() { return st; }, select(id) { stopIntro(); selectPawn(id); }, '
-  + 'face: (id, cls, of) => faceImg(id, cls, of), kinds: () => Object.keys(BOND_PATHS) };');
+  + 'face: (id, cls, of) => faceImg(id, cls, of), kinds: () => Object.keys(BOND_PATHS), '
+  + 'aged: (id, age) => agedLook(lookOf(st.pawns[id]), age), look: (id) => lookOf(st.pawns[id]), faceAt(id, age) { const p = st.pawns[id], was = p.age; p.age = age; clearPortraits(); '
+  + 'const url = faceOf(id); p.age = was; clearPortraits(); return url; }, rigSig(id, age) { const p = st.pawns[id], was = p.age, R = makeRig(p, false); p.age = age; '
+  + 'ageRig(R, p); p.age = was; return R.look.aged; } };');
 const html = browserHTML(rawHTML);
 assert(html.includes('window.__bondTest'), 'page hook exists');
 (async () => {
@@ -59,11 +62,23 @@ assert(html.includes('window.__bondTest'), 'page hook exists');
     assert(!fn.bare && !fn.self, 'a portrait for nobody, or of oneself, has no badge');
     assert(fn.husband, 'he is her husband');
     assert(fn.warm && fn.cold, `the opinion badge and its tone: ${JSON.stringify(fn)}`);
+    // VB-1029: a face ages. Hair greys in steps from the pawn's own age for it, a beard comes at 18, on the map's figure as in the portrait;
+    // the old have lines in the face, so a married woman's portrait, her hair under the headcloth, ages too
+    const age = await page.evaluate(([m, f]) => { const T = window.__bondTest, from = T.aged(m, 0).grey === 0 && T.look(m).greyFrom;
+      return { from, young: T.aged(m, 20), old: T.aged(m, 90), boy: T.aged(m, 12).beard, man: T.aged(m, 30).beard === T.look(m).beard,
+        steps: [0, 1, 7, 13, 30].map((d) => T.aged(m, Math.ceil(from) + d - (d ? 0 : 2)).grey), rig: [T.rigSig(m, 20), T.rigSig(m, 90)],
+        wife: [T.faceAt(f, 30), T.faceAt(f, 90), T.faceAt(f, 30)].map((u) => u.length + ':' + u.slice(-40)) }; }, [man, wife]);
+    assert(age.from >= 38 && age.from <= 52, `hair begins to grey between 38 and 52: ${age.from}`);
+    assert.deepStrictEqual(age.steps, [0, 1, 2, 3, 3], 'grey in three steps of six years');
+    assert(age.young.grey === 0 && age.old.grey === 3 && age.old.hair.join() !== age.young.hair.join(), 'the hair of the old is another colour');
+    assert(age.boy === false && age.man, 'no beard on a boy; a man keeps the beard of his look');
+    assert(age.rig[0] !== age.rig[1], 'the map figure is aged as the portrait');
+    assert(age.wife[0] !== age.wife[1] && age.wife[0] === age.wife[2], 'a married woman\'s portrait ages, by its lines, and is the same again at the same age');
     // VB-1027: a widower reads Widowed, as a widow does (the debug's death, as the Debug panel deals it)
     const widowed = await page.evaluate(([m, f]) => { Sim.killPawn(window.__bondTest.st, f, 'illness'); window.__bondTest.select(m);
       return document.querySelector('.tile').textContent; }, [man, wife]);
     assert(/Widowed/.test(widowed) && !/Unmarried/.test(widowed), 'a widower is widowed');
     assert.deepStrictEqual(errors, [], 'no page errors');
-    console.log(`browser-bonds: the chip and ${card.rows.length} Knows best rows carry their bonds; 9 icons`);
+    console.log(`browser-bonds: the chip and ${card.rows.length} Knows best rows carry their bonds; 9 icons; faces age`);
   } finally { await browser.close(); }
 })().catch((e) => { console.error(e); process.exit(1); });

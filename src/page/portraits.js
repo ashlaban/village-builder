@@ -31,6 +31,7 @@ function tinted(part, colour) {
 function drawFace(p, married, winter) {
   if (!faceParts) faceParts = partCanvases(FACE);
   const look = lookOf(p),
+    aged = agedLook(look, p.age), // its hair as the years have it, and a beard from 18 (VB-1029), as on the map
     c = makeCanvas(BUST * FACE, BUST * FACE),
     g = c.getContext('2d'),
     k = 0.6 + 0.4 * sizeAt(p.age);
@@ -61,15 +62,32 @@ function drawFace(p, married, winter) {
     put('tunic', cloth, 0, -27);
     put('belt', null, 0, -11);
   }
-  if (p.sex === 'f' && !married) put('braid', rgb(look.hair, 0.9), hx - 9, hy - 16);
+  if (p.sex === 'f' && !married) put('braid', rgb(aged.hair, 0.9), hx - 9, hy - 16);
   put('head', rgb(look.skin), hx, hy, 0.46, 1);
+  if (aged.grey >= 2) {
+    // the old have lines in the face, which a hood or a headcloth does not hide: under the eye and by the mouth, and across the brow
+    // of the oldest (the portrait's own: the map's figure is too small for them)
+    g.strokeStyle = rgb(look.skin, 0.6);
+    g.lineWidth = 0.7;
+    g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(hx + 3.6, hy - 12.3);
+    g.quadraticCurveTo(hx + 5.4, hy - 11.2, hx + 7.4, hy - 12.2);
+    g.moveTo(hx + 6.2, hy - 8.6);
+    g.quadraticCurveTo(hx + 5.2, hy - 6.8, hx + 6.2, hy - 5.2);
+    if (aged.grey >= 3) {
+      g.moveTo(hx + 3.4, hy - 18.4);
+      g.quadraticCurveTo(hx + 5.4, hy - 19.2, hx + 7.6, hy - 18.4);
+    }
+    g.stroke();
+  }
   if (p.sex === 'm') {
-    if (look.beard) put('beard', rgb(look.hair, 0.95), hx + 3, hy - 9);
+    if (aged.beard) put('beard', rgb(aged.hair, 0.95), hx + 3, hy - 9);
     if (look.hood || winter) put('hood', rgb(look.hoodCol), hx, hy + 7, 0.47, 1);
-    else put('hair', rgb(look.hair), hx, hy - 2.5, 0.46, 1);
+    else put('hair', rgb(aged.hair), hx, hy - 2.5, 0.46, 1);
   } else if (married) put('headcloth', rgb(LINEN), hx, hy + 5, 0.46, 1);
   else {
-    put('hair', rgb(look.hair), hx, hy - 2.5, 0.46, 1);
+    put('hair', rgb(aged.hair), hx, hy - 2.5, 0.46, 1);
     put('band', null, hx, hy - 19, 0.5, 0.5, 1, -0.15);
   }
   put('sleeve', cloth, 3, -24);
@@ -83,7 +101,8 @@ function faceOf(id) {
   if (e && e.day === day) return e.url;
   const married = wedded(p),
     winter = Sim.cal(st.t).season === 3,
-    sig = `${married}|${winter}|${sizeAt(p.age)}`;
+    aged = agedLook(lookOf(p), p.age),
+    sig = `${married}|${winter}|${sizeAt(p.age)}|${aged.grey}|${aged.beard}`;
   if (!e || e.sig !== sig) {
     if (faceCache.size >= FACE_CAP) faceCache.clear();
     let url = '';

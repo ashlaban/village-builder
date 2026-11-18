@@ -222,6 +222,6 @@ const EXTENDED = [
   ['node', 'tests/browser-editor.js'],
   ['node', 'tests/browser-mobile.js'],
   ['node', 'tests/browser-speed.js'],
-  ['node', 'tests/browser-bonds.js'] // a portrait as another sees it carries its bonds as badges (VB-1026)
+  ['node', 'tests/browser-bonds.js'] // portraits: the bonds as badges (VB-1026), their words (VB-1027), ageing (VB-1029)
 ];
 module.exports = { FAST, INTEGRATION, EXTENDED };
