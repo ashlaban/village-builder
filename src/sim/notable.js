@@ -190,6 +190,7 @@ VB['sim/notable'] = (() => {
     'fellOut',
     'quarrel',
     'cause',
+    'wishLapsed',
     'player',
     'share',
     'gift',
@@ -331,6 +332,7 @@ VB['sim/notable'] = (() => {
     cause: 'It takes up a cause on its own',
     hunger: 'Hunger in its household',
     occasion: 'A wedding or a funeral ale that concerns it begins',
+    wish: 'Its wish for a match lapsed, or was passed by the round',
     offer: 'An offer that waits for its answer',
     refused: 'A command refused',
     idle: 'Nothing queued, with its automatic behaviour off',
@@ -441,6 +443,7 @@ VB['sim/notable'] = (() => {
     const k = ev.kind;
     if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
     if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
+    if (k === 'wishLapsed') return ev.pawn === about ? 'wish' : null;
     if (k === 'cause')
       return ev.pawn === about && (ev.reason === 'natural' || ev.reason === 'lapsed' || ev.reason === 'won')
         ? 'cause'

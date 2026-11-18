@@ -11,7 +11,7 @@ VB['sim/matching'] = (() => {
   const asksMatch = (st, id) => st.offers.some((o) => o.basis === 'match' && askerOf(o) === id);
   const { dailyNeed, larderOf } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
-  const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age } = VB['sim/records'];
+  const { settlementIdOf, kinDegree, wasWidowed, practice, fullName, spouseOf, age, personEvent } = VB['sim/records'];
   const { heirRanking, heirFor } = VB['sim/heirs'];
   const { trustOfHolder } = VB['sim/ownership'];
   const { opinionOf } = VB['sim/relations'];
@@ -285,7 +285,23 @@ VB['sim/matching'] = (() => {
       const wished = matchBar(st, w, partner, rules),
         wv = wished.man ? settlementIdOf(st, wished.man) : null;
       if (wv === v) out.set(wished.man.id, { ...wished, wisher: w });
-      else if (wv !== null && wv > v) taken.add(wished.woman.id);
+      else if (wished.why && w === pl) {
+        // the round passes the played pawn's wish by (VB-1113): told at the round of the man's village, with the reason the round had;
+        // the wish stands for the next round
+        const man = st.pawns[w].sex === 'm' ? st.pawns[w] : st.pawns[partner];
+        if ((settlementIdOf(st, man) ?? 0) === v)
+          personEvent(
+            st,
+            w,
+            'wishLapsed',
+            `The round passed over your wish for ${fullName(st.pawns[partner])}: ${wished.why}`,
+            {
+              other: partner,
+              reason: 'passed',
+              village: settlementIdOf(st, st.pawns[w]),
+            },
+          );
+      } else if (wv !== null && wv > v) taken.add(wished.woman.id);
     }
     return out;
   }
