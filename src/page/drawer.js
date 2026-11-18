@@ -78,7 +78,22 @@ function renderAgenda() {
       `<div class="dbg-row"><button type="button" data-agenda="do" data-cmd="${esc(
         JSON.stringify({ verb: 'dropCause' }),
       )}">Lay it down</button>${s ? link(a.dim, `${Culture.DIMS[a.dim].label} in ${s.name}`) : ''}</div>`;
-  } else if (wait > 0) h += `<p class="hint">You may take up a cause in ${yrs(wait)}.</p>`;
+  } else {
+    const lc = p.lastCause; // the last cause and its end, until another is taken up (VB-1112)
+    if (lc) {
+      const d = Culture.DIMS[lc.dim],
+        pc = (x) => `${Math.round(x * 100)}%`;
+      h +=
+        `<p class="hint">Your last cause, ${esc(d.label.toLowerCase())}: ${esc(d.opts[lc.opt][1].toLowerCase())}, ` +
+        `${lc.how === 'won' ? 'became the practice' : 'lapsed'} in ${when(lc.end)}` +
+        (lc.sup === null
+          ? '.'
+          : `; at the last meeting it had ${pc(lc.sup)} against ${pc(lc.vs)} for ${esc(d.opts[lc.vsOpt][1].toLowerCase())}` +
+            `${lc.how === 'won' ? '' : `, and needed ${pc(lc.need)}`}.`) +
+        '</p>';
+    }
+    if (wait > 0) h += `<p class="hint">You may take up a cause in ${yrs(wait)}.</p>`;
+  }
   h +=
     `<p class="hint">A cause is argued for ${Culture.P.causeEvery} years: it moves your own mind at once, and day by day the minds of those you have ` +
     'ties to, by your standing. The village decides at its yearly meeting.</p>';

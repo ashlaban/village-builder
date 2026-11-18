@@ -147,6 +147,7 @@
     "pawn.advocate": "culture",
     "pawn.leans": "culture",
     "pawn.causeSince": "culture",
+    "pawn.lastCause": "culture",
     "farmstead.fields": "sim/fields",
     "farmstead.rotationBy": "sim/fields",
     "st.visualDirty": "signal",

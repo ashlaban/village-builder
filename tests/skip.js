@@ -245,3 +245,25 @@ console.log('skip ok: it ends by the eve of the moving round; a skipped run is t
   assert.ok(/more before a new one/.test(issue(st, { actor: HOLDER, verb: 'argue', args, source: 'player' })), 'after the season: the wait');
   console.log('skip ok: a cause taken up on its own stops a skip; laid down in its season it starts no wait');
 }
+
+// VB-1112: a cause run past P.causeEvery gives one event with the support it had, stops the skip of its pawn, and is kept as lastCause.
+{
+  const C = VB['culture'], { issue } = VB['sim/commands'];
+  const st = make();
+  Sim.inhabit(st, HOLDER);
+  const p = st.pawns[HOLDER], dim = 0, opt = (st.cenv.settlements[0].practice[dim] + 1) % C.NOPT[dim];
+  assert.strictEqual(issue(st, { actor: HOLDER, verb: 'argue', args: { dim, option: opt }, source: 'player' }), true);
+  const evs = () => st.record.filter((e) => e.kind === 'cause' && e.pawn === HOLDER && e.reason === 'lapsed');
+  const from = Sim.skipFrom(st);
+  while (!evs().length && st.t < 8 * YEAR) Sim.advance(st, 6);
+  const e = evs();
+  assert.strictEqual(e.length, 1, 'one event: ' + e.length);
+  const lc = p.lastCause;
+  assert.ok(lc && lc.how === 'lapsed' && lc.dim === dim && lc.opt === opt && lc.sup !== null, JSON.stringify(lc));
+  assert.ok(new RegExp(`has lapsed after \\d+ years?; at the last meeting it had ${Math.round(lc.sup * 100)}% against \\d+% for .+, and needed ${Math.round(lc.need * 100)}%\\.$`).test(e[0].text), e[0].text);
+  let stop;
+  for (let n = 0; n < 500 && !((stop = Sim.skipStop(st, from)) && stop.why === 'cause'); n++);
+  assert.ok(stop && stop.why === 'cause' && /has lapsed/.test(stop.text), JSON.stringify(stop));
+  assert.strictEqual(p.advocate, null);
+  console.log('skip ok: a cause that lapses is told with its last vote');
+}
