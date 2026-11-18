@@ -260,7 +260,13 @@ function showPawn(id) {
     {
       badge: faceImg(id, 'badge'),
       stats: pawnStats(id) + traitsHTML(id),
-      links: marks + (sp !== null ? pawnChip(sp, '', id) : '') + farmChip(f) + villageChip(v),
+      // whom it courts is that one's chip, as whom it is married to is the spouse's (VB-036)
+      links:
+        marks +
+        (sp !== null ? pawnChip(sp, '', id) : '') +
+        (Number.isInteger(p.courting) ? pawnChip(p.courting, 'courting', id) : '') +
+        farmChip(f) +
+        villageChip(v),
     },
   );
   showRelations(id);

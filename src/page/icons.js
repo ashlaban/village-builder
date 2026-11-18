@@ -251,6 +251,10 @@ const GOOD_PATHS = {
   cold: '<path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9M9.5 4.5L12 7l2.5-2.5M9.5 19.5L12 17l2.5 2.5"/>',
   soil: '<path d="M3 13c3-2 6-2 9 0s6 2 9 0M3 18c3-2 6-2 9 0s6 2 9 0M12 10V4M12 6c-2 0-3-1-3-3M12 7c2 0 3-1 3-3"/>',
   heir: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14.5 8.5l2 2"/>',
+  // two hearts, the one behind the other: a pair that courts (VB-036)
+  courting:
+    '<path d="M9.5 18c-3.8-2.6-6-4.9-6-7.5a3.1 3.1 0 0 1 6-1.3 3.1 3.1 0 0 1 6 1.3c0 2.6-2.2 4.9-6 7.5z"/>' +
+    '<path d="M15.2 6.6a3 3 0 0 1 5.3 1.9c0 2.6-2.2 4.9-6 7.5"/>',
   holder: ACT_PATHS.home,
   // a pawn's mood and its modifiers for an event (VB-062): a face; two rings; a swaddled child; a falling tear
   mood: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.5c2 2 5 2 7 0M9 9.5h.01M15 9.5h.01"/>',

@@ -90,6 +90,14 @@ assert(html.includes('window.__bondTest'), 'page hook exists');
     const widower = await marks();
     assert.deepStrictEqual(widower.marks, [['Widowed', 'Widowed', true]], `a widower is widowed, by its mark: ${JSON.stringify(widower.marks)}`);
     assert(!/Widowed|Unmarried|Expecting|Nursing/.test(wed.text + widower.text), 'and none of it is written');
+    // VB-036: the one a pawn courts is that one's chip on its card, with the two hearts and the word as its title (set for the check, and put back)
+    const court = await page.evaluate((m) => { const T = window.__bondTest, st = T.st, p = st.pawns[m], q = st.pawns.find((x) => x.alive && x.sex === 'f' && x.id !== m);
+      p.courting = q.id; T.select(m);
+      const c = document.querySelector(`#tileLinks .chip.as[data-pawn="${q.id}"]`), out = c ? [c.title, c.textContent.trim(), !!c.querySelector('svg')] : null;
+      p.courting = null; T.select(m);
+      return { out, name: Sim.fullName(q), after: !!document.querySelector('#tileLinks .chip.as') }; }, man);
+    assert.deepStrictEqual(court.out, ['Courting', court.name, true], `the courted one's chip: ${JSON.stringify(court)}`);
+    assert(!court.after, 'and none for one who courts nobody');
     const kinds = await page.evaluate(() => window.__bondTest.states());
     assert.deepStrictEqual(kinds.sort(), ['expecting', 'nursing', 'unmarried', 'widowed']);
     assert.deepStrictEqual(errors, [], 'no page errors');
