@@ -27,7 +27,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-295](backlog/VB-295.md) | Going to the gathering: a household plans it, packs and walks there | fair | 2 | M | The gathering as an occasion: who goes and who stays, provisions and loads packed, the walk there and back, three days on the host's green. |
 | [VB-313](backlog/VB-313.md) | Refactor: Decisions as a module, the meeting's votes asked through it | debt | 2 | M | Questions, procedures and ballots in one module; the custom votes go through it unchanged; ballots and margins kept. |
 | [VB-351](backlog/VB-351.md) | The head chooses what to sow, by foresight | crops | 2 | M | A poor, an ordinary and a good head choose rotation, field and sowing day differently, each with its bias; a crop new to the household is a project. |
-| [VB-353](backlog/VB-353.md) | The scenarios' crops: founders, heirs and populous | crops | 2 | S | Each scenario's preset: the founders' three farms bring rye, the lone farm peas and a backup farm a field's pea seed; heirs' two villages differ; populous villages draw by their ground. |
 | [VB-354](backlog/VB-354.md) | A season's weather, read by each crop in its own way | crops | 2 | M | The yearly weather factor gives way to a season's warmth and wetness, the thaw and the first frost, which barley, rye, peas and hay each read differently. |
 | [VB-403](backlog/VB-403.md) | Balance accounts: a report of where the food and the people go | yardstick | 2 | M | One report that closes the yearly accounts of a run: food by source and outlet, people by births, deaths, marriages and moves, the spread between households, goodwill and labour; the properties of the balance map that the game can report. |
 | [VB-436](backlog/VB-436.md) | Nobody is sent to a home over the sea | between | 2 | M | Marriage, cottage founding, guardians, kin homes and service still send pawns to villages with no route by land; enforce the Decided point. |
@@ -149,6 +148,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-353](backlog/VB-353.md) | The scenarios' crops: founders, heirs and populous | crops | 2 | S | Each scenario's preset: the founders' three farms bring rye, the lone farm peas and a backup farm a field's pea seed; heirs' two villages differ; populous villages draw by their ground. |
 | [VB-722](backlog/VB-722.md) | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 | [VB-1126](backlog/VB-1126.md) | Design: the age of account and the bands' margin in design.md | talk | 3 | S | design.md does not yet say VB-1106's two rules (SOCIAL.account 12, SOCIAL.back 0.2) |
 
