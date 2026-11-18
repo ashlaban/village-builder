@@ -142,6 +142,7 @@
     "pawn.leans": "culture",
     "pawn.causeSince": "culture",
     "farmstead.fields": "sim/fields",
+    "farmstead.rotationBy": "sim/fields",
     "st.visualDirty": "signal",
     "st.biomeDirty": "signal",
     "st.rigDirty": "signal",

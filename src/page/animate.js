@@ -348,7 +348,7 @@ function updateSettlement(dt) {
   refreshGround();
   refreshReach();
   for (const o of fieldSprites) {
-    const s = cropStage(o.fd);
+    const s = fieldLook(o.fd);
     if (s !== o.stage) {
       o.stage = s;
       o.sp.texture = fieldTex[s];
