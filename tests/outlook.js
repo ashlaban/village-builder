@@ -16,7 +16,7 @@ const near = (a, b, e = 0.02) => Math.abs(a - b) <= e;
 const at = (st, t) => { st.tick = Math.round(t * TICKS); st.t = st.tick / TICKS; };
 const empty = (hh) => { hh.grain = {}; hh.meals = 0; hh.flour = 0; hh.larder = []; hh.fresh = []; hh.unthreshed = []; hh.wood = 0; hh.peat = 0; hh.hay = 0; };
 
-const st = probe.state();
+const st = probe.state(3);
 st.naturalDeaths = false;
 at(st, YEAR + 8); // year 1, spring, day 0 of the season, 08:00
 const c = cal(st.t), [h0, h1] = st.villages[0].farmsteads.map((f) => st.households[st.farmsteads[f].household]);
