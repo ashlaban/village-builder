@@ -443,7 +443,7 @@ function startSkip() {
   dropSkipNote();
   setSpeed(Infinity);
   lastSpeed = back === Infinity ? 1 : back; // Play after the stop resumes at the speed before the skip
-  skipCursor = Sim.skipFrom(st);
+  skipCursor = Sim.skipFrom(st, skipLast); // it goes on where the last skip stopped, if the game has stood since (VB-1108)
   $('skipBtn').setAttribute('aria-pressed', 'true');
 }
 function endSkip(stop) {
