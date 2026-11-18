@@ -461,7 +461,6 @@ VB['sim/records'] = (() => {
         value: {
           children: new Map(),
           spouse: new Map(),
-          spouses: new Map(),
           union: new Map(),
           widowed: new Set(),
           holds: new Map(),
@@ -485,14 +484,6 @@ VB['sim/records'] = (() => {
     }
     for (; x.nu < st.unions.length; x.nu++) {
       const u = st.unions[x.nu];
-      for (const [p, q] of [
-        [u.a, u.b],
-        [u.b, u.a],
-      ]) {
-        const l = x.spouses.get(p);
-        if (l) l.push(q);
-        else x.spouses.set(p, [q]);
-      }
       if (u.end !== null) {
         x.widowed.add(u.a);
         x.widowed.add(u.b);
@@ -626,8 +617,6 @@ VB['sim/records'] = (() => {
     const u = st.unions.find((u) => (u.a === id || u.b === id) && u.start <= t && (u.end === null || u.end > t));
     return u ? (u.a === id ? u.b : u.a) : null;
   }
-  // Every spouse pawn id has had, in marriage order, ended unions too (affinity runs through a death, VB-1107).
-  const spousesOf = (st, id) => index(st).spouses.get(id) || [];
   const childrenOf = (st, id) => [...(index(st).children.get(id) || [])];
   // The ancestors of `ids`, one to `generations` up (VB-224); each is reached first at its nearest generation, and walked from there.
   function ancestorsOf(st, ids, generations) {
@@ -794,7 +783,6 @@ VB['sim/records'] = (() => {
     birthYear,
     fullName,
     spouseOf,
-    spousesOf,
     childrenOf,
     siblingsOf,
     kinship,

@@ -159,16 +159,6 @@ const Culture = (() => {
         ['first', 'Before the household’s own work'],
       ],
     },
-    {
-      key: 'affinity',
-      label: 'Kin by marriage who may marry',
-      m: 0.12,
-      opts: [
-        ['fourth', 'Not within the fourth degree of affinity'],
-        ['line', 'Not in the direct line'],
-        ['none', 'No bar'],
-      ],
-    },
   ];
   const OFF = [],
     NOPT = [],
@@ -195,7 +185,6 @@ const Culture = (() => {
       birthOrder: 'eldest',
       residence: 'land',
       kinLimit: 'first',
-      affinity: 'line',
       feedOrder: 'equal',
       ownHeir: 'behind',
       dispute: 'first',
