@@ -11,9 +11,13 @@ let windowFocused = document.hasFocus(),
 let speedSampleAt = 0,
   speedSampleHours = 0;
 // A skip to the next event (VB-234, page/play): where it began (Sim.skipFrom), or null; page state, never saved.
-let skipCursor = null;
+// skipLast is the cursor of the skip that last ended (VB-1108): the next one goes on from it, so that the other events of the step
+// that stopped it are told in turn.
+let skipCursor = null,
+  skipLast = null;
 function cancelSkip() {
   if (skipCursor) {
+    skipLast = skipCursor;
     skipCursor = null;
     $('skipBtn').setAttribute('aria-pressed', 'false');
   }

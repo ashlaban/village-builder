@@ -145,6 +145,7 @@ async function build(seed, scenario, size, save = null, quick = false) {
   endTool();
   playMsg = null;
   skipCursor = null;
+  skipLast = null;
   dropSkipNote();
   dropStart(); // the start's islands and a game kept aside are dropped, as the game that was open is
   dropEditor(); // and the editor's world
