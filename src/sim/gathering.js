@@ -8,13 +8,14 @@
 //   the gathering it hosted that winter: 0 until VB-295 holds it)}. The meeting's verb `gathering` writes chosen, by, hosting and prefs
 //   (setGathering); the evening's settling writes year, host and ale (settleGatherings); between the two, year and host are last year's.
 VB['sim/gathering'] = (() => {
+  const { settlement } = VB['sim/records'];
   const { GATHERING, TRAVEL, YEAR, SEASON_DAYS, DAY, cal } = VB['sim/rules'];
   const { hoursBetween, withinDay } = VB['sim/routes'];
   const { log } = VB['sim/records'];
   const { opinionOf } = VB['sim/relations'];
   const { kinHouseholds } = VB['sim/exchange'];
   const Green = VB['sim/green'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   const Culture = VB['culture'];
   const G = GATHERING;
   const choiceOf = (st, vid) => st.villages[vid].gathering || null;
@@ -287,5 +288,11 @@ VB['sim/gathering'] = (() => {
       start = (year - 1) * YEAR + (d.season * SEASON_DAYS + d.from) * DAY;
     return [start, start + d.days * DAY];
   }
+  // gathering({offer, prefs, by}): the village's choice of gathering this year (VB-294): whether it offers to host, and the hosts it
+  // would go to, best first; made by its meeting (by 'meeting') or, when it did not decide, by its culture's practice (sim/gathering)
+  register('gathering', {
+    check: (st, c) => settlement(st, c) || choiceWhy(st, c.actor.settlement, c.args),
+    run: (st, c) => setGathering(st, c.actor.settlement, c.args),
+  });
   return { chooseGathering, choiceWhy, setGathering, settleGatherings, district, gatherings, whenHeld, rank, canHost };
 })();

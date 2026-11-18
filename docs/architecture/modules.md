@@ -217,8 +217,16 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Customs on the page (VB-396 to VB-398): `src/page/customs.js` is the Customs tab of a village's card, the customs as sentences (`SAID`; a
   new custom or option gets its phrase there), who stands by which way, and a voice's note (its pulls from `src/sim/leanings.js`, a
   read-only view, weighed by `Culture.WEIGH`, the factors the daily drift itself reads, so the note and the drift cannot disagree); `src/page/culture.js` is the dock's Culture pane: a culture's villages, its own charter, the meetings.
-- Commands (VB-167 to VB-171): `src/sim/commands.js` holds the verbs (`work`, `walkTo`, `goHome`, `idle`, `attend`; `decide`; `marry`, `handOn`, `move`,
-  `claim`, `leave`; debug `kill`, `retire`, `argue`, `rally`, `skip`). The planner, the meeting, the moving round and the debug drawer act by
+- Commands (VB-167 to VB-171; VB-228): `src/sim/commands.js` is the dispatcher alone (`register`, `issue`, the table `VERBS`) and imports no
+  domain. Each module registers, at load, the verbs of the acts it carries out: `sim/agents` (`work`, `walkTo`, `goHome`, `idle`,
+  `haltForTalk`), `sim/away` (`lodge`, `comeHome`, `raiseBooth`), `sim/gifts` (`give`, `deliver`), `sim/occasions` (`attend`, `callAle`),
+  `sim/offers` (`offer`, `answer`), `sim/visits` (`visit`), `sim/plans` (the head's plan and `routines`), `sim/aims` (`barn`, `heirFarm`,
+  `plotToVillage`), `sim/society` (`decide`, `argue`, `dropCause`, `rally`), `sim/gathering`, `sim/trust` (`goBack`, `goToKin`),
+  `sim/marriage` (`marry`), `sim/heirs` (`handOn`, `move`), `sim/farmclaims` (`claim`), `sim/settle` (`leave`), `sim/membership`
+  (`foundHousehold`), `sim/cottage` (`finishCottage`), `sim/lifecycle` (debug `kill`, `retire`), `sim/clock` (`skip`). A verb's home is
+  the module of its act, and where its body calls several, the highest in load order, so that it imports downward. The guards the
+  checks share are lookups where their subject lives: `living`, `home`, `settlement` in `sim/records`, `free` in `sim/agents`. The
+  player (its queue, wish, answer and choices as head) is `sim/player`. The planner, the meeting, the moving round and the debug drawer act by
   `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.
   A new act a pawn or the round chooses gets a verb; `tests/commands.js` checks statically that only the verbs call the acts they wrap.
   The head's plan (VB-253): `target` (hay, fields, wood, cow, within bounds), `tile` (the next field's or meadow's, under `fieldWhy` and
@@ -283,9 +291,11 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058), `sim/lying` (loads left
   lying where their carrier fell, VB-611).
 - Social: `culture`, `sim/encounters`, `sim/relations`, `sim/courting` (VB-036), `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`, `sim/obligations`,
-  `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/occasions` (gatherings), `sim/workdays` (the village's work days,
+  `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
-- Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
+- Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/gifts` (how a gift gets from here to there: the verbs `give` and
+  `deliver`, VB-228), `sim/occasions` (gatherings; agency since VB-228, as target-v2 4.5 has it: its verb `attend` walks the pawn), `sim/player`
+  (the player as a source of commands, VB-169, VB-228), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
   `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).

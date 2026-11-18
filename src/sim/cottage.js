@@ -1,5 +1,6 @@
 // @sys sim/cottage: a finished cottage becomes a farmstead and a household (start in life from shares); owed shares are paid down
 VB['sim/cottage'] = (() => {
+  const { livePlots, cottageAt } = VB['sim/expansion'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold } = VB['sim/records'];
   const { makeFarmstead } = VB['sim/layout'];
   const { SHARES, SOIL, ECON } = VB['sim/rules'];
@@ -11,7 +12,7 @@ VB['sim/cottage'] = (() => {
     Obligations = VB['sim/obligations'],
     { emit } = VB['sim/events'];
   const names = VB['sim/names'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   // A new farm's name (VB-026, VB-401): by the generators the village's culture prefers, their order drawn by weight, not one another
   // farm of the village has; owner is its first holder. Drawn from the house tile's own stream, not st.rng.
   function farmName(st, v, f, owner = null) {
@@ -148,5 +149,17 @@ VB['sim/cottage'] = (() => {
       });
     }
   }
+  register('finishCottage', {
+    check: (st, c) => {
+      const v = st.villages[c.args && c.args.village],
+        plot = v && livePlots(st, v).find((p) => p.plot === c.target);
+      return plot && cottageAt(plot) >= 3 ? null : 'there is no finished cottage';
+    },
+    run: (st, c) =>
+      finishCottage(
+        st,
+        livePlots(st, st.villages[c.args.village]).find((p) => p.plot === c.target),
+      ),
+  });
   return { farmName, finishCottage, payOwed };
 })();

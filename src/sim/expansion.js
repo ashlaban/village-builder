@@ -1,7 +1,7 @@
 // @sys sim/expansion: clearing a new plot for those who want to move out, and building its cottage: trigger, site, jobs, progress and who gets it;
 // a plot under way is a project plan of its village (sim/plans, VB-123), a plot built a record in village.plots
 VB['sim/expansion'] = (() => {
-  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd);
+  const { issue } = VB['sim/commands'];
   const { B } = VB['gen'];
   const { doneOf } = VB['sim/progress'];
   const { fertility, farmable, FIELDS, BUILD, ECON, YEAR } = VB['sim/rules'];

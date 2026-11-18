@@ -2,10 +2,11 @@
 // fields and takes their harvest while the owner, holder and line stay the same; the trust ends at the holder's marriage, a servant, a
 // ward's coming of age, the trustee's end or the holder's death
 VB['sim/trust'] = (() => {
+  const { living, home } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold, kinship } = VB['sim/records'];
   const { refreshRoles, handOn } = VB['sim/heirs'];
   const { freeHands, dropJob } = VB['sim/agents'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   const { houseCondition } = VB['sim/rules'];
   const { passHerds } = VB['sim/herds'];
   const Stores = VB['sim/stores'];
@@ -177,5 +178,34 @@ VB['sim/trust'] = (() => {
       handOn(st, hh, hh.holder, k.id);
     }
   }
+  // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
+  // goBack(target, {why}): the actor, holder of household `target`'s farm held in trust by kin (VB-309, sim/trust), goes back to it with
+  // its people, and the trust ends: at its marriage, a servant at the round, its coming of age or the trustee's end (args.why)
+  register('goBack', {
+    check: (st, c) =>
+      living(st, c.actor) ||
+      (!trustOf(st, c.target)
+        ? `household ${c.target} is not held in trust`
+        : st.households[c.target].holder !== c.actor
+          ? `pawn ${c.actor} does not hold household ${c.target}`
+          : null),
+    run: (st, c) => endTrust(st, trustOf(st, c.target), (c.args && c.args.why) || 'return'),
+  });
+  // goToKin(target, {why, ward}): the actor, holder of household `target`, which nobody can come to (sim/service: VB-308's search found
+  // nobody, or an orphaned heir with no guardian, args.ward), goes to the kin household that will hold its farm in trust (VB-309)
+  register('goToKin', {
+    check: (st, c) =>
+      living(st, c.actor) ||
+      (!home(st, c.target)
+        ? `there is no household ${c.target}`
+        : st.households[c.target].holder !== c.actor
+          ? `pawn ${c.actor} does not hold household ${c.target}`
+          : trustOf(st, c.target)
+            ? `household ${c.target} is held in trust already`
+            : trusteeFor(st, st.households[c.target], (c.args && c.args.ward) ?? null) === null
+              ? 'no kin household within reach can hold the farm'
+              : null),
+    run: (st, c) => holdInTrust(st, st.households[c.target], c.args.why, (c.args && c.args.ward) ?? null),
+  });
   return { trusteeFor, holdInTrust, closeTrust, endTrust, goBack, wardsOfAge, inheritedHeld };
 })();

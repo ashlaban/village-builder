@@ -1,5 +1,8 @@
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
+  const { home } = VB['sim/records'];
+  const { setServant, living } = VB['sim/records'];
+  const { moveWhy } = VB['sim/wishes'];
   const {
     joinHousehold,
     leaveHousehold,
@@ -25,9 +28,9 @@ VB['sim/heirs'] = (() => {
     ancestorsOf,
   } = VB['sim/records'];
   const { wishOf } = VB['sim/wishes'];
-  const { stopWorkFor } = VB['sim/agents'];
+  const { stopWorkFor, stayOf } = VB['sim/agents'];
   const { farmToVillage, heldFarms } = VB['sim/ownership'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
   const { oweShare } = VB['sim/obligations'];
   const { dropStakes } = VB['sim/stakes'];
@@ -624,6 +627,68 @@ VB['sim/heirs'] = (() => {
     const heirs = firstHeirs(st, own);
     st.demand = st.living.filter((id) => wantsOut(st, st.pawns[id], heirs, own));
   }
+  // Why a pawn changes household (VB-822; docs/plans/VB-682.md, section 5); whether pawn id keeps the minor m: its child, its spouse's
+  // child or its ward, under 18.
+  const MOVE_REASONS = ['marriage', 'heir', 'service', 'guardian', 'care', 'home', 'settle', 'found'];
+  const keeps = (st, id, m) => {
+    if (m === id || !(st.pawns[m].age < 18)) return false;
+    const sp = spouseOf(st, id);
+    return (
+      childrenOf(st, id).includes(m) ||
+      (sp !== null && childrenOf(st, sp).includes(m)) ||
+      st.liveHouseholds.some((h) => st.households[h].guardian === id && st.households[h].ward === m)
+    );
+  };
+  // handOn(target, {household, reason}): the actor, holding household args.household, hands it to the heir `target`
+  register('handOn', {
+    check: (st, c) =>
+      !home(st, c.args && c.args.household)
+        ? `there is no household ${c.args && c.args.household}`
+        : st.households[c.args.household].holder !== c.actor
+          ? `pawn ${c.actor} does not hold household ${c.args.household}`
+          : living(st, c.target),
+    run: (st, c) => transfer(st, st.households[c.args.household], c.target, c.args.reason),
+  });
+  // move(target, {reason, with, text}): the actor changes to household `target` (VB-822), the one act for every change of household; the
+  // acts that change a right as well (marry, handOn, goToKin, goBack, the foundings) issue it for their people. `with`: the minors who
+  // follow, after it, each its child, its spouse's child or its ward; `text`: the 'moved' life event, when the issuer says more than the
+  // farm's name. Settlers (reason 'settle') walk on their stakes; reason 'service' makes the actor a servant, with the service event and
+  // log line (args.event, args.line, args.other: the issuer's words, else the plain ones). Whose yes it needs is moveWhy's (VB-692).
+  register('move', {
+    check: (st, c) => {
+      const a = c.args || {},
+        dead = living(st, c.actor);
+      if (dead) return dead;
+      if (!home(st, c.target)) return `there is no household ${c.target}`;
+      if (st.pawns[c.actor].household === c.target) return `pawn ${c.actor} lives there already`;
+      if (!MOVE_REASONS.includes(a.reason)) return `there is no reason ${a.reason} to move`;
+      if (a.with !== undefined && !Array.isArray(a.with)) return 'those who follow must be a list';
+      const whose = moveWhy(st, c.actor, c.target, a.reason);
+      if (typeof whose === 'string') return whose;
+      for (const m of a.with || []) {
+        const why = living(st, m) || (keeps(st, c.actor, m) ? null : `pawn ${m} is not a minor whom ${c.actor} keeps`);
+        if (why) return why;
+      }
+      return null;
+    },
+    run: (st, c) => {
+      const a = c.args,
+        hh = st.households[c.target];
+      for (const id of [c.actor, ...(a.with || [])])
+        moveTo(st, id, c.target, a.text ?? null, a.reason !== 'settle', a.reason);
+      if (a.reason !== 'service') return;
+      const at = st.farmsteads[hh.farmstead].name;
+      setServant(st, c.actor, true);
+      personEvent(st, c.actor, 'service', a.event || `Went into service at ${at}`, false); // recorded below
+      const out = stayOf(st, c.actor) ? ', and sets out for it' : ''; // its new home lies in another village (VB-287)
+      log(st, `${a.line || `${fullName(st.pawns[c.actor])} goes into service at ${at}`}${out}.`, {
+        kind: 'service',
+        pawn: c.actor,
+        ...(a.other !== undefined ? { other: a.other } : {}),
+        ...atHousehold(st, hh),
+      });
+    },
+  });
   return {
     heirRanking,
     moveTo,

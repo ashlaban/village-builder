@@ -1,5 +1,5 @@
-// Commands (VB-167): a work command is carried out as start was; a refused command changes nothing; outside sim/commands and sim/agents
-// nothing in src/sim calls start (or the other acts the command verbs wrap). On the small islands of tests/lib/probe.js (VB-856; the default
+// Commands (VB-167): a work command is carried out as start was; a refused command changes nothing; outside a verb (the `register(...)` of
+// the module that carries it out, VB-228) and the module that defines it, nothing in src/sim calls start (or the other acts the verbs wrap). On the small islands of tests/lib/probe.js (VB-856; the default
 // island before): founders on 36 by 26, heirs on 48 by 34.
 const assert = require('assert');
 const { readSource } = require('../tools/lib/source.js');
@@ -7,7 +7,8 @@ const fs = require('fs'), path = require('path'), { tokenize } = require('../too
 const VB = require('../src/load.js'), { island, ROOMY } = require('./lib/probe.js'), Sim = VB.sim, { issue } = VB['sim/commands'], { isOpen } = VB['sim/kinds'];
 const { canon } = require('./lib/canon.js');
 
-// static: the acts a verb wraps are called only from sim/commands, or inside the module that defines them (an act built of others there)
+// static: the acts a verb wraps are called only from a verb (inside a `register(` call), or inside the module that defines them (an act
+// built of others there)
 const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'carryGift', 'setRoutines', 'setGathering', 'endTrust', 'holdInTrust',
   'setTarget', 'nameTile', 'setOrder', 'holdProject', 'beginLand', 'giveUp', 'planVisit'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
@@ -15,10 +16,19 @@ const text = Object.fromEntries(files.map((f) => [f, readSource(f)]));
 const definedIn = Object.fromEntries(WRAPPED.map((n) => [n, files.find((f) => new RegExp(`function ${n}\\(`).test(text[f]))]));
 for (const n of WRAPPED) if (!definedIn[n]) throw new Error(`no module defines ${n}`);
 for (const f of files) {
-  if (f === 'src/sim/commands.js') continue;
   const src = text[f], toks = tokenize(src).filter((t) => t.t !== 'com');
+  const inVerb = new Set(); // the tokens inside a register(...) call
+  toks.forEach((t, i) => {
+    if (!(t.t === 'word' && t.v === 'register' && toks[i + 1] && toks[i + 1].v === '(' && !(toks[i - 1] && toks[i - 1].v === 'function'))) return;
+    for (let k = i + 1, depth = 0; k < toks.length; k++) {
+      if (toks[k].v === '(') depth++;
+      else if (toks[k].v === ')' && --depth === 0) break;
+      inVerb.add(k);
+    }
+  });
   toks.forEach((t, i) => {
     const prev = toks[i - 1];
+    if (inVerb.has(i)) return;
     // moveTo: the move verb is its only caller, even in sim/heirs, which defines it (VB-822)
     if (t.t === 'word' && t.v === 'moveTo' && toks[i + 1] && toks[i + 1].v === '(' && !(prev && prev.v === 'function')) calls.push(`${f}:${src.slice(0, t.s).split('\n').length} moveTo`);
     if (t.t === 'word' && WRAPPED.includes(t.v) && definedIn[t.v] !== f && toks[i + 1] && toks[i + 1].v === '(' && !(prev && (prev.v === '.' || prev.v === 'function'))) {
@@ -26,7 +36,7 @@ for (const f of files) {
     }
   });
 }
-assert.deepStrictEqual(calls, [], `acts called outside sim/commands: ${calls.join(', ')}`);
+assert.deepStrictEqual(calls, [], `acts called outside a verb: ${calls.join(', ')}`);
 // VB-1111: every caller of `give` is known and checked (help's near gift is fetched and its far one carried, tests/fetch.js and
 // tests/journeys.js; the page's form names its carrier or has it fetched), and settleGift is reached at one place, the last branch of
 // `deliver`, after the carried, the hauled and the fetched: a gift within one farmstead (tests/lib/invariants.js holds giftUncarried at 0)
@@ -34,7 +44,7 @@ assert.deepStrictEqual(calls, [], `acts called outside sim/commands: ${calls.joi
   const pages = fs.readdirSync(path.join(__dirname, '../src/page')).map((x) => 'src/page/' + x);
   const givers = files.concat(pages).filter((f) => /verb: 'give'/.test(text[f] || readSource(f))).sort();
   assert.deepStrictEqual(givers, ['src/page/gift.js', 'src/sim/help.js'], 'a new caller of give says how its gift is carried');
-  const cmd = text['src/sim/commands.js'];
+  const cmd = text['src/sim/gifts.js'];
   assert.strictEqual(cmd.split('settleGift(').length - 1, 1, 'settleGift is called once');
   assert.ok(/carryGift\([^]*haulGift\([^]*fetchGift\([^]*else settleGift\(/.test(cmd), 'and only after the carried, hauled and fetched gifts');
 }
@@ -379,3 +389,39 @@ console.log('commands ok: offer and answer (VB-690): a gift and an ask settle at
 }
 console.log('commands ok: move (VB-822): each refusal changes nothing; each reason moves, on the record; the minors follow; service makes a servant');
 
+// VB-228 (Kim, 18 Nov): a talk cuts a stroll, and a walk let go of, but not a walk on an errand: any pawn's, and so the played pawn's queued walk
+{
+  const s2 = Sim.seed(island(7), 7, 'founders');
+  Sim.advance(s2, 3 * Sim.DAY + 4);
+  const g = s2.agents.find((x) => s2.pawns[x.id].died === null), R = VB['sim/agents'];
+  const far = s2.farmsteads.find((f) => f.house !== s2.farmsteads[s2.households[s2.pawns[g.id].household].farmstead].house).house;
+  const walk = (args) => { R.release(s2, g); g.inside = false; g.occasion = null; assert.strictEqual(issue(s2, { actor: g.id, verb: 'walkTo', target: far, args, source: 'test' }), true); };
+  const talk = () => issue(s2, { actor: g.id, verb: 'haltForTalk', args: { until: s2.t + 1 }, source: 'talk' });
+  walk({}); assert.strictEqual(g.errand, true);
+  const walking = JSON.stringify(g.path); talk();
+  assert.strictEqual(JSON.stringify(g.path), walking, 'a walk on an errand goes on through a talk'); assert.strictEqual(g.anim, 'walk');
+  R.release(s2, g); assert.strictEqual(g.errand, undefined, 'let go of, it is an errand no more');
+  talk(); assert.strictEqual(g.path, null, 'and a talk stops it');
+  walk({ near: true }); assert.strictEqual(g.errand, undefined, 'a stroll is no errand');
+  talk(); assert.strictEqual(g.path, null, 'a talk stops a stroll');
+  // the played pawn's queued walk outlasts a talk
+  walk({}); R.release(s2, g); g.path = null;
+  assert.strictEqual(Sim.inhabit(s2, g.id), true); assert.strictEqual(Sim.queue(s2, { actor: g.id, verb: 'walkTo', target: far }), true);
+  Sim.advance(s2, 0.2); assert.ok(g.path && s2.player.queue.length === 1 && s2.player.queue[0].begun !== null, 'the queued walk is under way');
+  const queued = JSON.stringify(g.path); talk();
+  assert.strictEqual(JSON.stringify(g.path), queued, 'and a talk does not cut it'); assert.strictEqual(s2.player.queue.length, 1);
+  Sim.advance(s2, 0.1); assert.strictEqual(s2.player.refused, null);
+}
+// VB-228: verbs are registered at load, once each, and the table closes with the registries (a state has been seeded above)
+{
+  const { register, VERBS } = VB['sim/commands'], V = { check: () => null, run: () => {} };
+  assert.throws(() => register('work', V), /Rules may only be registered at load time/, 'sealed after the first seed');
+  assert.ok(Object.values(VERBS).every((x) => typeof x.check === 'function' && typeof x.run === 'function'), 'every verb has a check and a run');
+  const fresh = require('child_process').spawnSync(process.execPath, ['-e', `
+    const { register } = require('./src/load.js')['sim/commands'], V = { check: () => null, run: () => {} };
+    let dup = '', bad = '';
+    try { register('work', V); } catch (e) { dup = e.message; }
+    try { register('noRun', { check: () => null }); } catch (e) { bad = e.message; }
+    console.log(dup + '|' + bad);`], { cwd: path.join(__dirname, '..'), encoding: 'utf8' });
+  assert.strictEqual(fresh.stdout.trim(), 'Duplicate verb: work|Verb noRun needs a check and a run', fresh.stderr);
+}

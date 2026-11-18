@@ -11,7 +11,7 @@ VB['sim/exchange'] = (() => {
   const { floorOf, dailyNeed, servedLast, daysOfFood } = VB['sim/hunger'];
   const Culture = VB['culture'];
   const Offers = VB['sim/offers'];
-  const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // sim/commands loads after this module
+  const { issue } = VB['sim/commands'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. Switched on by GOODWILL.acts (VB-220).

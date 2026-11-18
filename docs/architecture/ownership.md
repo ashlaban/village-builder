@@ -417,84 +417,124 @@ All five are writes to local objects. They are listed so that a rerun shows when
 
 ## 4. Dependencies
 
-### Current map (VB-176, 7 November 2026)
+### Current map (VB-228, 18 November 2026)
 
 Imports follow the load order in `src/manifest.json`. The dependency check in `npm test` uses the writes map's
-AST-derived edges and rejects later imports and later lookups, except access to `sim/commands.issue` and the verbs'
-`later()` dispatcher in `sim/commands`. Dynamic lookups outside that dispatcher are rejected. The policy is kept
-apart from extraction so layer ranks can replace load order later.
+AST-derived edges and rejects later imports and later lookups, except access to `sim/commands.issue`; dynamic lookups are
+rejected everywhere. The policy is kept apart from extraction so layer ranks can replace load order later.
 
-The plot-versus-farm choice now belongs to the moving round: `sim/lifecycle` passes a filter to `startPlots`.
-This removes the direct expansion → farmclaims → expansion cycle without a new pass or a change to evaluation order.
-The map now includes the dispatcher's literal targets; older reports omitted those edges. Every cycle witness below
-passes through commands. A larger strongly connected component reflects those newly visible dispatch edges.
-
+Until VB-228 `sim/commands` held every verb's body: it imported ten modules at load and looked up 22 later ones through a
+`later()` dispatcher at 74 sites, and every cycle of the map (14 witnesses on 7 November, a strongly connected component of 21
+modules, 27 by 10 November) passed through it. Each module now registers the verbs of the acts it carries out
+(`register(verb, {check, run})`, at load, sealed with the rules registry), and `sim/commands` loads third after the registry and
+the events, importing `sim/registry` alone. The dispatcher, its exemption in `tools/dependencies.js` and the test's exemption are
+gone. The table is `node tools/writes.js` of 18 November.
 
 | Module | Imports at load | Lookups inside functions (later: a module loaded after it) |
 | --- | --- | --- |
 | gen/paths | - | - |
 | gen/rivers | - | - |
-| gen | - | gen/rivers:283, gen/paths:622, gen/rivers:622 |
-| culture | - | count:167 |
+| gen/climate | gen/rivers | - |
+| gen/marks | - | - |
+| gen/geology | - | - |
+| gen/cover | - | - |
+| gen | - | gen/cover:243, gen/climate:344, gen/climate:477, gen/rivers:543, gen/geology:716, gen/paths:1038, gen/rivers:1038, gen/marks:1040 |
+| culture | - | count:381, count:417 |
 | sim/rules | gen | - |
-| sim/registry | - | count:48 |
+| sim/registry | - | count:120, count:136 |
+| sim/events | registry | - |
+| sim/commands | registry | - |
 | sim/rng | - | - |
 | sim/hex | - | - |
 | sim/names | gen, rules, hex, culture | - |
-| sim/routes | rules, hex | count:63, count:74, count:86, count:100, count:107, count:112, count:137 |
+| sim/routes | rules, hex | count:148, count:177, count:191, count:234, count:250, count:258, count:264, count:292 |
 | sim/paths | rules, routes | - |
-| sim/layout | gen, rules, names, hex, routes, paths | - |
+| sim/fish | rules, routes | count:64 |
+| sim/forage | rules, gen, routes | count:35 |
+| sim/layout | gen, rules, names, hex, routes, paths, fish, forage | - |
+| sim/byhand | rules, hex, layout | - |
 | sim/ownership | - | - |
-| sim/records | culture, rules | - |
-| sim/relations | rng, rules, records | commands:7 (later), count:30, count:40, count:42, count:195 |
-| sim/claims | culture, rules, ownership, records | - |
-| sim/territory | gen, rules, hex, routes, culture, claims, records, relations | - |
-| sim/stakes | rules, claims, territory, records, relations | - |
-| sim/forest | gen, rules, routes, territory | - |
-| sim/herds | rng, gen, rules, records, hex, routes, relations | - |
-| sim/stores | rules | count:68, count:76, count:78 |
-| sim/hunger | rules, records, stores | - |
-| sim/help | relations, stores, rules, records, hunger | - |
+| sim/records | culture, rules | count:145, count:163 |
+| sim/traits | rng, rules, records | - |
+| sim/wishes | rules, traits, records, events | count:47 |
+| sim/encounters | rng, rules | - |
+| sim/projects | - | - |
+| sim/prospect | rng, records, gen/geology | - |
+| sim/relations | rng, rules, traits, culture, records, encounters, events, commands, registry | count:50, count:87, count:100, count:115, count:124, count:412, count:427, count:465, count:556 |
+| sim/mood | rules, events, records | - |
+| sim/claims | culture, rules, ownership, records, projects | - |
+| sim/territory | gen, rules, hex, routes, culture, claims, records, events | - |
+| sim/stakes | rules, claims, territory, records, events | - |
+| sim/forest | gen, rules, rng, routes, territory, events | - |
+| sim/grazing | rules, hex, routes | count:73 |
+| sim/spread | gen, gen/cover, rules, routes, forest, grazing, projects, events | count:152 |
+| sim/herds | rng, gen, rules, records, hex, routes, events | culture:438 |
+| sim/stores | rules, registry, culture, events, projects | count:450, count:463, count:466, count:472 |
+| sim/obligations | rules, records, stores | count:191 |
+| sim/targets | rules, registry, records, stores | - |
+| sim/dig | rules, gen/geology, hex, routes, territory, stores, targets | count:101 |
+| sim/pot | rules, records, stores | - |
+| sim/hunger | rules, records, stores, pot, traits, registry | - |
+| sim/quern | rules, gen/geology, stores, hunger, targets | - |
+| sim/offers | records, commands, rules, relations, stores | count:185 |
+| sim/exchange | stores, registry, relations, rules, records, herds, hunger, culture, offers, commands | count:128, traits:226, count:346 |
+| sim/help | rules, routes, exchange, hunger, stores, registry, traits | commands:4 |
 | sim/deaths | rng, rules, registry | - |
-| sim/fields | gen, rng, rules, hex, routes, records, layout, territory, stakes, herds | - |
-| sim/meadows | rng, gen, rules, hex, routes, records, ownership, layout, herds, fields, territory, stakes | - |
-| sim/byre | stores, rng, rules, records, hunger, herds, hex | - |
-| sim/expansion | gen, rules, hex, routes, records, ownership, territory, forest, fields, layout | commands:3 (later) |
-| sim/farmclaims | rules, hex, records, claims, hunger, expansion, stores | commands:4 (later) |
-| sim/kinds | stores, rules, records, forest, hunger, fields, meadows, byre, expansion, claims, farmclaims | - |
-| sim/agents | rng, rules, routes, paths, records, stores, hunger, herds, expansion, kinds | - |
-| sim/commands | agents, kinds, culture, records | lifecycle:65 (later), heirs:71 (later), service:77 (later), farmclaims:82, farmclaims:83, settle:89 (later), settle:98 (later), membership:115 (later), cottage:122 (later), lifecycle:125 (later), heirs:131 (later), lifecycle:133 (later), clock:153 (later) |
-| sim/jobs | rng, rules, hunger, hex, records, agents, relations, commands, kinds, fields, meadows, byre, expansion, farmclaims | - |
-| sim/heirs | records, agents, ownership, stores, stakes, farmclaims, hex, rules, herds, fields | count:20 |
-| sim/membership | records, ownership, stores, heirs | - |
-| sim/service | records, heirs, commands, hex, rules, expansion | - |
-| sim/cottage | records, layout, rules, membership, stores, names | - |
-| sim/society | rng, commands, culture, relations, rules, hex, routes, records, heirs | count:162 |
-| sim/settle | commands, rng, gen, rules, hunger, hex, routes, records, layout, names, fields, stakes, expansion, membership, cottage, society, stores | - |
-| sim/lifecycle | rng, culture, rules, hunger, deaths, records, agents, heirs, expansion, farmclaims, settle, service, cottage, help, society, commands, relations | count:266, count:271, count:280 |
-| sim/births | rng, rules, records, culture, relations, agents, heirs, lifecycle | - |
+| sim/notable | records, deaths, rules, offers | - |
+| sim/leanings | culture | - |
+| sim/fields | gen, rng, rules, hex, routes, records, layout, territory, stakes, herds, stores, projects, events, hunger, spread | count:503 |
+| sim/meadows | rng, gen, rules, hex, routes, records, ownership, layout, byhand, herds, fields, territory, stakes, stores, projects, events, hunger, spread | - |
+| sim/byre | stores, rng, rules, registry, culture, records, hunger, herds, grazing, hex, fields, events, targets | - |
+| sim/deer | rules, gen, rng, hex, routes, grazing, fields, hunger, stores, registry, records | count:103, count:125 |
+| sim/progress | rules | - |
+| sim/expansion | commands, gen, progress, rules, stores, projects, events, hex, routes, records, ownership, territory, forest, spread, fields, layout | count:46 |
+| sim/farmclaims | records, commands, rules, offers, traits, routes, progress, wishes, claims, hunger, stores, expansion, events, projects | - |
+| sim/building | stores, projects, rules, gen, hex, routes, records, events, forest, expansion, quern, territory | - |
+| sim/drying | rules, hex, routes, fish, records, stores, projects, events, hunger, pot, targets | count:43, count:108, count:133, count:146 |
+| sim/tar | rules, gen, registry, stores, projects, events, records, forest, drying, targets | count:47, count:62 |
+| sim/carts | rules, meadows, herds, projects, events, records | - |
+| sim/green | stores, projects, rules, gen, hex, routes, ownership, territory, records, events | - |
+| sim/workdays | rules, hex, records, relations, events | count:125 |
+| sim/commons | projects, stores, culture, rules, gen, hex, routes, territory, claims, records, events, hunger, relations, fields, green | - |
+| sim/lying | records | - |
+| sim/kinds | stores, projects, targets, rules, carts, records, forest, spread, hunger, fields, meadows, byre, expansion, claims, progress, farmclaims, building, pot, green, workdays, commons, lying, forage, drying, dig, grazing, exchange, quern, deer, tar | - |
+| sim/eligibility | records, rules | - |
+| sim/agents | records, kinds, commands, rng, rules, routes, paths, hex, eligibility, herds, carts, grazing, relations, events, expansion, prospect, progress, lying | count:556, count:902, count:912, count:988, count:1016 |
+| sim/away | building, records, agents, rules, routes, stores, hunger, exchange, hex, relations, grazing, events, lying, commands | count:100, building:107, building:108, building:145, building:147, building:158 |
+| sim/gifts | away, offers, records, exchange, commands | - |
+| sim/player | agents, records, rules, relations, wishes, commands | - |
+| sim/occasions | agents, rng, rules, routes, records, commands, events, relations, stores, encounters, registry, traits, hunger | count:125, count:182, count:348, count:485, count:496, count:573, count:584 |
+| sim/plans | fields, records, rules, registry, traits, stores, kinds, hunger, projects, events, meadows, commands, exchange, lying, targets, building, green, workdays, commons, ownership | count:800, claims:988 |
+| sim/jobs | rng, rules, traits, hex, records, agents, relations, commands, eligibility, kinds, fields, farmclaims, commons, ownership, plans | count:98, count:176, count:217, count:410, count:517, count:547, count:569, count:581 |
+| sim/heirs | records, wishes, agents, ownership, commands, stores, obligations, stakes, farmclaims, hex, routes, rules, relations, herds, fields, plans, events | count:50 |
+| sim/aims | building, events, rules, rng, traits, projects, stores, records, hunger, herds, fields, meadows, expansion, commands, plans, heirs | count:100, count:114, claims:182 |
+| sim/outlook | rules, events, stores, pot, hunger, herds, meadows, kinds, targets | - |
+| sim/trust | records, heirs, agents, commands, rules, herds, stores, help, ownership, routes | count:48 |
+| sim/matching | rules, offers, hunger, stores, records, heirs, ownership, relations, routes, wishes, registry | count:92 |
+| sim/visits | records, rules, events, routes, hunger, stores, agents, away, matching, wishes, commands | count:93, count:204 |
+| sim/courting | rules, records, relations, matching, events | count:41, count:116, count:136 |
+| sim/membership | records, ownership, stores, rules, plans, heirs, commands | - |
+| sim/service | records, wishes, heirs, commands, routes, rules, offers, expansion, ownership | count:334, count:385, count:419 |
+| sim/opportunities | culture, rules, routes, records, kinds, farmclaims, projects, commands, player, offers, relations, jobs, eligibility, heirs, matching, visits, wishes, service | - |
+| sim/overview | rules, records, stores, hunger, fields, heirs, plans, traits | count:165, outlook:184 |
+| sim/cottage | expansion, records, layout, rules, membership, territory, building, herds, stores, obligations, events, names, commands | - |
+| sim/society | records, rng, commands, culture, relations, rules, traits, hex, routes, events, stores, heirs, commons | - |
+| sim/settle | records, commands, offers, rng, gen, rules, traits, wishes, stores, hex, routes, layout, names, fields, stakes, expansion, membership, cottage, society, plans, territory | - |
+| sim/lifecycle | records, commands, events, rules, deaths, traits, agents, heirs, service, society, player, relations, occasions, trust, ownership | count:92, count:109 |
+| sim/marriage | records, events, rules, exchange, agents, heirs, commands, player, wishes, matching, courting, offers, relations, occasions, trust, ownership | - |
+| sim/gathering | records, rules, routes, relations, exchange, green, commands, culture | count:45, count:66, count:97, count:171, count:248 |
+| sim/meetings | rng, culture, territory, rules, records, plans, heirs, society, commands, occasions, gathering, fields | count:57, count:62 |
+| sim/asking | rng, rules, records, matching, routes, farmclaims, heirs, commands, wishes, offers, marriage, events | count:70, count:97, count:161, count:177, count:235, count:237 |
+| sim/round | culture, rules, records, heirs, matching, expansion, farmclaims, settle, service, cottage, help, society, commands, wishes, offers, occasions, meetings, asking, courting, visits | count:159, count:190 |
+| sim/births | rng, events, rules, records, culture, traits, relations, heirs, lifecycle | - |
 | sim/people | records | - |
-| sim/scenarios | gen, rng, rules, registry, hex, routes, layout, people, records, agents, hunger, heirs, society, ownership, fields, herds, meadows, territory, farmclaims | - |
-| sim/clock | rng, rules, records, forest, fields, routes, paths, hunger, stores, help, agents, jobs, commands, society, relations, lifecycle, births, herds, meadows, byre, claims, stakes, farmclaims, territory | count:96 |
-| sim/saves | gen, registry, routes, records | - |
-| sim | culture, rules, kinds, records, agents, jobs, hunger, fields, expansion, ownership, heirs, society, saves, commands, relations, lifecycle, scenarios, clock, herds, claims | - |
+| sim/scenarios | gen, rng, rules, registry, hex, routes, layout, byhand, people, records, agents, plans, traits, wishes, hunger, quern, heirs, society, ownership, fields, herds, meadows, deer, spread, paths, territory, farmclaims | courting:25, carts:67, carts:228, carts:364 |
+| sim/clock | rng, rules, records, forest, spread, fields, routes, paths, hunger, stores, help, workdays, agents, away, jobs, commands, player, relations, encounters, lifecycle, meetings, round, offers, asking, visits, births, herds, meadows, lying, byre, grazing, deer, claims, stakes, farmclaims, occasions, service, ownership, drying, tar, carts, kinds | projects:220, building:234, obligations:463 |
+| sim/saves | gen, registry, routes, records, stores, pot, relations, plans, fields, hunger, rules, rng, territory, fish, forage | wishes:439, traits:446, culture:448, culture:451, wishes:461, courting:462, obligations:466, deer:500, spread:501, agents:523, culture:540, stores:574, stores:651 |
+| sim | culture, rules, kinds, records, notable, agents, occasions, jobs, hunger, stores, obligations, fields, expansion, ownership, heirs, society, mood, traits, saves, commands, player, plans, wishes, opportunities, visits, overview, matching, outlook, relations, exchange, help, lifecycle, meetings, round, scenarios, clock, herds, quern, building, drying, claims, prospect, dig, territory | offers:74 |
 
-Strongly connected: relations, territory, stakes, forest, herds, help, fields, meadows, byre, expansion, farmclaims, kinds, agents, commands, jobs, heirs, membership, service, cottage, society, settle, lifecycle, births, clock. Each cycle, through a lookup of a later module:
-
-- relations → commands → lifecycle → relations (the lookup at relations.js:7)
-- expansion → commands → agents → expansion (the lookup at expansion.js:3)
-- farmclaims → commands → farmclaims (the lookup at farmclaims.js:4)
-- commands → lifecycle → commands (the lookup at commands.js:65)
-- commands → heirs → farmclaims → commands (the lookup at commands.js:71)
-- commands → service → commands (the lookup at commands.js:77)
-- commands → settle → commands (the lookup at commands.js:89)
-- commands → settle → commands (the lookup at commands.js:98)
-- commands → membership → heirs → farmclaims → commands (the lookup at commands.js:115)
-- commands → cottage → membership → heirs → farmclaims → commands (the lookup at commands.js:122)
-- commands → lifecycle → commands (the lookup at commands.js:125)
-- commands → heirs → farmclaims → commands (the lookup at commands.js:131)
-- commands → lifecycle → commands (the lookup at commands.js:133)
-- commands → clock → commands (the lookup at commands.js:153)
+Strongly connected: none. No cycle remains: `tests/dependencies.js` asserts it, and that `sim/commands` imports and looks up no
+domain. What remains of the upward direction is the 13 calls by layer below, none of which closes a cycle in load order.
 
 
 ### Ownership work already completed
@@ -520,6 +560,12 @@ modules, and only `--update` to a lower count writes it. Found: 25 of 442 edges,
 - Social to agency (6): `sim/heirs`, `sim/membership`, `sim/settle` to `sim/plans`; `sim/heirs`, `sim/births` to `sim/agents`;
   `sim/births` to `sim/lifecycle`. A household's plan and a pawn's activity are written by social events: these become events or hooks (VB-229).
 - Kernel to material (1): `sim/forest` reads `sim/territory` (what land is claimed).
+
+After VB-228 (18 November): 13 of 1,012 edges. The six of `sim/commands` are gone with its verbs' bodies. They did not reappear
+under their new homes: the homes are in the acts' own layers or above, and `sim/occasions`, whose verb `attend` walks the pawn,
+is placed in agency, where target-v2 4.5 has it ("an occasion is a plan"). Left: culture read from the kernel and material (7),
+`sim/forest` to `sim/territory` (1), and social to agency (5: `sim/heirs` to `sim/agents` and `sim/plans`, `sim/membership` and
+`sim/settle` to `sim/plans`, `sim/births` to `sim/lifecycle`).
 
 ## 5. Workflow traces
 

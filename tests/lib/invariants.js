@@ -453,6 +453,7 @@ function checkState(st) {
       const a = st.agents[id], l = a.leg || null, k = l && l.kind, at = `agents[${id}]`, free = !a.path && a.phase === null;
       const want = a.phase === 'road' ? ['wait'] : a.path ? ['walk'] : a.phase === 'work' ? ['work'] : free ? [null, 'wait'] : [];
       if (!want.includes(k)) bad.push(`${at}: phase ${a.phase}, ${a.path ? 'walking' : 'standing'}, in a leg ${k}`);
+      if (a.errand !== undefined && a.errand !== true) bad.push(`${at}: errand ${a.errand}, neither absent nor true`); // VB-228
       if ((k === 'walk' || k === 'wait') !== inQ.has(id)) bad.push(`${at}: a leg ${k}, ${inQ.has(id) ? '' : 'not '}in legDue`);
       if (k === 'walk' && a.path) {
         const n = a.path.length - l.seg - 1, last = n > 0 ? l.h[n - 1] : 0;
@@ -1063,7 +1064,7 @@ function checkState(st) {
   if (st.herds) checkHerds(st, bad);
   // the player (VB-169): null, or a pawn that exists with a queue of at most 8 of its own commands, of which only the head may be begun
   if (st.player !== null && st.player !== undefined) {
-    const pl = st.player, QUEUE_MAX = globalThis.VB['sim/commands'].QUEUE_MAX;
+    const pl = st.player, QUEUE_MAX = globalThis.VB['sim/player'].QUEUE_MAX;
     if (!st.pawns[pl.pawn] || !st.agents[pl.pawn]) bad.push(`player: pawn ${pl.pawn} does not exist`);
     if (typeof pl.auto !== 'boolean' || !(pl.since <= st.t)) bad.push(`player: auto ${pl.auto}, since ${pl.since}`);
     if (!Array.isArray(pl.queue) || pl.queue.length > QUEUE_MAX) bad.push(`player: a queue of ${pl.queue && pl.queue.length} commands`);
@@ -1073,7 +1074,7 @@ function checkState(st) {
     });
     const r = pl.refused;
     // what its death left (VB-213): null while the played pawn lives, and from its death the farm, spouse and friends noted then, no queue
-    const lf = pl.left, dead = !!st.pawns[pl.pawn] && st.pawns[pl.pawn].died !== null, TIES_MAX = globalThis.VB['sim/commands'].TIES_MAX;
+    const lf = pl.left, dead = !!st.pawns[pl.pawn] && st.pawns[pl.pawn].died !== null, TIES_MAX = globalThis.VB['sim/player'].TIES_MAX;
     if (dead !== (lf !== null && lf !== undefined)) bad.push(`player.left: ${JSON.stringify(lf)} for a pawn ${dead ? 'dead' : 'alive'}`);
     else if (dead) {
       if (pl.queue.length || !(lf.t <= st.t) || !(lf.held === null || st.households[lf.held]) || !(lf.spouse === null || st.pawns[lf.spouse])

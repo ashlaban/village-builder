@@ -17,7 +17,6 @@ const SPLIT_LINES = 700, MAX_COLS = 160, MAX_EXPORTS = 15, WIDTH = path.join(__d
 const REGISTRIES = {
   'sim/kinds': 'job kinds: each kind\'s done, plan and cost callbacks are exported by the domain that owns the kind',
   'sim/clock': 'the calendar: each entry\'s run is exported by the domain that owns it',
-  'sim/commands': 'verbs: a verb\'s body is exported by the domain whose act it wraps',
 };
 const files = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8')).map((f) => 'src/' + f).concat('src/load.js');
 const pageFiles = JSON.parse(fs.readFileSync(path.join(root, 'src/page.json'), 'utf8')).map((f) => 'src/' + f);
