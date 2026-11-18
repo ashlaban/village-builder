@@ -2,7 +2,7 @@
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
-  const { YEAR, TICKS, ECON, CROPS, FERTILITY, SEASON_DAYS, cal, farmable } = VB['sim/rules'];
+  const { YEAR, TICKS, ECON, CROPS, ROTATIONS, FERTILITY, SEASON_DAYS, cal, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable, buildHours } = VB['sim/routes'];
@@ -24,7 +24,7 @@ VB['sim/scenarios'] = (() => {
     seedAsking(st); // each who seeks, or will, on its asking day (VB-823)
     VB['sim/courting'].seedCourtships(st); // nobody courts at the start (VB-036)
   }
-  const { dailyNeed } = VB['sim/hunger'];
+  const { dailyNeed, seedNeed } = VB['sim/hunger'];
   const { startQuern } = VB['sim/quern'];
   const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
@@ -55,8 +55,28 @@ VB['sim/scenarios'] = (() => {
     countDemand(st);
     st.makeFields = true;
     // grain for a full year of rations, and seed for the fields the household wants
-    for (const hh of st.households)
-      hh.grain = { barley: yearlyRations(st, hh) + fieldsWanted(st, hh) * CROPS.barley.seed }; // by crop (VB-347)
+    // The crops (VB-353): the village's three farms bring barley and rye in three courses, the lone farm barley and peas by turns; where
+    // the map had no room for it, the third farm grows the peas. One farm of the village, the backup, carries a field's seed of peas
+    // that it does not sow (farm.keeps), so one bad year at the lone farm does not lose the island its peas.
+    const farms = (v) => st.farmsteads.filter((f) => f.village === v.id);
+    const rotations = new Map(villages.map((v) => [v.id, v === village ? 'three' : 'peas']));
+    for (const f of farms(village)) if (!lone && f === farms(village)[2]) f.firstRotation = 'peas';
+    const keyOf = (f) => f.firstRotation || rotations.get(f.village);
+    const backup = lone ? farms(village).at(-1) : farms(village)[1];
+    if (backup) st.farmsteads[backup.id].keeps = ['peas'];
+    for (const v of st.villages) v.rotation = rotations.get(v.id);
+    for (const hh of st.households) {
+      const f = st.farmsteads[hh.farmstead],
+        R = ROTATIONS[keyOf(f)].courses;
+      hh.grain = { barley: yearlyRations(st, hh) };
+      for (const k of R) if (k !== 'barley' && !CROPS[k].fallow) hh.grain[k] = CROPS[k].seed; // enough to hold the rotation (rotationOf)
+      if (f.keeps) hh.grain.peas = CROPS.peas.seed;
+      f.firstRotation = keyOf(f);
+      const n = Math.ceil(fieldsWanted(st, hh) / R.length); // fields at each course
+      hh.grain.barley += n * CROPS.barley.seed;
+      for (const k of R) if (k !== 'barley' && !CROPS[k].fallow) hh.grain[k] = n * CROPS[k].seed;
+      if (f.keeps && !R.includes('peas')) hh.grain.peas = CROPS.peas.seed;
+    }
     foundersHerds(st);
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
     log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
@@ -220,6 +240,11 @@ VB['sim/scenarios'] = (() => {
     // grain for a full year of rations and seed for every field the farm has, as for the founders
     for (const hh of st.households)
       hh.grain = { barley: yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * CROPS.barley.seed };
+    // each village its crops, drawn from its ground (VB-353)
+    if (scenario === 'populous') {
+      const key = new Map(st.villages.map((v) => [v.id, drawRotation(w, rand, v.center, v.farmsteads.length)]));
+      giveCrops(st, (f) => key.get(f.village), true);
+    }
     populousHerds(st);
     if (byHand) byHand(st);
     placeMeadows(st);
@@ -346,6 +371,7 @@ VB['sim/scenarios'] = (() => {
       1: { heirSex: { any: 0.35 }, handover: { death: 0.3 }, claims: { anyone: 0.25 }, voice: { heads: 0.2 } },
     });
     countDemand(st);
+    giveCrops(st, (f) => (f.village === 0 ? 'three' : 'peas'), false); // village A barley and rye in three courses, village B barley and peas (VB-353)
     // herds by household: [household, cows, heifers, bull and oxen, ewes (and a ram with the bull)]
     heirsHerds(st, [
       [0, 3, 0, true, 6],
@@ -576,26 +602,64 @@ VB['sim/scenarios'] = (() => {
     return st;
   }
 
-  // A test switch (VB-350; tools/sim.js and tools/balance.js --rye): every village is given rye and farms in three courses, placed at the
-  // start, not carried. Each farm's fields are staggered (sim/fields, restagger); a field at the rye course was sown last autumn (day 3) and
-  // stands, weeded; of the barley its household brought for seed, a field's seed for each fallow field is rye, to sow on it this autumn.
-  // Not a scenario's preset (VB-353 brings those): a way to measure the rotation on today's scenarios.
-  function giveRye(st) {
+  // The scenarios' crops (VB-353; design.md, Crops and rotations, The scenarios' crops): each village is given the rotation its preset names,
+  // its farms' fields staggered (sim/fields, restagger) and its households' seed for them, placed at the start, not carried. A field at the
+  // rye course was sown last autumn (day 3) and stands, weeded; each other crop's seed is what its household's fields sow with it next
+  // (sim/hunger, seedNeed), and a crop of the rotation no field sows keeps a field's seed. `keyFor(farm)`: its rotation, or null to leave
+  // the farm as it is. `trim`: barley is a year's food and the seed its own fields sow, no more (a populous farm's fields are all barley's before).
+  function giveCrops(st, keyFor, trim = false) {
     const c = cal(st.t),
       sown = c.day - c.doy - 2 * SEASON_DAYS + 2;
-    for (const v of st.villages) v.rotation = 'three';
     for (const f of st.farmsteads) {
-      if (f.household === null || !f.fields.length) continue; // a farm still to break its fields (founders) farms as its household chooses
+      const key = f.household === null ? null : keyFor(f);
+      if (!key) continue;
       const hh = st.households[f.household];
-      restagger(f, 'three');
-      let fallow = 0;
-      for (const fd of f.fields)
-        if (fd.crop === 'rye') Object.assign(fd, { stage: 'growing', sown, weeds: CROPS.rye.weeds });
-        else if (fd.crop === 'fallow') fallow++;
-      const n = Math.min(hh.grain.barley || 0, fallow * CROPS.rye.seed);
-      if (n > 0) hh.grain = { ...hh.grain, barley: hh.grain.barley - n, rye: n };
+      if (f.fields.length) {
+        restagger(f, key);
+        for (const fd of f.fields)
+          if (fd.crop === 'rye') Object.assign(fd, { stage: 'growing', sown, weeds: CROPS.rye.weeds });
+      } else f.firstRotation = key; // a farm yet to break its fields takes it for the first (sim/fields, rotationOf)
+      const grain = { ...hh.grain };
+      for (const k of ROTATIONS[key].courses) {
+        if (k === 'barley' || CROPS[k].fallow) continue;
+        grain[k] = f.fields.length ? seedNeed(st, hh, k) : CROPS[k].seed;
+      }
+      if (trim && f.fields.length) grain.barley = yearlyRations(st, hh) + seedNeed(st, hh, 'barley');
+      for (const k in grain) if (!grain[k]) delete grain[k];
+      hh.grain = grain;
+    }
+    for (const v of st.villages) {
+      const keys = v.farmsteads
+        .map((id) => st.farmsteads[id].fields[0]?.rotation || st.farmsteads[id].firstRotation)
+        .filter(Boolean);
+      if (keys.length) v.rotation = keys[0];
     }
   }
+  // The rotation a village of the Populous preset is drawn from its ground (design.md, The scenarios' crops): within CROP_DRAW.reach steps of
+  // its green, rye where forest is `forest` of the land or more (fresh land to break), peas where meadow is `meadow` of it, both
+  // (peas, rye, barley) from `both` farms, barley alone on heath and high ground; and barley alone for `alone` of the villages whatever
+  // the ground. One draw a village, on the scenario's stream (the shares are tunables, to tune).
+  // Tried for `forest` on small and medium at seeds 3, 11 and 42, 92 villages: 0.5 gave rye to none, 0.35 to 3, 0.25 to 14 (the disc takes in
+  // shore and heath, so forest is seldom half of it).
+  const CROP_DRAW = { reach: 8, forest: 0.25, meadow: 0.3, both: 12, alone: 0.33 };
+  function drawRotation(w, rand, centre, farms) {
+    const u = rand(),
+      { dist } = bfs(w, centre, CROP_DRAW.reach, (i) => !w.water[i]);
+    let land = 0,
+      forest = 0,
+      meadow = 0;
+    for (const i of dist.keys()) {
+      land++;
+      if (w.biome[i] === B.FOREST || w.biome[i] === B.PINE) forest++;
+      else if (w.biome[i] === B.MEADOW) meadow++;
+    }
+    if (farms >= CROP_DRAW.both) return 'peasRye';
+    if (u < CROP_DRAW.alone || !land) return 'every';
+    if (forest / land >= CROP_DRAW.forest) return 'three';
+    return meadow / land >= CROP_DRAW.meadow ? 'peas' : 'every';
+  }
+  // The test switch (VB-350; tools/sim.js and tools/balance.js --rye): every village is given rye and farms in three courses.
+  const giveRye = (st) => giveCrops(st, () => 'three');
   // places: what was placed by hand, for the 'manual' scenario (seedManual). opts: {rye} (giveRye).
   function seed(w, seedNum, scenario = 'founders', places = null, opts = null) {
     if (scenario === 'manual') return seedManual(w, seedNum, places);

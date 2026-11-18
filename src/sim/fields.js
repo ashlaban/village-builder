@@ -245,6 +245,10 @@ VB['sim/fields'] = (() => {
   //   is not its step's course; cleared when the field goes on to its next step, or its farm changes rotation.
   // @state farmstead.rotationBy: absent, or the id of the household whose head chose the farm's rotation to keep (the verb rotation with
   //   hold, VB-355): while that household holds the farm, its rule (rotationChoice) leaves the rotation alone.
+  // @state farmstead.firstRotation: absent, or a key of ROTATIONS: the rotation the farm's first fields take where its own differs from its
+  //   village's (the scenarios' crops, VB-353; rotationOf)
+  // @state farmstead.keeps: absent, or crops[] the farm holds a field's seed of and does not sow (the founders' backup farm; sim/hunger
+  //   seedNeed, sim/plans reserveSeed)
   const underCrop = (fd) =>
     fd.stage === 'sown' || fd.stage === 'growing' || fd.stage === 'ripe' || fd.stage === 'stooks';
   // The field goes on to its next step: its crop is in, or lost, or its window passed with it unsown, or its fallow year is over. A field
@@ -282,6 +286,7 @@ VB['sim/fields'] = (() => {
     const f = hh.farmstead === null || hh.farmstead === undefined ? null : st.farmsteads[hh.farmstead];
     if (!f) return 'every';
     if (f.fields.length) return f.fields[0].rotation;
+    if (f.firstRotation && hasSeed(st, f, hh, f.firstRotation)) return f.firstRotation; // the farm's own (VB-353), else its village's
     const v = f.village === null ? null : st.villages[f.village];
     return v && v.rotation && hasSeed(st, f, hh, v.rotation) ? v.rotation : 'every';
   }
@@ -728,6 +733,10 @@ VB['sim/fields'] = (() => {
         fd.stage = 'stubble';
         fd.sown = null;
         fd.held = 0;
+        fd.weedOpen = false;
+        delete fd.weeds; // the crop is gone, and its weeding with it (a lost barley field going fallow kept its rounds)
+        delete fd.trampled;
+        delete fd.browsed;
         nextStep(fd); // VB-350
       }
     });

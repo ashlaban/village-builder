@@ -42,6 +42,10 @@ VB['sim/hunger'] = (() => {
         if (k === 'barley') barley++;
         else other += CROPS[k].seed;
       }
+    const keeps = village ? null : st.farmsteads[hh.farmstead].keeps; // crops the farm holds a field's seed of, not sown (VB-353)
+    if (keeps)
+      for (const k of keeps)
+        if ((crop === undefined || k === crop) && !(R && R.includes(k)) && !kept(fields, k)) other += CROPS[k].seed;
     return (barley ? barley * (village ? CROPS.barley.seed : seedPer(st, hh)) : 0) + other;
   }
   // Does a field bear crop k now, or sow it next?
