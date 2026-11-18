@@ -24,15 +24,6 @@ The plan (`docs/plans/VB-445.md`) and its tasks are built on the proposed answer
 6. (From VB-447.) Does a trail need upkeep beyond being walked? **P:** No. It fades as any wear does, and whoever needs it blazes it again, 1 hour a tile still trodden and 3 where it is gone: that is what makes it cheap and a built road dear.
 7. Should a night without a roof cost health as a night in an unheated house does? It makes the winter journeys the design has (the suitor's visit) dearer, and gives the booth its use. **P:** Yes, by the house's own rule and no new number, measured on the journeys that exist before anything depends on it (VB-785).
 
-### VB-1123: Plan mode: what Kim's decisions of 18 November leave open (raised 18 November 2026)
-The task holds the requirements, the walks and the mocks (`docs/mocks/plan-mode-l.html`). The proposed answers are what the mocks drew.
-
-1. With the stepping of targets gone from the game, does a head still hold a level it fills a store to (Decided, `design.md` section 7), now reckoned and never set? **P:** Yes. The verb `setTarget` and the steppers go for every head; the level stays as the head's own estimate of the need, and is the threshold the mode shows.
-2. Does the plan draw the next action after the last one's uncertain end, or by each head's own reading? (You, 18 November: "start when the previous actually ends, but show the conservative reading in the plan. Or maybe not.") **P:** Work begins when the last ends. The plan shows the head's own reading, cautious or not by its traits, so a poor head's plan looks tidy and then fails. This rests on the estimate as Decided on 15 November; no evidence was found that farms planned by dated schedules.
-3. Giving an action to a member is a new act: today a task is manned from whoever is free (`allot`). **P:** A head's verb, for every head; the automatic head gives by the custom's roles and its estimate; what is given to no one is manned as today.
-4. A bar and small work are cut at half a day in the drawing. What is the mechanism? **P:** The head plans what takes half a day or more; shorter work a pawn fits into its own day, and the head sees its sum.
-5. "And more", of the surplus: what else beside a feast and crafts? **P:** Gifts, and goods for the fair, each when its slice brings it.
-
 ## Priority 3
 
 ### VB-190: roads, boats and ice (slice 10): the plan's proposed answers, on which its design text and tasks are built (raised 16 November 2026)

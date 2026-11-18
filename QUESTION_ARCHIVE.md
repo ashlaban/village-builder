@@ -2,6 +2,22 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 18 November 2026 (VB-1123)
+
+## VB-1123: Plan mode: what Kim's decisions of 18 November leave open (raised 18 November 2026)
+The task holds the requirements, the walks and the mocks (`docs/mocks/plan-mode-l.html`). The proposed answers are what the mocks drew.
+
+1. With the stepping of targets gone from the game, does a head still hold a level it fills a store to (Decided, `design.md` section 7), now reckoned and never set? **P:** Yes. The verb `setTarget` and the steppers go for every head; the level stays as the head's own estimate of the need, and is the threshold the mode shows.
+   **A (Kim, 18 Nov):** Yes. The player does it in their head; a head not played reckons it, as a margin it prefers over what survival needs, moved by its traits and skill; 1.5 times the baseline is a good starting point.
+2. Does the plan draw the next action after the last one's uncertain end, or by each head's own reading? (You, 18 November: "start when the previous actually ends, but show the conservative reading in the plan. Or maybe not.") **P:** Work begins when the last ends. The plan shows the head's own reading, cautious or not by its traits, so a poor head's plan looks tidy and then fails. This rests on the estimate as Decided on 15 November; no evidence was found that farms planned by dated schedules.
+   **A (Kim, 18 Nov):** The next action is drawn at the end of the last one's uncertainty, but is started when the last is done, and the plan shifts to show what happened.
+3. Giving an action to a member is a new act: today a task is manned from whoever is free (`allot`). **P:** A head's verb, for every head; the automatic head gives by the custom's roles and its estimate; what is given to no one is manned as today.
+   **A (Kim, 18 Nov):** Yes, `assign` or so.
+4. A bar and small work are cut at half a day in the drawing. What is the mechanism? **P:** The head plans what takes half a day or more; shorter work a pawn fits into its own day, and the head sees its sum.
+   **A (Kim, 18 Nov):** That is left for future work.
+5. "And more", of the surplus: what else beside a feast and crafts? **P:** Gifts, and goods for the fair, each when its slice brings it.
+   **A (Kim, 18 Nov):** We need a game info panel, collecting e.g. what actions are in the game and where they apply, preconditions, what they produce etc.
+
 # Archived 18 November 2026 (VB-1107)
 
 ## VB-1107: marriage to kin by marriage (raised 16 November 2026)

@@ -69,6 +69,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-733](backlog/VB-733.md) | Goods by kind: the registry's material and kinds, and the stone heap by its rock | mill | 2 | M | A good declares its material and its kinds with the properties its use reads; a store counts a good by kind as grain is counted by crop; the stone heap keeps each load's rock, so the quern is of the stone it was hewn from. |
 | [VB-780](backlog/VB-780.md) | The journey scale built: 8 tiles an hour, the forested island, dear ground, a 67-hour reach | far | 2 | M | SPEED 8, COVER heath 0.07 and meadow 0.2, TERRAIN doubled above meadow, ROUTE.hours 67: the values of VB-444's plan, built together and measured over the seeds |
 | [VB-862](backlog/VB-862.md) | Tests: verify's total CPU under four minutes, and no script over 5 s | - | 2 | M | VB-856 left verify at 321 s of CPU over 172 scripts (80 s on four cores at best); the largest are service 7.4, spread 6.2, fish 5.9, format 5.6 |
+| [VB-1123](backlog/VB-1123.md) | Page: plan mode: the household's season planned on the map, in place of the Plan tab | - | 2 | L | Plan mode replaces the Plan tab: a bar of the season a member with the actions on it, actions chosen from a tile's menu, problems marked where they are, and the outcome read on the needs (survival's thresholds, by the head's estimate); no target is stepped. Requirements, walks and Kim's decisions of 17 and 18 Nov; mocks A to L. |
 | [VB-043](backlog/VB-043.md) | One scope model: a membership graph of entities | debt | 3 | M | The membership graph of typed edges, with scopes on it; as Membership's truth if Kim adopts it (measured 0.55 ms at year 12). |
 | [VB-108](backlog/VB-108.md) | Wrap-up: the household's year | year | 3 | S | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
 | [VB-188](backlog/VB-188.md) | Plan: the ship: the outside world, silver, institutions and disease (slice 8) | ship | 3 | S | Design ships, silver, the Church and the Crown, rank, tithe and tax, and disease by sea. |
@@ -135,6 +136,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1028](backlog/VB-1028.md) | Page: opening the People sheet flies the camera out to the whole island (not reproduced) | - | 3 | S | Kim's playthrough of 17 November saw the camera fly out to the whole island on opening the People sheet; VB-1027 could not reproduce it and left a check that it does not |
 | [VB-1030](backlog/VB-1030.md) | Refactor: split page/rigs: a pawn's look (colours, ageing) apart from its rig and poses | - | 3 | S | page/rigs is over its length baseline (1,004 lines of 977) since VB-1029: the look (palettes, lookOf, agedLook) leaves for a module of its own, which page/portraits reads too |
 | [VB-1034](backlog/VB-1034.md) | Births and deaths leave something to see: a grave, a lying-in, a wake | - | 3 | M | A death and a birth happen at midnight and leave no trace on the map: a grave marker where the dead are laid, and the household's lying-in or wake the day after, as states a pawn is in |
+| [VB-1124](backlog/VB-1124.md) | Page: a game info panel: every action, where it applies, what it needs and what it gives | - | 3 | M | A panel that collects what the game holds, read from the registries: each action (job kind and verb) with where it applies, its preconditions, what it takes and what it produces; reached from plan mode's menus and legend. Asked for by Kim, 18 Nov (VB-1123). |
 
 ## Waiting for Kim
 
@@ -142,7 +144,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-1123](backlog/VB-1123.md) | Page: plan mode: the household's season planned on the map, in place of the Plan tab | - | 2 | L | Plan mode replaces the Plan tab: a bar of the season a member with the actions on it, actions chosen from a tile's menu, problems marked where they are, and the outcome read on the needs (survival's thresholds, by the head's estimate); no target is stepped. Requirements, walks and Kim's decisions of 17 and 18 Nov; mocks A to L. |
 | [VB-722](backlog/VB-722.md) | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 
 ## Blocked
