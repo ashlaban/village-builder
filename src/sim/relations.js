@@ -245,6 +245,9 @@ VB['sim/relations'] = (() => {
   //   event. kind is a key of SOCIAL.memories; v the memory's value at its last event, at game hour t. Empty for the dead.
   // @state pawn.bands: Map of other pawn id to a's band towards it as last checked, 1 (close friend) or -1 (enemy), only for pairs in one,
   //   so reaching one is told once. Checked for the pair touched (touch), never by a pass over pairs; empty for the dead.
+  // A pair with one below the age of account (SOCIAL.account; VB-1106): chemistry counts between them only where it is liking, and
+  // cross words with the child are a scolding or a squabble, no quarrel. What happened between them is remembered as between any two.
+  const small = (pa, pb) => pa.age < SOCIAL.account || pb.age < SOCIAL.account;
   const memNow = (st, kind, m) => m.v * Math.max(0, 1 - (st.t - m.t) / (M[kind].days * DAY));
   const A = SOCIAL.affinity,
     affinity = (st, a, b, tie) => A.weight * compat(st, a, b) * Math.min(1, tie / A.known);
@@ -254,7 +257,9 @@ VB['sim/relations'] = (() => {
     const pa = st.pawns[a],
       k = standing(st, a, b),
       r = pa.rel.get(b);
-    let o = (k ? SOCIAL.situational[k] : 0) + affinity(st, a, b, tie);
+    let o = affinity(st, a, b, tie);
+    if (o < 0 && small(pa, st.pawns[b])) o = 0; // nobody holds a small child's nature against it, nor does it yet hold another's (VB-1106)
+    if (k) o += SOCIAL.situational[k];
     if (r) for (const kind in r.mem) o += memNow(st, kind, r.mem[kind]);
     if (GOODWILL.acts) o += gratitude(st, pa, b);
     return Math.max(-1, Math.min(1, o));
@@ -498,7 +503,9 @@ VB['sim/relations'] = (() => {
 
   // Cross words become a quarrel (VB-520; design.md, The twelve traits: temper) at T.quarrel × the two tempers' sum, one draw of the talk
   // stream: both remember it (SOCIAL.memories.quarrel) and it is an event of the record, of i with j where i lives, for the stories to come.
+  // Not with a child below the age of account (SOCIAL.account, VB-1106): cross words with one stay cross words, remembered by neither.
   function quarrelMaybe(st, i, j) {
+    if (small(st.pawns[i], st.pawns[j])) return; // no draw
     if (rnd(st.rng.talk) >= T.quarrel * (Traits.of(st, i, 'temper') + Traits.of(st, j, 'temper'))) return;
     remember(st, i, j, 'quarrel');
     remember(st, j, i, 'quarrel');
