@@ -37,9 +37,9 @@ The orchestrator writes those once, from your notes.
 7. To finish: `git merge` the run's branch again, run the checks `AGENTS.md` asks for on the result, and commit as `VB-NNN: <title>`
    on your worktree's branch. Do not push, and never leave uncommitted work, whatever the outcome. Then
    `node tools/inbox.js result ID status=done|needs-review|failed commit=SHA size=S|M|L summary=...`.
-8. Where the page changed, save a screenshot (`node tools/shot.js --help`) under `docs/img/` and commit it.
+8. Screenshots are never committed (Kim, 18 November): take one only to check your own work, and save it outside the repository.
 
 Your last message is all your caller sees, so make it the result and nothing else, in at most twelve lines:
 - `VB-NNN <title>: done <commit> on <branch>`, or `needs-review <commit> on <branch>: <the criteria unmet, or the question>`, or `failed: <what, and the state of the worktree>`;
-- the numbers `AGENTS.md` asks for (before and after, seeds and maps; counters changed, targets moved), and the screenshot's path;
+- the numbers `AGENTS.md` asks for (before and after, seeds and maps; counters changed, targets moved);
 - the notes you left, by kind and count; the inbox holds their text.
