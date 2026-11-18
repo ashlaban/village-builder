@@ -18,10 +18,10 @@ const lines = [];
 for (const seed of [7, 42]) {
   const st = Sim.seed(world(seed), seed, 'founders');
   check(st.farmsteads.every((f) => !f.meadows.length), `founders ${seed}: a meadow at the start`);
-  Sim.advance(st, 24 * Sim.SEASON_DAYS * 2); // to the end of summer of year 1
+  Sim.advance(st, 24 * Sim.SEASON_DAYS * 3); // to the end of autumn of year 1 (VB-353: five or six fields to break first, for the courses)
   for (const hh of st.households) {
     const f = st.farmsteads[hh.farmstead];
-    if (hh.herds.length) check(f.meadows.length >= 1, `founders ${seed}: ${f.name} keeps animals but has no meadow by the end of summer`);
+    if (hh.herds.length) check(f.meadows.length >= 1, `founders ${seed}: ${f.name} keeps animals but has no meadow by the end of autumn`);
     // a household without animals may make a first meadow, for a cow it wants (VB-428), by the rule of tests/cowwant.js
     validMeadows(st, f, hh, `founders ${seed}`);
   }
