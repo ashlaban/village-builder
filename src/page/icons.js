@@ -3,6 +3,19 @@ const svgIcon = (w, h, body, attrs = '') =>
   `<svg class="ico" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" focusable="false"${attrs}>${body}</svg>`;
 const ICON_STROKE =
   ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
+// The mural theme's icons (VB-1124): each icon may carry a second drawing, a stencil, as the stencilled marks of a painted vault: flat
+// shapes in one pigment, held apart by gaps. Both drawings are in the icon, and the theme's styles show one of them (src/head.html), so
+// a change of theme redraws nothing. A stencil is drawn on a 24 box and scaled to its icon's; its shapes are filled, but for those of
+// class "l" (a line in the pigment: a handle, a stem) and "c" (a cut through a shape, in the ground's colour).
+function stencil(svg, shapes, box = 24) {
+  if (!shapes) return svg;
+  const at = svg.indexOf('>') + 1,
+    k = +/viewBox="0 0 \S+ (\S+)"/.exec(svg)[1] / box;
+  return (
+    `${svg.slice(0, at)}<g class="i-line">${svg.slice(at, -6)}</g>` +
+    `<g class="i-sten"${k === 1 ? '' : ` transform="scale(${+k.toFixed(4)})"`}>${shapes}</g></svg>`
+  );
+}
 // A speed is one to five chevrons, > to >>>>> (11 Nov: no numbers): 1×, 3×, 10×, 30× and uncapped (Infinity). Open chevrons, so that
 // the speed of 1× is not the filled triangle of play beside it.
 const SPEED_ARROWS = { 1: 1, 3: 2, 10: 3, 30: 4, Infinity: 5 };
@@ -12,10 +25,16 @@ function speedIcon(v) {
     w = step * (n - 1) + 8;
   let d = '';
   for (let k = 0; k < n; k++) d += `M${1.5 + k * step} 2L${6.5 + k * step} 7L${1.5 + k * step} 12`;
-  return svgIcon(
-    w,
+  let sten = '';
+  for (let k = 0; k < n; k++) sten += `<path d="M${1 + k * step} 1.5h3.2l4 5.5-4 5.5H${1 + k * step}l4-5.5z"/>`;
+  return stencil(
+    svgIcon(
+      w,
+      14,
+      `<path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    ),
+    sten,
     14,
-    `<path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
   );
 }
 const ICON = {
@@ -124,6 +143,48 @@ const ICON = {
   close: svgIcon(16, 16, '<path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/>', ICON_STROKE),
   chevron: svgIcon(16, 16, '<path d="M3.5 6l4.5 4.5L12.5 6"/>', ICON_STROKE),
 };
+// The stencils of the bars' and the panels' icons (VB-1124), by ICON's keys.
+const PEOPLE_STEN =
+  '<path d="M10 20.5c0-5 2.2-8 5.5-8s5.5 3 5.5 8z"/><circle cx="15.5" cy="7.6" r="2.7"/>' +
+  '<path d="M2.5 21.5c0-5.5 2.6-9 6-9s6 3.5 6 9z"/><circle cx="8.5" cy="8" r="3.1"/>';
+const EYE_STEN =
+  '<path d="M2 12c3-5 6.5-7 10-7s7 2 10 7c-3 5-6.5 7-10 7s-7-2-10-7z"/><circle class="c" cx="12" cy="12" r="3.2"/>';
+const ICON_STEN = {
+  pause: '<rect x="5.5" y="4" width="4.6" height="16" rx=".6"/><rect x="13.9" y="4" width="4.6" height="16" rx=".6"/>',
+  skip: '<path d="M4.5 4.5l10 7.5-10 7.5z"/><rect x="16" y="4.5" width="3.6" height="15" rx=".6"/>',
+  play: '<path d="M6.5 4l12.5 8-12.5 8z"/>',
+  eye: EYE_STEN,
+  eyeOff: EYE_STEN + '<path class="c" d="M5.4 21.2L21.4 4.2"/><path class="l" d="M4 20L20 3"/>',
+  people: PEOPLE_STEN,
+  // a tree of kin: a stem, its branches, a round for each of three
+  family:
+    '<path class="l" d="M12 21.5V9M12 16c-3.2 0-5-1.6-5-4M12 14c3.2 0 5-1.6 5-4M7.5 21.5h9"/>' +
+    '<circle cx="12" cy="6" r="3"/><circle cx="6.5" cy="9.5" r="2.6"/><circle cx="17.5" cy="7.8" r="2.6"/>',
+  // a banderole, the scroll a mural's figure speaks from
+  customs:
+    '<path d="M2.5 9.5c3.2-3.4 6.3 2.6 9.5 0s6.3-3.4 9.5 0v6.5c-3.2-3.4-6.3 2.6-9.5 0s-6.3 3.4-9.5 0z"/>' +
+    '<path class="c" d="M5.8 12.4l3 .8M12.2 12.6l2.6-1M17 11.4l1.8.6"/>',
+  menu:
+    '<rect x="4" y="4.4" width="16" height="3.5" rx=".6"/><rect x="4" y="10.25" width="16" height="3.5" rx=".6"/>' +
+    '<rect x="4" y="16.1" width="16" height="3.5" rx=".6"/>',
+  pawn: '<circle cx="12" cy="5.8" r="3.3"/><path d="M9 9.5h6l2 8.2H7z"/><rect x="5" y="18.3" width="14" height="3.2" rx=".6"/>',
+  agenda: '<path d="M3 9.8v4.4h3l9 4.5V5.3l-9 4.5z"/><path class="l" d="M18.2 9.3c1.3 1.3 1.3 4.1 0 5.4"/>',
+  bug:
+    '<path class="l" d="M7.5 12h-4M16.5 12h4M8 16.5l-3.2 1.8M16 16.5l3.2 1.8M9.5 4.5L8 2.5M14.5 4.5l1.5-2"/>' +
+    '<ellipse cx="12" cy="14.5" rx="5" ry="6.5"/><circle cx="12" cy="6.3" r="2.6"/><path class="c" d="M12 9.5V20"/>',
+  grid: '<path class="l" d="M4 8.5h16M4 15.5h16M8.5 4v16M15.5 4v16"/>',
+  regions:
+    '<rect x="3" y="3.5" width="18" height="17" rx="1"/>' +
+    '<path class="c" d="M11 3.5c-2.5 3.5 2 5.5-.5 8.5s1 5.5 0 8.5M10.8 12c3.5 1.5 6-1.2 10.2 0"/>',
+  land: '<path class="l" d="M6 21.5V3"/><path d="M7 3.5h12l-3.2 4 3.2 4H7z"/>',
+  ground: '<path d="M3 9l9-5 9 5-9 5z"/><path class="l" d="M3.5 14.5l8.5 4.7 8.5-4.7"/>',
+  reach: '<circle class="l" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.8"/>',
+  bell: '<path d="M6 16.5v-6a6 6 0 0 1 12 0v6l2 2H4z"/><circle cx="12" cy="20.8" r="1.6"/>',
+  minimap: '<path d="M3 6l6-2.5 6 2.5 6-2.5V18l-6 2.5L9 18l-6 2.5z"/><path class="c" d="M9 3.5V18M15 6v14.5"/>',
+  close: '<path class="l" d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  chevron: '<path class="l" d="M5.5 9l6.5 6.5L18.5 9"/>',
+};
+for (const k of Object.keys(ICON_STEN)) ICON[k] = stencil(ICON[k], ICON_STEN[k]);
 // The action bar (VB-341), 24 by 24 as drawn for the mock-up (docs/mockups/action-menu.html): its groups, its rows, and a job kind's tool.
 const ACT_PATHS = {
   me: '<circle cx="12" cy="6" r="3"/><path d="M6 21c0-5 2.5-9 6-9s6 4 6 9z"/>',
@@ -167,7 +228,65 @@ const ACT_PATHS = {
   minus: '<path d="M5 12h14"/>',
   ale: '<path d="M6 7h10v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 10h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2M6 7c0-2 2-3 4-2 1-1.5 4-1.5 5 .5"/>', // a tankard
 };
-const actIcon = (k) => svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE);
+// The same acts as stencils (VB-1124), by ACT_PATHS' keys.
+const HOUSE_STEN = 'M2.5 11.5l9.5-8.5 9.5 8.5h-2.8V21H5.3v-9.5z';
+const LEAVES_STEN =
+  '<path d="M12 12.5c0-4.5-3-6.5-7.5-6.5 0 4.5 3 6.5 7.5 6.5z"/><path d="M12 14.5c0-3.5 2.5-5.5 7-5.5 0 4-2.5 5.5-7 5.5z"/>';
+const ACT_STEN = {
+  me: '<path d="M5.5 21.5c0-5.5 2.8-9 6.5-9s6.5 3.5 6.5 9z"/><circle cx="12" cy="7.5" r="3.6"/>',
+  home: `<path d="${HOUSE_STEN}"/><path class="c" d="M12 21v-5.5"/>`,
+  village:
+    '<path d="M1.8 21v-5.2l3.7-3.3 3.7 3.3V21z"/><path d="M14.8 21v-5.2l3.7-3.3 3.7 3.3V21z"/><path d="M8 12V7l4-3.6L16 7v5z"/>',
+  queue:
+    '<circle cx="4.8" cy="6.2" r="1.8"/><rect x="8.5" y="4.6" width="12.5" height="3.2" rx=".6"/>' +
+    '<circle cx="4.8" cy="12" r="1.8"/><rect x="8.5" y="10.4" width="12.5" height="3.2" rx=".6"/>' +
+    '<circle cx="4.8" cy="17.8" r="1.8"/><rect x="8.5" y="16.2" width="12.5" height="3.2" rx=".6"/>',
+  walk: '<path class="l" d="M13 8.5l-2.5 5 3 3v5M10.5 13.5L8 20.5M13 9.5l3.5 2.5 2.5-1M12.5 9l-4 2.5"/><circle cx="13.5" cy="4.3" r="2.5"/>',
+  idle: '<path d="M19.5 14.8A8.5 8.5 0 1 1 9.2 4.5a7 7 0 0 0 10.3 10.3z"/>',
+  round: '<path d="M2 11.5l6.5-6 6.5 6h-2v8H4v-8z"/><path class="l" d="M16.5 15H22M19.5 12l3 3-3 3"/>',
+  offer: '<path d="M3.5 4.5h17v11H11l-4.5 4.5v-4.5h-3z"/>',
+  cause: '<path d="M3 9.8v4.4h3l9 4.5V5.3l-9 4.5z"/><path class="l" d="M18.2 9.3c1.3 1.3 1.3 4.1 0 5.4M7.5 15.5l1 5"/>',
+  gift:
+    '<rect x="4" y="11" width="16" height="9.5"/><rect x="2.8" y="6.8" width="18.4" height="3.6"/><path class="c" d="M12 6.8v13.7"/>' +
+    '<path class="l" d="M12 6.3c-1.5-3.5-5-3-4.5-.5M12 6.3c1.5-3.5 5-3 4.5-.5"/>',
+  chop: '<path class="l" d="M6 21.5L14.5 7"/><path d="M12 3.5c3.5 0 6.5 1.7 8 4.7l-5 3.3c-1-1.7-2.7-2.8-4.7-3.2z"/>',
+  hoe: '<path class="l" d="M5.5 21L15.5 6.5"/><path d="M13 4l6.6 3.8-2.4 3.6c-2-.5-4-1.8-5.8-3.8z"/>',
+  sow: `<path class="l" d="M12 21.5v-9"/>${LEAVES_STEN}`,
+  mow: '<path class="l" d="M6 21.5L15 4.5"/><path d="M14.5 3.5c4.5 0 7 3.5 7 8-2.2-3.3-5.5-4.6-9-4z"/>',
+  hay: '<path d="M3.5 20.5c0-8.5 3.2-15 8.5-15s8.5 6.5 8.5 15z"/><path class="c" d="M9 20.5c0-4.5 1-7.5 3-10M15 20.5c0-3-.5-5-1.5-7"/>',
+  sack:
+    '<path d="M9 3.5h6l-1.5 3.2c3.7 1.6 5.8 5.2 5.8 8.3 0 3.3-2.2 5.5-7.3 5.5s-7.3-2.2-7.3-5.5c0-3.1 2.1-6.7 5.8-8.3z"/>' +
+    '<path class="c" d="M9.3 7.2h5.4"/>',
+  build: '<path class="l" d="M5.5 21.5l7-9"/><path d="M9.8 4l9 6.8-2.5 3.4-9-6.8z"/>',
+  fish: '<path d="M2.5 12c3.2-4.5 8.5-5.5 12.8-2.2l5.2-3.3v11l-5.2-3.3C11 17.5 5.7 16.5 2.5 12z"/><circle class="c" cx="7.5" cy="11.3" r=".9"/>',
+  water:
+    '<path d="M12 2.5c3.2 5.3 6.5 8.5 6.5 11.8a6.5 6.5 0 0 1-13 0c0-3.3 3.3-6.5 6.5-11.8z"/><path class="c" d="M9 15c.3 1.5 1.3 2.5 2.8 2.8"/>',
+  pot:
+    '<path d="M5.5 10.5h13V16a4.5 4.5 0 0 1-4.5 4.5h-4A4.5 4.5 0 0 1 5.5 16z"/><rect x="3" y="8" width="18" height="2.2" rx=".6"/>' +
+    '<path class="l" d="M9.5 6c0-1 1-1.8 0-3M14.5 6c0-1 1-1.8 0-3"/>',
+  pail: '<path d="M5.5 9.5h13L17 20.5H7z"/><path class="l" d="M6.5 8.5C6.5 5.2 9 3 12 3s5.5 2.2 5.5 5.5"/><path class="c" d="M6.3 13.5h11.4"/>',
+  back: '<path class="l" d="M14.5 5.5L8 12l6.5 6.5"/>',
+  next: '<path class="l" d="M9.5 5.5L16 12l-6.5 6.5"/>',
+  no: '<path class="l" d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+  // a roof over open walls: no one lives there
+  emptyfarm: '<path d="M2.5 12L12 3.5l9.5 8.5h-3.8L12 7l-5.7 5z"/><path class="l" d="M6 13.5v7h12v-7"/>',
+  ruin: '<path class="l" d="M3 20.5h18"/><path d="M5 19.5v-9l3.5 2.8V9l3.5 3.5v7z"/><path d="M14.5 19.5V12l4.5 2.8v4.7z"/>',
+  green:
+    '<path d="M6 12.5h12v8H6z"/><path d="M7 6h10l1.5 3.5h-13z"/><path class="l" d="M8 10v2M16 10v2M12 5.5V3"/><path class="c" d="M6 16.5h12"/>',
+  road: '<path d="M7 21.5l3-19h4l3 19z"/><path class="c" d="M12 5v2.5M12 10.5v3M12 16.5v3.5"/>',
+  rake: '<path class="l" d="M5 21L15.5 7M11 5.5L9.5 8M14 7.5L12.5 10M17 9.5L15.5 12"/><path d="M9.8 3.5L20 10l-1 1.7L8.8 5.2z"/>',
+  quern:
+    '<path d="M4 13.5h16V17c0 2.2-3.6 3.8-8 3.8S4 19.2 4 17z"/><ellipse cx="12" cy="9.3" rx="7.2" ry="3.6"/>' +
+    '<path class="l" d="M14.5 8.5l3-5"/>',
+  fork: '<path class="l" d="M5.5 21.5L13 10M10 5l-.5 5.5 4.5 3 5-1.5M13 6.5l-1 4M16.5 8.5L15 12"/>',
+  spade: '<path class="l" d="M12 3v9M9.5 3h5"/><path d="M7.8 12h8.4v4c0 3-2.1 5-4.2 5.5-2.1-.5-4.2-2.5-4.2-5.5z"/>',
+  weed: `<path class="l" d="M12 21v-8.5M4 21.5h16"/>${LEAVES_STEN}`,
+  plus: '<path class="l" d="M12 5v14M5 12h14"/>',
+  minus: '<path class="l" d="M5 12h14"/>',
+  ale: '<path d="M5.5 6h10v14.5h-10z"/><path d="M5 3.5h11v2.2H5z"/><path class="l" d="M16 9.5h2c1.8 0 1.8 6 0 6h-2"/>',
+};
+const actIcon = (k) =>
+  stencil(svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE), ACT_PATHS[k] ? ACT_STEN[k] : ACT_STEN.hoe);
 // a job kind's icon (sim/kinds); a kind not named here takes the hoe
 const KIND_ICON = {
   sow: 'sow',

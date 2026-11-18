@@ -1114,3 +1114,12 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   box-shadow: 0 0 0 3px var(--node), 0 0 0 5px var(--accent), 0 0 0 6.5px var(--ink), 0 8px 16px rgba(20, 14, 10, 0.5); }
 :root[data-theme="mural"] .stat-ico, :root[data-theme="mural"] .trait.high, :root[data-theme="mural"] .trait.low { color: var(--accent); }
 :root[data-theme="mural"] .choose-bar { padding-top: 12px; padding-bottom: 12px; }
+/* the icons (VB-1124): an icon that carries a stencil (page/icons, stencil) shows it in this theme, in one pigment, its parts held apart
+   by gaps in the colour of the ground it lies on; a pressed button's ground is the red ochre */
+.ico .i-sten { display: none; }
+:root[data-theme="mural"] .ico .i-line { display: none; }
+:root[data-theme="mural"] .ico .i-sten { display: inline; }
+.i-sten > * { fill: currentColor; stroke: var(--ico-bg, var(--node)); stroke-width: 0.7; stroke-linejoin: round; }
+.i-sten > .l { fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; }
+.i-sten > .c { fill: none; stroke: var(--ico-bg, var(--node)); stroke-width: 1.5; stroke-linecap: round; }
+:root[data-theme="mural"] :is([aria-pressed="true"], [aria-selected="true"], .act-bar [aria-expanded="true"], button.primary) { --ico-bg: var(--accent); }
