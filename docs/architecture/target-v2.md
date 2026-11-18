@@ -394,7 +394,7 @@ workshop (4.4, Membership) with a contribution to the learning rate, not a separ
 
 **Relations** own opinion, goodwill, memories and stories.
 
-- **Opinion** stays the one number the rest of the game reads: standing (kin, spouse, housemate), plus timed memories, plus the
+- **Opinion** stays the one number the rest of the game reads: the bond (kin, spouse, housemate), plus timed memories, plus the
   culture's coupling of goodwill.
 - **Goodwill** (Decided, Kim, 3 Nov) is its own signed balance per pawn pair, in customary rations: `balance(a, b) > 0` means b
   owes a. As built (VB-217; `design.md`, The gift, is the current statement): one number per pair, decaying lazily, at most 32

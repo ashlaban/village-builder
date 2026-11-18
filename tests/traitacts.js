@@ -219,7 +219,7 @@ const AT = [0, 0.5, 1];
   assert.deepStrictEqual(checkState(st), []);
 }
 // VB-1106: a father and his son of 5 have cross words. Below the age of account (SOCIAL.account) it is no quarrel, at any draw: no
-// event, no memory; and the father's opinion of the boy, and the boy's of him, hold no chemistry but liking: the standing alone, where
+// event, no memory; and the father's opinion of the boy, and the boy's of him, hold no chemistry but liking: the bond alone, where
 // the two do not get on. At 12 the same pair is two people who do not get on, and their cross words may be a quarrel.
 {
   const st = make(), YEAR = VB.sim.YEAR, AF = SOCIAL.affinity;
@@ -243,7 +243,7 @@ const AT = [0, 0.5, 1];
   assert.strictEqual(st.record[st.record.length - 1].kind, 'quarrel', 'and cross words may be a quarrel');
   assert.ok(near(R.opinionOf(st, father, son), SOCIAL.situational.child + AF.weight * c12 + SOCIAL.memories.quarrel.v), 'remembered');
   // liking counts from the start: a child and one it gets on with
-  const liked = st.living.find((x) => x !== son && R.compat(st, x, son) > 0.05 && R.standing(st, x, son) === null);
+  const liked = st.living.find((x) => x !== son && R.compat(st, x, son) > 0.05 && R.bond(st, x, son) === null);
   if (liked !== undefined) {
     aged(5);
     const cl = R.compat(st, liked, son);

@@ -544,7 +544,7 @@ const TRAIT_STEN = {
   wits: '<path d="M8.5 15.5C6.5 14 5.5 12 5.5 9.8a6.5 6.5 0 0 1 13 0c0 2.2-1 4.2-3 5.7z"/><rect x="9" y="17" width="6" height="3.8" rx="1"/>',
 };
 const traitIcon = (k) => stencil(svgIcon(24, 24, TRAIT_PATHS[k], ICON_STROKE), TRAIT_STEN[k]);
-// The bonds (VB-1026): what one person is to another, one icon each. The five kin bonds the simulation names (sim/relations, standing):
+// The bonds (VB-1026): what one person is to another, one icon each. The five kin bonds the simulation names (sim/relations, bond):
 // two rings; an elder with a staff; a swaddled child; two of one branch; two under one roof. The four opinion bands (opinionWord): a
 // heart, filled for a close friend; a heart struck through; two crossed blades.
 const HEART = 'M12 20c-5-3.5-8-6.5-8-10a4.2 4.2 0 0 1 8-1.8A4.2 4.2 0 0 1 20 10c0 3.5-3 6.5-8 10z';

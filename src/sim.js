@@ -61,8 +61,7 @@ const Sim = (() => {
   const { supplyOutlook } = VB['sim/outlook']; // how long a household's supplies last, by its head's last review (VB-666)
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
-  const { compat, standing, standingWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } =
-    VB['sim/relations'];
+  const { compat, bond, bondWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
   const { explainAllowance, giftWarning } = VB['sim/exchange'];
   const { kinHouseholds } = VB['sim/help'];
   // Who of household hh may carry a gift of its holder's to household `to` (VB-1111): its members the verb `give` takes as the carrier,
@@ -175,8 +174,8 @@ const Sim = (() => {
     RIVER,
     byRiver,
     compat,
-    standing, // what b is to a: spouse, parent, child, sibling, housemate or null (the page's bond badges, VB-1026)
-    standingWord,
+    bond, // what b is to a: spouse, parent, child, sibling, housemate or null (the page's bond badges, VB-1026)
+    bondWord,
     opinionOf,
     opinionWord,
     relationsOf,

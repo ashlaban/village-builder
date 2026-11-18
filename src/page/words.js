@@ -318,7 +318,7 @@ function showRelations(id) {
   const rows = list
     .map((x) => {
       const word = Sim.opinionWord(x.opinion),
-        kin = Sim.standingWord(st, id, x.id),
+        kin = Sim.bondWord(st, id, x.id),
         why = Sim.reasonsOf(st, id, x.id).find((r) => r.label !== kin);
       // the kin bond and the opinion's band are the portrait's badges (VB-1026); their words are the row's tooltip (VB-1033), and what
       // is written is what has no icon: the largest memory of one who is no kin

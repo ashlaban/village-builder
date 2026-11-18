@@ -215,8 +215,8 @@ VB['sim/relations'] = (() => {
     return Math.max(-1, Math.min(1, c - Math.min(0.4, Math.max(0, gap - 5) * 0.02)));
   }
 
-  // ---- standing: what b is to a by the family records and the household: spouse, parent, child, sibling, housemate or null ----
-  function standing(st, a, b) {
+  // ---- bond: what b is to a by the family records and the household: spouse, parent, child, sibling, housemate or null ----
+  function bond(st, a, b) {
     const pa = st.pawns[a],
       pb = st.pawns[b];
     if (spouseOf(st, a) === b) return 'spouse';
@@ -235,12 +235,12 @@ VB['sim/relations'] = (() => {
     housemate: ['housemate', 'housemate'],
   };
   // b as a's husband, mother, brother..., or null
-  const standingWord = (st, a, b) => {
-    const k = standing(st, a, b);
+  const bondWord = (st, a, b) => {
+    const k = bond(st, a, b);
     return k ? WORDS[k][st.pawns[b].sex === 'f' ? 1 : 0] : null;
   };
 
-  // ---- opinion (VB-240; Kim, 10 Nov): derived, never stored: kin standing, plus affinity, plus memories of things that happened ----
+  // ---- opinion (VB-240; Kim, 10 Nov): derived, never stored: the kin bond, plus affinity, plus memories of things that happened ----
   // @state pawn.rel: Map of other pawn id to a's relationship record {mem: {kind: {v, t}}}; a record exists while it holds a memory of an
   //   event. kind is a key of SOCIAL.memories; v the memory's value at its last event, at game hour t. Empty for the dead.
   // @state pawn.bands: Map of other pawn id to a's band towards it as last checked, 1 (close friend) or -1 (enemy), only for pairs in one,
@@ -251,11 +251,11 @@ VB['sim/relations'] = (() => {
   const memNow = (st, kind, m) => m.v * Math.max(0, 1 - (st.t - m.t) / (M[kind].days * DAY));
   const A = SOCIAL.affinity,
     affinity = (st, a, b, tie) => A.weight * compat(st, a, b) * Math.min(1, tie / A.known);
-  // a's opinion of b, -1..1, a's tie to b being `tie`: the standing's value, plus affinity, plus the memories as they are now, plus
+  // a's opinion of b, -1..1, a's tie to b being `tie`: the bond's value, plus affinity, plus the memories as they are now, plus
   // gratitude for what a owes b (one Map lookup; VB-220).
   function opinionAt(st, a, b, tie) {
     const pa = st.pawns[a],
-      k = standing(st, a, b),
+      k = bond(st, a, b),
       r = pa.rel.get(b);
     let o = affinity(st, a, b, tie);
     if (o < 0 && small(pa, st.pawns[b])) o = 0; // nobody holds a small child's nature against it, nor does it yet hold another's (VB-1106)
@@ -473,7 +473,7 @@ VB['sim/relations'] = (() => {
     const i = a.id,
       j = b.id,
       yy = young(st, st.pawns[i]) && young(st, st.pawns[j]);
-    const c = Math.max(-1, Math.min(1, compat(st, i, j) + (standing(st, i, j) ? T.kin : 0)));
+    const c = Math.max(-1, Math.min(1, compat(st, i, j) + (bond(st, i, j) ? T.kin : 0)));
     const wg = T.good * Math.exp(2 * c) * (yy ? T.youngBonus : 1),
       wc = T.cross * Math.exp(-2 * c),
       x = rnd(st.rng.talk) * (1 + wg + wc);
@@ -699,21 +699,21 @@ VB['sim/relations'] = (() => {
           : o <= SOCIAL.dislike
             ? 'dislikes'
             : 'neutral';
-  // The living people a pawn knows, by tie (most familiar first): {id, tie, opinion, standing}
+  // The living people a pawn knows, by tie (most familiar first): {id, tie, opinion, bond}
   function relationsOf(st, id) {
     const p = st.pawns[id],
       ids = new Set([...p.ties.keys(), ...p.rel.keys()]),
       out = [];
     for (const j of ids) {
       if (!st.pawns[j].alive) continue;
-      out.push({ id: j, tie: tieOf(st, id, j), opinion: opinionOf(st, id, j), standing: standing(st, id, j) });
+      out.push({ id: j, tie: tieOf(st, id, j), opinion: opinionOf(st, id, j), bond: bond(st, id, j) });
     }
     return out.sort((x, y) => y.tie - x.tie || x.id - y.id);
   }
-  // What a's opinion of b is made of now, largest first: [{label, value}], the standing first if there is one
+  // What a's opinion of b is made of now, largest first: [{label, value}], the bond first if there is one
   function reasonsOf(st, a, b) {
     const out = [],
-      k = standing(st, a, b),
+      k = bond(st, a, b),
       r = st.pawns[a].rel.get(b);
     if (r) for (const kind in r.mem) out.push({ label: M[kind].label, value: memNow(st, kind, r.mem[kind]) });
     const f = affinity(st, a, b, tieOf(st, a, b));
@@ -736,8 +736,8 @@ VB['sim/relations'] = (() => {
     floorKin,
     migrateTies,
     compat,
-    standing,
-    standingWord,
+    bond,
+    bondWord,
     memNow,
     opinionOf,
     bandOf,
