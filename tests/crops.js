@@ -78,3 +78,23 @@ w.trees[fd.tile] = 0;
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'fallow', 'a field whose scrub is gone is grass again');
 console.log('crops ok: seed shortage, weeding cadence, frost delivery boundary and claimed-farm overgrowth');
+
+// VB-1115: a farm with two ripe fields and one hand on autumn's last day loses both; one line, naming them ripe and unreaped, and the skip stops.
+{
+  const st2 = tinyState(w, [{ at: [8, 8], farms: 2 }], { seed: 7 });
+  const g = st2.farmsteads[0], h2 = st2.households[g.household];
+  h2.members.splice(1); // one hand
+  for (const x of g.fields.slice(0, 2)) { x.stage = 'ripe'; x.crop = 'barley'; x.sown = 0; }
+  while (g.fields.length < 2) g.fields.push({ ...g.fields[0], id: g.fields.length, tile: g.fields[0].tile });
+  g.fields.length = 2;
+  setClock(st2, ((3 * SEASON_DAYS - 2) * DAY));
+  const est = Sim.harvestEstimate(st2, h2);
+  assert.equal(est.fields, 2); assert(est.late || est.days <= est.left);
+  setClock(st2, (3 * SEASON_DAYS - 1) * DAY);
+  const n0 = st2.record.length;
+  fieldsFrost(st2);
+  const lines = st2.record.slice(n0).filter((e) => e.kind === 'frost');
+  assert.equal(lines.length, 1, 'one line a farm');
+  assert(/Frost took the barley at .*, ripe and not yet reaped\./.test(lines[0].text), lines[0].text);
+  assert(g.fields.every((x) => x.stage === 'stubble'));
+}

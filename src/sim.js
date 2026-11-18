@@ -43,7 +43,7 @@ const Sim = (() => {
   const { seedReserve } = VB['sim/hunger'],
     { grainOf } = VB['sim/stores'],
     { shareOwed } = VB['sim/obligations'];
-  const { fieldsWanted, fieldView } = VB['sim/fields'];
+  const { fieldsWanted, fieldView, harvestEstimate } = VB['sim/fields'];
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
@@ -122,6 +122,7 @@ const Sim = (() => {
     villageSummary,
     OVERVIEW,
     supplyOutlook,
+    harvestEstimate,
     villageOutlook: villageOutlookOf,
     succeed,
     cal,
