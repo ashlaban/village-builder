@@ -120,7 +120,8 @@ VB['sim/exchange'] = (() => {
       if (hf && ht) book(st, hf.id, ht.id, n * WORTH.grain); // the giver is owed the gift's worth (Who books: the two holders)
     }
   }
-  // Settles an accepted gift; only the verb `give` calls it (tests/commands.js).
+  // Settles an accepted gift between two households of one farmstead, which is one place (the hard rule): what goes between places is
+  // carried, hauled or fetched (sim/away) and booked by `receive` as it arrives (VB-1111). Only the verb `deliver` calls it (tests/commands.js).
   function settleGift(st, o) {
     // grain that changes place at once between two farmsteads (VB-461, VB-849: the verb has it fetched or hauled; tests/lib/invariants.js holds this at 0)
     if (!isHousehold(o.to) ? isHousehold(o.from) : !isHousehold(o.from) || o.from.farmstead !== o.to.farmstead)

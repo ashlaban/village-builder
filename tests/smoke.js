@@ -532,7 +532,13 @@ async function actionBar() {
   if (!opt) { fail('the gift\'s form has no household to give to'); return; }
   to.value = opt.value; to.dispatchEvent(new win.Event('change', { bubbles: true })); tick(1);
   q('#giveN').value = '5'; q('#giveN').dispatchEvent(new win.Event('input', { bubbles: true }));
+  // VB-1111: the form names who carries it: one of the household who may, the played pawn first, or the receiver's, who fetch it
+  const by = q('#giveBy'), byVal = by && by.value;
+  if (!by || !by.querySelector('option[value="fetch"]')) fail('the gift\'s form does not say who carries it');
   q('#actMenu [data-give="go"]').click(); tick(1);
+  const carried = st.player.queue.find((c) => c.verb === 'give');
+  if (carried && (byVal === 'fetch' ? carried.args.carrier !== undefined : carried.args.carrier !== +byVal)) {
+    fail(`the gift's carrier is not the one the form names (${byVal}): ${JSON.stringify(carried.args)}`); }
   if (q('#actMenu [data-give="confirm"]')) { q('#actMenu [data-give="confirm"]').click(); tick(1); }
   const gift = st.player.queue.find((c) => c.verb === 'give');
   if (!gift || gift.target !== +opt.value || gift.args.n !== 5 || !/^Queued: 5 grain/.test(q('#actMenu .act-msg').textContent)) {
