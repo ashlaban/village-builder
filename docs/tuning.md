@@ -96,6 +96,7 @@ Both references meet the target (median at least 1%), so nothing below is urgent
 | HERD.herding.bite | share of milk lost per downAt of pressure over downAt | populous small seed 7: 0.05 loses 6.9% of milk, 0.3 loses 22.5% and seed 11 starvation deaths 1 to 5 | 0.05 kept; look at 0.15 in a tuning run | VB-709 |
 | HERD.margins.herd | share of the winter's hay need a household counts on under keep the herd | 0.7/0.8/0.9 at populous small seeds 3, 42 (15y) within noise; herd does not winter more head at the next count; emergency slaughters 5-10x, meat a household down | a tuning run over margin with bad-winter years | VB-711 |
 | matchBy under heads | refusals of matches | populous small 20y seeds 7/42: refused heads 204/162, consent 66/78, couple 30/69; marriages a year 8.6 to 9.4 in all | judge whether the heads' refusal volume is too high; left for the tuning run | VB-826 |
+| `FIELDS.perHand` 2 | Fields a working adult can till, now also the cap on the fields a household hoes and sows (VB-1186) | Founders small, 50 years, frost-lost fields a household-year (living at the end): seed 7, 2: 0.010 (33), 2.5: 0.053 (40), 3: 0.136 (39); seed 42, 2: 0.071 (22), 2.5: 0.023 (22), 3: 0.094 (23); before the cap 0.241 (38) and 0.184 (23) | 2 kept; 2.5 loses little more to the frost and sows a fifth more: look at it over seeds in a tuning run | VB-1186 |
 
 ## Mechanisms on their way that move the same numbers
 
