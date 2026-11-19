@@ -322,7 +322,7 @@ VB['sim/matching'] = (() => {
   // What stands between an unmarried pawn of age and a marriage, as the home holds today (counted, no forecast; VB-631), the first that
   // holds: {kind: 'hungry'|'nohome'|'short'|'means'|'hands', held, asked}; null for a pawn that is not unmarried and of age. The home is
   // the place the pawn would live on (the land custom), else its own household, the partner not being known.
-  function marryStanding(st, id) {
+  function marryBar(st, id) {
     const p = st.pawns[id];
     if (!p || !p.alive || spouseOf(st, id) !== null || p.household === null) return null;
     if (age(st, p) < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) return null;
@@ -346,7 +346,7 @@ VB['sim/matching'] = (() => {
     matchBar,
     wishedMatches,
     meansOf,
-    marryStanding,
+    marryBar,
     roundYear,
     courts,
   };
