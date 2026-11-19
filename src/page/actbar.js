@@ -149,6 +149,15 @@ function menuHTML(id, opps) {
         o.why,
       );
     }
+    // a call at a farm within a day's walk (VB-1271; the verb `call`): shown as a visit is, by place, with the verb's own reason when barred
+    for (const o of by.self.filter((x) => x.verb === 'call'))
+      h += actRow(
+        cmdAttrs(o),
+        'walk',
+        `Call at ${o.call.place}`,
+        `In ${o.call.village}; you spend tomorrow evening in its yard`,
+        o.why,
+      );
     if (by.offers.length)
       h += actRow(
         'data-bar="sheet"',

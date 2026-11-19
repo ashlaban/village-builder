@@ -20,7 +20,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   page.on('pageerror', (e) => fail('page error: ' + (e.stack || e.message)));
   await page.route(/^https?:\/\//, (r) => /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
   await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(builtPage()
-    .replace(HOOK, HOOK + ' window.__play = { get st() { return st; }, Sim, get speed() { return speed; }, listSaves: () => listSaves(), saveTx: (...a) => saveTx(...a) };')) }));
+    .replace(HOOK, HOOK + ' window.__play = { get st() { return st; }, Sim, get speed() { return speed; }, set speed(v) { speed = v; }, roundEnd: (y) => roundEnd(y), listSaves: () => listSaves(), saveTx: (...a) => saveTx(...a) };')) }));
   const shot = async (name) => { if (out) await page.screenshot({ path: path.join(out, name) }); };
   const done = () => page.waitForFunction(() => document.getElementById('loader').classList.contains('done') && !!window.__play.st
     && document.getElementById('genScreen').hidden && document.getElementById('landing').hidden
@@ -83,9 +83,17 @@ const check = (ok, m) => { if (!ok) fail(m); };
   await page.waitForTimeout(50); await hide(); await page.waitForTimeout(500);
   check((await auto()) === a1, 'hidden twice at one game time wrote the auto slot twice (' + a1 + ' then ' + await auto() + ', t ' + ta + ' then ' + await page.evaluate(() => window.__play.st.t) + ')');
   await page.evaluate(() => { const { st, Sim } = window.__play; Sim.advance(st, Sim.DAY); });
-  const h3b = await hash();
   await page.waitForTimeout(50); await hide();
   await until(async (a) => (await window.__play.listSaves()).find((x) => x.slot === 'auto').savedAt !== a, a1);
+  // 2b. The moving round's end writes the auto slot (VB-215): run from just before it, at the uncapped speed, and the slot is newer.
+  const a2 = await auto();
+  const end = await page.evaluate(() => { const { st, Sim, roundEnd } = window.__play, e = roundEnd(Math.floor(st.t / Sim.YEAR)); return e > st.t ? e : roundEnd(Math.floor(st.t / Sim.YEAR) + 1); });
+  await page.evaluate((e) => { const { st, Sim } = window.__play; Sim.advance(st, e - 0.5 - st.t); window.__play.speed = Infinity; }, end);
+  await until(async (a) => (await window.__play.listSaves()).find((x) => x.slot === 'auto').savedAt !== a, a2);
+  await page.evaluate(() => { window.__play.speed = 0; });
+  const tr = await page.evaluate(() => window.__play.st.t);
+  check(tr >= end, 'the round autosave fell at ' + tr + ', the round ending at ' + end);
+  const h3b = await hash();
   check((await keys()).length === 3, 'slots after the auto save: ' + (await keys()));
 
   // 3. Main menu, then Back to game, leaves the state as it was.

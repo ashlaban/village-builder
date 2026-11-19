@@ -273,3 +273,21 @@ document.addEventListener('visibilitychange', () => {
   autoAt = st.t;
   storeSave('auto').catch((err) => console.warn('autosave failed', err));
 });
+// At each moving round, after its last phase (VB-215; a save at the late reference takes 278 ms, VB-226): the step that crosses the end of
+// the round's last step, in whatever way the run went (a step, a frame of steps, the uncapped speed), writes the auto slot. A skip does not.
+const roundEnd = (year) => {
+  const { ASK, SEASON_DAYS, YEAR, DAY, TICKS } = VB['sim/rules'],
+    { ROUND_STEPS } = VB['sim/round'];
+  return year * YEAR + (2 * SEASON_DAYS + ASK.day + ASK.passes - 1) * DAY + 12 + ROUND_STEPS / TICKS;
+};
+let autoRound = null;
+function autosaveRound(from) {
+  if (!st || demo || building || skipping || autoRound) return;
+  const end = roundEnd(Math.floor(st.t / VB['sim/rules'].YEAR));
+  if (!(from < end && st.t >= end)) return;
+  autoOf = st;
+  autoAt = st.t;
+  autoRound = storeSave('auto')
+    .catch((err) => console.warn('autosave failed', err))
+    .finally(() => (autoRound = null));
+}
