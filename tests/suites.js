@@ -20,6 +20,7 @@ const FAST = [
   ['node', 'tests/wishlapse.js'],
   ['node', 'tests/roundoffers.js'],
   ['node', 'tests/handover.js'],
+  ['node', 'tests/offerpreview.js'], // VB-1100: what a yes to an offer would bring, and the state after it
   ['node', 'tests/asking.js'],
   ['node', 'tests/suit.js'],
   ['node', 'tests/courting.js'],
