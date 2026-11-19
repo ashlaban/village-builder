@@ -69,6 +69,7 @@
     "agent.occasion": "sim/occasions",
     "household.grain": "sim/stores",
     "household.meals": "sim/stores",
+    "household.yields": "sim/yields",
     "household.flour": "sim/stores",
     "household.quern": "sim/quern",
     "household.unthreshed": "sim/stores",

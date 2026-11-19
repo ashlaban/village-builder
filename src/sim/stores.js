@@ -6,7 +6,8 @@ VB['sim/stores'] = (() => {
   const Rules = VB['sim/registry'],
     Culture = VB['culture'],
     { emit } = VB['sim/events'],
-    Projects = VB['sim/projects'];
+    Projects = VB['sim/projects'],
+    Yields = VB['sim/yields'];
   const KINDS = [
     'harvest',
     'gift',
@@ -92,6 +93,7 @@ VB['sim/stores'] = (() => {
     const detail = typeof why === 'string' ? { kind: why } : why;
     if (!detail || !KINDS.includes(detail.kind)) throw new Error('stores: unknown reason');
     const hh = kind === 'pawn' ? st.households[holder.household] : holder;
+    if (kind === 'household') Yields.book(holder, good, n, detail); // the head's remembered yield of each source (VB-767)
     if (hh && kind !== 'pawn' && ROUTINE.includes(detail.kind)) fold(hh, yearNow(st), detail.kind, good, n);
     else if (hh) {
       const entry = { ...detail, t: st.t, n, good, ...(kind === 'pawn' ? { pawn: holder.id, stake: true } : {}) };

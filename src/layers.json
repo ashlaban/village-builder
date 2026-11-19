@@ -34,6 +34,7 @@
       "sim/decisions"
     ],
     "material": [
+      "sim/yields",
       "sim/stores",
       "sim/targets",
       "sim/projects",
