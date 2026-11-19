@@ -770,6 +770,7 @@ VB['sim/rules'] = (() => {
     come: 0.3,
     piety: 0.6,
     mix: 0.2,
+    spread: 5, // a village's own rite falls within this many days after the season's day (VB-775)
     days: [
       [0, 0],
       [1, 5],

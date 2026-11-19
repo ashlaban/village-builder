@@ -325,6 +325,16 @@ function checkState(st) {
       }
     }
   }
+  // a village's own rite days (VB-775): three, one in each season's window of RITE.spread days after the season's day
+  {
+    const R = globalThis.VB['sim/rules'].RITE;
+    for (const v of st.villages) {
+      if (v.riteDays === undefined) continue;
+      if (!Array.isArray(v.riteDays) || v.riteDays.length !== R.days.length
+        || v.riteDays.some((d, i) => !Number.isInteger(d) || d < R.days[i][1] || d > R.days[i][1] + R.spread))
+        bad.push(`rite days: village ${v.id} has ${JSON.stringify(v.riteDays)}`);
+    }
+  }
   // the gathering (VB-294): a village's choice names hosts with a green within a day's walk, each once, and offers only with a green; its
   // host has a green, is within a day's walk, and hosts its own gathering of the same winter, which at least GATHERING.least villages
   // attend. That the host was inhabited is checked when it is settled (tests/gathering.js), as a village may empty before the winter.

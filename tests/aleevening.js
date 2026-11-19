@@ -147,6 +147,7 @@ const at = (st, t) => {
 {
   const st = state();
   assert.ok(VB['sim/venues'].riteDay(Sim.cal(0)), 'spring day 1 is a rite day');
+  for (const c of Object.values(st.cenv.cultures)) c.practices = { ...(c.practices || {}), riteDays: 'common' }; // lint-allow: owner a constructed state
   st.rng.occasions.fix = 0;
   VB['sim/venues'].callRites(st);
   const rites = st.occasions.filter((o) => o.kind === 'rite');
@@ -154,3 +155,53 @@ const at = (st, t) => {
   assert.ok(rites.every((o) => o.start % DAY === 12 && o.asked.length > 0), 'at noon, its adults asked');
 }
 console.log('ale evening and rite ok');
+
+// 8. Rites on a village's own days (VB-775): two greens 1.17 hours apart with different days; a devout adult attends both villages' rites
+// (the other's by the walk); under 'common' days it attends its own only; a village 3 hours away sends nobody.
+{
+  const { RITE } = VB['sim/rules'], V = VB['sim/venues'];
+  const setup = (mode) => {
+    const st = state();
+    for (const c of Object.values(st.cenv.cultures)) c.practices = { ...(c.practices || {}), riteDays: mode }; // lint-allow: owner a constructed state
+    st.villages[0].riteDays = [0, 5, 6]; // lint-allow: owner a constructed state
+    st.villages[1].riteDays = [2, 7, 9]; // lint-allow: owner a constructed state
+    st.rng.occasions.fix = 0;
+    return st;
+  };
+  const rites = (st) => st.occasions.filter((o) => o.kind === 'rite');
+  const adultsOf = (st, vid) =>
+    live(st).filter((h) => st.farmsteads[h.farmstead].village === vid).flatMap((h) => h.members).filter((m) => st.pawns[m].alive && VB['sim/records'].age(st, st.pawns[m]) >= 16);
+  const day = (st, season, sday) => at(st, (season * 100 + sday) * 0 + Sim.cal.length * 0 + (season * VB['sim/rules'].SEASON_DAYS + sday) * DAY);
+  {
+    const st = setup('own');
+    day(st, 0, 0);
+    V.callRites(st);
+    const r = rites(st);
+    assert.strictEqual(r.length, 1, 'only village 0 keeps spring day 1');
+    assert.strictEqual(r[0].village, 0);
+    const guests = adultsOf(st, 1);
+    assert.ok(guests.length && guests.every((m) => r[0].asked.some((a) => a.id === m)), "the other village's adults are asked, by the walk");
+    assert.ok(r[0].asked.every((a) => a.hours === 0 || Math.abs(a.hours - 1.17) < 0.1), 'those who walk, walk the hours between the greens');
+    day(st, 0, 2);
+    st.occasions.length = 0;
+    V.callRites(st);
+    assert.strictEqual(rites(st).length, 1, "and village 1's rite is on its own day");
+    assert.strictEqual(rites(st)[0].village, 1);
+    delete st.rng.occasions.fix;
+    assert.deepStrictEqual(checkState(st), [], 'invariants hold');
+  }
+  {
+    const st = setup('common');
+    day(st, 0, 0);
+    V.callRites(st);
+    assert.ok(rites(st).length === 2 && rites(st).every((o) => o.asked.every((a) => a.hours === 0)), 'under common days both hold it, each its own');
+  }
+  {
+    const st = setup('own');
+    st.villageHours[0][1] = st.villageHours[1][0] = RITE.reach + 1; // lint-allow: owner a constructed state
+    day(st, 0, 0);
+    V.callRites(st);
+    const r = rites(st);
+    assert.ok(r.length === 1 && r[0].asked.every((a) => st.pawns[a.id].household === null || st.farmsteads[st.households[st.pawns[a.id].household].farmstead].village === 0), 'a village beyond the reach sends nobody');
+  }
+}
