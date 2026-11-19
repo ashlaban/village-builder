@@ -120,7 +120,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1319](backlog/VB-1319.md) | Measure VB-245 on the late saves, with commits that exist | - | 3 | S | Measure VB-245 with commits that exist |
 | [VB-1344](backlog/VB-1344.md) | VB-717 numbers owed: tilth drift | - | 3 | S | Numbers VB-717 left, for VB-662 |
 | [VB-1354](backlog/VB-1354.md) | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
-| [VB-1359](backlog/VB-1359.md) | Design: row for the custom matchBy in Custom dimensions | - | 3 | S | Add the row: Who makes a match / the heads; the heads, with consent; the couple / consent / 0.4 (Proposed; VB-826), with its effects as built. |
 
 ## Waiting for Kim
 
