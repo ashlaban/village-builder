@@ -14,10 +14,12 @@ const FAST = [
   ['node', 'tests/pulls.js'],
   ['node', 'tests/customhold.js'],
   ['node', 'tests/decisions.js'],
+  ['node', 'tests/alderman.js'], // VB-314: the village's alderman, chosen at its meeting
   ['node', 'tests/cacheowners.js'],
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
+  ['node', 'tests/crowding.js'], // a household's crowding, its factor and its refresh, on a constructed state (VB-766)
   ['node', 'tests/sheet.js'], // the played pawn's sheet: what a command brought, what moved its levels, an illness before it kills (VB-1118)
   ['node', 'tests/illness.js'], // illnesses that are survived: a course that passes, one turned by a draw, the roll's deaths kept (VB-1246)
   ['node', 'tests/wishes.js'],
@@ -184,6 +186,7 @@ const INTEGRATION = [
   ['node', 'tests/weeding.js'],
   ['node', 'tests/soil.js'],
   ['node', 'tests/tilth.js'],
+  ['node', 'tests/surplus.js'],
   ['node', 'tests/hay.js'],
   ['node', 'tests/byre.js'],
   ['node', 'tests/stocking.js'],

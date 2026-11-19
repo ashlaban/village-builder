@@ -730,7 +730,8 @@ VB['sim/rules'] = (() => {
   // Nordic source. `perLoad`: what one load of manure adds to a field's tilth (on top of its soil); `years`: the time constant of its
   // fading, in game years (e^-1 left after that long without dung); `max`: a bound for the invariant, which play should never reach.
   // A harvest is multiplied by 1 + tilth ----
-  const TILTH = { perLoad: 0.0011, years: 70, max: 0.4 };
+  const TILTH = { perLoad: 0.0011, years: 70, max: 0.4, surplus: 2 };
+  // `surplus` (VB-718): the most loads of manure a field takes in a year beyond what its soil asks, for its tilth only (an estimate, no source).
   // Ale (VB-305; design.md, Goods, Ale and standing; Kim, 10 Nov): a side craft in autumn and winter. `grain` rations of grain from the
   // household's surplus (above its floor, which holds the seed reserve) and `hours` of work in the house give a barrel, which keeps one season
   // (the good's perish, sim/stores) and serves `guests` guests; a household brews while it holds fewer than `stock` barrels. A barrel poured at
@@ -987,6 +988,9 @@ VB['sim/rules'] = (() => {
   // Days owed (VB-462; design.md, Remedies, The alderman's keep): a day is `hours` of work of one adult, called for a day at least `notice`
   // days ahead by the creditor's holder, as tasks of its plan.
   const DAYS = { notice: 3, hours: 8 };
+  // The village's office (VB-314; design.md, The alderman): standing gained while in office, and what the election weighs: a candidate's
+  // standing (`standing` the weight of one point of it) against a voice's opinion of him (opinions run -1 to 1).
+  const OFFICE = { standing: 0.3, weighStanding: 0.25 };
   const WORKDAY = {
     days: [
       [0, 0, 'fence'],
@@ -1107,6 +1111,7 @@ VB['sim/rules'] = (() => {
       milkLate: 0.8,
       milkLateHour: 10, // milking (VB-135): in the morning, less pressing after milkLateHour
       manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
+      manureSurplus: 0.5, // dung to spare (VB-718): after the hoeing and the sowing, so that it never makes a household sow late
       repair: 0.5, // the house's upkeep (VB-306): below the fields' work and the fence's mending
       herd: 1.5, // herding (VB-136): the animals' daily care, as milking and the byre
       fishCalm: 0.2,
@@ -1278,6 +1283,7 @@ VB['sim/rules'] = (() => {
     BUILD,
     WORKDAY,
     DAYS,
+    OFFICE,
     COMMONS,
   };
 })();

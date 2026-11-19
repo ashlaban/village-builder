@@ -466,7 +466,7 @@ VB['sim/away'] = (() => {
       parts = {},
       to = st.farmsteads[o.to.farmstead];
     Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: to.name }, parts);
-    booked(st, store ? null : o.from, o.to, o.n, name);
+    booked(st, o.from, o.to, o.n, name);
     const stop = {
       at: store ? o.from.center : st.farmsteads[o.from.farmstead].house,
       from: store ? null : o.from.id,

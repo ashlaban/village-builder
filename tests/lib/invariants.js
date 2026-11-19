@@ -1436,6 +1436,7 @@ function checkHerds(st, bad) {
     if (!Object.prototype.hasOwnProperty.call(CROPS, fd.crop)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: crop ${fd.crop} is not in the table`); // VB-346
     if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
     if (!(Number.isFinite(fd.tilth) && fd.tilth >= 0 && fd.tilth <= VB['sim/rules'].TILTH.max && fd.tilthAt <= st.t)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: tilth ${fd.tilth} at ${fd.tilthAt}`); // VB-717
+    if (fd.surplus !== undefined && !(fd.surplus >= 0 && fd.surplus <= VB['sim/rules'].TILTH.surplus + 1e-9 && fd.surplusYear <= Math.floor(st.t / VB['sim/rules'].YEAR))) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: surplus ${fd.surplus} in year ${fd.surplusYear}`); // VB-718
     // VB-348: a fallow field is never sown; a sown field's crop has seed; a winter crop stands across the year's turn, any other is not
     // standing in winter; weeding rounds within the crop's; a rest mark is 0.5 or 1
     const C = CROPS[fd.crop] || {}, at = `farmsteads[${f.id}].fields[${fd.id}]`, standing = ['sown', 'growing', 'ripe'].includes(fd.stage);
