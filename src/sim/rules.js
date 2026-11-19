@@ -483,6 +483,10 @@ VB['sim/rules'] = (() => {
   };
 
   // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
+  // The founders' ages (VB-635; design.md, Starting scenarios): each couple's man is manMin to manMin+manSpan-1 years old, his wife
+  // 1 to wifeYounger years younger and at least wifeMin; the two servants are servantMin to servantMin+servantSpan-1.
+  const FOUNDERS = { manMin: 23, manSpan: 11, wifeYounger: 6, wifeMin: 19, servantMin: 16, servantSpan: 4 };
+
   const MARRIAGE = {
     menFrom: 20,
     womenFrom: 18, // youngest age to marry
@@ -1179,6 +1183,7 @@ VB['sim/rules'] = (() => {
     HUNGER,
     HEALTH,
     MARRIAGE,
+    FOUNDERS,
     HELP,
     GOODWILL,
     TRAVEL,
