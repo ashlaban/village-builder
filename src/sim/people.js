@@ -1,22 +1,23 @@
 // @sys sim/people: the household generators of the founders and populous scenarios
 VB['sim/people'] = (() => {
   const { person, marry, makeHousehold, joinHousehold } = VB['sim/records'];
+  const { FOUNDERS } = VB['sim/rules'];
 
   // Founders: a young couple on every farm, and two servants who join two of the households.
   function foundersHouseholds(R, farmsteads) {
     const rand = R.rand,
       households = [];
     farmsteads.forEach((f) => {
-      const hAge = 23 + ((rand() * 11) | 0),
-        wAge = Math.max(19, hAge - 1 - ((rand() * 6) | 0));
+      const hAge = FOUNDERS.manMin + ((rand() * FOUNDERS.manSpan) | 0),
+        wAge = Math.max(FOUNDERS.wifeMin, hAge - 1 - ((rand() * FOUNDERS.wifeYounger) | 0));
       const man = person(R, { sex: 'm', age: hAge }),
         wife = person(R, { sex: 'f', age: wAge });
       households.push(makeHousehold(R, households.length, f, [man, wife], man));
       marry(R, man, wife, 1 + ((rand() * 4) | 0));
     });
     const order = households.map((h) => h.id).sort(() => rand() - 0.5);
-    const hand = person(R, { sex: 'm', age: 16 + ((rand() * 4) | 0), servant: true }),
-      maid = person(R, { sex: 'f', age: 16 + ((rand() * 4) | 0), servant: true });
+    const hand = person(R, { sex: 'm', age: FOUNDERS.servantMin + ((rand() * FOUNDERS.servantSpan) | 0), servant: true }),
+      maid = person(R, { sex: 'f', age: FOUNDERS.servantMin + ((rand() * FOUNDERS.servantSpan) | 0), servant: true });
     joinHousehold(R, households[order[0]], hand);
     joinHousehold(R, households[order[1 % order.length]], maid);
     return households;
@@ -83,8 +84,8 @@ VB['sim/people'] = (() => {
       );
     for (const f of farmsteads) {
       if (fill[f.id] !== 'couple') continue;
-      const hAge = 23 + ((rand() * 11) | 0),
-        wAge = Math.max(19, hAge - 1 - ((rand() * 6) | 0));
+      const hAge = FOUNDERS.manMin + ((rand() * FOUNDERS.manSpan) | 0),
+        wAge = Math.max(FOUNDERS.wifeMin, hAge - 1 - ((rand() * FOUNDERS.wifeYounger) | 0));
       const man = person(R, { sex: 'm', age: hAge }),
         wife = person(R, { sex: 'f', age: wAge });
       households.push(makeHousehold(R, households.length, f, [man, wife], man));
