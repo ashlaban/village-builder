@@ -131,6 +131,8 @@ VB['sim/fieldwork'] = (() => {
       urgency: inWindow,
       done: (st, j, hh, c) => {
         const from = j.common ? st.villages[j.village] : hh; // a common field's seed is the village store's (VB-100)
+        // the window shut while it was sown: the field went on to its next course (a fallow one has no seed), and is not sown now
+        if (j.field.stage !== 'plowed' || !(CROPS[j.field.crop].seed > 0)) return;
         if (Stores.grainOf(from, j.field.crop) < CROPS[j.field.crop].seed) return; // the seed eaten since it was posted
         Stores.take(st, from, Stores.grainGood(j.field.crop), CROPS[j.field.crop].seed, 'seed');
         sown(j.field, c);
