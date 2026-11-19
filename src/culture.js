@@ -221,8 +221,12 @@ const Culture = (() => {
     margin: 0.25,
     tieMargin: 0.6,
     returnMargin: 0.12, // meeting margins
+    fewVoices: 0.2, // a meeting's margin grows by this share for each voice below ten: a handful of voices is noisy (VB-1104)
     cultureMarginBase: 0.6,
     cultureMarginSize: 0.4, // culture margin = margin * (base + size * sqrt(N / 100))
+    hold: 0.5, // a practice's hold once in force: the share of the way a voice that carried a change moves what it holds to (its anchor)
+    // towards its attitude, at the meeting or reckoning that passes it, so that the change outlasts the cause that argued for it (VB-1104)
+    smallCulture: 0.02, // and grows by this share for each person below forty: a tiny culture's few voices are noisy (VB-1104)
     fission: { divergence: 0.3, tie: 0.35, years: 3 },
     entrepreneur: 0.004, // chance per adult, custom and year (times malleability squared)
     persuasion: 1.5, // direct pull from advocates, times the advocates' share of one's ties and sqrt(malleability)
@@ -605,7 +609,21 @@ const Culture = (() => {
   // closer the village's tie), least to return to that custom; times fewVoices, as a handful of voices is noisy (below ten the margin grows).
   const margin = (s, x, y, cust) =>
     x === cust ? P.margin + P.tieMargin * s.tie : y === cust ? P.returnMargin : P.margin;
-  const fewVoices = (n) => 1 + Math.max(0, 10 - n) * 0.1;
+  const fewVoices = (n) => 1 + Math.max(0, 10 - n) * P.fewVoices;
+  // A change passed holds (P.hold, VB-1104): each voice of the settlement s that favours the new way y over the old x moves its anchor,
+  // what it holds to, P.hold of the way towards its attitude on the custom d, having carried the change in public. Returns their number.
+  function holdTo(hooks, s, d, x, y) {
+    const o = OFF[d],
+      n = NOPT[d];
+    let held = 0;
+    for (const p of hooks.membersOf(s)) {
+      if (!p.alive || !p.anc || hooks.voiceOf(p, s) <= 0 || !(p.att[o + y] > p.att[o + x])) continue;
+      for (let j = 0; j < n; j++) p.anc[o + j] += P.hold * (p.att[o + j] - p.anc[o + j]);
+      held++;
+    }
+    VB.count.meetingWalk += held;
+    return held;
+  }
   function meeting(env, hooks, s) {
     const c = env.cultures[s.culture],
       changes = [];
@@ -625,8 +643,10 @@ const Culture = (() => {
       const h = small * margin(s, x, y, cust);
       if (!(S[o + y] > S[o + x] * (1 + h))) continue;
       // the change itself: through the caller's decide (the simulation issues a command, VB-170), else written here
-      if (hooks.decide ? hooks.decide(s, d, y) : ((s.practice[d] = y), true))
+      if (hooks.decide ? hooks.decide(s, d, y) : ((s.practice[d] = y), true)) {
         changes.push({ dim: d, from: x, to: y, sy: S[o + y], sx: S[o + x] });
+        holdTo(hooks, s, d, x, y);
+      }
     }
     return changes;
   }
@@ -669,7 +689,7 @@ const Culture = (() => {
       const H =
         P.margin *
         Math.max(1, P.cultureMarginBase + P.cultureMarginSize * Math.sqrt(N / 100)) *
-        (1 + Math.max(0, 40 - N) * 0.02);
+        (1 + Math.max(0, 40 - N) * P.smallCulture);
       for (let d = 0; d < DIMS.length; d++) {
         const o = OFF[d],
           n = NOPT[d],
@@ -678,11 +698,21 @@ const Culture = (() => {
         for (let j = 1; j < n; j++) if (agg[o + j] > agg[o + y]) y = j;
         if (y !== x && agg[o + y] > agg[o + x] * (1 + H)) {
           c.customs[d] = y;
-          changes.push({ dim: d, from: x, to: y });
-          // settlements that followed the old custom follow the new one, unless they still clearly prefer the old
-          for (const s of setts)
-            if (s.practice[d] === x && !(s.lastSupport && s.lastSupport[o + x] > s.lastSupport[o + y] * (1 + P.margin)))
-              s.practice[d] = y;
+          // settlements that followed the old custom follow the new one, unless they still clearly prefer the old (VB-1104: the change
+          // names which took it up and which kept the old, and the voices of those that took it up hold to it, as at a meeting)
+          const took = [],
+            kept = [];
+          for (const s of setts) {
+            if (s.practice[d] !== x) continue;
+            if (s.lastSupport && s.lastSupport[o + x] > s.lastSupport[o + y] * (1 + P.margin)) {
+              kept.push(s.id);
+              continue;
+            }
+            s.practice[d] = y;
+            took.push(s.id);
+            holdTo(hooks, s, d, x, y);
+          }
+          changes.push({ dim: d, from: x, to: y, took, kept });
         }
       }
     }

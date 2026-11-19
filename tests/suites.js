@@ -12,6 +12,7 @@ const FAST = [
   ['node', 'tests/cost-rules.js'],
   ['node', 'tests/speed.js'],
   ['node', 'tests/pulls.js'],
+  ['node', 'tests/customhold.js'],
   ['node', 'tests/cacheowners.js'],
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
