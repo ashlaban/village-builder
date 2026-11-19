@@ -14,3 +14,7 @@ Not here: a shortfall that waits for a tuning run is in `docs/tuning.md`; a ques
 ## Priority 2
 
 ## Priority 3
+
+### VB-834: Should a busy place drift faster: a term in attitude.malleability? (raised 19 November 2026)
+tools/contact.js (populous small, seeds 7, 11, 13, 40 years): villages in the top fifth by distinct people met at venues drift 0.0079 a key a year against 0.0096 for the rest (correlation -0.28); gathering hosts 0.0082 against 0.0095. Contact alone gives no faster drift.
+Proposed answers: (a) leave it to contact: no term; (b) add a term to attitude.malleability reading those met at venues, with a range (e.g. 1 to 1.5 times), so a busy place drifts faster by mechanism.
