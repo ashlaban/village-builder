@@ -1,0 +1,229 @@
+name: Nightly worker
+on:
+  schedule:
+    - cron: '46 4 * * *'
+      timezone: Europe/Stockholm
+  workflow_dispatch:
+    inputs:
+      batch:
+        description: Backlog batch to implement
+        type: choice
+        options: [medium, small]
+        default: medium
+
+permissions:
+  contents: read
+concurrency:
+  group: nightly-worker
+  cancel-in-progress: false
+
+jobs:
+  worker:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      BATCH: ${{ inputs.batch || vars.WORKER_BATCH || 'medium' }}
+    outputs:
+      base: ${{ steps.prepare.outputs.base }}
+      branch: ${{ steps.prepare.outputs.branch }}
+      artifact: ${{ steps.prepare.outputs.artifact }}
+      publish: ${{ steps.package.outputs.publish }}
+      merge: ${{ steps.package.outputs.merge }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm install -g @anthropic-ai/claude-code@2.1.328
+      - name: Prepare the batch
+        id: prepare
+        shell: bash
+        run: |
+          case "$BATCH" in
+            small) size=S; quota=10 ;;
+            medium) size=M; quota=2 ;;
+            *)
+              echo '::error::WORKER_BATCH must be medium or small.'
+              exit 1 ;;
+          esac
+          base=$(git rev-parse HEAD)
+          branch="claude/nightly-$(TZ=Europe/Stockholm date +%F)-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          git config user.name 'Nightly worker'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          node tools/inbox.js init --fresh
+          mkdir -p "$RUNNER_TEMP/worker" work
+          node tools/backlog.js list --status done | awk '{print $1}' | sort > "$RUNNER_TEMP/done-before"
+          {
+            echo "CLAUDE_CONFIG_DIR=$RUNNER_TEMP/worker-claude"
+            echo "WORKER_BASE=$base"
+            echo "WORKER_SIZE=$size"
+            echo "WORKER_QUOTA=$quota"
+            echo "WORKER_BRANCH=$branch"
+            echo "WORKER_SESSION=$(cat /proc/sys/kernel/random/uuid)"
+          } >> "$GITHUB_ENV"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "artifact=worker-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+      - name: Run the Opus orchestrator
+        id: agent
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '0'
+          DISABLE_AUTOUPDATER: '1'
+        shell: bash
+        run: |
+          if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+            echo "::error::Set the ANTHROPIC_API_KEY repository secret."
+            exit 1
+          fi
+          timeout --kill-after=30s 180m claude -p \
+            "Read and follow docs/agents/github-actions-worker.md and AGENTS.md.
+          The run branch is $WORKER_BRANCH. Complete $WORKER_QUOTA size $WORKER_SIZE tasks.
+          Preflight is complete. Leave committed work on the run branch and write work/worker-summary.md.
+          The workflow handles usage, nightly checks, pushing, and the pull request." \
+            --model opus --session-id "$WORKER_SESSION" --permission-mode dontAsk --permission-prompts none \
+            --allowedTools 'Agent,Bash,Read,Edit,Write,Grep,Glob' --disallowedTools 'AskUserQuestion' > work/worker-response.txt
+      - name: Record the session's token usage
+        id: usage
+        shell: bash
+        run: |
+          transcript=$(find "$CLAUDE_CONFIG_DIR/projects" -name "$WORKER_SESSION.jsonl" -print -quit)
+          test -s "$transcript"
+          node tools/inbox.js results --json > work/results.json
+          node tools/agent-usage.js "$transcript" --label worker --out "$RUNNER_TEMP/worker" \
+            --results work/results.json | tee "$RUNNER_TEMP/worker/usage.txt"
+          test "$(git branch --show-current)" = "$WORKER_BRANCH"
+          test -z "$(git status --porcelain)"
+          if [[ "$(git rev-parse HEAD)" != "$WORKER_BASE" ]]; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+          usage_file=("$RUNNER_TEMP/worker/"*-worker-"${WORKER_SESSION:0:8}".json)
+          cp "${usage_file[@]}" docs/agents/usage/
+          git add -- docs/agents/usage
+          git commit -m 'Record nightly worker usage'
+      - name: Run nightly checks and measurements
+        id: nightly
+        if: steps.usage.outputs.changed == 'true'
+        continue-on-error: true
+        run: npm run nightly
+      - name: Package the run
+        id: package
+        env:
+          HAS_CHANGES: ${{ steps.usage.outputs.changed }}
+          AGENT_RESULT: ${{ steps.agent.outcome }}
+          NIGHTLY_RESULT: ${{ steps.nightly.outcome }}
+        shell: bash
+        run: |
+          node tools/backlog.js list --status done > "$RUNNER_TEMP/done"
+          awk '{print $1}' "$RUNNER_TEMP/done" | sort > "$RUNNER_TEMP/done-after"
+          comm -13 "$RUNNER_TEMP/done-before" "$RUNNER_TEMP/done-after" > "$RUNNER_TEMP/newly-done"
+          total=$(wc -l < "$RUNNER_TEMP/newly-done")
+          matching=$(awk -v size="$WORKER_SIZE" 'FILENAME == ARGV[1] { ids[$1] = 1; next } $1 in ids && $4 == size { n++ } END {print n+0}' \
+            "$RUNNER_TEMP/newly-done" "$RUNNER_TEMP/done")
+          status="Completed $matching of $WORKER_QUOTA size $WORKER_SIZE tasks ($total newly done in total). Claude: $AGENT_RESULT. Nightly checks: $NIGHTLY_RESULT."
+          printf '%s\n' "$status" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$HAS_CHANGES" != true ]]; then
+            exit 0
+          fi
+          {
+            node tools/inbox.js report
+            printf '\n## Batch\n\n%s\n\n' "$status"
+            node tools/inbox.js results
+            if [[ -s work/worker-summary.md ]]; then
+              printf '\n'
+              cat work/worker-summary.md
+            fi
+            printf '\n[Workflow logs](%s/%s/actions/runs/%s)\n\n## Token usage\n\n```text\n' \
+              "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            sed -n '/^weighted cost/,$p' "$RUNNER_TEMP/worker/usage.txt"
+            printf '```\n'
+          } > "$RUNNER_TEMP/worker/pr.md"
+          git add -u -- docs/bench
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record nightly measurements'
+          fi
+          git bundle create "$RUNNER_TEMP/worker/changes.bundle" "$WORKER_BASE..$WORKER_BRANCH"
+          echo 'publish=true' >> "$GITHUB_OUTPUT"
+          if [[ "$matching" == "$WORKER_QUOTA" && "$total" == "$WORKER_QUOTA" &&
+                "$AGENT_RESULT" == success && "$NIGHTLY_RESULT" == success ]]; then
+            echo 'merge=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.prepare.outcome == 'success'
+        with:
+          name: ${{ steps.prepare.outputs.artifact }}
+          path: ${{ runner.temp }}/worker/
+          if-no-files-found: ignore
+
+  publish:
+    needs: worker
+    if: needs.worker.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      WORKER_BASE: ${{ needs.worker.outputs.base }}
+      WORKER_BRANCH: ${{ needs.worker.outputs.branch }}
+      MERGE_BATCH: ${{ needs.worker.outputs.merge }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.worker.outputs.base }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.worker.outputs.artifact }}
+          path: ${{ runner.temp }}/worker
+      - name: Open the pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.WORKER_GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::Set the WORKER_GITHUB_TOKEN repository secret."
+            exit 1
+          fi
+          bundle="$RUNNER_TEMP/worker/changes.bundle"
+          git fetch --no-tags "$bundle" "refs/heads/$WORKER_BRANCH"
+          head=$(git rev-parse FETCH_HEAD)
+          # Keep the PR's CI definitions from the trusted base.
+          if ! git diff --quiet "$WORKER_BASE" "$head" -- .github/workflows; then
+            echo "::error::The unattended batch changed a GitHub workflow."
+            exit 1
+          fi
+          pr=$(gh pr list --base main --head "$WORKER_BRANCH" --state all --limit 1 --json url --jq '.[0].url // empty')
+          if [[ -z "$pr" ]]; then
+            gh auth setup-git
+            git push origin "$head:refs/heads/$WORKER_BRANCH"
+            options=()
+            if [[ "$MERGE_BATCH" != true ]]; then options+=(--draft); fi
+            date_and_run="${WORKER_BRANCH#claude/nightly-}"
+            pr=$(gh pr create --base main --head "$WORKER_BRANCH" "${options[@]}" \
+              --title "Nightly ${date_and_run:0:10}" --body-file "$RUNNER_TEMP/worker/pr.md")
+          fi
+          echo "url=$pr" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          printf '[Nightly worker PR](%s)\n' "$pr" >> "$GITHUB_STEP_SUMMARY"
+      - name: Merge the pull request
+        if: env.MERGE_BATCH == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.WORKER_GITHUB_TOKEN }}
+          PR: ${{ steps.pr.outputs.url }}
+          HEAD_SHA: ${{ steps.pr.outputs.head }}
+        shell: bash
+        run: |
+          if [[ "$(gh pr view "$PR" --json state --jq .state)" == MERGED ]]; then
+            exit 0
+          fi
+          gh pr merge "$PR" --merge --match-head-commit "$HEAD_SHA"
