@@ -57,7 +57,8 @@ VB['sim/registry'] = (() => {
       (c.range !== undefined && !range(c.range)) ||
       !Array.isArray(c.tunables) ||
       !c.tunables.every(text) ||
-      (c.cause !== undefined && !text(c.cause))
+      (c.cause !== undefined && !text(c.cause)) ||
+      (c.note !== undefined && typeof c.note !== 'function')
     )
       throw new Error('Invalid rule contribution');
     const frozen = Object.freeze({
@@ -165,6 +166,7 @@ VB['sim/registry'] = (() => {
       const factor = checked(id, 'contribution ' + c.key + ' (' + c.source + ')', c.value(st, ctx), c.range || null);
       n = checked(id, 'combined value after ' + c.key, spec.combine === 'product' ? n * factor : n + factor);
       parts.push({ key: c.key, source: c.source, label: c.label, cause: c.cause, factor });
+      if (c.note) parts[parts.length - 1].note = c.note(st, ctx); // what the factor read, in words (VB-766)
     }
     if (spec.baseCause) {
       // each part's share of the value above the base, by the logarithm of its factor (the split draw() uses)

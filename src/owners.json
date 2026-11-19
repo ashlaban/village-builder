@@ -4,6 +4,8 @@
   "plannedOwners": [],
   "fields": {
     "st.owner": {"owner": "sim/ownership", "category": "cache"},
+    "st.crowd": {"owner": "sim/crowding", "category": "cache"},
+    "st.crowdN": {"owner": "sim/crowding", "category": "cache"},
     "st.living": {"owner": "sim/records", "category": "cache"},
     "st.liveHouseholds": {"owner": "sim/records", "category": "cache"},
     "st.peopleCheck": "sim/records",

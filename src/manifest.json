@@ -15,6 +15,7 @@
   "sim/decisions.js",
   "sim/rng.js",
   "sim/hex.js",
+  "sim/crowding.js",
   "sim/names.js",
   "sim/routes.js",
   "sim/paths.js",

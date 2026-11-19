@@ -385,6 +385,13 @@ VB['sim/rules'] = (() => {
   // First values (Proposed): an infant falls gravely ill about once in its first year, a child or an old pawn one year in three, a grown
   // one in ten; the hazard at 0, 30 and 80 is 0.39, 0.012 and 0.2 a year, so a course at those ages kills about two in five, one in nine
   // and two in three.
+  // ---- crowding (VB-766; design.md, Balance loops and targets: Deaths; Kim, 16 Nov): living close costs lives, wherever it happens, and
+  // stands in for disease until disease exists. A household's crowding is the people living in houses within `steps` hex steps of its
+  // house, its own among them; its members' death hazard is multiplied by 1 + `per` for each beyond `free`, at most `max`. First values
+  // (Proposed): `steps` 2, hexes round a house that count as living close; `free` 36, the people within them that cost nothing (about the
+  // 99th percentile of a village house, 31 to 41); `per` 0.035, hazard added for each person beyond; `max` 2.5, the factor's ceiling. ----
+  const CROWD = { steps: 2, free: 36, per: 0.035, max: 2.5 };
+
   const ILLNESS = {
     days: { infancy: 2, childhood: 4, illness: 6, oldAge: 10 },
     fall: 60,
@@ -1227,6 +1234,7 @@ VB['sim/rules'] = (() => {
     HUNGER,
     HEALTH,
     ILLNESS,
+    CROWD,
     MARRIAGE,
     HANDOVER,
     FOUNDERS,

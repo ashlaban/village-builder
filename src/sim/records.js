@@ -2,6 +2,7 @@
 // record of events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
+  const Crowding = VB['sim/crowding'];
   const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
   // ---- the record of events (VB-075) ----
   // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self, cold, tile, reason,
@@ -260,6 +261,7 @@ VB['sim/records'] = (() => {
   function rebuildLiving(st) {
     st.living = st.pawns.filter((p) => p.died === null).map((p) => p.id);
     st.liveHouseholds = st.households.filter((h) => !h.dissolved).map((h) => h.id);
+    Crowding.rebuild(st);
     if (!st.peopleCheck) st.peopleCheck = st.liveHouseholds.slice(); // a new run, or an older save: every household is checked once
   }
   // @state st.peopleCheck: ids of households whose membership lost a member, or took in a minor, since sim/service last asked whether
@@ -280,6 +282,7 @@ VB['sim/records'] = (() => {
   function noteDissolved(st, hh) {
     const i = st.liveHouseholds.indexOf(hh.id);
     if (i >= 0) st.liveHouseholds.splice(i, 1);
+    Crowding.ended(st, hh);
     const j = st.peopleCheck ? st.peopleCheck.indexOf(hh.id) : -1;
     if (j >= 0) st.peopleCheck.splice(j, 1);
   }
@@ -403,12 +406,16 @@ VB['sim/records'] = (() => {
     f.state = 'occupied';
     noteLine(R, f);
     for (const m of members) R.pawns[m].household = id;
+    Crowding.founded(R, hh);
     if (f.fence) for (const s of f.fence) s.owner.id = id;
     return hh;
   }
   // @state pawn.household, pawn.servant, household.members: membership and service, written only here.
   function joinHousehold(R, hh, id, servant = R.pawns[id].servant) {
-    if (!hh.members.includes(id)) hh.members.push(id);
+    if (!hh.members.includes(id)) {
+      hh.members.push(id);
+      Crowding.moved(R, hh, 1);
+    }
     if (R.pawns[id].age < 18) notePeopleCheck(R, hh); // a minor may be all a household has
     R.pawns[id].household = hh.id;
     setServant(R, id, servant);
@@ -418,12 +425,15 @@ VB['sim/records'] = (() => {
     const p = st.pawns[id],
       hh = p.household !== null ? st.households[p.household] : null;
     if (hh) {
+      const had = hh.members.length;
       hh.members = hh.members.filter((m) => m !== id);
+      Crowding.moved(st, hh, hh.members.length - had);
       notePeopleCheck(st, hh);
     }
     if (!historical) p.household = null;
   }
   function clearMembers(st, hh) {
+    Crowding.moved(st, hh, -hh.members.length);
     hh.members = [];
   } // an empty household is skipped by the check, so it is not noted
   // @state pawn.servedSince: the game hour a pawn entered service (null outside it), kept with pawn.servant (VB-634).

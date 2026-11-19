@@ -1,16 +1,28 @@
 // @sys sim/deaths: causes of death, the death.hazard rule and its daily roll, and the course of an illness, which kills (VB-1118) or passes (VB-1246)
 VB['sim/deaths'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { YEAR, YEAR_DAYS, DAY, hazard, ILLNESS } = VB['sim/rules'];
+  const { YEAR, YEAR_DAYS, DAY, hazard, ILLNESS, CROWD } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
+  const Crowding = VB['sim/crowding'];
   Rules.declare({
     id: 'death.hazard',
     owner: 'sim/deaths',
     combine: 'product',
     base: (st, p) => hazard((st.t - p.born) / YEAR) / YEAR_DAYS,
     baseCause: (st, p) => baseCause((st.t - p.born) / YEAR),
-    order: ['hunger', 'frailty'],
-  }); // the terms are contributed by sim/hunger
+    order: ['hunger', 'frailty', 'crowding'],
+  }); // the terms are contributed by sim/hunger, and crowding here
+  Rules.contribute({
+    rule: 'death.hazard',
+    source: 'sim/crowding',
+    key: 'crowding',
+    label: 'Crowding',
+    cause: 'illness', // stands in for disease until disease exists
+    range: [1, CROWD.max],
+    tunables: ['CROWD.free', 'CROWD.per', 'CROWD.max'],
+    value: Crowding.factor,
+    note: Crowding.note,
+  });
   // Cause keys: the base hazard by age (infancy, childhood, illness, oldAge), the share added by hunger, and the causes set elsewhere.
   // `event` is the text of the pawn's life event, `log` the text of the village log ("<name> of <farm> <log>, aged <n>").
   const CAUSES = {
