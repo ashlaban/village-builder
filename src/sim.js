@@ -100,6 +100,7 @@ const Sim = (() => {
   const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];
   const { left: depositLeftNow } = VB['sim/dig']; // VB-359: loads left now, bog iron grown back
   const { woodOf } = VB['sim/territory'];
+  const { offerPreview, foodDays } = VB['sim/preview']; // what a yes to an offer would bring, and a household's food in days (VB-1100)
 
   return {
     seed,
@@ -118,6 +119,8 @@ const Sim = (() => {
     wish,
     wishesOf,
     opportunities,
+    offerPreview,
+    foodDays,
     successors,
     villageSummary,
     OVERVIEW,

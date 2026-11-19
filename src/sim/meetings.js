@@ -135,8 +135,12 @@ VB['sim/meetings'] = (() => {
     for (const cu of env.cultures) {
       const r = Culture.cultureYear(env, hk, cu);
       for (const x of r.changes) {
+        // VB-1104: the line says which villages took the new custom up and which kept the old, not that it holds across the culture
         const d = Culture.DIMS[x.dim],
-          txt = `Across the ${cu.name} culture: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}”.`;
+          names = (ids) => ids.map((id) => env.settlements[id].name).join(', '),
+          took = x.took.length ? `taken up in ${names(x.took)}` : 'taken up in no village yet',
+          kept = x.kept.length ? `; ${names(x.kept)} keeps “${d.opts[x.from][1]}”` : '',
+          txt = `The ${cu.name} custom: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”), ${took}${kept}.`;
         log(st, txt, { kind: 'custom', village: cu.centres[0] });
         out.push({ year: c.year, text: txt });
       }

@@ -167,16 +167,8 @@ function causeNote(p) {
   } else h += ' The village has not met yet.';
   return `${h}</p>`;
 }
-// The household's food in days of need: grain above the seed set aside, meals and the larder, over a day's rations of its living.
-function foodDays(hh) {
-  let need = 0;
-  for (const m of hh.members) {
-    const q = st.pawns[m];
-    if (q.died === null) need += q.age >= 14 ? Sim.ECON.ration.adult : Sim.ECON.ration.child;
-  }
-  const food = Math.max(0, Sim.grainOf(hh) - Sim.seedReserve(st, hh)) + hh.meals + Sim.larderOf(hh);
-  return need > 0 ? Math.floor(food / need) : null;
-}
+// The household's food in days of need (sim/preview foodDays: the one measure, also an offer's preview's).
+const foodDays = (hh) => Sim.foodDays(st, hh);
 // A pawn's card says only how it stands to the player (Kim, 10 Nov: the played pawn is fixed, and changes at its death or by the Debug
 // panel): the played pawn's card leads to its actions; after its death, its own card says so and a living pawn the player may go on
 // as offers it (the list is the succession box's, below).
@@ -213,6 +205,71 @@ $('cardPlay').addEventListener('click', (e) => {
   if (r === true) openPanel('actions');
   else showPawn(id);
 });
+// What a yes to offer `oid` would bring, as pawn `by` reckons it (VB-1100; Sim.offerPreview: the offer settled on a copy of the state by
+// the simulation's own rules), drawn before Yes and No, pictures before words: each who moves as its portrait, an arrow and the farm it
+// goes to; each farm as its icon with its holder after (and the farm that holds it in trust, or empty); the home's first heir after; the
+// home's food in days of need after, on the one meter, marked where it stands now. Computed once while the sheet is open (previews,
+// cleared when it closes), never in a step.
+const previews = new Map();
+const farmOfHousehold = (h) => (h === null ? null : st.farmsteads[st.households[h].farmstead]);
+function previewHTML(oid, by) {
+  if (!previews.has(oid)) previews.set(oid, Sim.offerPreview(st, oid, by));
+  const pv = previews.get(oid);
+  if (!pv) return '';
+  const name = (id) => Sim.fullName(st.pawns[id]),
+    fname = (h) => (h === null ? 'no farm' : farmOfHousehold(h).name),
+    farmPic = (h) => (h === null ? actIcon('no') : iconImg(farmIcon(farmOfHousehold(h)), 'fi'));
+  const AS = { spouse: 'marries', child: 'a child, follows', ward: 'a ward, follows', kin: 'goes' };
+  const moves = pv.moves
+    .map((m) => {
+      const said = `${name(m.pawn)}, ${st.pawns[m.pawn].age}, ${AS[m.as]} from ${fname(m.from)} to ${fname(m.to)}`;
+      const pics = `${faceImg(m.pawn)}<span class="ico">${actIcon('walk')}</span>${farmPic(m.to)}`;
+      return `<li class="pv-move" title="${esc(said)}" aria-label="${esc(said)}">${pics}</li>`;
+    })
+    .join('');
+  const farms = pv.farms
+    .map((f) => {
+      const after = f.empty
+        ? 'left empty'
+        : f.trustee !== null
+          ? `${name(f.holder)} holds it, ${fname(f.trustee)} keeps it in trust`
+          : f.holder === f.before
+            ? `${name(f.holder)} keeps it`
+            : `${name(f.holder)} takes it over${f.guardian !== null ? `, ${name(f.guardian)} guardian` : ''}`;
+      const said = `${fname(f.household)}: ${after}`,
+        who = f.empty
+          ? `<span class="ico">${actIcon('emptyfarm')}</span>`
+          : faceImg(f.holder) +
+            (f.trustee !== null ? `<span class="ico">${actIcon('home')}</span>${farmPic(f.trustee)}` : '');
+      return `<li class="pv-farm" title="${esc(said)}" aria-label="${esc(said)}">${farmPic(f.household)}${who}</li>`;
+    })
+    .join('');
+  const heir =
+    pv.heir.after === null
+      ? ''
+      : `<li class="pv-heir" title="${esc(`First heir of ${fname(pv.home)} after: ${name(pv.heir.after)}`)}">${faceImg(pv.heir.after)}<small>heir</small></li>`;
+  const food =
+    pv.food.after === null
+      ? ''
+      : stat({
+          icon: 'hunger',
+          label: `Food at ${fname(pv.home)}`,
+          value: `${pv.food.before ?? 0} → ${pv.food.after} days`,
+          tone: pv.food.after < 30 ? 'warn' : '',
+          meter: {
+            value: pv.food.after,
+            max: Math.max(Sim.YEAR_DAYS, pv.food.before ?? 0, pv.food.after), // a year of days, or more to show both
+            text: `${pv.food.after} days after, ${pv.food.before ?? 0} now`,
+            marks: [{ at: pv.food.before ?? 0, label: `now ${pv.food.before ?? 0} days` }],
+          },
+        });
+  return (
+    `<div class="preview" role="group" aria-label="What a yes would bring">` +
+    `<p class="card-note">What a yes would bring, as ${esc(name(by))} reckons it${pv.lapses ? `: it would lapse, ${esc(pv.lapses)}` : ''}</p>` +
+    (moves ? `<ul class="pv-row" aria-label="Who moves">${moves}</ul>` : '') +
+    `<ul class="pv-row" aria-label="The farms after">${farms}${heir}</ul>${food}</div>`
+  );
+}
 // The marriage offers that wait for the played pawn (VB-273), as questions above the queue, Yes and No calling Sim.answer; once the offer is
 // answered or closed, how it ended (page/notices keeps offerEnd) until the next offer or the next moving round.
 function offerBox(id, opps) {
@@ -244,6 +301,7 @@ function offerBox(id, opps) {
     h +=
       `<div class="offer" role="group" aria-label="${title}"><h3>${title}</h3>` +
       `<p>${body} ${part}</p>` +
+      previewHTML(o.id, id) +
       `<p class="hint">${said ? `${said}. ` : ''}${o.daysLeft} ${
         o.daysLeft === 1 ? 'day' : 'days'
       } left; unanswered, it is answered as your pawn would.${advice}</p>` +
@@ -272,7 +330,10 @@ function renderActions() {
   const sheet = activePanel === 'actions',
     opps = sheet || barMenu || tool ? Sim.opportunities(st, id) : null;
   renderBar(id, opps);
-  if (!sheet) return;
+  if (!sheet) {
+    previews.clear(); // an offer's preview is reckoned again when the sheet is next shown
+    return;
+  }
   const p = st.pawns[id];
   let h = '';
   const hh = p.household !== null ? st.households[p.household] : null,
@@ -507,6 +568,14 @@ function endSkip(stop) {
   skipNote.textContent = `Skip stopped, ${Sim.SEASONS[c.season]} day ${c.sday + 1}, year ${c.year}: ${stop.text}`;
   skipNote.addEventListener('click', dropSkipNote);
   $('toasts').appendChild(skipNote);
+  if (stop.why === 'offer') showOffer(stop.offer); // the offer, where it is answered (VB-1100)
+}
+// The Queue sheet opened at offer `oid`, scrolled to it, so the player answers it there.
+function showOffer(oid) {
+  if (activePanel !== 'actions') openPanel('actions');
+  renderActions();
+  const b = document.querySelector(`[data-play="answer"][data-offer="${oid}"]`);
+  if (b) b.closest('.offer').scrollIntoView({ block: 'nearest' });
 }
 $('skipBtn').addEventListener('click', () => {
   if (skipCursor) setSpeed(0);
