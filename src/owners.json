@@ -38,6 +38,7 @@
     "pawn.courtRefused": "sim/courting",
     "st.courtships": {"owner": "sim/courting", "category": "cache"},
     "pawn.feast": "sim/occasions",
+    "pawn.ill": "sim/deaths",
     "plan.head": "sim/plans",
     "plan.aim": "sim/aims",
     "plan.outlook": "sim/outlook",
