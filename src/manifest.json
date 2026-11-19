@@ -40,6 +40,7 @@
   "sim/grazing.js",
   "sim/spread.js",
   "sim/herds.js",
+  "sim/yields.js",
   "sim/stores.js",
   "sim/obligations.js",
   "sim/targets.js",

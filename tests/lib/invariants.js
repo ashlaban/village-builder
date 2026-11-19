@@ -523,6 +523,15 @@ function checkState(st) {
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
     for (const k of ['wood', 'stone', 'peat', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    // the head's remembered yield (VB-767): a tally and a ring a source, none negative, at most FIELDS.memory years each, so 8 x 7 numbers
+    if (h.yields) {
+      const Y = VB['sim/yields'], M = VB['sim/rules'].FIELDS.memory;
+      for (const s of Y.SOURCES) {
+        const r = h.yields.ring[s];
+        if (!within(h.yields.tally[s], 0, 1e9)) bad.push(`households[${h.id}]: yield tally ${s} is ${h.yields.tally[s]}`);
+        if (!Array.isArray(r) || r.length > M || r.some((n) => !within(n, 0, 1e9))) bad.push(`households[${h.id}]: yield ring ${s} is ${JSON.stringify(r)}`);
+      }
+    }
     // the hand quern (VB-009): null, or a stone of sandstone or granite made at a time not after now
     if (h.quern !== null && !(h.quern && ['sandstone', 'granite'].includes(h.quern.rock) && Number.isFinite(h.quern.made) && h.quern.made <= st.t))
       bad.push(`households[${h.id}]: quern ${JSON.stringify(h.quern)}`);
