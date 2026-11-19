@@ -16,6 +16,7 @@
       "sim/events",
       "sim/rng",
       "sim/hex",
+      "sim/crowding",
       "sim/names",
       "sim/routes",
       "sim/paths",

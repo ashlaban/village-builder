@@ -34,6 +34,14 @@ function checkState(st) {
   // VB-323: the households to check for a missing adult: live ids, no duplicates
   if (!Array.isArray(st.peopleCheck) || new Set(st.peopleCheck).size !== st.peopleCheck.length
     || st.peopleCheck.some((id) => !st.households[id] || st.households[id].dissolved)) bad.push('peopleCheck: not a list of distinct live household ids');
+  // VB-766: a household's compiled crowding equals a fresh count of the people within CROWD.steps of its house
+  {
+    const Cr = globalThis.VB['sim/crowding'];
+    for (const id of st.liveHouseholds) {
+      const n = Cr.fresh(st, id);
+      if (!st.crowdN || st.crowdN[id] !== n || st.crowd[id] !== Cr.factorOf(n)) { bad.push(`crowding: household ${id} holds ${st.crowdN && st.crowdN[id]}, a fresh count gives ${n}`); break; }
+    }
+  }
   // VB-309: farms held in trust: st.liveTrusts the sorted ids of the open records of st.trusts; a live trust's farm and trustee live, its
   // household empty, its holder living with the trustee; no farm held twice
   if (st.trusts || st.liveTrusts) {

@@ -42,6 +42,7 @@ VB.COUNTERS = {
   workReckon:
     'Tasks under work reckoned, with their hours since (sim/agents settle: a hand joins or leaves, the end of work, the meal; VB-472)',
   walkPoint: 'Path points passed, their tiles trodden as a walk ends or is cut (sim/agents treadTo; VB-205, VB-473)',
+  crowdScan: 'Passes over the farms to find the households near a house, at a membership change (VB-766)',
   walkPlace: 'Places worked out along a walk (placeOf of a walking pawn: talk, nearness, company, a cut; VB-473)',
   walkDaily: 'Pawn records walked by dailyLife and Culture.dailyStep',
   walkTies:

@@ -103,10 +103,11 @@ assert.strictEqual(st.scenario, 'populous');
 assert.strictEqual(st.pawns.length, 1000, 'explain 1,000 distinct populous pawns');
 assert.throws(() => Rules.declare({ ...product, id: 'late' }), /load time/);
 assert.throws(() => Rules.contribute({ ...factor, rule: 'death.hazard' }), /load time/);
-const { YEAR, YEAR_DAYS, hazard, HUNGER, HEALTH } = VB['sim/rules'];
+const { YEAR, YEAR_DAYS, hazard, HUNGER, HEALTH, CROWD } = VB['sim/rules'];
 const legacyValue = (s, p) => hazard((s.t - p.born) / YEAR) / YEAR_DAYS
   * (1 + HUNGER.k(Math.floor((s.t - p.born) / YEAR)) * p.hunger)
-  * (p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1);
+  * (p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1)
+  * (p.household === undefined ? 1 : Math.min(CROWD.max, 1 + CROWD.per * Math.max(0, s.crowdN[p.household] - CROWD.free)));
 function legacyRoll(s, p) {
   const a = (s.t - p.born) / YEAR, base = hazard(a) / YEAR_DAYS, u = VB['sim/rng'].next(s.rng.deaths);
   if (p.health <= 0) return 'starvation';
@@ -120,7 +121,7 @@ for (const p of st.pawns) {
   assert.strictEqual(value, legacyValue(st, p), 'bit-identical original hazard');
   assert.strictEqual(explanation.value, value);
   assert.strictEqual(explanation.parts.reduce((n, c) => n * c.factor, explanation.base), value);
-  assert.deepStrictEqual(explanation.parts.map((c) => c.cause), ['hunger', 'hunger']);
+  assert.deepStrictEqual(explanation.parts.map((c) => c.cause), ['hunger', 'hunger', 'illness']);
   const before = st.rng.deaths.s, expected = legacyRoll(st, p), after = st.rng.deaths.s;
   st.rng.deaths.s = before;
   assert.strictEqual(VB['sim/deaths'].deathRoll(st, p), expected);
@@ -157,7 +158,7 @@ assert(Number.isFinite(sink));
 const invoke = (args) => cp.execFileSync(process.execPath, [path.join(root, 'tools/rules.js'), ...args], { encoding: 'utf8' });
 const rows = JSON.parse(invoke(['--json']));
 const row = (id) => rows.find((x) => x.rule === id);
-assert.deepStrictEqual(row('death.hazard').contributions.map((c) => c.key), ['hunger', 'frailty']);
+assert.deepStrictEqual(row('death.hazard').contributions.map((c) => c.key), ['hunger', 'frailty', 'crowding']);
 assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'goodwill', 'opinion', 'reserve']); // VB-216, VB-217, VB-220
 const text = invoke([]); // VB-856: read once
 assert(text.includes('HEALTH.riskBelow'));
