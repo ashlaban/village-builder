@@ -531,3 +531,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1235](backlog/VB-1235.md) | Fix: tests/smoke.js, a cart out drawn twice | - | 1 | S | smoke fails on the run branch before VB-1100: a cart out leaves -2 more sprites visible than at home |
 | [VB-1230](backlog/VB-1230.md) | Fix: a newborn's attitude leaves out its village's norm | - | 2 | S | births.js gives a newborn its parents' mean attitude only; the design and the calibration add the village's norm |
 | [VB-215](backlog/VB-215.md) | Autosave at the moving round, once a save takes under 0.5 s | life | 3 | S | The page autosaves after the round once a save at `medium-ref` is under 0.5 s in Chromium; Kim's "build now, round later". |
+| [VB-1271](backlog/VB-1271.md) | A call at a farm in the action bar | - | 2 | S | the played pawn orders a call from the page |
