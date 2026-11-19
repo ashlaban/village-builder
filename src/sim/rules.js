@@ -391,6 +391,9 @@ VB['sim/rules'] = (() => {
   // (Proposed): `steps` 2, hexes round a house that count as living close; `free` 36, the people within them that cost nothing (about the
   // 99th percentile of a village house, 31 to 41); `per` 0.035, hazard added for each person beyond; `max` 2.5, the factor's ceiling. ----
   const CROWD = { steps: 2, free: 36, per: 0.035, max: 2.5 };
+  // The scenario "The market town" (VB-778; a test bed, known to decay): `plots` plot households set within 2 steps of each other, at the
+  // village with most people within `reach` hex steps (about a day's walk). Read at the start only; no rule reads it afterwards.
+  const TESTBED = { plots: 8, reach: 15 };
 
   const ILLNESS = {
     days: { infancy: 2, childhood: 4, illness: 6, oldAge: 10 },
@@ -1241,6 +1244,7 @@ VB['sim/rules'] = (() => {
     HEALTH,
     ILLNESS,
     CROWD,
+    TESTBED,
     MARRIAGE,
     HANDOVER,
     FOUNDERS,
