@@ -10,6 +10,7 @@ VB['sim/meetings'] = (() => {
   const { refreshRoles } = VB['sim/heirs'];
   const { updateTie, refreshStanding, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
+  const { defineKind } = VB['sim/decisions'];
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { chooseGathering, settleGatherings } = VB['sim/gathering'];
   const { usualRotation } = VB['sim/fields'];
@@ -19,6 +20,13 @@ VB['sim/meetings'] = (() => {
   // land meeting, which settles outland between villages. `meetingStage(st, n)`, n the step from noon, is each step's entry point; nothing
   // is kept from one step for the next, so nothing is saved: the step of the day says what is due. `holdMeetings` is every village's and the
   // cultures' at once, not the land meeting (the drawer's button, the tests).
+  // A custom's change at a village's meeting (VB-313): a vote, its voices weighed and the margins set by Culture.meeting, which poses it;
+  // with nothing decided, the practice stands.
+  defineKind('custom', {
+    procedure: 'vote',
+    evaluate: (st, q) => ({ support: q.support, need: q.need }),
+    fallback: (st, q) => q.current,
+  });
   const CULTURE_STEP = VILLAGE_STEPS,
     MEETING_STAGES = VILLAGE_STEPS + 2;
   // The villages whose turn is step n of the window (sim/occasions, villageTurn): f(k) for each, in order.

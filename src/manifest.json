@@ -12,6 +12,7 @@
   "sim/registry.js",
   "sim/events.js",
   "sim/commands.js",
+  "sim/decisions.js",
   "sim/rng.js",
   "sim/hex.js",
   "sim/names.js",

@@ -6,7 +6,7 @@ const hazard = (age) => 0.006 + 0.0007 * Math.exp(0.07 * age) + (age < 10 ? 0.02
 
 function makeEnv(seed, { villages = 6, size = 50, ties = [1, 0.8, 0.7, 0.6, 0.6, 0.5], remote = null, kind = 'village' }) {
   const rand = mulberry32(seed);
-  const env = { t: 0, cultures: [], settlements: [], people: [], driftMul: 1 }, hooks = { nameCulture: () => 'new', membersOf: (s) => s.list };
+  const env = { t: 0, cultures: [], settlements: [], people: [], driftMul: 1 }, hooks = { nameCulture: () => 'new', membersOf: (s) => s.list, ask: (q) => globalThis.VB['sim/decisions'].ask(null, q) };
   const custom = C.fromArchetype('oldNordic');
   const c = C.makeCulture(env, 'test', custom, 0);
   env.challenger = custom.map((x, k) => (x + 1) % C.NOPT[k]);

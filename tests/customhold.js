@@ -34,6 +34,7 @@ function world(shares) {
     byId: (id) => env.people[id],
     settlementOf: (p) => env.settlements.find((s) => s.list.includes(p)),
     nameCulture: () => 'New',
+    ask: (q) => globalThis.VB['sim/decisions'].ask(null, q),
   };
   return { env, c, hooks };
 }

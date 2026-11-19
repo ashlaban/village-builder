@@ -29,7 +29,8 @@
       "sim/traits",
       "sim/wishes",
       "sim/prospect",
-      "sim/commands"
+      "sim/commands",
+      "sim/decisions"
     ],
     "material": [
       "sim/stores",
