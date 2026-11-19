@@ -596,12 +596,27 @@ VB['sim/plans'] = (() => {
   // Days on which a window is about to close, or has just closed, and every holder is reviewed at its first review hour: the last day of
   // sowing and the day after it (its hoeing and sowing taken down), the two last days of autumn (the harvest before the frost), and the first
   // day of winter (the ice: fishing taken down, VB-117).
-  function closing(st, c) {
-    const last = CROPS.barley.sow[2]; // the sowing window's end (barley alone as yet)
+  const SOWN = Object.keys(CROPS).filter((k) => !CROPS[k].fallow && CROPS[k].sow);
+  // Barley's window closes for every holder; another crop's (rye's in autumn, VB-999) only for a household whose farm sows it.
+  const closes = (k, c) => {
+    const W = CROPS[k].sow;
+    return c.season === W[0] && (c.sday === W[2] || c.sday === W[2] + 1);
+  };
+  function closing(st, c, plan) {
     return (
-      (c.season === 0 && (c.sday === last || c.sday === last + 1)) ||
+      closes('barley', c) ||
       (c.season === 2 && c.sday >= SEASON_DAYS - 2) ||
-      (c.season === 3 && c.sday === 0)
+      (c.season === 3 && c.sday === 0) ||
+      (!!plan && cropClosing(st, c, plan))
+    );
+  }
+  function cropClosing(st, c, plan) {
+    if (plan.holder.type !== 'household' || !SOWN.some((k) => closes(k, c))) return false;
+    const hh = st.households[plan.holder.id],
+      f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    return (
+      !!f &&
+      f.fields.some((fd) => ROTATIONS[fd.rotation || 'every'].courses.some((k) => SOWN.includes(k) && closes(k, c)))
     );
   }
   // A household whose field is ripe, or that has a field still to hoe or sow while the sowing window is open, at the first review hour:
@@ -628,7 +643,7 @@ VB['sim/plans'] = (() => {
   // village's work day, once ('window'); a store that crossed a target, at most one such review a day ('store').
   function reviewWhy(st, plan, hour, c) {
     if (hour >= plan.nextReview) return 'day';
-    if (plan.last !== c.day && (closing(st, c) || fieldsDue(st, plan, c) || workdayDue(plan, c))) return 'window';
+    if (plan.last !== c.day && (closing(st, c, plan) || fieldsDue(st, plan, c) || workdayDue(plan, c))) return 'window';
     return plan.dirty && plan.woke !== c.day ? 'store' : null;
   }
   // A member without a task looks at the household's opportunities: true at most once a household a day (VB-249).

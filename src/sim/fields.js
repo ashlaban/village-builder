@@ -171,8 +171,17 @@ VB['sim/fields'] = (() => {
       { kind: 'clear', place: tile, hours: clearHours(st, tile), stake: 'field' },
       { kind: 'break', place: tile, hours: BREAK_HOURS, stake: 'field' },
     ],
-    hold: { [Stores.grainGood('barley')]: seedPer(st, hh) },
-  }); // a new field bears barley
+    hold: newFieldSeed(st, hh),
+  });
+  // The seed a new field of hh's farm holds back: that of the course placeField would give it now (VB-999), read at the project's start; a
+  // field to lie fallow holds none. Barley's is the household's seed a field (seedPer), another crop's its rule's.
+  function newFieldSeed(st, hh) {
+    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
+      { key, i } = courseFor(st, f ? f.fields : [], hh),
+      crop = ROTATIONS[key].courses[i];
+    if (CROPS[crop].fallow) return {};
+    return { [Stores.grainGood(crop)]: crop === 'barley' ? seedPer(st, hh) : CROPS[crop].seed };
+  }
   // The new field begun on `tile` (sim/plans' beginLand, the head's verb): a stake of another household is contested first (sim/stakes),
   // and nothing is begun when the contest is lost; else the tile is staked. Returns the project plan for sim/plans to make (fieldProject),
   // or null.
@@ -354,8 +363,18 @@ VB['sim/fields'] = (() => {
   // A new field takes the farm's rotation (with no field yet, the household's: rotationOf) and the step fewest of the farm's fields are
   // at; of those, the course sown soonest from today (fallow last), then the first.
   function placeField(st, f, hh, fd) {
-    const others = f.fields.filter((q) => q !== fd),
-      key = others.length ? others[0].rotation : hh ? rotationOf(st, hh) : 'every',
+    const { key, i } = courseFor(
+      st,
+      f.fields.filter((q) => q !== fd),
+      hh,
+    );
+    fd.rotation = key;
+    fd.step = i;
+    fd.crop = ROTATIONS[key].courses[i];
+  }
+  // The rotation and course a new field beside `others` takes (placeField's rule): {key, i}.
+  function courseFor(st, others, hh) {
+    const key = others.length ? others[0].rotation : hh ? rotationOf(st, hh) : 'every',
       R = ROTATIONS[key].courses,
       at = R.map((k, i) => others.filter((q) => q.step === i).length),
       least = Math.min(...at),
@@ -372,9 +391,7 @@ VB['sim/fields'] = (() => {
       }; // days until course k is sown
     let i = -1;
     for (let j = 0; j < R.length; j++) if (at[j] === least && (i < 0 || wait(R[j]) < wait(R[i]))) i = j;
-    fd.rotation = key;
-    fd.step = i;
-    fd.crop = R[i];
+    return { key, i };
   }
   // The holder's rule for its rotation, at each review of its plan (the simplest head, VB-350): it takes its village's usual rotation when
   // it has the seed for it; short of a crop's seed at its sowing, it falls back on a rotation it has seed for, and the field at that course
@@ -842,6 +859,7 @@ VB['sim/fields'] = (() => {
     pickField,
     beginField,
     fieldProject,
+    newFieldSeed,
     finishClear,
     clearStones,
     finishBreak,
