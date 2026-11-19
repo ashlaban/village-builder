@@ -585,3 +585,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-718](backlog/VB-718.md) | Surplus dung goes to tilth | animals | 3 | S | Dung beyond what brings a farm's fields to the soil's cap is spread for tilth: up to 2 loads a field a year, the field with least tilth first, carted by the manure job. |
 | [VB-314](backlog/VB-314.md) | The alderman: chosen at the meeting, presides, the village's agent | debt | 2 | S | The village's first office: chosen by a new practice, casts the deciding voice, books the village store's help to himself. |
 | [VB-990](backlog/VB-990.md) | Measure VB-785's night cost on small-y40 loaded a year | - | 3 | S | Measure the night cost on a late save |
+| [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
