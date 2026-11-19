@@ -96,6 +96,7 @@ const INTEGRATION = [
   ['node', 'tests/takenin.js'],
   ['node', 'tests/trust.js'],
   ['node', 'tests/obligations.js'],
+  ['node', 'tests/days.js'],
   ['node', 'tests/labour.js'],
   ['node', 'tests/marriage.js'],
   ['node', 'tests/spacing.js'],

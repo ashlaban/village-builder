@@ -8,7 +8,8 @@ VB['sim/obligations'] = (() => {
   //   {kind: 'household' | 'village' | 'pawn', id}), owes ({rations: n} or {hours: n}), due (the hour its term ends), every (hours from one
   //   term to the next, or null: a single term), enforcer (a party ref, or null: social only), status ('open', 'part', 'overdue' while it
   //   lives; 'met', 'forgiven', 'lapsed', 'defaulted' once closed), delivered (of what it owes), since (the hour it was made)}; written
-  //   only here; absent until the first.
+  //   only here; absent until the first. A `days` one (VB-462) also has source ('debt', 'keep', 'patron') and called (the days called, not
+  //   yet over: written by sim/days).
   // @state st.obligationsDue: the ids of the obligations whose term runs (status open or part), sorted by due, then id: the due-queue
   //   (Rules for cost, 4). A cache owned here.
   // @state st.obligationsBy: {debtor, creditor}, each a party's key ('household:3') to the sorted ids of its live obligations (open,
@@ -24,12 +25,20 @@ VB['sim/obligations'] = (() => {
         return end > t ? end : end + YEAR;
       },
     },
+    // days of work owed (VB-462, sim/days): owes {days}, source 'debt' | 'keep' | 'patron'; it runs to the year's end. A debt's days then
+    // stand (overdue: VB-315 says what follows); those of the keep and of a patron's due lapse, told once.
+    days: {
+      every: null,
+      term: (t) => (Math.floor(t / YEAR) + 1) * YEAR,
+      ended: (st, o) => (o.source === 'debt' ? 'overdue' : 'lapsed'),
+    },
   };
   const LIVE = ['open', 'part', 'overdue'];
   const isLive = (o) => LIVE.includes(o.status);
   const running = (o) => o.status === 'open' || o.status === 'part';
   const keyOf = (party) => `${party.kind}:${party.id}`;
-  const amount = (o) => (o.owes.rations !== undefined ? o.owes.rations : o.owes.hours);
+  const amount = (o) =>
+    o.owes.rations !== undefined ? o.owes.rations : o.owes.days !== undefined ? o.owes.days : o.owes.hours;
   const left = (o) => amount(o) - o.delivered;
   const NONE = [];
   // ---- the caches: the due-queue and the parties' live obligations ----
@@ -93,7 +102,8 @@ VB['sim/obligations'] = (() => {
     if (pawn !== null) personEvent(st, pawn, o.kind, text, { n: 0, ...place });
     else log(st, `${text}.`, { kind: o.kind, pawn: null, ...place });
   }
-  const unit = (o) => (o.owes.rations !== undefined ? 'rations' : 'hours of work');
+  const unit = (o) =>
+    o.owes.rations !== undefined ? 'rations' : o.owes.days !== undefined ? 'days of work' : 'hours of work';
   // ---- the operations ----
   // A new obligation of draft {kind, debtor, creditor, owes, due?, every?, enforcer?}: its term is its kind's unless the draft names one.
   // Returns its id.
@@ -117,6 +127,8 @@ VB['sim/obligations'] = (() => {
       delivered: 0,
       since: st.t,
     };
+    if (draft.source) o.source = draft.source;
+    if (o.owes.days !== undefined) o.called = 0; // days called and not yet over (sim/days)
     st.obligations.push(o);
     enqueue(st, o);
     index(st, 'debtor', o.debtor, o.id);
@@ -151,6 +163,11 @@ VB['sim/obligations'] = (() => {
       else if (o.status === 'open') o.status = 'part';
     }
     return null;
+  }
+  // n days of days-obligation id are called (+1) or over (-1): its `called` (sim/days).
+  function setCalled(st, id, by) {
+    const o = st.obligations[id];
+    o.called = Math.max(0, o.called + by);
   }
   // The creditor's pawn `by` lets go of what is left of obligation id.
   function forgive(st, id, by) {
@@ -192,7 +209,13 @@ VB['sim/obligations'] = (() => {
       if (o.every) {
         while (o.due <= st.t) o.due += o.every;
         enqueue(st, o);
-      } else o.status = 'overdue';
+      } else {
+        const to = KINDS[o.kind].ended ? KINDS[o.kind].ended(st, o) : 'overdue';
+        if (to === 'lapsed') {
+          o.status = 'overdue';
+          lapse(st, o.id, 'its year ended with the days not called');
+        } else o.status = to;
+      }
     }
   }
   // ---- the heirs' shares (design.md, Handover and shares: Shares still owed) ----
@@ -220,6 +243,8 @@ VB['sim/obligations'] = (() => {
   return {
     KINDS,
     create,
+    isLive,
+    setCalled,
     due,
     owed,
     fulfil,

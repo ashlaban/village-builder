@@ -26,6 +26,7 @@ VB['sim/jobs'] = (() => {
   const { unplanned } = VB['sim/records'];
   const { eligible } = VB['sim/eligibility'];
   const { KINDS, ASK, isOpen } = VB['sim/kinds'];
+  const Days = VB['sim/days'];
   const { builtTiles } = VB['sim/fields'];
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
@@ -401,7 +402,13 @@ VB['sim/jobs'] = (() => {
       if (p.died !== null) continue;
       lists[id] = [];
       // not a child under 7, one away from home (VB-287, VB-783), or the player's pawn while it is commanded: the head allots around them
-      if (age(st, p) >= CHILD.from && st.agents[id].away === undefined && !unplanned(st, id)) members.push(p);
+      if (
+        age(st, p) >= CHILD.from &&
+        st.agents[id].away === undefined &&
+        !unplanned(st, id) &&
+        Days.on(st, id) === null
+      )
+        members.push(p);
     }
     const pairs = [],
       memo = new Map();
@@ -525,6 +532,23 @@ VB['sim/jobs'] = (() => {
     }
     return got;
   }
+  // The idle pawns called for a day of work owed (sim/days) bid on the tasks of the household that is owed, the best bid first (VB-462);
+  // `busy` gains those who go.
+  function dutyRound(st, idle, busy, c) {
+    const memo = new Map();
+    for (const a of idle) {
+      const cred = Days.on(st, a.id);
+      if (cred === null || busy.has(a)) continue;
+      let best = null,
+        top = 0;
+      for (const j of st.jobsBy.get(`household:${cred}`) || none) {
+        const s = bid(st, a, j, c, memo);
+        if (s > top) [best, top] = [j, s];
+      }
+      if (best && issue(st, { actor: a.id, verb: 'work', target: best.key, source: 'planner' }) === true) busy.add(a);
+    }
+    return busy;
+  }
   // The idle pawns the day gave nothing bid to help the other households of their village (helpRound); `busy` gains those who go.
   function helpers(st, idle, busy, c) {
     helpRound(st, idle, none, busy, c);
@@ -616,6 +640,7 @@ VB['sim/jobs'] = (() => {
     allot,
     takeDay,
     helpers,
+    dutyRound,
     urgency,
     score,
     bid,
