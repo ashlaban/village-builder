@@ -7,6 +7,7 @@
 var VB = (globalThis.VB = globalThis.VB || {});
 // Work measurements only: never part of st or an input to a simulation decision.
 VB.COUNTERS = {
+  tilthRead: "Reads of a field's tilth, at manuring and reaping only (sim/fields tilthOf, VB-717)",
   routeSearch: 'A* searches started',
   routeExpand: 'Tiles removed from the A* heap (including duplicates)',
   routeHit: 'Routes served from the cache, in either direction',
