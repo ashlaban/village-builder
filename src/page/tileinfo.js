@@ -35,13 +35,14 @@ function showTile(i) {
   }
   selVillage = -1;
   selFarm = of && of.house ? of.farm : -1;
-  const ownLine = own
-    ? [
-        own.type === 'village'
-          ? `${st.villages[own.id].name} village`
-          : `${st.farmsteads[st.households[own.id].farmstead].name} household`,
-      ]
-    : [];
+  const ownLine =
+    own && !farm
+      ? [
+          own.type === 'village'
+            ? `${st.villages[own.id].name} village`
+            : `${st.farmsteads[st.households[own.id].farmstead].name} household`,
+        ]
+      : [];
   const cross = ['no crossing on foot here', 'a ford crosses it', 'a bridge crosses it'][w.crossing[i]];
   const perDay = w.worn ? w.wear[i] / 70 : 0; // a count kept up by n crossings a day settles at about 70 n
   const worn =
@@ -64,26 +65,11 @@ function showTile(i) {
   const strength = claimStats(i);
   if (farm) {
     const more = tileExtras(of);
-    card(farm[0], [...farm[1], ...(of.house ? [] : ownLine), ...claims], '', {
+    card(farm[0], [...farm[1], ...claims], '', {
       ...more,
       stats: (more.stats || '') + strength,
     });
-  } else
-    card(
-      b.name,
-      [
-        line,
-        ...river,
-        ...worn,
-        ...ownLine,
-        ...claims,
-        ...(w.treesMax[i] > 0 ? [`${Math.round(w.trees[i])} of ${w.treesMax[i]} trees`] : []),
-        ...(w.stones[i] > 0 ? [`${w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many'} stones`] : []),
-        ...groundLines(i),
-      ],
-      '',
-      { stats: strength },
-    );
+  } else card(b.name, [line, ...river, ...worn, ...ownLine, ...claims], '', { stats: levelStats(i) + strength });
 }
 // ---- a field's crop, and the head's choice of it (VB-355; design.md, How the head chooses what to sow) ----
 // A field's part of its tile's card, from Sim.fieldView: its crop (with its own icon), its course in the farm's rotation, what is sown on
@@ -210,24 +196,60 @@ function fieldChoice(e) {
   showTile(sel);
 }
 $('tileList').addEventListener('click', fieldChoice);
-// What lies in the ground (gen/geology): the bedrock, and a deposit with the loads left in it. Nothing digs yet. An upland ore shows only
-// as the viewer knows it (page/ground's depositShown).
-function groundLines(i) {
-  if (!w.rock || !w.rock[i]) return [];
-  const how = w.deposit[i] ? depositShown(i) : 0,
-    d = how ? w.deposit[i] : 0,
-    left = st ? Sim.depositLeftNow(st, i) : w.depositLeft[i];
-  return [
-    `${Geo.ROCKS[w.rock[i]].name} bedrock`,
-    ...(d
-      ? [
-          `${Geo.DEPOSITS[d].name}: ${left === Geo.ENDLESS ? 'more than can ever be dug' : `about ${left} loads`}${
-            how === 2 ? ', which no village has found' : ''
-          }`,
-        ]
-      : []),
-  ];
+// What a tile holds, as stats by the shared pieces (VB-670; page/meter): the trees standing of those it can carry on the meter, the stones in
+// the three words, the bedrock and a deposit with the Ground overlay's tints (page/ground). Elevation and wetness are a fact, one line.
+// A deposit with the loads left in it: nothing digs yet. An upland ore shows only as the viewer knows it (page/ground's depositShown).
+const swatch = (colour, mark = 'rock') =>
+  `<i class="swatch ${mark}" style="background:${hex6(colour)}" aria-hidden="true"></i>`;
+function levelStats(i) {
+  const out = [];
+  if (w.treesMax[i] > 0)
+    out.push({
+      icon: 'tree',
+      label: 'Trees',
+      value: Math.round(w.trees[i]),
+      note: `of ${w.treesMax[i]}`,
+      title: 'The trees standing, of those the tile can carry',
+      meter: { value: w.trees[i], max: w.treesMax[i] },
+    });
+  if (w.stones[i] > 0)
+    out.push({
+      icon: 'stone',
+      label: 'Stones',
+      value: w.stones[i] < 85 ? 'Few' : w.stones[i] < 170 ? 'Some' : 'Many',
+      wide: true,
+      title: 'The stones lying on the ground',
+    });
+  if (w.rock && w.rock[i]) {
+    out.push({
+      img: swatch(ROCK_COLOUR[w.rock[i]]),
+      label: 'Bedrock',
+      wide: true,
+      value: Geo.ROCKS[w.rock[i]].name,
+      title: `${Geo.ROCKS[w.rock[i]].name} bedrock, as the Ground overlay tints it`,
+    });
+    const how = w.deposit[i] ? depositShown(i) : 0,
+      d = how ? w.deposit[i] : 0,
+      left = st ? Sim.depositLeftNow(st, i) : w.depositLeft[i];
+    if (d)
+      out.push({
+        img: swatch(DEPOSIT_COLOUR[d], DEPOSIT_MARK[d]),
+        label: Geo.DEPOSITS[d].name,
+        wide: true,
+        value: left === Geo.ENDLESS ? 'never runs out' : `${left} loads`,
+        note: how === 2 ? 'no village has found it' : '',
+        title: `${Geo.DEPOSITS[d].name}, as the Ground overlay marks it`,
+      });
+  }
+  return stats(out);
 }
+const WHY = {
+  outland: 'as outland',
+  field: 'for a field',
+  meadow: 'for a hay meadow',
+  farm: 'to take the farm',
+  birthright: 'by birthright',
+};
 // The claims on a tile (sim/claims) and its cairn (VB-157), one line each, for the tile panel.
 function claimLines(i) {
   if (!st) return [];
@@ -237,18 +259,13 @@ function claimLines(i) {
       : by.type === 'household'
         ? st.farmsteads[st.households[by.id].farmstead].name
         : `the family of ${Sim.fullName(st.pawns[by.id])}`;
-  const WHY = {
-    outland: 'as outland',
-    field: 'for a field',
-    meadow: 'for a hay meadow',
-    farm: 'to take the farm',
-    birthright: 'by birthright',
-  };
-  const out = Sim.claimsOn(st, i).map((c) =>
-    c.state === 'realised'
-      ? `Held ${WHY[c.why]} by ${who(c.by)}${c.until !== null ? ` until year ${Math.floor(c.until / Sim.YEAR) + 1}` : ''}`
-      : `Claimed by ${who(c.by)} ${WHY[c.why]}`,
-  );
+  // an open claim is said once, by its meter (claimStats); a held one has no meter, and is a line
+  const out = Sim.claimsOn(st, i)
+    .filter((c) => c.state === 'realised')
+    .map(
+      (c) =>
+        `Held ${WHY[c.why]} by ${who(c.by)}${c.until !== null ? ` until year ${Math.floor(c.until / Sim.YEAR) + 1}` : ''}`,
+    );
   const cairn = st.cairns && st.cairns.get(i);
   if (cairn)
     out.push(
@@ -256,7 +273,7 @@ function claimLines(i) {
     );
   return out;
 }
-// How strong each open claim on a tile is, on the one meter (VB-664), in the order of claimLines.
+// How strong each open claim on a tile is, on the one meter (VB-664); the claim, and its claimant, are said here and no more.
 function claimStats(i) {
   if (!st) return '';
   const open = Sim.claimsOn(st, i).filter((c) => c.state !== 'realised');
@@ -275,7 +292,7 @@ function claimStats(i) {
             label: 'Claim',
             value: x,
             note: by,
-            title: `How strong the claim of ${by} is`,
+            title: `Claimed by ${by} ${WHY[c.why]}: how strong the claim is`,
             meter: { value: x },
           };
         }),

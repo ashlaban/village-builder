@@ -169,6 +169,28 @@ const Culture = (() => {
         ['free', 'No bar'],
       ],
     },
+    // VB-711 (Kim, 16 Nov): how hard a household stocks for winter: the margin its autumn count keeps (sim/byre, HERD.margins)
+    {
+      key: 'stocking',
+      label: 'Stocking for winter',
+      m: 0.6,
+      opts: [
+        ['hay', 'To the hay'],
+        ['herd', 'Keep the herd'],
+      ],
+    },
+    // VB-826 (design.md, Marriage as a negotiation, 9 Nov): whose voice counts in a match, read where it is offered and answered
+    // (sim/records spokesmanOf, sim/asking, sim/marriage); both who marry consent under every option
+    {
+      key: 'matchBy',
+      label: 'Who makes a match',
+      m: 0.4,
+      opts: [
+        ['heads', 'The heads'],
+        ['consent', 'The heads, with consent'],
+        ['couple', 'The couple'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -199,6 +221,8 @@ const Culture = (() => {
       feedOrder: 'equal',
       ownHeir: 'behind',
       dispute: 'first',
+      stocking: 'hay',
+      matchBy: 'consent',
       commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
     },
   };

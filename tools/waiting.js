@@ -14,10 +14,17 @@
 // marriages the round put off for the means (its `putOff` events); the share of the adults of age (the least age to marry or over)
 // waiting for land (st.demand) at the period's end; yearly growth over the period. It reads the state and changes nothing: a seed is the
 // same run with or without it (tests/waiting.js).
-// Used by tools/sim.js and tests/lib/bands.js: census(VB, st), yearFacts(VB, st, t0, t1, recordFrom), report(VB, st), CAUSES.
+// The fate of each pawn counted free (VB-660): at the round's end (ASK.passes days on, after what is open has lapsed), of those still
+// unmarried, one cause, the first that holds: putOff (the round put its match off for the means of the home it chose), refused (a match
+// was made and not taken: someone said no, which is what the chance MARRIAGE.goAhead stood for before the heads answered by opinion),
+// lapsed (a match was made and the round ended with it unanswered), taken (every partner that was free to it married another), open (it
+// stands in an open match offer at the round's end), unmatched (no match was made for it). Summed by 20 years beside the census. It
+// reads the state and the record from the census on.
+// Used by tools/sim.js and tests/lib/bands.js: census(VB, st), fates(VB, st, census, recordFrom), yearFacts(VB, st, t0, t1, recordFrom), report(VB, st), CAUSES.
 require('./help.js')(__filename);
 
 const CAUSES = ['hungry', 'none', 'kin', 'home', 'score', 'means', 'free'];
+const FATES = ['putOff', 'refused', 'lapsed', 'taken', 'open', 'unmatched'];
 const MAX_AGE = 45; // the census counts those under it, and the never-married share is read at it
 // The hour of the census within a year: the start of autumn day 11, the day of the moving round (sim/clock CALENDAR).
 const censusHour = (R) => (2 * R.SEASON_DAYS + 10) * R.DAY;
@@ -63,8 +70,42 @@ function census(VB, st) {
     causeOf[p.id] = CAUSES[best];
     if (p.servant) servants++;
   }
-  return { counts, n: pool.length, servants, pool: pool.map((p) => p.id), causeOf };
+  // the free pawns' free partners (the pair outcome 'free'), read now, for the fates
+  const partners = {};
+  for (const p of pool) {
+    if (causeOf[p.id] !== 'free') continue;
+    partners[p.id] = pool.filter((q) => q.sex !== p.sex && pairOutcome(VB, st, p, q, rules) === 6).map((q) => q.id);
+  }
+  return { counts, n: pool.length, servants, pool: pool.map((p) => p.id), causeOf, partners };
 }
+// The fates of the free pawns of census c, now (the round's end) and the record from index recordFrom: {fates: {fate: n}, wed, died}
+// and of: {id: fate} for those still unmarried.
+function fates(VB, st, c, recordFrom) {
+  const R = VB['sim/records'];
+  const seen = { putOff: new Set(), matchRefused: new Set(), offerLapsed: new Set() };
+  for (let i = recordFrom; i < st.record.length; i++) {
+    const e = st.record[i];
+    if (!e || typeof e !== 'object' || !seen[e.kind] || e.self) continue;
+    if (Number.isInteger(e.pawn)) seen[e.kind].add(e.pawn);
+    if (Number.isInteger(e.other)) seen[e.kind].add(e.other);
+  }
+  const open = new Set();
+  for (const o of st.offers) if (o.basis === 'match') { open.add(o.gives.man); open.add(o.wants.woman); }
+  const out = Object.fromEntries(FATES.map((f) => [f, 0])), of = {};
+  let wed = 0, died = 0;
+  for (const id of Object.keys(c.partners).map(Number)) {
+    const p = st.pawns[id];
+    if (!p.alive) { died++; continue; }
+    if (R.spouseOf(st, id) !== null) { wed++; continue; }
+    const gone = c.partners[id].every((q) => !st.pawns[q].alive || R.spouseOf(st, q) !== null);
+    const f = seen.putOff.has(id) ? 'putOff' : seen.matchRefused.has(id) ? 'refused' : seen.offerLapsed.has(id) ? 'lapsed'
+      : gone ? 'taken' : open.has(id) ? 'open' : 'unmatched';
+    out[f]++;
+    of[id] = f;
+  }
+  return { fates: out, wed, died, of };
+}
+
 // What a year (game hours t0 to t1, the record from index recordFrom) adds: first marriages by sex {f: [n, sum of ages], m}, those who
 // reached MAX_AGE and those of them never married, the marriages, the marriages put off for the means, and at t1 the living, the
 // households, the single-person ones, the pool and those of it waiting for land (st.demand).
@@ -123,10 +164,15 @@ function byPeriods(years, span = 20) {
     let r = rows.find((x) => x.k === k);
     if (!r) {
       r = { k, from: y.year, to: y.year, start: y.start, counts: Object.fromEntries(CAUSES.map((c) => [c, 0])), n: 0, servants: 0,
-        ages: { f: [0, 0], m: [0, 0] }, reached45: 0, neverMarried: 0, marriages: 0, putOff: 0, livingYears: 0 };
+        fates: Object.fromEntries(FATES.map((f) => [f, 0])), wed: 0, died: 0, ages: { f: [0, 0], m: [0, 0] }, reached45: 0, neverMarried: 0, marriages: 0, putOff: 0, livingYears: 0 };
       rows.push(r);
     }
     r.to = y.year;
+    if (y.census && y.census.fates) {
+      for (const f of FATES) r.fates[f] += y.census.fates.fates[f];
+      r.wed += y.census.fates.wed;
+      r.died += y.census.fates.died;
+    }
     if (y.census) {
       r.n += y.census.n;
       r.servants += y.census.servants;
@@ -144,6 +190,10 @@ function byPeriods(years, span = 20) {
     counted: r.n,
     ...Object.fromEntries(CAUSES.map((c) => [c, r3(r.n ? r.counts[c] / r.n : NaN)])),
     servants: r.servants,
+    // the free pawns' fates: those married by the round's end, and of the rest (stayed) the share by fate
+    wed: r.wed,
+    stayed: FATES.reduce((a, f) => a + r.fates[f], 0),
+    ...Object.fromEntries(FATES.map((f) => [f, r3(r.fates[f] / (FATES.reduce((a, g) => a + r.fates[g], 0) || NaN))])),
     living: r.living,
     households: r.households,
     single: r.single,
@@ -171,18 +221,21 @@ function report(VB, st) {
     let c = null;
     if (eve < t0 + R.YEAR) {
       if (eve > t0) Sim.advance(st, eve - t0);
+      const at0 = st.record.length;
       c = census(VB, st);
+      Sim.advance(st, Math.min(R.ASK.passes * R.DAY, t0 + R.YEAR - st.t));
+      c.fates = fates(VB, st, c, at0);
       Sim.advance(st, t0 + R.YEAR - st.t);
     } else Sim.advance(st, R.YEAR);
     years.push({ year: Math.round(st.t / R.YEAR), start, census: c, facts: yearFacts(VB, st, t0, st.t, from) });
   }
   const result = () =>
     ({ periods: byPeriods(years),
-    years: years.map((y) => ({ year: y.year, ...(y.census ? y.census.counts : {}), counted: y.census ? y.census.n : 0, ...y.facts, ages: undefined })) });
+    years: years.map((y) => ({ year: y.year, ...(y.census ? y.census.counts : {}), ...(y.census && y.census.fates ? y.census.fates.fates : {}), counted: y.census ? y.census.n : 0, ...y.facts, ages: undefined })) });
   function print(out) {
     console.log(`who waits to marry, at the moving round's day, by 20 years (shares of those counted; ${CAUSES.join(', ')}):`);
     console.table(out.periods);
   }
   return { advanceYear, result, print };
 }
-module.exports = { CAUSES, MAX_AGE, censusHour, inPool, pairOutcome, census, yearFacts, byPeriods, report };
+module.exports = { CAUSES, FATES, fates, MAX_AGE, censusHour, inPool, pairOutcome, census, yearFacts, byPeriods, report };

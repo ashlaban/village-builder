@@ -153,6 +153,7 @@
       <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
     </div>
     <div class="ground-key panel" id="groundKey" role="group" aria-label="Key to the ground" hidden></div>
+    <div class="ground-key land-key panel" id="landKey" role="group" aria-label="Key to land ownership" hidden></div>
     <div class="ground-key reach-key panel" id="reachKey" role="group" aria-label="Key to walking time" hidden></div>
     <div class="minimap panel" id="minimap" aria-label="Overview map, click or tap to jump" tabindex="0" role="group">
       <canvas id="mmBase"></canvas>
@@ -164,7 +165,7 @@
       <button id="regionBtn" type="button" class="icon-btn" data-icon="regions" aria-keyshortcuts="r" aria-label="Regions" title="Regions (R)"
         aria-pressed="false"></button>
       <button id="landBtn" type="button" class="icon-btn" data-icon="land" aria-keyshortcuts="l" aria-label="Land ownership"
-        title="Land ownership (L)" aria-pressed="false"></button>
+        title="Land ownership (L)" aria-pressed="false" aria-controls="landKey"></button>
       <button id="groundBtn" type="button" class="icon-btn" data-icon="ground" aria-keyshortcuts="o" aria-label="Bedrock and deposits"
         title="Bedrock and deposits (O)" aria-pressed="false" aria-controls="groundKey"></button>
       <button id="reachBtn" type="button" class="icon-btn" data-icon="reach" aria-keyshortcuts="h" aria-label="Walking time from the selected tile"
@@ -181,10 +182,10 @@
   <div class="tree-card panel">
     <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p>
       <button id="treeClose" type="button" class="icon-btn" data-icon="close" aria-label="Close family records" title="Close"></button></header>
-    <div class="tree-modes" id="treeModes" role="group" aria-label="What the tree shows">
-      <button type="button" data-mode="line" aria-pressed="true">Ancestors</button><button type="button" data-mode="father" aria-pressed="false">Father's line</button>
-      <button type="button" data-mode="mother" aria-pressed="false">Mother's line</button><button type="button" data-mode="desc" aria-pressed="false">Descendants</button>
-      <button type="button" data-mode="path" aria-pressed="false">Path to…</button><button type="button" data-mode="all" aria-pressed="false">Everyone</button>
+    <div class="tabs tree-modes" id="treeModes" role="tablist" aria-label="What the tree shows">
+      <button type="button" role="tab" data-mode="line" aria-selected="true">Ancestors</button><button type="button" role="tab" data-mode="father" aria-selected="false">Father's line</button>
+      <button type="button" role="tab" data-mode="mother" aria-selected="false">Mother's line</button><button type="button" role="tab" data-mode="desc" aria-selected="false">Descendants</button>
+      <button type="button" role="tab" data-mode="path" aria-selected="false">Path to…</button><button type="button" role="tab" data-mode="all" aria-selected="false">Everyone</button>
     </div>
     <p class="tree-caption" id="treeCaption" aria-live="polite" hidden></p>
     <div class="tree-body">

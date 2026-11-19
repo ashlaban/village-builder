@@ -5,8 +5,18 @@ VB['sim/marriage'] = (() => {
   const { living, home } = VB['sim/records'];
   const { emit } = VB['sim/events'];
   const { MARRIAGE, SOCIAL, ASK, HUNGER } = VB['sim/rules'];
-  const { personEvent, log, fullName, spouseOf, settlementIdOf, farmPractice, holdingOf, atHousehold, spokesmanOf } =
-    VB['sim/records'];
+  const {
+    personEvent,
+    log,
+    fullName,
+    spouseOf,
+    settlementIdOf,
+    farmPractice,
+    holdingOf,
+    atHousehold,
+    spokesmanOf,
+    matchByOf,
+  } = VB['sim/records'];
   const { startInLife } = VB['sim/exchange'];
   const { stayOf } = VB['sim/agents'];
   const { heirRanking, refreshRoles, handOn } = VB['sim/heirs'];
@@ -213,7 +223,8 @@ VB['sim/marriage'] = (() => {
     if (!his && !hers)
       return 'a match is offered by the spokesman of one to the spokesman of the other, or by one of a courting pair to the other';
     for (const id of [man, woman])
-      if (!courted && Number.isInteger(st.pawns[id].courting)) return `${fullName(st.pawns[id])} is courting another`;
+      if (!courted && Number.isInteger(st.pawns[id].courting) && matchByOf(st, st.pawns[id]) !== 'heads')
+        return `${fullName(st.pawns[id])} is courting another`;
     const [a, b] = hers ? [woman, man] : [man, woman],
       she = (id) => (id === woman ? 'she' : 'he');
     if (heldBy(st, a, 'match') || asksMatch(st, b)) return `${she(heldBy(st, a, 'match') ? a : b)} is in an open offer`;
@@ -393,7 +404,11 @@ VB['sim/marriage'] = (() => {
     }
     for (const a of o.answers) {
       const side = a.yes === false && o.answers.find((b) => b.key === a.key + 'Side');
-      if (side && side.by !== a.by && st.pawns[side.by].alive) remember(st, side.by, a.by, 'refusedMatch');
+      if (side && side.by !== a.by && st.pawns[side.by].alive) {
+        remember(st, side.by, a.by, 'refusedMatch');
+        // under the heads a member's no is a slight twice over (VB-826)
+        if (matchByOf(st, st.pawns[a.by]) === 'heads') remember(st, side.by, a.by, 'refusedMatch');
+      }
     }
     const asked = o.asker === 'woman' ? 'man' : 'woman';
     if (!o.courted && sideOf(no) === asked && speaks(o, no) && no.by !== o.from && st.pawns[o.from].alive)

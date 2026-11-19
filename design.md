@@ -1542,7 +1542,7 @@ Daily contact moves attitudes; only the yearly round turns them into practice, c
 
 ### Custom dimensions
 
-Gender eligibility, number of heirs, timing of succession and claims on empty farms are customs (Decided). The full set, default “Old Nordic” positions and malleability (1 = easiest to change) are Agreed. The three customs of the animals (Decided, 16 Nov) are its last rows; their options are told in Goods, production and animals, Customs of the animals.
+Gender eligibility, number of heirs, timing of succession and claims on empty farms are customs (Decided). The full set, default “Old Nordic” positions and malleability (1 = easiest to change) are Agreed. Who makes a match (Proposed, VB-826) follows Disputed claims; the three customs of the animals (Decided, 16 Nov) are its last rows; their options are told in Goods, production and animals, Customs of the animals.
 
 | Custom | Options | Default | Malleability |
 | --- | --- | --- | --- |
@@ -1561,6 +1561,7 @@ Gender eligibility, number of heirs, timing of succession and claims on empty fa
 | Who eats first when food is short | Equal shares; children first; those who work first | Equal shares (Agreed) | 0.5 (Agreed) |
 | Children born outside marriage | Inherit like other children; inherit after children born in marriage; do not inherit | After children born in marriage (Agreed) | 0.5 (Agreed) |
 | Disputed claims | The first claim stands; the strongest claim stands (the one most recently worked or renewed); kin of the tile's last owner first; the meeting decides by voice-weighted support | The first claim stands (Agreed) | 0.7 (Agreed) |
+| Who makes a match | The heads (a spokesman asks whatever the member's wish or courtship; a member's no costs the head's opinion twice over); the heads, with the couple's consent; the couple (each speaks for itself, and a woman asks from the first asking day) | The heads, with consent (Proposed, VB-826, 19 Nov) | 0.4 (Proposed) |
 | Grazing on the commons | By land share; open to all; the meeting allots (once there is an alderman) | By land share (Decided, 16 Nov) | 0.4 (Proposed) |
 | Stocking for winter | To the hay; keep the herd | To the hay (Decided, 16 Nov) | 0.6 (Proposed) |
 | Herding | Each farm its own; by turns for the village (*byahjord*) | Each farm its own (Decided, 16 Nov) | 0.3 (Proposed) |

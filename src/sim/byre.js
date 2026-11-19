@@ -137,6 +137,12 @@ VB['sim/byre'] = (() => {
     const parts = [...n].map(([x, k]) => (k === 1 ? x : `${k} ${PLURAL[x] || x}`));
     return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
   }
+  // The option of the custom `stocking` in force in the household's village, a key of HERD.margins (its head counts; the custom is his norm).
+  const STOCK = Culture.IDX.stocking;
+  const marginOf = (st, hh) => {
+    const s = st.cenv && st.cenv.settlements[st.farmsteads[hh.farmstead].village];
+    return s ? Culture.DIMS[STOCK].opts[s.practice[STOCK]][0] : 'hay';
+  };
   // The autumn count (autumn day 8): old animals go; bulls and rams not needed for breeding go; male young beyond the oxen's replacements
   // and a future bull go; half the lambs, the ram lambs, go; then, while the hay (with what still lies mown on the meadows) cannot carry the
   // winter's need × margin, or the byre is over full, the least valuable animal goes.
@@ -177,12 +183,13 @@ VB['sim/byre'] = (() => {
     }
     const hay = hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0);
     list = animals(st, hh);
-    let need = list.reduce((s, a) => s + a.hay, 0) * HERD.stallDays * HERD.margin,
+    const margin = HERD.margins[marginOf(st, hh)];
+    let need = list.reduce((s, a) => s + a.hay, 0) * HERD.stallDays * margin,
       room = list.reduce((s, a) => s + a.room, 0);
-    while (list.length && (need > hay || room > HERD.byre)) {
-      const i = need <= hay ? list.findIndex((a) => a.room > 0) : 0,
+    while (list.length && (need > hay + 1e-6 || room > HERD.byre)) {
+      const i = need <= hay + 1e-6 ? list.findIndex((a) => a.room > 0) : 0,
         a = list.splice(i, 1)[0];
-      need -= a.hay * HERD.stallDays * HERD.margin;
+      need -= a.hay * HERD.stallDays * margin;
       room -= a.room;
       go(a);
     }
