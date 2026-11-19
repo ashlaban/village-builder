@@ -295,13 +295,19 @@ VB['sim/fieldwork'] = (() => {
       type: 'tilling',
       field: true,
       spot: onField,
-      urgency: (st, j, c, U) => U.manure,
+      urgency: (st, j, c, U) => (j.spare ? U.manureSurplus : U.manure),
       carted: true, // faster with a cart (sim/carts)
       done: (st, j, hh) => manureDone(st, j.field, hh, j.hours),
       // in spring, while the heap holds a load: the farm's poorest field not yet sown, for the loads it takes (manureWanted, VB-137)
       available: (st, hh, f, c, post) => {
-        const dung = manureWanted(f, hh, c);
-        if (dung) post(`manure:f${f.id}.${dung[0].id}`, dung[0].tile, { field: dung[0], farm: f, hours: dung[1] });
+        const dung = manureWanted(st, f, hh, c);
+        if (dung && dung[1] > 0)
+          post(`manure:f${f.id}.${dung[0].id}`, dung[0].tile, {
+            field: dung[0],
+            farm: f,
+            hours: dung[1],
+            spare: dung[2],
+          });
       },
     },
   };

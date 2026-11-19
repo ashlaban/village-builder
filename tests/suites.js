@@ -184,6 +184,7 @@ const INTEGRATION = [
   ['node', 'tests/weeding.js'],
   ['node', 'tests/soil.js'],
   ['node', 'tests/tilth.js'],
+  ['node', 'tests/surplus.js'],
   ['node', 'tests/hay.js'],
   ['node', 'tests/byre.js'],
   ['node', 'tests/stocking.js'],
