@@ -12,6 +12,7 @@ const FAST = [
   ['node', 'tests/cost-rules.js'],
   ['node', 'tests/speed.js'],
   ['node', 'tests/pulls.js'],
+  ['node', 'tests/customhold.js'],
   ['node', 'tests/cacheowners.js'],
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
@@ -20,6 +21,7 @@ const FAST = [
   ['node', 'tests/wishlapse.js'],
   ['node', 'tests/roundoffers.js'],
   ['node', 'tests/handover.js'],
+  ['node', 'tests/offerpreview.js'], // VB-1100: what a yes to an offer would bring, and the state after it
   ['node', 'tests/asking.js'],
   ['node', 'tests/suit.js'],
   ['node', 'tests/courting.js'],
