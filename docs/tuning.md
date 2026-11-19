@@ -94,6 +94,7 @@ Both references meet the target (median at least 1%), so nothing below is urgent
 | waterLate / HEALTH.dry | urgency of the water job from 14:00 / health lost on a dry day | water job unclaimed with a hand free on 84-99% of dry household-days (populous 3-4k over 15 years); no hand free 11-15% in populous, 0 in founders | raise waterLate above other chores' urgency in a tuning run, then re-measure dry days | VB-626 |
 | FOUNDERS (rules.js): manMin 20, manSpan 7, wifeMin 18 | founding couples younger: man 20-26, wife at least 18 | 16 seeds, 80 y: median at 50 y 2.6% (was 1.9%), 16 of 16 above start (15), but seeds 5 and 9 stand still (1 before); seeds 3/7/11/42 all up | keep if Kim accepts one more standing-still seed for a higher median | VB-635 |
 | HERD.herding.bite | share of milk lost per downAt of pressure over downAt | populous small seed 7: 0.05 loses 6.9% of milk, 0.3 loses 22.5% and seed 11 starvation deaths 1 to 5 | 0.05 kept; look at 0.15 in a tuning run | VB-709 |
+| `FIELDS.perHand` 2 | Fields a working adult can till, now also the cap on the fields a household hoes and sows (VB-1186) | Founders small, 50 years, frost-lost fields a household-year (living at the end): seed 7, 2: 0.010 (33), 2.5: 0.053 (40), 3: 0.136 (39); seed 42, 2: 0.071 (22), 2.5: 0.023 (22), 3: 0.094 (23); before the cap 0.241 (38) and 0.184 (23) | 2 kept; 2.5 loses little more to the frost and sows a fifth more: look at it over seeds in a tuning run | VB-1186 |
 
 ## Mechanisms on their way that move the same numbers
 

@@ -24,7 +24,9 @@ VB['sim/fieldwork'] = (() => {
     reclaimed,
     weeded,
     onField,
+    fieldsWorkable,
   } = VB['sim/fields'];
+  const { heldFarms } = VB['sim/ownership'];
   const RECLAIM = { fallow: 10, scrub: 20 }; // hours to clear a field gone to grass or to scrub (Kim, 30 Oct)
   // A field the forest has grown into at half cover or more is felled and grubbed besides (sim/spread, VB-091).
   const reclaimHours = (st, fd) => {
@@ -56,6 +58,36 @@ VB['sim/fieldwork'] = (() => {
       ? `the household holds ${Math.floor(has)} of the ${C.seed} rations of ${fd.crop} a field's seed takes`
       : null;
   }
+  // The farm household hh works from: its own, or field fd's farm f where it has none of its own here.
+  const homeOf = (st, hh, f) => (hh.farmstead === null || hh.farmstead === undefined ? f : st.farmsteads[hh.farmstead]);
+  // Whether household hh's hands can take on field fd (VB-1186): a household hoes and sows no more fields than its hands can till, its plan's
+  // targets.workable (FIELDS.perHand a working adult and more for a team, sim/fields; at least one field, as fieldsWanted), so that what it
+  // sows it can reap before the frost; the rest lie in stubble this year. Counted are its fields of the same harvest under a crop and, for
+  // hoeing, those hoed, with those ahead of fd in its farms' order at fd's own stage (in stubble in the window, or hoed): the first are
+  // worked. A winter crop sown in autumn is next year's harvest, so it counts only the winter crop's fields; a spring crop counts the
+  // winter crop growing since the autumn. A household's fields are few (its hands' share and the fallow), so the walk is short.
+  function underHands(st, hh, fd, c, home) {
+    if (home === hh) return true; // a common field, the village's own (sim/commons passes the village as both): it sows by its own rule
+    const plan = st.plans.households.get(hh.id),
+      cap = Math.max(1, plan && plan.targets ? plan.targets.workable : fieldsWorkable(st, hh)),
+      winter = !!CROPS[fd.crop].winter,
+      at = fd.stage;
+    let n = 0,
+      ahead = true;
+    for (const g of [home, ...heldFarms(st, hh.id)])
+      for (const x of g.fields) {
+        if (x === fd) {
+          ahead = false;
+          continue;
+        }
+        const C = CROPS[x.crop];
+        if (C.fallow || (winter && !C.winter)) continue;
+        if (x.stage === 'sown' || x.stage === 'growing' || (x.stage === 'plowed' && at === 'stubble')) n++;
+        else if (ahead && x.stage === at && (at === 'plowed' || sowing(x, c))) n++;
+        if (n >= cap) return false;
+      }
+    return true;
+  }
   // Hoeing and sowing grow more urgent as the sowing window runs out.
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
   const KINDS = {
@@ -75,7 +107,12 @@ VB['sim/fieldwork'] = (() => {
       // a field in stubble, in the sowing window (a fallow field: in its tilling window, once a year; VB-348)
       stages: ['stubble'],
       available: (st, hh, fd, c, post, f) => {
-        if (sowing(fd, c) && fd.stage === 'stubble' && !(CROPS[fd.crop].fallow && fd.rest === 1))
+        if (
+          sowing(fd, c) &&
+          fd.stage === 'stubble' &&
+          !(CROPS[fd.crop].fallow && fd.rest === 1) &&
+          (CROPS[fd.crop].fallow || underHands(st, hh, fd, c, homeOf(st, hh, f)))
+        )
           post('plow:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'plow'));
       },
     },
@@ -101,7 +138,7 @@ VB['sim/fieldwork'] = (() => {
       // a hoed field, in the sowing window, while the household has the seed for it (sowWhy)
       stages: ['plowed'],
       available: (st, hh, fd, c, post, f) => {
-        if (fd.stage === 'plowed' && sowWhy(hh, fd, c) === null)
+        if (fd.stage === 'plowed' && sowWhy(hh, fd, c) === null && underHands(st, hh, fd, c, homeOf(st, hh, f)))
           post('sow:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'sow'));
       },
     },

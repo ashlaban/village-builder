@@ -106,6 +106,7 @@ const INTEGRATION = [
   ['node', 'tests/prospect.js'],
   ['node', 'tests/children.js'],
   ['node', 'tests/hands.js'],
+  ['node', 'tests/tillcap.js'], // hoe and sow only what the hands can till (VB-1186)
   ['node', 'tests/helpers.js'],
   ['node', 'tests/help.js'], // food help, with VB-461's fetched gift (VB-889)
   ['node', 'tests/interrupts.js'],
