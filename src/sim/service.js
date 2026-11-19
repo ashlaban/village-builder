@@ -8,7 +8,7 @@ VB['sim/service'] = (() => {
   const { refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hoursBetween, withinDay, byLand } = VB['sim/routes'];
-  const { SERVICE, MARRIAGE } = VB['sim/rules'];
+  const { SERVICE, MARRIAGE, AGES } = VB['sim/rules'];
   const Offers = VB['sim/offers'];
   const { hasPlot } = VB['sim/expansion'];
   const { trustOf } = VB['sim/ownership'];
@@ -29,7 +29,7 @@ VB['sim/service'] = (() => {
   const hands = (st, hh) =>
     hh.members.filter((id) => {
       const p = st.pawns[id];
-      return p.alive && p.age >= 14 && p.age < 60 && !p.retired;
+      return p.alive && p.age >= AGES.hands[0] && p.age < AGES.hands[1] && !p.retired;
     }).length;
   // An adult who wants land (st.demand, refreshed at each moving round) and can move: alive, landless still, with no plot coming, not a guardian.
   const free = (st, p) =>
@@ -214,7 +214,9 @@ VB['sim/service'] = (() => {
   // The working hands q's household keeps without it; -1 when it has no household to leave (dissolved, or q alone in it).
   function handsLeft(st, q) {
     const from = st.households[q.household];
-    return from.dissolved || from.members.length < 2 ? -1 : hands(st, from) - (q.age >= 14 && q.age < 60 ? 1 : 0);
+    return from.dissolved || from.members.length < 2
+      ? -1
+      : hands(st, from) - (q.age >= AGES.hands[0] && q.age < AGES.hands[1] ? 1 : 0);
   }
   // Those who would serve now, in demand order: fit (unfit null), and not declining by the player's wish (VB-212).
   // One who holds an open offer about its future takes part only in that offer's step (VB-692).

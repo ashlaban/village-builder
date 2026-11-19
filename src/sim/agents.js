@@ -6,7 +6,7 @@ VB['sim/agents'] = (() => {
   const { register } = VB['sim/commands'];
   const { next: rnd } = VB['sim/rng'];
   const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
-  const HANDS = [14, 60]; // the ages of a working hand, as sim/drying's hands (VB-255's count of work)
+  const HANDS = VB['sim/rules'].AGES.hands;
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];

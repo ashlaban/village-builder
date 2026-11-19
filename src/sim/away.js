@@ -6,7 +6,7 @@ VB['sim/away'] = (() => {
   const { living } = VB['sim/records'];
   const { release, goHome, free } = VB['sim/agents'];
   const { cal, WORK, SPEED, HEALTH, TRAVEL, AWAY, BOOTH } = VB['sim/rules'];
-  const HANDS = [14, 60]; // the ages of a working hand, as sim/agents' (who goes for a gift or carries the quarter)
+  const HANDS = VB['sim/rules'].AGES.hands;
   const { route, routeCost, hoursBetween } = VB['sim/routes'];
   const { age, personEvent } = VB['sim/records'];
   const Stores = VB['sim/stores'];
