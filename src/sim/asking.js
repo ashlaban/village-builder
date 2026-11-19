@@ -10,11 +10,11 @@ VB['sim/asking'] = (() => {
   const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK, cal } = VB['sim/rules'];
   const { age, spouseOf, settlementIdOf, practice, spokesmanOf, holdingOf, fullName } = VB['sim/records'];
   const { kinOk, sideScore, matchRules, courts, askerOf, askedOf, askedBy } = VB['sim/matching'];
-  const { hoursBetween, byLand } = VB['sim/routes'];
+  const { hoursBetween } = VB['sim/routes'];
   const { claimableFarm, askLand } = VB['sim/farmclaims'];
   const { placeIfMarried, heirRanking } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
-  const { chooseWish, wishOf, wishesOf, nextAsking } = VB['sim/wishes'];
+  const { chooseWish, wishOf, wishesOf, nextAsking, askingIn } = VB['sim/wishes'];
   const { conclude } = VB['sim/offers'];
   const { handover } = VB['sim/marriage'],
     { on } = VB['sim/events'];
@@ -51,8 +51,17 @@ VB['sim/asking'] = (() => {
   // VB-289), who ask in no open match themselves and are asked by fewer than ASK.held (who is spoken for is news), the nearest
   // villages first, at most ASK.pool of them weighed (asksWeighed). The score is the spokesman's own reading (sim/matching sideScore):
   // the fancy is drawn once for each weighed and the best one's is kept on the offer, and his opinion of the other spokesman counts.
-  // The unmarried of 18 or more are read from the asking queue, which holds every one of them (askWalk). `not`: one it may not ask
+  // The unmarried of 18 or more are read from the queue's part of each village within reach (askingIn; askWalk). `not`: one it may not ask
   // (who has just refused it); `only`: the one it wishes. 'made', or what stood in the way: 'nobody', or why the offer was refused.
+  // The villages by land from v (ids), the nearest first, v itself first, the ties by id: [{w, h}].
+  function villagesByReach(st, v) {
+    const out = [{ w: v, h: 0 }];
+    for (let w = 0; w < st.villages.length; w++) {
+      const h = w === v ? Infinity : hoursBetween(st, v, w);
+      if (h < Infinity) out.push({ w, h });
+    }
+    return out.sort((a, b) => a.h - b.h || a.w - b.w);
+  }
   function askMatch(st, id, due, { not = null, only = null } = {}) {
     const p = st.pawns[id],
       v = settlementIdOf(st, p),
@@ -65,41 +74,41 @@ VB['sim/asking'] = (() => {
         asked.set(askedOf(o), (asked.get(askedOf(o)) || 0) + 1);
         asks.add(askerOf(o));
       }
-    const cands = [];
-    for (const e of st.asking) {
-      VB.count.askWalk++;
-      const q = st.pawns[e.pawn];
-      if (q.sex === p.sex || q.id === not || (only !== null && q.id !== only) || !q.alive || q.retired) continue;
-      if (q.household === null || q.hunger >= HUNGER.marryBelow) continue;
-      if (age(st, q) < (man ? MARRIAGE.womenFrom : MARRIAGE.menFrom)) continue;
-      if (spouseOf(st, q.id) !== null || asks.has(q.id) || (asked.get(q.id) || 0) >= ASK.held) continue;
-      if (Number.isInteger(q.courting) || (q.wish && wishOf(st, q.id, 'match') === false)) continue;
-      const qv = settlementIdOf(st, q);
-      if (qv === null) continue;
-      const [vm, vf] = man ? [v, qv] : [qv, v];
-      if (qv !== v && !(byLand(st, vm, vf) && courts(st, man ? p : q, man ? q : p, vm, vf))) continue; // a day's walk, or visited (VB-289)
-      cands.push({ q, h: qv === v ? 0 : hoursBetween(st, v, qv), cu: practice(st, vm) });
-    }
-    cands.sort((a, b) => a.h - b.h);
     const rules = matchRules(st),
       mine = rules.place(id),
       speaker = spokesmanOf(st, id);
     let best = null,
       bs = -Infinity,
       n = 0;
-    for (const { q, cu } of cands) {
+    // The villages by land, the nearest first (the own village first), each read from its own part of the queue; the reading stops once
+    // ASK.pool are weighed, so the villages beyond are never read (VB-1169).
+    for (const { w: qv, h } of villagesByReach(st, v)) {
       if (n >= ASK.pool) break;
-      const [m, f] = man ? [p, q] : [q, p];
-      if (!kinOk(st, m.id, f.id, cu)) continue;
-      const home = man ? rules.homeFor(m, f, cu, mine) : rules.homeFor(m, f, cu, undefined, mine);
-      if (home === null) continue;
-      n++;
-      VB.count.asksWeighed++;
-      const fancy = rnd(st.rng.society),
-        s = sideScore(st, m, f, fancy, speaker, spokesmanOf(st, q.id));
-      if (s > bs) {
-        bs = s;
-        best = { m, f, home, fancy, to: q.id };
+      const [vm, vf] = man ? [v, qv] : [qv, v];
+      let cu = null;
+      for (const e of askingIn(st, qv)) {
+        VB.count.askWalk++;
+        const q = st.pawns[e.pawn];
+        if (q.sex === p.sex || q.id === not || (only !== null && q.id !== only) || !q.alive || q.retired) continue;
+        if (q.household === null || q.hunger >= HUNGER.marryBelow) continue;
+        if (age(st, q) < (man ? MARRIAGE.womenFrom : MARRIAGE.menFrom)) continue;
+        if (spouseOf(st, q.id) !== null || asks.has(q.id) || (asked.get(q.id) || 0) >= ASK.held) continue;
+        if (Number.isInteger(q.courting) || (q.wish && wishOf(st, q.id, 'match') === false)) continue;
+        if (qv !== v && !courts(st, man ? p : q, man ? q : p, vm, vf)) continue; // a day's walk, or visited (VB-289)
+        if (n >= ASK.pool) break;
+        if (cu === null) cu = practice(st, vm);
+        const [m, f] = man ? [p, q] : [q, p];
+        if (!kinOk(st, m.id, f.id, cu)) continue;
+        const home = man ? rules.homeFor(m, f, cu, mine) : rules.homeFor(m, f, cu, undefined, mine);
+        if (home === null) continue;
+        n++;
+        VB.count.asksWeighed++;
+        const fancy = rnd(st.rng.society),
+          s = sideScore(st, m, f, fancy, speaker, spokesmanOf(st, q.id));
+        if (s > bs) {
+          bs = s;
+          best = { m, f, home, fancy, to: q.id };
+        }
       }
     }
     if (!best || bs < MARRIAGE.minScore) return 'nobody';
