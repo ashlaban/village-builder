@@ -150,11 +150,18 @@ function watchOffers() {
   }
   const open = new Set();
   for (const o of st.offers) {
-    if (o.basis !== 'match' || !o.answers.some((a) => a.by === pl.pawn)) continue;
+    // a handover (VB-1140) is watched from either end: the holder who offers, the heir who is asked
+    const hand = o.basis === 'handover' && (o.from === pl.pawn || o.to === pl.pawn);
+    if (!hand && (o.basis !== 'match' || !o.answers.some((a) => a.by === pl.pawn))) continue;
     open.add(o.id);
     if (!offerSeen.has(o.id)) {
-      offerSeen.set(o.id, { man: o.gives.man, woman: o.wants.woman, made: o.made });
-      offerEnd = null;
+      offerSeen.set(
+        o.id,
+        hand
+          ? { hand: true, man: o.to, woman: o.from, made: o.made }
+          : { man: o.gives.man, woman: o.wants.woman, made: o.made },
+      );
+      if (!hand) offerEnd = null;
     }
   }
   for (const [oid, o] of [...offerSeen]) {
@@ -165,7 +172,9 @@ function watchOffers() {
       if (
         ev.pawn === o.man &&
         ev.other === o.woman &&
-        (ev.kind === 'married' || ev.kind === 'matchRefused' || ev.kind === 'offerLapsed')
+        (o.hand
+          ? ev.kind === 'inherited' || ev.kind === 'offerRefused' || ev.kind === 'offerLapsed'
+          : ev.kind === 'married' || ev.kind === 'matchRefused' || ev.kind === 'offerLapsed')
       ) {
         offerEnd = { pawn: pl.pawn, text: Sim.eventLine(st, ev), until: Sim.skipFrom(st).eve };
         break;
