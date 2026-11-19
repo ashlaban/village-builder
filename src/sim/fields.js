@@ -553,6 +553,7 @@ VB['sim/fields'] = (() => {
   // @state farmstead.fields[]: crop (a key of CROPS, sim/rules: a crop, or the course fallow, VB-348), stage, sown/reaped days, held sheaves and
   // weeding progress; changed only here after seeding.
   //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
+  //   hoursOwn, hoursOther (VB-462): absent, or the year's work hours given by the user household's own members and by others
   //   weeds: absent, or the rounds of weeding posted since sowing (CROPS weeds; VB-334, VB-348)
   //   rest: absent, or a fallow field's rest this year (VB-348): 0.5 once it stood fallow at the summer's start, 1 once tilled; credited
   //   to the soil at the year's end, whatever the field bears by then (rye is sown on it in autumn)
@@ -572,6 +573,13 @@ VB['sim/fields'] = (() => {
     delete fd.weeds;
     delete fd.browsed;
   }
+  // farmstead.fields[] also has hoursOwn (VB-462): the year's work hours given by its user household's own members, and
+  // hoursOther: those given by others (owed days, later the hired: VB-319); absent until the first; zeroed after the class is reckoned (VB-318).
+  //   Written only here, as work is reckoned (sim/agents).
+  const book = (fd, own, dt) => {
+    const k = own ? 'hoursOwn' : 'hoursOther';
+    fd[k] = (fd[k] || 0) + dt;
+  };
   // Cattle got into the standing crop (sim/byre, VB-136), or roe deer (`deer`; sim/deer, VB-139).
   const trample = (fd, deer = false) => {
     if (deer) fd.browsed = (fd.browsed || 0) + 1;
@@ -786,6 +794,7 @@ VB['sim/fields'] = (() => {
   }
   return {
     rowAngle,
+    book,
     firstRow,
     onField,
     hoed,

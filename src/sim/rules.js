@@ -924,6 +924,9 @@ VB['sim/rules'] = (() => {
   // the village). Every adult (from `minAge`) takes the work at role priority `prio`, whatever the role; it takes unlimited hands, all
   // together. An adult who works `hours` gains `came` standing for the year; a household none of whose adults worked their share (`hours`, or
   // the day's work over its adults when that is less) is away: its holder loses `missed` (the agent's own reading of "at the work day").
+  // Days owed (VB-462; design.md, Remedies, The alderman's keep): a day is `hours` of work of one adult, called for a day at least `notice`
+  // days ahead by the creditor's holder, as tasks of its plan.
+  const DAYS = { notice: 3, hours: 8 };
   const WORKDAY = {
     days: [
       [0, 0, 'fence'],
@@ -1208,6 +1211,7 @@ VB['sim/rules'] = (() => {
     PEAT,
     BUILD,
     WORKDAY,
+    DAYS,
     COMMONS,
   };
 })();
