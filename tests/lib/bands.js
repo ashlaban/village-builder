@@ -2,7 +2,7 @@
 // fall in. A band's `assert` is checked on a reduced scenario in the extended tier (tests/bands.js) and fails outside its range; its `report`
 // is a full run, made nightly by tools/bands.js, printed as in or out and never failing. A slice's wrap-up adds its loops' bands here.
 //   {id, probe, kind, report?: {lo, hi, afterYear, scenario, map, years, seeds}, assert?: {lo, hi, afterYear, setup, years, seeds}}
-// Kinds: `balancing` is a target (reported with its residual), `watched` fails the reduced run when out, and `described` has no range:
+// Kinds: `balancing` is a target (reported with its residual), `watched` (correctness: the invariants) fails the reduced run when out, and `described` has no range:
 // its value is printed and recorded, never judged. Only island-wide numbers are judged (Kim, 12 November; design.md, Balance loops and
 // targets): hunger is an engine, so the measures of single households are described. Growth is judged over a scenario's seeds, not a
 // seed at a time (GROWTH, below).
@@ -140,8 +140,9 @@ const FLOORS = [
   { id: 'worst-household', probe: 'worstHungryShare', kind: 'described', afterYear: 3 },
   // VB-327: cold household-days, reported in the full runs only, with no assert until Kim gives a target
   { id: 'cold-households', probe: 'coldHouseholdShare', kind: 'described', afterYear: 0, reportOnly: true },
-  // slice 2 (a life): matches refused by opinion, or by a played pawn, stay a small part of the matches; a household is not left unmarried by them
-  { id: 'refused-matches', probe: 'refusedMatchShare', kind: 'watched', lo: 0, hi: 0.2, afterYear: 3 },
+  // slice 2 (a life): matches refused by opinion, or by a played pawn, stay a small part of the matches; a household is not left unmarried by them.
+  // A target, not a check (Kim, 18 November): a range of balance warns when out; only the invariants fail the reduced run
+  { id: 'refused-matches', probe: 'refusedMatchShare', kind: 'balancing', lo: 0, hi: 0.2, afterYear: 3 },
   { id: 'invariants', probe: 'invariantFailures', kind: 'watched', lo: 0, hi: 0, afterYear: 0 },
   // VB-633: the marriage valve and the pace of growth, described in the full runs only, never asserted (design.md, The growth budget,
   // The band); the group `growth` is also what the medium runs report (FULL, groups)

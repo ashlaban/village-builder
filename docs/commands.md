@@ -27,8 +27,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
     reported numbers. A script of either tier takes under 5 seconds; the runner names one over (`over 5 s: ...`), without failing.
   - Extended, at night and never part of a task: `node tests/run.js extended` makes the small fixtures and runs everything long:
     generated islands and runs of years, the page in jsdom and real Chromium, demography, daily invariants, fixtures, history,
-    bands, the player's line. `npm run nightly` makes all four fixtures, runs extended, then the bench and the bands (the Extended
-    checks workflow). A task that changes `src/page/` also runs `node tests/smoke.js` and the `tests/browser*.js` it touches, by
+    bands, the player's line. `npm run nightly` makes all four fixtures, runs extended, then the bench and the bands, whether or not
+    extended passed; a failed check fails it at the end (the Extended checks workflow). A task that changes `src/page/` also runs `node tests/smoke.js` and the `tests/browser*.js` it touches, by
     name, until verify has a page check of its own (VB-409).
   - One script alone: `node tests/NAME.js`. A new check is built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`)
     and goes into fast or integration, with a line in `tests/suites.js`; only what needs a whole island or years goes to extended.
