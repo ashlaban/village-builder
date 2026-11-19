@@ -11,6 +11,7 @@ VB['sim/stores'] = (() => {
   const KINDS = [
     'harvest',
     'gift',
+    'keep',
     'meat',
     'milk',
     'butter',

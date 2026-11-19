@@ -194,6 +194,7 @@ VB['sim/round'] = (() => {
     VB.count.roundWalk += pool.length;
     if (v === 0) refreshRoles(st);
     if (v === 0) for (const id of st.living) st.pawns[id].kinPush = null; // the living's pushes, cleared once a round
+    VB['sim/keep'].round(st, v); // the alderman's keep, beside the store's quarter (VB-463)
     fillStores(st, v);
     // A pawn's wish for a match (VB-274, VB-680): false leaves it out; a partner it names is found in the walk.
     const wishers = [],

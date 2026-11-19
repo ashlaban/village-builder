@@ -191,6 +191,17 @@ const Culture = (() => {
         ['couple', 'The couple'],
       ],
     },
+    // VB-463 (Kim, 15 Nov): what the alderman is kept with (sim/keep; OFFICE.keepDays, OFFICE.keepShare)
+    {
+      key: 'keep',
+      label: 'What the alderman is kept with',
+      m: 0.4,
+      opts: [
+        ['days', 'Days of work'],
+        ['share', 'A share of the surplus'],
+        ['nothing', 'Nothing'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -223,6 +234,7 @@ const Culture = (() => {
       dispute: 'first',
       stocking: 'hay',
       matchBy: 'consent',
+      keep: 'days',
       commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
     },
   };

@@ -3,15 +3,16 @@
 // stall days of the kept five) gives the herd lean days and, past starveDays, a head lost a day; the village store lends no fodder.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, H = VB['sim/herds'], Y = VB['sim/byre'], Culture = VB.culture;
-const { state } = require('./lib/probe.js'), { setPractice } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
+const { setPractice, tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 const cal = (doy, day = doy) => ({ doy, day, season: Math.floor(doy / 12), sday: doy % 12, hour: 0 });
 const cows = (st, hh) => H.herdOf(st, hh, 'cattle').head.filter((h) => h.kind === 'cow').length;
 assert.deepStrictEqual(Culture.DIMS[Culture.IDX.stocking].opts.map((o) => o[0]), ['hay', 'herd']);
 assert.strictEqual(Culture.fromArchetype('oldNordic')[Culture.IDX.stocking], 0, 'to the hay by default');
 assert.deepStrictEqual(Sim.HERD.margins, { hay: 1.1, herd: 0.8 });
 // household 3: six cows (4 years old) and nothing else
+const SEED = 9; // the herds drawn at seeding move with every custom added (VB-711, VB-826, VB-463)
 function scene(option, hay) {
-  const st = state(), hh = st.households[3], herd = H.herdOf(st, hh, 'cattle');
+  const st = tinyState(tinyWorld(Array(18).fill('.'.repeat(28)), { seed: SEED }), [{ at: [7, 9], farms: 2, sizes: [6, 5] }, { at: [21, 9], farms: 2, sizes: [5, 4] }], { seed: SEED, herds: true }), hh = st.households[3], herd = H.herdOf(st, hh, 'cattle');
   herd.head = [];
   for (let k = 0; k < 6; k++) H.addHead(st, herd, 'f', st.t - 4 * Sim.YEAR, 'cow');
   for (const hd of H.herdsOf(st, hh)) if (hd.species === 'sheep') hd.ewes = hd.rams = hd.lambs = 0;
