@@ -135,6 +135,11 @@ VB['sim/rules'] = (() => {
   // within `reach` walking steps of the house, with at least `least` (a trip's take) left; a trip brings home `trip` rations times the tile's
   // stock and lowers it by `take`; every stock is full each spring. Posted from summer day `from` + 1 to the end of autumn; its second trip and
   // urgency are fishing's (FISH.secondDays, MATCH.urgency) ----
+  // The ages of life, in one table (VB-686): each row says what the age is for; the modules read it, none writes its own.
+  //   hands [14, 60): a working hand: strong enough for a season's labour from 14 (a boy at the plough, a girl at the dairy; the
+  //     ration of an adult starts there too), and past it at 60, when a body tires; the hands counted for fields, herds, help and service.
+  //   major 18: of age: holds a household and goes to law without a guardian or trust; heirs and settlers of a party are counted from it.
+  const AGES = Object.freeze({ hands: Object.freeze([14, 60]), major: 18 });
   const FORAGE = { reach: 5, trip: 2.5, take: 0.2, least: 0.2, from: 5 };
   // ---- roe deer (VB-139; Kim, 30 Oct: the one wild grazer, meat and hides when hunted, forest edges and meadows, can damage crops), starting
   // values with no source but a roe deer's size: a region's stock grows logistically at `growth` a year towards `perEdge` deer for each of
@@ -1153,6 +1158,7 @@ VB['sim/rules'] = (() => {
     ROTATIONS,
     FIELDS,
     FISH,
+    AGES,
     FORAGE,
     DEER,
     FERTILITY,
