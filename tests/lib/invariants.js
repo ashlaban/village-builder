@@ -1276,12 +1276,13 @@ function checkState(st) {
       }
       if (j.roof !== 'none') bad.push(`${at}: a journey under roof ${j.roof}`);
       const bearing = j.why === 'carry' && !j.back; // VB-291: a carrier bound for the receiver's house, with his gift
-      // VB-461: a fetch with its gift is its pawn's household's; the grain in transit is on the pawn, bound for that house, and none is on
+      // VB-461: a fetch with its gift is its pawn's household's (or was, while it holds a load); the grain in transit is on the pawn, bound for that house, and none is on
       // him on his way out to the place its first stop names; each stop holds grain set aside, by crop
       const g = (j.why === 'fetch' || j.why === 'haul') && j.gift ? j.gift : null;
       if (g) {
         const haul = j.why === 'haul', house = haul ? st.villages[g.village].center : st.farmsteads[st.households[g.to].farmstead].house, sum = (o) => Object.values(o || {}).reduce((x, y) => x + y, 0);
-        if (!p || p.household !== g.to) bad.push(`${at}: a fetch for household ${g.to} by pawn ${j.pawn} of ${p && p.household}`);
+        // a fetcher whose household changed on the road brings in the load he holds first (sim/away, retarget), then walks to his own
+        if (!p || (p.household !== g.to && !(g.held > 0))) bad.push(`${at}: a fetch for household ${g.to} by pawn ${j.pawn} of ${p && p.household}`);
         if (!(g.held >= 0) || Math.abs(sum(g.parts) - g.held) > 1e-6 * Math.max(1, g.held) || !Array.isArray(g.stops)) bad.push(`${at}: a fetch holding ${g.held}, parts ${JSON.stringify(g.parts)}`);
         else if (g.held > 0 ? j.to !== house : !g.stops.length || j.to !== g.stops[0].at) bad.push(`${at}: a fetch holding ${g.held} bound for ${j.to}`);
         for (const s of g.stops || []) if (!(s.left > 0) || Math.abs(sum(s.parts) - s.left) > 1e-6 * Math.max(1, s.left) || (s.from === null) === (s.village === null)) bad.push(`${at}: a stop ${JSON.stringify(s)}`);
