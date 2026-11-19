@@ -272,6 +272,7 @@ VB['sim/fields'] = (() => {
     else if (R.length === 1) return; // barley every year: as it was
     fd.step = (fd.step + 1) % R.length;
     fd.crop = R[fd.step];
+    if (!underCrop(fd)) delete fd.weeds;
     if (CROPS[fd.crop].fallow && fd.stage === 'plowed') fd.stage = 'stubble';
   }
   // The days after the crops' sowing windows close: [season, day, crop].
@@ -357,6 +358,7 @@ VB['sim/fields'] = (() => {
         if (n[j] === least && (i < 0 || suits(R[j], fd.crop) > suits(R[i], fd.crop))) i = j;
       fd.step = i;
       fd.crop = R[i];
+      delete fd.weeds; // no crop stands: a lost crop's weeding goes with it (VB-999's reviews at rye's close met it)
       if (CROPS[fd.crop].fallow && fd.stage === 'plowed') fd.stage = 'stubble';
     }
   }

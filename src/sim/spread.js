@@ -6,6 +6,7 @@ VB['sim/spread'] = (() => {
   const { fullTrees } = VB['gen/cover'];
   const { DAY, YEAR_DAYS, GRAZE } = VB['sim/rules'];
   const { costChanged } = VB['sim/routes'];
+  const { woodTaken } = VB['sim/territory'];
   const { FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
   const { yearScale } = VB['sim/grazing'];
   const Projects = VB['sim/projects'];
@@ -91,6 +92,7 @@ VB['sim/spread'] = (() => {
     w.treesMax[t] = 0;
     st.treeDirty.add(t);
     st.visualDirty = true;
+    woodTaken(st, t); // a village whose wood held it reckons its wood again, as for a tile cut bare (sim/forest)
   }
   // Whether farming or work keeps tile t open today: work within SPREAD.tendedDays; a household's field (in use, or its to reclaim), its
   // meadow mown within the year, or other land it uses; an empty farm's field or meadow under restoration (`restoring`, made on first need).
@@ -122,8 +124,10 @@ VB['sim/spread'] = (() => {
   function setTrees(st, t, n, join) {
     const w = st.w,
       was = treeStage(w, t),
-      wasThick = thick(w, t);
+      wasThick = thick(w, t),
+      had = w.trees[t] > 0;
     w.trees[t] = Math.max(0, Math.min(w.treesMax[t], n));
+    if (had && !(w.trees[t] > 0)) woodTaken(st, t); // thinned bare: it leaves a village's wood
     if (!wasThick && thick(w, t)) join.push(t);
     if (treeStage(w, t) !== was) st.treeDirty.add(t);
   }
