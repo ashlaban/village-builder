@@ -391,6 +391,12 @@ async function goodwillPanel() {
     console.log('village overview:', words.join(', '), '|', warned, 'warned', '|', [...box.querySelectorAll('.warning > span:not(.stat-ico)')].map((e) => e.textContent).join('; '));
     const chip = box.querySelector(`.warning [data-farm="${farm.id}"]`);
     if (chip) { chip.click(); tick(5); if (doc.getElementById('tileName').textContent !== farm.name) fail('a warning\'s chip did not select its farm'); }
+    // the feast (VB-996): a household with a living holder says whether it would lay out a feast, on the meter marked at what it keeps first
+    if (chip && hh.holder !== null && st.pawns[hh.holder].alive) {
+      const fe = [...box.querySelectorAll('.stat')].find((e) => /Feast/.test(e.querySelector('.stat-name').textContent)), m = fe && fe.querySelector('.meter');
+      if (!m || m.querySelectorAll('b').length !== 1 || !/feast/i.test(m.title) || !/Seed for its fields/.test(fe.title)) fail('the household\'s card does not say whether it would feast, with the rule\'s parts');
+      else console.log('feast:', fe.title);
+    }
     p.hungerLog = log;
   }
   // The Customs tab (VB-396) of a village's card: the customs as a charter, a phrase a custom; a phrase opens the ways of its custom, each

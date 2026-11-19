@@ -89,7 +89,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-911](backlog/VB-911.md) | Hides become leather: shoes and harness wear | animals | 3 | M | A pawn's job tans a hide and makes shoes or harness, which wear and are replaced. |
 | [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
 | [VB-990](backlog/VB-990.md) | Measure VB-785's night cost on small-y40 loaded a year | - | 3 | S | Measure the night cost on a late save |
-| [VB-996](backlog/VB-996.md) | The household's panel says why it does or does not feast | - | 3 | S | Show the rule feast (Sim.explainFeast) on the household's panel |
 | [VB-999](backlog/VB-999.md) | Rotations: a new field's seed and the window-closing reviews for every crop | crops | 3 | S | fieldProject holds barley's seed and sim/plans closing() reads barley's window, whatever the farm's rotation |
 | [VB-1006](backlog/VB-1006.md) | Occasions' ends as a table of kinds | - | 3 | S | finish in sim/occasions branches on five kinds; make each kind's end a row of OCCASIONS |
 | [VB-1028](backlog/VB-1028.md) | Page: opening the People sheet flies the camera out to the whole island (not reproduced) | - | 3 | S | Kim's playthrough of 17 November saw the camera fly out to the whole island on opening the People sheet; VB-1027 could not reproduce it and left a check that it does not |
