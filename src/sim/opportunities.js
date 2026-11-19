@@ -332,6 +332,34 @@ VB['sim/opportunities'] = (() => {
         );
   }
 
+  // ---- a call at a farm (VB-1271; the verb `call`, sim/occasions): for an unmarried pawn of age, the farms of other households in the
+  // villages within a day's walk, nearest village first, at most CALL_FARMS, each an item {verb: 'call', target: the farm, call: {place
+  // (the farm's name), village}}, why the verb's own check ----
+  const CALL_FARMS = 8;
+  function calls(view, p, out) {
+    if (spouseOf(view, p.id) !== null || p.retired || p.servant || !view.villageHours) return;
+    const { REACH } = VB['sim/occasions'],
+      v = villageOf(view, p),
+      near = view.villages
+        .map((u) => [u.id, u.id === v ? 0 : hoursBetween(view, v, u.id)])
+        .filter((x) => x[1] <= REACH)
+        .sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+    let n = 0;
+    for (const [u] of near)
+      for (const k of view.liveHouseholds) {
+        const hh = view.households[k];
+        if (n >= CALL_FARMS) return;
+        if (hh.id === p.household || hh.farmstead === null || view.farmsteads[hh.farmstead].village !== u) continue;
+        const why = check(view, p.id, 'call', hh.farmstead, null);
+        n++;
+        out.push(
+          item('call', hh.farmstead, null, why, {
+            call: { place: view.farmsteads[hh.farmstead].name, village: view.villages[u].name },
+          }),
+        );
+      }
+  }
+
   // ---- offers that wait for pawn id (VB-273, VB-690): one item for each, {verb: 'answer', target: the offer's id, when: 'offer', offer} ----
   // offer: {id, basis, text (what is offered, a sentence's object), part ('the one to marry', 'head of the household' for `for`, the pawn it
   // speaks for, or 'the one asked'), answers (who has said what so far: [{name, key, yes}]), daysLeft, advice (what the pawn would answer
@@ -394,6 +422,7 @@ VB['sim/opportunities'] = (() => {
     offers(st, view, id, out);
     if (housed) round(view, p, out);
     if (housed) visits(view, p, out);
+    if (housed) calls(view, p, out);
     return out;
   }
 
