@@ -47,6 +47,9 @@ VB['sim/stores'] = (() => {
   ROUTINE.push('drying', 'raw');
   // VB-139: a roe deer's meat, brought home from a hunt (sim/deer), folded as the catch is.
   KINDS.push('hunt');
+  // VB-709: the milk a crowded pasture cost (sim/byre), a yearly total only, never a movement of goods
+  KINDS.push('milkbite');
+  ROUTINE.push('milkbite');
   ROUTINE.push('hunt');
   // VB-009: grain ground to flour on the hand quern (routine), and a load of stone off the heap for a new quern (sim/quern)
   KINDS.push('grind', 'quern');
