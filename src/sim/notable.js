@@ -511,6 +511,7 @@ VB['sim/notable'] = (() => {
       from.offer = o.id + 1;
       return {
         why: 'offer',
+        offer: o.id, // the page opens it where it is answered (VB-1100)
         text:
           o.basis === 'match'
             ? `A match waits for an answer: ${fullName(st.pawns[o.gives.man])} and ${fullName(st.pawns[o.wants.woman])}.`
