@@ -267,3 +267,27 @@ console.log('skip ok: it ends by the eve of the moving round; a skipped run is t
   assert.strictEqual(p.advocate, null);
   console.log('skip ok: a cause that lapses is told with its last vote');
 }
+
+// VB-1114: help received twice in a year gives one stop, naming the giver and the amount, and one History line; the record keeps both
+{
+  const st = make();
+  Sim.inhabit(st, HOLDER);
+  const hid = st.pawns[HOLDER].household, fm = st.farmsteads[st.households[hid].farmstead];
+  const give = (n, from) => R.personEvent(st, HOLDER, 'gift', `Received ${n} grain from ${from}`, { n, household: hid, farm: fm.id, village: fm.village });
+  const from = Sim.skipFrom(st), before = st.record.length;
+  st.t += 5 * DAY; give(12, 'Södergården');
+  st.t += 5 * DAY; give(72, 'Södergården');
+  st.t += 5 * DAY; give(5, 'Nygården');
+  const stop = Sim.skipStop(st, from);
+  assert.ok(stop && stop.why === 'help' && /12 grain from Södergården/.test(stop.text), JSON.stringify(stop));
+  const again = Sim.skipStop(st, from);
+  assert.ok(!again || again.why !== 'help', 'the second and third help of the year stop nothing');
+  const y = Math.floor(st.t / YEAR), lines = Sim.chronicle(st, { pawn: HOLDER }, null, 50).filter((r) => Math.floor(r.ev.t / YEAR) === y && /^Received/.test(r.text));
+  assert.strictEqual(lines.length, 1, lines.map((r) => r.text).join(' | '));
+  assert.strictEqual(lines[0].text, 'Received 89 grain this year: 84 from Södergården and 5 from Nygården.');
+  assert.strictEqual(lines[0].fold.length, 3);
+  assert.strictEqual(st.record.length, before + 3, 'the record is unchanged by the fold');
+  const k = Sim.villageSummary(st, fm.village).kin[hid];
+  assert.ok(k && k.n === 89 && k.from[0][0] === 'Södergården', JSON.stringify(k));
+  console.log('skip ok: help received twice in a year gives one stop and one History line');
+}

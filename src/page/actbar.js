@@ -83,6 +83,16 @@ function workRows(list) {
   }
   return h;
 }
+// "Hand the farm on" (VB-1140): the offer of the holding to the first in line, who is named with its own estimate of its answer (principle 14).
+function handOnRow(o) {
+  const { first, next } = o.handover,
+    note = first
+      ? `To ${first.name}, first in line${
+          first.no ? `, who would not take it (${first.no})${next ? `; then ${next.name}` : ''}` : ', who would take it'
+        }; you keep your place on the farm`
+      : '';
+  return actRow(cmdAttrs(o), 'offer', 'Hand the farm on', note, o.why);
+}
 // The open list: a group's acts, or a view inside it (the moving round's wishes, the causes, the gift's form).
 function menuHTML(id, opps) {
   const p = st.pawns[id],
@@ -93,7 +103,7 @@ function menuHTML(id, opps) {
     if (o.when === 'offer') by.offers.push(o);
     else if (o.when === 'round') by.round.push(o);
     else if (o.verb === 'work') by[o.holder && o.holder.type === 'village' ? 'village' : 'house'].push(o);
-    else if (o.verb === 'callAle')
+    else if (o.verb === 'callAle' || o.verb === 'offer')
       by.house.push(o); // the household's act, its holder's to choose (VB-522)
     else if (o.verb === 'argue' || o.verb === 'dropCause')
       continue; // a cause is no act: the dock's Agenda (page/drawer)
@@ -166,6 +176,8 @@ function menuHTML(id, opps) {
     h += work.length ? workRows(work) : '<p class="act-empty">No work of your household you may take now.</p>';
     if (ale)
       h += actRow(cmdAttrs(ale), 'ale', 'Open the house for an ale evening', 'Tonight, on a barrel to spare', ale.why);
+    const hand = by.house.find((o) => o.verb === 'offer');
+    if (hand) h += handOnRow(hand);
     const own = givesFor(id);
     h += actRow(
       'data-bar="view" data-view="give"',

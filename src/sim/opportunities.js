@@ -18,9 +18,10 @@ VB['sim/opportunities'] = (() => {
   const { eligible } = VB['sim/eligibility'];
   const { staysWhy, heirRanking } = VB['sim/heirs'];
   const { matchBar, matchRules, kinOk } = VB['sim/matching'];
-  const { visitChoices, visitWhy } = VB['sim/visits'];
+  const { visitChoices, visitWhy, sendWhy } = VB['sim/visits'];
   const { wishesOf } = VB['sim/wishes'];
-  const { MARRIAGE } = VB['sim/rules'];
+  const { MARRIAGE, MATCH } = VB['sim/rules'],
+    HELP_KINDS = MATCH.help.kinds;
   const { unfit, handsLeft } = VB['sim/service'];
   const { ALE_EVENING, RITE } = VB['sim/rules'],
     { hoursBetween } = VB['sim/routes'];
@@ -28,8 +29,8 @@ VB['sim/opportunities'] = (() => {
   // the seam: forPawn reads the world only through its view, so what a pawn has not heard can later be left out here.
   const actorView = (st) => st;
   // An opportunity is a command the pawn could be given, with who it would be for and why it may not be taken now:
-  //   {verb, target, args, holder ({type: 'household' | 'village', id}, or null for its own acts), basis ('member', 'servant', 'villager'
-  //   or 'self'), fit (the planner's noise-free bid for work, else null), why (null when the command would be accepted now), kind (a job's
+  //   {verb, target, args, holder ({type: 'household' | 'village', id}, or null for its own acts), basis ('member', 'servant', 'villager',
+  //   'helper' or 'self'), fit (the planner's noise-free bid for work, else null), why (null when the command would be accepted now), kind (a job's
   //   kind, for work), site (the tile its work is done on, for work, else absent), when ('now', or 'round': an act the moving round carries
   //   out, by its rules, for a pawn that wishes it; 'winter': a visit, planned now and set out on its winter morning)}.
   const item = (verb, target, args, why, more = {}) => ({
@@ -61,7 +62,7 @@ VB['sim/opportunities'] = (() => {
       seen = new Set(),
       list = [];
     const add = (key, kind, owner, j, site) => {
-      const basis = seen.has(key) ? null : eligible(view, { owner }, p);
+      const basis = seen.has(key) ? null : eligible(view, j || { owner }, p);
       if (!basis) return;
       seen.add(key);
       const row = j
@@ -90,6 +91,12 @@ VB['sim/opportunities'] = (() => {
     ask(ASK.village, view.villages[vid], view.villages[vid]);
     // and the posted jobs of the two that are asked island-wide (a plot's steps, a claimed farm's restoration) or are still being worked
     for (const j of jobsFor(view, p)) add(j.key, j.kind, j.owner, j, j.site);
+    // and what the other households of its village offer helpers (VB-106; the planner's helpRound takes it): the jobs of the kinds help takes
+    for (const fid of view.villages[vid].farmsteads) {
+      const hid = view.farmsteads[fid].household,
+        js = hid === null || hid === hh.id ? null : view.jobsBy.get(`household:${hid}`);
+      if (js) for (const j of js) if (HELP_KINDS.includes(j.kind)) add(j.key, j.kind, j.owner, j, j.site);
+    }
     // those it may take first, best fit first; then the rest, in the order asked
     list.sort(
       (x, y) => (x.why === null ? 0 : 1) - (y.why === null ? 0 : 1) || (y.fit ?? -Infinity) - (x.fit ?? -Infinity),
@@ -115,6 +122,33 @@ VB['sim/opportunities'] = (() => {
     out.push(item('walkTo', near, null, open ? check(view, p.id, 'walkTo', near, null) : 'no one can walk there'));
   }
 
+  // ---- handing the farm on (VB-1140): a holder's offer of its holding to the first in its line, for its retirement (the basis `handover`).
+  // An item {verb: 'offer', target: the first in line (null if none), args, why (the verb's check, or why not), handover: {first, next}}, each
+  // of first and next {id, name, no}: the grown in the line asked, `no` why that pawn would not take it (its own estimate, principle 14). ----
+  function handOn(view, p, hh, out) {
+    const asked = [];
+    heirRanking(view, hh, null, false, null, null, asked);
+    const line = asked
+        .filter((e) => view.pawns[e.id].age >= 18)
+        .map((e) => ({ id: e.id, name: fullName(view.pawns[e.id]), no: e.no })),
+      first = line[0] || null,
+      next = first && first.no ? line.find((e) => !e.no) || null : null,
+      args = { basis: 'handover', gives: { household: hh.id, reason: 'retirement' } };
+    out.push(
+      item(
+        'offer',
+        first ? first.id : null,
+        args,
+        first ? check(view, p.id, 'offer', first.id, args) : 'no heir of age',
+        {
+          holder: { type: 'household', id: hh.id },
+          basis: 'member',
+          handover: { first, next },
+        },
+      ),
+    );
+  }
+
   // ---- an ale evening (VB-522): a holder may open its house, for its household; and the ale evenings and rites called within their reach
   // of its village, each an item {verb: 'attend', target: the occasion's id, occasion: {kind, place (the farm's or the village's name)}} ----
   function occasions(view, p, out) {
@@ -128,6 +162,7 @@ VB['sim/opportunities'] = (() => {
           basis: 'member',
         }),
       );
+    if (hh.holder === p.id) handOn(view, p, hh, out);
     for (const o of view.occasions) {
       if (o.kind !== 'ale' && o.kind !== 'rite') continue;
       const reach = o.kind === 'ale' ? ALE_EVENING.reach : RITE.reach;
@@ -278,16 +313,22 @@ VB['sim/opportunities'] = (() => {
     for (const id of who)
       for (const c of visitChoices(view, id))
         out.push(
-          item('visit', c.village, null, visitWhy(view, id, c.village), {
-            when: 'winter',
-            visit: {
-              who: id,
-              name: id === p.id ? null : fullName(view.pawns[id]),
-              place: view.villages[c.village].name,
-              days: c.days,
-              rations: c.rations,
+          item(
+            'visit',
+            c.village,
+            null,
+            id === p.id ? visitWhy(view, id, c.village) : sendWhy(view, p.id, id, c.village),
+            {
+              when: 'winter',
+              visit: {
+                who: id,
+                name: id === p.id ? null : fullName(view.pawns[id]),
+                place: view.villages[c.village].name,
+                days: c.days,
+                rations: c.rations,
+              },
             },
-          }),
+          ),
         );
   }
 

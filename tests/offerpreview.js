@@ -15,9 +15,8 @@ KIDS.forEach((id, i) => {
   const a = [14, 12, 10, 8, 5][i];
   st.pawns[id].born = st.t - a * Sim.YEAR - Sim.DAY;
   st.pawns[id].age = a;
-  st.asking = st.asking.filter((e) => e.pawn !== id); // its asking, written at its birth, again for the birth now set
-  VB['sim/wishes'].seek(st, id);
 });
+VB['sim/wishes'].seedAsking(st); // the askings, written at their births, again for the births now set (and the queue's index by village)
 assert.deepStrictEqual(KIDS.map((id) => st.pawns[id].father), KIDS.map(() => HANS), 'the five are Hans\'s');
 L.killPawn(st, 1, 'illness');
 L.killPawn(st, 11, 'illness');

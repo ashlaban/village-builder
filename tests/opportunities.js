@@ -27,11 +27,11 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
         const s = J.score(st, p, j, c);
         if (isOpen(st, j) && VB['sim/eligibility'].eligible(st, j, p) && s !== null && s + MATCH.noise > 0 && a.job !== j) bids.add(j.key);
       }
-      const offered = new Set(works.filter((o) => o.why === null).map((o) => o.target));
+      const offered = new Set(works.filter((o) => o.why === null && o.basis !== 'helper').map((o) => o.target));
       for (const k of bids) assert.ok(offered.has(k), `${c.hour.toFixed(1)}: pawn ${id} would bid for ${k}, which is not offered`);
       for (const k of offered) assert.ok(bids.has(k), `${c.hour.toFixed(1)}: pawn ${id} is offered ${k}, which it would not bid for`);
       for (const o of works) {
-        assert.ok(['member', 'servant', 'villager'].includes(o.basis) && o.holder && o.kind && o.when === 'now', JSON.stringify(o));
+        assert.ok(['member', 'servant', 'villager', 'helper'].includes(o.basis) && o.holder && o.kind && o.when === 'now', JSON.stringify(o));
         assert.strictEqual(o.basis === 'villager', o.holder.type === 'village');
         if (o.why === null) { may++; assert.ok(o.fit > -MATCH.noise, `fit ${o.fit}`); } else { barred++; reasons.add(o.why.replace(/\d\d:\d\d/, 'HH:MM')); }
       }
