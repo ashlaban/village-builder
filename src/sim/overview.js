@@ -21,7 +21,7 @@ VB['sim/overview'] = (() => {
     hungry: Math.ceil((HUNGER.days * 5) / 30),
     old: 60,
     bands: Object.freeze([15, 50]),
-    hands: Object.freeze([14, 60]),
+    hands: VB['sim/rules'].AGES.hands,
     kin: 0.1, // a household lives partly on help at this share of its year's need received (VB-1114)
   });
   const AUTUMN = 2; // the season the harvest comes in (as sim/hunger's toHarvest)

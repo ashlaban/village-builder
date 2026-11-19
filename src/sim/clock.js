@@ -15,7 +15,7 @@ VB['sim/clock'] = (() => {
   const { placeByDoor, release, dropJob, stepAgents, rest, travelling, dropSides, reckonAll, placeOf } =
     VB['sim/agents'];
   const { feedAway, dayAway } = VB['sim/away'];
-  const { refreshJobs, takeDay, helpers, idleAbout, lookForWork } = VB['sim/jobs'];
+  const { refreshJobs, takeDay, helpers, dutyRound, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
   const { commanded, unplanned } = VB['sim/records'];
@@ -457,6 +457,13 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'step',
+      when: (st) => !!st.daysToday || (!!st.daysCalls && st.daysCalls.length > 0),
+      owner: 'sim/days',
+      note: "a day's calls come on duty and those who gave their hours go home (VB-462)",
+      run: (st) => VB['sim/days'].step(st),
+    },
+    {
+      every: 'step',
       when: (st) => !!st.obligationsDue && st.obligationsDue.length > 0,
       owner: 'sim/obligations',
       note: 'the obligations whose term has ended go on to their next term, or are overdue (VB-310)',
@@ -635,7 +642,13 @@ VB['sim/clock'] = (() => {
     if (idle.length) {
       // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted
       // anew (VB-249), and take again; those still without help a neighbour (VB-106)
-      const got = takeDay(st, idle, c);
+      const got = st.daysToday ? dutyRound(st, idle, new Set(), c) : new Set();
+      for (const a of takeDay(
+        st,
+        idle.filter((a) => !got.has(a)),
+        c,
+      ))
+        got.add(a);
       const looked =
         got.size < idle.length
           ? lookForWork(

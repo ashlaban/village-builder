@@ -7,7 +7,7 @@
 // constant before (DIG.stock, BREW.stock, the dried fish wanted, the barrels a pit's household keeps): a held stock below the target is
 // work to post. A target is on a good, never on a grade of workmanship (Kim, 16 Nov; VB-702).
 VB['sim/targets'] = (() => {
-  const { BREW } = VB['sim/rules'];
+  const { BREW, AGES } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   const { age } = VB['sim/records'];
   const Stores = VB['sim/stores'];
@@ -45,7 +45,7 @@ VB['sim/targets'] = (() => {
     for (const id of hh.members) {
       const p = st.pawns[id],
         a = age(st, p);
-      if (p.died === null && a >= 14 && a < 60 && !p.retired) n++;
+      if (p.died === null && a >= AGES.hands[0] && a < AGES.hands[1] && !p.retired) n++;
     }
     return n;
   }

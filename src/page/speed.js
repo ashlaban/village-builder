@@ -100,6 +100,7 @@ function advanceSimulation(dt) {
     stepShare -= n;
     runSteps(n);
   }
+  autosaveRound(before);
 }
 function syncBackgroundRun() {
   if (backgroundTimer !== null) {

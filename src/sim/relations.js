@@ -345,7 +345,7 @@ VB['sim/relations'] = (() => {
     }
   }
   // r keeps the memories of the kinds `keep` passes, copied in their order to a new object, not deleted from the old: a deleted key leaves
-  // it a slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205). False if none is left.
+  // it a slow dictionary, and opinionOf reads every memory of every pair it weighs (VB-205; timed by tests/perf.js --engine). False if none is left.
   function sift(r, keep) {
     const mem = {};
     let n = 0;

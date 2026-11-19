@@ -212,6 +212,7 @@ const Culture = (() => {
     adultAnchorDrift: 0.02,
     youthAnchorDrift: 0.6, // anchors form in youth and barely move later
     kind: { village: 1, city: 2.2 },
+    upbringing: 0.3, // share of a newborn's attitude taken from its village's mean (Cavalli-Sforza and Feldman; tests/calibrate.js)
     oblique: 0.3, // share of the social target taken from the settlement as a whole
     advocacyPull: 3,
     advocacyWeight: 3,
@@ -350,6 +351,23 @@ const Culture = (() => {
     p.causeSince = null;
     p.lastCause = null;
   }
+  // A newborn's attitude (VB-1230): its parents' mean, with P.upbringing of it the mean attitude of the village's adults (`members`, the
+  // village's people; none or no adults leave the parents' alone). The village's mean, not its practice in force: the practice is a
+  // single option a meeting chose, the mean is what the people hold, so a view held by many shows in the child before it wins a vote.
+  function inherit(mother, father, members) {
+    const out = Float32Array.from(mother, (x, k) => (x + father[k]) / 2);
+    if (!members) return out;
+    const m = new Float32Array(TOTAL);
+    let n = 0;
+    for (const q of members) {
+      if (!q.alive || q.age < 12) continue;
+      for (let k = 0; k < TOTAL; k++) m[k] += q.att[k];
+      n++;
+    }
+    if (!n) return out;
+    for (let k = 0; k < TOTAL; k++) out[k] = (1 - P.upbringing) * out[k] + (P.upbringing * m[k]) / n;
+    return out;
+  }
   // A cause is a long agenda: taken up at year t it moves the pawn's own attitude a step towards it at once (P.advocacyJump), and the pawn
   // may take up no other until P.causeEvery years have passed (causeFree), though it may lay the cause down (dim null) at any time.
   function advocate(p, dim, opt, until, t, natural) {
@@ -484,7 +502,7 @@ const Culture = (() => {
     mixed: (t, mean) => (1 - P.oblique) * t + P.oblique * mean,
     anchor: (kind) => P.anchor[kind] || P.anchor.village,
   });
-  // A separate per-person function avoids repeated OSR/deoptimization of the nested traversal (VB-195).
+  // A separate per-person function avoids repeated OSR/deoptimization of the nested traversal (VB-195; timed by tests/perf.js --engine).
   function driftPerson(p, hooks, dt, rand, mul, means, tgt, press, sq) {
     const byId = hooks.byId;
     if (!p.alive || p.age < 12) return;
@@ -828,6 +846,7 @@ const Culture = (() => {
   // Simulation wiring operations; keep the enumerable public Culture API unchanged.
   Object.defineProperties(api, {
     initPerson: { value: initPerson },
+    inherit: { value: inherit },
     compileLeans: { value: compileLeans },
     advocate: { value: advocate },
     causeFree: { value: causeFree },

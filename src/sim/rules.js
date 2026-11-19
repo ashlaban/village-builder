@@ -135,6 +135,11 @@ VB['sim/rules'] = (() => {
   // within `reach` walking steps of the house, with at least `least` (a trip's take) left; a trip brings home `trip` rations times the tile's
   // stock and lowers it by `take`; every stock is full each spring. Posted from summer day `from` + 1 to the end of autumn; its second trip and
   // urgency are fishing's (FISH.secondDays, MATCH.urgency) ----
+  // The ages of life, in one table (VB-686): each row says what the age is for; the modules read it, none writes its own.
+  //   hands [14, 60): a working hand: strong enough for a season's labour from 14 (a boy at the plough, a girl at the dairy; the
+  //     ration of an adult starts there too), and past it at 60, when a body tires; the hands counted for fields, herds, help and service.
+  //   major 18: of age: holds a household and goes to law without a guardian or trust; heirs and settlers of a party are counted from it.
+  const AGES = Object.freeze({ hands: Object.freeze([14, 60]), major: 18 });
   const FORAGE = { reach: 5, trip: 2.5, take: 0.2, least: 0.2, from: 5 };
   // ---- roe deer (VB-139; Kim, 30 Oct: the one wild grazer, meat and hides when hunted, forest edges and meadows, can damage crops), starting
   // values with no source but a roe deer's size: a region's stock grows logistically at `growth` a year towards `perEdge` deer for each of
@@ -482,6 +487,10 @@ VB['sim/rules'] = (() => {
   };
 
   // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
+  // The founders' ages (VB-635; design.md, Starting scenarios): each couple's man is manMin to manMin+manSpan-1 years old, his wife
+  // 1 to wifeYounger years younger and at least wifeMin; the two servants are servantMin to servantMin+servantSpan-1.
+  const FOUNDERS = { manMin: 23, manSpan: 11, wifeYounger: 6, wifeMin: 19, servantMin: 16, servantSpan: 4 };
+
   const MARRIAGE = {
     menFrom: 20,
     womenFrom: 18, // youngest age to marry
@@ -617,6 +626,10 @@ VB['sim/rules'] = (() => {
       nb: 0.25,
       move: 0.25,
       milk: 0.5,
+      // A crowded pasture lowers the milk (VB-709): over `downAt` of pressure (a herd's week) a herd that grazed there loses `bite` of its
+      // milk for each `downAt` over (0.05: 5% at twice a week's pressure), and never more than leaves `floor` of it (0.5, an unherded herd's).
+      bite: 0.05,
+      floor: 0.5,
       grass: {
         [B.MEADOW]: 1,
         [B.MARSH]: 0.8,
@@ -928,6 +941,9 @@ VB['sim/rules'] = (() => {
   // the village). Every adult (from `minAge`) takes the work at role priority `prio`, whatever the role; it takes unlimited hands, all
   // together. An adult who works `hours` gains `came` standing for the year; a household none of whose adults worked their share (`hours`, or
   // the day's work over its adults when that is less) is away: its holder loses `missed` (the agent's own reading of "at the work day").
+  // Days owed (VB-462; design.md, Remedies, The alderman's keep): a day is `hours` of work of one adult, called for a day at least `notice`
+  // days ahead by the creditor's holder, as tasks of its plan.
+  const DAYS = { notice: 3, hours: 8 };
   const WORKDAY = {
     days: [
       [0, 0, 'fence'],
@@ -1154,6 +1170,7 @@ VB['sim/rules'] = (() => {
     ROTATIONS,
     FIELDS,
     FISH,
+    AGES,
     FORAGE,
     DEER,
     FERTILITY,
@@ -1175,6 +1192,7 @@ VB['sim/rules'] = (() => {
     HEALTH,
     ILLNESS,
     MARRIAGE,
+    FOUNDERS,
     HELP,
     GOODWILL,
     TRAVEL,
@@ -1213,6 +1231,7 @@ VB['sim/rules'] = (() => {
     PEAT,
     BUILD,
     WORKDAY,
+    DAYS,
     COMMONS,
   };
 })();

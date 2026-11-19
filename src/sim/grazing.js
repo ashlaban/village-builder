@@ -1,4 +1,4 @@
-// @sys sim/grazing: herding and grazing pressure (VB-136): the day's pasture, the herder who takes the herds there and home, the pressure
+// @sys sim/grazing: herding and grazing pressure (VB-136): the day's pasture, the herder, the pressure and the milk factor of a crowded pasture (VB-709)
 VB['sim/grazing'] = (() => {
   const { DAY, YEAR, HERD, stalled, cal } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
@@ -128,6 +128,13 @@ VB['sim/grazing'] = (() => {
   // half their milk, and its cattle may stray into a crop (sim/byre).
   const unherded = (st, herd, c) =>
     !stalled(cal((c.day - 1) * DAY)) && herd.herded !== c.day && herd.herded !== c.day - 1;
+  // A crowded pasture lowers the milk (VB-709): the factor on a household's herds' milk of the day, 1 - bite * (pressure - downAt) / downAt
+  // of the pressure of the tile they grazed lately (hh.pasture), between `floor` and 1; derived each day, no state. 1 with no pasture.
+  const milkFactor = (st, hh) => {
+    const H = HERD.herding;
+    if (!hh.pasture) return 1;
+    return Math.max(H.floor, Math.min(1, 1 - (H.bite * (grazeOf(st, hh.pasture.tile) - H.downAt)) / H.downAt));
+  };
   // ---- the job kind (sim/kinds), the game's first background kind (VB-251): a herder takes the household's herds to the day's pasture
   // (drawn when the job is first posted) and minds them HERD.herding.hours at the side, within reach of it, adding their pressure each
   // step, then brings them home (sim/agents) ----
@@ -173,6 +180,7 @@ VB['sim/grazing'] = (() => {
   return {
     yearScale,
     grazeOf,
+    milkFactor,
     graze,
     herdsBack,
     halveGraze,

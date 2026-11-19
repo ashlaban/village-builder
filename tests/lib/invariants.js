@@ -54,16 +54,26 @@ function checkState(st) {
     const O = globalThis.VB['sim/obligations'], all = st.obligations || [], STATUS = ['open', 'part', 'overdue', 'met', 'forgiven', 'lapsed', 'defaulted'];
     const exists = (x) => !!x && (x.kind === 'pawn' ? !!st.pawns[x.id] : x.kind === 'household' ? !!st.households[x.id] : x.kind === 'village' ? !!st.villages[x.id] : false);
     all.forEach((o, i) => {
-      const at = `obligation ${i}`, n = o.owes && (o.owes.rations !== undefined ? o.owes.rations : o.owes.hours);
+      const at = `obligation ${i}`, n = o.owes && (o.owes.rations !== undefined ? o.owes.rations : o.owes.days !== undefined ? o.owes.days : o.owes.hours);
       if (o.id !== i) bad.push(`${at}: id ${o.id}`);
       if (!O.KINDS[o.kind] || !STATUS.includes(o.status)) bad.push(`${at}: kind ${o.kind}, status ${o.status}`);
       if (!(n > 0) || !(o.delivered >= 0) || o.delivered > n + 1e-9) bad.push(`${at}: delivered ${o.delivered} of ${n}`);
       if ((o.status === 'met') !== (o.delivered >= n - 1e-9)) bad.push(`${at}: ${o.status} with ${o.delivered} of ${n} delivered`);
-      if (o.status === 'open' && o.delivered > 0) bad.push(`${at}: open with ${o.delivered} delivered`);
+      if (o.kind === 'days') {
+        // VB-462: days owed: a source, and called days that are whole, not more than are left, and none once closed
+        if (!['debt', 'keep', 'patron'].includes(o.source)) bad.push(`${at}: source ${o.source}`);
+        if (!Number.isInteger(o.called) || o.called < 0 || (['met', 'forgiven', 'lapsed', 'defaulted'].includes(o.status) ? false : o.called > Math.ceil(n - o.delivered - 1e-9) + 1)) bad.push(`${at}: called ${o.called} of ${n - o.delivered} left`);
+      }
+      if (o.status === 'open' && o.delivered > 0 && o.kind !== 'days') bad.push(`${at}: open with ${o.delivered} delivered`);
       if (!(o.since <= st.t) || !Number.isFinite(o.due)) bad.push(`${at}: since ${o.since}, due ${o.due}`);
       if (['open', 'part', 'overdue'].includes(o.status) && !(exists(o.debtor) && exists(o.creditor) && (o.enforcer === null || exists(o.enforcer))))
         bad.push(`${at}: a party of it does not exist (${JSON.stringify([o.debtor, o.creditor, o.enforcer])})`);
     });
+    for (const [day, pawn, oid] of st.daysCalls || []) {
+      const o = all[oid];
+      if (!o || o.kind !== 'days' || !st.pawns[pawn] || !Number.isInteger(day)) bad.push(`daysCalls: [${day}, ${pawn}, ${oid}]`);
+    }
+    if (st.daysCalls && st.daysCalls.some((c, i) => i && (st.daysCalls[i - 1][0] > c[0] || (st.daysCalls[i - 1][0] === c[0] && st.daysCalls[i - 1][1] > c[1])))) bad.push('daysCalls: not sorted');
     const made = O.rebuilt(st);
     if (JSON.stringify(made.due) !== JSON.stringify(st.obligationsDue)) bad.push(`obligations: the due-queue ${JSON.stringify(st.obligationsDue)} is not the running ones ${JSON.stringify(made.due)}`);
     for (const as of ['debtor', 'creditor']) {

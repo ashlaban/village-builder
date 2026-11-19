@@ -61,6 +61,7 @@ function commandWords(c) {
   if (c.verb === 'claim') return `Claim ${st.farmsteads[c.target].name}`;
   if (c.verb === 'give' && Number.isInteger(c.target))
     return `Give ${c.args.n} grain to ${st.farmsteads[st.households[c.target].farmstead].name}`;
+  if (c.verb === 'call') return `Call at ${st.farmsteads[c.target].name}`;
   if (c.verb === 'serve')
     return c.target === null ? 'Take service' : `Take service at ${holderName({ type: 'household', id: c.target })}`;
   return VERB_WORDS[c.verb] || c.verb;
