@@ -16,13 +16,33 @@ function pair(st) {
       H.herdOf(st, h, 'cattle').head.some((x) => x.kind === 'bull'));
     if (s) return [b, s, st.households.find((h) => villageOf(h) !== villageOf(b))];
   }
+  // none drawn: the village's household without cattle is emptied of its sheep and its meadow, and a neighbour that has them gets the bull
+  // and cows added (the herds drawn at seeding move with every custom added: VB-711)
+  const pairs = st.households.flatMap((b) => st.households.filter((h) => h !== b && villageOf(h) === villageOf(b) && H.herdOf(st, h, 'cattle')).map((s) => [b, s]));
+  pairs.sort((x, y) => cowsOf(st, x[1]) - cowsOf(st, y[1]));
+  for (const [b, s] of pairs) {
+    const away = st.households.find((h) => villageOf(h) !== villageOf(b));
+    if (!away) continue;
+    st.farmsteads[b.farmstead].meadows.length = 0;
+    for (const id of b.herds) {
+      const hd = st.herds[id];
+      if (hd.species === 'cattle') hd.head = [];
+      else hd.ewes = hd.rams = hd.lambs = 0;
+      hd.household = null;
+    }
+    b.herds = [];
+    const herd = H.herdOf(st, s, 'cattle');
+    for (const kind of ['bull', 'cow', 'cow'])
+      if (kind !== 'bull' || !herd.head.some((x) => x.kind === 'bull')) H.addHead(st, herd, kind === 'bull' ? 'm' : 'f', st.t - 4 * Sim.YEAR, kind);
+    return [b, s, away];
+  }
   throw new Error('cowwant: the probe has no household without cattle beside one with a bull');
 }
 function setUp() {
   const st = state(), [buyer, seller, away] = pair(st), f = st.farmsteads[buyer.farmstead];
   check(!X.cowWanted(st, buyer), 'no meadow: no cow wanted');
   M.addMeadow(st, f, buyer, M.chooseMeadow(st, f));
-  seller.hay = 200; // enough to spare a cow and its winter's hay, and grain for an allowance over a cow's worth
+  seller.hay = 600; // enough to spare a cow and its winter's hay, and grain for an allowance over a cow's worth
   VB['sim/stores'].put(st, seller, VB['sim/stores'].grainGood('barley'), 100, 'harvest');
   return { st, buyer, seller, away, plan: st.plans.households.get(buyer.id) };
 }
@@ -71,7 +91,8 @@ function leadHome(st, buyer) {
   check(!X.startInLife(st, buyer, away), 'a household of another village gives no heifer');
   check(X.startInLife(st, buyer, seller), 'the neighbour spares a heifer');
   check(plan.want.kind === 'heifer' && plan.want.by === 'kin', `start in life: ${JSON.stringify(plan.want)}`);
-  check(leadHome(st, buyer), 'the lead job was taken before the heifer came');
+  const lj = leadHome(st, buyer);
+  check(lj, 'the lead job was taken before the heifer came');
   check(H.herdOf(st, buyer, 'cattle').head.some((h) => h.kind === 'heifer'), 'the heifer is home');
   check(balance(st, seller.holder, buyer.holder) <= 0, 'a start in life is not booked');
   check(!checkState(st).length, 'start in life: ' + checkState(st).slice(0, 3).join('; '));

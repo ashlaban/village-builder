@@ -6,6 +6,7 @@ const CHARTER = [
   ['Inheritance', ['handover', 'heirSex', 'birthOrder', 'heirCount', 'daughterShare', 'widow', 'ownHeir']],
   ['Household', ['residence', 'kinLimit', 'affinity', 'feedOrder']],
   ['Meeting', ['voice', 'commons']],
+  ['Husbandry', ['stocking']],
 ];
 const SAID = {
   claims: [
@@ -108,6 +109,14 @@ const SAID = {
       own: 'after a household’s own work',
       fair: 'with the village’s other duties',
       first: 'before a household’s own work',
+    },
+    '.',
+  ],
+  stocking: [
+    'A household stocks for winter ',
+    {
+      hay: 'to the hay it has, and slaughters what the hay will not carry',
+      herd: 'to keep its herd, and stretches the hay',
     },
     '.',
   ],

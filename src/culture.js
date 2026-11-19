@@ -169,6 +169,16 @@ const Culture = (() => {
         ['free', 'No bar'],
       ],
     },
+    // VB-711 (Kim, 16 Nov): how hard a household stocks for winter: the margin its autumn count keeps (sim/byre, HERD.margins)
+    {
+      key: 'stocking',
+      label: 'Stocking for winter',
+      m: 0.6,
+      opts: [
+        ['hay', 'To the hay'],
+        ['herd', 'Keep the herd'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -199,6 +209,7 @@ const Culture = (() => {
       feedOrder: 'equal',
       ownHeir: 'behind',
       dispute: 'first',
+      stocking: 'hay',
       commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
     },
   };

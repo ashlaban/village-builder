@@ -298,7 +298,7 @@ VB['sim/routes'] = (() => {
   // @state st.villageHours: array, a row for each village id, each of length the number of villages; row[u] the walking hours from village v's
   //   green (its centre) to u's, by the route search's costs over SPEED, or null beyond ROUTE.reach or with no route by land; the diagonal 0.
   //   Symmetric, as the costs are. Compiled a village a step by the calendar (autumn day 9), and at once for a village founded
-  //   (sim/routes). Nothing reads it yet: hoursBetween (VB-287, VB-288, VB-290).
+  //   (sim/routes). Read by hoursBetween (sim/gathering, sim/society).
   // Village k's row, and column k of every other row, from one search of the villages' centres.
   function refreshHoursRow(st, k) {
     const T = st.villageHours,
