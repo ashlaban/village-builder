@@ -20,6 +20,7 @@ VB['sim/heirs'] = (() => {
     holdingOf,
     practice,
     farmPractice,
+    villageOf,
     noteHolder,
     kinship,
     atHousehold,
@@ -43,14 +44,10 @@ VB['sim/heirs'] = (() => {
   const { abandoned } = VB['sim/fields'],
     { dropPlan } = VB['sim/plans'],
     { emit } = VB['sim/events'];
-  // Who would inherit this farm now, in order, under the practice of its village. The order is whom the holding is offered to, and the
-  // passing over is what each would answer (VB-824; design.md, Succession: Handed on, and taken up): `asked`, an array, gets the whole
-  // line in the order asked, {id, no (why this one would not take it, or null)}; those with no null, in that order, are the ranking.
-  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, deps = null, asked = null) {
-    VB.count.heirRank++;
-    const f = st.farmsteads[hh.farmstead],
-      cu = cust || practice(st, f.village);
-    const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
+  // The living of pawn `line`'s blood in the order its customs `cu` give (sex, birth order; under "chosen" those of household `homeId`
+  // first): its children and their lines (a dead child's children stand in its place), to four generations; then, unless `nested`, its
+  // siblings and their lines and its parents' siblings and theirs. {out, direct}: direct the first part alone.
+  function bloodLine(st, line, cu, homeId, nested) {
     const sexRank = (p) =>
       cu.heirSex === 'sonsFirst'
         ? p.sex === 'm'
@@ -69,8 +66,8 @@ VB['sim/heirs'] = (() => {
         if (s) return s;
         if (cu.birthOrder === 'youngest') return pb.born - pa.born;
         if (cu.birthOrder === 'chosen') {
-          const ha = pa.household === hh.id ? 0 : 1,
-            hb = pb.household === hh.id ? 0 : 1;
+          const ha = pa.household === homeId ? 0 : 1,
+            hb = pb.household === homeId ? 0 : 1;
           if (ha !== hb) return ha - hb;
         }
         return pa.born - pb.born;
@@ -88,12 +85,6 @@ VB['sim/heirs'] = (() => {
     };
     lineOf(line, 0);
     const direct = new Set(out);
-    if (deps) {
-      deps.add(line);
-      deps.add(hh.holder);
-    }
-    // Only full rankings need the wider family; ownFirstOf asks just for direct heirs.
-    // Then siblings and their lines, then the parents' siblings (cousins) and theirs.
     seen.add(line);
     let anc = line;
     for (let up = 0; !nested && up < 2; up++) {
@@ -108,6 +99,35 @@ VB['sim/heirs'] = (() => {
       }
       anc = parent;
       seen.add(parent);
+    }
+    return { out, direct };
+  }
+  // A person's successor (VB-1121): the first living of its line by the inheritance customs of its village (bloodLine, read as
+  // heirRanking reads it), whether or not it holds a farm. The widow's right to a farm, a successor's own holding, its refusal or its
+  // being passed over for the holding do not unmake it: it is the line's, not the holding's. Under "sons only" a daughter is not of the
+  // line. The line reaches as far as a farm of its would: its descendants to four generations, its siblings and theirs, its parents'
+  // siblings and theirs; past them it ends, and null is returned.
+  // `village` names the customs where the pawn has no household (the played pawn after its death: st.player.left.village).
+  function successorOf(st, id, village = null) {
+    const p = st.pawns[id];
+    if (!p) return null;
+    const cu = practice(st, p.household !== null ? villageOf(st, p) : village !== null ? village : 0);
+    const { out } = bloodLine(st, id, cu, p.household, false);
+    const q = out.find((x) => x !== id && !(cu.heirSex === 'sons' && st.pawns[x].sex === 'f'));
+    return q === undefined ? null : q;
+  }
+  // Who would inherit this farm now, in order, under the practice of its village. The order is whom the holding is offered to, and the
+  // passing over is what each would answer (VB-824; design.md, Succession: Handed on, and taken up): `asked`, an array, gets the whole
+  // line in the order asked, {id, no (why this one would not take it, or null)}; those with no null, in that order, are the ranking.
+  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, deps = null, asked = null) {
+    VB.count.heirRank++;
+    const f = st.farmsteads[hh.farmstead],
+      cu = cust || practice(st, f.village);
+    const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
+    const { out, direct } = bloodLine(st, line, cu, hh.id, nested);
+    if (deps) {
+      deps.add(line);
+      deps.add(hh.holder);
     }
     // Each one's answer: no, with why, when it holds a farm already or lives on a spouse's (farms are not combined)
     const no = asked ? new Map() : null,
@@ -693,6 +713,7 @@ VB['sim/heirs'] = (() => {
   });
   return {
     heirRanking,
+    successorOf,
     moveTo,
     transfer,
     extinct,

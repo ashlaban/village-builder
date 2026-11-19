@@ -423,7 +423,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if (!(skipped.t > skipT) || skipped.t - skipT > 1153) fail(`the skip ran from ${skipT} to ${skipped.t}`);
   await page.click('#skipNote');
   await stopPlaying();
-  // succession (VB-213): the played holder is killed from the debug drawer; the page pauses and offers its successors, the heir first
+  // succession (VB-213, VB-1121): the played holder is killed from the debug drawer; the page pauses and shows its successor by the customs
   await playSelected();
   // the Agenda's support as a meter (VB-1105): a cause against the practice at a constructed meeting, the share it needs marked on it
   await page.evaluate(() => {
@@ -440,13 +440,13 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('#debugBtn'); await page.click('[data-act="kill"]'); await page.click('#drawerClose');
   await page.waitForSelector('#succession:not([hidden]) button[data-succeed]');
   const offer = await page.evaluate((dead) => {
-    const { st, Sim } = window.__play, list = Sim.successors(st, dead), first = document.querySelector('#succession button[data-succeed]');
-    return { kept: st.player && st.player.pawn === dead, heir: list[0], shown: +first.dataset.succeed, text: first.textContent,
+    const { st, Sim } = window.__play, heir = Sim.successor(st, dead), first = document.querySelector('#succession button[data-succeed]');
+    return { kept: st.player && st.player.pawn === dead, heir, n: document.querySelectorAll('#succession button[data-succeed]').length, shown: +first.dataset.succeed, text: first.textContent,
       paused: document.querySelector('[data-speed="0"]').getAttribute('aria-pressed') };
   }, played);
   if (!offer.kept) fail('the player did not keep its dead pawn until the choice');
-  if (!offer.heir || offer.heir.why !== 'heir' || offer.shown !== offer.heir.id ||
-    !/Heir|Widow|Holder|Heiress|Child|Retired|Without/.test(offer.text)) fail(`the heir is not offered first: ${JSON.stringify(offer)}`);
+  if (!offer.heir || offer.n !== 1 || offer.shown !== offer.heir.id || !/^Go on as /.test(offer.text))
+    fail(`the successor is not the one shown: ${JSON.stringify(offer)}`);
   if (offer.paused !== 'true') fail('the page did not pause at the played pawn\'s death');
   await page.click('#succession button[data-succeed]');
   await page.waitForSelector('#playBox [data-play="auto"]');
@@ -456,7 +456,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       box: document.getElementById('succession').hidden };
   }, played);
   if (after.pawn !== offer.heir.id ||
-    !/went on as the heir/.test(after.events[after.events.length - 1])) fail(`the heir was not gone on as: ${JSON.stringify(after)}`);
+    !/went on as its /.test(after.events[after.events.length - 1])) fail(`the successor was not gone on as: ${JSON.stringify(after)}`);
   await page.waitForFunction(() => document.getElementById('succession').hidden);
   await stopPlaying();
   // a marriage offer in the page (VB-273): the played pawn's match waits from its asking; the panel asks, the answer No leaves both unmarried

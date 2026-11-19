@@ -1092,6 +1092,7 @@ function checkState(st) {
     const r = pl.refused;
     // what its death left (VB-213): null while the played pawn lives, and from its death the farm, spouse and friends noted then, no queue
     const lf = pl.left, dead = !!st.pawns[pl.pawn] && st.pawns[pl.pawn].died !== null, TIES_MAX = globalThis.VB['sim/player'].TIES_MAX;
+    if (!(pl.ended === null || (dead && pl.ended <= st.t))) bad.push(`player.ended: ${pl.ended} for a pawn ${dead ? 'dead' : 'alive'}`);
     if (dead !== (lf !== null && lf !== undefined)) bad.push(`player.left: ${JSON.stringify(lf)} for a pawn ${dead ? 'dead' : 'alive'}`);
     else if (dead) {
       if (pl.queue.length || !(lf.t <= st.t) || !(lf.held === null || st.households[lf.held]) || !(lf.spouse === null || st.pawns[lf.spouse])

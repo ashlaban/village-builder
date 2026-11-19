@@ -442,6 +442,7 @@ VB['sim/saves'] = (() => {
       delete st.player.wishes;
     }
     if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
+    if (st.player && st.player.ended === undefined) st.player.ended = null; // VB-1121
     if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
     // VB-519: nor a culture's values (each starts at its archetype's), nor the twelve traits (those it has kept), nor a child's hungry days
     if (st.cenv) for (const c of st.cenv.cultures) if (!c.values) c.values = { ...TRAITS.culture.oldNordic };

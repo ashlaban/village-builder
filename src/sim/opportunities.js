@@ -16,7 +16,7 @@ VB['sim/opportunities'] = (() => {
   const { SOCIAL } = VB['sim/rules'];
   const { fit, jobsFor } = VB['sim/jobs'];
   const { eligible } = VB['sim/eligibility'];
-  const { staysWhy, heirRanking } = VB['sim/heirs'];
+  const { staysWhy, heirRanking, successorOf } = VB['sim/heirs'];
   const { matchBar, matchRules, kinOk } = VB['sim/matching'];
   const { visitChoices, visitWhy, sendWhy } = VB['sim/visits'];
   const { wishesOf } = VB['sim/wishes'];
@@ -453,12 +453,12 @@ VB['sim/opportunities'] = (() => {
     return null;
   }
 
-  // ---- the player's succession (VB-213): whom it may go on as after its pawn's death ----
-  const KIN = { reach: 4, bySpouse: 2, spouses: 2 },
-    SUCCESSORS_MAX = 40;
+  // ---- the player's succession (VB-213, VB-1121): whom it goes on as after its pawn's death ----
+  const KIN = { reach: 6 };
   const KIN_WORDS = {
     '0:1': ['son', 'daughter'],
     '0:2': ['grandson', 'granddaughter'],
+    '0:3': ['great-grandson', 'great-granddaughter'],
     '1:0': ['father', 'mother'],
     '2:0': ['grandfather', 'grandmother'],
     '1:1': ['brother', 'sister'],
@@ -499,83 +499,24 @@ VB['sim/opportunities'] = (() => {
     }
     return out;
   }
-  // The living the player may go on as after pawn id, in order and without repeats, each {id, why}: the heirs of the farm it held (who
-  // holds it now, then heirRanking); its kin by blood (to first cousins) or marriage (its spouse, the spouse's kin to degree KIN.bySpouse,
-  // the spouses of its own kin to degree KIN.spouses), nearest first, of any age; its household; those it thought friends. At most
-  // SUCCESSORS_MAX. For the player's dead pawn the farm, the spouse and the friends are those noted at its death (st.player.left); for
-  // any other pawn they are read now. Read-only; it walks the pawn's family and household, never the island's pawns or records.
-  function successors(st, id) {
-    const p = st.pawns[id],
-      out = [],
-      seen = new Set([id]);
-    if (!p) return out;
-    const left = st.player && st.player.pawn === id ? st.player.left : null;
-    const add = (q, why) => {
-      if (!seen.has(q) && st.pawns[q].alive) {
-        seen.add(q);
-        out.push({ id: q, why });
-      }
-    };
-    const holding = left ? null : holdingOf(st, id),
-      held = left ? left.held : holding ? holding.id : null;
-    if (held !== null && !st.households[held].dissolved) {
-      const hh = st.households[held];
-      if (hh.holder !== null) add(hh.holder, 'heir');
-      for (const q of heirRanking(st, hh)) add(q, 'heir');
-    }
-    const sp = left ? left.spouse : spouseOf(st, id),
-      kin = [],
-      mine = bloodKin(st, id, KIN.reach);
-    for (const [q, k] of mine) {
-      kin.push({ id: q, deg: k.deg, blood: 0, why: k.word });
-      const qs = k.deg <= KIN.spouses ? spouseOf(st, q) : null;
-      if (qs !== null && qs !== id && !mine.has(qs))
-        kin.push({ id: qs, deg: k.deg, blood: 1, why: `${k.word}'s ${sexed(st, qs, ['husband', 'wife'])}` });
-    }
-    if (sp !== null) {
-      const spouse = sexed(st, sp, ['husband', 'wife']);
-      kin.push({ id: sp, deg: 0, blood: 1, why: spouse });
-      for (const [q, k] of bloodKin(st, sp, KIN.bySpouse))
-        if (!mine.has(q)) kin.push({ id: q, deg: k.deg, blood: 1, why: `${spouse}'s ${k.word}` });
-    }
-    kin.sort((x, y) => x.deg - y.deg || x.blood - y.blood || st.pawns[x.id].born - st.pawns[y.id].born || x.id - y.id);
-    for (const k of kin) add(k.id, k.why);
-    const home = p.household !== null ? st.households[p.household] : null;
-    if (home && !home.dissolved) for (const q of home.members) add(q, 'household');
-    const ties = left
-      ? left.ties
-      : relationsOf(st, id)
-          .filter((r) => r.opinion >= SOCIAL.friend)
-          .sort((x, y) => y.opinion - x.opinion || x.id - y.id)
-          .map((r) => ({ id: r.id, why: opinionWord(r.opinion) }));
-    for (const t of ties) add(t.id, t.why);
-    return out.slice(0, SUCCESSORS_MAX);
+  // The successor of pawn id (VB-1121), {id, why: its link to the pawn ('son', 'niece', ...)}, or null: the first of its line by its
+  // village's inheritance customs (successorOf, sim/heirs), read for the played pawn after its death by the customs it died under.
+  function successor(st, id) {
+    const left = st.player && st.player.pawn === id ? st.player.left : null,
+      q = successorOf(st, id, left ? left.village : null);
+    if (q === null) return null;
+    const k = bloodKin(st, id, KIN.reach).get(q);
+    return { id: q, why: k ? k.word : 'kin' };
   }
-  // The player goes on as pawn id, after its pawn's death: one of the successors, or, when none of them is alive, any living adult, which
-  // is a break in the line. Either is written to the dead pawn's events. True, or why not.
+  // The player goes on as its successor, after its pawn's death: id must be the one successor names; with none alive the line has ended
+  // (goOnAs, sim/player). Written to the dead pawn's events. True, or why not.
   function succeed(st, id) {
     const pl = st.player;
     if (!pl || !pl.left) return 'the played pawn has not died';
-    const q = st.pawns[id],
-      list = successors(st, pl.pawn),
-      pick = list.find((s) => s.id === id);
-    if (!q || !q.alive) return `pawn ${id} is not a living pawn`;
-    if (list.length && !pick) return `${fullName(q)} is not among those ${fullName(st.pawns[pl.pawn])} leaves`;
-    if (!list.length && q.age < 18) return 'only an adult begins a new line';
-    const link = !pick
-      ? null
-      : pick.why === 'heir'
-        ? 'the heir'
-        : pick.why === 'household'
-          ? 'one of its household'
-          : `its ${pick.why}`;
-    return goOnAs(
-      st,
-      id,
-      pick
-        ? `The player went on as ${link}, ${fullName(q)}`
-        : `A break in the line: the player went on as ${fullName(q)}`,
-    );
+    const s = successor(st, pl.pawn);
+    if (!s) return goOnAs(st, null, `The line ended with ${fullName(st.pawns[pl.pawn])}: no one of it was left`);
+    if (s.id !== id) return `${fullName(st.pawns[pl.pawn])}'s successor is ${fullName(st.pawns[s.id])}`;
+    return goOnAs(st, id, `The player went on as its ${s.why}, ${fullName(st.pawns[id])}`);
   }
-  return { actorView, forPawn, successors, succeed, roundChoice };
+  return { actorView, forPawn, successor, succeed, roundChoice };
 })();

@@ -2,7 +2,7 @@
 // wish, its answer and its choices as head, its pawn's death and whom it goes on as
 VB['sim/player'] = (() => {
   const { release } = VB['sim/agents'];
-  const { holdingOf, spouseOf, personEvent, living } = VB['sim/records'];
+  const { holdingOf, spouseOf, personEvent, living, villageOf, fullName } = VB['sim/records'];
   const { cal, WORK, SOCIAL, HEALTH } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner } = VB['sim/wishes'];
@@ -15,7 +15,8 @@ VB['sim/player'] = (() => {
   //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
   //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), left (null while the pawn
   //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
-  //   it thought friends, best first)}: what a death erases and the player's succession needs, VB-213), last (null, or {kind, farm, good,
+  //   it thought friends, best first), village (the settlement whose customs name its successor, VB-1121)}: what a death erases and the
+  //   player's succession needs, VB-213), ended (null, or when the line ended: its pawn died with no successor, VB-1121), last (null, or {kind, farm, good,
   //   n, t}: the pawn's last task done or load brought home, VB-1118), days[] (at most DAYS_KEPT {t, health, before, hunger, food, why}:
   //   the pawn's health after each of its last meals, its hunger level, its household's food in days of need, and what moved its health,
   //   why {hunger, cold, damp, ill, rest}, VB-1118)}; plain data, saved with the run
@@ -41,6 +42,7 @@ VB['sim/player'] = (() => {
       refused: null,
       since: st.t,
       left: null,
+      ended: null,
       last: null,
       days: [],
     };
@@ -56,7 +58,8 @@ VB['sim/player'] = (() => {
   }
   // The played pawn dies (sim/lifecycle, before the death ends its marriage and drops its ties): the player keeps it, with an empty queue,
   // until it goes on as another (VB-213), and what the death erases is noted: the farm it held, its spouse, those it thought friends.
-  function playerDied(st, id) {
+  // `next(st, id, village)` names its successor (successorOf, sim/heirs, which loads later): with none, the line ends at once.
+  function playerDied(st, id, next) {
     const pl = st.player;
     if (!pl || pl.pawn !== id) return;
     const held = holdingOf(st, id),
@@ -68,13 +71,24 @@ VB['sim/player'] = (() => {
       held: held ? held.id : null,
       spouse: spouseOf(st, id),
       ties: friends.slice(0, TIES_MAX).map((r) => ({ id: r.id, why: opinionWord(r.opinion) })),
+      village: st.pawns[id].household !== null ? villageOf(st, st.pawns[id]) : null,
     };
+    if (next(st, id, pl.left.village) === null)
+      goOnAs(st, null, `The line ended with ${fullName(st.pawns[id])}: no one of it was left`);
   }
   // The player goes on as pawn id after its pawn's death: `text` is written to the dead pawn's events, and id is played from now, with
   // nothing queued and no wishes. sim/opportunities' succeed checks who may be chosen; true, or why not.
+  // With id null no one of the line lives (VB-1121): the game ends, the break is written, and the player keeps the dead pawn, so a save of
+  // an ended game loads as ended.
   function goOnAs(st, id, text) {
     const pl = st.player;
     if (!pl || !pl.left) return 'the played pawn has not died';
+    if (pl.ended !== null) return 'the line has ended';
+    if (id === null) {
+      pl.ended = st.t;
+      personEvent(st, pl.pawn, 'player', text);
+      return 'the line has ended';
+    }
     const dead = living(st, id);
     if (dead) return dead;
     personEvent(st, pl.pawn, 'player', text);
