@@ -103,11 +103,30 @@ const setGrain = (hh, n) => { hh.grain = { barley: n }; };
   setGrain(a, reserve + 100);
   payOwed(st);
   assert.ok(Sim.shareOwed(st, s1) === 0 && Sim.shareOwed(st, s2) === 0 && Sim.grainOf(b) === 110 && st.obligationsDue.length === 0, 'all met');
-  // as pawn.owedFrom did: the farm that owes last owes all
+  // each farm owes its own and pays its own (VB-1155)
   O.oweShare(st, a, s1, 5);
   O.oweShare(st, b, s1, 7);
-  assert.deepStrictEqual(O.due(st, P(s1)).map((o) => [o.debtor.id, O.left(o)]), [[b.id, 5], [b.id, 7]]);
-  sound(st, 'the last farm owes all');
+  assert.deepStrictEqual(O.due(st, P(s1)).map((o) => [o.debtor.id, O.left(o)]), [[a.id, 5], [b.id, 7]]);
+  sound(st, 'each farm owes its own');
+  { // a copy: two farms each pay their own; a farm taken over pays what it owed; an abandoned farm's shares lapse
+    const t = Sim.load(probe.world(), JSON.parse(JSON.stringify(Sim.save(st)))), [ta, tb] = [t.households[a.id], t.households[b.id]];
+    setGrain(ta, reserve + 5); setGrain(tb, SHARES.reserveBase + tb.members.length * SHARES.reservePerMember + 7);
+    const before = Sim.grainOf(tb);
+    payOwed(t);
+    assert.ok(Sim.shareOwed(t, s1) === 0 && Sim.grainOf(ta) === reserve, 'each farm paid its own: ' + Sim.shareOwed(t, s1) + ' ' + (Sim.grainOf(tb) - before));
+    O.oweShare(t, ta, s1, 9);
+    ta.dissolved = true; // lint-allow: owner a constructed state: the debtor gone, its farm taken by another household
+    const f = t.farmsteads[ta.farmstead], c = t.households.find((h) => !h.dissolved && h.id !== ta.id && h.id !== tb.id) || tb;
+    f.household = c.id; // lint-allow: owner the farm taken over
+    payOwed(t);
+    assert.deepStrictEqual(O.due(t, P(s1)).map((o) => [o.debtor.id, O.left(o)]), [[c.id, 9]], 'a farm taken over owes what it owed');
+    const e = c === tb ? t.households.find((h) => !h.dissolved && h.id !== c.id) : tb, g = t.farmsteads[e.farmstead];
+    O.oweShare(t, e, s1, 3);
+    e.dissolved = true; g.household = null; g.state = 'derelict'; // lint-allow: owner the farm abandoned
+    payOwed(t);
+    assert.deepStrictEqual(O.due(t, P(s1)).map((o) => o.debtor.id), [c.id], 'an abandoned farm\'s shares lapse');
+    assert.strictEqual(t.obligations[t.obligations.length - 1].status, 'lapsed');
+  }
   // what a dead sibling was owed lapses, told once
   st.pawns[s1].alive = false;
   const n = st.record.length;
