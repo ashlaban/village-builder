@@ -55,7 +55,7 @@ const at = (st, t) => {
   const r = callAle(st, host);
   assert.ok(typeof r === 'string' && /kept for an occasion/.test(r), `the wedding's barrel is kept: ${r}`);
   barrel(st, host);
-  assert.strictEqual(O.cannotCallAle(st, host.holder), null, 'a second barrel is to spare');
+  assert.strictEqual(VB['sim/venues'].cannotCallAle(st, host.holder), null, 'a second barrel is to spare');
 }
 
 // 3. A second host of the same village the same day waits; a host of the other village may call its own.
@@ -146,9 +146,9 @@ const at = (st, t) => {
 // 7. The rites are called on a rite's day, on each green, by the calendar.
 {
   const st = state();
-  assert.ok(O.riteDay(Sim.cal(0)), 'spring day 1 is a rite day');
+  assert.ok(VB['sim/venues'].riteDay(Sim.cal(0)), 'spring day 1 is a rite day');
   st.rng.occasions.fix = 0;
-  O.callRites(st);
+  VB['sim/venues'].callRites(st);
   const rites = st.occasions.filter((o) => o.kind === 'rite');
   assert.strictEqual(rites.length, 2, 'a rite on each green');
   assert.ok(rites.every((o) => o.start % DAY === 12 && o.asked.length > 0), 'at noon, its adults asked');

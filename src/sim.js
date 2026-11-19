@@ -36,7 +36,8 @@ const Sim = (() => {
     gatherings,
   } = VB['sim/notable'];
   const { describe: doing } = VB['sim/agents'],
-    { occasionLabel, explainFeast } = VB['sim/occasions'];
+    { occasionLabel } = VB['sim/occasions'],
+    { explainFeast } = VB['sim/feast'];
   // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
