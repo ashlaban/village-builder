@@ -248,20 +248,15 @@ VB['sim/saves'] = (() => {
         for (const x of d.$arr) a.push(dec(x));
         return a;
       }
-      // The object gets all its keys at once, in order, and then its values (VB-205; timed by tests/perf.js --engine): given one
-      // keyed store at a time, an object of more than a few dozen keys (a pawn, the state) becomes a slow dictionary, and every read
-      // of it a hash lookup for the rest of the run.
-      // Most have no key that starts with $ and are copied whole ({...d}); a shared one ($id) or one with an escaped key is built from its
-      // list of keys.
       const keys = Object.keys(d);
       if (!keys.some((k) => k[0] === '$')) {
-        const o = { ...d };
+        const o = {};
         for (const k of keys) o[k] = dec(d[k]);
         return o;
       }
       const own = keys.filter((k) => k !== '$id'),
         name = (k) => (k[0] === '$' ? k.slice(1) : k);
-      const o = keep(Object.fromEntries(own.map((k) => [name(k), undefined])));
+      const o = keep({});
       for (const k of own) o[name(k)] = dec(d[k]);
       return o;
     };
