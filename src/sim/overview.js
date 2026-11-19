@@ -22,6 +22,7 @@ VB['sim/overview'] = (() => {
     old: 60,
     bands: Object.freeze([15, 50]),
     hands: Object.freeze([14, 60]),
+    kin: 0.1, // a household lives partly on help at this share of its year's need received (VB-1114)
   });
   const AUTUMN = 2; // the season the harvest comes in (as sim/hunger's toHarvest)
   const bandOf = (a) => (a < OVERVIEW.bands[0] ? 0 : a < OVERVIEW.bands[1] ? 1 : 2);
@@ -109,6 +110,26 @@ VB['sim/overview'] = (() => {
       into = c.sday + Math.max(0, Math.min(1, (c.hour - WORK[0]) / span));
     return { worked: now + (before * Math.max(0, SEASON_DAYS - into)) / SEASON_DAYS, had: hands * span * SEASON_DAYS };
   }
+  // The grain each household received as help in the last year (VB-1114), read from the record back to a year ago: Map household id to
+  // {n, from: [[giver's name, rations]] most first}. Written nowhere; one pass over the year's events, made when the panel is drawn.
+  function helpReceived(st) {
+    const out = new Map(),
+      since = st.t - YEAR,
+      { helpIn } = VB['sim/notable'];
+    for (let i = st.record.length - 1; i >= 0; i--) {
+      const e = st.record[i];
+      if (typeof e !== 'object' || e.t < since) break;
+      VB.count.overviewWalk++;
+      const h = helpIn(e);
+      if (!h || e.household === undefined) continue;
+      const r = out.get(e.household) || { n: 0, from: new Map() };
+      r.n += h.n;
+      r.from.set(h.from, (r.from.get(h.from) || 0) + h.n);
+      out.set(e.household, r);
+    }
+    for (const r of out.values()) r.from = [...r.from].sort((a, b) => b[1] - a[1]);
+    return out;
+  }
   // The summary of village `vid` (an id of st.villages) as pawn `viewer` would estimate what is ahead (null: the village's eldest holder):
   //   {village, name, year (of cal), viewer (the estimate's: {pawn, horizon, days (it looks ahead), toHarvest, perHand}, or null),
   //    households, people, food: {rations (the households' and the village store's), store (the village store's), need (a day's), days,
@@ -118,8 +139,9 @@ VB['sim/overview'] = (() => {
   //    marry: {adults, single: {f, m} (adults of marrying age, and of them the unmarried, of the village's households), alone (the
   //    households of one adult, by id), reach: {f, m} (the unmarried of the pool within walking reach, VB-288), by: 'f'|'m'|null (the sex
   //    that outnumbers the other two to one there)},
-  //    warnings: {food, hunger, heir, hands, match}: the households each concerns, by id; `match`: those of the village with an
-  //    unmarried of the sex `marry.by`}.
+  //    warnings: {food, hunger, heir, hands, match, kin}: the households each concerns, by id; `kin`: those that live partly on help
+  //    received (OVERVIEW.kin), and `kin` beside them, by household: {share (of its year's need), n, from: [[giver, rations]]};
+  //    `match`: those of the village with an unmarried of the sex `marry.by`}.
   // People a year ago are those then alive whose household (their last, for the dead) is of the village: who moved in during the year
   // counts as of it then. A walk of every pawn, made when the panel is drawn and never by a step (VB.count.overviewWalk).
   function villageSummary(st, vid, viewer = null) {
@@ -143,8 +165,10 @@ VB['sim/overview'] = (() => {
       hungry: { window: OVERVIEW.window, households: [] },
       idle: { worked: 0, had: 0, share: 0 },
       marry: { adults: { f: 0, m: 0 }, single: { f: 0, m: 0 }, alone: [], reach: { f: 0, m: 0 }, by: null },
-      warnings: { food: [], hunger: [], heir: [], hands: [], match: [] },
+      warnings: { food: [], hunger: [], heir: [], hands: [], match: [], kin: [] },
+      kin: {},
     };
+    const help = helpReceived(st);
     const single = new Set(); // households of the village holding an unmarried adult, by sex
     for (const hh of hhs) {
       const need = dailyNeed(st, hh),
@@ -160,6 +184,12 @@ VB['sim/overview'] = (() => {
         h = hoursOf(st, hh, c, hands);
       out.idle.worked += h.worked;
       out.idle.had += h.had;
+      const got = help.get(hh.id);
+      if (got && need > 0) {
+        const share = Math.min(1, got.n / (need * YEAR_DAYS));
+        out.kin[hh.id] = { share, n: got.n, from: got.from };
+        if (share >= OVERVIEW.kin) out.warnings.kin.push(hh.id);
+      }
       if (est && need > 0 && food < need * est.days) out.warnings.food.push(hh.id);
       const holder = hh.holder === null ? null : st.pawns[hh.holder];
       if (holder && holder.alive && age(st, holder) >= OVERVIEW.old) {

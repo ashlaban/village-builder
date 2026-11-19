@@ -159,9 +159,27 @@ const harvestStat = (hh) => {
     title: `The head's reckoning: ${hands} need ${need} to reap them; ${e.late ? 'the frost may take some' : 'it should be in time'}`,
   };
 };
+// While the household lives partly on help (VB-1114): the share of its year's need received over the last year, as a meter, and from whom.
+const kinStat = (hh) => {
+  const S = Sim.villageSummary(st, st.farmsteads[hh.farmstead].village),
+    k = S.kin[hh.id];
+  if (!k || !S.warnings.kin.includes(hh.id)) return null;
+  const pct = Math.round(100 * k.share);
+  return {
+    icon: 'people',
+    label: 'Lives on help',
+    value: `${pct}%`,
+    note: `of the year's food, from ${k.from.map(([g, n]) => `${g} (${Math.round(n)})`).join(', ')}`,
+    tone: 'warn',
+    title: `Help received over the last year, as a share of the household's need: ${pct}%`,
+    meter: { value: pct },
+    wide: true,
+  };
+};
 const houseStats = (hh) =>
   suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
   stats([
+    kinStat(hh),
     harvestStat(hh),
     hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
     hh.dry > 0
@@ -594,6 +612,12 @@ const WARNINGS = [
         noun = (x, man) => (x === 1 ? (man ? 'man' : 'woman') : man ? 'men' : 'women');
       return `${n} unmarried ${noun(n, mf)}, ${k} unmarried ${noun(k, !mf)} within reach`;
     },
+    tone: 'warn',
+  },
+  {
+    key: 'kin',
+    icon: goodIcon('people'),
+    word: () => 'Lives partly on help from kin and neighbours',
     tone: 'warn',
   },
   { key: 'heir', icon: goodIcon('heir'), word: () => 'Holder over 60, no heir at home', tone: 'warn' },
