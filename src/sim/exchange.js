@@ -111,13 +111,14 @@ VB['sim/exchange'] = (() => {
                 ...atHousehold(st, to),
               },
         ); // with a receiving holder, recorded above
-      if (hf && ht && hf.ties && ht.ties)
+      const two = hf && ht && hf.id !== ht.id; // one holder of both (a guardian's two, a holder who moved): nothing between them (VB-1362)
+      if (two && hf.ties && ht.ties)
         for (const [a, b] of [
           [hf, ht],
           [ht, hf],
         ])
           addTie(st, a.id, b.id, HELP.tieGain);
-      if (hf && ht) book(st, hf.id, ht.id, n * WORTH.grain); // the giver is owed the gift's worth (Who books: the two holders)
+      if (two) book(st, hf.id, ht.id, n * WORTH.grain); // the giver is owed the gift's worth (Who books: the two holders)
     }
   }
   // Settles an accepted gift between two households of one farmstead, which is one place (the hard rule): what goes between places is

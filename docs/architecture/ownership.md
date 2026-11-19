@@ -222,7 +222,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 | `ledger` **4** | stores (new) ¹ | help 28,33,60; byre 132,143; kinds 76; clock 107 | herds |
 | `rations` **4** | stores (new) ¹ | hunger 38,49; farmclaims 193; kinds 110; cottage 48 | jobs, lifecycle |
 | `hay` **3** | stores (new) ¹ | herds 228,241,242; meadows 111; byre 172,173 | page |
-| `grievance` **2** | claims | claims 109; territory 130 | society |
+| `grievance` **2** | disputes (VB-1176; was claims) | disputes (aggrieve); territory 130 | society |
 | `larder` **2** | stores (new) ¹ | hunger 16,26; byre 148,158 | herds, jobs |
 | `manure` **2** | stores (new) ¹ | fields 98; byre 163,191 | page |
 | `stone` **2** | stores (new) ¹ | fields 67; meadows 65 | page |
@@ -404,7 +404,8 @@ All five are writes to local objects. They are listed so that a rerun shows when
 ### 3.5 Notes on single-writer fields
 
 - `household.grievance` is written by `claims.js:109` and `territory.js:130`, the two places that settle a dispute. Proposed owner:
-  `sim/claims`, with territory calling its `aggrieve`.
+  `sim/claims`, with territory calling its `aggrieve`. Since VB-1176 `aggrieve` is `sim/disputes`'s (split from `sim/claims`): that
+  module is the proposed owner.
 - `village.plots` has writers in expansion, cottage and agents. `agents.js:113` adds the hours a pawn works on a plot (`j.plot.hours`).
   Proposed owner: `sim/expansion`; the hours could go through the kind's `worked` hook, as stakes and farm claims do.
 - `village.grain` (the village store) is written by `help.js` (gifts out, the store filled) and by `clock.js:62` (it spoils). It belongs

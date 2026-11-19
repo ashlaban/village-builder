@@ -256,16 +256,51 @@ VB['sim/occasions'] = (() => {
     st.occasions.splice(st.occasions.indexOf(o), 1);
     enqueue(st, o);
   }
-  // What an occasion's end does for a kind another module keeps (the ale evening's and the rite's, sim/venues), declared at load by that
-  // module: {before(st, o) (read before those present are freed; its value is passed on), end(st, o, pre, present, far)}. Not state.
+  // What each kind's end does (VB-1006), one row a kind: {before(st, o) (read before those present are freed; its value is passed on),
+  // end(st, o, pre, present, far)}. The meeting's, the call's and the farm's occasions are declared here, the ale evening's and the rite's
+  // by sim/venues at load; a new kind adds a row, not a branch. Not state.
   const ENDS = {};
   const onEnd = (kind, h) => {
+    if (!OCCASIONS[kind]) throw new Error(`sim/occasions: no occasion kind ${kind}`);
     ENDS[kind] = h;
   };
-  // The occasion ends: those who came are free; outside working hours those outdoors go home. A wedding or a funeral ale is told in the log.
+  // the meeting and a call: those present are free, nothing more
+  const freed = { end: () => {} };
+  onEnd('meeting', freed);
+  onEnd('call', freed);
+  // a farm's occasion (the wedding, the funeral ale): the host household pours its ale for those present and may lay out a feast, and
+  // `tell` writes the log's line of who came
+  const farmEnd = (tell) => ({
+    end: (st, o, pre, present, far) => {
+      const f = st.farmsteads[o.farm],
+        n = o.come.length,
+        barrels = pourAle(st, f, present);
+      feast(st, f, present, barrels);
+      const ale = barrels ? `; ${barrels === 1 ? 'a barrel' : barrels + ' barrels'} of ale poured` : '';
+      tell(st, o, f, n, `${n} came${far ? `, ${far} of them from other villages` : ''}${ale}`, atFarm(f));
+    },
+  });
+  onEnd(
+    'wedding',
+    farmEnd((st, o, f, n, came, at) =>
+      log(
+        st,
+        `The wedding of ${fullName(st.pawns[o.for[0]])} and ${fullName(st.pawns[o.for[1]])} at ${f.name}: ${came}.`,
+        { kind: 'wedding', pawn: o.for[0], other: o.for[1], n, ...at },
+      ),
+    ),
+  );
+  onEnd(
+    'funeral',
+    farmEnd((st, o, f, n, came, at) => {
+      const names = o.for.map((id) => fullName(st.pawns[id])).join(' and ');
+      log(st, `The funeral ale for ${names} at ${f.name}: ${came}.`, { kind: 'funeralAle', pawn: o.for[0], n, ...at });
+    }),
+  );
+  // The occasion ends: those who came are free; outside working hours those outdoors go home; then its kind's end (ENDS).
   function finish(st, o) {
     const end = ENDS[o.kind],
-      pre = end && end.before ? end.before(st, o) : null; // read while those present still stand there (the rite's leader)
+      pre = end.before ? end.before(st, o) : null; // read while those present still stand there (the rite's leader)
     st.occasions.splice(st.occasions.indexOf(o), 1);
     const h = cal(st.t).hour,
       late = h >= WORK[1] || h < WORK[0];
@@ -285,28 +320,7 @@ VB['sim/occasions'] = (() => {
       if (late && !a.inside && st.pawns[id].alive && !unplanned(st, id))
         issue(st, { actor: id, verb: 'goHome', source: 'occasion' });
     }
-    if (o.kind === 'meeting' || o.kind === 'call') return;
-    if (end) {
-      end.end(st, o, pre, present, far);
-      return;
-    }
-    const f = st.farmsteads[o.farm],
-      n = o.come.length,
-      barrels = pourAle(st, f, present);
-    feast(st, f, present, barrels);
-    const ale = barrels ? `; ${barrels === 1 ? 'a barrel' : barrels + ' barrels'} of ale poured` : '';
-    const came = `${n} came${far ? `, ${far} of them from other villages` : ''}${ale}`;
-    const at = atFarm(f);
-    if (o.kind === 'wedding') {
-      log(
-        st,
-        `The wedding of ${fullName(st.pawns[o.for[0]])} and ${fullName(st.pawns[o.for[1]])} at ${f.name}: ${came}.`,
-        { kind: 'wedding', pawn: o.for[0], other: o.for[1], n, ...at },
-      );
-    } else {
-      const names = o.for.map((id) => fullName(st.pawns[id])).join(' and ');
-      log(st, `The funeral ale for ${names} at ${f.name}: ${came}.`, { kind: 'funeralAle', pawn: o.for[0], n, ...at });
-    }
+    end.end(st, o, pre, present, far);
   }
   // Each six-minute step (sim/clock): the occasions due, each staying in the queue while its turn is taken (the attend verb finds it
   // there). Only the first one's due time is read, so nothing is polled (Rules for cost, 4).

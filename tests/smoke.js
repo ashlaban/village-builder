@@ -236,7 +236,7 @@ const iv = setInterval(async () => {
     q(`#treeModes [data-mode="${mode}"]`).click(); shown[mode] = qa('#treeSvg g.tn').length;
     if (!q('#treeSvg g.tn.focus')) fail(`the ${mode} view does not show the person it is of`);
     if (shown[mode] > all) fail(`the ${mode} view shows more people than the records hold`);
-    if (q(`#treeModes [data-mode="${mode}"]`).getAttribute('aria-pressed') !== 'true') fail(`the ${mode} button is not pressed`);
+    if (q(`#treeModes [data-mode="${mode}"]`).getAttribute('aria-selected') !== 'true') fail(`the ${mode} tab is not selected`);
     const chip = q('#treeSvg g.chip');
     if (chip) {
       chip.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
@@ -322,6 +322,18 @@ async function goodwillPanel() {
     settlers.querySelector(`button[data-pawn="${none}"]`).click(); tick(20);
     if (/Owes and is owed/.test(rel.innerHTML)) fail(`pawn ${none}, with no balance, shows a goodwill list`);
   }
+  // the means to marry (VB-908): an unmarried pawn whose home is weighed shows the means it holds on the meter, marked at the asked
+  {
+    const ids = [...settlers.querySelectorAll('button[data-pawn]')].map((x) => +x.dataset.pawn),
+      who = ids.find((id) => { const b = Sim.marryBar(st, id); return b && (b.kind === 'short' || b.kind === 'means'); });
+    if (who === undefined) console.log('means: no listed pawn is weighed for the means to marry');
+    else {
+      settlers.querySelector(`button[data-pawn="${who}"]`).click(); tick(20);
+      const st8 = [...doc.querySelectorAll('#tileStats .stat')].find((e) => /Means to marry/.test(e.textContent)), m = st8 && st8.querySelector('.meter');
+      if (!m || m.querySelectorAll('b').length !== 1 || !/marry/.test(m.title)) fail(`pawn ${who}'s means to marry is not a meter marked at the asked`);
+      else console.log('means:', m.title);
+    }
+  }
   // The History tab (VB-099) on the card of a pawn, a farm and a village: it opens, lists events of the record with their dates, each
   // filter by kind narrows it, and a name in a line selects what it names. The village log lists the record's last lines.
   const hist = doc.getElementById('historyList'), tabH = doc.getElementById('tabHistory'), opened = [];
@@ -366,6 +378,7 @@ async function goodwillPanel() {
     const S = Sim.villageSummary(st, farm.village, st.player ? st.player.pawn : null);
     const words = [...box.querySelectorAll('.stat-name')].map((e) => e.textContent);
     for (const n of ['Food', 'Harvest', 'Hungry', 'Idle hands', '0–14', '15–49', '50+']) if (!words.includes(n)) fail(`the village's overview lacks ${n}`);
+    if (st.villages[farm.village].farmsteads.some((fid) => st.farmsteads[fid].fields.length) && !words.includes('Tilth')) fail("the village's card lacks its fields' tilth (VB-719)");
     const warned = Object.values(S.warnings).reduce((n, l) => n + l.length, 0), chips = box.querySelectorAll('.warning [data-farm]');
     if (!S.warnings.hunger.includes(hh.id) || chips.length !== warned) fail(`the overview shows ${chips.length} farm chips for ${warned} warned`);
     if (!doc.querySelector(`#tileList [data-farm="${farm.id}"] .supply-chip[data-warning="hunger"]`)) fail("the warned farm's row has no chip for its warning");
@@ -379,6 +392,13 @@ async function goodwillPanel() {
     console.log('village overview:', words.join(', '), '|', warned, 'warned', '|', [...box.querySelectorAll('.warning > span:not(.stat-ico)')].map((e) => e.textContent).join('; '));
     const chip = box.querySelector(`.warning [data-farm="${farm.id}"]`);
     if (chip) { chip.click(); tick(5); if (doc.getElementById('tileName').textContent !== farm.name) fail('a warning\'s chip did not select its farm'); }
+    // the feast (VB-996): a household with a living holder says whether it would lay out a feast, on the meter marked at what it keeps first
+    if (chip && hh.holder !== null && st.pawns[hh.holder].alive) {
+      const fe = [...box.querySelectorAll('.stat')].find((e) => /Feast/.test(e.querySelector('.stat-name').textContent)), m = fe && fe.querySelector('.meter');
+      if (farm.fields.length && ![...box.querySelectorAll('.stat-name')].some((e) => e.textContent === 'Tilth')) fail("the farm's card lacks its fields' tilth (VB-719)");
+      if (!m || m.querySelectorAll('b').length !== 1 || !/feast/i.test(m.title) || !/Seed for its fields/.test(fe.title)) fail('the household\'s card does not say whether it would feast, with the rule\'s parts');
+      else console.log('feast:', fe.title);
+    }
     p.hungerLog = log;
   }
   // The Customs tab (VB-396) of a village's card: the customs as a charter, a phrase a custom; a phrase opens the ways of its custom, each
@@ -391,7 +411,7 @@ async function goodwillPanel() {
     const phrases = box.querySelectorAll('.charter [data-phrase]');
     if (box.hidden || !doc.getElementById('tileFacts').hidden) fail('the Customs tab did not open');
     if (phrases.length !== DIMS.length) fail(`the charter has ${phrases.length} phrases, expected ${DIMS.length}`);
-    if (!box.querySelector('h3.lead') || box.querySelectorAll('h3:not(.lead)').length !== 4) fail('the charter lacks its heading or its four heads');
+    if (!box.querySelector('h3.lead') || box.querySelectorAll('h3:not(.lead)').length !== 5) fail('the charter lacks its heading or its five heads');
     const sett = st.cenv.settlements[farm.village], voices = Sim.membersOf(st, sett.id).filter((p) => p.alive && Sim.voiceOf(st, p, sett) > 0).length;
     phrases[0].click(); tick(2);
     const stand = box.querySelector('.stand'), ways = stand ? stand.querySelectorAll('.way').length : 0;

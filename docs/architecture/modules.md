@@ -89,7 +89,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   what is due and nothing else. A pawn's place is `placeOf` (a walker along its leg's hours); `sim/society`'s `outdoors`, `sim/jobs`'
   company and `sim/lifecycle`'s death on the road read it, and the page reads walkers' places through the shim `Sim.walkerPlaces` until
   VB-474.
-- Claims (VB-042, VB-155 to VB-158, VB-033): `src/sim/claims.js` (claims on tiles: strength, lapse, disputes by custom), `src/sim/territory.js` (the
+- Claims (VB-042, VB-155 to VB-158, VB-033): `src/sim/claims.js` (claims on tiles: strength, lapse, the land each holds), `src/sim/disputes.js` (disputes settled by custom: support, scores, the winner and the losers' grievance; VB-1176), `src/sim/territory.js` (the
   village's outland, borders and cairns), `src/sim/stakes.js` (a field or meadow project stakes its tile; contests) and `src/sim/farmclaims.js`
   (empty farms: the birthright, claimants by custom, restoration and moving in). Design and plan: `docs/review-claims.md`.
 - Project plans (VB-123): a holder's plan of steps in `st.plans.projects` (a household's new field or meadow, a village's plot with its
@@ -202,7 +202,8 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   six-minute step reads at its head only. Those asked set out by the verb `attend` and stand about the spot until the end (`agent.occasion`);
   talk there is talk as anywhere. The gathering of villages (VB-295) is the next kind. What the host lays out at its farm (the ale poured,
   the feast, what guests owe) is `src/sim/feast.js`; the ale evening and the season's rite (their asking, the verb `callAle`, and what their
-  end does, declared to `onEnd`) are `src/sim/venues.js` (VB-1270).
+  end does, declared to `onEnd`) are `src/sim/venues.js` (VB-1270). Every kind's end is a row of `onEnd`'s table (VB-1006): a new kind
+  adds its row (the meeting's and the call's free those present; the wedding's and the funeral ale's pour, feast and log), not a branch.
 - Notable events (VB-098): `Sim.notable(st, ev, about)` in `src/sim/notable.js` gives the reasons a record event is notable (keys of
   `Sim.NOTABLE`: family, holder, hunger, farm, custom) or null, for the pawn the player follows; `Sim.eventLine(st, ev)` tells an event in one
   sentence. A read-only view with no state. The page's toasts (`src/page/notices.js`) read both; a new notable kind is added there, not in the page.
@@ -288,7 +289,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/events`, `sim/rng`, `sim/hex`, `sim/names`, `sim/routes`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
   head's skill and bias, VB-254), `sim/commands`.
-- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/plans` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/pot`, `sim/hunger`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`,
+- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/plans` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/pot`, `sim/hunger`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/fieldwork` (the job kinds of a farm's fields, beside `sim/fields`, VB-418), `sim/chores` (the job kinds of the household's daily work at
   the house: firewood, water, cooking, brewing, gathering, VB-418),

@@ -44,7 +44,7 @@ const Sim = (() => {
   const { seedReserve } = VB['sim/hunger'],
     { grainOf } = VB['sim/stores'],
     { shareOwed } = VB['sim/obligations'];
-  const { fieldsWanted, fieldView, harvestEstimate } = VB['sim/fields'];
+  const { fieldsWanted, fieldView, harvestEstimate, tilthOf } = VB['sim/fields'];
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
@@ -191,6 +191,7 @@ const Sim = (() => {
     idleLine,
     RIVER,
     byRiver,
+    tilthOf, // a field's tilth now, closed form (VB-717): the field, farm and village cards (VB-719)
     compat,
     bond, // what b is to a: spouse, parent, child, sibling, housemate or null (the page's bond badges, VB-1026)
     bondWord,
