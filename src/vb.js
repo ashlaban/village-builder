@@ -42,6 +42,7 @@ VB.COUNTERS = {
   workReckon:
     'Tasks under work reckoned, with their hours since (sim/agents settle: a hand joins or leaves, the end of work, the meal; VB-472)',
   walkPoint: 'Path points passed, their tiles trodden as a walk ends or is cut (sim/agents treadTo; VB-205, VB-473)',
+  crowdScan: 'Passes over the farms to find the households near a house, at a membership change (VB-766)',
   walkPlace: 'Places worked out along a walk (placeOf of a walking pawn: talk, nearness, company, a cut; VB-473)',
   walkDaily: 'Pawn records walked by dailyLife and Culture.dailyStep',
   walkTies:
@@ -65,6 +66,8 @@ VB.COUNTERS = {
   gatherSettle: 'Hosts named and asked in the settling of the gatherings, once a year (sim/gathering, VB-294)',
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
+  aldermanBallots:
+    "Voices times candidates weighed when a village's meeting elects its alderman: once a vacancy, never daily (sim/meetings, VB-314)",
   rotationWalk: "Farms walked by a village's meeting for its usual rotation, a village a year (sim/fields, VB-350)",
   overviewWalk:
     'Pawn records walked by a village overview, once a summary asked (a view, never a step: sim/overview, VB-162)',

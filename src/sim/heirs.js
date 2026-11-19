@@ -590,8 +590,9 @@ VB['sim/heirs'] = (() => {
     passHerds(st, hh, home);
     extinct(st, hh, `${fullName(st.pawns[giver])} married away, and nobody would take it`);
   }
-  function refreshRoles(st) {
-    for (const liveId of st.living) {
+  // ids: the pawns to refresh (a handover's households), else every living pawn.
+  function refreshRoles(st, ids = st.living) {
+    for (const liveId of ids) {
       const p = st.pawns[liveId];
       if (p.died !== null) continue;
       const hh = p.household !== null ? st.households[p.household] : null,
@@ -608,6 +609,12 @@ VB['sim/heirs'] = (() => {
       else if (p.servant) p.role = p.sex === 'm' ? 'farmhand' : 'maid';
       else p.role = p.sex === 'm' ? 'son' : 'daughter';
     }
+  }
+  // The members of households hs now (a handover's: the giver's, the heir's old and new), for refreshRoles.
+  function membersOf(st, hs) {
+    const out = new Set();
+    for (const h of hs) if (h !== null && h !== undefined) for (const id of st.households[h].members) out.add(id);
+    return out;
   }
   function placeIfMarried(st, id, own = null) {
     const p = st.pawns[id],
@@ -720,6 +727,7 @@ VB['sim/heirs'] = (() => {
     succession,
     comeOfAge,
     refreshRoles,
+    membersOf,
     placeIfMarried,
     wantsOut,
     staysWhy,

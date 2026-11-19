@@ -269,6 +269,9 @@ function showVillage(id) {
     kind: v.green || farms.length >= 2 ? 'Village' : 'Lone farm',
     stats:
       villageStats +
+      (v.alderman !== undefined && v.alderman !== null && st.pawns[v.alderman].alive
+        ? section('Alderman') + pawnChip(v.alderman) // VB-314: the village's office, held by a holder chosen at its meeting
+        : '') +
       section('Store') +
       suppliesHTML(Sim.villageOutlook(st, id, st.player ? st.player.pawn : null), ['food']) +
       peopleHTML(S) +

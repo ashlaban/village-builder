@@ -14,6 +14,9 @@ const scenario = opt('scenario', 'founders'), seeds = opt('seeds', '7').split(',
 const years = +opt('years', 10), from = +opt('from', 2), json = args.includes('--json'), rye = args.includes('--rye');
 const SOURCES = ['grain', 'milk', 'butter', 'meat'], GRAINS = Stores.CROP_LIST;
 const rows = []; // one per household and year
+// The head's remembered yield (VB-767, sim/yields): rations booked by source since the run began (the ring's years and the open tally)
+const Y = VB['sim/yields'];
+const booked = (hh, k) => (hh.yields ? hh.yields.ring[k].reduce((s, n) => s + n, 0) + hh.yields.tally[k] : 0);
 
 function cattleOf(st, hh) { return H.herdsOf(st, hh).reduce((s, hd) => s + (hd.species === 'cattle' ? hd.head.length : 0), 0); }
 function sheepOf(st, hh) { return H.herdsOf(st, hh).reduce((s, hd) => s + (hd.species === 'sheep' ? hd.ewes + hd.rams + hd.lambs : 0), 0); }
@@ -24,7 +27,7 @@ function run(seed) {
     const t0 = (y - 1) * Sim.YEAR + 1, t1 = y * Sim.YEAR + 1;
     if (st.t < t0) Sim.advance(st, t0 - st.t);
     const weather = st.weather, before = new Map(st.households.map((h) => [h.id, { hungry: h.hungryDays, grain: Stores.grainOf(h) + h.meals,
-      cattle: cattleOf(st, h), sheep: sheepOf(st, h) }]));
+      cattle: cattleOf(st, h), sheep: sheepOf(st, h), mem: { fields: booked(h, 'fields'), animals: booked(h, 'animals') } }]));
     Sim.advance(st, t1 - st.t);
     if (y < from) continue;
     for (const hh of st.households) {
@@ -46,7 +49,8 @@ function run(seed) {
       for (const k of ['milk', 'butter']) made[k] += Stores.yearSum(hh, k, y);
       const size = F.dailyNeed(st, hh), need = size * Sim.YEAR_DAYS, total = SOURCES.reduce((s, k) => s + made[k], 0);
       const soil = f.fields.length ? f.fields.reduce((s, q) => s + q.soil, 0) / f.fields.length : null;
-      rows.push({ seed, year: y, household: hh.id, weather: +weather.toFixed(3), size, members: hh.members.length, fields: f.fields.length,
+      const mem = { fields: +(booked(hh, 'fields') - b.mem.fields).toFixed(1), animals: +(booked(hh, 'animals') - b.mem.animals).toFixed(1) };
+      rows.push({ seed, mem, year: y, household: hh.id, weather: +weather.toFixed(3), size, members: hh.members.length, fields: f.fields.length,
         meadows: f.meadows.length, cattle: b.cattle, sheep: b.sheep, soil: soil === null ? null : +soil.toFixed(3),
         ...Object.fromEntries(SOURCES.map((k) => [k, +made[k].toFixed(1)])), ...Object.fromEntries(GRAINS.map((k) => [k, +crops[k].toFixed(1)])),
         fallow: f.fields.filter((q) => CROPS[q.crop].fallow).length, total: +total.toFixed(1), need, gifts: +gifts.toFixed(1),
@@ -89,4 +93,7 @@ else {
     ['by the year\'s weather', result.byWeather], ['a household of about 6 on 3 fields with cattle, by weather', result.reference]]) {
     console.log('\n' + name); console.table(t);
   }
+  // the heads' memory (sim/yields) against the ledger measured from outside: grain from fields net of seed, and milk, butter and meat
+  const sum = (f) => rows.reduce((s, r) => s + f(r), 0), n = Math.max(1, rows.length);
+  console.log(`\nthe head's memory against the ledger, mean rations a household-year: fields ${(sum((r) => r.mem.fields) / n).toFixed(1)} against ${(sum((r) => r.grain) / n).toFixed(1)}; animals ${(sum((r) => r.mem.animals) / n).toFixed(1)} against ${(sum((r) => r.milk + r.butter + r.meat) / n).toFixed(1)}; largest gap ${Math.max(0, ...rows.map((r) => Math.max(Math.abs(r.mem.fields - r.grain), Math.abs(r.mem.animals - r.milk - r.butter - r.meat)))).toFixed(1)}`);
 }

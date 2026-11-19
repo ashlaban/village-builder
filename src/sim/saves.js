@@ -449,7 +449,7 @@ VB['sim/saves'] = (() => {
     VB['sim/traits'].seedTraits(st); // VB-254: nor the traits themselves (VB-249's diligence kept)
     // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
     const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
-    if (st.cenv) for (const c of st.cenv.cultures) if (!c.practices) c.practices = practices();
+    if (st.cenv) for (const c of st.cenv.cultures) c.practices = { ...practices(), ...c.practices }; // VB-314: nor the later ones
     if (st.cenv) newCustoms(st); // VB-100: nor the custom of the commons
     for (const p of st.pawns) if (p.att) VB['culture'].compileLeans(p); // VB-520: compiled from the attitude, as it was saved or made
     oldGrain(st); // VB-347: nor grain by crop

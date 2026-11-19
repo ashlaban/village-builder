@@ -4,13 +4,15 @@ VB['sim/meetings'] = (() => {
   const { drawer } = VB['sim/rng'];
   const Culture = VB['culture'];
   const { landMeeting } = VB['sim/territory'];
-  const { YEAR_DAYS, YEAR, cal } = VB['sim/rules'];
-  const { personEvent, log, membersOf, voiceOf, settlementIdOf, fullName } = VB['sim/records'];
+  const { YEAR_DAYS, YEAR, OFFICE, cal } = VB['sim/rules'];
+  const { personEvent, log, membersOf, voiceOf, settlementIdOf, fullName, isHolder } = VB['sim/records'];
+  const { opinionOf } = VB['sim/relations'];
+  const { setAlderman } = VB['sim/membership'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
   const { refreshRoles } = VB['sim/heirs'];
   const { updateTie, refreshStanding, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
-  const { defineKind } = VB['sim/decisions'];
+  const { defineKind, setPresider, ask } = VB['sim/decisions'];
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { chooseGathering, settleGatherings } = VB['sim/gathering'];
   const { usualRotation } = VB['sim/fields'];
@@ -25,8 +27,113 @@ VB['sim/meetings'] = (() => {
   defineKind('custom', {
     procedure: 'vote',
     evaluate: (st, q) => ({ support: q.support, need: q.need }),
+    // a tie with nothing in force goes to the alderman, who takes of the tied options the one his own attitude holds highest (VB-314)
+    choose: (st, q, p) => {
+      const top = Math.max(...q.support),
+        k = Culture.IDX[q.dim];
+      let best = -1;
+      for (let j = 0; j < q.support.length; j++)
+        if (
+          q.support[j] === top &&
+          (best < 0 || st.pawns[p].att[Culture.OFF[k] + j] > st.pawns[p].att[Culture.OFF[k] + best])
+        )
+          best = j;
+      return best;
+    },
     fallback: (st, q) => q.current,
   });
+  // The alderman (VB-314; design.md, The alderman): the village's presiding pawn, so that a tie goes to him; none while the office is vacant.
+  setPresider((st, body) => {
+    const a = st.villages && st.villages[body] ? st.villages[body].alderman : null;
+    return a !== undefined && a !== null && st.pawns[a].alive ? a : null;
+  });
+  // The office is filled by a question of its own: each voice for the holder it thinks most of, by its opinion of him and his standing
+  // (elected), or the farm next in the order of founding (by turns, each farm a year in its turn). A tie at the top, with no alderman to
+  // decide it, goes to the holder of most standing.
+  defineKind('alderman', {
+    procedure: 'vote',
+    evaluate: (st, q) => {
+      const S = q.cands.map(() => 0);
+      if (q.by === 'byTurns') {
+        const next = q.last === null ? -1 : q.farms.findIndex((f) => f > q.last); // the next farm founded after the last turn's
+        S[next < 0 ? 0 : next] = 1;
+      } else
+        for (const voice of q.voices) {
+          let best = 0,
+            top = -Infinity;
+          for (let j = 0; j < q.cands.length; j++) {
+            const x = opinionOf(st, voice, q.cands[j]) + OFFICE.weighStanding * st.pawns[q.cands[j]].standing;
+            VB.count.aldermanBallots++;
+            if (x > top) {
+              top = x;
+              best = j;
+            }
+          }
+          S[best]++;
+        }
+      return { support: S, need: S.map(() => 0) };
+    },
+    fallback: (st, q) => {
+      let best = 0;
+      for (let j = 1; j < q.cands.length; j++)
+        if (st.pawns[q.cands[j]].standing > st.pawns[q.cands[best]].standing) best = j;
+      return best;
+    },
+  });
+  // Village s's office at its autumn meeting: vacated when its holder has died, retired, left the village or, by turns, served his year;
+  // when vacant, filled from the village's holders, in the order of their farms' founding (village.farmsteads). One question, a vacancy.
+  function aldermanMeeting(st, s, people) {
+    const v = st.villages[s.id],
+      by = Culture.practiceOf(st.cenv.cultures[s.culture], 'alderman'),
+      a = v.alderman === undefined ? null : v.alderman;
+    if (a !== null) {
+      const p = st.pawns[a],
+        why = !p.alive
+          ? 'died'
+          : !isHolder(st, a)
+            ? 'retired as a holder'
+            : settlementIdOf(st, p) !== s.id
+              ? 'left the village'
+              : by === 'byTurns' && v.aldermanYear !== cal(st.t).year
+                ? 'served his year'
+                : null;
+      if (why === null) return;
+      const since = Math.round((st.t - v.aldermanSince) / YEAR),
+        txt = `${fullName(p)} is alderman of ${s.name} no longer: he ${why} after ${since} ${since === 1 ? 'year' : 'years'}.`;
+      setAlderman(st, v, null);
+      log(st, txt, { kind: 'alderman', pawn: a, village: s.id, n: since });
+    }
+    const cands = [],
+      farms = [];
+    for (const fid of v.farmsteads) {
+      const hh = st.farmsteads[fid].household === null ? null : st.households[st.farmsteads[fid].household];
+      if (hh && !hh.dissolved && hh.holder !== null && st.pawns[hh.holder].alive) {
+        cands.push(hh.holder);
+        farms.push(fid);
+      }
+    }
+    if (!cands.length) return;
+    const voices = people.filter((p) => voiceOf(st, p, s) > 0).map((p) => p.id),
+      last = v.aldermanFarm === undefined ? null : v.aldermanFarm;
+    const k = ask(st, {
+      kind: 'alderman',
+      body: s.id,
+      current: null,
+      options: cands.length,
+      cands,
+      farms,
+      by,
+      voices,
+      last,
+    });
+    setAlderman(st, v, cands[k], farms[k]);
+    const how = by === 'byTurns' ? 'in his turn' : 'by the meeting';
+    log(st, `${fullName(st.pawns[cands[k]])} is chosen alderman of ${s.name}, ${how}.`, {
+      kind: 'alderman',
+      pawn: cands[k],
+      village: s.id,
+    });
+  }
   const CULTURE_STEP = VILLAGE_STEPS,
     MEETING_STAGES = VILLAGE_STEPS + 2;
   // The villages whose turn is step n of the window (sim/occasions, villageTurn): f(k) for each, in order.
@@ -109,6 +216,7 @@ VB['sim/meetings'] = (() => {
     if (txt) out.push({ year: c.year, text: txt });
     if (people.length) chooseGathering(st, s, quorumAt(st, s, held, people), people); // VB-294: its choice of gathering
 
+    aldermanMeeting(st, s, people);
     toMeetingLog(st, out);
   }
   // A cause's end (VB-1112), told in the pawn's record with the last vote its village's meeting gave it (p.lastCause, Culture.endCause).

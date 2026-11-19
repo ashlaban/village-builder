@@ -16,6 +16,7 @@
       "sim/events",
       "sim/rng",
       "sim/hex",
+      "sim/crowding",
       "sim/names",
       "sim/routes",
       "sim/paths",
@@ -33,6 +34,7 @@
       "sim/decisions"
     ],
     "material": [
+      "sim/yields",
       "sim/stores",
       "sim/targets",
       "sim/projects",

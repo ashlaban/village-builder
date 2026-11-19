@@ -293,6 +293,28 @@ const Culture = (() => {
       ]),
       base: 'nothing',
     }),
+    // How the alderman is chosen (VB-314; design.md, The alderman): at the autumn meeting, when the office is vacant. A practice a culture
+    // holds, not a custom: its malleability (0.3) is how readily a culture changes it, kept with its declaration.
+    alderman: Object.freeze({
+      label: 'How the alderman is chosen',
+      opts: Object.freeze([
+        ['elected', 'Elected by the meeting'],
+        ['byTurns', 'By turns among the farms, a year each'],
+      ]),
+      base: 'elected',
+      malleability: 0.3,
+    }),
+    // On which days a village keeps its rites (VB-775; design.md, The season's rite): its own, drawn at its founding, as a parish kept its
+    // feast day, or the same everywhere (VB-522 as built). A custom cultures may come to differ in, not a dimension: nothing yet gives
+    // a pawn a stake in it.
+    riteDays: Object.freeze({
+      label: 'The days of the rite',
+      opts: Object.freeze([
+        ['own', 'Each village its own days'],
+        ['common', 'The same days everywhere'],
+      ]),
+      base: 'own',
+    }),
   });
   const basePractices = () => Object.fromEntries(Object.entries(PRACTICES).map(([k, x]) => [k, x.base]));
   // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).

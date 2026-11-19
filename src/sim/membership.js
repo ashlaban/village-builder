@@ -1,10 +1,12 @@
-// @sys sim/membership: founding a household on a farm, coordinating records, supplies, land and moving
+// @sys sim/membership: founding a household on a farm, coordinating records, supplies, land and moving; the village's alderman (VB-314)
+// @state village.alderman: the pawn (a holder of the village) who holds its office, or null/absent; aldermanSince (hours), aldermanYear (the year
+//   chosen; a term by turns ends with it), aldermanFarm (the farmstead whose holder served last by turns)
 VB['sim/membership'] = (() => {
   const { living } = VB['sim/records'];
   const { makeHousehold, joinHousehold, setServant } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const Stores = VB['sim/stores'];
-  const { ECON, MATCH } = VB['sim/rules'];
+  const { ECON, MATCH, cal } = VB['sim/rules'];
   const { makePlan } = VB['sim/plans'];
   const { refreshRoles } = VB['sim/heirs'];
   const { issue, register } = VB['sim/commands'];
@@ -71,5 +73,13 @@ VB['sim/membership'] = (() => {
         grain: c.args.grain,
       }),
   });
-  return { foundHousehold };
+  // The village's office (VB-314; design.md, The alderman): who holds it, when (hours; the year, for a term by turns) and from which farm
+  // (the last turn's). The meeting chooses him and the office is vacated by `id` null (sim/meetings).
+  function setAlderman(st, v, id, farm = null) {
+    v.alderman = id;
+    v.aldermanSince = id === null ? null : st.t;
+    v.aldermanYear = id === null ? null : cal(st.t).year;
+    if (farm !== null) v.aldermanFarm = farm;
+  }
+  return { foundHousehold, setAlderman };
 })();

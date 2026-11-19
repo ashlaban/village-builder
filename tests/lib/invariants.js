@@ -34,6 +34,14 @@ function checkState(st) {
   // VB-323: the households to check for a missing adult: live ids, no duplicates
   if (!Array.isArray(st.peopleCheck) || new Set(st.peopleCheck).size !== st.peopleCheck.length
     || st.peopleCheck.some((id) => !st.households[id] || st.households[id].dissolved)) bad.push('peopleCheck: not a list of distinct live household ids');
+  // VB-766: a household's compiled crowding equals a fresh count of the people within CROWD.steps of its house
+  {
+    const Cr = globalThis.VB['sim/crowding'];
+    for (const id of st.liveHouseholds) {
+      const n = Cr.fresh(st, id);
+      if (!st.crowdN || st.crowdN[id] !== n || st.crowd[id] !== Cr.factorOf(n)) { bad.push(`crowding: household ${id} holds ${st.crowdN && st.crowdN[id]}, a fresh count gives ${n}`); break; }
+    }
+  }
   // VB-309: farms held in trust: st.liveTrusts the sorted ids of the open records of st.trusts; a live trust's farm and trustee live, its
   // household empty, its holder living with the trustee; no farm held twice
   if (st.trusts || st.liveTrusts) {
@@ -317,6 +325,16 @@ function checkState(st) {
       }
     }
   }
+  // a village's own rite days (VB-775): three, one in each season's window of RITE.spread days after the season's day
+  {
+    const R = globalThis.VB['sim/rules'].RITE;
+    for (const v of st.villages) {
+      if (v.riteDays === undefined) continue;
+      if (!Array.isArray(v.riteDays) || v.riteDays.length !== R.days.length
+        || v.riteDays.some((d, i) => !Number.isInteger(d) || d < R.days[i][1] || d > R.days[i][1] + R.spread))
+        bad.push(`rite days: village ${v.id} has ${JSON.stringify(v.riteDays)}`);
+    }
+  }
   // the gathering (VB-294): a village's choice names hosts with a green within a day's walk, each once, and offers only with a green; its
   // host has a green, is within a day's walk, and hosts its own gathering of the same winter, which at least GATHERING.least villages
   // attend. That the host was inhabited is checked when it is settled (tests/gathering.js), as a village may empty before the winter.
@@ -515,6 +533,15 @@ function checkState(st) {
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
     for (const k of ['wood', 'stone', 'peat', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    // the head's remembered yield (VB-767): a tally and a ring a source, none negative, at most FIELDS.memory years each, so 8 x 7 numbers
+    if (h.yields) {
+      const Y = VB['sim/yields'], M = VB['sim/rules'].FIELDS.memory;
+      for (const s of Y.SOURCES) {
+        const r = h.yields.ring[s];
+        if (!within(h.yields.tally[s], 0, 1e9)) bad.push(`households[${h.id}]: yield tally ${s} is ${h.yields.tally[s]}`);
+        if (!Array.isArray(r) || r.length > M || r.some((n) => !within(n, 0, 1e9))) bad.push(`households[${h.id}]: yield ring ${s} is ${JSON.stringify(r)}`);
+      }
+    }
     // the hand quern (VB-009): null, or a stone of sandstone or granite made at a time not after now
     if (h.quern !== null && !(h.quern && ['sandstone', 'granite'].includes(h.quern.rock) && Number.isFinite(h.quern.made) && h.quern.made <= st.t))
       bad.push(`households[${h.id}]: quern ${JSON.stringify(h.quern)}`);
@@ -1428,6 +1455,7 @@ function checkHerds(st, bad) {
     if (!Object.prototype.hasOwnProperty.call(CROPS, fd.crop)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: crop ${fd.crop} is not in the table`); // VB-346
     if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
     if (!(Number.isFinite(fd.tilth) && fd.tilth >= 0 && fd.tilth <= VB['sim/rules'].TILTH.max && fd.tilthAt <= st.t)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: tilth ${fd.tilth} at ${fd.tilthAt}`); // VB-717
+    if (fd.surplus !== undefined && !(fd.surplus >= 0 && fd.surplus <= VB['sim/rules'].TILTH.surplus + 1e-9 && fd.surplusYear <= Math.floor(st.t / VB['sim/rules'].YEAR))) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: surplus ${fd.surplus} in year ${fd.surplusYear}`); // VB-718
     // VB-348: a fallow field is never sown; a sown field's crop has seed; a winter crop stands across the year's turn, any other is not
     // standing in winter; weeding rounds within the crop's; a rest mark is 0.5 or 1
     const C = CROPS[fd.crop] || {}, at = `farmsteads[${f.id}].fields[${fd.id}]`, standing = ['sown', 'growing', 'ripe'].includes(fd.stage);
