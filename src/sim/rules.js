@@ -613,6 +613,10 @@ VB['sim/rules'] = (() => {
       nb: 0.25,
       move: 0.25,
       milk: 0.5,
+      // A crowded pasture lowers the milk (VB-709): over `downAt` of pressure (a herd's week) a herd that grazed there loses `bite` of its
+      // milk for each `downAt` over (0.05: 5% at twice a week's pressure), and never more than leaves `floor` of it (0.5, an unherded herd's).
+      bite: 0.05,
+      floor: 0.5,
       grass: {
         [B.MEADOW]: 1,
         [B.MARSH]: 0.8,

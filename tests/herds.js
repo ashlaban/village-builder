@@ -82,5 +82,29 @@ check(!checkState(st).length, 'populous in the byre: ' + checkState(st).slice(0,
   check(!checkState(s5).length, 'start, a marked cow: ' + checkState(s5).slice(0, 3).join('; '));
 }
 
+// --- a crowded pasture lowers the milk (VB-709): founders seed 7, first farm (cattle and sheep), a cow in milk in summer
+{
+  const s = scenario('founders', 7), B = VB['sim/byre'], G = VB['sim/grazing'], Hd = VB['sim/herds'], HH = Sim.HERD.herding;
+  Sim.advance(s, (Sim.HERD.springDay + 20) * Sim.DAY);
+  const hh = s.households.find((h) => !h.dissolved && Hd.herdOf(s, h, 'cattle')), tile = hh.pasture ? hh.pasture.tile : s.farmsteads[hh.farmstead].house;
+  hh.pasture = { tile, since: 0 };
+  const milkOf = (pressure, herded) => {
+    s.w.graze[tile] = pressure * (2 ** ((s.t - Sim.YEAR * Math.floor(s.t / Sim.YEAR)) / Sim.YEAR));
+    const cal = VB['sim/rules'].cal(s.t);
+    for (const id of hh.herds) { s.herds[id].herded = herded ? cal.day : -9; }
+    hh.totals = []; hh.larder = [];
+    const before = hh.larder.reduce((a, l) => a + l.n, 0);
+    B.milkDone(s, hh, cal);
+    return hh.larder.reduce((a, l) => a + l.n, 0) - before;
+  };
+  const lone = milkOf(0.5 * HH.downAt, true), two = milkOf(2 * HH.downAt, true), four = milkOf(4 * HH.downAt, true), huge = milkOf(40 * HH.downAt, true);
+  const alone = milkOf(HH.downAt, true), unh = milkOf(4 * HH.downAt, false), unh0 = milkOf(0, false);
+  check(lone > 0 && Math.abs(lone - alone) < 1e-9, `lone herd at a week's pressure: ${lone} against ${alone}`);
+  check(two < alone && four < two, `crowded: ${alone}, ${two}, ${four}`);
+  check(Math.abs(two / alone - (1 - HH.bite)) < 1e-5, `at twice a week's pressure the factor is ${two / alone}`);
+  check(Math.abs(huge / alone - HH.floor) < 1e-5, `never under the floor: ${huge / alone}`);
+  check(Math.abs(unh - unh0) < 1e-9 && Math.abs(unh / alone - HH.milk) < 1e-9, `unherded takes no bite: ${unh}, ${unh0}, ${alone}`);
+}
+
 if (failed) process.exit(1);
 console.log(`herds ok: ${report}`);

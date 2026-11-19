@@ -515,6 +515,13 @@ VB['sim/herds'] = (() => {
             }
           : { species: 'sheep', ewes: hd.ewes, rams: hd.rams, lambs: hd.lambs },
       ),
+      // the pressure of the tile grazed lately and the day's factor on the milk (VB-709, sim/grazing); the year's milk lost to the bite
+      pressure: hh.pasture ? Math.round(VB['sim/grazing'].grazeOf(st, hh.pasture.tile)) : null,
+      milkFactor: +VB['sim/grazing'].milkFactor(st, hh).toFixed(2),
+      milkLostYear: +hh.totals
+        .filter((x) => x.kind === 'milkbite' && x.year === Math.floor(st.t / YEAR) + 1)
+        .reduce((s, x) => s + x.n, 0)
+        .toFixed(1),
       text: describeHerds(st, hh),
       cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
       larder: Object.fromEntries(

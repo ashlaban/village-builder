@@ -8,7 +8,7 @@ VB['sim/byre'] = (() => {
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { addFood, larderOf } = VB['sim/hunger'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
-  const { unherded } = VB['sim/grazing'];
+  const { unherded, milkFactor } = VB['sim/grazing'];
   const { hexSteps } = VB['sim/hex'];
   const { trample } = VB['sim/fields'];
   const { emit } = VB['sim/events'];
@@ -260,13 +260,19 @@ VB['sim/byre'] = (() => {
   // the rest is drunk fresh within the day; no more is churned than brings the butter held to its head's target (VB-698; by default all).
   function milkDone(st, hh, c) {
     hh.milkDay = c.day;
-    let cows = 0;
+    let cows = 0,
+      lost = 0;
+    const f = milkFactor(st, hh); // a crowded pasture lowers the milk (VB-709, sim/grazing)
     for (const herd of herdsOf(st, hh)) {
-      cows +=
-        (inMilk(st, herd, c).length + inMilkEwes(st, herd, c) * (HERD.eweMilk / HERD.milk)) *
-        (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean)) *
-        (unherded(st, herd, c) ? HERD.herding.milk : 1);
+      const un = unherded(st, herd, c),
+        n =
+          (inMilk(st, herd, c).length + inMilkEwes(st, herd, c) * (HERD.eweMilk / HERD.milk)) *
+          (1 - Math.min(HERD.leanMax, HERD.leanPer * herd.lean)) *
+          (un ? HERD.herding.milk : 1);
+      cows += n * (un ? 1 : f);
+      if (!un) lost += n * (1 - f);
     }
+    if (lost > 0) Stores.record(st, hh, 'milk', lost * HERD.milk, 'milkbite');
     const r = cows * HERD.milk,
       butter = Math.max(0, Math.min(r * HERD.butter, Targets.target(st, hh, 'butter') - larderOf(hh, 'butter')));
     if (r <= 0) return;
