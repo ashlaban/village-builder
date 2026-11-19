@@ -28,6 +28,9 @@ function checkState(st) {
       bad.push(`${key}: live index differs from its source records`);
     }
   }
+  // VB-313: the ballots kept, the last LOG of them, each a choice among its options
+  if (st.decisionLog && (st.decisionLog.length > globalThis.VB['sim/decisions'].LOG
+    || st.decisionLog.some((e) => e.chosen !== null && !(e.chosen >= 0 && (!e.support.length || e.chosen < e.support.length))))) bad.push('decisionLog: over its bound, or a choice outside its options');
   // VB-323: the households to check for a missing adult: live ids, no duplicates
   if (!Array.isArray(st.peopleCheck) || new Set(st.peopleCheck).size !== st.peopleCheck.length
     || st.peopleCheck.some((id) => !st.households[id] || st.households[id].dissolved)) bad.push('peopleCheck: not a list of distinct live household ids');

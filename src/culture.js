@@ -298,9 +298,10 @@ const Culture = (() => {
   // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).
   const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
-  // nameCulture(s, from), onSplit(nc, from, cause) and, if given, decide(s, dim, option) for a meeting's change (VB-170) and act(p, trait,
-  // rule) for what a person's trait does to its drift (VB-520: openness, piety; 1 at a trait of 0.5); the caller builds
-  // them (sim/society hooks(st), or tests/calibrate.js). The environment itself (cultures, settlements, people, driftMul) is plain data.
+  // nameCulture(s, from), onSplit(nc, from, cause), ask(question) for a meeting's question (sim/decisions, VB-313) and, if given,
+  // decide(s, dim, option) for a meeting's change (VB-170) and act(p, trait, rule) for what a person's trait does to its drift (VB-520:
+  // openness, piety; 1 at a trait of 0.5); the caller builds them (sim/society hooks(st), or tests/calibrate.js). The environment itself
+  // (cultures, settlements, people, driftMul) is plain data.
   // `values`: the means of its people's four values (VB-519; Customs and culture, A culture's values), as given (an archetype's) or else
   // its parent's, until its people's are reckoned.
   function makeCulture(env, name, customs, centre, parent = null, values = null) {
@@ -679,11 +680,15 @@ const Culture = (() => {
         n = NOPT[d],
         x = s.practice[d],
         cust = c.customs[d];
-      let y = 0;
-      for (let j = 1; j < n; j++) if (S[o + j] > S[o + y]) y = j;
+      // the question put to the village (VB-313): its voices' support for each option, and the margin each must pass the practice by
+      const support = [],
+        need = [];
+      for (let j = 0; j < n; j++) {
+        support.push(S[o + j]);
+        need.push(j === x ? 0 : small * margin(s, x, j, cust));
+      }
+      const y = hooks.ask({ kind: 'custom', body: s.id, dim: d, current: x, options: n, support, need });
       if (y === x) continue;
-      const h = small * margin(s, x, y, cust);
-      if (!(S[o + y] > S[o + x] * (1 + h))) continue;
       // the change itself: through the caller's decide (the simulation issues a command, VB-170), else written here
       if (hooks.decide ? hooks.decide(s, d, y) : ((s.practice[d] = y), true)) {
         changes.push({ dim: d, from: x, to: y, sy: S[o + y], sx: S[o + x] });

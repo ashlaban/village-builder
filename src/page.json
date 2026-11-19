@@ -24,6 +24,7 @@
   "page/deer.js",
   "page/words.js",
   "page/cards.js",
+  "page/villagecard.js",
   "page/history.js",
   "page/customs.js",
   "page/play.js",

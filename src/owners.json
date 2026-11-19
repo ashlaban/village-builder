@@ -8,6 +8,7 @@
     "st.liveHouseholds": {"owner": "sim/records", "category": "cache"},
     "st.peopleCheck": "sim/records",
     "st.trusts": "sim/trust",
+    "st.decisionLog": "sim/decisions",
     "st.liveTrusts": {"owner": "sim/trust", "category": "cache"},
     "st.stepAt": {"owner": "sim/agents", "category": "cache"},
     "st.legDue": "sim/agents",
