@@ -40,12 +40,14 @@ const iv = setInterval(async () => {
     // a cart out with a pawn (VB-410), taken as the simulation takes it (sim/carts take): drawn at the pawn, not below the house, with the
     // team ahead of an ox cart; home again, it stands below the house
     {
-      const C = win.VB['sim/carts'], hh2 = P.st.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => P.st.agents[m] && !P.st.agents[m].inside));
-      const a = P.st.agents[hh2.members.find((m) => !P.st.agents[m].inside)];
+      const C = win.VB['sim/carts'], hh2 = P.st.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => P.st.agents[m] && !P.st.agents[m].inside && !P.st.agents[m].job));
+      const a = P.st.agents[hh2.members.find((m) => !P.st.agents[m].inside && !P.st.agents[m].job)];
       hh2.carts.length = 0; hh2.carts.push({ kind: 'hand', cond: 1, built: P.st.t, by: null }); tick(3);
-      const home = vis(), objs = P.APP.stage.children[0].children[13].children;
+      const objs = P.APP.stage.children[0].children[13].children;
       const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load };
-      a.job = a.job || { kind: 'haul', farm: P.st.farmsteads[hh2.farmstead] }; a.phase = 'back'; a.carry = 'hay'; a.load = 60;
+      // a pawn with no job: one at the plough has its team drawn with it, and the team would leave with the phase (not the cart's doing)
+      a.job = a.job || { kind: 'haul', farm: P.st.farmsteads[hh2.farmstead] }; a.phase = 'back'; a.carry = 'hay'; a.load = 60; tick(3);
+      const home = vis();
       C.take(P.st, hh2, a.id, false); tick(3);
       const near = objs.filter((o) => o.visible && o.anchor.y === 0.85 && Math.hypot(o.position.x - a.x, o.position.y - a.y) < 14);
       if (!C.out(P.st, hh2.carts[0])) fail('the cart given to a pawn is not out');
