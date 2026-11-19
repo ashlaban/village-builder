@@ -16,7 +16,11 @@ VB['sim/people'] = (() => {
       marry(R, man, wife, 1 + ((rand() * 4) | 0));
     });
     const order = households.map((h) => h.id).sort(() => rand() - 0.5);
-    const hand = person(R, { sex: 'm', age: FOUNDERS.servantMin + ((rand() * FOUNDERS.servantSpan) | 0), servant: true }),
+    const hand = person(R, {
+        sex: 'm',
+        age: FOUNDERS.servantMin + ((rand() * FOUNDERS.servantSpan) | 0),
+        servant: true,
+      }),
       maid = person(R, { sex: 'f', age: FOUNDERS.servantMin + ((rand() * FOUNDERS.servantSpan) | 0), servant: true });
     joinHousehold(R, households[order[0]], hand);
     joinHousehold(R, households[order[1 % order.length]], maid);
