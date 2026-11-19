@@ -981,6 +981,9 @@ VB['sim/rules'] = (() => {
   // Days owed (VB-462; design.md, Remedies, The alderman's keep): a day is `hours` of work of one adult, called for a day at least `notice`
   // days ahead by the creditor's holder, as tasks of its plan.
   const DAYS = { notice: 3, hours: 8 };
+  // The village's office (VB-314; design.md, The alderman): standing gained while in office, and what the election weighs: a candidate's
+  // standing (`standing` the weight of one point of it) against a voice's opinion of him (opinions run -1 to 1).
+  const OFFICE = { standing: 0.3, weighStanding: 0.25 };
   const WORKDAY = {
     days: [
       [0, 0, 'fence'],
@@ -1272,6 +1275,7 @@ VB['sim/rules'] = (() => {
     BUILD,
     WORKDAY,
     DAYS,
+    OFFICE,
     COMMONS,
   };
 })();

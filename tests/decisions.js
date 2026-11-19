@@ -1,5 +1,5 @@
 // VB-313: sim/decisions. A question asked by kind and settled by its body's procedure: a vote passes an option over the one in force only
-// by its margin; a tie at the top, with no presiding pawn (none until VB-314), takes the question's fallback; one pawn deciding (agent),
+// by its margin; a tie at the top, with no presiding pawn (the alderman, VB-314, in a village), takes the question's fallback; one pawn deciding (agent),
 // with none to decide, the fallback too. A contested question keeps its ballots, the last 30. A constructed state, no simulation.
 const assert = require('assert');
 require('../src/load.js');
