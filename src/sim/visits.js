@@ -122,7 +122,10 @@ VB['sim/visits'] = (() => {
     for (const { f, fv } of farSingles(st, p, v, true)) {
       if (!suits(st, p, f, rules)) continue;
       if (!spares(st, hh, visitDays(hoursFrom(st, hh, fv)) * rationOf(st, p))) return keptHome(st, p, hh, fv);
-      issue(st, { actor: id, verb: 'visit', target: fv, source: 'round' });
+      const head = spokesmanOf(st, id);
+      // a son or daughter of the house goes at its head's sending (VB-1168), the head weighing the hands it keeps at home
+      if (head === id) issue(st, { actor: id, verb: 'visit', target: fv, source: 'round' });
+      else issue(st, { actor: head, verb: 'sendVisit', target: id, args: { village: fv }, source: 'round' });
       return;
     }
   }
@@ -163,6 +166,21 @@ VB['sim/visits'] = (() => {
       daysLeft: Math.max(1, Math.ceil(j.food / rationOf(st, st.pawns[id]) - 1e-9)),
     };
   }
+  // Why head `actor` cannot send pawn id to village v (the verb `sendVisit`'s check, which holds for any pawn): it speaks for id, an
+  // unmarried son or daughter of its house; another grown hand stays at home, home and not retired; and id's own visit is possible.
+  function sendWhy(st, actor, id, v) {
+    const q = st.pawns[id],
+      h = st.pawns[actor];
+    if (!q) return `there is no pawn ${id}`;
+    if (id === actor || spokesmanOf(st, id) !== actor) return `${fullName(h)} does not speak for ${fullName(q)}`;
+    const a = (m) => st.agents[m],
+      hands = st.households[h.household].members.filter((m) => {
+        const x = st.pawns[m];
+        return m !== id && x.alive && !x.retired && age(st, x) >= MARRIAGE.womenFrom && a(m) && a(m).away === undefined;
+      });
+    if (hands.length < 1) return `${fullName(h)} cannot spare ${fullName(q)}: no other hand would stay at home`;
+    return visitWhy(st, id, v);
+  }
   // The played pawn plans a winter's visit (VB-292; design.md, Between villages: The player's journey), for itself or, where it speaks
   // for an unmarried son or daughter of its house (sim/records spokesmanOf), for that one: the visit is the visitor's own act, by the
   // verb `visit`, whose check holds for any pawn; at once, not queued (a plan takes no time). True, or why not.
@@ -173,6 +191,8 @@ VB['sim/visits'] = (() => {
     if (!q) return `there is no pawn ${who}`;
     if (who !== pl.pawn && spokesmanOf(st, who) !== pl.pawn)
       return `${fullName(st.pawns[pl.pawn])} does not speak for ${fullName(q)}`;
+    if (who !== pl.pawn)
+      return issue(st, { actor: pl.pawn, verb: 'sendVisit', target: who, args: { village: v }, source: 'player' });
     return issue(st, { actor: who, verb: 'visit', target: v, source: 'player' });
   }
   // Daily at 6:00: the visits due, from the head of the queue (Rules for cost, 4). A plan is dropped where its man has died, married,
@@ -217,5 +237,11 @@ VB['sim/visits'] = (() => {
     check: (st, c) => living(st, c.actor) || visitWhy(st, c.actor, c.target),
     run: (st, c) => planVisit(st, c.actor, c.target),
   });
-  return { visitWhy, planVisit, seekVisit, visitsDue, visitChoices, visitState, orderVisit };
+  // sendVisit(son or daughter; args.village) (VB-1168): a head sends an unmarried child of its house on a winter's visit: the head's
+  // choice, which every head makes at the round (seekVisit); the visit is then planned as the child's own
+  register('sendVisit', {
+    check: (st, c) => living(st, c.actor) || sendWhy(st, c.actor, c.target, c.args.village),
+    run: (st, c) => planVisit(st, c.target, c.args.village),
+  });
+  return { visitWhy, sendWhy, planVisit, seekVisit, visitsDue, visitChoices, visitState, orderVisit };
 })();
