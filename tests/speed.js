@@ -13,7 +13,7 @@ const ctx = {
   // whole 6-minute steps only (VB-244): the page keeps the part of a step its frames have asked for
   Sim: { advance(st, hours) { assert.strictEqual(hours, 0.1, 'the page asks for whole steps, one at a time'); calls++; st.t += hours; now += cost; }, poseOf: (st, a) => [a.x, a.y, a.face, a.stride || 0] },
   setInterval: (fn) => { const id = ++nextTimer; timers.set(id, fn); return id; }, clearInterval: (id) => timers.delete(id),
-  updateClock: () => clocks++,
+  updateClock: () => clocks++, autosaveRound: () => {}, // the round's autosave (VB-215) is saves.js's
 };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/speed.js'), 'utf8'), ctx);
