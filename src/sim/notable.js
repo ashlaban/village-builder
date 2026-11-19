@@ -293,6 +293,9 @@ VB['sim/notable'] = (() => {
     out.rest = rest.length;
     return out;
   }
+  // A birth or a death of a child of pawn `id`, read from the child's father: the birth names the mother (`other`), not the father.
+  const childOf = (st, e, id) =>
+    (e.kind === 'born' || e.kind === 'died') && e.pawn !== id && st.pawns[e.pawn].father === id;
   function chronicle(st, q, group = null, limit = 0) {
     const kinds = group ? new Set(CHRONICLE[group].kinds) : null,
       rows = [],
@@ -301,7 +304,7 @@ VB['sim/notable'] = (() => {
       (e) =>
         told(e) &&
         (mine
-          ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind))
+          ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind)) || childOf(st, e, q.pawn)
           : !PERSONAL.has(e.kind) || (q.farm !== undefined && movedAt(e, q.farm))) &&
         (q.farm === undefined || e.farm === q.farm || movedAt(e, q.farm)) &&
         (q.village === undefined || e.village === q.village),

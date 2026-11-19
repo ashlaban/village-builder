@@ -83,6 +83,24 @@ for (let k = 0; k < 50; k++) log(st, `Line ${k}.`, { kind: 'year', n: k });
 const last = Sim.villageLog(st);
 assert.strictEqual(last.length, 40, 'its last 40 events'); assert.strictEqual(last[0].text, 'Line 49.'); assert.strictEqual(last[39].text, 'Line 10.');
 assert.strictEqual(Sim.villageLog(st, 3).length, 3);
+// VB-1117: a father's History holds his children's births and their deaths, as the mother's does (read from the child's father)
+{
+  const fa = st.pawns[first], mo = st.pawns.find((q) => q.id !== first && q.sex !== fa.sex);
+  const kid = (given) => {
+    const id = st.pawns.length;
+    st.pawns.push({ ...fa, id, given, father: first, mother: mo.id, events: [], alive: true, age: 0 });
+    record(st, { kind: 'born', pawn: id, other: mo.id, text: given + ' was born.', t: st.t, village: 0 });
+    return id;
+  };
+  const lines = () => Sim.chronicle(st, { pawn: first }, 'life').filter((r) => st.pawns[r.ev.pawn].father === first);
+  const was = lines().length; // children seeded before
+  const a = kid('Ann');
+  kid('Bea');
+  assert.strictEqual(lines().length - was, 2, "two births in the father's history");
+  record(st, { kind: 'died', pawn: a, text: 'killed', t: st.t, village: 0 });
+  assert.strictEqual(lines().length - was, 3, "a child's death is his too");
+}
+
 console.log(`chronicle ok: a farm's history across households (${kindsOf(h).join(', ')}; "${h[2].note}"), a pawn's and a village's, the filters, `
   + `and the village log as the record's last 40 lines`);
 
