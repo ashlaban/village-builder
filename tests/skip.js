@@ -201,6 +201,31 @@ const HOLDER = 0, WIFE = 1;
   assert.ok(hers.pawn === WIFE && hers.n === st.record.length && hers.pass === null);
   const h1 = hash(st); Sim.skipFrom(st, hers); Sim.skipStop(st, hers); assert.strictEqual(hash(st), h1, 'asking writes nothing');
 }
+// 8. A refusal in the step that stopped a skip (VB-1135): a death in the household and a refused command in one step stop two skips, the
+// death first, the refusal by the next, once; a command refused while the game stands, which the page showed, stops none. Asking writes
+// nothing.
+{
+  const st = make(); Sim.inhabit(st, HOLDER);
+  const from = Sim.skipFrom(st);
+  Sim.advance(st, 0.1);
+  assert.strictEqual(Sim.skipStop(st, from), null, 'nothing yet');
+  Sim.queue(st, { actor: HOLDER, verb: 'work', target: 'no-such-job' });
+  Sim.killPawn(st, WIFE, 'illness');
+  Sim.advance(st, 0.1);
+  assert.ok(st.player.refused && st.player.refused.t >= from.t, 'refused in the step');
+  const h0 = hash(st), one = Sim.skipStop(st, from);
+  assert.ok(one && one.why === 'family' && one.ev.kind === 'died', JSON.stringify(one));
+  const next = Sim.skipFrom(st, from), two = Sim.skipStop(st, next);
+  assert.ok(two && two.why === 'refused' && /work/.test(two.text), JSON.stringify(two));
+  assert.strictEqual(hash(st), h0, 'asking writes nothing');
+  const third = Sim.skipFrom(st, next), three = Sim.skipStop(st, third);
+  assert.ok(!three || three.why !== 'refused', 'told once');
+  // refused while the game stands, between two skips: the page showed it
+  st.player.refused = { verb: 'work', why: 'there is no job another-missing-job', t: st.t }; // lint-allow: owner as playerStep writes it
+  const stood = Sim.skipFrom(st, third);
+  const r = Sim.skipStop(st, stood);
+  assert.ok(!r || r.why !== 'refused', `a refusal made while the game stood does not stop the next skip: ${JSON.stringify(r)}`);
+}
 console.log('skip ok: it ends by the eve of the moving round; a skipped run is the run played; family, farm and custom events of its own village, '
   + 'hunger come to the household, a refused command, an empty queue and a gathering as it begins stop it; two stops of one step are told in turn, by the next skip');
 

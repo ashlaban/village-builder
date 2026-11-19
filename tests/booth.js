@@ -52,7 +52,26 @@ const grain = (h) => Stores.put(st, h, 'grain', 400, 'harvest', { barley: 400 })
 grain(hh);
 const say = (m) => issue(st, { actor: m, verb: 'lodge', target: tile, args: { why: 'work', days: 1 }, source: 'pawn' });
 const pawns = st.pawns.filter((p) => p.alive).map((p) => p.id);
-b.guests.push(...pawns.filter((m) => st.pawns[m].household !== hh.id));
+// letIn (VB-984): only its maker lets a pawn in; one not let in is refused a bed, and lodged once let in
+const others = pawns.filter((m) => st.pawns[m].household !== hh.id),
+  stranger = others[0],
+  notMaker = adults.find((m) => m !== id);
+assert.ok(/not for pawn/.test(say(stranger)), 'a pawn not let in is refused the booth');
+assert.ok(
+  /did not make/.test(
+    issue(st, { actor: notMaker, verb: 'letIn', target: b.id, args: { pawn: stranger }, source: 'pawn' }),
+  ),
+  'one who did not make the booth cannot let a pawn in',
+);
+for (const m of others)
+  assert.strictEqual(
+    issue(st, { actor: id, verb: 'letIn', target: b.id, args: { pawn: m }, source: 'pawn' }),
+    true,
+    `let ${m} in`,
+  );
+assert.ok(
+  /open to pawn/.test(issue(st, { actor: id, verb: 'letIn', target: b.id, args: { pawn: stranger }, source: 'pawn' })),
+);
 let n = 0,
   refused = null;
 for (const m of pawns) {

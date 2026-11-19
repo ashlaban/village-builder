@@ -22,7 +22,8 @@ VB['sim/farmclaims'] = (() => {
     atHousehold,
   } = VB['sim/records'];
   const { wishOf, moveWhy: whose } = VB['sim/wishes'];
-  const CL = VB['sim/claims'];
+  const CL = VB['sim/claims'],
+    Disputes = VB['sim/disputes'];
   const { dailyNeed } = VB['sim/hunger'],
     { reserved } = VB['sim/stores'];
   const { hasPlot, awaitsCottage } = VB['sim/expansion'];
@@ -131,7 +132,7 @@ VB['sim/farmclaims'] = (() => {
     const key = new Map();
     if (rule === 'kin') for (const id of list) key.set(id, degree.has(id) ? degree.get(id) : 0);
     if (rule === 'assembly') {
-      const sup = CL.support(
+      const sup = Disputes.support(
         st,
         list.map((id) => ({ by: PAWN(id) })),
         vid,

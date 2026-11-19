@@ -1,5 +1,5 @@
 // Claims on tiles (VB-042, sim/claims): adding, renewing, fading and lapsing, realising, each Disputed claims option, grievances and land held.
-const VB = require('../src/load.js'), Sim = VB.sim, CL = VB['sim/claims'], { YEAR, CLAIMS } = VB['sim/rules'];
+const VB = require('../src/load.js'), Sim = VB.sim, CL = VB['sim/claims'], D = VB['sim/disputes'], { YEAR, CLAIMS } = VB['sim/rules'];
 const { moveClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
@@ -54,25 +54,26 @@ st = fresh();
 const [a, b] = [0, 1], hA = st.households[a], hB = st.households[b];
 const dispute = () => { const t = tileAt(st.w, 8, 7); return [CL.addClaim(st, t, H(a), 'field'), CL.addClaim(st, t, H(b), 'field')]; };
 let [ca, cb] = dispute();
-check(CL.settle(st, [ca, cb], 'first') === ca && CL.settle(st, [cb, ca], 'first') === ca, 'first: the earlier claim, in any order');
+check(D.settle(st, [ca, cb], 'first') === ca && D.settle(st, [cb, ca], 'first') === ca, 'first: the earlier claim, in any order');
 ca.renewed = st.t - 2 * YEAR;
-check(CL.settle(st, [ca, cb], 'strongest') === cb, 'strongest: the claim worked or renewed more recently');
+check(D.settle(st, [ca, cb], 'strongest') === cb, 'strongest: the claim worked or renewed more recently');
 ca.renewed = st.t;
-check(CL.settle(st, [ca, cb], 'strongest') === ca, 'strongest: on equal strength, the first');
+check(D.settle(st, [ca, cb], 'strongest') === ca, 'strongest: on equal strength, the first');
 const childOfB = st.pawns.find((p) => p.father === hB.holder || p.mother === hB.holder);
-check(childOfB && CL.settle(st, [ca, cb], 'kin', { lastHolder: childOfB.id }) === cb, 'kin: the claimant akin to the last holder');
-check(CL.settle(st, [ca, cb], 'kin', { lastHolder: null }) === ca, 'kin: with no last holder, the first');
+check(childOfB && D.settle(st, [ca, cb], 'kin', { lastHolder: childOfB.id }) === cb, 'kin: the claimant akin to the last holder');
+check(D.settle(st, [ca, cb], 'kin', { lastHolder: null }) === ca, 'kin: with no last holder, the first');
 // the meeting: the voices of village 0 tied to b's holder, not to a's
 for (const p of Sim.membersOf(st, 0)) { p.ties.delete(hA.holder); if (p.id !== hB.holder) p.ties.set(hB.holder, 1); }
-const sup = CL.support(st, [ca, cb], 0);
+const sup = D.support(st, [ca, cb], 0);
 check(sup[1] > sup[0], `meeting: support ${sup.map((x) => x.toFixed(1))}`);
-check(CL.settle(st, [ca, cb], 'meeting', { village: 0 }) === cb, 'meeting: the claimant with the voices behind them');
+check(D.settle(st, [ca, cb], 'meeting', { village: 0 }) === cb, 'meeting: the claimant with the voices behind them');
 // two villages: the one with more voices wins at a joint meeting
 const tv = tileAt(st.w, 9, 4), va = CL.addClaim(st, tv, V(1), 'outland'), vb = CL.addClaim(st, tv, V(0), 'outland');
-check(CL.settle(st, [va, vb], 'first') === va && CL.settle(st, [va, vb], 'meeting') === vb, 'villages: the first claim, or the larger meeting');
+check(D.settle(st, [va, vb], 'first') === va && D.settle(st, [va, vb], 'meeting') === vb, 'villages: the first claim, or the larger meeting');
 // the loser's grievance: the rules that would have let it win
-check(CL.rulesFor(st, [ca, cb], ca, { village: 0 }).includes('first') && !CL.rulesFor(st, [ca, cb], ca, { village: 0 }).includes('meeting'), 'rulesFor');
-CL.aggrieve(st, [ca, cb], cb, { village: 0 });
+check(JSON.stringify(D.DISPUTE) === JSON.stringify(VB.culture.DIMS[VB.culture.IDX.dispute].opts.map((o) => o[0])), 'the rules disputes knows are the custom\'s options, in order');
+check(D.rulesFor(st, [ca, cb], ca, { village: 0 }).includes('first') && !D.rulesFor(st, [ca, cb], ca, { village: 0 }).includes('meeting'), 'rulesFor');
+D.aggrieve(st, [ca, cb], cb, { village: 0 });
 check(hA.grievance && hA.grievance.rules.includes('first') && !hB.grievance, 'the loser remembers which rules would have served it');
 Sim.refreshInterests(st);
 const adultA = st.pawns.find((p) => p.alive && p.household === a && p.age >= 16), C = VB.culture, k = C.IDX.dispute;

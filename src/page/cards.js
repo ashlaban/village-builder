@@ -178,11 +178,48 @@ const kinStat = (hh) => {
     wide: true,
   };
 };
+// Whether the household would lay out a feast at an occasion (VB-996; the rule 'feast', Sim.explainFeast): its grain above the seed on the
+// one meter, marked at the years of food it keeps first; past the mark it feasts, its holder laying out a share of what is over by its
+// generosity (its word beside the share). The rule's parts are the title. What it holds now, counted: no estimate (principle 14).
+const feastStat = (hh) => {
+  if (hh.holder === null || !st.pawns[hh.holder].alive) return null;
+  const x = Sim.explainFeast(st, hh),
+    part = (k) => (x.parts.find((q) => q.key === k) || { factor: 0 }).factor,
+    { FEAST } = VB['sim/rules'];
+  const above = x.base + part('seed'),
+    keep = -part('keep'),
+    over = Math.round(x.value),
+    share = Math.round(100 * FEAST.share * Sim.traitAct(st, hh.holder, 'generosity', 'feast')),
+    word = VB['sim/traits'].wordOf(st, hh.holder, 'generosity'),
+    who = `${st.pawns[hh.holder].given}${word ? `, ${word},` : ''}`;
+  const signed = (n) => `${n < 0 ? '−' : '+'}${Math.abs(Math.round(n))}`,
+    parts = [`Grain ${Math.round(x.base)}`, ...x.parts.map((q) => `${q.label} ${signed(q.factor)}`)].join(' · ');
+  const words =
+    over > 0
+      ? `Would lay out a feast: ${over} rations over what it keeps first; ${who} lays out ${share}% of it`
+      : `No feast: ${-over} rations short of the ${FEAST.above} years of food it keeps first`;
+  return {
+    icon: 'ale',
+    label: 'Feast',
+    value: over > 0 ? `${over} over` : `${-over} short`,
+    note: over > 0 ? `${who} lays out ${share}%` : '',
+    title: `${words}. ${parts}`,
+    meter: {
+      value: Math.max(0, above),
+      max: Math.max(2 * keep, above, 1),
+      text: words,
+      marks: [{ at: keep, label: `kept first: ${Math.round(keep)} rations, ${FEAST.above} years of food` }],
+    },
+    wide: true,
+  };
+};
 const houseStats = (hh) =>
   suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
   stats([
     kinStat(hh),
     harvestStat(hh),
+    tilthStat(st.farmsteads[hh.farmstead].fields, 'the mean of its fields'),
+    feastStat(hh),
     hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
     hh.dry > 0
       ? { icon: 'water', label: 'Water', value: 'none', tone: 'bad', title: 'No water: nothing is cooked' }
@@ -695,6 +732,10 @@ function showVillage(id) {
   ].filter(Boolean);
   const villageStats = stats([
     ...overviewStats(S),
+    tilthStat(
+      v.farmsteads.flatMap((fid) => st.farmsteads[fid].fields),
+      "the mean of its farms' fields",
+    ),
     v.fence.length
       ? {
           icon: 'fence',

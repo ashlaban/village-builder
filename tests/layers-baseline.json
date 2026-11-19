@@ -1,9 +1,8 @@
 {
-  "total": 13,
+  "total": 12,
   "pairs": {
     "sim/names -> culture": 1,
     "sim/records -> culture": 1,
-    "sim/claims -> culture": 1,
     "sim/territory -> culture": 1,
     "sim/forest -> sim/territory": 1,
     "sim/herds -> culture": 1,
