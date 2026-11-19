@@ -14,7 +14,7 @@ VB['sim/visits'] = (() => {
   const { travelling, stayOf } = VB['sim/agents'];
   const { visit, visitDays } = VB['sim/away'];
   const { kinOk, matchScore, matchRules, meansOf, roundYear } = VB['sim/matching'];
-  const { wishOf } = VB['sim/wishes'];
+  const { wishOf, askingIn } = VB['sim/wishes'];
   const { issue, register } = VB['sim/commands'];
   const WINTER = 3,
     SPREAD = 6; // the days from winter's first over which the visits planned at the round set out, by household (Rules for cost, 5)
@@ -85,22 +85,31 @@ VB['sim/visits'] = (() => {
   }
   // Those pawn p of village v might marry who live beyond a day's walk of it and within walking reach, the nearest village first: the
   // unmarried of the other sex, of age, fed, not retired, not wishing otherwise, each {f (the pawn), fv (its village), h (the hours)}.
-  // Read from the asking queue, as an asking reads the unmarried; `counted`: a visit sought at the round (visitWalk).
-  function farSingles(st, p, v, counted) {
-    const cands = [];
-    for (const e of st.asking) {
-      if (counted) {
-        VB.count.visitWalk++;
-      }
-      const f = st.pawns[e.pawn];
-      if (f.sex === p.sex || !f.alive || f.retired || f.household === null || f.hunger >= HUNGER.marryBelow) continue;
-      if (age(st, f) < (f.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom) || spouseOf(st, f.id) !== null) continue;
-      if (f.wish && wishOf(st, f.id, 'match') === false) continue;
-      const fv = settlementIdOf(st, f),
-        h = fv === null || fv === v ? 0 : hoursBetween(st, v, fv);
-      if (h > TRAVEL.dayWalk && h < Infinity) cands.push({ f, fv, h });
+  // Read from the queue's part of each village beyond a day's walk (askingIn), the nearest village first, the pawns of one by id, village
+  // by village as asked for, so that a visit found at the nearest is the only one read; `counted`: a visit sought at the round (visitWalk).
+  function* farSingles(st, p, v, counted) {
+    const far = [];
+    for (let w = 0; w < st.villages.length; w++) {
+      const h = w === v ? 0 : hoursBetween(st, v, w);
+      if (h > TRAVEL.dayWalk && h < Infinity) far.push({ w, h });
     }
-    return cands.sort((a, b) => a.h - b.h || a.fv - b.fv || a.f.id - b.f.id);
+    far.sort((a, b) => a.h - b.h || a.w - b.w);
+    for (const { w: fv, h } of far) {
+      const cands = [];
+      for (const e of askingIn(st, fv)) {
+        if (counted) {
+          VB.count.visitWalk++;
+        }
+        const f = st.pawns[e.pawn];
+        if (f.sex === p.sex || !f.alive || f.retired || f.household === null || f.hunger >= HUNGER.marryBelow) continue;
+        if (age(st, f) < (f.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom) || spouseOf(st, f.id) !== null)
+          continue;
+        if (f.wish && wishOf(st, f.id, 'match') === false) continue;
+        cands.push({ f, fv, h });
+      }
+      cands.sort((a, b) => a.f.id - b.f.id);
+      yield* cands;
+    }
   }
   // Whether pawns p and q, a man and a woman, could be matched by the round's rules but for the way between them: the kin limit of the
   // man's village's custom; a home under the residence custom; the score, its noise at the mean, reaching MARRIAGE.minScore.

@@ -195,16 +195,38 @@ VB['sim/wishes'] = (() => {
     return sp !== null && (holdingOf(st, id) !== null || holdingOf(st, sp) !== null);
   };
   const entryOf = (st, id) => st.asking.findIndex((e) => e.pawn === id);
-  function enqueue(st, id, t) {
-    const q = st.asking;
+  // @state st.askingBy{}: the queue by village (VB-1169), {village id: [{t, pawn}]}, each in the order the queue holds them: a cache of
+  //   st.asking, kept with it here (the entry's `v` is the village it is filed under; none for a pawn of no household). Read by
+  //   sim/asking and sim/visits through askingIn: the unmarried of the villages they reach, not the island's.
+  const insertAt = (q, e) => {
     let lo = 0,
       hi = q.length;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (q[mid].t <= t) lo = mid + 1;
+      if (q[mid].t <= e.t) lo = mid + 1;
       else hi = mid;
     }
-    q.splice(lo, 0, { t, pawn: id });
+    q.splice(lo, 0, e);
+  };
+  function file(st, e) {
+    if (e.v === null) return;
+    if (!st.askingBy[e.v]) st.askingBy[e.v] = [];
+    insertAt(st.askingBy[e.v], { t: e.t, pawn: e.pawn });
+  }
+  function unfile(st, e) {
+    if (e.v === null || !st.askingBy[e.v]) return;
+    const i = st.askingBy[e.v].findIndex((x) => x.pawn === e.pawn);
+    if (i >= 0) st.askingBy[e.v].splice(i, 1);
+  }
+  const askingIn = (st, village) => st.askingBy[village] || [];
+  const dropAt = (st, i) => {
+    unfile(st, st.asking[i]);
+    st.asking.splice(i, 1);
+  };
+  function enqueue(st, id, t) {
+    const e = { t, pawn: id, v: settlementIdOf(st, st.pawns[id]) };
+    insertAt(st.asking, e);
+    file(st, e);
   }
   // Pawn id's entry made right: dropped for the dead and the married who hold a place; else, where it has none, written for its next
   // asking day (a child's, the first after it turns 18; the retired seek nothing). `widowed`: its spouse has just died (the union not
@@ -213,18 +235,30 @@ VB['sim/wishes'] = (() => {
     const p = st.pawns[id],
       i = entryOf(st, id);
     if (!p.alive || (!widowed && placed(st, id))) {
-      if (i >= 0) st.asking.splice(i, 1);
+      if (i >= 0) dropAt(st, i);
       return;
     }
-    if (i >= 0 || p.retired) return;
+    if (i >= 0) {
+      const e = st.asking[i],
+        v = settlementIdOf(st, p);
+      if (e.v !== v) {
+        unfile(st, e); // it moved: refiled under its new village, at the place its entry holds
+        e.v = v;
+        file(st, e);
+      }
+      return;
+    }
+    if (p.retired) return;
     enqueue(st, id, age(st, p) >= GROWN ? askingAfter(id, st.t) : askingAfter(id, p.born + GROWN * YEAR - 1e-6));
   }
   // The pawn whose asking is due by now, taken from the head of the queue, and written for its next season if it still seeks; or null.
   function nextAsking(st) {
     const q = st.asking;
     if (!q.length || q[0].t > st.t) return null;
-    const { pawn: id } = q.shift(),
+    const e = q.shift(),
+      id = e.pawn,
       p = st.pawns[id];
+    unfile(st, e);
     if (!p.alive || p.retired || placed(st, id)) return null; // left in the queue by a change no event told (it seeks no more)
     enqueue(st, id, askingAfter(id, st.t));
     return id;
@@ -232,6 +266,7 @@ VB['sim/wishes'] = (() => {
   // The queue at the start of a run (a scenario's people, an older save's): every living pawn, as seek writes it.
   function seedAsking(st) {
     st.asking = [];
+    st.askingBy = {};
     for (const id of st.living) seek(st, id);
   }
   on('born', (st, d) => seek(st, d.child));
@@ -264,5 +299,6 @@ VB['sim/wishes'] = (() => {
     nextAsking,
     seedAsking,
     seek,
+    askingIn,
   };
 })();

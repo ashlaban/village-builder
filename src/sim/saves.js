@@ -458,7 +458,7 @@ VB['sim/saves'] = (() => {
       st.offers = [];
       st.offerSeq = 0;
     } // VB-293: nor marriage offers
-    if (!st.asking) VB['sim/wishes'].seedAsking(st); // VB-823: nor the askings' queue
+    if (!st.asking || !st.askingBy) VB['sim/wishes'].seedAsking(st); // VB-823: nor the askings' queue (VB-1169: nor its villages')
     if (!st.courtships) VB['sim/courting'].seedCourtships(st); // VB-036: nor the courting couples
     // VB-310: nor obligations: a share still owed lay on the sibling (pawn.owed, pawn.owedFrom)
     for (const p of st.pawns) {
