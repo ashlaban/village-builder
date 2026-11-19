@@ -1,0 +1,176 @@
+{
+ "session": "c1f1f915-7ee1-5a19-8e3d-9a64158f7ea0",
+ "label": "worker",
+ "models": [
+  "claude-fable-5-2",
+  "<synthetic>",
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-19T00:02:13.917Z",
+ "end": "2026-11-19T01:22:52.739Z",
+ "wallMin": 80.6,
+ "activeMin": 24.8,
+ "prompts": 7,
+ "calls": 21,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 42,
+  "cacheWrite": 89289,
+  "cacheRead": 1927787,
+  "output": 5305
+ },
+ "context": {
+  "first": 91378,
+  "peak": 115306,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 12,
+   "bytes": 26608,
+   "seconds": 338.9
+  },
+  "AskUserQuestion": {
+   "calls": 1,
+   "bytes": 352,
+   "seconds": 17.7
+  },
+  "Agent": {
+   "calls": 2,
+   "bytes": 2098,
+   "seconds": 6.7
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 15576
+  },
+  {
+   "tool": "Bash",
+   "what": "cat /tmp/claude-0/-home-user-village-builder/c1f1f915-7ee1-5",
+   "calls": 1,
+   "bytes": 4809
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -nE",
+   "calls": 1,
+   "bytes": 2475
+  },
+  {
+   "tool": "Agent",
+   "what": "",
+   "calls": 2,
+   "bytes": 2098
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 1,
+   "bytes": 1524
+  },
+  {
+   "tool": "Bash",
+   "what": "git fetch",
+   "calls": 1,
+   "bytes": 576
+  },
+  {
+   "tool": "Bash",
+   "what": "ls -t",
+   "calls": 1,
+   "bytes": 511
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/inbox.js",
+   "calls": 2,
+   "bytes": 457
+  },
+  {
+   "tool": "AskUserQuestion",
+   "what": "",
+   "calls": 1,
+   "bytes": 352
+  },
+  {
+   "tool": "Bash",
+   "what": "npm run",
+   "calls": 1,
+   "bytes": 272
+  },
+  {
+   "tool": "Bash",
+   "what": "git merge",
+   "calls": 2,
+   "bytes": 215
+  },
+  {
+   "tool": "Bash",
+   "what": "timeout 1500",
+   "calls": 1,
+   "bytes": 193
+  }
+ ],
+ "weighted": 330957,
+ "subagents": [
+  {
+   "agent": "a486f212",
+   "task": "VB-1100",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 100,
+   "tokens": {
+    "input": 200,
+    "cacheWrite": 161496,
+    "cacheRead": 11178123,
+    "output": 47047
+   },
+   "weighted": 1555117,
+   "first": 20282,
+   "boot": 100683,
+   "peak": 161498,
+   "activeMin": 15.5,
+   "start": "2026-11-19T00:03:10.211Z"
+  },
+  {
+   "agent": "aa756ef4",
+   "task": "VB-1104",
+   "size": "M",
+   "status": "done",
+   "model": "claude-opus-5-5",
+   "calls": 56,
+   "tokens": {
+    "input": 112,
+    "cacheWrite": 615545,
+    "cacheRead": 4092381,
+    "output": 40809
+   },
+   "weighted": 1382826,
+   "first": 20284,
+   "boot": 57256,
+   "peak": 115987,
+   "activeMin": 41,
+   "start": "2026-11-19T00:03:10.215Z"
+  }
+ ],
+ "summary": {
+  "weightedTotal": 3268900,
+  "orchestratorShare": 0.101,
+  "bootMedian": 78970,
+  "readMedian": 58687,
+  "weightedPerDoneTask": 1634450,
+  "perSize": {
+   "M": {
+    "n": 2,
+    "median": 1468972
+   }
+  },
+  "firstPass": 1,
+  "tasks": 2
+ }
+}
