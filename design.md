@@ -578,11 +578,27 @@ This follows the Northwestern European pattern of household formation (Hajnal 19
 
 ### Handover and shares
 
-- **Timing** follows the custom: at the holder's death, when the heir marries (the parents retire on the farm, *undantag*), or when the holder turns 60.
+- **Timing** is the holder's choice (Decided, Kim, 18 Nov; was: follows the custom): it hands on in life when it chooses, the player for its pawn as every holder for itself, else the farm passes at its death. The custom (when the heir marries, the parents retiring on the farm, *undantag*; or when the holder turns 60) is when the village expects it. An unplayed holder weighs the custom's time, its years and strength, the heir's wish to marry, its opinion of the heir and the keep the farm can bear (`HANDOVER`, Proposed, VB-1122's plan, 19 Nov); a holder who holds out past the custom's time loses its heir's opinion, a little a year (`HANDOVER.grudge`).
 - **Shares:** under “one heir buys out the rest” each sibling receives a share of the farm's value; under *systerlott* a daughter gets half a son's share. Shares can be paid partly in animals.
 - **A reserve** of seed, food and winter hay is never paid out; any shortfall is recorded as owed.
 - **Shares still owed** are paid by the farm the sibling came from, at each moving round, from grain above its reserve; the shares become the new household's starting grain (Agreed, 30 Oct).
 - **Splitting land** between heirs is designed as a custom, but behaves like a buy-out until splitting exists. A sibling who gets fields also needs a house next to them; until it is built, the old household works those fields and gives the sibling half the harvest (Agreed, 30 Oct).
+
+### The retired (undantag) (VB-1122's plan, 19 November)
+
+A holder who hands on retires on the farm with a keep, by the Nordic retirement contract (*undantag*, *födoråd*). What follows is every
+retired pawn's, played or not (principle 16); `docs/plans/VB-1122.md` gives the reasons and the numbers.
+
+| Aspect | Design | Status |
+| --- | --- | --- |
+| The keep | Named at the handover: a room, one adult's rations, firewood (`KEEP.wood`) and, where the farm has cows, one cow's milk; an obligation (kind `keep`) of the new holder's household to the retired pawn, from the handover to its death, met at the table while it lives in the house | Proposed, VB-1122's plan, 19 Nov |
+| The keep short | A day the retired goes hungry while the store held its ration is a day short; `KEEP.shortDays` in a year press the keep: a memory of the holder ("Kept me short") and a case at the next meeting, as a pressed debt's; pressed `KEEP.reclaim` years running, the meeting may give the farm back to its old holder, as the provincial laws allowed | Proposed, VB-1122's plan, 19 Nov |
+| A voice with the heir | Once a year, at the head's spring planning day, the retired may advise the head on the plan (a target, the rotation, a crop out of turn): an offer of basis `advice`, which the head takes when its opinion of the adviser times the adviser's standing reaches `ADVICE.heed`, and then carries out itself | Proposed, VB-1122's plan, 19 Nov |
+| At the meeting | As every adult, under "Who speaks at the meeting"; a cause argued as any pawn's (`argue`) | Proposed, VB-1122's plan, 19 Nov (as built) |
+| A grandchild's match | Under "Who makes a match" by the heads, a retired grandparent in the house may wish a match for a grandchild of age, carried to the head as advice | Proposed, VB-1122's plan, 19 Nov |
+| Gifts from its own | What its keep names is its own to give (the milk of its cow, rations it saved), by `give`, from the keep's reservation in the household's store | Proposed, VB-1122's plan, 19 Nov; waits for the keep |
+| Work | By the role `retired`'s weights, and any open job of its household, as built | Agreed (as built) |
+| The player retired | Every year at least the spring advice and the autumn meeting; a grandchild's match, a keep pressed, a gift when they come. A year with nothing taken is skipped to the next thing asked of the pawn | Proposed, VB-1122's plan, 19 Nov |
 
 ### Leaving home
 
