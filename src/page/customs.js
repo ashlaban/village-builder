@@ -1,6 +1,6 @@
 // @sys page/customs: the Customs tab of a village's card: its customs as a charter, who stands by which way, and why (VB-396, VB-398); the charter's sentences
 // ======== customs ========
-// The customs are told as sentences under four heads; the option in force is a phrase of its sentence, [before, {option: phrase}, after].
+// The customs are told as sentences under five heads; the option in force is a phrase of its sentence, [before, {option: phrase}, after].
 const CHARTER = [
   ['Land', ['claims', 'dispute', 'newLand']],
   ['Inheritance', ['handover', 'heirSex', 'birthOrder', 'heirCount', 'daughterShare', 'widow', 'ownHeir']],

@@ -236,7 +236,7 @@ const iv = setInterval(async () => {
     q(`#treeModes [data-mode="${mode}"]`).click(); shown[mode] = qa('#treeSvg g.tn').length;
     if (!q('#treeSvg g.tn.focus')) fail(`the ${mode} view does not show the person it is of`);
     if (shown[mode] > all) fail(`the ${mode} view shows more people than the records hold`);
-    if (q(`#treeModes [data-mode="${mode}"]`).getAttribute('aria-pressed') !== 'true') fail(`the ${mode} button is not pressed`);
+    if (q(`#treeModes [data-mode="${mode}"]`).getAttribute('aria-selected') !== 'true') fail(`the ${mode} tab is not selected`);
     const chip = q('#treeSvg g.chip');
     if (chip) {
       chip.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
@@ -391,7 +391,7 @@ async function goodwillPanel() {
     const phrases = box.querySelectorAll('.charter [data-phrase]');
     if (box.hidden || !doc.getElementById('tileFacts').hidden) fail('the Customs tab did not open');
     if (phrases.length !== DIMS.length) fail(`the charter has ${phrases.length} phrases, expected ${DIMS.length}`);
-    if (!box.querySelector('h3.lead') || box.querySelectorAll('h3:not(.lead)').length !== 4) fail('the charter lacks its heading or its four heads');
+    if (!box.querySelector('h3.lead') || box.querySelectorAll('h3:not(.lead)').length !== 5) fail('the charter lacks its heading or its five heads');
     const sett = st.cenv.settlements[farm.village], voices = Sim.membersOf(st, sett.id).filter((p) => p.alive && Sim.voiceOf(st, p, sett) > 0).length;
     phrases[0].click(); tick(2);
     const stand = box.querySelector('.stand'), ways = stand ? stand.querySelectorAll('.way').length : 0;
