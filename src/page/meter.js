@@ -44,7 +44,7 @@ const markKey = () =>
 function stat(o) {
   const m = o.meter ? meter({ label: o.label, text: o.value, tone: o.tone, ...o.meter }) : '';
   return (
-    `<div class="stat${o.wide || m ? ' wide' : ''}${o.tone ? ' ' + o.tone : ''}" title="${esc(o.title || o.label)}">` +
+    `<div class="stat${o.wide || m ? ' wide' : ''}${o.tone ? ' ' + o.tone : ''}${o.cls ? ' ' + o.cls : ''}" title="${esc(o.title || o.label)}">` +
     `<span class="stat-ico">${o.img || goodIcon(o.icon)}</span><span class="stat-name">${esc(o.label)}</span>${m}` +
     `<span class="stat-val">${esc(String(o.value))}${o.note ? `<small>${esc(o.note)}</small>` : ''}</span></div>`
   );

@@ -234,10 +234,49 @@ function refreshLand() {
     drew = true;
   }
   if (drew) landAt = time;
+  if (time - landKeyAt >= 0.5) {
+    landKeyAt = time;
+    paintLandKey();
+  }
   for (const [k, c] of landChunks) c.g.visible = inView.has(k);
+}
+// The key (as Ground's and Reach's): what a fill, an outline and a ring mean, and the colours of the villages in view.
+let landKeyHTML = '',
+  landKeyAt = -1;
+function paintLandKey() {
+  if (!st || !w) return;
+  const [x0, y0, x1, y1] = viewRect(0),
+    seen = st.villages.filter(
+      (v) => w.hx[v.center] >= x0 && w.hx[v.center] <= x1 && w.hy[v.center] >= y0 && w.hy[v.center] <= y1,
+    ),
+    row = (cls, style, name) => `<li><i class="${cls}" style="${style}"></i>${name}</li>`;
+  const html =
+    '<h2 class="menu-label">Land</h2><ul>' +
+    row('fill', 'background:#8a8f7a;opacity:.45', "A village's land: a light tint of its colour") +
+    row(
+      'fill',
+      'background:#8a8f7a;opacity:.8;box-shadow:inset 0 0 0 2px #555',
+      "A household's land: a stronger tint, outlined",
+    ) +
+    row('line', 'border-color:#2a1a0c', "Border between two villages' land") +
+    row('line', 'border-color:#4d6b2a', "A village's land against land no one holds") +
+    row('woodmark', 'background:#4d6b2a', "A village's wood") +
+    '</ul><h2 class="menu-label">Claims</h2><ul>' +
+    row('dash', 'border-color:#4d6b2a', "Claimed, not yet held: a dashed ring in the claimant's colour") +
+    row('ring', 'border-color:#4d6b2a', 'Held by birthright: a solid ring') +
+    row('line', 'border-color:#b02020;border-style:dotted', 'Claimed by several: hatched') +
+    '</ul><h2 class="menu-label">Villages in view</h2><ul>' +
+    (seen.map((v) => row('fill', `background:${hex6(villageColour(v.id))}`, esc(v.name))).join('') ||
+      '<li>None in view</li>') +
+    '</ul>';
+  if (html !== landKeyHTML) {
+    landKeyHTML = html;
+    $('landKey').innerHTML = html;
+  }
 }
 function drawLand() {
   landIndex();
   landMarkAll();
   refreshLand();
+  paintLandKey();
 }

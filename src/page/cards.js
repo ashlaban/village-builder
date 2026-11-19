@@ -82,8 +82,10 @@ const pawnChip = (id, as = '', of = -1) =>
   `<button type="button" class="chip${as ? ' as' : ''}" data-pawn="${id}"${as ? ` title="${CHIP_AS[as]}"` : ''}>${faceImg(id, 'mini', of)}${esc(
     Sim.fullName(st.pawns[id]),
   )}${as ? goodIcon(as) : ''}</button>`;
-const farmChip = (f) =>
-  `<button type="button" class="chip" data-farm="${f.id}">${iconImg(farmIcon(f), 'mini')}${esc(f.name)}</button>`;
+const HOLDING = { field: 'A field of this farm', meadow: 'A hay meadow of this farm' };
+const farmChip = (f, kind = '') =>
+  `<button type="button" class="chip" data-farm="${f.id}"${HOLDING[kind] ? ` title="${esc(HOLDING[kind])}"` : ''}>` +
+  `${iconImg(farmIcon(f), 'mini')}${esc(f.name)}</button>`;
 const villageChip = (v) =>
   `<button type="button" class="chip" data-village="${v.id}">${iconImg(villageIcon(v), 'mini')}${esc(v.name)}</button>`;
 const row = (attr, img, name, note, state) =>
@@ -462,7 +464,7 @@ function renderHouse(tab, hh) {
 function tileExtras(of) {
   const f = st.farmsteads[of.farm],
     v = st.villages[f.village];
-  if (!of.house) return { links: farmChip(f) + villageChip(v), stats: of.stats, list: of.list };
+  if (!of.house) return { links: farmChip(f, of.kind) + villageChip(v), stats: of.stats, list: of.list };
   const hh = f.household === null ? null : st.households[f.household];
   const list = hh ? `<h3>Lives here</h3>${hh.members.map(memberRow).join('')}` : '';
   const heirs = hh ? Sim.heirRanking(st, hh).slice(0, 3) : [];

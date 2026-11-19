@@ -92,7 +92,8 @@ function updatePanelHTML(box, html) {
   if (scroll) scroll.scrollTop = top;
 }
 // The People sheet finds a person, a farm or a village (VB-664): a village's fold lists its farms and their people, each a row that
-// opens its card, where it is told of (page/cards). The rows are the cards' own (farmRow, memberRow).
+// opens its card, where it is told of (page/cards). The rows are the cards' own (farmRow, memberRow); the village's own card is opened by
+// the target button in its heading, not by a row repeating it.
 function renderSettlers() {
   if (!st || document.body.classList.contains('ui-hidden') || $('peopleSheet').classList.contains('collapsed')) return;
   const query = peopleQuery.trim().toLocaleLowerCase(),
@@ -122,13 +123,14 @@ function renderSettlers() {
     const population = households.reduce((sum, item) => sum + item.members.length, 0),
       meta = `${population} people · ${households.length} ${households.length === 1 ? 'household' : 'households'}`;
     const body = expanded
-      ? row(`data-village="${v.id}"`, iconImg(villageIcon(v), 'mini'), v.name, 'The village', actIcon('next')) +
-        households
+      ? households
           .map(({ f, members }) => `${farmRow(f)}<div class="finder-members">${members.map(memberRow).join('')}</div>`)
           .join('')
       : '';
+    const open = `Open the card of ${esc(v.name)}`,
+      go = `<button type="button" class="sum-go" data-village="${v.id}" title="${open}" aria-label="${open}">${actIcon('target')}</button>`;
     h += `<details class="village-block" data-fold="${key}"${expanded ? ' open' : ''}>
-        <summary>${iconImg(villageIcon(v), 'mini')}${esc(v.name)}<span class="summary-meta">${meta}</span></summary>${body}</details>`;
+        <summary>${iconImg(villageIcon(v), 'mini')}${esc(v.name)}<span class="summary-meta">${meta}</span>${go}</summary>${body}</details>`;
   }
   // the village log: the last 40 of the record's events that are told to all (Sim.villageLog), with their names as links
   if (!query)
@@ -474,11 +476,21 @@ function settlementTileInfo(i) {
       const cond = Math.round(fd.soil * 100);
       return [
         `Field of ${where}`,
-        [more.word || word, f.household === null ? 'No one works it' : 'Owned by the household'],
+        f.household === null ? ['No one works it'] : [],
         {
           farm: f.id,
           list: more.list,
+          kind: 'field',
           stats: stats([
+            // the stage as the map's own picture, the word its label
+            {
+              img: iconImg(fieldIcon(fieldLook(fd)), 'mini'),
+              label: more.word || word,
+              value: '',
+              wide: true,
+              cls: 'stage',
+              title: 'Where the field stands in its year',
+            },
             ...more.stats,
             {
               icon: 'soil',
@@ -510,13 +522,38 @@ function settlementTileInfo(i) {
       mown: 'Mown; the hay is drying',
       aftermath: 'Aftermath: the hay is in',
     }[m.stage];
+    // what the meadow is worth, counted from its soil, in a year of ordinary weather: a fact of the ground, no forecast of this year's cut
+    // (so no pawn's estimate is named, principle 14)
     return [
       `Hay meadow of ${f.name}, ${st.villages[f.village].name}`,
-      [
-        word,
-        `About ${Math.round(30 * m.fert)} hay in an ordinary year${Sim.byRiver(w, i) ? ', wet ground by the river' : ''}`,
-      ],
-      { farm: f.id },
+      Sim.byRiver(w, i) ? ['Wet ground by the river'] : [],
+      {
+        farm: f.id,
+        kind: 'meadow',
+        stats: stats([
+          {
+            img: iconImg(meadowIcon(m.stage), 'mini'),
+            label: word,
+            value: '',
+            wide: true,
+            cls: 'stage',
+            title: 'Where the meadow stands in its year',
+          },
+          {
+            icon: 'soil',
+            label: 'Soil',
+            value: Math.round(m.fert * 100),
+            title: 'The quality of the soil',
+            meter: { value: m.fert * 100 },
+          },
+          {
+            icon: 'hay',
+            label: 'Hay in an ordinary year',
+            value: Math.round(30 * m.fert),
+            title: "What the meadow is worth, counted from its soil; not a forecast of this year's cut",
+          },
+        ]),
+      },
     ];
   }
   for (const v of st.villages) {
