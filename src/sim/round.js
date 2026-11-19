@@ -5,6 +5,7 @@
 //   at once; after the last, what is open lapses (split from sim/lifecycle, VB-876)
 VB['sim/round'] = (() => {
   const Culture = VB['culture'];
+  const Crowding = VB['sim/crowding'];
   const { cal, DAY, HUNGER, MARRIAGE, ASK } = VB['sim/rules'];
   const { log, age, spouseOf, settlementIdOf, practice, spokesmanOf } = VB['sim/records'];
   const { countDemand, refreshRoles } = VB['sim/heirs'];
@@ -92,7 +93,9 @@ VB['sim/round'] = (() => {
     for (const e of [...st.asking]) if (st.pawns[e.pawn].alive) askFor(st, e.pawn, from);
     for (let d = 0; d < ASK.passes; d++) for (let n = 0; n < ROUND_STEPS; n++) roundPhase(st, n, d, from + d * DAY);
   }
-  function roundPhase(st, n, d = 0, now = st.t) {
+  // A step's changes of membership are counted into the crowding once, at its end (VB-1380).
+  const roundPhase = (st, n, d = 0, now = st.t) => Crowding.batch(st, () => phase(st, n, d, now));
+  function phase(st, n, d, now) {
     if (n < VILLAGE_STEPS) {
       if (n === 0 && d === 0) {
         review(st); // the courting couples are read: a courtship that has run out ends (sim/courting, VB-036)
