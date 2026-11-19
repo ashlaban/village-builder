@@ -407,6 +407,8 @@ VB['sim/agents'] = (() => {
       return;
     }
     if (K.done) K.done(st, j, hh, cal(st.t));
+    if (st.player && st.player.pawn === a.id)
+      emit(st, 'yielded', { pawn: a.id, kind: j.kind, farm: j.farm ?? null, good: null, n: 0 });
     dropJob(st, j);
   }
   // Home with the load: the kind says what it brings.
@@ -415,7 +417,17 @@ VB['sim/agents'] = (() => {
       K = KINDS[j.kind];
     const hh = workFor(st, a, j);
     helped(st, j, [a.id]); // a load brought in is a task done
-    if (K.deliver) K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
+    const load = a.load,
+      got = K.deliver ? K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a) : undefined;
+    // the played pawn's sheet tells what the trip brought (sim/player, VB-1118): what the kind's delivery says it put, else the load carried
+    if (st.player && st.player.pawn === a.id)
+      emit(st, 'yielded', {
+        pawn: a.id,
+        kind: j.kind,
+        farm: j.farm ?? null,
+        good: K.carry ?? null,
+        n: typeof got === 'number' ? got : load,
+      });
     if (a.job !== j) return; // a delivery that moved its pawn released it (as `ended` after a completion)
     Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears
     retune(st, st.households[st.pawns[a.id].household]);

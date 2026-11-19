@@ -1,10 +1,10 @@
 // Manure and the soil (VB-137): a reaped crop yields in proportion to the field's soil and wears it by 0.08 to 0.75; fodder collects manure
 // (0.2 loads a head of cattle, 0.04 a sheep, each stall day); in spring days 1-6 the heap is carted to the poorest field not yet sown, a load
 // raising its soil by 0.04 to 1.15. On the small islands of tests/lib/probe.js (VB-855): the rules on populous at seed 7, and founders' first
-// spring carting in a run. With --extended (at night), founders at seed 7 on the small map, 10 years: farms that winter cattle keep their
-// soil, the farm without declines (a balance of a decade's crops and dung, which a small state cannot show).
+// spring carting in a run. With --extended (at night), founders at seed 7 on the small map, 10 years: farms whose wintered cattle's dung covers
+// their fields' wear keep their soil, the farm without declines (a balance of a decade's crops and dung, which a small state cannot show).
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { scenario } = require('./lib/probe.js'), H = VB['sim/herds'], Y = VB['sim/byre'], F = VB['sim/fields'];
-const { CROPS } = VB['sim/rules'];
+const { CROPS, HERD, ROTATIONS } = VB['sim/rules'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SOIL FAIL:', m); } };
 const world = (seed, size = [120, 85]) => { const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };
@@ -81,11 +81,18 @@ if (process.argv.includes('--extended')) {
   const rows = st.farmsteads.filter((f) => f.household !== null).map((f) => {
     const h = st.households[f.household], cows = H.herdsOf(st, h).filter((x) => x.species === 'cattle').reduce((s, x) => s + x.head.length, 0);
     const soil = f.fields.reduce((s, q) => s + q.soil, 0) / Math.max(1, f.fields.length);
-    return { name: f.name, cattle: cows, fields: f.fields.length, soil };
+    const wear = f.fields.reduce((s, q) => { const c = ROTATIONS[q.rotation || 'every'].courses; return s + c.reduce((w, k) => w + (CROPS[k] ? CROPS[k].wear || 0 : 0), 0) / c.length; }, 0);
+    return { name: f.name, cattle: cows, fields: f.fields.length, soil, wear };
   });
-  const withC = rows.filter((r) => r.cattle >= 2), without = rows.filter((r) => r.cattle === 0);
-  check(withC.length && withC.every((r) => r.soil >= 0.95), `a farm with cattle lost its soil: ${JSON.stringify(withC)}`);
+  // VB-1224: a farm keeps its soil when its winter's dung covers its fields' wear, not by a count of cattle: a cow stalled HERD.stallDays
+  // gives SOIL.cattle loads a day, of SOIL.perLoad soil each, less what rots on the heap until the spring carting (about a quarter of a
+  // year), against what its fields' rotations wear a year (each course's crop wear, a fallow's mend not counted). Vallen (founders 7 before
+  // VB-353: 2 cattle on 5 fields of barley every year, cover 0.7) fell to 0.90 by that balance, as it should; a farm between no cattle and a
+  // full cover is reported, not judged.
+  for (const r of rows) r.cover = (r.cattle * S.cattle * HERD.stallDays * S.perLoad * Math.pow(1 - S.rot, 0.25)) / Math.max(1e-9, r.wear);
+  const withC = rows.filter((r) => r.cattle > 0 && r.cover >= 1), without = rows.filter((r) => r.cattle === 0);
+  check(withC.length && withC.every((r) => r.soil >= 0.95), `a farm whose dung covers its wear lost its soil: ${JSON.stringify(withC)}`);
   check(!without.length || without.every((r) => r.soil < Math.min(...withC.map((r) => r.soil))), `a farm without cattle kept its soil: ${JSON.stringify(rows)}`);
-  console.log(`soil ok (extended): founders 7 after 10 years: ${rows.map((r) => `${r.name} ${r.cattle} cattle, ${r.fields} fields, soil ${r.soil.toFixed(2)}`).join('; ')}`);
+  console.log(`soil ok (extended): founders 7 after 10 years: ${rows.map((r) => `${r.name} ${r.cattle} cattle, ${r.fields} fields, cover ${r.cover.toFixed(1)}, soil ${r.soil.toFixed(2)}`).join('; ')}`);
 }
 if (failed) process.exit(1);

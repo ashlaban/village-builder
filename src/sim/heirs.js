@@ -29,7 +29,7 @@ VB['sim/heirs'] = (() => {
   } = VB['sim/records'];
   const { wishOf } = VB['sim/wishes'];
   const { stopWorkFor, stayOf } = VB['sim/agents'];
-  const { farmToVillage, heldFarms } = VB['sim/ownership'];
+  const { farmToVillage, heldFarms, trustOf } = VB['sim/ownership'];
   const { issue, register } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
   const { oweShare } = VB['sim/obligations'];
@@ -661,6 +661,8 @@ VB['sim/heirs'] = (() => {
       if (dead) return dead;
       if (!home(st, c.target)) return `there is no household ${c.target}`;
       if (st.pawns[c.actor].household === c.target) return `pawn ${c.actor} lives there already`;
+      // a farm held in trust has its people with kin (VB-309): its holder goes back first (goBack), which ends the trust (VB-1224)
+      if (trustOf(st, c.target)) return `household ${c.target} is held in trust by kin`;
       if (!MOVE_REASONS.includes(a.reason)) return `there is no reason ${a.reason} to move`;
       if (a.with !== undefined && !Array.isArray(a.with)) return 'those who follow must be a list';
       const whose = moveWhy(st, c.actor, c.target, a.reason);

@@ -145,5 +145,16 @@ let report = '';
   check(t.why === 'trustee gone' && t.end !== null && !trustOf(st, a.id) && holder.household === a.id, `the farm it held goes back to its holder (${t.why})`);
   invariants(st, 'the trustee in trust');
 }
+// VB-1224: nobody moves into a farm held in trust, and a household named short the day it went to kin takes nobody in (medium-ref: a
+// servant came to an orphan's empty farm the day it went into trust)
+{
+  const { st, a, c, t } = intoTrust();
+  const q = c.members.find((id) => id !== c.holder && st.pawns[id].alive && st.pawns[id].age >= 18);
+  const r = issue(st, { actor: q, verb: 'move', target: a.id, args: { reason: 'service' }, source: 'test' });
+  check(typeof r === 'string' && /held in trust/.test(r) && !a.members.length, `a move into the farm held in trust: ${r}`);
+  st.demand = [q]; S.takeIn(st, [a.id]);
+  check(!a.members.length && trustOf(st, a.id) === t, `taken in while held in trust: members ${a.members}`);
+  invariants(st, 'nobody moves into a farm held in trust');
+}
 if (failed) process.exit(1);
 console.log(`trust ok: ${report}`);
