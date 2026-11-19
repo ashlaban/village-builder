@@ -4,8 +4,9 @@
 const CHARTER = [
   ['Land', ['claims', 'dispute', 'newLand']],
   ['Inheritance', ['handover', 'heirSex', 'birthOrder', 'heirCount', 'daughterShare', 'widow', 'ownHeir']],
-  ['Household', ['residence', 'kinLimit', 'affinity', 'feedOrder']],
+  ['Household', ['residence', 'kinLimit', 'affinity', 'feedOrder', 'matchBy']],
   ['Meeting', ['voice', 'commons']],
+  ['Husbandry', ['stocking']],
 ];
 const SAID = {
   claims: [
@@ -108,6 +109,23 @@ const SAID = {
       own: 'after a household’s own work',
       fair: 'with the village’s other duties',
       first: 'before a household’s own work',
+    },
+    '.',
+  ],
+  matchBy: [
+    'A match is made by ',
+    {
+      heads: 'the heads, whom the pair must then answer for a refusal',
+      consent: 'the heads, with the consent of the two',
+      couple: 'the couple, each speaking for itself',
+    },
+    '.',
+  ],
+  stocking: [
+    'A household stocks for winter ',
+    {
+      hay: 'to the hay it has, and slaughters what the hay will not carry',
+      herd: 'to keep its herd, and stretches the hay',
     },
     '.',
   ],

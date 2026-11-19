@@ -111,7 +111,7 @@ function renderTree() {
   svg.setAttribute('height', height + pad * 2);
   for (const b of $('treeModes').querySelectorAll('button'))
     b.setAttribute(
-      'aria-pressed',
+      'aria-selected',
       String(
         b.dataset.mode === 'path'
           ? treePick || (line && treeMode === 'path')
@@ -197,7 +197,12 @@ function renderTree() {
         : f
           ? f.name
           : '';
-    if (heirSet.has(p.id) && !dead) el('circle', { cx: NODE_W - 14, cy: 14, r: 4.5, class: 'heir' }, g);
+    if (heirSet.has(p.id) && !dead) {
+      // the key, as the cards' chips carry it (VB-671: one mark for an heir)
+      const key = el('g', { transform: `translate(${NODE_W - 22} 6)`, class: 'heir' }, g);
+      key.innerHTML = goodIcon('heir');
+      el('title', {}, key).textContent = 'Heir';
+    }
     // children the view does not show
     if (line && L.more.has(id)) {
       const t = el('text', { x: NODE_W - 10, y: 56, class: 's more', 'text-anchor': 'end' }, g),
@@ -285,7 +290,7 @@ function renderTreeInfo() {
   const box = $('treeInfo');
   if (treeSel < 0) {
     box.innerHTML =
-      '<p class="hint">Choose a person to see their line. Heirs are marked with a dot; the dead are greyed.</p>';
+      '<p class="hint">Choose a person to see their line. Heirs are marked with a key; the dead are greyed.</p>';
     return;
   }
   const p = st.pawns[treeSel],
@@ -330,8 +335,11 @@ function renderTreeInfo() {
           ? `<p><button type="button" id="treeCentre">Show the line of ${esc(p.given)}</button></p>`
           : ''
       }
-      ${dead ? '' : '<button type="button" class="primary" id="treeShow">Show on the map</button>'}`;
+      ${dead ? '' : showButton}`;
 }
+const showButton =
+  '<button type="button" class="sum-go in-flow" id="treeShow" title="Show on the map" aria-label="Show on the map">' +
+  `${actIcon('target')}</button>`;
 function openTree() {
   if (!st) return;
   openPanel(null);

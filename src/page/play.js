@@ -168,8 +168,6 @@ function causeNote(p) {
   } else h += ' The village has not met yet.';
   return `${h}</p>`;
 }
-// The household's food in days of need (sim/preview foodDays: the one measure, also an offer's preview's).
-const foodDays = (hh) => Sim.foodDays(st, hh);
 // A pawn's card says only how it stands to the player (Kim, 10 Nov: the played pawn is fixed, and changes at its death or by the Debug
 // panel): the played pawn's card leads to its actions; after its death, its own card says so and a living pawn the player may go on
 // as offers it (the list is the succession box's, below).

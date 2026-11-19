@@ -88,7 +88,7 @@ function chooseAt(sx, sy) {
   );
   if (f) chooseFarm(f.id, -1, false);
 }
-// The household's panel: the farm's icon, name and village and its food in days; its people as portraits (children shown, not to be
+// The household's panel: the farm's icon, name and village and its food as the supply component shows it; its people as portraits (children shown, not to be
 // chosen); then the person chosen: name, age and position, one line on the life, whom the player would go on as after a death (the
 // first of Sim.successors), and what the position can do and what lies ahead, as chips.
 function renderChoose() {
@@ -99,16 +99,16 @@ function renderChoose() {
   let h = '';
   if (!f) h = '<p class="hint">Drag the map and pick a farm.</p>';
   else {
-    const days = hh ? foodDays(hh) : null,
-      v = st.villages[f.village];
-    const food = !hh ? '' : days === null ? ' · no one to feed' : ` · food for ${days} ${days === 1 ? 'day' : 'days'}`;
-    h += `<div class="hhead">${iconImg(farmIcon(f), `fi${hh ? '' : ' gone'}`)}<h2>${esc(f.name)}</h2><span>${esc(v.name)}${food}</span></div>`;
+    const v = st.villages[f.village];
+    h += `<div class="hhead">${iconImg(farmIcon(f), `fi${hh ? '' : ' gone'}`)}<h2>${esc(f.name)}</h2><span>${esc(v.name)}</span></div>`;
+    if (hh) h += suppliesHTML(Sim.supplyOutlook(st, hh.id), ['food']); // the cards' supply component (VB-667), the head's estimate
     if (!hh) {
       const yrs =
         f.emptySince !== null && f.emptySince !== undefined ? Math.floor((st.t - f.emptySince) / Sim.YEAR) : null;
       const how = f.state === 'ruin' ? 'A ruin' : 'An empty farm';
       h += `<p class="hint">${how}${yrs ? `, for ${yrs} ${yrs === 1 ? 'year' : 'years'}` : ''}. No one lives here.</p>`;
     } else {
+      const heir = Sim.heirRanking(st, hh)[0];
       h += `<div class="people">${householdPeople(hh)
         .map((q) => {
           const p = st.pawns[q],
@@ -117,7 +117,13 @@ function renderChoose() {
           return `<button type="button" class="person${hit ? ' hit' : ''}" data-p="${q}" aria-pressed="${q === id}"${minor ? ' disabled' : ''}>${faceImg(
             q,
             'pf',
-          )}<span>${esc(p.given)}</span><small>${esc(placeLine(p))}</small></button>`;
+          )}<span>${esc(p.given)}</span><small>${esc(placeLine(p))}</small>${
+            q === hh.holder
+              ? `<b class="mark" title="${CHIP_AS.holder}">${goodIcon('holder')}</b>`
+              : q === heir
+                ? `<b class="mark" title="${CHIP_AS.heir}">${goodIcon('heir')}</b>`
+                : ''
+          }</button>`;
         })
         .join('')}</div>`;
     }

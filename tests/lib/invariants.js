@@ -1417,6 +1417,7 @@ function checkHerds(st, bad) {
   for (const f of st.farmsteads) for (const fd of f.fields) {
     if (!Object.prototype.hasOwnProperty.call(CROPS, fd.crop)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: crop ${fd.crop} is not in the table`); // VB-346
     if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
+    if (!(Number.isFinite(fd.tilth) && fd.tilth >= 0 && fd.tilth <= VB['sim/rules'].TILTH.max && fd.tilthAt <= st.t)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: tilth ${fd.tilth} at ${fd.tilthAt}`); // VB-717
     // VB-348: a fallow field is never sown; a sown field's crop has seed; a winter crop stands across the year's turn, any other is not
     // standing in winter; weeding rounds within the crop's; a rest mark is 0.5 or 1
     const C = CROPS[fd.crop] || {}, at = `farmsteads[${f.id}].fields[${fd.id}]`, standing = ['sown', 'growing', 'ripe'].includes(fd.stage);
@@ -1476,8 +1477,8 @@ function checkTies(st, p, bad) {
   if (p.ties.size > Math.max(TIES.cap, kin.length)) bad.push(`pawns[${p.id}]: ${p.ties.size} ties, over the cap of ${TIES.cap}`);
   for (const [j, w] of p.ties) {
     const q = st.pawns[j];
-    // a tie to one who died is dropped at the death, or, if that pawn had dropped its own tie, when this pawn next renormalises
-    if (j === p.id || !q || (!q.alive && !(q.died > p.tieT))) bad.push(`pawns[${p.id}].ties<${j}>: not a living other pawn, nor one dead since ${p.tieT}`);
+    // a tie to one who died is dropped at the death, or, if that pawn had dropped its own tie, when this pawn next renormalises; a death in the very hour of its renormalising (died == tieT) counts as since
+    if (j === p.id || !q || (!q.alive && !(q.died >= p.tieT))) bad.push(`pawns[${p.id}].ties<${j}>: not a living other pawn, nor one dead since ${p.tieT}`);
     if (!(Number.isFinite(w) && w > 0)) bad.push(`pawns[${p.id}].ties<${j}>: ${w}`);
   }
 }

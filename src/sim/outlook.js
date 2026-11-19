@@ -148,10 +148,10 @@ VB['sim/outlook'] = (() => {
   }
   // Food: grain above the seed (it spoils), and the meals, flour, sheaves, larder and fresh food (kept), over the household's daily need.
   // Its intakes: each field's crop, FIELDS.expect of its full yield less the seed it takes back (stooks: what lies in them, less the seed).
-  function food(st, hh, f, c, F, end) {
+  function food(st, hh, f, c, F, end, less = 0) {
     const D = dailyNeed(st, hh),
       seed = hh.farmstead === null ? 0 : Stores.reserved(st, hh, 'grain'), // a household with no farm keeps no seed
-      rot = Math.max(0, Stores.grainOf(hh) - seed),
+      rot = Math.max(0, Stores.grainOf(hh) - seed - less),
       sheaves = (hh.unthreshed || []).reduce((s, x) => s + (+x || 0), 0),
       keep =
         (hh.meals || 0) +
@@ -359,6 +359,33 @@ VB['sim/outlook'] = (() => {
       head: plan.head ? plan.head.pawn : null, // whose estimate it is (AGENTS.md, Deciding without Kim, 14)
     };
   }
+  // The food outlook of household id as its head reckons it now, had it given `less` rations of grain away (VB-671: the gift form shows it
+  // before and after); the same shape as supplyOutlook, fuel and hay 'none'. Computed when asked, stored nowhere; null with no plan.
+  function giftOutlook(st, id, less = 0) {
+    const hh = st.households[id],
+      plan = st.plans && st.plans.households.get(id);
+    if (!hh || hh.dissolved || !plan) return null;
+    const c = cal(st.t),
+      F = c.day - c.sday,
+      none = {
+        own: FRAME,
+        with: FRAME,
+        state: 'none',
+        season: null,
+        seasons: [3],
+        parts: { store: 0, need: [0, 0, 0, 0], intakes: [], spoilt: 0 },
+      };
+    return {
+      year: c.year,
+      season: c.season,
+      day: c.day,
+      food: food(st, hh, farmOf(st, hh), c, F, F + FRAME * SEASON_DAYS, less),
+      fuel: none,
+      hay: none,
+      stale: false,
+      head: plan.head ? plan.head.pawn : null,
+    };
+  }
   // The village store's outlook (VB-966), made when asked and kept nowhere: how long its grain lasts, on the household's scale, at the daily need
   // of the village's households, the store losing ECON.villageStoreLoss a year; no intake is reckoned (what the households give in and
   // what the common fields bring is not promised: VB-849's filling is hauled to the green), so own and with are the same. Its target
@@ -410,5 +437,5 @@ VB['sim/outlook'] = (() => {
       hay: { ...none, seasons: [3] },
     };
   }
-  return { OUTLOOK, FRAME, SUPPLIES, STATES, reckon, supplyOutlook, villageOutlook };
+  return { OUTLOOK, FRAME, SUPPLIES, STATES, reckon, supplyOutlook, giftOutlook, villageOutlook };
 })();

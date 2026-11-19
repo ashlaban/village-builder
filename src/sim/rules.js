@@ -572,7 +572,9 @@ VB['sim/rules'] = (() => {
     // (Kim, 31 Oct); fodder hours (base, a head of cattle, a sheep); slaughter hours; fresh meat keeps freshDays, salt meat saltDays; salting
     // makes saltPerHour rations an hour; emergency meat is lean (half); a herd unfed starveDays running loses an animal a day
     countDay: 31,
-    margin: 1.1,
+    // margins by the village's custom `stocking` (VB-711): the count keeps the animals whose winter's need times the margin the hay covers;
+    // over 1 keeps a reserve, under 1 expects the hay stretched (the cost falls on the lean days and starvation, as built)
+    margins: { hay: 1.1, herd: 0.8 },
     old: { cow: 12, ox: 12, bull: 10 },
     oldEwe: 1 / 7,
     meat: { cow: 15, ox: 18, bull: 18, heifer: 10, steer: 10, calf: 5, ewe: 3, ram: 3, lamb: 1.5 },
@@ -688,6 +690,11 @@ VB['sim/rules'] = (() => {
     window: [0, 5],
     rot: 0.5,
   };
+  // ---- tilth (VB-717; docs/review-yields.md, 4): a field's slow soil, built by dung and fading over decades. Estimates, with no medieval
+  // Nordic source. `perLoad`: what one load of manure adds to a field's tilth (on top of its soil); `years`: the time constant of its
+  // fading, in game years (e^-1 left after that long without dung); `max`: a bound for the invariant, which play should never reach.
+  // A harvest is multiplied by 1 + tilth ----
+  const TILTH = { perLoad: 0.0011, years: 70, max: 0.4 };
   // Ale (VB-305; design.md, Goods, Ale and standing; Kim, 10 Nov): a side craft in autumn and winter. `grain` rations of grain from the
   // household's surplus (above its floor, which holds the seed reserve) and `hours` of work in the house give a barrel, which keeps one season
   // (the good's perish, sim/stores) and serves `guests` guests; a household brews while it holds fewer than `stock` barrels. A barrel poured at
@@ -1203,6 +1210,7 @@ VB['sim/rules'] = (() => {
     GRAZE,
     FOODS,
     SOIL,
+    TILTH,
     SOCIAL,
     MOOD,
     IDLE,

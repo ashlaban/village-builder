@@ -177,6 +177,8 @@ VB['sim/layout'] = (() => {
         held: 0,
         fert: fertility(w, t),
         soil: SOIL.start,
+        tilth: 0,
+        tilthAt: 0, // placed at no tilth: the tick is moot until dung is spread (VB-717)
         weedOpen: false,
         weedPosted: null,
         weedMiss: 0,
@@ -461,6 +463,8 @@ VB['sim/layout'] = (() => {
       held: 0,
       fert: fertility(w, tile),
       soil: SOIL.start,
+      tilth: 0,
+      tilthAt: 0, // placed at no tilth: the tick is moot until dung is spread (VB-717)
       weedOpen: false,
       weedPosted: null,
       weedMiss: 0,

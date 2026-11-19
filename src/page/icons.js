@@ -201,6 +201,8 @@ const ACT_PATHS = {
   gift: '<path d="M4 10h16v10H4zM12 10v10M3 7h18v3H3zM12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0"/>',
   chop: '<path d="M5 20L14 9M12 5l7 7c-2 2-5 2-7 .5l-1.5-1.5C9 9 10 6.5 12 5z"/>',
   hoe: '<path d="M6 21L16 5M16 5l4.5 1.5-2 5-4.5-3"/>',
+  target: '<circle cx="12" cy="12" r="7"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/>',
+  fence: '<path d="M5 21V8l2-2.5L9 8v13M15 21V8l2-2.5L19 8v13M3 12h18M3 17h18"/>',
   sow: '<path d="M12 21v-9M12 12c0-4-3-6-7-6 0 4 3 6 7 6zM12 14c0-3 2.5-5 6.5-5 0 3.5-2.5 5-6.5 5z"/>',
   mow: '<path d="M6 21L15 4M15 4c4 0 6 3 6 7-2-3-5-4-8-3.5"/>',
   hay: '<path d="M4 20c0-8 3-14 8-14s8 6 8 14zM9 20c0-4 1-7 3-9"/>',
@@ -250,6 +252,10 @@ const ACT_STEN = {
     '<rect x="4" y="11" width="16" height="9.5"/><rect x="2.8" y="6.8" width="18.4" height="3.6"/><path class="c" d="M12 6.8v13.7"/>' +
     '<path class="l" d="M12 6.3c-1.5-3.5-5-3-4.5-.5M12 6.3c1.5-3.5 5-3 4.5-.5"/>',
   chop: '<path class="l" d="M6 21.5L14.5 7"/><path d="M12 3.5c3.5 0 6.5 1.7 8 4.7l-5 3.3c-1-1.7-2.7-2.8-4.7-3.2z"/>',
+  target:
+    '<circle cx="12" cy="12" r="2.6"/><path class="l" d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/><circle class="l" cx="12" cy="12" r="7"/>',
+  fence:
+    '<path class="l" d="M3 12.5h18M3 17.5h18"/><path d="M4.5 21.5v-13l2.5-3 2.5 3v13zM14.5 21.5v-13l2.5-3 2.5 3v13z"/>',
   hoe: '<path class="l" d="M5.5 21L15.5 6.5"/><path d="M13 4l6.6 3.8-2.4 3.6c-2-.5-4-1.8-5.8-3.8z"/>',
   sow: `<path class="l" d="M12 21.5v-9"/>${LEAVES_STEN}`,
   mow: '<path class="l" d="M6 21.5L15 4.5"/><path d="M14.5 3.5c4.5 0 7 3.5 7 8-2.2-3.3-5.5-4.6-9-4z"/>',
@@ -315,7 +321,9 @@ const KIND_ICON = {
   foundation: 'build',
   walls: 'build',
   roof: 'build',
-  mend: 'build',
+  mend: 'fence',
+  workfence: 'fence',
+  plow: 'hoe',
   repair: 'build',
   fish: 'fish',
   grind: 'quern',
@@ -343,6 +351,7 @@ const GOOD_PATHS = {
   sheaves: '<path d="M8 21l2-9M16 21l-2-9M12 21v-9M7 12h10M10 12L7 4M12 12V3M14 12l3-8M9 12L4 7M15 12l5-5"/>',
   hay: ACT_PATHS.hay,
   wood: '<circle cx="7" cy="16" r="3.5"/><circle cx="17" cy="16" r="3.5"/><circle cx="12" cy="8.5" r="3.5"/><path d="M7 16h.01M17 16h.01M12 8.5h.01"/>',
+  tree: '<path d="M12 21v-5M12 3l-5 7h2.5L5.5 16h13L14.5 10H17z"/>',
   stone: '<path d="M4 18l2-7 5-4 6 1 3 6-2 4zM11 7l1 5 6 2M12 12l-6 1"/>',
   clay: '<path d="M4 9h10v6H4zM14 9l5-3v6l-5 3M4 9l5-3h10"/>',
   ore: '<path d="M5 19l-1-6 4-6 6-2 5 4 1 7-4 3zM8 7l3 5-2 6M11 12l6-1"/><path d="M14.5 15h.01M7 14h.01"/>',
@@ -416,6 +425,7 @@ const GOOD_STEN = {
   wood:
     '<circle cx="7.5" cy="16.5" r="4.2"/><circle cx="16.5" cy="16.5" r="4.2"/><circle cx="12" cy="8.7" r="4.2"/>' +
     '<circle class="c" cx="7.5" cy="16.5" r="1.5"/><circle class="c" cx="16.5" cy="16.5" r="1.5"/><circle class="c" cx="12" cy="8.7" r="1.5"/>',
+  tree: '<path class="l" d="M12 21v-5"/><path d="M12 2.8l-5.5 7.7h3L5 16.5h14l-4.5-6h3z"/>',
   stone: '<path d="M4 18l2-7 5-4 6 1 3 6-2 4z"/><path class="c" d="M11 7l1 5 6 2M12 12l-6 1"/>',
   clay: '<path d="M3.5 9.5h11V16h-11z"/><path d="M3.5 9.5l5-3h11l-5 3z"/><path d="M14.5 9.5l5-3V13l-5 3z"/>',
   ore: '<path d="M5 19l-1-6 4-6 6-2 5 4 1 7-4 3z"/><path class="c" d="M8 7l3 5-2 6M11 12l6-1"/>',
