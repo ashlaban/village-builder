@@ -134,7 +134,9 @@ VB['sim/lying'] = (() => {
                 ? 'timber'
                 : l.kind === 'leftGrain'
                   ? 'grain'
-                  : 'stone';
+                  : l.kind === 'wellstone'
+                    ? 'stone'
+                    : 'goods';
       if (hh && !hh.dissolved)
         log(st, `A load of ${what} left lying for ${st.farmsteads[hh.farmstead].name} was lost to the frost.`, {
           kind: 'frost',
