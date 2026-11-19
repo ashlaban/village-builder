@@ -104,7 +104,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1222](backlog/VB-1222.md) | Measure: skip stops by reason, headless | - | 3 | S | Take the stop count owed by VB-1109 criterion 3 |
 | [VB-1240](backlog/VB-1240.md) | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |
 | [VB-1282](backlog/VB-1282.md) | Measure the round autosave at medium-ref | - | 3 | S | Measure the round autosave step at medium-ref |
-| [VB-1312](backlog/VB-1312.md) | Measure the milk bite at 0.05 on populous seeds and founders | - | 3 | S | VB-709 numbers at the kept bite |
 | [VB-1319](backlog/VB-1319.md) | Measure VB-245 on the late saves, with commits that exist | - | 3 | S | Measure VB-245 with commits that exist |
 | [VB-1344](backlog/VB-1344.md) | VB-717 numbers owed: tilth drift | - | 3 | S | Numbers VB-717 left, for VB-662 |
 | [VB-1354](backlog/VB-1354.md) | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
