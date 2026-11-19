@@ -6,7 +6,8 @@ VB['sim/society'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
-  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal, TRAITS } = VB['sim/rules'];
+  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal, TRAITS, HERD } = VB['sim/rules'];
+  const { herdsOf, winterNeed } = VB['sim/herds'];
   const { addValues, act } = VB['sim/traits'];
   const { hexSteps } = VB['sim/hex'];
   const { hoursBetween } = VB['sim/routes'];
@@ -254,6 +255,19 @@ VB['sim/society'] = (() => {
       if (hl) {
         const o = O[I.commons];
         for (let j = 0; j < Culture.NOPT[I.commons]; j++) it[o + j] = it[o + j] * (1 - hl.w) + (j === hl.to ? hl.w : 0);
+      }
+      // stocking for winter (VB-711): a head whose herd fills its byre, or whose barn holds over two winters' hay, leans to keeping the herd;
+      // one whose herd had lean days this year (herd.lean, kept by sim/byre until the next count: no loss is recorded beyond it) to the hay
+      if (holder && p.household !== null) {
+        const hh = st.households[p.household],
+          herds = herdsOf(st, hh);
+        if (herds.length) {
+          const full = herds.reduce((n, h) => n + (h.species === 'cattle' ? h.head.length : 0), 0) >= HERD.byre,
+            stacked = hh.hay > 2 * winterNeed(st, hh),
+            lean = herds.some((h) => h.lean > 0);
+          if (lean) set('stocking', { hay: 1 });
+          else if (full || stacked) set('stocking', { herd: 1 });
+        }
       }
       p.interest = it;
     }

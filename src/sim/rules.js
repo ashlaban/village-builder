@@ -572,7 +572,9 @@ VB['sim/rules'] = (() => {
     // (Kim, 31 Oct); fodder hours (base, a head of cattle, a sheep); slaughter hours; fresh meat keeps freshDays, salt meat saltDays; salting
     // makes saltPerHour rations an hour; emergency meat is lean (half); a herd unfed starveDays running loses an animal a day
     countDay: 31,
-    margin: 1.1,
+    // margins by the village's custom `stocking` (VB-711): the count keeps the animals whose winter's need times the margin the hay covers;
+    // over 1 keeps a reserve, under 1 expects the hay stretched (the cost falls on the lean days and starvation, as built)
+    margins: { hay: 1.1, herd: 0.8 },
     old: { cow: 12, ox: 12, bull: 10 },
     oldEwe: 1 / 7,
     meat: { cow: 15, ox: 18, bull: 18, heifer: 10, steer: 10, calf: 5, ewe: 3, ram: 3, lamb: 1.5 },
