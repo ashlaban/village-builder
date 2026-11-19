@@ -19,7 +19,7 @@ VB['sim/marriage'] = (() => {
   } = VB['sim/records'];
   const { startInLife } = VB['sim/exchange'];
   const { stayOf } = VB['sim/agents'];
-  const { heirRanking, refreshRoles, handOn } = VB['sim/heirs'];
+  const { heirRanking, refreshRoles, membersOf, handOn } = VB['sim/heirs'];
   const { issue, register } = VB['sim/commands'];
   const { clearMatchWish } = VB['sim/player'];
   const { moveWhy, wishOf } = VB['sim/wishes'];
@@ -232,6 +232,7 @@ VB['sim/marriage'] = (() => {
       if (hh.dissolved || hh.holder !== o.from) return 'the holding has passed';
       const no = heirNo(st, hh, o.to); // farms are not combined, whoever says yes
       if (no) return `${fullName(st.pawns[o.to])} ${no}`;
+      const touched = [hh.id, st.pawns[o.from].household, st.pawns[o.to].household]; // before the move
       const r = issue(st, {
         actor: o.from,
         verb: 'handOn',
@@ -239,7 +240,11 @@ VB['sim/marriage'] = (() => {
         args: { household: o.gives.household, reason: o.gives.reason },
         source: 'round',
       });
-      if (r === true) refreshRoles(st); // on any day, by whoever's answer: the roles follow the holder
+      if (r === true) {
+        // on any day, by whoever's answer: the roles follow the holder, in the households it touched
+        touched.push(st.pawns[o.from].household, st.pawns[o.to].household);
+        refreshRoles(st, membersOf(st, touched));
+      }
       return r;
     },
     where: (st, o) => st.farmsteads[st.households[o.gives.household].farmstead].village,
@@ -410,6 +415,7 @@ VB['sim/marriage'] = (() => {
         if (Number.isInteger(c) && c !== sp && side && side.by !== id)
           yielded.push({ id, sp, by: side.by, courted: c });
       }
+    const olds = [st.pawns[o.gives.man].household, st.pawns[o.wants.woman].household]; // the households the wedding touches
     const why = issue(st, {
       actor: o.gives.man,
       verb: 'marry',
@@ -432,7 +438,7 @@ VB['sim/marriage'] = (() => {
     }
     // the heir has married: the home's holder considers handing on (the custom 'marriage')
     const handed = handover(st, hh, (h) => heirRanking(st, st.households[h]));
-    if (o.id !== undefined && handed === null) refreshRoles(st); // the handover refreshes its own
+    if (o.id !== undefined && handed === null) refreshRoles(st, membersOf(st, [hh.id, ...olds])); // the handover refreshes its own
     return true;
   }
   // A no (VB-293, VB-693): the refusal is told, by the log and in the lives of the two. A pawn that refuses the match its spokesman
