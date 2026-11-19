@@ -342,6 +342,11 @@ function renderActions() {
   // the pawn's levels and its household's supplies, as its card and the farm's show them (VB-664: one meter; VB-667: one supply component)
   h += `<div class="needs">${pawnStats(id)}${hh ? `<h3 class="card-sec">${esc(f.name)}</h3>${suppliesHTML(Sim.supplyOutlook(st, hh.id))}` : ''}</div>`;
   h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
+  // what its last act brought, what moved its levels over its last days, and who of its household ails, as kin see it (VB-1118)
+  const notes = Sim.sheetNotes(st);
+  if (notes.ailing.length) h += `<p class="refused">${notes.ailing.map(esc).join(' ')}</p>`;
+  if (notes.yielded) h += `<p class="doing">Last done: ${esc(notes.yielded)}</p>`;
+  if (notes.moved.length) h += `<ul class="moved">${notes.moved.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>`;
   // its winter's visit (VB-292): planned, with the day it sets out; under way, with the days left by its own pack (principle 14)
   const vs = Sim.visitState(st, id);
   if (vs) {

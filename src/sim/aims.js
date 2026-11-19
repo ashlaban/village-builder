@@ -179,6 +179,7 @@ VB['sim/aims'] = (() => {
         source: 'pawn',
       });
     } else {
+      A.project = A.what = A.since = A.shortSince = null; // given up, not ended: planDropped below leaves `again` as it is
       for (const s of p.steps) if (s.stake) VB['sim/claims'].dropClaim(st, s.place, p.holder);
       Plans.drop(st, p, text, { pawn: hh.holder, ...atHousehold(st, hh) });
     }
@@ -233,6 +234,16 @@ VB['sim/aims'] = (() => {
     if (underWay(st, hh, A)) return;
     const f = st.farmsteads[hh.farmstead];
     if (hh.holder !== null && hh.holder !== undefined) tell(st, hh, 'projectDone', `${f.name} has ${DONE[A.what]}.`);
+    A.project = A.what = A.since = A.shortSince = null;
+    A.again = true;
+  });
+  // The head's project dropped by another rule (a stake lapsed, its goods short: sim/plans' dropProject; VB-1224): the aim ends at once, as
+  // its next review would end it, so that a household that reviews no plan meanwhile (its farm held in trust) keeps no aim on a plan gone.
+  on('planDropped', (st, d) => {
+    if (d.plan.holder.type !== 'household') return;
+    const plan = st.plans.households.get(d.plan.holder.id),
+      A = plan && plan.aim;
+    if (!A || A.project !== d.plan.id) return;
     A.project = A.what = A.since = A.shortSince = null;
     A.again = true;
   });

@@ -76,6 +76,8 @@ assert.deepStrictEqual(bad(), [], 'invariants');
 // help received leans a person towards the next higher option, in proportion to the days of need owed, fading as goodwill fades
 const [h1, h2] = v.farmsteads.map((id) => st.households[st.farmsteads[id].household]);
 const k = C.OFF[C.IDX.commons] + C.optIndex('commons', 'first'), adult = st.pawns[h1.members.find((id) => st.pawns[id].age >= 16)];
+// what h1's holder owed from the run is squared first (the run's history differs with the course of an illness, VB-1118)
+for (const g of VB['sim/relations'].goodwillOf(st, h1.holder)) if (g.balance < 0) book(st, h1.holder, g.other, -g.balance);
 refreshInterests(st);
 const before = adult.interest[k];
 assert.strictEqual(Commons.helpLean(st, adult, v.id), null, 'no help received: no lean');

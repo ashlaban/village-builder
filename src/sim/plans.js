@@ -129,6 +129,7 @@ VB['sim/plans'] = (() => {
     remove(st, plan);
     leftWood(st, plan);
     if (text) log(st, text, { kind: 'projectDropped', ...at });
+    emit(st, 'planDropped', { plan }); // a head's aim on it ends at once (sim/aims, VB-1224), not at its next review
   }
   // Timber carried to a step at its household's house and not yet built in (a barn's walls, a cart's: VB-255) goes onto that farm's
   // woodpile as the plan is dropped: the farmstead is one place, so nothing is carried, and nothing vanishes.

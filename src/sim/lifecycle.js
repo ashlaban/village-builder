@@ -6,7 +6,7 @@ VB['sim/lifecycle'] = (() => {
   const { register } = VB['sim/commands'];
   const { emit } = VB['sim/events'];
   const { TRAITS, DAY, YEAR } = VB['sim/rules'];
-  const { deathRoll, CAUSES, COLD } = VB['sim/deaths'];
+  const { dayOfDeath, CAUSES, COLD } = VB['sim/deaths'];
   const { leaveHousehold, unionOf, noteDeath, log, age, fullName, noteUnionEnd, atHousehold, lifeEvent, isHolder } =
     VB['sim/records'];
   const { setAtAge } = VB['sim/traits'];
@@ -111,7 +111,7 @@ VB['sim/lifecycle'] = (() => {
     for (const id of st.living.slice()) {
       const p = st.pawns[id];
       if (p.alive) {
-        const cause = deathRoll(st, p);
+        const cause = dayOfDeath(st, p);
         if (cause) killPawn(st, p.id, cause);
       }
     }

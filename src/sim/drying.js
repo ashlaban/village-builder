@@ -88,9 +88,14 @@ VB['sim/drying'] = (() => {
   // The catch for the pot (sim/kinds' fish): fresh fish (sim/pot), and the fresh fish held beyond what the household eats before it spoils
   // (its need over the fish's keeps) laid by the rack, the oldest first, while the drying season is open and the rack has room (the dried
   // fish wanted, less what is held and what waits by the rack). One comparison a catch (VB-388).
+  // It returns the catch (VB-1118: the played pawn's sheet tells it); toRack returns what went to the rack.
   function potCatch(st, j, hh) {
-    Pot.putFresh(st, hh, 'fish', catchOf(st, j), 'catch');
-    if (!drying(cal(st.t))) return 0;
+    const n = catchOf(st, j);
+    Pot.putFresh(st, hh, 'fish', n, 'catch');
+    if (drying(cal(st.t))) toRack(st, hh);
+    return n;
+  }
+  function toRack(st, hh) {
     const need = dailyNeed(st, hh),
       room = Targets.target(st, hh, 'dried fish') - larderOf(hh, 'dried fish') - (hh.rack || 0),
       n = Math.min(room, Pot.freshHeld(st, hh, 'fish') - need * FOODS.fish.keeps);
@@ -282,9 +287,7 @@ VB['sim/drying'] = (() => {
       // fishCalm while spare food covers fishCalmDays of need or more, rising in a line to fishLean at none
       urgency: (st, j, c, U) => spareUrgency(st, j, U),
       // the catch (twice the bank's from a boat, VB-300) is fresh food, cooked in the pot (sim/pot, VB-119); beyond it, to the rack (VB-388)
-      deliver: (st, j, hh) => {
-        potCatch(st, j, hh);
-      },
+      deliver: (st, j, hh) => potCatch(st, j, hh), // the catch, for the played pawn's sheet (VB-1118)
       // in the fishing season, from its boat or the house's fishing ground (sim/drying): one trip, two while spare food is under FISH.secondDays
       available: (st, hh, f, c, post) => {
         if (!fishing(c) || Pot.fishCovered(st, hh, dailyNeed(st, hh))) return; // none while fresh fish covers 2 days (VB-388)
