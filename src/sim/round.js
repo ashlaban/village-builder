@@ -55,10 +55,14 @@ VB['sim/round'] = (() => {
       ]) {
         for (const p of mine) {
           if (!free(p)) continue;
-          const can = (o, opt) =>
-            free(o) &&
-            (p.sex === 'm' ? homeFor(p, o, cu) : homeFor(o, p, cu)) !== null &&
-            kinOk(st, p.id, o.id, cu, opt);
+          const can = (o, opt) => {
+            VB.count.kinPairs++;
+            return (
+              free(o) &&
+              (p.sex === 'm' ? homeFor(p, o, cu) : homeFor(o, p, cu)) !== null &&
+              kinOk(st, p.id, o.id, cu, opt)
+            );
+          };
           if (pool.some((o) => can(o, cu.kinLimit)) || !pool.some((o) => can(o, kinOpts[k + 1]))) continue;
           p.kinPush = { to: kinOpts[k + 1], w: MARRIAGE.scarcePush };
           blocked++;

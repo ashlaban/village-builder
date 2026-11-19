@@ -52,6 +52,8 @@ VB.COUNTERS = {
   courtWalk: 'Courting couples walked at the moving round: its review, and those a head refused (sim/courting, VB-036)',
   roundPairs:
     'Candidate man/woman pairs visited in the moving round: none since the round chooses nobody (VB-693; see asksWeighed)',
+  kinPairs:
+    "Free pawn and candidate pairs read by a village's kin pressure at the end of its round, each can() (sim/round kinPressure, VB-1170)",
   roundWalk: "Pawn records walked by a village's round to build its pool, once a village (sim/lifecycle, VB-277)",
   previewWalk:
     "Live households ranked for their first heir by an offer's preview, when the page shows it (sim/preview, VB-1100)",

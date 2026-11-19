@@ -229,7 +229,9 @@ VB['sim/visits'] = (() => {
   //   next visit, cleared at its marriage and its death
   // The visitor has arrived at the other village's green (sim/away): the visit is his, and on his record.
   on('visited', (st, d) => {
-    st.pawns[d.pawn].visited = { village: d.village, year: roundYear(st.t) };
+    // one married while on the road (the round's match, made while away) arrives a guest, but courts no more (the invariant: no
+    // visited kept by one married)
+    if (spouseOf(st, d.pawn) === null) st.pawns[d.pawn].visited = { village: d.village, year: roundYear(st.t) };
     VB.count.visits++;
     const name = st.villages[d.village].name;
     personEvent(st, d.pawn, 'visited', `Visited ${name}, its guest for a day`, { village: d.village });

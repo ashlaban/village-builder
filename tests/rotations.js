@@ -136,6 +136,15 @@ const review = (s, t) => {
     F.finishBreak(s.st, s.f);
     return s.f.fields[s.f.fields.length - 1];
   };
+  // VB-999: the project of the third field holds back rye's seed, the course it will take when broken; with barley every year, barley's
+  setClock(s.st, at(0, 6));
+  assert.deepStrictEqual(F.fieldProject(s.st, s.hh, 0).hold, { [Stores.grainGood('rye')]: CROPS.rye.seed }, 'a new field of three courses holds rye');
+  const bar = farm('every', { barley: 400 });
+  assert.deepStrictEqual(Object.keys(F.fieldProject(bar.st, bar.hh, 0).hold), [Stores.grainGood('barley')], 'barley every year holds barley');
+  // the rye window's last day and the day after are closing days for a farm in three courses, not for one of barley every year
+  const rye = (d) => cal(at(2, CROPS.rye.sow[2] + d));
+  assert(Plans.closing(s.st, rye(0), s.plan) && Plans.closing(s.st, rye(1), s.plan), "rye's window closes on a farm that sows it");
+  assert(!Plans.closing(bar.st, rye(0), bar.plan) && !Plans.closing(s.st, rye(2), s.plan), 'not for barley every year, nor after');
   const third = breakOne();
   assert(third.rotation === 'three' && third.step === 1 && third.crop === 'rye', `the third field bears rye: ${JSON.stringify(third)}`);
   const fourth = breakOne();

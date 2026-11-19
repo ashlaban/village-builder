@@ -222,10 +222,13 @@ VB['sim/obligations'] = (() => {
   // Household hh owes pawn id n rations of its share. As pawn.owedFrom did, the farm that owes last owes all: what earlier farms still
   // owe the pawn passes to hh (VB-1155 gives each farm its own debt).
   function oweShare(st, hh, id, n) {
-    const debtor = { kind: 'household', id: hh.id },
-      creditor = { kind: 'pawn', id };
-    for (const o of due(st, creditor, 'creditor', 'share')) if (o.debtor.id !== hh.id) transfer(st, o.id, { debtor });
-    return create(st, { kind: 'share', debtor, creditor, owes: { rations: n } });
+    // each share keeps its debtor: a sibling owed by two farms is paid by each (VB-1155)
+    return create(st, {
+      kind: 'share',
+      debtor: { kind: 'household', id: hh.id },
+      creditor: { kind: 'pawn', id },
+      owes: { rations: n },
+    });
   }
   // The rations of shares pawn id is still owed.
   const shareOwed = (st, id) => (st.obligationsBy ? owed(st, { kind: 'pawn', id }, 'creditor', 'share') : 0);

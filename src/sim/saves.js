@@ -574,7 +574,10 @@ VB['sim/saves'] = (() => {
       if (hh && !hh.dissolved)
         Plans.makeProject(st, 'household', hh.id, {
           what: why,
-          hold: { [VB['sim/stores'].grainGood('barley')]: seedPer(st, hh) },
+          hold:
+            why === 'field'
+              ? VB['sim/fields'].newFieldSeed(st, hh)
+              : { [VB['sim/stores'].grainGood('barley')]: seedPer(st, hh) },
           steps: p.stage === 'clear' ? [step('clear', p.hours), step('break', BREAK_HOURS)] : [step(p.stage, p.hours)],
         });
       if ('project' in f) delete f.project;

@@ -3,6 +3,7 @@
 // raising its soil by 0.04 to 1.15. On the small islands of tests/lib/probe.js (VB-855): the rules on populous at seed 7, and founders' first
 // spring carting in a run. With --extended (at night), founders at seed 7 on the small map, 10 years: farms whose wintered cattle's dung covers
 // their fields' wear keep their soil, the farm without declines (a balance of a decade's crops and dung, which a small state cannot show).
+// The fields are set to SOIL.start after the first year: founders breaks fresh ground, above the cap dung reaches (VB-1361).
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { scenario } = require('./lib/probe.js'), H = VB['sim/herds'], Y = VB['sim/byre'], F = VB['sim/fields'];
 const { CROPS, HERD, ROTATIONS } = VB['sim/rules'];
 const { checkState } = require('./lib/invariants.js');
@@ -74,15 +75,24 @@ console.log(`soil ok: founders 7, spring of year 2: ${fed.map((x) => `${x.f.name
 // --- at night: founders seed 7 (small map), 10 years: the soil of farms with and without cattle
 if (process.argv.includes('--extended')) {
   st = Sim.seed(world(7, [180, 130]), 7, 'founders');
+  const mean = (f) => f.fields.reduce((s, q) => s + q.soil, 0) / Math.max(1, f.fields.length);
+  // VB-1361: founders' fields are broken on ground never farmed, at SOIL.fresh (1.4, VB-149), above the cap that dung can raise a field to:
+  // over ten years every farm's soil wears down toward the cap, cattle or none (Vallen 1.39 -> 1.13, the fed farms 1.39 -> 1.10 to 1.13), and
+  // the dung is not tested. So after the first year, when the fields are broken, each is set to SOIL.start, and judged by its loss from there.
+  let start = [];
   for (let y = 0; y < 10; y++) {
     Sim.advance(st, Sim.YEAR);
+    if (y === 0) {
+      for (const f of st.farmsteads) for (const q of f.fields) q.soil = S.start;
+      start = st.farmsteads.map(mean);
+    }
     const bad = checkState(st); if (bad.length) { check(false, `year ${y + 1}: ${bad.slice(0, 3).join('; ')}`); break; }
   }
   const rows = st.farmsteads.filter((f) => f.household !== null).map((f) => {
     const h = st.households[f.household], cows = H.herdsOf(st, h).filter((x) => x.species === 'cattle').reduce((s, x) => s + x.head.length, 0);
-    const soil = f.fields.reduce((s, q) => s + q.soil, 0) / Math.max(1, f.fields.length);
+    const soil = mean(f);
     const wear = f.fields.reduce((s, q) => { const c = ROTATIONS[q.rotation || 'every'].courses; return s + c.reduce((w, k) => w + (CROPS[k] ? CROPS[k].wear || 0 : 0), 0) / c.length; }, 0);
-    return { name: f.name, cattle: cows, fields: f.fields.length, soil, wear };
+    return { name: f.name, cattle: cows, fields: f.fields.length, soil, start: start[f.id] ?? soil, wear };
   });
   // VB-1224: a farm keeps its soil when its winter's dung covers its fields' wear, not by a count of cattle: a cow stalled HERD.stallDays
   // gives SOIL.cattle loads a day, of SOIL.perLoad soil each, less what rots on the heap until the spring carting (about a quarter of a
@@ -95,7 +105,9 @@ if (process.argv.includes('--extended')) {
   // (Andersgården, wear 0.08) has little to lose in ten years, and keeping its soil says nothing about the dung
   const minWear = Math.min(...withC.map((r) => r.wear)), without = rows.filter((r) => r.cattle === 0 && r.wear >= minWear / 2);
   check(withC.length && withC.every((r) => r.soil >= 0.95), `a farm whose dung covers its wear lost its soil: ${JSON.stringify(withC)}`);
-  check(!without.length || without.every((r) => r.soil < Math.min(...withC.map((r) => r.soil))), `a farm without cattle kept its soil: ${JSON.stringify(rows)}`);
-  console.log(`soil ok (extended): founders 7 after 10 years: ${rows.map((r) => `${r.name} ${r.cattle} cattle, ${r.fields} fields, cover ${r.cover.toFixed(1)}, soil ${r.soil.toFixed(2)}`).join('; ')}`);
+  // a field broken after the first year starts at SOIL.fresh: judged by what each farm lost from its start, not by its soil at the end
+  const lost = (r) => r.start - r.soil;
+  check(!without.length || without.every((r) => lost(r) > 0 && lost(r) > Math.max(...withC.map(lost))), `a farm without cattle kept its soil: ${JSON.stringify(rows)}`);
+  console.log(`soil ok (extended): founders 7 after 10 years: ${rows.map((r) => `${r.name} ${r.cattle} cattle, ${r.fields} fields, cover ${r.cover.toFixed(1)}, soil ${r.start.toFixed(2)} -> ${r.soil.toFixed(2)}`).join('; ')}`);
 }
 if (failed) process.exit(1);
