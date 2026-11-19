@@ -1,4 +1,5 @@
 // Speed of a populous medium map (seed 7) after 2 years: ms per game day, the moving round and the meetings. Not part of either suite.
+if (process.argv.includes('--engine')) { require('./lib/engine-bench.js').main(); return; }
 const VB = require('../src/load.js');
 const G = VB.gen, Sim = VB.sim;
 const it = G.generate(7, { cols: 280, rows: 200 }); let r; while (!(r = it.next()).done);
