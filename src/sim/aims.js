@@ -25,7 +25,13 @@ VB['sim/aims'] = (() => {
   // household's need over the seed held back (the means to marry's measure, MARRIAGE.means, is the first value), and its hands idle over
   // `idle` of their work hours in the last season. The weights of the menu: `base` for each option, `heirs` for the heir's farm when two or
   // more would inherit (so that one would be left without the home farm); each times the head's lean (choose).
-  const AIMS = Object.freeze({ years: MARRIAGE.means, idle: 1 / 3, base: 1, heirs: 2, hands: Object.freeze([14, 60]) });
+  const AIMS = Object.freeze({
+    years: MARRIAGE.means,
+    idle: 1 / 3,
+    base: 1,
+    heirs: 2,
+    hands: VB['sim/rules'].AGES.hands,
+  });
   const KIND = Object.freeze(['field', 'claim', 'heir', 'barn']);
   // @state plan.aim (a household's standing plan; VB-255): absent until its first review after an autumn count, then {year (the year of cal
   //   of its last yearly look at the surplus), surplus (what that look, or the last one after a project ended, found), again (true when a

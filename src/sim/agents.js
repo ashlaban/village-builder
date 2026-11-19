@@ -6,12 +6,14 @@ VB['sim/agents'] = (() => {
   const { register } = VB['sim/commands'];
   const { next: rnd } = VB['sim/rng'];
   const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
-  const HANDS = [14, 60]; // the ages of a working hand, as sim/drying's hands (VB-255's count of work)
+  const HANDS = VB['sim/rules'].AGES.hands;
   const { route, stepCost, tileCost } = VB['sim/routes'];
   const { tread } = VB['sim/paths'];
   const { age } = VB['sim/records'];
   const { hexSteps } = VB['sim/hex'];
   const { eligible } = VB['sim/eligibility'];
+  const Days = VB['sim/days'],
+    { book: bookHours } = VB['sim/fields'];
   const { hasTeam } = VB['sim/herds'];
   const Carts = VB['sim/carts'];
   const { driveHome, driven } = VB['sim/grazing'];
@@ -565,6 +567,8 @@ VB['sim/agents'] = (() => {
       if (K.worked) K.worked(st, j, dt, st.agents[id], from);
       if (j.plot) j.plot.hours[id] = (j.plot.hours[id] || 0) + dt;
       countWork(st, id, dt, t);
+      if (j.field && j.farm) bookHours(j.field, st.pawns[id].household === j.farm.household, dt); // VB-462: the class reads it
+      if (st.agents[id].basis === 'owed') Days.worked(st, id, dt);
     }
   }
   // @state household.workHours (VB-255): [season (year * 4 + season of cal, of the hours counted), hours, last]: the hours its working hands

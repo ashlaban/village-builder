@@ -502,7 +502,7 @@ const Culture = (() => {
     mixed: (t, mean) => (1 - P.oblique) * t + P.oblique * mean,
     anchor: (kind) => P.anchor[kind] || P.anchor.village,
   });
-  // A separate per-person function avoids repeated OSR/deoptimization of the nested traversal (VB-195).
+  // A separate per-person function avoids repeated OSR/deoptimization of the nested traversal (VB-195; timed by tests/perf.js --engine).
   function driftPerson(p, hooks, dt, rand, mul, means, tgt, press, sq) {
     const byId = hooks.byId;
     if (!p.alive || p.age < 12) return;
