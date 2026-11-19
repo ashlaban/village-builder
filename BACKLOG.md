@@ -102,7 +102,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1173](backlog/VB-1173.md) | Refactor: split sim/away: the gift's carrying to sim/gifts | - | 3 | M | carryGift, haulGift and fetchGift, with haulerOf and fetcherOf, move out of sim/away to sim/gifts, which holds the verbs give and deliver since VB-228; sim/away keeps the nights away. |
 | [VB-1174](backlog/VB-1174.md) | Refactor: split sim/heirs by concern | - | 3 | M | sim/heirs passed 700 lines (711) when the verbs handOn and move came home in VB-228; split it by concern. |
 | [VB-1175](backlog/VB-1175.md) | Teleports found, collected: swept at a slice's wrap-up | physical | 3 | M | The teleports tasks found in the code, a line each; swept together when a slice wraps up |
-| [VB-1176](backlog/VB-1176.md) | Refactor: split sim/claims by concern | - | 3 | S | sim/claims went over its export baseline (17 to 18) when VB-418 gave it workStake, the stake a land project's work renews; split it by concern or say why it stays whole. |
 | [VB-1217](backlog/VB-1217.md) | Measure the good-year gift (VB-460) | - | 3 | S | Measure VB-460 |
 | [VB-1222](backlog/VB-1222.md) | Measure: skip stops by reason, headless | - | 3 | S | Take the stop count owed by VB-1109 criterion 3 |
 | [VB-1240](backlog/VB-1240.md) | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |

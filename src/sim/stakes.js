@@ -3,7 +3,8 @@
 // a stake lost is told to the project plans (sim/projects) by the event rightLost
 VB['sim/stakes'] = (() => {
   const { CLAIMS } = VB['sim/rules'];
-  const CL = VB['sim/claims'];
+  const CL = VB['sim/claims'],
+    Disputes = VB['sim/disputes'];
   const { isOutland } = VB['sim/territory'];
   const { log, practice, atFarm } = VB['sim/records'];
   const { emit } = VB['sim/events'];
@@ -56,10 +57,10 @@ VB['sim/stakes'] = (() => {
     const rule = practice(st, f.village).dispute,
       ctx = { village: f.village },
       claims = [old, mine];
-    if (CL.settle(st, claims, rule, ctx) !== mine) return false;
+    if (Disputes.settle(st, claims, rule, ctx) !== mine) return false;
     const loser = st.households[old.by.id],
       lf = st.farmsteads[loser.farmstead];
-    CL.aggrieve(st, claims, mine, ctx);
+    Disputes.aggrieve(st, claims, mine, ctx);
     CL.dropClaim(st, tile, old.by);
     // the loser's project on the tile is reviewed at once and dropped (sim/projects; told below); its job goes at the next posting (sim/jobs)
     emit(st, 'rightLost', { type: 'household', id: loser.id, tile, told: true });

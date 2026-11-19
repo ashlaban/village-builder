@@ -566,3 +566,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-996](backlog/VB-996.md) | The household's panel says why it does or does not feast | - | 3 | S | Show the rule feast (Sim.explainFeast) on the household's panel |
 | [VB-719](backlog/VB-719.md) | Tilth on the field, farm and village cards | animals | 3 | S | One meter, named Tilth, on the field's card beside Soil and Condition, and its mean on the farm's and the village's cards; what the field holds, no forecast. |
 | [VB-1006](backlog/VB-1006.md) | Occasions' ends as a table of kinds | - | 3 | S | finish in sim/occasions branches on five kinds; make each kind's end a row of OCCASIONS |
+| [VB-1176](backlog/VB-1176.md) | Refactor: split sim/claims by concern | - | 3 | S | sim/claims went over its export baseline (17 to 18) when VB-418 gave it workStake, the stake a land project's work renews; split it by concern or say why it stays whole. |

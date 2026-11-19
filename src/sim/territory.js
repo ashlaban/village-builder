@@ -6,7 +6,8 @@ VB['sim/territory'] = (() => {
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/routes'];
   const Culture = VB['culture'];
-  const CL = VB['sim/claims'];
+  const CL = VB['sim/claims'],
+    Disputes = VB['sim/disputes'];
   const { log, practice } = VB['sim/records'];
   const { emit } = VB['sim/events'];
   // Land lies in three rings (claims review, docs/review-claims.md): the infield of houses, fields, meadows, greens and plots (owned and in use,
@@ -153,13 +154,13 @@ VB['sim/territory'] = (() => {
         st,
         claims.map((c) => c.by.id),
       ),
-      win = CL.settle(st, claims, rule, {});
+      win = Disputes.settle(st, claims, rule, {});
     for (const c of claims) {
       if (c === win) continue;
       st.cairns.set(t, { a: win.by.id, b: c.by.id, t: st.t });
       if (quiet) continue;
       const k = `${win.by.id},${c.by.id}`,
-        o = out.get(k) || { n: 0, took: 0, rule, rules: CL.rulesFor(st, claims, c, {}) };
+        o = out.get(k) || { n: 0, took: 0, rule, rules: Disputes.rulesFor(st, claims, c, {}) };
       o.n++;
       if (holder === c.by.id) o.took++;
       out.set(k, o);
