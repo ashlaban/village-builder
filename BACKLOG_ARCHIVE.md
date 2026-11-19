@@ -576,3 +576,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1156](backlog/VB-1156.md) | Measure: open shares and the obligations' step on medium-ref | debt | 3 | S | VB-310's owed measures, for the collecting task VB-662 |
 | [VB-1222](backlog/VB-1222.md) | Measure: skip stops by reason, headless | - | 3 | S | Take the stop count owed by VB-1109 criterion 3 |
 | [VB-1344](backlog/VB-1344.md) | VB-717 numbers owed: tilth drift | - | 3 | S | Numbers VB-717 left, for VB-662 |
+| [VB-1282](backlog/VB-1282.md) | Measure the round autosave at medium-ref | - | 3 | S | Measure the round autosave step at medium-ref |

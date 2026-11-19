@@ -100,7 +100,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1175](backlog/VB-1175.md) | Teleports found, collected: swept at a slice's wrap-up | physical | 3 | M | The teleports tasks found in the code, a line each; swept together when a slice wraps up |
 | [VB-1217](backlog/VB-1217.md) | Measure the good-year gift (VB-460) | - | 3 | S | Measure VB-460 |
 | [VB-1240](backlog/VB-1240.md) | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |
-| [VB-1282](backlog/VB-1282.md) | Measure the round autosave at medium-ref | - | 3 | S | Measure the round autosave step at medium-ref |
 | [VB-1319](backlog/VB-1319.md) | Measure VB-245 on the late saves, with commits that exist | - | 3 | S | Measure VB-245 with commits that exist |
 | [VB-1354](backlog/VB-1354.md) | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
 
