@@ -1,6 +1,8 @@
 // @sys sim/venues: the village's gatherings by custom (VB-522; split from sim/occasions, VB-1270): the ale evening a holder opens its house
 //   for (its check, its asking, the holder's choice at its planning day, what its end pours and books) and the season's rite on the green
 //   (its day, its asking, its leader and the ties to it); sim/occasions calls, sends and ends them
+// @state village.riteDays: [spring, summer, winter] days (0-based) of a village's own rites, each within RITE.spread days after the season's day;
+//   drawn when first asked, absent before (VB-775)
 VB['sim/venues'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, SOCIAL, BREW, ALE_EVENING, RITE, cal } = VB['sim/rules'];
@@ -12,7 +14,8 @@ VB['sim/venues'] = (() => {
     { on } = VB['sim/events'],
     Encounters = VB['sim/encounters'],
     Stores = VB['sim/stores'],
-    Traits = VB['sim/traits'];
+    Traits = VB['sim/traits'],
+    Culture = VB['culture'];
   const { pourAle, owing, bookAll } = VB['sim/feast'];
   const { OCCASIONS, call, yard, dayOf, onEnd } = VB['sim/occasions'];
   const MIN_AGE = SOCIAL.talk.minAge; // younger children stay at home
@@ -147,44 +150,73 @@ VB['sim/venues'] = (() => {
     });
   }
   // ---- the season's rite (VB-522; design.md, Where pawns meet: The season's rite) ----
-  const riteDay = (c) => RITE.days.some((d) => c.season === d[0] && c.sday === d[1]);
-  // On a rite's day, at midnight (sim/clock): each village with a green calls a rite there; its adults come, and those of a village with
-  // no green (a lone farm) within RITE.reach walking hours of one go to the nearest, each at RITE.come + RITE.piety × its piety. One pass
-  // over the live households, a draw for each adult.
+  // The days a rite may fall on: a season's day of RITE.days, and RITE.spread days after it (VB-775).
+  const riteDay = (c) => RITE.days.some((d) => c.season === d[0] && c.sday >= d[1] && c.sday <= d[1] + RITE.spread);
+  // A village's own three rite days (VB-775; design.md, The season's rite: On a village's own days), drawn once, the first time it is
+  // asked about, from the occasions stream: one within RITE.spread days after each of RITE.days. Plain data on the village.
+  function riteDaysOf(st, v) {
+    // lint-allow: owner sim/venues draws its villages' rite days
+    if (!v.riteDays) v.riteDays = RITE.days.map((d) => d[1] + Math.floor(rnd(st.rng.occasions) * (RITE.spread + 1)));
+    return v.riteDays;
+  }
+  // Does the culture of village v keep its own rite days (PRACTICES.riteDays), or the same days everywhere (VB-522 as built)?
+  function keepsOwnDays(st, v) {
+    const s = st.cenv && st.cenv.settlements && st.cenv.settlements[v.id];
+    return Culture.practiceOf(s && st.cenv.cultures[s.culture], 'riteDays') === 'own';
+  }
+  // Does village v hold its rite today (c = the calendar day)?
+  function heldToday(st, v, c) {
+    const i = RITE.days.findIndex((d) => d[0] === c.season);
+    return i >= 0 && c.sday === (keepsOwnDays(st, v) ? riteDaysOf(st, v)[i] : RITE.days[i][1]);
+  }
+  // On a rite's day, at midnight (sim/clock): each village with a green whose day it is calls a rite there; its adults come, each at
+  // RITE.come + RITE.piety × its piety. Under 'common' days, those of a village with no green (a lone farm) within RITE.reach walking
+  // hours of one go to the nearest. Under 'own' days, the adults of any other village within RITE.reach come too, at that chance times
+  // (1 - walk / RITE.reach), to one rite a day (their own village's first). One pass over the live households.
   function callRites(st) {
-    const greens = st.villages.filter((v) => v.green);
-    if (!greens.length) return;
-    const goes = new Map(); // village id to [the green's village, the walk]
+    const c = cal(st.t),
+      held = st.villages.filter((v) => v.green && heldToday(st, v, c));
+    if (!held.length) return;
+    const asked = new Map(), // a green's village to {ids, hours}
+      going = new Set();
+    const ask = (g, m, h, scale) => {
+      const p = st.pawns[m];
+      if (!p.alive || age(st, p) < ADULT || going.has(m)) return;
+      VB.count.occasionAsked++;
+      if (!(rnd(st.rng.occasions) < (RITE.come + RITE.piety * Traits.of(st, m, 'piety')) * scale)) return;
+      going.add(m);
+      if (!asked.has(g)) asked.set(g, { ids: [], hours: [] });
+      asked.get(g).ids.push(m);
+      asked.get(g).hours.push(h);
+    };
+    const to = new Map(); // a village id to the held greens its adults may go to: [green id, walking hours], nearest first
     for (const v of st.villages) {
-      if (v.green) {
-        goes.set(v.id, [v.id, 0]);
-        continue;
+      const own = keepsOwnDays(st, v),
+        list = [];
+      for (const g of held) {
+        if (g.id === v.id) list.push([g.id, 0]);
+        else if (own || !v.green) {
+          const h = st.villageHours ? hoursBetween(st, v.id, g.id) : Infinity;
+          if (h <= RITE.reach) list.push([g.id, h]);
+        }
       }
-      if (!st.villageHours) continue;
-      let best = null;
-      for (const g of greens) {
-        const h = hoursBetween(st, v.id, g.id);
-        if (h <= RITE.reach && (!best || h < best[1])) best = [g.id, h];
-      }
-      if (best) goes.set(v.id, best);
+      list.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+      if (list.length) to.set(v.id, own ? list : list.slice(0, 1));
     }
-    const asked = new Map(); // a green's village to {ids, hours}
     for (const k of st.liveHouseholds) {
       const hh = st.households[k],
-        g = hh.farmstead === null ? null : goes.get(st.farmsteads[hh.farmstead].village);
-      if (!g) continue;
-      for (const m of hh.members) {
-        const p = st.pawns[m];
-        if (!p.alive || age(st, p) < ADULT) continue;
-        VB.count.occasionAsked++;
-        if (!(rnd(st.rng.occasions) < RITE.come + RITE.piety * Traits.of(st, m, 'piety'))) continue;
-        if (!asked.has(g[0])) asked.set(g[0], { ids: [], hours: [] });
-        asked.get(g[0]).ids.push(m);
-        asked.get(g[0]).hours.push(g[1]);
-      }
+        vid = hh.farmstead === null ? null : st.farmsteads[hh.farmstead].village,
+        list = vid === null ? null : to.get(vid);
+      if (!list) continue;
+      const scale = keepsOwnDays(st, st.villages[vid]) ? 1 : 0;
+      for (const m of hh.members)
+        for (const [g, h] of list) {
+          ask(g, m, h, scale ? 1 - h / RITE.reach : 1);
+          if (going.has(m)) break;
+        }
     }
     const day = dayOf(st.t);
-    for (const v of greens) {
+    for (const v of held) {
       const a = asked.get(v.id);
       if (!a) continue;
       VB.count.riteCalled++;

@@ -304,6 +304,17 @@ const Culture = (() => {
       base: 'elected',
       malleability: 0.3,
     }),
+    // On which days a village keeps its rites (VB-775; design.md, The season's rite): its own, drawn at its founding, as a parish kept its
+    // feast day, or the same everywhere (VB-522 as built). A custom cultures may come to differ in, not a dimension: nothing yet gives
+    // a pawn a stake in it.
+    riteDays: Object.freeze({
+      label: 'The days of the rite',
+      opts: Object.freeze([
+        ['own', 'Each village its own days'],
+        ['common', 'The same days everywhere'],
+      ]),
+      base: 'own',
+    }),
   });
   const basePractices = () => Object.fromEntries(Object.entries(PRACTICES).map(([k, x]) => [k, x.base]));
   // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).

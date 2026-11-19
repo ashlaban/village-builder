@@ -142,6 +142,7 @@
     "pawn.homeHours": "sim/relations",
     "pawn.rel": "sim/relations",
     "pawn.workdays": "sim/workdays",
+    "village.riteDays": "sim/venues",
     "village.alderman": "sim/membership",
     "village.aldermanSince": "sim/membership",
     "village.aldermanYear": "sim/membership",
