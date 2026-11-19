@@ -8,7 +8,8 @@
 VB['sim/asking'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK, TRAVEL, cal } = VB['sim/rules'];
-  const { age, spouseOf, settlementIdOf, practice, spokesmanOf, holdingOf, fullName, tieOf } = VB['sim/records'];
+  const { age, spouseOf, settlementIdOf, practice, spokesmanOf, matchByOf, holdingOf, fullName, tieOf } =
+    VB['sim/records'];
   const { kinOk, sideScore, matchRules, courts, askerOf, askedOf, askedBy } = VB['sim/matching'];
   const { hoursBetween } = VB['sim/routes'];
   const { claimableFarm, askLand } = VB['sim/farmclaims'];
@@ -26,6 +27,8 @@ VB['sim/asking'] = (() => {
     for (let d = 0; d < ASK.passes; d++) if (first + d * DAY >= st.t) return first + d * DAY;
     return first + YEAR;
   }
+  // Under the custom `matchBy` 'heads' (VB-826) a spokesman asks for a member whatever its wish or courtship: the member's no is its own
+  const headsOf = (st, p) => matchByOf(st, p) === 'heads';
   const landed = (st, id) => {
     const sp = spouseOf(st, id);
     return holdingOf(st, id) !== null || (sp !== null && holdingOf(st, sp) !== null);
@@ -66,7 +69,7 @@ VB['sim/asking'] = (() => {
     const p = st.pawns[id],
       v = settlementIdOf(st, p),
       man = p.sex === 'm';
-    if (v === null || Number.isInteger(p.courting)) return 'nobody'; // one who courts asks no other (askCourted, VB-036)
+    if (v === null || (Number.isInteger(p.courting) && !headsOf(st, p))) return 'nobody'; // one who courts asks no other (askCourted, VB-036)
     const asked = new Map(),
       asks = new Set();
     for (const o of st.offers)
@@ -93,7 +96,8 @@ VB['sim/asking'] = (() => {
         if (q.household === null || q.hunger >= HUNGER.marryBelow) continue;
         if (age(st, q) < (man ? MARRIAGE.womenFrom : MARRIAGE.menFrom)) continue;
         if (spouseOf(st, q.id) !== null || asks.has(q.id) || (asked.get(q.id) || 0) >= ASK.held) continue;
-        if (Number.isInteger(q.courting) || (q.wish && wishOf(st, q.id, 'match') === false)) continue;
+        if (!headsOf(st, q) && (Number.isInteger(q.courting) || (q.wish && wishOf(st, q.id, 'match') === false)))
+          continue;
         if (qv !== v && !courts(st, man ? p : q, man ? q : p, vm, vf)) continue; // a day's walk, or visited (VB-289)
         if (n >= ASK.pool) break;
         if (cu === null) cu = practice(st, vm);
@@ -132,6 +136,7 @@ VB['sim/asking'] = (() => {
   // does; another, asked by nobody, from the asking day of season ASK.womenFrom until the round is over.
   // `late`: as on the last asking day before the round, whatever the season (the round run at once: sim/round movingRound).
   function herSideAsks(st, id, late) {
+    if (matchByOf(st, st.pawns[id]) === 'couple') return true; // the couple: she asks as he does, from the first day (VB-826)
     if (holdingOf(st, id) !== null && spokesmanOf(st, id) === id) return true;
     const c = cal(st.t),
       before = c.season < AUTUMN || (c.season === AUTUMN && c.sday < ASK.day + ASK.passes);
@@ -210,7 +215,7 @@ VB['sim/asking'] = (() => {
         continue;
       }
       if (r === 'match') {
-        if (courting || spouseOf(st, id) !== null) continue;
+        if ((courting && !headsOf(st, p)) || spouseOf(st, id) !== null) continue;
         if (age(st, p) < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) continue;
         // one asked by an open match asks none itself: its side answers the best it holds at the round (VB-693)
         if (p.sex === 'm' ? askedBy(st, id) > 0 : !herSideAsks(st, id, late)) continue;

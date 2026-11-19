@@ -6,7 +6,7 @@ VB['sim/society'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
-  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal, TRAITS, HERD } = VB['sim/rules'];
+  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal, TRAITS, HERD, SOCIAL, DAY } = VB['sim/rules'];
   const { herdsOf, winterNeed } = VB['sim/herds'];
   const { addValues, act } = VB['sim/traits'];
   const { hexSteps } = VB['sim/hex'];
@@ -269,6 +269,15 @@ VB['sim/society'] = (() => {
           else if (full || stacked) set('stocking', { herd: 1 });
         }
       }
+      // who makes a match (VB-826): the unmarried young lean to the couple, holders to the heads; one refused with its courting pair, while the
+      // memory of it lasts (SOCIAL.memories.refusedCourting), to the couple
+      if (holder) set('matchBy', { heads: 1 });
+      else if (sp === null && p.age >= 14 && p.age < 30) set('matchBy', { couple: 1 });
+      if (sp === null && p.rel)
+        for (const r of p.rel.values()) {
+          const m = r.mem && r.mem.refusedCourting;
+          if (m && st.t - m.t < SOCIAL.memories.refusedCourting.days * DAY) set('matchBy', { couple: 1 });
+        }
       p.interest = it;
     }
   }

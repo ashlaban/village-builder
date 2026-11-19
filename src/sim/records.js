@@ -587,9 +587,16 @@ VB['sim/records'] = (() => {
   // Who speaks for pawn id in a match (design.md, Marriage as a negotiation: Who negotiates; VB-293): the holder of its household when it
   // lives there as a son or daughter of the house (a child of the holder, of the holder's spouse or of the holder's parent, not in service,
   // and not the holder); otherwise the pawn itself. O(1): the holder, its spouse and its two parents.
+  // Under the custom `matchBy` (VB-826) 'couple' in the pawn's village every pawn speaks for itself.
+  const MATCH_BY = Culture.IDX.matchBy;
+  const matchByOf = (st, p) => {
+    const s = st.cenv && st.cenv.settlements[settlementIdOf(st, p)];
+    return s ? Culture.DIMS[MATCH_BY].opts[s.practice[MATCH_BY]][0] : 'consent';
+  };
   function spokesmanOf(st, id) {
     const p = st.pawns[id];
     if (p.household === null || p.servant) return id;
+    if (matchByOf(st, p) === 'couple') return id;
     const hh = st.households[p.household],
       h = hh.holder;
     if (hh.dissolved || h === null || h === id) return id;
@@ -818,5 +825,6 @@ VB['sim/records'] = (() => {
     householdsOfLine,
     ancestorsOf,
     spokesmanOf,
+    matchByOf,
   };
 })();
