@@ -14,6 +14,7 @@ VB['sim/building'] = (() => {
   const { building, livePlots, COTTAGE, boothJob, finishBoothStage } = VB['sim/expansion'];
   const { wantsStone } = VB['sim/quern'];
   const { freeFor } = VB['sim/territory'];
+  const { register } = VB['sim/commands'];
   // Design (Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's walls take BUILD.timber loads (six trees, 3 loads a tree as a firewood
   // trip's); a plot's felled tiles give their trees as its wood (sim/expansion, plot.wood); a cottage or booth short of it fells the rest in
   // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: plot.wood, or f.booth.wood).
@@ -105,6 +106,24 @@ VB['sim/building'] = (() => {
     st.booths.push(b);
     return b;
   }
+  // Why the maker of booth `bid` cannot let pawn `id` in, or null (VB-984): only the pawn who staked it says whom it sleeps, before it is
+  // built and after; its own household needs no leave.
+  function letInWhy(st, actor, bid, id) {
+    const b = st.booths.find((x) => x.id === bid);
+    if (!b) return `there is no booth ${bid}`;
+    if (b.maker !== actor) return `pawn ${actor} did not make booth ${bid}`;
+    if (!(Number.isInteger(id) && st.pawns[id] && st.pawns[id].alive)) return `there is no living pawn ${id}`;
+    return boothOpenTo(st, b, id) ? `booth ${bid} is open to pawn ${id} already` : null;
+  }
+  // letIn(booth, {pawn}) (VB-984): the maker lets a pawn sleep in its booth; a right, so it holds at once wherever the maker stands.
+  register('letIn', {
+    check: (st, c) =>
+      (st.pawns[c.actor] && st.pawns[c.actor].alive ? null : `pawn ${c.actor} is not living`) ||
+      letInWhy(st, c.actor, c.target, c.args && c.args.pawn),
+    run: (st, c) => {
+      st.booths.find((x) => x.id === c.target).guests.push(c.args.pawn);
+    },
+  });
   // A night's fire in booth b (VB-785): what its wood holds of `want`, taken (a booth's wood is its own, written only here and by the trips
   // and the raising); returns the amount burnt.
   function burnBooth(st, booth, want) {

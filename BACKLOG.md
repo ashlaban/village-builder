@@ -89,7 +89,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-908](backlog/VB-908.md) | Means meter on the pawn panel | - | 3 | S | marryStanding's held and asked on the level meter |
 | [VB-911](backlog/VB-911.md) | Hides become leather: shoes and harness wear | animals | 3 | M | A pawn's job tans a hide and makes shoes or harness, which wear and are replaced. |
 | [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
-| [VB-984](backlog/VB-984.md) | A booth's maker lets a pawn in | far | 3 | S | verb letIn adds a guest to a booth |
 | [VB-990](backlog/VB-990.md) | Measure VB-785's night cost on small-y40 loaded a year | - | 3 | S | Measure the night cost on a late save |
 | [VB-996](backlog/VB-996.md) | The household's panel says why it does or does not feast | - | 3 | S | Show the rule feast (Sim.explainFeast) on the household's panel |
 | [VB-999](backlog/VB-999.md) | Rotations: a new field's seed and the window-closing reviews for every crop | crops | 3 | S | fieldProject holds barley's seed and sim/plans closing() reads barley's window, whatever the farm's rotation |
