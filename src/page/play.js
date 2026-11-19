@@ -9,7 +9,9 @@ let followPlayed = false,
   succFor = -1,
   succAt = 0,
   succHTML = '';
-const ADULT = 18; // who may be played: any living adult (design.md, Which pawn)
+const ADULT = 18; // a grown pawn: chosen first where the page picks one for the player
+// Who may be played (VB-1121): any living pawn, a child too, the same rule wherever the player takes a pawn (Whom to play, the succession)
+const mayPlay = (id) => !!st.pawns[id] && st.pawns[id].died === null;
 const playMark = new PIXI.Graphics();
 L.hover.addChild(playMark);
 const played = () => (st && st.player && st.pawns[st.player.pawn].died === null ? st.player.pawn : -1);
@@ -177,10 +179,12 @@ function renderPlay(id) {
     pl = st.player;
   let h = '';
   if (pl && st.pawns[pl.pawn].died !== null) {
-    const list = Sim.successors(st, pl.pawn),
-      may = p.died === null && (list.length ? list.some((s) => s.id === id) : p.age >= ADULT);
-    if (pl.pawn === id) h = '<p class="hint">You played this pawn, who has died. Choose who to go on as.</p>';
-    else if (may)
+    const next = Sim.successor(st, pl.pawn);
+    if (pl.pawn === id)
+      h = `<p class="hint">You played this pawn, who has died. ${
+        next ? `You go on as ${esc(Sim.fullName(st.pawns[next.id]))}.` : 'The line has ended.'
+      }</p>`;
+    else if (next && next.id === id && pl.ended === null)
       h = `<button type="button" class="primary" id="playAs" data-card="succeed">Go on as ${esc(Sim.fullName(p))}</button>`;
   } else if (pl && pl.pawn === id)
     h = '<p class="hint">You play this pawn. <button type="button" data-card="actions">Your acts</button></p>';
@@ -341,6 +345,7 @@ function renderActions() {
   // the pawn's levels and its household's supplies, as its card and the farm's show them (VB-664: one meter; VB-667: one supply component)
   h += `<div class="needs">${pawnStats(id)}${hh ? `<h3 class="card-sec">${esc(f.name)}</h3>${suppliesHTML(Sim.supplyOutlook(st, hh.id))}` : ''}</div>`;
   h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
+  h += afterYouHTML(id, f);
   // what its last act brought, what moved its levels over its last days, and who of its household ails, as kin see it (VB-1118)
   const notes = Sim.sheetNotes(st);
   if (notes.ailing.length) h += `<p class="refused">${notes.ailing.map(esc).join(' ')}</p>`;
@@ -469,9 +474,29 @@ function drawPlayMark() {
     .fill({ color: 0xf2c14e })
     .stroke({ width: 1.6 * k, color: 0x2c201c });
 }
-// After the played pawn's death (VB-213): the page pauses once, and a box offers those the player may go on as, the heir first, for as
-// long as the choice is open; the world does not wait, so the list is read again twice a second. With none alive, any adult's card
-// offers "Go on as", and the break is recorded. Called each frame (page/animate).
+// After the played pawn's death (VB-213, VB-1121): the page pauses once, and a box shows whom the player now plays, its successor by the
+// customs (Sim.successor), read again twice a second, since the world does not wait. With no one of the line alive the game has ended:
+// the box shows the line's summary (endSummary), with the way back to the main menu and to watching the island on. Called each frame
+// (page/animate).
+// Whom the player goes on as after its pawn (VB-1121), worked out beforehand, by its village's custom; a change of it (a birth, a death, a
+// change of custom) is told on the sheet until another pawn is played.
+let heirWas = { id: -1, heir: -1, note: '' };
+function afterYouHTML(id, f) {
+  const next = Sim.successor(st, id),
+    heir = next ? next.id : null;
+  if (heirWas.id !== id) heirWas = { id, heir, note: '' };
+  else if (heirWas.heir !== heir) {
+    heirWas.note =
+      heir === null ? 'No one of your line is left now.' : `Your successor is now ${Sim.fullName(st.pawns[heir])}.`;
+    heirWas.heir = heir;
+  }
+  const by = f ? ` by ${st.villages[f.village].name}'s custom` : '';
+  return `<p class="posline">${sign('next')}<span>${
+    next
+      ? `After you: ${esc(Sim.fullName(st.pawns[heir]))}, your ${esc(next.why)}${esc(by)}`
+      : 'After you: no one of your line; the game would end'
+  }</span></p>${heirWas.note ? `<p class="refused" role="status">${esc(heirWas.note)}</p>` : ''}`;
+}
 // The successor's position as Whom to play shows it (holds a farm, first heir to one, a child, retired), the farms an heir is heir to named.
 function successorPlace(id, why) {
   const k = positionName(id),
@@ -499,28 +524,70 @@ function offerSuccession() {
   }
   if (now - succAt < 500 && !box.hidden) return;
   succAt = now;
-  const list = Sim.successors(st, dead);
-  let h = `<span><b>${esc(Sim.fullName(st.pawns[dead]))} has died.</b> ${
-    list.length
-      ? 'Go on as:'
-      : 'None of your heirs, kin, household or friends is alive: a break in the line. Open any adult and choose “Go on as”.'
-  }</span>`;
-  if (list.length)
-    h += `<ul>${list
-      .map((s) => {
-        const q = st.pawns[s.id];
-        return `<li><button type="button" data-succeed="${s.id}">${esc(
-          Sim.fullName(q),
-        )}<i>${esc(successorPlace(s.id, s.why))}, ${Sim.age(st, q)}</i></button></li>`;
-      })
-      .join('')}</ul>`;
+  const next = pl.ended === null ? Sim.successor(st, dead) : null;
+  let h = `<span><b>${esc(Sim.fullName(st.pawns[dead]))} has died.</b></span>`;
+  if (next) {
+    const q = st.pawns[next.id];
+    h += `<p>You now play ${esc(Sim.fullName(q))}, ${heShe(dead)} ${esc(next.why)}, ${Sim.age(st, q)}${
+      q.age < ADULT ? `: a child, who ${esc(childLine(next.id))}` : ''
+    }.</p><button type="button" class="primary" data-succeed="${next.id}">Go on as ${esc(q.given)}</button>`;
+  } else h += endSummary(dead);
   if (h !== succHTML) {
     succHTML = h;
     box.innerHTML = h;
   }
   box.hidden = false;
 }
+const heShe = (id) => (st.pawns[id].sex === 'f' ? 'her' : 'his');
+// What a child successor may do, and who holds the farm meanwhile and until when (the widow for life, kin in trust: the household's
+// holder, or the trust the farm is held in), read from the state.
+function childLine(id) {
+  const p = st.pawns[id],
+    hh = p.household !== null ? st.households[p.household] : null,
+    holder = hh && hh.holder !== null && hh.holder !== id ? st.pawns[hh.holder] : null,
+    grown = Math.ceil(ADULT - p.age);
+  return `helps at home and may not marry, take service or claim land until grown, in ${grown} ${grown === 1 ? 'year' : 'years'}${
+    holder ? `; ${Sim.fullName(holder)} holds ${farmOf(p) ? farmOf(p).name : 'the farm'} meanwhile` : ''
+  }`;
+}
+// The end of the game (VB-1121): the line's pawns in order with their years, the farms they held, and the island's people and villages
+// when the line began and now, from the record and the state; no score. Read once, when the box is drawn.
+function endSummary(dead) {
+  const evs = Sim.recordOf(st, { kinds: ['player'] }).filter((e) => e.text === 'Played by the player'),
+    line = [];
+  for (const e of evs) if (!line.includes(e.pawn)) line.push(e.pawn);
+  if (!line.includes(dead)) line.push(dead);
+  const t0 = evs.length ? evs[0].t : 0,
+    yr = (t) => Sim.cal(t).year + 1,
+    held = new Set(line),
+    farms = [
+      ...new Set(
+        Sim.recordOf(st, { kinds: ['inherited', 'claim'] })
+          .filter((e) => held.has(e.pawn) && e.farm !== undefined)
+          .map((e) => st.farmsteads[e.farm].name),
+      ),
+    ];
+  const at = (t) => st.pawns.filter((p) => p.born <= t && (p.died === null || p.died > t)).length;
+  const villages = (t) =>
+    st.villages.filter((v) => (v.founded === undefined || v.founded === null ? 0 : v.founded) <= t).length;
+  const rows = line.map((id) => {
+    const p = st.pawns[id];
+    return `<li>${esc(Sim.fullName(p))} <i>year ${yr(p.born)} to ${p.died === null ? 'now' : `year ${yr(p.died)}`}</i></li>`;
+  });
+  const island = `${at(t0)} people in ${villages(t0)} villages when the line began, ${st.living.length} in ${st.villages.length} now`;
+  return (
+    `<p>No one of the line is left: the game has ended.</p><ol>${rows.join('')}</ol>` +
+    `<p>Farms held: ${farms.length ? esc(farms.join(', ')) : 'none'}.</p><p>The island: ${island}.</p>` +
+    '<button type="button" data-end="menu">Main menu</button><button type="button" data-end="watch">Watch the island</button>'
+  );
+}
 $('succession').addEventListener('click', (e) => {
+  const end = e.target.closest('button[data-end]');
+  if (end && st) {
+    Sim.uninhabit(st); // the ended line is let go: the island is watched on
+    if (end.dataset.end === 'menu') showLanding();
+    return;
+  }
   const b = e.target.closest('button[data-succeed]');
   if (!b || !st) return;
   const id = +b.dataset.succeed,
@@ -530,7 +597,7 @@ $('succession').addEventListener('click', (e) => {
     playMsg = null;
     focusPawn(id);
     openPanel('actions');
-  } // refused only if it died meanwhile: the list is read again at once
+  } // refused only if it died meanwhile: the successor is read again at once
 });
 // Skip to the next event (VB-234): the run goes ahead at the uncapped speed (page/speed asks Sim.skipStop after each step) until
 // something concerns the played pawn, at the latest the eve of the moving round; then the page pauses, the camera goes to what happened

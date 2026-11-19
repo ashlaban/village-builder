@@ -11,7 +11,7 @@ VB['sim/lifecycle'] = (() => {
     VB['sim/records'];
   const { setAtAge } = VB['sim/traits'];
   const { stillAtDeath, travelling, tileAt, placeOf } = VB['sim/agents'];
-  const { heirRanking, transfer, succession, comeOfAge, refreshRoles } = VB['sim/heirs'];
+  const { heirRanking, successorOf, transfer, succession, comeOfAge, refreshRoles } = VB['sim/heirs'];
   const { careForOrphans } = VB['sim/service'];
   const { refreshStanding } = VB['sim/society'];
   const { playerDied, clearMatchWish } = VB['sim/player'];
@@ -32,7 +32,7 @@ VB['sim/lifecycle'] = (() => {
       road = travelling(a) ? tileAt(st, ...placeOf(st, a)) : null; // it dies where it fell on the road (VB-287)
     stillAtDeath(st, a);
     clearMatchWish(st, id, id);
-    playerDied(st, id); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)
+    playerDied(st, id, successorOf); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)
     const u = unionOf(st, id);
     if (u) {
       u.end = st.t;

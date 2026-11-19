@@ -73,7 +73,7 @@ function chooseAt(sx, sy) {
     pw = pawnAt(x, y);
   if (pw >= 0) {
     const f = farmOf(st.pawns[pw]);
-    if (f) chooseFarm(f.id, st.pawns[pw].age >= ADULT ? pw : -1, false);
+    if (f) chooseFarm(f.id, mayPlay(pw) ? pw : -1, false);
     return;
   }
   const named = labelAt(x, y);
@@ -88,9 +88,9 @@ function chooseAt(sx, sy) {
   );
   if (f) chooseFarm(f.id, -1, false);
 }
-// The household's panel: the farm's icon, name and village and its food as the supply component shows it; its people as portraits (children shown, not to be
-// chosen); then the person chosen: name, age and position, one line on the life, whom the player would go on as after a death (the
-// first of Sim.successors), and what the position can do and what lies ahead, as chips.
+// The household's panel: the farm's icon, name and village and its food as the supply component shows it; its people as portraits (a
+// child may be chosen too: mayPlay, VB-1121); then the person chosen: name, age and position, one line on the life, whom the player would
+// go on as after a death (Sim.successor, by the village's custom), and what the position can do and what lies ahead, as chips.
 function renderChoose() {
   if (!choose) return;
   const f = choose.farm >= 0 ? st.farmsteads[choose.farm] : null,
@@ -112,9 +112,8 @@ function renderChoose() {
       h += `<div class="people">${householdPeople(hh)
         .map((q) => {
           const p = st.pawns[q],
-            minor = p.age < ADULT,
             hit = choose.story && inStory(choose.story, q);
-          return `<button type="button" class="person${hit ? ' hit' : ''}" data-p="${q}" aria-pressed="${q === id}"${minor ? ' disabled' : ''}>${faceImg(
+          return `<button type="button" class="person${hit ? ' hit' : ''}" data-p="${q}" aria-pressed="${q === id}"${mayPlay(q) ? '' : ' disabled'}>${faceImg(
             q,
             'pf',
           )}<span>${esc(p.given)}</span><small>${esc(placeLine(p))}</small>${
@@ -131,7 +130,7 @@ function renderChoose() {
   if (id >= 0) {
     const p = st.pawns[id],
       k = positionOf(id),
-      after = Sim.successors(st, id)[0],
+      after = Sim.successor(st, id),
       { can, ahead } = chipsOf(id);
     h +=
       `<div class="detail"><h2>${esc(Sim.fullName(p))}${id === choose.sug ? ` ${SUGGESTED}` : ''}</h2>` +
@@ -139,10 +138,10 @@ function renderChoose() {
       `<p class="hint">${esc(LIFE_LINE[k])}</p>` +
       `<p class="posline">${sign('next')}<span>${
         after
-          ? `After ${p.sex === 'm' ? 'him' : 'her'}, you go on as ${esc(Sim.fullName(st.pawns[after.id]))}, ${esc(
+          ? `After ${p.sex === 'm' ? 'him' : 'her'}, you go on as ${esc(Sim.fullName(st.pawns[after.id]))}, ${p.sex === 'm' ? 'his' : 'her'} ${esc(
               after.why,
-            )}`
-          : 'No one after: the line would break'
+            )}, by ${esc(st.villages[f ? f.village : 0].name)}'s custom`
+          : 'No one of the line after: the game would end'
       }</span></p>` +
       `<h3>Can</h3>${chipList(can)}<h3>Ahead</h3>${chipList(ahead)}</div>`;
   }

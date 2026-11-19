@@ -49,8 +49,7 @@ function playLine({ scenario = 'founders', seed = 7, map = 'small', size = null,
     autoOff: null, saves: { n: 0, bytes: 0, maxBytes: 0, saveMs: 0, loadMs: 0 }, hh: new Map(), yearly: [] };
   const hhDays = new Map(); // household id -> {days, hungry0, kids}
   const mark = (h) => hhDays.get(h) || hhDays.set(h, { days: 0, kids: 0, first: st.t }).get(h);
-  const classify = (pl, id, pick) => (!pick ? 'break' : pick.why === 'heir' ? 'heir' : pick.why === 'household' ? 'household'
-    : pl.left.ties.some((t) => t.id === id && t.why === pick.why) && !/^(son|daughter|father|mother|brother|sister|grand|uncle|aunt|nephew|niece|cousin|husband|wife)/.test(pick.why) ? 'tie' : 'kin');
+  const classify = (pick) => pick.why; // the successor's link to the dead pawn (VB-1121: son, daughter, nephew, ...)
 
   const decide = (day) => {
     let pl = st.player;
@@ -60,11 +59,10 @@ function playLine({ scenario = 'founders', seed = 7, map = 'small', size = null,
       Sim.inhabit(st, hh.holder); line.pawns.push({ id: hh.holder, from: st.t, how: 'first holder', to: null, left: null });
       return true;
     }
-    if (pl.left) { // the played pawn has died: go on as the first of its successors, else a break
-      const list = Sim.successors(st, pl.pawn), pick = list[0] || null;
-      let id = pick ? pick.id : st.living.find((x) => st.pawns[x].age >= 18);
-      if (id === undefined) return false;
-      const how = classify(pl, id, pick), last = line.pawns[line.pawns.length - 1];
+    if (pl.left) { // the played pawn has died: go on as its successor; with none the game has ended (VB-1121)
+      const pick = Sim.successor(st, pl.pawn);
+      if (!pick || pl.ended !== null) return false;
+      const id = pick.id, how = classify(pick), last = line.pawns[line.pawns.length - 1];
       if (Sim.succeed(st, id) !== true) return false;
       last.to = st.t; last.followedBy = how; line.pawns.push({ id, from: st.t, how, to: null, left: null });
       return true;
