@@ -17,7 +17,7 @@ let c = culled(st, hh).sort().join(',');
 check(c === 'cow,ewe,ewe,ewe,ewe', `short hay: culled ${c}, wanted 4 ewes and a cow`);
 const cows = H.herdOf(st, hh, 'cattle').head.filter((h) => h.kind === 'cow'), gone = H.herdOf(st, hh, 'cattle').cull[0];
 check(gone && cows.every((h) => h.id === gone.head || h.born >= cows.find((q) => q.id === gone.head).born), 'short hay: not the oldest cow');
-const kept = Y.animals(st, hh).reduce((s, a) => s + a.hay, 0) * Sim.HERD.stallDays * Sim.HERD.margin;
+const kept = Y.animals(st, hh).reduce((s, a) => s + a.hay, 0) * Sim.HERD.stallDays * Sim.HERD.margins.hay;
 check(kept <= hh.hay, `short hay: the kept animals need ${kept.toFixed(1)}, more than the hay ${hh.hay}`);
 check(!checkState(st).length, 'short hay: ' + checkState(st).slice(0, 3).join('; '));
 

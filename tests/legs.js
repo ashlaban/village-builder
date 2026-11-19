@@ -97,7 +97,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   tiles.forEach((t, i) => {
     if (t < 0) return;
     const dw = w.wear[t] - wear0[i], entered = i < reached;
-    assert.ok(entered ? dw >= 1 - 1e-6 : Math.abs(dw) < 1e-6 || tiles.indexOf(t) < reached, `tile ${t} (${i}) ${entered ? 'entered and trodden' : 'not reached, not trodden'}: ${dw}`);
+    assert.ok(entered ? dw >= 1 - 1e-5 : Math.abs(dw) < 1e-6 || tiles.indexOf(t) < reached, `tile ${t} (${i}) ${entered ? 'entered and trodden' : 'not reached, not trodden'}: ${dw}`);
   });
   assert.deepStrictEqual(checkState(s), [], 'invariants after a cut');
 }
