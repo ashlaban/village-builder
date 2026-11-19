@@ -182,10 +182,10 @@
   <div class="tree-card panel">
     <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p>
       <button id="treeClose" type="button" class="icon-btn" data-icon="close" aria-label="Close family records" title="Close"></button></header>
-    <div class="tree-modes" id="treeModes" role="group" aria-label="What the tree shows">
-      <button type="button" data-mode="line" aria-pressed="true">Ancestors</button><button type="button" data-mode="father" aria-pressed="false">Father's line</button>
-      <button type="button" data-mode="mother" aria-pressed="false">Mother's line</button><button type="button" data-mode="desc" aria-pressed="false">Descendants</button>
-      <button type="button" data-mode="path" aria-pressed="false">Path to…</button><button type="button" data-mode="all" aria-pressed="false">Everyone</button>
+    <div class="tabs tree-modes" id="treeModes" role="tablist" aria-label="What the tree shows">
+      <button type="button" role="tab" data-mode="line" aria-selected="true">Ancestors</button><button type="button" role="tab" data-mode="father" aria-selected="false">Father's line</button>
+      <button type="button" role="tab" data-mode="mother" aria-selected="false">Mother's line</button><button type="button" role="tab" data-mode="desc" aria-selected="false">Descendants</button>
+      <button type="button" role="tab" data-mode="path" aria-selected="false">Path to…</button><button type="button" role="tab" data-mode="all" aria-selected="false">Everyone</button>
     </div>
     <p class="tree-caption" id="treeCaption" aria-live="polite" hidden></p>
     <div class="tree-body">

@@ -88,13 +88,17 @@ function giveHTML(id) {
     `<button type="button" data-give="less" data-k="less" aria-label="Five rations less">${actIcon('minus')}</button>` +
     `<input id="giveN" type="number" inputmode="numeric" min="1" max="${max}" step="1">` +
     `<button type="button" data-give="more" data-k="more" aria-label="Five rations more">${actIcon('plus')}</button></div>`;
+  const n = Number.isInteger(gift.n) && gift.n >= 1 ? Math.min(gift.n, max) : 0;
+  h +=
+    `<h3 class="card-sec">${esc(f.name)}'s food now</h3>${suppliesHTML(Sim.giftOutlook(st, hh.id, 0), ['food'])}` +
+    `<h3 class="card-sec">After giving ${n} ${n === 1 ? 'ration' : 'rations'}</h3>${suppliesHTML(Sim.giftOutlook(st, hh.id, n), ['food'])}`;
   if (gift.warn) {
     const names = gift.warn.hungry.map((k) => Sim.fullName(st.pawns[k])).join(', ');
     h +=
       `<p class="refused" role="alert">This leaves ${esc(f.name)} ${Math.ceil(
         gift.warn.below,
-      )} rations short of its floor, ${gift.warn.days} days of food ` +
-      `beside the seed. If food runs short, the last to be served ${gift.warn.hungry.length === 1 ? 'is' : 'are'} ${esc(names)}.</p>` +
+      )} rations short of its floor. ` +
+      `If food runs short, the last to be served ${gift.warn.hungry.length === 1 ? 'is' : 'are'} ${esc(names)}.</p>` +
       '<div class="switches"><button type="button" class="primary" data-give="confirm" data-k="confirm">Give all the same</button>' +
       '<button type="button" data-give="cancel" data-k="cancel">Cancel</button></div>';
   } else
