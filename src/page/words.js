@@ -214,7 +214,7 @@ function showPawn(id) {
           : p.age >= 18 && st.demand.includes(id)
             ? `Landless at ${f.name}, wants to move out`
             : `Lives at ${f.name}`;
-  const bar = Sim.marryStanding(st, id),
+  const bar = Sim.marryBar(st, id),
     yrs = (n) => (Math.round(Math.max(0, n) * 10) / 10).toString();
   const marryLine = !bar
     ? ''

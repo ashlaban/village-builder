@@ -1193,6 +1193,26 @@ function checkState(st) {
         if (!once.has(id) && !p.retired && Rec.spouseOf(st, id) === null) bad.push(`pawn ${id}: unmarried, and no asking`);
       }
   }
+  // the queue by village (VB-1169; sim/wishes): a cache of st.asking, each entry filed under the village its pawn lives in (none for a pawn
+  // of no household), in the order the queue holds them, and nothing else
+  if (st.asking !== undefined && Array.isArray(st.asking)) {
+    const Rec = globalThis.VB['sim/records'], by = st.askingBy;
+    if (!by || typeof by !== 'object') bad.push(`askingBy: ${typeof by}`);
+    else {
+      const want = {};
+      for (const e of st.asking) {
+        const v = Rec.settlementIdOf(st, st.pawns[e.pawn]);
+        if (e.v !== v) bad.push(`asking: pawn ${e.pawn} filed under village ${e.v}, lives in ${v}`);
+        if (v !== null) (want[v] = want[v] || []).push(e.pawn + '@' + e.t);
+      }
+      for (const v of new Set([...Object.keys(want), ...Object.keys(by)])) {
+        // the order of those due at the same time may differ (a pawn refiled after a move goes behind its equals)
+        const key = (a) => a.slice().sort((x, y) => x.split('@')[1] - y.split('@')[1] || x.split('@')[0] - y.split('@')[0]).join();
+        const have = key((by[v] || []).map((e) => e.pawn + '@' + e.t)), wants = key(want[v] || []);
+        if (have !== wants) bad.push(`askingBy[${v}]: ${have}, the queue gives ${wants}`);
+      }
+    }
+  }
   // the visits planned (VB-289; sim/visits): in the order of their due, each due at a 6:00, one a pawn, to a village, from a household; and
   // a pawn's last visit, {village, year}, null on the dead and the married
   if (st.visits !== undefined) {
@@ -1287,6 +1307,7 @@ function checkState(st) {
   // that is in the queue and lists it among those who came. An ale evening (VB-522) is held for its host, the holder of the farm's
   // household, from the end of work, one a village a day, for at most ALE_EVENING.guests besides the household; a rite on a green at
   // RITE.hour, for nobody in particular.
+  for (const p of st.pawns) if (p.called !== undefined && !(p.called <= st.t)) bad.push(`pawns[${p.id}]: called at ${p.called}, after now`);
   if (st.occasions !== undefined) {
     const { ALE_EVENING, RITE, DAY: D } = globalThis.VB['sim/rules'], aleDays = new Set();
     const O = globalThis.VB['sim/occasions'].OCCASIONS, live = new Map();

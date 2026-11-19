@@ -285,7 +285,13 @@ function offerBox(id, opps) {
             ? 'You are the one asked.'
             : `You are head of the household of ${esc(Sim.fullName(st.pawns[o.for]))}.`;
     const said = o.answers.map((a) => `${esc(a.name)} said ${a.yes ? 'yes' : 'no'}`).join('; ');
-    const title = match ? 'A match is offered' : o.basis === 'gift' ? 'A gift is offered' : 'You are asked';
+    const title = match
+      ? 'A match is offered'
+      : o.basis === 'gift'
+        ? 'A gift is offered'
+        : o.basis === 'handover'
+          ? 'The farm is handed on to you'
+          : 'You are asked';
     const body = match
       ? `${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}.`
       : `${esc(o.text.charAt(0).toUpperCase() + o.text.slice(1))}.`;

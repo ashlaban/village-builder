@@ -244,7 +244,9 @@ VB['sim/round'] = (() => {
     kinPressure(st, v, men, women, others, taken, married, rules.homeFor);
     // One who holds no offer at the round (he found nobody he could ask within a day's walk, or was refused) plans a winter's visit
     // (sim/visits, VB-289).
-    for (const p of men) if (spouseOf(st, p.id) === null && !heldBy(st, p.id, 'match')) seekVisit(st, p.id, rules);
+    for (const p of [...men, ...women])
+      if (settlementIdOf(st, p) === v && spouseOf(st, p.id) === null && !heldBy(st, p.id, 'match'))
+        seekVisit(st, p.id, rules);
     if (married.length) refreshRoles(st);
   }
   return {

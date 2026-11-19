@@ -35,10 +35,17 @@ const map = [
 // `at`: daughter 2's place: 'spouse' (she has married 11, a widower, and lives on his farm) or 'holds' (he has died too, and she holds
 // it, his children dead as well).
 function world(customs, at = null) {
-  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], {
-    seed: 7,
-    customs: { widow: 'keep', ...customs },
-  });
+  const st = tinyState(
+    tinyWorld(map),
+    [
+      { at: [3, 5], farms: 2 },
+      { at: [11, 2], farms: 1 },
+    ],
+    {
+      seed: 7,
+      customs: { widow: 'keep', ...customs },
+    },
+  );
   const aged = (id, years) => {
     st.pawns[id].born = st.t - years * YEAR - DAY;
     st.pawns[id].age = years;
@@ -79,11 +86,19 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
 {
   let st = world({ handover: 'age60' });
   let l = line(st);
-  assert.deepStrictEqual(l.asked, [2, 3, 4, 5].map((id) => ({ id, no: null })), 'nobody holds a place: each would take it, eldest first');
+  assert.deepStrictEqual(
+    l.asked,
+    [2, 3, 4, 5].map((id) => ({ id, no: null })),
+    'nobody holds a place: each would take it, eldest first',
+  );
   assert.deepStrictEqual(l.ranking, [2, 3, 4, 5]);
   st = world({ handover: 'age60' }, 'spouse');
   l = line(st);
-  assert.deepStrictEqual(l.asked.map((e) => e.id), [2, 3, 4, 5], 'one who lives on a spouse’s farm keeps her place in the order asked');
+  assert.deepStrictEqual(
+    l.asked.map((e) => e.id),
+    [2, 3, 4, 5],
+    'one who lives on a spouse’s farm keeps her place in the order asked',
+  );
   assert.ok(/^lives at /.test(l.asked[0].no), `and would not take it: ${l.asked[0].no}`);
   assert.deepStrictEqual(l.ranking, [3, 4, 5], 'so the ranking passes her over, as before');
   st = world({ handover: 'age60' }, 'holds');
@@ -116,7 +131,11 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   birthday(st, 0);
   assert.strictEqual(handovers(st).length, 1, 'the holder of 62 offers on his day');
   const o = st.offers[0];
-  assert.deepStrictEqual([o.from, o.to, o.due, o.round], [0, 2, dueRound(st), true], 'to the first in line, due at the moving round');
+  assert.deepStrictEqual(
+    [o.from, o.to, o.due, o.round],
+    [0, 2, dueRound(st), true],
+    'to the first in line, due at the moving round',
+  );
   assert.deepStrictEqual(o.gives, { household: 0, reason: 'retirement' });
   assert.ok(
     st.pawns.every((p) => p.ask === undefined || p.ask === null),
@@ -130,7 +149,10 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
     back = opinionOf(st, 2, 0);
   conclude(st, o); // the round's step answers it
   assert.strictEqual(told(st, 'offerRefused', 2).length, 1, 'the heir who holds a farm says no, and it is told');
-  assert.ok(/would not take over .*: holds /.test(told(st, 'offerRefused', 2)[0].text), told(st, 'offerRefused', 2)[0].text);
+  assert.ok(
+    /would not take over .*: holds /.test(told(st, 'offerRefused', 2)[0].text),
+    told(st, 'offerRefused', 2)[0].text,
+  );
   assert.strictEqual(st.households[0].holder, 3, 'the offer passes to the next in line at once, who takes it');
   assert.strictEqual(st.households[2].holder, 2, 'and the one who refused keeps her own');
   assert.deepStrictEqual([opinionOf(st, 0, 2), opinionOf(st, 2, 0)], [before, back], 'the no books no memory');
@@ -158,11 +180,24 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   birthday(st, 0);
   assert.strictEqual(st.offers.length, 0, 'the custom’s time has come, and nothing offers for the played holder');
   const hand = (target, gives) =>
-    issue(st, { actor: 0, verb: 'offer', target, args: { basis: 'handover', gives: { household: 0, ...gives } }, source: 'player' });
+    issue(st, {
+      actor: 0,
+      verb: 'offer',
+      target,
+      args: { basis: 'handover', gives: { household: 0, ...gives } },
+      source: 'player',
+    });
   assert.ok(/first in line/.test(hand(3, { reason: 'retirement' })), 'not to one further down the line');
   assert.ok(/only a refusal/.test(hand(3, { reason: 'retirement', passed: [2] })), 'nor by naming one as passed');
   assert.ok(/not handed on for/.test(hand(2, {})), 'a reason is named');
   assert.strictEqual(st.households[0].holder, 0);
+  // the page's control (VB-1140): the opportunity names the first in line, open to the verb's check, and why not once an offer is open
+  const ho = (id) => Sim.opportunities(st, id).find((o) => o.verb === 'offer');
+  assert.ok(
+    ho(0) && ho(0).why === null && ho(0).target === 2 && ho(0).handover.first.id === 2,
+    'Hand the farm on is open',
+  );
+  assert.strictEqual(ho(1), undefined, 'and is the holder’s alone');
   assert.strictEqual(hand(2, { reason: 'retirement' }), true);
   assert.strictEqual(st.households[0].holder, 2, 'the first in line says yes at once');
   assert.ok(st.pawns[0].retired && st.pawns[0].household === 0, 'the played pawn is retired on the farm');
@@ -192,8 +227,19 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   Sim.inhabit(st, 2);
   birthday(st, 0);
   const o = st.offers[0];
-  assert.ok(o && o.to === 2 && o.answers.length === 1 && o.answers[0].by === 2 && o.answers[0].yes === null, 'the played heir has the answer');
-  assert.strictEqual(issue(st, { actor: 2, verb: 'answer', target: o.id, args: { yes: false }, source: 'player' }), true);
+  assert.ok(
+    o && o.to === 2 && o.answers.length === 1 && o.answers[0].by === 2 && o.answers[0].yes === null,
+    'the played heir has the answer',
+  );
+  const asked = Sim.opportunities(st, 2).find((x) => x.when === 'offer');
+  assert.ok(
+    asked && asked.offer.basis === 'handover' && asked.offer.advice !== undefined,
+    'it shows as an open offer, with advice',
+  );
+  assert.strictEqual(
+    issue(st, { actor: 2, verb: 'answer', target: o.id, args: { yes: false }, source: 'player' }),
+    true,
+  );
   assert.strictEqual(st.households[0].holder, 3, 'her no passes it to the next in line');
   assert.strictEqual(told(st, 'offerRefused', 2).length, 1);
   sound(st, 'a played heir refused');

@@ -696,6 +696,11 @@ VB['sim/rules'] = (() => {
   // sociability), (1 + its opinion of the host) and (1 - its walk / reach); counted until `guests` (a barrel's) have said yes. `mix`: the
   // floor for strangers among the partners drawn there (sim/encounters). `reach` 2, not the design's 1.5 (VB-522's runs, populous small
   // seed 7: at 1.5 a twelfth of the guests came from another village, at 2 a fifth, at 2.5 over a third).
+  // A call at a farm (VB-1119; design.md, Where pawns meet): a pawn walks to another household's farm within a day's walk and stays from the
+  // end of work to `until`; those at home meet it there as at an occasion, with `mix` the floor for strangers among the partners drawn
+  // (sim/encounters). `every`: a pawn calls at most once in so many game hours (a week), the cost's bound; `rung`: an unplayed pawn whose
+  // asking found nobody calls at a farm of another village (sim/asking, calls).
+  const CALL = { until: 22, mix: 0.5, every: 7 * DAY };
   const ALE_EVENING = { call: 0.1, reach: 2, come: 0.25, guests: 20, mix: 0.5, until: 22 };
   // The season's rite (VB-522; design.md, Where pawns meet): on each village green, on day sday of `days`' seasons (spring day 1, summer
   // day 6, winter day 7), from `hour` for `hours`. An adult of the village, and of a lone farm within `reach` walking hours of a green,
@@ -1188,6 +1193,7 @@ VB['sim/rules'] = (() => {
     FEAST,
     GIFT,
     ALE_EVENING,
+    CALL,
     RITE,
     GATHERING,
     TERRAIN,

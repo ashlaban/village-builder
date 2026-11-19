@@ -172,6 +172,7 @@ const INTEGRATION = [
   ['node', 'tests/occasions.js'],
   ['node', 'tests/gift.js'], // VB-460: the good-year gift, unasked, kin first, carried
   ['node', 'tests/feast.js'], // VB-458: the feast at a wedding or a funeral ale, its sitting, the meal eaten once, goodwill booked
+  ['node', 'tests/call.js'], // VB-1119: a call at a farm (the verb, its week, the evening's ties, the match list)
   ['node', 'tests/aleevening.js'], // VB-522: the ale evening (who calls, who is asked, the barrel) and the season's rite (its leader, the ties)
   // VB-855: the farming year, from new fields to digging, on small generated islands and constructed states
   ['node', 'tests/newfields.js'],
@@ -234,6 +235,7 @@ const EXTENDED = [
   ['node', 'tests/browser-mobile.js'],
   ['node', 'tests/browser-speed.js'],
   ['node', 'tests/browser-gathering.js'], // a gathering while it is on: its notice, its mark and its card (VB-1031, VB-1032)
+  ['node', 'tests/browser-fields.js'], // a field's card: crop, course, the head's rotation choices and their answers, winter rye (VB-1146)
   ['node', 'tests/browser-bonds.js'] // portraits: the bonds as badges (VB-1026), their words (VB-1033), ageing (VB-1029)
 ];
 module.exports = { FAST, INTEGRATION, EXTENDED };
