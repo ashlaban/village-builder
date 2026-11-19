@@ -1276,6 +1276,7 @@ function checkState(st) {
   // that is in the queue and lists it among those who came. An ale evening (VB-522) is held for its host, the holder of the farm's
   // household, from the end of work, one a village a day, for at most ALE_EVENING.guests besides the household; a rite on a green at
   // RITE.hour, for nobody in particular.
+  for (const p of st.pawns) if (p.called !== undefined && !(p.called <= st.t)) bad.push(`pawns[${p.id}]: called at ${p.called}, after now`);
   if (st.occasions !== undefined) {
     const { ALE_EVENING, RITE, DAY: D } = globalThis.VB['sim/rules'], aleDays = new Set();
     const O = globalThis.VB['sim/occasions'].OCCASIONS, live = new Map();

@@ -80,6 +80,8 @@ VB.COUNTERS = {
   occasionAsked:
     "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
     '(sim/occasions, VB-126), the adults asked to an ale evening and to the rite (VB-522)',
+  callWalk:
+    'The asking queue read for a pawn whose asking found nobody, to find a farm to call at (sim/asking callAround, VB-1119)',
   aleCalled: 'Ale evenings called, each one pass over the live households (sim/occasions callAle, VB-522)',
   riteCalled: "Rites called on the villages' greens, three days a year (sim/occasions callRites, VB-522)",
   feastServed:
