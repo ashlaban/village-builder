@@ -7,7 +7,7 @@ VB['sim/society'] = (() => {
   const { ask } = VB['sim/decisions'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
-  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal, TRAITS, HERD, SOCIAL, DAY } = VB['sim/rules'];
+  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, OFFICE, cal, TRAITS, HERD, SOCIAL, DAY } = VB['sim/rules'];
   const { herdsOf, winterNeed } = VB['sim/herds'];
   const { addValues, act } = VB['sim/traits'];
   const { hexSteps } = VB['sim/hex'];
@@ -145,6 +145,7 @@ VB['sim/society'] = (() => {
       spHolder = sp !== null && isHolder(st, sp);
     const parts = [[holder ? 'Holder' : spHolder ? "Holder's spouse" : 'Villager', holder ? 1.6 : spHolder ? 1.3 : 1]];
     if (p.age >= 55) parts.push(['Age', 0.2]);
+    if (holder && st.villages[settlementIdOf(st, p)].alderman === p.id) parts.push(['Alderman', OFFICE.standing]); // VB-314
     const hh = holder || spHolder ? st.households[p.household] : null,
       f = hh && !hh.dissolved && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
     if (f && f.household === hh.id && !f.booth)

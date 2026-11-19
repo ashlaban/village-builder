@@ -88,16 +88,25 @@ VB['sim/exchange'] = (() => {
   }
   // A gift's records: the receiving holder's event, then the giver's, the tie between the two holders, and the goodwill booked between
   // them. Rights move at once (AGENTS.md, the hard rule): a gift that is fetched is booked at the ask, its grain at each arrival (VB-461).
+  // A village's store gives through its alderman, the village's agent (VB-314): `from` is then the village, and he is the giver booked; with
+  // no alderman (a village with no holder) nothing is booked, as before.
+  const giverOf = (st, from) =>
+    isHousehold(from)
+      ? from.holder
+      : from.alderman !== undefined && st.pawns[from.alderman].alive
+        ? from.alderman
+        : null;
   function booked(st, from, to, n, fromName) {
-    const ht = to.holder !== null ? st.pawns[to.holder] : null;
+    const ht = to.holder !== null ? st.pawns[to.holder] : null,
+      gid = from ? giverOf(st, from) : null;
     if (ht)
       personEvent(st, ht.id, 'gift', `Received ${Math.round(n)} grain from ${fromName}`, {
         n: Math.round(n),
-        other: from && from.holder !== null ? from.holder : null,
+        other: gid,
         ...atHousehold(st, to),
       });
     if (from) {
-      const hf = from.holder !== null ? st.pawns[from.holder] : null;
+      const hf = gid !== null ? st.pawns[gid] : null;
       if (hf)
         personEvent(
           st,
@@ -134,7 +143,7 @@ VB['sim/exchange'] = (() => {
       const parts = {},
         fromName = isHousehold(o.from) ? st.farmsteads[o.from.farmstead].name : o.from.name;
       Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }, parts);
-      receive(st, isHousehold(o.from) ? o.from : null, o.to, o.n, fromName, parts);
+      receive(st, o.from, o.to, o.n, fromName, parts);
     }
   }
   // ---- the goods bases of sim/offers (VB-690): a gift, and an ask ----

@@ -65,6 +65,8 @@ VB.COUNTERS = {
   gatherSettle: 'Hosts named and asked in the settling of the gatherings, once a year (sim/gathering, VB-294)',
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
+  aldermanBallots:
+    "Voices times candidates weighed when a village's meeting elects its alderman: once a vacancy, never daily (sim/meetings, VB-314)",
   rotationWalk: "Farms walked by a village's meeting for its usual rotation, a village a year (sim/fields, VB-350)",
   overviewWalk:
     'Pawn records walked by a village overview, once a summary asked (a view, never a step: sim/overview, VB-162)',

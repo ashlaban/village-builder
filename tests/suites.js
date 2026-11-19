@@ -14,6 +14,7 @@ const FAST = [
   ['node', 'tests/pulls.js'],
   ['node', 'tests/customhold.js'],
   ['node', 'tests/decisions.js'],
+  ['node', 'tests/alderman.js'], // VB-314: the village's alderman, chosen at its meeting
   ['node', 'tests/cacheowners.js'],
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
