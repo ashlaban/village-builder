@@ -18,7 +18,7 @@ VB['sim/opportunities'] = (() => {
   const { eligible } = VB['sim/eligibility'];
   const { staysWhy, heirRanking } = VB['sim/heirs'];
   const { matchBar, matchRules, kinOk } = VB['sim/matching'];
-  const { visitChoices, visitWhy } = VB['sim/visits'];
+  const { visitChoices, visitWhy, sendWhy } = VB['sim/visits'];
   const { wishesOf } = VB['sim/wishes'];
   const { MARRIAGE, MATCH } = VB['sim/rules'],
     HELP_KINDS = MATCH.help.kinds;
@@ -313,16 +313,22 @@ VB['sim/opportunities'] = (() => {
     for (const id of who)
       for (const c of visitChoices(view, id))
         out.push(
-          item('visit', c.village, null, visitWhy(view, id, c.village), {
-            when: 'winter',
-            visit: {
-              who: id,
-              name: id === p.id ? null : fullName(view.pawns[id]),
-              place: view.villages[c.village].name,
-              days: c.days,
-              rations: c.rations,
+          item(
+            'visit',
+            c.village,
+            null,
+            id === p.id ? visitWhy(view, id, c.village) : sendWhy(view, p.id, id, c.village),
+            {
+              when: 'winter',
+              visit: {
+                who: id,
+                name: id === p.id ? null : fullName(view.pawns[id]),
+                place: view.villages[c.village].name,
+                days: c.days,
+                rations: c.rations,
+              },
             },
-          }),
+          ),
         );
   }
 
