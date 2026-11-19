@@ -29,5 +29,20 @@ assert(rows.get('wood').reads.some((r) => r.fn === 'cookWanted') && rows.get('wo
   assert.ok(/--report waiting/.test(help('waiting.js')) && /hungry/.test(help('waiting.js')), 'tools/waiting.js answers --help');
   assert.ok(/--report waiting/.test(help('sim.js')) && /\|waiting/.test(help('sim.js')), 'tools/sim.js lists the waiting report');
 }
+// 4. The strata report (VB-765, tools/strata.js): --help; every job kind has its class; one year on the small island gives the three figures
+// and the sink for a village, and the run is the same with or without it (the report reads the run)
+{
+  const cp = require('child_process'), VB = require('../src/load.js'), Sim = VB.sim, Strata = require('../tools/strata.js');
+  assert.ok(/work line/.test(cp.execFileSync('node', [require('path').join(__dirname, '..', 'tools', 'strata.js'), '--help'], { encoding: 'utf8' })), 'tools/strata.js answers --help');
+  for (const k of Object.keys(VB['sim/kinds'].KINDS)) assert.notStrictEqual(Strata.classOf(k), 'unclassified', `job kind ${k} has no class in tools/strata.js`);
+  const st = Sim.seed(require('./lib/probe.js').island(7), 7, 'founders'), col = Strata.collector(VB, st);
+  col.begin(1);
+  for (let k = 0; k < Sim.YEAR * VB['sim/rules'].TICKS; k++) { Sim.advance(st, 1 / VB['sim/rules'].TICKS); col.sample(0.1); }
+  col.end();
+  const [d] = col.result(1, 1);
+  assert(d.island.hours > 0 && d.island.farm > 0 && d.island.elite === 0 && d.island.household > 0, 'the strata report counts farming and household hours, no elite');
+  assert(Math.abs(d.island.farm + d.island.craft + d.island.elite - 1000) < 1e-6, 'the three figures make 1,000');
+  assert(d.sink.length === st.villages.length && d.sink[0].people > 0 && d.heads.farm > 0, 'the sink and the heads line are reported');
+}
 console.log(`review tools ok: ${fields.size} @state fields, ${Stocks.QUANTITIES.length} quantities; read by nothing: ${[...rows.values()]
   .filter((x) => x.mark === 'read by nothing').map((x) => x.id).join(', ')}`);

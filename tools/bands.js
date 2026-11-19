@@ -26,7 +26,7 @@ function plan({ only = null, years = null } = {}) {
     const name = Object.keys(B.FULL).find((k) => B.FULL[k].scenario === r.scenario && B.FULL[k].map === r.map && B.FULL[k].years === r.years) || r.scenario;
     if (only ? !only.includes(name) : B.WEEKLY.includes(name)) continue; // the weekly runs only when named (VB-633)
     for (const seed of r.seeds) {
-      const run = { name, scenario: r.scenario, map: r.map, years: years || r.years, seed }, key = JSON.stringify(run);
+      const run = { name, scenario: r.scenario, map: r.map, years: years || r.years, seed, ...(r.groups && r.groups.includes('strata') ? { strata: true } : {}) }, key = JSON.stringify(run);
       if (!runs.has(key)) runs.set(key, { ...run, bands: [] });
       runs.get(key).bands.push(band.id);
     }

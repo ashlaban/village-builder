@@ -24,7 +24,7 @@ const FULL = {
   // VB-633: the medium map, for the year 1,000 is reached (populous, measured) and the pace of a founders' island (arithmetic); only the
   // floors of the group `growth` (GROUPS, below) are reported on them. `weekly`: left out of the night's default, since a populous medium run
   // took 13 minutes of CPU (16 November, a shared machine), five times the rest of the bands; tools/nightly.js runs them on Sundays
-  'populous-medium': { scenario: 'populous', map: 'medium', years: 30, seeds: [3, 7, 11, 42], groups: ['growth'], weekly: true },
+  'populous-medium': { scenario: 'populous', map: 'medium', years: 30, seeds: [3, 7, 11, 42], groups: ['growth', 'strata'], weekly: true },
   'founders-medium': { scenario: 'founders', map: 'medium', years: 50, seeds: [3, 7, 11, 42], groups: ['growth'], weekly: true },
 };
 const WEEKLY = Object.keys(FULL).filter((k) => FULL[k].weekly);
@@ -121,6 +121,16 @@ const PROBES = {
     const a = after(s, y).filter((x) => x.waiting), n = sumOf(a, (x) => x.waiting.n);
     return n ? sumOf(a, (x) => x.waiting.counts[b.cause]) / n : NaN;
   },
+  // VB-765: the hours of one figure per 1,000 of the three figures' hours over the years after y (NaN with none); the households of one kind
+  // per 1,000 at the end (tools/strata.js)
+  workLine: (s, y, b) => {
+    const a = after(s, y).filter((x) => x.strata), all = sumOf(a, (x) => x.strata.hours.farm + x.strata.hours.craft + x.strata.hours.elite);
+    return all ? (1000 * sumOf(a, (x) => x.strata.hours[b.which])) / all : NaN;
+  },
+  headsLine: (s, y, b) => {
+    const x = s[s.length - 1].strata, n = x ? x.heads.farm + x.heads.craft + x.heads.elite : 0;
+    return n ? (1000 * x.heads[b.which]) / n : NaN;
+  },
   // the widest difference in yearly growth between two whole decades of the run (design.md, The growth budget, The overshoot); NaN for
   // fewer than two
   growthSwing: (s) => {
@@ -151,6 +161,10 @@ const FLOORS = [
   ...[['growth-phase-free', 'growthFree'], ['growth-phase-scarce', 'growthScarce'], ['land-scarce-year', 'scarceYear'], ['year-1000', 'year1000'],
     ['growth-swing', 'growthSwing'], ['marry-age-f', 'marryAgeF'], ['marry-age-m', 'marryAgeM'], ['never-married', 'neverMarried'],
     ['marriages-per-1000', 'marriageRate']].map(([id, probe]) => ({ id, probe, kind: 'described', afterYear: 0, reportOnly: true, group: 'growth' })),
+  // VB-765: the work line (hours per 1,000 of the three figures' hours: farming, not farming, elite) and the heads line (households per
+  // 1,000: craft, elite), reported on populous medium, never failing; the target 600 / 325 / 75 is printed by tools/strata.js, not asserted
+  ...[['farm', 'workLine'], ['craft', 'workLine'], ['elite', 'workLine']].map(([c, probe]) => ({ id: `work-line-${c}`, probe, which: c, kind: 'described', afterYear: 0, reportOnly: true, group: 'strata' })),
+  ...[['craft', 'headsLine'], ['elite', 'headsLine']].map(([c, probe]) => ({ id: `heads-line-${c}`, probe, which: c, kind: 'described', afterYear: 0, reportOnly: true, group: 'strata' })),
   ...W.CAUSES.map((cause) => ({ id: `waiting-${cause}`, probe: 'waitingShare', kind: 'described', afterYear: 0, cause, reportOnly: true, group: 'growth' })),
 ];
 // Growth, judged over a scenario's seeds (Kim, 12 November; AGENTS.md, Deciding without Kim, 2): the median seed grows at least `median`
@@ -169,11 +183,11 @@ function growthTargets(ratios, years) {
 }
 const BANDS = [];
 // The floors a run with `groups` reports: those of the group, and growth and the population ratio beside them (VB-633).
-const GROUPS = { growth: new Set(['growth', 'population']) };
+const GROUPS = { growth: new Set(['growth', 'population']), strata: new Set() };
 for (const f of FLOORS) for (const [name, { groups, weekly, ...run }] of Object.entries(FULL)) {
   if (groups && !groups.some((g) => f.group === g || GROUPS[g].has(f.id))) continue;
   if (f.afterYear > 0 && f.afterYear >= run.years) continue; // a span the run does not reach
-  const range = { ...(f.kind === 'described' ? {} : { lo: f.lo, hi: f.hi }), afterYear: f.afterYear,
+  const range = { ...(f.which ? { which: f.which } : {}), ...(f.kind === 'described' ? {} : { lo: f.lo, hi: f.hi }), afterYear: f.afterYear,
     ...(f.toYear !== undefined ? { toYear: f.toYear } : {}), ...(f.cause ? { cause: f.cause } : {}) };
   BANDS.push({ id: `${f.id}/${name}`, probe: f.probe, kind: f.kind, report: { ...range, ...run },
     ...(name === 'populous' && !f.reportOnly ? { assert: { ...range, ...REDUCED } } : {}) });
@@ -181,24 +195,28 @@ for (const f of FLOORS) for (const [name, { groups, weekly, ...run }] of Object.
 
 // One run, sampled at every year end: {scenario, map, seed, years} -> {samples, secs, cpuSecs}. The run advances a day at a time, so a
 // household's days present in a year are counted, not guessed.
-function runScenario({ scenario, map, seed, years }) {
+function runScenario({ scenario, map, seed, years, strata = false }) {
   const cpu0 = process.cpuUsage(), t0 = Date.now(), it = G.generate(seed, { cols: MAPS[map][0], rows: MAPS[map][1] }); let r; while (!(r = it.next()).done);
-  const st = Sim.seed(r.value, seed, scenario), samples = [sample(st, 0, null)];
+  const st = Sim.seed(r.value, seed, scenario), samples = [sample(st, 0, null)], col = strata ? require('../../tools/strata.js').collector(VB, st) : null;
   for (let y = 1; y <= years; y++) {
     const from = st.record.length, hungry0 = new Map(), days = new Map();
     let coldDays = 0;
     for (const id of st.liveHouseholds) hungry0.set(id, st.households[id].hungryDays);
     let waiting = null; const t0 = st.t;
+    if (col) col.begin(y);
     for (let d = 0; d < YEAR_DAYS; d++) {
       if (st.t === t0 + CENSUS) waiting = W.census(VB, st); // VB-633: at the start of the moving round's day
-      Sim.advance(st, DAY);
+      if (col) { // VB-765: the work line is sampled twice a day, at 10:00 and 15:00 of the working hours (the same run as one advance of a day)
+        Sim.advance(st, 10); col.sample(1); Sim.advance(st, 5); col.sample(1); Sim.advance(st, DAY - 15);
+      } else Sim.advance(st, DAY);
       for (const id of st.liveHouseholds) {
         days.set(id, (days.get(id) || 0) + 1); if (!hungry0.has(id)) hungry0.set(id, 0);
         const hh = st.households[id], log = hh.coldLog;
         if (hh.members.length && log.length && log[log.length - 1] > 0) coldDays++; // the day's fire lacked wood, with someone in the house (VB-972)
       }
     }
-    samples.push(sample(st, y, { from, hungry0, days, coldDays, waiting, t0 }));
+    if (col) col.end();
+    samples.push(sample(st, y, { from, hungry0, days, coldDays, waiting, t0, col }));
   }
   const cpu = process.cpuUsage(cpu0);
   return { samples, secs: (Date.now() - t0) / 1000, cpuSecs: (cpu.user + cpu.system) / 1e6 };
@@ -235,6 +253,11 @@ function sample(st, year, y) {
   // VB-633: the census of who waits to marry (counts by cause, those counted, the servants among them) and the year's marriage facts
   out.waiting = y.waiting ? { counts: y.waiting.counts, n: y.waiting.n, servants: y.waiting.servants } : null;
   out.facts = W.yearFacts(VB, st, y.t0, st.t, y.from);
+  if (y.col) { // VB-765: this year's hours of the three figures and the households by their relation to production
+    const h = { farm: 0, craft: 0, elite: 0 };
+    for (const v of Object.values(y.col.years.get(year).hours)) for (const c in h) h[c] += v[c] || 0;
+    out.strata = { hours: h, heads: y.col.heads(year) };
+  }
   out.invariants = checkState(st).slice(0, 5);
   if (out.invariants.length) out.invariants.unshift(`year ${year}`);
   return out;
