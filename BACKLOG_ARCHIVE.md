@@ -586,3 +586,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-314](backlog/VB-314.md) | The alderman: chosen at the meeting, presides, the village's agent | debt | 2 | S | The village's first office: chosen by a new practice, casts the deciding voice, books the village store's help to himself. |
 | [VB-990](backlog/VB-990.md) | Measure VB-785's night cost on small-y40 loaded a year | - | 3 | S | Measure the night cost on a late save |
 | [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
+| [VB-766](backlog/VB-766.md) | Crowding: a contribution to death.hazard by the people within 2 steps of a house | town | 3 | S | Living close costs lives by a named rule (CROWD: free to 36 people within 2 steps, +0.035 each beyond, at most 2.5), wherever it happens; no rule reads "town". |
