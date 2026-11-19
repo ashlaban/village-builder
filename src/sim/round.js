@@ -56,6 +56,7 @@ VB['sim/round'] = (() => {
         for (const p of mine) {
           if (!free(p)) continue;
           const can = (o, opt) =>
+            ++VB.count.kinPairs > 0 &&
             free(o) &&
             (p.sex === 'm' ? homeFor(p, o, cu) : homeFor(o, p, cu)) !== null &&
             kinOk(st, p.id, o.id, cu, opt);

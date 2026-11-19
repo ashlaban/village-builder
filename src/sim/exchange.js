@@ -111,6 +111,9 @@ VB['sim/exchange'] = (() => {
                 ...atHousehold(st, to),
               },
         ); // with a receiving holder, recorded above
+      // one pawn holding both households (a guardian's two, or a holder who moved before the load arrived) gives itself nothing: the grain
+      // lands, but no tie or goodwill is booked (VB-1362)
+      if (hf && ht && hf.id === ht.id) return;
       if (hf && ht && hf.ties && ht.ties)
         for (const [a, b] of [
           [hf, ht],
@@ -400,7 +403,8 @@ VB['sim/exchange'] = (() => {
     plan.want = null;
     const name = st.farmsteads[from.farmstead].name,
       home = st.farmsteads[hh.farmstead].name;
-    if (w.by === 'deal' && from.holder !== null && hh.holder !== null) book(st, from.holder, hh.holder, worth);
+    if (w.by === 'deal' && from.holder !== null && hh.holder !== null && from.holder !== hh.holder)
+      book(st, from.holder, hh.holder, worth);
     const how = w.by === 'kin' ? 'as a start in life' : 'in a deal';
     if (hh.holder !== null)
       personEvent(st, hh.holder, w.by === 'kin' ? 'share' : 'gift', `Was given a ${kind} from ${name} ${how}`, {

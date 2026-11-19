@@ -47,4 +47,13 @@ const set = (st, hh, x) => { hh.grain = { barley: seedReserve(st, hh) + x }; };
   a.grain = { barley: seedReserve(st, a) + 10 };
   assert(/threshold/.test(goodYearGift(st, a)), 'under the threshold');
 }
+{ // VB-1362: a load that arrives when one pawn holds both households (a guardian's two, a holder who moved) books no goodwill or tie
+  const st = fresh(), [a, b] = st.households, p = st.pawns[a.holder];
+  b.holder = a.holder; // lint-allow: owner a constructed state: one pawn holds both
+  const gw = p.goodwill ? p.goodwill.size : 0, gb = Sim.grainOf(b);
+  VB['sim/exchange'].receive(st, a, b, 10, 'test', { barley: 10 });
+  assert(Math.abs(Sim.grainOf(b) - gb - 10) < 1e-9, 'the grain lands');
+  assert.strictEqual(p.goodwill ? p.goodwill.size : 0, gw, 'no goodwill with itself');
+  b.holder = null; // lint-allow: owner restored
+}
 console.log('gift ok');
