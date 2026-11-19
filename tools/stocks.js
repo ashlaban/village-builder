@@ -68,7 +68,7 @@ const QUANTITIES = [
     covers: ['household.haySpoilt', 'household.fodderDay'],
     none: 'stalled animals go unfed: they grow lean and, after HERD.starveDays, the weakest die (sim/byre); the autumn count culls to the hay (sim/byre)' },
   { id: 'manure', of: 'household', name: 'the manure heap', unit: 'loads', fields: ['household.manure'], kinds: ['manure'],
-    none: 'fields are not manured: their soil is not raised (sim/fields)' },
+    none: 'fields are not manured: neither their soil nor their tilth is raised (sim/fields)' },
   { id: 'hides', of: 'household', name: 'hides of the hunt', unit: 'hides', fields: ['household.hides'], good: 'hide', holder: 'household',
     kinds: ['hunt'],
     none: 'no leather for shoes and harness: a household lacking hides values one at DEER.leather a head a year, and takes one at the fair or as a gift (sim/deer, VB-424)' },

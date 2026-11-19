@@ -386,6 +386,12 @@ VB['sim/saves'] = (() => {
     // VB-204: saves before the yearly totals keep their routine entries; new movements of those kinds go to totals.
     for (const h of [...st.households, ...st.villages]) if (!h.totals) h.totals = [];
     for (const hh of st.households) if (hh.dissolved && hh.ledger.length) closeLedger(st, hh); // older saves kept them (VB-204)
+    for (const f of st.farmsteads)
+      for (const fd of f.fields)
+        if (fd.tilth === undefined) {
+          fd.tilth = 0;
+          fd.tilthAt = st.t;
+        } // lint-allow: owner VB-717: an older save's fields start at no tilth
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     for (const hh of st.households)
