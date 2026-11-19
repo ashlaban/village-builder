@@ -57,7 +57,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   the estimate of when the rest is done (the tool's, from the backlog's pace and growth). Kim's decisions on its axis are a list in the tool.
   Needs the full history (`git fetch --unshallow`). Its model is checked on a constructed backlog by `tests/roadmap-tool.js`.
 - Work counters: `node tests/counters.js` (`--update` records an intended change; list the changed counters in the PR);
-  `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`; `node tests/perf.js --engine` times three engine workarounds against their plain forms (VB-246; extended tier).
+  `node tools/sim.js --years 1 --report counts [--json]` reports work per game day and living pawn-day; `node tests/perf.js --counter-cost`; `node tests/perf.js --engine` times two engine workarounds against their plain forms (VB-246; extended tier).
 - Cost growth: `node tests/scaling.js` (verify; population exponent at most 1.15) and `node tests/history.js` (extended, from `small-y5` and
   `small-y40`; work per living pawn-day at year 40 over year 5, target 1.25). Both report each counter's ratio, target and residual
   as targets and never fail.
@@ -70,7 +70,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   `node tools/stocks.js [--json]` (each stored quantity's adders, takers and readers, and what happens at none; marks those read by nothing).
   `node tools/sim.js --report waiting [--json]` (VB-633, `tools/waiting.js`): who waits to marry and why, at the moving round's day, by 20
   years (too hungry, nobody free, kin, no home, the score, the means, free), with the age at first marriage by sex, the share never married
-  at 45, marriages a year per 1,000, those put off for the means and the share of adults waiting for land.
+  at 45, marriages a year per 1,000, those put off for the means and the share of adults waiting for land. VB-660 adds the fate of those free: at the round's end, of those still unmarried, put off, refused, lapsed, taken, open or unmatched.
   `node tools/sim.js --report outlook [--village N] [--json]` (VB-666, `tools/outlook.js`): each household of a village, its supply outlook
   (food, fuel, hay: the season it expects to go short in, or safe) beside the season it did first go short in over the frame, which runs
   on past `--years`; a description with no target.

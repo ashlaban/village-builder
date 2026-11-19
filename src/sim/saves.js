@@ -248,20 +248,15 @@ VB['sim/saves'] = (() => {
         for (const x of d.$arr) a.push(dec(x));
         return a;
       }
-      // The object gets all its keys at once, in order, and then its values (VB-205; timed by tests/perf.js --engine): given one
-      // keyed store at a time, an object of more than a few dozen keys (a pawn, the state) becomes a slow dictionary, and every read
-      // of it a hash lookup for the rest of the run.
-      // Most have no key that starts with $ and are copied whole ({...d}); a shared one ($id) or one with an escaped key is built from its
-      // list of keys.
       const keys = Object.keys(d);
       if (!keys.some((k) => k[0] === '$')) {
-        const o = { ...d };
+        const o = {};
         for (const k of keys) o[k] = dec(d[k]);
         return o;
       }
       const own = keys.filter((k) => k !== '$id'),
         name = (k) => (k[0] === '$' ? k.slice(1) : k);
-      const o = keep(Object.fromEntries(own.map((k) => [name(k), undefined])));
+      const o = keep({});
       for (const k of own) o[name(k)] = dec(d[k]);
       return o;
     };
@@ -391,6 +386,12 @@ VB['sim/saves'] = (() => {
     // VB-204: saves before the yearly totals keep their routine entries; new movements of those kinds go to totals.
     for (const h of [...st.households, ...st.villages]) if (!h.totals) h.totals = [];
     for (const hh of st.households) if (hh.dissolved && hh.ledger.length) closeLedger(st, hh); // older saves kept them (VB-204)
+    for (const f of st.farmsteads)
+      for (const fd of f.fields)
+        if (fd.tilth === undefined) {
+          fd.tilth = 0;
+          fd.tilthAt = st.t;
+        } // lint-allow: owner VB-717: an older save's fields start at no tilth
     // VB-159: older format-1 saves predate the cumulative barn-hay loss.
     for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
     for (const hh of st.households)

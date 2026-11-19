@@ -198,6 +198,16 @@ function farmIcon(f) {
     else g.drawImage(b, 8, 100 - bh, bw, bh);
   });
 }
+// A field at its stage, or a meadow at its own, from the map's art (page/fieldart), the hex drawn whole in the icon's square.
+function groundIcon(key, canvas) {
+  return icon(`${key}@${w.R}`, (g) => {
+    const c = canvas(),
+      k = 112 / Math.max(c.width, c.height);
+    g.drawImage(c, (120 - c.width * k) / 2, (120 - c.height * k) / 2, c.width * k, c.height * k);
+  });
+}
+const fieldIcon = (look) => groundIcon(`field-${look}`, () => fieldCanvas(look, w.R));
+const meadowIcon = (stage) => groundIcon(`meadow-${stage}`, () => meadowCanvas(stage, w.R));
 // A village by a cluster of its buildings: barn and storehouse behind a cottage, and the well sweep where it has a well.
 function villageIcon(v) {
   return icon(`village${v.well ? 'w' : ''}`, (g) => {

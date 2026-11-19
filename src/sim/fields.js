@@ -1,5 +1,5 @@
 // @sys sim/fields: new fields (each a project plan of sim/plans), crop lifecycle and daily growth, weeding, frost and abandonment; rotations (a
-//   field's courses, the holder's and the village's usual one, VB-350); soil and manure
+//   field's courses, the holder's and the village's usual one, VB-350); soil and manure; tilth
 VB['sim/fields'] = (() => {
   const { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
@@ -9,6 +9,7 @@ VB['sim/fields'] = (() => {
     ROTATIONS,
     FIELDS,
     SOIL,
+    TILTH,
     HERD,
     DEER,
     farmable,
@@ -223,6 +224,8 @@ VB['sim/fields'] = (() => {
         held: 0,
         fert: fertility(w, tile),
         soil: w.dev[tile] ? SOIL.start : SOIL.fresh,
+        tilth: 0,
+        tilthAt: st.t,
         weedOpen: false,
         weedPosted: null,
         weedMiss: 0,
@@ -549,6 +552,14 @@ VB['sim/fields'] = (() => {
     const n = Math.max(0, Math.min(loads, hh.manure));
     hh.manure -= n;
     fd.soil = Math.max(fd.soil, Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad));
+    fd.tilth = tilthOf(st, fd) + n * TILTH.perLoad; // the ground's slow soil, whatever the soil (VB-717)
+    fd.tilthAt = st.t;
+  }
+  // @state farmstead.fields[].tilth: the field's tilth when last set (0 or more); tilthAt: the tick it was set; it fades as e^-(t/TILTH.years),
+  //   read in closed form by tilthOf, and written only at manuring (VB-717). A field starts at 0 in every scenario.
+  function tilthOf(st, fd) {
+    VB.count.tilthRead++;
+    return fd.tilth * Math.exp(-(st.t - fd.tilthAt) / (TILTH.years * YEAR));
   }
   // @state farmstead.fields[]: crop (a key of CROPS, sim/rules: a crop, or the course fallow, VB-348), stage, sown/reaped days, held sheaves and
   // weeding progress; changed only here after seeding.
@@ -594,6 +605,7 @@ VB['sim/fields'] = (() => {
       CROPS[fd.crop].yield *
         fd.fert *
         fd.soil *
+        (1 + tilthOf(st, fd)) *
         st.weather *
         (0.9 + rnd(st.rng.fields) * 0.2) *
         (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)) *
@@ -801,6 +813,7 @@ VB['sim/fields'] = (() => {
     sown,
     trample,
     reaped,
+    tilthOf,
     carried,
     laidDown,
     binned,

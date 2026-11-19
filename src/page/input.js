@@ -254,6 +254,7 @@ toggle($('regionBtn'), (on) => {
 toggle($('landBtn'), (on) => {
   landOn = on;
   L.land.visible = on;
+  $('landKey').hidden = !on;
   if (on) drawLand();
 });
 toggle($('groundBtn'), (on) => setGround(on));

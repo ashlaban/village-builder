@@ -1,5 +1,4 @@
-// Do the three engine workarounds of src/ still pay (VB-246)? Each is timed as it is against its plain form, which lives here, not in src/:
-//   decode      (sim/saves, VB-205): an object is given all its keys, then its values, against a decode that sets each key in turn;
+// Do the two engine workarounds of src/ still pay (VB-246)? Each is timed as it is against its plain form, which lives here, not in src/:
 //   sift        (sim/relations, VB-205): a record's memories are copied, against deleting the faded keys;
 //   driftPerson (culture, VB-195): a function of its own, against its body written in the loop of dailyStep.
 // `node tests/perf.js --engine` runs it. Each case is three runs of each form, one process each (a form is the source of a module, so
@@ -8,10 +7,6 @@ const fs = require('fs'), os = require('os'), path = require('path'), { spawnSyn
 const FILE = __filename;
 // [file, [[what to find, what plain has in its place]]]; a miss throws, so a changed workaround is noticed here.
 const PLAIN = {
-  decode: ['sim/saves.js', [
-    ['const o = { ...d };\n        for (const k of keys) o[k] = dec(d[k]);', 'const o = {};\n        for (const k of keys) o[k] = dec(d[k]);'],
-    ['keep(Object.fromEntries(own.map((k) => [name(k), undefined])))', 'keep({})'],
-  ]],
   sift: ['sim/relations.js', [[
     /function sift\(r, keep\) \{[\s\S]*?\n {2}\}\n/,
     'function sift(r, keep) {\n    let n = 0;\n    for (const k of Object.keys(r.mem)) if (keep(k)) n++; else delete r.mem[k];\n    return n > 0;\n  }\n',
@@ -70,7 +65,6 @@ function save(dir) {
 const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
 const spread = (a) => Math.max(...a) - Math.min(...a);
 const CASES = [
-  ['decode', 'a year after Sim.load, decode keys first vs one key at a time', 'decode'],
   ['sift', 'a year, fadeRelations copying memories vs deleting faded keys', 'fadeRelations'],
   ['drift', 'Culture.dailyStep over 48 days, driftPerson apart vs in the loop', 'driftPerson'],
 ];

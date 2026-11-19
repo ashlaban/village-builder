@@ -51,11 +51,12 @@ function closeBarMenu() {
 // ---- rows: an icon, a name, a one-line note or, in red, why it is refused; a chevron when it leads to a list or a form ----
 const cmdAttrs = (o) =>
   `data-play="do" data-cmd="${esc(JSON.stringify({ verb: o.verb, target: o.target, args: o.args || undefined }))}"`;
-function actRow(attrs, icon, name, note, why = null, more = false) {
+function actRow(attrs, icon, name, note, why = null, more = false, count = 0, title = '') {
   const how = why ? `data-bar="why" data-why="${esc(why)}" aria-disabled="true"` : attrs;
   return (
-    `<button type="button" class="act-row" ${how} data-k="${esc(icon + ':' + name)}">${actIcon(icon)}<span class="nm">${esc(name)}` +
-    `<small>${esc(why || note)}</small></span>${more ? actIcon('next') : ''}</button>`
+    `<button type="button" class="act-row" ${how} data-k="${esc(icon + ':' + name)}"${title ? ` title="${esc(title)}"` : ''}>` +
+    `${actIcon(icon)}<span class="nm">${esc(name)}<small>${esc(why || note)}</small></span>` +
+    `${count > 1 ? `<b class="act-n" aria-label="${count} places">${count}</b>` : ''}${more ? actIcon('next') : ''}</button>`
   );
 }
 // The work it may take, one row a kind: queued at once where it is open at one place, or the tool, which marks the places, where at several.
@@ -70,8 +71,8 @@ function workRows(list) {
     const open = items.filter((o) => o.why === null),
       o = open[0],
       whom = (x) => `for ${holderName(x.holder)}, ${BASIS[x.basis]}`;
-    const note =
-      open.length > 1 ? `${open.length} places ${whom(o)}: ${tapWord} one on the map` : o ? `${whom(o)}` : null;
+    const note = o ? `${whom(o)}` : null,
+      title = open.length > 1 ? `${open.length} places ${whom(o)}: ${tapWord} one on the map` : '';
     h += actRow(
       `data-bar="work" data-kind="${k}" data-holder="${o ? o.holder.type : ''}"`,
       KIND_ICON[k] || 'hoe',
@@ -79,6 +80,8 @@ function workRows(list) {
       note,
       o ? null : items[0].why,
       open.length > 1,
+      open.length,
+      title,
     );
   }
   return h;

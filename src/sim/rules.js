@@ -690,6 +690,11 @@ VB['sim/rules'] = (() => {
     window: [0, 5],
     rot: 0.5,
   };
+  // ---- tilth (VB-717; docs/review-yields.md, 4): a field's slow soil, built by dung and fading over decades. Estimates, with no medieval
+  // Nordic source. `perLoad`: what one load of manure adds to a field's tilth (on top of its soil); `years`: the time constant of its
+  // fading, in game years (e^-1 left after that long without dung); `max`: a bound for the invariant, which play should never reach.
+  // A harvest is multiplied by 1 + tilth ----
+  const TILTH = { perLoad: 0.0011, years: 70, max: 0.4 };
   // Ale (VB-305; design.md, Goods, Ale and standing; Kim, 10 Nov): a side craft in autumn and winter. `grain` rations of grain from the
   // household's surplus (above its floor, which holds the seed reserve) and `hours` of work in the house give a barrel, which keeps one season
   // (the good's perish, sim/stores) and serves `guests` guests; a household brews while it holds fewer than `stock` barrels. A barrel poured at
@@ -1205,6 +1210,7 @@ VB['sim/rules'] = (() => {
     GRAZE,
     FOODS,
     SOIL,
+    TILTH,
     SOCIAL,
     MOOD,
     IDLE,
