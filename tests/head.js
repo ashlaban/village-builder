@@ -173,7 +173,7 @@ let made;
 const hay = [];
 // the seed is one whose meadows give three winters: the herds drawn at seeding move with every custom added (VB-711, VB-826)
 for (const raise of [false, true]) {
-  const { st, hh, f } = scene({ herds: true, seed: 7 });
+  const { st, hh, f } = scene({ herds: true, seed: 1 });
   for (const id of hh.herds) { // a cow and five ewes: three winters' need is within what the four meadows give, raked
     const hd = st.herds[id];
     if (hd.species === 'cattle') hd.head.length = 1; else { hd.ewes = 5; hd.rams = 0; hd.lambs = 0; }

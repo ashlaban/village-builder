@@ -63,7 +63,7 @@ VB['sim/exchange'] = (() => {
       allowance = Rules.value(st, 'allowance', ctx);
     } else floorOk = o.n <= Stores.grainOf(o.from) + TOLERANCE;
     const player = o.source === 'player',
-      within = o.n <= allowance + TOLERANCE;
+      within = o.keep === true || o.n <= allowance + TOLERANCE; // the keep is a due of custom: held to the floor, not the allowance
     const why =
       !floorOk && (!player || !isHousehold(o.from))
         ? `it would take ${nameOf(st, o.from)} below its floor`

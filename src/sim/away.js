@@ -465,13 +465,14 @@ VB['sim/away'] = (() => {
       name = store ? o.from.name + "'s store" : st.farmsteads[o.from.farmstead].name,
       parts = {},
       to = st.farmsteads[o.to.farmstead];
-    Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: to.name }, parts);
+    Stores.take(st, o.from, 'grain', o.n, { kind: o.keep ? 'keep' : 'gift', to: to.name }, parts);
     booked(st, o.from, o.to, o.n, name);
     const stop = {
       at: store ? o.from.center : st.farmsteads[o.from.farmstead].house,
       from: store ? null : o.from.id,
       village: store ? o.from.id : null,
       name,
+      keep: o.keep === true,
       left: o.n,
       parts,
     };
@@ -578,12 +579,13 @@ VB['sim/away'] = (() => {
       g.held = Math.min(TRAVEL.load, s.left);
       g.parts = takeUp(st, j, g.held);
       g.from = s.name;
+      g.keep = s.keep === true;
       if (!(s.left > 1e-9)) g.stops.shift();
       j.to = house;
       return startLeg(st, a, j);
     }
     const at = to.dissolved ? st.villages[st.farmsteads[to.farmstead].village] : to;
-    Stores.put(st, at, 'grain', g.held, { kind: 'gift', from: g.from }, g.parts);
+    Stores.put(st, at, 'grain', g.held, { kind: g.keep ? 'keep' : 'gift', from: g.from }, g.parts);
     g.held = 0;
     g.parts = {};
     if (g.stops.length && !to.dissolved && st.pawns[a.id].household === to.id) {

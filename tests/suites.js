@@ -192,6 +192,7 @@ const INTEGRATION = [
   ['node', 'tests/byre.js'],
   ['node', 'tests/stocking.js'],
   ['node', 'tests/matchby.js'],
+  ['node', 'tests/keep.js'],
   ['node', 'tests/herds.js'],
   ['node', 'tests/herding.js'],
   ['node', 'tests/drying.js'],

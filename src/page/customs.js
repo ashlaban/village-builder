@@ -4,7 +4,7 @@
 const CHARTER = [
   ['Land', ['claims', 'dispute', 'newLand']],
   ['Inheritance', ['handover', 'heirSex', 'birthOrder', 'heirCount', 'daughterShare', 'widow', 'ownHeir']],
-  ['Household', ['residence', 'kinLimit', 'affinity', 'feedOrder', 'matchBy']],
+  ['Household', ['residence', 'kinLimit', 'affinity', 'feedOrder', 'matchBy', 'keep']],
   ['Meeting', ['voice', 'commons']],
   ['Husbandry', ['stocking']],
 ];
@@ -27,6 +27,11 @@ const SAID = {
       kin: 'kin of the last holder come first',
       meeting: 'the meeting decides',
     },
+    '.',
+  ],
+  keep: [
+    'The alderman is kept with ',
+    { days: 'days of the villagers’ work', share: 'a share of their surplus', nothing: 'nothing' },
     '.',
   ],
   newLand: [
