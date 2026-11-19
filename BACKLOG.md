@@ -72,7 +72,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-571](backlog/VB-571.md) | Foresight's hunger, by a measure one household cannot swing | year | 3 | M | VB-485's hungry household-days over four seeds move by 20 to 50% between versions that differ only in a head's targets; measure on more seeds and by household-years before tuning foresight |
 | [VB-637](backlog/VB-637.md) | A servant's portion: a year's wage, owed as a share is owed | - | 3 | M | SERVICE.wage 12 rations a year served, an obligation of the master's household; it lies in the master's store as the servant's stake, is carried away when the servant leaves, and counts toward provisions for new land and the means to marry. Waits for VB-310 (Obligations) and VB-634 (servedSince). |
 | [VB-663](backlog/VB-663.md) | Investigations, collected: small questions the closed tasks left (up to ten) | - | 3 | M | A list of at most ten small investigations left by tasks that are done; each an hour with a throwaway script, its answer a paragraph here and a task where it finds a defect; an item may be addressed to Kim. |
-| [VB-671](backlog/VB-671.md) | The choose screen and the family records on the shared pieces | - | 3 | S | Desktop: Whom to play and the family records show a person, a household, an heir, a tab and 'show on the map' as the cards do; a household's food by the supply component |
 | [VB-679](backlog/VB-679.md) | The byre's acts are someone's: the autumn cull chosen by the head, the shearing a job | acts | 3 | M | Principle 16: the autumn count decides what goes to slaughter by rule, and wool appears on the shearing day with no job; the stalled herd eating its hay is a natural process and stays. |
 | [VB-683](backlog/VB-683.md) | One keeping rule a good: five spoilage models into the goods registry | - | 3 | M | Food is lost by five rules: grain in tiers by years of need held, the village's grain a flat share, fresh batches by day with a cap that drops the oldest, larder lots by date, and meals, flour, rack fish and a pawn's stake never; the goods registry already declares a keeping for each good. |
 | [VB-684](backlog/VB-684.md) | One unit of load: what an adult carries, for wood, stone, peat, clay, hay and manure | - | 3 | M | 'Load' means three quantities: a wood trip brings 3, a stone trip 1 (25 of the tile's stones), a peat trip 3, hay a third of a ration a unit, manure a fraction with j.hours doubling as loads; fish, gathering and the hunt are rolled at home with no load at all. |
@@ -123,6 +122,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1312](backlog/VB-1312.md) | Measure the milk bite at 0.05 on populous seeds and founders | - | 3 | S | VB-709 numbers at the kept bite |
 | [VB-1319](backlog/VB-1319.md) | Measure VB-245 on the late saves, with commits that exist | - | 3 | S | Measure VB-245 with commits that exist |
 | [VB-1344](backlog/VB-1344.md) | VB-717 numbers owed: tilth drift | - | 3 | S | Numbers VB-717 left, for VB-662 |
+| [VB-1354](backlog/VB-1354.md) | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
 
 ## Waiting for Kim
 
