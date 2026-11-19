@@ -212,7 +212,7 @@ const INTEGRATION = [
 const EXTENDED = [
   // The slowest first, so that none starts last and runs on alone. First the long runs of whole islands, which load the late fixtures.
   ['node', 'tests/start.js', '--people'],
-  ['node', 'tests/perf.js', '--engine'], // VB-246: the three engine workarounds against their plain forms (about 5 minutes: 18 runs of a year or less)
+  ['node', 'tests/perf.js', '--engine'], // VB-246: the two engine workarounds against their plain forms (about 3 minutes: 12 runs of a year or less)
   ['node', 'tests/births.js'],
   ['node', 'tests/invariants.js'],
   ['node', 'tests/fixtures.js'],

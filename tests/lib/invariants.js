@@ -1476,8 +1476,8 @@ function checkTies(st, p, bad) {
   if (p.ties.size > Math.max(TIES.cap, kin.length)) bad.push(`pawns[${p.id}]: ${p.ties.size} ties, over the cap of ${TIES.cap}`);
   for (const [j, w] of p.ties) {
     const q = st.pawns[j];
-    // a tie to one who died is dropped at the death, or, if that pawn had dropped its own tie, when this pawn next renormalises
-    if (j === p.id || !q || (!q.alive && !(q.died > p.tieT))) bad.push(`pawns[${p.id}].ties<${j}>: not a living other pawn, nor one dead since ${p.tieT}`);
+    // a tie to one who died is dropped at the death, or, if that pawn had dropped its own tie, when this pawn next renormalises; a death in the very hour of its renormalising (died == tieT) counts as since
+    if (j === p.id || !q || (!q.alive && !(q.died >= p.tieT))) bad.push(`pawns[${p.id}].ties<${j}>: not a living other pawn, nor one dead since ${p.tieT}`);
     if (!(Number.isFinite(w) && w > 0)) bad.push(`pawns[${p.id}].ties<${j}>: ${w}`);
   }
 }
