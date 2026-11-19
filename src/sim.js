@@ -58,7 +58,7 @@ const Sim = (() => {
   const { actorView, forPawn, successors, succeed, roundChoice } = VB['sim/opportunities'];
   const { visitState, orderVisit } = VB['sim/visits']; // a pawn's visit, planned or under way, and the played pawn's order for one (VB-292)
   const { villageSummary, villageOutlookOf, OVERVIEW } = VB['sim/overview']; // a village at a glance, for its card and tools/sim.js (VB-162)
-  const { meansOf, marryStanding } = VB['sim/matching']; // the means to marry a home holds, and what stands between a pawn and a marriage (VB-631)
+  const { meansOf, marryBar } = VB['sim/matching']; // the means to marry a home holds, and what stands between a pawn and a marriage (VB-631)
   const { supplyOutlook } = VB['sim/outlook']; // how long a household's supplies last, by its head's last review (VB-666)
   // The skip's stop (VB-1101): sim/notable asks, at the round's eve, for a choice the round will read and for the year's food in brief.
   const skipAids = {
@@ -193,7 +193,7 @@ const Sim = (() => {
     relationsOf,
     reasonsOf,
     meansOf,
-    marryStanding,
+    marryBar,
     HERD,
     SOIL,
     herdsOf,

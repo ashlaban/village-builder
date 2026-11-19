@@ -7,8 +7,8 @@
 //   (sim/marriage's rule, VB-824), by an offer due at the round.
 VB['sim/asking'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK, cal } = VB['sim/rules'];
-  const { age, spouseOf, settlementIdOf, practice, spokesmanOf, holdingOf, fullName } = VB['sim/records'];
+  const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK, TRAVEL, cal } = VB['sim/rules'];
+  const { age, spouseOf, settlementIdOf, practice, spokesmanOf, holdingOf, fullName, tieOf } = VB['sim/records'];
   const { kinOk, sideScore, matchRules, courts, askerOf, askedOf, askedBy } = VB['sim/matching'];
   const { hoursBetween } = VB['sim/routes'];
   const { claimableFarm, askLand } = VB['sim/farmclaims'];
@@ -233,6 +233,27 @@ VB['sim/asking'] = (() => {
     }
     return tried ? 'nobody' : 'stay';
   }
+  // The rung of an unplayed unmarried pawn whose asking found nobody to ask (VB-1119): it calls, by the verb `call`, at the nearest farm of
+  // another village within a day's walk that holds one it does not know yet and might marry; the played pawn's call is its own to order.
+  // One look over the asking queue for a pawn whose asking found nobody (at most once a season, a pawn's asking day), the verb allows one
+  // call a week; counted in callWalk.
+  function callAround(st, id) {
+    const p = st.pawns[id];
+    if ((st.player && st.player.pawn === id) || spouseOf(st, id) !== null || p.household === null) return;
+    const v = settlementIdOf(st, p),
+      pool = [];
+    for (const e of st.asking) {
+      VB.count.callWalk++;
+      const q = st.pawns[e.pawn],
+        qv = q.sex === p.sex || !q.alive || q.household === null ? null : settlementIdOf(st, q);
+      if (qv === null || qv === v || tieOf(st, id, q.id) > 0) continue;
+      const h = hoursBetween(st, v, qv);
+      if (h <= TRAVEL.dayWalk) pool.push({ h, farm: st.households[q.household].farmstead, q: q.id });
+    }
+    pool.sort((a, b) => a.h - b.h || a.q - b.q);
+    for (const { farm } of pool.slice(0, ASK.pool))
+      if (farm !== null && issue(st, { actor: id, verb: 'call', target: farm, source: 'asking' }) === true) return;
+  }
   // Daily at ASK.hour: the askings due, read from the head of the queue (Rules for cost, 4). asksMade counts the offers made, asksNobody
   // the askings whose rungs found nobody to ask.
   function askingDay(st) {
@@ -244,6 +265,7 @@ VB['sim/asking'] = (() => {
         VB.count.asksMade++;
       } else if (r === 'nobody') {
         VB.count.asksNobody++;
+        callAround(st, id);
       }
     }
   }

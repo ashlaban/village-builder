@@ -1,9 +1,10 @@
 // @sys sim/occasions: occasions (VB-126): a gathering at a place from a start to an end in game hours, of those asked: the village meeting
-//   on the green (at its village's turn), the wedding feast and the funeral ale at a farm, the ale evening at a holder's farm and the
-//   season's rite on the green (VB-522); who is asked, who sets out, and the due-queue that sends and ends them; the villages' turns of the
+//   on the green (at its village's turn), the wedding feast and the funeral ale at a farm, the ale evening at a holder's farm, a call at a farm
+//   (VB-1119: the verb `call`, a pawn's evening at another household's) and the season's rite on the green (VB-522); who is asked,
+//   who sets out, and the due-queue that sends and ends them; the villages' turns of the
 //   meetings and the moving round
 // @state st.occasions[]: the occasions called and not yet over, sorted by `due` (after those due at the same time), each {id, kind
-//   ('meeting' | 'wedding' | 'funeral' | 'ale' | 'rite'), for[] (pawn ids it is held for: the couple, the dead, an ale evening's host;
+//   ('meeting' | 'wedding' | 'funeral' | 'ale' | 'rite' | 'call'), for[] (pawn ids it is held for: the couple, the dead, an ale evening's host;
 //   empty for a meeting and a rite), village, farm (farmstead id, or null on a green), tile, x, y (the spot, map units), start, end
 //   (game hours), overrides (work stops for it), asked[] ({id, leave (the game hour it sets out), hours (its walk there)}, in order of
 //   leave, each taken off once it sets out or cannot come), come[] (the ids that set out), due (game hours: the next time the step
@@ -13,15 +14,15 @@
 VB['sim/occasions'] = (() => {
   const { release, walkTo, idle, free } = VB['sim/agents'];
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, SPEED, WORK, SOCIAL, TICKS, cal } = VB['sim/rules'];
+  const { DAY, SPEED, WORK, SOCIAL, TICKS, MARRIAGE, cal } = VB['sim/rules'];
   const { findRoute, routeCost } = VB['sim/routes'];
-  const { kinNear, membersOf, voiceOf, fullName, log, atFarm, age } = VB['sim/records'];
+  const { kinNear, membersOf, voiceOf, fullName, log, atFarm, age, spouseOf } = VB['sim/records'];
   const { issue, register } = VB['sim/commands'];
   const { unplanned } = VB['sim/records'];
   const { emit } = VB['sim/events'],
     { remember } = VB['sim/relations'],
     Stores = VB['sim/stores'];
-  const { BREW, FEAST, YEAR_DAYS, ALE_EVENING, RITE, WORK: WORK_HOURS } = VB['sim/rules'];
+  const { BREW, FEAST, YEAR_DAYS, ALE_EVENING, CALL, RITE, WORK: WORK_HOURS } = VB['sim/rules'];
   const { hoursBetween } = VB['sim/routes'],
     { opinionOf, addTie } = VB['sim/relations'],
     { on } = VB['sim/events'],
@@ -50,6 +51,14 @@ VB['sim/occasions'] = (() => {
       overrides: false,
       at: 'At an ale evening',
       go: 'Walking to an ale evening',
+    },
+    // a call at a farm (VB-1119): from the end of work to CALL.until, at another household's farm within a day's walk
+    call: {
+      from: WORK_HOURS[1],
+      to: CALL.until,
+      overrides: false,
+      at: 'On a call at a farm',
+      go: 'Walking to call at a farm',
     },
     rite: {
       from: RITE.hour,
@@ -384,7 +393,7 @@ VB['sim/occasions'] = (() => {
       if (late && !a.inside && st.pawns[id].alive && !unplanned(st, id))
         issue(st, { actor: id, verb: 'goHome', source: 'occasion' });
     }
-    if (o.kind === 'meeting') return;
+    if (o.kind === 'meeting' || o.kind === 'call') return;
     if (o.kind === 'rite') {
       riteEnds(st, o, led, present, far);
       return;
@@ -629,6 +638,49 @@ VB['sim/occasions'] = (() => {
     const o = st.occasions.find((x) => x.id === a.occasion);
     return o ? OCCASIONS[o.kind][a.path ? 'go' : 'at'] : null;
   }
+  // Why pawn id may not call at farm fid now (the verb `call`, which holds for any pawn), or null: it is unmarried, of age to marry, not
+  // retired, in no service, of a household; the farm is another household's, within a day's walk, and holds one of the other sex it
+  // might marry; and it called no more than CALL.every ago.
+  function cannotCall(st, id, fid) {
+    const p = st.pawns[id],
+      f = st.farmsteads[fid],
+      hh = p.household === null ? null : st.households[p.household];
+    if (spouseOf(st, id) !== null) return `${fullName(p)} is married`;
+    if (age(st, p) < (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom))
+      return `${fullName(p)} is too young to marry`;
+    if (p.retired || p.servant) return `${fullName(p)} is retired or in service`;
+    if (!hh || hh.dissolved || hh.farmstead === null) return `${fullName(p)} has no home to go out from`;
+    if (!f || f.household === null || f.household === hh.id) return `there is no other household's farm ${fid}`;
+    if (p.called !== undefined && st.t - p.called < CALL.every) return `${fullName(p)} called on someone this week`;
+    const host = st.households[f.household],
+      one = host.members.some((m) => {
+        const q = st.pawns[m];
+        return (
+          q.alive &&
+          q.sex !== p.sex &&
+          spouseOf(st, m) === null &&
+          !q.retired &&
+          age(st, q) >= (q.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)
+        );
+      });
+    if (!one) return `${f.name} holds nobody ${fullName(p)} might marry`;
+    return hoursFrom(st, hh, f.house, new Map()) <= REACH ? null : `${f.name} lies beyond a day's walk`;
+  }
+  // The call by pawn id at farm fid (the verb, its check passed): tomorrow evening, the caller and the farm's household are asked to its
+  // yard, the caller from as far as it walks.
+  function callAt(st, id, fid) {
+    const f = st.farmsteads[fid],
+      hh = st.households[st.pawns[id].household],
+      host = st.households[f.household],
+      g = guests(st, f, [id, ...host.members]);
+    st.pawns[id].called = st.t;
+    call(st, 'call', dayOf(st.t) + DAY, yard(st, f), g.ids, g.hours, [id]);
+  }
+  // call(farmstead): walk to another household's farm within a day's walk and stay the evening (VB-1119)
+  register('call', {
+    check: (st, c) => free(st, c.actor) || cannotCall(st, c.actor, c.target),
+    run: (st, c) => callAt(st, c.actor, c.target),
+  });
   // attend(occasion): set out for the occasion with id `target` (sim/occasions; source 'occasion'), leaving the work in hand, walk to a spot
   // about it and stand there until its end
   register('attend', {

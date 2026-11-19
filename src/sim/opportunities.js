@@ -18,7 +18,7 @@ VB['sim/opportunities'] = (() => {
   const { eligible } = VB['sim/eligibility'];
   const { staysWhy, heirRanking } = VB['sim/heirs'];
   const { matchBar, matchRules, kinOk } = VB['sim/matching'];
-  const { visitChoices, visitWhy } = VB['sim/visits'];
+  const { visitChoices, visitWhy, sendWhy } = VB['sim/visits'];
   const { wishesOf } = VB['sim/wishes'];
   const { MARRIAGE, MATCH } = VB['sim/rules'],
     HELP_KINDS = MATCH.help.kinds;
@@ -122,6 +122,33 @@ VB['sim/opportunities'] = (() => {
     out.push(item('walkTo', near, null, open ? check(view, p.id, 'walkTo', near, null) : 'no one can walk there'));
   }
 
+  // ---- handing the farm on (VB-1140): a holder's offer of its holding to the first in its line, for its retirement (the basis `handover`).
+  // An item {verb: 'offer', target: the first in line (null if none), args, why (the verb's check, or why not), handover: {first, next}}, each
+  // of first and next {id, name, no}: the grown in the line asked, `no` why that pawn would not take it (its own estimate, principle 14). ----
+  function handOn(view, p, hh, out) {
+    const asked = [];
+    heirRanking(view, hh, null, false, null, null, asked);
+    const line = asked
+        .filter((e) => view.pawns[e.id].age >= 18)
+        .map((e) => ({ id: e.id, name: fullName(view.pawns[e.id]), no: e.no })),
+      first = line[0] || null,
+      next = first && first.no ? line.find((e) => !e.no) || null : null,
+      args = { basis: 'handover', gives: { household: hh.id, reason: 'retirement' } };
+    out.push(
+      item(
+        'offer',
+        first ? first.id : null,
+        args,
+        first ? check(view, p.id, 'offer', first.id, args) : 'no heir of age',
+        {
+          holder: { type: 'household', id: hh.id },
+          basis: 'member',
+          handover: { first, next },
+        },
+      ),
+    );
+  }
+
   // ---- an ale evening (VB-522): a holder may open its house, for its household; and the ale evenings and rites called within their reach
   // of its village, each an item {verb: 'attend', target: the occasion's id, occasion: {kind, place (the farm's or the village's name)}} ----
   function occasions(view, p, out) {
@@ -135,6 +162,7 @@ VB['sim/opportunities'] = (() => {
           basis: 'member',
         }),
       );
+    if (hh.holder === p.id) handOn(view, p, hh, out);
     for (const o of view.occasions) {
       if (o.kind !== 'ale' && o.kind !== 'rite') continue;
       const reach = o.kind === 'ale' ? ALE_EVENING.reach : RITE.reach;
@@ -285,16 +313,22 @@ VB['sim/opportunities'] = (() => {
     for (const id of who)
       for (const c of visitChoices(view, id))
         out.push(
-          item('visit', c.village, null, visitWhy(view, id, c.village), {
-            when: 'winter',
-            visit: {
-              who: id,
-              name: id === p.id ? null : fullName(view.pawns[id]),
-              place: view.villages[c.village].name,
-              days: c.days,
-              rations: c.rations,
+          item(
+            'visit',
+            c.village,
+            null,
+            id === p.id ? visitWhy(view, id, c.village) : sendWhy(view, p.id, id, c.village),
+            {
+              when: 'winter',
+              visit: {
+                who: id,
+                name: id === p.id ? null : fullName(view.pawns[id]),
+                place: view.villages[c.village].name,
+                days: c.days,
+                rations: c.rations,
+              },
             },
-          }),
+          ),
         );
   }
 

@@ -1,5 +1,5 @@
 // VB-631: the means to marry is a rule of the registry (marriage.means) and one formula, Sim.meansOf, serves the gate (affords), matchBar's
-// reason and the pawn panel's words (marryStanding): a home just under and just over, the exempt home, the explanation.
+// reason and the pawn panel's words (marryBar): a home just under and just over, the exempt home, the explanation.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], Rules = VB['sim/registry'];
 const { matchRules, matchBar, kinOk } = VB['sim/matching'], { MARRIAGE, YEAR_DAYS } = VB['sim/rules'];
 const { dailyNeed } = VB['sim/hunger'];
@@ -38,14 +38,14 @@ const v = R.settlementIdOf(st, mm);
 const ff = st.pawns.find((p) => p.alive && p.sex === 'f' && p.age >= 18 && R.spouseOf(st, p.id) === null && p.household !== null && R.settlementIdOf(st, p) === v && kinOk(st, mm.id, p.id, R.practice(st, v)));
 R.practice(st, v).residence = 'husband';
 set(0.9);
-const s = Sim.marryStanding(st, mm.id);
+const s = Sim.marryBar(st, mm.id);
 assert(s && s.kind === 'short' && Math.abs(s.held - 0.9) < 1e-9 && s.asked === MARRIAGE.means, JSON.stringify(s));
 if (ff) {
   const bar = matchBar(st, mm.id, ff.id, matchRules(st));
   assert(/their home holds 0\.9 of the 1\.5 years of food it needs/.test(bar.why || ''), bar.why);
 }
 set(2.1);
-assert.strictEqual(Sim.marryStanding(st, mm.id).kind, 'means');
+assert.strictEqual(Sim.marryBar(st, mm.id).kind, 'means');
 // 4. the exempt home: fewer than two adults
 const solo = st.households.find((x) => !x.dissolved && adults(x) < 2);
 if (solo) { solo.meals = 0; assert(Sim.meansOf(st, solo.id).exempt); assert(matchRules(st).affords(solo.id)); }
