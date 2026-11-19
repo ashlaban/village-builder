@@ -84,7 +84,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-827](backlog/VB-827.md) | A pawn's asks and offers in the page: what it has asked, what it is asked, and its own judgement as advice | acts | 3 | M | the pawn panel shows the open ask and the offers held, one row presentation for every basis; the played pawn ranks its rungs, asks and answers there, with its pawn's own judgement shown as advice and named as such |
 | [VB-834](backlog/VB-834.md) | Measure: does a gathering's host change its customs faster, by contact alone | town | 3 | S | A report of attitude drift at villages by how many people their pawns meet at venues, to settle target-v2 4.4's Proposed reading (no town term in attitude.malleability) |
 | [VB-875](backlog/VB-875.md) | Mood weighs in a decision | talk | 3 | M | Mood is shown but read by no rule; a plan chooses what it changes |
-| [VB-881](backlog/VB-881.md) | Measures owed by VB-288: demography over 12 seeds, roundPairs at medium-ref and history | - | 3 | S | Seeds 1 to 12 of the marriage demography, roundPairs at medium-ref, history.roundPairs, before and after VB-288 |
 | [VB-911](backlog/VB-911.md) | Hides become leather: shoes and harness wear | animals | 3 | M | A pawn's job tans a hide and makes shoes or harness, which wear and are replaced. |
 | [VB-1028](backlog/VB-1028.md) | Page: opening the People sheet flies the camera out to the whole island (not reproduced) | - | 3 | S | Kim's playthrough of 17 November saw the camera fly out to the whole island on opening the People sheet; VB-1027 could not reproduce it and left a check that it does not |
 | [VB-1034](backlog/VB-1034.md) | Births and deaths leave something to see: a grave, a lying-in, a wake | - | 3 | M | A death and a birth happen at midnight and leave no trace on the map: a grave marker where the dead are laid, and the household's lying-in or wake the day after, as states a pawn is in |
@@ -103,6 +102,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1364](backlog/VB-1364.md) | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
 | [VB-1369](backlog/VB-1369.md) | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1374](backlog/VB-1374.md) | Measure VB-718 surplus dung (owed to VB-662) | - | 3 | S | numbers owed by VB-718 |
+| [VB-1389](backlog/VB-1389.md) | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 
 ## Waiting for Kim
 
