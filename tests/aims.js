@@ -265,4 +265,14 @@ const roofOn = (st, hh, p) => {
   P.drop(st, p);
   assert.ok(near(hh.wood, w0 + 21), `the walls' timber on the woodpile: ${w0} -> ${hh.wood}`);
 }
+// VB-1224: the head's project dropped by another rule (a stake lapsed) ends its aim at once, with no review between (a farm held in trust)
+{
+  const { st, hh } = surplusState();
+  assert.strictEqual(issue(st, { actor: hh.holder, verb: 'barn', target: hh.id, args: {}, source: 'pawn' }), true);
+  const p = Projects.projectOf(st, 'household', hh.id), plan = st.plans.households.get(hh.id);
+  plan.aim = { year: 0, surplus: true, again: false, project: p.id, what: 'barn', since: st.t, shortSince: null }; // lint-allow: owner the head's project
+  P.drop(st, p);
+  assert.ok(plan.aim.project === null && plan.aim.what === null && plan.aim.again, `the aim on a dropped plan: ${JSON.stringify(plan.aim)}`);
+  assert.deepStrictEqual(checkState(st), [], 'invariants after the drop');
+}
 console.log("aims ok: surplus, menu, choice, barn and its halvings, drop after a season; the heir's plot passes to the village; timber kept");

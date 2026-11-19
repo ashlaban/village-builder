@@ -377,7 +377,15 @@ VB['sim/service'] = (() => {
     let available = null;
     for (const id of ids) {
       const hh = st.households[id];
-      if (hh.dissolved || hh.holder === null || !farmOf(st, hh).fields.length || grown(st, hh) > 1) continue;
+      // a farm held in trust since it was named (careForOrphans the same day: VB-1224) has its people with kin, who work it
+      if (
+        hh.dissolved ||
+        hh.holder === null ||
+        !farmOf(st, hh).fields.length ||
+        grown(st, hh) > 1 ||
+        trustOf(st, hh.id)
+      )
+        continue;
       const holder = st.pawns[hh.holder],
         memo = new Map();
       let best = null,
