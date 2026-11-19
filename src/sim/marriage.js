@@ -3,8 +3,8 @@
 //   who answers, what a yes, a no and a lapse do (split from sim/lifecycle, VB-876)
 VB['sim/marriage'] = (() => {
   const { living, home } = VB['sim/records'];
-  const { emit } = VB['sim/events'];
-  const { MARRIAGE, SOCIAL, ASK, HUNGER } = VB['sim/rules'];
+  const { emit, on } = VB['sim/events'];
+  const { MARRIAGE, SOCIAL, ASK, HUNGER, HANDOVER, AGES, ECON, YEAR, YEAR_DAYS } = VB['sim/rules'];
   const {
     personEvent,
     log,
@@ -80,34 +80,93 @@ VB['sim/marriage'] = (() => {
     heirRanking(st, hh, null, false, null, null, asked);
     return asked.filter((e) => st.pawns[e.id].age >= 18 && !(passed && passed.includes(e.id)));
   }
-  // The holder of hh considers handing it on, by its own rule (Kim, 18 November: the elder chooses; the custom's time is when the
-  // village expects it): an unplayed holder offers at the custom's time, when the one it expects to take the farm (rank(h)[0], `rank` a
-  // ranking function of household ids) is grown and, under 'marriage', has married and lives there, or, under 'age60', the holder is
-  // 60; unless its opinion of that heir is ill (SOCIAL.enemy or below), when it holds out. Nothing offers for the played holder: it
-  // offers by the verb when it chooses. The offer (the basis `handover`) goes to the first in line, due at `due` (the moving round's
-  // time; at once when null, at the heir's wedding). Considered at a marriage into hh (settleMatch) and on the holder's birthday
-  // (sim/asking). The new holder if it was handed on at once, else null.
+  // @state farmstead.expected (VB-1314): absent or null, else {heir (the first in line when the custom's time came), since (game hours)}:
+  //   the custom's time has come and the holder holds out. Set at a weighing (handover) that does not offer, cleared at the next that
+  //   offers or finds another first in line, and when the holding changes hands ('newHead'). The heir's grudge is derived from it
+  //   (sim/relations, opinionAt). Written only here.
+  const expect = (st, f, heir) => {
+    if (!f.expected || f.expected.heir !== heir) f.expected = { heir, since: st.t };
+  };
+  on('newHead', (st, d) => {
+    const hh = st.households[d.household],
+      f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    if (f && f.expected) f.expected = null;
+  });
+  // What farm hh made last calendar year, in rations: its sheaves (the ledger) and its milk and butter (the year's totals); null when it
+  // has no year behind it on record (its first year, or a constructed state).
+  function madeLastYear(st, hh) {
+    const y = Math.floor(st.t / YEAR) - 1;
+    let n = 0,
+      seen = false;
+    for (let i = (hh.totals || []).length - 1; i >= 0 && hh.totals[i].year >= y + 1; i--) {
+      const x = hh.totals[i];
+      if (x.year !== y + 1) continue;
+      seen = true;
+      if (x.kind === 'milk' || x.kind === 'butter') n += x.n;
+    }
+    if (!seen) return null;
+    for (const e of hh.ledger || [])
+      if (e.kind === 'harvest' && e.good === 'sheaves' && e.n > 0 && Math.floor(e.t / YEAR) === y) n += e.n;
+    return n;
+  }
+  // The keep's share of what the farm made last year (HANDOVER.keep's keepShare): a ration a day for the holder and its spouse living
+  // there, over last year's yield, at most 1; 0 with no year on record (nothing to weigh).
+  function keepShare(st, hh) {
+    const made = madeLastYear(st, hh);
+    if (made === null) return 0;
+    const sp = spouseOf(st, hh.holder),
+      keep = ECON.ration.adult * YEAR_DAYS * (sp !== null && st.pawns[sp].household === hh.id ? 2 : 1);
+    return made > keep ? keep / made : 1;
+  }
+  // The holder of hh considers handing it on (Kim, 18 November: the elder chooses; the custom's time is when the village expects it;
+  // VB-1314, plan VB-1122 section 5): an unplayed holder offers when HANDOVER's weighing reaches HANDOVER.at, the heir being the one it
+  // expects to take the farm (rank(h)[0], `rank` a ranking function of household ids), grown. The custom's time (`due`) is the heir
+  // married and living there under 'marriage', the holder at 60 under 'age60', never under 'death'. Nothing offers for the played holder:
+  // it offers by the verb when it chooses. A holder that does not offer at the custom's time holds out (farmstead.expected), played or
+  // not. The offer (the basis `handover`) goes to the first in line, due at `due` (the moving round's time; at once when null, at the
+  // heir's wedding). Considered at a marriage into hh (settleMatch) and on the holder's birthday (sim/asking): one weighing a holder a
+  // year, and one at a wedding. The new holder if it was handed on at once, else null.
   function handover(st, hh, rank, due = null) {
-    if (hh.dissolved || (st.player && st.player.pawn === hh.holder) || heldBy(st, hh.holder, 'handover')) return null;
+    if (hh.dissolved || hh.farmstead === null || heldBy(st, hh.holder, 'handover')) return null;
     const f = st.farmsteads[hh.farmstead],
       cu = farmPractice(st, f),
       old = hh.holder,
+      po = st.pawns[old],
       heir = rank(hh.id)[0];
-    if (heir === undefined || st.pawns[heir].age < 18) return null;
-    const why =
-      cu.handover === 'marriage' && spouseOf(st, heir) !== null && st.pawns[heir].household === hh.id
-        ? 'marriage'
-        : cu.handover === 'age60' && st.pawns[old].age >= 60
-          ? 'retirement'
-          : null;
-    if (!why || opinionOf(st, old, heir) <= SOCIAL.enemy) return null;
+    if (heir === undefined || st.pawns[heir].age < 18) {
+      if (f.expected) f.expected = null; // nobody grown in line: nothing is expected
+      return null;
+    }
+    const ph = st.pawns[heir],
+      sp = spouseOf(st, heir),
+      married = sp !== null && ph.household === hh.id,
+      time = cu.handover === 'marriage' ? married : cu.handover === 'age60' && po.age >= 60;
+    if (f.expected && f.expected.heir !== heir) f.expected = null; // another first in line
+    if (st.player && st.player.pawn === old) {
+      if (time) expect(st, f, heir); // the played holder chooses; holding out costs it the same
+      return null;
+    }
+    const courts = Number.isInteger(ph.courting),
+      wish = married || (courts && holdingOf(st, heir) === null && holdingOf(st, ph.courting) === null) ? 1 : 0,
+      w =
+        HANDOVER.custom * (time ? 1 : 0) +
+        HANDOVER.years * Math.max(0, po.age - HANDOVER.from) +
+        HANDOVER.weak * (po.age < AGES.hands[1] ? 0 : 1) +
+        HANDOVER.wish * wish +
+        HANDOVER.opinion * opinionOf(st, old, heir) -
+        HANDOVER.keep * keepShare(st, hh);
+    if (w < HANDOVER.at) {
+      if (time) expect(st, f, heir);
+      return null;
+    }
+    f.expected = null;
     issue(st, {
       actor: old,
       verb: 'offer',
       target: lineOf(st, hh)[0].id,
       args: {
         basis: 'handover',
-        gives: { household: hh.id, reason: why },
+        gives: { household: hh.id, reason: married ? 'marriage' : 'retirement' },
         ...(due === null ? {} : { due, round: true }),
       },
       source: 'handover',

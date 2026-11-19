@@ -44,6 +44,7 @@
     "plan.aim": "sim/aims",
     "plan.outlook": "sim/outlook",
     "farmstead.barn": "sim/building",
+    "farmstead.expected": "sim/marriage",
     "household.workHours": "sim/agents",
     "st.offers": "sim/offers",
     "st.obligations": "sim/obligations",

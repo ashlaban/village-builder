@@ -755,6 +755,11 @@ function checkState(st) {
     // VB-255: the farm's barn, one at most, built at a time not after now
     if (f.barn !== undefined && f.barn !== null && !(Object.keys(f.barn).join() === 'built' && f.barn.built <= st.t))
       bad.push(`farmsteads[${f.id}]: barn ${JSON.stringify(f.barn)}`);
+    // VB-1314: the custom's time come and the holder holding out: {heir, since}, a pawn not the holder, since not after now, on a farm held
+    const ex = f.expected;
+    if (ex !== undefined && ex !== null && !(Object.keys(ex).join() === 'heir,since' && Number.isInteger(ex.heir) && !!st.pawns[ex.heir] &&
+      Number.isFinite(ex.since) && ex.since <= st.t && f.household !== null && st.households[f.household].holder !== ex.heir))
+      bad.push(`farmsteads[${f.id}]: expected ${JSON.stringify(ex)}`);
     // the house's condition (VB-306): 0..1 as last set, at a time not after now, and its tar not further than a barrel's years ahead
     if (f.condition !== undefined && !(f.condition >= 0 && f.condition <= 1)) bad.push(`farmsteads[${f.id}]: condition ${f.condition}`);
     if (f.condAt !== undefined && !(f.condAt <= st.t)) bad.push(`farmsteads[${f.id}]: condAt ${f.condAt} is in the future`);

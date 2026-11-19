@@ -521,6 +521,25 @@ VB['sim/rules'] = (() => {
     // an offer the player must answer stays open this many days; unanswered, it is answered as the pawn would unplayed (VB-293)
     offerDays: 7,
   };
+  // ---- the holder's choice to hand on in life (VB-1314; plan VB-1122, section 5; design.md, Handover and shares: Timing): an unplayed
+  // holder hands on when the weighing custom x due + years x max(0, age - from) + weak x (1 - hand) + wish x wish + opinion x op - keep x
+  // keepShare reaches `at` (sim/marriage, handover). due: 1 once the custom's time has come (the heir married and living in the house, or
+  // the holder at 60); hand: 1 while the holder is a working hand (under AGES.hands[1]); wish: 1 when the heir is married in the house,
+  // or courts with no place to marry onto; op: the holder's opinion of the heir (-1 to 1); keepShare: the keep of the holder and its
+  // spouse (a ration a day each) over what the farm made last year (sheaves and milk), at most 1. A holder who holds out past the
+  // custom's time loses its heir's opinion, grudge a year from then up to grudgeMax (sim/relations, derived). First values, Proposed. ----
+  const HANDOVER = {
+    custom: 0.8, // the pull of what the village expects
+    from: 55,
+    years: 0.05, // from 55, each year of age adds 0.05 (a holder of 65 is at 0.5 from age alone)
+    weak: 0.3, // a holder who no longer counts as a working hand
+    wish: 0.3, // the heir married in the house, or waiting on a place to marry
+    opinion: 0.4, // times the holder's opinion of the heir, either way
+    keep: 1, // times the keep's share of the farm's yield
+    at: 1, // the weighing at which the holder offers
+    grudge: 0.05, // the heir's opinion of a holder holding out past the custom's time, lost a year
+    grudgeMax: 0.3, // and at most
+  };
 
   // ---- animals (sim/herds; docs/review-animals.md): hay a stall day by kind of animal; the stall period, from autumn day 9 (doy 32) to the
   // turn-out on spring day 6 (doy 5), 21 days; breeding on spring day 3 (doy 2) with a bull of bullAge or more, or a ram, within reach steps of
@@ -1199,6 +1218,7 @@ VB['sim/rules'] = (() => {
     HEALTH,
     ILLNESS,
     MARRIAGE,
+    HANDOVER,
     FOUNDERS,
     HELP,
     GOODWILL,
