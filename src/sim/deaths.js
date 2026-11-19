@@ -1,7 +1,7 @@
-// @sys sim/deaths: causes of death, the death.hazard rule and its daily roll
+// @sys sim/deaths: causes of death, the death.hazard rule and its daily roll, and the course of a fatal illness (VB-1118)
 VB['sim/deaths'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { YEAR, YEAR_DAYS, hazard } = VB['sim/rules'];
+  const { YEAR, YEAR_DAYS, DAY, hazard, ILLNESS } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   Rules.declare({
     id: 'death.hazard',
@@ -32,5 +32,21 @@ VB['sim/deaths'] = (() => {
     if (p.health <= 0) return 'starvation';
     return Rules.draw(st, 'death.hazard', p, u);
   }
-  return { CAUSES, COLD, deathRoll };
+  // @state pawn.ill: absent, or {cause (a key of ILLNESS.days), from, until (game hours)}: an illness running its course (VB-1118). A
+  // death the roll draws of a cause with a course is not dealt at once: the pawn falls ill, ails for the cause's days (its health falls,
+  // sim/hunger) and dies when the course is run. While ill it draws no other roll. Plain data, saved with the pawn.
+  // The day's death of pawn p (sim/lifecycle): a cause to kill it with now, or null; a draw of a cause with a course starts the illness.
+  function dayOfDeath(st, p) {
+    if (p.ill !== undefined) {
+      const cause = p.health <= 0 ? 'starvation' : st.t >= p.ill.until ? p.ill.cause : null;
+      if (cause !== null) delete p.ill; // the course is run
+      return cause;
+    }
+    const cause = deathRoll(st, p);
+    const days = cause === null ? undefined : ILLNESS.days[cause];
+    if (days === undefined) return cause;
+    p.ill = { cause, from: st.t, until: st.t + days * DAY };
+    return null;
+  }
+  return { CAUSES, COLD, deathRoll, dayOfDeath };
 })();

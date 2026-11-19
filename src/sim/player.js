@@ -3,19 +3,25 @@
 VB['sim/player'] = (() => {
   const { release } = VB['sim/agents'];
   const { holdingOf, spouseOf, personEvent, living } = VB['sim/records'];
-  const { cal, WORK, SOCIAL } = VB['sim/rules'];
+  const { cal, WORK, SOCIAL, HEALTH } = VB['sim/rules'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner } = VB['sim/wishes'];
   const { issue, VERBS } = VB['sim/commands'];
+  const { on } = VB['sim/events'];
+  const { KINDS } = VB['sim/kinds'];
   // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose queued commands go before the pawn's own logic ----
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
   //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
   //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), left (null while the pawn
   //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
-  //   it thought friends, best first)}: what a death erases and the player's succession needs, VB-213)}; plain data, saved with the run
+  //   it thought friends, best first)}: what a death erases and the player's succession needs, VB-213), last (null, or {kind, farm, good,
+  //   n, t}: the pawn's last task done or load brought home, VB-1118), days[] (at most DAYS_KEPT {t, health, before, hunger, food, why}:
+  //   the pawn's health after each of its last meals, its hunger level, its household's food in days of need, and what moved its health,
+  //   why {hunger, cold, damp, ill, rest}, VB-1118)}; plain data, saved with the run
   const QUEUE_MAX = 8,
-    TIES_MAX = 12;
+    TIES_MAX = 12,
+    DAYS_KEPT = 5;
   // A command begun lasts while its act does: work while the pawn holds that job, a walk until it arrives, going home until it is indoors,
   // idling until its time is up. Any other verb is done at once.
   const LASTS = {
@@ -35,6 +41,8 @@ VB['sim/player'] = (() => {
       refused: null,
       since: st.t,
       left: null,
+      last: null,
+      days: [],
     };
     resetWish(st, id); // the player starts from the default wish (VB-680): its wishes are the pawn's (pawn.wish, sim/wishes)
     personEvent(st, id, 'player', 'Played by the player');
@@ -167,6 +175,109 @@ VB['sim/player'] = (() => {
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }
+  // ---- what the played pawn's acts brought, and what moved its levels (VB-1118) ----
+  // A task finished or a load brought home by the played pawn (sim/agents): the last one is kept for its sheet.
+  on('yielded', (st, d) => {
+    const pl = st.player;
+    if (!pl || pl.pawn !== d.pawn) return;
+    pl.last = { kind: d.kind, farm: d.farm, good: d.good, n: d.n, t: st.t };
+  });
+  // The played pawn's meal (sim/hunger): its health and what moved it, its hunger and its household's food, for its last DAYS_KEPT days.
+  on('health', (st, d) => {
+    const pl = st.player;
+    if (!pl || pl.pawn !== d.pawn) return;
+    if (!pl.days) pl.days = []; // a save made before VB-1118
+    pl.days.push({
+      t: st.t,
+      health: d.after,
+      before: d.before,
+      hunger: d.hungerLevel,
+      food: d.food === null || !isFinite(d.food) ? null : d.food,
+      why: { hunger: d.hunger, cold: d.cold, damp: d.damp, ill: d.ill, rest: d.rest },
+    });
+    if (pl.days.length > DAYS_KEPT) pl.days.shift();
+  });
+  const round1 = (x) => Math.round(x * 10) / 10;
+  // What the played pawn's last act yielded, in words for its sheet (null with none): "Fishing: 6.2 rations of fish brought home", or the
+  // task's name done, with the farm where it was done.
+  function yieldWords(st) {
+    const pl = st.player,
+      L = pl && pl.last;
+    if (!L) return null;
+    const K = KINDS[L.kind] || {},
+      what = K.label || K.name || L.kind,
+      at = L.farm !== null && st.farmsteads[L.farm] ? ` at ${st.farmsteads[L.farm].name}` : '';
+    if (L.good && L.n > 0) return `${what}: brought home ${round1(L.n)} of ${L.good}${at}.`;
+    return `${what}: done${at}.`;
+  }
+  // What moved the played pawn's levels over its last days, in words for its sheet: health, hunger and the household's food, each with
+  // its change and, for health, the causes that moved it most (hunger, cold, damp, illness; a full meal on a warm day restores). [] with
+  // fewer than two days kept, or nothing moved.
+  const CAUSE_WORDS = {
+    hunger: 'hunger',
+    cold: 'a cold house',
+    damp: 'a damp house',
+    ill: 'illness',
+    rest: 'rest and full meals',
+  };
+  function movedWords(st) {
+    const pl = st.player,
+      D = (pl && pl.days) || [];
+    if (!D.length) return [];
+    const first = D[0],
+      last = D[D.length - 1],
+      out = [],
+      n = D.length,
+      days = n === 1 ? 'today' : `over ${n} days`;
+    const dh = last.health - first.before;
+    if (Math.abs(dh) >= 0.5) {
+      const sum = { hunger: 0, cold: 0, damp: 0, ill: 0, rest: 0 };
+      for (const d of D) for (const k in sum) sum[k] += d.why[k];
+      const causes = Object.keys(sum)
+        .filter((k) => sum[k] >= 0.5 && (dh < 0 ? k !== 'rest' : k === 'rest'))
+        .sort((x, y) => sum[y] - sum[x])
+        .map((k) => `${CAUSE_WORDS[k]} (${dh < 0 ? '-' : '+'}${Math.round(sum[k])})`);
+      out.push(
+        `Health ${dh < 0 ? 'fell' : 'rose'} ${Math.round(Math.abs(dh))} ${days}${causes.length ? `: ${causes.join(', ')}` : ''}.`,
+      );
+    }
+    if (n > 1 && Math.abs(last.hunger - first.hunger) >= 0.05)
+      out.push(
+        `Hunger ${last.hunger > first.hunger ? 'rose' : 'eased'} ${days}: the meals ${last.hunger > first.hunger ? 'fell short' : 'were full'}.`,
+      );
+    if (n > 1 && first.food !== null && last.food !== null && Math.abs(last.food - first.food) >= 1) {
+      const up = last.food > first.food,
+        brought = pl.last && pl.last.t >= first.t && pl.last.good && pl.last.n > 0;
+      out.push(
+        `The household's food ${up ? 'rose' : 'fell'} from ${Math.round(first.food)} to ${Math.round(last.food)} days ${days}` +
+          `${up ? (brought ? ': what was brought in' : ': food brought in') : ': eaten faster than brought in'}.`,
+      );
+    }
+    return out;
+  }
+  // Who of the played pawn's household ails, as its kin see it (principle 14: what they see, not what will come): "Gunnar is ailing", and
+  // "is gravely ill" once health has fallen under HEALTH's risk line. The played pawn itself is "You are ailing".
+  function ailingWords(st) {
+    const pl = st.player;
+    if (!pl) return [];
+    const p = st.pawns[pl.pawn],
+      hh = p.household !== null ? st.households[p.household] : null,
+      ids = hh ? hh.members : [pl.pawn],
+      out = [];
+    for (const id of ids) {
+      const q = st.pawns[id];
+      if (!q.alive || q.ill === undefined) continue;
+      const grave = q.health < HEALTH.riskBelow;
+      out.push(
+        id === pl.pawn
+          ? `You are ${grave ? 'gravely ill' : 'ailing'}.`
+          : `${q.given} is ${grave ? 'gravely ill' : 'ailing'}.`,
+      );
+    }
+    return out;
+  }
+  // The notes of the played pawn's sheet (VB-1118), made when asked: what its last act yielded, what moved its levels, who ails.
+  const sheetNotes = (st) => ({ yielded: yieldWords(st), moved: movedWords(st), ailing: ailingWords(st) });
   // The played pawn answers the open marriage offer offerId (VB-293; the first question asked through Decisions.answer, which slice 5's
   // Decisions module takes over): true, or why not.
   function answer(st, offerId, yes) {
@@ -200,5 +311,7 @@ VB['sim/player'] = (() => {
     playerDied,
     goOnAs,
     TIES_MAX,
+    sheetNotes,
+    DAYS_KEPT,
   };
 })();

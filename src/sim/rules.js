@@ -372,6 +372,10 @@ VB['sim/rules'] = (() => {
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and by a cold house (VB-327: `cold` times the day's cold,
   // 0..1), and restored by a full meal on a warm day; at 0 the pawn dies of starvation ----
   const HEALTH = { drain: 4, cold: 2, dry: 1, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+  // ---- illness (VB-1118, principle 19): a death the day's roll draws of a cause in `days` (the base hazard's causes; not hunger, which
+  // health already shows) comes as an illness that runs that cause's days before it kills; while it runs the pawn's health falls by `fall`
+  // over the course (sim/hunger), with no recovery, and no other roll is drawn for it. Kin see the pawn ailing, never the outcome.
+  const ILLNESS = { days: { infancy: 2, childhood: 4, illness: 6, oldAge: 10 }, fall: 60 };
 
   // ---- relationships (sim/relations; docs/review-relationships.md; VB-240, Kim 10 Nov): one pawn's opinion of another (-1..1) is derived:
   // the bond's value (kin, spouse, housemate), plus affinity, affinity.weight * compatibility * min(1, tie / affinity.known), the pair's
@@ -1164,6 +1168,7 @@ VB['sim/rules'] = (() => {
     BIRTH,
     HUNGER,
     HEALTH,
+    ILLNESS,
     MARRIAGE,
     HELP,
     GOODWILL,

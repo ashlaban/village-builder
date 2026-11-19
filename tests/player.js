@@ -27,7 +27,7 @@ const FARMER = 0, WIFE = 1;
   assert.strictEqual(plain.player, null, 'no one plays a new run');
   assert.strictEqual(Sim.inhabit(played, FARMER), true);
   assert.deepStrictEqual(played.player, {
-    pawn: FARMER, auto: true, queue: [], refused: null, since: played.t, left: null });
+    pawn: FARMER, auto: true, queue: [], refused: null, since: played.t, left: null, last: null, days: [] });
   for (const st of [plain, played]) Sim.advance(st, 5 * Sim.DAY);
   sound(played, 'inhabited and left alone');
   const marks = (list) => list.filter((e) => e.kind === 'player');

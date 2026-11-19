@@ -594,6 +594,12 @@ function checkState(st) {
         recent.set(key, { e: both || e, ate: 0, eaters: 0 });
       }
     }
+    // an illness running its course (pawn.ill, VB-1118): a living pawn's, of a cause with a course, begun by now and ending after it began
+    for (const p of st.pawns) {
+      if (p.ill === undefined || !p.alive) continue; // one killed otherwise while ill keeps its last illness
+      const I = p.ill, ILL = globalThis.VB['sim/rules'].ILLNESS;
+      if (!(I.cause in ILL.days) || !(I.from <= st.t) || !(I.until > I.from)) bad.push(`pawns[${p.id}]: invalid illness ${JSON.stringify(I)}`);
+    }
     for (const p of st.pawns) {
       if (p.feast === undefined) continue;
       const x = p.feast;
@@ -1088,6 +1094,11 @@ function checkState(st) {
     if (!(mw === null || (st.pawns[mw].alive && st.pawns[pl.pawn].alive))) bad.push(`player's pawn's partner: ${mw}`);
     if ('wishes' in pl) bad.push('player.wishes: the wishes are the pawn\'s (VB-680)');
     if (!(r === null || (typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`player.refused: ${JSON.stringify(r)}`);
+    // what its acts brought and what moved its levels (VB-1118): the last act at or before now; at most DAYS_KEPT days, in order of time
+    const L = pl.last, D = pl.days, DAYS_KEPT = globalThis.VB['sim/player'].DAYS_KEPT;
+    if (!(L === null || L === undefined || (typeof L.kind === 'string' && L.t <= st.t && L.n >= 0))) bad.push(`player.last: ${JSON.stringify(L)}`);
+    if (D !== undefined && (!Array.isArray(D) || D.length > DAYS_KEPT || D.some((d, k) => !(d.t <= st.t && (k === 0 || D[k - 1].t <= d.t))
+      || !(d.health >= 0 && d.health <= 100) || Object.values(d.why).some((x) => !(x >= 0))))) bad.push(`player.days: ${JSON.stringify(D)}`);
   }
   // the open offers (VB-293, VB-690): sorted by due, made by now and due after, within a year, and no later than the basis's wait after
   // it was made when the played pawn's answer extended it; ids below st.offerSeq and unique; a known basis; answers by pawns, keys unique,

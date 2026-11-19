@@ -52,7 +52,7 @@ const Sim = (() => {
   const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)
   const { save, load } = VB['sim/saves'];
   const { issue: command } = VB['sim/commands'];
-  const { inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head } = VB['sim/player'];
+  const { inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head, sheetNotes } = VB['sim/player'];
   const { headView } = VB['sim/plans'];
   const { wishesOf } = VB['sim/wishes']; // a pawn's wish at the moving round, kind by kind (VB-680)
   const { actorView, forPawn, successors, succeed, roundChoice } = VB['sim/opportunities'];
@@ -112,6 +112,7 @@ const Sim = (() => {
     head,
     headView,
     inhabit,
+    sheetNotes,
     uninhabit,
     queue,
     unqueue,
