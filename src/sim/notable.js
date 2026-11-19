@@ -232,7 +232,19 @@ VB['sim/notable'] = (() => {
     herdBirths: ({ sum, places }) => `${sum} calves and lambs born${places ? ' at ' + places : ''}`,
     herdDeath: ({ sum, places }) => `${sum} animals lost over the winter${places ? ' at ' + places : ''}`,
     harvest: ({ places }) => `Harvest brought in at ${places}`,
+    // help received (VB-1114): the year's grain, by giver; `givers` is [[name, rations]], the most first
+    received: ({ sum, givers }) =>
+      givers.length === 1
+        ? `Received ${sum} grain from ${givers[0][0]} this year`
+        : `Received ${sum} grain this year: ${andList(givers.map(([g, n]) => `${n} from ${g}`))}`,
   };
+  // Grain received as a gift (sim/exchange's booked): {n, from (the giver's name)}, else null. The record tells it as text.
+  const GIFT_IN = /^Received (\d+) grain from (.+)$/;
+  function helpIn(ev) {
+    const m = ev.kind === 'gift' && typeof ev.text === 'string' ? GIFT_IN.exec(ev.text) : null;
+    return m ? { n: +m[1], from: m[2] } : null;
+  }
+  const foldKind = (ev) => (helpIn(ev) ? 'received' : ev.kind);
   const andList = (a) => (a.length > 1 ? `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}` : a[0] || '');
   // Fold the rows of a chronicle (newest first), from the newest, until `limit` lines are made: a row {ev (the newest it holds), text, note,
   // fold (the rows it holds, newest first, when it folds two or more)}. Rows left over are counted in `rest`. The view's: the record is as it was.
@@ -242,7 +254,7 @@ VB['sim/notable'] = (() => {
     for (; i < rows.length && out.length < limit; i++) {
       const r = rows[i];
       if (!r) continue;
-      const k = r.ev.kind;
+      const k = foldKind(r.ev);
       if (!ROUTINE[k]) {
         out.push(r);
         continue;
@@ -250,22 +262,26 @@ VB['sim/notable'] = (() => {
       const year = Math.floor(r.ev.t / YEAR),
         held = [r];
       for (let j = i + 1; j < rows.length && (!rows[j] || Math.floor(rows[j].ev.t / YEAR) >= year); j++)
-        if (rows[j] && rows[j].ev.kind === k) held.push(rows[j]);
+        if (rows[j] && foldKind(rows[j].ev) === k) held.push(rows[j]);
       if (held.length < 2) {
         out.push(r);
         continue;
       }
-      const places = [];
+      const places = [],
+        by = new Map();
       let sum = 0;
       for (let m = held.length - 1; m >= 0; m--) {
         const e = held[m].ev;
         sum += e.n || 1;
+        if (k === 'received') by.set(helpIn(e).from, (by.get(helpIn(e).from) || 0) + helpIn(e).n);
         const name = e.farm !== undefined ? st.farmsteads[e.farm].name : null;
         if (name && !places.includes(name)) places.push(name);
       }
       out.push({
         ev: r.ev,
-        text: ROUTINE[k]({ n: held.length, sum, places: andList(places) }) + '.',
+        text:
+          ROUTINE[k]({ n: held.length, sum, places: andList(places), givers: [...by].sort((a, b) => b[1] - a[1]) }) +
+          '.',
         note: null,
         fold: held,
       });
@@ -331,6 +347,7 @@ VB['sim/notable'] = (() => {
     custom: 'A change of custom in its village',
     cause: 'It takes up a cause on its own',
     hunger: 'Hunger in its household',
+    help: 'Its household first receives help in a year',
     occasion: 'A wedding or a funeral ale that concerns it begins',
     wish: 'Its wish for a match lapsed, or was passed by the round',
     offer: 'An offer that waits for its answer',
@@ -437,12 +454,27 @@ VB['sim/notable'] = (() => {
   }
   // Does the open offer o wait for pawn id's answer.
   const waitsFor = (o, id) => o.answers.some((a) => a.by === id && a.yes === null);
+  // Is gift event ev the household's first help received in its year (VB-1114): no earlier one of that year is on the record.
+  function firstHelp(st, ev, hid) {
+    const from = Math.floor(ev.t / YEAR) * YEAR;
+    for (let i = st.record.lastIndexOf(ev) - 1; i >= 0; i--) {
+      const e = st.record[i];
+      if (typeof e !== 'object') break; // folded: older than the year
+      if (e.t < from) break;
+      if (helpIn(e) && (e.pawn === ev.pawn || (hid !== null && e.household === hid))) return false;
+    }
+    return true;
+  }
   // Which reason of SKIP a record event is for the played pawn `about`, of household hid and village vid, or null.
   function stopsFor(st, ev, about, hid, vid) {
     if (!told(ev)) return null;
     const k = ev.kind;
     if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
     if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
+    if (k === 'gift')
+      return helpIn(ev) && (ev.pawn === about || (hid !== null && ev.household === hid)) && firstHelp(st, ev, hid)
+        ? 'help'
+        : null;
     if (k === 'wishLapsed') return ev.pawn === about ? 'wish' : null;
     if (k === 'cause')
       return ev.pawn === about && (ev.reason === 'natural' || ev.reason === 'lapsed' || ev.reason === 'won')
@@ -488,6 +520,7 @@ VB['sim/notable'] = (() => {
         const what = ev.text.replace(/^Took up the cause: [^,]*, /, '');
         return { why, text: `${fullName(p)} has taken up a cause: ${what}`, ev, agenda: true };
       }
+      if (why === 'help') return { why, text: `Help received: ${helpIn(ev).n} grain from ${helpIn(ev).from}.`, ev };
       if (why) return { why, text: eventLine(st, ev), ev };
     }
     if (hid !== from.homeId) {
@@ -560,5 +593,6 @@ VB['sim/notable'] = (() => {
     skipStop,
     roundEve,
     gatherings,
+    helpIn,
   };
 })();
