@@ -50,7 +50,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-043](backlog/VB-043.md) | One scope model: a membership graph of entities | debt | 3 | M | The membership graph of typed edges, with scopes on it; as Membership's truth if Kim adopts it (measured 0.55 ms at year 12). |
 | [VB-108](backlog/VB-108.md) | Wrap-up: the household's year | year | 3 | S | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
 | [VB-188](backlog/VB-188.md) | Plan: the ship: the outside world, silver, institutions and disease (slice 8) | ship | 3 | S | Design ships, silver, the Church and the Crown, rank, tithe and tax, and disease by sea. |
-| [VB-215](backlog/VB-215.md) | Autosave at the moving round, once a save takes under 0.5 s | life | 3 | S | The page autosaves after the round once a save at `medium-ref` is under 0.5 s in Chromium; Kim's "build now, round later". |
 | [VB-231](backlog/VB-231.md) | Refactor: the customs in force, read from the kernel layer | - | 3 | M | A kernel-layer `inForce` is the one door to custom; the four modules that index practice arrays ask it, and `culture` stays the only writer. |
 | [VB-239](backlog/VB-239.md) | Saves: derived state by one rule, no empty movements, old formats refused | - | 3 | M | Caches leave a save in three ways, 13% of ledger entries move nothing, and load carries seven migrations for saves nobody holds: one rule each, and format 2. |
 | [VB-246](backlog/VB-246.md) | A benchmark that shows the three engine workarounds still pay | yardstick | 3 | S | Three places are shaped by how V8 stores objects and compiles loops, each by a comment and one old measurement; a benchmark in verify notices when one stops helping. |
@@ -132,6 +131,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1217](backlog/VB-1217.md) | Measure the good-year gift (VB-460) | - | 3 | S | Measure VB-460 |
 | [VB-1222](backlog/VB-1222.md) | Measure: skip stops by reason, headless | - | 3 | S | Take the stop count owed by VB-1109 criterion 3 |
 | [VB-1240](backlog/VB-1240.md) | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |
+| [VB-1282](backlog/VB-1282.md) | Measure the round autosave at medium-ref | - | 3 | S | Measure the round autosave step at medium-ref |
 
 ## Waiting for Kim
 
@@ -188,6 +188,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-465](backlog/VB-465.md) | The alderman's office: the heir follows, and a term of years, as ways of choosing | debt | 3 | S | VB-314, VB-320 | Two more options of 'How the alderman is chosen': the heir follows him, and elected for a term of 6 years; built after elections, and reported for turnover. |
 | [VB-710](backlog/VB-710.md) | Custom: grazing on the commons, by land share or open: stints as the right graze | debt | 3 | M | VB-311, VB-709 | A voted custom (byLand default, open; malleability 0.4): each household's stint on its village's outland by its share of the land in use, a let holding's share the tenant's, the landless none, other villages' herds closed out; recorded as the right graze. |
 | [VB-716](backlog/VB-716.md) | Grazing on the commons: the meeting allots, the alderman carries it out | debt | 3 | S | VB-710, VB-313, VB-314 | The third option of the custom grazing: the autumn meeting allots the stints in proportion to the head each household winters, cut to the commons' capacity, and the alderman grants them. |
+| [VB-1292](backlog/VB-1292.md) | Measure days owed (daysCalled) at small-y40 | debt | 3 | S | VB-315 | owed measure of VB-462's cost criterion |
 | [VB-761](backlog/VB-761.md) | Workmanship: five grades on made goods, drawn by the maker's skill | mill | 2 | M | VB-360, VB-733 | Five counted grades on made goods: the multipliers and the odds as tunables, the draw by the maker's skill, counts by kind and grade and a grade on each durable with no record a piece, a head's rules for keeping, owing and giving; the quern and whatever graded goods exist are its first users. |
 | [VB-093](backlog/VB-093.md) | A village windmill | mill | 3 | M | VB-361, VB-364 | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
 | [VB-121](backlog/VB-121.md) | Winter crafts: tools and fence poles | mill | 3 | M | VB-360, VB-364 | Tools wear with field work and are mended in winter; fence poles are cut in winter and used for mending. |
