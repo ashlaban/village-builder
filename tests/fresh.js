@@ -39,7 +39,7 @@ check(near(fresh.soil, S.floor) && near(old.soil, S.floor), `both at the floor a
 // manure is not carted to a field above the cap, and never lowers its soil
 fresh.soil = 1.3; fresh.stage = 'stubble'; hh.manure = 10;
 for (const q of f.fields) if (q !== fresh) q.soil = S.cap;
-check(F.manureWanted(f, hh, cal(2)) === null, 'no manure for a field above the cap');
+{ const w = F.manureWanted(st, f, hh, cal(2)); check(w && w[2] === true, 'a field above the cap is wanted for surplus dung only'); }
 F.manureDone(st, fresh, hh, 2);
 check(near(fresh.soil, 1.3), `manure lowered a fresh field's soil to ${fresh.soil}`);
 // a plot's field broken on fresh ground keeps its soil when the cottage makes the farmstead
