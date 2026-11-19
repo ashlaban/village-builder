@@ -1,0 +1,343 @@
+{
+ "session": "9c7af4e0-0e5e-5a18-998e-56fa4f155571",
+ "label": "worker",
+ "models": [
+  "opus"
+ ],
+ "start": "2026-11-19T16:19:18.013Z",
+ "end": "2026-11-19T18:30:31.535Z",
+ "wallMin": 131.2,
+ "activeMin": 95.8,
+ "prompts": 3,
+ "calls": 61,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 137,
+  "cacheWrite": 98826,
+  "cacheRead": 7580298,
+  "output": 17147
+ },
+ "context": {
+  "first": 90185,
+  "peak": 161450,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 44,
+   "bytes": 56613,
+   "seconds": 481.6
+  },
+  "Agent": {
+   "calls": 10,
+   "bytes": 10490,
+   "seconds": 30.5
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 285,
+   "seconds": 0
+  },
+  "mcp__github__pull_request_read": {
+   "calls": 1,
+   "bytes": 6863,
+   "seconds": 1.1
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "cat docs/agents/worker.md",
+   "calls": 1,
+   "bytes": 13655
+  },
+  {
+   "tool": "Agent",
+   "what": "",
+   "calls": 10,
+   "bytes": 10490
+  },
+  {
+   "tool": "mcp__github__pull_request_read",
+   "what": "",
+   "calls": 1,
+   "bytes": 6863
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/targets.js",
+   "calls": 1,
+   "bytes": 6275
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -E",
+   "calls": 1,
+   "bytes": 5101
+  },
+  {
+   "tool": "Bash",
+   "what": "git fetch",
+   "calls": 1,
+   "bytes": 5022
+  },
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 3,
+   "bytes": 4305
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 2,
+   "bytes": 3685
+  },
+  {
+   "tool": "Bash",
+   "what": "git diff",
+   "calls": 2,
+   "bytes": 3319
+  },
+  {
+   "tool": "Bash",
+   "what": "git merge",
+   "calls": 9,
+   "bytes": 2058
+  },
+  {
+   "tool": "Bash",
+   "what": "npm run",
+   "calls": 2,
+   "bytes": 1776
+  },
+  {
+   "tool": "Bash",
+   "what": "for f",
+   "calls": 1,
+   "bytes": 1694
+  }
+ ],
+ "weighted": 967434,
+ "subagents": [
+  {
+   "agent": "a42c275c",
+   "task": "VB-314",
+   "size": "M",
+   "status": "done",
+   "model": "sonnet",
+   "calls": 79,
+   "tokens": {
+    "input": 158,
+    "cacheWrite": 311778,
+    "cacheRead": 6347621,
+    "output": 32654
+   },
+   "weighted": 1187913,
+   "first": 20203,
+   "boot": 92545,
+   "peak": 118123,
+   "activeMin": 31.8,
+   "start": "2026-11-19T16:20:19.127Z"
+  },
+  {
+   "agent": "a9f159d8",
+   "task": "VB-1363",
+   "size": "S",
+   "status": "done",
+   "model": "sonnet",
+   "calls": 19,
+   "tokens": {
+    "input": 38,
+    "cacheWrite": 39134,
+    "cacheRead": 582247,
+    "output": 5651
+   },
+   "weighted": 135435,
+   "first": 20204,
+   "boot": 0,
+   "peak": 39136,
+   "activeMin": 11.4,
+   "start": "2026-11-19T16:20:19.131Z"
+  },
+  {
+   "agent": "a7de2409",
+   "task": "VB-718",
+   "size": "S",
+   "status": "done",
+   "model": "sonnet",
+   "calls": 45,
+   "tokens": {
+    "input": 90,
+    "cacheWrite": 74564,
+    "cacheRead": 2205571,
+    "output": 19487
+   },
+   "weighted": 411287,
+   "first": 20199,
+   "boot": 51757,
+   "peak": 74566,
+   "activeMin": 10.7,
+   "start": "2026-11-19T16:20:19.134Z"
+  },
+  {
+   "agent": "a22e7d9a",
+   "task": "VB-766",
+   "size": "S",
+   "status": "done",
+   "model": "sonnet",
+   "calls": 68,
+   "tokens": {
+    "input": 136,
+    "cacheWrite": 488274,
+    "cacheRead": 4429499,
+    "output": 28638
+   },
+   "weighted": 1196618,
+   "first": 20207,
+   "boot": 71165,
+   "peak": 99963,
+   "activeMin": 45,
+   "start": "2026-11-19T16:20:19.136Z"
+  },
+  {
+   "agent": "a31be5ff",
+   "task": "VB-881",
+   "size": "S",
+   "status": "done",
+   "model": "sonnet",
+   "calls": 57,
+   "tokens": {
+    "input": 114,
+    "cacheWrite": 312189,
+    "cacheRead": 1882034,
+    "output": 13309
+   },
+   "weighted": 645099,
+   "first": 20256,
+   "boot": 0,
+   "peak": 55011,
+   "activeMin": 45.4,
+   "start": "2026-11-19T16:32:49.753Z"
+  },
+  {
+   "agent": "a6083b4d",
+   "task": "VB-978",
+   "size": "S",
+   "status": "done",
+   "model": "sonnet",
+   "calls": 30,
+   "tokens": {
+    "input": 60,
+    "cacheWrite": 130675,
+    "cacheRead": 802225,
+    "output": 6476
+   },
+   "weighted": 276006,
+   "first": 20265,
+   "boot": 0,
+   "peak": 39982,
+   "activeMin": 27.8,
+   "start": "2026-11-19T16:32:49.760Z"
+  },
+  {
+   "agent": "a53b4509",
+   "task": "VB-990",
+   "size": "S",
+   "status": "done",
+   "model": "sonnet",
+   "calls": 24,
+   "tokens": {
+    "input": 48,
+    "cacheWrite": 55848,
+    "cacheRead": 781537,
+    "output": 8334
+   },
+   "weighted": 189682,
+   "first": 20288,
+   "boot": 39230,
+   "peak": 45363,
+   "activeMin": 7.8,
+   "start": "2026-11-19T17:03:10.210Z"
+  },
+  {
+   "agent": "ae2503b5",
+   "task": "VB-767",
+   "size": "S",
+   "status": "done",
+   "model": "sonnet",
+   "calls": 42,
+   "tokens": {
+    "input": 84,
+    "cacheWrite": 65174,
+    "cacheRead": 2315251,
+    "output": 19353
+   },
+   "weighted": 409842,
+   "first": 20234,
+   "boot": 52353,
+   "peak": 73349,
+   "activeMin": 7.3,
+   "start": "2026-11-19T17:33:46.085Z"
+  },
+  {
+   "agent": "a0afb2e4",
+   "task": "VB-775",
+   "size": "S",
+   "status": "done",
+   "model": "sonnet",
+   "calls": 45,
+   "tokens": {
+    "input": 90,
+    "cacheWrite": 126937,
+    "cacheRead": 2207951,
+    "output": 22044
+   },
+   "weighted": 489776,
+   "first": 20234,
+   "boot": 41062,
+   "peak": 70297,
+   "activeMin": 12.4,
+   "start": "2026-11-19T17:41:44.947Z"
+  },
+  {
+   "agent": "a2c2b626",
+   "task": "VB-834",
+   "size": "S",
+   "status": "done",
+   "model": "sonnet",
+   "calls": 21,
+   "tokens": {
+    "input": 42,
+    "cacheWrite": 97545,
+    "cacheRead": 791902,
+    "output": 10068
+   },
+   "weighted": 251503,
+   "first": 20201,
+   "boot": 0,
+   "peak": 55771,
+   "activeMin": 4.9,
+   "start": "2026-11-19T17:57:15.377Z"
+  }
+ ],
+ "summary": {
+  "weightedTotal": 6160595,
+  "orchestratorShare": 0.157,
+  "bootMedian": 52055,
+  "readMedian": 31839,
+  "weightedPerDoneTask": 616060,
+  "perSize": {
+   "S": {
+    "n": 9,
+    "median": 409842
+   },
+   "M": {
+    "n": 1,
+    "median": 1187913
+   }
+  },
+  "firstPass": 1,
+  "tasks": 10
+ }
+}
