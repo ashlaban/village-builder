@@ -40,7 +40,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1123](backlog/VB-1123.md) | Page: plan mode: the household's season planned on the map, in place of the Plan tab | - | 2 | L | Plan mode replaces the Plan tab: a bar of the season a member with the actions on it, actions chosen from a tile's menu, problems marked where they are, and the outcome read on the needs (survival's thresholds, by the head's estimate); no target is stepped. Requirements, walks and Kim's decisions of 17 and 18 Nov; mocks A to L. |
 | [VB-1172](backlog/VB-1172.md) | The booth is a project of the pawn who raises it | acts | 2 | M | A booth's wood and raising are a project plan of its pawn (sim/projects), not a field scanned on st.booths; the verb's guard is living, not free; someone in play stakes one. |
 | [VB-1316](backlog/VB-1316.md) | The retired's voice: advice to the head, and a grandchild's match | life | 2 | M | A retired pawn advises the head once a year by an offer of basis advice, which the head takes by opinion times standing and carries out itself; a retired grandparent wishes a grandchild's match under Who makes a match by the heads; the retired sheet lists its decisions. |
-| [VB-1380](backlog/VB-1380.md) | Cost: the moving round's call doubled at medium-ref (58.6 to 108 ms) | - | 2 | S | Find which of the run's changes doubled the moving round's call at medium-ref; VB-766's crowding refresh at each membership change is the suspect |
 | [VB-043](backlog/VB-043.md) | One scope model: a membership graph of entities | debt | 3 | M | The membership graph of typed edges, with scopes on it; as Membership's truth if Kim adopts it (measured 0.55 ms at year 12). |
 | [VB-082](backlog/VB-082.md) | Customs made legible: votes, leanings and causes | debt | 3 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. |
 | [VB-108](backlog/VB-108.md) | Wrap-up: the household's year | year | 3 | S | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
@@ -103,6 +102,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1374](backlog/VB-1374.md) | Measure VB-718 surplus dung (owed to VB-662) | - | 3 | S | numbers owed by VB-718 |
 | [VB-1389](backlog/VB-1389.md) | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 | [VB-1404](backlog/VB-1404.md) | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
+| [VB-1410](backlog/VB-1410.md) | Measure the alderman's keep (VB-463): each option forced, keepDays 2/4/7, keepShare 0.05/0.1/0.17 | - | 3 | S | Collecting task for VB-463's unmeasured numbers |
 
 ## Waiting for Kim
 
@@ -110,6 +110,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-1405](backlog/VB-1405.md) | Measure: the moving round at medium-ref after VB-1380 | - | 2 | S | owed by VB-1380: the round call at medium-ref |
 | [VB-722](backlog/VB-722.md) | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 | [VB-1126](backlog/VB-1126.md) | Design: the age of account and the bands' margin in design.md | talk | 3 | S | design.md does not yet say VB-1106's two rules (SOCIAL.account 12, SOCIAL.back 0.2) |
 
