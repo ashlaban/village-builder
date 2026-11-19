@@ -92,6 +92,7 @@ Both references meet the target (median at least 1%), so nothing below is urgent
 | CROP_DRAW shares (sim/scenarios) and the fallow share | forest share for rye 0.25, meadow 0.3 for peas, a third barley alone; fallow fields add work | populous small 15 y seeds 3,7,11,42: hungry-days 14-33 to 43-67 a seed, mean grain -20%; founders hay and meadows a year later | tune rotations workload and the shares | VB-353 |
 | Culture.P.returnMargin | the margin to return a village's practice to its culture's custom (0.12) | populous small seed 7, 40 years: 21 village changes, 8 of 13 closed back within 10 years, mostly young villages of 2 to 20 people filling with settlers; 0.25 changed little (VB-1104) | tune with P.hold and P.fewVoices over populous seeds | VB-1104 |
 | waterLate / HEALTH.dry | urgency of the water job from 14:00 / health lost on a dry day | water job unclaimed with a hand free on 84-99% of dry household-days (populous 3-4k over 15 years); no hand free 11-15% in populous, 0 in founders | raise waterLate above other chores' urgency in a tuning run, then re-measure dry days | VB-626 |
+| FOUNDERS (rules.js): manMin 20, manSpan 7, wifeMin 18 | founding couples younger: man 20-26, wife at least 18 | 16 seeds, 80 y: median at 50 y 2.6% (was 1.9%), 16 of 16 above start (15), but seeds 5 and 9 stand still (1 before); seeds 3/7/11/42 all up | keep if Kim accepts one more standing-still seed for a higher median | VB-635 |
 
 ## Mechanisms on their way that move the same numbers
 
