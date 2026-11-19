@@ -3,8 +3,19 @@ VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { emit } = VB['sim/events'];
   const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
-  const { joinHousehold, person, personEvent, lifeEvent, log, fullName, spouseOf, atHousehold, kinNear } =
-    VB['sim/records'];
+  const {
+    joinHousehold,
+    person,
+    personEvent,
+    lifeEvent,
+    log,
+    fullName,
+    spouseOf,
+    atHousehold,
+    kinNear,
+    settlementIdOf,
+    membersOf,
+  } = VB['sim/records'];
   const Culture = VB['culture'],
     Traits = VB['sim/traits'];
   const { initRelations, raiseTie, floorKin } = VB['sim/relations'];
@@ -52,10 +63,8 @@ VB['sim/births'] = (() => {
     p.age = 0;
     joinHousehold(st, hh, id);
     Traits.born(st, id); // its traits, from its parents by birth and its culture (VB-519)
-    Culture.initPerson(
-      p,
-      Float32Array.from(m.att, (x, k) => (x + father.att[k]) / 2),
-    );
+    const v = settlementIdOf(st, p); // its village's norm joins its parents' (VB-1230)
+    Culture.initPerson(p, Culture.inherit(m.att, father.att, v === null ? null : membersOf(st, v)));
     initRelations(st, p);
     for (const j of hh.members)
       if (j !== id && st.pawns[j].alive) {
