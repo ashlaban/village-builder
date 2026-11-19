@@ -6,11 +6,12 @@ here, so the instructions are versioned with the code, changed by PR, and their 
 
 | Role | File | Scheduled task | Time (Stockholm) | Changes |
 |------|------|----------------|------------------|---------|
-| Worker | `worker.md`, and `.claude/agents/vb-task.md` for each task | Village builder (worker) | 04:46 daily | code, tests, task files; never `design.md` |
+| GitHub Actions worker | [github-actions-worker.md](github-actions-worker.md) | Nightly worker (GitHub Actions) | 04:46 daily | code, tests, task files; never `design.md` |
+| Worker | [worker.md](worker.md) | Village builder (worker) | 04:46 daily (disabled) | code, tests, task files; never `design.md` |
 | Reviewer | `reviewer.md` | Village builder (Reviewer) | 05:49 daily | `design.md`, `REVIEW.md`, the backlog, the questions |
 | Project manager | `project-manager.md` | Village builder (Project manager) | 09:23 daily | the backlog and `QUESTIONS.md` only |
 
-The prompt of each scheduled task, with its role and file:
+The prompt of each Claude-scheduled task, with its role and file:
 
 > You are the <role> of the village builder, the GitHub repository `ashlaban/village-builder`, running unattended: nobody will
 > answer questions. Clone the repository, then read `docs/agents/<file>` on `main` and follow it.
@@ -29,5 +30,12 @@ to these files or to `AGENTS.md`. Three measures say whether a night gave the mo
 a done task, by size; the overhead, as the orchestrator's share of the cost and the sub-agents' median boot (their context at the
 first edit); and the share of tasks done at the first attempt.
 
-The three scheduled tasks have been disabled since 2 and 3 November 2026, and until they are pointed here they carry their old prompts,
-written for the backlog before 3 November (tasks as blocks inside `BACKLOG.md`).
+The original Claude-scheduled tasks have been disabled since 2 and 3 November 2026. The GitHub Actions worker takes two medium
+tasks on its schedule by default. Set the repository variable `WORKER_BATCH` to `small` to schedule ten small tasks. To run the
+worker manually from `main`, open **Actions → Nightly worker → Run workflow** and select `medium` or `small`.
+
+Add the repository secrets `ANTHROPIC_API_KEY` and `WORKER_GITHUB_TOKEN`. The latter is a fine-grained token scoped to this
+repository, with Contents and Pull requests read/write access. It lets GitHub trigger the PR checks and publish Pages after the
+merge. The workflow requests a merge immediately after opening a complete batch's PR. Rules on `main` must allow the token's
+account to merge at that point. The workflow uploads each usage report as an artifact and commits it alongside the task changes
+when it opens a PR.
