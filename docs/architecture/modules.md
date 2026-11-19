@@ -220,6 +220,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Customs on the page (VB-396 to VB-398): `src/page/customs.js` is the Customs tab of a village's card, the customs as sentences (`SAID`; a
   new custom or option gets its phrase there), who stands by which way, and a voice's note (its pulls from `src/sim/leanings.js`, a
   read-only view, weighed by `Culture.WEIGH`, the factors the daily drift itself reads, so the note and the drift cannot disagree); `src/page/culture.js` is the dock's Culture pane: a culture's villages, its own charter, the meetings.
+- Decisions (VB-313; target-v2 4.5): `src/sim/decisions.js` settles a body's question with several voices. The module that poses a kind
+  registers it at load (`defineKind(kind, {procedure, evaluate, fallback, choose?})`); `ask(st, question)` runs the body's procedure
+  (`procedureFor`: `vote` or `agent`) and keeps a contested question's ballots in `st.decisionLog` (the last 30). A tie goes to the presiding
+  pawn (`setPresider`, VB-314), else the fallback. Today one kind, `custom` (`sim/meetings`; asked from `Culture.meeting` through
+  `hooks.ask`); VB-293's marriage offers stay in `sim/offers` until a follow-up moves them.
 - Commands (VB-167 to VB-171; VB-228): `src/sim/commands.js` is the dispatcher alone (`register`, `issue`, the table `VERBS`) and imports no
   domain. Each module registers, at load, the verbs of the acts it carries out: `sim/agents` (`work`, `walkTo`, `goHome`, `idle`,
   `haltForTalk`), `sim/away` (`lodge`, `comeHome`, `raiseBooth`), `sim/gifts` (`give`, `deliver`), `sim/occasions` (`attend`, `call`), `sim/venues` (`callAle`),

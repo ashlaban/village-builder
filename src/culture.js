@@ -300,7 +300,8 @@ const Culture = (() => {
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
   // nameCulture(s, from), onSplit(nc, from, cause), ask(question) for a meeting's question (sim/decisions, VB-313) and, if given,
   // decide(s, dim, option) for a meeting's change (VB-170) and act(p, trait, rule) for what a person's trait does to its drift (VB-520:
-  // openness, piety; 1 at a trait of 0.5); the caller builds them (sim/society hooks(st), or tests/calibrate.js). The environment itself (cultures, settlements, people, driftMul) is plain data.
+  // openness, piety; 1 at a trait of 0.5); the caller builds them (sim/society hooks(st), or tests/calibrate.js). The environment itself
+  // (cultures, settlements, people, driftMul) is plain data.
   // `values`: the means of its people's four values (VB-519; Customs and culture, A culture's values), as given (an archetype's) or else
   // its parent's, until its people's are reckoned.
   function makeCulture(env, name, customs, centre, parent = null, values = null) {
