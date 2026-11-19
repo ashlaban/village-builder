@@ -1,4 +1,4 @@
-// @sys sim/deaths: causes of death, the death.hazard rule and its daily roll, and the course of a fatal illness (VB-1118)
+// @sys sim/deaths: causes of death, the death.hazard rule and its daily roll, and the course of an illness, which kills (VB-1118) or passes (VB-1246)
 VB['sim/deaths'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { YEAR, YEAR_DAYS, DAY, hazard, ILLNESS } = VB['sim/rules'];
@@ -26,26 +26,49 @@ VB['sim/deaths'] = (() => {
   // A death in a cold house (VB-327: its household's hh.cold above 0) is told with this after the cause's words; no cause of its own.
   const COLD = ' in a cold house';
   const baseCause = (a) => (a < 1 ? 'infancy' : a < 15 ? 'childhood' : a < 60 ? 'illness' : 'oldAge');
-  // One pawn's death roll for the day: null or a cause key, read from the rule's contributions (Rules.draw). One random draw.
-  function deathRoll(st, p) {
-    const u = rnd(st.rng.deaths);
+  // One pawn's death roll for the day: null or a cause key, read from the rule's contributions (Rules.draw). One random draw, `u`.
+  function deathRoll(st, p, u = rnd(st.rng.deaths)) {
     if (p.health <= 0) return 'starvation';
     return Rules.draw(st, 'death.hazard', p, u);
   }
-  // @state pawn.ill: absent, or {cause (a key of ILLNESS.days), from, until (game hours)}: an illness running its course (VB-1118). A
-  // death the roll draws of a cause with a course is not dealt at once: the pawn falls ill, ails for the cause's days (its health falls,
-  // sim/hunger) and dies when the course is run. While ill it draws no other roll. Plain data, saved with the pawn.
+  // @state pawn.ill: absent, or {cause (a key of ILLNESS.days), from, until (game hours), passes (absent, or true: a course that passes,
+  //   VB-1246)}: an illness running its course (VB-1118). A death the roll draws of a cause with a course is not dealt at once: the pawn
+  //   falls ill, ails for the cause's days (its health falls, sim/hunger) and dies when the course is run; while it runs no other roll is
+  //   drawn. A pawn also falls ill at an incidence of its own (ILLNESS.incidence, by the cause its age gives) above the roll's deaths: that
+  //   course passes, its health falling by ILLNESS.passing of the fall, and the pawn recovers at its end unless its health gives out
+  //   first; the day's roll still runs while it ails, and a death drawn then turns the course to one that kills, so the deaths the roll
+  //   draws are as before. Plain data, saved with the pawn.
   // The day's death of pawn p (sim/lifecycle): a cause to kill it with now, or null; a draw of a cause with a course starts the illness.
   function dayOfDeath(st, p) {
-    if (p.ill !== undefined) {
-      const cause = p.health <= 0 ? 'starvation' : st.t >= p.ill.until ? p.ill.cause : null;
+    const I = p.ill;
+    if (I !== undefined && !I.passes) {
+      const cause = p.health <= 0 ? 'starvation' : st.t >= I.until ? I.cause : null;
       if (cause !== null) delete p.ill; // the course is run
       return cause;
     }
-    const cause = deathRoll(st, p);
-    const days = cause === null ? undefined : ILLNESS.days[cause];
-    if (days === undefined) return cause;
-    p.ill = { cause, from: st.t, until: st.t + days * DAY };
+    const u = rnd(st.rng.deaths),
+      cause = deathRoll(st, p, u),
+      days = cause === null ? undefined : ILLNESS.days[cause];
+    if (I !== undefined) {
+      if (p.health <= 0) {
+        delete p.ill;
+        return p.hunger > 0 ? 'starvation' : I.cause; // its health gave out: the illness took it, unless hunger did
+      }
+      if (days !== undefined) {
+        p.ill = { cause, from: I.from, until: Math.max(I.until, st.t + days * DAY) }; // the course turns to one that kills
+        return null;
+      }
+      if (cause === null && st.t >= I.until) delete p.ill; // recovered
+      return cause;
+    }
+    if (days !== undefined) {
+      p.ill = { cause, from: st.t, until: st.t + days * DAY };
+      return null;
+    }
+    if (cause !== null) return cause;
+    const base = baseCause((st.t - p.born) / YEAR);
+    if (u < ILLNESS.incidence[base] / YEAR_DAYS)
+      p.ill = { cause: base, from: st.t, until: st.t + ILLNESS.days[base] * DAY, passes: true };
     return null;
   }
   return { CAUSES, COLD, deathRoll, dayOfDeath };

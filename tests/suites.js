@@ -18,6 +18,7 @@ const FAST = [
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
   ['node', 'tests/sheet.js'], // the played pawn's sheet: what a command brought, what moved its levels, an illness before it kills (VB-1118)
+  ['node', 'tests/illness.js'], // illnesses that are survived: a course that passes, one turned by a draw, the roll's deaths kept (VB-1246)
   ['node', 'tests/wishes.js'],
   ['node', 'tests/wishlapse.js'],
   ['node', 'tests/roundoffers.js'],

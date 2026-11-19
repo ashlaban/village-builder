@@ -608,7 +608,7 @@ function checkState(st) {
     for (const p of st.pawns) {
       if (p.ill === undefined || !p.alive) continue; // one killed otherwise while ill keeps its last illness
       const I = p.ill, ILL = globalThis.VB['sim/rules'].ILLNESS;
-      if (!(I.cause in ILL.days) || !(I.from <= st.t) || !(I.until > I.from)) bad.push(`pawns[${p.id}]: invalid illness ${JSON.stringify(I)}`);
+      if (!(I.cause in ILL.days) || !(I.from <= st.t) || !(I.until > I.from) || !(I.passes === undefined || I.passes === true)) bad.push(`pawns[${p.id}]: invalid illness ${JSON.stringify(I)}`);
     }
     for (const p of st.pawns) {
       if (p.feast === undefined) continue;
