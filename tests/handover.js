@@ -175,7 +175,7 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
     0.8 + 0.15 + 0.3 + HANDOVER.opinion * op < HANDOVER.at,
     `the scene: the holder is at odds with his heir (${op})`,
   );
-  const f = st.farmsteads[st.households[0].farmstead],
+  const home = st.households[0],
     fond = opinionOf(st, 2, 0);
   const r = issue(st, {
     actor: 6,
@@ -188,16 +188,16 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   assert.strictEqual(R.spouseOf(st, 2), 8, 'the scene: the heir marries, and he comes to live on her father’s farm');
   assert.strictEqual(st.households[0].holder, 0, 'the holder holds on at the wedding');
   assert.strictEqual(handovers(st).length, 0, 'and offers nothing');
-  assert.deepStrictEqual(f.expected, { heir: 2, since: st.t }, 'the custom’s time has come: the farm expects her');
+  assert.deepStrictEqual(home.expected, { heir: 2, since: st.t }, 'the custom’s time has come: the farm expects her');
   sound(st, 'a holder holding out');
   const near = (a, b, what) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} against ${b}`);
   near(opinionOf(st, 2, 0), fond, 'no grudge on the day');
-  f.expected.since -= YEAR; // a year on
+  home.expected.since -= YEAR; // a year on
   near(opinionOf(st, 2, 0), fond - HANDOVER.grudge, 'a year of holding out costs the heir’s opinion');
   assert.strictEqual(opinionOf(st, 3, 0), opinionOf(st, 3, 0), 'only hers');
-  f.expected.since -= 20 * YEAR;
+  home.expected.since -= 20 * YEAR;
   near(opinionOf(st, 2, 0), fond - HANDOVER.grudgeMax, 'up to its cap');
-  f.expected.since += 20 * YEAR;
+  home.expected.since += 20 * YEAR;
   st.pawns[0].age = 60;
   birthday(st, 0);
   assert.strictEqual(st.pawns[0].age, 60, 'the scene: his sixtieth birthday');
@@ -205,7 +205,7 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   assert.ok(o && o.to === 2 && o.gives.reason === 'marriage', 'at 60, no longer a hand, he offers it to her');
   conclude(st, o);
   assert.strictEqual(st.households[0].holder, 2, 'she takes it');
-  assert.strictEqual(f.expected, null, 'the farm expects nothing more');
+  assert.strictEqual(home.expected, null, 'the farm expects nothing more');
   assert.ok(opinionOf(st, 2, 0) >= fond - 1e-9, 'and the grudge ends with the holding');
   sound(st, 'handed on at 60');
 }
@@ -217,7 +217,7 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   birthday(st, 0);
   assert.strictEqual(st.offers.length, 0, 'the custom’s time has come, and nothing offers for the played holder');
   assert.deepStrictEqual(
-    st.farmsteads[st.households[0].farmstead].expected,
+    st.households[0].expected,
     { heir: 2, since: st.t },
     'and it holds out, as any holder would (VB-1314)',
   );
@@ -242,7 +242,7 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   assert.strictEqual(ho(1), undefined, 'and is the holder’s alone');
   assert.strictEqual(hand(2, { reason: 'retirement' }), true);
   assert.strictEqual(st.households[0].holder, 2, 'the first in line says yes at once');
-  assert.strictEqual(st.farmsteads[st.households[0].farmstead].expected, null, 'the handover ends what was expected');
+  assert.strictEqual(st.households[0].expected, null, 'the handover ends what was expected');
   assert.ok(st.pawns[0].retired && st.pawns[0].household === 0, 'the played pawn is retired on the farm');
   assert.strictEqual(st.player.pawn, 0, 'and is still the one played');
   sound(st, 'a played holder handed on');

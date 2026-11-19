@@ -270,12 +270,12 @@ VB['sim/relations'] = (() => {
     return Math.max(-1, Math.min(1, o));
   }
   // The heir's grudge against a holder holding out past the custom's time (VB-1314; HANDOVER.grudge): a's opinion of b falls a little a
-  // year since the farm b holds came to expect a (farmstead.expected, sim/marriage), up to HANDOVER.grudgeMax; ended with it. Three
+  // year since the household b holds came to expect a (household.expected, sim/marriage), up to HANDOVER.grudgeMax; ended with it. Two
   // lookups, no allocation: a holder lives in the household it holds.
   function grudge(st, a, pb) {
     const hh = pb.household === null ? null : st.households[pb.household];
-    if (!hh || hh.holder !== pb.id || hh.farmstead === null) return 0;
-    const e = st.farmsteads[hh.farmstead].expected;
+    if (!hh || hh.holder !== pb.id) return 0;
+    const e = hh.expected;
     return e && e.heir === a ? Math.min(HANDOVER.grudgeMax, (HANDOVER.grudge * (st.t - e.since)) / YEAR) : 0;
   }
   // a owes b s rations: +gratitude x s / (s + scale), fading as the balance decays; else 0
