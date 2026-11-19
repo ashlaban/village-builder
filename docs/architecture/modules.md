@@ -202,7 +202,8 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   six-minute step reads at its head only. Those asked set out by the verb `attend` and stand about the spot until the end (`agent.occasion`);
   talk there is talk as anywhere. The gathering of villages (VB-295) is the next kind. What the host lays out at its farm (the ale poured,
   the feast, what guests owe) is `src/sim/feast.js`; the ale evening and the season's rite (their asking, the verb `callAle`, and what their
-  end does, declared to `onEnd`) are `src/sim/venues.js` (VB-1270).
+  end does, declared to `onEnd`) are `src/sim/venues.js` (VB-1270). Every kind's end is a row of `onEnd`'s table (VB-1006): a new kind
+  adds its row (the meeting's and the call's free those present; the wedding's and the funeral ale's pour, feast and log), not a branch.
 - Notable events (VB-098): `Sim.notable(st, ev, about)` in `src/sim/notable.js` gives the reasons a record event is notable (keys of
   `Sim.NOTABLE`: family, holder, hunger, farm, custom) or null, for the pawn the player follows; `Sim.eventLine(st, ev)` tells an event in one
   sentence. A read-only view with no state. The page's toasts (`src/page/notices.js`) read both; a new notable kind is added there, not in the page.
