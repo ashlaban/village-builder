@@ -390,7 +390,8 @@ VB['sim/hunger'] = (() => {
   }
   // Health after the meal: hunger drains it, and the day's cold in the house (VB-327), both faster for the very young and the old; a full meal
   // restores some on a warm day, nothing on a cold one. An illness running its course (pawn.ill, sim/deaths; VB-1118) takes ILLNESS.fall
-  // over its days, and nothing is restored while it runs. The played pawn's day is told to sim/player (event 'health': what moved it).
+  // over its days (ILLNESS.passing of it for one that passes, VB-1246), and nothing is restored while it runs. The played pawn's day is
+  // told to sim/player (event 'health': what moved it).
   function updateHealth(st, p, fed, cold = 0, dry = 0) {
     const a = age(st, p),
       frail = a < 5 || a >= 60 ? HEALTH.frail : 1,
@@ -398,7 +399,10 @@ VB['sim/hunger'] = (() => {
     const hungry = p.hunger > 0 ? HEALTH.drain * p.hunger * p.hunger * frail : 0,
       chill = cold > 0 ? HEALTH.cold * cold * frail : 0,
       damp = dry > 0 ? HEALTH.dry * frail : 0,
-      ill = p.ill === undefined ? 0 : (ILLNESS.fall * DAY) / (p.ill.until - p.ill.from),
+      ill =
+        p.ill === undefined
+          ? 0
+          : ((p.ill.passes ? ILLNESS.passing : 1) * ILLNESS.fall * DAY) / (p.ill.until - p.ill.from),
       rest = cold <= 0 && dry <= 0 && fed && !ill ? HEALTH.recover * act(st, p.id, 'body', 'recover') : 0; // 2.5 to 3.5 by body (VB-520)
     p.health = Math.max(0, Math.min(100, p.health - hungry - chill - damp - ill + rest));
     if (st.player && st.player.pawn === p.id)

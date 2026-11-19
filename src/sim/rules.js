@@ -380,7 +380,17 @@ VB['sim/rules'] = (() => {
   // ---- illness (VB-1118, principle 19): a death the day's roll draws of a cause in `days` (the base hazard's causes; not hunger, which
   // health already shows) comes as an illness that runs that cause's days before it kills; while it runs the pawn's health falls by `fall`
   // over the course (sim/hunger), with no recovery, and no other roll is drawn for it. Kin see the pawn ailing, never the outcome.
-  const ILLNESS = { days: { infancy: 2, childhood: 4, illness: 6, oldAge: 10 }, fall: 60 };
+  // VB-1246: a pawn also falls ill at an incidence of its own, `incidence` a year by the cause its age gives (above the roll's deaths,
+  // which stay its share of the courses); such a course passes, its health falling by `passing` of `fall`, unless its health gives out.
+  // First values (Proposed): an infant falls gravely ill about once in its first year, a child or an old pawn one year in three, a grown
+  // one in ten; the hazard at 0, 30 and 80 is 0.39, 0.012 and 0.2 a year, so a course at those ages kills about two in five, one in nine
+  // and two in three.
+  const ILLNESS = {
+    days: { infancy: 2, childhood: 4, illness: 6, oldAge: 10 },
+    fall: 60,
+    incidence: { infancy: 1, childhood: 0.3, illness: 0.1, oldAge: 0.3 },
+    passing: 0.5,
+  };
 
   // ---- relationships (sim/relations; docs/review-relationships.md; VB-240, Kim 10 Nov): one pawn's opinion of another (-1..1) is derived:
   // the bond's value (kin, spouse, housemate), plus affinity, affinity.weight * compatibility * min(1, tie / affinity.known), the pair's
@@ -520,6 +530,25 @@ VB['sim/rules'] = (() => {
     means: 1.5,
     // an offer the player must answer stays open this many days; unanswered, it is answered as the pawn would unplayed (VB-293)
     offerDays: 7,
+  };
+  // ---- the holder's choice to hand on in life (VB-1314; plan VB-1122, section 5; design.md, Handover and shares: Timing): an unplayed
+  // holder hands on when the weighing custom x due + years x max(0, age - from) + weak x (1 - hand) + wish x wish + opinion x op - keep x
+  // keepShare reaches `at` (sim/marriage, handover). due: 1 once the custom's time has come (the heir married and living in the house, or
+  // the holder at 60); hand: 1 while the holder is a working hand (under AGES.hands[1]); wish: 1 when the heir is married in the house,
+  // or courts with no place to marry onto; op: the holder's opinion of the heir (-1 to 1); keepShare: the keep of the holder and its
+  // spouse (a ration a day each) over what the farm made last year (sheaves and milk), at most 1. A holder who holds out past the
+  // custom's time loses its heir's opinion, grudge a year from then up to grudgeMax (sim/relations, derived). First values, Proposed. ----
+  const HANDOVER = {
+    custom: 0.8, // the pull of what the village expects
+    from: 55,
+    years: 0.05, // from 55, each year of age adds 0.05 (a holder of 65 is at 0.5 from age alone)
+    weak: 0.3, // a holder who no longer counts as a working hand
+    wish: 0.3, // the heir married in the house, or waiting on a place to marry
+    opinion: 0.4, // times the holder's opinion of the heir, either way
+    keep: 1, // times the keep's share of the farm's yield
+    at: 1, // the weighing at which the holder offers
+    grudge: 0.05, // the heir's opinion of a holder holding out past the custom's time, lost a year
+    grudgeMax: 0.3, // and at most
   };
 
   // ---- animals (sim/herds; docs/review-animals.md): hay a stall day by kind of animal; the stall period, from autumn day 9 (doy 32) to the
@@ -1199,6 +1228,7 @@ VB['sim/rules'] = (() => {
     HEALTH,
     ILLNESS,
     MARRIAGE,
+    HANDOVER,
     FOUNDERS,
     HELP,
     GOODWILL,

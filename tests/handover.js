@@ -1,7 +1,7 @@
 // Succession is offered and taken up (VB-824; design.md, Succession: Handed on, and taken up), on a constructed state (tests/lib/tiny.js):
 // the line as it is asked gives the ranking (those who would take it, in order), with why each of the others would not; a holder offers
 // on its own day, at the custom's time, due at the round, the first in line answers, and a no passes the offer to the next at once,
-// with no memory; a holder holds out against an heir it thinks ill of; nothing offers for a played holder, who hands on early by the
+// with no memory; a holder weighs it (VB-1314): at odds with the heir it holds out at the wedding, its heir's grudge growing, and hands on at 60; nothing offers for a played holder, who hands on early by the
 // same verb, to the first in line only, and goes on being played; a played heir may say no; a wedding brings the holder's offer at
 // once; at a death one in line who holds a place renounces and the next takes it up, and a minor is not asked.
 const assert = require('assert');
@@ -9,7 +9,7 @@ const VB = require('../src/load.js'),
   Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
-const { DAY, YEAR, SOCIAL } = VB['sim/rules'];
+const { DAY, YEAR, HANDOVER } = VB['sim/rules'];
 const { heirRanking, refreshRoles } = VB['sim/heirs'];
 const { conclude } = VB['sim/offers'];
 const { dailyLife } = VB['sim/lifecycle'];
@@ -163,14 +163,51 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   sound(st, 'the handover taken');
 }
 
-// 3. A holder who thinks ill of the heir holds out
+// 3. The holder's choice, weighed (VB-1314; HANDOVER): under 'marriage', a holder of 58 at odds with the heir holds on at her wedding,
+// and the farm comes to expect her; her grudge grows a year, to its cap; at 60 he hands on, and the grudge ends with the holding.
 {
-  const st = world({ handover: 'age60' });
+  const st = world({ handover: 'marriage' });
+  st.pawns[0].born += 4 * YEAR;
+  st.pawns[0].age = 58;
   for (let n = 0; n < 12; n++) remember(st, 0, 2, ['refusedMatch', 'claim', 'border'][n % 3]); // each to its cap
-  assert.ok(opinionOf(st, 0, 2) <= SOCIAL.enemy, 'the scene: the holder is at enmity with the first in line');
+  const op = opinionOf(st, 0, 2);
+  assert.ok(
+    0.8 + 0.15 + 0.3 + HANDOVER.opinion * op < HANDOVER.at,
+    `the scene: the holder is at odds with his heir (${op})`,
+  );
+  const home = st.households[0],
+    fond = opinionOf(st, 2, 0);
+  const r = issue(st, {
+    actor: 6,
+    verb: 'offer',
+    target: 0,
+    args: { basis: 'match', gives: { man: 8, home: 0 }, wants: { woman: 2 } },
+    source: 'round',
+  });
+  assert.strictEqual(r, true, `the match: ${r}`);
+  assert.strictEqual(R.spouseOf(st, 2), 8, 'the scene: the heir marries, and he comes to live on her father’s farm');
+  assert.strictEqual(st.households[0].holder, 0, 'the holder holds on at the wedding');
+  assert.strictEqual(handovers(st).length, 0, 'and offers nothing');
+  assert.deepStrictEqual(home.expected, { heir: 2, since: st.t }, 'the custom’s time has come: the farm expects her');
+  sound(st, 'a holder holding out');
+  const near = (a, b, what) => assert.ok(Math.abs(a - b) < 1e-9, `${what}: ${a} against ${b}`);
+  near(opinionOf(st, 2, 0), fond, 'no grudge on the day');
+  home.expected.since -= YEAR; // a year on
+  near(opinionOf(st, 2, 0), fond - HANDOVER.grudge, 'a year of holding out costs the heir’s opinion');
+  assert.strictEqual(opinionOf(st, 3, 0), opinionOf(st, 3, 0), 'only hers');
+  home.expected.since -= 20 * YEAR;
+  near(opinionOf(st, 2, 0), fond - HANDOVER.grudgeMax, 'up to its cap');
+  home.expected.since += 20 * YEAR;
+  st.pawns[0].age = 60;
   birthday(st, 0);
-  assert.strictEqual(st.offers.length, 0, 'he offers nothing');
-  assert.strictEqual(st.households[0].holder, 0);
+  assert.strictEqual(st.pawns[0].age, 60, 'the scene: his sixtieth birthday');
+  const o = handovers(st)[0];
+  assert.ok(o && o.to === 2 && o.gives.reason === 'marriage', 'at 60, no longer a hand, he offers it to her');
+  conclude(st, o);
+  assert.strictEqual(st.households[0].holder, 2, 'she takes it');
+  assert.strictEqual(home.expected, null, 'the farm expects nothing more');
+  assert.ok(opinionOf(st, 2, 0) >= fond - 1e-9, 'and the grudge ends with the holding');
+  sound(st, 'handed on at 60');
 }
 
 // 4. Nothing offers for a played holder; it hands on early, by the same verb, to the first in line, and goes on being played
@@ -179,6 +216,11 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   Sim.inhabit(st, 0);
   birthday(st, 0);
   assert.strictEqual(st.offers.length, 0, 'the custom’s time has come, and nothing offers for the played holder');
+  assert.deepStrictEqual(
+    st.households[0].expected,
+    { heir: 2, since: st.t },
+    'and it holds out, as any holder would (VB-1314)',
+  );
   const hand = (target, gives) =>
     issue(st, {
       actor: 0,
@@ -200,6 +242,7 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   assert.strictEqual(ho(1), undefined, 'and is the holder’s alone');
   assert.strictEqual(hand(2, { reason: 'retirement' }), true);
   assert.strictEqual(st.households[0].holder, 2, 'the first in line says yes at once');
+  assert.strictEqual(st.households[0].expected, null, 'the handover ends what was expected');
   assert.ok(st.pawns[0].retired && st.pawns[0].household === 0, 'the played pawn is retired on the farm');
   assert.strictEqual(st.player.pawn, 0, 'and is still the one played');
   sound(st, 'a played holder handed on');
@@ -302,7 +345,7 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
 }
 console.log(
   'handover ok: the line as asked gives the ranking, with why each of the others would not take it; a holder offers on its own day at the ' +
-    'custom’s time, due at the round; an heir with a farm refuses and the next takes it, with no memory; ill opinion holds out; a played ' +
+    'custom’s time, due at the round; an heir with a farm refuses and the next takes it, with no memory; a holder at odds holds out at the wedding, at a grudge a year, and hands on at 60; a played ' +
     'holder hands on early by the same verb and stays played; a played heir may refuse; a wedding brings the offer at once; at a death an ' +
     'heir with a place renounces and the next takes it up, a minor is not asked, and with nobody the farm stands empty',
 );

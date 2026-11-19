@@ -72,6 +72,7 @@
     "household.sheafCrops": "sim/stores",
     "household.ale": "sim/stores",
     "household.poured": "sim/stores",
+    "household.expected": "sim/marriage",
     "household.ledger": "sim/stores",
     "household.totals": "sim/stores",
     "household.haySpoilt": "sim/byre",

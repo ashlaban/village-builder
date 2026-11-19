@@ -47,4 +47,14 @@ const set = (st, hh, x) => { hh.grain = { barley: seedReserve(st, hh) + x }; };
   a.grain = { barley: seedReserve(st, a) + 10 };
   assert(/threshold/.test(goodYearGift(st, a)), 'under the threshold');
 }
+{ // VB-1362: a gift between two households of one holder (a holder who moved, a guardian's two) arrives, and books no tie and no goodwill
+  const st = fresh(), [a, b] = st.households, { receive } = VB['sim/exchange'], was = b.holder, h = a.holder;
+  b.holder = h; // the scene: one pawn holds both
+  const gb = Sim.grainOf(b), gw = st.pawns[h].goodwill ? st.pawns[h].goodwill.size : 0;
+  receive(st, a, b, 20, 'a farm', { barley: 20 });
+  assert(Math.abs(Sim.grainOf(b) - gb - 20) < 1e-9, 'the grain arrives');
+  assert(!(st.pawns[h].goodwill && st.pawns[h].goodwill.has(h)) && (st.pawns[h].goodwill ? st.pawns[h].goodwill.size : 0) === gw, 'no goodwill with itself');
+  assert(!st.pawns[h].ties.has(h), 'no tie with itself');
+  b.holder = was;
+}
 console.log('gift ok');

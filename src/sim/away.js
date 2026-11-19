@@ -620,17 +620,23 @@ VB['sim/away'] = (() => {
     turnTo(st, a, to);
   }
   // A carrier arrives with his gift: the receiving household books it (its village's store, if the household is gone) and he turns for home.
+  // The giver is the household of the farm he set out from, not his own: his household may have changed on the road (into service, or
+  // a handover, at the very farm he carries to), and he walks home to the one he has, or is there.
   function delivered(st, a, j) {
     const g = j.gift,
-      from = st.households[st.pawns[a.id].household],
+      gave = j.from === null ? null : st.farmsteads[j.from].household,
+      from = gave === null ? null : st.households[gave],
       to = st.households[g.to],
       f = st.farmsteads[to.farmstead];
     j.gift = null;
     j.back = true;
     if (to.dissolved) Stores.put(st, st.villages[f.village], 'grain', g.n, { kind: 'gift', from: f.name }, g.parts);
-    else receive(st, from && !from.dissolved ? from : null, to, g.n, st.farmsteads[j.from].name, g.parts);
+    else
+      receive(st, from && !from.dissolved && from !== to ? from : null, to, g.n, st.farmsteads[j.from].name, g.parts);
     personEvent(st, a.id, 'arrived', `Arrived at ${f.name} with ${Math.round(g.n)} grain`, false);
-    j.to = st.farmsteads[from.farmstead].house;
+    const home = st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
+    if (home === f.house) return endJourney(st, a);
+    j.to = home;
     startLeg(st, a, j);
   }
   // Arrival: the journey ends, what is left of its provisions goes into the new home's meals, and the pawn is at home.
