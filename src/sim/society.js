@@ -4,6 +4,7 @@ VB['sim/society'] = (() => {
   const { personEvent } = VB['sim/records'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { issue, register } = VB['sim/commands'];
+  const { ask } = VB['sim/decisions'];
   const Culture = VB['culture'];
   const { initRelations, raiseTie } = VB['sim/relations'];
   const { YEAR, houseTerm, TIE, SPEED, WORKDAY, cal, TRAITS, HERD, SOCIAL, DAY } = VB['sim/rules'];
@@ -39,6 +40,7 @@ VB['sim/society'] = (() => {
         return s === null ? null : env.settlements[s];
       },
       voiceOf: (p, s) => voiceOf(st, p, s),
+      ask: (q) => ask(st, q), // a meeting's question, settled by the village's procedure (sim/decisions, VB-313)
       decide: (s, dim, option) =>
         issue(st, { actor: { settlement: s.id }, verb: 'decide', args: { dim, option }, source: 'meeting' }) === true,
       membersOf: (s) => membersOf(st, s.id),

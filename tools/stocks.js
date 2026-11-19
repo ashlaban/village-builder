@@ -123,7 +123,7 @@ const QUANTITIES = [
 
 // ---- the other fields of the @state lines, by hand: each with why it is not a stored quantity ----
 const NOT_STOCKS = {
-  'identity, links and membership': ['household.id', 'household.farmstead', 'household.members', 'household.holder', 'household.guardian', 'household.ward',
+  'identity, links and membership': ['household.id', 'household.farmstead', 'household.members', 'household.holder', 'household.expected', 'household.guardian', 'household.ward',
     'household.herds', 'household.dissolved', 'farmstead.id', 'farmstead.house', 'farmstead.village', 'farmstead.household', 'farmstead.name',
     'farmstead.line', 'farmstead.rowAngle', 'farmstead.firstRotation', 'farmstead.keeps', 'village.id', 'village.name', 'village.center', 'village.farmsteads', 'village.wood', 'village.plots'],
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'household.spoilt', 'household.hungryDays',

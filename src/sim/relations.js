@@ -2,7 +2,7 @@
 // and the people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn), memories and bands
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL, MATCH, TRAITS } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL, MATCH, TRAITS, HANDOVER } = VB['sim/rules'];
   const Traits = VB['sim/traits'],
     { DIMS } = VB['culture'];
   const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf, age } = VB['sim/records'];
@@ -266,7 +266,17 @@ VB['sim/relations'] = (() => {
     if (k) o += SOCIAL.situational[k];
     if (r) for (const kind in r.mem) o += memNow(st, kind, r.mem[kind]);
     if (GOODWILL.acts) o += gratitude(st, pa, b);
+    o -= grudge(st, a, st.pawns[b]);
     return Math.max(-1, Math.min(1, o));
+  }
+  // The heir's grudge against a holder holding out past the custom's time (VB-1314; HANDOVER.grudge): a's opinion of b falls a little a
+  // year since the household b holds came to expect a (household.expected, sim/marriage), up to HANDOVER.grudgeMax; ended with it. Two
+  // lookups, no allocation: a holder lives in the household it holds.
+  function grudge(st, a, pb) {
+    const hh = pb.household === null ? null : st.households[pb.household];
+    if (!hh || hh.holder !== pb.id) return 0;
+    const e = hh.expected;
+    return e && e.heir === a ? Math.min(HANDOVER.grudgeMax, (HANDOVER.grudge * (st.t - e.since)) / YEAR) : 0;
   }
   // a owes b s rations: +gratitude x s / (s + scale), fading as the balance decays; else 0
   const gratitude = (st, pa, b, e = pa.goodwill && pa.goodwill.get(b), s = e && e.v < 0 ? -goodwillNow(st, e) : 0) =>
