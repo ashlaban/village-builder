@@ -22,6 +22,9 @@ const breakOn = (tile) => {
   F.finishBreak(st, f); return f.fields[f.fields.length - 1];
 };
 const fresh = breakOn(freshTile), old = breakOn(oldTile);
+// the scenario's rotation (VB-353) staggers the crops of a farm's fields, populous's among them: a field may bear a crop with another yield or
+// fallow; the check is of soil wear, so both fields bear barley
+for (const fd of [fresh, old]) { fd.crop = 'barley'; fd.step = 0; }
 check(near(fresh.soil, S.fresh) && near(old.soil, S.start), `soil on fresh ground ${fresh.soil}, on old ground ${old.soil}`);
 check(w.dev[freshTile] === 1, 'the fresh tile is farmed now');
 // the first harvest: the fresh field yields more, in proportion to its soil
