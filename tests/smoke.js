@@ -504,6 +504,7 @@ async function actionBar() {
     rows[g] = [...doc.querySelectorAll('#actMenu .act-row .nm')].map((n) => n.firstChild.textContent);
   }
   console.log('action bar:', JSON.stringify(rows));
+  if (!rows.house.includes('Hand the farm on')) fail('the played holder\'s house list has no "Hand the farm on" (VB-1140)');
   if (!rows.self.includes('Walk here') || !rows.self.includes('Go home') || !rows.house.includes('Give grain')) fail('the lists lack their acts');
   // Go home, from the Myself list: queued, or refused with its reason
   q('#actBar [data-group="self"]').click(); tick(1);
