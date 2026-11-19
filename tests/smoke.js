@@ -322,6 +322,18 @@ async function goodwillPanel() {
     settlers.querySelector(`button[data-pawn="${none}"]`).click(); tick(20);
     if (/Owes and is owed/.test(rel.innerHTML)) fail(`pawn ${none}, with no balance, shows a goodwill list`);
   }
+  // the means to marry (VB-908): an unmarried pawn whose home is weighed shows the means it holds on the meter, marked at the asked
+  {
+    const ids = [...settlers.querySelectorAll('button[data-pawn]')].map((x) => +x.dataset.pawn),
+      who = ids.find((id) => { const b = Sim.marryBar(st, id); return b && (b.kind === 'short' || b.kind === 'means'); });
+    if (who === undefined) console.log('means: no listed pawn is weighed for the means to marry');
+    else {
+      settlers.querySelector(`button[data-pawn="${who}"]`).click(); tick(20);
+      const st8 = [...doc.querySelectorAll('#tileStats .stat')].find((e) => /Means to marry/.test(e.textContent)), m = st8 && st8.querySelector('.meter');
+      if (!m || m.querySelectorAll('b').length !== 1 || !/marry/.test(m.title)) fail(`pawn ${who}'s means to marry is not a meter marked at the asked`);
+      else console.log('means:', m.title);
+    }
+  }
   // The History tab (VB-099) on the card of a pawn, a farm and a village: it opens, lists events of the record with their dates, each
   // filter by kind narrows it, and a name in a line selects what it names. The village log lists the record's last lines.
   const hist = doc.getElementById('historyList'), tabH = doc.getElementById('tabHistory'), opened = [];

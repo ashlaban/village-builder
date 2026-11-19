@@ -86,7 +86,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-834](backlog/VB-834.md) | Measure: does a gathering's host change its customs faster, by contact alone | town | 3 | S | A report of attitude drift at villages by how many people their pawns meet at venues, to settle target-v2 4.4's Proposed reading (no town term in attitude.malleability) |
 | [VB-875](backlog/VB-875.md) | Mood weighs in a decision | talk | 3 | M | Mood is shown but read by no rule; a plan chooses what it changes |
 | [VB-881](backlog/VB-881.md) | Measures owed by VB-288: demography over 12 seeds, roundPairs at medium-ref and history | - | 3 | S | Seeds 1 to 12 of the marriage demography, roundPairs at medium-ref, history.roundPairs, before and after VB-288 |
-| [VB-908](backlog/VB-908.md) | Means meter on the pawn panel | - | 3 | S | marryStanding's held and asked on the level meter |
 | [VB-911](backlog/VB-911.md) | Hides become leather: shoes and harness wear | animals | 3 | M | A pawn's job tans a hide and makes shoes or harness, which wear and are replaced. |
 | [VB-978](backlog/VB-978.md) | Measure round time and longest step after VB-539 | - | 3 | S | Nightly bench against 73cc328; VB-539 left the times to it. |
 | [VB-990](backlog/VB-990.md) | Measure VB-785's night cost on small-y40 loaded a year | - | 3 | S | Measure the night cost on a late save |

@@ -216,17 +216,10 @@ function showPawn(id) {
           : p.age >= 18 && st.demand.includes(id)
             ? `Landless at ${f.name}, wants to move out`
             : `Lives at ${f.name}`;
+  // what stands between it and a marriage (VB-631): the means held against those asked are a meter among its stats (VB-908), the
+  // other bars a line
   const bar = Sim.marryBar(st, id),
-    yrs = (n) => (Math.round(Math.max(0, n) * 10) / 10).toString();
-  const marryLine = !bar
-    ? ''
-    : {
-        hungry: 'Too hungry to marry',
-        nohome: 'No holding to marry onto',
-        short: `Cannot marry yet: the home holds ${yrs(bar.held)} of the ${yrs(bar.asked)} years it needs`,
-        means: `The home has the means to marry: it holds ${yrs(bar.held)} of the ${yrs(bar.asked)} years asked`,
-        hands: "The home needs a spouse's hands: no means are asked",
-      }[bar.kind];
+    marryLine = bar && !hasMeans(bar) ? marryWords(bar) : '';
   // Its state in its family (VB-1033, VB-1035): whom it is married to is the spouse's chip, with the rings on its portrait; unmarried,
   // widowed, expecting and nursing are marks beside the chips, each an icon with its words as the label and tooltip. Only the count of
   // its children is written.
@@ -280,12 +273,43 @@ function showPawn(id) {
 // A pawn's levels, the same wherever a pawn's state is shown (its card, the played pawn's sheet): its mood on the one meter, the
 // modifiers in force under it (VB-062); health and hunger on the meter, its household's cold, and its standing. Standing is a sum with
 // no upper bound, so it is a number and no meter, its parts in the title (the exception VB-665 is to settle).
+// What stands between an unmarried pawn and a marriage (Sim.marryBar, VB-631), in a sentence; the means a home holds against those asked
+// are a level (VB-908).
+const marryYears = (n) => (Math.round(Math.max(0, n) * 10) / 10).toString();
+const hasMeans = (bar) => bar.kind === 'short' || bar.kind === 'means';
+const marryWords = (bar) =>
+  ({
+    hungry: 'Too hungry to marry',
+    nohome: 'No holding to marry onto',
+    short: `Cannot marry yet: the home holds ${marryYears(bar.held)} of the ${marryYears(bar.asked)} years it needs`,
+    means: `The home has the means to marry: it holds ${marryYears(bar.held)} of the ${marryYears(bar.asked)} years asked`,
+    hands: "The home needs a spouse's hands: no means are asked",
+  })[bar.kind];
+// The means stat: years of food the home holds on the one meter, to twice what is asked (or what it holds, if more), marked at the asked.
+function meansStat(bar) {
+  const held = Math.max(0, bar.held),
+    words = marryWords(bar);
+  return {
+    icon: 'grain',
+    label: 'Means to marry',
+    value: `${marryYears(held)} of ${marryYears(bar.asked)} years`,
+    tone: bar.kind === 'short' ? 'warn' : '',
+    title: words,
+    meter: {
+      value: held,
+      max: Math.max(2 * bar.asked, held),
+      text: words,
+      marks: [{ at: bar.asked, label: `asked: ${marryYears(bar.asked)} years of food` }],
+    },
+  };
+}
 function pawnStats(id) {
   const p = st.pawns[id],
     hh = p.household !== null ? st.households[p.household] : null,
     hunger = Math.round(p.hunger * 100),
     health = Math.round(p.health),
-    mood = Sim.moodOf(st, id);
+    mood = Sim.moodOf(st, id),
+    bar = Sim.marryBar(st, id);
   return (
     (mood ? stats([moodStat(mood)]) + moodModsHTML(mood) : '') +
     stats([
@@ -309,6 +333,7 @@ function pawnStats(id) {
               .join(', ')}`,
           }
         : null,
+      bar && hasMeans(bar) ? meansStat(bar) : null,
     ])
   );
 }
