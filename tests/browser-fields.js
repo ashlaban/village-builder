@@ -71,12 +71,22 @@ assert(html.includes('window.__fieldTest'), 'page hook exists');
       c = await card();
       assert(/Course/.test(c.text) && c.btns.length === 0, "another household's field shows its stats and no buttons");
     }
+    // tilth (VB-719): the row is shown at 0 with the meter empty, and at 0.12 as 12
+    const tilthRow = (x) => page.evaluate(([i, v]) => {
+      const st = window.__fieldTest.st, fd = st.farmsteads.flatMap((f) => f.fields).find((q) => q.tile === i);
+      fd.tilth = v; fd.tilthAt = st.t; window.__fieldTest.open(i);
+      const row = [...document.querySelectorAll('#tile .stat')].find((e) => /Tilth/.test(e.querySelector('.stat-name').textContent));
+      return row ? { val: row.querySelector('.stat-val').textContent, now: +row.querySelector('.meter').getAttribute('aria-valuenow') } : null;
+    }, [t.mine, x]);
+    const t0 = await tilthRow(0), t12 = await tilthRow(0.12);
+    assert(t0 && t0.val === '0' && t0.now === 0, `tilth 0: the row, its meter empty: ${JSON.stringify(t0)}`);
+    assert(t12 && t12.val === '12' && t12.now === 12, `tilth 0.12 reads 12: ${JSON.stringify(t12)}`);
     // winter rye wears the snow
     const look = await page.evaluate(() => { const T = window.__fieldTest, st = T.st;
       while (Sim.cal(st.t).season !== 3) Sim.advance(st, 6);
       return { snow: T.look({ crop: 'rye', stage: 'growing', sown: Math.floor(st.t / Sim.DAY) - 60, tile: 0 }), tex: T.hasTex('rye-snow') }; });
     assert.strictEqual(look.snow, 'rye-snow'); assert(look.tex, 'rye-snow texture exists');
     assert.deepStrictEqual(errors, [], 'no page errors');
-    console.log(`browser-fields: the card, ${allowed.key} chosen (Done), ${refused ? 'a refusal answered' : 'no refusal on this seed'}, no buttons for another's field, rye-snow in winter`);
+    console.log(`browser-fields: the card, ${allowed.key} chosen (Done), ${refused ? 'a refusal answered' : 'no refusal on this seed'}, no buttons for another's field, the tilth row at 0 and 12, rye-snow in winter`);
   } finally { await browser.close(); }
 })().catch((e) => { console.error(e); process.exit(1); });

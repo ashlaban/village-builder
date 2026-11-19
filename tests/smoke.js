@@ -378,6 +378,7 @@ async function goodwillPanel() {
     const S = Sim.villageSummary(st, farm.village, st.player ? st.player.pawn : null);
     const words = [...box.querySelectorAll('.stat-name')].map((e) => e.textContent);
     for (const n of ['Food', 'Harvest', 'Hungry', 'Idle hands', '0–14', '15–49', '50+']) if (!words.includes(n)) fail(`the village's overview lacks ${n}`);
+    if (st.villages[farm.village].farmsteads.some((fid) => st.farmsteads[fid].fields.length) && !words.includes('Tilth')) fail("the village's card lacks its fields' tilth (VB-719)");
     const warned = Object.values(S.warnings).reduce((n, l) => n + l.length, 0), chips = box.querySelectorAll('.warning [data-farm]');
     if (!S.warnings.hunger.includes(hh.id) || chips.length !== warned) fail(`the overview shows ${chips.length} farm chips for ${warned} warned`);
     if (!doc.querySelector(`#tileList [data-farm="${farm.id}"] .supply-chip[data-warning="hunger"]`)) fail("the warned farm's row has no chip for its warning");
@@ -394,6 +395,7 @@ async function goodwillPanel() {
     // the feast (VB-996): a household with a living holder says whether it would lay out a feast, on the meter marked at what it keeps first
     if (chip && hh.holder !== null && st.pawns[hh.holder].alive) {
       const fe = [...box.querySelectorAll('.stat')].find((e) => /Feast/.test(e.querySelector('.stat-name').textContent)), m = fe && fe.querySelector('.meter');
+      if (farm.fields.length && ![...box.querySelectorAll('.stat-name')].some((e) => e.textContent === 'Tilth')) fail("the farm's card lacks its fields' tilth (VB-719)");
       if (!m || m.querySelectorAll('b').length !== 1 || !/feast/i.test(m.title) || !/Seed for its fields/.test(fe.title)) fail('the household\'s card does not say whether it would feast, with the rule\'s parts');
       else console.log('feast:', fe.title);
     }

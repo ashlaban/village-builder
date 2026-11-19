@@ -218,6 +218,7 @@ const houseStats = (hh) =>
   stats([
     kinStat(hh),
     harvestStat(hh),
+    tilthStat(st.farmsteads[hh.farmstead].fields, 'the mean of its fields'),
     feastStat(hh),
     hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
     hh.dry > 0
@@ -731,6 +732,10 @@ function showVillage(id) {
   ].filter(Boolean);
   const villageStats = stats([
     ...overviewStats(S),
+    tilthStat(
+      v.farmsteads.flatMap((fid) => st.farmsteads[fid].fields),
+      "the mean of its farms' fields",
+    ),
     v.fence.length
       ? {
           icon: 'fence',

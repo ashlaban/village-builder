@@ -49,6 +49,23 @@ function stat(o) {
     `<span class="stat-val">${esc(String(o.value))}${o.note ? `<small>${esc(o.note)}</small>` : ''}</span></div>`
   );
 }
+// Tilth (VB-719; Kim, 16 Nov): what years of dung have left in the ground, as the hundredths of harvest it adds, on the one meter to
+// TILTH.max; of one field, or the mean of a farm's or a village's fields (null with none, and no row). What the ground holds now: no
+// foretelling, so no pawn's estimate is named (principle 14).
+function tilthStat(fields, of = '') {
+  if (!fields.length) return null;
+  let sum = 0;
+  for (const fd of fields) sum += Sim.tilthOf(st, fd);
+  const n = Math.round((100 * sum) / fields.length);
+  return {
+    icon: 'soil',
+    label: 'Tilth',
+    value: n,
+    note: of,
+    title: `What years of dung have left in the ground${of ? `, ${of}` : ''}: the harvest gains this many hundredths`,
+    meter: { value: n, max: Math.round(100 * VB['sim/rules'].TILTH.max) },
+  };
+}
 const stats = (list) => `<div class="stat-grid">${list.filter(Boolean).map(stat).join('')}</div>`;
 // A pawn's mood (sim/mood, VB-062): a stat, its level on the one meter marked at the words' cut points (miserable under 25, low under
 // 45, content under 65, happy), the word beside the number; and each modifier in force as its icon and signed value, its label the title.

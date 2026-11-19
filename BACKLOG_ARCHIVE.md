@@ -564,3 +564,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1030](backlog/VB-1030.md) | Refactor: split page/rigs: a pawn's look (colours, ageing) apart from its rig and poses | - | 3 | S | page/rigs is over its length baseline (1,004 lines of 977) since VB-1029: the look (palettes, lookOf, agedLook) leaves for a module of its own, which page/portraits reads too |
 | [VB-908](backlog/VB-908.md) | Means meter on the pawn panel | - | 3 | S | marryStanding's held and asked on the level meter |
 | [VB-996](backlog/VB-996.md) | The household's panel says why it does or does not feast | - | 3 | S | Show the rule feast (Sim.explainFeast) on the household's panel |
+| [VB-719](backlog/VB-719.md) | Tilth on the field, farm and village cards | animals | 3 | S | One meter, named Tilth, on the field's card beside Soil and Condition, and its mean on the farm's and the village's cards; what the field holds, no forecast. |

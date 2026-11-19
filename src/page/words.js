@@ -534,6 +534,7 @@ function settlementTileInfo(i) {
               title: 'How the crops and the dung have left it: 100 is unworn',
               meter: { value: cond, max: 150, marks: [{ at: 100, label: 'unworn at 100' }] },
             },
+            tilthStat([fd]),
           ]),
         },
       ];
