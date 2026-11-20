@@ -474,7 +474,7 @@ function planSites(what, hh) {
     built = VB['sim/fields'].builtTiles(st),
     sites = [],
     reasons = new Map();
-  for (const t of VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[what], VB['sim/routes'].walkable(st.w)).dist.keys()) {
+  for (const t of VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[what], VB['sim/walking'].walkable(st.w)).dist.keys()) {
     const r = why(st, f, hh, t, built);
     if (r === null) sites.push(t);
     else if (t !== f.house) reasons.set(r, (reasons.get(r) || 0) + 1);
@@ -530,7 +530,7 @@ function planPoint(i) {
     const R = VB['sim/rules'],
       hh = st.households[st.farmsteads[tool.farm].household],
       f = st.farmsteads[tool.farm],
-      d = VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[tool.what], VB['sim/routes'].walkable(st.w)).dist.get(i),
+      d = VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[tool.what], VB['sim/walking'].walkable(st.w)).dist.get(i),
       why = (tool.what === 'field' ? VB['sim/fields'].fieldWhy : VB['sim/meadows'].meadowWhy)(st, f, hh, i);
     tool.facts = [
       G.BIOMES[w.biome[i]].name,

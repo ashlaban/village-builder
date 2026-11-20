@@ -43,12 +43,13 @@ function reachBands() {
 const reachTime = (h) => (h < 1 ? `${Math.round(h * 60)} min` : `${+h.toFixed(1)} h`);
 // The band of every tile from `from`: its index in `bands`, bands.length beyond the last edge, REACH_NONE with no way by land.
 function reachMeasure(from, bands) {
-  const Routes = VB['sim/routes'],
+  const { reachCosts } = VB['sim/routes'],
+    { passable } = VB['sim/walking'],
     speed = VB['sim/rules'].SPEED,
     targets = [],
     band = new Uint8Array(w.N).fill(REACH_NONE);
-  for (let i = 0; i < w.N; i++) if (Routes.passable(w, i)) targets.push(i);
-  reachCost = Routes.reachCosts(w, from, Infinity, targets, reachCost);
+  for (let i = 0; i < w.N; i++) if (passable(w, i)) targets.push(i);
+  reachCost = reachCosts(w, from, Infinity, targets, reachCost);
   for (let t = 0; t < targets.length; t++) {
     const c = reachCost[t];
     if (c === null) continue;
@@ -132,7 +133,7 @@ function drawReachLines() {
 }
 // The tile a click selected, if a walk can start there: land, a house or a green; a selected person keeps the origin as it is.
 function reachPick() {
-  return selectionPinned && selPawn < 0 && sel >= 0 && sel < w.N && VB['sim/routes'].passable(w, sel) ? sel : -1;
+  return selectionPinned && selPawn < 0 && sel >= 0 && sel < w.N && VB['sim/walking'].passable(w, sel) ? sel : -1;
 }
 function setReach(on) {
   reachOn = on;

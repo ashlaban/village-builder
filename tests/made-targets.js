@@ -8,7 +8,7 @@ const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const { HERD, BREW, cal } = VB['sim/rules'], P = VB['sim/plans'], Targets = VB['sim/targets'];
 const Dig = VB['sim/dig'], Drying = VB['sim/drying'], Quern = VB['sim/quern'];
-const { byreJobs } = VB['sim/byre'], { addFood } = VB['sim/hunger'];
+const { byreJobs } = VB['sim/byre'], { addFood } = VB['sim/larder'];
 const map = Array.from({ length: 12 }, () => '.'.repeat(20));
 const st = tinyState(tinyWorld(map), [{ at: [9, 6], farms: 3, sizes: [8, 3, 6] }], { seed: 7, herds: true });
 const hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id);

@@ -10,7 +10,9 @@ VB['sim/settle'] = (() => {
   const { wishOf, moveWhy } = VB['sim/wishes'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
-  const { walkable, villageAdded, costChanged } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'],
+    { villageAdded } = VB['sim/villagehours'],
+    { costChanged } = VB['sim/routes'];
   const { log, fullName, spouseOf, unionOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } =
     VB['sim/records'];
   const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];

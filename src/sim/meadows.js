@@ -5,7 +5,8 @@ VB['sim/meadows'] = (() => {
   const { B } = VB['gen'];
   const { byRiver, SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable, costChanged } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'],
+    { costChanged } = VB['sim/routes'];
   const { log, atFarm, atHousehold, age } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo, farmedLand } = VB['sim/layout'];

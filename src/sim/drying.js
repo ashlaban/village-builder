@@ -9,13 +9,14 @@
 VB['sim/drying'] = (() => {
   const { FISH, FIELDS, FOODS, SEASON_DAYS, YEAR, YEAR_DAYS, cal } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'],
-    { passable } = VB['sim/routes'];
+    { passable } = VB['sim/walking'];
   const { isWater, lakeSizes, ground, landCatch } = VB['sim/fish'];
   const { age, log, atFarm } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
-  const { dailyNeed, larderOf, floorOf, spareDays, spareUrgency } = VB['sim/hunger'];
+  const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
+    { larderOf } = VB['sim/larder'];
   const Pot = VB['sim/pot'],
     Targets = VB['sim/targets'],
     { hands } = Targets;

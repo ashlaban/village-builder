@@ -7,7 +7,8 @@ VB['sim/away'] = (() => {
   const { release, goHome, free } = VB['sim/agents'];
   const { cal, WORK, SPEED, HEALTH, TRAVEL, AWAY, BOOTH } = VB['sim/rules'];
   const HANDS = VB['sim/rules'].AGES.hands;
-  const { route, routeCost, hoursBetween } = VB['sim/routes'];
+  const { route, routeCost } = VB['sim/routes'],
+    { hoursBetween } = VB['sim/villagehours'];
   const { age, personEvent } = VB['sim/records'];
   const Stores = VB['sim/stores'];
   const { ate, rationOf, nightCost } = VB['sim/hunger'];

@@ -5,10 +5,11 @@ VB['sim/deer'] = (() => {
     { B } = VB['gen'];
   const { next: rnd } = VB['sim/rng'];
   const { hexSteps } = VB['sim/hex'];
-  const { reachTiles } = VB['sim/routes'];
+  const { reachTiles } = VB['sim/walking'];
   const { graze } = VB['sim/grazing'];
   const { trample } = VB['sim/fields'];
-  const { addFood, spareUrgency } = VB['sim/hunger'];
+  const { addFood } = VB['sim/larder'],
+    { spareUrgency } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
   const { log, atFarm } = VB['sim/records'];

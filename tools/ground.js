@@ -8,7 +8,7 @@ require('./help.js')(__filename);
 const REACH = [12, 30];
 // the report of one run: { seed, villages: [{ village, name, green, in: { kind: [bool by reach] } }] }
 function ofRun(VB, st, seed, reaches) {
-  const w = st.w, Geo = VB['gen/geology'], B = VB.gen.B, { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'];
+  const w = st.w, Geo = VB['gen/geology'], B = VB.gen.B, { bfs } = VB['sim/hex'], { walkable } = VB['sim/walking'];
   const rocks = Geo.ROCKS.slice(1).map((r) => r.key), deps = Geo.DEPOSITS.slice(1), far = Math.max(...reaches);
   const villages = [];
   for (const v of st.villages) {

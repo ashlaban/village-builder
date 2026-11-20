@@ -7,7 +7,7 @@ const VB = require('../src/load.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const Gt = VB['sim/gathering'], { issue } = VB['sim/commands'], { GATHERING, YEAR, DAY, SEASON_DAYS, cal } = VB['sim/rules'];
-const { hoursBetween } = VB['sim/routes'], { membersOf } = VB['sim/records'], Green = VB['sim/green'];
+const { hoursBetween } = VB['sim/villagehours'], { membersOf } = VB['sim/records'], Green = VB['sim/green'];
 
 // six villages of two farms on open meadow: five in a row about two hours apart, and one far off at the east end
 const XS = [4, 30, 56, 82, 108, 290];

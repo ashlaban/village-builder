@@ -8,7 +8,7 @@
 // then twice the bank's catch from it. Founders at seed 7 on the small island of tests/lib/probe.js (VB-855), to the winter: dried fish made
 // and eaten, invariants, a save; boats built are counted.
 const VB = require('../src/load.js'), Sim = VB.sim, { island, scenario } = require('./lib/probe.js'), Stores = VB['sim/stores'], D = VB['sim/drying'], Projects = VB['sim/projects'];
-const { KINDS } = VB['sim/kinds'], { ROLES, FISH, DAY, YEAR_DAYS } = VB['sim/rules'], { dailyNeed, larderOf, feedHousehold } = VB['sim/hunger'];
+const { KINDS } = VB['sim/kinds'], { ROLES, FISH, DAY, YEAR_DAYS } = VB['sim/rules'], { dailyNeed, feedHousehold } = VB['sim/hunger'], { larderOf } = VB['sim/larder'];
 const { boatYear } = D, { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DRYING FAIL:', m); } };
 const cal = (season, sday, hour = 8) => ({ season, sday, doy: season * 12 + sday, day: season * 12 + sday, hour });

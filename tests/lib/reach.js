@@ -3,7 +3,7 @@
 // holds those costs over SPEED. Returns the number of pairs compared and those with a route.
 const assert = require('assert');
 module.exports = (VB, st, label = '') => {
-  const { findRoute, routeCost, reachCosts, buildHours } = VB['sim/routes'], { ROUTE, SPEED } = VB['sim/rules'], w = st.w;
+  const { findRoute, routeCost, reachCosts } = VB['sim/routes'], { buildHours } = VB['sim/villagehours'], { ROUTE, SPEED } = VB['sim/rules'], w = st.w;
   const centres = st.villages.map((v) => v.center), n = centres.length;
   let pairs = 0, routed = 0;
   for (let a = 0; a < n; a++) {

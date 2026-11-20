@@ -4,7 +4,7 @@ VB['sim/territory'] = (() => {
   const { B } = VB['gen'];
   const { CLAIMS, YEAR, WOOD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'];
   const Culture = VB['culture'];
   const CL = VB['sim/claims'],
     Disputes = VB['sim/disputes'];

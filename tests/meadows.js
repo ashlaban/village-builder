@@ -1,6 +1,6 @@
 // Hay meadows (VB-132): founders with animals make meadows by the end of summer of year 1, each on a valid tile within reach; generated
 // (populous) farms with animals start with theirs; farms without animals make none; the state invariants hold.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, M = VB['sim/meadows'], { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'];
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, M = VB['sim/meadows'], { bfs } = VB['sim/hex'], { walkable } = VB['sim/walking'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('MEADOWS FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };

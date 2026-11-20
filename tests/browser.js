@@ -179,7 +179,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   const played = await page.evaluate(() => {
     // a holder of age whose farm has free land within a field's reach, for the plan panel's tile below (the first farms of a packed
     // village have none: VB-1027)
-    const { st } = window.__play, F = VB['sim/fields'], walk = VB['sim/routes'].walkable(st.w);
+    const { st } = window.__play, F = VB['sim/fields'], walk = VB['sim/walking'].walkable(st.w);
     const room = (h) => { const f = st.farmsteads[h.farmstead]; let n = 0;
       for (const t of VB['sim/hex'].bfs(st.w, f.house, 4, walk).dist.keys()) if (F.fieldWhy(st, f, h, t) === null) n++;
       return n >= 3; };

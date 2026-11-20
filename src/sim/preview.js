@@ -10,7 +10,8 @@ VB['sim/preview'] = (() => {
   const { heirRanking, ownFirstOf, refreshRoles } = VB['sim/heirs'];
   const { trustOf } = VB['sim/ownership'];
   const { careForOrphans } = VB['sim/service'];
-  const { seedReserve, larderOf } = VB['sim/hunger'];
+  const { seedReserve } = VB['sim/hunger'],
+    { larderOf } = VB['sim/larder'];
   const { grainOf } = VB['sim/stores'];
   // Household hh's food in days of need: grain above the seed set aside, meals and the larder, over a day's rations of its living
   // members; null with nobody to feed. (The page's farm and the offer read this one measure.)

@@ -62,7 +62,7 @@ const grid = (COLS, ROWS) => {
 {
   // slopes (Tobler's hiking function, symmetric; VB-438): a raised block of meadow between two points is walked round, though its ground
   // is as easy as the rest; the cost is the same up and down, the terrain's times a factor that grows with the rise and stops at the cap
-  const { SLOPE, TERRAIN } = VB['sim/rules'], { stepCost, slopeFactor } = VB['sim/routes'];
+  const { SLOPE, TERRAIN } = VB['sim/rules'], { stepCost, slopeFactor } = VB['sim/walking'];
   const COLS = 30, w = grid(COLS, 30), at = (c, r) => r * COLS + c;
   w.he = new Float32Array(w.N).fill(0.2);
   for (let r = 12; r <= 16; r++) for (let c = 11; c <= 18; c++) w.he[at(c, r)] = 0.5;
@@ -111,7 +111,7 @@ const grid = (COLS, ROWS) => {
   set = lane(4); p = findRoute(w, from, to);
   check(!onLane(p, set) && p.length - 1 === 10, `a lane four rows off is not (${p.length - 1} steps, cost ${routeCost(w, p).toFixed(2)})`);
   // on meadow, trodden ground, paths and lanes are quicker by PATHS.speed
-  const { PATHS, TERRAIN: T } = VB['sim/rules'], cost = VB['sim/routes'].tileCost, t = at(20, 20);
+  const { PATHS, TERRAIN: T } = VB['sim/rules'], cost = VB['sim/walking'].tileCost, t = at(20, 20);
   const stages = (biome) => { w.biome[t] = biome; const c = [0, 1, 2, 3].map((s) => { w.worn[t] = s; return cost(w, t); }); w.worn[t] = 0; w.biome[t] = B.MEADOW; return c; };
   const m = stages(B.MEADOW), f = stages(B.FOREST);
   check(m.every((c, s) => Math.abs(m[0] / c - PATHS.speed[s]) < 1e-9), `stage speeds on meadow: ${m.map((c) => (m[0] / c).toFixed(3))}`);
@@ -195,7 +195,7 @@ const grid = (COLS, ROWS) => {
 // The kept lists of walking reach (VB-452): reachTiles gives a new search's tiles in its order, the same list at the next ask; water is
 // left out; and a tile whose standing changes after all (here water drained, told by costChanged) has the lists searched again.
 {
-  const { reachTiles, walkable } = VB['sim/routes'], { bfs } = VB['sim/hex'];
+  const { reachTiles, walkable } = VB['sim/walking'], { bfs } = VB['sim/hex'];
   const COLS = 20, w = grid(COLS, 20), from = 10 * COLS + 10, wet = from + 2;
   w.water[wet] = 1;
   const st = { w, pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set() };

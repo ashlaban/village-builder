@@ -5,7 +5,7 @@
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { DAY, YEAR, SEASON_DAYS, WORK, TICKS, ECON } = VB['sim/rules'];
 const { OVERVIEW, villageSummary } = VB['sim/overview'];
-const Stores = VB['sim/stores'], { fieldsWorkable } = VB['sim/fields'], { heirRanking } = VB['sim/heirs'], { toHarvest } = VB['sim/hunger'];
+const Stores = VB['sim/stores'], { fieldsWorkable } = VB['sim/fields'], { heirRanking } = VB['sim/heirs'], { toHarvest } = VB['sim/foodneed'];
 const probe = require('./lib/probe.js');
 let failed = 0;
 const check = (ok, m) => { if (!ok) { failed++; console.error('OVERVIEW FAIL:', m); } };

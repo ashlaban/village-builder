@@ -22,7 +22,7 @@ function shape(hh) {
     const a = age(st, p); s.members++; if (a >= 14) s.adults++; else s.children++; if (a >= 14 && a < 60 && !p.retired) s.hands++;
   }
   return { ...s, fields: f ? f.fields.length : 0, inGround: f ? f.fields.filter((q) => !IDLE.has(q.stage)).length : 0, meadows: f ? f.meadows.length : 0,
-    cattle: cattleOf(hh), sheep: sheepOf(hh), food: Math.round(F.foodHeld(hh) + hh.meals), need: F.dailyNeed(st, hh) };
+    cattle: cattleOf(hh), sheep: sheepOf(hh), food: Math.round(VB['sim/foodneed'].foodHeld(hh) + hh.meals), need: F.dailyNeed(st, hh) };
 }
 for (let y = 1; y <= years; y++) {
   const t0 = st.t, cur = new Map(), yr = new Map(); // cur: household -> its season row; yr: household -> its year row

@@ -38,15 +38,15 @@ function stepStats(steps) {
     longest: sorted.slice(0, 5) };
 }
 function microbench(VB, st) {
-  const routes = VB['sim/routes'], w = st.w;
+  const { findRoute } = VB['sim/routes'], { passable } = VB['sim/walking'], w = st.w;
   // Components guarantee reachability without timing pair selection or failed searches.
   const seen = new Uint8Array(w.N), components = [];
   for (let i = 0; i < w.N; i++) {
-    if (seen[i] || !routes.passable(w, i)) continue;
+    if (seen[i] || !passable(w, i)) continue;
     const tiles = [i]; seen[i] = 1;
     for (let k = 0; k < tiles.length; k++) for (let d = 0; d < 6; d++) {
       const j = w.nb[tiles[k] * 6 + d];
-      if (j >= 0 && !seen[j] && routes.passable(w, j)) { seen[j] = 1; tiles.push(j); }
+      if (j >= 0 && !seen[j] && passable(w, j)) { seen[j] = 1; tiles.push(j); }
     }
     if (tiles.length > 1) components.push(tiles);
   }
@@ -60,10 +60,10 @@ function microbench(VB, st) {
     let to; do { to = tiles[random(tiles.length)]; } while (to === start.tile);
     return [start.tile, to];
   });
-  for (const [a, b] of pairs.slice(0, 20)) routes.findRoute(w, a, b, Infinity);
+  for (const [a, b] of pairs.slice(0, 20)) findRoute(w, a, b, Infinity);
   const before = VB.count.routeExpand;
   const search = timed(() => {
-    for (const [a, b] of pairs) if (!routes.findRoute(w, a, b, Infinity)) throw new Error('reachable pair has no route');
+    for (const [a, b] of pairs) if (!findRoute(w, a, b, Infinity)) throw new Error('reachable pair has no route');
   });
   const expanded = VB.count.routeExpand - before;
   const pawn = st.pawns.find((p) => p.alive);

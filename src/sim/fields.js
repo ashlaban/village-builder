@@ -21,7 +21,8 @@ VB['sim/fields'] = (() => {
     YEAR,
   } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
-  const { walkable, costChanged } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'],
+    { costChanged } = VB['sim/routes'];
   const { age, log, atFarm } = VB['sim/records'];
   const { nextTo, farmedLand, FIELD_NEAR } = VB['sim/layout'];
   const { freeFor, woodTaken } = VB['sim/territory'];

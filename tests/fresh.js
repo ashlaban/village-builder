@@ -12,7 +12,7 @@ const st = Sim.seed(world(3), 3, 'populous'), w = st.w;
 const f = st.farmsteads.find((x) => x.household !== null), hh = st.households[f.household];
 // two free farmable tiles near the farm: one never farmed, one farmed before (an old field's ground)
 const free = [];
-for (const [t] of VB['sim/hex'].bfs(w, f.house, 8, VB['sim/routes'].walkable(w)).dist) {
+for (const [t] of VB['sim/hex'].bfs(w, f.house, 8, VB['sim/walking'].walkable(w)).dist) {
   if (VB['sim/rules'].farmable(w, t) && !st.used.has(t) && st.owner[t] === 0 && !w.dev[t]) free.push(t);
 }
 check(free.length >= 2, 'two free tiles near the farm');
