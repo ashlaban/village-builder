@@ -39,6 +39,8 @@ jobs:
         run: cmp index.html _site/index.html
       - name: The roadmap page is in the site
         run: cmp docs/roadmap.html _site/docs/roadmap.html
+      - name: Check the rendered backlog and its filter
+        run: node tests/backlog-page.js
       - uses: actions/upload-pages-artifact@v3
   deploy:
     needs: build
