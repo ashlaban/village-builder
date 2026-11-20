@@ -14,6 +14,15 @@ for (const [heading, columns] of [['Ready', 6], ['Waiting for Kim', 6], ['Blocke
   assert.ok(fold?.matches('details'), heading);
   const rows = [...fold.querySelectorAll('tbody tr')];
   assert.deepEqual(rows.map((row) => row.cells[0].textContent.trim()), expected, heading);
+  for (const row of rows) {
+    const id = row.cells[0].textContent.trim();
+    assert.equal(doc.getElementById(id)?.closest('tr'), row, id);
+    if (heading !== 'Blocked') continue;
+    const waits = row.cells[5];
+    const ids = waits.textContent.match(/VB-\d+/g) || [];
+    assert.deepEqual([...waits.querySelectorAll('a')].map((link) => link.hash), ids.map((id) => '#' + id));
+    for (const dependency of ids) assert.equal(doc.getElementById(dependency)?.closest('tr')?.cells[0].textContent.trim(), dependency);
+  }
   assert.ok(rows.every((row) => row.cells.length === columns), heading);
 }
 dom.window.eval(fs.readFileSync('_site/docs/backlog-filter.js', 'utf8'));
@@ -26,4 +35,14 @@ if (row) {
   input.value = 'no such backlog task';
   input.dispatchEvent(new dom.window.Event('input'));
   assert.ok(row.hidden);
+}
+
+const dependency = doc.querySelector('a[href^="#VB-"]');
+if (dependency) {
+  const target = doc.getElementById(dependency.hash.slice(1)).closest('tr');
+  const fold = target.closest('details');
+  fold.open = false;
+  target.scrollIntoView = () => {}; // jsdom has no layout.
+  dependency.click();
+  assert.ok(fold.open && !target.hidden);
 }
