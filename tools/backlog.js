@@ -95,7 +95,8 @@ for (const [status, [file, heading]] of Object.entries(TABLES)) {
     const cells = cellsOf(line), id = (cells[0].match(/^\[(VB-\d{3,})\]/) || [])[1];
     if (!id) fail(`${file}: "${line.slice(0, 40)}..." under "## ${heading}" is not a task row`);
     // a row's own layout, not its table's: after a merge a blocked row may sit in another table, or another row under Blocked
-    const waits = cells.length > 6 && (cells[5] === '-' || /^(VB-\d{3,}|Kim)(, (VB-\d{3,}|Kim))*$/.test(cells[5])), summary = cells.slice(waits ? 6 : 5).join(' | ');
+    const plainWaits = (cells[5] || '').replace(/\[(VB-\d{3,})\]\(#VB-\d{3,}\)/g, '$1');
+    const waits = cells.length > 6 && (cells[5] === '-' || /^(VB-\d{3,}|Kim)(, (VB-\d{3,}|Kim))*$/.test(plainWaits)), summary = cells.slice(waits ? 6 : 5).join(' | ');
     if (summary || !summaries.get(id)) summaries.set(id, summary);
     placed.set(id, status);
   }
@@ -105,7 +106,11 @@ let openArchs = archKeys('BACKLOG.md', 'Archs');
 const doneOrder = tableRows('BACKLOG_ARCHIVE.md', 'Done tasks').map((l) => (cellsOf(l)[0].match(/VB-\d+/) || [''])[0]);
 function rowOf(t) {
   const cells = { name: t.name.replace(/\|/g, '/'), arch: t.arch, priority: t.priority, size: t.size };
-  if (t.status === 'blocked') cells.waits = t.waits.join(', ');
+  if (t.status === 'blocked') cells.waits = t.waits.map((id) => {
+    if (id === 'Kim') return id;
+    if (!tasks.has(id) || id === t.id) fail(`${t.id}: invalid dependency ${id}`);
+    return `[${id}](#${id})`;
+  }).join(', ');
   cells.summary = summaries.get(t.id);
   for (const [field, value] of Object.entries(cells)) {
     if (/[\r\n|]/.test(value)) fail(`${t.id} ${field}: a table cell must be one line without pipe separators`);
@@ -121,7 +126,8 @@ function rowOf(t) {
     }
     if (delimiter) fail(`${t.id} ${field}: close the Markdown code span or escape the literal backtick`);
   }
-  return `| [${t.id}](backlog/${t.id}.md) | ${Object.values(cells).join(' | ')} |`;
+  const anchor = t.status === 'done' ? '' : `<a id="${t.id}"></a>`;
+  return `| [${t.id}](backlog/${t.id}.md)${anchor} | ${Object.values(cells).join(' | ')} |`;
 }
 const archRank = (a) => (openArchs.includes(a) ? openArchs.indexOf(a) : openArchs.length);
 const SORT = { ready: (t) => [+t.priority], 'needs-review': (t) => [+t.priority], blocked: (t) => [archRank(t.arch), +t.priority] };

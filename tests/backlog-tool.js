@@ -54,7 +54,7 @@ expect('set can repair a malformed row with valid Markdown', r.ok, r.out);
 r = run(dir, 'new', 'name=Test two', 'status=ready', 'priority=1', 'size=S', 'summary=Two.');
 expect('new refuses a ready task', !r.ok, r.out);
 r = run(dir, 'new', 'name=Test two', 'status=blocked', `waits=${A}, Kim`, 'priority=1', 'size=S', 'arch=zz-test', 'summary=Two.');
-expect(`new ${B} blocked, waiting for ${A} and Kim`, r.ok && section('BACKLOG.md', 'Blocked').includes(`| ${A}, Kim | Two. |`), r.out);
+expect(`new ${B} blocked, waiting for ${A} and Kim`, r.ok && section('BACKLOG.md', 'Blocked').includes(`| [${A}](#${A}), Kim | Two. |`), r.out);
 fs.writeFileSync(path.join(dir, `backlog/${B}.md`), file(`backlog/${B}.md`).replace(/\(to write\)/g, 'Stated.'));
 
 r = run(dir, 'done', A);
@@ -67,7 +67,7 @@ r = run(dir, 'close-arch', 'zz-test');
 expect('close-arch refuses an arch with open tasks', !r.ok, r.out);
 r = run(dir, 'set', B, 'status=ready', 'priority=2');
 expect(`set ${B} ready: no "Waits for:", row in Ready`, r.ok && !/^Waits for:/m.test(file(`backlog/${B}.md`))
-  && section('BACKLOG.md', 'Ready').includes(`[${B}](backlog/${B}.md) | Test two | zz-test | 2 | S | Two. |`), r.out);
+  && section('BACKLOG.md', 'Ready').includes(`[${B}](backlog/${B}.md)<a id="${B}"></a> | Test two | zz-test | 2 | S | Two. |`), r.out);
 r = run(dir, 'done', B);
 expect('the emptied arch is reported', r.ok && /arch zz-test has no open tasks left/.test(r.out), r.out);
 r = run(dir, 'close-arch', 'zz-test');

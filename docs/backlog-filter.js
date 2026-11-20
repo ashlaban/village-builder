@@ -38,4 +38,22 @@
     filtering = terms.length > 0;
     count.textContent = filtering ? matches + (matches === 1 ? ' task' : ' tasks') : '';
   });
+
+  function revealTask(hash) {
+    if (!/^#VB-\d+$/.test(hash)) return;
+    const row = document.getElementById(hash.slice(1))?.closest('tr');
+    if (!row) return;
+    if (row.hidden) {
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+    }
+    row.closest('details').open = true;
+    row.scrollIntoView({ block: 'nearest' });
+  }
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest?.('a[href^="#VB-"]');
+    if (link && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) revealTask(link.hash);
+  });
+  window.addEventListener('hashchange', () => revealTask(location.hash));
+  revealTask(location.hash);
 })();
