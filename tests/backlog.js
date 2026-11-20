@@ -65,7 +65,7 @@ for (const [file, text] of Object.entries(texts)) {
     if (!/^\| \[?VB-\d{3,}/.test(line)) continue;
     const cells = line.replace(/^\| | \|\s*$/g, '').split(' | ');
     const m = cells[0].match(/^\[(VB-\d{3,})\]\(backlog\/(VB-\d{3,})\.md\)$/), blocked = heading === 'Blocked';
-    if (!m || m[1] !== m[2] || cells.length < (blocked ? 7 : 6)) {
+    if (!m || m[1] !== m[2] || cells.length !== (blocked ? 7 : 6)) {
       errors.push(`${file}: "${line.slice(0, 40)}..." must be | [VB-NNN](backlog/VB-NNN.md) | name | arch | priority | size |${blocked ? ' waits for |' : ''} summary |`);
       continue;
     }

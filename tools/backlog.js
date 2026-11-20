@@ -73,6 +73,12 @@ function sectionLines(file, heading) {
   if (h < 0) fail(`${file}: no "## ${heading}"`);
   let sep = h + 1;
   while (sep < lines.length && !/^\|[-|]+\|$/.test(lines[sep])) { if (/^## /.test(lines[sep])) fail(`${file}: no table under "## ${heading}"`); sep++; }
+  const width = heading === 'Blocked' ? 7 : heading === 'Archs' || heading === 'Closed archs' ? 4 : 6;
+  const header = lines[sep - 1], separator = lines[sep];
+  if (!header.startsWith('| ') || !header.endsWith(' |') || cellsOf(header).length !== width
+    || !new RegExp('^(?:\\|-{3,}){' + width + '}\\|$').test(separator)) {
+    fail(`${file}: expected a ${width}-column table header and separator under "## ${heading}"`);
+  }
   let end = sep + 1;
   while (end < lines.length && lines[end].startsWith('|')) end++;
   return { lines, from: sep + 1, to: end };
@@ -89,7 +95,7 @@ for (const [status, [file, heading]] of Object.entries(TABLES)) {
     const cells = cellsOf(line), id = (cells[0].match(/^\[(VB-\d{3,})\]/) || [])[1];
     if (!id) fail(`${file}: "${line.slice(0, 40)}..." under "## ${heading}" is not a task row`);
     // a row's own layout, not its table's: after a merge a blocked row may sit in another table, or another row under Blocked
-    const waits = cells.length > 6 && /^(VB-\d{3,}|Kim)(, (VB-\d{3,}|Kim))*$/.test(cells[5]), summary = cells.slice(waits ? 6 : 5).join(' | ');
+    const waits = cells.length > 6 && (cells[5] === '-' || /^(VB-\d{3,}|Kim)(, (VB-\d{3,}|Kim))*$/.test(cells[5])), summary = cells.slice(waits ? 6 : 5).join(' | ');
     if (summary || !summaries.get(id)) summaries.set(id, summary);
     placed.set(id, status);
   }
@@ -97,8 +103,26 @@ for (const [status, [file, heading]] of Object.entries(TABLES)) {
 const archKeys = (file, heading) => tableRows(file, heading).map((l) => cellsOf(l)[0]);
 let openArchs = archKeys('BACKLOG.md', 'Archs');
 const doneOrder = tableRows('BACKLOG_ARCHIVE.md', 'Done tasks').map((l) => (cellsOf(l)[0].match(/VB-\d+/) || [''])[0]);
-const rowOf = (t) => `| [${t.id}](backlog/${t.id}.md) | ${t.name.replace(/\|/g, '/')} | ${t.arch} | ${t.priority} | ${t.size} |`
-  + (t.status === 'blocked' ? ` ${t.waits.join(', ')} |` : '') + ` ${summaries.get(t.id)} |`;
+function rowOf(t) {
+  const cells = { name: t.name.replace(/\|/g, '/'), arch: t.arch, priority: t.priority, size: t.size };
+  if (t.status === 'blocked') cells.waits = t.waits.join(', ');
+  cells.summary = summaries.get(t.id);
+  for (const [field, value] of Object.entries(cells)) {
+    if (/[\r\n|]/.test(value)) fail(`${t.id} ${field}: a table cell must be one line without pipe separators`);
+    // A code span closes with a run of the same length, even if it contains shorter runs.
+    let delimiter = 0;
+    for (const match of value.matchAll(/(\\*)(`+)/g)) {
+      const ticks = match[2].length;
+      if (delimiter) {
+        if (ticks === delimiter) delimiter = 0;
+      } else {
+        delimiter = ticks - (match[1].length % 2);
+      }
+    }
+    if (delimiter) fail(`${t.id} ${field}: close the Markdown code span or escape the literal backtick`);
+  }
+  return `| [${t.id}](backlog/${t.id}.md) | ${Object.values(cells).join(' | ')} |`;
+}
 const archRank = (a) => (openArchs.includes(a) ? openArchs.indexOf(a) : openArchs.length);
 const SORT = { ready: (t) => [+t.priority], 'needs-review': (t) => [+t.priority], blocked: (t) => [archRank(t.arch), +t.priority] };
 const compare = (key) => (a, b) => {
@@ -163,7 +187,7 @@ function parsePairs(list) {
 function apply(t, p) {
   const known = ['status', 'priority', 'size', 'arch', 'phase', 'waits', 'name', 'summary'];
   for (const k of Object.keys(p)) if (!known.includes(k)) fail(`unknown key "${k}" (one of ${known.join(', ')})`);
-  if (p.name) { t.name = p.name; t.text = t.text.replace(/^# .*$/m, `# ${t.id}: ${p.name}`); t.dirty = true; }
+  if (p.name) { t.name = p.name; t.text = t.text.replace(/^# .*$/m, () => `# ${t.id}: ${p.name}`); t.dirty = true; }
   if (p.priority) { if (!/^[1-3]$/.test(p.priority)) fail('priority is 1, 2 or 3'); t.priority = p.priority; put(t, 'Priority', p.priority); }
   if (p.size) { if (!/^(S|M|L)$/.test(p.size)) fail('size is S, M or L'); t.size = p.size; put(t, 'Size', p.size); }
   if (p.arch || p.phase || (p.name && t.arch !== '-')) setArch(t, p.arch || t.arch, p.phase || (p.name ? null : t.phase));
