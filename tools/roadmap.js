@@ -7,7 +7,7 @@
 // Reads: the task files in backlog/ (status, arch, name), the Archs tables of BACKLOG.md and BACKLOG_ARCHIVE.md (which archs are
 // slices, and their order), and `git log -p` of the backlog (the day each task first appeared, and the day a task without a date in
 // its Status line was marked done). Needs the full history: in a shallow clone the earliest tasks take the clone's first day.
-// The estimate is the tool's, from the backlog's history (AGENTS.md, Deciding without Kim, 14: it says whose estimate it is):
+// The estimate is the tool's, from the backlog's history (design.md, Principles for decisions: it says whose estimate it is):
 //   pace    tasks done on a full day (10 or more), times the share of full days, over the last 14 days and over all days;
 //   growth  a plan writes its arch's tasks and more follow: the middle half of total / size at the plan, over slices planned 5 or
 //           more days ago; an arch whose plan is still open counts as the middle half of the planned slices' sizes, grown so;

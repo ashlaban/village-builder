@@ -1,15 +1,12 @@
 # Scheduled agents
 
-The instructions of the agents that work on this repository unattended, on a schedule. Each scheduled task's own prompt only points
-here, so the instructions are versioned with the code, changed by PR, and their effect measured like any other change
-(`docs/review-agent-workflow.md`, section 6). Each file is read in every run: keep it short, and leave how a thing is done to `AGENTS.md`.
+The Claude schedules for these roles have been disabled since November 2026.
 
-| Role | File | Scheduled task | Time (Stockholm) | Changes |
-|------|------|----------------|------------------|---------|
-| GitHub Actions worker | [github-actions-worker.md](github-actions-worker.md) | Nightly worker (GitHub Actions) | 04:46 daily | code, tests, task files; never `design.md` |
-| Worker | [worker.md](worker.md) | Village builder (worker) | 04:46 daily (disabled) | code, tests, task files; never `design.md` |
-| Reviewer | `reviewer.md` | Village builder (Reviewer) | 05:49 daily | `design.md`, `REVIEW.md`, the backlog, the questions |
-| Project manager | `project-manager.md` | Village builder (Project manager) | 09:23 daily | the backlog and `QUESTIONS.md` only |
+| Role | Instructions | Changes |
+|------|--------------|---------|
+| Worker | [worker.md](worker.md) | Code, tests and task files |
+| Reviewer | [reviewer.md](reviewer.md) | Design, review, backlog and questions |
+| Project manager | [project-manager.md](project-manager.md) | Backlog and questions |
 
 The prompt of each Claude-scheduled task, with its role and file:
 
@@ -29,13 +26,3 @@ Each run ends by measuring itself (`tools/agent-usage.js`): one file per run in 
 to these files or to `AGENTS.md`. Three measures say whether a night gave the most work for the least overhead: the weighted cost of
 a done task, by size; the overhead, as the orchestrator's share of the cost and the sub-agents' median boot (their context at the
 first edit); and the share of tasks done at the first attempt.
-
-The original Claude-scheduled tasks have been disabled since 2 and 3 November 2026. The GitHub Actions worker takes two medium
-tasks on its schedule by default. Set the repository variable `WORKER_BATCH` to `small` to schedule ten small tasks. To run the
-worker manually from `main`, open **Actions → Nightly worker → Run workflow** and select `medium` or `small`.
-
-Add the repository secrets `ANTHROPIC_API_KEY` and `WORKER_GITHUB_TOKEN`. The latter is a fine-grained token scoped to this
-repository, with Contents and Pull requests read/write access. It lets GitHub trigger the PR checks and publish Pages after the
-merge. The workflow requests a merge immediately after opening a complete batch's PR. Rules on `main` must allow the token's
-account to merge at that point. The workflow uploads each usage report as an artifact and commits it alongside the task changes
-when it opens a PR.
