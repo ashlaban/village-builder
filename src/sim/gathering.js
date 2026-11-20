@@ -10,7 +10,7 @@
 VB['sim/gathering'] = (() => {
   const { settlement } = VB['sim/records'];
   const { GATHERING, TRAVEL, YEAR, SEASON_DAYS, DAY, cal } = VB['sim/rules'];
-  const { hoursBetween, withinDay } = VB['sim/routes'];
+  const { hoursBetween, withinDay } = VB['sim/villagehours'];
   const { log } = VB['sim/records'];
   const { opinionOf } = VB['sim/relations'];
   const { kinHouseholds } = VB['sim/exchange'];

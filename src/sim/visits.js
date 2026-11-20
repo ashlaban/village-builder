@@ -8,7 +8,7 @@ VB['sim/visits'] = (() => {
   const { on } = VB['sim/events'];
   const { log, personEvent, age, spouseOf, wasWidowed, settlementIdOf, practice, fullName, atHousehold, spokesmanOf } =
     VB['sim/records'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { hoursBetween } = VB['sim/villagehours'];
   const { dailyNeed, rationOf } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
   const { travelling, stayOf } = VB['sim/agents'];

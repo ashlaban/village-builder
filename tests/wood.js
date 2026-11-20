@@ -43,7 +43,7 @@ console.log(`wood ok: ${HOUSEHOLDS} households, ${full.first.length} tiles, none
 
 // Beyond reach (VB-421): a village whose reach holds no forest takes its wood beyond it, nearest first, up to WOOD.far steps; with none
 // within WOOD.far it has none. A band of forest starts `gap` columns east of the green.
-const { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'], { reckonWood } = VB['sim/territory'];
+const { bfs } = VB['sim/hex'], { walkable } = VB['sim/walking'], { reckonWood } = VB['sim/territory'];
 function beyond(gap) {
   const rows2 = Array.from({ length: 22 }, () => [...Array(60)].map((_, c) => (c < 6 + gap ? '.' : 'F')).join(''));
   const st = tinyState(tinyWorld(rows2), [{ at: [6, 11], farms: 4, sizes: [4, 4, 4, 4] }], { seed: 3 }), v = st.villages[0];

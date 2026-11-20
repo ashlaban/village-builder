@@ -5,7 +5,7 @@ VB['sim/herds'] = (() => {
   const { DAY, YEAR, TICKS, HERD, SHARES, stalled } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'];
   const { emit } = VB['sim/events'];
   // @state st.herds[]: {id, species 'cattle'|'sheep', household, home (tile where it grazes by the farm), head[] (cattle), ewes, rams, lambs
   //   (sheep), lambed (ewes lambed this spring; VB-144),
@@ -16,7 +16,7 @@ VB['sim/herds'] = (() => {
   //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox', calved (game year a cow last
   //   calved, 1 first; absent before her first calf; VB-135)}
   // @state st.headSeq: number; counter for the ids of cattle heads
-  // A household's herds are listed in hh.herds (herd ids); hh.hay is its hay in units, hh.larder its stored food (sim/hunger).
+  // A household's herds are listed in hh.herds (herd ids); hh.hay is its hay in units, hh.larder its stored food (sim/larder).
   const COWS = [
     'Stjärna',
     'Rosa',

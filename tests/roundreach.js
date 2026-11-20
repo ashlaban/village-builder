@@ -1,10 +1,10 @@
-// VB-290: the round's other acts read the walking hours between villages (sim/routes, hoursBetween), not hex steps: an orphan's service
+// VB-290: the round's other acts read the walking hours between villages (sim/villagehours, hoursBetween), not hex steps: an orphan's service
 // home in the nearest village by walking hours (by hex steps only with none in reach), a guardian within walking reach first, service within
 // SERVICE.hours, and the tie to the culture's centre as exp(-h / TIE.hours) (TIE.sea times the hex steps over SPEED beyond reach), with
 // no search of its own. Claims on empty farms are checked in tests/farmclaims.js.
 const assert = require('assert'), VB = require('../src/load.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
-const { SERVICE, TIE, SPEED } = VB['sim/rules'], { hexSteps } = VB['sim/hex'], { hoursBetween } = VB['sim/routes'];
+const { SERVICE, TIE, SPEED } = VB['sim/rules'], { hexSteps } = VB['sim/hex'], { hoursBetween } = VB['sim/villagehours'];
 const H = VB['sim/heirs'], S = VB['sim/service'], R = VB['sim/records'], Soc = VB['sim/society'];
 const out = [];
 // A (one farm) on the west, B 14 tiles east of it, C 40 tiles east: by hex steps B is the nearer, and the table is set by hand per case

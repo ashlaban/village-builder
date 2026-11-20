@@ -7,7 +7,7 @@ VB['sim/service'] = (() => {
   const { wishOf, moveWhy } = VB['sim/wishes'];
   const { refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
-  const { hoursBetween, withinDay, byLand } = VB['sim/routes'];
+  const { hoursBetween, withinDay, byLand } = VB['sim/villagehours'];
   const { SERVICE, MARRIAGE, AGES } = VB['sim/rules'];
   const Offers = VB['sim/offers'];
   const { hasPlot } = VB['sim/expansion'];

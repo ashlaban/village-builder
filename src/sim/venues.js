@@ -9,7 +9,7 @@ VB['sim/venues'] = (() => {
   const { fullName, log, atFarm, age, unplanned } = VB['sim/records'];
   const { issue, register } = VB['sim/commands'];
   const { free } = VB['sim/agents'];
-  const { hoursBetween } = VB['sim/routes'],
+  const { hoursBetween } = VB['sim/villagehours'],
     { opinionOf, addTie } = VB['sim/relations'],
     { on } = VB['sim/events'],
     Encounters = VB['sim/encounters'],

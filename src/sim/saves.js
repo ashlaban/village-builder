@@ -2,7 +2,8 @@
 VB['sim/saves'] = (() => {
   const { setBiome } = VB['gen'];
   const { seal } = VB['sim/registry'];
-  const { trimRoutes, buildHours } = VB['sim/routes'];
+  const { trimRoutes } = VB['sim/routes'],
+    { buildHours } = VB['sim/villagehours'];
   const { rebuildLiving, indexEvents } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'],
     { openFresh } = VB['sim/pot'];

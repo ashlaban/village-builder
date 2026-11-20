@@ -6,7 +6,7 @@ VB['sim/byre'] = (() => {
   const Rules = VB['sim/registry'],
     Culture = VB['culture'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
-  const { addFood, larderOf } = VB['sim/hunger'];
+  const { addFood, larderOf, takeAll, spoilFood } = VB['sim/larder'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
   const { unherded, milkFactor } = VB['sim/grazing'];
   const { hexSteps } = VB['sim/hex'];
@@ -322,8 +322,7 @@ VB['sim/byre'] = (() => {
   });
   // Salted: the fresh meat keeps a year.
   function saltDone(st, hh) {
-    const n = larderOf(hh, 'meat');
-    hh.larder = hh.larder.filter((l) => l.kind !== 'meat');
+    const n = takeAll(hh, 'meat');
     addFood(st, hh, 'salt meat', n, HERD.saltDays);
   }
   // Barn hay spoils by winters of the animals now; mown hay still on a meadow is untouched (VB-159); BUILD.barn.loss as much on a farm
@@ -398,9 +397,8 @@ VB['sim/byre'] = (() => {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
-      const spoilt = hh.larder.filter((l) => l.until <= st.t);
+      const spoilt = spoilFood(st, hh);
       if (spoilt.length) {
-        hh.larder = hh.larder.filter((l) => l.until > st.t);
         const meat = spoilt.filter((l) => l.kind === 'meat').reduce((s, l) => s + l.n, 0);
         if (meat >= 1)
           log(

@@ -8,7 +8,8 @@ VB['sim/green'] = (() => {
   const { BUILD } = VB['sim/rules'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
-  const { walkable, costChanged } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'],
+    { costChanged } = VB['sim/routes'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor } = VB['sim/territory'];
   const { log } = VB['sim/records'];

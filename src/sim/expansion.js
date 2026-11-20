@@ -9,7 +9,8 @@ VB['sim/expansion'] = (() => {
     Projects = VB['sim/projects'],
     { emit, on } = VB['sim/events'];
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
-  const { walkable, costChanged } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'],
+    { costChanged } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];

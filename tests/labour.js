@@ -59,7 +59,7 @@ let report = '';
   const others = c.four.filter((p) => p.household !== c.b.id && p.household !== c.a.id);
   // the village first, then the nearest village within SERVICE.hours walking hours (sim/service, VB-290): where no farm of the village is
   // short, one goes to a farm of a neighbouring village (as at this seed since the villages were laid out anew, VB-402)
-  const near = (p) => VB['sim/routes'].hoursBetween(st, vOf(st, st.households[p.household]), vOf(st, c.a));
+  const near = (p) => VB['sim/villagehours'].hoursBetween(st, vOf(st, st.households[p.household]), vOf(st, c.a));
   for (const p of others) check(p.servant && near(p) <= SERVICE.hours, `any other who went serves within reach (${near(p).toFixed(1)} hours)`);
   report += `; ${others.length} more went to other short farms of the village`;
   const bad = checkState(st); check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);

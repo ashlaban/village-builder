@@ -4,7 +4,7 @@ VB['sim/layout'] = (() => {
   const { RIVER, PATHS, SOIL, WOOD, farmable, byRiver, fertility } = VB['sim/rules'];
   const { drawnName, nameVillages, nameFarms, loneFarmName } = VB['sim/names']; // names at seeding
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'];
   const { initWear, wearIn } = VB['sim/paths'];
   const { initFish } = VB['sim/fish'],
     { initForage } = VB['sim/forage'];

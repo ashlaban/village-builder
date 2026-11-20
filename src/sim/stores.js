@@ -2,6 +2,7 @@
 // ale brewed, poured and spoiling (VB-305); the registry of goods (VB-299) and Culture's worth and proper as rules
 VB['sim/stores'] = (() => {
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, FOODS, HERD, ECON, BREW, CROPS, MATCH, cal } = VB['sim/rules'];
+  const { addFood, takeFood } = VB['sim/larder'];
   const WOOD_LOW = MATCH.urgency.woodLow;
   const Rules = VB['sim/registry'],
     Culture = VB['culture'],
@@ -375,29 +376,22 @@ VB['sim/stores'] = (() => {
     const got = food === GRAIN ? takeSpare(st, hh, n, 'cooking') : take(st, hh, food, n, 'cooking');
     put(st, hh, 'meals', mealsFrom(food, got), 'cooking');
   }
-  // ---- dried fish (VB-300; sim/drying): a lot in the larder (sim/hunger's {kind, n, until}), kept the good's keepsDays ----
+  // ---- dried fish (VB-300; sim/drying): a lot in the larder (sim/larder's {kind, n, until}), kept the good's keepsDays ----
   // The fish waiting by the rack are split and hung: they leave the rack's store and are dried fish from now (the weeks on the rack are not
   // told apart: fish hanging is food in store). Returns the rations hung.
   function dry(st, hh) {
     const n = take(st, hh, 'fish', hh.rack || 0, 'drying');
     if (!(n > 0)) return 0;
     record(st, hh, 'dried fish', n, 'drying');
-    hh.larder.push({ kind: 'dried fish', n, until: st.t + goodOf('dried fish').perish.keepsDays * DAY });
+    addFood(st, hh, 'dried fish', n, goodOf('dried fish').perish.keepsDays);
     return n;
   }
   // The cook takes up to n rations of a larder food (dried fish), the lots that spoil first first, and makes meals of it, 1 to 1.
   function cookLarder(st, hh, kind, n) {
     amount(n);
-    let got = 0;
-    const lots = hh.larder.filter((l) => l.kind === kind).sort((a, b) => a.until - b.until);
-    for (const l of lots) {
-      if (got >= n) break;
-      const k = Math.min(l.n, n - got);
-      l.n -= k;
-      got += k;
-    }
+    if (kind === undefined) return 0;
+    const got = takeFood(st, hh, n, Infinity, kind);
     if (!(got > 0)) return 0;
-    hh.larder = hh.larder.filter((l) => l.n > 1e-9);
     record(st, hh, kind, -got, 'cooking');
     put(st, hh, 'meals', got * goodOf(kind).rations, 'cooking');
     return got;

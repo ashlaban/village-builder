@@ -2,7 +2,7 @@
 // a byre over 6 cattle is culled to fit; with no hay the household slaughters at once, and unfed animals die after 2 days; slaughter puts
 // meat in the larder, salting makes it keep, unsalted meat spoils; the meal eats from the larder; a fed founders herd loses nothing to
 // hunger over 3 years. On the small island of tests/lib/probe.js (VB-855).
-const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js'), H = VB['sim/herds'], Y = VB['sim/byre'], F = VB['sim/hunger'];
+const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js'), H = VB['sim/herds'], Y = VB['sim/byre'], F = VB['sim/hunger'], L = VB['sim/larder'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('BYRE FAIL:', m); } };
 const fresh = () => scenario('founders', 7);
@@ -46,19 +46,19 @@ st = fresh(); hh = st.households[0];
 const sheep = H.herdOf(st, hh, 'sheep'), entry = { id: 99, sheep: 'ewe', lean: false };
 sheep.cull.push(entry);
 Y.slaughterDone(st, sheep, entry, hh);
-check(sheep.ewes === 3 && F.larderOf(hh, 'meat') === Sim.HERD.meat.ewe, `slaughter: ${sheep.ewes} ewes, ${F.larderOf(hh, 'meat')} meat`);
+check(sheep.ewes === 3 && L.larderOf(hh, 'meat') === Sim.HERD.meat.ewe, `slaughter: ${sheep.ewes} ewes, ${L.larderOf(hh, 'meat')} meat`);
 Y.saltDone(st, hh);
-check(F.larderOf(hh, 'meat') === 0 && F.larderOf(hh, 'salt meat') === Sim.HERD.meat.ewe, 'salting: the meat is not salt meat');
-F.addFood(st, hh, 'meat', 5, -1); // already past its day
+check(L.larderOf(hh, 'meat') === 0 && L.larderOf(hh, 'salt meat') === Sim.HERD.meat.ewe, 'salting: the meat is not salt meat');
+L.addFood(st, hh, 'meat', 5, -1); // already past its day
 Y.byreDay(st, cal(20));
-check(F.larderOf(hh, 'meat') === 0 && F.larderOf(hh, 'salt meat') === Sim.HERD.meat.ewe, 'spoiling: old meat kept, or salt meat lost');
+check(L.larderOf(hh, 'meat') === 0 && L.larderOf(hh, 'salt meat') === Sim.HERD.meat.ewe, 'spoiling: old meat kept, or salt meat lost');
 
 // --- the meal eats from the larder when grain runs out
 st = fresh(); hh = st.households[3];
-hh.grain = { barley: 0 }; hh.meals = 0; hh.larder = []; F.addFood(st, hh, 'salt meat', 10, 40);
+hh.grain = { barley: 0 }; hh.meals = 0; hh.larder = []; L.addFood(st, hh, 'salt meat', 10, 40);
 const hungry = hh.hungryDays;
 F.feedHousehold(st, hh);
-check(hh.hungryDays === hungry && Math.abs(F.larderOf(hh) - (10 - F.dailyNeed(st, hh))) < 1e-9, `meal: larder ${F.larderOf(hh)}, hungry days ${hh.hungryDays - hungry}`);
+check(hh.hungryDays === hungry && Math.abs(L.larderOf(hh) - (10 - F.dailyNeed(st, hh))) < 1e-9, `meal: larder ${L.larderOf(hh)}, hungry days ${hh.hungryDays - hungry}`);
 
 // --- founders seed 7 over 3 years: no animal dies of hunger; slaughter happens and meat is salted
 st = fresh();
@@ -74,7 +74,7 @@ for (let d = 0; d < 3 * Sim.YEAR_DAYS; d++) {
   }
   seenT = Sim.villageLog(st, Infinity).length ? Sim.villageLog(st, Infinity)[0].t : seenT;
 }
-slaughtered = st.households.reduce((s, h) => s + F.larderOf(h, 'salt meat'), 0);
+slaughtered = st.households.reduce((s, h) => s + L.larderOf(h, 'salt meat'), 0);
 check(hunger === 0, `founders: ${hunger} animals died of hunger in the byre`);
 check(counts >= 3, `founders: only ${counts} autumn counts culled anything in 3 years`);
 check(!checkState(st).length, 'founders after 3 years: ' + checkState(st).slice(0, 3).join('; '));

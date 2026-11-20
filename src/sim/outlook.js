@@ -10,7 +10,8 @@ VB['sim/outlook'] = (() => {
   const { on } = VB['sim/events'];
   const Stores = VB['sim/stores'];
   const Pot = VB['sim/pot'];
-  const { dailyNeed, larderOf, seedPer } = VB['sim/hunger'];
+  const { dailyNeed, seedPer } = VB['sim/hunger'],
+    { larderOf } = VB['sim/larder'];
   const { householdHay } = VB['sim/herds'];
   const { HAY } = VB['sim/meadows'];
   const { fuelFree } = VB['sim/chores'];

@@ -5,7 +5,8 @@ VB['sim/scenarios'] = (() => {
   const { YEAR, TICKS, ECON, CROPS, ROTATIONS, FERTILITY, SEASON_DAYS, cal, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
-  const { walkable, buildHours } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'],
+    { buildHours } = VB['sim/villagehours'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const ByHand = VB['sim/byhand'];
   const { foundersHouseholds, drawSize, populousHouseholds, handHouseholds } = VB['sim/people'];
@@ -470,7 +471,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends; sim/routes), oldest first, emptied each day a tile
     //   changed cost, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
-    // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
+    // @state st.routeDirty: Set of tile indexes whose walking cost changed today; a nonempty set invalidates the route cache at day’s end
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)

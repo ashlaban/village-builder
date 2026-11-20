@@ -1,76 +1,8 @@
-// @sys sim/routes: walking costs by terrain and slope, the kept lists of what is in walking reach, the route search (A*) and the route
-// cache with its daily refresh
+// @sys sim/routes: least-cost path searches and the daily invalidation of the run's bounded route cache
 VB['sim/routes'] = (() => {
-  const { TERRAIN, SLOPE, ROUTE, PATHS, SPEED, TRAVEL } = VB['sim/rules'];
-  const { hexSteps, bfs } = VB['sim/hex'];
-  // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
-  // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
-  // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
-  // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too,
-  // and its wear takes away a share of what its ground costs above meadow (PATHS.clear, VB-439; not at a ford or on a bridge);
-  // the green (w.dev 2) wears no path.
-  function tileCost(w, i) {
-    if (w.water[i]) return Infinity;
-    if (w.dev && w.dev[i]) return w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
-    const c =
-        w.river && w.river[i]
-          ? w.crossing[i] === 1
-            ? TERRAIN.ford
-            : w.crossing[i] === 2
-              ? TERRAIN.bridge
-              : Infinity
-          : 0,
-      s = w.worn ? w.worn[i] : 0;
-    if (c) return c / PATHS.speed[s];
-    return (1 + ((TERRAIN[w.biome[i]] ?? 1) - 1) * (1 - PATHS.clear[s])) / PATHS.speed[s];
-  }
-  // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses).
-  const passable = (w, i) => i >= 0 && (tileCost(w, i) < Infinity || (!!w.dev && w.dev[i] === 3));
-  // Land a route may cross: passable, and not a house.
-  const through = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
-  // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
-  const walkable = (w) => (j) => passable(w, j);
-  // The tiles within `steps` walking steps of `from`, in the order the breadth-first search finds them (sim/hex bfs under `walkable`,
-  // `from` first): what a house's ground searches scan for the nearest tile that will do (sim/fish, sim/forage, sim/deer), asked for
-  // many times a day and the same each time. Where a pawn can stand is the generated world's (not water, not a river away from its
-  // crossings, not snow; a house can be stood on), which play does not change, so a list is searched once and kept beside the world's
-  // own data: never in `st`, never saved, the same after a load. Should a tile's standing change after all, costChanged (below) sees it
-  // and the lists are searched again. One list a house and reach asked for, of at most 3 * steps * (steps + 1) + 1 tiles.
-  const REACH = new WeakMap(); // lint-allow: closure derived from the world alone, as sim/fish's lakeSize; holds nothing of a run
-  function reachTiles(w, from, steps) {
-    let r = REACH.get(w);
-    if (!r) REACH.set(w, (r = { lists: new Map(), stood: null }));
-    const key = from * 256 + steps;
-    let list = r.lists.get(key);
-    if (!list) {
-      if (!r.stood) {
-        r.stood = new Uint8Array(w.N);
-        for (let i = 0; i < w.N; i++) r.stood[i] = passable(w, i) ? 1 : 0;
-      }
-      list = Int32Array.from(bfs(w, from, steps, walkable(w)).dist.keys());
-      r.lists.set(key, list);
-    }
-    return list;
-  }
-  // What the slope of the step between a and b multiplies its cost by: Tobler's hiking function made symmetric around the flat (VB-438),
-  // exp(SLOPE.tobler |S|) for the slope S = SLOPE.grade times the elevation between them, up or down alike (so the way back costs what
-  // the way there does), at most SLOPE.max; 1 on the level. Water lies at sea level; a worn path does not flatten a slope.
-  const slopeFactor = (w, a, b) => {
-    if (!w.he) return 1;
-    const ha = w.he[a],
-      hb = w.he[b],
-      rise = Math.abs((ha > 0 ? ha : 0) - (hb > 0 ? hb : 0));
-    if (rise === 0) return 1;
-    const f = Math.exp(SLOPE.tobler * SLOPE.grade * rise);
-    return f < SLOPE.max ? f : SLOPE.max;
-  };
-  // Cost of the step between neighbouring tiles a and b: the mean of their costs times the slope's factor; a closed end (where a
-  // route starts or ends) counts as meadow.
-  const stepCost = (w, a, b) => {
-    const ca = tileCost(w, a),
-      cb = tileCost(w, b);
-    return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
-  };
+  const { ROUTE } = VB['sim/rules'];
+  const { hexSteps } = VB['sim/hex'];
+  const { through, stepCost, invalidateReach } = VB['sim/walking'];
 
   const STRAIGHT = 1e-3; // see findRoute: what a tile's width off the straight line adds to a tile's key, in steps
   // ---- the search: A* (Hart, Nilsson and Raphael 1968) with the hex distance times the cheapest step as the bound ----
@@ -279,12 +211,7 @@ VB['sim/routes'] = (() => {
   // tile on nearly every day, and the cache refills with a tenth of the routes held.
   const costChanged = (st, tile) => {
     st.routeDirty.add(tile);
-    const r = REACH.get(st.w),
-      stands = passable(st.w, tile) ? 1 : 0;
-    if (r && r.stood && r.stood[tile] !== stands) {
-      r.stood[tile] = stands;
-      r.lists.clear();
-    }
+    invalidateReach(st.w, tile);
   };
   // Once a game day: when any tile changed cost, empty the cache (the straight-walk fallbacks with it).
   function refreshRoutes(st) {
@@ -294,87 +221,5 @@ VB['sim/routes'] = (() => {
     st.routeDirty.clear();
   }
 
-  // ---- walking hours between villages (VB-286) ----
-  // @state st.villageHours: array, a row for each village id, each of length the number of villages; row[u] the walking hours from village v's
-  //   green (its centre) to u's, by the route search's costs over SPEED, or null beyond ROUTE.reach or with no route by land; the diagonal 0.
-  //   Symmetric, as the costs are. Compiled a village a step by the calendar (autumn day 9), and at once for a village founded
-  //   (sim/routes). Read by hoursBetween (sim/gathering, sim/society).
-  // Village k's row, and column k of every other row, from one search of the villages' centres.
-  function refreshHoursRow(st, k) {
-    const T = st.villageHours,
-      vs = st.villages;
-    if (!T || T.length !== vs.length || k >= vs.length) return;
-    const targets = vs.map((v) => v.center),
-      costs = reachCosts(st.w, vs[k].center, ROUTE.reach, targets),
-      row = T[k];
-    for (let u = 0; u < costs.length; u++) {
-      const h = u === k ? 0 : costs[u] === null ? null : costs[u] / SPEED;
-      row[u] = h;
-      T[u][k] = h;
-    }
-  }
-  // The whole table: at the seed, and at a load of a save made before it.
-  function buildHours(st) {
-    const n = st.villages.length;
-    st.villageHours = Array.from({ length: n }, () => new Array(n).fill(null));
-    for (let k = 0; k < n; k++) refreshHoursRow(st, k);
-  }
-  // A village was added to st.villages: the table grows by a row and a column, and the new row is found at once.
-  function villageAdded(st) {
-    if (!st.villageHours) return;
-    for (const row of st.villageHours) row.push(null);
-    st.villageHours.push(new Array(st.villages.length).fill(null));
-    refreshHoursRow(st, st.villages.length - 1);
-  }
-  // The calendar's entry, autumn day 9 from noon (sim/clock): on step j of the 60 from noon, the rows of the villages k with
-  // floor(k * 60 / villages) = j (village j itself while there are 60 or fewer).
-  const ROW_STEPS = 60;
-  function refreshHoursStep(st, j) {
-    const n = st.villages.length;
-    if (n <= ROW_STEPS) {
-      if (j < n) refreshHoursRow(st, j);
-      return;
-    }
-    for (
-      let k = Math.floor((j * n + ROW_STEPS - 1) / ROW_STEPS),
-        end = Math.floor(((j + 1) * n + ROW_STEPS - 1) / ROW_STEPS);
-      k < end;
-      k++
-    )
-      refreshHoursRow(st, k);
-  }
-  // Walking hours between two villages' greens: 0 for the same village, Infinity beyond reach or by no land route. Allocates nothing.
-  function hoursBetween(st, a, b) {
-    if (a === b) return 0;
-    const h = st.villageHours[a][b];
-    return h === null ? Infinity : h;
-  }
-  // The three reaches between two villages (ids), the only ones a rule may ask (VB-685): the same village; within a day's walk (at most
-  // `hours` walking hours, TRAVEL.dayWalk unless a rule's own tunable is given: a farm's claim, CLAIMS.farmHours); any way by land.
-  const sameVillage = (st, a, b) => a === b;
-  const withinDay = (st, a, b, hours = TRAVEL.dayWalk) => hoursBetween(st, a, b) <= hours;
-  const byLand = (st, a, b) => hoursBetween(st, a, b) < Infinity;
-  return {
-    sameVillage,
-    withinDay,
-    byLand,
-    tileCost,
-    passable,
-    walkable,
-    reachTiles,
-    slopeFactor,
-    stepCost,
-    findRoute,
-    routeCost,
-    reachCosts,
-    route,
-    costChanged,
-    refreshRoutes,
-    trimRoutes,
-    buildHours,
-    villageAdded,
-    refreshHoursStep,
-    hoursBetween,
-    ROW_STEPS,
-  };
+  return { findRoute, routeCost, reachCosts, route, costChanged, refreshRoutes, trimRoutes };
 })();
