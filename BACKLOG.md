@@ -103,6 +103,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1374](backlog/VB-1374.md) | Measure VB-718 surplus dung (owed to VB-662) | - | 3 | S | numbers owed by VB-718 |
 | [VB-1389](backlog/VB-1389.md) | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 | [VB-1404](backlog/VB-1404.md) | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
+| [VB-1405](backlog/VB-1405.md) | Share work candidates and track queued verbs through explicit outcomes | life | 3 | M | Give the matcher and player a shared query for posted work. Let the queue follow a specific pawn assignment through the verb result. |
 
 ## Waiting for Kim
 
