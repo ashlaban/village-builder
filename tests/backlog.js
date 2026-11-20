@@ -64,8 +64,8 @@ for (const [file, text] of Object.entries(texts)) {
     if (h) { heading = h[1]; list = { file, heading, rows: [] }; sections.push(list); continue; }
     if (!/^\| \[?VB-\d{3,}/.test(line)) continue;
     const cells = line.replace(/^\| | \|\s*$/g, '').split(' | ');
-    const m = cells[0].match(/^\[(VB-\d{3,})\]\(backlog\/(VB-\d{3,})\.md\)$/), blocked = heading === 'Blocked';
-    if (!m || m[1] !== m[2] || cells.length < (blocked ? 7 : 6)) {
+    const m = cells[0].match(/^\[(VB-\d{3,})\]\(backlog\/(VB-\d{3,})\.md\)(<a id="\1"><\/a>)?$/), blocked = heading === 'Blocked';
+    if (!m || m[1] !== m[2] || Boolean(m[3]) !== (file === 'BACKLOG.md') || cells.length !== (blocked ? 7 : 6)) {
       errors.push(`${file}: "${line.slice(0, 40)}..." must be | [VB-NNN](backlog/VB-NNN.md) | name | arch | priority | size |${blocked ? ' waits for |' : ''} summary |`);
       continue;
     }
@@ -85,7 +85,7 @@ for (const [id, row] of Object.entries(rows)) {
   if (!Object.values(SECTIONS).some((s) => Object.values(s).includes(t.status))) { errors.push(`backlog/${id}.md: unknown status "${t.status}"`); continue; }
   if (row.status !== t.status) errors.push(`${id} is ${t.status}: its row is under "## ${row.heading}" and belongs in ${where(t.status)}`);
   for (const k of row.status === 'blocked' && t.status === 'blocked' ? ['name', 'arch', 'priority', 'size', 'waits'] : ['name', 'arch', 'priority', 'size']) {
-    const want = k === 'name' ? t.name.replace(/\|/g, '/') : t[k];
+    const want = k === 'name' ? t.name.replace(/\|/g, '/') : k === 'waits' ? t.waits.replace(/VB-\d{3,}/g, (id) => `[${id}](#${id})`) : t[k];
     if (row[k] !== want) errors.push(`${row.file}: ${id} ${k === 'waits' ? 'waits for' : k} is "${row[k]}", backlog/${id}.md says "${want}"`);
   }
 }
