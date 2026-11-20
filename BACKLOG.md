@@ -6,9 +6,16 @@ Done tasks: [`BACKLOG_ARCHIVE.md`](BACKLOG_ARCHIVE.md) · Questions for Kim: [`Q
 
 On this page: [Ready](#ready) · [Waiting for Kim](#waiting-for-kim) · [Blocked](#blocked) · [Archs](#archs) · [How this backlog works](#how-this-backlog-works)
 
+Filter from the checkout with `node tools/backlog.js list --status ready --arch physical`.
+
+<script defer src="docs/backlog-filter.js"></script>
+
 ## Ready
 
 The order tasks are taken in, the first first (`node tools/backlog.js next`). Sorted by priority (1 first), then ID.
+
+<details open markdown="1">
+<summary>Ready tasks</summary>
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
@@ -105,18 +112,28 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1404](backlog/VB-1404.md) | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
 | [VB-1405](backlog/VB-1405.md) | Share work candidates and track queued verbs through explicit outcomes | life | 3 | M | Give the matcher and player a shared query for posted work. Let the queue follow a specific pawn assignment through the verb result. |
 
+</details>
+
 ## Waiting for Kim
 
 Status `needs-review`: each file lists the questions Kim must answer first, and [`QUESTIONS.md`](QUESTIONS.md) gathers them with proposed answers.
+
+<details markdown="1">
+<summary>Tasks waiting for Kim</summary>
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-722](backlog/VB-722.md) | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 | [VB-1126](backlog/VB-1126.md) | Design: the age of account and the bands' margin in design.md | talk | 3 | S | design.md does not yet say VB-1106's two rules (SOCIAL.account 12, SOCIAL.back 0.2) |
 
+</details>
+
 ## Blocked
 
 By arch, in the order of the Archs table, then priority and ID. Each waits for the tasks in its `Waits for:` line (or for Kim).
+
+<details markdown="1">
+<summary>Blocked tasks</summary>
 
 | ID | Name | Arch | Pri | Size | Waits for | Summary |
 |----|------|------|-----|------|-----------|---------|
@@ -245,9 +262,14 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-688](backlog/VB-688.md) | The ways to a farm share one eligibility and one start in life | - | 3 | M | VB-675 | A pawn comes to a farm by a village plot, an heir's plot, a claim on an empty farm, joining or founding a village from a booth, or a trust, each with its own test of who may (ages, landed or not, crowding) and its own provisioning (all or nothing; what the old home spares; the stakes only); the site score is written three times. |
 | [VB-893](backlog/VB-893.md) | Page: the Plan tab shows stores by the supply component and the year ahead | - | 3 | S | VB-1123 | The plan panel (VB-256) takes up VB-667's supply component and the year-ahead graph |
 
+</details>
+
 ## Archs
 
 The vertical slices of `docs/slices.md` in Kim's order, then the archs that run beside them: `between` (the tasks of slice 2's plan VB-281) the two older archs with open tasks, `physical` (nothing teleports; Kim, 14 November) and `acts` (every act is a pawn's; Kim, 16 November). Closed archs are in the archive.
+
+<details markdown="1">
+<summary>Arch list</summary>
 
 | Key | Arch | Goal | Design ref |
 |-----|------|------|------------|
@@ -268,6 +290,8 @@ The vertical slices of `docs/slices.md` in Kim's order, then the archs that run 
 | ownership | State ownership and boundaries | Open beside the slices: VB-173 to VB-179 are done (target-v2 found they fit it unchanged); the wrap-up VB-180 remains. Every piece of state the simulation keeps has one owning module, which alone writes it; other modules read it freely and change it through the owner's operations; a static check keeps it so, and the map of owners and dependencies stays current (architecture review, 3 November 2026, `docs/review-architecture.md`). | none |
 | physical | Nothing teleports | Open beside the slices since 14 November (Kim): goods, animals and people change place only by being carried, carted, led, shipped or walked, and nothing appears or vanishes but by a process; rights and knowledge move at once, so a gift or a share changes owner where it lies and is fetched. Each teleport found in the code is a task here, taken interleaved with the slices' work, and reports its numbers. The audit of 13 November found the instant moves of help, shares, handing on, herds, hay, seed and manure. Open (16 November): VB-461 (help is carried), VB-645 (a dropped boat's timber), VB-649 (a cart and its team), VB-650 (a household that dies out leaves its barn to no one); an agent that finds another opens its task here, ready. | Vision and scope, Principles for decisions; `AGENTS.md`, Deciding without Kim |
 | acts | Every act is a pawn's | Open beside the slices since 16 November (Kim; `AGENTS.md`, Deciding without Kim, 16): an act is done by a pawn who chose it, through a verb whose check holds for any pawn alike; a household's head acts for it, and the alderman carries out what the village's meeting decided; the player has what its pawn has. Its tasks move the acts the calendar, a household or a village did, and the choices only the player had, to pawns. | `AGENTS.md`, Deciding without Kim (16) |
+
+</details>
 
 ## How this backlog works
 
