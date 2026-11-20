@@ -10,8 +10,8 @@ const own = st.households[3], uncle = st.households[4], f = st.farmsteads[uncle.
 check(nm(Sim.heirRanking(st, own)[0]) === 'Nils', 'Nils is first heir of his parents farm');
 f.fields.push({ ...f.fields[0], id: f.fields.length }); // the uncle's farm has more fields than the parents'
 const behind = rank(uncle, 'behind'), keeps = rank(uncle, 'keeps');
-check(behind[0] === 'Per' && behind.indexOf('Nils') > behind.indexOf('Per'), `behind: ${behind}`);
-check(keeps[0] === 'Nils', `keeps: ${keeps}`);
+check(behind[0] === 'Erik' && behind.includes('Per') && behind.indexOf('Nils') > behind.indexOf('Per'), `behind: ${behind}`);
+check(keeps[0] === 'Erik' && keeps[1] === 'Nils', `keeps: ${keeps}`);
 // with equal fields, the heir keeps the farm of their own parents and drops the claim on the uncle's
 f.fields.pop();
 check(!rank(uncle, 'keeps').includes('Nils') && rank(own, 'keeps')[0] === 'Nils', `keeps, equal fields: ${rank(uncle, 'keeps')}`);
