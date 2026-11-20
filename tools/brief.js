@@ -83,10 +83,10 @@ const refactor = /^Refactor:/.test(name), page = /src\/page|the page\b|screensho
 const rules = ['Decide what the task leaves open by AGENTS.md, Deciding without Kim; nothing teleports. Surface principle candidates, teleports found and close calls.'];
 if (phase === 'plan') {
   rules.push('A plan is a design pass: it makes the design concrete in its sections of design.md (a row in docs/design-changelog.md), and writes the arch\'s implement tasks with numbers and criteria.',
-    'Name each system\'s cost before it is built: entities, times cadence, times work per call (AGENTS.md, Rules for cost, 9).');
+    'Name each system\'s cost before it is built: entities, times cadence, times work per call (docs/cost.md, section 1.3).');
 } else if (phase === 'wrap-up') {
   rules.push('A wrap-up checks the arch against the design with long runs and reports the numbers; it names the parameters a tuning run would move, as rows of docs/tuning.md, and tunes nothing.',
-    'It adds the arch\'s bands to tests/lib/bands.js (AGENTS.md, Working rules).');
+    'It adds the arch\'s bands to tests/lib/bands.js (AGENTS.md, Architecture work).');
 } else if (refactor) {
   rules.push('Behaviour may change where that makes the separation of responsibilities clearer: name each change in a line of your result. If you claim none, `node tools/same.js --base REF` prints `same`, REF the commit you start from.',
     'A move, a rename and a change are separate commits; a new module has an `@sys` header and its place in src/manifest.json (BACKLOG.md, How this backlog works, Refactor rules).',
@@ -94,10 +94,10 @@ if (phase === 'plan') {
 } else {
   rules.push('Numbers are measured once, for the PR or the night: run them before and after (tools/sim.js, tools/balance.js) only where a criterion names a number to move.',
     'A new state field: its invariants (tests/lib/invariants.js), the WORLD list if the world holds it, a line in tools/stocks.js if it is a stored quantity. A new loop over a growing collection: a work counter.',
-    'A parameter may be tried in at most five short runs, the values and results written in the task file (Deciding without Kim, 3).');
+    'A parameter may be tried in at most five short runs, the values and results written in the task file (AGENTS.md, Deciding without Kim).');
 }
 if (page) rules.push('The page changed: `node tests/smoke.js` and the `tests/browser*.js` it touches; a screenshot, if you take one to check your work, stays outside the repository (Kim, 18 November).');
-if (/\bms\b|counter|medium-ref|small-y40|\bcost\b/i.test(text.slice(0, text.length - rest.length))) rules.push('Cost: AGENTS.md, Rules for cost; report counters, and leave times to the nightly bench when others share the machine.');
+if (/\bms\b|counter|medium-ref|small-y40|\bcost\b/i.test(text.slice(0, text.length - rest.length))) rules.push('Cost: docs/cost.md, section 1.3; report counters, and leave times to the nightly bench when others share the machine.');
 rules.push('To finish: `npm run format`, `npm run verify`; tick the criteria; the task file gets only your decisions with their reasons and what is left undone, at most ten lines.');
 out.push('## Rules for this task\n' + rules.map((r) => '- ' + r).join('\n'));
 
