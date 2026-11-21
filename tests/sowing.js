@@ -7,7 +7,7 @@
 // Sim.head; the field's view for its tile's card; a refusal changes nothing; the invariants of each state.
 const assert = require('assert'), VB = require('../src/load.js');
 const { CROPS, ROTATIONS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
-const F = VB['sim/fields'], Plans = VB['sim/plans'], { issue } = VB['sim/commands'];
+const F = VB['sim/fields'], Rotations = VB['sim/rotations'], Plans = VB['sim/plans'], { issue } = VB['sim/commands'];
 const { setClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
@@ -57,7 +57,7 @@ const refused = (s, verb, args, re, actor) => {
   const peas = s.f.fields.find((fd) => fd.crop === 'peas');
   F.sown(peas, cal(s.st.t));
   refused(s, 'rotation', { rotation: 'two' }, /stands under peas, which two courses has not/);
-  assert.strictEqual(F.fieldView(s.st, peas.tile).rotations.find((r) => r.key === 'two').why, s.cmd('rotation', { rotation: 'two' }), "the view's reason is the verb's");
+  assert.strictEqual(Rotations.fieldView(s.st, peas.tile).rotations.find((r) => r.key === 'two').why, s.cmd('rotation', { rotation: 'two' }), "the view's reason is the verb's");
   Object.assign(peas, { stage: 'stubble', sown: null });
   // given back to the rule: at its next review the farm takes the village's usual rotation again, through the same verb
   assert.strictEqual(s.cmd('rotation', { rotation: null }), true, 'given back');
@@ -102,7 +102,7 @@ const refused = (s, verb, args, re, actor) => {
   ok(s.st, 'out of turn');
   s.review(at(0, 3));
   assert(a.crop === 'peas' && s.f.fields.every((fd) => fd.rotation === 'every'), 'the rule leaves a field out of turn alone');
-  const view = F.fieldView(s.st, a.tile);
+  const view = Rotations.fieldView(s.st, a.tile);
   assert(view.turn && view.crop === 'peas' && view.next.crop === 'peas' && view.label === 'barley every year', JSON.stringify(view));
   assert.deepStrictEqual(view.seed.map((x) => [x.crop, x.held, x.field]), [['barley', 400, 25], ['rye', 25, 25], ['peas', 20, 20]], 'the seed held of each crop');
   // back to its turn, and out again; when its crop is in, the field goes on in its rotation
@@ -142,6 +142,6 @@ const refused = (s, verb, args, re, actor) => {
   assert.strictEqual(VB.sim.head(s.st, 'sowOutOfTurn', { tile: fd.tile, crop: 'peas' }), true, 'and sows a field out of turn');
   assert(fd.turn === true && fd.crop === 'peas');
   ok(s.st, 'the played head');
-  assert.strictEqual(F.fieldView(s.st, s.f.house), null, 'no field on the house');
+  assert.strictEqual(Rotations.fieldView(s.st, s.f.house), null, 'no field on the house');
 }
 console.log('sowing ok: the verb rotation under its checks, kept and given back; the rule through the verb; a field sown out of turn, rested, back to its turn and on in its rotation; the played head');

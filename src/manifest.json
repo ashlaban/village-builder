@@ -63,6 +63,8 @@
   "sim/deaths.js",
   "sim/notable.js",
   "sim/leanings.js",
+  "sim/rotations.js",
+  "sim/fieldplans.js",
   "sim/fields.js",
   "sim/fieldwork.js",
   "sim/meadows.js",

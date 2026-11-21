@@ -13,7 +13,8 @@ VB['sim/meadows'] = (() => {
   const { HAND_REACH } = VB['sim/byhand'];
   const { hexSteps } = VB['sim/hex'];
   const { winterNeed } = VB['sim/herds'];
-  const { builtTiles, onField } = VB['sim/fields'];
+  const { builtTiles } = VB['sim/fieldplans'],
+    { onField } = VB['sim/fieldwork'];
   const { workStake } = VB['sim/claims'];
   const { freeFor, woodTaken } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];

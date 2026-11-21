@@ -7,7 +7,7 @@ const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { setClock } = require('./lib/clock.js');
 const { checkState } = require('./lib/invariants.js');
-const Plans = VB['sim/plans'], Stores = VB['sim/stores'], F = VB['sim/fields'];
+const Plans = VB['sim/plans'], Stores = VB['sim/stores'], F = VB['sim/fieldplans'];
 const { KINDS } = VB['sim/kinds'], { ROLES, DAY, WORK } = VB['sim/rules'];
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 const out = [];

@@ -15,7 +15,7 @@ VB['sim/meetings'] = (() => {
   const { defineKind, setPresider, ask } = VB['sim/decisions'];
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { chooseGathering, settleGatherings } = VB['sim/gathering'];
-  const { usualRotation } = VB['sim/fields'];
+  const { usualRotation } = VB['sim/rotations'];
   // The year's meetings (VB-278; design.md, A village's meeting): on autumn day 10, each village's meeting on its own 6-minute step from noon,
   // in the order of village id from `year mod villages` (villageTurn, as the moving round's villages), then from 18:00 each culture's year,
   // and on the next step the

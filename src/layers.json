@@ -51,6 +51,8 @@
       "sim/hunger",
       "sim/foodneed",
       "sim/quern",
+      "sim/rotations",
+      "sim/fieldplans",
       "sim/fields",
       "sim/fieldwork",
       "sim/meadows",

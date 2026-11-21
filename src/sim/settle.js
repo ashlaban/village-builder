@@ -17,7 +17,7 @@ VB['sim/settle'] = (() => {
     VB['sim/records'];
   const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
-  const { builtTiles, fieldProject } = VB['sim/fields'];
+  const { builtTiles, fieldProject } = VB['sim/fieldplans'];
   const { stake } = VB['sim/stakes'];
   const { findSite, hasPlot, activePlots, building, roomAt, livePlots, tilesOf } = VB['sim/expansion'];
   const { foundHousehold } = VB['sim/membership'];

@@ -2,7 +2,7 @@
 // yield, less the seed): 2 adults and 2 children want 4 fields (3 before), a lone adult 2 (1 before); the hands still cap it.
 const assert = require('assert');
 const VB = require('../src/load.js');
-const F = VB['sim/fields'], { age } = VB['sim/records'], { YEAR } = VB['sim/rules'];
+const F = VB['sim/fieldplans'], { age } = VB['sim/records'], { YEAR } = VB['sim/rules'];
 const st = { pawns: [], t: 0 };
 const mk = (years, big) => {
   st.pawns.push({ died: null, born: -years * YEAR });

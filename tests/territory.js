@@ -73,7 +73,7 @@ const ok = (st, label) => { const bad = checkState(st); check(!bad.length, `${la
   check(!T.freeFor(st, wild, Bv.id) && T.freeFor(st, wild, A.id) && !T.freeFor(st, wild, null), 'a tile A claims is free for A only');
   // B's own outland given to A: B's farm finds no tile of A's
   for (const t of outB) VB['sim/ownership'].setOwner(st, t, { type: 'village', id: A.id });
-  const pick = VB['sim/fields'].chooseTile(st, fB);
+  const pick = VB['sim/fieldplans'].chooseTile(st, fB);
   check(pick < 0 || (st.owner[pick] !== -A.id - 1 && T.freeFor(st, pick, Bv.id)), `B's farm took in ${pick}, owned by ${st.owner[pick]}`);
   const site = VB['sim/expansion'].findSite(st, Bv);
   check(!site || [site.house, site.field].every((t) => T.freeFor(st, t, Bv.id)), 'a plot of B on B\'s land or wilderness');

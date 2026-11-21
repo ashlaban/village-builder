@@ -6,7 +6,7 @@ VB['sim/overview'] = (() => {
   const Stores = VB['sim/stores'];
   const { toHarvest, foodHeld } = VB['sim/foodneed'],
     { dailyNeed } = VB['sim/hunger'];
-  const { fieldsWorkable } = VB['sim/fields'];
+  const { fieldsWorkable } = VB['sim/fieldplans'];
   // The fields a farm sows: a fallow course does not count against the hands (VB-350; design.md, The rotation, Fallow and the hands).
   const sownFields = (f) => f.fields.filter((fd) => !CROPS[fd.crop].fallow).length;
   const { heirRanking } = VB['sim/heirranking'];
