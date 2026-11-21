@@ -29,8 +29,8 @@ for (const f of files) {
   toks.forEach((t, i) => {
     const prev = toks[i - 1];
     if (inVerb.has(i)) return;
-    // moveTo: the move verb is its only caller, even in sim/heirs, which defines it (VB-822)
-    if (t.t === 'word' && t.v === 'moveTo' && toks[i + 1] && toks[i + 1].v === '(' && !(prev && prev.v === 'function')) calls.push(`${f}:${src.slice(0, t.s).split('\n').length} moveTo`);
+    // These acts have exactly one entry through a verb, even inside their defining module.
+    if (t.t === 'word' && ['moveTo', 'carryGift', 'haulGift', 'fetchGift'].includes(t.v) && toks[i + 1] && toks[i + 1].v === '(' && !(prev && prev.v === 'function')) calls.push(`${f}:${src.slice(0, t.s).split('\n').length} ${t.v}`);
     if (t.t === 'word' && WRAPPED.includes(t.v) && definedIn[t.v] !== f && toks[i + 1] && toks[i + 1].v === '(' && !(prev && (prev.v === '.' || prev.v === 'function'))) {
       calls.push(`${f}:${src.slice(0, t.s).split('\n').length} ${t.v}`);
     }
