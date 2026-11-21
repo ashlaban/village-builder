@@ -321,6 +321,8 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
 
 ## Adding things
+
+To time or count a function in Node, call `loadModules({ wrap })` from `tests/lib/load.js` before loading the simulation. Key each wrapper factory by module and export name, as in `tools/perf.js`.
 - Put the module in its load list and name what it owns or supplies in the first-line `@sys` declaration. Describe the boundary
   in terms of the work and state the module handles. A module that changes another's state calls the owner's operations.
 - A module has no cap on its length (VB-413): over 700 formatted lines (`src/` is formatted by Prettier, `npm run format`) the lint asks for an open task titled "Refactor: split <key> ...", opened by the task that

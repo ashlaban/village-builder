@@ -18,18 +18,12 @@ function checkRoles(st, VB, { allowAgeLag = false } = {}) {
 }
 // Load before any source modules: every importer then receives the checked refreshRoles operation.
 function loadWithRoleChecks() {
-  const fs = require('fs'), path = require('path'), root = path.join(__dirname, '../..');
-  for (const file of JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8'))) {
-    require(path.join(root, 'src', file));
-    if (file === 'sim/heirs.js') {
-      const heirs = globalThis.VB['sim/heirs'], refresh = heirs.refreshRoles;
-      heirs.refreshRoles = (st) => {
-        const result = refresh(st), errors = checkRoles(st, globalThis.VB);
-        if (errors.length) throw new Error('role cache after refreshRoles:\n' + errors.join('\n'));
-        return result;
-      };
-    }
-  }
-  return globalThis.VB;
+  return require('./load.js').loadModules({ wrap: { 'sim/heirs': {
+    refreshRoles: (refresh) => (st, ...args) => {
+      const result = refresh(st, ...args), errors = checkRoles(st, globalThis.VB);
+      if (errors.length) throw new Error('role cache after refreshRoles:\n' + errors.join('\n'));
+      return result;
+    },
+  } } });
 }
 module.exports = { checkRoles, loadWithRoleChecks };

@@ -5,7 +5,7 @@
 // clock's own loops, the calendar's entries outside the named systems) is the remainder, reported as "agents and walking".
 // Used by tools/sim.js: `const { load, result } = require('./perf.js')`; `load()` replaces require('../src/load.js').
 require('./help.js')(__filename);
-const fs = require('fs'), path = require('path');
+const { loadModules } = require('../tests/lib/load.js');
 const SYSTEMS = {
   'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'takeDay', 'helpers', 'lookForWork'] },
   'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/encounters': ['outdoors', 'partners'] },
@@ -27,10 +27,9 @@ const SYSTEMS = {
 };
 const now = () => Number(process.hrtime.bigint()) / 1e6;
 const acc = {}, stack = []; let active = false;
-function wrap(obj, name, system) {
-  const f = obj[name]; if (typeof f !== 'function') throw new Error(`perf: ${name} is not exported`);
+function timed(f, name, system) {
   const a = acc[system] = acc[system] || { ms: 0, calls: 0, longest: 0, longestName: '' };
-  obj[name] = function (...args) {
+  return function (...args) {
     if (!active) return f.apply(this, args);
     const t0 = now(); stack.push(0);
     try { return f.apply(this, args); } finally {
@@ -41,16 +40,12 @@ function wrap(obj, name, system) {
   };
 }
 function load() {
-  const root = path.join(__dirname, '..', 'src'), want = new Map();
+  const wrap = {};
   for (const [system, mods] of Object.entries(SYSTEMS)) for (const [key, names] of Object.entries(mods)) {
-    if (!want.has(key)) want.set(key, []); for (const n of names) want.get(key).push([n, system]);
+    const group = wrap[key] ||= {};
+    for (const name of names) group[name] = (fn) => timed(fn, name, system);
   }
-  for (const f of JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'))) {
-    require(path.join(root, f));
-    const key = f.slice(0, -3);
-    for (const [n, system] of want.get(key) || []) wrap(globalThis.VB[key], n, system);
-  }
-  return globalThis.VB;
+  return loadModules({ wrap });
 }
 // timeAdvance(Sim, st, hours): advances while timing; returns the wall time of the call in ms.
 function timeAdvance(Sim, st, hours) { active = true; const t0 = now(); try { Sim.advance(st, hours); } finally { active = false; } return now() - t0; }
