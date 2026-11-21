@@ -71,7 +71,10 @@ VB['sim/heirs'] = (() => {
       op = st.pawns[old];
     const hp = st.pawns[heir];
     const own = heirsPlace(st, heir);
-    if (own && own !== hh) handOn(st, own, own.holder, hh.id, 'heir');
+    if (own && own !== hh) {
+      emit(st, 'heirLeaves', { household: own.id }); // sim/trust ends a trust that holds it
+      handOn(st, own, own.holder, hh.id, 'heir');
+    }
     if (hp.household !== hh.id) {
       const from = hp.household !== null ? st.households[hp.household] : null,
         sp = spouseOf(st, heir);
@@ -416,6 +419,7 @@ VB['sim/heirs'] = (() => {
     if (st.pawns[giver].household === hh.id) move(st, giver, home, { reason, with: kids });
     else for (const c of kids) move(st, c, home, { reason });
     if (follows) move(st, spouse, home, { reason });
+    if (hh.ward === giver) hh.guardian = hh.ward = null; // a minor holder's guardian here guards it no longer
     if (stays !== null) {
       if (st.pawns[stays].age < 18) setGuardian(st, hh, stays);
       transfer(st, hh, stays, reason === 'heir' ? 'inherited away' : 'married away');
