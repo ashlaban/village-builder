@@ -62,7 +62,7 @@ for (const grain of [0, 5000]) {
     check(Sim.villageLog(st, Infinity).some((e) => /put off marrying/.test(e.text)), 'the log says they put it off');
   }
 }
-// 3. A lone holder and the first heir of another farm of her village: they live on her farm, and he leaves the line of his own.
+// 3. A lone holder and the first heir of another farm of her village: they live on her farm, and he remains in line for his own if it is larger.
 {
   const st = Sim.seed(world(7), 7, 'populous'); st.naturalDeaths = false;
   const vOf = (p) => R.settlementIdOf(st, p);
@@ -88,7 +88,7 @@ for (const grain of [0, 5000]) {
   b.grain = { barley: 1000 };
   roll(st, () => movingRound(st));
   check(R.spouseOf(st, man.id) === woman.id && man.household === b.id && b.holder === woman.id, `they live on her farm (${st.farmsteads[b.farmstead].name})`);
-  check(H.heirRanking(st, c)[0] !== man.id, 'he is no longer first heir of his own family\'s farm');
+  check((H.heirRanking(st, c)[0] === man.id) === (st.farmsteads[c.farmstead].fields.length > st.farmsteads[b.farmstead].fields.length), 'he remains first heir only to a larger farm');
 }
 // An empty family ranking needs no global direct-claim scan.
 {

@@ -176,7 +176,7 @@ VB['sim/marriage'] = (() => {
   // ---- the basis `handover` of sim/offers (VB-692, VB-824): {from (the holder of gives.household), to (the first in its line not yet
   // asked), gives {household, reason ('marriage' or 'retirement': what the holder gives it up for), passed (those in line who have said
   // no to it; only a refusal passes it on)}}: the holding, for the holder's keep on the farm for life (retired there). The one asked
-  // answers: yes, unless it holds a farm or lives on a spouse's (heirRanking's answers; a betrothal joins them with VB-825). A yes is
+  // answers: yes, unless its own or its spouse’s place has at least as many fields (heirRanking's answers; a betrothal joins them with VB-825). A yes is
   // the handOn verb, and the heir's move. A no is told, nobody remembers it, and the holder offers it to the next in line at once. It is
   // nobody's `pawn.ask` (no subject): open from the holder's day to the round, it must not keep the holder or an unmarried heir from a
   // match; a holder has one open at a time. ----

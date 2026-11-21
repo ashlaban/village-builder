@@ -123,6 +123,29 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
     }
 }
 
+// VB-1141: an heir gives up a smaller place, in life or at a death.
+for (const at of ['holds', 'spouse']) {
+  const st = world({ handover: 'age60' }, at);
+  const small = st.farmsteads[2];
+  const offered = st.farmsteads[0];
+  assert.ok(small.fields.length >= offered.fields.length);
+  small.fields.length = offered.fields.length - 1;
+  assert.strictEqual(line(st).asked[0].no, null);
+  assert.strictEqual(line(st).ranking[0], 2);
+  if (at === 'holds') {
+    birthday(st, 0);
+    conclude(st, handovers(st)[0]);
+  } else Sim.killPawn(st, 0);
+  assert.strictEqual(st.households[0].holder, 2);
+  assert.strictEqual(R.holdingOf(st, 2).id, 0);
+  assert.ok(st.households[2].dissolved || ![2, 11].includes(st.households[2].holder));
+  for (const id of at === 'holds' ? [2] : [2, 11]) {
+    assert.strictEqual(st.pawns[id].household, 0);
+    assert.strictEqual(told(st, 'joined', id).at(-1).reason, 'heir');
+  }
+  sound(st, 'after giving up the smaller place');
+}
+
 // 2. In life: the holder offers on its own day, at the custom's time, due at the round; an heir with a farm refuses, and the next takes it
 {
   const st = world({ handover: 'age60' }, 'holds');
