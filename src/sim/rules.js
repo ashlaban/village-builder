@@ -391,6 +391,9 @@ VB['sim/rules'] = (() => {
   // (Proposed): `steps` 2, hexes round a house that count as living close; `free` 36, the people within them that cost nothing (about the
   // 99th percentile of a village house, 31 to 41); `per` 0.035, hazard added for each person beyond; `max` 2.5, the factor's ceiling. ----
   const CROWD = { steps: 2, free: 36, per: 0.035, max: 2.5 };
+  // The scenario "The market town" (VB-778; a test bed, known to decay): `plots` plot households set within 2 steps of each other, at the
+  // village with most people within `reach` hex steps (about a day's walk). Read at the start only; no rule reads it afterwards.
+  const TESTBED = { plots: 8, reach: 15 };
 
   const ILLNESS = {
     days: { infancy: 2, childhood: 4, illness: 6, oldAge: 10 },
@@ -581,7 +584,8 @@ VB['sim/rules'] = (() => {
   // ---- sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
   // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
   // worked from a bed there rather than from home (a third of the working day) ----
-  const AWAY = { pack: 12, walk: 4 };
+  // asks: the households a visitor asks for a bed, one after the other (VB-1151), before he sleeps at the green
+  const AWAY = { pack: 12, walk: 4, asks: 3 };
   // A booth (bod; VB-784; design.md, Moving to new land, The booth): a shelter of poles, bark and turf, `hours` of work and `wood` loads at its
   // tile, `sleeps` at most; unkept it wears `wear` of its condition a year (poles and bark: about three years) and is gone at none.
   const BOOTH = { hours: 12, wood: 2, sleeps: 4, wear: 1 / 3 };
@@ -991,7 +995,9 @@ VB['sim/rules'] = (() => {
   const DAYS = { notice: 3, hours: 8 };
   // The village's office (VB-314; design.md, The alderman): standing gained while in office, and what the election weighs: a candidate's
   // standing (`standing` the weight of one point of it) against a voice's opinion of him (opinions run -1 to 1).
-  const OFFICE = { standing: 0.3, weighStanding: 0.25 };
+  // keepDays: the days of work each other farm's household owes the alderman's from one autumn meeting to the next; keepShare: the share of its
+  // surplus it sets aside for him at the moving round (the practice `keep`, VB-463; about 0.7 of a household's need, a village's keep in all).
+  const OFFICE = { standing: 0.3, weighStanding: 0.25, keepDays: 4, keepShare: 0.1 };
   const WORKDAY = {
     days: [
       [0, 0, 'fence'],
@@ -1241,6 +1247,7 @@ VB['sim/rules'] = (() => {
     HEALTH,
     ILLNESS,
     CROWD,
+    TESTBED,
     MARRIAGE,
     HANDOVER,
     FOUNDERS,

@@ -95,6 +95,8 @@ VB.COUNTERS = {
   riteCalled: "Rites called on the villages' greens, three days a year (sim/occasions callRites, VB-522)",
   feastServed:
     'Pawns served at a feast, each eating its portion and its household booked at most once (sim/occasions, VB-458)',
+  keepGiven:
+    "The alderman's keep: households' shares set aside at a moving round, and days owed at an autumn meeting (sim/keep, VB-463)",
   giftTiesWeighed:
     'Ties of a holder weighed for the good-year gift, at most 32, on its one planning day a year (sim/help, VB-460)',
   takeInWeighed:

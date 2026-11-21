@@ -217,6 +217,7 @@ VB['sim/meetings'] = (() => {
     if (people.length) chooseGathering(st, s, quorumAt(st, s, held, people), people); // VB-294: its choice of gathering
 
     aldermanMeeting(st, s, people);
+    VB['sim/keep'].meeting(st, s); // the keep's days owed to the alderman now in office (VB-463)
     toMeetingLog(st, out);
   }
   // A cause's end (VB-1112), told in the pawn's record with the last vote its village's meeting gave it (p.lastCause, Culture.endCause).

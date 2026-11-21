@@ -111,6 +111,7 @@
       "sim/kinds",
       "sim/exchange",
       "sim/days",
+      "sim/keep",
       "sim/help",
       "sim/lifecycle",
       "sim/marriage",

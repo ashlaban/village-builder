@@ -20,7 +20,7 @@ VB['sim/marriage'] = (() => {
   const { startInLife } = VB['sim/exchange'];
   const { stayOf } = VB['sim/agents'];
   const { heirRanking } = VB['sim/heirranking'],
-    { refreshRoles, membersOf, handOn } = VB['sim/heirs'];
+    { refreshRoles, membersOf, handOn, heirFor, extinct, setGuardian, transfer } = VB['sim/heirs'];
   const { issue, register } = VB['sim/commands'];
   const { clearMatchWish } = VB['sim/player'];
   const { moveWhy, wishOf } = VB['sim/wishes'];
@@ -252,6 +252,78 @@ VB['sim/marriage'] = (() => {
     where: (st, o) => st.farmsteads[st.households[o.gives.household].farmstead].village,
     what: (st, o) =>
       `the handover of ${st.farmsteads[st.households[o.gives.household].farmstead].name} to ${fullName(st.pawns[o.to])}`,
+  });
+  // ---- the basis `inheritance` (VB-1142): at a death the played pawn in line is asked, as it is asked a handover in life. {from, to (the
+  // heir, the played pawn: its own offer, the one asked), gives {household, from (the dead holder)}}: the farm is its own at once (the
+  // holder, set by sim/heirs), and it takes it up by walking there (the verb takeUp: its move, reason `heir`, with spouse and children)
+  // or renounces it (renounce: it falls to the next in line at once). Unanswered, its pawn's judgement answers, a yes (heirRanking has
+  // said no for those who hold a place). Until then the farm is worked by the members it has. ----
+  const inheritanceWhy = (st, o) => {
+    const g = o.gives || {},
+      hh = st.households[g.household];
+    if (!hh || hh.dissolved) return `there is no household ${g.household}`;
+    if (o.from !== o.to || !st.pawns[o.to] || !st.pawns[o.to].alive) return `pawn ${o.to} cannot take the holding`;
+    if (!st.pawns[g.from] || st.pawns[g.from].alive) return `pawn ${g.from} has not died`;
+    return hh.holder === o.to || hh.holder === g.from ? {} : `household ${hh.id} is not held by pawn ${o.to}`;
+  };
+  const inheritanceCheck = (st, c) => {
+    const hh = st.households[c.target];
+    return !hh || hh.dissolved || hh.holder !== c.actor || st.pawns[c.actor].household === hh.id
+      ? `pawn ${c.actor} has no inheritance to answer at household ${c.target}`
+      : null;
+  };
+  register('takeUp', {
+    check: inheritanceCheck,
+    run: (st, c) => {
+      const touched = [c.target, st.pawns[c.actor].household];
+      transfer(st, st.households[c.target], c.actor, 'death', c.args.from);
+      refreshRoles(st, membersOf(st, [...touched, st.pawns[c.actor].household]));
+    },
+  });
+  register('renounce', {
+    check: inheritanceCheck,
+    run: (st, c) => {
+      const hh = st.households[c.target],
+        dead = c.args.from,
+        f = st.farmsteads[hh.farmstead];
+      log(st, `${fullName(st.pawns[c.actor])} renounces ${f.name}.`, {
+        kind: 'renounced',
+        pawn: c.actor,
+        other: dead,
+        ...atHousehold(st, hh),
+      });
+      const next = heirFor(st, hh, heirRanking(st, hh), dead);
+      if (next === null) {
+        hh.holder = dead;
+        extinct(st, hh);
+        return;
+      }
+      if (st.pawns[next].age < 18) setGuardian(st, hh, next);
+      const touched = [hh.id, st.pawns[c.actor].household, st.pawns[next].household];
+      transfer(st, hh, next, 'death', dead);
+      refreshRoles(st, membersOf(st, [...touched, st.pawns[next].household]));
+    },
+  });
+  Offers.basis('inheritance', {
+    books: 'nothing',
+    memory: false,
+    wait: () => MARRIAGE.offerDays,
+    check: inheritanceWhy,
+    answers: (st, o) => [{ key: 'self', by: o.to, yes: null }],
+    weigh: () => true,
+    refused: (st, o) => {
+      const g = o.gives;
+      if (!st.households[g.household].dissolved)
+        issue(st, { actor: o.to, verb: 'renounce', target: g.household, args: { from: g.from }, source: 'round' });
+    },
+    settle: (st, o) => {
+      const g = o.gives;
+      if (st.households[g.household].dissolved) return 'the holding has passed';
+      return issue(st, { actor: o.to, verb: 'takeUp', target: g.household, args: { from: g.from }, source: 'round' });
+    },
+    where: (st, o) => st.farmsteads[st.households[o.gives.household].farmstead].village,
+    what: (st, o) =>
+      `the inheritance of ${st.farmsteads[st.households[o.gives.household].farmstead].name} by ${fullName(st.pawns[o.to])}`,
   });
   // A courting pair's own offer, an unplayed pawn's answer (VB-275, VB-036): no at enmity or below towards the one it weighs: the other
   // one to marry, or, for a spokesman, the other side's spokesman.

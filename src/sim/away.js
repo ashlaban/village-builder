@@ -14,6 +14,7 @@ VB['sim/away'] = (() => {
   const { receive } = VB['sim/exchange'];
   const { hexSteps } = VB['sim/hex'];
   const { opinionOf } = VB['sim/relations'];
+  const Kin = VB['sim/records'];
   const { driveHome } = VB['sim/grazing'];
   const { on, emit } = VB['sim/events'];
   const Lying = VB['sim/lying'];
@@ -140,11 +141,9 @@ VB['sim/away'] = (() => {
     if (o.jobs !== undefined && !Array.isArray(o.jobs)) return 'the tasks of a stay must be a list';
     if (o.host !== undefined && o.host !== null) {
       const host = st.households[o.host];
-      if (!host || host.dissolved || host.farmstead === null || host.id === hh.id)
-        return `there is no other household ${o.host} to stay with`;
-      if (host.holder === null || !st.pawns[host.holder].alive) return `household ${o.host} has no head to ask`;
-      if (opinionOf(st, host.holder, id) < 0)
-        return `the head of household ${o.host} will not have pawn ${id} as a guest`;
+      if (host && host.id === hh.id) return `there is no other household ${o.host} to stay with`;
+      const why = hostWhy(st, id, host);
+      if (why) return why;
     } else if (!(Number.isInteger(at) && at >= 0 && at < st.w.N)) return `there is no tile ${at}`;
     else {
       // a booth's bed (VB-784): for its household and whom its maker let in, BOOTH.sleeps at most
@@ -410,7 +409,54 @@ VB['sim/away'] = (() => {
     j.back = true;
     j.guest = true;
     j.to = st.farmsteads[hh.farmstead].house;
+    const host = askBed(st, a.id, j.village);
+    if (host) {
+      // a guest in the host's house (roof 'house', the host's fire): he stands at its door for his nights there
+      j.host = host.id;
+      j.bed = houseOf(st, host);
+      j.roof = 'house';
+      return walkLeg(st, a, j.bed);
+    }
     restOnRoad(st, a);
+  }
+  // The households of village v a visitor asks for a bed, in the order he asks (VB-1151): the house of the woman he came for (an unmarried
+  // woman of the village's queue) and of his kin, before any other; each by its pawn's id. Read from the village's asking queue, a few
+  // dozen at most; at most AWAY.asks are asked, by the rule the lodge verb's guest has (hostWhy: the head's yes, by its opinion of him).
+  function askBed(st, id, v) {
+    const p = st.pawns[id],
+      own = st.households[p.household],
+      seen = new Set(),
+      want = [];
+    for (const e of VB['sim/wishes'].askingIn(st, v)) {
+      const q = st.pawns[e.pawn],
+        hid = q.household;
+      if (!q.alive || hid === null || hid === own.id || seen.has(hid)) continue;
+      const kin = Kin.kinship(st, id, q.id) > 0;
+      if (kin || q.sex !== p.sex) {
+        seen.add(hid);
+        want.push({ hid, kin: kin ? 1 : 0, at: e.pawn });
+      }
+    }
+    want.sort((x, y) => y.kin - x.kin || x.at - y.at);
+    for (const w of want.slice(0, AWAY.asks)) {
+      const host = st.households[w.hid];
+      if (!hostWhy(st, id, host)) return host;
+    }
+    return null;
+  }
+  // Why household host will not have pawn id as a guest, or null: it stands, has a farm and a living head who does not dislike him.
+  function hostWhy(st, id, host) {
+    if (!host || host.dissolved || host.farmstead === null) return 'there is no household to stay with';
+    if (host.holder === null || !st.pawns[host.holder].alive) return `household ${host.id} has no head to ask`;
+    if (opinionOf(st, host.holder, id) < 0)
+      return `the head of household ${host.id} will not have pawn ${id} as a guest`;
+    return null;
+  }
+  // A guest's nights at the host's house are over: his bed is the road again.
+  function leaveHost(j) {
+    j.bed = null;
+    j.roof = 'none';
+    delete j.host;
   }
   // A journey's rest is over at 6:00: a guest with days to stay stays one more (he takes no work there), else the next leg sets out.
   function legDue(st, a) {
@@ -420,6 +466,7 @@ VB['sim/away'] = (() => {
       return restOnRoad(st, a);
     }
     delete j.guest;
+    if (j.host !== undefined) leaveHost(j);
     walkLeg(st, a, j.to);
   }
   // The first leg now if a day's walking is left (6:00 to 16:00), else at the next 6:00, from where the pawn stands (a wait on the road).
@@ -501,12 +548,13 @@ VB['sim/away'] = (() => {
       g.held = Math.min(TRAVEL.load, s.left);
       g.parts = takeUp(st, j, g.held);
       g.from = s.name;
+      g.keep = s.keep === true;
       if (!(s.left > 1e-9)) g.stops.shift();
       j.to = house;
       return startLeg(st, a, j);
     }
     const at = to.dissolved ? st.villages[st.farmsteads[to.farmstead].village] : to;
-    Stores.put(st, at, 'grain', g.held, { kind: 'gift', from: g.from }, g.parts);
+    Stores.put(st, at, 'grain', g.held, { kind: g.keep ? 'keep' : 'gift', from: g.from }, g.parts);
     g.held = 0;
     g.parts = {};
     if (g.stops.length && !to.dissolved && st.pawns[a.id].household === to.id) {
@@ -536,6 +584,7 @@ VB['sim/away'] = (() => {
       j.back = true;
       j.stay = 0;
       delete j.guest;
+      if (j.host !== undefined) leaveHost(j);
     }
     if (j.to === to || (j.why === 'carry' && !j.back)) return; // a carrier delivers first, and then walks to the home he has
     if (j.why === 'carry') j.back = true;
@@ -567,6 +616,7 @@ VB['sim/away'] = (() => {
     const j = stayOf(st, a.id);
     if (j.why === 'carry' && !j.back) return delivered(st, a, j);
     if (j.why === 'visit' && !j.back) return visited(st, a, j);
+    if (j.why === 'visit' && j.bed !== null) return restOnRoad(st, a); // a guest at his host's door
     if (j.why === 'fetch' && j.gift) return fetchStop(st, a, j);
     if (j.why === 'haul' && j.gift) return haulStop(st, a, j);
     const hh = st.households[st.pawns[a.id].household];

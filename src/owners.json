@@ -151,6 +151,8 @@
     "village.aldermanSince": "sim/membership",
     "village.aldermanYear": "sim/membership",
     "village.aldermanFarm": "sim/membership",
+    "village.keep": "sim/keep",
+    "village.keepBy": "sim/keep",
     "village.workday": "sim/workdays",
     "village.gathering": "sim/gathering",
     "village.rotation": "sim/rotations",

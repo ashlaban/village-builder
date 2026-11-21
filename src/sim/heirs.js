@@ -65,11 +65,11 @@ VB['sim/heirs'] = (() => {
   // nobody is owed shares of it). An heir who holds a place, or lives on a spouse's, hands that place on first (heirsPlace; VB-1141).
   // Pawn id moves to household target (the move command), for this module's acts.
   const move = (st, id, target, args) => issue(st, { actor: id, verb: 'move', target, args, source: 'succession' });
-  function transfer(st, hh, heir, reason) {
+  function transfer(st, hh, heir, reason, from = null) {
     const f = st.farmsteads[hh.farmstead],
       cu = farmPractice(st, f),
       old = hh.holder,
-      op = st.pawns[old];
+      op = st.pawns[from !== null ? from : old]; // `from`: the dead holder of an inheritance taken up late (VB-1142)
     const hp = st.pawns[heir];
     const own = heirsPlace(st, heir);
     if (own && own !== hh) {
@@ -96,7 +96,7 @@ VB['sim/heirs'] = (() => {
     // at a retirement or a holder's death, a share of the old holder's goodwill passes to the new holder (design.md, The gift: Who books)
     if (old !== null && old !== heir && (reason === 'retirement' || reason === 'death'))
       passGoodwill(st, old, heir, GOODWILL.share);
-    if (op && op.alive && op.household === hh.id) {
+    if (op && op.alive && op.household === hh.id && op.id !== heir) {
       op.retired = true;
       const s = spouseOf(st, old);
       if (s !== null && st.pawns[s].alive) st.pawns[s].retired = true;
@@ -372,6 +372,28 @@ VB['sim/heirs'] = (() => {
     if (st.pawns[heir].age < 18) {
       // a minor heir holds in name, with a guardian until 18
       setGuardian(st, hh, heir);
+    }
+    const hp = st.pawns[heir];
+    const none = st.offers.length;
+    if (st.player && st.player.pawn === heir && hp.alive && hp.age >= 18 && hp.household !== hh.id) {
+      // The played heir is asked (VB-1142): the farm is its own at once, a right (its holder, its goodwill), and it takes it up by walking
+      // there, or renounces it (sim/marriage, the basis `inheritance`). The line stays the dead holder's, so that a renounced farm falls
+      // to the next. Meanwhile the household's other members work its fields, as for any farm whose heir is on the way.
+      const r = issue(st, {
+        actor: heir,
+        verb: 'offer',
+        target: heir,
+        args: { basis: 'inheritance', gives: { household: hh.id, from: dead.id } },
+        source: 'death',
+      });
+      if (r === true && st.offers.length > none) {
+        hh.holder = heir;
+        noteHolder(st, hh);
+        emit(st, 'newHead', { household: hh.id });
+        passGoodwill(st, dead.id, heir, GOODWILL.share);
+        st.visualDirty = true;
+        return;
+      }
     }
     transfer(st, hh, heir, 'death');
   }

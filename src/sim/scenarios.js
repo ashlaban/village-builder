@@ -2,7 +2,7 @@
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
-  const { YEAR, TICKS, ECON, CROPS, ROTATIONS, FERTILITY, SEASON_DAYS, cal, farmable } = VB['sim/rules'];
+  const { YEAR, TICKS, ECON, TESTBED, CROPS, ROTATIONS, FERTILITY, SEASON_DAYS, cal, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
@@ -100,7 +100,8 @@ VB['sim/scenarios'] = (() => {
     [0.1, 12, 16],
   ]; // share of villages, farms from, farms to
   const VILLAGE_SPACING = 10; // steps between village centres
-  function seedPopulous(w, seedNum) {
+  const NOT_TOWN = ' (the market town, a test bed known to decay: not evidence that a town emerges)';
+  function seedPopulous(w, seedNum, testbed = false) {
     const S = fromState((seedNum * 2654435761) ^ 0x9091),
       rand = drawer(S);
     const [lo, hi] = POPULATION[w.N < 15000 ? 'tiny' : w.N < 40000 ? 'small' : 'big'],
@@ -138,7 +139,9 @@ VB['sim/scenarios'] = (() => {
     // holds no village at all is refused, since a run needs someone.
     if (!centres.length)
       throw new Error('Populous Villages: no village fits on this map; try a larger map or another seed');
-    return standing(w, S, rand, gen, sizes, 'populous', seedNum);
+    // the market town, a test bed known to decay and no evidence that a town emerges (VB-778): plot households packed at one village
+    if (testbed) for (const f of ByHand.packPlots(w, gen, TESTBED, sizes)) sizes[f.id] = drawSize(rand);
+    return standing(w, S, rand, gen, sizes, testbed ? 'market' : 'populous', seedNum);
   }
   // Placed by hand (the archipelago editor): `places`, each {village: tile, farms}, a village laid by the generator about that tile;
   // {farm: tile, fill}, a house on that very tile (sim/byhand, farmAt) with a family as in Populous Villages, or by `fill` a 'couple',
@@ -243,7 +246,7 @@ VB['sim/scenarios'] = (() => {
     for (const hh of st.households)
       hh.grain = { barley: yearlyRations(st, hh) + st.farmsteads[hh.farmstead].fields.length * CROPS.barley.seed };
     // each village its crops, drawn from its ground (VB-353)
-    if (scenario === 'populous') {
+    if (scenario === 'populous' || scenario === 'market') {
       const key = new Map(st.villages.map((v) => [v.id, drawRotation(w, rand, v.center, v.farmsteads.length)]));
       giveCrops(st, (f) => key.get(f.village), true);
     }
@@ -251,7 +254,10 @@ VB['sim/scenarios'] = (() => {
     if (byHand) byHand(st);
     placeMeadows(st);
     seedOutland(st, true); // villages that have stood a while hold their outland
-    log(st, `${R.pawns.length} people in ${villages.length} villages.`, { kind: 'settled', n: R.pawns.length });
+    log(st, `${R.pawns.length} people in ${villages.length} villages${scenario === 'market' ? NOT_TOWN : ''}.`, {
+      kind: 'settled',
+      n: R.pawns.length,
+    });
     VB['sim/carts'].seedCarts(st, true);
     startStreams(st, seedNum);
     return st;
@@ -401,7 +407,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
-    // @state st.scenario: string; 'founders', 'heirs', 'populous', or 'manual' (placed by hand in the editor)
+    // @state st.scenario: string; 'founders', 'heirs', 'populous', 'market' (a test bed, VB-778), or 'manual' (placed by hand)
     // @state st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
     // (pawn.events: the positions of its events in st.record, in the order they were written; sim/records, VB-199)
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
@@ -668,8 +674,8 @@ VB['sim/scenarios'] = (() => {
     const st =
       scenario === 'heirs'
         ? seedHeirs(w, seedNum)
-        : scenario === 'populous'
-          ? seedPopulous(w, seedNum)
+        : scenario === 'populous' || scenario === 'market'
+          ? seedPopulous(w, seedNum, scenario === 'market')
           : seedFounders(w, seedNum);
     if (opts && opts.rye) giveRye(st);
     return st;

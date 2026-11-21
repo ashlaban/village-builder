@@ -53,13 +53,14 @@ VB['sim/gifts'] = (() => {
       name = store ? o.from.name + "'s store" : st.farmsteads[o.from.farmstead].name,
       parts = {},
       to = st.farmsteads[o.to.farmstead];
-    Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: to.name }, parts);
+    Stores.take(st, o.from, 'grain', o.n, { kind: o.keep ? 'keep' : 'gift', to: to.name }, parts);
     booked(st, o.from, o.to, o.n, name);
     const stop = {
       at: store ? o.from.center : st.farmsteads[o.from.farmstead].house,
       from: store ? null : o.from.id,
       village: store ? o.from.id : null,
       name,
+      keep: o.keep === true,
       left: o.n,
       parts,
     };
@@ -122,7 +123,7 @@ VB['sim/gifts'] = (() => {
     check: (st, c) =>
       cannotOffer(st, giftOffer(st, c)) || fetchWhy(st, giftOf(st, c.actor, c.target, c.args, c.source)),
     // help (source 'help') answers a hungry household's ask (sim/help): its receiver said yes in asking
-    run: (st, c) => make(st, giftOffer(st, c), c.source === 'help' ? ['to'] : []),
+    run: (st, c) => make(st, giftOffer(st, c), c.source === 'help' || (c.args && c.args.keep === true) ? ['to'] : []),
   });
   // deliver(target, {good, n, carrier}) (source 'offer' only: what a yes settles): the actor's household, or village store, hands over n
   // of good to household `target` or the village store; with a carrier (a pawn of the giving household) it is carried to the receiver
