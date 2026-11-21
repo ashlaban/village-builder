@@ -47,6 +47,7 @@ const FAST = [
   ['node', 'tests/outlook.js'],
   ['node', 'tests/yields.js'],
   ['node', 'tests/timber.js'],
+  ['node', 'tests/cottageplan.js'], // VB-1411: a settler household's cottage a project plan beside its field's; each job ends its own; the roof ends the booth
   ['node', 'tests/sitelacks.js'], // VB-1407: one read of what a site lacks; a step carrying timber gets its trips; the walls by name; kept hours
   ['node', 'tests/beginend.js'], // VB-1408: one read of who may begin a project (its five refusals, the cart's option); one way a step's job ends
   ['node', 'tests/stone.js'],

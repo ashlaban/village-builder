@@ -266,7 +266,9 @@ function checkState(st) {
       const h = (type === 'household' ? st.households : type === 'village' ? st.villages : st.pawns)[id];
       if (!h || h.dissolved) bad.push(`plans: project plans of a ${type} ${id} that is gone`); // a claimant who died: until the round (sim/farmclaims)
       if (!Array.isArray(list) || !list.length) { bad.push(`plans: ${type} ${id} keeps an empty list of project plans`); continue; }
-      if (type === 'household' && list.length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
+      // today's limit (VB-1410): one of the household's own choosing, besides a settler household's cottage (VB-1411)
+      if (type === 'household' && list.filter((p) => p.what !== 'cottage').length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
+      if (type === 'household' && list.filter((p) => p.what === 'cottage').length > 1) bad.push(`plans: ${type} ${id} has ${list.length} cottage plans`);
       for (const pl of list) {
         const where = `plans: project ${pl.id} of ${type} ${id}`;
         if (pl.kind !== 'project' || pl.holder.type !== type || pl.holder.id !== id || ids.has(pl.id) ||
@@ -797,10 +799,14 @@ function checkState(st) {
       !(f.tarredUntil <= st.t + globalThis.VB['sim/rules'].HOUSE.tarYears * globalThis.VB['sim/rules'].YEAR)) bad.push(
       `farmsteads[${f.id}]: tarredUntil ${f.tarredUntil}`);
     if (!tileOk(f.house)) bad.push(`farmsteads[${f.id}]: house tile ${f.house} out of range`);
-    const b = f.booth; // settlers' booth: cottage stages done (0..2) and hours on the open one (sim/settle)
-    if (b !== null &&
-      !(Number.isInteger(b.i) && b.i >= 0 && b.i <= 2 && within(b.done, 0, 1e6))) bad.push(`farmsteads[${f.id}]: booth is ${JSON.stringify(b)}`);
-    if (b !== null && b.wood !== undefined && !within(b.wood, 0, 1e4)) bad.push(`farmsteads[${f.id}]: booth timber ${b.wood}`); // VB-328
+    // settlers' booth (sim/settle): a mark, the cottage being the project plan 'cottage' of its household, or of its village while the
+    // farm waits for a household (VB-1411)
+    if (f.booth !== null && f.booth !== true) bad.push(`farmsteads[${f.id}]: booth is ${JSON.stringify(f.booth)}`);
+    if (f.booth && st.plans && st.plans.projects) {
+      const P = st.plans.projects, mine = (p) => p.what === 'cottage' && p.farmstead === f.id,
+        n = [...(P.household.get(f.household) || []), ...(P.village.get(f.village) || [])].filter(mine).length;
+      if (n !== 1) bad.push(`farmsteads[${f.id}]: a booth with ${n} cottage plans`);
+    }
     if (f.grade !== 'ground' && f.grade !== 'stone') bad.push(`farmsteads[${f.id}]: grade ${f.grade}`); // VB-332
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
     if (st.owner) {

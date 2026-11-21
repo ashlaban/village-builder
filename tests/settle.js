@@ -65,7 +65,7 @@ check(nv && nv.founded && nv.founded.from === v.id && nv.founded.by === m.id, `f
 }
 const steps = bfs(st.w, v.center, SETTLE.reach[1], walkable(st.w)).dist.get(nv.center);
 check(steps >= SETTLE.reach[0] && steps <= SETTLE.reach[1], `the new village is ${steps} walking steps away`);
-check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && f.booth && f.booth.i === 0, 'one farm, in a booth');
+check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && f.booth === true && VB['sim/projects'].projectsOf(st, 'household', f.household).some((p) => p.what === 'cottage'), 'one farm, in a booth');
 check(f.name === nv.name, `the farm bears the new village's name (${f.name}, ${nv.name})`);
 check(f.fields.length === 0 && VB['sim/projects'].openOf(st, hh.id)?.kind === 'clear', 'the first field is the household\'s project plan');
 check(hh && hh.holder === m.id && m.household === hh.id && sib.household === hh.id && hh.members.length === 2, 'settler and sibling live there');

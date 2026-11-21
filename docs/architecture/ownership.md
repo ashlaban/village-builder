@@ -255,7 +255,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 | `woodlot` **3** | territory | layout 177; territory 173; forest 21 | jobs |
 | `meadows` **2** | meadows | meadows 46,106,107,111,120,122; kinds 144 | ownership, claims, byre, farmclaims, jobs, page |
 | `name` **2** | names (farmName) | layout 155,156; settle 171 | stakes, herds, help, fields, meadows, byre, expansion, farmclaims, kinds, jobs, heirs, service, cottage, lifecycle, births, clock, page |
-| `booth` | expansion | expansion 179,185,187 | settle, page |
+| `booth` (a mark, `true` or null: the cottage is the household's project plan `'cottage'` in `st.plans.projects`, written by sim/plans; VB-1411) | expansion | settle (settleFarm: true); expansion (roofOn: null) | settle, projects, aims, building, tar, society, page |
 | `claim` | farmclaims | farmclaims 96,107,135,155,194 | clock |
 
 ##### village

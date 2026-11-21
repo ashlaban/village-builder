@@ -19,7 +19,7 @@ VB['sim/settle'] = (() => {
   const names = VB['sim/names'];
   const { builtTiles, fieldProject } = VB['sim/fieldplans'];
   const { stake } = VB['sim/stakes'];
-  const { findSite, hasPlot, activePlots, building, roomAt, livePlots, tilesOf } = VB['sim/expansion'];
+  const { findSite, hasPlot, activePlots, building, roomAt, livePlots, tilesOf, cottagePlan } = VB['sim/expansion'];
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
@@ -274,8 +274,9 @@ VB['sim/settle'] = (() => {
     return null;
   }
   // ---- settling ----
-  // The party moves into a booth on `house` in village v: a farmstead with no fields whose cottage is still to build (f.booth, built by
-  // sim/expansion's booth jobs), a household with the provisions as its grain, and `field` as its first field project.
+  // The party moves into a booth on `house` in village v: a farmstead with no fields whose cottage is still to build (f.booth, the mark;
+  // the cottage a project plan of the household, sim/expansion's), a household with the provisions as its grain, and `field` as its first
+  // field project.
   function settleFarm(st, v, home, party, house, field, prov) {
     const w = st.w,
       settler = st.pawns[party.all[0]];
@@ -283,7 +284,7 @@ VB['sim/settle'] = (() => {
     f.condition = 1;
     f.condAt = st.t;
     f.emptySince = null;
-    f.booth = { i: 0, done: 0 };
+    f.booth = true; // the household lives in a booth until its cottage has its roof (sim/expansion's roofOn)
     st.farmsteads.push(f);
     v.farmsteads.push(f.id);
     costChanged(st, house); // routes go round the house from now on
@@ -297,7 +298,8 @@ VB['sim/settle'] = (() => {
     woodTaken(st, house);
     reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
     stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
-    makeProject(st, 'household', hh.id, fieldProject(st, hh, field)); // its project plan (sim/plans, VB-123)
+    makeProject(st, 'household', hh.id, fieldProject(st, hh, field)); // its project plans (sim/plans, VB-123): the field's,
+    makeProject(st, 'household', hh.id, cottagePlan(f)); // and its cottage's, built beside it (VB-1411)
     return f;
   }
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.

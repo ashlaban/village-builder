@@ -179,10 +179,13 @@ VB['sim/plans'] = (() => {
     return false;
   }
   // Every plan of a holder that ends (a household dissolved), without a word: the end of its holder is told.
-  // A household's plot for its heir is not dropped but passes to its village (the verb plotToVillage; VB-255), its tiles and work with it.
+  // A household's plot for its heir is not dropped but passes to its village (the verb plotToVillage; VB-255), its tiles and work with it;
+  // its cottage (settlers, sim/settle) passes to its village too, kept with the farm for the household that comes (makePlan; VB-1411).
   const dropAll = (st, type, id) => {
     for (const plan of [...projectsOf(st, type, id)])
-      if (plan.what === 'plot' && type === 'household')
+      if (plan.what === 'cottage')
+        emit(st, 'projectHanded', { plan, type: 'village', id: st.farmsteads[plan.farmstead].village });
+      else if (plan.what === 'plot' && type === 'household')
         issue(st, {
           actor: null,
           verb: 'plotToVillage',
@@ -749,6 +752,12 @@ VB['sim/plans'] = (() => {
     };
     mapOf(st, type).set(id, plan);
     if (type === 'household') {
+      const f = st.farmsteads[st.households[id].farmstead], // a cottage left on its farm (dropAll) is the new household's
+        left =
+          f &&
+          f.booth &&
+          projectsOf(st, 'village', f.village).find((p) => p.what === 'cottage' && p.farmstead === f.id);
+      if (left) emit(st, 'projectHanded', { plan: left, type, id });
       household(st, plan);
       enqueue(st, id);
     } else founded(st, plan);

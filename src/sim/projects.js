@@ -4,10 +4,13 @@
 VB['sim/projects'] = (() => {
   const { emit } = VB['sim/events'];
   // @state st.plans.projects (VB-123): {household, village, pawn: Map of a holder's id to its project plans, in the order made}; a project
-  //   plan is {id, holder: {type, id}, kind: 'project', what ('field' | 'meadow' | 'boat': what it makes), steps: [{kind (an opportunity kind of
-  //   sim/kinds), place (a tile), hours (of work), stake (the why of the holder's claim the step works under, or absent), spends ({[good]: n}
-  //   taken from the holder's store when the step is done, or absent), timber and wood (loads it needs at its site and loads brought, or
-  //   absent; VB-300's boat)}], open (the index of the open step), reserved, reasons (sim/stores)}.
+  //   plan is {id, holder: {type, id}, kind: 'project', what ('field' | 'meadow' | 'boat' | 'cottage' ...: what it makes), steps: [{kind (an
+  //   opportunity kind of sim/kinds), place (a tile), hours (of work), stake (the why of the holder's claim the step works under, or absent),
+  //   spends ({[good]: n} taken from the holder's store when the step is done, or absent), timber and wood (loads it needs at its site and
+  //   loads brought, or absent; VB-300's boat), done (hours worked on a stage kept while its job is dropped, or absent)}], open (the index of
+  //   the open step), reserved, reasons (sim/stores)}. A settler household's cottage (VB-1411; sim/expansion's cottagePlan, made by
+  //   sim/settle) is 'cottage', with the plot's three stages and `farmstead` (the farm it is kept with: its village holds it while the farm
+  //   waits for a household, sim/plans' dropAll); it is not of the household's choosing (ownOf).
   //   A finished or dropped plan is removed, and a holder with none has no entry (Rules for cost, 1). st.plans.projectSeq: the last plan's id.
   //   st.plans.projects.heirPlots (VB-255): the households' plots for their heirs under way (the same plans as in `household`), an index
   //   of the live ones so that a village's plots are found without walking its households; written with the record, by sim/plans.
@@ -22,9 +25,10 @@ VB['sim/projects'] = (() => {
   // The household's project of its own choosing under way (a field, a meadow, a boat, a plot for its heir...), or null: the guards' one
   // read of it (mayBegin, the aims' menu, the land step, landWhy, buildStep, barnWhy, heirWhy, the verb dropProject). That a head begins
   // no second project of its own choosing is today's limit, not the design's (the limit of one project removed, Kim, 21 Nov 2026; how
-  // parallel projects are limited and ranked is VB-1410's). Allocates nothing.
+  // parallel projects are limited and ranked is VB-1410's). A settler household's cottage is not of its choosing: those guards that refused
+  // a farm with a booth still do (f.booth), and the others never counted it. Allocates nothing.
   function ownOf(st, id) {
-    for (const plan of projectsOf(st, 'household', id)) return plan;
+    for (const plan of projectsOf(st, 'household', id)) if (plan.what !== 'cottage') return plan;
     return null;
   }
   // The open step of the household's project of its own choosing (ownOf), or null. Allocates nothing.
@@ -114,12 +118,12 @@ VB['sim/projects'] = (() => {
   // The plan of the job's household whose open step the job still is (not given up or contested away meanwhile; sim/plans, sim/stakes), or
   // null: the one read of it, for the land steps' finishers (which end that plan) and sim/jobs' hourly sweep of project tasks.
   const onProject = (st, j) => planAt(st, 'household', j.owner.id, j.kind, j.site);
-  // The open steps of the household's project plans but a plot's (a new field's clear and break, a meadow, a boat...), each posted once
-  // the step before it is done, and not while it waits for timber (VB-300). A plot the household clears for its heir (VB-255) is posted as
-  // every plot is (plotWork).
+  // The open steps of the household's project plans but a plot's and a cottage's (a new field's clear and break, a meadow, a boat...), each
+  // posted once the step before it is done, and not while it waits for timber (VB-300). A plot the household clears for its heir (VB-255) is
+  // posted as every plot is (plotWork), a settler household's cottage by sim/building's boothWork.
   const landProject = (st, hh, f, c, post) => {
     for (const p of projectsOf(st, 'household', hh.id)) {
-      const s = p.what !== 'plot' ? p.steps[p.open] : null;
+      const s = p.what !== 'plot' && p.what !== 'cottage' ? p.steps[p.open] : null;
       if (s && supplied(s)) post(`${s.kind}:f${f.id}`, s.place, { farm: f, hours: s.hours }, s.kind);
     }
   };
