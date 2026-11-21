@@ -7,7 +7,8 @@ VB['sim/preview'] = (() => {
   const { ECON } = VB['sim/rules'];
   const { holdingOf, childrenOf } = VB['sim/records'];
   const { issue } = VB['sim/commands'];
-  const { heirRanking, ownFirstOf, refreshRoles } = VB['sim/heirs'];
+  const { heirRanking, ownFirstOf } = VB['sim/heirranking'],
+    { refreshRoles } = VB['sim/heirs'];
   const { trustOf } = VB['sim/ownership'];
   const { careForOrphans } = VB['sim/service'];
   const { seedReserve } = VB['sim/hunger'],

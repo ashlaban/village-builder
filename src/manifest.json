@@ -90,6 +90,7 @@
   "sim/venues.js",
   "sim/plans.js",
   "sim/jobs.js",
+  "sim/heirranking.js",
   "sim/heirs.js",
   "sim/aims.js",
   "sim/outlook.js",

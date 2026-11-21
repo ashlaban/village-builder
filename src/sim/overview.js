@@ -9,7 +9,7 @@ VB['sim/overview'] = (() => {
   const { fieldsWorkable } = VB['sim/fields'];
   // The fields a farm sows: a fallow course does not count against the hands (VB-350; design.md, The rotation, Fallow and the hands).
   const sownFields = (f) => f.fields.filter((fd) => !CROPS[fd.crop].fallow).length;
-  const { heirRanking } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'];
   const Plans = VB['sim/plans'],
     Traits = VB['sim/traits'];
   // The overview's bounds (VB-162; Kim, 10 November, as the task's criteria, read on the game's calendar): the window of the counted facts

@@ -19,7 +19,8 @@ VB['sim/marriage'] = (() => {
   } = VB['sim/records'];
   const { startInLife } = VB['sim/exchange'];
   const { stayOf } = VB['sim/agents'];
-  const { heirRanking, refreshRoles, membersOf, handOn } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'],
+    { refreshRoles, membersOf, handOn } = VB['sim/heirs'];
   const { issue, register } = VB['sim/commands'];
   const { clearMatchWish } = VB['sim/player'];
   const { moveWhy, wishOf } = VB['sim/wishes'];

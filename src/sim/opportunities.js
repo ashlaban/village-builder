@@ -16,7 +16,8 @@ VB['sim/opportunities'] = (() => {
   const { SOCIAL } = VB['sim/rules'];
   const { fit, jobsFor } = VB['sim/jobs'];
   const { eligible } = VB['sim/eligibility'];
-  const { staysWhy, heirRanking, successorOf } = VB['sim/heirs'];
+  const { heirRanking, successorOf } = VB['sim/heirranking'],
+    { staysWhy } = VB['sim/heirs'];
   const { matchBar, matchRules, kinOk } = VB['sim/matching'];
   const { visitChoices, visitWhy, sendWhy } = VB['sim/visits'];
   const { wishesOf } = VB['sim/wishes'];
@@ -500,7 +501,7 @@ VB['sim/opportunities'] = (() => {
     return out;
   }
   // The successor of pawn id (VB-1121), {id, why: its link to the pawn ('son', 'niece', ...)}, or null: the first of its line by its
-  // village's inheritance customs (successorOf, sim/heirs), read for the played pawn after its death by the customs it died under.
+  // village's inheritance customs (successorOf, sim/heirranking), read for the played pawn after its death by the customs it died under.
   function successor(st, id) {
     const left = st.player && st.player.pawn === id ? st.player.left : null,
       q = successorOf(st, id, left ? left.village : null);

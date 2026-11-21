@@ -36,7 +36,7 @@ assert.strictEqual(JSON.stringify(Sim.save(st)), saved, 'counts must stay out of
 VB['sim/heirs'].countDemand(st);
 assert(VB.count.heirRank > 0, 'countDemand rankings must be counted');
 VB.resetCounts();
-VB['sim/heirs'].ownFirstOf(st);
+VB['sim/heirranking'].ownFirstOf(st);
 assert(VB.count.heirRank >= st.liveHouseholds.length, 'nested ownFirstOf rankings must be counted');
 // A second tiny fixture exercises many pair comparisons without advancing into hunger first: two villages of four large households, at
 // four seeds, since how many unmarried adults a seed's villages hold varies widely (one village pair of three farms gave 32 pairs at

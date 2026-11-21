@@ -136,7 +136,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   year; a spokesman the score as he reads it and the means of the home). One who asks is asked by nobody, and one asked asks nobody.
   Remembered: `refusedMatch`, `refusedSuit`, `marriedAgainst` (`SOCIAL.memories`). The rules of a match and their memos, heir rankings ranked afresh and cleared after each
   marriage or handover, are `matchRules` (`src/sim/matching.js`), which the player's wish (`matchBar`) reads too.
-- Succession, offered and taken up (VB-824; `src/sim/marriage.js`, `src/sim/heirs.js`): no step hands a farm on. `heirRanking`'s `asked`
+- Succession, offered and taken up (VB-824; `src/sim/marriage.js`, `src/sim/heirranking.js`, `src/sim/heirs.js`): no step hands a farm on. `heirRanking`'s `asked`
   gives a farm's line in the order asked, each with why it would not take it (it holds a farm, lives on a spouse's, or is heir to a larger
   one under `ownHeir: keeps`); the ranking is its yes-sayers. In life an unplayed holder considers handing on (`handover`) at its heir's
   wedding into the house (an offer due at once) and on its birthday (the event `holderYear` of `sim/lifecycle`, heard by `sim/asking`; an
@@ -310,7 +310,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   the house: firewood, water, cooking, brewing, gathering, VB-418),
   `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058), `sim/lying` (loads left
   lying where their carrier fell, VB-611).
-- Social: `culture`, `sim/encounters`, `sim/relations`, `sim/courting` (VB-036), `sim/society`, `sim/deaths`, `sim/births`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`, `sim/obligations`,
+- Social: `culture`, `sim/encounters`, `sim/relations`, `sim/courting` (VB-036), `sim/society`, `sim/deaths`, `sim/births`, `sim/heirranking`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`, `sim/obligations`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
 - Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/gifts` (how a gift gets from here to there: the verbs `give` and

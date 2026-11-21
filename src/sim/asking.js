@@ -13,7 +13,8 @@ VB['sim/asking'] = (() => {
   const { kinOk, sideScore, matchRules, courts, askerOf, askedOf, askedBy } = VB['sim/matching'];
   const { hoursBetween } = VB['sim/villagehours'];
   const { claimableFarm, askLand } = VB['sim/farmclaims'];
-  const { placeIfMarried, heirRanking } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'],
+    { placeIfMarried } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { chooseWish, wishOf, wishesOf, nextAsking, askingIn } = VB['sim/wishes'];
   const { conclude } = VB['sim/offers'];

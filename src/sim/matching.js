@@ -14,7 +14,8 @@ VB['sim/matching'] = (() => {
     { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, spousesOf, wasWidowed, practice, fullName, spouseOf, age, personEvent } =
     VB['sim/records'];
-  const { heirRanking, heirFor } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'],
+    { heirFor } = VB['sim/heirs'];
   const { trustOfHolder } = VB['sim/ownership'];
   const { opinionOf } = VB['sim/relations'];
   const { hoursBetween, byLand } = VB['sim/villagehours'];
