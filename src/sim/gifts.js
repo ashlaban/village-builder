@@ -1,7 +1,7 @@
 // @sys sim/gifts: how a gift gets from here to there (VB-228): the verbs `give`, the offer of a gift, and `deliver`, what a yes settles: carried,
 // hauled or fetched (sim/away) between places, booked at once within one farmstead (sim/exchange)
 VB['sim/gifts'] = (() => {
-  const { setOut } = VB['sim/away'];
+  const { setOut, addFetchStop } = VB['sim/away'];
   const { cannotOffer, giftOf, make, delivery } = VB['sim/offers'];
   const { age, home } = VB['sim/records'];
   const { booked, settleGift } = VB['sim/exchange'];
@@ -65,7 +65,7 @@ VB['sim/gifts'] = (() => {
     };
     const a = st.agents[o.fetcher],
       j = stayOf(st, a.id);
-    if (j) return void j.gift.stops.push(stop);
+    if (j) return addFetchStop(j, stop);
     setDown(st, a);
     const v = store ? o.from.id : st.farmsteads[o.from.farmstead].village;
     setOut(st, a, o.to, o.to, false, hoursBetween(st, to.village, v), {

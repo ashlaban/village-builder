@@ -53,6 +53,9 @@ VB['sim/away'] = (() => {
     st.away.push(s);
     st.agents[s.pawn].away = s.id;
   }
+  function addFetchStop(stay, stop) {
+    stay.gift.stops.push(stop);
+  }
   // Stay s ends: out of st.away and the index.
   function close(st, s) {
     st.away.splice(st.away.indexOf(s), 1);
@@ -621,6 +624,7 @@ VB['sim/away'] = (() => {
     moved,
     placeBorn,
     setOut,
+    addFetchStop,
     visit,
     visitDays,
   };
