@@ -57,12 +57,12 @@ C.cartsYear(st);
 check(hh.cartMiss === 0 && !Projects.projectOf(st, 'household', hh.id), 'fewer misses than it takes: no cart, and the count starts again');
 for (let k = 0; k < CART.misses; k++) C.missed(st, hh);
 C.cartsYear(st);
-const plan = Projects.projectOf(st, 'household', hh.id), step = plan && Projects.openStep(plan);
+const plan = Projects.projectOf(st, 'household', hh.id), step = plan && plan.steps[plan.open];
 check(plan && plan.what === 'cart' && plan.cart === 'hand' && step.kind === 'cart' && step.place === f.house && step.timber === CART.timber.hand
   && step.hours === CART.hours.hand, `a hand cart is begun at the house: ${JSON.stringify(plan && plan.what)}`);
-check(!Projects.supplied(step), 'it waits for its timber');
+check(Projects.lacks(step, step.timber) > 0, 'it waits for its timber');
 step.wood = step.timber;
-KINDS.cart.done(st, { farm: f, site: f.house }, hh);
+KINDS.cart.done(st, { kind: 'cart', farm: f, site: f.house }, hh);
 check(hh.carts.length === 1 && hh.carts[0].kind === 'hand' && hh.carts[0].cond === 1 && !Projects.projectOf(st, 'household', hh.id),
   'built, the cart is the household\'s and the plan is done');
 

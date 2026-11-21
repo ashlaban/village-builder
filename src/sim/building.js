@@ -256,17 +256,15 @@ VB['sim/building'] = (() => {
       ...(kind === 'barnwalls' ? { wood: 0, timber: BUILD.barn.timber } : {}),
     }));
   // A stage of the barn done: the next opens (sim/plans); with the roof on, the farm has its barn.
-  function barnStage(st, j) {
-    const hh = j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null, // the farm's, not the hand's who ends it
-      s = hh && Projects.openOf(st, 'household', hh.id),
-      f = j.farm;
-    if (!s || s.kind !== j.kind || s.place !== j.site) return;
-    if (j.kind === 'barnroof') {
-      f.barn = { built: st.t };
-      st.biomeDirty.add(f.house);
-      st.visualDirty = true;
-    }
-    emit(st, 'stepDone', { type: 'household', id: hh.id });
+  // The holder is the farm's household (j.owner), not the hand's who ends it.
+  const barnStage = (st, j) =>
+    Projects.stepEnds(st, j, j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null, barnBuilt);
+  function barnBuilt(st, j) {
+    if (j.kind !== 'barnroof') return;
+    const f = j.farm;
+    f.barn = { built: st.t };
+    st.biomeDirty.add(f.house);
+    st.visualDirty = true;
   }
   const barnStage_ = (verb, go, name, label, anim, i) => ({
     verb,

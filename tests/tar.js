@@ -31,7 +31,7 @@ const summer = (st, day) => { st.t = (Math.floor(st.t / YEAR) * YEAR) + (SEASON_
   T.tarYear(st);
   const diggers = st.households.filter((h) => Projects.projectOf(st, 'household', h.id));
   check(diggers.length === 1 && Projects.projectOf(st, 'household', diggers[0].id).what === 'tarpit', 'one pit begun for the village');
-  const hh = diggers[0], plan = Projects.projectOf(st, 'household', hh.id), s = Projects.openStep(plan);
+  const hh = diggers[0], plan = Projects.projectOf(st, 'household', hh.id), s = plan.steps[plan.open];
   check(st.w.biome[s.place] === VB.gen.B.PINE && v.wood.includes(s.place), 'on a pine tile of the wood');
   T.tarYear(st);
   check(st.households.filter((h) => Projects.projectOf(st, 'household', h.id)).length === 1, 'a pit begun is not begun twice');

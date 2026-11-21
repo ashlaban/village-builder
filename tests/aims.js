@@ -106,7 +106,7 @@ function surplusState() {
   // built: the three stages done, the walls once their timber lies there; the farm has its barn, and its finish is told
   const K = VB['sim/kinds'].KINDS;
   for (const kind of ['barnbase', 'barnwalls', 'barnroof']) {
-    const s0 = Projects.openStep(p);
+    const s0 = p.steps[p.open];
     assert.strictEqual(s0.kind, kind);
     if (s0.timber) s0.wood = s0.timber; // lint-allow: owner the timber carried to the site
     K[kind].done(st, { kind, site: f.house, farm: f, owner: { type: 'household', id: hh.id } }, st.households[1]); // ended by a neighbour's hand

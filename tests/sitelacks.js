@@ -8,11 +8,11 @@ const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SITELACKS FAIL:', m); } };
 
 // the read: loads still to bring for the need its site's module names, none below nothing
-const { lacks, supplied, stepOf } = Projects;
+const { lacks, stepOf } = Projects, waits = (s) => lacks(s, s.timber) > 0; // a step waits by what it lacks of its own timber
 check(lacks({ wood: 2 }, 6) === 4 && lacks({}, 6) === 6 && lacks({ wood: 7 }, 6) === 0, 'loads lacking: the need less the wood brought');
 check(lacks({ wood: 0 }, 0) === 0 && lacks({ wood: 0 }, undefined) === 0, 'a site that needs nothing lacks nothing');
-check(!supplied({ kind: 'boat', wood: 3, timber: 6 }) && supplied({ kind: 'boat', wood: 6, timber: 6 }), 'a step with timber waits until it lacks none');
-check(supplied({ kind: 'tarpit', wood: 0 }), 'a step without timber waits for none (no cottage default)');
+check(waits({ kind: 'boat', wood: 3, timber: 6 }) && !waits({ kind: 'boat', wood: 6, timber: 6 }), 'a step with timber waits until it lacks none');
+check(!waits({ kind: 'tarpit', wood: 0 }), 'a step without timber waits for none (no cottage default)');
 
 const rows = Array.from({ length: 16 }, (_, r) => [...Array(24)].map((_, c) => (c >= 16 ? 'F' : '.')).join(''));
 const st = tinyState(tinyWorld(rows), [{ at: [6, 8], farms: 2, sizes: [4, 4] }], { seed: 5 }), v = st.villages[0], w = st.w;

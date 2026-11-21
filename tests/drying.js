@@ -108,7 +108,7 @@ if (plan) {
   const bh = st2.households[plan.holder.id], step = plan.steps[0];
   bf = st2.farmsteads[bh.farmstead];
   check(step.kind === 'boat' && step.hours === 20 && step.timber === 6 && step.wood === 0 && w.ocean[plan.water] !== undefined
-    && st2.w.water[plan.water] === 1 && !Projects.supplied(step), 'one step at the shore, 20 hours, waiting for 6 loads of timber');
+    && st2.w.water[plan.water] === 1 && Projects.lacks(step, step.timber) > 0, 'one step at the shore, 20 hours, waiting for 6 loads of timber');
   const asked = []; VB['sim/building'].timberWork(st2, null, null, cal(0, 2), (key, site, extra, kind, owner) => asked.push({ key, kind, extra, owner }));
   const mine = asked.filter((a) => a.extra.timberFor === step);
   check(mine.length === 2 && mine.every((a) => a.kind === 'timber' && a.owner.id === bh.id && a.extra.dest === step.place), 'two timber trips at a time');
@@ -118,7 +118,7 @@ if (plan) {
   const after = []; KINDS.clear.available(st2, bh, bf, cal(0, 2), (key, site, extra, kind) => after.push({ kind, site }), bf);
   check(after.length === 1 && after[0].kind === 'boat' && after[0].site === step.place, 'with its timber in, the boat\'s work is posted');
   st2.t += DAY;
-  KINDS.boat.done(st2, { site: step.place, farm: bf, owner: { type: 'household', id: bh.id } }, bh, cal(0, 3));
+  KINDS.boat.done(st2, { kind: 'boat', site: step.place, farm: bf, owner: { type: 'household', id: bh.id } }, bh, cal(0, 3));
   check(bh.boat && bh.boat.tile === step.place && bh.boat.water === plan.water && bh.boat.house === bf.house
     && !Projects.projectOf(st2, 'household', bh.id), 'built: the household\'s boat, the plan finished');
   const g = D.fishingPlace(st2, bh, bf);

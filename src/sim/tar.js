@@ -79,8 +79,7 @@ VB['sim/tar'] = (() => {
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id],
           hh = f.household === null ? null : st.households[f.household];
-        if (!hh || hh.dissolved || f.booth || Projects.projectOf(st, 'household', hh.id) || Projects.heldOff(st, hh.id))
-          continue;
+        if (!Projects.mayBegin(st, hh, f)) continue;
         const n = Targets.hands(st, hh);
         if (n > most) {
           most = n;
@@ -96,10 +95,7 @@ VB['sim/tar'] = (() => {
     }
   }
   // The pit dug: the household's; the plan is finished (sim/plans).
-  function pitDug(st, j, hh) {
-    const plan = Projects.projectOf(st, 'household', hh.id),
-      s = plan && Projects.openStep(plan);
-    if (!s || s.kind !== 'tarpit' || s.place !== j.site) return;
+  function pitDug(st, j, hh, plan, s) {
     const f = st.farmsteads[hh.farmstead];
     hh.tarPit = { tile: s.place, village: f.village, built: st.t };
     st.visualDirty = true;
@@ -107,7 +103,6 @@ VB['sim/tar'] = (() => {
       kind: 'tarPit',
       ...atFarm(f),
     });
-    emit(st, 'stepDone', { type: 'household', id: hh.id });
   }
   // ---- what tar is for: the house and the boat ----
   // The house is due a barrel while it is not tarred; the boat from TAR.lead years before it leaks.
@@ -189,7 +184,7 @@ VB['sim/tar'] = (() => {
       type: 'wood',
       project: true,
       spot: atSite(0, 0),
-      done: (st, j, hh) => pitDug(st, j, hh),
+      done: (st, j, hh) => Projects.stepEnds(st, j, hh, pitDug),
     },
     burntar: {
       verb: 'Burning tar',

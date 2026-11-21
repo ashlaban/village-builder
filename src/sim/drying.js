@@ -150,15 +150,7 @@ VB['sim/drying'] = (() => {
         const f = st.farmsteads[id],
           hh = f.household === null ? null : st.households[f.household];
         VB.count.boatAsk++;
-        if (
-          !hh ||
-          hh.dissolved ||
-          f.booth ||
-          (hh.boat && hh.boat.house === f.house) ||
-          Projects.projectOf(st, 'household', hh.id) ||
-          Projects.heldOff(st, hh.id)
-        )
-          continue;
+        if (!Projects.mayBegin(st, hh, f) || (hh.boat && hh.boat.house === f.house)) continue;
         if (!boatable(st, hh, f)) continue;
         const s = boatShore(st, f.house);
         if (s)
@@ -175,13 +167,9 @@ VB['sim/drying'] = (() => {
     }
   }
   // The boat built: the household's, at the plan's shore; the plan is finished (sim/plans).
-  function boatBuilt(st, j, hh) {
-    const plan = Projects.projectOf(st, 'household', hh.id),
-      s = plan && Projects.openStep(plan);
-    if (!s || s.kind !== 'boat' || s.place !== j.site) return;
+  function boatBuilt(st, j, hh, plan, s) {
     const f = st.farmsteads[hh.farmstead];
     hh.boat = { tile: s.place, water: plan.water, house: f.house, built: st.t, tarred: st.t };
-    emit(st, 'stepDone', { type: 'household', id: hh.id });
   }
   // The boat is tarred (VB-301; sim/tar spends the barrel).
   function boatTarred(st, hh) {
@@ -263,7 +251,7 @@ VB['sim/drying'] = (() => {
       type: 'wood',
       project: true,
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.3],
-      done: (st, j, hh) => boatBuilt(st, j, hh),
+      done: (st, j, hh) => Projects.stepEnds(st, j, hh, boatBuilt),
     },
     fish: {
       verb: 'Fishing',

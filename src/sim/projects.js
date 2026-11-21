@@ -1,6 +1,8 @@
 // @sys sim/projects: the project plans' record and its reads (VB-123; design.md section 7, Holders and plans), for every module: a holder's
-// plans of steps, each opening when the one before is done; sim/plans writes them; and what a building site lacks (VB-1407)
+// plans of steps, each opening when the one before is done; sim/plans writes them; what a building site lacks (VB-1407); and who may
+// begin a project of its own and how a step's job ends (VB-1408)
 VB['sim/projects'] = (() => {
+  const { emit } = VB['sim/events'];
   // @state st.plans.projects (VB-123): {household, village, pawn: Map of a holder's id to its project plans, in the order made}; a project
   //   plan is {id, holder: {type, id}, kind: 'project', what ('field' | 'meadow' | 'boat': what it makes), steps: [{kind (an opportunity kind of
   //   sim/kinds), place (a tile), hours (of work), stake (the why of the holder's claim the step works under, or absent), spends ({[good]: n}
@@ -22,7 +24,6 @@ VB['sim/projects'] = (() => {
     const list = projectsOf(st, type, id);
     return list.length ? list[0] : null;
   };
-  const openStep = (plan) => plan.steps[plan.open];
   // A plan's step by its kind (the first of that kind), or undefined: a plot's walls are stepOf(plot, 'walls') (VB-1407). Allocates nothing.
   function stepOf(plan, kind) {
     for (const s of plan.steps) if (s.kind === kind) return s;
@@ -74,9 +75,30 @@ VB['sim/projects'] = (() => {
     const plan = st.plans && st.plans.households.get(id);
     return !!(plan && plan.chosen && plan.chosen.project === 'none');
   }
+  // Whether household hh, of farm f, may begin a project of its own now (VB-1408): it lives, is not dissolved, its farm has no booth, it
+  // has no project plan under way, and its head does not hold off projects. The one read of it for the yearly starters (sim/tar's pit,
+  // sim/drying's boat, sim/carts' cart), each of which then asks its own rule of when its project is wanted. A starter that asks less
+  // says so by `ask`: { heldOff: false } leaves the head's choice unasked (sim/carts today; VB-678 closes that gap). Allocates nothing.
+  const BEGIN = { heldOff: true };
+  const mayBegin = (st, hh, f, ask = BEGIN) =>
+    !!hh && !hh.dissolved && !f.booth && !projectOf(st, 'household', hh.id) && !(ask.heldOff && heldOff(st, hh.id));
+  // The one way the job j of household hh's project step ends (VB-1408): when the open step of hh's project plan is still j's (its kind, and
+  // its tile unless `ask` is { place: false }: sim/carts' cart today), the domain's effect(st, j, hh, plan, step) runs and the step is
+  // done (stepDone: sim/plans opens the next or finishes the plan). Whether it ended. hh is the step's holder, which the caller names
+  // (the hand's household, or a barn's j.owner).
+  const END = { place: true };
+  function stepEnds(st, j, hh, effect, ask = END) {
+    const plan = hh ? projectOf(st, 'household', hh.id) : null,
+      s = plan && plan.steps[plan.open];
+    if (!s || s.kind !== j.kind || (ask.place && s.place !== j.site)) return false;
+    effect(st, j, hh, plan, s);
+    emit(st, 'stepDone', { type: 'household', id: hh.id });
+    return true;
+  }
   // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
   const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map(), heirPlots: [] });
-  // The job is still the open step of its household's project plan (not given up or contested away meanwhile; sim/projects, sim/stakes).
+  // The job is still the open step of its household's project plan (not given up or contested away meanwhile; sim/plans, sim/stakes): the
+  // one read of it, for the land steps' finishers and sim/jobs' hourly sweep of project tasks.
   const onProject = (st, j) => {
     const s = openOf(st, 'household', j.owner.id);
     return !!s && s.place === j.site && s.kind === j.kind;
@@ -93,16 +115,16 @@ VB['sim/projects'] = (() => {
     landProject,
     projectsOf,
     projectOf,
-    openStep,
     stepOf,
     lacks,
-    supplied,
     timberOf,
     openOf,
     forEach,
     holderOf,
     onFarm,
     heldOff,
+    mayBegin,
+    stepEnds,
     emptyProjects,
   };
 })();
