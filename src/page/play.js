@@ -294,7 +294,9 @@ function offerBox(id, opps) {
         ? 'A gift is offered'
         : o.basis === 'handover'
           ? 'The farm is handed on to you'
-          : 'You are asked';
+          : o.basis === 'inheritance'
+            ? 'The farm is yours: take it up?'
+            : 'You are asked';
     const body = match
       ? `${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}.`
       : `${esc(o.text.charAt(0).toUpperCase() + o.text.slice(1))}.`;
