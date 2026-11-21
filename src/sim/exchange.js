@@ -2,13 +2,16 @@
 // sim/stores and sim/relations, its worth booked as goodwill between the two holders (VB-217); a household's want of a cow, the deal or
 // the start in life that meets it and the job that leads the animal home (VB-390); whom a household deals with first, its kin
 VB['sim/exchange'] = (() => {
-  const Stores = VB['sim/stores'];
+  const Goods = VB['sim/goods'],
+    Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { addTie, book, balance, opinionOf } = VB['sim/relations'];
+  const { book, balance, opinionOf } = VB['sim/relations'],
+    { addTie } = VB['sim/ties'];
   const { HELP, GOODWILL, HERD, stalled } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf, age, childrenOf, siblingsOf } = VB['sim/records'];
   const { herdsOf, winterNeed, payInAnimals } = VB['sim/herds'];
-  const { floorOf, dailyNeed, servedLast, daysOfFood } = VB['sim/hunger'];
+  const { floorOf, dailyNeed, servedLast } = VB['sim/hunger'],
+    { daysOfFood } = VB['sim/foodneed'];
   const Culture = VB['culture'];
   const Offers = VB['sim/offers'];
   const { issue } = VB['sim/commands'];
@@ -253,7 +256,7 @@ VB['sim/exchange'] = (() => {
   // kept: the customary worth of the keeping goods it already holds to pass on. The greater of its need and, taking a keeping good, its
   // worth as one.
   function needValue(st, hh, good, n, kept = 0) {
-    const g = Stores.goodOf(good);
+    const g = Goods.goodOf(good);
     needCtx.hh = hh;
     needCtx.good = g;
     needCtx.n = n;
@@ -269,7 +272,7 @@ VB['sim/exchange'] = (() => {
   // for an animal admired, an animal (a ware) given for food while hh holds fewer than Culture.NORMS.hardBelowDays of its need a hard
   // bargain, land in no deal. A deal is called by the worse of its two sides' words.
   const propriety = (st, hh, give, take) =>
-    Culture.norm('proper', Stores.goodOf(give).class, Stores.goodOf(take).class, daysOfFood(st, hh));
+    Culture.norm('proper', Goods.goodOf(give).class, Goods.goodOf(take).class, daysOfFood(st, hh));
   // households holding a parent, child or sibling of a member, closest first (parents and children before siblings, then by id); food help
   // asks them first (sim/help), and so does a household that wants a cow (VB-390)
   function kinHouseholds(st, hh) {

@@ -17,16 +17,11 @@ VB['sim/heirs'] = (() => {
     siblingsOf,
     kinNear,
     isHolder,
-    holdingOf,
-    practice,
     farmPractice,
-    villageOf,
     noteHolder,
     kinship,
     atHousehold,
     noteLine,
-    householdsOfLine,
-    ancestorsOf,
   } = VB['sim/records'];
   const { wishOf } = VB['sim/wishes'];
   const { stopWorkFor, stayOf } = VB['sim/agents'];
@@ -37,176 +32,14 @@ VB['sim/heirs'] = (() => {
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
-  const { hoursBetween, byLand } = VB['sim/routes'];
+  const { hoursBetween, byLand } = VB['sim/villagehours'];
   const { SHARES, GOODWILL, houseCondition } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/herds'];
   const { abandoned } = VB['sim/fields'],
     { dropPlan } = VB['sim/plans'],
     { emit } = VB['sim/events'];
-  // The living of pawn `line`'s blood in the order its customs `cu` give (sex, birth order; under "chosen" those of household `homeId`
-  // first): its children and their lines (a dead child's children stand in its place), to four generations; then, unless `nested`, its
-  // siblings and their lines and its parents' siblings and theirs. {out, direct}: direct the first part alone.
-  function bloodLine(st, line, cu, homeId, nested) {
-    const sexRank = (p) =>
-      cu.heirSex === 'sonsFirst'
-        ? p.sex === 'm'
-          ? 0
-          : 1
-        : cu.heirSex === 'daughtersFirst'
-          ? p.sex === 'f'
-            ? 0
-            : 1
-          : 0;
-    const order = (ids) =>
-      [...ids].sort((a, b) => {
-        const pa = st.pawns[a],
-          pb = st.pawns[b],
-          s = sexRank(pa) - sexRank(pb);
-        if (s) return s;
-        if (cu.birthOrder === 'youngest') return pb.born - pa.born;
-        if (cu.birthOrder === 'chosen') {
-          const ha = pa.household === homeId ? 0 : 1,
-            hb = pb.household === homeId ? 0 : 1;
-          if (ha !== hb) return ha - hb;
-        }
-        return pa.born - pb.born;
-      });
-    const out = [],
-      seen = new Set();
-    const lineOf = (id, depth) => {
-      if (depth > 3) return;
-      for (const c of order(childrenOf(st, id))) {
-        if (seen.has(c)) continue;
-        seen.add(c);
-        if (st.pawns[c].died === null) out.push(c);
-        lineOf(c, depth + 1); // a dead child's children stand in their place; a living child's line follows them
-      }
-    };
-    lineOf(line, 0);
-    const direct = new Set(out);
-    seen.add(line);
-    let anc = line;
-    for (let up = 0; !nested && up < 2; up++) {
-      const lp = st.pawns[anc];
-      if (lp.father === null && lp.mother === null) break;
-      const parent = lp.father !== null ? lp.father : lp.mother;
-      for (const s of order(childrenOf(st, parent).filter((q) => q !== anc))) {
-        if (seen.has(s)) continue;
-        seen.add(s);
-        if (st.pawns[s].died === null) out.push(s);
-        lineOf(s, 1);
-      }
-      anc = parent;
-      seen.add(parent);
-    }
-    return { out, direct };
-  }
-  // A person's successor (VB-1121): the first living of its line by the inheritance customs of its village (bloodLine, read as
-  // heirRanking reads it), whether or not it holds a farm. The widow's right to a farm, a successor's own holding, its refusal or its
-  // being passed over for the holding do not unmake it: it is the line's, not the holding's. Under "sons only" a daughter is not of the
-  // line. The line reaches as far as a farm of its would: its descendants to four generations, its siblings and theirs, its parents'
-  // siblings and theirs; past them it ends, and null is returned.
-  // `village` names the customs where the pawn has no household (the played pawn after its death: st.player.left.village).
-  function successorOf(st, id, village = null) {
-    const p = st.pawns[id];
-    if (!p) return null;
-    const cu = practice(st, p.household !== null ? villageOf(st, p) : village !== null ? village : 0);
-    const { out } = bloodLine(st, id, cu, p.household, false);
-    const q = out.find((x) => x !== id && !(cu.heirSex === 'sons' && st.pawns[x].sex === 'f'));
-    return q === undefined ? null : q;
-  }
-  // Who would inherit this farm now, in order, under the practice of its village. The order is whom the holding is offered to, and the
-  // passing over is what each would answer (VB-824; design.md, Succession: Handed on, and taken up): `asked`, an array, gets the whole
-  // line in the order asked, {id, no (why this one would not take it, or null)}; those with no null, in that order, are the ranking.
-  function heirRanking(st, hh, cust = null, nested = false, ownFirstSet = null, deps = null, asked = null) {
-    VB.count.heirRank++;
-    const f = st.farmsteads[hh.farmstead],
-      cu = cust || practice(st, f.village);
-    const line = f.line !== undefined && f.line !== null ? f.line : hh.holder;
-    const { out, direct } = bloodLine(st, line, cu, hh.id, nested);
-    if (deps) {
-      deps.add(line);
-      deps.add(hh.holder);
-    }
-    // Each one's answer: no, with why, when it holds a farm already or lives on a spouse's (farms are not combined)
-    const no = asked ? new Map() : null,
-      nameOf = (o) => st.farmsteads[o.farmstead].name,
-      says = (id, why) => (no ? !no.set(id, why(id)) : false);
-    const inLine = out.filter((id) => {
-      if (deps) deps.add(id);
-      return !(cu.heirSex === 'sons' && st.pawns[id].sex === 'f') && id !== hh.holder;
-    });
-    const ok = inLine.filter((id) => {
-      const own = holdingOf(st, id);
-      if (own && own !== hh) return says(id, () => `holds ${nameOf(own)}`); // already holds a farm
-      const sp = spouseOf(st, id);
-      if (deps && sp !== null) deps.add(sp);
-      if (sp !== null) {
-        const so = holdingOf(st, sp);
-        if (so && so !== hh) return says(id, () => `lives at ${nameOf(so)}`);
-      } // lives on a spouse's farm
-      return true;
-    });
-    const ask = (ids) => {
-      if (asked) for (const id of ids) asked.push({ id, no: no.get(id) || null });
-    };
-    if (nested) return ok.filter((id) => direct.has(id));
-    if (!ok.length) {
-      ask(inLine);
-      return ok; // No competing direct claim can change an empty ranking.
-    }
-    // a relative who is first in line for their own parents' farm steps behind the others here: farms are not
-    // combined while someone else in the family can take this one. Direct heirs of this farm keep their place.
-    // Only a farm whose line is a candidate's ancestor, at most four generations up (lineOf), can have the candidate first (VB-224).
-    const claims = ownFirstSet
-      ? ownFirstSet.filter((e) => e[1] !== hh.id)
-      : ownFirstOf(
-          st,
-          hh,
-          [...ancestorsOf(st, ok, 4)].flatMap((id) => {
-            if (deps) deps.add(id);
-            return householdsOfLine(st, id);
-          }),
-          deps,
-        );
-    if (cu.ownHeir === 'keeps') {
-      // nobody steps behind; an heir first in another farm's line too takes the farm with more fields (on a tie, their own
-      // parents') and drops the other claim, which passes to the next in that line
-      const wins = (id, o) => {
-        const n = st.farmsteads[st.households[o].farmstead].fields.length,
-          p = st.pawns[id];
-        return (
-          n > f.fields.length ||
-          (n === f.fields.length && (p.household === o || [p.father, p.mother].includes(st.households[o].holder)))
-        );
-      };
-      const kept = ok.filter((id) => {
-        const won = claims.find((e) => e[0] === id && wins(id, e[1]));
-        return won ? says(id, () => `is heir to ${nameOf(st.households[won[1]])}`) : true;
-      });
-      ask(inLine);
-      return kept;
-    }
-    const ownFirst = new Set(claims.map((e) => e[0]));
-    const back = (id) => !direct.has(id) && ownFirst.has(id);
-    ask([...inLine.filter((id) => !back(id)), ...inLine.filter(back)]);
-    return [...ok.filter((id) => !back(id)), ...ok.filter(back)];
-  }
-  // [heir, household id] for the first direct heir of each household other than hh (all households when hh is null). Callers that rank many
-  // households while nothing changes compute this once and pass it to heirRanking as ownFirstSet. `among`: only these household ids;
-  // `deps`: a Set that gets the pawns the rankings read.
-  function ownFirstOf(st, hh = null, among = null, deps = null) {
-    const out = [];
-    for (const id of among || st.liveHouseholds) {
-      const o = st.households[id];
-      if (o !== hh) {
-        const r = heirRanking(st, o, null, true, null, deps);
-        if (r.length) out.push([r[0], o.id]);
-      }
-    }
-    return out;
-  }
+  const { heirsPlace, heirRanking, ownFirstOf } = VB['sim/heirranking'];
   // The act of moving (the move command, VB-822, its only caller): pawn id changes to household hhId, for `reason`; text: the 'moved' life
   // event, when the caller says more than the farm's name (sim/settle). The pawn walks to its new home, on a journey when it lies in another
   // village (sim/away's moved, VB-287, by sim/events); carry false: its provisions come from the new household (settlers).
@@ -227,8 +60,9 @@ VB['sim/heirs'] = (() => {
       });
     }
   }
-  // reason: 'death', 'marriage', 'retirement', 'married away' (the holder married onto a spouse's farm) or 'claim' (a landless adult takes a
-  // farm left with no heir; nobody is owed shares of it).
+  // reason: 'death', 'marriage', 'retirement', 'married away' (the holder married onto a spouse's farm), 'inherited away' (the holder, or
+  // the holder's spouse, takes a larger farm as its heir: handOn's 'heir') or 'claim' (a landless adult takes a farm left with no heir;
+  // nobody is owed shares of it). An heir who holds a place, or lives on a spouse's, hands that place on first (heirsPlace; VB-1141).
   // Pawn id moves to household target (the move command), for this module's acts.
   const move = (st, id, target, args) => issue(st, { actor: id, verb: 'move', target, args, source: 'succession' });
   function transfer(st, hh, heir, reason, from = null) {
@@ -237,6 +71,11 @@ VB['sim/heirs'] = (() => {
       old = hh.holder,
       op = st.pawns[from !== null ? from : old]; // `from`: the dead holder of an inheritance taken up late (VB-1142)
     const hp = st.pawns[heir];
+    const own = heirsPlace(st, heir);
+    if (own && own !== hh) {
+      emit(st, 'heirLeaves', { household: own.id }); // sim/trust ends a trust that holds it
+      handOn(st, own, own.holder, hh.id, 'heir');
+    }
     if (hp.household !== hh.id) {
       const from = hp.household !== null ? st.households[hp.household] : null,
         sp = spouseOf(st, heir);
@@ -299,9 +138,11 @@ VB['sim/heirs'] = (() => {
               ? ' on marrying'
               : reason === 'married away'
                 ? ` as ${fullName(op)} marries away`
-                : reason === 'claim'
-                  ? `, left with no heir when ${fullName(op)} married away`
-                  : ' as the old holder retires'
+                : reason === 'inherited away'
+                  ? ` as ${fullName(op)} moves away` // the heir to another farm, or its spouse: op holds this one either way
+                  : reason === 'claim'
+                    ? `, left with no heir when ${fullName(op)} moved away`
+                    : ' as the old holder retires'
         }.`,
       { kind: 'inherited', pawn: heir, other: op ? op.id : null, ...atHousehold(st, hh) },
     );
@@ -455,10 +296,10 @@ VB['sim/heirs'] = (() => {
   }
   // The heir who takes the farm: the first in line, but when no adult is left in the house to be a minor's guardian (other than `leaving`),
   // the first adult in line, if there is one (stability review): a child does not keep a farm alone.
-  function heirFor(st, hh, ranking, leaving = null) {
+  function heirFor(st, hh, ranking, leaving = null, companion = null) {
     if (!ranking.length) return null;
     const grown = hh.members.some(
-      (id) => id !== leaving && id !== hh.holder && st.pawns[id].alive && st.pawns[id].age >= 18,
+      (id) => id !== leaving && id !== companion && id !== hh.holder && st.pawns[id].alive && st.pawns[id].age >= 18,
     );
     if (grown || st.pawns[ranking[0]].age >= 18) return ranking[0];
     const adultHeir = ranking.find((id) => st.pawns[id].age >= 18);
@@ -556,17 +397,24 @@ VB['sim/heirs'] = (() => {
     }
     transfer(st, hh, heir, 'death');
   }
-  // A holder who marries onto the spouse's farm, `home` (stability review, VB-153), hands their own farm on: to its next heir who can keep it
-  // (an adult, or a minor with a grown housemate as guardian; heirFor), else to the landless adult of its village who has waited longest
-  // for land (then the oldest), else to a minor heir (sim/service then brings a guardian or empties it), else it stands empty and its grain
-  // and animals go with the holder. The holder's minor children go with them, unless one of them keeps the farm.
-  function handOn(st, hh, giver, home) {
-    const ranking = heirRanking(st, hh),
-      heir = heirFor(st, hh, ranking, giver);
+  // A holder who leaves its farm, hh, for another, `home`, hands it on: at a marriage onto the spouse's farm (reason 'marriage'; stability
+  // review, VB-153), when the holder of a farm held in trust inherits the trustee's (sim/trust, inheritedHeld), or when the holder, or the
+  // spouse it lives with there, inherits a larger farm (reason 'heir', from transfer; VB-1141: the spouse goes too, and is no heir here). It
+  // goes to its next heir who can keep it (an adult, or a minor with a grown housemate as guardian; heirFor), else to the landless adult of
+  // its village who has waited longest for land (then the oldest), else to a minor heir (sim/service then brings a guardian or empties it),
+  // else it stands empty and its grain and animals go with the holder. The holder's minor children go with them, unless one of them keeps
+  // the farm; a minor holder's guardianship of it ends.
+  function handOn(st, hh, giver, home, reason = 'marriage') {
+    const spouse = spouseOf(st, giver);
+    const follows = reason === 'heir' && spouse !== null && st.pawns[spouse].household === hh.id;
+    const ranking = heirRanking(st, hh).filter((id) => !follows || id !== spouse),
+      heir = heirFor(st, hh, ranking, giver, follows ? spouse : null);
     const keeps =
       heir !== null &&
       (st.pawns[heir].age >= 18 ||
-        hh.members.some((id) => id !== giver && st.pawns[id].alive && st.pawns[id].age >= 18));
+        hh.members.some(
+          (id) => id !== giver && (!follows || id !== spouse) && st.pawns[id].alive && st.pawns[id].age >= 18,
+        ));
     const v = st.farmsteads[hh.farmstead].village,
       at = (id) => st.pawns[id];
     const claim = keeps
@@ -589,16 +437,18 @@ VB['sim/heirs'] = (() => {
           })
           .sort((a, b) => (at(b).landWait || 0) - (at(a).landWait || 0) || at(a).born - at(b).born || a - b)[0];
     const stays = keeps || (claim === undefined && heir !== null) ? heir : null;
-    const kids = childrenOf(st, giver).filter((c) => {
+    const kids = [...new Set([...childrenOf(st, giver), ...(follows ? childrenOf(st, spouse) : [])])].filter((c) => {
       const k = st.pawns[c];
       return c !== stays && k.alive && k.age < 18 && k.household === hh.id && !isHolder(st, c);
     });
     // the giver goes with its minor children
-    if (st.pawns[giver].household === hh.id) move(st, giver, home, { reason: 'marriage', with: kids });
-    else for (const c of kids) move(st, c, home, { reason: 'marriage' });
+    if (st.pawns[giver].household === hh.id) move(st, giver, home, { reason, with: kids });
+    else for (const c of kids) move(st, c, home, { reason });
+    if (follows) move(st, spouse, home, { reason });
+    if (hh.ward === giver) hh.guardian = hh.ward = null; // a minor holder's guardian here guards it no longer
     if (stays !== null) {
       if (st.pawns[stays].age < 18) setGuardian(st, hh, stays);
-      transfer(st, hh, stays, 'married away');
+      transfer(st, hh, stays, reason === 'heir' ? 'inherited away' : 'married away');
       return;
     }
     if (claim !== undefined) {
@@ -610,7 +460,7 @@ VB['sim/heirs'] = (() => {
     const to = st.households[home];
     Stores.move(st, hh, to, 'grain', Stores.grainOf(hh), 'handingOn');
     passHerds(st, hh, home);
-    extinct(st, hh, `${fullName(st.pawns[giver])} married away, and nobody would take it`);
+    extinct(st, hh, `${fullName(st.pawns[giver])} moved away, and nobody would take it`);
   }
   // ids: the pawns to refresh (a handover's households), else every living pawn.
   function refreshRoles(st, ids = st.living) {
@@ -741,8 +591,6 @@ VB['sim/heirs'] = (() => {
     },
   });
   return {
-    heirRanking,
-    successorOf,
     moveTo,
     transfer,
     extinct,
@@ -755,7 +603,6 @@ VB['sim/heirs'] = (() => {
     staysWhy,
     countDemand,
     firstHeirs,
-    ownFirstOf,
     setGuardian,
     handOn,
     heirFor,

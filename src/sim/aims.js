@@ -13,14 +13,15 @@ VB['sim/aims'] = (() => {
   const Stores = VB['sim/stores'];
   const { on } = VB['sim/events'];
   const { log, personEvent, fullName, atHousehold, isHolder } = VB['sim/records'];
-  const { dailyNeed, larderOf } = VB['sim/hunger'];
+  const { dailyNeed } = VB['sim/hunger'],
+    { larderOf } = VB['sim/larder'];
   const { winterNeed } = VB['sim/herds'];
-  const { pickField } = VB['sim/fields'];
+  const { pickField } = VB['sim/fieldplans'];
   const { pickMeadow } = VB['sim/meadows'];
   const { findSite, hasPlot, awaitsCottage } = VB['sim/expansion'];
   const { issue, register } = VB['sim/commands'];
   const Plans = VB['sim/plans'];
-  const { heirRanking } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'];
   // The surplus (design.md section 7, How a holder chooses: projects; the first values of VB-255's criteria): food beyond `years` of the
   // household's need over the seed held back (the means to marry's measure, MARRIAGE.means, is the first value), and its hands idle over
   // `idle` of their work hours in the last season. The weights of the menu: `base` for each option, `heirs` for the heir's farm when two or

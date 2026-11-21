@@ -29,8 +29,8 @@ for (const f of files) {
   toks.forEach((t, i) => {
     const prev = toks[i - 1];
     if (inVerb.has(i)) return;
-    // moveTo: the move verb is its only caller, even in sim/heirs, which defines it (VB-822)
-    if (t.t === 'word' && t.v === 'moveTo' && toks[i + 1] && toks[i + 1].v === '(' && !(prev && prev.v === 'function')) calls.push(`${f}:${src.slice(0, t.s).split('\n').length} moveTo`);
+    // These acts have exactly one entry through a verb, even inside their defining module.
+    if (t.t === 'word' && ['moveTo', 'carryGift', 'haulGift', 'fetchGift'].includes(t.v) && toks[i + 1] && toks[i + 1].v === '(' && !(prev && prev.v === 'function')) calls.push(`${f}:${src.slice(0, t.s).split('\n').length} ${t.v}`);
     if (t.t === 'word' && WRAPPED.includes(t.v) && definedIn[t.v] !== f && toks[i + 1] && toks[i + 1].v === '(' && !(prev && (prev.v === '.' || prev.v === 'function'))) {
       calls.push(`${f}:${src.slice(0, t.s).split('\n').length} ${t.v}`);
     }
@@ -119,7 +119,7 @@ const snap2 = () => { const { w, ...rest } = st2; return canon(rest); };
 const C = VB.culture, s0 = st2.cenv.settlements[0], d0 = C.IDX.voice, now = s0.practice[d0], other = (now + 1) % C.NOPT[d0];
 assert.strictEqual(issue(st2, { actor: { settlement: 0 }, verb: 'decide', args: { dim: d0, option: other }, source: 'meeting' }), true);
 assert.strictEqual(s0.practice[d0], other);
-const holder = st2.households.find((h) => !h.dissolved && h.holder !== null && VB['sim/heirs'].heirRanking(st2, h).length);
+const holder = st2.households.find((h) => !h.dissolved && h.holder !== null && VB['sim/heirranking'].heirRanking(st2, h).length);
 const hp = holder.holder;
 assert.strictEqual(issue(st2, { actor: hp, verb: 'retire', source: 'debug' }), true);
 assert.notStrictEqual(holder.holder, hp, 'the farm is handed on');
@@ -153,8 +153,8 @@ const groom = single('m'), bride = single('f'), wedHome = groom.household, nUnio
 const R3 = [];
 assert.strictEqual(issue(st3, { actor: groom.id, verb: 'marry', target: bride.id, args: { home: wedHome }, source: 'round' }), true);
 assert.strictEqual(st3.unions.length, nUnions + 1); assert.strictEqual(bride.household, wedHome); assert.strictEqual(Sim.spouseOf(st3, groom.id), bride.id);
-const hh3 = st3.households.find((h) => !h.dissolved && h.holder !== null && st3.pawns[h.holder].died === null && VB['sim/heirs'].heirRanking(st3, h).length);
-const old3 = hh3.holder, heir3 = VB['sim/heirs'].heirRanking(st3, hh3)[0];
+const hh3 = st3.households.find((h) => !h.dissolved && h.holder !== null && st3.pawns[h.holder].died === null && VB['sim/heirranking'].heirRanking(st3, h).length);
+const old3 = hh3.holder, heir3 = VB['sim/heirranking'].heirRanking(st3, hh3)[0];
 assert.strictEqual(issue(st3, { actor: old3, verb: 'handOn', target: heir3, args: { household: hh3.id, reason: 'retirement' }, source: 'round' }), true);
 assert.strictEqual(hh3.holder, heir3);
 const servant = st3.pawns.find((p) => p.died === null && p.age >= 15 && !Sim.isHolder(st3, p.id) && p.id !== groom.id && p.id !== bride.id);

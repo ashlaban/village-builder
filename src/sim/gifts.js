@@ -1,11 +1,98 @@
 // @sys sim/gifts: how a gift gets from here to there (VB-228): the verbs `give`, the offer of a gift, and `deliver`, what a yes settles: carried,
 // hauled or fetched (sim/away) between places, booked at once within one farmstead (sim/exchange)
 VB['sim/gifts'] = (() => {
-  const { haulerOf, fetcherOf, carryGift, haulGift, fetchGift } = VB['sim/away'];
+  const { setOut, addFetchStop } = VB['sim/away'];
   const { cannotOffer, giftOf, make, delivery } = VB['sim/offers'];
-  const { home } = VB['sim/records'];
-  const { settleGift } = VB['sim/exchange'];
+  const { age, home } = VB['sim/records'];
+  const { booked, settleGift } = VB['sim/exchange'];
   const { register } = VB['sim/commands'];
+  const HANDS = VB['sim/rules'].AGES.hands;
+  const Stores = VB['sim/stores'];
+  const { hoursBetween } = VB['sim/villagehours'];
+  const { setDown } = VB['sim/agents'];
+  // A gift of n grain from household `from` to household `to`, further than a day's walk (VB-291; Kim, 10 Nov: carried, not sent): the
+  // grain leaves the giver's store as the carrier, one of its adults, sets out; the receiver books it when he arrives (delivered).
+  // Only the verb `deliver` calls it.
+  function carryGift(st, o) {
+    const a = st.agents[o.carrier],
+      parts = {};
+    Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: st.farmsteads[o.to.farmstead].name }, parts);
+    setDown(st, a);
+    const hours = hoursBetween(st, st.farmsteads[o.from.farmstead].village, st.farmsteads[o.to.farmstead].village);
+    setOut(st, a, o.from, o.to, false, hours, { to: o.to.id, n: o.n, parts });
+  }
+  // ---- a gift fetched (VB-461; AGENTS.md, the hard rule: a gift changes owner where it lies and waits there until someone fetches it) ----
+  // A gift to household hh from another farmstead, or from a village store, is set aside where it lies (the giver's house, the green where
+  // the store stands) as hh's, and a member of hh fetches it, TRAVEL.load a trip, walking home with each load; it is hh's to eat as each
+  // load comes in. One member fetches all of hh's gifts of the day, a stop after the other.
+  // j.gift of a fetch: {to (household), held (the grain on his back, 0 on the way out), parts, stops: [{at (tile), from (household id, or
+  // null), village (the store's village, or null), name, left (grain still lying there), parts}]}.
+  // The member of household hh who fetches its gift: the one already fetching, else its youngest of 14 or more who is not away nor
+  // carrying a load home; -1 when none can go.
+  function fetcherOf(st, hh) {
+    for (const j of st.away)
+      if (j.why === 'fetch' && j.gift && j.gift.to === hh.id && st.pawns[j.pawn].household === hh.id) return j.pawn;
+    return haulerOf(st, hh);
+  }
+  // The youngest member of household hh of 14 or more who is not away nor carrying a load home, or -1: who goes for a gift, or takes the
+  // household's quarter to the green (VB-849)
+  function haulerOf(st, hh) {
+    let best = -1;
+    for (const id of hh.members) {
+      const p = st.pawns[id],
+        a = st.agents[id];
+      if (!p.alive || age(st, p) < HANDS[0] || a.away !== undefined || a.phase === 'back') continue;
+      if (best < 0 || age(st, p) < age(st, st.pawns[best])) best = id;
+    }
+    return best;
+  }
+  // The verb `give`'s gift o {from, to, n} set aside and fetched by o.fetcher (fetcherOf): its records at once (sim/exchange booked), its
+  // grain taken from the giver to lie where it is, a stop of the fetcher's journey.
+  function fetchGift(st, o) {
+    const store = !('farmstead' in o.from),
+      name = store ? o.from.name + "'s store" : st.farmsteads[o.from.farmstead].name,
+      parts = {},
+      to = st.farmsteads[o.to.farmstead];
+    Stores.take(st, o.from, 'grain', o.n, { kind: o.keep ? 'keep' : 'gift', to: to.name }, parts);
+    booked(st, o.from, o.to, o.n, name);
+    const stop = {
+      at: store ? o.from.center : st.farmsteads[o.from.farmstead].house,
+      from: store ? null : o.from.id,
+      village: store ? o.from.id : null,
+      name,
+      keep: o.keep === true,
+      left: o.n,
+      parts,
+    };
+    const a = st.agents[o.fetcher];
+    if (addFetchStop(st, a.id, stop)) return;
+    setDown(st, a);
+    const v = store ? o.from.id : st.farmsteads[o.from.farmstead].village;
+    setOut(st, a, o.to, o.to, false, hoursBetween(st, to.village, v), {
+      to: o.to.id,
+      held: 0,
+      parts: {},
+      stops: [stop],
+    });
+  }
+  // A household's quarter for its village's store (VB-849: the yearly filling, carried): grain of o.from, o.n of it, is set aside at its
+  // house, and o.hauler, one of its members (haulerOf), carries it to the green (`v.center`) TRAVEL.load a trip; it is in the store only as
+  // each load arrives. The journey's gift is a fetch's, reversed: {to (the giving household), village, held, parts, stops: [its house]}.
+  function haulGift(st, o) {
+    const parts = {},
+      house = st.farmsteads[o.from.farmstead];
+    Stores.take(st, o.from, 'grain', o.n, { kind: 'gift', to: 'the village store' }, parts);
+    const a = st.agents[o.hauler];
+    setDown(st, a);
+    setOut(st, a, o.from, o.from, false, 1, {
+      to: o.from.id,
+      village: o.to.id,
+      haul: true,
+      held: 0,
+      parts: {},
+      stops: [{ at: house.house, from: o.from.id, village: null, name: house.name, left: o.n, parts }],
+    });
+  }
   // Why gift g (sim/offers giftOf) cannot be fetched, or null: one to a household from another farmstead or a village store, with no
   // carrier, is set aside where it lies and fetched by a member of the receiving household (VB-461), who must be free to go.
   const fetched = (g) =>

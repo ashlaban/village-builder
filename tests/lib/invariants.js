@@ -971,15 +971,15 @@ function checkState(st) {
     }
     if (off) bad.push(`w.fish: ${off} tiles with a stock or day out of place`);
   }
-  // the kept lists of walking reach (VB-452; sim/routes reachTiles): for each farm with a household and each reach the ground searches ask
+  // the kept lists of walking reach (VB-452; sim/walking reachTiles): for each farm with a household and each reach the ground searches ask
   // (fishing, gathering, hunting), the kept list is what a new search from the house finds now, tile for tile in its order
   {
-    const V = globalThis.VB, Rt = V['sim/routes'], Ru = V['sim/rules'], walk = Rt.walkable(st.w);
+    const V = globalThis.VB, Walking = V['sim/walking'], Ru = V['sim/rules'], walk = Walking.walkable(st.w);
     let off = 0, first = null;
     for (const f of st.farmsteads) {
       if (f.household === null) continue;
       for (const steps of new Set([Ru.FISH.reach, Ru.FORAGE.reach, Ru.DEER.hunt.reach])) {
-        const kept = Rt.reachTiles(st.w, f.house, steps), now = [...V['sim/hex'].bfs(st.w, f.house, steps, walk).dist.keys()];
+        const kept = Walking.reachTiles(st.w, f.house, steps), now = [...V['sim/hex'].bfs(st.w, f.house, steps, walk).dist.keys()];
         if (kept.length !== now.length || now.some((t, i) => kept[i] !== t)) { off++; first ??= `house ${f.house}, ${steps} steps`; }
       }
     }

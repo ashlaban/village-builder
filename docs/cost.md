@@ -12,7 +12,7 @@ Written on 3 November 2026, when Kim made `docs/architecture/target-v2.md` the p
 the game fast (above all late in a run) and how to make measuring that cheap. Read at `fc5c2fc`. The numbers in section 1.1 were measured
 that day in this repository's container (4 cores, Node), with `tools/sim.js` and a 40-year save. They are one run each, so treat them as
 accurate to about 10%. Kim decided on 3 November, marked **Decided**: about 1,000 living pawns on a medium map as the late game's
-reference, the budget, the work counters, and the ten rules (now in `AGENTS.md`, Rules for cost). The rest is **Proposed**.
+reference, the budget, the work counters, and the ten rules (section 1.3). The rest is **Proposed**.
 
 ## In short
 

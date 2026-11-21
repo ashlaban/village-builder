@@ -1,12 +1,5 @@
-// Grain held by crop (VB-347): a household's and a village's grain in subtypes, moved only through sim/stores. The table holds barley alone,
-// so this test loads the modules with a second crop, rye (barley's numbers), added to CROPS before sim/stores reads it; a run of the game
-// never sees it. Takes fall on each crop in proportion to what is held, a crop's take on that crop, gifts and moves keep the proportion,
-// the cook and the meal take unreserved grain whatever its crop, spoiling falls on each crop, and an old save's grain loads as barley.
-const assert = require('assert'), fs = require('fs'), path = require('path');
-for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'manifest.json'), 'utf8'))) {
-  require('../src/' + f);
-  if (f === 'sim/rules.js') { const { CROPS } = globalThis.VB['sim/rules']; CROPS.rye = { ...CROPS.barley }; }
-}
+// Grain held and moved in crop proportions, including legacy barley stores.
+const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/stores'], { CROPS } = VB['sim/rules'], { issue } = VB['sim/commands'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const near = (x, y, what) => assert(Math.abs(x - y) < 1e-9, `${what}: ${x}, expected ${y}`);

@@ -4,7 +4,7 @@
 // islands of tests/lib/probe.js since VB-856 (heirs at seed 13, the 48 by 34 island's first seed whose crowded village founds; on the default
 // island it was seed 7).
 const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/settle'];
-const { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'], { SETTLE } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
+const { bfs } = VB['sim/hex'], { walkable } = VB['sim/walking'], { SETTLE } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SETTLE FAIL:', m); } };
 const { scenario } = require('./lib/probe.js');
 // The heirs scenario at seed 13: a waiting adult of village A with an unmarried adult sibling who also waits. Natural deaths off.

@@ -38,7 +38,7 @@ check(PEAT.worth === 0.5 && PEAT.far === 8, 'PEAT.worth 0.5, PEAT.far 8');
 {
   const st = make(), hh = st.households[0], f = st.farmsteads[hh.farmstead], w = st.w;
   w.deposit = new Uint8Array(w.N); w.depositLeft = new Uint16Array(w.N);
-  const { dist } = VB['sim/hex'].bfs(w, f.house, 4, (j) => VB['sim/routes'].passable(w, j));
+  const { dist } = VB['sim/hex'].bfs(w, f.house, 4, (j) => VB['sim/walking'].passable(w, j));
   const t = [...dist].find(([i, d]) => d === 3 && st.owner[i] === 0 && !w.water[i]);
   check(!!t, 'a free tile three steps off');
   if (t) {

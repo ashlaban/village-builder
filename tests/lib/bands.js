@@ -182,7 +182,7 @@ const FLOORS = [
   ...[['craft', 'headsLine'], ['elite', 'headsLine']].map(([c, probe]) => ({ id: `heads-line-${c}`, probe, which: c, kind: 'described', afterYear: 0, reportOnly: true, group: 'strata' })),
   ...W.CAUSES.map((cause) => ({ id: `waiting-${cause}`, probe: 'waitingShare', kind: 'described', afterYear: 0, cause, reportOnly: true, group: 'growth' })),
 ];
-// Growth, judged over a scenario's seeds (Kim, 12 November; AGENTS.md, Deciding without Kim, 2): the median seed grows at least `median`
+// Growth, judged over a scenario's seeds (Kim, 12 November; design.md, Principles for decisions): the median seed grows at least `median`
 // a year, at least `growing` of the seeds end above their start, and at most `halved` end below half of it. A median below 0 is a
 // collapse. Founders and populous are held to it, and the reduced run; heirs is reported without a target.
 const GROWTH = { median: 0.01, growing: 0.75, halved: 0.125, runs: ['founders', 'populous'] };

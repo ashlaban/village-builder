@@ -227,7 +227,7 @@ const AT = [0, 0.5, 1];
   const aged = (y) => { p.age = y; p.born = st.t - y * YEAR; };
   aged(5);
   set(st, father, 'temper', 1); set(st, son, 'temper', 1);
-  R.addTie(st, father, son, 2 * AF.known); R.addTie(st, son, father, 2 * AF.known);
+  VB['sim/ties'].addTie(st, father, son, 2 * AF.known); VB['sim/ties'].addTie(st, son, father, 2 * AF.known);
   const c = R.compat(st, father, son), n0 = st.record.length;
   assert.ok(c < -0.5, `a father and son who do not get on: ${c}`);
   st.rng.talk.fix = 0;
@@ -247,7 +247,7 @@ const AT = [0, 0.5, 1];
   if (liked !== undefined) {
     aged(5);
     const cl = R.compat(st, liked, son);
-    R.addTie(st, liked, son, 2 * AF.known);
+    VB['sim/ties'].addTie(st, liked, son, 2 * AF.known);
     if (cl > 0) assert.ok(near(R.opinionOf(st, liked, son), AF.weight * cl), `liking a child of 5: ${R.opinionOf(st, liked, son)}`);
   }
   delete st.rng.talk.fix;

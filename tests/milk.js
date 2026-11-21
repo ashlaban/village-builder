@@ -1,6 +1,6 @@
 // Milk and butter (VB-135): a cow that calved this spring is in milk from turn-out to the byre; a daily milking job gives 0.5 rations a cow,
 // less for the winter's lean days; 40% is churned to butter that keeps a year, the rest is drunk within the day; no milk in the byre.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], Y = VB['sim/byre'], F = VB['sim/hunger'];
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], Y = VB['sim/byre'], L = VB['sim/larder'], { dailyNeed } = VB['sim/hunger'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('MILK FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
@@ -28,7 +28,7 @@ check(job && Math.abs(job[2].hours - (HD.milkHours[0] + HD.milkHours[1] * cows +
 const herded = (day) => { for (const herd of H.herdsOf(st, hh)) herd.herded = day; };
 herded(10);
 hh.larder = []; Y.milkDone(st, hh, cal(10));
-const milk = F.larderOf(hh, 'milk'), butter = F.larderOf(hh, 'butter');
+const milk = L.larderOf(hh, 'milk'), butter = L.larderOf(hh, 'butter');
 check(Math.abs(milk + butter - cows * HD.milk - ewesNow * HD.eweMilk) < 1e-9, `milk ${milk} + butter ${butter} for ${cows} cows`);
 check(Math.abs(butter - (cows * HD.milk + ewesNow * HD.eweMilk) * HD.butter) < 1e-9, `butter ${butter}, wanted ${HD.butter} of the milk`);
 check(Y.byreJobs(st, hh, cal(10)).every((j) => j[1] !== 'milk'), 'milked twice in a day');
@@ -36,16 +36,16 @@ const lots = hh.larder.map((l) => (l.until - st.t) / Sim.DAY).sort((a, b) => a -
 check(Math.abs(lots[0] - 1) < 1e-9 && Math.abs(lots[1] - HD.butterDays) < 1e-9, `milk keeps ${lots[0]} days, butter ${lots[1]}`);
 for (const herd of H.herdsOf(st, hh)) herd.lean = 10;
 herded(10); hh.larder = []; hh.milkDay = -1; Y.milkDone(st, hh, cal(11));
-check(Math.abs(F.larderOf(hh) - (cows * HD.milk + ewesNow * HD.eweMilk) * (1 - 10 * HD.leanPer)) < 1e-9, `10 lean days: ${F.larderOf(hh)} rations`);
+check(Math.abs(L.larderOf(hh) - (cows * HD.milk + ewesNow * HD.eweMilk) * (1 - 10 * HD.leanPer)) < 1e-9, `10 lean days: ${L.larderOf(hh)} rations`);
 for (const herd of H.herdsOf(st, hh)) herd.lean = 100;
 herded(11); hh.larder = []; hh.milkDay = -1; Y.milkDone(st, hh, cal(12));
-check(Math.abs(F.larderOf(hh) - (cows * HD.milk + ewesNow * HD.eweMilk) * (1 - HD.leanMax)) < 1e-9, `100 lean days: ${F.larderOf(hh)} rations, wanted at most ${HD.leanMax} less`);
+check(Math.abs(L.larderOf(hh) - (cows * HD.milk + ewesNow * HD.eweMilk) * (1 - HD.leanMax)) < 1e-9, `100 lean days: ${L.larderOf(hh)} rations, wanted at most ${HD.leanMax} less`);
 // VB-136: after a grazing day by the farm with no herder, half the milk; not after a day in the byre (the turn-out)
 for (const herd of H.herdsOf(st, hh)) herd.lean = 0;
 herded(5); hh.larder = []; hh.milkDay = -1; Y.milkDone(st, hh, cal(13));
-check(Math.abs(F.larderOf(hh) - (cows * HD.milk + ewesNow * HD.eweMilk) * HD.herding.milk) < 1e-9, `unherded yesterday: ${F.larderOf(hh)} rations, wanted ${HD.herding.milk} of ${cows * HD.milk}`);
+check(Math.abs(L.larderOf(hh) - (cows * HD.milk + ewesNow * HD.eweMilk) * HD.herding.milk) < 1e-9, `unherded yesterday: ${L.larderOf(hh)} rations, wanted ${HD.herding.milk} of ${cows * HD.milk}`);
 hh.larder = []; hh.milkDay = -1; Y.milkDone(st, hh, cal(HD.stall[1]));
-check(Math.abs(F.larderOf(hh) - (cows * HD.milk + ewesNow * HD.eweMilk)) < 1e-9, `at the turn-out: ${F.larderOf(hh)} rations, wanted the full ${cows * HD.milk}`);
+check(Math.abs(L.larderOf(hh) - (cows * HD.milk + ewesNow * HD.eweMilk)) < 1e-9, `at the turn-out: ${L.larderOf(hh)} rations, wanted the full ${cows * HD.milk}`);
 
 // --- a whole year: every day out of the byre is milked; fresh milk does not spoil (it is drunk), butter is in the larder in autumn
 st = Sim.seed(world(7), 7, 'founders');
@@ -63,18 +63,18 @@ check(Math.abs(churned / (fresh + churned) - HD.butter) < 1e-6, 'butter share');
 // the meal drinks the day's milk first: across a summer midnight the milk goes and grain and meals fall by the rest of the need
 const s2 = Sim.seed(world(7), 7, 'founders');
 Sim.advance(s2, 15 * Sim.DAY + 20 - s2.t); // day 15 (summer), 20:00
-const h2 = s2.households.find((h) => F.larderOf(h, 'milk') > 0);
+const h2 = s2.households.find((h) => L.larderOf(h, 'milk') > 0);
 check(h2, 'no household with milk in the larder on a summer evening');
 if (h2) {
-  const m0 = F.larderOf(h2, 'milk'), g0 = Sim.grainOf(h2) + h2.meals, need = F.dailyNeed(s2, h2), sp0 = h2.spoilt || 0, meals0 = h2.meals;
+  const m0 = L.larderOf(h2, 'milk'), g0 = Sim.grainOf(h2) + h2.meals, need = dailyNeed(s2, h2), sp0 = h2.spoilt || 0, meals0 = h2.meals;
   Sim.advance(s2, 4.5);
   const used = g0 - (Sim.grainOf(h2) + h2.meals) - ((h2.spoilt || 0) - sp0); // grain that spoiled in store overnight is not eaten
-  check(F.larderOf(h2, 'milk') < 1e-9, 'fresh milk left after the meal');
+  check(L.larderOf(h2, 'milk') < 1e-9, 'fresh milk left after the meal');
   // what meals do not cover is grain eaten uncooked, at 1 / ECON.uncooked a ration (VB-119, VB-327)
   const rest = need - m0, want = Math.min(meals0, rest) + Math.max(0, rest - meals0) / s2.ECON.uncooked;
   check(Math.abs(used - want) < 1e-6, `the meal took ${used.toFixed(2)} grain and meals, wanted ${want.toFixed(2)} (need less milk)`);
 }
-check(st.households.some((h) => F.larderOf(h, 'butter') > 1), 'no butter in any larder at the byre');
+check(st.households.some((h) => L.larderOf(h, 'butter') > 1), 'no butter in any larder at the byre');
 const bad = checkState(st); check(!bad.length, bad.slice(0, 3).join('; '));
 // a cow gives half on the days after one unherded (VB-136): the founders, with no child of 8, herd on few days
 // --- ewes' milk and wool (VB-144): a ewe that lambed this spring is in milk from turn-out to the end of summer; fleeces on summer day 1
@@ -90,10 +90,10 @@ if (sh) {
   g3.lambed = 4; g3.ewes = Math.max(g3.ewes, 4);
   for (const hd of H.herdsOf(s3, h3)) { hd.herded = 10; if (hd.species === 'cattle') hd.head = []; }
   h3.larder = []; h3.milkDay = -1; Y.milkDone(s3, h3, cal(10));
-  eweRations = F.larderOf(h3);
+  eweRations = L.larderOf(h3);
   check(Math.abs(eweRations - 4 * HD.eweMilk) < 1e-9, `4 ewes gave ${eweRations} rations, wanted ${4 * HD.eweMilk}`);
   h3.larder = []; h3.milkDay = -1; Y.milkDone(s3, h3, cal(HD.eweEnd + 1));
-  check(F.larderOf(h3) === 0, 'ewes milked after the end of summer');
+  check(L.larderOf(h3) === 0, 'ewes milked after the end of summer');
   // wool: shorn on summer day 1
   for (const h of s3.households) h.wool = 0;
   Y.shearing(s3);

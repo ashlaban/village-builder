@@ -3,7 +3,7 @@
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // read at each call: tools/store-flows.js caps the yearly filling by replacing it
   const { AGES, HELP, GIFT, YEAR, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
-  const { hoursBetween, withinDay, byLand } = VB['sim/routes'];
+  const { hoursBetween, withinDay, byLand } = VB['sim/villagehours'];
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
@@ -166,7 +166,7 @@ VB['sim/help'] = (() => {
   // seed: its allowance, at most TRAVEL.load, at most what brings the receiver to a year; under GIFT.least no gift. The verb `give`'s, carried
   // by one of the giver's own; the receiver's holder answers, and goodwill is booked on arrival (sim/exchange).
   const yearOf = (t) => Math.floor(t / YEAR);
-  const { tieOf } = VB['sim/records'];
+  const { tieOf } = VB['sim/ties'];
   // Why household hh gives no unasked gift now, or the gift {to, n, carrier}
   function goodYearGift(st, hh) {
     const id = hh.holder;

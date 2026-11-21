@@ -34,7 +34,7 @@ for (const sc of ['founders', 'heirs', 'populous']) {
     'cooked up to the next meal, from grain unground (VB-009)');
   hh.meals = 0; hh.grain = { barley: 0.2 }; hh.cookDay = -1; st.jobs.set('k', j); complete(st, cook);
   assert(Math.abs(hh.meals - 0.2 / st.ECON.unground) < 1e-9 && Sim.grainOf(hh) === 0, 'only the grain there is');
-  VB['sim/plans'].makeProject(st, 'household', hh.id, VB['sim/fields'].fieldProject(st, hh, f.house)); hh.meals = 0; hh.grain = { barley: seedReserve(st, hh) }; st.jobs.set('k', j); complete(st, cook);
+  VB['sim/plans'].makeProject(st, 'household', hh.id, VB['sim/fieldplans'].fieldProject(st, hh, f.house)); hh.meals = 0; hh.grain = { barley: seedReserve(st, hh) }; st.jobs.set('k', j); complete(st, cook);
   // VB-388: the seed a short household would eat is cooked (the larder and fresh food first), the rest of the reserve kept
   const seed = seedReserve(st, hh), other = hh.larder.reduce((s, l) => s + l.n, 0) + VB['sim/pot'].freshHeld(st, hh), want = Math.max(0, need - other);
   assert(seed > need && Math.abs(hh.meals - want) < 1e-9 && Math.abs(Sim.grainOf(hh) - (seed - want * st.ECON.unground)) < 1e-9, `the seed the meal would eat is cooked: ${hh.meals} of ${want}`);

@@ -1,8 +1,8 @@
-// VB-286: the walking hours between villages (sim/routes): the table agrees with the route search, is read by hoursBetween, is refreshed a
+// VB-286: the walking hours between villages (sim/villagehours): the table agrees with the route search, is read by hoursBetween, is refreshed a
 // village a step on autumn day 9 from noon (calendar), grows with a village founded, and is built for a save that lacks it.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js'), agree = require('./lib/reach.js');
-const { reachCosts, hoursBetween, refreshHoursStep, villageAdded, ROW_STEPS } = VB['sim/routes'], { ROUTE, SPEED, TICKS } = VB['sim/rules'];
+const { reachCosts } = VB['sim/routes'], { hoursBetween, refreshHoursStep, villageAdded, ROW_STEPS } = VB['sim/villagehours'], { ROUTE, SPEED, TICKS } = VB['sim/rules'];
 const fresh = (st) => {
   const c = st.villages.map((v) => v.center);
   return st.villages.map((v) => reachCosts(st.w, v.center, ROUTE.reach, c).map((x, u) => x === null ? null : x / SPEED)); };

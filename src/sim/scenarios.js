@@ -5,7 +5,8 @@ VB['sim/scenarios'] = (() => {
   const { YEAR, TICKS, ECON, TESTBED, CROPS, ROTATIONS, FERTILITY, SEASON_DAYS, cal, farmable } = VB['sim/rules'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
-  const { walkable, buildHours } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'],
+    { buildHours } = VB['sim/villagehours'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const ByHand = VB['sim/byhand'];
   const { foundersHouseholds, drawSize, populousHouseholds, handHouseholds } = VB['sim/people'];
@@ -29,7 +30,8 @@ VB['sim/scenarios'] = (() => {
   const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
-  const { yearlyRations, fieldsWanted, restagger } = VB['sim/fields'];
+  const { restagger } = VB['sim/fields'];
+  const { yearlyRations, fieldsWanted } = VB['sim/fieldplans'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
   const { initDeer } = VB['sim/deer'];
@@ -416,7 +418,7 @@ VB['sim/scenarios'] = (() => {
     //   visited ({village, year} or null: its last suitor's visit; sim/visits, VB-289),
     //   landWait (moving rounds waited for land in a crowded village, 0 otherwise; unset before the first round; sim/settle), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
-    //   ties, tieT, homeHours; rel (sim/relations)
+    //   ties, tieT, homeHours (sim/ties); rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain ({crop: rations}), meals (rations of cooked food, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;
@@ -476,7 +478,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends; sim/routes), oldest first, emptied each day a tile
     //   changed cost, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
-    // @state st.routeDirty: Set of tile indexes whose walking cost changed today; the cached routes they touch are dropped at the end of the day
+    // @state st.routeDirty: Set of tile indexes whose walking cost changed today; a nonempty set invalidates the route cache at day’s end
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)

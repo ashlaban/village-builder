@@ -1,16 +1,14 @@
 # Scheduled agents
 
-The instructions of the agents that work on this repository unattended, on a schedule. Each scheduled task's own prompt only points
-here, so the instructions are versioned with the code, changed by PR, and their effect measured like any other change
-(`docs/review-agent-workflow.md`, section 6). Each file is read in every run: keep it short, and leave how a thing is done to `AGENTS.md`.
+The Claude schedules for these roles have been disabled since November 2026.
 
-| Role | File | Scheduled task | Time (Stockholm) | Changes |
-|------|------|----------------|------------------|---------|
-| Worker | `worker.md`, and `.claude/agents/vb-task.md` for each task | Village builder (worker) | 04:46 daily | code, tests, task files; never `design.md` |
-| Reviewer | `reviewer.md` | Village builder (Reviewer) | 05:49 daily | `design.md`, `REVIEW.md`, the backlog, the questions |
-| Project manager | `project-manager.md` | Village builder (Project manager) | 09:23 daily | the backlog and `QUESTIONS.md` only |
+| Role | Instructions | Changes |
+|------|--------------|---------|
+| Worker | [worker.md](worker.md) | Code, tests and task files |
+| Reviewer | [reviewer.md](reviewer.md) | Design, review, backlog and questions |
+| Project manager | [project-manager.md](project-manager.md) | Backlog and questions |
 
-The prompt of each scheduled task, with its role and file:
+The prompt of each Claude-scheduled task, with its role and file:
 
 > You are the <role> of the village builder, the GitHub repository `ashlaban/village-builder`, running unattended: nobody will
 > answer questions. Clone the repository, then read `docs/agents/<file>` on `main` and follow it.
@@ -28,6 +26,3 @@ Each run ends by measuring itself (`tools/agent-usage.js`): one file per run in 
 to these files or to `AGENTS.md`. Three measures say whether a night gave the most work for the least overhead: the weighted cost of
 a done task, by size; the overhead, as the orchestrator's share of the cost and the sub-agents' median boot (their context at the
 first edit); and the share of tasks done at the first attempt.
-
-The three scheduled tasks have been disabled since 2 and 3 November 2026, and until they are pointed here they carry their old prompts,
-written for the backlog before 3 November (tasks as blocks inside `BACKLOG.md`).

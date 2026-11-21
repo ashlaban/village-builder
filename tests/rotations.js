@@ -7,7 +7,7 @@
 // meeting, the one most farms hold; the invariants of each state; barley every year as it was.
 const assert = require('assert'), VB = require('../src/load.js');
 const { CROPS, ROTATIONS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
-const F = VB['sim/fields'], Plans = VB['sim/plans'], Stores = VB['sim/stores'], { seedNeed } = VB['sim/hunger'];
+const F = VB['sim/fields'], FieldPlans = VB['sim/fieldplans'], Rotations = VB['sim/rotations'], Plans = VB['sim/plans'], Stores = VB['sim/stores'], { seedNeed } = VB['sim/hunger'];
 const { setClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
@@ -61,10 +61,10 @@ const review = (s, t) => {
   // the fields wanted: the sown ones as for barley every year (rye nets as barley), the fallow ones on top
   const everyWanted = (() => {
     const t = farm('every', { barley: 400 });
-    return F.fieldsWanted(t.st, t.hh, Infinity);
+    return FieldPlans.fieldsWanted(t.st, t.hh, Infinity);
   })();
-  assert.strictEqual(F.fieldsWanted(s.st, s.hh, Infinity), Math.ceil((everyWanted * 3) / 2), 'half as many again in three courses');
-  assert.strictEqual(F.fieldsWanted(s.st, s.hh, 2), 3, 'two sown fields the hands can till, and one fallow on top');
+  assert.strictEqual(FieldPlans.fieldsWanted(s.st, s.hh, Infinity), Math.ceil((everyWanted * 3) / 2), 'half as many again in three courses');
+  assert.strictEqual(FieldPlans.fieldsWanted(s.st, s.hh, 2), 3, 'two sown fields the hands can till, and one fallow on top');
   ok(s.st, 'three courses taken');
 
   // a field moves on: its crop in (the last load taken up), its fallow year over, its window closed unsown
@@ -132,15 +132,15 @@ const review = (s, t) => {
   const breakOne = () => {
     setClock(s.st, at(0, 6));
     Plans.dropAll(s.st, 'household', s.hh.id);
-    Plans.makeProject(s.st, 'household', s.hh.id, { what: 'field', steps: [{ kind: 'break', place: F.pickField(s.st, s.f, s.hh), hours: 0, stake: 'field' }] });
+    Plans.makeProject(s.st, 'household', s.hh.id, { what: 'field', steps: [{ kind: 'break', place: FieldPlans.pickField(s.st, s.f, s.hh), hours: 0, stake: 'field' }] });
     F.finishBreak(s.st, s.f);
     return s.f.fields[s.f.fields.length - 1];
   };
   // VB-999: the project of the third field holds back rye's seed, the course it will take when broken; with barley every year, barley's
   setClock(s.st, at(0, 6));
-  assert.deepStrictEqual(F.fieldProject(s.st, s.hh, 0).hold, { [Stores.grainGood('rye')]: CROPS.rye.seed }, 'a new field of three courses holds rye');
+  assert.deepStrictEqual(FieldPlans.fieldProject(s.st, s.hh, 0).hold, { [Stores.grainGood('rye')]: CROPS.rye.seed }, 'a new field of three courses holds rye');
   const bar = farm('every', { barley: 400 });
-  assert.deepStrictEqual(Object.keys(F.fieldProject(bar.st, bar.hh, 0).hold), [Stores.grainGood('barley')], 'barley every year holds barley');
+  assert.deepStrictEqual(Object.keys(FieldPlans.fieldProject(bar.st, bar.hh, 0).hold), [Stores.grainGood('barley')], 'barley every year holds barley');
   // the rye window's last day and the day after are closing days for a farm in three courses, not for one of barley every year
   const rye = (d) => cal(at(2, CROPS.rye.sow[2] + d));
   assert(Plans.closing(s.st, rye(0), s.plan) && Plans.closing(s.st, rye(1), s.plan), "rye's window closes on a farm that sows it");
@@ -153,10 +153,10 @@ const review = (s, t) => {
   // the meeting: most farms hold three courses, so the village's rotation is three; a village whose farms all farm barley every year
   // has barley every year
   s.v.rotation = 'every';
-  F.usualRotation(s.st, s.v);
+  Rotations.usualRotation(s.st, s.v);
   assert.strictEqual(s.v.rotation, 'three', 'the one most farms hold');
   for (const q of s.f.fields) Object.assign(q, { rotation: 'every', step: 0, crop: 'barley' });
-  F.usualRotation(s.st, s.v);
+  Rotations.usualRotation(s.st, s.v);
   assert.strictEqual(s.v.rotation, 'every', 'barley every year again');
   ok(s.st, 'the meeting');
 }

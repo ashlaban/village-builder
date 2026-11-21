@@ -1,7 +1,7 @@
 // Stakes (VB-158, sim/stakes) on tiny worlds: a field or meadow project stakes its tile instead of owning it; work renews the stake and
 // breaking the ground makes it the household's; an unworked stake lapses and ends its project; a household that dissolves drops its stakes;
 // a household with no free tile may contest a weakened stake, and the village's Disputed claims custom settles it.
-const VB = require('../src/load.js'), Sim = VB.sim, CL = VB['sim/claims'], T = VB['sim/territory'], S = VB['sim/stakes'], F = VB['sim/fields'];
+const VB = require('../src/load.js'), Sim = VB.sim, CL = VB['sim/claims'], T = VB['sim/territory'], S = VB['sim/stakes'], F = VB['sim/fields'], FieldPlans = VB['sim/fieldplans'];
 const { moveClock } = require('./lib/clock.js');
 const R = VB['sim/relations'], { KINDS } = VB['sim/kinds'], J = VB['sim/jobs'], A = VB['sim/agents'];
 const { CLAIMS, YEAR, DAY, cal, SOCIAL } = VB['sim/rules'], { setOwner } = VB['sim/ownership'];
@@ -13,8 +13,8 @@ const ok = (st, label) => { Sim.refreshRoles(st); const bad = checkState(st); ch
 const H = (id) => ({ type: 'household', id });
 // The land step's field (sim/fields' choice, made a project plan by sim/plans, as the review does).
 const start = (st, f, hh) => {
-  if (VB['sim/projects'].projectOf(st, 'household', hh.id) || f.fields.length >= F.fieldsWanted(st, hh)) return;
-  const tile = F.pickField(st, f, hh), p = tile >= 0 ? F.beginField(st, f, hh, tile) : null;
+  if (VB['sim/projects'].projectOf(st, 'household', hh.id) || f.fields.length >= FieldPlans.fieldsWanted(st, hh)) return;
+  const tile = FieldPlans.pickField(st, f, hh), p = tile >= 0 ? FieldPlans.beginField(st, f, hh, tile) : null;
   if (p) VB['sim/plans'].makeProject(st, 'household', hh.id, p);
 };
 // A farm's land project (its household's project plan, VB-123): its open step's tile and kind, or null.
@@ -35,7 +35,7 @@ const out = [];
 // ---- a stake: claimed, not owned; nobody else takes it in; work renews it; breaking the ground makes it the household's ----
 {
   const { st, hh, f } = scene();
-  check(F.fieldsWanted(st, hh[0]) > f[0].fields.length, 'household 0 wants another field');
+  check(FieldPlans.fieldsWanted(st, hh[0]) > f[0].fields.length, 'household 0 wants another field');
   const owner0 = (t) => st.owner[t];
   start(st, f[0], hh[0]);
   const t = pj(st, f[0]) && pj(st, f[0]).tile, c = CL.claimOf(st, t, H(0)), was = owner0(t);
@@ -94,13 +94,13 @@ const out = [];
 // stand behind household 2's holder) or 'staker'
 function contest(dispute, idle = 2, ties = 'contestor') {
   const { st, hh, f } = scene(dispute);
-  const t = F.chooseTile(st, f[2]);
-  S.stake(st, hh[0], t, 'field'); VB['sim/plans'].makeProject(st, 'household', hh[0].id, F.fieldProject(st, hh[0], t));
+  const t = FieldPlans.chooseTile(st, f[2]);
+  S.stake(st, hh[0], t, 'field'); VB['sim/plans'].makeProject(st, 'household', hh[0].id, FieldPlans.fieldProject(st, hh[0], t));
   CL.claimOf(st, t, H(0)).renewed = st.t - idle * YEAR;
   for (let u = 0; u < st.w.N; u++) {
     if (u !== t && !st.used.has(u) && u !== st.villages[0].center && (st.owner[u] === 0 || T.isOutland(st, u, 0))) setOwner(st, u, H(1));
   }
-  check(F.chooseTile(st, f[2]) < 0, `${dispute}: no free tile for household 2`);
+  check(FieldPlans.chooseTile(st, f[2]) < 0, `${dispute}: no free tile for household 2`);
   // a member of household 0 is on its way to the project (the reviews' land step held back: household 2 contests below, with the voices set)
   st.makeFields = false; J.refreshJobs(st, cal(st.t), true); st.makeFields = true;
   const job = st.jobs.get(`clear:f${f[0].id}`), worker = st.agents[hh[0].members.find((id) => st.pawns[id].age >= 18)];

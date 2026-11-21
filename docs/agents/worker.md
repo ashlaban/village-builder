@@ -40,7 +40,7 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
      case a task is started again in a night; the inbox allows it twice a task, and the third sub-agent ends with `needs-review`.
    - It reported `needs-review` with a commit (work not built, or a question; Kim, 15 November): merge it as any other, since the hard
      checks decide a merge; the task stays open, under Waiting for Kim, and what is unmet goes under "For Kim" in the PR. A measure
-     not taken is not this case (Kim, 16 November): that task is done, and you add what it owes to the collecting task its note names.
+     not taken is not this case (Kim, 16 November): that task is done, and you report its evidence and the reason for the missing measure at PR closeout.
    - A noted task lands `ready` when its note says so (its goal, ref and criteria stated, no question). One that landed
      `needs-review` with no question in it: fill in what it lacks and set it `ready`, priority 1 if it mends a red check.
    - A task whose notes begin "Flag: Kim takes part" is never given to a sub-agent: it is taken in a session with Kim, who

@@ -2,7 +2,8 @@
 // scores under each rule, the winner, and the grievance of the losers (split from sim/claims, VB-1176)
 VB['sim/disputes'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
-  const { kinship, membersOf, voiceOf, tieOf } = VB['sim/records'];
+  const { kinship, membersOf, voiceOf } = VB['sim/records'],
+    { tieOf } = VB['sim/ties'];
   const { strength } = VB['sim/claims'];
   // @state household.grievance: written by aggrieve, below (the rules that would have let its losing claim win, until a game hour)
   // The pawn who speaks for a claim: a pawn's own, a household's holder; a village has none.

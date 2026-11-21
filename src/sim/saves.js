@@ -2,14 +2,15 @@
 VB['sim/saves'] = (() => {
   const { setBiome } = VB['gen'];
   const { seal } = VB['sim/registry'];
-  const { trimRoutes, buildHours } = VB['sim/routes'];
+  const { trimRoutes } = VB['sim/routes'],
+    { buildHours } = VB['sim/villagehours'];
   const { rebuildLiving, indexEvents } = VB['sim/records'];
   const { close: closeLedger } = VB['sim/stores'],
     { openFresh } = VB['sim/pot'];
   const { migrateTies } = VB['sim/relations'];
   const { seedPlans, fillPlans } = VB['sim/plans'],
     Plans = VB['sim/plans'],
-    { BREAK_HOURS } = VB['sim/fields'],
+    { BREAK_HOURS } = VB['sim/fieldplans'],
     { seedPer } = VB['sim/hunger'];
   const { TICKS, TRAITS } = VB['sim/rules'];
   const { makeStream } = VB['sim/rng'];
@@ -576,7 +577,7 @@ VB['sim/saves'] = (() => {
           what: why,
           hold:
             why === 'field'
-              ? VB['sim/fields'].newFieldSeed(st, hh)
+              ? VB['sim/fieldplans'].newFieldSeed(st, hh)
               : { [VB['sim/stores'].grainGood('barley')]: seedPer(st, hh) },
           steps: p.stage === 'clear' ? [step('clear', p.hours), step('break', BREAK_HOURS)] : [step(p.stage, p.hours)],
         });

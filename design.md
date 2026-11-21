@@ -91,7 +91,7 @@ slices of `docs/slices.md` build towards them, and the sections below say how fa
 ### Principles for decisions (Kim, 12 and 14 November 2026)
 
 Decided, in a discussion of the open questions and a revision two days later. They say how a question is answered when the sections
-below do not; `AGENTS.md`, Deciding without Kim, is their working form and says which questions still go to Kim.
+below do not; `AGENTS.md`, Deciding without Kim, sets the escalation and reporting procedure.
 
 - **Nothing teleports.** The one hard rule. Goods, animals and people change place only by being carried, carted, led, shipped or
   walked, by someone who makes the journey, and nothing appears or vanishes but by a process that makes or uses it: water is fetched
@@ -99,15 +99,16 @@ below do not; `AGENTS.md`, Deciding without Kim, is their working form and says 
   exempt, since following every fact through the world is not computable: ownership, obligations, goodwill and news move at once, so a
   gift, a share or a loan changes owner where it lies and waits to be fetched. The world a scenario starts with is placed, not
   carried. Where the sections below still move goods or animals at once (help in hunger, shares, handing on, a new household's start),
-  the rule stands over them, and a task of the arch `physical` rewrites each.
+  the rule stands over them. No task adds a teleport, however small or temporary; one found in the code is recorded under the
+  collection procedure in `AGENTS.md`, Surfacing.
 - **Hunger presses, the feast binds.** Shortage drives help, loans and land passing, and through them the landed class; help still
   books goodwill. What drives the goodwill economy is plenty: at a feast a household turns its surplus into goodwill and standing. A
   household may fail; the design does not aim for every household to be fed.
 - **The island grows without the player.** The island as a whole must grow reliably with nobody steering it: at least 1% a year in the
-  long term, over most seeds (Balance loops and targets, Growth). Only island-wide numbers are judged.
+  median seed (annualized over the run). At least three quarters of seeds end above their start and at most one eighth below half. A shrinking median is a collapse. Apply these targets to populous while land is free. See Balance loops and targets, Growth.
 - **Parameters, not patches.** What balance depends on is a named parameter with a meaning in the physical world or in a gameplay
   system. The first value is seldom the best: a task may experiment a little to find a good parameterisation, of new parameters and
-  existing ones. The game as a whole is tuned in runs Kim starts, over many parameters together, for gameplay balance.
+  existing ones. The game as a whole is tuned in runs Kim starts, over many parameters together, for gameplay balance. A collapse may be tuned away.
 - **Mechanisms, not prescriptions.** History is preferred, within reason, and the game must be fun; where history and play part, play
   decides. A historical pattern is reached by modelling what produced it, never by setting it: women's age at marriage held
   population in check, so the design models what makes a couple wait (a holding to marry onto, years in service, a portion to save),
@@ -124,7 +125,7 @@ below do not; `AGENTS.md`, Deciding without Kim, is their working form and says 
   store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
   knowledge; what has happened is shown as it was (section 7, The estimate and The timetable).
 - **Like is shown alike, and pictures before words** (Kim, 16 November). Every thing of one kind (a level, a store, a trait, a
-  person's row, a link) has one presentation, used wherever it appears, unless an exception is well motivated. Presentation favours
+  person's row, a link) has one presentation, used wherever it appears, with any exception justified in the task. Design for desktop first. Presentation favours
   clear, indicative icons, and images and graphs where they apply, before text; a level is shown on a meter, the same meter
   everywhere (its scales are under review with Kim: VB-665). Traits are not hidden information: they are shown as icons.
 - **Practice before institution** (Kim, 16 November). A venue, an office or a good the design names before the institution that
@@ -139,7 +140,14 @@ below do not; `AGENTS.md`, Deciding without Kim, is their working form and says 
   lost with its keeper's knowledge.
 - **A made good is graded, a built thing is not** (Kim, 16 November; with the grades of workmanship, section 8, The metals and
   the stones).
-- **References.** Founders is the reference for the early game, populous for the late game (many pawns).
+- **An elite is what the rules leave over, not a quota.** No road, office or class is given a share or a count to reach. A plan
+    sizes each claim (a rent, a keep, a due) against a household's need, and the wrap-up reports who became elite and by what.
+- **Every act is a pawn's** (Kim, 16 November). An act is done by a pawn who chose it, through a verb whose check holds for any
+    pawn alike. A household, a village or the calendar never acts: a household's head does; a village's meeting first elects an
+    alderman, who carries out what the meeting decided. The player has what its pawn has, no more and no less: a choice the player is
+    given is a choice every pawn makes, and a new verb widens the game for both. Natural processes need no pawn (birth, death,
+    growth, spoilage, an animal eating); debug verbs are the world's, not a pawn's.
+- **References.** Founders is the reference for the early game, populous for the late game (many pawns). Report heirs without a target.
 
 ## 2. World, climate and travel
 
@@ -1254,7 +1262,7 @@ Predators, pigs, horses, poultry, disease, breeding and traits, summer farms (*f
 | Aspect | Design | Status |
 | --- | --- | --- |
 | Goods in subtypes | Goods are typed with subtypes (granite and marble are both stone; cow's and sheep's milk), each with the quantum that changes hands (one head, one sack) and how it perishes | Decided, 3 Nov (subtypes, Kim's description); Proposed (the rest, target-v2, section 4.3) |
-| A good, its material and its kind | A good is what it is for (a whetstone, a vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze) makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long it lasts, how fast it works, what it can hold); its worth in gifts and standing follows from custom. A deposit needs no use of its own, only a property that matters. The kind is the subtype, carried from the material into the good made of it (The metals and the stones, below). A made good also has a grade of workmanship, one of five (shoddy, sound, good, fine, masterwork), drawn at its making by odds that shift with the maker's skill; the grade scales everything the kind's properties do, and its worth. Skill makes a made good better as well as faster; it never multiplies a crop's yield (Workmanship, below) | Decided, 16 Nov (Kim's principle, and its second paragraph the same day; `AGENTS.md`, Deciding without Kim, 17) |
+| A good, its material and its kind | A good is what it is for (a whetstone, a vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze) makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long it lasts, how fast it works, what it can hold); its worth in gifts and standing follows from custom. A deposit needs no use of its own, only a property that matters. The kind is the subtype, carried from the material into the good made of it (The metals and the stones, below). A made good also has a grade of workmanship, one of five (shoddy, sound, good, fine, masterwork), drawn at its making by odds that shift with the maker's skill; the grade scales everything the kind's properties do, and its worth. Skill makes a made good better as well as faster; it never multiplies a crop's yield (Workmanship, below) | Decided, 16 Nov (Kim's principle, and its second paragraph the same day) |
 | Title and custody | Who owns a thing and where it is are apart: a cow in a neighbour's byre, grain at the mill, cargo aboard | Proposed (target-v2, section 2) |
 | Recipes | Human transformation of goods; a recipe may bind the subtype it was given (any stone hewn into blocks of the same stone); building is a recipe whose output is a stage of a facility | Proposed (target-v2, section 4.3) |
 | Facilities | Built things on sites, from houses and mills to roads and harbours, each with an owner, perhaps an operator, its capabilities and who may use it | Proposed (target-v2, section 4.3) |
@@ -1290,7 +1298,7 @@ Decided; the numbers are Proposed, in the game's work hours (576 an adult a year
 ### The metals and the stones: goods by purpose, kinds by property (slice 6's second half, 16 November)
 
 The plan of VB-702 (`docs/plans/VB-702.md`, with its measures), on Kim's answers of 16 November in a session. Kim's principle
-(`AGENTS.md`, Deciding without Kim, 17) orders it: a good is what it is for and is made of a material; the kind makes a better or
+(Goods, recipes and facilities, above: A good, its material and its kind) orders it: a good is what it is for and is made of a material; the kind makes a better or
 worse one, not a different good; quality is the kind's physical properties, read by the good's use; worth follows from custom; a
 deposit needs no use of its own, only a property that matters. The shape is Decided where Kim answered; every number is Proposed,
 from general reading not checked by search, for each task to report and the wrap-up to tune.

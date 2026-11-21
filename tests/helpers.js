@@ -4,7 +4,7 @@
 // between the two stores. A job waited less than 2 hours, a cook, or a household of another village is not offered.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { tinyWorld, tinyState } = require('./lib/tiny.js');
-const { eligible } = VB['sim/eligibility'], Jobs = VB['sim/jobs'], { tieOf, opinionOf } = VB['sim/relations'];
+const { eligible } = VB['sim/eligibility'], Jobs = VB['sim/jobs'], { opinionOf } = VB['sim/relations'], { tieOf } = VB['sim/ties'];
 const { age } = VB['sim/records'], { MATCH } = VB['sim/rules'];
 const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(36))),
   [{ at: [8, 10], farms: 2, sizes: [7, 4] }, { at: [28, 10], farms: 1, sizes: [4] }], { seed: 4 });

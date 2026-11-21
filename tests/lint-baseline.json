@@ -1,15 +1,9 @@
 {
- "src/gen.js": {
-  "lines": 1040
- },
  "src/sim/rules.js": {
   "lines": 804
  },
  "src/sim/records.js": {
   "lines": 733
- },
- "src/sim/stores.js": {
-  "lines": 718
  },
  "src/page/rigs.js": {
   "lines": 945

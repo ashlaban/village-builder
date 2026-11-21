@@ -9,14 +9,15 @@ VB['sim/commons'] = (() => {
   const { COMMONS, ROLES, CROPS, farmable, fertility, cal } = VB['sim/rules'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'];
   const { freeFor } = VB['sim/territory'];
   const { addClaim, realise } = VB['sim/claims'];
   const { log } = VB['sim/records'];
   const { emit } = VB['sim/events'];
   const { dailyNeed, storeRoom } = VB['sim/hunger'];
   const { goodwillOf } = VB['sim/relations'];
-  const { clearHours, clearStones, broken, builtTiles, BREAK_HOURS } = VB['sim/fields'];
+  const { clearHours, builtTiles, BREAK_HOURS } = VB['sim/fieldplans'],
+    { clearStones, broken } = VB['sim/fields'];
   const { houses } = VB['sim/green'];
   // @state village.commonFields: the village's common fields, records as a farm's (farmstead.fields, sim/fields: stage, crop, sown...),
   //   absent before its first; a field is added only here, when its ground is broken; its stages are written by sim/fields as a farm's.

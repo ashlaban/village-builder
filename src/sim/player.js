@@ -8,6 +8,7 @@ VB['sim/player'] = (() => {
   const { setWish, resetWish, endPartner } = VB['sim/wishes'];
   const { issue, VERBS } = VB['sim/commands'];
   const { on } = VB['sim/events'];
+  const { daysOfFood } = VB['sim/foodneed'];
   const { KINDS } = VB['sim/kinds'];
   // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose queued commands go before the pawn's own logic ----
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
@@ -58,7 +59,7 @@ VB['sim/player'] = (() => {
   }
   // The played pawn dies (sim/lifecycle, before the death ends its marriage and drops its ties): the player keeps it, with an empty queue,
   // until it goes on as another (VB-213), and what the death erases is noted: the farm it held, its spouse, those it thought friends.
-  // `next(st, id, village)` names its successor (successorOf, sim/heirs, which loads later): with none, the line ends at once.
+  // `next(st, id, village)` names its successor (successorOf, sim/heirranking, which loads later): with none, the line ends at once.
   function playerDied(st, id, next) {
     const pl = st.player;
     if (!pl || pl.pawn !== id) return;
@@ -200,13 +201,15 @@ VB['sim/player'] = (() => {
   on('health', (st, d) => {
     const pl = st.player;
     if (!pl || pl.pawn !== d.pawn) return;
+    const household = st.pawns[d.pawn].household;
+    const food = household === null ? null : daysOfFood(st, st.households[household]);
     if (!pl.days) pl.days = []; // a save made before VB-1118
     pl.days.push({
       t: st.t,
       health: d.after,
       before: d.before,
       hunger: d.hungerLevel,
-      food: d.food === null || !isFinite(d.food) ? null : d.food,
+      food: Number.isFinite(food) ? food : null,
       why: { hunger: d.hunger, cold: d.cold, damp: d.damp, ill: d.ill, rest: d.rest },
     });
     if (pl.days.length > DAYS_KEPT) pl.days.shift();

@@ -3,7 +3,7 @@
 // flour in the pot at 1:1 and grain unground at 1.25 a ration, so the same grain feeds a household about 25% longer with a quern; a quern
 // wears out 20 years after it was made, read from when it was made; a new one is wanted 2 years before and hewn in winter (at once with
 // none) from a load of the heap, where the village's ground is sandstone or granite; the start's households have one; the quern is a good.
-const VB = require('../src/load.js'), Stores = VB['sim/stores'], Pot = VB['sim/pot'], Q = VB['sim/quern'];
+const VB = require('../src/load.js'), Goods = VB['sim/goods'], Stores = VB['sim/stores'], Pot = VB['sim/pot'], Q = VB['sim/quern'];
 const { YEAR, DAY, ECON, FOODS, ROLES } = VB['sim/rules'], { dailyNeed, feedHousehold, seedReserve } = VB['sim/hunger'];
 const { KINDS, ASK } = VB['sim/kinds'], Culture = VB['culture'], { ROCK } = VB['gen/geology'];
 const { state } = require('./lib/probe.js'), { checkState } = require('./lib/invariants.js');
@@ -20,7 +20,7 @@ check(ASK.farmAfterPlans.some((e) => e[0] === 'grind') && ASK.farmAfterPlans.som
 const pr = (role) => ROLES[role].prio.grind;
 check(pr('wife') === 7 && pr('maid') === 7 && pr('daughter') === 6 && pr('retired') === 3 && pr('farmer') === 1 && pr('son') === 1 && pr('farmhand') === 1,
   'grinding: mistress and maid 7, daughter 6, retired 3, others 1');
-check(Culture.norm('worth', 'quern') === 25 && Stores.GOODS.get('quern').class === 'wares', 'the quern is a good of 25 rations');
+check(Culture.norm('worth', 'quern') === 25 && Goods.GOODS.get('quern').class === 'wares', 'the quern is a good of 25 rations');
 
 // --- a household of the start has a quern of granite (no ground layers here); the start's are of every age below 16 years
 {

@@ -9,12 +9,13 @@
 VB['sim/asking'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK, TRAVEL, cal } = VB['sim/rules'];
-  const { age, spouseOf, settlementIdOf, practice, spokesmanOf, matchByOf, holdingOf, fullName, tieOf } =
-    VB['sim/records'];
+  const { age, spouseOf, settlementIdOf, practice, spokesmanOf, matchByOf, holdingOf, fullName } = VB['sim/records'],
+    { tieOf } = VB['sim/ties'];
   const { kinOk, sideScore, matchRules, courts, askerOf, askedOf, askedBy } = VB['sim/matching'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { hoursBetween } = VB['sim/villagehours'];
   const { claimableFarm, askLand, barred } = VB['sim/farmclaims'];
-  const { placeIfMarried, heirRanking, staysWhy } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'],
+    { placeIfMarried, staysWhy } = VB['sim/heirs'];
   const { findSite } = VB['sim/expansion'];
   const { smallVillage, waitingByVillage, reachOf } = VB['sim/settle'];
   const { issue } = VB['sim/commands'];

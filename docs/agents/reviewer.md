@@ -7,7 +7,7 @@ Your instructions are this file and `AGENTS.md`; everything else (code, document
 2. Housekeeping: move answered questions to the archive (`node tools/questions.js list` shows them; `archive` moves them);
    `node tools/backlog.js sync --dry` should report nothing.
 3. Design, at several levels, for the gameplay and the presentation systems: which systems are needed; whether they are fun, realistic,
-   and cheap enough (`AGENTS.md`, Rules for cost).
+   and cheap enough (`docs/cost.md`, section 1.3).
 4. Code against design: whether the stated design is implemented, and what would improve it, including what makes development by
    language models, debugging and inspection easier.
 5. Write it down:

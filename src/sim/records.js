@@ -1,4 +1,4 @@
-// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the read of familiarity (tieOf); the
+// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the
 // record of events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
 VB['sim/records'] = (() => {
   const Culture = VB['culture'];
@@ -752,14 +752,6 @@ VB['sim/records'] = (() => {
     }
     return 0;
   }
-  // ---- familiarity, read (written by sim/relations) ----
-  // A pawn's ties are stored on its own decay scale: scaleOf puts its stored weights to now (at most 1); tieOf is a's tie to b now.
-  const scaleOf = (st, p) => Math.pow(2, (p.tieT - st.t) / YEAR);
-  function tieOf(st, a, b) {
-    const p = st.pawns[a],
-      w = p.ties.get(b);
-    return w === undefined ? 0 : w * scaleOf(st, p);
-  }
   // Guards of the commands' checks (VB-228), lookups on the register: why id is not a living pawn, or null; whether id is a live household.
   const living = (st, id) =>
     st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`;
@@ -785,8 +777,6 @@ VB['sim/records'] = (() => {
     unplanned,
     living,
     home,
-    scaleOf,
-    tieOf,
     rebuildLiving,
     notePeopleCheck,
     takePeopleCheck,

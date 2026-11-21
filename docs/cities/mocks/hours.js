@@ -5,7 +5,7 @@
 // Each entry: { key, scenario, seed, map, year, villages: [{ id, households, people, adults, sea }], hours: [[h or null]] }.
 // sea: a sea tile within 6 walking steps of the green (a harbour could stand there). Hours are on foot, unladen, as the table holds them.
 const VB = require('../../../src/load.js'), G = VB.gen, Sim = VB.sim, fs = require('fs'), path = require('path');
-const { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'];
+const { bfs } = VB['sim/hex'], { walkable } = VB['sim/walking'];
 const SIZES = { small: [180, 130], medium: [280, 200] };
 const RUNS = [
   ['populous', 3, 'small', 0], ['populous', 7, 'small', 0], ['populous', 11, 'small', 0], ['populous', 42, 'small', 0],

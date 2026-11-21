@@ -9,13 +9,15 @@ VB['sim/expansion'] = (() => {
     Projects = VB['sim/projects'],
     { emit, on } = VB['sim/events'];
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
-  const { walkable, costChanged } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'],
+    { costChanged } = VB['sim/routes'];
   const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];
   const { clearTile, FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
   const { thick, clearScrub, tended } = VB['sim/spread'];
-  const { BREAK_HOURS, clearHours, builtTiles, onField } = VB['sim/fields'];
+  const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fieldplans'],
+    { onField } = VB['sim/fieldwork'];
   const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand } = VB['sim/layout'];
   const COTTAGE = ['foundation', 'walls', 'roof'],
     COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS

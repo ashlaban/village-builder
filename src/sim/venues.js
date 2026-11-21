@@ -9,8 +9,9 @@ VB['sim/venues'] = (() => {
   const { fullName, log, atFarm, age, unplanned } = VB['sim/records'];
   const { issue, register } = VB['sim/commands'];
   const { free } = VB['sim/agents'];
-  const { hoursBetween } = VB['sim/routes'],
-    { opinionOf, addTie } = VB['sim/relations'],
+  const { hoursBetween } = VB['sim/villagehours'],
+    { opinionOf } = VB['sim/relations'],
+    { addTie } = VB['sim/ties'],
     { on } = VB['sim/events'],
     Encounters = VB['sim/encounters'],
     Stores = VB['sim/stores'],

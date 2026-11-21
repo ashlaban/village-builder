@@ -44,10 +44,13 @@ const Sim = (() => {
   const { seedReserve } = VB['sim/hunger'],
     { grainOf } = VB['sim/stores'],
     { shareOwed } = VB['sim/obligations'];
-  const { fieldsWanted, fieldView, harvestEstimate, tilthOf } = VB['sim/fields'];
+  const { fieldView } = VB['sim/rotations'];
+  const { fieldsWanted, harvestEstimate } = VB['sim/fieldplans'],
+    { tilthOf } = VB['sim/fields'];
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
-  const { heirRanking, wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'],
+    { wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks, standingParts } = VB['sim/society'];
   const { of: moodOf, word: moodWord } = VB['sim/mood']; // a pawn's mood and its modifiers, for its card (VB-062)
   const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)
@@ -92,7 +95,7 @@ const Sim = (() => {
   const { HERD, SOIL, CLAIMS } = VB['sim/rules'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
   const { withOxen, placeOf, poseOf } = VB['sim/agents'];
-  const { larderOf } = VB['sim/hunger'];
+  const { larderOf } = VB['sim/larder'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
   const { boothCondition } = VB['sim/building'], // VB-784: a booth's condition now
     { houseTarred } = VB['sim/rules'],

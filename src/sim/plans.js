@@ -2,7 +2,8 @@
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
 // diligence, and the due-queue that opens the time-bound kinds at their hours; the village's routines, set by its meeting
 VB['sim/plans'] = (() => {
-  const { rotationWhy, takeRotation, turnWhy, outOfTurn } = VB['sim/fields'];
+  const { rotationWhy, turnWhy } = VB['sim/rotations'],
+    { takeRotation, outOfTurn } = VB['sim/fields'];
   const { living, home, settlement } = VB['sim/records'];
   const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, CROPS, ROTATIONS, TRAVEL, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
@@ -13,7 +14,8 @@ VB['sim/plans'] = (() => {
     OTHER_CROPS = Stores.CROP_LIST.filter((k) => k !== SEED_CROP);
   const { KINDS } = VB['sim/kinds'];
   const { seedNeed } = VB['sim/hunger'];
-  const { fieldsWanted, rotationChoice, fieldsWorkable, fieldWhy, pickField, beginField } = VB['sim/fields'];
+  const { rotationChoice } = VB['sim/rotations'];
+  const { fieldsWanted, fieldsWorkable, fieldWhy, pickField, beginField } = VB['sim/fieldplans'];
   const Projects = VB['sim/projects'],
     { on, emit } = VB['sim/events'],
     { log } = VB['sim/records'];

@@ -9,14 +9,16 @@ VB['sim/matching'] = (() => {
   // The open matches pawn id is asked by: up to ASK.held may stand at once (VB-823); and whether it asks in one itself
   const askedBy = (st, id) => st.offers.filter((o) => o.basis === 'match' && askedOf(o) === id).length;
   const asksMatch = (st, id) => st.offers.some((o) => o.basis === 'match' && askerOf(o) === id);
-  const { dailyNeed, larderOf } = VB['sim/hunger'],
+  const { dailyNeed } = VB['sim/hunger'],
+    { larderOf } = VB['sim/larder'],
     { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, spousesOf, wasWidowed, practice, fullName, spouseOf, age, personEvent } =
     VB['sim/records'];
-  const { heirRanking, heirFor } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'],
+    { heirFor } = VB['sim/heirs'];
   const { trustOfHolder } = VB['sim/ownership'];
   const { opinionOf } = VB['sim/relations'];
-  const { hoursBetween, byLand } = VB['sim/routes'];
+  const { hoursBetween, byLand } = VB['sim/villagehours'];
   const { wishOf } = VB['sim/wishes'];
   const Rules = VB['sim/registry'];
 
@@ -141,7 +143,8 @@ VB['sim/matching'] = (() => {
   // VB-277) until `clear()`, which a village's round calls after each marriage or handover it makes: ranking every farm's heirs for every
   // pair of candidates made the round cost about a second at populous medium. `homeFor(m, f, cu)`: where a couple would
   // live, or null. Under 'land' one of them needs a place (the farm they hold or are first heir to). When both have one (VB-153): a holder
-  // keeps their farm and a spouse who is only first heir steps out of that line; of two holders, the couple lives where the other farm is
+  // keeps their farm, and a spouse who is only first heir lives there and stays in that line only while its farm has more fields
+  // (heirRanking, VB-1141); of two holders, the couple lives where the other farm is
   // best handed on (handOn: an adult heir, then a landless adult of its village, then a child or nobody), then on the farm with more
   // fields, the man's on a tie. Under the other customs the spouse's home counts. `affords(h)`: the means to marry (VB-153): the home
   // holds food above its seed for MARRIAGE.means years of its members and one more, counting grain still in sheaf and the larder, so that

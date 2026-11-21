@@ -1,11 +1,11 @@
 // @sys sim/relations: relationships between pawns: compatibility, opinion derived from kin, familiarity and memories, talk, company for the idle,
-// and the people a pawn knows; owns familiarity (from talk, waking hours at home and work together, on a decay scale per pawn), memories and bands
+// and the people a pawn knows; owns opinion memories, bands and goodwill
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, SOCIAL, GOODWILL, MATCH, TRAITS, HANDOVER } = VB['sim/rules'];
+  const { DAY, YEAR, TICKS, SOCIAL, GOODWILL, MATCH, TRAITS, HANDOVER } = VB['sim/rules'];
   const Traits = VB['sim/traits'],
     { DIMS } = VB['culture'];
-  const { personEvent, fullName, spouseOf, settlementIdOf, kinNear, scaleOf, tieOf, age } = VB['sim/records'];
+  const { personEvent, fullName, spouseOf, settlementIdOf, age } = VB['sim/records'];
   const { partners, atHome } = VB['sim/encounters'];
   const { on, emit } = VB['sim/events'];
   const { issue } = VB['sim/commands'];
@@ -24,57 +24,13 @@ VB['sim/relations'] = (() => {
     order: ORDER,
   });
 
-  // ---- familiarity (VB-127): ties grow from talk, from waking hours at home and from work done together, and halve every year ----
-  // A pawn's ties are stored on its own decay scale, so no step decays them (Rules for cost, 3): the tie now is the stored weight halved each
-  // year since pawn.tieT (tieOf; Culture.dailyStep divides by their sum, so the scale cancels there), put back on today's scale every
-  // TIES.renorm years, on a day spread by the pawn's id.
-  // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
-  //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent
-  //   in its house since midnight, counted at its talk turns, SOCIAL.talk.every hours at a time (VB-521). All initialized and changed only here.
-  const TIES = SOCIAL.ties; // scaleOf and tieOf, the reads, are in sim/records (read by sim/claims below this layer)
+  const Ties = VB['sim/ties'];
+  const { scaleOf, tieOf, addTie } = Ties;
+  const TIES = SOCIAL.ties;
   function initRelations(st, p) {
-    p.ties = new Map();
+    Ties.initTies(st, p);
     p.rel = new Map();
     p.bands = new Map();
-    p.tieT = st.t;
-    p.homeHours = 0;
-  }
-  // p's tie to b is stored as w. A new tie at the cap takes the place of the weakest not to kin (the earlier on a tie in weight), unless it is
-  // weaker still and not to kin either; then it is not kept.
-  function put(st, p, b, w) {
-    if (p.ties.size >= TIES.cap && !p.ties.has(b)) {
-      const kin = kinNear(st, p.id),
-        isKin = kin.includes(b);
-      let worst = -1,
-        least = Infinity;
-      VB.count.walkTies += p.ties.size;
-      for (const [j, v] of p.ties)
-        if (v < least && !kin.includes(j)) {
-          least = v;
-          worst = j;
-        }
-      if (worst < 0 && !isKin) return; // every tie is to kin, none may be dropped, and the new one is not to kin
-      if (!isKin && w <= least) return; // not to kin, and no stronger than the weakest that may be dropped
-      if (worst >= 0) p.ties.delete(worst); // the weakest that may be dropped goes; kin is kept, over the cap if all are kin
-    }
-    p.ties.set(b, w);
-  }
-  function addTie(st, a, b, v) {
-    const p = st.pawns[a];
-    put(st, p, b, (p.ties.get(b) || 0) + v / scaleOf(st, p));
-  } // a's tie to b grows by v
-  function raiseTie(st, a, b, v) {
-    const p = st.pawns[a],
-      w = v / scaleOf(st, p);
-    if ((p.ties.get(b) || 0) < w) put(st, p, b, w);
-  } // at least v
-  // Keep the dead pawn's historical ties, but remove it from its contacts' ties (one who had dropped its own tie to them keeps theirs, read by
-  // nobody, until they renormalise).
-  function dropTies(st, id) {
-    for (const [j] of st.pawns[id].ties) {
-      const q = st.pawns[j];
-      if (q && q.ties) q.ties.delete(id);
-    }
   }
   function grow(st, a, b, v) {
     addTie(st, a, b, v);
@@ -92,66 +48,11 @@ VB['sim/relations'] = (() => {
         if (st.pawns[i].alive && st.pawns[j].alive) grow(st, i, j, TIES.work);
       }
   }
-  // p's ties put back on today's scale; those under TIES.forget go, unless to kin (the floor raises them again), and those to the dead
-  function renormalise(st, p) {
-    const f = scaleOf(st, p),
-      kin = kinNear(st, p.id),
-      gone = (j, v) => !st.pawns[j].alive || (v < TIES.forget && !kin.includes(j));
-    VB.count.walkTies += p.ties.size;
-    for (const [j, w] of p.ties) {
-      const v = w * f;
-      if (gone(j, v)) p.ties.delete(j);
-      else p.ties.set(j, v);
-    }
-    p.tieT = st.t;
-  }
-  // Once a day, at midnight: two housemates' tie grows by TIES.home per 24 waking hours both spent in their house (the lesser of their
-  // hours); the pawns due put their ties back on today's scale, or raise their near kin to the floor (once a season, spread by id).
   function dailyTies(st) {
-    for (const liveId of st.liveHouseholds) {
-      const hh = st.households[liveId],
-        m = hh.members;
-      if (hh.dissolved || m.length < 2) continue;
-      VB.count.tiePairs += (m.length * (m.length - 1)) / 2;
-      for (let x = 0; x < m.length; x++)
-        for (let y = x + 1; y < m.length; y++) {
-          const h = (Math.min(st.pawns[m[x]].homeHours, st.pawns[m[y]].homeHours) * TIES.home) / DAY;
-          if (h > 0) grow(st, m[x], m[y], h);
-        }
-    }
-    const day = Math.floor(st.t / DAY),
-      every = TIES.renorm * YEAR_DAYS;
-    VB.count.walkDaily += st.living.length;
-    for (const id of st.living) {
-      const p = st.pawns[id];
-      p.homeHours = 0;
-      if ((day - id) % every === 0) renormalise(st, p); // pawn id on day id, and every TIES.renorm years after
-      if ((day + id) % SEASON_DAYS === 0)
-        for (const q of kinNear(st, id))
-          if (st.pawns[q].alive) {
-            floorKin(st, id, q);
-            touch(st, id, q);
-          }
-    }
+    Ties.dailyTies(st, grow, touch);
   }
-  // a's tie to its near kin b is raised to the floor and a season's fading: so it stays at the floor or above until a's next turn
-  function floorKin(st, a, b) {
-    raiseTie(st, a, b, TIES.kin * Math.pow(2, SEASON_DAYS / YEAR_DAYS));
-  }
-  // An older save: its ties are today's values, on a scale from now; one over the cap keeps its strongest, kin always kept. One before
-  // VB-240 loses the memories of talk (a record left with none goes), and its bands are set from the opinion now, as no news.
   function migrateTies(st) {
-    for (const p of st.pawns)
-      if (p.ties && p.tieT === undefined) {
-        p.tieT = st.t;
-        p.homeHours = 0;
-        if (p.alive && p.ties.size > TIES.cap) {
-          const old = [...p.ties];
-          p.ties = new Map();
-          for (const [j, w] of old) put(st, p, j, w);
-        }
-        if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive) floorKin(st, p.id, q);
-      }
+    Ties.migrateTies(st);
     const old = st.pawns.filter((p) => p.rel && !p.bands);
     for (const p of old) {
       p.bands = new Map();
@@ -439,7 +340,7 @@ VB['sim/relations'] = (() => {
       ids = turnsOf(st)[(T.every - (h % T.every)) % T.every],
       n = ids.length;
     VB.count.talkTurn += n;
-    for (const id of ids) if (atHome(st, ag[id])) st.pawns[id].homeHours += T.every;
+    for (const id of ids) if (atHome(st, ag[id])) Ties.countHomeHours(st.pawns[id]);
     const start = Math.floor(rnd(st.rng.talk) * n); // a random place in the turn, and on round it from there
     if (busy.length < ag.length) busy = new Int32Array(2 * ag.length);
     round++;
@@ -740,14 +641,8 @@ VB['sim/relations'] = (() => {
   }
   return {
     initRelations,
-    tieOf,
-    addTie,
-    raiseTie,
-    dropTies,
     workedTogether,
-    renormalise,
     dailyTies,
-    floorKin,
     migrateTies,
     compat,
     bond,

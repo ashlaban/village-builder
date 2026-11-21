@@ -39,7 +39,7 @@ to(st, 15);
 Stores.put(st, left, 'grain', 50, 'harvest', { barley: 50 });
 const a = st.agents[bride], grain0 = Stores.grainOf(left);
 moveTo(st, bride, home.id);
-const j = st.away[0], hours = VB['sim/routes'].hoursBetween(st, 1, 0), days = Math.ceil(hours / TRAVEL.dayWalk);
+const j = st.away[0], hours = VB['sim/villagehours'].hoursBetween(st, 1, 0), days = Math.ceil(hours / TRAVEL.dayWalk);
 assert.ok(hours > TRAVEL.dayWalk && Number.isFinite(hours), `the villages lie ${hours} hours apart`);
 assert.ok(j && j.pawn === bride && j.to === st.farmsteads[home.farmstead].house && st.away.length === 1, 'one journey to her new home');
 assert.strictEqual(a.phase, 'journey', 'at 15:00 she sets out at once');
@@ -166,7 +166,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.ok(j && j.why === 'carry' && j.gift.n === 25 && j.to === s.farmsteads[rec.farmstead].house, 'a carry journey to the receiver');
   assert.ok(g0 - Stores.grainOf(giv) >= 25 - 1e-9, 'the grain left the giver at the start');
   assert.strictEqual(Stores.grainOf(rec), r0, 'the receiver has not got it yet');
-  assert.ok(Math.abs(j.food - 2 * Math.ceil(VB['sim/routes'].hoursBetween(s, 1, 0) / TRAVEL.dayWalk)) < 1e-9, 'provisions for there and back');
+  assert.ok(Math.abs(j.food - 2 * Math.ceil(VB['sim/villagehours'].hoursBetween(s, 1, 0) / TRAVEL.dayWalk)) < 1e-9, 'provisions for there and back');
   assert.strictEqual(s.pawns[id].household, giv.id, 'the carrier stays his household\'s');
   let arrived = false;
   for (let d = 0; d < 8 && s.away.length; d++) {
@@ -233,7 +233,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
 // morning for the nearest village beyond it, stays a day as its guest and walks home; then he may choose a woman of that village, and of
 // no other beyond a day's walk. Three villages in a row: B 12.7 hours from A, C 15.8 hours ----
 {
-  const Rec = VB['sim/records'], M = VB['sim/matching'], { YEAR, SEASON_DAYS, ASK } = VB['sim/rules'], { hoursBetween } = VB['sim/routes'];
+  const Rec = VB['sim/records'], M = VB['sim/matching'], { YEAR, SEASON_DAYS, ASK } = VB['sim/rules'], { hoursBetween } = VB['sim/villagehours'];
   const world3 = () => tinyWorld(Array(9).fill('.'.repeat(210)), { seed: 7 });
   const three = () => {
     const s = tinyState(world3(),

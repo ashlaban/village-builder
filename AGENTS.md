@@ -21,110 +21,23 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
   mechanisms, `findings.md` for the experiments of 12 November; its `mocks/` are throwaway research scripts, not game code.
 
 ## Taking a task
-1. `node tools/backlog.js next`: the first ready task is the one to take.
-2. `node tools/brief.js ID` gives what you need to start, in one call: the task, its questions, the design sections its ref names, and
-   the rules for its kind. Read more only where it points (`tools/doc.js`; the task's notes with `node tools/backlog.js show ID`).
-3. If it turns out to need a decision, decide it by Deciding without Kim (below) and write the decision and its reason in the task file.
-   Only if it is one of the two kinds that go to Kim, stop: `set ID status=needs-review`, and add the questions, with proposed answers, to `QUESTIONS.md`.
-4. Work in small commits, with `npm test` after each change.
-5. Before the last commit: `npm run format`, then `npm run verify` (half a minute); for a change under `src/page/`, also `node tests/smoke.js` and the
-   `tests/browser*.js` it touches. Only the hard checks stop a merge (Working rules); a target that is out is not a failure:
-   report it in the PR's Targets section (before, after, residual, cause).
-6. Tick its criteria, then `node tools/backlog.js done ID`. A done task's notes are not read (Kim, 18 November): the task file gets
-   only each decision with its reason and what is left undone, in at most ten lines; the diff and the tests say the rest. Measurements
-   and tuning do not block work (Kim, 16 November): a measure not taken, or a target out, leaves its criterion unticked with the reason,
-   what is owed is added to a collecting task (`BACKLOG.md`, Order and statuses), and the task is done. Only work not built, or a
-   question for Kim (step 3), keeps it open: `set ID status=needs-review`.
-7. Open the PR, with the impact note and numbers that Working rules ask for.
 
-A sub-agent of an orchestrated run (`docs/agents/worker.md`) follows `.claude/agents/vb-task.md`, which replaces what steps 3, 6 and 7
-write to shared files: it leaves notes in the inbox, and the orchestrator writes the backlog, the questions and the PR. It has a
-ceiling of 120 model calls (Kim, 18 November; `node tools/inbox.js calls`): at the ceiling it hands over, and a fresh sub-agent goes on.
+1. Take the first ready task from `node tools/backlog.js next`. Run `node tools/brief.js ID` for its criteria, design sections and task-specific rules.
+2. Resolve open decisions using **Deciding without Kim** below. Record each decision and reason.
+3. Work in small commits and run `npm test` after each change. For a refactor, run focused checks and, where needed, compare against the starting commit with `node tools/same.js`.
+4. Before the last commit run `npm run format` and `npm run verify`. For page changes also run `node tests/smoke.js` and the affected browser tests. Hard failures block merging. See `docs/testing.md` for coverage. A nightly failure gets its own repair task.
+5. Tick the criteria met. For an outstanding measurement or missed target, leave its criterion unticked, give the reason and report the available evidence at PR closeout. Mark complete work with `node tools/backlog.js done ID`. Set incomplete work or a question requiring Kim to `needs-review`. Limit task notes to ten lines of decisions, reasons and outstanding work.
+6. Open the PR. For size M or a new module or state field, lead with its reads, writes, new coupling and the reason for any new abstraction or special case. For behaviour changes, report whether households were better off. Under **Targets**, give before, after, residual and cause for each target moved or intended to move, then count the other outstanding targets. Only Kim changes targets or starts a tuning run. Keep lint and ownership baselines as ratchets.
 
-## Deciding without Kim (Kim, 12, 14, 15 and 16 November)
-A question goes to Kim only if it moves a Decided point of `design.md`, or lets the player do something no existing system covers.
-Otherwise decide by these, write the decision and its reason in the task file, and go on. Nothing below stops work: where no principle
-covers a decision, or two pull apart, decide, go on, and surface it (Surfacing, below).
+Measure behaviour before and after once on the final PR result, or at nightly wrap-up on the merged branch. Measure within a task when its criterion names a number to move or when tuning. A refactor reports what became simpler and lists each intentional behaviour change.
 
-**The hard rule: nothing teleports.** Goods, animals and people change place only by being carried, carted, led, shipped or walked, by
-someone who makes the journey; and nothing appears or vanishes but by a process that makes or uses it.
-- A farmstead is one place: nothing is carried between its house, barn and woodpile. A pawn working away from it carries its meal.
-- Rights and knowledge are exempt, since following every fact through the world is not computable: ownership, obligations, goodwill and
-  news move at once. So a gift, a share or a loan changes owner where it lies, and waits there until someone fetches it.
-- The world a scenario starts with is placed, not carried.
-- No task adds a teleport, however small or temporary. An agent that finds one in the code notes it and goes on
-  (Surfacing): findings are collected, a line each in one open task, and swept when a slice wraps up (Kim, 18 November); the sweep
-  reports its numbers, since goods that take time to arrive change hunger.
+In an orchestrated run, follow `.claude/agents/vb-task.md`. Send closeout details through the inbox. The orchestrator updates shared records and opens the PR. Hand over at 120 model calls.
 
-1. **Hunger presses, the feast binds.** Shortage drives help, loans and land passing, and through them the landed class; help still
-   books goodwill. What drives the goodwill economy is plenty: at a feast a household turns its surplus into goodwill and standing. A
-   household may fail. Only island-wide numbers are judged; per-household measures are reported as descriptions, with no target.
-2. **The island grows without the player.** Over a scenario's seeds, yearly growth `(end / start)^(1 / years) - 1`: the median seed
-   grows at least 1% a year, at least three seeds in four end above their start, and at most one in eight below half of it. Populous is
-   held to this only while land is free. A median seed that shrinks is a collapse; anything between is a target out, not a collapse.
-3. **Parameters, not patches.** What balance depends on is a named tunable with a physical or gameplay meaning. The first value is
-   seldom the best: a task may look for a good parameterisation of what it builds or touches, new parameters and existing ones, in at
-   most five short runs (seeds and map named), and writes the values tried and what each gave in the task file. Tuning the game, a run
-   over many parameters for gameplay balance, is Kim's to start: a shortfall outside the task's reach is reported and left for that
-   run, as a row of `docs/tuning.md`. A formula that computes something other than it says is a fix, reported before and after; and a
-   collapse may be tuned away.
-4. **Extending a system needs no question:** a new crop is sown as crops are; copper is mined as iron is.
-5. **Customs** are grounded in history, with defaults leaning to gameplay. A custom may prescribe (a culture's least age to marry):
-   it is a rule the pawns hold, which differs between villages and can change, not a rule of the simulation (8). Add them freely; Kim
-   will later review them for a smaller set.
-6. **References:** founders is the early game's, populous the late game's (many pawns). Heirs is reported without a target.
-7. **Detail** is grounded in history and chosen where it gives the head or the player a decision: key kinds, not every kind, as with
-   the crops (`design.md`, Crops and rotations).
-8. **Mechanisms, not prescriptions.** History is preferred, within reason, and the game must stay fun; where they part, play decides.
-   A historical pattern is reached by modelling what produced it, never by setting it: women's age at marriage held population in
-   check, so model what makes a couple wait (a holding to marry onto, years in service, a portion to save), not the age allowed. A
-   parameter that sets an outcome directly is a patch (3); hard limits are for physical facts.
-9. **Place matters.** The game favours settlements that specialise where the land suits it (a mining village, a farming one, a
-   fishing one) and trade between them: over land, by river, and late in the game by sea. Where a mechanism could let every village
-   make everything or tie production to place, choose place; the cost of carrying (the hard rule) is what makes a route worth having.
-   It is enough that the mechanics reward this: an island with no player is not held to a target for it.
-10. **Decided fixes the mechanism, not its bounds.** A named cap, target or floor on a Decided rule (a store that fills only to a
-    target) is parameterisation (3), not a question, when the mechanism stays as Decided and a measurement shows the defect: the
-    design's line gains the bound, and the numbers are reported before and after. Replacing the mechanism still goes to Kim.
-11. **Enforcing is not asking.** Bringing the code into line with a Decided point or the hard rule needs no question, even where it
-    costs a target: do it, and report the cost before and after (Working rules, Targets).
-12. **Tooling is the agent's.** The formatter, the bundler, hooks, baselines and strictness are decided by target-v2's principles
-    and written in the task file. Kim keeps only whether, and when, work goes ahead that holds other tasks back.
-13. **An elite is what the rules leave over, not a quota.** No road, office or class is given a share or a count to reach. A plan
-    sizes each claim (a rent, a keep, a due) against a household's need, and the wrap-up reports who became elite and by what.
-14. **The future is someone's estimate** (Kim, 15 November). What the player is shown of what will happen (when a task ends, whether a
-    store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
-    knowledge; what has happened is shown as it was. A view that foretells says whose estimate it shows.
-15. **Like is shown alike, and pictures before words** (Kim, 16 November). Every thing of one kind (a level, a store, a trait, a
-    person's row, a link, a tab) has one presentation, used wherever it appears; an exception needs a motive, written in its task.
-    The page favours clear, indicative icons, and images and graphs where they apply, before text; a level is a meter, the same
-    meter everywhere, and words are its label. Traits are not hidden: they are shown as icons. Desktop first; the phone comes later.
-16. **Every act is a pawn's** (Kim, 16 November). An act is done by a pawn who chose it, through a verb whose check holds for any
-    pawn alike. A household, a village or the calendar never acts: a household's head does; a village's meeting first elects an
-    alderman, who carries out what the meeting decided. The player has what its pawn has, no more and no less: a choice the player is
-    given is a choice every pawn makes, and a new verb widens the game for both. Natural processes need no pawn (birth, death,
-    growth, spoilage, an animal eating); debug verbs are the world's, not a pawn's. An agent that finds an act with no pawn, or a
-    choice only the player has, notes it and goes on, as for a teleport (Surfacing).
-17. **Goods are made of a material, and its kind sets their quality** (Kim, 16 November). A good is what it is for (a whetstone, a
-    vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze)
-    makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long
-    it lasts, how fast it works, what it can hold); its worth in gifts and standing follows from custom. A deposit needs no use
-    of its own, only a property that matters.
-    A made good also has a grade of workmanship, one of five (shoddy, sound, good, fine, masterwork), drawn at its making by
-    odds that shift with the maker's skill; the grade scales everything the kind's properties do, and its worth. Skill makes a
-    made good better as well as faster; it never multiplies a crop's yield. A made good is graded; a built thing (a house, a fence, a
-    mill) is not.
-18. **Practice before institution** (Kim, 16 November). A venue, an office or a good the design names before the institution that
-    keeps it exists is built as the practice that produced it, which the institution later takes over: the ale evening before the
-    town's alehouse, the rite before the Church's service.
-19. **A wait is the thing waited for** (Kim, 16 November). No rule holds a pawn back by a chance or a count of years alone: model
-    what makes it wait (8), and the wait is what that takes.
-20. **A label is read, never a switch** (Kim, 16 November). A place's or a person's name for what it is (market place, town, smith,
-    landed) is read from what people do and feeds no rule; a label gets a cut point only where a measure falls into two groups,
-    else the measure is shown and no word is put on it. Stricter than target-v2's principle 7, which lets a categorical view feed
-    a rule through hysteresis: where the two meet, this one holds.
-21. **What does not wear needs a way out** (Kim, 16 November). A good that does not wear (silver, gold, a stone) leaves play by a
-    process: given, buried, lost with its keeper's knowledge.
+## Deciding without Kim
+
+Ask Kim when a change revises a Decided design mechanism or gives the player a capability outside existing systems. Set the task to `needs-review` and record the question with a proposed answer. Extending an existing crop system to another crop is an ordinary implementation decision. For other choices, apply the design principles in `design.md`, record your reason and continue. Surface close calls below. Enforcing a Decided rule needs no approval. A measured defect may justify adjusting a named bound while preserving its mechanism. Record the bound in the design and report its before-and-after effect. Agents decide tooling under target-v2. Kim decides when changes that hold up other tasks go ahead.
+
+For local parameter experiments, try at most five short runs. Record seeds, map, values and results. Report a formula fix before and after, and record out-of-scope balance shortfalls in `docs/tuning.md`.
 
 ### Surfacing
 What Kim should see is surfaced, never waited for. A task notes, in its task file and in the inbox (`node tools/inbox.js note`; with
@@ -137,7 +50,7 @@ no orchestrator, in its PR):
 - **A close call**: a decision another agent could as well have made the other way (`decision`).
 
 The orchestrator gathers these at the head of the night's PR, under "For Kim" (`node tools/inbox.js report`): the candidates first,
-then the teleports and the close calls, one line each. Kim accepts a candidate into this section or strikes it; until then the decision made stands.
+then the teleports and the close calls, one line each. Kim accepts a candidate into the design principles or strikes it; until then the decision made stands.
 
 ## Commands
 Every tool under `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with
@@ -210,55 +123,9 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Interface sketches in design documents are TypeScript-style types: shape and ownership, not code to build.
 - Hot paths to watch: the household's membership caches, the per-tile travel cost (compile it), the death roll; the rules registry's `value()`
   must not allocate. A categorical derived view (class, tier) feeds a rule only through hysteresis.
-- Late-game cost: cost grows with history and with pairs before it grows with people (Rules for cost, below). Measure a change that adds a
+- Late-game cost: cost grows with history and with pairs before it grows with people (docs/cost.md, section 1). Measure a change that adds a
   loop on a late save (`node tools/sim.js --load FILE --years 1 --report perf`), not only on populous at year 2.
 
-## Working rules
-- Behaviour-preserving work passes the focused checks of what it touches and, where that is not evidence enough, `node tools/same.js` against
-  its starting commit (`docs/testing.md`; the refactor rules are in `BACKLOG.md`, "How this backlog works").
-- Use `npm test` while working, after each change, and `npm run verify` once at the end of every task (half a minute). The Checks
-  workflow (`.github/workflows/checks.yml`) runs the same two tiers on a pull request; the Extended checks workflow (`nightly.yml`)
-  runs the long checks, the page's and the measurements nightly or by hand. A red night is repaired by a task of its own.
-- Hard and soft checks (Kim, 10 November, VB-261; `docs/gates.md`). Hard, and stopping a merge: a red `npm test`, or a hard script of
-  verify (the build, lint rules and size baselines, ownership, dependencies, backlog, determinism and plain data, rule tests, saves,
-  invariants, the counters' structure); at night, the same kinds in the extended tier and the page's functional tests. Cost,
-  balance, demography and timing are targets: they print their measure, target and residual, and never set the exit code. A PR has a
-  "Targets" section, one line for each target the change moves or was meant to move (before, after, residual, whether the change is
-  its cause) and one line summing the targets out and not moved ("8 targets out, as on `main`"). A change never raises a target,
-  re-records a ceiling or writes an allowance to make a residual vanish; only Kim changes a target, and only Kim starts a tuning run
-  (Deciding without Kim, 3). The lint and ownership baselines
-  stay ratchets.
-- A slice's wrap-up adds its loops' bands to `tests/lib/bands.js`: a `report` for the full runs and, where a reduced run can show the
-  loop, an `assert`.
-- Keep the `@sys` and `@state` lines current when a module changes purpose or state fields.
-- A new state field or record gets its invariants in `tests/lib/invariants.js` (`checkState`, run daily by `tests/continuity.js`
-  in `npm test`, on a small state, and by `tests/invariants.js` in the extended tier, over years)
-  and, if it is a stored quantity, its line in `tools/stocks.js` (what happens at none; `tests/review-tools.js` checks it).
-- Every PR of size M, or that adds a module or a state field, starts with a short impact note: the modules and state it reads and writes,
-  any new coupling between systems, and, where it adds an abstraction or a special case, why the existing ones do not fit.
-- Numbers are measured once (Kim, 18 November): a PR's changes to behaviour are measured before and after on its final result (a
-  night's run: by its wrap-up, on the merged branch), and the PR reports them and says whether households, not only averages, are
-  better off. A task measures on its own only where a criterion names a number it is to move, or where it tunes (Deciding without Kim, 3).
-- When a change would add the third special case of one pattern, propose the general rule instead (or a task for it, in the PR).
-- A refactor makes the code simpler, not only spread over more files: its PR says what fell (lines, couplings, duplicated rules).
-  It may change behaviour where that makes the separation of responsibilities clearer (Kim, 18 November): it names each change in a line.
+For a slice wrap-up, add its loop bands to `tests/lib/bands.js` and assert those demonstrable in a reduced run. Update `@sys` and `@state` when responsibilities change. Add invariants for new state and a `tools/stocks.js` entry for a stored quantity. At the third special case, propose a general rule.
 
-## Rules for cost (Kim's; `docs/cost.md`, section 1)
-Budget at the late reference, the first year populous medium reaches 1,000 living (`medium-ref`, made by VB-202): 200 ms of simulation a game day,
-a whole year's mean, for the systems built so far (half of the finished game's 400 ms, a quarter of the main thread at 30×; each slice's plan
-claims its line from the rest; each system's share is in `tools/bench.js`, VB-203), no 6-minute step over 60 ms on `medium-ref` and
-`small-y40`, cost per living pawn-day at `small-y40` at most 1.25 times `small-y5`, save and load under 0.5 s each of main thread at `medium-ref`.
-There is no `medium-y60` (Kim, 8 November): the bench reports `medium-y5` and `medium-ref`.
-Every plan and PR is checked against these rules:
-1. Cost follows activity, not history: no loop in a step walks every record ever made (the dead, dissolved households, ended edges, met
-   obligations, the record); the owner keeps an index of the live ones, as a cache with one writer.
-2. No pass over pairs: pairs meet only among the present (cells, a venue, a household); every per-pawn collection has a declared cap.
-3. Decay lazily: store a value and when it was set and read it in closed form, or store against a shared scale; no daily pass to decay.
-4. Schedule, don't poll: what falls due at a known time goes into a due-queue in `st`, as plain data; a step touches only what is due.
-5. Stagger and spread: per-holder work on its planning day; yearly work spread over steps, a village or a few households at a time.
-6. Compile what is hot: a rule read in an inner loop becomes an array refreshed at its cadence; `value()` allocates nothing.
-7. Detail by state, never by camera: what the camera shows never changes what the simulation does; only the page interpolates.
-8. Bound every cache (routes, reach maps), and bound history (routine events fold into yearly counts; a pawn's events index the record).
-9. Name the cost before building: entities, times cadence, times work per call, in the plan; measure it in the wrap-up, early and on a
-   late save.
-10. Work counters live in `VB.count`, outside `st`: never saved, never read by the simulation, read only by tools and tests.
+Before adding recurring work, estimate entities × cadence × work per call. Measure early and on a late save. See `docs/cost.md` for budgets and system rules.

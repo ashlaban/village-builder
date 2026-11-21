@@ -3,7 +3,7 @@
 VB['sim/forage'] = (() => {
   const { FORAGE, YEAR_DAYS, DAY } = VB['sim/rules'],
     { B } = VB['gen'];
-  const { reachTiles } = VB['sim/routes'];
+  const { reachTiles } = VB['sim/walking'];
   // Fresh stocks for a world: every tile full; the settlement generator calls it, and a load of a save made before gathering.
   function initForage(w) {
     // @state w.forage: Float32Array per tile; a forest or heath tile's stock of wild food from 0 to 1 as of the year in w.forageYear; it is

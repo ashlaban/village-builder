@@ -60,7 +60,7 @@ const back = Sim.load(w, JSON.parse(JSON.stringify(Sim.save(st))));
 assert.deepStrictEqual([...back.pawns[a].goodwill], [...st.pawns[a].goodwill], 'saved and loaded');
 
 // a retirement passes half of the old holder's balances to the new holder; the old holder keeps half
-const H = holders.find((h) => h !== A && h !== B && VB['sim/heirs'].heirRanking(st, h).length);
+const H = holders.find((h) => h !== A && h !== B && VB['sim/heirranking'].heirRanking(st, h).length);
 const outside = others.filter((p) => p.household !== H.id && st.pawns[p.id].alive); // not the heir, nor its housemates
 const old = H.holder, partner = outside[10].id, other2 = outside[11].id;
 R.book(st, old, partner, 60); R.book(st, other2, old, 20);

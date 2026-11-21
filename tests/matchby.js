@@ -30,7 +30,7 @@ const args = (st, man, woman, home) => ({ basis: 'match', gives: { man, home }, 
 const offer = (st, man, woman, home) =>
   issue(st, { actor: R.spokesmanOf(st, man), verb: 'offer', target: R.spokesmanOf(st, woman), args: args(st, man, woman, home), source: 'asking' });
 const fond = (st, a, b) => {
-  Rel.raiseTie(st, a, b, 3);
+  VB['sim/ties'].raiseTie(st, a, b, 3);
   for (const k of ['worked', 'ale']) for (let i = 0; i < 6; i++) Rel.remember(st, a, b, k);
 };
 assert.deepStrictEqual(Culture.DIMS[Culture.IDX.matchBy].opts.map((o) => o[0]), ['heads', 'consent', 'couple']);

@@ -1,12 +1,12 @@
 // Node-only investigation of VB-196. Wrap before importers capture exports; never read clocks in simulation code.
 // Times are inclusive and exclusive of nested wrapped calls. Counts and hashes remain comparable with moving-bench.js.
 require('./help.js')(__filename);
-const fs = require('fs'), path = require('path'), crypto = require('crypto');
-const root = path.join(__dirname, '..'), rows = new Map(), stack = [];
+const crypto = require('crypto');
+const rows = new Map(), stack = [];
 let active = false;
 const targets = {
   'sim/heirs': ['handOn', 'countDemand', 'refreshRoles'],
-  'sim/round': ['movingRound', 'kinPressure'], 'sim/marriage': ['wed'],
+  'sim/round': ['movingRound'], 'sim/marriage': ['wed'],
   'sim/help': ['fillStores'], 'sim/farmclaims': ['claimFarms'], 'sim/expansion': ['startPlots'],
   'sim/settle': ['settleRound'], 'sim/service': ['takeServants'], 'sim/cottage': ['payOwed'],
   'sim/society': ['refreshStanding'],
@@ -24,13 +24,11 @@ function wrap(fn, name) {
     }
   };
 }
-for (const file of JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8'))) {
-  require(path.join(root, 'src', file));
-  const key = file.slice(0, -3), mod = globalThis.VB[key];
-  if (!mod) continue;
-  for (const name of targets[key] || []) mod[name] = wrap(mod[name], name);
+const hooks = {};
+for (const [key, names] of Object.entries(targets)) {
+  hooks[key] = Object.fromEntries(names.map((name) => [name, (fn) => wrap(fn, name)]));
 }
-const VB = globalThis.VB, F = require('../tests/lib/fixtures.js');
+const VB = require('../tests/lib/load.js').loadModules({ wrap: hooks }), F = require('../tests/lib/fixtures.js');
 for (const name of process.argv.slice(2).length ? process.argv.slice(2) : ['small-y40', 'medium-ref']) {
   const fixture = F.loadFixture(name);
   if (!fixture) throw new Error(`${name}: fixture required`);

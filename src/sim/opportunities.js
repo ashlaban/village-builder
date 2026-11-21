@@ -3,7 +3,7 @@
 VB['sim/opportunities'] = (() => {
   const Culture = VB['culture'];
   const { cal, SERVICE, DAY, YEAR } = VB['sim/rules'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'];
   const { villageOf, settlementIdOf, practice, fullName, spouseOf, childrenOf, holdingOf, spokesmanOf } =
     VB['sim/records'];
   const { ASK } = VB['sim/kinds'];
@@ -16,7 +16,8 @@ VB['sim/opportunities'] = (() => {
   const { SOCIAL } = VB['sim/rules'];
   const { fit, jobsFor } = VB['sim/jobs'];
   const { eligible } = VB['sim/eligibility'];
-  const { staysWhy, heirRanking, successorOf } = VB['sim/heirs'];
+  const { heirRanking, successorOf } = VB['sim/heirranking'],
+    { staysWhy } = VB['sim/heirs'];
   const { matchBar, matchRules, kinOk } = VB['sim/matching'];
   const { visitChoices, visitWhy, sendWhy } = VB['sim/visits'];
   const { wishesOf } = VB['sim/wishes'];
@@ -24,7 +25,7 @@ VB['sim/opportunities'] = (() => {
     HELP_KINDS = MATCH.help.kinds;
   const { unfit, handsLeft } = VB['sim/service'];
   const { ALE_EVENING, RITE } = VB['sim/rules'],
-    { hoursBetween } = VB['sim/routes'];
+    { hoursBetween } = VB['sim/villagehours'];
   // What pawn `id` may read of the state. It filters nothing for now: every pawn knows everything (design.md, What a pawn knows). It is
   // the seam: forPawn reads the world only through its view, so what a pawn has not heard can later be left out here.
   const actorView = (st) => st;
@@ -500,7 +501,7 @@ VB['sim/opportunities'] = (() => {
     return out;
   }
   // The successor of pawn id (VB-1121), {id, why: its link to the pawn ('son', 'niece', ...)}, or null: the first of its line by its
-  // village's inheritance customs (successorOf, sim/heirs), read for the played pawn after its death by the customs it died under.
+  // village's inheritance customs (successorOf, sim/heirranking), read for the played pawn after its death by the customs it died under.
   function successor(st, id) {
     const left = st.player && st.player.pawn === id ? st.player.left : null,
       q = successorOf(st, id, left ? left.village : null);

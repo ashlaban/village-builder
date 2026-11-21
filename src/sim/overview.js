@@ -4,11 +4,12 @@ VB['sim/overview'] = (() => {
   const { YEAR, YEAR_DAYS, SEASON_DAYS, WORK, HUNGER, FIELDS, CROPS, MARRIAGE, cal } = VB['sim/rules'];
   const { age, spouseOf } = VB['sim/records'];
   const Stores = VB['sim/stores'];
-  const { toHarvest, foodHeld, dailyNeed } = VB['sim/hunger'];
-  const { fieldsWorkable } = VB['sim/fields'];
+  const { toHarvest, foodHeld } = VB['sim/foodneed'],
+    { dailyNeed } = VB['sim/hunger'];
+  const { fieldsWorkable } = VB['sim/fieldplans'];
   // The fields a farm sows: a fallow course does not count against the hands (VB-350; design.md, The rotation, Fallow and the hands).
   const sownFields = (f) => f.fields.filter((fd) => !CROPS[fd.crop].fallow).length;
-  const { heirRanking } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'];
   const Plans = VB['sim/plans'],
     Traits = VB['sim/traits'];
   // The overview's bounds (VB-162; Kim, 10 November, as the task's criteria, read on the game's calendar): the window of the counted facts
@@ -24,7 +25,7 @@ VB['sim/overview'] = (() => {
     hands: VB['sim/rules'].AGES.hands,
     kin: 0.1, // a household lives partly on help at this share of its year's need received (VB-1114)
   });
-  const AUTUMN = 2; // the season the harvest comes in (as sim/hunger's toHarvest)
+  const AUTUMN = 2; // the season the harvest comes in (as sim/foodneed's toHarvest)
   const bandOf = (a) => (a < OVERVIEW.bands[0] ? 0 : a < OVERVIEW.bands[1] ? 1 : 2);
   // A living pawn of marrying age (the custom's: MARRIAGE.menFrom, womenFrom).
   const adultOf = (st, p) => p.alive && age(st, p) >= (p.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom);
@@ -63,7 +64,7 @@ VB['sim/overview'] = (() => {
     const perHand = plan && plan.targets && plan.targets.perHand > 0 ? plan.targets.perHand : FIELDS.perHand;
     return { pawn: id, horizon: hz, days: Math.min(harvest, ahead), toHarvest: harvest, perHand };
   }
-  // A household's food in rations: what it may eat (sim/hunger's foodHeld: grain, flour, larder, fresh food) less the seed held back, its
+  // A household's food in rations: what it may eat (sim/foodneed's foodHeld: grain, flour, larder, fresh food) less the seed held back, its
   // meals, and the sheaves in its barn, which are grain once threshed.
   function foodOf(st, hh) {
     let sheaves = 0;
