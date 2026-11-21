@@ -47,7 +47,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1172](backlog/VB-1172.md)<a id="VB-1172"></a> | The booth is a project of the pawn who raises it | acts | 2 | M | A booth's wood and raising are a project plan of its pawn (sim/projects), not a field scanned on st.booths; the verb's guard is living, not free; someone in play stakes one. |
 | [VB-1316](backlog/VB-1316.md)<a id="VB-1316"></a> | The retired's voice: advice to the head, and a grandchild's match | life | 2 | M | A retired pawn advises the head once a year by an offer of basis advice, which the head takes by opinion times standing and carries out itself; a retired grandparent wishes a grandchild's match under Who makes a match by the heads; the retired sheet lists its decisions. |
 | [VB-1380](backlog/VB-1380.md)<a id="VB-1380"></a> | Cost: the moving round's call doubled at medium-ref (58.6 to 108 ms) | - | 2 | S | Find which of the run's changes doubled the moving round's call at medium-ref; VB-766's crowding refresh at each membership change is the suspect |
-| [VB-1411](backlog/VB-1411.md)<a id="VB-1411"></a> | A household's project plans read by what they make; the settler's cottage a plan of its household | - | 2 | M | Readers of a household's plans choose by what the plan makes; the booth's cottage becomes plan steps |
 | [VB-043](backlog/VB-043.md)<a id="VB-043"></a> | One scope model: a membership graph of entities | debt | 3 | M | The membership graph of typed edges, with scopes on it; as Membership's truth if Kim adopts it (measured 0.55 ms at year 12). |
 | [VB-082](backlog/VB-082.md)<a id="VB-082"></a> | Customs made legible: votes, leanings and causes | debt | 3 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. |
 | [VB-108](backlog/VB-108.md)<a id="VB-108"></a> | Wrap-up: the household's year | year | 3 | S | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
@@ -100,6 +99,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1389](backlog/VB-1389.md)<a id="VB-1389"></a> | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 | [VB-1404](backlog/VB-1404.md)<a id="VB-1404"></a> | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
 | [VB-1405](backlog/VB-1405.md)<a id="VB-1405"></a> | Share work candidates and track queued verbs through explicit outcomes | life | 3 | M | Give the matcher and player a shared query for posted work. Let the queue follow a specific pawn assignment through the verb result. |
+| [VB-1412](backlog/VB-1412.md)<a id="VB-1412"></a> | One order for every due-queue (due, then id), and removal by key | - | 3 | S | All due-queues by (due, id); sim/due shrinks; removals by key search |
+| [VB-1413](backlog/VB-1413.md)<a id="VB-1413"></a> | Refactor: split sim/projects: the plans' record, what a site lacks, a project's beginning and end | - | 3 | S | sim/projects at the width line with three responsibilities: split by them |
 
 </details>
 
