@@ -143,6 +143,13 @@ for (const at of ['holds', 'spouse']) {
     assert.strictEqual(st.pawns[id].household, 0);
     assert.strictEqual(told(st, 'joined', id).at(-1).reason, 'heir');
   }
+  // the smaller place's log line names its holder, who moves away, and not as the one who inherits: with the spouse, he did not
+  if (!st.households[2].dissolved) {
+    const took = st.record.filter((e) => e.kind === 'inherited' && e.household === 2).at(-1);
+    const holder = R.fullName(st.pawns[at === 'holds' ? 2 : 11]);
+    assert.ok(took.text.endsWith(` as ${holder} moves away.`), `the log line: ${took.text}`);
+    assert.ok(!/inherits/.test(took.text), took.text);
+  } else assert.strictEqual(at, 'holds', 'the spouse case hands the smaller place on');
   sound(st, 'after giving up the smaller place');
 }
 

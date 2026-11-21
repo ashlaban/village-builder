@@ -135,7 +135,7 @@ VB['sim/heirs'] = (() => {
               : reason === 'married away'
                 ? ` as ${fullName(op)} marries away`
                 : reason === 'inherited away'
-                  ? ` as ${fullName(op)} inherits another farm`
+                  ? ` as ${fullName(op)} moves away` // the heir to another farm, or its spouse: op holds this one either way
                   : reason === 'claim'
                     ? `, left with no heir when ${fullName(op)} moved away`
                     : ' as the old holder retires'
