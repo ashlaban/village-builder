@@ -110,6 +110,48 @@ for (const rule of ['kin', 'villagers', 'anyone', 'assembly']) {
 }
 out.push(`orders: ${Object.entries(orders).map(([k, v]) => `${k} ${v}`).join('; ')}`);
 
+// ---- the ask (VB-697): the farm named is the one with most fields, then the best kept; a no names the custom's line; a plot is asked of
+// another village's alderman ----
+{
+  const { st, f, who } = scene('anyone');
+  setPractice(st, 0, { claims: 'anyone' });
+  const A2 = st.farmsteads[st.villages[0].farmsteads[2]];
+  H.extinct(st, st.households[A2.household]);
+  check(FC.claimable(st, A2) && FC.claimable(st, f), 'the scene: two farms stand empty');
+  const fieldsOf = (g) => g.fields.length;
+  const rich = fieldsOf(f) >= fieldsOf(A2) ? f : A2, poor = rich === f ? A2 : f;
+  if (fieldsOf(rich) === fieldsOf(poor)) poor.fields.pop();
+  check(FC.claimableFarm(st, who.jons) === rich, 'asked for: the farm with most fields');
+  poor.fields.length = rich.fields.length; rich.condition = 0.3; poor.condition = 0.6;
+  check(FC.claimableFarm(st, who.jons) === poor, `asked for: with as many fields, the better kept`);
+}
+{
+  const { st, f, who } = scene('kin');
+  const first = FC.claimants(st, f)[0], second = FC.claimants(st, f)[1];
+  check(first === who.gunhild && second === who.brita, 'the scene: Gunhild stands before Brita');
+  st.pawns[second].wish = null;
+  const o = FC.askLand(st, second, f.village, { farm: f.id });
+  const told = Sim.villageLog(st, Infinity).filter((e) => /is refused the empty farm/.test(e.text));
+  check(told.length === 1 && /claims custom of .*\(kin\), .* stands before/.test(told[0].text), `a no names the custom's line: ${told.map((e) => e.text)}`);
+  check(!st.pawns[second].ask && FC.claimOn(st, f) === null, 'the refused asker holds no offer and no claim');
+  void o;
+}
+{
+  const { st, who } = scene('anyone');
+  const B = st.villages[1], al = B.farmsteads.map((id) => st.farmsteads[id].household).filter((h) => h !== null).map((h) => st.households[h].holder).find((h) => h !== null);
+  B.alderman = al;
+  H.refreshRoles(st);
+  const n = st.offers.length;
+  st.pawns[who.gunnar].wish = null;
+  FC.askLand(st, who.gunnar, B.id, { plot: B.id }, st.t + VB['sim/rules'].DAY);
+  const o = st.offers.find((x) => x.basis === 'land' && x.from === who.gunnar);
+  check(o && o.to === al && o.wants.plot === B.id, `a plot is asked of the alderman of the village it is in (${o && o.to} for ${al})`);
+  check(st.offers.length === n + 1 && st.pawns[who.gunnar].ask === o.id, 'the ask is held, due at the round');
+  VB['sim/offers'].conclude(st, o);
+  check(VB['sim/expansion'].hasPlot(st, who.gunnar) && st.villages[1].plots.length + VB['sim/expansion'].livePlots(st, B).length > 0, 'the alderman answers a plot: begun for the asker in his village');
+  ok(st, 'a plot asked of a small village');
+}
+
 // ---- the claim: at the moving round the first claimant takes the farm, mends it and moves in ----
 const J = VB['sim/jobs'], X = VB['sim/expansion'], { KINDS } = VB['sim/kinds'], { cal, SEASON_DAYS, DAY } = VB['sim/rules'];
 const P = (id) => ({ type: 'pawn', id });

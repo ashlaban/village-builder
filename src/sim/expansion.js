@@ -554,6 +554,7 @@ VB['sim/expansion'] = (() => {
     plotProgress,
     finishStep,
     activePlots,
+    MAX_PLOTS,
     boothJob,
     finishBoothStage,
   };

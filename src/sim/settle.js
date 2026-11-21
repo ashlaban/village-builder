@@ -438,11 +438,8 @@ VB['sim/settle'] = (() => {
           for (const t of [args.house, args.field]) markUsed(st.w, use, t);
           return st.farmsteads[n];
         };
-        const join = smallVillage(st, v, p, waiting, reach);
-        if (join) {
-          f = leave({ village: join.village.id, house: join.house, field: join.field });
-          steps = join.steps;
-        } else if (!noLand) {
+        // a small village is not joined unasked: a plot there is asked of its alderman on the asking day (sim/asking, VB-697)
+        if (!noLand) {
           if (!cands) cands = candidates(st, v, use, reach);
           const site = newSite(st, v, use, cands);
           if (site) {
@@ -469,7 +466,7 @@ VB['sim/settle'] = (() => {
         log(
           st,
           `${fullName(p)} leaves crowded ${v.name}${company.length ? ` with ${listed(company)}` : ''} and ` +
-            `${join ? `settles at ${f.name} in ${nv.name}` : `founds ${nv.name}`}, ${steps} steps away.`,
+            `founds ${nv.name}, ${steps} steps away.`,
           {
             kind: 'left',
             pawn: p.id,
