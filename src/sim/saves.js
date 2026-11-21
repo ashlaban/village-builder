@@ -11,6 +11,7 @@ VB['sim/saves'] = (() => {
   const { seedPlans, fillPlans } = VB['sim/plans'],
     Plans = VB['sim/plans'],
     { BREAK_HOURS } = VB['sim/fieldplans'],
+    { stepOf } = VB['sim/projects'],
     { seedPer } = VB['sim/hunger'];
   const { TICKS, TRAITS } = VB['sim/rules'];
   const { makeStream } = VB['sim/rng'];
@@ -621,7 +622,7 @@ VB['sim/saves'] = (() => {
         if (k.i >= 3) plan.steps[3].done = HOURS.roof;
         for (const j of st.jobs.values()) {
           if (j.plot === p) j.plot = plan;
-          if (j.timberFor === p) j.timberFor = plan.steps[2];
+          if (j.timberFor === p) j.timberFor = stepOf(plan, 'walls');
         }
       }
     }

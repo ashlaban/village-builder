@@ -355,7 +355,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       await page.click('#tabPlan'); await page.waitForSelector('#tileHouse [data-project]');
       if (await msg()) fail(`the refusal is still at the head of the Plan tab after it was closed: ${await page.locator('#tileHouse .plan-msg').textContent()}`);
       await page.click('#tileHouse [data-plan="project"][data-what="field"]');
-      const at = await page.evaluate((id) => { const p = VB['sim/projects'].projectOf(window.__play.st, 'household', id); return p ? p.steps[p.open].place : -1; }, hh);
+      const at = await page.evaluate((id) => { const p = VB['sim/projects'].ownOf(window.__play.st, id); return p ? p.steps[p.open].place : -1; }, hh);
       const link = `#tileHouse [data-project] [data-plan="fly"][data-tile="${at}"]`;
       if (at < 0 || !(await page.locator(link).count())) fail(`the project's row does not name its tile ${at}: ${await page.locator('#tileHouse [data-project]').textContent()}`);
       else {

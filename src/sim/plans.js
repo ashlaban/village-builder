@@ -28,6 +28,7 @@ VB['sim/plans'] = (() => {
   const Green = VB['sim/green'],
     Workdays = VB['sim/workdays'],
     Commons = VB['sim/commons'];
+  const Due = VB['sim/due'];
   const { heldFarms } = VB['sim/ownership'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
@@ -71,7 +72,7 @@ VB['sim/plans'] = (() => {
   // @state plan.build (a household's; VB-332): its building step, {tile, kind 'pick' | 'quarry' | null} (where its stone comes from; -1 and
   //   null for nowhere in reach) while it means to raise its house onto stone, else null or absent; set at each review (sim/building's buildStep).
   // ---- project plans (VB-123; design.md section 7): their record and reads are sim/projects'; only this section writes them ----
-  const { projectsOf, projectOf, holderOf } = Projects;
+  const { projectsOf, holderOf } = Projects;
   function remove(st, plan) {
     const map = st.plans.projects[plan.holder.type],
       list = map.get(plan.holder.id) || [],
@@ -134,7 +135,8 @@ VB['sim/plans'] = (() => {
     emit(st, 'planDropped', { plan }); // a head's aim on it ends at once (sim/aims, VB-1224), not at its next review
   }
   // Timber carried to a step at its household's house and not yet built in (a barn's walls, a cart's: VB-255) goes onto that farm's
-  // woodpile as the plan is dropped: the farmstead is one place, so nothing is carried, and nothing vanishes.
+  // woodpile as the plan is dropped: the farmstead is one place, so nothing is carried, and nothing vanishes. Only the dropped plan's own
+  // steps are read: the wood of a plan beside it (a cart beside a barn, VB-1414) stays at its own step.
   function leftWood(st, plan) {
     if (plan.holder.type !== 'household') return;
     const hh = st.households[plan.holder.id],
@@ -178,10 +180,13 @@ VB['sim/plans'] = (() => {
     return false;
   }
   // Every plan of a holder that ends (a household dissolved), without a word: the end of its holder is told.
-  // A household's plot for its heir is not dropped but passes to its village (the verb plotToVillage; VB-255), its tiles and work with it.
+  // A household's plot for its heir is not dropped but passes to its village (the verb plotToVillage; VB-255), its tiles and work with it;
+  // its cottage (settlers, sim/settle) passes to its village too, kept with the farm for the household that comes (makePlan; VB-1411).
   const dropAll = (st, type, id) => {
     for (const plan of [...projectsOf(st, type, id)])
-      if (plan.what === 'plot' && type === 'household')
+      if (plan.what === 'cottage')
+        emit(st, 'projectHanded', { plan, type: 'village', id: st.farmsteads[plan.farmstead].village });
+      else if (plan.what === 'plot' && type === 'household')
         issue(st, {
           actor: null,
           verb: 'plotToVillage',
@@ -203,8 +208,7 @@ VB['sim/plans'] = (() => {
     for (const plan of [...projectsOf(st, d.type, d.id)]) if (plan.reasons[d.good] === 'build') review(st, plan);
   });
   on('stepDone', (st, d) => {
-    const plan = d.plan || projectOf(st, d.type, d.id);
-    if (plan) advance(st, plan);
+    if (d.plan) advance(st, d.plan); // every emitter names its plan
   });
   on('projectBegun', (st, d) => {
     makeProject(st, d.type, d.id, d.project);
@@ -657,7 +661,10 @@ VB['sim/plans'] = (() => {
   // ---- the due-queue (Rules for cost, 4): each time-bound kind (its `window`, sim/kinds) is asked for a household from its window's hour,
   // and again the next hour while it gives work and the day's work goes on; else at its next opening ----
   const WINDOWED = Object.keys(KINDS).filter((k) => KINDS[k].window);
-  const byDue = (x, y) => x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+  // Its order (sim/due): by hour, then household id, then index (an index is below WINDOWED.length, so the two make one tie).
+  const entryHour = (e) => e[0],
+    entryTie = (e) => e[1] * WINDOWED.length + e[2];
+  const insert = (q, e) => Due.insert(q, e, e[0], entryTie(e), entryHour, entryTie);
   // The first hour after `hour` at which the window of WINDOWED[k] opens.
   function opens(k, hour) {
     const from = KINDS[WINDOWED[k]].window.from;
@@ -667,10 +674,7 @@ VB['sim/plans'] = (() => {
   }
   // The entries due by this hour, taken off the queue (they are its first).
   function dueNow(st, hour) {
-    const q = st.plans.due;
-    let n = 0;
-    while (n < q.length && q[n][0] <= hour) n++;
-    return n ? q.splice(0, n) : [];
+    return Due.take(st.plans.due, hour, entryHour);
   }
   // The entries asked at this hour, back on the queue: the next hour while the kind gave work (gave[i]) and the day's work goes on, else at
   // the window's next opening. An entry of a household whose plan is gone is dropped.
@@ -681,15 +685,13 @@ VB['sim/plans'] = (() => {
       const e = entries[i];
       if (!st.plans.households.has(e[1])) continue;
       e[0] = gave[i] && hour + 1 <= end ? hour + 1 : opens(e[2], hour);
-      q.push(e);
+      insert(q, e);
     }
-    if (entries.length) q.sort(byDue);
   }
   // A household's entries, one per time-bound kind, at their next openings.
   function enqueue(st, id) {
     const hour = Math.floor(st.tick / TICKS);
-    for (let k = 0; k < WINDOWED.length; k++) st.plans.due.push([opens(k, hour), id, k]);
-    st.plans.due.sort(byDue);
+    for (let k = 0; k < WINDOWED.length; k++) insert(st.plans.due, [opens(k, hour), id, k]);
   }
   // A household's targets, seasonal plan, tiles, cull record and reservation of seed, at its plan's making and at the load of a save
   // without them.
@@ -751,6 +753,12 @@ VB['sim/plans'] = (() => {
     };
     mapOf(st, type).set(id, plan);
     if (type === 'household') {
+      const f = st.farmsteads[st.households[id].farmstead], // a cottage left on its farm (dropAll) is the new household's
+        left =
+          f &&
+          f.booth &&
+          projectsOf(st, 'village', f.village).find((p) => p.what === 'cottage' && p.farmstead === f.id);
+      if (left) emit(st, 'projectHanded', { plan: left, type, id });
       household(st, plan);
       enqueue(st, id);
     } else founded(st, plan);
@@ -880,9 +888,8 @@ VB['sim/plans'] = (() => {
   // once for every farm's look (sim/fields, builtTiles).
   function landStep(st, plan, f, hh, built) {
     if (!(plan.chosen && plan.chosen.project === 'none')) {
-      if (!Projects.projectOf(st, 'household', hh.id) && f.fields.length < plan.targets.fields)
-        landBy(st, plan, f, hh, 'field', built);
-      if (!Projects.projectOf(st, 'household', hh.id) && (wantsMeadow(st, f, hh) || wantsFirstMeadow(st, f, hh)))
+      if (!Projects.ownOf(st, hh.id) && f.fields.length < plan.targets.fields) landBy(st, plan, f, hh, 'field', built);
+      if (!Projects.ownOf(st, hh.id) && (wantsMeadow(st, f, hh) || wantsFirstMeadow(st, f, hh)))
         landBy(st, plan, f, hh, 'meadow', built);
     }
     reserveSeed(st, hh, plan); // a project begun holds its seed from now
@@ -986,7 +993,7 @@ VB['sim/plans'] = (() => {
     if (what !== 'field' && what !== 'meadow') return `there is no land project ${what}`;
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
-    const p = Projects.projectOf(st, 'household', hh.id);
+    const p = Projects.ownOf(st, hh.id);
     if (p) return `household ${hh.id} has a ${p.what} under way`;
     return (what === 'field' ? fieldWhy : meadowWhy)(st, f, hh, tile);
   }
@@ -1009,14 +1016,15 @@ VB['sim/plans'] = (() => {
   }
   // What the head may choose, for the page (VB-256): the targets now (the head's, by its foresight and bias: VB-254), the custom's (its
   // culture's template, unbiased; the fields its household's food asks), the head's own choices, their bounds, the named tiles, the
-  // season's order and the project under way; the head's skill and horizon; or null for a household with no plan. Plain data, a copy.
+  // season's order and the project under way (the large one, ownOf) and the small constructions beside it (VB-1414); the head's skill
+  // and horizon; or null for a household with no plan. Plain data, a copy.
   function headView(st, id) {
     const plan = st.plans.households.get(id),
       sp = st.plans.seasons.get(id);
     if (!plan || !sp) return null;
     const T = plan.targets,
       C = plan.chosen || {},
-      p = Projects.projectOf(st, 'household', id),
+      p = Projects.ownOf(st, id),
       c = cal(st.t),
       hh = st.households[id],
       M = templateOf(st, cultureOf(st, hh), c),
@@ -1045,6 +1053,9 @@ VB['sim/plans'] = (() => {
       order: [...sp.steps],
       orderBy: sp.by || 'template',
       project: p ? { id: p.id, what: p.what, step: p.steps[p.open].kind } : null,
+      small: Projects.projectsOf(st, 'household', id)
+        .filter((q) => q.small)
+        .map((q) => ({ id: q.id, what: q.what, step: q.steps[q.open].kind, tile: q.steps[q.open].place })),
       heldOff: C.project === 'none',
     };
   }
@@ -1134,21 +1145,29 @@ VB['sim/plans'] = (() => {
       else beginLand(st, st.households[c.target], what, landTile(st, st.households[c.target], c.args));
     },
   });
-  // dropProject({id, hold}): give up the household's project under way (args.id, the plan's id, when given: a field, a meadow, a boat,
-  // a tar pit, ...), and with hold, hold off projects as project 'none' does
+  // The household's project of its own choosing that the verb dropProject gives up: the one of id when given (a field, a meadow, a barn, a
+  // boat, a cart, a tar pit...; never a settler household's cottage), else its large project (ownOf), else the first small one under way.
+  function droppable(st, hid, id) {
+    const mine = (p) => p.what !== 'cottage' && (id === undefined || p.id === id);
+    return (
+      (id === undefined && Projects.ownOf(st, hid)) || Projects.projectsOf(st, 'household', hid).find(mine) || null
+    );
+  }
+  // dropProject({id, hold}): give up a project of the household's under way (args.id, the plan's id, when given: a field, a meadow, a boat,
+  // a tar pit, ...; the others under way stand), and with hold, hold off projects as project 'none' does
   register('dropProject', {
     check: (st, c) => {
       const why = heads(st, c);
       if (why) return why;
-      const p = Projects.projectOf(st, 'household', c.target);
-      return !p
-        ? `household ${c.target} has no project under way`
-        : c.args && c.args.id !== undefined && c.args.id !== p.id
-          ? `household ${c.target} has no project ${c.args.id} under way`
-          : null;
+      const id = c.args ? c.args.id : undefined;
+      return droppable(st, c.target, id)
+        ? null
+        : id === undefined
+          ? `household ${c.target} has no project under way`
+          : `household ${c.target} has no project ${id} under way`;
     },
     run: (st, c) => {
-      giveUp(st, st.households[c.target], Projects.projectOf(st, 'household', c.target));
+      giveUp(st, st.households[c.target], droppable(st, c.target, c.args ? c.args.id : undefined));
       if (c.args && c.args.hold) holdProject(st, c.target, true);
     },
   });
@@ -1233,9 +1252,7 @@ VB['sim/plans'] = (() => {
     routinesWhy,
     setRoutines,
     routineAsks,
-    projectOf,
     projectsOf,
-    openOf: Projects.openOf,
     makeProject,
     advance,
     drop: dropProject,

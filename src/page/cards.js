@@ -411,22 +411,19 @@ function workStats(type, id) {
 }
 function landTab(hh) {
   const f = st.farmsteads[hh.farmstead],
-    pj = VB['sim/plans'].projectOf(st, 'household', hh.id),
     jobs = workStats('household', hh.id);
   return (
     stats([
       ...fieldCounts(f).map(([word, k]) => ({ icon: 'field', label: `Fields ${word}`, value: k })),
       f.fields.length ? null : { icon: 'field', label: 'Fields', value: 'none' },
       { icon: 'meadow', label: 'Hay meadows', value: f.meadows.length },
-      pj
-        ? {
-            img: actIcon('spade'),
-            label: `New ${pj.what === 'meadow' ? 'hay meadow' : pj.what}`,
-            value: pj.steps[pj.open].kind,
-            wide: true,
-            title: "The household's project, and its step under way",
-          }
-        : null,
+      ...VB['sim/projects'].projectsOf(st, 'household', hh.id).map((pj) => ({
+        img: actIcon('spade'),
+        label: `New ${pj.what === 'meadow' ? 'hay meadow' : pj.what}`,
+        value: pj.steps[pj.open].kind,
+        wide: true,
+        title: "One of the household's projects, and its step under way",
+      })),
     ]) +
     section('Work') +
     (jobs.length ? stats(jobs) : '<p class="card-note">No work open.</p>')

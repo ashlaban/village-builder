@@ -45,9 +45,10 @@ VB['sim/away'] = (() => {
   //   also holds its gift and back (VB-291, VB-461: fetchGift); a lodger its jobs (the keys of the tasks it is away for), walk (the hours
   //   from its house to its bed, its estimate when it set out), host (a guest's: the household whose house or barn it sleeps in), back (true
   //   once it has turned for home) and, for a stay at an occasion (VB-295: the gathering), until (the game hour from which it turns for
-  //   home: it takes no work, and waits at its bed to be asked to the occasion's days). Plain data, saved; a save with st.journeys loads them as stays.
-  //   When a journey's legs start and stop
-  //   is its pawn's (st.legDue, VB-473): a walk that stops for the night, a wait on the road until 6:00. A visit (VB-289) also holds
+  //   home: it takes no work, and waits at its bed to be asked to the occasion's days). A journey's course by its kind is read from
+  //   JOURNEYS (below, VB-1409), keyed by why; a stay keeps only the word. Plain data, saved; a save with st.journeys loads them as stays.
+  //   When a journey's legs start and stop is its pawn's (st.legDue, VB-473): a walk that stops for the night, a wait on the road until
+  //   6:00. A visit (VB-289) also holds
   //   village (the one visited), back (false until it has arrived there), stay (the days it has still to stay as a guest) and guest
   //   (true while it is there).
   // @state st.awaySeq: number; the next stay's id; ids are never reused (a save's journeySeq)
@@ -270,10 +271,8 @@ VB['sim/away'] = (() => {
   function dropStay(st, a) {
     const j = stayOf(st, a.id);
     if (!j) return;
-    if ((j.why === 'fetch' || j.why === 'haul') && j.gift) {
-      if (j.gift.held > 0) layGift(st, a, j.gift.held, j.gift.parts, j.gift.to);
-      unfetched(st, j.gift);
-    } else if (j.why === 'carry' && j.gift && !j.back) layGift(st, a, j.gift.n, j.gift.parts, j.gift.to);
+    const k = kindOf(j);
+    if (k.fall) k.fall(st, a, j);
     layPack(st, a, j);
     close(st, j);
   }
@@ -473,11 +472,9 @@ VB['sim/away'] = (() => {
   }
   // A journey's rest is over at 6:00: a guest with days to stay stays one more (he takes no work there), else the next leg sets out.
   function legDue(st, a) {
-    const j = stayOf(st, a.id);
-    if (j.why === 'visit' && j.back && j.stay > 0) {
-      j.stay--;
-      return restOnRoad(st, a);
-    }
+    const j = stayOf(st, a.id),
+      k = kindOf(j);
+    if (k.morning && k.morning(st, a, j)) return;
     delete j.guest;
     if (j.host !== undefined) leaveHost(j);
     walkLeg(st, a, j.to);
@@ -585,22 +582,10 @@ VB['sim/away'] = (() => {
   }
   // A pawn's household changed again on the road (a death at home, a handover): it walks to the new home, turning back if need be.
   function retarget(st, a, to) {
-    const j = stayOf(st, a.id);
-    if ((j.why === 'fetch' || j.why === 'haul') && j.gift) {
-      if (j.gift.held > 0) return; // a fetcher brings his load in first (fetchStop), and then walks to the home he has
-      unfetched(st, j.gift); // on his way out: what lies there is fetched no more
-      j.gift = null;
-      j.back = true;
-    }
-    if (j.why === 'visit') {
-      // his home changed on the way (VB-289): the visit is over, and he walks to the home he has
-      j.back = true;
-      j.stay = 0;
-      delete j.guest;
-      if (j.host !== undefined) leaveHost(j);
-    }
-    if (j.to === to || (j.why === 'carry' && !j.back)) return; // a carrier delivers first, and then walks to the home he has
-    if (j.why === 'carry') j.back = true;
+    const j = stayOf(st, a.id),
+      k = kindOf(j);
+    if (k.rehome && k.rehome(st, a, j)) return;
+    if (j.to === to) return;
     j.to = to;
     turnTo(st, a, to);
   }
@@ -624,14 +609,75 @@ VB['sim/away'] = (() => {
     j.to = home;
     startLeg(st, a, j);
   }
+  // ---- a journey's kinds (VB-1409): what each does of its own; sim/kinds' KINDS in spirit ----
+  // A journey's kind is its stay's why, and its course is read here, never saved (a stay keeps only the word). Each hook is optional: one
+  // a kind does not name, or a hook that answers false, leaves the common course (a move's). arrive(st, a, j): the leg's end, in
+  // endJourney; morning(st, a, j): its rest on the road is over, in legDue; fall(st, a, j): its pawn died away, in dropStay, before its
+  // pack is laid down; rehome(st, a, j): its pawn's household changed on the road, in retarget, true to walk on to where it goes. What is
+  // state, not kind (back, gift, stay), each hook tests itself: a carrier who has delivered ends as a move does.
+  // A lodger's stay shares st.away and may carry the same word (a caller's 'visit'), and is told from a journey as it was before the table:
+  // arrive, morning and rehome are reached only by a pawn on the road (phase 'journey' or 'road', sim/agents' travelling), which only a
+  // journey's legs set; fall by any stay, but a lodger holds no gift, and a visit's fall is none.
+  const fetching = {
+    // a fetcher or hauler who dies: the load he held lies where he fell, and what lies at the stops goes back
+    fall: (st, a, j) => {
+      if (!j.gift) return;
+      if (j.gift.held > 0) layGift(st, a, j.gift.held, j.gift.parts, j.gift.to);
+      unfetched(st, j.gift);
+    },
+    // a fetcher brings his load in first (fetchStop), and then walks to the home he has; on his way out, what lies there is fetched no more
+    rehome: (st, a, j) => {
+      if (!j.gift) return false;
+      if (j.gift.held > 0) return true;
+      unfetched(st, j.gift);
+      j.gift = null;
+      j.back = true;
+      return false;
+    },
+  };
+  const JOURNEYS = {
+    move: {},
+    carry: {
+      arrive: (st, a, j) => !j.back && (delivered(st, a, j), true),
+      fall: (st, a, j) => {
+        if (j.gift && !j.back) layGift(st, a, j.gift.n, j.gift.parts, j.gift.to);
+      },
+      rehome: (st, a, j) => !j.back, // a carrier delivers first, and then walks to the home he has
+    },
+    fetch: { ...fetching, arrive: (st, a, j) => !!j.gift && (fetchStop(st, a, j), true) },
+    haul: { ...fetching, arrive: (st, a, j) => !!j.gift && (haulStop(st, a, j), true) },
+    visit: {
+      // he arrives at the village he visits; later, a guest of a house, at his host's door (VB-1151), where he rests
+      arrive: (st, a, j) => {
+        if (!j.back) visited(st, a, j);
+        else if (j.bed !== null) restOnRoad(st, a);
+        else return false;
+        return true;
+      },
+      // a guest with days to stay stays one more (he takes no work there)
+      morning: (st, a, j) => {
+        if (!(j.back && j.stay > 0)) return false;
+        j.stay--;
+        restOnRoad(st, a);
+        return true;
+      },
+      // his home changed on the way (VB-289): the visit is over, and he walks to the home he has
+      rehome: (st, a, j) => {
+        j.back = true;
+        j.stay = 0;
+        delete j.guest;
+        if (j.host !== undefined) leaveHost(j);
+        return false;
+      },
+    },
+  };
+  const NONE = {};
+  const kindOf = (j) => (Object.hasOwn(JOURNEYS, j.why) ? JOURNEYS[j.why] : NONE);
   // Arrival: the journey ends, what is left of its provisions goes into the new home's meals, and the pawn is at home.
   function endJourney(st, a) {
-    const j = stayOf(st, a.id);
-    if (j.why === 'carry' && !j.back) return delivered(st, a, j);
-    if (j.why === 'visit' && !j.back) return visited(st, a, j);
-    if (j.why === 'visit' && j.bed !== null) return restOnRoad(st, a); // a guest at his host's door
-    if (j.why === 'fetch' && j.gift) return fetchStop(st, a, j);
-    if (j.why === 'haul' && j.gift) return haulStop(st, a, j);
+    const j = stayOf(st, a.id),
+      k = kindOf(j);
+    if (k.arrive && k.arrive(st, a, j)) return;
     const hh = st.households[st.pawns[a.id].household];
     close(st, j);
     packHome(st, j, hh);

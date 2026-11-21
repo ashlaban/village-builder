@@ -18,6 +18,7 @@
       "sim/registry",
       "sim/events",
       "sim/rng",
+      "sim/due",
       "sim/hex",
       "sim/crowding",
       "sim/names",

@@ -91,7 +91,7 @@ function surplusState() {
   const n = st.record.length;
   P.reviewed(st, plan, c);
   delete st.rng.plans.fix;
-  const p = Projects.projectOf(st, 'household', hh.id);
+  const p = Projects.ownOf(st, hh.id);
   assert.ok(p && p.what === 'barn', 'the head takes the barn');
   assert.deepStrictEqual(p.steps.map((x) => x.kind), ['barnbase', 'barnwalls', 'barnroof']);
   assert.strictEqual(p.steps[1].timber, BUILD.barn.timber, 'its walls wait for their timber');
@@ -106,13 +106,13 @@ function surplusState() {
   // built: the three stages done, the walls once their timber lies there; the farm has its barn, and its finish is told
   const K = VB['sim/kinds'].KINDS;
   for (const kind of ['barnbase', 'barnwalls', 'barnroof']) {
-    const s0 = Projects.openStep(p);
+    const s0 = p.steps[p.open];
     assert.strictEqual(s0.kind, kind);
     if (s0.timber) s0.wood = s0.timber; // lint-allow: owner the timber carried to the site
     K[kind].done(st, { kind, site: f.house, farm: f, owner: { type: 'household', id: hh.id } }, st.households[1]); // ended by a neighbour's hand
   }
   assert.ok(f.barn && f.barn.built === st.t, 'the barn stands');
-  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, 'the project is finished');
+  assert.strictEqual(Projects.ownOf(st, hh.id), null, 'the project is finished');
   assert.ok(st.record.some((e) => typeof e === 'object' && e.kind === 'projectDone' && e.pawn === hh.holder && e.household === hh.id));
   assert.ok(plan.aim.project === null && plan.aim.again, 'the head looks again at its next review');
   assert.deepStrictEqual(checkState(st), [], 'invariants with a barn built');
@@ -125,16 +125,16 @@ function surplusState() {
   st.rng.plans.fix = 0; // the first option: a field, which holds its seed
   P.reviewed(st, plan, c);
   delete st.rng.plans.fix;
-  const p = Projects.projectOf(st, 'household', hh.id);
+  const p = Projects.ownOf(st, hh.id);
   assert.ok(p && p.what === 'field', 'the head takes a field');
   Stores.take(st, hh, Stores.grainGood('barley'), Stores.grainOf(hh) - 1, 'harvest'); // the store gone
   P.reviewed(st, plan, c);
   assert.strictEqual(plan.aim.shortSince, st.t, 'the shortfall is noted');
-  assert.ok(Projects.projectOf(st, 'household', hh.id), 'kept while it is short less than a season');
+  assert.ok(Projects.ownOf(st, hh.id), 'kept while it is short less than a season');
   plan.aim.shortSince = st.t - SEASON_DAYS * DAY; // lint-allow: owner a season since
   const n = st.record.length;
   P.reviewed(st, plan, c);
-  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, 'dropped');
+  assert.strictEqual(Projects.ownOf(st, hh.id), null, 'dropped');
   assert.deepStrictEqual(Object.keys(p.reserved), [], 'its reservations released');
   assert.strictEqual((st.claims.get(p.steps[0].place) || []).filter((x) => x.by.type === 'household' && x.by.id === hh.id).length, 0, 'its stake dropped');
   assert.ok(st.record.slice(n).some((e) => typeof e === 'object' && e.kind === 'projectDropped' && e.pawn === hh.holder));
@@ -150,7 +150,7 @@ function surplusState() {
   hh.workHours = [c.year * 4 + c.season, 0, hands * (WORK[1] - WORK[0]) * SEASON_DAYS * 0.8]; // lint-allow: owner busy four fifths
   assert.strictEqual(A.surplusOf(st, plan, hh, f, c).idle, false);
   P.reviewed(st, plan, c);
-  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, 'no project without idle hands');
+  assert.strictEqual(Projects.ownOf(st, hh.id), null, 'no project without idle hands');
   assert.strictEqual(plan.aim.surplus, false);
 }
 
@@ -166,7 +166,7 @@ function surplusState() {
     {
       assert.ok(near(o.weight, (ranked >= 2 ? 2 : 1) * 1.5), `the heir's farm weighs ${o.weight}`);
       assert.strictEqual(issue(st, { actor: hh.holder, verb: 'heirFarm', target: hh.id, args: { heir }, source: 'pawn' }), true);
-      const p = Projects.projectOf(st, 'household', hh.id);
+      const p = Projects.ownOf(st, hh.id);
       assert.ok(p && p.what === 'plot' && p.by === hh.id && p.intended === heir && p.village === f.village, 'a plot of the household');
       assert.ok(VB['sim/expansion'].livePlots(st, st.villages[f.village]).includes(p), "among the village's plots under way");
       assert.deepStrictEqual(checkState(st), [], 'invariants with a plot for the heir');
@@ -185,7 +185,7 @@ function heirPlot(pick = null) {
   const o = surplusState(), { st, hh } = o;
   const heir = pick ? pick(st, hh) : A.heirOf(st, hh)[0];
   assert.strictEqual(issue(st, { actor: hh.holder, verb: 'heirFarm', target: hh.id, args: { heir }, source: 'pawn' }), true);
-  const p = Projects.projectOf(st, 'household', hh.id);
+  const p = Projects.ownOf(st, hh.id);
   o.plan.aim = { year: o.c.year, surplus: true, again: false, project: p.id, what: 'heir', since: st.t, shortSince: null }; // lint-allow: owner the head's project
   return { ...o, heir, p, v: st.villages[o.f.village] };
 }
@@ -195,7 +195,7 @@ function clear(st, p) {
   for (const tr of p.steps[0].places) X.finishStep(st, { plot: p, tr });
 }
 const passed = (st, hh, p, v) => {
-  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, "the household's project is over");
+  assert.strictEqual(Projects.ownOf(st, hh.id), null, "the household's project is over");
   assert.ok(Projects.projectsOf(st, 'village', v.id).includes(p) && p.by === undefined, "the plot is the village's now");
   assert.ok(!st.plans.projects.heirPlots.includes(p), "and out of the index of the households' plots");
   for (const tr of p.steps[0].places) assert.ok(st.used.has(tr.tile), "its tiles stay in use, as the plot's");
@@ -214,7 +214,7 @@ const roofOn = (st, hh, p) => {
   passed(st, hh, p, v);
   assert.ok(p.to === null || (p.to !== heir && st.pawns[p.to].alive), 'allotted to a living pawn, or to nobody');
   P.reviewed(st, plan, c);
-  const q = Projects.projectOf(st, 'household', hh.id);
+  const q = Projects.ownOf(st, hh.id);
   assert.ok(plan.aim.project !== p.id && (q === null || (q !== p && plan.aim.project === q.id)), 'the head is free to take another project');
 }
 { // the heir dies once it is cleared: as the roof goes on, the plot passes to the village
@@ -225,7 +225,7 @@ const roofOn = (st, hh, p) => {
   roofOn(st, hh, p);
   if (p.to === null) passed(st, hh, p, v); // nobody waiting: the cottage stands empty, the village's
   else assert.ok(st.pawns[p.to].alive && p.to !== heir, 'or another moved in');
-  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null);
+  assert.strictEqual(Projects.ownOf(st, hh.id), null);
 }
 { // the heir marries onto another farm before the roof is on
   // the farm is for an adult of the household of the other sex than the next farm's holder (the verb takes any adult at home)
@@ -243,7 +243,7 @@ const roofOn = (st, hh, p) => {
   assert.strictEqual(issue(st, { actor: other.holder, verb: 'marry', target: heir, args: { home: other.id }, source: 'debug' }), true);
   roofOn(st, hh, p);
   assert.notStrictEqual(p.to, heir, 'not to the married heir');
-  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, "the household's project is over");
+  assert.strictEqual(Projects.ownOf(st, hh.id), null, "the household's project is over");
   assert.deepStrictEqual(checkState(st), [], 'invariants');
 }
 { // given up as the surplus is gone, the plot passes to the village, its heir still to have it
@@ -259,7 +259,7 @@ const roofOn = (st, hh, p) => {
 {
   const { st, hh } = surplusState();
   assert.strictEqual(issue(st, { actor: hh.holder, verb: 'barn', target: hh.id, args: {}, source: 'pawn' }), true);
-  const p = Projects.projectOf(st, 'household', hh.id);
+  const p = Projects.ownOf(st, hh.id);
   p.steps[1].wood = 21; // lint-allow: owner timber carried to the site
   const w0 = hh.wood;
   P.drop(st, p);
@@ -269,7 +269,7 @@ const roofOn = (st, hh, p) => {
 {
   const { st, hh } = surplusState();
   assert.strictEqual(issue(st, { actor: hh.holder, verb: 'barn', target: hh.id, args: {}, source: 'pawn' }), true);
-  const p = Projects.projectOf(st, 'household', hh.id), plan = st.plans.households.get(hh.id);
+  const p = Projects.ownOf(st, hh.id), plan = st.plans.households.get(hh.id);
   plan.aim = { year: 0, surplus: true, again: false, project: p.id, what: 'barn', since: st.t, shortSince: null }; // lint-allow: owner the head's project
   P.drop(st, p);
   assert.ok(plan.aim.project === null && plan.aim.what === null && plan.aim.again, `the aim on a dropped plan: ${JSON.stringify(plan.aim)}`);

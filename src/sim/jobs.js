@@ -31,8 +31,8 @@ VB['sim/jobs'] = (() => {
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
   const { trustOf, heldFarms } = VB['sim/ownership'];
-  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks, openOf } =
-    VB['sim/plans'];
+  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks } = VB['sim/plans'];
+  const { onProject } = VB['sim/projects'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   // The holders whose tasks were posted or taken down during the review or the look under way: their days are allotted anew at its end
@@ -196,11 +196,6 @@ VB['sim/jobs'] = (() => {
     if (c.hour === WORK[0] - 1 || everyone) for (const id of st.liveHouseholds) changed.add(`household:${id}`);
     allotChanged(st, c);
   }
-  // A land project's task whose project plan still stands at this step on its tile (sim/plans, projectOf).
-  const onProject = (st, j) => {
-    const s = openOf(st, 'household', j.owner.id);
-    return !!s && s.place === j.site && s.kind === j.kind;
-  };
   // A member without a task acts on the household's opportunities (design.md section 7, Acting without the plan; VB-249): when matching
   // gave it none of the plan's tasks, the kinds of its household's fields and farm are asked as a review asks them, at most once a
   // household a day (sim/plans, mayLook), and what they report is posted for it to take; nothing is taken down. The pawns whose household

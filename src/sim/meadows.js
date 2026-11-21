@@ -168,16 +168,17 @@ VB['sim/meadows'] = (() => {
     return meadowProject(st, hh, tile);
   }
   // Cleared: the worst stones go to the household's store, and the stake is its own land, a meadow from now on; the project is finished.
-  function finishMeadow(st, f, hh) {
+  // `plan` is the household's meadow plan whose step the job was (sim/projects' onProject).
+  function finishMeadow(st, f, hh, plan) {
     const w = st.w,
-      tile = Projects.openOf(st, 'household', f.household).place,
+      tile = plan.steps[plan.open].place,
       gone = Math.max(0, w.stones[tile] - KEEP_STONES);
     realiseStake(st, hh, tile);
     const loads = Math.round(gone / STONES_PER_LOAD);
     if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
     w.stones[tile] -= gone;
     clearScrub(st, tile); // its scrub cleared too, and it is tended (VB-091)
-    emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
+    emit(st, 'stepDone', { type: 'household', id: f.household, plan }); // the project is finished (sim/plans)
     addMeadow(st, f, hh, tile);
     st.visualDirty = true;
     log(st, `${f.name} has made a new hay meadow.`, { kind: 'meadow', ...atFarm(f) });
@@ -348,7 +349,10 @@ VB['sim/meadows'] = (() => {
       spot: onField,
       project: true,
       worked: workStake,
-      done: (st, j, hh) => onProject(st, j) && finishMeadow(st, j.farm, hh),
+      done: (st, j, hh) => {
+        const plan = onProject(st, j);
+        if (plan) finishMeadow(st, j.farm, hh, plan);
+      },
       available: landProject,
     },
     rake: {

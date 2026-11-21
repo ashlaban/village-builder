@@ -62,13 +62,13 @@ VB['sim/tar'] = (() => {
       VB.count.tarAsk++;
       if (!hh || hh.dissolved) continue;
       if (pitOf(st, hh, f)) return hh;
-      const plan = Projects.projectOf(st, 'household', hh.id);
-      if (plan && plan.what === 'tarpit') return hh;
+      for (const plan of Projects.projectsOf(st, 'household', hh.id)) if (plan.what === 'tarpit') return hh;
     }
     return null;
   }
   // At the start of summer: in each village with pine in its wood and no pit, the household with the most working hands (at least
-  // TAR.hands; the first farm among equals), no project plan and no head holding off projects (VB-253) begins one on the wood's first pine tile.
+  // TAR.hands; the first farm among equals) whose head does not hold off projects (VB-253) begins one on the wood's first pine tile: a small
+  // construction, beside any other project and in a booth as in a house (sim/projects' mayBegin; VB-1414).
   function tarYear(st) {
     for (const v of st.villages) {
       if (!v.wood || !v.wood.length || villagePit(st, v)) continue;
@@ -79,8 +79,7 @@ VB['sim/tar'] = (() => {
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id],
           hh = f.household === null ? null : st.households[f.household];
-        if (!hh || hh.dissolved || f.booth || Projects.projectOf(st, 'household', hh.id) || Projects.heldOff(st, hh.id))
-          continue;
+        if (!Projects.mayBegin(st, hh, 'tarpit')) continue;
         const n = Targets.hands(st, hh);
         if (n > most) {
           most = n;
@@ -91,15 +90,12 @@ VB['sim/tar'] = (() => {
         emit(st, 'projectBegun', {
           type: 'household',
           id: best.id,
-          project: { what: 'tarpit', steps: [{ kind: 'tarpit', place: t, hours: TAR.pitHours, wood: 0 }] },
+          project: { what: 'tarpit', small: true, steps: [{ kind: 'tarpit', place: t, hours: TAR.pitHours, wood: 0 }] },
         });
     }
   }
   // The pit dug: the household's; the plan is finished (sim/plans).
-  function pitDug(st, j, hh) {
-    const plan = Projects.projectOf(st, 'household', hh.id),
-      s = plan && Projects.openStep(plan);
-    if (!s || s.kind !== 'tarpit' || s.place !== j.site) return;
+  function pitDug(st, j, hh, plan, s) {
     const f = st.farmsteads[hh.farmstead];
     hh.tarPit = { tile: s.place, village: f.village, built: st.t };
     st.visualDirty = true;
@@ -107,7 +103,6 @@ VB['sim/tar'] = (() => {
       kind: 'tarPit',
       ...atFarm(f),
     });
-    emit(st, 'stepDone', { type: 'household', id: hh.id });
   }
   // ---- what tar is for: the house and the boat ----
   // The house is due a barrel while it is not tarred; the boat from TAR.lead years before it leaks.
@@ -189,7 +184,7 @@ VB['sim/tar'] = (() => {
       type: 'wood',
       project: true,
       spot: atSite(0, 0),
-      done: (st, j, hh) => pitDug(st, j, hh),
+      done: (st, j, hh) => Projects.stepEnds(st, j, hh, pitDug),
     },
     burntar: {
       verb: 'Burning tar',

@@ -65,9 +65,9 @@ check(nv && nv.founded && nv.founded.from === v.id && nv.founded.by === m.id, `f
 }
 const steps = bfs(st.w, v.center, SETTLE.reach[1], walkable(st.w)).dist.get(nv.center);
 check(steps >= SETTLE.reach[0] && steps <= SETTLE.reach[1], `the new village is ${steps} walking steps away`);
-check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && f.booth && f.booth.i === 0, 'one farm, in a booth');
+check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && f.booth === true && VB['sim/projects'].projectsOf(st, 'household', f.household).some((p) => p.what === 'cottage'), 'one farm, in a booth');
 check(f.name === nv.name, `the farm bears the new village's name (${f.name}, ${nv.name})`);
-check(f.fields.length === 0 && VB['sim/plans'].openOf(st, 'household', hh.id)?.kind === 'clear', 'the first field is the household\'s project plan');
+check(f.fields.length === 0 && VB['sim/projects'].openOf(st, hh.id)?.kind === 'clear', 'the first field is the household\'s project plan');
 check(hh && hh.holder === m.id && m.household === hh.id && sib.household === hh.id && hh.members.length === 2, 'settler and sibling live there');
 check(sib.servant && ['farmhand', 'maid'].includes(sib.role) && m.role === 'farmer', `the sibling serves (${sib.role})`);
 // the stake less a day's ration a head, eaten uncooked on the journey (VB-287, sim/agents setOut)
@@ -90,7 +90,7 @@ for (let d = 0; d < 2 * Sim.YEAR_DAYS && (sown === null || built === null); d++)
   if (sown === null && f.fields.some((fd) => fd.stage !== 'stubble' && fd.stage !== 'plowed')) sown = d;
 }
 check(built !== null, `the cottage is built (booth ${JSON.stringify(f.booth)})`);
-check(sown !== null, `the first field is sown (fields ${f.fields.map((fd) => fd.stage).join(',') || 'none'}, project ${VB['sim/plans'].openOf(st, 'household', f.household)?.kind})`);
+check(sown !== null, `the first field is sown (fields ${f.fields.map((fd) => fd.stage).join(',') || 'none'}, project ${VB['sim/projects'].openOf(st, f.household)?.kind})`);
 bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slice(0, 3).join('; ')}`);
 // 3. No provisions: nobody moves.
 {

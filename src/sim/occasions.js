@@ -13,6 +13,8 @@
 // @state st.occasionSeq: number; the next occasion's id; ids are never reused
 // @state agent.occasion: the id of the occasion the pawn set out for and stands at until its end, or null
 VB['sim/occasions'] = (() => {
+  const Due = VB['sim/due'],
+    dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
   const { release, walkTo, idle, free, stayOf, travelling } = VB['sim/agents'];
   const { next: rnd } = VB['sim/rng'];
   const { DAY, SPEED, WORK, SOCIAL, TICKS, MARRIAGE, cal } = VB['sim/rules'];
@@ -81,9 +83,7 @@ VB['sim/occasions'] = (() => {
   const dayOf = (t) => Math.floor(t / DAY) * DAY;
   // The occasion o goes into the queue at its due time, after those due at the same time.
   function enqueue(st, o) {
-    let i = st.occasions.length;
-    while (i > 0 && st.occasions[i - 1].due > o.due) i--;
-    st.occasions.splice(i, 0, o);
+    Due.append(st.occasions, o, o.due, dueKey);
   }
   // Calls an occasion of `kind` at a tile and spot, on the day that begins at `day`, for the pawns `ids` with their walking hours; the
   // asked set out, each, `hours` before the start (not before the day's work begins), so that the far arrive in time.

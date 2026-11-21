@@ -1,5 +1,5 @@
 // @sys sim/building: the cottage's stages as job kinds, and what building takes (VB-328): timber felled in the village's wood and carried to
-// a cottage's or a booth's site whose felled tiles gave too little for its walls, and the plot's wood shared out when the plot is given;
+// every site that lacks it, one rule over the sites their modules name (VB-1407), and the plot's wood shared out when the plot is given;
 // raising a house onto a stone foundation, with stone picked or quarried for it (VB-332)
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
@@ -12,62 +12,61 @@ VB['sim/building'] = (() => {
   const { log, atFarm } = VB['sim/records'];
   const { emit } = VB['sim/events'];
   const { fellTree, drawWood } = VB['sim/forest'];
-  const { building, livePlots, COTTAGE, boothJob, finishBoothStage } = VB['sim/expansion'];
+  const { cottageJob, finishStep, plotTimber, cottageTimber } = VB['sim/expansion'];
   const { wantsStone } = VB['sim/quern'];
   const { freeFor } = VB['sim/territory'];
   const { register } = VB['sim/commands'];
   // Design (Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's walls take BUILD.timber loads (six trees, 3 loads a tree as a firewood
   // trip's); a plot's felled tiles give their trees as its wood (sim/expansion, plot.wood); a cottage or booth short of it fells the rest in
-  // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: plot.wood, or f.booth.wood).
-  const WALLS = COTTAGE.indexOf('walls');
-  // Loads the site still lacks for its walls: none once they stand.
-  const short = (site, stage) => (stage <= WALLS ? Math.max(0, (site.timber ?? BUILD.timber) - (site.wood || 0)) : 0);
-  // Asked once for the island: for each cottage being built on a plot (the village's job) and each booth's cottage (its household's) short of
-  // timber, and each household's boat being built (VB-300), a trip for each load of it still lacking, at most two at a time; none where the
-  // village has no wood (sim/territory).
+  // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: a plot's or a booth's cottage's walls step).
+  // The timber trips (VB-328, VB-1407), one rule for every site that lacks timber: each module names its sites ({key, site, need, dest, owner,
+  // and fell: the site's own tile when it is felled there}; sim/expansion a plot's and a booth's cottage, sim/projects a project step that
+  // carries `timber`, this module a staked booth), and a trip is posted for each load the site lacks (sim/projects, lacks), at most two at a
+  // time, from the village's wood (none where it has none, sim/territory) or the site's own tile.
+  function fetchTimber(v, n, post) {
+    if (!n) return;
+    const from = n.fell ?? (v.wood.length ? v.wood[0] : null),
+      k = Math.min(2, Math.ceil(Projects.lacks(n.site, n.need) / ECON.woodPerTrip));
+    if (from === null) return;
+    for (let i = 0; i < k; i++) {
+      const extra = { village: v.id, timberFor: n.site, dest: n.dest };
+      if (n.fell !== undefined) extra.onSite = true;
+      post(`${n.key}${i ? 'b' : ''}`, from, extra, 'timber', n.owner);
+    }
+  }
+  // Asked once for the island: in each village with wood, its cottages being built on a plot (the village's, or a household's for its heir),
+  // then at each farm its booth's cottage and each of its household's open project steps that carries timber (a boat, VB-300; a cart, a
+  // barn's walls, VB-255; several at once, VB-1414).
   function timberWork(st, holder, at, c, post) {
-    const ask = (key, v, site, stage, dest, owner) => {
-      const n = Math.min(2, Math.ceil(short(site, stage) / ECON.woodPerTrip));
-      for (let k = 0; k < n; k++)
-        post(`${key}${k ? 'b' : ''}`, v.wood[0], { village: v.id, timberFor: site, dest }, 'timber', owner);
-    };
     for (const v of st.villages) {
       if (!v.wood.length) continue;
-      for (const plot of livePlots(st, v)) {
-        // the site's timber is the walls step's (sim/expansion)
-        if (building(plot))
-          // the village's, or a household's for its heir (VB-255)
-          ask(`timber:v${v.id}.${plot.plot}`, v, plot.steps[2], plot.open - 1, plot.steps[1].place, plot.holder);
-      }
+      for (const n of plotTimber(st, v)) fetchTimber(v, n, post);
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
-        if (f.booth && f.household !== null)
-          ask(`timber:f${f.id}`, v, f.booth, f.booth.i, f.house, { type: 'household', id: f.household });
-        const s = f.household !== null && Projects.openOf(st, 'household', f.household); // a boat's timber, carried to its shore (VB-300)
-        if (s && (s.kind === 'boat' || s.kind === 'cart' || s.kind === 'barnwalls'))
-          ask(`timber:b${f.id}`, v, s, 0, s.place, {
-            type: 'household',
-            id: f.household,
-          }); // and a cart's and a barn's walls', to the house (VB-255)
+        fetchTimber(v, cottageTimber(st, f), post);
+        for (const n of Projects.timberOf(st, f)) fetchTimber(v, n, post);
       }
     }
   }
-  // Settlers build their cottage (sim/settle): the open stage while the farm's booth stands (sim/expansion).
+  // A booth household hh has staked and not yet raised (VB-784) as a timber site: felled on its tile where that is wooded, else fetched from
+  // the village's wood (within WOOD.reach, as a timber trip is).
+  const stakedTimber = (st, b) => ({
+    key: `timber:o${b.id}`,
+    site: b,
+    need: BOOTH.wood,
+    dest: b.tile,
+    ...(st.w.trees[b.tile] > 0 ? { fell: b.tile } : {}),
+  });
+  // Settlers build their cottage (sim/settle): the open stage of their household's cottage plan (sim/expansion).
   function boothWork(st, hh, f, c, post) {
-    const bj = boothJob(st, f);
+    const bj = cottageJob(st, hh, f);
     if (bj) post(bj[0], f.house, bj[2], bj[1]);
     // the booths its household has staked and not yet raised (VB-784): the wood first, then the raising
     if (st.booths.length)
       for (const b of st.booths) {
         if (b.by !== hh.id || b.built !== null) continue;
-        if (b.wood < BOOTH.wood) {
-          const v = st.villages[f.village];
-          // felled on the tile where it is wooded, else fetched from the village's wood (within WOOD.reach, as a timber trip is)
-          if (st.w.trees[b.tile] > 0)
-            post(`timber:o${b.id}`, b.tile, { village: v.id, timberFor: b, dest: b.tile, onSite: true }, 'timber');
-          else if (v.wood.length)
-            post(`timber:o${b.id}`, v.wood[0], { village: v.id, timberFor: b, dest: b.tile }, 'timber');
-        } else post(`booth:o${b.id}`, b.tile, { booth: b, farm: f }, 'booth');
+        if (Projects.lacks(b, BOOTH.wood) > 0) fetchTimber(st.villages[f.village], stakedTimber(st, b), post);
+        else post(`booth:o${b.id}`, b.tile, { booth: b, farm: f }, 'booth');
       }
   }
   // ---- a booth (VB-784; design.md, Moving to new land, The booth) ----
@@ -197,7 +196,7 @@ VB['sim/building'] = (() => {
       f.household !== hh.id ||
       f.booth ||
       (f.grade !== 'ground' && !quern) ||
-      (!old && !quern && Projects.projectOf(st, 'household', hh.id))
+      (!old && !quern && Projects.ownOf(st, hh.id))
     )
       return null;
     if (old && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
@@ -258,17 +257,15 @@ VB['sim/building'] = (() => {
       ...(kind === 'barnwalls' ? { wood: 0, timber: BUILD.barn.timber } : {}),
     }));
   // A stage of the barn done: the next opens (sim/plans); with the roof on, the farm has its barn.
-  function barnStage(st, j) {
-    const hh = j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null, // the farm's, not the hand's who ends it
-      s = hh && Projects.openOf(st, 'household', hh.id),
-      f = j.farm;
-    if (!s || s.kind !== j.kind || s.place !== j.site) return;
-    if (j.kind === 'barnroof') {
-      f.barn = { built: st.t };
-      st.biomeDirty.add(f.house);
-      st.visualDirty = true;
-    }
-    emit(st, 'stepDone', { type: 'household', id: hh.id });
+  // The holder is the farm's household (j.owner), not the hand's who ends it.
+  const barnStage = (st, j) =>
+    Projects.stepEnds(st, j, j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null, barnBuilt);
+  function barnBuilt(st, j) {
+    if (j.kind !== 'barnroof') return;
+    const f = j.farm;
+    f.barn = { built: st.t };
+    st.biomeDirty.add(f.house);
+    st.visualDirty = true;
   }
   const barnStage_ = (verb, go, name, label, anim, i) => ({
     verb,
@@ -283,8 +280,8 @@ VB['sim/building'] = (() => {
     spot: (st, a, j) => [st.w.hx[j.site] + 16 + a.ox * 0.4, st.w.hy[j.site] + 2 + a.oy * 0.3],
     done: barnStage,
   });
-  // The job kinds of building (sim/kinds takes them in). The cottage's stages: a plot's are finished by sim/expansion (j.plot), a booth's
-  // (j.booth, settlers) here; a plot's are posted by sim/kinds' plotWork.
+  // The job kinds of building (sim/kinds takes them in). The cottage's stages, all finished by sim/expansion: a plot's (j.plot) by the
+  // hand's finish, a booth household's (j.booth, settlers) here; a plot's are posted by sim/kinds' plotWork, a booth household's by boothWork.
   const stage = (verb, go, name, label, anim, hours) => ({
     verb,
     go,
@@ -295,7 +292,7 @@ VB['sim/building'] = (() => {
     hands: Infinity,
     type: 'wood',
     done: (st, j) => {
-      if (j.booth) finishBoothStage(st, j);
+      if (j.booth) finishStep(st, j);
     },
     available: boothWork,
   });
@@ -463,7 +460,8 @@ VB['sim/building'] = (() => {
         left -= n;
       }
     }
-    plot.steps[2].wood = 0;
+    const walls = Projects.stepOf(plot, 'walls');
+    walls.wood = 0;
     return left;
   }
   // The upkeep of built things, the fence and the house: job kinds too, joined by sim/kinds after the green's and the work day's, where

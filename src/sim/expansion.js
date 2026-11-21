@@ -1,9 +1,10 @@
 // @sys sim/expansion: clearing a new plot for those who want to move out, and building its cottage: trigger, site, jobs, progress and who gets it;
-// a plot under way is a project plan of its village (sim/plans, VB-123), a plot built a record in village.plots
+// a plot under way is a project plan of its village (sim/plans, VB-123), a plot built a record in village.plots; a settler household's
+// cottage, the same stages, a project plan of its household while it lives in a booth (cottagePlan, VB-1411)
 VB['sim/expansion'] = (() => {
   const { issue } = VB['sim/commands'];
   const { B } = VB['gen'];
-  const { doneOf } = VB['sim/progress'];
+  const { doneOf, keptDone } = VB['sim/progress'];
   const { fertility, farmable, FIELDS, BUILD, ECON, YEAR } = VB['sim/rules'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
@@ -58,8 +59,56 @@ VB['sim/expansion'] = (() => {
     p.open < 1
       ? -1
       : p.open - 1 + (p.steps[p.open].done >= p.steps[p.open].hours && p.open === p.steps.length - 1 ? 1 : 0);
-  // A site's walls wait until BUILD.timber loads of wood lie there (VB-328; site: a plot, or a booth).
-  const waitsForTimber = (site, i) => COTTAGE[i] === 'walls' && (site.wood || 0) < BUILD.timber;
+  // A plot's walls step, by its kind (its clearing, then COTTAGE's stages, each a step of that kind):
+  const wallsOf = (p) => Projects.stepOf(p, 'walls'); // where the plot's wood lies (VB-328), and the cottage's site (its place)
+  // The loads of timber a cottage's site needs at its stage i (as COTTAGE's index): its walls' BUILD.timber until they stand, then none.
+  const timberNeed = (i) => (i <= COTTAGE.indexOf('walls') ? BUILD.timber : 0);
+  // A site's walls wait until BUILD.timber loads of wood lie there (VB-328; site: a plot's walls step, or a booth's cottage).
+  const waitsForTimber = (site, i) => COTTAGE[i] === 'walls' && Projects.lacks(site, timberNeed(i)) > 0;
+  // The cottages being built in village v that need timber, for sim/building's trips (VB-328, VB-1407): {key, site, need, dest, owner}, each
+  // plot's (the village's, or a household's for its heir, VB-255), its wood on its walls step.
+  const plotTimber = (st, v) =>
+    livePlots(st, v)
+      .filter(building)
+      .map((plot) => ({
+        key: `timber:v${v.id}.${plot.plot}`,
+        site: wallsOf(plot),
+        need: timberNeed(plot.open - 1),
+        dest: wallsOf(plot).place,
+        owner: plot.holder,
+      }));
+  // The cottage plan of household id (settlers living in a booth, sim/settle: its project plan 'cottage'), or null.
+  const cottageOf = (st, id) => {
+    for (const p of Projects.projectsOf(st, 'household', id)) if (p.what === 'cottage') return p;
+    return null;
+  };
+  // The cottage of farm f's household while it lives in a booth, as plotTimber's (from the foundation on, its wood on its walls step), or
+  // null. Not Projects.timberOf's: that brings a step's timber only while the step is open, a barn's walls, a cart, a boat.
+  function cottageTimber(st, f) {
+    const p = f.household !== null ? cottageOf(st, f.household) : null;
+    return p
+      ? {
+          key: `timber:f${f.id}`,
+          site: wallsOf(p),
+          need: timberNeed(p.open),
+          dest: f.house,
+          owner: { type: 'household', id: f.household },
+        }
+      : null;
+  }
+  // The plan of the cottage of a household settling on farm f (sim/settle makes it, beside its first field's): the plot's stages at f's house;
+  // `farmstead` names the farm it is kept with when its household is dissolved (sim/plans' dropAll).
+  const cottagePlan = (f) => ({ what: 'cottage', farmstead: f.id, steps: cottageSteps(f.house) });
+  // A cottage's stages at `house` as steps of a plan (a plot's after its clearing; a settler household's own, cottagePlan): each its hours
+  // and its `done`, the walls the `wood` brought to the site (VB-328).
+  const cottageSteps = (house) =>
+    COTTAGE.map((kind) => ({
+      kind,
+      place: house,
+      hours: COTTAGE_HOURS[kind],
+      done: 0,
+      ...(kind === 'walls' ? { wood: 0 } : {}),
+    }));
   const stepsFor = (w, tile, kind) => [
     ...(wooded(w, tile) || thick(w, tile) ? ['fell', 'grub'] : []), // thick scrub as forest (VB-091)
     'clear',
@@ -99,8 +148,8 @@ VB['sim/expansion'] = (() => {
       fields = new Set();
     for (const f of st.farmsteads) {
       for (const fd of f.fields) fields.add(fd.tile);
-      const s = f.household !== null && Projects.openOf(st, 'household', f.household);
-      if (s) fields.add(s.place); // its project (sim/projects)
+      if (f.household !== null)
+        for (const p of Projects.projectsOf(st, 'household', f.household)) fields.add(p.steps[p.open].place); // its projects (sim/projects)
     }
     for (const u of st.villages)
       for (const p of [...(u.plots || []), ...livePlots(st, u)])
@@ -180,13 +229,7 @@ VB['sim/expansion'] = (() => {
       } // the house's ground: routes go round it from now on
     }
     // its project plan, made by sim/plans: the clearing of its tiles, then the cottage's stages
-    const cottage = COTTAGE.map((kind) => ({
-      kind,
-      place: site.house,
-      hours: COTTAGE_HOURS[kind],
-      done: 0,
-      ...(kind === 'walls' ? { wood: 0 } : {}),
-    }));
+    const cottage = cottageSteps(site.house);
     emit(st, 'projectBegun', {
       type: by === null ? 'village' : 'household',
       id: by === null ? v.id : by,
@@ -339,11 +382,10 @@ VB['sim/expansion'] = (() => {
     for (const v of st.villages)
       for (const plot of livePlots(st, v).filter(building)) {
         const k = plot.steps[plot.open],
-          key = `plot:v${v.id}.${plot.plot}.cottage`,
-          live = st.jobs.get(key);
+          key = `plot:v${v.id}.${plot.plot}.cottage`;
         if (cottageAt(plot) >= COTTAGE.length) continue; // the roof is on
-        if (live) k.done = doneOf(st, live, k.hours); // hours worked on the open stage persist while the job is dropped and posted again
-        if (waitsForTimber(plot.steps[2], plot.open - 1)) continue; // the walls wait for their timber (sim/building)
+        k.done = keptDone(st, key, k.hours, k.done); // hours worked on the open stage persist while the job is dropped and posted again
+        if (waitsForTimber(wallsOf(plot), plot.open - 1)) continue; // the walls wait for their timber (sim/building)
         out.push([key, k.kind, k.place, { plot, cottage: true, done: k.done, hours: k.hours }]);
       }
     return out;
@@ -406,12 +448,16 @@ VB['sim/expansion'] = (() => {
   // A tile's step is done: stumps stay after felling (its trees the plot's wood), grubbing turns the wood into meadow, clearing takes the
   // stones, breaking turns the soil.
   function finishStep(st, j) {
-    if (j.cottage) return finishCottageStage(st, j);
+    if (j.cottage) return finishCottageStage(st, j.plot);
+    if (j.booth) {
+      const plan = Projects.onProject(st, j); // a booth household's own cottage (sim/building's stage kinds), while it is still its stage
+      return plan ? finishCottageStage(st, plan) : undefined;
+    }
     const w = st.w,
       { plot, tr } = j,
       step = tr.steps[tr.i],
       v = st.villages[villageOf(plot)],
-      walls = plot.steps[2];
+      walls = wallsOf(plot);
     if (step === 'fell') {
       // the trees felled are the plot's wood, 3 loads a tree, kept for its walls (VB-328)
       walls.wood += Math.floor(w.trees[tr.tile]) * ECON.woodPerTrip;
@@ -452,57 +498,52 @@ VB['sim/expansion'] = (() => {
       village: v.id,
     });
   }
-  // A cottage stage is done: the last one hands the plot to sim/cottage, which makes the farmstead and household.
-  function finishCottageStage(st, j) {
-    const plot = j.plot,
-      k = plot.steps[plot.open];
+  // A cottage stage of `plan` is done (a plot's, or a settler household's own while it lives in a booth): the walls take their timber; the
+  // last stage hands a plot to sim/cottage, which makes the farmstead and household, and takes a household out of its booth (roofOn).
+  function finishCottageStage(st, plan) {
+    const k = plan.steps[plan.open];
     if (k.kind === 'walls') k.wood -= BUILD.timber; // the walls took their timber (VB-328)
     st.biomeDirty.add(k.place);
     st.visualDirty = true;
-    if (plot.open < plot.steps.length - 1) {
-      emit(st, 'stepDone', { type: plot.holder.type, id: plot.holder.id, plan: plot });
+    if (plan.open < plan.steps.length - 1 || plan.what === 'cottage') {
+      if (plan.open === plan.steps.length - 1) roofOn(st, plan);
+      emit(st, 'stepDone', { type: plan.holder.type, id: plan.holder.id, plan }); // the next stage, or the plan finished (sim/plans)
       return;
-    } // the next stage
+    }
     k.done = k.hours; // the roof is on: the household moves in, and the plan is finished (sim/cottage)
     issue(st, {
       actor: null,
       verb: 'finishCottage',
-      target: plot.plot,
-      args: { village: villageOf(plot) },
+      target: plan.plot,
+      args: { village: villageOf(plan) },
       source: 'construction',
     });
   }
-  // ---- the cottage of a household living in a booth (settlers, sim/settle): the same stages, as the household's own work ----
-  // The open stage of farm f's cottage while f.booth stands: [key, kind, extra], or null. Hours on the stage persist while its job is dropped.
-  function boothJob(st, f) {
-    const k = f.booth;
-    if (!k) return null;
-    const key = `booth:f${f.id}`,
-      live = st.jobs.get(key);
-    if (live) k.done = doneOf(st, live, COTTAGE_HOURS[COTTAGE[k.i]]);
-    if (waitsForTimber(k, k.i)) return null;
-    return [key, COTTAGE[k.i], { farm: f, booth: true, done: k.done, hours: COTTAGE_HOURS[COTTAGE[k.i]] }];
+  // ---- the cottage of a household living in a booth (settlers, sim/settle): its project plan 'cottage', the plot's stages ----
+  // The open stage of household hh's cottage, on farm f: [key, kind, extra], or null. Hours on the stage persist while its job is dropped.
+  function cottageJob(st, hh, f) {
+    const p = cottageOf(st, hh.id);
+    if (!p) return null;
+    const k = p.steps[p.open],
+      key = `booth:f${f.id}`;
+    k.done = keptDone(st, key, k.hours, k.done);
+    if (waitsForTimber(wallsOf(p), p.open)) return null;
+    return [key, k.kind, { farm: f, booth: true, done: k.done, hours: k.hours }];
   }
-  // A stage of a booth's cottage is done; with the roof on, the household leaves the booth for its cottage.
-  function finishBoothStage(st, j) {
-    const f = j.farm,
-      k = f.booth;
-    if (!k) return;
-    if (COTTAGE[k.i] === 'walls') k.wood -= BUILD.timber; // the walls took their timber (VB-328)
-    k.i++;
-    k.done = 0;
-    st.biomeDirty.add(f.house);
-    st.visualDirty = true;
-    if (k.i < COTTAGE.length) return;
-    const hh = f.household !== null ? st.households[f.household] : null;
-    if (hh && k.wood > 0) Stores.put(st, hh, 'wood', k.wood, 'timber'); // timber left over goes to the woodpile
+  // The roof on a household's cottage (its plan's last stage done): the household leaves the booth, and timber left over goes to its
+  // woodpile.
+  function roofOn(st, plan) {
+    const hh = st.households[plan.holder.id],
+      f = st.farmsteads[hh.farmstead],
+      wood = wallsOf(plan).wood;
+    if (wood > 0) Stores.put(st, hh, 'wood', wood, 'timber'); // timber left over goes to the woodpile
     f.booth = null;
     log(
       st,
-      `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof${hh ? `; ${fullName(st.pawns[hh.holder])} leaves the booth` : ''}.`,
+      `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof; ${fullName(st.pawns[hh.holder])} leaves the booth.`,
       {
         kind: 'cottage',
-        pawn: hh ? hh.holder : null,
+        pawn: hh.holder,
         ...atFarm(f),
       },
     );
@@ -542,7 +583,6 @@ VB['sim/expansion'] = (() => {
   return {
     KINDS,
     plotWork,
-    COTTAGE,
     building,
     livePlots,
     tilesOf,
@@ -557,7 +597,9 @@ VB['sim/expansion'] = (() => {
     finishStep,
     activePlots,
     MAX_PLOTS,
-    boothJob,
-    finishBoothStage,
+    cottageJob,
+    cottagePlan,
+    plotTimber,
+    cottageTimber,
   };
 })();

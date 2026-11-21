@@ -191,11 +191,21 @@ function tent(g, bx, by) {
 }
 // A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
 // rising log walls, the turf roof; a ring while the work goes on (VB-148).
+// The cottage plan of farm f's settlers (sim/expansion's cottagePlan): its household's, or its village's while the farm waits for a
+// household (sim/plans' dropAll), or undefined.
+function boothCottage(f) {
+  const P = VB['sim/projects'],
+    mine = (p) => p.what === 'cottage' && p.farmstead === f.id;
+  return (
+    (f.household !== null && P.projectsOf(st, 'household', f.household).find(mine)) ||
+    P.projectsOf(st, 'village', f.village).find(mine)
+  );
+}
 function drawBooth(wd, f, empty) {
   const x = wd.hx[f.house],
     y = wd.hy[f.house],
     g = new PIXI.Graphics(),
-    n = f.booth.i,
+    n = boothCottage(f) ? boothCottage(f).open : 0, // the stages done
     bx = x + YARD.booth[0],
     by = y + YARD.booth[1];
   tent(g, bx, by);
