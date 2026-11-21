@@ -2,7 +2,13 @@
 // wanted), the land step with its seam for a tile the plan names, the year's herd count, and its reservation of seed in sim/stores.
 // On the small islands (VB-854).
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim;
+let countYearReads = false, yearReads = 0;
+const VB = require('./lib/load.js').loadModules({ wrap: {
+  'sim/registry': { value: (value) => (st, id, ctx) => {
+    if (countYearReads && id.startsWith('year.')) yearReads++;
+    return value(st, id, ctx);
+  } },
+} }), Sim = VB.sim;
 const { scenario } = require('./lib/probe.js');
 const { CROPS } = VB['sim/rules'];
 const { setClock } = require('./lib/clock.js');
@@ -228,17 +234,15 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
   assert.strictEqual(Plans.seasonOf(st, a).steps[0], 'fish', 'its steps as changed (the season\'s last routine first)');
   const spring = cal(st.t);
   setClock(st, (spring.day - spring.sday + VB['sim/rules'].SEASON_DAYS) * DAY + WORK[0]); // the next season's first day
-  const R = VB['sim/registry'], value = R.value;
-  let reads = 0;
-  R.value = (s, id, ctx) => { if (id.startsWith('year.')) reads++; return value(s, id, ctx); };
+  countYearReads = true;
   refreshJobs(st, cal(st.t), true);
-  R.value = value;
+  countYearReads = false;
   const sp = Plans.seasonOf(st, a);
   assert.strictEqual(sp.season, (spring.season + 1) % 4, 'the next season\'s plan');
   assert.deepStrictEqual(sp.steps, Plans.ROUTINES[sp.season], 'its steps from the template');
   assert.strictEqual(pa.targets.wood[1], st.ECON.woodWinter, 'the targets copied from the template again');
   const cultures = new Set(st.liveHouseholds.map((id) => Plans.cultureOf(st, st.households[id])));
-  assert.strictEqual(reads, cultures.size * (4 + 4 + new Set(Plans.ROUTINES.flat()).size), 'compiled once per culture');
+  assert.strictEqual(yearReads, cultures.size * (4 + 4 + new Set(Plans.ROUTINES.flat()).size), 'compiled once per culture');
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'seasonal plan invariants after the turn');
 }
 { // a household's seasonal plan is dropped with it; a save made before seasonal plans gets them at load

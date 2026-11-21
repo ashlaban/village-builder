@@ -1,25 +1,19 @@
 // VB-198: repeatable cache measurements on a late fixture, without changing the simulation's instrumentation.
 // node tools/route-bench.js small-y40 [days=30] [cacheMax override]
 require('./help.js')(__filename);
-const fs = require('fs'), path = require('path'), zlib = require('zlib');
+const zlib = require('zlib');
 const name = process.argv[2], days = Number(process.argv[3] || 30), max = process.argv[4] === undefined ? null : Number(process.argv[4]);
 if (!['small-y40', 'medium-ref'].includes(name) || !Number.isInteger(days) || days < 1
     || (max !== null && (!Number.isInteger(max) || max < 1))) {
   throw new Error('usage: node tools/route-bench.js small-y40|medium-ref [positive integer days] [positive cacheMax override]');
 }
-const root = path.join(__dirname, '../src');
 let refreshMs = 0;
-for (const file of JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'))) {
-  require(path.join(root, file));
-  if (file === 'sim/routes.js') {
-    const routes = globalThis.VB['sim/routes'], refresh = routes.refreshRoutes;
-    routes.refreshRoutes = (st) => {
+const VB = require('../tests/lib/load.js').loadModules({ wrap: { 'sim/routes': {
+    refreshRoutes: (refresh) => (st) => {
       const start = performance.now();
       try { return refresh(st); } finally { refreshMs += performance.now() - start; }
-    };
-  }
-}
-const VB = globalThis.VB, Sim = VB.sim, { loadFixture } = require('../tests/lib/fixtures.js');
+    },
+  } } }), Sim = VB.sim, { loadFixture } = require('../tests/lib/fixtures.js');
 if (max !== null) VB['sim/rules'].ROUTE.cacheMax = max;
 const fixture = loadFixture(name, { notice: (s) => console.error(s) });
 if (!fixture) throw new Error(`${name}: missing fixture; node tools/fixtures.js make`);

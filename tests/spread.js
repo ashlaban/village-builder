@@ -2,34 +2,28 @@
 // noon of autumn day 10, a village's a step, then the cultures' years and the land meeting (VB-206, VB-278); the moving round on the steps from noon of the next day, a village's round a step, then its three
 // island-wide phases from 18:00 (VB-201, VB-277). Each runs exactly once whatever the advance calls' sizes, and a run saved between two of
 // them goes on as the run that was never saved.
-const fs = require('fs'), path = require('path'), assert = require('assert');
+const assert = require('assert');
 const calls = [], YEAR_H = 48 * 24; // sim/rules is loaded below; checked against it there
 // Wrap before sim/clock destructures them, as tools/perf.js does.
-for (const f of JSON.parse(fs.readFileSync(path.join(__dirname, '../src/manifest.json'), 'utf8'))) {
-  require('../src/' + f);
-  const key = f.slice(0, -3), mod = globalThis.VB[key];
-  if (key === 'culture') {
-    const step = mod.settlementStep, meeting = mod.meeting, year = mod.cultureYear;
-    mod.settlementStep = (env, hk, dt, rand, s) => { calls.push({ kind: 'culture', t: env.t * YEAR_H, s: s ? s.id : null }); return step(env, hk, dt, rand, s); };
+const VB = require('./lib/load.js').loadModules({ wrap: {
+  'culture': {
+    settlementStep: (step) => (env, hk, dt, rand, s) => { calls.push({ kind: 'culture', t: env.t * YEAR_H, s: s ? s.id : null }); return step(env, hk, dt, rand, s); },
     // the meetings (VB-278): a village's, a culture's year
-    mod.meeting = (env, hk, s) => { calls.push({ kind: 'meeting', t: env.t * YEAR_H, s: s.id }); return meeting(env, hk, s); };
-    mod.cultureYear = (env, hk, c) => { calls.push({ kind: 'cultureYear', t: env.t * YEAR_H, c: c.id }); return year(env, hk, c); };
-  }
-  if (key === 'sim/territory') {
-    const land = mod.landMeeting;
-    mod.landMeeting = (st) => { calls.push({ kind: 'land', t: st.t }); return land(st); };
-  }
-  if (key === 'sim/round') {
-    const phase = mod.roundPhase;
+    meeting: (meeting) => (env, hk, s) => { calls.push({ kind: 'meeting', t: env.t * YEAR_H, s: s.id }); return meeting(env, hk, s); },
+    cultureYear: (year) => (env, hk, c) => { calls.push({ kind: 'cultureYear', t: env.t * YEAR_H, c: c.id }); return year(env, hk, c); },
+  },
+  'sim/territory': {
+    landMeeting: (land) => (st) => { calls.push({ kind: 'land', t: st.t }); return land(st); },
+  },
+  'sim/round': {
     // a village's round is told by the counter of its walk of the living (VB-277), which only villageRound adds to
-    mod.roundPhase = (st, n, d = 0) => {
+    roundPhase: (phase) => (st, n, d = 0) => {
       const walked = globalThis.VB.count.roundWalk, count = st.villages.length, r = phase(st, n, d);
       calls.push({ kind: 'round', t: st.t, tick: st.tick, n, d, count, villages: (globalThis.VB.count.roundWalk - walked) / st.living.length });
       return r;
-    };
-  }
-}
-const VB = globalThis.VB, Sim = VB.sim, { canon } = require('./lib/canon.js');
+    },
+  },
+} }), Sim = VB.sim, { canon } = require('./lib/canon.js');
 const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, ASK } = VB['sim/rules'], { NIGHT_STEPS } = VB['sim/meetings'], { ROUND_STEPS } = VB['sim/round'];
 // On the probe village alone since VB-853: the populous run on the tiny map (--extended) asserted the same rules, and was deleted.
 const probe = require('./lib/probe.js'), seed = probe.state, restoreWorld = probe.world;
