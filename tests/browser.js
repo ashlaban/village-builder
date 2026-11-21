@@ -179,7 +179,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   const played = await page.evaluate(() => {
     // a holder of age whose farm has free land within a field's reach, for the plan panel's tile below (the first farms of a packed
     // village have none: VB-1027)
-    const { st } = window.__play, F = VB['sim/fields'], walk = VB['sim/walking'].walkable(st.w);
+    const { st } = window.__play, F = VB['sim/fieldplans'], walk = VB['sim/walking'].walkable(st.w);
     const room = (h) => { const f = st.farmsteads[h.farmstead]; let n = 0;
       for (const t of VB['sim/hex'].bfs(st.w, f.house, 4, walk).dist.keys()) if (F.fieldWhy(st, f, h, t) === null) n++;
       return n >= 3; };
@@ -304,7 +304,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     if ((await page.evaluate(() => window.__play.tool()))?.kind !== 'plan') fail('Choose the tile did not put the plan\'s tool in hand: ' + await page.locator('#tileHouse .plan-msg').allTextContents());
     const box = await page.locator('canvas').first().boundingBox(), mid = [box.x + box.width / 2, box.y + box.height / 2];
     const spots = await page.evaluate((id) => {
-      const { st } = window.__play, h = st.households[id], f = st.farmsteads[h.farmstead], F = VB['sim/fields'];
+      const { st } = window.__play, h = st.households[id], f = st.farmsteads[h.farmstead], F = VB['sim/fieldplans'];
       let open = -1;
       for (let t = 0; t < st.w.N && open < 0; t++) if (F.fieldWhy(st, f, h, t) === null) open = t;
       const sites = window.__play.tool().sites;

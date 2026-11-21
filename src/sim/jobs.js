@@ -27,7 +27,7 @@ VB['sim/jobs'] = (() => {
   const { eligible } = VB['sim/eligibility'];
   const { KINDS, ASK, isOpen } = VB['sim/kinds'];
   const Days = VB['sim/days'];
-  const { builtTiles } = VB['sim/fields'];
+  const { builtTiles } = VB['sim/fieldplans'];
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
   const { trustOf, heldFarms } = VB['sim/ownership'];

@@ -6,7 +6,7 @@ const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
-const { DAY, cal } = VB['sim/rules'], F = VB['sim/fields'], M = VB['sim/meadows'], P = VB['sim/plans'], C = VB['sim/commands'];
+const { DAY, cal } = VB['sim/rules'], F = VB['sim/fieldplans'], M = VB['sim/meadows'], P = VB['sim/plans'], C = VB['sim/commands'];
 const Projects = VB['sim/projects'], { winterNeed } = VB['sim/herds'], { cowWanted } = VB['sim/exchange'];
 const map = Array.from({ length: 12 }, () => '.'.repeat(20));
 // One village of three farms: household 0 (8 people) wants more fields than it has.

@@ -30,7 +30,8 @@ VB['sim/scenarios'] = (() => {
   const { refreshRoles, countDemand } = VB['sim/heirs'];
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
-  const { yearlyRations, fieldsWanted, restagger } = VB['sim/fields'];
+  const { restagger } = VB['sim/fields'];
+  const { yearlyRations, fieldsWanted } = VB['sim/fieldplans'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
   const { initDeer } = VB['sim/deer'];

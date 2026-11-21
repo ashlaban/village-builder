@@ -6,7 +6,7 @@ const VB = require('../src/load.js'), Sim = VB.sim;
 const { scenario } = require('./lib/probe.js');
 const { CROPS } = VB['sim/rules'];
 const { setClock } = require('./lib/clock.js');
-const Stores = VB['sim/stores'], Plans = VB['sim/plans'], { seedNeed } = VB['sim/hunger'], F = VB['sim/fields'];
+const Stores = VB['sim/stores'], Plans = VB['sim/plans'], { seedNeed } = VB['sim/hunger'], F = VB['sim/fieldplans'];
 const { refreshJobs } = VB['sim/jobs'], { DAY, WORK, HERD, YEAR_DAYS, cal } = VB['sim/rules'];
 const { checkState } = require('./lib/invariants.js');
 const { templateHeads } = require('./lib/heads.js');

@@ -470,8 +470,8 @@ function planClick(b, hh) {
 const PLAN_REACH = { field: 4, meadow: 6 };
 function planSites(what, hh) {
   const f = st.farmsteads[hh.farmstead],
-    why = what === 'field' ? VB['sim/fields'].fieldWhy : VB['sim/meadows'].meadowWhy,
-    built = VB['sim/fields'].builtTiles(st),
+    why = what === 'field' ? VB['sim/fieldplans'].fieldWhy : VB['sim/meadows'].meadowWhy,
+    built = VB['sim/fieldplans'].builtTiles(st),
     sites = [],
     reasons = new Map();
   for (const t of VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[what], VB['sim/walking'].walkable(st.w)).dist.keys()) {
@@ -531,7 +531,7 @@ function planPoint(i) {
       hh = st.households[st.farmsteads[tool.farm].household],
       f = st.farmsteads[tool.farm],
       d = VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[tool.what], VB['sim/walking'].walkable(st.w)).dist.get(i),
-      why = (tool.what === 'field' ? VB['sim/fields'].fieldWhy : VB['sim/meadows'].meadowWhy)(st, f, hh, i);
+      why = (tool.what === 'field' ? VB['sim/fieldplans'].fieldWhy : VB['sim/meadows'].meadowWhy)(st, f, hh, i);
     tool.facts = [
       G.BIOMES[w.biome[i]].name,
       R.farmable(w, i) ? `fertility ${Math.round(R.fertility(w, i) * 100)}` : '',

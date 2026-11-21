@@ -105,13 +105,13 @@ function leadHome(st, buyer) {
   const plan = st.plans.households.get(hh.id);
   plan.targets.fields = f.fields.length;
   check(M.wantsFirstMeadow(st, f, hh), 'two hands, no herd, no meadow: a first meadow is wanted');
-  P.landStep(st, plan, f, hh, VB['sim/fields'].builtTiles(st));
+  P.landStep(st, plan, f, hh, VB['sim/fieldplans'].builtTiles(st));
   check(begun(st, hh) && begun(st, hh).what === 'meadow', 'the land step starts the first meadow');
   const lone = state(), [lh] = pair(lone), lf = lone.farmsteads[lh.farmstead], lplan = lone.plans.households.get(lh.id);
   for (const id of lh.members) if (id !== lh.holder) lone.pawns[id].retired = true;
   lplan.targets.fields = lf.fields.length;
   check(!M.wantsFirstMeadow(lone, lf, lh), 'one hand: no first meadow is wanted');
-  P.landStep(lone, lplan, lf, lh, VB['sim/fields'].builtTiles(lone));
+  P.landStep(lone, lplan, lf, lh, VB['sim/fieldplans'].builtTiles(lone));
   check(!begun(lone, lh), 'one hand: the land step starts none');
 }
 

@@ -9,7 +9,7 @@ for (const name of Object.keys(F.FIXTURES)) {
   const fixture = F.loadFixture(name, { make: false });
   // Check the optimized multi-source occupancy against independent per-mark radius searches on late worlds.
   const st = fixture.st, { bfs } = VB['sim/hex'], { SETTLE } = VB['sim/rules'];
-  const expected = { taken: new Set(st.used), near: new Set() }, marks = VB['sim/fields'].builtTiles(st);
+  const expected = { taken: new Set(st.used), near: new Set() }, marks = VB['sim/fieldplans'].builtTiles(st);
   for (let t = 0; t < st.w.N; t++) if (st.owner[t] !== 0 || st.claims.has(t)) expected.taken.add(t);
   for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); const s = f.household !== null && VB['sim/plans'].openOf(st, 'household', f.household); if (s) marks.add(s.place); }
   const X = VB['sim/expansion'];

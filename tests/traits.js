@@ -299,7 +299,7 @@ const born = (st, hh) => {
 // the fields' bias before the cap at what the hands can till (VB-485): over biases drawn symmetrically (fix on the stream), the mean of the
 // fields a hands-limited household's head wants is the unbiased one's within 2%; the cap no longer takes the high draws and leaves the low
 {
-  const st = make(), F = VB['sim/fields'];
+  const st = make(), F = VB['sim/fieldplans'];
   const hh = st.households.find((h) => h.farmstead !== null), plan = P.planOf(st, 'household', hh.id), Tg = plan.targets;
   const c = cal(st.t);
   P.reviewed(st, plan, c, 'store');

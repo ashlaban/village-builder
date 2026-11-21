@@ -4,7 +4,7 @@
 // GRAZE.thins takes trees off at a fifth of the rate. Only the front (st.front) is visited. Scrub adds to clearing, and thick scrub is
 // felled and grubbed and cut for firewood. On a tiny village under a forest: the rules on constructed states, the invariants and a save.
 const VB = require('../src/load.js'), Sim = VB.sim, { B, treeStage } = VB.gen;
-const S = VB['sim/spread'], Z = VB['sim/grazing'], Fd = VB['sim/fields'], Fo = VB['sim/forest'], T = VB['sim/territory'];
+const S = VB['sim/spread'], Z = VB['sim/grazing'], Fd = VB['sim/fields'], FieldPlans = VB['sim/fieldplans'], Fo = VB['sim/forest'], T = VB['sim/territory'];
 const { GRAZE, YEAR_DAYS, DAY } = VB['sim/rules'], { KINDS } = VB['sim/kinds'];
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SPREAD FAIL:', m); } };
@@ -79,9 +79,9 @@ check(!st.front.has(f.house) && w.trees[f.house] === 0, 'a house leaves the fron
 const c = tileAt(w, 8, 4);
 w.treesMax[c] = 60; w.trees[c] = 10;
 const base = 10 + (20 * w.stones[c]) / 255;
-check(Math.abs(Fd.clearHours(st, c) - base - S.SPREAD.scrubHours) < 1e-9, 'scrub below half cover adds its hours to a clearing');
+check(Math.abs(FieldPlans.clearHours(st, c) - base - S.SPREAD.scrubHours) < 1e-9, 'scrub below half cover adds its hours to a clearing');
 w.trees[c] = 30;
-check(Math.abs(Fd.clearHours(st, c) - base - Fo.FELL_HOURS - Fo.GRUB_HOURS) < 1e-9, 'thick scrub is felled and grubbed');
+check(Math.abs(FieldPlans.clearHours(st, c) - base - Fo.FELL_HOURS - Fo.GRUB_HOURS) < 1e-9, 'thick scrub is felled and grubbed');
 S.clearScrub(st, c);
 check(w.trees[c] === 0 && w.treesMax[c] === 0 && w.tended[c] === Math.floor(st.t / DAY) + 1, 'cleared: no trees, and tended today');
 // a reclaimed field of thick scrub costs the felling and grubbing besides

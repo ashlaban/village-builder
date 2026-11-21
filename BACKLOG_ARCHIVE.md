@@ -600,3 +600,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-435](backlog/VB-435.md) | Refactor: split sim/meadows by concern | - | 3 | M | sim/meadows is over the lint's line or width trigger since the head's commands (VB-253); split it by concern. |
 | [VB-430](backlog/VB-430.md) | Refactor: split sim/relations by concern | - | 3 | M | sim/relations is 714 lines since neighbours' help (VB-106); split it by concern. |
 | [VB-416](backlog/VB-416.md) | Refactor: split sim/stores by concern (goods registry, reservations, ale) | - | 3 | M | sim/stores is 537 lines unpacked, and holds five concerns: the store operations and grain by crop, the ledger, ale, reservations, the goods registry |
+| [VB-434](backlog/VB-434.md) | Refactor: split sim/fields by concern | - | 3 | M | sim/fields is over the lint's line or width trigger since the head's commands (VB-253); split it by concern. |

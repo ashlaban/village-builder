@@ -153,7 +153,7 @@
     "village.aldermanFarm": "sim/membership",
     "village.workday": "sim/workdays",
     "village.gathering": "sim/gathering",
-    "village.rotation": "sim/fields",
+    "village.rotation": "sim/rotations",
     "village.commonFields": "sim/commons",
     "village.commonSow": "sim/commons",
     "pawn.bands": "sim/relations",
