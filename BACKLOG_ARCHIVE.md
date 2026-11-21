@@ -597,3 +597,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-778](backlog/VB-778.md) | The scenario "The market town": a dense place as a test bed, known to decay | town | 3 | S | A populous island with eight plot households set close at the best-placed village, to measure crowding and the place's label on a dense place; not offered at the start, and not evidence of emergence. |
 | [VB-1217](backlog/VB-1217.md) | Measure the good-year gift (VB-460) | - | 3 | S | Measure VB-460 |
 | [VB-720](backlog/VB-720.md) | Report and band: dung, tilth and the meadow ratio | animals | 3 | S | A report of loads a field-year, tilth by farm with and without cattle, meadow to field tiles and harvest a field by decade, and a report band for the wrap-up VB-048. |
+| [VB-1319](backlog/VB-1319.md) | Measure VB-245 on the late saves, with commits that exist | - | 3 | S | Measure VB-245 with commits that exist |
