@@ -17,6 +17,7 @@
   "sim/commands.js",
   "sim/decisions.js",
   "sim/rng.js",
+  "sim/due.js",
   "sim/hex.js",
   "sim/crowding.js",
   "sim/names.js",
