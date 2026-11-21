@@ -14,7 +14,7 @@ const { DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
 const W = require('../../tools/waiting.js'); // who waits to marry, and why (VB-633)
 const MAPS = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as tools/sim.js and the generation screen
 // Reduced scenarios: a scenario on a map, nothing else changed yet; toy setups (a tinyState of tests/lib/tiny.js) may join them.
-const SETUPS = { 'populous tiny': { scenario: 'populous', map: 'tiny' } };
+const SETUPS = { 'populous tiny': { scenario: 'populous', map: 'tiny' }, 'market tiny': { scenario: 'market', map: 'tiny' } }; // the market town: a test bed (VB-778)
 // The full runs: populous small at four seeds (the late game's reference), founders small at sixteen (the early game's), heirs at two.
 const FULL = {
   populous: { scenario: 'populous', map: 'small', years: 30, seeds: [3, 7, 11, 42] },
@@ -54,6 +54,11 @@ const scarceYear = (s) => {
 const sumOf = (xs, f) => xs.reduce((n, x) => n + f(x), 0);
 const ratioAfter = (s, y, num, den) => { const a = after(s, y).filter((x) => x.facts), n = sumOf(a, den); return n ? sumOf(a, num) / n : NaN; };
 const PROBES = {
+  // VB-778: the market town's deaths per head in its plot households over those of its farms, over the run (NaN where no one died among the farms)
+  packedDeathRatio: (s) => {
+    const c = s[s.length - 1].cohort; if (!c || !c[0].n || !c[1].n || !c[1].dead) return NaN;
+    return c[0].dead / c[0].n / (c[1].dead / c[1].n);
+  },
   // living at the end over living at the start
   populationRatio: (s) => s[s.length - 1].living / s[0].living,
   // yearly growth over the run: (end / start)^(1 / years) - 1 (-1 when all are dead)
@@ -193,11 +198,25 @@ for (const f of FLOORS) for (const [name, { groups, weekly, ...run }] of Object.
     ...(name === 'populous' && !f.reportOnly ? { assert: { ...range, ...REDUCED } } : {}) });
 }
 
+// VB-778: in the packed place deaths per head exceed the farms' (a ratio over 1; the budget's "about 1.5 times"). A target: it may be out.
+BANDS.push({ id: 'packed-deaths/market', probe: 'packedDeathRatio', kind: 'balancing',
+  report: { lo: 1, hi: Infinity, afterYear: 0, scenario: 'market', map: 'small', years: 30, seeds: [7, 42] },
+  assert: { lo: 1, hi: Infinity, afterYear: 0, setup: 'market tiny', years: 8, seeds: [7, 42] } });
+// The market town's two cohorts at the start (VB-778): the people of its plot households (a house and at most one field, as the scenario lays
+// them; the farms have three or more) and of the farms, to read their deaths at the end: [plots, farms] of {n, ids}.
+function cohorts(st) {
+  const plots = { n: 0, ids: new Set() }, farms = { n: 0, ids: new Set() };
+  for (const id of st.liveHouseholds) {
+    const hh = st.households[id], c = st.farmsteads[hh.farmstead].fields.length <= 1 ? plots : farms;
+    for (const m of hh.members) { c.ids.add(m); c.n++; }
+  }
+  return [plots, farms];
+}
 // One run, sampled at every year end: {scenario, map, seed, years} -> {samples, secs, cpuSecs}. The run advances a day at a time, so a
 // household's days present in a year are counted, not guessed.
 function runScenario({ scenario, map, seed, years, strata = false }) {
   const cpu0 = process.cpuUsage(), t0 = Date.now(), it = G.generate(seed, { cols: MAPS[map][0], rows: MAPS[map][1] }); let r; while (!(r = it.next()).done);
-  const st = Sim.seed(r.value, seed, scenario), samples = [sample(st, 0, null)], col = strata ? require('../../tools/strata.js').collector(VB, st) : null;
+  const st = Sim.seed(r.value, seed, scenario), samples = [sample(st, 0, null)], cohort = scenario === 'market' ? cohorts(st) : null, col = strata ? require('../../tools/strata.js').collector(VB, st) : null;
   for (let y = 1; y <= years; y++) {
     const from = st.record.length, hungry0 = new Map(), days = new Map();
     let coldDays = 0;
@@ -218,6 +237,7 @@ function runScenario({ scenario, map, seed, years, strata = false }) {
     if (col) col.end();
     samples.push(sample(st, y, { from, hungry0, days, coldDays, waiting, t0, col }));
   }
+  if (cohort) samples[samples.length - 1].cohort = cohort.map((c) => ({ n: c.n, dead: [...c.ids].filter((id) => !st.pawns[id].alive).length }));
   const cpu = process.cpuUsage(cpu0);
   return { samples, secs: (Date.now() - t0) / 1000, cpuSecs: (cpu.user + cpu.system) / 1e6 };
 }

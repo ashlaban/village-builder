@@ -18,6 +18,7 @@ for (const [label, make, restore, before, after] of [
   ['founders 42', () => probe.scenario('founders', 42), regenerate, 0.6 * Y, 0.25 * Y],
   ['heirs 7', () => probe.scenario('heirs', 7), regenerate, 5 * DAY + 14.3, 5 * DAY],
   ['populous 7', () => probe.scenario('populous', 7), regenerate, 10 * DAY + 7.2, 5 * DAY],
+  ['market 7', () => probe.scenario('market', 7), regenerate, 10 * DAY + 7.2, 5 * DAY],
   ['the probe at night', probe.state, probe.world, 10 * DAY + 0.7, 3 * DAY],
   ['the probe mid-day', probe.state, probe.world, 10 * DAY + 10.5, 3 * DAY],
 ]) {
