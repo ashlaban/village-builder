@@ -8,6 +8,7 @@
 // then twice the bank's catch from it. Founders at seed 7 on the small island of tests/lib/probe.js (VB-855), to the winter: dried fish made
 // and eaten, invariants, a save; boats built are counted.
 const VB = require('../src/load.js'), Sim = VB.sim, { island, scenario } = require('./lib/probe.js'), Stores = VB['sim/stores'], D = VB['sim/drying'], Projects = VB['sim/projects'];
+const boatOf = (s, id) => Projects.projectsOf(s, 'household', id).find((p) => p.what === 'boat') || null; // a small construction (VB-1414): not ownOf's
 const { KINDS } = VB['sim/kinds'], { ROLES, FISH, DAY, YEAR_DAYS } = VB['sim/rules'], { dailyNeed, feedHousehold } = VB['sim/hunger'], { larderOf } = VB['sim/larder'];
 const { boatYear } = D, { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DRYING FAIL:', m); } };
@@ -120,7 +121,7 @@ if (plan) {
   st2.t += DAY;
   KINDS.boat.done(st2, { kind: 'boat', site: step.place, farm: bf, owner: { type: 'household', id: bh.id } }, bh, cal(0, 3));
   check(bh.boat && bh.boat.tile === step.place && bh.boat.water === plan.water && bh.boat.house === bf.house
-    && !Projects.ownOf(st2, bh.id), 'built: the household\'s boat, the plan finished');
+    && !boatOf(st2, bh.id), 'built: the household\'s boat, the plan finished');
   const g = D.fishingPlace(st2, bh, bf);
   check(g.boat && g.shore === bh.boat.tile, 'its fishing is from the boat');
   check(near(D.catchOf(st2, { water: g.water, boat: true }), 8), 'a trip in it brings 8 rations');

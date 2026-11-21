@@ -4,6 +4,7 @@
 // winter's start, as a project at the house that waits for its timber; hay goes by the load, firewood by the loads cut and stacked,
 // and dung is carted faster. On a tiny village under a forest.
 const VB = require('../src/load.js'), Sim = VB.sim, C = VB['sim/carts'], Projects = VB['sim/projects'], M = VB['sim/meadows'];
+const cartOf = (s, id) => Projects.projectsOf(s, 'household', id).find((p) => p.what === 'cart') || null; // a small construction (VB-1414): not ownOf's
 const { KINDS } = VB['sim/kinds'], { TRAVEL } = VB['sim/rules'], { CART } = C;
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('CARTS FAIL:', m); } };
@@ -54,16 +55,16 @@ check(hh.carts.length === 1 && hh.carts[0].kind === 'ox' && st.record.slice(befo
 hh.carts = [];
 for (let k = 0; k < CART.misses - 1; k++) C.missed(st, hh);
 C.cartsYear(st);
-check(hh.cartMiss === 0 && !Projects.ownOf(st, hh.id), 'fewer misses than it takes: no cart, and the count starts again');
+check(hh.cartMiss === 0 && !cartOf(st, hh.id), 'fewer misses than it takes: no cart, and the count starts again');
 for (let k = 0; k < CART.misses; k++) C.missed(st, hh);
 C.cartsYear(st);
-const plan = Projects.ownOf(st, hh.id), step = plan && plan.steps[plan.open];
+const plan = cartOf(st, hh.id), step = plan && plan.steps[plan.open];
 check(plan && plan.what === 'cart' && plan.cart === 'hand' && step.kind === 'cart' && step.place === f.house && step.timber === CART.timber.hand
   && step.hours === CART.hours.hand, `a hand cart is begun at the house: ${JSON.stringify(plan && plan.what)}`);
 check(Projects.lacks(step, step.timber) > 0, 'it waits for its timber');
 step.wood = step.timber;
 KINDS.cart.done(st, { kind: 'cart', farm: f, site: f.house }, hh);
-check(hh.carts.length === 1 && hh.carts[0].kind === 'hand' && hh.carts[0].cond === 1 && !Projects.ownOf(st, hh.id),
+check(hh.carts.length === 1 && hh.carts[0].kind === 'hand' && hh.carts[0].cond === 1 && !cartOf(st, hh.id),
   'built, the cart is the household\'s and the plan is done');
 
 // --- hay by the load: 10 units on the back, 30 on a hand cart, 60 on an ox cart (VB-394), the meadow aftermath with its last hay

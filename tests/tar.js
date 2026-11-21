@@ -5,6 +5,7 @@
 // On tiny villages: one by a pine wood, one by broadleaf only.
 const VB = require('../src/load.js');
 const T = VB['sim/tar'], Drying = VB['sim/drying'], { KINDS } = VB['sim/kinds'], Projects = VB['sim/projects'];
+const tarpitOf = (s, id) => Projects.projectsOf(s, 'household', id).find((p) => p.what === 'tarpit') || null; // a small construction (VB-1414): not ownOf's
 const { YEAR, DAY, SEASON_DAYS, HOUSE, houseCondition, houseTarred } = VB['sim/rules'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TAR FAIL:', m); } };
@@ -27,19 +28,19 @@ const summer = (st, day) => { st.t = (Math.floor(st.t / YEAR) * YEAR) + (SEASON_
   const broad = make('F');
   check(broad.villages[0].wood.length > 0 && !T.villageTar(broad, broad.villages[0]), 'broadleaf only: no tar');
   T.tarYear(broad);
-  check(broad.households.every((h) => !Projects.ownOf(broad, h.id)), 'no pit without pine');
+  check(broad.households.every((h) => !tarpitOf(broad, h.id)), 'no pit without pine');
   T.tarYear(st);
-  const diggers = st.households.filter((h) => Projects.ownOf(st, h.id));
-  check(diggers.length === 1 && Projects.ownOf(st, diggers[0].id).what === 'tarpit', 'one pit begun for the village');
-  const hh = diggers[0], plan = Projects.ownOf(st, hh.id), s = plan.steps[plan.open];
+  const diggers = st.households.filter((h) => tarpitOf(st, h.id));
+  check(diggers.length === 1 && tarpitOf(st, diggers[0].id).what === 'tarpit', 'one pit begun for the village');
+  const hh = diggers[0], plan = tarpitOf(st, hh.id), s = plan.steps[plan.open];
   check(st.w.biome[s.place] === VB.gen.B.PINE && v.wood.includes(s.place), 'on a pine tile of the wood');
   T.tarYear(st);
-  check(st.households.filter((h) => Projects.ownOf(st, h.id)).length === 1, 'a pit begun is not begun twice');
+  check(st.households.filter((h) => tarpitOf(st, h.id)).length === 1, 'a pit begun is not begun twice');
   KINDS.tarpit.done(st, { kind: 'tarpit', site: s.place }, hh);
-  check(hh.tarPit && hh.tarPit.tile === s.place && !Projects.ownOf(st, hh.id), 'the pit dug is the household\'s');
+  check(hh.tarPit && hh.tarPit.tile === s.place && !tarpitOf(st, hh.id), 'the pit dug is the household\'s');
   check(st.record.some((e) => e.kind === 'tarPit'), 'and told');
   T.tarYear(st);
-  check(st.households.every((h) => !Projects.ownOf(st, h.id)), 'a village with a pit digs no second');
+  check(st.households.every((h) => !tarpitOf(st, h.id)), 'a village with a pit digs no second');
 
   // burning: early summer only, while fewer barrels than kept; a tree of pine felled, a barrel through the store
   hh.tar = 0;
