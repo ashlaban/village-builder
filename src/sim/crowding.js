@@ -20,6 +20,7 @@ VB['sim/crowding'] = (() => {
     st.crowd[id] = factorOf(n);
   };
   function rebuild(st) {
+    pend = null;
     st.crowdN = [];
     st.crowd = [];
     for (const hh of st.households) set(st, hh.id, 0);
@@ -28,14 +29,38 @@ VB['sim/crowding'] = (() => {
       each(st, st.farmsteads[hh.farmstead].house, (id) => set(st, id, st.crowdN[id] + hh.members.length));
     }
   }
+  const apply = (st, hh, n) => each(st, st.farmsteads[hh.farmstead].house, (id) => set(st, id, st.crowdN[id] + n));
+  // A batch (VB-1380, rules 4 and 5): inside one, changes of membership are summed by household and applied once at its end, one scan for
+  // each household whose count changed on the whole, not one for each pawn who came or went. It lives within one synchronous call.
+  let pend = null,
+    depth = 0;
+  function flush(st) {
+    if (!pend) return;
+    const p = pend;
+    pend = null;
+    for (const [id, n] of p) if (n !== 0) apply(st, st.households[id], n);
+  }
+  function batch(st, fn) {
+    depth++;
+    try {
+      return fn();
+    } finally {
+      if (--depth === 0) flush(st);
+    }
+  }
   // Members came (n > 0) or went (n < 0) at household hh.
   function moved(st, hh, n) {
     if (!st.crowdN || n === 0) return;
-    each(st, st.farmsteads[hh.farmstead].house, (id) => set(st, id, st.crowdN[id] + n));
+    if (depth > 0) {
+      (pend || (pend = new Map())).set(hh.id, (pend.get(hh.id) || 0) + n);
+      return;
+    }
+    apply(st, hh, n);
   }
   // A household just founded on farm f (f.household is set), with its members listed: its own count, and its members added to the near ones.
   function founded(st, hh) {
     if (!st.crowdN) return;
+    flush(st);
     set(st, hh.id, 0);
     const house = st.farmsteads[hh.farmstead].house;
     let n = 0;
@@ -47,7 +72,9 @@ VB['sim/crowding'] = (() => {
   }
   // A household dissolved: it counts no one, and no one counts it.
   function ended(st, hh) {
-    if (st.crowdN) set(st, hh.id, 0);
+    if (!st.crowdN) return;
+    flush(st);
+    set(st, hh.id, 0);
   }
   // The factor the death roll reads for a pawn: no household, none.
   const factor = (st, p) => (p.household === null || p.household === undefined ? 1 : st.crowd[p.household]);
@@ -64,5 +91,5 @@ VB['sim/crowding'] = (() => {
     }
     return n;
   }
-  return { rebuild, moved, founded, ended, factor, note, factorOf, fresh };
+  return { rebuild, batch, moved, founded, ended, factor, note, factorOf, fresh };
 })();

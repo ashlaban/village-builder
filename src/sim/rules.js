@@ -991,7 +991,9 @@ VB['sim/rules'] = (() => {
   const DAYS = { notice: 3, hours: 8 };
   // The village's office (VB-314; design.md, The alderman): standing gained while in office, and what the election weighs: a candidate's
   // standing (`standing` the weight of one point of it) against a voice's opinion of him (opinions run -1 to 1).
-  const OFFICE = { standing: 0.3, weighStanding: 0.25 };
+  // keepDays: the days of work each other farm's household owes the alderman's from one autumn meeting to the next; keepShare: the share of its
+  // surplus it sets aside for him at the moving round (the practice `keep`, VB-463; about 0.7 of a household's need, a village's keep in all).
+  const OFFICE = { standing: 0.3, weighStanding: 0.25, keepDays: 4, keepShare: 0.1 };
   const WORKDAY = {
     days: [
       [0, 0, 'fence'],
