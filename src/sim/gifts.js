@@ -9,7 +9,7 @@ VB['sim/gifts'] = (() => {
   const HANDS = VB['sim/rules'].AGES.hands;
   const Stores = VB['sim/stores'];
   const { hoursBetween } = VB['sim/villagehours'];
-  const { stayOf, setDown } = VB['sim/agents'];
+  const { setDown } = VB['sim/agents'];
   // A gift of n grain from household `from` to household `to`, further than a day's walk (VB-291; Kim, 10 Nov: carried, not sent): the
   // grain leaves the giver's store as the carrier, one of its adults, sets out; the receiver books it when he arrives (delivered).
   // Only the verb `deliver` calls it.
@@ -63,9 +63,8 @@ VB['sim/gifts'] = (() => {
       left: o.n,
       parts,
     };
-    const a = st.agents[o.fetcher],
-      j = stayOf(st, a.id);
-    if (j) return addFetchStop(j, stop);
+    const a = st.agents[o.fetcher];
+    if (addFetchStop(st, a.id, stop)) return;
     setDown(st, a);
     const v = store ? o.from.id : st.farmsteads[o.from.farmstead].village;
     setOut(st, a, o.to, o.to, false, hoursBetween(st, to.village, v), {
