@@ -91,11 +91,7 @@ VB['sim/exchange'] = (() => {
   // A village's store gives through its alderman, the village's agent (VB-314): `from` is then the village, and he is the giver booked; with
   // no alderman (a village with no holder) nothing is booked, as before.
   const giverOf = (st, from) =>
-    isHousehold(from)
-      ? from.holder
-      : from.alderman !== undefined && st.pawns[from.alderman].alive
-        ? from.alderman
-        : null;
+    isHousehold(from) ? from.holder : from.alderman != null && st.pawns[from.alderman].alive ? from.alderman : null;
   function booked(st, from, to, n, fromName) {
     const ht = to.holder !== null ? st.pawns[to.holder] : null,
       gid = from ? giverOf(st, from) : null;
