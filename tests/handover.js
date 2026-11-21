@@ -143,7 +143,53 @@ for (const at of ['holds', 'spouse']) {
     assert.strictEqual(st.pawns[id].household, 0);
     assert.strictEqual(told(st, 'joined', id).at(-1).reason, 'heir');
   }
+  // the smaller place's log line names its holder, who moves away, and not as the one who inherits: with the spouse, he did not
+  if (!st.households[2].dissolved) {
+    const took = st.record.filter((e) => e.kind === 'inherited' && e.household === 2).at(-1);
+    const holder = R.fullName(st.pawns[at === 'holds' ? 2 : 11]);
+    assert.ok(took.text.endsWith(` as ${holder} moves away.`), `the log line: ${took.text}`);
+    assert.ok(!/inherits/.test(took.text), took.text);
+  } else assert.strictEqual(at, 'holds', 'the spouse case hands the smaller place on');
   sound(st, 'after giving up the smaller place');
+}
+// ... the smaller place held in trust (sim/trust): she lives with her parents, who hold it, and inherits theirs at her father's death;
+// the trust ends before the place is handed on, as when a trustee's new holder holds the farm it holds (inheritedHeld)
+{
+  const st = world({ handover: 'age60' }, 'holds');
+  st.farmsteads[2].fields.length = st.farmsteads[0].fields.length - 1;
+  VB['sim/trust'].holdInTrust(st, st.households[2], 'is alone');
+  const t = st.trusts[0];
+  assert.deepStrictEqual([t.household, t.trustee, st.pawns[2].household], [2, 0, 0], 'the scene: her parents hold her farm in trust');
+  sound(st, 'held in trust');
+  Sim.killPawn(st, 0);
+  assert.strictEqual(st.households[0].holder, 2);
+  assert.deepStrictEqual([t.end, t.why, st.liveTrusts], [st.t, 'inherited', []], 'the trust ends');
+  assert.ok(st.households[2].dissolved || st.households[2].holder !== 2);
+  sound(st, 'after giving up the place held in trust');
+}
+// ... a minor holder, her stepson her guardian, inherits the larger farm at a death: her guardianship of the smaller place ends with her
+// leaving it, and its new holder is nobody's guardian
+{
+  const st = world({ handover: 'age60' }, 'holds');
+  st.farmsteads[2].fields.length = st.farmsteads[0].fields.length - 1;
+  st.pawns[8].father = 11; // her late husband's son, in the line of his farm
+  st.idx = null;
+  VB['sim/heirs'].moveTo(st, 8, 2);
+  st.pawns[2].age = 16;
+  st.pawns[2].born = st.t - 16 * YEAR - DAY;
+  Object.assign(st.households[2], { guardian: 8, ward: 2 }); // as sim/heirs' setGuardian would choose
+  for (const id of [1, 3, 4, 5]) Sim.killPawn(st, id);
+  refreshRoles(st);
+  assert.deepStrictEqual([line(st).ranking, line(st, 2).ranking], [[2], [8]], 'the scene');
+  // her asking, made while she was grown, falls due before she comes of age: the scene's, not the case's
+  const minorSound = (what) =>
+    assert.deepStrictEqual(checkState(st).filter((b) => !/before it comes of age/.test(b)), [], `invariants, ${what}`);
+  minorSound('a ward on the smaller place');
+  Sim.killPawn(st, 0);
+  const small = st.households[2];
+  assert.deepStrictEqual([st.households[0].holder, small.holder, st.pawns[2].household], [2, 8, 0]);
+  assert.ok(small.guardian === null && small.ward === null, `no guardian left behind: ${small.guardian}, ward ${small.ward}`);
+  minorSound('after the ward leaves the smaller place');
 }
 
 // 2. In life: the holder offers on its own day, at the custom's time, due at the round; an heir with a farm refuses, and the next takes it

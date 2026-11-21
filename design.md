@@ -99,7 +99,8 @@ below do not; `AGENTS.md`, Deciding without Kim, sets the escalation and reporti
   exempt, since following every fact through the world is not computable: ownership, obligations, goodwill and news move at once, so a
   gift, a share or a loan changes owner where it lies and waits to be fetched. The world a scenario starts with is placed, not
   carried. Where the sections below still move goods or animals at once (help in hunger, shares, handing on, a new household's start),
-  the rule stands over them. Record findings under the collection procedure in `AGENTS.md`, Surfacing.
+  the rule stands over them. No task adds a teleport, however small or temporary; one found in the code is recorded under the
+  collection procedure in `AGENTS.md`, Surfacing.
 - **Hunger presses, the feast binds.** Shortage drives help, loans and land passing, and through them the landed class; help still
   books goodwill. What drives the goodwill economy is plenty: at a feast a household turns its surplus into goodwill and standing. A
   household may fail; the design does not aim for every household to be fed.
@@ -1261,7 +1262,7 @@ Predators, pigs, horses, poultry, disease, breeding and traits, summer farms (*f
 | Aspect | Design | Status |
 | --- | --- | --- |
 | Goods in subtypes | Goods are typed with subtypes (granite and marble are both stone; cow's and sheep's milk), each with the quantum that changes hands (one head, one sack) and how it perishes | Decided, 3 Nov (subtypes, Kim's description); Proposed (the rest, target-v2, section 4.3) |
-| A good, its material and its kind | A good is what it is for (a whetstone, a vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze) makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long it lasts, how fast it works, what it can hold); its worth in gifts and standing follows from custom. A deposit needs no use of its own, only a property that matters. The kind is the subtype, carried from the material into the good made of it (The metals and the stones, below). A made good also has a grade of workmanship, one of five (shoddy, sound, good, fine, masterwork), drawn at its making by odds that shift with the maker's skill; the grade scales everything the kind's properties do, and its worth. Skill makes a made good better as well as faster; it never multiplies a crop's yield (Workmanship, below) | Decided, 16 Nov (Kim's principle, and its second paragraph the same day; The metals and the stones, this section) |
+| A good, its material and its kind | A good is what it is for (a whetstone, a vessel, a roof) and is made of a class of material (stone, metal, clay, wood); the kind (slate or sandstone, copper or bronze) makes a better or worse one, not a different good. Quality is the kind's physical properties, read by the good's use (how long it lasts, how fast it works, what it can hold); its worth in gifts and standing follows from custom. A deposit needs no use of its own, only a property that matters. The kind is the subtype, carried from the material into the good made of it (The metals and the stones, below). A made good also has a grade of workmanship, one of five (shoddy, sound, good, fine, masterwork), drawn at its making by odds that shift with the maker's skill; the grade scales everything the kind's properties do, and its worth. Skill makes a made good better as well as faster; it never multiplies a crop's yield (Workmanship, below) | Decided, 16 Nov (Kim's principle, and its second paragraph the same day) |
 | Title and custody | Who owns a thing and where it is are apart: a cow in a neighbour's byre, grain at the mill, cargo aboard | Proposed (target-v2, section 2) |
 | Recipes | Human transformation of goods; a recipe may bind the subtype it was given (any stone hewn into blocks of the same stone); building is a recipe whose output is a stage of a facility | Proposed (target-v2, section 4.3) |
 | Facilities | Built things on sites, from houses and mills to roads and harbours, each with an owner, perhaps an operator, its capabilities and who may use it | Proposed (target-v2, section 4.3) |
@@ -1297,7 +1298,7 @@ Decided; the numbers are Proposed, in the game's work hours (576 an adult a year
 ### The metals and the stones: goods by purpose, kinds by property (slice 6's second half, 16 November)
 
 The plan of VB-702 (`docs/plans/VB-702.md`, with its measures), on Kim's answers of 16 November in a session. Kim's principle
-(The metals and the stones, this section) orders it: a good is what it is for and is made of a material; the kind makes a better or
+(Goods, recipes and facilities, above: A good, its material and its kind) orders it: a good is what it is for and is made of a material; the kind makes a better or
 worse one, not a different good; quality is the kind's physical properties, read by the good's use; worth follows from custom; a
 deposit needs no use of its own, only a property that matters. The shape is Decided where Kim answered; every number is Proposed,
 from general reading not checked by search, for each task to report and the wrap-up to tune.
