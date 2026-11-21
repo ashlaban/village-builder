@@ -11,7 +11,7 @@ VB['sim/lifecycle'] = (() => {
     VB['sim/records'];
   const { setAtAge } = VB['sim/traits'];
   const { stillAtDeath, travelling, tileAt, placeOf } = VB['sim/agents'];
-  const { heirRanking, successorOf, transfer, succession, comeOfAge, refreshRoles, membersOf } = VB['sim/heirs'];
+  const { heirRanking, successorOf, transfer, succession, comeOfAge, refreshRoles } = VB['sim/heirs'];
   const { careForOrphans } = VB['sim/service'];
   const { refreshStanding } = VB['sim/society'];
   const { playerDied, clearMatchWish } = VB['sim/player'];
@@ -61,8 +61,6 @@ VB['sim/lifecycle'] = (() => {
     );
     funeral(st, id); // the next day's funeral ale, at the farm it leaves (sim/occasions, VB-126)
     const hh = p.household !== null ? st.households[p.household] : null;
-    const held0 = trustOfHolder(st, id),
-      before = touchedBefore(st, [hh ? hh.id : null, held0 ? held0.household : null]);
     if (hh) {
       leaveHousehold(st, id, true);
       if (hh.holder === id) succession(st, hh, 'death');
@@ -74,30 +72,18 @@ VB['sim/lifecycle'] = (() => {
     }
     inheritedHeld(st);
     endGoodwill(st, id); // after succession, which passes a holder's share on
-    refreshRoles(st, touchedPawns(st, before));
+    refreshRoles(st);
     refreshStanding(st);
     st.visualDirty = true;
-  }
-  // The pawns whose role a handover can change: those of the households it touches (the giver's, the heir's old home, a held farm's), as they
-  // were before, and the households they are in after, with the trusts' (inheritedHeld hands a held farm on). Not every living pawn.
-  function touchedBefore(st, hs) {
-    return { hs: new Set(hs), ids: membersOf(st, hs) };
-  }
-  function touchedPawns(st, { hs, ids }) {
-    for (const id of ids) hs.add(st.pawns[id].household);
-    for (const t of st.liveTrusts || []) hs.add(st.trusts[t].household).add(st.trusts[t].trustee);
-    for (const id of membersOf(st, hs)) ids.add(id);
-    return ids;
   }
   function retireHolder(st, hhId) {
     const hh = st.households[hhId];
     if (!hh || hh.dissolved) return false;
     const r = heirRanking(st, hh);
     if (!r.length) return false;
-    const before = touchedBefore(st, [hh.id, st.pawns[r[0]].household]);
     transfer(st, hh, r[0], 'retirement');
     inheritedHeld(st);
-    refreshRoles(st, touchedPawns(st, before));
+    refreshRoles(st);
     refreshStanding(st);
     return true;
   }
