@@ -77,6 +77,7 @@
   "sim/agents.js",
   "sim/away.js",
   "sim/gifts.js",
+  "sim/keep.js",
   "sim/player.js",
   "sim/feast.js",
   "sim/occasions.js",

@@ -63,7 +63,7 @@ VB['sim/exchange'] = (() => {
       allowance = Rules.value(st, 'allowance', ctx);
     } else floorOk = o.n <= Stores.grainOf(o.from) + TOLERANCE;
     const player = o.source === 'player',
-      within = o.n <= allowance + TOLERANCE;
+      within = o.keep === true || o.n <= allowance + TOLERANCE; // the keep is a due of custom: held to the floor, not the allowance
     const why =
       !floorOk && (!player || !isHousehold(o.from))
         ? `it would take ${nameOf(st, o.from)} below its floor`
@@ -91,11 +91,7 @@ VB['sim/exchange'] = (() => {
   // A village's store gives through its alderman, the village's agent (VB-314): `from` is then the village, and he is the giver booked; with
   // no alderman (a village with no holder) nothing is booked, as before.
   const giverOf = (st, from) =>
-    isHousehold(from)
-      ? from.holder
-      : from.alderman !== undefined && st.pawns[from.alderman].alive
-        ? from.alderman
-        : null;
+    isHousehold(from) ? from.holder : from.alderman != null && st.pawns[from.alderman].alive ? from.alderman : null;
   function booked(st, from, to, n, fromName) {
     const ht = to.holder !== null ? st.pawns[to.holder] : null,
       gid = from ? giverOf(st, from) : null;

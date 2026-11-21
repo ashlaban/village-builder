@@ -115,6 +115,7 @@ VB['sim/offers'] = (() => {
     if (!(args && args.good === 'grain')) return 'only grain is given';
     if (!(Number.isFinite(n) && n > 0)) return `cannot give ${n}`;
     const g = { from, to, good: 'grain', n, source };
+    if (args.keep === true) g.keep = true; // the alderman's keep (VB-463): a due of custom, answered yes in the making
     if (args.carrier !== undefined) {
       const p = st.pawns[args.carrier],
         a = p && st.agents[p.id];
