@@ -85,7 +85,7 @@ const FAST = [
   ['node', 'tests/night.js'], // a night without a roof is cold and wet by the house's rule: the road in winter, a booth with wood (VB-785)
   ['node', 'tests/fetch.js'], // a gift fetched where it lies, a load a trip (VB-461)
   ['node', 'tests/rng.js'],
-  ['node', 'tests/due.js'], // the due-queue helper on constructed lists: ties, an absent entry, an empty list, the take (VB-1415)
+  ['node', 'tests/due.js'], // the due-queue helper on constructed lists: ties, an absent entry, an empty list, the take (VB-1473)
   ['node', 'tests/cowwant.js'],
   ['node', 'tests/quern.js'], // the hand quern (VB-009): grinding, the pot's flour, wear and hewing, on the probe's small state
 ];
@@ -160,6 +160,7 @@ const INTEGRATION = [
   ['node', 'tests/standingcart.js'], // VB-649: a dead carter's cart and team stand on the road
   ['node', 'tests/leftwood.js'], // VB-645: a dropped boat's timber lies at its shore
   ['node', 'tests/start.js'],
+  ['node', 'tests/market.js'], // VB-778: the market town's start, a test bed
   ['node', 'tests/gossip.js'],
   ['node', 'tests/health.js'],
   ['node', 'tests/carts.js'],
@@ -198,6 +199,7 @@ const INTEGRATION = [
   ['node', 'tests/byre.js'],
   ['node', 'tests/stocking.js'],
   ['node', 'tests/matchby.js'],
+  ['node', 'tests/keep.js'],
   ['node', 'tests/herds.js'],
   ['node', 'tests/herding.js'],
   ['node', 'tests/drying.js'],

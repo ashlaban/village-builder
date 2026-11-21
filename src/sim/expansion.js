@@ -596,6 +596,7 @@ VB['sim/expansion'] = (() => {
     plotProgress,
     finishStep,
     activePlots,
+    MAX_PLOTS,
     cottageJob,
     cottagePlan,
     plotTimber,

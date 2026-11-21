@@ -1,8 +1,9 @@
 // @sys sim/asking: the asking day (VB-823; plan VB-682, sections 2, 3 and 7): each pawn who seeks reviews its wish on a day of its own once
 //   a season (the due-queue st.asking of sim/wishes) and, holding no open offer about its future, makes the one its best open rung asks
 //   for, due at the moving round, which answers it: a match, by its spokesman (askMatch, which the round
-//   also uses to ask anew after a refusal), or an empty farm (the basis land); a plot, new land and service are still asked by the round's
-//   own walk until VB-697, VB-696 and VB-694 make them askings. An open offer whose people have died, married or taken a place lapses
+//   also uses to ask anew after a refusal), or an empty farm (the basis land); a plot, at home or (with no site there) of a small village within
+//   reach (VB-697); new land and service are still asked by the round's own walk until VB-696 and VB-694 make them askings.
+//   An open offer whose people have died, married or taken a place lapses
 //   where it is next read (staleWhy: an asking, or the round). A holder's own day is its birthday: it considers handing the farm on
 //   (sim/marriage's rule, VB-824), by an offer due at the round.
 VB['sim/asking'] = (() => {
@@ -12,9 +13,11 @@ VB['sim/asking'] = (() => {
     { tieOf } = VB['sim/ties'];
   const { kinOk, sideScore, matchRules, courts, askerOf, askedOf, askedBy } = VB['sim/matching'];
   const { hoursBetween } = VB['sim/villagehours'];
-  const { claimableFarm, askLand } = VB['sim/farmclaims'];
+  const { claimableFarm, askLand, barred } = VB['sim/farmclaims'];
   const { heirRanking } = VB['sim/heirranking'],
-    { placeIfMarried } = VB['sim/heirs'];
+    { placeIfMarried, staysWhy } = VB['sim/heirs'];
+  const { findSite } = VB['sim/expansion'];
+  const { smallVillage, waitingByVillage, reachOf } = VB['sim/settle'];
   const { issue } = VB['sim/commands'];
   const { chooseWish, wishOf, wishesOf, nextAsking, askingIn } = VB['sim/wishes'];
   const { conclude } = VB['sim/offers'];
@@ -235,7 +238,7 @@ VB['sim/asking'] = (() => {
         if (Number.isInteger(p.ask)) return 'farm';
         continue;
       }
-      return tried ? 'nobody' : 'round'; // a plot, new land, service: the round's walk asks for them, and an heir stays (VB-697, VB-696, VB-694)
+      return tried ? 'nobody' : 'round'; // new land and service: the round's walk asks for them, and an heir stays (VB-696, VB-694)
     }
     return tried ? 'nobody' : 'stay';
   }

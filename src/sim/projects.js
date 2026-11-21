@@ -27,7 +27,7 @@ VB['sim/projects'] = (() => {
   // The household's large project of its own choosing under way (a field, a meadow, a barn, a plot for its heir), or null: the guards' one
   // read of it (the aims' menu, the land step, landWhy, buildStep, barnWhy, heirWhy, the verb dropProject). That a head begins no second
   // large project is today's limit, not the design's (the limit of one project removed, Kim, 21 Nov 2026; how parallel projects are
-  // limited and ranked is VB-1410's). A settler household's cottage is not of its choosing: those guards that refused a farm with a booth
+  // limited and ranked is VB-1472's). A settler household's cottage is not of its choosing: those guards that refused a farm with a booth
   // still do (f.booth), and the others never counted it; a small construction (plan.small) is beside it as the cottage is. Allocates nothing.
   function ownOf(st, id) {
     for (const plan of projectsOf(st, 'household', id)) if (plan.what !== 'cottage' && !plan.small) return plan;

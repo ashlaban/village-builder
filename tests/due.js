@@ -1,4 +1,4 @@
-// VB-1415: sim/due, the due-queue helper, on constructed lists: ties, removal of an absent entry, an empty list, the take.
+// VB-1473: sim/due, the due-queue helper, on constructed lists: ties, removal of an absent entry, an empty list, the take.
 const { readSource } = require('../tools/lib/source.js');
 const assert = require('assert'), vm = require('vm');
 const sandbox = { VB: {} };

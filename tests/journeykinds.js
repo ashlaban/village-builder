@@ -75,6 +75,12 @@ for (const kind of ['fetch', 'haul']) {
   const { st, a, j } = journey('visit');
   arrive(st, a);
   assert.ok(j.back && j.guest && j.stay === TRAVEL.stay && st.away.length === 1, 'a visitor arrives, a guest');
+  if (j.host !== undefined) {
+    // a guest of a house (VB-1151): at his host's door he rests, and leaves the house as his days there end (legDue's leaveHost)
+    arrive(st, a);
+    assert.ok(st.away.length === 1 && j.bed !== null, 'a guest at his host\'s door rests there');
+    j.bed = null; j.roof = 'none'; delete j.host;
+  }
   arrive(st, a);
   assert.strictEqual(st.away.length, 0, 'a visitor back home ends as a move does');
 }

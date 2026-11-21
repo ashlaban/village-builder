@@ -278,12 +278,13 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.ok(Math.abs(j.food - days) < 1e-9 && days === 5, `a ration a day away, ${days} days: ${j.food}`);
   assert.ok(Math.abs(g0 - Stores.grainOf(A) - days / s.ECON.uncooked) < 1e-6, "from his household's grain");
   assert.strictEqual(a.phase, 'journey', 'he walks');
-  let onRoad = null, guest = 0, t0 = s.t, home = null;
+  let onRoad = null, guest = 0, t0 = s.t, home = null, hosted = null;
   for (let k = 0; k < 8 * 4 && s.away.length; k++) {
     Sim.advance(s, DAY / 4);
     assert.deepStrictEqual(checkState(s), [], 'invariants on the visit, step ' + k);
     const x = s.away.find((y) => y.pawn === man);
     if (!x) { home = s.t; break; }
+    if (x.host !== undefined && hosted === null) hosted = { ...x };
     if (!x.back && onRoad === null && a.phase === 'road') onRoad = JSON.parse(JSON.stringify(Sim.save(s)));
     if (x.back && a.phase === 'road' && tileAt(s, a.x, a.y) !== undefined && Math.hypot(a.x - s.w.hx[s.villages[1].center], a.y - s.w.hy[s.villages[1].center]) < 4 * s.w.R) guest++;
   }
@@ -291,6 +292,9 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   const kinds = p.events.map((k) => s.record[k]).filter((e) => e.t >= due).map((e) => e.kind);
   assert.deepStrictEqual(kinds.filter((k) => ['setOut', 'visited', 'arrived'].includes(k)), ['setOut', 'visited', 'arrived'], 'setOut, visited and arrived in his record: ' + kinds);
   assert.ok(s.record.some((e) => e && e.kind === 'visited' && e.pawn === man && e.village === 1 && !e.self), 'the visit names the village');
+  // VB-1151: at B he asks the house of the woman he came for, whose head says yes: he sleeps under its roof, at its door
+  assert.ok(hosted && hosted.host === s.pawns[w1].household && hosted.roof === 'house' && hosted.bed === s.farmsteads[s.households[hosted.host].farmstead].house, 'his bed is the house of the woman he came for: ' + JSON.stringify(hosted));
+  assert.ok(!s.away.some((x) => x.pawn === man && x.host !== undefined), 'and the bed is his no more when he is home');
   assert.ok(guest >= 4, `he stays a day at the green of B, its guest (${guest} quarter days there)`);
   assert.ok(home !== null && home - t0 > (days - 2) * DAY && home - t0 < days * DAY, `home again within ${days} days: ${(home - t0) / DAY}`);
   const pm = s.pawns[man];
@@ -308,6 +312,21 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.strictEqual(canon(one.agents[man]), canon(two.agents[man]), 'continued: the visitor');
   assert.deepStrictEqual(one.pawns[man].visited, p.visited, 'the loaded run makes the same visit');
   assert.ok(!one.away.some((x) => x.pawn === man), 'and comes home');
+  // VB-1151: a head who thinks ill of him will not have him: he sleeps at the green, as before
+  {
+    const q = Sim.load(s.w, planned), R = VB['sim/relations'], head = q.households[1].holder;
+    for (const k of ['claim', 'border', 'refusedMatch', 'claim', 'border', 'refusedMatch']) R.remember(q, head, man, k);
+    assert.ok(R.opinionOf(q, head, man) < 0, 'the head of B thinks ill of him: ' + R.opinionOf(q, head, man));
+    let arrived = false, hostSeen = false;
+    for (let k = 0; k < 8 * 4 && (!arrived || q.away.some((x) => x.pawn === man)); k++) {
+      Sim.advance(q, DAY / 4);
+      if (!planned || q.t < due) continue;
+      const x = q.away.find((y) => y.pawn === man);
+      if (x && x.guest) { arrived = true; if (x.host !== undefined || x.roof !== 'none' || x.bed !== null) hostSeen = true; }
+      assert.deepStrictEqual(checkState(q), [], 'invariants on the refused visit, step ' + k);
+    }
+    assert.ok(arrived && !hostSeen, 'refused, he sleeps at the green: guest ' + arrived + ', hosted ' + hostSeen);
+  }
   // a household that can no longer spare the food on his winter morning keeps him home, and the log says so
   {
     const q = Sim.load(s.w, planned), hh = q.households[0];

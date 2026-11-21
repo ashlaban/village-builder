@@ -16,9 +16,12 @@ function grainBad(g) {
 }
 function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
-  // the open step of a household's project plan (VB-123), or null
+  // the open step of a household's land project (VB-123: the plan whose open step works under a stake), or null; a cottage's plan or a
+  // small construction may stand before it in the list (VB-1411, VB-1414)
   const projectStep = (id) => {
-    const l = st.plans && st.plans.projects && st.plans.projects.household.get(id); return l && l.length ? l[0].steps[l[0].open] : null; };
+    const l = st.plans && st.plans.projects && st.plans.projects.household.get(id);
+    for (const p of l || []) if (p.steps[p.open] && p.steps[p.open].stake) return p.steps[p.open];
+    return null; };
   bad.push(...checkRoles(st, globalThis.VB, { allowAgeLag: true }));
   for (const [key, expected] of [
     ['living', st.pawns.filter((p) => p.alive).map((p) => p.id)],
@@ -266,7 +269,7 @@ function checkState(st) {
       const h = (type === 'household' ? st.households : type === 'village' ? st.villages : st.pawns)[id];
       if (!h || h.dissolved) bad.push(`plans: project plans of a ${type} ${id} that is gone`); // a claimant who died: until the round (sim/farmclaims)
       if (!Array.isArray(list) || !list.length) { bad.push(`plans: ${type} ${id} keeps an empty list of project plans`); continue; }
-      // today's limit (VB-1410): one large plan of the household's own choosing, a settler household's cottage beside it (VB-1411), and
+      // today's limit (VB-1472): one large plan of the household's own choosing, a settler household's cottage beside it (VB-1411), and
       // small constructions (a cart, a boat, a tar pit) without number but one of a making (VB-1414); only those three are small
       if (type === 'household' && list.filter((p) => p.what !== 'cottage' && !p.small).length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
       if (type === 'household') for (const p of list) {
@@ -537,7 +540,7 @@ function checkState(st) {
       if (memberOf.has(id)) bad.push(`pawns[${id}]: in households ${memberOf.get(id)} and ${h.id}`);
       memberOf.set(id, h.id);
     }
-    if (h.holder !== null && !h.members.includes(h.holder) && !(st.liveTrusts || []).some((i) => st.trusts[i].household === h.id)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
+    if (h.holder !== null && !h.members.includes(h.holder) && !st.offers.some((o) => o.basis === 'inheritance' && o.gives.household === h.id) && !(st.liveTrusts || []).some((i) => st.trusts[i].household === h.id)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
     for (const k of ['wood', 'stone', 'peat', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
@@ -1204,7 +1207,7 @@ function checkState(st) {
       } else if (BASES[o.basis].where) { // an offer about a life: answered at a village's step of the round (a handover has no subject, VB-824)
         const g = o.gives || {}, w = o.wants || {};
         const terms = o.basis === 'handover' ? !!st.households[g.household] && ['marriage', 'retirement'].includes(g.reason)
-          : o.basis === 'place' ? !!st.households[g.household]
+          : o.basis === 'place' || o.basis === 'inheritance' ? !!st.households[g.household]
           : o.basis === 'party' ? !!st.villages[g.from] && Array.isArray(g.all) && g.all[0] === o.from
           : o.basis === 'land' ? (w.farm !== undefined ? !!st.farmsteads[w.farm] : !!st.villages[w.plot]) : false;
         if (!terms) bad.push(`${at}: ${o.basis}: gives ${JSON.stringify(o.gives)}, wants ${JSON.stringify(o.wants)}`);
@@ -1308,7 +1311,11 @@ function checkState(st) {
       seen.add(j.pawn);
       if (!st.agents[j.pawn] || st.agents[j.pawn].away !== j.id) bad.push(`${at}: its pawn's agent.away is ${st.agents[j.pawn] && st.agents[j.pawn].away}`);
       if (!(j.food >= 0)) bad.push(`${at}: food ${j.food}`);
-      if (j.bed !== null) {
+      if (j.why === 'visit' && j.village !== undefined && j.bed !== null) {
+        // VB-1151: a visitor's bed at his host's door: the house of another household of the village visited, under its roof, while he is its guest
+        const host = j.host === undefined ? null : st.households[j.host];
+        if (!host || host.dissolved || j.roof !== 'house' || j.bed !== st.farmsteads[host.farmstead].house || !j.guest || !j.back || (p && p.household === host.id) || st.farmsteads[host.farmstead].village !== j.village) bad.push(`${at}: a visitor's bed ${j.bed}, roof ${j.roof}, host ${j.host}`);
+      } else if (j.bed !== null) {
         const host = j.host === undefined ? null : st.households[j.host];
         if (!Number.isInteger(j.bed) || j.bed < 0 || j.bed >= st.w.N || j.to !== j.bed || !(j.walk >= 0) || !Array.isArray(j.jobs)) bad.push(`${at}: a lodger's bed ${j.bed}, to ${j.to}, walk ${j.walk}`);
         if (host ? j.roof !== 'house' || st.farmsteads[host.farmstead].house !== j.bed || (p && p.household === host.id) : j.roof !== 'none' && j.roof !== 'booth') bad.push(`${at}: roof ${j.roof}, host ${j.host}`);
@@ -1316,7 +1323,7 @@ function checkState(st) {
         if (ph === 'journey' || ph === 'road') bad.push(`${at}: a lodger in phase ${ph}`);
         return;
       }
-      if (j.roof !== 'none') bad.push(`${at}: a journey under roof ${j.roof}`);
+      if (j.roof !== (j.host !== undefined ? 'house' : 'none')) bad.push(`${at}: a journey under roof ${j.roof}`);
       const bearing = j.why === 'carry' && !j.back; // VB-291: a carrier bound for the receiver's house, with his gift
       // VB-461: a fetch with its gift is its pawn's household's (or was, while it holds a load); the grain in transit is on the pawn, bound for that house, and none is on
       // him on his way out to the place its first stop names; each stop holds grain set aside, by crop

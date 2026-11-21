@@ -112,8 +112,9 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   t.st.t += 30 * 24; // the next round
   check(S.provisions(t.st, party) !== null, 'the next round it gives');
 }
-// 4. Founders (at foundersSeed): a lone farm lies within reach from the crowded village. With room there, a waiting adult joins it, building a
-// booth, and founds nothing (VB-147); with an adult of its own waiting for land, or no room, it is passed over and the settler founds.
+// 4. Founders (at foundersSeed): a lone farm lies within reach from the crowded village. With room there, `smallVillage` offers it (VB-147), and
+// a plot there is asked of its alderman on the asking day (VB-697; tests/farmclaims.js), not joined unasked: the round founds. With an adult
+// of its own waiting for land, or no room, it is passed over.
 let joined = '';
 // The founders' two unmarried young are 16 to 19 and live on either farm by the seed's draw, so the first seed is taken where one of age
 // lives in the village (seed 7 had one until the villages were laid out anew, VB-402).
@@ -127,32 +128,27 @@ const founders = () => {
   return { st, v, lone, m };
 };
 {
-  const t = founders(), n = t.st.villages.length, farms = t.lone.farmsteads.length, d = S.reachOf(t.st, t.v).get(t.lone.center);
+  const t = founders(), n = t.st.villages.length, d = S.reachOf(t.st, t.v).get(t.lone.center);
+  const small = S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st), S.reachOf(t.st, t.v));
+  check(d <= SETTLE.join && small && small.village === t.lone, `the lone farm lies within ${SETTLE.join} steps (${d}) and is the small village offered`);
   roll(t.st, () => S.settleRound(t.st));
-  const g = t.st.farmsteads[t.lone.farmsteads[t.lone.farmsteads.length - 1]];
-  check(d <= SETTLE.join, `the lone farm lies within ${SETTLE.join} steps (${d})`);
-  check(t.st.villages.length === n && t.lone.farmsteads.length === farms + 1 && g.booth && t.st.households[g.household].holder === t.m.id,
-    `the settler joins the lone farm's village (villages ${t.st.villages.length - n} new, its farms ${farms} -> ${t.lone.farmsteads.length})`);
-  // named as a new cottage is (VB-399): a name one of the farm generators offers for the farm, and the log says so
-  const N = VB['sim/names'], fctx = { w: t.st.w, f: g, village: t.lone, owner: t.m, farms: t.lone.farmsteads.map((id) => t.st.farmsteads[id]), fresh: true },
-    r = () => N.tileRand(g.house), offered = Object.values(N.FARM).flatMap((gen) => gen(fctx, r())).map((nm) => nm.replace(/ \d+$/, ''));
-  check(offered.includes(g.name.replace(/ \d+$/, '')) && Sim.villageLog(t.st, Infinity).some((e) => e.text.includes(`settles at ${g.name} in ${t.lone.name}`)),
-    `the joined farm is named by a farm generator and the log says so (${g.name})`);
-  check(t.lone.name === t.st.farmsteads[t.lone.farmsteads[0]].name, `the lone farm's village bears its farm's name (${t.lone.name})`);
-  bad = checkState(t.st); check(!bad.length, `invariants after joining: ${bad.slice(0, 3).join('; ')}`);
-  joined = `; joined ${t.lone.name} ${d} steps away`;
+  check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id && t.lone.farmsteads.length === 1, 'the round founds, and joins nobody unasked');
+  bad = checkState(t.st); check(!bad.length, `invariants after founding: ${bad.slice(0, 3).join('; ')}`);
+  joined = `; the lone village ${t.lone.name} ${d} steps away is offered, not joined`;
 }
 { // an adult of its own waits for land there: the settler founds
   const t = founders(), n = t.st.villages.length;
   const other = t.st.pawns.find((p) => p.alive && p.age >= 18 && p.id !== t.m.id && Sim.settlementIdOf(t.st, p) === 0 && !Sim.isHolder(t.st, p.id));
   VB['sim/heirs'].moveTo(t.st, other.id, t.st.farmsteads[t.lone.farmsteads[0]].household); t.st.demand.push(other.id);
+  check(S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st), S.reachOf(t.st, t.v)) === null, 'with its own adult waiting, the lone farm is passed over');
   roll(t.st, () => S.settleRound(t.st));
-  check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'with its own adult waiting, the lone farm is passed over');
+  check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'and the settler founds');
 }
 { // no room at the lone farm either: the settler founds
   const t = founders(), n = t.st.villages.length; fill(t.st, t.lone);
+  check(S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st), S.reachOf(t.st, t.v)) === null, 'with no room at the lone farm, it is passed over');
   roll(t.st, () => S.settleRound(t.st));
-  check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'with no room at the lone farm, the settler founds');
+  check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'and the settler founds');
 }
 // 5. The wish to settle (VB-392, on VB-680's wishes): true passes the draws to lead and to follow, false never leads or follows, null
 // draws as before; the round's other rules decide as for anyone. Every pawn holds it; the played pawn's is set by the wish verb.

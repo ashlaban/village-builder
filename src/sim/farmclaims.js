@@ -26,7 +26,7 @@ VB['sim/farmclaims'] = (() => {
     Disputes = VB['sim/disputes'];
   const { dailyNeed } = VB['sim/hunger'],
     { reserved } = VB['sim/stores'];
-  const { hasPlot, awaitsCottage } = VB['sim/expansion'];
+  const { hasPlot, awaitsCottage, activePlots, MAX_PLOTS } = VB['sim/expansion'];
   const { emit } = VB['sim/events'],
     { onFarm, projectsOf } = VB['sim/projects'];
   // A claim on an empty farm being restored is its claimant's project plan (VB-123; sim/plans makes it on the event projectBegun): {...,
@@ -235,6 +235,8 @@ VB['sim/farmclaims'] = (() => {
   // asked. A yes is the claim (the claim verb) or the plot begun for the asker (sim/expansion, on the event plotGranted). A no is told,
   // and nobody remembers it (a custom's no; the grievance is the claims review's). ----
   function speakerOf(st, vid) {
+    const al = st.villages[vid].alderman; // the village's agent (VB-314), while the office is filled
+    if (al !== undefined && al !== null && st.pawns[al].alive) return al;
     let best = null;
     for (const id of st.villages[vid].farmsteads) {
       const f = st.farmsteads[id],
@@ -272,6 +274,36 @@ VB['sim/farmclaims'] = (() => {
     const ids = st.demand.includes(o.from) ? st.demand : [...st.demand, o.from];
     return claimants(st, st.farmsteads[w.farm], ids)[0] === o.from;
   }
+  // A plot is given as startPlots gave it: two at a time in a village (the line is `MAX_PLOTS`), to one with none coming (VB-697).
+  const landWhat = (st, o) =>
+    o.wants.farm !== undefined
+      ? `the empty farm ${st.farmsteads[o.wants.farm].name} for ${fullName(st.pawns[o.from])}`
+      : `a plot in ${st.villages[o.wants.plot].name} for ${fullName(st.pawns[o.from])}`;
+  const plotFull = (st, vid) =>
+    activePlots(st, st.villages[vid]).filter((p) => p.holder.type === 'village').length >= MAX_PLOTS;
+  const landYesPlot = (st, o) => !hasPlot(st, o.from) && !plotFull(st, o.wants.plot);
+  // The line of the custom that stood in the way of a no, for the log and the asker's record (no memory is booked against the alderman).
+  function landNo(st, o) {
+    const w = o.wants,
+      p = st.pawns[o.from];
+    if (w.farm === undefined)
+      return hasPlot(st, o.from)
+        ? 'it has a plot coming'
+        : `${st.villages[w.plot].name} clears ${MAX_PLOTS} plots at a time and both are under way`;
+    const f = st.farmsteads[w.farm],
+      rule = practice(st, f.village).claims,
+      ids = st.demand.includes(o.from) ? st.demand : [...st.demand, o.from],
+      first = claimants(st, f, ids)[0];
+    if (!claimable(st, f)) return `${f.name} cannot be claimed now`;
+    if (first === undefined || first === o.from)
+      return `the claims custom of ${st.villages[f.village].name} (${rule}) allows it no claim`;
+    return `by the claims custom of ${st.villages[f.village].name} (${rule}), ${fullName(st.pawns[first])} stands before ${fullName(p)}`;
+  }
+  function landRefused(st, o, no) {
+    const p = st.pawns[o.from],
+      txt = `${fullName(p)} is refused ${landWhat(st, o)}: ${landNo(st, o)}.`;
+    log(st, txt, { kind: 'offerRefused', pawn: o.from, other: no.by });
+  }
   function settleLand(st, o) {
     const w = o.wants;
     if (w.farm !== undefined) return issue(st, { actor: o.from, verb: 'claim', target: w.farm, source: 'round' });
@@ -285,14 +317,12 @@ VB['sim/farmclaims'] = (() => {
     wait: () => MARRIAGE.offerDays,
     check: landWhy,
     answers: landAnswers,
-    weigh: landYes,
+    weigh: (st, o, a) => (a.key === 'to' && o.wants.farm === undefined ? landYesPlot(st, o) : landYes(st, o, a)),
+    refused: landRefused,
     settle: settleLand,
     subject: (st, o) => o.from,
     where: (st, o) => landVillage(st, o.wants),
-    what: (st, o) =>
-      o.wants.farm !== undefined
-        ? `the empty farm ${st.farmsteads[o.wants.farm].name} for ${fullName(st.pawns[o.from])}`
-        : `a plot in ${st.villages[o.wants.plot].name} for ${fullName(st.pawns[o.from])}`,
+    what: landWhat,
   });
   // Pawn id asks for land in village vid (wants: {farm} or {plot, house, field}) at the moving round, due at once (the round's choosers),
   // or at `due`, the round's time, from its asking day (sim/asking, VB-823)
@@ -307,8 +337,20 @@ VB['sim/farmclaims'] = (() => {
     });
   }
   // The farm pawn id may claim now, or null (sim/expansion clears a plot only for those with none).
-  const claimableFarm = (st, id) =>
-    st.farmsteads.find((f) => claimable(st, f) && claimants(st, f, [id]).length > 0) || null;
+  // Of those it may claim, the one with the most fields, then the best kept, then the lowest id (VB-697).
+  function claimableFarm(st, id) {
+    let best = null;
+    for (const f of st.farmsteads) {
+      if (!claimable(st, f) || claimants(st, f, [id]).length === 0) continue;
+      if (
+        best === null ||
+        f.fields.length > best.fields.length ||
+        (f.fields.length === best.fields.length && f.condition > best.condition)
+      )
+        best = f;
+    }
+    return best;
+  }
   // ---- the restoration: one job, owned by the claimant's household; progress kept on the claim ----
   // The restoration jobs to post: [key, kind, owner, site, extra]. A claim no longer valid ends here. The key names the household, so a
   // claimant who moves house goes on with the hours done (kept on the plan's step at each posting).
