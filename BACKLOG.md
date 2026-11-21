@@ -90,7 +90,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1174](backlog/VB-1174.md) | Refactor: split sim/heirs by concern | - | 3 | M | sim/heirs passed 700 lines (711) when the verbs handOn and move came home in VB-228; split it by concern. |
 | [VB-1175](backlog/VB-1175.md) | Teleports found, collected: swept at a slice's wrap-up | physical | 3 | M | The teleports tasks found in the code, a line each; swept together when a slice wraps up |
 | [VB-1240](backlog/VB-1240.md) | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |
-| [VB-1319](backlog/VB-1319.md) | Measure VB-245 on the late saves, with commits that exist | - | 3 | S | Measure VB-245 with commits that exist |
 | [VB-1354](backlog/VB-1354.md) | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
 | [VB-1369](backlog/VB-1369.md) | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1374](backlog/VB-1374.md) | Measure VB-718 surplus dung (owed to VB-662) | - | 3 | S | numbers owed by VB-718 |
@@ -111,6 +110,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | [VB-697](backlog/VB-697.md) | A plot or an empty farm is asked for, and the alderman answers by the custom | acts | 3 | S | Empty farms and village plots go to 'demand' by the round's custom order (claimFarms, startPlots), with only the player able to wish for one. The pawn asks; the alderman answers by the `claims` and `newLand` customs. |
 | [VB-722](backlog/VB-722.md) | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 | [VB-1126](backlog/VB-1126.md) | Design: the age of account and the bands' margin in design.md | talk | 3 | S | design.md does not yet say VB-1106's two rules (SOCIAL.account 12, SOCIAL.back 0.2) |
+| [VB-1364](backlog/VB-1364.md) | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
 
 ## Blocked
 
@@ -241,7 +241,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-638](backlog/VB-638.md) | The marriage valve measured: long runs against the growth budget | - | 3 | M | VB-555 | The wrap-up of VB-405's tasks (they have no arch, so it does not carry the name): long runs against the growth budget, the setpoint's reach and goAhead measured, the overshoot shown; it names what a tuning run would move and tunes nothing. Waits for VB-631 to VB-635, VB-036 and VB-555. |
 | [VB-688](backlog/VB-688.md) | The ways to a farm share one eligibility and one start in life | - | 3 | M | VB-675 | A pawn comes to a farm by a village plot, an heir's plot, a claim on an empty farm, joining or founding a village from a booth, or a trust, each with its own test of who may (ages, landed or not, crowding) and its own provisioning (all or nothing; what the old home spares; the stakes only); the site score is written three times. |
 | [VB-893](backlog/VB-893.md) | Page: the Plan tab shows stores by the supply component and the year ahead | - | 3 | S | VB-1123 | The plan panel (VB-256) takes up VB-667's supply component and the year-ahead graph |
-| [VB-1364](backlog/VB-1364.md) | The village's loans are made by its alderman | - | 3 | S | VB-312 | Loans of the village (VB-312) made by the alderman, booked as goodwill |
 
 ## Archs
 
