@@ -77,6 +77,7 @@ const FAST = [
   ['node', 'tests/continuity.js'],
   ['node', 'tests/legs.js'],
   ['node', 'tests/journeys.js'],
+  ['node', 'tests/journeykinds.js'], // a journey's kinds: arrival, morning, death and change of home of each (sim/away JOURNEYS, VB-1409)
   ['node', 'tests/away.js'], // sleeping away from home: a lodger's stay, its pack and meals, a guest (VB-783)
   ['node', 'tests/booth.js'], // a booth: staked, raised in 12 hours with its wood, four beds, rots away (VB-784)
   ['node', 'tests/night.js'], // a night without a roof is cold and wet by the house's rule: the road in winter, a booth with wood (VB-785)
