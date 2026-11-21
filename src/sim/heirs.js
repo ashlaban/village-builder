@@ -37,7 +37,7 @@ VB['sim/heirs'] = (() => {
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { hexSteps } = VB['sim/hex'];
-  const { hoursBetween, byLand } = VB['sim/routes'];
+  const { hoursBetween, byLand } = VB['sim/villagehours'];
   const { SHARES, GOODWILL, houseCondition } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/herds'];

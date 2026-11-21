@@ -13,7 +13,8 @@ VB['sim/aims'] = (() => {
   const Stores = VB['sim/stores'];
   const { on } = VB['sim/events'];
   const { log, personEvent, fullName, atHousehold, isHolder } = VB['sim/records'];
-  const { dailyNeed, larderOf } = VB['sim/hunger'];
+  const { dailyNeed } = VB['sim/hunger'],
+    { larderOf } = VB['sim/larder'];
   const { winterNeed } = VB['sim/herds'];
   const { pickField } = VB['sim/fields'];
   const { pickMeadow } = VB['sim/meadows'];

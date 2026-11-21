@@ -3,7 +3,8 @@
 Moved from `AGENTS.md` (7 November 2026), which keeps the rules these systems impose (Conventions there), with where the
 tunables live and how a job kind or a custom is added (Adding things, below). The module map is
 `grep -rn "^// @sys" src`, the state schema `grep -rn "@state" src`, and who writes each field `docs/architecture/ownership.md` and
-`node tools/writes.js`. Keep this list current when a module changes purpose.
+`node tools/writes.js`. Every source module is listed once in the build manifests, or is the Node loader, and has a first-line
+`@sys` declaration naming its responsibility. `npm test` checks that coverage. Keep this list current when a module changes purpose.
 
 - `VB['sim/events']` (VB-229): `on(kind, fn)` at load, `emit(st, kind, data)` calls the subscribers at once in load order; they cannot veto. A
   lower layer's act reaches a higher one this way; `node tools/events.js` lists each kind's emitters and subscribers (`tests/events.js`).
@@ -11,8 +12,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `explain` checks finite outputs and contribution ranges and reports each factor, the combination, the raw result and clamp bounds.
   The million-read heap test checks retained memory after GC; it does not prove zero temporary allocations in provider callbacks.
   Modules declare an owned rule or contribute a factor/term before the first seed/load, which seals the registry; rules never enter saved state.
-- `ArchGen.generate(seed)` (`src/gen.js`) makes the world `w`: per-tile typed arrays, regions, and the chunk bake, painted as a church mural's
-  ground (flat pigments under the relief's light, a contour on the coast); `src/gen/marks.js` draws what stands on it (trees, stones, humps, crags).
+- `ArchGen.generate(seed)` (`src/gen.js`) assembles the world's terrain, hex tiles and regions. Seeded noise comes from `src/gen/noise.js`.
+  `src/gen/biomes.js` defines biome identities, cover thresholds and tile pigments, and updates a tile's biome and colour together.
+  `src/gen/bake.js` rasterizes the generated world for the map at each level of detail, with land pigments, coastal contours, water and
+  decorations. `src/gen/marks.js` draws the individual marks (trees, stones, humps, crags). `ArchGen` exposes the generator and the bake.
   Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
   soapstone, and finite deposits of clay and ores (`w.deposit`, `w.depositLeft`) as veins, each island drawing which kinds it has
@@ -42,9 +45,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`sim/byhand`, fieldAt; `sim/meadows`, meadowAt), and a road is wear laid as a lane (`sim/paths`, layWay), drawn or found by `findRoute`. The editor shows that run, standing still (`still`), and puts the world back
   (`gen/cover`, keep and restore) before it is painted or seeded again. A game begun there is
   `unsaved`: a save rebuilds its world from seed and size alone (`tests/browser-editor.js`).
-- Walking: `src/sim/routes.js` holds the cost of each tile (terrain, fords, worn paths; rivers are closed but at a ford or bridge), the A* route
-  search, `reachCosts` (one Dijkstra from a green to many, for the table of walking hours between villages, `st.villageHours`, VB-286),
-  the route cache and `walkable(w)`, the rule every reach search (`bfs`) uses. `src/sim/paths.js` counts and fades worn paths
+- Walking: `src/sim/walking.js` defines tile passability, the cost of a step and the cached breadth-first reach lists. `src/sim/routes.js`
+  searches for least-cost routes, including `reachCosts` for one search to many targets, and owns the bounded route cache
+  (`st.pathCache`, `st.routeDirty`, `st.routeFallbacks`). `costChanged` marks that cache for daily refresh and tells walking to invalidate
+  its reach lists if passability changed. `src/sim/villagehours.js` maintains the symmetric travel-time table `st.villageHours` (VB-286)
+  through the route search and supplies the village-to-village distance queries. `src/sim/paths.js` counts and fades worn paths
   (`w.wear`, `w.worn`) and wears in generated villages; `src/gen/paths.js` draws them into the map chunks.
 - `Sim.seed(w, seed, scenario)` (`src/sim/scenarios.js`) makes the state `st`; `Sim.advance(st, hours)` (`src/sim/clock.js`) runs it, by whole 6-minute steps only: any other number of hours is refused with an error (VB-244); the page keeps the part of a step and draws the pawns between steps.
   What runs, and in what order, is one table in `src/sim/clock.js`, `CALENDAR` (VB-241): each entry an `every` (step, hour, day, season,
@@ -53,6 +58,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   Scenarios: `founders`, `heirs`, `populous`. All build villages through `settlementGenerator` in `src/sim/layout.js`: cluster villages,
   a farm at a time round the green, each house where its land is best, its fields one block beside it and outward of it. `src/sim.js` only assembles the `Sim` object from the `src/sim/*` modules.
 - Food quantities and paid stakes (VB-174): `src/sim/stores.js` owns grain, meals, sheaves and food ledgers.
+- The larder (`src/sim/larder.js`) owns `household.larder`: lots of perishable food, withdrawn in expiry order and removed when they
+  spoil. The byre, the drying rack and the daily meal use its operations. `src/sim/hunger.js` feeds households, runs the hearth, and
+  applies food and shelter to pawn health. `src/sim/foodneed.js` owns the exchange `need` rule and contributes its food term based on
+  the household's stock and the time to harvest.
 - Fresh food and the pot (VB-119): `src/sim/pot.js` owns `household.fresh` (fish and gathered food in batches by day, lost past their shelf life when the store is next touched) and cooks the pot (fresh food, dried fish in winter, grain, and the seed a short household would eat, VB-388; a pot of several sources goes further), moving food through `sim/stores`; `sim/drying` lays the catch for the pot beyond what is eaten before it spoils by the rack (VB-388).
 - The hand quern (VB-009): `src/sim/quern.js` owns `household.quern` (`{rock, made}`, worn out `QUERN.years` after `made`, read in closed form), grinds grain to `household.flour` (a store of `sim/stores`) and hews a new quern from a load of the heap (`grind`, `hewQuern`); the pot cooks flour 1:1 and grain unground at `ECON.unground`; the quern is a good of the fair (worth 25).
 - Tar (VB-301): `src/sim/tar.js` owns `household.tarPit` (`{tile, village, built}`, a pit dug as a household project plan on the first pine tile of the village's wood, one a village) and `farmstead.tarredUntil`; the reach test is pine standing in the village's wood (`pineTile`); burning (`burntar`, early summer, 12 hours, one pine tree felled) puts a barrel into `household.tar` (a store of `sim/stores`), and `tarhouse` and `tarboat` spend one on the house or the boat (`sim/drying` keeps `household.boat.tarred`: leaky after `BOAT.tarYears`, lost after `BOAT.lostYears`); tar's term of the rule `need`.
@@ -63,7 +72,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   ones `st.obligationsBy`, read through `due(st, party, as, kind)`. Write only through `create`, `fulfil` (goods through `sim/stores`),
   `forgive`, `lapse` and `transfer`; `step` touches only those whose term has ended. A new kind is a row of `KINDS` (its term). The
   first kind is the heirs' share still owed: made by `sim/heirs` (`oweShare`), paid at the moving round by `sim/cottage` (`payOwed`).
-- Animals (VB-131 to VB-138): `src/sim/herds.js` (herds of named cattle and counted sheep, spring breeding, each scenario's herds, cows in milk, the team of oxen), `src/sim/meadows.js` (hay meadows and haymaking, only while hay is wanted), `src/sim/byre.js` (the stall period, the autumn count, slaughter, salting, milking, the dung heap, an unherded herd in a crop), `src/sim/grazing.js` (VB-136: herding, the day's pasture, the herds out with the herder, the grazing pressure `w.graze`, halving each year in closed form, and `milkFactor`, the factor a crowded pasture puts on the milk that `byre` reads, VB-709); read by `src/sim/spread.js`, VB-091, where it keeps open land open or thins its scrub); the larder of stored food and grain spoiling in store are in `src/sim/hunger.js`; soil, tilth (VB-717), manure and how many fields a household wants in `src/sim/fields.js`. Design and plan: `docs/review-animals.md`; balance and history: `docs/review-balance.md`.
+- Animals (VB-131 to VB-138): `src/sim/herds.js` (herds of named cattle and counted sheep, spring breeding, each scenario's herds, cows in milk, the team of oxen), `src/sim/meadows.js` (hay meadows and haymaking, only while hay is wanted), `src/sim/byre.js` (the stall period, the autumn count, slaughter, salting, milking, the dung heap, an unherded herd in a crop), `src/sim/grazing.js` (VB-136: herding, the day's pasture, the herds out with the herder, the grazing pressure `w.graze`, halving each year in closed form, and `milkFactor`, the factor a crowded pasture puts on the milk that `byre` reads, VB-709); read by `src/sim/spread.js`, VB-091, where it keeps open land open or thins its scrub); grain spoiling in store is in `src/sim/hunger.js`; soil, tilth (VB-717), manure and how many fields a household wants in `src/sim/fields.js`. Design and plan: `docs/review-animals.md`; balance and history: `docs/review-balance.md`.
 - Carts (the distance review, 12 November): `src/sim/carts.js` (hand carts and ox carts as a household's items, `household.carts`; the load
   a pawn takes and its pace; wear, mending and the end of a cart; the head's count of misses, `household.cartMiss`, and the cart built as a
   project at the house; its tunables `CART`, with `TRAVEL` in `src/sim/rules.js`). `sim/agents` asks it at each load, `sim/kinds` takes its
@@ -291,10 +300,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 ## Layers (VB-230)
 Each module's layer is in `src/layers.json` (a module without one fails `npm test`); target-v2 3.1 gives the rule: calls go downward, reads are
 free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
-- Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/events`, `sim/rng`, `sim/hex`, `sim/names`, `sim/routes`, `sim/paths`,
+- Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/events`, `sim/rng`, `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
+  `sim/villagehours`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
   head's skill and bias, VB-254), `sim/commands`.
-- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/plans` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/pot`, `sim/hunger`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
+- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/plans` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fields`, `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/fieldwork` (the job kinds of a farm's fields, beside `sim/fields`, VB-418), `sim/chores` (the job kinds of the household's daily work at
   the house: firewood, water, cooking, brewing, gathering, VB-418),
@@ -311,6 +321,8 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
 
 ## Adding things
+- Put the module in its load list and name what it owns or supplies in the first-line `@sys` declaration. Describe the boundary
+  in terms of the work and state the module handles. A module that changes another's state calls the owner's operations.
 - A module has no cap on its length (VB-413): over 700 formatted lines (`src/` is formatted by Prettier, `npm run format`) the lint asks for an open task titled "Refactor: split <key> ...", opened by the task that
   takes it there (VB-414). The same task is asked for when a module over 15 exports gains one (VB-415; the `sim` facade is not counted, nor an export read only by a registry: a job kind's `done`, a calendar entry's `run`, a verb's body; the list is `REGISTRIES` in `tests/lint.js`, VB-454). Put code where its concern lives, not where there is room.
 - Tunables: `ECON`, `FIELDS`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `HERD`, `SOIL`, `RIVER`, `TERRAIN`, `SLOPE`, `ROUTE`, `PATHS`, `SETTLE`

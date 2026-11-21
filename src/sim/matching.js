@@ -9,14 +9,15 @@ VB['sim/matching'] = (() => {
   // The open matches pawn id is asked by: up to ASK.held may stand at once (VB-823); and whether it asks in one itself
   const askedBy = (st, id) => st.offers.filter((o) => o.basis === 'match' && askedOf(o) === id).length;
   const asksMatch = (st, id) => st.offers.some((o) => o.basis === 'match' && askerOf(o) === id);
-  const { dailyNeed, larderOf } = VB['sim/hunger'],
+  const { dailyNeed } = VB['sim/hunger'],
+    { larderOf } = VB['sim/larder'],
     { reserved, grainOf } = VB['sim/stores'];
   const { settlementIdOf, kinDegree, spousesOf, wasWidowed, practice, fullName, spouseOf, age, personEvent } =
     VB['sim/records'];
   const { heirRanking, heirFor } = VB['sim/heirs'];
   const { trustOfHolder } = VB['sim/ownership'];
   const { opinionOf } = VB['sim/relations'];
-  const { hoursBetween, byLand } = VB['sim/routes'];
+  const { hoursBetween, byLand } = VB['sim/villagehours'];
   const { wishOf } = VB['sim/wishes'];
   const Rules = VB['sim/registry'];
 

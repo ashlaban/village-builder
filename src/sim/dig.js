@@ -8,7 +8,7 @@ VB['sim/dig'] = (() => {
   const Geo = VB['gen/geology'],
     { DEPOSIT, ENDLESS } = Geo;
   const { bfs } = VB['sim/hex'],
-    { passable } = VB['sim/routes'];
+    { passable } = VB['sim/walking'];
   const { isOutland } = VB['sim/territory'],
     Stores = VB['sim/stores'],
     Targets = VB['sim/targets'];

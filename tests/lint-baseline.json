@@ -1,7 +1,4 @@
 {
- "src/gen.js": {
-  "lines": 1040
- },
  "src/sim/rules.js": {
   "lines": 804
  },

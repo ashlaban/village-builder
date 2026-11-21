@@ -1,4 +1,4 @@
-// Structure lint: @sys header on line 1, no line over 160 characters; no clock or unseeded random in the modules
+// Structure lint: every source module is listed once and has an @sys header on line 1; no line over 160 characters, clock or unseeded random
 // (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st. The page script's files
 // (src/page/*.js, listed in src/page.json; VB-053) get the structure checks and the page rule, not the clock rule: the page may read the clock.
 // Existing long lines are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
@@ -20,9 +20,19 @@ const REGISTRIES = {
 };
 const files = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8')).map((f) => 'src/' + f).concat('src/load.js');
 const pageFiles = JSON.parse(fs.readFileSync(path.join(root, 'src/page.json'), 'utf8')).map((f) => 'src/' + f);
-const key = (f) => (f === 'src/load.js' ? 'load' : f.slice(4, -3));
+const key = (f) => f.slice(4, -path.extname(f).length);
 const base = fs.existsSync(BASE) ? JSON.parse(fs.readFileSync(BASE, 'utf8')) : {};
 const cur = {}, errors = [], notes = [];
+const listed = new Set();
+for (const f of files.concat(pageFiles)) {
+  if (listed.has(f)) errors.push(`${f}: listed more than once in the source module lists`);
+  listed.add(f);
+}
+for (const entry of fs.readdirSync(path.join(root, 'src'), { recursive: true, withFileTypes: true })) {
+  if (!entry.isFile() || !/\.[cm]?[jt]s$/.test(entry.name)) continue;
+  const f = path.relative(root, path.join(entry.parentPath, entry.name)).split(path.sep).join('/');
+  if (!listed.has(f)) errors.push(`${f}: source module missing from src/manifest.json or src/page.json`);
+}
 let tasks = null; // the backlog's tasks, read only when a module is over the line
 const openTasks = () => tasks || (tasks = fs.readdirSync(path.join(root, 'backlog')).filter((n) => /^VB-\d+\.md$/.test(n)).map((n) => {
   const text = fs.readFileSync(path.join(root, 'backlog', n), 'utf8'), m = /^# (VB-\d+): (.*)$/m.exec(text), s = /^Status: (.*)$/m.exec(text);
@@ -31,9 +41,10 @@ const openTasks = () => tasks || (tasks = fs.readdirSync(path.join(root, 'backlo
 for (const f of files.concat(pageFiles)) {
   const lines = readSource(f).split('\n');
   if (lines[lines.length - 1] === '') lines.pop();
-  const head = new RegExp(`^// @sys ${key(f).replace('/', '\\/')}: \\S.*$`);
+  const prefix = `// @sys ${key(f)}: `;
   const long = lines.map((l, i) => (l.length > MAX_COLS ? i + 1 : 0)).filter(Boolean);
-  const headOk = head.test(lines[0] || '');
+  const head = lines[0] || '';
+  const headOk = head.startsWith(prefix) && /^\S/.test(head.slice(prefix.length));
   if (!headOk) errors.push(`${f}:1 line 1 must be "// @sys ${key(f)}: <purpose>"`);
   cur[f] = { lines: lines.length, longLines: long.length };
   const b = { lines: 0, longLines: 0, ...base[f] };

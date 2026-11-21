@@ -692,7 +692,7 @@ VB['sim/rules'] = (() => {
   // ---- foods (VB-259; design.md, Goods and the farming year: Food, Meals; Kim, 10 Nov): a ration is only the unit, one adult's food for a
   // day. Each food the game has: worth (rations a unit), keeps (shelf life in game days; null: it does not spoil by date, as grain, which
   // spoils in store by sim/hunger's share instead), source (its source in the pot, VB-119: grain and flour are one, fresh and dried fish one),
-  // held (where a household keeps it: 'grain', its grain; 'larder', lots eaten as they are, sim/hunger addFood, from sim/byre and sim/drying;
+  // held (where a household keeps it: 'grain', its grain; 'larder', lots eaten as they are, sim/larder addFood, from sim/byre and sim/drying;
   // 'fresh', batches by the day they came in, sim/pot putFresh) and raw (it may be eaten uncooked, at no penalty: the larder's foods always,
   // fresh food on a day without meals). Grain, fresh food and dried fish are cooked into meals (sim/pot); grain eaten uncooked costs
   // 1 / ECON.uncooked a ration. Grain cooked unground gives 1 / ECON.unground a ration; flour, ground on the hand quern (sim/quern, VB-009),
@@ -823,7 +823,7 @@ VB['sim/rules'] = (() => {
   };
 
   const SPEED = 12; // tiles per game hour on foot, on meadow (it was 3: the distance review, Kim, 12 Nov; design.md, World and scale)
-  // ---- walking (sim/routes): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
+  // ---- walking (sim/walking): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
   // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
   // Each kind of ground has its own cost (Kim, 13 Nov; VB-439): sand and heather slow a walker a little, open pine wood more, rough
   // hill ground more again, a thick broadleaf wood with no way through it takes twice the time of meadow, marsh and bare rock longer.
@@ -859,7 +859,7 @@ VB['sim/rules'] = (() => {
     wornYears: 3,
     trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 },
   };
-  // ---- slopes (sim/routes): a step between two tiles is slowed by its slope, up or down alike, whatever its terrain (VB-438) ----
+  // ---- slopes (sim/walking): a step between two tiles is slowed by its slope, up or down alike, whatever its terrain (VB-438) ----
   // Tobler's hiking function (Tobler 1993: 6 exp(-3.5 |S + 0.05|) km an hour at slope S, rise over run), made symmetric around the
   // flat: a walker's speed falls by exp(-tobler |S|), so a step's cost is its terrain's times exp(tobler |S|).
   // tobler: the function's exponent; grade: the slope S of a step whose two tiles differ by one unit of elevation (w.he, 0 to 1 over

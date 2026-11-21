@@ -30,7 +30,7 @@ if (hc) {
   check(w.deposit[t] === DEPOSIT.CLAY && D.mayDig(st, hc, f, t), 'the job is on a clay tile the household may dig');
   check(p.key === `dig:h${hc.id}:${t}` && p.farm === f, 'the key names the household and the tile');
   // the nearest: no clay tile it may dig is fewer steps from the house
-  const { dist } = VB['sim/hex'].bfs(w, f.house, DIG.reach, (j) => VB['sim/routes'].passable(w, j));
+  const { dist } = VB['sim/hex'].bfs(w, f.house, DIG.reach, (j) => VB['sim/walking'].passable(w, j));
   check(dist.has(t) && [...dist].every(([i, d]) => d >= dist.get(t) || w.deposit[i] !== DEPOSIT.CLAY || !D.mayDig(st, hc, f, i) || !D.left(st, i)),
     'the tile is the nearest clay the household may dig');
   // the search is kept: asked again, it does not search

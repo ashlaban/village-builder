@@ -6,7 +6,8 @@ VB['sim/clock'] = (() => {
   const { growTrees } = VB['sim/forest'];
   const { spreadForest } = VB['sim/spread'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
-  const { refreshRoutes, costChanged, refreshHoursStep, ROW_STEPS } = VB['sim/routes'];
+  const { refreshRoutes, costChanged } = VB['sim/routes'],
+    { refreshHoursStep, ROW_STEPS } = VB['sim/villagehours'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
@@ -410,7 +411,7 @@ VB['sim/clock'] = (() => {
     {
       every: 'year',
       at: { season: AUTUMN, sday: 8, hour: 12, tick: [0, ROW_STEPS] },
-      owner: 'sim/routes',
+      owner: 'sim/villagehours',
       note: 'the walking hours between villages, a row a step (VB-286)',
       run: (st, c, n) => refreshHoursStep(st, n - 12 * TICKS),
     },

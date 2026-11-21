@@ -3,7 +3,7 @@
 // node docs/plans/VB-190-water.js ROOT map seed[,seed] [boatCost] [rivers]   (ROOT an absolute path)
 // Research code, not game code: its own search over the grid, so that water and ice can be opened; counters, not times.
 const [root, map, seeds, boatArg] = process.argv.slice(2); // then: rivers
-const VB = require(root + '/src/load.js'), R = VB['sim/routes'], RU = VB['sim/rules'], G = VB.gen;
+const VB = require(root + '/src/load.js'), R = VB['sim/walking'] || VB['sim/routes'], RU = VB['sim/rules'], G = VB.gen;
 const SIZES = { small: [180, 130], medium: [280, 200] };
 const SPEED = 8, BOAT = +(boatArg || 0.35), PUT = 3, NEAR = 3, ICE = 1, FROZEN_MARSH = 1.5, LANDING_HOURS = 2;
 const B = G.B;

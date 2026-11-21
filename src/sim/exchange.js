@@ -8,7 +8,8 @@ VB['sim/exchange'] = (() => {
   const { HELP, GOODWILL, HERD, stalled } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf, age, childrenOf, siblingsOf } = VB['sim/records'];
   const { herdsOf, winterNeed, payInAnimals } = VB['sim/herds'];
-  const { floorOf, dailyNeed, servedLast, daysOfFood } = VB['sim/hunger'];
+  const { floorOf, dailyNeed, servedLast } = VB['sim/hunger'],
+    { daysOfFood } = VB['sim/foodneed'];
   const Culture = VB['culture'];
   const Offers = VB['sim/offers'];
   const { issue } = VB['sim/commands'];

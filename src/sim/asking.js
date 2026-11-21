@@ -11,7 +11,7 @@ VB['sim/asking'] = (() => {
   const { age, spouseOf, settlementIdOf, practice, spokesmanOf, matchByOf, holdingOf, fullName, tieOf } =
     VB['sim/records'];
   const { kinOk, sideScore, matchRules, courts, askerOf, askedOf, askedBy } = VB['sim/matching'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { hoursBetween } = VB['sim/villagehours'];
   const { claimableFarm, askLand } = VB['sim/farmclaims'];
   const { placeIfMarried, heirRanking } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];

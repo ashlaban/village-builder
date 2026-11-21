@@ -2,7 +2,7 @@
 // closed form, and a house's fishing ground: the nearest bank within reach whose water holds fish
 VB['sim/fish'] = (() => {
   const { FISH, DAY } = VB['sim/rules'];
-  const { reachTiles } = VB['sim/routes'];
+  const { reachTiles } = VB['sim/walking'];
   // Fresh stocks for a world: every water full; the settlement generator calls it, and a load of a save made before fishing.
   function initFish(w) {
     // @state w.fish: Float32Array per tile; a river or small lake tile's fish stock from 0 to 1 as of the day in w.fishDay, recovering

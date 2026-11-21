@@ -3,7 +3,7 @@
 // Every rule on the small islands of tests/lib/probe.js (VB-856): populous at seeds 7 and 11 (at 42 the small island's crowded village
 // stands apart from its green), heirs half a year, founders a year. --extended, at night: the default island, heirs three years and
 // founders ten, the long run in which a lone farm's village gains its green in play (day 90 at seed 7, beside two fields: VB-887).
-const VB = require('../src/load.js'), Sim = VB.sim, { bfs } = VB['sim/hex'], { walkable } = VB['sim/routes'];
+const VB = require('../src/load.js'), Sim = VB.sim, { bfs } = VB['sim/hex'], { walkable } = VB['sim/walking'];
 const { findRoute } = VB['sim/routes'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('LAYOUT FAIL:', m); } };
 const EXT = process.argv.includes('--extended'), { island, generate, scenario, ROOMY } = require('./lib/probe.js');

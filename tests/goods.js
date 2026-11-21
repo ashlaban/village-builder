@@ -5,7 +5,7 @@ const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rules = VB['sim/registry'], Culture = VB.culture;
 const { bufferOf } = VB['sim/traits']; // VB-520: the floor and the holder's reserve, by its generosity
 const Stores = VB['sim/stores'], { needValue, propriety, KEEPING } = VB['sim/exchange'];
-const { dailyNeed, toHarvest, NEED } = VB['sim/hunger'];
+const { dailyNeed } = VB['sim/hunger'], { toHarvest, NEED } = VB['sim/foodneed'];
 const { HERD, YEAR_DAYS, DAY, SEASON_DAYS } = VB['sim/rules'];
 let checks = 0;
 const near = (a, b, what) => { assert(Math.abs(a - b) < 1e-6, `${what}: ${a}, wanted ${b}`); checks++; };

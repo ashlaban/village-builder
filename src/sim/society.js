@@ -11,7 +11,7 @@ VB['sim/society'] = (() => {
   const { herdsOf, winterNeed } = VB['sim/herds'];
   const { addValues, act } = VB['sim/traits'];
   const { hexSteps } = VB['sim/hex'];
-  const { hoursBetween } = VB['sim/routes'];
+  const { hoursBetween } = VB['sim/villagehours'];
   const {
     log,
     age,

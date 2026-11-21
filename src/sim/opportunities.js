@@ -3,7 +3,7 @@
 VB['sim/opportunities'] = (() => {
   const Culture = VB['culture'];
   const { cal, SERVICE, DAY, YEAR } = VB['sim/rules'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'];
   const { villageOf, settlementIdOf, practice, fullName, spouseOf, childrenOf, holdingOf, spokesmanOf } =
     VB['sim/records'];
   const { ASK } = VB['sim/kinds'];
@@ -24,7 +24,7 @@ VB['sim/opportunities'] = (() => {
     HELP_KINDS = MATCH.help.kinds;
   const { unfit, handsLeft } = VB['sim/service'];
   const { ALE_EVENING, RITE } = VB['sim/rules'],
-    { hoursBetween } = VB['sim/routes'];
+    { hoursBetween } = VB['sim/villagehours'];
   // What pawn `id` may read of the state. It filters nothing for now: every pawn knows everything (design.md, What a pawn knows). It is
   // the seam: forPawn reads the world only through its view, so what a pawn has not heard can later be left out here.
   const actorView = (st) => st;
