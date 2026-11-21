@@ -42,7 +42,7 @@ X.finishStep(st, { plot, cottage: true });
 check(site.wood === 7 && X.cottageAt(plot) === 2, `the walls took ${BUILD.timber} loads (${site.wood} left)`);
 // a felled plot tile: its trees are the plot's wood
 const wooded = tileAt(w, 17, 10), grove = { holder: { type: 'village', id: v.id }, intended: holder, hours: {}, open: 0,
-  steps: [{ places: [{ tile: wooded, kind: 'house', steps: ['fell', 'grub', 'clear'], i: 0 }] }, {}, { wood: 0 }] };
+  steps: [{ places: [{ tile: wooded, kind: 'house', steps: ['fell', 'grub', 'clear'], i: 0 }] }, { kind: 'foundation' }, { kind: 'walls', wood: 0 }] };
 const n = Math.floor(w.trees[wooded]); X.finishStep(st, { plot: grove, tr: grove.steps[0].places[0] });
 check(grove.steps[2].wood === n * ECON.woodPerTrip && w.trees[wooded] === 0, `a felled tile of ${n} trees gives ${grove.steps[2].wood} loads`);
 // what is left: those who worked the plot, most hours first, each up to its winter goal; the rest burnt

@@ -3,7 +3,7 @@
 VB['sim/expansion'] = (() => {
   const { issue } = VB['sim/commands'];
   const { B } = VB['gen'];
-  const { doneOf } = VB['sim/progress'];
+  const { doneOf, keptDone } = VB['sim/progress'];
   const { fertility, farmable, FIELDS, BUILD, ECON, YEAR } = VB['sim/rules'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
@@ -58,8 +58,35 @@ VB['sim/expansion'] = (() => {
     p.open < 1
       ? -1
       : p.open - 1 + (p.steps[p.open].done >= p.steps[p.open].hours && p.open === p.steps.length - 1 ? 1 : 0);
-  // A site's walls wait until BUILD.timber loads of wood lie there (VB-328; site: a plot, or a booth).
-  const waitsForTimber = (site, i) => COTTAGE[i] === 'walls' && (site.wood || 0) < BUILD.timber;
+  // A plot's walls step, by its kind (its clearing, then COTTAGE's stages, each a step of that kind):
+  const wallsOf = (p) => Projects.stepOf(p, 'walls'); // where the plot's wood lies (VB-328), and the cottage's site (its place)
+  // The loads of timber a cottage's site needs at its stage i (as COTTAGE's index): its walls' BUILD.timber until they stand, then none.
+  const timberNeed = (i) => (i <= COTTAGE.indexOf('walls') ? BUILD.timber : 0);
+  // A site's walls wait until BUILD.timber loads of wood lie there (VB-328; site: a plot's walls step, or a booth's cottage).
+  const waitsForTimber = (site, i) => COTTAGE[i] === 'walls' && Projects.lacks(site, timberNeed(i)) > 0;
+  // The cottages being built in village v that need timber, for sim/building's trips (VB-328, VB-1407): {key, site, need, dest, owner}, each
+  // plot's (the village's, or a household's for its heir, VB-255), its wood on its walls step.
+  const plotTimber = (st, v) =>
+    livePlots(st, v)
+      .filter(building)
+      .map((plot) => ({
+        key: `timber:v${v.id}.${plot.plot}`,
+        site: wallsOf(plot),
+        need: timberNeed(plot.open - 1),
+        dest: wallsOf(plot).place,
+        owner: plot.holder,
+      }));
+  // The cottage of farm f's household while f.booth stands (settlers), as plotTimber's, or null.
+  const boothTimber = (st, f) =>
+    f.booth && f.household !== null
+      ? {
+          key: `timber:f${f.id}`,
+          site: f.booth,
+          need: timberNeed(f.booth.i),
+          dest: f.house,
+          owner: { type: 'household', id: f.household },
+        }
+      : null;
   const stepsFor = (w, tile, kind) => [
     ...(wooded(w, tile) || thick(w, tile) ? ['fell', 'grub'] : []), // thick scrub as forest (VB-091)
     'clear',
@@ -339,11 +366,10 @@ VB['sim/expansion'] = (() => {
     for (const v of st.villages)
       for (const plot of livePlots(st, v).filter(building)) {
         const k = plot.steps[plot.open],
-          key = `plot:v${v.id}.${plot.plot}.cottage`,
-          live = st.jobs.get(key);
+          key = `plot:v${v.id}.${plot.plot}.cottage`;
         if (cottageAt(plot) >= COTTAGE.length) continue; // the roof is on
-        if (live) k.done = doneOf(st, live, k.hours); // hours worked on the open stage persist while the job is dropped and posted again
-        if (waitsForTimber(plot.steps[2], plot.open - 1)) continue; // the walls wait for their timber (sim/building)
+        k.done = keptDone(st, key, k.hours, k.done); // hours worked on the open stage persist while the job is dropped and posted again
+        if (waitsForTimber(wallsOf(plot), plot.open - 1)) continue; // the walls wait for their timber (sim/building)
         out.push([key, k.kind, k.place, { plot, cottage: true, done: k.done, hours: k.hours }]);
       }
     return out;
@@ -411,7 +437,7 @@ VB['sim/expansion'] = (() => {
       { plot, tr } = j,
       step = tr.steps[tr.i],
       v = st.villages[villageOf(plot)],
-      walls = plot.steps[2];
+      walls = wallsOf(plot);
     if (step === 'fell') {
       // the trees felled are the plot's wood, 3 loads a tree, kept for its walls (VB-328)
       walls.wood += Math.floor(w.trees[tr.tile]) * ECON.woodPerTrip;
@@ -477,9 +503,8 @@ VB['sim/expansion'] = (() => {
   function boothJob(st, f) {
     const k = f.booth;
     if (!k) return null;
-    const key = `booth:f${f.id}`,
-      live = st.jobs.get(key);
-    if (live) k.done = doneOf(st, live, COTTAGE_HOURS[COTTAGE[k.i]]);
+    const key = `booth:f${f.id}`;
+    k.done = keptDone(st, key, COTTAGE_HOURS[COTTAGE[k.i]], k.done);
     if (waitsForTimber(k, k.i)) return null;
     return [key, COTTAGE[k.i], { farm: f, booth: true, done: k.done, hours: COTTAGE_HOURS[COTTAGE[k.i]] }];
   }
@@ -542,7 +567,6 @@ VB['sim/expansion'] = (() => {
   return {
     KINDS,
     plotWork,
-    COTTAGE,
     building,
     livePlots,
     tilesOf,
@@ -558,5 +582,7 @@ VB['sim/expansion'] = (() => {
     activePlots,
     boothJob,
     finishBoothStage,
+    plotTimber,
+    boothTimber,
   };
 })();

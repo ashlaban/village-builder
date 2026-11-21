@@ -47,6 +47,7 @@ const FAST = [
   ['node', 'tests/outlook.js'],
   ['node', 'tests/yields.js'],
   ['node', 'tests/timber.js'],
+  ['node', 'tests/sitelacks.js'], // VB-1407: one read of what a site lacks; a step carrying timber gets its trips; the walls by name; kept hours
   ['node', 'tests/stone.js'],
   ['node', 'tests/crops.js'],
   ['node', 'tests/seedorder.js'], // seed eaten last field last; a start in life and settlers take a field's seed of each crop (VB-352)

@@ -7,7 +7,7 @@ VB['sim/farmclaims'] = (() => {
   const Offers = VB['sim/offers'];
   const { bufferOf } = VB['sim/traits'];
   const { withinDay } = VB['sim/villagehours'];
-  const { doneOf } = VB['sim/progress'];
+  const { keptDone } = VB['sim/progress'];
   const {
     spouseOf,
     childrenOf,
@@ -320,9 +320,8 @@ VB['sim/farmclaims'] = (() => {
         continue;
       }
       const hid = st.pawns[c.by].household,
-        key = `restore:f${f.id}.h${hid}`,
-        live = st.jobs.get(key);
-      if (live) c.done = c.plan.steps[0].done = doneOf(st, live, c.hours);
+        key = `restore:f${f.id}.h${hid}`;
+      c.done = c.plan.steps[0].done = keptDone(st, key, c.hours, c.done);
       out.push([
         key,
         'restore',

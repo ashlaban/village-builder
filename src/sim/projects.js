@@ -1,5 +1,5 @@
 // @sys sim/projects: the project plans' record and its reads (VB-123; design.md section 7, Holders and plans), for every module: a holder's
-// plans of steps, each opening when the one before is done; sim/plans writes them
+// plans of steps, each opening when the one before is done; sim/plans writes them; and what a building site lacks (VB-1407)
 VB['sim/projects'] = (() => {
   // @state st.plans.projects (VB-123): {household, village, pawn: Map of a holder's id to its project plans, in the order made}; a project
   //   plan is {id, holder: {type, id}, kind: 'project', what ('field' | 'meadow' | 'boat': what it makes), steps: [{kind (an opportunity kind of
@@ -23,8 +23,31 @@ VB['sim/projects'] = (() => {
     return list.length ? list[0] : null;
   };
   const openStep = (plan) => plan.steps[plan.open];
-  // Whether a step has what it waits for at its site: a step with `timber` (loads it needs, VB-300's boat) once `wood` (loads brought) reaches it.
-  const supplied = (s) => !(s.timber > (s.wood || 0));
+  // A plan's step by its kind (the first of that kind), or undefined: a plot's walls are stepOf(plot, 'walls') (VB-1407). Allocates nothing.
+  function stepOf(plan, kind) {
+    for (const s of plan.steps) if (s.kind === kind) return s;
+    return undefined;
+  }
+  // What a building site lacks (VB-1407): the loads of timber still to bring to `site` (its `wood`, loads brought) for `need`, the loads its
+  // stage needs, which the site's module says (a project step's `timber`, a cottage's walls BUILD.timber, a staked booth's BOOTH.wood; none
+  // once its walls stand). The one read of it: sim/building posts the trips by it, and each site waits by it.
+  const lacks = (site, need) => Math.max(0, (need || 0) - (site.wood || 0));
+  // Whether a step has what it waits for at its site: a step with `timber` (loads it needs, VB-300's boat) once it lacks none.
+  const supplied = (s) => lacks(s, s.timber) === 0;
+  // The timber site of farm f's household's open project step, when that step carries `timber` (a boat at its shore, VB-300; a cart, a barn's
+  // walls at the house, VB-255): {key, site, need, dest, owner} for sim/building's timber trips, or null.
+  function timberOf(st, f) {
+    const s = f.household !== null && openOf(st, 'household', f.household);
+    return s && s.timber
+      ? {
+          key: `timber:b${f.id}`,
+          site: s,
+          need: s.timber,
+          dest: s.place,
+          owner: { type: 'household', id: f.household },
+        }
+      : null;
+  }
   // The open step of a holder's first project plan, or null. Allocates nothing (the review and the kinds read it hourly).
   const openOf = (st, type, id) => {
     const plan = projectOf(st, type, id);
@@ -71,7 +94,10 @@ VB['sim/projects'] = (() => {
     projectsOf,
     projectOf,
     openStep,
+    stepOf,
+    lacks,
     supplied,
+    timberOf,
     openOf,
     forEach,
     holderOf,
