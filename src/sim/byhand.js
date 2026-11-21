@@ -2,7 +2,7 @@
 VB['sim/byhand'] = (() => {
   const { SETTLE, farmable } = VB['sim/rules'];
   const { hexSteps, bfs } = VB['sim/hex'];
-  const { walkable } = VB['sim/routes'];
+  const { walkable } = VB['sim/walking'];
   const { nextTo, placeFields, loneVillage, farmIn, fieldOn } = VB['sim/layout'];
   // A field or a meadow placed by hand is of the farm nearest within HAND_REACH steps (sim/meadows' own reach).
   const HAND_REACH = 6;
