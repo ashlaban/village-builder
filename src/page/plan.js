@@ -15,6 +15,7 @@ const planKey = (V) =>
     V.tiles,
     V.order,
     V.project,
+    V.small,
     V.heldOff,
   ]);
 // The tile a household's project works on (its open step's place), or -1: the page reads sim/projects, as the Reserved rows do.
@@ -335,7 +336,7 @@ function projectHTML(hh, V, mine) {
       });
   if (!mine) return `<div class="plan-row" data-project>${h}${fly}</div>`;
   const menu = pj
-    ? planBtn({ plan: 'drop' }, 'Give it up', 'Give up the project under way', true, 'wide')
+    ? planBtn({ plan: 'drop', id: pj.id }, 'Give it up', 'Give up the project under way', true, 'wide')
     : planBtn(
         { plan: 'project', what: 'field' },
         'Begin a field',
@@ -359,7 +360,30 @@ function projectHTML(hh, V, mine) {
         'wide',
       )
     : planBtn({ plan: 'project', what: 'none' }, 'Hold off', 'Begin no project by the rule until told', true, 'wide');
-  return `<div class="plan-row" data-project>${h}${fly}<span class="plan-ctl menu">${menu}${hold}</span></div>`;
+  return `<div class="plan-row" data-project>${h}${fly}<span class="plan-ctl menu">${menu}${hold}</span></div>${smallHTML(V, mine)}`;
+}
+// The small constructions under way beside the project (a cart, a boat, a tar pit: VB-1414), a row each; the head may give each up.
+const SMALL_NAME = { cart: 'cart', boat: 'fishing boat', tarpit: 'tar pit' };
+function smallHTML(V, mine) {
+  return (V.small || [])
+    .map((q) => {
+      const name = SMALL_NAME[q.what] || q.what,
+        at = Number.isInteger(q.tile) ? q.tile : -1;
+      const h = stat({
+        img: actIcon('spade'),
+        label: `New ${name}`,
+        value: q.step,
+        note: at >= 0 ? `tile ${at}` : '',
+        wide: true,
+        title: 'A small construction under way beside any project, its step and the tile it is on',
+      });
+      const fly = at >= 0 ? flyBtn(at, name) : '',
+        drop = mine
+          ? planBtn({ plan: 'drop', id: q.id }, 'Give it up', `Give up the ${name} under way`, true, 'wide')
+          : '';
+      return `<div class="plan-row" data-small="${q.id}">${h}${fly || drop ? `<span class="plan-ctl">${fly}${drop}</span>` : ''}</div>`;
+    })
+    .join('');
 }
 // What is reserved, by good: the plan's own (the seed) and its projects' (what their steps will spend).
 function reservedHTML(hh) {
@@ -459,7 +483,7 @@ function planClick(b, hh) {
     renderActions();
     return;
   } else if (d.plan === 'project') r = Sim.head(st, 'project', { what: d.what === 'null' ? null : d.what });
-  else if (d.plan === 'drop') r = Sim.head(st, 'dropProject', {});
+  else if (d.plan === 'drop') r = Sim.head(st, 'dropProject', d.id !== undefined ? { id: +d.id } : {});
   else return;
   planMsg = r === true ? { text: `Done: ${b.getAttribute('aria-label')}.` } : { text: r, bad: true };
 }

@@ -137,12 +137,11 @@ VB['sim/carts'] = (() => {
   function missed(st, hh) {
     hh.cartMiss++;
   }
-  // At the winter's start the head counts the year's misses: at CART.misses or more, and with no project under way, the household builds
-  // another cart: an ox cart if it keeps a team and has none, else a hand cart. The count starts again.
-  // What the cart's starter and finisher ask less than the others (VB-1408, kept as they were): the head's holding off projects is not
-  // asked (VB-678 closes that gap), and the finished step's tile is not compared.
-  const BEGIN = { heldOff: false },
-    END = { place: false };
+  // At the winter's start the head counts the year's misses: at CART.misses or more, with no cart being built and no hold on projects, the
+  // household builds another cart, a small construction beside any other project and in a booth as in a house (sim/projects' mayBegin;
+  // VB-1414): an ox cart if it keeps a team and has none, else a hand cart. The count starts again.
+  // What the cart's finisher asks less than the others (VB-1408, kept as it was): the finished step's tile is not compared.
+  const END = { place: false };
   function cartsYear(st, frost = false) {
     if (frost) {
       for (const hh of st.households) for (const c of hh.carts.filter((q) => q.at)) lost(st, hh, c);
@@ -155,13 +154,14 @@ VB['sim/carts'] = (() => {
         if (!hh || hh.dissolved) continue;
         const n = hh.cartMiss;
         hh.cartMiss = 0;
-        if (n < CART.misses || !v.wood.length || !Projects.mayBegin(st, hh, f, BEGIN)) continue;
+        if (n < CART.misses || !v.wood.length || !Projects.mayBegin(st, hh, 'cart')) continue;
         const kind = hasTeam(st, hh) && !hh.carts.some((c) => c.kind === 'ox') ? 'ox' : 'hand';
         emit(st, 'projectBegun', {
           type: 'household',
           id: hh.id,
           project: {
             what: 'cart',
+            small: true,
             cart: kind,
             steps: [{ kind: 'cart', place: f.house, hours: CART.hours[kind], wood: 0, timber: CART.timber[kind] }],
           },

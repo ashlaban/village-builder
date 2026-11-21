@@ -266,8 +266,14 @@ function checkState(st) {
       const h = (type === 'household' ? st.households : type === 'village' ? st.villages : st.pawns)[id];
       if (!h || h.dissolved) bad.push(`plans: project plans of a ${type} ${id} that is gone`); // a claimant who died: until the round (sim/farmclaims)
       if (!Array.isArray(list) || !list.length) { bad.push(`plans: ${type} ${id} keeps an empty list of project plans`); continue; }
-      // today's limit (VB-1410): one of the household's own choosing, besides a settler household's cottage (VB-1411)
-      if (type === 'household' && list.filter((p) => p.what !== 'cottage').length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
+      // today's limit (VB-1410): one large plan of the household's own choosing, a settler household's cottage beside it (VB-1411), and
+      // small constructions (a cart, a boat, a tar pit) without number but one of a making (VB-1414); only those three are small
+      if (type === 'household' && list.filter((p) => p.what !== 'cottage' && !p.small).length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
+      if (type === 'household') for (const p of list) {
+        if (p.small && !['cart', 'boat', 'tarpit'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is marked small`);
+        if (!p.small && ['cart', 'boat', 'tarpit'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is not marked small`);
+        if (p.small && list.filter((q) => q.what === p.what).length > 1) bad.push(`plans: household ${id} has two ${p.what} plans`);
+      }
       if (type === 'household' && list.filter((p) => p.what === 'cottage').length > 1) bad.push(`plans: ${type} ${id} has ${list.length} cottage plans`);
       for (const pl of list) {
         const where = `plans: project ${pl.id} of ${type} ${id}`;

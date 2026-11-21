@@ -35,7 +35,8 @@ VB['sim/building'] = (() => {
     }
   }
   // Asked once for the island: in each village with wood, its cottages being built on a plot (the village's, or a household's for its heir),
-  // then at each farm its booth's cottage and its household's open project step (a boat, VB-300; a cart, a barn's walls, VB-255).
+  // then at each farm its booth's cottage and each of its household's open project steps that carries timber (a boat, VB-300; a cart, a
+  // barn's walls, VB-255; several at once, VB-1414).
   function timberWork(st, holder, at, c, post) {
     for (const v of st.villages) {
       if (!v.wood.length) continue;
@@ -43,7 +44,7 @@ VB['sim/building'] = (() => {
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
         fetchTimber(v, cottageTimber(st, f), post);
-        fetchTimber(v, Projects.timberOf(st, f), post);
+        for (const n of Projects.timberOf(st, f)) fetchTimber(v, n, post);
       }
     }
   }

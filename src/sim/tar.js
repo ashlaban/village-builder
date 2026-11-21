@@ -67,7 +67,8 @@ VB['sim/tar'] = (() => {
     return null;
   }
   // At the start of summer: in each village with pine in its wood and no pit, the household with the most working hands (at least
-  // TAR.hands; the first farm among equals), no project plan and no head holding off projects (VB-253) begins one on the wood's first pine tile.
+  // TAR.hands; the first farm among equals) whose head does not hold off projects (VB-253) begins one on the wood's first pine tile: a small
+  // construction, beside any other project and in a booth as in a house (sim/projects' mayBegin; VB-1414).
   function tarYear(st) {
     for (const v of st.villages) {
       if (!v.wood || !v.wood.length || villagePit(st, v)) continue;
@@ -78,7 +79,7 @@ VB['sim/tar'] = (() => {
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id],
           hh = f.household === null ? null : st.households[f.household];
-        if (!Projects.mayBegin(st, hh, f)) continue;
+        if (!Projects.mayBegin(st, hh, 'tarpit')) continue;
         const n = Targets.hands(st, hh);
         if (n > most) {
           most = n;
@@ -89,7 +90,7 @@ VB['sim/tar'] = (() => {
         emit(st, 'projectBegun', {
           type: 'household',
           id: best.id,
-          project: { what: 'tarpit', steps: [{ kind: 'tarpit', place: t, hours: TAR.pitHours, wood: 0 }] },
+          project: { what: 'tarpit', small: true, steps: [{ kind: 'tarpit', place: t, hours: TAR.pitHours, wood: 0 }] },
         });
     }
   }

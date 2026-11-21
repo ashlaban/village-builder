@@ -8,7 +8,7 @@ const make = () => {
   const st = Sim.seed(r.value, 7, 'populous');
   const hh = st.households.find((h) => !h.dissolved && h.farmstead !== null && !st.plans.projects.household.has(h.id));
   const f = st.farmsteads[hh.farmstead], shore = st.farmsteads.find((x) => x.house !== f.house).house;
-  const plan = Plans.makeProject(st, 'household', hh.id, { what: 'boat', water: 0, steps: [{ kind: 'boat', place: shore, hours: 20, wood: 0, timber: 12 }] });
+  const plan = Plans.makeProject(st, 'household', hh.id, { what: 'boat', small: true, water: 0, steps: [{ kind: 'boat', place: shore, hours: 20, wood: 0, timber: 12 }] });
   plan.steps[0].wood = 9; // three loads carried to the shore
   return { st, hh, shore, plan };
 };

@@ -40,8 +40,8 @@ check(asked().length === 0, 'once the walls stand the site lacks nothing');
 // a household's open step: one carrying timber (whatever its kind) gets its trips, one without none
 const f = st.farmsteads[v.farmsteads[0]], hid = f.household;
 const step = { kind: 'tarpit', place: f.house, hours: 10, wood: 0 };
-const plan = Plans.makeProject(st, 'household', hid, { what: 'tarpit', steps: [step] });
-check(Projects.openOf(st, hid) === step && Projects.timberOf(st, f) === null && asked().length === 0, 'a step without timber: no trip');
+const plan = Plans.makeProject(st, 'household', hid, { what: 'tarpit', small: true, steps: [step] });
+check(Projects.openOf(st, hid) === null && Projects.timberOf(st, f).length === 0 && asked().length === 0, 'a step without timber: no trip');
 step.timber = 4; // any step that carries timber: no list of kinds
 jobs = asked();
 check(jobs.length === 2 && jobs.every((j) => j.key.startsWith(`timber:b${f.id}`) && j.extra.timberFor === step && j.owner.id === hid && j.extra.dest === f.house),

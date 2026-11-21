@@ -10,7 +10,9 @@ VB['sim/projects'] = (() => {
   //   loads brought, or absent; VB-300's boat), done (hours worked on a stage kept while its job is dropped, or absent)}], open (the index of
   //   the open step), reserved, reasons (sim/stores)}. A settler household's cottage (VB-1411; sim/expansion's cottagePlan, made by
   //   sim/settle) is 'cottage', with the plot's three stages and `farmstead` (the farm it is kept with: its village holds it while the farm
-  //   waits for a household, sim/plans' dropAll); it is not of the household's choosing (ownOf).
+  //   waits for a household, sim/plans' dropAll); it is not of the household's choosing (ownOf). A small construction (a cart, a boat, a tar
+  //   pit: a few days' work; Kim, 21 Nov 2026) is marked `small: true` by the starter that makes it: begun and built beside any other plan,
+  //   in a booth as in a house, one of a making (`what`) at a time (mayBegin), and not of the household's large projects (ownOf).
   //   A finished or dropped plan is removed, and a holder with none has no entry (Rules for cost, 1). st.plans.projectSeq: the last plan's id.
   //   st.plans.projects.heirPlots (VB-255): the households' plots for their heirs under way (the same plans as in `household`), an index
   //   of the live ones so that a village's plots are found without walking its households; written with the record, by sim/plans.
@@ -22,16 +24,16 @@ VB['sim/projects'] = (() => {
       list = P && P[type].get(id);
     return list || NONE;
   }
-  // The household's project of its own choosing under way (a field, a meadow, a boat, a plot for its heir...), or null: the guards' one
-  // read of it (mayBegin, the aims' menu, the land step, landWhy, buildStep, barnWhy, heirWhy, the verb dropProject). That a head begins
-  // no second project of its own choosing is today's limit, not the design's (the limit of one project removed, Kim, 21 Nov 2026; how
-  // parallel projects are limited and ranked is VB-1410's). A settler household's cottage is not of its choosing: those guards that refused
-  // a farm with a booth still do (f.booth), and the others never counted it. Allocates nothing.
+  // The household's large project of its own choosing under way (a field, a meadow, a barn, a plot for its heir), or null: the guards' one
+  // read of it (the aims' menu, the land step, landWhy, buildStep, barnWhy, heirWhy, the verb dropProject). That a head begins no second
+  // large project is today's limit, not the design's (the limit of one project removed, Kim, 21 Nov 2026; how parallel projects are
+  // limited and ranked is VB-1410's). A settler household's cottage is not of its choosing: those guards that refused a farm with a booth
+  // still do (f.booth), and the others never counted it; a small construction (plan.small) is beside it as the cottage is. Allocates nothing.
   function ownOf(st, id) {
-    for (const plan of projectsOf(st, 'household', id)) if (plan.what !== 'cottage') return plan;
+    for (const plan of projectsOf(st, 'household', id)) if (plan.what !== 'cottage' && !plan.small) return plan;
     return null;
   }
-  // The open step of the household's project of its own choosing (ownOf), or null. Allocates nothing.
+  // The open step of the household's large project of its own choosing (ownOf), or null. Allocates nothing.
   const openOf = (st, id) => {
     const plan = ownOf(st, id);
     return plan ? plan.steps[plan.open] : null;
@@ -56,22 +58,25 @@ VB['sim/projects'] = (() => {
   const lacks = (site, need) => Math.max(0, (need || 0) - (site.wood || 0));
   // Whether a step has what it waits for at its site: a step with `timber` (loads it needs, VB-300's boat) once it lacks none.
   const supplied = (s) => lacks(s, s.timber) === 0;
-  // The timber site of farm f's household's open project step that carries `timber` (a boat at its shore, VB-300; a cart, a barn's walls at
-  // the house, VB-255), the first such among its plans: {key, site, need, dest, owner} for sim/building's timber trips, or null.
+  // The timber sites of farm f's household's open project steps that carry `timber` (a boat at its shore, VB-300; a cart, a barn's walls at
+  // the house, VB-255), one for every such plan (a barn, a cart and a boat may be under way at once, VB-1414): [{key (its plan's own),
+  // site, need, dest, owner}] for sim/building's timber trips, in the order of the plans; an empty list (not allocated) for none.
   function timberOf(st, f) {
-    if (f.household === null) return null;
+    if (f.household === null) return NONE;
+    let out = NONE;
     for (const plan of projectsOf(st, 'household', f.household)) {
       const s = plan.steps[plan.open];
-      if (s && s.timber)
-        return {
-          key: `timber:b${f.id}`,
-          site: s,
-          need: s.timber,
-          dest: s.place,
-          owner: { type: 'household', id: f.household },
-        };
+      if (!s || !s.timber) continue;
+      if (out === NONE) out = [];
+      out.push({
+        key: `timber:b${f.id}.${plan.id}`,
+        site: s,
+        need: s.timber,
+        dest: s.place,
+        owner: { type: 'household', id: f.household },
+      });
     }
-    return null;
+    return out;
   }
   // Every live project plan, in the order of holders' types and ids (a few per village at most).
   function forEach(st, fn) {
@@ -94,13 +99,15 @@ VB['sim/projects'] = (() => {
     const plan = st.plans && st.plans.households.get(id);
     return !!(plan && plan.chosen && plan.chosen.project === 'none');
   }
-  // Whether household hh, of farm f, may begin a project of its own now (VB-1408): it lives, is not dissolved, its farm has no booth, it
-  // has no project plan under way, and its head does not hold off projects. The one read of it for the yearly starters (sim/tar's pit,
-  // sim/drying's boat, sim/carts' cart), each of which then asks its own rule of when its project is wanted. A starter that asks less
-  // says so by `ask`: { heldOff: false } leaves the head's choice unasked (sim/carts today; VB-678 closes that gap). Allocates nothing.
-  const BEGIN = { heldOff: true };
-  const mayBegin = (st, hh, f, ask = BEGIN) =>
-    !!hh && !hh.dissolved && !f.booth && !ownOf(st, hh.id) && !(ask.heldOff && heldOff(st, hh.id));
+  // Whether household hh may begin the small construction `what` now (VB-1408, VB-1414; a cart, a boat, a tar pit): it lives, is not
+  // dissolved, its head does not hold off projects, and it has no plan of that making under way. Neither a booth nor another project
+  // stops it (Kim, 21 Nov 2026: small constructions are built beside any other). The one read of it for the yearly starters (sim/tar's
+  // pit, sim/drying's boat, sim/carts' cart), each of which then asks its own rule of when its construction is wanted. Allocates nothing.
+  function mayBegin(st, hh, what) {
+    if (!hh || hh.dissolved || heldOff(st, hh.id)) return false;
+    for (const plan of projectsOf(st, 'household', hh.id)) if (plan.what === what) return false;
+    return true;
+  }
   // The one way the job j of household hh's project step ends (VB-1408): when an open step of hh's project plans is still j's (its kind,
   // and its tile unless `ask` is { place: false }: sim/carts' cart today), the domain's effect(st, j, hh, plan, step) runs and the step is
   // done (stepDone, naming that plan: sim/plans opens the next or finishes the plan). Whether it ended. hh is the step's holder, which the
@@ -120,7 +127,9 @@ VB['sim/projects'] = (() => {
   const onProject = (st, j) => planAt(st, 'household', j.owner.id, j.kind, j.site);
   // The open steps of the household's project plans but a plot's and a cottage's (a new field's clear and break, a meadow, a boat...), each
   // posted once the step before it is done, and not while it waits for timber (VB-300). A plot the household clears for its heir (VB-255) is
-  // posted as every plot is (plotWork), a settler household's cottage by sim/building's boothWork.
+  // posted as every plot is (plotWork), a settler household's cottage by sim/building's boothWork. The key is the step's kind at the farm:
+  // the plans posted here open steps of kinds of their own (one large plan, and at most one small one of each making, mayBegin), so
+  // the keys of several plans under way do not meet (VB-1414).
   const landProject = (st, hh, f, c, post) => {
     for (const p of projectsOf(st, 'household', hh.id)) {
       const s = p.what !== 'plot' && p.what !== 'cottage' ? p.steps[p.open] : null;

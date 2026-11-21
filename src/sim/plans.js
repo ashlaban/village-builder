@@ -135,7 +135,8 @@ VB['sim/plans'] = (() => {
     emit(st, 'planDropped', { plan }); // a head's aim on it ends at once (sim/aims, VB-1224), not at its next review
   }
   // Timber carried to a step at its household's house and not yet built in (a barn's walls, a cart's: VB-255) goes onto that farm's
-  // woodpile as the plan is dropped: the farmstead is one place, so nothing is carried, and nothing vanishes.
+  // woodpile as the plan is dropped: the farmstead is one place, so nothing is carried, and nothing vanishes. Only the dropped plan's own
+  // steps are read: the wood of a plan beside it (a cart beside a barn, VB-1414) stays at its own step.
   function leftWood(st, plan) {
     if (plan.holder.type !== 'household') return;
     const hh = st.households[plan.holder.id],
@@ -1015,7 +1016,8 @@ VB['sim/plans'] = (() => {
   }
   // What the head may choose, for the page (VB-256): the targets now (the head's, by its foresight and bias: VB-254), the custom's (its
   // culture's template, unbiased; the fields its household's food asks), the head's own choices, their bounds, the named tiles, the
-  // season's order and the project under way; the head's skill and horizon; or null for a household with no plan. Plain data, a copy.
+  // season's order and the project under way (the large one, ownOf) and the small constructions beside it (VB-1414); the head's skill
+  // and horizon; or null for a household with no plan. Plain data, a copy.
   function headView(st, id) {
     const plan = st.plans.households.get(id),
       sp = st.plans.seasons.get(id);
@@ -1051,6 +1053,9 @@ VB['sim/plans'] = (() => {
       order: [...sp.steps],
       orderBy: sp.by || 'template',
       project: p ? { id: p.id, what: p.what, step: p.steps[p.open].kind } : null,
+      small: Projects.projectsOf(st, 'household', id)
+        .filter((q) => q.small)
+        .map((q) => ({ id: q.id, what: q.what, step: q.steps[q.open].kind, tile: q.steps[q.open].place })),
       heldOff: C.project === 'none',
     };
   }
@@ -1140,21 +1145,29 @@ VB['sim/plans'] = (() => {
       else beginLand(st, st.households[c.target], what, landTile(st, st.households[c.target], c.args));
     },
   });
-  // dropProject({id, hold}): give up the household's project under way (args.id, the plan's id, when given: a field, a meadow, a boat,
-  // a tar pit, ...), and with hold, hold off projects as project 'none' does
+  // The household's project of its own choosing that the verb dropProject gives up: the one of id when given (a field, a meadow, a barn, a
+  // boat, a cart, a tar pit...; never a settler household's cottage), else its large project (ownOf), else the first small one under way.
+  function droppable(st, hid, id) {
+    const mine = (p) => p.what !== 'cottage' && (id === undefined || p.id === id);
+    return (
+      (id === undefined && Projects.ownOf(st, hid)) || Projects.projectsOf(st, 'household', hid).find(mine) || null
+    );
+  }
+  // dropProject({id, hold}): give up a project of the household's under way (args.id, the plan's id, when given: a field, a meadow, a boat,
+  // a tar pit, ...; the others under way stand), and with hold, hold off projects as project 'none' does
   register('dropProject', {
     check: (st, c) => {
       const why = heads(st, c);
       if (why) return why;
-      const p = Projects.ownOf(st, c.target);
-      return !p
-        ? `household ${c.target} has no project under way`
-        : c.args && c.args.id !== undefined && c.args.id !== p.id
-          ? `household ${c.target} has no project ${c.args.id} under way`
-          : null;
+      const id = c.args ? c.args.id : undefined;
+      return droppable(st, c.target, id)
+        ? null
+        : id === undefined
+          ? `household ${c.target} has no project under way`
+          : `household ${c.target} has no project ${id} under way`;
     },
     run: (st, c) => {
-      giveUp(st, st.households[c.target], Projects.ownOf(st, c.target));
+      giveUp(st, st.households[c.target], droppable(st, c.target, c.args ? c.args.id : undefined));
       if (c.args && c.args.hold) holdProject(st, c.target, true);
     },
   });

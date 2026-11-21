@@ -17,7 +17,7 @@ const home = Plans.makeProject(st, 'household', hh.id, X.cottagePlan(f));
 check(home.what === 'cottage' && home.steps.map((s) => s.kind).join() === 'foundation,walls,roof' && Projects.stepOf(home, 'walls').wood === 0,
   'the cottage plan: the plot\'s three stages, the walls with their wood');
 check(Projects.ownOf(st, hh.id) === land && Projects.openOf(st, hh.id) === land.steps[0], 'the project of its own choosing is the field, not the cottage');
-check(!Projects.mayBegin(st, hh, f), 'a farm with a booth begins no project of its own (as before)');
+check(Projects.mayBegin(st, hh, 'cart') && Projects.mayBegin(st, hh, 'boat'), 'a farm with a booth may begin a small construction (VB-1414)');
 
 // posted: the field's step by landProject, the cottage's stage under the booth's key by boothWork; never one for the other
 const posts = (fn) => { const out = []; fn(st, hh, f, cal(st.t), (key, site, extra, kind) => out.push({ key, site, extra, kind })); return out; };
@@ -32,7 +32,7 @@ const walls = Projects.stepOf(home, 'walls');
 let t = trips();
 check(v.wood.length > 0 && t.length === 2 && t.every((j) => j.extra.timberFor === walls && j.key.startsWith(`timber:f${f.id}`)),
   `the cottage's timber goes to its walls from the foundation on (${t.map((j) => j.key)})`);
-check(Projects.timberOf(st, f) === null, 'not as a step carrying timber: no second set of trips');
+check(Projects.timberOf(st, f).length === 0, 'not as a step carrying timber: no second set of trips');
 
 // each job ends its own plan
 const job = (kind, site, extra = {}) => ({ kind, site, farm: f, owner: { type: 'household', id: hh.id }, ...extra });

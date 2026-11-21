@@ -150,7 +150,7 @@ VB['sim/drying'] = (() => {
         const f = st.farmsteads[id],
           hh = f.household === null ? null : st.households[f.household];
         VB.count.boatAsk++;
-        if (!Projects.mayBegin(st, hh, f) || (hh.boat && hh.boat.house === f.house)) continue;
+        if (!Projects.mayBegin(st, hh, 'boat') || (hh.boat && hh.boat.house === f.house)) continue;
         if (!boatable(st, hh, f)) continue;
         const s = boatShore(st, f.house);
         if (s)
@@ -159,6 +159,7 @@ VB['sim/drying'] = (() => {
             id: hh.id,
             project: {
               what: 'boat',
+              small: true, // a small construction, beside any other project (VB-1414)
               water: s.water,
               steps: [{ kind: 'boat', place: s.shore, hours: BOAT.hours, wood: 0, timber: BOAT.timber }],
             },
