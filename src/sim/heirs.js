@@ -60,8 +60,9 @@ VB['sim/heirs'] = (() => {
       });
     }
   }
-  // reason: 'death', 'marriage', 'retirement', 'married away' (the holder married onto a spouse's farm) or 'claim' (a landless adult takes a
-  // farm left with no heir; nobody is owed shares of it).
+  // reason: 'death', 'marriage', 'retirement', 'married away' (the holder married onto a spouse's farm), 'inherited away' (the holder, or
+  // the holder's spouse, takes a larger farm as its heir: handOn's 'heir') or 'claim' (a landless adult takes a farm left with no heir;
+  // nobody is owed shares of it). An heir who holds a place, or lives on a spouse's, hands that place on first (heirsPlace; VB-1141).
   // Pawn id moves to household target (the move command), for this module's acts.
   const move = (st, id, target, args) => issue(st, { actor: id, verb: 'move', target, args, source: 'succession' });
   function transfer(st, hh, heir, reason) {
@@ -374,10 +375,13 @@ VB['sim/heirs'] = (() => {
     }
     transfer(st, hh, heir, 'death');
   }
-  // A holder who marries onto the spouse's farm, `home` (stability review, VB-153), hands their own farm on: to its next heir who can keep it
-  // (an adult, or a minor with a grown housemate as guardian; heirFor), else to the landless adult of its village who has waited longest
-  // for land (then the oldest), else to a minor heir (sim/service then brings a guardian or empties it), else it stands empty and its grain
-  // and animals go with the holder. The holder's minor children go with them, unless one of them keeps the farm.
+  // A holder who leaves its farm, hh, for another, `home`, hands it on: at a marriage onto the spouse's farm (reason 'marriage'; stability
+  // review, VB-153), when the holder of a farm held in trust inherits the trustee's (sim/trust, inheritedHeld), or when the holder, or the
+  // spouse it lives with there, inherits a larger farm (reason 'heir', from transfer; VB-1141: the spouse goes too, and is no heir here). It
+  // goes to its next heir who can keep it (an adult, or a minor with a grown housemate as guardian; heirFor), else to the landless adult of
+  // its village who has waited longest for land (then the oldest), else to a minor heir (sim/service then brings a guardian or empties it),
+  // else it stands empty and its grain and animals go with the holder. The holder's minor children go with them, unless one of them keeps
+  // the farm; a minor holder's guardianship of it ends.
   function handOn(st, hh, giver, home, reason = 'marriage') {
     const spouse = spouseOf(st, giver);
     const follows = reason === 'heir' && spouse !== null && st.pawns[spouse].household === hh.id;
