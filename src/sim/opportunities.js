@@ -13,7 +13,7 @@ VB['sim/opportunities'] = (() => {
   const { goOnAs } = VB['sim/player'];
   const { advice, what: offerText } = VB['sim/offers'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
-  const { SOCIAL } = VB['sim/rules'];
+  const { SOCIAL, GATHERING } = VB['sim/rules'];
   const { fit, jobsFor } = VB['sim/jobs'];
   const { eligible } = VB['sim/eligibility'];
   const { heirRanking, successorOf } = VB['sim/heirranking'],
@@ -173,6 +173,24 @@ VB['sim/opportunities'] = (() => {
         item('attend', o.id, null, check(view, p.id, 'attend', o.id, null), { occasion: { kind: o.kind, place } }),
       );
     }
+    gathering(view, p, hh, out);
+  }
+  // The gathering its village goes to this winter (VB-295), until its household has packed: an item {verb: 'goGathering' or 'stayHome' (as
+  // it goes or not), gathering: {place (the host's name), home (it sleeps at home: its village within GATHERING.homeHours, or the host)}}.
+  function gathering(view, p, hh, out) {
+    const Gt = VB['sim/gathering'],
+      v = villageOf(view, p),
+      at = hh.farmstead === null ? null : Gt.ahead(view, v);
+    if (!at || view.t >= at.start) return;
+    const plan = hh.gathering && hh.gathering.year === at.year ? hh.gathering : null;
+    if (plan && plan.packed) return;
+    const verb = plan && plan.go.includes(p.id) ? 'stayHome' : 'goGathering',
+      home = v === at.host || (!!view.villageHours && hoursBetween(view, v, at.host) <= GATHERING.homeHours);
+    out.push(
+      item(verb, null, null, check(view, p.id, verb, null, null), {
+        gathering: { place: view.villages[at.host].name, home },
+      }),
+    );
   }
 
   // ---- a cause: each custom's options other than its village's practice, and dropping the cause it has ----

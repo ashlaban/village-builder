@@ -38,6 +38,11 @@ for (const hh of hhOf(st, H)) for (let k = 0; k < 3; k++) Stores.brew(st, hh);
   assert.strictEqual(issue(st, { actor: adults[0], verb: 'stayHome', source: 'player' }), true);
   assert.ok(!hh.gathering.go.includes(adults[0]));
   assert.match(String(issue(st, { actor: adults[0], verb: 'stayHome', source: 'player' })), /not going/);
+  // the act bar's choice (sim/opportunities): to go, or to stay home once going
+  const offer = (id) => Sim.opportunities(st, id).find((o) => o.verb === 'goGathering' || o.verb === 'stayHome');
+  assert.ok(offer(adults[0]) && offer(adults[0]).verb === 'goGathering' && offer(adults[0]).why === null, 'offered to go');
+  assert.strictEqual(offer(adults[1]).verb, 'stayHome', 'one going is offered to stay home');
+  assert.strictEqual(offer(adults[1]).gathering.place, st.villages[H].name);
   hh.gathering = undefined; // the test clears the plan it made, for the head to plan it
 }
 
