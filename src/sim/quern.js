@@ -6,7 +6,8 @@
 VB['sim/quern'] = (() => {
   const { YEAR } = VB['sim/rules'];
   const { ROCK, ROCKS } = VB['gen/geology'];
-  const Stores = VB['sim/stores'],
+  const Goods = VB['sim/goods'],
+    Stores = VB['sim/stores'],
     { grainOf, reserved } = Stores;
   const { dailyNeed } = VB['sim/hunger'];
   const Targets = VB['sim/targets'];
@@ -131,7 +132,7 @@ VB['sim/quern'] = (() => {
     },
   };
   // The quern as a good of the fair (design.md, The mill and the loom: a good of place; Culture's worth table holds it at 25 rations).
-  Stores.declareGood({
+  Goods.declareGood({
     id: 'quern',
     kind: 'quern',
     class: 'wares',
