@@ -1,7 +1,7 @@
 // Relationships (sim/relations): compatibility, opinion derived from the bond, affinity (compatibility shown as a tie grows) and timed
 // memories within their caps (VB-240), close friend and enemy bands told once and checked again each season, memories that fade and are
 // forgotten (once a season), and death ending relationships.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/relations'], { SOCIAL, YEAR_DAYS, SEASON_DAYS, DAY } = VB['sim/rules'];
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/relations'], Ties = VB['sim/ties'], { SOCIAL, YEAR_DAYS, SEASON_DAYS, DAY } = VB['sim/rules'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('RELATIONS FAIL:', m); } };
 const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
@@ -27,9 +27,9 @@ check(R.opinionOf(st, a.id, b.id) === 0 && !a.rel.has(b.id), 'strangers start at
 // affinity: the pair's compatibility, shown in full once a's tie to b reaches SOCIAL.affinity.known (VB-240)
 const K = SOCIAL.memories, AF = SOCIAL.affinity, told = (p, kind) => Sim.recordOf(st, { pawn: p.id, life: true }).filter((e) => e.kind === kind).length;
 const cab = R.compat(st, a.id, b.id);
-R.addTie(st, a.id, b.id, AF.known / 2);
+Ties.addTie(st, a.id, b.id, AF.known / 2);
 check(Math.abs(R.opinionOf(st, a.id, b.id) - AF.weight * cab / 2) < 1e-9, `half known: ${R.opinionOf(st, a.id, b.id)}, compat ${cab}`);
-R.addTie(st, a.id, b.id, AF.known);
+Ties.addTie(st, a.id, b.id, AF.known);
 check(Math.abs(R.opinionOf(st, a.id, b.id) - AF.weight * cab) < 1e-9, `known well, the whole affinity: ${R.opinionOf(st, a.id, b.id)}`);
 check(R.opinionOf(st, b.id, a.id) === 0 && !a.rel.has(b.id), 'opinion has a direction: b does not know a; a tie makes no record');
 // a compatible stranger met at work: close friends once known well enough, told once
@@ -48,7 +48,7 @@ const c = adults.find((x) => unrelated(x) && x !== cf);
 a.traits[VB['sim/traits'].IDX.honour] = 0.5; // a breach felt as at 0.5 (VB-520: 0.5 to 1.5 times by honour; tests/traitacts.js)
 for (let k = 0; k < 5; k++) { R.remember(st, a.id, c.id, 'claim'); R.remember(st, a.id, c.id, 'refusedMatch'); }
 check(Math.abs(a.rel.get(c.id).mem.claim.v - K.claim.cap) < 1e-9, `claims capped at ${K.claim.cap}: ${a.rel.get(c.id).mem.claim.v}`);
-const o = R.opinionOf(st, a.id, c.id), aff = AF.weight * R.compat(st, a.id, c.id) * Math.min(1, R.tieOf(st, a.id, c.id) / AF.known);
+const o = R.opinionOf(st, a.id, c.id), aff = AF.weight * R.compat(st, a.id, c.id) * Math.min(1, Ties.tieOf(st, a.id, c.id) / AF.known);
 check(Math.abs(o - Math.max(-1, K.claim.cap + K.refusedMatch.cap + aff)) < 1e-9, `opinion ${o}, wanted the sum of both caps and affinity ${aff}`);
 check(told(a, 'enemy') === 1 && a.bands.get(c.id) === -1, `became the enemy told ${told(a, 'enemy')} times, band ${a.bands.get(c.id)}`);
 check(R.opinionWord(o) === 'enemy', `word ${R.opinionWord(o)}`);
@@ -74,7 +74,7 @@ check(checkState(st).length === 0, 'invariants after a death: ' + checkState(st)
 // talk (VB-061): two pawns standing together outdoors in waking hours talk, and their tie grows by SOCIAL.ties.talk; it leaves no memory
 const S = VB['sim/encounters'], T = SOCIAL.talk, TIES = SOCIAL.ties, pair = adults.filter((x) => x.alive && x !== b && x !== c).slice(0, 2), [ta, tb] = pair.map((x) => st.agents[x.id]);
 const stand = () => { for (const [g, dx] of [[ta, 0], [tb, 4]]) { VB['sim/agents'].release(st, g); VB['sim/agents'].standStill(st, g); g.inside = false; g.carry = null; g.x = 5000 + dx; g.y = 5000; } };
-const tie0 = R.tieOf(st, pair[0].id, pair[1].id), talks0 = st.talks;
+const tie0 = Ties.tieOf(st, pair[0].id, pair[1].id), talks0 = st.talks;
 for (const ag of st.agents) if (ag !== ta && ag !== tb) ag.inside = true; // nobody else outdoors
 let hours = 0;
 ta.talk = null;
@@ -82,7 +82,7 @@ while (!(ta.talk && ta.talk.with === pair[1].id) && hours < 40) { stand(); R.tal
 check(st.talks > talks0 && ta.talk, `no talk in ${hours} hours together`);
 check(!pair[0].rel.has(pair[1].id) && !pair[1].rel.has(pair[0].id), 'a talk leaves no memory (VB-240)');
 check(['chat', 'goodTalk', 'crossWords'].includes(ta.talk.kind) && ta.talk.kind === tb.talk.kind, `the bubble's kind: ${ta.talk.kind}`);
-const grew = (R.tieOf(st, pair[0].id, pair[1].id) - tie0) / TIES.talk; // housemates indoors talk too, so count the pair's talks by its tie
+const grew = (Ties.tieOf(st, pair[0].id, pair[1].id) - tie0) / TIES.talk; // housemates indoors talk too, so count the pair's talks by its tie
 check(grew >= 1 - 1e-9 && Math.abs(grew - Math.round(grew)) < 1e-9, `the tie grew by ${grew} talks' worth`);
 check(ta.talk && ta.talk.with === pair[1].id && tb.talk.with === pair[0].id && ta.talk.until - ta.talk.at === T.bubbleHours, 'the bubble names the other');
 const before = st.talks; stand(); R.talkHour(st, 23, S.outdoors(st, VB['sim/agents'].placeOf)); stand(); R.talkHour(st, 3, S.outdoors(st, VB['sim/agents'].placeOf));
@@ -107,7 +107,7 @@ const [x, fr, foe] = (() => {
   return [];
 })();
 check(x && fr && foe, 'three unrelated adults of one village');
-R.addTie(st, x.id, fr.id, AF.known);
+Ties.addTie(st, x.id, fr.id, AF.known);
 for (let k = 0; k < 5; k++) { R.remember(st, x.id, foe.id, 'claim'); R.remember(st, x.id, foe.id, 'refusedMatch'); }
 const home = st.farmsteads[st.households[x.household].farmstead].house, hx = st.w.hx[home], hy = st.w.hy[home];
 for (const ag of st.agents) { ag.inside = true; ag.talk = null; }
@@ -124,28 +124,28 @@ SOCIAL.seek = seek0;
 // familiarity (VB-127): stored on the pawn's own decay scale, read as halving every year; put back on today's scale without change
 const TS = SOCIAL.ties, YEAR = YEAR_DAYS * DAY, [f0, f1] = adults.filter((p) => p.alive && p.id !== x.id).map((p) => p.id);
 const fp = st.pawns[f0], tieT0 = fp.tieT;
-fp.ties.delete(f1); R.raiseTie(st, f0, f1, 3);
-check(Math.abs(R.tieOf(st, f0, f1) - 3) < 1e-9, `a raised tie reads 3: ${R.tieOf(st, f0, f1)}`);
+fp.ties.delete(f1); Ties.raiseTie(st, f0, f1, 3);
+check(Math.abs(Ties.tieOf(st, f0, f1) - 3) < 1e-9, `a raised tie reads 3: ${Ties.tieOf(st, f0, f1)}`);
 fp.tieT -= YEAR; // as if the scale had started a year earlier: the same stored weight is a year older
-check(Math.abs(R.tieOf(st, f0, f1) - 1.5) < 1e-9, `a year on, it reads half: ${R.tieOf(st, f0, f1)}`);
-R.addTie(st, f0, f1, TS.talk);
-check(Math.abs(R.tieOf(st, f0, f1) - 1.5 - TS.talk) < 1e-9, `a talk adds ${TS.talk} as of now: ${R.tieOf(st, f0, f1)}`);
-const atDay = [...fp.ties.keys()].map((j) => [j, R.tieOf(st, f0, j)]);
-R.renormalise(st, fp);
+check(Math.abs(Ties.tieOf(st, f0, f1) - 1.5) < 1e-9, `a year on, it reads half: ${Ties.tieOf(st, f0, f1)}`);
+Ties.addTie(st, f0, f1, TS.talk);
+check(Math.abs(Ties.tieOf(st, f0, f1) - 1.5 - TS.talk) < 1e-9, `a talk adds ${TS.talk} as of now: ${Ties.tieOf(st, f0, f1)}`);
+const atDay = [...fp.ties.keys()].map((j) => [j, Ties.tieOf(st, f0, j)]);
+Ties.renormalise(st, fp);
 check(fp.tieT === st.t && tieT0 <= st.t, `renormalised: tieT ${fp.tieT}, now ${st.t}`);
-check(atDay.every(([j, v]) => (fp.ties.has(j) ? Math.abs(R.tieOf(st, f0, j) - v) < 1e-9 * Math.max(1, v) : v < TS.forget)),
+check(atDay.every(([j, v]) => (fp.ties.has(j) ? Math.abs(Ties.tieOf(st, f0, j) - v) < 1e-9 * Math.max(1, v) : v < TS.forget)),
   'renormalising keeps every tie as it was, and drops those under TIES.forget');
 R.dailyTies(st);
 // the kin floor, once a season: raised with a season's fading to spare, kin are still at the floor at the pawn's next turn
 const kin0 = VB['sim/records'].kinNear(st, f0).filter((q) => st.pawns[q].alive);
 check(kin0.length > 0, 'a pawn with living near kin');
-for (const q of kin0) { fp.ties.delete(q); R.floorKin(st, f0, q); }
+for (const q of kin0) { fp.ties.delete(q); Ties.floorKin(st, f0, q); }
 fp.tieT -= SEASON_DAYS * DAY - 1e-6; // a season on, less a moment
-for (const q of kin0) check(R.tieOf(st, f0, q) >= TS.kin - 1e-9, `kin ${q} at ${R.tieOf(st, f0, q)} a season after the floor`);
+for (const q of kin0) check(Ties.tieOf(st, f0, q) >= TS.kin - 1e-9, `kin ${q} at ${Ties.tieOf(st, f0, q)} a season after the floor`);
 fp.tieT += SEASON_DAYS * DAY - 1e-6;
 // waking hours at home: two housemates both inside for every talk hour grow by TIES.home over the day
 const hm = st.households.find((h) => !h.dissolved && h.members.length >= 2 && h.members.every((m) => st.pawns[m].alive));
-const [m0, m1] = hm.members, home0 = R.tieOf(st, m0, m1);
+const [m0, m1] = hm.members, home0 = Ties.tieOf(st, m0, m1);
 for (const id of st.living) st.pawns[id].homeHours = 0;
 for (const ag of st.agents) { ag.inside = st.pawns[ag.id].household === hm.id; ag.talk = null; }
 const hf = st.farmsteads[hm.farmstead].house;
@@ -153,15 +153,15 @@ for (const m of hm.members) { st.agents[m].x = st.w.hx[hf] - 12; st.agents[m].y 
 const talks1 = st.talks;
 for (let h = 0; h < DAY; h++) { for (const ag of st.agents) ag.inside = st.pawns[ag.id].household === hm.id; R.talkHour(st, h, S.outdoors(st, VB['sim/agents'].placeOf)); }
 check(st.pawns[m0].homeHours === T.to - T.from, `the talk hours counted at home: ${st.pawns[m0].homeHours}`);
-const talked = R.tieOf(st, m0, m1) - home0;
+const talked = Ties.tieOf(st, m0, m1) - home0;
 R.dailyTies(st);
-const homeGain = R.tieOf(st, m0, m1) - home0 - talked;
+const homeGain = Ties.tieOf(st, m0, m1) - home0 - talked;
 check(Math.abs(homeGain - TS.home * (T.to - T.from) / DAY) < 1e-6, `a day at home adds ${homeGain}`);
 check(st.pawns[m0].homeHours === 0, 'the hours start again at midnight');
 check(st.talks >= talks1, 'housemates talk at home');
 // a job finished together
-const job0 = R.tieOf(st, m0, m1); R.workedTogether(st, [m0, m1]);
-check(Math.abs(R.tieOf(st, m0, m1) - job0 - TS.work) < 1e-9 && R.tieOf(st, m1, m0) > 0, 'a job finished together adds TIES.work');
+const job0 = Ties.tieOf(st, m0, m1); R.workedTogether(st, [m0, m1]);
+check(Math.abs(Ties.tieOf(st, m0, m1) - job0 - TS.work) < 1e-9 && Ties.tieOf(st, m1, m0) > 0, 'a job finished together adds TIES.work');
 // the cap: at most TIES.cap ties; a new tie stronger than the weakest replaces it, a weaker one is not kept, kin always are
 const cp = st.pawns[f0], others = st.pawns.filter((p) => p.alive && p.id !== f0 && !VB['sim/records'].kinNear(st, f0).includes(p.id));
 const fake = [];
@@ -169,9 +169,9 @@ for (const [j, w] of cp.ties) cp.ties.set(j, w + 2); // all real ties above the 
 for (let k = 0; cp.ties.size < TS.cap; k++) { const id = 100000 + k; fake.push(id); cp.ties.set(id, 1 + k * 1e-3); } // ids beyond the pawns, removed below
 const weakest = fake.length ? fake[0] : null, newcomer = others.find((p) => !cp.ties.has(p.id));
 if (weakest !== null && newcomer) {
-  R.addTie(st, f0, newcomer.id, 0.1);
+  Ties.addTie(st, f0, newcomer.id, 0.1);
   check(!cp.ties.has(newcomer.id) && cp.ties.size === TS.cap, 'a tie weaker than the weakest is not kept at the cap');
-  R.addTie(st, f0, newcomer.id, 5);
+  Ties.addTie(st, f0, newcomer.id, 5);
   check(cp.ties.has(newcomer.id) && !cp.ties.has(weakest) && cp.ties.size === TS.cap, 'a stronger tie replaces the weakest at the cap');
 }
 for (const id of fake) cp.ties.delete(id);
@@ -181,7 +181,7 @@ for (const id of fake) cp.ties.delete(id);
   const kin = kinNear(st, owner.id), oldTies = owner.ties, scale = Math.pow(2, (owner.tieT - st.t) / VB['sim/rules'].YEAR);
   const [s0, s1, s2] = st.pawns.filter((p) => p.alive && p.id !== owner.id && !kin.includes(p.id)).map((p) => p.id);
   const run = (setup, who, w) => { // the ties as listed (id, weight), the cap their number; `who` arrives at weight w; the ties after
-    owner.ties = new Map(setup); TS.cap = owner.ties.size; R.addTie(st, owner.id, who, w * scale); return owner.ties;
+    owner.ties = new Map(setup); TS.cap = owner.ties.size; Ties.addTie(st, owner.id, who, w * scale); return owner.ties;
   };
   try {
     let t = run([[kin[0], 1], [kin[1], 2]], s0, 9);

@@ -30,6 +30,7 @@
   "sim/byhand.js",
   "sim/ownership.js",
   "sim/records.js",
+  "sim/ties.js",
   "sim/traits.js",
   "sim/wishes.js",
   "sim/encounters.js",

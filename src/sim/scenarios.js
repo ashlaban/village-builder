@@ -411,7 +411,7 @@ VB['sim/scenarios'] = (() => {
     //   visited ({village, year} or null: its last suitor's visit; sim/visits, VB-289),
     //   landWait (moving rounds waited for land in a crowded village, 0 otherwise; unset before the first round; sim/settle), ...}
     //   id = index; born and died in game hours (died null while living); father, mother, household are ids or null; culture fields att, anc,
-    //   ties, tieT, homeHours; rel (sim/relations)
+    //   ties, tieT, homeHours (sim/ties); rel (sim/relations)
     // @state st.unions[]: {id, a, b, start, end, kind}; pawn ids a and b, game hours (end null while it lasts), kind 'marriage'
     // @state st.households[]: {id, farmstead, members[], holder, grain ({crop: rations}), meals (rations of cooked food, ready to eat; sim/hunger),
     //   unthreshed[] (rations still in sheaf, one per field's crop), guardian (pawn id or null; set while a minor heir has not come of age;

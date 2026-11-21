@@ -7,7 +7,7 @@ const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
-const Plans = VB['sim/plans'], W = VB['sim/workdays'], { tieOf, age, fullName } = VB['sim/records'], { addTie } = VB['sim/relations'];
+const Plans = VB['sim/plans'], W = VB['sim/workdays'], { age, fullName } = VB['sim/records'], { tieOf, addTie } = VB['sim/ties'];
 const { setClock } = require('./lib/clock.js');
 const { ROLES, WORKDAY, DAY, WORK, YEAR_DAYS, SEASON_DAYS, SOCIAL, cal } = VB['sim/rules'];
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));

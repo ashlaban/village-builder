@@ -18,7 +18,8 @@ VB['sim/births'] = (() => {
   } = VB['sim/records'];
   const Culture = VB['culture'],
     Traits = VB['sim/traits'];
-  const { initRelations, raiseTie, floorKin } = VB['sim/relations'];
+  const { initRelations } = VB['sim/relations'],
+    { raiseTie, floorKin } = VB['sim/ties'];
   const { refreshRoles } = VB['sim/heirs'];
   const { killPawn } = VB['sim/lifecycle'];
   // chance per game day that a married woman of this age conceives, when she is neither pregnant nor nursing

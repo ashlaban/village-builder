@@ -5,7 +5,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/stores'], O = VB['sim/occasions'];
 const { SOCIAL, TRAITS, ALE_EVENING, DAY, TICKS } = VB['sim/rules'], { issue } = VB['sim/commands'];
-const stored = (st, a, b) => st.pawns[a].ties.get(b) || 0; // the stored weight, on the pawn's own decaying scale (sim/records' tieOf)
+const stored = (st, a, b) => st.pawns[a].ties.get(b) || 0; // the stored weight, on the pawn's own decaying scale (sim/ties' tieOf)
 const { state } = require('./lib/probe.js'), { checkState } = require('./lib/invariants.js');
 
 const live = (st) => st.households.filter((h) => !h.dissolved && h.holder !== null);

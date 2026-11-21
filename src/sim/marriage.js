@@ -28,7 +28,8 @@ VB['sim/marriage'] = (() => {
   const Courting = VB['sim/courting'];
   const Offers = VB['sim/offers'],
     { heldBy } = Offers;
-  const { raiseTie, remember, opinionOf } = VB['sim/relations'];
+  const { remember, opinionOf } = VB['sim/relations'],
+    { raiseTie } = VB['sim/ties'];
   const { wedding } = VB['sim/occasions'];
   const { goBack } = VB['sim/trust'],
     { trustOfHolder } = VB['sim/ownership'];

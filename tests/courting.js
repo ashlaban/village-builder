@@ -60,7 +60,7 @@ function fond(st, a, b) {
     [a, b],
     [b, a],
   ]) {
-    Rel.raiseTie(st, x, y, COURT.tie + 0.5);
+    VB['sim/ties'].raiseTie(st, x, y, COURT.tie + 0.5);
     for (let i = 0; i < 6; i++) Rel.remember(st, x, y, 'worked');
     for (let i = 0; i < 4; i++) Rel.remember(st, x, y, 'ale');
   }

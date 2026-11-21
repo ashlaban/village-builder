@@ -166,7 +166,7 @@ VB['sim/help'] = (() => {
   // seed: its allowance, at most TRAVEL.load, at most what brings the receiver to a year; under GIFT.least no gift. The verb `give`'s, carried
   // by one of the giver's own; the receiver's holder answers, and goodwill is booked on arrival (sim/exchange).
   const yearOf = (t) => Math.floor(t / YEAR);
-  const { tieOf } = VB['sim/records'];
+  const { tieOf } = VB['sim/ties'];
   // Why household hh gives no unasked gift now, or the gift {to, n, carrier}
   function goodYearGift(st, hh) {
     const id = hh.holder;

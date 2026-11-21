@@ -4,7 +4,8 @@
 VB['sim/exchange'] = (() => {
   const Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { addTie, book, balance, opinionOf } = VB['sim/relations'];
+  const { book, balance, opinionOf } = VB['sim/relations'],
+    { addTie } = VB['sim/ties'];
   const { HELP, GOODWILL, HERD, stalled } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf, age, childrenOf, siblingsOf } = VB['sim/records'];
   const { herdsOf, winterNeed, payInAnimals } = VB['sim/herds'];

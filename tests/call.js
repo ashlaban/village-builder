@@ -72,7 +72,7 @@ function evening() {
   st.occasions.unshift(o);
   O.occasionsDue(st);
 }
-const tie = () => VB['sim/records'].tieOf(st, man, woman);
+const tie = () => VB['sim/ties'].tieOf(st, man, woman);
 let t0 = tie();
 evening();
 assert.ok(tie() > t0, `a call raises his tie to her (${t0} to ${tie()})`);
