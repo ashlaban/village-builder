@@ -4,7 +4,8 @@
 //   pair's own offer is made by sim/asking, and answered as a match (sim/marriage)
 VB['sim/courting'] = (() => {
   const { COURT, YEAR } = VB['sim/rules'];
-  const { personEvent, fullName, spouseOf, settlementIdOf, practice, tieOf, age } = VB['sim/records'];
+  const { personEvent, fullName, spouseOf, settlementIdOf, practice, age } = VB['sim/records'],
+    { tieOf } = VB['sim/ties'];
   const { opinionOf, remember } = VB['sim/relations'];
   const { kinOk } = VB['sim/matching'];
   const { on, emit } = VB['sim/events'];

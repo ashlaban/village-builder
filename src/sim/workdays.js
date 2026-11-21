@@ -5,7 +5,8 @@
 VB['sim/workdays'] = (() => {
   const { WORKDAY, WORK, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
-  const { log, age, tieOf, fullName } = VB['sim/records'];
+  const { log, age, fullName } = VB['sim/records'],
+    { tieOf } = VB['sim/ties'];
   const { remember } = VB['sim/relations'];
   const { emit } = VB['sim/events'];
   // @state village.workday: the village's last work day, or absent before its first: {day (game day), what ('fence' | 'commons'),

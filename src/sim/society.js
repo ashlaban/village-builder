@@ -6,7 +6,8 @@ VB['sim/society'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const { ask } = VB['sim/decisions'];
   const Culture = VB['culture'];
-  const { initRelations, raiseTie } = VB['sim/relations'];
+  const { initRelations } = VB['sim/relations'],
+    { raiseTie } = VB['sim/ties'];
   const { YEAR, houseTerm, TIE, SPEED, WORKDAY, OFFICE, cal, TRAITS, HERD, SOCIAL, DAY } = VB['sim/rules'];
   const { herdsOf, winterNeed } = VB['sim/herds'];
   const { addValues, act } = VB['sim/traits'];

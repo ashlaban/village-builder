@@ -10,7 +10,8 @@ VB['sim/venues'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const { free } = VB['sim/agents'];
   const { hoursBetween } = VB['sim/villagehours'],
-    { opinionOf, addTie } = VB['sim/relations'],
+    { opinionOf } = VB['sim/relations'],
+    { addTie } = VB['sim/ties'],
     { on } = VB['sim/events'],
     Encounters = VB['sim/encounters'],
     Stores = VB['sim/stores'],

@@ -197,7 +197,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   Bounded history (VB-199): `pawn.events` holds positions in `st.record`, read with `Sim.recordOf(st, {pawn, life: true})` (`sim/notable`,
   `lifeOf`); a new kind of event goes into `HISTORY` (`sim/records`), 0 to keep it or the years after which `foldHistory` folds it into
   `st.recordYears`, one count per kind, village and year (a folded slot of the record becomes its count's index; slots are never removed).
-- Relationships (VB-127, VB-240): `src/sim/relations.js` owns familiarity (`pawn.ties`, on a decay scale per pawn), memories of events
+- Relationships (VB-127, VB-240): `src/sim/ties.js` owns familiarity (`pawn.ties`, on a decay scale per pawn). `src/sim/relations.js` owns memories of events
   (`pawn.rel`, kinds of `SOCIAL.memories`, written by `remember`; a record exists only while it holds one) and the close-friend and enemy
   bands (`pawn.bands`). Opinion is derived when read (`opinionOf`): the kin bond, plus affinity (the pair's compatibility, shown as the tie
   grows), plus the memories. Talk grows the tie only; its kind is the bubble's. A band is checked by `touch` where a pair's tie or memories

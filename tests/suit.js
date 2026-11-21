@@ -56,7 +56,7 @@ const told = (st, from, kind) =>
   st.record.slice(from).filter((e) => typeof e === 'object' && !e.self && e.kind === kind);
 const remembers = (st, a, b, kind) => Rel.reasonsOf(st, a, b).some((r) => r.label === SOCIAL.memories[kind].label);
 const fond = (st, a, b, kinds = ['worked', 'ale']) => {
-  Rel.raiseTie(st, a, b, 3);
+  VB['sim/ties'].raiseTie(st, a, b, 3);
   for (const k of kinds) for (let i = 0; i < 6; i++) Rel.remember(st, a, b, k);
 };
 
