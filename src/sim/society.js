@@ -27,7 +27,7 @@ VB['sim/society'] = (() => {
   } = VB['sim/records'];
   const { on } = VB['sim/events'],
     { aleStanding } = VB['sim/stores'];
-  const { heirRanking } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'];
   const { helpLean } = VB['sim/commons'];
   // The lookups Culture's functions take (VB-073): built from st on each call, so nothing in st.cenv is a function.
   function hooks(st) {

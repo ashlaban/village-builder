@@ -1,7 +1,7 @@
 // VB-224: a full heirRanking asks only the farms of its candidates' lines; it must rank exactly as it would given every live household's
 // first direct heir (ownFirstOf(st)), under both answers to "an heir to their own parents' farm".
 function compareRankings(VB, st) {
-  const H = VB['sim/heirs'], { practice } = VB['sim/records'], all = H.ownFirstOf(st), bad = [];
+  const H = VB['sim/heirranking'], { practice } = VB['sim/records'], all = H.ownFirstOf(st), bad = [];
   let checked = 0, claimed = 0;
   for (const id of st.liveHouseholds) {
     const hh = st.households[id], village = st.farmsteads[hh.farmstead].village;

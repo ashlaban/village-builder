@@ -55,7 +55,7 @@ const scene = (st) => assert.deepStrictEqual([st.households[0].holder, st.househ
   R.childrenOf(st, 0); st.idx.children.set(17, new Set([12])); // the servant's child, for this check only
   assert.strictEqual(Sim.successor(st, 17).id, 12, 'the servant: its child');
   st.households[2].holder = 8; R.noteHolder(st, st.households[2]); // the eldest son holds a farm of its own, for this check only
-  assert.ok(!H.heirRanking(st, st.households[0]).includes(8), 'the farm passes it over');
+  assert.ok(!VB['sim/heirranking'].heirRanking(st, st.households[0]).includes(8), 'the farm passes it over');
   assert.strictEqual(Sim.successor(st, 0).id, 8, 'the line does not');
 }
 

@@ -10,7 +10,7 @@ const VB = require('../src/load.js'),
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const { DAY, YEAR, HANDOVER } = VB['sim/rules'];
-const { heirRanking, refreshRoles } = VB['sim/heirs'];
+const { heirRanking } = VB['sim/heirranking'], { refreshRoles } = VB['sim/heirs'];
 const { conclude } = VB['sim/offers'];
 const { dailyLife } = VB['sim/lifecycle'];
 const { dueRound } = VB['sim/asking'];

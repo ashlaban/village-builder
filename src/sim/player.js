@@ -59,7 +59,7 @@ VB['sim/player'] = (() => {
   }
   // The played pawn dies (sim/lifecycle, before the death ends its marriage and drops its ties): the player keeps it, with an empty queue,
   // until it goes on as another (VB-213), and what the death erases is noted: the farm it held, its spouse, those it thought friends.
-  // `next(st, id, village)` names its successor (successorOf, sim/heirs, which loads later): with none, the line ends at once.
+  // `next(st, id, village)` names its successor (successorOf, sim/heirranking, which loads later): with none, the line ends at once.
   function playerDied(st, id, next) {
     const pl = st.player;
     if (!pl || pl.pawn !== id) return;

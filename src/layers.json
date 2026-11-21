@@ -80,6 +80,7 @@
       "sim/society",
       "sim/deaths",
       "sim/births",
+      "sim/heirranking",
       "sim/heirs",
       "sim/membership",
       "sim/cottage",

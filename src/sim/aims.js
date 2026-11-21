@@ -21,7 +21,7 @@ VB['sim/aims'] = (() => {
   const { findSite, hasPlot, awaitsCottage } = VB['sim/expansion'];
   const { issue, register } = VB['sim/commands'];
   const Plans = VB['sim/plans'];
-  const { heirRanking } = VB['sim/heirs'];
+  const { heirRanking } = VB['sim/heirranking'];
   // The surplus (design.md section 7, How a holder chooses: projects; the first values of VB-255's criteria): food beyond `years` of the
   // household's need over the seed held back (the means to marry's measure, MARRIAGE.means, is the first value), and its hands idle over
   // `idle` of their work hours in the last season. The weights of the menu: `base` for each option, `heirs` for the heir's farm when two or

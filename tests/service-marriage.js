@@ -12,7 +12,7 @@ const out = [];
 function pair(st) {
   for (const h of st.households) {
     if (h.dissolved) continue;
-    const r = H.heirRanking(st, h)[0], m = r !== undefined ? st.pawns[r] : null;
+    const r = VB['sim/heirranking'].heirRanking(st, h)[0], m = r !== undefined ? st.pawns[r] : null;
     if (!m || m.sex !== 'm' || m.age < 20 || m.household !== h.id || R.spouseOf(st, m.id) !== null || h.members.filter((id) => st.pawns[id].age >= 18).length < 2) continue;
     const v = R.settlementIdOf(st, m), cu = R.practice(st, v);
     const f = st.pawns.find((q) => q.alive && q.sex === 'f' && q.age >= 18 && q.household !== null && q.household !== h.id && R.spouseOf(st, q.id) === null && !R.isHolder(st, q.id)

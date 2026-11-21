@@ -44,7 +44,7 @@ for (const grain of [0, 5000]) {
   const st = Sim.seed(world(7), 7, 'populous'); st.naturalDeaths = false;
   let man = null, woman = null;
   for (const h of st.households) {
-    const r = H.heirRanking(st, h)[0], p = r !== undefined ? st.pawns[r] : null;
+    const r = VB['sim/heirranking'].heirRanking(st, h)[0], p = r !== undefined ? st.pawns[r] : null;
     if (!p || p.sex !== 'm' || p.age < 20 || p.household !== h.id || R.spouseOf(st, p.id) !== null) continue;
     if (h.members.filter((id) => st.pawns[id].age >= 18).length < 2) continue;
     const cu = R.practice(st, R.settlementIdOf(st, p));
@@ -72,13 +72,13 @@ for (const grain of [0, 5000]) {
     if (!w) continue;
     const cu = R.practice(st, vOf(w));
     c = st.households.find((o) => {
-      const r = H.heirRanking(st, o)[0], p = r !== undefined ? st.pawns[r] : null;
+      const r = VB['sim/heirranking'].heirRanking(st, o)[0], p = r !== undefined ? st.pawns[r] : null;
       return o !== h && p && p.sex === 'm' && p.age >= 20 && p.household === o.id && R.spouseOf(st, p.id) === null
         // the same village and within twelve years of each other, so the match scores above MARRIAGE.minScore (it loses
         // MARRIAGE.gapWeight a year off the preferred gap; the first such woman at this seed was 25 years the elder, VB-402)
         && VB['sim/matching'].kinOk(st, p.id, w.id, cu) && vOf(p) === vOf(w) && Math.abs(p.age - w.age) <= 12;
     });
-    if (c) { b = h; man = st.pawns[H.heirRanking(st, c)[0]]; break; }
+    if (c) { b = h; man = st.pawns[VB['sim/heirranking'].heirRanking(st, c)[0]]; break; }
   }
   if (!c) { console.error('MARRIAGE FAIL: no unmarried first heir in a village with a married woman'); process.exit(1); }
   if (st.pawns[b.holder].sex !== 'f') killPawn(st, b.holder, 'illness'); // the wife keeps the farm
@@ -88,7 +88,7 @@ for (const grain of [0, 5000]) {
   b.grain = { barley: 1000 };
   roll(st, () => movingRound(st));
   check(R.spouseOf(st, man.id) === woman.id && man.household === b.id && b.holder === woman.id, `they live on her farm (${st.farmsteads[b.farmstead].name})`);
-  check((H.heirRanking(st, c)[0] === man.id) === (st.farmsteads[c.farmstead].fields.length > st.farmsteads[b.farmstead].fields.length), 'he remains first heir only to a larger farm');
+  check((VB['sim/heirranking'].heirRanking(st, c)[0] === man.id) === (st.farmsteads[c.farmstead].fields.length > st.farmsteads[b.farmstead].fields.length), 'he remains first heir only to a larger farm');
 }
 // An empty family ranking needs no global direct-claim scan.
 {
@@ -97,7 +97,7 @@ for (const grain of [0, 5000]) {
   // Leave the household's lineage with no eligible heirs without changing global kin indexes.
   for (const p of st.pawns) if (p.id !== hh.holder) { p.died = st.t; p.alive = false; }
   VB.resetCounts();
-  assert.deepStrictEqual(H.heirRanking(st, hh, cu), []);
+  assert.deepStrictEqual(VB['sim/heirranking'].heirRanking(st, hh, cu), []);
   assert.strictEqual(VB.count.heirRank, 1, 'empty ranks must not rank other households');
 }
 if (failed) process.exit(1);
