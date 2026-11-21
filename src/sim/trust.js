@@ -13,6 +13,7 @@ VB['sim/trust'] = (() => {
   const { kinHouseholds, shortOfPeople } = VB['sim/help'];
   const { trustOf } = VB['sim/ownership'];
   const { withinDay } = VB['sim/villagehours'];
+  const { on } = VB['sim/events'];
   // @state st.trusts: every farm ever held in trust (design.md, Households short of people: Held by kin when nobody can come), by id, never
   //   reused: {id, household (the household whose farm is held; its holder, owner and line unchanged), trustee (the kin household that works
   //   it), ward (its holder while a minor, else null), people (the members who went to the trustee), start, end (null while it holds), why
@@ -178,6 +179,12 @@ VB['sim/trust'] = (() => {
       handOn(st, hh, hh.holder, k.id);
     }
   }
+  // An heir who takes a larger farm hands its own place on (sim/heirs' transfer, VB-1141): a place held in trust stops being held first,
+  // so that whoever keeps it can live there, or it stands empty.
+  on('heirLeaves', (st, d) => {
+    const t = trustOf(st, d.household);
+    if (t) closeTrust(st, t, 'inherited');
+  });
   // ---- the moving round (source 'round'); what the round weighs to choose stays with it, the verbs check only what makes the act possible ----
   // goBack(target, {why}): the actor, holder of household `target`'s farm held in trust by kin (VB-309, sim/trust), goes back to it with
   // its people, and the trust ends: at its marriage, a servant at the round, its coming of age or the trustee's end (args.why)

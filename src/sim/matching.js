@@ -143,7 +143,8 @@ VB['sim/matching'] = (() => {
   // VB-277) until `clear()`, which a village's round calls after each marriage or handover it makes: ranking every farm's heirs for every
   // pair of candidates made the round cost about a second at populous medium. `homeFor(m, f, cu)`: where a couple would
   // live, or null. Under 'land' one of them needs a place (the farm they hold or are first heir to). When both have one (VB-153): a holder
-  // keeps their farm and a spouse who is only first heir steps out of that line; of two holders, the couple lives where the other farm is
+  // keeps their farm, and a spouse who is only first heir lives there and stays in that line only while its farm has more fields
+  // (heirRanking, VB-1141); of two holders, the couple lives where the other farm is
   // best handed on (handOn: an adult heir, then a landless adult of its village, then a child or nobody), then on the farm with more
   // fields, the man's on a tie. Under the other customs the spouse's home counts. `affords(h)`: the means to marry (VB-153): the home
   // holds food above its seed for MARRIAGE.means years of its members and one more, counting grain still in sheaf and the larder, so that
