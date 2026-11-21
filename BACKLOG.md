@@ -83,17 +83,13 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1034](backlog/VB-1034.md) | Births and deaths leave something to see: a grave, a lying-in, a wake | - | 3 | M | A death and a birth happen at midnight and leave no trace on the map: a grave marker where the dead are laid, and the household's lying-in or wake the day after, as states a pawn is in |
 | [VB-1124](backlog/VB-1124.md) | Page: a game info panel: every action, where it applies, what it needs and what it gives | - | 3 | M | A panel that collects what the game holds, read from the registries: each action (job kind and verb) with where it applies, its preconditions, what it takes and what it produces; reached from plan mode's menus and legend. Asked for by Kim, 18 Nov (VB-1123). |
 | [VB-1141](backlog/VB-1141.md) | An heir who holds a smaller farm takes the larger: it says no only for a place with more fields | acts | 3 | M | VB-824 kept the ranking's passing over as it was (any farm held, or a spouse's, is a no), as its second criterion asks; the design's line says the no is only for a place with more fields. |
-| [VB-1142](backlog/VB-1142.md) | A played heir takes up or renounces an inheritance itself | acts | 3 | S | VB-824: at a death the inheritance falls at once, and each in line answers by its pawn's judgement, the played pawn too; in life the played heir already answers the offer itself. |
 | [VB-1151](backlog/VB-1151.md) | A visitor's bed: the suitor sleeps in a house of the village he visits | between | 3 | S | VB-289's visitor rests at the green under the open sky, a winter night's cold; a guest sleeps in a house whose head will have him |
 | [VB-1152](backlog/VB-1152.md) | Measure the suitor's visit: 12 seeds and the late fixtures | between | 3 | S | VB-289's owed measures, for the collecting task VB-662: the demography at seeds 1 to 12, and visits, marriages by distance and round counters at medium-ref and small-y40 |
 | [VB-1173](backlog/VB-1173.md) | Refactor: split sim/away: the gift's carrying to sim/gifts | - | 3 | M | carryGift, haulGift and fetchGift, with haulerOf and fetcherOf, move out of sim/away to sim/gifts, which holds the verbs give and deliver since VB-228; sim/away keeps the nights away. |
 | [VB-1174](backlog/VB-1174.md) | Refactor: split sim/heirs by concern | - | 3 | M | sim/heirs passed 700 lines (711) when the verbs handOn and move came home in VB-228; split it by concern. |
 | [VB-1175](backlog/VB-1175.md) | Teleports found, collected: swept at a slice's wrap-up | physical | 3 | M | The teleports tasks found in the code, a line each; swept together when a slice wraps up |
 | [VB-1240](backlog/VB-1240.md) | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |
-| [VB-1319](backlog/VB-1319.md) | Measure VB-245 on the late saves, with commits that exist | - | 3 | S | Measure VB-245 with commits that exist |
 | [VB-1354](backlog/VB-1354.md) | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
-| [VB-1364](backlog/VB-1364.md) | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
-| [VB-1369](backlog/VB-1369.md) | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1374](backlog/VB-1374.md) | Measure VB-718 surplus dung (owed to VB-662) | - | 3 | S | numbers owed by VB-718 |
 | [VB-1389](backlog/VB-1389.md) | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 | [VB-1404](backlog/VB-1404.md) | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
@@ -101,6 +97,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1415](backlog/VB-1415.md) | Measure VB-697: the plot and farm asks, before and after | - | 3 | S | VB-697's owed numbers |
 | [VB-1420](backlog/VB-1420.md) | Soil report: founders 50 years and the tilth-gain band's first values | - | 3 | S | owed by VB-720, collected by VB-662 |
 | [VB-1425](backlog/VB-1425.md) | Report the market town on medium, 40 years | - | 3 | S | the medium reports VB-778 left owed |
+| [VB-1460](backlog/VB-1460.md) | Roles refresh at the age-14 birthday | - | 3 | S | age-14 role flip was only fixed by the global refresh at deaths |
 
 ## Waiting for Kim
 
@@ -112,6 +109,8 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | [VB-697](backlog/VB-697.md) | A plot or an empty farm is asked for, and the alderman answers by the custom | acts | 3 | S | Empty farms and village plots go to 'demand' by the round's custom order (claimFarms, startPlots), with only the player able to wish for one. The pawn asks; the alderman answers by the `claims` and `newLand` customs. |
 | [VB-722](backlog/VB-722.md) | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 | [VB-1126](backlog/VB-1126.md) | Design: the age of account and the bands' margin in design.md | talk | 3 | S | design.md does not yet say VB-1106's two rules (SOCIAL.account 12, SOCIAL.back 0.2) |
+| [VB-1364](backlog/VB-1364.md) | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
+| [VB-1369](backlog/VB-1369.md) | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 
 ## Blocked
 

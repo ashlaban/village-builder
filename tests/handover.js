@@ -3,7 +3,7 @@
 // on its own day, at the custom's time, due at the round, the first in line answers, and a no passes the offer to the next at once,
 // with no memory; a holder weighs it (VB-1314): at odds with the heir it holds out at the wedding, its heir's grudge growing, and hands on at 60; nothing offers for a played holder, who hands on early by the
 // same verb, to the first in line only, and goes on being played; a played heir may say no; a wedding brings the holder's offer at
-// once; at a death one in line who holds a place renounces and the next takes it up, and a minor is not asked.
+// once; at a death one in line who holds a place renounces and the next takes it up, a minor is not asked, and a played heir is asked (VB-1142): the farm is its own, it takes it up or renounces.
 const assert = require('assert');
 const VB = require('../src/load.js'),
   Sim = VB.sim;
@@ -342,6 +342,41 @@ const handovers = (st) => st.offers.filter((o) => o.basis === 'handover');
   assert.strictEqual(told(st, 'renounced', 2).length, 1);
   assert.ok(st.households[0].dissolved, 'nobody takes it: the farm stands empty');
   sound(st, 'an inheritance nobody took');
+}
+// 8. A played heir is asked (VB-1142): the farm is its own at once, it takes it up by moving or renounces it, and the next takes it up
+{
+  const play = (answer) => {
+    const st = world({ handover: 'death' });
+    const r = issue(st, { actor: 2, verb: 'move', target: 1, args: { reason: 'service' }, source: 'round' });
+    assert.strictEqual(r, true, `the scene: the eldest daughter serves at household 1: ${r}`);
+    Sim.inhabit(st, 2);
+    Sim.killPawn(st, 0);
+    const o = st.offers.find((x) => x.basis === 'inheritance');
+    assert.ok(o, 'the played heir is asked');
+    assert.strictEqual(st.households[0].holder, 2, 'the farm is its own at once, a right');
+    assert.strictEqual(st.pawns[2].household, 1, 'but it has not moved yet');
+    assert.ok(st.households[0].members.includes(1), 'meanwhile the widow and the sisters in the house work its fields');
+    assert.strictEqual(VB['sim/offers'].advice(st, o, 2), true, 'its pawn would take it up');
+    sound(st, 'an inheritance falls to the played heir');
+    if (answer === 'wait') {
+      conclude(st, o); // the wait's end: its pawn's judgement answers
+    } else issue(st, { actor: 2, verb: 'answer', target: o.id, args: { yes: answer }, source: 'player' });
+    return st;
+  };
+  let st = play(false);
+  assert.strictEqual(told(st, 'renounced', 2).length, 1, 'renounced: a renounced event tells it');
+  assert.strictEqual(st.households[0].holder, 3, 'it falls to the next at once, who takes it up');
+  assert.strictEqual(st.pawns[2].household, 1, 'the renouncer stays where she was');
+  sound(st, 'renounced by the played heir');
+  for (const a of [true, 'wait']) {
+    st = play(a);
+    assert.strictEqual(st.households[0].holder, 2);
+    assert.strictEqual(st.pawns[2].household, 0, `taken up (${a}): she moves to the farm`);
+    assert.strictEqual(told(st, 'renounced', 2).length, 0);
+    assert.ok(told(st, 'inherited', 2).some((e) => / after /.test(e.text)));
+    assert.ok(!st.offers.some((o) => o.basis === 'inheritance'));
+    sound(st, 'taken up by the played heir');
+  }
 }
 console.log(
   'handover ok: the line as asked gives the ranking, with why each of the others would not take it; a holder offers on its own day at the ' +
