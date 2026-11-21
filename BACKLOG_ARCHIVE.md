@@ -603,3 +603,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-434](backlog/VB-434.md) | Refactor: split sim/fields by concern | - | 3 | M | sim/fields is over the lint's line or width trigger since the head's commands (VB-253); split it by concern. |
 | [VB-375](backlog/VB-375.md) | One loader with a hook for timed and replaced functions | yardstick | 3 | M | An ES module's exports cannot be reassigned, and ten files do that today to count or time a function: `tools/perf.js` (about 25 functions of 12 module. |
 | [VB-1406](backlog/VB-1406.md) | Refactor: one due-queue helper (sim/due) for the sorted queues | - | 2 | M | A pure helper for the eight hand-rolled due-queues; behaviour unchanged |
+| [VB-1407](backlog/VB-1407.md) | Refactor: one test of what a site still needs, and one timber rule | - | 2 | M | One needs-at-site test, one timber posting rule, kept hours in one place; behaviour unchanged |
