@@ -72,6 +72,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   `node tools/sim.js --report waiting [--json]` (VB-633, `tools/waiting.js`): who waits to marry and why, at the moving round's day, by 20
   years (too hungry, nobody free, kin, no home, the score, the means, free), with the age at first marriage by sex, the share never married
   at 45, marriages a year per 1,000, those put off for the means and the share of adults waiting for land. VB-660 adds the fate of those free: at the round's end, of those still unmarried, put off, refused, lapsed, taken, open or unmatched.
+  `node tools/sim.js --report soil [--period year|decade] [--json]` (VB-720, `tools/soil.js`): by period and farm class (no cattle, 1-2 head, 3 or
+  more): fields, mean soil and tilth, loads of dung spread to the cap and beyond it a field-year, loads rotted on the heap, grain a field reaped;
+  by village: meadow tiles to field tiles, cattle a field, mean tilth, and the correlation of the two. Read from the fields a day at a time, kept
+  outside `st`; a description, no target. Its band is `tilth-gain` (`tests/lib/bands.js`).
   `node tools/sim.js --report outlook [--village N] [--json]` (VB-666, `tools/outlook.js`): each household of a village, its supply outlook
   (food, fuel, hay: the season it expects to go short in, or safe) beside the season it did first go short in over the frame, which runs
   on past `--years`; a description with no target.
