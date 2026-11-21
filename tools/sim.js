@@ -8,13 +8,8 @@
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
-<<<<<<< HEAD
-  'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook', 'gathering'];
-const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous|market] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
-=======
   'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook', 'gathering', 'soil'];
-const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
->>>>>>> worktree-agent-a1d6d9408f9345e77
+const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous|market] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
   --json            the report as JSON
