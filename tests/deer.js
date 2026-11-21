@@ -109,7 +109,7 @@ for (const r of ['farmer', 'farmhand', 'son']) check(ROLES[r].prio.hunt === ROLE
   check(D.hunt(st, hh, j.site) === 1 && near(D.stock(st, 0), n - 1) && near(larderOf(hh, 'meat'), meat + DEER.hunt.meat), 'a kill: meat and a deer fewer');
   check(hh.hides === DEER.hunt.hide, 'a kill brings one hide home');
   check(hh.ledger.some((e) => e.good === 'hide') || hh.totals.some((x) => x.kind === 'hunt' && x.good === 'hide'), 'the hide is in the ledger');
-  const Rules = VB['sim/registry'], hideGood = VB['sim/stores'].goodOf('hide'), Cul = VB['culture'];
+  const Rules = VB['sim/registry'], hideGood = VB['sim/goods'].goodOf('hide'), Cul = VB['culture'];
   const want = Math.ceil(hh.members.length * DEER.leather);
   hh.hides = 0;
   check(near(Rules.value(st, 'need', { hh, good: hideGood, n: 1, kept: 0 }), Cul.norm('worth', 'hide')), 'a household with no hide values one at its worth');

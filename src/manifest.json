@@ -48,6 +48,7 @@
   "sim/herds.js",
   "sim/yields.js",
   "sim/larder.js",
+  "sim/goods.js",
   "sim/stores.js",
   "sim/obligations.js",
   "sim/targets.js",

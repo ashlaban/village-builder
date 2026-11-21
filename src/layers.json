@@ -42,6 +42,7 @@
     "material": [
       "sim/yields",
       "sim/larder",
+      "sim/goods",
       "sim/stores",
       "sim/targets",
       "sim/projects",

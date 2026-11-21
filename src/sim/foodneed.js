@@ -1,8 +1,8 @@
 // @sys sim/foodneed: how a household values food in exchange, given its stores and the time until harvest
 VB['sim/foodneed'] = (() => {
   const { FOODS, DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
-  const Stores = VB['sim/stores'];
-  const { grainOf, reserved } = Stores;
+  const Goods = VB['sim/goods'];
+  const { grainOf, reserved } = VB['sim/stores'];
   const { larderOf } = VB['sim/larder'];
   const Pot = VB['sim/pot'];
   const { dailyNeed } = VB['sim/hunger'];
@@ -11,7 +11,7 @@ VB['sim/foodneed'] = (() => {
 
   // ---- need (VB-299; design.md, The fair: Need; target-v2 5.1): what a quantity of a good is worth to the household taking it now, in rations of
   // its welfare; the sum of each good's term, by the module that knows the need (food here, animals sim/byre, tar and ale sim/exchange). The
-  // context is {hh, good (a good of sim/stores), n (quanta; below 0, what giving them up costs), kept (rations' worth of keeping goods it
+  // context is {hh, good (a good of sim/goods), n (quanta; below 0, what giving them up costs), kept (rations' worth of keeping goods it
   // holds to pass on)}; sim/exchange's needValue reads it. A term allocates nothing. ----
   Rules.declare({ id: 'need', owner: 'sim/foodneed', combine: 'sum', base: () => 0 });
   const NEED = { empty: 3, beyond: 0.5, beyondYears: 2, lacking: 1.2, lackingShare: 0.2 };
@@ -39,7 +39,7 @@ VB['sim/foodneed'] = (() => {
     let s = source === 'grain' ? grainOf(hh) + hh.flour : 0;
     for (const l of hh.larder) {
       const f = FOODS[l.kind],
-        src = f ? f.source : Stores.GOODS.has(l.kind) ? Stores.GOODS.get(l.kind).source : null;
+        src = f ? f.source : Goods.GOODS.has(l.kind) ? Goods.GOODS.get(l.kind).source : null;
       if (src === source) s += l.n;
     }
     for (const b of hh.fresh) if (FOODS[b.food].source === source) s += b.qty; // fresh batches (VB-119), stale ones too: a read for a deal
