@@ -1,15 +1,31 @@
 // @sys sim/gathering: the gathering (VB-294; design.md, The gathering): at its autumn meeting a village with a green offers to host and every
 //   village ranks the hosts it would walk to, by effective hours; once all have met, each goes to one gathering that stands (three villages
-//   or more, the host among them, lodged by its farms); the district is the villages of one gathering, read from the choice
+//   or more, the host among them, lodged by its farms); the district is the villages of one gathering, read from the choice; going there (VB-295): each
+//   household's plan of who goes and who
+//   stays (the verbs goGathering and stayHome), the lodging of those who come from beyond two hours' walk, their packing the day before,
+//   the three days on the host's green (occasions of kind 'gathering') and the ale its holders pour there
 // @state village.gathering: null or absent (no choice made yet), else {chosen (the year of the meeting's last choice), by ('meeting' |
 //   'asLastYear' | 'nothing'), hosting (the village offers to host that year's gathering), prefs[] (village ids of the hosts it would go to,
 //   best first, each with a green and within a day's walk), year (the year of the winter the village's gathering is for), host (the village
-//   whose gathering it attends that winter, or null for none; its own id when it hosts one that stands), ale (barrels its host poured at
-//   the gathering it hosted that winter: 0 until VB-295 holds it)}. The meeting's verb `gathering` writes chosen, by, hosting and prefs
+//   whose gathering it attends that winter, or null for none; its own id when it hosts one that stands), ale (barrels its holders poured at
+//   the gathering it hosted that winter, written at the end of each of its days)}. The meeting's verb `gathering` writes chosen, by, hosting and prefs
 //   (setGathering); the evening's settling writes year, host and ale (settleGatherings); between the two, year and host are last year's.
+// @state household.gathering: absent, or {year (the winter it is for), planned (its head has planned it), go[] (pawn ids of its members who
+//   mean to go, in the order they chose), packed (the goers are lodged, and the choice is made), beds[] ([pawn, host household, in the barn] for each
+//   goer lodged in the host village, from the
+//   lodging until it packs)}: written by the verbs goGathering and stayHome (setGoing), the lodging and the packing, all here
 VB['sim/gathering'] = (() => {
   const { settlement } = VB['sim/records'];
-  const { GATHERING, TRAVEL, YEAR, SEASON_DAYS, DAY, cal } = VB['sim/rules'];
+  const { GATHERING, TRAVEL, YEAR, SEASON_DAYS, DAY, WORK, MARRIAGE, HEALTH, BREW, cal } = VB['sim/rules'];
+  const { age, spouseOf, unplanned, fullName, living } = VB['sim/records'];
+  const { next: rnd } = VB['sim/rng'];
+  const Traits = VB['sim/traits'],
+    Stores = VB['sim/stores'];
+  const { call, onEnd, VILLAGE_STEPS } = VB['sim/occasions'];
+  const { pourAle } = VB['sim/feast'];
+  const { book } = VB['sim/relations'];
+  const { stayOf } = VB['sim/agents'];
+  const { on } = VB['sim/events'];
   const { hoursBetween, withinDay } = VB['sim/villagehours'];
   const { log } = VB['sim/records'];
   const { opinionOf } = VB['sim/relations'];
@@ -288,11 +304,345 @@ VB['sim/gathering'] = (() => {
       start = (year - 1) * YEAR + (d.season * SEASON_DAYS + d.from) * DAY;
     return [start, start + d.days * DAY];
   }
+  // ---- going there (VB-295; design.md, The gathering: Going there, Who goes, Lodging) ----
+  // The gathering village vid goes to this winter while it is still on or ahead: {host, year, start, end (game hours of its days), pack
+  // (the day before, at the start of work: its goers set out), days}, else null.
+  function ahead(st, vid) {
+    if (vid === null) return null;
+    const g = choiceOf(st, vid),
+      year = cal(st.t).year;
+    if (!g || g.year !== year || g.host === null) return null;
+    const [start, end] = whenHeld(st, g.host, year);
+    return st.t < end
+      ? { host: g.host, year, start, end, pack: start - DAY + WORK[0], days: (end - start) / DAY }
+      : null;
+  }
+  const villageOf = (st, hh) => (hh.farmstead === null ? null : st.farmsteads[hh.farmstead].village);
+  // Goers of village v sleep at home when it is the host or within GATHERING.homeHours' walk of it.
+  const sleepsHome = (st, v, h) => v === h || hoursBetween(st, v, h) <= G.homeHours;
+  const planFor = (hh, year) => (hh.gathering && hh.gathering.year === year ? hh.gathering : null);
+  // The household's plan for the winter's gathering, begun empty if it has none for that year (written only here).
+  function planOf(hh, year) {
+    if (!planFor(hh, year)) hh.gathering = { year, planned: false, packed: false, go: [], beds: [] };
+    return hh.gathering;
+  }
+  // Whether one of household hh's adults (GATHERING.adult or more) stays at home, with `go` going and pawn `also` with them: the animals
+  // are tended and the fire kept (design.md, Who goes: never everyone).
+  function adultStays(st, hh, go, also) {
+    for (const m of hh.members) {
+      if (m === also || go.includes(m)) continue;
+      const q = st.pawns[m];
+      if (q.alive && age(st, q) >= G.adult) return true;
+    }
+    return false;
+  }
+  // Why pawn id may not choose to go to its village's gathering this winter, or null (the verb goGathering's check, alike for any pawn):
+  // its household has a farm and its village a gathering still to pack for; it is old enough and not ill; it does not go already; an adult
+  // of its household stays; and a household that lodges in the host village sends GATHERING.goers at most, the room the host counted.
+  function goWhy(st, id) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household];
+    if (!hh || hh.dissolved || hh.farmstead === null) return `${fullName(p)} has no home to go out from`;
+    const at = ahead(st, villageOf(st, hh));
+    if (!at || st.t >= at.start) return `${fullName(p)}'s village has no gathering ahead to make ready for`;
+    const plan = planFor(hh, at.year),
+      go = plan ? plan.go : [];
+    if (plan && plan.packed) return `${fullName(p)}'s household has packed for the gathering`;
+    if (age(st, p) < G.wishAge) return `${fullName(p)} is too young to go`;
+    if (p.health < HEALTH.riskBelow) return `${fullName(p)} is too ill to go`;
+    if (go.includes(id)) return `${fullName(p)} goes already`;
+    if (!adultStays(st, hh, go, id)) return 'an adult of the household stays with the animals and the fire';
+    if (!sleepsHome(st, villageOf(st, hh), at.host) && go.length >= G.goers)
+      return `a household lodged at the gathering sends ${G.goers} at most`;
+    return null;
+  }
+  // Why pawn id may not choose to stay home, or null: it means to go, and its household has not packed yet.
+  function stayWhy(st, id) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household],
+      at = hh ? ahead(st, villageOf(st, hh)) : null,
+      plan = at ? planFor(hh, at.year) : null;
+    if (!plan || !plan.go.includes(id)) return `${fullName(p)} is not going to a gathering`;
+    return plan.packed ? `${fullName(p)}'s household has packed for the gathering` : null;
+  }
+  // Pawn id goes (or stays home): its household's plan names it among the goers, or no more (the verbs' act).
+  function setGoing(st, id, go) {
+    const hh = st.households[st.pawns[id].household],
+      plan = planOf(hh, ahead(st, villageOf(st, hh)).year),
+      i = plan.go.indexOf(id);
+    if (go && i < 0) plan.go.push(id);
+    if (!go && i >= 0) plan.go.splice(i, 1);
+  }
+  // The head plans who goes (design.md, Who goes), on its planning day between the meetings and the packing: the holder, its unmarried
+  // of marrying age (the eldest first), and by wish the others of GATHERING.wishAge or more, at `wish` times (0.5 + sociability), each
+  // through the verb, whose check keeps an adult at home and the lodged to `goers`. A party to a border case goes too once such a case
+  // waits for the gathering (VB-297). The played pawn chooses for itself. Members of the household once.
+  function planGoing(st, hh, at) {
+    const plan = planOf(hh, at.year);
+    if (plan.planned) return;
+    plan.planned = true;
+    const unwed = [],
+      wish = [];
+    for (const m of hh.members) {
+      VB.count.gatherPlan++;
+      const q = st.pawns[m];
+      if (!q.alive || m === hh.holder) continue;
+      const a = age(st, q);
+      if (spouseOf(st, m) === null && !q.retired && a >= (q.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom))
+        unwed.push(m);
+      else if (a >= G.wishAge && rnd(st.rng.gathering) < G.wish * (0.5 + Traits.of(st, m, 'sociability'))) wish.push(m);
+    }
+    unwed.sort((x, y) => st.pawns[x].born - st.pawns[y].born || x - y);
+    const ids = hh.holder !== null && st.pawns[hh.holder].alive ? [hh.holder, ...unwed, ...wish] : [...unwed, ...wish];
+    for (const id of ids) if (!unplanned(st, id)) issue(st, { actor: id, verb: 'goGathering', source: 'planner' });
+  }
+  on('planReviewed', (st, d) => {
+    if (d.plan.holder.type !== 'household') return;
+    const hh = st.households[d.plan.holder.id],
+      at = hh.dissolved ? null : ahead(st, villageOf(st, hh));
+    if (at && st.t < at.pack) planGoing(st, hh, at);
+  });
+  // The households of village v with a farm.
+  function householdsOf(st, v) {
+    const out = [];
+    for (const fid of st.villages[v].farmsteads) {
+      const f = st.farmsteads[fid];
+      if (f.household !== null && !st.households[f.household].dissolved) out.push(st.households[f.household]);
+    }
+    return out;
+  }
+  // Its goers still to go: living members of the household, in the order they chose.
+  const goersOf = (st, hh, plan) => plan.go.filter((id) => st.pawns[id].alive && st.pawns[id].household === hh.id);
+  // The lodging for host h's gathering (design.md, Lodging; Agreed, 10 Nov): each goer of a village beyond homeHours, the nearest villages
+  // first, gets a bed at a farm of the host village whose head will have it: with kin (its household's, sim/exchange kinHouseholds), else
+  // with a pawn it holds a goodwill balance with (its partner), in the house while its GATHERING.house beds last and then in the barn;
+  // else in a barn the host village gives (GATHERING.barn a farm), the farms in turn, and once the barns are full in the house beds kin left;
+  // the farm's GATHERING.lodge in all, the room the settling counted. One with no bed stays home: nobody sleeps outdoors.
+  // Writes each household's beds. Work: the goers, their kin households and counterparts (each capped), and the farms passed over.
+  function lodging(st, h, at) {
+    const room = new Map();
+    for (const hh of householdsOf(st, h)) room.set(hh.id, [G.house, G.barn]);
+    const guests = [];
+    for (const v of district(st, h).sort((a, b) => hoursBetween(st, a, h) - hoursBetween(st, b, h) || a - b)) {
+      if (sleepsHome(st, v, h)) continue;
+      for (const hh of householdsOf(st, v)) {
+        const plan = planFor(hh, at.year);
+        if (!plan) continue;
+        plan.beds = [];
+        for (const id of goersOf(st, hh, plan)) guests.push([id, hh]);
+      }
+    }
+    const bed = new Set();
+    const welcome = (hid, id) => {
+      const head = st.households[hid].holder;
+      return head !== null && st.pawns[head].alive && opinionOf(st, head, id) >= 0;
+    };
+    // a bed for guest g at household hid's farm: in the house first for kin and partners, the barn first for the others
+    const place = (g, hid, house) => {
+      VB.count.gatherLodge++;
+      const r = room.get(hid);
+      if (!r || !welcome(hid, g[0])) return false;
+      const [a, b] = house ? [0, 1] : [1, 0],
+        k = r[a] > 0 ? a : r[b] > 0 ? b : -1;
+      if (k < 0) return false;
+      r[k]--;
+      const hh = g[1];
+      hh.gathering.beds.push([g[0], hid, k === 1]);
+      bed.add(g[0]);
+      return true;
+    };
+    for (const g of guests) for (const k of kinHouseholds(st, g[1])) if (place(g, k, true)) break;
+    for (const g of guests) {
+      const m = st.pawns[g[0]].goodwill;
+      if (bed.has(g[0]) || !m) continue;
+      for (const b of m.keys()) {
+        const q = st.pawns[b];
+        if (q.alive && q.household !== null && place(g, q.household, true)) break;
+      }
+    }
+    const farms = [...room.keys()];
+    let i = 0;
+    for (const g of guests) {
+      if (bed.has(g[0])) continue;
+      while (i < farms.length && room.get(farms[i])[0] + room.get(farms[i])[1] === 0) i++;
+      for (let k = i; k < farms.length; k++) if (place(g, farms[k], false)) break;
+    }
+    for (const [id] of guests) if (!bed.has(id)) setGoing(st, id, false); // no bed: it stays home
+  }
+  // The packing (the day before the gathering, from the start of work; sim/clock): at the first step every household not yet planned plans
+  // and the goers of each gathering are lodged, the choice made (packed); then a village a step, the farthest first, its lodged goers pack (provisions
+  // for the days
+  // away, from the household's grain above its seed, sim/away's pack) and walk to their beds, and one whose household cannot spare its
+  // pack stays home; at the last step each gathering's days are called on its host's green, for those who go from home and those lodged.
+  // The goods a household means to exchange are the fair's (VB-302), which loads them.
+  function packStep(st, n) {
+    const year = cal(st.t).year,
+      hosts = gatherings(st).filter((g) => g.year === year && st.t < whenHeld(st, g.host, year)[1]);
+    if (!hosts.length) return;
+    if (n === 0) {
+      for (const g of hosts) {
+        const at = ahead(st, g.host);
+        for (const v of g.villages) for (const hh of householdsOf(st, v)) planGoing(st, hh, at);
+        lodging(st, g.host, at);
+        for (const v of g.villages) for (const hh of householdsOf(st, v)) planOf(hh, at.year).packed = true;
+      }
+      return;
+    }
+    const far = [];
+    for (const g of hosts) for (const v of g.villages) if (!sleepsHome(st, v, g.host)) far.push([v, g.host]);
+    far.sort((a, b) => hoursBetween(st, b[0], b[1]) - hoursBetween(st, a[0], a[1]) || a[0] - b[0]);
+    if (n <= VILLAGE_STEPS) {
+      far.forEach(([v, h], j) => {
+        if (Math.floor((j * VILLAGE_STEPS) / Math.max(far.length, VILLAGE_STEPS)) === n - 1) pack(st, v, ahead(st, h));
+      });
+      return;
+    }
+    for (const g of hosts) callDays(st, g.host, ahead(st, g.host));
+  }
+  // Village v's lodged goers pack and set out for their beds (the verb lodge, sim/away: a guest in the host's house or barn until the
+  // morning after the last day, on a pack for the nights away and the day home).
+  function pack(st, v, at) {
+    for (const hh of householdsOf(st, v)) {
+      const plan = planFor(hh, at.year);
+      if (!plan) continue;
+      for (const [id, host, barn] of plan.beds) {
+        const ok =
+          st.pawns[id].alive &&
+          st.pawns[id].household === hh.id &&
+          issue(st, {
+            actor: id,
+            verb: 'lodge',
+            target: st.farmsteads[st.households[host].farmstead].house,
+            args: {
+              why: 'gathering',
+              days: at.days + 2,
+              host,
+              barn,
+              until: at.end + WORK[0],
+              walk: hoursBetween(st, v, at.host),
+            },
+            source: 'planner',
+          }) === true;
+        if (!ok) setGoing(st, id, false);
+      }
+      plan.beds = [];
+    }
+  }
+  // Host h's days, one occasion a day on its green: each goer is asked, from home (the host's own and those within homeHours, their walk
+  // by the table of walking hours) or from its bed in the host village (an hour's walk at most).
+  function callDays(st, h, at) {
+    const ids = [],
+      hours = [];
+    for (const v of district(st, h)) {
+      const home = sleepsHome(st, v, h);
+      for (const hh of householdsOf(st, v)) {
+        const plan = planFor(hh, at.year);
+        if (!plan) continue;
+        for (const id of goersOf(st, hh, plan)) {
+          const s = home ? null : stayOf(st, id);
+          if (!home && !(s && s.why === 'gathering')) continue;
+          ids.push(id);
+          hours.push(home ? hoursBetween(st, v, h) : 1);
+        }
+      }
+    }
+    if (!ids.length) return;
+    const c = st.villages[h].center,
+      place = { village: h, farm: null, tile: c, x: st.w.hx[c], y: st.w.hy[c] + 6 };
+    for (let k = 0; k < at.days; k++) call(st, 'gathering', at.start + k * DAY, place, ids, hours, []);
+  }
+  // The end of a day on the green (sim/occasions' end of kind 'gathering'): the host village's holders pour their ale for those present,
+  // those with most first, a barrel for each BREW.guests (sim/feast's pourAle: each guest remembers the pourer, the pourer's standing
+  // counts it); after the last day, each lodged guest who is not kin of its host books a gift of a ration a night to the host's holder
+  // (the start of a partnership), and the log tells who came.
+  function dayEnd(st, o, present) {
+    const h = o.village,
+      g = choiceOf(st, h),
+      farms = [];
+    for (const hh of householdsOf(st, h)) farms.push([Stores.aleOf(st, hh), st.farmsteads[hh.farmstead]]);
+    farms.sort((a, b) => b[0] - a[0] || a[1].id - b[1].id);
+    let need = Math.ceil(present.length / BREW.guests),
+      barrels = 0;
+    for (const [n, f] of farms) {
+      if (need <= 0 || n <= 0) break;
+      const k = pourAle(st, f, present, need);
+      need -= k;
+      barrels += k;
+    }
+    if (g) g.ale = (g.ale || 0) + barrels;
+    if (st.occasions.some((x) => x.kind === 'gathering' && x.village === h)) return;
+    const [a, b] = whenHeld(st, h, cal(st.t).year),
+      nights = (b - a) / DAY + 1; // the night before and each of its days
+    const from = new Set();
+    for (const id of present) {
+      const p = st.pawns[id];
+      if (p.household === null) continue;
+      from.add(villageOf(st, st.households[p.household]));
+      const s = stayOf(st, id);
+      if (!s || s.why !== 'gathering' || s.host === undefined) continue;
+      const host = st.households[s.host],
+        mine = st.households[p.household];
+      if (host.dissolved || host.holder === null || mine.holder === null || mine.holder === host.holder) continue;
+      if (!st.pawns[host.holder].alive || !st.pawns[mine.holder].alive || kinHouseholds(st, mine).includes(host.id))
+        continue;
+      book(st, host.holder, mine.holder, nights);
+    }
+    const ale = g && g.ale ? `; ${g.ale === 1 ? 'a barrel' : g.ale + ' barrels'} of ale poured` : '',
+      places = `${from.size} ${from.size === 1 ? 'village' : 'villages'}`;
+    log(
+      st,
+      `The gathering at ${st.villages[h].name} ends: ${present.length} were there on its last day, from ${places}${ale}.`,
+      { kind: 'gatheringHeld', village: h, n: present.length },
+    );
+  }
+  onEnd('gathering', { end: (st, o, pre, present) => dayEnd(st, o, present) });
+  // A death at home while its household's goers lodge at the gathering (sim/lifecycle's 'died'): if no adult is left at home, the first
+  // adult lodged there turns for home (the news is known at once: knowledge moves without a carrier).
+  on('died', (st, d) => {
+    const p = st.pawns[d.pawn];
+    if (p.household === null) return;
+    const hh = st.households[p.household],
+      plan = planFor(hh, cal(st.t).year);
+    if (!plan || !plan.go.length) return;
+    let home = false,
+      back = null;
+    for (const m of hh.members) {
+      const q = st.pawns[m];
+      if (m === d.pawn || !q.alive || age(st, q) < G.adult) continue;
+      const s = stayOf(st, m);
+      if (!s || s.why !== 'gathering' || s.back) home = true;
+      else if (back === null) back = m;
+    }
+    if (!home && back !== null) issue(st, { actor: back, verb: 'comeHome', source: 'pawn' });
+  });
+  // goGathering: go to the village's gathering this winter (VB-295): named among the household's goers, who pack the day before
+  register('goGathering', {
+    check: (st, c) => living(st, c.actor) || goWhy(st, c.actor),
+    run: (st, c) => setGoing(st, c.actor, true),
+  });
+  // stayHome: stay at home from the village's gathering this winter (VB-295), until the household packs
+  register('stayHome', {
+    check: (st, c) => living(st, c.actor) || stayWhy(st, c.actor),
+    run: (st, c) => setGoing(st, c.actor, false),
+  });
   // gathering({offer, prefs, by}): the village's choice of gathering this year (VB-294): whether it offers to host, and the hosts it
   // would go to, best first; made by its meeting (by 'meeting') or, when it did not decide, by its culture's practice (sim/gathering)
   register('gathering', {
     check: (st, c) => settlement(st, c) || choiceWhy(st, c.actor.settlement, c.args),
     run: (st, c) => setGathering(st, c.actor.settlement, c.args),
   });
-  return { chooseGathering, choiceWhy, setGathering, settleGatherings, district, gatherings, whenHeld, rank, canHost };
+  return {
+    chooseGathering,
+    choiceWhy,
+    setGathering,
+    settleGatherings,
+    district,
+    gatherings,
+    whenHeld,
+    rank,
+    canHost,
+    ahead,
+    packStep,
+    goWhy,
+  };
 })();

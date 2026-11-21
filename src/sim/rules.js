@@ -783,6 +783,10 @@ VB['sim/rules'] = (() => {
   // barrel its host poured there (at most `aleMax`); a village goes to the host with the fewest, under TRAVEL.dayWalk. A gathering stands
   // with `least` villages or more; a host lodges `lodge` guests a farm, `goers` from each household of a village beyond `homeHours` of
   // walk. `dates`: when it is held, by the key of its date (`harvest`: winter days 1 to 3, after the threshing; VB-809's custom adds others).
+  // Going there (VB-295): a household's goers are its holder, its unmarried of marrying age and, by wish, others of `wishAge` or more, each
+  // at `wish` times (0.5 + sociability); at least one of `adult` years or more stays. A goer beyond homeHours lodges at a farm of the
+  // host village, `house` in its house and `barn` in its barn (their sum is `lodge`); the barn is dry and its cold `barnCold` of the open
+  // sky's, the beasts' warmth. The days on the green run from `from` to the end of work.
   const GATHERING = {
     kin: 0.5,
     kinMax: 2,
@@ -795,6 +799,13 @@ VB['sim/rules'] = (() => {
     goers: 3,
     homeHours: 2,
     dates: { harvest: { season: 3, from: 0, days: 3 } },
+    wish: 0.3,
+    wishAge: 12,
+    adult: 16,
+    house: 4,
+    barn: 6,
+    barnCold: 0.5,
+    from: 9,
   };
   const HELP = {
     // a holder wants floorDays and its own reserve (TRAITS.acts.generosity.reserve, by its generosity: 0 to 40 days; VB-520) of the

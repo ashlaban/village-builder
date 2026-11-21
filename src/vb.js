@@ -64,6 +64,8 @@ VB.COUNTERS = {
     "Counterparts of a village's holders read for the pull between villages, at its meeting (sim/gathering, VB-294)",
   gatherKin: "Kin households read for a village's choice of gathering, at its meeting (sim/gathering, VB-294)",
   gatherSettle: 'Hosts named and asked in the settling of the gatherings, once a year (sim/gathering, VB-294)',
+  gatherPlan: "Members read by a household's plan of who goes to the gathering, once a year (sim/gathering, VB-295)",
+  gatherLodge: 'Beds tried for the goers lodged at a gathering, once a year (sim/gathering, VB-295)',
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
   aldermanBallots:

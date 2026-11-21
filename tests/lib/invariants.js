@@ -358,6 +358,29 @@ function checkState(st) {
     }
     for (const [h, n] of size) if (n < globalThis.VB['sim/rules'].GATHERING.least) bad.push(`gathering: ${h}'s has ${n} villages`);
   }
+  // going to the gathering (VB-295): a household's plan names its own members once each, and its beds are of a host household and only
+  // until it has packed; a goer lodged at the gathering waits for a day of it, is home or dead two days after it ends, and sleeps under
+  // a host's roof (sim/away's stays, below); and no household has all its living adults lodged at the gathering
+  {
+    const R = globalThis.VB['sim/rules'], G = R.GATHERING, ageOf = (p) => Math.floor((st.t - p.born) / R.YEAR);
+    const lodged = new Set();
+    for (const s of st.away || []) if (s.why === 'gathering' && s.bed !== null && !s.back) lodged.add(s.pawn);
+    for (const hh of st.households) {
+      const g = hh.gathering;
+      if (g === undefined) continue;
+      if (!Number.isInteger(g.year) || typeof g.planned !== 'boolean' || typeof g.packed !== 'boolean' || !Array.isArray(g.go) || !Array.isArray(g.beds)
+        || new Set(g.go).size !== g.go.length || g.go.some((id) => !st.pawns[id]))
+        bad.push(`gathering: household ${hh.id}'s plan ${JSON.stringify(g)}`);
+      else if (g.beds.some(([id, h, barn]) => !g.go.includes(id) || !st.households[h] || h === hh.id || typeof barn !== 'boolean'))
+        bad.push(`gathering: household ${hh.id}'s beds ${JSON.stringify(g.beds)}`);
+      if (hh.dissolved || !lodged.size) continue;
+      const adults = hh.members.filter((m) => st.pawns[m].alive && ageOf(st.pawns[m]) >= G.adult);
+      if (adults.length && adults.every((m) => lodged.has(m))) bad.push(`gathering: household ${hh.id} has every adult lodged at the gathering`);
+    }
+    for (const s of st.away || [])
+      if (s.why === 'gathering' && (s.bed === null || !(s.until > 0) || st.t >= s.until + 2 * R.DAY || (s.roof !== 'house' && s.roof !== 'barn')))
+        bad.push(`gathering: a goer's stay ${s.id}: bed ${s.bed}, until ${s.until}, roof ${s.roof}, at ${st.t}`);
+  }
   // the record of events (VB-075), the events appended since the last check: a kind, a time not after now, ids that exist
   // (a slot folded since, VB-199, is the index of a count of st.recordYears)
   const from = checked.get(st.record) || 0, Y = st.recordYears || [];
@@ -1283,7 +1306,8 @@ function checkState(st) {
   // st.awaySeq and unique, one stay a pawn, each pawn living, the food it carries never below 0, agent.away its index (the stay's id on its
   // pawn's agent, absent on every other). A journey (bed null, roof 'none'): `to` its household's house, and its pawn in phase 'journey' or
   // 'road' exactly when it is on one. A lodger: its bed a tile and its walk there, `to` its bed, roof 'none' or 'house', a guest's bed the
-  // house of its host, another household; its pawn never on the road.
+  // house of its host, another household (roof 'house', or 'barn' at a gathering, VB-295); its pawn never on the road; one for an occasion
+  // (until) has a bed and no tasks.
   if (st.away !== undefined) {
     const seen = new Set(), ids = new Set();
     if (!Array.isArray(st.away) || !Number.isInteger(st.awaySeq) || st.awaySeq < 0) bad.push(`away: ${typeof st.away}, seq ${st.awaySeq}`);
@@ -1296,10 +1320,11 @@ function checkState(st) {
       seen.add(j.pawn);
       if (!st.agents[j.pawn] || st.agents[j.pawn].away !== j.id) bad.push(`${at}: its pawn's agent.away is ${st.agents[j.pawn] && st.agents[j.pawn].away}`);
       if (!(j.food >= 0)) bad.push(`${at}: food ${j.food}`);
+      if (j.until !== undefined && (j.bed === null || !(j.until > 0) || (j.jobs || []).length)) bad.push(`${at}: a stay for an occasion until ${j.until}, bed ${j.bed}, jobs ${j.jobs}`);
       if (j.bed !== null) {
         const host = j.host === undefined ? null : st.households[j.host];
         if (!Number.isInteger(j.bed) || j.bed < 0 || j.bed >= st.w.N || j.to !== j.bed || !(j.walk >= 0) || !Array.isArray(j.jobs)) bad.push(`${at}: a lodger's bed ${j.bed}, to ${j.to}, walk ${j.walk}`);
-        if (host ? j.roof !== 'house' || st.farmsteads[host.farmstead].house !== j.bed || (p && p.household === host.id) : j.roof !== 'none' && j.roof !== 'booth') bad.push(`${at}: roof ${j.roof}, host ${j.host}`);
+        if (host ? (j.roof !== 'house' && j.roof !== 'barn') || st.farmsteads[host.farmstead].house !== j.bed || (p && p.household === host.id) : j.roof !== 'none' && j.roof !== 'booth') bad.push(`${at}: roof ${j.roof}, host ${j.host}`);
         const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
         if (ph === 'journey' || ph === 'road') bad.push(`${at}: a lodger in phase ${ph}`);
         return;
@@ -1370,7 +1395,7 @@ function checkState(st) {
       if (!(o.tile >= 0 && o.tile < st.w.N) || !st.villages[o.village] || (o.farm !== null && !st.farmsteads[o.farm])) {
         bad.push(`${at}: tile ${o.tile}, village ${o.village}, farm ${o.farm}`);
       }
-      if ((o.kind === 'meeting' || o.kind === 'rite') !== (o.farm === null)) bad.push(`${at}: a ${o.kind} at farm ${o.farm}`);
+      if ((o.kind === 'meeting' || o.kind === 'rite' || o.kind === 'gathering') !== (o.farm === null)) bad.push(`${at}: a ${o.kind} at farm ${o.farm}`);
       if (o.kind === 'ale') {
         const hh = o.farm === null ? null : st.households[st.farmsteads[o.farm].household];
         const day = `${o.village} ${Math.floor(o.start / D)}`, own = hh ? hh.members : [];

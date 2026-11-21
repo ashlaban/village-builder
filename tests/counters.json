@@ -43,6 +43,8 @@
   "gatherDisposition": 0,
   "gatherKin": 0,
   "gatherSettle": 0,
+  "gatherPlan": 0,
+  "gatherLodge": 0,
   "meetingWalk": 0,
   "aldermanBallots": 0,
   "rotationWalk": 0,
