@@ -155,6 +155,7 @@
     "village.keepBy": "sim/keep",
     "village.workday": "sim/workdays",
     "village.gathering": "sim/gathering",
+    "household.gathering": "sim/gathering",
     "village.rotation": "sim/rotations",
     "village.commonFields": "sim/commons",
     "village.commonSow": "sim/commons",

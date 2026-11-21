@@ -14,6 +14,8 @@ const OCC_WORDS = {
   wedding: 'A wedding',
   funeral: 'A funeral ale',
   ale: 'An ale evening',
+  call: 'A call at a farm',
+  gathering: 'The gathering',
 };
 const OCC_R = 11, // the mark's radius on screen, in pixels
   OCC_LIFT = 30; // and how far over the spot it floats, in map units: over the heads

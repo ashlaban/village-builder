@@ -127,6 +127,7 @@ const INTEGRATION = [
   ['node', 'tests/projects.js'],
   ['node', 'tests/routines.js'],
   ['node', 'tests/gathering.js'], // VB-294: the village's choice of gathering, who hosts and who goes
+  ['node', 'tests/going.js'], // VB-295: going to the gathering: who goes, the lodging, the packing, the days on the green and home
   ['node', 'tests/green.js'],
   ['node', 'tests/workdays.js'],
   ['node', 'tests/commons.js'],

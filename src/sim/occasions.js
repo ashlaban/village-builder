@@ -4,7 +4,8 @@
 //   out, and the due-queue that sends and ends them; the villages' turns of the meetings and the moving round. What the host lays out is
 //   sim/feast's.
 // @state st.occasions[]: the occasions called and not yet over, sorted by `due` (after those due at the same time), each {id, kind
-//   ('meeting' | 'wedding' | 'funeral' | 'ale' | 'rite' | 'call'), for[] (pawn ids it is held for: the couple, the dead, an ale evening's host;
+//   ('meeting' | 'wedding' | 'funeral' | 'ale' | 'rite' | 'call' | 'gathering': a day of it, VB-295), for[] (pawn ids it is held for: the couple, the
+//   dead, an ale evening's host;
 //   empty for a meeting and a rite), village, farm (farmstead id, or null on a green), tile, x, y (the spot, map units), start, end
 //   (game hours), overrides (work stops for it), asked[] ({id, leave (the game hour it sets out), hours (its walk there)}, in order of
 //   leave, each taken off once it sets out or cannot come), come[] (the ids that set out), due (game hours: the next time the step
@@ -12,14 +13,14 @@
 // @state st.occasionSeq: number; the next occasion's id; ids are never reused
 // @state agent.occasion: the id of the occasion the pawn set out for and stands at until its end, or null
 VB['sim/occasions'] = (() => {
-  const { release, walkTo, idle, free } = VB['sim/agents'];
+  const { release, walkTo, idle, free, stayOf, travelling } = VB['sim/agents'];
   const { next: rnd } = VB['sim/rng'];
   const { DAY, SPEED, WORK, SOCIAL, TICKS, MARRIAGE, cal } = VB['sim/rules'];
   const { findRoute, routeCost } = VB['sim/routes'];
   const { kinNear, membersOf, voiceOf, fullName, log, atFarm, age, spouseOf } = VB['sim/records'];
   const { issue, register } = VB['sim/commands'];
   const { unplanned } = VB['sim/records'];
-  const { ALE_EVENING, CALL, RITE, WORK: WORK_HOURS } = VB['sim/rules'];
+  const { ALE_EVENING, CALL, RITE, GATHERING, WORK: WORK_HOURS } = VB['sim/rules'];
   const { pourAle, feast } = VB['sim/feast'];
   // The occasions (Kim, 10 Nov; QUESTION_ARCHIVE.md, "VB-126"): their hours in the day, and whether work stops for them. A village's
   // meeting is held on its own 6-minute step from noon (sim/lifecycle, VB-278): its people stand about the green from two hours before it
@@ -56,6 +57,14 @@ VB['sim/occasions'] = (() => {
       overrides: false,
       at: 'At the rite',
       go: 'Walking to the rite',
+    },
+    // a day of the gathering on its host's green (VB-295; sim/gathering calls its days): from GATHERING.from to the end of work
+    gathering: {
+      from: GATHERING.from,
+      to: WORK_HOURS[1],
+      overrides: true,
+      at: 'At the gathering',
+      go: 'Walking to the gathering',
     },
   };
   // The villages' turns (VB-277, VB-278): the moving round and the meetings hold a village a 6-minute step from noon, in the order of
@@ -217,14 +226,20 @@ VB['sim/occasions'] = (() => {
     o.come.push(a.id);
     return [o.tile, o.x + Math.cos(th) * r, o.y + Math.sin(th) * r * 0.6, o.end];
   }
-  // Whether pawn a can go now: not on the player's hands, not held at another occasion; for an occasion that stops work, anyone not carrying a
-  // load home; else only those with no work in hand.
+  // Whether pawn a can go now: not on the player's hands, not held at another occasion, at home or lodging for it (a gathering's goer at
+  // its bed in the host village, VB-295); for an occasion that stops work, anyone not carrying a load home; else only those with no work in hand.
   const canGo = (st, a, o) =>
     !unplanned(st, a.id) &&
     !held(a, o) &&
     a.phase !== 'back' &&
-    a.away === undefined && // on the road (VB-287), or lodging away (VB-783)
+    (a.away === undefined || lodgedFor(st, a, o)) && // on the road (VB-287), or lodging away (VB-783)
     (o.overrides || (!a.job && (a.phase === null || a.phase === 'home')));
+  // Pawn a lodges in the host village for the gathering whose day o is (sim/gathering's stays: why 'gathering', until its end).
+  function lodgedFor(st, a, o) {
+    if (o.kind !== 'gathering' || travelling(a)) return false;
+    const s = stayOf(st, a.id);
+    return !!s && s.why === 'gathering' && s.bed !== null && !s.back;
+  }
   // The occasion o's turn: those whose time to set out has come go if they can; one who cannot yet is looked at again in an hour (at the
   // next step if it is carrying a load home), while it
   // could still arrive an hour before the end. At the end, o is over.
