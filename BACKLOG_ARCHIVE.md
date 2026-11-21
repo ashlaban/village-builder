@@ -605,3 +605,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1406](backlog/VB-1406.md) | Refactor: one due-queue helper (sim/due) for the sorted queues | - | 2 | M | A pure helper for the eight hand-rolled due-queues; behaviour unchanged |
 | [VB-1407](backlog/VB-1407.md) | Refactor: one test of what a site still needs, and one timber rule | - | 2 | M | One needs-at-site test, one timber posting rule, kept hours in one place; behaviour unchanged |
 | [VB-1408](backlog/VB-1408.md) | Refactor: a project's beginning and its end said once (the yearly starters and the step finishers) | - | 2 | M | One guard for beginning a project, one finisher for a step's job, one onProject; behaviour unchanged |
+| [VB-1409](backlog/VB-1409.md) | Refactor: a journey's kinds as one table (what arriving, resting, falling and a new home do) | - | 2 | M | A table of journey kinds in sim/away replaces the tests on a stay's why; behaviour unchanged |
