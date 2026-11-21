@@ -1,6 +1,6 @@
 // @sys gen: assembly of the seeded archipelago's terrain, tile and region data, and the public ArchGen API
 const ArchGen = (() => {
-  const { mulberry32, makeSimplex, fbm, ridged, smooth, makeTile } = VB['gen/noise'];
+  const { mulberry32, makeSimplex, fbm, smooth, makeTile } = VB['gen/noise'];
   const { B, COVER, BIOMES, setBiome } = VB['gen/biomes'];
   const { bakeWater, bakeChunk, decorateChunk, hexLocator, treeStage, LV, TEX } = VB['gen/bake'];
   const SQ3 = Math.sqrt(3);
