@@ -11,7 +11,7 @@ for (const name of Object.keys(F.FIXTURES)) {
   const st = fixture.st, { bfs } = VB['sim/hex'], { SETTLE } = VB['sim/rules'];
   const expected = { taken: new Set(st.used), near: new Set() }, marks = VB['sim/fieldplans'].builtTiles(st);
   for (let t = 0; t < st.w.N; t++) if (st.owner[t] !== 0 || st.claims.has(t)) expected.taken.add(t);
-  for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); const s = f.household !== null && VB['sim/plans'].openOf(st, 'household', f.household); if (s) marks.add(s.place); }
+  for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); if (f.household !== null) for (const p of VB['sim/projects'].projectsOf(st, 'household', f.household)) marks.add(p.steps[p.open].place); }
   const X = VB['sim/expansion'];
   for (const v of st.villages) for (const p of [...v.plots, ...X.livePlots(st, v)]) for (const tr of X.tilesOf(p)) marks.add(tr.tile);
   for (const t of marks) {

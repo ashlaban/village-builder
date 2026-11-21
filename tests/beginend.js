@@ -31,7 +31,7 @@ check(!stepEnds(st, { kind: 'cart', site: f.house }, hh, effect) && ran === 0, '
 check(!stepEnds(st, { kind: 'tarpit', site: f.house + 1 }, hh, effect) && ran === 0, 'another tile: not its step, no effect');
 check(!stepEnds(st, { kind: 'tarpit', site: f.house }, null, effect) && ran === 0, 'no holder: nothing');
 check(stepEnds(st, { kind: 'tarpit', site: f.house + 1 }, hh, effect, { place: false }) && ran === 1, 'the place left unasked (the cart): it ends');
-check(!Projects.projectOf(st, 'household', hh.id) && plan.steps.length === 1, 'its one step done: the plan is finished (stepDone)');
+check(!Projects.ownOf(st, hh.id) && plan.steps.length === 1, 'its one step done: the plan is finished (stepDone)');
 check(!stepEnds(st, { kind: 'tarpit', site: f.house }, hh, effect) && ran === 1, 'a step no longer open: no effect, no second stepDone');
 check(mayBegin(st, hh, f), 'its plan finished: it may begin again');
 hp.chosen = { ...(was || {}), project: 'none' };
@@ -39,14 +39,14 @@ check(!mayBegin(st, hh, f) && mayBegin(st, hh, f, NOHOLD), 'a head holding off p
 hp.chosen = was;
 const two = Plans.makeProject(st, 'household', hh.id, { what: 'barn', steps: [{ kind: 'barnbase', place: f.house, hours: 1 }, { kind: 'barnroof', place: f.house, hours: 1 }] });
 check(!stepEnds(st, { kind: 'barnroof', site: f.house }, hh, effect) && ran === 1, 'a later step not yet open: no effect');
-check(stepEnds(st, { kind: 'barnbase', site: f.house }, hh, effect) && ran === 2 && Projects.openOf(st, 'household', hh.id) === two.steps[1], 'the open step ends: the next opens');
+check(stepEnds(st, { kind: 'barnbase', site: f.house }, hh, effect) && ran === 2 && Projects.openOf(st, hh.id) === two.steps[1], 'the open step ends: the next opens');
 check(!stepEnds(st, { kind: 'barnbase', site: f.house }, hh, effect) && ran === 2, 'the step before, ended again: nothing');
 // the barn's holder is the job's owner, not the hand's household
 const { KINDS } = VB['sim/kinds'], other = st.households.find((h) => h.id !== hh.id && !h.dissolved);
 KINDS.barnroof.done(st, { kind: 'barnroof', site: f.house, farm: f, owner: { type: 'household', id: other.id } }, hh);
-check(Projects.openOf(st, 'household', hh.id) === two.steps[1] && !f.barn, "another household's barn job: not this holder's step");
+check(Projects.openOf(st, hh.id) === two.steps[1] && !f.barn, "another household's barn job: not this holder's step");
 KINDS.barnroof.done(st, { kind: 'barnroof', site: f.house, farm: f, owner: { type: 'household', id: hh.id } }, other);
-check(!Projects.projectOf(st, 'household', hh.id) && f.barn && f.barn.built === st.t, 'its owner\'s roof on: the farm has its barn, the plan done');
+check(!Projects.ownOf(st, hh.id) && f.barn && f.barn.built === st.t, 'its owner\'s roof on: the farm has its barn, the plan done');
 
 if (failed) { console.error(`beginend: ${failed} failed`); process.exit(1); }
 console.log('beginend ok');

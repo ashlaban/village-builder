@@ -19,11 +19,28 @@ VB['sim/projects'] = (() => {
       list = P && P[type].get(id);
     return list || NONE;
   }
-  // The holder's first project plan, or null: a household has at most one (design.md section 7, Holders and plans).
-  const projectOf = (st, type, id) => {
-    const list = projectsOf(st, type, id);
-    return list.length ? list[0] : null;
+  // The household's project of its own choosing under way (a field, a meadow, a boat, a plot for its heir...), or null: the guards' one
+  // read of it (mayBegin, the aims' menu, the land step, landWhy, buildStep, barnWhy, heirWhy, the verb dropProject). That a head begins
+  // no second project of its own choosing is today's limit, not the design's (the limit of one project removed, Kim, 21 Nov 2026; how
+  // parallel projects are limited and ranked is VB-1410's). Allocates nothing.
+  function ownOf(st, id) {
+    for (const plan of projectsOf(st, 'household', id)) return plan;
+    return null;
+  }
+  // The open step of the household's project of its own choosing (ownOf), or null. Allocates nothing.
+  const openOf = (st, id) => {
+    const plan = ownOf(st, id);
+    return plan ? plan.steps[plan.open] : null;
   };
+  // The plan of the holder whose open step is of `kind`, at `place` unless place is undefined, or null: the plan a job belongs to (by its
+  // kind and place). Allocates nothing.
+  function planAt(st, type, id, kind, place) {
+    for (const plan of projectsOf(st, type, id)) {
+      const s = plan.steps[plan.open];
+      if (s && s.kind === kind && (place === undefined || s.place === place)) return plan;
+    }
+    return null;
+  }
   // A plan's step by its kind (the first of that kind), or undefined: a plot's walls are stepOf(plot, 'walls') (VB-1407). Allocates nothing.
   function stepOf(plan, kind) {
     for (const s of plan.steps) if (s.kind === kind) return s;
@@ -35,25 +52,23 @@ VB['sim/projects'] = (() => {
   const lacks = (site, need) => Math.max(0, (need || 0) - (site.wood || 0));
   // Whether a step has what it waits for at its site: a step with `timber` (loads it needs, VB-300's boat) once it lacks none.
   const supplied = (s) => lacks(s, s.timber) === 0;
-  // The timber site of farm f's household's open project step, when that step carries `timber` (a boat at its shore, VB-300; a cart, a barn's
-  // walls at the house, VB-255): {key, site, need, dest, owner} for sim/building's timber trips, or null.
+  // The timber site of farm f's household's open project step that carries `timber` (a boat at its shore, VB-300; a cart, a barn's walls at
+  // the house, VB-255), the first such among its plans: {key, site, need, dest, owner} for sim/building's timber trips, or null.
   function timberOf(st, f) {
-    const s = f.household !== null && openOf(st, 'household', f.household);
-    return s && s.timber
-      ? {
+    if (f.household === null) return null;
+    for (const plan of projectsOf(st, 'household', f.household)) {
+      const s = plan.steps[plan.open];
+      if (s && s.timber)
+        return {
           key: `timber:b${f.id}`,
           site: s,
           need: s.timber,
           dest: s.place,
           owner: { type: 'household', id: f.household },
-        }
-      : null;
+        };
+    }
+    return null;
   }
-  // The open step of a holder's first project plan, or null. Allocates nothing (the review and the kinds read it hourly).
-  const openOf = (st, type, id) => {
-    const plan = projectOf(st, type, id);
-    return plan ? plan.steps[plan.open] : null;
-  };
   // Every live project plan, in the order of holders' types and ids (a few per village at most).
   function forEach(st, fn) {
     if (!st.plans || !st.plans.projects) return;
@@ -81,44 +96,42 @@ VB['sim/projects'] = (() => {
   // says so by `ask`: { heldOff: false } leaves the head's choice unasked (sim/carts today; VB-678 closes that gap). Allocates nothing.
   const BEGIN = { heldOff: true };
   const mayBegin = (st, hh, f, ask = BEGIN) =>
-    !!hh && !hh.dissolved && !f.booth && !projectOf(st, 'household', hh.id) && !(ask.heldOff && heldOff(st, hh.id));
-  // The one way the job j of household hh's project step ends (VB-1408): when the open step of hh's project plan is still j's (its kind, and
-  // its tile unless `ask` is { place: false }: sim/carts' cart today), the domain's effect(st, j, hh, plan, step) runs and the step is
-  // done (stepDone: sim/plans opens the next or finishes the plan). Whether it ended. hh is the step's holder, which the caller names
-  // (the hand's household, or a barn's j.owner).
+    !!hh && !hh.dissolved && !f.booth && !ownOf(st, hh.id) && !(ask.heldOff && heldOff(st, hh.id));
+  // The one way the job j of household hh's project step ends (VB-1408): when an open step of hh's project plans is still j's (its kind,
+  // and its tile unless `ask` is { place: false }: sim/carts' cart today), the domain's effect(st, j, hh, plan, step) runs and the step is
+  // done (stepDone, naming that plan: sim/plans opens the next or finishes the plan). Whether it ended. hh is the step's holder, which the
+  // caller names (the hand's household, or a barn's j.owner).
   const END = { place: true };
   function stepEnds(st, j, hh, effect, ask = END) {
-    const plan = hh ? projectOf(st, 'household', hh.id) : null,
-      s = plan && plan.steps[plan.open];
-    if (!s || s.kind !== j.kind || (ask.place && s.place !== j.site)) return false;
-    effect(st, j, hh, plan, s);
-    emit(st, 'stepDone', { type: 'household', id: hh.id });
+    const plan = hh ? planAt(st, 'household', hh.id, j.kind, ask.place ? j.site : undefined) : null;
+    if (!plan) return false;
+    effect(st, j, hh, plan, plan.steps[plan.open]);
+    emit(st, 'stepDone', { type: 'household', id: hh.id, plan });
     return true;
   }
   // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
   const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map(), heirPlots: [] });
-  // The job is still the open step of its household's project plan (not given up or contested away meanwhile; sim/plans, sim/stakes): the
-  // one read of it, for the land steps' finishers and sim/jobs' hourly sweep of project tasks.
-  const onProject = (st, j) => {
-    const s = openOf(st, 'household', j.owner.id);
-    return !!s && s.place === j.site && s.kind === j.kind;
-  };
-  // The open step of the household's project plan (a new field's clear and break, a meadow; sim/projects): made once the one before is done.
-  // A plot the household clears for its heir (VB-255) is posted as every plot is (plotWork).
+  // The plan of the job's household whose open step the job still is (not given up or contested away meanwhile; sim/plans, sim/stakes), or
+  // null: the one read of it, for the land steps' finishers (which end that plan) and sim/jobs' hourly sweep of project tasks.
+  const onProject = (st, j) => planAt(st, 'household', j.owner.id, j.kind, j.site);
+  // The open steps of the household's project plans but a plot's (a new field's clear and break, a meadow, a boat...), each posted once
+  // the step before it is done, and not while it waits for timber (VB-300). A plot the household clears for its heir (VB-255) is posted as
+  // every plot is (plotWork).
   const landProject = (st, hh, f, c, post) => {
-    const p = projectOf(st, 'household', hh.id),
-      s = p && p.what !== 'plot' ? p.steps[p.open] : null; // not while it waits for timber (VB-300)
-    if (s && supplied(s)) post(`${s.kind}:f${f.id}`, s.place, { farm: f, hours: s.hours }, s.kind);
+    for (const p of projectsOf(st, 'household', hh.id)) {
+      const s = p.what !== 'plot' ? p.steps[p.open] : null;
+      if (s && supplied(s)) post(`${s.kind}:f${f.id}`, s.place, { farm: f, hours: s.hours }, s.kind);
+    }
   };
   return {
     onProject,
     landProject,
     projectsOf,
-    projectOf,
+    ownOf,
+    openOf,
     stepOf,
     lacks,
     timberOf,
-    openOf,
     forEach,
     holderOf,
     onFarm,

@@ -120,7 +120,7 @@ if (plan) {
   st2.t += DAY;
   KINDS.boat.done(st2, { kind: 'boat', site: step.place, farm: bf, owner: { type: 'household', id: bh.id } }, bh, cal(0, 3));
   check(bh.boat && bh.boat.tile === step.place && bh.boat.water === plan.water && bh.boat.house === bf.house
-    && !Projects.projectOf(st2, 'household', bh.id), 'built: the household\'s boat, the plan finished');
+    && !Projects.ownOf(st2, bh.id), 'built: the household\'s boat, the plan finished');
   const g = D.fishingPlace(st2, bh, bf);
   check(g.boat && g.shore === bh.boat.tile, 'its fishing is from the boat');
   check(near(D.catchOf(st2, { water: g.water, boat: true }), 8), 'a trip in it brings 8 rations');

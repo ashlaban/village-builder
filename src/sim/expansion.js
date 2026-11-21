@@ -126,8 +126,8 @@ VB['sim/expansion'] = (() => {
       fields = new Set();
     for (const f of st.farmsteads) {
       for (const fd of f.fields) fields.add(fd.tile);
-      const s = f.household !== null && Projects.openOf(st, 'household', f.household);
-      if (s) fields.add(s.place); // its project (sim/projects)
+      if (f.household !== null)
+        for (const p of Projects.projectsOf(st, 'household', f.household)) fields.add(p.steps[p.open].place); // its projects (sim/projects)
     }
     for (const u of st.villages)
       for (const p of [...(u.plots || []), ...livePlots(st, u)])

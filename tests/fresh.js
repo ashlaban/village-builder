@@ -19,7 +19,7 @@ check(free.length >= 2, 'two free tiles near the farm');
 const [freshTile, oldTile] = free; w.dev[oldTile] = 1;
 const breakOn = (tile) => {
   VB['sim/plans'].makeProject(st, 'household', f.household, { what: 'field', steps: [{ kind: 'break', place: tile, hours: 0, stake: 'field' }] });
-  F.finishBreak(st, f); return f.fields[f.fields.length - 1];
+  F.finishBreak(st, f, VB['sim/projects'].ownOf(st, f.household)); return f.fields[f.fields.length - 1];
 };
 const fresh = breakOn(freshTile), old = breakOn(oldTile);
 // the scenario's rotation (VB-353) staggers the crops of a farm's fields, populous's among them: a field may bear a crop with another yield or

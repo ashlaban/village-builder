@@ -72,7 +72,7 @@ VB['sim/plans'] = (() => {
   // @state plan.build (a household's; VB-332): its building step, {tile, kind 'pick' | 'quarry' | null} (where its stone comes from; -1 and
   //   null for nowhere in reach) while it means to raise its house onto stone, else null or absent; set at each review (sim/building's buildStep).
   // ---- project plans (VB-123; design.md section 7): their record and reads are sim/projects'; only this section writes them ----
-  const { projectsOf, projectOf, holderOf } = Projects;
+  const { projectsOf, holderOf } = Projects;
   function remove(st, plan) {
     const map = st.plans.projects[plan.holder.type],
       list = map.get(plan.holder.id) || [],
@@ -204,8 +204,7 @@ VB['sim/plans'] = (() => {
     for (const plan of [...projectsOf(st, d.type, d.id)]) if (plan.reasons[d.good] === 'build') review(st, plan);
   });
   on('stepDone', (st, d) => {
-    const plan = d.plan || projectOf(st, d.type, d.id);
-    if (plan) advance(st, plan);
+    if (d.plan) advance(st, d.plan); // every emitter names its plan
   });
   on('projectBegun', (st, d) => {
     makeProject(st, d.type, d.id, d.project);
@@ -879,9 +878,8 @@ VB['sim/plans'] = (() => {
   // once for every farm's look (sim/fields, builtTiles).
   function landStep(st, plan, f, hh, built) {
     if (!(plan.chosen && plan.chosen.project === 'none')) {
-      if (!Projects.projectOf(st, 'household', hh.id) && f.fields.length < plan.targets.fields)
-        landBy(st, plan, f, hh, 'field', built);
-      if (!Projects.projectOf(st, 'household', hh.id) && (wantsMeadow(st, f, hh) || wantsFirstMeadow(st, f, hh)))
+      if (!Projects.ownOf(st, hh.id) && f.fields.length < plan.targets.fields) landBy(st, plan, f, hh, 'field', built);
+      if (!Projects.ownOf(st, hh.id) && (wantsMeadow(st, f, hh) || wantsFirstMeadow(st, f, hh)))
         landBy(st, plan, f, hh, 'meadow', built);
     }
     reserveSeed(st, hh, plan); // a project begun holds its seed from now
@@ -985,7 +983,7 @@ VB['sim/plans'] = (() => {
     if (what !== 'field' && what !== 'meadow') return `there is no land project ${what}`;
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
-    const p = Projects.projectOf(st, 'household', hh.id);
+    const p = Projects.ownOf(st, hh.id);
     if (p) return `household ${hh.id} has a ${p.what} under way`;
     return (what === 'field' ? fieldWhy : meadowWhy)(st, f, hh, tile);
   }
@@ -1015,7 +1013,7 @@ VB['sim/plans'] = (() => {
     if (!plan || !sp) return null;
     const T = plan.targets,
       C = plan.chosen || {},
-      p = Projects.projectOf(st, 'household', id),
+      p = Projects.ownOf(st, id),
       c = cal(st.t),
       hh = st.households[id],
       M = templateOf(st, cultureOf(st, hh), c),
@@ -1139,7 +1137,7 @@ VB['sim/plans'] = (() => {
     check: (st, c) => {
       const why = heads(st, c);
       if (why) return why;
-      const p = Projects.projectOf(st, 'household', c.target);
+      const p = Projects.ownOf(st, c.target);
       return !p
         ? `household ${c.target} has no project under way`
         : c.args && c.args.id !== undefined && c.args.id !== p.id
@@ -1147,7 +1145,7 @@ VB['sim/plans'] = (() => {
           : null;
     },
     run: (st, c) => {
-      giveUp(st, st.households[c.target], Projects.projectOf(st, 'household', c.target));
+      giveUp(st, st.households[c.target], Projects.ownOf(st, c.target));
       if (c.args && c.args.hold) holdProject(st, c.target, true);
     },
   });
@@ -1232,9 +1230,7 @@ VB['sim/plans'] = (() => {
     routinesWhy,
     setRoutines,
     routineAsks,
-    projectOf,
     projectsOf,
-    openOf: Projects.openOf,
     makeProject,
     advance,
     drop: dropProject,

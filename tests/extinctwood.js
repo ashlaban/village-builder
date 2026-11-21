@@ -8,14 +8,14 @@ const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }],
 const hh = st.households[1], f = st.farmsteads[hh.farmstead];
 for (let k = 0; k < Carts.CART.misses; k++) Carts.missed(st, hh);
 Carts.cartsYear(st);
-const plan = Projects.projectOf(st, 'household', hh.id), step = plan && plan.steps[plan.open];
+const plan = Projects.ownOf(st, hh.id), step = plan && plan.steps[plan.open];
 check(plan && step && step.place === f.house, 'a cart is planned at the house');
 step.wood = 7;
 const before = hh.wood;
 let err = null;
 try { extinct(st, hh, 'a test'); } catch (e) { err = e; }
 check(!err, `extinct throws: ${err && err.message}`);
-check(hh.dissolved && !Projects.projectOf(st, 'household', hh.id), 'dissolved, its plan gone');
+check(hh.dissolved && !Projects.ownOf(st, hh.id), 'dissolved, its plan gone');
 check(Math.abs(hh.wood - before - 7) < 1e-9, `the timber lies on the derelict farm's woodpile: ${before} to ${hh.wood}`);
 const bad = checkState(st).filter((m) => !/role cache/.test(m)); // roles are refreshed at the next round
 check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);

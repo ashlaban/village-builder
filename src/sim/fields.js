@@ -13,10 +13,11 @@ VB['sim/fields'] = (() => {
   const { clearScrub, tended, SPREAD } = VB['sim/spread'];
   const STONES_PER_LOAD = 25;
   // Clearing done: the stones go to the household's store, the tile is bare ground; the project's next step, breaking, opens.
-  function finishClear(st, f, hh) {
-    const tile = Projects.openOf(st, 'household', f.household).place;
+  // `plan` is the household's field plan whose step the job was (sim/projects' onProject).
+  function finishClear(st, f, hh, plan) {
+    const tile = plan.steps[plan.open].place;
     clearStones(st, tile, hh);
-    emit(st, 'stepDone', { type: 'household', id: f.household }); // the project's next step opens (sim/plans)
+    emit(st, 'stepDone', { type: 'household', id: f.household, plan }); // the project's next step opens (sim/plans)
   }
   // The stones cleared off `tile` go to household hh's heap (VB-332: through the stores; a common field's to the household of the one who
   // finished the clearing, VB-100), and the tile is bare ground.
@@ -30,13 +31,13 @@ VB['sim/fields'] = (() => {
   }
   // Breaking done: the stake is the household's own land, a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh
   // (SOIL.fresh, VB-149). The project is finished.
-  function finishBreak(st, f) {
-    const tile = Projects.openOf(st, 'household', f.household).place;
+  function finishBreak(st, f, plan) {
+    const tile = plan.steps[plan.open].place;
     realiseStake(st, st.households[f.household], tile);
     const fd = broken(st, tile, f.fields.length);
     f.fields.push(fd);
     placeField(st, f, st.households[f.household], fd);
-    emit(st, 'stepDone', { type: 'household', id: f.household }); // the project is finished (sim/plans)
+    emit(st, 'stepDone', { type: 'household', id: f.household, plan }); // the project is finished (sim/plans)
     log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
   }
   // A new field in stubble on `tile`, its ground broken: farmed land from now. A farm's (finishBreak) or a village's common field (VB-100,

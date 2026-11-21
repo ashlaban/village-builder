@@ -258,7 +258,10 @@ VB['sim/fieldwork'] = (() => {
       spot: onField,
       project: true,
       worked: workStake,
-      done: (st, j, hh) => onProject(st, j) && finishClear(st, j.farm, hh), // a common field's: sim/commons' (common)
+      done: (st, j, hh) => {
+        const plan = onProject(st, j); // a common field's: sim/commons' (common)
+        if (plan) finishClear(st, j.farm, hh, plan);
+      },
       available: landProject, // also a plot's step (plotWork)
     },
     break: {
@@ -274,7 +277,10 @@ VB['sim/fieldwork'] = (() => {
       spot: onField,
       project: true,
       worked: workStake,
-      done: (st, j) => onProject(st, j) && finishBreak(st, j.farm), // a common field's: sim/commons' (common)
+      done: (st, j) => {
+        const plan = onProject(st, j); // a common field's: sim/commons' (common)
+        if (plan) finishBreak(st, j.farm, plan);
+      },
       available: landProject, // also a plot's step (plotWork)
     },
     reclaim: {

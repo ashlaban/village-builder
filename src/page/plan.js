@@ -19,8 +19,7 @@ const planKey = (V) =>
   ]);
 // The tile a household's project works on (its open step's place), or -1: the page reads sim/projects, as the Reserved rows do.
 function projectTile(hh) {
-  const p = VB['sim/projects'].projectOf(st, 'household', hh.id),
-    s = p ? p.steps[p.open] : null;
+  const s = VB['sim/projects'].openOf(st, hh.id); // the one of the head's choosing (the plan tab's)
   return s && Number.isInteger(s.place) ? s.place : -1;
 }
 // A "Show on map" link to tile t (VB-894): the same wherever the tab names a tile.

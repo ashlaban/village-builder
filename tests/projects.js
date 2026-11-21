@@ -17,8 +17,8 @@ const clean = (st, label) => { const bad = checkState(st); assert.deepStrictEqua
 // project's open step (sim/kinds' landProject posts it), and doing it opens the next step (sim/plans' advance), as the land kinds do.
 KINDS.testbuild = { verb: 'Building', go: 'Going to build', name: 'Build', label: 'Build', anim: 'mallet', hours: 6, hands: 2, type: 'wood',
   project: true, done: (st, j) => {
-    const plan = Plans.projectOf(st, 'household', j.owner.id), s = plan && plan.steps[plan.open];
-    if (s && s.kind === j.kind && s.place === j.site) Plans.advance(st, plan);
+    const plan = VB['sim/projects'].onProject(st, j);
+    if (plan) Plans.advance(st, plan);
   } };
 for (const role of Object.values(ROLES)) role.prio.testbuild = role.work.wood ?? 0;
 const BARN = (f) => ({ what: 'barn', steps: [13, 13, 14].map((n) => ({ kind: 'testbuild', place: f.house, hours: 6, spends: { wood: n } })) });
@@ -53,16 +53,16 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   // takes no more hands than its task has (members keep to other work while it is open)
   const hungry0 = hh.hungryDays, opened = [0], worked = new Set();
   let other_work = 0, build_work = 0;
-  for (let h = 0; h < 30 * 24 && Plans.projectOf(st, 'household', hh.id); h++) {
+  for (let h = 0; h < 30 * 24 && VB['sim/projects'].ownOf(st, hh.id); h++) {
     Sim.advance(st, 1);
-    const p = Plans.projectOf(st, 'household', hh.id);
+    const p = VB['sim/projects'].ownOf(st, hh.id);
     if (p && p.open !== opened[opened.length - 1]) opened.push(p.open);
     const kinds = hh.members.map((id) => st.agents[id].job && st.agents[id].job.kind).filter(Boolean);
     if (kinds.includes('testbuild')) { build_work++; if (kinds.some((k) => k !== 'testbuild')) other_work++; }
     for (const k of kinds) worked.add(k);
     if (h % 24 === 23) clean(st, `hour ${h + 1}`);
   }
-  assert(!Plans.projectOf(st, 'household', hh.id), 'the barn is finished within 30 days');
+  assert(!VB['sim/projects'].ownOf(st, hh.id), 'the barn is finished within 30 days');
   assert.deepStrictEqual(opened, [0, 1, 2], 'its steps opened in order, each when the one before was done');
   assert.strictEqual(woodTaken(hh), 40, 'its 40 loads were spent, step by step, through the stores');
   assert.strictEqual(Stores.reserved(st, hh, 'wood'), 0, 'and nothing stays reserved');
@@ -77,11 +77,11 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
 { // the timber taken mid-way: the plan is reviewed at once and dropped, told, and nothing stays reserved
   const { st, hh, f } = scene();
   Plans.makeProject(st, 'household', hh.id, BARN(f));
-  for (let h = 0; h < 30 * 24 && Plans.projectOf(st, 'household', hh.id).open < 1; h++) Sim.advance(st, 1);
-  const plan = Plans.projectOf(st, 'household', hh.id), n = st.record.length;
+  for (let h = 0; h < 30 * 24 && VB['sim/projects'].ownOf(st, hh.id).open < 1; h++) Sim.advance(st, 1);
+  const plan = VB['sim/projects'].ownOf(st, hh.id), n = st.record.length;
   assert(plan && plan.open === 1 && Stores.reserved(st, hh, 'wood') === 27, 'the first step done: 27 loads still reserved');
   Stores.take(st, hh, 'wood', hh.wood - 20, 'burn');
-  assert(!Plans.projectOf(st, 'household', hh.id), 'the plan is dropped at once when its timber is lost');
+  assert(!VB['sim/projects'].ownOf(st, hh.id), 'the plan is dropped at once when its timber is lost');
   assert.strictEqual(Stores.reserved(st, hh, 'wood'), 0, 'its reservation released');
   const told = st.record.slice(n).filter((e) => e.kind === 'projectDropped');
   assert(told.length === 1 && /gives up its new barn: its wood is gone/.test(told[0].text), `the drop is told (${told.map((e) => e.text)})`);
@@ -94,29 +94,29 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   const { st, hh, f } = scene();
   const plan = Plans.makeProject(st, 'household', hh.id, BARN(f));
   Stores.take(st, hh, 'wood', 60, 'burn');
-  assert(Plans.projectOf(st, 'household', hh.id) === plan && Plans.review(st, plan), 'the timber still there: the plan stands');
+  assert(VB['sim/projects'].ownOf(st, hh.id) === plan && Plans.review(st, plan), 'the timber still there: the plan stands');
   Plans.dropAll(st, 'household', hh.id);
   const t = F.chooseTile(st, f);
   VB['sim/stakes'].stake(st, hh, t, 'field');
   const land = Plans.makeProject(st, 'household', hh.id, F.fieldProject(st, hh, t));
   assert(land.steps.map((s) => s.kind).join() === 'clear,break' && land.reasons['grain/barley'] === 'field', 'a field: clearing then breaking, its seed held');
   VB['sim/claims'].dropClaim(st, t, { type: 'household', id: hh.id });
-  assert(!Plans.review(st, land) && !Plans.projectOf(st, 'household', hh.id), 'its stake lost, the land project is dropped at review');
+  assert(!Plans.review(st, land) && !VB['sim/projects'].ownOf(st, hh.id), 'its stake lost, the land project is dropped at review');
   clean(st, 'stake lost');
   out.push('a right lost drops the plan; a store still covering it does not');
 }
 { // a save made before project plans: the farm's land project becomes its household's plan, from its stage on
   const st = Sim.seed(r.value, 7, 'founders');
   Sim.advance(st, 2 * DAY);
-  const hh = st.households.find((h) => Plans.projectOf(st, 'household', h.id));
-  const old = Plans.projectOf(st, 'household', hh.id), was = JSON.stringify(old.steps.slice(old.open));
+  const hh = st.households.find((h) => VB['sim/projects'].ownOf(st, h.id));
+  const old = VB['sim/projects'].ownOf(st, hh.id), was = JSON.stringify(old.steps.slice(old.open));
   for (const x of st.farmsteads) { // as such a save had it
-    const o = x.household === null ? null : Plans.openOf(st, 'household', x.household);
+    const o = x.household === null ? null : VB['sim/projects'].openOf(st, x.household);
     x.project = o ? { tile: o.place, stage: o.kind, hours: o.hours } : null;
   }
   delete st.plans.projects; delete st.plans.projectSeq;
   Plans.fillPlans(st); VB['sim/saves'].oldProjects(st); // as a load does
-  assert.strictEqual(JSON.stringify(Plans.projectOf(st, 'household', hh.id).steps), was, 'the plan made from the farm\'s project has its steps');
+  assert.strictEqual(JSON.stringify(VB['sim/projects'].ownOf(st, hh.id).steps), was, 'the plan made from the farm\'s project has its steps');
   assert(st.farmsteads.every((x) => !('project' in x)), 'the farms keep no project');
   clean(st, 'loaded');
   out.push('a save before project plans loads');
@@ -150,7 +150,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   const FC = VB['sim/farmclaims'], st = Sim.seed(r.value, 7, 'heirs'), f = st.farmsteads[0], by = st.households[1].holder;
   f.claim = { by, since: st.t, hours: 36, done: 20 };
   VB['sim/saves'].oldProjects(st); // as a load does
-  const c = FC.claimOn(st, f), plan = Plans.projectOf(st, 'pawn', by);
+  const c = FC.claimOn(st, f), plan = VB['sim/projects'].projectsOf(st, 'pawn', by)[0];
   assert(c && c.by === by && c.hours === 36 && c.done === 20 && !('claim' in f), 'the claim loads as its claimant\'s plan');
   assert(plan.what === 'restore' && plan.farm === f.id && plan.steps.length === 1 && plan.steps[0].stake === 'farm', 'one step: the restoration');
   out.push('a claim on an empty farm is its claimant\'s plan');

@@ -195,7 +195,7 @@ VB['sim/building'] = (() => {
       f.household !== hh.id ||
       f.booth ||
       (f.grade !== 'ground' && !quern) ||
-      (!old && !quern && Projects.projectOf(st, 'household', hh.id))
+      (!old && !quern && Projects.ownOf(st, hh.id))
     )
       return null;
     if (old && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;

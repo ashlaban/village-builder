@@ -62,8 +62,7 @@ VB['sim/tar'] = (() => {
       VB.count.tarAsk++;
       if (!hh || hh.dissolved) continue;
       if (pitOf(st, hh, f)) return hh;
-      const plan = Projects.projectOf(st, 'household', hh.id);
-      if (plan && plan.what === 'tarpit') return hh;
+      for (const plan of Projects.projectsOf(st, 'household', hh.id)) if (plan.what === 'tarpit') return hh;
     }
     return null;
   }

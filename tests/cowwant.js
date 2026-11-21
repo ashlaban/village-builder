@@ -101,7 +101,7 @@ function leadHome(st, buyer) {
   const st = state(), [hh] = pair(st), f = st.farmsteads[hh.farmstead];
   check(!hh.herds.length && !f.meadows.length, 'the probe household has no herd and no meadow');
   // the land step begins it through the head's verb (VB-253); the fields' target is met first, so the meadow is the project begun
-  const P = VB['sim/plans'], begun = (s, h) => VB['sim/projects'].projectOf(s, 'household', h.id);
+  const P = VB['sim/plans'], begun = (s, h) => VB['sim/projects'].ownOf(s, h.id);
   const plan = st.plans.households.get(hh.id);
   plan.targets.fields = f.fields.length;
   check(M.wantsFirstMeadow(st, f, hh), 'two hands, no herd, no meadow: a first meadow is wanted');

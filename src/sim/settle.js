@@ -23,7 +23,8 @@ VB['sim/settle'] = (() => {
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
-  const { makePlan, openOf, makeProject } = VB['sim/plans'];
+  const { makePlan, makeProject } = VB['sim/plans'];
+  const { projectsOf } = VB['sim/projects'];
   const { reckonWood, woodTaken } = VB['sim/territory'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
@@ -142,8 +143,8 @@ VB['sim/settle'] = (() => {
     for (let t = 0; t < w.N; t++) if (st.owner[t] !== 0 || st.claims.has(t)) use.taken.add(t);
     for (const f of st.farmsteads) {
       for (const fd of f.fields) marks.add(fd.tile);
-      const s = f.household !== null && openOf(st, 'household', f.household);
-      if (s) marks.add(s.place); // its project (sim/plans)
+      if (f.household !== null)
+        for (const p of projectsOf(st, 'household', f.household)) marks.add(p.steps[p.open].place); // its projects (sim/projects)
     }
     for (const v of st.villages)
       for (const p of [...v.plots, ...livePlots(st, v)]) for (const tr of tilesOf(p)) marks.add(tr.tile);

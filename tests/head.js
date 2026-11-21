@@ -16,7 +16,7 @@ function scene(opt = {}) {
   return { st, hh, f, plan };
 }
 const sound = (st, label) => { Sim.refreshRoles(st); const bad = checkState(st); assert.deepStrictEqual(bad.slice(0, 3), [], `${label}: invariants`); };
-const snap = (st, hh) => JSON.stringify([st.plans.households.get(hh.id), st.plans.seasons.get(hh.id), Projects.projectOf(st, 'household', hh.id)]);
+const snap = (st, hh) => JSON.stringify([st.plans.households.get(hh.id), st.plans.seasons.get(hh.id), Projects.ownOf(st, hh.id)]);
 let refusals = 0;
 // A refusal returns its reason, a string matching re, and changes nothing of the plan.
 const refused = (st, hh, got, re, label) => {
@@ -67,8 +67,8 @@ let made;
   assert.strictEqual(plan.tiles.field, -1);
   assert.strictEqual(Sim.head(st, 'tile', { what: 'field', tile }), true);
   let d = 0;
-  while (!Projects.projectOf(st, 'household', hh.id) && d++ < 12) Sim.advance(st, DAY);
-  const p = Projects.projectOf(st, 'household', hh.id);
+  while (!Projects.ownOf(st, hh.id) && d++ < 12) Sim.advance(st, DAY);
+  const p = Projects.ownOf(st, hh.id);
   assert.ok(p && p.what === 'field' && p.steps[0].place === tile, `the land step begins the field on the chosen tile (${p && p.steps[0].place}, not ${tile})`);
   assert.strictEqual(plan.tiles.field, -1, 'the tile is used');
   refused(st, hh, Sim.head(st, 'project', { what: 'field' }), /has a field under way/, 'a second project');
@@ -86,23 +86,23 @@ let made;
   refused(st, hh, Sim.head(st, 'project', { what: 'boat' }), /no land project boat/, "a project of VB-255's menu");
   refused(st, hh, Sim.head(st, 'project', { what: 'field', tile: f.house }), /the house stands there/, 'a project on a tile that will not do');
   assert.strictEqual(Sim.head(st, 'project', { what: 'field' }), true, "a field begun now, on the holder's pick");
-  let p = Projects.projectOf(st, 'household', hh.id);
+  let p = Projects.ownOf(st, hh.id);
   assert.ok(p && p.what === 'field' && p.steps[0].place === own, 'on the tile its rule would pick');
   refused(st, hh, Sim.head(st, 'dropProject', { id: p.id + 1 }), /no project \d+ under way/, 'another project');
   assert.strictEqual(Sim.head(st, 'dropProject', { id: p.id, hold: true }), true, 'given up, and projects held off');
-  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, 'no project');
+  assert.strictEqual(Projects.ownOf(st, hh.id), null, 'no project');
   assert.ok(Projects.heldOff(st, hh.id) && Sim.headView(st, hh.id).heldOff, 'held off');
   assert.ok(Sim.villageLog(st, Infinity).some((e) => /its head chose to/.test(e.text)), 'told in the log');
   for (let d = 0; d < 6; d++) Sim.advance(st, DAY);
-  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, 'its rule begins none while the head holds off');
+  assert.strictEqual(Projects.ownOf(st, hh.id), null, 'its rule begins none while the head holds off');
   assert.ok(f.fields.length < plan.targets.fields, 'though it wants a field');
   assert.strictEqual(Sim.head(st, 'project', { what: null }), true, 'let go');
   assert.ok(!Projects.heldOff(st, hh.id));
-  for (let d = 0; !Projects.projectOf(st, 'household', hh.id) && d < 12; d++) Sim.advance(st, DAY);
-  p = Projects.projectOf(st, 'household', hh.id);
+  for (let d = 0; !Projects.ownOf(st, hh.id) && d < 12; d++) Sim.advance(st, DAY);
+  p = Projects.ownOf(st, hh.id);
   assert.ok(p && p.what === 'field', 'and its rule begins a field again');
   assert.strictEqual(Sim.head(st, 'project', { what: 'none' }), true, 'held off with a project under way: it goes on');
-  assert.ok(Projects.projectOf(st, 'household', hh.id) && Projects.heldOff(st, hh.id));
+  assert.ok(Projects.ownOf(st, hh.id) && Projects.heldOff(st, hh.id));
   sound(st, 'projects');
 }
 
@@ -146,7 +146,7 @@ let made;
   assert.ok(sp().season !== season && sp().by === undefined, "the next season's plan is the template's again");
   assert.strictEqual(Sim.headView(st, hh.id).orderBy, 'template');
   assert.deepStrictEqual([T.hayWinters, T.wood, T.fields], [3, Array(4).fill(2 * st.ECON.woodWinter), 0], 'the targets last over the season\'s plan');
-  assert.strictEqual(Projects.projectOf(st, 'household', hh.id), null, 'with no field wanted its rule begins none');
+  assert.strictEqual(Projects.ownOf(st, hh.id), null, 'with no field wanted its rule begins none');
   assert.strictEqual(cowWanted(st, hh), false, 'no cow wanted');
   for (const store of ['hay', 'wood', 'fields', 'cow']) assert.strictEqual(Sim.head(st, 'target', { store, n: null }), true, `${store} cleared`);
   for (let d = 0; d < 6; d++) Sim.advance(st, DAY); // a review within its planning days
@@ -196,16 +196,16 @@ assert.ok(hay[1].winters >= 3 && hay[1].atWinter >= 3,
 { // the holder's own rule goes through the verb: a household with no player, and one with no holder, begin their fields by `project`
   const { st, hh, f } = scene();
   let d = 0;
-  while (!Projects.projectOf(st, 'household', hh.id) && d++ < 12) Sim.advance(st, DAY);
-  assert.ok(Projects.projectOf(st, 'household', hh.id), 'with no player the land step begins a field');
+  while (!Projects.ownOf(st, hh.id) && d++ < 12) Sim.advance(st, DAY);
+  assert.ok(Projects.ownOf(st, hh.id), 'with no player the land step begins a field');
   assert.strictEqual(st.plans.households.get(hh.id).chosen, undefined, 'and no choice is recorded');
   const h2 = st.households[2], f2 = st.farmsteads[h2.farmstead];
-  if (!Projects.projectOf(st, 'household', h2.id)) {
+  if (!Projects.ownOf(st, h2.id)) {
     const t = F.pickField(st, f2, h2);
     refused(st, h2, Sim.command(st, { actor: { household: h2.id }, verb: 'project', target: h2.id, args: { what: 'field', tile: t }, source: 'pawn' }),
       /only the head/, 'the household itself while it has a holder');
     assert.strictEqual(Sim.command(st, { actor: h2.holder, verb: 'project', target: h2.id, args: { what: 'field', tile: t }, source: 'pawn' }), true, "the holder's rule's verb");
-    assert.strictEqual(Projects.projectOf(st, 'household', h2.id).steps[0].place, t);
+    assert.strictEqual(Projects.ownOf(st, h2.id).steps[0].place, t);
   }
   assert.deepStrictEqual(Object.keys(C.VERBS).filter((v) => ['target', 'tile', 'order', 'project', 'dropProject'].includes(v)).length, 5, 'the five verbs of the plan');
   assert.ok(typeof P.headView === 'function' && Sim.headView(st, 99) === null, 'no view of a household with no plan');
