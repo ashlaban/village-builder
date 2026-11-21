@@ -47,6 +47,10 @@ const FAST = [
   ['node', 'tests/outlook.js'],
   ['node', 'tests/yields.js'],
   ['node', 'tests/timber.js'],
+  ['node', 'tests/cottageplan.js'], // VB-1411: a settler household's cottage a project plan beside its field's; each job ends its own; the roof ends the booth
+  ['node', 'tests/sitelacks.js'], // VB-1407: one read of what a site lacks; a step carrying timber gets its trips; the walls by name; kept hours
+  ['node', 'tests/beginend.js'], // VB-1408, VB-1414: one read of who may begin a small construction (its refusals); one way a step's job ends
+  ['node', 'tests/smallplans.js'], // VB-1414: a cart, a boat, a tar pit beside a barn or a cottage: each posted, its own timber, its own end
   ['node', 'tests/stone.js'],
   ['node', 'tests/crops.js'],
   ['node', 'tests/seedorder.js'], // seed eaten last field last; a start in life and settlers take a field's seed of each crop (VB-352)
@@ -75,11 +79,13 @@ const FAST = [
   ['node', 'tests/continuity.js'],
   ['node', 'tests/legs.js'],
   ['node', 'tests/journeys.js'],
+  ['node', 'tests/journeykinds.js'], // a journey's kinds: arrival, morning, death and change of home of each (sim/away JOURNEYS, VB-1409)
   ['node', 'tests/away.js'], // sleeping away from home: a lodger's stay, its pack and meals, a guest (VB-783)
   ['node', 'tests/booth.js'], // a booth: staked, raised in 12 hours with its wood, four beds, rots away (VB-784)
   ['node', 'tests/night.js'], // a night without a roof is cold and wet by the house's rule: the road in winter, a booth with wood (VB-785)
   ['node', 'tests/fetch.js'], // a gift fetched where it lies, a load a trip (VB-461)
   ['node', 'tests/rng.js'],
+  ['node', 'tests/due.js'], // the due-queue helper on constructed lists: ties, an absent entry, an empty list, the take (VB-1473)
   ['node', 'tests/cowwant.js'],
   ['node', 'tests/quern.js'], // the hand quern (VB-009): grinding, the pot's flour, wear and hewing, on the probe's small state
 ];

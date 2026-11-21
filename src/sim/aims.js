@@ -218,10 +218,10 @@ VB['sim/aims'] = (() => {
     if (yearly) B.year = c.year;
     B.again = false;
     B.surplus = surplusOf(st, plan, hh, f, c).all;
-    if (!B.surplus || Projects.projectOf(st, 'household', hh.id) || Projects.heldOff(st, hh.id)) return;
+    if (!B.surplus || Projects.ownOf(st, hh.id) || Projects.heldOff(st, hh.id)) return;
     const o = choose(st, menu(st, plan, hh, f));
     if (!o || !begin(st, hh, o)) return;
-    const p = Projects.projectOf(st, 'household', hh.id);
+    const p = Projects.ownOf(st, hh.id);
     if (!p) return;
     B.project = p.id;
     B.what = o.what;
@@ -270,7 +270,7 @@ VB['sim/aims'] = (() => {
     if (f.barn) return `${f.name} has a barn`;
     if (f.booth) return `${f.name} has no cottage yet`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;
-    const p = Projects.projectOf(st, 'household', hh.id);
+    const p = Projects.ownOf(st, hh.id);
     return p ? `household ${hh.id} has a ${p.what} under way` : null;
   }
   // Why household hh may not begin a farm for pawn `heir` now, or null (the verb heirFarm): an adult of the household with no farm nor
@@ -281,7 +281,7 @@ VB['sim/aims'] = (() => {
     const p = st.pawns[heir];
     if (!p || !p.alive || p.household !== hh.id || p.age < 18) return `pawn ${heir} is no adult of household ${hh.id}`;
     if (isHolder(st, heir) || hasPlot(st, heir) || awaitsCottage(st, heir)) return `pawn ${heir} has a farm or a plot`;
-    const q = Projects.projectOf(st, 'household', hh.id);
+    const q = Projects.ownOf(st, hh.id);
     if (q) return `household ${hh.id} has a ${q.what} under way`;
     return null; // the site is found as the plot is begun (sim/expansion's startPlot), and none begins where there is no room
   }

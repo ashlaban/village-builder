@@ -137,8 +137,11 @@ VB['sim/carts'] = (() => {
   function missed(st, hh) {
     hh.cartMiss++;
   }
-  // At the winter's start the head counts the year's misses: at CART.misses or more, and with no project under way, the household builds
-  // another cart: an ox cart if it keeps a team and has none, else a hand cart. The count starts again.
+  // At the winter's start the head counts the year's misses: at CART.misses or more, with no cart being built and no hold on projects, the
+  // household builds another cart, a small construction beside any other project and in a booth as in a house (sim/projects' mayBegin;
+  // VB-1414): an ox cart if it keeps a team and has none, else a hand cart. The count starts again.
+  // What the cart's finisher asks less than the others (VB-1408, kept as it was): the finished step's tile is not compared.
+  const END = { place: false };
   function cartsYear(st, frost = false) {
     if (frost) {
       for (const hh of st.households) for (const c of hh.carts.filter((q) => q.at)) lost(st, hh, c);
@@ -151,30 +154,28 @@ VB['sim/carts'] = (() => {
         if (!hh || hh.dissolved) continue;
         const n = hh.cartMiss;
         hh.cartMiss = 0;
-        if (n < CART.misses || !v.wood.length || f.booth || Projects.projectOf(st, 'household', hh.id)) continue;
+        if (n < CART.misses || !v.wood.length || !Projects.mayBegin(st, hh, 'cart')) continue;
         const kind = hasTeam(st, hh) && !hh.carts.some((c) => c.kind === 'ox') ? 'ox' : 'hand';
         emit(st, 'projectBegun', {
           type: 'household',
           id: hh.id,
           project: {
             what: 'cart',
+            small: true,
             cart: kind,
             steps: [{ kind: 'cart', place: f.house, hours: CART.hours[kind], wood: 0, timber: CART.timber[kind] }],
           },
         });
       }
   }
-  function cartBuilt(st, j, hh) {
-    const plan = Projects.projectOf(st, 'household', hh.id),
-      s = plan && Projects.openStep(plan);
-    if (!s || s.kind !== 'cart') return;
+  // The cart built: the household's (the step's tile is not compared, END: a cart is built at the house it was begun at).
+  function cartBuilt(st, j, hh, plan) {
     const f = st.farmsteads[hh.farmstead];
     hh.carts.push({ kind: plan.cart, cond: 1, built: st.t, by: null });
     log(st, `${f.name} has built ${plan.cart === 'ox' ? 'an ox cart' : 'a hand cart'}.`, {
       kind: 'cartBuilt',
       ...atFarm(f),
     });
-    emit(st, 'stepDone', { type: 'household', id: hh.id });
   }
   // The carts a scenario's households start with: an ox cart where there is a team to draw it, and a hand cart on every farm that has
   // stood for years (not the founders', who land with what they carry).
@@ -225,7 +226,7 @@ VB['sim/carts'] = (() => {
       type: 'wood',
       project: true,
       spot: atHouse,
-      done: (st, j, hh) => cartBuilt(st, j, hh),
+      done: (st, j, hh) => Projects.stepEnds(st, j, hh, cartBuilt, END),
     },
     mendcart: {
       verb: 'Mending the cart',

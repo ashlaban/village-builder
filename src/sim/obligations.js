@@ -1,6 +1,7 @@
 // @sys sim/obligations: every explicit claim of one party on another (VB-310; target-v2, 4.4): what is owed, by whom, to whom and by when,
 // with a due-queue; a kind (KINDS) says when its term ends. The first kind is the heirs' share still owed (design.md, Handover and shares)
 VB['sim/obligations'] = (() => {
+  const Due = VB['sim/due'];
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ASK } = VB['sim/rules'];
   const { personEvent, log, fullName, atHousehold } = VB['sim/records'];
   const Stores = VB['sim/stores'];
@@ -42,15 +43,11 @@ VB['sim/obligations'] = (() => {
   const left = (o) => amount(o) - o.delivered;
   const NONE = [];
   // ---- the caches: the due-queue and the parties' live obligations ----
+  // st.obligationsDue's order (sim/due): by the obligation's due, then its id.
+  const dueOf = (id, st) => st.obligations[id].due,
+    idOf = (id) => id;
   function enqueue(st, o) {
-    const q = st.obligationsDue;
-    let at = q.length;
-    while (at > 0) {
-      const b = st.obligations[q[at - 1]];
-      if (b.due < o.due || (b.due === o.due && b.id < o.id)) break;
-      at--;
-    }
-    q.splice(at, 0, o.id);
+    Due.insert(st.obligationsDue, o.id, o.due, o.id, dueOf, idOf, st);
   }
   function dequeue(st, o) {
     const at = st.obligationsDue.indexOf(o.id);

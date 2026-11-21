@@ -133,7 +133,7 @@ const review = (s, t) => {
     setClock(s.st, at(0, 6));
     Plans.dropAll(s.st, 'household', s.hh.id);
     Plans.makeProject(s.st, 'household', s.hh.id, { what: 'field', steps: [{ kind: 'break', place: FieldPlans.pickField(s.st, s.f, s.hh), hours: 0, stake: 'field' }] });
-    F.finishBreak(s.st, s.f);
+    F.finishBreak(s.st, s.f, VB['sim/projects'].ownOf(s.st, s.f.household));
     return s.f.fields[s.f.fields.length - 1];
   };
   // VB-999: the project of the third field holds back rye's seed, the course it will take when broken; with barley every year, barley's

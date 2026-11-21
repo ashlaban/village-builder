@@ -449,8 +449,8 @@ VB['sim/scenarios'] = (() => {
     //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1 at condAt (hours; an occupied house wears from it, houseCondition of
     //   sim/rules); tarredUntil (hours, VB-301); grade 'ground' or 'stone' (the house raised onto a stone foundation; sim/building, VB-332);
-    //   booth {i (cottage stages done of foundation, walls, roof), done (hours on the open stage), wood (timber at the site, loads; VB-328)}
-    //   or null: settlers live in a booth until their cottage is built (sim/settle, sim/expansion, sim/building)
+    //   booth true or null: settlers live in a booth until their cottage has its roof (sim/settle), the cottage itself a plan of
+    //   their household in st.plans.projects (sim/expansion, VB-1411)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, wood[], grain, ledger[], totals[] (as a household's), green, well};
     //   center is a tile index, farmsteads are ids; wood: the tiles the village cuts its firewood on (sim/territory, VB-326);
     //   grain: the village store, {crop: rations} (sim/help); green, well: booleans; a one-farm village has neither

@@ -1,6 +1,7 @@
 // @sys sim/cottage: a finished cottage becomes a farmstead and a household (start in life from shares); owed shares are paid down
 VB['sim/cottage'] = (() => {
-  const { livePlots, cottageAt } = VB['sim/expansion'];
+  const { livePlots, cottageAt } = VB['sim/expansion'],
+    { stepOf } = VB['sim/projects'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold } = VB['sim/records'];
   const { makeFarmstead } = VB['sim/layout'];
   const { SHARES, SOIL, ECON } = VB['sim/rules'];
@@ -91,7 +92,7 @@ VB['sim/cottage'] = (() => {
       }
     }
     // the plot's wood (VB-328): the new household's pile up to its winter goal, then the piles of those who worked the plot; the rest is burnt
-    const left = Math.max(0, plot.steps[2].wood || 0),
+    const left = Math.max(0, stepOf(plot, 'walls').wood || 0),
       mine = Math.min(left, ECON.woodWinter);
     const hh = foundHousehold(st, f, members, holder.id, { stakes: true, unhomed: true, wood: mine });
     const burnt = shareWood(st, plot, left - mine);

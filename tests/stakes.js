@@ -13,13 +13,13 @@ const ok = (st, label) => { Sim.refreshRoles(st); const bad = checkState(st); ch
 const H = (id) => ({ type: 'household', id });
 // The land step's field (sim/fields' choice, made a project plan by sim/plans, as the review does).
 const start = (st, f, hh) => {
-  if (VB['sim/projects'].projectOf(st, 'household', hh.id) || f.fields.length >= FieldPlans.fieldsWanted(st, hh)) return;
+  if (VB['sim/projects'].ownOf(st, hh.id) || f.fields.length >= FieldPlans.fieldsWanted(st, hh)) return;
   const tile = FieldPlans.pickField(st, f, hh), p = tile >= 0 ? FieldPlans.beginField(st, f, hh, tile) : null;
   if (p) VB['sim/plans'].makeProject(st, 'household', hh.id, p);
 };
 // A farm's land project (its household's project plan, VB-123): its open step's tile and kind, or null.
 const pj = (st, f) => {
-  const s = f.household === null ? null : VB['sim/plans'].openOf(st, 'household', f.household); return s ? { tile: s.place, stage: s.kind } : null; };
+  const s = f.household === null ? null : VB['sim/projects'].openOf(st, f.household); return s ? { tile: s.place, stage: s.kind } : null; };
 const map = Array.from({ length: 12 }, () => '.'.repeat(20));
 // One village of three farms at 10:00 on the first day: household 0 (8 people) and 2 (6) want a fourth field, household 1 (3) does not.
 function scene(dispute = 'first') {
@@ -46,15 +46,15 @@ const out = [];
     start(st, f[2], hh[2]);
     check(!pj(st, f[2]) || pj(st, f[2]).tile !== t, 'another household does not take in the staked tile');
     if (!pj(st, f[2])) break;
-    F.finishClear(st, f[2], hh[2]); F.finishBreak(st, f[2]);
+    F.finishClear(st, f[2], hh[2], VB['sim/projects'].ownOf(st, f[2].household)); F.finishBreak(st, f[2], VB['sim/projects'].ownOf(st, f[2].household));
   }
   ok(st, 'staked');
   moveClock(st, YEAR);
   KINDS.clear.worked(st, { site: t, owner: H(0) });
   check(CL.strength(st, c) === 1, 'an hour of work renews the stake');
-  F.finishClear(st, f[0], hh[0]);
+  F.finishClear(st, f[0], hh[0], VB['sim/projects'].ownOf(st, f[0].household));
   check(CL.claimOf(st, t, H(0)) && st.owner[t] === was, 'cleared: still a stake');
-  F.finishBreak(st, f[0]);
+  F.finishBreak(st, f[0], VB['sim/projects'].ownOf(st, f[0].household));
   check(st.owner[t] === 1 && !CL.claimsOn(st, t).length && f[0].fields.some((fd) => fd.tile === t), 'broken: a field, the household\'s own, the stake gone');
   ok(st, 'broken');
   out.push('a stake is owned land once broken');
@@ -83,7 +83,7 @@ const out = [];
   start(st, f[0], hh[0]);
   const t = pj(st, f[0]).tile, was = st.owner[t];
   VB['sim/heirs'].extinct(st, hh[0]);
-  check(!VB['sim/plans'].projectOf(st, 'household', hh[0].id) && !CL.claimsOn(st, t).some((c) => c.by.type === 'household'),
+  check(!VB['sim/projects'].ownOf(st, hh[0].id) && !CL.claimsOn(st, t).some((c) => c.by.type === 'household'),
     'a dissolved household\'s stake is dropped, and its project plan');
   check(st.owner[t] === was, `the staked tile keeps its owner (${was}), not passing with the farm (${st.owner[t]})`);
   ok(st, 'dissolved');

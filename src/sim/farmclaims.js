@@ -7,7 +7,7 @@ VB['sim/farmclaims'] = (() => {
   const Offers = VB['sim/offers'];
   const { bufferOf } = VB['sim/traits'];
   const { withinDay } = VB['sim/villagehours'];
-  const { doneOf } = VB['sim/progress'];
+  const { keptDone } = VB['sim/progress'];
   const {
     spouseOf,
     childrenOf,
@@ -28,7 +28,7 @@ VB['sim/farmclaims'] = (() => {
     { reserved } = VB['sim/stores'];
   const { hasPlot, awaitsCottage, activePlots, MAX_PLOTS } = VB['sim/expansion'];
   const { emit } = VB['sim/events'],
-    { onFarm, projectOf } = VB['sim/projects'];
+    { onFarm, projectsOf } = VB['sim/projects'];
   // A claim on an empty farm being restored is its claimant's project plan (VB-123; sim/plans makes it on the event projectBegun): {...,
   //   holder: {type: 'pawn', id: the claimant}, what: 'restore', farm (its id), since (game hours), steps: [{kind: 'restore', place (the
   //   house), hours (to restore, by the condition when claimed), done (hours worked), stake: 'farm'}]}; the claimant's unrealised claim
@@ -93,10 +93,12 @@ VB['sim/farmclaims'] = (() => {
                 : null;
   };
   const free = (st, id) => barred(st, id) === null;
+  // Pawn id's restoration under way (its project plan 'restore'), or null.
+  const restoring = (st, id) => projectsOf(st, 'pawn', id).find((p) => p.what === 'restore') || null;
   // The farm whose claim pawn id, or their spouse, has under way, or null.
   function claimOf(st, id) {
     const sp = spouseOf(st, id);
-    const p = projectOf(st, 'pawn', id) || (sp !== null ? projectOf(st, 'pawn', sp) : null);
+    const p = restoring(st, id) || (sp !== null ? restoring(st, sp) : null);
     return p ? st.farmsteads[p.farm] : null;
   }
   // The claimants of farm f among `ids`, best first, under its village's `claims` practice (a key of the custom):
@@ -362,9 +364,8 @@ VB['sim/farmclaims'] = (() => {
         continue;
       }
       const hid = st.pawns[c.by].household,
-        key = `restore:f${f.id}.h${hid}`,
-        live = st.jobs.get(key);
-      if (live) c.done = c.plan.steps[0].done = doneOf(st, live, c.hours);
+        key = `restore:f${f.id}.h${hid}`;
+      c.done = c.plan.steps[0].done = keptDone(st, key, c.hours, c.done);
       out.push([
         key,
         'restore',
