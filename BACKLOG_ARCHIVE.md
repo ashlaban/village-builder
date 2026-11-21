@@ -600,3 +600,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1319](backlog/VB-1319.md) | Measure VB-245 on the late saves, with commits that exist | - | 3 | S | Measure VB-245 with commits that exist |
 | [VB-1142](backlog/VB-1142.md) | A played heir takes up or renounces an inheritance itself | acts | 3 | S | VB-824: at a death the inheritance falls at once, and each in line answers by its pawn's judgement, the played pawn too; in life the played heir already answers the offer itself. |
 | [VB-1151](backlog/VB-1151.md) | A visitor's bed: the suitor sleeps in a house of the village he visits | between | 3 | S | VB-289's visitor rests at the green under the open sky, a winter night's cold; a guest sleeps in a house whose head will have him |
+| [VB-1374](backlog/VB-1374.md) | Measure VB-718 surplus dung (owed to VB-662) | - | 3 | S | numbers owed by VB-718 |

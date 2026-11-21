@@ -104,6 +104,7 @@ Both references meet the target (median at least 1%), so nothing below is urgent
 | TESTBED.plots, CROWD.free | the market town's packed plots give a crowding factor of about 1.07 in the first decade and 1.00 after; its plot deaths per 1,000 are 13 in decade one, 27 by year 40, against the farms' 20 (small, seed 7); the budget's 1.5 times is not reached | small seed 7: 7 plots of 5 people hold 37 within 2 steps, just over CROWD.free 36; seed 42: see task file | TESTBED.plots to 8 where the ground allows (it lays 6 to 7), or the plots laid beside the village's houses so that the village's people count within 2 steps (anchor at the green) | VB-778 |
 | SETTLE.join / SETTLE.smallFarms | the small village a plot may be asked in | populous small seed 7, 30 y: departures 44 to 16, growth 1.94 to 1.85 % since the unasked join became a plot ask | tune with the asks' counts at several seeds | VB-697 |
 | FEAST.above (the gift's threshold) | years of need a holder keeps before it gives unasked | 85-95% of holders above it give yearly on populous; goodwill owed a household x2 to x5; founders 7 hungry days 1 to 29 | leave to traits (slice 7), or raise the threshold | VB-1217 |
+| populous growth (small, seeds 3/7/11/42) | yearly growth fell since VB-717 from 2.1% to 1.6% median, starvation deaths up; surplus 0 no better, so not VB-718 | base 2.09/2.14/1.38/2.12; HEAD 1.62/1.55/1.14/1.92 | find the task since VB-717 that cost it | VB-1374 |
 
 ## Mechanisms on their way that move the same numbers
 
