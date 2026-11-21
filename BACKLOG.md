@@ -90,7 +90,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1175](backlog/VB-1175.md) | Teleports found, collected: swept at a slice's wrap-up | physical | 3 | M | The teleports tasks found in the code, a line each; swept together when a slice wraps up |
 | [VB-1240](backlog/VB-1240.md) | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |
 | [VB-1354](backlog/VB-1354.md) | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
-| [VB-1369](backlog/VB-1369.md) | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1374](backlog/VB-1374.md) | Measure VB-718 surplus dung (owed to VB-662) | - | 3 | S | numbers owed by VB-718 |
 | [VB-1389](backlog/VB-1389.md) | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 | [VB-1404](backlog/VB-1404.md) | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
@@ -98,6 +97,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1415](backlog/VB-1415.md) | Measure VB-697: the plot and farm asks, before and after | - | 3 | S | VB-697's owed numbers |
 | [VB-1420](backlog/VB-1420.md) | Soil report: founders 50 years and the tilth-gain band's first values | - | 3 | S | owed by VB-720, collected by VB-662 |
 | [VB-1425](backlog/VB-1425.md) | Report the market town on medium, 40 years | - | 3 | S | the medium reports VB-778 left owed |
+| [VB-1460](backlog/VB-1460.md) | Roles refresh at the age-14 birthday | - | 3 | S | age-14 role flip was only fixed by the global refresh at deaths |
 
 ## Waiting for Kim
 
