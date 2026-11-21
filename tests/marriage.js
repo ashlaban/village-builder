@@ -88,7 +88,13 @@ for (const grain of [0, 5000]) {
   b.grain = { barley: 1000 };
   roll(st, () => movingRound(st));
   check(R.spouseOf(st, man.id) === woman.id && man.household === b.id && b.holder === woman.id, `they live on her farm (${st.farmsteads[b.farmstead].name})`);
-  check((VB['sim/heirranking'].heirRanking(st, c)[0] === man.id) === (st.farmsteads[c.farmstead].fields.length > st.farmsteads[b.farmstead].fields.length), 'he remains first heir only to a larger farm');
+  // each branch once, at field counts set by hand (as tests/handover.js does): his own family's farm larger than hers, then as large
+  const bf = st.farmsteads[b.farmstead].fields, cf = st.farmsteads[c.farmstead].fields, m = Math.min(bf.length, cf.length);
+  check(m >= 2, `both farms have two fields or more (${bf.length}, ${cf.length})`);
+  for (const [nb, larger] of [[m - 1, true], [m, false]]) {
+    bf.length = nb; cf.length = m;
+    check((VB['sim/heirranking'].heirRanking(st, c)[0] === man.id) === larger, `he is first heir of his own family's farm only when it is larger (${m} fields to her ${nb})`);
+  }
 }
 // An empty family ranking needs no global direct-claim scan.
 {
