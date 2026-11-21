@@ -529,7 +529,7 @@ function checkState(st) {
       if (memberOf.has(id)) bad.push(`pawns[${id}]: in households ${memberOf.get(id)} and ${h.id}`);
       memberOf.set(id, h.id);
     }
-    if (h.holder !== null && !h.members.includes(h.holder) && !(st.liveTrusts || []).some((i) => st.trusts[i].household === h.id)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
+    if (h.holder !== null && !h.members.includes(h.holder) && !st.offers.some((o) => o.basis === 'inheritance' && o.gives.household === h.id) && !(st.liveTrusts || []).some((i) => st.trusts[i].household === h.id)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
     for (const k of ['wood', 'stone', 'peat', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
@@ -1192,7 +1192,7 @@ function checkState(st) {
       } else if (BASES[o.basis].where) { // an offer about a life: answered at a village's step of the round (a handover has no subject, VB-824)
         const g = o.gives || {}, w = o.wants || {};
         const terms = o.basis === 'handover' ? !!st.households[g.household] && ['marriage', 'retirement'].includes(g.reason)
-          : o.basis === 'place' ? !!st.households[g.household]
+          : o.basis === 'place' || o.basis === 'inheritance' ? !!st.households[g.household]
           : o.basis === 'party' ? !!st.villages[g.from] && Array.isArray(g.all) && g.all[0] === o.from
           : o.basis === 'land' ? (w.farm !== undefined ? !!st.farmsteads[w.farm] : !!st.villages[w.plot]) : false;
         if (!terms) bad.push(`${at}: ${o.basis}: gives ${JSON.stringify(o.gives)}, wants ${JSON.stringify(o.wants)}`);
