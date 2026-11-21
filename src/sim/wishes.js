@@ -3,6 +3,7 @@
 // (the wish verb); wishOf, the one read of it, where the round asks what a pawn itself wants; whose yes a move needs (moveWhy); and
 // the asking day's due-queue, when each pawn who seeks next reviews its wish (VB-823)
 VB['sim/wishes'] = (() => {
+  const Due = VB['sim/due'];
   const { HUNGER, MARRIAGE, WISH, ASK, DAY, YEAR, SEASON_DAYS } = VB['sim/rules'];
   const { of: traitOf } = VB['sim/traits'];
   const { age, spokesmanOf, spouseOf, holdingOf, personEvent, fullName, settlementIdOf } = VB['sim/records'];
@@ -198,16 +199,8 @@ VB['sim/wishes'] = (() => {
   // @state st.askingBy{}: the queue by village (VB-1169), {village id: [{t, pawn}]}, each in the order the queue holds them: a cache of
   //   st.asking, kept with it here (the entry's `v` is the village it is filed under; none for a pawn of no household). Read by
   //   sim/asking and sim/visits through askingIn: the unmarried of the villages they reach, not the island's.
-  const insertAt = (q, e) => {
-    let lo = 0,
-      hi = q.length;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (q[mid].t <= e.t) lo = mid + 1;
-      else hi = mid;
-    }
-    q.splice(lo, 0, e);
-  };
+  const askT = (e) => e.t;
+  const insertAt = (q, e) => Due.append(q, e, e.t, askT);
   function file(st, e) {
     if (e.v === null) return;
     if (!st.askingBy[e.v]) st.askingBy[e.v] = [];

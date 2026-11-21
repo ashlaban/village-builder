@@ -14,6 +14,8 @@
 //   one a match would marry for the man's side, the claimant, the leader of a party, the servant, the heir); written when such an offer
 //   is kept and cleared when it closes, so a pawn holds at most one (plan VB-682, section 2, Caps). Plain data, saved with the pawn.
 VB['sim/offers'] = (() => {
+  const Due = VB['sim/due'],
+    dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
   const { living } = VB['sim/records'];
   const { register } = VB['sim/commands'];
   const { DAY, YEAR, TRAVEL } = VB['sim/rules'];
@@ -188,9 +190,7 @@ VB['sim/offers'] = (() => {
   // Keep offer o in the queue, in order of due time (after those due at the same time)
   function keep(st, o) {
     o.id = st.offerSeq++;
-    let i = st.offers.length;
-    while (i > 0 && st.offers[i - 1].due > o.due) i--;
-    st.offers.splice(i, 0, o);
+    Due.append(st.offers, o, o.due, dueKey);
     const s = subjectOf(st, o);
     if (s !== null) st.pawns[s].ask = o.id;
   }

@@ -28,6 +28,7 @@ VB['sim/plans'] = (() => {
   const Green = VB['sim/green'],
     Workdays = VB['sim/workdays'],
     Commons = VB['sim/commons'];
+  const Due = VB['sim/due'];
   const { heldFarms } = VB['sim/ownership'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
@@ -657,7 +658,10 @@ VB['sim/plans'] = (() => {
   // ---- the due-queue (Rules for cost, 4): each time-bound kind (its `window`, sim/kinds) is asked for a household from its window's hour,
   // and again the next hour while it gives work and the day's work goes on; else at its next opening ----
   const WINDOWED = Object.keys(KINDS).filter((k) => KINDS[k].window);
-  const byDue = (x, y) => x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+  // Its order (sim/due): by hour, then household id, then index (an index is below WINDOWED.length, so the two make one tie).
+  const entryHour = (e) => e[0],
+    entryTie = (e) => e[1] * WINDOWED.length + e[2];
+  const insert = (q, e) => Due.insert(q, e, e[0], entryTie(e), entryHour, entryTie);
   // The first hour after `hour` at which the window of WINDOWED[k] opens.
   function opens(k, hour) {
     const from = KINDS[WINDOWED[k]].window.from;
@@ -667,10 +671,7 @@ VB['sim/plans'] = (() => {
   }
   // The entries due by this hour, taken off the queue (they are its first).
   function dueNow(st, hour) {
-    const q = st.plans.due;
-    let n = 0;
-    while (n < q.length && q[n][0] <= hour) n++;
-    return n ? q.splice(0, n) : [];
+    return Due.take(st.plans.due, hour, entryHour);
   }
   // The entries asked at this hour, back on the queue: the next hour while the kind gave work (gave[i]) and the day's work goes on, else at
   // the window's next opening. An entry of a household whose plan is gone is dropped.
@@ -681,15 +682,13 @@ VB['sim/plans'] = (() => {
       const e = entries[i];
       if (!st.plans.households.has(e[1])) continue;
       e[0] = gave[i] && hour + 1 <= end ? hour + 1 : opens(e[2], hour);
-      q.push(e);
+      insert(q, e);
     }
-    if (entries.length) q.sort(byDue);
   }
   // A household's entries, one per time-bound kind, at their next openings.
   function enqueue(st, id) {
     const hour = Math.floor(st.tick / TICKS);
-    for (let k = 0; k < WINDOWED.length; k++) st.plans.due.push([opens(k, hour), id, k]);
-    st.plans.due.sort(byDue);
+    for (let k = 0; k < WINDOWED.length; k++) insert(st.plans.due, [opens(k, hour), id, k]);
   }
   // A household's targets, seasonal plan, tiles, cull record and reservation of seed, at its plan's making and at the load of a save
   // without them.

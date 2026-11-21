@@ -3,6 +3,8 @@
 //   plans a visit there by the verb `visit`; the plans wait in a due-queue and are set out in winter (visitsDue), as journeys of sim/away;
 //   the villages any pawn might visit (visitChoices), a visit's state for its sheet and the played pawn's order for one (VB-292)
 VB['sim/visits'] = (() => {
+  const Due = VB['sim/due'],
+    dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
   const { living } = VB['sim/records'];
   const { DAY, YEAR, SEASON_DAYS, YEAR_DAYS, WORK, HUNGER, MARRIAGE, ASK, TRAVEL } = VB['sim/rules'];
   const { on } = VB['sim/events'];
@@ -68,11 +70,8 @@ VB['sim/visits'] = (() => {
   // Pawn id plans a visit to village v (the verb `visit`, its only caller): the plan waits in st.visits for its winter morning.
   function planVisit(st, id, v) {
     const hh = st.households[st.pawns[id].household],
-      due = dueOf(st, hh),
-      q = st.visits;
-    let k = q.length;
-    while (k > 0 && q[k - 1].due > due) k--;
-    q.splice(k, 0, { pawn: id, village: v, due, household: hh.id });
+      due = dueOf(st, hh);
+    Due.append(st.visits, { pawn: id, village: v, due, household: hh.id }, due, dueKey);
   }
   // The log's line for a man kept home by his household's food (once a man a year: at the round, or on the morning he would have gone).
   function keptHome(st, p, hh, v) {

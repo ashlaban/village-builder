@@ -26,6 +26,7 @@ VB['sim/agents'] = (() => {
     Progress = VB['sim/progress'],
     { workTick } = Progress;
   const Lying = VB['sim/lying'];
+  const Due = VB['sim/due'];
   // the spot by the door of the house on tile `house`, where pawn a would stand
   const spotAt = (st, a, house) => [st.w.hx[house] - 12 + a.ox * 0.3, st.w.hy[house] + 14 + a.oy * 0.15];
   // By the door of pawn a's household's house, wherever it sleeps: where an indoor task is done, and a load for the door is brought.
@@ -627,22 +628,13 @@ VB['sim/agents'] = (() => {
         rerate(st, q, false);
       }
   }
-  // Where job j stands in the sorted queue q (by due, then id), or where it would go.
-  function slotOf(q, due, id) {
-    let lo = 0,
-      hi = q.length;
-    while (lo < hi) {
-      const m = (lo + hi) >> 1;
-      if (q[m].due < due || (q[m].due === due && q[m].id < id)) lo = m + 1;
-      else hi = m;
-    }
-    return lo;
-  }
+  // st.workDue's order (sim/due): by the job's due step, then its id.
+  const jobDue = (j) => j.due,
+    jobId = (j) => j.id;
   function unqueue(st, j) {
     const q = st.workDue;
     if (!q || j.due === null || j.due === undefined) return;
-    const i = slotOf(q, j.due, j.id);
-    if (q[i] === j) q.splice(i, 1);
+    Due.remove(q, j, j.due, j.id, jobDue, jobId);
   }
   // The task's end from its progress and rate: the step whose work finishes it (whole steps: the clock stands), into the queue.
   function queue(st, j) {
@@ -654,7 +646,7 @@ VB['sim/agents'] = (() => {
     const left = hoursOfJob(j) - j.done;
     j.due = j.at + Math.max(1, Math.ceil((left / j.rate) * TICKS - 1e-7));
     const q = st.workDue || (st.workDue = []);
-    q.splice(slotOf(q, j.due, j.id), 0, j);
+    Due.insert(q, j, j.due, j.id, jobDue, jobId);
   }
   // Every task under work reckoned now (the end of work, after the meal: a hand's rate may have changed).
   function reckonAll(st) {
@@ -792,19 +784,9 @@ VB['sim/agents'] = (() => {
   };
   // The pace of a walking pawn in map units of meadow a game hour.
   const paceOf = (st, a) => SPEED * st.w.HW * (a.carry ? Carts.pace(st, a) : 1);
-  const dueAt = (st, id) => st.agents[id].leg.due;
-  // Where pawn id stands in the queue q (by due, then id), or where it would go.
-  function legSlot(st, q, due, id) {
-    let lo = 0,
-      hi = q.length;
-    while (lo < hi) {
-      const m = (lo + hi) >> 1,
-        d = dueAt(st, q[m]);
-      if (d < due || (d === due && q[m] < id)) lo = m + 1;
-      else hi = m;
-    }
-    return lo;
-  }
+  // st.legDue's order (sim/due): by the pawn's leg's due, then its id.
+  const legAt = (id, st) => st.agents[id].leg.due,
+    pawnId = (id) => id;
   // The queue, built from the pawns' state the first time it is needed (a fresh run, an older save).
   function legsOf(st) {
     if (!st.legDue) {
@@ -828,15 +810,14 @@ VB['sim/agents'] = (() => {
   function enqueue(st, a) {
     const q = st.legDue;
     if (!Number.isFinite(a.leg.due)) throw new Error(`pawn ${a.id}'s ${a.leg.kind} leg is due at no step`); // a NaN jams the queue (VB-255)
-    q.splice(legSlot(st, q, a.leg.due, a.id), 0, a.id);
+    Due.insert(q, a.id, a.leg.due, a.id, legAt, pawnId, st);
   }
   // The pawn's leg is over (or replaced): out of the queue.
   function unleg(st, a) {
     const l = a.leg,
       q = st.legDue;
     if (l && (l.kind === 'walk' || l.kind === 'wait') && q) {
-      const i = legSlot(st, q, l.due, a.id);
-      if (q[i] === a.id) q.splice(i, 1);
+      Due.remove(q, a.id, l.due, a.id, legAt, pawnId, st);
     }
     a.leg = null;
   }
@@ -1026,7 +1007,7 @@ VB['sim/agents'] = (() => {
       };
     dueWork(st);
     if (st.tick % (DAY * TICKS) === WORK[0] * TICKS) dayStart(st, c, offer);
-    while (q.length && dueAt(st, q[0]) <= st.tick) {
+    while (q.length && legAt(q[0], st) <= st.tick) {
       const a = st.agents[q.shift()],
         l = a.leg;
       a.leg = null;
