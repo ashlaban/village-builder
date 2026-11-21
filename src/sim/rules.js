@@ -584,7 +584,8 @@ VB['sim/rules'] = (() => {
   // ---- sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
   // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
   // worked from a bed there rather than from home (a third of the working day) ----
-  const AWAY = { pack: 12, walk: 4 };
+  // asks: the households a visitor asks for a bed, one after the other (VB-1151), before he sleeps at the green
+  const AWAY = { pack: 12, walk: 4, asks: 3 };
   // A booth (bod; VB-784; design.md, Moving to new land, The booth): a shelter of poles, bark and turf, `hours` of work and `wood` loads at its
   // tile, `sleeps` at most; unkept it wears `wear` of its condition a year (poles and bark: about three years) and is gone at none.
   const BOOTH = { hours: 12, wood: 2, sleeps: 4, wear: 1 / 3 };
