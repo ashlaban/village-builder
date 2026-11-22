@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="glass">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -29,7 +29,7 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root[data-theme="glass"] {
     --panel: rgba(11, 27, 34, 0.86);
     --ink: #e1ebe7;
     --muted: #93adae;
@@ -58,10 +58,9 @@ body {
 .hud > * { pointer-events: auto; }
 .hud.top { top: 0; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start; padding-top: calc(env(safe-area-inset-top, 0px) + 14px); }
 .hud.bottom { bottom: 0; align-items: flex-end; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
-.panel {
-  background: var(--panel); color: var(--ink); border: 1px solid var(--edge);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28);
+.panel { background: var(--panel); color: var(--ink); }
+:where(:root[data-theme="glass"]) .panel {
+  border: 1px solid var(--edge); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28);
 }
 .lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 60px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
 .clock { border-radius: var(--r-panel); padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
@@ -214,7 +213,8 @@ body:has(#savesScreen:not([hidden])) #landing > .panel, body:has(#optionsScreen:
 .loader { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: var(--sea); color: #e3eeea; transition: opacity 0.7s; }
 .loader.done { opacity: 0; pointer-events: none; }
 .loader p { margin: 0; text-align: center; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 22px; }
-.loader .bar { width: min(280px, 70vw); height: 3px; margin-top: 14px; border-radius: 3px; overflow: hidden; background: rgba(255, 255, 255, 0.16); }
+.loader .bar { width: min(280px, 70vw); height: 3px; margin-top: 14px; border-radius: 3px; overflow: hidden; }
+:where(:root[data-theme="glass"]) .loader .bar { background: rgba(255, 255, 255, 0.16); }
 .loader .bar i { display: block; height: 100%; width: 0; background: #9fd6c6; }
 .err { max-width: 34ch; font-family: 'Alegreya Sans', system-ui, sans-serif !important; font-style: normal !important; font-size: 16px !important; line-height: 1.4; }
 @media (prefers-reduced-motion: reduce) { .loader, .tile { transition: none; } }
@@ -520,7 +520,8 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .links { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; font-size: 14px; background: var(--node); }
 .chip img.mini { margin-left: -7px; border-radius: 50%; }
-.roster { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--edge); }
+.roster { margin-top: 8px; padding-top: 6px; }
+:where(:root[data-theme="glass"]) .roster { border-top: 1px solid var(--edge); }
 .roster h3 { margin: 0 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .row { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 0; border: 0; border-radius: 6px; background: none;
   text-align: left; }
@@ -552,14 +553,16 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .meter.over::after { content: ''; position: absolute; right: -5px; top: -1px; border: 5px solid transparent; border-left-color: var(--accent); border-right: 0; }
 .meter.signed > i { border-radius: 0; }
 .meter > u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
-.meter > b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
-.meter > b + b { background: var(--gold); }
-.meter > b.custom { background: var(--ink); }
-.meter > b.head { background: var(--gold); }
+.meter > b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; }
+:where(:root[data-theme="glass"]) .meter > b { background: var(--ink); }
+:where(:root[data-theme="glass"]) .meter > b + b { background: var(--gold); }
+:where(:root[data-theme="glass"]) .meter > b.custom { background: var(--ink); }
+:where(:root[data-theme="glass"]) .meter > b.head { background: var(--gold); }
 .mark-key { display: flex; gap: 14px; margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
 .mark-key > span { display: inline-flex; align-items: center; gap: 5px; }
-.mark-key b { display: inline-block; width: 2px; height: 14px; border-radius: 1px; background: var(--ink); }
-.mark-key b.head { background: var(--gold); }
+.mark-key b { display: inline-block; width: 2px; height: 14px; border-radius: 1px; }
+:where(:root[data-theme="glass"]) .mark-key b { background: var(--ink); }
+:where(:root[data-theme="glass"]) .mark-key b.head { background: var(--gold); }
 /* The People sheet as a finder: the cards' rows, a farm's people under it. */
 .settlers .row { font: inherit; color: var(--ink); }
 .settlers .row .who { flex: 1; min-width: 0; }
@@ -630,7 +633,8 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .supply.none .supply-state { color: var(--muted); font-weight: 400; }
 .supply-more { width: 24px; height: 24px; min-height: 0; padding: 0; border-radius: 50%; font: italic 700 13px/1 Georgia, serif; color: var(--muted); }
 .supply-more[aria-expanded="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.supply-nums { margin: 0 0 8px 27px; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 6%, transparent); font-size: 13px; }
+.supply-nums { margin: 0 0 8px 27px; padding: 6px 10px; border-radius: 8px; font-size: 13px; }
+:where(:root[data-theme="glass"]) .supply-nums { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 .supply-nums p { margin: 0 0 6px; color: var(--muted); }
 .supply-nums dl { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0; }
 .supply-nums dt { color: var(--muted); }
@@ -855,7 +859,8 @@ body.brushing #stage { cursor: crosshair; }
 .posline { display: flex; gap: 8px; align-items: flex-start; }
 .posline .ico { color: var(--accent); margin-top: 1px; }
 .pchips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pchip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 10%, transparent); font-size: 14px; }
+.pchip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; font-size: 14px; }
+:where(:root[data-theme="glass"]) .pchip { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .pchip .ico { width: 16px; height: 16px; color: var(--accent); }
 /* The start (VB-340; docs/mocks/setup.html, step 1): pieces of the menu's family over the stage, which shows through the frame of the
    picture. The callouts follow the camera (page/start). Nothing changes size under the pointer: a lit person, bar or card only colours. */
@@ -899,8 +904,8 @@ body.brushing #stage { cursor: crosshair; }
 .pin .mk > :nth-child(2) { display: none; }
 .pin.edge .mk > :nth-child(2) { display: block; left: 7px; top: 7px; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 0; background: none;
   box-shadow: none; color: #fff; filter: drop-shadow(0 1px 2px #06202c); transform: rotate(var(--turn, 0rad)) translateX(24px); }
-.pin b { position: absolute; left: 0; top: 0; font-weight: 500; background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 2px 8px;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.pin b { position: absolute; left: 0; top: 0; font-weight: 500; background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 2px 8px; }
+:where(:root[data-theme="glass"]) .pin b { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 .pinlist { display: none; list-style: none; margin: 0; padding: 0; font-size: 14px; }
 .pinlist li { display: flex; gap: 8px; align-items: center; } .pinlist .fi, .pinlist .ico { width: 22px; height: 22px; flex: none; }
 .year { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; font-size: 13px; }
@@ -1074,8 +1079,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   color-scheme: light;
 }
 /* the panel: the band */
-:root[data-theme="mural"] .panel { background: var(--mural-band); border: 0; border-left: 2px solid var(--accent); border-right: 2px solid var(--accent);
-  border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 6px 16px rgba(20, 14, 10, 0.45); }
+:root[data-theme="mural"] .panel { background: var(--mural-band); border-left: 2px solid var(--accent); border-right: 2px solid var(--accent);
+  border-radius: 0; box-shadow: 0 6px 16px rgba(20, 14, 10, 0.45); }
 :root[data-theme="mural"] .sheet { padding: 8px 0; }
 :root[data-theme="mural"] .clock { padding-top: 12px; padding-bottom: 12px; }
 /* the head: black letter in red ochre */
@@ -1102,7 +1107,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 /* the dock and the map's bar: medallions standing on the map, with no panel; the dock's names on tags under them */
 :root[data-theme="mural"] :is(.navigation, .map-bar, .act-bar) { background: none; border: 0; box-shadow: none; }
 :root[data-theme="mural"] .navigation { gap: 2px; }
-:root[data-theme="mural"] .navigation button { gap: 3px; min-width: 64px; padding: 0 4px; border: 0; border-radius: 0; background: none; color: var(--ink); font-size: 13px; }
+:root[data-theme="mural"] .navigation button { gap: 3px; min-width: 64px; padding: 0 4px; border-radius: 0; background: none; color: var(--ink); font-size: 13px; }
 :root[data-theme="mural"] .navigation button .ico { box-sizing: content-box; padding: 10px; border: 2px solid var(--ink); border-radius: 50%; background: var(--node);
   box-shadow: var(--medal), var(--cast); color: var(--accent); }
 :root[data-theme="mural"] .navigation button > span { padding: 0 6px; border: 1px solid var(--ink); background: var(--node); box-shadow: 0 2px 5px rgba(20, 14, 10, 0.45); }
@@ -1130,9 +1135,9 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 :root[data-theme="mural"] .meter.warn > i { background: var(--gold); }
 :root[data-theme="mural"] .meter.bad > i { background: var(--bad); }
 :root[data-theme="mural"] .meter > b { top: -6px; bottom: auto; width: 0; height: 0; margin-left: -4px; border: 4px solid transparent; border-top: 6px solid var(--ink);
-  border-bottom: 0; border-radius: 0; background: none; }
-:root[data-theme="mural"] .meter > b + b, :root[data-theme="mural"] .meter > b.head { border-top-color: var(--gold); background: none; }
-:root[data-theme="mural"] .meter > b.custom { border-top-color: var(--ink); background: none; }
+  border-bottom: 0; border-radius: 0; }
+:root[data-theme="mural"] .meter > b + b, :root[data-theme="mural"] .meter > b.head { border-top-color: var(--gold); }
+:root[data-theme="mural"] .meter > b.custom { border-top-color: var(--ink); }
 :root[data-theme="mural"] .meter.over::after { border-left-color: var(--good); }
 :root[data-theme="mural"] .trait .meter { --beads: 5; height: 9px; }
 :root[data-theme="mural"] .trait .meter > i { background: var(--muted); }
@@ -1179,7 +1184,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   box-shadow: 0 0 0 3px var(--node), 0 0 0 5px var(--accent), 0 0 0 6.5px var(--ink), 0 8px 16px rgba(20, 14, 10, 0.5); }
 :root[data-theme="mural"] .pin .mk > .ico { background: var(--node); color: var(--accent); border: 2px solid var(--ink); box-shadow: inset 0 0 0 1.5px var(--node), inset 0 0 0 2.5px var(--accent), var(--cast); }
 :root[data-theme="mural"] .pin .mk > .fi { background: var(--node); border: 2px solid var(--ink); box-shadow: var(--cast); }
-:root[data-theme="mural"] .pin b { background: var(--node); border: 1.5px solid var(--ink); border-radius: 0 8px 0 8px; -webkit-backdrop-filter: none; backdrop-filter: none;
+:root[data-theme="mural"] .pin b { background: var(--node); border: 1.5px solid var(--ink); border-radius: 0 8px 0 8px;
   font: italic 700 14px/1.3 var(--scroll); box-shadow: var(--cast); }
 :root[data-theme="mural"] .year div { border-top: 3px solid var(--accent); }
 :root[data-theme="mural"] :is(.genscreen, .saves-screen, .drawer, .editor) :is(input, select) { border: 1.5px solid var(--ink); }
@@ -1190,17 +1195,15 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 :root[data-theme="mural"] .person { gap: 3px; padding: 4px 0 2px; border: 0; border-radius: 0; background: none; }
 :root[data-theme="mural"] .person img { width: 46px; height: 46px; padding: 3px 3px 0; border: 2px solid var(--ink); border-radius: 50%; background: #e2c684;
   box-shadow: inset 0 0 0 2px var(--node); }
-:root[data-theme="mural"] .person[aria-pressed="true"] { background: none; }
 :root[data-theme="mural"] .person[aria-pressed="true"] img { box-shadow: inset 0 0 0 2px var(--node), 0 0 0 2px var(--node), 0 0 0 4px var(--accent); }
 :root[data-theme="mural"] .person span { padding: 0 6px; border: 1.5px solid transparent; border-radius: 0 8px 0 8px; font: italic 700 14px/1.25 var(--scroll); }
 :root[data-theme="mural"] .person[aria-pressed="true"] span { background: var(--accent); border-color: var(--ink); color: var(--on-accent); }
 :root[data-theme="mural"] .person:disabled img { background: var(--node); opacity: 0.6; }
 :root[data-theme="mural"] .person.hit img { filter: none; background: var(--gold); }
-@media (hover: hover) { :root[data-theme="mural"] .person:hover:not(:disabled) { background: none; }
-  :root[data-theme="mural"] .person:hover:not(:disabled):not([aria-pressed="true"]) span { border-color: var(--ink); } }
+@media (hover: hover) { :root[data-theme="mural"] .person:hover:not(:disabled):not([aria-pressed="true"]) span { border-color: var(--ink); } }
 :root[data-theme="mural"] .detail { border-top: 1.5px dotted var(--edge); }
 :root[data-theme="mural"] .pchips { gap: 4px 16px; }
-:root[data-theme="mural"] .pchip { padding: 1px 0; border-radius: 0; background: none; }
+:root[data-theme="mural"] .pchip { padding: 1px 0; border-radius: 0; }
 :root[data-theme="mural"] .hhead img { width: 48px; height: 48px; }
 /* the family tree (VB-1166): a person is a square plaster tag in an ink line, the chosen one in red ochre; kinship is drawn in ink */
 :root[data-theme="mural"] #treeSvg .tn rect { rx: 0; fill: var(--node); stroke: var(--ink); stroke-width: 1.5; }
@@ -1217,22 +1220,21 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 :root[data-theme="mural"] .row { border-radius: 0; border-top: 1.5px dotted var(--edge); }
 :root[data-theme="mural"] .row .who { font: italic 700 15.5px/1.25 var(--scroll); }
 :root[data-theme="mural"] .row .who i { font: 400 13px/1.3 'Alegreya Sans', system-ui, sans-serif; }
-:root[data-theme="mural"] .roster { border-top: 0; }
 /* a supply's seasons (VB-1166): square cells in an ink line, what is held in green earth; red is kept for a shortfall */
 :root[data-theme="mural"] .supply .cell { border-radius: 0; background: color-mix(in srgb, var(--ink) 9%, transparent); box-shadow: inset 0 0 0 1.5px var(--ink); }
 :root[data-theme="mural"] .supply .cell > i.own { background: var(--good); box-shadow: inset 0 0 0 1.5px var(--ink); }
 :root[data-theme="mural"] .supply .cell > i.with { background: repeating-linear-gradient(-45deg, var(--good) 0 2px, transparent 2px 6px); }
 :root[data-theme="mural"] .supply .cell.short { background: color-mix(in srgb, var(--bad) 14%, transparent); box-shadow: inset 0 0 0 1.5px var(--bad); }
-:root[data-theme="mural"] .supply-nums { border-radius: 0; background: none; border: 1.5px dotted var(--edge); }
+:root[data-theme="mural"] .supply-nums { border-radius: 0; border: 1.5px dotted var(--edge); }
 /* the rest of the screens (VB-1167): the editor's heads, native boxes and sliders in the red ochre, the key of a meter's marks as the
    wedges it draws, the loader as a painted band, and room for the band's borders on the small panels */
 :root[data-theme="mural"] { accent-color: var(--accent); }
 :root[data-theme="mural"] :is(.editor h2, .drawer h2, .play-offer h2, .game-name, .loader p) { font-family: var(--head); font-style: normal; font-weight: 700; }
 :root[data-theme="mural"] :is(.editor h2, .play-offer h2) { color: var(--accent); }
-:root[data-theme="mural"] .mark-key b { width: 0; height: 0; border: 4px solid transparent; border-top: 6px solid var(--ink); border-bottom: 0; border-radius: 0; background: none; }
-:root[data-theme="mural"] .mark-key b.head { border-top-color: var(--gold); background: none; }
+:root[data-theme="mural"] .mark-key b { width: 0; height: 0; border: 4px solid transparent; border-top: 6px solid var(--ink); border-bottom: 0; border-radius: 0; }
+:root[data-theme="mural"] .mark-key b.head { border-top-color: var(--gold); }
 :root[data-theme="mural"] .stat .meter { min-width: 84px; }
-:root[data-theme="mural"] .loader .bar { height: 12px; border: 2px solid #faf6e8; border-radius: 0; background: none; }
+:root[data-theme="mural"] .loader .bar { height: 12px; border: 2px solid #faf6e8; border-radius: 0; }
 :root[data-theme="mural"] .loader .bar i { background: #d9a441; }
 :root[data-theme="mural"] :is(.toast, .act-banner, .notice-pop, .play-offer) { padding-top: 12px; padding-bottom: 12px; }
 :root[data-theme="mural"] .succession li button { border-radius: 0; border-top: 1.5px dotted var(--edge); }

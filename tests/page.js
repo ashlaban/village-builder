@@ -150,7 +150,7 @@ async function main() {
   if (!shown('optionsScreen') || qa('#themeList [role="radio"]').length !== 2) fail('Options did not open with its two themes');
   else {
     const root = doc.documentElement, kept = () => { try { return win.localStorage.getItem('vb.theme'); } catch (e) { return undefined; } };
-    if (root.dataset.theme) fail(`the page opened in the ${root.dataset.theme} theme, not the default`);
+    if (root.dataset.theme !== 'glass') fail(`the page opened in the ${root.dataset.theme || 'no'} theme, not the default glass`);
     click(q('[data-theme-choice="mural"]'), 'the Mural theme');
     if (root.dataset.theme !== 'mural' || q('[data-theme-choice="mural"]').getAttribute('aria-checked') !== 'true') fail('Mural was not set on the page');
     if (kept() !== undefined && kept() !== 'mural') fail(`the theme kept is ${kept()}, not mural`);
@@ -158,7 +158,7 @@ async function main() {
     for (const sel of ['#settlersBtn .ico', '#pauseBtn .ico, [data-speed="0"] .ico', '.stat-ico .ico', '.trait .ico'])
       if (q(sel) && !q(sel).querySelector('.i-sten')) fail(`an icon has no stencil for the mural theme (VB-1162, VB-1163): ${sel}`);
     click(q('[data-theme-choice="glass"]'), 'the Glass theme');
-    if (root.dataset.theme) fail('Glass did not take the theme off the page');
+    if (root.dataset.theme !== 'glass') fail('Glass was not set on the page');
     click($('optionsClose'), 'Close');
     if (shown('optionsScreen') || !shown('landing')) fail('Options did not close back to the main menu');
   }
