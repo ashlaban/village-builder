@@ -472,7 +472,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids. A job: {id, key, kind, owner, site, done (work hours),
     //   claims[] (ids of the pawns working it, at most KINDS[kind].hands; VB-102), posted, live, and its source's fields (field, farm, plot, ...)}
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
-    //   kept with st.jobs by post and dropJob
+    //   kept with st.jobs by post and dropJob; derived, not saved (`sim/saves` DERIVED)
     // @state st.meetingLog[]: {year, text}; newest first. (The village log is a view of st.record: sim/notable, villageLog.)
     // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self, tile, reason (of a `joined` event: why it
     //   moved, VB-822)}; every event, append-only (sim/records, VB-075);
@@ -520,6 +520,8 @@ VB['sim/scenarios'] = (() => {
       makeFields: true,
       jobs: new Map(),
       jobsBy: new Map(),
+      idx: null, // sim/records index, built at its first use
+      stepAt: null, // sim/agents, at the first step
       jobSeq: 0,
       weather: [], // drawn by startStreams (sim/weather seedWeather)
       record: [],

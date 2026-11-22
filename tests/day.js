@@ -5,10 +5,10 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, Jobs = VB['sim/jobs'], { KINDS } = VB['sim/kinds'], { CHILD, WORK } = VB['sim/rules'];
 const { age } = VB['sim/records'];
-const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
+const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const make = (hours) => { const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 }); st.makeFields = false; Sim.advance(st, hours); return st; };
-const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
+const hash = (st) => sha(canon(kept(st)));
 const dayOf = (st, id) => st.plans.households.get(id).day;
 const kindOf = (st, key) => st.jobs.get(key) && st.jobs.get(key).kind;
 

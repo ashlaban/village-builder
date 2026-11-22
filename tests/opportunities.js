@@ -4,9 +4,9 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, O = VB['sim/opportunities'], J = VB['sim/jobs'], H = VB['sim/heirs'];
 const { MATCH, SERVICE } = VB['sim/rules'], { isOpen } = VB['sim/kinds'], { issue } = VB['sim/commands'];
-const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js');
+const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F'.repeat(18) : i === 11 ? '~'.repeat(18) : '.'.repeat(18)));
-const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
+const hash = (st) => sha(canon(kept(st)));
 const housed = (st) => st.living.filter((id) => st.pawns[id].household !== null);
 const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
 

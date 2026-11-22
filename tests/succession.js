@@ -5,11 +5,11 @@
 // (25), 7 (22), 5 (17), 4 (15), 2 (11), daughters 6 (19), 3 (13); household 1's holder 9 has a son 11 of 7 and its servant 17.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], H = VB['sim/heirs'], Culture = VB.culture;
-const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
+const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const { dropKind } = require('./lib/record.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F'.repeat(18) : i === 11 ? '~'.repeat(18) : '.'.repeat(18)));
 const make = (seed = 4) => tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed });
-const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
+const hash = (st) => sha(canon(kept(st)));
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const custom = (st, dim, key) => { for (const s of st.cenv.settlements) s.practice[Culture.IDX[dim]] = Culture.optIndex(dim, key); };
 const playerEvents = (st, id) => Sim.recordOf(st, { pawn: id, life: true }).filter((e) => e.kind === 'player').map((e) => e.text);

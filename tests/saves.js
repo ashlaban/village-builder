@@ -29,7 +29,11 @@ for (const [label, make, restore, before, after] of [
   const data = JSON.parse(text), back = Sim.load(restore(data), data);
   Sim.advance(back, after);
   const bad = [];
-  for (const k of new Set([...Object.keys(st), ...Object.keys(back)])) if (k !== 'w' && canon(st[k]) !== canon(back[k])) bad.push(k);
+  // the derived fields (sim/saves DERIVED) are rebuilt on load, and checked against their sources by the invariants, not here
+  const D = VB['sim/saves'].DERIVED;
+  for (const k of new Set([...Object.keys(st), ...Object.keys(back)])) if (k !== 'w' && !(k in D) && canon(st[k]) !== canon(back[k])) bad.push(k);
+  const { checkState } = require('./lib/invariants.js');
+  for (const [which, s] of [['saved', st], ['loaded', back]]) { const v = checkState(s); if (v.length) { failed++; console.error(`SAVES FAIL: ${label}, the run ${which}: ${v.slice(0, 3).join('; ')}`); } }
   for (const k of TILES) if (canon(st.w[k]) !== canon(back.w[k])) bad.push('w.' + k);
   if (bad.length) { failed++; console.error(`SAVES FAIL: ${label}, saved after ${before} h, ${after} h more: ${bad.join(', ')} differ`); }
   out.push(`${label} ${(text.length / 1024).toFixed(0)} KB`);

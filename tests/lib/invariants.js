@@ -31,6 +31,34 @@ function checkState(st) {
       bad.push(`${key}: live index differs from its source records`);
     }
   }
+  // VB-239: the derived fields a save leaves out (sim/saves DERIVED) agree with their sources, as a load rebuilds them: each owner's open
+  // jobs (st.jobsBy, an empty set aside) are st.jobs' of that owner in the order posted; the index of the records (st.idx, when built)
+  // holds what one built afresh holds (sim/records)
+  {
+    const D = globalThis.VB['sim/saves'].DERIVED, by = new Map();
+    for (const j of st.jobs.values()) {
+      const k = `${j.owner.type}:${j.owner.id}`;
+      if (!by.has(k)) by.set(k, []);
+      by.get(k).push(j.id);
+    }
+    const held = new Map([...(st.jobsBy || [])].filter(([, s]) => s.size).map(([k, s]) => [k, [...s].map((j) => j.id)]));
+    const text = (m) => JSON.stringify([...m].sort((a, b) => (a[0] < b[0] ? -1 : 1)));
+    if (!('jobsBy' in D) || text(by) !== text(held)) bad.push('jobsBy: open jobs by owner differ from st.jobs');
+    if (st.idx && st.pawns.length) {
+      const was = st.idx;
+      st.idx = null;
+      globalThis.VB['sim/records'].spouseOf(st, st.pawns[0].id); // builds the index afresh
+      const fresh = st.idx;
+      st.idx = was;
+      // holds and lines keep an entry under every holder and line a household or farm has had, and their readers take those still so:
+      // compared as those
+      const still = { holds: (k, id) => st.households[id].holder === k, lines: (k, id) => st.farmsteads[id].line === k };
+      const norm = (m, f) => JSON.stringify([...m].map(([k, v]) => [k, Array.isArray(v) ? v.filter((id) => !f || f(k, id)).sort((a, b) => a - b) : v])
+        .filter(([, v]) => !Array.isArray(v) || v.length).sort((a, b) => a[0] - b[0]));
+      for (const k of ['children', 'spouse', 'union', 'holds', 'lines']) if (norm(was[k], still[k]) !== norm(fresh[k], still[k])) bad.push(`idx.${k}: differs from the index built afresh`);
+      if (JSON.stringify([...was.widowed].sort((a, b) => a - b)) !== JSON.stringify([...fresh.widowed].sort((a, b) => a - b))) bad.push('idx.widowed: differs from the index built afresh');
+    }
+  }
   // VB-354: the seasons' weather: one or two years, oldest first and consecutive, the last no later than this year (a test that sets the
   // clock jumps past the seasons' draws); at most four seasons each, warmth
   // and wetness in -1 to 1, the thaw a spring day of 0 to 3 and the frost an autumn day of 7 to 11

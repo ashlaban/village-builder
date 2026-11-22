@@ -317,12 +317,32 @@ VB['sim/saves'] = (() => {
     return rel;
   }
   const REVIVE = { rel: unpackRel };
+  // ---- derived state (VB-239) ----
+  // The fields of st a save leaves out, each with what rebuilds it on load (null: left null, built where it is next used). Two derivable
+  // fields stay saved: st.idlers, since who is in it depends on when in the hour it was made (VB-074), and st.pathCache, since a route
+  // searched again after a load may differ from the one cached, so a loaded run would leave the saved one.
+  const DERIVED = {
+    living: rebuildLiving, // and liveHouseholds with it (sim/records)
+    liveHouseholds: null,
+    idx: null, // sim/records index, built at its first use
+    stepAt: null, // sim/agents loaded, at the end of a load
+    jobsBy: rebuildJobsBy,
+  };
+  // st.jobsBy from st.jobs: each owner's open jobs, in the order they were posted (sim/jobs post adds a job to both together)
+  function rebuildJobsBy(st) {
+    st.jobsBy = new Map();
+    for (const j of st.jobs.values()) {
+      const k = `${j.owner.type}:${j.owner.id}`;
+      if (!st.jobsBy.has(k)) st.jobsBy.set(k, new Set());
+      st.jobsBy.get(k).add(j);
+    }
+  }
   // A save: the format, what makes the world (scenario, seed, size), the tiles above and the whole state, with st.w as null in its place.
   // It shares parts with the state (encode): write it out before the state changes.
   function save(st) {
     const w = st.w,
       state = {};
-    for (const k of Object.keys(st)) state[k] = k === 'w' ? null : st[k];
+    for (const k of Object.keys(st)) if (!(k in DERIVED)) state[k] = k === 'w' ? null : st[k];
     const world = {};
     for (const k of WORLD) if (w[k]) world[k] = encode(w[k]);
     const pack = new Map();
@@ -366,6 +386,8 @@ VB['sim/saves'] = (() => {
     }
     const st = decode(enc, REVIVE);
     st.w = w;
+    for (const k in DERIVED) st[k] = null;
+    for (const k in DERIVED) if (DERIVED[k]) DERIVED[k](st);
     if (!w.fish) initFish(w); // VB-117: older saves have no fish stocks
     if (!w.forage) initForage(w); // VB-118: nor stocks of wild food
     // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
@@ -380,7 +402,6 @@ VB['sim/saves'] = (() => {
     }
     // Older saves mark a house as they mark a field (w.dev 1); a house is 3 now, so that fields wear paths and houses do not (sim/paths).
     if (w.dev) for (const f of st.farmsteads) w.dev[f.house] = 3; // lint-allow: owner an older save's mark, set as layout sets it
-    rebuildLiving(st);
     indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
     trimRoutes(st);
     if (!st.villageHours) buildHours(st); // VB-286: older saves have no table of walking hours between villages
@@ -673,5 +694,5 @@ VB['sim/saves'] = (() => {
         delete plan.reasons.grain;
       }
   }
-  return { encode, decode, save, load, FORMAT, READS, oldProjects };
+  return { encode, decode, save, load, FORMAT, READS, DERIVED, oldProjects };
 })();

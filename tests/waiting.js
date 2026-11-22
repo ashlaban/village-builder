@@ -7,9 +7,9 @@ const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, MT = VB['sim/matching'], R = VB['sim/records'];
 const { YEAR, MARRIAGE } = VB['sim/rules'];
 const W = require('../tools/waiting.js'), B = require('./lib/bands.js');
-const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js');
+const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F'.repeat(18) : i === 11 ? '~'.repeat(18) : '.'.repeat(18)));
-const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
+const hash = (st) => sha(canon(kept(st)));
 const made = new Map();
 const world = (seed) => { // a copy of the village of a seed, made once
   if (!made.has(seed)) {

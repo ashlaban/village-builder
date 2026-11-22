@@ -6,7 +6,7 @@
 // told in the log. A save made while one is under way plays on as the unbroken run. On a small populous island (VB-854).
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], O = VB['sim/occasions'];
-const { canon } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
+const { canon, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const { island, scenario } = require('./lib/probe.js'), SEED = 11;
 const roll = (st, f) => {
@@ -92,7 +92,7 @@ sound(st, 'after the weddings');
 {
   const back = Sim.load(island(SEED), JSON.parse(text));
   Sim.advance(back, 6.1);
-  const bad = [...new Set([...Object.keys(st), ...Object.keys(back)])].filter((k) => k !== 'w' && canon(st[k]) !== canon(back[k]));
+  const bad = [...new Set([...Object.keys(kept(st)), ...Object.keys(kept(back))])].filter((k) => k !== 'w' && canon(st[k]) !== canon(back[k]));
   assert.deepStrictEqual(bad, [], 'the loaded run plays as the unbroken one');
 }
 

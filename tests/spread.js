@@ -23,7 +23,7 @@ const VB = require('./lib/load.js').loadModules({ wrap: {
       return r;
     },
   },
-} }), Sim = VB.sim, { canon } = require('./lib/canon.js');
+} }), Sim = VB.sim, { canon, kept } = require('./lib/canon.js');
 const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, ASK } = VB['sim/rules'], { NIGHT_STEPS } = VB['sim/meetings'], { ROUND_STEPS } = VB['sim/round'];
 // On the probe village alone since VB-853: the populous run on the tiny map (--extended) asserted the same rules, and was deleted.
 const probe = require('./lib/probe.js'), seed = probe.state, restoreWorld = probe.world;
@@ -85,7 +85,7 @@ for (const [label, at] of [['between villages 0 and 1', start + DAY + 12], ['aft
   const a = roundRun(at);
   const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(restoreWorld(data), data);
   for (const run of [a, b]) for (let k = 0; k < 30; k++) Sim.advance(run, 0.1);
-  const bad = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => k !== 'w' && canon(a[k]) !== canon(b[k]));
+  const bad = [...new Set([...Object.keys(kept(a)), ...Object.keys(kept(b))])].filter((k) => k !== 'w' && canon(a[k]) !== canon(b[k]));
   assert.deepStrictEqual(bad, [], `saved ${label}: the loaded run differs in ${bad.join(', ')}`);
   saved.push(label);
 }
@@ -116,7 +116,7 @@ for (const [label, at] of [['between villages 0 and 1', 12], ['after the last vi
   const a = meetingRun(mday + at);
   const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(restoreWorld(data), data);
   for (const run of [a, b]) Sim.advance(run, 6.5);
-  const bad = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => k !== 'w' && canon(a[k]) !== canon(b[k]));
+  const bad = [...new Set([...Object.keys(kept(a)), ...Object.keys(kept(b))])].filter((k) => k !== 'w' && canon(a[k]) !== canon(b[k]));
   assert.deepStrictEqual(bad, [], `saved at the meetings, ${label}: the loaded run differs in ${bad.join(', ')}`);
   saved.push(`the meetings ${label}`);
 }
