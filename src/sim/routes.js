@@ -237,5 +237,5 @@ VB['sim/routes'] = (() => {
     st.routeDirty.clear();
   }
 
-  return { findRoute, routeCost, reachCosts, route, hasRoute, costChanged, refreshRoutes, trimRoutes };
+  return { findRoute, routeCost, reachCosts, route, hasRoute, costChanged, refreshRoutes };
 })();

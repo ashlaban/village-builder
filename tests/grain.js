@@ -50,18 +50,4 @@ VB['sim/stores'].release(st, a, plan, S.grainGood('rye'), 'seed'); f.fields[0].c
 // invariants: no crop below 0, the sum is what the readers see
 const { checkState } = require('./lib/invariants.js');
 const grainErr = checkState(st).filter((e) => /grain/.test(e)); assert.deepStrictEqual(grainErr, [], 'grain invariants');
-// an old save: grain one number and reserved as 'grain' loads as barley
-const it = VB.gen.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
-const old = Sim.seed(r.value, 7, 'founders'), n0 = old.households.map((h) => S.grainOf(h));
-for (const h of [...old.households, ...old.villages]) h.grain = S.grainOf(h);
-for (const pl of old.plans.households.values()) {
-  pl.reserved.grain = pl.reserved['grain/barley']; pl.reasons.grain = pl.reasons['grain/barley']; delete pl.reserved['grain/barley'];
-    delete pl.reasons['grain/barley'];
-}
-const data = JSON.parse(JSON.stringify(Sim.save(old)));
-const it2 = VB.gen.generate(7, { cols: 120, rows: 85 }); while (!(r = it2.next()).done);
-const back = Sim.load(r.value, data);
-assert.deepStrictEqual(back.households.map((h) => h.grain), n0.map((n) => ({ barley: n })), 'an old save\'s grain loads as barley');
-assert(back.villages.every((x) => x.grain.barley === 0 && Object.keys(x.grain).length === 1), 'and a village\'s');
-assert([...back.plans.households.values()].every((pl) => pl.reasons['grain/barley'] === 'seed' && !('grain' in pl.reasons)), 'its seed reserved as barley');
-console.log('grain: held by crop; takes, spoiling, moves, gifts, stakes, the cook and the meal by crop; an old save\'s grain loads as barley');
+console.log('grain: held by crop; takes, spoiling, moves, gifts, stakes, the cook and the meal by crop');

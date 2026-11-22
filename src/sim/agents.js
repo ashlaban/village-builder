@@ -771,8 +771,8 @@ VB['sim/agents'] = (() => {
   // @state st.legDue: the ids of the pawns whose walk or wait is under way, each once, sorted by their leg's due, then id: one due-queue for
   //   walks, waits and the legs of journeys (Rules for cost 4), bounded by the living; plain data, saved; built from the pawns' state when
   //   absent (a fresh run, an older save). A step takes what is due (stepAgents) and nothing else.
-  // @state st.stepAt: {moving, walked}, a cache owned here, not saved (non-enumerable): the tick whose legs have begun to be taken, and the
-  //   tick whose legs have all been taken. Between steps both are the tick (a loaded run).
+  // @state st.stepAt: {moving, walked}, a cache owned here; null until the first step; derived, not saved (`sim/saves` DERIVED): the
+  //   tick whose legs have begun to be taken, and the tick whose legs have all been taken. Between steps both are the tick (a loaded run).
   // A walk begun before or while the step's legs are taken moves this step (its start is the step before); one begun after, from the next.
   const walkTick = (st) => (!st.stepAt || st.stepAt.walked === st.tick ? st.tick : st.tick - 1);
   // The first step a pawn freed now may look for work at: this one while its legs are being taken (or before), else the next.
@@ -1000,7 +1000,7 @@ VB['sim/agents'] = (() => {
   // next leg sets out, and a wait ends: a free pawn that wants work joins the list returned (in id order) for the planner (sim/clock),
   // with those the working day's start finds waiting. A whole 6-minute step, always: the page draws the pawns between steps (VB-244).
   function stepAgents(st, c) {
-    if (!st.stepAt) Object.defineProperty(st, 'stepAt', { value: { moving: -1, walked: -1 }, writable: true });
+    if (!st.stepAt) st.stepAt = { moving: -1, walked: -1 };
     st.stepAt.moving = st.tick; // the step's work is done and its legs are being taken (workTick, walkTick)
     const q = legsOf(st),
       out = [],
@@ -1036,7 +1036,6 @@ VB['sim/agents'] = (() => {
   // (agent.work, the rows; job.cast, VB-471): its tasks under work are reckoned from now. One made before VB-473 has no legs (an awake list,
   // journeys with a due time): each pawn's leg is built from where it is and what it does.
   function loaded(st) {
-    if (!st.stepAt) Object.defineProperty(st, 'stepAt', { value: null, writable: true });
     st.stepAt = { moving: st.tick, walked: st.tick };
     for (const a of st.agents) if ('work' in a) delete a.work;
     for (const j of st.away || []) delete j.due;

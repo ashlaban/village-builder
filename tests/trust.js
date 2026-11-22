@@ -25,7 +25,7 @@ function loneCase(st) {
       if (h.age < 18) continue;
       const away = st.households.find((x) => x !== a && x !== c && !x.dissolved);
       for (const id of a.members.filter((m) => m !== a.holder)) moveTo(st, id, away.id);
-      h[parent.sex === 'm' ? 'father' : 'mother'] = parent.id;
+      h[parent.sex === 'm' ? 'father' : 'mother'] = parent.id; st.idx = null; // parents set by hand: the records' index is built again (VB-239)
       return { a, c, holder: h, f: st.farmsteads[a.farmstead] };
     }
   }
@@ -128,7 +128,7 @@ let report = '';
   moveTo(st, child.id, c.a.id);
   moveTo(st, c.holder.id, c.c.id);
   c.a.holder = child.id; R.noteHolder(st, c.a); VB['sim/events'].emit(st, 'newHead', { household: c.a.id }); // the child holds the farm alone
-  child.father = c.c.holder; child.mother = null;
+  child.father = c.c.holder; child.mother = null; st.idx = null; // parents set by hand: the records' index is built again (VB-239)
   S.careForOrphans(st);
   const t = trustOf(st, c.a.id);
   check(t && t.ward === child.id && t.trustee === c.c.id && child.household === c.c.id && !c.a.dissolved, `the ward's farm held in trust (${JSON.stringify(t)})`);
@@ -146,6 +146,7 @@ let report = '';
   check(!!d, 'setup: a kin household for the trustee');
   const ch = st.pawns[c.holder], dh = st.pawns[d.holder];
   ch[dh.sex === 'm' ? 'father' : 'mother'] = dh.id; // the trustee's holder is the child of d's
+  st.idx = null; // and the records' index is built again (VB-239)
   check(T.trusteeFor(st, c) === d.id, `setup: d would hold the trustee's farm (${T.trusteeFor(st, c)})`);
   check(issue(st, { actor: c.holder, verb: 'goToKin', target: c.id, args: { why: 'test' }, source: 'test' }) === true, 'the trustee goes to kin');
   refreshRoles(st);

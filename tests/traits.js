@@ -153,7 +153,7 @@ const born = (st, hh) => {
   assert.deepStrictEqual(checkState(st), [], 'invariants after the split');
 }
 
-// the labels: the words beyond the 15th and 85th percentiles, none between; a save made before the twelve keeps what it has
+// the labels: the words beyond the 15th and 85th percentiles, none between
 {
   const st = make(), id = st.living.find((i) => st.pawns[i].sex === 'f'), t = st.pawns[id].traits;
   t.fill(0.5);
@@ -161,18 +161,6 @@ const born = (st, hh) => {
   t[T.IDX.generosity] = 0.344; t[T.IDX.honour] = 0.656; t[T.IDX.openness] = 0.2; t[T.IDX.wits] = 0.345;
   assert.deepStrictEqual(T.labelsOf(st, id), ['tight-fisted', 'a woman of her word', 'set in her ways'], 'the words of the tails');
   assert.deepStrictEqual(Sim.traitLabels(st, id), T.labelsOf(st, id), 'through the Sim API');
-  // an old save: VB-254's five, in its order, no hungry days and no culture's values
-  const old = st.living.slice(0, 3);
-  for (const i of old) { st.pawns[i].traits = [0.1, 0.2, 0.3, 0.4, 0.5]; delete st.pawns[i].leanDays; }
-  delete st.cenv.cultures[0].values;
-  const data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(st.w, data);
-  for (const i of old) {
-    const b = back.pawns[i];
-    assert.deepStrictEqual([b.traits[T.IDX.wits], b.traits[T.IDX.husbandry], b.traits[T.IDX.diligence], b.traits[T.IDX.ambition], b.traits[T.IDX.generosity]], [0.1, 0.2, 0.3, 0.4, 0.5], 'the five kept');
-    assert.ok(b.leanDays === (b.age < 15 ? 0 : null), 'its hungry days begun if a child');
-  }
-  assert.deepStrictEqual(back.cenv.cultures[0].values, TRAITS.culture.oldNordic, 'the culture starts at its archetype\'s');
-  assert.deepStrictEqual(checkState(back), [], 'invariants after the load');
 }
 
 // skill as head: the mean of wits and husbandry, 0.02 a year as head up to 0.2, capped at 1; the horizon by its thirds
@@ -320,4 +308,4 @@ const born = (st, hh) => {
     assert.ok(Math.abs(sum / n - unbiased) <= 0.02 * unbiased, `skill ${skill}: mean ${(sum / n).toFixed(3)} against ${unbiased}`);
   }
 }
-console.log('traits ok: twelve traits passed on at birth and set at 15, a hungry childhood, a culture\'s values reckoned and split, labels, an old save; skill as head; horizon and bias at the review, which draws nothing, worked by hand on two seasons\' first days; a new head\'s targets at once; the fields\' bias before the cap');
+console.log('traits ok: twelve traits passed on at birth and set at 15, a hungry childhood, a culture\'s values reckoned and split, labels; skill as head; horizon and bias at the review, which draws nothing, worked by hand on two seasons\' first days; a new head\'s targets at once; the fields\' bias before the cap');

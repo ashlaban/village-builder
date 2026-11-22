@@ -113,7 +113,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   may read it) and written only by `src/sim/plans.js` (which also judges a plan `impossible` and words its dropping), which hears the lower modules by events: `projectBegun` (a plot, `sim/expansion`; a
   claim, `sim/farmclaims`), `stepDone` (`sim/fields`, `sim/meadows`, `sim/expansion`, `sim/cottage`, `sim/farmclaims`), `rightLost` (a stake
   or a farm's claim lost, `sim/stakes`, `sim/farmclaims`) and `storeShort` (`sim/stores`). A step's reservation is a `build` reservation
-  of `sim/stores`. Old saves' farm projects, plots and claims become plans at load (`sim/saves`, `oldProjects`).
+  of `sim/stores`.
 - Names (VB-026): `src/sim/names.js` holds the generators (farms by compass, landmark, owner; villages by syllables or founder) and each culture's
   order of preference (`c.namePrefs`); a lone farm's village bears its farm's name, and the page labels a village of two or more farms once.
 - Households short of people (stability review, `docs/review-stability.md`): `src/sim/service.js` brings a guardian to an orphaned minor heir and a
@@ -208,6 +208,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   arrays, and the tiles the simulation changes are saved with the state (its `WORLD` list: a new world field the simulation writes goes there).
   `st` is plain data (VB-073, `tests/plaindata.js`): no functions, and no state kept aside in module closures, or a loaded run drifts
   (`tests/saves.js` catches it). A loaded run matches the unbroken one given the same `Sim.advance` calls.
+  Derived state (VB-239) is one list, `DERIVED` in `sim/saves`: each field of `st` a save leaves out, with what rebuilds it on load (a new
+  cache of `st` that can be rebuilt goes there; the tests comparing a loaded run and `tools/same.js` leave them out, the invariants check them
+  against their sources). A save of another format is refused, and `load` keeps no migration: no one holds a save of an older build (Kim).
 - The record of events (VB-075): `st.record`, typed events written by `log(st, text, event)` and `personEvent(...)` in `src/sim/records.js`
   (`false` when another call records the same happening); `Sim.recordOf(st, {pawn, household, farm, village, kinds, from, to})` queries it.
   A new log line names its event's kind, pawn and place (`atHousehold`, `atFarm`); `tests/record.js` checks every call.

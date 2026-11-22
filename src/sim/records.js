@@ -204,47 +204,6 @@ VB['sim/records'] = (() => {
   function lifeEvent(st, id, at) {
     st.pawns[id].events.push(at);
   }
-  // Older saves kept a copy of each event on its pawn: each copy becomes the position of its event on the record (the same pawn, time
-  // and text, whatever its kind: a move told as `joined`; a birth or death by pawn, time and kind). A copy told beside another event
-  // (personEvent with `false`) has none: it is written to the record's end as the pawn's own (`self`), unless it is of a routine kind
-  // (a gift given), which is dropped, as its fold would drop it. One pass over the record, at load, and only for such a save.
-  function indexEvents(st) {
-    if (!st.recordYears) st.recordYears = [];
-    if (!st.recordFold) st.recordFold = { shortAt: 0, longAt: 0, pass: null };
-    let by = null;
-    for (const p of st.pawns) {
-      if (!p.events.some((x) => typeof x === 'object')) continue;
-      if (!by) {
-        by = new Map();
-        st.record.forEach((e, i) => {
-          if (typeof e !== 'object' || e.pawn === undefined) return;
-          const key = `${e.pawn}|${e.t}`,
-            l = by.get(key);
-          if (l) l.push(i);
-          else by.set(key, [i]);
-        });
-      }
-      const out = [];
-      for (const x of p.events) {
-        if (typeof x !== 'object') {
-          out.push(x);
-          continue;
-        }
-        const l = by.get(`${p.id}|${x.t}`) || [],
-          vital = x.kind === 'born' || x.kind === 'died';
-        const j = l.findIndex((i) => (vital ? st.record[i].kind === x.kind : st.record[i].text === x.text));
-        if (j >= 0) {
-          out.push(l[j]);
-          l.splice(j, 1);
-          continue;
-        }
-        if (HISTORY[x.kind]) continue;
-        record(st, { kind: x.kind, pawn: p.id, text: x.text, self: true }, x.t);
-        out.push(st.record.length - 1);
-      }
-      p.events = out;
-    }
-  }
   // where an event of household hh or farm f happened
   const atHousehold = (st, hh) => ({
     household: hh.id,
@@ -261,8 +220,8 @@ VB['sim/records'] = (() => {
     record(st, { ...ev, text: ev.text !== undefined ? ev.text : text });
     return st.record.length - 1;
   };
-  // @state st.living: sorted ids of living pawns; a cache owned here.
-  // @state st.liveHouseholds: sorted ids of undissolved households; a cache owned here.
+  // @state st.living: sorted ids of living pawns; a cache owned here; derived, not saved (`sim/saves` DERIVED).
+  // @state st.liveHouseholds: sorted ids of undissolved households; a cache owned here; derived, not saved (`sim/saves` DERIVED).
   // Rebuilt once at seed/load, including older format-1 saves. In play only creation and ending a record change them.
   function rebuildLiving(st) {
     st.living = st.pawns.filter((p) => p.died === null).map((p) => p.id);
@@ -466,30 +425,26 @@ VB['sim/records'] = (() => {
     return [...out];
   };
   // Indexes over the records, built on first use and caught up with new pawns, unions, households and farmsteads on each read (records are
-  // only appended); the places that end a union, change a holder or set a farm's line call noteUnionEnd, noteHolder and noteLine. Not
-  // enumerable: they are derived data.
+  // only appended); the places that end a union, change a holder or set a farm's line call noteUnionEnd, noteHolder and noteLine.
   // @state st.idx: {children: Map of pawn id to child ids, spouse: Map of pawn id to current spouse id, holds: Map of pawn id to the ids of
   //   households it holds, lines: Map of pawn id to the ids of farmsteads whose line it is or was (VB-224), union: Map of pawn id to active
   //   union id, widowed: Set of pawn ids with an ended union; seen: counts of pawns, unions, households and farmsteads already indexed};
-  //   derived from the records, see sim/records
+  //   derived from the records, see sim/records; null until its first use; derived, not saved (`sim/saves` DERIVED)
   function index(st) {
     if (!st.idx)
-      Object.defineProperty(st, 'idx', {
-        value: {
-          children: new Map(),
-          spouse: new Map(),
-          union: new Map(),
-          widowed: new Set(),
-          spouses: new Map(),
-          holds: new Map(),
-          lines: new Map(),
-          np: 0,
-          nu: 0,
-          nh: 0,
-          nf: 0,
-        },
-        writable: true,
-      });
+      st.idx = {
+        children: new Map(),
+        spouse: new Map(),
+        union: new Map(),
+        widowed: new Set(),
+        spouses: new Map(),
+        holds: new Map(),
+        lines: new Map(),
+        np: 0,
+        nu: 0,
+        nh: 0,
+        nf: 0,
+      };
     const x = st.idx;
     for (; x.np < st.pawns.length; x.np++) {
       const p = st.pawns[x.np];
@@ -801,7 +756,6 @@ VB['sim/records'] = (() => {
     startFold,
     foldHistory,
     lifeEvent,
-    indexEvents,
     atHousehold,
     atFarm,
     age,

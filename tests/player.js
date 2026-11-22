@@ -3,7 +3,7 @@
 // refused when its turn comes is dropped with its reason; the player and its queue are saved with the run.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { WORK } = VB['sim/rules'], { QUEUE_MAX } = VB['sim/player'];
-const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
+const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const { dropKind } = require('./lib/record.js');
 // One village of three farms under a forest; household 0 is a farmer (pawn 0), his wife (1), a son and five daughters, the grown ones
 // hoeing in spring. Seed 4: at most other seeds someone else is free and fetches the firewood before the farmer looks up (villages laid
@@ -14,7 +14,7 @@ const make = (hours = 0, noLand = false) => {
   const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 }); if (noLand) st.makeFields = false;
   if (hours) Sim.advance(st, hours); return st;
 };
-const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
+const hash = (st) => sha(canon(kept(st)));
 const hour = (st) => Sim.cal(st.t).hour;
 const jobOf = (st, kind, hh = 0) => [...st.jobs.values()].find((j) => j.kind === kind && j.owner.type === 'household' && j.owner.id === hh);
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
@@ -168,8 +168,6 @@ const FARMER = 0, WIFE = 1;
   for (const s of [st, back]) Sim.advance(s, Sim.DAY);
   assert.strictEqual(hash(back), hash(st), 'the loaded run and the saved one agree a day later');
   assert.ok(st.player.refused && !st.player.queue.length, 'the queue ran out, its last command refused');
-  const old = Sim.save(st); delete old.state.player;
-  assert.strictEqual(Sim.load(tinyWorld(rows), JSON.parse(JSON.stringify(old))).player, null, 'a save from before the player loads with none');
   sound(back, 'loaded');
 }
 console.log('player ok: an inhabited pawn left alone changes nothing in 5 days; queued work goes before the planner, looking up and the call to cook; '

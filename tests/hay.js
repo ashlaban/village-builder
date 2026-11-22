@@ -42,9 +42,6 @@ for (const invalid of [NaN, Infinity, -1]) {
   check(checkState(st).some((e) => e.includes('haySpoilt')), `invariant rejects haySpoilt ${invalid}`);
 }
 st.households[0].haySpoilt = savedLoss;
-const oldState = { ...st, households: st.households.map(({ haySpoilt, ...h }) => h) };
-const loaded = Sim.load(st.w, Sim.save(oldState));
-check(loaded.households.every((h) => h.haySpoilt === 0), 'older saves initialize haySpoilt');
 const start = new Map(st.households.map((h) => [h.id, h.hay]));
 at(st, 11);
 const raked = meadows(st).filter((m) => m.raked).length / meadows(st).length;

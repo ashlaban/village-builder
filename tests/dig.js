@@ -98,10 +98,8 @@ if (hc && bog >= 0) {
   check(st2.households[hc.id].clay === hc.clay && D.left(st2, bog) === D.left(st, bog), 'and the stores and the bog iron grown back');
   const old = JSON.parse(JSON.stringify(data));
   for (const k of ['depositLeft', 'depositFull', 'dugDay']) delete old.world[k];
-  for (const hh of old.state.households) { delete hh.clay; delete hh.bogOre; }
   const fresh = world(SEED), st3 = Sim.load(world(SEED), old);
   check(!st3.w.dugDay && st3.w.depositLeft.every((x, i) => x === fresh.depositLeft[i]), 'an older save: no tile dug');
-  check(st3.households.every((hh) => hh.clay === 0 && hh.bogOre === 0), 'an older save: no household holds dug loads');
 }
 
 // --- a year of populous: households dig, nothing beyond the stock, the state keeps its invariants

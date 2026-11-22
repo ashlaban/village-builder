@@ -2,22 +2,7 @@
 VB['sim/saves'] = (() => {
   const { setBiome } = VB['gen'];
   const { seal } = VB['sim/registry'];
-  const { trimRoutes } = VB['sim/routes'],
-    { buildHours } = VB['sim/villagehours'];
-  const { rebuildLiving, indexEvents } = VB['sim/records'];
-  const { close: closeLedger } = VB['sim/stores'],
-    { openFresh } = VB['sim/pot'];
-  const { migrateTies } = VB['sim/relations'];
-  const { seedPlans, fillPlans } = VB['sim/plans'],
-    Plans = VB['sim/plans'],
-    { BREAK_HOURS } = VB['sim/fieldplans'],
-    { stepOf } = VB['sim/projects'],
-    { seedPer } = VB['sim/hunger'];
-  const { TICKS, TRAITS } = VB['sim/rules'];
-  const { makeStream } = VB['sim/rng'];
-  const { reckonWood } = VB['sim/territory'];
-  const { initFish } = VB['sim/fish'],
-    { initForage } = VB['sim/forage'];
+  const { rebuildLiving } = VB['sim/records'];
   // ---- encoding a graph of plain data ----
   // encode(v) gives JSON-compatible data; decode(encode(v)) is a deep copy of v with the same sharing: an object reached twice comes back as
   // one object. An object reached more than once carries "$id" where it first appears (in the order of a depth-first walk) and is "$ref"
@@ -317,12 +302,32 @@ VB['sim/saves'] = (() => {
     return rel;
   }
   const REVIVE = { rel: unpackRel };
+  // ---- derived state (VB-239) ----
+  // The fields of st a save leaves out, each with what rebuilds it on load (null: left null, built where it is next used). Two derivable
+  // fields stay saved: st.idlers, since who is in it depends on when in the hour it was made (VB-074), and st.pathCache, since a route
+  // searched again after a load may differ from the one cached, so a loaded run would leave the saved one.
+  const DERIVED = {
+    living: rebuildLiving, // and liveHouseholds with it (sim/records)
+    liveHouseholds: null,
+    idx: null, // sim/records index, built at its first use
+    stepAt: null, // sim/agents loaded, at the end of a load
+    jobsBy: rebuildJobsBy,
+  };
+  // st.jobsBy from st.jobs: each owner's open jobs, in the order they were posted (sim/jobs post adds a job to both together)
+  function rebuildJobsBy(st) {
+    st.jobsBy = new Map();
+    for (const j of st.jobs.values()) {
+      const k = `${j.owner.type}:${j.owner.id}`;
+      if (!st.jobsBy.has(k)) st.jobsBy.set(k, new Set());
+      st.jobsBy.get(k).add(j);
+    }
+  }
   // A save: the format, what makes the world (scenario, seed, size), the tiles above and the whole state, with st.w as null in its place.
   // It shares parts with the state (encode): write it out before the state changes.
   function save(st) {
     const w = st.w,
       state = {};
-    for (const k of Object.keys(st)) state[k] = k === 'w' ? null : st[k];
+    for (const k of Object.keys(st)) if (!(k in DERIVED)) state[k] = k === 'w' ? null : st[k];
     const world = {};
     for (const k of WORLD) if (w[k]) world[k] = encode(w[k]);
     const pack = new Map();
@@ -355,323 +360,13 @@ VB['sim/saves'] = (() => {
       } else if (w[k] && w[k].constructor === a.constructor && w[k].length === a.length) w[k].set(a);
       else w[k] = a;
     }
-    // VB-127: older saves kept the hours spent near each other (st.contacts); it is left out here rather than deleted after, so st keeps
-    // fast properties (VB-205).
-    let enc = data.state;
-    // VB-099: nor the 40-line text log (st.events), which the record replaces.
-    if (enc && ('contacts' in enc || 'events' in enc)) {
-      enc = { ...enc };
-      delete enc.contacts;
-      delete enc.events;
-    }
-    const st = decode(enc, REVIVE);
+    const st = decode(data.state, REVIVE);
     st.w = w;
-    if (!w.fish) initFish(w); // VB-117: older saves have no fish stocks
-    if (!w.forage) initForage(w); // VB-118: nor stocks of wild food
-    // VB-235: older saves have no count of 6-minute steps; their st.t, a float, gives it (st.t is rewritten from it by the next step)
-    if (st.tick === undefined) {
-      st.tick = Math.round(st.t * TICKS);
-    }
-    // VB-244: the page no longer runs a part of a step; a save made in the middle of one goes on from its last whole step
-    // VB-285: and the field that held that part is gone
-    if ('tickPart' in st) {
-      if (st.tickPart) st.t = st.tick / TICKS;
-      delete st.tickPart;
-    }
-    // Older saves mark a house as they mark a field (w.dev 1); a house is 3 now, so that fields wear paths and houses do not (sim/paths).
-    if (w.dev) for (const f of st.farmsteads) w.dev[f.house] = 3; // lint-allow: owner an older save's mark, set as layout sets it
-    rebuildLiving(st);
-    indexEvents(st); // VB-199: older saves kept a copy of each event on its pawn, and no fold
-    trimRoutes(st);
-    if (!st.villageHours) buildHours(st); // VB-286: older saves have no table of walking hours between villages
-    for (const v of st.villages) if (!v.ledger) v.ledger = [];
-    // VB-204: saves before the yearly totals keep their routine entries; new movements of those kinds go to totals.
-    for (const h of [...st.households, ...st.villages]) if (!h.totals) h.totals = [];
-    for (const hh of st.households) if (hh.dissolved && hh.ledger.length) closeLedger(st, hh); // older saves kept them (VB-204)
-    for (const f of st.farmsteads)
-      for (const fd of f.fields)
-        if (fd.tilth === undefined) {
-          fd.tilth = 0;
-          fd.tilthAt = st.t;
-        } // lint-allow: owner VB-717: an older save's fields start at no tilth
-    // VB-159: older format-1 saves predate the cumulative barn-hay loss.
-    for (const hh of st.households) if (hh.haySpoilt === undefined) hh.haySpoilt = 0;
-    for (const hh of st.households)
-      if (hh.clay === undefined) {
-        hh.clay = 0;
-        hh.bogOre = 0;
-      } // VB-359: nor dug loads
-    for (const hh of st.households) if (hh.peat === undefined) hh.peat = 0; // VB-367: nor peat
-    for (const hh of st.households) if (hh.wool === undefined) hh.wool = 0; // VB-144: nor fleeces
-    for (const hh of st.households) if (hh.hides === undefined) hh.hides = 0; // lint-allow: owner VB-424: nor hides
-    for (const hh of st.households)
-      if (hh.rack === undefined) {
-        hh.rack = 0;
-        hh.boat = null;
-      } // VB-300: nor a drying rack nor a boat
-    for (const hh of st.households)
-      if (hh.tar === undefined) {
-        hh.tar = 0; // lint-allow: owner an older save's household, as sim/records makes one
-        hh.tarPit = null; // lint-allow: owner as above: no tar pit (VB-301)
-        if (hh.boat && hh.boat.tarred === undefined) hh.boat.tarred = hh.boat.built; // lint-allow: owner as above: tarred as it was built
-      } // VB-301: nor tar nor a tar pit
-    for (const hh of st.households) if (!hh.fresh) openFresh(hh); // VB-119: nor fresh food
-    for (const hh of st.households)
-      if (hh.flour === undefined) {
-        hh.flour = 0; // lint-allow: owner an older save's household, as sim/records makes one
-        hh.quern = null; // lint-allow: owner as above: it eats its grain unground until it hews a quern (VB-009)
-      } // VB-009: nor flour nor a quern
-    for (const hh of st.households)
-      if (!hh.coldLog) {
-        hh.cold = 0; // lint-allow: owner an older save's household, warm as sim/records makes one
-        hh.coldLog = []; // lint-allow: owner as above
-      } // VB-327: nor the cold
-    for (const hh of st.households)
-      if (!hh.dryLog) {
-        hh.dry = 0; // lint-allow: owner an older save's household, as sim/records makes one
-        hh.dryLog = []; // lint-allow: owner as above
-      } // VB-331: nor the dry days
-    for (const hh of st.households)
-      if (!hh.carts) {
-        hh.carts = [];
-        hh.cartMiss = 0;
-      } // nor carts (sim/carts): older saves' teams drew an unnamed one
-    if (st.player === undefined) st.player = null; // VB-169: older saves have no player
-    if (st.player && st.player.wishes) {
-      // VB-680: the player's wishes (VB-212, VB-274) become its pawn's (pawn.wish, sim/wishes), set as the wish verb sets them
-      for (const [kind, value] of Object.entries(st.player.wishes))
-        if (value !== null && value !== undefined) VB['sim/wishes'].setWish(st, st.player.pawn, kind, value);
-      delete st.player.wishes;
-    }
-    if (st.player && st.player.left === undefined) st.player.left = null; // VB-213
-    if (st.player && st.player.ended === undefined) st.player.ended = null; // VB-1121
-    if (!st.rng.traits) st.rng.traits = makeStream(st.w.seed, 'traits'); // VB-249: nor the stream of the traits' stand-ins
-    // VB-519: nor a culture's values (each starts at its archetype's), nor the twelve traits (those it has kept), nor a child's hungry days
-    if (st.cenv) for (const c of st.cenv.cultures) if (!c.values) c.values = { ...TRAITS.culture.oldNordic };
-    VB['sim/traits'].seedTraits(st); // VB-254: nor the traits themselves (VB-249's diligence kept)
-    if (!st.rng.mishap) st.rng.mishap = makeStream(st.w.seed, 'mishap'); // VB-475: nor the stream of a work leg's mishap
-    VB['sim/skills'].seedSkills(st); // nor a pawn's skill at each type of work
-    // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
-    const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
-    if (st.cenv) for (const c of st.cenv.cultures) c.practices = { ...practices(), ...c.practices }; // VB-314: nor the later ones
-    if (st.cenv) newCustoms(st); // VB-100: nor the custom of the commons
+    for (const k in DERIVED) st[k] = null;
+    for (const k in DERIVED) if (DERIVED[k]) DERIVED[k](st);
     for (const p of st.pawns) if (p.att) VB['culture'].compileLeans(p); // VB-520: compiled from the attitude, as it was saved or made
-    oldGrain(st); // VB-347: nor grain by crop
-    if (!st.plans)
-      seedPlans(st); // VB-258: older saves have no plans
-    else fillPlans(st); // VB-248: nor targets and reservations
-    oldProjects(st); // VB-123: nor project plans
-    if (!st.offers) {
-      st.offers = [];
-      st.offerSeq = 0;
-    } // VB-293: nor marriage offers
-    if (!st.asking || !st.askingBy) VB['sim/wishes'].seedAsking(st); // VB-823: nor the askings' queue (VB-1169: nor its villages')
-    if (!st.courtships) VB['sim/courting'].seedCourtships(st); // VB-036: nor the courting couples
-    // VB-310: nor obligations: a share still owed lay on the sibling (pawn.owed, pawn.owedFrom)
-    for (const p of st.pawns) {
-      if (p.owed > 0 && p.owedFrom !== undefined && p.owedFrom !== null)
-        VB['sim/obligations'].oweShare(st, st.households[p.owedFrom], p.id, p.owed);
-      delete p.owed;
-      delete p.owedFrom;
-    }
-    if (!st.visits) st.visits = []; // VB-289: nor visits planned
-    if (!st.farmDirty) st.farmDirty = new Set(); // VB-442: nor the farms and villages to redraw alone
-    if (!st.villageDirty) st.villageDirty = new Set();
-    for (const o of st.offers)
-      if (o.basis === undefined) {
-        // VB-690: a marriage offer saved before offers had a basis, as the basis `match` (its spokesmen, its terms)
-        const by = (k) => (o.answers.find((a) => a.key === k + 'Side') || o.answers.find((a) => a.key === k)).by;
-        Object.assign(o, { from: by('man'), to: by('woman'), basis: 'match', gives: { man: o.man, home: o.home } });
-        o.wants = { woman: o.woman };
-        delete o.man;
-        delete o.woman;
-        delete o.home;
-      }
-    if (!st.occasions) {
-      st.occasions = [];
-      st.occasionSeq = 0;
-    } // VB-126: nor occasions, nor their stream
-    if (!st.booths) {
-      st.booths = [];
-      st.boothSeq = 0;
-    } // VB-784: a save before booths has none
-    migrateAway(st); // VB-287: nor journeys; VB-783: a save's journeys are stays away
-    if (!st.rng.occasions) st.rng.occasions = makeStream(data.seed, 'occasions');
-    if (!st.finds) {
-      st.finds = new Map();
-      st.rng.prospect = makeStream(data.seed, 'prospect');
-    } // VB-358: nor what the villages have found
-    for (const a of st.agents) if (a.occasion === undefined) a.occasion = null;
-    // VB-326: older saves had one tile of wood a village (v.commonsWood) and a farm (f.woodlot); the village's wood is reckoned now
-    if (!st.rng.forest) st.rng.forest = makeStream(data.seed, 'forest');
-    if (!st.rng.deer) st.rng.deer = makeStream(data.seed, 'deer'); // VB-139: nor roe deer, nor their stream
-    if (!st.rng.plans) st.rng.plans = makeStream(data.seed, 'plans'); // VB-255: nor the heads' choice of projects
-    if (!st.rng.gathering) st.rng.gathering = makeStream(data.seed, 'gathering'); // VB-295: nor the goers' wish to go to the gathering
-    if (!st.rng.fair) st.rng.fair = makeStream(data.seed, 'fair'); // VB-302: nor the fair's order of dealers
-    if (!st.deer) VB['sim/deer'].initDeer(st);
-    // VB-354: an older save held one yearly factor; its seasons are drawn afresh, from the weather's stream
-    if (!Array.isArray(st.weather)) VB['sim/weather'].seedWeather(st, VB['sim/rules'].cal(st.t));
-    if (!st.front || !w.tended) VB['sim/spread'].initFront(st); // VB-091: nor the forest's front, nor the work on tiles
-    for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
-    for (const v of st.villages)
-      if (!v.wood) {
-        delete v.commonsWood;
-        reckonWood(st, v);
-      }
-    for (const f of st.farmsteads) if (f.grade === undefined) f.grade = 'ground'; // VB-332: older saves' houses stand on the ground
-    for (const f of st.farmsteads) for (const fd of f.fields) if (fd.crop === undefined) fd.crop = 'barley'; // VB-346: older saves' fields held barley
-    // VB-350: older saves' fields and villages farmed barley every year
-    for (const x of [...st.farmsteads.map((f) => f.fields), ...st.villages.map((v) => v.commonFields || [])])
-      for (const fd of x) if (fd.rotation === undefined) Object.assign(fd, { rotation: 'every', step: 0 });
-    for (const v of st.villages) if (v.rotation === undefined) v.rotation = 'every';
-    for (const p of st.pawns) if (p.nursling === undefined) p.nursling = null; // VB-632: a mother nursing nurses to her term
-    for (const p of st.pawns) if (p.servedSince === undefined) p.servedSince = p.servant ? st.t : null; // VB-634
-    // VB-703: an older save's pawn held its standing as `prestige`
-    for (const p of st.pawns)
-      if ('prestige' in p) {
-        p.standing = p.prestige;
-        delete p.prestige;
-      }
-    migrateTies(st); // VB-127: older saves' ties go on a scale from now, at most the cap; VB-240: talk's memories go, bands are set
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now
     return st;
   }
-  // VB-783: a save's st.journeys (VB-287) are stays away whose bed is where the leg ends (st.away, sim/away), each indexed by its pawn's
-  // agent.away; a save with neither has none. The store movements of their provisions, kind 'journey', are the pack's, 'away'.
-  function migrateAway(st) {
-    if (st.away) return;
-    st.away = (st.journeys || []).map((j) => ({ ...j, bed: null, roof: 'none' }));
-    st.awaySeq = st.journeySeq || 0;
-    delete st.journeys;
-    delete st.journeySeq;
-    for (const s of st.away) st.agents[s.pawn].away = s.id;
-    for (const hh of st.households) for (const e of hh.ledger || []) if (e.kind === 'journey') e.kind = 'away';
-  }
-  // A save made before a custom (VB-100: the commons) holds fewer customs than DIMS: each culture and settlement gets the archetype's option
-  // of each custom it lacks, and each person an attitude and anchor that prefer it (as seeding would, without its draws).
-  function newCustoms(st) {
-    const C = VB['culture'],
-      base = C.fromArchetype('oldNordic'),
-      n = C.DIMS.length;
-    const grow = (a) => Int8Array.from({ length: n }, (_, k) => (k < a.length ? a[k] : base[k]));
-    for (const c of st.cenv.cultures) if (c.customs.length < n) c.customs = grow(c.customs);
-    for (const s of st.cenv.settlements) if (s.practice.length < n) s.practice = grow(s.practice);
-    const total = C.OFF[n - 1] + C.NOPT[n - 1];
-    const att = (a) => {
-      if (!a || a.length >= total) return a;
-      const out = new Float32Array(total);
-      out.set(a);
-      for (let k = 0; k < n; k++) {
-        if (C.OFF[k] < a.length) continue;
-        for (let j = 0; j < C.NOPT[k]; j++) out[C.OFF[k] + j] = j === base[k] ? 0.6 : 0.4 / (C.NOPT[k] - 1);
-      }
-      return out;
-    };
-    for (const p of st.pawns) {
-      p.att = att(p.att);
-      p.anc = att(p.anc);
-      if (p.interest) p.interest = att(p.interest);
-    }
-  }
-  // ---- saves made before project plans (VB-123; sim/plans makes them now) ----
-  // A save made before project plans held a farm's land project on the farm ({tile, stage, hours}): its household's plan now.
-  function fromFarms(st) {
-    for (const f of st.farmsteads) {
-      const p = f.project,
-        hh = p && f.household !== null ? st.households[f.household] : null,
-        why = p && p.stage === 'meadow' ? 'meadow' : 'field';
-      const step = (kind, hours) => ({ kind, place: p.tile, hours, stake: why });
-      if (hh && !hh.dissolved)
-        Plans.makeProject(st, 'household', hh.id, {
-          what: why,
-          hold:
-            why === 'field'
-              ? VB['sim/fieldplans'].newFieldSeed(st, hh)
-              : { [VB['sim/stores'].grainGood('barley')]: seedPer(st, hh) },
-          steps: p.stage === 'clear' ? [step('clear', p.hours), step('break', BREAK_HOURS)] : [step(p.stage, p.hours)],
-        });
-      if ('project' in f) delete f.project;
-    }
-  }
-  // A save made before plot plans (VB-123) kept every plot in village.plots: one under way becomes its village's project plan (its jobs
-  // pointed at it), one built the village's record of it (sim/expansion).
-  function fromPlots(st) {
-    const HOURS = { foundation: 30, walls: 60, roof: 30 };
-    for (const v of st.villages) {
-      if (!(v.plots || []).some((p) => 'done' in p)) continue;
-      const old = v.plots;
-      v.plots = [];
-      for (const p of old) {
-        const { id, intended, holder, started, farmstead } = p;
-        const tiles = p.tiles.map((t) => ({ tile: t.tile, kind: t.kind }));
-        if (p.built) {
-          v.plots.push({ id, village: v.id, intended, holder, started, farmstead, tiles });
-          continue;
-        }
-        const k = p.cottage || { i: 0, done: 0 },
-          stage = (kind, i) => ({
-            kind,
-            place: p.tiles[0].tile,
-            hours: HOURS[kind],
-            done: i < k.i ? HOURS[kind] : i === k.i ? k.done : 0,
-            ...(kind === 'walls' ? { wood: p.wood || 0 } : {}),
-          });
-        const plan = Plans.makeProject(st, 'village', v.id, {
-          what: 'plot',
-          plot: p.id,
-          intended: p.intended,
-          to: p.done ? p.holder : null,
-          hours: p.hours,
-          started: p.started,
-          steps: [{ kind: 'clear', places: p.tiles }, ...['foundation', 'walls', 'roof'].map(stage)],
-        });
-        plan.open = p.done ? Math.min(3, 1 + k.i) : 0;
-        if (k.i >= 3) plan.steps[3].done = HOURS.roof;
-        for (const j of st.jobs.values()) {
-          if (j.plot === p) j.plot = plan;
-          if (j.timberFor === p) j.timberFor = stepOf(plan, 'walls');
-        }
-      }
-    }
-  }
-  // Both, at every load (a save made since has none of either).
-  // A save made before restoration plans (VB-123) held a claim on an empty farm on the farm ({by, since, hours, done}): its claimant's plan now.
-  function fromClaims(st) {
-    for (const f of st.farmsteads) {
-      const c = f.claim;
-      if (c)
-        Plans.makeProject(st, 'pawn', c.by, {
-          what: 'restore',
-          farm: f.id,
-          since: c.since,
-          steps: [{ kind: 'restore', place: f.house, hours: c.hours, done: c.done, stake: 'farm' }],
-        });
-      if ('claim' in f) delete f.claim;
-    }
-  }
-  const oldProjects = (st) => {
-    fromFarms(st);
-    fromPlots(st);
-    fromClaims(st);
-  };
-  // ---- saves made before grain was held by crop (VB-347): a household's and a village's grain was one number, and a plan reserved it as
-  // 'grain'; it was all barley, the one crop there was ----
-  function oldGrain(st) {
-    for (const h of [...st.households, ...st.villages]) if (typeof h.grain === 'number') h.grain = { barley: h.grain };
-    if (!st.plans) return;
-    const plans = [
-      ...st.plans.households.values(),
-      ...st.plans.villages.values(),
-      ...Object.values(st.plans.projects || {}).flatMap((map) => [...map.values()].flat()),
-    ];
-    const to = VB['sim/stores'].grainGood('barley');
-    for (const plan of plans)
-      if (plan.reasons && 'grain' in plan.reasons) {
-        plan.reserved[to] = plan.reserved.grain;
-        plan.reasons[to] = plan.reasons.grain;
-        delete plan.reserved.grain;
-        delete plan.reasons.grain;
-      }
-  }
-  return { encode, decode, save, load, FORMAT, READS, oldProjects };
+  return { encode, decode, save, load, FORMAT, READS, DERIVED };
 })();

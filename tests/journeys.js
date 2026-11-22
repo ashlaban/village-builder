@@ -3,8 +3,8 @@
 // a walk to the new door, with no journey. On tiny states, with the page closed (Rules for cost, 7: the walk is the simulation's).
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), probe = require('./lib/probe.js');
-const { checkState } = require('./lib/invariants.js'), { canon, sha } = require('./lib/canon.js');
-const hash = (st) => { const { w, ...rest } = st; return sha(canon(rest)); };
+const { checkState } = require('./lib/invariants.js'), { canon, sha, kept } = require('./lib/canon.js');
+const hash = (st) => sha(canon(kept(st)));
 const { moveTo: move, refreshRoles } = VB['sim/heirs'], moveTo = (st, id, hh) => { move(st, id, hh); refreshRoles(st); }, { killPawn } = VB['sim/lifecycle'], { feedHousehold } = VB['sim/hunger'];
 const { homeSpot, tileAt } = VB['sim/agents'], Stores = VB['sim/stores'];
 const { DAY, WORK, TRAVEL } = VB['sim/rules'];

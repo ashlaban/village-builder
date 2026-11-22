@@ -147,11 +147,6 @@ check(D.stock(run, 0) < run.deer.cap[0] - kills + 1, `${kills} kills, ${D.stock(
 check(bad.length === 0, `invariants: ${bad.slice(0, 3).join('; ')}`);
 const back = Sim.load(run.w, JSON.parse(JSON.stringify(Sim.save(run))));
 check(JSON.stringify(back.deer) === JSON.stringify(run.deer) && back.rng.deer && back.rng.deer.s === run.rng.deer.s, 'a save keeps the deer and their stream');
-// a save made before the deer: every region at its capacity
-const old = JSON.parse(JSON.stringify(Sim.save(run)));
-delete old.state.deer;
-const fresh = Sim.load(run.w, old);
-check(fresh.deer && near(fresh.deer.head[0], fresh.deer.cap[0]) && fresh.deer.cap[0] > 0, 'an older save gets its deer');
 
 if (failed) { console.error(`deer: ${failed} failed`); process.exit(1); }
 console.log(`deer ok: ${edges.length} edges, capacity ${K.toFixed(1)}; ${hunters.size} hunters and ${kills} kills in a month of autumn, ${D.stock(run, 0).toFixed(1)} deer left`);

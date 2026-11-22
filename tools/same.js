@@ -5,6 +5,7 @@
 //   defaults: base HEAD (so: the uncommitted work against the last commit), founders and heirs, seeds 7 and 42, tiny, 2 years
 //   --base REF   the commit the work started from (`git merge-base HEAD origin/main`), a branch or a tag
 //   --renamed OLD=NEW[,..]  a field renamed since the base (VB-703): the base's leaves under `.OLD` are read as `.NEW`, and the line says so
+//   the derived fields a save leaves out (sim/saves DERIVED) are left out of the comparison
 //   --keep DIR   keep both trees' leaves under DIR (DIR/base, DIR/work: one file an entry and key, one line a leaf)
 //   prints `same: ...` and exits 0, or each differing entry and key with its first differing leaves (`pawns[41].household: 7 → 9`)
 //   and exits 1. A run takes about as long as `tools/sim.js` at the same scenario, map and years, the runs side by side.
@@ -82,6 +83,10 @@ async function main(argv) {
       jobs.push([t, path.join(out, d), scenario, String(seed), map, String(years)]);
     const width = Math.max(1, os.availableParallelism?.() || os.cpus().length);
     await Promise.all(Array.from({ length: width }, async () => { while (jobs.length) await run(jobs.shift()); }));
+    // the derived fields a save leaves out (sim/saves DERIVED, VB-239) are not state: they are left out of both trees' comparison
+    const derived = new Set(Object.keys(require(path.join(root, 'src', 'load.js'))['sim/saves'].DERIVED || {}));
+    for (const d of ['base', 'work']) for (const e of fs.existsSync(path.join(out, d)) ? fs.readdirSync(path.join(out, d)) : [])
+      for (const k of derived) fs.rmSync(path.join(out, d, e, k + '.txt'), { force: true });
     diffs = compare(path.join(out, 'base'), path.join(out, 'work'), 5, renamed);
   } finally {
     git('worktree', 'remove', '--force', tree);

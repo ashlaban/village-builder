@@ -51,20 +51,6 @@ VB['sim/relations'] = (() => {
   function dailyTies(st) {
     Ties.dailyTies(st, grow, touch);
   }
-  function migrateTies(st) {
-    Ties.migrateTies(st);
-    const old = st.pawns.filter((p) => p.rel && !p.bands);
-    for (const p of old) {
-      p.bands = new Map();
-      for (const [j, r] of p.rel) if (!sift(r, (k) => M[k])) p.rel.delete(j);
-    }
-    for (const p of old)
-      if (p.alive)
-        for (const j of new Set([...p.ties.keys(), ...p.rel.keys()])) {
-          const band = st.pawns[j].alive ? bandOf(0, opinionOf(st, p.id, j)) : 0;
-          if (band) p.bands.set(j, band);
-        }
-  }
   // ---- compatibility (chemistry, VB-520; design.md, Chemistry): a function of the two pawns, nothing stored for the pair ----
   // The seeded personal term is fixed for a pair, from the world seed and the two ids, so it needs no memory.
   const mix = (h) => {
@@ -643,7 +629,6 @@ VB['sim/relations'] = (() => {
     initRelations,
     workedTogether,
     dailyTies,
-    migrateTies,
     compat,
     bond,
     bondWord,

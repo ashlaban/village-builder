@@ -6,7 +6,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], L = VB['sim/lifecycle'], N = VB['sim/notable'];
 const { opinionOf } = VB['sim/relations'];
-const { canon } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
+const { canon, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const { island, scenario } = require('./lib/probe.js'), SEED = 9;
 // every chance comes up (sim/rng's fix), for the round only
@@ -152,7 +152,7 @@ const round = (st) => roll(st, () => Sim.movingRound(st));
   const back = Sim.load(island(SEED), JSON.parse(text));
   assert.ok(back.offers.some((x) => x.id === o.id && x.fancy === o.fancy), 'the open offer is saved, with its fancy');
   for (const s of [st, back]) { Sim.advance(s, 3); round(s); Sim.advance(s, 2 * Sim.DAY); }
-  const bad = [...new Set([...Object.keys(st), ...Object.keys(back)])].filter((k) => k !== 'w' && canon(st[k]) !== canon(back[k]));
+  const bad = [...new Set([...Object.keys(kept(st)), ...Object.keys(kept(back))])].filter((k) => k !== 'w' && canon(st[k]) !== canon(back[k]));
   assert.deepStrictEqual(bad, [], 'the loaded run plays as the unbroken one');
   assert.strictEqual(R.spouseOf(back, man), woman);
 }

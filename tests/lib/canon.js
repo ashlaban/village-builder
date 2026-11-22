@@ -28,4 +28,11 @@ function leaves(v, where, seen, lines) {
   return lines;
 }
 
-module.exports = { sha, canon, leaves };
+// st without its world and the derived fields a save leaves out (sim/saves DERIVED, VB-239; rebuilt on load and checked against their
+// sources by the invariants): what a saved and a loaded run compare by
+function kept(st) {
+  const D = (globalThis.VB && globalThis.VB['sim/saves'] && globalThis.VB['sim/saves'].DERIVED) || {}, out = {};
+  for (const k of Object.keys(st)) if (k !== 'w' && !(k in D)) out[k] = st[k];
+  return out;
+}
+module.exports = { sha, canon, leaves, kept };

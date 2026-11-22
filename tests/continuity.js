@@ -1,6 +1,6 @@
 // Compare current runs to each other, never to an approved historical fingerprint.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
-const { world, state } = require('./lib/probe.js'), { canon } = require('./lib/canon.js');
+const { world, state } = require('./lib/probe.js'), { canon, kept } = require('./lib/canon.js');
 const { checkState } = require('./lib/invariants.js');
 function plain(value, seen = new Set()) {
   assert.notStrictEqual(typeof value, 'function', 'simulation state must contain no functions');
@@ -18,7 +18,7 @@ assert.strictEqual(canon(a), canon(b), 'same seed and inputs repeat exactly');
 Sim.advance(a, 0.7); // mid-hour caches must also survive JSON
 const loaded = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(a))));
 for (const s of [a, loaded]) Sim.advance(s, Sim.DAY);
-for (const k of new Set([...Object.keys(a), ...Object.keys(loaded)])) {
+for (const k of new Set([...Object.keys(kept(a)), ...Object.keys(kept(loaded))])) {
   if (k !== 'w') assert.strictEqual(canon(a[k]), canon(loaded[k]), `continued state ${k}`);
 }
 for (const k of ['trees', 'treesMax', 'stones', 'biome', 'dev', 'wear', 'worn', 'tr', 'tg', 'tb'])

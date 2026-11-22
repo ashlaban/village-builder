@@ -125,7 +125,7 @@ const grid = (COLS, ROWS) => {
   check(f[1] < f[0] && f[1] > 1.5 * m[0], `trodden forest is still slow (${f[1].toFixed(3)})`);
   check(Math.abs(f[2] - (1 + (T[B.FOREST] - 1) * (1 - PATHS.clear[2])) / PATHS.speed[2]) < 1e-9, 'a worn tile costs (1 + (terrain - 1)(1 - clear)) / speed');
 }
-// VB-198: use a tiny bound to exercise real hits, searches, saves and legacy trimming without a large fixture.
+// VB-198: use a tiny bound to exercise real hits, searches, and saves without a large fixture.
 {
   const assert = require('assert'), { ROUTE } = VB['sim/rules'];
   const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
@@ -159,12 +159,6 @@ const grid = (COLS, ROWS) => {
     assert.deepStrictEqual([...back.pathCache], [...st.pathCache], 'save/load preserves paths and their order');
     route(st, 8, 9); route(back, 8, 9);
     assert.deepStrictEqual([...back.pathCache], [...st.pathCache], 'the next eviction is identical after a save/load');
-    // A pre-bound save's Map order is the only recency information available: retain its newest entries.
-    st.pathCache.set(key(10, 11), [10, 11]);
-    assert(checkState(st).some((m) => m.includes('pathCache')), 'an oversized legacy cache violates the bound');
-    const legacy = load();
-    assert.deepStrictEqual(keys(legacy), keys(st).slice(-ROUTE.cacheMax), 'loading trims a legacy cache oldest first');
-    assert.deepStrictEqual(checkState(legacy), [], 'the bound holds immediately after loading a legacy save');
     // A failed reverse lookup must stay a counted search, rather than reversing a straight-walk fallback.
     st.pathCache.clear(); w.water.fill(1); w.water[0] = 0;
     assert.deepStrictEqual(route(st, 0, 15), [15]);

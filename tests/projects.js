@@ -105,24 +105,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   clean(st, 'stake lost');
   out.push('a right lost drops the plan; a store still covering it does not');
 }
-{ // a save made before project plans: the farm's land project becomes its household's plan, from its stage on
-  const st = Sim.seed(world7, 7, 'founders');
-  Sim.advance(st, 2 * DAY);
-  const hh = st.households.find((h) => VB['sim/projects'].ownOf(st, h.id));
-  const old = VB['sim/projects'].ownOf(st, hh.id), was = JSON.stringify(old.steps.slice(old.open));
-  for (const x of st.farmsteads) { // as such a save had it
-    const o = x.household === null ? null : VB['sim/projects'].openOf(st, x.household);
-    x.project = o ? { tile: o.place, stage: o.kind, hours: o.hours } : null;
-  }
-  delete st.plans.projects; delete st.plans.projectSeq;
-  Plans.fillPlans(st); VB['sim/saves'].oldProjects(st); // as a load does
-  assert.strictEqual(JSON.stringify(VB['sim/projects'].ownOf(st, hh.id).steps), was, 'the plan made from the farm\'s project has its steps');
-  assert(st.farmsteads.every((x) => !('project' in x)), 'the farms keep no project');
-  clean(st, 'loaded');
-  out.push('a save before project plans loads');
-}
-{ // a plot: one project plan of its village, its tiles cleared side by side in its first step, then the cottage's stages; and a save made
-  // before plot plans kept it in village.plots, as it loads
+{ // a plot: one project plan of its village, its tiles cleared side by side in its first step, then the cottage's stages
   const X = VB['sim/expansion'], st = Sim.seed(world7, 7, 'heirs'), v = st.villages[0];
   st.demand = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)).map((p) => p.id).slice(0, 2);
   for (const f of st.farmsteads) if (f.household === null) f.state = 'ruin';
@@ -133,26 +116,6 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   assert.strictEqual(X.plotJobs(st).filter((j) => j[3].plot === plan).length, 2, 'one task a place, side by side');
   const tr = plan.steps[0].places[0]; X.finishStep(st, { plot: plan, tr });
   clean(st, 'plot under way');
-  const was = JSON.stringify({ open: plan.open, to: plan.to, steps: plan.steps, hours: plan.hours });
-  // as such a save had it
-  const old = { id: plan.plot, village: v.id, intended: plan.intended, hours: plan.hours, done: false, holder: null, started: plan.started,
-    tiles: plan.steps[0].places, wood: plan.steps[2].wood };
-  v.plots = [old];
-  delete st.plans.projects; delete st.plans.projectSeq;
-  Plans.fillPlans(st); VB['sim/saves'].oldProjects(st); // as a load does
-  const back = X.livePlots(st, v)[0];
-  assert.strictEqual(JSON.stringify({ open: back.open, to: back.to, steps: back.steps, hours: back.hours }), was, 'the plot loads as its plan');
-  assert(!v.plots.length && back.plot === 0, 'and leaves no plot under way in village.plots');
-  clean(st, 'plot loaded');
-  out.push('a plot is one plan of its village, its tiles cleared side by side; a save before plot plans loads');
-}
-{ // a claim on an empty farm: its claimant's project plan (one step, restore, under the claim 'farm'); a save made before kept it on the farm
-  const FC = VB['sim/farmclaims'], st = Sim.seed(world7, 7, 'heirs'), f = st.farmsteads[0], by = st.households[1].holder;
-  f.claim = { by, since: st.t, hours: 36, done: 20 };
-  VB['sim/saves'].oldProjects(st); // as a load does
-  const c = FC.claimOn(st, f), plan = VB['sim/projects'].projectsOf(st, 'pawn', by)[0];
-  assert(c && c.by === by && c.hours === 36 && c.done === 20 && !('claim' in f), 'the claim loads as its claimant\'s plan');
-  assert(plan.what === 'restore' && plan.farm === f.id && plan.steps.length === 1 && plan.steps[0].stake === 'farm', 'one step: the restoration');
-  out.push('a claim on an empty farm is its claimant\'s plan');
+  out.push('a plot is one plan of its village, its tiles cleared side by side');
 }
 console.log(`projects ok: ${out.join('; ')}`);
