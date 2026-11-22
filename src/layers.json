@@ -15,6 +15,7 @@
       "gen/bake",
       "gen",
       "sim/customs",
+      "sim/norms",
       "sim/rules",
       "sim/crops",
       "sim/roles",
@@ -89,6 +90,7 @@
       "sim/projectplans"
     ],
     "social": [
+      "sim/attitudes",
       "culture",
       "sim/encounters",
       "sim/relations",

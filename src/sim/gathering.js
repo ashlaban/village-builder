@@ -32,7 +32,7 @@ VB['sim/gathering'] = (() => {
   const { kinHouseholds } = VB['sim/exchange'];
   const Green = VB['sim/green'];
   const { issue, register } = VB['sim/commands'];
-  const Culture = VB['culture'];
+  const Customs = VB['sim/customs'];
   const G = GATHERING;
   const choiceOf = (st, vid) => st.villages[vid].gathering || null;
   const farmsOf = (st, v) => Green.houses(st, v).length; // occupied farms: a household each
@@ -136,7 +136,7 @@ VB['sim/gathering'] = (() => {
       prefs = rank(st, v, people).map((x) => x[1]);
       hosting = prefs[0] === v.id;
     } else {
-      by = Culture.practiceOf(st.cenv.cultures[s.culture], 'noDecision');
+      by = Customs.practiceOf(st.cenv.cultures[s.culture], 'noDecision');
       const g = choiceOf(st, v.id);
       if (by === 'asLastYear' && g) {
         prefs = g.prefs.filter((h) => withinDay(st, v.id, h) && canHost(st, st.villages[h]));

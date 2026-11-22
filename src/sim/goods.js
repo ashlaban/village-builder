@@ -3,7 +3,7 @@ VB['sim/goods'] = (() => {
   const { FOODS, HERD, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
   const Rules = VB['sim/registry'],
-    Culture = VB['culture'];
+    Norms = VB['sim/norms'];
   const GRAIN = 'grain',
     CROP_LIST = Object.freeze(Object.keys(CROPS).filter((c) => CROPS[c].seed > 0)),
     CROP_GOOD = {},
@@ -68,7 +68,7 @@ VB['sim/goods'] = (() => {
     return k.keepsDays ? { keepsDays: k.keepsDays } : { tiers: true };
   };
   // ---- goods (VB-299; target-v2 4.3; design.md, The fair): a registry of the goods that change hands, declared at load like a rule and
-  // closed when the rules registry seals; code, never saved state. A good: id ('grain', 'cattle/cow'), kind and subtype, class (Culture.CLASSES:
+  // closed when the rules registry seals; code, never saved state. A good: id ('grain', 'cattle/cow'), kind and subtype, class (Norms.CLASSES:
   // which exchanges custom calls proper), unit (what is counted: a ration, a barrel, a head), quantum (units that change hands at once) and
   // lump (its name: a sack, a lot), rations (food a unit gives; 0 for what is not eaten), source (its source in the pot, as FOODS; null),
   // perish ({keepsDays}: a lot spoils by date; {tiers: true}: a share of the stock is lost by tiers; null: it does not perish in store; an
@@ -82,14 +82,14 @@ VB['sim/goods'] = (() => {
       typeof spec.id === 'string' &&
       !GOODS.has(spec.id) &&
       typeof spec.kind === 'string' &&
-      Culture.CLASSES.includes(spec.class) &&
+      Norms.CLASSES.includes(spec.class) &&
       typeof spec.unit === 'string' &&
       typeof spec.lump === 'string' &&
       spec.quantum > 0 &&
       spec.rations >= 0 &&
       typeof spec.keeping === 'boolean' &&
       (spec.perish === null || spec.perish.keepsDays > 0 || spec.perish.tiers === true) &&
-      Culture.norm('worth', spec.id) > 0;
+      Norms.norm('worth', spec.id) > 0;
     if (!ok) throw new Error('stores: invalid or duplicate good ' + (spec && spec.id));
     GOODS.set(
       spec.id,
@@ -176,22 +176,22 @@ VB['sim/goods'] = (() => {
     perish: null,
     keeping: true,
   });
-  // Culture's two norms on goods as rules, so the registry lists and explains them (Culture.norm is the table; norms learn in slice 8):
-  // worth, rations a quantum, with the context {good}; proper, the index in Culture.PROPER of what custom calls giving a good of class `from`
+  // The two norms on goods (sim/norms) as rules, so the registry lists and explains them (Norms.norm is the table; norms learn in slice 8):
+  // worth, rations a quantum, with the context {good}; proper, the index in Norms.PROPER of what custom calls giving a good of class `from`
   // for one of class `to`, with the context {from, to, days} (days: the giving side's food, in days of its need).
   Rules.declare({
     id: 'worth',
     owner: 'culture',
     combine: 'sum',
-    base: (st, c) => Culture.norm('worth', c.good.id),
+    base: (st, c) => Norms.norm('worth', c.good.id),
     clamp: [0, 1e9],
   });
   Rules.declare({
     id: 'proper',
     owner: 'culture',
     combine: 'sum',
-    base: (st, c) => Culture.PROPER.indexOf(Culture.norm('proper', c.from, c.to, c.days)),
-    clamp: [0, Culture.PROPER.length - 1],
+    base: (st, c) => Norms.PROPER.indexOf(Norms.norm('proper', c.from, c.to, c.days)),
+    clamp: [0, Norms.PROPER.length - 1],
   });
   return {
     GOODS,

@@ -96,7 +96,7 @@ VB['sim/ties'] = (() => {
     return w === undefined ? 0 : w * scaleOf(st, p);
   }
   // A pawn's ties are stored on its own decay scale, so no step decays them (Rules for cost, 3): the tie now is the stored weight halved each
-  // year since pawn.tieT (tieOf; Culture.dailyStep divides by their sum, so the scale cancels there), put back on today's scale every
+  // year since pawn.tieT (tieOf; Attitudes.dailyStep divides by their sum, so the scale cancels there), put back on today's scale every
   // TIES.renorm years, on a day spread by the pawn's id.
   // @state pawn.ties: Map of other pawn id to a's familiarity with it, stored on a's scale (tieOf); at most TIES.cap, the strongest, kin
   //   always kept. pawn.tieT: game hour from which they halve each year. pawn.homeHours: the waking hours (the talk hours) the pawn has spent

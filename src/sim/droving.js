@@ -90,7 +90,7 @@ VB['sim/droving'] = (() => {
   }
 
   // Animals leave a household in shares (VB-140; design.md, Quanta and worth): a cow, an ox, a heifer, a steer or a ewe, by their customary worth
-  // (Culture.norm). The old household is left a cow and its winter's hay (what the herd that stays eats over the stall period); the hay it
+  // (Norms.norm). The old household is left a cow and its winter's hay (what the herd that stays eats over the stall period); the hay it
   // holds above that goes with the animal, up to the animal's own winter need, left lying in its barn for the new household to fetch.
   const cowsOf = (st, hh) =>
     herdsOf(st, hh).reduce((n, hd) => n + (hd.head ? hd.head.filter((h) => h.kind === 'cow').length : 0), 0);
@@ -133,7 +133,7 @@ VB['sim/droving'] = (() => {
     let paid = 0;
     if (!to || to.dissolved || to === from) return 0;
     for (const kind of kinds) {
-      const worth = VB['culture'].norm('worth', kind === 'ewe' ? 'sheep' : 'cattle/' + kind); // the one table of customary worth (VB-299)
+      const worth = VB['sim/norms'].norm('worth', kind === 'ewe' ? 'sheep' : 'cattle/' + kind); // the one table of customary worth (VB-299)
       while (due - paid >= worth && giveAnimal(st, from, to, kind, led)) paid += worth;
     }
     return paid;

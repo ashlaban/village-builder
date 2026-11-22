@@ -410,11 +410,11 @@ function yearAhead(r) {
 }
 // What is unusual in the stores (the scenario's) and in the customs: each village's practice where it is not the old Nordic one.
 function unusual(r) {
-  const base = Culture.ARCHETYPES.oldNordic,
+  const base = Customs.ARCHETYPES.oldNordic,
     groups = new Map();
   for (const v of st.villages) {
     const p = Sim.practice(st, v.id),
-      odd = Culture.DIMS.filter((d) => base[d.key] && p[d.key] !== base[d.key])
+      odd = Customs.DIMS.filter((d) => base[d.key] && p[d.key] !== base[d.key])
         .map((d) => `${d.label.toLowerCase()}: ${d.opts.find((o) => o[0] === p[d.key])[1].toLowerCase()}`)
         .join('; ');
     if (!groups.has(odd)) groups.set(odd, []);

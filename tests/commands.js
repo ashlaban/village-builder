@@ -129,7 +129,7 @@ assert.strictEqual(snap(), before2, 'refused walk, home and idle commands change
 const hw = island(7, ROOMY);
 const st2 = Sim.seed(hw, 7, 'heirs'); Sim.advance(st2, 2 * Sim.DAY);
 const snap2 = () => { const { w, ...rest } = st2; return canon(rest); };
-const C = VB.culture, s0 = st2.cenv.settlements[0], d0 = C.IDX.voice, now = s0.practice[d0], other = (now + 1) % C.NOPT[d0];
+const C = VB.culture, Customs = VB['sim/customs'], s0 = st2.cenv.settlements[0], d0 = Customs.IDX.voice, now = s0.practice[d0], other = (now + 1) % Customs.NOPT[d0];
 assert.strictEqual(issue(st2, { actor: { settlement: 0 }, verb: 'decide', args: { dim: d0, option: other }, source: 'meeting' }), true);
 assert.strictEqual(s0.practice[d0], other);
 const holder = st2.households.find((h) => !h.dissolved && h.holder !== null && VB['sim/heirranking'].heirRanking(st2, h).length);
@@ -282,7 +282,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   // each on a world of its own: a and b are live together, and a world's fish stocks (w.fish, w.fishDay) belong to one run
   const land = () => island(7, ROOMY);
   const make = () => { const s = Sim.seed(land(), 7, 'heirs'); Sim.advance(s, 2 * Sim.DAY); return s; };
-  const a = make(), b = make(), id = a.pawns.findIndex((p) => p.died === null && p.age >= 18), dim = d0, opt = (a.cenv.settlements[0].practice[dim] + 1) % C.NOPT[dim];
+  const a = make(), b = make(), id = a.pawns.findIndex((p) => p.died === null && p.age >= 18), dim = d0, opt = (a.cenv.settlements[0].practice[dim] + 1) % Customs.NOPT[dim];
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), 'the pawn argues no cause', 'dropCause is refused with no cause');
   Sim.inhabit(a, id); assert.strictEqual(Sim.queue(a, { actor: id, verb: 'argue', args: { dim, option: opt } }), true);
   Sim.advance(a, 0.2);
@@ -293,7 +293,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   Sim.uninhabit(a); C.advocate(b.pawns[id], dim, opt, b.cenv.t + C.P.causeEvery, b.cenv.t, true); // as a natural cause, the same slot and the same step
   b.pawns[id].advocate.until = a.pawns[id].advocate.until;
   Sim.advance(a, 5 * Sim.DAY); Sim.advance(b, 5 * Sim.DAY + 0.2);
-  const o = C.OFF[dim] + opt, pa = a.pawns[id], pb = b.pawns[id];
+  const o = Customs.OFF[dim] + opt, pa = a.pawns[id], pb = b.pawns[id];
   assert.ok(Math.abs(pa.att[o] - pb.att[o]) < 0.05, 'the player\'s cause pulls as a natural one does');
   pa.causeSince -= 2 * C.P.causeGrace; // past its first season, so that the drop starts the wait (VB-1103)
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), true);

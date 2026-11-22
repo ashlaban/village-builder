@@ -249,7 +249,7 @@ function showPawn(id) {
       p.stake
         ? `Share in hand: ${p.stake} rations${Sim.shareOwed(st, p.id) ? `, ${Sim.shareOwed(st, p.id)} still owed` : ''}`
         : p.advocate
-          ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`
+          ? `Argues for: ${Customs.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`
           : '',
       marryLine,
       craftsLine(id),

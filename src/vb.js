@@ -49,7 +49,7 @@ VB.COUNTERS = {
   walkPoint: 'Path points passed, their tiles trodden as a walk ends or is cut (sim/legs treadTo; VB-205, VB-473)',
   crowdScan: 'Passes over the farms to find the households near a house, at a membership change (VB-766)',
   walkPlace: 'Places worked out along a walk (placeOf of a walking pawn: talk, nearness, company, a cut; VB-473)',
-  walkDaily: 'Pawn records walked by dailyLife and Culture.dailyStep',
+  walkDaily: 'Pawn records walked by dailyLife and Attitudes.dailyStep',
   walkTies:
     "Ties walked to put a pawn's ties back on today's scale, or to make room under the cap (sim/relations, VB-127)",
   tiePairs:

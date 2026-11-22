@@ -244,7 +244,7 @@ console.log('skip ok: it ends by the eve of the moving round; a skipped run is t
 // A cause the played pawn takes up on its own (the culture's natural draw, forced) stops the skip, and the Agenda may lay it down in its
 // first season with no wait (VB-1103); after that season, laying it down starts the wait as before.
 {
-  const C = VB['culture'], { issue } = VB['sim/commands'];
+  const C = VB['culture'], Customs = VB['sim/customs'], { issue } = VB['sim/commands'];
   const st = make();
   Sim.inhabit(st, HOLDER);
   while (st.t < (2 * SEASON_DAYS + 9) * DAY) Sim.advance(st, 6); // to the day before the meeting, with nothing forced
@@ -259,7 +259,7 @@ console.log('skip ok: it ends by the eve of the moving round; a skipped run is t
   const p = st.pawns[HOLDER];
   assert.ok(p.advocate && p.advocate.natural, 'a natural cause');
   delete st.rng.culture.fix;
-  const dim = p.advocate.dim, other = (p.advocate.opt + 1) % C.NOPT[dim], args = { dim, option: other };
+  const dim = p.advocate.dim, other = (p.advocate.opt + 1) % Customs.NOPT[dim], args = { dim, option: other };
   assert.ok(/more before a new one/.test(issue(st, { actor: HOLDER, verb: 'argue', args, source: 'player' })), 'held: the wait');
   assert.strictEqual(issue(st, { actor: HOLDER, verb: 'dropCause', source: 'player' }), true);
   assert.strictEqual(p.causeSince, null, 'laid down in its season: no wait');
@@ -273,10 +273,10 @@ console.log('skip ok: it ends by the eve of the moving round; a skipped run is t
 
 // VB-1112: a cause run past P.causeEvery gives one event with the support it had, stops the skip of its pawn, and is kept as lastCause.
 {
-  const C = VB['culture'], { issue } = VB['sim/commands'];
+  const C = VB['culture'], Customs = VB['sim/customs'], { issue } = VB['sim/commands'];
   const st = make();
   Sim.inhabit(st, HOLDER);
-  const p = st.pawns[HOLDER], dim = 0, opt = (st.cenv.settlements[0].practice[dim] + 1) % C.NOPT[dim];
+  const p = st.pawns[HOLDER], dim = 0, opt = (st.cenv.settlements[0].practice[dim] + 1) % Customs.NOPT[dim];
   assert.strictEqual(issue(st, { actor: HOLDER, verb: 'argue', args: { dim, option: opt }, source: 'player' }), true);
   // its term cut to a year and a half, so that it lapses at the second meeting, not the sixth (VB-862: the run took 6 of the script's 9 s)
   p.advocate.until = st.cenv.t + 1.5;

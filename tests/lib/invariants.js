@@ -866,7 +866,7 @@ function checkState(st) {
     if (!Array.isArray(f) || !f.length || new Set(f).size !== f.length ||
       !f.every((g) => gens.includes(g))) bad.push(`cultures[${c.id}]: namePrefs ${JSON.stringify(c.namePrefs)}`);
     // VB-257: the culture's practices that are not customs, each one of its options
-    const P = globalThis.VB.culture.PRACTICES;
+    const P = globalThis.VB['sim/customs'].PRACTICES;
     for (const k of Object.keys(P)) if (!c.practices ||
       !P[k].opts.some((o) => o[0] === c.practices[k])) bad.push(`cultures[${c.id}]: practice ${k} is ${c.practices && c.practices[k]}`);
   }
@@ -892,15 +892,15 @@ function checkState(st) {
       if (p.nursingUntil === null || st.t - p.nursingUntil > 2 * LOADED['sim/rules'].DAY) bad.push(`pawns[${p.id}]: nursling ${p.nursling} but nursingUntil ${p.nursingUntil}`);
     }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
-    // VB-520: a pawn with an attitude leans, a byte a custom, to the option it favours most (culture compiles it where it writes att)
+    // VB-520: a pawn with an attitude leans, a byte a custom, to the option it favours most (sim/attitudes compiles it where it writes att)
     if (p.att) {
-      const C = globalThis.VB.culture;
-      if (!(p.leans instanceof Uint8Array) || p.leans.length !== C.DIMS.length) bad.push(`pawns[${p.id}]: leans ${p.leans}`);
-      else for (let d = 0; d < C.DIMS.length; d++) {
-        const o = C.OFF[d], top = p.att[o + p.leans[d]];
+      const C = globalThis.VB.culture, Customs = globalThis.VB['sim/customs'];
+      if (!(p.leans instanceof Uint8Array) || p.leans.length !== Customs.DIMS.length) bad.push(`pawns[${p.id}]: leans ${p.leans}`);
+      else for (let d = 0; d < Customs.DIMS.length; d++) {
+        const o = Customs.OFF[d], top = p.att[o + p.leans[d]];
         let most = -Infinity;
-        for (let j = 0; j < C.NOPT[d]; j++) most = Math.max(most, p.att[o + j]);
-        if (p.leans[d] >= C.NOPT[d] || top !== most) { bad.push(`pawns[${p.id}]: leans ${p.leans[d]} on custom ${d}, not its strongest`); break; }
+        for (let j = 0; j < Customs.NOPT[d]; j++) most = Math.max(most, p.att[o + j]);
+        if (p.leans[d] >= Customs.NOPT[d] || top !== most) { bad.push(`pawns[${p.id}]: leans ${p.leans[d]} on custom ${d}, not its strongest`); break; }
       }
     }
     if (p.mods !== undefined) checkMods(st, p, bad);

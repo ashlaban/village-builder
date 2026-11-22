@@ -4,7 +4,7 @@
 //   its kin pressure, the visits its unmatched plan), then demand, claims, settlement and service, island-wide, each made an offer due
 //   at once; after the last, what is open lapses (split from sim/lifecycle, VB-876)
 VB['sim/round'] = (() => {
-  const Culture = VB['culture'];
+  const Customs = VB['sim/customs'];
   const Crowding = VB['sim/crowding'];
   const { cal, DAY, HUNGER, MARRIAGE, ASK } = VB['sim/rules'];
   const { log, age, spouseOf, settlementIdOf, practice, spokesmanOf } = VB['sim/records'];
@@ -25,7 +25,7 @@ VB['sim/round'] = (() => {
   const { askMatch, askFor, staleWhy } = VB['sim/asking'];
   const { review, leavers } = VB['sim/courting'];
   const { seekVisit } = VB['sim/visits'];
-  const kinOpts = Culture.DIMS[Culture.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
+  const kinOpts = Customs.DIMS[Customs.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
   // Scarcity and plenty of spouses push the marriage limit, a village's own at the end of its round (VB-277): one the step married to a
   // partner also allowed under the next stricter option pulls back, at half the weight; an unmatched man of the village, or an unmarried
   // woman of it, not held by an offer, who finds no allowed partner among the free of the other sex within reach (VB-288) but would under

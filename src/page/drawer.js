@@ -29,7 +29,7 @@ $('drawerClose').addEventListener('click', () => {
   openPanel(null);
   $(DRAWER[tab].btn).focus();
 });
-const optLabel = (d, j) => Culture.DIMS[d].opts[j][1];
+const optLabel = (d, j) => Customs.DIMS[d].opts[j][1];
 const nextMeeting = () => {
   const c = Sim.cal(st.t),
     target = 2 * Sim.SEASON_DAYS + 9;
@@ -77,11 +77,11 @@ function renderAgenda() {
       (a.natural ? `<p class="hint">You took this up on your own in ${when(p.causeSince)}.</p>` : '') +
       `<div class="dbg-row"><button type="button" data-agenda="do" data-cmd="${esc(
         JSON.stringify({ verb: 'dropCause' }),
-      )}">Lay it down</button>${s ? link(a.dim, `${Culture.DIMS[a.dim].label} in ${s.name}`) : ''}</div>`;
+      )}">Lay it down</button>${s ? link(a.dim, `${Customs.DIMS[a.dim].label} in ${s.name}`) : ''}</div>`;
   } else {
     const lc = p.lastCause; // the last cause and its end, until another is taken up (VB-1112)
     if (lc) {
-      const d = Culture.DIMS[lc.dim],
+      const d = Customs.DIMS[lc.dim],
         pc = (x) => `${Math.round(x * 100)}%`;
       h +=
         `<p class="hint">Your last cause, ${esc(d.label.toLowerCase())}: ${esc(d.opts[lc.opt][1].toLowerCase())}, ` +
@@ -100,7 +100,7 @@ function renderAgenda() {
   if (s) {
     const opps = Sim.opportunities(st, id).filter((o) => o.verb === 'argue');
     h += `<h3>Take up a cause${wait > 0 ? ` (in ${yrs(wait)})` : ''}</h3>`;
-    Culture.DIMS.forEach((d, k) => {
+    Customs.DIMS.forEach((d, k) => {
       const mine = opps.filter((o) => o.args.dim === k);
       if (!mine.length) return;
       h += `<h4>${esc(d.label)}<span>now: ${link(k, d.opts[s.practice[k]][1])}</span></h4><div class="dbg-row">${mine
@@ -125,7 +125,7 @@ function renderAgenda() {
             .map(
               (q) =>
                 `<p><button type="button" class="linkish" data-agenda="pawn" data-id="${q.id}">${esc(Sim.fullName(q))}</button>: ${esc(
-                  Culture.DIMS[q.advocate.dim].label.toLowerCase(),
+                  Customs.DIMS[q.advocate.dim].label.toLowerCase(),
                 )}, ${esc(optLabel(q.advocate.dim, q.advocate.opt).toLowerCase())} (${yrs(
                   q.advocate.until - t,
                 )} more)</p>`,
@@ -162,7 +162,7 @@ function agendaClick(b) {
   renderAgenda();
 }
 function buildDebug() {
-  const dims = Culture.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');
+  const dims = Customs.DIMS.map((d, k) => `<option value="${k}">${esc(d.label)}</option>`).join('');
   $('drawerBody').innerHTML = `<p class="dm" id="dbgWhen"></p>
       <div class="dbg-row"><button type="button" data-act="skip1">Skip a year</button><button type="button" data-act="skip10">Skip ten years</button></div>
       <div class="dbg-row"><button type="button" data-act="meet">Hold the meetings now</button><button
@@ -184,7 +184,7 @@ function buildDebug() {
       <p class="dm" id="dbgMsg" aria-live="polite"></p>`;
   const fillOpts = () => {
     const k = +$('advDim').value;
-    $('advOpt').innerHTML = Culture.DIMS[k].opts.map((o, j) => `<option value="${j}">${esc(o[1])}</option>`).join('');
+    $('advOpt').innerHTML = Customs.DIMS[k].opts.map((o, j) => `<option value="${j}">${esc(o[1])}</option>`).join('');
   };
   $('advDim').addEventListener('change', fillOpts);
   fillOpts();

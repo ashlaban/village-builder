@@ -298,5 +298,25 @@ VB['sim/customs'] = (() => {
     return DIMS[k].opts[st.cenv.cultures[culture].customs[k]][0];
   };
 
-  return { DIMS, OFF, NOPT, TOTAL, IDX, optIndex, ARCHETYPES, PRACTICES, practiceOf, inForce, inForceAt, customOf };
+  // An archetype's customs, an option index a custom (in the order of DIMS).
+  function fromArchetype(name) {
+    const a = ARCHETYPES[name];
+    return DIMS.map((d) => optIndex(d.key, a[d.key]));
+  }
+
+  return {
+    DIMS,
+    OFF,
+    NOPT,
+    TOTAL,
+    IDX,
+    optIndex,
+    ARCHETYPES,
+    PRACTICES,
+    practiceOf,
+    fromArchetype,
+    inForce,
+    inForceAt,
+    customOf,
+  };
 })();

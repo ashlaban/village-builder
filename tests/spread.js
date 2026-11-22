@@ -6,8 +6,10 @@ const assert = require('assert');
 const calls = [], YEAR_H = 48 * 24; // sim/rules is loaded below; checked against it there
 // Wrap before sim/clock destructures them, as tools/perf.js does.
 const VB = require('./lib/load.js').loadModules({ wrap: {
-  'culture': {
+  'sim/attitudes': {
     settlementStep: (step) => (env, hk, dt, rand, s) => { calls.push({ kind: 'culture', t: env.t * YEAR_H, s: s ? s.id : null }); return step(env, hk, dt, rand, s); },
+  },
+  'culture': {
     // the meetings (VB-278): a village's, a culture's year
     meeting: (meeting) => (env, hk, s) => { calls.push({ kind: 'meeting', t: env.t * YEAR_H, s: s.id }); return meeting(env, hk, s); },
     cultureYear: (year) => (env, hk, c) => { calls.push({ kind: 'cultureYear', t: env.t * YEAR_H, c: c.id }); return year(env, hk, c); },

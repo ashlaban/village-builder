@@ -17,7 +17,7 @@ VB['sim/venues'] = (() => {
     Encounters = VB['sim/encounters'],
     Stores = VB['sim/stores'],
     Traits = VB['sim/traits'],
-    Culture = VB['culture'];
+    Customs = VB['sim/customs'];
   const { pourAle, owing, bookAll } = VB['sim/feast'];
   const { OCCASIONS, call, yard, dayOf, onEnd } = VB['sim/occasions'];
   const MIN_AGE = SOCIAL.talk.minAge; // younger children stay at home
@@ -164,7 +164,7 @@ VB['sim/venues'] = (() => {
   // Does the culture of village v keep its own rite days (PRACTICES.riteDays), or the same days everywhere (VB-522 as built)?
   function keepsOwnDays(st, v) {
     const s = st.cenv && st.cenv.settlements && st.cenv.settlements[v.id];
-    return Culture.practiceOf(s && st.cenv.cultures[s.culture], 'riteDays') === 'own';
+    return Customs.practiceOf(s && st.cenv.cultures[s.culture], 'riteDays') === 'own';
   }
   // Does village v hold its rite today (c = the calendar day)?
   function heldToday(st, v, c) {

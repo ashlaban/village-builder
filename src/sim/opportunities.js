@@ -1,7 +1,7 @@
 // @sys sim/opportunities: what a pawn may do here, for whom and on what basis, computed when asked and never stored; the actor view (VB-209);
 // whom the player may go on as after its pawn's death (VB-213)
 VB['sim/opportunities'] = (() => {
-  const Culture = VB['culture'],
+  const Customs = VB['sim/customs'],
     { inForceAt } = VB['sim/customs'];
   const { cal, DAY, YEAR } = VB['sim/rules'],
     { SERVICE } = VB['sim/service'];
@@ -203,8 +203,8 @@ VB['sim/opportunities'] = (() => {
     const at = settlementIdOf(view, p),
       adv = p.advocate || null;
     if (!view.cenv.settlements[at]) return;
-    for (let dim = 0; dim < Culture.DIMS.length; dim++)
-      for (let option = 0; option < Culture.NOPT[dim]; option++) {
+    for (let dim = 0; dim < Customs.DIMS.length; dim++)
+      for (let option = 0; option < Customs.NOPT[dim]; option++) {
         if (inForceAt(view, dim, at) === option) continue;
         const args = { dim, option },
           mine = adv && adv.dim === dim && adv.opt === option;

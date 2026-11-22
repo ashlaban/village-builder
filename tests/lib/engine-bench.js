@@ -1,6 +1,6 @@
 // Do the two engine workarounds of src/ still pay (VB-246)? Each is timed as it is against its plain form, which lives here, not in src/:
 //   sift        (sim/relations, VB-205): a record's memories are copied, against deleting the faded keys;
-//   driftPerson (culture, VB-195): a function of its own, against its body written in the loop of dailyStep.
+//   driftPerson (sim/attitudes, VB-195): a function of its own, against its body written in the loop of dailyStep.
 // `node tests/perf.js --engine` runs it. Each case is three runs of each form, one process each (a form is the source of a module, so
 // two cannot share a process), interleaved. A workaround fails only if it is slower than its plain form by more than the runs' spread.
 const fs = require('fs'), os = require('os'), path = require('path'), { spawnSync } = require('child_process');
@@ -11,7 +11,7 @@ const PLAIN = {
     /function sift\(r, keep\) \{[\s\S]*?\n {2}\}\n/,
     'function sift(r, keep) {\n    let n = 0;\n    for (const k of Object.keys(r.mem)) if (keep(k)) n++; else delete r.mem[k];\n    return n > 0;\n  }\n',
   ]]],
-  drift: ['culture.js', [[
+  drift: ['sim/attitudes.js', [[
     'driftPerson(hooks.byId(id), hooks, dt, rand, mul, means, tgt, press, sq);',
     (src) => {
       const m = /function driftPerson\(p, hooks[^)]*\) \{\n([\s\S]*?)\n {2}\}\n/.exec(src);
@@ -36,7 +36,7 @@ function child([name, form, saveFile]) {
     const Module = require('module'), compile = Module.prototype._compile;
     Module.prototype._compile = function (content, filename) { return compile.call(this, plainSource(name, filename, content), filename); };
   }
-  const VB = require('../../src/load.js'), Sim = VB.sim, C = VB.culture;
+  const VB = require('../../src/load.js'), Sim = VB.sim, A = VB['sim/attitudes'];
   const data = JSON.parse(fs.readFileSync(saveFile, 'utf8'));
   const it = VB.gen.generate(data.seed, { cols: data.cols, rows: data.rows });
   let r; while (!(r = it.next()).done);
@@ -45,7 +45,7 @@ function child([name, form, saveFile]) {
   const t0 = now();
   if (name === 'drift') {
     const hooks = Sim.hooks(st), rand = VB['sim/rng'].drawer(st.rng.culture);
-    for (let d = 0; d < 48; d++) C.dailyStep(st.cenv, hooks, 1 / Sim.YEAR_DAYS, rand);
+    for (let d = 0; d < 48; d++) A.dailyStep(st.cenv, hooks, 1 / Sim.YEAR_DAYS, rand);
   } else Sim.advance(st, Sim.YEAR);
   console.log(JSON.stringify({ ms: now() - t0, living: st.pawns.filter((p) => p.alive).length }));
 }
@@ -66,7 +66,7 @@ const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
 const spread = (a) => Math.max(...a) - Math.min(...a);
 const CASES = [
   ['sift', 'a year, fadeRelations copying memories vs deleting faded keys', 'fadeRelations'],
-  ['drift', 'Culture.dailyStep over 48 days, driftPerson apart vs in the loop', 'driftPerson'],
+  ['drift', 'Attitudes.dailyStep over 48 days, driftPerson apart vs in the loop', 'driftPerson'],
 ];
 function main({ runs = 3 } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-engine-'));

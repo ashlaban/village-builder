@@ -11,7 +11,7 @@ const { askFor } = VB['sim/asking'];
 const { movingRound } = VB['sim/round'];
 const { issue } = VB['sim/commands'];
 const { emit } = VB['sim/events'];
-const Rel = VB['sim/relations'], R = VB['sim/records'], Culture = VB.culture;
+const Rel = VB['sim/relations'], R = VB['sim/records'], Culture = VB.culture, Customs = VB['sim/customs'];
 const map = ['..............', '...FF.........', '...FF.........', '..............', '..........FF..', '..............', '.........^^...', '..............', '~.............', '~~............'];
 function world(option, ages) {
   const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
@@ -33,8 +33,8 @@ const fond = (st, a, b) => {
   VB['sim/ties'].raiseTie(st, a, b, 3);
   for (const k of ['worked', 'ale']) for (let i = 0; i < 6; i++) Rel.remember(st, a, b, k);
 };
-assert.deepStrictEqual(Culture.DIMS[Culture.IDX.matchBy].opts.map((o) => o[0]), ['heads', 'consent', 'couple']);
-assert.strictEqual(Culture.fromArchetype('oldNordic')[Culture.IDX.matchBy], 1, 'consent by default');
+assert.deepStrictEqual(Customs.DIMS[Customs.IDX.matchBy].opts.map((o) => o[0]), ['heads', 'consent', 'couple']);
+assert.strictEqual(Customs.fromArchetype('oldNordic')[Customs.IDX.matchBy], 1, 'consent by default');
 // who speaks: her father under heads and consent, she herself under the couple
 for (const [opt, who] of [['heads', 0], ['consent', 0], ['couple', 2]])
   assert.strictEqual(R.spokesmanOf(world(opt, { 2: 21 }), 2), who, `${opt}: her spokesman`);

@@ -1,10 +1,10 @@
 // The ownHeir custom (VB-089): a first heir of their own parents' farm steps behind other relatives under "behind", and keeps their place under "keeps".
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture;
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture, Customs = VB['sim/customs'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('OWNHEIR FAIL:', m); } };
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, 7, 'heirs');
 const nm = (id) => st.pawns[id].given, rank = (hh, ownHeir) => Sim.heirRanking(st, hh, { ...Sim.practice(st, st.farmsteads[hh.farmstead].village), ownHeir }).map(nm);
-check(st.cenv.settlements.every((s) => Culture.DIMS[Culture.IDX.ownHeir] && Sim.practice(st, s.id).ownHeir === 'behind'), 'villages start on "behind"');
+check(st.cenv.settlements.every((s) => Customs.DIMS[Customs.IDX.ownHeir] && Sim.practice(st, s.id).ownHeir === 'behind'), 'villages start on "behind"');
 // Erik's household 3: Nils is the first heir of his parents' farm; Olof's household 4 (his uncle's) is the other farm in his line.
 const own = st.households[3], uncle = st.households[4], f = st.farmsteads[uncle.farmstead];
 check(nm(Sim.heirRanking(st, own)[0]) === 'Nils', 'Nils is first heir of his parents farm');

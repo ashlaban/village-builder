@@ -5,7 +5,7 @@
 // of its tasks is the village's custom `commons`: the village duty's less 2, as it, or plus 2. Help a household was given leans its people
 // towards the next higher option. On a small constructed state; the invariants hold, and a save keeps it.
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim, C = VB.culture;
+const VB = require('../src/load.js'), Sim = VB.sim, C = VB.culture, Customs = VB['sim/customs'];
 const { tinyWorld, tinyState, setPractice } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const Plans = VB['sim/plans'], Commons = VB['sim/commons'], Stores = VB['sim/stores'];
@@ -17,8 +17,8 @@ const v = st.villages[0], w = st.w, plan = Plans.planOf(st, 'village', v.id);
 const bad = () => checkState(st);
 
 // the custom: three options, `fair` in the old Nordic archetype; the priorities as Kim set them (the village duty's, VB-058)
-assert.deepStrictEqual(C.DIMS[C.IDX.commons].opts.map((o) => o[0]), ['own', 'fair', 'first']);
-assert.strictEqual(C.fromArchetype('oldNordic')[C.IDX.commons], C.optIndex('commons', 'fair'));
+assert.deepStrictEqual(Customs.DIMS[Customs.IDX.commons].opts.map((o) => o[0]), ['own', 'fair', 'first']);
+assert.strictEqual(Customs.fromArchetype('oldNordic')[Customs.IDX.commons], Customs.optIndex('commons', 'fair'));
 const prios = (opt) => {
   setPractice(st, v.id, { commons: opt });
   return Object.fromEntries(Object.keys(ROLES).map((r) => [r, Commons.commonPrio(st, { role: r }, { village: v.id })]));
@@ -75,7 +75,7 @@ assert.deepStrictEqual(bad(), [], 'invariants');
 
 // help received leans a person towards the next higher option, in proportion to the days of need owed, fading as goodwill fades
 const [h1, h2] = v.farmsteads.map((id) => st.households[st.farmsteads[id].household]);
-const k = C.OFF[C.IDX.commons] + C.optIndex('commons', 'first'), adult = st.pawns[h1.members.find((id) => st.pawns[id].age >= 16)];
+const k = Customs.OFF[Customs.IDX.commons] + Customs.optIndex('commons', 'first'), adult = st.pawns[h1.members.find((id) => st.pawns[id].age >= 16)];
 // what h1's holder owed from the run is squared first (the run's history differs with the course of an illness, VB-1118)
 for (const g of VB['sim/relations'].goodwillOf(st, h1.holder)) if (g.balance < 0) book(st, h1.holder, g.other, -g.balance);
 refreshInterests(st);
@@ -84,7 +84,7 @@ assert.strictEqual(Commons.helpLean(st, adult, v.id), null, 'no help received: n
 // twenty days of need given, net of what the two holders owed each other before (an ale evening's share, VB-522)
 book(st, h2.holder, h1.holder, 20 * VB['sim/hunger'].dailyNeed(st, h1) - VB['sim/relations'].balance(st, h2.holder, h1.holder));
 const lean = Commons.helpLean(st, adult, v.id);
-assert.strictEqual(lean.to, C.optIndex('commons', 'first'), 'towards the option above `fair`');
+assert.strictEqual(lean.to, Customs.optIndex('commons', 'first'), 'towards the option above `fair`');
 assert.ok(Math.abs(lean.w - COMMONS.pull * 20 / COMMONS.fullDays) < 1e-6, `in proportion to the days owed (${lean.w})`);
 refreshInterests(st);
 assert.ok(adult.interest[k] > before, 'its interest leans to `first`');

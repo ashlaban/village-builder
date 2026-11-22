@@ -1,7 +1,7 @@
 // VB-288: distance governs the round's matching. A village's pool is the living of the villages within walking reach (hoursBetween
 // finite), built from those villages' households; the score's villages' term is MARRIAGE.sameVillage x exp(-hours / nearHours); a
 // wished partner beyond reach is refused with that reason (matchBar); and kin pressure counts only partners within reach.
-const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim, C = VB.culture;
+const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim, C = VB.culture, Customs = VB['sim/customs'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 const { MARRIAGE } = VB['sim/rules'], { poolFor, matchScore, matchBar } = VB['sim/matching'], R = VB['sim/records'];
 const out = [];
@@ -55,7 +55,7 @@ const vOf = (st, id) => R.settlementIdOf(st, st.pawns[id]);
 // Every single man of A a son of X, every single woman of A a daughter of X too (his sisters, who never marry), every single woman of B
 // a daughter of Y, X and Y brother and sister: under "first" each of A's men has only first cousins in B. With B in reach he is pulled
 // towards "close"; with B beyond reach he has nobody even under "close", and is not pulled.
-const kin = C.IDX.kinLimit, opts = C.DIMS[kin].opts.map((o) => o[0]);
+const kin = Customs.IDX.kinLimit, opts = Customs.DIMS[kin].opts.map((o) => o[0]);
 const round = (hoursAB) => {
   const st = fresh();
   set(st, 0, 1, hoursAB); set(st, 0, 2, null); set(st, 1, 2, null);

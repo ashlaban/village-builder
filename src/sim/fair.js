@@ -16,7 +16,7 @@ VB['sim/fair'] = (() => {
   const Goods = VB['sim/goods'],
     Stores = VB['sim/stores'],
     Rules = VB['sim/registry'],
-    Culture = VB['culture'];
+    Norms = VB['sim/norms'];
   const Offers = VB['sim/offers'];
   const { issue, register } = VB['sim/commands'];
   const { needValue, propriety, KEEPING } = VB['sim/exchange'];
@@ -44,7 +44,7 @@ VB['sim/fair'] = (() => {
     answerHours: 1,
   };
   const TOLERANCE = 1e-9;
-  const worth = (good) => Culture.norm('worth', good);
+  const worth = (good) => Norms.norm('worth', good);
   const quantum = (good) => Goods.goodOf(good).quantum;
   const weightOf = (good) => FAIR.weight[Goods.goodOf(good).lump];
   const inLarder = (good) => good !== 'grain' && Goods.goodOf(good).class === 'food';

@@ -1,9 +1,9 @@
 // sim/leanings, pulls (VB-398): what draws a person towards a way of a custom, as the daily drift weighs it, for the note of a voice on the
 // Customs tab. A view: it changes nothing.
 const assert = require('assert');
-const VB = require('../src/load.js'), C = VB.culture, L = VB['sim/leanings'];
-const d = C.IDX.feedOrder, o = C.OFF[d], equal = C.optIndex('feedOrder', 'equal'), children = C.optIndex('feedOrder', 'children');
-const att = (share) => { const a = new Float32Array(C.TOTAL).fill(0); share.forEach((v, j) => { a[o + j] = v; }); return a; };
+const VB = require('../src/load.js'), C = VB.culture, Customs = VB['sim/customs'], Attitudes = VB['sim/attitudes'], L = VB['sim/leanings'];
+const d = Customs.IDX.feedOrder, o = Customs.OFF[d], equal = Customs.optIndex('feedOrder', 'equal'), children = Customs.optIndex('feedOrder', 'children');
+const att = (share) => { const a = new Float32Array(Customs.TOTAL).fill(0); share.forEach((v, j) => { a[o + j] = v; }); return a; };
 const person = (id, share, more = {}) => ({ id, alive: true, age: 40, standing: 1, att: att(share), anc: att(share), ties: new Map(), interest: null,
   advocate: null, ...more });
 const people = [], byId = (id) => people[id], add = (...a) => { const p = person(people.length, ...a); people.push(p); return p; };
@@ -12,7 +12,7 @@ const people = [], byId = (id) => people[id], add = (...a) => { const p = person
 const raised = add([0.4, 0.4, 0.2], { anc: att([0.7, 0.2, 0.1]) });
 let w = L.pulls(raised, d, equal, byId);
 assert(w.upbringing > 0 && w.company === 0 && w.cause === 0 && w.interest === 0 && !w.own, 'only upbringing pulls one with no ties');
-assert(Math.abs(w.upbringing - C.P.anchor.village * 0.3) < 1e-6, 'upbringing is the anchor rate times the distance');
+assert(Math.abs(w.upbringing - Attitudes.P.anchor.village * 0.3) < 1e-6, 'upbringing is the anchor rate times the distance');
 assert(L.pulls(raised, d, children, byId).upbringing < 0, 'and it pulls away from the other way');
 
 // company: the tie that weighs most among those who favour the way is the friend; one who favours another way is not
@@ -22,9 +22,9 @@ w = L.pulls(met, d, equal, byId);
 assert.strictEqual(w.friend, heavy.id, 'the heaviest tie that favours the way');
 assert.strictEqual(L.pulls(met, d, children, byId).friend, other.id);
 const mean = (1 * 0.9 + 3 * 0.8 + 5 * 0.1) / 9;
-assert(Math.abs(w.company - C.DIMS[d].m * C.P.social * (mean - 0.4)) < 1e-6, 'company is the weighted mean of the ties against the leaning');
+assert(Math.abs(w.company - Customs.DIMS[d].m * Attitudes.P.social * (mean - 0.4)) < 1e-6, 'company is the weighted mean of the ties against the leaning');
 const mixed = L.pulls(met, d, equal, byId, 0.9).company;
-assert(Math.abs(mixed - C.DIMS[d].m * C.P.social * ((1 - C.P.oblique) * mean + C.P.oblique * 0.9 - 0.4)) < 1e-6, "the settlement's mean is mixed in");
+assert(Math.abs(mixed - Customs.DIMS[d].m * Attitudes.P.social * ((1 - Attitudes.P.oblique) * mean + Attitudes.P.oblique * 0.9 - 0.4)) < 1e-6, "the settlement's mean is mixed in");
 
 // a cause argued near them, and one's own
 const arguer = add([0.1, 0.8, 0.1], { advocate: { dim: d, opt: children, until: 10 } });

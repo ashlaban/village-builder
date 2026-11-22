@@ -13,8 +13,8 @@ function setup(newLand) {
   a.born = Math.min(a.born, b.born, c.born) - 24 * 48; // a is the eldest
   st.unions.push({ id: st.unions.length, a: b.id, b: c.id, start: st.t, end: null, kind: 'marriage' });
   st.demand = [a.id, b.id, c.id];
-  const C = VB.culture, k = C.IDX.newLand;
-  st.cenv.settlements[0].practice[k] = C.DIMS[k].opts.findIndex((o) => o[0] === newLand);
+  const C = VB.culture, Customs = VB['sim/customs'], k = Customs.IDX.newLand;
+  st.cenv.settlements[0].practice[k] = Customs.DIMS[k].opts.findIndex((o) => o[0] === newLand);
   // village A's empty farm could be claimed, and nobody who may claim a farm gets a plot (VB-033, tests/farmclaims.js); here it is a ruin
   for (const f of st.farmsteads) if (f.household === null) f.state = 'ruin';
   X.startPlots(st);

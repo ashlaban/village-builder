@@ -3,7 +3,7 @@
 // constructed state, traits set by hand and chances forced with `fix`.
 const assert = require('assert');
 const VB = require('../src/load.js');
-const T = VB['sim/traits'], R = VB['sim/relations'], C = VB.culture, Rules = VB['sim/registry'];
+const T = VB['sim/traits'], R = VB['sim/relations'], C = VB.culture, Customs = VB['sim/customs'], Attitudes = VB['sim/attitudes'], Rules = VB['sim/registry'];
 const { TRAITS, HEALTH, HELP, SETTLE } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'];
 const { updateHealth, dailyNeed } = VB['sim/hunger'], { leaveChance } = VB['sim/settle'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
@@ -107,13 +107,13 @@ const AT = [0, 0.5, 1];
   const hooks = (o) => ({ byId: (id) => st.pawns[id], settlementOf: () => null, act: (x, t, r) => T.act(st, x.id, t, r), living: [i], ...o });
   p.interest = null;
   p.advocate = null;
-  for (let d = 0; d < C.DIMS.length; d++) for (let k = 0; k < C.NOPT[d]; k++) q.att[C.OFF[d] + k] = p.anc[C.OFF[d] + k] = 1 / C.NOPT[d];
+  for (let d = 0; d < Customs.DIMS.length; d++) for (let k = 0; k < Customs.NOPT[d]; k++) q.att[Customs.OFF[d] + k] = p.anc[Customs.OFF[d] + k] = 1 / Customs.NOPT[d];
   const step = (open, pious, o = {}) => {
     const att = Float32Array.from(p.att), anc = Float32Array.from(p.anc), ties = p.ties;
     set(st, i, 'openness', open);
     set(st, i, 'piety', pious);
     p.ties = new Map([[j, 1]]);
-    C.dailyStep({ people: st.pawns, settlements: [], cultures: [], driftMul: 1 }, hooks(o), 1 / 120, () => 0.5);
+    Attitudes.dailyStep({ people: st.pawns, settlements: [], cultures: [], driftMul: 1 }, hooks(o), 1 / 120, () => 0.5);
     const moved = p.att.reduce((s, x, k) => s + Math.abs(x - att[k]), 0);
     p.att.set(att); p.anc.set(anc); p.ties = ties;
     return moved;
@@ -125,7 +125,7 @@ const AT = [0, 0.5, 1];
   assert.ok(near(o5, p5), 'both at 0.5 are the same step');
   assert.ok(near(step(0.5, 0.5, { act: undefined }), o5), 'neutral at 0.5: as a drift without traits');
   // a cause: a draw just under the chance at 0.5 takes one up, and at openness 0 never
-  const chance = C.P.entrepreneur * C.DIMS[0].m * C.DIMS[0].m;
+  const chance = C.P.entrepreneur * Customs.DIMS[0].m * Customs.DIMS[0].m;
   const env = { people: st.pawns, settlements: [], cultures: [], t: 100 };
   for (const [x, takes] of [[0, false], [0.5, true], [1, true]]) {
     p.advocate = null; p.causeSince = null; set(st, i, 'openness', x);
@@ -144,14 +144,14 @@ const AT = [0, 0.5, 1];
 {
   const st = make();
   for (const p of st.pawns) {
-    assert.ok(p.leans instanceof Uint8Array && p.leans.length === C.DIMS.length, `pawn ${p.id} has its leanings`);
-    C.DIMS.forEach((_, d) => {
+    assert.ok(p.leans instanceof Uint8Array && p.leans.length === Customs.DIMS.length, `pawn ${p.id} has its leanings`);
+    Customs.DIMS.forEach((_, d) => {
       let top = 0;
-      for (let j = 1; j < C.NOPT[d]; j++) if (p.att[C.OFF[d] + j] > p.att[C.OFF[d] + top]) top = j;
+      for (let j = 1; j < Customs.NOPT[d]; j++) if (p.att[Customs.OFF[d] + j] > p.att[Customs.OFF[d] + top]) top = j;
       assert.strictEqual(p.leans[d], top, `pawn ${p.id}, custom ${d}`);
     });
   }
-  const p = st.pawns[st.living[0]], d = 3, opt = (p.leans[d] + 1) % C.NOPT[d];
+  const p = st.pawns[st.living[0]], d = 3, opt = (p.leans[d] + 1) % Customs.NOPT[d];
   for (let k = 0; k < 8; k++) C.advocate(p, d, opt, 10, 0);
   assert.strictEqual(p.leans[d], opt, 'a cause taken up moves the leaning with the attitude');
 }
@@ -182,8 +182,8 @@ const AT = [0, 0.5, 1];
   const all = R.compat(st, a, b);
   assert.ok(near(all, Math.max(-1, Math.min(1, CH.personal * personal + CH.likeness))), `the sum: ${all}`);
   // Like seeks like: alike but for their customs, they think less of each other; agreeing gains nothing over a world without the term
-  const w = C.DIMS.map((x) => 1 - x.m), sum = w.reduce((x, y) => x + y, 0), d = C.DIMS.findIndex((x) => x.m < 1);
-  pb.leans[d] = (pa.leans[d] + 1) % C.NOPT[d];
+  const w = Customs.DIMS.map((x) => 1 - x.m), sum = w.reduce((x, y) => x + y, 0), d = Customs.DIMS.findIndex((x) => x.m < 1);
+  pb.leans[d] = (pa.leans[d] + 1) % Customs.NOPT[d];
   assert.ok(near(R.compat(st, a, b), Math.max(-1, Math.min(1, all - CH.customs * (w[d] / sum)))), 'one custom apart costs its weight');
   assert.ok(R.compat(st, a, b) < all, 'differing customs: less compatible');
   pb.leans.set(pa.leans);

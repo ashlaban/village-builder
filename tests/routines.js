@@ -5,7 +5,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { setClock } = require('./lib/clock.js');
-const Plans = VB['sim/plans'], L = VB['sim/meetings'], Culture = VB.culture, { issue } = VB['sim/commands'];
+const Plans = VB['sim/plans'], L = VB['sim/meetings'], Culture = VB.culture, Customs = VB['sim/customs'], { issue } = VB['sim/commands'];
 const { refreshJobs } = VB['sim/jobs'], { eligible } = VB['sim/eligibility'], { DAY, WORK, cal } = VB['sim/rules'];
 const { villageOf } = VB['sim/records'];
 const { checkState } = require('./lib/invariants.js');
@@ -30,9 +30,9 @@ function green(st, v, ids) {
 
 { // the practice is declared with the customs: every generated culture holds `nothing`
   const st = fresh();
-  assert.deepStrictEqual(Object.keys(Culture.PRACTICES), ['noDecision', 'alderman', 'riteDays']);
+  assert.deepStrictEqual(Object.keys(Customs.PRACTICES), ['noDecision', 'alderman', 'riteDays']);
   assert.ok(st.cenv.cultures.every((c) => c.practices.noDecision === 'nothing'), 'each culture holds nothing');
-  assert.strictEqual(Culture.practiceOf({}, 'noDecision'), 'nothing', 'a culture of an older save reads the base');
+  assert.strictEqual(Customs.practiceOf({}, 'noDecision'), 'nothing', 'a culture of an older save reads the base');
 }
 { // at the start, the founders' routines: the fence where the village has one; then the fence's stretches post on the villager basis
   const { st, v, plan } = setUp();

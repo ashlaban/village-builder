@@ -2,7 +2,9 @@
 //   of gathering (sim/gathering) made at its meeting, and the night's drift of attitudes, a settlement a step (split from sim/lifecycle, VB-876)
 VB['sim/meetings'] = (() => {
   const { drawer } = VB['sim/rng'];
-  const Culture = VB['culture'];
+  const Culture = VB['culture'],
+    Attitudes = VB['sim/attitudes'],
+    Customs = VB['sim/customs'];
   const { landMeeting } = VB['sim/territory'];
   const { YEAR_DAYS, YEAR, OFFICE, cal } = VB['sim/rules'];
   const { personEvent, log, membersOf, voiceOf, settlementIdOf, fullName, isHolder } = VB['sim/records'];
@@ -30,12 +32,12 @@ VB['sim/meetings'] = (() => {
     // a tie with nothing in force goes to the alderman, who takes of the tied options the one his own attitude holds highest (VB-314)
     choose: (st, q, p) => {
       const top = Math.max(...q.support),
-        k = Culture.IDX[q.dim];
+        k = Customs.IDX[q.dim];
       let best = -1;
       for (let j = 0; j < q.support.length; j++)
         if (
           q.support[j] === top &&
-          (best < 0 || st.pawns[p].att[Culture.OFF[k] + j] > st.pawns[p].att[Culture.OFF[k] + best])
+          (best < 0 || st.pawns[p].att[Customs.OFF[k] + j] > st.pawns[p].att[Customs.OFF[k] + best])
         )
           best = j;
       return best;
@@ -84,7 +86,7 @@ VB['sim/meetings'] = (() => {
   // when vacant, filled from the village's holders, in the order of their farms' founding (village.farmsteads). One question, a vacancy.
   function aldermanMeeting(st, s, people) {
     const v = st.villages[s.id],
-      by = Culture.practiceOf(st.cenv.cultures[s.culture], 'alderman'),
+      by = Customs.practiceOf(st.cenv.cultures[s.culture], 'alderman'),
       a = v.alderman === undefined ? null : v.alderman;
     if (a !== null) {
       const p = st.pawns[a],
@@ -186,7 +188,7 @@ VB['sim/meetings'] = (() => {
         st,
         p.id,
         'cause',
-        `Took up the cause: ${Culture.DIMS[p.advocate.dim].label.toLowerCase()}, ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`,
+        `Took up the cause: ${Customs.DIMS[p.advocate.dim].label.toLowerCase()}, ${Customs.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`,
         { reason: 'natural', village: settlementIdOf(st, p) },
       );
     }
@@ -195,7 +197,7 @@ VB['sim/meetings'] = (() => {
     const out = [];
     const ch = Culture.meeting(env, { ...hk, membersOf: (x) => (x === s ? people : membersOf(st, x.id)) }, s);
     for (const x of ch) {
-      const d = Culture.DIMS[x.dim],
+      const d = Customs.DIMS[x.dim],
         txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”).`;
       log(st, txt, { kind: 'custom', village: s.id });
       out.push({ year: c.year, text: txt });
@@ -224,7 +226,7 @@ VB['sim/meetings'] = (() => {
   const pct = (x) => `${Math.round(x * 100)}%`;
   function causeEnded(st, p) {
     const lc = p.lastCause,
-      d = Culture.DIMS[lc.dim],
+      d = Customs.DIMS[lc.dim],
       years = Math.max(0, Math.round(lc.end - lc.since)),
       name = `${fullName(p)}'s cause, ${d.label.toLowerCase()}: ${d.opts[lc.opt][1].toLowerCase()}`,
       head =
@@ -253,7 +255,7 @@ VB['sim/meetings'] = (() => {
       const r = Culture.cultureYear(env, hk, cu);
       for (const x of r.changes) {
         // VB-1104: the line says which villages took the new custom up and which kept the old, not that it holds across the culture
-        const d = Culture.DIMS[x.dim],
+        const d = Customs.DIMS[x.dim],
           names = (ids) => ids.map((id) => env.settlements[id].name).join(', '),
           took = x.took.length ? `taken up in ${names(x.took)}` : 'taken up in no village yet',
           kept = x.kept.length ? `; ${names(x.kept)} keeps “${d.opts[x.from][1]}”` : '',
@@ -296,7 +298,7 @@ VB['sim/meetings'] = (() => {
       });
       return null;
     }
-    const by = Culture.practiceOf(st.cenv.cultures[s.culture], 'noDecision'),
+    const by = Customs.practiceOf(st.cenv.cultures[s.culture], 'noDecision'),
       plan = st.plans.villages.get(s.id);
     const kept = by === 'asLastYear' ? plan.routines : [];
     issue(st, { actor: { settlement: s.id }, verb: 'routines', args: { routines: kept, by }, source: 'meeting' });
@@ -330,9 +332,9 @@ VB['sim/meetings'] = (() => {
       rand = drawer(st.rng.culture);
     env.t = st.t / YEAR;
     env.driftMul = st.driftMul;
-    if (step === 1) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, null);
+    if (step === 1) Attitudes.settlementStep(env, hk, 1 / YEAR_DAYS, rand, null);
     for (let k = step - 1; k < env.settlements.length; k += NIGHT_STEPS)
-      Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
+      Attitudes.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
   }
   return {
     villagesOfStep,

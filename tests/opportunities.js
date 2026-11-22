@@ -77,7 +77,7 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
   const indoors = housed(st).find((id) => st.agents[id].inside && !st.agents[id].job);
   if (indoors !== undefined) assert.ok(/at home already/.test(of(indoors, 'goHome')[0].why));
   // a cause: every option but the village's practice; one argued for already is barred, and may be dropped
-  const C = VB.culture, s = st.cenv.settlements[0], options = C.NOPT.reduce((n, k) => n + k, 0) - C.DIMS.length;
+  const C = VB.culture, Customs = VB['sim/customs'], s = st.cenv.settlements[0], options = Customs.NOPT.reduce((n, k) => n + k, 0) - Customs.DIMS.length;
   assert.strictEqual(of(anyone, 'argue').length, options, 'each option of each custom but the practice');
   assert.ok(of(anyone, 'argue').every((o) => s.practice[o.args.dim] !== o.args.option && o.why === null && o.basis === 'self'));
   const cause = of(anyone, 'argue')[0].args;

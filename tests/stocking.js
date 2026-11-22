@@ -2,12 +2,12 @@
 // winter (84 units): to the hay keeps 3 (3 × 21 × 1.1 = 69.3), keep the herd keeps 5 (5 × 21 × 0.8 = 84). A bad winter (hay for 60% of the
 // stall days of the kept five) gives the herd lean days and, past starveDays, a head lost a day; the village store lends no fodder.
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim, H = VB['sim/herds'], Y = VB['sim/byre'], Culture = VB.culture;
+const VB = require('../src/load.js'), Sim = VB.sim, H = VB['sim/herds'], Y = VB['sim/byre'], Culture = VB.culture, Customs = VB['sim/customs'];
 const { setPractice, tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 const cal = (doy, day = doy) => ({ doy, day, season: Math.floor(doy / 12), sday: doy % 12, hour: 0 });
 const cows = (st, hh) => H.herdOf(st, hh, 'cattle').head.filter((h) => h.kind === 'cow').length;
-assert.deepStrictEqual(Culture.DIMS[Culture.IDX.stocking].opts.map((o) => o[0]), ['hay', 'herd']);
-assert.strictEqual(Culture.fromArchetype('oldNordic')[Culture.IDX.stocking], 0, 'to the hay by default');
+assert.deepStrictEqual(Customs.DIMS[Customs.IDX.stocking].opts.map((o) => o[0]), ['hay', 'herd']);
+assert.strictEqual(Customs.fromArchetype('oldNordic')[Customs.IDX.stocking], 0, 'to the hay by default');
 assert.deepStrictEqual(Sim.HERD.margins, { hay: 1.1, herd: 0.8 });
 // household 3: six cows (4 years old) and nothing else
 const SEED = 9; // the herds drawn at seeding move with every custom added (VB-711, VB-826, VB-463)

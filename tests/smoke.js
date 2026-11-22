@@ -195,7 +195,7 @@ const iv = setInterval(async () => {
   // The Culture pane (VB-397): titled by the culture; a row a village; the culture's own charter, a phrase a custom, and a phrase opened
   // to its ways; the meetings; a village's row opens its card at the Customs tab, whose culture link comes back here.
   {
-    const nDims = require('../src/load.js').culture.DIMS.length, body = doc.getElementById('drawerBody'), pane = (sel) => [...body.querySelectorAll(sel)];
+    const nDims = require('../src/load.js')['sim/customs'].DIMS.length, body = doc.getElementById('drawerBody'), pane = (sel) => [...body.querySelectorAll(sel)];
     doc.getElementById('cultureBtn').click(); tick(5);
     const title = doc.getElementById('drawerTitle').textContent, rows = pane('[data-charter]').length, villages = P.st.cenv.settlements.length;
     if (!/ culture$/.test(title)) fail(`the Culture pane is titled ${title}`);
@@ -204,7 +204,7 @@ const iv = setInterval(async () => {
     if (pane('.charter [data-phrase]').length !== nDims) fail(`the culture's charter has ${pane('.charter [data-phrase]').length} phrases, expected ${nDims}`);
     body.querySelector('[data-phrase]').click(); tick(2);
     const ways = pane('.stand .way').length;
-    if (ways !== require('../src/load.js').culture.DIMS[+body.querySelector('[aria-expanded="true"]').dataset.phrase].opts.length) fail(`an opened custom of the culture shows ${ways} ways`);
+    if (ways !== require('../src/load.js')['sim/customs'].DIMS[+body.querySelector('[aria-expanded="true"]').dataset.phrase].opts.length) fail(`an opened custom of the culture shows ${ways} ways`);
     body.querySelector('[data-ctab="meetings"]').click(); tick(2);
     if (!pane('.note').length) fail('the Meetings tab says nothing');
     console.log('culture pane:', title, '|', rows, 'villages |', ways, 'ways |', pane('.note').map((p) => p.textContent).join(' || ').slice(0, 200));
@@ -414,7 +414,7 @@ async function goodwillPanel() {
   // The Customs tab (VB-396) of a village's card: the customs as a charter, a phrase a custom; a phrase opens the ways of its custom, each
   // voice of the meeting by exactly one of them; a pawn's card has no such tab, and shows its Details while the choice is kept.
   {
-    const tabC = doc.getElementById('tabCustoms'), box = doc.getElementById('tileCustoms'), DIMS = require('../src/load.js').culture.DIMS;
+    const tabC = doc.getElementById('tabCustoms'), box = doc.getElementById('tileCustoms'), DIMS = require('../src/load.js')['sim/customs'].DIMS;
     settlers.querySelector(`button[data-village="${farm.village}"]`).click(); tick(5);
     if (tabC.hidden) fail("no Customs tab on a village's card");
     tabC.click(); tick(2);
