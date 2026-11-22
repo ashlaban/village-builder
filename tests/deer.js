@@ -112,7 +112,7 @@ for (const r of ['farmer', 'farmhand', 'son']) check(ROLES[r].prio.hunt === ROLE
   const Rules = VB['sim/registry'], hideGood = VB['sim/goods'].goodOf('hide'), Cul = VB['culture'];
   const want = Math.ceil(hh.members.length * DEER.leather);
   hh.hides = 0;
-  check(near(Rules.value(st, 'need', { hh, good: hideGood, n: 1, kept: 0 }), Cul.norm('worth', 'hide')), 'a household with no hide values one at its worth');
+  check(near(Rules.value(st, 'need', { hh, good: hideGood, n: 1, kept: 0 }), VB['sim/norms'].norm('worth', 'hide')), 'a household with no hide values one at its worth');
   hh.hides = want;
   check(Rules.value(st, 'need', { hh, good: hideGood, n: 1, kept: 0 }) === 0, 'a household with hides enough values no more');
   hh.hides = DEER.hunt.hide;

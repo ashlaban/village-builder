@@ -13,7 +13,7 @@ VB['sim/exchange'] = (() => {
   const { payInAnimals } = VB['sim/droving'];
   const { floorOf, dailyNeed, servedLast } = VB['sim/hunger'],
     { daysOfFood } = VB['sim/foodneed'];
-  const Culture = VB['culture'];
+  const Norms = VB['sim/norms'];
   const Offers = VB['sim/offers'];
   const { issue } = VB['sim/commands'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
@@ -256,7 +256,7 @@ VB['sim/exchange'] = (() => {
     key: 'ale',
     label: 'Ale, for an occasion ahead (occasions from VB-126)',
     tunables: ['ALE.noOccasion'],
-    value: (st, c) => (c.good.id === 'ale' ? ALE.noOccasion * c.n * Culture.norm('worth', 'ale') : 0),
+    value: (st, c) => (c.good.id === 'ale' ? ALE.noOccasion * c.n * Norms.norm('worth', 'ale') : 0),
   });
   // A keeping good is worth its customary worth to a taker with no need of it, for the quanta that keep what it holds to pass on within
   // KEEPING.cap rations' worth (one back load; design.md, The fair, Keeping goods).
@@ -274,15 +274,15 @@ VB['sim/exchange'] = (() => {
     const v = Rules.value(st, 'need', needCtx);
     needCtx.hh = null;
     if (!(n > 0) || !g.keeping) return v;
-    const worth = Culture.norm('worth', good),
+    const worth = Norms.norm('worth', good),
       keep = Math.min(n, Math.floor((KEEPING.cap - kept) / worth + 1e-9));
     return keep > 0 ? Math.max(v, keep * worth) : v;
   }
-  // What custom calls household hh giving a quantum of `give` for one of `take` (a word of Culture.PROPER): within a class ordinary, food
-  // for an animal admired, an animal (a ware) given for food while hh holds fewer than Culture.NORMS.hardBelowDays of its need a hard
+  // What custom calls household hh giving a quantum of `give` for one of `take` (a word of Norms.PROPER): within a class ordinary, food
+  // for an animal admired, an animal (a ware) given for food while hh holds fewer than Norms.NORMS.hardBelowDays of its need a hard
   // bargain, land in no deal. A deal is called by the worse of its two sides' words.
   const propriety = (st, hh, give, take) =>
-    Culture.norm('proper', Goods.goodOf(give).class, Goods.goodOf(take).class, daysOfFood(st, hh));
+    Norms.norm('proper', Goods.goodOf(give).class, Goods.goodOf(take).class, daysOfFood(st, hh));
   // households holding a parent, child or sibling of a member, closest first (parents and children before siblings, then by id); food help
   // asks them first (sim/help), and so does a household that wants a cow (VB-390)
   function kinHouseholds(st, hh) {
@@ -348,7 +348,7 @@ VB['sim/exchange'] = (() => {
       has && (kind === 'cow' ? cows - 1 : cows) >= 1 && hh.hay >= winterNeed(st, hh) - HERD.hay[kind] * HERD.stallDays
     );
   }
-  const worthOf = (kind) => Culture.norm('worth', 'cattle/' + kind); // the one table of customary worth (VB-299)
+  const worthOf = (kind) => Norms.norm('worth', 'cattle/' + kind); // the one table of customary worth (VB-299)
   // A deal for the want: among the households of its village, kin first (kinHouseholds), then the others in the order of its farms, the first that spares a
   // heifer, or else a cow, and whose allowance toward the household covers its customary worth (the gift for now: the animal is given and
   // its worth booked as goodwill when it is home). Sets the want's giver, or leaves it open.

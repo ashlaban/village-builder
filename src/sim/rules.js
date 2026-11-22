@@ -462,7 +462,7 @@ VB['sim/rules'] = (() => {
     perGrain: 0.5,
     reserveBase: 60,
     reservePerMember: 30,
-    // animals pay a share at their customary worth (Culture.norm('worth'), VB-299) when grain runs short; a new household takes a cow and
+    // animals pay a share at their customary worth (Norms.norm('worth'), VB-299) when grain runs short; a new household takes a cow and
     // `start.ewes` ewes from its old one (VB-140)
     start: { ewes: 2 },
   };

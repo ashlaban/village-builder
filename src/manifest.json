@@ -11,6 +11,7 @@
   "gen/bake.js",
   "gen.js",
   "sim/customs.js",
+  "sim/norms.js",
   "culture.js",
   "sim/rules.js",
   "sim/crops.js",

@@ -15,6 +15,7 @@
       "gen/bake",
       "gen",
       "sim/customs",
+      "sim/norms",
       "sim/rules",
       "sim/crops",
       "sim/roles",

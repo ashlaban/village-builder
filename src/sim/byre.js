@@ -7,7 +7,7 @@ VB['sim/byre'] = (() => {
   const { HERD, FOODS, WORK, DAY, YEAR_DAYS, BUILD, cal } = VB['sim/rules'],
     { SOIL } = VB['sim/crops'];
   const Rules = VB['sim/registry'],
-    Culture = VB['culture'],
+    Norms = VB['sim/norms'],
     { inForce } = VB['sim/customs'];
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { addFood, larderOf, takeAll, spoilFood } = VB['sim/larder'];
@@ -56,7 +56,7 @@ VB['sim/byre'] = (() => {
           ? YEAR_DAYS - 1 - doy + HERD.stall[1]
           : HERD.stall[1] - 1 - doy;
       const hay = kind === 'sheep' ? HERD.hay.ewe : HERD.hay[c.good.subtype],
-        worth = Culture.norm('worth', c.good.id);
+        worth = Norms.norm('worth', c.good.id);
       let daily = 0;
       for (const id of c.hh.herds) daily += dailyHay(st.herds[id]);
       const heads = headsOf(st, c.hh, c.good),

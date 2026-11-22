@@ -2,7 +2,7 @@
 // need: food against the year ahead, an animal against the household's herd and hay, tar and ale, a keeping good beyond need. Nothing of it
 // is in saved state, and needValue allocates nothing.
 const assert = require('assert');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rules = VB['sim/registry'], Culture = VB.culture;
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rules = VB['sim/registry'], Norms = VB['sim/norms'];
 const { bufferOf } = VB['sim/traits']; // VB-520: the floor and the holder's reserve, by its generosity
 const Goods = VB['sim/goods'], Stores = VB['sim/stores'], { needValue, propriety, KEEPING } = VB['sim/exchange'];
 const { dailyNeed } = VB['sim/hunger'], { toHarvest, NEED } = VB['sim/foodneed'];
@@ -15,7 +15,7 @@ const WANT = { grain: 10, butter: 15, 'salt meat': 15, 'dried fish': 15, tar: 8,
   'cattle/steer': 20, sheep: 6, quern: 25, hide: 6 }; // the hand quern (VB-009; Proposed)
 assert.deepStrictEqual(Goods.goods().map((g) => g.id).sort(), Object.keys(WANT).sort(), 'the goods of the fair');
 for (const [id, w] of Object.entries(WANT)) {
-  near(Culture.norm('worth', id), w, `worth of ${id}`);
+  near(Norms.norm('worth', id), w, `worth of ${id}`);
   near(Rules.value(null, 'worth', { good: Goods.goodOf(id) }), w, `the worth rule for ${id}`);
 }
 assert.deepStrictEqual(Goods.goods().filter((g) => g.keeping).map((g) => g.id).sort(), ['butter', 'dried fish', 'hide', 'quern', 'salt meat', 'sheep', 'tar']);
@@ -29,14 +29,14 @@ assert.throws(() => Goods.declareGood({ id: 'grain' }), /invalid or duplicate/);
 checks += 4;
 
 // ---- proper: each class rule ----
-const P = (a, b, days = 100) => Culture.norm('proper', a, b, days);
+const P = (a, b, days = 100) => Norms.norm('proper', a, b, days);
 assert.strictEqual(P('food', 'food'), 'ordinary'); assert.strictEqual(P('wares', 'wares'), 'ordinary'); // within a class
 assert.strictEqual(P('food', 'wares'), 'admired'); assert.strictEqual(P('wares', 'food', 60), 'admired'); // food for an animal
 assert.strictEqual(P('wares', 'food', 59.9), 'hard'); assert.strictEqual(P('food', 'wares', 10), 'admired'); // an animal given in dearth
-for (const c of Culture.CLASSES) { assert.strictEqual(P('land', c), 'none'); assert.strictEqual(P(c, 'land'), 'none'); } // land in no deal
+for (const c of Norms.CLASSES) { assert.strictEqual(P('land', c), 'none'); assert.strictEqual(P(c, 'land'), 'none'); } // land in no deal
 assert.throws(() => P('silver', 'food'), /Unknown class/);
 for (const [a, b, d] of [['food', 'food', 0], ['wares', 'food', 10], ['wares', 'food', 90], ['land', 'food', 90]]) {
-  assert.strictEqual(Culture.PROPER[Rules.value(null, 'proper', { from: a, to: b, days: d })], P(a, b, d), `the proper rule ${a} ${b} ${d}`);
+  assert.strictEqual(Norms.PROPER[Rules.value(null, 'proper', { from: a, to: b, days: d })], P(a, b, d), `the proper rule ${a} ${b} ${d}`);
 }
 checks += 6;
 
