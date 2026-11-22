@@ -8,7 +8,7 @@ const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : 
 const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }], { seed: 4 });
 const hh = st.households[1], f = st.farmsteads[hh.farmstead];
 for (let k = 0; k < Carts.CART.misses; k++) Carts.missed(st, hh);
-Carts.cartsYear(st);
+VB['sim/aims'].lookNow(st, 'cart', hh);
 const plan = cartOf(st, hh.id), step = plan && plan.steps[plan.open];
 check(plan && step && step.place === f.house, 'a cart is planned at the house');
 step.wood = 7;

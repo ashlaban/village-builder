@@ -54,10 +54,10 @@ check(hh.carts.length === 1 && hh.carts[0].kind === 'ox' && st.record.slice(befo
 // --- the head's count: at CART.misses a cart is built, as a project that waits for its timber
 hh.carts = [];
 for (let k = 0; k < CART.misses - 1; k++) C.missed(st, hh);
-C.cartsYear(st);
+VB['sim/aims'].lookNow(st, 'cart');
 check(hh.cartMiss === 0 && !cartOf(st, hh.id), 'fewer misses than it takes: no cart, and the count starts again');
 for (let k = 0; k < CART.misses; k++) C.missed(st, hh);
-C.cartsYear(st);
+VB['sim/aims'].lookNow(st, 'cart');
 const plan = cartOf(st, hh.id), step = plan && plan.steps[plan.open];
 check(plan && plan.what === 'cart' && plan.cart === 'hand' && step.kind === 'cart' && step.place === f.house && step.timber === CART.timber.hand
   && step.hours === CART.hours.hand, `a hand cart is begun at the house: ${JSON.stringify(plan && plan.what)}`);

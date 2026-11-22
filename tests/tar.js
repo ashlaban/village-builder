@@ -4,7 +4,7 @@
 // BOAT.tarYears it fishes at half, BOAT.lostYears it is lost at the yearly round. Tar's need term: its worth for a house or boat due.
 // On tiny villages: one by a pine wood, one by broadleaf only.
 const VB = require('../src/load.js');
-const T = VB['sim/tar'], Drying = VB['sim/drying'], { KINDS } = VB['sim/kinds'], Projects = VB['sim/projects'];
+const T = VB['sim/tar'], { lookNow } = VB['sim/aims'], Drying = VB['sim/drying'], { KINDS } = VB['sim/kinds'], Projects = VB['sim/projects'];
 const tarpitOf = (s, id) => Projects.projectsOf(s, 'household', id).find((p) => p.what === 'tarpit') || null; // a small construction (VB-1414): not ownOf's
 const { YEAR, DAY, SEASON_DAYS } = VB['sim/rules'], { HOUSE, houseCondition, houseTarred } = VB['sim/house'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
@@ -27,19 +27,19 @@ const summer = (st, day) => { st.t = (Math.floor(st.t / YEAR) * YEAR) + (SEASON_
   check(v.wood.length > 0 && T.villageTar(st, v), 'pine in the wood: a tar village');
   const broad = make('F');
   check(broad.villages[0].wood.length > 0 && !T.villageTar(broad, broad.villages[0]), 'broadleaf only: no tar');
-  T.tarYear(broad);
+  lookNow(broad, 'tarpit');
   check(broad.households.every((h) => !tarpitOf(broad, h.id)), 'no pit without pine');
-  T.tarYear(st);
+  lookNow(st, 'tarpit');
   const diggers = st.households.filter((h) => tarpitOf(st, h.id));
   check(diggers.length === 1 && tarpitOf(st, diggers[0].id).what === 'tarpit', 'one pit begun for the village');
   const hh = diggers[0], plan = tarpitOf(st, hh.id), s = plan.steps[plan.open];
   check(st.w.biome[s.place] === VB.gen.B.PINE && v.wood.includes(s.place), 'on a pine tile of the wood');
-  T.tarYear(st);
+  lookNow(st, 'tarpit');
   check(st.households.filter((h) => tarpitOf(st, h.id)).length === 1, 'a pit begun is not begun twice');
   KINDS.tarpit.done(st, { kind: 'tarpit', site: s.place }, hh);
   check(hh.tarPit && hh.tarPit.tile === s.place && !tarpitOf(st, hh.id), 'the pit dug is the household\'s');
   check(st.record.some((e) => e.kind === 'tarPit'), 'and told');
-  T.tarYear(st);
+  lookNow(st, 'tarpit');
   check(st.households.every((h) => !tarpitOf(st, h.id)), 'a village with a pit digs no second');
 
   // burning: early summer only, while fewer barrels than kept; a tree of pine felled, a barrel through the store
@@ -89,7 +89,7 @@ const summer = (st, day) => { st.t = (Math.floor(st.t / YEAR) * YEAR) + (SEASON_
   check(!Drying.fishingPlace(st, hh, f).leaky, 'tight again');
   st.t += BOAT.lostYears * YEAR;
   check(!(Drying.fishingPlace(st, hh, f) || {}).boat, 'untarred four years: nobody fishes from it');
-  Drying.boatYear(st);
+  Drying.boatsRot(st);
   check(hh.boat === null && st.record.some((e) => e.kind === 'boatLost'), 'and the yearly round takes it away, told');
 }
 if (failed) { console.error(`tar: ${failed} failed`); process.exit(1); }

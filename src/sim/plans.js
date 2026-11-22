@@ -14,6 +14,7 @@ VB['sim/plans'] = (() => {
   const { seedNeed } = VB['sim/hunger'];
   const { rotationChoice } = VB['sim/rotations'];
   const { fieldsWanted, fieldWhy, pickField, beginField } = VB['sim/fieldplans'];
+  const { makingOf } = VB['sim/makings'];
   const Projects = VB['sim/projects'],
     { projectsOf } = Projects,
     { emit } = VB['sim/events'],
@@ -374,27 +375,41 @@ VB['sim/plans'] = (() => {
     check: (st, c) => heads(st, c) || orderWhy(st, c.target, c.args && c.args.steps),
     run: (st, c) => setOrder(st, c.target, c.args.steps),
   });
-  // project({what, tile}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
+  // project({what, tile, ...}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
   // refused while a project is under way, and under the tile's checks. The land step is the holder's rule for it (sim/plans, source
-  // 'pawn'). what 'none': the head holds off projects (its rule begins none: the land step, the boat, the tar pit); null clears that.
-  // VB-255's menu of projects adds its own whats.
+  // 'pawn'). what 'none': the head holds off projects (its rule begins none: the land step, its yearly look at a boat, a cart, a tar pit,
+  // its menu); null clears that. Any other what is a making of sim/makings (VB-678: a boat, a cart, a tar pit, a barn, a farm for the heir
+  // with args.heir), under that making's one check, the same for every head, played or not; its plan is made here.
+  const making = (what) => makingOf(what) || `there is no project ${what}`;
   register('project', {
     check: (st, c) => {
       const what = c.args && c.args.what,
         why = heads(st, c);
       if (why || what === 'none' || what === null) return why;
-      const bad = farmOf(st, c) || landWhat(what);
+      const bad = farmOf(st, c);
       if (bad) return bad;
-      const hh = st.households[c.target],
-        tile = landTile(st, hh, c.args);
+      const hh = st.households[c.target];
+      if (what !== 'field' && what !== 'meadow') {
+        const M = making(what);
+        return typeof M === 'string' ? M : M.why(st, hh, st.farmsteads[hh.farmstead], c.args);
+      }
+      const tile = landTile(st, hh, c.args);
       return tile < 0 ? `no tile within reach can be taken in for a ${what}` : landWhy(st, hh, what, tile);
     },
     run: (st, c) => {
-      const what = c.args.what;
+      const what = c.args.what,
+        hh = st.households[c.target];
       if (what === 'none' || what === null) holdProject(st, c.target, what === 'none');
-      else beginLand(st, st.households[c.target], what, landTile(st, st.households[c.target], c.args));
+      else if (what === 'field' || what === 'meadow') beginLand(st, hh, what, landTile(st, hh, c.args));
+      else beginMaking(st, hh, makingOf(what), c.args);
     },
   });
+  // A making begun (the verb project): the plan its module gives, made for the household (a small construction marked so), or begun by
+  // its module itself (heirFarm's plot, sim/expansion).
+  function beginMaking(st, hh, M, args) {
+    const p = M.begin(st, hh, st.farmsteads[hh.farmstead], args);
+    if (p) makeProject(st, 'household', hh.id, M.small ? { ...p, what: M.what, small: true } : { ...p, what: M.what });
+  }
   // The household's project of its own choosing that the verb dropProject gives up: the one of id when given (a field, a meadow, a barn, a
   // boat, a cart, a tar pit...; never a settler household's cottage), else its large project (ownOf), else the first small one under way.
   function droppable(st, hid, id) {

@@ -10,7 +10,7 @@ const { canon } = require('./lib/canon.js');
 // static: the acts a verb wraps are called only from a verb (inside a `register(` call), or inside the module that defines them (an act
 // built of others there)
 const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'carryGift', 'setRoutines', 'setGathering', 'setGoing', 'swapLoads', 'endTrust', 'holdInTrust',
-  'setTarget', 'nameTile', 'setOrder', 'holdProject', 'beginLand', 'giveUp', 'planVisit'], calls = [];
+  'setTarget', 'nameTile', 'setOrder', 'holdProject', 'beginLand', 'beginMaking', 'giveUp', 'planVisit'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
 const text = Object.fromEntries(files.map((f) => [f, readSource(f)]));
 const definedIn = Object.fromEntries(WRAPPED.map((n) => [n, files.find((f) => new RegExp(`function ${n}\\(`).test(text[f]))]));
@@ -37,6 +37,18 @@ for (const f of files) {
   });
 }
 assert.deepStrictEqual(calls, [], `acts called outside a verb: ${calls.join(', ')}`);
+// VB-678: no project by the calendar. A household's boat, cart, tar pit, barn and farm for its heir are makings (sim/makings), begun only
+// through the verb project; the only emitters of projectBegun left are a plot (sim/expansion: an heir's, through the making heirFarm, or
+// a village's, VB-673) and a claimant's restoration (sim/farmclaims' startClaim, a wrapped act); and the clock begins none.
+{
+  const emitters = files.filter((f) => /emit\(st, 'projectBegun'/.test(text[f])).sort();
+  assert.deepStrictEqual(emitters, ['src/sim/expansion.js', 'src/sim/farmclaims.js'], 'projectBegun is emitted by a verb\'s act alone');
+  const { looks, makingOf } = VB['sim/makings'];
+  assert.deepStrictEqual(looks().map((M) => M.what), ['boat', 'tarpit', 'cart'], 'the heads weigh the three small constructions');
+  assert.ok(makingOf('barn') && makingOf('heirFarm') && !makingOf('barn').look, 'the barn and the heir\'s farm are makings of the menu');
+  const notes = VB['sim/clock'].calendarRows().map((r) => r.note).join('\n');
+  assert.ok(!/begin a boat|has one dug|has one built/.test(notes), 'the calendar begins no boat, tar pit or cart');
+}
 // VB-1111: every caller of `give` is known and checked (help's near gift is fetched and its far one carried, tests/fetch.js and
 // tests/journeys.js; the page's form names its carrier or has it fetched), and settleGift is reached at one place, the last branch of
 // `deliver`, after the carried, the hauled and the fetched: a gift within one farmstead (tests/lib/invariants.js holds giftUncarried at 0)
@@ -234,8 +246,8 @@ assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
   const empty = s4.farmsteads.find((f) => f.household === null);
   const before = snap4();
   const refused = [
-    [{ actor: member, verb: 'barn', target: hh.id, args: {}, source: 'pawn' }, /not the head/],
-    [{ actor: member, verb: 'heirFarm', target: hh.id, args: { heir: member }, source: 'player' }, /not the head/],
+    [{ actor: member, verb: 'project', target: hh.id, args: { what: 'barn' }, source: 'pawn' }, /not the head/],
+    [{ actor: member, verb: 'project', target: hh.id, args: { what: 'heirFarm', heir: member }, source: 'player' }, /not the head/],
     [{ actor: member, verb: 'plotToVillage', target: hh.id, args: { plan: 0 }, source: 'pawn' }, /not the head/],
     [{ actor: hh.holder, verb: 'plotToVillage', target: hh.id, args: { plan: 0 }, source: 'construction' }, /no actor/],
     [{ actor: man.id, verb: 'marry', target: woman.id, args: { home: man.household }, source: 'player' }, /not player's to do: round or debug/],
