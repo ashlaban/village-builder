@@ -91,7 +91,7 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
 { // the due-queue opens the time-bound kinds at their hour, with no review: water from 5:00, cooking from 14:00
   const st = fresh('populous');
   const W = VB['sim/plandays'].WINDOWED;
-  assert.deepStrictEqual([...W].sort(), ['cook', 'fodder', 'haul', 'herd', 'milk', 'thresh', 'water'], 'the time-bound kinds');
+  assert.deepStrictEqual([...W].sort(), ['cook', 'fodder', 'haul', 'herd', 'milk', 'shear', 'thresh', 'water'], 'the time-bound kinds');
   assert.strictEqual(st.plans.due.length, st.liveHouseholds.length * W.length, 'one entry per household and kind');
   for (const plan of st.plans.households.values()) plan.nextReview = 1e9;
   for (const plan of st.plans.villages.values()) plan.nextReview = 1e9;

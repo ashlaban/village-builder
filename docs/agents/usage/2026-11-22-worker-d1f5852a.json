@@ -1,0 +1,118 @@
+{
+ "session": "d1f5852a-9e31-5052-b949-5355d2244423",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-22T18:32:23.905Z",
+ "end": "2026-11-22T18:46:28.342Z",
+ "wallMin": 14.1,
+ "activeMin": 14.1,
+ "prompts": 1,
+ "calls": 78,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 148,
+  "cacheWrite": 215423,
+  "cacheRead": 14212938,
+  "output": 37368
+ },
+ "context": {
+  "first": 54769,
+  "peak": 232630,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 80,
+   "bytes": 240974,
+   "seconds": 348.2
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 18,
+   "bytes": 100688
+  },
+  {
+   "tool": "Bash",
+   "what": "for t",
+   "calls": 3,
+   "bytes": 30360
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 6,
+   "bytes": 17553
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 13249
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/projects.js",
+   "calls": 1,
+   "bytes": 11473
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 9,
+   "bytes": 11042
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/projectplans.js",
+   "calls": 1,
+   "bytes": 8765
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 2,
+   "bytes": 8442
+  },
+  {
+   "tool": "Bash",
+   "what": "npm run",
+   "calls": 2,
+   "bytes": 8171
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7384
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 14,
+   "bytes": 5587
+  },
+  {
+   "tool": "Bash",
+   "what": "head -30",
+   "calls": 1,
+   "bytes": 4811
+  }
+ ],
+ "weighted": 1877561,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 1877561,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
