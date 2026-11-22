@@ -29,8 +29,16 @@ const summer = (st, day) => { st.t = (Math.floor(st.t / YEAR) * YEAR) + (SEASON_
   check(broad.villages[0].wood.length > 0 && !T.villageTar(broad, broad.villages[0]), 'broadleaf only: no tar');
   lookNow(broad, 'tarpit');
   check(broad.households.every((h) => !tarpitOf(broad, h.id)), 'no pit without pine');
+  // VB-673: the alderman charges the household with the most hands; no head begins a pit uncharged
+  lookNow(st, 'tarpit');
+  check(st.households.every((h) => !tarpitOf(st, h.id)), 'no pit before the alderman charges a household with it');
+  check(!T.chargeStep(st, v, st.households[1].holder), 'no charge by a pawn who is not the alderman');
+  VB['sim/membership'].setAlderman(st, v, st.households[1].holder);
+  check(T.chargeStep(st, v, st.households[1].holder) && v.tarBy === T.mostHands(st, v).id, 'the alderman charges the household with the most hands');
+  check(!T.chargeStep(st, v, st.households[1].holder), 'and does not charge it again');
   lookNow(st, 'tarpit');
   const diggers = st.households.filter((h) => tarpitOf(st, h.id));
+  check(diggers.length === 1 && diggers[0].id === v.tarBy, 'the household charged begins it');
   check(diggers.length === 1 && tarpitOf(st, diggers[0].id).what === 'tarpit', 'one pit begun for the village');
   const hh = diggers[0], plan = tarpitOf(st, hh.id), s = plan.steps[plan.open];
   check(st.w.biome[s.place] === VB.gen.B.PINE && v.wood.includes(s.place), 'on a pine tile of the wood');

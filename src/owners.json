@@ -162,6 +162,7 @@
     "village.aldermanFarm": "sim/membership",
     "village.keep": "sim/keep",
     "village.keepBy": "sim/keep",
+    "village.tarBy": "sim/tar",
     "village.workday": "sim/workdays",
     "village.gathering": "sim/gathering",
     "household.gathering": "sim/gathering",

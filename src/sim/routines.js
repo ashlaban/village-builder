@@ -1,18 +1,21 @@
 // @sys sim/routines: the village's routines (design.md section 7, Village routines; VB-257): the village work a meeting may choose, how
-// it chooses, the founders' first choice, the meeting's verb that sets them, and the steps the village's review takes for them (the
-// green's project, a common field's and its seed)
+// it chooses, the founders' first choice, the meeting's verb that sets them, and the steps the village's review takes for them, each
+// by its alderman at home (VB-673: the green's project and a common field's, verb layOut; the work day's call; the tar pit's charge), and
+// the common fields' seed
 VB['sim/routines'] = (() => {
   const { cal } = VB['sim/rules'];
-  const { settlement } = VB['sim/records'];
+  const { settlement, unplanned } = VB['sim/records'];
+  const { agentOf, agentWhy } = VB['sim/decisions'];
   const Stores = VB['sim/stores'],
     SEED_CROP = 'barley',
     SEED = Stores.grainGood(SEED_CROP);
   const { seedNeed } = VB['sim/hunger'];
   const { makeProject } = VB['sim/projectplans'];
-  const { register } = VB['sim/commands'];
+  const { register, issue } = VB['sim/commands'];
   const Green = VB['sim/green'],
     Workdays = VB['sim/workdays'],
-    Commons = VB['sim/commons'];
+    Commons = VB['sim/commons'],
+    Tar = VB['sim/tar'];
   // @state plan.routines (a village's; VB-257): the keys of VILLAGE_ROUTINES the village does this year, at most MAX_ROUTINES, each a source
   //   of the village's tasks (sim/jobs asks only their kinds); plan.routinesBy: how they were set, 'founded' (the founders' choice, until
   //   the first meeting), 'meeting' (the meeting decided), or, when it did not decide, its culture's practice noDecision ('nothing',
@@ -115,27 +118,70 @@ VB['sim/routines'] = (() => {
       'founded',
     );
   }
-  // A village's review: while its routines hold the green and well and it has none under way, its green's project plan is made where a
-  // tile is found (sim/green, VB-058).
-  function greenStep(st, plan) {
-    if (plan.holder.type !== 'village' || !plan.routines.includes('green')) return;
-    const v = st.villages[plan.holder.id],
-      p = Green.greenProject(st, v);
-    if (!p) return;
-    const made = makeProject(st, 'village', v.id, p);
-    if (made) Green.laidOut(st, v, made);
+  // ---- what the meeting decided, carried out by the alderman (VB-673): the routines are the meeting's decision (plan.routines, plain data
+  // set by its verb below); at the village's review its alderman, at home, begins the work they hold, each by a verb whose actor he is. With
+  // no alderman, or one away, nothing of the village's is begun and the act waits for a later review. The played pawn as alderman has the
+  // same verbs; while it is unplanned its own rule begins nothing ----
+  // The project a routine lays out for village v now, or null: the green and well (sim/green, VB-058), a common field (sim/commons, VB-100).
+  const LAYOUTS = {
+    green: { project: (st, v) => Green.greenProject(st, v), made: (st, v, p) => Green.laidOut(st, v, p) },
+    commons: { project: (st, v) => Commons.project(st, v), made: (st, v, p) => Commons.begun(st, v, p) },
+  };
+  // Why the actor may not act for village `vid` on routine `what`, or null: he is its alderman, at home, and its meeting chose the routine.
+  function routineWhy(st, c, what) {
+    const vid = c.target,
+      plan = Number.isInteger(vid) ? st.plans.villages.get(vid) : undefined;
+    if (!plan) return `village ${vid} has no plan`;
+    return (
+      agentWhy(st, vid, c.actor) ||
+      (plan.routines.includes(what) ? null : `the meeting of ${st.villages[vid].name} did not choose the ${what}`)
+    );
   }
-  // A village's review while its routines hold the commons (VB-100): a common field's project plan is made where the village would make
-  // one (sim/commons), and the village store holds back the seed of its common fields not yet sown.
-  function commonsStep(st, plan) {
+  // layOut(village, {what}) (VB-673): the alderman lays out the green and well, or a common field, where the routine has one to make.
+  register('layOut', {
+    check: (st, c) => {
+      const what = c.args && c.args.what;
+      if (!LAYOUTS[what]) return `there is nothing to lay out called ${what}`;
+      return (
+        routineWhy(st, c, what) ||
+        (LAYOUTS[what].project(st, st.villages[c.target])
+          ? null
+          : `there is no ${what} to lay out in village ${c.target}`)
+      );
+    },
+    run: (st, c) => {
+      const v = st.villages[c.target],
+        L = LAYOUTS[c.args.what],
+        made = makeProject(st, 'village', v.id, L.project(st, v));
+      if (made) L.made(st, v, made);
+    },
+  });
+  // The pawn who acts for village v now by its own rule: its alderman, at home and planned (VB-673), or null.
+  const actorFor = (st, v) => {
+    const a = agentOf(st, v.id);
+    return a !== null && !unplanned(st, a) ? a : null;
+  };
+  // A village's review while its routines hold the green and well and it has none under way: its alderman lays out its green where a
+  // tile is found (sim/green, VB-058).
+  function greenStep(st, plan, a) {
+    if (!plan.routines.includes('green')) return;
+    const v = st.villages[plan.holder.id];
+    if (Green.greenProject(st, v))
+      issue(st, { actor: a, verb: 'layOut', target: v.id, args: { what: 'green' }, source: 'pawn' });
+  }
+  // A village's review while its routines hold the commons (VB-100): its alderman lays out a common field where the village would make
+  // one (sim/commons); the village store holds back the seed of its common fields not yet sown, alderman or none (the store's own rule).
+  function commonsStep(st, plan, a) {
     if (!plan.routines.includes('commons')) return;
-    const v = st.villages[plan.holder.id],
-      p = Commons.project(st, v);
-    if (p) {
-      const made = makeProject(st, 'village', v.id, p);
-      if (made) Commons.begun(st, v, made);
-    }
+    const v = st.villages[plan.holder.id];
+    if (a !== null && Commons.project(st, v))
+      issue(st, { actor: a, verb: 'layOut', target: v.id, args: { what: 'commons' }, source: 'pawn' });
     if (Commons.fieldsOf(v).length) Stores.reserve(st, v, plan, SEED, seedNeed(st, v, SEED_CROP), 'seed');
+  }
+  // A village's review on a work day of its routines: its alderman calls the village out (sim/workdays, VB-120).
+  function workdayStep(st, plan, a) {
+    if (!plan.routines.includes('workdays') || !Workdays.dayOf(cal(st.t))) return;
+    issue(st, { actor: a, verb: 'callWorkday', target: plan.holder.id, source: 'pawn' });
   }
   // routines({routines, by}): the village's routines this year (VB-257) become args.routines, set by the meeting's decision (by
   // 'meeting') or, when it did not decide, by its culture's practice (by 'nothing' or 'asLastYear'; sim/lifecycle)
@@ -149,10 +195,15 @@ VB['sim/routines'] = (() => {
           : routinesWhy(c.args.routines)),
     run: (st, c) => setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
   });
-  // A village's review: the steps of its routines (greenStep, commonsStep).
+  // A village's review: the steps of its routines (greenStep, commonsStep, workdayStep), taken by its alderman, and his charge of the
+  // tar pit to a household (sim/tar, VB-673).
   function villageSteps(st, plan) {
-    greenStep(st, plan);
-    commonsStep(st, plan);
+    const v = st.villages[plan.holder.id],
+      a = actorFor(st, v);
+    if (a !== null) greenStep(st, plan, a);
+    commonsStep(st, plan, a);
+    if (a !== null) workdayStep(st, plan, a);
+    if (a !== null) Tar.chargeStep(st, v, a);
   }
   return {
     VILLAGE_ROUTINES,
@@ -164,5 +215,6 @@ VB['sim/routines'] = (() => {
     routineAsks,
     founded,
     villageSteps,
+    routineWhy,
   };
 })();

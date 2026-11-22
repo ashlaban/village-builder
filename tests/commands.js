@@ -489,3 +489,31 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
     console.log(dup + '|' + bad);`], { cwd: path.join(__dirname, '..'), encoding: 'utf8' });
   assert.strictEqual(fresh.stdout.trim(), 'Duplicate verb: work|Verb noRun needs a check and a run', fresh.stderr);
 }
+// VB-673: a village acts only through its alderman, a pawn at home. No command names a village as its actor, and each of the village's
+// verbs refuses the village itself, a pawn not its alderman, a vacant office and an alderman away; given by him, they are not refused
+// for who acts (only for what there is to do).
+{
+  const named = files.filter((f) => /actor:\s*\{\s*village/.test(text[f]));
+  assert.deepStrictEqual(named, [], 'no command names a village as its actor');
+  const s2 = Sim.seed(island(7), 7, 'founders'), v = s2.villages[0], Membership = VB['sim/membership'];
+  const holders = v.farmsteads.map((f) => s2.farmsteads[f].household).filter((h) => h !== null).map((h) => s2.households[h].holder);
+  assert.ok(holders.length >= 2, 'a village of two holders');
+  VB['sim/routines'].setRoutines(s2, v.id, ['green', 'workdays', 'commons'], 'meeting');
+  const acts = [
+    { verb: 'layOut', target: v.id, args: { what: 'green' } },
+    { verb: 'layOut', target: v.id, args: { what: 'commons' } },
+    { verb: 'callWorkday', target: v.id },
+    { verb: 'chargeTar', target: v.id, args: { household: s2.pawns[holders[0]].household } },
+    { verb: 'fillStore', target: v.id },
+    { verb: 'give', target: s2.pawns[holders[0]].household, args: { good: 'grain', n: 1, store: v.id } },
+  ];
+  const tryAs = (actor) => acts.map((c) => issue(s2, { ...c, actor, source: 'debug' }));
+  for (const r of tryAs({ village: v.id })) assert.ok(typeof r === 'string', `the village itself: ${r}`);
+  for (const r of tryAs(holders[1])) assert.ok(/has no alderman/.test(r), `a vacant office: ${r}`);
+  Membership.setAlderman(s2, v, holders[1]);
+  for (const r of tryAs(holders[0])) assert.ok(/is not the alderman/.test(r), `not the alderman: ${r}`);
+  s2.agents[holders[1]].away = { why: 'test' };
+  for (const r of tryAs(holders[1])) assert.ok(/is away/.test(r), `the alderman away: ${r}`);
+  delete s2.agents[holders[1]].away;
+  for (const r of tryAs(holders[1])) assert.ok(r === true || !/alderman|village gives/.test(r), `the alderman at home: ${r}`);
+}

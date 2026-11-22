@@ -22,6 +22,7 @@ VB['sim/offers'] = (() => {
   const { remember } = VB['sim/relations'];
   const { log, fullName, holdingOf, atHousehold } = VB['sim/records'];
   const { grainOf } = VB['sim/stores'];
+  const { agentWhy } = VB['sim/decisions'];
   const home = (st, id) => Number.isInteger(id) && !!st.households[id] && !st.households[id].dissolved;
   const alive = (st, id) => Number.isInteger(id) && !!st.pawns[id] && st.pawns[id].died === null;
   const onRoad = (a) => a.away !== undefined; // away from home (sim/away's agent.away, VB-783), as on the road
@@ -87,15 +88,24 @@ VB['sim/offers'] = (() => {
   }
 
   // ---- goods: what a gift or an ask names ----
+  // The store of village vid, given by `actor`, or why he may not give from it: he is its alderman, at home (VB-673).
+  function storeOf(st, actor, vid) {
+    if (!st.villages[vid]) return `there is no village ${vid}`;
+    return agentWhy(st, vid, actor) || st.villages[vid];
+  }
   // The gift a giver's actor, target and terms describe, {from, to (households or villages), good, n, source, carrier?}, or why there is
-  // none: the actor is the giving household's holder, {household} for a household without one, or {village} for its store; the target a
+  // none: the actor is the giving household's holder, {household} for a household without one, or a village's alderman, at home, for its
+  // store (args.store, the village's id; VB-673: a village never acts but through him); the target a
   // household, or {village} for the yearly filling; with a carrier (VB-291), an adult of the giving household free to set out, to another
   // farmstead (a farmstead is one place: nothing is carried within it), with at most a back-load (TRAVEL.load; VB-1111: a physical bound,
   // which help and the good-year gift already kept; a larger gift is fetched, a load a trip).
   function giftOf(st, actor, target, args, source) {
     const n = args && args.n;
     let from;
-    if (Number.isInteger(actor)) {
+    if (args && args.store !== undefined) {
+      from = storeOf(st, actor, args.store);
+      if (typeof from === 'string') return from;
+    } else if (Number.isInteger(actor)) {
       if (!alive(st, actor) || !st.agents[actor]) return `pawn ${actor} is not a living pawn`;
       from = holdingOf(st, actor);
       if (!from || from.dissolved) return `pawn ${actor} holds no household`;
@@ -103,7 +113,7 @@ VB['sim/offers'] = (() => {
       if (!home(st, actor.household)) return `there is no household ${actor.household}`;
       from = st.households[actor.household];
       if (from.holder !== null) return `household ${actor.household} gives through its holder`;
-    } else if (actor && st.villages[actor.village]) from = st.villages[actor.village];
+    } else if (actor && actor.village !== undefined) return 'a village gives through its alderman';
     else return 'there is no giver';
     const to = Number.isInteger(target)
       ? home(st, target)

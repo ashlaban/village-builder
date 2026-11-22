@@ -29,7 +29,8 @@ const gifts = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.
   // a second gift that day, from the village store, is a stop of the same journey
   const v = st.villages[0];
   Stores.put(st, v, 'grain', 20, 'harvest', { barley: 20 });
-  assert.strictEqual(issue(st, { actor: { village: v.id }, verb: 'give', target: rec.id, args: { good: 'grain', n: 15 }, source: 'help' }), true, 'the store gives');
+  VB['sim/membership'].setAlderman(st, v, giver.holder); // the store gives through its alderman (VB-673)
+  assert.strictEqual(issue(st, { actor: giver.holder, verb: 'give', target: rec.id, args: { good: 'grain', n: 15, store: v.id }, source: 'help' }), true, 'the store gives');
   assert.strictEqual(st.away.filter((x) => x.why === 'fetch').length, 1, 'one fetcher for the day\'s gifts');
   assert.strictEqual(j.gift.stops[1].at, v.center, 'the store\'s grain lies on the green');
   const e0 = rec.ledger.length;

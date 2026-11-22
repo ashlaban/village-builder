@@ -15,7 +15,7 @@ VB['sim/round'] = (() => {
   const { settleRound } = VB['sim/settle'];
   const { takeServants, serveWhereShort } = VB['sim/service'];
   const { payOwed } = VB['sim/cottage'];
-  const { fillStores } = VB['sim/help'];
+  const { callFilling } = VB['sim/help'];
   const { refreshStanding } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
   const { chooseWishes, wishOf } = VB['sim/wishes'];
@@ -188,7 +188,7 @@ VB['sim/round'] = (() => {
     if (id === played || spokesmanOf(st, id) === played || (p.ask !== undefined && p.ask !== null)) return;
     askMatch(st, id, Math.floor(now / DAY) * DAY + DAY + 12, { not });
   }
-  // A village's round (VB-277, VB-693; design.md, A village's round): its households fill its store; the played pawn's wished match
+  // A village's round (VB-277, VB-693; design.md, A village's round): its alderman calls its households to fill its store; the played pawn's wished match
   // (VB-274) is offered, the wisher's own yes given; its kin pressure; and its men who hold no offer plan a visit. The round chooses
   // nobody (principle 16): the matches were asked through the year by the spokesmen (sim/asking) and answered in the village's step
   // (answerDue: `married`, the couples it married). One walk of the pool (`roundWalk`), and no pass over pairs.
@@ -198,7 +198,7 @@ VB['sim/round'] = (() => {
     if (v === 0) refreshRoles(st);
     if (v === 0) for (const id of st.living) st.pawns[id].kinPush = null; // the living's pushes, cleared once a round
     VB['sim/keep'].round(st, v); // the alderman's keep, beside the store's quarter (VB-463)
-    fillStores(st, v);
+    callFilling(st, v); // the alderman calls the store's quarters (VB-673)
     // A pawn's wish for a match (VB-274, VB-680): false leaves it out; a partner it names is found in the walk.
     const wishers = [],
       fed = (p) => p.hunger < HUNGER.marryBelow;

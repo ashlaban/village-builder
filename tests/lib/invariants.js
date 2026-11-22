@@ -387,6 +387,10 @@ function checkState(st) {
       }
     }
   }
+  // the household charged with a village's tar pit (VB-673): none, or a household that is or was of the world
+  for (const v of st.villages)
+    if (v.tarBy !== undefined && v.tarBy !== null && !(Number.isInteger(v.tarBy) && st.households[v.tarBy]))
+      bad.push(`tar: village ${v.id} charged household ${JSON.stringify(v.tarBy)}`);
   // a village's own rite days (VB-775): three, one in each season's window of RITE.spread days after the season's day
   {
     const R = globalThis.VB['sim/rules'].RITE;
