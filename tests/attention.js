@@ -60,9 +60,9 @@ try {
   // within reach a background task is minded at its rate, in closed form, its end queued (VB-472, VB-473); a walk out of reach drops it
   A.release(st, a); walk(near); assert.strictEqual(go(bg), true);
   assert.ok(bg.rate === KINDS[bg.kind].rate && bg.due > st.tick && st.workDue.includes(bg), 'minded at the side, its end queued');
-  const was = A.doneOf(st, bg);
+  const was = VB['sim/work'].doneOf(st, bg);
   st.tick++; st.t = st.tick / TICKS; A.stepAgents(st, Sim.cal(st.t));
-  assert.ok(Math.abs(A.doneOf(st, bg) - was - KINDS[bg.kind].rate / TICKS) < 1e-9, 'a step of minding, worked out with no stepping');
+  assert.ok(Math.abs(VB['sim/work'].doneOf(st, bg) - was - KINDS[bg.kind].rate / TICKS) < 1e-9, 'a step of minding, worked out with no stepping');
   A.walkTo(st, a, far, st.w.hx[far], st.w.hy[far]); // looked at as its leg begins: it ends out of reach
   assert.strictEqual(a.side, undefined, 'out of reach, dropped'); assert.ok(isOpen(st, bg) && !st.workDue.includes(bg));
   // with no task in hand, a background task out of reach is taken up and set out for; walking into reach it is kept, unworked
@@ -70,7 +70,7 @@ try {
   assert.strictEqual(go(farBg), true); assert.strictEqual(a.side.background, farBg); assert.ok(a.path, 'it sets out');
   const before = farBg.done;
   st.tick++; st.t = st.tick / TICKS; A.stepAgents(st, Sim.cal(st.t));
-  assert.strictEqual(a.side && a.side.background, farBg, 'kept on the way'); assert.strictEqual(A.doneOf(st, farBg), before, 'not worked on the way');
+  assert.strictEqual(a.side && a.side.background, farBg, 'kept on the way'); assert.strictEqual(VB['sim/work'].doneOf(st, farBg), before, 'not worked on the way');
   assert.ok(!(farBg.rate > 0), 'no rate on the way');
   arrive();
   assert.ok(a.side && a.side.background === farBg && farBg.rate > 0, 'minded once there: looked at as its leg ends');

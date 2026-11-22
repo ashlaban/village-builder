@@ -22,32 +22,32 @@ function hoe(hh, fieldIx, hands) {
   for (const a of ags) { A.release(st, a); j.claims.push(a.id); a.job = j; a.phase = 'go'; a.path = null; a.inside = false; A.arrived(st, a); }
   return { j, ags };
 }
-const rate = (a) => A.rateOf(st, st.pawns[a.id]) * (a.pace ?? 1); // the hand's rate over its work leg: skill and mishap (VB-475)
+const rate = (a) => VB['sim/work'].rateOf(st, st.pawns[a.id]) * (a.pace ?? 1); // the hand's rate over its work leg: skill and mishap (VB-475)
 const adults = (hh) => hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 14);
 let { j, ags } = hoe(withT, 0, adults(withT).slice(0, 2));
-check(A.withOxen(st, ags[0]) && !A.withOxen(st, ags[1]), 'the team is not with the first hand only');
+check(VB['sim/work'].withOxen(st, ags[0]) && !VB['sim/work'].withOxen(st, ags[1]), 'the team is not with the first hand only');
 const want = rate(ags[0]) * T.rate + rate(ags[1]);
 check(Math.abs(j.rate - want) < 1e-9, `with oxen: ${j.rate.toFixed(4)} hours an hour, wanted ${want.toFixed(4)}`);
 check(Sim.describe(st, ags[0].id) === 'Ploughing with the oxen' && Sim.describe(st, ags[1].id) === 'Hoeing a field', 'the pawn panel lines');
 // a second field: the team stays in the first
 const second = hoe(withT, 1, adults(withT).slice(2, 3));
-if (second.ags.length) check(!A.withOxen(st, second.ags[0]), 'the team in two fields at once');
+if (second.ags.length) check(!VB['sim/work'].withOxen(st, second.ags[0]), 'the team in two fields at once');
 // a household without a team hoes by hand
 const other = hoe(without, 0, adults(without).slice(0, 1));
-check(Math.abs(other.j.rate - rate(other.ags[0])) < 1e-9 && !A.withOxen(st, other.ags[0]), 'oxen for a household without a team');
+check(Math.abs(other.j.rate - rate(other.ags[0])) < 1e-9 && !VB['sim/work'].withOxen(st, other.ags[0]), 'oxen for a household without a team');
 // the team goes to the field: the first job ends, the second job's first hand takes the oxen
 for (const a of ags) A.release(st, a);
-if (second.ags.length) check(A.withOxen(st, second.ags[0]), 'the team does not move to the next field');
+if (second.ags.length) check(VB['sim/work'].withOxen(st, second.ags[0]), 'the team does not move to the next field');
 if (second.ags.length) check(Math.abs(second.j.rate - rate(second.ags[0]) * T.rate) < 1e-9, `the next field's rate ${second.j.rate} is not reckoned with the team`);
 // VB-472: the first task's work done (not its hands let go), the next task takes the team at once, from that step
 for (const q of [j, second.j]) { for (const id of [...q.claims]) A.release(st, st.agents[id]); A.dropJob(st, q); }
 {
   const two = adults(withT).slice(0, 2), first = hoe(withT, 0, two.slice(0, 1)), next = hoe(withT, 1, two.slice(1, 2));
-  check(first.j.id < next.j.id && A.withOxen(st, first.ags[0]) && !A.withOxen(st, next.ags[0]), 'the team is with the first task');
+  check(first.j.id < next.j.id && VB['sim/work'].withOxen(st, first.ags[0]) && !VB['sim/work'].withOxen(st, next.ags[0]), 'the team is with the first task');
   check(Math.abs(next.j.rate - rate(next.ags[0])) < 1e-9, `the next task is rated with the team while the first holds it (${next.j.rate})`);
   first.j.done = first.j.hours ?? Sim.KINDS.plow.hours;
   A.complete(st, first.ags[0]);
-  check(A.withOxen(st, next.ags[0]) && Math.abs(next.j.rate - rate(next.ags[0]) * T.rate) < 1e-9,
+  check(VB['sim/work'].withOxen(st, next.ags[0]) && Math.abs(next.j.rate - rate(next.ags[0]) * T.rate) < 1e-9,
     `the team is not handed on as the first task ends (rate ${next.j.rate}, wanted ${rate(next.ags[0]) * T.rate})`);
 }
 

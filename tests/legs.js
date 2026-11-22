@@ -60,9 +60,9 @@ for (let k = 0; k < DAYS * DAY * TICKS; k++) {
     else if (rec.at !== j.at) n.reckoned++;
     seen.set(j, { due: j.due, done: j.done, at: j.at });
     // the progress now is the last reckoning's, and the hours since at its rate, below the task's hours
-    const want = Math.min(hoursOf(j), j.done + ((st.tick - j.at) / TICKS) * j.rate), e = Math.abs(A.doneOf(st, j) - want);
+    const want = Math.min(hoursOf(j), j.done + ((st.tick - j.at) / TICKS) * j.rate), e = Math.abs(VB['sim/work'].doneOf(st, j) - want);
     worst.done = Math.max(worst.done, e);
-    if (e > 1e-9 || !(A.doneOf(st, j) <= hoursOf(j))) n.doneBad++;
+    if (e > 1e-9 || !(VB['sim/work'].doneOf(st, j) <= hoursOf(j))) n.doneBad++;
   }
   // the queue holds no more than the living, each once
   if (st.legDue.length > st.living.length) n.overdue++;

@@ -4,16 +4,8 @@ VB['sim/agents'] = (() => {
   const { living } = VB['sim/records'];
   const { isOpen } = VB['sim/kinds'];
   const { register } = VB['sim/commands'];
-  const { next: rnd } = VB['sim/rng'];
-  const { cal, DAY, TICKS, WORK, HUNGER, HEALTH, HERD, TRAVEL } = VB['sim/rules'],
-    { workRate } = VB['sim/roles'];
-  const HANDS = VB['sim/rules'].AGES.hands;
-  const { age } = VB['sim/records'];
-  const { hexSteps } = VB['sim/hex'];
+  const { cal, DAY, TICKS, WORK, TRAVEL } = VB['sim/rules'];
   const { eligible } = VB['sim/eligibility'];
-  const Days = VB['sim/days'],
-    { book: bookHours } = VB['sim/fields'];
-  const { hasTeam } = VB['sim/herds'];
   const Carts = VB['sim/carts'];
   const { driveHome } = VB['sim/grazing'];
   const { workedTogether } = VB['sim/relations'];
@@ -21,12 +13,24 @@ VB['sim/agents'] = (() => {
   const { finishStep } = VB['sim/expansion'];
   const { worked: prospected } = VB['sim/prospect'];
   const { KINDS } = VB['sim/kinds'],
-    Progress = VB['sim/progress'],
-    { workTick } = Progress;
+    { workTick } = VB['sim/progress'];
   const Lying = VB['sim/lying'];
-  const Due = VB['sim/due'];
   const Skills = VB['sim/skills'];
   const { tileAt, here, endTile, placeOf } = VB['sim/pose'];
+  const {
+    attentionOf,
+    inReach,
+    manning,
+    settle,
+    rerate,
+    retune,
+    dequeue,
+    teamKind,
+    ownerKey,
+    withOxen,
+    teamFree,
+    dueWork,
+  } = VB['sim/work'];
   const { legsOf, waitLeg, roadWait, unleg, halt, begin, repace, setOut, putAt, workAt, walked, dueLegs } =
     VB['sim/legs'];
   // the spot by the door of the house on tile `house`, where pawn a would stand
@@ -112,16 +116,13 @@ VB['sim/agents'] = (() => {
     a.phase = 'go';
     walkTo(st, a, j.site, x, y);
   }
-  // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
-  const ownerKey = (o) => `${o.type}:${o.id}`;
   function dropJob(st, j) {
     // those holding it at the side let it go at once (VB-473: a herder's task taken down)
     for (const id of [...(j.claims || [])]) {
       const b = st.agents[id];
       if (b && b.side && (b.side.partial === j || b.side.background === j)) unhold(st, b, j);
     }
-    unqueue(st, j);
-    j.due = null;
+    dequeue(st, j);
     if (st.jobs.get(j.key) === j) st.jobs.delete(j.key);
     const s = j.owner && st.jobsBy.get(ownerKey(j.owner));
     if (s) s.delete(j);
@@ -192,10 +193,7 @@ VB['sim/agents'] = (() => {
   // @state agent.side: absent, or {partial, background}: the jobs the pawn holds besides its task, each a job of st.jobs listing the pawn
   //   among its workers (j.claims), or null; absent when it holds none. A kind's attention is `full` (the default), `partial` or `background`
   //   (sim/kinds): a background task is done at the side at the kind's `rate` of the pawn's hours, while the pawn is within `reach` steps of it.
-  const attentionOf = (j) => KINDS[j.kind].attention || 'full';
   const heldAt = (a, slot) => (a.side ? a.side[slot] : null);
-  // The held task a is within reach of from tile `at`, or beyond it (a background task only).
-  const inReach = (st, j, at) => at >= 0 && hexSteps(st.w, at, j.site) <= KINDS[j.kind].reach;
   // Why the pawn may not hold side task j now, or null: its slot is taken, it is no side kind, or a background task out of reach of the
   // pawn, or of its full task's site (a full task never takes a background one out of reach). A pawn with no task in hand may take a
   // background task out of its reach: it sets out for it (VB-136: the herder takes the herds to their pasture).
@@ -273,17 +271,8 @@ VB['sim/agents'] = (() => {
   }
   // The background task j is due (dueWork): its first holder lets it go, its kind's `done` runs for that holder's household, and the task
   // is taken down (the others let it go there); that holder, if it stands idle outdoors, goes home.
-  function sideEnded(st, j) {
-    let a = null;
-    for (const id of j.claims) if (heldAt(st.agents[id], 'background') === j && (!a || id < a.id)) a = st.agents[id];
-    if (!a) {
-      unqueue(st, j);
-      j.rate = 0;
-      j.due = null;
-      return;
-    }
+  function sideEnded(st, j, a) {
     const K = KINDS[j.kind];
-    if (j.done < hoursOfJob(j)) j.done = hoursOfJob(j); // the due step's work finishes it (rounding)
     unhold(st, a, j);
     if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t));
     prospected(st, a.id, here(st, a), j.hours ?? K.hours);
@@ -432,212 +421,6 @@ VB['sim/agents'] = (() => {
     walkTo(st, a, to, x, y);
     a.phase = 'home';
   }
-  // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
-  const rateOf = (st, p) =>
-    workRate(p.role, age(st, p)) * (1 - HUNGER.slow * p.hunger) * (1 - (HEALTH.slow * (100 - p.health)) / 100);
-  // The pawn drives the household's oxen (VB-138): it is the first hand on the household's earliest hoeing or breaking job that has hands,
-  // and the household has a team. Derived each time, so the team is never in two fields.
-  function withOxen(st, a) {
-    const j = a.job;
-    if (
-      !j ||
-      a.phase !== 'work' ||
-      j.claims[0] !== a.id ||
-      j.owner.type !== 'household' ||
-      !HERD.team.kinds.includes(j.kind)
-    )
-      return false;
-    let first = null;
-    for (const q of st.jobsBy.get(ownerKey(j.owner)) || [])
-      if (HERD.team.kinds.includes(q.kind) && q.claims.length && (!first || q.id < first.id)) first = q;
-    return first === j && hasTeam(st, st.households[j.owner.id]);
-  }
-  // The household's team may draw the ox cart: it has a team, at no plough and with no other cart on the road (VB-335; sim/carts).
-  function teamFree(st, hh) {
-    if (!hasTeam(st, hh) || Carts.oxOut(st, hh)) return false;
-    for (const id of hh.members) if (withOxen(st, st.agents[id])) return false;
-    return true;
-  }
-  // ---- work as a block (VB-472; design.md section 7, A leg, and its end; docs/review-blocks.md, step 2): a worker is not stepped ----
-  // @state job.done, job.at, job.rate: the task's hours done when it was last reckoned, the tick it was reckoned at, and the hours of work
-  //   its hands at work (or a background task's holders minding it) do together in a game hour since; its progress now is
-  //   done + rate × the hours since (doneOf; sim/progress holds its closed form, read by every other module). Reckoned, and its end queued again, when a
-  //   hand joins or leaves, when a hand's rate may have changed (after the meal; an ox team gone to another task), at the end of work, at
-  //   its end, and at a cut. `done` is exact while no hand is at work, and below the task's hours otherwise. at and rate are absent until the
-  //   task is first reckoned. Written only here; plain data, saved.
-  // @state job.due: the tick at whose step the task's work is done, as last reckoned, or null with no hands at work (absent until reckoned).
-  // @state st.workDue: the tasks under work (full attention with a hand at work, or background with a holder minding it; rate > 0), each
-  //   once, sorted by due, then id: a due-queue (Rules for cost 4), bounded by the tasks under work; plain data, saved; absent until the
-  //   first. A step takes what is due (dueWork) and nothing else.
-  // A step's work is done as the step's legs begin to be taken (stepAgents, dueWork): the tick up to which the hands have worked, so a hand
-  // leaving at the calendar's hour (before the legs) does not work that step, and one joining in or after them works from the next. Between
-  // steps (a fresh or a loaded run, st.stepAt absent or both its marks at the tick) the step now has been worked.
-  // @state agent.pace (VB-475): the hand's pace over its work leg, a multiplier on its rate (rateOf) at full attention: its skill at the
-  //   kind's type of work and the leg's mishap (sim/skills legPace), drawn as the work leg begins (arrived); read only while it is at
-  //   work; absent until its first work leg (it reads 1). Written only here.
-  const hoursOfJob = (j) => j.hours ?? KINDS[j.kind].hours;
-  const atWork = (st, j, id) => {
-    const b = st.agents[id];
-    return b.job === j && b.phase === 'work';
-  };
-  // A holder minds its background task while it stands free (where it last stood was in reach), stands at other work within reach, or
-  // walks a leg that begins and ends within reach; one walking into reach keeps it, unworked (sideCheck lets go one walking out of reach).
-  // Constant over a leg, so the task's rate is told again only as its holders' legs begin and end.
-  function minding(st, b, j) {
-    if (!b.side || b.side.background !== j) return false;
-    const l = b.leg;
-    if (b.path && l && l.kind === 'walk') return inReach(st, j, tileAt(st, l.x, l.y)) && inReach(st, j, endTile(st, b));
-    return b.phase === null || inReach(st, j, tileAt(st, b.x, b.y));
-  }
-  // The hours of work j's hands do together in a game hour now: rateOf, the ox team and the cart's part in carting (a hand at carting
-  // takes a free cart as it is reckoned, as it did each step); a background task's kind rate for each holder minding it. `take` false
-  // reads only.
-  function manning(st, j, take = false) {
-    const K = KINDS[j.kind];
-    let rate = 0;
-    if (attentionOf(j) !== 'full') {
-      if (attentionOf(j) === 'background')
-        for (const id of j.claims || []) if (minding(st, st.agents[id], j)) rate += K.rate;
-      return rate;
-    }
-    for (const id of j.claims || []) {
-      if (!atWork(st, j, id)) continue;
-      const a = st.agents[id],
-        hh = K.carted ? st.households[st.pawns[id].household] : null;
-      rate +=
-        rateOf(st, st.pawns[id]) *
-        (a.pace ?? 1) *
-        (withOxen(st, a) ? HERD.team.rate : 1) *
-        (hh ? (take ? Carts.carting : Carts.cartingRate)(st, hh, id, teamFree(st, hh)) : 1);
-    }
-    return rate;
-  }
-  // The task's progress brought up to tick t (the hands' work so far, at the rate last reckoned), with its kind's `worked` for each hand
-  // at work (a background task's once) over the hours since, and a plot's hours by pawn. Before its hands change.
-  function settle(st, j, t = workTick(st)) {
-    if (j.at === undefined || j.at === null) {
-      j.at = t;
-      j.rate = 0;
-      return;
-    }
-    if (!(t > j.at)) return;
-    const dt = (t - j.at) / TICKS,
-      from = j.done;
-    j.at = t;
-    if (!(j.rate > 0)) return;
-    VB.count.workReckon++;
-    const K = KINDS[j.kind];
-    j.done = from + dt * j.rate;
-    if (attentionOf(j) !== 'full') {
-      if (K.worked) K.worked(st, j, dt, null, from);
-      return;
-    }
-    for (const id of j.claims) {
-      if (!atWork(st, j, id)) continue;
-      if (K.worked) K.worked(st, j, dt, st.agents[id], from);
-      if (j.plot) j.plot.hours[id] = (j.plot.hours[id] || 0) + dt;
-      countWork(st, id, dt, t);
-      if (j.field && j.farm) bookHours(j.field, st.pawns[id].household === j.farm.household, dt); // VB-462: the class reads it
-      if (st.agents[id].basis === 'owed') Days.worked(st, id, dt);
-    }
-  }
-  // @state household.workHours (VB-255): [season (year * 4 + season of cal, of the hours counted), hours, last]: the hours its working hands
-  //   (Traits' hands: 14 to 59, not retired) worked at full attention on any task this season, and `last` those of the season before (0
-  //   when that season was not the one before); absent until its first hour of work. Counted as a task's work is reckoned (settle), so it
-  //   costs an addition a hand; read by sim/aims (idleShare) at a head's review. Written only here.
-  function countWork(st, id, dt, t) {
-    const p = st.pawns[id],
-      hh = p.household === null ? null : st.households[p.household];
-    if (!hh || p.retired || p.age < HANDS[0] || p.age >= HANDS[1]) return;
-    const c = cal(t / TICKS),
-      key = c.year * 4 + c.season,
-      W = hh.workHours;
-    if (!W) hh.workHours = [key, dt, 0];
-    else if (W[0] === key) W[1] += dt;
-    else {
-      W[2] = W[0] === key - 1 ? W[1] : 0;
-      W[0] = key;
-      W[1] = dt;
-    }
-  }
-  const teamKind = (j) => j.owner && j.owner.type === 'household' && HERD.team.kinds.includes(j.kind);
-  // The rate after the hands changed (settle first), and the end queued again; the household's other tasks under the ox team are
-  // reckoned again too, as the team goes to its earliest task with hands (withOxen).
-  function rerate(st, j, others = true) {
-    if (j.at === undefined || j.at === null) settle(st, j);
-    j.rate = manning(st, j, true);
-    queue(st, j);
-    if (!others || !teamKind(j)) return;
-    for (const q of st.jobsBy.get(ownerKey(j.owner)) || [])
-      if (q !== j && q.rate > 0 && teamKind(q)) {
-        settle(st, q);
-        rerate(st, q, false);
-      }
-  }
-  // The ox team or a cart of household hh is free again (a team task dropped, a cart home or left): its tasks under work that the team or
-  // a cart speeds are reckoned again, so the next takes them up at once, as the stepping did at its next step.
-  function retune(st, hh) {
-    if (!hh || hh.dissolved) return;
-    for (const q of [...(st.jobsBy.get(`household:${hh.id}`) || [])])
-      if (q.rate > 0 && (teamKind(q) || KINDS[q.kind].carted)) {
-        settle(st, q);
-        rerate(st, q, false);
-      }
-  }
-  // st.workDue's order (sim/due): by the job's due step, then its id.
-  const jobDue = (j) => j.due,
-    jobId = (j) => j.id;
-  function unqueue(st, j) {
-    const q = st.workDue;
-    if (!q || j.due === null || j.due === undefined) return;
-    Due.remove(q, j, j.due, j.id, jobDue, jobId);
-  }
-  // The task's end from its progress and rate: the step whose work finishes it (whole steps: the clock stands), into the queue.
-  function queue(st, j) {
-    unqueue(st, j);
-    if (!(j.rate > 0)) {
-      j.due = null;
-      return;
-    }
-    const left = hoursOfJob(j) - j.done;
-    j.due = j.at + Math.max(1, Math.ceil((left / j.rate) * TICKS - 1e-7));
-    const q = st.workDue || (st.workDue = []);
-    Due.insert(q, j, j.due, j.id, jobDue, jobId);
-  }
-  // Every task under work reckoned now (the end of work, after the meal: a hand's rate may have changed).
-  function reckonAll(st) {
-    for (const j of [...(st.workDue || [])]) {
-      settle(st, j);
-      rerate(st, j, false);
-    }
-  }
-  // The job's hours done now, worked out from its last reckoning with no stepping.
-  const doneOf = (st, j) => Progress.doneOf(st, j, hoursOfJob(j));
-  // The tasks whose end is due at this step (stepAgents, as its legs begin to be taken): each is reckoned and ended by its first hand at
-  // work, a background task by its first holder (sideEnded).
-  function dueWork(st) {
-    const q = st.workDue;
-    while (q && q.length && q[0].due <= st.tick) {
-      const j = q[0];
-      settle(st, j);
-      if (attentionOf(j) === 'background') {
-        sideEnded(st, j);
-        if (q[0] === j && j.due <= st.tick) unqueue(st, j); // a guard: an end never waits on itself
-        continue;
-      }
-      const id = j.claims.find((x) => atWork(st, j, x));
-      if (id === undefined) {
-        q.shift();
-        j.rate = 0;
-        j.due = null;
-        continue;
-      }
-      if (j.done < hoursOfJob(j)) j.done = hoursOfJob(j); // the due step's work finishes it (rounding)
-      ended(st, st.agents[id]);
-      if (q[0] === j && j.due <= st.tick) unqueue(st, j); // a guard: an end never waits on itself
-    }
-  }
-  // The work of a's task is done (dueWork): its load is taken home, it cuts another, or the task is complete.
   function ended(st, a) {
     const j = a.job,
       K = KINDS[j.kind];
@@ -754,7 +537,7 @@ VB['sim/agents'] = (() => {
           out.push(a);
         }
       };
-    dueWork(st);
+    dueWork(st, ended, sideEnded);
     if (st.tick % (DAY * TICKS) === WORK[0] * TICKS) dayStart(st, c, offer);
     dueLegs(st, (st, a, l) => {
       if (l.kind === 'walk') walkEnd(st, a, l);
@@ -777,7 +560,7 @@ VB['sim/agents'] = (() => {
   function loaded(st) {
     st.stepAt = { moving: st.tick, walked: st.tick };
     for (const a of st.agents) if ('work' in a) delete a.work;
-    for (const j of st.away || []) delete j.due;
+    for (const stay of st.away || []) delete stay.due; // lint-allow: owner a stay of sim/away in a save made before VB-473 loses its due
     legsOf(st);
     for (const j of st.jobs.values()) {
       delete j.cast;
@@ -957,7 +740,6 @@ VB['sim/agents'] = (() => {
   });
   return {
     free,
-    ownerKey,
     dropJob,
     homeSpot,
     placeAtHome,
@@ -976,16 +758,11 @@ VB['sim/agents'] = (() => {
     wantsWork,
     arrived,
     goHome,
-    rateOf,
-    withOxen,
     standStill,
-    doneOf,
-    reckonAll,
     loaded,
     stepAgents,
     rest,
     describe,
-    attentionOf,
     heldAt,
     sideWhy,
     offerWhy,

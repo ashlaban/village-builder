@@ -58,7 +58,7 @@ const HINTS = {
   'sim/help': { from: 'household', to: 'household', a: 'pawn' }, 'sim/herds': { from: 'household', to: 'household', dest: 'herd', ramHerd: 'herd' },
   'sim/heirs': { from: 'household', to: 'household', old: 'household', family: 'local' }, 'sim/heirranking': { asked: 'local' }, 'sim/relations': { g: 'agent', s: 'agent.talk', r: 'pawn.rel[]' },
   'sim/claims': { c: 'claim', r: 'local' }, 'sim/trust': { t: 'st.trusts' }, 'sim/offers': { o: 'st.offers' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
-  'sim/commands': { q: 'pawn' }, 'sim/notable': { from: 'local' }, 'sim/agents': { g: 'agent' }, 'sim/away': { g: 'local', rest: 'local' }, 'sim/expansion': { live: 'local', walls: 'plan.steps[]' }, 'sim/building': { walls: 'plan.steps[]' }, // a plot's walls step (VB-1407)
+  'sim/commands': { q: 'pawn' }, 'sim/notable': { from: 'local' }, 'sim/agents': { g: 'agent', stay: 'st.away[]' }, 'sim/away': { g: 'local', rest: 'local' }, 'sim/expansion': { live: 'local', walls: 'plan.steps[]' }, 'sim/building': { walls: 'plan.steps[]' }, // a plot's walls step (VB-1407)
   'sim/pot': { units: 'local' },
   'sim/fair': { l: 'local', x: 'local' }, 'sim/larder': { lots: 'local', by: 'local' }, // a dealer's load and its lots, inside pawn.load and written only by sim/fair (VB-302)
   'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/meetings': { people: 'local' }, 'sim/plans': { T: 'plan.targets' }, 'sim/aims': { A: 'plan.aim', B: 'plan.aim' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {

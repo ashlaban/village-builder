@@ -107,6 +107,7 @@
     "agency": [
       "sim/pose",
       "sim/legs",
+      "sim/work",
       "sim/agents",
       "sim/away",
       "sim/gifts",
