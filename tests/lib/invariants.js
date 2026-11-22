@@ -59,6 +59,11 @@ function checkState(st) {
       if (JSON.stringify([...was.widowed].sort((a, b) => a - b)) !== JSON.stringify([...fresh.widowed].sort((a, b) => a - b))) bad.push('idx.widowed: differs from the index built afresh');
     }
   }
+  // VB-239: no movement of nothing is recorded: no ledger entry or yearly total moves 0
+  for (const h of [...st.households, ...st.villages]) {
+    const zero = (h.ledger || []).find((e) => e.n === 0) || (h.totals || []).find((e) => e.n === 0 && e.count === 1);
+    if (zero) bad.push(`ledger: ${h.center ? 'village' : 'household'} ${h.id} records a movement of nothing (${zero.kind})`);
+  }
   // VB-354: the seasons' weather: one or two years, oldest first and consecutive, the last no later than this year (a test that sets the
   // clock jumps past the seasons' draws); at most four seasons each, warmth
   // and wetness in -1 to 1, the thaw a spring day of 0 to 3 and the frost an autumn day of 7 to 11
