@@ -1,0 +1,123 @@
+{
+ "session": "4b996fe3-47d3-5993-82a6-e8f7e48c9cd1",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-22T19:27:28.683Z",
+ "end": "2026-11-22T19:44:39.964Z",
+ "wallMin": 17.2,
+ "activeMin": 17.2,
+ "prompts": 4,
+ "calls": 97,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 188,
+  "cacheWrite": 173792,
+  "cacheRead": 17593241,
+  "output": 51730
+ },
+ "context": {
+  "first": 84792,
+  "peak": 237564,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 98,
+   "bytes": 212743,
+   "seconds": 396.7
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 47,
+   "seconds": 0
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 19,
+   "bytes": 80118
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 11,
+   "bytes": 28021
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 4,
+   "bytes": 21668
+  },
+  {
+   "tool": "Bash",
+   "what": "for t",
+   "calls": 2,
+   "bytes": 14777
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/projectplans.js",
+   "calls": 1,
+   "bytes": 10168
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 17,
+   "bytes": 7192
+  },
+  {
+   "tool": "Bash",
+   "what": "cat backlog/VB-1172.md",
+   "calls": 1,
+   "bytes": 6322
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 2,
+   "bytes": 5419
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 5270
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 7,
+   "bytes": 3791
+  },
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 1,
+   "bytes": 3514
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 1,
+   "bytes": 3068
+  }
+ ],
+ "weighted": 2235402,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2235402,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
