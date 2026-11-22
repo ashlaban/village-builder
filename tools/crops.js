@@ -3,7 +3,8 @@
 // run, one per core, each sampled at the start of summer (the fields sown with each crop: barley and peas sown in spring, rye standing from
 // the autumn before) and at the year's end (each farm's harvest by crop from its ledger, its food by source, its hunger, the crops it holds).
 // Printed, a scenario at a time (years from 3 on, the start settled):
-//   - rations a household-year by source (grain by crop net of seed, milk, butter, meat, as tools/balance.js) against need;
+//   - rations a household-year by source (grain by crop net of seed, milk, butter, meat, as tools/balance.js) against need (made over
+//     need: the sum of the rations over the sum of the need, not a mean of each household's ratio, which small households swing);
 //     household-years with any hungry day and with more than 30% of their days hungry (the bands' share)
 //   - fields, fallow fields and soil a farm, by rotation; the share of farms by rotation at years 1, 10, 20, 30 (and 50)
 //   - the crops held on the island and in each village (a field's seed or more in a store, or a field under the crop) at the start and
@@ -108,11 +109,11 @@ function report(name, runs) {
   const hungry = (l) => ({ n: l.length, any: r2(100 * l.filter((x) => x.hungry > 0).length / l.length), over30: r2(100 * l.filter((x) => x.hungry > HUNGRY_SHARE * YEAR_DAYS).length / l.length), count: l.filter((x) => x.hungry > HUNGRY_SHARE * YEAR_DAYS).length, anyCount: l.filter((x) => x.hungry > 0).length });
   const rations = { householdYears: hy.length, ...Object.fromEntries(CROP.map((k) => [k, r2(mean(hy, (x) => x.grain[k] || 0))])),
     milk: r2(mean(hy, (x) => x.milk)), butter: r2(mean(hy, (x) => x.butter)), meat: r2(mean(hy, (x) => x.meat)), need: r2(mean(hy, (x) => x.need)),
-    madeOverNeed: r2(mean(hy, (x) => food(x) / Math.max(1, x.need))), hungry: hungry(hy) };
+    madeOverNeed: r2(sum(hy, food) / sum(hy, (x) => x.need)), hungry: hungry(hy) };
   const rot = {};
   for (const x of hy) { if (!x.rotation) continue; (rot[x.rotation] || (rot[x.rotation] = [])).push(x); }
   const byRotation = Object.fromEntries(Object.entries(rot).map(([k, l]) => [k, { farmYears: l.length, fields: r2(mean(l, (x) => x.fields)), fallow: r2(mean(l, (x) => x.fallow)),
-    soil: r2(mean(l, (x) => x.soil)), madeOverNeed: r2(mean(l, (x) => food(x) / Math.max(1, x.need))), hungry: hungry(l) }]));
+    soil: r2(mean(l, (x) => x.soil)), madeOverNeed: r2(sum(l, food) / sum(l, (x) => x.need)), hungry: hungry(l) }]));
   const at = [1, 10, 20, 30, 50].filter((y) => y <= runs[0].years);
   const shareOverTime = Object.fromEntries(at.map((y) => {
     const l = runs.flatMap((r) => (r.samples[y] ? r.samples[y].rows : [])).filter((x) => x.rotation), c = {};
