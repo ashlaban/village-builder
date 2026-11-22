@@ -72,6 +72,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   ones `st.obligationsBy`, read through `due(st, party, as, kind)`. Write only through `create`, `fulfil` (goods through `sim/stores`),
   `forgive`, `lapse` and `transfer`; `step` touches only those whose term has ended. A new kind is a row of `KINDS` (its term). The
   first kind is the heirs' share still owed: made by `sim/heirs` (`oweShare`), paid at the moving round by `sim/cottage` (`payOwed`).
+- The climate by latitude (VB-807): `src/sim/climate.js`, the world layer's climate (target-v2 4.2): a world's latitude (`w.lat`, chosen at
+  generation), its three bands of rows, the year's curve a band, the winter's dates reckoned on autumn day 1 and taken from a due-queue
+  (`st.climate`), and how far a world's thaw and frost lie from the middle world's. The weather draws about this normal; this module is the normal.
 - The seasons' weather (VB-354): `src/sim/weather.js`, the world layer's climate until the weather branch answers the same question a
   region (target-v2 4.2), owns `st.weather`: this year's and last year's seasons, each `[warmth, wetness]` in -1 to 1 drawn from the
   `weather` stream as the season begins (`seasonBegins`, first in the calendar), with the year's thaw (a spring sday) and first frost (an
