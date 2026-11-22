@@ -1,5 +1,6 @@
 // @sys sim/help: food help between households: whom a hungry household asks (kin, then the village store), for how much and when (once a
-// season, until the harvest), and the village store's yearly filling; each gift is a command `give`, settled by sim/exchange (VB-216)
+// season, until the harvest), and the village store's yearly filling, called by its alderman; each gift is a command `give`, settled by
+// sim/exchange (VB-216); the store gives and is filled only through its alderman at home (VB-673)
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // read at each call: tools/store-flows.js caps the yearly filling by replacing it
   const { AGES, HELP, YEAR, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];

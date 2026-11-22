@@ -64,7 +64,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   the household's stock and the time to harvest.
 - Fresh food and the pot (VB-119): `src/sim/pot.js` owns `household.fresh` (fish and gathered food in batches by day, lost past their shelf life when the store is next touched) and cooks the pot (fresh food, dried fish in winter, grain, and the seed a short household would eat, VB-388; a pot of several sources goes further), moving food through `sim/stores`; `sim/drying` lays the catch for the pot beyond what is eaten before it spoils by the rack (VB-388).
 - The hand quern (VB-009): `src/sim/quern.js` owns `household.quern` (`{rock, made}`, worn out `QUERN.years` after `made`, read in closed form), grinds grain to `household.flour` (a store of `sim/stores`) and hews a new quern from a load of the heap (`grind`, `hewQuern`); the pot cooks flour 1:1 and grain unground at `ECON.unground`; the quern is a good of the fair (worth 25).
-- Tar (VB-301): `src/sim/tar.js` owns `household.tarPit` (`{tile, village, built}`, a pit dug as a household project plan on the first pine tile of the village's wood, one a village, the making `tarpit` a head of the village's most hands begins at its yearly look from summer, VB-678) and `farmstead.tarredUntil`; the reach test is pine standing in the village's wood (`pineTile`); burning (`burntar`, early summer, 12 hours, one pine tree felled) puts a barrel into `household.tar` (a store of `sim/stores`), and `tarhouse` and `tarboat` spend one on the house or the boat (`sim/drying` keeps `household.boat.tarred`: leaky after `BOAT.tarYears`, lost after `BOAT.lostYears`); tar's term of the rule `need`.
+- Tar (VB-301): `src/sim/tar.js` owns `household.tarPit` (`{tile, village, built}`, a pit dug as a household project plan on the first pine tile of the village's wood, one a village, the making `tarpit` the head of the household its alderman charged (`village.tarBy`, the verb `chargeTar`, by most hands; VB-673) begins at its yearly look from summer, VB-678) and `farmstead.tarredUntil`; the reach test is pine standing in the village's wood (`pineTile`); burning (`burntar`, early summer, 12 hours, one pine tree felled) puts a barrel into `household.tar` (a store of `sim/stores`), and `tarhouse` and `tarboat` spend one on the house or the boat (`sim/drying` keeps `household.boat.tarred`: leaky after `BOAT.tarYears`, lost after `BOAT.lostYears`); tar's term of the rule `need`.
   Meals are cooked by `cook` from a food of `FOODS` (`src/sim/rules.js`), by its worth in rations (VB-259).
   Call operations with a good and a reason; signed ledger entries distinguish goods and pawn stakes.
 - Obligations (VB-310): `src/sim/obligations.js` owns every explicit claim, `st.obligations` (by id: kind, debtor and creditor as party
@@ -256,12 +256,14 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Decisions (VB-313; target-v2 4.5): `src/sim/decisions.js` settles a body's question with several voices. The module that poses a kind
   registers it at load (`defineKind(kind, {procedure, evaluate, fallback, choose?})`); `ask(st, question)` runs the body's procedure
   (`procedureFor`: `vote` or `agent`) and keeps a contested question's ballots in `st.decisionLog` (the last 30). A tie goes to the presiding
-  pawn (`setPresider`, VB-314), else the fallback. Today one kind, `custom` (`sim/meetings`; asked from `Culture.meeting` through
+  pawn (`setPresider`, VB-314), else the fallback. The presider at home is the body's agent (`agentOf`, `agentWhy`; VB-673): the one pawn
+  through whom a village acts, so that with the office vacant or its holder away nothing of the village's is begun. Today one kind, `custom` (`sim/meetings`; asked from `Culture.meeting` through
   `hooks.ask`); VB-293's marriage offers stay in `sim/offers` until a follow-up moves them.
 - Commands (VB-167 to VB-171; VB-228): `src/sim/commands.js` is the dispatcher alone (`register`, `issue`, the table `VERBS`) and imports no
   domain. Each module registers, at load, the verbs of the acts it carries out: `sim/agents` (`work`, `walkTo`, `goHome`, `idle`,
   `haltForTalk`), `sim/away` (`lodge`, `comeHome`, `raiseBooth`), `sim/gifts` (`give`, `deliver`), `sim/occasions` (`attend`, `call`), `sim/venues` (`callAle`),
-  `sim/offers` (`offer`, `answer`), `sim/visits` (`visit`), `sim/plans` (the head's plan), `sim/routines` (`routines`), `sim/aims`
+  `sim/offers` (`offer`, `answer`), `sim/visits` (`visit`), `sim/plans` (the head's plan), `sim/routines` (`routines`; the alderman's `layOut`, VB-673), `sim/workdays` (`callWorkday`),
+  `sim/tar` (`chargeTar`), `sim/help` (`fillStore`), `sim/aims`
   (`plotToVillage`), `sim/society` (`decide`, `argue`, `dropCause`, `rally`), `sim/gathering`, `sim/trust` (`goBack`, `goToKin`),
   `sim/marriage` (`marry`), `sim/heirs` (`handOn`, `move`), `sim/farmclaims` (`claim`), `sim/settle` (`leave`), `sim/membership`
   (`foundHousehold`), `sim/cottage` (`finishCottage`), `sim/lifecycle` (debug `kill`, `retire`), `sim/clock` (`skip`). A verb's home is

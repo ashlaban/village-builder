@@ -1,4 +1,5 @@
-// @sys sim/tar: tar (VB-301), the second good of place: a village's pine (its reach test), the tar pit one household builds and owns,
+// @sys sim/tar: tar (VB-301), the second good of place: a village's pine (its reach test), the tar pit one household builds and owns, the
+// household its alderman charges with it (chargeTar, VB-673),
 // burning tar in the slack of early summer, and a barrel spent on the house (f.tarredUntil) or on the fishing boat; tar's need term
 // Design: design.md, Goods of place and side crafts (Goods of place, First goods, A well-kept house, The fishing boat; What each good is
 // for: Agreed, 10 Nov). Tar is burnt from resinous pine wood in a funnel-shaped pit (tjärdal) dug on a slope of the pine forest, in the

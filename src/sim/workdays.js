@@ -1,7 +1,7 @@
-// @sys sim/workdays: village work days (VB-120; Kim, 10 Nov): a routine the meeting may choose for a village with a fence (VB-257); on
-// spring's first day the village closes its fence together and on summer's second clears scrub at its wood's edge, every adult at one
-// priority; at the day's end those who turned out gain standing for the year, a household that stayed away loses its holder's, and the
-// other holders tied to that holder remember it
+// @sys sim/workdays: village work days (VB-120; Kim, 10 Nov): a routine the meeting may choose for a village with a fence (VB-257), called
+// by its alderman (callWorkday, VB-673); on spring's first day the village closes its fence together and on summer's second clears
+// scrub at its wood's edge, every adult at one priority; at the day's end those who turned out gain standing for the year, a household
+// that stayed away loses its holder's, and the other holders tied to that holder remember it
 VB['sim/workdays'] = (() => {
   const { WORK, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
