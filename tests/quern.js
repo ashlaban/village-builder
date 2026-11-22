@@ -35,7 +35,7 @@ check(Culture.norm('worth', 'quern') === 25 && Goods.GOODS.get('quern').class ==
 function home(grain) {
   const st = state(), hh = st.households[0], f = st.farmsteads[hh.farmstead];
   for (const fd of f.fields) fd.stage = 'growing';
-  VB['sim/plans'].dropAll(st, 'household', hh.id);
+  VB['sim/projectplans'].dropAll(st, 'household', hh.id);
   hh.larder = []; hh.fresh = []; hh.meals = 0; hh.grain = { barley: grain }; hh.hungryDays = 0; hh.cookDay = -1;
   return { st, hh, f };
 }

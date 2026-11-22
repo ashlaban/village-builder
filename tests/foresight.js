@@ -29,7 +29,7 @@ function farm(key, usual, grain, skill) {
     Object.assign(fd, { rotation: key, step: i % n, crop: ROTATIONS[key].courses[i % n], stage: 'stubble', soil: 1 });
   });
   const s = { st, f, hh, v, plan: Plans.planOf(st, 'household', hh.id) };
-  s.head = () => ({ skill: Plans.headSkill(st, hh.id), pawn: hh.holder });
+  s.head = () => ({ skill: VB['sim/seasonal'].headSkill(st, hh.id), pawn: hh.holder });
   s.review = (time) => {
     setClock(st, time);
     Plans.reviewed(st, s.plan, cal(st.t));
@@ -186,7 +186,7 @@ assert.strictEqual(R.tierOf(GOOD), 'good');
     s.plan.nextReview = Infinity;
     const t = at(0, 0) - 8 + VB['sim/rules'].WORK[0] - 1;
     setClock(s.st, t);
-    assert.strictEqual(Plans.reviewWhy(s.st, s.plan, Math.floor(t), cal(t)), 'window', `skill ${skill}: reviewed on the window's first day`);
+    assert.strictEqual(VB['sim/plandays'].reviewWhy(s.st, s.plan, Math.floor(t), cal(t)), 'window', `skill ${skill}: reviewed on the window's first day`);
   }
 }
 

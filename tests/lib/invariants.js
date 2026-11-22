@@ -175,7 +175,7 @@ function checkState(st) {
           // VB-257: a village's routines this year: at most MAX_ROUTINES, each a known routine, once; set by the founders, the meeting or a
           // practice of what follows a meeting that did not decide
           const PL = globalThis.VB['sim/plans'], R = plan.routines;
-          if (PL.routinesWhy(R) || !['founded', 'meeting', 'nothing', 'asLastYear'].includes(plan.routinesBy) || !Number.isInteger(plan.routinesYear)
+          if (VB['sim/routines'].routinesWhy(R) || !['founded', 'meeting', 'nothing', 'asLastYear'].includes(plan.routinesBy) || !Number.isInteger(plan.routinesYear)
             || (plan.routinesBy === 'nothing' && R.length)) bad.push(`plans: village ${id} has routines ${JSON.stringify(R)} by ${plan.routinesBy}`);
           continue;
         }
@@ -268,7 +268,7 @@ function checkState(st) {
     }
     // VB-249: the due-queue: sorted by hour, then household, then kind; exactly one entry per live household's plan and time-bound kind,
     // none of a dissolved household (an overdue entry is not checked: tests move the clock by hand, and the next review hour asks it)
-    const due = st.plans.due, W = globalThis.VB['sim/plans'].WINDOWED;
+    const due = st.plans.due, W = globalThis.VB['sim/plandays'].WINDOWED;
     if (!Array.isArray(due)) bad.push('plans: no due-queue');
     else {
       const seen = new Set();

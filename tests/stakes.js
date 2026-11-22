@@ -15,7 +15,7 @@ const H = (id) => ({ type: 'household', id });
 const start = (st, f, hh) => {
   if (VB['sim/projects'].ownOf(st, hh.id) || f.fields.length >= FieldPlans.fieldsWanted(st, hh)) return;
   const tile = FieldPlans.pickField(st, f, hh), p = tile >= 0 ? FieldPlans.beginField(st, f, hh, tile) : null;
-  if (p) VB['sim/plans'].makeProject(st, 'household', hh.id, p);
+  if (p) VB['sim/projectplans'].makeProject(st, 'household', hh.id, p);
 };
 // A farm's land project (its household's project plan, VB-123): its open step's tile and kind, or null.
 const pj = (st, f) => {
@@ -95,7 +95,7 @@ const out = [];
 function contest(dispute, idle = 2, ties = 'contestor') {
   const { st, hh, f } = scene(dispute);
   const t = FieldPlans.chooseTile(st, f[2]);
-  S.stake(st, hh[0], t, 'field'); VB['sim/plans'].makeProject(st, 'household', hh[0].id, FieldPlans.fieldProject(st, hh[0], t));
+  S.stake(st, hh[0], t, 'field'); VB['sim/projectplans'].makeProject(st, 'household', hh[0].id, FieldPlans.fieldProject(st, hh[0], t));
   CL.claimOf(st, t, H(0)).renewed = st.t - idle * YEAR;
   for (let u = 0; u < st.w.N; u++) {
     if (u !== t && !st.used.has(u) && u !== st.villages[0].center && (st.owner[u] === 0 || T.isOutland(st, u, 0))) setOwner(st, u, H(1));

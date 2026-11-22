@@ -31,7 +31,7 @@ setPractice(st, v.id, { commons: 'fair' });
 // the condition: three occupied farms, an empty store, meadow near the green; the founders' first routines hold no common field
 assert.strictEqual(Sim.grainOf(v), 0, 'the store is empty');
 assert.ok(Commons.storeDays(st, v) < COMMONS.storeDays && Commons.wanted(st, v), 'the village would make a common field');
-assert.ok(Plans.VILLAGE_ROUTINES.commons.available(st, v) && Plans.VILLAGE_ROUTINES.commons.meeting);
+assert.ok(VB['sim/routines'].VILLAGE_ROUTINES.commons.available(st, v) && VB['sim/routines'].VILLAGE_ROUTINES.commons.meeting);
 assert.ok(!plan.routines.includes('commons'), 'not among the founders\' routines: only a meeting sets it');
 const tile = Commons.site(st, v);
 // households that will have a surplus to give the store at the moving round (sim/help, fillStores): its seed comes from there

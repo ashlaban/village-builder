@@ -115,10 +115,10 @@ const when = (hour) => {
   return `year ${c.year} ${Sim.SEASONS[c.season]} day ${c.sday + 1} ${String(Math.floor(c.hour)).padStart(2, '0')}:00`;
 };
 function plansOf(h) {
-  const P = VB['sim/plans'], plan = P.planOf(st, 'household', h.id), sp = P.seasonOf(st, h.id);
+  const P = VB['sim/plans'], plan = P.planOf(st, 'household', h.id), sp = VB['sim/seasonal'].seasonOf(st, h.id);
   if (!plan) return { household: h.id, plans: 'none (dissolved)' };
-  return { household: h.id, culture: P.cultureOf(st, h), targets: plain(plan.targets), reserved: plain(plan.reserved),
-    nextReview: when(plan.nextReview), cadenceDays: P.cadence(st, plan), lastReviewDay: plan.last,
+  return { household: h.id, culture: VB['sim/seasonal'].cultureOf(st, h), targets: plain(plan.targets), reserved: plain(plan.reserved),
+    nextReview: when(plan.nextReview), cadenceDays: VB['sim/plandays'].cadence(st, plan), lastReviewDay: plan.last,
     season: `${Sim.SEASONS[sp.season]} of year ${sp.year} (made on day ${sp.made})`, steps: sp.steps.join(', ') };
 }
 const tables = {

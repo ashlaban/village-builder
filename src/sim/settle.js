@@ -24,7 +24,8 @@ VB['sim/settle'] = (() => {
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
-  const { makePlan, makeProject } = VB['sim/plans'];
+  const { makePlan } = VB['sim/plans'],
+    { makeProject } = VB['sim/projectplans'];
   const { projectsOf } = VB['sim/projects'];
   const { reckonWood, woodTaken } = VB['sim/territory'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time

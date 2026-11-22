@@ -23,7 +23,9 @@ VB['sim/jobs'] = (() => {
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
   const { trustOf, heldFarms } = VB['sim/ownership'];
-  const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks } = VB['sim/plans'];
+  const { planOf, reviewed, landStep } = VB['sim/plans'],
+    { routineAsks } = VB['sim/routines'],
+    { reviewWhy, mayLook, WINDOWED, dueNow, again } = VB['sim/plandays'];
   const { onProject } = VB['sim/projects'];
   // @tunable IDLE: how long an idle pawn waits before it looks for work again
   // An idle pawn the planner found no work looks again after wait[0] to wait[1] hours (VB-245; Kim, 10 Nov: 2 to 4, from 0.75 to 2). It hears of new

@@ -15,10 +15,10 @@ const [h0, h1] = [st.households[0], st.households[1]], holder = h0.members.find(
 const house = tileAt(w, 10, 3), field = tileAt(w, 11, 4);
 // its village's project plan (VB-123): cleared, at the cottage's foundation, the timber at the site on its walls step
 const Plans = VB['sim/plans'], stage = (kind, hours) => ({ kind, place: house, hours, done: 0, ...kind === 'walls' ? { wood: 0 } : {} });
-const plot = Plans.makeProject(st, 'village', v.id, { what: 'plot', plot: v.plots.length, intended: holder, to: holder, hours: {}, started: st.t,
+const plot = VB['sim/projectplans'].makeProject(st, 'village', v.id, { what: 'plot', plot: v.plots.length, intended: holder, to: holder, hours: {}, started: st.t,
   steps: [{ kind: 'clear', places: [{ tile: house, kind: 'house', steps: [], i: 0 }, { tile: field, kind: 'field', steps: [], i: 0 }] },
     stage('foundation', 30), stage('walls', 60), stage('roof', 30)] });
-Plans.advance(st, plot); st.used.add(house); st.used.add(field);
+VB['sim/projectplans'].advance(st, plot); st.used.add(house); st.used.add(field);
 const site = plot.steps[2];
 const asked = (fn) => { const out = []; fn(st, null, null, cal(st.t), (key, site, extra, kind, owner) => out.push({ key, site, extra, kind, owner })); return out; };
 let jobs = asked(Bld.timberWork);
@@ -31,7 +31,7 @@ VB['sim/kinds'].KINDS.timber.deliver(st, j, h0);
 check(site.wood === ECON.woodPerTrip && w.trees[t] === trees - 1, `a trip's load lies at the site (${site.wood}) and its tree is felled`);
 check(v.ledger.some((e) => e.kind === 'timber' && e.good === 'timber'), 'the village\'s ledger shows the timber');
 // the walls wait for BUILD.timber loads
-Plans.advance(st, plot); // the foundation laid
+VB['sim/projectplans'].advance(st, plot); // the foundation laid
 const walls = () => X.plotJobs(st).some((x) => x[3].cottage && x[3].plot === plot && x[1] === 'walls');
 check(!walls(), 'the walls wait for their timber');
 site.wood = BUILD.timber - ECON.woodPerTrip;

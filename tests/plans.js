@@ -60,7 +60,7 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
 }
 { // the land step: the plan's target of fields, and a tile the plan names in place of the holder's choice
   const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);
-  const drop = () => Plans.dropAll(st, 'household', hh.id), open = () => VB['sim/projects'].openOf(st, hh.id);
+  const drop = () => VB['sim/projectplans'].dropAll(st, 'household', hh.id), open = () => VB['sim/projects'].openOf(st, hh.id);
   drop(); plan.targets.fields = f.fields.length;
   Plans.landStep(st, plan, f, hh, F.builtTiles(st));
   assert(!open() || open().kind === 'meadow', 'no new field when the plan has enough');
@@ -90,7 +90,7 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
 // ---- VB-249: windows and the due-queue, planning days ----
 { // the due-queue opens the time-bound kinds at their hour, with no review: water from 5:00, cooking from 14:00
   const st = fresh('populous');
-  const W = Plans.WINDOWED;
+  const W = VB['sim/plandays'].WINDOWED;
   assert.deepStrictEqual([...W].sort(), ['cook', 'fodder', 'haul', 'herd', 'milk', 'thresh', 'water'], 'the time-bound kinds');
   assert.strictEqual(st.plans.due.length, st.liveHouseholds.length * W.length, 'one entry per household and kind');
   for (const plan of st.plans.households.values()) plan.nextReview = 1e9;
@@ -117,23 +117,23 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
 }
 { // planning days: the head's diligence sets the cadence, the id the day and the hour; a store crossing a target wakes one review a day
   const st = fresh('populous'), hh = st.households[0], plan = Plans.planOf(st, 'household', hh.id), head = st.pawns[hh.holder];
-  for (const [d, cad] of [[0.1, 3], [0.5, 2], [0.9, 1]]) { head.traits[VB['sim/traits'].IDX.diligence] = d; assert.strictEqual(Plans.cadence(st, plan), cad, `diligence ${d}`); }
+  for (const [d, cad] of [[0.1, 3], [0.5, 2], [0.9, 1]]) { head.traits[VB['sim/traits'].IDX.diligence] = d; assert.strictEqual(VB['sim/plandays'].cadence(st, plan), cad, `diligence ${d}`); }
   head.traits[VB['sim/traits'].IDX.diligence] = 0.1;
   setClock(st, 3 * DAY + WORK[0]);
   Plans.reviewed(st, plan, cal(st.t));
   const next = plan.nextReview, nd = Math.floor(next / DAY), nh = next - nd * DAY;
   assert(next > st.t && (nd + hh.id) % 3 === 0 && nh >= WORK[0] - 1 && nh <= WORK[1], `the next planning day (${next})`);
   const c = cal(st.t);
-  assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), c), null, 'not due again today');
+  assert.strictEqual(VB['sim/plandays'].reviewWhy(st, plan, Math.floor(st.t), c), null, 'not due again today');
   Stores.take(st, hh, 'grain', Sim.grainOf(hh), 'meal');
   assert(plan.dirty, 'the grain above the seed ran out: the plan is flagged');
-  assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), c), 'store', 'a store woke a review');
+  assert.strictEqual(VB['sim/plandays'].reviewWhy(st, plan, Math.floor(st.t), c), 'store', 'a store woke a review');
   Plans.reviewed(st, plan, c, 'store');
   assert(!plan.dirty && plan.nextReview === next, 'the flag cleared, the planning day kept');
   Stores.put(st, hh, 'grain/barley', 1000, 'gift');
-  assert(plan.dirty && Plans.reviewWhy(st, plan, Math.floor(st.t), c) === null, 'at most one store review a day');
+  assert(plan.dirty && VB['sim/plandays'].reviewWhy(st, plan, Math.floor(st.t), c) === null, 'at most one store review a day');
   const spring9 = cal(CROPS.barley.sow[2] * DAY + WORK[0]);
-  assert(Plans.closing(st, spring9) && !Plans.closing(st, cal(3 * DAY)), 'the sowing window\'s last day is a closing day');
+  assert(VB['sim/plandays'].closing(st, spring9) && !VB['sim/plandays'].closing(st, cal(3 * DAY)), 'the sowing window\'s last day is a closing day');
 }
 { // VB-322: fields due. A household of cadence 3 reviewed on its planning day is reviewed out of turn, at the first review hour, the day a
   // field ripens (and reaps it), and on a day of the sowing window while a field is hoed and not sown (and sows it); once that day
@@ -142,7 +142,7 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
     const st = fresh('populous'), hh = st.households.find((h) => h.farmstead !== null && h.holder !== null);
     const f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);
     st.pawns[hh.holder].traits[VB['sim/traits'].IDX.diligence] = 0.1;
-    assert.strictEqual(Plans.cadence(st, plan), 3, 'every third day');
+    assert.strictEqual(VB['sim/plandays'].cadence(st, plan), 3, 'every third day');
     let D = season * SEASON_DAYS + sday;
     while ((D + hh.id) % 3) D++; // its planning day
     setClock(st, D * DAY + WORK[1]);
@@ -154,19 +154,19 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
   };
   const dueDay = ({ st, hh, f, plan, D, fd, stage }, kind) => {
     setClock(st, (D + 1) * DAY + FIRST);
-    assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'nothing due: no review out of turn');
+    assert.strictEqual(VB['sim/plandays'].reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'nothing due: no review out of turn');
     fd.stage = stage;
     if (stage === 'ripe') fd.sown = D + 1 - CROPS.barley.ripe;
     setClock(st, (D + 1) * DAY + FIRST + 1);
-    assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'only at the first review hour');
+    assert.strictEqual(VB['sim/plandays'].reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'only at the first review hour');
     setClock(st, (D + 1) * DAY + FIRST);
     const reviews = VB.count.planReview, key = `${kind}:f${f.id}.${fd.id}`;
-    assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), 'window', `a ${stage} field: reviewed out of turn`);
+    assert.strictEqual(VB['sim/plandays'].reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), 'window', `a ${stage} field: reviewed out of turn`);
     refreshJobs(st, cal(st.t));
     assert(VB.count.planReview > reviews && plan.last === D + 1, 'reviewed at the first review hour');
     assert.strictEqual(Math.floor(plan.nextReview / DAY), D + 3, 'the planning day kept');
     assert(st.jobs.has(key), `${kind} posted the same day`);
-    assert.strictEqual(Plans.reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'once a day');
+    assert.strictEqual(VB['sim/plandays'].reviewWhy(st, plan, Math.floor(st.t), cal(st.t)), null, 'once a day');
     for (let h = 0; h < 12 && fd.stage === stage; h++) Sim.advance(st, 1);
     assert.notStrictEqual(fd.stage, stage, `the field ${kind === 'reap' ? 'reaped' : 'sown'} that day (${fd.stage})`);
     assert(hh.members.length, 'the household stands');
@@ -177,7 +177,7 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
     const s = setup(1, 3, 'stubble');
     setClock(s.st, (s.D + 1) * DAY + FIRST);
     s.fd.stage = 'stubble';
-    assert.strictEqual(Plans.reviewWhy(s.st, s.plan, Math.floor(s.st.t), cal(s.st.t)), null, 'stubble in summer is not due');
+    assert.strictEqual(VB['sim/plandays'].reviewWhy(s.st, s.plan, Math.floor(s.st.t), cal(s.st.t)), null, 'stubble in summer is not due');
   }
 }
 { // a member without a task looks at the household's opportunities, once a household a day
@@ -205,37 +205,37 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
   const st = fresh('populous'), c = cal(st.t);
   assert.strictEqual(st.plans.seasons.size, st.liveHouseholds.length, 'one seasonal plan per household');
   for (const id of st.liveHouseholds) {
-    const sp = Plans.seasonOf(st, id), T = Plans.planOf(st, 'household', id).targets;
+    const sp = VB['sim/seasonal'].seasonOf(st, id), T = Plans.planOf(st, 'household', id).targets;
     assert.strictEqual(sp.kind, 'season');
     assert.strictEqual(sp.season, c.season);
-    assert.deepStrictEqual(sp.steps, Plans.ROUTINES[c.season], 'the season\'s routines in order');
+    assert.deepStrictEqual(sp.steps, VB['sim/seasonal'].ROUTINES[c.season], 'the season\'s routines in order');
     assert.strictEqual(T.seed, CROPS.barley.seed);
     assert.strictEqual(T.perHand, VB['sim/rules'].FIELDS.perHand);
   }
-  assert.notStrictEqual(Plans.seasonOf(st, st.liveHouseholds[0]).steps, Plans.seasonOf(st, st.liveHouseholds[1]).steps, 'each its own steps');
+  assert.notStrictEqual(VB['sim/seasonal'].seasonOf(st, st.liveHouseholds[0]).steps, VB['sim/seasonal'].seasonOf(st, st.liveHouseholds[1]).steps, 'each its own steps');
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'seasonal plan invariants');
 }
 { // the review reads the plan, not the template: one household's changed target stands until the season turns, and no other's changes;
   // at its first review of a season the plan is made again from the template; the template is compiled once a season and culture
   const st = fresh('populous'), [a, b] = st.liveHouseholds, pa = Plans.planOf(st, 'household', a), pb = Plans.planOf(st, 'household', b);
-  pa.targets.wood[1] = 99; pa.targets.perHand = 3; Plans.seasonOf(st, a).steps.reverse();
+  pa.targets.wood[1] = 99; pa.targets.perHand = 3; VB['sim/seasonal'].seasonOf(st, a).steps.reverse();
   setClock(st, DAY + WORK[0]);
   refreshJobs(st, cal(st.t), true);
   assert.strictEqual(pa.targets.wood[1], 99, 'the review reads the plan\'s target');
   assert.strictEqual(pa.targets.workable, F.fieldsWorkable(st, st.households[a], 3), 'the fields per hand read from the plan');
   assert.strictEqual(pb.targets.wood[1], st.ECON.woodWinter, 'no other household\'s plan changed');
-  assert.strictEqual(Plans.seasonOf(st, a).steps[0], 'fish', 'its steps as changed (the season\'s last routine first)');
+  assert.strictEqual(VB['sim/seasonal'].seasonOf(st, a).steps[0], 'fish', 'its steps as changed (the season\'s last routine first)');
   const spring = cal(st.t);
   setClock(st, (spring.day - spring.sday + VB['sim/rules'].SEASON_DAYS) * DAY + WORK[0]); // the next season's first day
   countYearReads = true;
   refreshJobs(st, cal(st.t), true);
   countYearReads = false;
-  const sp = Plans.seasonOf(st, a);
+  const sp = VB['sim/seasonal'].seasonOf(st, a);
   assert.strictEqual(sp.season, (spring.season + 1) % 4, 'the next season\'s plan');
-  assert.deepStrictEqual(sp.steps, Plans.ROUTINES[sp.season], 'its steps from the template');
+  assert.deepStrictEqual(sp.steps, VB['sim/seasonal'].ROUTINES[sp.season], 'its steps from the template');
   assert.strictEqual(pa.targets.wood[1], st.ECON.woodWinter, 'the targets copied from the template again');
-  const cultures = new Set(st.liveHouseholds.map((id) => Plans.cultureOf(st, st.households[id])));
-  assert.strictEqual(yearReads, cultures.size * (4 + 4 + new Set(Plans.ROUTINES.flat()).size), 'compiled once per culture');
+  const cultures = new Set(st.liveHouseholds.map((id) => VB['sim/seasonal'].cultureOf(st, st.households[id])));
+  assert.strictEqual(yearReads, cultures.size * (4 + 4 + new Set(VB['sim/seasonal'].ROUTINES.flat()).size), 'compiled once per culture');
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'seasonal plan invariants after the turn');
 }
 { // a household's seasonal plan is dropped with it; a save made before seasonal plans gets them at load

@@ -8,7 +8,7 @@ VB['sim/meetings'] = (() => {
   const { personEvent, log, membersOf, voiceOf, settlementIdOf, fullName, isHolder } = VB['sim/records'];
   const { opinionOf } = VB['sim/relations'];
   const { setAlderman } = VB['sim/membership'];
-  const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/plans'];
+  const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/routines'];
   const { refreshRoles } = VB['sim/heirs'];
   const { updateTie, refreshStanding, refreshInterests, hooks } = VB['sim/society'];
   const { issue } = VB['sim/commands'];

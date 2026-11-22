@@ -8,7 +8,7 @@ function templateHeads(VB, st) {
       t[I.wits] = t[I.husbandry] = VB['sim/rules'].TRAITS.bounds[0]; // the least of each (VB-519)
     }
   st.rng.traits.fix = 0.5;
-  P.startHeads(st);
+  VB['sim/seasonal'].startHeads(st);
   delete st.rng.traits.fix;
   return st;
 }

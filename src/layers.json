@@ -81,7 +81,8 @@
       "sim/carts",
       "sim/chores",
       "sim/green",
-      "sim/lying"
+      "sim/lying",
+      "sim/projectplans"
     ],
     "social": [
       "culture",
@@ -133,6 +134,9 @@
       "sim/round",
       "sim/preview",
       "sim/eligibility",
+      "sim/seasonal",
+      "sim/routines",
+      "sim/plandays",
       "sim/plans",
       "sim/aims",
       "sim/outlook"

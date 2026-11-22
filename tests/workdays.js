@@ -23,9 +23,9 @@ for (const [r, R] of Object.entries(ROLES)) {
 }
 assert.ok(v.fence.length > 0 && v.wood.length > 0, 'the scene: a village with a fence and a wood');
 assert.ok(!plan.routines.includes('workdays'), 'the founders call no work days');
-assert.ok(Plans.chooseRoutines(st, v).includes('workdays'), 'a meeting may choose them');
+assert.ok(VB['sim/routines'].chooseRoutines(st, v).includes('workdays'), 'a meeting may choose them');
 // the meeting chose them; the first year's routines stand otherwise
-Plans.setRoutines(st, v.id, ['fence', 'workdays'], 'meeting');
+VB['sim/routines'].setRoutines(st, v.id, ['fence', 'workdays'], 'meeting');
 
 // to the eve of year 2's spring day 1 (the clock moved by hand: nothing of year 1 is run), the fence worn over the winter
 const to = (t) => Sim.advance(st, t - st.t), Y2 = YEAR_DAYS * DAY;

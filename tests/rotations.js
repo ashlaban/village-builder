@@ -132,8 +132,8 @@ const review = (s, t) => {
   // a field broken: the third bears rye, the one step no field is at; a fourth, in spring, barley (all tie, and barley is sown first)
   const breakOne = () => {
     setClock(s.st, at(0, 6));
-    Plans.dropAll(s.st, 'household', s.hh.id);
-    Plans.makeProject(s.st, 'household', s.hh.id, { what: 'field', steps: [{ kind: 'break', place: FieldPlans.pickField(s.st, s.f, s.hh), hours: 0, stake: 'field' }] });
+    VB['sim/projectplans'].dropAll(s.st, 'household', s.hh.id);
+    VB['sim/projectplans'].makeProject(s.st, 'household', s.hh.id, { what: 'field', steps: [{ kind: 'break', place: FieldPlans.pickField(s.st, s.f, s.hh), hours: 0, stake: 'field' }] });
     F.finishBreak(s.st, s.f, VB['sim/projects'].ownOf(s.st, s.f.household));
     return s.f.fields[s.f.fields.length - 1];
   };
@@ -144,8 +144,8 @@ const review = (s, t) => {
   assert.deepStrictEqual(Object.keys(FieldPlans.fieldProject(bar.st, bar.hh, 0).hold), [Stores.grainGood('barley')], 'barley every year holds barley');
   // the rye window's last day and the day after are closing days for a farm in three courses, not for one of barley every year
   const rye = (d) => cal(at(2, CROPS.rye.sow[2] + d));
-  assert(Plans.closing(s.st, rye(0), s.plan) && Plans.closing(s.st, rye(1), s.plan), "rye's window closes on a farm that sows it");
-  assert(!Plans.closing(bar.st, rye(0), bar.plan) && !Plans.closing(s.st, rye(2), s.plan), 'not for barley every year, nor after');
+  assert(VB['sim/plandays'].closing(s.st, rye(0), s.plan) && VB['sim/plandays'].closing(s.st, rye(1), s.plan), "rye's window closes on a farm that sows it");
+  assert(!VB['sim/plandays'].closing(bar.st, rye(0), bar.plan) && !VB['sim/plandays'].closing(s.st, rye(2), s.plan), 'not for barley every year, nor after');
   const third = breakOne();
   assert(third.rotation === 'three' && third.step === 1 && third.crop === 'rye', `the third field bears rye: ${JSON.stringify(third)}`);
   const fourth = breakOne();

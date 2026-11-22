@@ -18,7 +18,7 @@ const clean = (st, label) => { const bad = checkState(st); assert.deepStrictEqua
 KINDS.testbuild = { verb: 'Building', go: 'Going to build', name: 'Build', label: 'Build', anim: 'mallet', hours: 6, hands: 2, type: 'wood',
   project: true, done: (st, j) => {
     const plan = VB['sim/projects'].onProject(st, j);
-    if (plan) Plans.advance(st, plan);
+    if (plan) VB['sim/projectplans'].advance(st, plan);
   } };
 for (const role of Object.values(ROLES)) role.prio.testbuild = role.work.wood ?? 0;
 const BARN = (f) => ({ what: 'barn', steps: [13, 13, 14].map((n) => ({ kind: 'testbuild', place: f.house, hours: 6, spends: { wood: n } })) });
@@ -28,7 +28,7 @@ const BARN = (f) => ({ what: 'barn', steps: [13, 13, 14].map((n) => ({ kind: 'te
 function scene() {
   const st = Sim.seed(world7, 7, 'heirs'), hh = st.households.find((h) => st.farmsteads[h.farmstead].fields.length >= 2), f = st.farmsteads[hh.farmstead];
   setClock(st, DAY + WORK[0]);
-  st.makeFields = false; Plans.dropAll(st, 'household', hh.id);
+  st.makeFields = false; VB['sim/projectplans'].dropAll(st, 'household', hh.id);
   Stores.take(st, hh, 'wood', hh.wood, 'burn'); Stores.put(st, hh, 'wood', 100, 'firewood');
   return { st, hh, f };
 }
@@ -36,16 +36,16 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
 
 { // the barn: reserved in full at once, a second project cannot have the same timber, and the steps are done one after another
   const { st, hh, f } = scene();
-  const plan = Plans.makeProject(st, 'household', hh.id, BARN(f));
+  const plan = VB['sim/projectplans'].makeProject(st, 'household', hh.id, BARN(f));
   assert(plan && plan.open === 0 && Stores.reserved(st, hh, 'wood') === 40, 'the plan reserves its 40 loads of timber');
   clean(st, 'made');
   const other = st.households[1];
   Stores.take(st, hh, 'wood', 50, 'burn'); // 50 left: 10 free
-  assert.strictEqual(Plans.makeProject(st, 'household', hh.id, {
+  assert.strictEqual(VB['sim/projectplans'].makeProject(st, 'household', hh.id, {
     what: 'shed', steps: [{ kind: 'testbuild', place: f.house, hours: 6, spends: { wood: 11 } }] }), null,
     'a second project cannot reserve the timber the first holds');
-  assert(Plans.projectsOf(st, 'household', hh.id).length === 1 && Stores.reserved(st, hh, 'wood') === 40, 'and leaves nothing behind');
-  assert(Plans.makeProject(st, 'household', other.id, {
+  assert(VB['sim/projects'].projectsOf(st, 'household', hh.id).length === 1 && Stores.reserved(st, hh, 'wood') === 40, 'and leaves nothing behind');
+  assert(VB['sim/projectplans'].makeProject(st, 'household', other.id, {
     what: 'shed', steps: [{ kind: 'testbuild', place: f.house, hours: 6, spends: { wood: other.wood + 1 } }] })
     === null, 'nor beyond its own holder\'s stock');
   Stores.put(st, hh, 'wood', 50, 'firewood');
@@ -76,7 +76,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
 }
 { // the timber taken mid-way: the plan is reviewed at once and dropped, told, and nothing stays reserved
   const { st, hh, f } = scene();
-  Plans.makeProject(st, 'household', hh.id, BARN(f));
+  VB['sim/projectplans'].makeProject(st, 'household', hh.id, BARN(f));
   for (let h = 0; h < 30 * 24 && VB['sim/projects'].ownOf(st, hh.id).open < 1; h++) Sim.advance(st, 1);
   const plan = VB['sim/projects'].ownOf(st, hh.id), n = st.record.length;
   assert(plan && plan.open === 1 && Stores.reserved(st, hh, 'wood') === 27, 'the first step done: 27 loads still reserved');
@@ -92,16 +92,16 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
 }
 { // a store change that leaves the step possible changes nothing; a right lost drops a land project (sim/stakes, rightLost)
   const { st, hh, f } = scene();
-  const plan = Plans.makeProject(st, 'household', hh.id, BARN(f));
+  const plan = VB['sim/projectplans'].makeProject(st, 'household', hh.id, BARN(f));
   Stores.take(st, hh, 'wood', 60, 'burn');
-  assert(VB['sim/projects'].ownOf(st, hh.id) === plan && Plans.review(st, plan), 'the timber still there: the plan stands');
-  Plans.dropAll(st, 'household', hh.id);
+  assert(VB['sim/projects'].ownOf(st, hh.id) === plan && VB['sim/projectplans'].review(st, plan), 'the timber still there: the plan stands');
+  VB['sim/projectplans'].dropAll(st, 'household', hh.id);
   const t = F.chooseTile(st, f);
   VB['sim/stakes'].stake(st, hh, t, 'field');
-  const land = Plans.makeProject(st, 'household', hh.id, F.fieldProject(st, hh, t));
+  const land = VB['sim/projectplans'].makeProject(st, 'household', hh.id, F.fieldProject(st, hh, t));
   assert(land.steps.map((s) => s.kind).join() === 'clear,break' && land.reasons['grain/barley'] === 'field', 'a field: clearing then breaking, its seed held');
   VB['sim/claims'].dropClaim(st, t, { type: 'household', id: hh.id });
-  assert(!Plans.review(st, land) && !VB['sim/projects'].ownOf(st, hh.id), 'its stake lost, the land project is dropped at review');
+  assert(!VB['sim/projectplans'].review(st, land) && !VB['sim/projects'].ownOf(st, hh.id), 'its stake lost, the land project is dropped at review');
   clean(st, 'stake lost');
   out.push('a right lost drops the plan; a store still covering it does not');
 }

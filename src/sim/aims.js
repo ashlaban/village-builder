@@ -20,7 +20,9 @@ VB['sim/aims'] = (() => {
   const { pickMeadow } = VB['sim/meadows'];
   const { findSite, hasPlot, awaitsCottage } = VB['sim/expansion'];
   const { issue, register } = VB['sim/commands'];
-  const Plans = VB['sim/plans'];
+  const Plans = VB['sim/plans'],
+    ProjectPlans = VB['sim/projectplans'],
+    Seasonal = VB['sim/seasonal'];
   const { heirRanking } = VB['sim/heirranking'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
   const { tierOf, turnWhy } = VB['sim/rotations'];
@@ -133,7 +135,7 @@ VB['sim/aims'] = (() => {
   // A trial (VB-351; design.md, How the head chooses what to sow: a trial is a project): a good head (sim/rotations' tierOf) whose store
   // holds a field's seed of a crop its farm's rotation does not grow tries it on one field; the first such crop of CROPS, or null.
   function trialCrop(st, plan, hh, f) {
-    if (!f.fields.length || tierOf(Plans.headSkill(st, hh.id)) !== 'good') return null;
+    if (!f.fields.length || tierOf(Seasonal.headSkill(st, hh.id)) !== 'good') return null;
     const R = ROTATIONS[f.fields[0].rotation].courses;
     for (const k in CROPS) if (CROPS[k].seed > 0 && !R.includes(k) && Stores.grainOf(hh, k) >= CROPS[k].seed) return k;
     return null;
@@ -225,7 +227,7 @@ VB['sim/aims'] = (() => {
     } else {
       A.project = A.what = A.since = A.shortSince = null; // given up, not ended: planDropped below leaves `again` as it is
       for (const s of p.steps) if (s.stake) VB['sim/claims'].dropClaim(st, s.place, p.holder);
-      Plans.drop(st, p, text, { pawn: hh.holder, ...atHousehold(st, hh) });
+      ProjectPlans.drop(st, p, text, { pawn: hh.holder, ...atHousehold(st, hh) });
     }
     A.project = A.what = A.since = A.shortSince = null;
   }
@@ -345,7 +347,7 @@ VB['sim/aims'] = (() => {
     check: (st, c) => Plans.heads(st, c) || barnWhy(st, st.households[c.target]),
     run: (st, c) => {
       const f = st.farmsteads[st.households[c.target].farmstead];
-      Plans.makeProject(st, 'household', c.target, {
+      ProjectPlans.makeProject(st, 'household', c.target, {
         what: 'barn',
         steps: barnSteps(f.house),
       });

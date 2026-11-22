@@ -66,7 +66,7 @@ const modules = new Set(require('../src/manifest.json').map((f) => f.slice(0, -3
 for (const r of rows) assert(modules.has(r.owner), `calendar: ${r.note}: its owner ${r.owner} is not a module of the manifest`);
 assert(Object.isFrozen(CALENDAR) && CALENDAR.every((e) => Object.isFrozen(e)), 'the calendar is frozen');
 // the plans' review hours are the calendar's (sim/plans reviewHour, which reviewAfter also reads)
-const { reviewHour } = VB['sim/plans'], review = CALENDAR.find((e) => e.owner === 'sim/jobs' && e.every === 'hour');
+const { reviewHour } = VB['sim/plandays'], review = CALENDAR.find((e) => e.owner === 'sim/jobs' && e.every === 'hour');
 for (let h = 0; h < DAY; h++) assert.strictEqual(h >= review.at.hour[0] && h < review.at.hour[1], reviewHour(h), `review hour ${h}`);
 console.log(`clock ok: ${duration} hours, one state by chunks of ${hashes.map((h) => h.chunk).join(', ')} h (${hashes[0].living} living); `
   + `${YEARS} years of the clock's arithmetic, every hour on its step; parts of a step refused; ${rows.length} calendar entries, required ordering holds`);

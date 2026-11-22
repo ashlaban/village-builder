@@ -41,13 +41,13 @@ assert.ok(st.villages[1].well && st.villages[1].green, 'a village laid out with 
 
 { // a one-farm village: no green, no well, the work not offered to its meeting, and nothing begun even with the routine forced
   assert.ok(!v.green && !v.well && v.farmsteads.length === 1);
-  assert.ok(!Plans.VILLAGE_ROUTINES.green.available(st, v), 'not available');
-  assert.ok(!(Plans.chooseRoutines(st, v) || []).includes('green'), 'not chosen');
-  Plans.setRoutines(st, v.id, ['green'], 'meeting');
+  assert.ok(!VB['sim/routines'].VILLAGE_ROUTINES.green.available(st, v), 'not available');
+  assert.ok(!(VB['sim/routines'].chooseRoutines(st, v) || []).includes('green'), 'not chosen');
+  VB['sim/routines'].setRoutines(st, v.id, ['green'], 'meeting');
   review();
   Sim.advance(st, YEAR / 2);
   assert.ok(!Green.greenOf(st, v) && !greens().length && !v.well, 'a one-farm village never starts the project');
-  Plans.setRoutines(st, v.id, [], 'meeting');
+  VB['sim/routines'].setRoutines(st, v.id, [], 'meeting');
 }
 
 // a settler of the other village joins it: its second occupied farm
@@ -59,7 +59,7 @@ const party = { all: [settler.id], followers: [] };
 assert.strictEqual(issue(st, { actor: settler.id, verb: 'leave', args: { from: home.id, village: v.id, party, house: site.house, field: site.field }, source: 'round' }), true);
 const joined = st.t, oldCentre = v.center;
 assert.strictEqual(Green.houses(st, v).length, 2, 'two occupied farms');
-assert.ok(Plans.VILLAGE_ROUTINES.green.available(st, v) && Plans.chooseRoutines(st, v).includes('green'), 'the meeting may choose it');
+assert.ok(VB['sim/routines'].VILLAGE_ROUTINES.green.available(st, v) && VB['sim/routines'].chooseRoutines(st, v).includes('green'), 'the meeting may choose it');
 assert.ok(!Green.greenOf(st, v), 'nothing is built before the meeting chooses it');
 // stone in the heaps, as clearing leaves it (sim/fields): the well's six loads, and more
 for (const id of v.farmsteads) Stores.put(st, st.households[st.farmsteads[id].household], 'stone', 4, 'clear');
@@ -114,7 +114,7 @@ const taken = v.farmsteads.flatMap((id) => st.households[st.farmsteads[id].house
 assert.strictEqual(taken.reduce((n, x) => n - x.n, 0), BUILD.wellStone, 'six loads, each through the stores with its own reason');
 assert.strictEqual(greens().length, 2, 'begun and finished, in the village\'s log');
 assert.ok(Sim.chronicle(st, { village: v.id }, 'land').some((x) => greens().includes(x.ev)), 'in the village\'s history');
-assert.ok(!Plans.VILLAGE_ROUTINES.green.available(st, v), 'no more work once the well is dug');
+assert.ok(!VB['sim/routines'].VILLAGE_ROUTINES.green.available(st, v), 'no more work once the well is dug');
 // water is drawn at the well from now
 review();
 const water = [...st.jobs.values()].filter((j) => j.kind === 'water' && st.farmsteads[j.farm.id].village === v.id);

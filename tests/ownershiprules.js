@@ -75,6 +75,8 @@ OWNERS.fields['household.wood'] = 'sim/stores';
 assert.strictEqual(audit(writes('hh.wood += 1;'), {}).length, 1);
 delete OWNERS.fields['household.wood'];
 assert.strictEqual(ownerOf(fieldOf('farmstead.fields[].stage')), 'sim/fields');
+assert.strictEqual(ownerOf(fieldOf('st.plans.projects[][]')), 'sim/projectplans', 'a part of a container declared on its own resolves to its owner (VB-431)');
+assert.strictEqual(ownerOf(fieldOf('st.plans.households')), 'sim/plans', 'an undeclared part is its container\'s');
 for (const src of ['Object.assign(st.pawns[0], incoming);', 'st.pawns[0][key] = 1;']) {
   assert(audit(writes(src), {}).length > 0, 'dynamic record writes must check all possibly affected owners');
 }

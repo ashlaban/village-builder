@@ -174,7 +174,7 @@ const born = (st, hh) => {
   assert.ok(near(T.skill(st, id, st.t - 20 * YEAR), 0.7), 'up to 0.2');
   set(0.95, 0.95);
   assert.strictEqual(T.skill(st, id, st.t - 20 * YEAR), 1, 'capped at 1');
-  assert.deepStrictEqual([0.1, 0.32, 0.33, 0.66, 0.67, 1].map(P.horizonOf), [0, 0, 1, 1, 2, 2], 'reacts, to the season\'s end, a season further');
+  assert.deepStrictEqual([0.1, 0.32, 0.33, 0.66, 0.67, 1].map(VB['sim/seasonal'].horizonOf), [0, 0, 1, 1, 2, 2], 'reacts, to the season\'s end, a season further');
 }
 
 // the bias: within 30% × (1 - skill) of 1, drawn once when the pawn becomes head; a succession draws the new head's
@@ -272,7 +272,7 @@ const born = (st, hh) => {
   st.naturalDeaths = false;
   Sim.advance(st, DAY);
   const sp0 = st.plans.seasons.get(hh.id), turned = [...sp0.steps].reverse(), made = sp0.made;
-  P.setOrder(st, hh.id, turned); // an order the old head set
+  VB['sim/seasonal'].setOrder(st, hh.id, turned); // an order the old head set
   st.rng.traits.fix = 0; // the new head's biases all at their least
   killPawn(st, hh.holder, 'killed');
   delete st.rng.traits.fix;

@@ -211,7 +211,7 @@ VB['sim/workdays'] = (() => {
       available: workdayWork,
     },
   };
-  // Whether the routine is open to a village (VILLAGE_ROUTINES, sim/plans): it has a fence to close.
+  // Whether the routine is open to a village (VILLAGE_ROUTINES, sim/routines): it has a fence to close.
   const wanted = (st, v) => v.fence.length > 0;
   return { WORKDAY, KINDS, dayOf, wanted, judge, isWorkdayJob, households, edgeOf };
 })();
