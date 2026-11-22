@@ -56,6 +56,7 @@ const FAST = [
   ['node', 'tests/seedorder.js'], // seed eaten last field last; a start in life and settlers take a field's seed of each crop (VB-352)
   ['node', 'tests/forest-spread.js'],
   ['node', 'tests/rye.js'],
+  ['node', 'tests/weather.js'], // VB-354: the seasons' weather, each crop's reading, the thaw, the frost, the ripening
   ['node', 'tests/peas.js'],
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
   ['node', 'tests/rotations.js'],
