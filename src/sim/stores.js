@@ -47,6 +47,7 @@ VB['sim/stores'] = (() => {
   // VB-287, VB-783: the pack given to a pawn who goes away from home, on a journey or to lodge (sim/away), and what it carried back into its
   // home's meals
   KINDS.push('away');
+  KINDS.push('fair'); // VB-302: a dealer's load, packed from the store for the fair and put back with what it got there (sim/fair)
   ROUTINE.push('drying', 'raw');
   // VB-139: a roe deer's meat, brought home from a hunt (sim/deer), folded as the catch is.
   KINDS.push('hunt');

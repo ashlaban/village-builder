@@ -117,6 +117,7 @@
       "sim/lifecycle",
       "sim/marriage",
       "sim/gathering",
+      "sim/fair",
       "sim/meetings",
       "sim/asking",
       "sim/visits",

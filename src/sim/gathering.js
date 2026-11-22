@@ -25,7 +25,7 @@ VB['sim/gathering'] = (() => {
   const { pourAle } = VB['sim/feast'];
   const { book } = VB['sim/relations'];
   const { stayOf } = VB['sim/agents'];
-  const { on } = VB['sim/events'];
+  const { on, emit } = VB['sim/events'];
   const { hoursBetween, withinDay } = VB['sim/villagehours'];
   const { log } = VB['sim/records'];
   const { opinionOf } = VB['sim/relations'];
@@ -474,7 +474,7 @@ VB['sim/gathering'] = (() => {
   // for the days
   // away, from the household's grain above its seed, sim/away's pack) and walk to their beds, and one whose household cannot spare its
   // pack stays home; at the last step each gathering's days are called on its host's green, for those who go from home and those lodged.
-  // The goods a household means to exchange are the fair's (VB-302), which loads them.
+  // The goods a household means to exchange are the fair's (VB-302): its dealer loads them as it sets out ('gatheringSetOut').
   function packStep(st, n) {
     const year = cal(st.t).year,
       hosts = gatherings(st).filter((g) => g.year === year && st.t < whenHeld(st, g.host, year)[1]);
@@ -524,6 +524,7 @@ VB['sim/gathering'] = (() => {
             source: 'planner',
           }) === true;
         if (!ok) setGoing(st, id, false);
+        else emit(st, 'gatheringSetOut', { pawn: id, household: hh.id, until: at.end }); // its dealer loads (sim/fair, VB-302)
       }
       plan.beds = [];
     }
@@ -543,6 +544,7 @@ VB['sim/gathering'] = (() => {
           if (!home && !(s && s.why === 'gathering')) continue;
           ids.push(id);
           hours.push(home ? hoursBetween(st, v, h) : 1);
+          if (home) emit(st, 'gatheringSetOut', { pawn: id, household: hh.id, until: at.end }); // from home each day
         }
       }
     }

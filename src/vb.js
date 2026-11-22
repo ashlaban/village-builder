@@ -70,6 +70,9 @@ VB.COUNTERS = {
   gatherSettle: 'Hosts named and asked in the settling of the gatherings, once a year (sim/gathering, VB-294)',
   gatherPlan: "Members read by a household's plan of who goes to the gathering, once a year (sim/gathering, VB-295)",
   gatherLodge: 'Beds tried for the goers lodged at a gathering, once a year (sim/gathering, VB-295)',
+  fairPack: "A good weighed for a dealer's load as it sets out for the gathering, once a year (sim/fair, VB-302)",
+  fairWeigh:
+    'A swap weighed by a dealer at the fair: the dealers present times their proposals, three days a year (sim/fair, VB-302)',
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
   aldermanBallots:

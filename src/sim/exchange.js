@@ -18,31 +18,40 @@ VB['sim/exchange'] = (() => {
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. Switched on by GOODWILL.acts (VB-220).
-  Rules.contribute({
-    rule: 'allowance',
-    source: 'sim/exchange',
-    key: 'goodwill',
-    label: 'Goodwill',
-    tunables: ['GOODWILL.acts', 'GOODWILL.limitDays'],
-    value: (st, c) => {
-      if (!GOODWILL.acts || c.giver === null || c.receiver === null) return 0;
-      const owed = balance(st, c.giver, c.receiver); // > 0: the receiver owes the giver
-      return owed < 0 ? -owed : -Math.max(0, owed - GOODWILL.limitDays * dailyNeed(st, c.to));
-    },
-  });
+  const goodwillTerm = (st, c) => {
+    if (!GOODWILL.acts || c.giver === null || c.receiver === null) return 0;
+    const owed = balance(st, c.giver, c.receiver); // > 0: the receiver owes the giver
+    return owed < 0 ? -owed : -Math.max(0, owed - GOODWILL.limitDays * dailyNeed(st, c.to));
+  };
   // allowance's opinion term (design.md, The gift: Allowance; Kim, 10 Nov): the giver's opinion of the receiver, -1 to 1, times
   // GOODWILL.opinionRations. Coupled with goodwill, which colours opinion (gratitude): a high opinion lets a deal through.
-  Rules.contribute({
-    rule: 'allowance',
-    source: 'sim/exchange',
-    key: 'opinion',
-    label: 'Opinion of them',
-    tunables: ['GOODWILL.acts', 'GOODWILL.opinionRations'],
-    value: (st, c) =>
-      !GOODWILL.acts || c.giver === null || c.receiver === null
-        ? 0
-        : GOODWILL.opinionRations * opinionOf(st, c.giver, c.receiver),
-  });
+  const opinionTerm = (st, c) =>
+    !GOODWILL.acts || c.giver === null || c.receiver === null
+      ? 0
+      : GOODWILL.opinionRations * opinionOf(st, c.giver, c.receiver);
+  // A deal's allowance (VB-302; target-v2 5.1 and 5.2): what one side lets a swap cost it toward the other, its goodwill and its opinion
+  // only, so that between strangers it is near zero (a gift's allowance adds the giver's grain above its floor and its reserve, the size
+  // of a gift). It may be below zero: a side owed beyond the limit wants a gain. Context as allowance's: {giver, receiver, from, to}.
+  Rules.declare({ id: 'dealAllowance', owner: 'sim/exchange', combine: 'sum', base: () => 0 });
+  for (const rule of ['allowance', 'dealAllowance']) {
+    const tunables = ['GOODWILL.acts'];
+    Rules.contribute({
+      rule,
+      source: 'sim/exchange',
+      key: 'goodwill',
+      label: 'Goodwill',
+      tunables: [...tunables, 'GOODWILL.limitDays'],
+      value: goodwillTerm,
+    });
+    Rules.contribute({
+      rule,
+      source: 'sim/exchange',
+      key: 'opinion',
+      label: 'Opinion of them',
+      tunables: [...tunables, 'GOODWILL.opinionRations'],
+      value: opinionTerm,
+    });
+  }
   // A gift {from, to, good, n, source}: from and to are households or villages (a village gives from its store, or takes the yearly
   // filling). Sizes are compared with a tolerance, since the size help asks for is reckoned apart from the allowance's sum.
   const TOLERANCE = 1e-9;
