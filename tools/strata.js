@@ -1,5 +1,5 @@
 // The strata report (VB-765): the work line 600 / 325 / 75, the heads line and the urban sink's two bounds, counted from a run, before anything is built for them.
-// node tools/strata.js [--scenario founders|heirs|populous] [--seed N] [--map probe|tiny|small|medium|large] [--years Y] [--every step|hour] [--json]
+// node tools/strata.js [--scenario founders|solo|heirs|populous] [--seed N] [--map probe|tiny|small|medium|large] [--years Y] [--every step|hour] [--json]
 // node tools/strata.js --load FILE [--years Y] [--every step|hour] [--json]     (--years counts on from the save's year)
 // Hours: each adult's (14 and over) hours on a job, sampled as tools/hours.js samples them (every step, or each hour's first with
 // --every hour), walking and carrying included, by the kind of the job. A kind falls in one of: farming (fields, hay, herds, fishing,
@@ -204,7 +204,7 @@ if (require.main === module) {
   const scenario = loaded ? loaded.scenario : opt('scenario', 'founders'),
     seed = loaded ? loaded.seed : +opt('seed', 7),
     map = loaded ? mapOf(loaded) : opt('map', 'small');
-  if (!SIZES[map] || !['founders', 'heirs', 'populous'].includes(scenario)) {
+  if (!SIZES[map] || !['founders', 'solo', 'heirs', 'populous'].includes(scenario)) {
     console.error('strata: see --help');
     process.exit(2);
   }

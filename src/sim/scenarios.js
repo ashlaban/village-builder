@@ -1,4 +1,4 @@
-// @sys sim/scenarios: the founders and heirs scenarios and the initial simulation state
+// @sys sim/scenarios: the founders (and solo), heirs and populous scenarios and the initial simulation state
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
@@ -10,7 +10,7 @@ VB['sim/scenarios'] = (() => {
     { buildHours } = VB['sim/villagehours'];
   const { settlementGenerator, findSite } = VB['sim/layout'];
   const ByHand = VB['sim/byhand'];
-  const { foundersHouseholds, drawSize, populousHouseholds, handHouseholds } = VB['sim/people'];
+  const { foundersHouseholds, soloHousehold, drawSize, populousHouseholds, handHouseholds } = VB['sim/people'];
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } =
     VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
@@ -44,7 +44,8 @@ VB['sim/scenarios'] = (() => {
   const { layWay } = VB['sim/paths'];
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
-  function seedFounders(w, seedNum) {
+  // Founders, or with `solo` one settler alone on a village of one farm, landed with what a founders household of the village brings.
+  function seedFounders(w, seedNum, solo = false) {
     const S = fromState((seedNum * 2654435761) ^ 0x51ed),
       rand = drawer(S);
     const comp = landComponents(w),
@@ -52,12 +53,12 @@ VB['sim/scenarios'] = (() => {
     const center = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
     if (center < 0) throw new Error('No village site found');
     const gen = settlementGenerator(w, rand, true),
-      village = gen.addVillage(center, 3),
-      lone = gen.addLoneFarm(center);
+      village = gen.addVillage(center, solo ? 1 : 3),
+      lone = solo ? null : gen.addLoneFarm(center);
     const { used, farmsteads, villages } = gen.finish();
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
-    const households = foundersHouseholds(R, farmsteads);
-    const st = makeState(w, S, R, households, farmsteads, villages, used, 'founders');
+    const households = solo ? soloHousehold(R, farmsteads) : foundersHouseholds(R, farmsteads);
+    const st = makeState(w, S, R, households, farmsteads, villages, used, solo ? 'solo' : 'founders');
     initCulture(st, null, { kinLimit: 'close' });
     countDemand(st);
     st.makeFields = true;
@@ -84,13 +85,11 @@ VB['sim/scenarios'] = (() => {
       for (const k of R) if (k !== 'barley' && !CROPS[k].fallow) hh.grain[k] = n * CROPS[k].seed;
       if (f.keeps && !R.includes('peas')) hh.grain.peas = CROPS.peas.seed;
     }
-    foundersHerds(st);
+    foundersHerds(st, solo); // solo: its one farm keeps the first household's herd, though it stands alone
     seedOutland(st, false); // newcomers claim their outland on arrival; it is theirs at the first meeting
-    log(st, `${R.pawns.length} settlers land and found ${village.name}${lone ? ` and ${lone.name}` : ''}.`, {
-      kind: 'settled',
-      n: R.pawns.length,
-      village: village.id,
-    });
+    const n = R.pawns.length,
+      who = n === 1 ? 'A settler lands and founds' : `${n} settlers land and found`;
+    log(st, `${who} ${village.name}${lone ? ` and ${lone.name}` : ''}.`, { kind: 'settled', n, village: village.id });
     VB['sim/carts'].seedCarts(st, false);
     startStreams(st, seedNum);
     return st;
@@ -412,7 +411,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.rng: {work, fields, weather, fences, births, deaths, culture, people, society, talk, herds, settle}: one random stream per
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
-    // @state st.scenario: string; 'founders', 'heirs', 'populous', 'market' (a test bed, VB-778), or 'manual' (placed by hand)
+    // @state st.scenario: string; 'founders', 'solo' (one settler), 'heirs', 'populous', 'market' (a test bed, VB-778), or 'manual' (placed by hand)
     // (st.weather: the seasons' weather, sim/weather)
     // (pawn.events: the positions of its events in st.record, in the order they were written; sim/records, VB-199)
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
@@ -687,7 +686,7 @@ VB['sim/scenarios'] = (() => {
         ? seedHeirs(w, seedNum)
         : scenario === 'populous' || scenario === 'market'
           ? seedPopulous(w, seedNum, scenario === 'market')
-          : seedFounders(w, seedNum);
+          : seedFounders(w, seedNum, scenario === 'solo');
     if (opts && opts.rye) giveRye(st);
     return st;
   }

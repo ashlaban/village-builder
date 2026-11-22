@@ -64,7 +64,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Baselines that only fall: `node tests/lint.js --update` (`tests/lint-baseline.json`) and `node tests/ownership.js --update` (fixed sites).
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints a line a year; `--report NAME [--json]`
   adds a report (households, pawns, jobs, events, hunger, perf, counts and more), `--household N`, `--pawn N`; `--save FILE` and
-  `--load FILE`, so a bug report can carry the run.
+  `--load FILE`, so a bug report can carry the run. The scenarios: `founders`, `solo` (one young settler alone on a one-farm village),
+  `heirs`, `populous` and `market` (a test bed).
 - Review tools (VB-337): `node tools/sim.js --report hours [--from Y] [--fields N] [--team] [--household N] [--json]` (pawn-hours a
   household-year by job kind, work and walking, against its hands' and workers' working hours, and the farming year's days, and by season the
   fields' work, all jobs and idle (VB-356); `tools/hours.js`);
