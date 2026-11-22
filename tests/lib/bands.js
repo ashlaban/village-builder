@@ -10,9 +10,10 @@
 // a reduced scenario of SETUPS. `afterYear` is the probe's year: the probe looks at the years after it (or, for the villages, at it).
 const VB = require('../../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { checkState } = require('./invariants.js');
-const { DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
+const { DAY, YEAR_DAYS, SEASON_DAYS, CROPS, ROTATIONS } = VB['sim/rules'];
 const { tilthByHerd } = require('../../tools/soil.js');
 const W = require('../../tools/waiting.js'); // who waits to marry, and why (VB-633)
+const { held } = require('../../tools/crops.js'); // the crops held on the island (VB-356)
 const MAPS = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as tools/sim.js and the generation screen
 // Reduced scenarios: a scenario on a map, nothing else changed yet; toy setups (a tinyState of tests/lib/tiny.js) may join them.
 const SETUPS = { 'populous tiny': { scenario: 'populous', map: 'tiny' }, 'market tiny': { scenario: 'market', map: 'tiny' } }; // the market town: a test bed (VB-778)
@@ -145,6 +146,11 @@ const PROBES = {
   },
   // the widest difference in yearly growth between two whole decades of the run (design.md, The growth budget, The overshoot); NaN for
   // fewer than two
+  // VB-356: the crops held on the island at the start (a field's seed or more) of which none at all is held at the end (design.md, The
+  // scenarios' crops: the founders' backup farm keeps the peas against one bad year)
+  cropsLost: (s) => s[0].crops.island.filter((k) => !s[s.length - 1].crops.any.includes(k)).length,
+  // VB-356: the share of farms with fields whose rotation sows two crops or more, at the end (NaN for no farm with fields)
+  mixedFarmShare: (s) => { const r = s[s.length - 1].rotations, n = sumOf(Object.values(r), (x) => x.n); return n ? sumOf(Object.values(r), (x) => (x.crops >= 2 ? x.n : 0)) / n : NaN; },
   growthSwing: (s) => {
     const g = []; for (let d = 0; d + 10 <= s.length - 1; d += 10) g.push(growthOver(s, d, d + 10));
     return g.length >= 2 && g.every(Number.isFinite) ? Math.max(...g) - Math.min(...g) : NaN;
@@ -168,6 +174,10 @@ const FLOORS = [
   // VB-720: farms with cattle hold more tilth than farms without (populous and founders; the first full measure sets the number, which only Kim
   // changes). A target, asserted on the reduced run only as a gain above 0: a dunged field's tilth is above an undunged one's
   { id: 'tilth-gain', probe: 'tilthGain', kind: 'balancing', lo: 0.03, hi: 1, afterYear: 0, runs: ['populous', 'founders'], assertLo: 1e-9 },
+  // VB-356 (the crops' wrap-up): no crop the island starts with is lost to it, a target (the design's backup farm and the seed kept for
+  // it); the share of farms sowing two crops or more, described
+  { id: 'crops-lost', probe: 'cropsLost', kind: 'balancing', lo: 0, hi: 0, afterYear: 0 },
+  { id: 'mixed-farms', probe: 'mixedFarmShare', kind: 'described', afterYear: 0 },
   { id: 'invariants', probe: 'invariantFailures', kind: 'watched', lo: 0, hi: 0, afterYear: 0 },
   // VB-633: the marriage valve and the pace of growth, described in the full runs only, never asserted (design.md, The growth budget,
   // The band); the group `growth` is also what the medium runs report (FULL, groups)
@@ -256,12 +266,17 @@ function runScenario({ scenario, map, seed, years, strata = false }) {
 // this year), hungry, cold (VB-327) and all household-days, the worst household's hungry share, the household-years judged and those over
 // HUNGRY_SHARE, and checkState's violations.
 function sample(st, year, y) {
-  const villages = {};
+  const villages = {}, crops = held(VB, st), rotations = {};
+  for (const f of st.farmsteads) if (f.household !== null && f.fields.length) { // VB-356: farms by rotation, with the crops it sows
+    const k = f.fields[0].rotation, R = rotations[k] || (rotations[k] = { n: 0, crops: ROTATIONS[k].courses.filter((c) => CROPS[c].seed > 0).length });
+    R.n++;
+  }
   for (const id of st.liveHouseholds) {
     const f = st.farmsteads[st.households[id].farmstead], v = f ? f.village : null;
     if (v !== null && v !== undefined) villages[v] = (villages[v] || 0) + 1;
   }
   const out = { year, living: st.living.length, households: st.liveHouseholds.length, villages, births: 0, marriages: 0, refusedMatches: 0, deaths: {},
+    crops: { island: crops.island, any: crops.any }, rotations,
     hungryDays: 0, householdDays: 0, coldDays: y ? y.coldDays || 0 : 0, worstHungry: 0, hungryHouseholds: 0, householdYears: 0, invariants: [] };
   if (!y) return out;
   for (let i = y.from; i < st.record.length; i++) {

@@ -14,7 +14,8 @@
 // work and of walking and carrying a household-year, the spread of the two together by household (10th, 50th, 90th percentile) and the
 // share of the group's hands' and workers' working hours; then the farming year: for each field, the days it is hoed, sown, ripe, reaped,
 // in the barn and threshed, read from its stage changes at every step (and the barn's sheaves for the threshing), as the median and the
-// latest day of the group's fields, with the fields never sown and the crops lost to frost (a sown crop gone to stubble without reaping).
+// latest day of the group's fields, with the fields never sown and the crops lost to frost (a sown crop gone to stubble without reaping);
+// and by season (VB-356): the fields' work (sim/fieldwork's job kinds), all jobs, idle and the hands' hours, and the idle share of the hands'.
 // It samples outside the simulation, as tools/idle.js does: it steps the run (Sim.advance, a step at a time, the same run as by any chunks:
 // sim/clock) and reads st.agents, st.pawns, st.households and st.farmsteads; it writes nothing to st and adds no counter to the modules,
 // so a seed is the same run with or without it (tests/review-tools.js asserts the state's hash). Its cost is the tool's own and small:
@@ -127,9 +128,18 @@ module.exports = (VB, st, { from = 1, every = 'step', fields = null, team = fals
       const xs = fys.map((fy) => fy.days[d]).filter((x) => x !== null);
       return [d, { fields: xs.length, median: dayName(quant(xs, 0.5)), latest: dayName(xs.length ? Math.max(...xs) : null) }];
     }));
+    // VB-356: by season, the mean hours of the fields' work (the job kinds of sim/fieldwork), of all jobs, idle and of the hands, and the
+    // idle share of the hands' working hours
+    const fieldKinds = Object.keys(VB['sim/fieldwork'].KINDS || {});
+    const seasons = SEASONS.map((season, s) => {
+      const jobs = (r, only) => sum(['work', 'move'].map((part) => sum(Object.entries(r[part][s]).filter(([k]) => !only || only.includes(k)).map(([, v]) => v))));
+      const h = sum(rows.map((r) => r.hands[s])), idl = sum(rows.map((r) => r.idle[s]));
+      return { season, fields: r1(sum(rows.map((r) => jobs(r, fieldKinds))) / n), jobs: r1(sum(rows.map((r) => jobs(r))) / n), idle: r1(idl / n),
+        hands: r1(h / n), idleOfHands: +(100 * idl / Math.max(h, 1e-9)).toFixed(1) };
+    });
     return { households: n, members: r1(sum(rows.map((r) => st.households[r.household].members.length)) / n), handsHours: r1(hands / n),
       workersHours: r1(workers / n),
-      hours: byKind, farming, fields: sum(rows.map((r) => r.fields)), neverSown: sum(rows.map((r) => Math.max(0, r.fields - r.sown.size))),
+      hours: byKind, seasons, farming, fields: sum(rows.map((r) => r.fields)), neverSown: sum(rows.map((r) => Math.max(0, r.fields - r.sown.size))),
       frost: fys.filter((fy) => fy.frost).length };
   }
   function result() {
@@ -172,6 +182,8 @@ module.exports = (VB, st, { from = 1, every = 'step', fields = null, team = fals
     for (const g of out.groups) {
       console.log(`\n${g.group}: ${g.households} household-years, ${g.members} members (at the end), hands ${g.handsHours} h, workers ${g.workersHours} h`);
       console.table(Object.fromEntries(g.hours.map(({ kind, ...x }) => [kind, x])));
+      console.log('  by season: the fields\' work, all jobs (work + walking and carrying), idle and the hands\' hours, a household-year');
+      console.table(Object.fromEntries(g.seasons.map(({ season, ...x }) => [season, x])));
       console.log(`  the farming year (${g.fields} fields, ${g.neverSown} never sown, ${g.frost} lost to frost):`);
       console.table(g.farming);
     }
