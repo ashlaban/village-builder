@@ -96,6 +96,7 @@ VB['sim/quern'] = (() => {
       hours: QUERN.grindHours,
       hands: 1,
       type: 'household',
+      craft: 'milling', // VB-360
       inside: true,
       spot: atHome(-2, 4),
       urgency: () => QUERN.urgency.grind,
@@ -119,6 +120,7 @@ VB['sim/quern'] = (() => {
       hours: QUERN.hewHours,
       hands: 1,
       type: 'upkeep',
+      craft: 'stonework', // VB-360
       spot: atHome(-6, 12),
       urgency: () => QUERN.urgency.hew,
       done: (st, j, hh) => {

@@ -451,6 +451,7 @@ VB['sim/building'] = (() => {
       hours: BOOTH.hours,
       hands: Infinity,
       type: 'wood',
+      craft: 'building', // VB-360
       done: finishBooth,
       available: stakedWork,
     },
@@ -532,6 +533,7 @@ VB['sim/building'] = (() => {
       hours: BUILD.foundationHours,
       hands: 2,
       type: 'upkeep',
+      craft: 'building', // VB-360
       urgency: (st, j, c, U) => U.repair,
       spot: (st, a, j) => [st.w.hx[j.site] - 4 + a.ox * 0.4, st.w.hy[j.site] + 14],
       done: (st, j) => raised(st, j, st.households[j.farm.household]),

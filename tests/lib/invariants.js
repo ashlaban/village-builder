@@ -518,11 +518,18 @@ function checkState(st) {
   }
   // skill at each type of work (VB-475; sim/skills): every pawn has one a type, each finite within TRAITS.bounds; a hand's pace over a work
   // leg is absent or within what the slowest and the fastest skill, with the worst and no mishap, give
-  const SK = globalThis.VB['sim/skills'], paceLo = SK.paceOf(0, 1) - 1e-3, paceHi = SK.paceOf(1, 0) + 1e-3;
+  // (times a craft's rate, VB-360: from a novice's to a master's); a pawn's crafts (pawn.skills) are absent, or crafts of SKILLS.crafts
+  // each with a level within 0 to 1 and the hour it was set, not after now
+  const SK = globalThis.VB['sim/skills'], SKS = SK.SKILLS,
+    paceLo = SK.paceOf(0, 1) * Math.min(1, SKS.novice) - 1e-3, paceHi = SK.paceOf(1, 0) * Math.max(1, SKS.master) + 1e-3;
   for (const p of st.pawns) {
     const t = p.skill;
     if (!Array.isArray(t) || t.length !== SK.SKILL.types.length || !t.every((x) => Number.isFinite(x) && x >= lo && x <= hi))
       bad.push(`pawn ${p.id}: skill ${JSON.stringify(t)}`);
+    const k = p.skills;
+    if (k === undefined) continue;
+    if (!k || typeof k !== 'object' || Object.entries(k).some(([c, s]) => !SKS.crafts.includes(c) || !s || !(Number.isFinite(s.level) && s.level >= 0 && s.level <= 1) || !(Number.isFinite(s.at) && s.at <= st.t + 1e-9)))
+      bad.push(`pawn ${p.id}: skills ${JSON.stringify(k)}`);
   }
   for (const a of st.agents)
     if (a.pace !== undefined && !(Number.isFinite(a.pace) && a.pace >= paceLo && a.pace <= paceHi)) bad.push(`agent ${a.id}: pace ${a.pace}`);

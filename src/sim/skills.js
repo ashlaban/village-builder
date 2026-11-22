@@ -1,9 +1,11 @@
-// @sys sim/skills: a pawn's skill at each type of work (VB-475: the stand-in until slice 7's skills learnt by doing, VB-360) and what it
-// does to a hand's rate: skill speeds the work, and a mishap drawn at a work leg's start (the stream `mishap`) slows it, less for a
-// skilled hand; a hand of middling skill works at the norm on average. Skill is drawn once, from the stream `traits`, and does not grow.
+// @sys sim/skills: a pawn's skill at each type of work (VB-475: a stand-in drawn once, from the stream `traits`, that does not grow) and
+// at each craft (VB-360: learnt by doing, faster with aptitude, fading unused, read in closed form), and what they do to a hand's rate:
+// skill speeds the work, and a mishap drawn at a work leg's start (the stream `mishap`) slows it, less for a skilled hand; a hand of
+// middling skill works at the norm on average; a craft's level multiplies the rate from a novice's to a master's.
 VB['sim/skills'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { pass } = VB['sim/traits'];
+  const { YEAR } = VB['sim/rules'];
+  const { pass, of: traitOf } = VB['sim/traits'];
   // @state pawn.skill (VB-475): the pawn's skill at each type of work, in the order of SKILL.types (an array, to keep the save small),
   //   each to a thousandth within TRAITS.bounds (0.5 the middle); drawn from the stream `traits` around the middle, as a placed pawn's
   //   temperament is (Traits.pass), at birth (born, after its traits) and at seed for those a scenario places (seedSkills); it does not grow.
@@ -32,6 +34,40 @@ VB['sim/skills'] = (() => {
     rate: Object.freeze([0.9, 1.1]),
     mishap: Object.freeze([0.2, 0.05]),
   });
+  // @tunable SKILLS (VB-360; design.md, Goods, production and animals, The mill and the loom: Skills; slice 6's plan, VB-185):
+  //   crafts: the crafts a pawn can learn (the declared cap of pawn.skills; a job kind names its craft as `craft`, sim/kinds);
+  //   half: the hours of practice that take a craft from 0 to halfway (0.5), at aptitude 1: each hour closes the same share of the gap to 1;
+  //   fade: the share of its level a craft loses a year unused (in closed form from the time it was last practised);
+  //   novice, master: the rate a hand works a craft at, times its rate, at level 0 and at level 1, linear between;
+  //   learn: the aptitude, [at the trait's 0, at its 1], times the hours a practice counts; the trait a craft reads is `aptitude` (design.md,
+  //   People, The twelve traits: hands for the crafts of the hands, body for heavy work; until slice 7 the trait stands in directly);
+  //   words: the cut points (level at or above) of the words the pawn panel shows, a skill under the first not shown.
+  const SKILLS = Object.freeze({
+    crafts: Object.freeze([
+      'spinning',
+      'weaving',
+      'smelting',
+      'smithing',
+      'pottery',
+      'building',
+      'milling',
+      'stonework',
+      'casting',
+    ]),
+    half: 400,
+    fade: 0.1,
+    novice: 0.6,
+    master: 1.3,
+    learn: Object.freeze([0.75, 1.25]),
+    aptitude: Object.freeze({ smelting: 'body', milling: 'body', stonework: 'body' }),
+    words: Object.freeze([
+      Object.freeze([0.1, 'novice']),
+      Object.freeze([0.3, 'practised']),
+      Object.freeze([0.6, 'skilled']),
+      Object.freeze([0.85, 'master']),
+    ]),
+  });
+  const CRAFT = Object.freeze(Object.fromEntries(SKILLS.crafts.map((k) => [k, true])));
   const IDX = Object.freeze(Object.fromEntries(SKILL.types.map((k, i) => [k, i])));
   const MIDDLE = 0.5,
     lerp = (ab, s) => ab[0] + (ab[1] - ab[0]) * s;
@@ -64,5 +100,63 @@ VB['sim/skills'] = (() => {
   // A work leg begins (sim/agents): the hand's pace at a type of work for the leg, its mishap drawn now from the stream `mishap`; to a
   // thousandth, so the save stays small.
   const legPace = (st, id, type) => Math.round(paceOf(skillOf(st, id, type), rnd(st.rng.mishap)) * 1000) / 1000;
-  return { SKILL, NORM, born, seedSkills, skillOf, paceOf, legPace };
+  // ---- crafts, learnt by doing (VB-360) ----
+  // @state pawn.skills (VB-360): the pawn's crafts practised, {[craft]: {level, at}}: the level (0 to 1) when it was last set and the game
+  //   hour it was set; only crafts of SKILLS.crafts; absent until the pawn first practises one (it then reads 0 at every craft). The level
+  //   now is read in closed form (level): no yearly pass. Written only here (practise).
+  // The pawn's level at a craft now: its stored level, less SKILLS.fade of itself a year since it was set.
+  function level(st, id, craft) {
+    const k = st.pawns[id].skills,
+      s = k && k[craft];
+    if (!s) return 0;
+    const years = (st.t - s.at) / YEAR;
+    return years > 0 ? s.level * Math.pow(1 - SKILLS.fade, years) : s.level;
+  }
+  // The pawn's aptitude for a craft: SKILLS.learn at its trait (hands, or body for heavy work), linear between.
+  const aptitude = (st, id, craft) => {
+    const L = SKILLS.learn;
+    return L[0] + (L[1] - L[0]) * traitOf(st, id, SKILLS.aptitude[craft] || 'hands');
+  };
+  // Hours of practice at a craft (sim/work, as a craft's task is reckoned): the level read now rises towards 1, each hour (times the
+  // pawn's aptitude) closing the share of the gap that makes SKILLS.half hours from 0 reach a half.
+  function practise(st, id, craft, hours) {
+    if (!CRAFT[craft] || !(hours > 0)) return;
+    const p = st.pawns[id],
+      l = level(st, id, craft),
+      k = p.skills || (p.skills = {});
+    k[craft] = { level: 1 - (1 - l) * Math.pow(0.5, (hours * aptitude(st, id, craft)) / SKILLS.half), at: st.t };
+  }
+  // What a craft's level makes of a hand's rate: SKILLS.novice at 0 to SKILLS.master at 1.
+  const craftRate = (l) => SKILLS.novice + (SKILLS.master - SKILLS.novice) * l;
+  // The pawn's crafts at SKILLS.words' first cut or above, each {craft, level, word}, in the order of SKILLS.crafts (the pawn panel).
+  function craftsOf(st, id) {
+    const out = [];
+    if (!st.pawns[id].skills) return out;
+    for (const c of SKILLS.crafts) {
+      const l = level(st, id, c);
+      let word = null;
+      for (const [at, w] of SKILLS.words) if (l >= at) word = w;
+      if (word) out.push({ craft: c, level: l, word });
+    }
+    return out;
+  }
+  // A work leg begins (sim/agents): the hand's pace for the leg at a type of work, with its mishap drawn now from the stream `mishap`,
+  // times its craft's rate for a kind that names one (`craft`); to a thousandth, so the save stays small. One read of the craft's level.
+  const workPace = (st, id, type, craft) =>
+    craft ? Math.round(legPace(st, id, type) * craftRate(level(st, id, craft)) * 1000) / 1000 : legPace(st, id, type);
+  return {
+    SKILL,
+    SKILLS,
+    NORM,
+    born,
+    seedSkills,
+    skillOf,
+    paceOf,
+    legPace,
+    level,
+    practise,
+    craftRate,
+    craftsOf,
+    workPace,
+  };
 })();

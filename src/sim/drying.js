@@ -260,6 +260,7 @@ VB['sim/drying'] = (() => {
       hours: BOAT.hours,
       hands: 2,
       type: 'wood',
+      craft: 'building', // VB-360
       project: true,
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.3],
       done: (st, j, hh) => Projects.stepEnds(st, j, hh, boatBuilt),

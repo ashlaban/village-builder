@@ -14,6 +14,7 @@ VB['sim/work'] = (() => {
     Progress = VB['sim/progress'],
     { workTick } = Progress;
   const Due = VB['sim/due'];
+  const Skills = VB['sim/skills'];
   const { tileAt, endTile } = VB['sim/pose'];
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
@@ -61,7 +62,8 @@ VB['sim/work'] = (() => {
   // leaving at the calendar's hour (before the legs) does not work that step, and one joining in or after them works from the next. Between
   // steps (a fresh or a loaded run, st.stepAt absent or both its marks at the tick) the step now has been worked.
   // @state agent.pace (VB-475): the hand's pace over its work leg, a multiplier on its rate (rateOf) at full attention: its skill at the
-  //   kind's type of work and the leg's mishap (sim/skills legPace), drawn as the work leg begins (arrived); read only while it is at
+  //   kind's type of work and the leg's mishap, and its level at the kind's craft (sim/skills workPace), drawn as the work leg begins
+  //   (arrived); the level read then holds for the leg, the hours practised raising it as the task is reckoned (settle); read only while it is at
   //   work; absent until its first work leg (it reads 1). Written only here.
   const hoursOfJob = (j) => j.hours ?? KINDS[j.kind].hours;
   const atWork = (st, j, id) => {
@@ -125,6 +127,7 @@ VB['sim/work'] = (() => {
       if (K.worked) K.worked(st, j, dt, st.agents[id], from);
       if (j.plot) j.plot.hours[id] = (j.plot.hours[id] || 0) + dt;
       countWork(st, id, dt, t);
+      if (K.craft) Skills.practise(st, id, K.craft, dt); // hours at a craft raise the hand's skill at it (VB-360)
       if (j.field && j.farm) bookHours(j.field, st.pawns[id].household === j.farm.household, dt); // VB-462: the class reads it
       if (st.agents[id].basis === 'owed') Days.worked(st, id, dt);
     }

@@ -319,7 +319,7 @@ VB['sim/agents'] = (() => {
       a.anim = K.anim || 'idle';
       a.inside = !!K.inside;
       workAt(st, a); // the work leg
-      a.pace = Skills.legPace(st, a.id, K.type); // its skill at the work, and the leg's mishap (VB-475)
+      a.pace = Skills.workPace(st, a.id, K.type, K.craft); // its skill at the work, the leg's mishap (VB-475), its craft (VB-360)
       rerate(st, a.job);
     } else if (a.phase === 'back') {
       deposit(st, a);

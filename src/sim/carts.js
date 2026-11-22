@@ -230,6 +230,7 @@ VB['sim/carts'] = (() => {
       hours: CART.hours.hand,
       hands: 2,
       type: 'wood',
+      craft: 'building', // VB-360
       project: true,
       spot: atHouse,
       done: (st, j, hh) => Projects.stepEnds(st, j, hh, cartBuilt),
