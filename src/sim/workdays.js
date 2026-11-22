@@ -9,6 +9,8 @@ VB['sim/workdays'] = (() => {
     { tieOf } = VB['sim/ties'];
   const { remember } = VB['sim/relations'];
   const { emit } = VB['sim/events'];
+  const { register } = VB['sim/commands'],
+    { agentWhy } = VB['sim/decisions'];
   // @tunable WORKDAY: the village work days, their days, hours and standing
   // Village work days (VB-120; Kim, 10 Nov; design, Jobs, owners and roles: Village work days): a routine the meeting may choose for a village
   // with a fence; chosen, the village works together on `days` ([season, day of the season, what]): spring's first day the fence, its stretches
@@ -32,7 +34,7 @@ VB['sim/workdays'] = (() => {
   };
   // @state village.workday: the village's last work day, or absent before its first: {day (game day), what ('fence' | 'commons'),
   //   hoursOf ({pawn id: hours worked at the day's jobs}), cleared (the commons' work done), judged (its end told)}. Written only here:
-  //   begun by the first hour worked at the day's jobs (or, when nobody came, at its end), judged at the end of work (sim/clock).
+  //   begun when the alderman calls the day (the verb callWorkday, VB-673), judged at the end of work (sim/clock).
   // @state pawn.workdays: {year (of cal), came (work days the pawn turned out to), missed (work days its household stayed away from, as its
   //   holder)}, absent before its first; read by sim/society's standing while year is this year.
   const VILLAGE = (v) => ({ type: 'village', id: v.id });
@@ -83,12 +85,35 @@ VB['sim/workdays'] = (() => {
       v.workday = { day: c.day, what: dayOf(c), hoursOf: {}, cleared: false, judged: false };
     return v.workday;
   }
-  // The routine's rule, asked at the village's reviews while its meeting chose work days (sim/jobs): on a work day, until the end of work,
+  // Whether the work day of date c was called (callWorkday).
+  const called = (v, c) => !!v.workday && v.workday.day === c.day;
+  // callWorkday(village) (VB-673): the alderman, at home, calls out his village on a work day of its routines, until the end of work; once
+  // a day. The day's jobs are posted from then on, and it is judged at the end of work.
+  register('callWorkday', {
+    check: (st, c) => {
+      const vid = c.target,
+        plan = Number.isInteger(vid) ? st.plans.villages.get(vid) : undefined,
+        d = cal(st.t);
+      if (!plan) return `village ${vid} has no plan`;
+      return (
+        agentWhy(st, vid, c.actor) ||
+        (!plan.routines.includes('workdays')
+          ? `the meeting of ${st.villages[vid].name} did not choose work days`
+          : !dayOf(d) || d.hour >= WORK[1]
+            ? 'today is no work day'
+            : called(st.villages[vid], d)
+              ? 'the work day is called'
+              : null)
+      );
+    },
+    run: (st, c) => recordOf(st, st.villages[c.target], cal(st.t)),
+  });
+  // The routine's rule, asked at the village's reviews while its meeting chose work days (sim/jobs): on a called work day, until the end of work,
   // the fence's worn stretches (WORKDAY.fenceHours each), or the commons' clearing at the wood's edge (WORKDAY.clearHours an adult of the
   // village), as village jobs. A village with a whole fence, or no wood, has no work day. Reads only.
   function workdayWork(st, v, at, c, post) {
     const what = dayOf(c);
-    if (!what || c.hour >= WORK[1]) return;
+    if (!what || c.hour >= WORK[1] || !called(v, c)) return;
     const own = VILLAGE(v);
     if (what === 'fence') {
       for (const s of worn(v))

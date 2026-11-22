@@ -20,6 +20,18 @@ VB['sim/decisions'] = (() => {
     atLoad();
     presider = f;
   }
+  // The body's agent (VB-673): the pawn who carries out what it decided, its presider while at home (not on the road, sim/away); null while
+  // the office is vacant or its holder away, and then the body's act waits. agentWhy: why pawn `actor` may not act for body now, or null.
+  function agentOf(st, body) {
+    const p = presider(st, body);
+    return p !== null && st.agents[p] && st.agents[p].away === undefined ? p : null;
+  }
+  function agentWhy(st, body, actor) {
+    const p = presider(st, body);
+    if (p === null) return `village ${body} has no alderman to act for it`;
+    if (actor !== p) return `pawn ${actor} is not the alderman of village ${body}`;
+    return agentOf(st, body) === null ? `the alderman of village ${body} is away` : null;
+  }
   // The procedure a body settles a kind of question by: its practice of deciding where it has one (none yet: VB-314, VB-315), else the
   // kind's default.
   const procedureFor = (st, body, kind) => KINDS[kind].procedure;
@@ -74,5 +86,5 @@ VB['sim/decisions'] = (() => {
     return r.chosen;
   }
   const LOG = 30;
-  return { ask, defineKind, setPresider, procedureFor, LOG };
+  return { ask, defineKind, setPresider, procedureFor, agentOf, agentWhy, LOG };
 })();

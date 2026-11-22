@@ -26,6 +26,8 @@ assert.ok(!plan.routines.includes('workdays'), 'the founders call no work days')
 assert.ok(VB['sim/routines'].chooseRoutines(st, v).includes('workdays'), 'a meeting may choose them');
 // the meeting chose them; the first year's routines stand otherwise
 VB['sim/routines'].setRoutines(st, v.id, ['fence', 'workdays'], 'meeting');
+// its alderman calls the day (VB-673): holder 0
+VB['sim/membership'].setAlderman(st, v, st.households[0].holder);
 
 // to the eve of year 2's spring day 1 (the clock moved by hand: nothing of year 1 is run), the fence worn over the winter
 const to = (t) => Sim.advance(st, t - st.t), Y2 = YEAR_DAYS * DAY;
