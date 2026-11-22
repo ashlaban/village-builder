@@ -278,13 +278,14 @@ VB['sim/customs'] = (() => {
   const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);
 
   // ---- the door: the option of a custom in force ----
-  // `at` is a settlement id (a village id). With no culture seeded, or no such settlement, the option is the one of the archetype every
+  // `at` is a settlement id (a village id). With no culture seeded, no such settlement, or a practice array
+  // shorter than the catalogue (a save made before the custom was added), the option is the one of the archetype every
   // culture starts from (oldNordic), as each reader had it. Allocates nothing: the option key is the catalogue's own string.
   // inForceAt gives the option's index for custom index k, for the readers that compare indexes (a cause, the meeting's check).
   const BASE = DIMS.map((d) => d.opts.findIndex((o) => o[0] === ARCHETYPES.oldNordic[d.key]));
   const inForceAt = (st, k, at) => {
     const s = st.cenv && at !== null && at !== undefined ? st.cenv.settlements[at] : undefined;
-    return s ? s.practice[k] : BASE[k];
+    return s && s.practice[k] !== undefined ? s.practice[k] : BASE[k];
   };
   const inForce = (st, key, at) => {
     const k = IDX[key];

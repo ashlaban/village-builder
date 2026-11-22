@@ -5,7 +5,8 @@ VB['sim/society'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { issue, register } = VB['sim/commands'];
   const { ask } = VB['sim/decisions'];
-  const Culture = VB['culture'];
+  const Culture = VB['culture'],
+    { inForceAt } = VB['sim/customs'];
   const { initRelations } = VB['sim/relations'],
     { raiseTie } = VB['sim/ties'];
   const { YEAR, SPEED, OFFICE, cal, TRAITS, HERD, DAY } = VB['sim/rules'],
@@ -311,11 +312,9 @@ VB['sim/society'] = (() => {
     check: (st, c) =>
       settlement(st, c) ||
       option(c) ||
-      (st.cenv.settlements[c.actor.settlement].practice[c.args.dim] === c.args.option
-        ? 'the practice is that already'
-        : null),
+      (inForceAt(st, c.args.dim, c.actor.settlement) === c.args.option ? 'the practice is that already' : null),
     run: (st, c) => {
-      st.cenv.settlements[c.actor.settlement].practice[c.args.dim] = c.args.option;
+      Culture.setPractice(st.cenv.settlements[c.actor.settlement], c.args.dim, c.args.option);
     },
   });
   // argue({dim, option}): the pawn takes up the cause for Culture.P.causeEvery years (the debug's, and the player's for its pawn: VB-211); it

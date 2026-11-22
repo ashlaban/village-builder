@@ -5,7 +5,7 @@
 VB['sim/commons'] = (() => {
   const Projects = VB['sim/projects'],
     Stores = VB['sim/stores'],
-    Culture = VB['culture'];
+    { DIMS, IDX, inForceAt } = VB['sim/customs'];
   const { cal } = VB['sim/rules'],
     { ROLES } = VB['sim/roles'],
     { CROPS, farmable, fertility } = VB['sim/crops'];
@@ -196,16 +196,15 @@ VB['sim/commons'] = (() => {
   }
   // ---- the custom (Kim, 10 Nov): the priority of the commons' tasks, a role's village duty (ROLES' `duty`) moved by COMMONS.lean of the
   // option in force, compiled once into a table by option and role (Rules for cost, 6: read in the bid, it allocates nothing) ----
-  const DIM = Culture.IDX.commons,
-    OPTS = Culture.DIMS[DIM].opts.map((o) => o[0]),
-    FAIR = OPTS.indexOf('fair');
+  const DIM = IDX.commons,
+    OPTS = DIMS[DIM].opts.map((o) => o[0]);
   const PRIO = OPTS.map((k) =>
     Object.fromEntries(
       Object.keys(ROLES).map((r) => [r, ROLES[r].work.duty ? Math.max(0, ROLES[r].work.duty + COMMONS.lean[k]) : 0]),
     ),
   );
   // The option of the custom in force in village vid (its settlement's practice), an index of OPTS.
-  const optionOf = (st, vid) => (st.cenv && st.cenv.settlements[vid] ? st.cenv.settlements[vid].practice[DIM] : FAIR);
+  const optionOf = (st, vid) => inForceAt(st, DIM, vid);
   // A pawn's priority for a common field's job (sim/jobs).
   const commonPrio = (st, p, j) => PRIO[optionOf(st, j.village)][p.role] || 0;
   // Help received leans a person towards the commons (Kim, 10 Nov): the days of its household's need it owes in goodwill (what its holder

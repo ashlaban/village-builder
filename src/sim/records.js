@@ -1,7 +1,8 @@
 // @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the
 // record of events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
 VB['sim/records'] = (() => {
-  const Culture = VB['culture'];
+  const Culture = VB['culture'],
+    { inForce } = VB['sim/customs'];
   const Crowding = VB['sim/crowding'];
   const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
   // ---- the record of events (VB-075) ----
@@ -560,11 +561,7 @@ VB['sim/records'] = (() => {
   // lives there as a son or daughter of the house (a child of the holder, of the holder's spouse or of the holder's parent, not in service,
   // and not the holder); otherwise the pawn itself. O(1): the holder, its spouse and its two parents.
   // Under the custom `matchBy` (VB-826) 'couple' in the pawn's village every pawn speaks for itself.
-  const MATCH_BY = Culture.IDX.matchBy;
-  const matchByOf = (st, p) => {
-    const s = st.cenv && st.cenv.settlements[settlementIdOf(st, p)];
-    return s ? Culture.DIMS[MATCH_BY].opts[s.practice[MATCH_BY]][0] : 'consent';
-  };
+  const matchByOf = (st, p) => inForce(st, 'matchBy', settlementIdOf(st, p));
   function spokesmanOf(st, id) {
     const p = st.pawns[id];
     if (p.household === null || p.servant) return id;
@@ -577,12 +574,10 @@ VB['sim/records'] = (() => {
       of = (q) => q !== null && (q === h || q === sp || q === hp.father || q === hp.mother);
     return of(p.father) || of(p.mother) ? h : id;
   }
+  // Every custom in force at a settlement, by key (one object a call: for the readers that read several at once).
   const practice = (st, settlementId) => {
-    const s = st.cenv.settlements[settlementId],
-      out = {};
-    Culture.DIMS.forEach((d, k) => {
-      out[d.key] = d.opts[s.practice[k]][0];
-    });
+    const out = {};
+    for (const d of Culture.DIMS) out[d.key] = inForce(st, d.key, settlementId);
     return out;
   };
   const farmPractice = (st, f) => practice(st, f.village);
@@ -702,7 +697,7 @@ VB['sim/records'] = (() => {
   // How much p's voice counts at the meeting of settlement s, by its practice of the custom "voice": 0 or 1.
   function voiceOf(st, p, s) {
     if (!p.alive || p.age < 18) return 0;
-    const v = Culture.DIMS[Culture.IDX.voice].opts[s.practice[Culture.IDX.voice]][0];
+    const v = inForce(st, 'voice', s.id);
     if (v === 'adults') return 1;
     const holder = isHolder(st, p.id);
     if (holder) return 1;

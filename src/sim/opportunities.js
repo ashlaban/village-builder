@@ -1,7 +1,8 @@
 // @sys sim/opportunities: what a pawn may do here, for whom and on what basis, computed when asked and never stored; the actor view (VB-209);
 // whom the player may go on as after its pawn's death (VB-213)
 VB['sim/opportunities'] = (() => {
-  const Culture = VB['culture'];
+  const Culture = VB['culture'],
+    { inForceAt } = VB['sim/customs'];
   const { cal, DAY, YEAR } = VB['sim/rules'],
     { SERVICE } = VB['sim/service'];
   const { walkable } = VB['sim/walking'];
@@ -199,12 +200,12 @@ VB['sim/opportunities'] = (() => {
   // ---- a cause: each custom's options other than its village's practice, and dropping the cause it has ----
   function causes(view, p, out) {
     if (!view.cenv) return;
-    const s = view.cenv.settlements[settlementIdOf(view, p)],
+    const at = settlementIdOf(view, p),
       adv = p.advocate || null;
-    if (!s) return;
+    if (!view.cenv.settlements[at]) return;
     for (let dim = 0; dim < Culture.DIMS.length; dim++)
       for (let option = 0; option < Culture.NOPT[dim]; option++) {
-        if (s.practice[dim] === option) continue;
+        if (inForceAt(view, dim, at) === option) continue;
         const args = { dim, option },
           mine = adv && adv.dim === dim && adv.opt === option;
         out.push(item('argue', null, args, mine ? 'argues for it already' : check(view, p.id, 'argue', null, args)));
