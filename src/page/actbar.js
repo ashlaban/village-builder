@@ -141,6 +141,20 @@ function menuHTML(id, opps) {
         o.why,
       );
     }
+    // the winter's gathering (VB-295): to go, or to stay home, until the household packs the day before
+    for (const o of by.self.filter((x) => x.verb === 'goGathering' || x.verb === 'stayHome')) {
+      const g = o.gathering,
+        go = o.verb === 'goGathering';
+      h += actRow(
+        cmdAttrs(o),
+        go ? 'green' : 'home',
+        go ? `Go to the gathering at ${g.place}` : `Stay home from the gathering at ${g.place}`,
+        go
+          ? `Winter days 1 to 3, on its green; ${g.home ? 'you sleep at home' : "you lodge at a farm there, on a pack of the farm's grain"}`
+          : 'Someone keeps the animals and the fire',
+        o.why,
+      );
+    }
     // a winter's visit (VB-292): its own, or that of a son or daughter of the house it speaks for; planned at once, set out in winter
     for (const o of by.self.filter((x) => x.verb === 'visit')) {
       const v = o.visit;

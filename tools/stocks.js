@@ -141,6 +141,7 @@ const NOT_STOCKS = {
   'ways (the wear of walking, fords and bridges)': ['w.wear', 'w.worn', 'w.crossing'],
   'when a tile was last worked (a day, not an amount; sim/spread)': ['w.tended'],
   'choices of the village\'s meeting (a decision, not an amount)': ['village.gathering'],
+  'a household\'s plan of who goes to the gathering (a decision, not an amount; VB-295)': ['household.gathering'],
   'a memory of a lost dispute (the rules that would have won it, until a time; sim/disputes)': ['household.grievance'],
 };
 

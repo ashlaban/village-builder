@@ -37,15 +37,18 @@ VB['sim/away'] = (() => {
   // ---- the stays (design.md, Moving to new land, Sleeping away from home) ----
   // @state st.away[]: the open stays, in the order they began (by id), each {id, pawn, why, bed, roof, food, from, to}: why 'move', 'carry',
   //   'fetch', 'haul' or 'visit' for a journey (VB-287, VB-291, VB-461, VB-849, VB-289), else the lodger's (the caller's word: 'work', 'visit'); bed the
-  //   tile it sleeps at, null on the road (a journey's bed is where its leg ends, sim/agents' bed); roof 'none', 'booth' or 'house' (a
-  //   guest's); food the rations of its pack, parts the grain it was taken as, by crop (VB-962: home as grain, or lying where it fell);
+  //   tile it sleeps at, null on the road (a journey's bed is where its leg ends, sim/agents' bed); roof 'none', 'booth', 'house' (a
+  //   guest's) or 'barn' (a guest's in its host's barn, VB-295); food the rations of its pack, parts the grain it was taken as, by crop (VB-962: home as
+  //   grain, or lying where it fell);
   //   from the farm it left (a lodger's household's), or null; to the tile it walks to (a journey:
   //   the house of the pawn's household, a carrier's receiver's, a fetcher's stop; a lodger: its bed). A journey's carrier or fetcher
   //   also holds its gift and back (VB-291, VB-461: fetchGift); a lodger its jobs (the keys of the tasks it is away for), walk (the hours
-  //   from its house to its bed, its estimate when it set out), host (a guest's: the household whose house it sleeps in) and back (true
-  //   once it has turned for home). A journey's course by its kind is read from JOURNEYS (below, VB-1409), keyed by why; a stay keeps
-  //   only the word. Plain data, saved; a save with st.journeys loads them as stays. When a journey's legs start and stop is its pawn's
-  //   (st.legDue, VB-473): a walk that stops for the night, a wait on the road until 6:00. A visit (VB-289) also holds
+  //   from its house to its bed, its estimate when it set out), host (a guest's: the household whose house or barn it sleeps in), back (true
+  //   once it has turned for home) and, for a stay at an occasion (VB-295: the gathering), until (the game hour from which it turns for
+  //   home: it takes no work, and waits at its bed to be asked to the occasion's days). A journey's course by its kind is read from
+  //   JOURNEYS (below, VB-1409), keyed by why; a stay keeps only the word. Plain data, saved; a save with st.journeys loads them as stays.
+  //   When a journey's legs start and stop is its pawn's (st.legDue, VB-473): a walk that stops for the night, a wait on the road until
+  //   6:00. A visit (VB-289) also holds
   //   village (the one visited), back (false until it has arrived there), stay (the days it has still to stay as a guest) and guest
   //   (true while it is there).
   // @state st.awaySeq: number; the next stay's id; ids are never reused (a save's journeySeq)
@@ -128,7 +131,7 @@ VB['sim/away'] = (() => {
   const houseOf = (st, hh) => st.farmsteads[hh.farmstead].house;
   // The pack for `days` planned away: a ration a day, at most AWAY.pack.
   const packOf = (st, p, days) => Math.min(days, AWAY.pack) * rationOf(st, p);
-  // Why pawn id cannot lodge at tile `at` (args {why, days, jobs, host}), or null: it is at home with a household that has a farm, the
+  // Why pawn id cannot lodge at tile `at` (args {why, days, jobs, host, barn, until, walk}), or null: it is at home with a household that has a farm, the
   // household can spare the whole pack from its food above its seed (one with nothing to spare sends nobody), and a guest's bed is in a
   // house of another household whose head says yes (it does not dislike the guest).
   function lodgeWhy(st, id, at, args) {
@@ -140,6 +143,9 @@ VB['sim/away'] = (() => {
     if (typeof o.why !== 'string' || !o.why) return 'a stay names why the pawn is away';
     if (!(Number.isInteger(o.days) && o.days >= 1)) return 'a stay plans a whole number of days, one or more';
     if (o.jobs !== undefined && !Array.isArray(o.jobs)) return 'the tasks of a stay must be a list';
+    if (o.until !== undefined && !(o.until > st.t)) return 'a stay for an occasion ends after now';
+    if (o.walk !== undefined && !(o.walk >= 0)) return 'a walk is a number of hours';
+    if (o.barn && (o.host === undefined || o.host === null)) return "a bed in a barn is in a host's barn";
     if (o.host !== undefined && o.host !== null) {
       const host = st.households[o.host];
       if (host && host.id === hh.id) return `there is no other household ${o.host} to stay with`;
@@ -186,9 +192,11 @@ VB['sim/away'] = (() => {
         from: hh.farmstead,
         to: b,
         jobs: [...(args.jobs || [])],
-        walk: walkHours(st, houseOf(st, hh), b),
+        walk: args.walk === undefined ? walkHours(st, houseOf(st, hh), b) : args.walk,
       };
     if (host) s.host = host.id;
+    if (host && args.barn) s.roof = 'barn';
+    if (args.until !== undefined) s.until = args.until;
     setDown(st, a);
     provide(st, s, [hh], packOf(st, p, args.days));
     open(st, s);
@@ -228,6 +236,11 @@ VB['sim/away'] = (() => {
       const s = stayOf(st, a.id);
       if (s.back) {
         issue(st, { actor: a.id, verb: 'goHome', source: 'pawn' });
+        continue;
+      }
+      if (s.until !== undefined) {
+        // at an occasion's bed (VB-295): it waits to be asked to its days, and turns for home once they are over
+        if (st.t >= s.until) issue(st, { actor: a.id, verb: 'comeHome', source: 'pawn' });
         continue;
       }
       let got = false;
@@ -344,7 +357,7 @@ VB['sim/away'] = (() => {
     j.bed = null;
     j.roof = 'none';
     j.from = old ? old.farmstead : null;
-    if (was) for (const k of ['jobs', 'walk', 'host', 'back']) delete j[k];
+    if (was) for (const k of ['jobs', 'walk', 'host', 'back', 'until']) delete j[k];
     if (gift) {
       j.gift = gift; // VB-291: {to (household), n (grain), parts (by crop)}; null from its arrival on, the pawn walking home
       j.back = false;
@@ -684,7 +697,8 @@ VB['sim/away'] = (() => {
   on('placeBorn', (st, d) => placeBorn(st, d.a, d.mother, d.hh));
   // lodge(tile, {why, days, jobs, host}) (VB-783; design.md, Sleeping away from home): walk to the tile and sleep there, working only
   // the tasks `jobs` names, on a pack of a ration a day for `days` (at most AWAY.pack) from the household's food above its seed; with
-  // `host`, a guest in that household's house, with its head's yes (sim/away lodgeWhy)
+  // `host`, a guest in that household's house (in its barn with `barn`), with its head's yes (sim/away lodgeWhy); with `until`, at an
+  // occasion's bed until that hour (VB-295); `walk`, the hours there by the walker's estimate, else by its route
   register('lodge', {
     check: (st, c) => free(st, c.actor) || lodgeWhy(st, c.actor, c.target, c.args),
     run: (st, c) => {

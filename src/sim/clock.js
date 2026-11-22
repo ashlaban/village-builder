@@ -38,7 +38,8 @@ VB['sim/clock'] = (() => {
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
-  const { occasionsDue, callMeetings } = VB['sim/occasions'];
+  const { occasionsDue, callMeetings, VILLAGE_STEPS } = VB['sim/occasions'];
+  const { packStep } = VB['sim/gathering'];
   const { riteDay, callRites } = VB['sim/venues'];
   const { takeIn } = VB['sim/service'];
   const { trustOf } = VB['sim/ownership'];
@@ -422,6 +423,16 @@ VB['sim/clock'] = (() => {
       owner: 'sim/occasions',
       note: "the meeting's people called to the green (VB-126)",
       run: (st) => callMeetings(st),
+    },
+    // the day before the gathering (winter day 1), from the start of work: the goers lodged, then a village a step packs and walks to its
+    // beds, then the gathering's days are called (VB-295)
+    {
+      every: 'year',
+      at: { season: AUTUMN, sday: SEASON_DAYS - 1, hour: WORK[0], tick: [0, VILLAGE_STEPS + 2] },
+      when: cenv,
+      owner: 'sim/gathering',
+      note: 'the goers to the gathering lodged, packed and asked to its days (VB-295)',
+      run: (st, c, n) => packStep(st, n - WORK[0] * TICKS),
     },
     {
       every: 'day',

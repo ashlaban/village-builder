@@ -3,7 +3,7 @@
 VB['sim/notable'] = (() => {
   const { index, ancestorsOf, fullName, age, settlementIdOf } = VB['sim/records'];
   const { CAUSES, COLD } = VB['sim/deaths'];
-  const { YEAR, DAY, SEASON_DAYS, WORK } = VB['sim/rules'];
+  const { YEAR, DAY, SEASON_DAYS, WORK, cal } = VB['sim/rules'];
   const { what: offerText } = VB['sim/offers'];
   // An event of the record in full that every view reads: not a folded slot (a number, sim/records), nor a pawn's own telling of an event
   // recorded beside it (`self`), which only its life reads.
@@ -431,10 +431,12 @@ VB['sim/notable'] = (() => {
             ? `The funeral ale for ${who.join(' and ')} begins at ${at}.`
             : o.kind === 'call'
               ? `${who[0]} calls at ${at}.`
-              : `An ale evening begins at ${at}${who.length ? `, opened by ${who[0]}` : ''}.`;
+              : o.kind === 'gathering'
+                ? `The gathering meets on ${at}.`
+                : `An ale evening begins at ${at}${who.length ? `, opened by ${who[0]}` : ''}.`;
   }
   // Does occasion o concern pawn id: it is asked to it or has set out for it; it is held for one of its household or line (a wedding,
-  // a funeral ale, its own house's ale evening); or it is the meeting or the rite of its village.
+  // a funeral ale, its own house's ale evening); or it is the meeting or the rite of its village, or a day of its village's gathering.
   function gatheringConcerns(st, o, id) {
     const p = st.pawns[id];
     if (st.agents[id].occasion === o.id || o.come.includes(id) || o.asked.some((a) => a.id === id)) return true;
@@ -444,6 +446,12 @@ VB['sim/notable'] = (() => {
       )
     )
       return true;
+    if (o.kind === 'gathering') {
+      // VB-295: its village goes to this host's gathering this winter (village.gathering, sim/gathering's)
+      const v = st.villages[settlementIdOf(st, p)],
+        g = v && v.gathering;
+      return !!g && g.host === o.village && g.year === cal(o.start).year;
+    }
     return (o.kind === 'meeting' || o.kind === 'rite') && o.village === settlementIdOf(st, p);
   }
   // The occasions that have begun, are not over and concern living pawn id, each once: `seen` is the caller's own list of occasion ids
