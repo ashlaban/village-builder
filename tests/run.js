@@ -16,12 +16,15 @@ async function main() {
     throw new Error('usage: node tests/run.js test|integration|verify|extended [--list] [--verbose]');
   const jobs = workers(process.env.VB_TEST_JOBS);
   const timeoutMs = positive(process.env.VB_TEST_TIMEOUT_MS, suite === 'test' ? 120000 : 900000, 'VB_TEST_TIMEOUT_MS');
+  // The short tiers run with TurboFan's threshold raised (tests/lib/tiering.js, VB-1477); the night's run with V8's defaults.
+  const preload = `--require ${JSON.stringify(path.join(__dirname, 'lib', 'tiering.js'))}`;
+  const env = suite === 'extended' ? process.env : { ...process.env, NODE_OPTIONS: [process.env.NODE_OPTIONS, preload].filter(Boolean).join(' ') };
   const browsers = cmds.filter(isBrowser), queue = cmds.filter((c) => !isBrowser(c));
   // Browser startup is expensive; serialize all browser scripts, including future browser-* additions.
   const chains = browsers.length ? [browsers] : [];
   const started = Date.now(), results = [], targets = [];
   async function check(cmd) {
-    const r = await run(cmd, { cwd: root, timeoutMs }); results.push(r); targets.push(...parse(r.output));
+    const r = await run(cmd, { cwd: root, timeoutMs, env }); results.push(r); targets.push(...parse(r.output));
     const name = cmd.slice(1).join(' '), seconds = (r.ms / 1000).toFixed(1);
     const why = r.timedOut ? `timeout after ${timeoutMs} ms` : r.error?.message || r.signal || `exit ${r.code}`;
     if (!r.ok) console.log(`FAIL ${name} (${seconds} s; ${why})\n${r.output.trim()}`);

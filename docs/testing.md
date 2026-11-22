@@ -59,6 +59,14 @@ about half of a simulating script's CPU is V8 compiling on its background thread
 4.7 s); `--no-opt` and the like cut short scripts and slow long ones five times (`service` 7 s to 35 s), so none is set. Over 5 s of
 CPU still: `accounts` 7.6, `review-tools` 6.1, `saves` 5.5, `notable` 5.1, `skip` 5.1, `hay` 5.0 (VB-1477).
 
+22 November (VB-1477): verify 353 s of CPU to 280, one script at a time, measured twice in pairs with `main` on a machine 17% slower
+than VB-862's (301 to 239 at its rate); 89 s to 70 s of wall time 4 at a time, 202 to 229 s one at a time. The lever is V8's: the
+runner preloads `tests/lib/tiering.js` (NODE_OPTIONS `--require`, so the scripts' children have it too) in the fast and integration
+tiers, which raises TurboFan's threshold from 3000 calls to 20000; a short run no longer pays the background compiler for functions it
+calls too few times to repay. 165 of 220 scripts fell, none rose by more than half a second. The night's tier keeps V8's defaults, so the
+bench and the bands measure the game as it runs; a script run by hand (`node tests/NAME.js`) does too. `accounts` compares its run with
+the plain twin's at the first year's turn (the report's run goes on to its three years); `review-soil` is the soil half of `review-tools`.
+
 ## What runs only at night
 
 53 scripts, moved as they are when verify was cut to scripts under 5 seconds; seconds each, measured inside the 245-second verify: `browser` 53,
@@ -81,7 +89,7 @@ What a task no longer runs, until VB-409 and the tasks it was split into (VB-853
 - **Land and geography, and the tools** (`rivers`, `stones`, `geology`, `layout`, `settle`, `plots`, `names`, `populous`, `tools`,
   `review-tools`, `bench`, `commands`, `record`, `regress`, `plaindata`, `--expose-gc registry`, `notable`, `manual`): since VB-856
   verify holds them again, on the small islands of `tests/lib/probe.js` (36 by 26, 48 by 34, and 60 by 44 where a test needs villages
-  well apart or a village of 8 farms), in 1 to 4 seconds of CPU each; `review-hours` is the hours half of `review-tools`, apart. The
+  well apart or a village of 8 farms), in 1 to 4 seconds of CPU each; `review-hours` is the hours half of `review-tools`, apart, and `review-soil` its soil half (VB-1477). The
   islands are generated once per seed and size in a process and handed out as copies (VB-872, built with VB-856); `generate()` makes
   one anew where a test checks the generator's determinism. `tools/sim.js`, `balance.js` and `rules.js` take `--map probe`, the 36 by
   26 island. Four stay at night, saying so in their first lines: `rivers --extended` (the default island: ten sources or more, a course

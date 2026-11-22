@@ -219,6 +219,7 @@ const INTEGRATION = [
   ['node', 'tests/tools.js'],
   ['node', 'tests/review-tools.js'],
   ['node', 'tests/review-hours.js'],
+  ['node', 'tests/review-soil.js'],
   ['node', 'tests/bench.js'],
   ['node', 'tests/commands.js'],
   ['node', 'tests/record.js'],
