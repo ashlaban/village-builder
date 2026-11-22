@@ -24,6 +24,9 @@ VB['sim/scenarios'] = (() => {
   function startStreams(st, seedNum) {
     splitStreams(st, seedNum);
     VB['sim/weather'].seedWeather(st, cal(st.t)); // last year's seasons and this spring's (VB-354), from the weather's own stream
+    const c = cal(st.t),
+      W = VB['sim/weather'];
+    VB['sim/climate'].seedClimate(st, c, c.season >= 2 ? W.winterAhead(st) : W.season(st, 3, 1)[0]); // the winter in course (VB-807)
     seedTraits(st);
     startHeads(st);
     seedAsking(st); // each who seeks, or will, on its asking day (VB-823)

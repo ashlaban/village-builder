@@ -7,7 +7,8 @@ VB['sim/clock'] = (() => {
   const { growTrees } = VB['sim/forest'];
   const { spreadForest } = VB['sim/spread'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
-  const { seasonBegins, frostDay } = VB['sim/weather'];
+  const { seasonBegins, frostDay, winterAhead } = VB['sim/weather'];
+  const { reckon: reckonWinter, fallDue: climateDue } = VB['sim/climate'];
   const { refreshRoutes, costChanged } = VB['sim/routes'],
     { refreshHoursStep, ROW_STEPS } = VB['sim/villagehours'];
   const { fadeWear } = VB['sim/paths'];
@@ -89,6 +90,21 @@ VB['sim/clock'] = (() => {
       owner: 'sim/weather',
       note: "a season begins: its warmth and wetness drawn (on spring's, the year's thaw and frost first)",
       run: (st, c) => seasonBegins(st, c),
+    },
+    // ---- the winter's dates (VB-807): reckoned on autumn's first step, after its weather; each falls at the first step of its day ----
+    {
+      every: 'season',
+      when: (st, c) => c.season === AUTUMN,
+      owner: 'sim/climate',
+      note: "the winter's dates reckoned for each band, from the curve and the winter's warmth (drawn ahead)",
+      run: (st, c) => reckonWinter(st, c.year, winterAhead(st)),
+    },
+    {
+      every: 'day',
+      when: (st) => !!st.climate && st.climate.due.length > 0 && st.climate.due[0].at <= st.t,
+      owner: 'sim/climate',
+      note: "a winter's date falls due: its band's state, and a line",
+      run: (st) => climateDue(st, st.t),
     },
     // ---- each hour, at its first step ----
     {

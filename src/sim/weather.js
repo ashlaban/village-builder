@@ -6,6 +6,8 @@ VB['sim/weather'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { CROPS } = VB['sim/crops'];
   const { log } = VB['sim/records'];
+  const { shiftOf } = VB['sim/climate'];
+  const { SEASON_DAYS } = VB['sim/rules'];
   // @tunable SEASONS: the seasons' names, in the year's order
   const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
   // The draw (Agreed, 11 Nov, starting values): a season's warmth and wetness each from -1 to 1 about the normal, most seasons near it (the
@@ -50,11 +52,25 @@ VB['sim/weather'] = (() => {
     const now = st.weather[st.weather.length - 1];
     if (c.season === 0 && (!now || now.year < c.year)) newYear(st, c.year);
     const y = st.weather[st.weather.length - 1];
+    if (y.seasons.length === c.season + 1 && !quiet)
+      return void log(st, `${words(c.season, y.seasons[c.season])}.`, said(c)); // drawn ahead
     if (y.seasons.length !== c.season) return;
     const r = st.rng.weather,
       s = [tri(r), tri(r)];
     y.seasons.push(s);
-    if (!quiet) log(st, `${words(c.season, s)}.`, { kind: 'weather', n: c.season });
+    if (!quiet) log(st, `${words(c.season, s)}.`, said(c));
+  }
+  const said = (c) => ({ kind: 'weather', n: c.season });
+  // This year's winter's warmth (-1 hard to 1 mild), asked on autumn day 1 by the climate's reckoning of the winter's dates (sim/climate,
+  // VB-807): the winter's season is drawn ahead, after autumn's, from the same stream in the same order, so the draws are those the
+  // winter's first day would have made (nothing else draws from it), and its line is still told as the winter begins.
+  function winterAhead(st) {
+    const y = st.weather[st.weather.length - 1];
+    if (y.seasons.length === 3) {
+      const r = st.rng.weather;
+      y.seasons.push([tri(r), tri(r)]);
+    }
+    return y.seasons[3][0];
   }
   // The weather at the start of a run (sim/scenarios): last year whole, as the rye sown in its autumn stood it, and this year's spring.
   function seedWeather(st, c) {
@@ -102,10 +118,13 @@ VB['sim/weather'] = (() => {
     const w = season(st, 1)[0];
     return w < 0 ? Math.round(-w * WEATHER.ripen.late) : -Math.round(w * WEATHER.ripen.early);
   }
-  // This year's thaw (a spring sday: no ground is tilled or sown before it) and first frost (an autumn sday).
+  // This year's thaw (a spring sday: no ground is tilled or sown before it) and first frost (an autumn sday): the year's draw, which is the
+  // middle world's, moved by the days a colder or a warmer world's curve lies from it (sim/climate shiftOf, VB-807; none on the middle
+  // world), within the season.
   const year = (st) => st.weather[st.weather.length - 1];
-  const thawDay = (st) => year(st).thaw;
-  const frostDay = (st) => year(st).frost;
+  const inSeason = (d) => Math.max(0, Math.min(SEASON_DAYS - 1, d));
+  const thawDay = (st) => inSeason(year(st).thaw + shiftOf(st.w).thaw);
+  const frostDay = (st) => inSeason(year(st).frost + shiftOf(st.w).frost);
   // Is crop k's window (its row's sow: [season, first day, last day]) open on c, the thaw passed for a crop sown in spring.
   function sowOpen(st, k, c) {
     const W = CROPS[k].sow;
@@ -116,6 +135,7 @@ VB['sim/weather'] = (() => {
     WEATHER,
     seasonBegins,
     seedWeather,
+    winterAhead,
     season,
     reading,
     factorOf,

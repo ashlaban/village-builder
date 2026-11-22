@@ -38,6 +38,7 @@
       "sim/forest",
       "sim/people",
       "sim/records",
+      "sim/climate",
       "sim/weather",
       "sim/ties",
       "sim/traits",

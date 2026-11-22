@@ -22,6 +22,7 @@
     "st.plans.projectSeq": "sim/projectplans",
     "st.plans.due": "sim/plandays",
     "st.plans.seasons": "sim/seasonal",
+    "st.climate": "sim/climate",
     "st.weather": "sim/weather",
     "st.pathCache": {"owner": "sim/routes", "category": "cache"},
     "st.routeDirty": "sim/routes",
