@@ -39,11 +39,17 @@ assert(near(level(st, id, 'milling'), 0.405) && p.skills.milling.at === t0, 'no 
 practise(st, id, 'milling', 1e-6);
 assert(near(p.skills.milling.level, 0.405, 1e-6) && p.skills.milling.at === st.t, 'a practice sets it from the faded level, now');
 st.t = t0;
+// the closed-form estimate: what 400 hours more would bring milling to, writing nothing
+const m0 = JSON.stringify(p.skills.milling);
+assert(near(Skills.grownBy(st, id, 'milling', SKILLS.half), 1 - (1 - level(st, id, 'milling')) / 2) && JSON.stringify(p.skills.milling) === m0, 'grownBy reads, in closed form');
+assert.deepStrictEqual([0, 0.1, 0.25, 0.5, 0.75, 1].map(Skills.wordOf), ['novice', 'novice', 'able', 'skilled', 'master', 'master'], 'the scale of four steps');
 // a craft not declared is not learnt
 practise(st, id, 'juggling', 100);
 assert(!('juggling' in p.skills), 'only the crafts of SKILLS.crafts');
 // the panel: crafts above the first cut, with their words
-assert.deepStrictEqual(craftsOf(st, id).map((c) => [c.craft, c.word]), [['pottery', 'practised'], ['building', 'practised'], ['milling', 'practised']].sort((a, b) => SKILLS.crafts.indexOf(a[0]) - SKILLS.crafts.indexOf(b[0])), 'listed by craft with a word');
+const listed = craftsOf(st, id);
+assert.deepStrictEqual(listed.map((c) => c.craft), ['pottery', 'building', 'milling'], 'listed in the order of SKILLS.crafts');
+assert(listed.every((c) => c.word === Skills.wordOf(c.level)) && listed[0].word === 'skilled' && listed[2].word === 'able', 'each with its word');
 // a work leg's pace at a craft is the type's pace times the craft's rate, one draw of the stream `mishap`
 st.rng.mishap.fix = 0.5;
 assert.strictEqual(workPace(st, id, 'household', 'milling'), Math.round(legPace(st, id, 'household') * craftRate(level(st, id, 'milling')) * 1000) / 1000, 'a craft leg');

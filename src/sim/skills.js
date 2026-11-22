@@ -41,7 +41,8 @@ VB['sim/skills'] = (() => {
   //   novice, master: the rate a hand works a craft at, times its rate, at level 0 and at level 1, linear between;
   //   learn: the aptitude, [at the trait's 0, at its 1], times the hours a practice counts; the trait a craft reads is `aptitude` (design.md,
   //   People, The twelve traits: hands for the crafts of the hands, body for heavy work; until slice 7 the trait stands in directly);
-  //   words: the cut points (level at or above) of the words the pawn panel shows, a skill under the first not shown.
+  //   shown: the level from which the pawn panel lists a craft; words: the fixed scale of four steps (Kim, 18 Nov, VB-1123: an absolute
+  //   standard), each [the level from which it holds, its word], in quarters as the mocks drew them.
   const SKILLS = Object.freeze({
     crafts: Object.freeze([
       'spinning',
@@ -60,11 +61,12 @@ VB['sim/skills'] = (() => {
     master: 1.3,
     learn: Object.freeze([0.75, 1.25]),
     aptitude: Object.freeze({ smelting: 'body', milling: 'body', stonework: 'body' }),
+    shown: 0.1,
     words: Object.freeze([
-      Object.freeze([0.1, 'novice']),
-      Object.freeze([0.3, 'practised']),
-      Object.freeze([0.6, 'skilled']),
-      Object.freeze([0.85, 'master']),
+      Object.freeze([0, 'novice']),
+      Object.freeze([0.25, 'able']),
+      Object.freeze([0.5, 'skilled']),
+      Object.freeze([0.75, 'master']),
     ]),
   });
   const CRAFT = Object.freeze(Object.fromEntries(SKILLS.crafts.map((k) => [k, true])));
@@ -119,24 +121,31 @@ VB['sim/skills'] = (() => {
   };
   // Hours of practice at a craft (sim/work, as a craft's task is reckoned): the level read now rises towards 1, each hour (times the
   // pawn's aptitude) closing the share of the gap that makes SKILLS.half hours from 0 reach a half.
+  // What so many hours of practice from now would bring the pawn's level to, in closed form, writing nothing (plan mode's estimate, VB-1123).
+  const grownBy = (st, id, craft, hours) =>
+    1 - (1 - level(st, id, craft)) * Math.pow(0.5, (Math.max(0, hours) * aptitude(st, id, craft)) / SKILLS.half);
   function practise(st, id, craft, hours) {
     if (!CRAFT[craft] || !(hours > 0)) return;
     const p = st.pawns[id],
-      l = level(st, id, craft),
+      l = grownBy(st, id, craft, hours),
       k = p.skills || (p.skills = {});
-    k[craft] = { level: 1 - (1 - l) * Math.pow(0.5, (hours * aptitude(st, id, craft)) / SKILLS.half), at: st.t };
+    k[craft] = { level: l, at: st.t };
   }
   // What a craft's level makes of a hand's rate: SKILLS.novice at 0 to SKILLS.master at 1.
   const craftRate = (l) => SKILLS.novice + (SKILLS.master - SKILLS.novice) * l;
-  // The pawn's crafts at SKILLS.words' first cut or above, each {craft, level, word}, in the order of SKILLS.crafts (the pawn panel).
+  // The pawn's word for a level on the fixed scale.
+  function wordOf(l) {
+    let word = SKILLS.words[0][1];
+    for (const [at, w] of SKILLS.words) if (l >= at) word = w;
+    return word;
+  }
+  // The pawn's crafts at SKILLS.shown or above, each {craft, level, word}, in the order of SKILLS.crafts (the pawn panel).
   function craftsOf(st, id) {
     const out = [];
     if (!st.pawns[id].skills) return out;
     for (const c of SKILLS.crafts) {
       const l = level(st, id, c);
-      let word = null;
-      for (const [at, w] of SKILLS.words) if (l >= at) word = w;
-      if (word) out.push({ craft: c, level: l, word });
+      if (l >= SKILLS.shown) out.push({ craft: c, level: l, word: wordOf(l) });
     }
     return out;
   }
@@ -154,8 +163,10 @@ VB['sim/skills'] = (() => {
     paceOf,
     legPace,
     level,
+    grownBy,
     practise,
     craftRate,
+    wordOf,
     craftsOf,
     workPace,
   };

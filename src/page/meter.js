@@ -126,8 +126,8 @@ function traitsHTML(id) {
     )
     .join('')}</div>`;
 }
-// A pawn's crafts (sim/skills, VB-360): each it has learnt beyond a novice's first hours, with its word (novice, practised, skilled,
-// master), in the order of SKILLS.crafts; none, no line.
+// A pawn's crafts (sim/skills, VB-360): each it has learnt beyond a novice's first hours (SKILLS.shown), with its word on the fixed
+// scale (novice, able, skilled, master; Kim, 18 Nov), in the order of SKILLS.crafts; none, no line.
 function craftsLine(id) {
   const c = VB['sim/skills'].craftsOf(st, id);
   return c.length ? `Crafts: ${c.map((x) => `${x.craft} (${x.word})`).join(', ')}` : '';
