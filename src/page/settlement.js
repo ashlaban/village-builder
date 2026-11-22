@@ -237,8 +237,19 @@ function addField(wd, fd, th) {
   }
   fieldSprites.push({ sp, fd, stage: fieldLook(fd), stooks });
 }
-// Farms and pawns; rebuilt whenever households change (a death, a marriage, a farm left empty). What is taken down is destroyed with its
-// context (VB-441): PixiJS frees a Graphics' own geometry only when asked to, and the renderer otherwise keeps every fence ever drawn.
+// Farms and pawns. A whole rebuild (st.visualDirty, a load, a new game) takes the settlement layer down and draws it again; a change to
+// one farm or village (st.farmDirty, st.villageDirty) redraws that one alone, and a birth, a death or a wedding remakes the rigs it names
+// (st.rigDirty; VB-442). What is taken down is destroyed with its context (VB-441): PixiJS frees a Graphics' own geometry only when asked
+// to, and the renderer otherwise keeps every fence ever drawn.
+let farmDrawn = [], // by farm id: the display objects its drawing added to the layers, taken down when it alone is redrawn
+  villageDrawn = []; // by village id, the same
+const settlementLayers = () => [L.fields, L.fences, L.objects];
+// The display objects draw() adds to the three layers: each is appended, and no frame sorts a layer while draw() runs.
+function drawnBy(draw) {
+  const at = settlementLayers().map((l) => l.children.length);
+  draw();
+  return settlementLayers().flatMap((l, k) => l.children.slice(at[k]));
+}
 function buildFarms(wd) {
   for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()])
     if (s2 !== ring) s2.destroy({ children: true, context: true });
@@ -253,8 +264,56 @@ function buildFarms(wd) {
   teamDraw = new Map();
   cartDraw = [];
   ledDraw = new Map();
+  farmDrawn = [];
+  villageDrawn = [];
   L.objects.sortableChildren = true;
-  // booths on their own tile (VB-784): a raised one stands, one being raised is a ring of stakes, a worn one fades
+  drawBooths(wd);
+  for (const f of st.farmsteads) farmDrawn[f.id] = drawnBy(() => drawFarm(wd, f));
+  drawTarPits(wd);
+  for (const v of st.villages) villageDrawn[v.id] = drawnBy(() => drawVillage(wd, v));
+  if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
+  for (const p of st.pawns) rigs.push(pawnRig(p));
+  L.objects.addChild(ring);
+  st.visualDirty = false;
+  st.rigDirty.clear();
+  st.farmDirty.clear();
+  st.villageDirty.clear();
+}
+// What the simulation asked to be redrawn since the last frame: the whole layer, or the farms, villages and rigs it names.
+function redrawSettlement(wd) {
+  if (st.visualDirty) return buildFarms(wd);
+  if (st.farmDirty.size || st.villageDirty.size) {
+    const redraw = (drawn, id, draw) => {
+      for (const o of drawn[id] || []) o.destroy({ children: true, context: true }); // and so out of its layer
+      drawn[id] = drawnBy(draw);
+    };
+    for (const id of st.farmDirty) redraw(farmDrawn, id, () => drawFarm(wd, st.farmsteads[id]));
+    for (const id of st.villageDirty) redraw(villageDrawn, id, () => drawVillage(wd, st.villages[id]));
+    // the frame's lists keep only what still stands
+    fieldSprites = fieldSprites.filter((o) => !o.sp.destroyed);
+    meadowSprites = meadowSprites.filter((o) => !o.sp.destroyed);
+    fences = fences.filter((o) => !o.g.destroyed);
+    houseInfo = houseInfo.filter((o) => !o.wood.destroyed);
+    if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
+    st.farmDirty.clear();
+    st.villageDirty.clear();
+  }
+  for (const id of st.rigDirty)
+    if (rigs[id]) {
+      rigs[id].root.destroy({ children: true });
+      rigs[id] = pawnRig(st.pawns[id]);
+    }
+  while (rigs.length < st.pawns.length) rigs.push(pawnRig(st.pawns[rigs.length])); // the newborn and the newcome
+  st.rigDirty.clear();
+}
+function pawnRig(p) {
+  const R = makeRig(p, wedded(p));
+  R.root.visible = false;
+  L.objects.addChild(R.root);
+  return R;
+}
+// booths on their own tile (VB-784): a raised one stands, one being raised is a ring of stakes, a worn one fades
+function drawBooths(wd) {
   for (const b of st.booths) {
     const g = new PIXI.Graphics(),
       bx = wd.hx[b.tile],
@@ -267,97 +326,100 @@ function buildFarms(wd) {
     g.zIndex = by + 8;
     L.objects.addChild(g);
   }
-  for (const f of st.farmsteads) {
-    const hx = wd.hx[f.house],
-      hy = wd.hy[f.house],
-      empty = f.household === null,
-      ruin = f.state === 'ruin';
-    for (const fd of f.fields) addField(wd, fd, f.rowAngle);
-    for (const m of f.meadows) {
-      const sp = new PIXI.Sprite(fieldTex['meadow-' + m.stage]);
-      sp.anchor.set(0.5);
-      sp.scale.set(0.5);
-      sp.position.set(wd.hx[m.tile], wd.hy[m.tile]);
-      L.fields.addChild(sp);
-      meadowSprites.push({ sp, m, stage: m.stage });
+}
+// One farm: its fields, meadows, yard and buildings, its woodpile, byre and stacks, its smoke and firelight, and its fence.
+function drawFarm(wd, f) {
+  const hx = wd.hx[f.house],
+    hy = wd.hy[f.house],
+    empty = f.household === null,
+    ruin = f.state === 'ruin';
+  for (const fd of f.fields) addField(wd, fd, f.rowAngle);
+  for (const m of f.meadows) {
+    const sp = new PIXI.Sprite(fieldTex['meadow-' + m.stage]);
+    sp.anchor.set(0.5);
+    sp.scale.set(0.5);
+    sp.position.set(wd.hx[m.tile], wd.hy[m.tile]);
+    L.fields.addChild(sp);
+    meadowSprites.push({ sp, m, stage: m.stage });
+  }
+  const yard = place(art.yard, hx, hy + 1, 0.5, 0.5, L.fields, 0.27);
+  if (empty) yard.alpha = ruin ? 0.2 : 0.35;
+  const v = f.id % 3;
+  // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims); a tarred house's logs
+  // are darker (VB-301)
+  const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : Sim.houseTarred(st, f) ? 0x9a8a7c : 0xffffff;
+  if (f.booth) drawBooth(wd, f, empty);
+  else {
+    const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
+      harbre = place(art.harbre, hx + YARD.harbre[0], hy + YARD.harbre[1], 0.5, 0.95),
+      stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92);
+    const barn = f.barn ? place(art.lada, hx + YARD.barn[0], hy + YARD.barn[1], 0.5, 0.93) : null; // farmstead.barn (VB-255)
+    for (const b of barn ? [lada, harbre, stuga, barn] : [lada, harbre, stuga]) {
+      b.tint = tint;
+      if (empty && !ruin) b.alpha = 0.9;
     }
-    const yard = place(art.yard, hx, hy + 1, 0.5, 0.5, L.fields, 0.27);
-    if (empty) yard.alpha = ruin ? 0.2 : 0.35;
-    const v = f.id % 3;
-    // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims); a tarred house's logs
-    // are darker (VB-301)
-    const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : Sim.houseTarred(st, f) ? 0x9a8a7c : 0xffffff;
-    if (f.booth) drawBooth(wd, f, empty);
-    else {
-      const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
-        harbre = place(art.harbre, hx + YARD.harbre[0], hy + YARD.harbre[1], 0.5, 0.95),
-        stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92);
-      const barn = f.barn ? place(art.lada, hx + YARD.barn[0], hy + YARD.barn[1], 0.5, 0.93) : null; // farmstead.barn (VB-255)
-      for (const b of barn ? [lada, harbre, stuga, barn] : [lada, harbre, stuga]) {
-        b.tint = tint;
-        if (empty && !ruin) b.alpha = 0.9;
-      }
-      if (ruin) {
-        lada.visible = harbre.visible = false;
-        if (barn) barn.visible = false;
-        stuga.scale.y = ART_S * 0.55;
-        stuga.alpha = 0.85;
-      }
-      if (f.grade === 'stone' && !ruin) {
-        // the stone sill a house raised onto a foundation stands on (VB-332)
-        const sx = hx + YARD.stuga[0],
-          sy = hy + YARD.stuga[1],
-          sill = new PIXI.Graphics();
-        for (let k = 0; k < 7; k++) sill.ellipse(sx - 10.5 + k * 3.5, sy + 0.6 + (k % 2) * 0.3, 2, 1.25);
-        sill.fill({ color: empty ? 0x77736e : 0x9a958c }).stroke({ width: 0.35, color: 0x4a463f });
-        sill.zIndex = sy + 0.005;
-        L.objects.addChild(sill);
-      }
+    if (ruin) {
+      lada.visible = harbre.visible = false;
+      if (barn) barn.visible = false;
+      stuga.scale.y = ART_S * 0.55;
+      stuga.alpha = 0.85;
     }
-    const wood = place(art.wood[0], hx + YARD.wood[0], hy + YARD.wood[1], 0.5, 0.9);
-    wood.visible = !empty;
-    const herds = !empty && st.households[f.household].herds.length > 0;
-    if (herds) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
-    const stack =
-      herds || (!empty && st.households[f.household].hay > 0)
-        ? place(art.haystack[0], hx + YARD.stack[0], hy + YARD.stack[1], 0.5, 0.93)
-        : null;
-    const heap = herds ? place(art.manure[0], hx + YARD.heap[0], hy + YARD.heap[1], 0.5, 0.88) : null; // the dung heap by the byre (VB-137)
-    if (!st.villages[f.village].well) place(art.curb, hx + YARD.curb[0], hy + YARD.curb[1], 0.5, 0.85);
-    if (!empty) {
-      const puffs = [];
-      for (let k = 0; k < 6; k++) {
-        const p = new PIXI.Sprite(art.puff);
-        p.anchor.set(0.5);
-        p.zIndex = 1e6;
-        L.objects.addChild(p);
-        puffs.push(p);
-      }
-      // Smoke from the cottage's smoke hole, or from the booth's fire while the cottage is built; and the firelight after dark: the
-      // cottage's openings lit over it, and a warm glow on the ground before the door (before the booth, the glow alone).
+    if (f.grade === 'stone' && !ruin) {
+      // the stone sill a house raised onto a foundation stands on (VB-332)
       const sx = hx + YARD.stuga[0],
         sy = hy + YARD.stuga[1],
-        at = (q) => [sx + (q[0] - STUGA.w / 2) * ART_S, sy + (q[1] - STUGA.h * 0.92) * ART_S];
-      const [cx, cy] = f.booth ? [hx + YARD.booth[0], hy + YARD.booth[1] - 13] : at(STUGA.hole);
-      const [gx, gy] = f.booth ? [hx + YARD.booth[0], hy + YARD.booth[1] + 1] : at([48, 62]);
-      const lit = f.booth ? null : place(art.lit, sx, sy, 0.5, 0.92);
-      if (lit) {
-        lit.zIndex = sy + 0.01;
-        lit.visible = false;
-      }
-      const glow = new PIXI.Sprite(art.glow);
-      glow.anchor.set(0.5);
-      glow.blendMode = 'add';
-      glow.position.set(gx, gy);
-      glow.scale.set(f.booth ? 0.2 : 0.36, f.booth ? 0.13 : 0.23);
-      glow.zIndex = sy + 0.02;
-      glow.visible = false;
-      L.objects.addChild(glow);
-      houseInfo.push({ f, puffs, wood, stack, heap, cx, cy, lit, glow, smoke: 0, fire: 0 });
+        sill = new PIXI.Graphics();
+      for (let k = 0; k < 7; k++) sill.ellipse(sx - 10.5 + k * 3.5, sy + 0.6 + (k % 2) * 0.3, 2, 1.25);
+      sill.fill({ color: empty ? 0x77736e : 0x9a958c }).stroke({ width: 0.35, color: 0x4a463f });
+      sill.zIndex = sy + 0.005;
+      L.objects.addChild(sill);
     }
-    if (f.fence) for (const s2 of f.fence) addFence(s2);
   }
-  // the tar pits (VB-301): a funnel of dark earth on the pine slope, a barrel by its run-off, and smoke while tar is burnt (page/animate)
+  const wood = place(art.wood[0], hx + YARD.wood[0], hy + YARD.wood[1], 0.5, 0.9);
+  wood.visible = !empty;
+  const herds = !empty && st.households[f.household].herds.length > 0;
+  if (herds) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
+  const stack =
+    herds || (!empty && st.households[f.household].hay > 0)
+      ? place(art.haystack[0], hx + YARD.stack[0], hy + YARD.stack[1], 0.5, 0.93)
+      : null;
+  const heap = herds ? place(art.manure[0], hx + YARD.heap[0], hy + YARD.heap[1], 0.5, 0.88) : null; // the dung heap by the byre (VB-137)
+  if (!st.villages[f.village].well) place(art.curb, hx + YARD.curb[0], hy + YARD.curb[1], 0.5, 0.85);
+  if (!empty) {
+    const puffs = [];
+    for (let k = 0; k < 6; k++) {
+      const p = new PIXI.Sprite(art.puff);
+      p.anchor.set(0.5);
+      p.zIndex = 1e6;
+      L.objects.addChild(p);
+      puffs.push(p);
+    }
+    // Smoke from the cottage's smoke hole, or from the booth's fire while the cottage is built; and the firelight after dark: the
+    // cottage's openings lit over it, and a warm glow on the ground before the door (before the booth, the glow alone).
+    const sx = hx + YARD.stuga[0],
+      sy = hy + YARD.stuga[1],
+      at = (q) => [sx + (q[0] - STUGA.w / 2) * ART_S, sy + (q[1] - STUGA.h * 0.92) * ART_S];
+    const [cx, cy] = f.booth ? [hx + YARD.booth[0], hy + YARD.booth[1] - 13] : at(STUGA.hole);
+    const [gx, gy] = f.booth ? [hx + YARD.booth[0], hy + YARD.booth[1] + 1] : at([48, 62]);
+    const lit = f.booth ? null : place(art.lit, sx, sy, 0.5, 0.92);
+    if (lit) {
+      lit.zIndex = sy + 0.01;
+      lit.visible = false;
+    }
+    const glow = new PIXI.Sprite(art.glow);
+    glow.anchor.set(0.5);
+    glow.blendMode = 'add';
+    glow.position.set(gx, gy);
+    glow.scale.set(f.booth ? 0.2 : 0.36, f.booth ? 0.13 : 0.23);
+    glow.zIndex = sy + 0.02;
+    glow.visible = false;
+    L.objects.addChild(glow);
+    houseInfo.push({ f, puffs, wood, stack, heap, cx, cy, lit, glow, smoke: 0, fire: 0 });
+  }
+  if (f.fence) for (const s2 of f.fence) addFence(s2);
+}
+// the tar pits (VB-301): a funnel of dark earth on the pine slope, a barrel by its run-off, and smoke while tar is burnt (page/animate)
+function drawTarPits(wd) {
   for (const hh of st.households) {
     const pit = hh.tarPit;
     if (hh.dissolved || !pit) continue;
@@ -384,55 +446,46 @@ function buildFarms(wd) {
     }
     pitInfo.push({ tile: pit.tile, x, y: y - 2, puffs, smoke: 0 });
   }
-  for (const v of st.villages) {
-    for (const fd of v.commonFields || []) addField(wd, fd, 0); // the village's common fields (VB-100)
-    if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
-    for (const s2 of v.fence) addFence(s2);
-    const X = VB['sim/expansion'];
-    for (const plot of X.livePlots(st, v))
-      for (const tr of X.tilesOf(plot)) {
-        // the plots under way: their village's project plans (VB-123)
-        // stumps while the wood is felled but not grubbed out, turned soil once the ground is broken, a ring while the work goes on
-        const g = new PIXI.Graphics(),
-          x = wd.hx[tr.tile],
-          y = wd.hy[tr.tile],
-          step = tr.steps[tr.i];
-        if (step === 'grub')
-          for (const [dx, dy] of [
-            [-7, 2],
-            [0, -5],
-            [6, 4],
-            [-2, 8],
-          ]) {
-            g.ellipse(x + dx, y + dy, 2.2, 1.7)
-              .fill(0xf2deac)
-              .stroke({ width: 0.7, color: INK });
-            g.ellipse(x + dx, y + dy, 0.9, 0.7).stroke({ width: 0.4, color: 0x96462f });
-          }
-        if (tr.kind === 'field' && tr.i >= tr.steps.length)
-          g.ellipse(x, y + 2, 14, 8)
-            .fill({ color: 0x986846, alpha: 0.9 })
-            .stroke({
-              width: 0.8,
-              color: INK,
-              alpha: 0.6,
-            });
-        if (tr.kind === 'house' && plot.open >= 1)
-          cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, X.cottageAt(plot));
-        g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
-        L.fences.addChild(g);
-      }
-  }
-  if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
-  for (const p of st.pawns) {
-    const R = makeRig(p, wedded(p));
-    R.root.visible = false;
-    L.objects.addChild(R.root);
-    rigs.push(R);
-  }
-  L.objects.addChild(ring);
-  st.visualDirty = false;
-  st.rigDirty.clear();
+}
+// One village: its common fields, its well sweep, its fence and the plots under way.
+function drawVillage(wd, v) {
+  for (const fd of v.commonFields || []) addField(wd, fd, 0); // the village's common fields (VB-100)
+  if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
+  for (const s2 of v.fence) addFence(s2);
+  const X = VB['sim/expansion'];
+  for (const plot of X.livePlots(st, v))
+    for (const tr of X.tilesOf(plot)) {
+      // the plots under way: their village's project plans (VB-123)
+      // stumps while the wood is felled but not grubbed out, turned soil once the ground is broken, a ring while the work goes on
+      const g = new PIXI.Graphics(),
+        x = wd.hx[tr.tile],
+        y = wd.hy[tr.tile],
+        step = tr.steps[tr.i];
+      if (step === 'grub')
+        for (const [dx, dy] of [
+          [-7, 2],
+          [0, -5],
+          [6, 4],
+          [-2, 8],
+        ]) {
+          g.ellipse(x + dx, y + dy, 2.2, 1.7)
+            .fill(0xf2deac)
+            .stroke({ width: 0.7, color: INK });
+          g.ellipse(x + dx, y + dy, 0.9, 0.7).stroke({ width: 0.4, color: 0x96462f });
+        }
+      if (tr.kind === 'field' && tr.i >= tr.steps.length)
+        g.ellipse(x, y + 2, 14, 8)
+          .fill({ color: 0x986846, alpha: 0.9 })
+          .stroke({
+            width: 0.8,
+            color: INK,
+            alpha: 0.6,
+          });
+      if (tr.kind === 'house' && plot.open >= 1)
+        cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, X.cottageAt(plot));
+      g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
+      L.fences.addChild(g);
+    }
 }
 function addFence(s) {
   const g = new PIXI.Graphics();

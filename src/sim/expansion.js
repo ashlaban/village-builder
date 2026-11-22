@@ -245,7 +245,7 @@ VB['sim/expansion'] = (() => {
         steps: [{ kind: 'clear', places: tiles }, ...cottage],
       },
     });
-    st.visualDirty = true;
+    st.villageDirty.add(v.id);
     if (by === null)
       log(st, `${v.name} sets out to clear a plot for ${fullName(st.pawns[intended])}.`, {
         kind: 'plotStarted',
@@ -362,7 +362,7 @@ VB['sim/expansion'] = (() => {
       st.biomeDirty.add(tr.tile);
     }
     emit(st, 'plotReleased', { plan: plot });
-    st.visualDirty = true;
+    st.villageDirty.add(v.id);
     log(st, `${v.name} gives up a cleared plot that nobody came for.`, { kind: 'plot', village: v.id });
   }
   // The open jobs of all active plots: one per tile, for the tile's current step. [key, kind, site, extra]
@@ -476,7 +476,7 @@ VB['sim/expansion'] = (() => {
     tended(st, tr.tile); // worked on: kept open from the forest a year (sim/spread)
     tr.i++;
     st.biomeDirty.add(tr.tile);
-    st.visualDirty = true;
+    st.villageDirty.add(v.id);
     if (!tilesOf(plot).every((q) => q.i >= q.steps.length)) return;
     emit(st, 'stepDone', { type: plot.holder.type, id: plot.holder.id, plan: plot }); // its tiles cleared: the cottage's first stage opens (sim/plans)
     if (plot.by !== undefined) {
@@ -504,7 +504,9 @@ VB['sim/expansion'] = (() => {
     const k = plan.steps[plan.open];
     if (k.kind === 'walls') k.wood -= BUILD.timber; // the walls took their timber (VB-328)
     st.biomeDirty.add(k.place);
-    st.visualDirty = true;
+    // a plot's stages are drawn with its village, a farm's own cottage with its farm (page/settlement, VB-442)
+    if (plan.what === 'cottage') st.farmDirty.add(plan.farmstead);
+    else st.villageDirty.add(villageOf(plan));
     if (plan.open < plan.steps.length - 1 || plan.what === 'cottage') {
       if (plan.open === plan.steps.length - 1) roofOn(st, plan);
       emit(st, 'stepDone', { type: plan.holder.type, id: plan.holder.id, plan }); // the next stage, or the plan finished (sim/plans)

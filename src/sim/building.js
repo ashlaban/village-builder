@@ -241,7 +241,7 @@ VB['sim/building'] = (() => {
     f.condAt = st.t;
     f.grade = 'stone';
     st.biomeDirty.add(f.house);
-    st.visualDirty = true;
+    st.farmDirty.add(f.id);
     log(st, `The house at ${f.name} is raised onto a stone foundation.`, { kind: 'cottage', ...atFarm(f) });
   }
   // ---- a barn (VB-255; BUILD.barn): a project of its household at the house, by the cottage's stages, its walls waiting for their timber ----
@@ -265,7 +265,7 @@ VB['sim/building'] = (() => {
     const f = j.farm;
     f.barn = { built: st.t };
     st.biomeDirty.add(f.house);
-    st.visualDirty = true;
+    st.farmDirty.add(f.id);
   }
   const barnStage_ = (verb, go, name, label, anim, i) => ({
     verb,

@@ -291,7 +291,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   With no game open, the loader raises a tiny showcase island behind the menu screens, on one of a pool of seeds (VB-307; `demo`, page state): a run of its own at 3x,
   never saved and never a game to go back to; `build` drops it.
 - The page script (`src/page/*.js`) draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
-  `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.
+  `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `farmDirty`, `villageDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.
 - `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
 - Review tools (VB-337), outside the simulation: `tools/hours.js` (`node tools/sim.js --report hours`) samples a run's agents and fields at
   every step for a household's pawn-hours by job kind and the farming year's days; `tools/stocks.js` maps each stored quantity's adders,

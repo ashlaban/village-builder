@@ -25,6 +25,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
         + 'get speed() { return speed; }, get choose() { return choose; }, '
         + 'look: (i) => { stopIntro(); followPlayed = false; cam.x = w.hx[i]; cam.y = w.hy[i]; cam.z = zt = 1.5; vel.x = vel.y = 0; }, '
         + 'tool: () => tool && { kind: tool.kind, sites: tool.sites.slice() }, selectFarm, cam: () => ({ x: cam.x, y: cam.y }), gliding: () => !!intro, '
+        + 'drawn: () => ({ farms: farmDrawn.map((a) => a.slice()), villages: villageDrawn.map((a) => a.slice()), rigs: rigs.slice() }), '
         + 'drawings: () => { const h = app.renderer.graphicsContext._gpuContextHash; let n = 0; for (const k in h) if (h[k]) n++; return n; }, render: () => app.render(), '
         + 'set st(v) { st = v; }, world: () => w, ticker: () => app.ticker, setSpeed: (v) => { speed = v; }, advance: (dt) => advanceSimulation(dt), '
         + 'place: () => { placePawns(); return { drawX, drawY, stepShare }; } };')),
@@ -151,6 +152,30 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     for (let k = 0; k < 8; k++) last = await rebuilt();
     if (!(first > 10)) fail(`the renderer holds ${first} Graphics contexts after a rebuild: the check counts nothing`);
     if (last > first * 1.5 + 10) fail(`the renderer holds ${last} Graphics contexts after nine rebuilds of the farms, ${first} after one: the old ones are kept`);
+  }
+  // One farm, one village and one rig redrawn alone (VB-442): what they drew is taken down and drawn anew, and every other farm's, village's
+  // and pawn's drawing is the very object it was.
+  {
+    await page.evaluate(() => {
+      const P = window.__play, st = P.st;
+      P.kept = P.drawn();
+      st.farmDirty.add(1); st.villageDirty.add(0); st.rigDirty.add(2);
+    });
+    await page.waitForFunction(() => { const st = window.__play.st; return !st.farmDirty.size && !st.villageDirty.size && !st.rigDirty.size; });
+    const bad = await page.evaluate(() => {
+      const P = window.__play, was = P.kept, now = P.drawn(), out = [];
+      const same = (a, b) => a.length === b.length && a.every((o, k) => o === b[k]);
+      if (!was.farms[1].length || !was.farms[1].every((o) => o.destroyed)) out.push('farm 1\'s old drawings were not taken down');
+      if (!now.farms[1].length || now.farms[1].some((o) => o.destroyed || !o.parent)) out.push('farm 1 was not drawn again');
+      if (!was.villages[0].every((o) => o.destroyed) || now.villages[0].some((o) => o.destroyed)) out.push('village 0 was not redrawn');
+      now.farms.forEach((a, id) => { if (id !== 1 && !same(a, was.farms[id])) out.push(`farm ${id} was redrawn with farm 1`); });
+      now.villages.forEach((a, id) => { if (id !== 0 && !same(a, was.villages[id])) out.push(`village ${id} was redrawn with village 0`); });
+      if (now.rigs[2] === was.rigs[2]) out.push('the rig of pawn 2 was not remade');
+      now.rigs.forEach((r, id) => { if (id !== 2 && id < was.rigs.length && r !== was.rigs[id]) out.push(`the rig of pawn ${id} was remade with pawn 2's`); });
+      delete P.kept;
+      return out.slice(0, 5);
+    });
+    for (const m of bad) fail(m);
   }
   for (const id of ['landBtn', 'settlersBtn', 'cultureBtn', 'treeBtn', 'landBtn']) {
     await page.click('#' + id); await page.waitForTimeout(500);

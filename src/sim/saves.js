@@ -473,6 +473,8 @@ VB['sim/saves'] = (() => {
       delete p.owedFrom;
     }
     if (!st.visits) st.visits = []; // VB-289: nor visits planned
+    if (!st.farmDirty) st.farmDirty = new Set(); // VB-442: nor the farms and villages to redraw alone
+    if (!st.villageDirty) st.villageDirty = new Set();
     for (const o of st.offers)
       if (o.basis === undefined) {
         // VB-690: a marriage offer saved before offers had a basis, as the basis `match` (its spokesmen, its terms)

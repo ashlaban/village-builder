@@ -142,7 +142,7 @@ VB['sim/tar'] = (() => {
     f.condition = houseCondition(st, f);
     f.condAt = st.t;
     f.tarredUntil = st.t + HOUSE.tarYears * YEAR;
-    st.visualDirty = true;
+    st.farmDirty.add(f.id);
     return true;
   }
   function tarBoat(st, hh) {

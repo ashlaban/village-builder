@@ -98,7 +98,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Food moves through `src/sim/stores.js` operations, each with a good and a reason.
 - A rule of `VB['sim/registry']` is declared or contributed to before the first seed or load, which seals the registry; rules never enter saved state.
 - The page script draws and only reads `st`. It writes to `st` through the `Sim` API and three flags, `visualDirty`, `naturalDeaths`, `driftMul`,
-  and clears `rigDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing; the lint enforces this.
+  and clears `rigDirty`, `farmDirty`, `villageDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing; the lint enforces this.
 - A new loop over a growing collection, or over pairs, adds a declared work counter in `VB.COUNTERS`.
 - Determinism: all randomness comes from seeded streams (`src/sim/rng.js`): each system draws from its own, `rnd(st.rng.<system>)`, and a
   new system adds its name to `SYSTEMS` there; tests force chances with `fix` on a stream. No `Math.random`, `Date` or `performance.now` in
