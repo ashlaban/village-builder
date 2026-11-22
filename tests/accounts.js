@@ -40,6 +40,7 @@ function check(a, plain) {
     // 2. the food account closes: the lines and the change in stores leave under 1% of the produce
     assert(F.produced > 1000, `year ${y.year}: food was produced`);
     assert(Math.abs(F.unexplained) < 0.01 * F.produced, `year ${y.year}: the food account closes (unexplained ${F.unexplained.toFixed(1)} of ${F.produced.toFixed(0)})`);
+    assert(Math.abs(y.grain.unexplained) < 0.01 * y.grain.produced, `year ${y.year}: the grain's account closes`);
     assert.strictEqual(F.other, 0, `year ${y.year}: every food movement has its line (${JSON.stringify(F.lines.other)})`);
     const sumVillages = y.food.villages.reduce((s, v) => s + v.produced, 0);
     assert(Math.abs(sumVillages - F.produced) < 1e-6 * F.produced, 'the villages\' accounts sum to the island\'s');

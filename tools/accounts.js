@@ -7,13 +7,14 @@
 //   produced    grain by crop (sheaves brought to the barn; the village's common fields' harvest), fish, gathered food, meat (the slaughter
 //               and the hunt), milk (and butter)
 //   received    gifts into households and into the village store, packs brought home, provisions, shares and farms handed on
-//   outlets     seed sown; eaten as meals (into the pot), uncooked (grain and flour), fresh (gathered food as it is), from the larder, seed
+//   outlets     seed sown; eaten as meals (into the pot, by food), uncooked (grain and flour), fresh (gathered food as it is), from the larder, seed
 //               eaten; feasts; brewed; given (to households, to the village store, out of the store), packed for journeys, provisions,
 //               shares and handings on; rotted in households (grain, fresh food, the larder) and in the village store; left with a
 //               household that ended (its stores go with its farm)
 //   stores      the change over the year in grain, sheaves in the barn, flour, fish by the rack, fresh food, the larder, the village
 //               stores, pawns' stakes and gift grain on its way
 //   unexplained produced + received - outlets - the change in stores, with its share of the produce: 0 when every movement is counted.
+//   The grain's own account, island-wide, beside it: the same lines for sheaves, grain and flour and their stocks (the harvest's split).
 // People (island-wide): births, those who came from outside, deaths by cause, marriages, moves between villages (a pawn living at the
 //   year's start and end in two villages), households founded and dissolved; growth, births a woman (the period's total fertility, by
 //   five-year groups 15 to 49), the shares dying before 1 and before 15 (the period's life table, as the balance review's scripts), the
@@ -56,6 +57,10 @@ function load() {
 
 // ---- the food lines ----
 const FOOD = new Set(['grain', 'sheaves', 'flour', 'fish', 'gathered', 'dried fish', 'meat', 'salt meat', 'milk', 'butter']);
+// The grain's own account (island-wide, beside the food's): its goods (sheaves, grain of every crop, flour ground from it) are also booked
+// under the key 'g:' + village, with their stocks, so that the harvest's split reads as the balance review's did (docs/balance/findings.md)
+const GRAIN = new Set(['grain', 'sheaves', 'flour']);
+const G = 'g:';
 // A ledger entry or a yearly total of a food: the line it books to, or null when it moves food between two of a holder's stores (threshing,
 // grinding, drying) or is no movement (milkbite). holder: 'household' or 'village'; d: the entry (kind, n, crop, to, stake ...).
 function lineOf(holder, d) {
@@ -67,7 +72,7 @@ function lineOf(holder, d) {
   if (k === 'meat' || k === 'hunt') return 'produced.meat';
   if (k === 'milk' || k === 'butter') return 'produced.milk';
   if (k === 'seed') return 'out.seed';
-  if (k === 'cooking') return 'out.eaten.meals';
+  if (k === 'cooking') return 'out.eaten.pot.' + (g === 'dried fish' ? 'driedFish' : g);
   if (k === 'raw') return 'out.eaten.uncooked';
   if (k === 'meal') return 'out.eaten.fresh';
   if (k === 'seedMeal') return 'out.eaten.seed';
@@ -108,6 +113,7 @@ function report(VB, st, opts = {}) {
       if (y < from) continue;
       const line = lineOf(type, e);
       if (line) book(bucket(y, v, into), line, e.n);
+      if (line && GRAIN.has(e.good)) book(bucket(y, G + v, into), line, e.n);
       if (e.kind === 'feast' && e.booked > 0) add(bucket(y, v, into), 'goodwill.feasts', e.booked); // not food: the goodwill a feast booked
       if (line && type === 'household' && into === flows && line.startsWith('produced.') && y === counted + 1) produce.set(holder.id, (produce.get(holder.id) || 0) + e.n);
     }
@@ -115,22 +121,28 @@ function report(VB, st, opts = {}) {
       if (x.year < from || !FOOD.has(x.good)) continue;
       const line = lineOf(type, x);
       if (line) book(bucket(x.year, v, into), line, x.n);
+      if (line && GRAIN.has(x.good)) book(bucket(x.year, G + v, into), line, x.n);
       if (line && type === 'household' && into === flows && line.startsWith('produced.') && x.year === counted + 1) produce.set(holder.id, (produce.get(holder.id) || 0) + x.n);
     }
   }
   // Food held now, by village (and 'transit': gift grain on its way): rations as held.
   function stocks() {
     const s = new Map(), at = (v) => { if (!s.has(v)) s.set(v, 0); return v; };
-    const put = (v, n) => s.set(at(v), s.get(v) + n);
+    const put = (v, n, grain = 0) => { s.set(at(v), s.get(v) + n); s.set(at(G + v), s.get(G + v) + grain); };
     for (const id of st.liveHouseholds) {
       const hh = st.households[id];
       if (hh.dissolved) continue;
-      put(villageOf(hh), householdFood(hh));
+      put(villageOf(hh), householdFood(hh), householdGrain(hh));
     }
-    for (const v of st.villages) put(v.id, Stores.grainOf(v));
-    for (const p of st.pawns) if (p.alive && p.stake > 0) put(p.household !== null ? villageOf(st.households[p.household]) : 'transit', p.stake);
-    for (const j of st.away || []) if (j.gift && j.gift.held > 0) put('transit', j.gift.held);
+    for (const v of st.villages) put(v.id, Stores.grainOf(v), Stores.grainOf(v));
+    for (const p of st.pawns) if (p.alive && p.stake > 0) put(p.household !== null ? villageOf(st.households[p.household]) : 'transit', p.stake, p.stake);
+    for (const j of st.away || []) if (j.gift && j.gift.held > 0) put('transit', j.gift.held, j.gift.held);
     return s;
+  }
+  function householdGrain(hh) {
+    let n = Stores.grainOf(hh) + (hh.flour || 0);
+    for (const x of hh.unthreshed || []) n += x;
+    return n;
   }
   function householdFood(hh) {
     let n = Stores.grainOf(hh) + (hh.flour || 0) + (hh.rack || 0);
@@ -158,6 +170,7 @@ function report(VB, st, opts = {}) {
       const v = villageOf(hh);
       readHolder(hh, 'household', v, counted + 1, kept);
       add(bucket(Stores.yearNow(st2), v, kept), 'out.ended', householdFood(hh));
+      add(bucket(Stores.yearNow(st2), G + v, kept), 'out.ended', householdGrain(hh));
     },
   };
   let open = opening();
@@ -204,10 +217,13 @@ function report(VB, st, opts = {}) {
     open = end;
   }
   function close(y, b, s0, s1) {
-    const ids = [...new Set([...b.keys(), ...s0.keys(), ...s1.keys()])].sort((a, c) => (a === 'transit') - (c === 'transit') || a - c);
+    const isG = (k) => typeof k === 'string' && k.startsWith(G), food = (k) => !isG(k);
+    const ids = [...new Set([...b.keys(), ...s0.keys(), ...s1.keys()])].filter(food).sort((a, c) => (a === 'transit') - (c === 'transit') || a - c);
     const rows = ids.map((v) => account(v === 'transit' ? 'on the way' : st.villages[v].name, b.get(v) || {}, s0.get(v) || 0, s1.get(v) || 0));
-    const all = account('all', sumLines([...b.values()]), sum(s0), sum(s1));
-    return { year: y, food: { all, villages: rows } };
+    const pick = (m, f) => new Map([...m].filter(([k]) => f(k)));
+    const all = account('all', sumLines([...pick(b, food).values()]), sum(pick(s0, food)), sum(pick(s1, food)));
+    const grain = account('grain', sumLines([...pick(b, isG).values()]), sum(pick(s0, isG)), sum(pick(s1, isG)));
+    return { year: y, food: { all, villages: rows }, grain };
   }
   return { advanceYear, result: () => ({ years }), R };
 }
@@ -405,7 +421,8 @@ function account(name, lines, s0, s1) {
 const LABELS = {
   'grain.barley': 'grain: barley', 'grain.rye': 'grain: rye', 'grain.peas': 'grain: peas', 'grain.commons': 'grain: common fields',
   fish: 'fish', gathered: 'gathered food', meat: 'meat', milk: 'milk and butter',
-  seed: 'seed sown', 'eaten.meals': 'eaten: into the pot', 'eaten.uncooked': 'eaten: grain and flour uncooked', 'eaten.fresh': 'eaten: fresh, as it is',
+  seed: 'seed sown', 'eaten.pot.grain': 'eaten: grain into the pot', 'eaten.pot.flour': 'eaten: flour into the pot',
+  'eaten.pot.fish': 'eaten: fish into the pot', 'eaten.pot.gathered': 'eaten: gathered food into the pot', 'eaten.pot.driedFish': 'eaten: dried fish into the pot', 'eaten.uncooked': 'eaten: grain and flour uncooked', 'eaten.fresh': 'eaten: fresh, as it is',
   'eaten.larder': 'eaten: from the larder', 'eaten.seed': 'eaten: the seed', feast: 'feasts', brewed: 'brewed',
   'given.toHouseholds': 'given to households', 'given.toStore': 'given to the village store', 'given.fromStore': 'given out of the village store',
   packed: 'packed for journeys', handedOn: 'provisions, shares, handings on', 'rotted.grain': 'rotted: grain in households',
@@ -456,6 +473,8 @@ function print(out) {
   console.log('labour, share of work hours:'); console.table(last.labour);
   console.log(`\nyear ${last.year}, all villages:`);
   console.table(foodTable(last.food.all));
+  console.log(`year ${last.year}, the grain (sheaves, grain and flour, households and the village stores):`);
+  console.table(foodTable(last.grain));
   console.log('by village: produced, received, outlets, change in stores, unexplained');
   console.table(last.food.villages.map((a) => ({ village: a.name, produced: Math.round(a.produced), received: Math.round(a.received), outlets: Math.round(a.outlets),
     change: Math.round(a.change), unexplained: Math.round(a.unexplained), pct: (100 * a.unexplainedShare).toFixed(1) })));
