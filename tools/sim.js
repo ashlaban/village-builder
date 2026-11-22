@@ -8,7 +8,7 @@
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
-  'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook', 'gathering', 'soil'];
+  'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook', 'gathering', 'soil', 'accounts'];
 const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous|market] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
@@ -37,7 +37,8 @@ if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-2
   if (process.argv.includes('--json')) console.log(JSON.stringify(rows, null, 1)); else console.table(rows);
   process.exit(0);
 }
-const perf = process.argv.includes('perf') ? require('./perf.js') : null, VB = perf ? perf.load() : require('../src/load.js'), G = VB.gen, Sim = VB.sim;
+const perf = process.argv.includes('perf') ? require('./perf.js') : null, accountsTool = process.argv.includes('accounts') ? require('./accounts.js') : null;
+const VB = perf ? perf.load() : accountsTool ? accountsTool.load() : require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 // as the generation screen (src/page/loader.js), and probe, the 36 by 26 island of tests/lib/probe.js, for the tools' own tests (VB-856)
 const SIZES = { probe: [36, 26], tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 const args = process.argv.slice(2);
@@ -83,11 +84,12 @@ const hunger = report === 'hunger' ? require('./hunger.js')(Sim, st) : null;
 const soil = report === 'soil' ? require('./soil.js')(VB, st, { period: opt('period', 'decade') }) : null;
 const waiting = report === 'waiting' ? require('./waiting.js').report(VB, st) : null;
 const gathering = report === 'gathering' ? require('./gathering.js')(VB, st) : null;
+const accounts = accountsTool ? accountsTool.report(VB, st) : null;
 const hours = report === 'hours' ? require('./hours.js')(VB, st, { from: +opt('from', 1), every: opt('every', 'step'), fields: opt('fields', null),
   team: args.includes('--team'), household: hhId }) : null;
 for (let y = start + 1; y <= last; y++) {
   const t0 = Date.now(), hungry0 = st.households.reduce((s, h) => s + h.hungryDays, 0);
-  if (idle) idle.advanceYear(); else if (hours) hours.advanceYear(); else if (hunger) hunger.advanceYear(); else if (waiting) waiting.advanceYear(); else if (soil) soil.advanceYear(); else if (perf) perfMs += perf.timeAdvance(Sim, st, Sim.YEAR); else Sim.advance(st, Sim.YEAR);
+  if (accounts) accounts.advanceYear(); else if (idle) idle.advanceYear(); else if (hours) hours.advanceYear(); else if (hunger) hunger.advanceYear(); else if (waiting) waiting.advanceYear(); else if (soil) soil.advanceYear(); else if (perf) perfMs += perf.timeAdvance(Sim, st, Sim.YEAR); else Sim.advance(st, Sim.YEAR);
   if (gathering) gathering.year(y);
   const ms = (Date.now() - t0) / Sim.YEAR_DAYS, live = st.households.filter((h) => !h.dissolved);
   const births = st.pawns.filter((p) => !p.founder && p.born >= (y - 1) * Sim.YEAR && p.born < y * Sim.YEAR).length;
@@ -238,6 +240,7 @@ if (pawnId !== null) {
   out = { ...plain(p), name: Sim.fullName(p), life: Sim.recordOf(st, { pawn: p.id, life: true }) };
 } else if (hhId !== null && report === 'hours') out = hours.result();
 else if (waiting) out = waiting.result();
+else if (accounts) out = accounts.result();
 else if (soil) out = soil.result();
 else if (report === 'outlook') out = require('./outlook.js').report(VB, st, { village: +opt('village', 0) });
 else if (hhId !== null) {
@@ -257,6 +260,7 @@ if (out !== null && report === 'idle' && !json) {
 } else if (out !== null && report === 'hours' && !json) hours.print(out);
 else if (out !== null && report === 'soil' && !json) soil.print(out);
 else if (out !== null && report === 'waiting' && !json) waiting.print(out);
+else if (out !== null && report === 'accounts' && !json) accountsTool.print(out);
 else if (out !== null && report === 'outlook' && !json) require('./outlook.js').print(out);
 else if (out !== null && report === 'ground' && !json) require('./ground.js').print(out);
 else if (out !== null && report === 'gathering' && !json) { console.table(out.years); console.log(JSON.stringify(out.summary)); }

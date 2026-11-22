@@ -84,6 +84,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   village's host changed from the year before, and the share of village-years with no gathering.
   `node tools/sim.js --report ground [--reach 12,30] [--seeds 3,7,11] [--json]` (VB-735, `tools/ground.js`): by village, each rock (any tile, and a quarry tile) and deposit within the reach of its green, hidden ores found or not, the rock under the green, and a summary by kind (villages, and maps with several seeds), with the pairs copper and tin and any iron; at any year (`--years`, `--at`, `--load`).
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
+  `node tools/sim.js --report accounts [--json]` (VB-403, `tools/accounts.js`; or `--load FILE`): a game year's accounts, village by village
+  and in all: food produced by source, received, its outlets and the change in stores, closed to an `unexplained` line; people (births,
+  deaths by cause, marriages and who waits, moves, households; growth, births a woman, deaths before 1 and 15, age at first marriage,
+  never married at 45); the spread between households; goodwill; labour by season; the balance properties of `docs/balance/cards.md`.
   `node tools/store-flows.js --scenario populous --seeds 7 --years 15 [--rule NAME]`: the village stores' yearly flows (VB-406).
 - Also: `node tools/gossip.js` (VB-187's experiment: stories against opinion averaging in a reduced scenario; `docs/gossip-experiment.md`), `node
   tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies and cycles), `node

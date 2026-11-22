@@ -1,24 +1,32 @@
 // Idle report for tools/sim.js: steps the run one hour at a time and samples every adult during work hours.
 require('./help.js')(__filename);
+const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+// The hour's count: each working pawn (alive, 7 or older, not a child) as working, walking (to its job), carrying (back) or idle, into
+// share[role][season]; onIdle(agent) for each idle one. Also read by tools/accounts.js (its labour lines).
+function countHour(Sim, st, share, onIdle) {
+  const c = Sim.cal(st.t);
+  for (const a of st.agents) {
+    const p = st.pawns[a.id];
+    if (!p.alive || Sim.age(st, p) < 7 || p.role === 'child') continue;
+    const row = (share[p.role] ||= {}), s = (row[SEASONS[c.season]] ||= { working: 0, walking: 0, carrying: 0, idle: 0 });
+    if (a.job && a.phase === 'work') s.working++;
+    else if (a.job && a.phase === 'go') s.walking++;
+    else if (a.job && a.phase === 'back') s.carrying++;
+    else {
+      s.idle++;
+      if (onIdle) onIdle(a);
+    }
+  }
+}
 module.exports = (Sim, st) => {
-  const [W0, W1] = Sim.WORK, SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+  const [W0, W1] = Sim.WORK;
   const share = {}, reasons = {}, waits = {}, seen = new Map(), unclaimed = {}, last = new Map(), switches = { other: 0, cook: 0 }; let days = 0, years = 0, first = true, pawnsSeen = 0;
   const bump = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
   function sample() {
-    const c = Sim.cal(st.t);
-    for (const a of st.agents) {
-      const p = st.pawns[a.id];
-      if (!p.alive || Sim.age(st, p) < 7 || p.role === 'child') continue;
-      const row = (share[p.role] ||= {}), s = (row[SEASONS[c.season]] ||= { working: 0, walking: 0, carrying: 0, idle: 0 });
-      if (a.job && a.phase === 'work') s.working++;
-      else if (a.job && a.phase === 'go') s.walking++;
-      else if (a.job && a.phase === 'back') s.carrying++;
-      else {
-        s.idle++;
-        const rows = Sim.explainIdle(st, a.id).filter((r) => r.reason !== 'taken' && r.reason !== 'not their work');
-        bump(reasons, rows.length ? (rows.find((r) => r.reason) || { reason: 'has a bid, waits for the next round' }).reason.replace(/ until \d\d:\d\d/, '') : 'no job they may take');
-      }
-    }
+    countHour(Sim, st, share, (a) => {
+      const rows = Sim.explainIdle(st, a.id).filter((r) => r.reason !== 'taken' && r.reason !== 'not their work');
+      bump(reasons, rows.length ? (rows.find((r) => r.reason) || { reason: 'has a bid, waits for the next round' }).reason.replace(/ until \d\d:\d\d/, '') : 'no job they may take');
+    });
     // VB-122: a job's wait is the work hours in which it was free (nobody on it) before a pawn took it; one taken within the hour of
     // its posting counts from the posting, and a night is not a wait (a spell starts again at the morning)
     const dayStart = Math.floor(st.t / Sim.DAY) * Sim.DAY + W0;
@@ -69,3 +77,4 @@ module.exports = (Sim, st) => {
   }
   return { advanceYear, result };
 };
+module.exports.countHour = countHour;
