@@ -695,6 +695,7 @@ VB['sim/clock'] = (() => {
   const advance = (st, hours) => ticking(st, hours, step);
   // skip({hours}): the world goes on for that long (no actor), whole 6-minute steps (VB-244)
   register('skip', {
+    sources: ['debug'], // the world goes on: no pawn's act (VB-681)
     check: (st, c) => {
       const h = c.args && c.args.hours;
       if (!(h > 0 && Number.isFinite(h))) return `cannot skip ${h} hours`;

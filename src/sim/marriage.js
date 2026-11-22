@@ -587,7 +587,9 @@ VB['sim/marriage'] = (() => {
     subject: (st, o) => askerOf(o), // the one whose side asks: the man, or the woman (plan VB-682, section 4.1; VB-693)
     where: (st, o) => settlementIdOf(st, st.pawns[askedOf(o)]), // the step of the village of the one asked answers (Proposed)
   });
-  // marry(target, {home}): the actor and the target marry and live in household args.home
+  // marry(target, {home}): the actor and the target marry and live in household args.home. The other's consent is a match offered and
+  // answered yes by all it asks (sim/offers' match basis, matchWhy and matchAnswers), which the round settles (settleMatch): no pawn
+  // marries by its own command (VB-681)
   // Why one of pawns ids cannot walk to its home household `to`, or null: nobody marries over the sea (VB-436; design.md, Between villages,
   // Over the sea), as nobody moves there (sim/heirs, the move verb).
   function overSea(st, ids, to) {
@@ -600,6 +602,7 @@ VB['sim/marriage'] = (() => {
     return null;
   }
   register('marry', {
+    sources: ['round', 'debug'],
     check: (st, c) =>
       living(st, c.actor) ||
       living(st, c.target) ||

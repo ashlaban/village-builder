@@ -104,11 +104,13 @@ VB['sim/player'] = (() => {
       issue(st, { actor: pl.pawn, verb: 'goHome', source: 'planner' });
   }
   // The command joins the queue, to be checked when its turn comes; true, or why it does not: the queue is full, there is no such verb,
-  // or its actor is not the player's pawn. `skip` is the world's, not a pawn's (it would advance time from within a step).
+  // or it is not the player's to do (a verb that names its sources and not 'player': `skip`, `kill`, `retire`, the world's and not a
+  // pawn's, VB-681; `skip` would advance time from within a step), or its actor is not the player's pawn.
   function queue(st, cmd) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';
-    if (!cmd || !VERBS[cmd.verb] || cmd.verb === 'skip') return `there is no verb ${cmd && cmd.verb} to queue`;
+    const V = cmd && VERBS[cmd.verb];
+    if (!V || (V.sources && !V.sources.includes('player'))) return `there is no verb ${cmd && cmd.verb} to queue`;
     if (cmd.actor !== pl.pawn) return `pawn ${cmd.actor} is not the player's pawn`;
     if (pl.queue.length >= QUEUE_MAX) return `the queue is full (${QUEUE_MAX} commands)`;
     const copy = (v) => (v === undefined ? null : JSON.parse(JSON.stringify(v))); // the queue keeps its own plain data

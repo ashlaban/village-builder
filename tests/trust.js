@@ -84,7 +84,7 @@ let report = '';
     ag.path = null; ag.x = st.w.hx[door]; ag.y = st.w.hy[door];
     refreshRoles(st);
   }
-  check(issue(st, { actor: holder.id, verb: 'marry', target: wife.id, args: { home: a.id }, source: 'test' }) === true, 'the marriage');
+  check(issue(st, { actor: holder.id, verb: 'marry', target: wife.id, args: { home: a.id }, source: 'debug' }) === true, 'the marriage');
   refreshRoles(st); // as the round does after its marriages
   check(holder.household === a.id && wife.household === a.id && !trustOf(st, a.id) && t.why === 'married', `the couple lives on the farm, the trust ended (${t.why})`);
   check(![...st.jobs.values()].some((j) => j.farm === f && j.owner.id === c.id), "the trustee's tasks on the farm are taken down");
@@ -148,7 +148,7 @@ let report = '';
   ch[dh.sex === 'm' ? 'father' : 'mother'] = dh.id; // the trustee's holder is the child of d's
   st.idx = null; // and the records' index is built again (VB-239)
   check(T.trusteeFor(st, c) === d.id, `setup: d would hold the trustee's farm (${T.trusteeFor(st, c)})`);
-  check(issue(st, { actor: c.holder, verb: 'goToKin', target: c.id, args: { why: 'test' }, source: 'test' }) === true, 'the trustee goes to kin');
+  check(issue(st, { actor: c.holder, verb: 'goToKin', target: c.id, args: { why: 'test' }, source: 'debug' }) === true, 'the trustee goes to kin');
   refreshRoles(st);
   const u = trustOf(st, c.id);
   check(u && u.trustee === d.id && ch.household === d.id, `the trustee's farm held by d (${JSON.stringify(u)})`);
@@ -160,7 +160,7 @@ let report = '';
 {
   const { st, a, c, t } = intoTrust();
   const q = c.members.find((id) => id !== c.holder && st.pawns[id].alive && st.pawns[id].age >= 18);
-  const r = issue(st, { actor: q, verb: 'move', target: a.id, args: { reason: 'service' }, source: 'test' });
+  const r = issue(st, { actor: q, verb: 'move', target: a.id, args: { reason: 'service' }, source: 'debug' });
   check(typeof r === 'string' && /held in trust/.test(r) && !a.members.length, `a move into the farm held in trust: ${r}`);
   st.demand = [q]; S.takeIn(st, [a.id]);
   check(!a.members.length && trustOf(st, a.id) === t, `taken in while held in trust: members ${a.members}`);

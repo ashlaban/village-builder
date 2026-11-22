@@ -10,6 +10,7 @@ VB['sim/membership'] = (() => {
   const { makePlan } = VB['sim/plans'];
   const { refreshRoles } = VB['sim/heirs'];
   const { issue, register } = VB['sim/commands'];
+  const { onFarm } = VB['sim/projects'];
   // Found on an existing farm. Supplies are booked before membership changes so stakes remain in the old household's ledger.
   // Its first wood (VB-328): `wood` loads from its plot (a cottage's), then from the piles of the homes its members leave, up to ECON.startWood
   // in all and never leaving a pile under MATCH.urgency.woodLow; settlers (`carry` false) bring none and cut on arrival.
@@ -59,6 +60,9 @@ VB['sim/membership'] = (() => {
       const f = st.farmsteads[c.target],
         a = c.args || {};
       if (!f || f.household !== null) return 'there is no empty farm';
+      const p = onFarm(st, f.id); // the claimant's restoration (sim/farmclaims' claimOn reads the same plan)
+      if (c.source !== 'debug' && !(p && p.holder.type === 'pawn' && p.holder.id === c.actor))
+        return `pawn ${c.actor} has no claim on farm ${f.id}`;
       if (!Array.isArray(a.members) || !a.members.includes(c.actor) || new Set(a.members).size !== a.members.length) {
         return 'the household must include its holder and unique members';
       }

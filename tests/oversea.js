@@ -26,7 +26,7 @@ assert.strictEqual(issue(st, { actor: id, verb: 'move', target: W2.id, args: { r
   const single = (h) => h.members.map((m) => st.pawns[m]).find((p) => p.alive && VB['sim/records'].spouseOf(st, p.id) === null);
   const p = single(W2), q = single(E);
   assert(p && q, 'setup: a single pawn on each island');
-  const no = issue(st, { actor: p.id, verb: 'marry', target: q.id, args: { home: W2.id }, source: 'test' });
+  const no = issue(st, { actor: p.id, verb: 'marry', target: q.id, args: { home: W2.id }, source: 'debug' });
   assert(typeof no === 'string' && /no way by land/.test(no) && q.household === E.id, `married over the sea: ${no}`);
 }
 // orphans: every member a child, and nobody waiting for land to come as guardian

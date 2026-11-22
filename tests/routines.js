@@ -93,10 +93,10 @@ function green(st, v, ids) {
   const { st, v, plan } = setUp(), before = JSON.stringify(plan.routines);
   for (const [args, why] of [[{ routines: ['well'], by: 'meeting' }, /no routine well/], [{ routines: ['fence', 'fence'], by: 'meeting' }, /twice/],
     [{ routines: Array(5).fill('fence'), by: 'meeting' }, /at most 4/], [{ routines: ['fence'], by: 'player' }, /cannot be set/]]) {
-    const res = issue(st, { actor: { settlement: v.id }, verb: 'routines', args, source: 'test' });
+    const res = issue(st, { actor: { settlement: v.id }, verb: 'routines', args, source: 'debug' });
     assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(args)}: ${res}`);
   }
-  assert.strictEqual(issue(st, { actor: { settlement: 999 }, verb: 'routines', args: { routines: [], by: 'meeting' }, source: 'test' }).includes('no settlement'), true);
+  assert.strictEqual(issue(st, { actor: { settlement: 999 }, verb: 'routines', args: { routines: [], by: 'meeting' }, source: 'debug' }).includes('no settlement'), true);
   assert.strictEqual(JSON.stringify(plan.routines), before, 'refusals change nothing');
 }
 { // a year of play: every meeting decides, the fence and the work days chosen where there is one (and a common field where it may); a save keeps the routines
