@@ -225,7 +225,7 @@ VB['sim/clock'] = (() => {
             f.condition = Math.max(0, (f.condition ?? 1) - 0.08 / YEAR_DAYS);
             if (f.state === 'derelict' && f.condition < 0.15) {
               f.state = 'ruin';
-              st.visualDirty = true;
+              st.farmDirty.add(f.id);
             }
           }
       },

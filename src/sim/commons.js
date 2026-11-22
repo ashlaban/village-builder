@@ -116,6 +116,7 @@ VB['sim/commons'] = (() => {
     realise(st, j.site, VILLAGE(v));
     if (!v.commonFields) v.commonFields = [];
     v.commonFields.push(broken(st, j.site, v.commonFields.length));
+    st.villageDirty.add(v.id); // its new field is drawn (VB-442)
     emit(st, 'stepDone', { type: 'village', id: v.id, plan });
     log(st, `${v.name} has broken a common field: its harvest will go to the village store.`, {
       kind: 'field',

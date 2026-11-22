@@ -76,7 +76,7 @@ VB['sim/lifecycle'] = (() => {
     endGoodwill(st, id); // after succession, which passes a holder's share on
     refreshRoles(st);
     refreshStanding(st);
-    st.visualDirty = true;
+    if (u) st.rigDirty.add(u.a === id ? u.b : u.a); // the widowed's rig (VB-442); a farm left empty or inherited asks for its own redraw (sim/heirs)
   }
   function retireHolder(st, hhId) {
     const hh = st.households[hhId];

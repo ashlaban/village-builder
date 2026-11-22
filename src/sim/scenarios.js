@@ -489,7 +489,8 @@ VB['sim/scenarios'] = (() => {
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
-    // @state st.visualDirty: boolean; set when the map must be redrawn. st.rigDirty: Set; marks changed farms or people for the page to rebuild
+    // @state st.visualDirty: boolean; set when the whole settlement layer must be redrawn. st.rigDirty: Set of pawn ids whose rigs the page remakes
+    // @state st.farmDirty,villageDirty: Sets of farm and village ids whose drawings the page rebuilds alone, and clears (VB-442)
     // @state st.regrow: Set of tile indexes with some but not all trees, which grow back daily (see sim/forest)
     // @state st.pathDirty: Set of tile indexes whose worn-path stage (w.worn) changed; the page repaints them and clears it
     // @state st.treeDirty,biomeDirty: Set of tile indexes whose tree density stage changed, or that turned to meadow; the page repaints them
@@ -552,6 +553,8 @@ VB['sim/scenarios'] = (() => {
       })),
       visualDirty: false,
       rigDirty: new Set(),
+      farmDirty: new Set(),
+      villageDirty: new Set(),
       regrow: new Set(),
       treeDirty: new Set(),
       biomeDirty: new Set(),

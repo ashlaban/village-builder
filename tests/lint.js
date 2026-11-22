@@ -67,7 +67,7 @@ for (const f of files) readSource(f).split('\n').forEach((l, i) => {
   const m = /\.contribute\(\{[^\n]*?\bsource: '([^']*)'/.exec(l);
   if (m && m[1] !== key(f)) errors.push(`${f}:${i + 1} a contribution's source is '${m[1]}', but this file is ${key(f)}: register it in the module it names`);
 });
-// the page only reads st: it may set visualDirty, naturalDeaths and driftMul, and clear rigDirty, treeDirty, biomeDirty, pathDirty and landDirty
+// the page only reads st: it may set visualDirty, naturalDeaths and driftMul, and clear rigDirty, farmDirty, villageDirty, treeDirty, biomeDirty, pathDirty and landDirty
 for (const f of ['src/body.html', ...pageFiles]) readSource(f).split('\n').forEach((l, i) => {
   for (const wr of pageWrites(l)) errors.push(`${f}:${i + 1} the page writes to the simulation state: ${wr}`);
 });

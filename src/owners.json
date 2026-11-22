@@ -175,6 +175,8 @@
     "st.visualDirty": "signal",
     "st.biomeDirty": "signal",
     "st.rigDirty": "signal",
+    "st.farmDirty": "signal",
+    "st.villageDirty": "signal",
     "st.treeDirty": "signal",
     "st.pathDirty": "signal",
     "st.landDirty": "signal"

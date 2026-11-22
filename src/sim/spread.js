@@ -91,7 +91,6 @@ VB['sim/spread'] = (() => {
     w.trees[t] = 0;
     w.treesMax[t] = 0;
     st.treeDirty.add(t);
-    st.visualDirty = true;
     woodTaken(st, t); // a village whose wood held it reckons its wood again, as for a tile cut bare (sim/forest)
   }
   // Whether farming or work keeps tile t open today: work within SPREAD.tendedDays; a household's field (in use, or its to reclaim), its

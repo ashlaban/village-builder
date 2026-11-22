@@ -37,6 +37,7 @@ VB['sim/fields'] = (() => {
     const fd = broken(st, tile, f.fields.length);
     f.fields.push(fd);
     placeField(st, f, st.households[f.household], fd);
+    st.farmDirty.add(f.id); // its new field is drawn (VB-442)
     emit(st, 'stepDone', { type: 'household', id: f.household, plan }); // the project is finished (sim/plans)
     log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
   }
@@ -67,7 +68,6 @@ VB['sim/fields'] = (() => {
     woodTaken(st, tile); // a wood tile broken to a field leaves its village's wood (VB-326)
     if (!w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     w.dev[tile] = 1;
-    st.visualDirty = true;
     st.biomeDirty.add(tile);
     return fd;
   }
@@ -311,10 +311,7 @@ VB['sim/fields'] = (() => {
   };
   function reclaimed(st, fd) {
     clearScrub(st, fd.tile); // the forest's scrub on it is cleared with the grass (VB-091)
-    if (fd.stage === 'fallow' || fd.stage === 'scrub') {
-      fd.stage = 'stubble';
-      st.visualDirty = true;
-    }
+    if (fd.stage === 'fallow' || fd.stage === 'scrub') fd.stage = 'stubble'; // its picture follows the stage (page/animate)
   }
   const weeded = (fd) => {
     fd.weedOpen = false;
@@ -336,7 +333,6 @@ VB['sim/fields'] = (() => {
     delete fd.weeds;
     delete fd.trampled;
     nextStep(fd); // the crop is lost: the field goes on to its next course (VB-350)
-    st.visualDirty = true;
     log(st, `A crop at ${placeName(f)} was lost, left standing too long.`, { kind: 'frost', ...placeOf(f) });
   }
   // A field's holder as its log line names it: a farm, or a village for its common fields (VB-100).
@@ -399,10 +395,7 @@ VB['sim/fields'] = (() => {
           const w = st.w,
             scrub = w.treesMax[fd.tile] > 0 && w.trees[fd.tile] >= SPREAD.scrub * w.treesMax[fd.tile];
           const want = scrub ? 'scrub' : yrs > 1 || fd.stage === 'scrub' ? 'fallow' : fd.stage;
-          if (fd.stage !== want) {
-            fd.stage = want;
-            st.visualDirty = true;
-          }
+          fd.stage = want;
         }
       }
   }

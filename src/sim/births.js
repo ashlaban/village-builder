@@ -115,7 +115,6 @@ VB['sim/births'] = (() => {
     refreshRoles(st);
     st.rigDirty.add(id);
     st.rigDirty.add(m.id);
-    st.visualDirty = true;
     if (rnd(st.rng.births) < BIRTH.childbedDeath) {
       killPawn(st, m.id, 'childbirth');
       m.nursling = null;

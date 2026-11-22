@@ -30,7 +30,7 @@ function openPage({ patch = (h) => h, url = 'https://x.test/', label = 'PAGE', p
   class Obj { constructor(o) { this.children = []; this.scale = P(); this.position = P(); this.anchor = P(); this.tilePosition = { x: 0, y: 0 }; this.tileScale = P(); this.alpha = 1; this.visible = true; this.x = 0; this.y = 0; this.opts = o; this.texture = o && o.source ? o : { source: { update() {} } }; }
     get width() { return 400 * this.scale.x; }
     addChild(c) { this.children.push(c); c.parent = this; return c; } removeChildren() { const c = this.children; this.children = []; return c; }
-    destroy() { this._dead = true; if (this.parent) this.parent.children = this.parent.children.filter((x) => x !== this); } }
+    destroy() { this._dead = this.destroyed = true; if (this.parent) this.parent.children = this.parent.children.filter((x) => x !== this); } }
   class Graphics extends Obj { constructor() { super(); ['moveTo', 'lineTo', 'stroke', 'poly', 'rect', 'roundRect', 'fill', 'clear', 'ellipse', 'circle'].forEach((m) => { this[m] = (...a) => { if (this._dead) throw new Error('Graphics.' + m + ' after destroy'); calls[m] = (calls[m] || 0) + 1; return this; }; }); } }
   const tickers = [];
   class Application { constructor() { out.APP = this; } async init(o) { this.canvas = origCreate('div'); this.screen = { width: 1440, height: 900 }; this.renderer = { gl: null }; this.ticker = { add: (f) => tickers.push(f) }; this.stage = new Obj(); } }

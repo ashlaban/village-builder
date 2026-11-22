@@ -180,7 +180,7 @@ VB['sim/meadows'] = (() => {
     clearScrub(st, tile); // its scrub cleared too, and it is tended (VB-091)
     emit(st, 'stepDone', { type: 'household', id: f.household, plan }); // the project is finished (sim/plans)
     addMeadow(st, f, hh, tile);
-    st.visualDirty = true;
+    st.farmDirty.add(f.id);
     log(st, `${f.name} has made a new hay meadow.`, { kind: 'meadow', ...atFarm(f) });
   }
   // A hay meadow on this very tile, placed by hand (the archipelago editor) on a run just seeded: of the live household whose house is
