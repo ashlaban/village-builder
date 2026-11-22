@@ -1,5 +1,5 @@
 // VB-290: the round's other acts read the walking hours between villages (sim/villagehours, hoursBetween), not hex steps: an orphan's service
-// home in the nearest village by walking hours (by hex steps only with none in reach), a guardian within walking reach first, service within
+// home in the nearest village by walking hours (with none in reach, they stay: VB-436), a guardian within walking reach first, service within
 // SERVICE.hours, and the tie to the culture's centre as exp(-h / TIE.hours) (TIE.sea times the hex steps over SPEED beyond reach), with
 // no search of its own. Claims on empty farms are checked in tests/farmclaims.js.
 const assert = require('assert'), VB = require('../src/load.js');
@@ -18,8 +18,8 @@ const set = (st, a, b, h) => { st.villageHours[a][b] = h; st.villageHours[b][a] 
 const vOf = (st, p) => R.settlementIdOf(st, p);
 const hhOfVillage = (st, v) => st.households.filter((h) => !h.dissolved && st.farmsteads[h.farmstead].village === v);
 
-// ---- an orphan's service home: the nearest village by walking hours; by hex steps only when none is in reach ----
-for (const [label, hb, hc, want] of [['C nearer by hours', 5, 2, 2], ['B nearer by hours', 2, 5, 1], ['none in reach: by hex steps', null, null, 1]]) {
+// ---- an orphan's service home: the nearest village by walking hours; with none in reach they stay where they are (VB-436) ----
+for (const [label, hb, hc, want] of [['C nearer by hours', 5, 2, 2], ['B nearer by hours', 2, 5, 1], ['none in reach: they stay', null, null, 0]]) {
   const st = fresh(), hh = hhOfVillage(st, 0)[0];
   assert(hexSteps(st.w, st.villages[0].center, st.villages[1].center) < hexSteps(st.w, st.villages[0].center, st.villages[2].center));
   set(st, 0, 1, hb); set(st, 0, 2, hc);
@@ -32,7 +32,7 @@ for (const [label, hb, hc, want] of [['C nearer by hours', 5, 2, 2], ['B nearer 
   assert(at.length && at.every((v) => v === want), `${label}: they go to village ${want} (${at})`);
   assert.deepStrictEqual(checkState(st), [], `${label}: invariants`);
 }
-out.push('service home by hours, by hex steps with none in reach');
+out.push('service home by hours, none with none in reach');
 
 // ---- a guardian: the first kin by today's order (kinship, then the oldest) among those within walking reach, else as today ----
 {

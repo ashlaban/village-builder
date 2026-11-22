@@ -1,5 +1,5 @@
 // Nobody is sent to a home over the sea (VB-436; design.md, Between villages, Over the sea): on two islands, the move verb refuses a home
-// with no way by land and says why; the route check answers without counting a fallback; an orphaned farm with no household by land keeps
+// with no way by land and says why, as the marry verb does; the route check answers without counting a fallback; an orphaned farm with no household by land keeps
 // its children (QUESTION_ARCHIVE.md, VB-329, question 2), while one with a household by land goes to it.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { tinyWorld, tinyState } = require('./lib/tiny.js');
@@ -21,6 +21,14 @@ const why = issue(st, { actor: id, verb: 'move', target: E.id, args: { reason: '
 assert(typeof why === 'string' && /no way by land/.test(why) && st.pawns[id].household === W1.id, `moved over the sea: ${why}`);
 assert.strictEqual(VB.count.moveNoRoute, n + 1);
 assert.strictEqual(issue(st, { actor: id, verb: 'move', target: W2.id, args: { reason: 'care' }, source: 'help' }), true);
+// the marry verb: a home one of the two cannot walk to is refused (both are left as they were)
+{
+  const single = (h) => h.members.map((m) => st.pawns[m]).find((p) => p.alive && VB['sim/records'].spouseOf(st, p.id) === null);
+  const p = single(W2), q = single(E);
+  assert(p && q, 'setup: a single pawn on each island');
+  const no = issue(st, { actor: p.id, verb: 'marry', target: q.id, args: { home: W2.id }, source: 'test' });
+  assert(typeof no === 'string' && /no way by land/.test(no) && q.household === E.id, `married over the sea: ${no}`);
+}
 // orphans: every member a child, and nobody waiting for land to come as guardian
 const orphan = (s, hh) => { for (const m of hh.members) { s.pawns[m].age = 8; s.pawns[m].born = s.t - 8 * Sim.YEAR; } };
 {

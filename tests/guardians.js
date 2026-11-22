@@ -2,19 +2,22 @@
 // as guardian, or, with none, the children go to their kin and the farm stands empty; a holder who lives alone takes in an unmarried landless
 // adult as servant, but never one whose household would be left with fewer than SERVICE.keepHands working hands.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], S = VB['sim/service'], { SERVICE } = VB['sim/rules'];
-const { checkState } = require('./lib/invariants.js');
+const { checkState } = require('./lib/invariants.js'), { byLand } = VB['sim/villagehours'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('GUARDIANS FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
 const fresh = () => { const st = Sim.seed(world(7), 7, 'heirs'); st.naturalDeaths = false; return st; };
 const adultsOf = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18);
-// A household with minor children of its holder, and an unmarried adult relative of theirs with no farm in another household of 3 or more.
+// A household with minor children of its holder, and an unmarried adult relative of theirs with no farm in another household of 2 or more,
+// within reach by land.
 function orphanCase(st) {
+  const vOf = (h) => st.farmsteads[h.farmstead].village;
   const memo = new Map();
   for (const hh of st.households) {
     const h = st.pawns[hh.holder], kids = hh.members.filter((id) => st.pawns[id].age < 18 && R.childrenOf(st, h.id).includes(id));
     if (!kids.length) continue;
     const sib = st.pawns.find((q) => q.alive && q.age >= 18 && q.household !== null && q.household !== hh.id && !R.isHolder(st, q.id)
-      && R.spouseOf(st, q.id) === null && st.households[q.household].members.length > 2 && R.kinship(st, kids[0], q.id, memo) > 0);
+      && R.spouseOf(st, q.id) === null && st.households[q.household].members.length > 1 && R.kinship(st, kids[0], q.id, memo) > 0
+      && byLand(st, vOf(hh), vOf(st.households[q.household]))); // by land: the fixture's other village lies on another island (VB-436)
     if (sib) return { hh, kids, sib };
   }
   return null;
@@ -41,9 +44,20 @@ let report = '';
   report = `${R.fullName(c.sib)} came as guardian of ${c.kids.length} at ${st.farmsteads[c.hh.farmstead].name}`;
 }
 // 2. No landless relative: the children go to their kin or into service, and the farm stands empty.
+// A household with minor children of the holder whose kin cannot hold the farm in trust once they are alone (sim/trust trusteeFor).
+function emptyCase() {
+  for (let i = 0; ; i++) {
+    const st = fresh(), hh = st.households[i];
+    if (!hh) return null;
+    const h = st.pawns[hh.holder];
+    if (!hh.members.some((id) => st.pawns[id].age < 18 && R.childrenOf(st, h.id).includes(id))) continue;
+    orphan(st, hh);
+    if (VB['sim/trust'].trusteeFor(st, hh, hh.holder) === null) return { st, hh };
+  }
+}
 {
-  const st = fresh(), c = orphanCase(st);
-  orphan(st, c.hh); st.demand = [];
+  const { st, hh } = emptyCase(), c = { hh };
+  st.demand = [];
   const kids = [...c.hh.members];
   S.careForOrphans(st);
   check(c.hh.dissolved && st.farmsteads[c.hh.farmstead].state === 'derelict', 'the farm stands empty');

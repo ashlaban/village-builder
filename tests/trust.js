@@ -75,6 +75,15 @@ let report = '';
   // 2. The holder marries: the couple goes back.
   const wife = st.pawns.find((p) => p.alive && p.sex !== holder.sex && p.age >= 18 && p.age < 40 && R.spouseOf(st, p.id) === null && !R.isHolder(st, p.id)
     && p.household !== null && R.kinDegree(st, p.id, holder.id) > 2 && !st.herds.some((hd) => hd.herder === p.id)); // not a herder: the herd's keeper is set again at the next round (sim/grazing)
+  // nobody marries over the sea (VB-436), and the fixture's other village is an island: one from there is placed by hand in the trustee's
+  // household, at its door, as a test builds its case
+  if (vOf(st, st.households[wife.household]) !== vOf(st, a)) {
+    R.leaveHousehold(st, wife.id);
+    R.joinHousehold(st, c, wife.id, false);
+    const ag = st.agents[wife.id], door = st.farmsteads[c.farmstead].house;
+    ag.path = null; ag.x = st.w.hx[door]; ag.y = st.w.hy[door];
+    refreshRoles(st);
+  }
   check(issue(st, { actor: holder.id, verb: 'marry', target: wife.id, args: { home: a.id }, source: 'test' }) === true, 'the marriage');
   refreshRoles(st); // as the round does after its marriages
   check(holder.household === a.id && wife.household === a.id && !trustOf(st, a.id) && t.why === 'married', `the couple lives on the farm, the trust ended (${t.why})`);

@@ -69,12 +69,6 @@ VB['sim/service'] = (() => {
     go(id, { reason });
     go(sp, { reason, with: kids });
   }
-  // Whether any other standing household with people lies in village v or by land from it (sim/heirs' serviceHome finds one of them).
-  const someHomeByLand = (st, hh, v) =>
-    st.liveHouseholds.some((id) => {
-      const g = st.households[id];
-      return id !== hh.id && !g.dissolved && g.members.length && byLand(st, farmOf(st, g).village, v);
-    });
   function careForOrphans(st) {
     // The households whose membership changed since the last round (VB-323); extinction may dissolve one while this round is in progress.
     for (const liveId of takePeopleCheck(st)) {
@@ -115,21 +109,8 @@ VB['sim/service'] = (() => {
       } else {
         // the kin who would take the children hold the farm in trust until the heir is 18 (Kim, 13 Nov; VB-309), else it stands empty
         const args = { why: 'is a child with no grown kin to come', ward: ward.id };
-        if (issue(st, { actor: ward.id, verb: 'goToKin', target: hh.id, args, source: 'help' }) === true) {
-          // kin hold it in trust
-        } else if (!someHomeByLand(st, hh, f.village))
-          // no household by land to take them in (VB-436; QUESTION_ARCHIVE.md, VB-329, question 2): they stay where they are, and the
-          // eldest holds the farm, until slice 10's boats
-          log(
-            st,
-            `${fullName(ward)} of ${f.name} stays on the farm: no household by land could take the children in.`,
-            {
-              kind: 'stayed',
-              pawn: ward.id,
-              ...atHousehold(st, hh),
-            },
-          );
-        else extinct(st, hh, `its heir ${fullName(ward)} is a child, with no grown kin to keep it`);
+        if (issue(st, { actor: ward.id, verb: 'goToKin', target: hh.id, args, source: 'help' }) !== true)
+          extinct(st, hh, `its heir ${fullName(ward)} is a child, with no grown kin to keep it`);
       }
       refreshRoles(st);
       st.visualDirty = true;

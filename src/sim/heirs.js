@@ -201,6 +201,29 @@ VB['sim/heirs'] = (() => {
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
+    // nobody is sent over the sea (VB-436): with no household by land to take its people in (serviceHome finds one wherever kin by land
+    // live), it does not empty. They stay where they are and the eldest holds the farm (QUESTION_ARCHIVE.md, VB-329, question 2), until
+    // slice 10's boats.
+    const left = hh.members
+      .filter((id) => st.pawns[id].alive)
+      .sort((a, b) => st.pawns[a].born - st.pawns[b].born || a - b);
+    if (left.length && serviceHome(st, hh) === null) {
+      const eldest = left[0];
+      if (hh.holder !== eldest) {
+        if (st.pawns[eldest].age < 18) setGuardian(st, hh, eldest);
+        transfer(st, hh, eldest, 'claim');
+      }
+      log(
+        st,
+        `${fullName(st.pawns[eldest])} stays on at ${f.name}: ${why}, and no household by land could take its people in.`,
+        {
+          kind: 'stayed',
+          pawn: eldest,
+          ...atHousehold(st, hh),
+        },
+      );
+      return;
+    }
     // its work stops first, while it stands: a load on its way home is put down where it is (sim/agents, VB-611)
     stopWorkFor(st, hh, f);
     // a farm it held in trust goes back to its holder first (VB-309, sim/trust)
