@@ -1,0 +1,123 @@
+{
+ "session": "9060db54-1892-5228-ac18-d57b1cd12160",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-22T18:47:37.535Z",
+ "end": "2026-11-22T19:04:09.321Z",
+ "wallMin": 16.5,
+ "activeMin": 16.5,
+ "prompts": 1,
+ "calls": 98,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 185,
+  "cacheWrite": 213753,
+  "cacheRead": 16936164,
+  "output": 46588
+ },
+ "context": {
+  "first": 54769,
+  "peak": 230960,
+  "firstEdit": 189978
+ },
+ "tools": {
+  "Bash": {
+   "calls": 96,
+   "bytes": 220188,
+   "seconds": 332.1
+  },
+  "Edit": {
+   "calls": 5,
+   "bytes": 411,
+   "seconds": 0.2
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 20,
+   "bytes": 99349
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 13,
+   "bytes": 25950
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 2,
+   "bytes": 15764
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 2,
+   "bytes": 12047
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 10,
+   "bytes": 11623
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 4,
+   "bytes": 10666
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7496
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 2,
+   "bytes": 4887
+  },
+  {
+   "tool": "Bash",
+   "what": "node tests/settle.js",
+   "calls": 1,
+   "bytes": 4258
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 11,
+   "bytes": 3871
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 3807
+  },
+  {
+   "tool": "Bash",
+   "what": "npm test",
+   "calls": 4,
+   "bytes": 3056
+  }
+ ],
+ "weighted": 2193933,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2193933,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
