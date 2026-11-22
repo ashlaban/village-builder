@@ -414,9 +414,11 @@ VB['sim/farmclaims'] = (() => {
   const rationsOf = (st, ids) =>
     ids.reduce((s, id) => s + (st.pawns[id].age >= 14 ? st.ECON.ration.adult : st.ECON.ration.child), 0);
   // The claimants' grain: their stakes, made up to seed for the farm's fields and CLAIMS.farmFood days of their food from their old households'
-  // grain above the seed and food (the holder's buffer) of those who stay, as far as it goes. {n, grain (by crop, VB-347)}.
+  // grain above the seed and food (the holder's buffer) of those who stay, as far as it goes. {n, grain (by crop, VB-347), piles ([household,
+  // n]: where each part was taken, where it lies for the new household to fetch, VB-675)}.
   function provisions(st, f, members) {
-    const grain = {};
+    const grain = {},
+      piles = [];
     const need = Math.ceil(CLAIMS.farmFood * rationsOf(st, members)) + f.fields.length * CROPS.barley.seed;
     let have = members.reduce((s, id) => s + (st.pawns[id].stake || 0), 0);
     for (const h of new Set(members.map((id) => st.pawns[id].household))) {
@@ -427,11 +429,15 @@ VB['sim/farmclaims'] = (() => {
       const give = Math.min(need - have, Math.max(0, Math.floor(Stores.grainOf(hh) - keep)));
       if (give > 0) {
         Stores.take(st, hh, 'grain', give, 'provisions', grain, 'seedFirst');
+        piles.push([h, give]);
         have += give;
       }
     }
-    for (const id of members) Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions', grain);
-    return { n: have, grain };
+    for (const id of members) {
+      const n = Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions', grain);
+      if (n > 0 && st.pawns[id].household !== null) piles.push([st.pawns[id].household, n]);
+    }
+    return { n: have, grain, piles };
   }
   // The claimant, their spouse and their minor children living with either move in: a new household holds the farm, its house, fields and
   // meadows, with the grain of `provisions`, the firewood and two days of cooked food of a founders household. The claim on the house and the
@@ -454,12 +460,12 @@ VB['sim/farmclaims'] = (() => {
         if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
       }
     const years = Math.round((st.t - f.emptySince) / YEAR),
-      { n, grain } = provisions(st, f, members);
+      { n, grain, piles } = provisions(st, f, members);
     issue(st, {
       actor: holder.id,
       verb: 'foundHousehold',
       target: f.id,
-      args: { members, grain },
+      args: { members, grain, piles },
       source: 'restoration',
     });
     const hh = st.households[f.household];

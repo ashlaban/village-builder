@@ -292,11 +292,24 @@ VB['sim/settle'] = (() => {
     costChanged(st, house); // routes go round the house from now on
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
-    const grain = {}; // by crop (VB-347), as the stakes and the gifts are taken
-    for (const id of party.all) Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions', grain);
-    for (const [h, n] of prov.gifts) Stores.take(st, st.households[h], 'grain', n, 'provisions', grain, 'seedFirst');
+    const grain = {}, // by crop (VB-347), as the stakes and the gifts are taken
+      piles = []; // where each was taken: it lies there, and the party bears it to the new farm (VB-675)
+    for (const id of party.all) {
+      const n = Stores.take(st, st.pawns[id], 'grain', st.pawns[id].stake || 0, 'provisions', grain);
+      if (n > 0 && st.pawns[id].household !== null) piles.push([st.pawns[id].household, n]);
+    }
+    for (const [h, n] of prov.gifts) {
+      Stores.take(st, st.households[h], 'grain', n, 'provisions', grain, 'seedFirst');
+      piles.push([h, n]);
+    }
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
-    const hh = foundHousehold(st, f, party.all, settler.id, { grain, text, followers: party.followers, carry: false }); // no wood (VB-328)
+    const hh = foundHousehold(st, f, party.all, settler.id, {
+      grain,
+      piles,
+      text,
+      followers: party.followers,
+      carry: false,
+    }); // no wood (VB-328)
     woodTaken(st, house);
     reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
     stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)

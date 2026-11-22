@@ -3,7 +3,7 @@
 // up to its winter goal, then to those who worked the plot, the rest burnt; a new household's first wood comes from its members' old homes,
 // never leaving a pile under woodLow; settlers bring none. On a tiny world, through the rules, not a run.
 const VB = require('../src/load.js'), X = VB['sim/expansion'], Bld = VB['sim/building'], J = VB['sim/jobs'];
-const { BUILD, ECON, cal } = VB['sim/rules'], { MATCH } = VB['sim/roles'];
+const { BUILD, ECON, TRAVEL, cal } = VB['sim/rules'], { MATCH } = VB['sim/roles'];
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TIMBER FAIL:', m); } };
@@ -54,10 +54,13 @@ check(h1.ledger.some((e) => e.kind === 'plot' && e.good === 'wood'), 'the ledger
 // a new household's first wood: from its members' old homes, never leaving one under woodLow; settlers bring none
 const M = VB['sim/membership'], empty = (id) => { const f = st.farmsteads[id]; f.household = null; return f; };
 const fA = VB['sim/layout'].makeFarmstead(w, st.farmsteads.length, tileAt(w, 3, 13), [], v, st.used); st.farmsteads.push(fA); v.farmsteads.push(fA.id);
-h1.wood = MATCH.urgency.woodLow + 5;
+h1.wood = MATCH.urgency.woodLow + 2 * ECON.woodPerTrip + 1;
 const mover = h1.members.find((id) => id !== h1.holder);
 const nh = M.foundHousehold(st, empty(fA.id), [mover], mover);
-check(nh.wood === 5 && h1.wood === MATCH.urgency.woodLow, `the first wood from the old home: ${nh.wood}, the old pile keeps ${h1.wood}`);
+// VB-675: it lies at the old home as the new household's, in whole trips, for its hands to fetch
+const laid = (st.lying || []).find((l) => l.kind === 'leftTimber' && l.owner.id === nh.id);
+check(nh.wood === 0 && laid && laid.n === 2 * TRAVEL.load && laid.tile === st.farmsteads[h1.farmstead].house && h1.wood === MATCH.urgency.woodLow + 1,
+  `the first wood lies at the old home: ${laid && laid.n}, the old pile keeps ${h1.wood}`);
 const fB = VB['sim/layout'].makeFarmstead(w, st.farmsteads.length, tileAt(w, 3, 2), [], v, st.used); st.farmsteads.push(fB); v.farmsteads.push(fB.id);
 h0.wood = 40; const settler = h0.members.find((id) => id !== h0.holder && st.pawns[id].household === h0.id);
 const sh = M.foundHousehold(st, empty(fB.id), [settler], settler, { carry: false });
