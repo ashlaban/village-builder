@@ -378,7 +378,7 @@ VB['sim/fair'] = (() => {
   // ---- finding deals (design.md, The fair: Trade partners; Cost) ----
   // Whether a deal would only pass one keeping good for another: dealer `me` needs what it would take (its need alone, with no room left
   // for goods to pass on) no more than what it would give. Such a deal moves no need, only lumps between friends; nobody proposes it.
-  function idle(st, me, gives, wants) {
+  function passesOnly(st, me, gives, wants) {
     if (!Goods.goodOf(gives.good).keeping || !Goods.goodOf(wants.good).keeping) return false;
     const hh = st.households[st.pawns[me].load.household];
     return needValue(st, hh, wants.good, wants.n, KEEPING.cap) <= -needValue(st, hh, gives.good, -gives.n) + TOLERANCE;
@@ -401,7 +401,7 @@ VB['sim/fair'] = (() => {
         ]) {
           const gives = { good: g, n: gn },
             wants = { good: t, n: tn };
-          if (swapWhy(st, me, other, gives, wants) || idle(st, me, gives, wants)) continue;
+          if (swapWhy(st, me, other, gives, wants) || passesOnly(st, me, gives, wants)) continue;
           const w = weigh(st, me, other, gives, wants);
           if (w.accept && (!best || w.gain + w.allowance > best.score))
             best = { gives, wants, score: w.gain + w.allowance };
