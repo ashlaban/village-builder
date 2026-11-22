@@ -15,10 +15,11 @@ const P = openPage({
   patch: (html) => html
     .replace(/const SIZES = \{ t:/, () => { patched++; return 'const SIZES = { x: [36, 26], t:'; })
     .replace('let allMaterials = false;', () => { patched++; return 'let allMaterials = false; window.__materialsHTML = (...a) => materialsHTML(...a);'; })
-    .replace('/^#([shp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([shp]?)([tsmlx]?)(\\d{1,9})$/'; }),
+    .replace('/^#([shp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([shp]?)([tsmlx]?)(\\d{1,9})$/'; })
+    .replace('const THEMES = {', () => { patched++; return 'const THEMES = window.__themes = {'; }), // the themes, to walk each (VB-1485)
 });
 const { doc, win, fail, tick, q, qa, $ } = P;
-if (patched !== 3) { fail(`the page's sizes or its hash were not found to add the small island (${patched} of 3 patched)`); process.exit(1); }
+if (patched !== 4) { fail(`the page's sizes, its hash or its THEMES were not found to patch (${patched} of 4 patched)`); process.exit(1); }
 const shown = (id) => !$(id).hidden;
 const click = (el, what) => { if (!el) { fail(`no ${what} to click`); return false; } el.click(); tick(2); return true; };
 
@@ -147,20 +148,25 @@ async function main() {
   click($('menuBtn'), 'main menu');
   if (!shown('landing')) fail('the main menu did not open');
   click($('landOptions'), 'Options');
-  if (!shown('optionsScreen') || qa('#themeList [role="radio"]').length !== 2) fail('Options did not open with its two themes');
+  const themes = win.__themes || {}, keys = Object.keys(themes);
+  if (!shown('optionsScreen') || !keys.length || qa('#themeList [role="radio"]').length !== keys.length)
+    fail(`Options did not open with a card for each of its ${keys.length} themes`);
   else {
     const root = doc.documentElement, kept = () => { try { return win.localStorage.getItem('vb.theme'); } catch (e) { return undefined; } };
     if (root.dataset.theme !== 'glass') fail(`the page opened in the ${root.dataset.theme || 'no'} theme, not the default glass`);
-    click(q('[data-theme-choice="mural"]'), 'the Mural theme');
-    if (root.dataset.theme !== 'mural' || q('[data-theme-choice="mural"]').getAttribute('aria-checked') !== 'true') fail('Mural was not set on the page');
-    if (kept() !== undefined && kept() !== 'mural') fail(`the theme kept is ${kept()}, not mural`);
-    if (!/--lo:0%;--hi:/.test((q('.meter') || { getAttribute: () => '' }).getAttribute('style') || '')) fail('a meter does not say where its fill starts and ends, for the mural\'s beads');
-    if (root.dataset.icons !== 'stencil') fail(`the Mural theme shows the ${root.dataset.icons} icons, not the stencils (VB-1487)`);
-    for (const sel of ['#settlersBtn .ico', '#pauseBtn .ico, [data-speed="0"] .ico', '.stat-ico .ico', '.trait .ico'])
-      if (q(sel) && !q(sel).querySelector(':scope > [data-set="stencil"]')) fail(`an icon has no stencil for the mural theme (VB-1162, VB-1163): ${sel}`);
-    click(q('[data-theme-choice="glass"]'), 'the Glass theme');
-    if (root.dataset.icons !== 'line') fail(`the Glass theme shows the ${root.dataset.icons} icons, not the line ones (VB-1487)`);
-    if (root.dataset.theme !== 'glass') fail('Glass was not set on the page');
+    // each theme in turn, then back to glass: the card sets the root's theme and icons and keeps the choice; its sample carries its theme
+    for (const k of keys.filter((k) => k !== 'glass').concat('glass')) {
+      const card = q(`[data-theme-choice="${k}"]`);
+      if (!card || !card.querySelector(`.theme-pv [data-theme="${k}"]`)) fail(`the ${k} theme's card has no sample in its own theme (VB-1485)`);
+      click(card, `the ${k} theme`);
+      if (root.dataset.theme !== k || q(`[data-theme-choice="${k}"]`).getAttribute('aria-checked') !== 'true') fail(`${k} was not set on the page`);
+      if (kept() !== undefined && kept() !== k) fail(`the theme kept is ${kept()}, not ${k}`);
+      if (root.dataset.icons !== themes[k].icons) fail(`the ${k} theme shows the ${root.dataset.icons} icons, not its ${themes[k].icons} (VB-1487)`);
+      if (k !== 'mural') continue;
+      if (!/--lo:0%;--hi:/.test((q('.meter') || { getAttribute: () => '' }).getAttribute('style') || '')) fail('a meter does not say where its fill starts and ends, for the mural\'s beads');
+      for (const sel of ['#settlersBtn .ico', '#pauseBtn .ico, [data-speed="0"] .ico', '.stat-ico .ico', '.trait .ico'])
+        if (q(sel) && !q(sel).querySelector(':scope > [data-set="stencil"]')) fail(`an icon has no stencil for the mural theme (VB-1162, VB-1163): ${sel}`);
+    }
     click($('optionsClose'), 'Close');
     if (shown('optionsScreen') || !shown('landing')) fail('Options did not close back to the main menu');
   }

@@ -57,7 +57,7 @@
    --medal: a medallion's rings
    --medal-on: a pressed medallion's rings
 */
-:root[data-theme="glass"] {
+[data-theme="glass"] {
   --sea: #16395f;
   --panel: rgba(238, 245, 242, 0.88);
   --ink: #17313a;
@@ -106,7 +106,7 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 @media (prefers-color-scheme: dark) {
-  :root[data-theme="glass"] {
+  [data-theme="glass"] {
     --panel: rgba(11, 27, 34, 0.86);
     --ink: #e1ebe7;
     --muted: #93adae;
@@ -1111,8 +1111,8 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .clock strong, .clock span { display: inline; }
   .tile .sheet-head strong { font-size: 16px; }
 }
-/* ---- Options (VB-1161): the themes as cards, each with a sample of its own look. A sample shows its theme whatever theme is on, so its
-   colours are written out here, not taken from the palette. ---- */
+/* ---- Options (VB-1161): the themes as cards, each with a sample of its own look. A sample carries its theme's data-theme, and the
+   theme blocks apply to any element with the attribute, so it shows its theme whatever theme is on (VB-1485). ---- */
 .options .menu-label { margin: 0; }
 .themes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .theme { display: grid; align-content: start; gap: 4px; padding: 8px; border-radius: var(--r-small); background: var(--node); text-align: left; }
@@ -1123,16 +1123,11 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 .theme small { color: var(--muted); font-size: 13px; font-weight: 400; line-height: 1.3; }
 .options-kept { margin: 0; color: var(--muted); font-size: 13px; }
 .theme-pv { display: grid; place-items: center; height: 64px; border-radius: 6px; background: linear-gradient(135deg, #7da35f 0 46%, #d8c078 46% 68%, #5f93a8 68%); }
-.theme-pv > span { display: flex; align-items: center; gap: 5px; }
-.theme-pv b { font: italic 700 14px 'Alegreya', Georgia, serif; }
-.theme-pv i { width: 20px; height: 20px; border-radius: 50%; }
-.theme-pv.glass > span { padding: 5px 7px 5px 10px; border-radius: 12px; background: rgba(238, 245, 242, 0.88); border: 1px solid rgba(23, 49, 58, 0.14); color: #17313a; }
-.theme-pv.glass i { border: 1px solid rgba(23, 49, 58, 0.2); }
-.theme-pv.glass i:first-of-type { background: #23685a; border-color: transparent; }
-.theme-pv.mural > span { padding: 10px 7px 10px 9px; color: #a04a30; background: var(--mural-band); border-left: 2px solid #a04a30; border-right: 2px solid #a04a30; }
-.theme-pv.mural b { font: 700 16px 'Grenze Gotisch', 'Alegreya', Georgia, serif; }
-.theme-pv.mural i { border: 1.5px solid #2c201c; background: #faf6e8; box-shadow: inset 0 0 0 1px #faf6e8, inset 0 0 0 2px #a04a30; }
-.theme-pv.mural i:first-of-type { background: #a04a30; box-shadow: inset 0 0 0 1px #a04a30, inset 0 0 0 2px #faf6e8; }
+/* the sample: a panel with a head, an unpressed and a pressed button, each drawn from the tokens of the theme the sample carries */
+.theme-pv > .panel { display: flex; align-items: center; gap: 5px; padding: 9px 7px 9px 10px; border-radius: var(--r-small); color: var(--ink); font-family: var(--body); }
+.theme-pv b { font: var(--head-style) 700 15px/1.1 var(--head); color: var(--head-ink); }
+.theme-pv i { width: 20px; height: 20px; background: var(--btn-ground); border: var(--btn-border); border-radius: var(--btn-radius); }
+.theme-pv i.on { background: var(--btn-on); border-color: var(--btn-on-edge); }
 
 /* ---- The mural theme (VB-1161): the interface as the map is painted, a church mural's flat pigment and dark contour on lime plaster. Its
    pieces: a panel is the band (plaster between two sawtooth borders); a head is black letter in red ochre; a thing pressed is a ringed
@@ -1145,7 +1140,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     linear-gradient(#a04a30, #a04a30) 0 0 / 100% 2px no-repeat, linear-gradient(#a04a30, #a04a30) 0 100% / 100% 2px no-repeat,
     var(--mural-tex), #faf6e8;
 }
-:root[data-theme="mural"] {
+[data-theme="mural"] {
   --panel: #faf6e8; --ink: #2c201c; --muted: #6b5a4c; --edge: rgba(44, 32, 28, 0.32); --accent: #a04a30; --on-accent: #faf6e8; --node: #faf6e8;
   --good: #547446; --bad: #8c2f1e; --gold: #b98524;
   --sea: #16395f; --plate: #e2c684;

@@ -329,8 +329,8 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   three by hand for each archipelago) or a file; the build id is written by `build.py`, and a save of another build is refused by the
   page, not by `Sim.load`. The landing page and the loader (`src/page/loader.js`) lead to it; it keeps nothing in `st`.
 - The interface's theme (VB-1161) is `src/page/options.js`: the main menu's Options screen, and `glass` (the default, the stylesheet as it
-  stands) or `mural`, set as `data-theme` on the page's root and kept in localStorage (`vb.theme`), never in `st` or a save. A theme is the
-  rules under `:root[data-theme="..."]` at the end of `src/head.html`; the meter gives its fill's start and end as `--lo` and `--hi`, so a
+  stands) or `mural`, set as `data-theme` on the page's root and kept in localStorage (`vb.theme`), never in `st` or a save. A theme is a
+  block of tokens under `[data-theme="..."]` and its own pieces under `:root[data-theme="..."]` in `src/head.html`; the meter gives its fill's start and end as `--lo` and `--hi`, so a
   theme can draw a level another way than as a bar's width.
   With no game open, the loader raises a tiny showcase island behind the menu screens, on one of a pool of seeds (VB-307; `demo`, page state): a run of its own at 3x,
   never saved and never a game to go back to; `build` drops it.
@@ -408,3 +408,8 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   `line` drawing. In `src/head.html`, beside the stencil's, its one rule (hidden unless the root's `data-icons` names it, and then the
   `line` drawing beside it hidden) and the styles its shapes are drawn with; then a theme names it, the `icons` field of its entry in
   `THEMES` (`src/page/options.js`), which `applyTheme` puts on the root as `data-icons`. No rule of the icons names a theme.
+- A new theme (VB-1485) is two edits. An entry in `THEMES` (`src/page/options.js`): its key, `name`, `note` and the `icons` it shows; its
+  card in Options, and `tests/page.js`'s walk of the themes, follow. And a block `[data-theme="<key>"] { ... }` in `src/head.html`
+  that sets every token listed at the head of the stylesheet, in one rule (`tests/themes.js` checks it); written without `:root`, it
+  applies to any element with the attribute, so the card's sample (a panel, a head, a pressed and an unpressed button) is drawn in the
+  theme whatever theme is on. A piece the tokens cannot say is a rule under `:root[data-theme="<key>"]`, as Mural's band and beads.

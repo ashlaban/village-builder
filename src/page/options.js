@@ -1,9 +1,10 @@
 // @sys page/options: the main menu's Options screen and the interface's theme (VB-1161): glass or mural, the page's choice, kept in localStorage
 // ---- options: the interface's theme ----
-// A theme is a set of styles under :root[data-theme] in src/head.html, over a base stylesheet that holds what every theme shares; the
-// root always carries one, glass by default, set in the markup and here (VB-1483). The choice is the page's and the device's: kept in
-// localStorage, never in st or a save. A theme's card shows a sample of its own look whatever theme is on,
-// so its colours are written out in the stylesheet (.theme-pv), not taken from the palette.
+// A theme is a block of tokens under [data-theme] in src/head.html, with its own pieces under :root[data-theme], over a base
+// stylesheet that holds what every theme shares; the root always carries one, glass by default, set in the markup and here (VB-1483).
+// The choice is the page's and the device's: kept in localStorage, never in st or a save. A theme's card shows a sample of its own look
+// whatever theme is on: the sample carries the theme's data-theme, so its panel, head and buttons take that theme's tokens (VB-1485).
+// Adding a theme is an entry here and a token block in src/head.html (docs/architecture/modules.md, Adding things).
 const THEME_KEY = 'vb.theme';
 const THEMES = {
   glass: { name: 'Glass', note: 'Frosted panels and line icons; light or dark with the system.', icons: 'line' },
@@ -25,7 +26,7 @@ function drawThemes() {
     .map(
       ([k, t]) =>
         `<button type="button" class="theme" role="radio" data-theme-choice="${k}" aria-checked="${k === theme}" tabindex="${k === theme ? 0 : -1}">` +
-        `<span class="theme-pv ${k}" aria-hidden="true"><span><b>Spring</b><i></i><i></i></span></span>` +
+        `<span class="theme-pv" aria-hidden="true"><span class="panel" data-theme="${k}"><b>Spring</b><i class="on"></i><i></i></span></span>` +
         `<span class="theme-name">${esc(t.name)}</span><small>${esc(t.note)}</small></button>`,
     )
     .join('');
