@@ -143,7 +143,7 @@ check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the 
   check(fd.trampled === 1, 'cattle through a mended fence');
   // the reaping: the field gives 10% less for each time the cattle got in
   const yieldOf = (n) => {
-    if (n) fd.trampled = n; else delete fd.trampled; s.rng.fields.fix = 0.5; Fd.reaped(s, fd, c); delete s.rng.fields.fix; return fd.held; };
+    if (n) fd.trampled = n; else delete fd.trampled; fd.stage = 'ripe'; s.rng.fields.fix = 0.5; Fd.reaped(s, fd, c); delete s.rng.fields.fix; return fd.held; };
   const soil = fd.soil, plain = yieldOf(0); fd.soil = soil; const lost = yieldOf(1); fd.soil = soil;
   check(Math.abs(lost - Math.round(plain * (1 - HD.stray.loss))) <= 1 && lost < plain, `reaped ${lost} trampled, ${plain} not`);
   check(fd.trampled === undefined, 'trampled kept past the reaping');

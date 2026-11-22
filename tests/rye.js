@@ -4,7 +4,7 @@
 // in summer days 7-12, and is threshed into rye; barley follows in spring. Checked: the stages on their days, the harvest, the soil at
 // each year's end, the invariants every day (across the year's turn under rye). Then on constructed states: sowing refused without a
 // field's seed, with the reason; an untilled fallow rests half; a manured field keeps its soil; a ripe rye field left standing to autumn
-// day 1 is lost; the frost spares rye; a fallow field reserves the seed sown on it next (VB-350: the rotation moves the field on; village and farm hold three courses).
+// day 1 is lost, and a reaping that ends after it reaps nothing (VB-356); the frost spares rye; a fallow field reserves the seed sown on it next (VB-350: the rotation moves the field on; village and farm hold three courses).
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
 const { CROPS, ROTATIONS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
 const { KINDS } = VB['sim/kinds'], { sowWhy } = VB['sim/fieldwork'];
@@ -108,6 +108,11 @@ setClock(st2, (YEAR_DAYS + 2 * SEASON_DAYS) * DAY);
 g.stage = 'ripe';
 fieldsDay(st2, cal(st2.t));
 assert(g.stage === 'stubble' && g.sown === null, 'a ripe rye field left standing to autumn day 1 is lost');
+// a reaping that ends after the crop was lost reaps nothing (VB-356: populous small seed 7 reaped a lost crop, and its next course of
+// fallow gave a NaN load at year 36)
+const course = g.crop;
+KINDS.reap.done(st2, { field: g }, hh2, cal(st2.t));
+assert(g.stage === 'stubble' && !(g.held > 0) && g.crop === course, `a lost crop is not reaped: ${g.stage}, held ${g.held}, ${g.crop}`);
 // fallow: untilled rests half, tilled the whole, to at most 1.0; a field manured above 1.0 keeps its soil
 for (const [soil, tillIt, after] of [[0.8, false, 0.84], [0.8, true, 0.88], [0.97, true, 1], [1.1, true, 1.1]]) {
   Object.assign(g, { crop: 'fallow', stage: 'stubble', sown: null, soil });

@@ -40,6 +40,7 @@ assert.equal(fd.weedOpen, true);
 // Sheaves already delivered survive frost; those still in the field are lost, even after reaping.
 const c = cal((3 * SEASON_DAYS - 1) * DAY);
 setClock(st, c.day * DAY);
+fd.stage = 'ripe'; // the crop ripened (VB-356: only a ripe field is reaped)
 KINDS.reap.done(st, j, hh, c);
 const held = fd.held;
 assert(held > 0);

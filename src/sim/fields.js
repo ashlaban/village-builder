@@ -304,7 +304,11 @@ VB['sim/fields'] = (() => {
       (1 - DEER.crop.loss) ** (fd.browsed || 0)
     );
   }
+  // A reaping ends on a field still ripe; one whose crop was lost meanwhile, to the frost or left standing (fieldsFrost, lostRipe: in
+  // stubble, gone on to its next course), is reaped of nothing (VB-356: a lost crop was reaped all the same, and a next course of fallow
+  // gave a NaN load).
   function reaped(st, fd, c) {
+    if (fd.stage !== 'ripe') return;
     if (fd.weedOpen) fd.weedMiss++;
     fd.stage = 'stooks';
     fd.reaped = c.day;

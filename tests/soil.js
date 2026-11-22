@@ -19,7 +19,7 @@ const f0 = st.farmsteads.find((f) => f.household !== null && f.fields.length >= 
 const hh0 = st.households[f0.household], fd = f0.fields[0], reap = Sim.KINDS.reap.done;
 const ratios = [];
 for (const soil of [1, 0.8, 0.76]) {
-  fd.soil = soil; fd.weedMiss = 0; reap(st, { field: fd }, hh0, cal(30));
+  fd.soil = soil; fd.weedMiss = 0; fd.stage = 'ripe'; reap(st, { field: fd }, hh0, cal(30)); // a ripe field (VB-356: only one is reaped)
   ratios.push(fd.held / (CROPS.barley.yield * fd.fert * soil * VB['sim/weather'].cropFactor(st, 'barley')));
   check(near(fd.soil, Math.max(S.floor, soil - CROPS.barley.wear)), `soil ${soil} after a crop: ${fd.soil}`);
 }
