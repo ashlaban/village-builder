@@ -3,7 +3,7 @@
 // the stone is picked on a stony meadow tile (lowering it as clearing does) or quarried on hills, a load a trip, only while the household's
 // plan holds its building step. On a tiny world, through the rules, not a run.
 const VB = require('../src/load.js'), Bld = VB['sim/building'], Plans = VB['sim/plans'], K = VB['sim/kinds'].KINDS;
-const { BUILD, HOUSE, YEAR, SEASON_DAYS, DAY, cal, houseTerm, houseCondition } = VB['sim/rules'];
+const { BUILD, YEAR, SEASON_DAYS, DAY, cal } = VB['sim/rules'], { HOUSE, houseTerm, houseCondition } = VB['sim/house'];
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('STONE FAIL:', m); } };

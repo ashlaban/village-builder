@@ -6,7 +6,7 @@
 // timing: every head's review falls on a field's first sowing day; a field of one crop, soil, sowing day and weeding yields the same under
 // a poor and a good head; a farm of barley alone untouched by any of it; the invariants of each state.
 const assert = require('assert'), VB = require('../src/load.js');
-const { CROPS, ROTATIONS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
+const { DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'], { CROPS, ROTATIONS } = VB['sim/crops'];
 const F = VB['sim/fields'], R = VB['sim/rotations'], Plans = VB['sim/plans'], Aims = VB['sim/aims'], Stores = VB['sim/stores'];
 const { setClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, setForesight } = require('./lib/tiny.js');

@@ -2,7 +2,8 @@
 VB['sim/scenarios'] = (() => {
   const { B } = VB['gen'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
-  const { YEAR, TICKS, ECON, TESTBED, CROPS, ROTATIONS, FERTILITY, SEASON_DAYS, cal, farmable } = VB['sim/rules'];
+  const { YEAR, TICKS, ECON, TESTBED, SEASON_DAYS, cal } = VB['sim/rules'],
+    { CROPS, ROTATIONS, FERTILITY, farmable } = VB['sim/crops'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],

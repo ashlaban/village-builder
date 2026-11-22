@@ -3,7 +3,8 @@
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { byRiver, SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'];
+  const { SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'],
+    { byRiver } = VB['sim/crops'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { costChanged } = VB['sim/routes'];

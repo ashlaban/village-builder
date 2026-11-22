@@ -2,7 +2,8 @@
 VB['sim/fields'] = (() => {
   const { underCrop, fieldAt, courseFor } = VB['sim/rotations'];
   const { next: rnd } = VB['sim/rng'];
-  const { CROPS, ROTATIONS, SOIL, HERD, DEER, fertility, cal, DAY, SEASON_DAYS, YEAR } = VB['sim/rules'];
+  const { HERD, DEER, cal, DAY, SEASON_DAYS, YEAR } = VB['sim/rules'],
+    { CROPS, ROTATIONS, SOIL, fertility } = VB['sim/crops'];
   const { costChanged } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
   const { cropFactor, ripeShift } = VB['sim/weather'];

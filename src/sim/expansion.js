@@ -5,7 +5,8 @@ VB['sim/expansion'] = (() => {
   const { issue } = VB['sim/commands'];
   const { B } = VB['gen'];
   const { doneOf, keptDone } = VB['sim/progress'];
-  const { fertility, farmable, FIELDS, BUILD, ECON, YEAR } = VB['sim/rules'];
+  const { FIELDS, BUILD, ECON, YEAR } = VB['sim/rules'],
+    { fertility, farmable } = VB['sim/crops'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
     { emit, on } = VB['sim/events'];

@@ -11,7 +11,7 @@
 // gross of seed (seed is an outlet), and close the year's account from the stores' movements and stocks.
 require('./help.js')(__filename);
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], F = VB['sim/hunger'], Stores = VB['sim/stores'];
-const { CROPS } = VB['sim/rules'];
+const { CROPS } = VB['sim/crops'];
 const SIZES = { probe: [36, 26], tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // probe: as tools/sim.js
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'founders'), seeds = opt('seeds', '7').split(',').map(Number), map = opt('map', 'small');

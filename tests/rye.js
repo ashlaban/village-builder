@@ -6,7 +6,7 @@
 // field's seed, with the reason; an untilled fallow rests half; a manured field keeps its soil; a ripe rye field left standing to autumn
 // day 1 is lost, and a reaping that ends after it reaps nothing (VB-356); the frost spares rye; a fallow field reserves the seed sown on it next (VB-350: the rotation moves the field on; village and farm hold three courses).
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
-const { CROPS, ROTATIONS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
+const { DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'], { CROPS, ROTATIONS } = VB['sim/crops'];
 const { KINDS } = VB['sim/kinds'], { sowWhy } = VB['sim/fieldwork'];
 const { fieldsDay, fieldsFrost } = VB['sim/fields'];
 const { seedNeed } = VB['sim/hunger'];

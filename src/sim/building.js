@@ -4,7 +4,8 @@
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
-  const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH, HOUSE, houseCondition } = VB['sim/rules'];
+  const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH } = VB['sim/rules'],
+    { HOUSE, houseCondition } = VB['sim/house'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],

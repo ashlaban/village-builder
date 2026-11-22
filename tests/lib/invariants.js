@@ -4,7 +4,7 @@ const { checkRoles } = require('./owner-caches.js');
 const checked = new WeakMap(); // the record's length at the last check, by record
 // Grain by crop (VB-347): an object of crops of CROPS with seed (Stores.CROP_LIST: not fallow, VB-348), none negative, and the sum the
 // readers see (Stores.grainOf) is their sum.
-const LOADED = require('../../src/load.js'), CROPS = LOADED['sim/rules'].CROPS;
+const LOADED = require('../../src/load.js'), CROPS = VB['sim/crops'].CROPS;
 function grainBad(g) {
   if (!g || typeof g !== 'object' || Array.isArray(g)) return true;
   let sum = 0;
@@ -910,7 +910,7 @@ function checkState(st) {
     if (f.condition !== undefined && !(f.condition >= 0 && f.condition <= 1)) bad.push(`farmsteads[${f.id}]: condition ${f.condition}`);
     if (f.condAt !== undefined && !(f.condAt <= st.t)) bad.push(`farmsteads[${f.id}]: condAt ${f.condAt} is in the future`);
     if (f.tarredUntil !== undefined &&
-      !(f.tarredUntil <= st.t + globalThis.VB['sim/rules'].HOUSE.tarYears * globalThis.VB['sim/rules'].YEAR)) bad.push(
+      !(f.tarredUntil <= st.t + globalThis.VB['sim/house'].HOUSE.tarYears * globalThis.VB['sim/rules'].YEAR)) bad.push(
       `farmsteads[${f.id}]: tarredUntil ${f.tarredUntil}`);
     if (!tileOk(f.house)) bad.push(`farmsteads[${f.id}]: house tile ${f.house} out of range`);
     // settlers' booth (sim/settle): a mark, the cottage being the project plan 'cottage' of its household, or of its village while the
@@ -1576,7 +1576,7 @@ function checkHerds(st, bad) {
     if (hh.spoilt !== undefined && !(hh.spoilt >= 0)) bad.push(`households[${hh.id}]: spoilt ${hh.spoilt}`); // grain lost in store (balance review)
   }
   // a field's soil (VB-137) between the floor that harvests wear it to and the cap manure raises it to
-  const { SOIL, CROPS } = VB['sim/rules'];
+  const { SOIL, CROPS } = VB['sim/crops'];
   for (const f of st.farmsteads) for (const fd of f.fields) {
     if (!Object.prototype.hasOwnProperty.call(CROPS, fd.crop)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: crop ${fd.crop} is not in the table`); // VB-346
     if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
@@ -1593,7 +1593,7 @@ function checkHerds(st, bad) {
   }
   // VB-350: a field's rotation is a known key, the same on every field of its farm (and barley every year on a village's common field);
   // its step is inside the rotation, and the field's crop is the step's course; a village's usual rotation is a known key
-  const { ROTATIONS } = VB['sim/rules'];
+  const { ROTATIONS } = VB['sim/crops'];
   const rotOk = (fd, at, only) => {
     const R = ROTATIONS[fd.rotation];
     if (!R || (only && fd.rotation !== only)) bad.push(`${at}: rotation ${fd.rotation}`);
@@ -1604,12 +1604,12 @@ function checkHerds(st, bad) {
   for (const f of st.farmsteads) for (const fd of f.fields) rotOk(fd, `farmsteads[${f.id}].fields[${fd.id}]`, f.fields[0].rotation);
   for (const f of st.farmsteads) {
     // VB-355: the household whose head chose the farm's rotation to keep; VB-353: the farm's first rotation, the crops it keeps seed of
-    if (f.firstRotation !== undefined && !LOADED['sim/rules'].ROTATIONS[f.firstRotation]) bad.push(`farmsteads[${f.id}]: firstRotation ${f.firstRotation}`);
+    if (f.firstRotation !== undefined && !VB['sim/crops'].ROTATIONS[f.firstRotation]) bad.push(`farmsteads[${f.id}]: firstRotation ${f.firstRotation}`);
     if (f.keeps !== undefined && !(Array.isArray(f.keeps) && f.keeps.every((k) => LOADED['sim/stores'].CROP_LIST.includes(k)))) bad.push(`farmsteads[${f.id}]: keeps ${f.keeps}`);
     if (f.rotationBy !== undefined && !(Number.isInteger(f.rotationBy) && st.households[f.rotationBy])) bad.push(`farmsteads[${f.id}]: rotationBy ${f.rotationBy}`);
     // VB-351: the crop last lost on the farm, and the year, kept only where its rotation has two crops or more
     if (f.failed !== undefined && !(f.failed && LOADED['sim/stores'].CROP_LIST.includes(f.failed.crop) && Number.isInteger(f.failed.year) && f.fields.length
-      && ROTATIONS[f.fields[0].rotation].courses.filter((k) => LOADED['sim/rules'].CROPS[k].seed > 0).length >= 2)) bad.push(`farmsteads[${f.id}]: failed ${JSON.stringify(f.failed)}`);
+      && ROTATIONS[f.fields[0].rotation].courses.filter((k) => VB['sim/crops'].CROPS[k].seed > 0).length >= 2)) bad.push(`farmsteads[${f.id}]: failed ${JSON.stringify(f.failed)}`);
   }
   for (const v of st.villages) {
     if (!ROTATIONS[v.rotation]) bad.push(`villages[${v.id}]: rotation ${v.rotation}`);

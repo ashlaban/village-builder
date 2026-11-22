@@ -8,7 +8,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { setClock } = require('./lib/clock.js');
 const { checkState } = require('./lib/invariants.js');
 const Plans = VB['sim/plans'], Stores = VB['sim/stores'], F = VB['sim/fieldplans'];
-const { KINDS } = VB['sim/kinds'], { ROLES, DAY, WORK } = VB['sim/rules'];
+const { KINDS } = VB['sim/kinds'], { DAY, WORK } = VB['sim/rules'], { ROLES } = VB['sim/roles'];
 const { island, ROOMY } = require('./lib/probe.js'), world7 = island(7, ROOMY); // the roomy island (heirs needs its room), generated once (VB-862: the full map took 2 s)
 const out = [];
 const clean = (st, label) => { const bad = checkState(st); assert.deepStrictEqual(bad, [], `${label}: invariants`); };

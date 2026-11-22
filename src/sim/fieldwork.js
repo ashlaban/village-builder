@@ -5,7 +5,8 @@
 // the three kinds whose end is the village's (haul, clear, break).
 VB['sim/fieldwork'] = (() => {
   const Stores = VB['sim/stores'];
-  const { WORK, CROPS, SEASON_DAYS } = VB['sim/rules'];
+  const { WORK, SEASON_DAYS } = VB['sim/rules'],
+    { CROPS } = VB['sim/crops'];
   const { sowOpen, frostDay } = VB['sim/weather'];
   const { log, atFarm } = VB['sim/records'];
   const { scrubHours, SPREAD } = VB['sim/spread'];

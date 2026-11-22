@@ -4,7 +4,7 @@
 // to its first amount, clay nothing; a save keeps the tiles and the stores, and one without them loads with none dug.
 // Populous at seed 8 on the small island of tests/lib/probe.js (VB-855), half a year: households dig and the state keeps its invariants.
 const VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js'), Geo = VB['gen/geology'], D = VB['sim/dig'], Stores = VB['sim/stores'];
-const { KINDS, ASK } = VB['sim/kinds'], { DAY, YEAR, MATCH } = VB['sim/rules'];
+const { KINDS, ASK } = VB['sim/kinds'], { DAY, YEAR } = VB['sim/rules'], { MATCH } = VB['sim/roles'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DIG FAIL:', m); } };
 const world = (seed) => island(seed), SEED = 8; // at 42 the small island has no bog iron (VB-855)

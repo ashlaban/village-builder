@@ -5,7 +5,7 @@
 // up to 2 days later and a warm one a day earlier; two years are kept, plain data, and a season's line is told once as it begins.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim;
-const W = VB['sim/weather'], { CROPS, SEASON_DAYS, DAY, cal } = VB['sim/rules'];
+const W = VB['sim/weather'], { SEASON_DAYS, DAY, cal } = VB['sim/rules'], { CROPS } = VB['sim/crops'];
 const { makeStream } = VB['sim/rng'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');

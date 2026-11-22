@@ -46,7 +46,7 @@ let report = '';
 // 1. Nobody can come: the holder goes to the parent's household, which holds the farm in trust and works its fields as its own.
 {
   const { st, a, c, holder, f, t } = intoTrust(true);
-  const owner0 = ownerOf(st, f.fields[0].tile), cond0 = VB['sim/rules'].houseCondition(st, f);
+  const owner0 = ownerOf(st, f.fields[0].tile), cond0 = VB['sim/house'].houseCondition(st, f);
   check(t && t.trustee === c.id && t.ward === null && t.end === null, `a trust held by the parent's household (${JSON.stringify(t)})`);
   check(holder.household === c.id && a.members.length === 0, 'the holder lives with the trustee, the house stands empty');
   check(a.holder === holder.id && !a.dissolved && f.household === a.id && f.line === f.line, 'holder and household unchanged');
@@ -67,7 +67,7 @@ let report = '';
   check(jobs.length > 0 && jobs.every((j) => j.owner.type === 'household' && j.owner.id === c.id), `the trustee's tasks on the farm (${jobs.map((j) => `${j.kind}:${j.owner.id}`).join(', ')})`);
   const worker = st.pawns[grown(st, c).find((id) => id !== holder.id)];
   check(jobs.length && eligible(st, jobs[0], worker) === 'member', 'a member of the trustee may take them, as a member');
-  const cond = VB['sim/rules'].houseCondition(st, f);
+  const cond = VB['sim/house'].houseCondition(st, f);
   const decay = (0.08 * days) / VB['sim/rules'].YEAR_DAYS; // the clock's decay of an empty farm, 8% a year
   check(Math.abs(cond0 - decay - cond) < 0.005, `the empty house decays as an empty farm's (${cond0.toFixed(3)} to ${cond.toFixed(3)})`);
   invariants(st, 'sixty days on');

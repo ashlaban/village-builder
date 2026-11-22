@@ -3,7 +3,7 @@
 // field at soil 1, the soil mended 0.04 to at most 1.0 (a manured field keeps its soil); a pea left to the frost is lost as barley is.
 // Then the pot: barley and peas are two sources and go 10% further; peas alone are one source; peas held for seed are not cooked.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
-const { CROPS, ROTATIONS, FOODS, ECON, DAY, YEAR_DAYS, cal } = VB['sim/rules'];
+const { FOODS, ECON, DAY, YEAR_DAYS, cal } = VB['sim/rules'], { CROPS, ROTATIONS } = VB['sim/crops'];
 const { KINDS } = VB['sim/kinds'];
 const { fieldsFrost } = VB['sim/fields'];
 const Stores = VB['sim/stores'], Pot = VB['sim/pot'];

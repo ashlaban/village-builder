@@ -10,7 +10,7 @@ const { templateHeads } = require('./lib/heads.js');
 const { checkState } = require('./lib/invariants.js');
 const { setClock } = require('./lib/clock.js');
 const Plans = VB['sim/plans'], Green = VB['sim/green'], X = VB['sim/expansion'], Stores = VB['sim/stores'], S = VB['sim/settle'];
-const { hexSteps } = VB['sim/hex'], { issue } = VB['sim/commands'], { refreshJobs } = VB['sim/jobs'], { ROLES, BUILD, DAY, WORK, YEAR, cal } = VB['sim/rules'];
+const { hexSteps } = VB['sim/hex'], { issue } = VB['sim/commands'], { refreshJobs } = VB['sim/jobs'], { BUILD, DAY, WORK, YEAR, cal } = VB['sim/rules'], { ROLES } = VB['sim/roles'];
 const map = [
   '......................',
   '..FFF.............FF..',

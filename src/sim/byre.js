@@ -3,7 +3,8 @@ VB['sim/byre'] = (() => {
   const Stores = VB['sim/stores'],
     { dayLoss } = VB['sim/goods'];
   const { next: rnd } = VB['sim/rng'];
-  const { HERD, FOODS, SOIL, WORK, DAY, YEAR_DAYS, BUILD } = VB['sim/rules'];
+  const { HERD, FOODS, WORK, DAY, YEAR_DAYS, BUILD } = VB['sim/rules'],
+    { SOIL } = VB['sim/crops'];
   const Rules = VB['sim/registry'],
     Culture = VB['culture'];
   const { log, atFarm, atHousehold } = VB['sim/records'];

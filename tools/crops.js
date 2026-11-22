@@ -25,7 +25,7 @@ const root = path.join(__dirname, '..');
 // on the island, the same; `any`, a crop of which some is held anywhere, even less than a field's seed (none of it: lost to the island).
 // Read by tests/lib/bands.js (the band crops-lost) as by this tool.
 function held(VB, st) {
-  const { CROPS } = VB['sim/rules'], Stores = VB['sim/stores'], { underCrop } = VB['sim/rotations'];
+  const { CROPS } = VB['sim/crops'], Stores = VB['sim/stores'], { underCrop } = VB['sim/rotations'];
   const SEEDED = Stores.CROP_LIST.filter((k) => CROPS[k].seed > 0), v = {}, island = new Set(), any = new Set();
   const add = (id, k) => { (v[id] || (v[id] = new Set())).add(k); island.add(k); any.add(k); };
   for (const id of st.liveHouseholds) {
@@ -43,7 +43,7 @@ function held(VB, st) {
 // ---- one run, in a child ----
 function run({ scenario, map, seed, years }) {
   const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/hunger'], Stores = VB['sim/stores'];
-  const { CROPS, DAY, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'], { underCrop } = VB['sim/rotations'], { MAPS } = require('../tests/lib/bands.js');
+  const { DAY, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'], { CROPS } = VB['sim/crops'], { underCrop } = VB['sim/rotations'], { MAPS } = require('../tests/lib/bands.js');
   const SEEDED = Stores.CROP_LIST.filter((k) => CROPS[k].seed > 0);
   const it = G.generate(seed, { cols: MAPS[map][0], rows: MAPS[map][1] }); let r; while (!(r = it.next()).done);
   const st = Sim.seed(r.value, seed, scenario), crops = () => held(VB, st);

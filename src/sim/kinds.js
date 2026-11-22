@@ -1,7 +1,7 @@
 // @sys sim/kinds: the registry of job kinds: it joins the records each domain module declares (KINDS), builds the fetch kinds and each role's
 // ranks, and holds the order in which sim/jobs asks the kinds' rules (ASK). A kind's record lives with its domain (VB-418)
 VB['sim/kinds'] = (() => {
-  const { ROLES } = VB['sim/rules'],
+  const { ROLES } = VB['sim/roles'],
     { doneOf } = VB['sim/progress'];
   const Fieldwork = VB['sim/fieldwork'],
     Chores = VB['sim/chores'],

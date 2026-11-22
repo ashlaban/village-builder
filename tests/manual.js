@@ -11,7 +11,7 @@ const centre = probe.villages[0].center, far = probe.villages.find((v) => hexSte
 assert(far, 'the test island has two villages well apart');
 // free farmable tiles by distance from a tile, as the probe left them: house sites for households placed by hand
 const sites = (from, lo, hi) => { const out = []; for (let i = 0; i < w.N; i++) { const d = hexSteps(w, from, i);
-  if (d >= lo && d <= hi && VB['sim/rules'].farmable(w, i) && !w.river[i]) out.push(i); } return out; };
+  if (d >= lo && d <= hi && VB['sim/crops'].farmable(w, i) && !w.river[i]) out.push(i); } return out; };
 const kept = Cover.keep(w);
 const tryPlaces = (places) => { Cover.restore(w, kept); try { return Sim.seed(w, SEED, 'manual', places); } catch (e) { return e; } };
 

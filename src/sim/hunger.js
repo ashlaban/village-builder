@@ -1,7 +1,7 @@
 // @sys sim/hunger: feeding households, the daily hearth and the effects of food and shelter on pawns' health
 VB['sim/hunger'] = (() => {
-  const { HUNGER, HEALTH, ILLNESS, HERD, HELP, DAY, YEAR, YEAR_DAYS, CROPS, ROTATIONS, PEAT, BUILD, GATHERING } =
-    VB['sim/rules'];
+  const { HUNGER, HEALTH, ILLNESS, HERD, HELP, DAY, YEAR, YEAR_DAYS, PEAT, BUILD, GATHERING } = VB['sim/rules'],
+    { CROPS, ROTATIONS } = VB['sim/crops'];
   const { age, farmPractice } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'],

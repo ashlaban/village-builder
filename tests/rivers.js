@@ -3,7 +3,7 @@
 // Every rule on two 48 by 34 islands of tests/lib/probe.js (VB-856). --extended, at night: the default island at seeds 7 and 42, where
 // the counts are a statistic of whole islands' generated geography (ten sources or more, a course through a lake, more than 20 crossings).
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rv = VB['gen/rivers'];
-const { RIVER, FERTILITY, fertility, byRiver } = VB['sim/rules'], { findRoute } = VB['sim/routes'], { passable } = VB['sim/walking'], { siteScore } = VB['sim/layout'], { bfs, land, landComponents } = VB['sim/hex'];
+const { RIVER, FERTILITY, fertility, byRiver } = VB['sim/crops'], { findRoute } = VB['sim/routes'], { passable } = VB['sim/walking'], { siteScore } = VB['sim/layout'], { bfs, land, landComponents } = VB['sim/hex'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('RIVERS FAIL:', m); } };
 const EXT = process.argv.includes('--extended'), { island, generate, ROOMY } = require('./lib/probe.js');
 const world = (seed) => (EXT ? generate(seed, {}) : island(seed, ROOMY)), anew = (seed) => (EXT ? world(seed) : generate(seed, ROOMY));

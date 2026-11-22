@@ -5,7 +5,7 @@
 // On a tiny village under a forest.
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { feedHousehold, dailyNeed } = VB['sim/hunger'], { KINDS } = VB['sim/kinds'], { cookWanted } = VB['sim/chores'], { killPawn } = VB['sim/lifecycle'];
-const { HEALTH, HUNGER, MATCH, YEAR, DAY, YEAR_DAYS } = VB['sim/rules'];
+const { HEALTH, HUNGER, YEAR, DAY, YEAR_DAYS } = VB['sim/rules'], { MATCH } = VB['sim/roles'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('COLD FAIL:', m); } };
 const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;

@@ -6,7 +6,7 @@
 // to its next step when its year out of turn is over, a year's rest, and back to its turn; the played head reaching both through
 // Sim.head; the field's view for its tile's card; a refusal changes nothing; the invariants of each state.
 const assert = require('assert'), VB = require('../src/load.js');
-const { CROPS, ROTATIONS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
+const { DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'], { CROPS, ROTATIONS } = VB['sim/crops'];
 const F = VB['sim/fields'], Rotations = VB['sim/rotations'], Plans = VB['sim/plans'], { issue } = VB['sim/commands'];
 const { setClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, setForesight } = require('./lib/tiny.js');

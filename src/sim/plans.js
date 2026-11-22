@@ -5,7 +5,8 @@ VB['sim/plans'] = (() => {
   const { rotationWhy, turnWhy, swapWhy, fieldsChoice } = VB['sim/rotations'],
     { takeRotation, outOfTurn, swapSteps } = VB['sim/fields'];
   const { living, home, settlement } = VB['sim/records'];
-  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, CROPS, ROTATIONS, TRAVEL, cal } = VB['sim/rules'];
+  const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, TRAVEL, cal } = VB['sim/rules'],
+    { CROPS, ROTATIONS } = VB['sim/crops'];
   const { sowOpen, frostDay } = VB['sim/weather'];
   const Rules = VB['sim/registry'];
   const Traits = VB['sim/traits'];

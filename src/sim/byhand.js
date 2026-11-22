@@ -1,6 +1,7 @@
 // @sys sim/byhand: what is placed by hand on a settlement generator: the editor's farm, field or green on a very tile; the market town's packed plots
 VB['sim/byhand'] = (() => {
-  const { SETTLE, farmable } = VB['sim/rules'];
+  const { SETTLE } = VB['sim/rules'],
+    { farmable } = VB['sim/crops'];
   const { hexSteps, bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
   const { nextTo, placeFields, loneVillage, farmIn, fieldOn } = VB['sim/layout'];

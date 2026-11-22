@@ -3,7 +3,7 @@
 // up to its winter goal, then to those who worked the plot, the rest burnt; a new household's first wood comes from its members' old homes,
 // never leaving a pile under woodLow; settlers bring none. On a tiny world, through the rules, not a run.
 const VB = require('../src/load.js'), X = VB['sim/expansion'], Bld = VB['sim/building'], J = VB['sim/jobs'];
-const { BUILD, ECON, MATCH, cal } = VB['sim/rules'];
+const { BUILD, ECON, cal } = VB['sim/rules'], { MATCH } = VB['sim/roles'];
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TIMBER FAIL:', m); } };

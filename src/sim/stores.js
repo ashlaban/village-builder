@@ -1,7 +1,9 @@
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
 // reservations, grain by crop and ale brewed, poured and spoiling (VB-305)
 VB['sim/stores'] = (() => {
-  const { DAY, YEAR, YEAR_DAYS, TICKS, FOODS, BREW, CROPS, MATCH, cal } = VB['sim/rules'];
+  const { DAY, YEAR, YEAR_DAYS, TICKS, FOODS, BREW, cal } = VB['sim/rules'],
+    { MATCH } = VB['sim/roles'],
+    { CROPS } = VB['sim/crops'];
   const { addFood, takeFood } = VB['sim/larder'];
   const WOOD_LOW = MATCH.urgency.woodLow;
   const { goodOf, dayLoss, keepsDays, GRAIN, CROP_LIST, CROP_GOOD, GOOD_CROP, isGrain, grainGood } = VB['sim/goods'];

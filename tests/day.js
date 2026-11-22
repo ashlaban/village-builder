@@ -3,7 +3,7 @@
 // less, without a random draw; a pawn takes the first task of its list it can; the day is saved with the plan. On a small constructed
 // state: three farms on open ground, spring day 0, at 10:30.
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim, Jobs = VB['sim/jobs'], { KINDS } = VB['sim/kinds'], { CHILD, WORK } = VB['sim/rules'];
+const VB = require('../src/load.js'), Sim = VB.sim, Jobs = VB['sim/jobs'], { KINDS } = VB['sim/kinds'], { WORK } = VB['sim/rules'], { CHILD } = VB['sim/roles'];
 const { age } = VB['sim/records'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));

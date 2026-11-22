@@ -6,7 +6,8 @@
 // standing by itself, only through the well-kept house (HOUSE.termTarred, sim/rules). Without the fair (VB-302) a barrel never leaves the
 // household that burnt it: only the pit's own household tars its house and its boat.
 VB['sim/tar'] = (() => {
-  const { YEAR, SEASON_DAYS, HOUSE, houseCondition, houseTarred } = VB['sim/rules'];
+  const { YEAR, SEASON_DAYS } = VB['sim/rules'],
+    { HOUSE, houseCondition, houseTarred } = VB['sim/house'];
   const { B } = VB['gen'];
   const Rules = VB['sim/registry'];
   const Stores = VB['sim/stores'],

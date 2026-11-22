@@ -6,7 +6,9 @@ VB['sim/commons'] = (() => {
   const Projects = VB['sim/projects'],
     Stores = VB['sim/stores'],
     Culture = VB['culture'];
-  const { ROLES, CROPS, farmable, fertility, cal } = VB['sim/rules'];
+  const { cal } = VB['sim/rules'],
+    { ROLES } = VB['sim/roles'],
+    { CROPS, farmable, fertility } = VB['sim/crops'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];

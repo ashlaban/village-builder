@@ -6,7 +6,7 @@
 const VB = require('../src/load.js');
 const T = VB['sim/tar'], Drying = VB['sim/drying'], { KINDS } = VB['sim/kinds'], Projects = VB['sim/projects'];
 const tarpitOf = (s, id) => Projects.projectsOf(s, 'household', id).find((p) => p.what === 'tarpit') || null; // a small construction (VB-1414): not ownOf's
-const { YEAR, DAY, SEASON_DAYS, HOUSE, houseCondition, houseTarred } = VB['sim/rules'];
+const { YEAR, DAY, SEASON_DAYS } = VB['sim/rules'], { HOUSE, houseCondition, houseTarred } = VB['sim/house'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TAR FAIL:', m); } };
 const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;

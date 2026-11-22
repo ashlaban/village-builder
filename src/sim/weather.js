@@ -4,7 +4,7 @@
 // answers the same question a region.
 VB['sim/weather'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { CROPS } = VB['sim/rules'];
+  const { CROPS } = VB['sim/crops'];
   const { log } = VB['sim/records'];
   // @tunable SEASONS: the seasons' names, in the year's order
   const SEASONS = ['spring', 'summer', 'autumn', 'winter'];

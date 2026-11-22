@@ -4,7 +4,8 @@ VB['sim/cottage'] = (() => {
     { stepOf } = VB['sim/projects'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold } = VB['sim/records'];
   const { makeFarmstead } = VB['sim/layout'];
-  const { SHARES, SOIL, ECON } = VB['sim/rules'];
+  const { SHARES, ECON } = VB['sim/rules'],
+    { SOIL } = VB['sim/crops'];
   const { foundHousehold } = VB['sim/membership'];
   const { reckonWood } = VB['sim/territory'];
   const { shareWood } = VB['sim/building'];

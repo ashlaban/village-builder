@@ -5,7 +5,8 @@ VB['sim/agents'] = (() => {
   const { isOpen } = VB['sim/kinds'];
   const { register } = VB['sim/commands'];
   const { next: rnd } = VB['sim/rng'];
-  const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL, workRate } = VB['sim/rules'];
+  const { cal, DAY, TICKS, WORK, SPEED, HUNGER, HEALTH, HERD, TRAVEL } = VB['sim/rules'],
+    { workRate } = VB['sim/roles'];
   const HANDS = VB['sim/rules'].AGES.hands;
   const { route } = VB['sim/routes'],
     { stepCost, tileCost } = VB['sim/walking'];

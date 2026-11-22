@@ -59,7 +59,7 @@ function corr(xs, ys) {
 module.exports = (VB, st, { period = 'decade' } = {}) => {
   if (!['year', 'decade'].includes(period)) throw new Error('soil: --period is year or decade');
   const Sim = VB.sim,
-    { SOIL, YEAR_DAYS, YEAR } = VB['sim/rules'], { TILTH } = VB['sim/fields'],
+    { YEAR_DAYS, YEAR } = VB['sim/rules'], { SOIL } = VB['sim/crops'], { TILTH } = VB['sim/fields'],
     { tilthOf } = VB['sim/fields'];
   const span = period === 'year' ? 1 : 10,
     perDay = 1 - Math.pow(1 - SOIL.rot, 1 / YEAR_DAYS);

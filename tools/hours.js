@@ -25,7 +25,7 @@
 // Used by tools/sim.js: `const h = require('./hours.js')(VB, st, opts)`; `h.advanceYear()` in place of `Sim.advance(st, Sim.YEAR)`; `h.result()`.
 require('./help.js')(__filename);
 module.exports = (VB, st, { from = 1, every = 'step', fields = null, team = false, household = null } = {}) => {
-  const Sim = VB.sim, { TICKS, workRate } = VB['sim/rules'], [W0, W1] = Sim.WORK, SEASONS = Sim.SEASONS;
+  const Sim = VB.sim, { TICKS } = VB['sim/rules'], { workRate } = VB['sim/roles'], [W0, W1] = Sim.WORK, SEASONS = Sim.SEASONS;
   if (!['hour', 'step'].includes(every)) throw new Error('hours: --every is hour or step');
   const STEP = 1 / TICKS, STAGE = { plowed: 'hoed', sown: 'sown', ripe: 'ripe', stooks: 'reaped' },
     DAYS = ['hoed', 'sown', 'ripe', 'reaped', 'barn', 'threshed'];

@@ -2,7 +2,8 @@
 // from each member's list; fit and urgency; the round of bids for help between households
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { WORK, ROLES, CHILD, MATCH, TICKS, cal } = VB['sim/rules'];
+  const { WORK, TICKS, cal } = VB['sim/rules'],
+    { ROLES, CHILD, MATCH } = VB['sim/roles'];
   const { act } = VB['sim/traits'];
   const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];

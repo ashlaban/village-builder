@@ -3,7 +3,8 @@
 VB['sim/farmclaims'] = (() => {
   const { living } = VB['sim/records'];
   const { issue, register } = VB['sim/commands'];
-  const { YEAR, CLAIMS, CROPS, MARRIAGE } = VB['sim/rules'];
+  const { YEAR, CLAIMS, MARRIAGE } = VB['sim/rules'],
+    { CROPS } = VB['sim/crops'];
   const Offers = VB['sim/offers'];
   const { bufferOf } = VB['sim/traits'];
   const { withinDay } = VB['sim/villagehours'];

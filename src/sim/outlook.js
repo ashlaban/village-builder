@@ -6,7 +6,8 @@
 // ordinary year (sim/meadows' expectedHay), the woodpile's goal of each season (plan.targets.wood); no weather to come is read. Nothing
 // reads the outlook to decide: it is a view the review keeps, so that the page never computes one.
 VB['sim/outlook'] = (() => {
-  const { SEASON_DAYS, YEAR_DAYS, CROPS, ROTATIONS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'];
+  const { SEASON_DAYS, YEAR_DAYS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'],
+    { CROPS, ROTATIONS } = VB['sim/crops'];
   const { on } = VB['sim/events'];
   const Stores = VB['sim/stores'],
     Goods = VB['sim/goods'];

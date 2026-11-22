@@ -23,7 +23,8 @@ VB['sim/opportunities'] = (() => {
   const { matchBar, matchRules, kinOk } = VB['sim/matching'];
   const { visitChoices, visitWhy, sendWhy } = VB['sim/visits'];
   const { wishesOf } = VB['sim/wishes'];
-  const { MARRIAGE, MATCH } = VB['sim/rules'],
+  const { MARRIAGE } = VB['sim/rules'],
+    { MATCH } = VB['sim/roles'],
     HELP_KINDS = MATCH.help.kinds;
   const { unfit, handsLeft } = VB['sim/service'];
   const { ALE_EVENING, RITE } = VB['sim/rules'],

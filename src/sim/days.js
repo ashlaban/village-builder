@@ -3,7 +3,8 @@
 // called adult takes tasks of the creditor's plan on the basis `owed` for DAYS.hours of work, walking there and home; each hour worked
 // is booked against the obligation (kind `days` of sim/obligations). A debt, the alderman's keep and a patron's due are its sources.
 VB['sim/days'] = (() => {
-  const { DAY, MATCH } = VB['sim/rules'];
+  const { DAY } = VB['sim/rules'],
+    { MATCH } = VB['sim/roles'];
   const Obligations = VB['sim/obligations'];
   const Stores = VB['sim/stores'];
   const { floorOf } = VB['sim/hunger'];

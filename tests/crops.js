@@ -1,6 +1,6 @@
 // Crop boundary regressions: seed shortages, sheaves waiting at frost, and restoring an abandoned farm.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
-const { CROPS } = VB['sim/rules'];
+const { CROPS } = VB['sim/crops'];
 const { setClock, moveClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { DAY, YEAR, SEASON_DAYS, cal } = VB['sim/rules'];

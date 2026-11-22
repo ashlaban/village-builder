@@ -4,7 +4,7 @@
 // Founders at seed 7 on the small island of tests/lib/probe.js (VB-855), to the end of its first autumn: food is gathered, the state keeps
 // its invariants, a save keeps the stocks.
 const VB = require('../src/load.js'), Sim = VB.sim, { island, scenario } = require('./lib/probe.js'), F = VB['sim/forage'], Stores = VB['sim/stores'];
-const { KINDS } = VB['sim/kinds'], { ROLES, MATCH, DAY, YEAR_DAYS } = VB['sim/rules'], { FORAGE } = VB['sim/forage'], { dailyNeed } = VB['sim/hunger'];
+const { KINDS } = VB['sim/kinds'], { DAY, YEAR_DAYS } = VB['sim/rules'], { ROLES, MATCH } = VB['sim/roles'], { FORAGE } = VB['sim/forage'], { dailyNeed } = VB['sim/hunger'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FORAGE FAIL:', m); } };
 const cal = (season, sday, hour = 8) => ({ season, sday, doy: season * 12 + sday, day: season * 12 + sday, hour });

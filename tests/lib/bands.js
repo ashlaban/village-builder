@@ -10,7 +10,7 @@
 // a reduced scenario of SETUPS. `afterYear` is the probe's year: the probe looks at the years after it (or, for the villages, at it).
 const VB = require('../../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { checkState } = require('./invariants.js');
-const { DAY, YEAR_DAYS, SEASON_DAYS, CROPS, ROTATIONS } = VB['sim/rules'];
+const { DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'], { CROPS, ROTATIONS } = VB['sim/crops'];
 const { tilthByHerd } = require('../../tools/soil.js');
 const W = require('../../tools/waiting.js'); // who waits to marry, and why (VB-633)
 const { held } = require('../../tools/crops.js'); // the crops held on the island (VB-356)
