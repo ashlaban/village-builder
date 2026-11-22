@@ -5,6 +5,10 @@
 //   --from Y: count years from Y on (the first years of a scenario are settling in); --json prints the household-years as well.
 //   --rye: every village given rye and farming in three courses from the start (the test switch of VB-350, sim/scenarios giveRye).
 // Grain is also reported by crop (barley, rye, peas: the harvest of each, net of the seed its fields took; VB-350).
+// Beside `node tools/sim.js --report accounts` (VB-403, tools/accounts.js): this counts a household's own produce from grain (net of
+// seed), milk, butter and meat, and leaves fish and gathered food out, so its food over need is lower (1.05 to 1.52 on the review's runs
+// against 1.64 to 1.86 with them); the accounts count all food produced, fish and gathered food and the common fields' harvest too,
+// gross of seed (seed is an outlet), and close the year's account from the stores' movements and stocks.
 require('./help.js')(__filename);
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], F = VB['sim/hunger'], Stores = VB['sim/stores'];
 const { CROPS } = VB['sim/rules'];
