@@ -46,7 +46,7 @@ VB-195 (5 November): `sim/records` owns the `st.living` and `st.liveHouseholds` 
 Creation appends through `person` and `makeHousehold`; `killPawn` and `extinct` call the owner's removal operations.
 Seed/load rebuild them from source records, so format-1 saves need no migration. Daily invariants compare both arrays
 with independent full scans, and `tests/living.js` probes missing, duplicate and reordered ids, mutation during walks
-and old saves. The existing non-enumerable `st.idx` also indexes active unions and whether a person has an ended union;
+and old saves. The existing `st.idx` (derived, not saved: `sim/saves` DERIVED) also indexes active unions and whether a person has an ended union;
 `tests/indexes.js` compares these lookups with the union records after long runs. Historical queries retain the full records.
 
 VB-179 (6 November): `sim/fields` now owns every crop change in play. Job kinds call `hoed`, `sown`, `reaped`,
