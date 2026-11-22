@@ -12,6 +12,7 @@
   "gen.js",
   "sim/customs.js",
   "sim/norms.js",
+  "sim/attitudes.js",
   "culture.js",
   "sim/rules.js",
   "sim/crops.js",

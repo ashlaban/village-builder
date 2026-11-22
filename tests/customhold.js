@@ -2,7 +2,7 @@
 // culture's custom, the voices that favour the new way move their anchors P.hold of the way to their attitudes; the others keep theirs.
 // The culture's change names the villages that took it up and those that kept the old. A constructed environment, no simulation.
 const assert = require('assert');
-const C = require('../src/load.js').culture, Customs = require('../src/load.js')['sim/customs'];
+const C = require('../src/load.js').culture, Customs = require('../src/load.js')['sim/customs'], Attitudes = require('../src/load.js')['sim/attitudes'];
 
 const d = Customs.IDX.heirCount,
   o = Customs.OFF[d],
@@ -12,7 +12,7 @@ const d = Customs.IDX.heirCount,
   y = (x + 1) % n;
 // an attitude on heirCount giving share a to y and the rest to x, the other customs as the archetype's
 const att = (a) => {
-  const v = C.seedAttitude(custom, () => 0.5);
+  const v = Attitudes.seedAttitude(custom, () => 0.5);
   for (let j = 0; j < n; j++) v[o + j] = j === y ? a : j === x ? 1 - a : 0;
   return v;
 };

@@ -1,8 +1,8 @@
 // @sys sim/leanings: read-only views of a person's leanings on the customs: what draws them towards a way (VB-398); no state
 VB['sim/leanings'] = (() => {
   const { OFF, NOPT, DIMS } = VB['sim/customs'],
-    { P, WEIGH } = VB['culture'];
-  // What draws a person towards option j of custom d, each pull as the daily drift weighs it (culture's WEIGH, which driftPerson reads too):
+    { P, WEIGH } = VB['sim/attitudes'];
+  // What draws a person towards option j of custom d, each pull as the daily drift weighs it (sim/attitudes' WEIGH, which driftPerson reads too):
   // company (those they deal with, mixed with the settlement's mean share for it, or null; friend is the tie that weighs most among those
   // who favour j above the custom's other ways), upbringing (what they learned young), cause (a cause argued near them; arguer is who argues
   // it with most weight), interest (their own) and own (they argue it themselves). A view for the page (page/customs, VB-398): it writes

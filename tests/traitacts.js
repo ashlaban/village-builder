@@ -3,7 +3,7 @@
 // constructed state, traits set by hand and chances forced with `fix`.
 const assert = require('assert');
 const VB = require('../src/load.js');
-const T = VB['sim/traits'], R = VB['sim/relations'], C = VB.culture, Customs = VB['sim/customs'], Rules = VB['sim/registry'];
+const T = VB['sim/traits'], R = VB['sim/relations'], C = VB.culture, Customs = VB['sim/customs'], Attitudes = VB['sim/attitudes'], Rules = VB['sim/registry'];
 const { TRAITS, HEALTH, HELP, SETTLE } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'];
 const { updateHealth, dailyNeed } = VB['sim/hunger'], { leaveChance } = VB['sim/settle'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
@@ -113,7 +113,7 @@ const AT = [0, 0.5, 1];
     set(st, i, 'openness', open);
     set(st, i, 'piety', pious);
     p.ties = new Map([[j, 1]]);
-    C.dailyStep({ people: st.pawns, settlements: [], cultures: [], driftMul: 1 }, hooks(o), 1 / 120, () => 0.5);
+    Attitudes.dailyStep({ people: st.pawns, settlements: [], cultures: [], driftMul: 1 }, hooks(o), 1 / 120, () => 0.5);
     const moved = p.att.reduce((s, x, k) => s + Math.abs(x - att[k]), 0);
     p.att.set(att); p.anc.set(anc); p.ties = ties;
     return moved;

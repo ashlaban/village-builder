@@ -364,7 +364,7 @@ VB['sim/saves'] = (() => {
     st.w = w;
     for (const k in DERIVED) st[k] = null;
     for (const k in DERIVED) if (DERIVED[k]) DERIVED[k](st);
-    for (const p of st.pawns) if (p.att) VB['culture'].compileLeans(p); // VB-520: compiled from the attitude, as it was saved or made
+    for (const p of st.pawns) if (p.att) VB['sim/attitudes'].compileLeans(p); // VB-520: compiled from the attitude, as it was saved or made
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now
     return st;
   }

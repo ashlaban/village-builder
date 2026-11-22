@@ -1,4 +1,4 @@
-const C = require('../src/load.js').culture, Customs = require('../src/load.js')['sim/customs'];
+const C = require('../src/load.js').culture, Customs = require('../src/load.js')['sim/customs'], Attitudes = require('../src/load.js')['sim/attitudes'];
 const mulberry32 = (a) => () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 
 // annual death hazard, roughly pre-industrial (Gompertz–Makeham plus child mortality)
@@ -23,7 +23,7 @@ function makeEnv(seed, { villages = 6, size = 50, ties = [1, 0.8, 0.7, 0.6, 0.6,
     const tie = remote !== null && v === villages - 1 ? remote : ties[v % ties.length];
     const s = { id: v, culture: c.id, kind: v === 0 ? kind : 'village', tie, practice: Int8Array.from(custom), list: [] };
     env.settlements.push(s);
-    for (let k = 0; k < size; k++) { const a = C.seedAttitude(custom, rand); mkPerson(s, (rand() * 65) | 0, a, Float32Array.from(a)); }
+    for (let k = 0; k < size; k++) { const a = Attitudes.seedAttitude(custom, rand); mkPerson(s, (rand() * 65) | 0, a, Float32Array.from(a)); }
   }
   hooks.settlementOf = (p) => env.settlements[p.settlement];
   hooks.voiceOf = (p) => (p.landholder && p.age >= 18 ? 1 : 0);
@@ -56,7 +56,7 @@ function makeEnv(seed, { villages = 6, size = 50, ties = [1, 0.8, 0.7, 0.6, 0.6,
         for (const q of s.list) for (let k = 0; k < Customs.TOTAL; k++) M[k] += q.att[k] / s.list.length;
         const att = new Float32Array(Customs.TOTAL);
         for (let k = 0; k < Customs.TOTAL; k++) att[k] = 0.35 * (a.att[k] + b.att[k]) + 0.3 * M[k];
-        Customs.DIMS.forEach((d, k) => C.normBlock(att, Customs.OFF[k], Customs.NOPT[k]));
+        Customs.DIMS.forEach((d, k) => Attitudes.normBlock(att, Customs.OFF[k], Customs.NOPT[k]));
         const ch = mkPerson(s, 0, att, Float32Array.from(att)); ch.ties.set(a.id, 2); ch.ties.set(b.id, 2); a.ties.set(ch.id, 1); b.ties.set(ch.id, 1);
       }
       for (const p of s.list) p.age++;
@@ -81,7 +81,7 @@ function run(seed, opts, years, stepsPerYear = 6, setup = null) {
   assign();
   const flip = new Array(Customs.DIMS.length).fill(null), local = env.settlements.map(() => new Array(Customs.DIMS.length).fill(null));
   for (let y = 1; y <= years; y++) {
-    for (let k = 0; k < stepsPerYear; k++) { env.t += 1 / stepsPerYear; C.dailyStep(env, hooks, 1 / stepsPerYear, rand); }
+    for (let k = 0; k < stepsPerYear; k++) { env.t += 1 / stepsPerYear; Attitudes.dailyStep(env, hooks, 1 / stepsPerYear, rand); }
     for (const s of env.settlements) { const ch = C.meeting(env, hooks, s); for (const x of ch) if (local[s.id][x.dim] === null) local[s.id][x.dim] = y; }
     const r = C.cultureYear(env, hooks, c);
     for (const x of r.changes) if (flip[x.dim] === null) flip[x.dim] = y;

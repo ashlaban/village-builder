@@ -1,24 +1,13 @@
-// @sys culture: customs, per-settlement practice, pawn culture initialization, advocacy and day-by-day attitude drift
-// ===== Customs: one culture-wide set, local practice per settlement, attitudes that drift day by day =====
-// Two layers. Attitudes: every person holds a preference over the options of each custom, updated each game day
-// (one game day stands for about a week). Customs in force: a settlement's practice changes only at its yearly
-// meeting; the culture's customs change only at the yearly reckoning after all meetings.
+// @sys culture: the cultures and their customs in force: a pawn's culture made, its causes, the villages' meetings, the yearly reckoning and the split
+// ===== Customs: one culture-wide set, local practice per settlement =====
+// A settlement's practice changes only at its yearly meeting; the culture's customs change only at the yearly reckoning after all
+// meetings. What each person holds, and its daily drift, is sim/attitudes' (VB-417); the causes argued here move it through pull and hold.
 const Culture = (() => {
-  const { DIMS, OFF, NOPT, TOTAL, optIndex, PRACTICES } = VB['sim/customs'];
+  const { DIMS, OFF, NOPT, TOTAL, PRACTICES } = VB['sim/customs'],
+    A = VB['sim/attitudes'];
 
-  // Rates are per year; the daily step scales pulls by dt and noise by sqrt(dt) (Euler–Maruyama).
+  // Years and shares: the causes, the meetings' margins, the hold of a change, the reckoning and the split.
   const P = {
-    social: 0.5, // pull towards the people one deals with, at malleability 1
-    anchor: { village: 0.35, city: 0.15 }, // pull back towards what one learned young (Friedkin–Johnsen)
-    selfInterest: 0.12,
-    noise: 0.12, // per sqrt(year), at malleability 1
-    adultAnchorDrift: 0.02,
-    youthAnchorDrift: 0.6, // anchors form in youth and barely move later
-    kind: { village: 1, city: 2.2 },
-    upbringing: 0.3, // share of a newborn's attitude taken from its village's mean (Cavalli-Sforza and Feldman; tests/calibrate.js)
-    oblique: 0.3, // share of the social target taken from the settlement as a whole
-    advocacyPull: 3,
-    advocacyWeight: 3,
     advocacyJump: 0.25, // taking up a cause moves one's own attitude this share of the way to it, at once
     causeGrace: 0.25, // years from taking a cause up in which laying it down does not start the wait for another (a season)
     causeEvery: 5, // years a cause lasts, and from taking one up before one may take up another (it may be laid down at any time)
@@ -33,28 +22,7 @@ const Culture = (() => {
     smallCulture: 0.02, // and grows by this share for each person below forty: a tiny culture's few voices are noisy (VB-1104)
     fission: { divergence: 0.3, tie: 0.35, years: 3 },
     entrepreneur: 0.004, // chance per adult, custom and year (times malleability squared)
-    persuasion: 1.5, // direct pull from advocates, times the advocates' share of one's ties and sqrt(malleability)
   };
-
-  function gauss(rand) {
-    let u = 0,
-      v = 0;
-    while (u === 0) u = rand();
-    v = rand();
-    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-  }
-  function normBlock(a, o, n) {
-    let s = 0;
-    for (let k = 0; k < n; k++) {
-      if (a[o + k] < 0) a[o + k] = 0;
-      s += a[o + k];
-    }
-    if (s <= 0) {
-      for (let k = 0; k < n; k++) a[o + k] = 1 / n;
-      return;
-    }
-    for (let k = 0; k < n; k++) a[o + k] /= s;
-  }
 
   // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
@@ -97,65 +65,16 @@ const Culture = (() => {
     return c;
   }
 
-  // An attitude centred on a preferred option with some spread; `lean` adds weight to chosen alternatives.
-  function seedAttitude(customs, rand, strength = 0.55, lean = null) {
-    const a = new Float32Array(TOTAL);
-    DIMS.forEach((d, k) => {
-      const o = OFF[k],
-        n = NOPT[k];
-      for (let j = 0; j < n; j++) a[o + j] = ((1 - strength) / n) * (0.4 + rand() * 1.2);
-      a[o + customs[k]] += strength * (0.75 + rand() * 0.5);
-      if (lean && lean[d.key])
-        for (const [opt, wgt] of Object.entries(lean[d.key])) a[o + optIndex(d.key, opt)] += wgt * (0.7 + rand() * 0.6);
-      normBlock(a, o, n);
-    });
-    return a;
-  }
-
   // @state pawn.lastCause (VB-1112): null, or the pawn's last cause that ended: { dim, opt, since, end (years), how: 'lapsed' | 'won',
   //   sup, vs, vsOpt, need } (the shares its village's last meeting gave it; null before one)
-  // @state pawn.leans (VB-520): Uint8Array, one byte a custom (in the order of DIMS): the option the pawn's attitude favours most (the first
-  //   of equals), compiled wherever its attitude is written (initPerson, advocate, the daily drift), for chemistry's customs between two
-  //   pawns (sim/relations; design.md, Chemistry), which reads a byte a custom (Rules for cost, 6). Written only here.
-  function leanOn(p, d) {
-    const o = OFF[d],
-      n = NOPT[d];
-    let top = 0;
-    for (let j = 1; j < n; j++) if (p.att[o + j] > p.att[o + top]) top = j;
-    p.leans[d] = top;
-  }
-  // Every custom's leaning compiled afresh (a person made, or a save made before VB-520 loaded).
-  function compileLeans(p) {
-    if (!p.leans || p.leans.length !== DIMS.length) p.leans = new Uint8Array(DIMS.length);
-    for (let d = 0; d < DIMS.length; d++) leanOn(p, d);
-  }
   // Initialize seeded and newborn pawns alike; the caller supplies the seeded or inherited attitude.
   function initPerson(p, att) {
-    p.att = att;
-    compileLeans(p);
-    p.anc = Float32Array.from(p.att);
+    A.initAttitude(p, att);
     p.standing = 1;
     p.interest = null;
     p.advocate = null;
     p.causeSince = null;
     p.lastCause = null;
-  }
-  // A newborn's attitude (VB-1230): its parents' mean, with P.upbringing of it the mean attitude of the village's adults (`members`, the
-  // village's people; none or no adults leave the parents' alone). The village's mean, not its practice in force: the practice is a
-  // single option a meeting chose, the mean is what the people hold, so a view held by many shows in the child before it wins a vote.
-  function inherit(mother, father, members) {
-    const out = Float32Array.from(mother, (x, k) => (x + father[k]) / 2);
-    if (!members) return out;
-    const m = new Float32Array(TOTAL);
-    let n = 0;
-    for (const q of members) {
-      if (!q.alive || q.age < 12) continue;
-      for (let k = 0; k < TOTAL; k++) m[k] += q.att[k];
-      n++;
-    }
-    if (!n) return out;
-    for (let k = 0; k < TOTAL; k++) out[k] = (1 - P.upbringing) * out[k] + (P.upbringing * m[k]) / n;
-    return out;
   }
   // A cause is a long agenda: taken up at year t it moves the pawn's own attitude a step towards it at once (P.advocacyJump), and the pawn
   // may take up no other until P.causeEvery years have passed (causeFree), though it may lay the cause down (dim null) at any time.
@@ -169,11 +88,7 @@ const Culture = (() => {
     p.advocate = natural ? { dim, opt, until, natural: true } : { dim, opt, until };
     if (t === undefined) return;
     p.causeSince = t;
-    const o = OFF[dim],
-      n = NOPT[dim];
-    for (let j = 0; j < n; j++) p.att[o + j] += P.advocacyJump * ((j === opt ? 1 : 0) - p.att[o + j]);
-    normBlock(p.att, o, n);
-    leanOn(p, dim);
+    A.pull(p, dim, opt, P.advocacyJump);
   }
   // A cause's end (VB-1112): `how` is 'lapsed' (its years ran out) or 'won' (its option became the practice). The pawn keeps the last
   // cause and what its village's last meeting gave it (lastCause), for the Agenda and the record: the support for the option, the
@@ -212,147 +127,6 @@ const Culture = (() => {
   // The year from which the pawn may take up a new cause (it is free when t has reached it).
   const causeFree = (p) =>
     p.causeSince === null || p.causeSince === undefined ? -Infinity : p.causeSince + P.causeEvery;
-
-  // ---- the daily step ----
-  // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), standing, interest, advocate }]
-  const XI = new Float64Array(Math.max(...NOPT)); // scratch for one dimension's noise draws
-  function dailyStep(env, hooks, dt, rand) {
-    const mul = env.driftMul || 1;
-    let walked = 0;
-    const means = new Map();
-    for (const s of env.settlements) {
-      const m = new Float32Array(TOTAL);
-      let n = 0;
-      for (const p of hooks.membersOf(s)) {
-        walked++;
-        if (!p.alive || p.age < 12) continue;
-        for (let k = 0; k < TOTAL; k++) m[k] += p.att[k];
-        n++;
-      }
-      if (n) for (let k = 0; k < TOTAL; k++) m[k] /= n;
-      // Resolve settlement factors once per day, outside the per-person numerical loops.
-      means.set(s.id, { mean: n ? m : null, anchor: WEIGH.anchor(s.kind), rate: P.kind[s.kind] });
-    }
-    const tgt = new Float32Array(TOTAL),
-      press = new Float32Array(TOTAL),
-      sq = Math.sqrt(dt * mul);
-    for (const id of hooks.living || env.people.map((p) => p.id)) {
-      walked++;
-      driftPerson(hooks.byId(id), hooks, dt, rand, mul, means, tgt, press, sq);
-    }
-    VB.count.walkDaily += walked;
-  }
-  // One settlement's part of the day's step (VB-201: the night's steps take a settlement each): its mean, then its people in id order, as
-  // hooks.membersOf gives them. s null drifts the living of no settlement, against no local mean.
-  function settlementStep(env, hooks, dt, rand, s) {
-    const mul = env.driftMul || 1,
-      means = new Map();
-    let walked = 0,
-      people;
-    if (s) {
-      people = hooks.membersOf(s);
-      const m = new Float32Array(TOTAL);
-      let n = 0;
-      for (const p of people) {
-        walked++;
-        if (!p.alive || p.age < 12) continue;
-        for (let k = 0; k < TOTAL; k++) m[k] += p.att[k];
-        n++;
-      }
-      if (n) for (let k = 0; k < TOTAL; k++) m[k] /= n;
-      means.set(s.id, { mean: n ? m : null, anchor: WEIGH.anchor(s.kind), rate: P.kind[s.kind] });
-    } else {
-      people = [];
-      for (const id of hooks.living) {
-        walked++;
-        const p = hooks.byId(id);
-        if (!hooks.settlementOf(p)) people.push(p);
-      }
-    }
-    const tgt = new Float32Array(TOTAL),
-      press = new Float32Array(TOTAL),
-      sq = Math.sqrt(dt * mul);
-    for (const p of people) {
-      walked++;
-      driftPerson(p, hooks, dt, rand, mul, means, tgt, press, sq);
-    }
-    VB.count.walkDaily += walked;
-  }
-
-  // The factors of a person's daily drift, each written here once: the drift (driftPerson) and the view of its pulls (sim/leanings, VB-398)
-  // read the same ones. tie: the weight of a tie of stored weight w0 to q; age: the young are moved more; social, cause and interest: the
-  // rates of a custom of weight m; mixed: the company's share mixed with the settlement's mean; anchor: the pull back to what was learned young.
-  const WEIGH = Object.freeze({
-    tie: (w0, q) => w0 * q.standing * (q.advocate ? P.advocacyWeight : 1),
-    age: (age) => (age < 25 ? 1.5 : age < 50 ? 1 : 0.6),
-    social: (m, rate, ageF) => m * P.social * rate * ageF,
-    cause: (m, rate, ageF) => P.persuasion * Math.pow(m, 0.75) * rate * ageF,
-    interest: (m) => m * P.selfInterest,
-    mixed: (t, mean) => (1 - P.oblique) * t + P.oblique * mean,
-    anchor: (kind) => P.anchor[kind] || P.anchor.village,
-  });
-  // A separate per-person function avoids repeated OSR/deoptimization of the nested traversal (VB-195; timed by tests/perf.js --engine).
-  function driftPerson(p, hooks, dt, rand, mul, means, tgt, press, sq) {
-    const byId = hooks.byId;
-    if (!p.alive || p.age < 12) return;
-    const s = hooks.settlementOf(p),
-      local = s ? means.get(s.id) : null,
-      M = local ? local.mean : null;
-    const kind = s ? s.kind : 'village',
-      kindRate = local ? local.rate : P.kind[kind];
-    // social target: tie- and standing-weighted mean of contacts, mixed with the settlement as a whole. A pawn's ties are stored on one decay
-    // scale (sim/relations, VB-127), which cancels in the division by wsum.
-    tgt.fill(0);
-    let wsum = 0;
-    press.fill(0);
-    for (const [j, w0] of p.ties) {
-      const q = byId(j);
-      if (!q || !q.alive || q.age < 12) continue;
-      const wq = WEIGH.tie(w0, q);
-      for (let k = 0; k < TOTAL; k++) tgt[k] += wq * q.att[k];
-      wsum += wq;
-      if (q.advocate) press[OFF[q.advocate.dim] + q.advocate.opt] += wq; // advocates argue, not just exist
-    }
-    if (wsum > 0) for (let k = 0; k < TOTAL; k++) press[k] /= wsum;
-    if (wsum > 0) for (let k = 0; k < TOTAL; k++) tgt[k] /= wsum;
-    if (M) for (let k = 0; k < TOTAL; k++) tgt[k] = wsum > 0 ? WEIGH.mixed(tgt[k], M[k]) : M[k];
-    else if (wsum === 0) tgt.set(p.att);
-    // the pawn's own pace (VB-520): its openness moves its malleability, its piety the pull of what it learned young (hooks.act, the
-    // caller's reading of its traits; 1 without)
-    const open = hooks.act ? hooks.act(p, 'openness', 'malleability') : 1,
-      ageF = WEIGH.age(p.age),
-      anchorR = (local ? local.anchor : WEIGH.anchor(kind)) * (hooks.act ? hooks.act(p, 'piety', 'anchor') : 1);
-    for (let d = 0; d < DIMS.length; d++) {
-      const o = OFF[d],
-        n = NOPT[d],
-        m = DIMS[d].m * open;
-      const rs = WEIGH.social(m, kindRate, ageF),
-        ru = WEIGH.interest(m),
-        sig = m * P.noise;
-      const adv = p.advocate && p.advocate.dim === d ? p.advocate : null;
-      let nz = 0;
-      const xi = XI;
-      for (let j = 0; j < n; j++) {
-        xi[j] = gauss(rand);
-        nz += xi[j];
-      }
-      nz /= n;
-      let pr = 0;
-      for (let j = 0; j < n; j++) pr += press[o + j];
-      const rp = WEIGH.cause(m, kindRate, ageF);
-      for (let j = 0; j < n; j++) {
-        const a = p.att[o + j];
-        let da = rs * (tgt[o + j] - a) + anchorR * (p.anc[o + j] - a) + rp * (press[o + j] - pr * a);
-        if (p.interest) da += ru * (p.interest[o + j] - a);
-        if (adv) da += P.advocacyPull * ((j === adv.opt ? 1 : 0) - a);
-        p.att[o + j] = a + da * dt * mul + sig * (xi[j] - nz) * sq * 0.5;
-      }
-      normBlock(p.att, o, n);
-      leanOn(p, d);
-      const ad = (p.age < 20 ? P.youthAnchorDrift : P.adultAnchorDrift) * dt * mul;
-      for (let j = 0; j < n; j++) p.anc[o + j] += ad * (p.att[o + j] - p.anc[o + j]);
-    }
-  }
 
   // Norm entrepreneurs: now and then an adult takes up the cause of another option for some years. This is what
   // breaks the symmetry of drift; concentrated effort (events, influential pawns, later perhaps the player) uses the same slot.
@@ -420,12 +194,11 @@ const Culture = (() => {
   // A change passed holds (P.hold, VB-1104): each voice of the settlement s that favours the new way y over the old x moves its anchor,
   // what it holds to, P.hold of the way towards its attitude on the custom d, having carried the change in public. Returns their number.
   function holdTo(hooks, s, d, x, y) {
-    const o = OFF[d],
-      n = NOPT[d];
+    const o = OFF[d];
     let held = 0;
     for (const p of hooks.membersOf(s)) {
       if (!p.alive || !p.anc || hooks.voiceOf(p, s) <= 0 || !(p.att[o + y] > p.att[o + x])) continue;
-      for (let j = 0; j < n; j++) p.anc[o + j] += P.hold * (p.att[o + j] - p.anc[o + j]);
+      A.hold(p, d, P.hold);
       held++;
     }
     VB.count.meetingWalk += held;
@@ -578,31 +351,21 @@ const Culture = (() => {
 
   const api = {
     P,
-    WEIGH,
     NAME_PREFS,
     makeCulture,
-    seedAttitude,
-    dailyStep,
-    settlementStep,
+    initPerson,
+    advocate,
+    causeFree,
+    endCause,
     entrepreneurs,
+    support,
+    margin,
+    fewVoices,
+    setPractice,
     meeting,
     cultureYear,
     split,
-    support,
-    normBlock,
   };
-  // Simulation wiring operations; keep the enumerable public Culture API unchanged.
-  Object.defineProperties(api, {
-    initPerson: { value: initPerson },
-    inherit: { value: inherit },
-    compileLeans: { value: compileLeans },
-    advocate: { value: advocate },
-    causeFree: { value: causeFree },
-    endCause: { value: endCause },
-    setPractice: { value: setPractice },
-    margin: { value: margin },
-    fewVoices: { value: fewVoices },
-  });
   return api;
 })();
 VB['culture'] = Culture;

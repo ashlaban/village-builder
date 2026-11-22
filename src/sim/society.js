@@ -6,6 +6,7 @@ VB['sim/society'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const { ask } = VB['sim/decisions'];
   const Culture = VB['culture'],
+    Attitudes = VB['sim/attitudes'],
     Customs = VB['sim/customs'],
     { inForceAt } = VB['sim/customs'];
   const { initRelations } = VB['sim/relations'],
@@ -76,7 +77,7 @@ VB['sim/society'] = (() => {
       p.age = age(st, p);
       const s = settlementIdOf(st, p),
         lean = leanBySettlement && s !== null ? leanBySettlement[s] : null;
-      Culture.initPerson(p, Culture.seedAttitude(customs, drawer(st.rng.culture), 0.6, lean));
+      Culture.initPerson(p, Attitudes.seedAttitude(customs, drawer(st.rng.culture), 0.6, lean));
       initRelations(st, p);
     }
     // starting ties, on the pawns' tie scale (sim/relations): household members 1, near kin at least 0.5

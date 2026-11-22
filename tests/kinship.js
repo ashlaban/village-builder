@@ -1,5 +1,5 @@
 // Marriage limit by civil degree (VB-029): degrees on a constructed pedigree, who may never marry, and the scarcity and plenty pulls on kinLimit.
-const VB = require('../src/load.js'), Sim = VB.sim, C = VB.culture, Customs = VB['sim/customs'], rules = VB['sim/rules'];
+const VB = require('../src/load.js'), Sim = VB.sim, C = VB.culture, Customs = VB['sim/customs'], Attitudes = VB['sim/attitudes'], rules = VB['sim/rules'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('KINSHIP FAIL:', m); } };
 // pedigree: 0,1 grandparents; 2,3 their children; 4 spouse of 2 from outside (no parents on record); 5 child of 2,4 (first cousin of 7 via 0,1)
 const mk = (father, mother) => ({ father, mother });
@@ -59,7 +59,7 @@ const drift = (push, opt = 'uncle') => {
   for (const p of s.pawns) if (p.alive && p.age >= 16) p.kinPush = push;
   Sim.refreshInterests(s);
   const pulled = s.pawns.filter((p) => p.alive && p.interest);
-  for (let d = 0; d < 4 * Sim.YEAR_DAYS; d++) C.dailyStep(s.cenv, Sim.hooks(s), 1 / Sim.YEAR_DAYS, VB['sim/rng'].drawer(s.rng.culture));
+  for (let d = 0; d < 4 * Sim.YEAR_DAYS; d++) Attitudes.dailyStep(s.cenv, Sim.hooks(s), 1 / Sim.YEAR_DAYS, VB['sim/rng'].drawer(s.rng.culture));
   const mean = (opt) => pulled.reduce((a, p) => a + p.att[off + opts.indexOf(opt)], 0) / pulled.length;
   return mean(opt);
 };

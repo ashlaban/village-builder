@@ -892,7 +892,7 @@ function checkState(st) {
       if (p.nursingUntil === null || st.t - p.nursingUntil > 2 * LOADED['sim/rules'].DAY) bad.push(`pawns[${p.id}]: nursling ${p.nursling} but nursingUntil ${p.nursingUntil}`);
     }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
-    // VB-520: a pawn with an attitude leans, a byte a custom, to the option it favours most (culture compiles it where it writes att)
+    // VB-520: a pawn with an attitude leans, a byte a custom, to the option it favours most (sim/attitudes compiles it where it writes att)
     if (p.att) {
       const C = globalThis.VB.culture, Customs = globalThis.VB['sim/customs'];
       if (!(p.leans instanceof Uint8Array) || p.leans.length !== Customs.DIMS.length) bad.push(`pawns[${p.id}]: leans ${p.leans}`);

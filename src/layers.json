@@ -90,6 +90,7 @@
       "sim/projectplans"
     ],
     "social": [
+      "sim/attitudes",
       "culture",
       "sim/encounters",
       "sim/relations",

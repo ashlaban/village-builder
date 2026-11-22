@@ -3,6 +3,7 @@
 VB['sim/meetings'] = (() => {
   const { drawer } = VB['sim/rng'];
   const Culture = VB['culture'],
+    Attitudes = VB['sim/attitudes'],
     Customs = VB['sim/customs'];
   const { landMeeting } = VB['sim/territory'];
   const { YEAR_DAYS, YEAR, OFFICE, cal } = VB['sim/rules'];
@@ -331,9 +332,9 @@ VB['sim/meetings'] = (() => {
       rand = drawer(st.rng.culture);
     env.t = st.t / YEAR;
     env.driftMul = st.driftMul;
-    if (step === 1) Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, null);
+    if (step === 1) Attitudes.settlementStep(env, hk, 1 / YEAR_DAYS, rand, null);
     for (let k = step - 1; k < env.settlements.length; k += NIGHT_STEPS)
-      Culture.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
+      Attitudes.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
   }
   return {
     villagesOfStep,
