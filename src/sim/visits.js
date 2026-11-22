@@ -13,7 +13,8 @@ VB['sim/visits'] = (() => {
   const { hoursBetween } = VB['sim/villagehours'];
   const { dailyNeed, rationOf } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
-  const { travelling, stayOf } = VB['sim/agents'];
+  const { travelling, stayOf, placeOf, tileAt } = VB['sim/agents'];
+  const { hasRoute } = VB['sim/routes'];
   const { visit, visitDays } = VB['sim/away'];
   const { kinOk, matchScore, matchRules, meansOf, roundYear } = VB['sim/matching'];
   const { wishOf, askingIn } = VB['sim/wishes'];
@@ -216,6 +217,12 @@ VB['sim/visits'] = (() => {
       if (hh.dissolved || !a || a.away !== undefined || travelling(a)) continue;
       const hours = hoursFrom(st, hh, e.village);
       if (!(hours > TRAVEL.dayWalk && hours < Infinity)) continue; // the way has changed since (the table is a year's)
+      // the table's hours are green to green: from where he stands the way may lie beyond the route search's reach (VB-436), and he does not
+      // set out to walk it straight
+      if (!hasRoute(st, tileAt(st, ...placeOf(st, a)), st.villages[e.village].center)) {
+        VB.count.visitNoRoute++;
+        continue;
+      }
       if (!(p.hunger < HUNGER.marryBelow) || !spares(st, hh, visitDays(hours) * rationOf(st, p))) {
         keptHome(st, p, hh, e.village);
         continue;

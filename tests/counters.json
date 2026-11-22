@@ -1,6 +1,8 @@
 {
   "tilthRead": 0.03129365744621403,
   "routeSearch": 0.7901648505169042,
+  "visitNoRoute": 0,
+  "moveNoRoute": 0,
   "routeExpand": 2.9740150880134117,
   "routeHit": 1.886560491757474,
   "routeRefresh": 0.9946912545403744,

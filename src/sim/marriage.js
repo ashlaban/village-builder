@@ -19,6 +19,7 @@ VB['sim/marriage'] = (() => {
   } = VB['sim/records'];
   const { startInLife } = VB['sim/exchange'];
   const { stayOf } = VB['sim/agents'];
+  const { byLand } = VB['sim/villagehours'];
   const { heirRanking } = VB['sim/heirranking'],
     { refreshRoles, membersOf, handOn, heirFor, extinct, setGuardian, transfer } = VB['sim/heirs'];
   const { issue, register } = VB['sim/commands'];
@@ -587,6 +588,17 @@ VB['sim/marriage'] = (() => {
     where: (st, o) => settlementIdOf(st, st.pawns[askedOf(o)]), // the step of the village of the one asked answers (Proposed)
   });
   // marry(target, {home}): the actor and the target marry and live in household args.home
+  // Why one of pawns ids cannot walk to its home household `to`, or null: nobody marries over the sea (VB-436; design.md, Between villages,
+  // Over the sea), as nobody moves there (sim/heirs, the move verb).
+  function overSea(st, ids, to) {
+    const v = (h) => st.farmsteads[st.households[h].farmstead].village;
+    for (const id of ids) {
+      const h = st.pawns[id].household;
+      if (h !== null && h !== to && !byLand(st, v(h), v(to)))
+        return `there is no way by land from household ${h} to household ${to}`;
+    }
+    return null;
+  }
   register('marry', {
     check: (st, c) =>
       living(st, c.actor) ||
@@ -597,7 +609,7 @@ VB['sim/marriage'] = (() => {
           ? 'one of them is married'
           : !home(st, c.args && c.args.home)
             ? `there is no household ${c.args && c.args.home}`
-            : null),
+            : overSea(st, [c.actor, c.target], c.args.home)),
     run: (st, c) => wed(st, c.actor, c.target, c.args.home),
   });
   return {

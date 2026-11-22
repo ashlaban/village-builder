@@ -31,7 +31,6 @@ VB['sim/heirs'] = (() => {
   const { oweShare } = VB['sim/obligations'];
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
-  const { hexSteps } = VB['sim/hex'];
   const { hoursBetween, byLand } = VB['sim/villagehours'];
   const { SHARES, GOODWILL, houseCondition } = VB['sim/rules'];
   const { passGoodwill } = VB['sim/relations'];
@@ -151,7 +150,7 @@ VB['sim/heirs'] = (() => {
   // Whether households a's and b's villages lie within walking reach of each other (VB-290).
   const reachable = (st, a, b) => byLand(st, st.farmsteads[a.farmstead].village, st.farmsteads[b.farmstead].village);
   // The smallest undissolved household of the village, or of the nearest village by walking hours when it has none (VB-290); with none
-  // within walking reach, of the nearest by hexSteps between centres (until slice 10's boats).
+  // within walking reach, null: nobody is sent over the sea (VB-436), until slice 10's boats.
   function serviceHome(st, hh) {
     const village = st.farmsteads[hh.farmstead].village,
       vOf = (h) => st.farmsteads[h.farmstead].village;
@@ -161,10 +160,8 @@ VB['sim/heirs'] = (() => {
     const smallest = (list) => list.sort((x, y) => x.members.length - y.members.length || x.id - y.id)[0];
     const here = smallest(open.filter((h) => vOf(h) === village));
     if (here) return here.id;
-    const c = st.villages[village].center;
     let best = null,
-      bh = Infinity,
-      bd = Infinity;
+      bh = Infinity;
     for (const h of open) {
       const u = vOf(h),
         t = hoursBetween(st, village, u);
@@ -172,23 +169,16 @@ VB['sim/heirs'] = (() => {
         bh = t;
         best = u;
       }
-      if (bh === Infinity) {
-        const d = hexSteps(st.w, c, st.villages[u].center);
-        if (d < bd) {
-          bd = d;
-          best = u;
-        }
-      }
     }
     const near = smallest(open.filter((h) => vOf(h) === best));
     return near ? near.id : null;
   }
   // A child's nearest grown kin with a household other than hh, by kinship (the oldest on a tie), or null (stability review: an orphan goes to
-  // an aunt or a grandparent before going into service). Among the kin within walking reach of hh's village first (VB-290), else among all.
+  // an aunt or a grandparent before going into service). Among the kin within walking reach of hh's village only (VB-290, VB-436).
   function kinHomeFor(st, id, hh) {
-    const memo = new Map(),
-      best = [null, null],
-      bk = [0, 0];
+    const memo = new Map();
+    let best = null,
+      bk = 0;
     for (const liveId of st.living) {
       const q = st.pawns[liveId];
       if (
@@ -199,20 +189,41 @@ VB['sim/heirs'] = (() => {
         st.households[q.household].dissolved
       )
         continue;
-      const k = kinship(st, id, q.id, memo),
-        near = reachable(st, hh, st.households[q.household]);
-      for (const i of near ? [0, 1] : [1])
-        if (k > bk[i] || (k === bk[i] && k > 0 && q.born < best[i].born)) {
-          best[i] = q;
-          bk[i] = k;
-        }
+      if (!reachable(st, hh, st.households[q.household])) continue;
+      const k = kinship(st, id, q.id, memo);
+      if (k > bk || (k === bk && k > 0 && q.born < best.born)) {
+        best = q;
+        bk = k;
+      }
     }
-    const b = best[0] || best[1];
-    return b ? b.household : null;
+    return best ? best.household : null;
   }
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
+    // nobody is sent over the sea (VB-436): with no household by land to take its people in (serviceHome finds one wherever kin by land
+    // live), it does not empty. They stay where they are and the eldest holds the farm (QUESTION_ARCHIVE.md, VB-329, question 2), until
+    // slice 10's boats.
+    const left = hh.members
+      .filter((id) => st.pawns[id].alive)
+      .sort((a, b) => st.pawns[a].born - st.pawns[b].born || a - b);
+    if (left.length && serviceHome(st, hh) === null) {
+      const eldest = left[0];
+      if (hh.holder !== eldest) {
+        if (st.pawns[eldest].age < 18) setGuardian(st, hh, eldest);
+        transfer(st, hh, eldest, 'claim');
+      }
+      log(
+        st,
+        `${fullName(st.pawns[eldest])} stays on at ${f.name}: ${why}, and no household by land could take its people in.`,
+        {
+          kind: 'stayed',
+          pawn: eldest,
+          ...atHousehold(st, hh),
+        },
+      );
+      return;
+    }
     // its work stops first, while it stands: a load on its way home is put down where it is (sim/agents, VB-611)
     stopWorkFor(st, hh, f);
     // a farm it held in trust goes back to its holder first (VB-309, sim/trust)
@@ -247,7 +258,7 @@ VB['sim/heirs'] = (() => {
         .filter(
           (q) => q.alive && q.household !== null && !st.households[q.household].dissolved && q.household !== hh.id,
         );
-      const near = kin.find((q) => reachable(st, hh, st.households[q.household])) || kin[0]; // within walking reach first (VB-290)
+      const near = kin.find((q) => reachable(st, hh, st.households[q.household])); // within walking reach only (VB-290, VB-436)
       const kinHome = near ? near.household : p.age < 18 ? kinHomeFor(st, id, hh) : null;
       const target = kinHome !== null ? kinHome : serviceHome(st, hh);
       if (target !== null) move(st, id, target, { reason: kinHome !== null ? 'care' : 'service' });
@@ -563,6 +574,13 @@ VB['sim/heirs'] = (() => {
       // a farm held in trust has its people with kin (VB-309): its holder goes back first (goBack), which ends the trust (VB-1224)
       if (trustOf(st, c.target)) return `household ${c.target} is held in trust by kin`;
       if (!MOVE_REASONS.includes(a.reason)) return `there is no reason ${a.reason} to move`;
+      // nobody is sent to a home over the sea (VB-436; design.md, Between villages, Over the sea): the two villages have a way by land.
+      // Settlers are not asked: their site was found by walking from their village (sim/settle), whose row of hours it has not yet.
+      const from = st.pawns[c.actor].household;
+      if (a.reason !== 'settle' && from !== null && !reachable(st, st.households[from], st.households[c.target])) {
+        VB.count.moveNoRoute++;
+        return `there is no way by land from household ${from} to household ${c.target}`;
+      }
       if (a.with !== undefined && !Array.isArray(a.with)) return 'those who follow must be a list';
       const whose = moveWhy(st, c.actor, c.target, a.reason);
       if (typeof whose === 'string') return whose;

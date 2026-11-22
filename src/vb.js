@@ -9,6 +9,10 @@ var VB = (globalThis.VB = globalThis.VB || {});
 VB.COUNTERS = {
   tilthRead: "Reads of a field's tilth, at manuring and reaping only (sim/fields tilthOf, VB-717)",
   routeSearch: 'A* searches started',
+  visitNoRoute:
+    "Visits that did not set out: no route within the search's reach from where the visitor stood (sim/visits, visitsDue; VB-436)",
+  moveNoRoute:
+    'Moves to a new home refused for want of a way by land between the two villages (sim/heirs, the move verb; VB-436)',
   routeExpand: 'Tiles removed from the A* heap (including duplicates)',
   routeHit: 'Routes served from the cache, in either direction',
   routeRefresh: 'Cached routes tested for invalidation',

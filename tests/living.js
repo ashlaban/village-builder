@@ -45,6 +45,8 @@ const orphans = make();
 for (const p of orphans.pawns) { p.age = 8; p.born = orphans.t - 8 * Sim.YEAR; }
 orphans.demand = [];
 VB['sim/service'].careForOrphans(orphans);
-assert.strictEqual(orphans.liveHouseholds.length, 0); compare(orphans);
+// the last, with no household left to take its children in, stays on its farm (VB-436; QUESTION_ARCHIVE.md, VB-329, question 2)
+assert.strictEqual(orphans.liveHouseholds.length, 1); compare(orphans);
+assert(orphans.households[orphans.liveHouseholds[0]].members.length > 0 && orphans.record.some((e) => e.kind === 'stayed'));
 assert.strictEqual(orphans.households.length, 3);
 console.log('living indexes ok: deaths, childbirth, adjacent dissolutions, corruption and old saves');

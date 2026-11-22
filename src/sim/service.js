@@ -77,22 +77,21 @@ VB['sim/service'] = (() => {
       const ward = st.pawns[hh.holder],
         f = farmOf(st, hh),
         memo = new Map();
-      // the first by kinship, then the oldest, among those within walking reach of the farm's village (VB-290), else among all
-      const best = [null, null],
-        bk = [0, 0];
+      // the first by kinship, then the oldest, among those within walking reach of the farm's village only (VB-290; VB-436: nobody is
+      // sent over the sea)
+      let guardian = null,
+        bk = 0;
       for (const id of st.demand) {
         const q = st.pawns[id];
         if (!free(st, q) || q.household === hh.id) continue;
+        if (!byLand(st, farmOf(st, st.households[q.household]).village, f.village)) continue;
         const k = kinship(st, ward.id, id, memo);
         if (k <= 0) continue;
-        const near = byLand(st, farmOf(st, st.households[q.household]).village, f.village);
-        for (const i of near ? [0, 1] : [1])
-          if (!best[i] || k > bk[i] || (k === bk[i] && q.born < best[i].born)) {
-            best[i] = q;
-            bk[i] = k;
-          }
+        if (!guardian || k > bk || (k === bk && q.born < guardian.born)) {
+          guardian = q;
+          bk = k;
+        }
       }
-      const guardian = best[0] || best[1];
       if (guardian) {
         moveFamily(st, guardian.id, hh.id, 'guardian');
         setGuardian(st, hh, ward.id);

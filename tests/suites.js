@@ -61,6 +61,7 @@ const FAST = [
   ['node', 'tests/sowing.js'],
   ['node', 'tests/kinds.js'],
   ['node', 'tests/routes.js'],
+  ['node', 'tests/oversea.js'], // VB-436: nobody is sent to a home over the sea
   ['node', 'tests/tiny.js'],
   ['node', 'tests/claims.js'],
   ['node', 'tests/territory.js'],
