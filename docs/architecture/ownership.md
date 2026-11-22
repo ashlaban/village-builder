@@ -255,7 +255,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 | `woodlot` **3** | territory | layout 177; territory 173; forest 21 | jobs |
 | `meadows` **2** | meadows | meadows 46,106,107,111,120,122; kinds 144 | ownership, claims, byre, farmclaims, jobs, page |
 | `name` **2** | names (farmName) | layout 155,156; settle 171 | stakes, herds, help, fields, meadows, byre, expansion, farmclaims, kinds, jobs, heirs, service, cottage, lifecycle, births, clock, page |
-| `booth` (a mark, `true` or null: the cottage is the household's project plan `'cottage'` in `st.plans.projects`, written by sim/plans; VB-1411) | expansion | settle (settleFarm: true); expansion (roofOn: null) | settle, projects, aims, building, tar, society, page |
+| `booth` (a mark, `true` or null: the cottage is the household's project plan `'cottage'` in `st.plans.projects`, written by sim/projectplans; VB-1411) | expansion | settle (settleFarm: true); expansion (roofOn: null) | settle, projects, aims, building, tar, society, page |
 | `claim` | farmclaims | farmclaims 96,107,135,155,194 | clock |
 
 ##### village
@@ -1025,7 +1025,7 @@ are free by decision (`docs/review-architecture.md`, section 2).
 | --- | --- | --- |
 | 5A Landowner extracting rent | no | No rent, assessment or tenancy. Pieces in place: ownership is apart from households (`sim/ownership`); inventory moves are `sim/stores` only. Future: VB-311, VB-316, VB-317. |
 | 5B Tax collection | no | No tax, and no periodic subtraction either. The future obligations (VB-310) are the shape the test asks for. |
-| 5C Household planning | partly | `sim/plans`: a standing plan per household (`st.plans`, targets, reviews in `st.plans.due`); reservations are `sim/stores` `reserve` and `release` (`plan.reserved`); pawns choose by bids (`sim/jobs` `fit`) and may leave a job for a more urgent one (`sim/jobs` `@sys`). Project steps, priorities and reconsideration: future, VB-123. Not checked: that no path forces a member to work. |
+| 5C Household planning | partly | `sim/plans`: a standing plan per household (`st.plans`; targets `sim/seasonal`, reviews in `st.plans.due`, `sim/plandays`; VB-431); reservations are `sim/stores` `reserve` and `release` (`plan.reserved`); pawns choose by bids (`sim/jobs` `fit`) and may leave a job for a more urgent one (`sim/jobs` `@sys`). Project steps, priorities and reconsideration: future, VB-123. Not checked: that no path forces a member to work. |
 | 5D Business formation | no | No business or premises; production is by households. |
 | 5E Apprenticeship | no | No skills: future, VB-360. A servant works for the household. |
 | 6A Local marketplace | no | Future, VB-302 (the fair). |

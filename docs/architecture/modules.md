@@ -77,7 +77,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `weather` stream as the season begins (`seasonBegins`, first in the calendar), with the year's thaw (a spring sday) and first frost (an
   autumn sday). A crop reads its row's `weather` terms (`CROPS`, `sim/crops`) at reaping through `cropFactor` (`sim/fields` standing),
   the meadows theirs (`HAY_WEATHER`) at mowing through `factor`; `ripeShift` moves barley's and peas' ripening by the summer's warmth;
-  `sowOpen` is the sowing window after the thaw (`sim/fieldwork`, `sim/plans`); `frostDay` places the frost's calendar entries, the
+  `sowOpen` is the sowing window after the thaw (`sim/fieldwork`, `sim/plandays`); `frostDay` places the frost's calendar entries, the
   plans' closing window, the harvest estimate and the harvest's urgency. Its tunables are `WEATHER` there.
 - Animals (VB-131 to VB-138): `src/sim/herds.js` (herds of named cattle and counted sheep, spring breeding, each scenario's herds, cows in milk, the team of oxen), `src/sim/meadows.js` (hay meadows and haymaking, only while hay is wanted), `src/sim/byre.js` (the stall period, the autumn count, slaughter, salting, milking, the dung heap, an unherded herd in a crop), `src/sim/grazing.js` (VB-136: herding, the day's pasture, the herds out with the herder, the grazing pressure `w.graze`, halving each year in closed form, and `milkFactor`, the factor a crowded pasture puts on the milk that `byre` reads, VB-709); read by `src/sim/spread.js`, VB-091, where it keeps open land open or thins its scrub); grain spoiling in store is in `src/sim/hunger.js`; field demand is in `src/sim/fieldplans.js`; soil, tilth (VB-717) and manure are in `src/sim/fields.js`. Design and plan: `docs/review-animals.md`; balance and history: `docs/review-balance.md`.
 - Carts (the distance review, 12 November): `src/sim/carts.js` (hand carts and ox carts as a household's items, `household.carts`; the load
@@ -114,7 +114,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (empty farms: the birthright, claimants by custom, restoration and moving in). Design and plan: `docs/review-claims.md`.
 - Project plans (VB-123): a holder's plan of steps in `st.plans.projects` (a household's new field or meadow, a village's plot with its
   cottage, a claimant's restoration of an empty farm), read through `src/sim/projects.js` (loaded just after `sim/records`, so every module
-  may read it) and written only by `src/sim/plans.js` (which also judges a plan `impossible` and words its dropping), which hears the lower modules by events: `projectBegun` (a plot, `sim/expansion`; a
+  may read it) and written only by `src/sim/projectplans.js` (split from `sim/plans` by VB-431; it also judges a plan `impossible` and words its dropping), which hears the lower modules by events: `projectBegun` (a plot, `sim/expansion`; a
   claim, `sim/farmclaims`), `stepDone` (`sim/fields`, `sim/meadows`, `sim/expansion`, `sim/cottage`, `sim/farmclaims`), `rightLost` (a stake
   or a farm's claim lost, `sim/stakes`, `sim/farmclaims`) and `storeShort` (`sim/stores`). A step's reservation is a `build` reservation
   of `sim/stores`.
@@ -261,7 +261,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Commands (VB-167 to VB-171; VB-228): `src/sim/commands.js` is the dispatcher alone (`register`, `issue`, the table `VERBS`) and imports no
   domain. Each module registers, at load, the verbs of the acts it carries out: `sim/agents` (`work`, `walkTo`, `goHome`, `idle`,
   `haltForTalk`), `sim/away` (`lodge`, `comeHome`, `raiseBooth`), `sim/gifts` (`give`, `deliver`), `sim/occasions` (`attend`, `call`), `sim/venues` (`callAle`),
-  `sim/offers` (`offer`, `answer`), `sim/visits` (`visit`), `sim/plans` (the head's plan and `routines`), `sim/aims` (`barn`, `heirFarm`,
+  `sim/offers` (`offer`, `answer`), `sim/visits` (`visit`), `sim/plans` (the head's plan), `sim/routines` (`routines`), `sim/aims` (`barn`, `heirFarm`,
   `plotToVillage`), `sim/society` (`decide`, `argue`, `dropCause`, `rally`), `sim/gathering`, `sim/trust` (`goBack`, `goToKin`),
   `sim/marriage` (`marry`), `sim/heirs` (`handOn`, `move`), `sim/farmclaims` (`claim`), `sim/settle` (`leave`), `sim/membership`
   (`foundHousehold`), `sim/cottage` (`finishCottage`), `sim/lifecycle` (debug `kill`, `retire`), `sim/clock` (`skip`). A verb's home is
@@ -273,7 +273,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   The head's plan (VB-253): `target` (hay, fields, wood, cow, within bounds), `tile` (the next field's or meadow's, under `fieldWhy` and
   `meadowWhy`), `order` (the season's routines), `project` (a field or meadow begun, or `none`: projects held off) and `dropProject`; only
   the household's head may issue them. The player's go through `Sim.head(st, verb, args)`, the holder's land step issues `project` with
-  source `pawn`; the choices lie in `plan.chosen`, `plan.tiles` and the seasonal plan's `by` (`src/sim/plans.js`), and `Sim.headView` reads
+  source `pawn`; the choices lie in `plan.chosen`, `plan.tiles` (`src/sim/plans.js`) and the seasonal plan's `by` (`src/sim/seasonal.js`, whose `setOrder` the verb `order` calls), and `Sim.headView` reads
   them for the page (`tests/head.js`), with the custom's targets beside the head's and the head's skill and horizon (VB-254).
   The head's crops (VB-355): `rotation` (the farm takes any rotation it has seed for; `hold` keeps it against the village's usual one, `null`
   gives the choosing back to the rule, which itself issues the verb with source `pawn`: `rotationChoice`, `sim/rotations`) and `sowOutOfTurn`
@@ -287,7 +287,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   menu with no project plan (`plan.aim.trial`), sown out of turn in its window (`tests/foresight.js`).
 - Foresight (VB-254): `src/sim/traits.js` holds the stand-in traits (`pawn.traits`: wits, husbandry, diligence, ambition, generosity), drawn
   from the stream `traits` at birth (`sim/births`) and for the living at the start (`sim/scenarios`' `startStreams`, after the streams are
-  split), and read only through `Traits.of`. `sim/plans` keeps each household's head as planner (`plan.head`: its pawn, since when, its bias
+  split), and read only through `Traits.of`. `sim/seasonal` (split from `sim/plans` by VB-431) keeps each household's head as planner (`plan.head`: its pawn, since when, its bias
   on the wood, hay, seed and fields targets), drawn at the plan's making and on the event `newHead` (`sim/heirs`, a succession), never at a
   review; the bias multiplies the template's targets at the seasonal plan, and the head's horizon (by its skill) adds what it projects to the
   woodpile and the hay at each review (`targets.ahead`). Tests written against the template's targets make their heads plan by it
@@ -336,7 +336,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   head's skill and bias, VB-254), `sim/skills` (VB-475: a pawn's skill at each type of work, the stand-in until VB-360, from the stream
   `traits`, and a work leg's pace: skill and a mishap from the stream `mishap`; `sim/agents` writes `agent.pace` at the leg's start and
   `manning` reads it), `sim/commands`.
-- Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/goods` (trade goods, grain subtype identifiers and culture’s worth and propriety rules), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/plans` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fieldplans` (household demand, site selection and project planning), `sim/rotations` (crop choices and the village custom), `sim/fields` (field state transitions), `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
+- Material and land: `sim/projects` (the project plans' record and reads, VB-123), `sim/projectplans` (their one writer; VB-431), `sim/goods` (trade goods, grain subtype identifiers and culture’s worth and propriety rules), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/seasonal` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fieldplans` (household demand, site selection and project planning), `sim/rotations` (crop choices and the village custom), `sim/fields` (field state transitions), `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/fieldwork` (the job kinds of a farm's fields, beside `sim/fields`, VB-418), `sim/chores` (the job kinds of the household's daily work at
   the house: firewood, water, cooking, brewing, gathering, VB-418),
@@ -347,7 +347,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
 - Agency: `sim/legs`, `sim/work`, `sim/attention`, `sim/agents` (VB-422), `sim/away` (the stays away from home, VB-783), `sim/gifts` (how a gift gets from here to there: the verbs `give` and
   `deliver`, VB-228), `sim/occasions` (gatherings; agency since VB-228, as target-v2 4.5 has it: its verb `attend` walks the pawn), `sim/player`
-  (the player as a source of commands, VB-169, VB-228), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
+  (the player as a source of commands, VB-169, VB-228), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/seasonal` (a household's seasonal plan and targets: the template of the year, the head's bias and foresight), `sim/routines` (the village's routines and its review's steps), `sim/plandays` (planning days and the due-queue), `sim/plans` (the standing plans and the head's choices; split by VB-431),
   `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
