@@ -1,8 +1,9 @@
 // @sys page/options: the main menu's Options screen and the interface's theme (VB-1161): glass or mural, the page's choice, kept in localStorage
 // ---- options: the interface's theme ----
-// A theme is a set of styles under :root[data-theme] in src/head.html; glass, the default, is the stylesheet as it stands and sets no
-// attribute. The choice is the page's and the device's: kept in localStorage, never in st or a save. A theme's card shows a sample of
-// its own look whatever theme is on, so its colours are written out in the stylesheet (.theme-pv), not taken from the palette.
+// A theme is a set of styles under :root[data-theme] in src/head.html, over a base stylesheet that holds what every theme shares; the
+// root always carries one, glass by default, set in the markup and here (VB-1483). The choice is the page's and the device's: kept in
+// localStorage, never in st or a save. A theme's card shows a sample of its own look whatever theme is on,
+// so its colours are written out in the stylesheet (.theme-pv), not taken from the palette.
 const THEME_KEY = 'vb.theme';
 const THEMES = {
   glass: { name: 'Glass', note: 'Frosted panels and line icons; light or dark with the system.', icons: 'line' },
@@ -17,8 +18,7 @@ try {
 }
 function applyTheme() {
   document.documentElement.dataset.icons = THEMES[theme].icons; // the set of icons it shows (page/icons, ICON_SETS)
-  if (theme === 'glass') delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.theme = theme;
 }
 function drawThemes() {
   $('themeList').innerHTML = Object.entries(THEMES)
