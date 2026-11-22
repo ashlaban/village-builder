@@ -1,7 +1,7 @@
 // Herds (VB-131): the founders' herds as Kim decided; calves and lambs each spring; no calf without a bull within reach; populous herds fit
 // the byre and each village with cattle has its bull; a dissolved household's herds go to its people's new home; the state invariants hold.
 // On the small islands of tests/lib/probe.js (VB-855).
-const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js'), H = VB['sim/herds'], { checkState } = require('./lib/invariants.js');
+const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js'), H = VB['sim/herds'], HO = VB['sim/droving'], { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('HERDS FAIL:', m); } };
 const kinds = (hd) => hd.head.map((h) => h.kind).sort().join(',');
 
@@ -37,10 +37,11 @@ for (const hd of st.herds) if (hd.head) hd.head = hd.head.filter((h) => h.kind !
 Sim.advance(st, Sim.YEAR + Sim.HERD.springDay * Sim.DAY + 6);
 check(st.herds.every((hd) => !hd.head || !hd.head.some((h) => h.kind === 'calf')), 'no bull: a cow calved');
 
-// --- a dissolved household's herds go to another, merged by species
+// --- a dissolved household's herds go to another: its own at once, standing at the old farm until led home (VB-674; tests/handover.js)
 const [from, to] = [st.households[1], st.households[0]], before = H.herdOf(st, to, 'cattle').head.length + H.herdOf(st, from, 'cattle').head.length;
-H.passHerds(st, from, to.id);
-check(H.herdOf(st, to, 'cattle').head.length === before && !from.herds.length && from.hay === 0, 'passHerds: the cattle did not all move');
+HO.passHerds(st, from, to.id);
+const standing = (st.herdsAway || []).map((id) => st.herds[id]).filter((hd) => hd.household === to.id && hd.head);
+check(H.herdOf(st, to, 'cattle').head.length + standing.reduce((n, hd) => n + hd.head.length, 0) === before && !from.herds.length && from.hay === 0, 'passHerds: the cattle did not all move');
 check(!checkState(st).length, 'after passHerds: ' + checkState(st).slice(0, 3).join('; '));
 
 // --- populous: every herd fits the byre; a village with cattle has a bull, one with sheep a ram
@@ -62,23 +63,24 @@ check(!checkState(st).length, 'populous in the byre: ' + checkState(st).slice(0,
   const live = (s) => s.households.filter((h) => !h.dissolved);
   const s2 = scenario('founders', 7), old = live(s2)[1], nw = live(s2)[2];
   const oc = H.herdOf(s2, old, 'cattle'), os = H.herdOf(s2, old, 'sheep'), cows0 = oc.head.length, ewes0 = os.ewes;
-  check(H.startHerd(s2, old, nw) === 3, 'start: a cow and two ewes move');
+  check(HO.startHerd(s2, old, nw) === 3, 'start: a cow and two ewes move');
   check(oc.head.length === cows0 - 1 && os.ewes === ewes0 - 2, 'start: the old household gives up one cow and two ewes');
-  check(H.herdOf(s2, nw, 'cattle').head.filter((h) => h.kind === 'cow').length >= 1, 'start: the new household has a cow');
+  const away2 = s2.herdsAway.map((id) => s2.herds[id]).find((hd) => hd.household === nw.id && hd.head);
+  check(away2 && away2.at === old.farmstead && away2.head.filter((h) => h.kind === 'cow').length === 1, 'start: the new household has a cow, at the old farm');
   check(old.hay >= H.winterNeed(s2, old), `start: the old household keeps its winter hay (${old.hay} of ${H.winterNeed(s2, old)})`);
   check(oc.head.some((h) => h.kind === 'cow'), 'start: a cow stays');
   check(!checkState(s2).length, 'start: ' + checkState(s2).slice(0, 3).join('; '));
   const s3 = scenario('founders', 7), o3 = live(s3)[1], n3 = live(s3)[2];
-  o3.hay = 0; check(H.startHerd(s3, o3, n3) === 0, 'start: no hay, no animals');
+  o3.hay = 0; check(HO.startHerd(s3, o3, n3) === 0, 'start: no hay, no animals');
   const s4 = scenario('founders', 7), o4 = live(s4)[1], n4 = live(s4)[2];
-  const paid = H.payInAnimals(s4, o4, n4, 70);
+  const paid = HO.payInAnimals(s4, o4, n4, 70);
   check(paid === 64, `share in animals: ${paid} of 70 rations paid`);
   check(!checkState(s4).length, 'share: ' + checkState(s4).slice(0, 3).join('; '));
   // an animal marked for slaughter that is given away leaves the cull list with it (found by tests/invariants.js, VB-342)
   const s5 = scenario('founders', 7), o5 = live(s5)[1], n5 = live(s5)[2], c5 = H.herdOf(s5, o5, 'cattle');
   const cow = c5.head.find((h) => h.kind === 'cow');
   c5.cull.push({ id: c5.cullSeq++, head: cow.id, lean: false });
-  check(H.startHerd(s5, o5, n5) > 0 && !c5.head.includes(cow) && !c5.cull.length, `start: the marked cow went and its mark with it (${c5.cull.length} left)`);
+  check(HO.startHerd(s5, o5, n5) > 0 && !c5.head.includes(cow) && !c5.cull.length, `start: the marked cow went and its mark with it (${c5.cull.length} left)`);
   check(!checkState(s5).length, 'start, a marked cow: ' + checkState(s5).slice(0, 3).join('; '));
 }
 

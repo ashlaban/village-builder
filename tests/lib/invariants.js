@@ -1527,13 +1527,19 @@ function checkHerds(st, bad) {
   const { HERD, YEAR } = VB['sim/rules'], seen = new Set(), whole = (n) => Number.isInteger(n) && n >= 0;
   for (const hd of st.herds) {
     const where = `herds[${hd.id}]`;
+    // standing away (sim/droving, VB-674): at a farm of the map, on st.herdsAway, owned by a living household that does not list it, or
+    // by nobody; only a herd standing away has animals and no household
+    const standing = hd.at !== undefined;
+    if (standing && !(Number.isInteger(hd.at) && st.farmsteads[hd.at])) bad.push(`${where}: stands at farm ${hd.at}`);
+    if (standing !== (st.herdsAway || []).includes(hd.id)) bad.push(`${where}: at ${hd.at}, ${standing ? 'not ' : ''}on herdsAway`);
     if (hd.household === null) {
-      if ((hd.head && hd.head.length) || hd.ewes || hd.rams || hd.lambs) bad.push(`${where}: animals but no household`);
+      if (!standing && ((hd.head && hd.head.length) || hd.ewes || hd.rams || hd.lambs)) bad.push(`${where}: animals but no household`);
       continue;
     }
     const hh = st.households[hd.household];
     if (!hh || hh.dissolved) bad.push(`${where}: household ${hd.household} missing or dissolved`);
-    else if (hh.herds.filter((id) => id === hd.id).length !== 1) bad.push(`${where}: not listed once by household ${hd.household}`);
+    else if (hh.herds.filter((id) => id === hd.id).length !== (standing ? 0 : 1))
+      bad.push(`${where}: ${standing ? 'standing away but listed' : 'not listed once'} by household ${hd.household}`);
     if (!Number.isInteger(hd.home) || hd.home < 0 || hd.home >= st.w.N) bad.push(`${where}: home tile ${hd.home}`);
     if (hd.species === 'cattle') {
       for (const h of hd.head) {
@@ -1562,6 +1568,8 @@ function checkHerds(st, bad) {
     if (pa !== undefined && !(pa && Number.isInteger(pa.tile) && pa.tile >= 0 && pa.tile < st.w.N && Number.isInteger(pa.since)
       && pa.since <= Math.floor(st.t / 24))) bad.push(`households[${hd.household}]: pasture ${JSON.stringify(pa)}`);
   }
+  if (st.herdsAway !== undefined && !(Array.isArray(st.herdsAway) && st.herdsAway.length && new Set(st.herdsAway).size === st.herdsAway.length
+    && st.herdsAway.every((id) => st.herds[id] && st.herds[id].at !== undefined))) bad.push(`herdsAway: ${JSON.stringify(st.herdsAway)}`);
   for (const hh of st.households) {
     for (const id of hh.herds || []) if (!st.herds[id] || st.herds[id].household !== hh.id) bad.push(`households[${hh.id}]: lists herd ${id}, not its own`);
     if (!(Number.isFinite(hh.haySpoilt) && hh.haySpoilt >= 0)) bad.push(`households[${hh.id}]: haySpoilt is ${hh.haySpoilt}`);

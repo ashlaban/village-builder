@@ -1,0 +1,123 @@
+{
+ "session": "f0da7366-db15-5939-ad62-c185d9afb4cf",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-22T17:07:51.700Z",
+ "end": "2026-11-22T17:24:28.662Z",
+ "wallMin": 16.6,
+ "activeMin": 16.6,
+ "prompts": 1,
+ "calls": 75,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 141,
+  "cacheWrite": 144333,
+  "cacheRead": 12072851,
+  "output": 43340
+ },
+ "context": {
+  "first": 85124,
+  "peak": 208037,
+  "firstEdit": 154966
+ },
+ "tools": {
+  "Bash": {
+   "calls": 74,
+   "bytes": 165560,
+   "seconds": 444.2
+  },
+  "Write": {
+   "calls": 2,
+   "bytes": 292,
+   "seconds": 0.1
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 13,
+   "bytes": 74439
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 11,
+   "bytes": 15842
+  },
+  {
+   "tool": "Bash",
+   "what": "git fetch",
+   "calls": 1,
+   "bytes": 10293
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 7957
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7476
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 5,
+   "bytes": 6933
+  },
+  {
+   "tool": "Bash",
+   "what": "for f",
+   "calls": 1,
+   "bytes": 6648
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 2,
+   "bytes": 5950
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 12,
+   "bytes": 5412
+  },
+  {
+   "tool": "Bash",
+   "what": "head -1",
+   "calls": 1,
+   "bytes": 2470
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 2,
+   "bytes": 2420
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -ln",
+   "calls": 1,
+   "bytes": 2400
+  }
+ ],
+ "weighted": 1604542,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 1604542,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

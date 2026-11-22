@@ -209,6 +209,7 @@ const INTEGRATION = [
   ['node', 'tests/matchby.js'],
   ['node', 'tests/keep.js'],
   ['node', 'tests/herds.js'],
+  ['node', 'tests/herdlead.js'], // animals that change household are led home (VB-674)
   ['node', 'tests/herding.js'],
   ['node', 'tests/drying.js'],
   ['node', 'tests/forage.js'],

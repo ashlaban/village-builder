@@ -1,8 +1,8 @@
-// @sys sim/herds: households' cattle and sheep: the herds and their hay, breeding and ageing each spring, the herds of each scenario, handing on
+// @sys sim/herds: households' cattle and sheep: the herds and their hay, breeding and ageing each spring, each scenario's herds (handing on: sim/droving)
 VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['gen'];
-  const { DAY, YEAR, TICKS, HERD, SHARES, stalled } = VB['sim/rules'];
+  const { DAY, YEAR, TICKS, HERD, stalled } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
@@ -12,7 +12,8 @@ VB['sim/herds'] = (() => {
   //   cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
   //   fodder since the count), unfed (stall days running without full hay) (sim/byre), herder (the pawn the herds are out with, from
   //   taking them to pasture until it is home again, or null: by the farm; VB-136), herded (the game day a herder last took them out, -1
-  //   never; VB-136)}; id = index, never reused; a herd emptied by a dissolved household is kept with household null (sim/herds)
+  //   never; VB-136), at (sim/droving: the farm it stands at, away from its household's)}; id = index, never reused; a herd emptied by a
+  //   dissolved household is kept with household null (sim/herds), as is one left with nobody at its farm (herd.at; sim/droving)
   //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox', calved (game year a cow last
   //   calved, 1 first; absent before her first calf; VB-135)}
   // @state st.headSeq: number; counter for the ids of cattle heads
@@ -75,7 +76,8 @@ VB['sim/herds'] = (() => {
     for (const id of hh.herds) if (st.herds[id].species === species) return st.herds[id];
     return null;
   };
-  const houseOf = (st, herd) => st.farmsteads[st.households[herd.household].farmstead].house;
+  // where a herd stands: by its household's farm, or at the farm it waits at to be led home (herd.at, sim/droving)
+  const houseOf = (st, herd) => st.farmsteads[herd.at ?? st.households[herd.household].farmstead].house;
   // Where a farm's animals graze by day: the most open free tile within 2 steps of the house, not built on, not water, not a green.
   function homeTile(st, f) {
     const w = st.w,
@@ -272,8 +274,8 @@ VB['sim/herds'] = (() => {
   // (sim/clock, CALENDAR: spring, on HERD.springDay).
   function herdsDay(st, c) {
     for (const herd of st.herds) {
-      if (herd.household !== null && st.used.has(herd.home))
-        herd.home = homeTile(st, st.farmsteads[st.households[herd.household].farmstead]);
+      if ((herd.household !== null || herd.at !== undefined) && st.used.has(herd.home))
+        herd.home = homeTile(st, st.farmsteads[herd.at ?? st.households[herd.household].farmstead]);
     }
   }
 
@@ -367,78 +369,6 @@ VB['sim/herds'] = (() => {
   function startHay(st, days) {
     for (const hh of st.households)
       if (!hh.dissolved) hh.hay = Math.round(householdHay(st, hh) * days * HERD.startMargin);
-  }
-
-  // A dissolved household's herds go with its people: to the household `to`, merged into its herd of the same species; with none, they are lost.
-  function passHerds(st, from, to) {
-    for (const herd of herdsOf(st, from)) {
-      if (to !== null) {
-        const dest = herdFor(st, st.households[to], herd.species);
-        if (herd.species === 'cattle') dest.head.push(...herd.head);
-        else {
-          dest.ewes += herd.ewes;
-          dest.rams += herd.rams;
-          dest.lambs += herd.lambs;
-        }
-      }
-      if (herd.species === 'cattle') herd.head = [];
-      else herd.ewes = herd.rams = herd.lambs = 0;
-      herd.household = null;
-      herd.cull = [];
-    }
-    if (to !== null && from.hay > 0) st.households[to].hay += from.hay;
-    from.herds = [];
-    from.hay = 0;
-  }
-
-  // Animals leave a household in shares (VB-140; design.md, Quanta and worth): a cow, an ox, a heifer, a steer or a ewe, by their customary worth
-  // (Culture.norm).
-  // The old household is left a cow and its winter's hay (what the herd that stays eats over the stall period); the hay it holds above that
-  // goes with the animal, up to the animal's own winter need.
-  const cowsOf = (st, hh) =>
-    herdsOf(st, hh).reduce((n, hd) => n + (hd.head ? hd.head.filter((h) => h.kind === 'cow').length : 0), 0);
-  // Take one animal from `hh` to `to` ('cow', 'ox', 'heifer', 'steer' or 'ewe') when `hh` keeps a cow and its winter hay; true when moved.
-  function giveAnimal(st, hh, to, kind) {
-    const from = kind === 'ewe' ? herdOf(st, hh, 'sheep') : herdOf(st, hh, 'cattle');
-    if (!from) return false;
-    const idx = kind === 'ewe' ? (from.ewes > 0 ? 0 : -1) : from.head.findIndex((h) => h.kind === kind);
-    if (idx < 0) return false;
-    const need = HERD.hay[kind] * HERD.stallDays;
-    if ((kind === 'cow' ? cowsOf(st, hh) - 1 : cowsOf(st, hh)) < 1 || hh.hay < winterNeed(st, hh) - need) return false;
-    const dest = herdFor(st, to, kind === 'ewe' ? 'sheep' : 'cattle');
-    if (kind === 'ewe') {
-      from.ewes--;
-      dest.ewes++;
-    } else dest.head.push(...from.head.splice(idx, 1));
-    // an animal marked for slaughter may be the one that went: the cull list names only animals still there (as sim/byre's tidy)
-    const left = { ewe: from.ewes, ram: from.rams, lamb: from.lambs };
-    from.cull = from.cull.filter((e) =>
-      kind === 'ewe' ? left[e.sheep]-- > 0 : from.head.some((h) => h.id === e.head),
-    );
-    const hay = Math.min(Math.round(need), Math.floor(hh.hay - winterNeed(st, hh))); // winterNeed is now the herd that stays
-    if (hay > 0) {
-      hh.hay -= hay;
-      to.hay = (to.hay || 0) + hay;
-    }
-    return true;
-  }
-  // A new household's start from its old one: a cow and two ewes. Returns the number of animals moved.
-  function startHerd(st, from, to) {
-    let n = giveAnimal(st, from, to, 'cow') ? 1 : 0;
-    for (let i = 0; i < SHARES.start.ewes; i++) if (giveAnimal(st, from, to, 'ewe')) n++;
-    return n;
-  }
-  // Pay up to `due` rations of a share in animals to household `to`, the least valuable first, never past what is due. Returns the rations paid.
-  // `to` is the sibling's own household: with none (null), a dissolved one or `from` itself, nothing is paid. `kinds`: the animals it may be
-  // paid in, in that order (a cow led home in a deal or at a marriage is paid in its own kind; VB-390).
-  function payInAnimals(st, from, to, due, kinds = ['ewe', 'heifer', 'steer', 'cow', 'ox']) {
-    let paid = 0;
-    if (!to || to.dissolved || to === from) return 0;
-    for (const kind of kinds) {
-      const worth = VB['culture'].norm('worth', kind === 'ewe' ? 'sheep' : 'cattle/' + kind); // the one table of customary worth (VB-299)
-      while (due - paid >= worth && giveAnimal(st, from, to, kind)) paid += worth;
-    }
-    return paid;
   }
 
   // Whether the household has a team (team(st, hh) !== null), without making the list: read every step a ploughman works (VB-205).
@@ -564,9 +494,6 @@ VB['sim/herds'] = (() => {
     populousHerds,
     heirsHerds,
     startHay,
-    passHerds,
-    startHerd,
-    payInAnimals,
     team,
     hasTeam,
     inMilk,

@@ -9,7 +9,8 @@ VB['sim/exchange'] = (() => {
     { addTie } = VB['sim/ties'];
   const { HELP, GOODWILL, HERD, stalled } = VB['sim/rules'];
   const { personEvent, atHousehold, holdingOf, age, childrenOf, siblingsOf } = VB['sim/records'];
-  const { herdsOf, winterNeed, payInAnimals } = VB['sim/herds'];
+  const { herdsOf, winterNeed } = VB['sim/herds'];
+  const { payInAnimals } = VB['sim/droving'];
   const { floorOf, dailyNeed, servedLast } = VB['sim/hunger'],
     { daysOfFood } = VB['sim/foodneed'];
   const Culture = VB['culture'];
@@ -410,7 +411,7 @@ VB['sim/exchange'] = (() => {
     const from = st.households[w.from],
       kind = w.kind,
       worth = worthOf(kind);
-    if (!(payInAnimals(st, from, hh, worth, [kind]) > 0)) {
+    if (!(payInAnimals(st, from, hh, worth, [kind], true) > 0)) {
       open(w);
       return;
     }
