@@ -89,7 +89,8 @@ if (sh) {
   check(Y.milkEwes(st, sh, cal(2)) === 0 && Y.milkEwes(st, sh, cal(HD.stall[0])) === 0, 'ewes in milk in the byre');
   const s3 = JSON.parse(JSON.stringify(st)), h3 = s3.households[sh.id], g3 = H.herdOf(s3, h3, 'sheep');
   g3.lambed = 4; g3.ewes = Math.max(g3.ewes, 4);
-  for (const hd of H.herdsOf(s3, h3)) { hd.herded = 10; hd.lean = 0; if (hd.species === 'cattle') hd.head = []; } // the rate itself: no lean days (VB-351's run left some)
+  for (const hd of H.herdsOf(s3, h3)) { hd.herded = 10; if (hd.species === 'cattle') hd.head = []; }
+  h3.pasture = null; // the rate itself: no crowded pasture's milk factor (VB-709; VB-351's run left this one grazed down)
   h3.larder = []; h3.milkDay = -1; Y.milkDone(s3, h3, cal(10));
   eweRations = L.larderOf(h3);
   check(Math.abs(eweRations - 4 * HD.eweMilk) < 1e-9, `4 ewes gave ${eweRations} rations, wanted ${4 * HD.eweMilk}`);
