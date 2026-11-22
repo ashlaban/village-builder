@@ -136,7 +136,7 @@ const iv = setInterval(async () => {
     {
       const f = P.st.farmsteads[+lived.dataset.farm], hh = P.st.households[f.household], plan = P.st.plans.households.get(hh.id);
       const kept = plan.outlook, O = win.VB['sim/outlook'].reckon(P.st, hh, plan);
-      O.food = { own: 0.5, with: 1.4, state: 'bad', season: 1, seasons: [0, 1, 2, 3], parts: { store: 30, need: [60, 60, 60, 60], intakes: [{ what: 'barley', season: 1, n: 50 }], spoilt: 2 } };
+      O.food = { own: 0.5, with: 1.4, lo: 1.1, mid: 1.4, hi: 2.3, state: 'bad', season: 1, seasons: [0, 1, 2, 3], parts: { store: 30, need: [60, 60, 60, 60], intakes: [{ what: 'barley', season: 1, n: 50 }], spoilt: 2 } };
       O.fuel = { ...O.fuel, own: 4, with: 4, state: 'safe', season: null };
       O.hay = { own: 3.3, with: 3.6, state: 'short', season: 3, seasons: [3], parts: { store: 20, need: [0, 0, 0, 50], intakes: [], spoilt: 1, share: 0.6 } };
       O.season = win.Sim.cal(P.st.t).season; O.year = win.Sim.cal(P.st.t).year;
@@ -153,9 +153,19 @@ const iv = setInterval(async () => {
       if (!food || food.querySelector('.supply-state').textContent !== `short in ${next}` || !food.classList.contains('bad')) fail(`the food supply's state reads "${food && food.querySelector('.supply-state').textContent}"`);
       if (qa('#tileHouse .supply.head .cell-season svg').length !== 4) fail('the Supplies section has no header of four seasons');
       if (qa('#tileHouse .supply[data-supply="hay"] .cell').length !== 1) fail('hay is not one wide cell');
+      // the head's doubt (VB-669): a whisker under the food's cells from the worst to the best, a dot at the likeliest; none for hay, here
+      // given no range (an outlook saved before it)
+      {
+        const wc = food ? [...food.querySelectorAll('.whisk .whisk-cell')] : [], dot = food && food.querySelector('.whisk i.wd');
+        const lines = wc.map((c) => c.querySelector('i.wl')).map((l) => (l ? `${parseFloat(l.style.left)}+${parseFloat(l.style.width)}` : '-')).join(' ');
+        if (wc.length !== 4 || lines !== '- 10+90 0+30 -') fail(`the food's whisker is drawn ${lines} over ${wc.length} cells`);
+        if (!dot || dot.parentNode !== wc[1] || parseFloat(dot.style.left) !== 40) fail("the whisker's dot is not at the likeliest");
+        if (q('#tileHouse .supply[data-supply="hay"] .whisk')) fail('a supply with no range draws a whisker');
+      }
       if (!/By .+'s reckoning|By your reckoning/.test(q('#tileHouse .supplies .card-note').textContent)) fail('the Supplies section does not say whose reckoning it is');
       q('#tileHouse [data-supply-more="food"]').click(); tick(2);
       const nums = q('#tileHouse [data-supply-nums="food"]');
+      if (!nums || !new RegExp(`range\\s*at worst runs out in ${next}; at best runs out in ${win.Sim.SEASONS[(O.season + 2) % 4]}`).test(nums.textContent)) fail(`the food's numbers do not give the head's range: "${nums && nums.textContent}"`);
       if (!nums || !/In store\s*30 rations/.test(nums.textContent) || !/barley harvest/.test(nums.textContent) || !/spoil/.test(nums.textContent)) fail(`the food's numbers read "${nums && nums.textContent}"`);
       q('#tileHouse [data-supply-more="hay"]').click(); tick(2);
       if (!/byre over winter/.test((q('#tileHouse [data-supply-nums="hay"]') || {}).textContent || '')) fail("hay's numbers do not open with its sentence");

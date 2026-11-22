@@ -5,11 +5,13 @@
 // of the season the outlook was made in) it expects to go short in, or safe. The run then goes on to the frame's end a day at a time,
 // and the report adds the season each household did first go short in: food, a day some member went hungry (household.hungryDays);
 // fuel, a cold day (household.coldLog); hay, a stall day a herd went without its full hay (herd.unfed). A description with no target:
-// a row each household and supply, and the share where the reckoning named the season it came (or safe, and none came).
+// a row each household and supply, and the share where the reckoning named the season it came (or safe, and none came). VB-669: and
+// whether what came fell within the head's range (lo to hi: the season it came overlaps it, or none came and the best lasts the frame),
+// with the share of those by the head's skill in thirds (sim/seasonal headSkill, read when the outlook is read), also with no target.
 // The run is longer by up to a year than the one asked: the report is not the same run as a plain tools/sim.js to the same year.
 require('./help.js')(__filename);
 function report(VB, st, { village = 0 } = {}) {
-  const Sim = VB.sim, O = VB['sim/outlook'], { SEASON_DAYS, DAY, cal } = VB['sim/rules'];
+  const Sim = VB.sim, O = VB['sim/outlook'], { SEASON_DAYS, DAY, cal } = VB['sim/rules'], { headSkill } = VB['sim/seasonal'];
   const v = st.villages[village];
   if (!v) throw new Error('no such village ' + village);
   const c = cal(st.t), F = c.day - c.sday, end = F + O.FRAME * SEASON_DAYS;
@@ -21,7 +23,7 @@ function report(VB, st, { village = 0 } = {}) {
     if (!plan) continue;
     let o = Sim.supplyOutlook(st, hh.id);
     if (!o || o.stale) o = O.reckon(st, hh, plan, c);
-    rows.push({ hh, farm: f.name, o, came: { food: null, fuel: null, hay: null } });
+    rows.push({ hh, farm: f.name, o, skill: headSkill(st, hh.id), came: { food: null, fuel: null, hay: null } });
   }
   // on to the frame's end a day at a time; the first season each supply went short in
   // the season of the day just run (the clock stands a day on from where the step began)
@@ -41,7 +43,11 @@ function report(VB, st, { village = 0 } = {}) {
   }
   const out = [],
     right = { food: 0, fuel: 0, hay: 0 },
-    counted = { food: 0, fuel: 0, hay: 0 };
+    counted = { food: 0, fuel: 0, hay: 0 },
+    THIRDS = ['poor', 'middling', 'good'],
+    within = Object.fromEntries(THIRDS.map((t) => [t, { in: 0, of: 0 }]));
+  // what came within the range: the season it first went short overlaps lo to hi, or none came and the best lasts the frame
+  const inRange = (s, came) => (came === null ? s.hi >= O.FRAME - 1e-9 : s.lo < came + 1 && s.hi >= came);
   for (const r of rows)
     for (const k of O.SUPPLIES) {
       const s = r.o[k];
@@ -50,16 +56,21 @@ function report(VB, st, { village = 0 } = {}) {
         came = r.came[k];
       counted[k]++;
       if (said === came) right[k]++;
-      out.push({ household: r.hh.id, farm: r.farm, supply: k, own: s.own, with: s.with, state: s.state, expected: said ?? 'safe',
-        came: came ?? 'none', right: said === came });
+      const third = THIRDS[Math.min(2, Math.floor(r.skill * 3))], fell = inRange(s, came);
+      within[third].of++;
+      if (fell) within[third].in++;
+      out.push({ household: r.hh.id, farm: r.farm, supply: k, own: s.own, with: s.with, lo: s.lo, hi: s.hi, skill: +r.skill.toFixed(2),
+        state: s.state, expected: said ?? 'safe', came: came ?? 'none', right: said === came, inRange: fell });
     }
   const share = Object.fromEntries(O.SUPPLIES.map((k) => [k, counted[k] ? +(right[k] / counted[k]).toFixed(2) : null]));
-  return { village, made: { year: c.year, season: c.season }, rows: out, right: share, counted };
+  const inRangeBySkill = Object.fromEntries(THIRDS.map((t) => [t, { ...within[t], share: within[t].of ? +(within[t].in / within[t].of).toFixed(2) : null }]));
+  return { village, made: { year: c.year, season: c.season }, rows: out, right: share, counted, inRangeBySkill };
 }
 function print(r) {
   console.log(`village ${r.village}: outlooks of year ${r.made.year}, season ${r.made.season}, beside the four seasons that followed`);
   console.table(r.rows);
   console.log('share where the reckoning named the season it came (or safe, and none came):', JSON.stringify(r.right),
     'of', JSON.stringify(r.counted));
+  console.log("what came within the head's range, by its skill in thirds:", JSON.stringify(r.inRangeBySkill));
 }
 module.exports = { report, print };

@@ -156,6 +156,39 @@ function supplyState(O, s) {
 const supplyCell = (own, wth, short, title) =>
   `<span class="cell${short ? ' short' : ''}" title="${esc(title)}"><i class="with" style="width:${(wth * 100).toFixed(1)}%"></i>` +
   `<i class="own" style="width:${(own * 100).toFixed(1)}%"></i></span>`;
+// The head's doubt under the cells (VB-669; the mock's whisker, docs/mocks/supply-doubt.html): a line from the worst the head expects (lo)
+// to the best (hi), ticks at its ends and a dot at the likeliest (mid), drawn a cell at a time under the same cells; none where the range
+// is nil (a store reckoned with no doubt, or an outlook saved before it). k0: the first cell's frame season; n: the cells.
+function supplyWhisker(s, k0, n, lead) {
+  if (s.lo === undefined || !(s.hi - s.lo > 0.005)) return '';
+  const at = (x, k) => (x >= 4 ? 1 : partOf(x, k)),
+    ends = new Set();
+  let h = lead;
+  for (let k = k0; k < k0 + n; k++) {
+    const a = at(s.lo, k),
+      b = at(s.hi, k),
+      on = b - a > 0.001 || (s.lo >= k && s.lo <= k + 1),
+      last = k === k0 + n - 1,
+      seg = on
+        ? `<i class="wl${b >= 1 && !last && s.hi > k + 1 ? ' on' : ''}" style="left:${(a * 100).toFixed(1)}%;width:${((b - a) * 100).toFixed(1)}%"></i>`
+        : '';
+    let marks = '';
+    if (on && !ends.has('lo') && (s.lo < k + 1 || last)) {
+      marks += `<i class="wt" style="left:${(a * 100).toFixed(1)}%"></i>`;
+      ends.add('lo');
+    }
+    if (on && !ends.has('hi') && (s.hi <= k + 1 || last)) {
+      marks += `<i class="wt" style="left:${(b * 100).toFixed(1)}%"></i>`;
+      ends.add('hi');
+    }
+    if (!ends.has('mid') && (s.mid < k + 1 || last)) {
+      marks += `<i class="wd" style="left:${(at(s.mid, k) * 100).toFixed(1)}%"></i>`;
+      ends.add('mid');
+    }
+    h += `<span class="whisk-cell">${seg}${marks}</span>`;
+  }
+  return `<span class="whisk" title="The head's doubt: from the worst it expects to the best, the dot its likeliest">${h}</span>`;
+}
 function supplyCells(O, s) {
   if (s.state === 'none') return '<span class="cells none"><span class="cell"></span></span>';
   if (s.seasons.length === 1) {
@@ -164,9 +197,9 @@ function supplyCells(O, s) {
       own = s.own >= 4 ? 1 : partOf(s.own, k),
       wth = s.with >= 4 ? 1 : partOf(s.with, k);
     return (
-      `<span class="cells one"><span class="cell-season" title="${esc(seasonWord(O, k))}">${seasonIcon(O.season + k)}</span>` +
+      `<span class="cells-wrap"><span class="cells one"><span class="cell-season" title="${esc(seasonWord(O, k))}">${seasonIcon(O.season + k)}</span>` +
       supplyCell(own, wth, s.with < 4, `${seasonWord(O, k)}: ${Math.round(wth * 100)}% covered`) +
-      '</span>'
+      `</span>${supplyWhisker(s, k, 1, `<span class="cell-season" aria-hidden="true">${seasonIcon(O.season + k)}</span>`)}</span>`
     );
   }
   let h = '';
@@ -174,7 +207,18 @@ function supplyCells(O, s) {
     const wth = partOf(s.with, k);
     h += supplyCell(partOf(s.own, k), wth, s.with < k + 0.98, `${seasonWord(O, k)}: ${Math.round(wth * 100)}% covered`);
   }
-  return `<span class="cells">${h}</span>`;
+  return `<span class="cells-wrap"><span class="cells">${h}</span>${supplyWhisker(s, 0, 4, '')}</span>`;
+}
+// The head's range in words (VB-669): for a supply of one season the share of it covered, worst to best ("70 to 100% of the winter");
+// else the seasons it runs out in, or that it lasts the year.
+function supplyRange(O, s, one) {
+  if (one) {
+    const k = oneSeason(s),
+      pc = (x) => Math.round(100 * (x >= 4 ? 1 : partOf(x, k)));
+    return `${pc(s.lo)} to ${pc(s.hi)}% of the ${seasonWord(O, k)}`;
+  }
+  const when = (x) => (x >= 4 ? 'lasts the year' : `runs out in ${seasonWord(O, Math.floor(x))}`);
+  return s.hi >= 4 && s.lo >= 4 ? 'lasts the year' : `at worst ${when(s.lo)}; at best ${when(s.hi)}`;
 }
 const INTAKE_WORD = { firewood: 'Firewood to cut', mown: 'Hay lying mown', meadows: 'Meadows still to mow' };
 const intakeWord = (what) => INTAKE_WORD[what] || `The ${what} harvest`;
@@ -190,6 +234,7 @@ function supplyNums(O, r, s) {
   for (const x of P.intakes) lines.push([`${intakeWord(x.what)}, in ${seasonWord(O, x.season)}`, n(x.n)]);
   if (P.target !== undefined) lines.push(["The store's target", `${n(P.target)}`]);
   if (P.spoilt >= 0.5) lines.push(['Expected to spoil', `about ${n(P.spoilt)}`]);
+  if (s.lo !== undefined && s.hi - s.lo > 0.005) lines.push(["The head's range", supplyRange(O, s, one)]);
   lines.push([
     'Likeliest outcome',
     one
