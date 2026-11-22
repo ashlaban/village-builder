@@ -212,7 +212,9 @@ function checkState(st) {
             OL.STATES.includes(s.state) && (s.state === 'short' || s.state === 'bad'
               ? Number.isInteger(s.season) && s.season >= 0 && s.season < OL.FRAME : s.season === null) &&
             okNum(s.parts.store) && s.parts.need.length === OL.FRAME && s.parts.need.every(okNum) && okNum(s.parts.spoilt) &&
-            s.parts.intakes.every((x) => okNum(x.n) && x.season >= 0 && x.season < OL.FRAME);
+            s.parts.intakes.every((x) => okNum(x.n) && x.season >= 0 && x.season < OL.FRAME) &&
+            // VB-669: the head's doubt, low at most the centre at most the high, on the frame (absent in an outlook saved before it)
+            (s.lo === undefined || (okNum(s.lo) && s.lo <= s.mid && s.mid <= s.hi && s.hi <= OL.FRAME));
           if (!(O.day <= Math.floor(st.t / LOADED['sim/rules'].DAY) && OL.SUPPLIES.every((k) => okSupply(O[k]))))
             bad.push(`plans: household ${id}'s outlook ${JSON.stringify(O)}`);
         }

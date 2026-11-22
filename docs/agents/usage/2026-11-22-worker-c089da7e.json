@@ -1,0 +1,123 @@
+{
+ "session": "c089da7e-631e-51ee-86f2-0fd0a99d2b48",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-22T17:25:32.316Z",
+ "end": "2026-11-22T17:49:23.714Z",
+ "wallMin": 23.9,
+ "activeMin": 23.9,
+ "prompts": 1,
+ "calls": 66,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 125,
+  "cacheWrite": 179901,
+  "cacheRead": 10381431,
+  "output": 34861
+ },
+ "context": {
+  "first": 54773,
+  "peak": 197105,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 62,
+   "bytes": 155692,
+   "seconds": 993.4
+  },
+  "Read": {
+   "calls": 4,
+   "bytes": 657801,
+   "seconds": 0.1
+  }
+ },
+ "largest": [
+  {
+   "tool": "Read",
+   "what": "../../../tmp/claude-0/-home-user-village-builder/c089da7e-631e-51ee-86f2-0fd0a99d2b48/scratchpad/good.png",
+   "calls": 2,
+   "bytes": 375628
+  },
+  {
+   "tool": "Read",
+   "what": "../../../tmp/claude-0/-home-user-village-builder/c089da7e-631e-51ee-86f2-0fd0a99d2b48/scratchpad/poor.png",
+   "calls": 1,
+   "bytes": 230318
+  },
+  {
+   "tool": "Read",
+   "what": "docs/img/vb669-doubt.jpg",
+   "calls": 1,
+   "bytes": 51855
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 11,
+   "bytes": 41345
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 23110
+  },
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 1,
+   "bytes": 15056
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tools/outlook.js",
+   "calls": 1,
+   "bytes": 11997
+  },
+  {
+   "tool": "Bash",
+   "what": "for id",
+   "calls": 1,
+   "bytes": 10982
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 8,
+   "bytes": 7655
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7501
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 6809
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tests/outlook.js",
+   "calls": 1,
+   "bytes": 5808
+  }
+ ],
+ "weighted": 1437449,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 1437449,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

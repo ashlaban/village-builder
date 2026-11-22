@@ -600,11 +600,20 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 /* The supply component (page/meter, VB-667): a row a supply, its icon, word, season cells, state and i; the cells filled solid from the
    store and striped from what is still to come, a red frame where the likeliest outcome does not cover the season. */
 .supplies { margin: 2px 0 8px; }
-.supplies.stale .cells { opacity: 0.6; }
+.supplies.stale .cells, .supplies.stale .whisk { opacity: 0.6; }
 .supply { display: grid; grid-template-columns: 20px 40px minmax(0, 1fr) 112px 24px; gap: 7px; align-items: center; min-height: 32px; font-size: 14px; }
 .supply.head { min-height: 18px; }
 .supply .stat-name { width: auto; }
 .supply .cells { display: flex; gap: 4px; align-items: center; min-width: 0; }
+.supply .cells-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.supply .whisk { display: flex; gap: 4px; height: 8px; }
+.supply .whisk .cell-season { visibility: hidden; height: 0; }
+.supply .whisk-cell { position: relative; flex: 1; }
+.supply .whisk-cell > i { position: absolute; top: 50%; }
+.supply .whisk-cell > i.wl { height: 1.5px; margin-top: -0.75px; background: var(--ink); }
+.supply .whisk-cell > i.wl.on { box-sizing: content-box; padding-right: 4px; }
+.supply .whisk-cell > i.wt { width: 1.5px; height: 7px; margin: -3.5px 0 0 -0.75px; background: var(--ink); }
+.supply .whisk-cell > i.wd { width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--ink); }
 .supply.head .cells .cell-season { flex: 1; text-align: center; }
 .supply .cell-season { display: inline-flex; justify-content: center; flex: none; color: var(--muted); }
 .supply .cell-season .ico { width: 14px; height: 14px; }

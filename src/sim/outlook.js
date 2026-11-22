@@ -1,5 +1,6 @@
 // @sys sim/outlook: the supply outlook (VB-666): how long a household's food, fuel and hay last, on one scale (seasons of need) over the
-// four seasons from the start of the one we are in, by its head's reckoning at each review of its plan; kept in plan.outlook, read by the page
+// four seasons from the start of the one we are in, by its head's reckoning at each review of its plan, with its doubt (VB-669); kept in
+// plan.outlook, read by the page
 // Design: docs/mocks/supply-scale.html and supply-doubt.html (the UI review with Kim, 16 Nov); AGENTS.md, Deciding without Kim, 14 (the future
 // is someone's estimate: this is the head's) and 15 (one scale for every supply). What is still to come is the plan's: the crop the head
 // expects of its fields (FIELDS.expect of the full yield, as the plan reckons when it asks how many fields), the hay of its meadows in an
@@ -18,10 +19,21 @@ VB['sim/outlook'] = (() => {
   const { HAY } = VB['sim/meadows'];
   const { fuelFree } = VB['sim/chores'];
   const { hands } = VB['sim/targets'];
+  const { headSkill } = VB['sim/seasonal'];
   // Proposed (VB-666): `little`, a first short season whose need is covered at least this share is short a little ('short'), else badly
   // ('bad'); `woodTrips`, the firewood trips a working hand makes in a season towards the pile's goal (ECON.woodPerTrip units each), which
   // bounds the wood the plan's goal brings in a season. Named tunables of the view; nothing in the simulation reads them.
   const OUTLOOK = Object.freeze({ little: 0.5, woodTrips: 6 });
+  // @tunable DOUBT: the head's doubt on an outlook (VB-669; design.md section 7, The estimate: a centre and a range, honest and wide).
+  // The range is the centre times 1 ± (`sure` + `unseen` × (1 - the head's skill)): `sure`, the spread of the mishaps no head foresees
+  // (a wet harvest, a beast lost), 0.1, a tenth either way under the best head; `unseen`, what a head of no skill does not reckon with,
+  // 0.4, so the worst head's range is half the centre either way. `unseen` is at least the bias's reach (Traits.HEAD.bias, 0.3): the
+  // centre leans by the head's bias on the store's target, and a range that did not cover the lean would not be honest. First values:
+  // populous small seed 7, year 10, the run's outcomes fell within the range at the shares in VB-669's notes. Nothing reads them to decide.
+  const DOUBT = Object.freeze({ sure: 0.1, unseen: 0.4 });
+  // The head's bias on the target of each supply's store (plan.head.bias, sim/seasonal): food leans by the fields it wants, fuel by its
+  // woodpile, hay by its hay. A bias over 1 is a head that believes it needs more than it does, so reckons its store lasts less.
+  const LEAN = Object.freeze({ food: 'fields', fuel: 'wood', hay: 'hay' });
   // The frame: four seasons from the start of the season we are in. A value of FRAME or more lasts the frame (safe).
   const FRAME = 4;
   const SUPPLIES = Object.freeze(['food', 'fuel', 'hay']);
@@ -31,7 +43,9 @@ VB['sim/outlook'] = (() => {
   // @state plan.outlook (a household's standing plan; VB-666): absent until its first review, then {year, season, day (of cal: when the
   //   head made it), food, fuel, hay}, each supply {own, with (seasons from the start of the season it was made in that the store alone,
   //   and the store with every intake the plan expects, last, spoilage taken off; 0 to FRAME), state (STATES), season (the first short
-  //   season of the frame, 0 to 3, or null), seasons (the seasons of the year it is needed in: [0, 1, 2, 3], or [3] for hay), parts: {store
+  //   season of the frame, 0 to 3, or null), lo, mid, hi (VB-669: the head's doubt on `with`, on its scale: the worst it expects, its
+  //   likeliest (with, leaned by its bias on the store), the best; lo <= mid <= hi, 0 to FRAME; with no head, the middle skill and no
+  //   lean), seasons (the seasons of the year it is needed in: [0, 1, 2, 3], or [3] for hay), parts: {store
   //   (what is held now, in the supply's units), need (by season of the frame, from the start of the one we are in), intakes ([{what, season
   //   (of the frame), n}], summed by what and season), spoilt (what the reckoning with intakes lets spoil within the frame)}}. Made again at
   //   every review (sim/plans' event planReviewed): on the planning day, out of turn when a store crosses a target (the harvest stacked
@@ -41,7 +55,8 @@ VB['sim/outlook'] = (() => {
   // One supply walked a day at a time from `from` (the absolute day today) to `to` (exclusive), the frame starting on day F: `keep` is held
   // and does not spoil, `rot` spoils by loss(rot) a day; need(d) is the day's need, inflow(d, held) what comes in on day d (into rot when
   // `intoRot`). The day's need is taken from keep first. Returns {at (days from F when it first ran short, Infinity if never), met, need (by
-  // frame season, from today: what was eaten of the need and the need), spoilt}. Walks on after running short (the hay of a later winter).
+  // frame season, from today: what was eaten of the need and the need), spoilt, left (what is held at the end)}. Walks on after running
+  // short (the hay of a later winter).
   function walk(o) {
     let keep = o.keep,
       rot = o.rot,
@@ -73,7 +88,7 @@ VB['sim/outlook'] = (() => {
         if (d - o.F < FRAME * SEASON_DAYS) spoilt += l;
       }
     }
-    return { at, met, need, spoilt };
+    return { at, met, need, spoilt, left: keep + rot };
   }
   // A day's loss of a store spoiling by tiers, by its good's keeping (sim/goods: grain by years of need, hay by winters): `unit` held a tier,
   // times the barn's (BUILD.barn.loss with one); q: the good's daily shares (Goods.shares), reckoned once a supply.
@@ -86,6 +101,26 @@ VB['sim/outlook'] = (() => {
     const k = Math.floor(v),
       share = w.need[k] > 0 ? w.met[k] / w.need[k] : 1;
     return { v, state: share >= OUTLOOK.little ? 'short' : 'bad', season: k };
+  }
+  // The head's doubt (VB-669): its bias on each store's target (null: none) and the range's reach either way of the centre, a share of
+  // it (DOUBT); a household with no head is reckoned at the middle skill (sim/seasonal's headSkill) and no lean.
+  const headDoubt = (st, hh, plan) => ({
+    bias: plan && plan.head ? plan.head.bias : null,
+    sp: DOUBT.sure + DOUBT.unseen * (1 - headSkill(st, hh.id)),
+  });
+  // The range on a reckoning x (in the reading's units: seasons, or for hay the share of the stall covered): the centre x leaned by the
+  // head's bias b on the store, and that times 1 ± sp, each read onto the outlook's scale by `read`.
+  const range = (x, b, sp, read) => {
+    const m = x / b;
+    return { lo: read(m * (1 - sp)), mid: read(m), hi: read(m * (1 + sp)) };
+  };
+  const onFrame = (y) => r2(Math.min(FRAME, Math.max(0, y)));
+  // A supply of four seasons given its doubt: the walk with the intakes, w, read past the frame where it lasts it (what is left at the
+  // frame's end, at a season's need on average, perSeason); a supply not needed, or with no doubt reckoned (dz null), has none.
+  function doubted(s, w, perSeason, dz, key) {
+    if (s.state === 'none' || !dz) return Object.assign(s, { lo: s.with, mid: s.with, hi: s.with });
+    const x = s.with < FRAME || !(perSeason > 0) ? s.with : FRAME + w.left / perSeason;
+    return Object.assign(s, range(x, dz.bias ? dz.bias[LEAN[key]] : 1, dz.sp, onFrame));
   }
   // The intakes expected, summed by what and frame season, as plain rows.
   function rows(list, F) {
@@ -143,7 +178,7 @@ VB['sim/outlook'] = (() => {
   }
   // Food: grain above the seed (it spoils), and the meals, flour, sheaves, larder and fresh food (kept), over the household's daily need.
   // Its intakes: each field's crop, FIELDS.expect of its full yield less the seed it takes back (stooks: what lies in them, less the seed).
-  function food(st, hh, f, c, F, end, less = 0) {
+  function food(st, hh, f, c, F, end, less = 0, dz = null) {
     const D = dailyNeed(st, hh),
       seed = hh.farmstead === null ? 0 : Stores.reserved(st, hh, 'grain'), // a household with no farm keeps no seed
       rot = Math.max(0, Stores.grainOf(hh) - seed - less),
@@ -179,13 +214,13 @@ VB['sim/outlook'] = (() => {
           return n;
         },
       });
-    return supply(own, w, D > 0, [0, 1, 2, 3], keep + rot, rows(ins, F), D);
+    return doubted(supply(own, w, D > 0, [0, 1, 2, 3], keep + rot, rows(ins, F), D), w, D * SEASON_DAYS, dz, 'food');
   }
   // Fuel: firewood and peat as one supply (sim/chores' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
   // the season's ECON.woodUse. Its intake is the plan's: at the start of each season (today, for this one) the household cuts towards the
   // season's goal, plan.targets.wood[season], at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for
   // the season we are in); none with no farm or no wood in its village's reach. Firewood does not spoil.
-  function fuel(st, hh, f, plan, c, F, end) {
+  function fuel(st, hh, f, plan, c, F, end, dz = null) {
     const use = st.ECON.woodUse,
       keep = Math.max(0, hh.farmstead === null ? (hh.wood || 0) + PEAT.worth * (hh.peat || 0) : fuelFree(st, hh)),
       goal = plan.targets && plan.targets.wood,
@@ -205,14 +240,15 @@ VB['sim/outlook'] = (() => {
     };
     const own = walk({ from: c.day, to: end, F, keep, rot: 0, need }),
       w = walk({ from: c.day, to: end, F, keep, rot: 0, need, inflow });
-    return supply(own, w, true, [0, 1, 2, 3], keep, rows(ins, F), null, use, c);
+    const perSeason = ((use[0] + use[1] + use[2] + use[3]) / 4) * SEASON_DAYS;
+    return doubted(supply(own, w, true, [0, 1, 2, 3], keep, rows(ins, F), null, use, c), w, perSeason, dz, 'fuel');
   }
   // Hay: needed on the stall days only, which are counted as the winter's (HERD.stall: from autumn's day 8 to spring's day 4), so its
   // outlook is the share of the coming winter's stall covered, read as the winter's season of the frame plus that share (FRAME if all of
   // it). Its intakes: hay lying mown in the meadows, and the meadows still to mow this year at HAY × their fertility (expectedHay), at
   // the middle of the haymaking window (today, inside it), the mowing stopping at the plan's target (targets.hayWinters winters' need).
   // Hay spoils by HERD.hayLoss.
-  function hay(st, hh, f, plan, c, F) {
+  function hay(st, hh, f, plan, c, F, dz = null) {
     const H = householdHay(st, hh),
       W = H * HERD.stallDays,
       k = (3 - c.season + 4) % 4,
@@ -284,9 +320,21 @@ VB['sim/outlook'] = (() => {
       none = !(H > 0);
     const need = [0, 0, 0, 0];
     need[k] = r1(W);
+    // the doubt on the share of the stall covered, read past a full one by what is left at the stall's end; a share of 1 or more reads
+    // as FRAME, as `with` does
+    const sw = share(w),
+      x = sw >= 1 - 1e-9 && W > 0 ? 1 + w.left / W : sw,
+      R =
+        none || !dz
+          ? null
+          : range(x, dz.bias ? dz.bias[LEAN.hay] : 1, dz.sp, (y) => (y >= 1 - 1e-9 ? FRAME : r2(k + Math.max(0, y)))),
+      wv = none ? FRAME : r2(b.v);
     return {
       own: none ? FRAME : r2(a.v),
-      with: none ? FRAME : r2(b.v),
+      with: wv,
+      lo: R ? R.lo : wv,
+      mid: R ? R.mid : wv,
+      hi: R ? R.hi : wv,
       state: none ? 'none' : b.state,
       season: none ? null : b.season,
       seasons: [3],
@@ -319,14 +367,15 @@ VB['sim/outlook'] = (() => {
   function reckon(st, hh, plan, c = cal(st.t)) {
     const f = farmOf(st, hh),
       F = c.day - c.sday,
-      end = F + FRAME * SEASON_DAYS;
+      end = F + FRAME * SEASON_DAYS,
+      dz = headDoubt(st, hh, plan);
     return {
       year: c.year,
       season: c.season,
       day: c.day,
-      food: food(st, hh, f, c, F, end),
-      fuel: fuel(st, hh, f, plan, c, F, end),
-      hay: hay(st, hh, f, plan, c, F),
+      food: food(st, hh, f, c, F, end, 0, dz),
+      fuel: fuel(st, hh, f, plan, c, F, end, dz),
+      hay: hay(st, hh, f, plan, c, F, dz),
     };
   }
   // At a review of a household's plan (sim/plans' event planReviewed) the head reckons its outlook again: on its planning day ('day'),
@@ -365,6 +414,9 @@ VB['sim/outlook'] = (() => {
       none = {
         own: FRAME,
         with: FRAME,
+        lo: FRAME,
+        mid: FRAME,
+        hi: FRAME,
         state: 'none',
         season: null,
         seasons: [3],
@@ -374,7 +426,7 @@ VB['sim/outlook'] = (() => {
       year: c.year,
       season: c.season,
       day: c.day,
-      food: food(st, hh, farmOf(st, hh), c, F, F + FRAME * SEASON_DAYS, less),
+      food: food(st, hh, farmOf(st, hh), c, F, F + FRAME * SEASON_DAYS, less, headDoubt(st, hh, plan)),
       fuel: none,
       hay: none,
       stale: false,
@@ -411,11 +463,14 @@ VB['sim/outlook'] = (() => {
       loss: (x) => x * share,
       intoRot: true,
     });
-    const food = supply(w, w, D > 0, [0, 1, 2, 3], store, [], D);
+    const food = doubted(supply(w, w, D > 0, [0, 1, 2, 3], store, [], D), w, D * SEASON_DAYS, null, 'food'); // no doubt reckoned
     food.parts.target = r1(HELP.storeTarget * D * YEAR_DAYS);
     const none = {
       own: FRAME,
       with: FRAME,
+      lo: FRAME,
+      mid: FRAME,
+      hi: FRAME,
       state: 'none',
       season: null,
       seasons: [0, 1, 2, 3],
@@ -433,5 +488,5 @@ VB['sim/outlook'] = (() => {
       hay: { ...none, seasons: [3] },
     };
   }
-  return { OUTLOOK, FRAME, SUPPLIES, STATES, reckon, supplyOutlook, giftOutlook, villageOutlook };
+  return { OUTLOOK, DOUBT, FRAME, SUPPLIES, STATES, reckon, supplyOutlook, giftOutlook, villageOutlook };
 })();
