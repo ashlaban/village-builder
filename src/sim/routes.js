@@ -206,6 +206,22 @@ VB['sim/routes'] = (() => {
     trimRoutes(st);
     return p;
   }
+  // Whether a pawn can walk from tile `from` to `to` by land within ROUTE.reach (VB-436): asked before an act sends it there, so that it
+  // never walks a fallback's straight line. A route found is kept in the cache, which the walk then reads; none found is not kept and not
+  // counted as a fallback (st.routeFallbacks counts walks, not questions).
+  function hasRoute(st, from, to) {
+    if (from === to) return true;
+    const N = st.w.N,
+      p = st.pathCache.get(from * N + to);
+    if (p) return p[0] === from;
+    const back = st.pathCache.get(to * N + from);
+    if (back) return back[0] === to;
+    const found = findRoute(st.w, from, to);
+    if (!found) return false;
+    st.pathCache.set(from * N + to, found);
+    trimRoutes(st);
+    return true;
+  }
   // A tile whose walking cost changed (a felled wood turned meadow, a path that reached another stage): the cache is emptied at the end of
   // the day. Dropping only the routes the tile could change took as long as the searches it saved (VB-236): the late fixtures change a
   // tile on nearly every day, and the cache refills with a tenth of the routes held.
@@ -221,5 +237,5 @@ VB['sim/routes'] = (() => {
     st.routeDirty.clear();
   }
 
-  return { findRoute, routeCost, reachCosts, route, costChanged, refreshRoutes, trimRoutes };
+  return { findRoute, routeCost, reachCosts, route, hasRoute, costChanged, refreshRoutes, trimRoutes };
 })();

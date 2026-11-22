@@ -69,6 +69,12 @@ VB['sim/service'] = (() => {
     go(id, { reason });
     go(sp, { reason, with: kids });
   }
+  // Whether any other standing household with people lies in village v or by land from it (sim/heirs' serviceHome finds one of them).
+  const someHomeByLand = (st, hh, v) =>
+    st.liveHouseholds.some((id) => {
+      const g = st.households[id];
+      return id !== hh.id && !g.dissolved && g.members.length && byLand(st, farmOf(st, g).village, v);
+    });
   function careForOrphans(st) {
     // The households whose membership changed since the last round (VB-323); extinction may dissolve one while this round is in progress.
     for (const liveId of takePeopleCheck(st)) {
@@ -77,22 +83,21 @@ VB['sim/service'] = (() => {
       const ward = st.pawns[hh.holder],
         f = farmOf(st, hh),
         memo = new Map();
-      // the first by kinship, then the oldest, among those within walking reach of the farm's village (VB-290), else among all
-      const best = [null, null],
-        bk = [0, 0];
+      // the first by kinship, then the oldest, among those within walking reach of the farm's village only (VB-290; VB-436: nobody is
+      // sent over the sea)
+      let guardian = null,
+        bk = 0;
       for (const id of st.demand) {
         const q = st.pawns[id];
         if (!free(st, q) || q.household === hh.id) continue;
+        if (!byLand(st, farmOf(st, st.households[q.household]).village, f.village)) continue;
         const k = kinship(st, ward.id, id, memo);
         if (k <= 0) continue;
-        const near = byLand(st, farmOf(st, st.households[q.household]).village, f.village);
-        for (const i of near ? [0, 1] : [1])
-          if (!best[i] || k > bk[i] || (k === bk[i] && q.born < best[i].born)) {
-            best[i] = q;
-            bk[i] = k;
-          }
+        if (!guardian || k > bk || (k === bk && q.born < guardian.born)) {
+          guardian = q;
+          bk = k;
+        }
       }
-      const guardian = best[0] || best[1];
       if (guardian) {
         moveFamily(st, guardian.id, hh.id, 'guardian');
         setGuardian(st, hh, ward.id);
@@ -110,8 +115,21 @@ VB['sim/service'] = (() => {
       } else {
         // the kin who would take the children hold the farm in trust until the heir is 18 (Kim, 13 Nov; VB-309), else it stands empty
         const args = { why: 'is a child with no grown kin to come', ward: ward.id };
-        if (issue(st, { actor: ward.id, verb: 'goToKin', target: hh.id, args, source: 'help' }) !== true)
-          extinct(st, hh, `its heir ${fullName(ward)} is a child, with no grown kin to keep it`);
+        if (issue(st, { actor: ward.id, verb: 'goToKin', target: hh.id, args, source: 'help' }) === true) {
+          // kin hold it in trust
+        } else if (!someHomeByLand(st, hh, f.village))
+          // no household by land to take them in (VB-436; QUESTION_ARCHIVE.md, VB-329, question 2): they stay where they are, and the
+          // eldest holds the farm, until slice 10's boats
+          log(
+            st,
+            `${fullName(ward)} of ${f.name} stays on the farm: no household by land could take the children in.`,
+            {
+              kind: 'stayed',
+              pawn: ward.id,
+              ...atHousehold(st, hh),
+            },
+          );
+        else extinct(st, hh, `its heir ${fullName(ward)} is a child, with no grown kin to keep it`);
       }
       refreshRoles(st);
       st.visualDirty = true;
