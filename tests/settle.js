@@ -72,7 +72,13 @@ check(hh && hh.holder === m.id && m.household === hh.id && sib.household === hh.
 check(sib.servant && ['farmhand', 'maid'].includes(sib.role) && m.role === 'farmer', `the sibling serves (${sib.role})`);
 // the stake less a day's ration a head, eaten uncooked on the journey (VB-287, sim/agents setOut)
 const journeyFood = hh.members.reduce((n, id) => n + (st.pawns[id].age >= 14 ? st.ECON.ration.adult : st.ECON.ration.child), 0) / st.ECON.uncooked;
-check(Math.abs(Sim.grainOf(hh) - (300 - journeyFood)) < 1e-6 && !m.stake, `the stake is the household's grain, less the journey's (${Sim.grainOf(hh)})`);
+// VB-675: it lies at the old home as the new household's, and the party bears it there a load at a time: nothing is in the new store yet
+const oldHouse = st.farmsteads[st.households[oldHh].farmstead].house;
+const bearing = () => st.away.filter((j) => j.why === 'fetch' && j.gift && j.gift.to === hh.id);
+const lies = () => bearing().reduce((n, j) => n + j.gift.held + j.gift.stops.reduce((k, x) => k + x.left, 0), 0);
+check(Sim.grainOf(hh) === 0 && !m.stake && bearing().length === 2 && bearing().every((j) => j.gift.stops.every((x) => x.at === oldHouse && x.start)),
+  `the stake lies at the old home for both to bear (${Sim.grainOf(hh)} in store, ${bearing().length} bearers)`);
+check(Math.abs(lies() - (300 - journeyFood)) < 1e-6, `the stake less the journey's food (${lies()})`);
 check(!st.households[oldHh].members.includes(m.id), 'the settler left the old household');
 check(st.demand.includes(sib.id) && !st.demand.includes(m.id), 'the sibling still wants land, the settler does not');
 const s = st.cenv.settlements[nv.id];
@@ -83,12 +89,16 @@ check(!st.villages.some((u) => u !== nv && Math.min(...[u.center, ...u.farmstead
   .map((t) => VB['sim/hex'].hexSteps(st.w, t, nv.center))) < SETTLE.apart), 'apart from every other village');
 let bad = checkState(st); check(!bad.length, `invariants after founding: ${bad.slice(0, 3).join('; ')}`);
 // the booth becomes a cottage and the first field is sown within two years
-let built = null, sown = null;
-for (let d = 0; d < 2 * Sim.YEAR_DAYS && (sown === null || built === null); d++) {
+let built = null, sown = null, came = null, borne = null;
+for (let d = 0; d < 2 * Sim.YEAR_DAYS && (sown === null || built === null || borne === null); d++) {
   Sim.advance(st, 24);
+  if (came === null && Sim.grainOf(hh) > 0) came = d;
+  if (borne === null && !bearing().length) borne = d;
   if (built === null && !f.booth) built = d;
   if (sown === null && f.fields.some((fd) => fd.stage !== 'stubble' && fd.stage !== 'plowed')) sown = d;
 }
+check(came !== null && borne !== null && hh.ledger.some((e) => e.good === 'grain' && e.n > 0 && e.kind === 'provisions'),
+  `the grain comes in as it is borne (the first on day ${came}, all by day ${borne})`);
 check(built !== null, `the cottage is built (booth ${JSON.stringify(f.booth)})`);
 check(sown !== null, `the first field is sown (fields ${f.fields.map((fd) => fd.stage).join(',') || 'none'}, project ${VB['sim/projects'].openOf(st, f.household)?.kind})`);
 bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slice(0, 3).join('; ')}`);

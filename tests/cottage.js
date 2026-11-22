@@ -37,7 +37,11 @@ const left = Math.max(felled, TIMBER + 6) - TIMBER, want = Math.min(left, VB['si
 check(plot.steps[2].wood === 0 && hh.wood >= want && hh.wood <= Math.max(want, 16), `the new household's first wood: ${hh.wood} (${left} left by the walls)`);
 check(hh && hh.holder === m.id && hh.members.includes(m.id) && hh.members.includes(f.id), 'holder and spouse live in the new household');
 check(m.household === hh.id && f.household === hh.id, 'both moved in');
-check(Sim.grainOf(hh) === 400 && !m.stake && !f.stake, `stake became grain (${Sim.grainOf(hh)})`);
+// VB-675: the stakes lie at the old homes as the new household's, fetched by one of it (or left lying for its hands)
+const fetching = st.away.filter((j) => j.why === 'fetch' && j.gift && j.gift.to === hh.id).flatMap((j) => j.gift.stops)
+  .concat((st.lying || []).filter((l) => l.kind === 'leftGrain' && l.owner.id === hh.id).map((l) => ({ left: l.n })));
+const staked = fetching.reduce((n, x) => n + x.left, 0);
+check(Sim.grainOf(hh) === 0 && Math.abs(staked - 400) < 1e-6 && !m.stake && !f.stake, `the stakes lie at the old homes (${Sim.grainOf(hh)} in store, ${staked} to fetch)`);
 check(fm.fields.length === 1 && fm.village === v.id && st.farmsteads[fm.id] === fm, 'farmstead has the plot field');
 check(Sim.recordOf(st, { pawn: m.id, life: true }).some((e) => /Moved/.test(e.text || '')), 'a moved event');
 check(X.plotJobs(st).every((j) => !(j[3].cottage && j[3].plot === plot)), 'no more cottage jobs');
@@ -45,7 +49,7 @@ check(X.plotJobs(st).every((j) => !(j[3].cottage && j[3].plot === plot)), 'no mo
 const other = st.households.find((h) => !h.dissolved && h.id !== hh.id), p = st.pawns.find((q) => q.alive && q.household === hh.id && q.id === f.id);
 VB['sim/obligations'].oweShare(st, other, p.id, 50); other.grain = { barley: 1000 };
 VB['sim/cottage'].payOwed(st);
-check(Sim.shareOwed(st, p.id) === 0 && st.obligations[0].status === 'met' && Sim.grainOf(hh) === 450 && Sim.grainOf(other) === 950, `owed share paid (owed ${Sim.shareOwed(st, p.id)}, grain ${Sim.grainOf(hh)}/${Sim.grainOf(other)})`);
+check(Sim.shareOwed(st, p.id) === 0 && st.obligations[0].status === 'met' && Sim.grainOf(hh) === 50 && Sim.grainOf(other) === 950, `owed share paid (owed ${Sim.shareOwed(st, p.id)}, grain ${Sim.grainOf(hh)}/${Sim.grainOf(other)})`);
 // the next spring: the household sows its field
 let sown = false;
 for (let d = 0; d < 400 * 24 && !sown; d += 24) { Sim.advance(st, 24); sown = fm.fields[0].stage !== 'stubble'; if (hh.dissolved) break; }
