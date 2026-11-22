@@ -216,7 +216,7 @@ VB['sim/aims'] = (() => {
     if (p.what === 'plot') {
       log(st, text, { kind: 'projectDropped', pawn: hh.holder, ...atHousehold(st, hh) });
       issue(st, {
-        actor: null,
+        actor: hh.holder !== null ? hh.holder : { household: hh.id }, // its head gives it up (VB-681)
         verb: 'plotToVillage',
         target: hh.id,
         args: { plan: p.id, why: 'its surplus is gone' },
@@ -366,11 +366,18 @@ VB['sim/aims'] = (() => {
   });
   // plotToVillage({plan, why}): household target's plot for its heir (project plan `plan`) passes to its village, its tiles and work with
   // it (VB-255; sim/expansion hears it by an event): its head gives it up, the household dissolves, the heir cannot take it
+  // The right (VB-681): the head of the household gives it up (Plans.heads), or the plot's own course passes it on (source 'construction':
+  // its heir cannot take it, its household is no more), with no actor.
   register('plotToVillage', {
     check: (st, c) =>
-      Projects.projectsOf(st, 'household', c.target).some((p) => p.what === 'plot' && p.id === (c.args && c.args.plan))
+      (c.source === 'construction' || c.source === 'debug'
+        ? c.actor === null
+          ? null
+          : 'a plot passes to its village by its own course with no actor'
+        : Plans.heads(st, c)) ||
+      (Projects.projectsOf(st, 'household', c.target).some((p) => p.what === 'plot' && p.id === (c.args && c.args.plan))
         ? null
-        : `household ${c.target} has no plot ${c.args && c.args.plan} under way`,
+        : `household ${c.target} has no plot ${c.args && c.args.plan} under way`),
     run: (st, c) =>
       emit(st, 'plotToVillage', { household: c.target, plan: c.args.plan, why: c.args.why || 'given up' }),
   });

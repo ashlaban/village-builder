@@ -32,7 +32,7 @@ try {
   const mk = (key, kind, site) => post(st, key, kind, owner, site, { hours: 10 });
   const bg = mk('t:bg', 'tBack', near), bg2 = mk('t:bg2', 'tBack2', near), pt = mk('t:pt', 'tPart', near), pt2 = mk('t:pt2', 'tPart', near);
   const full = mk('t:full', 'tFull', near), farFull = mk('t:farFull', 'tFull', far), farBg = mk('t:farBg', 'tBack', far);
-  const go = (j) => issue(st, { actor: a.id, verb: 'work', target: j.key, source: 'test' });
+  const go = (j) => issue(st, { actor: a.id, verb: 'work', target: j.key, source: 'debug' });
   assert.strictEqual(a.side, undefined);
   // the pair is held, one of each, beside the task in hand
   assert.strictEqual(go(full), true); assert.strictEqual(a.job, full);

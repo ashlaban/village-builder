@@ -480,8 +480,11 @@ VB['sim/farmclaims'] = (() => {
       },
     );
   }
-  // claim(target): the actor claims the empty farm `target` and sets about restoring it
+  // claim(target): the actor claims the empty farm `target` and sets about restoring it. The right is the village's yes to an offer of
+  // land (the land basis, its check landWhy by the claims custom), which the round settles (settleLand): no pawn claims by its own
+  // command (VB-681)
   register('claim', {
+    sources: ['round', 'debug'],
     check: (st, c) =>
       living(st, c.actor) ||
       (!st.farmsteads[c.target]

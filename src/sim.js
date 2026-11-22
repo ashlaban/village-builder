@@ -87,6 +87,10 @@ const Sim = (() => {
         id !== null &&
         typeof VB['sim/offers'].giftOf(st, hh.holder, to, { good: 'grain', n: 1, carrier: id }, 'player') !== 'string',
     );
+  // The facade's direct mutators are debug (VB-681): the world's hand, for the page's debug drawer and the tests, never a pawn's act; a
+  // pawn acts by a verb (command, queue, head), whose check asks its right. tests/commands.js holds that none is a verb and that the page
+  // calls them only from its drawer.
+  const DEBUG = ['setOwner', 'killPawn', 'retireHolder', 'holdMeetings', 'movingRound'];
   const { killPawn, retireHolder } = VB['sim/lifecycle'],
     { holdMeetings } = VB['sim/meetings'],
     { movingRound } = VB['sim/round'];
@@ -113,6 +117,7 @@ const Sim = (() => {
     load,
     recordOf,
     command,
+    DEBUG,
     head,
     headView,
     inhabit,
@@ -156,10 +161,10 @@ const Sim = (() => {
     KINDS,
     WORK,
     dark,
-    killPawn,
-    retireHolder,
-    holdMeetings,
-    movingRound,
+    killPawn, // debug (DEBUG)
+    retireHolder, // debug (DEBUG)
+    holdMeetings, // debug (DEBUG)
+    movingRound, // debug (DEBUG)
     heirRanking,
     practice,
     farmPractice,
@@ -181,7 +186,7 @@ const Sim = (() => {
     refreshRoles,
     Culture,
     ownerOf,
-    setOwner,
+    setOwner, // debug (DEBUG)
     seedReserve,
     grainOf,
     shareOwed,

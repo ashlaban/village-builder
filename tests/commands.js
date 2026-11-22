@@ -72,17 +72,17 @@ refusals.push([{ actor: dead.id, verb: 'work', target: j.key }, /not a living pa
 const full = [...st.jobs.values()].find((x) => !isOpen(st, x));
 assert.ok(full, 'a job with no room');
 refusals.push([{ actor: a.id, verb: 'work', target: full.key }, /has no room/]);
-for (const [cmd, why] of refusals) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
+for (const [cmd, why] of refusals) { const res = issue(st, { source: 'debug', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap(), before, 'a refused command changes nothing');
 // walkTo, goHome, idle (VB-168)
 const b = st.agents.find((x) => st.pawns[x.id].died === null && x.id !== a.id), home = st.farmsteads[st.households[st.pawns[b.id].household].farmstead].house;
 const there = st.farmsteads.find((f) => f.house !== home).house;
-assert.strictEqual(issue(st, { actor: b.id, verb: 'walkTo', target: there, args: { x: st.w.hx[there], y: st.w.hy[there] + 3 }, source: 'test' }), true);
+assert.strictEqual(issue(st, { actor: b.id, verb: 'walkTo', target: there, args: { x: st.w.hx[there], y: st.w.hy[there] + 3 }, source: 'debug' }), true);
 assert.ok(b.path && b.path.length >= 2 && b.anim === 'walk', 'walking');
 assert.deepStrictEqual(b.path[b.path.length - 1].slice(0, 2), [st.w.hx[there], st.w.hy[there] + 3], 'to the spot asked');
-assert.strictEqual(issue(st, { actor: b.id, verb: 'goHome', source: 'test' }), true);
+assert.strictEqual(issue(st, { actor: b.id, verb: 'goHome', source: 'debug' }), true);
 assert.strictEqual(b.phase, 'home'); assert.strictEqual(b.path[b.path.length - 1][3], home, 'the walk ends on the home tile');
-assert.strictEqual(issue(st, { actor: b.id, verb: 'idle', args: { until: st.t + 2 }, source: 'test' }), true);
+assert.strictEqual(issue(st, { actor: b.id, verb: 'idle', args: { until: st.t + 2 }, source: 'debug' }), true);
 assert.strictEqual(b.idleUntil, st.t + 2);
 // Talk pauses cannot interrupt work, entering home, or an indoor pawn, and cannot shorten an idle pause (VB-177).
 const talking = (until) => issue(st, { actor: b.id, verb: 'haltForTalk', args: { until }, source: 'talk' });
@@ -110,7 +110,7 @@ for (const [cmd, why] of [
   [{ actor: b.id, verb: 'haltForTalk' }, /past/],
   [{ actor: b.id, verb: 'haltForTalk', args: { until: st.t - 1 } }, /past/],
   [{ actor: dead.id, verb: 'haltForTalk', args: { until: st.t + 1 } }, /not a living pawn/],
-]) { const res = issue(st, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
+]) { const res = issue(st, { source: 'debug', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap(), before2, 'refused walk, home and idle commands change nothing');
 // the meeting's decide and the debug verbs (VB-170), on the heirs scenario, which has farms with heirs
 const hw = island(7, ROOMY);
@@ -142,7 +142,7 @@ for (const [cmd, why] of [
   [{ actor: arguer.id, verb: 'argue', args: { dim: d0, option: 99 } }, /has no option/],
   [{ actor: killed.id, verb: 'kill' }, /not a living pawn/], [{ actor: killed.id, verb: 'argue', args: { dim: d0, option: 0 } }, /not a living pawn/],
   [{ actor: landless.id, verb: 'retire' }, /holds no farm/], [{ actor: null, verb: 'skip', args: { hours: -1 } }, /cannot skip/],
-]) { const res = issue(st2, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
+]) { const res = issue(st2, { source: 'debug', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap2(), before3, 'refused meeting and debug commands change nothing');
 // the moving round's verbs (VB-171), on a fresh heirs state
 const st3 = Sim.seed(island(7, ROOMY), 7, 'heirs');
@@ -174,7 +174,7 @@ R3.push([{ actor: groom.id, verb: 'marry', target: groom.id, args: { home: wedHo
   [{ actor: servant.id, verb: 'marry', target: single('f') ? single('f').id : bride.id, args: { home: 999 } }, /no household|married/],
   [{ actor: old3, verb: 'handOn', target: heir3, args: { household: hh3.id, reason: 'retirement' } }, /does not hold/],
   [{ actor: servant.id, verb: 'move', target: master.id, args: { reason: 'service' } }, /lives there already/], [{ actor: servant.id, verb: 'claim', target: 9999 }, /no farm/]);
-for (const [cmd, why] of R3) { const res = issue(st3, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
+for (const [cmd, why] of R3) { const res = issue(st3, { source: 'debug', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
 assert.strictEqual(snap3(), before4, 'refused round commands change nothing');
 // leave: a settler founds a village on a site the round would choose
 const S3 = VB['sim/settle'], settler = st3.pawns.find((p) => p.died === null && p.age >= 18 && !Sim.isHolder(st3, p.id) && p.household !== null);
@@ -210,8 +210,59 @@ for (const [cmd, why] of [
   [{ actor: lead.id, verb: 'leave', args: { from: 999, party: { all: [lead.id] }, house: 0, field: 1 } }, /no village/],
   [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [dead.id] }, house: 0, field: 1 } }, /led by the actor/],
   [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [lead.id] }, house: -5, field: 1 } }, /must be tiles/],
-]) { const res = issue(st3, { source: 'test', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); R3.push(['leave refusal', 1]); }
+]) { const res = issue(st3, { source: 'debug', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); R3.push(['leave refusal', 1]); }
 assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
+// VB-681: a verb's check holds for any pawn; the sources are one list, and the world's verbs are debug's only
+{
+  const { SOURCES, VERBS } = VB['sim/commands'];
+  // every source a command of src carries, written out, is in the list (a computed one is a variable passed on: trust's goBack)
+  const used = new Set();
+  for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(fs.readdirSync(path.join(__dirname, '../src/page')).map((x) => 'src/page/' + x))) {
+    const src = readSource(f);
+    for (const m of src.matchAll(/verb: '[A-Za-z]+'[^}]*?source: '([a-z]+)'/gs)) used.add(m[1]);
+    for (const m of src.matchAll(/goBack\(st, [^)]*'([a-z]+)'\)/g)) used.add(m[1]);
+  }
+  for (const s of used) assert.ok(SOURCES.includes(s), `source ${s} is in SOURCES`);
+  assert.ok(used.size >= 10, `the sources found: ${[...used].join(', ')}`);
+  const s4 = Sim.seed(island(7, ROOMY), 7, 'heirs');
+  Sim.advance(s4, Sim.DAY);
+  const snap4 = () => { const { w, ...rest } = s4; return canon(rest); };
+  const hh = s4.households.find((h) => !h.dissolved && h.holder !== null && s4.plans.households.has(h.id) && h.members.some((m) => m !== h.holder && s4.pawns[m].age >= 18));
+  const member = hh.members.find((m) => m !== hh.holder && s4.pawns[m].age >= 18);
+  const single = (sex) => s4.pawns.find((p) => p.died === null && p.age >= 18 && p.sex === sex && Sim.spouseOf(s4, p.id) === null);
+  const man = single('m'), woman = single('f');
+  const empty = s4.farmsteads.find((f) => f.household === null);
+  const before = snap4();
+  const refused = [
+    [{ actor: member, verb: 'barn', target: hh.id, args: {}, source: 'pawn' }, /not the head/],
+    [{ actor: member, verb: 'heirFarm', target: hh.id, args: { heir: member }, source: 'player' }, /not the head/],
+    [{ actor: member, verb: 'plotToVillage', target: hh.id, args: { plan: 0 }, source: 'pawn' }, /not the head/],
+    [{ actor: hh.holder, verb: 'plotToVillage', target: hh.id, args: { plan: 0 }, source: 'construction' }, /no actor/],
+    [{ actor: man.id, verb: 'marry', target: woman.id, args: { home: man.household }, source: 'player' }, /not player's to do: round or debug/],
+    [{ actor: man.id, verb: 'marry', target: woman.id, args: { home: man.household }, source: 'pawn' }, /not pawn's to do/],
+    [{ actor: hh.holder, verb: 'kill', source: 'player' }, /debug only/],
+    [{ actor: hh.holder, verb: 'retire', source: 'pawn' }, /debug only/],
+    [{ actor: null, verb: 'skip', args: { hours: 1 }, source: 'round' }, /debug only/],
+    [{ actor: hh.holder, verb: 'goHome', source: 'nobody' }, /no source nobody/],
+    [{ actor: hh.holder, verb: 'goHome' }, /no source undefined/],
+  ];
+  if (empty) {
+    refused.push([{ actor: man.id, verb: 'claim', target: empty.id, source: 'pawn' }, /not pawn's to do/]);
+    refused.push([{ actor: man.id, verb: 'foundHousehold', target: empty.id, args: { members: [man.id], grain: 0 }, source: 'restoration' }, /no claim on farm/]);
+  }
+  for (const [cmd, why] of refused) { const res = issue(s4, cmd); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); }
+  assert.strictEqual(snap4(), before, 'a verb refused for want of the right changes nothing');
+  // the player's queue takes no verb that is not the player's
+  Sim.inhabit(s4, hh.holder);
+  for (const verb of ['skip', 'kill', 'retire']) assert.ok(/no verb/.test(Sim.queue(s4, { actor: hh.holder, verb })), `${verb} is not queued`);
+  assert.deepStrictEqual(Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.length === 1).sort(), ['kill', 'retire', 'skip'], 'the debug verbs');
+  // the facade's direct mutators are debug: none is a verb, and the page calls them only from its drawer
+  assert.deepStrictEqual(Sim.DEBUG, ['setOwner', 'killPawn', 'retireHolder', 'holdMeetings', 'movingRound']);
+  for (const n of Sim.DEBUG) assert.ok(!VERBS[n] && typeof Sim[n] === 'function', `${n} is debug, no verb`);
+  const pages = fs.readdirSync(path.join(__dirname, '../src/page')).filter((f) => Sim.DEBUG.some((n) => readSource('src/page/' + f).includes('Sim.' + n + '(')));
+  assert.deepStrictEqual(pages, ['drawer.js'], 'only the debug drawer calls the debug mutators');
+  console.log(`commands ok (VB-681): ${refused.length} acts refused for want of the right; ${used.size} sources, all listed; the debug verbs and mutators kept to debug`);
+}
 console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out, and decide, retire, argue, rally, skip and kill, and marry, handOn, serve${empty ? ', claim' : ''}${site3 ? ' and leave' : ''}; ${refusals.length + 16 + R3.length - (site3 ? 1 : 0)} refusals change nothing; the acts the verbs wrap are called only from sim/commands`);
 // the player's cause (VB-211): the same advocate slot as a natural cause, so the same pull on the pawn's attitude and its ties'; dropCause ends it
 {
@@ -348,7 +399,7 @@ console.log('commands ok: offer and answer (VB-690): a gift and an ask settle at
   const stranger = s.pawns.find((p) => live(p) && p.age < 18 && !Sim.childrenOf(s, parent.id).includes(p.id) && (Sim.spouseOf(s, parent.id) === null || !Sim.childrenOf(s, Sim.spouseOf(s, parent.id)).includes(p.id)));
   const grown = s.pawns.find((p) => live(p) && p.age >= 18 && p.id !== parent.id);
   const other = s.households.find((h) => !h.dissolved && h.id !== parent.household);
-  const go = (actor, target, args) => issue(s, { actor, verb: 'move', target, args, source: 'test' });
+  const go = (actor, target, args) => issue(s, { actor, verb: 'move', target, args, source: 'debug' });
   const before = snap();
   for (const [actor, target, args, why] of [
     [9999, other.id, { reason: 'care' }, /not a living pawn/],
@@ -396,7 +447,7 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   Sim.advance(s2, 3 * Sim.DAY + 4);
   const g = s2.agents.find((x) => s2.pawns[x.id].died === null), R = VB['sim/agents'];
   const far = s2.farmsteads.find((f) => f.house !== s2.farmsteads[s2.households[s2.pawns[g.id].household].farmstead].house).house;
-  const walk = (args) => { R.release(s2, g); g.inside = false; g.occasion = null; assert.strictEqual(issue(s2, { actor: g.id, verb: 'walkTo', target: far, args, source: 'test' }), true); };
+  const walk = (args) => { R.release(s2, g); g.inside = false; g.occasion = null; assert.strictEqual(issue(s2, { actor: g.id, verb: 'walkTo', target: far, args, source: 'debug' }), true); };
   const talk = () => issue(s2, { actor: g.id, verb: 'haltForTalk', args: { until: s2.t + 1 }, source: 'talk' });
   walk({}); assert.strictEqual(g.errand, true);
   const walking = JSON.stringify(g.path); talk();

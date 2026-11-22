@@ -120,11 +120,13 @@ VB['sim/lifecycle'] = (() => {
   }
   // ---- debug actions (source 'debug') ----
   register('kill', {
+    sources: ['debug'],
     check: (st, c) => living(st, c.actor),
     run: (st, c) => killPawn(st, c.actor, 'killed'),
   });
   // retire: a holder hands the farm to the first heir
   register('retire', {
+    sources: ['debug'],
     check: (st, c) => {
       const dead = living(st, c.actor);
       if (dead) return dead;

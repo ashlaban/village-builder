@@ -126,7 +126,7 @@ const onItsDay = (id, t) => Math.abs(((((t - ASK.hour) % SEASON) + SEASON) % SEA
     her = o.wants.woman;
   delete st.rng.society.fix;
   assert.strictEqual(
-    issue(st, { actor: 10, verb: 'marry', target: her, args: { home: 1 }, source: 'test' }),
+    issue(st, { actor: 10, verb: 'marry', target: her, args: { home: 1 }, source: 'debug' }),
     true,
     'she marries his brother',
   );
