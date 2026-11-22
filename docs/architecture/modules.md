@@ -317,7 +317,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `leaveHousehold`, `clearMembers`, `setServant`). Death retains the last household on the historical record.
   `sim/membership.foundHousehold` creates, supplies, owns and populates a farm's household; restoration reaches it by the
   `foundHousehold` command, and a completed plot reaches `sim/cottage` by `finishCottage`.
-- `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes.
+- `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes; it is their only writer
+  (`setPractice` the one write of a settlement's practice). `sim/customs` (VB-231, kernel) holds the catalogue (`DIMS`, `ARCHETYPES`,
+  `PRACTICES`) and the one door every module reads a custom in force through: `inForce(st, key, settlement)` (the option's key),
+  `inForceAt(st, k, settlement)` (its index) and `customOf(st, key, culture)`; outside the two, no module of `src/sim` indexes a practice array
+  (the lint). `node tools/customs.js` lists each custom's readers.
 - Saves in the page (VB-214) are `src/page/saves.js`: `{build, savedAt, label, save: Sim.save(st)}`, gzipped, in IndexedDB (an auto slot and
   three by hand for each archipelago) or a file; the build id is written by `build.py`, and a save of another build is refused by the
   page, not by `Sim.load`. The landing page and the loader (`src/page/loader.js`) lead to it; it keeps nothing in `st`.
@@ -343,7 +347,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   head's skill and bias, VB-254), `sim/skills` (VB-475: a pawn's skill at each type of work, a stand-in that does not grow, from the stream
   `traits`, and a work leg's pace: skill and a mishap from the stream `mishap`; `sim/agents` writes `agent.pace` at the leg's start and
   `manning` reads it; VB-360: a pawn's crafts, `pawn.skills`, learnt by doing and fading, read in closed form: a kind names its `craft`,
-  the leg's pace reads its level, and `sim/work`'s `settle` practises it with the hours worked), `sim/commands`.
+  the leg's pace reads its level, and `sim/work`'s `settle` practises it with the hours worked), `sim/commands`, `sim/customs` (the catalogue of customs and the door to the customs in force, VB-231).
 - Material and land: `sim/projects` (the project plans' record and reads, VB-123), `sim/holding` (who may come to hold a farm: one table of the bars, each way to a farm the list it reads, and the household that goes with a new holder, VB-688), `sim/makings` (the registry of what a head begins through the verb `project`, VB-678), `sim/projectplans` (their one writer; VB-431), `sim/goods` (trade goods, grain subtype identifiers and culture’s worth and propriety rules), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/seasonal` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fieldplans` (household demand, site selection and project planning), `sim/rotations` (crop choices and the village custom), `sim/fields` (field state transitions), `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/fieldwork` (the job kinds of a farm's fields, beside `sim/fields`, VB-418), `sim/chores` (the job kinds of the household's daily work at
@@ -370,7 +374,7 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
 - Tunables: a table one domain reads lives in that domain's module with a `// @tunable NAME: meaning` line above it (VB-419;
   `grep -rn "@tunable" src`, the lint holds it for each table that left `sim/rules`); the tables several domains read (the calendar, `ECON`,
   `FOODS`, `HERD`, `TRAVEL` and the like) stay in `src/sim/rules.js`; `KINDS` (job kinds) in each domain's module, joined by `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`
-  (worn paths) in `src/gen/paths.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.
+  (worn paths) in `src/gen/paths.js`; `DIMS`, `ARCHETYPES` and `PRACTICES` in `src/sim/customs.js`.
 - A new job kind is one record in the `KINDS` of the module whose state its work changes (VB-418): numbers, type of work, labels, where to
   stand, urgency, and what finishing and delivering do, beside the rules its `done`, `deliver` and `available` call (the field's kinds in
   `sim/fieldwork`, the byre's in `sim/byre`, the household's daily work at the house in `sim/chores`). A kind that takes from one module and
