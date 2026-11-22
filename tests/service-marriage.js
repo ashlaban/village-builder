@@ -4,7 +4,8 @@
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], H = VB['sim/heirs'];
 const { matchRules, matchBar, kinOk } = VB['sim/matching'], { movingRound } = VB['sim/round'], { checkState } = require('./lib/invariants.js');
 const assert = require('assert');
-const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
+// the roomy island of tests/lib/probe.js, generated once a seed (VB-862: a 120 by 85 map took half a second each time)
+const world = (seed) => require('./lib/probe.js').island(seed, require('./lib/probe.js').ROOMY);
 const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } };
 const fresh = () => { const st = Sim.seed(world(7), 7, 'populous'); st.naturalDeaths = false; return st; };
 const out = [];

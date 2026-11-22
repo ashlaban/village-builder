@@ -10,10 +10,10 @@ const { moveClock } = require('./lib/clock.js'), { checkState } = require('./lib
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('POT FAIL:', m); } };
 const near = (a, b, e = 1e-6) => Math.abs(a - b) < e;
 const U = ECON.unground; // grain a ration, cooked unground (VB-009)
-const it = G.generate(7); let r; while (!(r = it.next()).done);
+const { island, ROOMY } = require('./lib/probe.js'), world7 = island(7, ROOMY); // the roomy island (heirs needs its room), generated once (VB-862: the full map took 2 s)
 // a household with no larder, fields growing (no seed held back), no project plan, and a known store
 function home(grain = 1000) {
-  const st = Sim.seed(r.value, 7, 'founders'), hh = st.households[0], f = st.farmsteads[hh.farmstead];
+  const st = Sim.seed(world7, 7, 'founders'), hh = st.households[0], f = st.farmsteads[hh.farmstead];
   for (const fd of f.fields) fd.stage = 'growing';
   VB['sim/plans'].dropAll(st, 'household', hh.id);
   hh.larder = []; hh.meals = 0; hh.grain = { barley: grain }; hh.hungryDays = 0;
@@ -133,7 +133,7 @@ check(ECON.uncooked === 0.75, 'uncooked grain: a ration feeds 0.75');
 // --- a run: fish and gathered food go into pots, a cook at work at the end of work finishes, the state keeps its invariants
 check(KINDS.cook.late === true, 'the cook\'s job is finished after the end of work');
 {
-  const st = Sim.seed(r.value, 7, 'heirs'); // heirs: larger households, where a cook is still at the pot at the end of work (at 12 tiles an hour
+  const st = Sim.seed(world7, 7, 'heirs'); // heirs: larger households, where a cook is still at the pot at the end of work (at 12 tiles an hour
   // the founders' cooks are done by then)
   const pots = [0, 0, 0, 0], pot = Pot.cookMeal;
   let late = 0, finished = 0;

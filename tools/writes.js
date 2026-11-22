@@ -98,7 +98,17 @@ function matches(toks) {
 }
 
 // One module. `returns` maps 'module:function' to the path the function returns (from the first pass over every module).
+// A scan is kept for the process, by its file, module, source and returns: tools/stocks.js scans the modules the map has already scanned,
+// in both passes, and the tokenizer takes seconds over the sources (VB-862). Callers copy what they keep, never change a scan.
+const scans = new Map();
 function scan(file, mod, returns = {}, src = readSource(file)) {
+  const key = `${file}\0${mod}\0${JSON.stringify(returns)}`, kept = scans.get(key);
+  if (kept && kept.src === src) return kept.result;
+  const result = scanned(file, mod, returns, src);
+  scans.set(key, { src, result });
+  return result;
+}
+function scanned(file, mod, returns, src) {
   const tokens = tokenize(src), toks = tokens.filter((t) => t.t !== 'com');
   const allowed = new Set();
   for (const t of tokens) if (t.t === 'com' && /^\/\/ lint-allow: owner \S/.test(src.slice(t.s, t.e))) {

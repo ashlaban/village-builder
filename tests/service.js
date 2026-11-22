@@ -1,7 +1,9 @@
 // A farm that dies out: members without kin elsewhere go into service in their own village, else the nearest village.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { kinNear } = VB['sim/records'], { extinct } = VB['sim/heirs'];
+const VB = require('../src/load.js'), Sim = VB.sim, { kinNear } = VB['sim/records'], { extinct } = VB['sim/heirs'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SERVICE FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
+// The roomy island of tests/lib/probe.js, generated once (VB-862: three full-size maps took 6 of the script's 7 s); heirs seeds the same
+// two debug villages and five households on it as on the full map.
+const { island, ROOMY } = require('./lib/probe.js'), world = (seed) => island(seed, ROOMY);
 const st = Sim.seed(world(7), 7, 'heirs');
 const vOf = (hh) => st.farmsteads[hh.farmstead].village;
 const kinElsewhere = (hh, id) => kinNear(st, id).some((q) => st.pawns[q].alive && st.pawns[q].household !== null && st.pawns[q].household !== hh.id);
@@ -21,7 +23,7 @@ for (const id of ids) {
 const first = st.pawns[ids.find((id) => st.pawns[id].alive)], farm = st.farmsteads[st.households[want].farmstead].name;
 check(first.servant === true, `${first.given} is not a servant`);
 check(Sim.recordOf(st, { pawn: first.id, life: true }).some((e) => e.kind === 'service' && e.text.includes(farm)), `${first.given} has no service event naming ${farm}`);
-// A one-farm village: the people go to the nearest village.
+// A one-farm village: the people go to the nearest village. (heirs has none, on this island or the full map: the case waits for a state that has one)
 const st2 = Sim.seed(world(7), 7, 'heirs');
 const lone = st2.households.find((h) => st2.households.filter((o) => st2.farmsteads[o.farmstead].village === st2.farmsteads[h.farmstead].village).length === 1);
 if (lone) {

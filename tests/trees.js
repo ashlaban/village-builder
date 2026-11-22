@@ -1,7 +1,8 @@
 // Trees per forest tile: seeding, felling, regrowth over 30 years, clearing to meadow, and the drawing stages.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/forest'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TREES FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
+// generated anew each time, for the seeding's determinism, on the small island of tests/lib/probe.js (VB-862: the full map took 2 s each)
+const world = (seed) => require('./lib/probe.js').generate(seed);
 const w1 = world(7), w2 = world(7);
 
 // seeding: deterministic, 60 (broadleaf) or 80 (pine) +-20% on forest tiles, 0 elsewhere

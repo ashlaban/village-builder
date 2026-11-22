@@ -1,18 +1,15 @@
-// The balance accounts (VB-403, tools/accounts.js): on the tiny map, the heirs scenario, 3 years (it has gifts, the village store,
+// The balance accounts (VB-403, tools/accounts.js): on the roomy island of tests/lib/probe.js (VB-862), the heirs scenario, 3 years (it has gifts, the village store,
 // handings on and deaths in that time), the food account closes within 1% of the produce with `unexplained` counted (what the
 // lines and the change in stores leave over, the stocks read apart from the movements), the people account's births and arrivals less
 // its deaths are the change in the living, and the run is the same run with the report as without it (its wrappers only read).
 // Each run is a child process: the report's loader wraps modules as they load, which one process does once.
 const assert = require('assert'), cp = require('child_process'), path = require('path'), crypto = require('crypto');
-const SEED = 7, SCENARIO = 'heirs', SIZE = { cols: 120, rows: 85 }, YEARS = 3;
+const SEED = 7, SCENARIO = 'heirs', YEARS = 3;
 
 if (process.argv[2] === 'child') {
   const accounts = process.argv[3] === 'accounts', A = require('../tools/accounts.js');
   const VB = accounts ? A.load() : require('../src/load.js'), Sim = VB.sim;
-  const it = VB.gen.generate(SEED, SIZE);
-  let r;
-  while (!(r = it.next()).done);
-  const st = Sim.seed(r.value, SEED, SCENARIO);
+  const { island, ROOMY } = require('./lib/probe.js'), st = Sim.seed(island(SEED, ROOMY), SEED, SCENARIO);
   let out = null;
   if (accounts) {
     const rep = A.report(VB, st);
@@ -57,5 +54,5 @@ function check(a, plain) {
   assert(years.some((y) => y.food.all.lines.in && y.food.all.lines.in.gifts > 0), 'gifts were given in the run, and are counted at both ends');
   // 5. the report is listed by tools/sim.js
   assert(/accounts/.test(cp.execFileSync('node', [path.join(__dirname, '..', 'tools', 'sim.js'), '--help'], { encoding: 'utf8' })), 'tools/sim.js lists the accounts report');
-  console.log(`accounts: ${YEARS} years of ${SCENARIO} on tiny close (unexplained at most ${Math.max(...years.map((y) => Math.abs(y.food.all.unexplained))).toExponential(1)} rations); the run is unchanged`);
+  console.log(`accounts: ${YEARS} years of ${SCENARIO} on the roomy island close (unexplained at most ${Math.max(...years.map((y) => Math.abs(y.food.all.unexplained))).toExponential(1)} rations); the run is unchanged`);
 }

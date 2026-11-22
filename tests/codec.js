@@ -43,8 +43,8 @@ assert.ok(pj.one.$as === 'box' && pj.two.$ref === pj.one.$id && pb.one === pb.tw
 assert.throws(() => decode(pj), /no way to make a packed box/);
 
 // a real state: seeded founders after a year, every key (the world aside) the same canonical text after a trip through JSON
-const it = G.generate(7); let r; while (!(r = it.next()).done);
-const st = Sim.seed(r.value, 7, 'founders'); Sim.advance(st, Sim.YEAR);
+const world7 = require('./lib/probe.js').island(7); // the small island, generated once (VB-862: the full map took 2 s)
+const st = Sim.seed(world7, 7, 'founders'); Sim.advance(st, Sim.YEAR);
 const { w, ...rest } = st, text = JSON.stringify(encode(rest)), back = decode(JSON.parse(text));
 for (const k of Object.keys(rest)) assert.strictEqual(canon(back[k]), canon(rest[k]), `founders 7, year 1: ${k} differs after a trip`);
 assert.strictEqual(back.cenv.people, back.pawns, 'cenv.people is pawns itself after a trip');
