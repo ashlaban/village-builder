@@ -14,6 +14,20 @@
 //   stores      the change over the year in grain, sheaves in the barn, flour, fish by the rack, fresh food, the larder, the village
 //               stores, pawns' stakes and gift grain on its way
 //   unexplained produced + received - outlets - the change in stores, with its share of the produce: 0 when every movement is counted.
+// People (island-wide): births, those who came from outside, deaths by cause, marriages, moves between villages (a pawn living at the
+//   year's start and end in two villages), households founded and dissolved; growth, births a woman (the period's total fertility, by
+//   five-year groups 15 to 49), the shares dying before 1 and before 15 (the period's life table, as the balance review's scripts), the
+//   mean age at first marriage by sex and the share of the living 45 and over never married (tools/waiting.js yearFacts); and at the
+//   moving round's day, the unmarried of age by what holds them back (tools/waiting.js census: hungry, none (no partner), kin, home,
+//   score, means, free), with the matches the round put off for the means.
+// Spread, at the year's turn: food produced over need a household (its produced lines over its need for a year: p10, p50, p90, the share
+//   under 1.0 and 1.67), days of food held (p10, p50, p90), the Gini of fields and of grain, the share of single-person households, the
+//   households hungry over 30 days of the year; and all food produced over all need.
+// Goodwill: gifts in the year (the record's), goodwill outstanding a live household (owed to its members), live pairs, the share owed to
+//   the three households owed most, and the goodwill booked at feasts. Labour: the share of work hours working, walking, carrying and idle,
+//   by season, of those 7 and older not children (tools/idle.js countHour: the run is stepped an hour at a time).
+// The balance properties (docs/balance/cards.md): a line each, this year's value, or `no mechanism yet`.
+// --json: the years as data, a record a year ({year, food: {all, villages}, people, spread, goodwill, labour, properties}).
 // Read from the stores' ledgers and yearly totals (src/sim/stores.js) at each year's turn, and from a closing household's ledger as it
 // closes; the larder's takes (eaten, spoilt), which write no ledger entry, are counted by wrapping sim/larder's exports at load, as
 // tools/perf.js wraps its systems (tests/lib/load.js): `load()` replaces require('../src/load.js').
@@ -21,6 +35,7 @@
 // `r.result()`, `a.print(out)`) and tests/accounts.js.
 require('./help.js')(__filename);
 const { loadModules } = require('../tests/lib/load.js');
+const Waiting = require('./waiting.js'), { countHour } = require('./idle.js');
 
 // ---- the wrappers: the larder's unrecorded takes, and a household's ledger as it closes ----
 let sink = null; // the report listening (one a process)
@@ -93,11 +108,14 @@ function report(VB, st, opts = {}) {
       if (y < from) continue;
       const line = lineOf(type, e);
       if (line) book(bucket(y, v, into), line, e.n);
+      if (e.kind === 'feast' && e.booked > 0) add(bucket(y, v, into), 'goodwill.feasts', e.booked); // not food: the goodwill a feast booked
+      if (line && type === 'household' && into === flows && line.startsWith('produced.') && y === counted + 1) produce.set(holder.id, (produce.get(holder.id) || 0) + e.n);
     }
     for (const x of holder.totals || []) {
       if (x.year < from || !FOOD.has(x.good)) continue;
       const line = lineOf(type, x);
       if (line) book(bucket(x.year, v, into), line, x.n);
+      if (line && type === 'household' && into === flows && line.startsWith('produced.') && x.year === counted + 1) produce.set(holder.id, (produce.get(holder.id) || 0) + x.n);
     }
   }
   // Food held now, by village (and 'transit': gift grain on its way): rations as held.
@@ -124,7 +142,8 @@ function report(VB, st, opts = {}) {
   // the stocks less what the year in progress has already moved: the stocks as they stood at that year's turn (or at the run's start, as
   // if its year's movements so far had not been made), so that a year's change in stores is that year's movements
   let counted = Stores.yearNow(st) - 1; // years whose accounts are closed
-  const net = (b) => Object.entries(b).reduce((s, [k, n]) => s + (k.startsWith('out.') ? -n : n), 0);
+  const produce = new Map(); // household id -> food it produced in the year being closed (the ledger's produced lines), for the spread
+  const net = (b) => Object.entries(b).reduce((s, [k, n]) => s + (k.startsWith('out.') ? -n : k.startsWith('goodwill.') ? 0 : n), 0);
   function opening() {
     const y = counted + 1, s = stocks();
     for (const id of st.liveHouseholds) if (!st.households[id].dissolved) readHolder(st.households[id], 'household', villageOf(st.households[id]), y);
@@ -143,10 +162,25 @@ function report(VB, st, opts = {}) {
   };
   let open = opening();
   const years = [];
+  // the year's people, spread, goodwill and labour (below), read as the year starts, at the moving round's day and at its turn
+  const P = people(VB, st), labour = {};
+  const [W0, W1] = Sim.WORK;
+  // Advances to hour t, an hour at a time, counting each work hour as the idle report does (tools/idle.js countHour).
+  function stepTo(t) {
+    while (st.t < t - 1e-9) {
+      Sim.advance(st, Math.min(1, t - st.t));
+      const h = Sim.cal(st.t).hour;
+      if (h >= W0 && h < W1) countHour(Sim, st, labour);
+    }
+  }
   // Advances to the next calendar year's turn and closes that year's account.
   function advanceYear() {
-    const y = counted + 1;
-    Sim.advance(st, y * YEAR - st.t);
+    const y = counted + 1, census = (y - 1) * YEAR + Waiting.censusHour(VB['sim/rules']);
+    P.start();
+    for (const k of Object.keys(labour)) delete labour[k];
+    let c = null;
+    if (census > st.t && census < y * YEAR) { stepTo(census); c = Waiting.census(VB, st); }
+    stepTo(y * YEAR);
     for (const id of st.liveHouseholds) if (!st.households[id].dissolved) readHolder(st.households[id], 'household', villageOf(st.households[id]), y);
     for (const v of st.villages) readHolder(v, 'village', v.id, y);
     const end = stocks(); // less the next year's first hours, already moved (read from the ledgers just now, or kept)
@@ -155,7 +189,16 @@ function report(VB, st, opts = {}) {
     counted = y;
     const lines = new Map();
     for (const m of [flows, kept]) for (const [v, b] of m.get(y) || []) lines.set(v, sumLines([lines.get(v) || {}, b]));
-    years.push(close(y, lines, open, end));
+    const year = close(y, lines, open, end);
+    year.people = P.end(c);
+    year.spread = spread(VB, st, P.hungry0, produce);
+    year.goodwill = goodwill(VB, st, P.record0);
+    year.labour = hoursShare(labour);
+    year.spread.foodOverNeed = r3(year.food.all.produced / Math.max(1e-9, year.spread.need));
+    year.goodwill.fromFeasts = r3(year.food.all.feastGoodwill);
+    year.properties = properties(VB, st, year);
+    years.push(year);
+    produce.clear();
     flows.delete(y);
     kept.delete(y);
     open = end;
@@ -169,6 +212,176 @@ function report(VB, st, opts = {}) {
   return { advanceYear, result: () => ({ years }), R };
 }
 const sum = (m) => [...m.values()].reduce((s, n) => s + n, 0);
+const r3 = (x) => (Number.isFinite(x) ? +x.toFixed(3) : null);
+const quantile = (xs, q) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(q * s.length))]; };
+function gini(xs) {
+  const s = [...xs].sort((a, b) => a - b), n = s.length, tot = s.reduce((a, b) => a + b, 0);
+  if (!n || !(tot > 0)) return null;
+  let w = 0;
+  s.forEach((x, i) => { w += (i + 1) * x; });
+  return (2 * w) / (n * tot) - (n + 1) / n;
+}
+
+// ---- people: the year's births, deaths, marriages, moves and households, and the rates from them ----
+// Marriages put off, by reason: the waiting census at the moving round's day (tools/waiting.js: those unmarried, of age to marry and
+// under 45, each under the best outcome over the other sex): hungry, no partner (nobody of the other sex free), the kin limit, no home
+// under the residence custom, the score (ages, villages), the home lacks the means, and free to marry.
+function people(VB, st) {
+  const Sim = VB.sim, YEAR = Sim.YEAR, Rec = VB['sim/records'];
+  let t0, living0, villageAt, pawns0, households0, dissolved0;
+  const o = {
+    start() {
+      t0 = st.t; living0 = [...st.living]; pawns0 = st.pawns.length; households0 = st.households.length;
+      dissolved0 = st.households.filter((h) => h.dissolved).length;
+      villageAt = new Map(living0.map((id) => [id, Rec.settlementIdOf(st, st.pawns[id])]));
+      o.record0 = st.record.length;
+      o.hungry0 = new Map(st.liveHouseholds.map((id) => [id, st.households[id].hungryDays]));
+    },
+    end(census) {
+      const t1 = st.t, inYear = (t) => t !== null && t !== undefined && t >= t0 && t < t1;
+      const cause = new Map();
+      for (let i = o.record0; i < st.record.length; i++) { const e = st.record[i]; if (e && e.kind === 'died') cause.set(e.pawn, e.cause || e.text || 'unknown'); }
+      // the year's newcomers: those born in it, and those who came from outside the island (a pawn made as a founder: settlers, a
+      // scenario's arrivals); every pawn alive in the year is of the living at its start or a newcomer
+      const born = [], arrived = [], died = [];
+      for (let id = pawns0; id < st.pawns.length; id++) (st.pawns[id].founder ? arrived : born).push(st.pawns[id]);
+      for (const p of [...living0.map((id) => st.pawns[id]), ...born, ...arrived]) if (inYear(p.died)) died.push(p);
+      const deaths = {};
+      for (const p of died) { const c = cause.get(p.id) || 'unknown'; deaths[c] = (deaths[c] || 0) + 1; }
+      let moves = 0;
+      for (const [id, v] of villageAt) { const p = st.pawns[id]; if (p.alive && Rec.settlementIdOf(st, p) !== v) moves++; }
+      const facts = Waiting.yearFacts(VB, st, t0 - 1e-9, t1 - 1e-9, o.record0);
+      // the year's exposure (person-years) and deaths by age, over those alive in it: the period's rates
+      const exposed = [...living0.map((id) => st.pawns[id]), ...born, ...arrived];
+      const ageAt = (p, t) => (t - p.born) / YEAR;
+      const years = (p, a0, a1) => Math.max(0, Math.min(t1, p.born + a1 * YEAR, p.died === null ? Infinity : p.died) - Math.max(t0, p.born + a0 * YEAR)) / YEAR;
+      const rate = (a0, a1) => {
+        let ex = 0, d = 0;
+        for (const p of exposed) { ex += years(p, a0, a1); if (inYear(p.died) && ageAt(p, p.died) >= a0 && ageAt(p, p.died) < a1) d++; }
+        return ex > 0 ? d / ex : null;
+      };
+      const m0 = rate(0, 1), m1 = rate(1, 5), m5 = rate(5, 15);
+      // births a woman: the period's total fertility, five-year groups from 15 to 49
+      let tfr = 0;
+      for (let a = 15; a < 50; a += 5) {
+        let wy = 0, b = 0;
+        for (const p of exposed) if (p.sex === 'f') wy += years(p, a, a + 5);
+        for (const c of born) { const m = c.mother !== null && c.mother !== undefined ? st.pawns[c.mother] : null; if (m && ageAt(m, c.born) >= a && ageAt(m, c.born) < a + 5) b++; }
+        if (wy > 0) tfr += (5 * b) / wy;
+      }
+      const first = new Set();
+      for (const u of st.unions) { first.add(u.a); first.add(u.b); }
+      const old = st.living.map((id) => st.pawns[id]).filter((p) => ageAt(p, t1) >= 45);
+      const wait = census ? Object.fromEntries(Waiting.CAUSES.map((k) => [k, census.counts[k]])) : null;
+      return {
+        living: [living0.length, st.living.length], births: born.length, arrived: arrived.length, deaths, died: died.length, marriages: facts.marriages,
+        putOff: wait, putOffForMeans: facts.putOff, moves, householdsFounded: st.households.length - households0,
+        householdsDissolved: st.households.filter((h) => h.dissolved).length - dissolved0,
+        growth: r3(living0.length ? st.living.length / living0.length - 1 : null), birthsAWoman: r3(tfr),
+        diedBefore1: r3(m0 === null ? null : 1 - Math.exp(-m0)),
+        diedBefore15: r3(m0 === null || m1 === null || m5 === null ? null : 1 - Math.exp(-(m0 + 4 * m1 + 10 * m5))),
+        firstMarriageAge: { f: r3(facts.ages.f[0] ? facts.ages.f[1] / facts.ages.f[0] : null), m: r3(facts.ages.m[0] ? facts.ages.m[1] / facts.ages.m[0] : null) },
+        neverMarried45: r3(old.length ? old.filter((p) => !first.has(p.id)).length / old.length : null),
+      };
+    },
+  };
+  return o;
+}
+
+// ---- the spread between households, at the year's turn ----
+// produced over need: the food a household produced in the year (its produced lines) over its members' need for a year (sim/hunger
+// dailyNeed, now); days held: its food (grain, sheaves, flour, the rack, fresh food, the larder, meals) over its day's need.
+function spread(VB, st, hungry0, produce) {
+  const Stores = VB['sim/stores'], { dailyNeed } = VB['sim/hunger'], YEAR_DAYS = VB.sim.YEAR_DAYS;
+  const live = st.liveHouseholds.map((id) => st.households[id]).filter((h) => !h.dissolved);
+  const ratio = [], days = [];
+  for (const h of live) {
+    const need = dailyNeed(st, h);
+    if (!(need > 0)) continue;
+    ratio.push((produce.get(h.id) || 0) / (need * YEAR_DAYS));
+    let held = Stores.grainOf(h) + (h.flour || 0) + (h.rack || 0) + (h.meals || 0);
+    for (const b of h.fresh || []) held += b.qty;
+    for (const l of h.larder || []) held += l.n;
+    for (const x of h.unthreshed || []) held += x;
+    days.push(held / need);
+  }
+  const q = (xs) => ({ p10: r3(quantile(xs, 0.1)), p50: r3(quantile(xs, 0.5)), p90: r3(quantile(xs, 0.9)) });
+  return {
+    households: live.length, need: live.reduce((s, h) => s + dailyNeed(st, h) * YEAR_DAYS, 0),
+    producedOverNeed: { ...q(ratio), under1: r3(ratio.filter((r) => r < 1).length / Math.max(1, ratio.length)),
+      under167: r3(ratio.filter((r) => r < 1.67).length / Math.max(1, ratio.length)) },
+    daysHeld: q(days),
+    giniFields: r3(gini(live.map((h) => st.farmsteads[h.farmstead].fields.length))),
+    giniGrain: r3(gini(live.map((h) => Stores.grainOf(h)))),
+    single: r3(live.filter((h) => h.members.length === 1).length / Math.max(1, live.length)),
+    hungry30: live.filter((h) => h.hungryDays - (hungry0.get(h.id) || 0) > 30).length,
+  };
+}
+
+// ---- goodwill (sim/relations): gifts in the year (the record's), and the balances standing at its turn ----
+// outstanding: what is owed to a household's members, summed, a live household (the mean); pairs: the pairs of living pawns with a
+// balance (sim/relations balance: not yet forgotten); top3: the share of all that is owed held by the three households owed most.
+function goodwill(VB, st, record0) {
+  const Rel = VB['sim/relations'];
+  let gifts = 0;
+  for (let i = record0; i < st.record.length; i++) if (st.record[i] && st.record[i].kind === 'gift') gifts++;
+  const owed = new Map();
+  let pairs = 0;
+  for (const id of st.living) {
+    const p = st.pawns[id];
+    if (!p.goodwill) continue;
+    for (const j of p.goodwill.keys()) {
+      const v = Rel.balance(st, id, j);
+      if (!v || !st.pawns[j].alive) continue;
+      if (id < j) pairs++;
+      if (v > 0 && p.household !== null) owed.set(p.household, (owed.get(p.household) || 0) + v);
+    }
+  }
+  const all = sum(owed), top = [...owed.values()].sort((a, b) => b - a).slice(0, 3).reduce((s, n) => s + n, 0);
+  return { gifts, outstanding: r3(all / Math.max(1, st.liveHouseholds.length)), pairs, top3: r3(all > 0 ? top / all : null) };
+}
+
+// ---- the balance map's properties (docs/balance/cards.md, The balance properties): this year's value of each, or 'no mechanism yet' ----
+const NONE = 'no mechanism yet';
+function properties(VB, st, y) {
+  const F = y.food.all, pc = (n) => r3(F.produced > 0 ? n / F.produced : null), t = (o) => (typeof o === 'number' ? o : Object.values(o || {}).reduce((s, x) => s + t(x), 0));
+  const L = F.lines, out = L.out || {}, eaten = t(out.eaten), rotted = t(out.rotted);
+  // customs: the villages' practice (sim/records practice), the customs on which two villages differ
+  const Rec = VB['sim/records'], keys = new Map();
+  for (const v of st.villages) for (const [k, x] of Object.entries(Rec.practice(st, v.id) || {})) { if (!keys.has(k)) keys.set(k, new Set()); keys.get(k).add(x); }
+  const differ = [...keys.values()].filter((xs) => xs.size > 1).length;
+  const P = y.people, S = y.spread, G = y.goodwill, H = y.labour;
+  return [
+    { property: 'population', value: `${P.living[1]} living, growth ${(100 * P.growth).toFixed(1)}% a year` },
+    { property: 'the split of people: farming', value: `${P.living[1]} (all)` },
+    { property: 'the split of people: town and craft', value: NONE },
+    { property: 'the split of people: elite', value: NONE },
+    { property: 'land concentration', value: `Gini of fields ${S.giniFields}; tenancy: ${NONE}` },
+    { property: 'food produced over need', value: `${S.foodOverNeed} in all (all food, the commons too); a household's: p10 ${S.producedOverNeed.p10}, p50 ${S.producedOverNeed.p50}, p90 ${S.producedOverNeed.p90}` },
+    { property: 'share extracted', value: NONE },
+    { property: 'the split of the surplus', value: `of the produce: eaten ${pc(eaten)}, feasted ${pc(out.feast || 0)}, brewed ${pc(out.brewed || 0)}, rots ${pc(rotted)}, seed ${pc(out.seed || 0)}; taken: ${NONE}; sold: ${NONE}` },
+    { property: 'food kept a head', value: `${S.hungry30} of ${S.households} households hungry over 30 days; ${(100 * S.producedOverNeed.under1).toFixed(0)}% produce under their need; days held p50 ${S.daysHeld.p50}` },
+    { property: 'goodwill in circulation', value: `${G.outstanding} rations outstanding a household; ${G.pairs} pairs; the three owed most hold ${G.top3}` },
+    { property: 'goodwill from feasts', value: `${G.fromFeasts} rations booked at feasts this year` },
+    { property: 'idle hours', value: Object.entries(H).map(([k, v]) => `${k} ${(100 * v.idle).toFixed(0)}%`).join(', ') },
+    { property: 'spread of customs', value: `${st.cenv ? st.cenv.cultures.length : 0} culture(s); villages differ on ${differ} of ${keys.size} customs` },
+    { property: 'disease', value: `${NONE} (illness stands in: ${P.deaths.illness || 0} died of it)` },
+  ];
+}
+
+// ---- labour: the share of the work hours of those who work (7 and older, not children), by season, as the idle report counts them ----
+function hoursShare(share) {
+  const out = {};
+  for (const bySeason of Object.values(share)) for (const [season, s] of Object.entries(bySeason)) {
+    const o = (out[season] ||= { working: 0, walking: 0, carrying: 0, idle: 0 });
+    for (const k of Object.keys(o)) o[k] += s[k];
+  }
+  for (const o of Object.values(out)) {
+    const tot = o.working + o.walking + o.carrying + o.idle;
+    for (const k of Object.keys(o)) o[k] = r3(tot ? o[k] / tot : null);
+  }
+  return out;
+}
 function sumLines(list) { const o = {}; for (const b of list) for (const [k, n] of Object.entries(b)) o[k] = (o[k] || 0) + n; return o; }
 // An account from its lines and its opening and closing stocks: the lines nested ({produced: {grain: {barley}}, ...}), the totals, and
 // what is left unexplained.
@@ -180,10 +393,12 @@ function account(name, lines, s0, s1) {
     o[path[path.length - 1]] = (o[path[path.length - 1]] || 0) + n;
   }
   const total = (o) => (typeof o === 'number' ? o : Object.values(o || {}).reduce((s, x) => s + total(x), 0));
+  const feastGoodwill = tree.goodwill ? tree.goodwill.feasts : 0;
+  delete tree.goodwill;
   const produced = total(tree.produced), received = total(tree.in), out = total(tree.out), other = total(tree.other), change = s1 - s0;
   const unexplained = produced + received + other - out - change;
   return { name, lines: tree, produced, received, outlets: out, other, opening: s0, closing: s1, change, unexplained,
-    unexplainedShare: produced > 0 ? unexplained / produced : 0 };
+    unexplainedShare: produced > 0 ? unexplained / produced : 0, feastGoodwill };
 }
 
 // ---- printing ----
@@ -219,15 +434,31 @@ function foodTable(a) {
 // the nested lines of an account (its number-valued keys are the totals: produced, received, outlets ...)
 const treeOf = (a, key) => a.lines[key] || {};
 function print(out) {
-  for (const y of out.years) {
-    console.log(`year ${y.year}: food, rations as held; produced ${Math.round(y.food.all.produced)}, unexplained ${Math.round(y.food.all.unexplained)} (${(100 * y.food.all.unexplainedShare).toFixed(1)}%)`);
-  }
+  console.log('\nfood (rations as held), people and households, a year:');
+  console.table(out.years.map((y) => ({ year: y.year, produced: Math.round(y.food.all.produced), unexplained: Math.round(y.food.all.unexplained),
+    pct: (100 * y.food.all.unexplainedShare).toFixed(1), living: y.people.living[1], births: y.people.births, died: y.people.died,
+    marriages: y.people.marriages, moves: y.people.moves, founded: y.people.householdsFounded, dissolved: y.people.householdsDissolved,
+    overNeed: y.spread.foodOverNeed, hungry30: y.spread.hungry30 })));
   const last = out.years[out.years.length - 1];
   if (!last) return;
+  const P = last.people, S = last.spread, G = last.goodwill;
+  console.log(`\nyear ${last.year}, people: living ${P.living[0]} -> ${P.living[1]} (growth ${(100 * P.growth).toFixed(1)}%); births ${P.births}, arrived ${P.arrived}, `
+    + `deaths ${P.died} (${Object.entries(P.deaths).map(([k, n]) => `${k} ${n}`).join(', ') || '-'}); marriages ${P.marriages}; moves between villages ${P.moves}; `
+    + `households founded ${P.householdsFounded}, dissolved ${P.householdsDissolved}`);
+  console.log(`  births a woman ${P.birthsAWoman}; dying before 1 ${P.diedBefore1}, before 15 ${P.diedBefore15}; first marriage at ${P.firstMarriageAge.f} (women), `
+    + `${P.firstMarriageAge.m} (men); never married at 45 and over ${P.neverMarried45}`);
+  if (P.putOff) console.log(`  at the moving round, unmarried of age, by what holds them back: ${Object.entries(P.putOff).map(([k, n]) => `${k} ${n}`).join(', ')}; `
+    + `matches put off for the means ${P.putOffForMeans}`);
+  console.log(`spread: produced over need p10 ${S.producedOverNeed.p10}, p50 ${S.producedOverNeed.p50}, p90 ${S.producedOverNeed.p90}, under 1.0 ${S.producedOverNeed.under1}, `
+    + `under 1.67 ${S.producedOverNeed.under167}; days held p10 ${S.daysHeld.p10}, p50 ${S.daysHeld.p50}, p90 ${S.daysHeld.p90}; Gini of fields ${S.giniFields}, of grain ${S.giniGrain}; `
+    + `single-person ${S.single}; hungry over 30 days ${S.hungry30}`);
+  console.log(`goodwill: gifts ${G.gifts}; outstanding a household ${G.outstanding}; live pairs ${G.pairs}; the three owed most ${G.top3}; booked at feasts ${G.fromFeasts}`);
+  console.log('labour, share of work hours:'); console.table(last.labour);
   console.log(`\nyear ${last.year}, all villages:`);
   console.table(foodTable(last.food.all));
   console.log('by village: produced, received, outlets, change in stores, unexplained');
   console.table(last.food.villages.map((a) => ({ village: a.name, produced: Math.round(a.produced), received: Math.round(a.received), outlets: Math.round(a.outlets),
     change: Math.round(a.change), unexplained: Math.round(a.unexplained), pct: (100 * a.unexplainedShare).toFixed(1) })));
+  console.log('the balance properties (docs/balance/cards.md):'); console.table(last.properties);
 }
 module.exports = { load, report, print, lineOf };
