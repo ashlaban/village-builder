@@ -1,6 +1,6 @@
 // Grain held and moved in crop proportions, including legacy barley stores.
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/stores'], { CROPS } = VB['sim/rules'], { issue } = VB['sim/commands'];
+const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/stores'], { CROPS } = VB['sim/crops'], { issue } = VB['sim/commands'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const near = (x, y, what) => assert(Math.abs(x - y) < 1e-9, `${what}: ${x}, expected ${y}`);
 const st = tinyState(tinyWorld(Array(12).fill('.'.repeat(20))), [{ at: [8, 6], farms: 3 }], { seed: 7 });

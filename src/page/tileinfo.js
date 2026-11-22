@@ -84,7 +84,7 @@ function fieldCard(i, fd, f) {
   const V = Sim.fieldView(st, i);
   if (!V) return { stats: [], list: '' };
   if (fieldMsg && fieldMsg.tile !== i) fieldMsg = null;
-  const CROPS = VB['sim/rules'].CROPS,
+  const CROPS = VB['sim/crops'].CROPS,
     fallow = CROPS[V.crop].fallow,
     path = V.courses.map(cropName).join(', then ');
   const rows = [

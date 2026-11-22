@@ -2,7 +2,9 @@
 // and the people a pawn knows; owns opinion memories, bands and goodwill
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, YEAR, TICKS, SOCIAL, GOODWILL, MATCH, TRAITS, HANDOVER } = VB['sim/rules'];
+  const { DAY, YEAR, TICKS, GOODWILL, TRAITS, HANDOVER } = VB['sim/rules'],
+    { MATCH } = VB['sim/roles'],
+    { SOCIAL } = VB['sim/ties'];
   const Traits = VB['sim/traits'],
     { DIMS } = VB['culture'];
   const { personEvent, fullName, spouseOf, settlementIdOf, age } = VB['sim/records'];

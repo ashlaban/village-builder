@@ -3,7 +3,7 @@
 // spring day 3 to the end of autumn, a second trip under 12 days of spare food; urgency 0.2 at 24 days or more, 2.0 at none; roles rank
 // foraging, fishing 2 for wife, maid and daughter. Founders at seed 7, 2 years: fish are landed, the state keeps its invariants.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/fish'], Stores = VB['sim/stores'];
-const { KINDS } = VB['sim/kinds'], { ROLES, FISH, MATCH, DAY } = VB['sim/rules'], { dailyNeed } = VB['sim/hunger'];
+const { KINDS } = VB['sim/kinds'], { FISH, DAY } = VB['sim/rules'], { ROLES, MATCH } = VB['sim/roles'], { dailyNeed } = VB['sim/hunger'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FISH FAIL:', m); } };
 // the roomy island of tests/lib/probe.js, generated once a seed (VB-862)

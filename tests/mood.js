@@ -4,7 +4,7 @@
 // the latest talk. A save keeps the event modifiers. Nothing in the simulation reads mood. On the probe's small village.
 const VB = require('../src/load.js'), Sim = VB.sim;
 const fs = require('fs'), path = require('path');
-const { DAY, MOOD, SOCIAL, TICKS, YEAR } = VB['sim/rules'], Mood = VB['sim/mood'];
+const { DAY, TICKS, YEAR } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'], { MOOD } = VB['sim/mood'], Mood = VB['sim/mood'];
 const { spouseOf, childrenOf } = VB['sim/records'], { killPawn } = VB['sim/lifecycle'], { wed } = VB['sim/marriage'], { dailyBirths } = VB['sim/births'];
 const { readSource } = require('../tools/lib/source.js');
 const probe = require('./lib/probe.js'), { checkState } = require('./lib/invariants.js');

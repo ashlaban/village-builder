@@ -5,7 +5,7 @@
 // green for the ways' rules; with --extended (at night, as it shows what a small island cannot) the default island's populous year, whose
 // statistics (the worn-in counts, a quarter of the houses with a way to their door) need a whole island's traffic.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, P = VB['sim/paths'], Look = VB['gen/paths'];
-const { PATHS, YEAR_DAYS } = VB['sim/rules'];
+const { YEAR_DAYS } = VB['sim/rules'], { PATHS } = VB['sim/walking'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('PATHS FAIL:', m); } };
 const probe = require('./lib/probe.js');
 

@@ -3,7 +3,8 @@
 VB['sim/player'] = (() => {
   const { release } = VB['sim/agents'];
   const { holdingOf, spouseOf, personEvent, living, villageOf, fullName } = VB['sim/records'];
-  const { cal, WORK, SOCIAL, HEALTH } = VB['sim/rules'];
+  const { cal, WORK, HEALTH } = VB['sim/rules'],
+    { SOCIAL } = VB['sim/ties'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner } = VB['sim/wishes'];
   const { issue, VERBS } = VB['sim/commands'];

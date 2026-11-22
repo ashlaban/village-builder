@@ -4,7 +4,7 @@
 // no search of its own. Claims on empty farms are checked in tests/farmclaims.js.
 const assert = require('assert'), VB = require('../src/load.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
-const { SERVICE, TIE, SPEED } = VB['sim/rules'], { hexSteps } = VB['sim/hex'], { hoursBetween } = VB['sim/villagehours'];
+const { SPEED } = VB['sim/rules'], { TIE } = VB['sim/society'], { SERVICE } = VB['sim/service'], { hexSteps } = VB['sim/hex'], { hoursBetween } = VB['sim/villagehours'];
 const H = VB['sim/heirs'], S = VB['sim/service'], R = VB['sim/records'], Soc = VB['sim/society'];
 const out = [];
 // A (one farm) on the west, B 14 tiles east of it, C 40 tiles east: by hex steps B is the nearer, and the table is set by hand per case

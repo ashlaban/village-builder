@@ -4,7 +4,7 @@
 const VB = require('../src/load.js'), Sim = VB.sim, CL = VB['sim/claims'], T = VB['sim/territory'], S = VB['sim/stakes'], F = VB['sim/fields'], FieldPlans = VB['sim/fieldplans'];
 const { moveClock } = require('./lib/clock.js');
 const R = VB['sim/relations'], { KINDS } = VB['sim/kinds'], J = VB['sim/jobs'], A = VB['sim/agents'];
-const { CLAIMS, YEAR, DAY, cal, SOCIAL } = VB['sim/rules'], { setOwner } = VB['sim/ownership'];
+const { CLAIMS, YEAR, DAY, cal } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'], { setOwner } = VB['sim/ownership'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('STAKES FAIL:', m); } };

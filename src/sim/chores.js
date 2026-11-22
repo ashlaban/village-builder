@@ -7,7 +7,8 @@ VB['sim/chores'] = (() => {
   const Stores = VB['sim/stores'],
     { reserved } = Stores,
     { target } = VB['sim/targets'];
-  const { WORK, FISH, FORAGE, BREW, PEAT, cal } = VB['sim/rules'],
+  const { WORK, FISH, BREW, PEAT, cal } = VB['sim/rules'],
+    { FORAGE } = VB['sim/forage'],
     Carts = VB['sim/carts'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],

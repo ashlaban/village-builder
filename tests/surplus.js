@@ -1,7 +1,7 @@
 // Surplus dung goes to tilth (VB-718): with no field wanting dung for its soil, the heap's loads go to the unsown field of least tilth,
 // up to TILTH.surplus loads a field-year, after the loads to the cap; a sown field takes none; the count is read as 0 in another year.
 const VB = require('../src/load.js'), F = VB['sim/fields'], { scenario } = require('./lib/probe.js');
-const { SOIL, TILTH, YEAR } = VB['sim/rules'];
+const { YEAR } = VB['sim/rules'], { SOIL } = VB['sim/crops'], { TILTH } = VB['sim/fields'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SURPLUS FAIL:', m); } };
 const cal = (doy) => ({ doy, day: doy, season: Math.floor(doy / 12), sday: doy % 12, hour: 8 });
 const st = scenario('populous', 7);

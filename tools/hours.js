@@ -8,7 +8,7 @@
 // Over the years sampled, each living pawn's hour is counted for its household (pawn.household) and the season: on a job, by the job's kind,
 // as work (phase `work`) or as walking and carrying (any other phase); in the working hours (Sim.WORK) and without a job, as idle (members
 // of 7 and over, not retired). Beside them: the working hours of the household's hands (members of 14 to 59, not retired) and of all its
-// workers (members of 7 and over, not retired, a child at its rate, sim/rules workRate). A household-year counts when the household lived
+// workers (members of 7 and over, not retired, a child at its rate, sim/roles workRate). A household-year counts when the household lived
 // through the whole year sampled; its fields and its ox team are as they were at the end of the spring (the fields it tilled that year).
 // Printed, by group of households (by number of fields, or as --fields and --team keep and split them): for each kind the mean hours of
 // work and of walking and carrying a household-year, the spread of the two together by household (10th, 50th, 90th percentile) and the
@@ -25,7 +25,7 @@
 // Used by tools/sim.js: `const h = require('./hours.js')(VB, st, opts)`; `h.advanceYear()` in place of `Sim.advance(st, Sim.YEAR)`; `h.result()`.
 require('./help.js')(__filename);
 module.exports = (VB, st, { from = 1, every = 'step', fields = null, team = false, household = null } = {}) => {
-  const Sim = VB.sim, { TICKS, workRate } = VB['sim/rules'], [W0, W1] = Sim.WORK, SEASONS = Sim.SEASONS;
+  const Sim = VB.sim, { TICKS } = VB['sim/rules'], { workRate } = VB['sim/roles'], [W0, W1] = Sim.WORK, SEASONS = Sim.SEASONS;
   if (!['hour', 'step'].includes(every)) throw new Error('hours: --every is hour or step');
   const STEP = 1 / TICKS, STAGE = { plowed: 'hoed', sown: 'sown', ripe: 'ripe', stooks: 'reaped' },
     DAYS = ['hoed', 'sown', 'ripe', 'reaped', 'barn', 'threshed'];

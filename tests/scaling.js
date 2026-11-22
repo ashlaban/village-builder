@@ -1,6 +1,6 @@
 // VB-088: the same terrain strip, farm layout and family demographics repeated at two and four villages.
 const assert = require('assert'), VB = require('../src/load.js'), { tinyWorld } = require('./lib/tiny.js');
-const { CROPS } = VB['sim/rules'];
+const { CROPS } = VB['sim/crops'];
 const { measure, growth, report, NAMES } = require('./lib/cost.js');
 
 function villageWorld(n) {

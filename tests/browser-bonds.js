@@ -50,7 +50,7 @@ assert(html.includes('window.__bondTest'), 'page hook exists');
     assert(/\bwife\b/.test(row.title) && !/wife/.test(row.words), `her row's word is its tooltip: ${JSON.stringify(row)}`);
     assert(!/Husband of/.test(card.text), 'the card leaves the spouse to the chip');
     // the function itself: every bond has an icon; kin both ways in the pawn's own word; nobody's portrait is bare; the opinion's tone
-    const fn = await page.evaluate(([m, f]) => { const T = window.__bondTest, st = T.st, P = VB['sim/rules'].SOCIAL, has = (h, w) => h.includes(`aria-label="${w}"`);
+    const fn = await page.evaluate(([m, f]) => { const T = window.__bondTest, st = T.st, P = VB['sim/ties'].SOCIAL, has = (h, w) => h.includes(`aria-label="${w}"`);
       const bare = T.face(f, 'mini'), self = T.face(m, 'mini', m), hers = T.face(m, 'mini', f);
       const rel = st.pawns[m].rel, old = rel.get(f); // a memory made for the check, and taken back: the page writes nothing itself
       const mem = (v) => rel.set(f, { mem: { [Object.keys(P.memories)[0]]: { v, t: st.t } } });

@@ -4,7 +4,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { eligible } = VB['sim/eligibility'], Jobs = VB['sim/jobs'], O = VB['sim/obligations'], { issue } = VB['sim/commands'];
-const { age } = VB['sim/records'], { MATCH, DAY, DAYS } = VB['sim/rules'];
+const { age } = VB['sim/records'], { DAY } = VB['sim/rules'], { MATCH } = VB['sim/roles'], { DAYS } = VB['sim/days'];
 const { checkState } = require('./lib/invariants.js');
 const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(36))), [{ at: [8, 10], farms: 2, sizes: [4, 4] }], { seed: 4 });
 Sim.advance(st, 3);

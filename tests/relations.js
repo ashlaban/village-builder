@@ -1,7 +1,7 @@
 // Relationships (sim/relations): compatibility, opinion derived from the bond, affinity (compatibility shown as a tie grows) and timed
 // memories within their caps (VB-240), close friend and enemy bands told once and checked again each season, memories that fade and are
 // forgotten (once a season), and death ending relationships.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/relations'], Ties = VB['sim/ties'], { SOCIAL, YEAR_DAYS, SEASON_DAYS, DAY } = VB['sim/rules'];
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/relations'], Ties = VB['sim/ties'], { YEAR_DAYS, SEASON_DAYS, DAY } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('RELATIONS FAIL:', m); } };
 const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);

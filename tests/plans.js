@@ -10,7 +10,7 @@ const VB = require('./lib/load.js').loadModules({ wrap: {
   } },
 } }), Sim = VB.sim;
 const { scenario } = require('./lib/probe.js');
-const { CROPS } = VB['sim/rules'];
+const { CROPS } = VB['sim/crops'];
 const { setClock } = require('./lib/clock.js');
 const Stores = VB['sim/stores'], Plans = VB['sim/plans'], { seedNeed } = VB['sim/hunger'], F = VB['sim/fieldplans'];
 const { refreshJobs } = VB['sim/jobs'], { DAY, WORK, HERD, YEAR_DAYS, cal } = VB['sim/rules'];

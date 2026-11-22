@@ -22,7 +22,7 @@ VB['sim/aims'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const Plans = VB['sim/plans'];
   const { heirRanking } = VB['sim/heirranking'];
-  const { CROPS, ROTATIONS } = VB['sim/rules'];
+  const { CROPS, ROTATIONS } = VB['sim/crops'];
   const { tierOf, turnWhy } = VB['sim/rotations'];
   // The surplus (design.md section 7, How a holder chooses: projects; the first values of VB-255's criteria): food beyond `years` of the
   // household's need over the seed held back (the means to marry's measure, MARRIAGE.means, is the first value), and its hands idle over

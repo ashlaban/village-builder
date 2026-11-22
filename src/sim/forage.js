@@ -1,9 +1,14 @@
 // @sys sim/forage: wild food in the woods and on the heath (VB-118): each forest and heath tile's stock of berries, mushrooms and nuts, full
 // each spring and lowered by a trip, and a house's gathering ground: the nearest such tile within reach with something left
 VB['sim/forage'] = (() => {
-  const { FORAGE, YEAR_DAYS, DAY } = VB['sim/rules'],
+  const { YEAR_DAYS, DAY } = VB['sim/rules'],
     { B } = VB['gen'];
   const { reachTiles } = VB['sim/walking'];
+  // @tunable FORAGE: gathering (VB-118; Kim, 10 Nov, QUESTION_ARCHIVE.md, VB-117 to VB-119, question 2): berries, mushrooms and nuts on a forest or heath tile
+  // within `reach` walking steps of the house, with at least `least` (a trip's take) left; a trip brings home `trip` rations times the tile's
+  // stock and lowers it by `take`; every stock is full each spring. Posted from summer day `from` + 1 to the end of autumn; its second trip and
+  // urgency are fishing's (FISH.secondDays, MATCH.urgency)
+  const FORAGE = { reach: 5, trip: 2.5, take: 0.2, least: 0.2, from: 5 };
   // Fresh stocks for a world: every tile full; the settlement generator calls it, and a load of a save made before gathering.
   function initForage(w) {
     // @state w.forage: Float32Array per tile; a forest or heath tile's stock of wild food from 0 to 1 as of the year in w.forageYear; it is
@@ -37,5 +42,5 @@ VB['sim/forage'] = (() => {
     }
     return -1;
   }
-  return { initForage, wild, stock, gather, ground };
+  return { FORAGE, initForage, wild, stock, gather, ground };
 })();

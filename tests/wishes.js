@@ -299,7 +299,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
 // with the default holding none (the save stays small), passes over the played pawn and children; the round reads an unplayed pawn's
 // wish as the played pawn's; a whole ranking is a wish too.
 {
-  const Wi = VB['sim/wishes'], T = VB['sim/traits'], { WISH, HUNGER } = VB['sim/rules'];
+  const Wi = VB['sim/wishes'], T = VB['sim/traits'], { HUNGER } = VB['sim/rules'], { WISH } = VB['sim/wishes'];
   const { st } = scene(), amb = T.IDX.ambition;
   const adults = st.living.filter((id) => st.pawns[id].age >= 18), [a, b, c] = adults;
   st.pawns[a].traits[amb] = 0.9; st.pawns[b].traits[amb] = 0.5; st.pawns[b].hunger = HUNGER.marryBelow; st.pawns[c].traits[amb] = 0.5;

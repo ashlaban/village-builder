@@ -54,7 +54,7 @@ assert(html.includes('window.__speedTest'), 'page hook exists');
               if (+shown[3] % 5 || lag < -1e-8 || lag > 1 / 12 + 1e-8) faults.push({ t: st.t, shown: hours });
             }
             // each visible pawn is drawn where it is or ahead along its leg, by less than a step (VB-474)
-            const d = window.__speedTest.between(), R = VB['sim/rules'], far = (R.SPEED * st.w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6;
+            const d = window.__speedTest.between(), R = VB['sim/rules'], far = (R.SPEED * st.w.HW / R.TICKS / VB['sim/routes'].ROUTE.minStep) * 1.01 + 1e-6;
             for (const a of st.agents) {
               const rig = rigs[a.id], i = a.id;
               if (!rig.root.visible) continue;

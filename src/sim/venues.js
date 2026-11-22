@@ -5,7 +5,8 @@
 //   drawn when first asked, absent before (VB-775)
 VB['sim/venues'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, SOCIAL, BREW, ALE_EVENING, RITE, cal } = VB['sim/rules'];
+  const { DAY, BREW, ALE_EVENING, RITE, cal } = VB['sim/rules'],
+    { SOCIAL } = VB['sim/ties'];
   const { fullName, log, atFarm, age, unplanned } = VB['sim/records'];
   const { issue, register } = VB['sim/commands'];
   const { free } = VB['sim/agents'];

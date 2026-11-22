@@ -1,7 +1,7 @@
 // @sys sim/kinds: the registry of job kinds: it joins the records each domain module declares (KINDS), builds the fetch kinds and each role's
 // ranks, and holds the order in which sim/jobs asks the kinds' rules (ASK). A kind's record lives with its domain (VB-418)
 VB['sim/kinds'] = (() => {
-  const { ROLES } = VB['sim/rules'],
+  const { ROLES } = VB['sim/roles'],
     { doneOf } = VB['sim/progress'];
   const Fieldwork = VB['sim/fieldwork'],
     Chores = VB['sim/chores'],
@@ -25,7 +25,7 @@ VB['sim/kinds'] = (() => {
   //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
   //   hands: how many pawns may work one job at once (VB-102: field, land and threshing work takes the whole household);
-  //   type: the type of work, which roles rank (ROLES in sim/rules); field: worked row by row across the tile, at `pace` map units an hour;
+  //   type: the type of work, which roles rank (ROLES in sim/roles); field: worked row by row across the tile, at `pace` map units an hour;
   //   inside: worked in the house; carry: what is carried home when the work is done, to the cottage door, the woodpile or the barn (`to`);
   //   spot(st, a, j): where on the site the pawn stands; urgency(st, j, c, U): the job's weight in a bid (U is MATCH.urgency; 1 without it);
   //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f, a): what arriving home with a load does;

@@ -6,7 +6,8 @@ VB['sim/membership'] = (() => {
   const { makeHousehold, joinHousehold, setServant } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const Stores = VB['sim/stores'];
-  const { ECON, MATCH, cal } = VB['sim/rules'];
+  const { ECON, cal } = VB['sim/rules'],
+    { MATCH } = VB['sim/roles'];
   const { makePlan } = VB['sim/plans'];
   const { refreshRoles } = VB['sim/heirs'];
   const { issue, register } = VB['sim/commands'];

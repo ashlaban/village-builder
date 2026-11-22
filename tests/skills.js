@@ -2,7 +2,7 @@
 // leg's start (the stream `mishap`), and reaping's and threshing's hours by the crop's size (sim/fieldwork). On a tiny farm at seed 7.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
 const Skills = VB['sim/skills'], { SKILL, paceOf, legPace, skillOf } = Skills;
-const { CROPS, TRAITS } = VB['sim/rules'];
+const { TRAITS } = VB['sim/rules'], { CROPS } = VB['sim/crops'];
 const { KINDS } = VB['sim/kinds'];
 const { standing } = VB['sim/fields'];
 const { SYSTEMS } = VB['sim/rng'];

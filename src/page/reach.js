@@ -30,7 +30,7 @@ function reachBands() {
       [R.BUILD.stoneWalk, 'stone for a house'],
       [R.CLAIMS.farmHours, 'there and back in a day'],
       [R.TRAVEL.dayWalk, "a day's walk"],
-      [R.ROUTE.reach / R.SPEED, 'as far as routes go'],
+      [VB['sim/routes'].ROUTE.reach / R.SPEED, 'as far as routes go'],
     ].sort((a, b) => a[0] - b[0]),
     out = [];
   for (const [h, what] of raw) {

@@ -146,7 +146,7 @@ if (require.main === module) {
 
 if (require.main === module && process.argv[2] === 'births') {
   // fertility of a married woman and child survival, from the rules in src/sim/rules.js and src/sim/births.js
-  const VB = require('../src/load.js'), { hazard, YEAR_DAYS } = VB['sim/rules'], { expectedBirths } = VB['sim/births'];
+  const VB = require('../src/load.js'), { YEAR_DAYS } = VB['sim/rules'], { hazard } = VB['sim/deaths'], { expectedBirths } = VB['sim/births'];
   const rand = mulberry32(5), N = +(process.argv[3] || 2000), mean = (from, to) => { let s = 0; for (let i = 0; i < N; i++) s += expectedBirths(rand, from, to); return s / N; };
   console.log(`married at 20 until 50: ${mean(20, 50).toFixed(2)} births (aim about 7); married at 25: ${mean(25, 50).toFixed(2)} (aim about 5.5)`);
   const { BIRTH, conceiveChance } = Object.assign({}, VB['sim/rules'], VB['sim/births']);
@@ -159,7 +159,7 @@ if (require.main === module && process.argv[2] === 'births') {
 }
 if (require.main === module && process.argv[2] === 'hunger') {
   // deaths in a household at hunger 1 for a whole year, relative to a fed one, in a stationary population (weights: survival to each age)
-  const VB = require('../src/load.js'), { hazard, HUNGER } = VB['sim/rules'];
+  const VB = require('../src/load.js'), { HUNGER } = VB['sim/rules'], { hazard } = VB['sim/deaths'];
   const groups = [['under 5', 0, 5], ['5-14', 5, 15], ['15-59', 15, 60], ['60 and over', 60, 100], ['all ages', 0, 100]];
   let S = 1; const w = [];
   for (let a = 0; a < 100; a++) { w.push({ a, d: S * hazard(a + 0.5) }); S *= Math.exp(-hazard(a + 0.5)); }

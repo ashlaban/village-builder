@@ -1,7 +1,8 @@
 // @sys sim/fieldplans: field demand, site selection, clearing projects and the head's harvest estimate
 VB['sim/fieldplans'] = (() => {
   const { B } = VB['gen'];
-  const { ECON, CROPS, ROTATIONS, FIELDS, farmable, fertility, cal, YEAR_DAYS } = VB['sim/rules'];
+  const { ECON, FIELDS, cal, YEAR_DAYS } = VB['sim/rules'],
+    { CROPS, ROTATIONS, farmable, fertility } = VB['sim/crops'];
   const { rotationOf, courseFor } = VB['sim/rotations'];
   const { age } = VB['sim/records'];
   const { team } = VB['sim/herds'];

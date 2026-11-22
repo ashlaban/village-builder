@@ -2,7 +2,7 @@
 // its first harvest; each crop wears it as any field, so without manure both it and an old field reach the floor after 9 crops; manure
 // never lowers it. A plot's field broken on fresh ground keeps it when its farmstead is made.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/fields'];
-const { CROPS } = VB['sim/rules'];
+const { CROPS } = VB['sim/crops'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FRESH FAIL:', m); } };
 const world = (seed, size = [120, 85]) => {
   const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };
@@ -13,7 +13,7 @@ const f = st.farmsteads.find((x) => x.household !== null), hh = st.households[f.
 // two free farmable tiles near the farm: one never farmed, one farmed before (an old field's ground)
 const free = [];
 for (const [t] of VB['sim/hex'].bfs(w, f.house, 8, VB['sim/walking'].walkable(w)).dist) {
-  if (VB['sim/rules'].farmable(w, t) && !st.used.has(t) && st.owner[t] === 0 && !w.dev[t]) free.push(t);
+  if (VB['sim/crops'].farmable(w, t) && !st.used.has(t) && st.owner[t] === 0 && !w.dev[t]) free.push(t);
 }
 check(free.length >= 2, 'two free tiles near the farm');
 const [freshTile, oldTile] = free; w.dev[oldTile] = 1;

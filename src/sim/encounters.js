@@ -3,7 +3,8 @@
 //   partners. Encounters read no plan and have only social effects.
 VB['sim/encounters'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { SOCIAL, ALE_EVENING, RITE } = VB['sim/rules'];
+  const { ALE_EVENING, RITE } = VB['sim/rules'],
+    { SOCIAL } = VB['sim/ties'];
   const T = SOCIAL.talk;
   // Scratch (derived, not state): seen[id] === look marks a pawn already drawn for the pawn whose partners are sought; lists, the cells read.
   let seen = new Int32Array(1024),

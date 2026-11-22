@@ -3,7 +3,7 @@
 // winter; hay for half a winter with meadows still to mow; the outlook made at the review, made again when a harvest stacked wakes it,
 // read as stale in a later season, kept by a save; what a household with no plan, no herds or no farm reads.
 const VB = require('../src/load.js'), Sim = VB.sim;
-const { DAY, YEAR, SEASON_DAYS, TICKS, HERD, FIELDS, CROPS, cal } = VB['sim/rules'];
+const { DAY, YEAR, SEASON_DAYS, TICKS, HERD, FIELDS, cal } = VB['sim/rules'], { CROPS } = VB['sim/crops'];
 const O = VB['sim/outlook'], { OUTLOOK, FRAME, reckon } = O;
 const Stores = VB['sim/stores'], P = VB['sim/plans'], H = VB['sim/herds'], M = VB['sim/meadows'];
 const { dailyNeed, seedPer } = VB['sim/hunger'];

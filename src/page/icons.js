@@ -483,7 +483,7 @@ const goodIcon = (k) =>
     svgIcon(24, 24, GOOD_PATHS[k] || GOOD_PATHS.tile, ICON_STROKE),
     GOOD_PATHS[k] ? GOOD_STEN[k] : GOOD_STEN.tile,
   );
-// The four seasons (sim/rules SEASONS, spring first), one icon each, on a 14 box (VB-667: the supply component's header and its chips): a
+// The four seasons (sim/weather SEASONS, spring first), one icon each, on a 14 box (VB-667: the supply component's header and its chips): a
 // sprout, a sun, a leaf, a snowflake.
 const SEASON_PATHS = [
   '<path d="M7 13V6M7 8C5 8 3.5 6.5 3.5 4.5 5.5 4.5 7 6 7 8zM7 6.5c0-2 1.5-3.5 3.5-3.5 0 2-1.5 3.5-3.5 3.5z"/>',

@@ -6,7 +6,7 @@
 // (DEER.hunt.chance times the deer against the capacity) gives DEER.hunt.meat rations of fresh meat and one deer fewer. On a tiny village
 // under a forest: the rules on constructed states, then a month of autumn, the invariants and a save.
 const VB = require('../src/load.js'), Sim = VB.sim, D = VB['sim/deer'], Z = VB['sim/grazing'], Fd = VB['sim/fields'], { B } = VB.gen;
-const { KINDS } = VB['sim/kinds'], { DEER, HERD, ROLES, MATCH, DAY, YEAR_DAYS } = VB['sim/rules'], { larderOf } = VB['sim/larder'];
+const { KINDS } = VB['sim/kinds'], { DEER, HERD, DAY, YEAR_DAYS } = VB['sim/rules'], { ROLES, MATCH } = VB['sim/roles'], { larderOf } = VB['sim/larder'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DEER FAIL:', m); } };
 const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;

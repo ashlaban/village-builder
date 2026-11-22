@@ -10,7 +10,7 @@ const { tinyWorld, tinyState, setPractice } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const Plans = VB['sim/plans'], Commons = VB['sim/commons'], Stores = VB['sim/stores'];
 const { eligible } = VB['sim/eligibility'], { book } = VB['sim/relations'], { refreshInterests } = VB['sim/society'];
-const { COMMONS, ROLES, DAY, YEAR, cal } = VB['sim/rules'];
+const { DAY, YEAR, cal } = VB['sim/rules'], { ROLES } = VB['sim/roles'], { COMMONS } = VB['sim/commons'];
 const { hexSteps } = VB['sim/hex'];
 const st = tinyState(tinyWorld(Array(16).fill('.'.repeat(24)), { seed: 3 }), [{ at: [11, 8], farms: 3, sizes: [6, 6, 5] }], { seed: 5 });
 const v = st.villages[0], w = st.w, plan = Plans.planOf(st, 'village', v.id);
@@ -100,7 +100,7 @@ console.log(`commons ok: begun ${((made - start) / DAY).toFixed(0)} days in, sow
 
 // VB-457: the store fills to HELP.storeTarget years of need and no further; the common fields are sown only in a year it is under
 {
-  const { HELP, YEAR_DAYS, SEASON_DAYS, CROPS, cal } = VB['sim/rules'], { fillStores } = VB['sim/help'], { storeRoom } = VB['sim/hunger'];
+  const { HELP, YEAR_DAYS, SEASON_DAYS, cal } = VB['sim/rules'], { CROPS } = VB['sim/crops'], { fillStores } = VB['sim/help'], { storeRoom } = VB['sim/hunger'];
   const s2 = tinyState(tinyWorld(Array(16).fill('.'.repeat(24)), { seed: 3 }), [{ at: [11, 8], farms: 3, sizes: [6, 6, 5] }], { seed: 5 });
   const u = s2.villages[0], hhs = u.farmsteads.map((id) => s2.households[s2.farmsteads[id].household]);
   const target = storeRoom(s2, u); // an empty store lacks the whole target

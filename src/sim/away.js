@@ -5,7 +5,7 @@ VB['sim/away'] = (() => {
   const { raiseBoothWhy, raiseBooth } = VB['sim/building'];
   const { living } = VB['sim/records'];
   const { release, goHome, free } = VB['sim/agents'];
-  const { cal, WORK, SPEED, HEALTH, TRAVEL, AWAY, BOOTH } = VB['sim/rules'];
+  const { cal, WORK, SPEED, HEALTH, TRAVEL, BOOTH } = VB['sim/rules'];
   const { route, routeCost } = VB['sim/routes'],
     { hoursBetween } = VB['sim/villagehours'];
   const { personEvent } = VB['sim/records'];
@@ -32,6 +32,11 @@ VB['sim/away'] = (() => {
     waitIndoors,
     standBy,
   } = VB['sim/agents'];
+  // @tunable AWAY: sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
+  // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
+  // worked from a bed there rather than from home (a third of the working day)
+  // asks: the households a visitor asks for a bed, one after the other (VB-1151), before he sleeps at the green
+  const AWAY = { pack: 12, walk: 4, asks: 3 };
   // Acts this module's pawns choose (going home, coming home from a stay, work at it) go through the verbs (AGENTS.md, Every act is a pawn's).
   const { issue, register } = VB['sim/commands'];
   // ---- the stays (design.md, Moving to new land, Sleeping away from home) ----
@@ -728,6 +733,7 @@ VB['sim/away'] = (() => {
     },
   });
   return {
+    AWAY,
     feedAway,
     dayAway,
     lodgeWhy,

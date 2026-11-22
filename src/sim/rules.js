@@ -1,4 +1,5 @@
-// @sys sim/rules: calendar, economy, roles and their work, names and other simulation constants
+// @sys sim/rules: the calendar, the economy and the foods, the herds, the ages of life and health, travel, given names, and the other
+// tables several domains read (VB-419: a table one domain reads lives in that domain's module, found by its @tunable line)
 VB['sim/rules'] = (() => {
   const { B } = VB['gen'];
   // ---- calendar: 4 seasons of 12 days; one game hour is the base unit of time ----
@@ -9,7 +10,6 @@ VB['sim/rules'] = (() => {
   // The clock counts whole 6-minute steps (st.tick, sim/clock; VB-235): TICKS of them an hour. The hour, the day and the year the clock is
   // working through are found from the count, never by adding a tolerance to st.t.
   const TICKS = 10;
-  const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
   const cal = (t) => {
     const day = Math.floor(t / DAY),
       y = Math.floor(day / YEAR_DAYS),
@@ -66,81 +66,6 @@ VB['sim/rules'] = (() => {
     // flour cooks 1 to 1
     unground: 1.25,
   };
-  // ---- crops (VB-346; design.md, Crops and rotations): one row each, and a field holds the key of its crop (`fd.crop`). A plain table here,
-  // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
-  // grain. Days are game days. yield: rations a field gives at fertility and soil 1; seed: rations sown on a field (a 4:1 ratio); sow: the window
-  // [season, first day, last day]; ripe: days from sowing to ripe; wear: the soil a harvest takes (the frost's day is the
-  // year's, sim/weather frostDay; it takes every crop but a winter one). hours: the work of each stage; KINDS plow, sow, weed, reap and thresh (sim/kinds)
-  // read them from here.
-  // weather (VB-354; design.md, Crops and the weather): the crop's reading of its seasons, terms [season, kind, k] summed by sim/weather
-  // (reading): the season 0 to 3 of the year it is reaped in, -1 the winter before it; kind 'w' adds k x warmth, 'r' k x wetness, 'dry'
-  // takes k at the driest, 'wet' k at the wettest, 'bare' k when the season is both coldest and driest (the bare frost). ripens: the
-  // summer's warmth moves its ripening (sim/weather ripeShift). ----
-  const CROPS = {
-    barley: {
-      yield: 100,
-      seed: 25,
-      sow: [0, 0, 9],
-      ripe: 26,
-      wear: 0.08,
-      weeds: 2,
-      weather: [
-        [1, 'w', 0.1],
-        [1, 'dry', 0.15],
-        [2, 'wet', 0.15],
-      ],
-      ripens: true,
-      hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
-    },
-    // winter rye (VB-348): sown in autumn days 1 to 6, it stands the winter and the frost (winter), and is ripe in summer days 7 to 12; a
-    // ripe field still standing on `lost` [season, day] is lost; weeds: the rounds of weeding it gets (barley 2, at ECON.weedDays)
-    rye: {
-      yield: 100,
-      seed: 25,
-      sow: [2, 0, 5],
-      ripe: 42,
-      wear: 0.08,
-      winter: true,
-      lost: [2, 0],
-      weeds: 1,
-      weather: [
-        [-1, 'bare', 0.3],
-        [1, 'wet', 0.15],
-      ],
-      hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
-    },
-    // peas (VB-349): a spring crop, the soil mended `gain` a crop (to SOIL.start; a field manured above it keeps its soil) and no wear; hoed
-    // (plow), pulled (reap) and threshed in fewer hours; lost to the frost as barley is; cooked in the pot as the food `pulses`, a source of its own
-    peas: {
-      yield: 60,
-      seed: 20,
-      sow: [0, 0, 9],
-      ripe: 18,
-      wear: 0,
-      gain: 0.04,
-      weeds: 2,
-      weather: [
-        [0, 'r', 0.05],
-        [1, 'dry', 0.25],
-      ],
-      ripens: true,
-      hours: { plow: 20, sow: 2, weed: 5, reap: 10, thresh: 10 },
-    },
-    // fallow (VB-348), a course and not a crop: never sown, no seed and no grain (sim/stores holds only the rows with seed); tilled once in
-    // `sow`, the summer; at the year's end a field that stood fallow through the summer gains `mend` of soil if tilled, half if not, to
-    // at most SOIL.start
-    fallow: { fallow: true, sow: [1, 0, SEASON_DAYS - 1], mend: 0.08, hours: { plow: 10 } },
-  };
-  // ---- rotations (VB-350; design.md, Crops and rotations, The rotation): a field holds one (`fd.rotation`, a key) and the step it is at
-  // (`fd.step`); its crop is the step's course (a key of CROPS, fallow among them). A plain table, as CROPS. Barley every year is today's
-  // farming; in three courses a field is fallow a year, then rye sown that autumn, then barley the spring after its rye is in. ----
-  const ROTATIONS = {
-    every: { courses: ['barley'], label: 'barley every year' },
-    two: { courses: ['barley', 'fallow'], label: 'two courses' },
-    three: { courses: ['fallow', 'rye', 'barley'], label: 'three courses' },
-    peas: { courses: ['barley', 'peas'], label: 'barley and peas by turns' },
-    peasRye: { courses: ['peas', 'rye', 'barley'], label: 'peas, rye, barley' },
-  };
   // ---- fields a household wants (balance review, 1 Nov 2026): enough for `want` times a year's rations at `expect` of the full yield, but no more
   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
   // room (stability review, VB-154): a new farm (a plot, a settler's farm, a new village) needs this many free farmable tiles within FIELD_REACH
@@ -152,16 +77,11 @@ VB['sim/rules'] = (() => {
   // trip's take). Posted from spring day `from + 1` to the end of autumn; a second trip while the household's spare food covers fewer than
   // `secondDays` days of its need ----
   const FISH = { reach: 6, trip: 4, take: 0.1, recover: 0.02, bigLake: 20, least: 0.1, from: 2, secondDays: 12 };
-  // ---- gathering (VB-118; Kim, 10 Nov, QUESTION_ARCHIVE.md, VB-117 to VB-119, question 2): berries, mushrooms and nuts on a forest or heath tile
-  // within `reach` walking steps of the house, with at least `least` (a trip's take) left; a trip brings home `trip` rations times the tile's
-  // stock and lowers it by `take`; every stock is full each spring. Posted from summer day `from` + 1 to the end of autumn; its second trip and
-  // urgency are fishing's (FISH.secondDays, MATCH.urgency) ----
   // The ages of life, in one table (VB-686): each row says what the age is for; the modules read it, none writes its own.
   //   hands [14, 60): a working hand: strong enough for a season's labour from 14 (a boy at the plough, a girl at the dairy; the
   //     ration of an adult starts there too), and past it at 60, when a body tires; the hands counted for fields, herds, help and service.
   //   major 18: of age: holds a household and goes to law without a guardian or trust; heirs and settlers of a party are counted from it.
   const AGES = Object.freeze({ hands: Object.freeze([14, 60]), major: 18 });
-  const FORAGE = { reach: 5, trip: 2.5, take: 0.2, least: 0.2, from: 5 };
   // ---- roe deer (VB-139; Kim, 30 Oct: the one wild grazer, meat and hides when hunted, forest edges and meadows, can damage crops), starting
   // values with no source but a roe deer's size: a region's stock grows logistically at `growth` a year towards `perEdge` deer for each of
   // its forest-edge tiles (a wood tile beside open land: a tile of land about 150 m across, Two readings of one grid, so about 0.15 deer a
@@ -181,159 +101,6 @@ VB['sim/rules'] = (() => {
     // to it what is lacking of them, at the fair or in a gift
     leather: 0.25,
   };
-  const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
-  // ---- rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it ----
-  // irrigation: extra fertility of a field next to a river tile; site: added to a village site's score by steps to the nearest river tile (0..3).
-  const RIVER = { irrigation: 0.2, site: [0, 10, 10, 5] };
-  const farmable = (w, i) => i >= 0 && !w.water[i] && !w.river[i] && FERTILITY[w.biome[i]] !== undefined;
-  const byRiver = (w, i) => {
-    for (let k = 0; k < 6; k++) {
-      const j = w.nb[i * 6 + k];
-      if (j >= 0 && w.river[j]) return true;
-    }
-    return false;
-  };
-  // Fertility of a farmable tile as a field: by its biome, and more when a river waters it.
-  const fertility = (w, i) => FERTILITY[w.biome[i]] * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
-
-  // ---- roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives
-  // every kind its type and fills in `prio`, each role's rank of every kind. Herding (VB-136; Kim, 31 Oct): child 8, daughter 6, son 5,
-  // retired 4, farmhand 3, farmer 2, and none for the mistress and the maid. Hunting (VB-139) is foraging for the men alone: none for the
-  // women, the retired and children. A village duty (VB-058: the green and well; Kim, 30 Oct): farmhand and son 6, farmer 5, mistress, maid
-  // and daughter 3, below the farm's own work; none for the retired and children. A village work day (VB-120; Kim, 10 Nov): 8 for every
-  // adult whatever the role (WORKDAY.prio), none for children. Jobs carry an owner that decides who may take them ----
-  const ROLES = {
-    farmer: {
-      title: 'Farmer',
-      sv: 'bonde',
-      work: {
-        workday: 8,
-        duty: 5,
-        tilling: 10,
-        tending: 10,
-        harvest: 8,
-        threshing: 8,
-        wood: 7,
-        upkeep: 6,
-        household: 2,
-        husbandry: 3,
-        foraging: 3,
-        herding: 2,
-      },
-      except: { reap: 9, cook: 1, slaughter: 8, grind: 1 },
-    },
-    wife: {
-      title: 'Mistress of the house',
-      sv: 'husfru',
-      work: {
-        workday: 8,
-        duty: 3,
-        tilling: 2,
-        tending: 5,
-        harvest: 6,
-        threshing: 2,
-        wood: 2,
-        upkeep: 2,
-        household: 9,
-        husbandry: 9,
-        foraging: 4,
-      },
-      except: { reap: 7, cook: 10, mow: 4, slaughter: 2, milk: 10, fish: 2, hunt: 0, grind: 7 },
-    },
-    farmhand: {
-      title: 'Farmhand',
-      sv: 'dräng',
-      work: {
-        workday: 8,
-        duty: 6,
-        tilling: 9,
-        tending: 6,
-        harvest: 8,
-        threshing: 8,
-        wood: 9,
-        upkeep: 7,
-        household: 3,
-        husbandry: 4,
-        foraging: 6,
-        herding: 3,
-      },
-      except: { cook: 0, slaughter: 8, gather: 3, grind: 1 },
-    },
-    maid: {
-      title: 'Maid',
-      sv: 'piga',
-      work: {
-        workday: 8,
-        duty: 3,
-        tilling: 1,
-        tending: 4,
-        harvest: 6,
-        threshing: 2,
-        wood: 2,
-        upkeep: 1,
-        household: 10,
-        husbandry: 10,
-        foraging: 5,
-      },
-      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2, hunt: 0, grind: 7 },
-    },
-    son: {
-      title: 'Son of the house',
-      sv: 'son',
-      work: {
-        workday: 8,
-        duty: 6,
-        tilling: 9,
-        tending: 6,
-        harvest: 8,
-        threshing: 8,
-        wood: 9,
-        upkeep: 7,
-        household: 3,
-        husbandry: 3,
-        foraging: 7,
-        herding: 5,
-      },
-      except: { cook: 0, slaughter: 7, gather: 3, grind: 1 },
-    },
-    daughter: {
-      title: 'Daughter of the house',
-      sv: 'dotter',
-      work: {
-        workday: 8,
-        duty: 3,
-        tilling: 1,
-        tending: 4,
-        harvest: 6,
-        threshing: 2,
-        wood: 2,
-        upkeep: 1,
-        household: 10,
-        husbandry: 9,
-        foraging: 6,
-        herding: 6,
-      },
-      except: { reap: 7, cook: 8, mow: 4, slaughter: 2, fish: 2, hunt: 0, grind: 6 },
-    },
-    retired: {
-      title: 'Retired',
-      sv: 'undantag',
-      work: { workday: 8, tending: 2, threshing: 2, upkeep: 2, household: 3, husbandry: 3, foraging: 3, herding: 4 },
-      except: { cook: 4, slaughter: 2, hunt: 0, grind: 3 },
-    },
-    child: {
-      title: 'Child',
-      sv: 'barn',
-      work: { harvest: 3, foraging: 5, herding: 8 },
-      except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0 },
-    },
-  };
-  // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
-  const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
-  const workRate = (role, age) => (role === 'child' ? Math.min(1, CHILD.base + CHILD.perYear * (age - CHILD.from)) : 1);
-  // Who clears a new plot for the village (see sim/expansion): by role; those waiting for the plot take 9 whatever their role.
-  const PLOT_PRIO = { waiting: 9, farmhand: 7, maid: 7, son: 5, daughter: 5, farmer: 3 };
-
   // ---- names ----
   const MALE = [
     'Erik',
@@ -374,30 +141,16 @@ VB['sim/rules'] = (() => {
     'Cecilia',
   ];
   const patronym = (father, sex) => father + (father.endsWith('s') ? '' : 's') + (sex === 'm' ? 'son' : 'dotter');
-  const DIRNAME = ['Öster', 'Norr', 'Norr', 'Väster', 'Söder', 'Söder'];
-
-  // Annual death hazard at age a (years, may be fractional): Gompertz-Makeham for adults plus a juvenile term that falls with age (Siler 1979),
-  // so that about 20% die before age 1 and a third before 15.
-  const hazard = (a) => 0.006 + 0.0007 * Math.exp(0.07 * a) + 0.381 * Math.exp(-1.265 * a);
-
-  // ---- births: natural fertility of married women (Coale and Trussell 1974), relative to ages 20-24; times in game days ----
-  const BIRTH = {
-    peak: 0.015,
-    ageFactor: [0.89, 1, 0.94, 0.86, 0.7, 0.36, 0.05],
-    from: 15,
-    to: 50, // chance per day to conceive; factor per 5 years of age from 15
-    pregnancyDays: 36,
-    nursingDays: 48,
-    boys: 105 / 205,
-    childbedDeath: 0.01,
-  };
-
   // ---- hunger: a member's hunger h (0..1) multiplies the death hazard by 1 + k(age) * h, and slows work by HUNGER.slow * h ----
   const HUNGER = { days: 12, slow: 0.4, marryBelow: 0.5, k: (a) => (a < 5 || a >= 60 ? 1.5 : a < 15 ? 0.6 : 0.3) };
 
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and by a cold house (VB-327: `cold` times the day's cold,
   // 0..1), and restored by a full meal on a warm day; at 0 the pawn dies of starvation ----
   const HEALTH = { drain: 4, cold: 2, dry: 1, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+  // The scenario "The market town" (VB-778; a test bed, known to decay): `plots` plot households set within 2 steps of each other, at the
+  // village with most people within `reach` hex steps (about a day's walk). Read at the start only; no rule reads it afterwards.
+  const TESTBED = { plots: 8, reach: 15 };
+
   // ---- illness (VB-1118, principle 19): a death the day's roll draws of a cause in `days` (the base hazard's causes; not hunger, which
   // health already shows) comes as an illness that runs that cause's days before it kills; while it runs the pawn's health falls by `fall`
   // over the course (sim/hunger), with no recovery, and no other roll is drawn for it. Kin see the pawn ailing, never the outcome.
@@ -406,16 +159,6 @@ VB['sim/rules'] = (() => {
   // First values (Proposed): an infant falls gravely ill about once in its first year, a child or an old pawn one year in three, a grown
   // one in ten; the hazard at 0, 30 and 80 is 0.39, 0.012 and 0.2 a year, so a course at those ages kills about two in five, one in nine
   // and two in three.
-  // ---- crowding (VB-766; design.md, Balance loops and targets: Deaths; Kim, 16 Nov): living close costs lives, wherever it happens, and
-  // stands in for disease until disease exists. A household's crowding is the people living in houses within `steps` hex steps of its
-  // house, its own among them; its members' death hazard is multiplied by 1 + `per` for each beyond `free`, at most `max`. First values
-  // (Proposed): `steps` 2, hexes round a house that count as living close; `free` 36, the people within them that cost nothing (about the
-  // 99th percentile of a village house, 31 to 41); `per` 0.035, hazard added for each person beyond; `max` 2.5, the factor's ceiling. ----
-  const CROWD = { steps: 2, free: 36, per: 0.035, max: 2.5 };
-  // The scenario "The market town" (VB-778; a test bed, known to decay): `plots` plot households set within 2 steps of each other, at the
-  // village with most people within `reach` hex steps (about a day's walk). Read at the start only; no rule reads it afterwards.
-  const TESTBED = { plots: 8, reach: 15 };
-
   const ILLNESS = {
     days: { infancy: 2, childhood: 4, illness: 6, oldAge: 10 },
     fall: 60,
@@ -423,117 +166,7 @@ VB['sim/rules'] = (() => {
     passing: 0.5,
   };
 
-  // ---- relationships (sim/relations; docs/review-relationships.md; VB-240, Kim 10 Nov): one pawn's opinion of another (-1..1) is derived:
-  // the bond's value (kin, spouse, housemate), plus affinity, affinity.weight * compatibility * min(1, tie / affinity.known), the pair's
-  // fixed compatibility shown as the two grow familiar, plus timed memories of things that happened. A memory gains v at each event, up to
-  // cap, and fades to 0 over `days` from the last one.
-  // Talk (VB-521: by turns): between 6:00 and 22:00 a pawn has a talk turn in the hours where (hour + id) % `every` is 0, four a day; at it,
-  // of minAge or more and not carrying a load, it starts a talk at `chance` with one partner sim/encounters finds (`sample` drawn at most
-  // outdoors), weighted by (1 + min(tie, 1)) * (1 + opinion), plus the encounter's mix; it may be drawn as a partner in any hour, once.
-  // The talk is a chat, a good talk or cross words by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin
-  // for kin and housemates): its kind is the bubble's, and leaves no memory. Two unmarried pawns aged within `young` count `youngBonus`
-  // times in both the choice and the good talk. A talk adds ties.talk to the tie of both and shows a bubble for `bubbleHours`. closeFriend
-  // and enemy: an opinion reaching them is a life event; leaving needs `back` past the line. friend and dislike are the page's words only.
-  // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
-  // An idle pawn the planner found no work looks again after wait[0] to wait[1] hours (VB-245; Kim, 10 Nov: 2 to 4, from 0.75 to 2). It hears of new
-  // work meanwhile through the hourly refresh, looks again when its wait ends (a leg in sim/agents' queue, VB-473), and of an occasion by the asking.
-  const IDLE = { wait: [4, 8] };
-  const SOCIAL = {
-    situational: { spouse: 0.3, parent: 0.3, child: 0.3, sibling: 0.2, housemate: 0.1 },
-    memories: {
-      bull: { label: 'Lent us the bull', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/herds: a cow calved by another farm's bull
-      border: { label: 'Won the border from us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS }, // sim/territory: lost a border dispute to their village (VB-157)
-      claim: { label: 'Took our claim', v: -0.15, cap: -0.45, days: 3 * YEAR_DAYS }, // sim/stakes: their household took a stake of ours (VB-158)
-      // sim/lifecycle: the pawn refused a match its spokesman made (consent's cost; design.md, Marriage as a negotiation; VB-293)
-      ale: { label: 'Poured us ale', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/occasions: a barrel poured at a wedding or a funeral ale (VB-305)
-      refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
-      // sim/courting: a head refused the match of a courting pair; each of the two remembers that head (VB-036; plan VB-682, 4.1)
-      refusedCourting: { label: 'Refused our match', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
-      // sim/marriage (VB-693; plan VB-682, 4.1): a spokesman, of the spokesman who refused the match he offered (not when hers took a
-      // better offer, which is no slight); and one who yielded to a match made for it while it courted another, of its spokesman
-      refusedSuit: { label: 'Refused the match I offered', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
-      marriedAgainst: { label: 'Married me against my wish', v: -0.3, cap: -0.3, days: 5 * YEAR_DAYS },
-      // sim/offers: a refusal of goods offered or asked for (VB-690) is a memory of both: the one refused, and, fainter, the one who refused
-      refusedUs: { label: 'Refused what we offered', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
-      refusedThem: { label: 'We refused them', v: -0.05, cap: -0.15, days: YEAR_DAYS },
-      // sim/fair: an animal given for food in want (a hard bargain, VB-302), of the one who drove it
-      hardBargain: { label: 'Drove a hard bargain with us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS },
-      // sim/byre: an unherded herd got into the field through a broken stretch of fence; about the holder of the stretch's keeper (VB-136)
-      crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
-      // sim/agents: a helper finished a job of another household of its village, both ways with each adult there (VB-106; Kim, 10 Nov)
-      worked: { label: 'Worked together', v: 0.05, cap: 0.3, days: YEAR_DAYS },
-      // sim/workdays: a holder of the village whose household stayed away from a work day; each other holder with a tie to it (VB-120; Kim,
-      // 10 Nov: a small negative memory fading over a year; the numbers are the agent's starting values)
-      stayedAway: { label: 'Stayed away from the work day', v: -0.05, cap: -0.15, days: YEAR_DAYS },
-      // sim/relations: cross words that became a quarrel, both ways (VB-520; design.md, The twelve traits: temper)
-      quarrel: { label: 'Quarrelled with us', v: -0.1, cap: -0.3, days: YEAR_DAYS },
-    },
-    talk: {
-      from: 6,
-      to: 22,
-      every: 4,
-      chance: 1,
-      minAge: 4,
-      sample: 8,
-      good: 0.15,
-      cross: 0.08,
-      kin: 0.15,
-      young: [16, 30],
-      youngBonus: 2,
-      bubbleHours: 0.5,
-      quarrel: 0.05, // a talk of cross words becomes a quarrel at this times the two tempers' sum (VB-520)
-    },
-    // Chemistry (VB-520; design.md, Chemistry): a pair's compatibility is personal × the seeded term + likeness × how alike the two are in
-    // the four values and sociability (1 alike, 0 at `span`, the mean difference of two drawn at random, -1 at twice that) − friction ×
-    // (the two tempers' sum − 1) − customs × the share of customs on which they lean to different options (each weighed by 1 − its
-    // malleability), less the age gap, within -1..1. The last term is Like seeks like (Balance loops and targets; Decided, 12 Nov). The
-    // design's first weights were 0.7, 0.5, 0.3, 0.3; personal 0.9 and friction 0.4 keep the shares of close friends, friends, dislikes
-    // and enemies within a fifth of what they were (VB-520's five runs, populous small seed 7, 3 years).
-    chemistry: { personal: 0.9, likeness: 0.5, friction: 0.4, customs: 0.3, span: 0.17 },
-    // Familiarity (VB-127; docs/review-relationships.md, proposal B): a tie grows by `talk` a talk (VB-521: 0.8, a longer conversation at
-    // four turns a day; it was 0.5), by `home` per 24 waking hours (the talk hours) two housemates spend in their house, counted once a
-    // day, and by `work` for each job two pawns finish together; it halves every year. Near kin never fall below `kin`. A pawn keeps at
-    // most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped when the pawn's ties are put back on today's scale,
-    // every `renorm` years.
-    ties: { talk: 0.8, home: 1, work: 0.5, kin: 0.4, rite: 0.25, cap: 150, forget: 0.02, renorm: 4 }, // rite: to the rite's leader (VB-522)
-    affinity: { weight: 0.6, known: 8 },
-    friend: 0.25,
-    dislike: -0.2,
-    // VB-1106: at 0.1 one telling in five was a second telling of the same pair (populous small seed 7, 20 years); at 0.2, one in 75,
-    // and a close friendship is left where the two are no longer friends (the friend line)
-    back: 0.2,
-    // The age of account (VB-1106): the lawful age of the Norse and Anglo-Saxon laws, 12, below which a child answered for nothing it
-    // did. Between a pawn below it and anyone, chemistry counts only where it is liking (the opinion's affinity is not below 0), and
-    // cross words become no quarrel: no memory, no event. A physical fact of childhood, not a custom.
-    account: 12,
-    closeFriend: 0.45,
-    enemy: -0.5,
-    seek: 0.5,
-    seekSample: 4,
-  };
-  // ---- mood (VB-062; design.md, Traits, talk and stories: Mood): 50 plus its modifiers' values, within 0 to 100; shown, read by no rule ----
-  // Starting values, each a feeling's weight on that scale (Kim, 30 Oct: "talked with a friend +5"). For a state, read from it: hungry,
-  // `value` × the pawn's hunger while over `over`; cold, `value` × its household's cold (VB-327, cold's weight as hunger's until Kim sets
-  // one); without water, `value` while its household's hh.dry is above 0 (VB-331); weak, `value` while health is under `under`. For an
-  // event, kept `days` from it (pawn.mods): married; a child born, both parents; grieving at the death of a spouse, child or parent;
-  // talked with a friend, read from the pawn's latest talk (agent.talk) with one it holds at SOCIAL.friend or above.
-  const MOOD = {
-    base: 50,
-    hungry: { value: -20, over: 0.1 },
-    cold: { value: -20 },
-    dry: { value: -10 },
-    weak: { value: -10, under: 50 },
-    married: { value: 10, days: 12 },
-    child: { value: 5, days: 12 },
-    grieving: { value: -15, days: 12 },
-    friend: { value: 5, days: 2 },
-  };
-
   // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
-  // The founders' ages (VB-635; design.md, Starting scenarios): each couple's man is manMin to manMin+manSpan-1 years old, his wife
-  // 1 to wifeYounger years younger and at least wifeMin; the two servants are servantMin to servantMin+servantSpan-1.
-  const FOUNDERS = { manMin: 23, manSpan: 11, wifeYounger: 6, wifeMin: 19, servantMin: 16, servantSpan: 4 };
-
   const MARRIAGE = {
     menFrom: 20,
     womenFrom: 18, // youngest age to marry
@@ -604,11 +237,6 @@ VB['sim/rules'] = (() => {
     dayWalk: 12,
     stay: 1,
   };
-  // ---- sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
-  // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
-  // worked from a bed there rather than from home (a third of the working day) ----
-  // asks: the households a visitor asks for a bed, one after the other (VB-1151), before he sleeps at the green
-  const AWAY = { pack: 12, walk: 4, asks: 3 };
   // A booth (bod; VB-784; design.md, Moving to new land, The booth): a shelter of poles, bark and turf, `hours` of work and `wood` loads at its
   // tile, `sleeps` at most; unkept it wears `wear` of its condition a year (poles and bark: about three years) and is gone at none.
   const BOOTH = { hours: 12, wood: 2, sleeps: 4, wear: 1 / 3 };
@@ -711,11 +339,6 @@ VB['sim/rules'] = (() => {
   };
   // In the byre: from autumn day 9 to spring day 5; the herds graze out of it (sim/herds, sim/grazing).
   const stalled = (c) => c.doy >= HERD.stall[0] || c.doy < HERD.stall[1];
-  // ---- grazing pressure (VB-136; read by forest spread, VB-091): a tile at or above keepsOpen stays open; at or above thins, its trees
-  // are thinned. Pressure is 1 a cow-hour (HERD.herding), halving each game year (sim/grazing). At populous medium, seed 7, year 5, the
-  // grazed tiles' pressure runs p10 15, p50 87, p90 219, p99 385, max 628: keepsOpen is a herd's half day on the tile, or a pasture's
-  // neighbour, within about a year (87% of grazed tiles); thins is a small herd's week a year, kept up (about the 90th percentile). ----
-  const GRAZE = { keepsOpen: 20, thins: 200 };
   // ---- foods (VB-259; design.md, Goods and the farming year: Food, Meals; Kim, 10 Nov): a ration is only the unit, one adult's food for a
   // day. Each food the game has: worth (rations a unit), keeps (shelf life in game days; null: it does not spoil by date, as grain, which
   // spoils in store by sim/hunger's share instead), source (its source in the pot, VB-119: grain and flour are one, fresh and dried fish one),
@@ -737,27 +360,6 @@ VB['sim/rules'] = (() => {
     fish: { worth: 1, keeps: 3, source: 'fish', held: 'fresh', raw: false }, // the catch (VB-117), cooked
     gathered: { worth: 1, keeps: 3, source: 'gathered', held: 'fresh', raw: true }, // berries, mushrooms and nuts (VB-118)
   };
-  // ---- soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
-  // stubble or hoed in spring days 1 to 6 (sday window), raises it by perLoad to `cap`. Fodder collects loads a stall day: a head of cattle, a sheep.
-  // The heap loses `rot` of what lies on it in a year (balance review). perLoad 0.02 would make about 3 head of cattle, not 1.5, hold 3 fields, but
-  // cost a quarter more hungry days over 8 seeds, so it stays at 0.04 until Kim chooses (QUESTIONS.md). A field broken on ground never farmed
-  // (w.dev 0) starts at `fresh`, above the cap: virgin and burnt-over land gave far more its first crops (VB-149, docs/review-expansion.md) ----
-  const SOIL = {
-    start: 1,
-    fresh: 1.4,
-    floor: 0.75,
-    perLoad: 0.04,
-    cap: 1.15,
-    cattle: 0.2,
-    sheep: 0.04,
-    window: [0, 5],
-    rot: 0.5,
-  };
-  // ---- tilth (VB-717; docs/review-yields.md, 4): a field's slow soil, built by dung and fading over decades. Estimates, with no medieval
-  // Nordic source. `perLoad`: what one load of manure adds to a field's tilth (on top of its soil); `years`: the time constant of its
-  // fading, in game years (e^-1 left after that long without dung); `max`: a bound for the invariant, which play should never reach.
-  // A harvest is multiplied by 1 + tilth ----
-  const TILTH = { perLoad: 0.0011, years: 70, max: 0.4, surplus: 2 };
   // `surplus` (VB-718): the most loads of manure a field takes in a year beyond what its soil asks, for its tilth only (an estimate, no source).
   // Ale (VB-305; design.md, Goods, Ale and standing; Kim, 10 Nov): a side craft in autumn and winter. `grain` rations of grain from the
   // household's surplus (above its floor, which holds the seed reserve) and `hours` of work in the house give a barrel, which keeps one season
@@ -765,14 +367,6 @@ VB['sim/rules'] = (() => {
   // an occasion gives the host `standing` for `years` years, at most `maxBarrels` barrels counted (a cap of 0.2); each guest's memory of
   // it is SOCIAL.memories.ale.
   const BREW = { grain: 10, hours: 4, guests: 20, stock: 1, standing: 0.05, maxBarrels: 4, years: 3 };
-  // The feast (VB-458; design.md, The gift: The feast, What a feast books; Kim, 13 Nov): at a wedding or a funeral ale at its farm, a
-  // household whose grain stands above its seed and `above` years of its need lays out food: `share` of what it holds beyond that (times its
-  // holder's generosity, TRAITS.acts.generosity.feast), and at most `perGuest` rations a ration of need of those who came (a day's food
-  // three times over, the ale poured counted at its grain). Those who ate have eaten the day's meal; guest households owe the host goodwill.
-  const FEAST = { above: 2, share: 0.25, perGuest: 3 };
-  // The good-year gift (VB-460): a holder above FEAST.above gives unasked to a tie holding under shortBelow years of its need above its seed;
-  // under least rations (a sack) the walk is not worth it and none is made
-  const GIFT = { shortBelow: 1, least: 10 };
   // The ale evening (VB-522; design.md, Where pawns meet): a holder whose household holds a barrel no occasion called at its farm needs
   // opens its house from the end of work to `until`, the small, frequent sibling of the feast. `call`: a holder's chance a day, times
   // (0.5 + sociability) and (0.5 + ambition), asked at its planning day's review; one evening a village a day. `reach`: the walking hours
@@ -780,11 +374,6 @@ VB['sim/rules'] = (() => {
   // sociability), (1 + its opinion of the host) and (1 - its walk / reach); counted until `guests` (a barrel's) have said yes. `mix`: the
   // floor for strangers among the partners drawn there (sim/encounters). `reach` 2, not the design's 1.5 (VB-522's runs, populous small
   // seed 7: at 1.5 a twelfth of the guests came from another village, at 2 a fifth, at 2.5 over a third).
-  // A call at a farm (VB-1119; design.md, Where pawns meet): a pawn walks to another household's farm within a day's walk and stays from the
-  // end of work to `until`; those at home meet it there as at an occasion, with `mix` the floor for strangers among the partners drawn
-  // (sim/encounters). `every`: a pawn calls at most once in so many game hours (a week), the cost's bound; `rung`: an unplayed pawn whose
-  // asking found nobody calls at a farm of another village (sim/asking, calls).
-  const CALL = { until: 22, mix: 0.5, every: 7 * DAY };
   const ALE_EVENING = { call: 0.1, reach: 2, come: 0.25, guests: 20, mix: 0.5, until: 22 };
   // The season's rite (VB-522; design.md, Where pawns meet): on each village green, on day sday of `days`' seasons (spring day 1, summer
   // day 6, winter day 7), from `hour` for `hours`. An adult of the village, and of a lone farm within `reach` walking hours of a green,
@@ -861,57 +450,6 @@ VB['sim/rules'] = (() => {
   };
 
   const SPEED = 12; // tiles per game hour on foot, on meadow (it was 3: the distance review, Kim, 12 Nov; design.md, World and scale)
-  // ---- walking (sim/walking): the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost ----
-  // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
-  // Each kind of ground has its own cost (Kim, 13 Nov; VB-439): sand and heather slow a walker a little, open pine wood more, rough
-  // hill ground more again, a thick broadleaf wood with no way through it takes twice the time of meadow, marsh and bare rock longer.
-  // What a worn way takes off these is PATHS.clear.
-  const TERRAIN = {
-    [B.MEADOW]: 1,
-    [B.BEACH]: 1.15,
-    [B.HEATH]: 1.25,
-    [B.PINE]: 1.6,
-    [B.HILLS]: 1.8,
-    [B.FOREST]: 2,
-    [B.MARSH]: 2.5,
-    [B.MOUNTAIN]: 3.5,
-    [B.SNOW]: Infinity,
-    ford: 2,
-    bridge: 1,
-  };
-  // ---- worn paths (sim/paths): a tile's crossings, halving every halfLifeDays, make it trodden ground, a path or a lane at `at`;
-  // a stage is lost only below `keep` of its threshold; speed: how much faster a pawn walks there, by stage (VB-110) ----
-  // clear: the share of the ground's cost above meadow that the wear takes away, by stage (VB-439): a tile costs
-  // (1 + (TERRAIN - 1) (1 - clear)) / speed. A road is a path or a lane (stages 2 and 3): cleared and firm, it is walked almost alike
-  // through any ground, so a road through thick forest (1.14 a path, 1.04 a lane) is a little slower than open meadow (1), which is a
-  // little slower than a road over meadow (0.91, 0.87); trodden ground (stage 1) is only a little easier than none (forest 1.72).
-  // A generated village (but the founders') starts with `wornYears` of its daily trips worn in (VB-114): `trips` per farm and day, there
-  // and back, to each field, to the well (water) and to the green on an idle stroll, and to the village's wood; set so a new village has the paths a
-  // played one has after two years (populous Tiny, seeds 7 and 11: 14 and 18 path tiles worn in, 14 to 21 and 13 to 19 played).
-  const PATHS = {
-    at: [0, 50, 200, 800],
-    keep: 0.85,
-    halfLifeDays: YEAR_DAYS,
-    speed: [1, 1.03, 1.1, 1.15],
-    clear: [0, 0.25, 0.75, 0.8],
-    wornYears: 3,
-    trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 },
-  };
-  // ---- slopes (sim/walking): a step between two tiles is slowed by its slope, up or down alike, whatever its terrain (VB-438) ----
-  // Tobler's hiking function (Tobler 1993: 6 exp(-3.5 |S + 0.05|) km an hour at slope S, rise over run), made symmetric around the
-  // flat: a walker's speed falls by exp(-tobler |S|), so a step's cost is its terrain's times exp(tobler |S|).
-  // tobler: the function's exponent; grade: the slope S of a step whose two tiles differ by one unit of elevation (w.he, 0 to 1 over
-  // the land): the heightmap is far steeper than ground is (read as 1,400 m of relief over tiles of 150 m, grade would be 9.3 and the
-  // median step a slope of 0.3), so grade was set where the median step cost what it did before, then raised from 1.5 to 2 (Kim,
-  // 13 Nov; VB-439); max: the cap on the factor, where Tobler's 6 km an hour has fallen to 1, which bounds the dearest step (the
-  // route cache's refresh needs one).
-  // Walkable neighbours differ by 0.03 to 0.04 at the median, 0.08 to 0.12 at the 90th percentile, 0.16 to 0.24 at the 99th and 0.4
-  // to 0.5 at the most (small and medium, seeds 7 and 42): factors of about 1.3, 2.0, 4.1 and the cap (from a difference of 0.26). grade 0 switches slopes off.
-  const SLOPE = { tobler: 3.5, grade: 2, max: 6 };
-  // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
-  // a lane over meadow. cacheMax: entries, first in first out; the cache is emptied each day a tile changes cost (VB-236), and the most
-  // it held over 48 days after the first emptying was 4,028 at medium-ref and 2,779 at small-y40: twice the larger, for a run of quiet days.
-  const ROUTE = { cacheMax: 8000, reach: 200, minStep: 1 / PATHS.speed[3] };
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = {
@@ -948,13 +486,6 @@ VB['sim/rules'] = (() => {
     smallFarms: 3,
     join: 30,
   };
-  // A pawn's wish at the moving round (sim/wishes, VB-680; docs/plans/VB-682.md, section 3): `rungs`, the answers to "where do I live next
-  // year" in their default ranking, best first (heir to the farm it lives on, a match, an empty farm, a plot, new land, service, stay at
-  // home: the order of the round's steps); from ambition `landAmbition` a pawn ranks new land above a plot.
-  const WISH = Object.freeze({
-    rungs: Object.freeze(['heir', 'match', 'farm', 'plot', 'party', 'service', 'stay']),
-    landAmbition: 0.75,
-  });
   // The moving round as offers (VB-692; docs/plans/VB-682.md, section 2; Proposed): it lasts `passes` days from autumn day `day` + 1 (sday
   // `day`, 0-based: days 11 to 13), each day every village in its step; a village's step answers the offers due to its people in `order`
   // (a home handed on before a match that needs it, land before the party that would leave for want of it, service last, for those
@@ -973,12 +504,6 @@ VB['sim/rules'] = (() => {
     pool: 40,
     womenFrom: 1,
   });
-  // Courting (VB-036; design.md, Traits, talk and stories: Courting): two unmarried pawns of `minAge` or more court once each holds the
-  // other at an opinion of `opinion` with a tie of `tie`, read when the two have a good talk; it ends when either's opinion of the other
-  // falls under `end`, or `years` after it began with no offer of theirs open. A refusal sends one of the two to ask for service at the
-  // next round when it holds the head who refused at an opinion under `leaveBelow` (a threshold on what the pawn feels, in place of
-  // the design's first chance of 0.5: principle 19).
-  const COURT = Object.freeze({ minAge: 16, opinion: 0.4, tie: 1.5, end: 0.2, years: 3, leaveBelow: 0 });
   // The village's wood (VB-326; design, Land and ecology, The village's wood; Agreed, Kim, 10 Nov): an allotted area of wooded tiles, v.wood
   // (sim/territory), perHousehold tiles for each live household of the village (a household fells about 11 trees a year and a tile of 60 to 80
   // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre (4 hours each way on meadow,
@@ -1018,56 +543,11 @@ VB['sim/rules'] = (() => {
     // loses `loss` times the grain to spoilage (ECON.storeLoss, sim/hunger) and the barn hay (HERD.hayLoss, sim/byre)
     barn: Object.freeze({ timber: 40, hours: Object.freeze([30, 60, 30]), loss: 0.5 }),
   };
-  // Village work days (VB-120; Kim, 10 Nov; design, Jobs, owners and roles: Village work days): a routine the meeting may choose for a village
-  // with a fence; chosen, the village works together on `days` ([season, day of the season, what]): spring's first day the fence, its stretches
-  // below `fenceBelow` (each `fenceHours`, as a mend), summer's second the commons, scrub cleared at the wood's edge (`clearHours` an adult of
-  // the village). Every adult (from `minAge`) takes the work at role priority `prio`, whatever the role; it takes unlimited hands, all
-  // together. An adult who works `hours` gains `came` standing for the year; a household none of whose adults worked their share (`hours`, or
-  // the day's work over its adults when that is less) is away: its holder loses `missed` (the agent's own reading of "at the work day").
-  // Days owed (VB-462; design.md, Remedies, The alderman's keep): a day is `hours` of work of one adult, called for a day at least `notice`
-  // days ahead by the creditor's holder, as tasks of its plan.
-  const DAYS = { notice: 3, hours: 8 };
   // The village's office (VB-314; design.md, The alderman): standing gained while in office, and what the election weighs: a candidate's
   // standing (`standing` the weight of one point of it) against a voice's opinion of him (opinions run -1 to 1).
   // keepDays: the days of work each other farm's household owes the alderman's from one autumn meeting to the next; keepShare: the share of its
   // surplus it sets aside for him at the moving round (the practice `keep`, VB-463; about 0.7 of a household's need, a village's keep in all).
   const OFFICE = { standing: 0.3, weighStanding: 0.25, keepDays: 4, keepShare: 0.1 };
-  const WORKDAY = {
-    days: [
-      [0, 0, 'fence'],
-      [1, 1, 'commons'],
-    ],
-    fenceBelow: 0.9,
-    fenceHours: 2.5,
-    clearHours: 3,
-    prio: 8,
-    minAge: 14,
-    hours: 2,
-    came: 0.05,
-    missed: -0.1,
-  };
-  // Common fields worked by the village (VB-100; Kim, 10 Nov; design, Commons): a routine the meeting may choose for a village of `minFarms`
-  // or more occupied farms whose store holds less than `storeDays` days of its members' need, with a free meadow tile within `reach` steps of
-  // its green (its centre before it has one); at most one common field for every `perFarms` farms. Its tasks are the village's, at the
-  // village-duty priorities of ROLES (`duty`) moved by the village's custom `commons` (`lean`: its options' steps from them).
-  // `pull`: how far the help a person's household was given leans it to the next higher option, at `fullDays` days of its need owed.
-  const COMMONS = {
-    minFarms: 3,
-    storeDays: 10,
-    reach: 3,
-    perFarms: 3,
-    lean: { own: -2, fair: 0, first: 2 },
-    fullDays: 30,
-    pull: 0.6,
-  };
-  // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
-  // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one within
-  // `hours` walking hours of it, a day's walk, since the servant moves (VB-290; design.md, The round's other acts; it was 15 hex steps).
-  // Where labour is short (VB-090; Agreed, Kim, 30 Oct): hands per field below `short`, to spare above `spare`.
-  const SERVICE = { ages: [18, 50], keepHands: 2, hours: 12, short: 1, spare: 1.5 };
-  // The tie of a settlement to its culture's centre (sim/society, VB-290): exp(-h / hours) for h walking hours between the two greens (the
-  // table of VB-286), plus the kin term; over the sea or beyond walking reach, `sea` times the hex steps, in hours (/ SPEED).
-  const TIE = { hours: 8, sea: 1.6 };
   // Claims on land (sim/claims, sim/territory; claims review, docs/review-claims.md; numbers Proposed): an unrealised claim fades over `years`
   // without work or renewal; a village claims outland within `outReach` walking steps of its green, `outPerFarm` tiles an occupied farm; a
   // household may contest a stake weaker than `contestBelow`; a family's birthright on its empty farm lasts `birthrightYears`; a household
@@ -1090,75 +570,6 @@ VB['sim/rules'] = (() => {
     farmFood: 60,
     claimantPrio: 9,
     helperPrio: 5,
-  };
-  // The fit of a pawn for a job (jobs.js): its role's priority for the kind times the job's urgency, less distanceWeight for each step
-  // from home; a good fit (priority above poorFit) never falls under `floor`. The head allots a household's day by it (VB-466); a
-  // further hand on a job counts for join of the one before (VB-102), so a free job comes first. When the day is allotted anew, a pawn
-  // at work leaves its job for one whose fit is above switchRatio × its own job's + switchMargin (VB-107). `noise` is on a helper's
-  // bid for a neighbour's job only.
-  // urgency: a job's weight in a bid, by kind (see the kinds in sim/kinds).
-  const MATCH = {
-    poorFit: 2,
-    // The head's day (VB-466): a task is given hands until they finish it within `horizon` working days, and a member is given tasks
-    // up to its working hours of that time; what it may do besides follows in its list.
-    day: { horizon: 0.5 },
-    floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
-    distanceWeight: 0.15,
-    noise: 0.3,
-    join: 0.8,
-    switchRatio: 1.5,
-    switchMargin: 1,
-    // Help between households (VB-106; design.md, Who may take a job): an adult of `minAge` or more with no bid of its own in a round
-    // bids on another household's job of its village, of the `kinds`, once the job has waited `waitHours`; each household offers its
-    // most urgent open job of each kind. The bid is multiplied by `factor`, plus `kin` for near kin of the holder, plus the helper's
-    // opinion of the holder. Each finished task (a load, for hauling) raises the tie with each adult helped by `tie`.
-    help: {
-      minAge: 14,
-      waitHours: 2,
-      kinds: ['plow', 'sow', 'weed', 'reap', 'haul', 'thresh', 'clear', 'break', 'mend'],
-      factor: 0.5,
-      kin: 1,
-      tie: 0.2,
-    },
-    urgency: {
-      field: 1,
-      fieldPerDay: 8, // plow and sow: 1 + sday / 8
-      reap: 1.3,
-      reapFrostPerDay: 5,
-      haul: 1.1, // reap: 1.3; both, in autumn, + the days gone of a season ending at the year's frost / 5 (sim/fieldwork frostNear)
-      woodLow: 8,
-      woodLowUrgency: 2.2,
-      woodColdUrgency: 3, // VB-327: a cold household's wood comes before its cooking (cookEvening 2.2)
-      woodSummer: 0.5, // wood: 2.2 under 8 in store, else its shortfall of the goal, + 0.5 in autumn
-      waterMorning: 1.4,
-      waterMorningHour: 10,
-      water: 1,
-      waterLate: 3.3, // VB-331: from waterLateHour, 1.5 times cookEvening: the water comes before the cooking
-      waterLateHour: 14,
-      cookEvening: 2.2,
-      cookEveningHour: 15,
-      cook: 0.6,
-      brew: 0.5,
-      mendPerCond: 2,
-      other: 1,
-      rake: 0.8,
-      mow: 1,
-      mowPerDay: 12, // mow: 1 + days into the haymaking window / 12 (sim/meadows)
-      fodder: 1.5,
-      slaughter: 1.2,
-      slaughterNow: 3,
-      salt: 1.6, // the byre (sim/byre): slaughterNow when hay runs short
-      milk: 1.5,
-      milkLate: 0.8,
-      milkLateHour: 10, // milking (VB-135): in the morning, less pressing after milkLateHour
-      manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
-      manureSurplus: 0.5, // dung to spare (VB-718): after the hoeing and the sowing, so that it never makes a household sow late
-      repair: 0.5, // the house's upkeep (VB-306): below the fields' work and the fence's mending
-      herd: 1.5, // herding (VB-136): the animals' daily care, as milking and the byre
-      fishCalm: 0.2,
-      fishLean: 2,
-      fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
-    },
   };
   // ---- the twelve traits (VB-519; design.md, People, Traits, talk and stories; Customs and culture, A culture's values) ----
   // A pawn's traits, in the order of `names`: four values, four of temperament, four aptitudes. Every trait passes on by one equation,
@@ -1204,41 +615,6 @@ VB['sim/rules'] = (() => {
     }),
     breach: Object.freeze(['claim', 'border', 'refusedMatch', 'crop', 'stayedAway']),
   });
-  // ---- a well-kept house (VB-306; design.md, Goods of place and side crafts: A well-kept house) ----
-  // A farmstead's condition 0..1 (f.condition) is the value at f.condAt (game hours; 0 when never set) for an occupied house, and it wears
-  // by closed form from then (rule 3: no daily pass), 0.1 a year, 0.067 while tarred (f.tarredUntil, game hours: a barrel lasts 6 years;
-  // nothing tars a house before VB-301). An empty farm's condition is worn by the daily pass of sim/clock, as before.
-  // Upkeep is offered under `mendBelow`; `hours` of work raise it `raise`; standing gains `term` (tarred `termTarred`) times the condition.
-  // A house raised onto a stone foundation (f.grade 'stone', VB-332) wears `wearStone` a year and its term is `termStone`; tar's gain adds on
-  // either grade (the term's 0.03, wear a third less), so a house on the ground reads as before.
-  const HOUSE = {
-    wear: 0.1,
-    wearTarred: 0.067,
-    term: 0.15,
-    termTarred: 0.18,
-    mendBelow: 0.8,
-    hours: 4,
-    raise: 0.1,
-    tarYears: 6,
-    wearStone: 0.08,
-    termStone: 0.2,
-  };
-  const houseTarred = (st, f) => (f.tarredUntil || 0) > st.t;
-  const onStone = (f) => f.grade === 'stone';
-  function houseCondition(st, f) {
-    const c = f.condition ?? 1;
-    if (f.household === null || st.liveTrusts?.some((i) => st.trusts[i].household === f.household)) return c; // empty, or in trust
-    const t0 = f.condAt ?? 0,
-      tar = Math.min(st.t, f.tarredUntil || 0),
-      tarred = Math.max(0, tar - t0),
-      plain = Math.max(0, st.t - t0) - tarred;
-    const wear = onStone(f) ? HOUSE.wearStone : HOUSE.wear,
-      wearTarred = wear * (HOUSE.wearTarred / HOUSE.wear);
-    return Math.max(0, c - (plain * wear + tarred * wearTarred) / YEAR);
-  }
-  const houseTerm = (st, f) =>
-    ((onStone(f) ? HOUSE.termStone : HOUSE.term) + (houseTarred(st, f) ? HOUSE.termTarred - HOUSE.term : 0)) *
-    houseCondition(st, f);
   return {
     TRAITS,
     DAY,
@@ -1246,86 +622,42 @@ VB['sim/rules'] = (() => {
     YEAR_DAYS,
     YEAR,
     TICKS,
-    HOUSE,
-    houseCondition,
-    houseTarred,
-    houseTerm,
-    SEASONS,
     cal,
     WORK,
     dark,
     ECON,
-    CROPS,
-    ROTATIONS,
     FIELDS,
     FISH,
     AGES,
-    FORAGE,
     DEER,
-    FERTILITY,
-    RIVER,
-    farmable,
-    byRiver,
-    fertility,
-    ROLES,
-    CHILD,
-    workRate,
-    PLOT_PRIO,
     MALE,
     FEMALE,
     patronym,
-    DIRNAME,
-    hazard,
-    BIRTH,
     HUNGER,
     HEALTH,
     ILLNESS,
-    CROWD,
     TESTBED,
     MARRIAGE,
     HANDOVER,
-    FOUNDERS,
     HELP,
     GOODWILL,
     TRAVEL,
-    AWAY,
     BOOTH,
     HERD,
     stalled,
-    GRAZE,
     FOODS,
-    SOIL,
-    TILTH,
-    SOCIAL,
-    MOOD,
-    IDLE,
     SPEED,
     BREW,
-    FEAST,
-    GIFT,
     ALE_EVENING,
-    CALL,
     RITE,
     GATHERING,
-    TERRAIN,
-    SLOPE,
-    ROUTE,
-    PATHS,
     SHARES,
     SETTLE,
-    WISH,
     ASK,
-    COURT,
-    SERVICE,
-    TIE,
-    MATCH,
     CLAIMS,
     WOOD,
     PEAT,
     BUILD,
-    WORKDAY,
-    DAYS,
     OFFICE,
-    COMMONS,
   };
 })();

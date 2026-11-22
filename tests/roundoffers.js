@@ -6,7 +6,7 @@ const VB = require('../src/load.js'),
   Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
-const { DAY, YEAR, SEASON_DAYS, ASK, SOCIAL } = VB['sim/rules'];
+const { DAY, YEAR, SEASON_DAYS, ASK } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'];
 const { moveWhy } = VB['sim/wishes'];
 const { BASES } = VB['sim/offers'];
 const { roundPhase, ROUND_STEPS } = VB['sim/round'];

@@ -17,13 +17,20 @@ VB['sim/occasions'] = (() => {
     dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
   const { release, walkTo, idle, free, stayOf, travelling } = VB['sim/agents'];
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, SPEED, WORK, SOCIAL, TICKS, MARRIAGE, cal } = VB['sim/rules'];
+  const { DAY, SPEED, WORK, TICKS, MARRIAGE, cal } = VB['sim/rules'],
+    { SOCIAL } = VB['sim/ties'];
   const { findRoute, routeCost } = VB['sim/routes'];
   const { kinNear, membersOf, voiceOf, fullName, log, atFarm, age, spouseOf } = VB['sim/records'];
   const { issue, register } = VB['sim/commands'];
   const { unplanned } = VB['sim/records'];
-  const { ALE_EVENING, CALL, RITE, GATHERING, WORK: WORK_HOURS } = VB['sim/rules'];
+  const { ALE_EVENING, RITE, GATHERING, WORK: WORK_HOURS } = VB['sim/rules'];
   const { pourAle, feast } = VB['sim/feast'];
+  // @tunable CALL: a call at a farm: how long it lasts, how often, and the strangers met
+  // A call at a farm (VB-1119; design.md, Where pawns meet): a pawn walks to another household's farm within a day's walk and stays from the
+  // end of work to `until`; those at home meet it there as at an occasion, with `mix` the floor for strangers among the partners drawn
+  // (sim/encounters). `every`: a pawn calls at most once in so many game hours (a week), the cost's bound; `rung`: an unplayed pawn whose
+  // asking found nobody calls at a farm of another village (sim/asking, calls).
+  const CALL = { until: 22, mix: 0.5, every: 7 * DAY };
   // The occasions (Kim, 10 Nov; QUESTION_ARCHIVE.md, "VB-126"): their hours in the day, and whether work stops for them. A village's
   // meeting is held on its own 6-minute step from noon (sim/lifecycle, VB-278): its people stand about the green from two hours before it
   // until the step after it, so `from` and `to` are the hours of the first village's, and a later village's are its turn later.

@@ -9,7 +9,7 @@ VB['sim/skills'] = (() => {
   //   temperament is (Traits.pass), at birth (born, after its traits) and at seed for those a scenario places (seedSkills); it does not grow.
   //   A pawn without it (a save made before VB-475) reads the middle. Written only here; read through skillOf.
   // The tunables (Kim, 15 Nov: variation in the time taken has a cause, and is small):
-  //   types: the types of work a kind declares (`type`, sim/kinds; the keys ROLES rank in sim/rules), in a fixed order: the save's;
+  //   types: the types of work a kind declares (`type`, sim/kinds; the keys ROLES rank in sim/roles), in a fixed order: the save's;
   //   rate: a hand's rate is multiplied by rate[0] at skill 0 to rate[1] at skill 1, linearly (1 at the middle);
   //   mishap: the most a mishap lowers a leg's rate by, mishap[0] at skill 0 to mishap[1] at skill 1, linearly; the draw is uniform
   //   between 0 and that most, so it lowers the rate by half of it on average. A hand at the middle skill averages the norm: the rate is

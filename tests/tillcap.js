@@ -1,6 +1,6 @@
 // Hoeing and sowing only what the hands can till (VB-1186): a household whose plan says its hands can till 2 fields hoes the first 2 of
 // its stubble fields in the window and leaves the rest; with 1 already sown, it hoes 1; it sows a hoed field only under the same count.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { CROPS } = VB['sim/rules'];
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { CROPS } = VB['sim/crops'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TILLCAP FAIL:', m); } };
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, 7, 'heirs'), hh = st.households[0], f = st.farmsteads[hh.farmstead];

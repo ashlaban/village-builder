@@ -1,8 +1,10 @@
 // @sys sim: the public Sim object, assembled from the sim/* modules
 const Sim = (() => {
   const Culture = VB['culture'];
-  const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, TRAVEL, ROLES, WORK, dark, RIVER, byRiver } =
-    VB['sim/rules'];
+  const { cal, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, TRAVEL, WORK, dark } = VB['sim/rules'],
+    { ROLES } = VB['sim/roles'],
+    { RIVER, byRiver } = VB['sim/crops'],
+    { SEASONS } = VB['sim/weather'];
   const { KINDS } = VB['sim/kinds'];
   const {
     age,
@@ -96,13 +98,14 @@ const Sim = (() => {
     { movingRound } = VB['sim/round'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
-  const { HERD, SOIL, CLAIMS } = VB['sim/rules'];
+  const { HERD, CLAIMS } = VB['sim/rules'],
+    { SOIL } = VB['sim/crops'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
   const { withOxen, placeOf, poseOf } = VB['sim/agents'];
   const { larderOf } = VB['sim/larder'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
   const { boothCondition } = VB['sim/building'], // VB-784: a booth's condition now
-    { houseTarred } = VB['sim/rules'],
+    { houseTarred } = VB['sim/house'],
     { untarred: boatUntarred } = VB['sim/drying']; // VB-301: a house tarred, a boat's years since its tarring
   const { claimsOn, strength, holdings } = VB['sim/claims'];
   const { knows: knowsDeposit, known: depositKnown } = VB['sim/prospect'];

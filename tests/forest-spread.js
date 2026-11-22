@@ -5,7 +5,7 @@
 // felled and grubbed and cut for firewood. On a tiny village under a forest: the rules on constructed states, the invariants and a save.
 const VB = require('../src/load.js'), Sim = VB.sim, { B, treeStage } = VB.gen;
 const S = VB['sim/spread'], Z = VB['sim/grazing'], Fd = VB['sim/fields'], FieldPlans = VB['sim/fieldplans'], Fo = VB['sim/forest'], T = VB['sim/territory'];
-const { GRAZE, YEAR_DAYS, DAY } = VB['sim/rules'], { KINDS } = VB['sim/kinds'];
+const { YEAR_DAYS, DAY } = VB['sim/rules'], { GRAZE } = VB['sim/spread'], { KINDS } = VB['sim/kinds'];
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SPREAD FAIL:', m); } };
 const rows = Array.from({ length: 14 }, (_, i) => (i < 2 ? 'FFFFFFFFFPPPPPPPPP' : '..................'));

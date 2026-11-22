@@ -6,7 +6,7 @@
 // field stands under a crop the new rotation has not; a new field on the step fewest fields are at; the village's usual rotation at its
 // meeting, the one most farms hold; the invariants of each state; barley every year as it was.
 const assert = require('assert'), VB = require('../src/load.js');
-const { CROPS, ROTATIONS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
+const { DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'], { CROPS, ROTATIONS } = VB['sim/crops'];
 const F = VB['sim/fields'], FieldPlans = VB['sim/fieldplans'], Rotations = VB['sim/rotations'], Plans = VB['sim/plans'], Stores = VB['sim/stores'], { seedNeed } = VB['sim/hunger'];
 const { setClock } = require('./lib/clock.js');
 const { tinyWorld, tinyState, setForesight } = require('./lib/tiny.js');

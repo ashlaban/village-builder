@@ -1,6 +1,7 @@
 // @sys sim/villagehours: the symmetric table of walking hours between village greens and its distance queries
 VB['sim/villagehours'] = (() => {
-  const { ROUTE, SPEED, TRAVEL } = VB['sim/rules'];
+  const { SPEED, TRAVEL } = VB['sim/rules'],
+    { ROUTE } = VB['sim/routes'];
   const { reachCosts } = VB['sim/routes'];
 
   // ---- walking hours between villages (VB-286) ----

@@ -505,7 +505,7 @@ function cropStage(fd) {
 // stages; rye, sown in autumn, stands green and lies under snow all winter; a fallow course lies in weedy stubble, then tilled.
 function fieldLook(fd) {
   const s = cropStage(fd);
-  if (fd.stage === 'stubble' && VB['sim/rules'].CROPS[fd.crop].fallow) return fd.rest === 1 ? 'tilled' : 'lea';
+  if (fd.stage === 'stubble' && VB['sim/crops'].CROPS[fd.crop].fallow) return fd.rest === 1 ? 'tilled' : 'lea';
   if (fd.crop === 'rye' && (s === 'sown' || s === 'young' || s === 'growing')) {
     if (Sim.cal(st.t).season === 3) return 'rye-snow';
     if (s === 'growing' && Sim.cal(fd.sown * Sim.DAY).season === 2 && Sim.cal(st.t).season === 2) return 'rye-young';

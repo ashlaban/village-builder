@@ -2,7 +2,7 @@
 // season, until the harvest), and the village store's yearly filling; each gift is a command `give`, settled by sim/exchange (VB-216)
 VB['sim/help'] = (() => {
   const issue = (st, cmd) => VB['sim/commands'].issue(st, cmd); // read at each call: tools/store-flows.js caps the yearly filling by replacing it
-  const { AGES, HELP, GIFT, YEAR, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
+  const { AGES, HELP, YEAR, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
   const { hoursBetween, withinDay, byLand } = VB['sim/villagehours'];
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
   const { dailyNeed, storeRoom } = VB['sim/hunger'],
@@ -12,6 +12,10 @@ VB['sim/help'] = (() => {
     { assessGift } = VB['sim/exchange'];
   const Rules = VB['sim/registry'],
     { bufferOf } = VB['sim/traits'];
+  // @tunable GIFT: the good-year gift: who gives unasked, and how much
+  // The good-year gift (VB-460): a holder above FEAST.above gives unasked to a tie holding under shortBelow years of its need above its seed;
+  // under least rations (a sack) the walk is not worth it and none is made
+  const GIFT = { shortBelow: 1, least: 10 };
   // allowance's second term (VB-216): the holder's own reserve beyond the floor, 40 to 0 days of the household's need by its generosity
   // (TRAITS.acts.generosity.reserve; VB-520, after VB-484); a household without a holder keeps the most, as surplus does
   Rules.contribute({
@@ -234,6 +238,7 @@ VB['sim/help'] = (() => {
     giveUnasked(st, hh);
   });
   return {
+    GIFT,
     goodYearGift,
     giveUnasked,
     surplus,

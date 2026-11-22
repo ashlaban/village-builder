@@ -1,7 +1,10 @@
 // @sys sim/people: the household generators of the founders and populous scenarios
 VB['sim/people'] = (() => {
   const { person, marry, makeHousehold, joinHousehold } = VB['sim/records'];
-  const { FOUNDERS } = VB['sim/rules'];
+  // @tunable FOUNDERS: the founders' ages
+  // The founders' ages (VB-635; design.md, Starting scenarios): each couple's man is manMin to manMin+manSpan-1 years old, his wife
+  // 1 to wifeYounger years younger and at least wifeMin; the two servants are servantMin to servantMin+servantSpan-1.
+  const FOUNDERS = { manMin: 23, manSpan: 11, wifeYounger: 6, wifeMin: 19, servantMin: 16, servantSpan: 4 };
 
   // Founders: a young couple on every farm, and two servants who join two of the households.
   function foundersHouseholds(R, farmsteads) {

@@ -4,10 +4,18 @@
 // the asking day's due-queue, when each pawn who seeks next reviews its wish (VB-823)
 VB['sim/wishes'] = (() => {
   const Due = VB['sim/due'];
-  const { HUNGER, MARRIAGE, WISH, ASK, DAY, YEAR, SEASON_DAYS } = VB['sim/rules'];
+  const { HUNGER, MARRIAGE, ASK, DAY, YEAR, SEASON_DAYS } = VB['sim/rules'];
   const { of: traitOf } = VB['sim/traits'];
   const { age, spokesmanOf, spouseOf, holdingOf, personEvent, fullName, settlementIdOf } = VB['sim/records'];
   const { on } = VB['sim/events'];
+  // @tunable WISH: a pawn's wish at the moving round: its rungs and what each weighs
+  // A pawn's wish at the moving round (sim/wishes, VB-680; docs/plans/VB-682.md, section 3): `rungs`, the answers to "where do I live next
+  // year" in their default ranking, best first (heir to the farm it lives on, a match, an empty farm, a plot, new land, service, stay at
+  // home: the order of the round's steps); from ambition `landAmbition` a pawn ranks new land above a plot.
+  const WISH = Object.freeze({
+    rungs: Object.freeze(['heir', 'match', 'farm', 'plot', 'party', 'service', 'stay']),
+    landAmbition: 0.75,
+  });
   // @state pawn.wish (VB-680): absent or null for the default wish (WISH.rungs as ranked, any farm, whoever its spokesman's asking finds), else
   //   {rank (WISH.rungs in the pawn's order, best first; a rung ranked after 'stay' is one it would not take), farm (a farm id: only that
   //   farm, or null), partner (a pawn id: that partner, or null)}. Written by the pawn's own choosing at the start of the moving round
@@ -280,6 +288,7 @@ VB['sim/wishes'] = (() => {
   });
   on('rehoused', (st, d) => seek(st, d.a.id));
   return {
+    WISH,
     RUNGS,
     chooseWishes,
     chooseWish,

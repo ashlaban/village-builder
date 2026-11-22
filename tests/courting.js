@@ -7,7 +7,7 @@ const assert = require('assert');
 const VB = require('../src/load.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
-const { DAY, YEAR, COURT, TICKS } = VB['sim/rules'];
+const { DAY, YEAR, TICKS } = VB['sim/rules'], { COURT } = VB['sim/courting'];
 // The clock set to time t
 const at = (st, t) => {
   st.tick = Math.round(t * TICKS);
@@ -175,7 +175,7 @@ const last = (st, id, kind) => st.pawns[id].events.map((i) => st.record[i]).filt
   fond(st, 8, 2);
   goodTalk(st, 8, 2);
   sour(st, 0, 6);
-  assert.ok(Rel.opinionOf(st, 0, 6) <= VB['sim/rules'].SOCIAL.enemy, 'her father holds his an enemy');
+  assert.ok(Rel.opinionOf(st, 0, 6) <= VB['sim/ties'].SOCIAL.enemy, 'her father holds his an enemy');
   at(st, dueRound(st));
   const before = Rel.opinionOf(st, 8, 0);
   st.rng.society.fix = 0.99;

@@ -3,7 +3,8 @@
 // what the head expects of a source (poor and mean) and how cautious it is. Nothing reads it yet (VB-768 on).
 // Design: docs/plans/VB-189.md section 5.5; AGENTS.md, Deciding without Kim, 14 (the future is someone's estimate).
 VB['sim/yields'] = (() => {
-  const { FIELDS, CROPS } = VB['sim/rules'];
+  const { FIELDS } = VB['sim/rules'],
+    { CROPS } = VB['sim/crops'];
   const { on } = VB['sim/events'];
   const Traits = VB['sim/traits'];
   // The sources, and which reason books to which. A trade is booked as a gift of the one who gave (sim/exchange), so 'deals' stays 0 until

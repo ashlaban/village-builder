@@ -1,6 +1,6 @@
 // Tilth (VB-717): a field's slow soil, built by dung and fading over decades, read in closed form. On a small constructed state.
 const VB = require('../src/load.js'), F = VB['sim/fields'], { state } = require('./lib/probe.js');
-const { TILTH, YEAR } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
+const { YEAR } = VB['sim/rules'], { TILTH } = VB['sim/fields'], { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TILTH FAIL:', m); } };
 const st = state(), f = st.farmsteads.find((x) => x.household !== null && x.fields.length >= 2), hh = st.households[f.household];
 const [a, b] = f.fields, near = (x, y, e) => Math.abs(x - y) <= e;

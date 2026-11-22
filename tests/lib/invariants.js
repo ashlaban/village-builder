@@ -4,7 +4,7 @@ const { checkRoles } = require('./owner-caches.js');
 const checked = new WeakMap(); // the record's length at the last check, by record
 // Grain by crop (VB-347): an object of crops of CROPS with seed (Stores.CROP_LIST: not fallow, VB-348), none negative, and the sum the
 // readers see (Stores.grainOf) is their sum.
-const LOADED = require('../../src/load.js'), CROPS = LOADED['sim/rules'].CROPS;
+const LOADED = require('../../src/load.js'), CROPS = VB['sim/crops'].CROPS;
 function grainBad(g) {
   if (!g || typeof g !== 'object' || Array.isArray(g)) return true;
   let sum = 0;
@@ -361,13 +361,13 @@ function checkState(st) {
     const cs = st.pawns[id].causeSince;
     if (cs !== null && cs !== undefined && !(cs <= st.t / globalThis.VB['sim/rules'].YEAR + 1e-6)) bad.push(`pawn ${id}: causeSince ${cs}`);
   }
-  if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/rules'].ROUTE.cacheMax) {
+  if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/routes'].ROUTE.cacheMax) {
     bad.push('pathCache: exceeds ROUTE.cacheMax or is not a Map');
   }
   // the walking hours between villages (VB-286): a row a village, each as long as the villages are many; 0 on the diagonal, symmetric, and
   // every other entry null or a number in (0, ROUTE.reach / SPEED]
   {
-    const T = st.villageHours, n = st.villages.length, top = globalThis.VB['sim/rules'].ROUTE.reach / globalThis.VB['sim/rules'].SPEED;
+    const T = st.villageHours, n = st.villages.length, top = globalThis.VB['sim/routes'].ROUTE.reach / globalThis.VB['sim/rules'].SPEED;
     if (!Array.isArray(T) || T.length !== n) bad.push(`villageHours: ${Array.isArray(T) ? T.length : T} rows for ${n} villages`);
     else for (let v = 0; v < n; v++) {
       if (!Array.isArray(T[v]) || T[v].length !== n) { bad.push(`villageHours[${v}]: not a row of ${n}`); continue; }
@@ -516,7 +516,7 @@ function checkState(st) {
     if (a.pace !== undefined && !(Number.isFinite(a.pace) && a.pace >= paceLo && a.pace <= paceHi)) bad.push(`agent ${a.id}: pace ${a.pace}`);
   // a pawn's wish at the moving round (VB-680): absent or null (the default), else a ranking that holds each rung once, a farm that exists
   // or null, a pawn of the other sex or null; a living pawn's is not the default written out
-  const RUNGS = globalThis.VB['sim/rules'].WISH.rungs;
+  const RUNGS = globalThis.VB['sim/wishes'].WISH.rungs;
   for (const p of st.pawns) {
     const w = p.wish;
     if (w === undefined || w === null) continue;
@@ -530,7 +530,7 @@ function checkState(st) {
   // is read where a courtship starts and where their offer is made, and may change under them); courtingSince is a time not after now,
   // and courtRefused is held only while courting, of a pawn; st.courtships holds the man of each couple once, and no other
   {
-    const C = globalThis.VB['sim/rules'].COURT, Rec = globalThis.VB['sim/records'], men = [];
+    const C = globalThis.VB['sim/courting'].COURT, Rec = globalThis.VB['sim/records'], men = [];
     for (const p of st.pawns) {
       const c = p.courting, at = `pawn ${p.id}: courting ${c}`;
       if (c === undefined || c === null) {
@@ -869,7 +869,7 @@ function checkState(st) {
     if (p.alive && p.nursling !== null && p.nursling !== undefined) {
       // VB-632: she nurses a child of hers, born within the nursing term, and while the term lies ahead (the step clears it a day late at most)
       const c = st.pawns[p.nursling];
-      if (!c || c.mother !== p.id || st.t - c.born > LOADED['sim/rules'].BIRTH.nursingDays * LOADED['sim/rules'].DAY + 1e-6) bad.push(`pawns[${p.id}]: nursling ${p.nursling} is not her child born within the term`);
+      if (!c || c.mother !== p.id || st.t - c.born > LOADED['sim/births'].BIRTH.nursingDays * LOADED['sim/rules'].DAY + 1e-6) bad.push(`pawns[${p.id}]: nursling ${p.nursling} is not her child born within the term`);
       if (p.nursingUntil === null || st.t - p.nursingUntil > 2 * LOADED['sim/rules'].DAY) bad.push(`pawns[${p.id}]: nursling ${p.nursling} but nursingUntil ${p.nursingUntil}`);
     }
     if (!within(p.hunger, 0, 1)) bad.push(`pawns[${p.id}]: hunger is ${p.hunger}`);
@@ -910,7 +910,7 @@ function checkState(st) {
     if (f.condition !== undefined && !(f.condition >= 0 && f.condition <= 1)) bad.push(`farmsteads[${f.id}]: condition ${f.condition}`);
     if (f.condAt !== undefined && !(f.condAt <= st.t)) bad.push(`farmsteads[${f.id}]: condAt ${f.condAt} is in the future`);
     if (f.tarredUntil !== undefined &&
-      !(f.tarredUntil <= st.t + globalThis.VB['sim/rules'].HOUSE.tarYears * globalThis.VB['sim/rules'].YEAR)) bad.push(
+      !(f.tarredUntil <= st.t + globalThis.VB['sim/house'].HOUSE.tarYears * globalThis.VB['sim/rules'].YEAR)) bad.push(
       `farmsteads[${f.id}]: tarredUntil ${f.tarredUntil}`);
     if (!tileOk(f.house)) bad.push(`farmsteads[${f.id}]: house tile ${f.house} out of range`);
     // settlers' booth (sim/settle): a mark, the cottage being the project plan 'cottage' of its household, or of its village while the
@@ -1098,7 +1098,7 @@ function checkState(st) {
     let off = 0, first = null;
     for (const f of st.farmsteads) {
       if (f.household === null) continue;
-      for (const steps of new Set([Ru.FISH.reach, Ru.FORAGE.reach, Ru.DEER.hunt.reach])) {
+      for (const steps of new Set([Ru.FISH.reach, V['sim/forage'].FORAGE.reach, Ru.DEER.hunt.reach])) {
         const kept = Walking.reachTiles(st.w, f.house, steps), now = [...V['sim/hex'].bfs(st.w, f.house, steps, walk).dist.keys()];
         if (kept.length !== now.length || now.some((t, i) => kept[i] !== t)) { off++; first ??= `house ${f.house}, ${steps} steps`; }
       }
@@ -1218,7 +1218,7 @@ function checkState(st) {
     !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
   // the hour of a pawn's last talk with a friend (agent.talk.friendAt, VB-062): a finite hour, no later than a talk begun now can show (two
   // talks in one hour may be shown in either order, so it may follow the latest talk's own hour)
-  for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= st.t + VB['sim/rules'].SOCIAL.talk.bubbleHours + 1e-9)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, after now (${st.t}) and a talk's bubble`);
+  for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= st.t + VB['sim/ties'].SOCIAL.talk.bubbleHours + 1e-9)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, after now (${st.t}) and a talk's bubble`);
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
   for (const a of st.agents) {
@@ -1576,12 +1576,12 @@ function checkHerds(st, bad) {
     if (hh.spoilt !== undefined && !(hh.spoilt >= 0)) bad.push(`households[${hh.id}]: spoilt ${hh.spoilt}`); // grain lost in store (balance review)
   }
   // a field's soil (VB-137) between the floor that harvests wear it to and the cap manure raises it to
-  const { SOIL, CROPS } = VB['sim/rules'];
+  const { SOIL, CROPS } = VB['sim/crops'];
   for (const f of st.farmsteads) for (const fd of f.fields) {
     if (!Object.prototype.hasOwnProperty.call(CROPS, fd.crop)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: crop ${fd.crop} is not in the table`); // VB-346
     if (!(fd.soil >= SOIL.floor - 1e-9 && fd.soil <= Math.max(SOIL.cap, SOIL.fresh) + 1e-9)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: soil ${fd.soil}`);
-    if (!(Number.isFinite(fd.tilth) && fd.tilth >= 0 && fd.tilth <= VB['sim/rules'].TILTH.max && fd.tilthAt <= st.t)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: tilth ${fd.tilth} at ${fd.tilthAt}`); // VB-717
-    if (fd.surplus !== undefined && !(fd.surplus >= 0 && fd.surplus <= VB['sim/rules'].TILTH.surplus + 1e-9 && fd.surplusYear <= Math.floor(st.t / VB['sim/rules'].YEAR))) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: surplus ${fd.surplus} in year ${fd.surplusYear}`); // VB-718
+    if (!(Number.isFinite(fd.tilth) && fd.tilth >= 0 && fd.tilth <= VB['sim/fields'].TILTH.max && fd.tilthAt <= st.t)) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: tilth ${fd.tilth} at ${fd.tilthAt}`); // VB-717
+    if (fd.surplus !== undefined && !(fd.surplus >= 0 && fd.surplus <= VB['sim/fields'].TILTH.surplus + 1e-9 && fd.surplusYear <= Math.floor(st.t / VB['sim/rules'].YEAR))) bad.push(`farmsteads[${f.id}].fields[${fd.id}]: surplus ${fd.surplus} in year ${fd.surplusYear}`); // VB-718
     // VB-348: a fallow field is never sown; a sown field's crop has seed; a winter crop stands across the year's turn, any other is not
     // standing in winter; weeding rounds within the crop's; a rest mark is 0.5 or 1
     const C = CROPS[fd.crop] || {}, at = `farmsteads[${f.id}].fields[${fd.id}]`, standing = ['sown', 'growing', 'ripe'].includes(fd.stage);
@@ -1593,7 +1593,7 @@ function checkHerds(st, bad) {
   }
   // VB-350: a field's rotation is a known key, the same on every field of its farm (and barley every year on a village's common field);
   // its step is inside the rotation, and the field's crop is the step's course; a village's usual rotation is a known key
-  const { ROTATIONS } = VB['sim/rules'];
+  const { ROTATIONS } = VB['sim/crops'];
   const rotOk = (fd, at, only) => {
     const R = ROTATIONS[fd.rotation];
     if (!R || (only && fd.rotation !== only)) bad.push(`${at}: rotation ${fd.rotation}`);
@@ -1604,12 +1604,12 @@ function checkHerds(st, bad) {
   for (const f of st.farmsteads) for (const fd of f.fields) rotOk(fd, `farmsteads[${f.id}].fields[${fd.id}]`, f.fields[0].rotation);
   for (const f of st.farmsteads) {
     // VB-355: the household whose head chose the farm's rotation to keep; VB-353: the farm's first rotation, the crops it keeps seed of
-    if (f.firstRotation !== undefined && !LOADED['sim/rules'].ROTATIONS[f.firstRotation]) bad.push(`farmsteads[${f.id}]: firstRotation ${f.firstRotation}`);
+    if (f.firstRotation !== undefined && !VB['sim/crops'].ROTATIONS[f.firstRotation]) bad.push(`farmsteads[${f.id}]: firstRotation ${f.firstRotation}`);
     if (f.keeps !== undefined && !(Array.isArray(f.keeps) && f.keeps.every((k) => LOADED['sim/stores'].CROP_LIST.includes(k)))) bad.push(`farmsteads[${f.id}]: keeps ${f.keeps}`);
     if (f.rotationBy !== undefined && !(Number.isInteger(f.rotationBy) && st.households[f.rotationBy])) bad.push(`farmsteads[${f.id}]: rotationBy ${f.rotationBy}`);
     // VB-351: the crop last lost on the farm, and the year, kept only where its rotation has two crops or more
     if (f.failed !== undefined && !(f.failed && LOADED['sim/stores'].CROP_LIST.includes(f.failed.crop) && Number.isInteger(f.failed.year) && f.fields.length
-      && ROTATIONS[f.fields[0].rotation].courses.filter((k) => LOADED['sim/rules'].CROPS[k].seed > 0).length >= 2)) bad.push(`farmsteads[${f.id}]: failed ${JSON.stringify(f.failed)}`);
+      && ROTATIONS[f.fields[0].rotation].courses.filter((k) => VB['sim/crops'].CROPS[k].seed > 0).length >= 2)) bad.push(`farmsteads[${f.id}]: failed ${JSON.stringify(f.failed)}`);
   }
   for (const v of st.villages) {
     if (!ROTATIONS[v.rotation]) bad.push(`villages[${v.id}]: rotation ${v.rotation}`);
@@ -1636,7 +1636,7 @@ function checkGoodwill(st, p, bad) {
 // above 0, at most SOCIAL.ties.cap of them (or its near kin, if more); its scale's start is no later than now, and its waking hours at
 // home today are a whole number within the talk hours. (The kin floor is checked in tests/relations.js.)
 function checkTies(st, p, bad) {
-  const { SOCIAL } = VB['sim/rules'], TIES = SOCIAL.ties, T = SOCIAL.talk;
+  const { SOCIAL } = VB['sim/ties'], TIES = SOCIAL.ties, T = SOCIAL.talk;
   if (!(Number.isFinite(p.tieT) && p.tieT <= st.t)) bad.push(`pawns[${p.id}]: tieT ${p.tieT} at ${st.t}`);
   if (!(Number.isInteger(p.homeHours) && p.homeHours >= 0 && p.homeHours <= T.to - T.from)) bad.push(`pawns[${p.id}]: homeHours ${p.homeHours}`);
   if (!p.alive) return;
@@ -1654,7 +1654,7 @@ function checkTies(st, p, bad) {
 // and agreeing with the opinion within SOCIAL.back and the most it can drift with nothing touching the pair between the season's checks
 // (fadeRelations): a tie's affinity fading for a season, each memory fading for a season, and the housemate's bond lost.
 function checkRel(st, p, bad) {
-  const { SOCIAL, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'], R = VB['sim/relations'];
+  const { SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'], R = VB['sim/relations'];
   if (!p.alive) {
     if (p.rel.size) bad.push(`pawns[${p.id}]: dead with ${p.rel.size} relationship records`);
     if (p.bands && p.bands.size) bad.push(`pawns[${p.id}]: dead with ${p.bands.size} bands`);
@@ -1692,7 +1692,7 @@ function checkRel(st, p, bad) {
 // A pawn's event modifiers (pawn.mods, sim/mood, VB-062): a list of {key, until}, each key one of sim/mood's event modifiers and at
 // most once, until a finite game hour no further ahead than its modifier lasts.
 function checkMods(st, p, bad) {
-  const { MOOD, DAY } = VB['sim/rules'], { EVENT } = VB['sim/mood'];
+  const { DAY } = VB['sim/rules'], { MOOD } = VB['sim/mood'], { EVENT } = VB['sim/mood'];
   if (!Array.isArray(p.mods)) return void bad.push(`pawns[${p.id}].mods: ${JSON.stringify(p.mods)}, not a list`);
   const seen = new Set();
   for (const m of p.mods) {

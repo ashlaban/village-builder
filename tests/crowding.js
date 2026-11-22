@@ -1,6 +1,6 @@
 // VB-766: a household's crowding, the people within CROWD.steps of its house, and its death.hazard factor, on a constructed state
 const assert = require('assert');
-const VB = require('../src/load.js'), Cr = VB['sim/crowding'], { CROWD } = VB['sim/rules'];
+const VB = require('../src/load.js'), Cr = VB['sim/crowding'], { CROWD } = VB['sim/crowding'];
 const { tinyWorld, tileAt } = require('./lib/tiny.js');
 const w = tinyWorld(Array.from({ length: 12 }, () => '.'.repeat(14)));
 // the centre house, its six neighbours, and three of the ring beyond: every one within 2 steps of the centre

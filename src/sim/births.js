@@ -2,7 +2,7 @@
 VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { emit } = VB['sim/events'];
-  const { DAY, YEAR_DAYS, BIRTH, MALE, FEMALE } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS, MALE, FEMALE } = VB['sim/rules'];
   const {
     joinHousehold,
     person,
@@ -22,6 +22,18 @@ VB['sim/births'] = (() => {
     { raiseTie, floorKin } = VB['sim/ties'];
   const { refreshRoles } = VB['sim/heirs'];
   const { killPawn } = VB['sim/lifecycle'];
+  // @tunable BIRTH: births: natural fertility of married women (Coale and Trussell 1974), relative to ages 20-24; times in game days
+  const BIRTH = {
+    peak: 0.015,
+    ageFactor: [0.89, 1, 0.94, 0.86, 0.7, 0.36, 0.05],
+    from: 15,
+    to: 50, // chance per day to conceive; factor per 5 years of age from 15
+    pregnancyDays: 36,
+    nursingDays: 48,
+    boys: 105 / 205,
+    childbedDeath: 0.01,
+  };
+
   // chance per game day that a married woman of this age conceives, when she is neither pregnant nor nursing
   const conceiveChance = (a) =>
     a < BIRTH.from || a >= BIRTH.to ? 0 : BIRTH.peak * BIRTH.ageFactor[Math.floor((a - BIRTH.from) / 5)];
@@ -145,5 +157,5 @@ VB['sim/births'] = (() => {
       }
     }
   }
-  return { conceiveChance, expectedBirths, dailyBirths };
+  return { BIRTH, conceiveChance, expectedBirths, dailyBirths };
 })();

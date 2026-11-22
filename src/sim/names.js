@@ -1,8 +1,10 @@
 // @sys sim/names: name generators by kind of thing named (farms, villages; VB-026, VB-399) and the culture's order of preference among the farms'
 VB['sim/names'] = (() => {
   const { B } = VB['gen'];
-  const { DIRNAME } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
+  // @tunable DIRNAME: the prefixes of a farm named by its direction from the green, by hex direction
+  const DIRNAME = ['Öster', 'Norr', 'Norr', 'Väster', 'Söder', 'Söder'];
+
   // ---- farms ----
   // A generator is (ctx, rand) => [names, best first]; the caller takes the first not already taken. ctx: {w, f (the farmstead),
   // village (its centre for the names that need one), owner (the first holder, a pawn, or null), farms (the village's farmsteads, for

@@ -1,7 +1,7 @@
 // @sys sim/eligibility: who may take a task, and on what basis (design.md section 7; VB-250): one table of bases, each a check, in a fixed order
 VB['sim/eligibility'] = (() => {
   const { villageOf, age } = VB['sim/records'];
-  const HELP = VB['sim/rules'].MATCH.help;
+  const HELP = VB['sim/roles'].MATCH.help;
   const Days = VB['sim/days'];
   // An adult of the household's village helps with its job of a kind neighbours helped with, once it has waited (VB-106): a gift, nothing owed.
   const helps = (st, t, p) => {

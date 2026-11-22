@@ -103,7 +103,7 @@ assert.strictEqual(st.scenario, 'populous');
 assert.strictEqual(st.pawns.length, 1000, 'explain 1,000 distinct populous pawns');
 assert.throws(() => Rules.declare({ ...product, id: 'late' }), /load time/);
 assert.throws(() => Rules.contribute({ ...factor, rule: 'death.hazard' }), /load time/);
-const { YEAR, YEAR_DAYS, hazard, HUNGER, HEALTH, CROWD } = VB['sim/rules'];
+const { YEAR, YEAR_DAYS, HUNGER, HEALTH } = VB['sim/rules'], { hazard } = VB['sim/deaths'], { CROWD } = VB['sim/crowding'];
 const legacyValue = (s, p) => hazard((s.t - p.born) / YEAR) / YEAR_DAYS
   * (1 + HUNGER.k(Math.floor((s.t - p.born) / YEAR)) * p.hunger)
   * (p.health < HEALTH.riskBelow ? 1 + (HEALTH.riskBelow - p.health) / HEALTH.riskSlope : 1)

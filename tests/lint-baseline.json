@@ -1,7 +1,4 @@
 {
- "src/sim/rules.js": {
-  "lines": 804
- },
  "src/sim/records.js": {
   "lines": 733
  },

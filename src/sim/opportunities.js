@@ -2,7 +2,8 @@
 // whom the player may go on as after its pawn's death (VB-213)
 VB['sim/opportunities'] = (() => {
   const Culture = VB['culture'];
-  const { cal, SERVICE, DAY, YEAR } = VB['sim/rules'];
+  const { cal, DAY, YEAR } = VB['sim/rules'],
+    { SERVICE } = VB['sim/service'];
   const { walkable } = VB['sim/walking'];
   const { villageOf, settlementIdOf, practice, fullName, spouseOf, childrenOf, holdingOf, spokesmanOf } =
     VB['sim/records'];
@@ -13,7 +14,8 @@ VB['sim/opportunities'] = (() => {
   const { goOnAs } = VB['sim/player'];
   const { advice, what: offerText } = VB['sim/offers'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
-  const { SOCIAL, GATHERING } = VB['sim/rules'];
+  const { GATHERING } = VB['sim/rules'],
+    { SOCIAL } = VB['sim/ties'];
   const { fit, jobsFor } = VB['sim/jobs'];
   const { eligible } = VB['sim/eligibility'];
   const { heirRanking, successorOf } = VB['sim/heirranking'],
@@ -21,7 +23,8 @@ VB['sim/opportunities'] = (() => {
   const { matchBar, matchRules, kinOk } = VB['sim/matching'];
   const { visitChoices, visitWhy, sendWhy } = VB['sim/visits'];
   const { wishesOf } = VB['sim/wishes'];
-  const { MARRIAGE, MATCH } = VB['sim/rules'],
+  const { MARRIAGE } = VB['sim/rules'],
+    { MATCH } = VB['sim/roles'],
     HELP_KINDS = MATCH.help.kinds;
   const { unfit, handsLeft } = VB['sim/service'];
   const { ALE_EVENING, RITE } = VB['sim/rules'],

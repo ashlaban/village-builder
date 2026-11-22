@@ -231,7 +231,7 @@ const born = (st, hh) => {
   st.t = (3 * SEASON_DAYS + 1) * DAY + 8;
   const wi = cal(st.t);
   P.reviewed(st, plan, wi, 'store');
-  assert.ok(near(Tg.wood[wi.season], 0.8 * goal(wi)) && near(Tg.hayWinters, 2.4) && near(Tg.seed, 0.9 * VB['sim/rules'].CROPS.barley.seed), 'the head\'s targets');
+  assert.ok(near(Tg.wood[wi.season], 0.8 * goal(wi)) && near(Tg.hayWinters, 2.4) && near(Tg.seed, 0.9 * VB['sim/crops'].CROPS.barley.seed), 'the head\'s targets');
   const other = P.planOf(st, 'household', st.households[1].id);
   P.reviewed(st, other, wi, 'store');
   const V = Sim.headView(st, hh.id);
@@ -280,7 +280,7 @@ const born = (st, hh) => {
   assert.ok(sp1.by === 'head' && sp1.made === made && JSON.stringify(sp1.steps) === JSON.stringify(turned), "the season's plan and its order outlast the succession");
   const b = plan.head.bias, M = Sim.headView(st, hh.id).targets;
   assert.ok(b.wood < 1 && b.hay < 1 && b.seed < 1, 'the new head is biased under the custom');
-  assert.ok(near(Tg.seed, VB['sim/rules'].CROPS.barley.seed * b.seed), `its seed at once: ${Tg.seed}`);
+  assert.ok(near(Tg.seed, VB['sim/crops'].CROPS.barley.seed * b.seed), `its seed at once: ${Tg.seed}`);
   assert.ok(near(Tg.hayWinters - Tg.ahead.hay, M.hay.custom * b.hay), `its hay at once: ${Tg.hayWinters}`);
 }
 

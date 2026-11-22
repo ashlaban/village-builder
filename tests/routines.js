@@ -108,7 +108,7 @@ function green(st, v, ids) {
     assert.strictEqual(p.routinesBy, 'meeting', `village ${x.id}'s meeting decided`);
     assert.deepStrictEqual([...p.routines].filter((r) => r !== 'commons').sort(), x.fence.length ? ['fence', 'workdays'] : []);
     // a common field (VB-100) only where the village has three farms or more
-    if (p.routines.includes('commons')) assert.ok(VB['sim/green'].houses(st, x).length >= VB['sim/rules'].COMMONS.minFarms);
+    if (p.routines.includes('commons')) assert.ok(VB['sim/green'].houses(st, x).length >= VB['sim/commons'].COMMONS.minFarms);
   }
   const back = Sim.load(st.w, JSON.parse(JSON.stringify(Sim.save(st))));
   assert.deepStrictEqual([...back.plans.villages.values()].map((p) => p.routines), [...st.plans.villages.values()].map((p) => p.routines));

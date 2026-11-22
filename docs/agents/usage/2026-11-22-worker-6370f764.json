@@ -1,0 +1,123 @@
+{
+ "session": "6370f764-ea43-5294-bce1-b1099f2d92a2",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-22T15:53:29.389Z",
+ "end": "2026-11-22T16:21:31.583Z",
+ "wallMin": 28,
+ "activeMin": 28,
+ "prompts": 1,
+ "calls": 138,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 259,
+  "cacheWrite": 233888,
+  "cacheRead": 28175426,
+  "output": 75069
+ },
+ "context": {
+  "first": 84737,
+  "peak": 297592,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 138,
+   "bytes": 287793,
+   "seconds": 639.5
+  },
+  "Monitor": {
+   "calls": 2,
+   "bytes": 604,
+   "seconds": 0.5
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 17,
+   "bytes": 54947
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 11,
+   "bytes": 30637
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 18,
+   "bytes": 25389
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tests/width-baseline.json",
+   "calls": 1,
+   "bytes": 21442
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 8,
+   "bytes": 20434
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 2,
+   "bytes": 16679
+  },
+  {
+   "tool": "Bash",
+   "what": "git show",
+   "calls": 3,
+   "bytes": 13059
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rnE",
+   "calls": 6,
+   "bytes": 12867
+  },
+  {
+   "tool": "Bash",
+   "what": "git diff",
+   "calls": 2,
+   "bytes": 11516
+  },
+  {
+   "tool": "Bash",
+   "what": "cat >",
+   "calls": 9,
+   "bytes": 10379
+  },
+  {
+   "tool": "Bash",
+   "what": "node tests/lint.js",
+   "calls": 4,
+   "bytes": 8812
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 2,
+   "bytes": 7763
+  }
+ ],
+ "weighted": 3485507,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 3485507,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

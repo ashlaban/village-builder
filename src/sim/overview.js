@@ -1,7 +1,8 @@
 // @sys sim/overview: a village at a glance (VB-162): its food against its need, the year's harvest, its people by age band, its hungry
 // households and idle hands, and the warnings; computed when asked and stored nowhere. The warnings that foretell are a pawn's estimate.
 VB['sim/overview'] = (() => {
-  const { YEAR, YEAR_DAYS, SEASON_DAYS, WORK, HUNGER, FIELDS, CROPS, MARRIAGE, cal } = VB['sim/rules'];
+  const { YEAR, YEAR_DAYS, SEASON_DAYS, WORK, HUNGER, FIELDS, MARRIAGE, cal } = VB['sim/rules'],
+    { CROPS } = VB['sim/crops'];
   const { age, spouseOf } = VB['sim/records'];
   const Stores = VB['sim/stores'];
   const { toHarvest, foodHeld } = VB['sim/foodneed'],

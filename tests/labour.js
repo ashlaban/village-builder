@@ -2,7 +2,7 @@
 // with hands to spare (over 1.5 hands per field) goes as a servant to the household of the village with the fewest hands per field, if short
 // (under 1); one new servant a household a round; nobody goes back to a parent's home by this rule.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], S = VB['sim/service'];
-const { YEAR, SERVICE } = VB['sim/rules'], { moveTo, countDemand } = VB['sim/heirs'];
+const { YEAR } = VB['sim/rules'], { SERVICE } = VB['sim/service'], { moveTo, countDemand } = VB['sim/heirs'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('LABOUR FAIL:', m); } };
 const world = (() => { const it = G.generate(3, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; })();

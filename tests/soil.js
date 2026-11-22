@@ -5,7 +5,7 @@
 // their fields' wear keep their soil, the farm without declines (a balance of a decade's crops and dung, which a small state cannot show).
 // The fields are set to SOIL.start after the first year: founders breaks fresh ground, above the cap dung reaches (VB-1361).
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { scenario } = require('./lib/probe.js'), H = VB['sim/herds'], Y = VB['sim/byre'], F = VB['sim/fields'];
-const { CROPS, HERD, ROTATIONS } = VB['sim/rules'];
+const { HERD } = VB['sim/rules'], { CROPS, ROTATIONS } = VB['sim/crops'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SOIL FAIL:', m); } };
 const world = (seed, size = [120, 85]) => { const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };

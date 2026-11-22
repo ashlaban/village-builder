@@ -239,7 +239,7 @@ function windowWords(w) {
 function stepsHTML(hh) {
   const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
   if (!f || !f.fields.length) return '<p class="card-note">No fields.</p>';
-  const CROPS = VB['sim/rules'].CROPS,
+  const CROPS = VB['sim/crops'].CROPS,
     day = Math.floor(st.t / Sim.DAY);
   const rows = f.fields.map((fd, i) => {
     const C = CROPS[fd.crop],
@@ -557,7 +557,7 @@ function planPoint(i) {
       why = (tool.what === 'field' ? VB['sim/fieldplans'].fieldWhy : VB['sim/meadows'].meadowWhy)(st, f, hh, i);
     tool.facts = [
       G.BIOMES[w.biome[i]].name,
-      R.farmable(w, i) ? `fertility ${Math.round(R.fertility(w, i) * 100)}` : '',
+      VB['sim/crops'].farmable(w, i) ? `fertility ${Math.round(VB['sim/crops'].fertility(w, i) * 100)}` : '',
       Sim.byRiver(w, i) ? 'by the river' : '',
       d === undefined ? '' : `${d} ${d === 1 ? 'step' : 'steps'} from the house`,
       why === null ? 'would do' : why,
