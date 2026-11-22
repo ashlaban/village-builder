@@ -176,6 +176,8 @@
     "pawn.lastCause": "culture",
     "farmstead.fields": "sim/fields",
     "farmstead.rotationBy": "sim/fields",
+    "farmstead.failed": "sim/fields",
+    "pawn.cropBias": "sim/rotations",
     "st.visualDirty": "signal",
     "st.biomeDirty": "signal",
     "st.rigDirty": "signal",

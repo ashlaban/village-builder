@@ -86,4 +86,10 @@ function setPractice(st, vid, customs) {
     s.practice[k] = o;
   }
 }
-module.exports = { tinyWorld, tinyState, tileAt, setPractice, CHARS };
+// A pawn's foresight as head (sim/traits' skill: the mean of wits and husbandry) set to `skill` (VB-351): 0.55 an ordinary head, 0.3 a poor
+// one, 0.8 a good one (sim/rotations' SOWING).
+function setForesight(st, id, skill) {
+  const N = VB['sim/rules'].TRAITS.names, t = st.pawns[id].traits;
+  t[N.indexOf('wits')] = t[N.indexOf('husbandry')] = skill;
+}
+module.exports = { tinyWorld, tinyState, tileAt, setPractice, setForesight, CHARS };

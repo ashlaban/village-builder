@@ -9,7 +9,7 @@ const assert = require('assert'), VB = require('../src/load.js');
 const { CROPS, ROTATIONS, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
 const F = VB['sim/fields'], FieldPlans = VB['sim/fieldplans'], Rotations = VB['sim/rotations'], Plans = VB['sim/plans'], Stores = VB['sim/stores'], { seedNeed } = VB['sim/hunger'];
 const { setClock } = require('./lib/clock.js');
-const { tinyWorld, tinyState } = require('./lib/tiny.js');
+const { tinyWorld, tinyState, setForesight } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const w = tinyWorld(Array.from({ length: 18 }, () => '.'.repeat(24)));
 const ok = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants: ${what}`);
@@ -26,6 +26,7 @@ for (const r of Object.values(ROTATIONS)) assert(r.courses.length <= 4 && r.cour
 function farm(usual, grain, fields = 3) {
   const st = tinyState(w, [{ at: [8, 8], farms: 1, sizes: [6] }], { seed: 7 });
   const f = st.farmsteads[0], hh = st.households[f.household], v = st.villages[f.village];
+  setForesight(st, hh.holder, 0.55); // an ordinary head: the village's usual rotation (VB-351)
   while (f.fields.length > fields) f.fields.pop();
   assert.strictEqual(f.fields.length, fields, 'the tiny farm has its fields');
   v.rotation = usual;

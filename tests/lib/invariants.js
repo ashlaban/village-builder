@@ -454,6 +454,12 @@ function checkState(st) {
     if (!Array.isArray(t) || t.length !== TR.names.length || !t.every((x) => Number.isFinite(x) && x >= lo && x <= hi) || 'diligence' in p)
       bad.push(`pawn ${p.id}: traits ${JSON.stringify(t)}`);
     if (!(p.leanDays === null || (Number.isInteger(p.leanDays) && p.leanDays >= 0))) bad.push(`pawn ${p.id}: leanDays ${p.leanDays}`);
+    // a head's bias on each crop's yield (VB-351): absent, or a multiplier for each crop with seed, within SOWING.bias of 1
+    if (p.cropBias !== undefined) {
+      const CL = globalThis.VB['sim/stores'].CROP_LIST, SB = globalThis.VB['sim/rotations'].SOWING.bias;
+      if (!(p.cropBias && Object.keys(p.cropBias).length === CL.length && CL.every((k) => Number.isFinite(p.cropBias[k]) && Math.abs(p.cropBias[k] - 1) <= SB + 1e-9)))
+        bad.push(`pawn ${p.id}: cropBias ${JSON.stringify(p.cropBias)}`);
+    }
   }
   // skill at each type of work (VB-475; sim/skills): every pawn has one a type, each finite within TRAITS.bounds; a hand's pace over a work
   // leg is absent or within what the slowest and the fastest skill, with the worst and no mishap, give
@@ -1558,6 +1564,9 @@ function checkHerds(st, bad) {
     if (f.firstRotation !== undefined && !LOADED['sim/rules'].ROTATIONS[f.firstRotation]) bad.push(`farmsteads[${f.id}]: firstRotation ${f.firstRotation}`);
     if (f.keeps !== undefined && !(Array.isArray(f.keeps) && f.keeps.every((k) => LOADED['sim/stores'].CROP_LIST.includes(k)))) bad.push(`farmsteads[${f.id}]: keeps ${f.keeps}`);
     if (f.rotationBy !== undefined && !(Number.isInteger(f.rotationBy) && st.households[f.rotationBy])) bad.push(`farmsteads[${f.id}]: rotationBy ${f.rotationBy}`);
+    // VB-351: the crop last lost on the farm, and the year, kept only where its rotation has two crops or more
+    if (f.failed !== undefined && !(f.failed && LOADED['sim/stores'].CROP_LIST.includes(f.failed.crop) && Number.isInteger(f.failed.year) && f.fields.length
+      && ROTATIONS[f.fields[0].rotation].courses.filter((k) => LOADED['sim/rules'].CROPS[k].seed > 0).length >= 2)) bad.push(`farmsteads[${f.id}]: failed ${JSON.stringify(f.failed)}`);
   }
   for (const v of st.villages) {
     if (!ROTATIONS[v.rotation]) bad.push(`villages[${v.id}]: rotation ${v.rotation}`);
