@@ -235,7 +235,7 @@ VB['sim/agents'] = (() => {
       if (!a || a.phase !== 'back' || !a.job || !st.pawns[id].alive) continue;
       release(st, a);
       if (a.moving)
-        emit(st, 'moveOn', a); // the move it was told of (sim/away's moved)
+        emit(st, 'moveOn', a); // the move it was told of (sim/journeys' moved)
       else standStill(st, a);
       a.anim = 'idle';
     }
@@ -330,7 +330,7 @@ VB['sim/agents'] = (() => {
       if (a.away === undefined)
         driveHome(st, st.households[st.pawns[a.id].household], a.id); // the herds it brought home are by the farm (VB-136)
       else emit(st, 'atBed', a); // at the bed of its stay, or home from it (sim/away)
-    } else if (a.phase === 'journey') emit(st, 'legEnd', a); // a journey's leg has arrived (sim/away)
+    } else if (a.phase === 'journey') emit(st, 'legEnd', a); // a journey's leg has arrived (sim/journeys)
     if (!a.leg && !a.path && a.phase === null && st.pawns[a.id].alive) waitLeg(st, a, st.tick + 1);
     sideCheck(st, a);
   }
@@ -463,7 +463,7 @@ VB['sim/agents'] = (() => {
     dueLegs(st, (st, a, l) => {
       if (l.kind === 'walk') walkEnd(st, a, l);
       else if (a.phase === 'road')
-        emit(st, 'legDue', a); // a journey's rest on the road is over (sim/away)
+        emit(st, 'legDue', a); // a journey's rest on the road is over (sim/journeys)
       else if (wantsWork(st, a, c)) offer(a);
       else waitLeg(st, a, st.tick + 1);
     });
@@ -532,7 +532,7 @@ VB['sim/agents'] = (() => {
   function stop(st, a) {
     if (a.path) halt(st, a);
   }
-  // A pawn moved at night, or in its own house (sim/away's moved), stays where it is and walks when its day starts; in its own house
+  // A pawn moved at night, or in its own house (sim/journeys' moved), stays where it is and walks when its day starts; in its own house
   // (`same`) it is home already.
   function waitIndoors(st, a, same) {
     if (a.path) halt(st, a);
