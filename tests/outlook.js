@@ -124,5 +124,31 @@ check(!Sim.supplyOutlook(st, h0.id).stale && p0.outlook.season === 1, 'made anew
   check(JSON.stringify(Sim.villageOutlook(st, 0, h0.holder)) !== undefined && Sim.villageOutlook(st, 0, h1.holder).head === h1.holder, "the viewer's estimate when given");
   v.grain = JSON.parse(before);
 }
+// the head's doubt (VB-669): the same farm under a good head and a poor one; the range covers the centre, the poor head's is the wider
+{
+  const Traits = VB['sim/traits'], T = st.pawns[p1.head.pawn].traits, keep = T.slice(), bias = { ...p1.head.bias };
+  h1.grain = { barley: Stores.reserved(st, h1, 'grain') + D1 * SEASON_DAYS * 1.5 };
+  const as = (t, lean) => {
+    T[Traits.IDX.wits] = T[Traits.IDX.husbandry] = t;
+    p1.head.since = st.t;
+    for (const k of Object.keys(p1.head.bias)) p1.head.bias[k] = lean;
+    return reckon(st, h1, p1);
+  };
+  const good = as(1, 1), poor = as(0, 1), wide = (s) => s.hi - s.lo;
+  check(good.food.mid === good.food.with && good.food.lo < good.food.with && good.food.hi > good.food.with, `a range about the centre: ${JSON.stringify(good.food)}`);
+  check(near(wide(good.food), 2 * O.DOUBT.sure * good.food.mid) && near(wide(poor.food), 2 * (O.DOUBT.sure + O.DOUBT.unseen) * poor.food.mid),
+    `a good head's whisker is short, a poor one's long: ${wide(good.food)} and ${wide(poor.food)}`);
+  // a head that believes it needs more (bias over 1) reckons its food lasts less, and its range still covers what the plan reckons
+  const wary = as(0, 1 + Traits.HEAD.bias);
+  check(wary.food.mid < wary.food.with && wary.food.lo <= wary.food.with && wary.food.hi >= wary.food.with, `the centre leans, the range covers: ${JSON.stringify(wary.food)}`);
+  // a supply that lasts the frame: the centre at the frame's end, the worst short of it for a poor head with more than enough doubt
+  check(poor.fuel.state === 'none' || (poor.fuel.lo <= poor.fuel.mid && poor.fuel.mid <= poor.fuel.hi), `fuel's range in order: ${JSON.stringify(poor.fuel)}`);
+  check([good, poor, wary].every((o) => O.SUPPLIES.every((k) => o[k].lo <= o[k].mid && o[k].mid <= o[k].hi && o[k].hi <= FRAME)), 'low, centre and high in order on the frame');
+  // hay: the doubt on the share of the stall covered, the whisker inside the winter's cell or at the frame
+  const hay0 = (() => { T[Traits.IDX.wits] = T[Traits.IDX.husbandry] = 0; return reckon(st, h0, p0).hay; })();
+  check(hay0.state === 'none' || (hay0.lo >= 3 && hay0.lo <= hay0.mid && hay0.hi <= FRAME), `hay's range in the winter: ${JSON.stringify(hay0)}`);
+  T.splice(0, T.length, ...keep);
+  Object.assign(p1.head.bias, bias);
+}
 if (failed) process.exit(1);
-console.log('outlook ok: a year\'s food and a month\'s; fuel for the summer, not the winter; hay for half a winter and the meadows to mow; review, wake, save, stale');
+console.log('outlook ok: a year\'s food and a month\'s; fuel for the summer, not the winter; hay for half a winter and the meadows to mow; review, wake, save, stale; the head\'s doubt');
