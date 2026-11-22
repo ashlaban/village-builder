@@ -15,7 +15,7 @@ const P = openPage({
   patch: (html) => html
     .replace(/const SIZES = \{ t:/, () => { patched++; return 'const SIZES = { x: [36, 26], t:'; })
     .replace('let allMaterials = false;', () => { patched++; return 'let allMaterials = false; window.__materialsHTML = (...a) => materialsHTML(...a);'; })
-    .replace('/^#([shp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([shp]?)([tsmlx]?)(\\d{1,9})$/'; }),
+    .replace('/^#([sohp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([sohp]?)([tsmlx]?)(\\d{1,9})$/'; }),
 });
 const { doc, win, fail, tick, q, qa, $ } = P;
 if (patched !== 3) { fail(`the page's sizes or its hash were not found to add the small island (${patched} of 3 patched)`); process.exit(1); }
