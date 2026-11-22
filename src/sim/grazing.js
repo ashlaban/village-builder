@@ -4,7 +4,7 @@ VB['sim/grazing'] = (() => {
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
   // docs/review-animals.md, G6: a herd adds pressure only on the tile it grazes with its herder, and the pressure halves each year, as worn
-  // paths do; forest spread reads it (VB-091; GRAZE in sim/rules). A herd's herder and the day it was last taken out are the herd's
+  // paths do; forest spread reads it (VB-091; GRAZE in sim/spread). A herd's herder and the day it was last taken out are the herd's
   // (st.herds[], sim/herds), written here.
   // ---- the pressure ----
   // @state w.graze: Float32Array per tile; grazing pressure (1 a cow-hour on the pasture, HERD.herding) against the year's scale: the

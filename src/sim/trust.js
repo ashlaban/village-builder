@@ -62,7 +62,7 @@ VB['sim/trust'] = (() => {
   }
   // Household hh (at most one grown member, nobody to come, or an orphaned heir with no guardian, `ward`) goes to its trusteeFor, which
   // holds its farm in trust: its people move there with its grain and animals; its own tasks are taken down; the house stands empty, its
-  // condition kept from now as an empty farm's (sim/rules' houseCondition, the clock's decay); the trustee posts the farm's field work as its
+  // condition kept from now as an empty farm's (sim/house's houseCondition, the clock's decay); the trustee posts the farm's field work as its
   // own (sim/jobs), and its harvest comes to the trustee's barn as any of its work's does. `why`: the end of the log line.
   function holdInTrust(st, hh, why, ward = null) {
     const trustee = trusteeFor(st, hh, ward);

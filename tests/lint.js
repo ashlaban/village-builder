@@ -72,6 +72,25 @@ for (const f of ['src/body.html', ...pageFiles]) readSource(f).split('\n').forEa
   for (const wr of pageWrites(l)) errors.push(`${f}:${i + 1} the page writes to the simulation state: ${wr}`);
 });
 // every top-level key of w and st must have an @state tag: `// @state st.a,b: ...` or `// @state st.a: ...`
+// Tunables (VB-419): a table that left sim/rules keeps a `// @tunable NAME: meaning` line in the comment just above it, so that
+// `grep -rn "@tunable" src` finds it wherever it lives (the tables still in sim/rules are found there); each such line names the table
+// defined just below it. A table that leaves sim/rules joins LEFT_RULES.
+const LEFT_RULES = ['AWAY', 'BIRTH', 'CALL', 'CHILD', 'COMMONS', 'COURT', 'CROPS', 'CROWD', 'DAYS', 'DIRNAME', 'FEAST', 'FERTILITY', 'FORAGE',
+  'FOUNDERS', 'GIFT', 'GRAZE', 'HOUSE', 'IDLE', 'MATCH', 'MOOD', 'PATHS', 'PLOT_PRIO', 'RIVER', 'ROLES', 'ROTATIONS', 'ROUTE', 'SEASONS', 'SERVICE',
+  'SLOPE', 'SOCIAL', 'SOIL', 'TERRAIN', 'TIE', 'TILTH', 'WISH', 'WORKDAY'];
+const tunables = new Set();
+for (const f of files) {
+  const lines = readSource(f).split('\n');
+  lines.forEach((l, i) => {
+    const m = /^\s*\/\/ @tunable (\w+): \S/.exec(l);
+    if (!m) return;
+    let j = i + 1;
+    while (j < lines.length && /^\s*\/\//.test(lines[j])) j++;
+    if (!new RegExp(`^\\s*const ${m[1]} =`).test(lines[j] || '')) errors.push(`${f}:${i + 1} @tunable ${m[1]}: the comment is not followed by the table's definition`);
+    tunables.add(m[1]);
+  });
+}
+for (const n of LEFT_RULES) if (!tunables.has(n)) errors.push(`${n} left sim/rules: its table needs a "// @tunable ${n}: <meaning>" line above it (VB-419)`);
 const tagged = { w: new Set(), st: new Set() };
 for (const f of files) for (const line of readSource(f).split('\n').filter((l) => l.includes('@state '))) for (const m of line.matchAll(/\b(w|st)\.([\w,]+)/g)) m[2].split(',').forEach((k) => tagged[m[1]].add(k));
 const VB = require('../src/load.js');

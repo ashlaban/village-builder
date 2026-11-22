@@ -258,7 +258,7 @@ VB['sim/fields'] = (() => {
     VB.count.tilthRead++;
     return fd.tilth * Math.exp(-(st.t - fd.tilthAt) / (TILTH.years * YEAR));
   }
-  // @state farmstead.fields[]: crop (a key of CROPS, sim/rules: a crop, or the course fallow, VB-348), stage, sown/reaped days, held sheaves and
+  // @state farmstead.fields[]: crop (a key of CROPS, sim/crops: a crop, or the course fallow, VB-348), stage, sown/reaped days, held sheaves and
   // weeding progress; changed only here after seeding.
   //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
   //   hoursOwn, hoursOther (VB-462): absent, or the year's work hours given by the user household's own members and by others

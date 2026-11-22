@@ -75,7 +75,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - The seasons' weather (VB-354): `src/sim/weather.js`, the world layer's climate until the weather branch answers the same question a
   region (target-v2 4.2), owns `st.weather`: this year's and last year's seasons, each `[warmth, wetness]` in -1 to 1 drawn from the
   `weather` stream as the season begins (`seasonBegins`, first in the calendar), with the year's thaw (a spring sday) and first frost (an
-  autumn sday). A crop reads its row's `weather` terms (`CROPS`, `sim/rules`) at reaping through `cropFactor` (`sim/fields` standing),
+  autumn sday). A crop reads its row's `weather` terms (`CROPS`, `sim/crops`) at reaping through `cropFactor` (`sim/fields` standing),
   the meadows theirs (`HAY_WEATHER`) at mowing through `factor`; `ripeShift` moves barley's and peas' ripening by the summer's warmth;
   `sowOpen` is the sowing window after the thaw (`sim/fieldwork`, `sim/plans`); `frostDay` places the frost's calendar entries, the
   plans' closing window, the harvest estimate and the harvest's urgency. Its tunables are `WEATHER` there.
@@ -326,7 +326,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 ## Layers (VB-230)
 Each module's layer is in `src/layers.json` (a module without one fails `npm test`); target-v2 3.1 gives the rule: calls go downward, reads are
 free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
-- Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
+- Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
   `sim/villagehours`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
   head's skill and bias, VB-254), `sim/skills` (VB-475: a pawn's skill at each type of work, the stand-in until VB-360, from the stream
@@ -355,8 +355,9 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   in terms of the work and state the module handles. A module that changes another's state calls the owner's operations.
 - A module has no cap on its length (VB-413): over 700 formatted lines (`src/` is formatted by Prettier, `npm run format`) the lint asks for an open task titled "Refactor: split <key> ...", opened by the task that
   takes it there (VB-414). The same task is asked for when a module over 15 exports gains one (VB-415; the `sim` facade is not counted, nor an export read only by a registry: a job kind's `done`, a calendar entry's `run`, a verb's body; the list is `REGISTRIES` in `tests/lint.js`, VB-454). Put code where its concern lives, not where there is room.
-- Tunables: `ECON`, `FIELDS`, `ROLES`, `MARRIAGE`, `SOCIAL`, `SHARES`, `MATCH`, `HERD`, `SOIL`, `RIVER`, `TERRAIN`, `SLOPE`, `ROUTE`, `PATHS`, `SETTLE`
-  and `SERVICE` in `src/sim/rules.js`; `KINDS` (job kinds) in each domain's module, joined by `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`
+- Tunables: a table one domain reads lives in that domain's module with a `// @tunable NAME: meaning` line above it (VB-419;
+  `grep -rn "@tunable" src`, the lint holds it for each table that left `sim/rules`); the tables several domains read (the calendar, `ECON`,
+  `FOODS`, `HERD`, `TRAVEL` and the like) stay in `src/sim/rules.js`; `KINDS` (job kinds) in each domain's module, joined by `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`
   (worn paths) in `src/gen/paths.js`; `DIMS` and `ARCHETYPES` in `src/culture.js`.
 - A new job kind is one record in the `KINDS` of the module whose state its work changes (VB-418): numbers, type of work, labels, where to
   stand, urgency, and what finishing and delivering do, beside the rules its `done`, `deliver` and `available` call (the field's kinds in
@@ -370,7 +371,7 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   `src/sim/clock.js`, inserted where it should run in the order; `tests/clock.js` holds that order (`ORDER`, re-recorded on purpose).
 - A new stored quantity (a household's, a farm's, a village's or a tile's) adds its line to `QUANTITIES` in `tools/stocks.js`, with
   what happens when there is none; `tests/review-tools.js` fails for a field of the `@state` lines in neither its lines nor `NOT_STOCKS`.
-- A new crop is one row of `CROPS` in `src/sim/rules.js` (VB-346): `yield`, `seed`, `sow` ([season, first day, last day]), `ripe` (days from
+- A new crop is one row of `CROPS` in `src/sim/crops.js` (VB-346): `yield`, `seed`, `sow` ([season, first day, last day]), `ripe` (days from
   sowing), `wear` (the soil a harvest takes) and `hours` (plow, sow, weed, reap, thresh). A field holds
   the key as `fd.crop`; `sim/fields` and the kinds read the field's row, never a constant. The KINDS hold barley's hours (`CROPS.barley.hours`), and a
   field's job carries its crop's hours where they differ (VB-348). Optional keys (VB-348): `winter` (stands the frost), `lost` ([season, day] a ripe

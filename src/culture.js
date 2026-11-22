@@ -148,7 +148,7 @@ const Culture = (() => {
         ['meeting', 'The meeting decides'],
       ],
     },
-    // VB-100 (Kim, 10 Nov): how the village's common fields rank beside a household's own work (sim/commons; COMMONS.lean, sim/rules)
+    // VB-100 (Kim, 10 Nov): how the village's common fields rank beside a household's own work (sim/commons; COMMONS.lean)
     {
       key: 'commons',
       label: 'Work on the common fields',

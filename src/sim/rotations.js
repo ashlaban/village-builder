@@ -7,7 +7,7 @@ VB['sim/rotations'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { dailyNeed } = VB['sim/hunger'];
   // ---- rotations (VB-350; design.md, Crops and rotations, The rotation) ----
-  // @state farmstead.fields[].rotation: a key of ROTATIONS (sim/rules), the same on every field of a farm; step: the field's place in it,
+  // @state farmstead.fields[].rotation: a key of ROTATIONS (sim/crops), the same on every field of a farm; step: the field's place in it,
   //   whose course is the field's crop. A village's common fields (VB-100) hold barley every year.
   // @state village.rotation: the village's usual rotation, a key of ROTATIONS: the one most of its farms hold, brought up to date at its
   //   autumn meeting and at no other time (usualRotation; Kim, 11 Nov). Owned here, as a reading of its farms' fields (target-v2 4.3).

@@ -196,7 +196,7 @@ VB['sim/green'] = (() => {
   }
   // Where the pawn stands at the green's work: round the tile's middle, the well a little below it (where the page draws the sweep).
   const spot = (dy) => (st, a, j) => [st.w.hx[j.site] + a.ox * 0.5, st.w.hy[j.site] + dy + a.oy * 0.3];
-  // The job kinds (sim/kinds takes them in), a village duty (ROLES' `duty`, sim/rules).
+  // The job kinds (sim/kinds takes them in), a village duty (ROLES' `duty`, sim/roles).
   const KINDS = {
     green: {
       verb: 'Clearing the village green',

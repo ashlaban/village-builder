@@ -153,7 +153,7 @@ VB['sim/building'] = (() => {
   }
   // ---- a stone foundation (VB-332; design, Land and ecology, Stone, and Goods of place, A well-kept house) ----
   // A house is built on the bare ground (f.grade 'ground'); its household may raise it onto stone ('stone'), which lifts its standing term and
-  // slows its wear (HOUSE, sim/rules). Stone is wanted only while the household means to raise its house: its plan's building step
+  // slows its wear (HOUSE, sim/house). Stone is wanted only while the household means to raise its house: its plan's building step
   // (plan.build, opened at a review by sim/plans from buildStep), not a standing target, so heaps do not grow without use.
   const STONES_PER_LOAD = 25; // as clearing loads them (sim/fields, sim/meadows)
   const pickable = (w, t) => w.biome[t] === B.MEADOW && w.stones[t] > BUILD.keepStones;

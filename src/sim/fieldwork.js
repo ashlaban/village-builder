@@ -51,7 +51,7 @@ VB['sim/fieldwork'] = (() => {
   // The sowing window of a field's crop, when it is hoed and sown (the row's `sow`: [season, first day, last day]), and in spring not
   // before the year's thaw (sim/weather, VB-354).
   const sowing = (st, fd, c) => sowOpen(st, fd.crop, c);
-  // The hours of a stage are the crop's row (CROPS, sim/rules): the kinds hold barley's, and a field's job carries its crop's where they
+  // The hours of a stage are the crop's row (CROPS, sim/crops): the kinds hold barley's, and a field's job carries its crop's where they
   // differ (rye's weeding, fallow's tilling; VB-348), so a barley field's job is as it was.
   const HOURS = CROPS.barley.hours;
   const fieldKey = (f, fd) => `f${f.id}.${fd.id}`;
