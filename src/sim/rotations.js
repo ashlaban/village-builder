@@ -1,8 +1,10 @@
-// @sys sim/rotations: crop courses, sowing choices and village rotation customs
+// @sys sim/rotations: crop courses, sowing choices and village rotation customs; the head's foresight on what to sow (VB-351)
 VB['sim/rotations'] = (() => {
-  const { CROPS, ROTATIONS, cal, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'];
+  const { CROPS, ROTATIONS, SOIL, FIELDS, cal, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'];
   const { log } = VB['sim/records'];
   const Stores = VB['sim/stores'];
+  const { next: rnd } = VB['sim/rng'];
+  const { dailyNeed } = VB['sim/hunger'];
   // ---- rotations (VB-350; design.md, Crops and rotations, The rotation) ----
   // @state farmstead.fields[].rotation: a key of ROTATIONS (sim/rules), the same on every field of a farm; step: the field's place in it,
   //   whose course is the field's crop. A village's common fields (VB-100) hold barley every year.
@@ -87,16 +89,158 @@ VB['sim/rotations'] = (() => {
   // it has the seed for it; short of a crop's seed at its sowing, it falls back on a rotation it has seed for, and the field at that course
   // lies fallow. A change waits while a field stands under a crop the new rotation has not. {to, short} for the verb `rotation`, which
   // carries it out (sim/plans issues it, source 'pawn'; VB-355), or null: no change, or its head chose the rotation to keep (rotationBy).
-  function rotationChoice(st, f, hh, c) {
+  // By the head's foresight (VB-351; `head` {skill, pawn}, sim/plans' headSkill; null: an ordinary head): a poor head keeps the rotation it
+  // took over; an ordinary one takes the village's usual one; a good one holding seed of a crop besides barley chooses its own at the
+  // year's turn (bestRotation). Each falls back when short of a crop's seed at its sowing.
+  function rotationChoice(st, f, hh, c, head = null) {
     if (!f.fields.length || f.rotationBy === hh.id) return null;
     const from = f.fields[0].rotation,
       v = f.village === null ? null : st.villages[f.village],
-      usual = (v && v.rotation) || 'every';
+      usual = (v && v.rotation) || 'every',
+      tier = head ? tierOf(head.skill) : 'ordinary',
+      own = tier === 'good' && mixed(st, f, hh);
     let to = null,
       short = null;
-    if (usual !== from && hasSeed(st, f, hh, usual)) to = usual;
-    else if ((short = shortOf(f, hh, c)) !== null) to = fallback(st, f, hh, from, short);
+    if (own && c.season === TURN[0] && c.sday === TURN[1]) to = bestRotation(st, f, hh, head, from);
+    else if (!own && tier !== 'poor' && usual !== from && hasSeed(st, f, hh, usual)) to = usual;
+    if (to === from) to = null;
+    if (to === null && (short = shortOf(f, hh, c)) !== null) to = fallback(st, f, hh, from, short);
     return to === null || waitsFor(f, to) ? null : { to, short };
+  }
+  // ---- the head's foresight (VB-351; design.md, How the head chooses what to sow): what a poor, an ordinary and a good head choose. Skill
+  // acts on choices and timing only, never on a yield (Kim, 11 Nov). The numbers are rules: poor, good: the head's skill (sim/traits' skill)
+  // under which it is poor, from which it is good, the lowest and the highest fifth of the heads' skill (measured 22 Nov over 15 years:
+  // populous seed 7 on small, 1146 head-years, p20 0.48 and p80 0.70; heirs seed 42, 132, p20 0.43 and p80 0.65); worn: the soil under
+  // which an ordinary head rests a field first; margin: the soil a good head's crop field must lack against a resting one before it swaps
+  // them; ahead: the years over which a good head reckons a rotation's soil; gain: the share by which another rotation must serve better
+  // before a good head changes (hysteresis, AGENTS.md); bias: a head's bias on a crop's yield, within bias × (1 - skill) either way of 1
+  // (as sim/traits' HEAD.bias on the targets). ----
+  const SOWING = Object.freeze({ poor: 0.45, good: 0.67, worn: 0.85, margin: 0.02, ahead: 3, gain: 0.05, bias: 0.3 });
+  const TURN = [3, 0]; // the year's turn: the winter's first day, when every plan is reviewed (sim/plans' closing)
+  const tierOf = (s) => (s < SOWING.poor ? 'poor' : s >= SOWING.good ? 'good' : 'ordinary');
+  const SEEDED = Object.keys(CROPS).filter((k) => CROPS[k].seed > 0);
+  // Does household hh hold a crop besides barley (its store or its fields): only then has its head crops to weigh against each other, so a
+  // village with barley alone farms as it did (design.md, Seed bounds them).
+  const mixed = (st, f, hh) => SEEDED.some((k) => k !== 'barley' && hasCrop(st, f, hh, k));
+  // @state pawn.cropBias: absent, or {crop: multiplier} for each crop with seed: the head's bias on what a crop yields, drawn once from the
+  //   stream `traits` the first time it weighs crops against each other (a head of a household holding barley alone draws none, so its
+  //   runs are as they were). Written only here.
+  function cropBias(st, head) {
+    const p = st.pawns[head.pawn];
+    if (!p.cropBias) {
+      const b = {};
+      for (const k of SEEDED)
+        b[k] = Math.round((1 + SOWING.bias * (1 - head.skill) * (2 * rnd(st.rng.traits) - 1)) * 1000) / 1000;
+      p.cropBias = b;
+    }
+    return p.cropBias;
+  }
+  // The soil a field of soil s keeps on the mean over SOWING.ahead years of rotation R's courses: each crop's wear, peas' gain, fallow's mend.
+  function soilAhead(R, s) {
+    let d = 0;
+    for (const k of R) d += CROPS[k].fallow ? CROPS[k].mend : CROPS[k].gain || -CROPS[k].wear;
+    const to = s + (d / R.length) * SOWING.ahead,
+      end = d > 0 ? Math.min(Math.max(s, SOIL.start), to) : Math.max(SOIL.floor, to);
+    return (s + end) / 2;
+  }
+  // The good head's estimate of what rotation `key` gives its household a year: its fields under a crop (fallow ones do not count against
+  // its hands, FIELDS.perHand a hand), each the mean of its courses' yield by the head's bias and the soil it keeps, at FIELDS.expect; worth
+  // what serves the year's need, FIELDS.want times it, and a tenth of what is beyond.
+  function rotationWorth(st, f, hh, key, bias, need) {
+    const R = ROTATIONS[key].courses,
+      crops = R.filter((k) => !CROPS[k].fallow),
+      plan = st.plans.households.get(hh.id),
+      hands = plan && plan.targets ? plan.targets.workable : f.fields.length;
+    VB.count.rotationWalk += f.fields.length;
+    let soil = 0;
+    for (const fd of f.fields) soil += fd.soil;
+    const s = soilAhead(R, soil / f.fields.length),
+      sown = Math.min((f.fields.length * crops.length) / R.length, Math.max(1, hands));
+    let per = 0;
+    for (const k of crops) per += (CROPS[k].yield * bias[k] * s * FIELDS.expect) / crops.length;
+    const food = sown * per;
+    return Math.min(food, need) + 0.1 * Math.max(0, food - need);
+  }
+  // The rotation a good head takes at the year's turn: of those it has seed for, the one its estimate says serves the household best,
+  // unless the one it holds serves within SOWING.gain of it (at most five rotations, a walk of its fields each).
+  function bestRotation(st, f, hh, head, from) {
+    const bias = cropBias(st, head),
+      need = FIELDS.want * YEAR_DAYS * dailyNeed(st, hh),
+      held = rotationWorth(st, f, hh, from, bias, need);
+    let best = from,
+      bw = held * (1 + SOWING.gain);
+    for (const key in ROTATIONS) {
+      if (key === from || !hasSeed(st, f, hh, key)) continue;
+      const w = rotationWorth(st, f, hh, key, bias, need);
+      if (w > bw) {
+        best = key;
+        bw = w;
+      }
+    }
+    return best;
+  }
+  const free = (fd) => (fd.stage === 'stubble' || fd.stage === 'plowed') && !fd.turn;
+  const inWindow = (k, c) => {
+    const W = CROPS[k].sow;
+    return !!CROPS[k].seed && c.season === W[0] && c.sday >= W[1] && c.sday <= W[2];
+  };
+  const resting = (k) => !!CROPS[k].fallow || !!CROPS[k].gain; // fallow, or peas, which mend the soil
+  // The household's grain beyond its seed will not feed it to the year's end: a hungry year, as a poor head sees it.
+  const hungryYear = (st, hh, c) =>
+    Stores.grainOf(hh) - Stores.reserved(st, hh, 'grain') < (YEAR_DAYS - c.doy) * dailyNeed(st, hh);
+  // What the head does with its farm's fields at a review, by its foresight (design.md, How the head chooses what to sow, The fields): one
+  // act {verb, args} for sim/plans to issue through the head's verbs, or null. A poor head in a hungry year sows its fallow field with a
+  // crop whose window is open and whose seed it has; an ordinary head rests a free field due for a crop whose soil is under SOWING.worn in
+  // place of a free resting one (fallow or peas) with better soil, and a good head the poorest in place of the richest, so fresh land takes
+  // the crop (rye in autumn); after a crop failed last year, an ordinary or good head sows a field of another crop of its rotation out of
+  // turn. A farm with one course (barley every year) has none of these.
+  function fieldsChoice(st, f, hh, c, head) {
+    if (!f.fields.length || ROTATIONS[f.fields[0].rotation].courses.length < 2) return null;
+    const tier = head ? tierOf(head.skill) : 'ordinary';
+    if (tier === 'poor') {
+      if (!hungryYear(st, hh, c)) return null;
+      const fd = f.fields.find((q) => free(q) && CROPS[q.crop].fallow && q.rest === undefined);
+      const k = fd && SEEDED.find((x) => inWindow(x, c) && Stores.grainOf(hh, x) >= CROPS[x].seed);
+      return k ? { verb: 'sowOutOfTurn', args: { tile: fd.tile, crop: k } } : null;
+    }
+    let crop = null,
+      rest = null;
+    for (const fd of f.fields) {
+      if (!free(fd)) continue;
+      if (inWindow(fd.crop, c) && !resting(fd.crop)) {
+        if (!crop || fd.soil < crop.soil) crop = fd;
+      } else if (resting(fd.crop) && fd.rest === undefined && (!rest || fd.soil > rest.soil)) rest = fd;
+    }
+    const swap =
+      crop &&
+      rest &&
+      (tier === 'good' ? rest.soil - crop.soil > SOWING.margin : crop.soil < SOWING.worn && rest.soil > crop.soil);
+    if (swap) return { verb: 'courses', args: { a: crop.tile, b: rest.tile } };
+    return failedChoice(st, f, hh, c);
+  }
+  // After a failed crop (farmstead.failed, sim/fields), the year after: a free field of the failed crop's course, else a fallow one, sown
+  // out of turn with another crop of the rotation whose window is open and whose seed the store holds, unless a field already stands out
+  // of turn with it.
+  function failedChoice(st, f, hh, c) {
+    const F = f.failed;
+    if (!F || F.year !== c.year - 1) return null;
+    const R = ROTATIONS[f.fields[0].rotation].courses,
+      k = R.find((x) => x !== F.crop && inWindow(x, c) && Stores.grainOf(hh, x) >= CROPS[x].seed);
+    if (!k || f.fields.some((fd) => fd.turn && fd.crop === k)) return null;
+    const fd =
+      f.fields.find((q) => free(q) && q.crop === F.crop) || f.fields.find((q) => free(q) && CROPS[q.crop].fallow);
+    return fd ? { verb: 'sowOutOfTurn', args: { tile: fd.tile, crop: k } } : null;
+  }
+  // Why the fields of farm f on tiles a and b cannot exchange their courses (the verb courses), or null: two of its fields, both free (in
+  // stubble or hoed, none out of turn), at different steps, neither a fallow field tilled this year.
+  function swapWhy(f, a, b) {
+    const x = fieldAt(f, a),
+      y = fieldAt(f, b);
+    if (!x || !y || x === y) return `${f.name} has no two fields on tiles ${a} and ${b}`;
+    if (!free(x) || !free(y))
+      return 'a field is under a crop or out of turn: courses are exchanged between free fields';
+    if (x.step === y.step) return 'the two fields are at the same course';
+    return x.rest !== undefined || y.rest !== undefined ? 'a fallow field tilled this year keeps its course' : null;
   }
   // The field of farm f under a crop that rotation `key` has not, for which a change to it waits; undefined for none.
   const waitsFor = (f, key) => f.fields.find((fd) => underCrop(fd) && !ROTATIONS[key].courses.includes(fd.crop));
@@ -203,5 +347,19 @@ VB['sim/rotations'] = (() => {
     v.rotation = best;
     log(st, `${v.name} now farms ${ROTATIONS[best].label} as a rule.`, { kind: 'custom', village: v.id });
   }
-  return { underCrop, fieldAt, rotationOf, courseFor, rotationChoice, rotationWhy, turnWhy, fieldView, usualRotation };
+  return {
+    SOWING,
+    tierOf,
+    underCrop,
+    fieldAt,
+    rotationOf,
+    courseFor,
+    rotationChoice,
+    fieldsChoice,
+    swapWhy,
+    rotationWhy,
+    turnWhy,
+    fieldView,
+    usualRotation,
+  };
 })();

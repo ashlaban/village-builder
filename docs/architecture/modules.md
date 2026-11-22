@@ -265,6 +265,12 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   gives the choosing back to the rule, which itself issues the verb with source `pawn`: `rotationChoice`, `sim/rotations`) and `sowOutOfTurn`
   (one field bears another crop, or rests, for a year: `fd.turn`); their checks are `rotationWhy` and `turnWhy`, and `Sim.fieldView` reads a
   field, with each choice and why not, for its tile's card (`src/page/tileinfo.js`; `tests/sowing.js`).
+  The automatic head's choice by foresight (VB-351): `sim/rotations` sorts heads by skill into the fifths of `SOWING` (`tierOf`), and gives
+  `sim/plans`' review its rotation (`rotationChoice`: a poor head keeps its own, an ordinary one the village's, a good one with a second
+  crop weighs them at the winter's first day by its bias, `pawn.cropBias`) and one act on its fields (`fieldsChoice`: the verb `courses`,
+  two free fields exchanging their steps so the worn one rests, its check `swapWhy`, its act `sim/fields`' `swapSteps`; or `sowOutOfTurn`
+  for a poor head's hungry year and the year after a failed crop, `farmstead.failed`). The trial is a good head's project of `sim/aims`'
+  menu with no project plan (`plan.aim.trial`), sown out of turn in its window (`tests/foresight.js`).
 - Foresight (VB-254): `src/sim/traits.js` holds the stand-in traits (`pawn.traits`: wits, husbandry, diligence, ambition, generosity), drawn
   from the stream `traits` at birth (`sim/births`) and for the living at the start (`sim/scenarios`' `startStreams`, after the streams are
   split), and read only through `Traits.of`. `sim/plans` keeps each household's head as planner (`plan.head`: its pawn, since when, its bias

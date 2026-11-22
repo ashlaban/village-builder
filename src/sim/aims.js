@@ -22,6 +22,8 @@ VB['sim/aims'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const Plans = VB['sim/plans'];
   const { heirRanking } = VB['sim/heirranking'];
+  const { CROPS, ROTATIONS } = VB['sim/rules'];
+  const { tierOf, turnWhy } = VB['sim/rotations'];
   // The surplus (design.md section 7, How a holder chooses: projects; the first values of VB-255's criteria): food beyond `years` of the
   // household's need over the seed held back (the means to marry's measure, MARRIAGE.means, is the first value), and its hands idle over
   // `idle` of their work hours in the last season. The weights of the menu: `base` for each option, `heirs` for the heir's farm when two or
@@ -33,12 +35,13 @@ VB['sim/aims'] = (() => {
     heirs: 2,
     hands: VB['sim/rules'].AGES.hands,
   });
-  const KIND = Object.freeze(['field', 'claim', 'heir', 'barn']);
+  const KIND = Object.freeze(['field', 'claim', 'heir', 'barn', 'trial']);
   // @state plan.aim (a household's standing plan; VB-255): absent until its first review after an autumn count, then {year (the year of cal
   //   of its last yearly look at the surplus), surplus (what that look, or the last one after a project ended, found), again (true when a
   //   project of the head's ended: it looks again at its next review), project (the id of the head's project plan under way, or null), what
   //   (its kind of KIND, or null), since (game hours: when it was taken, or null), shortSince (game hours since the food has stood under the
-  //   surplus while it is under way, or null)}. Written only here.
+  //   surplus while it is under way, or null), trial (absent, or the crop of a trial taken: VB-351; it has no project plan, and ends when
+  //   a field is sown with the crop out of turn, or the seed is gone)}. Written only here.
   // The household's working hands: members alive, of AIMS.hands' ages, not retired (as sim/agents counts their work: household.workHours).
   function handsOf(st, hh) {
     let n = 0;
@@ -123,7 +126,39 @@ VB['sim/aims'] = (() => {
         out.push({ what: 'heir', weight: (ranked >= 2 ? AIMS.heirs : AIMS.base) * generosity, heir });
     }
     if (!f.barn && !f.booth && st.villages[f.village].wood.length) out.push({ what: 'barn', weight: AIMS.base });
+    const crop = trialCrop(st, plan, hh, f);
+    if (crop) out.push({ what: 'trial', weight: AIMS.base * ambition, crop });
     return out;
+  }
+  // A trial (VB-351; design.md, How the head chooses what to sow: a trial is a project): a good head (sim/rotations' tierOf) whose store
+  // holds a field's seed of a crop its farm's rotation does not grow tries it on one field; the first such crop of CROPS, or null.
+  function trialCrop(st, plan, hh, f) {
+    if (!f.fields.length || tierOf(Plans.headSkill(st, hh.id)) !== 'good') return null;
+    const R = ROTATIONS[f.fields[0].rotation].courses;
+    for (const k in CROPS) if (CROPS[k].seed > 0 && !R.includes(k) && Stores.grainOf(hh, k) >= CROPS[k].seed) return k;
+    return null;
+  }
+  // The trial carried out at a review in its crop's window: a free field, a fallow one first, sown with it out of turn (the verb
+  // sowOutOfTurn, its checks turnWhy); true once sown or given up (the seed eaten), and told.
+  function tryCrop(st, hh, f, A, c) {
+    const k = A.trial;
+    if (Stores.grainOf(hh, k) < CROPS[k].seed) {
+      tell(st, hh, 'projectDropped', `${f.name} gives up its trial of ${k}: the seed is gone.`);
+      return true;
+    }
+    const fields = [...f.fields].sort((x, y) => (CROPS[y.crop].fallow ? 1 : 0) - (CROPS[x.crop].fallow ? 1 : 0)),
+      fd = fields.find((q) => turnWhy(st, f, hh, q.tile, k, c) === null && !q.turn);
+    if (!fd) return false;
+    const done =
+      issue(st, {
+        actor: hh.holder,
+        verb: 'sowOutOfTurn',
+        target: hh.id,
+        args: { tile: fd.tile, crop: k },
+        source: 'pawn',
+      }) === true;
+    if (done) tell(st, hh, 'projectDone', `${f.name} tries ${k} on a field.`);
+    return done;
   }
   // One option of the menu, by one draw from the stream `plans` over their weights; null for an empty menu.
   function choose(st, options) {
@@ -150,6 +185,7 @@ VB['sim/aims'] = (() => {
       );
     if (o.what === 'heir')
       return issue(st, { actor, verb: 'heirFarm', target, args: { heir: o.heir }, source: 'pawn' }) === true;
+    if (o.what === 'trial') return true; // no plan: carried out at its window (tryCrop)
     return issue(st, { actor, verb: 'barn', target, args: {}, source: 'pawn' }) === true;
   }
   const TAKEN = {
@@ -157,6 +193,7 @@ VB['sim/aims'] = (() => {
     claim: () => 'take in a new hay meadow',
     heir: (st, p) => `build a farm for ${fullName(st.pawns[p.intended])}`,
     barn: () => 'build a barn',
+    trial: (st, p, o) => `try ${o.crop} on a field`,
   };
   const DONE = { field: 'a new field', claim: 'a new hay meadow', heir: 'a new farm for its heir', barn: 'a new barn' };
   // A notable event of the head and its household: a project taken or finished.
@@ -200,6 +237,14 @@ VB['sim/aims'] = (() => {
       f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id || hh.holder === null || hh.holder === undefined) return;
     const A = plan.aim;
+    if (A && A.trial) {
+      if (tryCrop(st, hh, f, A, c)) {
+        delete A.trial;
+        A.what = A.since = null;
+        A.again = true;
+      }
+      return;
+    }
     if (A && A.project !== null) {
       const p = underWay(st, hh, A);
       if (!p) {
@@ -221,6 +266,16 @@ VB['sim/aims'] = (() => {
     if (!B.surplus || Projects.ownOf(st, hh.id) || Projects.heldOff(st, hh.id)) return;
     const o = choose(st, menu(st, plan, hh, f));
     if (!o || !begin(st, hh, o)) return;
+    if (o.what === 'trial') {
+      Object.assign(B, { trial: o.crop, what: 'trial', since: st.t });
+      tell(
+        st,
+        hh,
+        'projectTaken',
+        `${fullName(st.pawns[hh.holder])} of ${f.name} sets out to ${TAKEN.trial(st, null, o)}.`,
+      );
+      return;
+    }
     const p = Projects.ownOf(st, hh.id);
     if (!p) return;
     B.project = p.id;

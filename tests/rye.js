@@ -12,7 +12,7 @@ const { fieldsDay, fieldsFrost } = VB['sim/fields'];
 const { seedNeed } = VB['sim/hunger'];
 const Stores = VB['sim/stores'];
 const { setClock } = require('./lib/clock.js');
-const { tinyWorld, tinyState } = require('./lib/tiny.js');
+const { tinyWorld, tinyState, setForesight } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const verbose = process.argv.includes('--verbose');
 const near = (a, b) => Math.abs(a - b) < 1e-9;
@@ -21,6 +21,7 @@ const when = (day) => cal(day * DAY); // {year, season, sday} of a game day; sda
 const w = tinyWorld(Array.from({ length: 18 }, () => '.'.repeat(24)));
 const st = tinyState(w, [{ at: [8, 8], farms: 1, sizes: [6] }], { seed: 7 });
 const f = st.farmsteads[0], hh = st.households[f.household], fd = f.fields[0];
+setForesight(st, hh.holder, 0.55); // an ordinary head: the village's usual rotation (VB-351)
 assert(fd, 'the farm has a field');
 // the farm and its village in three courses (VB-350), the field followed at fallow and the others staggered after it: the rotation moves
 // it on (fallow to rye on the autumn's first day, rye to barley once its crop is in)

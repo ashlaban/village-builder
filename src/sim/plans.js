@@ -2,8 +2,8 @@
 // seasonal plan per live household from its culture's template of the year; targets, land step, seed; planning days by the head's
 // diligence, and the due-queue that opens the time-bound kinds at their hours; the village's routines, set by its meeting
 VB['sim/plans'] = (() => {
-  const { rotationWhy, turnWhy } = VB['sim/rotations'],
-    { takeRotation, outOfTurn } = VB['sim/fields'];
+  const { rotationWhy, turnWhy, swapWhy, fieldsChoice } = VB['sim/rotations'],
+    { takeRotation, outOfTurn, swapSteps } = VB['sim/fields'];
   const { living, home, settlement } = VB['sim/records'];
   const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, CROPS, ROTATIONS, TRAVEL, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
@@ -839,15 +839,20 @@ VB['sim/plans'] = (() => {
       sp = seasonOf(st, hh.id);
     if (sp.year !== c.year || sp.season !== c.season) seasonal(st, plan, c);
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    const turn = f && f.household === hh.id ? rotationChoice(st, f, hh, c) : null; // the rotation it holds (VB-350), by its rule
+    const own = f && f.household === hh.id,
+      H = plan.head ? { skill: headSkill(st, hh.id), pawn: plan.head.pawn } : null, // its foresight (VB-351)
+      turn = own ? rotationChoice(st, f, hh, c, H) : null, // the rotation it holds (VB-350), by its rule
+      actor = hh.holder === null ? { household: hh.id } : hh.holder;
     if (turn)
       issue(st, {
-        actor: hh.holder === null ? { household: hh.id } : hh.holder,
+        actor,
         verb: 'rotation',
         target: hh.id,
         args: { rotation: turn.to, short: turn.short },
         source: 'pawn',
       }); // through the verb the played head has (VB-355)
+    const act = own ? fieldsChoice(st, f, hh, c, H) : null; // what it sows where (VB-351)
+    if (act) issue(st, { actor, verb: act.verb, target: hh.id, args: act.args, source: 'pawn' });
     T.workable = fieldsWorkable(st, hh, T.perHand);
     T.fields = fieldsWanted(st, hh, T.workable, headBias(plan));
     chosenTargets(plan);
@@ -1199,6 +1204,17 @@ VB['sim/plans'] = (() => {
       return turnWhy(st, st.farmsteads[hh.farmstead], hh, a.tile, a.crop, cal(st.t));
     },
     run: (st, c) => outOfTurn(st, st.farmsteads[st.households[c.target].farmstead], c.args.tile, c.args.crop),
+  });
+  // courses({a, b}): the fields on tiles a and b exchange their courses (VB-351; sim/fields' swapSteps, its checks swapWhy: two free fields
+  // of the farm at different steps), so that the worn field rests first and fresh land takes the crop
+  register('courses', {
+    check: (st, c) => {
+      const why = heads(st, c) || farmOf(st, c);
+      if (why) return why;
+      const a = c.args || {};
+      return swapWhy(st.farmsteads[st.households[c.target].farmstead], a.a, a.b);
+    },
+    run: (st, c) => swapSteps(st, st.farmsteads[st.households[c.target].farmstead], c.args.a, c.args.b),
   });
   // routines({routines, by}): the village's routines this year (VB-257) become args.routines, set by the meeting's decision (by
   // 'meeting') or, when it did not decide, by its culture's practice (by 'nothing' or 'asLastYear'; sim/lifecycle)

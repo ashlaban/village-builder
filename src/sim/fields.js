@@ -2,7 +2,7 @@
 VB['sim/fields'] = (() => {
   const { underCrop, fieldAt, courseFor } = VB['sim/rotations'];
   const { next: rnd } = VB['sim/rng'];
-  const { CROPS, ROTATIONS, SOIL, TILTH, HERD, DEER, fertility, DAY, SEASON_DAYS, YEAR } = VB['sim/rules'];
+  const { CROPS, ROTATIONS, SOIL, TILTH, HERD, DEER, fertility, cal, DAY, SEASON_DAYS, YEAR } = VB['sim/rules'];
   const { costChanged } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
   const { woodTaken } = VB['sim/territory'];
@@ -154,6 +154,28 @@ VB['sim/fields'] = (() => {
         : `${f.name} now farms ${ROTATIONS[key].label}, by its head's choice.`,
       { kind: 'field', ...atFarm(f) },
     );
+  }
+  // The fields of farm f on tiles a and b exchange their courses (swapWhy holds; the verb courses, VB-351): each takes the other's step and
+  // crop, so the farm's fields stay staggered and the worn one rests first. A hoed field going fallow lies in stubble.
+  function swapSteps(st, f, a, b) {
+    const x = fieldAt(f, a),
+      y = fieldAt(f, b);
+    [x.step, y.step] = [y.step, x.step];
+    [x.crop, y.crop] = [y.crop, x.crop];
+    for (const fd of [x, y]) if (CROPS[fd.crop].fallow && fd.stage === 'plowed') fd.stage = 'stubble';
+    const rest = CROPS[x.crop].seed > 0 ? y : x,
+      sown = rest === x ? y : x;
+    log(st, `${f.name} rests its poorer field and sows ${sown.crop} on the better one.`, {
+      kind: 'field',
+      ...atFarm(f),
+    });
+  }
+  // @state farmstead.failed: absent, or {crop, year}: the crop last lost on a field of the farm, to the frost or left standing, and the year
+  //   of cal it was lost in (VB-351): the year after, an ordinary or good head sows more of another crop (sim/rotations' fieldsChoice).
+  //   Kept only on a farm whose rotation has two crops or more, so a farm of barley alone holds none.
+  function failed(st, f, fd) {
+    if (isVillage(f) || ROTATIONS[fd.rotation].courses.filter((k) => CROPS[k].seed > 0).length < 2) return;
+    f.failed = { crop: fd.crop, year: cal(st.t).year };
   }
   // The field on `tile` bears `crop` this year, out of turn (turnWhy holds): its step stays, and when the crop is in, or lost, or its
   // window closes, the field goes on to its next step as after any course. Nothing is sown here: the household's work does that.
@@ -337,6 +359,7 @@ VB['sim/fields'] = (() => {
     fd.weedOpen = false;
     delete fd.weeds;
     delete fd.trampled;
+    failed(st, f, fd);
     nextStep(fd); // the crop is lost: the field goes on to its next course (VB-350)
     log(st, `A crop at ${placeName(f)} was lost, left standing too long.`, { kind: 'frost', ...placeOf(f) });
   }
@@ -421,6 +444,7 @@ VB['sim/fields'] = (() => {
         delete fd.weeds; // the crop is gone, and its weeding with it (a lost barley field going fallow kept its rounds)
         delete fd.trampled;
         delete fd.browsed;
+        failed(st, f, fd);
         nextStep(fd); // VB-350
       }
     });
@@ -438,6 +462,7 @@ VB['sim/fields'] = (() => {
   return {
     takeRotation,
     outOfTurn,
+    swapSteps,
     restagger,
     book,
     hoed,
