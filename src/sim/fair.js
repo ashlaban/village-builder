@@ -70,12 +70,6 @@ VB['sim/fair'] = (() => {
     for (const x of l.lots) if (x.got && Goods.goodOf(x.good).keeping) v += (x.n / quantum(x.good)) * worth(x.good);
     return v;
   }
-  // Units of a good load l took in swaps
-  function gotOf(l, good) {
-    let n = 0;
-    for (const x of l.lots) if (x.good === good && x.got) n += x.n;
-    return n;
-  }
   // The goods load l holds, each once, in FAIR.goods' order
   const goodsIn = (l) => FAIR.goods.filter((g) => held(l, g) >= quantum(g) - TOLERANCE);
   // n units of `good` taken out of load l, the lots that spoil first first (grain's crops in proportion): the lots taken
@@ -262,10 +256,10 @@ VB['sim/fair'] = (() => {
     const p = st.pawns[me],
       hh = st.households[p.load.household],
       oh = st.households[st.pawns[other].load.household];
-    // a keeping good taken to pass on is given up at its worth at least, as it was taken at its worth (design.md, Keeping goods)
-    const got = gotOf(p.load, gives.good) / quantum(gives.good),
-      give = needValue(st, hh, gives.good, -gives.n),
-      cost = Math.max(-give, Goods.goodOf(gives.good).keeping ? Math.min(gives.n, got) * worth(gives.good) : 0);
+    // a keeping good is given up at its worth at least, as anyone takes it at its worth (design.md, Keeping goods): it passes for need,
+    // not round the green
+    const give = needValue(st, hh, gives.good, -gives.n),
+      cost = Math.max(-give, Goods.goodOf(gives.good).keeping ? gives.n * worth(gives.good) : 0);
     const gain = needValue(st, hh, wants.good, wants.n, kept(p.load)) - cost;
     ctx.giver = me;
     ctx.receiver = other;
