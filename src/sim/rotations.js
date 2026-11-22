@@ -1,4 +1,4 @@
-// @sys sim/rotations: crop courses, sowing choices and village rotation customs
+// @sys sim/rotations: crop courses, sowing choices and village rotation customs; the head's foresight on what to sow (VB-351)
 VB['sim/rotations'] = (() => {
   const { CROPS, ROTATIONS, SOIL, FIELDS, cal, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'];
   const { log } = VB['sim/records'];
