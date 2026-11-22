@@ -15,7 +15,8 @@
 VB['sim/occasions'] = (() => {
   const Due = VB['sim/due'],
     dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
-  const { release, walkTo, idle, free, stayOf, travelling } = VB['sim/agents'];
+  const { release, walkTo, idle, free } = VB['sim/agents'],
+    { stayOf, travelling } = VB['sim/pose'];
   const { next: rnd } = VB['sim/rng'];
   const { DAY, SPEED, WORK, TICKS, MARRIAGE, cal } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];

@@ -64,7 +64,7 @@ function evening() {
   o.asked = [];
   for (let h = 18; h < 22; h++) {
     st.t = st.t - (st.t % DAY) + h;
-    R.talkHour(st, h, E.outdoors(st, A.placeOf));
+    R.talkHour(st, h, E.outdoors(st, VB['sim/pose'].placeOf));
   }
   set(o.end);
   o.due = o.end;

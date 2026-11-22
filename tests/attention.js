@@ -15,7 +15,7 @@ Object.assign(KINDS, T);
 try {
   const a = st.agents.find((x) => st.pawns[x.id].died === null && st.pawns[x.id].household !== null), p = st.pawns[a.id];
   A.release(st, a);
-  const owner = { type: 'household', id: p.household }, here = A.tileAt(st, ...A.placeOf(st, a));
+  const owner = { type: 'household', id: p.household }, here = VB['sim/pose'].tileAt(st, ...VB['sim/pose'].placeOf(st, a));
   // its legs taken step by step until its walk ends (VB-473: the legs due, and nothing else)
   const arrive = () => { while (a.path) { st.tick++; st.t = st.tick / TICKS; A.stepAgents(st, Sim.cal(st.t)); } };
   const walk = (tile) => { A.walkTo(st, a, tile, st.w.hx[tile], st.w.hy[tile]); arrive(); };
@@ -42,16 +42,16 @@ try {
   // never two of one attention
   assert.match(go(bg2), /already holds a background/); assert.match(go(pt2), /already holds a partial/);
   // out of reach: refused
-  A.unhold(st, a, bg); assert.strictEqual(a.side.background, null);
+  VB['sim/attention'].unhold(st, a, bg); assert.strictEqual(a.side.background, null);
   assert.match(go(farBg), /out of its reach/);
   assert.strictEqual(go(bg), true);
   // the matcher offers a pawn with a background task only tasks within reach (VB-136: a full one too, so the herder works by the pasture)
   const c = Sim.cal(st.t);
-  A.unhold(st, a, pt); A.release(st, a);
-  assert.strictEqual(A.offerWhy(st, a, pt2), null, 'a partial task in reach is offered');
-  assert.strictEqual(A.offerWhy(st, a, full), null, 'a full task in reach is offered');
-  assert.ok(A.offerWhy(st, a, farFull), 'a full task out of reach is not');
-  assert.ok(A.offerWhy(st, a, bg2), 'a second background task is not');
+  VB['sim/attention'].unhold(st, a, pt); A.release(st, a);
+  assert.strictEqual(VB['sim/attention'].offerWhy(st, a, pt2), null, 'a partial task in reach is offered');
+  assert.strictEqual(VB['sim/attention'].offerWhy(st, a, full), null, 'a full task in reach is offered');
+  assert.ok(VB['sim/attention'].offerWhy(st, a, farFull), 'a full task out of reach is not');
+  assert.ok(VB['sim/attention'].offerWhy(st, a, bg2), 'a second background task is not');
   assert.strictEqual(bid(st, a, farFull, c), -1);
   // taking full work out of reach (the urgency switch) drops the background task, and reopens it
   assert.strictEqual(go(farFull), true);
@@ -60,9 +60,9 @@ try {
   // within reach a background task is minded at its rate, in closed form, its end queued (VB-472, VB-473); a walk out of reach drops it
   A.release(st, a); walk(near); assert.strictEqual(go(bg), true);
   assert.ok(bg.rate === KINDS[bg.kind].rate && bg.due > st.tick && st.workDue.includes(bg), 'minded at the side, its end queued');
-  const was = A.doneOf(st, bg);
+  const was = VB['sim/work'].doneOf(st, bg);
   st.tick++; st.t = st.tick / TICKS; A.stepAgents(st, Sim.cal(st.t));
-  assert.ok(Math.abs(A.doneOf(st, bg) - was - KINDS[bg.kind].rate / TICKS) < 1e-9, 'a step of minding, worked out with no stepping');
+  assert.ok(Math.abs(VB['sim/work'].doneOf(st, bg) - was - KINDS[bg.kind].rate / TICKS) < 1e-9, 'a step of minding, worked out with no stepping');
   A.walkTo(st, a, far, st.w.hx[far], st.w.hy[far]); // looked at as its leg begins: it ends out of reach
   assert.strictEqual(a.side, undefined, 'out of reach, dropped'); assert.ok(isOpen(st, bg) && !st.workDue.includes(bg));
   // with no task in hand, a background task out of reach is taken up and set out for; walking into reach it is kept, unworked
@@ -70,11 +70,11 @@ try {
   assert.strictEqual(go(farBg), true); assert.strictEqual(a.side.background, farBg); assert.ok(a.path, 'it sets out');
   const before = farBg.done;
   st.tick++; st.t = st.tick / TICKS; A.stepAgents(st, Sim.cal(st.t));
-  assert.strictEqual(a.side && a.side.background, farBg, 'kept on the way'); assert.strictEqual(A.doneOf(st, farBg), before, 'not worked on the way');
+  assert.strictEqual(a.side && a.side.background, farBg, 'kept on the way'); assert.strictEqual(VB['sim/work'].doneOf(st, farBg), before, 'not worked on the way');
   assert.ok(!(farBg.rate > 0), 'no rate on the way');
   arrive();
   assert.ok(a.side && a.side.background === farBg && farBg.rate > 0, 'minded once there: looked at as its leg ends');
-  A.unhold(st, a, farBg);
+  VB['sim/attention'].unhold(st, a, farBg);
   // a death lets go all
   walk(near);
   assert.strictEqual(go(bg), true); assert.strictEqual(go(pt), true);

@@ -33,7 +33,7 @@ const lone = (id) => st.pawns[id].household; // their housemates stay inside at 
 for (let h = T.from; h < T.to; h++) {
   place([[a, 500, 500], [b, 504, 500]]);
   const t0 = st.talks, asked = VB.count.talkTurn;
-  R.talkHour(st, h, E.outdoors(st, A.placeOf));
+  R.talkHour(st, h, E.outdoors(st, VB['sim/pose'].placeOf));
   const turn = st.living.filter((id) => turnOf(id, h)).length;
   check(VB.count.talkTurn - asked === turn, `hour ${h}: ${VB.count.talkTurn - asked} asked, ${turn} at their turn`);
   const talked = ag[a].talk !== null && ag[a].talk.with === b;
@@ -56,7 +56,7 @@ const occ = (come, kind = 'wedding') => {
 const end = (o) => { st.occasions.splice(st.occasions.indexOf(o), 1); for (const id of o.come) ag[id].occasion = null; };
 const h = hourOf(a);
 place([[a, hx, hy, true], [b, hx + 2, hy, true]]);
-R.talkHour(st, h, E.outdoors(st, A.placeOf));
+R.talkHour(st, h, E.outdoors(st, VB['sim/pose'].placeOf));
 check(!(ag[a].talk && ag[a].talk.with === b), 'two guests inside without an occasion do not talk: only housemates do indoors');
 place([[a, hx, hy, true], [b, hx + 2, hy, true]]);
 let o = occ([a, b]);
@@ -65,7 +65,7 @@ check(E.said(st, o.id, a).join() === String(b), `said by ${a} is heard by ${E.sa
 ag[b].path = [[0, 0]]; // still walking there: not present
 check(E.present(st, o.id).join() === String(a), 'one still on its way is not present');
 ag[b].path = null;
-R.talkHour(st, h, E.outdoors(st, A.placeOf));
+R.talkHour(st, h, E.outdoors(st, VB['sim/pose'].placeOf));
 check(ag[a].talk !== null && ag[a].talk.with === b, 'two guests in the host\'s house at an occasion talk');
 end(o);
 check(E.present(st, o.id).length === 0, 'an occasion over has nobody present');
@@ -77,7 +77,7 @@ for (const [dx, herding, can] of [[100, true, true], [150, true, false], [100, f
   for (let k = T.from; k < T.to && !talked; k++) {
     place([[a, 800, 800], [b, 800 + dx, 800]]);
     if (herding) { herd(a); herd(b); }
-    R.talkHour(st, k, E.outdoors(st, A.placeOf));
+    R.talkHour(st, k, E.outdoors(st, VB['sim/pose'].placeOf));
     talked = ag[a].talk !== null && ag[a].talk.with === b;
   }
   check(talked === can, `${herding ? 'herders' : 'pawns'} ${dx} units apart ${talked ? 'talked' : 'did not talk'}`);
@@ -92,17 +92,17 @@ place([[a, 900, 900], [b, 902, 900]]);
 const bTurn = turnOf(b, h);
 check(!bTurn, 'b has no turn in a\'s hour');
 quiet(a);
-R.talkHour(st, h, E.outdoors(st, A.placeOf));
+R.talkHour(st, h, E.outdoors(st, VB['sim/pose'].placeOf));
 check(!(ag[a].talk && ag[a].talk.with === b), 'outdoors, a pawn at opinion -1 is never drawn (mix 0)');
 place([[a, 900, 900], [b, 960, 900]]); // 60 units apart: beyond face to face, but both at the occasion
 o = occ([a, b], 'funeral');
-R.talkHour(st, h, E.outdoors(st, A.placeOf));
+R.talkHour(st, h, E.outdoors(st, VB['sim/pose'].placeOf));
 check(ag[a].talk !== null && ag[a].talk.with === b, 'at an occasion its mix lets the pair be drawn');
 const mix0 = E.ENCOUNTERS.occasion.mix;
 E.ENCOUNTERS.occasion.kinds.funeral = { mix: 0 };
 place([[a, 900, 900], [b, 960, 900]]);
 for (const id of o.come) ag[id].occasion = o.id;
-R.talkHour(st, h, E.outdoors(st, A.placeOf));
+R.talkHour(st, h, E.outdoors(st, VB['sim/pose'].placeOf));
 check(!(ag[a].talk && ag[a].talk.with === b), 'a kind of occasion names its own mix (0 here)');
 delete E.ENCOUNTERS.occasion.kinds.funeral;
 check(E.ENCOUNTERS.occasion.mix === mix0, 'the default mix is kept');
@@ -117,7 +117,7 @@ st.pawns[a].bands.delete(b);
   const own = st.farmsteads[hh.farmstead], ox = st.w.hx[own.house] - 12, oy = st.w.hy[own.house] + 14;
   const reset = () => { for (const id of st.living) { ag[id].talk = null; ag[id].occasion = null; } };
   const found = [], busy = new Int32Array(st.agents.length + 8);
-  const near = E.outdoors(st, A.placeOf);
+  const near = E.outdoors(st, VB['sim/pose'].placeOf);
   place([]); reset();
   ag[m1].x = ox; ag[m1].y = oy; ag[m2].x = ox; ag[m2].y = oy;
   check(E.atHome(st, ag[m1]), 'indoors by its own door is at home');
@@ -130,7 +130,7 @@ st.pawns[a].bands.delete(b);
   E.partners(st, ag[m2], near, busy, 3, found);
   check(found.length === 0, 'a pawn indoors elsewhere draws none');
   const h = hourOf(m2), before = st.pawns[m2].homeHours, b1 = st.pawns[m1].homeHours;
-  R.talkHour(st, h, E.outdoors(st, A.placeOf));
+  R.talkHour(st, h, E.outdoors(st, VB['sim/pose'].placeOf));
   check(st.pawns[m2].homeHours === before, 'its turn adds no hours at home');
   if (turnOf(m1, h)) check(st.pawns[m1].homeHours === b1 + T.every, 'a pawn at home counts its turn');
   for (const id of st.living) st.pawns[id].homeHours = 0;

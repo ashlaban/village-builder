@@ -3,7 +3,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { moveClock } = require('./lib/clock.js');
-const { feedHousehold, updateHealth } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HEALTH, YEAR, YEAR_DAYS } = VB['sim/rules'], { rateOf } = VB['sim/agents'];
+const { feedHousehold, updateHealth } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HEALTH, YEAR, YEAR_DAYS } = VB['sim/rules'], { rateOf } = VB['sim/work'];
 // the small island of tests/lib/probe.js (VB-862: the full map took 2 s)
 const world = (seed) => require('./lib/probe.js').island(seed);
 const w7 = world(7), fresh = () => Sim.seed(w7, 7, 'founders');

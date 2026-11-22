@@ -24,7 +24,7 @@ VB['sim/gathering'] = (() => {
   const { call, onEnd, VILLAGE_STEPS } = VB['sim/occasions'];
   const { pourAle } = VB['sim/feast'];
   const { book } = VB['sim/relations'];
-  const { stayOf } = VB['sim/agents'];
+  const { stayOf } = VB['sim/pose'];
   const { on, emit } = VB['sim/events'];
   const { hoursBetween, withinDay } = VB['sim/villagehours'];
   const { log } = VB['sim/records'];

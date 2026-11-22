@@ -6,7 +6,7 @@ const { tinyWorld, tinyState } = require('./lib/tiny.js'), probe = require('./li
 const { checkState } = require('./lib/invariants.js'), { canon, sha, kept } = require('./lib/canon.js');
 const hash = (st) => sha(canon(kept(st)));
 const { moveTo: move, refreshRoles } = VB['sim/heirs'], moveTo = (st, id, hh) => { move(st, id, hh); refreshRoles(st); }, { killPawn } = VB['sim/lifecycle'], { feedHousehold } = VB['sim/hunger'];
-const { homeSpot, tileAt } = VB['sim/agents'], Stores = VB['sim/stores'];
+const { homeSpot } = VB['sim/agents'], { tileAt } = VB['sim/pose'], Stores = VB['sim/stores'];
 const { DAY, WORK, TRAVEL } = VB['sim/rules'];
 const hourOf = (st) => st.t - Math.floor(st.t / DAY) * DAY;
 const to = (st, h) => Sim.advance(st, (((h - hourOf(st)) % DAY) + DAY) % DAY || DAY); // to the next h:00
@@ -127,7 +127,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   to(s, 10);
   moveTo(s, mid, hh.id);
   Sim.advance(s, 2);
-  const m = s.agents[mid], [mx, my] = VB['sim/agents'].placeOf(s, m); // a walker's place, from its leg (VB-473)
+  const m = s.agents[mid], [mx, my] = VB['sim/pose'].placeOf(s, m); // a walker's place, from its leg (VB-473)
   assert.ok(m.phase === 'journey' && Math.hypot(mx - homeSpot(s, m)[0], my - homeSpot(s, m)[1]) > 200, 'the mother is far from home');
   const p = s.pawns[mid], n = s.pawns.length;
   p.pregnantUntil = s.t; p.pregnantBy = dad;

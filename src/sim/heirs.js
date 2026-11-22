@@ -24,7 +24,8 @@ VB['sim/heirs'] = (() => {
     noteLine,
   } = VB['sim/records'];
   const { wishOf } = VB['sim/wishes'];
-  const { stopWorkFor, stayOf } = VB['sim/agents'];
+  const { stopWorkFor } = VB['sim/agents'],
+    { stayOf } = VB['sim/pose'];
   const { farmToVillage, heldFarms, trustOf } = VB['sim/ownership'];
   const { issue, register } = VB['sim/commands'];
   const Stores = VB['sim/stores'];

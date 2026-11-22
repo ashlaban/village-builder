@@ -1184,10 +1184,10 @@ function checkState(st) {
       if (full) {
         const hands = j.claims.filter((id) => st.agents[id].job === j && st.agents[id].phase === 'work');
         if (hands.length === 0 && j.rate > 0) bad.push(`${at}: a rate of ${j.rate} with no hand at work`);
-        if (hands.some((id) => A.rateOf(st, st.pawns[id]) > 0) && !(j.rate > 0)) bad.push(`${at}: hands at work (${hands}) and no rate`);
+        if (hands.some((id) => globalThis.VB['sim/work'].rateOf(st, st.pawns[id]) > 0) && !(j.rate > 0)) bad.push(`${at}: hands at work (${hands}) and no rate`);
         if (j.rate > 0 && !inQ.has(j)) bad.push(`${at}: under work, not in workDue`);
         if (j.rate > 0 && !(j.done < (j.hours ?? KS[j.kind].hours))) bad.push(`${at}: done ${j.done} of ${j.hours ?? KS[j.kind].hours} while worked`);
-        if (A.doneOf(st, j) < j.done - 1e-9) bad.push(`${at}: progress now ${A.doneOf(st, j)} below its last reckoning ${j.done}`);
+        if (globalThis.VB['sim/work'].doneOf(st, j) < j.done - 1e-9) bad.push(`${at}: progress now ${globalThis.VB['sim/work'].doneOf(st, j)} below its last reckoning ${j.done}`);
       } else if (j.rate > 0 && !inQ.has(j)) bad.push(`${at}: minded at the side, not in workDue`); // a background task (VB-473)
     }
     for (const a of st.agents) if ('work' in a) bad.push(`agents[${a.id}]: rows (a.work) in the state`);

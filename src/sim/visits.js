@@ -13,7 +13,7 @@ VB['sim/visits'] = (() => {
   const { hoursBetween } = VB['sim/villagehours'];
   const { dailyNeed, rationOf } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
-  const { travelling, stayOf, placeOf, tileAt } = VB['sim/agents'];
+  const { travelling, stayOf, placeOf, tileAt } = VB['sim/pose'];
   const { hasRoute } = VB['sim/routes'];
   const { visit, visitDays } = VB['sim/away'];
   const { kinOk, matchScore, matchRules, meansOf, roundYear } = VB['sim/matching'];

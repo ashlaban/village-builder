@@ -101,7 +101,8 @@ const Sim = (() => {
   const { HERD, CLAIMS } = VB['sim/rules'],
     { SOIL } = VB['sim/crops'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
-  const { withOxen, placeOf, poseOf } = VB['sim/agents'];
+  const { withOxen } = VB['sim/work'],
+    { placeOf, poseOf } = VB['sim/pose'];
   const { larderOf } = VB['sim/larder'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
   const { boothCondition } = VB['sim/building'], // VB-784: a booth's condition now

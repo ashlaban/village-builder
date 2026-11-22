@@ -19,7 +19,7 @@ const cap = Carts.take(st, hh, a.id, true);
 KINDS.haul.load(st, a, j, cap); a.carry = 'sheaf';
 assert(Carts.oxOut(st, hh) && a.load > 30, 'a laden ox cart is out');
 a.x = st.w.hx[fd.tile] + 400; a.y = st.w.hy[fd.tile]; fd.stage = 'stubble'; fd.held = 0;
-const at = A.tileAt(st, a.x, a.y);
+const at = VB['sim/pose'].tileAt(st, a.x, a.y);
 VB['sim/lifecycle'].killPawn(st, a.id, 'illness');
 const cart = hh.carts.find((c) => c.kind === 'ox');
 assert(cart && cart.at && cart.at.tile === at && cart.by === null, 'the cart stands where he fell');

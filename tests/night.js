@@ -4,7 +4,7 @@
 const assert = require('assert'), VB = require('../src/load.js');
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { DAY, SEASON_DAYS, HEALTH } = VB['sim/rules'], { feedAway } = VB['sim/away'], { issue } = VB['sim/commands'], Stores = VB['sim/stores'];
-const { stayOf } = VB['sim/agents'];
+const { stayOf } = VB['sim/pose'];
 const W = 60, make = () => tinyState(tinyWorld(Array(9).fill('.'.repeat(W)), { seed: 3 }), [{ at: [6, 4], farms: 2, sizes: [5, 4] }], { seed: 3 });
 const adultOf = (st, hh) => hh.members.find((id) => id !== hh.holder && st.pawns[id].age >= 14 && st.pawns[id].age < 60);
 // the health an adult loses over `nights` nights of its stay in `season`, with its roof arranged by `setup`

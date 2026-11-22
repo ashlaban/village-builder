@@ -98,11 +98,15 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   A lodger is a stay at a bed (a tile, or a guest's in another household's house), by the verbs `lodge` and `comeHome`: a pack of a
   ration a day planned (at most `AWAY.pack`), the tasks its stay names only (`dayAway`, before the household's day), home when its pack
   is down to the walk home's ration. Every pawn away eats from its pack (`feedAway`), out of its household's meal by the one test of
-  `agent.away`. `sim/agents`' `bed` is the tile a pawn's day starts from and ends at, which the walk home, a job's reach and the day's
+  `agent.away`. `sim/pose`'s `bed` is the tile a pawn's day starts from and ends at, which the walk home, a job's reach and the day's
   end read.
-- Legs (VB-471 to VB-473; design.md section 7, A leg, and its end): `src/sim/agents.js` keeps every pawn in one leg, a walk, work or a
-  wait (`agent.leg`); the ends of walks and waits wait in `st.legDue`, those of tasks in `st.workDue`, and a step (`stepAgents`) takes
-  what is due and nothing else. A pawn's place is `placeOf` (a walker along its leg's hours); `sim/society`'s `outdoors`, `sim/jobs`'
+- Legs (VB-471 to VB-473; design.md section 7, A leg, and its end; split by VB-422): every pawn is in one leg, a walk, work or a wait
+  (`agent.leg`, `src/sim/legs.js`, which holds the walk set out on, begun, cut and ended, and the queue `st.legDue` of the ends of walks
+  and waits); a task's work is a block (`src/sim/work.js`: its progress in closed form, its rate by the hands at it, the ox team, and the
+  ends of tasks in `st.workDue`); a pawn's side tasks are `src/sim/attention.js` (VB-251), told of a leg's change by the event
+  `legChanged`; `src/sim/agents.js` holds the job's phases (start, arrival, a load home, completion, release), the step (`stepAgents`,
+  which takes what is due and nothing else), a journey's walking and the verbs. A pawn's place is `src/sim/pose.js`, read only:
+  `placeOf` (a walker along its leg's hours), `poseOf` (the page's), `tileAt`, and the bed; `sim/society`'s `outdoors`, `sim/jobs`'
   company and `sim/lifecycle`'s death on the road read it, and the page reads walkers' places through the shim `Sim.walkerPlaces` until
   VB-474.
 - Claims (VB-042, VB-155 to VB-158, VB-033): `src/sim/claims.js` (claims on tiles: strength, lapse, the land each holds), `src/sim/disputes.js` (disputes settled by custom: support, scores, the winner and the losers' grievance; VB-1176), `src/sim/territory.js` (the
@@ -290,7 +294,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`tests/lib/heads.js`); `tests/traits.js` checks the rest.
 - A head's projects (VB-255): `src/sim/aims.js` (agency, after `sim/heirs`) hears `sim/plans`' `planReviewed` and `stepDone`; once a
   year after the autumn count, and after a project of the head's ends, it reads the surplus (the plan's targets met, food over 1.5 years
-  of need and the seed, the hands idle over a third of the last season by `household.workHours`, which `sim/agents` counts as work is
+  of need and the seed, the hands idle over a third of the last season by `household.workHours`, which `sim/work` counts as work is
   reckoned), computes the menu (a field, a claim as a new meadow, a farm for the heir, a barn) and draws one from the stream `plans` by the
   head's lean (`Traits.of`: ambition, generosity); it acts through the verbs `project`, `barn` and `heirFarm` (`sim/commands`; `heirFarm`
   tells `sim/expansion` by the event `heirFarm`, which begins a plot held by the household, `plot.by`). It keeps `plan.aim` and drops its
@@ -341,7 +345,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Social: `culture`, `sim/encounters`, `sim/relations`, `sim/courting` (VB-036), `sim/society`, `sim/deaths`, `sim/births`, `sim/heirranking`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`, `sim/obligations`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
-- Agency: `sim/agents`, `sim/away` (the stays away from home, VB-783), `sim/gifts` (how a gift gets from here to there: the verbs `give` and
+- Agency: `sim/legs`, `sim/work`, `sim/attention`, `sim/agents` (VB-422), `sim/away` (the stays away from home, VB-783), `sim/gifts` (how a gift gets from here to there: the verbs `give` and
   `deliver`, VB-228), `sim/occasions` (gatherings; agency since VB-228, as target-v2 4.5 has it: its verb `attend` walks the pawn), `sim/player`
   (the player as a source of commands, VB-169, VB-228), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/plans`,
   `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review; kept

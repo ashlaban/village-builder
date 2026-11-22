@@ -66,7 +66,7 @@ const fetchJob = () => {
   carrier(a);
   const n = a.load;
   onRoad(a);
-  const at = A.tileAt(st, a.x, a.y);
+  const at = VB['sim/pose'].tileAt(st, a.x, a.y);
   VB['sim/lifecycle'].killPawn(st, a.id, 'illness'); // it dies on the road (stillAtDeath)
   assert.strictEqual(sheaves(), b0, 'the load was booked at the barn from the road');
   assert(st.lying && st.lying.length === 1, 'no load lies where the hand fell');
@@ -131,7 +131,7 @@ const fetchJob = () => {
   assert(a.load === 1 && hh.stone === stone0 - 1, 'the stone taken up is not in hand');
   a.carry = 'basket';
   a.x = st.w.hx[f.house] + 300; a.y = st.w.hy[f.house];
-  const at = A.tileAt(st, a.x, a.y);
+  const at = VB['sim/pose'].tileAt(st, a.x, a.y);
   VB['sim/lifecycle'].killPawn(st, a.id, 'illness');
   assert.strictEqual(step.brought, 0, 'the stone reached the well from the road');
   const l = (st.lying || []).find((x) => x.kind === 'wellstone');

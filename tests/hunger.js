@@ -3,7 +3,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture;
 const { moveClock } = require('./lib/clock.js');
-const { feedHousehold } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HUNGER, YEAR, YEAR_DAYS } = VB['sim/rules'], { rateOf } = VB['sim/agents'];
+const { feedHousehold } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HUNGER, YEAR, YEAR_DAYS } = VB['sim/rules'], { rateOf } = VB['sim/work'];
 const { scenario } = require('./lib/probe.js');
 const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
 const fresh = (name = 'founders') => {
