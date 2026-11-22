@@ -12,7 +12,9 @@ VB['sim/herds'] = (() => {
   //   cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
   //   fodder since the count), unfed (stall days running without full hay) (sim/byre), herder (the pawn the herds are out with, from
   //   taking them to pasture until it is home again, or null: by the farm; VB-136), herded (the game day a herder last took them out, -1
-  //   never; VB-136), at (sim/droving: the farm it stands at, away from its household's)}; id = index, never reused; a herd emptied by a
+  //   never; VB-136), at (sim/droving: the farm it stands at, away from its household's),
+  //   fleece (sheep: the fleeces grown by the shearing day, absent once shorn at the fold; one left at the end of summer is shed and
+  //   counts for nothing, sim/grazing's unshorn; sim/byre, VB-679)}; id = index, never reused; a herd emptied by a
   //   dissolved household is kept with household null (sim/herds), as is one left with nobody at its farm (herd.at; sim/droving)
   //   head[]: {id, name, sex 'f'|'m', born (game hours), kind 'calf'|'heifer'|'cow'|'bull'|'steer'|'ox', calved (game year a cow last
   //   calved, 1 first; absent before her first calf; VB-135)}

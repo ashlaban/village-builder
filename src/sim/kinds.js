@@ -79,6 +79,7 @@ VB['sim/kinds'] = (() => {
     manure: F.manure,
     milk: Byre.KINDS.milk,
     slaughter: Byre.KINDS.slaughter,
+    shear: Byre.KINDS.shear,
     salt: Byre.KINDS.salt,
     fell: Expansion.KINDS.fell,
     grub: Expansion.KINDS.grub,

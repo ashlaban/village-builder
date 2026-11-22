@@ -96,19 +96,31 @@ if (sh) {
   check(Math.abs(eweRations - 4 * HD.eweMilk) < 1e-9, `4 ewes gave ${eweRations} rations, wanted ${4 * HD.eweMilk}`);
   h3.larder = []; h3.milkDay = -1; Y.milkDone(s3, h3, cal(HD.eweEnd + 1));
   check(L.larderOf(h3) === 0, 'ewes milked after the end of summer');
-  // wool: shorn on summer day 1
+  // wool (VB-679): grown by summer day 1, given only when the flock is shorn at the fold; a fleece unshorn at the end of summer is shed
   for (const h of s3.households) h.wool = 0;
   Y.shearing(s3);
-  for (const h of s3.households) { const g = H.herdOf(s3, h, 'sheep'); fleeces += h.wool; check(h.wool === (g ? g.ewes + g.rams : 0), `household ${h.id}: ${h.wool} fleeces`); }
+  check(s3.households.every((h) => h.wool === 0), 'wool before the shearing');
+  const G = VB['sim/grazing'];
+  for (const h of s3.households) { const g = H.herdOf(s3, h, 'sheep'); check(!g || g.fleece === g.ewes + g.rams, `household ${h.id}: fleeces grown`); }
+  for (const h of s3.households) { for (const g of H.herdsOf(s3, h)) g.herder = null; Y.shearDone(s3, h, cal(HD.shear)); }
+  for (const h of s3.households) { const g = H.herdOf(s3, h, 'sheep'); fleeces += h.wool; check(h.wool === (g ? g.ewes + g.rams : 0) && !(g && g.fleece), `household ${h.id}: ${h.wool} fleeces`); }
   check(fleeces > 0, 'no fleece');
+  const g5 = H.herdOf(s3, h3, 'sheep');
+  g5.fleece = 3;
+  check(G.unshorn(g5, cal(HD.shear)) === 3 && G.unshorn(g5, cal(HD.eweEnd)) === 0, 'an unshorn fleece is shed at the end of summer');
+  h3.wool = 0; Y.shearDone(s3, h3, cal(HD.eweEnd));
+  check(h3.wool === 0, 'a shed fleece gives no wool');
+  g5.fleece = 3; g5.herder = null;
+  G.driveOut(s3, h3, 0, cal(HD.shear));
+  check(g5.herder === null, 'a flock waiting to be shorn stays in');
 }
 {
   // a year run: no wool before summer day 1, wool after it; ewes' milk in the totals stops at the end of summer
   const s4 = Sim.seed(world(7), 7, 'founders');
   Sim.advance(s4, 11.5 * Sim.DAY);
   check(s4.households.every((h) => !h.wool), 'wool before summer day 1');
-  Sim.advance(s4, 1 * Sim.DAY);
-  check(s4.households.some((h) => h.wool > 0), 'no wool after summer day 1');
+  Sim.advance(s4, 3 * Sim.DAY);
+  check(s4.households.some((h) => h.wool > 0), 'no wool after the shearing');
   const stillIn = (day) => s4.households.some((h) => Y.milkEwes(s4, h, cal(day)) > 0);
   check(stillIn(HD.eweEnd - 1) && !stillIn(HD.eweEnd), 'ewes in milk across the end of summer');
 }
