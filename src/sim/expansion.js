@@ -21,7 +21,7 @@ VB['sim/expansion'] = (() => {
   const { thick, clearScrub, tended } = VB['sim/spread'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fieldplans'],
     { onField } = VB['sim/fieldwork'];
-  const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand } = VB['sim/layout'];
+  const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand, houseScore } = VB['sim/layout'];
   const COTTAGE = ['foundation', 'walls', 'roof'],
     COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const VACANT_YEARS = 2; // moving rounds a cleared plot waits for someone to have it before the village gives it up (VB-646)
@@ -196,14 +196,8 @@ VB['sim/expansion'] = (() => {
         continue;
       let touch = 0;
       for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
-      // the generator's score of a house site (sim/layout, HOUSE): near the green, not crowded, where its field is worth most and its own
-      // tile least
-      const s =
-        -HOUSE.far * d -
-        HOUSE.crowd * Math.max(0, touch - 1) -
-        (d === 1 ? 0 : HOUSE.offGreen) -
-        (wooded(w, h) ? 0.5 : 0) +
-        (f >= 0 ? HOUSE.byLand * fs - HOUSE.spare * fertility(w, h) : -Infinity);
+      // the generator's score of a house site (sim/layout houseScore), where its field is worth most and its own tile least
+      const s = houseScore(w, h, d, touch) + (f >= 0 ? HOUSE.byLand * fs - HOUSE.spare * fertility(w, h) : -Infinity);
       if (s > bs) {
         bs = s;
         best = { house: h, field: f };
