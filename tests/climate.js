@@ -4,7 +4,8 @@
 // On generated worlds: the same seed gives the same wind, rain, moisture and biomes; the wet land is the moist land.
 const VB = require('../src/load.js'), G = VB.gen, C = VB['gen/climate'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('CLIMATE FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
+// generated anew each time, on the roomy island of tests/lib/probe.js (VB-862: six 120 by 85 maps took 3 s)
+const world = (seed) => require('./lib/probe.js').generate(seed, require('./lib/probe.js').ROOMY);
 const same = (a, b) => Buffer.compare(Buffer.from(a.buffer), Buffer.from(b.buffer)) === 0;
 const mean = (a) => a.reduce((s, v) => s + v, 0) / Math.max(1, a.length);
 
