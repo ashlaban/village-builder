@@ -92,8 +92,10 @@ VB['sim/stores'] = (() => {
     if (!v.ledger) v.ledger = [];
     v.ledger.push(entry);
   }
+  // A movement of nothing is not recorded (VB-239): no ledger entry or yearly total moves 0.
   function record(st, holder, good, n, why, kind = type(holder)) {
     amount(Math.abs(n));
+    if (n === 0) return;
     if (good !== GRAIN && GOOD_CROP[good] !== undefined) good = GRAIN; // the ledger counts grain whatever its crop
     const detail = typeof why === 'string' ? { kind: why } : why;
     if (!detail || !KINDS.includes(detail.kind)) throw new Error('stores: unknown reason');
