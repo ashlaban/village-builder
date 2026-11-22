@@ -509,6 +509,8 @@ VB['sim/saves'] = (() => {
     if (!st.rng.gathering) st.rng.gathering = makeStream(data.seed, 'gathering'); // VB-295: nor the goers' wish to go to the gathering
     if (!st.rng.fair) st.rng.fair = makeStream(data.seed, 'fair'); // VB-302: nor the fair's order of dealers
     if (!st.deer) VB['sim/deer'].initDeer(st);
+    // VB-354: an older save held one yearly factor; its seasons are drawn afresh, from the weather's stream
+    if (!Array.isArray(st.weather)) VB['sim/weather'].seedWeather(st, VB['sim/rules'].cal(st.t));
     if (!st.front || !w.tended) VB['sim/spread'].initFront(st); // VB-091: nor the forest's front, nor the work on tiles
     for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
     for (const v of st.villages)

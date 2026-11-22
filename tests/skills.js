@@ -53,15 +53,14 @@ const posted = (rule, at) => {
   return out[0];
 };
 Object.assign(fd, { stage: 'ripe', crop: 'barley', fert: 1, soil: 1, tilth: 0, weedMiss: 0, weedOpen: false });
-st.weather = 1;
 const normal = standing(st, fd);
 const hReap = posted(reapRule, fd).hours;
 assert(near(hReap, Math.round(CROPS.barley.hours.reap * Math.min(1.5, Math.max(0.5, normal / CROPS.barley.yield)))), `reaping a crop of ${normal}: ${hReap} hours`);
-st.weather = 0.2; // a crop a fifth of normal: half the hours, no less
+fd.fert = 0.2; // a crop a fifth of normal: half the hours, no less
 assert.strictEqual(posted(reapRule, fd).hours, Math.round(CROPS.barley.hours.reap * 0.5), 'a poor crop: at least half the hours');
-st.weather = 3; // a crop thrice normal: one and a half the hours, no more
+fd.fert = 3; // a crop thrice normal: one and a half the hours, no more
 assert.strictEqual(posted(reapRule, fd).hours, Math.round(CROPS.barley.hours.reap * 1.5), 'a great crop: at most one and a half');
-st.weather = 1;
+fd.fert = 1;
 // threshing: the sheaves first in the barn, one field's crop
 hh.unthreshed = [CROPS.barley.yield * 1.2];
 assert.strictEqual(posted(threshRule, f).hours, Math.round(CROPS.barley.hours.thresh * 1.2), 'threshing a crop a fifth over normal');

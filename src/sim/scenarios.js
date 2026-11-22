@@ -21,6 +21,7 @@ VB['sim/scenarios'] = (() => {
   // Also for a state made outside the scenarios (tests/lib/tiny.js).
   function startStreams(st, seedNum) {
     splitStreams(st, seedNum);
+    VB['sim/weather'].seedWeather(st, cal(st.t)); // last year's seasons and this spring's (VB-354), from the weather's own stream
     seedTraits(st);
     startHeads(st);
     seedAsking(st); // each who seeks, or will, on its asking day (VB-823)
@@ -410,7 +411,7 @@ VB['sim/scenarios'] = (() => {
     //   system, each {s} as plain data (sim/rng); every call site names its system's. While seeding they are all one stream, also `seed`.
     // @state st.w: the world (see w.*). st.ECON: the economy table
     // @state st.scenario: string; 'founders', 'heirs', 'populous', 'market' (a test bed, VB-778), or 'manual' (placed by hand)
-    // @state st.weather: number; harvest weather factor, redrawn each year, about 0.75..1.2
+    // (st.weather: the seasons' weather, sim/weather)
     // (pawn.events: the positions of its events in st.record, in the order they were written; sim/records, VB-199)
     // @state st.pawns[]: {id, given, sex, born, died, father, mother, patronym, household, role, servant, retired, look, events[], alive, age,
     //   pregnantUntil, pregnantBy, nursingUntil (game hours or null; sim/births), nursling (the child she nurses, or null; sim/births),
@@ -502,6 +503,7 @@ VB['sim/scenarios'] = (() => {
     // @state culture.practices: {noDecision: 'nothing' | 'asLastYear'}; the culture's practices that are not customs (culture.js PRACTICES; VB-257)
     // @state culture.values: {generosity, piety, ambition, honour}; the means of its living adults' values (VB-519), each to a thousandth,
     //   reckoned at its yearly reckoning and at a split (culture.js, through sim/traits' addValues); an archetype's at the start
+    rand(); // the yearly weather factor's draw (VB-354 left it to sim/weather), kept so that seeding draws as before
     const st = {
       t: 6,
       tick: 6 * TICKS,
@@ -519,7 +521,7 @@ VB['sim/scenarios'] = (() => {
       jobs: new Map(),
       jobsBy: new Map(),
       jobSeq: 0,
-      weather: 0.85 + rand() * 0.3,
+      weather: [], // drawn by startStreams (sim/weather seedWeather)
       record: [],
       recordYears: [],
       recordFold: { shortAt: 0, longAt: 0, pass: null },

@@ -33,6 +33,7 @@
       "sim/forest",
       "sim/people",
       "sim/records",
+      "sim/weather",
       "sim/ties",
       "sim/traits",
       "sim/skills",

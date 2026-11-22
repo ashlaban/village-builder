@@ -6,6 +6,7 @@ VB['sim/plans'] = (() => {
     { takeRotation, outOfTurn, swapSteps } = VB['sim/fields'];
   const { living, home, settlement } = VB['sim/records'];
   const { WORK, DAY, TICKS, HERD, SEASON_DAYS, YEAR_DAYS, FIELDS, CROPS, ROTATIONS, TRAVEL, cal } = VB['sim/rules'];
+  const { sowOpen, frostDay } = VB['sim/weather'];
   const Rules = VB['sim/registry'];
   const Traits = VB['sim/traits'];
   const Stores = VB['sim/stores'],
@@ -600,8 +601,8 @@ VB['sim/plans'] = (() => {
     return day * DAY + h;
   }
   // Days on which a window is about to close, or has just closed, and every holder is reviewed at its first review hour: the last day of
-  // sowing and the day after it (its hoeing and sowing taken down), the two last days of autumn (the harvest before the frost), and the first
-  // day of winter (the ice: fishing taken down, VB-117).
+  // sowing and the day after it (its hoeing and sowing taken down), the year's frost day and the day before it (the harvest before the
+  // frost: sim/weather frostDay, VB-354), and the first day of winter (the ice: fishing taken down, VB-117).
   const SOWN = Object.keys(CROPS).filter((k) => !CROPS[k].fallow && CROPS[k].sow);
   // Barley's window closes for every holder; another crop's (rye's in autumn, VB-999) only for a household whose farm sows it.
   const closes = (k, c) => {
@@ -611,7 +612,7 @@ VB['sim/plans'] = (() => {
   function closing(st, c, plan) {
     return (
       closes('barley', c) ||
-      (c.season === 2 && c.sday >= SEASON_DAYS - 2) ||
+      (c.season === 2 && (c.sday === frostDay(st) - 1 || c.sday === frostDay(st))) ||
       (c.season === 3 && c.sday === 0) ||
       (!!plan && cropClosing(st, c, plan))
     );
@@ -635,8 +636,7 @@ VB['sim/plans'] = (() => {
     if (!f || f.household !== hh.id) return false;
     const due = (g) =>
       g.fields.some((fd) => {
-        const W = CROPS[fd.crop].sow,
-          sow = c.season === W[0] && c.sday >= W[1] && c.sday <= W[2];
+        const sow = sowOpen(st, fd.crop, c);
         const idle = fd.stage === 'plowed' || (fd.stage === 'stubble' && !(CROPS[fd.crop].fallow && fd.rest === 1)); // fallow: tilled once
         return fd.stage === 'ripe' || (sow && idle);
       });

@@ -4,12 +4,13 @@
 // and its food; after a yes and the next day, the state is what it said, and the preview wrote nothing to st.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, L = VB['sim/lifecycle'];
-const { tinyWorld, tinyState } = require('./lib/tiny.js');
+const { tinyWorld, tinyState, ordinaryWeather } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const w = tinyWorld(Array(18).fill('.'.repeat(28)), { seed: 7 });
 // Three farms of one village: Hans (0), his wife (1) and their five; a couple with three; Ingeborg's husband (11), she (12) and a son.
 const st = tinyState(w, [{ at: [7, 9], farms: 3, sizes: [7, 4, 3] }]);
 st.naturalDeaths = false;
+ordinaryWeather(st); // the spring as the case was built on: the ground thawed, the fields hoed on its first days (VB-354)
 const HANS = 0, INGEBORG = 12, KIDS = [2, 3, 4, 5, 6];
 KIDS.forEach((id, i) => {
   const a = [14, 12, 10, 8, 5][i];

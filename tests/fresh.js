@@ -28,7 +28,7 @@ for (const fd of [fresh, old]) { fd.crop = 'barley'; fd.step = 0; }
 check(near(fresh.soil, S.fresh) && near(old.soil, S.start), `soil on fresh ground ${fresh.soil}, on old ground ${old.soil}`);
 check(w.dev[freshTile] === 1, 'the fresh tile is farmed now');
 // the first harvest: the fresh field yields more, in proportion to its soil
-const reap = Sim.KINDS.reap.done, ratio = (fd) => fd.held / (CROPS.barley.yield * fd.fert * st.weather);
+const reap = Sim.KINDS.reap.done, ratio = (fd) => fd.held / (CROPS.barley.yield * fd.fert * VB['sim/weather'].cropFactor(st, 'barley'));
 let rf = 0, ro = 0;
 for (let k = 0; k < 9; k++) {
   for (const fd of [fresh, old]) { fd.stage = 'ripe'; fd.weedMiss = 0; reap(st, { field: fd }, hh, cal(30)); }

@@ -14,7 +14,7 @@ check(near(t40, 0.067, 0.004), `40 years at 2 loads: ${t40}`);
 a.tilth = 0.2; a.tilthAt = 0; st.t = 49 * YEAR;
 check(near(F.tilthOf(st, a), 0.1, 0.01), `49 years unmanured: ${F.tilthOf(st, a)}`);
 // the harvest, by tilth 0 and 0.1: the same but for the draw of the yield (0.9 to 1.1), so a mean of many
-st.t = 10 * YEAR; st.weather = 1;
+st.t = 10 * YEAR;
 const reap = (fd, tilth) => { Object.assign(fd, { crop: 'barley', stage: 'ripe', tilth, tilthAt: st.t, soil: 1, fert: 1, weedMiss: 0, weedOpen: false }); F.reaped(st, fd, { day: 1 }); return fd.held; };
 let s0 = 0, s1 = 0; for (let i = 0; i < 400; i++) { s0 += reap(a, 0); s1 += reap(b, 0.1); }
 check(near(s1 / s0, 1.1, 0.03), `harvest ratio ${s1 / s0}`);

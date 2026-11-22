@@ -31,6 +31,15 @@ function checkState(st) {
       bad.push(`${key}: live index differs from its source records`);
     }
   }
+  // VB-354: the seasons' weather: one or two years, oldest first and consecutive, the last no later than this year (a test that sets the
+  // clock jumps past the seasons' draws); at most four seasons each, warmth
+  // and wetness in -1 to 1, the thaw a spring day of 0 to 3 and the frost an autumn day of 7 to 11
+  {
+    const y = globalThis.VB['sim/rules'].cal(st.t).year, ws = st.weather, num = (x) => typeof x === 'number' && x >= -1 && x <= 1;
+    if (!Array.isArray(ws) || ws.length < 1 || ws.length > 2 || ws[ws.length - 1].year > y || (ws.length === 2 && ws[0].year !== ws[1].year - 1)
+      || ws.some((e) => !Array.isArray(e.seasons) || e.seasons.length > 4 || e.seasons.some((s) => !Array.isArray(s) || s.length !== 2 || !num(s[0]) || !num(s[1]))
+        || !Number.isInteger(e.thaw) || e.thaw < 0 || e.thaw > 3 || !Number.isInteger(e.frost) || e.frost < 7 || e.frost > 11)) bad.push(`weather: not this year and the last, each in bounds: ${JSON.stringify(ws)}`);
+  }
   // VB-313: the ballots kept, the last LOG of them, each a choice among its options
   if (st.decisionLog && (st.decisionLog.length > globalThis.VB['sim/decisions'].LOG
     || st.decisionLog.some((e) => e.chosen !== null && !(e.chosen >= 0 && (!e.support.length || e.chosen < e.support.length))))) bad.push('decisionLog: over its bound, or a choice outside its options');

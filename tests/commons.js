@@ -121,6 +121,7 @@ console.log(`commons ok: begun ${((made - start) / DAY).toFixed(0)} days in, sow
   // the commons: a field in stubble in the sowing window, posted only in a year the store lacks of its target
   const w = CROPS.barley.sow, sowDay = (y) => ((y - 1) * YEAR_DAYS + w[0] * SEASON_DAYS + w[1]) * DAY + 1;
   u.commonFields = [{ id: 0, tile: Commons.site(s2, u), crop: 'barley', stage: 'stubble', sown: null, held: 0, soil: 1 }];
+  for (const y of s2.weather) y.thaw = 0; // the probes read the window's first day, the ground thawed (sim/weather, VB-354)
   const posted = (t) => {
     const keys = [];
     Commons.work(s2, u, cal(t), (k) => keys.push(k), VB['sim/kinds'].ASK.fieldAt);

@@ -1,7 +1,7 @@
 // @sys sim/fieldplans: field demand, site selection, clearing projects and the head's harvest estimate
 VB['sim/fieldplans'] = (() => {
   const { B } = VB['gen'];
-  const { ECON, CROPS, ROTATIONS, FIELDS, farmable, fertility, cal, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'];
+  const { ECON, CROPS, ROTATIONS, FIELDS, farmable, fertility, cal, YEAR_DAYS } = VB['sim/rules'];
   const { rotationOf, courseFor } = VB['sim/rotations'];
   const { age } = VB['sim/records'];
   const { team } = VB['sim/herds'];
@@ -188,7 +188,7 @@ VB['sim/fieldplans'] = (() => {
     if (!n) return null;
     const hands = handsOf(st, hh),
       days = hands ? Math.ceil(hours / (hands * HARVEST_DAY)) : Infinity,
-      left = SEASON_DAYS - 1 - c.sday;
+      left = Math.max(0, VB['sim/weather'].frostDay(st) - c.sday);
     return { fields: n, days, left, late: days > left, hands };
   }
   return {
