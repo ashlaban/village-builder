@@ -66,7 +66,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   adds a report (households, pawns, jobs, events, hunger, perf, counts and more), `--household N`, `--pawn N`; `--save FILE` and
   `--load FILE`, so a bug report can carry the run.
 - Review tools (VB-337): `node tools/sim.js --report hours [--from Y] [--fields N] [--team] [--household N] [--json]` (pawn-hours a
-  household-year by job kind, work and walking, against its hands' and workers' working hours, and the farming year's days; `tools/hours.js`);
+  household-year by job kind, work and walking, against its hands' and workers' working hours, and the farming year's days, and by season the
+  fields' work, all jobs and idle (VB-356); `tools/hours.js`);
   `node tools/stocks.js [--json]` (each stored quantity's adders, takers and readers, and what happens at none; marks those read by nothing).
   `node tools/contact.js [--seed 7,11,13] [--years 40] [--json]` (VB-834): by village and year, distinct people its adults met at venues against the drift of its attitudes; read-only.
   `node tools/sim.js --report waiting [--json]` (VB-633, `tools/waiting.js`): who waits to marry and why, at the moving round's day, by 20
@@ -84,6 +85,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   village's host changed from the year before, and the share of village-years with no gathering.
   `node tools/sim.js --report ground [--reach 12,30] [--seeds 3,7,11] [--json]` (VB-735, `tools/ground.js`): by village, each rock (any tile, and a quarry tile) and deposit within the reach of its green, hidden ores found or not, the rock under the green, and a summary by kind (villages, and maps with several seeds), with the pairs copper and tin and any iron; at any year (`--years`, `--at`, `--load`).
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
+  `node tools/crops.js [--runs populous,founders,heirs] [--years N] [--seeds LIST] [--out FILE|--load FILE] [--json]` (VB-356, the crops'
+  wrap-up): the bands' full runs, one per core (about 20 minutes on 4 cores): rations by crop and source against need, fields, fallow and soil
+  by rotation, the share of farms by rotation over time, the crops each village holds and when one crosses, crops lost, the correlation of the
+  crops' yields and the hunger of one-crop against two-crop farms. Its bands are `crops-lost` and `mixed-farms` (`tests/lib/bands.js`).
   `node tools/sim.js --report accounts [--json]` (VB-403, `tools/accounts.js`; or `--load FILE`): a game year's accounts, village by village
   and in all: food produced by source, received, its outlets and the change in stores, closed to an `unexplained` line; people (births,
   deaths by cause, marriages and who waits, moves, households; growth, births a woman, deaths before 1 and 15, age at first marriage,
