@@ -106,6 +106,7 @@
     ],
     "agency": [
       "sim/pose",
+      "sim/legs",
       "sim/agents",
       "sim/away",
       "sim/gifts",
