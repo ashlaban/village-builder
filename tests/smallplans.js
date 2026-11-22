@@ -2,7 +2,7 @@
 // tar pit are begun and built beside a barn, in a booth as in a house, one of a making; each step is posted, each gets its own timber
 // trips, each job ends its own plan, a plan dropped leaves the others, and the head's view names them all. On a tiny world, through the rules.
 const VB = require('../src/load.js'), Projects = VB['sim/projects'], Plans = VB['sim/plans'], Bld = VB['sim/building'], X = VB['sim/expansion'];
-const C = VB['sim/carts'], { KINDS } = VB['sim/kinds'], { issue } = VB['sim/commands'], { cal } = VB['sim/rules'];
+const C = VB['sim/carts'], { lookNow } = VB['sim/aims'], { KINDS } = VB['sim/kinds'], { issue } = VB['sim/commands'], { cal } = VB['sim/rules'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SMALLPLANS FAIL:', m); } };
 const sound = (m) => { const bad = checkState(st); check(!bad.length, `${m}: invariants: ${bad.slice(0, 3).join('; ')}`); };
@@ -13,19 +13,19 @@ const f = st.farmsteads[v.farmsteads[0]], hh = st.households[f.household], shore
 const mine = () => Projects.projectsOf(st, 'household', hh.id);
 check(v.wood.length > 0, 'the village has a wood to fell timber in');
 
-// a barn under way (a large project), then a cart begun by its starter beside it, and a boat beside both
+// a barn under way (a large project), then a cart begun by the head's look beside it, and a boat beside both
 const barn = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'barn', steps: Bld.barnSteps(f.house) });
 barn.open = 1; // its walls, waiting for their timber
 hh.cartMiss = C.CART.misses;
-C.cartsYear(st);
+lookNow(st, 'cart', hh);
 const cart = mine().find((p) => p.what === 'cart');
 check(!!cart && cart.small === true && Projects.ownOf(st, hh.id) === barn, 'a barn under way: the cart is begun beside it, small, and the barn stays the large project');
 const boat = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'boat', small: true, water: 0, steps: [{ kind: 'boat', place: shore, hours: 20, wood: 0, timber: 6 }] });
 check(mine().length === 3 && !Projects.mayBegin(st, hh, 'cart') && !Projects.mayBegin(st, hh, 'boat') && Projects.mayBegin(st, hh, 'tarpit'),
   'three plans at once; no second cart nor boat, a pit still possible');
 hh.cartMiss = C.CART.misses;
-C.cartsYear(st);
-check(mine().filter((p) => p.what === 'cart').length === 1, 'the cart starter begins no second cart while one is built');
+lookNow(st, 'cart', hh);
+check(mine().filter((p) => p.what === 'cart').length === 1, 'the head\'s look begins no second cart while one is built');
 sound('barn, cart and boat');
 
 // each plan's timber: a site of its own, under a key of its own, its trips posted
@@ -71,7 +71,7 @@ const g = st.farmsteads[v.farmsteads[1]], gh = st.households[g.household];
 g.booth = true;
 const home = VB['sim/projectplans'].makeProject(st, 'household', gh.id, X.cottagePlan(g));
 gh.cartMiss = C.CART.misses;
-C.cartsYear(st);
+lookNow(st, 'cart', gh);
 const gcart = Projects.projectsOf(st, 'household', gh.id).find((p) => p.what === 'cart');
 check(!!gcart && Projects.projectsOf(st, 'household', gh.id).includes(home) && Projects.ownOf(st, gh.id) === null,
   'in a booth with its cottage under way: a cart begun beside it, and neither is a large project');
@@ -82,7 +82,7 @@ VB['sim/projectplans'].dropAll(st, 'household', gh.id);
 const hp = st.plans.households.get(gh.id);
 hp.chosen = { ...(hp.chosen || {}), project: 'none' };
 gh.cartMiss = C.CART.misses;
-C.cartsYear(st);
+lookNow(st, 'cart', gh);
 check(!Projects.projectsOf(st, 'household', gh.id).some((p) => p.what === 'cart'), 'a head holding off projects begins no cart');
 
 // the invariants say the limit: a second plan of a making, a small mark on a large plan, a cart not marked small

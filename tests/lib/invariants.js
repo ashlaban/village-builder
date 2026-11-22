@@ -203,6 +203,12 @@ function checkState(st) {
             : globalThis.VB['sim/aims'].KIND.includes(Ai.what) && Ai.since <= st.t && (Ai.shortSince === null || Ai.shortSince <= st.t) &&
               (st.plans.projects.household.get(id) || []).some((q) => q.id === Ai.project))))
           bad.push(`plans: household ${id}'s aim ${JSON.stringify(Ai)}`);
+        // VB-678: the head's yearly looks at the small constructions: absent, or the year of its last look at each making with a look,
+        // not after this year
+        const Wd = plan.weighed, M = globalThis.VB['sim/makings'];
+        if (Wd !== undefined && !(Wd && typeof Wd === 'object' && Object.entries(Wd).every(([k, y]) =>
+          M.makingOf(k) && M.makingOf(k).look && Number.isInteger(y) && y >= 0 && y <= globalThis.VB['sim/rules'].cal(st.t).year)))
+          bad.push(`plans: household ${id}'s looks ${JSON.stringify(Wd)}`);
         // VB-666: the supply outlook, absent before the first review, made not after now; each supply's values finite, from 0 to the
         // frame, its state a known word, its first short season within the frame (null when safe or not needed), its parts at least 0
         const O = plan.outlook, OL = globalThis.VB['sim/outlook'];

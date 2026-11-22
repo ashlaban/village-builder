@@ -116,7 +116,7 @@ function surplusState() {
   assert.ok(st.record.some((e) => typeof e === 'object' && e.kind === 'projectDone' && e.pawn === hh.holder && e.household === hh.id));
   assert.ok(plan.aim.project === null && plan.aim.again, 'the head looks again at its next review');
   assert.deepStrictEqual(checkState(st), [], 'invariants with a barn built');
-  assert.ok(issue(st, { actor: hh.holder, verb: 'barn', target: hh.id, args: {}, source: 'pawn' }) !== true, 'one barn a farm');
+  assert.ok(issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'barn' }, source: 'pawn' }) !== true, 'one barn a farm');
 }
 
 // dropped, with its reservations released, once the surplus has been gone a whole season
@@ -165,7 +165,7 @@ function surplusState() {
     assert.ok(o, "the heir's farm is open");
     {
       assert.ok(near(o.weight, (ranked >= 2 ? 2 : 1) * 1.5), `the heir's farm weighs ${o.weight}`);
-      assert.strictEqual(issue(st, { actor: hh.holder, verb: 'heirFarm', target: hh.id, args: { heir }, source: 'pawn' }), true);
+      assert.strictEqual(issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'heirFarm', heir }, source: 'pawn' }), true);
       const p = Projects.ownOf(st, hh.id);
       assert.ok(p && p.what === 'plot' && p.by === hh.id && p.intended === heir && p.village === f.village, 'a plot of the household');
       assert.ok(VB['sim/expansion'].livePlots(st, st.villages[f.village]).includes(p), "among the village's plots under way");
@@ -184,7 +184,7 @@ const X = VB['sim/expansion'], { killPawn } = VB['sim/lifecycle'];
 function heirPlot(pick = null) {
   const o = surplusState(), { st, hh } = o;
   const heir = pick ? pick(st, hh) : A.heirOf(st, hh)[0];
-  assert.strictEqual(issue(st, { actor: hh.holder, verb: 'heirFarm', target: hh.id, args: { heir }, source: 'pawn' }), true);
+  assert.strictEqual(issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'heirFarm', heir }, source: 'pawn' }), true);
   const p = Projects.ownOf(st, hh.id);
   o.plan.aim = { year: o.c.year, surplus: true, again: false, project: p.id, what: 'heir', since: st.t, shortSince: null }; // lint-allow: owner the head's project
   return { ...o, heir, p, v: st.villages[o.f.village] };
@@ -258,7 +258,7 @@ const roofOn = (st, hh, p) => {
 // a barn given up: the timber at its walls goes onto the farm's woodpile (one place: nothing carried, nothing lost)
 {
   const { st, hh } = surplusState();
-  assert.strictEqual(issue(st, { actor: hh.holder, verb: 'barn', target: hh.id, args: {}, source: 'pawn' }), true);
+  assert.strictEqual(issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'barn' }, source: 'pawn' }), true);
   const p = Projects.ownOf(st, hh.id);
   p.steps[1].wood = 21; // lint-allow: owner timber carried to the site
   const w0 = hh.wood;
@@ -268,7 +268,7 @@ const roofOn = (st, hh, p) => {
 // VB-1224: the head's project dropped by another rule (a stake lapsed) ends its aim at once, with no review between (a farm held in trust)
 {
   const { st, hh } = surplusState();
-  assert.strictEqual(issue(st, { actor: hh.holder, verb: 'barn', target: hh.id, args: {}, source: 'pawn' }), true);
+  assert.strictEqual(issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'barn' }, source: 'pawn' }), true);
   const p = Projects.ownOf(st, hh.id), plan = st.plans.households.get(hh.id);
   plan.aim = { year: 0, surplus: true, again: false, project: p.id, what: 'barn', since: st.t, shortSince: null }; // lint-allow: owner the head's project
   VB['sim/projectplans'].drop(st, p);

@@ -1,10 +1,10 @@
 // @sys sim/carts: the household's carts (the distance review, Kim, 12 Nov): hand carts and ox carts as items that carry a larger load home,
-// wear with each trip and are mended; the head counts the loads that found no cart free and has another built, as a project at the house
+// wear with each trip and are mended; the head counts the loads that found no cart free and begins another through the verb project (VB-678)
 // Design: design.md, Carts. A pawn taking a load from the field takes the household's best free cart: an ox cart if its team is free, else a
 // hand cart, else the load goes on the back (TRAVEL). Today only sheaves are carried by the load (sim/kinds, haul); hay, firewood and manure
-// are to follow. Reads sim/herds (the team), sim/projects; writes household.carts and household.cartMiss, and begins and ends the cart's project.
+// are to follow. Reads sim/herds (the team), sim/projects; writes household.carts and household.cartMiss, and declares the cart's making and ends its project.
 VB['sim/carts'] = (() => {
-  const { TRAVEL } = VB['sim/rules'],
+  const { TRAVEL, SEASON_DAYS } = VB['sim/rules'],
     { hayLoad, hayLaid } = VB['sim/meadows'];
   // The tunables (the distance review, Kim, 12 Nov): a load is `load` rations on the back, `hand` on a hand cart and `cart` on an ox
   // cart (it was 90 with two oxen: Kim, 10 Nov; a back load is 25 to 30 kg, a hand cart's 100 to 150 kg on a track, an ox cart's 500 to
@@ -27,13 +27,13 @@ VB['sim/carts'] = (() => {
     reload: 1.5,
   };
   const { hasTeam } = VB['sim/herds'],
-    Projects = VB['sim/projects'],
-    { emit } = VB['sim/events'];
+    Projects = VB['sim/projects'];
+  const { declare } = VB['sim/makings'];
   const { log, atFarm } = VB['sim/records'];
   // @state household.carts[]: {kind ('hand' | 'ox'), cond (1 new; mended below CART.mendAt; gone at 0), built (game hour), by (the pawn
   //   that has it out with a load, or null)}: the household's carts, in the order they were made. Written only here.
-  // @state household.cartMiss: loads taken on the back this year because no cart was free while more waited (the head's count); 0 at each
-  //   winter's start. Written only here.
+  // @state household.cartMiss: loads taken on the back because no cart was free while more waited, since the head's last yearly look at a
+  //   cart or the last cart begun (the head's count; VB-678). Written only here.
   // A cart is out while the pawn named in `by` is at the job it took it for: carrying a load home, cutting a further load of firewood
   // beside it, or carting dung; a `by` left by a pawn that died or dropped the job is free again.
   // @state household.carts[].at: absent, or {tile, x, y, t}: a cart left standing where its carrier was released on the road with a load
@@ -137,38 +137,44 @@ VB['sim/carts'] = (() => {
   function missed(st, hh) {
     hh.cartMiss++;
   }
-  // At the winter's start the head counts the year's misses: at CART.misses or more, with no cart being built and no hold on projects, the
-  // household builds another cart, a small construction beside any other project and in a booth as in a house (sim/projects' mayBegin;
-  // VB-1414): an ox cart if it keeps a team and has none, else a hand cart. The count starts again.
-  // What the cart's finisher asks less than the others (VB-1408, kept as it was): the finished step's tile is not compared.
-  const END = { place: false };
-  function cartsYear(st, frost = false) {
-    if (frost) {
-      for (const hh of st.households) for (const c of hh.carts.filter((q) => q.at)) lost(st, hh, c);
-      return;
-    }
-    for (const v of st.villages)
-      for (const fid of v.farmsteads) {
-        const f = st.farmsteads[fid],
-          hh = f.household === null ? null : st.households[f.household];
-        if (!hh || hh.dissolved) continue;
+  // A cart left standing that nobody fetched is lost at the autumn frost (VB-649).
+  function cartsFrost(st) {
+    for (const hh of st.households) for (const c of hh.carts.filter((q) => q.at)) lost(st, hh, c);
+  }
+  // The cart, a making the head begins through the verb project (VB-678; sim/projects' declare): possible with no cart under way and a
+  // village wood to fell its timber in; args.kind 'hand' or 'ox', else an ox cart if the household keeps a team and has none, else a hand
+  // cart. The head weighs it once a year from the winter's start, counting the loads taken on the back since its last look with no cart
+  // free and more waiting, and wants one at CART.misses or more; the count starts again then, and when a cart is begun. A small
+  // construction, beside any other project and in a booth as in a house (VB-1414).
+  const kindOf = (st, hh, args) =>
+    (args && args.kind) || (hasTeam(st, hh) && !hh.carts.some((c) => c.kind === 'ox') ? 'ox' : 'hand');
+  declare('cart', {
+    small: true,
+    why: (st, hh, f, args) => {
+      const v = st.villages[f.village];
+      if (args && args.kind !== undefined && !Object.hasOwn(CART.hours, args.kind))
+        return `there is no cart ${args.kind}`;
+      if (Projects.underWay(st, hh.id, 'cart')) return `household ${hh.id} has a cart under way`;
+      return v.wood.length ? null : `${v.name} has no wood to fell its timber in`;
+    },
+    begin: (st, hh, f, args) => {
+      const kind = kindOf(st, hh, args);
+      hh.cartMiss = 0;
+      return {
+        cart: kind,
+        steps: [{ kind: 'cart', place: f.house, hours: CART.hours[kind], wood: 0, timber: CART.timber[kind] }],
+      };
+    },
+    look: {
+      from: 3 * SEASON_DAYS,
+      want: (st, hh) => {
         const n = hh.cartMiss;
         hh.cartMiss = 0;
-        if (n < CART.misses || !v.wood.length || !Projects.mayBegin(st, hh, 'cart')) continue;
-        const kind = hasTeam(st, hh) && !hh.carts.some((c) => c.kind === 'ox') ? 'ox' : 'hand';
-        emit(st, 'projectBegun', {
-          type: 'household',
-          id: hh.id,
-          project: {
-            what: 'cart',
-            small: true,
-            cart: kind,
-            steps: [{ kind: 'cart', place: f.house, hours: CART.hours[kind], wood: 0, timber: CART.timber[kind] }],
-          },
-        });
-      }
-  }
-  // The cart built: the household's (the step's tile is not compared, END: a cart is built at the house it was begun at).
+        return n >= CART.misses ? {} : null;
+      },
+    },
+  });
+  // The cart built: the household's.
   function cartBuilt(st, j, hh, plan) {
     const f = st.farmsteads[hh.farmstead];
     hh.carts.push({ kind: plan.cart, cond: 1, built: st.t, by: null });
@@ -226,7 +232,7 @@ VB['sim/carts'] = (() => {
       type: 'wood',
       project: true,
       spot: atHouse,
-      done: (st, j, hh) => Projects.stepEnds(st, j, hh, cartBuilt, END),
+      done: (st, j, hh) => Projects.stepEnds(st, j, hh, cartBuilt),
     },
     mendcart: {
       verb: 'Mending the cart',
@@ -266,7 +272,7 @@ VB['sim/carts'] = (() => {
     oxOut,
     out,
     cartOf,
-    cartsYear,
+    cartsFrost,
     seedCarts,
   };
 })();

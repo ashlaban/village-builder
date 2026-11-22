@@ -54,6 +54,7 @@
     "pawn.called": "sim/occasions",
     "plan.head": "sim/seasonal",
     "plan.aim": "sim/aims",
+    "plan.weighed": "sim/aims",
     "plan.outlook": "sim/outlook",
     "farmstead.barn": "sim/building",
     "household.workHours": "sim/work",

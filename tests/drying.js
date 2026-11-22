@@ -10,7 +10,7 @@
 const VB = require('../src/load.js'), Sim = VB.sim, { island, scenario } = require('./lib/probe.js'), Stores = VB['sim/stores'], D = VB['sim/drying'], Projects = VB['sim/projects'];
 const boatOf = (s, id) => Projects.projectsOf(s, 'household', id).find((p) => p.what === 'boat') || null; // a small construction (VB-1414): not ownOf's
 const { KINDS } = VB['sim/kinds'], { FISH, DAY, YEAR_DAYS } = VB['sim/rules'], { ROLES } = VB['sim/roles'], { dailyNeed, feedHousehold } = VB['sim/hunger'], { larderOf } = VB['sim/larder'];
-const { boatYear } = D, { checkState } = require('./lib/invariants.js');
+const boatYear = (st) => VB['sim/aims'].lookNow(st, 'boat'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DRYING FAIL:', m); } };
 const cal = (season, sday, hour = 8) => ({ season, sday, doy: season * 12 + sday, day: season * 12 + sday, hour });
 const near = (a, b) => Math.abs(a - b) < 1e-6;

@@ -350,7 +350,8 @@ function projectHTML(hh, V, mine) {
         'Begin a new hay meadow now, on the tile named or the head’s pick',
         true,
         'wide',
-      );
+      ) +
+      planBtn({ plan: 'project', what: 'barn' }, 'Build a barn', 'Begin a barn at the house now', true, 'wide');
   const hold = V.heldOff
     ? planBtn(
         { plan: 'project', what: 'null' },
@@ -360,7 +361,25 @@ function projectHTML(hh, V, mine) {
         'wide',
       )
     : planBtn({ plan: 'project', what: 'none' }, 'Hold off', 'Begin no project by the rule until told', true, 'wide');
-  return `<div class="plan-row" data-project>${h}${fly}<span class="plan-ctl menu">${menu}${hold}</span></div>${smallHTML(V, mine)}`;
+  return `<div class="plan-row" data-project>${h}${fly}<span class="plan-ctl menu">${menu}${hold}</span></div>${smallHTML(V, mine)}${makeHTML(V)}`;
+}
+// The small constructions the played head may begin beside any project (VB-678: through the verb project, under the same check as every
+// head's; a refusal says why): those of a making not under way.
+const SMALL_VERB = { cart: 'Build a cart', boat: 'Build a fishing boat', tarpit: 'Dig a tar pit' };
+function makeHTML(V) {
+  const btns = Object.keys(SMALL_VERB)
+    .filter((what) => !(V.small || []).some((q) => q.what === what))
+    .map((what) =>
+      planBtn(
+        { plan: 'project', what },
+        SMALL_VERB[what],
+        `Begin a ${SMALL_NAME[what]} now, beside any project`,
+        true,
+        'wide',
+      ),
+    )
+    .join('');
+  return btns ? `<div class="plan-row" data-make><span class="plan-ctl menu">${btns}</span></div>` : '';
 }
 // The small constructions under way beside the project (a cart, a boat, a tar pit: VB-1414), a row each; the head may give each up.
 const SMALL_NAME = { cart: 'cart', boat: 'fishing boat', tarpit: 'tar pit' };

@@ -13,8 +13,8 @@ VB['sim/drying'] = (() => {
   const { isWater, lakeSizes, ground, landCatch } = VB['sim/fish'];
   const { age, log, atFarm } = VB['sim/records'];
   const Stores = VB['sim/stores'],
-    Projects = VB['sim/projects'],
-    { emit } = VB['sim/events'];
+    Projects = VB['sim/projects'];
+  const { declare } = VB['sim/makings'];
   const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
     { larderOf } = VB['sim/larder'];
   const Pot = VB['sim/pot'],
@@ -127,12 +127,10 @@ VB['sim/drying'] = (() => {
     const free = hands(st, hh) - Math.ceil(f.fields.length / FIELDS.perHand);
     return free >= BOAT.hands && Stores.grainOf(hh) - floorOf(st, hh) >= dailyNeed(st, hh) * YEAR_DAYS;
   }
-  // At the start of the drying season: a boat untarred BOAT.lostYears is lost (VB-301); then each household of a village by fishing water,
-  // with no boat for its house, no project plan (nor a head holding off projects, VB-253), grain and hands to spare (boatable) and a
-  // village wood to fell in, begins a boat if a shore by the sea
-  // or a large lake is in its reach.
-  function boatYear(st) {
-    for (const v of st.villages) {
+  // At the start of the drying season a boat untarred BOAT.lostYears is lost (VB-301): the yearly round takes it away and tells it. No boat
+  // is begun here (VB-678): the head weighs one at its look (the making below).
+  function boatsRot(st) {
+    for (const v of st.villages)
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id],
           hh = f.household === null ? null : st.households[f.household];
@@ -145,28 +143,40 @@ VB['sim/drying'] = (() => {
           });
         }
       }
-      if (!v.wood.length || !villageFishes(st, v)) continue;
-      for (const id of v.farmsteads) {
-        const f = st.farmsteads[id],
-          hh = f.household === null ? null : st.households[f.household];
-        VB.count.boatAsk++;
-        if (!Projects.mayBegin(st, hh, 'boat') || (hh.boat && hh.boat.house === f.house)) continue;
-        if (!boatable(st, hh, f)) continue;
-        const s = boatShore(st, f.house);
-        if (s)
-          emit(st, 'projectBegun', {
-            type: 'household',
-            id: hh.id,
-            project: {
-              what: 'boat',
-              small: true, // a small construction, beside any other project (VB-1414)
-              water: s.water,
-              steps: [{ kind: 'boat', place: s.shore, hours: BOAT.hours, wood: 0, timber: BOAT.timber }],
-            },
-          });
-      }
-    }
   }
+  // The household has a boat for its house still to be saved.
+  const hasBoat = (st, hh, f) => !!hh.boat && hh.boat.house === f.house && !boatGone(st, hh.boat);
+  // The boat, a making the head begins through the verb project (VB-678; sim/projects' declare): possible with no boat for the house nor
+  // one under way, a village wood to fell its timber in, fishing water in the village's reach and a shore by the sea or a large lake in
+  // the house's; the head weighs it once a year from the start of the drying season, when the fishing is ahead, and wants it with grain
+  // and hands to spare (boatable). A small construction, beside any other project (VB-1414).
+  declare('boat', {
+    small: true,
+    why: (st, hh, f) => {
+      const v = st.villages[f.village];
+      if (hasBoat(st, hh, f)) return `${f.name} has a fishing boat`;
+      if (Projects.underWay(st, hh.id, 'boat')) return `household ${hh.id} has a boat under way`;
+      if (!v.wood.length) return `${v.name} has no wood to fell its timber in`;
+      if (!villageFishes(st, v) || !boatShore(st, f.house))
+        return `${f.name} has no shore by the sea or a large lake in reach`;
+      return null;
+    },
+    begin: (st, hh, f) => {
+      const s = boatShore(st, f.house);
+      return {
+        water: s.water,
+        steps: [{ kind: 'boat', place: s.shore, hours: BOAT.hours, wood: 0, timber: BOAT.timber }],
+      };
+    },
+    look: {
+      from: FISH.from,
+      want: (st, hh, f) => {
+        VB.count.boatAsk++;
+        const v = st.villages[f.village];
+        return !hasBoat(st, hh, f) && v.wood.length && villageFishes(st, v) && boatable(st, hh, f) ? {} : null;
+      },
+    },
+  });
   // The boat built: the household's, at the plan's shore; the plan is finished (sim/plans).
   function boatBuilt(st, j, hh, plan, s) {
     const f = st.farmsteads[hh.farmstead];
@@ -316,7 +326,7 @@ VB['sim/drying'] = (() => {
     wanted,
     drying,
     boatShore,
-    boatYear,
+    boatsRot,
     untarred,
     boatDue,
     boatTarred,

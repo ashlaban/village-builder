@@ -50,9 +50,8 @@ VB['sim/clock'] = (() => {
   const { riteDay, callRites } = VB['sim/venues'];
   const { takeIn } = VB['sim/service'];
   const { trustOf } = VB['sim/ownership'];
-  const { boatYear } = VB['sim/drying'],
-    { tarYear } = VB['sim/tar'],
-    { cartsYear } = VB['sim/carts'],
+  const { boatsRot } = VB['sim/drying'],
+    { cartsFrost } = VB['sim/carts'],
     { KINDS } = VB['sim/kinds'];
 
   // ---- the calendar (VB-241) ----
@@ -316,7 +315,7 @@ VB['sim/clock'] = (() => {
       when: frosty,
       owner: 'sim/carts',
       note: 'a cart left standing that nobody fetched is lost with the loads lying (VB-649)',
-      run: (st) => cartsYear(st, true),
+      run: (st) => cartsFrost(st),
     },
     {
       every: 'day',
@@ -328,22 +327,8 @@ VB['sim/clock'] = (() => {
       every: 'year',
       at: { season: 0, sday: FISH.from },
       owner: 'sim/drying',
-      note: 'the ice is gone: households by the sea begin a boat (VB-300)',
-      run: (st) => boatYear(st),
-    },
-    {
-      every: 'year',
-      at: { season: 1, sday: 0 },
-      owner: 'sim/tar',
-      note: 'summer: a village with pine and no tar pit has one dug (VB-301)',
-      run: (st) => tarYear(st),
-    },
-    {
-      every: 'year',
-      at: { season: 3, sday: 0 },
-      owner: 'sim/carts',
-      note: 'the winter begins: a head short of carts in the year has one built',
-      run: (st) => cartsYear(st),
+      note: 'the ice is gone: a boat untarred too long has rotted (VB-301); heads weigh a boat at their look (VB-678)',
+      run: (st) => boatsRot(st),
     },
     {
       every: 'year',

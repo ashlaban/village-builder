@@ -2,14 +2,16 @@
 // year, at its first review after the autumn count, a head whose plan's targets are met, whose store holds food beyond the year's need
 // and the seed and whose hands stood idle over a third of the last season has a surplus, and takes one project from a menu weighed by its
 // values: a field beyond those it needs, a claim on land (a new hay meadow), a farm for its heir, a barn; dropped when the surplus is gone
-// a whole season
+// a whole season. And once a year the head weighs each small construction (a boat, a cart, a tar pit) by its making's own test (VB-678);
+// all of them begun through the verb project, which the played head has as any head
 VB['sim/aims'] = (() => {
   const { barnSteps } = VB['sim/building'];
   const { emit } = VB['sim/events'];
-  const { HERD, DAY, SEASON_DAYS, YEAR_DAYS, WORK, MARRIAGE } = VB['sim/rules'];
+  const { HERD, DAY, SEASON_DAYS, YEAR_DAYS, WORK, MARRIAGE, cal } = VB['sim/rules'];
   const { next: rnd } = VB['sim/rng'];
   const Traits = VB['sim/traits'];
   const Projects = VB['sim/projects'];
+  const { declare, looks, makingOf } = VB['sim/makings'];
   const Stores = VB['sim/stores'];
   const { on } = VB['sim/events'];
   const { log, personEvent, fullName, atHousehold, isHolder } = VB['sim/records'];
@@ -171,24 +173,19 @@ VB['sim/aims'] = (() => {
     for (const o of options) if ((u -= o.weight) < 0) return o;
     return options[options.length - 1];
   }
-  // The option begun by the head through its verb (the player's verbs as the head's rule's: source 'pawn'): true when a project began.
+  // The option begun by the head through the verb project (the player's verb as the head's rule's: source 'pawn'; VB-678): true when a
+  // project began.
+  const ARGS = {
+    field: (o) => ({ what: 'field', tile: o.tile }),
+    claim: (o) => ({ what: 'meadow', tile: o.tile }),
+    heir: (o) => ({ what: 'heirFarm', heir: o.heir }),
+    barn: () => ({ what: 'barn' }),
+  };
   function begin(st, hh, o) {
-    const actor = hh.holder,
-      target = hh.id;
-    if (o.what === 'field' || o.what === 'claim')
-      return (
-        issue(st, {
-          actor,
-          verb: 'project',
-          target,
-          args: { what: o.what === 'field' ? 'field' : 'meadow', tile: o.tile },
-          source: 'pawn',
-        }) === true
-      );
-    if (o.what === 'heir')
-      return issue(st, { actor, verb: 'heirFarm', target, args: { heir: o.heir }, source: 'pawn' }) === true;
     if (o.what === 'trial') return true; // no plan: carried out at its window (tryCrop)
-    return issue(st, { actor, verb: 'barn', target, args: {}, source: 'pawn' }) === true;
+    return (
+      issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: ARGS[o.what](o), source: 'pawn' }) === true
+    );
   }
   const TAKEN = {
     field: () => 'break a new field',
@@ -238,6 +235,7 @@ VB['sim/aims'] = (() => {
     const hh = st.households[plan.holder.id],
       f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id || hh.holder === null || hh.holder === undefined) return;
+    weigh(st, plan, hh, f, c);
     const A = plan.aim;
     if (A && A.trial) {
       if (tryCrop(st, hh, f, A, c)) {
@@ -287,6 +285,50 @@ VB['sim/aims'] = (() => {
     tell(st, hh, 'projectTaken', `${fullName(st.pawns[hh.holder])} of ${f.name} sets out to ${TAKEN[o.what](st, p)}.`);
   }
   on('planReviewed', (st, d) => reviewed(st, d.plan, d.c));
+  // @state plan.weighed (VB-678): absent until the head's first yearly look at a making, then {[what]: the year of cal of its last look},
+  //   for the makings with a look (sim/makings: a boat, a cart, a tar pit). Written only here.
+  // The head's yearly look at the small constructions (VB-678; no project by the calendar): at its first review on or after each making's
+  // `from` in a year, a head that does not hold off projects and may begin one (none under way) asks the making's own `want`, and begins
+  // it through the verb project with the args it gives. Each a review: a comparison of the day a making.
+  function weigh(st, plan, hh, f, c) {
+    if (Projects.heldOff(st, hh.id)) return;
+    for (const M of looks()) {
+      if (c.doy < M.look.from || (plan.weighed && plan.weighed[M.what] === c.year)) continue;
+      (plan.weighed || (plan.weighed = {}))[M.what] = c.year;
+      lookAt(st, hh, f, M, c);
+    }
+  }
+  // The head's look at the making M now: when it may begin one, the making's want, and the verb with the args it gives; true when begun.
+  function lookAt(st, hh, f, M, c) {
+    if (!Projects.mayBegin(st, hh, M.what)) return false;
+    const args = M.look.want(st, hh, f, c);
+    if (!args) return false;
+    return (
+      issue(st, {
+        actor: hh.holder,
+        verb: 'project',
+        target: hh.id,
+        args: { ...args, what: M.what },
+        source: 'pawn',
+      }) === true
+    );
+  }
+  // The look at making `what` of household hh's head now, out of its yearly turn, or with hh omitted of every head holding its farm, in
+  // the order of the villages' farms (the tests' starter): the households that began one.
+  function lookNow(st, what, hh) {
+    const M = makingOf(what),
+      c = cal(st.t),
+      out = [];
+    for (const v of hh ? [null] : st.villages)
+      for (const id of hh ? [hh.farmstead] : v.farmsteads) {
+        const f = st.farmsteads[id],
+          h = hh || (f.household === null ? null : st.households[f.household]);
+        if (h && !h.dissolved && h.holder !== null && h.holder !== undefined && f.household === h.id)
+          if (lookAt(st, h, f, M, c)) out.push(h);
+      }
+    return out;
+  }
+
   // A step of a household's project done (after sim/plans has advanced it): the head's project finished is told, and the head looks
   // again at its next review.
   on('stepDone', (st, d) => {
@@ -342,28 +384,20 @@ VB['sim/aims'] = (() => {
     if (q) return `household ${hh.id} has a ${q.what} under way`;
     return null; // the site is found as the plot is begun (sim/expansion's startPlot), and none begins where there is no room
   }
-  // barn(): begin a barn on the household's farm, a project at the house (VB-255; sim/building's barnSteps; its checks sim/aims' barnWhy)
-  register('barn', {
-    check: (st, c) => Plans.heads(st, c) || barnWhy(st, st.households[c.target]),
-    run: (st, c) => {
-      const f = st.farmsteads[st.households[c.target].farmstead];
-      ProjectPlans.makeProject(st, 'household', c.target, {
-        what: 'barn',
-        steps: barnSteps(f.house),
-      });
-    },
+  // The barn (VB-255), a making begun through the verb project (VB-678; sim/projects' declare): a project at the house (sim/building's
+  // barnSteps), under barnWhy; a large project, offered by the menu.
+  declare('barn', {
+    why: (st, hh) => barnWhy(st, hh),
+    begin: (st, hh, f) => ({ steps: barnSteps(f.house) }),
   });
-  // heirFarm({heir}): begin clearing a plot and building its cottage for pawn `heir`, an adult of the household with no farm, as the
-  // household's project (VB-255; sim/expansion's plot, held by the household; its checks sim/aims' heirWhy)
-  register('heirFarm', {
-    check: (st, c) => Plans.heads(st, c) || heirWhy(st, st.households[c.target], c.args && c.args.heir),
-    run: (st, c) => {
-      const hh = st.households[c.target];
-      emit(st, 'heirFarm', {
-        village: st.farmsteads[hh.farmstead].village,
-        heir: c.args.heir,
-        by: hh.id,
-      });
+  // The farm for the heir (VB-255), a making begun through the verb project with args.heir (VB-678): clearing a plot and building its
+  // cottage for pawn `heir`, an adult of the household with no farm, as the household's project (sim/expansion's plot, held by the
+  // household, which it begins on the event heirFarm), under heirWhy; a large project, offered by the menu.
+  declare('heirFarm', {
+    why: (st, hh, f, args) => heirWhy(st, hh, args && args.heir),
+    begin: (st, hh, f, args) => {
+      emit(st, 'heirFarm', { village: f.village, heir: args.heir, by: hh.id });
+      return null;
     },
   });
   // plotToVillage({plan, why}): household target's plot for its heir (project plan `plan`) passes to its village, its tiles and work with
@@ -383,5 +417,5 @@ VB['sim/aims'] = (() => {
     run: (st, c) =>
       emit(st, 'plotToVillage', { household: c.target, plan: c.args.plan, why: c.args.why || 'given up' }),
   });
-  return { AIMS, KIND, idleShare, surplusOf, menu, choose, heirOf, barnWhy, heirWhy };
+  return { AIMS, KIND, lookNow, idleShare, surplusOf, menu, choose, heirOf, barnWhy, heirWhy };
 })();

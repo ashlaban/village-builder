@@ -11,8 +11,8 @@ VB['sim/tar'] = (() => {
   const { B } = VB['gen'];
   const Rules = VB['sim/registry'];
   const Stores = VB['sim/stores'],
-    Projects = VB['sim/projects'],
-    { emit } = VB['sim/events'];
+    Projects = VB['sim/projects'];
+  const { declare } = VB['sim/makings'];
   const { log, atFarm } = VB['sim/records'];
   const { fellTree } = VB['sim/forest'];
   const Drying = VB['sim/drying'],
@@ -67,34 +67,48 @@ VB['sim/tar'] = (() => {
     }
     return null;
   }
-  // At the start of summer: in each village with pine in its wood and no pit, the household with the most working hands (at least
-  // TAR.hands; the first farm among equals) whose head does not hold off projects (VB-253) begins one on the wood's first pine tile: a small
-  // construction, beside any other project and in a booth as in a house (sim/projects' mayBegin; VB-1414).
-  function tarYear(st) {
-    for (const v of st.villages) {
-      if (!v.wood || !v.wood.length || villagePit(st, v)) continue;
-      const t = pineTile(st, v);
-      if (t < 0) continue;
-      let best = null,
-        most = TAR.hands - 1;
-      for (const id of v.farmsteads) {
-        const f = st.farmsteads[id],
-          hh = f.household === null ? null : st.households[f.household];
-        if (!Projects.mayBegin(st, hh, 'tarpit')) continue;
-        const n = Targets.hands(st, hh);
-        if (n > most) {
-          most = n;
-          best = hh;
-        }
+  // The household of village v with the most working hands (at least TAR.hands; the first farm among equals) among those with a head
+  // that may begin a pit (sim/projects' mayBegin: no hold on projects, none under way), or null.
+  function mostHands(st, v) {
+    let best = null,
+      most = TAR.hands - 1;
+    for (const id of v.farmsteads) {
+      const f = st.farmsteads[id],
+        hh = f.household === null ? null : st.households[f.household];
+      VB.count.tarAsk++;
+      if (!hh || hh.holder === null || hh.holder === undefined || !Projects.mayBegin(st, hh, 'tarpit')) continue;
+      const n = Targets.hands(st, hh);
+      if (n > most) {
+        most = n;
+        best = hh;
       }
-      if (best)
-        emit(st, 'projectBegun', {
-          type: 'household',
-          id: best.id,
-          project: { what: 'tarpit', small: true, steps: [{ kind: 'tarpit', place: t, hours: TAR.pitHours, wood: 0 }] },
-        });
     }
+    return best;
   }
+  // The tar pit, a making the head begins through the verb project (VB-678; sim/projects' declare): possible in a village with pine in its
+  // wood and no pit, nor one being dug, on the wood's first pine tile. The head weighs it once a year from the start of summer, the
+  // burning ahead, and wants it when its household has the most working hands of the village's (mostHands; which household of a village's
+  // is the alderman's to choose, VB-673). A small construction, beside any other project and in a booth as in a house (VB-1414).
+  declare('tarpit', {
+    small: true,
+    why: (st, hh, f) => {
+      const v = st.villages[f.village];
+      if (!v.wood || !v.wood.length || pineTile(st, v) < 0) return `${v.name} has no pine in its wood`;
+      return villagePit(st, v) ? `${v.name} has a tar pit, or one being dug` : null;
+    },
+    begin: (st, hh, f) => ({
+      steps: [{ kind: 'tarpit', place: pineTile(st, st.villages[f.village]), hours: TAR.pitHours, wood: 0 }],
+    }),
+    look: {
+      from: SUMMER * SEASON_DAYS,
+      want: (st, hh, f) => {
+        const v = st.villages[f.village];
+        return v.wood && v.wood.length && !villagePit(st, v) && pineTile(st, v) >= 0 && mostHands(st, v) === hh
+          ? {}
+          : null;
+      },
+    },
+  });
   // The pit dug: the household's; the plan is finished (sim/plans).
   function pitDug(st, j, hh, plan, s) {
     const f = st.farmsteads[hh.farmstead];
@@ -247,5 +261,18 @@ VB['sim/tar'] = (() => {
       },
     },
   };
-  return { TAR, KINDS, pineTile, villageTar, pitOf, villagePit, tarYear, dueCount, houseDue, burnt, tarHouse, tarBoat };
+  return {
+    TAR,
+    KINDS,
+    pineTile,
+    villageTar,
+    pitOf,
+    villagePit,
+    mostHands,
+    dueCount,
+    houseDue,
+    burnt,
+    tarHouse,
+    tarBoat,
+  };
 })();

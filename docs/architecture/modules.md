@@ -64,7 +64,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   the household's stock and the time to harvest.
 - Fresh food and the pot (VB-119): `src/sim/pot.js` owns `household.fresh` (fish and gathered food in batches by day, lost past their shelf life when the store is next touched) and cooks the pot (fresh food, dried fish in winter, grain, and the seed a short household would eat, VB-388; a pot of several sources goes further), moving food through `sim/stores`; `sim/drying` lays the catch for the pot beyond what is eaten before it spoils by the rack (VB-388).
 - The hand quern (VB-009): `src/sim/quern.js` owns `household.quern` (`{rock, made}`, worn out `QUERN.years` after `made`, read in closed form), grinds grain to `household.flour` (a store of `sim/stores`) and hews a new quern from a load of the heap (`grind`, `hewQuern`); the pot cooks flour 1:1 and grain unground at `ECON.unground`; the quern is a good of the fair (worth 25).
-- Tar (VB-301): `src/sim/tar.js` owns `household.tarPit` (`{tile, village, built}`, a pit dug as a household project plan on the first pine tile of the village's wood, one a village) and `farmstead.tarredUntil`; the reach test is pine standing in the village's wood (`pineTile`); burning (`burntar`, early summer, 12 hours, one pine tree felled) puts a barrel into `household.tar` (a store of `sim/stores`), and `tarhouse` and `tarboat` spend one on the house or the boat (`sim/drying` keeps `household.boat.tarred`: leaky after `BOAT.tarYears`, lost after `BOAT.lostYears`); tar's term of the rule `need`.
+- Tar (VB-301): `src/sim/tar.js` owns `household.tarPit` (`{tile, village, built}`, a pit dug as a household project plan on the first pine tile of the village's wood, one a village, the making `tarpit` a head of the village's most hands begins at its yearly look from summer, VB-678) and `farmstead.tarredUntil`; the reach test is pine standing in the village's wood (`pineTile`); burning (`burntar`, early summer, 12 hours, one pine tree felled) puts a barrel into `household.tar` (a store of `sim/stores`), and `tarhouse` and `tarboat` spend one on the house or the boat (`sim/drying` keeps `household.boat.tarred`: leaky after `BOAT.tarYears`, lost after `BOAT.lostYears`); tar's term of the rule `need`.
   Meals are cooked by `cook` from a food of `FOODS` (`src/sim/rules.js`), by its worth in rations (VB-259).
   Call operations with a good and a reason; signed ledger entries distinguish goods and pawn stakes.
 - Obligations (VB-310): `src/sim/obligations.js` owns every explicit claim, `st.obligations` (by id: kind, debtor and creditor as party
@@ -261,8 +261,8 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Commands (VB-167 to VB-171; VB-228): `src/sim/commands.js` is the dispatcher alone (`register`, `issue`, the table `VERBS`) and imports no
   domain. Each module registers, at load, the verbs of the acts it carries out: `sim/agents` (`work`, `walkTo`, `goHome`, `idle`,
   `haltForTalk`), `sim/away` (`lodge`, `comeHome`, `raiseBooth`), `sim/gifts` (`give`, `deliver`), `sim/occasions` (`attend`, `call`), `sim/venues` (`callAle`),
-  `sim/offers` (`offer`, `answer`), `sim/visits` (`visit`), `sim/plans` (the head's plan), `sim/routines` (`routines`), `sim/aims` (`barn`, `heirFarm`,
-  `plotToVillage`), `sim/society` (`decide`, `argue`, `dropCause`, `rally`), `sim/gathering`, `sim/trust` (`goBack`, `goToKin`),
+  `sim/offers` (`offer`, `answer`), `sim/visits` (`visit`), `sim/plans` (the head's plan), `sim/routines` (`routines`), `sim/aims`
+  (`plotToVillage`), `sim/society` (`decide`, `argue`, `dropCause`, `rally`), `sim/gathering`, `sim/trust` (`goBack`, `goToKin`),
   `sim/marriage` (`marry`), `sim/heirs` (`handOn`, `move`), `sim/farmclaims` (`claim`), `sim/settle` (`leave`), `sim/membership`
   (`foundHousehold`), `sim/cottage` (`finishCottage`), `sim/lifecycle` (debug `kill`, `retire`), `sim/clock` (`skip`). A verb's home is
   the module of its act, and where its body calls several, the highest in load order, so that it imports downward. The guards the
@@ -296,9 +296,14 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   year after the autumn count, and after a project of the head's ends, it reads the surplus (the plan's targets met, food over 1.5 years
   of need and the seed, the hands idle over a third of the last season by `household.workHours`, which `sim/work` counts as work is
   reckoned), computes the menu (a field, a claim as a new meadow, a farm for the heir, a barn) and draws one from the stream `plans` by the
-  head's lean (`Traits.of`: ambition, generosity); it acts through the verbs `project`, `barn` and `heirFarm` (`sim/commands`; `heirFarm`
-  tells `sim/expansion` by the event `heirFarm`, which begins a plot held by the household, `plot.by`). It keeps `plan.aim` and drops its
-  project when the food has stood under the measure a season. The barn's stages are `sim/building`'s kinds, which set `farmstead.barn`;
+  head's lean (`Traits.of`: ambition, generosity); it acts through the verb `project` (`sim/plans`), whose whats beyond a field and a
+  meadow are the makings of `src/sim/makings.js` (VB-678: a registry, each making declared at load by the module that carries it out,
+  with its one check `why` and its plan `begin`: the barn and the farm for the heir here, which tells `sim/expansion` by the event
+  `heirFarm` to begin a plot held by the household, `plot.by`; the boat by `sim/drying`, the cart by `sim/carts`, the tar pit by
+  `sim/tar`). Those three have a `look`: once a year, at its first review on or after the making's `from` (the drying season, summer,
+  winter), a head not holding off projects asks the making's `want` (grain and hands to spare; loads carried on the back; the most hands
+  of a pine village) and begins it through the verb; `plan.weighed` keeps the year of each look. No project is begun by the calendar.
+  It keeps `plan.aim` and drops its project when the food has stood under the measure a season. The barn's stages are `sim/building`'s kinds, which set `farmstead.barn`;
   `sim/hunger` and `sim/byre` halve the spoilage on a farm with one (`BUILD.barn.loss`). `tests/aims.js`.
   The player (VB-169) is one more source: `st.player` holds the inhabited pawn and its queue, written by `Sim.inhabit`, `uninhabit`, `queue`,
   `unqueue` and `setAuto`; `playerStep` issues the queue's head each step, and the planner's sites ask `commanded` and `unplanned` before they
@@ -336,7 +341,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   head's skill and bias, VB-254), `sim/skills` (VB-475: a pawn's skill at each type of work, the stand-in until VB-360, from the stream
   `traits`, and a work leg's pace: skill and a mishap from the stream `mishap`; `sim/agents` writes `agent.pace` at the leg's start and
   `manning` reads it), `sim/commands`.
-- Material and land: `sim/projects` (the project plans' record and reads, VB-123), `sim/projectplans` (their one writer; VB-431), `sim/goods` (trade goods, grain subtype identifiers and culture’s worth and propriety rules), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/seasonal` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fieldplans` (household demand, site selection and project planning), `sim/rotations` (crop choices and the village custom), `sim/fields` (field state transitions), `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
+- Material and land: `sim/projects` (the project plans' record and reads, VB-123), `sim/makings` (the registry of what a head begins through the verb `project`, VB-678), `sim/projectplans` (their one writer; VB-431), `sim/goods` (trade goods, grain subtype identifiers and culture’s worth and propriety rules), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/seasonal` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fieldplans` (household demand, site selection and project planning), `sim/rotations` (crop choices and the village custom), `sim/fields` (field state transitions), `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/fieldwork` (the job kinds of a farm's fields, beside `sim/fields`, VB-418), `sim/chores` (the job kinds of the household's daily work at
   the house: firewood, water, cooking, brewing, gathering, VB-418),

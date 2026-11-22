@@ -94,19 +94,18 @@ VB['sim/projects'] = (() => {
     return null;
   }
   // Whether household id's head holds off projects (VB-253: the player chose none, plan.chosen.project, sim/plans): no project of the
-  // household's is begun by its own rule (the land step, the boat, the tar pit) until the choice is cleared. Allocates nothing.
+  // household's is begun by its own rule (the land step, the head's look at a boat, a cart, a tar pit: sim/aims) until the choice is
+  // cleared. Allocates nothing.
   function heldOff(st, id) {
     const plan = st.plans && st.plans.households.get(id);
     return !!(plan && plan.chosen && plan.chosen.project === 'none');
   }
   // Whether household hh may begin the small construction `what` now (VB-1408, VB-1414; a cart, a boat, a tar pit): it lives, is not
   // dissolved, its head does not hold off projects, and it has no plan of that making under way. Neither a booth nor another project
-  // stops it (Kim, 21 Nov 2026: small constructions are built beside any other). The one read of it for the yearly starters (sim/tar's
-  // pit, sim/drying's boat, sim/carts' cart), each of which then asks its own rule of when its construction is wanted. Allocates nothing.
+  // stops it (Kim, 21 Nov 2026: small constructions are built beside any other). The one read of it for the head's yearly look (sim/aims,
+  // VB-678), which then asks the making's own `want` (a cart, a boat, a tar pit). Allocates nothing.
   function mayBegin(st, hh, what) {
-    if (!hh || hh.dissolved || heldOff(st, hh.id)) return false;
-    for (const plan of projectsOf(st, 'household', hh.id)) if (plan.what === what) return false;
-    return true;
+    return !!hh && !hh.dissolved && !heldOff(st, hh.id) && !underWay(st, hh.id, what);
   }
   // The one way the job j of household hh's project step ends (VB-1408): when an open step of hh's project plans is still j's (its kind,
   // and its tile unless `ask` is { place: false }: sim/carts' cart today), the domain's effect(st, j, hh, plan, step) runs and the step is
@@ -119,6 +118,11 @@ VB['sim/projects'] = (() => {
     effect(st, j, hh, plan, plan.steps[plan.open]);
     emit(st, 'stepDone', { type: 'household', id: hh.id, plan });
     return true;
+  }
+  // Whether household id has a plan of the making `what` under way (one of a making at a time, VB-1414). Allocates nothing.
+  function underWay(st, id, what) {
+    for (const plan of projectsOf(st, 'household', id)) if (plan.what === what) return true;
+    return false;
   }
   // The empty record, at seed (sim/plans makes st.plans) and at the load of a save made before project plans.
   const emptyProjects = () => ({ household: new Map(), village: new Map(), pawn: new Map(), heirPlots: [] });
@@ -150,6 +154,7 @@ VB['sim/projects'] = (() => {
     onFarm,
     heldOff,
     mayBegin,
+    underWay,
     stepEnds,
     emptyProjects,
   };

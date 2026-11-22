@@ -41,6 +41,7 @@
   "sim/wishes.js",
   "sim/encounters.js",
   "sim/projects.js",
+  "sim/makings.js",
   "sim/prospect.js",
   "sim/relations.js",
   "sim/mood.js",
