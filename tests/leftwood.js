@@ -8,7 +8,7 @@ const make = () => {
   const st = Sim.seed(r.value, 7, 'populous');
   const hh = st.households.find((h) => !h.dissolved && h.farmstead !== null && !st.plans.projects.household.has(h.id));
   const f = st.farmsteads[hh.farmstead], shore = st.farmsteads.find((x) => x.house !== f.house).house;
-  const plan = Plans.makeProject(st, 'household', hh.id, { what: 'boat', small: true, water: 0, steps: [{ kind: 'boat', place: shore, hours: 20, wood: 0, timber: 12 }] });
+  const plan = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'boat', small: true, water: 0, steps: [{ kind: 'boat', place: shore, hours: 20, wood: 0, timber: 12 }] });
   plan.steps[0].wood = 9; // three loads carried to the shore
   return { st, hh, shore, plan };
 };
@@ -16,7 +16,7 @@ assert(KINDS.fetchLeftTimber && KINDS.fetchLeftTimber.fetch === 'leftTimber', 'a
 { // given up: the timber lies at the shore, and the plan is gone
   const { st, hh, shore, plan } = make();
   const wood = hh.wood;
-  Plans.drop(st, plan);
+  VB['sim/projectplans'].drop(st, plan);
   assert.strictEqual(hh.wood, wood, 'the timber is not at the house');
   assert(st.lying && st.lying.length === 1, 'one load lies');
   const l = st.lying[0];
@@ -32,7 +32,7 @@ assert(KINDS.fetchLeftTimber && KINDS.fetchLeftTimber.fetch === 'leftTimber', 'a
 }
 { // not fetched: the frost rots it, with an event
   const { st, plan } = make();
-  Plans.drop(st, plan);
+  VB['sim/projectplans'].drop(st, plan);
   const n0 = st.record.length;
   Lying.frost(st);
   assert(!st.lying, 'rotted: none lies');

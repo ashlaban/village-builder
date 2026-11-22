@@ -14,13 +14,13 @@ const mine = () => Projects.projectsOf(st, 'household', hh.id);
 check(v.wood.length > 0, 'the village has a wood to fell timber in');
 
 // a barn under way (a large project), then a cart begun by its starter beside it, and a boat beside both
-const barn = Plans.makeProject(st, 'household', hh.id, { what: 'barn', steps: Bld.barnSteps(f.house) });
+const barn = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'barn', steps: Bld.barnSteps(f.house) });
 barn.open = 1; // its walls, waiting for their timber
 hh.cartMiss = C.CART.misses;
 C.cartsYear(st);
 const cart = mine().find((p) => p.what === 'cart');
 check(!!cart && cart.small === true && Projects.ownOf(st, hh.id) === barn, 'a barn under way: the cart is begun beside it, small, and the barn stays the large project');
-const boat = Plans.makeProject(st, 'household', hh.id, { what: 'boat', small: true, water: 0, steps: [{ kind: 'boat', place: shore, hours: 20, wood: 0, timber: 6 }] });
+const boat = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'boat', small: true, water: 0, steps: [{ kind: 'boat', place: shore, hours: 20, wood: 0, timber: 6 }] });
 check(mine().length === 3 && !Projects.mayBegin(st, hh, 'cart') && !Projects.mayBegin(st, hh, 'boat') && Projects.mayBegin(st, hh, 'tarpit'),
   'three plans at once; no second cart nor boat, a pit still possible');
 hh.cartMiss = C.CART.misses;
@@ -61,7 +61,7 @@ sound('a cart built, the barn\'s walls up');
 const r = issue(st, { actor: hh.holder, verb: 'dropProject', target: hh.id, args: { id: boat.id }, source: 'pawn' });
 check(r === true && !mine().includes(boat) && Projects.ownOf(st, hh.id) === barn && barn.open === 2, `the boat dropped by its id, the barn stands (${r})`);
 check(issue(st, { actor: hh.holder, verb: 'dropProject', target: hh.id, args: { id: boat.id }, source: 'pawn' }) !== true, 'a plan gone is not dropped twice');
-const again = Plans.makeProject(st, 'household', hh.id, { what: 'tarpit', small: true, steps: [{ kind: 'tarpit', place: shore, hours: 10, wood: 0 }] });
+const again = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'tarpit', small: true, steps: [{ kind: 'tarpit', place: shore, hours: 10, wood: 0 }] });
 check(issue(st, { actor: hh.holder, verb: 'dropProject', target: hh.id, args: {}, source: 'pawn' }) === true && !mine().includes(barn) && mine().includes(again),
   'with no id the large project is given up, the pit beside it stands');
 sound('plans dropped');
@@ -69,7 +69,7 @@ sound('plans dropped');
 // in a booth: a settler household's cottage under way, a cart begun beside it
 const g = st.farmsteads[v.farmsteads[1]], gh = st.households[g.household];
 g.booth = true;
-const home = Plans.makeProject(st, 'household', gh.id, X.cottagePlan(g));
+const home = VB['sim/projectplans'].makeProject(st, 'household', gh.id, X.cottagePlan(g));
 gh.cartMiss = C.CART.misses;
 C.cartsYear(st);
 const gcart = Projects.projectsOf(st, 'household', gh.id).find((p) => p.what === 'cart');
@@ -78,7 +78,7 @@ check(!!gcart && Projects.projectsOf(st, 'household', gh.id).includes(home) && P
 sound('a cart in a booth');
 
 // the head holding off projects: the cart is not begun either (VB-678's gap closed)
-Plans.dropAll(st, 'household', gh.id);
+VB['sim/projectplans'].dropAll(st, 'household', gh.id);
 const hp = st.plans.households.get(gh.id);
 hp.chosen = { ...(hp.chosen || {}), project: 'none' };
 gh.cartMiss = C.CART.misses;

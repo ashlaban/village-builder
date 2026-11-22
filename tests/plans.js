@@ -60,7 +60,7 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
 }
 { // the land step: the plan's target of fields, and a tile the plan names in place of the holder's choice
   const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);
-  const drop = () => Plans.dropAll(st, 'household', hh.id), open = () => VB['sim/projects'].openOf(st, hh.id);
+  const drop = () => VB['sim/projectplans'].dropAll(st, 'household', hh.id), open = () => VB['sim/projects'].openOf(st, hh.id);
   drop(); plan.targets.fields = f.fields.length;
   Plans.landStep(st, plan, f, hh, F.builtTiles(st));
   assert(!open() || open().kind === 'meadow', 'no new field when the plan has enough');

@@ -57,7 +57,7 @@ function surplusState() {
   const c0 = cal(st.t);
   Sim.advance(st, ((HERD.countDay + 1 - c0.doy + 48) % 48) * DAY);
   const hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id), c = cal(st.t);
-  for (const p of [...Projects.projectsOf(st, 'household', hh.id)]) P.drop(st, p);
+  for (const p of [...Projects.projectsOf(st, 'household', hh.id)]) VB['sim/projectplans'].drop(st, p);
   Stores.put(st, hh, Stores.grainGood('barley'), 5000, 'harvest');
   Stores.put(st, hh, 'wood', 200, 'firewood');
   hh.hay = plan.targets.hayWinters * VB['sim/herds'].winterNeed(st, hh) + 5;
@@ -262,7 +262,7 @@ const roofOn = (st, hh, p) => {
   const p = Projects.ownOf(st, hh.id);
   p.steps[1].wood = 21; // lint-allow: owner timber carried to the site
   const w0 = hh.wood;
-  P.drop(st, p);
+  VB['sim/projectplans'].drop(st, p);
   assert.ok(near(hh.wood, w0 + 21), `the walls' timber on the woodpile: ${w0} -> ${hh.wood}`);
 }
 // VB-1224: the head's project dropped by another rule (a stake lapsed) ends its aim at once, with no review between (a farm held in trust)
@@ -271,7 +271,7 @@ const roofOn = (st, hh, p) => {
   assert.strictEqual(issue(st, { actor: hh.holder, verb: 'barn', target: hh.id, args: {}, source: 'pawn' }), true);
   const p = Projects.ownOf(st, hh.id), plan = st.plans.households.get(hh.id);
   plan.aim = { year: 0, surplus: true, again: false, project: p.id, what: 'barn', since: st.t, shortSince: null }; // lint-allow: owner the head's project
-  P.drop(st, p);
+  VB['sim/projectplans'].drop(st, p);
   assert.ok(plan.aim.project === null && plan.aim.what === null && plan.aim.again, `the aim on a dropped plan: ${JSON.stringify(plan.aim)}`);
   assert.deepStrictEqual(checkState(st), [], 'invariants after the drop');
 }

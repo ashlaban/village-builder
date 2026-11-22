@@ -7,7 +7,7 @@ const { setClock, moveClock } = require('./lib/clock.js');
 const { shareFood, fillStores, surplus, askDaysAt, seasonOf } = VB['sim/help'], { dailyNeed, seedReserve } = VB['sim/hunger'], { HELP } = VB['sim/rules'];
 const fresh = () => {
   const st = Sim.seed(island(7), 7, 'founders');
-  for (const hh of st.households) VB['sim/plans'].dropAll(st, 'household', hh.id);
+  for (const hh of st.households) VB['sim/projectplans'].dropAll(st, 'household', hh.id);
   for (const hh of st.households) { hh.grain = { barley: seedReserve(st, hh) }; hh.meals = 0; }
   return st;
 };

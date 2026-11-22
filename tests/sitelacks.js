@@ -22,10 +22,10 @@ check(v.wood.length > 0 && asked().length === 0, 'no site, no trip');
 // a plot's walls step by name: the plot's wood lies there, and its trips carry to it
 const house = tileAt(w, 10, 3), field = tileAt(w, 11, 4);
 const stage = (kind, hours) => ({ kind, place: house, hours, done: 0, ...(kind === 'walls' ? { wood: 0 } : {}) });
-const plot = Plans.makeProject(st, 'village', v.id, { what: 'plot', plot: 0, intended: null, to: { type: 'village', id: v.id }, hours: {}, started: st.t,
+const plot = VB['sim/projectplans'].makeProject(st, 'village', v.id, { what: 'plot', plot: 0, intended: null, to: { type: 'village', id: v.id }, hours: {}, started: st.t,
   steps: [{ kind: 'clear', places: [{ tile: house, kind: 'house', steps: [], i: 0 }, { tile: field, kind: 'field', steps: [], i: 0 }] },
     stage('foundation', 30), stage('walls', 60), stage('roof', 30)] });
-Plans.advance(st, plot);
+VB['sim/projectplans'].advance(st, plot);
 const walls = stepOf(plot, 'walls');
 check(walls === plot.steps[2] && stepOf(plot, 'kiln') === undefined, 'the walls step found by its kind');
 let jobs = asked();
@@ -40,7 +40,7 @@ check(asked().length === 0, 'once the walls stand the site lacks nothing');
 // a household's open step: one carrying timber (whatever its kind) gets its trips, one without none
 const f = st.farmsteads[v.farmsteads[0]], hid = f.household;
 const step = { kind: 'tarpit', place: f.house, hours: 10, wood: 0 };
-const plan = Plans.makeProject(st, 'household', hid, { what: 'tarpit', small: true, steps: [step] });
+const plan = VB['sim/projectplans'].makeProject(st, 'household', hid, { what: 'tarpit', small: true, steps: [step] });
 check(Projects.openOf(st, hid) === null && Projects.timberOf(st, f).length === 0 && asked().length === 0, 'a step without timber: no trip');
 step.timber = 4; // any step that carries timber: no list of kinds
 jobs = asked();

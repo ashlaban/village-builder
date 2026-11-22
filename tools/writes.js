@@ -430,7 +430,14 @@ const keyOf = (f) => f.replace(/\.js$/, '');
 const order = manifest.map(keyOf);
 const GEN = new Set(['gen', 'gen/rivers', 'gen/climate', 'gen/paths', 'gen/marks', 'gen/geology']); // the world generator: runs before the state exists
 // a field: the entity and its first field (household.larder[].n -> household.larder)
-const fieldOf = (p) => { const m = p.match(/^([A-Za-z]+)\.([A-Za-z_$*][\w$]*)/); return m ? `${m[1]}.${m[2]}` : p; };
+// A field is its entity and first key; a container whose parts have owners of their own (st.plans: its projects, seasons and due-queue,
+// VB-431) declares each part as a key of three, which a path under it resolves to.
+const fieldOf = (p) => {
+  const m = p.match(/^([A-Za-z]+)\.([A-Za-z_$*][\w$]*)(?:\.([A-Za-z_$][\w$]*))?/);
+  if (!m) return p;
+  const part = m[3] && `${m[1]}.${m[2]}.${m[3]}`;
+  return part && Object.hasOwn(OWNERS.fields, part) ? part : `${m[1]}.${m[2]}`;
+};
 const entityOf = (p) => p.split('.')[0];
 
 // The ownership check needs only the simulation modules, without generator writes or page reads.

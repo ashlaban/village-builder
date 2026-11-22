@@ -23,7 +23,7 @@ function validateOwners(policy, { modules, entities }) {
   }
   if (!object(policy.fields) || !Object.keys(policy.fields).length) { fail('fields must be a nonempty object'); return errors; }
   for (const [field, spec] of Object.entries(policy.fields)) {
-    if (!/^[A-Za-z]+\.[A-Za-z_$][\w$]*$/.test(field) || !entities.has(field.split('.')[0])) fail(`invalid field ${field}`);
+    if (!/^[A-Za-z]+\.[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)?$/.test(field) || !entities.has(field.split('.')[0])) fail(`invalid field ${field}`);
     let owner = spec;
     if (object(spec)) {
       owner = spec.owner;

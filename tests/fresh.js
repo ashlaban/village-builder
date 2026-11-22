@@ -18,7 +18,7 @@ for (const [t] of VB['sim/hex'].bfs(w, f.house, 8, VB['sim/walking'].walkable(w)
 check(free.length >= 2, 'two free tiles near the farm');
 const [freshTile, oldTile] = free; w.dev[oldTile] = 1;
 const breakOn = (tile) => {
-  VB['sim/plans'].makeProject(st, 'household', f.household, { what: 'field', steps: [{ kind: 'break', place: tile, hours: 0, stake: 'field' }] });
+  VB['sim/projectplans'].makeProject(st, 'household', f.household, { what: 'field', steps: [{ kind: 'break', place: tile, hours: 0, stake: 'field' }] });
   F.finishBreak(st, f, VB['sim/projects'].ownOf(st, f.household)); return f.fields[f.fields.length - 1];
 };
 const fresh = breakOn(freshTile), old = breakOn(oldTile);

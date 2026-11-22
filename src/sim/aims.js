@@ -20,7 +20,8 @@ VB['sim/aims'] = (() => {
   const { pickMeadow } = VB['sim/meadows'];
   const { findSite, hasPlot, awaitsCottage } = VB['sim/expansion'];
   const { issue, register } = VB['sim/commands'];
-  const Plans = VB['sim/plans'];
+  const Plans = VB['sim/plans'],
+    ProjectPlans = VB['sim/projectplans'];
   const { heirRanking } = VB['sim/heirranking'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
   const { tierOf, turnWhy } = VB['sim/rotations'];
@@ -225,7 +226,7 @@ VB['sim/aims'] = (() => {
     } else {
       A.project = A.what = A.since = A.shortSince = null; // given up, not ended: planDropped below leaves `again` as it is
       for (const s of p.steps) if (s.stake) VB['sim/claims'].dropClaim(st, s.place, p.holder);
-      Plans.drop(st, p, text, { pawn: hh.holder, ...atHousehold(st, hh) });
+      ProjectPlans.drop(st, p, text, { pawn: hh.holder, ...atHousehold(st, hh) });
     }
     A.project = A.what = A.since = A.shortSince = null;
   }
@@ -345,7 +346,7 @@ VB['sim/aims'] = (() => {
     check: (st, c) => Plans.heads(st, c) || barnWhy(st, st.households[c.target]),
     run: (st, c) => {
       const f = st.farmsteads[st.households[c.target].farmstead];
-      Plans.makeProject(st, 'household', c.target, {
+      ProjectPlans.makeProject(st, 'household', c.target, {
         what: 'barn',
         steps: barnSteps(f.house),
       });

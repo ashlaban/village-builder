@@ -59,13 +59,13 @@ assert.equal(st.record.filter((e) => e.kind === 'frost').length, frostBefore + 1
 
 // A claimant suspends overgrowth; after the claim ends, nearby woodland can reclaim the field.
 f.household = null; f.emptySince = 0; // a claimant restoring it: its project plan (VB-123)
-VB['sim/plans'].makeProject(st, 'pawn', hh.holder, {
+VB['sim/projectplans'].makeProject(st, 'pawn', hh.holder, {
   what: 'restore', farm: f.id, since: st.t, steps: [{ kind: 'restore', place: f.house, hours: 10, done: 0, stake: 'farm' }] });
 fd.stage = 'stubble'; fd.sown = null;
 setClock(st, 2 * YEAR);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'stubble', 'restoration protects the field from overgrowth');
-VB['sim/plans'].dropAll(st, 'pawn', hh.holder);
+VB['sim/projectplans'].dropAll(st, 'pawn', hh.holder);
 fieldsDay(st, cal(st.t));
 assert.equal(fd.stage, 'fallow');
 // Forest spread (sim/spread, VB-091) grows trees on it: from a quarter of full cover the field is scrub; cleared of them, it is grass again.

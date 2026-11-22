@@ -6,7 +6,7 @@ const { goodYearGift, giveUnasked } = VB['sim/help'], { dailyNeed, seedReserve }
 const { YEAR_DAYS, YEAR, TRAVEL } = VB['sim/rules'], { GIFT } = VB['sim/help'];
 const fresh = () => {
   const st = Sim.seed(island(7), 7, 'founders');
-  for (const hh of st.households) VB['sim/plans'].dropAll(st, 'household', hh.id);
+  for (const hh of st.households) VB['sim/projectplans'].dropAll(st, 'household', hh.id);
   for (const hh of st.households) { hh.grain = { barley: seedReserve(st, hh) + 1e4 }; hh.meals = 0; }
   return st;
 };

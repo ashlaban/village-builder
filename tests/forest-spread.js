@@ -66,10 +66,10 @@ VB['sim/ownership'].farmToVillage(st, f); f.household = null;
 days(3);
 check(w.trees[ft] > 0, "an empty farm's field gains trees");
 const wasF = w.trees[ft];
-VB['sim/plans'].makeProject(st, 'pawn', hh.holder, { what: 'restore', farm: f.id, since: st.t, steps: [{ kind: 'restore', place: f.house, hours: 10, done: 0, stake: 'farm' }] });
+VB['sim/projectplans'].makeProject(st, 'pawn', hh.holder, { what: 'restore', farm: f.id, since: st.t, steps: [{ kind: 'restore', place: f.house, hours: 10, done: 0, stake: 'farm' }] });
 days(3);
 check(w.trees[ft] === wasF, 'a farm under restoration is kept open');
-VB['sim/plans'].dropAll(st, 'pawn', hh.holder);
+VB['sim/projectplans'].dropAll(st, 'pawn', hh.holder);
 // a house is never taken
 st.front.add(f.house);
 days(1);

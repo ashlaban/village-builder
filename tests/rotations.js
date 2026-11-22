@@ -132,8 +132,8 @@ const review = (s, t) => {
   // a field broken: the third bears rye, the one step no field is at; a fourth, in spring, barley (all tie, and barley is sown first)
   const breakOne = () => {
     setClock(s.st, at(0, 6));
-    Plans.dropAll(s.st, 'household', s.hh.id);
-    Plans.makeProject(s.st, 'household', s.hh.id, { what: 'field', steps: [{ kind: 'break', place: FieldPlans.pickField(s.st, s.f, s.hh), hours: 0, stake: 'field' }] });
+    VB['sim/projectplans'].dropAll(s.st, 'household', s.hh.id);
+    VB['sim/projectplans'].makeProject(s.st, 'household', s.hh.id, { what: 'field', steps: [{ kind: 'break', place: FieldPlans.pickField(s.st, s.f, s.hh), hours: 0, stake: 'field' }] });
     F.finishBreak(s.st, s.f, VB['sim/projects'].ownOf(s.st, s.f.household));
     return s.f.fields[s.f.fields.length - 1];
   };

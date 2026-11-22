@@ -18,6 +18,8 @@
     "st.finds": "sim/prospect",
     "st.player": "sim/player",
     "st.plans": "sim/plans",
+    "st.plans.projects": "sim/projectplans",
+    "st.plans.projectSeq": "sim/projectplans",
     "st.weather": "sim/weather",
     "st.pathCache": {"owner": "sim/routes", "category": "cache"},
     "st.routeDirty": "sim/routes",

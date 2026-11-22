@@ -71,7 +71,7 @@ assert(g.stage === 'stubble' && g.held === 0, 'peas left in the field are lost t
 // ---- the pot: barley and peas are two sources ----
 const home = (grain) => {
   const s2 = tinyState(w, [{ at: [8, 8], farms: 1, sizes: [6] }], { seed: 7 }), h = s2.households[s2.farmsteads[0].household];
-  VB['sim/plans'].dropAll(s2, 'household', h.id);
+  VB['sim/projectplans'].dropAll(s2, 'household', h.id);
   for (const fld of s2.farmsteads[0].fields) fld.stage = 'growing'; // no seed to hold back
   h.larder = []; h.meals = 0; h.grain = grain;
   return { s: s2, h };

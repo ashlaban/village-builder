@@ -15,7 +15,7 @@ const { island, ROOMY } = require('./lib/probe.js'), world7 = island(7, ROOMY); 
 function home(grain = 1000) {
   const st = Sim.seed(world7, 7, 'founders'), hh = st.households[0], f = st.farmsteads[hh.farmstead];
   for (const fd of f.fields) fd.stage = 'growing';
-  VB['sim/plans'].dropAll(st, 'household', hh.id);
+  VB['sim/projectplans'].dropAll(st, 'household', hh.id);
   hh.larder = []; hh.meals = 0; hh.grain = { barley: grain }; hh.hungryDays = 0;
   return { st, hh };
 }
@@ -115,7 +115,7 @@ check(ECON.uncooked === 0.75, 'uncooked grain: a ration feeds 0.75');
 // --- the seed a short household eats is cooked (VB-388): a cook is posted for it, and the meal eats it cooked, not at the raw rate
 {
   const { st, hh } = home(0), f = st.farmsteads[hh.farmstead], need = dailyNeed(st, hh);
-  VB['sim/plans'].makeProject(st, 'household', hh.id, VB['sim/fieldplans'].fieldProject(st, hh, f.house)); // a new field's seed held back
+  VB['sim/projectplans'].makeProject(st, 'household', hh.id, VB['sim/fieldplans'].fieldProject(st, hh, f.house)); // a new field's seed held back
   const seed = VB['sim/hunger'].seedReserve(st, hh); hh.grain = { barley: seed }; hh.fresh = []; hh.cookDay = -1; hh.waterDay = 15;
   const c = { season: 1, sday: 3, day: 15, hour: 15 }, asked = [];
   KINDS.cook.available(st, hh, f, c, (key) => asked.push(key));
