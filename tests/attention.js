@@ -15,7 +15,7 @@ Object.assign(KINDS, T);
 try {
   const a = st.agents.find((x) => st.pawns[x.id].died === null && st.pawns[x.id].household !== null), p = st.pawns[a.id];
   A.release(st, a);
-  const owner = { type: 'household', id: p.household }, here = A.tileAt(st, ...A.placeOf(st, a));
+  const owner = { type: 'household', id: p.household }, here = VB['sim/pose'].tileAt(st, ...VB['sim/pose'].placeOf(st, a));
   // its legs taken step by step until its walk ends (VB-473: the legs due, and nothing else)
   const arrive = () => { while (a.path) { st.tick++; st.t = st.tick / TICKS; A.stepAgents(st, Sim.cal(st.t)); } };
   const walk = (tile) => { A.walkTo(st, a, tile, st.w.hx[tile], st.w.hy[tile]); arrive(); };

@@ -39,7 +39,7 @@ for (let k = 0; k < DAYS * DAY * TICKS; k++) {
     }
     if (l.kind !== 'walk') continue;
     // its place is along its route: at its start before it moves, never past its end, at most a step's walk from where it was
-    const [x, y] = A.placeOf(st, a), e = (st.tick - l.t) / TICKS, last = a.path[a.path.length - 1];
+    const [x, y] = VB['sim/pose'].placeOf(st, a), e = (st.tick - l.t) / TICKS, last = a.path[a.path.length - 1];
     const off = e <= 0 ? Math.hypot(x - l.x, y - l.y) : e >= l.h[l.h.length - 1] ? Math.hypot(x - last[0], y - last[1]) : 0;
     worst.place = Math.max(worst.place, off);
     if (off > 1e-9) n.placeBad++;
@@ -80,7 +80,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   const s = state(), w = s.w;
   Sim.advance(s, WORK[0] + DAY - (s.t % DAY) + 3); // the next day, 9:00
   const a = s.agents[s.living.find((id) => s.agents[id].leg && s.agents[id].leg.kind === 'wait' && !s.agents[id].side)];
-  const from = A.tileAt(s, ...A.placeOf(s, a));
+  const from = VB['sim/pose'].tileAt(s, ...VB['sim/pose'].placeOf(s, a));
   let far = -1;
   for (let i = 0; i < w.N; i++) if (!w.water[i] && VB['sim/hex'].hexSteps(w, from, i) === 8) { far = i; break; }
   A.walkTo(s, a, far, w.hx[far], w.hy[far]);
@@ -89,7 +89,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   const steps = Math.floor(l.h[l.h.length - 1] * TICKS / 2); // about half way
   for (let k = 0; k < steps; k++) Sim.advance(s, 1 / TICKS);
   assert.strictEqual(a.leg, l, "the walk goes on, untouched");
-  const e = (s.tick - l.t) / TICKS, [x, y] = A.placeOf(s, a), reached = l.h.filter((h) => h <= e).length;
+  const e = (s.tick - l.t) / TICKS, [x, y] = VB['sim/pose'].placeOf(s, a), reached = l.h.filter((h) => h <= e).length;
   assert.ok(reached > 0 && reached < tiles.length, `half way: ${reached} of ${tiles.length} points`);
   const home = s.farmsteads[s.households[s.pawns[a.id].household].farmstead].house;
   A.walkTo(s, a, home, w.hx[home], w.hy[home]); // the cut
@@ -172,7 +172,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
     if (k % TICKS === 0) assert.deepStrictEqual(checkState(s), [], `invariants on the road, step ${k}`);
   }
   assert.ok(!s.away.includes(trip) && a.phase !== 'journey' && a.phase !== 'road', 'it arrives, and its journey ends');
-  assert.strictEqual(A.tileAt(s, ...A.placeOf(s, a)) >= 0 && s.pawns[a.id].household, to.id, 'a member of its new home');
+  assert.strictEqual(VB['sim/pose'].tileAt(s, ...VB['sim/pose'].placeOf(s, a)) >= 0 && s.pawns[a.id].household, to.id, 'a member of its new home');
   assert.deepStrictEqual(checkState(s), [], 'invariants after the arrival');
   console.log(`legs: a completion set pawn ${a.id} out (${j.kind}); it arrived`);
 }

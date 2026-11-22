@@ -78,18 +78,18 @@ const tie0 = Ties.tieOf(st, pair[0].id, pair[1].id), talks0 = st.talks;
 for (const ag of st.agents) if (ag !== ta && ag !== tb) ag.inside = true; // nobody else outdoors
 let hours = 0;
 ta.talk = null;
-while (!(ta.talk && ta.talk.with === pair[1].id) && hours < 40) { stand(); R.talkHour(st, 10, S.outdoors(st, VB['sim/agents'].placeOf)); hours++; }
+while (!(ta.talk && ta.talk.with === pair[1].id) && hours < 40) { stand(); R.talkHour(st, 10, S.outdoors(st, VB['sim/pose'].placeOf)); hours++; }
 check(st.talks > talks0 && ta.talk, `no talk in ${hours} hours together`);
 check(!pair[0].rel.has(pair[1].id) && !pair[1].rel.has(pair[0].id), 'a talk leaves no memory (VB-240)');
 check(['chat', 'goodTalk', 'crossWords'].includes(ta.talk.kind) && ta.talk.kind === tb.talk.kind, `the bubble's kind: ${ta.talk.kind}`);
 const grew = (Ties.tieOf(st, pair[0].id, pair[1].id) - tie0) / TIES.talk; // housemates indoors talk too, so count the pair's talks by its tie
 check(grew >= 1 - 1e-9 && Math.abs(grew - Math.round(grew)) < 1e-9, `the tie grew by ${grew} talks' worth`);
 check(ta.talk && ta.talk.with === pair[1].id && tb.talk.with === pair[0].id && ta.talk.until - ta.talk.at === T.bubbleHours, 'the bubble names the other');
-const before = st.talks; stand(); R.talkHour(st, 23, S.outdoors(st, VB['sim/agents'].placeOf)); stand(); R.talkHour(st, 3, S.outdoors(st, VB['sim/agents'].placeOf));
+const before = st.talks; stand(); R.talkHour(st, 23, S.outdoors(st, VB['sim/pose'].placeOf)); stand(); R.talkHour(st, 3, S.outdoors(st, VB['sim/pose'].placeOf));
 check(st.talks === before, 'no talk at night');
 // in a busy hour each pawn is in one talk at most
 for (const ag of st.agents) { ag.talk = null; if (st.pawns[ag.id].alive) { VB['sim/agents'].release(st, ag); VB['sim/agents'].standStill(st, ag); ag.inside = false; ag.carry = null; ag.x = 6000 + (ag.id % 5) * 6; ag.y = 6000; } }
-const t1 = st.talks; R.talkHour(st, 10, S.outdoors(st, VB['sim/agents'].placeOf));
+const t1 = st.talks; R.talkHour(st, 10, S.outdoors(st, VB['sim/pose'].placeOf));
 const talking = st.agents.filter((ag) => ag.talk).length;
 check(st.talks > t1 && talking === 2 * (st.talks - t1), `${st.talks - t1} talks, ${talking} pawns talking`);
 check(checkState(st).length === 0, 'invariants after talk: ' + checkState(st).slice(0, 3).join('; '));
@@ -151,7 +151,7 @@ for (const ag of st.agents) { ag.inside = st.pawns[ag.id].household === hm.id; a
 const hf = st.farmsteads[hm.farmstead].house;
 for (const m of hm.members) { st.agents[m].x = st.w.hx[hf] - 12; st.agents[m].y = st.w.hy[hf] + 14; } // by the door of their own house (VB-561)
 const talks1 = st.talks;
-for (let h = 0; h < DAY; h++) { for (const ag of st.agents) ag.inside = st.pawns[ag.id].household === hm.id; R.talkHour(st, h, S.outdoors(st, VB['sim/agents'].placeOf)); }
+for (let h = 0; h < DAY; h++) { for (const ag of st.agents) ag.inside = st.pawns[ag.id].household === hm.id; R.talkHour(st, h, S.outdoors(st, VB['sim/pose'].placeOf)); }
 check(st.pawns[m0].homeHours === T.to - T.from, `the talk hours counted at home: ${st.pawns[m0].homeHours}`);
 const talked = Ties.tieOf(st, m0, m1) - home0;
 R.dailyTies(st);

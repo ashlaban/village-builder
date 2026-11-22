@@ -29,6 +29,7 @@ VB['sim/agents'] = (() => {
   const Lying = VB['sim/lying'];
   const Due = VB['sim/due'];
   const Skills = VB['sim/skills'];
+  const { tileAt, here, endTile, along, poseAt, placeOf } = VB['sim/pose'];
   // the spot by the door of the house on tile `house`, where pawn a would stand
   const spotAt = (st, a, house) => [st.w.hx[house] - 12 + a.ox * 0.3, st.w.hy[house] + 14 + a.oy * 0.15];
   // By the door of pawn a's household's house, wherever it sleeps: where an indoor task is done, and a load for the door is brought.
@@ -86,32 +87,6 @@ VB['sim/agents'] = (() => {
     const p = st.pawns[a.id];
     if (p.household !== null) driveHome(st, st.households[p.household], a.id); // its herds are left by the farm
   }
-  function tileAt(st, x, y) {
-    const w = st.w,
-      R = w.R,
-      HW = w.HW,
-      AP = w.AP;
-    const px = x - AP,
-      py = y - R,
-      qf = ((Math.sqrt(3) / 3) * px - py / 3) / R,
-      rf = ((2 / 3) * py) / R,
-      sf = -qf - rf;
-    let q = Math.round(qf),
-      r = Math.round(rf),
-      s = Math.round(sf);
-    const dq = Math.abs(q - qf),
-      dr = Math.abs(r - rf),
-      ds = Math.abs(s - sf);
-    if (dq > dr && dq > ds) q = -r - s;
-    else if (dr > ds) r = -q - s;
-    const col = q + ((r - (r & 1)) >> 1);
-    return r >= 0 && r < w.ROWS && col >= 0 && col < w.COLS ? r * w.COLS + col : -1;
-  }
-  // The tile the pawn is on now (placeOf: a walker along its leg).
-  const here = (st, a) => {
-    const [x, y] = placeOf(st, a);
-    return tileAt(st, x, y);
-  };
   // The way to (x, y) in `tile`: each point [x, y, cost, tile] carries the cost of the step that ends there, so a pawn walks slower over
   // rough ground, and the tile it enters there (-1 when it stays in the tile), whose wear the step adds to (sim/paths).
   // `near` (an idle stroll, VB-468): to a neighbouring tile it walks straight over, with no route search.
@@ -305,10 +280,6 @@ VB['sim/agents'] = (() => {
   // unworked, and a holder standing at other work out of its reach lets it go. A task taken down is let go at once (dropJob), and at the
   // end of the working day every holder lets go (sim/clock). Its work done, a pawn with nothing else in hand goes home (VB-136: the
   // herder brings the herds home).
-  const endTile = (st, a) => {
-    const p = a.path[a.path.length - 1];
-    return tileAt(st, p[0], p[1]);
-  };
   // The holder's leg has begun or ended (its background task reckoned before it changed): out of reach the task is let go, else its rate
   // is told again if its minding changed.
   function sideCheck(st, a) {
@@ -877,29 +848,6 @@ VB['sim/agents'] = (() => {
     if (st.pawns[a.id].alive) enqueue(st, a);
     sideCheck(st, a);
   }
-  // How far walk leg l has come e hours after its start: [the last path point passed, x, y].
-  function along(a, l, e) {
-    const h = l.h,
-      P = a.path;
-    if (!(e > 0) || !h.length) return [l.seg, l.x, l.y];
-    if (e >= h[h.length - 1]) {
-      const p = P[P.length - 1];
-      return [P.length - 1, p[0], p[1]];
-    }
-    let lo = 0,
-      hi = h.length - 1; // the first point not yet reached: h[lo] > e (halving: Rules for cost)
-    while (lo < hi) {
-      const m = (lo + hi) >> 1;
-      if (h[m] <= e) lo = m + 1;
-      else hi = m;
-    }
-    const i = l.seg + 1 + lo,
-      h0 = lo > 0 ? h[lo - 1] : 0,
-      p0 = lo > 0 ? P[i - 1] : [l.x, l.y],
-      p1 = P[i],
-      r = h[lo] > h0 ? (e - h0) / (h[lo] - h0) : 0;
-    return [i - 1, p0[0] + (p1[0] - p0[0]) * r, p0[1] + (p1[1] - p0[1]) * r];
-  }
   // The tiles entered from point `from` to point `to` are trodden; the herds a herder drives wear the way too (VB-136): only a herder out
   // with them, or bringing them home, can drive any.
   function treadTo(st, a, from, to) {
@@ -909,22 +857,6 @@ VB['sim/agents'] = (() => {
       if (t >= 0) tread(st.w, t, a.side || a.phase === 'home' ? 1 + HERD.herding.move * driven(st, a.id) : 1);
     }
   }
-  // Where the pawn is now, worked out from its leg: for a walk, the hours since its start along its route; else where it stands (a pawn at
-  // work stands at its task's spot: the rows of a field are the page's).
-  function placeOf(st, a) {
-    const l = a.leg;
-    if (!a.path || !l || l.kind !== 'walk') return [a.x, a.y];
-    VB.count.walkPlace++;
-    const [, x, y] = along(a, l, (workTick(st) - l.t) / TICKS);
-    return [x, y];
-  }
-  // The way the pawn faces and the stride it has come to, e hours into walk leg l, standing at point i, (x, y) (the page's pose).
-  function poseAt(a, l, e, i, x, y) {
-    const P = a.path,
-      dx = i + 1 < P.length ? P[i + 1][0] - x : x - (i > l.seg ? P[i - 1][0] : l.x);
-    return [x, y, Math.abs(dx) > 0.3 ? Math.sign(dx) : a.face, (a.stride || 0) + (e * l.pace) / 3.4];
-  }
-  // Walk leg l ends e hours in (its end, a cut, a journey's night): the tiles entered so far are trodden, and the pawn stands where its
   // hours reach, facing the way it went (a.x, a.y, a.seg, and the page's face and stride: written at a leg's start and end only).
   function stopAt(st, a, l, e) {
     const [i, x, y] = along(a, l, e);
@@ -969,21 +901,6 @@ VB['sim/agents'] = (() => {
     a.phase = 'road';
     a.anim = 'idle';
     roadWait(st, a);
-  }
-  // The hours a walk still takes from now.
-  function walkHours(st, a) {
-    const l = a.leg;
-    if (!a.path || !l || l.kind !== 'walk' || !l.h.length) return 0;
-    return Math.max(0, l.h[l.h.length - 1] - (workTick(st) - l.t) / TICKS);
-  }
-  // The page's view of a pawn at time `at` (a tick, fractional: the page draws between steps, VB-474; the step now if absent): [x, y,
-  // face, stride], a walker's worked out from its leg, ahead of the simulation by less than a step and never past the leg's due; read only.
-  function poseOf(st, a, at = workTick(st)) {
-    const l = a.leg;
-    if (!a.path || !l || l.kind !== 'walk') return [a.x, a.y, a.face, a.stride || 0];
-    const e = Math.max(0, Math.min(at, l.due) - l.t) / TICKS,
-      [i, x, y] = along(a, l, e);
-    return poseAt(a, l, Math.min(e, l.h.length ? l.h[l.h.length - 1] : 0), i, x, y);
   }
   // ---- the step (VB-205, VB-473): the legs due end, and nothing else is touched ----
   // The working day's start (WORK[0]) is one event for those waiting for it: the free pawns with no leg look for work, or wait for their
@@ -1230,7 +1147,6 @@ VB['sim/agents'] = (() => {
     idle,
     haltForTalk,
     stillAtDeath,
-    tileAt,
     route,
     walkTo,
     workSpot,
@@ -1245,9 +1161,6 @@ VB['sim/agents'] = (() => {
     goHome,
     rateOf,
     withOxen,
-    walkHours,
-    placeOf,
-    poseOf,
     standStill,
     doneOf,
     reckonAll,

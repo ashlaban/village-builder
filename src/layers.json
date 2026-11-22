@@ -105,6 +105,7 @@
       "sim/commons"
     ],
     "agency": [
+      "sim/pose",
       "sim/agents",
       "sim/away",
       "sim/gifts",
