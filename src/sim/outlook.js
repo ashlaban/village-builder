@@ -1,5 +1,6 @@
 // @sys sim/outlook: the supply outlook (VB-666): how long a household's food, fuel and hay last, on one scale (seasons of need) over the
-// four seasons from the start of the one we are in, by its head's reckoning at each review of its plan; kept in plan.outlook, read by the page
+// four seasons from the start of the one we are in, by its head's reckoning at each review of its plan, with its doubt (VB-669); kept in
+// plan.outlook, read by the page
 // Design: docs/mocks/supply-scale.html and supply-doubt.html (the UI review with Kim, 16 Nov); AGENTS.md, Deciding without Kim, 14 (the future
 // is someone's estimate: this is the head's) and 15 (one scale for every supply). What is still to come is the plan's: the crop the head
 // expects of its fields (FIELDS.expect of the full yield, as the plan reckons when it asks how many fields), the hay of its meadows in an
