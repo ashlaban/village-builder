@@ -148,7 +148,7 @@ VB['sim/layout'] = (() => {
         id: out.length,
         edges: es,
         cond: 0.75 + rand() * 0.25,
-        owner: { ...owner }, // each stretch its own (VB-247: a save holds no shared object)
+        owner,
         tile: m.tile,
         mx: (m.x1 + m.x2) / 2,
         my: (m.y1 + m.y2) / 2,
