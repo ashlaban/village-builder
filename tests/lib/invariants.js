@@ -268,7 +268,7 @@ function checkState(st) {
     }
     // VB-249: the due-queue: sorted by hour, then household, then kind; exactly one entry per live household's plan and time-bound kind,
     // none of a dissolved household (an overdue entry is not checked: tests move the clock by hand, and the next review hour asks it)
-    const due = st.plans.due, W = globalThis.VB['sim/plans'].WINDOWED;
+    const due = st.plans.due, W = globalThis.VB['sim/plandays'].WINDOWED;
     if (!Array.isArray(due)) bad.push('plans: no due-queue');
     else {
       const seen = new Set();

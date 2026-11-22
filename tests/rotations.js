@@ -144,8 +144,8 @@ const review = (s, t) => {
   assert.deepStrictEqual(Object.keys(FieldPlans.fieldProject(bar.st, bar.hh, 0).hold), [Stores.grainGood('barley')], 'barley every year holds barley');
   // the rye window's last day and the day after are closing days for a farm in three courses, not for one of barley every year
   const rye = (d) => cal(at(2, CROPS.rye.sow[2] + d));
-  assert(Plans.closing(s.st, rye(0), s.plan) && Plans.closing(s.st, rye(1), s.plan), "rye's window closes on a farm that sows it");
-  assert(!Plans.closing(bar.st, rye(0), bar.plan) && !Plans.closing(s.st, rye(2), s.plan), 'not for barley every year, nor after');
+  assert(VB['sim/plandays'].closing(s.st, rye(0), s.plan) && VB['sim/plandays'].closing(s.st, rye(1), s.plan), "rye's window closes on a farm that sows it");
+  assert(!VB['sim/plandays'].closing(bar.st, rye(0), bar.plan) && !VB['sim/plandays'].closing(s.st, rye(2), s.plan), 'not for barley every year, nor after');
   const third = breakOne();
   assert(third.rotation === 'three' && third.step === 1 && third.crop === 'rye', `the third field bears rye: ${JSON.stringify(third)}`);
   const fourth = breakOne();

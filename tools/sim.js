@@ -118,7 +118,7 @@ function plansOf(h) {
   const P = VB['sim/plans'], plan = P.planOf(st, 'household', h.id), sp = P.seasonOf(st, h.id);
   if (!plan) return { household: h.id, plans: 'none (dissolved)' };
   return { household: h.id, culture: P.cultureOf(st, h), targets: plain(plan.targets), reserved: plain(plan.reserved),
-    nextReview: when(plan.nextReview), cadenceDays: P.cadence(st, plan), lastReviewDay: plan.last,
+    nextReview: when(plan.nextReview), cadenceDays: VB['sim/plandays'].cadence(st, plan), lastReviewDay: plan.last,
     season: `${Sim.SEASONS[sp.season]} of year ${sp.year} (made on day ${sp.made})`, steps: sp.steps.join(', ') };
 }
 const tables = {

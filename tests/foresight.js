@@ -186,7 +186,7 @@ assert.strictEqual(R.tierOf(GOOD), 'good');
     s.plan.nextReview = Infinity;
     const t = at(0, 0) - 8 + VB['sim/rules'].WORK[0] - 1;
     setClock(s.st, t);
-    assert.strictEqual(Plans.reviewWhy(s.st, s.plan, Math.floor(t), cal(t)), 'window', `skill ${skill}: reviewed on the window's first day`);
+    assert.strictEqual(VB['sim/plandays'].reviewWhy(s.st, s.plan, Math.floor(t), cal(t)), 'window', `skill ${skill}: reviewed on the window's first day`);
   }
 }
 

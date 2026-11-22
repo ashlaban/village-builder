@@ -122,7 +122,7 @@ VB['sim/clock'] = (() => {
       every: 'hour',
       at: { hour: [WORK[0] - 1, WORK[1] + 1] },
       owner: 'sim/jobs',
-      note: 'the review of the standing plans (sim/plans reviewHour)',
+      note: 'the review of the standing plans (sim/plandays reviewHour)',
       run: (st, c) => refreshJobs(st, c),
     },
     {
