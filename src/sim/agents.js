@@ -1,5 +1,5 @@
-// @sys sim/agents: pawn movement and work: routes, walking, talks, home placement and the bed, a journey's legs, death and jobs; each pawn
-// in one leg (a walk, work or a wait) whose end waits in a due-queue, and the step that takes what is due
+// @sys sim/agents: what a pawn does with its legs: the job's phases (set out, arrive, a load home, done, released), home placement, talks,
+// death, a journey's walking, the step that takes the legs and tasks due, and the verbs; its legs are sim/legs', its work sim/work's (VB-422)
 VB['sim/agents'] = (() => {
   const { living } = VB['sim/records'];
   const { isOpen } = VB['sim/kinds'];

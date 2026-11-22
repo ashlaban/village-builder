@@ -406,7 +406,7 @@ All five are writes to local objects. They are listed so that a rerun shows when
 - `household.grievance` is written by `claims.js:109` and `territory.js:130`, the two places that settle a dispute. Proposed owner:
   `sim/claims`, with territory calling its `aggrieve`. Since VB-1176 `aggrieve` is `sim/disputes`'s (split from `sim/claims`): that
   module is the proposed owner.
-- `village.plots` has writers in expansion, cottage and agents. `agents.js:113` adds the hours a pawn works on a plot (`j.plot.hours`).
+- `village.plots` has writers in expansion, cottage and work. `work.js` (settle; in `agents.js` until VB-422) adds the hours a pawn works on a plot (`j.plot.hours`).
   Proposed owner: `sim/expansion`; the hours could go through the kind's `worked` hook, as stakes and farm claims do.
 - `village.grain` (the village store) is written by `help.js` (gifts out, the store filled) and by `clock.js:62` (it spoils). It belongs
   with food (¹).
@@ -584,7 +584,7 @@ One row for each change of state, with its writer. *Past the owner* marks a writ
 | The task taken is carried out as a command | none in the planner | `jobs.js:205` → `issue` (`commands.js:132`) → verb `work` (`commands.js:22-26`) |
 | The job in hand is left, keeping its progress | `job.claims` (splice), `agent.job`, `agent.phase`, `agent.work` | `agents.js:55-58` (release) |
 | The pawn joins the job and sets out | `job.claims` (push), `agent.job`, `agent.phase = 'go'`, `agent.path`, `seg`, `inside`, `anim`; the route is cached in `st.pathCache` | `agents.js:44-50` (start), `agents.js:30-41` (walkTo), `routes.js:103` |
-| Walking | `agent.x`, `y`, `seg`, `leg`, `st.legDue`; worn paths `w.wear` (`face`, `stride`: the page's shim `walkerPlaces` until VB-474) | `agents.js` (legs: begin, halt, walkEnd, treadTo; VB-473), `paths.js:17-20` (tread) |
+| Walking | `agent.x`, `y`, `seg`, `leg`, `st.legDue`; worn paths `w.wear` (`face`, `stride`: the page's shim `walkerPlaces` until VB-474) | `legs.js` (begin, halt, walked, treadTo; VB-473, split from `agents.js` by VB-422), `paths.js:17-20` (tread) |
 | Arrival | `agent.phase = 'work'`, `anim`, `inside`, `work` (the row being walked) | `agents.js:85-92` (arrived) |
 | Working | `job.done`; for a land project, its claim renewed (`claim.renewed`) | `agents.js:111`; `claims.js:32` through the kind's `worked` |
 | When the day is allotted anew, a much more urgent task, or one with a deadline today, calls its hand | as release and start | `jobs.js` (allot) |
