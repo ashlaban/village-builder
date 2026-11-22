@@ -1,6 +1,6 @@
 // @sys sim/away: the nights a pawn spends away from its household's house (VB-783): the open stays, a journey's (a bed where its leg
 // ends) and a lodger's (a bed at a place, or a guest's in another house), their packs and meals, and a journey's arrivals and gifts; a
-// suitor's visit, the journey there and back (VB-289)
+// suitor's visit, the journey there and back (VB-289); a lodger's judgement to stake a booth at its bed (VB-1172)
 VB['sim/away'] = (() => {
   const { living } = VB['sim/records'];
   const { release, goHome, free } = VB['sim/agents'];
