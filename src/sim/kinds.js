@@ -93,6 +93,7 @@ VB['sim/kinds'] = (() => {
   KINDS.dig = VB['sim/dig'].KIND; // digging clay and bog iron (VB-359): its record is sim/dig's
   KINDS.herd = VB['sim/grazing'].KIND;
   KINDS.lead = VB['sim/exchange'].KIND;
+  KINDS.drove = VB['sim/droving'].KIND; // animals that changed household led home from where they stand (VB-674)
   Object.assign(KINDS, VB['sim/quern'].KINDS); // grinding and hewing a quern (VB-009): their records are sim/quern's
   KINDS.hunt = VB['sim/deer'].KIND; // hunting roe deer (VB-139): its record is sim/deer's
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
@@ -140,7 +141,15 @@ VB['sim/kinds'] = (() => {
     fieldAt: {},
   };
   // VB-359, VB-300, sim/carts (a boat or a cart is a project's step), VB-139 (hunting roe deer), VB-390 (a cow led home, sim/exchange)
-  ASK.farmAfterPlans.push(rule('dig'), rule('rackfish'), rule('dry'), rule('mendcart'), rule('hunt'), rule('lead'));
+  ASK.farmAfterPlans.push(
+    rule('dig'),
+    rule('rackfish'),
+    rule('dry'),
+    rule('mendcart'),
+    rule('hunt'),
+    rule('lead'),
+    rule('drove'),
+  );
   ASK.farmAfterPlans.push(rule('grind'), rule('hewQuern')); // the hand quern (VB-009, sim/quern)
   ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)

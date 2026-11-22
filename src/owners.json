@@ -147,6 +147,7 @@
     "st.workDue": "sim/work",
     "st.lying": "sim/lying",
     "st.lyingSeq": "sim/lying",
+    "st.herdsAway": "sim/droving",
     "job.left": "sim/lying",
     "pawn.ties": "sim/ties",
     "pawn.tieT": "sim/ties",

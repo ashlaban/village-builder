@@ -36,7 +36,7 @@ VB['sim/heirs'] = (() => {
   const { SHARES, GOODWILL } = VB['sim/rules'],
     { houseCondition } = VB['sim/house'];
   const { passGoodwill } = VB['sim/relations'];
-  const { passHerds, payInAnimals } = VB['sim/herds'];
+  const { passHerds, payInAnimals } = VB['sim/droving'];
   const { abandoned } = VB['sim/fields'],
     { dropPlan } = VB['sim/plans'],
     { emit } = VB['sim/events'];

@@ -208,16 +208,12 @@ function drawHerds(c, show) {
     [x0, y0, x1, y1] = viewRect(60);
   for (const hd of st.herds) {
     let e = herdSprites.get(hd.id);
-    const sig =
-      hd.household === null
-        ? ''
-        : hd.head
-          ? hd.head.map((h) => h.id + h.kind).join()
-          : `${hd.ewes},${hd.rams},${hd.lambs}`;
+    const gone = hd.household === null && hd.at === undefined; // emptied (a herd left with nobody stands at its farm; VB-674)
+    const sig = gone ? '' : hd.head ? hd.head.map((h) => h.id + h.kind).join() : `${hd.ewes},${hd.rams},${hd.lambs}`;
     if (!e || e.sig !== sig) {
       if (e) for (const a of e.list) a.s.destroy();
       e = { sig, list: [] };
-      for (const an of hd.household === null ? [] : herdAnimals(hd)) {
+      for (const an of gone ? [] : herdAnimals(hd)) {
         const s = new PIXI.Sprite(an.cow !== undefined ? art.cow[an.cow][0] : art.sheep[0]);
         s.anchor.set(0.5, 0.92);
         s.scale.set(an.sc);

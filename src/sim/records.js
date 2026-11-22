@@ -116,6 +116,7 @@ VB['sim/records'] = (() => {
     weather: SHORT, // a season's weather, named as it begins (sim/weather, VB-354)
     herdBirths: GENERATION,
     herdDeath: GENERATION,
+    herdLed: GENERATION, // animals that changed household led home, or taken in where they were left (sim/droving, VB-674)
     slaughter: GENERATION,
     spoiled: GENERATION,
     putOff: GENERATION,

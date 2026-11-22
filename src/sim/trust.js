@@ -8,7 +8,7 @@ VB['sim/trust'] = (() => {
   const { freeHands, dropJob } = VB['sim/agents'];
   const { issue, register } = VB['sim/commands'];
   const { houseCondition } = VB['sim/house'];
-  const { passHerds } = VB['sim/herds'];
+  const { passHerds } = VB['sim/droving'];
   const Stores = VB['sim/stores'];
   const { kinHouseholds, shortOfPeople } = VB['sim/help'];
   const { trustOf } = VB['sim/ownership'];
