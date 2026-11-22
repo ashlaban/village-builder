@@ -10,7 +10,7 @@
 //   outlets     seed sown; eaten as meals (into the pot, by food), uncooked (grain and flour), fresh (gathered food as it is), from the larder, seed
 //               eaten; feasts; brewed; given (to households, to the village store, out of the store), packed for journeys, provisions,
 //               shares and handings on; rotted in households (grain, fresh food, the larder) and in the village store; left with a
-//               household that ended (its stores go with its farm)
+//               household that ended (its stores go with its farm); died holding: a pawn's stake when it dies, which nothing moves
 //   stores      the change over the year in grain, sheaves in the barn, flour, fish by the rack, fresh food, the larder, the village
 //               stores, pawns' stakes and gift grain on its way
 //   unexplained produced + received - outlets - the change in stores, with its share of the produce: 0 when every movement is counted.
@@ -139,6 +139,13 @@ function report(VB, st, opts = {}) {
     for (const j of st.away || []) if (j.gift && j.gift.held > 0) put('transit', j.gift.held, j.gift.held);
     return s;
   }
+  // The stakes the dead hold, by village (of the household each died in): a pawn's stake is not handed on at its death, and no movement
+  // takes it (the grain goes with it), so it is an outlet, `died holding`, the year's change in these.
+  function deadStakes() {
+    const s = new Map(), put = (v, n) => { s.set(v, (s.get(v) || 0) + n); s.set(G + v, (s.get(G + v) || 0) + n); };
+    for (const p of st.pawns) if (!p.alive && p.stake > 0) put(p.household !== null ? villageOf(st.households[p.household]) : 'transit', p.stake);
+    return s;
+  }
   function householdGrain(hh) {
     let n = Stores.grainOf(hh) + (hh.flour || 0);
     for (const x of hh.unthreshed || []) n += x;
@@ -173,7 +180,7 @@ function report(VB, st, opts = {}) {
       add(bucket(Stores.yearNow(st2), G + v, kept), 'out.ended', householdGrain(hh));
     },
   };
-  let open = opening();
+  let open = opening(), dead0 = deadStakes();
   const years = [];
   // the year's people, spread, goodwill and labour (below), read as the year starts, at the moving round's day and at its turn
   const P = people(VB, st), labour = {};
@@ -202,6 +209,12 @@ function report(VB, st, opts = {}) {
     counted = y;
     const lines = new Map();
     for (const m of [flows, kept]) for (const [v, b] of m.get(y) || []) lines.set(v, sumLines([lines.get(v) || {}, b]));
+    const dead1 = deadStakes();
+    for (const v of new Set([...dead0.keys(), ...dead1.keys()])) {
+      const n = (dead1.get(v) || 0) - (dead0.get(v) || 0);
+      if (n) lines.set(v, sumLines([lines.get(v) || {}, { 'out.diedHolding': n }]));
+    }
+    dead0 = dead1;
     const year = close(y, lines, open, end);
     year.people = P.end(c);
     year.spread = spread(VB, st, P.hungry0, produce);
@@ -427,7 +440,7 @@ const LABELS = {
   'given.toHouseholds': 'given to households', 'given.toStore': 'given to the village store', 'given.fromStore': 'given out of the village store',
   packed: 'packed for journeys', handedOn: 'provisions, shares, handings on', 'rotted.grain': 'rotted: grain in households',
   'rotted.fresh': 'rotted: fresh food', 'rotted.larder': 'rotted: the larder', 'rotted.store': 'rotted: the village store',
-  ended: 'left with households that ended', gifts: 'gifts into households', store: 'gifts into the village store', packsHome: 'packs brought home',
+  ended: 'left with households that ended', diedHolding: 'stakes of pawns who died holding them (not handed on)', gifts: 'gifts into households', store: 'gifts into the village store', packsHome: 'packs brought home',
 };
 function flat(o, pre = '') {
   const out = [];
