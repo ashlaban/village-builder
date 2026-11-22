@@ -8,7 +8,9 @@ VB['sim/jobs'] = (() => {
   const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age, kinNear } = VB['sim/records'];
-  const { freeHands, dropJob, offerWhy, heldAt, workSpot, bed } = VB['sim/agents'],
+  const { freeHands, dropJob, workSpot } = VB['sim/agents'],
+    { bed } = VB['sim/pose'],
+    { offerWhy, heldAt } = VB['sim/attention'],
     { ownerKey, rateOf, attentionOf, doneOf } = VB['sim/work'];
   const { tileAt, placeOf } = VB['sim/pose'];
   const { companyFor, opinionOf } = VB['sim/relations'];

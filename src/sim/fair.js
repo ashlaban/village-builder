@@ -27,8 +27,7 @@ VB['sim/fair'] = (() => {
   const { DAY, TRAVEL, GATHERING, cal } = VB['sim/rules'];
   const { log, personEvent, fullName, living, age } = VB['sim/records'];
   const { on } = VB['sim/events'];
-  const { bed, travelling } = VB['sim/agents'],
-    { placeOf, tileAt } = VB['sim/pose'];
+  const { bed, travelling, placeOf, tileAt } = VB['sim/pose'];
   const Lying = VB['sim/lying'];
   // The tunables (the agent's starting values; design.md, The fair): the goods a load may hold (animals walk and are not loaded yet);
   // the weight of a lump in rations of a back load (3 sacks or lots, or 2 barrels, a back; a hide is light); the hours of a fair's day in

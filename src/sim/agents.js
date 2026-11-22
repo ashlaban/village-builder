@@ -16,7 +16,7 @@ VB['sim/agents'] = (() => {
     { workTick } = VB['sim/progress'];
   const Lying = VB['sim/lying'];
   const Skills = VB['sim/skills'];
-  const { tileAt, here, endTile, placeOf } = VB['sim/pose'];
+  const { tileAt, here, endTile, placeOf, travelling, stayOf, bed } = VB['sim/pose'];
   const {
     attentionOf,
     inReach,
@@ -31,6 +31,7 @@ VB['sim/agents'] = (() => {
     teamFree,
     dueWork,
   } = VB['sim/work'];
+  const { heldAt, sideWhy, hold, unhold, dropSides, reachAfter, sideCheck } = VB['sim/attention'];
   const { legsOf, waitLeg, roadWait, unleg, halt, begin, repace, setOut, putAt, workAt, walked, dueLegs } =
     VB['sim/legs'];
   // the spot by the door of the house on tile `house`, where pawn a would stand
@@ -189,88 +190,8 @@ VB['sim/agents'] = (() => {
     if (!a.path) waitLeg(st, a);
     else repace(st, a); // a walk goes on, at the pace of what it now carries
   }
-  // ---- attention (VB-251; design.md section 7): a pawn holds one task (a.job), and besides it one partial and one background task ----
-  // @state agent.side: absent, or {partial, background}: the jobs the pawn holds besides its task, each a job of st.jobs listing the pawn
-  //   among its workers (j.claims), or null; absent when it holds none. A kind's attention is `full` (the default), `partial` or `background`
-  //   (sim/kinds): a background task is done at the side at the kind's `rate` of the pawn's hours, while the pawn is within `reach` steps of it.
-  const heldAt = (a, slot) => (a.side ? a.side[slot] : null);
-  // Why the pawn may not hold side task j now, or null: its slot is taken, it is no side kind, or a background task out of reach of the
-  // pawn, or of its full task's site (a full task never takes a background one out of reach). A pawn with no task in hand may take a
-  // background task out of its reach: it sets out for it (VB-136: the herder takes the herds to their pasture).
-  function sideWhy(st, a, j) {
-    const att = attentionOf(j);
-    if (att === 'full') return `${j.key} is not a side task`;
-    if (heldAt(a, att)) return `the pawn already holds a ${att} task`;
-    if (att === 'background' && a.job && !(inReach(st, j, here(st, a)) && inReach(st, j, a.job.site)))
-      return `${j.key} is out of its reach`;
-    return null;
-  }
-  // The pawn takes up side task j; a background task out of its reach, with no task in hand, it sets out for. The kind's `held` says what
-  // taking it up does (VB-136: the herds go out with the herder).
-  function hold(st, a, j) {
-    settle(st, j);
-    if (!a.side) a.side = { partial: null, background: null };
-    a.side[attentionOf(j)] = j;
-    j.claims.push(a.id);
-    if (attentionOf(j) === 'background' && !a.job && !inReach(st, j, here(st, a))) {
-      const [x, y] = workSpot(st, a, j);
-      walkTo(st, a, j.site, x, y);
-    }
-    if (KINDS[j.kind].held) KINDS[j.kind].held(st, j, a, cal(st.t));
-    rerate(st, j);
-  }
-  // The pawn lets go of side task j, which stays posted, with its progress, for others; reckoned at tick t.
-  function unhold(st, a, j, t = workTick(st)) {
-    settle(st, j, t);
-    const i = j.claims.indexOf(a.id);
-    if (i >= 0) j.claims.splice(i, 1);
-    for (const slot of ['partial', 'background']) if (a.side[slot] === j) a.side[slot] = null;
-    if (!a.side.partial && !a.side.background) delete a.side;
-    rerate(st, j);
-  }
-  // A walk in hand is trodden up to here first, at the weight of the herds it drives, and goes on from there (treadTo reads the side tasks).
-  function dropSides(st, a) {
-    if (a.side && a.path && a.leg && a.leg.kind === 'walk') {
-      halt(st, a, true, true);
-      begin(st, a);
-    }
-    if (a.side) for (const slot of ['partial', 'background']) if (a.side && a.side[slot]) unhold(st, a, a.side[slot]);
-  }
-  // The matcher offers a pawn that holds a background task only tasks within its reach (a full one beyond it never, until the urgency
-  // switch; VB-136: the herder may take other work within reach of the pasture); null when job j may be bid for, else why not.
-  function offerWhy(st, a, j) {
-    const att = attentionOf(j),
-      bg = heldAt(a, 'background');
-    if (att !== 'full') return sideWhy(st, a, j);
-    if (bg && !inReach(st, bg, j.site)) return `${j.key} would take the background task ${bg.key} out of reach`;
-    return null;
-  }
-  // The pawn takes a full task by the urgency switch (or an order): a background task the new site takes out of reach is let go.
-  function reachAfter(st, a) {
-    const bg = heldAt(a, 'background');
-    if (bg && a.job && !inReach(st, bg, a.job.site)) unhold(st, a, bg);
-  }
-  // A background task (VB-136) is reckoned in closed form, as a task under work is (VB-472): its holders minding it give its rate (a
-  // child minds the herd as long as a man: hours, not work), and its end waits in st.workDue (sideEnded). What its holder does is looked
-  // at when the holder's leg begins and ends (sideCheck, VB-473): a walk that ends out of its reach lets it go, one into reach keeps it,
-  // unworked, and a holder standing at other work out of its reach lets it go. A task taken down is let go at once (dropJob), and at the
-  // end of the working day every holder lets go (sim/clock). Its work done, a pawn with nothing else in hand goes home (VB-136: the
-  // herder brings the herds home).
-  // The holder's leg has begun or ended (its background task reckoned before it changed; sim/legs tells it, legChanged): out of reach
-  // the task is let go, else its rate is told again if its minding changed.
-  function sideCheck(st, a) {
-    const j = heldAt(a, 'background');
-    if (!j) return;
-    const walking = a.path && a.leg && a.leg.kind === 'walk';
-    if (walking ? !inReach(st, j, endTile(st, a)) : a.phase !== null && !inReach(st, j, tileAt(st, a.x, a.y)))
-      return unhold(st, a, j);
-    if (Math.abs(manning(st, j) - (j.rate || 0)) > 1e-12) {
-      settle(st, j);
-      rerate(st, j);
-    }
-  }
-  // The background task j is due (dueWork): its first holder lets it go, its kind's `done` runs for that holder's household, and the task
-  // is taken down (the others let it go there); that holder, if it stands idle outdoors, goes home.
+  // The background task j is due (sim/work dueWork, which found its first holder a, and finished it): a lets it go, its kind's `done` runs
+  // for a's household, and the task is taken down (the others let it go there); a, if it stands idle outdoors, goes home.
   function sideEnded(st, j, a) {
     const K = KINDS[j.kind];
     unhold(st, a, j);
@@ -570,26 +491,9 @@ VB['sim/agents'] = (() => {
     }
   }
   // ---- away from home (VB-783; design.md, Sleeping away from home): the stays are sim/away's (st.away, agent.away); what is left here is
-  // the walking of a journey's legs and the bed, which every walk home reads. sim/away loads after this module, and hears by sim/events of
-  // a leg's end, a rest's end on the road, a death, a move made once a load is in, and an arrival at the bed of one away ----
-  // A pawn on a journey is in phase 'journey' while it walks a leg and 'road' before its first leg and between legs, when it rests and
-  // keeps its route (a.path, a.seg).
-  const travelling = (a) => a.phase === 'journey' || a.phase === 'road';
-  // The open stay of pawn id (st.away, by the index agent.away), or null.
-  function stayOf(st, id) {
-    const k = st.agents[id].away;
-    if (k === undefined) return null;
-    for (const s of st.away) if (s.id === k) return s;
-    return null;
-  }
-  // The bed (design: Sleeping away from home, The bed): the tile pawn a's day starts from and ends at. Its household's house; away, its
-  // stay's bed; on the road, where it stands; walking home from a stay, the house again.
-  function bed(st, a) {
-    const s = a.away === undefined ? null : stayOf(st, a.id);
-    if (s !== null && s.bed === null) return here(st, a);
-    if (s !== null && !s.back) return s.bed;
-    return st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
-  }
+  // the walking of a journey's legs (the bed, which every walk home reads, is sim/pose's). sim/away loads after this module, and hears
+  // by sim/events of a leg's end, a rest's end on the road, a death, a move made once a load is in, and an arrival at the bed of one
+  // away ----
   // A journey's pawn rests on the road where it stands until its next leg, at the next 6:00.
   function restOnRoad(st, a) {
     if (a.path) halt(st, a);
@@ -677,7 +581,12 @@ VB['sim/agents'] = (() => {
     if (a.inside) return s ? 'Away from home' : 'At home';
     return a.path ? 'Strolling' : 'Resting';
   }
-  on('legChanged', sideCheck);
+  // A background task held out of reach, with no task in hand (sim/attention hold): the pawn sets out for it.
+  on('sideAway', (st, a) => {
+    const j = a.side.background,
+      [x, y] = workSpot(st, a, j);
+    walkTo(st, a, j.site, x, y);
+  });
   // A living pawn not on a journey (VB-287): on the road it takes no work, walks nowhere else and goes to no occasion.
   const free = (st, id) => living(st, id) || (travelling(st.agents[id]) ? `pawn ${id} is on the road` : null);
   // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
@@ -763,16 +672,6 @@ VB['sim/agents'] = (() => {
     stepAgents,
     rest,
     describe,
-    heldAt,
-    sideWhy,
-    offerWhy,
-    hold,
-    unhold,
-    dropSides,
-    reachAfter,
-    travelling,
-    stayOf,
-    bed,
     restOnRoad,
     walkLeg,
     turnTo,

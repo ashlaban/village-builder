@@ -5,7 +5,7 @@
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js'), { canon } = require('./lib/canon.js');
-const { issue } = VB['sim/commands'], { post } = VB['sim/jobs'], { bed, stayOf } = VB['sim/agents'], Stores = VB['sim/stores'];
+const { issue } = VB['sim/commands'], { post } = VB['sim/jobs'], { bed, stayOf } = VB['sim/pose'], Stores = VB['sim/stores'];
 const { feedHousehold, rationOf } = VB['sim/hunger'];
 const { DAY, WORK } = VB['sim/rules'], { AWAY } = VB['sim/away'];
 const hourOf = (st) => st.t - Math.floor(st.t / DAY) * DAY;

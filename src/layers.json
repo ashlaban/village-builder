@@ -73,6 +73,7 @@
       "sim/stakes",
       "sim/territory",
       "sim/progress",
+      "sim/pose",
       "sim/expansion",
       "sim/building",
       "sim/drying",
@@ -105,9 +106,9 @@
       "sim/commons"
     ],
     "agency": [
-      "sim/pose",
       "sim/legs",
       "sim/work",
+      "sim/attention",
       "sim/agents",
       "sim/away",
       "sim/gifts",

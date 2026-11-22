@@ -1,5 +1,5 @@
 // @sys sim/pose: where a pawn is, read only: the tile at a map point, and a walker's place, pose and hours left, worked out from its leg
-// (sim/legs) at any moment between its start and its end; split from sim/agents (VB-422)
+// (sim/legs) at any moment between its start and its end, and its bed; split from sim/agents (VB-422)
 VB['sim/pose'] = (() => {
   const { TICKS } = VB['sim/rules'];
   const { workTick } = VB['sim/progress'];
@@ -89,5 +89,24 @@ VB['sim/pose'] = (() => {
       [i, x, y] = along(a, l, e);
     return poseAt(a, l, Math.min(e, l.h.length ? l.h[l.h.length - 1] : 0), i, x, y);
   }
-  return { tileAt, here, endTile, along, poseAt, placeOf, walkHours, poseOf };
+  // ---- the bed (VB-783; design.md, Sleeping away from home): where a pawn's day starts and ends; the stays are sim/away's ----
+  // A pawn on a journey is in phase 'journey' while it walks a leg and 'road' before its first leg and between legs, when it rests and
+  // keeps its route (a.path, a.seg).
+  const travelling = (a) => a.phase === 'journey' || a.phase === 'road';
+  // The open stay of pawn id (st.away, by the index agent.away), or null.
+  function stayOf(st, id) {
+    const k = st.agents[id].away;
+    if (k === undefined) return null;
+    for (const s of st.away) if (s.id === k) return s;
+    return null;
+  }
+  // The bed (design: Sleeping away from home, The bed): the tile pawn a's day starts from and ends at. Its household's house; away, its
+  // stay's bed; on the road, where it stands; walking home from a stay, the house again.
+  function bed(st, a) {
+    const s = a.away === undefined ? null : stayOf(st, a.id);
+    if (s !== null && s.bed === null) return here(st, a);
+    if (s !== null && !s.back) return s.bed;
+    return st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
+  }
+  return { tileAt, here, endTile, along, poseAt, placeOf, walkHours, poseOf, travelling, stayOf, bed };
 })();

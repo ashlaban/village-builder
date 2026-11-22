@@ -94,6 +94,7 @@
   "sim/pose.js",
   "sim/legs.js",
   "sim/work.js",
+  "sim/attention.js",
   "sim/agents.js",
   "sim/away.js",
   "sim/gifts.js",

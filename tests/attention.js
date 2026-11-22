@@ -42,16 +42,16 @@ try {
   // never two of one attention
   assert.match(go(bg2), /already holds a background/); assert.match(go(pt2), /already holds a partial/);
   // out of reach: refused
-  A.unhold(st, a, bg); assert.strictEqual(a.side.background, null);
+  VB['sim/attention'].unhold(st, a, bg); assert.strictEqual(a.side.background, null);
   assert.match(go(farBg), /out of its reach/);
   assert.strictEqual(go(bg), true);
   // the matcher offers a pawn with a background task only tasks within reach (VB-136: a full one too, so the herder works by the pasture)
   const c = Sim.cal(st.t);
-  A.unhold(st, a, pt); A.release(st, a);
-  assert.strictEqual(A.offerWhy(st, a, pt2), null, 'a partial task in reach is offered');
-  assert.strictEqual(A.offerWhy(st, a, full), null, 'a full task in reach is offered');
-  assert.ok(A.offerWhy(st, a, farFull), 'a full task out of reach is not');
-  assert.ok(A.offerWhy(st, a, bg2), 'a second background task is not');
+  VB['sim/attention'].unhold(st, a, pt); A.release(st, a);
+  assert.strictEqual(VB['sim/attention'].offerWhy(st, a, pt2), null, 'a partial task in reach is offered');
+  assert.strictEqual(VB['sim/attention'].offerWhy(st, a, full), null, 'a full task in reach is offered');
+  assert.ok(VB['sim/attention'].offerWhy(st, a, farFull), 'a full task out of reach is not');
+  assert.ok(VB['sim/attention'].offerWhy(st, a, bg2), 'a second background task is not');
   assert.strictEqual(bid(st, a, farFull, c), -1);
   // taking full work out of reach (the urgency switch) drops the background task, and reopens it
   assert.strictEqual(go(farFull), true);
@@ -74,7 +74,7 @@ try {
   assert.ok(!(farBg.rate > 0), 'no rate on the way');
   arrive();
   assert.ok(a.side && a.side.background === farBg && farBg.rate > 0, 'minded once there: looked at as its leg ends');
-  A.unhold(st, a, farBg);
+  VB['sim/attention'].unhold(st, a, farBg);
   // a death lets go all
   walk(near);
   assert.strictEqual(go(bg), true); assert.strictEqual(go(pt), true);

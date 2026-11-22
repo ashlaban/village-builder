@@ -18,9 +18,8 @@ VB['sim/away'] = (() => {
   const { driveHome } = VB['sim/grazing'];
   const { on, emit } = VB['sim/events'];
   const Lying = VB['sim/lying'];
-  const { travelling, stayOf, placeAtHome, restOnRoad, walkLeg, turnTo, setDown, stop, waitIndoors, standBy } =
-    VB['sim/agents'];
-  const { placeOf, tileAt } = VB['sim/pose'];
+  const { placeAtHome, restOnRoad, walkLeg, turnTo, setDown, stop, waitIndoors, standBy } = VB['sim/agents'];
+  const { placeOf, tileAt, travelling, stayOf } = VB['sim/pose'];
   // @tunable AWAY: sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
   // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
   // worked from a bed there rather than from home (a third of the working day)

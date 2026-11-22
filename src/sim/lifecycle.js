@@ -10,8 +10,8 @@ VB['sim/lifecycle'] = (() => {
   const { leaveHousehold, unionOf, noteDeath, log, age, fullName, noteUnionEnd, atHousehold, lifeEvent, isHolder } =
     VB['sim/records'];
   const { setAtAge } = VB['sim/traits'];
-  const { stillAtDeath, travelling } = VB['sim/agents'],
-    { tileAt, placeOf } = VB['sim/pose'];
+  const { stillAtDeath } = VB['sim/agents'],
+    { tileAt, placeOf, travelling } = VB['sim/pose'];
   const { heirRanking, successorOf } = VB['sim/heirranking'],
     { transfer, succession, comeOfAge, refreshRoles } = VB['sim/heirs'];
   const { careForOrphans } = VB['sim/service'];
