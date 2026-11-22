@@ -145,6 +145,8 @@ VB['sim/fields'] = (() => {
   function takeRotation(st, f, hh, key, { hold = false, short = null } = {}) {
     const changed = key !== null && f.fields[0].rotation !== key;
     if (changed) restagger(f, key);
+    // a farm that now sows one crop has no other to turn to after a failure (failed's own rule): what it remembers of one goes
+    if (changed && f.failed && ROTATIONS[key].courses.filter((k) => CROPS[k].seed > 0).length < 2) delete f.failed;
     if (hold && key !== null) f.rotationBy = hh.id;
     else if (f.rotationBy === hh.id) delete f.rotationBy;
     if (!changed || (short === null && !hold)) return;
