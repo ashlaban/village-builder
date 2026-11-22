@@ -64,10 +64,27 @@ VB['sim/away'] = (() => {
     if (!j || j.why !== 'move' || j.back || j.to !== st.farmsteads[st.households[to].farmstead].house) return false;
     j.why = 'fetch';
     j.gift = { to, held: 0, parts: {}, stops };
-    j.back = false;
+    turn(j, false);
     j.to = stops[0].at;
     turnTo(st, st.agents[pawn], j.to);
     return true;
+  }
+  // A new stay's id (st.awaySeq): ids are never reused.
+  const nextStay = (st) => st.awaySeq++;
+  // Stay `stay`'s bed is tile `bed` (null: on the road) under `roof`, a guest of household `host` (absent: no one's guest).
+  function bedAt(stay, bed, roof, host) {
+    if (host !== undefined) stay.host = host;
+    stay.bed = bed;
+    stay.roof = roof;
+    if (host === undefined) delete stay.host;
+  }
+  // Stay `stay` has turned for home (`back` true), or not yet.
+  const turn = (stay, back) => {
+    stay.back = back;
+  };
+  // A lodger's stay becomes a journey: what was the lodger's goes (its tasks, walk, host, turn and occasion).
+  function unlodge(stay) {
+    for (const k of ['jobs', 'walk', 'host', 'back', 'until']) delete stay[k];
   }
   // Stay s ends: out of st.away and the index.
   function close(st, s) {
@@ -208,7 +225,7 @@ VB['sim/away'] = (() => {
       host = args.host === undefined || args.host === null ? null : st.households[args.host],
       b = host ? houseOf(st, host) : at,
       s = {
-        id: st.awaySeq++,
+        id: nextStay(st),
         pawn: a.id,
         why: args.why,
         bed: b,
@@ -344,7 +361,7 @@ VB['sim/away'] = (() => {
     }
     setDown(st, a);
     const s = stayOf(st, a.id);
-    if (s) s.back = true; // lodging away: it goes to the new home from its bed (VB-783)
+    if (s) turn(s, true); // lodging away: it goes to the new home from its bed (VB-783)
     const from = old ? st.farmsteads[old.farmstead] : null,
       at = tileAt(st, ...placeOf(st, a));
     if (from ? from.village !== f.village : hoursTo(st, null, at, f.village) > TRAVEL.dayWalk)
@@ -377,16 +394,15 @@ VB['sim/away'] = (() => {
       f = st.farmsteads[hh.farmstead],
       fetch = !!(gift && gift.stops),
       was = stayOf(st, a.id),
-      j = was || { id: st.awaySeq++, pawn: a.id, food: 0 };
+      j = was || { id: nextStay(st), pawn: a.id, food: 0 };
     j.to = fetch ? gift.stops[0].at : f.house;
     j.why = fetch ? (gift.haul ? 'haul' : 'fetch') : gift ? 'carry' : 'move';
-    j.bed = null;
-    j.roof = 'none';
+    bedAt(j, null, 'none');
     j.from = old ? old.farmstead : null;
-    if (was) for (const k of ['jobs', 'walk', 'host', 'back', 'until']) delete j[k];
+    if (was) unlodge(j);
     if (gift) {
       j.gift = gift; // VB-291: {to (household), n (grain), parts (by crop)}; null from its arrival on, the pawn walking home
-      j.back = false;
+      turn(j, false);
     }
     // provisions (design: Provisions and the season): a ration (half below 14) a day of walking, from the grain above the seed of the
     // household it leaves, never of the one it joins (VB-676: nothing is carried from a store the pawn has not reached); with none to give
@@ -422,7 +438,7 @@ VB['sim/away'] = (() => {
       hh = st.households[p.household],
       f = st.farmsteads[hh.farmstead],
       hours = hoursBetween(st, f.village, v),
-      j = { id: st.awaySeq++, pawn: a.id, why: 'visit', bed: null, roof: 'none', food: 0, from: f.id, village: v };
+      j = { id: nextStay(st), pawn: a.id, why: 'visit', bed: null, roof: 'none', food: 0, from: f.id, village: v };
     j.to = st.villages[v].center;
     j.back = false;
     j.stay = TRAVEL.stay;
@@ -444,15 +460,13 @@ VB['sim/away'] = (() => {
   function visited(st, a, j) {
     const hh = st.households[st.pawns[a.id].household];
     emit(st, 'visited', { pawn: a.id, village: j.village });
-    j.back = true;
+    turn(j, true);
     j.guest = true;
     j.to = st.farmsteads[hh.farmstead].house;
     const host = askBed(st, a.id, j.village);
     if (host) {
       // a guest in the host's house (roof 'house', the host's fire): he stands at its door for his nights there
-      j.host = host.id;
-      j.bed = houseOf(st, host);
-      j.roof = 'house';
+      bedAt(j, houseOf(st, host), 'house', host.id);
       return walkLeg(st, a, j.bed);
     }
     restOnRoad(st, a);
@@ -492,9 +506,7 @@ VB['sim/away'] = (() => {
   }
   // A guest's nights at the host's house are over: his bed is the road again.
   function leaveHost(j) {
-    j.bed = null;
-    j.roof = 'none';
-    delete j.host;
+    bedAt(j, null, 'none');
   }
   // A journey's rest is over at 6:00: a guest with days to stay stays one more (he takes no work there), else the next leg sets out.
   function legDue(st, a) {
@@ -551,7 +563,7 @@ VB['sim/away'] = (() => {
     }
     unfetched(st, g);
     j.gift = null;
-    j.back = true;
+    turn(j, true);
     const home = st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
     if (home === v.center) return endJourney(st, a);
     j.to = home;
@@ -608,7 +620,7 @@ VB['sim/away'] = (() => {
     }
     unfetched(st, g);
     j.gift = null;
-    j.back = true;
+    turn(j, true);
     const home = st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
     if (home === house) return endJourney(st, a);
     j.to = home;
@@ -633,7 +645,7 @@ VB['sim/away'] = (() => {
       to = st.households[g.to],
       f = st.farmsteads[to.farmstead];
     j.gift = null;
-    j.back = true;
+    turn(j, true);
     if (to.dissolved) Stores.put(st, st.villages[f.village], 'grain', g.n, { kind: 'gift', from: f.name }, g.parts);
     else
       receive(st, from && !from.dissolved && from !== to ? from : null, to, g.n, st.farmsteads[j.from].name, g.parts);
@@ -665,7 +677,7 @@ VB['sim/away'] = (() => {
       if (j.gift.held > 0) return true;
       unfetched(st, j.gift);
       j.gift = null;
-      j.back = true;
+      turn(j, true);
       return false;
     },
   };
@@ -697,7 +709,7 @@ VB['sim/away'] = (() => {
       },
       // his home changed on the way (VB-289): the visit is over, and he walks to the home he has
       rehome: (st, a, j) => {
-        j.back = true;
+        turn(j, true);
         j.stay = 0;
         delete j.guest;
         if (j.host !== undefined) leaveHost(j);
