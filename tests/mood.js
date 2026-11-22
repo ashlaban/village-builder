@@ -1,7 +1,8 @@
 // Mood (VB-062; design.md, Traits, talk and stories: Mood): 50 plus the modifiers in force, within 0 to 100. A modifier for a state is read
 // from the state (hungry, cold, without water, weak), one for an event is written at it into pawn.mods (newly married, a child born, both
 // parents, grieving at the death of a spouse, child or parent) and is gone on time without a pass, and "talked with a friend" is read from
-// the latest talk. A save keeps the event modifiers. Nothing in the simulation reads mood. On the probe's small village.
+// the latest talk. A save keeps the event modifiers. One rule reads mood (VB-875): the allowance of a gift, by the giver's mood
+// (sim/exchange's term `mood`), and no other module of the simulation. On the probe's small village.
 const VB = require('../src/load.js'), Sim = VB.sim;
 const fs = require('fs'), path = require('path');
 const { DAY, TICKS, YEAR } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'], { MOOD } = VB['sim/mood'], Mood = VB['sim/mood'];
@@ -156,14 +157,58 @@ check(Mood.word(24) === 'miserable' && Mood.word(25) === 'low' && Mood.word(45) 
   check(all.mood >= 0 && all.mood <= 100 && all.mood === 50 + all.mods.reduce((s, x) => s + x.value, 0), `in range: ${all.mood}`);
 }
 
-// --- nothing in the simulation reads mood: only sim/mood itself and the Sim facade name it (until a later task means to)
+// --- level: the number of() gives, made without the list, in every state above and a few more
 {
-  const src = path.join(__dirname, '..', 'src');
+  const s3 = probe.state();
+  Sim.advance(s3, 3 * DAY);
+  let n = 0;
+  for (const id of s3.living) {
+    const p = s3.pawns[id];
+    if (id % 3 === 0) p.hunger = 0.6;
+    if (id % 5 === 0) Mood.feel(s3, id, 'grieving');
+    if (id % 7 === 0) p.health = 40;
+    if (Mood.level(s3, id) === Mood.of(s3, id).mood) n++;
+  }
+  check(n === s3.living.length, `level as of: ${n} of ${s3.living.length}`);
+  check(Mood.level(st, man) === null, 'the dead have no level');
+}
+
+// --- the one rule that reads it (VB-875): a gift's allowance gains MOOD.gives.days of the giving household's need × (mood − 50) / 50
+{
+  const s4 = probe.state(), Rules = VB['sim/registry'], { dailyNeed } = VB['sim/hunger'];
+  calm(s4);
+  const holders = s4.households.filter((h) => !h.dissolved && h.holder !== null);
+  const [from, to] = holders;
+  const c = { giver: from.holder, receiver: to.holder, from, to };
+  const part = () => Rules.explain(s4, 'allowance', c).parts.find((x) => x.key === 'mood');
+  check(part() && part().source === 'sim/exchange' && part().factor === 0, `calm, no term: ${JSON.stringify(part())}`);
+  const calmValue = Rules.value(s4, 'allowance', c);
+  Mood.feel(s4, from.holder, 'grieving');
+  const want = (MOOD.gives.days * MOOD.grieving.value * dailyNeed(s4, from)) / MOOD.base;
+  check(Math.abs(part().factor - want) < 1e-9 && want < 0, `grieving holds back ${-want} rations: ${part().factor}`);
+  check(Rules.value(s4, 'allowance', c) <= calmValue, 'and the allowance falls');
+  s4.pawns[from.holder].mods = [];
+  Mood.feel(s4, from.holder, 'married');
+  check(part().factor > 0, `newly married gives more: ${part().factor}`);
+  // the receiver's mood is not read
+  s4.pawns[from.holder].mods = [];
+  Mood.feel(s4, to.holder, 'grieving');
+  check(part().factor === 0, 'the receiver grieving moves nothing');
+}
+
+// --- no other module of the simulation reads mood: only sim/mood itself, the Sim facade, and sim/exchange's term, which reads level
+{
+  const src = path.join(__dirname, '..', 'src'), READER = 'exchange.js';
   for (const f of fs.readdirSync(path.join(src, 'sim'))) {
     if (f === 'mood.js') continue;
     const code = readSource(path.join(src, 'sim', f)).replace(/\/\/.*$/gm, ''); // its code, not its comments
-    check(!/sim\/mood|\.mods\b|moodOf/.test(code), `src/sim/${f} reads mood`);
+    if (f === READER) {
+      const names = code.match(/\{[^{}]*\}\s*=\s*VB\['sim\/mood'\]/g) || [];
+      check(names.length === 1 && /^\{\s*MOOD,\s*level: moodOf\s*\}/.test(names[0]) && code.split("VB['sim/mood']").length === 2, `sim/exchange takes MOOD and level only: ${names}`);
+      check(!/\.mods\b|Mood\.of|\bof\(/.test(code), 'sim/exchange reads no modifier list');
+      check((code.match(/moodOf\(/g) || []).length === 1, 'sim/exchange reads mood in its one term');
+    } else check(!/sim\/mood|\.mods\b|moodOf/.test(code), `src/sim/${f} reads mood`);
   }
 }
 if (failed) process.exit(1);
-console.log('mood: states, events, talk, save and range ok');
+console.log('mood: states, events, talk, save, range, level and the allowance term ok');

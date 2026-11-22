@@ -16,6 +16,7 @@ VB['sim/exchange'] = (() => {
   const Norms = VB['sim/norms'];
   const Offers = VB['sim/offers'];
   const { issue } = VB['sim/commands'];
+  const { MOOD, level: moodOf } = VB['sim/mood'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. Switched on by GOODWILL.acts (VB-220).
@@ -53,6 +54,21 @@ VB['sim/exchange'] = (() => {
       value: opinionTerm,
     });
   }
+  // allowance's mood term (VB-875; design.md, Traits, talk and stories: Mood): the giving holder's mood moves what it would give up, by
+  // MOOD.gives.days of its household's need at the ends of the scale: a holder low in spirits holds on to what it has. Read when a gift,
+  // an ask or help is weighed, so mood is read where an answer is given and nowhere else (no pass; sim/mood's level allocates nothing).
+  function moodTerm(st, c) {
+    const m = c.giver === null ? null : moodOf(st, c.giver);
+    return m === null ? 0 : (MOOD.gives.days * (m - MOOD.base) * dailyNeed(st, c.from)) / MOOD.base;
+  }
+  Rules.contribute({
+    rule: 'allowance',
+    source: 'sim/exchange',
+    key: 'mood',
+    label: 'Mood',
+    tunables: ['MOOD.gives.days'],
+    value: moodTerm,
+  });
   // A gift {from, to, good, n, source}: from and to are households or villages (a village gives from its store, or takes the yearly
   // filling). Sizes are compared with a tolerance, since the size help asks for is reckoned apart from the allowance's sum.
   const TOLERANCE = 1e-9;
