@@ -213,6 +213,7 @@ function runOf(sc) {
 function openStart(msg) {
   $('genSeed').value = String(choice.seed);
   $('genSize').value = choice.size;
+  $('genClimate').value = String(choice.lat);
   $('genMsg').hidden = !msg;
   $('genMsg').textContent = msg || '';
   if (!start) {

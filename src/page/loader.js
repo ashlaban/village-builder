@@ -20,7 +20,7 @@ async function drive(gen, onP) {
 
 let building = false;
 const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
-let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm' }; // what the generation screen shows
+let choice = { seed: (Math.random() * 1e6) | 0, scenario: 'founders', size: 'm', lat: 59 }; // what the generation screen shows (lat: VB-807's climate)
 // The landing page: Play a Scenario (the start; page/start), Archipelago editor (page/editor) and Load archipelago
 // (the Saves overlay; page/saves). A game that is open
 // stays as it is, paused, until another is generated or loaded: Back to game returns to it (Kim, 10 Nov).
@@ -108,8 +108,9 @@ async function swapWorld(wd, sim, { wc, over }) {
 // laying what was changed by hand on the land raised and `places` what was placed, for the manual scenario: such a game is `unsaved`.
 async function build(seed, scenario, size, save = null, quick = false) {
   const custom = typeof size === 'object' ? size : null,
-    opt = custom || { cols: SIZES[size][0], rows: SIZES[size][1] };
-  if (!custom) choice = { seed, scenario, size };
+    lat = save ? undefined : choice.lat, // a new world in the climate chosen; a loaded one takes its own from the save (sim/saves)
+    opt = custom ? { ...custom, lat } : { cols: SIZES[size][0], rows: SIZES[size][1], lat };
+  if (!custom) choice = { seed, scenario, size, lat: choice.lat };
   $('genScreen').hidden = true;
   $('landing').hidden = true;
   $('editor').hidden = true;
@@ -185,7 +186,8 @@ async function build(seed, scenario, size, save = null, quick = false) {
   const scName = (START_WORDS[scenario] || { name: scenario }).name;
   $('meta').textContent =
     `${scName}, ${custom ? 'custom' : named('genSize', size).split(' (')[0].toLowerCase()} map, seed ${wd.seed}: ` +
-    `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions`;
+    `${wd.COLS} by ${wd.ROWS} tiles, ${landRegions} regions` +
+    (wd.lat !== 59 ? `, ${named('genClimate', String(wd.lat)).split(' (')[0].toLowerCase()} climate` : '');
   document.title = `${wd.name}, a hex archipelago`;
 
   // Opening move: start on the whole chart, then glide down through the clouds to the village; for a new game, to the farm of the
