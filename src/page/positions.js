@@ -77,6 +77,7 @@ const STORIES = {
     ['spouse', 'A founder’s wife'],
     ['servant', 'The farmhand or the maid'],
   ],
+  solo: [['holder', 'The lone settler', true]],
   heirs: [
     ['holder', 'An ageing holder', true],
     ['heir', 'The heir who waits'],

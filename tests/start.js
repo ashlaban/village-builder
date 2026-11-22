@@ -1,5 +1,5 @@
 // The start's island (VB-340): the showcase island of the menu (DEMO, page/loader) re-seeded with each built scenario. Heirs asks for less
-// land on a small map (seedHeirs, sim/scenarios), so it fits that island; DEMO.start lists the seeds of DEMO.seeds where all three fit.
+// land on a small map (seedHeirs, sim/scenarios), so it fits that island; DEMO.start lists the seeds of DEMO.seeds where every scenario fits.
 // `--people` also checks the start's people at each map size (START_PEOPLE, page/start) against Sim.seed at the seeds of DEMO.seeds (extended).
 const fs = require('fs'), path = require('path');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
@@ -9,7 +9,7 @@ const DEMO = literal(src('loader.js'), 'DEMO'), PEOPLE = literal(src('start.js')
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('START FAIL:', m); } };
 // each seed's island generated once and handed out as a fresh copy for each scenario (tests/lib/probe.js; VB-862: three times a seed before)
 const world = (seed, cols, rows) => require('./lib/probe.js').island(seed, { cols, rows });
-const SCENARIOS = ['founders', 'heirs', 'populous'];
+const SCENARIOS = ['founders', 'solo', 'heirs', 'populous'];
 const living = (st) => st.pawns.filter((p) => p.alive).length;
 const fits = [], heirsAt = [];
 for (const seed of DEMO.seeds) {
@@ -19,9 +19,9 @@ for (const seed of DEMO.seeds) {
   if (ok) fits.push(seed);
 }
 check(heirsAt.length >= 8, `heirs seeds on the ${DEMO.cols} by ${DEMO.rows} showcase at only ${heirsAt.join(', ')} of ${DEMO.seeds.join(', ')}`);
-check(fits.join() === DEMO.start.join(), `all three scenarios fit the showcase at ${fits.join(', ')}; DEMO.start is ${DEMO.start.join(', ')}`);
+check(fits.join() === DEMO.start.join(), `every scenario fits the showcase at ${fits.join(', ')}; DEMO.start is ${DEMO.start.join(', ')}`);
 check(DEMO.start.every((s) => DEMO.seeds.includes(s)), 'DEMO.start has a seed DEMO.seeds lacks');
-console.log(`showcase ${DEMO.cols} by ${DEMO.rows}: heirs at ${heirsAt.length} of ${DEMO.seeds.length} seeds; all three at ${fits.join(', ')}`);
+console.log(`showcase ${DEMO.cols} by ${DEMO.rows}: heirs at ${heirsAt.length} of ${DEMO.seeds.length} seeds; every scenario at ${fits.join(', ')}`);
 if (process.argv.includes('--people')) {
   const SIZES = { t: [120, 85], s: [180, 130], m: [280, 200], l: [380, 270] };
   for (const [size, [cols, rows]] of Object.entries(SIZES)) for (const sc of SCENARIOS) {

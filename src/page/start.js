@@ -7,7 +7,7 @@
 // drawn by hand, no number that is not read from a run, nothing that moves under the pointer.
 let start = null,
   aside = null;
-const START_ORDER = ['founders', 'heirs', 'populous'];
+const START_ORDER = ['founders', 'solo', 'heirs', 'populous'];
 // The words are the mock's (docs/mocks/setup.html, SCENARIOS), without the numbers a run gives.
 const START_WORDS = {
   founders: {
@@ -20,6 +20,17 @@ const START_WORDS = {
       ['Winter', 'Live on stores'],
     ],
     stores: 'A year’s grain to eat and seed to sow, and next to no fields or meadows',
+  },
+  solo: {
+    name: 'Solo',
+    line: 'One young settler, alone, and land no one has broken.',
+    year: [
+      ['Spring', 'Break a field, sow'],
+      ['Summer', 'Clear a meadow, make hay'],
+      ['Autumn', 'Reap it all alone'],
+      ['Winter', 'Live on stores'],
+    ],
+    stores: 'A year’s grain for one, seed to sow, a few beasts, and no fields or meadows',
   },
   heirs: {
     name: 'Heirs and empty farms',
@@ -42,6 +53,7 @@ const START_WORDS = {
 // The living at the start, for each map size: the least and the most of Sim.seed at the seeds of DEMO.seeds (tests/start.js runs them).
 const START_PEOPLE = {
   founders: { t: [10, 10], s: [10, 10], m: [10, 10], l: [10, 10] },
+  solo: { t: [1, 1], s: [1, 1], m: [1, 1], l: [1, 1] },
   heirs: { t: [18, 18], s: [18, 18], m: [18, 18], l: [18, 18] },
   populous: { t: [132, 156], s: [323, 360], m: [800, 844], l: [801, 880] },
 };
@@ -83,7 +95,7 @@ const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 const startOpen = () => !!start && !$('genScreen').hidden;
 
 // ---- the showcase runs ----
-// The seed of the start's island: the menu's own where all three scenarios fit there, else one of those seeds.
+// The seed of the start's island: the menu's own where every scenario fits there, else one of those seeds.
 function startSeed() {
   if (demoRun && DEMO.start.includes(demoRun.seed)) return demoRun.seed;
   return DEMO.start[(Math.random() * DEMO.start.length) | 0]; // a visit's island: the page's choice, as the menu's is
@@ -126,13 +138,17 @@ function pinsOf(wd, s, sc) {
     farms = (v) => v.farmsteads.map((id) => s.farmsteads[id]);
   const pic = (url, gone) => ({ img: url, gone });
   let v, pins;
-  if (sc === 'founders') {
+  if (sc === 'founders' || sc === 'solo') {
     v = s.villages[0];
     const fs = farms(v),
       meadow = nearTile(wd, v.center, (i) => wd.biome[i] === B.MEADOW);
     const wood = nearTile(wd, v.center, (i) => (wd.biome[i] === B.FOREST || wd.biome[i] === B.PINE) && wd.trees[i] > 0);
     pins = [
-      { ...T(fs[0].house), ...pic(farmIcon(fs[0])), text: 'The houses stand ready' },
+      {
+        ...T(fs[0].house),
+        ...pic(farmIcon(fs[0])),
+        text: fs.length > 1 ? 'The houses stand ready' : 'The house stands ready',
+      },
       v.well ? { x: wd.hx[v.center] + 1, y: wd.hy[v.center] + 10, icon: 'well', text: 'One well between them' } : null,
       meadow >= 0 ? { ...T(meadow), icon: 'meadow', text: 'No field broken yet' } : null,
       wood >= 0 ? { ...T(wood), icon: 'tree', text: 'Forest to clear for hay meadows' } : null,
@@ -253,7 +269,7 @@ function openStart(msg) {
   chooseScenario(start.sc);
   if (!msg) $('startCards').querySelector(`[data-sc="${start.sc}"]`).focus({ preventScroll: true });
 }
-// A card chosen: the island is shown with that scenario (raised first, the first time), then the other two are raised behind it.
+// A card chosen: the island is shown with that scenario (raised first, the first time), then the others are raised behind it.
 function chooseScenario(sc) {
   start.sc = sc;
   start.look = start.pressed = null;
@@ -346,7 +362,7 @@ function renderCards() {
     const r = start.ready.get(k),
       n = (START_PEOPLE[k] || {})[size],
       words = START_WORDS[k];
-    const people = n ? `${n[0] === n[1] ? n[0] : `${n[0]}–${n[1]}`} people` : '';
+    const people = n ? (n[0] === n[1] ? plural(n[0], 'person', 'people') : `${n[0]}–${n[1]} people`) : '';
     const gens = r ? plural(r.gens, 'generation') : '';
     const pic = r
       ? [
@@ -443,7 +459,7 @@ function renderWho() {
   let h;
   if (all.length <= 30) {
     const fs = st.farmsteads.slice().sort((a, b) => a.village - b.village || a.id - b.id),
-      named = start.sc !== 'founders';
+      named = start.sc !== 'founders' && start.sc !== 'solo';
     h = `<div class="fcards">${fs
       .map((f) => {
         const hh = liveIn(st, f) ? st.households[f.household] : null,

@@ -36,7 +36,7 @@ let demo = false,
   demoRun = null,
   stagePainted = null;
 // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
-// `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
+// `start`, those where every scenario fits, for the start's picture (page/start; tests/start.js): all of them, since the weather
 // began to place the biomes and the list was chosen again by that fit (VB-342), and again when the villages were laid out anew (VB-402)
 const DEMO = {
   seeds: [18, 19, 29, 32, 33, 45, 93, 114, 128],
@@ -122,7 +122,10 @@ async function build(seed, scenario, size, save = null, quick = false) {
   await frame();
   const wd = await drive(G.generate(seed, opt), (p) => setLoad(null, p * 0.5));
   if (custom && custom.apply) custom.apply(wd);
-  setLoad(save ? 'Returning to the villages' : 'Settling the founders', 0.52);
+  setLoad(
+    save ? 'Returning to the villages' : scenario === 'solo' ? 'Landing the lone settler' : 'Settling the founders',
+    0.52,
+  );
   await frame();
   let sim = null;
   try {
