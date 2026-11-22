@@ -471,7 +471,7 @@ VB['sim/building'] = (() => {
       deliver: (st, j, hh, f, a) =>
         Stores.put(st, hh, 'wood', ECON.woodPerTrip * Math.max(1, Math.round(a.load / TRAVEL.load)), 'timber'),
     },
-    // The grain of a gift whose bearer died on the road (sim/away's dropStay, VB-850): lying where he fell, fetched home to the store of
+    // The grain of a gift whose bearer died on the road (sim/journeys' dropStay, VB-850): lying where he fell, fetched home to the store of
     // the household it was set aside for (its village's, if that is gone), by crop as it was.
     leftGrain: {
       verb: 'Taking up grain',

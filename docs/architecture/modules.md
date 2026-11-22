@@ -89,8 +89,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   load (`fetchHaul`, `fetchHay`, `fetchWood`, `fetchWellstone`, registered by `sim/kinds`) and the rule that posts them for the owner; one
   nobody fetches rots at the autumn frost (`sim/clock`).
 - Away from home (VB-783; design.md, Moving to new land, Sleeping away from home): `src/sim/away.js` owns the open stays (`st.away`,
-  `st.awaySeq`) and their index `agent.away` (a cache, one writer); it loads after `sim/agents` and hears from it by `sim/events`
-  (`legEnd`, `legDue`, `stillAway`, `moveOn`, `atBed`), and from `sim/heirs` (`rehoused`) and `sim/births` (`placeBorn`). A journey
+  `st.awaySeq`) and their index `agent.away` (a cache, one writer), their packs and meals, and a lodger's stay (the verbs `lodge`, `comeHome`);
+  a stay's bed, turn and id are written through its `bedAt`, `turn`, `nextStay` and `unlodge`. VB-1474 split it in three: `sim/hosting`
+  (before it) holds a guest's bed in another house (`hostWhy`, `askBed`); `sim/journeys` (after it) holds a journey's course and owns
+  its parts of the stay (`why`, `to`, `from`, `gift`, `village`, `stay`, `guest`). `sim/away` hears `atBed` from `sim/agents`;
+  `sim/journeys` hears `legEnd`, `legDue`, `stillAway`, `moveOn` (by `sim/events`), and `sim/heirs`' `rehoused` and `sim/births`' `placeBorn`. A journey
   (VB-287; design.md, Between villages) is a stay whose bed is where its leg ends: `moveTo` changes the household at the act and the
   `rehoused` event hands the pawn to `moved`: within a village it walks to the new door; to another village it sets out, its provisions
   (`TRAVEL.dayWalk` hours a ration) taken from the household it leaves through `sim/stores` (reason `away`), a leg a day from 6:00 to
@@ -180,8 +183,8 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   and plans a visit by the verb `visit`, whose check holds for any pawn; the plan waits in the due-queue `st.visits` for 6:00 of
   winter day 1 + (household id mod 6), when `visitsDue` sets him out if he is still single, of that household and at home, and the
   household can spare a ration a day away above its seed and its means (else the log says he stays, `visitOff`). The journey is
-  `sim/away`'s (`visit`: there, a day as a guest at the green, and back; `2 x ceil(hours / 12) + TRAVEL.stay` days); on arrival
-  `sim/away` emits `visited` and this module writes `pawn.visited = {village, year}` and the event.
+  `sim/journeys`' (`visit`: there, a day as a guest at the green, and back; `2 x ceil(hours / 12) + TRAVEL.stay` days); on arrival
+  `sim/journeys` emits `visited` and this module writes `pawn.visited = {village, year}` and the event.
   The player's journey (VB-292): `visitChoices` lists, for any pawn, the villages it might visit (nearest first, at most 5, with
   the days and the pack by its own reckoning), which `sim/opportunities` turns into items (`when: 'winter'`) for the pawn and for
   each son or daughter of the house it speaks for; `orderVisit` (`Sim.orderVisit`) issues the same verb for the played pawn or one

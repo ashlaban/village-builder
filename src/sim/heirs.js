@@ -44,14 +44,14 @@ VB['sim/heirs'] = (() => {
   const { heirsPlace, heirRanking, ownFirstOf } = VB['sim/heirranking'];
   // The act of moving (the move command, VB-822, its only caller): pawn id changes to household hhId, for `reason`; text: the 'moved' life
   // event, when the caller says more than the farm's name (sim/settle). The pawn walks to its new home, on a journey when it lies in another
-  // village (sim/away's moved, VB-287, by sim/events); carry false: its provisions come from the new household (settlers).
+  // village (sim/journeys' moved, VB-287, by sim/events); carry false: its provisions come from the new household (settlers).
   function moveTo(st, id, hhId, text = null, carry = true, reason = null) {
     const p = st.pawns[id],
       old = p.household !== null ? st.households[p.household] : null;
     leaveHousehold(st, id);
     const hh = st.households[hhId];
     joinHousehold(st, hh, id, false);
-    emit(st, 'rehoused', { a: st.agents[id], old, hh, carry }); // it walks to its new home (sim/away's moved)
+    emit(st, 'rehoused', { a: st.agents[id], old, hh, carry }); // it walks to its new home (sim/journeys' moved)
     if (old && old.farmstead !== hh.farmstead) {
       // on the record as `joined`, beside the event that tells the move itself
       personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, {
