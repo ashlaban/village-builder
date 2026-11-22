@@ -20,7 +20,7 @@ const hh0 = st.households[f0.household], fd = f0.fields[0], reap = Sim.KINDS.rea
 const ratios = [];
 for (const soil of [1, 0.8, 0.76]) {
   fd.soil = soil; fd.weedMiss = 0; reap(st, { field: fd }, hh0, cal(30));
-  ratios.push(fd.held / (CROPS.barley.yield * fd.fert * soil * st.weather));
+  ratios.push(fd.held / (CROPS.barley.yield * fd.fert * soil * VB['sim/weather'].cropFactor(st, 'barley')));
   check(near(fd.soil, Math.max(S.floor, soil - CROPS.barley.wear)), `soil ${soil} after a crop: ${fd.soil}`);
 }
 check(ratios.every((x) => x > 0.88 && x < 1.12), `yield not in proportion to the soil: ${ratios.map((x) => x.toFixed(2))}`);

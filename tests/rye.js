@@ -82,20 +82,20 @@ const f2 = st2.farmsteads[0], hh2 = st2.households[f2.household], g = f2.fields[
 // sowing: the course, the window, the hoeing and the seed, each with its reason; sown from the rye in store
 g.crop = 'rye';
 const autumn = when(2 * SEASON_DAYS + 2), spring = when(2);
-assert.match(sowWhy(hh2, g, spring), /not sown in this season/);
-assert.match(sowWhy(hh2, g, autumn), /not hoed/);
+assert.match(sowWhy(st2, hh2, g, spring), /not sown in this season/);
+assert.match(sowWhy(st2, hh2, g, autumn), /not hoed/);
 KINDS.plow.done(st2, j);
 assert.equal(g.stage, 'plowed');
 hh2.grain = { barley: 500, rye: CROPS.rye.seed - 1 };
-assert.match(sowWhy(hh2, g, autumn), /holds 24 of the 25 rations of rye/);
+assert.match(sowWhy(st2, hh2, g, autumn), /holds 24 of the 25 rations of rye/);
 KINDS.sow.done(st2, j, hh2, autumn);
 assert.equal(g.stage, 'plowed', 'not sown without a field of rye seed, whatever the barley');
 hh2.grain = { barley: 500, rye: CROPS.rye.seed };
-assert.equal(sowWhy(hh2, g, autumn), null);
+assert.equal(sowWhy(st2, hh2, g, autumn), null);
 KINDS.sow.done(st2, j, hh2, autumn);
 assert(g.stage === 'sown' && Stores.grainOf(hh2, 'rye') === 0 && Stores.grainOf(hh2, 'barley') === 500, 'rye is sown from the rye');
 Object.assign(g, { crop: 'fallow', stage: 'plowed', sown: null });
-assert.match(sowWhy(hh2, g, when(SEASON_DAYS)), /fallow is not sown/);
+assert.match(sowWhy(st2, hh2, g, when(SEASON_DAYS)), /fallow is not sown/);
 // the frost takes a growing barley field and spares a growing rye field
 const g2 = { ...g, id: f2.fields.length, crop: 'barley', stage: 'growing', sown: 0 };
 f2.fields.push(g2);

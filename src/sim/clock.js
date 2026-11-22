@@ -6,6 +6,7 @@ VB['sim/clock'] = (() => {
   const { growTrees } = VB['sim/forest'];
   const { spreadForest } = VB['sim/spread'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
+  const { seasonBegins, frostDay } = VB['sim/weather'];
   const { refreshRoutes, costChanged } = VB['sim/routes'],
     { refreshHoursStep, ROW_STEPS } = VB['sim/villagehours'];
   const { fadeWear } = VB['sim/paths'];
@@ -74,9 +75,17 @@ VB['sim/clock'] = (() => {
   // Households short of people whose ask for food fell short today (sim/help, VB-308): written by shareFood's entry and read by takeIn's
   // later in the same step, so it is never seen across a save.
   let short = [];
+  // The autumn frost falls on the year's own day (sim/weather frostDay, VB-354), at its first step.
   const AUTUMN = 2,
-    FROST = { season: AUTUMN, sday: SEASON_DAYS - 1 };
+    frosty = (st, c) => c.season === AUTUMN && c.sday === frostDay(st);
   const CALENDAR = [
+    // ---- the season's weather, first of all that runs on a season's first step (VB-354) ----
+    {
+      every: 'season',
+      owner: 'sim/weather',
+      note: "a season begins: its warmth and wetness drawn (on spring's, the year's thaw and frost first)",
+      run: (st, c) => seasonBegins(st, c),
+    },
     // ---- each hour, at its first step ----
     {
       every: 'hour',
@@ -215,8 +224,8 @@ VB['sim/clock'] = (() => {
       run: (st, c) => fieldsDay(st, c),
     },
     {
-      every: 'year',
-      at: FROST,
+      every: 'day',
+      when: frosty,
       owner: 'sim/fields',
       note: 'the autumn frost takes the crops still out',
       run: (st) => fieldsFrost(st),
@@ -277,22 +286,22 @@ VB['sim/clock'] = (() => {
     },
     { every: 'year', owner: 'sim/meadows', note: 'the meadows are grass again', run: (st) => meadowsSpring(st) },
     {
-      every: 'year',
-      at: FROST,
+      every: 'day',
+      when: frosty,
       owner: 'sim/meadows',
       note: 'the autumn frost rots hay still lying',
       run: (st) => meadowsFrost(st),
     },
     {
-      every: 'year',
-      at: FROST,
+      every: 'day',
+      when: frosty,
       owner: 'sim/lying',
       note: 'the autumn frost rots the loads left lying where their carrier fell (VB-611)',
       run: (st) => lyingFrost(st),
     },
     {
-      every: 'year',
-      at: FROST,
+      every: 'day',
+      when: frosty,
       owner: 'sim/carts',
       note: 'a cart left standing that nobody fetched is lost with the loads lying (VB-649)',
       run: (st) => cartsYear(st, true),
@@ -450,7 +459,7 @@ VB['sim/clock'] = (() => {
       run: (st) => callRites(st),
     },
     // ---- the year ----
-    { every: 'year', owner: 'sim/clock', note: 'the year begins: its weather', run: (st, c) => newYear(st, c) },
+    { every: 'year', owner: 'sim/clock', note: 'the year begins', run: (st, c) => newYear(st, c) },
     {
       every: 'year',
       owner: 'sim/stores',
@@ -529,10 +538,9 @@ VB['sim/clock'] = (() => {
     s.cond = Math.max(0, s.cond - decay * (0.5 + rnd(st.rng.fences)));
     if (before >= 0.45 !== s.cond >= 0.45) s.dirty = true;
   }
+  // The year begins; the spring's forecast is gone (Kim, 11 Nov): its weather is named as each season begins (sim/weather).
   function newYear(st, c) {
-    st.weather = 0.75 + rnd(st.rng.weather) * 0.45;
-    const word = st.weather > 1.05 ? 'promises a good year' : st.weather < 0.88 ? 'looks poor' : 'looks ordinary';
-    log(st, `Year ${c.year} begins. The weather ${word}.`, { kind: 'year', n: c.year });
+    log(st, `Year ${c.year} begins.`, { kind: 'year', n: c.year });
   }
   // Compiled once: each entry's steps of the day as a mask, and its date. A malformed entry fails here, at load.
   const CADENCES = ['step', 'hour', 'day', 'season', 'year'],

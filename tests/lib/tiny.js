@@ -92,4 +92,10 @@ function setForesight(st, id, skill) {
   const N = VB['sim/rules'].TRAITS.names, t = st.pawns[id].traits;
   t[N.indexOf('wits')] = t[N.indexOf('husbandry')] = skill;
 }
-module.exports = { tinyWorld, tinyState, tileAt, setPractice, setForesight, CHARS };
+// Ordinary weather (sim/weather, VB-354), for a test built on the calendar as it was before the seasons were drawn: this year and the last
+// at the normal, all four seasons of this year set now (none is drawn later in it), the thaw on spring's first day and the frost on
+// autumn's last. A later year is drawn as any.
+function ordinaryWeather(st) {
+  for (const y of st.weather) Object.assign(y, { seasons: [0, 1, 2, 3].map(() => [0, 0]), thaw: 0, frost: VB['sim/rules'].SEASON_DAYS - 1 });
+}
+module.exports = { tinyWorld, tinyState, tileAt, setPractice, setForesight, ordinaryWeather, CHARS };

@@ -106,6 +106,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1474](backlog/VB-1474.md)<a id="VB-1474"></a> | Refactor: split sim/away: the stays and lodging, the journeys and their kinds, the guest's bed | - | 3 | M | sim/away over the line with three responsibilities: stays and lodging, journeys, the guest's bed |
 | [VB-1475](backlog/VB-1475.md)<a id="VB-1475"></a> | Refactor: split sim/expansion: the village's plots, the cottage's stages, who gets a plot | - | 3 | M | sim/expansion over the width line with three responsibilities: plots, the cottage's stages, allotment |
 | [VB-1479](backlog/VB-1479.md)<a id="VB-1479"></a> | Refactor: split sim/fields by concern | - | 3 | M | sim/fields holds four things: new ground made (finishClear, clearStones, finishBreak, broken), the rotation's course on a field (nextStep, restagger, takeRotation, outOfTurn), soil and manure (wearSoil, surplusOf, manureWanted, manureDone, tilthOf), and the crop year (hoed to reaped, the frost, the day); 23 exports over its baseline of 22 after VB-475 added standing. |
+| [VB-1480](backlog/VB-1480.md)<a id="VB-1480"></a> | Refactor: split sim/clock: the calendar and its compiler, the rules run inline, Sim.advance | - | 3 | S | sim/clock went over 700 lines (707) when VB-354 added the season's weather entry; its inline rules (fences, empty farms) belong with their domains, the compiler and advance stay. |
 
 </details>
 

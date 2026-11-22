@@ -8,6 +8,7 @@ VB['sim/meadows'] = (() => {
   const { walkable } = VB['sim/walking'],
     { costChanged } = VB['sim/routes'];
   const { log, atFarm, atHousehold, age } = VB['sim/records'];
+  const { factor } = VB['sim/weather'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo, farmedLand } = VB['sim/layout'];
   const { HAND_REACH } = VB['sim/byhand'];
@@ -258,11 +259,19 @@ VB['sim/meadows'] = (() => {
     if (hay) out.push(['hay:' + k, 'hay']);
     return out;
   }
-  // Mown: the meadow holds its year's hay, by site, weather and raking.
+  // Hay's reading of the seasons (VB-354; design.md, Crops and the weather), terms as a crop's row's (CROPS weather): a wet spring helps
+  // it, a wet summer hurts it on the swathes.
+  const HAY_WEATHER = [
+    [0, 'r', 0.15],
+    [1, 'wet', 0.15],
+  ];
+  // Mown: the meadow holds its year's hay, by site, its reading of the seasons and raking.
   function mowDone(st, m, c) {
     m.stage = 'mown';
     m.mown = c.day;
-    m.held = Math.round(HAY * m.fert * st.weather * (m.raked ? 1 : UNRAKED) * (0.9 + rnd(st.rng.fields) * 0.2));
+    m.held = Math.round(
+      HAY * m.fert * factor(st, HAY_WEATHER) * (m.raked ? 1 : UNRAKED) * (0.9 + rnd(st.rng.fields) * 0.2),
+    );
   }
   // Carried home: the hay goes into the household's barn; once the farm's last meadow is in, the log says how it stands for the winter.
   // Hay is carried by the load (sim/carts): what a pawn takes of the meadow's lying hay, as a load in rations (TRAVEL.hay units of hay a
@@ -314,7 +323,7 @@ VB['sim/meadows'] = (() => {
         m.held = 0;
       }
   }
-  // At the autumn frost, the season's last day (sim/clock, CALENDAR: meadowsFrost): hay still lying rots.
+  // At the autumn frost, the year's frost day (sim/weather frostDay; sim/clock, CALENDAR: meadowsFrost): hay still lying rots.
   function meadowsFrost(st) {
     for (const f of st.farmsteads)
       for (const m of f.meadows) {

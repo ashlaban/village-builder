@@ -68,8 +68,12 @@ VB['sim/rules'] = (() => {
   // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
   // grain. Days are game days. yield: rations a field gives at fertility and soil 1; seed: rations sown on a field (a 4:1 ratio); sow: the window
   // [season, first day, last day]; ripe: days from sowing to ripe; wear: the soil a harvest takes (the frost's day is the
-  // calendar's, sim/clock FROST; it takes every crop but a winter one). hours: the work of each stage; KINDS plow, sow, weed, reap and thresh (sim/kinds)
-  // read them from here. ----
+  // year's, sim/weather frostDay; it takes every crop but a winter one). hours: the work of each stage; KINDS plow, sow, weed, reap and thresh (sim/kinds)
+  // read them from here.
+  // weather (VB-354; design.md, Crops and the weather): the crop's reading of its seasons, terms [season, kind, k] summed by sim/weather
+  // (reading): the season 0 to 3 of the year it is reaped in, -1 the winter before it; kind 'w' adds k x warmth, 'r' k x wetness, 'dry'
+  // takes k at the driest, 'wet' k at the wettest, 'bare' k when the season is both coldest and driest (the bare frost). ripens: the
+  // summer's warmth moves its ripening (sim/weather ripeShift). ----
   const CROPS = {
     barley: {
       yield: 100,
@@ -78,6 +82,12 @@ VB['sim/rules'] = (() => {
       ripe: 26,
       wear: 0.08,
       weeds: 2,
+      weather: [
+        [1, 'w', 0.1],
+        [1, 'dry', 0.15],
+        [2, 'wet', 0.15],
+      ],
+      ripens: true,
       hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
     },
     // winter rye (VB-348): sown in autumn days 1 to 6, it stands the winter and the frost (winter), and is ripe in summer days 7 to 12; a
@@ -91,6 +101,10 @@ VB['sim/rules'] = (() => {
       winter: true,
       lost: [2, 0],
       weeds: 1,
+      weather: [
+        [-1, 'bare', 0.3],
+        [1, 'wet', 0.15],
+      ],
       hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
     },
     // peas (VB-349): a spring crop, the soil mended `gain` a crop (to SOIL.start; a field manured above it keeps its soil) and no wear; hoed
@@ -103,6 +117,11 @@ VB['sim/rules'] = (() => {
       wear: 0,
       gain: 0.04,
       weeds: 2,
+      weather: [
+        [0, 'r', 0.05],
+        [1, 'dry', 0.25],
+      ],
+      ripens: true,
       hours: { plow: 20, sow: 2, weed: 5, reap: 10, thresh: 10 },
     },
     // fallow (VB-348), a course and not a crop: never sown, no seed and no grain (sim/stores holds only the rows with seed); tilled once in

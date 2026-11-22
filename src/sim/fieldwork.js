@@ -6,6 +6,7 @@
 VB['sim/fieldwork'] = (() => {
   const Stores = VB['sim/stores'];
   const { WORK, CROPS } = VB['sim/rules'];
+  const { sowOpen } = VB['sim/weather'];
   const { log, atFarm } = VB['sim/records'];
   const { scrubHours, SPREAD } = VB['sim/spread'];
   const { onProject, landProject } = VB['sim/projects'],
@@ -46,11 +47,9 @@ VB['sim/fieldwork'] = (() => {
     const h = scrubHours(st, fd.tile);
     return RECLAIM[fd.stage] + (h > SPREAD.scrubHours ? h : 0);
   };
-  // The sowing window of a field's crop, when it is hoed and sown (the row's `sow`: [season, first day, last day]).
-  const sowing = (fd, c) => {
-    const w = CROPS[fd.crop].sow;
-    return c.season === w[0] && c.sday >= w[1] && c.sday <= w[2];
-  };
+  // The sowing window of a field's crop, when it is hoed and sown (the row's `sow`: [season, first day, last day]), and in spring not
+  // before the year's thaw (sim/weather, VB-354).
+  const sowing = (st, fd, c) => sowOpen(st, fd.crop, c);
   // The hours of a stage are the crop's row (CROPS, sim/rules): the kinds hold barley's, and a field's job carries its crop's where they
   // differ (rye's weeding, fallow's tilling; VB-348), so a barley field's job is as it was.
   const HOURS = CROPS.barley.hours;
@@ -81,12 +80,12 @@ VB['sim/fieldwork'] = (() => {
     farm: f,
     hours: sized(hh.sheafCrops?.[0] || 'barley', 'thresh', hh.unthreshed[0] || 0),
   });
-  // Why household hh cannot sow field fd today, or null (VB-348): the course is not sown, the window is shut, the field is not hoed, or the
-  // household holds less than a field's seed of the crop, which is taken from its own grain (seed rye is rye).
-  function sowWhy(hh, fd, c) {
+  // Why household hh cannot sow field fd today, or null (VB-348): the course is not sown, the window is shut (or the thaw not come, VB-354),
+  // the field is not hoed, or the household holds less than a field's seed of the crop, which is taken from its own grain (seed rye is rye).
+  function sowWhy(st, hh, fd, c) {
     const C = CROPS[fd.crop];
     if (!(C.seed > 0)) return `a field in ${fd.crop} is not sown`;
-    if (!sowing(fd, c)) return `${fd.crop} is not sown in this season`;
+    if (!sowing(st, fd, c)) return `${fd.crop} is not sown in this season, or the ground is not thawed`;
     if (fd.stage !== 'plowed') return 'the field is not hoed';
     const has = Stores.grainOf(hh, fd.crop);
     return has < C.seed
@@ -118,7 +117,7 @@ VB['sim/fieldwork'] = (() => {
         const C = CROPS[x.crop];
         if (C.fallow || (winter && !C.winter)) continue;
         if (x.stage === 'sown' || x.stage === 'growing' || (x.stage === 'plowed' && at === 'stubble')) n++;
-        else if (ahead && x.stage === at && (at === 'plowed' || sowing(x, c))) n++;
+        else if (ahead && x.stage === at && (at === 'plowed' || sowing(st, x, c))) n++;
         if (n >= cap) return false;
       }
     return true;
@@ -143,7 +142,7 @@ VB['sim/fieldwork'] = (() => {
       stages: ['stubble'],
       available: (st, hh, fd, c, post, f) => {
         if (
-          sowing(fd, c) &&
+          sowing(st, fd, c) &&
           fd.stage === 'stubble' &&
           !(CROPS[fd.crop].fallow && fd.rest === 1) &&
           (CROPS[fd.crop].fallow || underHands(st, hh, fd, c, homeOf(st, hh, f)))
@@ -175,7 +174,7 @@ VB['sim/fieldwork'] = (() => {
       // a hoed field, in the sowing window, while the household has the seed for it (sowWhy)
       stages: ['plowed'],
       available: (st, hh, fd, c, post, f) => {
-        if (fd.stage === 'plowed' && sowWhy(hh, fd, c) === null && underHands(st, hh, fd, c, homeOf(st, hh, f)))
+        if (fd.stage === 'plowed' && sowWhy(st, hh, fd, c) === null && underHands(st, hh, fd, c, homeOf(st, hh, f)))
           post('sow:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'sow'));
       },
     },

@@ -5,6 +5,7 @@ VB['sim/fields'] = (() => {
   const { CROPS, ROTATIONS, SOIL, TILTH, HERD, DEER, fertility, cal, DAY, SEASON_DAYS, YEAR } = VB['sim/rules'];
   const { costChanged } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
+  const { cropFactor, ripeShift } = VB['sim/weather'];
   const { woodTaken } = VB['sim/territory'];
   const { realiseStake } = VB['sim/stakes'];
   const Stores = VB['sim/stores'],
@@ -285,8 +286,9 @@ VB['sim/fields'] = (() => {
     else fd.trampled = (fd.trampled || 0) + 1;
   };
   // The crop as it stands on field fd, in rations (VB-475): what the field would give at reaping but for the reaping's own draw: its
-  // crop's yield by the field's fertility, soil and tilth, the year's weather, the weeding missed (`missed` more rounds: the one open at
-  // reaping), the strays' trampling and the deer's browsing. Read by the reaping's hours (sim/fieldwork) and by the reaping.
+  // crop's yield by the field's fertility, soil and tilth, its crop's reading of the seasons (sim/weather, VB-354), the weeding missed
+  // (`missed` more rounds: the one open at reaping), the strays' trampling and the deer's browsing. Read by the reaping's hours
+  // (sim/fieldwork) and by the reaping.
   function standing(st, fd, missed = 0) {
     const E = st.ECON;
     return (
@@ -294,7 +296,7 @@ VB['sim/fields'] = (() => {
       fd.fert *
       fd.soil *
       (1 + tilthOf(st, fd)) *
-      st.weather *
+      cropFactor(st, fd.crop) *
       (1 - Math.min(E.weedCutMax, E.weedCut * (fd.weedMiss + missed))) *
       (1 - HERD.stray.loss) ** (fd.trampled || 0) *
       (1 - DEER.crop.loss) ** (fd.browsed || 0)
@@ -398,7 +400,7 @@ VB['sim/fields'] = (() => {
     eachWorked(st, (f, fd) => {
       if (fd.sown === null || fd.stage === 'stooks') return;
       const g = day - fd.sown;
-      if (g >= CROPS[fd.crop].ripe) fd.stage = 'ripe';
+      if (g >= CROPS[fd.crop].ripe + ripeShift(st, fd.crop)) fd.stage = 'ripe';
       else if (g >= 3 && fd.stage === 'sown') fd.stage = 'growing';
       lostRipe(st, f, fd, c);
     });
@@ -427,8 +429,8 @@ VB['sim/fields'] = (() => {
         }
       }
   }
-  // The autumn frost, on the season's last day (sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still standing or in stooks is lost;
-  // a winter crop (rye) standing green is not (VB-348).
+  // The autumn frost, on the year's frost day (sim/weather frostDay; sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still
+  // standing or in stooks is lost; a winter crop (rye) standing green is not (VB-348).
   function fieldsFrost(st) {
     const lost = new Map(); // one line a holder, not one a field: holder -> {stage: count}
     eachWorked(st, (f, fd) => {
