@@ -262,22 +262,27 @@ VB['sim/fields'] = (() => {
     if (deer) fd.browsed = (fd.browsed || 0) + 1;
     else fd.trampled = (fd.trampled || 0) + 1;
   };
-  function reaped(st, fd, c) {
+  // The crop as it stands on field fd, in rations (VB-475): what the field would give at reaping but for the reaping's own draw: its
+  // crop's yield by the field's fertility, soil and tilth, the year's weather, the weeding missed (`missed` more rounds: the one open at
+  // reaping), the strays' trampling and the deer's browsing. Read by the reaping's hours (sim/fieldwork) and by the reaping.
+  function standing(st, fd, missed = 0) {
     const E = st.ECON;
+    return (
+      CROPS[fd.crop].yield *
+      fd.fert *
+      fd.soil *
+      (1 + tilthOf(st, fd)) *
+      st.weather *
+      (1 - Math.min(E.weedCutMax, E.weedCut * (fd.weedMiss + missed))) *
+      (1 - HERD.stray.loss) ** (fd.trampled || 0) *
+      (1 - DEER.crop.loss) ** (fd.browsed || 0)
+    );
+  }
+  function reaped(st, fd, c) {
     if (fd.weedOpen) fd.weedMiss++;
     fd.stage = 'stooks';
     fd.reaped = c.day;
-    fd.held = Math.round(
-      CROPS[fd.crop].yield *
-        fd.fert *
-        fd.soil *
-        (1 + tilthOf(st, fd)) *
-        st.weather *
-        (0.9 + rnd(st.rng.fields) * 0.2) *
-        (1 - Math.min(E.weedCutMax, E.weedCut * fd.weedMiss)) *
-        (1 - HERD.stray.loss) ** (fd.trampled || 0) *
-        (1 - DEER.crop.loss) ** (fd.browsed || 0),
-    );
+    fd.held = Math.round(standing(st, fd) * (0.9 + rnd(st.rng.fields) * 0.2));
     delete fd.trampled;
     delete fd.browsed;
     delete fd.bin;
@@ -439,6 +444,7 @@ VB['sim/fields'] = (() => {
     sown,
     trample,
     reaped,
+    standing,
     tilthOf,
     carried,
     laidDown,

@@ -449,6 +449,8 @@ VB['sim/saves'] = (() => {
     // VB-519: nor a culture's values (each starts at its archetype's), nor the twelve traits (those it has kept), nor a child's hungry days
     if (st.cenv) for (const c of st.cenv.cultures) if (!c.values) c.values = { ...TRAITS.culture.oldNordic };
     VB['sim/traits'].seedTraits(st); // VB-254: nor the traits themselves (VB-249's diligence kept)
+    if (!st.rng.mishap) st.rng.mishap = makeStream(st.w.seed, 'mishap'); // VB-475: nor the stream of a work leg's mishap
+    VB['sim/skills'].seedSkills(st); // nor a pawn's skill at each type of work
     // VB-257: older saves' cultures hold no practices (each holds those every culture starts with); their villages' plans no routines
     const practices = () => Object.fromEntries(Object.entries(VB['culture'].PRACTICES).map(([k, x]) => [k, x.base]));
     if (st.cenv) for (const c of st.cenv.cultures) c.practices = { ...practices(), ...c.practices }; // VB-314: nor the later ones

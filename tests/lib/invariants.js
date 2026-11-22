@@ -455,6 +455,16 @@ function checkState(st) {
       bad.push(`pawn ${p.id}: traits ${JSON.stringify(t)}`);
     if (!(p.leanDays === null || (Number.isInteger(p.leanDays) && p.leanDays >= 0))) bad.push(`pawn ${p.id}: leanDays ${p.leanDays}`);
   }
+  // skill at each type of work (VB-475; sim/skills): every pawn has one a type, each finite within TRAITS.bounds; a hand's pace over a work
+  // leg is absent or within what the slowest and the fastest skill, with the worst and no mishap, give
+  const SK = globalThis.VB['sim/skills'], paceLo = SK.paceOf(0, 1) - 1e-3, paceHi = SK.paceOf(1, 0) + 1e-3;
+  for (const p of st.pawns) {
+    const t = p.skill;
+    if (!Array.isArray(t) || t.length !== SK.SKILL.types.length || !t.every((x) => Number.isFinite(x) && x >= lo && x <= hi))
+      bad.push(`pawn ${p.id}: skill ${JSON.stringify(t)}`);
+  }
+  for (const a of st.agents)
+    if (a.pace !== undefined && !(Number.isFinite(a.pace) && a.pace >= paceLo && a.pace <= paceHi)) bad.push(`agent ${a.id}: pace ${a.pace}`);
   // a pawn's wish at the moving round (VB-680): absent or null (the default), else a ranking that holds each rung once, a farm that exists
   // or null, a pawn of the other sex or null; a living pawn's is not the default written out
   const RUNGS = globalThis.VB['sim/rules'].WISH.rungs;

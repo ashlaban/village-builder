@@ -1,5 +1,5 @@
 // Peas (VB-349; design.md, Crops and rotations, The first crops). A field forced to peas on a tiny farm at seed 7, run by the simulation:
-// hoed, sown from the household's peas in spring days 1-10, ripe 18 days on, pulled (10 hours) and threshed (10) into peas, 60 rations a
+// hoed, sown from the household's peas in spring days 1-10, ripe 18 days on, pulled (10 hours a normal crop) and threshed (10) into peas, 60 rations a
 // field at soil 1, the soil mended 0.04 to at most 1.0 (a manured field keeps its soil); a pea left to the frost is lost as barley is.
 // Then the pot: barley and peas are two sources and go 10% further; peas alone are one source; peas held for seed are not cooked.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
@@ -50,7 +50,8 @@ assert(max >= seen.held - 1, `threshed into peas: at most ${max} held, ${seen.he
 assert.equal(hours.plow, 20, 'hoeing 20');
 assert.equal(hours.sow, 2, 'sowing 2');
 assert.equal(hours.weed, 5, 'weeding 5 (two rounds)');
-assert.equal(hours.reap, 10, 'pulling 10');
+// pulling: 10 hours for a normal crop of 60, by the crop that stood (VB-475): within the reaping's own draw (0.9 to 1.1) of what it gave
+assert(Math.abs(hours.reap - (10 * seen.held) / 60) <= 0.12 * ((10 * seen.held) / 60) + 0.5, `pulling 10 by the crop: ${hours.reap}, ${seen.held} reaped`);
 assert(near(fd.soil, 0.94), `the soil mended 0.04: ${fd.soil}`);
 
 // ---- the soil: to at most 1.0, never lowering a manured field ----

@@ -22,7 +22,7 @@ function hoe(hh, fieldIx, hands) {
   for (const a of ags) { A.release(st, a); j.claims.push(a.id); a.job = j; a.phase = 'go'; a.path = null; a.inside = false; A.arrived(st, a); }
   return { j, ags };
 }
-const rate = (a) => A.rateOf(st, st.pawns[a.id]);
+const rate = (a) => A.rateOf(st, st.pawns[a.id]) * (a.pace ?? 1); // the hand's rate over its work leg: skill and mishap (VB-475)
 const adults = (hh) => hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 14);
 let { j, ags } = hoe(withT, 0, adults(withT).slice(0, 2));
 check(A.withOxen(st, ags[0]) && !A.withOxen(st, ags[1]), 'the team is not with the first hand only');
@@ -62,7 +62,9 @@ for (let k = 0; k < 2 * Sim.YEAR * 10; k++) {
 }
 const per = (h) => (work.get(h.id) || 0) / Math.max(1e-9, hours.get(h.id) || 0); // work hours done per pawn-hour
 const others = s2.households.filter((h) => h !== teamHH && hours.get(h.id));
-check(teamHH && per(teamHH) > 1.25 && others.every((h) => per(h) < 1.01 && per(h) < per(teamHH)), `rates ${s2.households.map((h) => `${h.id} ${per(h).toFixed(2)}`).join(', ')}`);
+// by hand a household works at most at its fastest hand's pace (VB-475: skill and no mishap), the team well above it
+const byHand = VB['sim/skills'].paceOf(1, 0) + 0.01;
+check(teamHH && per(teamHH) > 1.25 && others.every((h) => per(h) < byHand && per(h) < per(teamHH)), `rates ${s2.households.map((h) => `${h.id} ${per(h).toFixed(2)}`).join(', ')}`);
 const field = Sim.KINDS.plow.hours;
 console.log(`oxen ok: founders 7, 2 years, pawn-hours to hoe a ${field}-hour field: with the oxen ${(field / per(teamHH)).toFixed(1)}, ` +
   `by hand ${others.map((h) => (field / per(h)).toFixed(1)).join(', ')}`);

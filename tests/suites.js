@@ -57,6 +57,7 @@ const FAST = [
   ['node', 'tests/forest-spread.js'],
   ['node', 'tests/rye.js'],
   ['node', 'tests/peas.js'],
+  ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
   ['node', 'tests/rotations.js'],
   ['node', 'tests/sowing.js'],
   ['node', 'tests/kinds.js'],

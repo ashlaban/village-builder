@@ -35,6 +35,7 @@
       "sim/records",
       "sim/ties",
       "sim/traits",
+      "sim/skills",
       "sim/wishes",
       "sim/prospect",
       "sim/commands",
