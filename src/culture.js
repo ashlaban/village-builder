@@ -4,240 +4,7 @@
 // (one game day stands for about a week). Customs in force: a settlement's practice changes only at its yearly
 // meeting; the culture's customs change only at the yearly reckoning after all meetings.
 const Culture = (() => {
-  // malleability m: 1 changes most easily; the order follows the agreed ranking
-  const DIMS = [
-    {
-      key: 'claims',
-      label: 'Claims on empty farms',
-      m: 1.0,
-      opts: [
-        ['kin', 'Kin of the old family first'],
-        ['villagers', 'Villagers first'],
-        ['anyone', 'Anyone may claim'],
-        ['assembly', 'The meeting assigns'],
-      ],
-    },
-    {
-      key: 'newLand',
-      label: 'Cleared land belongs to',
-      m: 0.9,
-      opts: [
-        ['village', 'The village allots it'],
-        ['labour', 'Whoever worked most'],
-        ['intended', 'Whoever it was cleared for'],
-      ],
-    },
-    {
-      key: 'handover',
-      label: 'When the heir takes over',
-      m: 0.8,
-      opts: [
-        ['death', 'At the holder’s death'],
-        ['marriage', 'When the heir marries'],
-        ['age60', 'When the holder turns 60'],
-      ],
-    },
-    {
-      key: 'daughterShare',
-      label: 'A daughter’s share',
-      m: 0.65,
-      opts: [
-        ['equal', 'Equal to a son’s'],
-        ['half', 'Half a son’s'],
-      ],
-    },
-    {
-      key: 'heirCount',
-      label: 'How many heirs',
-      m: 0.55,
-      opts: [
-        ['one', 'One heir takes all'],
-        ['buyout', 'One heir buys out the rest'],
-        ['split', 'Land split between heirs'],
-      ],
-    },
-    {
-      key: 'widow',
-      label: 'The widow',
-      m: 0.45,
-      opts: [
-        ['life', 'Keeps the farm for life'],
-        ['keep', 'Keeps a right to her keep'],
-        ['outright', 'Inherits outright'],
-      ],
-    },
-    {
-      key: 'heirSex',
-      label: 'Who can inherit',
-      m: 0.35,
-      opts: [
-        ['sons', 'Sons only'],
-        ['sonsFirst', 'Sons first'],
-        ['any', 'Any child'],
-        ['daughtersFirst', 'Daughters first'],
-      ],
-    },
-    {
-      key: 'voice',
-      label: 'Who speaks at the meeting',
-      m: 0.3,
-      opts: [
-        ['landholders', 'Landholders'],
-        ['heads', 'All household heads'],
-        ['adults', 'All adults'],
-      ],
-    },
-    {
-      key: 'birthOrder',
-      label: 'Which child inherits',
-      m: 0.25,
-      opts: [
-        ['eldest', 'The eldest'],
-        ['youngest', 'The youngest'],
-        ['chosen', 'Chosen by the parent'],
-      ],
-    },
-    {
-      key: 'residence',
-      label: 'Where a married couple lives',
-      m: 0.2,
-      opts: [
-        ['land', 'With whoever holds land'],
-        ['husband', 'At the husband’s home'],
-        ['wife', 'At the wife’s home'],
-      ],
-    },
-    {
-      key: 'kinLimit',
-      label: 'Closest kin who may marry',
-      m: 0.12,
-      opts: [
-        ['second', 'Third cousins or further'],
-        ['first', 'Second cousins or further'],
-        ['close', 'First cousins or further'],
-        ['uncle', 'Uncle–niece or further'],
-      ],
-    },
-    {
-      key: 'feedOrder',
-      label: 'Who eats first when food is short',
-      m: 0.5,
-      opts: [
-        ['equal', 'Equal shares'],
-        ['children', 'Children first'],
-        ['workers', 'Those who work first'],
-      ],
-    },
-    {
-      key: 'ownHeir',
-      label: 'Heir to their own parents’ farm',
-      m: 0.6,
-      opts: [
-        ['behind', 'Steps behind other relatives'],
-        ['keeps', 'Keeps their place'],
-      ],
-    },
-    {
-      key: 'dispute',
-      label: 'Disputed claims',
-      m: 0.7,
-      opts: [
-        ['first', 'The first claim stands'],
-        ['strongest', 'The strongest claim stands'],
-        ['kin', 'Kin of the last holder first'],
-        ['meeting', 'The meeting decides'],
-      ],
-    },
-    // VB-100 (Kim, 10 Nov): how the village's common fields rank beside a household's own work (sim/commons; COMMONS.lean)
-    {
-      key: 'commons',
-      label: 'Work on the common fields',
-      m: 0.5,
-      opts: [
-        ['own', 'After the household’s own work'],
-        ['fair', 'As the village’s other duties'],
-        ['first', 'Before the household’s own work'],
-      ],
-    },
-    {
-      key: 'affinity',
-      label: 'Kin by marriage who may marry',
-      m: 0.12,
-      opts: [
-        ['fourth', 'None within the fourth degree of affinity'],
-        ['line', 'None in the direct line (step-parent, parent-in-law)'],
-        ['free', 'No bar'],
-      ],
-    },
-    // VB-711 (Kim, 16 Nov): how hard a household stocks for winter: the margin its autumn count keeps (sim/byre, HERD.margins)
-    {
-      key: 'stocking',
-      label: 'Stocking for winter',
-      m: 0.6,
-      opts: [
-        ['hay', 'To the hay'],
-        ['herd', 'Keep the herd'],
-      ],
-    },
-    // VB-826 (design.md, Marriage as a negotiation, 9 Nov): whose voice counts in a match, read where it is offered and answered
-    // (sim/records spokesmanOf, sim/asking, sim/marriage); both who marry consent under every option
-    {
-      key: 'matchBy',
-      label: 'Who makes a match',
-      m: 0.4,
-      opts: [
-        ['heads', 'The heads'],
-        ['consent', 'The heads, with consent'],
-        ['couple', 'The couple'],
-      ],
-    },
-    // VB-463 (Kim, 15 Nov): what the alderman is kept with (sim/keep; OFFICE.keepDays, OFFICE.keepShare)
-    {
-      key: 'keep',
-      label: 'What the alderman is kept with',
-      m: 0.4,
-      opts: [
-        ['days', 'Days of work'],
-        ['share', 'A share of the surplus'],
-        ['nothing', 'Nothing'],
-      ],
-    },
-  ];
-  const OFF = [],
-    NOPT = [],
-    IDX = {};
-  let TOTAL = 0;
-  DIMS.forEach((d, k) => {
-    OFF.push(TOTAL);
-    NOPT.push(d.opts.length);
-    TOTAL += d.opts.length;
-    IDX[d.key] = k;
-  });
-  const optIndex = (dim, key) => DIMS[IDX[dim]].opts.findIndex((o) => o[0] === key);
-
-  const ARCHETYPES = {
-    oldNordic: {
-      claims: 'kin',
-      newLand: 'village',
-      handover: 'marriage',
-      daughterShare: 'half',
-      heirCount: 'buyout',
-      widow: 'life',
-      heirSex: 'sonsFirst',
-      voice: 'landholders',
-      birthOrder: 'eldest',
-      residence: 'land',
-      kinLimit: 'first',
-      affinity: 'line',
-      feedOrder: 'equal',
-      ownHeir: 'behind',
-      dispute: 'first',
-      stocking: 'hay',
-      matchBy: 'consent',
-      keep: 'days',
-      commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
-    },
-  };
+  const { DIMS, OFF, NOPT, TOTAL, IDX, optIndex, ARCHETYPES, PRACTICES, practiceOf } = VB['sim/customs'];
 
   // Rates are per year; the daily step scales pulls by dt and noise by sqrt(dt) (Euler–Maruyama).
   const P = {
@@ -292,45 +59,12 @@ const Culture = (() => {
   // The order of preference among name generators, per kind of thing named (sim/names, VB-026): every culture starts with this one, and a
   // culture that splits off keeps its parent's, so that cultures can come to prefer different names.
   const NAME_PREFS = { farm: ['compass', 'owner', 'position', 'landmark', 'feature', 'age'] };
-  // A culture's practices that are not customs (VB-257; design.md section 7, Village routines): a rule the culture holds, declared here
-  // with the customs, before the first seed, each with its options and the one every culture starts with; not voted on, not drifting,
-  // and a culture that splits off keeps its parent's. noDecision: what follows when a village's meeting does not decide its routines (no
-  // quorum, or a tie): no village work that year, or last year's work again.
-  const PRACTICES = Object.freeze({
-    noDecision: Object.freeze({
-      label: 'When the meeting does not decide',
-      opts: Object.freeze([
-        ['nothing', 'No village work that year'],
-        ['asLastYear', 'The work of last year'],
-      ]),
-      base: 'nothing',
-    }),
-    // How the alderman is chosen (VB-314; design.md, The alderman): at the autumn meeting, when the office is vacant. A practice a culture
-    // holds, not a custom: its malleability (0.3) is how readily a culture changes it, kept with its declaration.
-    alderman: Object.freeze({
-      label: 'How the alderman is chosen',
-      opts: Object.freeze([
-        ['elected', 'Elected by the meeting'],
-        ['byTurns', 'By turns among the farms, a year each'],
-      ]),
-      base: 'elected',
-      malleability: 0.3,
-    }),
-    // On which days a village keeps its rites (VB-775; design.md, The season's rite): its own, drawn at its founding, as a parish kept its
-    // feast day, or the same everywhere (VB-522 as built). A custom cultures may come to differ in, not a dimension: nothing yet gives
-    // a pawn a stake in it.
-    riteDays: Object.freeze({
-      label: 'The days of the rite',
-      opts: Object.freeze([
-        ['own', 'Each village its own days'],
-        ['common', 'The same days everywhere'],
-      ]),
-      base: 'own',
-    }),
-  });
+  // The one write of a settlement's practice (VB-231): custom index dim becomes option index option, at its meeting (a command's run, or
+  // the meeting itself when no caller issues commands). Read through sim/customs.
+  const setPractice = (s, dim, option) => {
+    s.practice[dim] = option;
+  };
   const basePractices = () => Object.fromEntries(Object.entries(PRACTICES).map(([k, x]) => [k, x.base]));
-  // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).
-  const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);
   // The functions that read people take `hooks`, the environment's lookups (VB-073): byId(id), settlementOf(p), voiceOf(p, s), membersOf(s),
   // nameCulture(s, from), onSplit(nc, from, cause), ask(question) for a meeting's question (sim/decisions, VB-313) and, if given,
   // decide(s, dim, option) for a meeting's change (VB-170) and act(p, trait, rule) for what a person's trait does to its drift (VB-520:
@@ -724,7 +458,7 @@ const Culture = (() => {
       const y = hooks.ask({ kind: 'custom', body: s.id, dim: d, current: x, options: n, support, need });
       if (y === x) continue;
       // the change itself: through the caller's decide (the simulation issues a command, VB-170), else written here
-      if (hooks.decide ? hooks.decide(s, d, y) : ((s.practice[d] = y), true)) {
+      if (hooks.decide ? hooks.decide(s, d, y) : (setPractice(s, d, y), true)) {
         changes.push({ dim: d, from: x, to: y, sy: S[o + y], sx: S[o + x] });
         holdTo(hooks, s, d, x, y);
       }
@@ -921,6 +655,7 @@ const Culture = (() => {
     NORMS: { value: NORMS },
     PRACTICES: { value: PRACTICES },
     practiceOf: { value: practiceOf },
+    setPractice: { value: setPractice },
     margin: { value: margin },
     fewVoices: { value: fewVoices },
   });
