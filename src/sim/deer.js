@@ -138,7 +138,7 @@ VB['sim/deer'] = (() => {
     if (s < DEER.hunt.least || rnd(st.rng.deer) >= DEER.hunt.chance * Math.min(1, s / D.cap[r])) return 0;
     D.head[r] = s - 1;
     D.since[r] = today(st);
-    addFood(st, hh, 'meat', DEER.hunt.meat, HERD.freshDays);
+    addFood(st, hh, 'meat', DEER.hunt.meat);
     Stores.record(st, hh, 'meat', DEER.hunt.meat, 'hunt');
     Stores.put(st, hh, 'hide', DEER.hunt.hide, 'hunt'); // the hide comes home with the meat, for leather (VB-424)
     return 1;

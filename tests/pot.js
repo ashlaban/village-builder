@@ -76,13 +76,13 @@ check(mixed.sources === 2 && near(mixed.food, 0.9 * plain.food), `grain and fish
   feedHousehold(st, hh);
   check(hh.fresh.length === 0 && near(spoiled(hh, 'fish'), 2.5), `lost and noted when the meal touches the store (${spoiled(hh, 'fish')})`);
 }
-{ // at most FRESH_CAP batches of a food: with a longer shelf life, the oldest is lost
+{ // a batch a day, each kept its food's keeping (sim/goods, VB-683): with a longer shelf life, none is lost early (no cap on batches)
   const { st, hh } = home(), keeps = FOODS.fish.keeps;
   try {
     FOODS.fish.keeps = 20;
-    for (let d = 0; d < Pot.FRESH_CAP + 2; d++) { Pot.putFresh(st, hh, 'fish', 1, 'catch'); moveClock(st, DAY); }
+    for (let d = 0; d < 6; d++) { Pot.putFresh(st, hh, 'fish', 1, 'catch'); moveClock(st, DAY); }
   } finally { FOODS.fish.keeps = keeps; }
-  check(hh.fresh.length === Pot.FRESH_CAP && near(spoiled(hh, 'fish'), 2), `${hh.fresh.length} batches, 2 lost`);
+  check(hh.fresh.length === 6 && near(spoiled(hh, 'fish'), 0), `${hh.fresh.length} batches, none lost`);
 }
 
 // --- no meals: gathered food is eaten as it is, then grain uncooked at ECON.uncooked; a household that misses its cooking for 3 days uses

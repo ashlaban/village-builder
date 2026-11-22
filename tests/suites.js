@@ -152,6 +152,7 @@ const INTEGRATION = [
   ['node', 'tests/fish.js'],
   ['node', 'tests/house.js'],
   ['node', 'tests/pot.js'],
+  ['node', 'tests/keeping.js'], // VB-683: one keeping rule a good, the larder's movements in the ledger
   ['node', 'tests/fresh.js'],
   ['node', 'tests/oxen.js'],
   ['node', 'tests/stakes.js'],

@@ -4,7 +4,7 @@ VB['sim/stores'] = (() => {
   const { DAY, YEAR, YEAR_DAYS, TICKS, FOODS, BREW, CROPS, MATCH, cal } = VB['sim/rules'];
   const { addFood, takeFood } = VB['sim/larder'];
   const WOOD_LOW = MATCH.urgency.woodLow;
-  const { goodOf, GRAIN, CROP_LIST, CROP_GOOD, GOOD_CROP, isGrain, grainGood } = VB['sim/goods'];
+  const { goodOf, dayLoss, keepsDays, GRAIN, CROP_LIST, CROP_GOOD, GOOD_CROP, isGrain, grainGood } = VB['sim/goods'];
   const STAKE_CROP = 'barley';
   const { emit } = VB['sim/events'],
     Projects = VB['sim/projects'],
@@ -34,6 +34,8 @@ VB['sim/stores'] = (() => {
   KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
+  KINDS.push('salting'); // VB-683: fresh meat salted in the larder, out of 'meat' into 'salt meat' (sim/byre), a routine total
+  ROUTINE.push('salting');
   // VB-328: the woodpile, in loads: a firewood trip, the day's burning (routine), a plot's wood, timber left over, a new household's first wood.
   KINDS.push('firewood', 'burn', 'plot', 'timber', 'start');
   ROUTINE.push('firewood', 'burn');
@@ -370,7 +372,7 @@ VB['sim/stores'] = (() => {
     const n = take(st, hh, 'fish', hh.rack || 0, 'drying');
     if (!(n > 0)) return 0;
     record(st, hh, 'dried fish', n, 'drying');
-    addFood(st, hh, 'dried fish', n, goodOf('dried fish').perish.keepsDays);
+    addFood(st, hh, 'dried fish', n);
     return n;
   }
   // The cook takes up to n rations of a larder food (dried fish), the lots that spoil first first, and makes meals of it, 1 to 1.
@@ -465,10 +467,9 @@ VB['sim/stores'] = (() => {
   }
   function villageDay(st) {
     VB.count.storeWalk += st.villages.length;
-    const share = 1 - Math.pow(1 - st.ECON.villageStoreLoss, 1 / YEAR_DAYS); // the day's share of the year's loss
     for (const v of st.villages) {
       const g = grainOf(v);
-      if (g > 0) take(st, v, GRAIN, g * share, 'spoilage');
+      if (g > 0) take(st, v, GRAIN, dayLoss(st, GRAIN, g, Infinity, st.ECON.villageStoreTier), 'spoilage'); // grain's keeping (sim/goods)
     }
   }
   // At the new year: entries and totals older than three years go. Only live holders are walked (rule 1); a dissolved household's
@@ -511,7 +512,6 @@ VB['sim/stores'] = (() => {
   // year's turn. ----
   // @state household.ale: [{n, until}]: lots of barrels of ale, oldest first, each n a whole number above 0, those past `until` lost at the day's turn
   // @state household.poured: number[]: the game hours at which barrels were poured, oldest first, at most BREW.maxBarrels, those over BREW.years old pruned
-  const aleKeeps = () => goodOf('ale').perish.keepsDays * DAY;
   // The barrels the household holds now.
   function aleOf(st, hh) {
     let n = 0;
@@ -524,7 +524,7 @@ VB['sim/stores'] = (() => {
     if (grainOf(hh) < BREW.grain) return 0;
     takeSpare(st, hh, BREW.grain, 'brew');
     record(st, hh, 'ale', 1, 'brew');
-    hh.ale.push({ n: 1, until: st.t + aleKeeps() });
+    hh.ale.push({ n: 1, until: st.t + keepsDays('ale') * DAY });
     return 1;
   }
   // Ale past its season is lost (each day; sim/clock).

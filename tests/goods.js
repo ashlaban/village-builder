@@ -23,7 +23,7 @@ for (const id of ['grain', 'butter', 'salt meat', 'dried fish']) {
   const g = Goods.goodOf(id); assert(g.class === 'food' && g.quantum === 10 && g.rations === 1 && g.unit === 'ration', id);
 }
 for (const id of ['cattle/cow', 'cattle/ox', 'cattle/heifer', 'cattle/steer', 'sheep', 'tar', 'quern']) assert.strictEqual(Goods.goodOf(id).class, 'wares', id);
-assert(Goods.goods().every((g) => Object.isFrozen(g) && g.perish === null || g.perish.keepsDays > 0 || g.perish.lossPerYear > 0), 'perishing');
+assert(Goods.goods().every((g) => Object.isFrozen(g) && g.perish === null || g.perish.keepsDays > 0 || g.perish.tiers === true), 'perishing');
 assert.throws(() => Goods.goodOf('wool'), /unknown good/); // wool and cheese are not goods yet
 assert.throws(() => Goods.declareGood({ id: 'grain' }), /invalid or duplicate/);
 checks += 4;
