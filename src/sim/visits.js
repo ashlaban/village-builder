@@ -217,11 +217,9 @@ VB['sim/visits'] = (() => {
       if (hh.dissolved || !a || a.away !== undefined || travelling(a)) continue;
       const hours = hoursFrom(st, hh, e.village);
       if (!(hours > TRAVEL.dayWalk && hours < Infinity)) continue; // the way has changed since (the table is a year's)
-      // the table's hours are green to green: from where he stands, or from the green back to his door, the way may lie beyond the route
-      // search's reach (VB-436), and he does not set out to walk it straight
-      const here = tileAt(st, ...placeOf(st, a)),
-        green = st.villages[e.village].center;
-      if (!hasRoute(st, here, green) || !hasRoute(st, green, st.farmsteads[hh.farmstead].house)) {
+      // the table's hours are green to green: from where he stands the way may lie beyond the route search's reach (VB-436), and he does not
+      // set out to walk it straight
+      if (!hasRoute(st, tileAt(st, ...placeOf(st, a)), st.villages[e.village].center)) {
         VB.count.visitNoRoute++;
         continue;
       }
