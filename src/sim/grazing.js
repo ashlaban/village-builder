@@ -100,10 +100,14 @@ VB['sim/grazing'] = (() => {
     if (t >= 0) hh.pasture = { tile: t, since: c.day };
     return t;
   }
-  // The herds are out with the herder: taken to pasture by pawn `id` today.
+  // The fleeces herd hd has still to give at the fold on day c (VB-679): those grown by the shearing day and not yet shorn, until the end of
+  // summer, when an unshorn fleece is shed on the pasture (0 after it, though the field stays until the next shearing day). Allocates nothing.
+  const unshorn = (hd, c) => (hd.fleece > 0 && c.doy >= HERD.shear && c.doy < HERD.eweEnd ? hd.fleece : 0);
+  // The herds are out with the herder: taken to pasture by pawn `id` today; a flock waiting at the fold to be shorn stays in (VB-679).
   function driveOut(st, hh, id, c) {
     for (const hid of hh.herds) {
       const hd = st.herds[hid];
+      if (unshorn(hd, c) > 0) continue;
       hd.herder = id;
       hd.herded = c.day;
     }
@@ -190,6 +194,7 @@ VB['sim/grazing'] = (() => {
     pasture,
     todaysPasture,
     driveOut,
+    unshorn,
     driveHome,
     driven,
     unherded,

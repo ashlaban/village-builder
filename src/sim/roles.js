@@ -193,6 +193,7 @@ VB['sim/roles'] = (() => {
       mowPerDay: 12, // mow: 1 + days into the haymaking window / 12 (sim/meadows)
       fodder: 1.5,
       slaughter: 1.2,
+      shear: 1.4, // shearing at the fold (VB-679): the flock is kept in until it is done
       slaughterNow: 3,
       salt: 1.6, // the byre (sim/byre): slaughterNow when hay runs short
       milk: 1.5,

@@ -10,11 +10,13 @@ VB['sim/byre'] = (() => {
   const { log, atFarm, atHousehold } = VB['sim/records'];
   const { addFood, larderOf, takeAll, spoilFood } = VB['sim/larder'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, bullsNear, inMilk, milkCows } = VB['sim/herds'];
-  const { unherded, milkFactor } = VB['sim/grazing'];
+  const { unherded, milkFactor, unshorn } = VB['sim/grazing'];
   const { hexSteps } = VB['sim/hex'];
   const { trample } = VB['sim/fields'];
   const { emit } = VB['sim/events'];
   const Targets = VB['sim/targets'];
+  const { register, issue } = VB['sim/commands'];
+  const { living } = VB['sim/records'];
   // A herd's cull[]: animals to slaughter, {id (within the herd), head (cattle head id) or sheep ('ewe'|'ram'|'lamb'), lean}; herd.cullSeq
   // numbers them. herd.lean counts stall days without fodder since the last count; herd.unfed stall days running without full hay (VB-134).
 
@@ -267,12 +269,17 @@ VB['sim/byre'] = (() => {
   // Milked (VB-135): each cow in milk gives HERD.milk rations, less for the lean days of the winter, and half after a grazing day by the
   // farm with no herder (VB-136: milked in the morning, the cows give what yesterday's grazing made); part is churned to butter that keeps,
   // the rest is drunk fresh within the day; no more is churned than brings the butter held to its head's target (VB-698; by default all).
-  function milkDone(st, hh, c) {
-    hh.milkDay = c.day;
+  function milkDone(st, hh, c, j = null) {
     let cows = 0,
-      lost = 0;
+      lost = 0,
+      elsewhere = false;
     const f = milkFactor(st, hh); // a crowded pasture lowers the milk (VB-709, sim/grazing)
     for (const herd of herdsOf(st, hh)) {
+      // a herd is milked where it is (VB-679): one that went out to pasture, or came home, since the job was posted waits for the next
+      if (j && !milkedAt(herd, j)) {
+        if (inMilk(st, herd, c).length || inMilkEwes(st, herd, c)) elsewhere = true;
+        continue;
+      }
       const un = unherded(st, herd, c),
         n =
           (inMilk(st, herd, c).length + inMilkEwes(st, herd, c) * (HERD.eweMilk / HERD.milk)) *
@@ -281,6 +288,7 @@ VB['sim/byre'] = (() => {
       cows += n * (un ? 1 : f);
       if (!un) lost += n * (1 - f);
     }
+    if (!elsewhere) hh.milkDay = c.day;
     if (lost > 0) Stores.record(st, hh, 'milk', lost * HERD.milk, 'milkbite');
     const r = cows * HERD.milk,
       butter = Math.max(0, Math.min(r * HERD.butter, Targets.target(st, hh, 'butter') - larderOf(hh, 'butter')));
@@ -451,14 +459,30 @@ VB['sim/byre'] = (() => {
   const inMilkEwes = (st, herd, c) =>
     herd.species !== 'sheep' || stalled(c) || c.doy >= HERD.eweEnd ? 0 : Math.min(herd.lambed || 0, herd.ewes);
   const milkEwes = (st, hh, c) => herdsOf(st, hh).reduce((s, hd) => s + inMilkEwes(st, hd, c), 0);
-  // Summer day 1 (VB-144): each sheep of a year or more gives a fleece. Spinning and weaving wait for the winter crafts, so wool accumulates.
+  // Summer day 1 (VB-144): each sheep of a year or more has grown a fleece, to be shorn at the fold (the job `shear`, VB-679): the flock is
+  // kept in until it is (sim/grazing's driveOut), and a fleece still on the sheep at the end of summer is shed and lost (sim/herds, unshorn).
+  // Spinning and weaving wait for the winter crafts, so wool accumulates.
   function shearing(st) {
     for (const hd of st.herds) {
-      if (hd.household === null || hd.species !== 'sheep' || !(hd.ewes + hd.rams > 0)) continue;
-      const hh = st.households[hd.household];
-      hh.wool = (hh.wool || 0) + hd.ewes + hd.rams;
+      if (hd.species !== 'sheep') continue;
+      if (hd.household === null || !(hd.ewes + hd.rams > 0)) delete hd.fleece;
+      else hd.fleece = hd.ewes + hd.rams;
     }
   }
+  // The flock is shorn (the job `shear`): a fleece for each sheep of a year or more still in it (one sold or dead meanwhile gives none).
+  function shearDone(st, hh, c) {
+    for (const herd of herdsOf(st, hh)) {
+      const n = Math.min(unshorn(herd, c), herd.ewes + herd.rams);
+      if (herd.fleece !== undefined) delete herd.fleece;
+      if (n > 0) hh.wool = (hh.wool || 0) + n;
+    }
+  }
+  // The fleeces of the household's flocks waiting at its fold on day c: not out with a herder, nor standing at another farm (sim/droving).
+  const atFold = (st, hh, c) => {
+    let n = 0;
+    for (const herd of herdsOf(st, hh)) if (herd.herder == null && herd.at === undefined) n += unshorn(herd, c);
+    return n;
+  };
   // Fed and mucked out: the day's dung goes on the heap (VB-137).
   function fodderDone(st, hh, c) {
     hh.fodderDay = c.day;
@@ -504,9 +528,22 @@ VB['sim/byre'] = (() => {
         `milk:h${hh.id}:${c.day}`,
         'milk',
         { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows + HERD.eweHours * ewes },
+        milkSite(st, hh),
       ]);
+    // shearing at the fold (VB-679), while the flock waits there with its fleeces
+    const fleeces = atFold(st, hh, c);
+    if (fleeces > 0) out.push([`shear:h${hh.id}`, 'shear', { hours: HERD.shearHours * fleeces }]);
     return out;
   }
+  // Where the household's animals in milk are milked (VB-679): at the byre while its herds are by the farm, at the day's pasture while a
+  // herder has them out (the milker walks to them); null for the house.
+  function milkSite(st, hh) {
+    if (!hh.pasture) return null;
+    for (const herd of herdsOf(st, hh)) if (herd.herder != null) return hh.pasture.tile;
+    return null;
+  }
+  // Whether the herd is where the milking job j is (VB-679): out with its herder for a job at the pasture, by the farm for one at the byre.
+  const milkedAt = (herd, j) => (j && j.site !== j.farm.house ? herd.herder != null : herd.herder == null);
   // The autumn count of every household with herds (sim/clock, CALENDAR, on HERD.countDay).
   function autumnCounts(st) {
     for (const liveId of st.liveHouseholds) {
@@ -525,12 +562,16 @@ VB['sim/byre'] = (() => {
       }
     }
   }
-  // By the byre door, left of the cottage (the page draws the byre there).
-  const byreSpot = (st, a, j) => [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2];
+  // By the byre door, left of the cottage (the page draws the byre there); at the pasture, among the herd (a milking there, VB-679).
+  const byreSpot = (st, a, j) =>
+    j.site === j.farm.house
+      ? [st.w.hx[j.farm.house] - 20 + a.ox * 0.3, st.w.hy[j.farm.house] + 5 + a.oy * 0.2]
+      : [st.w.hx[j.site] + a.ox * 0.5, st.w.hy[j.site] + a.oy * 0.4];
   // The byre's work at the cottage, for a household with herds or meat in its larder: fodder, slaughter, salting, milking (sim/byre).
   function byreWork(st, hh, f, c, post) {
     if (hh.herds.length || hh.larder.length)
-      for (const [key, kind, extra] of byreJobs(st, hh, c)) post(key, f.house, { farm: f, ...extra }, kind);
+      for (const [key, kind, extra, site] of byreJobs(st, hh, c))
+        post(key, site ?? f.house, { farm: f, ...extra }, kind);
   }
   // The job kinds (sim/kinds joins them into KINDS; a kind's fields are described there).
   const KINDS = {
@@ -561,7 +602,22 @@ VB['sim/byre'] = (() => {
       spot: byreSpot,
       window: { from: WORK[0] },
       urgency: (st, j, c, U) => (c.hour < U.milkLateHour ? U.milk : U.milkLate),
-      done: (st, j, hh, c) => milkDone(st, hh, c),
+      done: (st, j, hh, c) => milkDone(st, hh, c, j),
+      available: byreWork,
+    },
+    shear: {
+      verb: 'Shearing the sheep',
+      go: 'Going to the fold to shear',
+      name: 'Shear the sheep',
+      label: 'Shearing',
+      anim: 'gather',
+      hours: 1,
+      hands: 2,
+      type: 'husbandry',
+      spot: byreSpot,
+      window: { from: WORK[0] },
+      urgency: (st, j, c, U) => U.shear,
+      done: (st, j, hh, c) => shearDone(st, hh, c),
       available: byreWork,
     },
     slaughter: {
@@ -611,6 +667,7 @@ VB['sim/byre'] = (() => {
     byreDay,
     milkEwes,
     shearing,
+    shearDone,
     byreJobs,
   };
 })();
