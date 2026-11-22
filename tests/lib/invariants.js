@@ -392,6 +392,29 @@ function checkState(st) {
       if (s.why === 'gathering' && (s.bed === null || !(s.until > 0) || st.t >= s.until + 2 * R.DAY || (s.roof !== 'house' && s.roof !== 'barn')))
         bad.push(`gathering: a goer's stay ${s.id}: bed ${s.bed}, until ${s.until}, roof ${s.roof}, at ${st.t}`);
   }
+  // the fair (VB-302): st.fair.loads names each pawn with a load once, alive; a load holds lots of the fair's goods, n > 0, a grain lot's
+  // crops summing to it, within a back load; goods are conserved over a fair: of each good, what was packed less what went home, was laid
+  // where a dealer fell and was lost with it is what the loads carry; and no load outlasts its gathering by more than four days
+  if (st.fair) {
+    const R = globalThis.VB['sim/rules'], F = globalThis.VB['sim/fair'], f = st.fair, onLoad = {};
+    if (!Array.isArray(f.loads) || new Set(f.loads).size !== f.loads.length) bad.push(`fair: loads ${JSON.stringify(f.loads)}`);
+    for (const id of f.loads || []) {
+      const p = st.pawns[id], l = p && p.load;
+      if (!p || !p.alive || !l || !st.households[l.household]) { bad.push(`fair: pawn ${id} listed with no load`); continue; }
+      if (st.t > l.until + 4 * R.DAY) bad.push(`fair: pawn ${id}'s load outlasts its gathering (until ${l.until}, now ${st.t})`);
+      if (F.weight(l) > R.TRAVEL.load + 1e-9) bad.push(`fair: pawn ${id}'s load weighs ${F.weight(l)}`);
+      for (const x of l.lots) {
+        if (!F.FAIR.goods.includes(x.good) || !(x.n > 0)) bad.push(`fair: pawn ${id}'s lot ${JSON.stringify(x)}`);
+        if (x.good === 'grain' && (grainBad(x.parts) || Math.abs(LOADED['sim/stores'].grainOf({ grain: x.parts }) - x.n) > 1e-6 * Math.max(1, x.n))) bad.push(`fair: pawn ${id}'s grain lot ${JSON.stringify(x)} by crop`);
+        onLoad[x.good] = (onLoad[x.good] || 0) + x.n;
+      }
+    }
+    for (const p of st.pawns) if (p.load && !(f.loads || []).includes(p.id)) bad.push(`fair: pawn ${p.id} carries a load not listed`);
+    for (const g in f.goods) {
+      const t = f.goods[g], left = t.packed - t.home - t.laid - t.lost;
+      if (Math.abs(left - (onLoad[g] || 0)) > 1e-6 * Math.max(1, t.packed)) bad.push(`fair: ${g} not conserved: ${JSON.stringify(t)}, ${onLoad[g] || 0} on loads`);
+    }
+  }
   // the record of events (VB-075), the events appended since the last check: a kind, a time not after now, ids that exist
   // (a slot folded since, VB-199, is the index of a count of st.recordYears)
   const from = checked.get(st.record) || 0, Y = st.recordYears || [];

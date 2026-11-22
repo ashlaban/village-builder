@@ -94,6 +94,7 @@ VB['sim/records'] = (() => {
     alderman: 0, // the village's alderman chosen, and the office vacated (sim/meetings, VB-314)
     gathering: 0, // the villages that go to a host's gathering this winter (VB-294)
     gatheringHeld: 0, // who was at a host's gathering on its last day, and the ale poured (VB-295)
+    fair: 0, // the fair at a gathering: its deals, what changed hands, those that failed for want of change (VB-302)
     cartBuilt: 0, // a household's new cart (VB-327)
     tarPit: 0, // a household's tar pit dug (VB-301)
     setOut: 0, // a journey to a new home in another village (VB-287)
@@ -101,6 +102,7 @@ VB['sim/records'] = (() => {
     closeFriend: SHORT,
     enemy: SHORT,
     friend: SHORT,
+    swap: SHORT, // a deal at the fair, each side's (VB-302)
     fellOut: SHORT,
     quarrel: SHORT, // cross words that became a quarrel (VB-520)
     helped: SHORT, // helped another household of the village with its work (VB-106)

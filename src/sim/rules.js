@@ -435,6 +435,8 @@ VB['sim/rules'] = (() => {
       // sim/offers: a refusal of goods offered or asked for (VB-690) is a memory of both: the one refused, and, fainter, the one who refused
       refusedUs: { label: 'Refused what we offered', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
       refusedThem: { label: 'We refused them', v: -0.05, cap: -0.15, days: YEAR_DAYS },
+      // sim/fair: an animal given for food in want (a hard bargain, VB-302), of the one who drove it
+      hardBargain: { label: 'Drove a hard bargain with us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS },
       // sim/byre: an unherded herd got into the field through a broken stretch of fence; about the holder of the stretch's keeper (VB-136)
       crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
       // sim/agents: a helper finished a job of another household of its village, both ways with each adult there (VB-106; Kim, 10 Nov)

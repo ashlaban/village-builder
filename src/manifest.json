@@ -95,6 +95,7 @@
   "sim/occasions.js",
   "sim/venues.js",
   "sim/gathering.js",
+  "sim/fair.js",
   "sim/plans.js",
   "sim/jobs.js",
   "sim/heirranking.js",

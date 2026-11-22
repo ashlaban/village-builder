@@ -39,7 +39,8 @@ VB['sim/clock'] = (() => {
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
   const { occasionsDue, callMeetings, VILLAGE_STEPS } = VB['sim/occasions'];
-  const { packStep } = VB['sim/gathering'];
+  const { packStep } = VB['sim/gathering'],
+    { fairHour } = VB['sim/fair'];
   const { riteDay, callRites } = VB['sim/venues'];
   const { takeIn } = VB['sim/service'];
   const { trustOf } = VB['sim/ownership'];
@@ -96,6 +97,13 @@ VB['sim/clock'] = (() => {
           if (a.inside && !a.job) placeByDoor(st, a);
         }
       },
+    },
+    {
+      every: 'hour',
+      when: (st) => !!st.fair && st.fair.loads.length > 0,
+      owner: 'sim/fair',
+      note: 'the fair: the dealers at a gathering swap, and those home again unload (VB-302)',
+      run: (st, c) => fairHour(st, c),
     },
     {
       every: 'hour',

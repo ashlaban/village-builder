@@ -505,6 +505,7 @@ VB['sim/saves'] = (() => {
     if (!st.rng.deer) st.rng.deer = makeStream(data.seed, 'deer'); // VB-139: nor roe deer, nor their stream
     if (!st.rng.plans) st.rng.plans = makeStream(data.seed, 'plans'); // VB-255: nor the heads' choice of projects
     if (!st.rng.gathering) st.rng.gathering = makeStream(data.seed, 'gathering'); // VB-295: nor the goers' wish to go to the gathering
+    if (!st.rng.fair) st.rng.fair = makeStream(data.seed, 'fair'); // VB-302: nor the fair's order of dealers
     if (!st.deer) VB['sim/deer'].initDeer(st);
     if (!st.front || !w.tended) VB['sim/spread'].initFront(st); // VB-091: nor the forest's front, nor the work on tiles
     for (const f of st.farmsteads) if ('woodlot' in f) delete f.woodlot;
