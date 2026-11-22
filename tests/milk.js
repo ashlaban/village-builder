@@ -3,7 +3,8 @@
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], Y = VB['sim/byre'], L = VB['sim/larder'], { dailyNeed } = VB['sim/hunger'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('MILK FAIL:', m); } };
-const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
+// the roomy island of tests/lib/probe.js, generated once a seed (VB-862: a 120 by 85 map took half a second each time)
+const world = (seed) => require('./lib/probe.js').island(seed, require('./lib/probe.js').ROOMY);
 const cal = (doy, hour = 8) => ({ doy, day: doy, season: Math.floor(doy / 12), sday: doy % 12, hour });
 const HD = Sim.HERD;
 

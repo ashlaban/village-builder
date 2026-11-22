@@ -4,7 +4,8 @@ const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { moveClock } = require('./lib/clock.js');
 const { feedHousehold, updateHealth } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HEALTH, YEAR, YEAR_DAYS } = VB['sim/rules'], { rateOf } = VB['sim/agents'];
-const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.next()).done); return r.value; };
+// the small island of tests/lib/probe.js (VB-862: the full map took 2 s)
+const world = (seed) => require('./lib/probe.js').island(seed);
 const w7 = world(7), fresh = () => Sim.seed(w7, 7, 'founders');
 const starve = (p, age, days) => { // hunger 1 every day; the day on which the pawn would die, or 0
   const st = fresh(); p.born = st.t - age * YEAR; p.health = 100; p.hunger = 1;

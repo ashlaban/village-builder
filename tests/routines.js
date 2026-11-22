@@ -9,8 +9,8 @@ const Plans = VB['sim/plans'], L = VB['sim/meetings'], Culture = VB.culture, { i
 const { refreshJobs } = VB['sim/jobs'], { eligible } = VB['sim/eligibility'], { DAY, WORK, cal } = VB['sim/rules'];
 const { villageOf } = VB['sim/records'];
 const { checkState } = require('./lib/invariants.js');
-const it = G.generate(7); let r; while (!(r = it.next()).done);
-const fresh = () => Sim.seed(r.value, 7, 'founders');
+const world7 = require('./lib/probe.js').island(7); // the small island, generated once (VB-862: the full map took 2 s)
+const fresh = () => Sim.seed(world7, 7, 'founders');
 const vmends = (st, vid) => [...st.jobs.values()].filter((j) => j.kind === 'mend' && j.owner.type === 'village' && j.owner.id === vid);
 const failures = (st) => st.record.filter((e) => typeof e === 'object' && e.kind === 'meetingFailed');
 // a village with a fence and people with a voice, its stretches worn below mending

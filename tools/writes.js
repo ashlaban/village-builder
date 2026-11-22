@@ -98,7 +98,38 @@ function matches(toks) {
 }
 
 // One module. `returns` maps 'module:function' to the path the function returns (from the first pass over every module).
+// A scan is kept, by its file, module, source and returns, for the process (tools/stocks.js scans the modules the map has already scanned,
+// in both passes) and on disk under node_modules/.cache/vb-writes, as Prettier keeps its cache: the tokenizer and the parse take two seconds
+// over the sources in each of five scripts of verify (VB-862). The disk key also holds the text of the scanner's own tools and of acorn's
+// version, so a change to any of them scans anew; VB_NO_CACHE=1 skips the disk. Callers copy what they keep, never change a scan.
+const scans = new Map(), crypto = require('crypto'), CACHE = path.join(ROOT, 'node_modules', '.cache', 'vb-writes');
+const TOOLS = ['tools/writes.js', 'tools/wrap.js', 'tools/write-scopes.js', 'tools/dependencies.js', 'tools/owner-policy.js',
+  'tools/lib/source.js', 'node_modules/acorn/package.json'];
+let toolsHash = null;
+const diskKey = (key, src) => {
+  if (toolsHash === null) {
+    const h = crypto.createHash('sha1');
+    for (const tool of TOOLS) h.update(tool + '\0' + fs.readFileSync(path.join(ROOT, tool), 'utf8') + '\0');
+    toolsHash = h.digest('hex');
+  }
+  return crypto.createHash('sha1').update(`${toolsHash}\0${key}\0${src}`).digest('hex');
+};
 function scan(file, mod, returns = {}, src = readSource(file)) {
+  const key = `${file}\0${mod}\0${JSON.stringify(returns)}`, kept = scans.get(key);
+  if (kept && kept.src === src) return kept.result;
+  const disk = process.env.VB_NO_CACHE !== '1' && fs.existsSync(path.join(ROOT, 'node_modules')) ? path.join(CACHE, diskKey(key, src) + '.json') : null;
+  let result = null;
+  if (disk) try { result = JSON.parse(fs.readFileSync(disk, 'utf8')); } catch { result = null; }
+  if (!result) {
+    // kept as JSON text and read back, so that a scan from the disk and one made now are the same values (no undefined fields)
+    const text = JSON.stringify(scanned(file, mod, returns, src));
+    result = JSON.parse(text);
+    if (disk) try { fs.mkdirSync(CACHE, { recursive: true }); fs.writeFileSync(disk + '.' + process.pid, text); fs.renameSync(disk + '.' + process.pid, disk); } catch { /* no cache */ }
+  }
+  scans.set(key, { src, result });
+  return result;
+}
+function scanned(file, mod, returns, src) {
   const tokens = tokenize(src), toks = tokens.filter((t) => t.t !== 'com');
   const allowed = new Set();
   for (const t of tokens) if (t.t === 'com' && /^\/\/ lint-allow: owner \S/.test(src.slice(t.s, t.e))) {

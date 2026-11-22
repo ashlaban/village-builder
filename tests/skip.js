@@ -278,6 +278,8 @@ console.log('skip ok: it ends by the eve of the moving round; a skipped run is t
   Sim.inhabit(st, HOLDER);
   const p = st.pawns[HOLDER], dim = 0, opt = (st.cenv.settlements[0].practice[dim] + 1) % C.NOPT[dim];
   assert.strictEqual(issue(st, { actor: HOLDER, verb: 'argue', args: { dim, option: opt }, source: 'player' }), true);
+  // its term cut to a year and a half, so that it lapses at the second meeting, not the sixth (VB-862: the run took 6 of the script's 9 s)
+  p.advocate.until = st.cenv.t + 1.5;
   const evs = () => st.record.filter((e) => e.kind === 'cause' && e.pawn === HOLDER && e.reason === 'lapsed');
   const from = Sim.skipFrom(st);
   while (!evs().length && st.t < 8 * YEAR) Sim.advance(st, 6);

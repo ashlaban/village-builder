@@ -7,7 +7,8 @@ const src = (f) => fs.readFileSync(path.join(__dirname, '../src/page', f), 'utf8
 const literal = (text, name) => { const m = text.match(new RegExp(`const ${name} = (\\{[\\s\\S]*?\\});\\n`)); if (!m) throw new Error(`${name} not found`); return Function(`return ${m[1]}`)(); };
 const DEMO = literal(src('loader.js'), 'DEMO'), PEOPLE = literal(src('start.js'), 'START_PEOPLE');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('START FAIL:', m); } };
-const world = (seed, cols, rows) => { const it = G.generate(seed, { cols, rows }); let r; while (!(r = it.next()).done); return r.value; };
+// each seed's island generated once and handed out as a fresh copy for each scenario (tests/lib/probe.js; VB-862: three times a seed before)
+const world = (seed, cols, rows) => require('./lib/probe.js').island(seed, { cols, rows });
 const SCENARIOS = ['founders', 'heirs', 'populous'];
 const living = (st) => st.pawns.filter((p) => p.alive).length;
 const fits = [], heirsAt = [];

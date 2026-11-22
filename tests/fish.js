@@ -6,7 +6,8 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/fish
 const { KINDS } = VB['sim/kinds'], { ROLES, FISH, MATCH, DAY } = VB['sim/rules'], { dailyNeed } = VB['sim/hunger'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FISH FAIL:', m); } };
-const world = (seed, size = [180, 130]) => { const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };
+// the roomy island of tests/lib/probe.js, generated once a seed (VB-862)
+const world = (seed) => require('./lib/probe.js').island(seed, require('./lib/probe.js').ROOMY);
 const cal = (season, sday, hour = 8) => ({ season, sday, doy: season * 12 + sday, day: season * 12 + sday, hour });
 const near = (a, b) => Math.abs(a - b) < 1e-6;
 

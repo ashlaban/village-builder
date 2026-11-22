@@ -29,9 +29,19 @@ const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, TICKS, ASK } = VB['sim/rules'], { NIG
 const probe = require('./lib/probe.js'), seed = probe.state, restoreWorld = probe.world;
 const st = seed();
 assert.strictEqual(YEAR, YEAR_H);
+// The saves below start from a copy of a run kept at the hour before their window, not from the seed each (VB-862: nine runs of a year or
+// two took 4 of the script's 5 s): the state's plain data cloned and its world's arrays copied, as tests/lib/probe.js copies an island.
+const copyRun = (s) => {
+  const { w, ...rest } = s, data = structuredClone(rest), out = {};
+  const ws = Object.fromEntries(Object.entries(w).map(([k, v]) => [k, ArrayBuffer.isView(v) ? v.slice() : typeof v === 'function' || v === null || typeof v !== 'object' ? v : structuredClone(v)]));
+  for (const k of Object.keys(s)) out[k] = k === 'w' ? ws : data[k];
+  return out;
+};
+const from = (base) => (at) => { Sim.advance(base, at - base.t); return copyRun(base); };
 // to the day before the round, then across it and the next night in uneven advances
 const roundDay = 2 * SEASON_DAYS + 10, start = Math.floor(st.t / YEAR) * YEAR + (roundDay - 1) * DAY;
 Sim.advance(st, start + 23 - st.t);
+const roundRun = from(copyRun(st));
 calls.length = 0;
 const sizes = [0.2, 0.4, 1.3, 0.1, 0.3, 2.5, 0.1, 0.1, 0.7]; // whole steps of uneven sizes (VB-244)
 for (let i = 0, end = start + 3 * DAY; st.t < end - 1e-9; i++) Sim.advance(st, Math.min(sizes[i % sizes.length], end - st.t));
@@ -69,8 +79,7 @@ assert(roundVillages === 2, 'the saves below fall between village 0 and village 
 for (const [label, at] of [['between villages 0 and 1', start + DAY + 12], ['after the last village, before 18:00', start + DAY + 12.1],
   ['in the middle of the villages\' window', start + DAY + 15], ['between the round\'s phases', start + DAY + 18.1],
   ['in the night\'s culture', start + 2 * DAY + 0.5]]) {
-  const a = seed();
-  Sim.advance(a, at - a.t);
+  const a = roundRun(at);
   const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(restoreWorld(data), data);
   for (const run of [a, b]) for (let k = 0; k < 30; k++) Sim.advance(run, 0.1);
   const bad = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => k !== 'w' && canon(a[k]) !== canon(b[k]));
@@ -83,6 +92,7 @@ for (const [label, at] of [['between villages 0 and 1', start + DAY + 12], ['aft
 const mday = Math.floor(st.t / YEAR) * YEAR + (2 * SEASON_DAYS + 9) * DAY + YEAR; // next year's autumn day 10
 const m = seed();
 Sim.advance(m, mday + 11.5 - m.t);
+const meetingRun = from(copyRun(m));
 calls.length = 0;
 const msizes = [0.2, 0.4, 0.1, 0.3, 0.7, 1.9];
 for (let i = 0, end = mday + 19; m.t < end - 1e-9; i++) Sim.advance(m, Math.min(msizes[i % msizes.length], end - m.t));
@@ -100,8 +110,7 @@ assert.strictEqual(at(lands[0]), 61, 'the land meeting at 18:06');
 assert.strictEqual(Math.round((m.lastMeeting - mday) * TICKS), 18 * TICKS, 'the meetings are done at 18:00');
 for (const [label, at] of [['between villages 0 and 1', 12], ['after the last village', 12 + mvillages / TICKS],
   ["in the middle of the villages' window", 15], ['before the land meeting', 18]]) {
-  const a = seed();
-  Sim.advance(a, mday + at - a.t);
+  const a = meetingRun(mday + at);
   const data = JSON.parse(JSON.stringify(Sim.save(a))), b = Sim.load(restoreWorld(data), data);
   for (const run of [a, b]) Sim.advance(run, 6.5);
   const bad = [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => k !== 'w' && canon(a[k]) !== canon(b[k]));

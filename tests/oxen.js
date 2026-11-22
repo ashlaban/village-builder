@@ -3,7 +3,8 @@
 // the oxen's farm breaks and hoes its fields in fewer hours than the farms without.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], A = VB['sim/agents'], J = VB['sim/jobs'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('OXEN FAIL:', m); } };
-const world = (seed, size = [120, 85]) => { const it = G.generate(seed, { cols: size[0], rows: size[1] }); let r; while (!(r = it.next()).done); return r.value; };
+// the small island of tests/lib/probe.js (VB-862: a 120 by 85 and a 180 by 130 map took 1.5 s)
+const world = (seed) => require('./lib/probe.js').island(seed);
 const T = Sim.HERD.team;
 
 // --- populous tiny at seed 7: a household with a team and one without, each hoeing a field by hand
@@ -51,7 +52,7 @@ for (const q of [j, second.j]) { for (const id of [...q.claims]) A.release(st, s
 }
 
 // --- founders at seed 7, small map, 2 years: tilling done per pawn-hour of breaking and hoeing, the oxen's farm against the others
-const s2 = Sim.seed(world(7, [180, 130]), 7, 'founders');
+const s2 = Sim.seed(world(7), 7, 'founders');
 const hours = new Map(), work = new Map(), teamHH = s2.households.find((h) => H.team(s2, h));
 for (let k = 0; k < 2 * Sim.YEAR * 10; k++) {
   const was = new Map(); for (const q of s2.jobs.values()) if (T.kinds.includes(q.kind)) was.set(q, q.done);

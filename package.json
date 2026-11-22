@@ -5,7 +5,7 @@
     "test": "node tests/run.js test",
     "verify": "node tests/run.js verify",
     "build": "node build.js",
-    "format": "prettier --write \"src/**/*.js\"",
+    "format": "prettier --write --cache --cache-strategy content \"src/**/*.js\"",
     "nightly": "node tools/nightly.js",
     "calibrate": "node tests/calibrate.js natural 12 200"
   },

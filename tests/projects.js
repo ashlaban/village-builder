@@ -9,7 +9,7 @@ const { setClock } = require('./lib/clock.js');
 const { checkState } = require('./lib/invariants.js');
 const Plans = VB['sim/plans'], Stores = VB['sim/stores'], F = VB['sim/fieldplans'];
 const { KINDS } = VB['sim/kinds'], { ROLES, DAY, WORK } = VB['sim/rules'];
-const it = G.generate(7); let r; while (!(r = it.next()).done);
+const { island, ROOMY } = require('./lib/probe.js'), world7 = island(7, ROOMY); // the roomy island (heirs needs its room), generated once (VB-862: the full map took 2 s)
 const out = [];
 const clean = (st, label) => { const bad = checkState(st); assert.deepStrictEqual(bad, [], `${label}: invariants`); };
 
@@ -26,7 +26,7 @@ const BARN = (f) => ({ what: 'barn', steps: [13, 13, 14].map((n) => ({ kind: 'te
 // The heirs' first household with two fields or more, on spring day 1, in the sowing window, with no land project of its own and none to
 // come (one project a household), and 100 loads of wood: 40 for the barn and 60 for the fire.
 function scene() {
-  const st = Sim.seed(r.value, 7, 'heirs'), hh = st.households.find((h) => st.farmsteads[h.farmstead].fields.length >= 2), f = st.farmsteads[hh.farmstead];
+  const st = Sim.seed(world7, 7, 'heirs'), hh = st.households.find((h) => st.farmsteads[h.farmstead].fields.length >= 2), f = st.farmsteads[hh.farmstead];
   setClock(st, DAY + WORK[0]);
   st.makeFields = false; Plans.dropAll(st, 'household', hh.id);
   Stores.take(st, hh, 'wood', hh.wood, 'burn'); Stores.put(st, hh, 'wood', 100, 'firewood');
@@ -106,7 +106,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   out.push('a right lost drops the plan; a store still covering it does not');
 }
 { // a save made before project plans: the farm's land project becomes its household's plan, from its stage on
-  const st = Sim.seed(r.value, 7, 'founders');
+  const st = Sim.seed(world7, 7, 'founders');
   Sim.advance(st, 2 * DAY);
   const hh = st.households.find((h) => VB['sim/projects'].ownOf(st, h.id));
   const old = VB['sim/projects'].ownOf(st, hh.id), was = JSON.stringify(old.steps.slice(old.open));
@@ -123,7 +123,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
 }
 { // a plot: one project plan of its village, its tiles cleared side by side in its first step, then the cottage's stages; and a save made
   // before plot plans kept it in village.plots, as it loads
-  const X = VB['sim/expansion'], st = Sim.seed(r.value, 7, 'heirs'), v = st.villages[0];
+  const X = VB['sim/expansion'], st = Sim.seed(world7, 7, 'heirs'), v = st.villages[0];
   st.demand = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)).map((p) => p.id).slice(0, 2);
   for (const f of st.farmsteads) if (f.household === null) f.state = 'ruin';
   X.startPlots(st);
@@ -147,7 +147,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   out.push('a plot is one plan of its village, its tiles cleared side by side; a save before plot plans loads');
 }
 { // a claim on an empty farm: its claimant's project plan (one step, restore, under the claim 'farm'); a save made before kept it on the farm
-  const FC = VB['sim/farmclaims'], st = Sim.seed(r.value, 7, 'heirs'), f = st.farmsteads[0], by = st.households[1].holder;
+  const FC = VB['sim/farmclaims'], st = Sim.seed(world7, 7, 'heirs'), f = st.farmsteads[0], by = st.households[1].holder;
   f.claim = { by, since: st.t, hours: 36, done: 20 };
   VB['sim/saves'].oldProjects(st); // as a load does
   const c = FC.claimOn(st, f), plan = VB['sim/projects'].projectsOf(st, 'pawn', by)[0];
