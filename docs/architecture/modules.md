@@ -72,6 +72,13 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   ones `st.obligationsBy`, read through `due(st, party, as, kind)`. Write only through `create`, `fulfil` (goods through `sim/stores`),
   `forgive`, `lapse` and `transfer`; `step` touches only those whose term has ended. A new kind is a row of `KINDS` (its term). The
   first kind is the heirs' share still owed: made by `sim/heirs` (`oweShare`), paid at the moving round by `sim/cottage` (`payOwed`).
+- The seasons' weather (VB-354): `src/sim/weather.js`, the world layer's climate until the weather branch answers the same question a
+  region (target-v2 4.2), owns `st.weather`: this year's and last year's seasons, each `[warmth, wetness]` in -1 to 1 drawn from the
+  `weather` stream as the season begins (`seasonBegins`, first in the calendar), with the year's thaw (a spring sday) and first frost (an
+  autumn sday). A crop reads its row's `weather` terms (`CROPS`, `sim/rules`) at reaping through `cropFactor` (`sim/fields` standing),
+  the meadows theirs (`HAY_WEATHER`) at mowing through `factor`; `ripeShift` moves barley's and peas' ripening by the summer's warmth;
+  `sowOpen` is the sowing window after the thaw (`sim/fieldwork`, `sim/plans`); `frostDay` places the frost's calendar entries, the
+  plans' closing window, the harvest estimate and the harvest's urgency. Its tunables are `WEATHER` there.
 - Animals (VB-131 to VB-138): `src/sim/herds.js` (herds of named cattle and counted sheep, spring breeding, each scenario's herds, cows in milk, the team of oxen), `src/sim/meadows.js` (hay meadows and haymaking, only while hay is wanted), `src/sim/byre.js` (the stall period, the autumn count, slaughter, salting, milking, the dung heap, an unherded herd in a crop), `src/sim/grazing.js` (VB-136: herding, the day's pasture, the herds out with the herder, the grazing pressure `w.graze`, halving each year in closed form, and `milkFactor`, the factor a crowded pasture puts on the milk that `byre` reads, VB-709); read by `src/sim/spread.js`, VB-091, where it keeps open land open or thins its scrub); grain spoiling in store is in `src/sim/hunger.js`; field demand is in `src/sim/fieldplans.js`; soil, tilth (VB-717) and manure are in `src/sim/fields.js`. Design and plan: `docs/review-animals.md`; balance and history: `docs/review-balance.md`.
 - Carts (the distance review, 12 November): `src/sim/carts.js` (hand carts and ox carts as a household's items, `household.carts`; the load
   a pawn takes and its pace; wear, mending and the end of a cart; the head's count of misses, `household.cartMiss`, and the cart built as a

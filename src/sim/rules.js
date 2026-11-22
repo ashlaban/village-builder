@@ -1123,7 +1123,7 @@ VB['sim/rules'] = (() => {
       fieldPerDay: 8, // plow and sow: 1 + sday / 8
       reap: 1.3,
       reapFrostPerDay: 5,
-      haul: 1.1, // reap: 1.3, and in autumn + sday / 5 (the frost comes on autumn day 11)
+      haul: 1.1, // reap: 1.3; both, in autumn, + the days gone of a season ending at the year's frost / 5 (sim/fieldwork frostNear)
       woodLow: 8,
       woodLowUrgency: 2.2,
       woodColdUrgency: 3, // VB-327: a cold household's wood comes before its cooking (cookEvening 2.2)

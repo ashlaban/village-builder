@@ -5,8 +5,8 @@
 // the three kinds whose end is the village's (haul, clear, break).
 VB['sim/fieldwork'] = (() => {
   const Stores = VB['sim/stores'];
-  const { WORK, CROPS } = VB['sim/rules'];
-  const { sowOpen } = VB['sim/weather'];
+  const { WORK, CROPS, SEASON_DAYS } = VB['sim/rules'];
+  const { sowOpen, frostDay } = VB['sim/weather'];
   const { log, atFarm } = VB['sim/records'];
   const { scrubHours, SPREAD } = VB['sim/spread'];
   const { onProject, landProject } = VB['sim/projects'],
@@ -124,6 +124,10 @@ VB['sim/fieldwork'] = (() => {
   }
   // Hoeing and sowing grow more urgent as the sowing window runs out.
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
+  // Reaping and hauling the sheaves grow more urgent as the year's frost nears (sim/weather frostDay, VB-354): in autumn, by the days gone
+  // of a season that ended at the frost (as by the autumn's day when the frost fell on its last).
+  const frostNear = (st, c, U) =>
+    c.season === 2 ? Math.max(0, SEASON_DAYS - 1 - (frostDay(st) - c.sday)) / U.reapFrostPerDay : 0;
   const KINDS = {
     plow: {
       verb: 'Hoeing a field',
@@ -189,7 +193,7 @@ VB['sim/fieldwork'] = (() => {
       type: 'harvest',
       field: true,
       spot: onField,
-      urgency: (st, j, c, U) => U.reap + (c.season === 2 ? c.sday / U.reapFrostPerDay : 0),
+      urgency: (st, j, c, U) => U.reap + frostNear(st, c, U),
       done: (st, j, hh, c) => reaped(st, j.field, c),
       // a ripe field
       stages: ['ripe'],
@@ -211,7 +215,7 @@ VB['sim/fieldwork'] = (() => {
       to: 'barn',
       window: { from: WORK[0] - 1 }, // dry by the morning
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6],
-      urgency: (st, j, c, U) => U.haul,
+      urgency: (st, j, c, U) => U.haul + frostNear(st, c, U),
       load: (st, a, j, cap) => (a.load = carried(j.field, cap)),
       again: (j) => j.field.stage === 'stooks',
       setDown: (st, j, a) => laidDown(j.field, a.load),

@@ -30,9 +30,11 @@ function run(seed) {
   for (let y = 1; y <= years; y++) {
     const t0 = (y - 1) * Sim.YEAR + 1, t1 = y * Sim.YEAR + 1;
     if (st.t < t0) Sim.advance(st, t0 - st.t);
-    const weather = st.weather, before = new Map(st.households.map((h) => [h.id, { hungry: h.hungryDays, grain: Stores.grainOf(h) + h.meals,
+    const before = new Map(st.households.map((h) => [h.id, { hungry: h.hungryDays, grain: Stores.grainOf(h) + h.meals,
       cattle: cattleOf(st, h), sheep: sheepOf(st, h), mem: { fields: booked(h, 'fields'), animals: booked(h, 'animals') } }]));
     Sim.advance(st, t1 - st.t);
+    // the year's weather as barley read it (VB-354: the seasons of year y, sim/weather), in place of the yearly factor it was
+    const weather = VB['sim/weather'].cropFactor({ weather: st.weather.filter((x) => x.year <= y) }, 'barley');
     if (y < from) continue;
     for (const hh of st.households) {
       if (hh.dissolved || !before.has(hh.id)) continue;

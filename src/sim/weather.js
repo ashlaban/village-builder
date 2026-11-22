@@ -19,7 +19,7 @@ VB['sim/weather'] = (() => {
     range: Object.freeze([0.5, 1.3]),
     thaw: Object.freeze([1, 1, 1, 1]),
     frostFrom: 7,
-    frost: Object.freeze([1, 1, 2, 3, 5]),
+    frost: Object.freeze([1, 1, 1, 2, 10]),
     ripen: Object.freeze({ late: 2, early: 1 }),
   });
   const pick = (r, weights) => {
