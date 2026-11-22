@@ -33,10 +33,7 @@ VB['sim/asking'] = (() => {
   }
   // Under the custom `matchBy` 'heads' (VB-826) a spokesman asks for a member whatever its wish or courtship: the member's no is its own
   const headsOf = (st, p) => matchByOf(st, p) === 'heads';
-  const landed = (st, id) => {
-    const sp = spouseOf(st, id);
-    return holdingOf(st, id) !== null || (sp !== null && holdingOf(st, sp) !== null);
-  };
+  const { landed, mayHoldFarm } = VB['sim/holding'];
   // Why open offer o can no longer be answered, or null: one of its people has died; for a match, one of the two has married; for land,
   // the asker has taken a place.
   function staleWhy(st, o) {
@@ -229,7 +226,7 @@ VB['sim/asking'] = (() => {
         continue;
       }
       if (r === 'farm') {
-        if (landed(st, id)) continue;
+        if (!mayHoldFarm(st, id, 'ask')) continue;
         const f = claimableFarm(st, id);
         if (f === null) continue;
         if (heirFirst && placeIfMarried(st, id) !== null) return 'stay'; // the heir stays

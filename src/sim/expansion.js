@@ -13,7 +13,8 @@ VB['sim/expansion'] = (() => {
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { costChanged } = VB['sim/routes'];
-  const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
+  const { landed, mayHoldFarm, contribute } = VB['sim/holding'];
+  const { log, fullName, spouseOf, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];
   const { clearTile, FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
@@ -412,13 +413,10 @@ VB['sim/expansion'] = (() => {
     );
   }
   // The village's pick among those still waiting, by `village` rule: married couples first, then by age, single adults once no couple waits.
-  // A pawn with a farm already: a holder, or married to one (who lives on the spouse's farm; VB-153).
-  const landed = (st, id) => {
-    const sp = spouseOf(st, id);
-    return isHolder(st, id) || (sp !== null && isHolder(st, sp));
-  };
-  // A pawn who holds a cleared plot, or is meant to have another still being cleared, is not allotted a second (VB-142).
-  const open = (st, id) => !landed(st, id) && !awaitsCottage(st, id) && !hasPlot(st, id);
+  // A pawn with a farm already (landed), who holds a cleared plot, or is meant to have another still being cleared, is not allotted a second
+  // (VB-142): the way `plot` of sim/holding's table, whose bar `plot` this module gives.
+  contribute('plot', hasPlot); // a cottage awaited is a plot hasPlot finds
+  const open = (st, id) => mayHoldFarm(st, id, 'plot');
   function byVillage(st, v, ids) {
     const live = ids.filter((id) => st.pawns[id].alive && open(st, id));
     const couple = (id) => {

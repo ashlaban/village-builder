@@ -9,25 +9,15 @@ VB['sim/farmclaims'] = (() => {
   const { bufferOf } = VB['sim/traits'];
   const { withinDay } = VB['sim/villagehours'];
   const { keptDone } = VB['sim/progress'];
-  const {
-    spouseOf,
-    childrenOf,
-    isHolder,
-    kinDegree,
-    practice,
-    settlementIdOf,
-    log,
-    fullName,
-    personEvent,
-    atFarm,
-    atHousehold,
-  } = VB['sim/records'];
+  const { spouseOf, kinDegree, practice, settlementIdOf, log, fullName, personEvent, atFarm, atHousehold } =
+    VB['sim/records'];
   const { wishOf, moveWhy: whose } = VB['sim/wishes'];
   const CL = VB['sim/claims'],
     Disputes = VB['sim/disputes'];
   const { dailyNeed } = VB['sim/hunger'],
     { reserved } = VB['sim/stores'];
-  const { hasPlot, awaitsCottage, activePlots, MAX_PLOTS } = VB['sim/expansion'];
+  const { hasPlot, activePlots, MAX_PLOTS } = VB['sim/expansion'];
+  const { landed, barredWhy, goesWith, contribute } = VB['sim/holding'];
   const { emit } = VB['sim/events'],
     { onFarm, projectsOf } = VB['sim/projects'];
   // A claim on an empty farm being restored is its claimant's project plan (VB-123; sim/plans makes it on the event projectBegun): {...,
@@ -69,30 +59,9 @@ VB['sim/farmclaims'] = (() => {
   // under way.
   const claimable = (st, f) => f.household === null && f.state === 'derelict' && !onFarm(st, f.id);
   // ---- who may claim, and in what order ----
-  const landed = (st, id) => {
-    const sp = spouseOf(st, id);
-    return isHolder(st, id) || (sp !== null && isHolder(st, sp));
-  };
-  const guardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
-  // A pawn of `ids` (st.demand: landless adults who want out) who may claim a farm at all: alive and grown, with no farm, no claim under way,
-  // no plot coming (sim/expansion) and no ward to keep.
-  // barred says which of these stands in the way, or null.
-  const barred = (st, id) => {
-    const p = st.pawns[id];
-    return !p.alive || p.age < 18
-      ? 'under 18'
-      : p.household === null
-        ? 'has no home'
-        : landed(st, id)
-          ? 'holds a farm, or is married to its holder'
-          : claimOf(st, id)
-            ? 'restoring a farm it claimed'
-            : hasPlot(st, id) || awaitsCottage(st, id)
-              ? 'has a plot coming'
-              : guardian(st, id)
-                ? 'keeps a ward'
-                : null;
-  };
+  // A pawn of `ids` (st.demand: landless adults who want out) who may claim a farm at all: every bar of sim/holding's table (grown, a home,
+  // no farm, no claim under way, no plot coming, no ward to keep). barred says which of these stands in the way, or null.
+  const barred = (st, id) => barredWhy(st, id, 'claim');
   const free = (st, id) => barred(st, id) === null;
   // Pawn id's restoration under way (its project plan 'restore'), or null.
   const restoring = (st, id) => projectsOf(st, 'pawn', id).find((p) => p.what === 'restore') || null;
@@ -102,6 +71,7 @@ VB['sim/farmclaims'] = (() => {
     const p = restoring(st, id) || (sp !== null ? restoring(st, sp) : null);
     return p ? st.farmsteads[p.farm] : null;
   }
+  contribute('claim', (st, id) => claimOf(st, id) !== null); // a bar of sim/holding's table
   // The claimants of farm f among `ids`, best first, under its village's `claims` practice (a key of the custom):
   //   kin       while the old family's birthright stands, its kin first (any village within CLAIMS.farmHours), closest degree first; then the
   //             farm's own villagers; once it lapses, the villagers only
@@ -449,16 +419,8 @@ VB['sim/farmclaims'] = (() => {
     }
     const c = claimOn(st, f),
       holder = st.pawns[c.by],
-      sp = spouseOf(st, holder.id),
       v = st.villages[f.village];
-    const members = [holder.id];
-    if (sp !== null && st.pawns[sp].alive) members.push(sp);
-    const from = new Set(members.map((id) => st.pawns[id].household));
-    for (const id of [...members])
-      for (const c of childrenOf(st, id)) {
-        const q = st.pawns[c];
-        if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
-      }
+    const members = goesWith(st, holder.id);
     const years = Math.round((st.t - f.emptySince) / YEAR),
       { n, grain, piles } = provisions(st, f, members);
     issue(st, {

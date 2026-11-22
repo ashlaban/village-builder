@@ -2,7 +2,8 @@
 VB['sim/cottage'] = (() => {
   const { livePlots, cottageAt } = VB['sim/expansion'],
     { stepOf } = VB['sim/projects'];
-  const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold } = VB['sim/records'];
+  const { personEvent, log, fullName, atHousehold } = VB['sim/records'];
+  const { landed, goesWith } = VB['sim/holding'];
   const { makeFarmstead } = VB['sim/layout'];
   const { SHARES, ECON } = VB['sim/rules'],
     { SOIL } = VB['sim/crops'];
@@ -27,12 +28,8 @@ VB['sim/cottage'] = (() => {
       names.farmOrder(names.prefsOf(st, v.id).farm, rand),
     );
   }
-  // Whether pawn id can move into a new farm: alive, and neither it nor a living spouse holds one (VB-153).
-  function canMoveIn(st, id) {
-    if (id === null || !st.pawns[id].alive || isHolder(st, id)) return false;
-    const sp = spouseOf(st, id);
-    return !(sp !== null && st.pawns[sp].alive && isHolder(st, sp));
-  }
+  // Whether pawn id can move into a new farm: alive, and neither it nor its spouse holds one (VB-153; sim/holding's bar `landed`).
+  const canMoveIn = (st, id) => id !== null && st.pawns[id].alive && !landed(st, id);
   // The roof is on: the plot's holder and spouse (and their minor children) move into a new farmstead of the plot's house and field.
   // Their stakes (shares already paid out, VB-032) become the household's grain; shares still owed stay a debt of the farm they came from.
   // `plot`: the plot's project plan (sim/plans), finished here and kept as the village's record of the plot (village.plots, sim/expansion).
@@ -52,10 +49,9 @@ VB['sim/cottage'] = (() => {
       return;
     }
     const holder = st.pawns[plot.to],
-      sp = spouseOf(st, holder.id),
       tiles = plot.steps[0].places;
     // the holder died, or took another farm or married onto one (VB-153) meanwhile: the roof stands, nobody is to live there
-    if (!holder.alive || isHolder(st, holder.id) || (sp !== null && st.pawns[sp].alive && isHolder(st, sp))) {
+    if (!canMoveIn(st, holder.id)) {
       plot.to = null;
       log(st, `The new cottage in ${v.name} stands empty.`, { kind: 'empty', village: v.id });
       return;
@@ -83,15 +79,8 @@ VB['sim/cottage'] = (() => {
       ...(plot.by !== undefined ? { by: plot.by } : {}), // built by a household for its heir (VB-255)
     });
     emit(st, 'stepDone', { type: plot.holder.type, id: plot.holder.id, plan: plot }); // the roof on: the plan is finished (sim/plans)
-    const members = [holder.id];
-    if (sp !== null && st.pawns[sp].alive) members.push(sp);
-    const from = new Set(members.map((id) => st.pawns[id].household));
-    for (const id of [...members]) {
-      for (const c of childrenOf(st, id)) {
-        const q = st.pawns[c];
-        if (q.alive && q.age < 18 && from.has(q.household) && !members.includes(c) && !isHolder(st, c)) members.push(c);
-      }
-    }
+    const members = goesWith(st, holder.id), // the start in life every way to a farm shares (sim/holding)
+      from = new Set(members.map((id) => st.pawns[id].household));
     // the plot's wood (VB-328): the new household's pile up to its winter goal, then the piles of those who worked the plot; the rest is burnt
     const left = Math.max(0, stepOf(plot, 'walls').wood || 0),
       mine = Math.min(left, ECON.woodWinter);
