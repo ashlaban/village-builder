@@ -60,6 +60,7 @@ const FAST = [
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
   ['node', 'tests/rotations.js'],
   ['node', 'tests/sowing.js'],
+  ['node', 'tests/foresight.js'],
   ['node', 'tests/kinds.js'],
   ['node', 'tests/routes.js'],
   ['node', 'tests/oversea.js'], // VB-436: nobody is sent to a home over the sea
