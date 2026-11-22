@@ -138,7 +138,7 @@ VB['sim/kinds'] = (() => {
     // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays); the common fields' (sim/commons, VB-100) the
     // open step of the one under way and the field kinds of each one's stage, while the meeting chose them
     village: ['mend', 'green', 'workfence', commonWork].map(rule),
-    island: [plotWork, claimWork, Building.timberWork].map(rule),
+    island: [plotWork, claimWork, Building.stakedWork, Building.timberWork].map(rule),
     fieldAt: {},
   };
   // VB-359, VB-300, sim/carts (a boat or a cart is a project's step), VB-139 (hunting roe deer), VB-390 (a cow led home, sim/exchange)

@@ -312,19 +312,23 @@ function pawnRig(p) {
   L.objects.addChild(R.root);
   return R;
 }
-// booths on their own tile (VB-784): a raised one stands, one being raised is a ring of stakes, a worn one fades
+// booths on their own tile (VB-784): a raised one stands, a worn one fades; one staked and being raised (its maker's plan, VB-1172) is a
+// ring of stakes
 function drawBooths(wd) {
-  for (const b of st.booths) {
-    const g = new PIXI.Graphics(),
-      bx = wd.hx[b.tile],
-      by = wd.hy[b.tile];
-    if (b.built === null) g.circle(bx, by - 3, 6).stroke({ width: 1, color: INK, alpha: 0.6 });
-    else {
-      tent(g, bx, by);
-      g.alpha = 0.55 + 0.45 * Sim.boothCondition(st, b);
-    }
+  const add = (g, by) => {
     g.zIndex = by + 8;
     L.objects.addChild(g);
+  };
+  for (const b of st.booths) {
+    const g = new PIXI.Graphics();
+    tent(g, wd.hx[b.tile], wd.hy[b.tile]);
+    g.alpha = 0.55 + 0.45 * Sim.boothCondition(st, b);
+    add(g, wd.hy[b.tile]);
+  }
+  for (const t of Sim.stakedBooths(st)) {
+    const g = new PIXI.Graphics();
+    g.circle(wd.hx[t], wd.hy[t] - 3, 6).stroke({ width: 1, color: INK, alpha: 0.6 });
+    add(g, wd.hy[t]);
   }
 }
 // One farm: its fields, meadows, yard and buildings, its woodpile, byre and stacks, its smoke and firelight, and its fence.

@@ -161,5 +161,7 @@ VB['sim/projectplans'] = (() => {
   });
   // A village gives up a cleared plot nobody came for (sim/expansion, VB-646): the plan goes, its reservations released.
   on('plotReleased', (st, d) => dropProject(st, d.plan));
+  // A plan given up by its holder's own verb or rule (sim/building: a booth staked and not raised, VB-1172), `text` told when given.
+  on('projectGivenUp', (st, d) => dropProject(st, d.plan, d.text || null, d.at || {}));
   return { makeProject, advance, drop: dropProject, review, dropAll, impossible, dropWords };
 })();

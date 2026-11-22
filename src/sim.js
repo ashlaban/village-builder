@@ -105,7 +105,7 @@ const Sim = (() => {
     { placeOf, poseOf } = VB['sim/pose'];
   const { larderOf } = VB['sim/larder'];
   const { yearsLeft: quernYears } = VB['sim/quern']; // VB-009: a household's quern, years left
-  const { boothCondition } = VB['sim/building'], // VB-784: a booth's condition now
+  const { boothCondition, stakedEach } = VB['sim/building'], // VB-784: a booth's condition now
     { houseTarred } = VB['sim/house'],
     { untarred: boatUntarred } = VB['sim/drying']; // VB-301: a house tarred, a boat's years since its tarring
   const { claimsOn, strength, holdings } = VB['sim/claims'];
@@ -226,6 +226,12 @@ const Sim = (() => {
     quernYears,
     houseTarred,
     boothCondition,
+    // VB-1172: the tiles of the booths staked and not yet raised (each its maker's plan), for the page's ring of stakes
+    stakedBooths: (st) => {
+      const out = [];
+      stakedEach(st, (plan) => out.push(plan.tile));
+      return out;
+    },
     boatUntarred,
     team,
     withOxen,

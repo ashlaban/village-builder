@@ -34,18 +34,35 @@ assert.ok(
   typeof issue(st, { actor: id, verb: 'raiseBooth', target: tile, source: 'pawn' }) === 'string',
   'one booth a tile',
 );
-assert.strictEqual(st.booths.length, 1);
-const b = st.booths[0];
+// staked: its maker's project plan (VB-1172), the wood and then the raising; no booth stands yet
+const Projects = VB['sim/projects'];
+const plans = () => Projects.projectsOf(st, 'pawn', id).filter((p) => p.what === 'booth');
+assert.strictEqual(st.booths.length, 0, 'nothing stands while it is staked');
+assert.ok(plans().length === 1 && st.boothSeq === 1, 'the booth is the staking pawn\'s plan');
+const plan = plans()[0];
 assert.ok(
-  b.id === 0 && b.tile === tile && b.by === hh.id && b.built === null && st.boothSeq === 1,
-  'the booth is staked, not built',
+  plan.booth === 0 && plan.tile === tile && plan.holder.type === 'pawn' && plan.holder.id === id,
+  'held by the pawn who staked it',
+);
+assert.deepStrictEqual(
+  plan.steps.map((s) => s.kind),
+  ['timber', 'booth'],
+  'the wood, then the raising',
 );
 assert.deepStrictEqual(checkState(st), [], 'invariants, staked');
 // raised: two loads of wood at its tile (a trip brings ECON.woodPerTrip), then BOOTH.hours of work
-for (let h = 0; h < 40 * DAY && b.built === null; h++) Sim.advance(st, 1);
-assert.ok(b.built !== null, 'the booth is raised');
+let raisingOpen = null;
+for (let h = 0; h < 40 * DAY && !st.booths.length; h++) {
+  Sim.advance(st, 1);
+  if (raisingOpen === null && plans().length && plans()[0].open === 1) raisingOpen = st.t;
+}
+assert.ok(st.booths.length === 1, 'the booth is raised');
+const b = st.booths[0];
+assert.ok(raisingOpen !== null && b.built >= raisingOpen, 'the raising opened once its wood lay there');
 assert.ok(b.wood >= BOOTH.wood, `its wood lay there first: ${b.wood}`);
-assert.ok(b.built - 0 > 0 && b.cond === 1 && b.condAt === b.built, 'whole when raised');
+assert.ok(b.id === 0 && b.tile === tile && b.by === hh.id && b.maker === id, 'the booth stands for its maker\'s household');
+assert.ok(b.cond === 1 && b.condAt === b.built, 'whole when raised');
+assert.strictEqual(plans().length, 0, 'its plan is finished');
 assert.deepStrictEqual(checkState(st), [], 'invariants, raised');
 // five pawns, four beds
 const grain = (h) => Stores.put(st, h, 'grain', 400, 'harvest', { barley: 400 });
@@ -130,17 +147,69 @@ assert.ok(
     true,
     'staked on open ground',
   );
-  const fb = g.booths[0];
+  const gp = VB['sim/projects'].projectsOf(g, 'pawn', who).find((p) => p.what === 'booth');
   let woodAt = null;
-  for (let h = 0; h < 40 * DAY && fb.built === null; h++) {
+  for (let h = 0; h < 40 * DAY && !g.booths.length; h++) {
     Sim.advance(g, 1);
-    if (woodAt === null && fb.wood >= BOOTH.wood) woodAt = g.t;
+    if (woodAt === null && gp.steps[0].wood >= BOOTH.wood) woodAt = g.t;
   }
-  assert.ok(fb.built !== null && woodAt !== null, 'the booth is raised from fetched wood');
+  const fb = g.booths[0];
+  assert.ok(fb && woodAt !== null, 'the booth is raised from fetched wood');
   assert.ok(
     fb.built >= woodAt + BOOTH.hours - 1e-6,
     `the raising took ${BOOTH.hours} hours after the wood lay there: ${fb.built - woodAt}`,
   );
   assert.deepStrictEqual(checkState(g), [], 'invariants, fetched');
+}
+// a lodger's own judgement (VB-1172): a stay under the open sky for more than BOOTH.worth nights stakes a booth at its bed, works its wood
+// and its raising before the tasks it came for, and sleeps under its roof once raised; a stay of BOOTH.worth nights or fewer stakes none.
+// Staking takes no time, so one away may stake; giving it up (dropBooth) leaves its wood lying at its tile for the household.
+{
+  const s2 = tinyState(tinyWorld(Array(9).fill('.'.repeat(W)), { seed: 3 }), [{ at: [6, 4], farms: 2, sizes: [5, 4] }], {
+    seed: 3,
+  });
+  const h2 = s2.households[0],
+    f2 = s2.farmsteads[h2.farmstead];
+  Stores.put(s2, h2, 'grain', 400, 'harvest', { barley: 400 });
+  const [p1, p2] = h2.members.filter((m) => s2.pawns[m].age >= 14 && s2.pawns[m].age < 60);
+  const row = Math.floor(f2.house / s2.w.COLS),
+    at1 = tileAt(s2.w, (f2.house % s2.w.COLS) + 8, row),
+    at2 = tileAt(s2.w, (f2.house % s2.w.COLS) + 12, row),
+    at3 = tileAt(s2.w, (f2.house % s2.w.COLS) + 16, row);
+  s2.w.trees[at1] = 3;
+  const lodgeAt = (m, t, days) =>
+    issue(s2, { actor: m, verb: 'lodge', target: t, args: { why: 'work', days }, source: 'pawn' });
+  const P = VB['sim/projects'],
+    booths = (m) => P.projectsOf(s2, 'pawn', m).filter((q) => q.what === 'booth');
+  assert.strictEqual(lodgeAt(p2, at2, BOOTH.worth), true);
+  assert.strictEqual(booths(p2).length, 0, `a stay of ${BOOTH.worth} nights stakes no booth`);
+  issue(s2, { actor: p2, verb: 'comeHome', source: 'pawn' });
+  assert.strictEqual(lodgeAt(p1, at1, 12), true);
+  const mine = booths(p1);
+  assert.ok(mine.length === 1 && mine[0].tile === at1, 'a longer stay under the open sky stakes a booth at its bed');
+  const stay = s2.away.find((x) => x.pawn === p1);
+  assert.ok(stay.roof === 'none' && stay.jobs[stay.jobs.length - 1] === `booth:o${mine[0].booth}`, "its booth's work first");
+  // staking while away: the verb's check is the pawn's life and the ground's, not whether it is free
+  assert.strictEqual(issue(s2, { actor: p1, verb: 'raiseBooth', target: at3, source: 'pawn' }), true, 'one away stakes');
+  const other = booths(p1).find((q) => q.tile === at3);
+  for (let h = 0; h < 10 * DAY && !s2.booths.length; h++) Sim.advance(s2, 1);
+  assert.ok(s2.booths.length === 1 && s2.booths[0].tile === at1, 'the lodger raised its booth');
+  const still = s2.away.find((x) => x.pawn === p1);
+  assert.ok(still && still.roof === 'booth', `the stay sleeps under it: ${still && still.roof}`);
+  assert.deepStrictEqual(checkState(s2), [], 'invariants, a lodger\'s booth');
+  // given up: only by its maker, and only before it is raised; its wood lies at its tile
+  const P2 = s2.plans.projects.pawn.get(p1).find((q) => q === other);
+  assert.ok(P2, 'the second booth is still staked');
+  P2.steps[0].wood = 1; // a trip's half brought (the test writes it, as a trip would)
+  assert.ok(/did not stake/.test(issue(s2, { actor: p2, verb: 'dropBooth', target: other.booth, source: 'pawn' })));
+  assert.ok(/stands already/.test(issue(s2, { actor: p1, verb: 'dropBooth', target: s2.booths[0].id, source: 'pawn' })));
+  const lying0 = (s2.lying || []).length;
+  assert.strictEqual(issue(s2, { actor: p1, verb: 'dropBooth', target: other.booth, source: 'player' }), true);
+  assert.ok(!booths(p1).some((q) => q === other), 'its plan is dropped');
+  assert.ok(
+    (s2.lying || []).length === lying0 + 1 && s2.lying[s2.lying.length - 1].tile === at3,
+    'its wood lies at its tile',
+  );
+  assert.deepStrictEqual(checkState(s2), [], 'invariants, given up');
 }
 console.log('booth ok');
