@@ -39,6 +39,7 @@
     "plan.reasons": "sim/stores",
     "plan.dirty": "sim/stores",
     "plan.day": "sim/jobs",
+    "plan.guests": "sim/building",
     "pawn.traits": "sim/traits",
     "pawn.leanDays": "sim/traits",
     "pawn.skill": "sim/skills",

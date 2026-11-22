@@ -9,7 +9,7 @@ const { canon } = require('./lib/canon.js');
 
 // static: the acts a verb wraps are called only from a verb (inside a `register(` call), or inside the module that defines them (an act
 // built of others there)
-const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'startClaim', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'carryGift', 'setRoutines', 'setGathering', 'setGoing', 'swapLoads', 'endTrust', 'holdInTrust',
+const WRAPPED = ['start', 'walkTo', 'goHome', 'idle', 'haltForTalk', 'wed', 'startClaim', 'raiseBooth', 'settleFarm', 'found', 'finishCottage', 'settleGift', 'carryGift', 'setRoutines', 'setGathering', 'setGoing', 'swapLoads', 'endTrust', 'holdInTrust',
   'setTarget', 'nameTile', 'setOrder', 'holdProject', 'beginLand', 'beginMaking', 'giveUp', 'planVisit'], calls = [];
 const files = fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x).concat(['src/sim.js']);
 const text = Object.fromEntries(files.map((f) => [f, readSource(f)]));
@@ -39,10 +39,11 @@ for (const f of files) {
 assert.deepStrictEqual(calls, [], `acts called outside a verb: ${calls.join(', ')}`);
 // VB-678: no project by the calendar. A household's boat, cart, tar pit, barn and farm for its heir are makings (sim/makings), begun only
 // through the verb project; the only emitters of projectBegun left are a plot (sim/expansion: an heir's, through the making heirFarm, or
-// a village's, VB-673) and a claimant's restoration (sim/farmclaims' startClaim, a wrapped act); and the clock begins none.
+// a village's, VB-673), a claimant's restoration (sim/farmclaims' startClaim, a wrapped act) and a staked booth (sim/building's
+// raiseBooth, the verb raiseBooth's act, VB-1172); and the clock begins none.
 {
   const emitters = files.filter((f) => /emit\(st, 'projectBegun'/.test(text[f])).sort();
-  assert.deepStrictEqual(emitters, ['src/sim/expansion.js', 'src/sim/farmclaims.js'], 'projectBegun is emitted by a verb\'s act alone');
+  assert.deepStrictEqual(emitters, ['src/sim/building.js', 'src/sim/expansion.js', 'src/sim/farmclaims.js'], 'projectBegun is emitted by a verb\'s act alone');
   const { looks, makingOf } = VB['sim/makings'];
   assert.deepStrictEqual(looks().map((M) => M.what), ['boat', 'tarpit', 'cart'], 'the heads weigh the three small constructions');
   assert.ok(makingOf('barn') && makingOf('heirFarm') && !makingOf('barn').look, 'the barn and the heir\'s farm are makings of the menu');

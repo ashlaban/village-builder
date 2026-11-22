@@ -1467,8 +1467,8 @@ function checkState(st) {
       if (a.away !== undefined && !seen.has(a.id)) bad.push(`agent ${a.id}: away ${a.away}, and in no stay`);
     }
   }
-  // the booths (VB-784): ids below st.boothSeq, unique and in order, on a tile with nobody else's booth, for a household, a built one's condition
-  // in 0..1 at a time not after now (a gone one is not here), and a stay under a booth's roof at a standing booth's tile, at most BOOTH.sleeps
+  // the booths (VB-784): ids below st.boothSeq, unique and in order, on a tile with nobody else's booth, for a household, raised (VB-1172:
+  // staked is its maker's plan), its condition in 0..1 at a time not after now (a gone one is not here), and a stay under a booth's roof at a standing booth's tile, at most BOOTH.sleeps
   if (st.booths !== undefined) {
     const tiles = new Set(), under = new Map();
     for (const s of st.away) if (s.roof === 'booth') under.set(s.bed, (under.get(s.bed) || 0) + 1);
@@ -1478,11 +1478,24 @@ function checkState(st) {
       if (tiles.has(b.tile)) bad.push(`${at}: two booths on tile ${b.tile}`);
       tiles.add(b.tile);
       if (!st.households[b.by]) bad.push(`${at}: for no household`);
-      if (b.built !== null && (!(b.cond >= 0 && b.cond <= 1) || b.condAt < b.built || b.condAt > st.t)) bad.push(`${at}: condition ${b.cond} at ${b.condAt}, built ${b.built}`);
-      if (b.built === null && under.has(b.tile)) bad.push(`${at}: slept in before it is raised`);
+      if (!(b.built <= st.t) || !(b.cond >= 0 && b.cond <= 1) || b.condAt < b.built || b.condAt > st.t) bad.push(`${at}: condition ${b.cond} at ${b.condAt}, built ${b.built}`);
+      if (!(b.wood >= 0)) bad.push(`${at}: wood ${b.wood}`);
       if ((under.get(b.tile) || 0) > VB['sim/rules'].BOOTH.sleeps) bad.push(`${at}: more than it sleeps`);
     });
     for (const t of under.keys()) if (!tiles.has(t)) bad.push(`a stay under a booth's roof at tile ${t}, where none stands`);
+    // a booth staked and not raised (VB-1172): its maker's plan, its id below boothSeq and none other's, on a tile where none stands or is
+    // staked, its wood brought not below none
+    const ids = new Set(st.booths.map((b) => b.id));
+    for (const list of (st.plans && st.plans.projects ? st.plans.projects.pawn.values() : []))
+      for (const plan of list) {
+        if (plan.what !== 'booth') continue;
+        const at = `the staked booth ${plan.booth} (plan ${plan.id})`;
+        if (!Number.isInteger(plan.booth) || plan.booth >= st.boothSeq || ids.has(plan.booth)) bad.push(`${at}: id against boothSeq ${st.boothSeq}`);
+        if (tiles.has(plan.tile)) bad.push(`${at}: on tile ${plan.tile}, where a booth stands or is staked`);
+        if (!(plan.steps[0].wood >= 0) || !Array.isArray(plan.guests)) bad.push(`${at}: wood ${plan.steps[0].wood}, guests ${plan.guests}`);
+        ids.add(plan.booth);
+        tiles.add(plan.tile);
+      }
   }
   // the hard rule (VB-461): no gift's grain changes place at once between two farmsteads, or from a village store to a household
   const VBc = globalThis.VB && globalThis.VB.count;

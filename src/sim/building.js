@@ -1,6 +1,7 @@
 // @sys sim/building: the cottage's stages as job kinds, and what building takes (VB-328): timber felled in the village's wood and carried to
 // every site that lacks it, one rule over the sites their modules name (VB-1407), and the plot's wood shared out when the plot is given;
-// raising a house onto a stone foundation, with stone picked or quarried for it (VB-332)
+// raising a house onto a stone foundation, with stone picked or quarried for it (VB-332); a booth, staked as its maker's project plan and
+// raised (VB-784, VB-1172), standing until it rots
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
@@ -11,7 +12,9 @@ VB['sim/building'] = (() => {
   const { walkable } = VB['sim/walking'],
     { findRoute } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
-  const { emit } = VB['sim/events'];
+  const { emit, on } = VB['sim/events'];
+  const Lying = VB['sim/lying'];
+  const { living } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { cottageJob, finishStep, plotTimber, cottageTimber } = VB['sim/expansion'];
   const { wantsStone } = VB['sim/quern'];
@@ -49,38 +52,41 @@ VB['sim/building'] = (() => {
       }
     }
   }
-  // A booth household hh has staked and not yet raised (VB-784) as a timber site: felled on its tile where that is wooded, else fetched from
-  // the village's wood (within WOOD.reach, as a timber trip is).
-  const stakedTimber = (st, b) => ({
-    key: `timber:o${b.id}`,
-    site: b,
-    need: BOOTH.wood,
-    dest: b.tile,
-    ...(st.w.trees[b.tile] > 0 ? { fell: b.tile } : {}),
-  });
   // Settlers build their cottage (sim/settle): the open stage of their household's cottage plan (sim/expansion).
   function boothWork(st, hh, f, c, post) {
     const bj = cottageJob(st, hh, f);
     if (bj) post(bj[0], f.house, bj[2], bj[1]);
-    // the booths its household has staked and not yet raised (VB-784): the wood first, then the raising
-    if (st.booths.length)
-      for (const b of st.booths) {
-        if (b.by !== hh.id || b.built !== null) continue;
-        if (Projects.lacks(b, BOOTH.wood) > 0) fetchTimber(st.villages[f.village], stakedTimber(st, b), post);
-        else post(`booth:o${b.id}`, b.tile, { booth: b, farm: f }, 'booth');
-      }
   }
-  // ---- a booth (VB-784; design.md, Moving to new land, The booth) ----
-  // @state st.booths[]: the booths raised or being raised, live ones only (one that has rotted away is taken out), each {id, tile, by (the
-  //   household it is for), maker (the pawn who staked it), guests (pawns its maker lets in besides the household's), built (game hours, null
-  //   while it is raised), wood (loads lying at its tile), cond (0..1 at condAt), condAt}; st.boothSeq: the next id, never reused
+  // ---- a booth (VB-784; design.md, Sleeping away from home) ----
+  // @state st.booths[]: the booths that stand, live ones only (one that has rotted away is taken out), in the order of their ids, each {id,
+  //   tile, by (the household it is for: its maker's when raised), maker (the pawn who staked it), guests (pawns its maker lets in besides
+  //   the household's), built (game hours), wood (loads lying at its tile, its fire), cond (0..1 at condAt), condAt}; st.boothSeq: the next
+  //   id, never reused, taken when a booth is staked.
+  // A booth staked and not yet raised is its maker's project plan (VB-1172; sim/projects, holder {type: 'pawn', id: the maker}): {...,
+  //   what: 'booth', booth (the id it will stand under), tile, guests, steps: [{kind: 'timber', place: tile, hours: 0, timber: BOOTH.wood, wood (loads
+  //   brought)}, {kind: 'booth', place: tile, hours: BOOTH.hours}]}: the wood, then the raising; the record is made when it is raised.
   const boothAt = (st, tile) => (st.booths.length ? st.booths.find((b) => b.tile === tile) || null : null);
+  // The booths staked and not yet raised: each a pawn's plan (few: a pawn's plans are its booths and a restoration). Allocates nothing.
+  function stakedEach(st, fn) {
+    const P = st.plans && st.plans.projects;
+    if (!P || !P.pawn.size) return;
+    for (const list of P.pawn.values()) for (const plan of list) if (plan.what === 'booth') fn(plan);
+  }
+  // The staked booth on `tile`, or of id `bid`, or null.
+  function stakedBy(st, test) {
+    let out = null;
+    stakedEach(st, (plan) => {
+      if (out === null && test(plan)) out = plan;
+    });
+    return out;
+  }
+  const stakedAt = (st, tile) => stakedBy(st, (p) => p.tile === tile);
+  const stakedId = (st, bid) => stakedBy(st, (p) => p.booth === bid);
   // A booth's condition now: it wears by closed form from condAt, whoever sleeps in it (a stay renews nothing).
-  const boothCondition = (st, b) =>
-    b.built === null ? 1 : Math.max(0, b.cond - ((st.t - b.condAt) / YEAR) * BOOTH.wear);
+  const boothCondition = (st, b) => Math.max(0, b.cond - ((st.t - b.condAt) / YEAR) * BOOTH.wear);
   // Whether pawn id may sleep in booth b: its household's own, or whom its maker let in.
   const boothOpenTo = (st, b, id) => st.pawns[id].household === b.by || b.guests.includes(id);
-  // Why pawn id cannot raise a booth at `tile`, or null: ground nobody else owns or has staked, and no booth on it.
+  // Why pawn id cannot raise a booth at `tile`, or null: ground nobody else owns or has staked, and no booth on it or staked there.
   function raiseBoothWhy(st, id, tile) {
     const p = st.pawns[id],
       hh = p.household === null ? null : st.households[p.household];
@@ -88,33 +94,68 @@ VB['sim/building'] = (() => {
     if (!(Number.isInteger(tile) && tile >= 0 && tile < st.w.N)) return `there is no tile ${tile}`;
     if (st.w.water[tile] || st.used.has(tile)) return `tile ${tile} is not open ground`;
     if (boothAt(st, tile)) return `a booth stands on tile ${tile}`;
+    if (stakedAt(st, tile)) return `a booth is staked on tile ${tile}`;
     return freeFor(st, tile, st.farmsteads[hh.farmstead].village) ? null : `tile ${tile} is owned or staked by another`;
   }
-  // Pawn a stakes a booth at tile (the verb `raiseBooth`, its only caller), for its household and the pawns args.guests names; the wood and
-  // the raising are posted for the household by boothWork.
-  function raiseBooth(st, a, tile, args) {
-    const b = {
-      id: st.boothSeq++,
-      tile,
-      by: st.pawns[a.id].household,
-      maker: a.id,
-      guests: [...((args && args.guests) || [])],
-      built: null,
-      wood: 0,
-      cond: 1,
-      condAt: st.t,
-    };
-    st.booths.push(b);
-    return b;
+  // Pawn id stakes a booth at tile (the verb `raiseBooth`, its only caller), for its household and the pawns `guests` names: its project
+  // plan, the wood and then the raising (sim/projectplans makes it on projectBegun). The booth's id.
+  function raiseBooth(st, id, tile, guests = []) {
+    const bid = st.boothSeq++;
+    st.visualDirty = true; // its ring of stakes
+    emit(st, 'projectBegun', {
+      type: 'pawn',
+      id,
+      project: {
+        what: 'booth',
+        booth: bid,
+        tile,
+        guests: [...guests],
+        steps: [
+          { kind: 'timber', place: tile, hours: 0, timber: BOOTH.wood, wood: 0 },
+          { kind: 'booth', place: tile, hours: BOOTH.hours },
+        ],
+      },
+    });
+    return bid;
+  }
+  // The staked booths' work, asked once for the island (Rules for cost, 1: the live plans only): for each, owned by its maker's household,
+  // the timber trips while its wood step lacks loads (felled on its tile where that is wooded, else fetched from the village's wood, as a
+  // timber trip is), the step done once its wood lies there, then the raising. A plan whose maker has died or has no farm to go out from is
+  // given up, its wood left lying.
+  function stakedWork(st, holder, at, c, post) {
+    stakedEach(st, (plan) => {
+      const p = st.pawns[plan.holder.id],
+        hh = p.household === null ? null : st.households[p.household];
+      if (p.died !== null || !hh || hh.dissolved || hh.farmstead === null) {
+        emit(st, 'projectGivenUp', { plan });
+        return;
+      }
+      const owner = { type: 'household', id: hh.id },
+        s = plan.steps[plan.open];
+      if (s.kind === 'timber') {
+        if (Projects.lacks(s, s.timber) > 0) {
+          const n = { key: `timber:o${plan.booth}`, site: s, need: s.timber, dest: plan.tile, owner };
+          if (st.w.trees[plan.tile] > 0) n.fell = plan.tile;
+          fetchTimber(st.villages[st.farmsteads[hh.farmstead].village], n, post);
+          return;
+        }
+        emit(st, 'stepDone', { type: 'pawn', id: p.id, plan }); // its wood lies there: the raising opens
+      }
+      post(`booth:o${plan.booth}`, plan.tile, { boothOf: p.id, boothId: plan.booth }, 'booth', owner);
+    });
   }
   // Why the maker of booth `bid` cannot let pawn `id` in, or null (VB-984): only the pawn who staked it says whom it sleeps, before it is
-  // built and after; its own household needs no leave.
+  // built (its plan's guests) and after (the booth's); its own household needs no leave.
   function letInWhy(st, actor, bid, id) {
-    const b = st.booths.find((x) => x.id === bid);
-    if (!b) return `there is no booth ${bid}`;
-    if (b.maker !== actor) return `pawn ${actor} did not make booth ${bid}`;
+    const b = st.booths.find((x) => x.id === bid) || null,
+      plan = b ? null : stakedId(st, bid);
+    if (!b && !plan) return `there is no booth ${bid}`;
+    if ((b ? b.maker : plan.holder.id) !== actor) return `pawn ${actor} did not make booth ${bid}`;
     if (!(Number.isInteger(id) && st.pawns[id] && st.pawns[id].alive)) return `there is no living pawn ${id}`;
-    return boothOpenTo(st, b, id) ? `booth ${bid} is open to pawn ${id} already` : null;
+    const open = b
+      ? boothOpenTo(st, b, id)
+      : st.pawns[id].household === st.pawns[actor].household || plan.guests.includes(id);
+    return open ? `booth ${bid} is open to pawn ${id} already` : null;
   }
   // letIn(booth, {pawn}) (VB-984): the maker lets a pawn sleep in its booth; a right, so it holds at once wherever the maker stands.
   register('letIn', {
@@ -122,30 +163,83 @@ VB['sim/building'] = (() => {
       (st.pawns[c.actor] && st.pawns[c.actor].alive ? null : `pawn ${c.actor} is not living`) ||
       letInWhy(st, c.actor, c.target, c.args && c.args.pawn),
     run: (st, c) => {
-      st.booths.find((x) => x.id === c.target).guests.push(c.args.pawn);
+      const b = st.booths.find((x) => x.id === c.target);
+      if (b) b.guests.push(c.args.pawn);
+      else {
+        const plan = stakedId(st, c.target); // a booth not yet raised: its plan's guests, this module's (VB-1172)
+        plan.guests.push(c.args.pawn);
+      }
     },
   });
-  // A night's fire in booth b (VB-785): what its wood holds of `want`, taken (a booth's wood is its own, written only here and by the trips
-  // and the raising); returns the amount burnt.
+  // raiseBooth(tile, {guests}) (VB-784, VB-1172): stake a booth on ground nobody else owns or has staked, for the pawn's household and the
+  // guests named: the pawn's project plan, which its household's pawns work (the wood, then BOOTH.hours of work). Staking takes no time, so
+  // a pawn on the road or lodging away may stake one.
+  register('raiseBooth', {
+    check: (st, c) => living(st, c.actor) || raiseBoothWhy(st, c.actor, c.target),
+    run: (st, c) => {
+      raiseBooth(st, c.actor, c.target, (c.args && c.args.guests) || []);
+    },
+  });
+  // Why pawn `actor` cannot give up booth `bid`, or null: it staked it, and it is not yet raised.
+  function dropBoothWhy(st, actor, bid) {
+    const plan = stakedId(st, bid);
+    if (!plan) return st.booths.some((b) => b.id === bid) ? `booth ${bid} stands already` : `no booth ${bid} is staked`;
+    return plan.holder.id === actor ? null : `pawn ${actor} did not stake booth ${bid}`;
+  }
+  // dropBooth(booth) (VB-1172): its maker gives up a booth staked and not yet raised: its plan is dropped (sim/projectplans' dropProject),
+  // the wood brought left lying at its tile for the household to fetch.
+  register('dropBooth', {
+    check: (st, c) => living(st, c.actor) || dropBoothWhy(st, c.actor, c.target),
+    run: (st, c) => {
+      emit(st, 'projectGivenUp', { plan: stakedId(st, c.target) });
+      st.visualDirty = true;
+    },
+  });
+  // A booth plan dropped (given up, or its maker gone): the loads brought to its tile lie there, its household's to fetch home as firewood
+  // (sim/lying's leftTimber), or to rot at the frost; with no household, they lie for the frost.
+  on('planDropped', (st, d) => {
+    const plan = d.plan;
+    if (plan.what !== 'booth' || !(plan.steps[0].wood > 0)) return;
+    const p = st.pawns[plan.holder.id],
+      owner = p.household === null ? plan.holder : { type: 'household', id: p.household };
+    Lying.leave(st, 'leftTimber', (plan.steps[0].wood / ECON.woodPerTrip) * TRAVEL.load, plan.tile, owner);
+  });
+  // A night's fire in booth b (VB-785): what its wood holds of `want`, taken (a booth's wood is its own, written only here and by the
+  // raising); returns the amount burnt.
   function burnBooth(st, booth, want) {
     const b = st.booths[st.booths.indexOf(booth)],
       n = Math.min(b.wood || 0, want);
     b.wood = (b.wood || 0) - n;
     return n;
   }
-  // The raising is done: the booth stands, whole, from now.
+  // The raising is done: the booth stands, whole, from now, for its maker's household and its guests, the wood brought lying at it (its
+  // fire); its plan is finished, and the stays that sleep at its tile are under its roof (sim/away).
   function finishBooth(st, j) {
-    const b = j.booth;
-    b.built = st.t;
-    b.cond = 1;
-    b.condAt = st.t;
+    const plan = stakedId(st, j.boothId);
+    if (!plan || plan.holder.id !== j.boothOf) return;
+    const b = {
+      id: plan.booth,
+      tile: plan.tile,
+      by: st.pawns[plan.holder.id].household,
+      maker: plan.holder.id,
+      guests: [...plan.guests],
+      built: st.t,
+      wood: plan.steps[0].wood,
+      cond: 1,
+      condAt: st.t,
+    };
+    let i = st.booths.length;
+    while (i > 0 && st.booths[i - 1].id > b.id) i--;
+    st.booths.splice(i, 0, b);
+    emit(st, 'stepDone', { type: 'pawn', id: plan.holder.id, plan });
+    emit(st, 'boothRaised', b);
     st.visualDirty = true;
   }
   // Booths worn to nothing are gone and their tile is as it was; a stay that slept there is under the open sky from then. Daily, over the
   // live booths only.
   function rotBooths(st) {
     if (!st.booths.length) return;
-    const gone = st.booths.filter((b) => b.built !== null && boothCondition(st, b) <= 0);
+    const gone = st.booths.filter((b) => boothCondition(st, b) <= 0);
     if (!gone.length) return;
     for (const b of gone) emit(st, 'boothGone', b.tile);
     st.booths = st.booths.filter((b) => !gone.includes(b));
@@ -358,7 +452,7 @@ VB['sim/building'] = (() => {
       hands: Infinity,
       type: 'wood',
       done: finishBooth,
-      available: boothWork,
+      available: stakedWork,
     },
     // Timber left lying at a boat's shore when its plan was given up (sim/plans' leftWood, VB-645): never posted, only fetched (sim/lying's
     // fetch kind), home to the woodpile as firewood.
@@ -527,6 +621,9 @@ VB['sim/building'] = (() => {
     UPKEEP,
     KINDS,
     boothAt,
+    stakedAt,
+    stakedEach,
+    stakedWork,
     boothCondition,
     boothOpenTo,
     burnBooth,
