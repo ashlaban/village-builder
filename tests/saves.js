@@ -47,43 +47,7 @@ for (const [label, make, restore, before, after] of [
     if (!new RegExp(`format ${old}, this build reads 4`).test(why || '')) { failed++; console.error(`SAVES FAIL: a format-${old} save was not refused (${why})`); }
   }
 }
-{ // VB-783: a save made before the stays, with an open journey (st.journeys, st.journeySeq; its provisions' kind 'journey'), loads it as a
-  // stay away whose bed is where its leg ends, indexed by its pawn's agent.away, and plays on as the save made today
-  const { tinyWorld, tinyState } = require('./lib/tiny.js');
-  const world = () => tinyWorld(Array(9).fill('.'.repeat(180)), { seed: 7 });
-  const st = tinyState(world(), [{ at: [6, 4], farms: 1, sizes: [5] }, { at: [172, 4], farms: 1, sizes: [5] }], { seed: 7 });
-  Sim.advance(st, 15 - (st.t % DAY) + DAY);
-  const left = st.households[1], bride = left.members.find((id) => id !== left.holder && st.pawns[id].age >= 14);
-  VB['sim/stores'].put(st, left, 'grain', 50, 'harvest', { barley: 50 });
-  VB['sim/commands'].issue(st, { actor: bride, verb: 'move', target: st.households[0].id, args: { reason: 'home' }, source: 'debug' });
-  Sim.advance(st, 2);
-  const now = JSON.parse(JSON.stringify(Sim.save(st))), s = Sim.load(world(), JSON.parse(JSON.stringify(now)));
-  s.journeys = s.away.map(({ bed, roof, ...j }) => j); // the state as it was saved before VB-783
-  s.journeySeq = s.awaySeq;
-  delete s.away;
-  delete s.awaySeq;
-  for (const x of s.agents) delete x.away;
-  for (const hh of s.households) for (const e of hh.ledger || []) if (e.kind === 'away') e.kind = 'journey';
-  const old = JSON.parse(JSON.stringify(Sim.save(s)));
-  const a = Sim.load(world(), now), b = Sim.load(world(), old);
-  const ok = b.away.length === 1 && b.away[0].bed === null && b.away[0].roof === 'none' && b.agents[bride].away === b.away[0].id &&
-    !('journeys' in b) && b.awaySeq === a.awaySeq && b.households[1].ledger.some((e) => e.kind === 'away');
-  for (const x of [a, b]) Sim.advance(x, 2 * DAY);
-  const bad = ['away', 'awaySeq', 'agents', 'pawns', 'households'].filter((k) => canon(a[k]) !== canon(b[k]));
-  if (!ok || bad.length) { failed++; console.error(`SAVES FAIL: a save's journey loads as a stay (${ok}), and plays on alike (${bad.join(', ')} differ)`); }
-  out.push('an old save\'s journey as a stay');
-}
-// VB-703: a save made while a pawn's standing was `prestige` is read: the field is renamed, with its value
-{
-  const now = JSON.parse(JSON.stringify(Sim.save(probe.state()))), s = Sim.load(probe.world(), JSON.parse(JSON.stringify(now)));
-  for (const p of s.pawns) { p.prestige = p.standing; delete p.standing; } // the state as it was saved before VB-703
-  const old = JSON.parse(JSON.stringify(Sim.save(s)));
-  const a = Sim.load(probe.world(), now), b = Sim.load(probe.world(), old);
-  const ok = /"prestige":1\.[0-9]/.test(JSON.stringify(old)) && b.pawns.some((p) => p.standing > 1) && b.pawns.every((p) => !('prestige' in p)) &&
-    canon(a.pawns) === canon(b.pawns);
-  if (!ok) { failed++; console.error('SAVES FAIL: an old save\'s prestige is not read as standing'); }
-  out.push('an old save\'s prestige as standing');
-}
+// VB-239: saves of older builds are refused by their format, and no migration is kept for them (Kim, 10 Nov 2026: no one holds one)
 { // VB-1150: a save of a load plays as the load, while plots' cottages are built (each load on a world of its own)
   const { tinyWorld, tinyState } = require('./lib/tiny.js'), Rec = VB['sim/records'];
   const world = () => tinyWorld(Array(9).fill('.'.repeat(210)), { seed: 7 });

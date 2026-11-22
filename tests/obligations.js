@@ -92,13 +92,6 @@ const setGrain = (hh, n) => { hh.grain = { barley: n }; };
   // the save keeps the records and the caches
   const back = Sim.load(probe.world(), JSON.parse(JSON.stringify(Sim.save(st))));
   assert.deepStrictEqual([back.obligations, back.obligationsDue, back.obligationsBy], [st.obligations, st.obligationsDue, st.obligationsBy], 'saved and loaded');
-  // a save from before: the share lay on the sibling
-  const old = JSON.parse(JSON.stringify(Sim.save(probe.state())));
-  Object.assign(old.state.pawns.$arr[s1], { owed: 10, owedFrom: a.id });
-  const was = Sim.load(probe.world(), old);
-  assert.ok(Sim.shareOwed(was, s1) === 10 && was.obligations[0].debtor.id === a.id && was.pawns[s1].owed === undefined && was.pawns[s1].owedFrom === undefined,
-    'an old save\'s share becomes an obligation');
-  sound(was, 'an old save');
   // the rest, at the next round
   setGrain(a, reserve + 100);
   payOwed(st);

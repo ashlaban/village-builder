@@ -84,7 +84,7 @@ const scene = (st) => assert.deepStrictEqual([st.households[0].holder, st.househ
   assert.strictEqual(canon(back.player), canon(st.player), 'an ended game loads as ended');
 }
 
-// 6. The note is saved, and a save from before it loads; with no player a death is as it was.
+// 6. The note is saved; with no player a death is as it was.
 {
   const st = make(), id = st.households[0].holder;
   Sim.inhabit(st, id); Sim.killPawn(st, id, 'illness');
@@ -93,10 +93,6 @@ const scene = (st) => assert.deepStrictEqual([st.households[0].holder, st.househ
   assert.deepStrictEqual(Sim.successor(back, id), Sim.successor(st, id), 'and so does its successor');
   for (const s of [st, back]) Sim.advance(s, Sim.DAY);
   assert.strictEqual(hash(back), hash(st), 'the loaded run and the saved one agree a day later');
-  const live = make(); Sim.inhabit(live, id);
-  const old = JSON.parse(JSON.stringify(Sim.save(live))); delete old.state.player.left; delete old.state.player.ended;
-  const was = Sim.load(world(), old).player;
-  assert.deepStrictEqual([was.left, was.ended], [null, null], 'a save from before the notes loads with none');
   const plain = make(), played = make(), other = plain.households[1].holder;
   Sim.inhabit(played, other);
   for (const s of [plain, played]) { Sim.killPawn(s, id, 'illness'); Sim.advance(s, Sim.DAY); }

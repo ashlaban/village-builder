@@ -21,7 +21,7 @@ function loneCase(st) {
       if (!brother) continue;
       const away = st.households.find((h) => h !== a && h !== c && !h.dissolved);
       for (const id of a.members.filter((m) => m !== a.holder)) moveTo(st, id, away.id);
-      const h = st.pawns[a.holder]; h.father = sister.father; h.mother = sister.mother;
+      const h = st.pawns[a.holder]; h.father = sister.father; h.mother = sister.mother; st.idx = null; // parents set by hand: the records' index is built again (VB-239)
       return { a, c, sister, brother, holder: h };
     }
   }
@@ -51,7 +51,7 @@ let report = '';
 // 2. No relative in demand (the holder made kinless): the same woman comes as a servant instead, at once, through the serve command.
 {
   const st = fresh(), c = loneCase(st);
-  c.holder.father = null; c.holder.mother = null;
+  c.holder.father = null; c.holder.mother = null; st.idx = null; // parents set by hand: the records' index is built again (VB-239)
   starve(st); st.demand = [c.sister.id];
   const short = H.shareFood(st);
   check(short.includes(c.a.id), 'the lone holder is named short of people');

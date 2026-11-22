@@ -71,6 +71,9 @@ const round = (hoursAB) => {
   Sim.movingRound(st);
   const wed = st.unions.slice(u0).map((u) => [villageOf.get(u.a), villageOf.get(u.b)]);
   const menA = single.filter((p) => p.sex === 'm' && vOf(st, p.id) === 0 && R.spouseOf(st, p.id) === null);
+  // the parents were set by hand after the records' index was built, and the round read the index as it stood: built again for the
+  // invariants, which compare it with one built afresh (VB-239)
+  st.idx = null;
   assert.deepStrictEqual(checkState(st), [], 'invariants after the round');
   return { wed, menA, pulled: menA.filter((p) => p.kinPush && p.kinPush.to === 'close') };
 };

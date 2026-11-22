@@ -168,8 +168,6 @@ const FARMER = 0, WIFE = 1;
   for (const s of [st, back]) Sim.advance(s, Sim.DAY);
   assert.strictEqual(hash(back), hash(st), 'the loaded run and the saved one agree a day later');
   assert.ok(st.player.refused && !st.player.queue.length, 'the queue ran out, its last command refused');
-  const old = Sim.save(st); delete old.state.player;
-  assert.strictEqual(Sim.load(tinyWorld(rows), JSON.parse(JSON.stringify(old))).player, null, 'a save from before the player loads with none');
   sound(back, 'loaded');
 }
 console.log('player ok: an inhabited pawn left alone changes nothing in 5 days; queued work goes before the planner, looking up and the call to cook; '

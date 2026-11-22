@@ -787,37 +787,6 @@ VB['sim/plans'] = (() => {
     for (const id of st.liveHouseholds) makePlan(st, 'household', id);
     for (const v of st.villages) makePlan(st, 'village', v.id);
   }
-  // A save made before the plans' targets and reservations (VB-248), before planning days and the due-queue (VB-249), or before seasonal
-  // plans (VB-252): its plans get them as made now.
-  function fillPlans(st) {
-    if (!st.plans.seasons) st.plans.seasons = new Map();
-    if (!st.plans.projects) {
-      st.plans.projects = Projects.emptyProjects();
-      st.plans.projectSeq = 0;
-    } // VB-123: project plans
-    if (!st.plans.projects.heirPlots) st.plans.projects.heirPlots = []; // VB-255: nor the index of the households' plots
-    for (const plan of [...st.plans.households.values(), ...st.plans.villages.values()]) {
-      if (!plan.reserved) {
-        // a save made before reservations gets empty ones (sim/stores writes them)
-        plan.reserved = {}; // lint-allow: owner an old save's migration
-        plan.reasons = {}; // lint-allow: owner an old save's migration
-        if (plan.holder.type === 'household') household(st, plan);
-      }
-      if (plan.holder.type === 'household' && plan.head === undefined) newHead(st, plan); // VB-254: nor heads
-      if (plan.holder.type === 'household' && !st.plans.seasons.has(plan.holder.id)) seasonal(st, plan, cal(st.t));
-      if (plan.holder.type === 'village' && !plan.routines) founded(st, plan); // VB-257: nor routines
-      if (plan.last === undefined) {
-        plan.last = null;
-        plan.woke = null;
-        plan.looked = null;
-        plan.dirty = false; // lint-allow: owner a save made before the flag gets it clear (sim/stores sets it)
-      }
-    }
-    if (!st.plans.due) {
-      st.plans.due = [];
-      for (const id of st.plans.households.keys()) enqueue(st, id);
-    }
-  }
   // A plan reviewed now, for `why` (reviewWhy): on its planning day its next is set by its cadence; a review out of turn leaves it. The
   // flag of a store is cleared. A household's first review in a season makes its seasonal plan from the template (VB-252); every review
   // reads the targets from the plan, writes those of today's values (the fields wanted, which the land step reads), notes the year's count
@@ -1237,7 +1206,6 @@ VB['sim/plans'] = (() => {
     seasonOf,
     seedPlans,
     startHeads,
-    fillPlans,
     reviewed,
     landStep,
     targetWhy,

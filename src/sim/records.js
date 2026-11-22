@@ -204,47 +204,6 @@ VB['sim/records'] = (() => {
   function lifeEvent(st, id, at) {
     st.pawns[id].events.push(at);
   }
-  // Older saves kept a copy of each event on its pawn: each copy becomes the position of its event on the record (the same pawn, time
-  // and text, whatever its kind: a move told as `joined`; a birth or death by pawn, time and kind). A copy told beside another event
-  // (personEvent with `false`) has none: it is written to the record's end as the pawn's own (`self`), unless it is of a routine kind
-  // (a gift given), which is dropped, as its fold would drop it. One pass over the record, at load, and only for such a save.
-  function indexEvents(st) {
-    if (!st.recordYears) st.recordYears = [];
-    if (!st.recordFold) st.recordFold = { shortAt: 0, longAt: 0, pass: null };
-    let by = null;
-    for (const p of st.pawns) {
-      if (!p.events.some((x) => typeof x === 'object')) continue;
-      if (!by) {
-        by = new Map();
-        st.record.forEach((e, i) => {
-          if (typeof e !== 'object' || e.pawn === undefined) return;
-          const key = `${e.pawn}|${e.t}`,
-            l = by.get(key);
-          if (l) l.push(i);
-          else by.set(key, [i]);
-        });
-      }
-      const out = [];
-      for (const x of p.events) {
-        if (typeof x !== 'object') {
-          out.push(x);
-          continue;
-        }
-        const l = by.get(`${p.id}|${x.t}`) || [],
-          vital = x.kind === 'born' || x.kind === 'died';
-        const j = l.findIndex((i) => (vital ? st.record[i].kind === x.kind : st.record[i].text === x.text));
-        if (j >= 0) {
-          out.push(l[j]);
-          l.splice(j, 1);
-          continue;
-        }
-        if (HISTORY[x.kind]) continue;
-        record(st, { kind: x.kind, pawn: p.id, text: x.text, self: true }, x.t);
-        out.push(st.record.length - 1);
-      }
-      p.events = out;
-    }
-  }
   // where an event of household hh or farm f happened
   const atHousehold = (st, hh) => ({
     household: hh.id,
@@ -797,7 +756,6 @@ VB['sim/records'] = (() => {
     startFold,
     foldHistory,
     lifeEvent,
-    indexEvents,
     atHousehold,
     atFarm,
     age,

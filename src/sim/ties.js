@@ -107,20 +107,6 @@ VB['sim/ties'] = (() => {
   function countHomeHours(p) {
     p.homeHours += SOCIAL.talk.every;
   }
-  // Put older saves' ties on the current scale and enforce the cap and kin floor.
-  function migrateTies(st) {
-    for (const p of st.pawns)
-      if (p.ties && p.tieT === undefined) {
-        p.tieT = st.t;
-        p.homeHours = 0;
-        if (p.alive && p.ties.size > TIES.cap) {
-          const old = [...p.ties];
-          p.ties = new Map();
-          for (const [j, w] of old) put(st, p, j, w);
-        }
-        if (p.alive) for (const q of kinNear(st, p.id)) if (st.pawns[q].alive) floorKin(st, p.id, q);
-      }
-  }
   return {
     initTies,
     scaleOf,
@@ -131,7 +117,6 @@ VB['sim/ties'] = (() => {
     renormalise,
     dailyTies,
     floorKin,
-    migrateTies,
     countHomeHours,
   };
 })();

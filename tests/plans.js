@@ -79,13 +79,6 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
   refreshJobs(st, cal(st.t), true);
   assert.strictEqual(plan.counted, 1, 'the count held this year');
 }
-{ // a save made before the targets and reservations gets them at load
-  const st = fresh(), plan = Plans.planOf(st, 'household', st.households[0].id);
-  delete plan.targets; delete plan.tiles; delete plan.counted; delete plan.reserved; delete plan.reasons;
-  delete Plans.planOf(st, 'village', st.villages[0].id).reserved;
-  Plans.fillPlans(st);
-  assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'filled plans keep the invariants');
-}
 { // a year of populous: the review's count of seed is the fields' need right after every review, and no plan invariant breaks
   const st = fresh('populous');
   Sim.advance(st, YEAR_DAYS * DAY / 4);
@@ -249,10 +242,5 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
   const st = fresh('populous'), id = st.liveHouseholds[0];
   Plans.dropPlan(st, 'household', id);
   assert(!st.plans.seasons.has(id), 'dropped with the standing plan');
-  const st2 = fresh();
-  delete st2.plans.seasons;
-  for (const plan of st2.plans.households.values()) { delete plan.targets.seed; delete plan.targets.perHand; }
-  Plans.fillPlans(st2);
-  assert.deepStrictEqual(checkState(st2).filter((x) => x.startsWith('plans')), [], 'filled seasonal plans keep the invariants');
 }
 console.log('plans ok');

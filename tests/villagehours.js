@@ -54,11 +54,6 @@ Sim.advance(back, 0.1 + 6);
 assert.deepStrictEqual(back.villageHours, st.villageHours, 'the save between rows goes on as the unbroken run');
 assert.deepStrictEqual(checkState(st).filter((m) => m.startsWith('villageHours')), [], 'the table passes its invariants after a year');
 
-// a save without the table (all saves before VB-286) has it built at the load
-const old = JSON.parse(JSON.stringify(Sim.save(st)));
-delete old.state.villageHours;
-close(Sim.load(world(), old).villageHours, fresh(st), 'built at a load of an older save');
-
 // a village added: a row and a column, found at once
 {
   const s = tinyState(world(), [{ at: [6, 5], farms: 2 }, { at: [20, 5], farms: 2 }], { seed: 7 });
@@ -82,4 +77,4 @@ close(Sim.load(world(), old).villageHours, fresh(st), 'built at a load of an old
   assert.strictEqual(done.size, V, 'every row once a year');
   close(s.villageHours, fresh(s), '70 villages');
 }
-console.log(`village hours ok: ${st.villages.length} villages; agreement with the route search, a row a step from noon of autumn day 9 (${TICKS} steps an hour), a save between rows, an older save, a village added, 70 villages in 60 steps`);
+console.log(`village hours ok: ${st.villages.length} villages; agreement with the route search, a row a step from noon of autumn day 9 (${TICKS} steps an hour), a save between rows, a village added, 70 villages in 60 steps`);

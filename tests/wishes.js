@@ -172,7 +172,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   sound(st, 'service declined');
 }
 
-// 8. The wishes are saved with the run; a save from before them loads with none.
+// 8. The wishes are saved with the run.
 {
   const { st, empty } = scene();
   Sim.inhabit(st, cast.claimant); Sim.wish(st, 'out', true); Sim.wish(st, 'claim', empty.id); Sim.wish(st, 'serve', false);
@@ -180,12 +180,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   assert.deepStrictEqual(W(back), { out: true, claim: empty.id, serve: false, match: null }, 'the wishes come back as saved');
   for (const s of [st, back]) { Sim.movingRound(s); Sim.advance(s, Sim.DAY); }
   assert.strictEqual(hash(back), hash(st), 'the loaded run and the saved one agree after a round and a day');
-  // a save from before VB-680 holds the player's wishes on st.player: they load as its pawn's
-  delete st.pawns[cast.claimant].wish; st.player.wishes = { out: true, claim: empty.id, serve: false, match: null };
-  const older = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(st))));
-  assert.ok(!('wishes' in older.player), 'the player keeps no wishes of its own');
-  assert.deepStrictEqual(W(older), { out: true, claim: empty.id, serve: false, match: null }, 'an older save\'s wishes load as its pawn\'s');
-  sound(older, 'loaded from an older save');
+  sound(back, 'loaded');
 }
 // 9. The wish for a match (VB-274): false keeps the played pawn out of the round's matching; a partner who passes the round's rules is
 // offered at its start and married at its close; a sister, a partner with no home and one 30 years older are no offer, and the round
@@ -293,14 +288,11 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
     assert.strictEqual(W(st).match, null, 'the wish is cleared when the wished partner dies');
     sound(st, 'wished partner died');
   }
-  // the wish is saved; a save from before it loads with null
+  // the wish is saved
   {
     const st = world(seed); Sim.inhabit(st, m); Sim.wish(st, 'match', f);
     const data = JSON.parse(JSON.stringify(Sim.save(st)));
     assert.strictEqual(W(Sim.load(tinyWorld(rows), data)).match, f, 'the wish is saved');
-    delete st.pawns[m].wish; st.player.wishes = { out: null, claim: null, serve: null };
-    const older = Sim.load(tinyWorld(rows), JSON.parse(JSON.stringify(Sim.save(st))));
-    assert.strictEqual(W(older).match, null, 'a save from before the wish for a match loads with match: null');
   }
 }
 // 10. Every pawn has wishes (VB-680): its own choosing before the round ranks the rungs by its ambition and its hunger, leaves a pawn
