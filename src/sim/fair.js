@@ -19,7 +19,7 @@ VB['sim/fair'] = (() => {
     Culture = VB['culture'];
   const Offers = VB['sim/offers'];
   const { issue, register } = VB['sim/commands'];
-  const { needValue, propriety } = VB['sim/exchange'];
+  const { needValue, propriety, KEEPING } = VB['sim/exchange'];
   const { book, remember } = VB['sim/relations'];
   const { takeFood, addFood, larderOf } = VB['sim/larder'];
   const { floorOf } = VB['sim/hunger'];
@@ -376,6 +376,13 @@ VB['sim/fair'] = (() => {
     return below > TOLERANCE ? { below } : null;
   }
   // ---- finding deals (design.md, The fair: Trade partners; Cost) ----
+  // Whether a deal would only pass one keeping good for another: dealer `me` needs what it would take (its need alone, with no room left
+  // for goods to pass on) no more than what it would give. Such a deal moves no need, only lumps between friends; nobody proposes it.
+  function idle(st, me, gives, wants) {
+    if (!Goods.goodOf(gives.good).keeping || !Goods.goodOf(wants.good).keeping) return false;
+    const hh = st.households[st.pawns[me].load.household];
+    return needValue(st, hh, wants.good, wants.n, KEEPING.cap) <= -needValue(st, hh, gives.good, -gives.n) + TOLERANCE;
+  }
   // Dealer `me` proposes to `other` the deal best for itself that it would take, among one quantum of each of the other's goods for the
   // whole quanta of each of its own nearest its worth, and one of its own for the other's nearest; it makes the offer, and the other
   // answers. A refused deal that both would have taken at the exact ratio of worth failed for want of change.
@@ -394,7 +401,7 @@ VB['sim/fair'] = (() => {
         ]) {
           const gives = { good: g, n: gn },
             wants = { good: t, n: tn };
-          if (swapWhy(st, me, other, gives, wants)) continue;
+          if (swapWhy(st, me, other, gives, wants) || idle(st, me, gives, wants)) continue;
           const w = weigh(st, me, other, gives, wants);
           if (w.accept && (!best || w.gain + w.allowance > best.score))
             best = { gives, wants, score: w.gain + w.allowance };
