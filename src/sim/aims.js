@@ -21,7 +21,8 @@ VB['sim/aims'] = (() => {
   const { findSite, hasPlot, awaitsCottage } = VB['sim/expansion'];
   const { issue, register } = VB['sim/commands'];
   const Plans = VB['sim/plans'],
-    ProjectPlans = VB['sim/projectplans'];
+    ProjectPlans = VB['sim/projectplans'],
+    Seasonal = VB['sim/seasonal'];
   const { heirRanking } = VB['sim/heirranking'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
   const { tierOf, turnWhy } = VB['sim/rotations'];
@@ -134,7 +135,7 @@ VB['sim/aims'] = (() => {
   // A trial (VB-351; design.md, How the head chooses what to sow: a trial is a project): a good head (sim/rotations' tierOf) whose store
   // holds a field's seed of a crop its farm's rotation does not grow tries it on one field; the first such crop of CROPS, or null.
   function trialCrop(st, plan, hh, f) {
-    if (!f.fields.length || tierOf(Plans.headSkill(st, hh.id)) !== 'good') return null;
+    if (!f.fields.length || tierOf(Seasonal.headSkill(st, hh.id)) !== 'good') return null;
     const R = ROTATIONS[f.fields[0].rotation].courses;
     for (const k in CROPS) if (CROPS[k].seed > 0 && !R.includes(k) && Stores.grainOf(hh, k) >= CROPS[k].seed) return k;
     return null;

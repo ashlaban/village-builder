@@ -14,7 +14,8 @@ VB['sim/scenarios'] = (() => {
   const { rebuildLiving, person, marry, nameKit, makeHousehold, joinHousehold, log, age, record, atHousehold } =
     VB['sim/records'];
   const { placeAtHome } = VB['sim/agents'];
-  const { seedPlans, startHeads } = VB['sim/plans'];
+  const { seedPlans } = VB['sim/plans'],
+    { startHeads } = VB['sim/seasonal'];
   const { seedTraits } = VB['sim/traits'];
   const { seedAsking } = VB['sim/wishes'];
   // The end of seeding: a stream for each system, then the living's traits and each household's head (VB-254), and their skills

@@ -61,7 +61,7 @@ const HINTS = {
   'sim/commands': { q: 'pawn' }, 'sim/notable': { from: 'local' }, 'sim/agents': { g: 'agent', stay: 'st.away[]' }, 'sim/away': { g: 'local', rest: 'local' }, 'sim/expansion': { live: 'local', walls: 'plan.steps[]' }, 'sim/building': { walls: 'plan.steps[]' }, // a plot's walls step (VB-1407)
   'sim/pot': { units: 'local' },
   'sim/fair': { l: 'local', x: 'local' }, 'sim/larder': { lots: 'local', by: 'local' }, // a dealer's load and its lots, inside pawn.load and written only by sim/fair (VB-302)
-  'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/meetings': { people: 'local' }, 'sim/plans': { T: 'plan.targets' }, 'sim/aims': { A: 'plan.aim', B: 'plan.aim' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
+  'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/meetings': { people: 'local' }, 'sim/plans': { T: 'plan.targets' }, 'sim/seasonal': { T: 'plan.targets' }, 'sim/aims': { A: 'plan.aim', B: 'plan.aim' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
     R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead', f: 'farmstead' },
 };
 const KEYWORDS = new Set(['return', 'typeof', 'instanceof', 'in', 'of', 'new', 'case', 'delete', 'void', 'throw', 'await', 'yield', 'if', 'while',

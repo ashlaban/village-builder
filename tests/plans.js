@@ -205,37 +205,37 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
   const st = fresh('populous'), c = cal(st.t);
   assert.strictEqual(st.plans.seasons.size, st.liveHouseholds.length, 'one seasonal plan per household');
   for (const id of st.liveHouseholds) {
-    const sp = Plans.seasonOf(st, id), T = Plans.planOf(st, 'household', id).targets;
+    const sp = VB['sim/seasonal'].seasonOf(st, id), T = Plans.planOf(st, 'household', id).targets;
     assert.strictEqual(sp.kind, 'season');
     assert.strictEqual(sp.season, c.season);
-    assert.deepStrictEqual(sp.steps, Plans.ROUTINES[c.season], 'the season\'s routines in order');
+    assert.deepStrictEqual(sp.steps, VB['sim/seasonal'].ROUTINES[c.season], 'the season\'s routines in order');
     assert.strictEqual(T.seed, CROPS.barley.seed);
     assert.strictEqual(T.perHand, VB['sim/rules'].FIELDS.perHand);
   }
-  assert.notStrictEqual(Plans.seasonOf(st, st.liveHouseholds[0]).steps, Plans.seasonOf(st, st.liveHouseholds[1]).steps, 'each its own steps');
+  assert.notStrictEqual(VB['sim/seasonal'].seasonOf(st, st.liveHouseholds[0]).steps, VB['sim/seasonal'].seasonOf(st, st.liveHouseholds[1]).steps, 'each its own steps');
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'seasonal plan invariants');
 }
 { // the review reads the plan, not the template: one household's changed target stands until the season turns, and no other's changes;
   // at its first review of a season the plan is made again from the template; the template is compiled once a season and culture
   const st = fresh('populous'), [a, b] = st.liveHouseholds, pa = Plans.planOf(st, 'household', a), pb = Plans.planOf(st, 'household', b);
-  pa.targets.wood[1] = 99; pa.targets.perHand = 3; Plans.seasonOf(st, a).steps.reverse();
+  pa.targets.wood[1] = 99; pa.targets.perHand = 3; VB['sim/seasonal'].seasonOf(st, a).steps.reverse();
   setClock(st, DAY + WORK[0]);
   refreshJobs(st, cal(st.t), true);
   assert.strictEqual(pa.targets.wood[1], 99, 'the review reads the plan\'s target');
   assert.strictEqual(pa.targets.workable, F.fieldsWorkable(st, st.households[a], 3), 'the fields per hand read from the plan');
   assert.strictEqual(pb.targets.wood[1], st.ECON.woodWinter, 'no other household\'s plan changed');
-  assert.strictEqual(Plans.seasonOf(st, a).steps[0], 'fish', 'its steps as changed (the season\'s last routine first)');
+  assert.strictEqual(VB['sim/seasonal'].seasonOf(st, a).steps[0], 'fish', 'its steps as changed (the season\'s last routine first)');
   const spring = cal(st.t);
   setClock(st, (spring.day - spring.sday + VB['sim/rules'].SEASON_DAYS) * DAY + WORK[0]); // the next season's first day
   countYearReads = true;
   refreshJobs(st, cal(st.t), true);
   countYearReads = false;
-  const sp = Plans.seasonOf(st, a);
+  const sp = VB['sim/seasonal'].seasonOf(st, a);
   assert.strictEqual(sp.season, (spring.season + 1) % 4, 'the next season\'s plan');
-  assert.deepStrictEqual(sp.steps, Plans.ROUTINES[sp.season], 'its steps from the template');
+  assert.deepStrictEqual(sp.steps, VB['sim/seasonal'].ROUTINES[sp.season], 'its steps from the template');
   assert.strictEqual(pa.targets.wood[1], st.ECON.woodWinter, 'the targets copied from the template again');
-  const cultures = new Set(st.liveHouseholds.map((id) => Plans.cultureOf(st, st.households[id])));
-  assert.strictEqual(yearReads, cultures.size * (4 + 4 + new Set(Plans.ROUTINES.flat()).size), 'compiled once per culture');
+  const cultures = new Set(st.liveHouseholds.map((id) => VB['sim/seasonal'].cultureOf(st, st.households[id])));
+  assert.strictEqual(yearReads, cultures.size * (4 + 4 + new Set(VB['sim/seasonal'].ROUTINES.flat()).size), 'compiled once per culture');
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'seasonal plan invariants after the turn');
 }
 { // a household's seasonal plan is dropped with it; a save made before seasonal plans gets them at load

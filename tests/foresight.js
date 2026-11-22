@@ -29,7 +29,7 @@ function farm(key, usual, grain, skill) {
     Object.assign(fd, { rotation: key, step: i % n, crop: ROTATIONS[key].courses[i % n], stage: 'stubble', soil: 1 });
   });
   const s = { st, f, hh, v, plan: Plans.planOf(st, 'household', hh.id) };
-  s.head = () => ({ skill: Plans.headSkill(st, hh.id), pawn: hh.holder });
+  s.head = () => ({ skill: VB['sim/seasonal'].headSkill(st, hh.id), pawn: hh.holder });
   s.review = (time) => {
     setClock(st, time);
     Plans.reviewed(st, s.plan, cal(st.t));

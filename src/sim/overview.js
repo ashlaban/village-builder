@@ -11,7 +11,7 @@ VB['sim/overview'] = (() => {
   // The fields a farm sows: a fallow course does not count against the hands (VB-350; design.md, The rotation, Fallow and the hands).
   const sownFields = (f) => f.fields.filter((fd) => !CROPS[fd.crop].fallow).length;
   const { heirRanking } = VB['sim/heirranking'];
-  const Plans = VB['sim/plans'],
+  const Seasonal = VB['sim/seasonal'],
     Traits = VB['sim/traits'];
   // The overview's bounds (VB-162; Kim, 10 November, as the task's criteria, read on the game's calendar): the window of the counted facts
   // is the last HUNGER.days days, the days a pawn's hunger log holds (a season: the game's year is four seasons of SEASON_DAYS days, so the
@@ -57,8 +57,8 @@ VB['sim/overview'] = (() => {
       hh = p.household === null ? null : st.households[p.household],
       plan = hh && st.plans ? st.plans.households.get(hh.id) : null,
       heads = plan && plan.head && plan.head.pawn === id,
-      skill = heads ? Plans.headSkill(st, hh.id) : Traits.skill(st, id, st.t),
-      hz = Plans.horizonOf(skill),
+      skill = heads ? Seasonal.headSkill(st, hh.id) : Traits.skill(st, id, st.t),
+      hz = Seasonal.horizonOf(skill),
       c = cal(st.t),
       harvest = toHarvest(st.t),
       ahead = hz ? SEASON_DAYS - c.sday + (hz - 1) * SEASON_DAYS : 1;

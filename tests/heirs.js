@@ -63,9 +63,9 @@ if (extended) {
     s2.rng.traits.fix = 0.5;
     // VB-519 replaced the stand-ins' draw: every living pawn's twelve traits are set at 0.5 (the stream forced for the heads' biases).
     for (const id of s2.living) s2.pawns[id].traits = Object.keys(T.IDX).map(() => 0.5);
-    P.startHeads(s2);
+    VB['sim/seasonal'].startHeads(s2);
     delete s2.rng.traits.fix;
-    assert.strictEqual(P.headSkill(s2, 4), 0.5, 'a head of skill 0.5');
+    assert.strictEqual(VB['sim/seasonal'].headSkill(s2, 4), 0.5, 'a head of skill 0.5');
     s2.naturalDeaths = false;
     for (let d = 0; d < 3 * Sim.YEAR / Sim.DAY; d++) {
       Sim.advance(s2, Sim.DAY);
