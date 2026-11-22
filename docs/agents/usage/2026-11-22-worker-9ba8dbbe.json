@@ -1,0 +1,128 @@
+{
+ "session": "9ba8dbbe-a116-5a2d-ad9a-d96c3cd63e2a",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-22T19:05:19.116Z",
+ "end": "2026-11-22T19:25:31.615Z",
+ "wallMin": 20.2,
+ "activeMin": 20.2,
+ "prompts": 2,
+ "calls": 104,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 204,
+  "cacheWrite": 153492,
+  "cacheRead": 17140618,
+  "output": 41901
+ },
+ "context": {
+  "first": 84791,
+  "peak": 218292,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 101,
+   "bytes": 194740,
+   "seconds": 638.8
+  },
+  "Monitor": {
+   "calls": 2,
+   "bytes": 604,
+   "seconds": 0.9
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 213,
+   "seconds": 0
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 28,
+   "bytes": 103109
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 13,
+   "bytes": 24994
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 6,
+   "bytes": 11716
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 19,
+   "bytes": 7677
+  },
+  {
+   "tool": "Bash",
+   "what": "for t",
+   "calls": 1,
+   "bytes": 7568
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7380
+  },
+  {
+   "tool": "Bash",
+   "what": "cat backlog/VB-673.md",
+   "calls": 1,
+   "bytes": 7001
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 3734
+  },
+  {
+   "tool": "Bash",
+   "what": "npm run",
+   "calls": 3,
+   "bytes": 3337
+  },
+  {
+   "tool": "Bash",
+   "what": "git show",
+   "calls": 1,
+   "bytes": 2767
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 1,
+   "bytes": 2416
+  },
+  {
+   "tool": "Bash",
+   "what": "node tests/review-tools.js",
+   "calls": 2,
+   "bytes": 2395
+  }
+ ],
+ "weighted": 2115636,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2115636,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
