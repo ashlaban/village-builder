@@ -194,6 +194,9 @@ check(Mood.word(24) === 'miserable' && Mood.word(25) === 'low' && Mood.word(45) 
   s4.pawns[from.holder].mods = [];
   Mood.feel(s4, to.holder, 'grieving');
   check(part().factor === 0, 'the receiver grieving moves nothing');
+  // the panel's words: "Mood: content"
+  const shown = Sim.explainAllowance(s4, from.holder, to.holder).parts.find((x) => x.key === 'mood');
+  check(shown && shown.label === 'Mood: content', `the panel's label: ${shown && shown.label}`);
 }
 
 // --- no other module of the simulation reads mood: only sim/mood itself, the Sim facade, and sim/exchange's term, which reads level
@@ -204,9 +207,9 @@ check(Mood.word(24) === 'miserable' && Mood.word(25) === 'low' && Mood.word(45) 
     const code = readSource(path.join(src, 'sim', f)).replace(/\/\/.*$/gm, ''); // its code, not its comments
     if (f === READER) {
       const names = code.match(/\{[^{}]*\}\s*=\s*VB\['sim\/mood'\]/g) || [];
-      check(names.length === 1 && /^\{\s*MOOD,\s*level: moodOf\s*\}/.test(names[0]) && code.split("VB['sim/mood']").length === 2, `sim/exchange takes MOOD and level only: ${names}`);
+      check(names.length === 1 && /^\{\s*MOOD,\s*level: moodOf,\s*word: moodWord\s*\}/.test(names[0]) && code.split("VB['sim/mood']").length === 2, `sim/exchange takes MOOD and level only: ${names}`);
       check(!/\.mods\b|Mood\.of|\bof\(/.test(code), 'sim/exchange reads no modifier list');
-      check((code.match(/moodOf\(/g) || []).length === 1, 'sim/exchange reads mood in its one term');
+      check((code.match(/moodOf\(/g) || []).length === 2, 'sim/exchange reads mood in its one term, and words it for the panel');
     } else check(!/sim\/mood|\.mods\b|moodOf/.test(code), `src/sim/${f} reads mood`);
   }
 }

@@ -16,7 +16,7 @@ VB['sim/exchange'] = (() => {
   const Norms = VB['sim/norms'];
   const Offers = VB['sim/offers'];
   const { issue } = VB['sim/commands'];
-  const { MOOD, level: moodOf } = VB['sim/mood'];
+  const { MOOD, level: moodOf, word: moodWord } = VB['sim/mood'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. Switched on by GOODWILL.acts (VB-220).
@@ -260,6 +260,7 @@ VB['sim/exchange'] = (() => {
     const out = Rules.explain(st, 'allowance', { giver, receiver, from, to }),
       word = VB['sim/traits'].wordOf(st, giver, 'generosity'); // "own reserve: open-handed" (VB-520; design.md, The twelve traits)
     if (word) for (const q of out.parts) if (q.key === 'reserve') q.label += ': ' + word;
+    for (const q of out.parts) if (q.key === 'mood') q.label += ': ' + moodWord(moodOf(st, giver)); // "Mood: low" (VB-875)
     return out;
   }
   // ---- goods at the fair (VB-299; design.md, The fair: Need and Keeping goods; target-v2 5.1). VB-302's deals read these. ----
