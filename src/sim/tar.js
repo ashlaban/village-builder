@@ -14,6 +14,8 @@ VB['sim/tar'] = (() => {
     Projects = VB['sim/projects'];
   const { declare } = VB['sim/makings'];
   const { log, atFarm } = VB['sim/records'];
+  const { register, issue } = VB['sim/commands'],
+    { agentWhy } = VB['sim/decisions'];
   const { fellTree } = VB['sim/forest'];
   const Drying = VB['sim/drying'],
     Targets = VB['sim/targets'];
@@ -85,10 +87,50 @@ VB['sim/tar'] = (() => {
     }
     return best;
   }
+  // @state village.tarBy: the household id the village's alderman charged with digging its tar pit (VB-673; the verb chargeTar), or
+  //   absent/null before he has; written only here.
+  // Whether village v wants a pit: pine in its wood, and no pit nor one being dug.
+  const wantsPit = (st, v) => !!(v.wood && v.wood.length) && !villagePit(st, v) && pineTile(st, v) >= 0;
+  // Whether household hh stands charged with village v's pit: the one charged, a live household of the village whose head may begin one.
+  const charged = (st, v, hh) =>
+    !!hh &&
+    !hh.dissolved &&
+    v.tarBy === hh.id &&
+    hh.farmstead !== null &&
+    st.farmsteads[hh.farmstead].village === v.id &&
+    Projects.mayBegin(st, hh, 'tarpit');
+  // chargeTar(village, {household}) (VB-673): the alderman, at home, charges a household of his village with digging its tar pit; the
+  // household's head begins it at its yearly look (the verb project). Refused while the village has a pit, or one being dug, or no pine.
+  register('chargeTar', {
+    check: (st, c) => {
+      const v = st.villages[c.target],
+        hh = c.args && Number.isInteger(c.args.household) ? st.households[c.args.household] : null;
+      if (!v) return `there is no village ${c.target}`;
+      const why = agentWhy(st, v.id, c.actor);
+      if (why) return why;
+      if (!wantsPit(st, v)) return `${v.name} has a tar pit, or one being dug, or no pine in its wood`;
+      if (!hh || hh.dissolved || hh.farmstead === null || st.farmsteads[hh.farmstead].village !== v.id)
+        return `household ${c.args && c.args.household} is not of ${v.name}`;
+      return Projects.mayBegin(st, hh, 'tarpit') ? null : `household ${hh.id} may not begin a tar pit now`;
+    },
+    run: (st, c) => {
+      st.villages[c.target].tarBy = c.args.household;
+    },
+  });
+  // The alderman's rule at his village's review (sim/routines): while the village wants a pit and no household it can dig stands charged,
+  // he charges the one with the most working hands (mostHands); true when he did.
+  function chargeStep(st, v, a) {
+    if (!wantsPit(st, v) || (Number.isInteger(v.tarBy) && charged(st, v, st.households[v.tarBy]))) return false;
+    const hh = mostHands(st, v);
+    return (
+      !!hh &&
+      issue(st, { actor: a, verb: 'chargeTar', target: v.id, args: { household: hh.id }, source: 'pawn' }) === true
+    );
+  }
   // The tar pit, a making the head begins through the verb project (VB-678; sim/projects' declare): possible in a village with pine in its
   // wood and no pit, nor one being dug, on the wood's first pine tile. The head weighs it once a year from the start of summer, the
-  // burning ahead, and wants it when its household has the most working hands of the village's (mostHands; which household of a village's
-  // is the alderman's to choose, VB-673). A small construction, beside any other project and in a booth as in a house (VB-1414).
+  // burning ahead, and wants it when its alderman has charged its household with it (chargeTar, VB-673). A small construction, beside any
+  // other project and in a booth as in a house (VB-1414).
   declare('tarpit', {
     small: true,
     why: (st, hh, f) => {
@@ -103,9 +145,7 @@ VB['sim/tar'] = (() => {
       from: SUMMER * SEASON_DAYS,
       want: (st, hh, f) => {
         const v = st.villages[f.village];
-        return v.wood && v.wood.length && !villagePit(st, v) && pineTile(st, v) >= 0 && mostHands(st, v) === hh
-          ? {}
-          : null;
+        return wantsPit(st, v) && v.tarBy === hh.id ? {} : null;
       },
     },
   });
@@ -269,6 +309,7 @@ VB['sim/tar'] = (() => {
     pitOf,
     villagePit,
     mostHands,
+    chargeStep,
     dueCount,
     houseDue,
     burnt,

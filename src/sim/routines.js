@@ -13,7 +13,8 @@ VB['sim/routines'] = (() => {
   const { register, issue } = VB['sim/commands'];
   const Green = VB['sim/green'],
     Workdays = VB['sim/workdays'],
-    Commons = VB['sim/commons'];
+    Commons = VB['sim/commons'],
+    Tar = VB['sim/tar'];
   // @state plan.routines (a village's; VB-257): the keys of VILLAGE_ROUTINES the village does this year, at most MAX_ROUTINES, each a source
   //   of the village's tasks (sim/jobs asks only their kinds); plan.routinesBy: how they were set, 'founded' (the founders' choice, until
   //   the first meeting), 'meeting' (the meeting decided), or, when it did not decide, its culture's practice noDecision ('nothing',
@@ -193,12 +194,15 @@ VB['sim/routines'] = (() => {
           : routinesWhy(c.args.routines)),
     run: (st, c) => setRoutines(st, c.actor.settlement, c.args.routines, c.args.by),
   });
-  // A village's review: the steps of its routines (greenStep, commonsStep, workdayStep), taken by its alderman.
+  // A village's review: the steps of its routines (greenStep, commonsStep, workdayStep), taken by its alderman, and his charge of the
+  // tar pit to a household (sim/tar, VB-673).
   function villageSteps(st, plan) {
-    const a = actorFor(st, st.villages[plan.holder.id]);
+    const v = st.villages[plan.holder.id],
+      a = actorFor(st, v);
     if (a !== null) greenStep(st, plan, a);
     commonsStep(st, plan, a);
     if (a !== null) workdayStep(st, plan, a);
+    if (a !== null) Tar.chargeStep(st, v, a);
   }
   return {
     VILLAGE_ROUTINES,
