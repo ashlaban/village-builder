@@ -52,6 +52,7 @@
       "sim/stores",
       "sim/targets",
       "sim/projects",
+      "sim/holding",
       "sim/makings",
       "sim/dig",
       "sim/pot",

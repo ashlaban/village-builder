@@ -62,6 +62,18 @@ VB['sim/layout'] = (() => {
     }
     return best;
   }
+  // The score of a house site in a village (VB-688: the generator's and a plot's, sim/expansion findSite, alike): near the green (d walking
+  // steps from it), not crowded (touch: houses beside it), on a tile neither stony, wet nor wooded; the land it farms is scored beside it.
+  function houseScore(w, t, d, touch) {
+    const b = w.biome[t];
+    return (
+      -HOUSE.far * d -
+      HOUSE.crowd * Math.max(0, touch - 1) -
+      (d === 1 ? 0 : HOUSE.offGreen) -
+      (1.5 * w.stones[t]) / 255 -
+      (b === B.MARSH ? 2 : b === B.HILLS ? 0.5 : b === B.FOREST || b === B.PINE ? 0.5 : 0)
+    );
+  }
   function siteScore(w, c) {
     if (!farmable(w, c) || w.biome[c] !== B.MEADOW) return -1;
     const { dist } = bfs(w, c, 3, walkable(w));
@@ -293,16 +305,7 @@ VB['sim/layout'] = (() => {
         if (cutsOff(w, t, shut, house) || rimFull(w, center, t, house)) continue;
         let touch = 0;
         for (let k = 0; k < 6; k++) if (mine.has(w.nb[t * 6 + k]) && w.nb[t * 6 + k] !== center) touch++;
-        const b = w.biome[t];
-        out.push([
-          t,
-          -HOUSE.far * d -
-            HOUSE.crowd * Math.max(0, touch - 1) -
-            (d === 1 ? 0 : HOUSE.offGreen) -
-            (1.5 * w.stones[t]) / 255 -
-            (b === B.MARSH ? 2 : b === B.HILLS ? 0.5 : 0) +
-            rand() * HOUSE.wander,
-        ]);
+        out.push([t, houseScore(w, t, d, touch) + rand() * HOUSE.wander]);
       }
       return out.sort((x, y) => y[1] - x[1] || x[0] - y[0]);
     };
@@ -563,10 +566,9 @@ VB['sim/layout'] = (() => {
     farmIn,
     fieldOn,
     placeFields,
-    enclose,
     siteScore,
+    houseScore,
     nameVillages,
-    makeFence,
     makeFarmstead,
     findSite,
     buildVillage,

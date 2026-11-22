@@ -32,6 +32,7 @@ VB['sim/heirs'] = (() => {
   const { oweShare } = VB['sim/obligations'];
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
+  const { landed } = VB['sim/holding'];
   const { hoursBetween, byLand } = VB['sim/villagehours'];
   const { SHARES, GOODWILL } = VB['sim/rules'],
     { houseCondition } = VB['sim/house'];
@@ -520,8 +521,7 @@ VB['sim/heirs'] = (() => {
   // Why p does not want to move out, or null when it does. own: ownFirstOf(st), when the caller asks for many pawns while nothing changes.
   function staysWhy(st, p, heirs = null, own = null, wish = wishOf(st, p.id, 'out')) {
     if (!p.alive || p.age < 18 || p.retired) return p.retired ? 'retired' : 'under 18';
-    const sp = spouseOf(st, p.id);
-    if (isHolder(st, p.id) || (sp !== null && isHolder(st, sp))) return 'holds a farm, or is married to its holder';
+    if (landed(st, p.id)) return 'holds a farm, or is married to its holder'; // a bar of sim/holding's table
     if (wish !== true && placeIfMarried(st, p.id, own) !== null) return 'heir to the farm at home';
     if (claimOf(st, p.id)) return 'restoring a farm it claimed'; // (sim/farmclaims)
     if (wish !== null) return wish ? null : 'it wishes to stay'; // an heir's wait is the pawn's wish (sim/wishes, VB-680)

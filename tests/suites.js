@@ -110,6 +110,7 @@ const INTEGRATION = [
   ['node', 'tests/waiting.js'],
   ['node', 'tests/brief-tool.js'],
   ['node', 'tests/guardians.js'],
+  ['node', 'tests/holding.js'],
   ['node', 'tests/takenin.js'],
   ['node', 'tests/trust.js'],
   ['node', 'tests/obligations.js'],

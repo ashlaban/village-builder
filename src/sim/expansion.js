@@ -13,14 +13,15 @@ VB['sim/expansion'] = (() => {
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { costChanged } = VB['sim/routes'];
-  const { log, fullName, spouseOf, isHolder, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
+  const { landed, mayHoldFarm, contribute } = VB['sim/holding'];
+  const { log, fullName, spouseOf, settlementIdOf, personEvent, practice, atFarm } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];
   const { clearTile, FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
   const { thick, clearScrub, tended } = VB['sim/spread'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fieldplans'],
     { onField } = VB['sim/fieldwork'];
-  const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand } = VB['sim/layout'];
+  const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand, houseScore } = VB['sim/layout'];
   const COTTAGE = ['foundation', 'walls', 'roof'],
     COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   const VACANT_YEARS = 2; // moving rounds a cleared plot waits for someone to have it before the village gives it up (VB-646)
@@ -195,14 +196,8 @@ VB['sim/expansion'] = (() => {
         continue;
       let touch = 0;
       for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
-      // the generator's score of a house site (sim/layout, HOUSE): near the green, not crowded, where its field is worth most and its own
-      // tile least
-      const s =
-        -HOUSE.far * d -
-        HOUSE.crowd * Math.max(0, touch - 1) -
-        (d === 1 ? 0 : HOUSE.offGreen) -
-        (wooded(w, h) ? 0.5 : 0) +
-        (f >= 0 ? HOUSE.byLand * fs - HOUSE.spare * fertility(w, h) : -Infinity);
+      // the generator's score of a house site (sim/layout houseScore), where its field is worth most and its own tile least
+      const s = houseScore(w, h, d, touch) + (f >= 0 ? HOUSE.byLand * fs - HOUSE.spare * fertility(w, h) : -Infinity);
       if (s > bs) {
         bs = s;
         best = { house: h, field: f };
@@ -412,13 +407,10 @@ VB['sim/expansion'] = (() => {
     );
   }
   // The village's pick among those still waiting, by `village` rule: married couples first, then by age, single adults once no couple waits.
-  // A pawn with a farm already: a holder, or married to one (who lives on the spouse's farm; VB-153).
-  const landed = (st, id) => {
-    const sp = spouseOf(st, id);
-    return isHolder(st, id) || (sp !== null && isHolder(st, sp));
-  };
-  // A pawn who holds a cleared plot, or is meant to have another still being cleared, is not allotted a second (VB-142).
-  const open = (st, id) => !landed(st, id) && !awaitsCottage(st, id) && !hasPlot(st, id);
+  // A pawn with a farm already (landed), who holds a cleared plot, or is meant to have another still being cleared, is not allotted a second
+  // (VB-142): the way `plot` of sim/holding's table, whose bar `plot` this module gives.
+  contribute('plot', hasPlot); // a cottage awaited is a plot hasPlot finds
+  const open = (st, id) => mayHoldFarm(st, id, 'plot');
   function byVillage(st, v, ids) {
     const live = ids.filter((id) => st.pawns[id].alive && open(st, id));
     const couple = (id) => {

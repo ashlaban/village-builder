@@ -2,12 +2,14 @@
  "culture": 20,
  "sim/rules": 42,
  "sim/names": 31,
- "sim/layout": 23,
+ "sim/layout": 22,
  "sim/records": 49,
+ "sim/projects": 16,
  "sim/relations": 24,
  "sim/herds": 25,
  "sim/stores": 39,
  "sim/fields": 22,
+ "sim/expansion": 16,
  "sim/agents": 28,
  "sim/plans": 16
 }

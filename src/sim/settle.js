@@ -14,13 +14,12 @@ VB['sim/settle'] = (() => {
   const { walkable } = VB['sim/walking'],
     { villageAdded } = VB['sim/villagehours'],
     { costChanged } = VB['sim/routes'];
-  const { log, fullName, spouseOf, unionOf, childrenOf, siblingsOf, kinNear, settlementIdOf, isHolder, atFarm } =
-    VB['sim/records'];
+  const { log, fullName, spouseOf, unionOf, siblingsOf, kinNear, settlementIdOf, atFarm } = VB['sim/records'];
   const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
   const { builtTiles, fieldProject } = VB['sim/fieldplans'];
   const { stake } = VB['sim/stakes'];
-  const { findSite, hasPlot, activePlots, building, roomAt, livePlots, tilesOf, cottagePlan } = VB['sim/expansion'];
+  const { findSite, activePlots, building, roomAt, livePlots, tilesOf, cottagePlan } = VB['sim/expansion'];
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
@@ -30,14 +29,14 @@ VB['sim/settle'] = (() => {
   const { reckonWood, woodTaken } = VB['sim/territory'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
-  const guardian = (st, id) => st.liveHouseholds.some((hid) => st.households[hid].guardian === id);
+  const { keepsWard, mayHoldFarm, goesWith } = VB['sim/holding'];
   // ---- who waits, and which villages are crowded ----
   // The adults of each village who want out (st.demand) and have no plot coming: village id -> pawn ids, in demand order.
   function waitingByVillage(st) {
     const out = new Map();
     for (const id of st.demand) {
       const p = st.pawns[id];
-      if (!p.alive || p.household === null || hasPlot(st, id)) continue;
+      if (!mayHoldFarm(st, id, 'waits')) continue;
       const v = settlementIdOf(st, p),
         l = out.get(v);
       if (l) l.push(id);
@@ -66,10 +65,7 @@ VB['sim/settle'] = (() => {
   // in id order; one whose wish heads with new land follows without the draw, one who wishes never to settle stays: VB-392), and the
   // children under 18 of any of them who live with them, unless the child holds a farm or is a ward.
   function partyOf(st, p, waiting, taken) {
-    const all = [p.id],
-      followers = [],
-      sp = spouseOf(st, p.id);
-    if (sp !== null && st.pawns[sp].alive) all.push(sp);
+    const followers = [];
     for (const id of siblingsOf(st, p.id)) {
       if (followers.length >= SETTLE.maxFollow) break;
       if (
@@ -77,28 +73,13 @@ VB['sim/settle'] = (() => {
         taken.has(id) ||
         !waiting.includes(id) ||
         spouseOf(st, id) !== null ||
-        guardian(st, id)
+        keepsWard(st, id)
       )
         continue;
       const wish = wishOf(st, id, 'settle');
       if (wish === true || (wish === null && rnd(st.rng.settle) < SETTLE.follow)) followers.push(id);
     }
-    all.push(...followers);
-    for (const id of [...all])
-      for (const c of childrenOf(st, id)) {
-        const q = st.pawns[c],
-          hh = q.household !== null ? st.households[q.household] : null;
-        if (
-          !q.alive ||
-          q.age >= 18 ||
-          all.includes(c) ||
-          q.household !== st.pawns[id].household ||
-          isHolder(st, c) ||
-          (hh && hh.ward === c)
-        )
-          continue;
-        all.push(c);
-      }
+    const all = goesWith(st, p.id, followers); // the start in life every way to a farm shares (sim/holding)
     return { all, followers };
   }
   // A home that took in a spouse at this round gives none (Kim, 10 November, VB-330): a member whose union started on this day, since the
@@ -419,7 +400,7 @@ VB['sim/settle'] = (() => {
           !p.alive ||
           p.age < SETTLE.ages[0] ||
           p.age > SETTLE.ages[1] ||
-          guardian(st, id) ||
+          !mayHoldFarm(st, id, 'settle') ||
           (p.ask !== undefined && p.ask !== null)
         )
           continue;
