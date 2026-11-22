@@ -1,0 +1,118 @@
+{
+ "session": "aed0ca3a-a77f-5e39-8e8a-0889793a2ba2",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-22T20:00:07.078Z",
+ "end": "2026-11-22T20:14:15.295Z",
+ "wallMin": 14.1,
+ "activeMin": 14.1,
+ "prompts": 1,
+ "calls": 82,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 156,
+  "cacheWrite": 195805,
+  "cacheRead": 13154156,
+  "output": 38897
+ },
+ "context": {
+  "first": 54779,
+  "peak": 213003,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 82,
+   "bytes": 196179,
+   "seconds": 287
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 18,
+   "bytes": 52784
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 2,
+   "bytes": 29560
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 16328
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 9,
+   "bytes": 14599
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 2,
+   "bytes": 9942
+  },
+  {
+   "tool": "Bash",
+   "what": "ls after",
+   "calls": 2,
+   "bytes": 8998
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7347
+  },
+  {
+   "tool": "Bash",
+   "what": "head -12",
+   "calls": 1,
+   "bytes": 6467
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 13,
+   "bytes": 5600
+  },
+  {
+   "tool": "Bash",
+   "what": "cat backlog/VB-247.md",
+   "calls": 1,
+   "bytes": 5524
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 4121
+  },
+  {
+   "tool": "Bash",
+   "what": "ls tests",
+   "calls": 1,
+   "bytes": 3889
+  }
+ ],
+ "weighted": 1754813,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 1754813,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

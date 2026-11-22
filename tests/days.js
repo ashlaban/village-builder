@@ -44,7 +44,10 @@ assert.strictEqual(eligible(st, j, p), 'owed', "on duty: the creditor's tasks, o
 const mine = Jobs.post(st, `plow:f${fB.id}.${fB.fields[0].id}`, 'plow', { type: 'household', id: B.id }, fB.fields[0].tile, { field: fB.fields[0], farm: fB });
 assert.strictEqual(eligible(st, mine, p), null, "and not its own household's");
 st.jobs.delete(mine.key); st.jobsBy.get(`household:${B.id}`).delete(mine);
-while (st.t < D * DAY + 12) { Sim.advance(st, 0.5); dropAll(`household:${B.id}`); B.waterDay = Sim.cal(st.t).day; }
+// the creditor's other tasks are held out of the way (its other field may come to be plowed as the timings move: VB-360), so the hand's
+// one task of the creditor's is j
+const others = () => { for (const q of [...(st.jobsBy.get(`household:${A.id}`) || [])]) if (q !== j && q.kind === 'plow') { st.jobs.delete(q.key); st.jobsBy.get(`household:${A.id}`).delete(q); } };
+while (st.t < D * DAY + 12) { Sim.advance(st, 0.5); dropAll(`household:${B.id}`); others(); B.waterDay = Sim.cal(st.t).day; }
 const a = st.agents[hand];
 assert.ok(a.job === j && a.basis === 'owed', `at noon it works the creditor's field (job ${a.job && a.job.key}, ${a.basis})`);
 assert.ok(a.job.site === fd.tile, "on the creditor's field");

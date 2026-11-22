@@ -250,6 +250,7 @@ VB['sim/green'] = (() => {
       hours: BUILD.sweepHours,
       hands: 3,
       type: 'duty',
+      craft: 'building', // VB-360
       spot: spot(10),
       done: raised,
       available: greenWork,

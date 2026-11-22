@@ -126,6 +126,12 @@ function traitsHTML(id) {
     )
     .join('')}</div>`;
 }
+// A pawn's crafts (sim/skills, VB-360): each it has learnt beyond a novice's first hours (SKILLS.shown), with its word on the fixed
+// scale (novice, able, skilled, master; Kim, 18 Nov), in the order of SKILLS.crafts; none, no line.
+function craftsLine(id) {
+  const c = VB['sim/skills'].craftsOf(st, id);
+  return c.length ? `Crafts: ${c.map((x) => `${x.craft} (${x.word})`).join(', ')}` : '';
+}
 // ======== the supply component (VB-667) ========
 // One presentation of a supply, wherever it is shown (AGENTS.md, Deciding without Kim, 15): its icon, its word, its season cells, its
 // state in a few words and an i that opens its numbers. Its argument is the outlook the household's head made at his last review

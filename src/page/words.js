@@ -252,6 +252,7 @@ function showPawn(id) {
           ? `Argues for: ${Culture.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`
           : '',
       marryLine,
+      craftsLine(id),
       Sim.idleLine(st, id),
     ].filter(Boolean),
     Sim.describe(st, id),

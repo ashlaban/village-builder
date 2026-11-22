@@ -33,7 +33,9 @@ assert.strictEqual(r, true, `the pawn lodges: ${r}`);
 const s = stayOf(st, id);
 assert.ok(s && s.bed === site && s.roof === 'none' && s.why === 'work' && a.away === s.id, 'a stay at the site, under the open sky');
 assert.ok(Math.abs(s.food - 3 * rationOf(st, p)) < 1e-9, `a pack of 3 rations: ${s.food}`);
-assert.ok(Math.abs(grain0 - Stores.grainOf(hh) - 3 * R) < 1e-9, 'taken from the grain above the seed, uncooked');
+// the pack is the 'away' movement of grain (a grind finishing meanwhile also takes grain, as a novice's slower grinding may: VB-360)
+const packed = hh.ledger.filter((e) => e.kind === 'away' && e.good === 'grain' && e.pawn === id).reduce((n, e) => n - e.n, 0);
+assert.ok(grain0 - Stores.grainOf(hh) >= packed - 1e-9 && Math.abs(packed - 3 * R) < 1e-9, 'taken from the grain above the seed, uncooked');
 assert.ok(hh.ledger.some((e) => e.kind === 'away' && e.pawn === id), "a store movement with the reason 'away'");
 assert.ok(s.walk > 1.5 && s.walk < 2.5, `two hours from home: ${s.walk}`);
 assert.strictEqual(bed(st, a), site, 'its bed is the site');
