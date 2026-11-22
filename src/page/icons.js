@@ -3,19 +3,33 @@ const svgIcon = (w, h, body, attrs = '') =>
   `<svg class="ico" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" focusable="false"${attrs}>${body}</svg>`;
 const ICON_STROKE =
   ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
-// The mural theme's icons (VB-1162): each icon may carry a second drawing, a stencil, as the stencilled marks of a painted vault: flat
-// shapes in one pigment, held apart by gaps. Both drawings are in the icon, and the theme's styles show one of them (src/head.html), so
-// a change of theme redraws nothing. A stencil is drawn on a 24 box and scaled to its icon's; its shapes are filled, but for those of
-// class "l" (a line in the pigment: a handle, a stem) and "c" (a cut through a shape, in the ground's colour).
-function stencil(svg, shapes, box = 24) {
-  if (!shapes) return svg;
+// The icon sets (VB-1162, VB-1487): a set is a way of drawing the interface's icons, and a theme names the set it shows (page/options,
+// THEMES' icons, put on the root as data-icons). Each drawing an icon has is in its markup under its set's name, data-set="<name>", and
+// src/head.html shows the root's set by one rule a set, so a change of theme redraws nothing. line is the drawing every icon has, the
+// SVG as svgIcon makes it, and the one shown where an icon has no drawing of the set asked for. The others are drawn on a 24 box and
+// scaled to their icon's. A third set: docs/architecture/modules.md, Adding things.
+const ICON_SETS = {
+  line: 'strokes in currentColor',
+  stencil:
+    "the mural's, as the stencilled marks of a painted vault: flat shapes in one pigment, held apart by gaps; filled, but for those " +
+    'of class "l" (a line in the pigment: a handle, a stem) and "c" (a cut through a shape, in the colour of the ground)',
+};
+// An icon with its drawings in the other sets beside its line one: sets maps a set's name to its shapes; a set left out, or empty,
+// falls back to line.
+function drawings(svg, sets, box = 24) {
+  for (const s of Object.keys(sets)) if (!ICON_SETS[s] || s === 'line') throw new Error(`page/icons: no icon set ${s}`);
+  const own = Object.keys(ICON_SETS).filter((s) => sets[s]);
+  if (!own.length) return svg;
   const at = svg.indexOf('>') + 1,
-    k = +/viewBox="0 0 \S+ (\S+)"/.exec(svg)[1] / box;
+    k = +/viewBox="0 0 \S+ (\S+)"/.exec(svg)[1] / box,
+    scale = k === 1 ? '' : ` transform="scale(${+k.toFixed(4)})"`;
   return (
-    `${svg.slice(0, at)}<g class="i-line">${svg.slice(at, -6)}</g>` +
-    `<g class="i-sten"${k === 1 ? '' : ` transform="scale(${+k.toFixed(4)})"`}>${shapes}</g></svg>`
+    `${svg.slice(0, at)}<g data-set="line">${svg.slice(at, -6)}</g>` +
+    own.map((s) => `<g data-set="${s}"${scale}>${sets[s]}</g>`).join('') +
+    '</svg>'
   );
 }
+const stencil = (svg, shapes, box = 24) => drawings(svg, { stencil: shapes }, box);
 // A speed is one to five chevrons, > to >>>>> (11 Nov: no numbers): 1×, 3×, 10×, 30× and uncapped (Infinity). Open chevrons, so that
 // the speed of 1× is not the filled triangle of play beside it.
 const SPEED_ARROWS = { 1: 1, 3: 2, 10: 3, 30: 4, Infinity: 5 };

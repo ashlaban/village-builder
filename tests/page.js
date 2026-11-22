@@ -155,9 +155,11 @@ async function main() {
     if (root.dataset.theme !== 'mural' || q('[data-theme-choice="mural"]').getAttribute('aria-checked') !== 'true') fail('Mural was not set on the page');
     if (kept() !== undefined && kept() !== 'mural') fail(`the theme kept is ${kept()}, not mural`);
     if (!/--lo:0%;--hi:/.test((q('.meter') || { getAttribute: () => '' }).getAttribute('style') || '')) fail('a meter does not say where its fill starts and ends, for the mural\'s beads');
+    if (root.dataset.icons !== 'stencil') fail(`the Mural theme shows the ${root.dataset.icons} icons, not the stencils (VB-1487)`);
     for (const sel of ['#settlersBtn .ico', '#pauseBtn .ico, [data-speed="0"] .ico', '.stat-ico .ico', '.trait .ico'])
-      if (q(sel) && !q(sel).querySelector('.i-sten')) fail(`an icon has no stencil for the mural theme (VB-1162, VB-1163): ${sel}`);
+      if (q(sel) && !q(sel).querySelector(':scope > [data-set="stencil"]')) fail(`an icon has no stencil for the mural theme (VB-1162, VB-1163): ${sel}`);
     click(q('[data-theme-choice="glass"]'), 'the Glass theme');
+    if (root.dataset.icons !== 'line') fail(`the Glass theme shows the ${root.dataset.icons} icons, not the line ones (VB-1487)`);
     if (root.dataset.theme) fail('Glass did not take the theme off the page');
     click($('optionsClose'), 'Close');
     if (shown('optionsScreen') || !shown('landing')) fail('Options did not close back to the main menu');

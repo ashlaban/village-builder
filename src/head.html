@@ -1154,14 +1154,14 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   box-shadow: 0 0 0 3px var(--node), 0 0 0 5px var(--accent), 0 0 0 6.5px var(--ink), 0 8px 16px rgba(20, 14, 10, 0.5); }
 :root[data-theme="mural"] .stat-ico, :root[data-theme="mural"] .trait.high, :root[data-theme="mural"] .trait.low { color: var(--accent); }
 :root[data-theme="mural"] .choose-bar { padding-top: 12px; padding-bottom: 12px; }
-/* the icons (VB-1162): an icon that carries a stencil (page/icons, stencil) shows it in this theme, in one pigment, its parts held apart
-   by gaps in the colour of the ground it lies on; a pressed button's ground is the red ochre */
-.ico .i-sten { display: none; }
-:root[data-theme="mural"] .ico .i-line { display: none; }
-:root[data-theme="mural"] .ico .i-sten { display: inline; }
-.i-sten > * { fill: currentColor; stroke: var(--ico-bg, var(--node)); stroke-width: 0.7; stroke-linejoin: round; }
-.i-sten > .l { fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; }
-.i-sten > .c { fill: none; stroke: var(--ico-bg, var(--node)); stroke-width: 1.5; stroke-linecap: round; }
+/* the icons' sets (VB-1162, VB-1487; page/icons, ICON_SETS): the root's data-icons, which the theme names, is the set shown, and an icon
+   with no drawing of that set shows its line one. One rule a set but line, the fallback: hidden unless asked for, and when asked for,
+   the line drawing beside it hidden. The stencil: one pigment, its parts held apart by gaps in the colour of the ground it lies on */
+:root:not([data-icons="stencil"]) .ico > [data-set="stencil"], :root[data-icons="stencil"] .ico:has(> [data-set="stencil"]) > [data-set="line"] { display: none; }
+[data-set="stencil"] > * { fill: currentColor; stroke: var(--ico-bg, var(--node)); stroke-width: 0.7; stroke-linejoin: round; }
+[data-set="stencil"] > .l { fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; }
+[data-set="stencil"] > .c { fill: none; stroke: var(--ico-bg, var(--node)); stroke-width: 1.5; stroke-linecap: round; }
+/* the mural's ground under a pressed button is the red ochre, and the stencils' gaps take it */
 :root[data-theme="mural"] :is([aria-pressed="true"], [aria-selected="true"], .act-bar [aria-expanded="true"], button.primary) { --ico-bg: var(--accent); }
 /* the start screen (VB-1164): the scenario's name a head; a card with a picture a framed panel, square, the chosen one in a double
    ring; the island's picture framed as the minimap is; a callout a medallion with its words on a scroll; a field an ink line */

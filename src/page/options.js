@@ -5,8 +5,8 @@
 // its own look whatever theme is on, so its colours are written out in the stylesheet (.theme-pv), not taken from the palette.
 const THEME_KEY = 'vb.theme';
 const THEMES = {
-  glass: { name: 'Glass', note: 'Frosted panels and line icons; light or dark with the system.' },
-  mural: { name: 'Mural', note: 'Plaster, ochre and stencils, as the map is painted.' },
+  glass: { name: 'Glass', note: 'Frosted panels and line icons; light or dark with the system.', icons: 'line' },
+  mural: { name: 'Mural', note: 'Plaster, ochre and stencils, as the map is painted.', icons: 'stencil' },
 };
 let theme = 'glass';
 try {
@@ -16,6 +16,7 @@ try {
   /* no storage: the default */
 }
 function applyTheme() {
+  document.documentElement.dataset.icons = THEMES[theme].icons; // the set of icons it shows (page/icons, ICON_SETS)
   if (theme === 'glass') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = theme;
 }
