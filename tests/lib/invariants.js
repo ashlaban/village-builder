@@ -1568,6 +1568,8 @@ function checkHerds(st, bad) {
         h.id === e.head) : !(n[e.sheep]-- > 0)) bad.push(`${where}: cull entry ${JSON.stringify(e)} names no animal`);
     }
     if (!whole(hd.lean || 0) || !whole(hd.unfed || 0)) bad.push(`${where}: lean ${hd.lean}, unfed ${hd.unfed}`);
+    // fleeces grown and not yet shorn (sim/byre, VB-679): a sheep flock's, a whole number, one or more
+    if (hd.fleece !== undefined && (hd.species !== 'sheep' || !whole(hd.fleece) || hd.fleece < 1)) bad.push(`${where}: fleece ${hd.fleece}`);
     // herding (sim/grazing, VB-136): out with a pawn of the household, or by the farm; taken out last on a past day, or never (-1)
     if (hd.herder !== null && !(st.pawns[hd.herder] && st.pawns[hd.herder].household === hd.household)) bad.push(`${where}: herder ${hd.herder}`);
     if (!(Number.isInteger(hd.herded) && hd.herded >= -1 && hd.herded <= Math.floor(st.t / 24))) bad.push(`${where}: herded on day ${hd.herded}`);

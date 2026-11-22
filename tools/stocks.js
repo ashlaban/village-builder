@@ -72,7 +72,7 @@ const QUANTITIES = [
   { id: 'hides', of: 'household', name: 'hides of the hunt', unit: 'hides', fields: ['household.hides'], good: 'hide', holder: 'household',
     kinds: ['hunt'],
     none: 'no leather for shoes and harness: a household lacking hides values one at DEER.leather a head a year, and takes one at the fair or as a gift (sim/deer, VB-424)' },
-  { id: 'wool', of: 'household', name: 'fleeces', unit: 'fleeces', fields: ['household.wool'], kinds: [],
+  { id: 'wool', of: 'household', name: 'fleeces', unit: 'fleeces', fields: ['household.wool'], kinds: ['shear'],
     none: 'nothing yet: fleeces only accumulate until the winter crafts spin them (VB-121, VB-362)' },
   { id: 'water', of: 'household', name: 'the day\'s water', unit: 'a day\'s (fetched or not)', fields: ['household.waterDay'],
     kinds: ['water'],

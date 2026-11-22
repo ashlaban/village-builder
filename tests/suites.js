@@ -205,6 +205,7 @@ const INTEGRATION = [
   ['node', 'tests/surplus.js'],
   ['node', 'tests/hay.js'],
   ['node', 'tests/byre.js'],
+  ['node', 'tests/cull.js'], // the cull is the head's, by the verb cull (VB-679)
   ['node', 'tests/stocking.js'],
   ['node', 'tests/matchby.js'],
   ['node', 'tests/keep.js'],

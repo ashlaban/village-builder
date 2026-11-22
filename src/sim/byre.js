@@ -3,7 +3,7 @@ VB['sim/byre'] = (() => {
   const Stores = VB['sim/stores'],
     { dayLoss } = VB['sim/goods'];
   const { next: rnd } = VB['sim/rng'];
-  const { HERD, FOODS, WORK, DAY, YEAR_DAYS, BUILD } = VB['sim/rules'],
+  const { HERD, FOODS, WORK, DAY, YEAR_DAYS, BUILD, cal } = VB['sim/rules'],
     { SOIL } = VB['sim/crops'];
   const Rules = VB['sim/registry'],
     Culture = VB['culture'];
@@ -544,13 +544,89 @@ VB['sim/byre'] = (() => {
   }
   // Whether the herd is where the milking job j is (VB-679): out with its herder for a job at the pasture, by the farm for one at the byre.
   const milkedAt = (herd, j) => (j && j.site !== j.farm.house ? herd.herder != null : herd.herder == null);
-  // The autumn count of every household with herds (sim/clock, CALENDAR, on HERD.countDay).
+  // The autumn count of every household with herds (sim/clock, CALENDAR, on HERD.countDay): its head's act, the verb `cull` (VB-679) with
+  // no list, so that the count's rule chooses (autumnCount), as every head's default; a played head may then choose otherwise by the verb.
   function autumnCounts(st) {
     for (const liveId of st.liveHouseholds) {
       const hh = st.households[liveId];
-      if (!hh.dissolved && hh.herds.length) autumnCount(st, hh);
+      if (hh.dissolved || !hh.herds.length) continue;
+      const actor = hh.holder === null ? { household: hh.id } : hh.holder;
+      issue(st, { actor, verb: 'cull', target: hh.id, source: 'pawn' });
     }
   }
+  // ---- the cull, a head's choice (VB-679) ----
+  // Why `actor` cannot choose household id's cull now (args.animals the list, or none for the count's rule), or null: it is the head (a
+  // household with none, its own act), the household lives with herds, it is autumn from the count day, and each animal named is one of its
+  // herds' (cattle by head, sheep by kind, no more of a kind than the flock holds).
+  function cullWhy(st, actor, id, args) {
+    const hh = Number.isInteger(id) ? st.households[id] : null;
+    if (!hh || hh.dissolved || hh.farmstead === null) return `there is no household ${id}`;
+    if (Number.isInteger(actor)) {
+      const why = living(st, actor);
+      if (why) return why;
+      if (hh.holder !== actor)
+        return `pawn ${actor} is not the head of household ${id}: only its head chooses the cull`;
+    } else if (!(actor && actor.household === id && hh.holder === null))
+      return `only the head of household ${id} chooses the cull`;
+    if (!hh.herds.length) return `household ${id} has no animals`;
+    const c = cal(st.t);
+    if (c.season !== 2 || c.doy < HERD.countDay) return 'the cull is chosen in autumn, from the day of the count';
+    const list = args && args.animals;
+    if (list === undefined) return null;
+    if (!Array.isArray(list)) return 'the animals to cull are a list';
+    const sheep = new Map(),
+      heads = new Set();
+    for (const e of list) {
+      const herd = e && hh.herds.includes(e.herd) ? st.herds[e.herd] : null;
+      if (!herd) return `herd ${e && e.herd} is not household ${id}'s`;
+      if (herd.species === 'cattle') {
+        if (!herd.head.some((h) => h.id === e.head) || heads.has(e.head))
+          return `there is no head ${e.head} to cull in herd ${herd.id}`;
+        heads.add(e.head);
+      } else {
+        if (!['ewe', 'ram', 'lamb'].includes(e.sheep)) return 'a sheep culled is a ewe, a ram or a lamb';
+        const k = `${herd.id}.${e.sheep}`;
+        sheep.set(k, (sheep.get(k) || 0) + 1);
+        if (sheep.get(k) > herd[e.sheep + 's']) return `herd ${herd.id} has no more ${e.sheep}s to cull`;
+      }
+    }
+    return null;
+  }
+  // The head's own list (the verb `cull` with args.animals): it replaces the count's, the slaughter forced by short hay (lean) kept.
+  function chooseCull(st, hh, list) {
+    const f = st.farmsteads[hh.farmstead],
+      names = [];
+    for (const herd of herdsOf(st, hh)) herd.cull = herd.cull.filter((e) => e.lean);
+    for (const e of list) {
+      const herd = st.herds[e.herd];
+      if (herd.species === 'cattle') {
+        const head = herd.head.find((h) => h.id === e.head);
+        cullOne({ herd, head }, false);
+        names.push(head.name);
+      } else {
+        cullOne({ herd, sheep: e.sheep }, false);
+        names.push(`a ${e.sheep}`);
+      }
+    }
+    log(
+      st,
+      names.length
+        ? `The autumn count at ${f.name}: ${listWords(names)} ${names.length === 1 ? 'goes' : 'go'} to slaughter.`
+        : `The autumn count at ${f.name}: every animal is kept.`,
+      { kind: 'slaughter', n: names.length, ...atFarm(f) },
+    );
+  }
+  // cull(household, {animals}) (VB-679): the head chooses which animals go to slaughter this autumn; with no list, the count's rule
+  // chooses (autumnCount: old animals, males not needed, what the hay cannot carry), which every head makes on the count day.
+  register('cull', {
+    check: (st, c) => cullWhy(st, c.actor, c.target, c.args),
+    run: (st, c) => {
+      const hh = st.households[c.target],
+        list = c.args && c.args.animals;
+      if (list === undefined) autumnCount(st, hh);
+      else chooseCull(st, hh, list);
+    },
+  });
   // Each household's cattle left by the farm yesterday may stray into a crop (sim/clock, CALENDAR: strays; VB-136).
   function strays(st, c) {
     for (const liveId of st.liveHouseholds) {
