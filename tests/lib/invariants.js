@@ -361,13 +361,13 @@ function checkState(st) {
     const cs = st.pawns[id].causeSince;
     if (cs !== null && cs !== undefined && !(cs <= st.t / globalThis.VB['sim/rules'].YEAR + 1e-6)) bad.push(`pawn ${id}: causeSince ${cs}`);
   }
-  if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/rules'].ROUTE.cacheMax) {
+  if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/routes'].ROUTE.cacheMax) {
     bad.push('pathCache: exceeds ROUTE.cacheMax or is not a Map');
   }
   // the walking hours between villages (VB-286): a row a village, each as long as the villages are many; 0 on the diagonal, symmetric, and
   // every other entry null or a number in (0, ROUTE.reach / SPEED]
   {
-    const T = st.villageHours, n = st.villages.length, top = globalThis.VB['sim/rules'].ROUTE.reach / globalThis.VB['sim/rules'].SPEED;
+    const T = st.villageHours, n = st.villages.length, top = globalThis.VB['sim/routes'].ROUTE.reach / globalThis.VB['sim/rules'].SPEED;
     if (!Array.isArray(T) || T.length !== n) bad.push(`villageHours: ${Array.isArray(T) ? T.length : T} rows for ${n} villages`);
     else for (let v = 0; v < n; v++) {
       if (!Array.isArray(T[v]) || T[v].length !== n) { bad.push(`villageHours[${v}]: not a row of ${n}`); continue; }

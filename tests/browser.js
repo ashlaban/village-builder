@@ -48,7 +48,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       runs.push(await page.evaluate(([fps, speed, data]) => {
         const P = window.__play, { Sim } = P, home = P.st, R = VB['sim/rules'], w = P.world();
         const st = Sim.load(w, JSON.parse(data)), tick0 = st.tick, faults = [], last = [];
-        const far = (R.SPEED * w.HW / R.TICKS / R.ROUTE.minStep) * 1.01 + 1e-6;
+        const far = (R.SPEED * w.HW / R.TICKS / VB['sim/routes'].ROUTE.minStep) * 1.01 + 1e-6;
         P.st = st; P.setSpeed(speed);
         let frames = 0, between = 0;
         try {

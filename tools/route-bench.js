@@ -14,7 +14,7 @@ const VB = require('../tests/lib/load.js').loadModules({ wrap: { 'sim/routes': {
       try { return refresh(st); } finally { refreshMs += performance.now() - start; }
     },
   } } }), Sim = VB.sim, { loadFixture } = require('../tests/lib/fixtures.js');
-if (max !== null) VB['sim/rules'].ROUTE.cacheMax = max;
+if (max !== null) VB['sim/routes'].ROUTE.cacheMax = max;
 const fixture = loadFixture(name, { notice: (s) => console.error(s) });
 if (!fixture) throw new Error(`${name}: missing fixture; node tools/fixtures.js make`);
 const { st, stamp } = fixture;
@@ -29,7 +29,7 @@ VB.resetCounts();
 const start = performance.now();
 for (let day = 0; day < days; day++) Sim.advance(st, Sim.DAY);
 const elapsed = performance.now() - start, counts = { ...VB.count };
-const report = { fixture: name, stamp: stamp.commit, key: stamp.key, days, loadEvictions, cacheMax: VB['sim/rules'].ROUTE.cacheMax ?? null, before, after: size(),
+const report = { fixture: name, stamp: stamp.commit, key: stamp.key, days, loadEvictions, cacheMax: VB['sim/routes'].ROUTE.cacheMax ?? null, before, after: size(),
   hitRate: counts.routeHit / (counts.routeHit + counts.routeSearch),
   perDay: Object.fromEntries(['routeHit', 'routeSearch', 'routeRefresh', 'routeEvict'].map((key) => [key, (counts[key] ?? 0) / days])),
   refreshMsPerDay: refreshMs / days, simulationMsPerDay: elapsed / days,

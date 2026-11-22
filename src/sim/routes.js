@@ -1,8 +1,12 @@
 // @sys sim/routes: least-cost path searches and the daily invalidation of the run's bounded route cache
 VB['sim/routes'] = (() => {
-  const { ROUTE } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
-  const { through, stepCost, invalidateReach } = VB['sim/walking'];
+  const { through, stepCost, invalidateReach, PATHS } = VB['sim/walking'];
+  // @tunable ROUTE: the route search's bounds and its cache
+  // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
+  // a lane over meadow. cacheMax: entries, first in first out; the cache is emptied each day a tile changes cost (VB-236), and the most
+  // it held over 48 days after the first emptying was 4,028 at medium-ref and 2,779 at small-y40: twice the larger, for a run of quiet days.
+  const ROUTE = { cacheMax: 8000, reach: 200, minStep: 1 / PATHS.speed[3] };
 
   const STRAIGHT = 1e-3; // see findRoute: what a tile's width off the straight line adds to a tile's key, in steps
   // ---- the search: A* (Hart, Nilsson and Raphael 1968) with the hex distance times the cheapest step as the bound ----
@@ -237,5 +241,5 @@ VB['sim/routes'] = (() => {
     st.routeDirty.clear();
   }
 
-  return { findRoute, routeCost, reachCosts, route, hasRoute, costChanged, refreshRoutes };
+  return { ROUTE, findRoute, routeCost, reachCosts, route, hasRoute, costChanged, refreshRoutes };
 })();

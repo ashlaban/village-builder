@@ -62,7 +62,7 @@ const grid = (COLS, ROWS) => {
 {
   // slopes (Tobler's hiking function, symmetric; VB-438): a raised block of meadow between two points is walked round, though its ground
   // is as easy as the rest; the cost is the same up and down, the terrain's times a factor that grows with the rise and stops at the cap
-  const { SLOPE, TERRAIN } = VB['sim/rules'], { stepCost, slopeFactor } = VB['sim/walking'];
+  const { SLOPE, TERRAIN } = VB['sim/walking'], { stepCost, slopeFactor } = VB['sim/walking'];
   const COLS = 30, w = grid(COLS, 30), at = (c, r) => r * COLS + c;
   w.he = new Float32Array(w.N).fill(0.2);
   for (let r = 12; r <= 16; r++) for (let c = 11; c <= 18; c++) w.he[at(c, r)] = 0.5;
@@ -111,7 +111,7 @@ const grid = (COLS, ROWS) => {
   set = lane(4); p = findRoute(w, from, to);
   check(!onLane(p, set) && p.length - 1 === 10, `a lane four rows off is not (${p.length - 1} steps, cost ${routeCost(w, p).toFixed(2)})`);
   // on meadow, trodden ground, paths and lanes are quicker by PATHS.speed
-  const { PATHS, TERRAIN: T } = VB['sim/rules'], cost = VB['sim/walking'].tileCost, t = at(20, 20);
+  const { PATHS, TERRAIN: T } = VB['sim/walking'], cost = VB['sim/walking'].tileCost, t = at(20, 20);
   const stages = (biome) => { w.biome[t] = biome; const c = [0, 1, 2, 3].map((s) => { w.worn[t] = s; return cost(w, t); }); w.worn[t] = 0; w.biome[t] = B.MEADOW; return c; };
   const m = stages(B.MEADOW), f = stages(B.FOREST);
   check(m.every((c, s) => Math.abs(m[0] / c - PATHS.speed[s]) < 1e-9), `stage speeds on meadow: ${m.map((c) => (m[0] / c).toFixed(3))}`);
@@ -127,7 +127,7 @@ const grid = (COLS, ROWS) => {
 }
 // VB-198: use a tiny bound to exercise real hits, searches, and saves without a large fixture.
 {
-  const assert = require('assert'), { ROUTE } = VB['sim/rules'];
+  const assert = require('assert'), { ROUTE } = VB['sim/routes'];
   const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
   const rows = Array(20).fill('.'.repeat(30)), w = tinyWorld(rows);
   const st = tinyState(w, [{ at: [10, 10], farms: 2, sizes: [6, 5] }], { seed: 7 });
