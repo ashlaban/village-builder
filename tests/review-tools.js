@@ -44,20 +44,6 @@ assert(rows.get('wood').reads.some((r) => r.fn === 'cookWanted') && rows.get('wo
   assert(Math.abs(d.island.farm + d.island.craft + d.island.elite - 1000) < 1e-6, 'the three figures make 1,000');
   assert(d.sink.length === st.villages.length && d.sink[0].people > 0 && d.heads.farm > 0, 'the sink and the heads line are reported');
 }
-// 5. The soil report (VB-720, tools/soil.js): --help, sim.js lists it, and two years on the small island give the farm classes and villages, and
-// tilthByHerd reads the same fields
-{
-  const cp = require('child_process'), VB = require('../src/load.js'), Sim = VB.sim, tool = (f) =>
-    cp.execFileSync('node', [require('path').join(__dirname, '..', 'tools', f), '--help'], { encoding: 'utf8' });
-  assert.ok(/meadow/.test(tool('soil.js')) && /\|soil/.test(tool('sim.js')), 'tools/soil.js answers --help and tools/sim.js lists the soil report');
-  const st = Sim.seed(require('./lib/probe.js').island(7), 7, 'populous'), S = require('../tools/soil.js'), rep = S(VB, st, { period: 'year' });
-  rep.advanceYear();
-  rep.advanceYear();
-  const out = rep.result();
-  assert.strictEqual(out.classes.length, 6, 'three farm classes a year');
-  assert.ok(out.classes.some((r) => r.fields > 0 && r.grain > 0) && out.villages.length > 0 && out.meadows.length === 2, 'the soil report reads fields and villages');
-  const t = S.tilthByHerd(VB, st);
-  assert.strictEqual(t.cattle.n + t.none.n, out.classes.filter((r) => r.years === '2-2').reduce((n, r) => n + r.fields, 0), 'the same fields are read');
-}
+// 5. The soil report (VB-720, tools/soil.js): tests/review-soil.js (VB-1477: apart, since its two years of populous take 3 seconds)
 console.log(`review tools ok: ${fields.size} @state fields, ${Stocks.QUANTITIES.length} quantities; read by nothing: ${[...rows.values()]
   .filter((x) => x.mark === 'read by nothing').map((x) => x.id).join(', ')}`);

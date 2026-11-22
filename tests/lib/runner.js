@@ -21,10 +21,10 @@ function childCpu() {
 }
 let cpuSeen = childCpu();
 const isBrowser = (cmd) => cmd.some((a) => /^tests\/browser(?:-[\w-]+)?\.js$/.test(a));
-function run(cmd, { cwd, timeoutMs = 120000, graceMs = 500 } = {}) {
+function run(cmd, { cwd, timeoutMs = 120000, graceMs = 500, env } = {}) {
   return new Promise((resolve) => {
     const started = Date.now(), grouped = process.platform !== 'win32';
-    const child = spawn(cmd[0] === 'node' ? process.execPath : cmd[0], cmd.slice(1), { cwd, detached: grouped });
+    const child = spawn(cmd[0] === 'node' ? process.execPath : cmd[0], cmd.slice(1), { cwd, detached: grouped, env: env || process.env });
     let output = '', error, timedOut = false, closed = false, code, signal, force;
     const kill = (sig) => {
       try { if (grouped && child.pid) process.kill(-child.pid, sig); else child.kill(sig); }
