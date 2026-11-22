@@ -19,7 +19,7 @@ check(free.length >= 2, 'two free tiles near the farm');
 const [freshTile, oldTile] = free; w.dev[oldTile] = 1;
 const breakOn = (tile) => {
   VB['sim/projectplans'].makeProject(st, 'household', f.household, { what: 'field', steps: [{ kind: 'break', place: tile, hours: 0, stake: 'field' }] });
-  F.finishBreak(st, f, VB['sim/projects'].ownOf(st, f.household)); return f.fields[f.fields.length - 1];
+  VB['sim/newground'].finishBreak(st, f, VB['sim/projects'].ownOf(st, f.household)); return f.fields[f.fields.length - 1];
 };
 const fresh = breakOn(freshTile), old = breakOn(oldTile);
 // the scenario's rotation (VB-353) staggers the crops of a farm's fields, populous's among them: a field may bear a crop with another yield or
@@ -39,8 +39,8 @@ check(near(fresh.soil, S.floor) && near(old.soil, S.floor), `both at the floor a
 // manure is not carted to a field above the cap, and never lowers its soil
 fresh.soil = 1.3; fresh.stage = 'stubble'; hh.manure = 10;
 for (const q of f.fields) if (q !== fresh) q.soil = S.cap;
-{ const w = F.manureWanted(st, f, hh, cal(2)); check(w && w[2] === true, 'a field above the cap is wanted for surplus dung only'); }
-F.manureDone(st, fresh, hh, 2);
+{ const w = VB['sim/soil'].manureWanted(st, f, hh, cal(2)); check(w && w[2] === true, 'a field above the cap is wanted for surplus dung only'); }
+VB['sim/soil'].manureDone(st, fresh, hh, 2);
 check(near(fresh.soil, 1.3), `manure lowered a fresh field's soil to ${fresh.soil}`);
 // a plot's field broken on fresh ground keeps its soil when the cottage makes the farmstead
 const X = VB['sim/expansion'];

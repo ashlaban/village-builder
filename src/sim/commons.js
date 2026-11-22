@@ -19,7 +19,7 @@ VB['sim/commons'] = (() => {
   const { dailyNeed, storeRoom } = VB['sim/hunger'];
   const { goodwillOf } = VB['sim/relations'];
   const { clearHours, builtTiles, BREAK_HOURS } = VB['sim/fieldplans'],
-    { clearStones, broken } = VB['sim/fields'];
+    { clearStones, broken } = VB['sim/newground'];
   const { houses } = VB['sim/green'];
   // @tunable COMMONS: the village's common fields: when the meeting chooses them, and how many
   // Common fields worked by the village (VB-100; Kim, 10 Nov; design, Commons): a routine the meeting may choose for a village of `minFarms`

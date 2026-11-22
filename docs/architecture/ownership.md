@@ -55,6 +55,11 @@ after route updates, before building and fence decay. It handles ripening, the w
 overgrowth; building decay stays in the clock. Harvest yield still draws from `st.rng.fields` at reaping, in the same order.
 `node tools/writes.js --field farmstead.fields` reports only `sim/fields`, plus seeding in `sim/layout` and `sim/scenarios`.
 All 29 crop writes formerly allowed outside their owner were removed from `tests/ownership-baseline.json`; new violations fail.
+VB-1479 (22 November): the field record is owned by parts (`src/owners.json` takes `farmstead.fields[].<part>`, and `tools/writes.js`
+places a write there): its course (`rotation`, `step`, `crop`, `turn`, with `farmstead.rotationBy` and `farmstead.failed`) by
+`sim/courses`; its soil (`soil`, `tilth`, `tilthAt`, `surplus`, `surplusYear`) by `sim/soil`; the rest, the crop year, by `sim/fields`.
+A field is made by `sim/newground` (`broken`). Three lines are allowed by `lint-allow: owner`: a change of course that leaves a hoed
+field in stubble or drops its weeding (`sim/courses`' `lies`, `unweeded`), and a new field joining its farm's list (`sim/newground`).
 The tables below remain the historical pre-refactor survey.
 
 VB-241 (12 November): `sim/clock` holds one table, `CALENDAR`, of what runs each step, hour, day, season and year, in order, each entry
