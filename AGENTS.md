@@ -67,7 +67,8 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - No golden file: a refactor that claims its behaviour unchanged shows it with `node tools/same.js --base REF`, REF the commit it started from.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report NAME] [--save FILE|--load FILE]`.
 - Numbers before and after: `node tools/balance.js` (food by source against need), `node tests/counters.js` (work counters; `--update`
-  records an intended change), `node tools/targets.js` (each target's latest value and residual).
+  records an intended change), `node tools/targets.js` (each target's latest value and residual), `node tools/sim.js --report accounts
+  [--json]` (VB-403: the year's food account closed to `unexplained`, people, spread, goodwill, labour and the balance properties).
 - Baselines that only fall: `node tests/lint.js --update`, `node tests/ownership.js --update`.
 - In `docs/commands.md` only: fixtures, bands, cost growth, the review tools (`hours`, `stocks`, `store-flows`), `gossip`, `rules`,
   `writes`, `calibrate`, `wrap`, `shot`, `village-shot`, `cover`, `bench`, `agent-usage`.

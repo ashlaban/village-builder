@@ -88,6 +88,7 @@ const FAST = [
   ['node', 'tests/due.js'], // the due-queue helper on constructed lists: ties, an absent entry, an empty list, the take (VB-1473)
   ['node', 'tests/cowwant.js'],
   ['node', 'tests/quern.js'], // the hand quern (VB-009): grinding, the pot's flour, wear and hewing, on the probe's small state
+  ['node', 'tests/accounts.js'], // VB-403: the balance accounts close, the people account too, and the run is unchanged
 ];
 const INTEGRATION = [
   ['node', 'tests/events.js'],
