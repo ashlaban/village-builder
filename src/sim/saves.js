@@ -336,6 +336,7 @@ VB['sim/saves'] = (() => {
       format: FORMAT,
       scenario: st.scenario,
       seed: w.seed,
+      lat: w.lat, // VB-807: the climate, which the seed does not make
       cols: w.COLS,
       rows: w.ROWS,
       world,
@@ -352,6 +353,7 @@ VB['sim/saves'] = (() => {
       );
     }
     seal();
+    w.lat = typeof data.lat === 'number' ? data.lat : VB['sim/climate'].CLIMATE.worlds.middle; // a save before VB-807: the middle world
     for (const k of WORLD) {
       if (!(k in data.world)) continue;
       const a = decode(data.world[k]);

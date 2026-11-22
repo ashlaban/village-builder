@@ -73,6 +73,24 @@ function checkState(st) {
       || ws.some((e) => !Array.isArray(e.seasons) || e.seasons.length > 4 || e.seasons.some((s) => !Array.isArray(s) || s.length !== 2 || !num(s[0]) || !num(s[1]))
         || !Number.isInteger(e.thaw) || e.thaw < 0 || e.thaw > 3 || !Number.isInteger(e.frost) || e.frost < 7 || e.frost > 11)) bad.push(`weather: not this year and the last, each in bounds: ${JSON.stringify(ws)}`);
   }
+  // VB-807: the winter's dates: a band each, each band's dates in the order of DATES, at most six, none in a band whose curve stays above
+  // the snow's line all winter (its coldest day, in a mild winter as in a hard one, judged by its warmest: a mild one); the queue by hour
+  // holding only its bands' dates (a test that sets the clock jumps past the dates' falling)
+  if (st.climate) {
+    const Cl = globalThis.VB['sim/climate'], { DATES, CLIMATE } = Cl, cl = st.climate;
+    if (!Array.isArray(cl.bands) || cl.bands.length !== CLIMATE.bands || !Array.isArray(cl.due)) bad.push('climate: not a band each, or no queue');
+    else {
+      for (const [b, band] of cl.bands.entries()) {
+        const ts = DATES.map((k) => band.dates[k]).filter((t) => t !== null);
+        if (ts.length > 6 || ts.some((t, i) => i && t < ts[i - 1])) bad.push(`climate: band ${b}'s dates out of order: ${JSON.stringify(band.dates)}`);
+        const coldest = Math.min(...Array.from({ length: 48 }, (_, d) => Cl.temp(band.lat, -1, d)));
+        if (ts.length && coldest >= CLIMATE.snow) bad.push(`climate: band ${b} has dates, though its curve never falls to snow`);
+        if (!DATES.includes(band.state) && band.state !== 'open') bad.push(`climate: band ${b}'s state ${band.state}`);
+      }
+      if (cl.due.some((e, i) => (i && e.at < cl.due[i - 1].at) || !cl.bands[e.band] || cl.bands[e.band].dates[e.date] !== e.at))
+        bad.push('climate: the queue out of order, or holding a date not its band\'s');
+    }
+  }
   // VB-313: the ballots kept, the last LOG of them, each a choice among its options
   if (st.decisionLog && (st.decisionLog.length > globalThis.VB['sim/decisions'].LOG
     || st.decisionLog.some((e) => e.chosen !== null && !(e.chosen >= 0 && (!e.support.length || e.chosen < e.support.length))))) bad.push('decisionLog: over its bound, or a choice outside its options');
