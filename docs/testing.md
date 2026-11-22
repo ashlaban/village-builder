@@ -49,6 +49,16 @@ minute. The largest are not of the groups moved: `service` 7.4 s of CPU, `review
 the default island three times); the 23 scripts of VB-853 to VB-855 on the probe's islands from 64 to 53 s of CPU (VB-872's copies).
 Before VB-853 to VB-856: verify 86 scripts in 35 s (2 min of CPU), the night's 53 scripts 245 s in the old verify.
 
+22 November (VB-862): 220 scripts, 390 s of CPU run one at a time (361 s by the runner, 4 at a time) before, 301 s after. A full-size
+map generated in a test is 2 s of CPU (280 by 200; 0.55 s at 120 by 85): eleven scripts moved to the probe's islands or its per-process
+copies. Two caches, both keyed by content, so a warm run checks again only what changed: `tests/format.js` runs Prettier with its
+`--cache` (node_modules/.cache/prettier), and `tools/writes.js` keeps each module's scan under node_modules/.cache/vb-writes, keyed
+by the source, the module, the returns and the text of the scanner's own tools (`VB_NO_CACHE=1` skips it); `dependencies`,
+`ownership`, `ownershiprules` and `review-tools` fell by 3 to 6 s each. A cold run (a fresh clone, CI) pays both once. Of what is left,
+about half of a simulating script's CPU is V8 compiling on its background threads (the main thread's profile of `hay` is 2.4 of its
+4.7 s); `--no-opt` and the like cut short scripts and slow long ones five times (`service` 7 s to 35 s), so none is set. Over 5 s of
+CPU still: `accounts` 7.6, `review-tools` 6.1, `saves` 5.5, `notable` 5.1, `skip` 5.1, `hay` 5.0 (VB-1477).
+
 ## What runs only at night
 
 53 scripts, moved as they are when verify was cut to scripts under 5 seconds; seconds each, measured inside the 245-second verify: `browser` 53,
