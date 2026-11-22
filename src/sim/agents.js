@@ -27,6 +27,7 @@ VB['sim/agents'] = (() => {
     { workTick } = Progress;
   const Lying = VB['sim/lying'];
   const Due = VB['sim/due'];
+  const Skills = VB['sim/skills'];
   // the spot by the door of the house on tile `house`, where pawn a would stand
   const spotAt = (st, a, house) => [st.w.hx[house] - 12 + a.ox * 0.3, st.w.hy[house] + 14 + a.oy * 0.15];
   // By the door of pawn a's household's house, wherever it sleeps: where an indoor task is done, and a load for the door is brought.
@@ -458,6 +459,7 @@ VB['sim/agents'] = (() => {
       a.anim = K.anim || 'idle';
       a.inside = !!K.inside;
       a.leg = { kind: 'work', t: st.tick, x: a.x, y: a.y, seg: 0 }; // the work leg (the page walks a field's rows from it)
+      a.pace = Skills.legPace(st, a.id, K.type); // its skill at the work, and the leg's mishap (VB-475)
       rerate(st, a.job);
     } else if (a.phase === 'back') {
       deposit(st, a);
@@ -520,6 +522,9 @@ VB['sim/agents'] = (() => {
   // A step's work is done as the step's legs begin to be taken (stepAgents, dueWork): the tick up to which the hands have worked, so a hand
   // leaving at the calendar's hour (before the legs) does not work that step, and one joining in or after them works from the next. Between
   // steps (a fresh or a loaded run, st.stepAt absent or both its marks at the tick) the step now has been worked.
+  // @state agent.pace (VB-475): the hand's pace over its work leg, a multiplier on its rate (rateOf) at full attention: its skill at the
+  //   kind's type of work and the leg's mishap (sim/skills legPace), drawn as the work leg begins (arrived); read only while it is at
+  //   work; absent until its first work leg (it reads 1). Written only here.
   const hoursOfJob = (j) => j.hours ?? KINDS[j.kind].hours;
   const atWork = (st, j, id) => {
     const b = st.agents[id];
@@ -551,6 +556,7 @@ VB['sim/agents'] = (() => {
         hh = K.carted ? st.households[st.pawns[id].household] : null;
       rate +=
         rateOf(st, st.pawns[id]) *
+        (a.pace ?? 1) *
         (withOxen(st, a) ? HERD.team.rate : 1) *
         (hh ? (take ? Carts.carting : Carts.cartingRate)(st, hh, id, teamFree(st, hh)) : 1);
     }

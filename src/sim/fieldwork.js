@@ -18,6 +18,7 @@ VB['sim/fieldwork'] = (() => {
     hoed,
     sown,
     reaped,
+    standing,
     carried,
     laidDown,
     binned,
@@ -58,6 +59,28 @@ VB['sim/fieldwork'] = (() => {
     const h = CROPS[fd.crop].hours[k];
     return h === undefined || h === HOURS[k] ? { field: fd, farm: f } : { field: fd, farm: f, hours: h };
   };
+  // ---- the crop's size (VB-475; Kim, 15 Nov: the time taken has causes the world can show) ----
+  // Reaping and threshing take the crop's hours (CROPS hours, else the kind's) times the crop over a normal crop, within SIZE.range: a
+  // normal crop is the crop's yield (CROPS yield) times SIZE.normal, what a field of middling fertility, soil and tilth gives in an
+  // ordinary year. The carrying goes by loads already (haul).
+  const SIZE = Object.freeze({ normal: 1, range: Object.freeze([0.5, 1.5]) });
+  const sized = (crop, k, n) =>
+    Math.round(
+      (CROPS[crop].hours[k] ?? HOURS[k]) *
+        Math.min(SIZE.range[1], Math.max(SIZE.range[0], n / (CROPS[crop].yield * SIZE.normal))) *
+        1,
+    ) / 1;
+  // the reaping of field fd, its hours by the crop standing (the weeding round open at reaping is missed)
+  const reapJob = (st, f, fd) => ({
+    field: fd,
+    farm: f,
+    hours: sized(fd.crop, 'reap', standing(st, fd, fd.weedOpen ? 1 : 0)),
+  });
+  // the threshing of the sheaves first in household hh's barn (one field's crop), its hours by what they hold
+  const threshJob = (hh, f) => ({
+    farm: f,
+    hours: sized(hh.sheafCrops?.[0] || 'barley', 'thresh', hh.unthreshed[0] || 0),
+  });
   // Why household hh cannot sow field fd today, or null (VB-348): the course is not sown, the window is shut, the field is not hoed, or the
   // household holds less than a field's seed of the crop, which is taken from its own grain (seed rye is rye).
   function sowWhy(hh, fd, c) {
@@ -172,7 +195,7 @@ VB['sim/fieldwork'] = (() => {
       // a ripe field
       stages: ['ripe'],
       available: (st, hh, fd, c, post, f) => {
-        if (fd.stage === 'ripe') post('reap:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'reap'));
+        if (fd.stage === 'ripe') post('reap:' + fieldKey(f, fd), fd.tile, reapJob(st, f, fd));
       },
     },
     haul: {
@@ -240,9 +263,9 @@ VB['sim/fieldwork'] = (() => {
       done: (st, j, hh) => {
         Stores.thresh(st, hh);
       },
-      // while the barn holds unthreshed sheaves
+      // while the barn holds unthreshed sheaves, one field's crop at a time
       available: (st, hh, f, c, post) => {
-        if (hh.unthreshed.length) post(`thresh:h${hh.id}`, f.house, { farm: f });
+        if (hh.unthreshed.length) post(`thresh:h${hh.id}`, f.house, threshJob(hh, f));
       },
     },
     clear: {

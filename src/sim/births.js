@@ -64,6 +64,7 @@ VB['sim/births'] = (() => {
     p.age = 0;
     joinHousehold(st, hh, id);
     Traits.born(st, id); // its traits, from its parents by birth and its culture (VB-519)
+    VB['sim/skills'].born(st, id); // its skill at each type of work (VB-475)
     const v = settlementIdOf(st, p); // its village's norm joins its parents' (VB-1230)
     Culture.initPerson(p, Culture.inherit(m.att, father.att, v === null ? null : membersOf(st, v)));
     initRelations(st, p);

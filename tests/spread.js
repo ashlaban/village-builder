@@ -35,6 +35,9 @@ const copyRun = (s) => {
   const { w, ...rest } = s, data = structuredClone(rest), out = {};
   const ws = Object.fromEntries(Object.entries(w).map(([k, v]) => [k, ArrayBuffer.isView(v) ? v.slice() : typeof v === 'function' || v === null || typeof v !== 'object' ? v : structuredClone(v)]));
   for (const k of Object.keys(s)) out[k] = k === 'w' ? ws : data[k];
+  // the step's marks (sim/agents st.stepAt, a cache not saved and not enumerable) as the run has them: a copy without them would begin a
+  // walk at the next step's calendar a step later than the run it copies (VB-475 found it: a journey set out at the moving round)
+  if (s.stepAt) Object.defineProperty(out, 'stepAt', { value: { ...s.stepAt }, writable: true });
   return out;
 };
 const from = (base) => (at) => { Sim.advance(base, at - base.t); return copyRun(base); };

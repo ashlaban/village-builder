@@ -16,7 +16,8 @@ VB['sim/scenarios'] = (() => {
   const { seedPlans, startHeads } = VB['sim/plans'];
   const { seedTraits } = VB['sim/traits'];
   const { seedAsking } = VB['sim/wishes'];
-  // The end of seeding: a stream for each system, then the living's traits and each household's head (VB-254), from the stream `traits`.
+  // The end of seeding: a stream for each system, then the living's traits and each household's head (VB-254), and their skills
+  // (VB-475), from the stream `traits`.
   // Also for a state made outside the scenarios (tests/lib/tiny.js).
   function startStreams(st, seedNum) {
     splitStreams(st, seedNum);
@@ -24,6 +25,7 @@ VB['sim/scenarios'] = (() => {
     startHeads(st);
     seedAsking(st); // each who seeks, or will, on its asking day (VB-823)
     VB['sim/courting'].seedCourtships(st); // nobody courts at the start (VB-036)
+    VB['sim/skills'].seedSkills(st); // each pawn's skill at each type of work (VB-475), after the heads' draws
   }
   const { dailyNeed, seedNeed } = VB['sim/hunger'];
   const { startQuern } = VB['sim/quern'];
