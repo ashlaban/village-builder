@@ -29,7 +29,6 @@ function drawings(svg, sets, box = 24) {
     '</svg>'
   );
 }
-const stencil = (svg, shapes, box = 24) => drawings(svg, { stencil: shapes }, box);
 // A speed is one to five chevrons, > to >>>>> (11 Nov: no numbers): 1×, 3×, 10×, 30× and uncapped (Infinity). Open chevrons, so that
 // the speed of 1× is not the filled triangle of play beside it.
 const SPEED_ARROWS = { 1: 1, 3: 2, 10: 3, 30: 4, Infinity: 5 };
@@ -41,13 +40,13 @@ function speedIcon(v) {
   for (let k = 0; k < n; k++) d += `M${1.5 + k * step} 2L${6.5 + k * step} 7L${1.5 + k * step} 12`;
   let sten = '';
   for (let k = 0; k < n; k++) sten += `<path d="M${1 + k * step} 1.5h3.2l4 5.5-4 5.5H${1 + k * step}l4-5.5z"/>`;
-  return stencil(
+  return drawings(
     svgIcon(
       w,
       14,
       `<path d="${d}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
     ),
-    sten,
+    { stencil: sten },
     14,
   );
 }
@@ -198,7 +197,7 @@ const ICON_STEN = {
   close: '<path class="l" d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
   chevron: '<path class="l" d="M5.5 9l6.5 6.5L18.5 9"/>',
 };
-for (const k of Object.keys(ICON_STEN)) ICON[k] = stencil(ICON[k], ICON_STEN[k]);
+for (const k of Object.keys(ICON_STEN)) ICON[k] = drawings(ICON[k], { stencil: ICON_STEN[k] });
 // The action bar (VB-341), 24 by 24 as drawn for the mock-up (docs/mockups/action-menu.html): its groups, its rows, and a job kind's tool.
 const ACT_PATHS = {
   me: '<circle cx="12" cy="6" r="3"/><path d="M6 21c0-5 2.5-9 6-9s6 4 6 9z"/>',
@@ -306,7 +305,9 @@ const ACT_STEN = {
   ale: '<path d="M5.5 6h10v14.5h-10z"/><path d="M5 3.5h11v2.2H5z"/><path class="l" d="M16 9.5h2c1.8 0 1.8 6 0 6h-2"/>',
 };
 const actIcon = (k) =>
-  stencil(svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE), ACT_PATHS[k] ? ACT_STEN[k] : ACT_STEN.hoe);
+  drawings(svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE), {
+    stencil: ACT_PATHS[k] ? ACT_STEN[k] : ACT_STEN.hoe,
+  });
 // a job kind's icon (sim/kinds); a kind not named here takes the hoe
 const KIND_ICON = {
   sow: 'sow',
@@ -493,10 +494,9 @@ const GOOD_STEN = {
     '<path class="c" d="M8.5 8l1.3 1.3L12.3 7M14 8.5h2.5M8.5 13.5l1.3 1.3 2.5-2.3M14 14h2.5M8.5 18.5h8"/>',
 };
 const goodIcon = (k) =>
-  stencil(
-    svgIcon(24, 24, GOOD_PATHS[k] || GOOD_PATHS.tile, ICON_STROKE),
-    GOOD_PATHS[k] ? GOOD_STEN[k] : GOOD_STEN.tile,
-  );
+  drawings(svgIcon(24, 24, GOOD_PATHS[k] || GOOD_PATHS.tile, ICON_STROKE), {
+    stencil: GOOD_PATHS[k] ? GOOD_STEN[k] : GOOD_STEN.tile,
+  });
 // The four seasons (sim/weather SEASONS, spring first), one icon each, on a 14 box (VB-667: the supply component's header and its chips): a
 // sprout, a sun, a leaf, a snowflake.
 const SEASON_PATHS = [
@@ -514,14 +514,14 @@ const SEASON_STEN = [
   COLD_STEN,
 ];
 const seasonIcon = (k) =>
-  stencil(
+  drawings(
     svgIcon(
       14,
       14,
       SEASON_PATHS[((k % 4) + 4) % 4],
       ' fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"',
     ),
-    SEASON_STEN[((k % 4) + 4) % 4],
+    { stencil: SEASON_STEN[((k % 4) + 4) % 4] },
   );
 // The twelve traits (sim/traits, TRAITS.names), one icon each: traits are not hidden (Kim, 16 Nov), and are shown as icons.
 const TRAIT_PATHS = {
@@ -567,7 +567,7 @@ const TRAIT_STEN = {
   husbandry: GOOD_STEN.beast,
   wits: '<path d="M8.5 15.5C6.5 14 5.5 12 5.5 9.8a6.5 6.5 0 0 1 13 0c0 2.2-1 4.2-3 5.7z"/><rect x="9" y="17" width="6" height="3.8" rx="1"/>',
 };
-const traitIcon = (k) => stencil(svgIcon(24, 24, TRAIT_PATHS[k], ICON_STROKE), TRAIT_STEN[k]);
+const traitIcon = (k) => drawings(svgIcon(24, 24, TRAIT_PATHS[k], ICON_STROKE), { stencil: TRAIT_STEN[k] });
 // The bonds (VB-1026): what one person is to another, one icon each. The five kin bonds the simulation names (sim/relations, bond):
 // two rings; an elder with a staff; a swaddled child; two of one branch; two under one roof. The four opinion bands (opinionWord): a
 // heart, filled for a close friend; a heart struck through; two crossed blades.
@@ -604,7 +604,7 @@ const BOND_STEN = {
   dislikes: `<path d="${HEART_STEN}"/><path class="c" d="M12.5 6.5l-2.5 4.5 4 2.5-2.5 6"/>`,
   enemy: '<path class="l" d="M4 4l13 13M20 4L7 17M14.5 19.5l5-5M9.5 19.5l-5-5M17 17l3 3M7 17l-3 3"/>',
 };
-const bondIcon = (k) => stencil(svgIcon(24, 24, BOND_PATHS[k], ICON_STROKE), BOND_STEN[k]);
+const bondIcon = (k) => drawings(svgIcon(24, 24, BOND_PATHS[k], ICON_STROKE), { stencil: BOND_STEN[k] });
 // A person's state in its family (VB-1035), where no other person's chip can say it: one ring; the two rings, one of them faded;
 // a figure great with child; a mother with a swaddled child.
 const STATE_PATHS = {
@@ -627,7 +627,7 @@ const STATE_STEN = {
     '<circle cx="9" cy="6" r="3"/><path d="M4 21.5c0-5.5 1.8-9.5 5-9.5 2 0 3.5 1.2 4.5 3l-2 6.5z"/><circle cx="16.5" cy="13" r="2"/>' +
     '<path d="M12.2 18.2c1.2-2.2 6.4-2.2 7.8-.2 0 2-1.8 3.2-3.9 3.2s-3.9-1-3.9-3z"/>',
 };
-const stateIcon = (k) => stencil(svgIcon(24, 24, STATE_PATHS[k], ICON_STROKE), STATE_STEN[k]);
+const stateIcon = (k) => drawings(svgIcon(24, 24, STATE_PATHS[k], ICON_STROKE), { stencil: STATE_STEN[k] });
 // The occasions (sim/occasions; VB-1032), one icon a kind, each an icon the interface has already: the two bubbles of who speaks, the
 // cross of piety, the rings, the tear of the grieving, the tankard. The map's mark of a gathering draws the same path (page/gathering).
 const OCCASION_PATHS = {
@@ -648,7 +648,7 @@ const OCCASION_STEN = {
   call: TRAIT_STEN.sociability,
   gathering: TRAIT_STEN.sociability,
 };
-const occasionIcon = (k) => stencil(svgIcon(24, 24, OCCASION_PATHS[k], ICON_STROKE), OCCASION_STEN[k]);
+const occasionIcon = (k) => drawings(svgIcon(24, 24, OCCASION_PATHS[k], ICON_STROKE), { stencil: OCCASION_STEN[k] });
 for (const k of ['me', 'home', 'village', 'queue']) ICON['act-' + k] = actIcon(k);
 // A button marked data-icon="name" takes that icon before its content (a dock button keeps its label under it).
 for (const b of document.querySelectorAll('[data-icon]')) b.insertAdjacentHTML('afterbegin', ICON[b.dataset.icon]);

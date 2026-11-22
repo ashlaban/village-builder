@@ -61,7 +61,9 @@ const START_STEN = {
   village: ACT_STEN.village,
 };
 const startSign = (k) =>
-  SIGN_PATHS[k] ? sign(k) : stencil(svgIcon(24, 24, `<path d="${START_SIGNS[k]}"/>`, ICON_STROKE), START_STEN[k]);
+  SIGN_PATHS[k]
+    ? sign(k)
+    : drawings(svgIcon(24, 24, `<path d="${START_SIGNS[k]}"/>`, ICON_STROKE), { stencil: START_STEN[k] });
 const NUMBER_WORDS = [
   'no',
   'one',
