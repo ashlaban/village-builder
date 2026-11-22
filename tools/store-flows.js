@@ -1,8 +1,8 @@
 // The village store's yearly flows (VB-406): grain in (households' yearly filling, common fields' harvest), out (gifts to households,
-// seed for the common fields), rotted (ECON.villageStoreLoss), the store at the year's end in years of its village's need, and what the
+// seed for the common fields), rotted (grain's keeping at ECON.villageStoreTier, sim/goods), the store at the year's end in years of its village's need, and what the
 // giving households would have lost to their own rot. Candidate rules are tried by patching the run here; none is in the game.
 // node tools/store-flows.js --scenario populous --seeds 3,7,11 --map small --years 50 [--rule NAME] [--json]
-//   --rule: base (the game's), share10 (HELP.storeShare 0.1), rate5 (villageStoreLoss 0.05, a household's), target1 (fill only up to a
+//   --rule: base (the game's), share10 (HELP.storeShare 0.1), rate5 (villageStoreTier 0: 0.05, a household's first year), target1 (fill only up to a
 //   year of the village's need), target05 (up to half a year), target025 (a quarter), target05+share10 (both).
 //   Prints a line per seed; --json prints the rows instead, a line a village-year, as the run goes.
 require('./help.js')(__filename);
@@ -34,7 +34,7 @@ const rows = [];
 function run(seed) {
   const it = G.generate(seed, { cols: SIZES[map][0], rows: SIZES[map][1] }); let r; while (!(r = it.next()).done);
   const st = Sim.seed(r.value, seed, scenario);
-  if (/rate5/.test(rule)) st.ECON.villageStoreLoss = 0.05;
+  if (/rate5/.test(rule)) st.ECON.villageStoreTier = 0;
   let hungry0 = 0;
   const live0 = st.living.length;
   for (let y = 1; y <= years; y++) {
@@ -64,7 +64,7 @@ const grow = {};
 const sts = seeds.map(run), E = sts[0].ECON;
 const sum = (l, k) => l.reduce((s, r) => s + r[k], 0), f = (x, d = 0) => (+x).toFixed(d);
 if (!json) {
-  console.log(`${scenario} ${map} ${years} years, rule ${rule}; rations; home rot ${E.storeLoss[0]} (a year's need) to ${E.storeLoss[1]}; village store ${E.villageStoreLoss}`);
+  console.log(`${scenario} ${map} ${years} years, rule ${rule}; rations; home rot ${E.storeLoss[0]} (a year's need) to ${E.storeLoss[1]}; village store ${E.storeLoss[E.villageStoreTier]}`);
   console.log('seed villages filled commons total_in given takers/yr each seed rot rot%in end_store yrs_need hungry_days/yr home_rot(5%..20%) living_start->end growth%/yr');
   for (const s of seeds) {
     const l = rows.filter((r) => r.seed === s), inn = sum(l, 'filled') + sum(l, 'harvest'), takers = sum(l, 'takers');

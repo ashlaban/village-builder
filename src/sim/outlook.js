@@ -8,7 +8,8 @@
 VB['sim/outlook'] = (() => {
   const { SEASON_DAYS, YEAR_DAYS, CROPS, ROTATIONS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'];
   const { on } = VB['sim/events'];
-  const Stores = VB['sim/stores'];
+  const Stores = VB['sim/stores'],
+    Goods = VB['sim/goods'];
   const Pot = VB['sim/pot'];
   const { dailyNeed, seedPer } = VB['sim/hunger'],
     { larderOf } = VB['sim/larder'];
@@ -73,17 +74,9 @@ VB['sim/outlook'] = (() => {
     }
     return { at, met, need, spoilt };
   }
-  // A day's loss of a store spoiling by tiers (ECON.storeLoss of grain, HERD.hayLoss of hay): a share a year of what is held up to one
-  // `unit` (a year's need of food, a winter's of hay), of the next unit, and of the rest; times the barn's (BUILD.barn.loss with one).
-  // q: the daily shares of the tiers (daily(L)), reckoned once a supply.
-  const daily = (L) => L.map((s) => 1 - Math.pow(1 - s, 1 / YEAR_DAYS));
-  function tierLoss(x, unit, q, barn) {
-    if (!(unit > 0)) return 0;
-    const a = Math.min(x, unit),
-      b = Math.min(Math.max(0, x - unit), unit),
-      c = Math.max(0, x - 2 * unit);
-    return (a * q[0] + b * q[1] + c * q[2]) * barn;
-  }
+  // A day's loss of a store spoiling by tiers, by its good's keeping (sim/goods: grain by years of need, hay by winters): `unit` held a tier,
+  // times the barn's (BUILD.barn.loss with one); q: the good's daily shares (Goods.shares), reckoned once a supply.
+  const tierLoss = (x, unit, q, barn) => (unit > 0 ? Goods.tierLoss(x, unit, q) * barn : 0);
   // A supply's value and state from a walk on the seasons scale: when it first ran short, capped at the frame, and how much of that season's
   // need it covered.
   function reading(w) {
@@ -172,7 +165,7 @@ VB['sim/outlook'] = (() => {
     ins.sort((a, b) => a[0] - b[0]);
     const barn = f && f.barn ? BUILD.barn.loss : 1,
       year = D * YEAR_DAYS,
-      q = daily(st.ECON.storeLoss),
+      q = Goods.shares(st, 'grain'),
       loss = (g) => (g > 0 ? (tierLoss(g + seed, year, q, barn) * g) / (g + seed) : 0);
     const base = { from: c.day, to: end, F, keep, rot, need: () => D, loss, intoRot: true };
     let j = 0;
@@ -247,7 +240,7 @@ VB['sim/outlook'] = (() => {
     }
     ins.sort((a, b) => a[0] - b[0]);
     const barn = f && f.barn ? BUILD.barn.loss : 1,
-      q = daily(HERD.hayLoss),
+      q = Goods.shares(st, 'hay'),
       loss = (x) => tierLoss(x, W, q, barn),
       base = {
         from: c.day,
@@ -388,8 +381,9 @@ VB['sim/outlook'] = (() => {
     };
   }
   // The village store's outlook (VB-966), made when asked and kept nowhere: how long its grain lasts, on the household's scale, at the daily need
-  // of the village's households, the store losing ECON.villageStoreLoss a year; no intake is reckoned (what the households give in and
-  // what the common fields bring is not promised: VB-849's filling is hauled to the green), so own and with are the same. Its target
+  // of the village's households, the store losing grain's share of tier ECON.villageStoreTier a year (sim/goods); no intake is reckoned
+  // (what the households give in and what the common fields bring is not promised: VB-849's filling is hauled to the green), so own and
+  // with are the same. Its target
   // (HELP.storeTarget years of need, VB-457) is in parts.target. Shaped as a household's outlook (food only; fuel and hay 'none'), with
   // `head`, whose estimate it is: the viewer's (the played pawn), else the village's eldest holder, who speaks for it until it has an
   // alderman (as sim/overview's warnings; a village never acts or estimates, a pawn does: AGENTS.md, Deciding without Kim, 14 and 16).
@@ -405,7 +399,7 @@ VB['sim/outlook'] = (() => {
       if (f.household !== null && !st.households[f.household].dissolved) D += dailyNeed(st, st.households[f.household]);
     }
     const store = Math.max(0, Stores.grainOf(v) - Stores.reserved(st, v, 'grain')),
-      share = 1 - Math.pow(1 - st.ECON.villageStoreLoss, 1 / YEAR_DAYS);
+      share = Goods.dayLoss(st, 'grain', 1, Infinity, st.ECON.villageStoreTier); // the day's share (grain's keeping)
     const w = walk({
       from: c.day,
       to: end,

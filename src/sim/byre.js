@@ -1,6 +1,7 @@
 // @sys sim/byre: daily barn hay and spoilage, fodder, autumn counts, slaughter, milk and hunger in the byre
 VB['sim/byre'] = (() => {
-  const Stores = VB['sim/stores'];
+  const Stores = VB['sim/stores'],
+    { dayLoss } = VB['sim/goods'];
   const { next: rnd } = VB['sim/rng'];
   const { HERD, FOODS, SOIL, WORK, DAY, YEAR_DAYS, BUILD } = VB['sim/rules'];
   const Rules = VB['sim/registry'],
@@ -258,7 +259,7 @@ VB['sim/byre'] = (() => {
     const kind = remove(herd, entry),
       n = kind ? HERD.meat[kind] * (entry.lean ? HERD.lean : 1) : 0;
     if (kind) {
-      addFood(st, hh, 'meat', n, HERD.freshDays);
+      addFood(st, hh, 'meat', n);
       Stores.record(st, hh, 'meat', n, 'meat');
     }
   }
@@ -283,8 +284,8 @@ VB['sim/byre'] = (() => {
     const r = cows * HERD.milk,
       butter = Math.max(0, Math.min(r * HERD.butter, Targets.target(st, hh, 'butter') - larderOf(hh, 'butter')));
     if (r <= 0) return;
-    addFood(st, hh, 'milk', r - butter, FOODS.milk.keeps);
-    addFood(st, hh, 'butter', butter, HERD.butterDays);
+    addFood(st, hh, 'milk', r - butter);
+    addFood(st, hh, 'butter', butter);
     Stores.record(st, hh, 'milk', r - butter, 'milk');
     Stores.record(st, hh, 'butter', butter, 'butter');
   }
@@ -320,24 +321,21 @@ VB['sim/byre'] = (() => {
     },
     held: (st, hh) => larderOf(hh, 'salt meat'),
   });
-  // Salted: the fresh meat keeps a year.
+  // Salted: the fresh meat keeps as salt meat does (sim/goods), the change booked in the ledger.
   function saltDone(st, hh) {
     const n = takeAll(hh, 'meat');
-    addFood(st, hh, 'salt meat', n, HERD.saltDays);
+    addFood(st, hh, 'salt meat', n);
+    if (n > 0) {
+      Stores.record(st, hh, 'meat', -n, 'salting');
+      Stores.record(st, hh, 'salt meat', n, 'salting');
+    }
   }
   // Barn hay spoils by winters of the animals now; mown hay still on a meadow is untouched (VB-159); BUILD.barn.loss as much on a farm
   // with a barn (VB-255).
   function spoilHay(st, hh) {
     const hay = hh.hay;
     if (!(hay > 0)) return;
-    const winter = winterNeed(st, hh),
-      L = HERD.hayLoss;
-    const first = Math.min(hay, winter),
-      second = Math.min(Math.max(0, hay - winter), winter);
-    let lost =
-      first * (1 - Math.pow(1 - L[0], 1 / YEAR_DAYS)) +
-      second * (1 - Math.pow(1 - L[1], 1 / YEAR_DAYS)) +
-      Math.max(0, hay - 2 * winter) * (1 - Math.pow(1 - L[2], 1 / YEAR_DAYS));
+    let lost = dayLoss(st, 'hay', hay, winterNeed(st, hh)); // hay's keeping (sim/goods): tiers of the herds' winter
     if (hh.farmstead !== null && st.farmsteads[hh.farmstead].barn) lost *= BUILD.barn.loss; // a barn halves it (VB-255)
     hh.hay -= lost;
     hh.haySpoilt = (hh.haySpoilt || 0) + lost;
@@ -398,6 +396,7 @@ VB['sim/byre'] = (() => {
       const hh = st.households[liveId];
       if (hh.dissolved) continue;
       const spoilt = spoilFood(st, hh);
+      for (const l of spoilt) Stores.record(st, hh, l.kind, -l.n, 'spoilage'); // the larder's losses in the ledger (VB-683)
       if (spoilt.length) {
         const meat = spoilt.filter((l) => l.kind === 'meat').reduce((s, l) => s + l.n, 0);
         if (meat >= 1)

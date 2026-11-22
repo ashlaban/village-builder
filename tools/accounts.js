@@ -30,28 +30,20 @@
 // The balance properties (docs/balance/cards.md): a line each, this year's value, or `no mechanism yet`.
 // --json: the years as data, a record a year ({year, food: {all, villages}, people, spread, goodwill, labour, properties}).
 // Read from the stores' ledgers and yearly totals (src/sim/stores.js) at each year's turn, and from a closing household's ledger as it
-// closes; the larder's takes (eaten, spoilt), which write no ledger entry, are counted by wrapping sim/larder's exports at load, as
-// tools/perf.js wraps its systems (tests/lib/load.js): `load()` replaces require('../src/load.js').
+// closes, which is counted by wrapping sim/stores' close at load, as tools/perf.js wraps its systems (tests/lib/load.js): `load()` replaces
+// require('../src/load.js'). The larder's takes and losses are in the ledger since VB-683.
 // Used by tools/sim.js (`const a = require('./accounts.js')`, `VB = a.load()`, `const r = a.report(VB, st)`, `r.advanceYear()`,
 // `r.result()`, `a.print(out)`) and tests/accounts.js.
 require('./help.js')(__filename);
 const { loadModules } = require('../tests/lib/load.js');
 const Waiting = require('./waiting.js'), { countHour } = require('./idle.js');
 
-// ---- the wrappers: the larder's unrecorded takes, and a household's ledger as it closes ----
+// ---- the wrapper: a household's ledger as it closes ----
 let sink = null; // the report listening (one a process)
-let cooking = 0; // inside Stores.cookLarder: its larder take is cooked (the ledger's 'cooking'), not eaten
 function load() {
-  const around = (fn, before, after) => function (...a) { if (before) before(...a); const r = fn.apply(this, a); if (after) after(r, ...a); return r; };
+  const around = (fn, before) => function (...a) { before(...a); return fn.apply(this, a); };
   return loadModules({ wrap: {
-    'sim/larder': {
-      takeFood: (fn) => around(fn, null, (got, st, hh) => { if (sink && !cooking && got > 0) sink.larder(st, hh, 'eaten', got); }),
-      spoilFood: (fn) => around(fn, null, (lots, st, hh) => { if (sink) for (const l of lots) sink.larder(st, hh, 'rotted', l.n); }),
-    },
-    'sim/stores': {
-      cookLarder: (fn) => function (...a) { cooking++; try { return fn.apply(this, a); } finally { cooking--; } },
-      close: (fn) => around(fn, (st, hh) => { if (sink) sink.closing(st, hh); }),
-    },
+    'sim/stores': { close: (fn) => around(fn, (st, hh) => { if (sink) sink.closing(st, hh); }) },
   } });
 }
 
@@ -60,12 +52,13 @@ const FOOD = new Set(['grain', 'sheaves', 'flour', 'fish', 'gathered', 'dried fi
 // The grain's own account (island-wide, beside the food's): its goods (sheaves, grain of every crop, flour ground from it) are also booked
 // under the key 'g:' + village, with their stocks, so that the harvest's split reads as the balance review's did (docs/balance/findings.md)
 const GRAIN = new Set(['grain', 'sheaves', 'flour']);
+const LARDER = new Set(['dried fish', 'meat', 'salt meat', 'milk', 'butter']); // the larder's foods (FOODS held 'larder')
 const G = 'g:';
 // A ledger entry or a yearly total of a food: the line it books to, or null when it moves food between two of a holder's stores (threshing,
 // grinding, drying) or is no movement (milkbite). holder: 'household' or 'village'; d: the entry (kind, n, crop, to, stake ...).
 function lineOf(holder, d) {
   const k = d.kind, n = d.n, g = d.good;
-  if (k === 'thresh' || k === 'grind' || k === 'drying' || k === 'milkbite') return null;
+  if (k === 'thresh' || k === 'grind' || k === 'drying' || k === 'milkbite' || k === 'salting') return null;
   if (k === 'harvest') return holder === 'village' ? 'produced.grain.commons' : 'produced.grain.' + (d.crop || 'barley');
   if (k === 'catch') return 'produced.fish';
   if (k === 'gathering') return 'produced.gathered';
@@ -74,11 +67,11 @@ function lineOf(holder, d) {
   if (k === 'seed') return 'out.seed';
   if (k === 'cooking') return 'out.eaten.pot.' + (g === 'dried fish' ? 'driedFish' : g);
   if (k === 'raw') return 'out.eaten.uncooked';
-  if (k === 'meal') return 'out.eaten.fresh';
+  if (k === 'meal') return LARDER.has(g) ? 'out.eaten.larder' : 'out.eaten.fresh';
   if (k === 'seedMeal') return 'out.eaten.seed';
   if (k === 'feast') return 'out.feast';
   if (k === 'brew') return 'out.brewed';
-  if (k === 'spoilage') return holder === 'village' ? 'out.rotted.store' : 'out.rotted.' + (g === 'grain' ? 'grain' : 'fresh');
+  if (k === 'spoilage') return holder === 'village' ? 'out.rotted.store' : 'out.rotted.' + (g === 'grain' ? 'grain' : LARDER.has(g) ? 'larder' : 'fresh');
   if (k === 'gift') {
     if (n > 0) return holder === 'village' ? 'in.store' : 'in.gifts';
     if (holder === 'village') return 'out.given.fromStore';
@@ -172,7 +165,6 @@ function report(VB, st, opts = {}) {
     return s;
   }
   sink = {
-    larder(st2, hh, what, n) { book(bucket(Stores.yearNow(st2), villageOf(hh), kept), what === 'eaten' ? 'out.eaten.larder' : 'out.rotted.larder', -n); },
     closing(st2, hh) { // a household that ends: its year's movements so far, and what it held, which stays with its farm
       const v = villageOf(hh);
       readHolder(hh, 'household', v, counted + 1, kept);

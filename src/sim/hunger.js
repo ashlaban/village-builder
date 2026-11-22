@@ -7,6 +7,7 @@ VB['sim/hunger'] = (() => {
     Pot = VB['sim/pot'],
     { hungryDay, act } = VB['sim/traits'];
   const { takeFood } = VB['sim/larder'];
+  const { dayLoss, GRAIN } = VB['sim/goods'];
   const Rules = VB['sim/registry'],
     { emit } = VB['sim/events'];
   // The seed kept for a field: the standing plan's target (from its culture's template, sim/plans; VB-252), the crop's seed (barley's) before it has one.
@@ -156,14 +157,16 @@ VB['sim/hunger'] = (() => {
       total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
     if (hh.fresh.length) Pot.settle(st, hh);
-    const early = hh.larder.length ? takeFood(st, hh, total, HERD.eatSoonDays * DAY) : 0,
+    const by = hh.larder.length ? {} : null; // the larder's takes by food, for the ledger (VB-683)
+    const early = by ? takeFood(st, hh, total, HERD.eatSoonDays * DAY, undefined, by) : 0,
       rest = total - early;
     const R = 1 / E.uncooked,
       wild = hh.fresh.length ? Pot.freshHeld(st, hh, null, true) : 0;
     const spare = Math.max(0, grainOf(hh) - reserved(st, hh, 'grain')),
       flour = hh.flour,
       avail = hh.meals + wild + (flour + spare) / R; // meals, then uncooked food
-    const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail) : 0;
+    const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail, Infinity, undefined, by) : 0;
+    if (by) for (const k in by) Stores.record(st, hh, k, -by[k], 'meal');
     const seed = (grainOf(hh) - spare) / R,
       lack = rest - late - avail,
       dip = lack > 1e-9 && seed > 0 ? Math.min(lack, seed) : 0; // the seed the meal needs
@@ -317,16 +320,12 @@ VB['sim/hunger'] = (() => {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     return f && f.barn ? BUILD.barn.loss : 1;
   }
-  // Grain in the barn spoils a little each day (balance review): ECON.storeLoss a year of the first year's need held, of the second, and of the
-  // rest, so a good farm's store levels off at a year or two of need instead of growing for ever. hh.spoilt counts the rations lost.
+  // Grain in the barn spoils a little each day (balance review): by grain's keeping (sim/goods), its tiers a year of need held each, so a
+  // good farm's store levels off at a year or two of need instead of growing for ever. hh.spoilt counts the rations lost.
   function spoilGrain(st, hh) {
-    const year = dailyNeed(st, hh) * YEAR_DAYS,
-      L = st.ECON.storeLoss,
-      g = grainOf(hh);
+    const g = grainOf(hh);
     if (!(g > 0)) return;
-    const parts = [Math.min(g, year), Math.min(Math.max(0, g - year), year), Math.max(0, g - 2 * year)];
-    const lost = parts.reduce((s, x, k) => s + x * (1 - Math.pow(1 - L[k], 1 / YEAR_DAYS)), 0) * barnLoss(st, hh);
-    Stores.spoil(st, hh, lost);
+    Stores.spoil(st, hh, dayLoss(st, GRAIN, g, dailyNeed(st, hh) * YEAR_DAYS) * barnLoss(st, hh));
   }
   // The grain the village store lacks of its target (VB-457; HELP.storeTarget years of its members' need), 0 at or above it.
   function storeRoom(st, v) {

@@ -51,7 +51,9 @@ VB['sim/rules'] = (() => {
     // grain in store spoils (mice, damp, mould; balance review): a share a year of the grain up to a year's need, of the next year's worth, and of
     // the rest; the FAO puts losses in traditional stores at about 5% a year, and up to 20% where rats are many
     storeLoss: [0.05, 0.2, 0.4],
-    villageStoreLoss: 0.2, // the village store (sim/help) loses a fifth a year, as grain kept a second year
+    // the village store (sim/help) keeps as a household's grain of a second year, all of it (sim/goods dayLoss's flat tier): nobody eats
+    // from it day by day, so it is not turned and aired as a household's daily grain is (VB-683; a fifth a year)
+    villageStoreTier: 1,
     // the pot (VB-119; design.md, Meals; Kim, 30 Oct and 10 Nov): a food is a source of the pot when it gives at least potShare of its rations;
     // a pot of k sources needs pot[k] of the food a pot of one source needs for the same meals (1 / 0.9 and 1 / 0.8 times its rations in
     // meals for 2 and for 3 or more). A household with no meals eats its grain uncooked, and a ration of grain eaten so feeds `uncooked` of a

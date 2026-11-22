@@ -1,6 +1,6 @@
 // @sys sim/goods: the catalog of trade goods, grain subtype identifiers and culture's worth and propriety rules
 VB['sim/goods'] = (() => {
-  const { CROPS, ECON, HERD, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
+  const { CROPS, FOODS, HERD, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
   const Rules = VB['sim/registry'],
     Culture = VB['culture'];
   const GRAIN = 'grain',
@@ -17,12 +17,62 @@ VB['sim/goods'] = (() => {
     if (!g) throw new Error(`stores: unknown crop ${crop}`);
     return g;
   }
+  // ---- keeping (VB-683): how each stored good is lost, one row a good, read alike by every store that holds it (a household's, the
+  // village's, a pawn's stake; the larder's lots, the fresh batches, the barn's hay, the ale). {keepsDays}: a lot or a batch spoils whole
+  // that many game days after it was put in (FOODS.keeps of a food); {tiers(st)}: a share a year of what is held, the first unit held at
+  // tiers[0], the second at tiers[1], the rest at tiers[2], the unit given by the store (a household's year of need for grain, its herds'
+  // winter for hay), so that a large store levels off (balance review; VB-159); {never}: it is not lost in store, the reason told. ----
+  const KEEPING = {};
+  for (const id of Object.keys(FOODS))
+    if (FOODS[id].keeps !== null)
+      KEEPING[id] = Object.freeze({
+        get keepsDays() {
+          return FOODS[id].keeps; // the one number of a food's shelf life (sim/rules), read when asked
+        },
+      });
+  KEEPING.grain = Object.freeze({ tiers: (st) => st.ECON.storeLoss }); // pulses are grain of their crop (sim/stores)
+  KEEPING.hay = Object.freeze({ tiers: () => HERD.hayLoss });
+  KEEPING.ale = Object.freeze({ keepsDays: SEASON_DAYS }); // a barrel keeps its season (VB-305)
+  KEEPING.meals = Object.freeze({ never: 'cooked for the coming day and eaten within it' });
+  KEEPING.flour = Object.freeze({ never: 'a few days of the pot ground at a time (sim/quern)' });
+  KEEPING.rack = Object.freeze({ never: 'the catch waits by the rack for a day or two, then is hung (sim/drying)' });
+  KEEPING.stake = Object.freeze({
+    never:
+      "a stake is grain promised a party and kept with its household's until the move (sim/settle), lost there as that is",
+  });
+  function keepingOf(id) {
+    const k = KEEPING[id];
+    if (!k) throw new Error('goods: no keeping for ' + id);
+    return k;
+  }
+  // The daily shares of a good kept by tiers (its tiers' yearly shares as a day's), reckoned once for a walk over many days (sim/outlook).
+  const daily = (share) => 1 - Math.pow(1 - share, 1 / YEAR_DAYS);
+  const shares = (st, id) => keepingOf(id).tiers(st).map(daily);
+  // The day's loss of `held` by tiers of `unit`, at the daily shares q (shares).
+  const tierLoss = (held, unit, q) =>
+    Math.min(held, unit) * q[0] + Math.min(Math.max(0, held - unit), unit) * q[1] + Math.max(0, held - 2 * unit) * q[2];
+  // The day's loss of `held` units of a good kept by tiers, `unit` held a tier (Infinity: all at the first). `flat`: a tier's index, when
+  // the whole store keeps at that tier's rate (the village's store, ECON.villageStoreTier).
+  function dayLoss(st, id, held, unit = Infinity, flat = -1) {
+    if (!(held > 0)) return 0;
+    if (flat >= 0) return held * daily(keepingOf(id).tiers(st)[flat]);
+    return tierLoss(held, unit, shares(st, id));
+  }
+  // The days a good kept by date keeps (FOODS.keeps of a food): a lot put in at hour t spoils at t + keepsDays * DAY.
+  const keepsDays = (id) => keepingOf(id).keepsDays;
+  // A good's perish, as the registry declares it: its keeping row (a good of no row does not perish in store).
+  const perishOf = (id) => {
+    const k = KEEPING[id];
+    if (!k || k.never) return null;
+    return k.keepsDays ? { keepsDays: k.keepsDays } : { tiers: true };
+  };
   // ---- goods (VB-299; target-v2 4.3; design.md, The fair): a registry of the goods that change hands, declared at load like a rule and
   // closed when the rules registry seals; code, never saved state. A good: id ('grain', 'cattle/cow'), kind and subtype, class (Culture.CLASSES:
   // which exchanges custom calls proper), unit (what is counted: a ration, a barrel, a head), quantum (units that change hands at once) and
   // lump (its name: a sack, a lot), rations (food a unit gives; 0 for what is not eaten), source (its source in the pot, as FOODS; null),
-  // perish ({keepsDays}: a lot spoils by date; {lossPerYear}: a share of the stock is lost; null: it does not perish in store; an animal
-  // lives and dies as an animal), keeping (accepted beyond need, to be passed on; design.md, The fair, Keeping goods). ----
+  // perish ({keepsDays}: a lot spoils by date; {tiers: true}: a share of the stock is lost by tiers; null: it does not perish in store; an
+  // animal lives and dies as an animal): its keeping row (perishOf; VB-683), keeping (accepted beyond need, to be passed on; design.md,
+  // The fair, Keeping goods). ----
   const GOODS = new Map();
   function declareGood(spec) {
     Rules.atLoad();
@@ -37,7 +87,7 @@ VB['sim/goods'] = (() => {
       spec.quantum > 0 &&
       spec.rations >= 0 &&
       typeof spec.keeping === 'boolean' &&
-      (spec.perish === null || spec.perish.keepsDays > 0 || spec.perish.lossPerYear > 0) &&
+      (spec.perish === null || spec.perish.keepsDays > 0 || spec.perish.tiers === true) &&
       Culture.norm('worth', spec.id) > 0;
     if (!ok) throw new Error('stores: invalid or duplicate good ' + (spec && spec.id));
     GOODS.set(
@@ -52,7 +102,7 @@ VB['sim/goods'] = (() => {
   }
   const goods = () => [...GOODS.values()];
   // The goods the fair trades (design.md, Quanta and worth). Wool and cheese are not goods yet (slice 6); labour days are promises (slice 5).
-  const food = (id, lump, source, perish, keeping) => ({
+  const food = (id, lump, source, keeping) => ({
     id,
     kind: id,
     class: 'food',
@@ -61,13 +111,13 @@ VB['sim/goods'] = (() => {
     lump,
     rations: 1,
     source,
-    perish,
+    perish: perishOf(id),
     keeping,
   });
-  declareGood(food('grain', 'sack', 'grain', { lossPerYear: ECON.storeLoss[0] }, false)); // more of what is held beyond a year (sim/hunger)
-  declareGood(food('butter', 'lot', 'milk', { keepsDays: HERD.butterDays }, true));
-  declareGood(food('salt meat', 'lot', 'meat', { keepsDays: HERD.saltDays }, true));
-  declareGood(food('dried fish', 'lot', 'fish', { keepsDays: YEAR_DAYS }, true)); // through winter and spring (VB-300 makes it)
+  declareGood(food('grain', 'sack', 'grain', false));
+  declareGood(food('butter', 'lot', 'milk', true));
+  declareGood(food('salt meat', 'lot', 'meat', true));
+  declareGood(food('dried fish', 'lot', 'fish', true)); // through winter and spring (VB-300 makes it)
   declareGood({
     id: 'ale',
     kind: 'ale',
@@ -76,7 +126,7 @@ VB['sim/goods'] = (() => {
     quantum: 1,
     lump: 'barrel',
     rations: 0,
-    perish: { keepsDays: SEASON_DAYS },
+    perish: perishOf('ale'),
     keeping: false,
   }); // poured for guests, not eaten as rations (VB-305)
   declareGood({
@@ -142,5 +192,21 @@ VB['sim/goods'] = (() => {
     base: (st, c) => Culture.PROPER.indexOf(Culture.norm('proper', c.from, c.to, c.days)),
     clamp: [0, Culture.PROPER.length - 1],
   });
-  return { GOODS, declareGood, goodOf, goods, GRAIN, CROP_LIST, CROP_GOOD, GOOD_CROP, isGrain, grainGood };
+  return {
+    GOODS,
+    keepingOf,
+    dayLoss,
+    shares,
+    tierLoss,
+    keepsDays,
+    declareGood,
+    goodOf,
+    goods,
+    GRAIN,
+    CROP_LIST,
+    CROP_GOOD,
+    GOOD_CROP,
+    isGrain,
+    grainGood,
+  };
 })();

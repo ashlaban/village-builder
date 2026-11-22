@@ -7,16 +7,16 @@
 VB['sim/pot'] = (() => {
   const { DAY, FOODS, FISH, ECON, CROPS, SEASON_DAYS, cal } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
+  const { keepsDays } = VB['sim/goods'];
   const Stores = VB['sim/stores'],
     { record, put, take, takeSpare, cookLarder, reserved, grainOf, mealsFrom } = Stores;
   // ---- fresh food (FOODS held 'fresh': fish, gathered food): batches {food, day (the game day it came in), qty (units)}, oldest first.
   // A batch older than its food's keeps is lost; nothing walks the households to spoil them: a batch's loss is read from its day when the
   // household's fresh store is next touched (settle: the catch, the pot, the meal; Rules for cost, 3), and freshHeld reads a stale batch as
-  // gone before then. At most FRESH_CAP batches a food (a day's trips merge into one batch), so older ones are lost first. ----
+  // gone before then. A day's trips merge into one batch, so a food holds at most its keeping's days and one batches. ----
   // @state household.fresh: the household's fresh food, a list of batches by day (each a food, its day and its amount in units); written only here.
-  const FRESH_CAP = 4;
   const today = (st) => Math.floor(st.t / DAY);
-  const stale = (st, b) => today(st) - b.day > FOODS[b.food].keeps;
+  const stale = (st, b) => today(st) - b.day > keepsDays(b.food); // its food's keeping (sim/goods, VB-683)
   function setFresh(hh, list) {
     hh.fresh = list;
   }
@@ -55,16 +55,6 @@ VB['sim/pot'] = (() => {
       return n;
     }
     hh.fresh.push({ food, day: d, qty: n });
-    const mine = hh.fresh.filter((b) => b.food === food);
-    if (mine.length > FRESH_CAP) {
-      // the oldest batch of the food is lost
-      const old = mine[0];
-      record(st, hh, food, -old.qty, 'spoilage');
-      setFresh(
-        hh,
-        hh.fresh.filter((b) => b !== old),
-      );
-    }
     return n;
   }
   // Fresh food held, of one food or (food null) all, of the foods eaten uncooked only when raw; batches past their day do not count. Reads only.
@@ -271,7 +261,6 @@ VB['sim/pot'] = (() => {
     hh.meals +
     (hh.fresh.length ? freshHeld(st, hh) : 0);
   return {
-    FRESH_CAP,
     FISH_WAIT,
     WINTER_FISH,
     openFresh,

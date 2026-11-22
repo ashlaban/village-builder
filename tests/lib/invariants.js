@@ -663,7 +663,7 @@ function checkState(st) {
     const FOODS = globalThis.VB['sim/rules'].FOODS;
     for (const l of h.larder || []) if (!FOODS[l.kind] || !FOODS[l.kind].raw || FOODS[l.kind].held !== 'larder' ||
       !within(l.n, 0, 1e6)) bad.push(`households[${h.id}]: larder lot ${JSON.stringify(l)}`);
-    // fresh food (sim/pot, VB-119): batches of fresh foods above 0, in day order, none from a later day, at most FRESH_CAP of a food (a batch
+    // fresh food (sim/pot, VB-119): batches of fresh foods above 0, in day order, none from a later day, at most its keeping's days and one of a food (a batch
     // past its shelf life is held until the store is next touched, and read as gone)
     if (!Array.isArray(h.fresh)) bad.push(`households[${h.id}]: no fresh store`);
     else {
@@ -674,7 +674,7 @@ function checkState(st) {
             || i && h.fresh[i - 1].day > b.day) bad.push(`households[${h.id}]: fresh batch ${JSON.stringify(b)}`);
         per[b.food] = (per[b.food] || 0) + 1;
       }
-      for (const k in per) if (per[k] > globalThis.VB['sim/pot'].FRESH_CAP) bad.push(`households[${h.id}]: ${per[k]} batches of ${k}`);
+      for (const k in per) if (per[k] > globalThis.VB['sim/goods'].keepsDays(k) + 1) bad.push(`households[${h.id}]: ${per[k]} batches of ${k}`);
     }
     // help's seasonal ask (sim/help, VB-222): the season of the last ask, no later than this one
     if (h.askedIn !== undefined &&
@@ -748,7 +748,7 @@ function checkState(st) {
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
-        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', 'peat', 'tar', 'hide', ...FISHES, ...WOODS].includes(e.good)
+        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'salt meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', 'peat', 'tar', 'hide', ...FISHES, ...WOODS].includes(e.good)
         || e.stake && !st.pawns[e.pawn]) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }
@@ -758,7 +758,7 @@ function checkState(st) {
     for (let i = 0; i < holder.totals.length; i++) {
       const x = holder.totals[i], key = `${x.year}:${x.kind}:${x.good}`;
       if (!S.ROUTINE.includes(x.kind) || !Number.isInteger(x.year) || x.year > year || x.year < year - 3 || !Number.isFinite(x.n)
-          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves meat milk butter ale peat hide'.split(' '), ...FISHES, ...WOODS].includes(x.good)
+          || !Number.isInteger(x.count) || x.count < 1 || ![...'grain meals sheaves meat milk butter ale peat hide'.split(' '), 'salt meat', ...FISHES, ...WOODS].includes(x.good)
           || seen.has(key)
           || i && holder.totals[i - 1].year > x.year) bad.push(`stores[${holder.id}]: invalid total ${JSON.stringify(x)}`);
       seen.add(key);
