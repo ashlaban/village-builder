@@ -252,7 +252,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   filters by kind; a new event kind that belongs to one is added there. The History tab of the selection card is `src/page/history.js`.
 - Customs on the page (VB-396 to VB-398): `src/page/customs.js` is the Customs tab of a village's card, the customs as sentences (`SAID`; a
   new custom or option gets its phrase there), who stands by which way, and a voice's note (its pulls from `src/sim/leanings.js`, a
-  read-only view, weighed by `Culture.WEIGH`, the factors the daily drift itself reads, so the note and the drift cannot disagree); `src/page/culture.js` is the dock's Culture pane: a culture's villages, its own charter, the meetings.
+  read-only view, weighed by `sim/attitudes`' `WEIGH`, the factors the daily drift itself reads, so the note and the drift cannot disagree); `src/page/culture.js` is the dock's Culture pane: a culture's villages, its own charter, the meetings.
 - Decisions (VB-313; target-v2 4.5): `src/sim/decisions.js` settles a body's question with several voices. The module that poses a kind
   registers it at load (`defineKind(kind, {procedure, evaluate, fallback, choose?})`); `ask(st, question)` runs the body's procedure
   (`procedureFor`: `vote` or `agent`) and keeps a contested question's ballots in `st.decisionLog` (the last 30). A tie goes to the presiding
@@ -317,9 +317,12 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `leaveHousehold`, `clearMembers`, `setServant`). Death retains the last household on the historical record.
   `sim/membership.foundHousehold` creates, supplies, owns and populates a farm's household; restoration reaches it by the
   `foundHousehold` command, and a completed plot reaches `sim/cottage` by `finishCottage`.
-- `Culture` (`src/culture.js`) holds customs: culture-wide customs, per-settlement practice, per-person attitudes; it is their only writer
-  (`setPractice` the one write of a settlement's practice). `sim/customs` (VB-231, kernel) holds the catalogue (`DIMS`, `ARCHETYPES`,
-  `PRACTICES`) and the one door every module reads a custom in force through: `inForce(st, key, settlement)` (the option's key),
+- `Culture` (`src/culture.js`) holds the customs in force: culture-wide customs and per-settlement practice, and their only writer
+  (`setPractice` the one write of a settlement's practice), with the causes (`advocate`, `entrepreneurs`, `endCause`), the villages'
+  meetings, the yearly reckoning and the split. `sim/attitudes` (VB-417) holds what each person holds: the attitude, its anchor and its
+  leanings, their only writer (`seedAttitude`, `inherit`, the daily drift `dailyStep`/`settlementStep` weighed by `WEIGH`; culture moves
+  them through `pull` and `hold`). `sim/norms` (VB-417, kernel) holds the norms on goods (`WORTH`, `CLASSES`, `PROPER`, `norm`).
+  `sim/customs` (VB-231, kernel) holds the catalogue (`DIMS`, `ARCHETYPES`, `PRACTICES`, `fromArchetype`) and the one door every module reads a custom in force through: `inForce(st, key, settlement)` (the option's key),
   `inForceAt(st, k, settlement)` (its index) and `customOf(st, key, culture)`; outside the two, no module of `src/sim` indexes a practice array
   (the lint). `node tools/customs.js` lists each custom's readers.
 - Saves in the page (VB-214) are `src/page/saves.js`: `{build, savedAt, label, save: Sim.save(st)}`, gzipped, in IndexedDB (an auto slot and
@@ -341,20 +344,20 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 ## Layers (VB-230)
 Each module's layer is in `src/layers.json` (a module without one fails `npm test`); target-v2 3.1 gives the rule: calls go downward, reads are
 free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
-- Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
+- Kernel and world: `vb`, `gen`, `gen/*`, `sim/norms` (the norms on goods, VB-417), `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
   `sim/villagehours`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
   head's skill and bias, VB-254), `sim/skills` (VB-475: a pawn's skill at each type of work, a stand-in that does not grow, from the stream
   `traits`, and a work leg's pace: skill and a mishap from the stream `mishap`; `sim/agents` writes `agent.pace` at the leg's start and
   `manning` reads it; VB-360: a pawn's crafts, `pawn.skills`, learnt by doing and fading, read in closed form: a kind names its `craft`,
   the leg's pace reads its level, and `sim/work`'s `settle` practises it with the hours worked), `sim/commands`, `sim/customs` (the catalogue of customs and the door to the customs in force, VB-231).
-- Material and land: `sim/projects` (the project plans' record and reads, VB-123), `sim/holding` (who may come to hold a farm: one table of the bars, each way to a farm the list it reads, and the household that goes with a new holder, VB-688), `sim/makings` (the registry of what a head begins through the verb `project`, VB-678), `sim/projectplans` (their one writer; VB-431), `sim/goods` (trade goods, grain subtype identifiers and culture’s worth and propriety rules), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/seasonal` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fieldplans` (household demand, site selection and project planning), `sim/rotations` (crop choices and the village custom), `sim/fields` (field state transitions), `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
+- Material and land: `sim/projects` (the project plans' record and reads, VB-123), `sim/holding` (who may come to hold a farm: one table of the bars, each way to a farm the list it reads, and the household that goes with a new holder, VB-688), `sim/makings` (the registry of what a head begins through the verb `project`, VB-678), `sim/projectplans` (their one writer; VB-431), `sim/goods` (trade goods, grain subtype identifiers and the worth and propriety rules of `sim/norms`), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/seasonal` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fieldplans` (household demand, site selection and project planning), `sim/rotations` (crop choices and the village custom), `sim/fields` (field state transitions), `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/fieldwork` (the job kinds of a farm's fields, beside `sim/fields`, VB-418), `sim/chores` (the job kinds of the household's daily work at
   the house: firewood, water, cooking, brewing, gathering, VB-418),
   `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058), `sim/lying` (loads left
   lying where their carrier fell, VB-611), `sim/droving` (animals that change household, led home from where they stand, VB-674).
-- Social: `culture`, `sim/encounters`, `sim/relations`, `sim/courting` (VB-036), `sim/society`, `sim/deaths`, `sim/births`, `sim/heirranking`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`, `sim/obligations`,
+- Social: `sim/attitudes`, `culture`, `sim/encounters`, `sim/relations`, `sim/courting` (VB-036), `sim/society`, `sim/deaths`, `sim/births`, `sim/heirranking`, `sim/heirs`, `sim/membership`, `sim/cottage`, `sim/settle`, `sim/obligations`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
 - Agency: `sim/legs`, `sim/work`, `sim/attention`, `sim/agents` (VB-422), `sim/away` (the stays away from home, VB-783), `sim/gifts` (how a gift gets from here to there: the verbs `give` and
