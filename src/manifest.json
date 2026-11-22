@@ -106,6 +106,7 @@
   "sim/venues.js",
   "sim/gathering.js",
   "sim/fair.js",
+  "sim/routines.js",
   "sim/plandays.js",
   "sim/plans.js",
   "sim/jobs.js",

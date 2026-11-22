@@ -175,7 +175,7 @@ function checkState(st) {
           // VB-257: a village's routines this year: at most MAX_ROUTINES, each a known routine, once; set by the founders, the meeting or a
           // practice of what follows a meeting that did not decide
           const PL = globalThis.VB['sim/plans'], R = plan.routines;
-          if (PL.routinesWhy(R) || !['founded', 'meeting', 'nothing', 'asLastYear'].includes(plan.routinesBy) || !Number.isInteger(plan.routinesYear)
+          if (VB['sim/routines'].routinesWhy(R) || !['founded', 'meeting', 'nothing', 'asLastYear'].includes(plan.routinesBy) || !Number.isInteger(plan.routinesYear)
             || (plan.routinesBy === 'nothing' && R.length)) bad.push(`plans: village ${id} has routines ${JSON.stringify(R)} by ${plan.routinesBy}`);
           continue;
         }

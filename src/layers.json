@@ -134,6 +134,7 @@
       "sim/round",
       "sim/preview",
       "sim/eligibility",
+      "sim/routines",
       "sim/plandays",
       "sim/plans",
       "sim/aims",

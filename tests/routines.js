@@ -84,10 +84,10 @@ function green(st, v, ids) {
 }
 { // a tie across the fourth place does not decide; otherwise the four most needed
   const five = [[3, 'a'], [3, 'b'], [3, 'c'], [2, 'd'], [2, 'e']];
-  assert.strictEqual(Plans.rankRoutines(five), null, 'a tie at the cut');
-  assert.deepStrictEqual(Plans.rankRoutines([[1, 'a'], [3, 'b'], [2, 'c'], [5, 'd'], [4, 'e']]), ['d', 'e', 'b', 'c']);
-  assert.deepStrictEqual(Plans.rankRoutines([[0, 'fence']]), ['fence'], 'one routine is always chosen');
-  assert.strictEqual(Plans.MAX_ROUTINES, 4);
+  assert.strictEqual(VB['sim/routines'].rankRoutines(five), null, 'a tie at the cut');
+  assert.deepStrictEqual(VB['sim/routines'].rankRoutines([[1, 'a'], [3, 'b'], [2, 'c'], [5, 'd'], [4, 'e']]), ['d', 'e', 'b', 'c']);
+  assert.deepStrictEqual(VB['sim/routines'].rankRoutines([[0, 'fence']]), ['fence'], 'one routine is always chosen');
+  assert.strictEqual(VB['sim/routines'].MAX_ROUTINES, 4);
 }
 { // the verb checks the list: known routines, once, at most four, and how they were set
   const { st, v, plan } = setUp(), before = JSON.stringify(plan.routines);

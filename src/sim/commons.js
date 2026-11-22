@@ -90,7 +90,7 @@ VB['sim/commons'] = (() => {
     const farms = houses(st, v).length;
     return farms >= COMMONS.minFarms && room(st, v, farms) && storeDays(st, v) < COMMONS.storeDays && site(st, v) >= 0;
   }
-  // Whether the routine is open to the village (VILLAGE_ROUTINES, sim/plans): it has common fields to work, one under way, or would make one.
+  // Whether the routine is open to the village (VILLAGE_ROUTINES, sim/routines): it has common fields to work, one under way, or would make one.
   const available = (st, v) => fieldsOf(v).length > 0 || !!underWay(st, v) || wanted(st, v);
   // The common field's project plan, as sim/plans makes it (makeProject), or null while the village would make none.
   function project(st, v) {

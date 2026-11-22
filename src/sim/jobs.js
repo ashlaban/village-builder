@@ -23,7 +23,8 @@ VB['sim/jobs'] = (() => {
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
   const { trustOf, heldFarms } = VB['sim/ownership'];
-  const { planOf, reviewed, landStep, routineAsks } = VB['sim/plans'],
+  const { planOf, reviewed, landStep } = VB['sim/plans'],
+    { routineAsks } = VB['sim/routines'],
     { reviewWhy, mayLook, WINDOWED, dueNow, again } = VB['sim/plandays'];
   const { onProject } = VB['sim/projects'];
   // @tunable IDLE: how long an idle pawn waits before it looks for work again
