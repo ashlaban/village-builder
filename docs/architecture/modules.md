@@ -313,7 +313,9 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Kernel and world: `vb`, `gen`, `gen/*`, `sim/rules`, `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
   `sim/villagehours`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
-  head's skill and bias, VB-254), `sim/commands`.
+  head's skill and bias, VB-254), `sim/skills` (VB-475: a pawn's skill at each type of work, the stand-in until VB-360, from the stream
+  `traits`, and a work leg's pace: skill and a mishap from the stream `mishap`; `sim/agents` writes `agent.pace` at the leg's start and
+  `manning` reads it), `sim/commands`.
 - Material and land: `sim/projects` (the project plans' record and reads, VB-123; `sim/plans` writes them), `sim/goods` (trade goods, grain subtype identifiers and culture’s worth and propriety rules), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/plans` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fieldplans` (household demand, site selection and project planning), `sim/rotations` (crop choices and the village custom), `sim/fields` (field state transitions), `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
   `sim/stakes`, `sim/territory`, `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/fieldwork` (the job kinds of a farm's fields, beside `sim/fields`, VB-418), `sim/chores` (the job kinds of the household's daily work at
