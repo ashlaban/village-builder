@@ -14,7 +14,8 @@ VB['sim/opportunities'] = (() => {
   const { goOnAs } = VB['sim/player'];
   const { advice, what: offerText } = VB['sim/offers'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
-  const { SOCIAL, GATHERING } = VB['sim/rules'];
+  const { GATHERING } = VB['sim/rules'],
+    { SOCIAL } = VB['sim/ties'];
   const { fit, jobsFor } = VB['sim/jobs'];
   const { eligible } = VB['sim/eligibility'];
   const { heirRanking, successorOf } = VB['sim/heirranking'],

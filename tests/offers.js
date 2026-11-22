@@ -178,7 +178,7 @@ console.log(`offers ok: a match asked is open until the round; the played man's 
 // 10. Opinion in the negotiation (VB-275): the score, the young's no and the spokesmen's no, with opinions set through relations' remember.
 // Enmity: two kinds of memory that together pass SOCIAL.enemy (claim -0.45 and border -0.3 at most).
 {
-  const { SOCIAL, MARRIAGE } = VB['sim/rules'], { remember } = VB['sim/relations'], { matchScore } = VB['sim/matching'];
+  const { MARRIAGE } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'], { remember } = VB['sim/relations'], { matchScore } = VB['sim/matching'];
   const hate = (st, a, b) => {
     remember(st, a, b, 'claim'); remember(st, a, b, 'claim'); remember(st, a, b, 'claim'); remember(st, a, b, 'border'); remember(st, a, b, 'border');
     remember(st, a, b, 'border'); assert.ok(opinionOf(st, a, b) <= SOCIAL.enemy, `${a} is an enemy of ${b}: ${opinionOf(st, a, b)}`); };

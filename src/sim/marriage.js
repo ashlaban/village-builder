@@ -4,7 +4,8 @@
 VB['sim/marriage'] = (() => {
   const { living, home } = VB['sim/records'];
   const { emit, on } = VB['sim/events'];
-  const { MARRIAGE, SOCIAL, ASK, HUNGER, HANDOVER, AGES, ECON, YEAR, YEAR_DAYS } = VB['sim/rules'];
+  const { MARRIAGE, ASK, HUNGER, HANDOVER, AGES, ECON, YEAR, YEAR_DAYS } = VB['sim/rules'],
+    { SOCIAL } = VB['sim/ties'];
   const {
     personEvent,
     log,

@@ -4,7 +4,7 @@
 // rite's leader is the most devout respected holder present, and only it gains the ties of those who came.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/stores'], O = VB['sim/occasions'];
-const { SOCIAL, TRAITS, ALE_EVENING, DAY, TICKS } = VB['sim/rules'], { issue } = VB['sim/commands'];
+const { TRAITS, ALE_EVENING, DAY, TICKS } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'], { issue } = VB['sim/commands'];
 const stored = (st, a, b) => st.pawns[a].ties.get(b) || 0; // the stored weight, on the pawn's own decaying scale (sim/ties' tieOf)
 const { state } = require('./lib/probe.js'), { checkState } = require('./lib/invariants.js');
 

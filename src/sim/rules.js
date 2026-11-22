@@ -390,91 +390,6 @@ VB['sim/rules'] = (() => {
     passing: 0.5,
   };
 
-  // ---- relationships (sim/relations; docs/review-relationships.md; VB-240, Kim 10 Nov): one pawn's opinion of another (-1..1) is derived:
-  // the bond's value (kin, spouse, housemate), plus affinity, affinity.weight * compatibility * min(1, tie / affinity.known), the pair's
-  // fixed compatibility shown as the two grow familiar, plus timed memories of things that happened. A memory gains v at each event, up to
-  // cap, and fades to 0 over `days` from the last one.
-  // Talk (VB-521: by turns): between 6:00 and 22:00 a pawn has a talk turn in the hours where (hour + id) % `every` is 0, four a day; at it,
-  // of minAge or more and not carrying a load, it starts a talk at `chance` with one partner sim/encounters finds (`sample` drawn at most
-  // outdoors), weighted by (1 + min(tie, 1)) * (1 + opinion), plus the encounter's mix; it may be drawn as a partner in any hour, once.
-  // The talk is a chat, a good talk or cross words by weights 1, good * e^(2c) and cross * e^(-2c), c being the pair's compatibility (+kin
-  // for kin and housemates): its kind is the bubble's, and leaves no memory. Two unmarried pawns aged within `young` count `youngBonus`
-  // times in both the choice and the good talk. A talk adds ties.talk to the tie of both and shows a bubble for `bubbleHours`. closeFriend
-  // and enemy: an opinion reaching them is a life event; leaving needs `back` past the line. friend and dislike are the page's words only.
-  // seek: chance that an idle pawn walks to someone it likes who idles in its village (of seekSample drawn), rather than to the green or its yard.
-  const SOCIAL = {
-    situational: { spouse: 0.3, parent: 0.3, child: 0.3, sibling: 0.2, housemate: 0.1 },
-    memories: {
-      bull: { label: 'Lent us the bull', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/herds: a cow calved by another farm's bull
-      border: { label: 'Won the border from us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS }, // sim/territory: lost a border dispute to their village (VB-157)
-      claim: { label: 'Took our claim', v: -0.15, cap: -0.45, days: 3 * YEAR_DAYS }, // sim/stakes: their household took a stake of ours (VB-158)
-      // sim/lifecycle: the pawn refused a match its spokesman made (consent's cost; design.md, Marriage as a negotiation; VB-293)
-      ale: { label: 'Poured us ale', v: 0.05, cap: 0.2, days: 3 * YEAR_DAYS }, // sim/occasions: a barrel poured at a wedding or a funeral ale (VB-305)
-      refusedMatch: { label: 'Refused the match I made', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
-      // sim/courting: a head refused the match of a courting pair; each of the two remembers that head (VB-036; plan VB-682, 4.1)
-      refusedCourting: { label: 'Refused our match', v: -0.2, cap: -0.4, days: 3 * YEAR_DAYS },
-      // sim/marriage (VB-693; plan VB-682, 4.1): a spokesman, of the spokesman who refused the match he offered (not when hers took a
-      // better offer, which is no slight); and one who yielded to a match made for it while it courted another, of its spokesman
-      refusedSuit: { label: 'Refused the match I offered', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
-      marriedAgainst: { label: 'Married me against my wish', v: -0.3, cap: -0.3, days: 5 * YEAR_DAYS },
-      // sim/offers: a refusal of goods offered or asked for (VB-690) is a memory of both: the one refused, and, fainter, the one who refused
-      refusedUs: { label: 'Refused what we offered', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
-      refusedThem: { label: 'We refused them', v: -0.05, cap: -0.15, days: YEAR_DAYS },
-      // sim/fair: an animal given for food in want (a hard bargain, VB-302), of the one who drove it
-      hardBargain: { label: 'Drove a hard bargain with us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS },
-      // sim/byre: an unherded herd got into the field through a broken stretch of fence; about the holder of the stretch's keeper (VB-136)
-      crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
-      // sim/agents: a helper finished a job of another household of its village, both ways with each adult there (VB-106; Kim, 10 Nov)
-      worked: { label: 'Worked together', v: 0.05, cap: 0.3, days: YEAR_DAYS },
-      // sim/workdays: a holder of the village whose household stayed away from a work day; each other holder with a tie to it (VB-120; Kim,
-      // 10 Nov: a small negative memory fading over a year; the numbers are the agent's starting values)
-      stayedAway: { label: 'Stayed away from the work day', v: -0.05, cap: -0.15, days: YEAR_DAYS },
-      // sim/relations: cross words that became a quarrel, both ways (VB-520; design.md, The twelve traits: temper)
-      quarrel: { label: 'Quarrelled with us', v: -0.1, cap: -0.3, days: YEAR_DAYS },
-    },
-    talk: {
-      from: 6,
-      to: 22,
-      every: 4,
-      chance: 1,
-      minAge: 4,
-      sample: 8,
-      good: 0.15,
-      cross: 0.08,
-      kin: 0.15,
-      young: [16, 30],
-      youngBonus: 2,
-      bubbleHours: 0.5,
-      quarrel: 0.05, // a talk of cross words becomes a quarrel at this times the two tempers' sum (VB-520)
-    },
-    // Chemistry (VB-520; design.md, Chemistry): a pair's compatibility is personal × the seeded term + likeness × how alike the two are in
-    // the four values and sociability (1 alike, 0 at `span`, the mean difference of two drawn at random, -1 at twice that) − friction ×
-    // (the two tempers' sum − 1) − customs × the share of customs on which they lean to different options (each weighed by 1 − its
-    // malleability), less the age gap, within -1..1. The last term is Like seeks like (Balance loops and targets; Decided, 12 Nov). The
-    // design's first weights were 0.7, 0.5, 0.3, 0.3; personal 0.9 and friction 0.4 keep the shares of close friends, friends, dislikes
-    // and enemies within a fifth of what they were (VB-520's five runs, populous small seed 7, 3 years).
-    chemistry: { personal: 0.9, likeness: 0.5, friction: 0.4, customs: 0.3, span: 0.17 },
-    // Familiarity (VB-127; docs/review-relationships.md, proposal B): a tie grows by `talk` a talk (VB-521: 0.8, a longer conversation at
-    // four turns a day; it was 0.5), by `home` per 24 waking hours (the talk hours) two housemates spend in their house, counted once a
-    // day, and by `work` for each job two pawns finish together; it halves every year. Near kin never fall below `kin`. A pawn keeps at
-    // most `cap` ties, the strongest, kin always kept; ties under `forget` are dropped when the pawn's ties are put back on today's scale,
-    // every `renorm` years.
-    ties: { talk: 0.8, home: 1, work: 0.5, kin: 0.4, rite: 0.25, cap: 150, forget: 0.02, renorm: 4 }, // rite: to the rite's leader (VB-522)
-    affinity: { weight: 0.6, known: 8 },
-    friend: 0.25,
-    dislike: -0.2,
-    // VB-1106: at 0.1 one telling in five was a second telling of the same pair (populous small seed 7, 20 years); at 0.2, one in 75,
-    // and a close friendship is left where the two are no longer friends (the friend line)
-    back: 0.2,
-    // The age of account (VB-1106): the lawful age of the Norse and Anglo-Saxon laws, 12, below which a child answered for nothing it
-    // did. Between a pawn below it and anyone, chemistry counts only where it is liking (the opinion's affinity is not below 0), and
-    // cross words become no quarrel: no memory, no event. A physical fact of childhood, not a custom.
-    account: 12,
-    closeFriend: 0.45,
-    enemy: -0.5,
-    seek: 0.5,
-    seekSample: 4,
-  };
   // ---- marriage: who is matched in the moving round (ages in years; the score is -|gap error| * gapWeight + village bonus + noise) ----
   const MARRIAGE = {
     menFrom: 20,
@@ -1090,7 +1005,6 @@ VB['sim/rules'] = (() => {
     stalled,
     FOODS,
     SOIL,
-    SOCIAL,
     SPEED,
     BREW,
     ALE_EVENING,

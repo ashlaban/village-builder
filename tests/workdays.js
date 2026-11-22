@@ -9,7 +9,7 @@ const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const Plans = VB['sim/plans'], W = VB['sim/workdays'], { age, fullName } = VB['sim/records'], { tieOf, addTie } = VB['sim/ties'];
 const { setClock } = require('./lib/clock.js');
-const { ROLES, DAY, WORK, YEAR_DAYS, SEASON_DAYS, SOCIAL, cal } = VB['sim/rules'], { WORKDAY } = VB['sim/workdays'];
+const { ROLES, DAY, WORK, YEAR_DAYS, SEASON_DAYS, cal } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'], { WORKDAY } = VB['sim/workdays'];
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 4, sizes: [6, 6, 6, 6] }], { seed: 4 });
 const v = st.villages[0], plan = Plans.planOf(st, 'village', v.id);

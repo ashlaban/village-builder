@@ -135,7 +135,7 @@ check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the 
     const r = s.pawns[holder].rel.get(kept);
     // a breach, felt by the holder's honour (VB-520: TRAITS.acts.honour.breach, 0.5 to 1.5 times the memory's value)
     const felt = VB['sim/traits'].act(s, holder, 'honour', 'breach');
-    check(r && r.mem.crop && Math.abs(r.mem.crop.v - VB['sim/rules'].SOCIAL.memories.crop.v * felt) < 1e-9, `the holder's memory ${JSON.stringify(r && r.mem)}`);
+    check(r && r.mem.crop && Math.abs(r.mem.crop.v - VB['sim/ties'].SOCIAL.memories.crop.v * felt) < 1e-9, `the holder's memory ${JSON.stringify(r && r.mem)}`);
     remembered = 'the holder remembers it of the keeper';
   }
   // mended, it holds: no crop is lost

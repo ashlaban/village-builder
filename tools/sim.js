@@ -205,11 +205,11 @@ const tables = {
           if (!st.pawns[j].alive) continue;
           const o = R.opinionOf(st, p.id, j), out = st.pawns[j].household !== p.household;
           x.records++; x[WORD[R.opinionWord(o)]]++;
-          if (p.age >= 16 && out && o >= VB['sim/rules'].SOCIAL.friend) x.friendsOut++;
-          if (p.age >= 16 && out && o <= VB['sim/rules'].SOCIAL.dislike) x.dislikedOut++;
+          if (p.age >= 16 && out && o >= VB['sim/ties'].SOCIAL.friend) x.friendsOut++;
+          if (p.age >= 16 && out && o <= VB['sim/ties'].SOCIAL.dislike) x.dislikedOut++;
           const across = p.age >= 16 && Sim.settlementIdOf(st, st.pawns[j]) !== v; // of another village (VB-126)
           if (across && p.ties.has(j)) x.tiesAcross++;
-          if (across && o >= VB['sim/rules'].SOCIAL.friend) x.friendsAcross++;
+          if (across && o >= VB['sim/ties'].SOCIAL.friend) x.friendsAcross++;
         }
       }
     }

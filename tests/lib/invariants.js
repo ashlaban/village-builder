@@ -1218,7 +1218,7 @@ function checkState(st) {
     !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
   // the hour of a pawn's last talk with a friend (agent.talk.friendAt, VB-062): a finite hour, no later than a talk begun now can show (two
   // talks in one hour may be shown in either order, so it may follow the latest talk's own hour)
-  for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= st.t + VB['sim/rules'].SOCIAL.talk.bubbleHours + 1e-9)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, after now (${st.t}) and a talk's bubble`);
+  for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= st.t + VB['sim/ties'].SOCIAL.talk.bubbleHours + 1e-9)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, after now (${st.t}) and a talk's bubble`);
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
   for (const a of st.agents) {
@@ -1636,7 +1636,7 @@ function checkGoodwill(st, p, bad) {
 // above 0, at most SOCIAL.ties.cap of them (or its near kin, if more); its scale's start is no later than now, and its waking hours at
 // home today are a whole number within the talk hours. (The kin floor is checked in tests/relations.js.)
 function checkTies(st, p, bad) {
-  const { SOCIAL } = VB['sim/rules'], TIES = SOCIAL.ties, T = SOCIAL.talk;
+  const { SOCIAL } = VB['sim/ties'], TIES = SOCIAL.ties, T = SOCIAL.talk;
   if (!(Number.isFinite(p.tieT) && p.tieT <= st.t)) bad.push(`pawns[${p.id}]: tieT ${p.tieT} at ${st.t}`);
   if (!(Number.isInteger(p.homeHours) && p.homeHours >= 0 && p.homeHours <= T.to - T.from)) bad.push(`pawns[${p.id}]: homeHours ${p.homeHours}`);
   if (!p.alive) return;
@@ -1654,7 +1654,7 @@ function checkTies(st, p, bad) {
 // and agreeing with the opinion within SOCIAL.back and the most it can drift with nothing touching the pair between the season's checks
 // (fadeRelations): a tie's affinity fading for a season, each memory fading for a season, and the housemate's bond lost.
 function checkRel(st, p, bad) {
-  const { SOCIAL, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'], R = VB['sim/relations'];
+  const { SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'], { SOCIAL } = VB['sim/ties'], R = VB['sim/relations'];
   if (!p.alive) {
     if (p.rel.size) bad.push(`pawns[${p.id}]: dead with ${p.rel.size} relationship records`);
     if (p.bands && p.bands.size) bad.push(`pawns[${p.id}]: dead with ${p.bands.size} bands`);

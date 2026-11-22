@@ -3,7 +3,7 @@
 // herders 100 units apart can, at 150 they cannot; an occasion's mix lets a pawn be drawn whom familiarity and liking alone would not;
 // present and said read those who came.
 const VB = require('../src/load.js'), R = VB['sim/relations'], E = VB['sim/encounters'], A = VB['sim/agents'];
-const { SOCIAL } = VB['sim/rules'], T = SOCIAL.talk;
+const { SOCIAL } = VB['sim/ties'], T = SOCIAL.talk;
 const { state } = require('./lib/probe.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('ENCOUNTERS FAIL:', m); } };

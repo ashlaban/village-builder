@@ -8,7 +8,8 @@ VB['sim/society'] = (() => {
   const Culture = VB['culture'];
   const { initRelations } = VB['sim/relations'],
     { raiseTie } = VB['sim/ties'];
-  const { YEAR, houseTerm, SPEED, OFFICE, cal, TRAITS, HERD, SOCIAL, DAY } = VB['sim/rules'],
+  const { YEAR, houseTerm, SPEED, OFFICE, cal, TRAITS, HERD, DAY } = VB['sim/rules'],
+    { SOCIAL } = VB['sim/ties'],
     { WORKDAY } = VB['sim/workdays'];
   const { herdsOf, winterNeed } = VB['sim/herds'];
   const { addValues, act } = VB['sim/traits'];

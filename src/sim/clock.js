@@ -1,7 +1,8 @@
 // @sys sim/clock: the calendar (one ordered table of what runs each step, hour, day, season and year) and Sim.advance
 VB['sim/clock'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, SOCIAL, HERD, FISH, ASK } = VB['sim/rules'];
+  const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, HERD, FISH, ASK } = VB['sim/rules'],
+    { SOCIAL } = VB['sim/ties'];
   const { log, startFold, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { spreadForest } = VB['sim/spread'];
