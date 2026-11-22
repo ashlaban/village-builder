@@ -5,7 +5,7 @@ const VB = require('../src/load.js');
 const { tinyWorld, tinyState, setPractice } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const { OFFICE } = VB['sim/rules'];
-const Ob = VB['sim/obligations'], Keep = VB['sim/keep'], Culture = VB.culture;
+const Ob = VB['sim/obligations'], Keep = VB['sim/keep'], Culture = VB.culture, Customs = VB['sim/customs'];
 const map = ['..............', '...FF.........', '...FF.........', '..............', '..........FF..', '..............', '.........^^...', '..............', '~.............', '~~............'];
 function world(option) {
   const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 3 }], { seed: 7 });
@@ -15,8 +15,8 @@ function world(option) {
   v.alderman = st.households[st.farmsteads[v.farmsteads[0]].household].holder;
   return { st, v, s: st.cenv.settlements[0] };
 }
-assert.deepStrictEqual(Culture.DIMS[Culture.IDX.keep].opts.map((o) => o[0]), ['days', 'share', 'nothing']);
-assert.strictEqual(Culture.fromArchetype('oldNordic')[Culture.IDX.keep], 0, 'days by default');
+assert.deepStrictEqual(Customs.DIMS[Customs.IDX.keep].opts.map((o) => o[0]), ['days', 'share', 'nothing']);
+assert.strictEqual(Customs.fromArchetype('oldNordic')[Customs.IDX.keep], 0, 'days by default');
 {
   const { st, v, s } = world('days');
   const hhA = st.pawns[v.alderman].household;

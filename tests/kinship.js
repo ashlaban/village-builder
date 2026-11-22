@@ -1,5 +1,5 @@
 // Marriage limit by civil degree (VB-029): degrees on a constructed pedigree, who may never marry, and the scarcity and plenty pulls on kinLimit.
-const VB = require('../src/load.js'), Sim = VB.sim, C = VB.culture, rules = VB['sim/rules'];
+const VB = require('../src/load.js'), Sim = VB.sim, C = VB.culture, Customs = VB['sim/customs'], rules = VB['sim/rules'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('KINSHIP FAIL:', m); } };
 // pedigree: 0,1 grandparents; 2,3 their children; 4 spouse of 2 from outside (no parents on record); 5 child of 2,4 (first cousin of 7 via 0,1)
 const mk = (father, mother) => ({ father, mother });
@@ -11,7 +11,7 @@ check(D(3, 5) === 3 && D(5, 3) === 3, 'uncle and niece are degree 3');
 check(D(8, 7) === 5, 'first cousins once removed are degree 5 (child of 5 and 7)');
 check(D(9, 7) === 6, 'second cousins are degree 6'); check(D(12, 9) === 8, 'third cousins are degree 8 (through 7 and 9 line)');
 check(D(0, 5) === 0 && D(5, 0) === 0 && D(9, 0) === 0, 'a direct line is degree 0'); check(D(13, 5) === Infinity, 'no common ancestor means no limit');
-const opts = C.DIMS[C.IDX.kinLimit].opts.map((o) => o[0]);
+const opts = Customs.DIMS[Customs.IDX.kinLimit].opts.map((o) => o[0]);
 check(opts.join() === 'second,first,close,uncle', 'kinLimit options are second, first, close, uncle');
 for (const o of opts) {
   const cu = { kinLimit: o, affinity: 'free' }, ok = (a, b) => VB['sim/matching'].kinOk(st, a, b, cu);
@@ -22,7 +22,7 @@ for (const o of opts) {
 // On the small heirs island (VB-854): the scarcity and plenty pushes at one moving round, on a pedigree laid over the scenario's people,
 // where the long run waited eight years of heirs for kin to block a match.
 const { scenario } = require('./lib/probe.js'), Rec = VB['sim/records'];
-const k = C.IDX.kinLimit, off = C.OFF[k];
+const k = Customs.IDX.kinLimit, off = Customs.OFF[k];
 const round = (opt, kin) => {
   const s = scenario('heirs'); s.naturalDeaths = false;
   for (const set of s.cenv.settlements) set.practice[k] = opts.indexOf(opt);
@@ -73,7 +73,7 @@ check(loose > none * 1.1, 'scarcity pull raises support for the looser option');
   const s2 = { t: 100, households: [], farmsteads: [], pawns: [mp(0, null, null), mp(1, null, null), mp(2, 0, 3), mp(3, null, null), mp(4, null, null), mp(5, 6, 1), mp(6, null, null), mp(7, 4, null)],
     unions: [{ id: 0, a: 0, b: 1, start: 10, end: 50 }, { id: 1, a: 6, b: 1, start: 0, end: 5 }] };
   const ok = (a, b, o) => M.kinOk(s2, a, b, { kinLimit: 'uncle', affinity: o });
-  check(C.DIMS[C.IDX.affinity].opts.map((o) => o[0]).join() === 'fourth,line,free', 'affinity options');
+  check(Customs.DIMS[Customs.IDX.affinity].opts.map((o) => o[0]).join() === 'fourth,line,free', 'affinity options');
   for (const o of ['fourth', 'line']) check(!ok(1, 2, o) && !ok(2, 1, o), `${o}: a widow and her late husband's son are not matched`);
   check(ok(1, 2, 'free') && ok(2, 1, 'free'), 'free: they are');
   for (const o of ['fourth', 'line', 'free']) check(ok(2, 5, o), `${o}: step-siblings marry`);

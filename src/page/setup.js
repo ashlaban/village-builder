@@ -4,7 +4,8 @@ const G = ArchGen,
   TEX = G.TEX,
   Rivers = VB['gen/rivers'],
   Paths = VB['gen/paths'],
-  Geo = VB['gen/geology'];
+  Geo = VB['gen/geology'],
+  Customs = VB['sim/customs'];
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;

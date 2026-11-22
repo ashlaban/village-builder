@@ -1,7 +1,7 @@
 // @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the
 // record of events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
 VB['sim/records'] = (() => {
-  const Culture = VB['culture'],
+  const Customs = VB['sim/customs'],
     { inForce } = VB['sim/customs'];
   const Crowding = VB['sim/crowding'];
   const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
@@ -577,7 +577,7 @@ VB['sim/records'] = (() => {
   // Every custom in force at a settlement, by key (one object a call: for the readers that read several at once).
   const practice = (st, settlementId) => {
     const out = {};
-    for (const d of Culture.DIMS) out[d.key] = inForce(st, d.key, settlementId);
+    for (const d of Customs.DIMS) out[d.key] = inForce(st, d.key, settlementId);
     return out;
   };
   const farmPractice = (st, f) => practice(st, f.village);

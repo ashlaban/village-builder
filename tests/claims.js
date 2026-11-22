@@ -71,13 +71,13 @@ check(D.settle(st, [ca, cb], 'meeting', { village: 0 }) === cb, 'meeting: the cl
 const tv = tileAt(st.w, 9, 4), va = CL.addClaim(st, tv, V(1), 'outland'), vb = CL.addClaim(st, tv, V(0), 'outland');
 check(D.settle(st, [va, vb], 'first') === va && D.settle(st, [va, vb], 'meeting') === vb, 'villages: the first claim, or the larger meeting');
 // the loser's grievance: the rules that would have let it win
-check(JSON.stringify(D.DISPUTE) === JSON.stringify(VB.culture.DIMS[VB.culture.IDX.dispute].opts.map((o) => o[0])), 'the rules disputes knows are the custom\'s options, in order');
+check(JSON.stringify(D.DISPUTE) === JSON.stringify(VB['sim/customs'].DIMS[VB['sim/customs'].IDX.dispute].opts.map((o) => o[0])), 'the rules disputes knows are the custom\'s options, in order');
 check(D.rulesFor(st, [ca, cb], ca, { village: 0 }).includes('first') && !D.rulesFor(st, [ca, cb], ca, { village: 0 }).includes('meeting'), 'rulesFor');
 D.aggrieve(st, [ca, cb], cb, { village: 0 });
 check(hA.grievance && hA.grievance.rules.includes('first') && !hB.grievance, 'the loser remembers which rules would have served it');
 Sim.refreshInterests(st);
-const adultA = st.pawns.find((p) => p.alive && p.household === a && p.age >= 16), C = VB.culture, k = C.IDX.dispute;
-check(adultA && adultA.interest[C.OFF[k] + C.optIndex('dispute', 'first')] > 0, 'an aggrieved adult leans towards the rule that would have served it');
+const adultA = st.pawns.find((p) => p.alive && p.household === a && p.age >= 16), C = VB.culture, Customs = VB['sim/customs'], k = Customs.IDX.dispute;
+check(adultA && adultA.interest[Customs.OFF[k] + Customs.optIndex('dispute', 'first')] > 0, 'an aggrieved adult leans towards the rule that would have served it');
 
 // ---- land held ----
 const land = CL.holdings(st), h0 = land.households.get(0), v0 = land.villages.get(0);

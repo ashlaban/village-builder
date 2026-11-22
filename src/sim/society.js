@@ -6,6 +6,7 @@ VB['sim/society'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const { ask } = VB['sim/decisions'];
   const Culture = VB['culture'],
+    Customs = VB['sim/customs'],
     { inForceAt } = VB['sim/customs'];
   const { initRelations } = VB['sim/relations'],
     { raiseTie } = VB['sim/ties'];
@@ -66,8 +67,8 @@ VB['sim/society'] = (() => {
   }
   function initCulture(st, leanBySettlement, overrides = {}) {
     const env = (st.cenv = { t: st.t / YEAR, cultures: [], settlements: [], people: st.pawns, driftMul: 1 });
-    const customs = Culture.fromArchetype('oldNordic');
-    for (const [key, opt] of Object.entries(overrides)) customs[Culture.IDX[key]] = Culture.optIndex(key, opt);
+    const customs = Customs.fromArchetype('oldNordic');
+    for (const [key, opt] of Object.entries(overrides)) customs[Customs.IDX[key]] = Customs.optIndex(key, opt);
     const c = Culture.makeCulture(env, 'Nordic', customs, 0, null, TRAITS.culture.oldNordic);
     for (const v of st.villages) addSettlement(st, v, c.id, customs, v.id === 0 ? 1 : 0.5);
     for (const p of st.pawns) {
@@ -193,8 +194,8 @@ VB['sim/society'] = (() => {
   // left out): a village's meeting refreshes its own (VB-278). Each household's first heir is ranked once a call (a memo by household);
   // the dead's interest is cleared at the death (sim/lifecycle, killPawn), so no walk of every pawn ever is made.
   function refreshInterests(st, people = null) {
-    const I = Culture.IDX,
-      O = Culture.OFF,
+    const I = Customs.IDX,
+      O = Customs.OFF,
       first = new Map();
     const firstHeir = (hh) => {
       if (!first.has(hh.id)) first.set(hh.id, heirRanking(st, hh)[0]);
@@ -209,8 +210,8 @@ VB['sim/society'] = (() => {
       const set = (dim, prefs) => {
         const k = I[dim],
           o = O[k];
-        for (let j = 0; j < Culture.NOPT[k]; j++) it[o + j] = 0;
-        for (const [opt, v] of Object.entries(prefs)) it[o + Culture.optIndex(dim, opt)] = v;
+        for (let j = 0; j < Customs.NOPT[k]; j++) it[o + j] = 0;
+        for (const [opt, v] of Object.entries(prefs)) it[o + Customs.optIndex(dim, opt)] = v;
       };
       const holder = isHolder(st, p.id),
         sp = spouseOf(st, p.id),
@@ -266,7 +267,7 @@ VB['sim/society'] = (() => {
       const hl = helpLean(st, p, settlementIdOf(st, p));
       if (hl) {
         const o = O[I.commons];
-        for (let j = 0; j < Culture.NOPT[I.commons]; j++) it[o + j] = it[o + j] * (1 - hl.w) + (j === hl.to ? hl.w : 0);
+        for (let j = 0; j < Customs.NOPT[I.commons]; j++) it[o + j] = it[o + j] * (1 - hl.w) + (j === hl.to ? hl.w : 0);
       }
       // stocking for winter (VB-711): a head whose herd fills its byre, or whose barn holds over two winters' hay, leans to keeping the herd;
       // one whose herd had lean days this year (herd.lean, kept by sim/byre until the next count: no loss is recorded beyond it) to the hay
@@ -294,9 +295,9 @@ VB['sim/society'] = (() => {
     }
   }
   const option = (c) =>
-    !(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Culture.DIMS.length)
+    !(c.args && Number.isInteger(c.args.dim) && c.args.dim >= 0 && c.args.dim < Customs.DIMS.length)
       ? `there is no custom ${c.args && c.args.dim}`
-      : !(Number.isInteger(c.args.option) && c.args.option >= 0 && c.args.option < Culture.NOPT[c.args.dim])
+      : !(Number.isInteger(c.args.option) && c.args.option >= 0 && c.args.option < Customs.NOPT[c.args.dim])
         ? `custom ${c.args.dim} has no option ${c.args.option}`
         : null;
   const causeWait = (st, p) => {
@@ -323,7 +324,7 @@ VB['sim/society'] = (() => {
     check: (st, c) =>
       living(st, c.actor) || option(c) || (c.source === 'debug' ? null : causeWait(st, st.pawns[c.actor])),
     run: (st, c) => {
-      const d = Culture.DIMS[c.args.dim];
+      const d = Customs.DIMS[c.args.dim];
       Culture.advocate(st.pawns[c.actor], c.args.dim, c.args.option, st.cenv.t + Culture.P.causeEvery, st.cenv.t);
       personEvent(
         st,
@@ -338,7 +339,7 @@ VB['sim/society'] = (() => {
     check: (st, c) => living(st, c.actor) || (st.pawns[c.actor].advocate ? null : 'the pawn argues no cause'),
     run: (st, c) => {
       const p = st.pawns[c.actor],
-        d = Culture.DIMS[p.advocate.dim];
+        d = Customs.DIMS[p.advocate.dim];
       Culture.advocate(p, null, undefined, undefined, st.cenv.t);
       personEvent(st, c.actor, 'cause', `Dropped the cause: ${d.label.toLowerCase()}`);
     },

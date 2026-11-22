@@ -6,7 +6,7 @@ VB['sim/relations'] = (() => {
     { MATCH } = VB['sim/roles'],
     { SOCIAL } = VB['sim/ties'];
   const Traits = VB['sim/traits'],
-    { DIMS } = VB['culture'];
+    { DIMS } = VB['sim/customs'];
   const { personEvent, fullName, spouseOf, settlementIdOf, age } = VB['sim/records'];
   const { partners, atHome } = VB['sim/encounters'];
   const { on, emit } = VB['sim/events'];

@@ -79,9 +79,9 @@ function tinyState(w, villages, opt = {}) {
 }
 // Sets village vid's practice of the given customs: {key: option key}.
 function setPractice(st, vid, customs) {
-  const C = VB.culture, s = st.cenv.settlements[vid];
+  const C = VB.culture, Customs = VB['sim/customs'], s = st.cenv.settlements[vid];
   for (const [key, opt] of Object.entries(customs)) {
-    const k = C.IDX[key], o = C.optIndex(key, opt);
+    const k = Customs.IDX[key], o = Customs.optIndex(key, opt);
     if (k === undefined || o < 0) throw new Error(`setPractice: no custom ${key}: ${opt}`);
     s.practice[k] = o;
   }

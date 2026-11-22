@@ -74,7 +74,7 @@ function cultureVillages(cu, setts) {
 function cultureCharter(cu, setts) {
   const split = (k) => setts.some((s) => s.practice[k] !== cu.customs[k]);
   const ways = (k) =>
-    `<div class="stand" id="cultureStand"><p class="of">${esc(Culture.DIMS[k].label)}</p>${Culture.DIMS[k].opts
+    `<div class="stand" id="cultureStand"><p class="of">${esc(Customs.DIMS[k].label)}</p>${Customs.DIMS[k].opts
       .map((o, j) => {
         const at = setts.filter((s) => s.practice[k] === j);
         return `<div class="way${j === cu.customs[k] ? ' in' : ''}"><p>${esc(o[1])}${j === cu.customs[k] ? '<em class="tag">The custom</em>' : ''}</p>${

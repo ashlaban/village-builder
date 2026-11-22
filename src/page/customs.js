@@ -140,7 +140,7 @@ const SAID = {
     ' speak at the meeting.',
   ],
 };
-const phraseOf = (k, j) => SAID[Culture.DIMS[k].key][1][Culture.DIMS[k].opts[j][0]];
+const phraseOf = (k, j) => SAID[Customs.DIMS[k].key][1][Customs.DIMS[k].opts[j][0]];
 // A voice wavers when its first and second leanings are this close; a way that leads is contested within this of the share it must pass;
 // a strong voice has this many times an even share of the say; and so many faces stand by one way before a count.
 const WAVER = 0.15,
@@ -175,8 +175,8 @@ function readCustoms(s) {
     people: members.filter((p) => p.alive).length,
     voices: voiced.length,
     culture: cu,
-    dims: Culture.DIMS.map((d, k) => {
-      const o = Culture.OFF[k],
+    dims: Customs.DIMS.map((d, k) => {
+      const o = Customs.OFF[k],
         n = d.opts.length,
         x = s.practice[k],
         cust = cu.customs[k];
@@ -216,10 +216,10 @@ function readCustoms(s) {
 function charterHTML(prefix, pick, mark, open, detail) {
   const said = (
     k,
-  ) => `${SAID[Culture.DIMS[k].key][0]}<span role="button" tabindex="0" class="phrase ${mark(k)}" id="${prefix}${k}" data-phrase="${k}"
-      aria-expanded="${k === open}">${phraseOf(k, pick(k))}</span>${SAID[Culture.DIMS[k].key][2]}`;
+  ) => `${SAID[Customs.DIMS[k].key][0]}<span role="button" tabindex="0" class="phrase ${mark(k)}" id="${prefix}${k}" data-phrase="${k}"
+      aria-expanded="${k === open}">${phraseOf(k, pick(k))}</span>${SAID[Customs.DIMS[k].key][2]}`;
   return CHARTER.map(([head, keys]) => {
-    const ks = keys.map((key) => Culture.IDX[key]);
+    const ks = keys.map((key) => Customs.IDX[key]);
     return `<h3>${head}</h3><p class="charter">${ks.map(said).join(' ')}</p>${ks.includes(open) ? detail(open) : ''}`;
   }).join('');
 }
@@ -231,7 +231,7 @@ function voiceNote(c, f, s) {
   const me = played(),
     you = f.id === me,
     p = st.pawns[f.id],
-    k = Culture.OFF[c.k] + f.top,
+    k = Customs.OFF[c.k] + f.top,
     pct = (v) => `${Math.round(v * 100)}%`;
   const near = Sim.membersOf(st, s.id).filter((q) => q.alive && q.age >= 12);
   const mean = near.length ? near.reduce((a, q) => a + q.att[k], 0) / near.length : null;

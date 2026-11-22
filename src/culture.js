@@ -4,7 +4,7 @@
 // (one game day stands for about a week). Customs in force: a settlement's practice changes only at its yearly
 // meeting; the culture's customs change only at the yearly reckoning after all meetings.
 const Culture = (() => {
-  const { DIMS, OFF, NOPT, TOTAL, IDX, optIndex, ARCHETYPES, PRACTICES, practiceOf } = VB['sim/customs'];
+  const { DIMS, OFF, NOPT, TOTAL, optIndex, PRACTICES } = VB['sim/customs'];
 
   // Rates are per year; the daily step scales pulls by dt and noise by sqrt(dt) (Euler–Maruyama).
   const P = {
@@ -95,10 +95,6 @@ const Culture = (() => {
     };
     env.cultures.push(c);
     return c;
-  }
-  function fromArchetype(name) {
-    const a = ARCHETYPES[name];
-    return DIMS.map((d) => optIndex(d.key, a[d.key]));
   }
 
   // An attitude centred on a preferred option with some spread; `lean` adds weight to chosen alternatives.
@@ -581,18 +577,10 @@ const Culture = (() => {
   }
 
   const api = {
-    DIMS,
-    OFF,
-    NOPT,
-    TOTAL,
-    IDX,
     P,
     WEIGH,
-    ARCHETYPES,
     NAME_PREFS,
-    optIndex,
     makeCulture,
-    fromArchetype,
     seedAttitude,
     dailyStep,
     settlementStep,
@@ -611,8 +599,6 @@ const Culture = (() => {
     advocate: { value: advocate },
     causeFree: { value: causeFree },
     endCause: { value: endCause },
-    PRACTICES: { value: PRACTICES },
-    practiceOf: { value: practiceOf },
     setPractice: { value: setPractice },
     margin: { value: margin },
     fewVoices: { value: fewVoices },

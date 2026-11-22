@@ -56,10 +56,10 @@ function commandWords(c) {
     return c.args && c.when === undefined ? `Idle until ${clockOf(c.args.until)}` : 'Idle for an hour';
   if (c.verb === 'walkTo') return c.target === null ? 'Walk here' : 'Walk to a tile';
   if (c.verb === 'argue') {
-    const d = Culture.DIMS[c.args.dim];
+    const d = Customs.DIMS[c.args.dim];
     return `${d.label}: ${d.opts[c.args.option][1].toLowerCase()}`;
   }
-  if (c.verb === 'dropCause') return `Drop the cause: ${Culture.DIMS[c.args.dim].label.toLowerCase()}`;
+  if (c.verb === 'dropCause') return `Drop the cause: ${Customs.DIMS[c.args.dim].label.toLowerCase()}`;
   if (c.verb === 'claim') return `Claim ${st.farmsteads[c.target].name}`;
   if (c.verb === 'give' && Number.isInteger(c.target))
     return `Give ${c.args.n} grain to ${st.farmsteads[st.households[c.target].farmstead].name}`;
@@ -135,7 +135,7 @@ const pc = (x) => `${Math.round(x * 100)}%`;
 function causeNote(p) {
   const a = p.advocate;
   if (!a) return '<p class="hint">You argue no cause.</p>';
-  const d = Culture.DIMS[a.dim],
+  const d = Customs.DIMS[a.dim],
     s = st.cenv.settlements[Sim.settlementIdOf(st, p)],
     sup = s && s.lastSupport;
   let h = `<p class="cause">You argue for “${esc(d.opts[a.opt][1])}” (${esc(d.label.toLowerCase())}) for ${Math.max(
@@ -143,7 +143,7 @@ function causeNote(p) {
     a.until - st.cenv.t,
   ).toFixed(1)} more years.`;
   if (sup) {
-    const o = Culture.OFF[a.dim],
+    const o = Customs.OFF[a.dim],
       x = s.practice[a.dim],
       cust = s.culture !== undefined ? st.cenv.cultures[s.culture].customs[a.dim] : x;
     const voices = Sim.membersOf(st, s.id).filter((q) => Sim.voiceOf(st, q, s) > 0).length;

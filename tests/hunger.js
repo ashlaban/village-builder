@@ -1,7 +1,7 @@
 // Hunger: each rule on constructed households of the small islands (VB-854). With --extended (at night), then a report of hungry days,
 // deaths by cause and marriages over three years of founders on the default island at seeds 7 and 42 (reported, not asserted).
 const assert = require('assert');
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture;
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture, Customs = VB['sim/customs'];
 const { moveClock } = require('./lib/clock.js');
 const { feedHousehold } = VB['sim/hunger'], { deathRoll } = VB['sim/deaths'], { HUNGER, YEAR, YEAR_DAYS } = VB['sim/rules'], { rateOf } = VB['sim/work'];
 const { scenario } = require('./lib/probe.js');
@@ -22,7 +22,7 @@ for (const [order, check] of [
   const child = p.find((q) => q !== man);
   child.born = st.t - 5 * YEAR; // a five-year-old joins the household
   hh.members = [man.id, child.id]; for (const q of [man, child]) q.hunger = 0, q.hungerLog = [];
-  const s = st.cenv.settlements[Sim.settlementIdOf(st, man)]; s.practice[Culture.IDX.feedOrder] = Culture.optIndex('feedOrder', order);
+  const s = st.cenv.settlements[Sim.settlementIdOf(st, man)]; s.practice[Customs.IDX.feedOrder] = Customs.optIndex('feedOrder', order);
   for (const fd of st.farmsteads[hh.farmstead].fields) fd.stage = 'growing'; // no seed to keep back
   hh.grain = { barley: 1.2 / st.ECON.uncooked }; // 1.2 rations, eaten uncooked (VB-119); a man needs 1 and a child 0.5
   feedHousehold(st, hh);
@@ -104,7 +104,7 @@ for (const h of [0, 1]) {
 // feedOrder: parents of young children lean towards children first
 {
   const st = fresh('populous'); Sim.refreshInterests(st);
-  const k = Culture.IDX.feedOrder, o = Culture.OFF[k], j = Culture.optIndex('feedOrder', 'children');
+  const k = Customs.IDX.feedOrder, o = Customs.OFF[k], j = Customs.optIndex('feedOrder', 'children');
   const parent = st.pawns.find((p) => p.alive && p.interest && Sim.childrenOf(st, p.id).some((c) => st.pawns[c].age < 14));
   assert(parent && parent.interest[o + j] === 1, 'a parent of a young child wants children first');
 }

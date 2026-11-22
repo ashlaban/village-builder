@@ -4,14 +4,14 @@
 // or not. With no one of the line alive the game ends, the break recorded. The tiny scene: household 0 is Olof's (46), wife 1, sons 8
 // (25), 7 (22), 5 (17), 4 (15), 2 (11), daughters 6 (19), 3 (13); household 1's holder 9 has a son 11 of 7 and its servant 17.
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], H = VB['sim/heirs'], Culture = VB.culture;
+const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], H = VB['sim/heirs'], Culture = VB.culture, Customs = VB['sim/customs'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const { dropKind } = require('./lib/record.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F'.repeat(18) : i === 11 ? '~'.repeat(18) : '.'.repeat(18)));
 const make = (seed = 4) => tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed });
 const hash = (st) => sha(canon(kept(st)));
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
-const custom = (st, dim, key) => { for (const s of st.cenv.settlements) s.practice[Culture.IDX[dim]] = Culture.optIndex(dim, key); };
+const custom = (st, dim, key) => { for (const s of st.cenv.settlements) s.practice[Customs.IDX[dim]] = Customs.optIndex(dim, key); };
 const playerEvents = (st, id) => Sim.recordOf(st, { pawn: id, life: true }).filter((e) => e.kind === 'player').map((e) => e.text);
 const scene = (st) => assert.deepStrictEqual([st.households[0].holder, st.households[1].holder, R.spouseOf(st, 9), st.pawns[11].age, st.pawns[17].servant ? 1 : 0], [0, 9, 10, 7, 1], 'the scene');
 
