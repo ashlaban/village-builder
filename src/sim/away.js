@@ -57,6 +57,19 @@ VB['sim/away'] = (() => {
     stay.gift.stops.push(stop);
     return true;
   }
+  // Pawn `pawn`, setting out to its new home in another village (a move's journey, not yet turned back), bears `stops` there (VB-675: a
+  // start in life lies where it was taken, and is carried): its journey becomes a fetch for household `to`, first to the place the
+  // first stop lies, a load at a time. False when it is not on such a journey.
+  function bear(st, pawn, to, stops) {
+    const j = stayOf(st, pawn);
+    if (!j || j.why !== 'move' || j.back || j.to !== st.farmsteads[st.households[to].farmstead].house) return false;
+    j.why = 'fetch';
+    j.gift = { to, held: 0, parts: {}, stops };
+    j.back = false;
+    j.to = stops[0].at;
+    turnTo(st, st.agents[pawn], j.to);
+    return true;
+  }
   // Stay s ends: out of st.away and the index.
   function close(st, s) {
     st.away.splice(st.away.indexOf(s), 1);
@@ -552,12 +565,20 @@ VB['sim/away'] = (() => {
       g.parts = takeUp(st, j, g.held);
       g.from = s.name;
       g.keep = s.keep === true;
+      g.start = s.start === true;
       if (!(s.left > 1e-9)) g.stops.shift();
       j.to = house;
       return startLeg(st, a, j);
     }
     const at = to.dissolved ? st.villages[st.farmsteads[to.farmstead].village] : to;
-    Stores.put(st, at, 'grain', g.held, { kind: g.keep ? 'keep' : 'gift', from: g.from }, g.parts);
+    Stores.put(
+      st,
+      at,
+      'grain',
+      g.held,
+      { kind: g.start ? 'provisions' : g.keep ? 'keep' : 'gift', from: g.from },
+      g.parts,
+    );
     g.held = 0;
     g.parts = {};
     if (g.stops.length && !to.dissolved && st.pawns[a.id].household === to.id) {
@@ -732,6 +753,7 @@ VB['sim/away'] = (() => {
     placeBorn,
     setOut,
     addFetchStop,
+    bear,
     visit,
     visitDays,
   };

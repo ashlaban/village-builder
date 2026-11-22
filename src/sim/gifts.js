@@ -1,7 +1,11 @@
 // @sys sim/gifts: how a gift gets from here to there (VB-228): the verbs `give`, the offer of a gift, and `deliver`, what a yes settles: carried,
-// hauled or fetched (sim/away) between places, booked at once within one farmstead (sim/exchange)
+// hauled or fetched (sim/away) between places, booked at once within one farmstead (sim/exchange); and a new household's start in life,
+// laid at the homes it was taken from and borne or fetched (VB-675, layStart)
 VB['sim/gifts'] = (() => {
-  const { setOut, addFetchStop } = VB['sim/away'];
+  const { setOut, addFetchStop, bear } = VB['sim/away'];
+  const { stayOf } = VB['sim/pose'];
+  const Lying = VB['sim/lying'],
+    { on } = VB['sim/events'];
   const { cannotOffer, giftOf, make, delivery } = VB['sim/offers'];
   const { age, home } = VB['sim/records'];
   const { booked, settleGift } = VB['sim/exchange'];
@@ -93,6 +97,62 @@ VB['sim/gifts'] = (() => {
       stops: [{ at: house.house, from: o.from.id, village: null, name: house.name, left: o.n, parts }],
     });
   }
+  // ---- a start in life laid where it was taken (VB-675; AGENTS.md, the hard rule: nothing is in the new store before someone brought it) ----
+  // New household hh's grain came from `piles` [[household, n]], the homes it was taken from (a settler's stake, a parent's gift). What is
+  // still in its store (a settler's journey took its pack from it) is taken out and laid at those homes, by crop in proportion, as hh's:
+  // each pile is borne by the grown of hh on their way there from that farm, a share each (sim/away bear), else by any of them on the
+  // way, else fetched by one of hh at home (fetcherOf); with none, it lies there for the farm's hands (sim/lying, leftGrain).
+  function layStart(st, hh, piles) {
+    const total = piles.reduce((s, [, n]) => s + n, 0),
+      n = Math.min(total, Stores.grainOf(hh));
+    if (!(n > 1e-9)) return;
+    const parts = {};
+    Stores.take(st, hh, 'grain', n, { kind: 'provisions', laid: true }, parts);
+    const going = hh.members.filter((id) => {
+      const j = stayOf(st, id);
+      return age(st, st.pawns[id]) >= HANDS[0] && j && j.why === 'move' && !j.back;
+    });
+    const borne = new Map(); // bearer -> its stops
+    const lying = [];
+    for (const [h, m] of piles) {
+      const share = (m / total) * n,
+        old = st.households[h],
+        f = st.farmsteads[old.farmstead];
+      if (!(share > 1e-9)) continue;
+      const mine = going.filter((id) => stayOf(st, id).from === f.id),
+        by = mine.length ? mine : going,
+        k = (share / n) * (1 / (by.length || 1));
+      const stop = (frac) => {
+        const p = {};
+        for (const c in parts) p[c] = parts[c] * frac;
+        return { at: f.house, from: h, village: null, name: f.name, start: true, left: n * frac, parts: p };
+      };
+      if (!by.length) {
+        lying.push(stop(share / n));
+        continue;
+      }
+      for (const id of by) (borne.get(id) || borne.set(id, []).get(id)).push(stop(k));
+    }
+    for (const [id, stops] of borne) if (!bear(st, id, hh.id, stops)) lying.push(...stops);
+    if (!lying.length) return;
+    const by = fetcherOf(st, hh);
+    if (by >= 0) {
+      const a = st.agents[by];
+      if (!lying.every((s) => addFetchStop(st, by, s))) {
+        setDown(st, a);
+        const to = st.farmsteads[hh.farmstead];
+        setOut(st, a, hh, hh, false, hoursBetween(st, to.village, to.village), {
+          to: hh.id,
+          held: 0,
+          parts: {},
+          stops: lying,
+        });
+      }
+      return;
+    }
+    for (const s of lying)
+      Lying.leave(st, 'leftGrain', s.left, s.at, { type: 'household', id: hh.id }, { of: { parts: s.parts } });
+  }
   // Why gift g (sim/offers giftOf) cannot be fetched, or null: one to a household from another farmstead or a village store, with no
   // carrier, is set aside where it lies and fetched by a member of the receiving household (VB-461), who must be free to go.
   const fetched = (g) =>
@@ -145,5 +205,6 @@ VB['sim/gifts'] = (() => {
       else settleGift(st, g);
     },
   });
+  on('startLaid', (st, e) => layStart(st, e.hh, e.piles));
   return {};
 })();

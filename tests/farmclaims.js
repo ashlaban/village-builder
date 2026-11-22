@@ -3,7 +3,7 @@
 const VB = require('../src/load.js'), Sim = VB.sim, FC = VB['sim/farmclaims'], CL = VB['sim/claims'], H = VB['sim/heirs'];
 const { CROPS } = VB['sim/crops'];
 const { setClock, moveClock } = require('./lib/clock.js');
-const { CLAIMS, YEAR } = VB['sim/rules'], { setPractice, tinyWorld, tinyState } = require('./lib/tiny.js');
+const { CLAIMS, YEAR, TRAVEL } = VB['sim/rules'], { setPractice, tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FARMCLAIMS FAIL:', m); } };
 // Fixtures jump time and call low-level acts directly; finish the coordinator's role refresh before checking a completed state.
@@ -200,8 +200,17 @@ const P = (id) => ({ type: 'pawn', id });
   check([f.house, ...f.fields.map((fd) => fd.tile)].every((t) => st.owner[t] === hh.id + 1) && !CL.claimsOn(st, f.house).length,
     'house and fields are theirs; the claim and the birthright are spent');
   const need = Math.ceil(CLAIMS.farmFood * 2 * st.ECON.ration.adult) + f.fields.length * CROPS.barley.seed;
-  check(Sim.grainOf(hh) === need && hh.meals > 0 && hh.wood === st.ECON.startWood && st.households[A0].wood === 40 - st.ECON.startWood,
-    `stores: ${Sim.grainOf(hh)} grain of ${need}, ${hh.meals} meals, ${hh.wood} wood`);
+  // VB-675: nothing is in the new store before someone brought it: the grain lies at the old home as theirs, and one of them fetches it;
+  // the wood lies there in whole trips, for its hands
+  const trips = Math.floor(st.ECON.startWood / st.ECON.woodPerTrip), A0h = st.farmsteads[st.households[A0].farmstead].house;
+  const stops = st.away.filter((j) => j.why === 'fetch' && j.gift && j.gift.to === hh.id).flatMap((j) => j.gift.stops);
+  const lies = stops.reduce((s, x) => s + x.left, 0);
+  check(Sim.grainOf(hh) === 0 && stops.length && Math.abs(lies - need) < 1e-6 && stops.every((x) => x.at === A0h && x.start),
+    `the grain lies at the old home: ${Sim.grainOf(hh)} in store, ${lies} of ${need} to fetch`);
+  const wood = (st.lying || []).filter((l) => l.kind === 'leftTimber' && l.owner.id === hh.id && l.tile === A0h);
+  check(hh.meals > 0 && hh.wood === 0 && wood.length === 1 && wood[0].n === trips * TRAVEL.load
+    && st.households[A0].wood === 40 - trips * st.ECON.woodPerTrip,
+    `stores: ${hh.meals} meals, ${hh.wood} wood; ${wood.length} loads of wood lying at the old home`);
   // the fields gone to grass and scrub are cleared again by the new household
   J.refreshJobs(st, cal(st.t));
   const r0 = st.jobs.get(`reclaim:f${f.id}.${f.fields[0].id}`), r1 = st.jobs.get(`reclaim:f${f.id}.${f.fields[1].id}`);
@@ -209,7 +218,7 @@ const P = (id) => ({ type: 'pawn', id });
   KINDS.reclaim.done(st, r0);
   check(f.fields[0].stage === 'stubble', 'a cleared field is in stubble again');
   ok(st, 'moved in');
-  out.push(`claimed and mended: ${Sim.grainOf(hh)} rations to start`);
+  out.push(`claimed and mended: ${lies} rations to start, fetched from the old home`);
 }
 // ---- a claim ends: the claimant dies; or nobody works it for 3 years ----
 {
