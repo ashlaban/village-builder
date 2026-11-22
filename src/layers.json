@@ -14,6 +14,7 @@
       "gen/biomes",
       "gen/bake",
       "gen",
+      "sim/customs",
       "sim/rules",
       "sim/crops",
       "sim/roles",

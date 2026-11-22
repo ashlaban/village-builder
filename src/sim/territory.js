@@ -5,7 +5,7 @@ VB['sim/territory'] = (() => {
   const { CLAIMS, YEAR, WOOD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
-  const Culture = VB['culture'];
+  const { customOf } = VB['sim/customs'];
   const CL = VB['sim/claims'],
     Disputes = VB['sim/disputes'];
   const { log, practice } = VB['sim/records'];
@@ -143,8 +143,7 @@ VB['sim/territory'] = (() => {
     const env = st.cenv,
       cults = new Set(vids.map((v) => env.settlements[v].culture));
     if (cults.size > 1) return 'first';
-    const k = Culture.IDX.dispute;
-    return Culture.DIMS[k].opts[env.cultures[[...cults][0]].customs[k]][0];
+    return customOf(st, 'dispute', [...cults][0]);
   }
   // The winning claim of a disputed tile; the tile gets a cairn. `claims` may start with the holder's right to its outland (a realised claim
   // older than any other). Unless `quiet` (a scenario's old borders), the result is noted in `out` (a Map of 'winner,loser' to {n tiles, took

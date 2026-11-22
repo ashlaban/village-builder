@@ -4,18 +4,13 @@
 // sim/gifts: nothing is carried but by a pawn). A vacancy, or a new alderman, ends the days owed the one before.
 VB['sim/keep'] = (() => {
   const { OFFICE, YEAR, DAY, cal } = VB['sim/rules'];
-  const Culture = VB['culture'];
+  const { inForce } = VB['sim/customs'];
   const Obligations = VB['sim/obligations'];
   const { log } = VB['sim/records'];
-  const KEEP = Culture.IDX.keep;
   // @state village.keep: {year, days (owed), grain (set aside), payers (households that owed or gave)}: the keep of the year of `year`, folded
   //   into one yearly line at the next autumn meeting (Rules for cost, 8); absent until the first. Written only here.
   // @state village.keepBy: the household id the keep's days are owed to, or null: whom a new alderman or a vacancy ends them for. Written only here.
-  const optOf = (st, vid) => {
-    const s = st.cenv && st.cenv.settlements[vid],
-      k = s ? s.practice[KEEP] : 0;
-    return Culture.DIMS[KEEP].opts[k === undefined ? 0 : k][0];
-  };
+  const optOf = (st, vid) => inForce(st, 'keep', vid);
   const bookOf = (st, v) => {
     const y = cal(st.t).year;
     if (!v.keep || v.keep.year !== y) v.keep = { year: y, days: 0, grain: 0, payers: 0 };

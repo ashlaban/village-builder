@@ -10,6 +10,7 @@
   "gen/biomes.js",
   "gen/bake.js",
   "gen.js",
+  "sim/customs.js",
   "culture.js",
   "sim/rules.js",
   "sim/crops.js",

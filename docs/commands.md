@@ -95,7 +95,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   never married at 45); the spread between households; goodwill; labour by season; the balance properties of `docs/balance/cards.md`.
   `node tools/store-flows.js --scenario populous --seeds 7 --years 15 [--rule NAME]`: the village stores' yearly flows (VB-406).
 - Also: `node tools/gossip.js` (VB-187's experiment: stories against opinion averaging in a reduced scenario; `docs/gossip-experiment.md`), `node
-  tools/rules.js` (rule owners; a pawn's death hazard), `node tools/writes.js` (each field's writers and readers; dependencies and cycles), `node
+  tools/rules.js` (rule owners; a pawn's death hazard), `node tools/customs.js` (each custom's readers in `src/sim`, by the door or by `practice()`; VB-231), `node tools/writes.js` (each field's writers and readers; dependencies and cycles), `node
   tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs; `node tests/calibrate.js natural 2 50` is
   quick), `node tools/wrap.js FILE...` (breaks lines over 160 characters; for `tests/` and `tools/`, `src/` has Prettier), `node tools/shot.js` (screenshots of the page), `node
   tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
