@@ -3,7 +3,7 @@
 // village's routines' steps, sim/routines) and dropped; and the head's choices of its plan, each through a verb of sim/commands
 VB['sim/plans'] = (() => {
   const { rotationWhy, turnWhy, swapWhy, fieldsChoice } = VB['sim/rotations'],
-    { takeRotation, outOfTurn, swapSteps } = VB['sim/fields'];
+    { takeRotation, outOfTurn, swapSteps } = VB['sim/courses'];
   const { living, home } = VB['sim/records'];
   const { TICKS, HERD, cal } = VB['sim/rules'],
     { ROTATIONS } = VB['sim/crops'];

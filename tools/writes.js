@@ -435,9 +435,10 @@ const GEN = new Set(['gen', 'gen/rivers', 'gen/climate', 'gen/paths', 'gen/marks
 // A field is its entity and first key; a container whose parts have owners of their own (st.plans: its projects, seasons and due-queue,
 // VB-431) declares each part as a key of three, which a path under it resolves to.
 const fieldOf = (p) => {
-  const m = p.match(/^([A-Za-z]+)\.([A-Za-z_$*][\w$]*)(?:\.([A-Za-z_$][\w$]*))?/);
+  // a part of a record owned on its own: `farmstead.barn.x`, or of each element of a list, `farmstead.fields[].soil` (VB-1479)
+  const m = p.match(/^([A-Za-z]+)\.([A-Za-z_$*][\w$]*)(\[\])?(?:\.([A-Za-z_$][\w$]*))?/);
   if (!m) return p;
-  const part = m[3] && `${m[1]}.${m[2]}.${m[3]}`;
+  const part = m[4] && `${m[1]}.${m[2]}${m[3] || ''}.${m[4]}`;
   return part && Object.hasOwn(OWNERS.fields, part) ? part : `${m[1]}.${m[2]}`;
 };
 const entityOf = (p) => p.split('.')[0];

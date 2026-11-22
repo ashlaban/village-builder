@@ -35,18 +35,18 @@ check(hh0.fodderDay === 40, 'fodder does not mark the day');
 // --- carting: spring days 1-6 only, a load or more on the heap, the poorest field not yet sown; a load raises it 0.04 to the cap
 for (const [k, q] of f0.fields.entries()) { q.stage = 'stubble'; q.soil = [0.9, 0.8, 1.1][k] ?? 1.1; }
 hh0.manure = 3;
-const w = F.manureWanted(st, f0, hh0, cal(2));
+const w = VB['sim/soil'].manureWanted(st, f0, hh0, cal(2));
 check(w && w[0] === f0.fields[1] && near(w[1], 3), `carting: wanted ${w && w[0].id}, ${w && w[1]} loads; wanted field 1, 3 loads`);
-check(!F.manureWanted(st, f0, hh0, cal(S.window[1] + 1)) && !F.manureWanted(st, f0, hh0, cal(20)), 'carting outside spring days 1-6');
+check(!VB['sim/soil'].manureWanted(st, f0, hh0, cal(S.window[1] + 1)) && !VB['sim/soil'].manureWanted(st, f0, hh0, cal(20)), 'carting outside spring days 1-6');
 f0.fields[1].stage = 'sown';
-check(F.manureWanted(st, f0, hh0, cal(2))[0] === f0.fields[0], 'carting to a sown field');
-hh0.manure = 0.5; check(!F.manureWanted(st, f0, hh0, cal(2)), 'carting with less than a load on the heap');
+check(VB['sim/soil'].manureWanted(st, f0, hh0, cal(2))[0] === f0.fields[0], 'carting to a sown field');
+hh0.manure = 0.5; check(!VB['sim/soil'].manureWanted(st, f0, hh0, cal(2)), 'carting with less than a load on the heap');
 hh0.manure = 10; f0.fields[0].soil = 1.1;
-check(near(F.manureWanted(st, f0, hh0, cal(2))[1], (S.cap - 1.1) / S.perLoad), 'carting more than the soil can take');
+check(near(VB['sim/soil'].manureWanted(st, f0, hh0, cal(2))[1], (S.cap - 1.1) / S.perLoad), 'carting more than the soil can take');
 const toCap = (S.cap - 1.1) / S.perLoad;
-F.manureDone(st, f0.fields[0], hh0, toCap);
+VB['sim/soil'].manureDone(st, f0.fields[0], hh0, toCap);
 check(near(f0.fields[0].soil, S.cap) && near(hh0.manure, 10 - toCap), `after ${toCap} loads: soil ${f0.fields[0].soil}, heap ${hh0.manure}`);
-F.manureDone(st, f0.fields[2], hh0, 100);
+VB['sim/soil'].manureDone(st, f0.fields[2], hh0, 100);
 check(near(hh0.manure, 0) && f0.fields[2].soil <= S.cap + 1e-9, 'spreading more than the heap holds');
 
 // --- founders seed 7, a year on: the heap of a farm that wintered animals is carted onto its fields in spring days 1-6, the poorest first

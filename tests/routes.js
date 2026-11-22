@@ -175,7 +175,7 @@ const grid = (COLS, ROWS) => {
   const farm = st.farmsteads[0], hh = st.households[farm.household];
   const fresh = (n) => { const out = []; for (let i = 0; out.length < n; i++) if (!st.w.dev[i] && !st.used.has(i)) out.push(i); return out; };
   const [field, meadow, plotTile] = fresh(3);
-  st.routeDirty.clear(); VB['sim/fields'].broken(st, field, 0);
+  st.routeDirty.clear(); VB['sim/newground'].broken(st, field, 0);
   assert(st.routeDirty.has(field), 'breaking a field tells the route cache');
   VB['sim/meadows'].addMeadow(st, farm, hh, meadow);
   assert(st.routeDirty.has(meadow), 'making a meadow tells the route cache');
