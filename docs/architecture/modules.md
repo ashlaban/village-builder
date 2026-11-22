@@ -187,6 +187,16 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   three villages or more; the district is read by `district`), then each culture's year; at 18:06 the land meeting.
   `meetingStage(st, n)` is the step's entry; `holdMeetings` runs the villages and the cultures. The meeting's occasion on each green is
   called for its village's turn: from two hours before its step to the step after.
+- The fair (VB-302): `src/sim/fair.js`. As a household's goers set out for the gathering (`gatheringSetOut`, emitted by
+  `src/sim/gathering.js` beside the lodging and the call of its days), its first adult goer packs the household's margin as `pawn.load`
+  through `sim/stores` (reason `fair`), the goods that cost it least by need (`needValue`) against their customary worth first, a back
+  load less a sack's room. At the fair's hours (`FAIR.hours`; one `sim/clock` row while loads are out) the dealers present propose, in
+  the stream `fair`'s order, to their partners and then to `FAIR.others` others, the deal best for themselves, as an offer on the basis
+  `swap` (`sim/offers`); the other answers by need and `dealAllowance` (`sim/exchange`: goodwill and opinion only, near zero between
+  strangers). The verb `swap` moves the goods load to load and books the residual in customary worth between the two; a hard bargain is
+  a memory. The fair's log line (kind `fair`) counts the deals, the worth by good, the deals that failed for want of change and the hard
+  bargains. A dealer home again after its gathering puts its load into the store; one who dies on the road leaves its grain lying
+  (`sim/lying`). Reads gathering, exchange, offers, relations, stores; writes `pawn.load` and `st.fair`.
 - Saves (VB-074): `Sim.save(st)` and `Sim.load(w, data)` in `src/sim/saves.js`; a generic codec keeps shared objects, Maps, Sets and typed
   arrays, and the tiles the simulation changes are saved with the state (its `WORLD` list: a new world field the simulation writes goes there).
   `st` is plain data (VB-073, `tests/plaindata.js`): no functions, and no state kept aside in module closures, or a loaded run drifts

@@ -234,6 +234,8 @@ VB['sim/fair'] = (() => {
     if (!q || !q.alive || from === to) return `there is no other pawn ${to} to deal with`;
     if (!p.load || !q.load) return 'each deals from a load it carries';
     if (p.load.household === q.load.household) return 'one does not deal with its own household';
+    if (st.households[p.load.household].dissolved || st.households[q.load.household].dissolved)
+      return 'one deals for a household that is gone';
     if (!termsOk(gives) || !termsOk(wants) || gives.good === wants.good)
       return `cannot swap ${JSON.stringify(gives)} for ${JSON.stringify(wants)}`;
     if (!together(st, from, to)) return `${fullName(p)} and ${fullName(q)} are not in one place`;
