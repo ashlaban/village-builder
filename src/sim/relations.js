@@ -14,9 +14,10 @@ VB['sim/relations'] = (() => {
   const M = SOCIAL.memories; // the land's memories, from events (sim/stakes, sim/territory, sim/herds), are the three `on` below
   // ---- allowance (VB-216): how much one agent would give up to another in one deal, in rations, never below 0. Its context is
   //   {giver, receiver, from, to}: the two agents (pawn ids, or null for a household without a holder) and the two households, reused.
-  //   Terms: grain above the floor (sim/hunger), goodwill and opinion (sim/exchange), the holder's own reserve (sim/help).
+  //   Terms: grain above the floor (sim/hunger), goodwill and opinion (sim/exchange), the holder's own reserve (sim/help), the giver's
+  //   mood (sim/exchange, VB-875).
   const Rules = VB['sim/registry'],
-    ORDER = ['slack', 'goodwill', 'opinion', 'reserve'];
+    ORDER = ['slack', 'goodwill', 'opinion', 'reserve', 'mood'];
   Rules.declare({
     id: 'allowance',
     owner: 'sim/relations',

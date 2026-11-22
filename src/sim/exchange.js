@@ -16,6 +16,7 @@ VB['sim/exchange'] = (() => {
   const Norms = VB['sim/norms'];
   const Offers = VB['sim/offers'];
   const { issue } = VB['sim/commands'];
+  const { MOOD, level: moodOf, word: moodWord } = VB['sim/mood'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
   // need. Switched on by GOODWILL.acts (VB-220).
@@ -53,6 +54,21 @@ VB['sim/exchange'] = (() => {
       value: opinionTerm,
     });
   }
+  // allowance's mood term (VB-875; design.md, Traits, talk and stories: Mood): the giving holder's mood moves what it would give up, by
+  // MOOD.gives.days of its household's need at the ends of the scale: a holder low in spirits holds on to what it has. Read when a gift,
+  // an ask or help is weighed, so mood is read where an answer is given and nowhere else (no pass; sim/mood's level allocates nothing).
+  function moodTerm(st, c) {
+    const m = c.giver === null ? null : moodOf(st, c.giver);
+    return m === null ? 0 : (MOOD.gives.days * (m - MOOD.base) * dailyNeed(st, c.from)) / MOOD.base;
+  }
+  Rules.contribute({
+    rule: 'allowance',
+    source: 'sim/exchange',
+    key: 'mood',
+    label: 'Mood',
+    tunables: ['MOOD.gives.days'],
+    value: moodTerm,
+  });
   // A gift {from, to, good, n, source}: from and to are households or villages (a village gives from its store, or takes the yearly
   // filling). Sizes are compared with a tolerance, since the size help asks for is reckoned apart from the allowance's sum.
   const TOLERANCE = 1e-9;
@@ -244,6 +260,7 @@ VB['sim/exchange'] = (() => {
     const out = Rules.explain(st, 'allowance', { giver, receiver, from, to }),
       word = VB['sim/traits'].wordOf(st, giver, 'generosity'); // "own reserve: open-handed" (VB-520; design.md, The twelve traits)
     if (word) for (const q of out.parts) if (q.key === 'reserve') q.label += ': ' + word;
+    for (const q of out.parts) if (q.key === 'mood') q.label += ': ' + moodWord(moodOf(st, giver)); // "Mood: low" (VB-875)
     return out;
   }
   // ---- goods at the fair (VB-299; design.md, The fair: Need and Keeping goods; target-v2 5.1). VB-302's deals read these. ----
