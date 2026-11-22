@@ -5,6 +5,7 @@ VB['sim/help'] = (() => {
   const { AGES, HELP, YEAR, DAY, SEASON_DAYS, YEAR_DAYS, TRAVEL, cal } = VB['sim/rules'];
   const { hoursBetween, withinDay, byLand } = VB['sim/villagehours'];
   const { kinHouseholds } = VB['sim/exchange']; // VB-390: a deal for a cow asks kin first as well
+  const { agentOf, agentWhy } = VB['sim/decisions'];
   const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const { on } = VB['sim/events'],
@@ -32,17 +33,26 @@ VB['sim/help'] = (() => {
     return Math.max(0, grainOf(hh) - reserved(st, hh, 'grain') - buffer);
   };
   const spare = (st, hh) => Math.max(0, grainOf(hh) - reserved(st, hh, 'grain'));
-  // A gift of n grain, as the command `give` (source 'help'): its actor is the giver's holder, or the household or village itself
-  // without one; true when it was given.
-  const actorOf = (x) => ('farmstead' in x ? (x.holder !== null ? x.holder : { household: x.id }) : { village: x.id });
-  const give = (st, from, to, n, carrier) =>
-    issue(st, {
-      actor: actorOf(from),
-      verb: 'give',
-      target: 'farmstead' in to ? to.id : { village: to.id },
-      args: carrier === undefined ? { good: 'grain', n } : { good: 'grain', n, carrier },
-      source: 'help',
-    }) === true;
+  // A gift of n grain, as the command `give` (source 'help'): its actor is the giver's holder, or the household itself without one, or
+  // for a village's store its alderman at home (VB-673; none, and the store gives nothing); true when it was given.
+  const actorOf = (st, x) =>
+    'farmstead' in x ? (x.holder !== null ? x.holder : { household: x.id }) : agentOf(st, x.id);
+  function give(st, from, to, n, carrier) {
+    const actor = actorOf(st, from);
+    if (actor === null) return false;
+    const args = { good: 'grain', n };
+    if (carrier !== undefined) args.carrier = carrier;
+    if (!('farmstead' in from)) args.store = from.id;
+    return (
+      issue(st, {
+        actor,
+        verb: 'give',
+        target: 'farmstead' in to ? to.id : { village: to.id },
+        args,
+        source: 'help',
+      }) === true
+    );
+  }
   // The youngest adult of 14 to 59 of household hh who is not on the road (VB-291), or -1: the one who carries a far gift
   function carrierOf(st, hh) {
     let best = -1;
@@ -163,6 +173,19 @@ VB['sim/help'] = (() => {
       for (const [hh, n] of list) give(st, hh, village, n * k);
     }
   }
+  // fillStore(village) (VB-673): the village's alderman, at home, calls its households' quarters to its store at the village's round;
+  // each household gives by its own holder (fillStores). With no alderman, or one away, the store is not filled that year.
+  VB['sim/commands'].register('fillStore', {
+    check: (st, c) => (st.villages[c.target] ? agentWhy(st, c.target, c.actor) : `there is no village ${c.target}`),
+    run: (st, c) => fillStores(st, c.target),
+  });
+  // At village v's round: its alderman, at home and planned, calls the filling (the verb fillStore); true when it was called.
+  function callFilling(st, v) {
+    const a = agentOf(st, v);
+    return (
+      a !== null && !unplanned(st, a) && issue(st, { actor: a, verb: 'fillStore', target: v, source: 'round' }) === true
+    );
+  }
   // ---- the good-year gift (VB-460; design.md, The gift: The good-year gift) ----
   // @state household.giftedIn: the year (game years since the start) in which the household last gave unasked, or absent; written only here.
   // On a holder's planning day from the harvest on, a household above the feast's threshold (rule 'feast') offers, once a year, to the first
@@ -245,6 +268,7 @@ VB['sim/help'] = (() => {
     kinHouseholds,
     shareFood,
     fillStores,
+    callFilling,
     askDaysAt,
     seasonOf,
     shortOfPeople,

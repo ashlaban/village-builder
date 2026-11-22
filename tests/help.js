@@ -9,6 +9,8 @@ const fresh = () => {
   const st = Sim.seed(island(7), 7, 'founders');
   for (const hh of st.households) VB['sim/projectplans'].dropAll(st, 'household', hh.id);
   for (const hh of st.households) { hh.grain = { barley: seedReserve(st, hh) }; hh.meals = 0; }
+  // the store gives through its alderman (VB-673): the holder of the village's last farm
+  for (const v of st.villages) { const f = st.farmsteads[v.farmsteads[v.farmsteads.length - 1]]; if (f && f.household !== null) VB['sim/membership'].setAlderman(st, v, st.households[f.household].holder); }
   return st;
 };
 // VB-461: a gift from another farmstead or the village store is set aside at the ask and fetched; run the day's fetches to their end

@@ -75,7 +75,15 @@ let checks = 0;
 { // the village store gives what it holds and takes the yearly filling; malformed gifts are refused
   const { st, a, b } = fresh(), v = st.villages[st.farmsteads[a.farmstead].village];
   v.grain = { barley: 30 };
-  const vgive = (n) => issue(st, { actor: { village: v.id }, verb: 'give', target: a.id, args: { good: 'grain', n }, source: 'help' });
+  const vgive = (n, actor = b.holder) => issue(st, { actor, verb: 'give', target: a.id, args: { good: 'grain', n, store: v.id }, source: 'help' });
+  // VB-673: the store gives through its alderman, at home; never by the village itself, nor by another pawn
+  assert.strictEqual(issue(st, { actor: { village: v.id }, verb: 'give', target: a.id, args: { good: 'grain', n: 5 }, source: 'help' }), 'a village gives through its alderman');
+  assert(/has no alderman/.test(vgive(5)), 'with the office vacant the store gives nothing');
+  VB['sim/membership'].setAlderman(st, v, b.holder);
+  assert(/is not the alderman/.test(vgive(5, a.holder)), 'only the alderman gives from it');
+  st.agents[b.holder].away = { why: 'test' };
+  assert(/is away/.test(vgive(5)), 'nor while he is away');
+  delete st.agents[b.holder].away;
   assert(typeof vgive(40) === 'string', 'the store gives no more than it holds');
   assert.strictEqual(vgive(30), true); assert(Sim.grainOf(v) === 0 && v.ledger.some((e) => e.kind === 'gift' && e.n === -30), 'the store gave');
   b.grain = { barley: floorOf(st, b) + 1000 };
