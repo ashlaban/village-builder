@@ -8,11 +8,17 @@ VB['sim/service'] = (() => {
   const { refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hoursBetween, withinDay, byLand } = VB['sim/villagehours'];
-  const { SERVICE, MARRIAGE, AGES } = VB['sim/rules'];
+  const { MARRIAGE, AGES } = VB['sim/rules'];
   const Offers = VB['sim/offers'];
   const { hasPlot } = VB['sim/expansion'];
   const { trustOf } = VB['sim/ownership'];
   const adult = (p) => p.alive && p.age >= 18;
+  // @tunable SERVICE: service: who takes in a servant, and where labour is short
+  // Service (sim/service; stability review, a slice of VB-090): a holder who lives alone takes in an unmarried adult of ages[0]..ages[1] who
+  // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one within
+  // `hours` walking hours of it, a day's walk, since the servant moves (VB-290; design.md, The round's other acts; it was 15 hex steps).
+  // Where labour is short (VB-090; Agreed, Kim, 30 Oct): hands per field below `short`, to spare above `spare`.
+  const SERVICE = { ages: [18, 50], keepHands: 2, hours: 12, short: 1, spare: 1.5 };
   // a before b, comparing arrays of numbers element by element
   const before = (a, b) => {
     for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k] < b[k];
@@ -437,14 +443,5 @@ VB['sim/service'] = (() => {
       st.visualDirty = true;
     }
   }
-  return {
-    careForOrphans,
-    takeServants,
-    serveWhereShort,
-    takeIn,
-    hands,
-    handsPerField,
-    unfit,
-    handsLeft,
-  };
+  return { SERVICE, careForOrphans, takeServants, serveWhereShort, takeIn, hands, handsPerField, unfit, handsLeft };
 })();

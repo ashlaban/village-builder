@@ -2,7 +2,7 @@
 VB['sim/fields'] = (() => {
   const { underCrop, fieldAt, courseFor } = VB['sim/rotations'];
   const { next: rnd } = VB['sim/rng'];
-  const { CROPS, ROTATIONS, SOIL, TILTH, HERD, DEER, fertility, cal, DAY, SEASON_DAYS, YEAR } = VB['sim/rules'];
+  const { CROPS, ROTATIONS, SOIL, HERD, DEER, fertility, cal, DAY, SEASON_DAYS, YEAR } = VB['sim/rules'];
   const { costChanged } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
   const { cropFactor, ripeShift } = VB['sim/weather'];
@@ -13,6 +13,11 @@ VB['sim/fields'] = (() => {
   const { emit } = VB['sim/events'];
   const { clearScrub, tended, SPREAD } = VB['sim/spread'];
   const STONES_PER_LOAD = 25;
+  // @tunable TILTH: tilth (VB-717; docs/review-yields.md, 4): a field's slow soil, built by dung and fading over decades. Estimates, with no medieval
+  // Nordic source. `perLoad`: what one load of manure adds to a field's tilth (on top of its soil); `years`: the time constant of its
+  // fading, in game years (e^-1 left after that long without dung); `max`: a bound for the invariant, which play should never reach.
+  // A harvest is multiplied by 1 + tilth ----
+  const TILTH = { perLoad: 0.0011, years: 70, max: 0.4, surplus: 2 };
   // Clearing done: the stones go to the household's store, the tile is bare ground; the project's next step, breaking, opens.
   // `plan` is the household's field plan whose step the job was (sim/projects' onProject).
   function finishClear(st, f, hh, plan) {
@@ -468,6 +473,7 @@ VB['sim/fields'] = (() => {
   }
   const STOOD = { ripe: 'ripe and not yet reaped', stooks: 'in stooks', growing: 'still growing' };
   return {
+    TILTH,
     takeRotation,
     outOfTurn,
     swapSteps,

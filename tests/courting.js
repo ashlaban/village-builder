@@ -7,7 +7,7 @@ const assert = require('assert');
 const VB = require('../src/load.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
-const { DAY, YEAR, COURT, TICKS } = VB['sim/rules'];
+const { DAY, YEAR, TICKS } = VB['sim/rules'], { COURT } = VB['sim/courting'];
 // The clock set to time t
 const at = (st, t) => {
   st.tick = Math.round(t * TICKS);

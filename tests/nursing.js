@@ -2,7 +2,7 @@
 // and the term stays 48 days. On a tiny village, the daily step called by hand with chances forced by `fix`.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim;
-const { dailyBirths } = VB['sim/births'], { DAY, BIRTH } = VB['sim/rules'];
+const { dailyBirths } = VB['sim/births'], { DAY } = VB['sim/rules'], { BIRTH } = VB['sim/births'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const make = () => {

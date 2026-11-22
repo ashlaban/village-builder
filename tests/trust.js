@@ -3,7 +3,7 @@
 // the fields as its own, the owner, holder and line unchanged, the house empty. The trust ends at the holder's marriage, a servant at the
 // round, a ward's coming of age, the trustee's end, or the holder's death; an orphaned heir with no guardian is held for the same way.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], S = VB['sim/service'], H = VB['sim/help'];
-const { seedReserve } = VB['sim/hunger'], { SERVICE, YEAR, cal } = VB['sim/rules'], { moveTo, extinct, refreshRoles } = VB['sim/heirs'];
+const { seedReserve } = VB['sim/hunger'], { YEAR, cal } = VB['sim/rules'], { SERVICE } = VB['sim/service'], { moveTo, extinct, refreshRoles } = VB['sim/heirs'];
 const { trustOf, trustOfHolder, ownerOf } = VB['sim/ownership'], T = VB['sim/trust'], { refreshJobs } = VB['sim/jobs'];
 const { issue } = VB['sim/commands'], { eligible } = VB['sim/eligibility'];
 const { checkState } = require('./lib/invariants.js');

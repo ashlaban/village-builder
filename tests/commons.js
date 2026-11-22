@@ -10,7 +10,7 @@ const { tinyWorld, tinyState, setPractice } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const Plans = VB['sim/plans'], Commons = VB['sim/commons'], Stores = VB['sim/stores'];
 const { eligible } = VB['sim/eligibility'], { book } = VB['sim/relations'], { refreshInterests } = VB['sim/society'];
-const { COMMONS, ROLES, DAY, YEAR, cal } = VB['sim/rules'];
+const { ROLES, DAY, YEAR, cal } = VB['sim/rules'], { COMMONS } = VB['sim/commons'];
 const { hexSteps } = VB['sim/hex'];
 const st = tinyState(tinyWorld(Array(16).fill('.'.repeat(24)), { seed: 3 }), [{ at: [11, 8], farms: 3, sizes: [6, 6, 5] }], { seed: 5 });
 const v = st.villages[0], w = st.w, plan = Plans.planOf(st, 'village', v.id);

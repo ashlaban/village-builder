@@ -4,8 +4,10 @@
 // answers the same question a region.
 VB['sim/weather'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { SEASONS, CROPS } = VB['sim/rules'];
+  const { CROPS } = VB['sim/rules'];
   const { log } = VB['sim/records'];
+  // @tunable SEASONS: the seasons' names, in the year's order
+  const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
   // The draw (Agreed, 11 Nov, starting values): a season's warmth and wetness each from -1 to 1 about the normal, most seasons near it (the
   // sum of two draws: a triangle); the thaw on spring day 1 to 4 (sday 0 to 3, `thaw` the weights of each), the first frost on autumn day 8
   // to 12 (sday 7 to 11, `frost` the weights from `frostFrom`), most often on sday 11, where it was fixed before (the design's "most often
@@ -110,6 +112,7 @@ VB['sim/weather'] = (() => {
     return c.season === W[0] && c.sday >= (W[0] === 0 ? Math.max(W[1], thawDay(st)) : W[1]) && c.sday <= W[2];
   }
   return {
+    SEASONS,
     WEATHER,
     seasonBegins,
     seedWeather,

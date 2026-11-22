@@ -2,7 +2,8 @@
 // whom the player may go on as after its pawn's death (VB-213)
 VB['sim/opportunities'] = (() => {
   const Culture = VB['culture'];
-  const { cal, SERVICE, DAY, YEAR } = VB['sim/rules'];
+  const { cal, DAY, YEAR } = VB['sim/rules'],
+    { SERVICE } = VB['sim/service'];
   const { walkable } = VB['sim/walking'];
   const { villageOf, settlementIdOf, practice, fullName, spouseOf, childrenOf, holdingOf, spokesmanOf } =
     VB['sim/records'];

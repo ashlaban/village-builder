@@ -5,7 +5,7 @@
 // that stayed at home owes nothing; a guest household's meal is not eaten twice.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/stores'], O = VB['sim/occasions'], H = VB['sim/hunger'];
-const { FEAST, BREW, DAY } = VB['sim/rules'], Traits = VB['sim/traits'], { balance } = VB['sim/relations'];
+const { BREW, DAY } = VB['sim/rules'], { FEAST } = VB['sim/feast'], Traits = VB['sim/traits'], { balance } = VB['sim/relations'];
 const { state } = require('./lib/probe.js'), { checkState } = require('./lib/invariants.js');
 
 const live = (st) => st.households.filter((h) => !h.dissolved && h.holder !== null);

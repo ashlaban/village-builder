@@ -1,7 +1,7 @@
 // Taken in before it starves (VB-308; design.md, Households short of people): a household of at most one grown member, with fields, whose
 // seasonal ask for food falls short takes in its nearest free relative from st.demand (kin first), else a servant, at once; land is unchanged.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], S = VB['sim/service'], H = VB['sim/help'];
-const { seedReserve } = VB['sim/hunger'], { SERVICE } = VB['sim/rules'], { moveTo } = VB['sim/heirs'];
+const { seedReserve } = VB['sim/hunger'], { SERVICE } = VB['sim/service'], { moveTo } = VB['sim/heirs'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TAKENIN FAIL:', m); } };
 const world = (() => { const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; })();

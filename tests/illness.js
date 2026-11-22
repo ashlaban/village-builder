@@ -5,7 +5,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'),
   Sim = VB.sim;
-const { DAY, YEAR, YEAR_DAYS, ILLNESS, hazard } = VB['sim/rules'];
+const { DAY, YEAR, YEAR_DAYS, ILLNESS } = VB['sim/rules'], { hazard } = VB['sim/deaths'];
 const { dayOfDeath } = VB['sim/deaths'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');

@@ -1,8 +1,8 @@
 // @sys sim: the public Sim object, assembled from the sim/* modules
 const Sim = (() => {
   const Culture = VB['culture'];
-  const { cal, SEASONS, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, TRAVEL, ROLES, WORK, dark, RIVER, byRiver } =
-    VB['sim/rules'];
+  const { cal, DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ECON, TRAVEL, ROLES, WORK, dark, RIVER, byRiver } = VB['sim/rules'],
+    { SEASONS } = VB['sim/weather'];
   const { KINDS } = VB['sim/kinds'];
   const {
     age,

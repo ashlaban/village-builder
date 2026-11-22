@@ -4,13 +4,18 @@ VB['sim/spread'] = (() => {
   const G = VB['gen'],
     { B, treeStage, setBiome } = G;
   const { fullTrees } = VB['gen/cover'];
-  const { DAY, YEAR_DAYS, GRAZE } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS } = VB['sim/rules'];
   const { costChanged } = VB['sim/routes'];
   const { woodTaken } = VB['sim/territory'];
   const { FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
   const { yearScale } = VB['sim/grazing'];
   const Projects = VB['sim/projects'];
   const { on } = VB['sim/events'];
+  // @tunable GRAZE: grazing pressure (VB-136; read by forest spread, VB-091): a tile at or above keepsOpen stays open; at or above thins, its trees
+  // are thinned. Pressure is 1 a cow-hour (HERD.herding), halving each game year (sim/grazing). At populous medium, seed 7, year 5, the
+  // grazed tiles' pressure runs p10 15, p50 87, p90 219, p99 385, max 628: keepsOpen is a herd's half day on the tile, or a pasture's
+  // neighbour, within about a year (87% of grazed tiles); thins is a small herd's week a year, kept up (about the 90th percentile). ----
+  const GRAZE = { keepsOpen: 20, thins: 200 };
   // design.md, Land and ecology, Forest spread (Decided; rates Agreed, Kim, 30 Oct; QUESTION_ARCHIVE.md, VB-091): open land next to forest,
   // or to scrub at half cover or more, gains trees as regrowth does, full cover in `years` game years (a quarter, scrub, in about 8); at full
   // cover it is forest. Grazing at or above GRAZE.thins takes trees off at `thin` of that rate. Work on a tile keeps it open `tendedDays`
@@ -175,5 +180,5 @@ VB['sim/spread'] = (() => {
         if (j >= 0 && open(w, j)) front.add(j);
       }
   }
-  return { SPREAD, initFront, spreadForest, tended, scrubHours, clearScrub, thick };
+  return { GRAZE, SPREAD, initFront, spreadForest, tended, scrubHours, clearScrub, thick };
 })();

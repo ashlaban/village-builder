@@ -63,7 +63,7 @@ function tilthStat(fields, of = '') {
     value: n,
     note: of,
     title: `What years of dung have left in the ground${of ? `, ${of}` : ''}: the harvest gains this many hundredths`,
-    meter: { value: n, max: Math.round(100 * VB['sim/rules'].TILTH.max) },
+    meter: { value: n, max: Math.round(100 * VB['sim/fields'].TILTH.max) },
   };
 }
 const stats = (list) => `<div class="stat-grid">${list.filter(Boolean).map(stat).join('')}</div>`;

@@ -1,9 +1,27 @@
 // @sys sim/mood: a pawn's mood (VB-062), 50 plus its modifiers, computed when asked and stored nowhere; the event modifiers (pawn.mods),
 //   written at a wedding, a birth and a death. Read by the pawn's card only: no rule of the simulation reads it (tests/mood.js holds that)
 VB['sim/mood'] = (() => {
-  const { DAY, MOOD } = VB['sim/rules'];
+  const { DAY } = VB['sim/rules'];
   const { on } = VB['sim/events'];
   const { spouseOf, childrenOf } = VB['sim/records'];
+  // @tunable MOOD: mood (VB-062; design.md, Traits, talk and stories: Mood): 50 plus its modifiers' values, within 0 to 100; shown, read by no rule
+  // Starting values, each a feeling's weight on that scale (Kim, 30 Oct: "talked with a friend +5"). For a state, read from it: hungry,
+  // `value` × the pawn's hunger while over `over`; cold, `value` × its household's cold (VB-327, cold's weight as hunger's until Kim sets
+  // one); without water, `value` while its household's hh.dry is above 0 (VB-331); weak, `value` while health is under `under`. For an
+  // event, kept `days` from it (pawn.mods): married; a child born, both parents; grieving at the death of a spouse, child or parent;
+  // talked with a friend, read from the pawn's latest talk (agent.talk) with one it holds at SOCIAL.friend or above.
+  const MOOD = {
+    base: 50,
+    hungry: { value: -20, over: 0.1 },
+    cold: { value: -20 },
+    dry: { value: -10 },
+    weak: { value: -10, under: 50 },
+    married: { value: 10, days: 12 },
+    child: { value: 5, days: 12 },
+    grieving: { value: -15, days: 12 },
+    friend: { value: 5, days: 2 },
+  };
+
   // The modifiers for an event (pawn.mods), each one kept MOOD[key].days from it.
   const EVENT = ['married', 'child', 'grieving'];
   const LABEL = {
@@ -67,5 +85,5 @@ VB['sim/mood'] = (() => {
   }
   // A word for a mood: miserable under 25, low under 45, content under 65, happy.
   const word = (m) => (m < 25 ? 'miserable' : m < 45 ? 'low' : m < 65 ? 'content' : 'happy');
-  return { of, word, feel, EVENT };
+  return { MOOD, of, word, feel, EVENT };
 })();

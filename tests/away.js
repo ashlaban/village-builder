@@ -7,7 +7,7 @@ const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js'), { canon } = require('./lib/canon.js');
 const { issue } = VB['sim/commands'], { post } = VB['sim/jobs'], { bed, stayOf } = VB['sim/agents'], Stores = VB['sim/stores'];
 const { feedHousehold, rationOf } = VB['sim/hunger'];
-const { DAY, WORK, AWAY } = VB['sim/rules'];
+const { DAY, WORK } = VB['sim/rules'], { AWAY } = VB['sim/away'];
 const hourOf = (st) => st.t - Math.floor(st.t / DAY) * DAY;
 const to = (st, h) => Sim.advance(st, (((h - hourOf(st)) % DAY) + DAY) % DAY || DAY); // to the next h:00
 const W = 60, make = () => tinyState(tinyWorld(Array(9).fill('.'.repeat(W)), { seed: 3 }), [{ at: [6, 4], farms: 2, sizes: [5, 4] }], { seed: 3 });

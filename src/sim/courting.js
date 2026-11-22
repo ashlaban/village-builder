@@ -3,12 +3,19 @@
 //   with no offer of theirs open; a head's refusal of their match is remembered by both, who may ask for service at the next round. The
 //   pair's own offer is made by sim/asking, and answered as a match (sim/marriage)
 VB['sim/courting'] = (() => {
-  const { COURT, YEAR } = VB['sim/rules'];
+  const { YEAR } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf, practice, age } = VB['sim/records'],
     { tieOf } = VB['sim/ties'];
   const { opinionOf, remember } = VB['sim/relations'];
   const { kinOk } = VB['sim/matching'];
   const { on, emit } = VB['sim/events'];
+  // @tunable COURT: courting: who courts, how it grows and how it ends
+  // Courting (VB-036; design.md, Traits, talk and stories: Courting): two unmarried pawns of `minAge` or more court once each holds the
+  // other at an opinion of `opinion` with a tie of `tie`, read when the two have a good talk; it ends when either's opinion of the other
+  // falls under `end`, or `years` after it began with no offer of theirs open. A refusal sends one of the two to ask for service at the
+  // next round when it holds the head who refused at an opinion under `leaveBelow` (a threshold on what the pawn feels, in place of
+  // the design's first chance of 0.5: principle 19).
+  const COURT = Object.freeze({ minAge: 16, opinion: 0.4, tie: 1.5, end: 0.2, years: 3, leaveBelow: 0 });
   // @state pawn.courting (VB-036): absent or null, else the id of the pawn it courts; the same on both sides (one at a time). Written
   //   where a courtship starts (a good talk) and ends. Plain data, saved with the pawn.
   // @state pawn.courtingSince: game hours, when the courtship began; null or absent when it courts nobody.
@@ -150,5 +157,5 @@ VB['sim/courting'] = (() => {
     st.courtships = [];
     for (const id of st.living) if (st.pawns[id].sex === 'm' && courts(st.pawns[id]) !== null) st.courtships.push(id);
   }
-  return { barred, review, refused, leavers, seedCourtships, courtedBy: (st, id) => courts(st.pawns[id]) };
+  return { COURT, barred, review, refused, leavers, seedCourtships, courtedBy: (st, id) => courts(st.pawns[id]) };
 })();

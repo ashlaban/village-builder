@@ -3,7 +3,7 @@
 // called adult takes tasks of the creditor's plan on the basis `owed` for DAYS.hours of work, walking there and home; each hour worked
 // is booked against the obligation (kind `days` of sim/obligations). A debt, the alderman's keep and a patron's due are its sources.
 VB['sim/days'] = (() => {
-  const { DAY, DAYS, MATCH } = VB['sim/rules'];
+  const { DAY, MATCH } = VB['sim/rules'];
   const Obligations = VB['sim/obligations'];
   const Stores = VB['sim/stores'];
   const { floorOf } = VB['sim/hunger'];
@@ -11,6 +11,10 @@ VB['sim/days'] = (() => {
   const { KINDS, isOpen } = VB['sim/kinds'];
   const { on: onEvent } = VB['sim/events'];
   const { register, issue } = VB['sim/commands'];
+  // @tunable DAYS: a day of work owed, and the notice it is called with
+  // Days owed (VB-462; design.md, Remedies, The alderman's keep): a day is `hours` of work of one adult, called for a day at least `notice`
+  // days ahead by the creditor's holder, as tasks of its plan.
+  const DAYS = { notice: 3, hours: 8 };
   // @state st.daysCalls: [[day (game day), pawn id, obligation id]], sorted by day, then pawn: the days called and not yet come, absent until
   //   the first call (a due-queue, Rules for cost, 4). Written only here.
   // @state st.daysToday: {day, by: {pawn id: [obligation id, hours worked today, 1 once sent home]}}: the pawns on duty today, the compiled
@@ -140,5 +144,5 @@ VB['sim/days'] = (() => {
     if (Obligations.isLive(o))
       Obligations.fulfil(st, o.id, Math.min(n / DAYS.hours, Obligations.left(o)), 'days worked');
   }
-  return { on, worked, step };
+  return { DAYS, on, worked, step };
 })();

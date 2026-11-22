@@ -1,7 +1,7 @@
 // Households short of people (sim/service; stability review): a minor heir left with no adult in the house takes in a landless adult relative
 // as guardian, or, with none, the children go to their kin and the farm stands empty; a holder who lives alone takes in an unmarried landless
 // adult as servant, but never one whose household would be left with fewer than SERVICE.keepHands working hands.
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], S = VB['sim/service'], { SERVICE } = VB['sim/rules'];
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], S = VB['sim/service'], { SERVICE } = VB['sim/service'];
 const { checkState } = require('./lib/invariants.js'), { byLand } = VB['sim/villagehours'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('GUARDIANS FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };

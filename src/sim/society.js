@@ -8,7 +8,8 @@ VB['sim/society'] = (() => {
   const Culture = VB['culture'];
   const { initRelations } = VB['sim/relations'],
     { raiseTie } = VB['sim/ties'];
-  const { YEAR, houseTerm, TIE, SPEED, WORKDAY, OFFICE, cal, TRAITS, HERD, SOCIAL, DAY } = VB['sim/rules'];
+  const { YEAR, houseTerm, SPEED, OFFICE, cal, TRAITS, HERD, SOCIAL, DAY } = VB['sim/rules'],
+    { WORKDAY } = VB['sim/workdays'];
   const { herdsOf, winterNeed } = VB['sim/herds'];
   const { addValues, act } = VB['sim/traits'];
   const { hexSteps } = VB['sim/hex'];
@@ -30,6 +31,10 @@ VB['sim/society'] = (() => {
     { aleStanding } = VB['sim/stores'];
   const { heirRanking } = VB['sim/heirranking'];
   const { helpLean } = VB['sim/commons'];
+  // @tunable TIE: a settlement's tie to its culture's centre, by the walking hours between
+  // The tie of a settlement to its culture's centre (sim/society, VB-290): exp(-h / hours) for h walking hours between the two greens (the
+  // table of VB-286), plus the kin term; over the sea or beyond walking reach, `sea` times the hex steps, in hours (/ SPEED).
+  const TIE = { hours: 8, sea: 1.6 };
   // The lookups Culture's functions take (VB-073): built from st on each call, so nothing in st.cenv is a function.
   function hooks(st) {
     const env = st.cenv;
@@ -351,6 +356,7 @@ VB['sim/society'] = (() => {
     },
   });
   return {
+    TIE,
     standingParts,
     hooks,
     initCulture,

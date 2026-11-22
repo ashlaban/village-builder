@@ -6,7 +6,7 @@ VB['sim/commons'] = (() => {
   const Projects = VB['sim/projects'],
     Stores = VB['sim/stores'],
     Culture = VB['culture'];
-  const { COMMONS, ROLES, CROPS, farmable, fertility, cal } = VB['sim/rules'];
+  const { ROLES, CROPS, farmable, fertility, cal } = VB['sim/rules'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
@@ -19,6 +19,21 @@ VB['sim/commons'] = (() => {
   const { clearHours, builtTiles, BREAK_HOURS } = VB['sim/fieldplans'],
     { clearStones, broken } = VB['sim/fields'];
   const { houses } = VB['sim/green'];
+  // @tunable COMMONS: the village's common fields: when the meeting chooses them, and how many
+  // Common fields worked by the village (VB-100; Kim, 10 Nov; design, Commons): a routine the meeting may choose for a village of `minFarms`
+  // or more occupied farms whose store holds less than `storeDays` days of its members' need, with a free meadow tile within `reach` steps of
+  // its green (its centre before it has one); at most one common field for every `perFarms` farms. Its tasks are the village's, at the
+  // village-duty priorities of ROLES (`duty`) moved by the village's custom `commons` (`lean`: its options' steps from them).
+  // `pull`: how far the help a person's household was given leans it to the next higher option, at `fullDays` days of its need owed.
+  const COMMONS = {
+    minFarms: 3,
+    storeDays: 10,
+    reach: 3,
+    perFarms: 3,
+    lean: { own: -2, fair: 0, first: 2 },
+    fullDays: 30,
+    pull: 0.6,
+  };
   // @state village.commonFields: the village's common fields, records as a farm's (farmstead.fields, sim/fields: stage, crop, sown...),
   //   absent before its first; a field is added only here, when its ground is broken; its stages are written by sim/fields as a farm's.
   // @state the common field's project plan (st.plans.projects.village; sim/projects): {what: 'commons', started (game hours), steps: [{kind
@@ -216,6 +231,7 @@ VB['sim/commons'] = (() => {
     break: { ...K.break, done: (st, j) => (j.common ? brokenUp(st, j) : K.break.done(st, j)) },
   });
   return {
+    COMMONS,
     common,
     fieldsOf,
     underWay,

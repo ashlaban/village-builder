@@ -2,7 +2,7 @@
 // from each member's list; fit and urgency; the round of bids for help between households
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { WORK, ROLES, CHILD, PLOT_PRIO, MATCH, IDLE, TICKS, cal } = VB['sim/rules'];
+  const { WORK, ROLES, CHILD, MATCH, TICKS, cal } = VB['sim/rules'];
   const { act } = VB['sim/traits'];
   const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
@@ -33,6 +33,14 @@ VB['sim/jobs'] = (() => {
   const { trustOf, heldFarms } = VB['sim/ownership'];
   const { planOf, reviewed, landStep, reviewWhy, mayLook, WINDOWED, dueNow, again, routineAsks } = VB['sim/plans'];
   const { onProject } = VB['sim/projects'];
+  // @tunable IDLE: how long an idle pawn waits before it looks for work again
+  // An idle pawn the planner found no work looks again after wait[0] to wait[1] hours (VB-245; Kim, 10 Nov: 2 to 4, from 0.75 to 2). It hears of new
+  // work meanwhile through the hourly refresh, looks again when its wait ends (a leg in sim/agents' queue, VB-473), and of an occasion by the asking.
+  const IDLE = { wait: [4, 8] };
+  // @tunable PLOT_PRIO: who clears a new plot, by role
+  // Who clears a new plot for the village (see sim/expansion): by role; those waiting for the plot take 9 whatever their role.
+  const PLOT_PRIO = { waiting: 9, farmhand: 7, maid: 7, son: 5, daughter: 5, farmer: 3 };
+
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   // The holders whose tasks were posted or taken down during the review or the look under way: their days are allotted anew at its end

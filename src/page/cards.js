@@ -186,7 +186,7 @@ const feastStat = (hh) => {
   if (hh.holder === null || !st.pawns[hh.holder].alive) return null;
   const x = Sim.explainFeast(st, hh),
     part = (k) => (x.parts.find((q) => q.key === k) || { factor: 0 }).factor,
-    { FEAST } = VB['sim/rules'];
+    { FEAST } = VB['sim/feast'];
   const above = x.base + part('seed'),
     keep = -part('keep'),
     over = Math.round(x.value),

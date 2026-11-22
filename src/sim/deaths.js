@@ -1,7 +1,8 @@
 // @sys sim/deaths: causes of death, the death.hazard rule and its daily roll, and the course of an illness, which kills (VB-1118) or passes (VB-1246)
 VB['sim/deaths'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { YEAR, YEAR_DAYS, DAY, hazard, ILLNESS, CROWD } = VB['sim/rules'];
+  const { YEAR, YEAR_DAYS, DAY, ILLNESS } = VB['sim/rules'],
+    { CROWD } = VB['sim/crowding'];
   const Rules = VB['sim/registry'];
   const Crowding = VB['sim/crowding'];
   Rules.declare({
@@ -23,6 +24,10 @@ VB['sim/deaths'] = (() => {
     value: Crowding.factor,
     note: Crowding.note,
   });
+  // Annual death hazard at age a (years, may be fractional): Gompertz-Makeham for adults plus a juvenile term that falls with age (Siler 1979),
+  // so that about 20% die before age 1 and a third before 15.
+  const hazard = (a) => 0.006 + 0.0007 * Math.exp(0.07 * a) + 0.381 * Math.exp(-1.265 * a);
+
   // Cause keys: the base hazard by age (infancy, childhood, illness, oldAge), the share added by hunger, and the causes set elsewhere.
   // `event` is the text of the pawn's life event, `log` the text of the village log ("<name> of <farm> <log>, aged <n>").
   const CAUSES = {
@@ -83,5 +88,5 @@ VB['sim/deaths'] = (() => {
       p.ill = { cause: base, from: st.t, until: st.t + ILLNESS.days[base] * DAY, passes: true };
     return null;
   }
-  return { CAUSES, COLD, deathRoll, dayOfDeath };
+  return { hazard, CAUSES, COLD, deathRoll, dayOfDeath };
 })();

@@ -3,12 +3,33 @@
 // priority; at the day's end those who turned out gain standing for the year, a household that stayed away loses its holder's, and the
 // other holders tied to that holder remember it
 VB['sim/workdays'] = (() => {
-  const { WORKDAY, WORK, cal } = VB['sim/rules'];
+  const { WORK, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { log, age, fullName } = VB['sim/records'],
     { tieOf } = VB['sim/ties'];
   const { remember } = VB['sim/relations'];
   const { emit } = VB['sim/events'];
+  // @tunable WORKDAY: the village work days, their days, hours and standing
+  // Village work days (VB-120; Kim, 10 Nov; design, Jobs, owners and roles: Village work days): a routine the meeting may choose for a village
+  // with a fence; chosen, the village works together on `days` ([season, day of the season, what]): spring's first day the fence, its stretches
+  // below `fenceBelow` (each `fenceHours`, as a mend), summer's second the commons, scrub cleared at the wood's edge (`clearHours` an adult of
+  // the village). Every adult (from `minAge`) takes the work at role priority `prio`, whatever the role; it takes unlimited hands, all
+  // together. An adult who works `hours` gains `came` standing for the year; a household none of whose adults worked their share (`hours`, or
+  // the day's work over its adults when that is less) is away: its holder loses `missed` (the agent's own reading of "at the work day").
+  const WORKDAY = {
+    days: [
+      [0, 0, 'fence'],
+      [1, 1, 'commons'],
+    ],
+    fenceBelow: 0.9,
+    fenceHours: 2.5,
+    clearHours: 3,
+    prio: 8,
+    minAge: 14,
+    hours: 2,
+    came: 0.05,
+    missed: -0.1,
+  };
   // @state village.workday: the village's last work day, or absent before its first: {day (game day), what ('fence' | 'commons'),
   //   hoursOf ({pawn id: hours worked at the day's jobs}), cleared (the commons' work done), judged (its end told)}. Written only here:
   //   begun by the first hour worked at the day's jobs (or, when nobody came, at its end), judged at the end of work (sim/clock).
@@ -192,5 +213,5 @@ VB['sim/workdays'] = (() => {
   };
   // Whether the routine is open to a village (VILLAGE_ROUTINES, sim/plans): it has a fence to close.
   const wanted = (st, v) => v.fence.length > 0;
-  return { KINDS, dayOf, wanted, judge, isWorkdayJob, households, edgeOf };
+  return { WORKDAY, KINDS, dayOf, wanted, judge, isWorkdayJob, households, edgeOf };
 })();

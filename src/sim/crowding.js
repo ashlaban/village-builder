@@ -1,7 +1,12 @@
 // @sys sim/crowding: a household's crowding (VB-766), the people within CROWD.steps of its house, and the death.hazard factor it gives, kept as arrays
 VB['sim/crowding'] = (() => {
-  const { CROWD } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
+  // @tunable CROWD: crowding (VB-766; design.md, Balance loops and targets: Deaths; Kim, 16 Nov): living close costs lives, wherever it happens, and
+  // stands in for disease until disease exists. A household's crowding is the people living in houses within `steps` hex steps of its
+  // house, its own among them; its members' death hazard is multiplied by 1 + `per` for each beyond `free`, at most `max`. First values
+  // (Proposed): `steps` 2, hexes round a house that count as living close; `free` 36, the people within them that cost nothing (about the
+  // 99th percentile of a village house, 31 to 41); `per` 0.035, hazard added for each person beyond; `max` 2.5, the factor's ceiling.
+  const CROWD = { steps: 2, free: 36, per: 0.035, max: 2.5 };
   // @state st.crowdN: people (members of undissolved households) living within CROWD.steps hex steps of each household's house, its own
   //   among them, by household id; a cache owned here, rebuilt at seed and load, never read by a rule.
   // @state st.crowd: the death.hazard factor of each household by id, 1 + CROWD.per * max(0, n - CROWD.free), at most CROWD.max; a cache
@@ -91,5 +96,5 @@ VB['sim/crowding'] = (() => {
     }
     return n;
   }
-  return { rebuild, batch, moved, founded, ended, factor, note, factorOf, fresh };
+  return { CROWD, rebuild, batch, moved, founded, ended, factor, note, factorOf, fresh };
 })();
