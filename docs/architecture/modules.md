@@ -134,7 +134,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Names (VB-026): `src/sim/names.js` holds the generators (farms by compass, landmark, owner; villages by syllables or founder) and each culture's
   order of preference (`c.namePrefs`); a lone farm's village bears its farm's name, and the page labels a village of two or more farms once.
 - Households short of people (stability review, `docs/review-stability.md`): `src/sim/service.js` brings a guardian to an orphaned minor heir and a
-  servant to a holder who lives alone; a household of at most one grown member whose ask for food falls short (`shareFood`, `src/sim/help.js`,
+  servant to a holder who lives alone; a household of at most one grown member whose ask for food falls short (`askFood`, `src/sim/help.js`, at its head's plan review, VB-691;
   names it) takes in kin, else a servant, at once (`takeIn`, VB-308), and with nobody to come, its people go to their nearest kin household,
   which holds the farm in trust (`src/sim/trust.js`, VB-309: `st.trusts`, the verbs `goToKin` and `goBack`; the trustee posts the farm's
   field work as its own in `src/sim/jobs.js`, and `src/sim/ownership.js` reads which farms are held); an orphaned heir with no guardian is

@@ -616,6 +616,19 @@ async function actionBar() {
   if (!gift || gift.target !== +opt.value || gift.args.n !== 5 || !/^Queued: 5 grain/.test(q('#actMenu .act-msg').textContent)) {
     fail(`the gift was not queued: ${JSON.stringify(gift)}`); }
   while (st.player.queue.length) Sim.unqueue(st, 0);
+  // VB-691: the played head asks by the same form, the household's holder answering: an offer on the basis ask
+  if (!q('#actMenu [data-give="ask"]')) { q('#actBar [data-group="house"]').click(); tick(1); q('#actMenu [data-view="give"]').click(); tick(1); }
+  const askBtn = q('#actMenu [data-give="ask"]');
+  if (st.households[+opt.value].holder !== null) {
+    if (!askBtn) fail('the gift\'s form has no ask');
+    else {
+      askBtn.click(); tick(1);
+      const ask = st.player.queue.find((c) => c.verb === 'offer' && c.args && c.args.basis === 'ask');
+      if (!ask || ask.target !== st.households[+opt.value].holder || ask.args.wants.n !== 5 || !/^Queued: an ask of 5 grain/.test(q('#actMenu .act-msg').textContent)) {
+        fail(`the ask was not queued: ${JSON.stringify(ask)}`); }
+    }
+  }
+  while (st.player.queue.length) Sim.unqueue(st, 0);
   // Walk here: the camera follows the pawn, and a tap at the view's middle (the page's 0, 0 here) is its tile
   q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(200); // the camera glides to the pawn, wherever its work has taken it
   q('#actBar [data-group="self"]').click(); tick(1); q('#actMenu [data-bar="walk"]').click(); tick(1);

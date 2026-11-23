@@ -5,10 +5,12 @@ VB['sim/exchange'] = (() => {
   const Goods = VB['sim/goods'],
     Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { book, balance, opinionOf } = VB['sim/relations'],
+  const { book, balance, opinionOf, remember } = VB['sim/relations'],
     { addTie } = VB['sim/ties'];
-  const { HELP, GOODWILL, HERD, stalled } = VB['sim/rules'];
-  const { personEvent, atHousehold, holdingOf, age, childrenOf, siblingsOf } = VB['sim/records'];
+  const { HELP, GOODWILL, HERD, TRAVEL, stalled } = VB['sim/rules'];
+  const { withinDay, byLand } = VB['sim/villagehours'];
+  const { agentWhy } = VB['sim/decisions'];
+  const { personEvent, atHousehold, holdingOf, age, childrenOf, siblingsOf, log, fullName } = VB['sim/records'];
   const { herdsOf, winterNeed } = VB['sim/herds'];
   const { payInAnimals } = VB['sim/droving'];
   const { floorOf, dailyNeed, servedLast } = VB['sim/hunger'],
@@ -209,43 +211,103 @@ VB['sim/exchange'] = (() => {
         source: 'offer',
       }),
   });
-  // ask: {wants: {good, n}}: a pawn asks a holder for grain for its own household; the holder weighs it as the gift it would make (its floor
-  // and its allowance toward the asker's household). A yes needs a member of the asker's household free to fetch it (deliver refuses else).
-  // The holder delivers it, set aside where it lies and fetched; the worth is booked as goodwill, as a gift's.
+  // ask: {wants: {good, n, store?}}: a pawn asks a holder, or with wants.store a village's alderman for its store (VB-691), for grain for
+  // its own household. The one asked answers by its floor and allowance (assessGift's; a store by its rule: its grain above the seed of
+  // its common fields) and gives what they allow, up to n: at least HELP.askLeast, or it says no; a no is remembered only by one who had
+  // grain above its floor to give (as hands, VB-470: an honest cannot is not resented), and told only then.
+  // What is given is set aside where it lies and fetched by the asker's household (VB-461): with no one of the asker's free to fetch, the
+  // yes lapses (VB-861: the verb deliver refuses it); from kin beyond a day's walk by land it is carried by one of the giver's own, a
+  // back-load at most (VB-291), and with no one free to go the yes lapses. The worth is booked as goodwill, as a gift's.
+  // The youngest adult of 14 to 59 of household hh who is not on the road (VB-291), or -1: the one who carries a far gift
+  function carrierOf(st, hh) {
+    let best = -1;
+    for (const id of hh.members) {
+      const p = st.pawns[id];
+      if (!p.alive || p.age < 14 || p.age >= 60 || st.agents[id].away !== undefined) continue;
+      if (best < 0 || p.age < st.pawns[best].age) best = id;
+    }
+    return best;
+  }
+  // Whether the asked party `from` lies beyond a day's walk of the asker's household `to` (its gift is carried), null when beyond reach by land
+  function farOf(st, from, to) {
+    if (!isHousehold(from)) return false;
+    const a = st.farmsteads[from.farmstead].village,
+      b = st.farmsteads[to.farmstead].village;
+    return withinDay(st, a, b) ? false : byLand(st, a, b) ? true : null;
+  }
+  // What `from` (a household or a village store) would give to an ask of n grain by household `to`: what its floor and allowance allow,
+  // up to n; under ASK.least, 0
+  function askGives(st, from, to, n) {
+    const most = isHousehold(from)
+      ? Math.min(assessGift(st, { from, to, n: 0, source: 'ask' }).allowance, Stores.grainOf(from) - floorOf(st, from))
+      : Stores.grainOf(from) - Stores.reserved(st, from, 'grain');
+    const k = Math.min(n, most);
+    return k >= HELP.askLeast - TOLERANCE ? k : 0;
+  }
   Offers.basis('ask', {
     books: 'goodwill',
     wait: () => HELP.answerDays,
     check: (st, o) => {
       const p = Number.isInteger(o.from) && st.pawns[o.from],
-        to = Number.isInteger(o.to) && st.pawns[o.to] && st.pawns[o.to].died === null ? holdingOf(st, o.to) : null,
-        want = o.wants;
+        want = o.wants,
+        vid = want && want.store;
       if (!p || p.died !== null) return 'the ask is made by a living pawn';
       if (p.household === null || st.households[p.household].dissolved) return `pawn ${o.from} lives in no household`;
-      if (!to || to.dissolved) return `pawn ${o.to} holds no household`;
-      if (to.id === p.household) return "one cannot ask one's own household";
       if (o.gives) return 'an ask gives nothing';
       if (!(want && want.good === 'grain')) return 'only grain is asked for';
       if (!(Number.isFinite(want.n) && want.n > 0)) return `cannot ask for ${want.n}`;
-      return { parties: { from: { household: p.household }, to: { household: to.id } } };
+      let to;
+      if (vid !== undefined) {
+        if (!st.villages[vid]) return `there is no village ${vid}`;
+        const why = agentWhy(st, vid, o.to); // the store answers through its alderman, at home (VB-673)
+        if (why) return why;
+        to = st.villages[vid];
+      } else {
+        to = Number.isInteger(o.to) && st.pawns[o.to] && st.pawns[o.to].died === null ? holdingOf(st, o.to) : null;
+        if (!to || to.dissolved) return `pawn ${o.to} holds no household`;
+        if (to.id === p.household) return "one cannot ask one's own household";
+        if (farOf(st, to, st.households[p.household]) === null) return `${nameOf(st, to)} is beyond reach by land`;
+      }
+      return { parties: { from: { household: p.household }, to: Offers.refOf(to) } };
     },
     answers: (st, o) => [{ key: 'to', by: o.to, yes: null }],
     weigh: (st, o) => {
       const from = Offers.partyOf(st, o.parties.to),
         to = Offers.partyOf(st, o.parties.from);
-      return (
-        !from.dissolved &&
-        !to.dissolved &&
-        assessGift(st, { from, to, good: o.wants.good, n: o.wants.n, source: 'ask' }).accept
-      );
+      return !from.dissolved && !to.dissolved && askGives(st, from, to, o.wants.n) > 0;
+    },
+    refused: (st, o, no) => {
+      const from = Offers.partyOf(st, o.parties.to);
+      if (o.from === no.by || (isHousehold(from) && Stores.grainOf(from) - floorOf(st, from) < HELP.askLeast)) return;
+      remember(st, o.from, no.by, 'refusedUs');
+      remember(st, no.by, o.from, 'refusedThem');
+      log(st, `${fullName(st.pawns[no.by])} refused ${Offers.what(st, o)}.`, {
+        kind: 'offerRefused',
+        pawn: no.by,
+        other: o.from,
+        ...atHousehold(st, Offers.partyOf(st, o.parties.from)),
+      });
     },
     settle: (st, o) => {
-      const from = Offers.partyOf(st, o.parties.to);
-      // the grain is set aside where it lies and fetched by the asker's household (VB-461, VB-861), not taken up at the start by a carrier
+      const from = Offers.partyOf(st, o.parties.to),
+        to = Offers.partyOf(st, o.parties.from),
+        far = farOf(st, from, to);
+      const n = from.dissolved || to.dissolved ? 0 : askGives(st, from, to, o.wants.n);
+      if (!(n > 0)) return `${nameOf(st, from)} has nothing to spare now`;
+      const args = { good: o.wants.good, n };
+      if (far) {
+        const c = carrierOf(st, from);
+        if (c < 0) return `no one of ${nameOf(st, from)} is free to carry it`;
+        args.carrier = c;
+        args.n = Math.min(n, TRAVEL.load);
+      }
+      if (!isHousehold(from)) args.store = from.id;
+      // the grain is set aside where it lies and fetched by the asker's household (VB-461, VB-861), or carried by the giver's man from far
       return issue(st, {
-        actor: from.holder !== null ? from.holder : { household: from.id },
+        actor: !isHousehold(from) ? o.to : from.holder !== null ? from.holder : { household: from.id },
         verb: 'deliver',
-        target: o.parties.from.household,
-        args: { good: o.wants.good, n: o.wants.n },
+        target: to.id,
+        args,
         source: 'offer',
       });
     },
@@ -479,6 +541,7 @@ VB['sim/exchange'] = (() => {
     },
   };
   return {
+    carrierOf,
     assessGift,
     settleGift,
     receive,

@@ -10,7 +10,7 @@ const SYSTEMS = {
   'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'takeDay', 'dutyRound', 'lookForWork'] },
   'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/encounters': ['outdoors', 'partners'] },
   'daily life and births': { 'sim/lifecycle': ['dailyLife', 'dailyDeaths'], 'sim/meetings': ['nightCulture'], 'sim/births': ['dailyBirths'] },
-  'hunger and meals': { 'sim/hunger': ['feedHousehold', 'spoilGrain'], 'sim/help': ['shareFood'] },
+  'hunger and meals': { 'sim/hunger': ['feedHousehold', 'spoilGrain'], 'sim/help': ['askFood'] },
   // Slice 1, kin help booked (VB-219): what it added to help, the gift's check (the floor and the allowance) and goodwill's booking,
   // handovers and ends. Help's daily ask and the gift's moves and events (settleGift, help's gift until VB-216) stay in hunger and meals.
   'kin help and goodwill': { 'sim/exchange': ['assessGift'], 'sim/relations': ['book', 'passGoodwill', 'endGoodwill'] },
