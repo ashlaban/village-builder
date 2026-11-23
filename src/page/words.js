@@ -193,6 +193,27 @@ function selectPawn(id, pinned = true) {
   hoverDirty = true;
   showPawn(id);
 }
+// A member's standing duties in words (VB-1540; design.md section 7, Standing duties): the types of work it sees to, those its head set
+// marked; one presentation wherever shown (its card, its household's plan). '' with none.
+const DUTY_NAME = {
+  tilling: 'the tilling',
+  tending: 'the sowing and weeding',
+  harvest: 'the harvest',
+  threshing: 'the threshing',
+  wood: 'the wood',
+  upkeep: 'the mending',
+  household: 'the house',
+  husbandry: 'the beasts',
+  foraging: 'the foraging',
+  herding: 'the herding',
+  duty: 'the village’s work',
+  workday: 'the work days',
+};
+const dutyName = (type) => DUTY_NAME[type] || type;
+function dutiesLine(id) {
+  const d = Sim.dutiesOf(st, id);
+  return d.length ? `Sees to ${d.map((x) => dutyName(x.type) + (x.set ? ' (set by the head)' : '')).join(', ')}` : '';
+}
 function showPawn(id) {
   $('personFamily').hidden = false;
   const p = st.pawns[id],
@@ -253,6 +274,7 @@ function showPawn(id) {
           : '',
       marryLine,
       craftsLine(id),
+      dutiesLine(id),
     ].filter(Boolean),
     Sim.describe(st, id),
     {

@@ -1,7 +1,8 @@
 // @sys sim/jobs: job board: posting and the reviews' asks; the head's day (VB-466): a household's tasks allotted to its members, and taken
-// from each member's list; fit and urgency; the hours of help a head lacks, asked at the morning's allotment (sim/hands, VB-470)
+// from each member's list, with its standing duties (VB-1540: what the morning gave each is kept to the next); fit and urgency; the
+// hours of help a head lacks, asked at the morning's allotment (sim/hands, VB-470)
 VB['sim/jobs'] = (() => {
-  const { WORK, TICKS, cal } = VB['sim/rules'],
+  const { WORK, TICKS, DAY, cal } = VB['sim/rules'],
     { ROLES, CHILD, MATCH } = VB['sim/roles'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
@@ -387,8 +388,26 @@ VB['sim/jobs'] = (() => {
   //   lists: {pawn id: [job keys]}}: for each living member the tasks the head gave it, in the order it takes them; a member too young has
   //   an empty list; free: {pawn id: hours}: the working hours of the horizon the head gave each member no task in (VB-470: what it may
   //   lend). Written only by allot, whole, each time; a key whose job is gone is passed over. Plain data, saved with the plan.
+  // @state plan.day.duties (VB-1540; design.md section 7, Standing duties): {day, head, held: {pawn id: [types of work]}, set: {pawn id:
+  //   [types]}}: `held`, the types (KINDS[kind].type) of the tasks the allotment of the morning of `day` gave each member within its
+  //   hours, in the order given (a member that morning left out keeps its own); `set`, those the head `head` pinned (the verb `duty`,
+  //   sim/plans), which stand until lifted, the member leaves or the head changes. A member's fit for a task of a type in either counts
+  //   MATCH.keep times at every allotment. Written by allot, whole (the day's later allotments carry the morning's on), and by the verb.
   // A member's working hours of the horizon, by the clock; what it does in them at a task is the head's belief of its rate there (VB-476).
   const dayHours = () => MATCH.day.horizon * (WORK[1] - WORK[0]);
+  const NONE = [];
+  // Pawn id's standing duties, for its card (VB-1540): [{type, set}], those its head set first, then those the morning gave it.
+  function dutiesOf(st, id) {
+    const hid = st.pawns[id].household,
+      plan = hid === null ? null : planOf(st, 'household', hid),
+      D = plan && plan.day && plan.day.duties;
+    if (!D) return [];
+    const set = (D.head === st.households[hid].holder && D.set[id]) || NONE;
+    return [
+      ...set.map((type) => ({ type, set: true })),
+      ...(D.held[id] || NONE).filter((t) => !set.includes(t)).map((type) => ({ type, set: false })),
+    ];
+  }
   const hoursLeft = (st, j) => (j.hours ?? KINDS[j.kind].hours ?? 0) - doneOf(st, j);
   // The head allots the household's day. Every member is weighed for every task of the household and of its village that it may take, by
   // its fit (score); best fit first, a further hand on a task counting for less (join), a task is given hands until they cover its work
@@ -417,6 +436,17 @@ VB['sim/jobs'] = (() => {
       )
         members.push(p);
     }
+    // the standing duties (VB-1540): the morning's are written by the day's first allotment at the hour before work, the others carry them
+    const old = (plan.day && plan.day.duties) || { day: -1, held: {}, set: {} },
+      today = Math.floor(st.t / DAY),
+      morning = c.hour === WORK[0] - 1 && old.day !== today,
+      set = {},
+      kept = (id, j) =>
+        (old.held[id] || NONE).includes(KINDS[j.kind].type) || (set[id] || NONE).includes(KINDS[j.kind].type);
+    if (old.head === hh.holder) for (const id in old.set) if (lists[id]) set[id] = old.set[id];
+    const first = new Map(); // the morning's: pawn id -> the types of the tasks given it, in order
+    if (morning)
+      for (const id in old.held) if (lists[id] && !members.includes(st.pawns[id])) first.set(id, old.held[id]);
     const pairs = [],
       memo = new Map();
     if (members.length) {
@@ -427,7 +457,7 @@ VB['sim/jobs'] = (() => {
         for (const p of members) {
           if (!eligible(st, j, p)) continue;
           const s = score(st, p, j, c, memo);
-          if (s !== null && s > 0) pairs.push([s, p.id, j]);
+          if (s !== null && s > 0) pairs.push([kept(p.id, j) ? s * MATCH.keep : s, p.id, j]);
         }
       }
     }
@@ -466,12 +496,29 @@ VB['sim/jobs'] = (() => {
         due.set(id, j);
         lists[id].unshift(j.key);
       } else lists[id].push(j.key);
-      if (full && !given.has(id)) given.set(id, [s, j]);
+      // the switch test below weighs the fits themselves: a duty calls nobody from its work
+      if (full && !given.has(id)) given.set(id, [kept(id, j) ? s / MATCH.keep : s, j]);
+      if (morning) {
+        const type = KINDS[j.kind].type;
+        let mine = first.get(id);
+        if (!mine) {
+          first.set(id, (mine = []));
+          if (old.held[id]) {
+            VB.count.dutyDay++;
+            if (old.held[id][0] === type) {
+              VB.count.dutyKept++;
+            }
+          }
+        }
+        if (!mine.includes(type)) mine.push(type);
+      }
     }
     for (const [, id, j] of spare) lists[id].push(j.key);
     const free = {};
     for (const p of members) free[p.id] = cap.get(p.id);
-    plan.day = { made: Math.floor(st.tick / TICKS), lists, free };
+    const held = morning ? Object.fromEntries(first) : old.held,
+      duties = { day: morning ? today : old.day, head: hh.holder, held, set };
+    plan.day = { made: Math.floor(st.tick / TICKS), lists, free, duties };
     // the morning's allotment: the hours of help the head's estimate says the household lacks to finish its field work in its windows
     if (asking && est.size) {
       const tasks = [];
@@ -592,6 +639,7 @@ VB['sim/jobs'] = (() => {
     refreshJobs,
     lookForWork,
     allot,
+    dutiesOf,
     takeDay,
     dutyRound,
     score,

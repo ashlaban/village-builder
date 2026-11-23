@@ -144,6 +144,7 @@ const INTEGRATION = [
   ['node', 'tests/help.js'], // food help, with VB-461's fetched gift (VB-889)
   ['node', 'tests/interrupts.js'],
   ['node', 'tests/day.js'],
+  ['node', 'tests/duties.js'],
   ['node', 'tests/ownheir.js'],
   ['node', 'tests/daylight.js'],
   ['node', 'tests/service.js'],
