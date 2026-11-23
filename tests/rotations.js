@@ -18,7 +18,7 @@ const steps = (f) => f.fields.map((fd) => fd.step).sort().join();
 
 // ---- the table ----
 assert.deepStrictEqual(Object.fromEntries(Object.entries(ROTATIONS).map(([k, r]) => [k, r.courses])), {
-  every: ['barley'], two: ['barley', 'fallow'], three: ['fallow', 'rye', 'barley'], peas: ['barley', 'peas'], peasRye: ['peas', 'rye', 'barley'],
+  every: ['barley'], two: ['barley', 'fallow'], three: ['fallow', 'rye', 'barley'], peas: ['barley', 'peas'], wheat: ['barley', 'wheat'], oats: ['barley', 'oats'], peasRye: ['peas', 'rye', 'barley'],
 }, 'the rotations');
 for (const r of Object.values(ROTATIONS)) assert(r.courses.length <= 4 && r.courses.every((k) => CROPS[k]) && r.label, 'at most four courses of the table');
 

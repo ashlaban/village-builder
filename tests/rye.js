@@ -130,7 +130,7 @@ Object.assign(g, { rotation: 'three', step: 0, crop: 'fallow', stage: 'stubble',
 const others = f2.fields.filter((q) => q !== g && (q.stage === 'stubble' || q.stage === 'plowed')).length;
 assert.equal(seedNeed(st2, hh2, 'barley'), others * VB['sim/hunger'].seedPer(st2, hh2), 'a fallow field holds back no barley');
 assert.equal(seedNeed(st2, hh2, 'rye'), CROPS.rye.seed, 'a fallow field in three courses holds back the rye sown on it next');
-assert.deepStrictEqual(Stores.CROP_LIST, ['barley', 'rye', 'peas'], 'fallow is no grain');
+assert.deepStrictEqual(Stores.CROP_LIST, ['barley', 'rye', 'peas', 'wheat', 'oats'], 'fallow is no grain');
 console.log(
   `rye: fallow tilled on summer day ${tilled.sday + 1}; rye sown autumn day ${rs.sday + 1}, reaped summer day ${rr.sday + 1} (${rye.held}); ` +
     `barley reaped autumn day ${br.sday + 1} (${barley.held}); soil at the years' ends ${yearEnd.join(', ')}`,
