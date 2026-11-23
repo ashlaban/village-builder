@@ -24,7 +24,7 @@ VB['sim/pastimes'] = (() => {
   // `oldFrom` years and `weak` under `weakUnder` health. play: the ages that play. visit: from this age. yard: one out of doors within this
   // many map units of its house is at home for a caller. callers: at most this many are weighed for a visit, and listed for the played pawn.
   const PASTIME = {
-    weights: { visit: 2, green: 2, fire: 1, play: 4 },
+    weights: { visit: 2, green: 1, fire: 1, play: 2 },
     winter: 3,
     old: 2,
     oldFrom: AGES.hands[1],
