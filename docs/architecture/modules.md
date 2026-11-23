@@ -68,6 +68,12 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - Tar (VB-301): `src/sim/tar.js` owns `household.tarPit` (`{tile, village, built}`, a pit dug as a household project plan on the first pine tile of the village's wood, one a village, the making `tarpit` the head of the household its alderman charged (`village.tarBy`, the verb `chargeTar`, by most hands; VB-673) begins at its yearly look from summer, VB-678) and `farmstead.tarredUntil`; the reach test is pine standing in the village's wood (`pineTile`); burning (`burntar`, early summer, 12 hours, one pine tree felled) puts a barrel into `household.tar` (a store of `sim/stores`), and `tarhouse` and `tarboat` spend one on the house or the boat (`sim/drying` keeps `household.boat.tarred`: leaky after `BOAT.tarYears`, lost after `BOAT.lostYears`); tar's term of the rule `need`.
   Meals are cooked by `cook` from a food of `FOODS` (`src/sim/rules.js`), by its worth in rations (VB-259).
   Call operations with a good and a reason; signed ledger entries distinguish goods and pawn stakes.
+- Help asked for (VB-470): `src/sim/hands.js` owns `st.handsToday` (today's lent hands, by pawn: the household helped, the hours given
+  and worked) and the offer basis `help` of `sim/offers`. At the morning's allotment `sim/jobs` reads the head's shortfall (`shortOf`: its
+  windowed field work against the pace of the hands it gave it, kept to each window's end) and `askFor` asks the village's heads, near kin
+  first, then by opinion; the head asked answers by kinship, opinion and its day (`plan.day.free`) and lends whom it can spare. A hand
+  lent takes the asker's field work on the basis `helper` (`sim/eligibility`), through `dutyRound`; `step` sends it home when its hours
+  are given and closes a day's help, the tie growing by the hours (`helped`, `sim/relations`). The helper round of VB-106 is gone.
 - Obligations (VB-310): `src/sim/obligations.js` owns every explicit claim, `st.obligations` (by id: kind, debtor and creditor as party
   refs, what is owed, the hour its term ends, status, delivered), with two caches: the due-queue `st.obligationsDue` and the parties' live
   ones `st.obligationsBy`, read through `due(st, party, as, kind)`. Write only through `create`, `fulfil` (goods through `sim/stores`),

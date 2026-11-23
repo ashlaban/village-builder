@@ -247,13 +247,6 @@ VB['sim/agents'] = (() => {
   // The household a job is done for: the job's own, or the pawn's for a village's job (a helper works for another household, VB-106).
   const workFor = (st, a, j) =>
     st.households[j.owner && j.owner.type === 'household' ? j.owner.id : st.pawns[a.id].household];
-  // Those of `ids` who worked the household job j as helpers (sim/eligibility) are told to sim/relations (VB-106): help is a gift, so
-  // nothing is owed and nothing moves.
-  function helped(st, j, ids) {
-    let hs = null;
-    for (const id of ids) if (st.agents[id].basis === 'helper') (hs || (hs = [])).push(id);
-    if (hs) emit(st, 'helped', { helpers: hs, household: j.owner.id, farm: j.farm || null });
-  }
   // The work is done: those who finished it together know each other better (sim/relations); a plot's step is finished (sim/expansion),
   // any other job does what its kind says (sim/kinds), for the household it was done for.
   function complete(st, a) {
@@ -261,7 +254,6 @@ VB['sim/agents'] = (() => {
       hh = workFor(st, a, j),
       K = KINDS[j.kind];
     if (j.claims.length > 1) workedTogether(st, j.claims);
-    helped(st, j, j.claims);
     freeHands(st, j, a.id);
     prospected(st, a.id, here(st, a), j.hours ?? K.hours ?? 0); // a hidden vein near the work may be come on (sim/prospect)
     if (j.plot) {
@@ -279,7 +271,6 @@ VB['sim/agents'] = (() => {
     const j = a.job,
       K = KINDS[j.kind];
     const hh = workFor(st, a, j);
-    helped(st, j, [a.id]); // a load brought in is a task done
     const load = a.load,
       got = K.deliver ? K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a) : undefined;
     // the played pawn's sheet tells what the trip brought (sim/player, VB-1118): what the kind's delivery says it put, else the load carried

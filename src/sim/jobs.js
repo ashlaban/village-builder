@@ -1,24 +1,24 @@
 // @sys sim/jobs: job board: posting and the reviews' asks; the head's day (VB-466): a household's tasks allotted to its members, and taken
-// from each member's list; fit and urgency; the round of bids for help between households
+// from each member's list; fit and urgency; the hours of help a head lacks, asked at the morning's allotment (sim/hands, VB-470)
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { WORK, TICKS, cal } = VB['sim/rules'],
     { ROLES, CHILD, MATCH } = VB['sim/roles'];
   const { act } = VB['sim/traits'];
-  const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
-  const { villageOf, age, kinNear } = VB['sim/records'];
+  const { villageOf, age } = VB['sim/records'];
   const { freeHands, dropJob, workSpot } = VB['sim/agents'],
     { bed } = VB['sim/pose'],
     { offerWhy, heldAt } = VB['sim/attention'],
     { ownerKey, rateOf, attentionOf, doneOf } = VB['sim/work'];
   const { tileAt, placeOf } = VB['sim/pose'];
-  const { companyFor, opinionOf } = VB['sim/relations'];
+  const { companyFor } = VB['sim/relations'];
   const { issue } = VB['sim/commands'];
   const { unplanned } = VB['sim/records'];
   const { eligible } = VB['sim/eligibility'];
   const { KINDS, ASK, isOpen } = VB['sim/kinds'];
   const Days = VB['sim/days'];
+  const Hands = VB['sim/hands'];
   const { builtTiles } = VB['sim/fieldplans'];
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
@@ -41,6 +41,9 @@ VB['sim/jobs'] = (() => {
   // The holders whose tasks were posted or taken down during the review or the look under way: their days are allotted anew at its end
   // (allotChanged). Null between calls: nothing is kept here from one step to the next.
   let changed = null;
+  // The households short of hands the morning's allotment found, [[household id, hours short]], asked once it is over (allotChanged);
+  // null but in the morning's allotment.
+  let asking = null;
   const changedFor = (owner) => {
     if (changed && owner) changed.add(ownerKey(owner));
   };
@@ -257,7 +260,8 @@ VB['sim/jobs'] = (() => {
   const urgencyOf = (st, j, c) =>
     KINDS[j.kind].urgency ? KINDS[j.kind].urgency(st, j, c, MATCH.urgency) : MATCH.urgency.other;
   // A pawn's fit for a job: its role's priority for the kind times the job's urgency, less the walk. The head allots by it (allot); a
-  // helper bids it for a neighbour's job, where a job that k pawns already work gets join^k of the bid (VB-102, VB-106).
+  // pawn on duty or lent bids it for the tasks of the household it works for, where a job that k pawns already work gets join^k of the
+  // bid (VB-102).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), by the village's custom on a common field (sim/commons,
   // VB-100), else by role and kind.
@@ -288,7 +292,7 @@ VB['sim/jobs'] = (() => {
     if (!isOpen(st, j) || !eligible(st, j, p) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j)))
       return -1;
     const s = score(st, p, j, c, memo);
-    return s === null ? -1 : (s + rnd(st.rng.work) * MATCH.noise) * joined(j, j.claims.length);
+    return s === null ? -1 : s * joined(j, j.claims.length);
   }
   // The jobs a pawn may bid for: its household's and its village's, in increasing id.
   const none = new Set();
@@ -298,9 +302,9 @@ VB['sim/jobs'] = (() => {
       y = st.jobsBy.get(`village:${villageOf(st, p)}`) || none;
     return y.size === 0 ? x : x.size === 0 ? y : mergeById(x, y);
   }
-  // Why a pawn gets no job: every open job it may take with its noise-free bid, or the reason it gets none. Best first. Draws no random
+  // Why a pawn gets no job: every open job it may take with its bid, or the reason it gets none. Best first. Draws no random
   // numbers and writes nothing to st.
-  // Pawn p's fit for a job it may take: {bid (noise-free, null when it would not bid), reason (why not, or null)}.
+  // Pawn p's fit for a job it may take: {bid (null when it would not bid), reason (why not, or null)}.
   function fit(st, p, j, c) {
     const pr = prioOf(st, p, j),
       row = { bid: null, reason: null };
@@ -309,8 +313,7 @@ VB['sim/jobs'] = (() => {
     else {
       const here = bed(st, st.agents[p.id]);
       row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
-      if (row.bid + MATCH.noise <= 0) {
-        // as bid: a score that the noise can lift above nothing is one the pawn may bid with (VB-254: was bid <= 0)
+      if (row.bid <= 0) {
         row.reason = 'not worth the walk';
         row.bid = null;
       } else row.bid *= joined(j, j.claims.length);
@@ -380,7 +383,8 @@ VB['sim/jobs'] = (() => {
   // ---- the head's day (VB-466; design.md section 7, The day's work) ----
   // @state plan.day (a household's standing plan's; sim/plans holds the plan): absent until first allotted, then {made (the game hour),
   //   lists: {pawn id: [job keys]}}: for each living member the tasks the head gave it, in the order it takes them; a member too young has
-  //   an empty list. Written only by allot, whole, each time; a key whose job is gone is passed over. Plain data, saved with the plan.
+  //   an empty list; free: {pawn id: hours}: the working hours of the horizon the head gave each member no task in (VB-470: what it may
+  //   lend). Written only by allot, whole, each time; a key whose job is gone is passed over. Plain data, saved with the plan.
   // A member's working hours of the horizon, by the clock; what it does in them at a task is the head's belief of its rate there (VB-476).
   const dayHours = () => MATCH.day.horizon * (WORK[1] - WORK[0]);
   const hoursLeft = (st, j) => (j.hours ?? KINDS[j.kind].hours ?? 0) - doneOf(st, j);
@@ -406,7 +410,8 @@ VB['sim/jobs'] = (() => {
         age(st, p) >= CHILD.from &&
         st.agents[id].away === undefined &&
         !unplanned(st, id) &&
-        Days.on(st, id) === null
+        Days.on(st, id) === null &&
+        Hands.on(st, id) === null
       )
         members.push(p);
     }
@@ -462,7 +467,16 @@ VB['sim/jobs'] = (() => {
       if (full && !given.has(id)) given.set(id, [s, j]);
     }
     for (const [, id, j] of spare) lists[id].push(j.key);
-    plan.day = { made: Math.floor(st.tick / TICKS), lists };
+    const free = {};
+    for (const p of members) free[p.id] = cap.get(p.id);
+    plan.day = { made: Math.floor(st.tick / TICKS), lists, free };
+    // the morning's allotment: the hours of help the head's estimate says the household lacks to finish its field work in its windows
+    if (asking && est.size) {
+      const tasks = [];
+      for (const [j, left] of est) tasks.push([j, left, (manned.get(j) || [0])[0]]);
+      const short = Hands.shortOf(st, tasks, c);
+      if (short > 0) asking.push([hh.id, short]);
+    }
     for (const p of members) {
       const a = st.agents[p.id],
         dj = due.get(p.id),
@@ -497,10 +511,16 @@ VB['sim/jobs'] = (() => {
         }
     }
     changed = null;
+    asking = c.hour === WORK[0] - 1 ? [] : null;
     for (const id of [...ids].sort((x, y) => x - y)) {
       const hh = st.households[id];
       if (hh && !hh.dissolved) allot(st, hh, c);
     }
+    const ask = asking;
+    asking = null;
+    // once every day is allotted, so that the heads asked answer by their own (VB-470)
+    if (ask)
+      for (const [id, short] of ask) if (!st.households[id].dissolved) Hands.askFor(st, st.households[id], short, c);
   }
   // Whether pawn a can take job j of its list now: there is room, it still may, and a task held at the side is in reach.
   const canTake = (st, a, j) =>
@@ -508,7 +528,7 @@ VB['sim/jobs'] = (() => {
     !!eligible(st, j, st.pawns[a.id]) &&
     !((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j));
   // Each idle pawn takes the first task of its list that it can (a task held at the side leaves it free for the next one, next step). A
-  // household with no day yet, or a member its day does not know (it moved in, or was born, since), has its day allotted first. The
+  // household with no day yet, or a member its day does not know (it moved in, or was born, since) or left out, has its day allotted first. The
   // pawns that got work.
   function takeDay(st, idle, c) {
     const got = new Set();
@@ -517,7 +537,19 @@ VB['sim/jobs'] = (() => {
         hh = p.household === null ? null : st.households[p.household],
         plan = hh && planOf(st, 'household', hh.id);
       if (!plan || hh.farmstead === null) continue;
-      if (!plan.day || !plan.day.lists[a.id]) allot(st, hh, c);
+      // a member the day left out when it was allotted (commanded, away, on duty or lent then) and free now has it allotted anew (VB-470:
+      // the round of help no longer gave such a one a neighbour's work)
+      const list0 = plan.day && plan.day.lists[a.id],
+        missed =
+          !!list0 &&
+          !list0.length &&
+          !!plan.day.free &&
+          !(a.id in plan.day.free) &&
+          age(st, p) >= CHILD.from &&
+          a.away === undefined &&
+          Days.on(st, a.id) === null &&
+          Hands.on(st, a.id) === null;
+      if (!list0 || missed) allot(st, hh, c);
       if (a.job || a.path) {
         got.add(a); // the allotment called it
         continue;
@@ -536,12 +568,14 @@ VB['sim/jobs'] = (() => {
     }
     return got;
   }
-  // The idle pawns called for a day of work owed (sim/days) bid on the tasks of the household that is owed, the best bid first (VB-462);
-  // `busy` gains those who go.
+  // The idle pawns called for a day of work owed (sim/days, VB-462) or lent for the day (sim/hands, VB-470) bid on the tasks of the
+  // household they work for, the best bid first; `busy` gains those who go. A lent pawn with nothing there it can take goes back to its
+  // own day.
   function dutyRound(st, idle, busy, c) {
     const memo = new Map();
     for (const a of idle) {
-      const cred = Days.on(st, a.id);
+      const owed = Days.on(st, a.id),
+        cred = owed !== null ? owed : Hands.on(st, a.id);
       if (cred === null || busy.has(a)) continue;
       let best = null,
         top = 0;
@@ -550,59 +584,9 @@ VB['sim/jobs'] = (() => {
         if (s > top) [best, top] = [j, s];
       }
       if (best && issue(st, { actor: a.id, verb: 'work', target: best.key, source: 'planner' }) === true) busy.add(a);
+      else if (owed === null) Hands.release(st, a.id);
     }
     return busy;
-  }
-  // The idle pawns the day gave nothing bid to help the other households of their village (helpRound); `busy` gains those who go.
-  function helpers(st, idle, busy, c) {
-    helpRound(st, idle, none, busy, c);
-    return busy;
-  }
-  // Help between households (VB-106): a pawn with no bid of its own this round bids on the jobs the other households of its village offer,
-  // each its most urgent open job of each kind help takes (MATCH.help), at its bid times factor, + kin for near kin of the holder, + its
-  // opinion of the holder. Bids on the helper basis only (sim/eligibility).
-  function helpRound(st, idle, bidding, busy, c) {
-    const offers = new Map(),
-      memo = new Map(),
-      bids = [];
-    for (const a of idle) {
-      const p = st.pawns[a.id];
-      if (bidding.has(a) || busy.has(a) || age(st, p) < HELP.minAge) continue;
-      const v = villageOf(st, p);
-      if (!offers.has(v)) offers.set(v, offered(st, v, c, memo));
-      const kin = kinNear(st, p.id);
-      for (const j of offers.get(v)) {
-        VB.count.helpBid++;
-        const hh = st.households[j.owner.id];
-        if (hh.id === p.household) continue;
-        const s = bid(st, a, j, c, memo);
-        if (s <= 0) continue;
-        const f =
-          HELP.factor +
-          (hh.holder !== null ? (kin.includes(hh.holder) ? HELP.kin : 0) + opinionOf(st, p.id, hh.holder) : 0);
-        if (f > 0) bids.push([s * f, a, j, j.claims.length]);
-      }
-    }
-    if (bids.length) assign(st, bids, busy);
-  }
-  // What the households of village v offer helpers: each its most urgent open job of each kind help takes, waited long enough, in id order.
-  function offered(st, v, c, memo) {
-    const out = [];
-    for (const fid of st.villages[v].farmsteads) {
-      const hid = st.farmsteads[fid].household,
-        js = hid === null ? null : st.jobsBy.get(`household:${hid}`);
-      if (!js) continue;
-      const best = new Map();
-      for (const j of js) {
-        VB.count.helpOffer++;
-        if (!HELP.kinds.includes(j.kind) || !isOpen(st, j) || attentionOf(j) !== 'full') continue;
-        if (st.t - j.posted < HELP.waitHours) continue;
-        const b = best.get(j.kind);
-        if (!b || urgency(st, j, c, memo) > urgency(st, b, c, memo)) best.set(j.kind, j);
-      }
-      for (const j of best.values()) out.push(j);
-    }
-    return out.sort((x, y) => x.id - y.id);
   }
   // Nothing suitable: join someone it likes who idles in the village (sim/relations), or drift to the green or the yard; look again in a while.
   function idleAbout(st, a) {
@@ -643,7 +627,6 @@ VB['sim/jobs'] = (() => {
     lookForWork,
     allot,
     takeDay,
-    helpers,
     dutyRound,
     urgency,
     score,

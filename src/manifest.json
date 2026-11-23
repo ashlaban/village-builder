@@ -100,7 +100,7 @@
   "sim/commons.js",
   "sim/projectplans.js",
   "sim/kinds.js",
-  "sim/days.js",
+  "sim/days.js","sim/hands.js",
   "sim/eligibility.js",
   "sim/pose.js",
   "sim/legs.js",

@@ -22,7 +22,7 @@ VB['sim/clock'] = (() => {
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
   const { feedAway, dayAway } = VB['sim/away'];
-  const { refreshJobs, takeDay, helpers, dutyRound, idleAbout, lookForWork } = VB['sim/jobs'];
+  const { refreshJobs, takeDay, dutyRound, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
   const { commanded, unplanned } = VB['sim/records'];
@@ -507,6 +507,13 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'step',
+      when: (st) => !!st.handsToday,
+      owner: 'sim/hands',
+      note: "the hands lent today who have given their hours go home, and a day's help closes with it (VB-470)",
+      run: (st) => VB['sim/hands'].step(st),
+    },
+    {
+      every: 'step',
       when: (st) => !!st.obligationsDue && st.obligationsDue.length > 0,
       owner: 'sim/obligations',
       note: 'the obligations whose term has ended go on to their next term, or are overdue (VB-310)',
@@ -683,8 +690,9 @@ VB['sim/clock'] = (() => {
       idle = st.away.length ? dayAway(st, mine) : mine; // a lodger works only what its stay names (VB-783)
     if (idle.length) {
       // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted
-      // anew (VB-249), and take again; those still without help a neighbour (VB-106)
-      const got = st.daysToday ? dutyRound(st, idle, new Set(), c) : new Set();
+      // anew (VB-249), and take again; a hand lent to a neighbour works its tasks first (VB-470)
+      const onDuty = !!st.daysToday || !!st.handsToday,
+        got = onDuty ? dutyRound(st, idle, new Set(), c) : new Set();
       for (const a of takeDay(
         st,
         idle.filter((a) => !got.has(a)),
@@ -700,7 +708,6 @@ VB['sim/clock'] = (() => {
             )
           : [];
       if (looked.length) for (const a of takeDay(st, looked, c)) got.add(a);
-      if (got.size < idle.length) helpers(st, idle, got, c);
       for (const a of idle) if (!got.has(a)) idleAbout(st, a);
     }
     rest(st, all); // one left free with nothing in hand looks again at the next step (VB-473)

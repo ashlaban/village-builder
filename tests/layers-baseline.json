@@ -1,13 +1,8 @@
 {
-  "total": 12,
+  "total": 7,
   "pairs": {
     "sim/names -> culture": 1,
-    "sim/records -> culture": 1,
-    "sim/territory -> culture": 1,
     "sim/forest -> sim/territory": 1,
-    "sim/droving -> culture": 1,
-    "sim/goods -> culture": 1,
-    "sim/byre -> culture": 1,
     "sim/heirs -> sim/agents": 1,
     "sim/heirs -> sim/plans": 1,
     "sim/membership -> sim/plans": 1,
