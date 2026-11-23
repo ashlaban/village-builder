@@ -139,6 +139,10 @@ async function main() {
     if (q('#actBar').hidden) q('#actionsBtn').click();
     tick(1);
     if (q('#actBar').hidden) fail("the dock's Actions did not open the bar");
+    // VB-1490: the dock's and the bar's buttons are labelled icon buttons, the icon and then the name in the piece
+    for (const b of qa('.navigation > button, #actBar > button'))
+      if (!b.matches('.icon-btn.labelled') || !b.querySelector(':scope > .ico + .label'))
+        fail(`${b.id || b.dataset.group} is not a labelled icon button (an icon, then its .label)`);
     for (const g of ['self', 'house', 'village']) {
       q(`#actBar [data-group="${g}"]`).click(); tick(1);
       if (q('#actMenu').hidden || !q('#actMenu .act-row, #actMenu .act-empty')) fail(`the ${g} group's list did not open`);

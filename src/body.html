@@ -47,26 +47,26 @@
 </div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
-  <button id="actionsBtn" type="button" data-icon="pawn" title="Your pawn's acts" aria-pressed="false" aria-controls="actBar"
-    hidden><span class="nav-label">Actions</span></button>
-  <button id="settlersBtn" type="button" data-icon="people" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false"
-    aria-controls="peopleSheet"><span class="nav-label">People</span></button>
-  <button id="treeBtn" type="button" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
-    class="nav-label">Family</span></button>
-  <button id="cultureBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Culture (C)" aria-pressed="false" aria-controls="drawer"><span
-    class="nav-label">Culture</span></button>
-  <button id="agendaBtn" type="button" data-icon="agenda" title="Your agenda: the cause you argue" aria-pressed="false" aria-controls="drawer"
-    hidden><span class="nav-label">Agenda</span></button>
-  <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
-    class="nav-label">Debug</span></button>
+  <button id="actionsBtn" type="button" class="icon-btn labelled" data-icon="pawn" title="Your pawn's acts" aria-pressed="false" aria-controls="actBar"
+    hidden><span class="label">Actions</span></button>
+  <button id="settlersBtn" type="button" class="icon-btn labelled" data-icon="people" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false"
+    aria-controls="peopleSheet"><span class="label">People</span></button>
+  <button id="treeBtn" type="button" class="icon-btn labelled" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
+    class="label">Family</span></button>
+  <button id="cultureBtn" type="button" class="icon-btn labelled" data-icon="customs" aria-keyshortcuts="c" title="Culture (C)" aria-pressed="false" aria-controls="drawer"><span
+    class="label">Culture</span></button>
+  <button id="agendaBtn" type="button" class="icon-btn labelled" data-icon="agenda" title="Your agenda: the cause you argue" aria-pressed="false" aria-controls="drawer"
+    hidden><span class="label">Agenda</span></button>
+  <button id="debugBtn" type="button" class="icon-btn labelled" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
+    class="label">Debug</span></button>
 </nav>
 <!-- The action bar (VB-341): the dock's Actions opens it over the dock; a group opens its list of acts above it, an act that needs a tile
      puts the map in a tool mode named by the banner, and Queue opens the played pawn's sheet. -->
 <div class="act-bar panel" id="actBar" role="group" aria-label="Your pawn's acts" hidden>
-  <button type="button" data-group="self" data-icon="act-me" aria-haspopup="true" aria-expanded="false" aria-controls="actMenu"><span>Myself</span></button>
-  <button type="button" data-group="house" data-icon="act-home" aria-haspopup="true" aria-expanded="false" aria-controls="actMenu"><span>Household</span></button>
-  <button type="button" data-group="village" data-icon="act-village" aria-haspopup="true" aria-expanded="false" aria-controls="actMenu"><span>Village</span></button>
-  <button type="button" id="queueBtn" data-icon="act-queue" aria-pressed="false" aria-controls="actionSheet"><span>Queue <b id="queueCount"></b></span></button>
+  <button type="button" class="icon-btn labelled" data-group="self" data-icon="act-me" aria-haspopup="true" aria-expanded="false" aria-controls="actMenu"><span class="label">Myself</span></button>
+  <button type="button" class="icon-btn labelled" data-group="house" data-icon="act-home" aria-haspopup="true" aria-expanded="false" aria-controls="actMenu"><span class="label">Household</span></button>
+  <button type="button" class="icon-btn labelled" data-group="village" data-icon="act-village" aria-haspopup="true" aria-expanded="false" aria-controls="actMenu"><span class="label">Village</span></button>
+  <button type="button" class="icon-btn labelled" id="queueBtn" data-icon="act-queue" aria-pressed="false" aria-controls="actionSheet"><span class="label">Queue <b id="queueCount"></b></span></button>
 </div>
 <div class="act-menu panel" id="actMenu" role="group" aria-labelledby="actMenuTitle" hidden></div>
 <div class="act-banner panel" id="actBanner" hidden></div>

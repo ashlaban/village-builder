@@ -52,7 +52,8 @@
    .head: a head: the title of a screen, a card, a sheet or a menu
    button: a button; pressed ([aria-pressed="true"]), a popup's opener while open ([aria-haspopup][aria-expanded="true"]) and
      .primary all take the pressed look, by one rule
-   .icon-btn: a button that is an icon only
+   .icon-btn: a button that is an icon only; .icon-btn.labelled, a labelled icon button, its icon and its name (a .label) beside or
+     under it as the component lays them out: a theme styles the icon and the label inside the piece (VB-1490)
    .row: a row of a list; pressed, the accent ring
    .card: one of a choice of cards (a scenario, a story, a person, a voice); chosen, the accent ring, as a row
    .meter: a level on its scale (page/meter)
@@ -206,7 +207,9 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .head { font-family: var(--head); font-style: italic; font-weight: 700; line-height: 1.1; color: var(--head-ink); }
 button:not(.row, .card):is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"], .primary) {
   background: var(--accent); color: var(--on-accent); border-color: var(--btn-on-edge); --ico-bg: var(--accent); }
-.icon-btn { width: 36px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; }
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; }
+.icon-btn:where(:not(.labelled)) { width: 36px; padding: 0 !important; }
+.icon-btn.labelled { gap: 7px; }
 :is(.row, .card)[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .tile strong { display: block; font-size: 21px; line-height: 1.1; }
 .tile strong:not(.head) { font-family: var(--scroll); font-style: italic; font-weight: 700; }
@@ -441,7 +444,7 @@ body:not(.minimap-open) .ground-key { display: none; }
   padding: 6px; border-radius: var(--r-2); width: min(560px, calc(100vw - 28px)); }
 .act-bar button { flex: 1 1 0; min-width: 0; min-height: 46px; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 6px 8px;
   background: var(--node); color: var(--ink); font-weight: 700; }
-.act-bar button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.act-bar .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .act-bar .ico, .act-menu .ico, .act-banner .ico { width: 22px; height: 22px; }
 .act-bar b { font-variant-numeric: tabular-nums; }
 body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.bar-open .play-offer { bottom: calc(var(--dock-bottom) + 126px); }
@@ -1134,13 +1137,23 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 /* Mural's pieces (VB-1488, VB-1489): the band is its panel, by its tokens (the band's sawtooth lies in the panel's transparent top
    and bottom border) and the ochre sides below, on a panel in a Mural page or a Mural sample; black letter in red ochre its head, by
    its tokens, upright below; the leaf is its button, its corners and the scroll's hand below; a ringed medallion in red ochre its
-   icon button; a dotted ink line parts its rows; counted beads are its meter, ten to a level, filled as far as the level, the last in part, a mark a wedge over the beads (the fill lies under the whole row, cut to the level by page/meter's --lo and --hi). */
+   icon button, and a labelled one's icon, its label a tag under or beside it, both filled with red ochre when pressed (VB-1490; the
+   :is(*, ...) lifts the rule over the one pressed look, which would fill the button behind them); a dotted ink line parts its rows; counted beads are its meter, ten to a level, filled as far as the level, the last in part, a mark a wedge over the beads (the fill lies under the whole row, cut to the level by page/meter's --lo and --hi). */
 :where([data-theme="mural"]) button:where(:not(.row, .card)) { border-radius: 0 10px 0 10px; font-family: var(--scroll); font-style: italic; font-weight: 700; }
 [data-theme="mural"] .panel, .panel[data-theme="mural"] { border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); }
 [data-theme="mural"] .head { font-style: normal; }
-[data-theme="mural"] .icon-btn { border: 2px solid var(--ink); box-shadow: inset 0 0 0 2px var(--node), inset 0 0 0 3.5px var(--accent); }
-[data-theme="mural"] .icon-btn:is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3.5px var(--node); }
+[data-theme="mural"] .icon-btn:not(.labelled) { border: 2px solid var(--ink); box-shadow: inset 0 0 0 2px var(--node), inset 0 0 0 3.5px var(--accent); }
+[data-theme="mural"] .icon-btn:not(.labelled):is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3.5px var(--node); }
 [data-theme="mural"] .icon-btn:not([aria-pressed="true"], [aria-expanded="true"]) { color: var(--accent); }
+[data-theme="mural"] .icon-btn.labelled:is(*, [aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) { background: none; border: 0; border-radius: 0; box-shadow: none;
+  color: var(--ink); overflow: visible; padding: 0; gap: 3px; }
+[data-theme="mural"] .icon-btn.labelled > .ico { box-sizing: content-box; padding: 9px; border: 2px solid var(--ink); border-radius: 50%; background: var(--node);
+  box-shadow: inset 0 0 0 2px var(--node), inset 0 0 0 3.5px var(--accent), var(--shadow-0); color: var(--accent); }
+[data-theme="mural"] .icon-btn.labelled > .label { padding: 0 5px; font-size: 13px; line-height: 1.3; border: 1px solid var(--ink); background: var(--node); box-shadow: var(--shadow-0); }
+[data-theme="mural"] .icon-btn.labelled:is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) > :is(.ico, .label) { background: var(--accent); color: var(--on-accent); }
+[data-theme="mural"] .icon-btn.labelled:is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) > .ico {
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3.5px var(--node), var(--shadow-0); }
+@media (max-width: 1024px) { [data-theme="mural"] .icon-btn.labelled > .ico { padding: 4px; } [data-theme="mural"] .icon-btn.labelled > .label { line-height: 1.15; } }
 [data-theme="mural"] .row { border-top: 1.5px dotted var(--edge); }
 [data-theme="mural"] .meter { --beads: 10; height: 12px;
   background: radial-gradient(circle closest-side, var(--node) 0 62%, var(--ink) 66% 92%, transparent 97%) 0 0 / calc(100% / var(--beads)) 100%; }
