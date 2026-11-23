@@ -33,7 +33,12 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
       for (const o of works) {
         assert.ok(['member', 'servant', 'villager', 'helper'].includes(o.basis) && o.holder && o.kind && o.when === 'now', JSON.stringify(o));
         assert.strictEqual(o.basis === 'villager', o.holder.type === 'village');
-        if (o.why === null) { may++; assert.ok(o.fit > 0, `fit ${o.fit}`); } else { barred++; reasons.add(o.why.replace(/\d\d:\d\d/, 'HH:MM')); }
+        if (o.why === null) {
+          may++; assert.ok(o.fit > 0, `fit ${o.fit}`);
+          // one evaluation (VB-1405): the fit shown is the matcher's bid, unless the matcher's own reach rule bars it
+          const b = J.bid(st, a, st.jobs.get(o.target), c);
+          if (b !== -1) assert.strictEqual(o.fit, b, `pawn ${id}, ${o.target}: the list's fit is the matcher's bid`);
+        } else { barred++; reasons.add(o.why.replace(/\d\d:\d\d/, 'HH:MM')); }
       }
       const fits = works.filter((o) => o.why === null).map((o) => o.fit);
       assert.deepStrictEqual(fits, [...fits].sort((x, y) => y - x), 'work it may take comes best fit first');

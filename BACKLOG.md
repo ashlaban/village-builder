@@ -223,6 +223,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-456](backlog/VB-456.md)<a id="VB-456"></a> | Refactor: rename sim/records to sim/register | - | 3 | S | [VB-455](#VB-455) | Once the event log is out (VB-455), the module left is the register of persons and households, and is named so: sim/register, in a commit of its own. |
 | [VB-478](backlog/VB-478.md)<a id="VB-478"></a> | Wrap-up: work as blocks | - | 3 | S | [VB-477](#VB-477) | Check the blocks, the estimate and the timetable with long runs: cost early and on medium-ref against the budget, the idle share, households by their head's skill; add the bands and propose tuning. |
 | [VB-893](backlog/VB-893.md)<a id="VB-893"></a> | Page: the Plan tab shows stores by the supply component and the year ahead | - | 3 | S | [VB-1123](#VB-1123) | The plan panel (VB-256) takes up VB-667's supply component and the year-ahead graph |
+| [VB-1487](backlog/VB-1487.md)<a id="VB-1487"></a> | Refactor: split sim/agents by concern | - | 3 | S | [VB-1405](#VB-1405) | sim/agents went over 700 lines with VB-1405's lasting verbs; split it by its concerns |
 
 </details>
 

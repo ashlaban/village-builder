@@ -1298,6 +1298,15 @@ function checkState(st) {
   // talks in one hour may be shown in either order, so it may follow the latest talk's own hour)
   for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= st.t + VB['sim/ties'].SOCIAL.talk.bubbleHours + 1e-9)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, after now (${st.t}) and a talk's bubble`);
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
+  // assignments numbered (VB-1405): three slot numbers, none above the count taken, and once numbered a slot that holds a task has one
+  for (const a of st.agents) {
+    const n = a.assigned;
+    if (n === undefined) continue; // none taken yet, or a save made before VB-1405
+    if (!Number.isInteger(n.assignments) || Object.keys(n).length !== 4) bad.push(`agents[${a.id}].assigned: ${JSON.stringify(n)}`);
+    for (const slot of ['full', 'partial', 'background'])
+      if (!(n[slot] === null || (Number.isInteger(n[slot]) && n[slot] >= 1 && n[slot] <= n.assignments))) bad.push(`agents[${a.id}].assigned.${slot}: ${n[slot]} of ${n.assignments}`);
+    if ((a.job && n.full === null) || (a.side && a.side.partial && n.partial === null) || (a.side && a.side.background && n.background === null)) bad.push(`agents[${a.id}]: a task held with no number`);
+  }
   // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
   for (const a of st.agents) {
     if (a.side === undefined) continue;
@@ -1321,6 +1330,8 @@ function checkState(st) {
     else pl.queue.forEach((c, n) => {
       if (c.source !== 'player' || c.actor !== pl.pawn || typeof c.verb !== 'string') bad.push(`player.queue[${n}]: ${JSON.stringify(c)}`);
       if (!(c.begun === null || (n === 0 && c.begun <= st.t))) bad.push(`player.queue[${n}]: begun ${c.begun}`);
+      // its reference (VB-1405): null until begun, then plain data or null; absent only in a command begun before VB-1405
+      if (c.ref === undefined ? c.begun === null : (c.ref !== null && (c.begun === null || typeof c.ref !== 'object'))) bad.push(`player.queue[${n}]: ref ${JSON.stringify(c.ref)}, begun ${c.begun}`);
     });
     const r = pl.refused;
     // what its death left (VB-213): null while the played pawn lives, and from its death the farm, spouse and friends noted then, no queue

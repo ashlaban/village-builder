@@ -13,6 +13,24 @@ VB['sim/attention'] = (() => {
   //   among its workers (j.claims), or null; absent when it holds none. A kind's attention is `full` (the default), `partial` or `background`
   //   (sim/kinds): a background task is done at the side at the kind's `rate` of the pawn's hours, while the pawn is within `reach` steps of it.
   const heldAt = (a, slot) => (a.side ? a.side[slot] : null);
+  // ---- assignments (VB-1405): each time a pawn takes up a task, in its full slot (sim/agents start) or at the side (hold), the taking is
+  // numbered, so that one particular assignment can be named after the job's key is reposted or the pawn takes the same job again ----
+  // @state agent.assigned: absent until the pawn first takes a task, then {assignments (how many it has taken), full, partial, background
+  //   (the number of the assignment the slot was last given, or null)}: three numbers whatever its history. A slot's number names its
+  //   assignment only while the slot still holds that job (`holds`): a task let go leaves its number, which no later taking repeats.
+  //   Written only by `assign`; plain data, saved.
+  function assign(a, slot) {
+    if (!a.assigned) a.assigned = { assignments: 0, full: null, partial: null, background: null };
+    a.assigned[slot] = ++a.assigned.assignments;
+    return a.assigned[slot];
+  }
+  // The job pawn a holds in slot (full: its task in hand), or null.
+  const inSlot = (a, slot) => (slot === 'full' ? a.job || null : heldAt(a, slot));
+  // Whether pawn a still holds the assignment {slot, key, n}: the slot holds that job, under the number it was given then.
+  const holds = (a, ref) => {
+    const j = inSlot(a, ref.slot);
+    return !!j && j.key === ref.key && !!a.assigned && a.assigned[ref.slot] === ref.n;
+  };
   // Why the pawn may not hold side task j now, or null: its slot is taken, it is no side kind, or a background task out of reach of the
   // pawn, or of its full task's site (a full task never takes a background one out of reach). A pawn with no task in hand may take a
   // background task out of its reach: it sets out for it (VB-136: the herder takes the herds to their pasture).
@@ -30,6 +48,7 @@ VB['sim/attention'] = (() => {
     settle(st, j);
     if (!a.side) a.side = { partial: null, background: null };
     a.side[attentionOf(j)] = j;
+    assign(a, attentionOf(j));
     j.claims.push(a.id);
     if (attentionOf(j) === 'background' && !a.job && !inReach(st, j, here(st, a))) emit(st, 'sideAway', a); // sim/agents walks it there
     if (KINDS[j.kind].held) KINDS[j.kind].held(st, j, a, cal(st.t));
@@ -86,5 +105,5 @@ VB['sim/attention'] = (() => {
     }
   }
   on('legChanged', sideCheck);
-  return { heldAt, sideWhy, hold, unhold, dropSides, offerWhy, reachAfter, sideCheck };
+  return { heldAt, sideWhy, hold, unhold, dropSides, offerWhy, reachAfter, sideCheck, assign, inSlot, holds };
 })();
