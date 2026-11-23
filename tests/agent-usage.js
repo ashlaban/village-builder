@@ -39,6 +39,10 @@ r = run(file, '--turns', '--label', 'worker', '--out', path.join(dir, 'usage'));
 expect('the report prints no content', r.ok && !/SECRET/.test(r.out) && /model calls 3 \(\+1 in subagents\)/.test(r.out), r.out);
 r = run(file, '--until', at(8), '--json');
 expect('--until limits the entries', r.ok && JSON.parse(r.out).calls === 2, r.out);
+r = run(file, '--json', '--task', 'VB-123');
+expect('--task names the session\'s one task', r.ok && JSON.parse(r.out).task === 'VB-123' && !('task' in m), r.out);
+r = run(file, '--json', '--task', 'the-next');
+expect('--task takes a task ID only', !r.ok && /VB-NNN/.test(r.out), r.out);
 r = run('--history', path.join(dir, 'usage'));
 expect('history by label', r.ok && /^worker: 1 runs/m.test(r.out) && /calls +3 \[3, 3\]/.test(r.out), r.out);
 // two sub-agents with transcripts of their own: the task from the prompt, the boot at the first edit, size and status from the results

@@ -2,7 +2,7 @@ name: Pages
 # Publishes the game and its documents (VB-449). The page is built from src/ here, so the site does not depend on an index.html kept
 # in the repository; the Markdown documents are rendered by the same Jekyll build that "Deploy from a branch" ran, so BACKLOG.html
 # and QUESTIONS.html keep their addresses. docs/roadmap.html is made here by tools/roadmap.js from the backlog and its git history,
-# so the checkout fetches the whole history. Needs Settings, Pages, Source: GitHub Actions.
+# so the checkout fetches the whole history. docs/usage.html is made by tools/usage-page.js from the measured runs of docs/agents/usage. Needs Settings, Pages, Source: GitHub Actions.
 on:
   push:
     branches: [main]
@@ -31,6 +31,8 @@ jobs:
       - run: npm run build
       - name: The roadmap page, from the backlog and its history
         run: node tools/roadmap.js
+      - name: The token use page, from the measured runs
+        run: node tools/usage-page.js
       - uses: actions/jekyll-build-pages@v1
         with:
           source: ./
@@ -39,6 +41,8 @@ jobs:
         run: cmp index.html _site/index.html
       - name: The roadmap page is in the site
         run: cmp docs/roadmap.html _site/docs/roadmap.html
+      - name: The token use page is in the site
+        run: cmp docs/usage.html _site/docs/usage.html
       - name: Check the rendered backlog and its filter
         run: node tests/backlog-page.js
       - uses: actions/upload-pages-artifact@v3
