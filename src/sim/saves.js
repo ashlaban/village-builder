@@ -343,6 +343,39 @@ VB['sim/saves'] = (() => {
       state: encode(state, new Set([w]), pack),
     };
   }
+  // A save made before a custom was added (VB-555: `outside`, the catalogue's last) holds its arrays by custom shorter than the catalogue:
+  // each gains the new customs' blocks from the archetype every culture starts from, which every culture held then, with no draw: the
+  // cultures' customs and the villages' practice the archetype's option; an attitude, its anchor and its interest the block of a pawn
+  // that holds that option at 0.7, the rest shared; a meeting's last support the same.
+  function grownCustoms(st) {
+    const C = VB['sim/customs'];
+    if (!st.cenv || !st.cenv.cultures.length) return;
+    const old = st.cenv.cultures[0].customs.length;
+    if (old >= C.DIMS.length) return;
+    const base = C.fromArchetype('oldNordic'),
+      from = C.OFF[old],
+      block = new Float32Array(C.TOTAL - from);
+    for (let k = old; k < C.DIMS.length; k++)
+      for (let j = 0; j < C.NOPT[k]; j++) block[C.OFF[k] - from + j] = j === base[k] ? 0.7 : 0.3 / (C.NOPT[k] - 1);
+    const grow = (a) => {
+      if (!a || a.length !== from) return a;
+      const out = new Float32Array(C.TOTAL);
+      out.set(a);
+      out.set(block, from);
+      return out;
+    };
+    const longer = (a) => Int8Array.from([...a, ...base.slice(a.length)]);
+    for (const c of st.cenv.cultures) c.customs = longer(c.customs);
+    for (const v of st.cenv.settlements) {
+      if (v.practice) v.practice = longer(v.practice);
+      v.lastSupport = grow(v.lastSupport);
+    }
+    for (const p of st.pawns) {
+      p.att = grow(p.att);
+      p.anc = grow(p.anc);
+      p.interest = grow(p.interest);
+    }
+  }
   // A state from a save, on w: a world freshly generated from the save's seed and size.
   function load(w, data) {
     if (!data || !READS.includes(data.format))
@@ -366,6 +399,7 @@ VB['sim/saves'] = (() => {
     st.w = w;
     for (const k in DERIVED) st[k] = null;
     for (const k in DERIVED) if (DERIVED[k]) DERIVED[k](st);
+    grownCustoms(st); // a save from before the last custom (VB-555)
     for (const p of st.pawns) if (p.att) VB['sim/attitudes'].compileLeans(p); // VB-520: compiled from the attitude, as it was saved or made
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now
     return st;
