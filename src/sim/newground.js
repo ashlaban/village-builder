@@ -21,6 +21,7 @@ VB['sim/newground'] = (() => {
   function finishFell(st, f, hh, plan) {
     const tile = plan.steps[plan.open].place,
       wood = fellAll(st, tile) * ECON.woodPerTrip;
+    woodTaken(st, tile); // felled, it leaves its village's wood (sim/territory), as a plot's tile does when it is cleared
     if (wood > 0)
       Lying.leave(st, 'leftTimber', (wood / ECON.woodPerTrip) * TRAVEL.load, tile, { type: 'household', id: hh.id });
     emit(st, 'stepDone', { type: 'household', id: f.household, plan });

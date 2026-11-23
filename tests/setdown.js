@@ -7,6 +7,8 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, A = VB['sim/agen
 const Lying = VB['sim/lying'], { checkState } = require('./lib/invariants.js');
 const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, 7, 'populous');
+// the loads put down on the road: not the timber of a wood felled for a field, which lies at its site meanwhile (VB-1495)
+const ours = () => (st.lying || []).filter((x) => x.kind !== 'leftTimber' && x.kind !== 'leftCart'); // and a cart left with it
 const live = st.households.filter((h) => !h.dissolved && st.farmsteads[h.farmstead].fields.length >= 1 && h.members.length >= 2);
 const hh = live[0], other = live[1];
 const f = st.farmsteads[hh.farmstead], fd = f.fields[0];
@@ -69,8 +71,8 @@ const fetchJob = () => {
   const at = VB['sim/pose'].tileAt(st, a.x, a.y);
   VB['sim/lifecycle'].killPawn(st, a.id, 'illness'); // it dies on the road (stillAtDeath)
   assert.strictEqual(sheaves(), b0, 'the load was booked at the barn from the road');
-  assert(st.lying && st.lying.length === 1, 'no load lies where the hand fell');
-  const l = st.lying[0];
+  assert(ours().length === 1, 'no load lies where the hand fell');
+  const l = ours()[0];
   assert.deepStrictEqual([l.kind, l.n, l.tile, l.owner.type, l.owner.id, l.of.field === fd], ['haul', n, at, 'household', hh.id, true]);
   assert.deepStrictEqual(checkState(st), [], 'the state with a load lying breaks an invariant');
   // the household's review posts its fetching; another hand takes it, walks there, picks the load up and carries it home
@@ -86,7 +88,7 @@ const fetchJob = () => {
   }
   assert(carried, 'nobody carried the load from where it lay');
   assert.strictEqual(sheaves(), b0 + n, 'the fetched load did not reach the barn');
-  assert(!st.lying, 'the load still lies after it was fetched');
+  assert(!ours().some((x) => x.id === l.id), 'the load still lies after it was fetched');
   assert.deepStrictEqual(checkState(st), [], 'the state after the fetch breaks an invariant');
 }
 // 4. its household dissolving: the load lies where the hand stood (sim/heirs' extinct stops the work first)
@@ -96,11 +98,11 @@ const fetchJob = () => {
   onRoad(a);
   A.stopWorkFor(st, hh, f);
   assert.strictEqual(sheaves(), b0, 'the load was booked at the barn from the road');
-  assert(st.lying && st.lying.length === 1 && st.lying[0].n > 0 && a.load === 0 && a.job === null);
+  assert(ours().length === 1 && ours()[0].n > 0 && a.load === 0 && a.job === null);
   // saved and loaded: the load lies on, with its field
   const w2 = (() => { const it2 = G.generate(7, { cols: 120, rows: 85 }); let r2; while (!(r2 = it2.next()).done); return r2.value; })();
   const back = Sim.load(w2, JSON.parse(JSON.stringify(Sim.save(st))));
-  assert.strictEqual(back.lying[0].of.field, back.farmsteads[f.id].fields[0], 'the loaded load lost its field');
+  assert.strictEqual(back.lying.find((x) => x.kind === 'haul').of.field, back.farmsteads[f.id].fields[0], 'the loaded load lost its field');
   assert.deepStrictEqual(checkState(back), []);
   // an older save, with none: none lies
   const old = JSON.parse(JSON.stringify(Sim.save(st)));
@@ -109,6 +111,7 @@ const fetchJob = () => {
   // 5. left lying, it rots at the autumn frost, and the frost is told
   const n0 = st.record.length;
   Lying.frost(st);
+  VB['sim/carts'].cartsFrost(st); // as the clock's frost: a cart left standing with a felled wood's timber goes with it (VB-1495)
   assert(!st.lying, 'a load still lies after the frost');
   assert(st.record.slice(n0).some((e) => e && e.kind === 'frost'), 'the frost on a lying load is not told');
   assert.strictEqual(sheaves(), b0);
@@ -143,7 +146,7 @@ const fetchJob = () => {
   A.start(st, b, fj);
   for (let k = 0; k < 600 && step.brought === 0; k++) Sim.advance(st, 0.1);
   assert.strictEqual(step.brought, 1, 'the fetched stone did not reach the well');
-  assert(!st.lying, 'the stone still lies after it was fetched');
+  assert(!ours().length, 'the stone still lies after it was fetched');
   assert.deepStrictEqual(checkState(st), []);
 }
 // 7. a load of sheaves fetched after its field was sown anew keeps its crop
