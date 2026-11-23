@@ -15,10 +15,11 @@ const P = openPage({
   patch: (html) => html
     .replace(/const SIZES = \{ t:/, () => { patched++; return 'const SIZES = { x: [36, 26], t:'; })
     .replace('let allMaterials = false;', () => { patched++; return 'let allMaterials = false; window.__materialsHTML = (...a) => materialsHTML(...a);'; })
-    .replace('/^#([shp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([shp]?)([tsmlx]?)(\\d{1,9})$/'; }),
+    .replace('/^#([shp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([shp]?)([tsmlx]?)(\\d{1,9})$/'; })
+    .replace('const chunks = new Map();', () => { patched++; return 'const chunks = new Map(); window.__lod = { chunks, w: () => w, st: () => st, T: () => T, size: (l) => LV[l].size, zoom(z) { cam.z = zt = z; }, pending: () => pending };'; }),
 });
 const { doc, win, fail, tick, q, qa, $ } = P;
-if (patched !== 3) { fail(`the page's sizes or its hash were not found to add the small island (${patched} of 3 patched)`); process.exit(1); }
+if (patched !== 4) { fail(`the page's sizes, its hash or its chunks were not found to patch (${patched} of 4 patched)`); process.exit(1); }
 const shown = (id) => !$(id).hidden;
 const click = (el, what) => { if (!el) { fail(`no ${what} to click`); return false; } el.click(); tick(2); return true; };
 
@@ -43,6 +44,35 @@ async function main() {
   if (!m || (real - (+m[2] * 60 + +m[3]) + 1440) % 1440 > 5) fail(`the clock shows ${$('clockYear').textContent} at ${real} min of the day`);
   console.log('ran', days, 'days |', $('clockDate').textContent, '|', $('clockYear').textContent);
   q('[data-speed="1"]').click(); tick(2);
+  // VB-1489: the close chunks over a tile whose trees changed stay on screen, every frame, until their replacements are painted; dropped
+  // at once, they showed the blurry overview through their holes for the frames the repaints took
+  {
+    const lod = win.__lod;
+    q('[data-speed="0"]').click(); lod.zoom(1);
+    for (let k = 0; k < 300 && (lod.T() !== 0 || lod.pending()); k++) tick(1);
+    const T = lod.T(), s = lod.size(T), wd = lod.w();
+    const shownAt = () => [...lod.chunks.entries()].filter(([, c]) => c.l === T && c.spr.visible);
+    const before = shownAt(), mid = before[Math.floor(before.length / 2)];
+    const tile = mid && [...wd.hx.keys()].find((i) => Math.floor(wd.hx[i] / s) === mid[1].cx && Math.floor(wd.hy[i] / s) === mid[1].cy);
+    if (T !== 0 || lod.pending() || tile === undefined) fail(`no close view painted in full to repaint (level ${T}, ${lod.pending()} areas left)`);
+    else {
+      lod.st().treeDirty.add(tile);
+      let frames = 0, holes = 0, left = 1, swapped = 0;
+      for (; frames < 100 && left; frames++) {
+        tick(1);
+        left = swapped = 0;
+        for (const [k, c] of before) {
+          const now = lod.chunks.get(k);
+          if (!now || !now.spr.visible || now.spr.destroyed) holes++;
+          else if (now.stale) left++;
+          else if (now !== c) swapped++;
+        }
+      }
+      if (holes || left || !swapped) fail(`a repaint left ${holes} holes in the close view over ${frames} frames, ${swapped} of ${before.length} chunks replaced, ${left} not yet`);
+      console.log(`repainted ${swapped} of ${before.length} close chunks over ${frames} frames, ${holes} holes`);
+    }
+    q('[data-speed="1"]').click(); tick(2);
+  }
   // the overlays on and off
   for (const [b, key, want] of [['landBtn'], ['groundBtn', 'groundKey', /Bedrock/], ['reachBtn', 'reachKey', /Walking time/]]) {
     $(b).click(); tick(3);
