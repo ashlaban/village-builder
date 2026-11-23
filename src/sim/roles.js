@@ -144,9 +144,10 @@ VB['sim/roles'] = (() => {
   // at work leaves its job for one whose fit is above switchRatio × its own job's + switchMargin (VB-107).
   // keep (VB-1540; design.md section 7, Standing duties; Proposed): at an allotment a member's fit for a task of a type of work it holds
   // as a duty (plan.day.duties: what the morning before gave it, or what the head set) counts `keep` times, so it does today what it did
-  // yesterday unless something changed; under switchRatio, so a much more urgent task still takes it. 1: no memory. The design proposes
-  // 1.25; at that a farm with animals of tests/meadows.js (founders 42) made no meadow by its second spring, its project's work behind
-  // the duties kept, and at 1.15 tests/relations.js met a pawn away in no phase (VB-1550), so 1.1 until the tuning run (docs/tuning.md).
+  // yesterday unless something changed; under switchRatio, so a much more urgent task still takes it. 1: no memory, and a duty the head
+  // set weighs nothing. The design proposes 1.25. It stands at 1 until Kim's answer and the tuning run (docs/tuning.md): at every value
+  // tried above it (1.05 to 1.25) a hard check of the haymaking went red (tests/hay.js: 89% of meadows in by autumn day 4, of 90 asked
+  // and 92 before; tests/meadows.js: a farm with animals and no meadow by its second spring).
   // urgency: a job's weight in a bid, by kind (see the kinds in sim/kinds).
   const MATCH = {
     poorFit: 2,
@@ -156,7 +157,7 @@ VB['sim/roles'] = (() => {
     floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
     distanceWeight: 0.15,
     join: 0.8,
-    keep: 1.1,
+    keep: 1,
     switchRatio: 1.5,
     switchMargin: 1,
     // Help between households (VB-106, VB-470; design.md, Help between households): a head short of hands asks (sim/hands); the head

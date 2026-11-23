@@ -193,8 +193,9 @@ const meadowHay = hay[0].expected / hay[0].meadows / hay[0].need; // one meadow'
 assert.ok(hay[0].atWinter >= 2 && hay[0].atWinter < 3 + meadowHay, `by its template the household holds two winters' hay at the start of winter, overshot by less than a meadow past three (${w(hay[0].atWinter)}, below ${w(3 + meadowHay)})`);
 // With standing duties (VB-1540) the hands keep to the haymaking once begun and the hay is in days sooner: the target is met at midsummer,
 // before the last meadows are mown, their mowing is called off, and the stack then falls under the target by the winter (what is eaten
-// and lost in autumn; VB-1549 keeps a target met early to the winter). So: met at its peak, and no less than two and a half at the winter.
-assert.ok(hay[1].winters >= 3 && hay[1].atWinter >= 2.5,
+// and lost in autumn; VB-1549 keeps a target met early to the winter). So, while MATCH.keep is above 1: met at its peak, and no less than
+// two and a half at the winter; with no memory (keep 1), three at the winter as before.
+assert.ok(hay[1].winters >= 3 && hay[1].atWinter >= (VB['sim/roles'].MATCH.keep > 1 ? 2.5 : 3),
   `by its head's choice three (${w(hay[1].atWinter)} winters of ${hay[1].need.toFixed(1)}, ${w(hay[1].winters)} at its peak; meadows give ${hay[1].expected})`);
 
 { // the holder's own rule goes through the verb: a household with no player, and one with no holder, begin their fields by `project`

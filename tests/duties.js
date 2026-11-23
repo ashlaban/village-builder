@@ -40,7 +40,9 @@ function fitOf(j, fit) {
   P[j.kind] = (fit + 10 * u - s1) / u;
   assert.ok(Math.abs(score(j) - fit) < 1e-6 && Math.abs(Jobs.score(st, st.pawns[b], j, c) - fit) < 1e-6, `${j.kind} fits both sons at ${fit}`);
 }
-const prio0 = { ...ROLES.son.prio }, keep0 = MATCH.keep;
+// the factor is the design's proposed 1.25 here, whatever the tunable stands at (1 until the tuning run: no memory)
+const prio0 = { ...ROLES.son.prio }, shipped = MATCH.keep, keep0 = 1.25;
+MATCH.keep = keep0;
 // the morning, with the duties as given: the day's first allotment at this hour writes them, so they are made yesterday's
 const morning = (held, set = plan.day.duties.set) => {
   plan.day.duties = { day: -1, head: plan.day.duties.head, held, set };
@@ -147,4 +149,5 @@ fitOf(Y, 100);
   hh.members = members;
 }
 Object.assign(ROLES.son.prio, prio0);
+MATCH.keep = shipped;
 console.log('duties ok: the morning writes them; yesterday\'s type is kept; keep 1 is the old order; a much more urgent task takes the member; a duty with no task lapses; the verb sets and lifts, refused with its reason; a set duty outlasts a morning and goes with its head or member; saved');
