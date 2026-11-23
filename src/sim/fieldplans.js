@@ -105,7 +105,7 @@ VB['sim/fieldplans'] = (() => {
     return best;
   }
   // Hours of clearing a tile: brush, plus its ground (GROUND.clear), the stones in proportion and the scrub grown on it (sim/spread, VB-091).
-  // A wood's trees are no part of it: they are felled and grubbed as steps of their own, before the clearing (fieldProject, VB-1495).
+  // A wood's trees are no part of it: they are felled and grubbed as steps of their own, before the clearing (fieldProject, VB-1525).
   const clearHours = (st, tile) =>
     SCRUB_HOURS +
     (GROUND[st.w.biome[tile]]?.clear ?? 0) +
@@ -146,10 +146,10 @@ VB['sim/fieldplans'] = (() => {
             : !may(t)
               ? "the land there is outside the farm's block"
               : null;
-  // @tunable SITE: how a head reckons a site for a new field (VB-1494; Kim, 23 Nov: no rule mandates the order of land use): the field's
+  // @tunable SITE: how a head reckons a site for a new field (VB-1524; Kim, 23 Nov: no rule mandates the order of land use): the field's
   // grain a year against the hours it costs a year, the making spread over `years`, the walk out and back `trips` times a year at
   // SPEED; a tile touching the farm's fields counts `together` times, so the fields grow as one block (VB-109); `wood` the hours a unit of a
-  // felled wood's timber saves the household (VB-1495: a firewood trip cuts a tree, ECON.woodPerTrip units, in 3 hours, and carrying it home
+  // felled wood's timber saves the household (VB-1525: a firewood trip cuts a tree, ECON.woodPerTrip units, in 3 hours, and carrying it home
   // remains; an estimate), set against the making's hours and never beyond them: the wood pays for the conversion, not for the crop. ----
   const SITE = { years: 5, trips: 10, together: 2, wood: 0.5 };
   // The head's reckoning (principle 14) that a search shares: the reference crop's yield and hours a year, and its mean soil over SITE.years
@@ -167,7 +167,7 @@ VB['sim/fieldplans'] = (() => {
   }
   // A site's score, d walking steps from the house: its grain a year (fertility, the soil it would start at) for each hour a year it costs
   // (the crop's work, the making over SITE.years, the walk). The making: a wood's felling and grubbing (woodHours), the clearing with its
-  // ground's term (clearHours, GROUND.clear) and the breaking, less the worth of a wood's timber in hours (SITE.wood, VB-1495), at least
+  // ground's term (clearHours, GROUND.clear) and the breaking, less the worth of a wood's timber in hours (SITE.wood, VB-1525), at least
   // nothing. Allocates nothing.
   const makingHours = (st, t) =>
     Math.max(0, woodHours(st.w, t) + clearHours(st, t) + BREAK_HOURS - SITE.wood * woodOn(st.w, t));
@@ -219,12 +219,12 @@ VB['sim/fieldplans'] = (() => {
     const tile = chooseTile(st, f, undefined, built);
     return tile >= 0 ? tile : chooseTile(st, f, (t) => contestable(st, t, f.village, hh.id) !== null, built);
   }
-  // The project plan of a new field on `tile`, as sim/plans makes it (makeProject; VB-123): on a wood, felling and grubbing first (VB-1495,
+  // The project plan of a new field on `tile`, as sim/plans makes it (makeProject; VB-123): on a wood, felling and grubbing first (VB-1525,
   // as a plot's tile is felled and grubbed: sim/expansion), then clearing, then breaking, all under the household's stake; it holds back the
   // seed the field will want (released when the field is made, when the standing plan's seed counts it).
   const fieldProject = (st, hh, tile) => ({
     what: 'field',
-    ground: groundKey(st.w, tile), // the biome it has now, before the clearing (VB-1490)
+    ground: groundKey(st.w, tile), // the biome it has now, before the clearing (VB-1520)
     steps: [
       ...(wooded(st.w, tile)
         ? [

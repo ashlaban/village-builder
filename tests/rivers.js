@@ -95,7 +95,7 @@ for (const seed of EXT ? [7, 42] : [11, 13]) {
       check(!st.w.river[f.house], `seed ${seed} ${scenario}: ${f.name} stands on a river`);
       for (const fd of f.fields) {
         check(!st.w.river[fd.tile], `seed ${seed} ${scenario}: a field of ${f.name} lies on a river`);
-        // its ground's fertility: a wood broken to a field is meadow now (VB-1495)
+        // its ground's fertility: a wood broken to a field is meadow now (VB-1525)
         const gb = VB['gen/biomes'].BIOMES.findIndex((b) => b.key === fd.ground), base = GROUND[gb].fert, wet = byRiver(st.w, fd.tile);
         check(Math.abs(fd.fert - fertility(st.w, fd.tile, gb)) < 1e-9 && Math.abs(fd.fert - base * (wet ? 1 + RIVER.irrigation : 1)) < 1e-9,
           `seed ${seed} ${scenario}: a field of ${f.name} has fertility ${fd.fert}, by the river ${wet}`);

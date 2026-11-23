@@ -95,8 +95,8 @@ VB['sim/crops'] = (() => {
     rot: 0.5,
   };
   // @tunable GROUND: what a farmable ground is worth as a field, by its biome (a tile of a biome with no row cannot be farmed):
-  // fert its fertility, clear the hours its clearing adds (VB-1492; estimates, a track's hours over heath and hills; marsh waits for VB-721);
-  // wood: a wood broken to a field (VB-1495; Kim, 23 Nov), felled and grubbed before its clearing (sim/fieldplans' fieldProject), its trees
+  // fert its fertility, clear the hours its clearing adds (VB-1522; estimates, a track's hours over heath and hills; marsh waits for VB-721);
+  // wood: a wood broken to a field (VB-1525; Kim, 23 Nov), felled and grubbed before its clearing (sim/fieldplans' fieldProject), its trees
   // carted home; the generator's farms and a plot's field keep to open ground (openGround). Forest 0.9, pine 0.6: estimates (leaf mould
   // against the needles' sour ground).
   const GROUND = {
@@ -120,7 +120,7 @@ VB['sim/crops'] = (() => {
     }
     return false;
   };
-  // Fertility of a farmable tile as a field: by its biome (or the ground `b` it had, a wood felled and grubbed to meadow, VB-1495), and more
+  // Fertility of a farmable tile as a field: by its biome (or the ground `b` it had, a wood felled and grubbed to meadow, VB-1525), and more
   // when a river waters it.
   const fertility = (w, i, b = w.biome[i]) => GROUND[b]?.fert * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
 

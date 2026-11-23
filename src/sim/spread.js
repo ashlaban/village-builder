@@ -1,5 +1,5 @@
 // @sys sim/spread: forest spread into open land (VB-091): the front of open tiles beside woodland, where scrub grows to forest unless
-// farming, work or grazing keeps the land open; the hours scrub adds to clearing; a field let go, wild ground again after its years (VB-1504)
+// farming, work or grazing keeps the land open; the hours scrub adds to clearing; a field let go, wild ground again after its years (VB-1527)
 VB['sim/spread'] = (() => {
   const G = VB['gen'],
     { B, treeStage, setBiome } = G;
@@ -75,7 +75,7 @@ VB['sim/spread'] = (() => {
   function tended(st, t) {
     st.w.tended[t] = Math.floor(st.t / DAY) + 1;
   }
-  // @tunable LAPSE: abandoned fields (VB-1504; Kim, 23 Nov): a field let go is developed ground `years` game years untended, then wild
+  // @tunable LAPSE: abandoned fields (VB-1527; Kim, 23 Nov): a field let go is developed ground `years` game years untended, then wild
   // ground of its terrain again. 8 is when scrub would stand on open land beside a wood (SPREAD.scrub of SPREAD.years); an estimate.
   const LAPSE = { years: 8 };
   // @state st.lapsed: Set of tile indexes; the tiles of fields let go (sim/fields' letGo) that are still developed ground (w.dev 1) in

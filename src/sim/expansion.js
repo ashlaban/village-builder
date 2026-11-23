@@ -346,7 +346,7 @@ VB['sim/expansion'] = (() => {
       hours: 10,
       hands: Infinity,
       type: 'wood',
-      // also a household's step, felling a wood broken to a field (VB-1495; sim/projects' landProject posts it, sim/newground ends it); a
+      // also a household's step, felling a wood broken to a field (VB-1525; sim/projects' landProject posts it, sim/newground ends it); a
       // plot's step ends in finishStep
       project: true,
       worked: (st, j) => j.farm && workStake(st, j),

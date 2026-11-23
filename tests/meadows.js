@@ -27,7 +27,7 @@ for (const seed of [7, 42]) {
     const f = st.farmsteads[hh.farmstead];
     // on the forested island (VB-780) a farm may find no open ground for a meadow within reach: then it has none, and it is counted
     if (hh.herds.length && !f.meadows.length) noSite.push(`founders ${seed} ${f.name}`);
-    // a wood broken to a field (VB-1495) is felled, grubbed and its timber carried home before the next field opens, so a farm breaking
+    // a wood broken to a field (VB-1525) is felled, grubbed and its timber carried home before the next field opens, so a farm breaking
     // its courses' fields in forest may come to its meadow in the spring of year 2 (a shortfall, docs/tuning.md): checked a season on
     if (hh.herds.length && !f.meadows.length && M.chooseMeadow(st, f) >= 0) late.push([st, f]);
     // a household without animals may make a first meadow, for a cow it wants (VB-428), by the rule of tests/cowwant.js

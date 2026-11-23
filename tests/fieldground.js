@@ -1,4 +1,4 @@
-// VB-1490: a field records its ground: the biome its tile had when its project began (sim/fieldrec's newField).
+// VB-1520: a field records its ground: the biome its tile had when its project began (sim/fieldrec's newField).
 const VB = require('../src/load.js'), G = VB.gen;
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
@@ -18,7 +18,7 @@ const hh = st.households[0], plan = fieldProject(st, hh, hill);
 check(plan.ground === 'hills', `plan ground ${plan.ground}`);
 G.setBiome(w, hill, G.B.MEADOW);
 const fd = broken(st, hill, 9, plan.ground);
-check(fd.ground === 'hills' && fd.fert === 0.7, `broken after clearing: ${fd.ground} ${fd.fert} (its ground's fertility, VB-1495)`);
+check(fd.ground === 'hills' && fd.fert === 0.7, `broken after clearing: ${fd.ground} ${fd.fert} (its ground's fertility, VB-1525)`);
 st.farmsteads[0].fields.push(fd);
 check(!checkState(st).some((b) => /ground/.test(b)), `ground invariant: ${checkState(st).join('; ')}`);
 // an older save: no ground, read at load from the tile's biome

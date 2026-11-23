@@ -26,7 +26,7 @@ Sim.advance(st, Sim.YEAR + Sim.HERD.springDay * Sim.DAY + 6);
 Sim.HERD.death.cattle = deathRate;
 const calves = st.herds.reduce((s, hd) => s + (hd.head ? hd.head.filter((h) => h.kind === 'calf').length : 0), 0);
 const lambs = st.herds.reduce((s, hd) => s + (hd.lambs || 0), 0);
-// lambs: 2 or 3 of the first farm's 3 ewes left by spring, by the draws (3 before VB-1495 shifted them; the second farm's ewes are gone in both)
+// lambs: 2 or 3 of the first farm's 3 ewes left by spring, by the draws (3 before VB-1525 shifted them; the second farm's ewes are gone in both)
 check(calves >= 2 && lambs >= 2, `founders year 2: ${calves} calves and ${lambs} lambs born`);
 check(Sim.villageLog(st, Infinity).some((e) => /born this spring/.test(e.text)), 'founders year 2: no log line for the births');
 check(!checkState(st).length, 'founders year 2: ' + checkState(st).slice(0, 3).join('; '));

@@ -99,7 +99,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   const t = F.chooseTile(st, f);
   VB['sim/stakes'].stake(st, hh, t, 'field');
   const land = VB['sim/projectplans'].makeProject(st, 'household', hh.id, F.fieldProject(st, hh, t));
-  const felled = VB['sim/forest'].wooded(st.w, t) ? 'fell,grub,' : ''; // a wood is felled and grubbed first (VB-1495)
+  const felled = VB['sim/forest'].wooded(st.w, t) ? 'fell,grub,' : ''; // a wood is felled and grubbed first (VB-1525)
   assert(land.steps.map((s) => s.kind).join() === felled + 'clear,break' && land.reasons['grain/barley'] === 'field', 'a field: clearing then breaking, its seed held');
   VB['sim/claims'].dropClaim(st, t, { type: 'household', id: hh.id });
   assert(!VB['sim/projectplans'].review(st, land) && !VB['sim/projects'].ownOf(st, hh.id), 'its stake lost, the land project is dropped at review');

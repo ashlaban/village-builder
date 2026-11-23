@@ -7,7 +7,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, A = VB['sim/agen
 const Lying = VB['sim/lying'], { checkState } = require('./lib/invariants.js');
 const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, 7, 'populous');
-// the loads put down on the road: not the timber of a wood felled for a field, which lies at its site meanwhile (VB-1495)
+// the loads put down on the road: not the timber of a wood felled for a field, which lies at its site meanwhile (VB-1525)
 const ours = () => (st.lying || []).filter((x) => x.kind !== 'leftTimber' && x.kind !== 'leftCart'); // and a cart left with it
 const live = st.households.filter((h) => !h.dissolved && st.farmsteads[h.farmstead].fields.length >= 1 && h.members.length >= 2);
 const hh = live[0], other = live[1];
@@ -111,7 +111,7 @@ const fetchJob = () => {
   // 5. left lying, it rots at the autumn frost, and the frost is told
   const n0 = st.record.length;
   Lying.frost(st);
-  VB['sim/carts'].cartsFrost(st); // as the clock's frost: a cart left standing with a felled wood's timber goes with it (VB-1495)
+  VB['sim/carts'].cartsFrost(st); // as the clock's frost: a cart left standing with a felled wood's timber goes with it (VB-1525)
   assert(!st.lying, 'a load still lies after the frost');
   assert(st.record.slice(n0).some((e) => e && e.kind === 'frost'), 'the frost on a lying load is not told');
   assert.strictEqual(sheaves(), b0);

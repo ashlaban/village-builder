@@ -104,7 +104,7 @@ check(T.reckonWood(st, v).includes(scrubTile), 'thick scrub near the green is cu
 w.trees[scrubTile] = 10;
 check(!T.reckonWood(st, v).includes(scrubTile), 'young scrub is not');
 
-// --- a field let go lapses (VB-1504): developed ground LAPSE.years untended, then wild ground of its terrain; taken in again, it stays
+// --- a field let go lapses (VB-1527): developed ground LAPSE.years untended, then wild ground of its terrain; taken in again, it stays
 {
   const f2 = st.farmsteads[1], at = (fd) => fd.tile, clock = { year: 0 };
   const hill = f2.fields[f2.fields.length - 1], again = f2.fields[f2.fields.length - 2], ht = at(hill), at2 = at(again);
@@ -129,7 +129,7 @@ check(!T.reckonWood(st, v).includes(scrubTile), 'young scrub is not');
   days(1);
   check(st.lapsed.has(at2) && w.tended[at2] === day0 + 1 && w.dev[at2] === 1, "an older save's let-go field lapses from the load");
 }
-// --- a field unused goes back to the land, on a held farm or an empty one alike (VB-1504; Kim, 23 Nov): on the year's last day
+// --- a field unused goes back to the land, on a held farm or an empty one alike (VB-1527; Kim, 23 Nov): on the year's last day
 {
   const f1 = st.farmsteads[0], f2 = st.farmsteads[1], day = Math.floor(st.t / DAY), L = S.LAPSE.years * YEAR_DAYS, end = { year: Math.floor(st.t / VB['sim/rules'].YEAR), season: 3, sday: VB['sim/rules'].SEASON_DAYS - 1, day };
   for (const f of [f1, f2]) for (const fd of f.fields) { fd.stage = 'stubble'; fd.sown = null; fd.held = 0; fd.used = day; }

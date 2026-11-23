@@ -65,7 +65,7 @@ VB['sim/forest'] = (() => {
     stageChanged(st, tile, was);
   }
 
-  // Every tree standing on `tile` felled at once (a plot's or a new field's felling step, VB-031, VB-1495): the stumps stay until grubbed
+  // Every tree standing on `tile` felled at once (a plot's or a new field's felling step, VB-031, VB-1525): the stumps stay until grubbed
   // (clearTile), nothing grows back. Returns the trees felled, whole ones (ECON.woodPerTrip loads each: a plot's walls, a field's wood).
   function fellAll(st, tile) {
     const w = st.w,

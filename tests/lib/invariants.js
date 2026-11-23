@@ -904,7 +904,7 @@ function checkState(st) {
       bad.push(`villages[${v.id}]: founded is ${JSON.stringify(fd)}`);
     }
   }
-  // lapsed ground (VB-1504): a Set of tiles, each let go on a known day (w.tended); a house or a green never stands on one
+  // lapsed ground (VB-1527): a Set of tiles, each let go on a known day (w.tended); a house or a green never stands on one
   if (st.lapsed !== undefined) {
     if (!(st.lapsed instanceof Set)) bad.push(`lapsed is ${typeof st.lapsed}`);
     else for (const t of st.lapsed) if (!Number.isInteger(t) || t < 0 || t >= st.w.N || !(st.w.tended[t] > 0) || st.w.dev[t] > 1) bad.push(`lapsed: tile ${t} (dev ${st.w.dev[t]}, tended ${st.w.tended[t]})`);
@@ -1006,7 +1006,7 @@ function checkState(st) {
     }
     if (f.grade !== 'ground' && f.grade !== 'stone') bad.push(`farmsteads[${f.id}]: grade ${f.grade}`); // VB-332
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
-    // VB-1490: a field's ground is the key of a farmable ground (a biome with a row of GROUND)
+    // VB-1520: a field's ground is the key of a farmable ground (a biome with a row of GROUND)
     for (const fd of f.fields) if (!VB['sim/fieldrec'].farmableKeys().includes(fd.ground)) bad.push(`farmsteads[${f.id}]: field ${fd.id} ground ${fd.ground}`);
     // VB-768: the fields let go, absent or counted; the fields' ids distinct and under the fields ever made (none used again)
     const L = f.left;

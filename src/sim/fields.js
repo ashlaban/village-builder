@@ -43,7 +43,7 @@ VB['sim/fields'] = (() => {
   //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
   //   hoursOwn, hoursOther (VB-462): absent, or the year's work hours given by the user household's own members and by others
   //   weeds: absent, or the rounds of weeding posted since sowing (CROPS weeds; VB-334, VB-348)
-  //   used: absent, or the game day of the field's last use (sown, reaped, a fallow course, reclaimed, broken; VB-1504): LAPSE.years
+  //   used: absent, or the game day of the field's last use (sown, reaped, a fallow course, reclaimed, broken; VB-1527): LAPSE.years
   //   after it the field goes back to the land (lapseFields)
   //   rest: absent, or a fallow field's rest this year (VB-348): 0.5 once it stood fallow at the summer's start, 1 once tilled; credited
   //   to the soil at the year's end, whatever the field bears by then (rye is sown on it in autumn)
@@ -165,13 +165,13 @@ VB['sim/fields'] = (() => {
     L.inYear++;
     st.used.delete(fd.tile);
     setOwner(st, fd.tile, { type: 'village', id: f.village });
-    lapse(st, fd.tile, fd.used); // developed ground until LAPSE.years from its last use, then its terrain again (sim/spread, VB-1504)
+    lapse(st, fd.tile, fd.used); // developed ground until LAPSE.years from its last use, then its terrain again (sim/spread, VB-1527)
     st.farmDirty.add(f.id);
     st.biomeDirty.add(fd.tile);
     log(st, `${f.name} lets a field go: its household no longer needs its grain.`, { kind: 'fieldLeft', ...atFarm(f) });
   }
   // A field unused goes back to the land, whatever farm it lies on (Kim, 23 Nov: reverting is a natural property of the ground, not tied
-  // to a pawn or a household; VB-1504): on the year's last day, a field of any farm, held or empty, whose last use (fd.used: sown, reaped,
+  // to a pawn or a household; VB-1527): on the year's last day, a field of any farm, held or empty, whose last use (fd.used: sown, reaped,
   // a fallow course, reclaimed, broken) is LAPSE.years back, that bears no crop and no sheaves and has no task on it, leaves the farm's
   // list and is wild ground of its terrain at once (sim/spread's wild). A field with no use recorded (laid out, or an older save's) counts
   // from the day its farm emptied, or from today. A farm under restoration keeps its fields (a claimant is reclaiming them).

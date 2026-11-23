@@ -1,4 +1,4 @@
-// @sys sim/newground: new ground made: a field's site felled and grubbed when it is a wood (VB-1495), cleared of its stones, its ground
+// @sys sim/newground: new ground made: a field's site felled and grubbed when it is a wood (VB-1525), cleared of its stones, its ground
 // broken, and the new field it becomes (VB-149, VB-332)
 VB['sim/newground'] = (() => {
   const { DAY } = VB['sim/rules'];
@@ -16,7 +16,7 @@ VB['sim/newground'] = (() => {
   const { clearScrub, tended } = VB['sim/spread'];
   const { placeField } = VB['sim/courses'];
   const STONES_PER_LOAD = 25;
-  // Felling done on a wood broken to a field (VB-1495; Kim, 23 Nov): every tree standing on it is felled (sim/forest's fellAll, as a plot's
+  // Felling done on a wood broken to a field (VB-1525; Kim, 23 Nov): every tree standing on it is felled (sim/forest's fellAll, as a plot's
   // are) and its wood, ECON.woodPerTrip a tree, lies at the site as timber left lying, the household's (sim/lying, sim/building's
   // leftTimber): its hands carry it home to the woodpile a load a trip, or it rots at the frost. The project's next step, grubbing, opens.
   function finishFell(st, f, hh, plan) {
@@ -67,7 +67,7 @@ VB['sim/newground'] = (() => {
   function broken(st, tile, id, ground) {
     const w = st.w,
       fd = newField(w, id, tile, w.dev[tile] ? SOIL.start : SOIL.fresh, st.t, ground);
-    fd.used = Math.floor(st.t / DAY); // broken today: its years unused count from now (sim/fields, VB-1504)
+    fd.used = Math.floor(st.t / DAY); // broken today: its years unused count from now (sim/fields, VB-1527)
     tended(st, tile); // VB-091
     st.used.add(tile);
     woodTaken(st, tile); // a wood tile broken to a field leaves its village's wood (VB-326)
