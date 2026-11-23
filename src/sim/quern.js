@@ -150,6 +150,9 @@ VB['sim/quern'] = (() => {
     rations: 0,
     perish: null,
     keeping: true,
+    material: 'stone',
+    kinds: ['sandstone', 'granite'], // VB-733: a quern is of the rock it was hewn from, and grinds at its grit
+    reads: ['grit'],
   });
   return {
     QUERN,

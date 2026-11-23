@@ -21,6 +21,19 @@ VB['sim/norms'] = (() => {
     iron: 30, // a bloom smelted from bog ore (VB-701; VB-364's Proposed worth): it mends a farm's tools whole
     salt: 20, // a sack of 10 measures, boiled at a spring (VB-700; Proposed): it salts 100 rations of meat, which then keep a year
     quern: 25, // a hand quern's stone, hewn of sandstone or granite (VB-009; Proposed, slice 6's plan): a good of place
+    // VB-733 (Proposed; principle 17, D14: custom's row for each good and kind, never computed from the properties): a quern by its rock,
+    // granite's slower grit worth less; a load of stone by its rock, the common building stones least, those with a use of their own more
+    // (sandstone hews the quern; soapstone and marble wait for the pot, lime and the memorial), so that a take of any kind spends the
+    // common stone first. 'stone' is a load of the commonest kind.
+    'quern/sandstone': 25,
+    'quern/granite': 20,
+    stone: 2,
+    'stone/granite': 2,
+    'stone/limestone': 2,
+    'stone/slate': 2,
+    'stone/sandstone': 3,
+    'stone/soapstone': 3,
+    'stone/marble': 4,
   });
   // The three classes of goods (Decided, 10 Nov): food; wares (animals, cloth and labour; today animals, and tar beside them); land.
   const CLASSES = Object.freeze(['food', 'wares', 'land']);
