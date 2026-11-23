@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Village builder token use</title>
+<!-- The template of docs/usage.html: tools/usage-page.js puts the data in place of the DATA comment. The page is derived; edit this. -->
+<style>
+/* Layout: the roadmap page's own tokens and panels; summary tiles, then spread, then the costliest, then the full table. */
+:root{
+  --bg:#f7f5f0; --panel:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --grid:#e8e5de; --line:#e2ddd2;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --mark:#8a8478;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141413; --panel:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#2c2b28; --line:#33312d;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --mark:#8f8a80; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#141413; --panel:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --grid:#2c2b28; --line:#33312d;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --mark:#8f8a80; color-scheme:dark }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,sans-serif}
+main{max-width:1320px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font:600 26px/1.2 Georgia,serif;margin:0 0 4px;text-wrap:balance} h2{font:600 18px/1.2 Georgia,serif;margin:26px 0 6px}
+a{color:var(--s1)}
+.sub{color:var(--ink2);margin:0 0 14px;font-size:14px;max-width:75ch}
+.note{color:var(--ink2);font-size:13px;margin:6px 0;max-width:85ch}
+.tiles{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;min-width:150px;flex:1 1 150px;max-width:260px}
+.tile b{display:block;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums} .tile span{color:var(--ink2);font-size:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto}
+svg{display:block;width:100%;height:auto} svg text{font-family:system-ui,sans-serif;fill:var(--ink);font-size:12px}
+svg text.m{fill:var(--ink2)} svg text.b{font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin:6px 0}
+.sw{display:inline-block;width:14px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.tip{position:fixed;pointer-events:none;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font:12px/1.45 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.18);display:none;z-index:5;max-width:300px}
+.share{display:flex;height:22px;gap:2px;margin:4px 0} .share i{display:block;height:100%;border-radius:3px}
+.top{display:grid;grid-template-columns:minmax(0,22em) minmax(120px,1fr) 4.5em;gap:5px 10px;align-items:center;font-size:13px;min-width:520px}
+.top .lab{white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .top .lab span{color:var(--ink2)}
+.top .bar{display:flex;gap:2px;height:14px} .top .bar i{display:block;height:100%} .top .bar i:last-child{border-radius:0 4px 4px 0}
+.top .v{text-align:right;font-variant-numeric:tabular-nums}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0;font-size:13px;color:var(--ink2)}
+input,select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+input:focus-visible,select:focus-visible,th button:focus-visible{outline:2px solid var(--s1);outline-offset:1px}
+table{border-collapse:collapse;font-size:12px;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:3px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+td:nth-child(-n+5),th:nth-child(-n+5){text-align:left} #ses td:nth-child(5),#ses th:nth-child(5){text-align:right} #ses td:nth-child(6),#ses th:nth-child(6){text-align:left} td.n{white-space:normal;min-width:16em;max-width:30em}
+th{position:sticky;top:0;background:var(--panel)} th button{font:inherit;font-weight:600;color:var(--ink2);background:none;border:0;padding:0;cursor:pointer}
+th button[aria-sort]::after{content:" ▾"} th button[aria-sort="ascending"]::after{content:" ▴"}
+.tbl{max-height:640px;overflow:auto;padding:0 10px 10px}
+</style>
+</head>
+<body>
+<main>
+<h1>Token use per task</h1>
+<p class="sub" id="sub"></p>
+<p class="note"><a href="../index.html">The game</a> · <a href="roadmap.html">Roadmap</a> · <a href="../BACKLOG.html">Backlog</a></p>
+<div class="tiles" id="tiles"></div>
+
+<h2>Where a task's cost goes</h2>
+<p class="note">All measured tasks together, by kind of token, each at its weight: a fresh input token 1, a cache write 1.25, a cache read 0.1, an output token 5 (about the prices' ratios, as in <code>tools/agent-usage.js</code>).</p>
+<div class="panel"><div class="share" id="share"></div><div class="legend" id="shareLegend"></div></div>
+
+<h2>Cost of a task, by size and model</h2>
+<p class="note">One dot per task, on a logarithmic axis; the tick is the group's median. A task run more than once counts all its runs. The last rows are sessions, not tasks: an orchestrator's own cost, which no one task caused, and the sessions measured outside a task.</p>
+<div class="legend"><span><i class="sw" style="background:var(--s1)"></i>a task</span><span><i class="sw" style="background:var(--s2)"></i>a session outside a task</span></div>
+<div class="panel"><svg id="dots" role="img" aria-label="Weighted cost per task, by size and model"></svg></div>
+
+<h2>The twenty costliest tasks</h2>
+<div class="legend" id="topLegend"></div>
+<div class="panel"><div class="top" id="top"></div></div>
+
+<h2>Every measured task</h2>
+<div class="tools"><label for="q">Find</label><input id="q" type="search" placeholder="VB-473, blocks, year…">
+<label for="fs">Size</label><select id="fs"><option value="">all</option><option>S</option><option>M</option><option>L</option></select>
+<label for="fm">Model</label><select id="fm"><option value="">all</option></select><span id="count"></span></div>
+<div class="panel tbl"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+<p class="note">A task run by a sub-agent is the task its prompt named. A task run in a session of its own is the task that session's file names or, failing that, the one that heads at least two thirds of the commits made during it.</p>
+
+<h2>Sessions outside a task</h2>
+<p class="note" id="foot"></p>
+<div class="panel tbl"><table id="ses"><thead></thead><tbody></tbody></table></div>
+</main>
+<div class="tip" id="tip"></div>
+<script>
+const D = /*DATA*/;
+const $ = (id) => document.getElementById(id), esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const k = (n) => n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 1 : 2) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(Math.round(n));
+const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return s.length ? (s[Math.floor((s.length - 1) / 2)] + s[Math.ceil((s.length - 1) / 2)]) / 2 : 0; };
+const T = D.tasks, S = D.sessions, sum = (f) => T.reduce((a, t) => a + f(t), 0);
+const KIND = { orchestrator: 'Orchestrating session', outside: 'Outside a task' }, wOf = (kind) => S.filter((s) => s.kind === kind).reduce((a, s) => a + s.w, 0);
+const parts = (t) => [['Cache reads', 0.1 * t.cr, '--s1'], ['Input and cache writes', t.i + 1.25 * t.cw, '--s2'], ['Output', 5 * t.o, '--s3']];
+const how = (t) => t.src === 'session' ? 'own session' : 'sub-agent';
+const tip = $('tip');
+const hover = (el, html) => { el.addEventListener('mousemove', (e) => { tip.innerHTML = html; tip.style.display = 'block';
+  const w = tip.offsetWidth, x = Math.min(e.clientX + 14, innerWidth - w - 8); tip.style.left = Math.max(8, x) + 'px'; tip.style.top = (e.clientY + 14) + 'px'; });
+  el.addEventListener('mouseleave', () => { tip.style.display = 'none'; }); };
+const sessionCard = (s) => `<b>${esc(s.id)}</b> ${KIND[s.kind]}<br>${esc(s.label)} · ${esc(s.model)} · ${s.date}${s.tasks ? ` · ${s.tasks} tasks handed out` : ''}<br>weighted ${k(s.w)} · ${s.calls} calls<br>`
+  + `cache reads ${k(s.cr)} · writes ${k(s.cw)} · output ${k(s.o)}`;
+const card = (t) => `<b>${t.id}</b> ${esc(t.name)}<br>${t.size} · ${esc(t.model)} · ${how(t)} · ${t.date}<br>weighted ${k(t.w)} · ${t.calls} calls · ${t.runs} run${t.runs > 1 ? 's' : ''}<br>`
+  + `cache reads ${k(t.cr)} · writes ${k(t.cw)} · output ${k(t.o)}`;
+
+// ---- the head and the tiles
+const total = sum((t) => t.w), days = [...new Set(T.map((t) => t.date))].sort();
+$('sub').textContent = T.length ? `${T.length} tasks measured from the agents' transcripts in ${D.runs} runs, ${days[0]} to ${days[days.length - 1]}. Cost is one weighted number, in fresh-input tokens.` : 'No measured runs yet.';
+const grp = (f) => T.filter(f).map((t) => t.w);
+const tiles = [[k(total), 'weighted tokens, all measured tasks'], [k(median(T.map((t) => t.w))), 'median task'],
+  [k(median(grp((t) => t.size === 'S'))), `median size S (${grp((t) => t.size === 'S').length})`], [k(median(grp((t) => t.size === 'M'))), `median size M (${grp((t) => t.size === 'M').length})`],
+  [k(wOf('orchestrator')), 'orchestrators, on top of their tasks'], [k(wOf('outside')), 'sessions outside a task']];
+$('tiles').innerHTML = tiles.map(([b, s]) => `<div class="tile"><b>${b}</b><span>${s}</span></div>`).join('');
+
+// ---- the share by kind of token
+const all = parts({ cr: sum((t) => t.cr), cw: sum((t) => t.cw), i: sum((t) => t.i), o: sum((t) => t.o) });
+$('share').innerHTML = all.map(([n, v, c]) => `<i style="flex:${v};background:var(${c})" title="${n}: ${k(v)}"></i>`).join('');
+const legend = (rows) => rows.map(([n, v, c]) => `<span><i class="sw" style="background:var(${c})"></i>${n}${v == null ? '' : ` ${k(v)} (${Math.round(100 * v / total)}%)`}</span>`).join('');
+$('shareLegend').innerHTML = legend(all);
+$('topLegend').innerHTML = legend(all.map(([n, , c]) => [n, null, c]));
+
+// ---- the dots: a row per size, model and way of running
+(() => {
+  const groups = {}; for (const t of T) { const key = `${t.size} · ${t.model} · ${how(t)}`; (groups[key] = groups[key] || []).push(t); }
+  const rows = Object.entries(groups).sort((a, b) => median(a[1].map((t) => t.w)) - median(b[1].map((t) => t.w)));
+  for (const kind of Object.keys(KIND)) { const ss = S.filter((s) => s.kind === kind); if (ss.length) rows.push([KIND[kind], ss]); }
+  const W = 940, L = 190, R = 60, RH = 46, TOP = 8, H = TOP + rows.length * RH + 28;
+  const lo = Math.log10(5e4), hi = Math.log10(2e7), x = (v) => L + (Math.log10(Math.max(v, 5e4)) - lo) / (hi - lo) * (W - L - R);
+  let s = '';
+  for (const v of [1e5, 3e5, 1e6, 3e6, 1e7]) s += `<line x1="${x(v)}" x2="${x(v)}" y1="${TOP}" y2="${H - 24}" stroke="var(--grid)"/><text class="m" x="${x(v)}" y="${H - 8}" text-anchor="middle">${k(v)}</text>`;
+  rows.forEach(([key, ts], r) => { const cy = TOP + r * RH + RH / 2, m = median(ts.map((t) => t.w));
+    s += `<text class="b" x="0" y="${cy - 2}">${esc(key)}</text><text class="m" x="0" y="${cy + 13}">${ts.length} ${ts[0].kind ? 'session' : 'task'}${ts.length > 1 ? 's' : ''}, median ${k(m)}</text>`;
+    ts.forEach((t, i) => { s += `<circle data-id="${t.kind ? 's:' : ''}${t.id}" cx="${x(t.w).toFixed(1)}" cy="${cy + ((i * 7) % 9 - 4) * 3.2}" r="4" fill="var(${t.kind ? '--s2' : '--s1'})" fill-opacity=".6" stroke="var(--panel)" stroke-width="1"/>`; });
+    s += `<line x1="${x(m)}" x2="${x(m)}" y1="${cy - 19}" y2="${cy + 19}" stroke="var(--ink)" stroke-width="2"/>`; });
+  const svg = $('dots'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.style.minWidth = '620px'; svg.innerHTML = s;
+  const by = Object.fromEntries(T.map((t) => [t.id, t])), bys = Object.fromEntries(S.map((s) => ['s:' + s.id, s]));
+  svg.querySelectorAll('circle').forEach((c) => hover(c, by[c.dataset.id] ? card(by[c.dataset.id]) : sessionCard(bys[c.dataset.id])));
+})();
+
+// ---- the costliest
+(() => { const top = [...T].sort((a, b) => b.w - a.w).slice(0, 20), max = top.length ? top[0].w : 1, el = $('top');
+  for (const t of top) { const row = document.createElement('div'); row.style.display = 'contents';
+    row.innerHTML = `<div class="lab"><b>${t.id}</b> <span>${t.size} ${esc(t.model)}</span> ${esc(t.name)}</div><div class="bar" style="width:${(100 * t.w / max).toFixed(1)}%">`
+      + parts(t).map(([, v, c]) => `<i style="flex:${v};background:var(${c})"></i>`).join('') + `</div><div class="v">${k(t.w)}</div>`;
+    el.appendChild(row); hover(row.children[1], card(t)); hover(row.children[0], card(t)); } })();
+
+// ---- the table
+const COLS = [['Task', 'id'], ['Name', 'name'], ['Size', 'size'], ['Model', 'model'], ['Run as', 'src'], ['Day', 'date'], ['Runs', 'runs'], ['Calls', 'calls'], ['Minutes', 'min'],
+  ['Peak context', 'peak'], ['Input', 'i'], ['Cache writes', 'cw'], ['Cache reads', 'cr'], ['Output', 'o'], ['Weighted', 'w']];
+let sortKey = 'w', asc = false;
+for (const m of [...new Set(T.map((t) => t.model))].sort()) $('fm').add(new Option(m));
+const draw = () => {
+  const q = $('q').value.trim().toLowerCase(), fs = $('fs').value, fm = $('fm').value;
+  const rows = T.filter((t) => (!fs || t.size === fs) && (!fm || t.model === fm) && (!q || (t.id + ' ' + t.name + ' ' + t.arch).toLowerCase().includes(q)));
+  const num = (v) => typeof v === 'number', idn = (t) => +t.id.slice(3);
+  rows.sort((a, b) => { const va = sortKey === 'id' ? idn(a) : a[sortKey], vb = sortKey === 'id' ? idn(b) : b[sortKey]; return (num(va) ? va - vb : String(va).localeCompare(String(vb))) * (asc ? 1 : -1); });
+  $('tbl').tHead.innerHTML = '<tr>' + COLS.map(([n, key]) => `<th><button data-k="${key}"${key === sortKey ? ` aria-sort="${asc ? 'ascending' : 'descending'}"` : ''}>${n}</button></th>`).join('') + '</tr>';
+  $('tbl').tBodies[0].innerHTML = rows.map((t) => `<tr><td><a href="../backlog/${t.id}.html">${t.id}</a></td><td class="n">${esc(t.name)}</td><td>${t.size}</td><td>${esc(t.model)}</td><td>${how(t)}</td><td>${t.date}</td>`
+    + `<td>${t.runs}</td><td>${t.calls}</td><td>${Math.round(t.min)}</td><td>${k(t.peak)}</td><td>${k(t.i)}</td><td>${k(t.cw)}</td><td>${k(t.cr)}</td><td>${k(t.o)}</td><td><b>${k(t.w)}</b></td></tr>`).join('');
+  $('count').textContent = `${rows.length} of ${T.length} tasks, ${k(rows.reduce((a, t) => a + t.w, 0))} weighted`;
+};
+$('tbl').tHead.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; if (sortKey === b.dataset.k) asc = !asc; else { sortKey = b.dataset.k; asc = !T.length || typeof T[0][sortKey] !== 'number'; } draw(); });
+for (const id of ['q', 'fs', 'fm']) $(id).addEventListener('input', draw);
+draw();
+
+// ---- the sessions that belong to no one task
+$('foot').textContent = `Not counted in any task above: ${k(wOf('orchestrator'))} weighted in the orchestrating sessions themselves, and ${k(wOf('outside'))} in sessions that worked on several tasks or on none.`;
+$('ses').tHead.innerHTML = '<tr>' + ['Session', 'Kind', 'Role', 'Model', 'Tasks handed out', 'Day', 'Calls', 'Minutes', 'Peak context', 'Input', 'Cache writes', 'Cache reads', 'Output', 'Weighted'].map((n) => `<th>${n}</th>`).join('') + '</tr>';
+$('ses').tBodies[0].innerHTML = S.map((s) => `<tr><td>${esc(s.id)}</td><td>${KIND[s.kind]}</td><td>${esc(s.label)}</td><td>${esc(s.model)}</td><td>${s.tasks || '-'}</td><td>${s.date}</td><td>${s.calls}</td><td>${Math.round(s.min)}</td>`
+  + `<td>${k(s.peak)}</td><td>${k(s.i)}</td><td>${k(s.cw)}</td><td>${k(s.cr)}</td><td>${k(s.o)}</td><td><b>${k(s.w)}</b></td></tr>`).join('');
+</script>
+</body>
+</html>

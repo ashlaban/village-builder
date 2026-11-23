@@ -41,6 +41,7 @@ const FAST = [
   ['node', 'tests/doc-tool.js'],
   ['node', 'tests/questions-tool.js'],
   ['node', 'tests/agent-usage.js'],
+  ['node', 'tests/usage-page.js'],
   ['node', 'tests/context-size.js'],
   ['node', 'tests/same-tool.js'],
   ['node', 'tests/wood.js'],
