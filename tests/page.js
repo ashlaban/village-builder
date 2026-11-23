@@ -16,11 +16,13 @@ const P = openPage({
     .replace(/const SIZES = \{ t:/, () => { patched++; return 'const SIZES = { x: [36, 26], t:'; })
     .replace('let allMaterials = false;', () => { patched++; return 'let allMaterials = false; window.__materialsHTML = (...a) => materialsHTML(...a);'; })
     .replace('/^#([shp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([shp]?)([tsmlx]?)(\\d{1,9})$/'; })
-    .replace('const chunks = new Map();', () => { patched++; return 'const chunks = new Map(); window.__lod = { chunks, w: () => w, st: () => st, T: () => T, size: (l) => LV[l].size, zoom(z) { cam.z = zt = z; }, pending: () => pending };'; }),
+    .replace('const chunks = new Map();', () => { patched++; return 'const chunks = new Map(); window.__lod = { chunks, w: () => w, st: () => st, T: () => T, size: (l) => LV[l].size, zoom(z) { cam.z = zt = z; }, zMin: () => zMin(), intro: () => !!intro, pending: () => pending, over: () => stagePainted.over };'; })
+    .replace(/const t0 = performance\.now\(\);\s*while \(performance\.now\(\) - t0 < budget\) \{/, () => { patched++; return 'const t0 = performance.now(); let __n = 0; while (window.__lodSteps ? __n++ < window.__lodSteps : performance.now() - t0 < budget) {'; }),
 });
 const { doc, win, fail, tick, q, qa, $ } = P;
-if (patched !== 4) { fail(`the page's sizes, its hash or its chunks were not found to patch (${patched} of 4 patched)`); process.exit(1); }
+if (patched !== 5) { fail(`the page's sizes, its hash, its chunks or the painter's budget were not found to patch (${patched} of 5 patched)`); process.exit(1); }
 const shown = (id) => !$(id).hidden;
+const ckey2 = (o) => 2e6 + o.cy * 1000 + o.cx; // page/chunks' key of an overview chunk
 const click = (el, what) => { if (!el) { fail(`no ${what} to click`); return false; } el.click(); tick(2); return true; };
 
 async function main() {
@@ -71,6 +73,47 @@ async function main() {
       if (holes || left || !swapped) fail(`a repaint left ${holes} holes in the close view over ${frames} frames, ${swapped} of ${before.length} chunks replaced, ${left} not yet`);
       console.log(`repainted ${swapped} of ${before.length} close chunks over ${frames} frames, ${holes} holes`);
     }
+    q('[data-speed="1"]').click(); tick(2);
+  }
+  // VB-1491: the overview is repainted by the budgeted painter, as the close levels are: every one of its chunks stays resident and on
+  // screen through the repaint, the old picture until its replacement is done. Painted one step a frame here, the repaint takes frames;
+  // painted whole in the frame of the change, as before, no chunk was ever stale or replaced.
+  {
+    const lod = win.__lod, screen = P.APP.screen, was = { ...screen };
+    Object.assign(screen, { width: 120, height: 80 }); // a window small enough that the whole island is seen at the overview's level
+    q('[data-speed="0"]').click();
+    for (let k = 0; k < 400 && lod.intro(); k++) tick(1); // the opening glide sets the zoom while it lasts
+    lod.zoom(lod.zMin());
+    for (let k = 0; k < 100 && lod.T() !== 2; k++) tick(1);
+    const s = lod.size(2), wd = lod.w();
+    const before = [...lod.chunks.entries()].filter(([, c]) => c.l === 2);
+    const tiles = before.map(([, c]) => [...wd.hx.keys()].find((i) => Math.floor(wd.hx[i] / s) === c.cx && Math.floor(wd.hy[i] / s) === c.cy));
+    if (lod.T() !== 2 || !before.length || tiles.some((t) => t === undefined)) fail(`no overview to repaint (level ${lod.T()}, ${before.length} chunks)`);
+    else {
+      win.__lodSteps = 1;
+      for (const t of tiles) { lod.st().treeDirty.add(t); lod.st().biomeDirty.add(t); }
+      let frames = 0, holes = 0, hidden = 0, staleFrames = 0, left = 1;
+      for (; frames < 200 && left; frames++) {
+        tick(1);
+        left = 0;
+        let stale = 0;
+        for (const [k] of before) {
+          const now = lod.chunks.get(k);
+          if (!now || now.spr.destroyed) holes++;
+          else if (!now.spr.visible) hidden++;
+          else if (now.stale) stale++;
+        }
+        if (stale) staleFrames++;
+        left = stale;
+      }
+      win.__lodSteps = 0;
+      const swapped = before.filter(([k, c]) => lod.chunks.get(k) && lod.chunks.get(k) !== c).length;
+      const kept = before.filter(([k]) => { const o = lod.over().find((x) => ckey2(x) === k); return o && !o.stale && o.canvas === lod.chunks.get(k).canvas; }).length;
+      if (holes || hidden || left || swapped !== before.length || staleFrames < 2 || kept !== before.length)
+        fail(`an overview repaint: ${holes} frames missing a chunk, ${hidden} hidden, ${swapped} of ${before.length} replaced over ${frames} frames (${staleFrames} showing the old picture, ${left} not done), ${kept} kept for a world set aside`);
+      console.log(`repainted ${swapped} of ${before.length} overview chunks over ${frames} frames, the old picture shown for ${staleFrames}, ${holes} holes`);
+    }
+    Object.assign(screen, was); lod.zoom(1); tick(2);
     q('[data-speed="1"]').click(); tick(2);
   }
   // the overlays on and off

@@ -1,8 +1,9 @@
 // @sys page/chunks: level-of-detail map chunks painted on demand and repainted in place when stale, the hex grid built lazily, and region borders
 // ---- level-of-detail chunks ----
 // Level 2 covers the map in 6 chunks and is always resident; levels 1 and 0 are painted on demand.
-// A chunk of levels 1 and 0 whose ground changed is marked stale (VB-1492): it stays on screen, is wanted as if missing, and is swapped
-// for its replacement in the frame that finishes it. Dropped at once, it showed the blurry overview through its hole until then.
+// A chunk whose ground changed is marked stale (VB-1492): it stays on screen, is wanted as if missing, and is swapped for its replacement
+// in the frame that finishes it. Dropped at once, it showed the blurry overview through its hole until then. The overview is repainted
+// the same way, within the frame budget (VB-1491); painted whole in the frame of the change, one frame could pay for all its chunks.
 const chunks = new Map();
 let job = null,
   frameNo = 0,
@@ -83,8 +84,8 @@ function dropChunk(k) {
   chunks.delete(k);
 }
 // Repaint what the simulation changed on the map: tiles whose tree density stage changed or that turned to meadow.
-// Levels 0 and 1 are marked stale and painted again on demand, shown until then; the always-resident overview (level 2) is only
-// recoloured, in place.
+// The chunks over them are marked stale and painted again within the frame budget, shown until then: levels 0 and 1 where they are
+// wanted, the always-resident overview (level 2) wherever the view is.
 function refreshTrees() {
   repaintTiles(st.treeDirty, st.biomeDirty);
   st.treeDirty.clear();
@@ -106,17 +107,16 @@ function repaintTiles(near, far) {
   };
   for (const tile of near)
     for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) staleChunk(ckey(l, cx, cy));
-  const done = new Set(); // each overview chunk once, however many of its tiles changed
-  for (const tile of far) {
+  for (const tile of far)
     for (const [cx, cy] of overChunks(tile, 2)) {
-      const ch = chunks.get(ckey(2, cx, cy));
-      if (!ch || done.has(ch)) continue;
-      done.add(ch);
-      for (const _ of chunkJob(w, 2, cx, cy, ch.canvas));
-      ch.spr.texture.source.update();
+      staleChunk(ckey(2, cx, cy));
+      const o = overOf(cx, cy);
+      if (o) o.stale = true;
     }
-  }
 }
+// The world's painted overview (stagePainted.over, page/loader): the picture a world set aside comes back with, and the minimap's.
+// A repaint puts its canvas there when done; one left stale when the world is swapped out is marked stale again when it comes back.
+const overOf = (cx, cy) => stagePainted && stagePainted.over.find((o) => o.cx === cx && o.cy === cy);
 // Repaint worn paths whose stage changed (sim/paths): the close levels around them are marked stale and painted again on demand,
 // within the frame budget, and shown until then; the overview shows no paths.
 function refreshPaths() {
@@ -145,6 +145,18 @@ function wantedList() {
         out.push({ l, cx, cy, k, d: Math.hypot((cx + 0.5) * s - mx, (cy + 0.5) * s - my) + bias });
       }
   };
+  // a stale overview chunk, wherever it lies: it is under every hole of the close levels, and the picture a world set aside keeps. First
+  // when the overview is what is seen; after the close levels when it lies hidden under them.
+  const top = !intro && T === 2,
+    v = viewRect(0),
+    s2 = LV[2].size;
+  for (let cy = 0; cy < nRows(2); cy++)
+    for (let cx = 0; cx < nCols(2); cx++) {
+      const k = ckey(2, cx, cy);
+      if (fresh(k) || !chunks.has(k)) continue;
+      const d = Math.hypot((cx + 0.5) * s2 - (v[0] + v[2]) / 2, (cy + 0.5) * s2 - (v[1] + v[3]) / 2);
+      out.push({ l: 2, cx, cy, k, d: d + (top ? 0 : 2e7) });
+    }
   if (intro) {
     // during the opening glide, paint the destination: a few mid-level chunks first as a fallback, then full detail
     if (intro.T === 0) add(1, intro.rect, 0);
@@ -169,15 +181,20 @@ function schedule(budget) {
       const nx = want.shift();
       if (!nx) break;
       const canvas = makeCanvas(TEX, TEX);
-      const out = { way: null };
+      const out = nx.l < 2 ? { way: null } : null; // the overview has no ways over its fields, as page/loader paints it
       job = { ...nx, canvas, out, wd: w, rows: 0, gen: chunkJob(w, nx.l, nx.cx, nx.cy, canvas, out) };
     }
     const r = job.gen.next();
     if (r.done) {
       if (job.wd === w) {
         dropChunk(job.k); // the stale chunk it replaces, gone in the frame the new one is shown
-        addChunk(job.l, job.cx, job.cy, job.canvas, job.out.way);
+        addChunk(job.l, job.cx, job.cy, job.canvas, job.out && job.out.way);
         if (job.again) chunks.get(job.k).stale = true;
+        const o = job.l === 2 && overOf(job.cx, job.cy);
+        if (o) {
+          o.canvas = job.canvas;
+          o.stale = !!job.again;
+        }
       }
       job = null;
     } else job.rows = r.value;
