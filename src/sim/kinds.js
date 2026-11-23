@@ -113,7 +113,7 @@ VB['sim/kinds'] = (() => {
     r.prio = Object.fromEntries(
       Object.entries(KINDS).map(([k, K]) => [k, r.except[k] ?? r.except[K.fetch] ?? r.work[K.type] ?? 0]),
     );
-  // A holder's ranks with the roles of its household's head pair absent (sim/roles STAND, VB-1487): `ranks[mask]`, for each kind the
+  // A holder's ranks with the roles of its household's head pair absent (sim/roles STAND, VB-1542): `ranks[mask]`, for each kind the
   // highest of its own and each absent role's (bit i of the mask for STAND_KEYS[i]); ranks[0] is prio. Made once, at load.
   for (const r of Object.values(ROLES)) {
     r.ranks = [r.prio];

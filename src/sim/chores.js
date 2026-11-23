@@ -10,7 +10,7 @@ VB['sim/chores'] = (() => {
   const { WORK, FISH, BREW, PEAT, cal } = VB['sim/rules'],
     { FORAGE } = VB['sim/forage'],
     Carts = VB['sim/carts'],
-    AFTERNOON = VB['sim/roles'].MATCH.day.afternoon; // the afternoon's hour, when the head allots the day again (sim/jobs; VB-1488)
+    AFTERNOON = VB['sim/roles'].MATCH.day.afternoon; // the afternoon's hour, when the head allots the day again (sim/jobs; VB-1543)
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
     Pot = VB['sim/pot'];

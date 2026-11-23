@@ -133,7 +133,7 @@ VB['sim/roles'] = (() => {
       except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0 },
     },
   };
-  // @tunable STAND: the roles a holder stands in for (VB-1487; Kim, 23 Nov: a lone holder gains the absent roles' ranks; design.md, A
+  // @tunable STAND: the roles a holder stands in for (VB-1542; Kim, 23 Nov: a lone holder gains the absent roles' ranks; design.md, A
   // holder alone). Each key is a role of the household's head pair, with the roles that fill its place: the mistress's is filled by a
   // mistress, a maid or a daughter of the house (each of whom ranks the household's work as she does or above). A role is absent when
   // none of the members the head allots the day to (living, 7 or older, at home, not on a day owed elsewhere nor commanded; ill or
@@ -166,7 +166,7 @@ VB['sim/roles'] = (() => {
     poorFit: 2,
     // The head's day (VB-466): a task is given hands until they finish it within `horizon` working days, and a member is given tasks
     // up to its working hours of that time; what it may do besides follows in its list. The day is allotted at the hour before work and
-    // again at `afternoon` (VB-1488; Kim, 23 November), the hour the afternoon's urgencies change: water's rises above cooking's, the
+    // again at `afternoon` (VB-1543; Kim, 23 November), the hour the afternoon's urgencies change: water's rises above cooking's, the
     // cook's window opens (sim/chores); so that a task that has become more pressing reaches the lists made in the morning.
     day: { horizon: 0.5, afternoon: 14 },
     floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
@@ -225,7 +225,7 @@ VB['sim/roles'] = (() => {
       fishCalm: 0.2,
       fishLean: 2,
       fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
-      // A household out of food (VB-1491; Kim, 24 Nov: fix the inversion): under needDays of spare food the work that brings food in
+      // A household out of food (VB-1546; Kim, 24 Nov: fix the inversion): under needDays of spare food the work that brings food in
       // (the kinds that read spare food: fishing, gathering, hunting) rises in a line to `need` at none, above the work whose payoff is
       // months away: at none the holder's foraging 3 x 8 = 24 is above his ploughing and sowing at their most pressing (10 x 2.4) and a
       // low woodpile (7 x 2.2); the water late (a mistress's 9 x 3.3) stays first. Over a few days only: one trip's catch lifts a

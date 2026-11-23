@@ -1,6 +1,6 @@
 // Fishing (VB-117): a river or small lake tile's stock falls 0.1 a trip and recovers 0.02 a day, the sea's and a large lake's never; a trip
 // brings home 4 rations times the stock home as fresh food (VB-119); the ground is the nearest bank within 6 steps with fish; posted from
-// spring day 3 to the end of autumn, a second trip under 12 days of spare food; urgency 0.2 at 24 days or more, MATCH.urgency.need at none (VB-1491); roles rank
+// spring day 3 to the end of autumn, a second trip under 12 days of spare food; urgency 0.2 at 24 days or more, MATCH.urgency.need at none (VB-1546); roles rank
 // foraging, fishing 2 for wife, maid and daughter. Founders at seed 7, 2 years: fish are landed, the state keeps its invariants.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/fish'], Stores = VB['sim/stores'];
 const { KINDS } = VB['sim/kinds'], { FISH, DAY } = VB['sim/rules'], { ROLES, MATCH } = VB['sim/roles'], { dailyNeed } = VB['sim/hunger'];
@@ -50,7 +50,7 @@ if (f) {
   check(near(K.urgency(st, j, cal(1, 0), MATCH.urgency), 0.2), 'urgency 0.2 at 30 days of spare food');
   spare(12); check(near(K.urgency(st, j, cal(1, 0), MATCH.urgency), 1.1), `urgency ${K.urgency(st, j, cal(1, 0), MATCH.urgency)} at 12 days, not 1.1`);
   spare(11); check(posts(cal(1, 0)).length === 2, 'two trips under 12 days of spare food');
-  spare(0); check(near(K.urgency(st, j, cal(1, 0), MATCH.urgency), MATCH.urgency.need), 'urgency need at none (VB-1491; was fishLean 2)');
+  spare(0); check(near(K.urgency(st, j, cal(1, 0), MATCH.urgency), MATCH.urgency.need), 'urgency need at none (VB-1546; was fishLean 2)');
   const Pot = VB['sim/pot'], held = Pot.freshHeld(st, hh, 'fish'), s = F.stock(st, g.water);
   K.deliver(st, j, hh, f);
   check(near(Pot.freshHeld(st, hh, 'fish') - held, 4 * s), `the catch adds ${Pot.freshHeld(st, hh, 'fish') - held} fresh fish, not ${4 * s}`);

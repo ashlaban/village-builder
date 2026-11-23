@@ -68,9 +68,9 @@ const FAST = [
   ['node', 'tests/routes.js'],
   ['node', 'tests/oversea.js'], // VB-436: nobody is sent to a home over the sea
   ['node', 'tests/tiny.js'],
-  ['node', 'tests/stand.js'], // VB-1487: a holder alone takes the ranks of the roles its household lacks
-  ['node', 'tests/afternoon.js'], // VB-1488: the day allotted again at 14:00: a rise in urgency reaches the morning's lists
-  ['node', 'tests/needfood.js'], // VB-1491: a household with no food fishes before it ploughs; with food, after
+  ['node', 'tests/stand.js'], // VB-1542: a holder alone takes the ranks of the roles its household lacks
+  ['node', 'tests/afternoon.js'], // VB-1543: the day allotted again at 14:00: a rise in urgency reaches the morning's lists
+  ['node', 'tests/needfood.js'], // VB-1546: a household with no food fishes before it ploughs; with food, after
   ['node', 'tests/claims.js'],
   ['node', 'tests/territory.js'],
   ['node', 'tests/borders.js'],

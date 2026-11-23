@@ -194,7 +194,7 @@ VB['sim/jobs'] = (() => {
         sweep(st, j);
       }
     }
-    // each morning, and again in the afternoon when its urgencies change (MATCH.day.afternoon; VB-1488), every household's day is
+    // each morning, and again in the afternoon when its urgencies change (MATCH.day.afternoon; VB-1543), every household's day is
     // allotted; in the day, those whose tasks or whose village's changed, or that were reviewed
     if (c.hour === WORK[0] - 1 || c.hour === MATCH.day.afternoon || everyone)
       for (const id of st.liveHouseholds) changed.add(`household:${id}`);
@@ -262,7 +262,7 @@ VB['sim/jobs'] = (() => {
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), by the village's custom on a common field (sim/commons,
   // VB-100), else by role and kind, the holder's with the ranks of the roles its household lacks (`stand`, the mask of sim/roles
-  // absentMask its caller made for the holder, else 0; VB-1487).
+  // absentMask its caller made for the holder, else 0; VB-1542).
   const prioOf = (st, p, j, stand = 0) =>
     j.plot
       ? plotPrio(st, p)
@@ -278,7 +278,7 @@ VB['sim/jobs'] = (() => {
     st.agents[p.id].away === undefined &&
     !unplanned(st, p.id) &&
     Days.on(st, p.id) === null;
-  // The stand mask of pawn p (VB-1487): the roles its household lacks today when p is the holder at work, else 0. A pass over the
+  // The stand mask of pawn p (VB-1542): the roles its household lacks today when p is the holder at work, else 0. A pass over the
   // household's members, for a reader outside an allotment (fit); allot makes it once from its own list.
   function standOf(st, p) {
     const hh = p.household === null ? null : st.households[p.household];
@@ -424,7 +424,7 @@ VB['sim/jobs'] = (() => {
     }
     const pairs = [],
       memo = new Map(),
-      // the roles the household lacks today, whose ranks its holder takes (VB-1487): one pass over the members allotted
+      // the roles the household lacks today, whose ranks its holder takes (VB-1542): one pass over the members allotted
       stand = hh.holder !== null && members.some((p) => p.id === hh.holder) ? absentMask(hh.holder, members) : 0;
     if (members.length) {
       const jobs = jobsFor(st, members[0]);

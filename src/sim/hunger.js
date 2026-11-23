@@ -342,7 +342,7 @@ VB['sim/hunger'] = (() => {
     return need > 0 ? Pot.spareFood(st, hh) / need : Infinity;
   };
   // The urgency of the work that brings food in (fishing, gathering, hunting): fishCalm while spare food covers fishCalmDays of need or
-  // more, rising in a line to fishLean at none; and under needDays, the household's need, rising in a line to `need` at none (VB-1491),
+  // more, rising in a line to fishLean at none; and under needDays, the household's need, rising in a line to `need` at none (VB-1546),
   // whichever is higher. A line in the days of food, so no threshold to hold with hysteresis.
   const spareUrgency = (st, j, U) => {
     const d = spareDays(st, st.households[j.farm.household]),
