@@ -2,7 +2,7 @@
 // twice the time of wading a ford and no further, a laden walker and a cart mind bad footing more, and the walk takes its time alone;
 // with the weight 0 (as it lands) every route is the quickest and every load class shares one cache entry.
 const VB = require('../src/load.js'),
-  { B } = VB.gen,
+  { B } = VB['world/biomes'],
   { findRoute, routeCost, route } = VB['sim/routes'],
   { DISCOMFORT, choiceCost } = VB['sim/walking'];
 let failed = 0;

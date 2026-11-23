@@ -105,6 +105,7 @@ const FAST = [
   ['node', 'tests/accounts.js'], // VB-403: the balance accounts close, the people account too, and the run is unchanged
 ];
 const INTEGRATION = [
+  ['node', 'tests/samepixels.js'], // VB-1500: the map-pixels tool catches a pigment and a mark moved; 2.5 s
   ['node', 'tests/events.js'],
   ['node', 'tests/grain.js'],
   ['node', 'tests/scaling.js'],
@@ -237,6 +238,8 @@ const INTEGRATION = [
   ['node', 'tests/geology.js'],
   ['node', 'tests/layout.js'],
   ['node', 'tests/settle.js'],
+  ['node', 'tests/forestsites.js'], // VB-786: a forest site within SETTLE.hours along a trail, none within 11 hex steps; felled, grubbed, fresh
+  ['node', 'tests/trails.js'], // VB-447: blaze: a wooded tile a job of 3 hours, 1 where trodden; blazed tiles are paths; a dead blazer's trail goes
   ['node', 'tests/plots.js'],
   ['node', 'tests/names.js'],
   ['node', 'tests/populous.js'],
@@ -283,6 +286,7 @@ const EXTENDED = [
   ['node', 'tests/browser-speed.js'],
   ['node', 'tests/browser-gathering.js'], // a gathering while it is on: its notice, its mark and its card (VB-1031, VB-1032)
   ['node', 'tests/browser-fields.js'], // a field's card: crop, course, the head's rotation choices and their answers, winter rye (VB-1146)
+  ['node', 'tests/browser-overlays.js'], // the map's overlays through their list and by key, one at a time, on a phone (VB-1496)
   ['node', 'tests/browser-bonds.js'] // portraits: the bonds as badges (VB-1026), their words (VB-1033), ageing (VB-1029)
 ];
 module.exports = { FAST, INTEGRATION, EXTENDED };

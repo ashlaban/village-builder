@@ -38,7 +38,7 @@ const hex = (c, f = 1) =>
   ((Math.min(255, c[0] * f) << 16) | (Math.min(255, c[1] * f) << 8) | Math.min(255, c[2] * f)) >>> 0;
 // A pawn's colours and headgear, from its `look` seed: the same on the map and in its portrait.
 function lookOf(p) {
-  const r = G.mulberry32(p.look),
+  const r = Noise.mulberry32(p.look),
     pick = (a) => a[(r() * a.length) | 0];
   return {
     cloth: pick(DYES),

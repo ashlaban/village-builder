@@ -1,8 +1,8 @@
 // @sys sim/fieldrec: the one constructor of a field's record, for the generator (sim/layout) and for ground broken in play (sim/newground)
 VB['sim/fieldrec'] = (() => {
   const { SOIL, GROUND, fertility } = VB['sim/crops'];
-  const { BIOMES } = VB['gen/biomes'];
-  // @state farmstead.fields[].ground: the key of the biome (gen/biomes BIOMES) the field's tile had when its project began, one with a row of
+  const { BIOMES } = VB['world/biomes'];
+  // @state farmstead.fields[].ground: the key of the biome (world/biomes BIOMES) the field's tile had when its project began, one with a row of
   // GROUND (sim/crops): 'meadow', 'heath', 'hills', 'marsh', or 'forest' or 'pine' (a wood broken, VB-1525). Not the tile's biome now: clearing
   // turns a wooded tile to meadow. Set here; its row gives the field's fertility (newField), and the invariant reads it.
   const groundKey = (w, tile) => (GROUND[w.biome[tile]] ? BIOMES[w.biome[tile]].key : 'meadow');

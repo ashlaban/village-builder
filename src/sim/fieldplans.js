@@ -222,16 +222,18 @@ VB['sim/fieldplans'] = (() => {
   // The project plan of a new field on `tile`, as sim/plans makes it (makeProject; VB-123): on a wood, felling and grubbing first (VB-1525,
   // as a plot's tile is felled and grubbed: sim/expansion), then clearing, then breaking, all under the household's stake; it holds back the
   // seed the field will want (released when the field is made, when the standing plan's seed counts it).
+  const fellSteps = (st, tile, stake) =>
+    wooded(st.w, tile)
+      ? [
+          { kind: 'fell', place: tile, hours: FELL_HOURS, ...(stake ? { stake } : {}) },
+          { kind: 'grub', place: tile, hours: GRUB_HOURS, ...(stake ? { stake } : {}) },
+        ]
+      : [];
   const fieldProject = (st, hh, tile) => ({
     what: 'field',
     ground: groundKey(st.w, tile), // the biome it has now, before the clearing (VB-1520)
     steps: [
-      ...(wooded(st.w, tile)
-        ? [
-            { kind: 'fell', place: tile, hours: FELL_HOURS, stake: 'field' },
-            { kind: 'grub', place: tile, hours: GRUB_HOURS, stake: 'field' },
-          ]
-        : []),
+      ...fellSteps(st, tile, 'field'),
       { kind: 'clear', place: tile, hours: clearHours(st, tile), stake: 'field' },
       { kind: 'break', place: tile, hours: BREAK_HOURS, stake: 'field' },
     ],
@@ -287,6 +289,7 @@ VB['sim/fieldplans'] = (() => {
     siteScore,
     beginField,
     fieldProject,
+    fellSteps,
     newFieldSeed,
     harvestEstimate,
     letGoWhy,

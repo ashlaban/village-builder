@@ -12,17 +12,30 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `explain` checks finite outputs and contribution ranges and reports each factor, the combination, the raw result and clamp bounds.
   The million-read heap test checks retained memory after GC; it does not prove zero temporary allocations in provider callbacks.
   Modules declare an owned rule or contribute a factor/term before the first seed/load, which seals the registry; rules never enter saved state.
+- The terrain's representation is `src/world/` (VB-1501), read by the generator, the simulation and the drawing alike, and loaded before
+  them: `world/grid` the hex grid (the odd-r directions, `toAxial`, `hexDist`, `hexLocator`, and `csample(w, arr, x, y)`, a coarse-cell
+  array sampled at a map point), `world/biomes` the biome codes `B` and their keys, names and water, and `treeStage` (the stage of a
+  tile's trees, the contract between `sim/forest`, `sim/spread` and the drawing), `world/geology` the codes and names of the bedrock and
+  deposits (`ROCK`, `DEPOSIT`, `ENDLESS`, `FIND`), `world/rivers` the name of a river tile's water by its flow (`kind`).
+  A sim module reads them there, not through the `gen` facade.
 - `ArchGen.generate(seed)` (`src/gen.js`) assembles the world's terrain, hex tiles and regions. Seeded noise comes from `src/gen/noise.js`.
-  `src/gen/biomes.js` defines biome identities, cover thresholds and tile pigments, and updates a tile's biome and colour together.
-  `src/gen/bake.js` rasterizes the generated world for the map at each level of detail, with land pigments, coastal contours, water and
-  decorations. `src/gen/marks.js` draws the individual marks (trees, stones, humps, crags). `ArchGen` exposes the generator and the bake.
-  Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
+  `src/gen/biomes.js` holds the cover thresholds (`COVER`); a tile's biome is changed by `setBiome` of `world/biomes`, which writes the
+  biome alone. The world holds no colour (VB-1504): `src/draw/paint.js` builds a world's paint from the world (`paint(w)`: each tile's
+  colour `tr`, `tg`, `tb`, the hillshade `shade`, the coast distance `cdist` and the tile under each coarse cell `chex`, and the brush
+  texture `tile`) and recolours one tile (`colour(P, w, i)`), in the pigments of `src/draw/pigments.js` (the land's, the sea's bands, the
+  lake's). The page keeps one paint per world (`paintOf(wd)` in `page/chunks`, a WeakMap) and recolours explicitly: the tiles of
+  `st.biomeDirty` before their chunks are repainted, the editor's brush, and a world put back whole (the editor's restore, a load) drops
+  its paint, to be built anew. `src/draw/bake.js` rasterizes the world in its paint (`bakeWater(w, P, ctx)`, `bakeChunk(w, P, l, cx, cy,
+  img)`) at each level of detail, with coastal contours, water and decorations. `src/draw/marks.js` draws the individual marks (trees, stones, humps, crags). Both, with `src/draw/paths.js` and `src/draw/rivers.js`,
+  are the presentation layer, listed after `sim.js` (VB-1503). `ArchGen` exposes the generator only (`generate`, `BIOMES`, `COVER`);
+  the page reads the bake as `VB['draw/bake']` and `mulberry32` from `gen/noise`.
+  Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced by `src/gen/rivers.js`, listed before `gen.js`, which calls it, and drawn by `src/draw/rivers.js` (VB-1502).
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
   soapstone, and finite deposits of clay and ores (`w.deposit`, `w.depositLeft`) as veins, each island drawing which kinds it has
   (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Nothing digs yet. `src/sim/prospect.js` keeps what each village
   has found of the hidden upland ores (`st.finds`; `w.vein`, `w.veinNear`): a finished job near a vein may find it (`sim/agents` calls
   `worked`); `Sim.knowsDeposit` and `Sim.depositKnown` are the views' reads. They are shown by the tile panel
-  and the Ground overlay (`src/page/ground.js`: bedrock tints, deposit marks and a key, drawn once a world; the map bar, key O), and the Reach overlay (`src/page/reach.js`: land banded by walking hours from the selected tile, by `reachCosts` of `sim/routes`, with contours and a key at the hours the rules compare against; the map bar, key H).
+  and the Ground overlay (`src/page/ground.js`: bedrock tints, deposit marks and a key, drawn once a world; key O), and the Reach overlay (`src/page/reach.js`: land banded by walking hours from the selected tile, by `reachCosts` of `sim/routes`, with contours and a key at the hours the rules compare against; key J). The three register with `src/page/overlays.js` (VB-1496), the map bar's one overlay button and its list: one overlay shown at a time, its key over the minimap.
   The climate of a world is `src/gen/climate.js` (VB-342), also called by `gen.js`: it erodes the relief, draws the seed's wind (`w.wind`),
   carries rain over the map on it (`w.rain`) and deals the tiles' moisture (`w.hm`) out by that rain, so biomes follow the weather; its
   numbers are `CLIMATE`. Nothing in play reads the wind or the rain yet.
@@ -51,7 +64,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`st.pathCache`, `st.routeDirty`, `st.routeFallbacks`). `costChanged` marks that cache for daily refresh and tells walking to invalidate
   its reach lists if passability changed. `src/sim/villagehours.js` maintains the symmetric travel-time table `st.villageHours` (VB-286)
   through the route search and supplies the village-to-village distance queries. `src/sim/paths.js` counts and fades worn paths
-  (`w.wear`, `w.worn`) and wears in generated villages; `src/gen/paths.js` draws them into the map chunks.
+  (`w.wear`, `w.worn`) and wears in generated villages; `src/draw/paths.js` draws them into the map chunks. `src/sim/trails.js` holds the
+  verb `blaze` (VB-447): a trail is its blazer's project plan, a job a wooded tile on the route `trailStep` makes, worked by the blazer's
+  household; a tile blazed is set to a path's count through `sim/paths` (`blazeTile`), and nothing else of it is kept.
 - `Sim.seed(w, seed, scenario)` (`src/sim/scenarios.js`) makes the state `st`; `Sim.advance(st, hours)` (`src/sim/clock.js`) runs it, by whole 6-minute steps only: any other number of hours is refused with an error (VB-244); the page keeps the part of a step and draws the pawns between steps.
   What runs, and in what order, is one table in `src/sim/clock.js`, `CALENDAR` (VB-241): each entry an `every` (step, hour, day, season,
   year), an `at` within it (hour, tick, season, sday, doy), a guard `when` that is not a date, an owner module, `run` and a note. Each step walks
@@ -300,7 +315,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   domain. Since VB-1405 `perform` gives the queue done, refused(why) or pending(ref), through the one path `issue` takes; a verb whose act
   lasts registers `active(st, cmd, ref)`, and the queue (`sim/player`) asks it, keeping the reference in the save (work's: the pawn's
   numbered assignment in its slot, `agent.assigned`, sim/attention). Each module registers, at load, the verbs of the acts it carries out: `sim/agents` (`work`, `walkTo`, `goHome`, `idle`,
-  `haltForTalk`), `sim/away` (`lodge`, `comeHome`), `sim/building` (`raiseBooth`, `dropBooth`, `letIn`: a staked booth is its maker's project plan, VB-1172), `sim/gifts` (`give`, `deliver`), `sim/occasions` (`attend`, `call`), `sim/venues` (`callAle`),
+  `haltForTalk`), `sim/away` (`lodge`, `comeHome`), `sim/building` (`raiseBooth`, `dropBooth`, `letIn`: a staked booth is its maker's project plan, VB-1172), `sim/trails` (`blaze`, VB-447), `sim/gifts` (`give`, `deliver`), `sim/occasions` (`attend`, `call`), `sim/venues` (`callAle`),
   `sim/offers` (`offer`, `answer`), `sim/visits` (`visit`), `sim/plans` (the head's plan), `sim/routines` (`routines`; the alderman's `layOut`, VB-673), `sim/workdays` (`callWorkday`),
   `sim/tar` (`chargeTar`), `sim/help` (`fillStore`), `sim/aims`
   (`plotToVillage`), `sim/society` (`decide`, `argue`, `dropCause`, `rally`), `sim/gathering`, `sim/trust` (`goBack`, `goToKin`),
@@ -383,7 +398,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 ## Layers (VB-230)
 Each module's layer is in `src/layers.json` (a module without one fails `npm test`); target-v2 3.1 gives the rule: calls go downward, reads are
 free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
-- Kernel and world: `vb`, `gen`, `gen/*`, `sim/norms` (the norms on goods, VB-417), `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
+- Kernel and world: `vb`, `world/*`, `gen`, `gen/*` (the generator), `sim/norms` (the norms on goods, VB-417), `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
   `sim/villagehours`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
   head's skill and bias, VB-254), `sim/skills` (VB-475: a pawn's skill at each type of work, a stand-in that does not grow, from the stream
@@ -408,6 +423,9 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   `norm` gives a normal crop's hours), `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review, with its doubt, VB-669; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
+- Presentation (VB-1503): `draw/*`, the map's drawing (`draw/pigments`, `draw/paint`, `draw/bake`, `draw/marks`, `draw/paths`,
+  `draw/rivers`), listed after `sim.js`. They read the world, and the bake a world's paint (VB-1504); no generator or simulation module names them (`tests/dependencies.js`
+  refuses it, as an upward call and as a lookup of a later module). The page reads them by key.
 
 ## Adding things
 
@@ -419,7 +437,7 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
 - Tunables: a table one domain reads lives in that domain's module with a `// @tunable NAME: meaning` line above it (VB-419;
   `grep -rn "@tunable" src`, the lint holds it for each table that left `sim/rules`); the tables several domains read (the calendar, `ECON`,
   `FOODS`, `HERD`, `TRAVEL` and the like) stay in `src/sim/rules.js`; `KINDS` (job kinds) in each domain's module, joined by `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`
-  (worn paths) in `src/gen/paths.js`; `DIMS`, `ARCHETYPES` and `PRACTICES` in `src/sim/customs.js`.
+  (worn paths) in `src/draw/paths.js`; `DIMS`, `ARCHETYPES` and `PRACTICES` in `src/sim/customs.js`.
 - A new job kind is one record in the `KINDS` of the module whose state its work changes (VB-418): numbers, type of work, labels, where to
   stand, urgency, and what finishing and delivering do, beside the rules its `done`, `deliver` and `available` call (the field's kinds in
   `sim/fieldwork`, the byre's in `sim/byre`, the household's daily work at the house in `sim/chores`). A kind that takes from one module and
@@ -444,4 +462,10 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   enough for what is planned: a count, and where a project plan asks for it, its framed work block with held against asked on the one
   meter); a **gear** wears (what condition is it in). A material is one row of `MATERIALS` in `src/page/cards.js`, its kinds a list under
   the total, shown only where more than one is held; a work's asks are read from the project plan's `build` reservations.
+- A new map overlay (VB-1496) is one file under `src/page/`, its line in `src/page.json` after `page/overlays.js` and before `page/input.js`,
+  an icon in both sets of `src/page/icons.js` (`ICON` and `ICON_STEN`), and a key panel (`class="ground-key panel"`, `hidden`) beside the
+  others over the minimap in `src/body.html`. The file ends with `registerOverlay({id, name, short, key, icon, group, set(on), refresh(), reset(), layer, keyEl})`:
+  `set` shows or hides its layer and draws it, `refresh` runs every frame on or off, `reset` for a new world. With no `key` it takes the next
+  free digit (6 to 9: 1 to 5 are the speeds; then Y, U and I). The overlay button, its list, the keys and `tests/browser-overlays.js` follow the registry: none
+  of them names an overlay.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.

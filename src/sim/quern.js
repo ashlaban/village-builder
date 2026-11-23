@@ -5,7 +5,7 @@
 // gives 1 / ECON.unground a ration.
 VB['sim/quern'] = (() => {
   const { YEAR } = VB['sim/rules'];
-  const { ROCK, ROCKS } = VB['gen/geology'];
+  const { ROCK, ROCKS } = VB['world/geology'];
   const Goods = VB['sim/goods'],
     Stores = VB['sim/stores'],
     { grainOf, reserved } = Stores;

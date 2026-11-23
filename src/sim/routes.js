@@ -1,7 +1,7 @@
 // @sys sim/routes: least-cost path searches and the daily invalidation of the run's bounded route cache
 VB['sim/routes'] = (() => {
   const { hexSteps } = VB['sim/hex'];
-  const { through, stepCost, discomfort, invalidateReach, PATHS, DISCOMFORT } = VB['sim/walking'];
+  const { through, stepCost, trailStep, discomfort, invalidateReach, PATHS, DISCOMFORT } = VB['sim/walking'];
   const { SPEED } = VB['sim/rules'];
   // @tunable ROUTE: the route search's bounds and its cache
   // hours: the longest walk the villages' table and a pawn's route search reach (design.md, The journey scale: 67 hours, the far side of
@@ -86,7 +86,9 @@ VB['sim/routes'] = (() => {
   // its time weighed with its discomfort, VB-448), which with DISCOMFORT.weight 0 is the quickest; maxCost bounds its time, as before,
   // so that what is in reach does not move with the weight (a route is pruned by its time on the way the choice took to each tile).
   // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
-  function findRoute(w, from, to, maxCost = ROUTE.reach, cls = 0) {
+  // `step` is a step's time: stepCost, the ground as it stands, or sim/walking's trailStep for the route a trail would take (VB-447: a
+  // wooded tile at a path's cost; its least step is a path's, above minStep, so the bound holds).
+  function findRoute(w, from, to, maxCost = ROUTE.reach, cls = 0, step = stepCost) {
     if (from === to) return [from];
     VB.count.routeSearch++;
     let expanded = 0;
@@ -125,7 +127,7 @@ VB['sim/routes'] = (() => {
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
         if (j < 0 || shut[j] === run || (j !== to && !through(w, j))) continue;
-        const t = stepCost(w, i, j),
+        const t = step(w, i, j),
           tj = time[i] + t,
           gj = g[i] + (k ? t * (1 + (k * (discomfort(w, i) + discomfort(w, j))) / 2) : t);
         if (tj > maxCost || (mark[j] === run && gj >= g[j])) continue;
@@ -181,6 +183,39 @@ VB['sim/routes'] = (() => {
     }
     VB.count.reachSettled += settled;
     for (let i = 0; i < targets.length; i++) out[i] = shut[targets[i]] === run ? g[targets[i]] : null;
+    return out;
+  }
+  // The cost from tile `from` to every passable tile within maxCost along a trail (VB-786; sim/walking trailStep: a wooded tile with no
+  // path at a path's cost), by one bounded Dijkstra search as reachCosts's: a Map of tile to cost, `from` at 0, in the order settled. A
+  // house is reached, never walked through. Reuses the world's scratch buffers and heap; the tiles it settles are counted in
+  // VB.count.settleReach (one search a crowded village where someone leads, at its moving round: sim/settle).
+  function trailReach(w, from, maxCost) {
+    const S = buffers(w),
+      { g, mark, shut } = S,
+      run = ++S.run,
+      open = S.open || (S.open = heap()),
+      out = new Map();
+    open.clear();
+    g[from] = 0;
+    mark[from] = run;
+    open.push(0, from);
+    while (open.size) {
+      const i = open.pop();
+      if (shut[i] === run) continue;
+      shut[i] = run;
+      out.set(i, g[i]);
+      if (i !== from && !through(w, i)) continue;
+      for (let d = 0; d < 6; d++) {
+        const j = w.nb[i * 6 + d];
+        if (j < 0 || shut[j] === run || !(through(w, j) || (w.dev && w.dev[j] === 3))) continue;
+        const gj = g[i] + trailStep(w, i, j);
+        if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
+        g[j] = gj;
+        mark[j] = run;
+        open.push(gj, j);
+      }
+    }
+    VB.count.settleReach += out.size;
     return out;
   }
   // Cost of a route (a list of neighbouring tiles), by the costs in force now.
@@ -258,5 +293,5 @@ VB['sim/routes'] = (() => {
     st.routeDirty.clear();
   }
 
-  return { ROUTE, findRoute, routeCost, reachCosts, route, hasRoute, costChanged, refreshRoutes };
+  return { ROUTE, findRoute, routeCost, reachCosts, trailReach, route, hasRoute, costChanged, refreshRoutes };
 })();

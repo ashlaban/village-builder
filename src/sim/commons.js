@@ -10,7 +10,7 @@ VB['sim/commons'] = (() => {
     { ROLES } = VB['sim/roles'],
     { CROPS, openGround: farmable, fertility } = VB['sim/crops'],
     { groundKey } = VB['sim/fieldrec'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
   const { freeFor } = VB['sim/territory'];

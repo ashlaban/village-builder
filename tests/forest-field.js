@@ -1,7 +1,7 @@
 // Breaking forest to a field (VB-1525; Kim, 23 Nov): a household with only forest in reach makes its field there, felling and grubbing it
 // before the clearing and the breaking, as a plot's tile is; every tree on it lies at the site as timber and comes home to the woodpile by
 // the hands' walks (sim/lying's leftTimber); the field records its ground, a wood's fertility and fresh soil.
-const VB = require('../src/load.js'), { B } = VB.gen, Sim = VB.sim;
+const VB = require('../src/load.js'), { B } = VB['world/biomes'], Sim = VB.sim;
 const FieldPlans = VB['sim/fieldplans'], { GROUND, SOIL, farmable, openGround } = VB['sim/crops'];
 const { FELL_HOURS, GRUB_HOURS } = VB['sim/forest'], { ECON } = VB['sim/rules'], Stores = VB['sim/stores'];
 const { bfs } = VB['sim/hex'], { walkable } = VB['sim/walking'];

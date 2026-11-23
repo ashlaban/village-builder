@@ -20,6 +20,9 @@ VB.COUNTERS = {
   routeHit: 'Routes served from the cache, in either direction',
   routeRefresh: 'Cached routes tested for invalidation',
   reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
+  settleReach:
+    "Tiles settled by a crowded village's search for new land within SETTLE.hours along a trail, one a round where someone " +
+    'leads (sim/routes trailReach, VB-786)',
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
   daysCalled: 'Days called by a creditor holder on its planning day (sim/days, VB-462)',

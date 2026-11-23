@@ -1,7 +1,7 @@
 // @sys sim/crops: the crops, their rotations and the soil (VB-419, from sim/rules): each crop's row, the rotations a field keeps,
 // how a harvest wears the soil and dung restores it, and which land can be farmed and how fertile it is
 VB['sim/crops'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { SEASON_DAYS } = VB['sim/rules'];
   // @tunable CROPS: crops (VB-346; design.md, Crops and rotations): one row each, and a field holds the key of its crop (`fd.crop`). A plain table here,
   // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
@@ -124,5 +124,21 @@ VB['sim/crops'] = (() => {
   // when a river waters it.
   const fertility = (w, i, b = w.biome[i]) => GROUND[b]?.fert * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
 
-  return { CROPS, ROTATIONS, SOIL, GROUND, RIVER, farmable, openGround, byRiver, fertility };
+  // A tile a settler may farm once it is cleared (VB-786): farmable, a wood among them since a household may break one (VB-1525); its
+  // fertility as a field then is its ground's (a wood's own, not the meadow it is grubbed to).
+  const clearable = farmable,
+    clearedFertility = fertility;
+  return {
+    CROPS,
+    ROTATIONS,
+    SOIL,
+    GROUND,
+    RIVER,
+    farmable,
+    openGround,
+    byRiver,
+    fertility,
+    clearable,
+    clearedFertility,
+  };
 })();

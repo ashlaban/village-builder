@@ -54,7 +54,7 @@ function edEcho() {
 // What the raised world holds: the land's biomes as one bar, and counts.
 function edFacts() {
   const wd = edit.wd,
-    n = new Array(G.BIOMES.length).fill(0);
+    n = new Array(Biomes.BIOMES.length).fill(0);
   let land = 0,
     river = 0,
     lake = 0,
@@ -69,11 +69,11 @@ function edFacts() {
   }
   const pct = (k, of) => (of ? `${((100 * k) / of).toFixed(k / of < 0.1 ? 1 : 0)}%` : '0%'),
     num = (k) => k.toLocaleString('en');
-  const kinds = G.BIOMES.map((b, k) => ({ b, k: n[k] }))
+  const kinds = Biomes.BIOMES.map((b, k) => ({ b, code: k, k: n[k] }))
     .filter((x) => !x.b.water && x.k > 0)
     .sort((a, b) => b.k - a.k);
-  const col = (b) => `rgb(${b.c.join(',')})`;
-  $('edBiomes').innerHTML = kinds.map((x) => `<i style="flex:${x.k} 0 0;background:${col(x.b)}"></i>`).join('');
+  const col = (x) => `rgb(${Pigments.PIGMENTS[x.code].c.join(',')})`;
+  $('edBiomes').innerHTML = kinds.map((x) => `<i style="flex:${x.k} 0 0;background:${col(x)}"></i>`).join('');
   $('edBiomes').setAttribute(
     'aria-label',
     `The land by kind: ${kinds.map((x) => `${x.b.name} ${pct(x.k, land)}`).join(', ')}`,
@@ -81,7 +81,7 @@ function edFacts() {
   const rows = [
     ['Tiles', num(wd.N)],
     ['Land', `${num(land)} (${pct(land, wd.N)})`],
-    ...kinds.map((x) => [`<i style="background:${col(x.b)}"></i>${x.b.name}`, pct(x.k, land), 'sub']),
+    ...kinds.map((x) => [`<i style="background:${col(x)}"></i>${x.b.name}`, pct(x.k, land), 'sub']),
     ['Regions with land', num(wd.regions.filter((r) => r.land > 0).length)],
     ['Lake tiles', num(lake)],
     ['River tiles', num(river)],
@@ -264,7 +264,7 @@ function closeEditor() {
 // ---- the terrain brush ----
 // A brush lays a ground cover or a deposit on the land tiles under it, as the pointer is dragged over the map (page/input, mapBrush);
 // with no brush the map is dragged as ever. The sea, lakes and rivers are not painted: the relief stays as it was raised.
-const ED_COVERS = G.BIOMES.map((b, k) => k).filter((k) => !G.BIOMES[k].water);
+const ED_COVERS = Biomes.BIOMES.map((b, k) => k).filter((k) => !Biomes.BIOMES[k].water);
 let edBrush = null,
   edAt = null,
   edStruck = 0; // the brush held ({cover} or {deposit}); a stroke's last point on the map; tiles it changed
@@ -276,13 +276,18 @@ function edBrushList() {
   $('edBrushes').innerHTML =
     `<button type="button" data-brush="none" aria-pressed="${!edBrush}" class="wide">Look around</button><h4>Ground cover</h4>` +
     ED_COVERS.map((k) =>
-      btn(`data-cover="${k}"`, `<i style="background:rgb(${G.BIOMES[k].c.join(',')})"></i>`, G.BIOMES[k].name, {
-        cover: k,
-      }),
+      btn(
+        `data-cover="${k}"`,
+        `<i style="background:rgb(${Pigments.PIGMENTS[k].c.join(',')})"></i>`,
+        Biomes.BIOMES[k].name,
+        {
+          cover: k,
+        },
+      ),
     ).join('') +
     '<h4>Deposits</h4>' +
     btn('data-deposit="0"', '', 'No deposit', { deposit: 0 }, 'wide') +
-    Geo.DEPOSITS.map((d, k) =>
+    Strata.DEPOSITS.map((d, k) =>
       k
         ? btn(
             `data-deposit="${k}"`,
@@ -296,7 +301,7 @@ function edBrushList() {
     ? 'Drag the map to move it. Choose a brush to paint.'
     : edBrush.cover !== undefined
       ? 'Drag over the land to lay this cover. Two fingers, the wheel and the arrow keys still move the map.'
-      : edBrush.deposit && Geo.DEPOSITS[edBrush.deposit].hidden
+      : edBrush.deposit && Strata.DEPOSITS[edBrush.deposit].hidden
         ? 'A hidden ore: a village must find it before it can be dug.'
         : edBrush.deposit
           ? 'Drag over the land to lay this deposit.'
@@ -335,7 +340,8 @@ function edPaint(t) {
   const wd = edit.wd,
     b = edBrush;
   if (b.cover !== undefined) {
-    if (wd.biome[t] === b.cover || !VB['gen/cover'].set(G, wd, t, b.cover)) return false;
+    if (wd.biome[t] === b.cover || !VB['gen/cover'].set(wd, t, b.cover)) return false;
+    recolour(wd, [t]);
     edit.cover.delete(t);
     edit.cover.set(t, b.cover);
   } else {
@@ -414,7 +420,7 @@ function edStroke(sx, sy, first) {
 }
 // What was painted, laid on that land raised anew: in the editor after a game dropped its world, and under a game begun with Play.
 function edApply(wd) {
-  for (const [t, b] of edit.cover) VB['gen/cover'].set(G, wd, t, b);
+  for (const [t, b] of edit.cover) VB['gen/cover'].set(wd, t, b);
   for (const [t, d] of edit.deposit) Geo.setDeposit(wd, t, d);
   if (edit.deposit.size) Geo.reveins(wd);
 }

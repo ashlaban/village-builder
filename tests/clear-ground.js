@@ -1,5 +1,5 @@
 // Clearing by ground (VB-1522): a tile's clearing adds GROUND[biome].clear to the brush; the breaking is the same on any ground.
-const VB = require('../src/load.js'), { B } = VB.gen;
+const VB = require('../src/load.js'), { B } = VB['world/biomes'];
 const FieldPlans = VB['sim/fieldplans'], { GROUND } = VB['sim/crops'];
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const rows = Array.from({ length: 14 }, (_, i) => (i < 2 ? '..^^hhmm..' : '..........'));

@@ -280,3 +280,25 @@ function drawLand() {
   refreshLand();
   paintLandKey();
 }
+function setLand(on) {
+  landOn = on;
+  L.land.visible = on;
+  if (on) drawLand();
+}
+registerOverlay({
+  id: 'land',
+  name: 'Land ownership',
+  key: 'l',
+  icon: 'land',
+  group: 'people',
+  set: setLand,
+  refresh: () => {
+    if (landOn || (st && st.landDirty.size)) refreshLand();
+  },
+  reset: () => {
+    resetLand();
+    if (landOn) drawLand();
+  },
+  layer: L.land,
+  keyEl: $('landKey'),
+});

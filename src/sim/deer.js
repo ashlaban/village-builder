@@ -2,7 +2,7 @@
 // forest-edge tiles; their grazing at the edges, their browsing of crops through a broken fence, and hunting them in autumn and winter
 VB['sim/deer'] = (() => {
   const { DEER, HERD, DAY, YEAR_DAYS } = VB['sim/rules'],
-    { B } = VB['gen'];
+    { B } = VB['world/biomes'];
   const { next: rnd } = VB['sim/rng'];
   const { hexSteps } = VB['sim/hex'];
   const { reachTiles } = VB['sim/walking'];

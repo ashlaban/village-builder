@@ -1,7 +1,7 @@
 // @sys sim/herds: households' cattle and sheep: the herds and their hay, breeding and ageing each spring, each scenario's herds (handing on: sim/droving)
 VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { DAY, YEAR, TICKS, HERD, stalled } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];

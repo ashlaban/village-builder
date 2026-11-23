@@ -430,7 +430,7 @@ function scanned(file, mod, returns, src) {
 // ---- assembling the report ----
 const keyOf = (f) => f.replace(/\.js$/, '');
 const order = manifest.map(keyOf);
-const GEN = new Set(['gen', 'gen/rivers', 'gen/climate', 'gen/paths', 'gen/marks', 'gen/geology']); // the world generator: runs before the state exists
+const GEN = new Set(['gen', 'gen/rivers', 'gen/climate', 'gen/geology', 'draw/paths', 'draw/marks']); // the world generator, which runs before the state exists, and the drawing, which writes none
 // a field: the entity and its first field (household.larder[].n -> household.larder)
 // A field is its entity and first key; a container whose parts have owners of their own (st.plans: its projects, seasons and due-queue,
 // VB-431) declares each part as a key of three, which a path under it resolves to.

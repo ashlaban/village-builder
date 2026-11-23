@@ -8,6 +8,7 @@
   "routeHit": 1.8876781223805532,
   "routeRefresh": 1.3467449008102823,
   "reachSettled": 0,
+  "settleReach": 0,
   "routeEvict": 0,
   "talkWeighed": 4.320759988823694,
   "daysCalled": 0,

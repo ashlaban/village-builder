@@ -1,18 +1,19 @@
 {
-  "layers": ["kernel", "material", "social", "agency", "derived"],
+  "layers": ["kernel", "material", "social", "agency", "derived", "presentation"],
   "roots": ["sim/clock", "sim/saves", "sim/scenarios", "sim"],
   "modules": {
     "kernel": [
       "vb",
-      "gen/paths",
-      "gen/rivers",
-      "gen/climate",
-      "gen/marks",
-      "gen/geology",
-      "gen/cover",
+      "world/grid",
+      "world/biomes",
+      "world/geology",
+      "world/rivers",
       "gen/noise",
       "gen/biomes",
-      "gen/bake",
+      "gen/rivers",
+      "gen/climate",
+      "gen/geology",
+      "gen/cover",
       "gen",
       "sim/customs",
       "sim/norms",
@@ -88,6 +89,7 @@
       "sim/cottageplan",
       "sim/expansion",
       "sim/building",
+      "sim/trails",
       "sim/drying",
       "sim/tar",
       "sim/carts",
@@ -162,6 +164,7 @@
       "sim/outlook",
       "sim/estimate"
     ],
-    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview"]
+    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview"],
+    "presentation": ["draw/pigments", "draw/paths", "draw/rivers", "draw/marks", "draw/paint", "draw/bake"]
   }
 }

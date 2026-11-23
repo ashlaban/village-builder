@@ -1,6 +1,6 @@
 // @sys sim/scenarios: the founders and heirs scenarios and the initial simulation state
 VB['sim/scenarios'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
   const { YEAR, TICKS, ECON, TESTBED, SEASON_DAYS, cal } = VB['sim/rules'],
     { CROPS, ROTATIONS, openGround: farmable } = VB['sim/crops'];

@@ -140,9 +140,9 @@ const NOT_STOCKS = {
       'village.rotation', 'farmstead.rotationBy', 'farmstead.failed', 'farmstead.left'],
   'the generated world': ['w.seed', 'w.lat', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',
-    'w.shade', 'w.macro', 'w.cdist', 'w.chex', 'w.csample', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
+    'w.macro', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
       'w.hrnd',
-    'w.landDist', 'w.nb', 'w.region', 'w.regions', 'w.tr', 'w.tg', 'w.tb', 'w.tile', 'w.river', 'w.riverTo', 'w.rock', 'w.deposit', 'w.vein', 'w.veinKind',
+    'w.landDist', 'w.nb', 'w.region', 'w.regions', 'w.river', 'w.riverTo', 'w.rock', 'w.deposit', 'w.vein', 'w.veinKind',
     'w.veinNear'],
   'ways (the wear of walking, fords and bridges)': ['w.wear', 'w.worn', 'w.crossing'],
   'when a tile was last worked (a day, not an amount; sim/spread)': ['w.tended'],
@@ -283,7 +283,7 @@ function build() {
   for (const s of sources) for (const [n, p] of Object.entries(Writes.scan('src/' + s.f, s.mod, {}).rets)) returns[s.mod + ':' + n] = p;
   const mods = new Map();
   for (const s of sources) {
-    if (s.mod === 'gen' || s.mod.startsWith('gen/')) continue;
+    if (s.mod === 'gen' || s.mod.startsWith('gen/') || s.mod.startsWith('draw/')) continue;
     const fns = functionsOf(s.src), scan = Writes.scan('src/' + s.f, s.mod, returns);
     mods.set(s.mod, {
       ...s, fns, reads: [...scan.reads.map((r) => ({ field: Writes.fieldOf(r.path), line: r.line })), ...grainReads(fns.ast, s.src)],

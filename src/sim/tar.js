@@ -9,7 +9,7 @@
 VB['sim/tar'] = (() => {
   const { YEAR, SEASON_DAYS } = VB['sim/rules'],
     { HOUSE, houseCondition, houseTarred } = VB['sim/house'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const Rules = VB['sim/registry'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
