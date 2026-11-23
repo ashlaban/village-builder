@@ -42,6 +42,8 @@ VB['sim/records'] = (() => {
     // notable: births, marriages and deaths; inheritances and handovers; moves and leaving; farms, plots, cottages and meadows; customs
     // and causes; shares paid; and the kinds no task has called routine yet
     born: 0,
+    bornOutside: 0, // a child born outside marriage, and one its parents' marriage made born in it (sim/births, VB-555)
+    legitimated: 0,
     married: 0,
     died: 0,
     child: 0,

@@ -603,6 +603,26 @@ function checkState(st) {
       if (!Array.isArray(st.courtships) || [...st.courtships].sort((a, b) => a - b).join() !== men.join()) bad.push(`courtships ${JSON.stringify(st.courtships)}: the courting men are ${men.join()}`);
     }
   }
+  // a child on the way (VB-555; sim/births, sim/asking): pawn.outside is absent or a boolean, true only of one with a mother, whose
+  // parents are not married to each other now; pawn.pregnantCourting only while pregnant; st.courtDue's entries in order of t, each of
+  // a woman and a man, known no later than it may be put off to
+  {
+    const Rec = globalThis.VB['sim/records'];
+    for (const p of st.pawns) {
+      if (p.outside !== undefined && typeof p.outside !== 'boolean') bad.push(`pawn ${p.id}: outside ${p.outside}`);
+      if (p.outside === true && (p.mother === null || (p.father !== null && Rec.spouseOf(st, p.mother) === p.father)))
+        bad.push(`pawn ${p.id}: born outside marriage, its parents ${p.mother} and ${p.father} married`);
+      if (p.pregnantCourting === true && p.pregnantUntil === null) bad.push(`pawn ${p.id}: pregnant while courting, and not pregnant`);
+    }
+    const q = st.courtDue;
+    if (q !== undefined) {
+      if (!Array.isArray(q)) bad.push('courtDue is not a list');
+      else q.forEach((e, i) => {
+        const ok = e && [e.woman, e.man].every((id) => st.pawns[id]) && st.pawns[e.woman].sex === 'f' && st.pawns[e.man].sex === 'm';
+        if (!ok || !(Number.isFinite(e.t) && e.t <= e.until) || (i && q[i - 1].t > e.t)) bad.push(`courtDue[${i}] ${JSON.stringify(e)}`);
+      });
+    }
+  }
   // a culture's values (VB-519): the four means, each within the bounds
   if (st.cenv) for (const c of st.cenv.cultures) {
     const v = c.values;

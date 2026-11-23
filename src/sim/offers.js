@@ -266,9 +266,28 @@ VB['sim/offers'] = (() => {
   function dueOffers(st) {
     while (st.offers.length && st.offers[0].due <= st.t) conclude(st, st.offers[0]);
   }
+  // The open offer o is answered now, out of its time (a courting pair's offer of the round, their child on the way: VB-555): due now
+  // and no longer at the round, each unanswered answer of an unplayed pawn given by its judgement, as when it is made due at once; one
+  // the played pawn has still to give keeps it open for the basis's wait. 'open', 'yes', 'no' or 'lapsed'.
+  function answerNow(st, o) {
+    const at = st.offers.indexOf(o),
+      played = st.player ? st.player.pawn : null;
+    if (at >= 0) st.offers.splice(at, 1);
+    delete o.round;
+    o.due = st.t;
+    for (const a of o.answers) if (a.yes === null && a.by !== played) a.yes = judge(st, o, a);
+    if (!o.answers.some((a) => a.yes === false) && o.answers.some((a) => a.yes === null)) {
+      o.due = st.t + BASES[o.basis].wait(st) * DAY;
+      Due.append(st.offers, o, o.due, dueKey);
+      return 'open';
+    }
+    return close(st, o);
+  }
   // The open offer o ends now (VB-692): each unanswered answer given by its pawn's judgement (once each), and it closes; or, given `why`
-  // (the moving round ended with it open), it lapses unanswered. 'yes', 'no' or 'lapsed'.
-  function conclude(st, o, why = null) {
+  // (the moving round ended with it open), it lapses unanswered. 'yes', 'no' or 'lapsed'. `early`: it is answered out of its time
+  // (answerNow), and may stay open for the played pawn ('open').
+  function conclude(st, o, why = null, early = false) {
+    if (early) return answerNow(st, o);
     if (why === null) {
       for (const a of o.answers) if (a.yes === null) a.yes = judge(st, o, a);
       return close(st, o);

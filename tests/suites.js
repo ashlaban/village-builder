@@ -30,6 +30,7 @@ const FAST = [
   ['node', 'tests/asking.js'],
   ['node', 'tests/suit.js'],
   ['node', 'tests/courting.js'],
+  ['node', 'tests/outside.js'], // VB-555: a child on the way, the offer out of the round, the custom
   ['node', 'tests/succession.js'],
   ['node', 'tests/chronicle.js'],
   ['node', 'tests/opportunities.js'],

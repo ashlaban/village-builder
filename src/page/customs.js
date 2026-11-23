@@ -3,7 +3,7 @@
 // The customs are told as sentences under five heads; the option in force is a phrase of its sentence, [before, {option: phrase}, after].
 const CHARTER = [
   ['Land', ['claims', 'dispute', 'newLand']],
-  ['Inheritance', ['handover', 'heirSex', 'birthOrder', 'heirCount', 'daughterShare', 'widow', 'ownHeir']],
+  ['Inheritance', ['handover', 'heirSex', 'birthOrder', 'heirCount', 'daughterShare', 'widow', 'ownHeir', 'outside']],
   ['Household', ['residence', 'kinLimit', 'affinity', 'feedOrder', 'matchBy', 'keep']],
   ['Meeting', ['voice', 'commons']],
   ['Husbandry', ['stocking']],
@@ -78,6 +78,15 @@ const SAID = {
     'One who is first in line for their own parents’ farm ',
     { behind: 'steps behind other relatives', keeps: 'keeps their place' },
     ' in the line of another.',
+  ],
+  outside: [
+    'A child born outside marriage ',
+    {
+      equal: 'inherits like other children',
+      after: 'inherits after the children born in marriage',
+      none: 'does not inherit',
+    },
+    '.',
   ],
   residence: [
     'A married couple lives ',
