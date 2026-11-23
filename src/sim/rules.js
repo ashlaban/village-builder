@@ -494,28 +494,31 @@ VB['sim/rules'] = (() => {
   };
   // Moving to new land (sim/settle; docs/review-expansion.md): a waiting adult of ages[0]..ages[1] in a crowded village leaves with a chance of
   // chance[k] after k + 1 rounds of waiting there (the last from then on); each waiting sibling follows with `follow`, at most maxFollow. A party
-  // needs provisionDays of its rations and seed for one field. A new village lies reach[0]..reach[1] walking steps from home, its house at least
-  // `apart` steps from any house, green or field, with a block of `fields` fields at least `fertility` times as fertile as home's and a
-  // wood (WOOD.least wooded tiles within WOOD.reach); sites score siteScore + fieldWeight × the block's fertility − perStep a step, and the
-  // best `candidates` by the first and last terms are tried. A small village (VB-147) has 1..smallFarms farms, its centre within `join`
-  // steps of home. Spacing (stability review, VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from
-  // every village centre. Provisions were 36 days, which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
+  // needs provisionDays of its rations and seed for one field. A new village lies within `hours` walking hours of home's green along a
+  // trail the party would blaze (a wooded tile with no path at a path's cost; VB-786, docs/plans/VB-445.md: 6 hours is there and back in a
+  // day; the 10 to 30 steps it replaces were 10 hours at 3 tiles an hour when decided, 3.75 at 8), on meadow or wood (wood read as the
+  // meadow it becomes when grubbed), its house at least `apart` steps from any house, green or field, with a block of `fields` fields at
+  // least `fertility` times as fertile as home's and a wood (WOOD.least wooded tiles within WOOD.reach); sites score siteScore +
+  // fieldWeight × the block's fertility − perHour an hour (0.15 a step at 8 steps an hour), and the best `candidates` by the first and last
+  // terms are tried. A small village (VB-147) has 1..smallFarms farms, its green within `join` hours of home's by the villages' table.
+  // Spacing (stability review, VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from every village
+  // centre, the only near bound. Provisions were 36 days, which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
   const SETTLE = {
     ages: [18, 45],
     chance: [0.3, 0.6, 0.8],
     follow: 0.5,
     maxFollow: 2,
     provisionDays: 42,
-    reach: [10, 30],
+    hours: 6,
     apart: 5,
     centreApart: 12,
     fields: 3,
     fertility: 0.9,
     fieldWeight: 3,
-    perStep: 0.15,
+    perHour: 1.2,
     candidates: 40,
     smallFarms: 3,
-    join: 30,
+    join: 6,
   };
   // The moving round as offers (VB-692; docs/plans/VB-682.md, section 2; Proposed): it lasts `passes` days from autumn day `day` + 1 (sday
   // `day`, 0-based: days 11 to 13), each day every village in its step; a village's step answers the offers due to its people in `order`

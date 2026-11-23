@@ -233,6 +233,8 @@ const INTEGRATION = [
   ['node', 'tests/geology.js'],
   ['node', 'tests/layout.js'],
   ['node', 'tests/settle.js'],
+  ['node', 'tests/forestsites.js'], // VB-786: a forest site within SETTLE.hours along a trail, none within 11 hex steps; felled, grubbed, fresh
+  ['node', 'tests/trails.js'], // VB-447: blaze: a wooded tile a job of 3 hours, 1 where trodden; blazed tiles are paths; a dead blazer's trail goes
   ['node', 'tests/plots.js'],
   ['node', 'tests/names.js'],
   ['node', 'tests/populous.js'],
