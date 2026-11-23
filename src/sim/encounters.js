@@ -66,6 +66,12 @@ VB['sim/encounters'] = (() => {
     const h = st.farmsteads[hh.farmstead].house;
     return Math.hypot(a.x - (st.w.hx[h] - 12), a.y - (st.w.hy[h] + 14)) <= st.w.R + 12;
   }
+  // The household a pawn sits with as a caller (design.md, Own time: a visit; VB-1547), or null: a rule sim/pastimes contributes at load,
+  // since it keeps the visit and loads after this module. Read once a talk hour for each pawn out of doors, in the pass `outdoors` makes.
+  let callerAt = () => null;
+  const callerRule = (fn) => {
+    callerAt = fn;
+  };
   const atOccasion = (a) => a.occasion !== null && a.path === null;
   const standing = (st, a, o) => a.occasion === o.id && a.path === null && st.pawns[a.id].alive;
   const occasionOf = (st, id) => {
@@ -77,15 +83,20 @@ VB['sim/encounters'] = (() => {
   // `found` whom a may draw as a partner, and returns the kind's mix, a floor added to each partner's weight so that strangers are drawn;
   // said, for a kind where something can be said to all present. House and outdoors are as built (VB-061, VB-127). ----
   const ENCOUNTERS = {
-    // the members inside a house: a pawn inside draws from its housemates inside (one standing at an occasion is there, not at home)
+    // the members inside a house, and its callers at the door (VB-1547): a pawn inside draws from its housemates inside and those who
+    // sit at its door on a visit (one standing at an occasion is there, not at home); a caller draws from the members inside
     house: {
-      present: (st, hh) => hh.members.filter((m) => atHome(st, st.agents[m])),
+      present: (st, hh, near) =>
+        hh.members
+          .filter((m) => atHome(st, st.agents[m]))
+          .concat(near ? (near.calls.get(hh.id) || []).map((c) => c.id) : []),
       sample(st, a, near, busy, round, found) {
         const hh = st.households[st.pawns[a.id].household];
-        if (hh)
-          for (const m of hh.members)
-            if (m !== a.id && atHome(st, st.agents[m]) && !atOccasion(st.agents[m]) && busy[m] !== round)
-              found.push(st.agents[m]);
+        if (hh) {
+          inside(st, hh, a.id, busy, round, found);
+          const l = near.calls.get(hh.id);
+          if (l) for (const c of l) if (busy[c.id] !== round) found.push(c);
+        }
         return ENCOUNTERS.house.mix;
       },
       mix: 0,
@@ -149,6 +160,12 @@ VB['sim/encounters'] = (() => {
     },
   };
 
+  // The members of household hh at home, but pawn `but`, into `found`: not one standing at an occasion, nor one talking this hour.
+  function inside(st, hh, but, busy, round, found) {
+    for (const m of hh.members)
+      if (m !== but && atHome(st, st.agents[m]) && !atOccasion(st.agents[m]) && busy[m] !== round)
+        found.push(st.agents[m]);
+  }
   // Those who came to occasion `id` and stand there now, in the order they set out; empty when it is over or unknown.
   function present(st, id) {
     const o = occasionOf(st, id);
@@ -161,8 +178,9 @@ VB['sim/encounters'] = (() => {
   }
 
   // Whom pawn a (an agent) could talk with this hour, into `found`, with the mix of the kind it meets in: at an occasion it stands at,
-  // those who came; inside, its housemates inside; outdoors, those near it, and a herder also the herders within calling distance. Pawns
-  // talking already this hour (busy[id] === round) are left out.
+  // those who came; inside, its housemates inside and its house's callers; outdoors, those near it, a herder also the herders within
+  // calling distance, and a caller also the members inside the house it calls at. Pawns talking already this hour (busy[id] === round)
+  // are left out.
   function partners(st, a, near, busy, round, found) {
     found.length = 0;
     fit(st.agents.length);
@@ -170,12 +188,15 @@ VB['sim/encounters'] = (() => {
     if (a.inside) return atHome(st, a) ? ENCOUNTERS.house.sample(st, a, near, busy, round, found) : 0; // indoors elsewhere: nobody to draw (VB-561)
     const mix = ENCOUNTERS.outdoors.sample(st, a, near, busy, round, found);
     if (herding(a)) ENCOUNTERS.pasture.sample(st, a, near, busy, round, found); // seen carries over: no pawn drawn twice
+    const h = near.callAt.get(a.id);
+    if (h !== undefined) inside(st, st.households[h], a.id, busy, round, found); // those inside: none of them is out of doors
     return mix;
   }
 
   // The pawns outdoors in a talk hour, in cells of ENCOUNTERS.outdoors.size map units, and the herders among them in cells of the
   // pasture's reach, filled in the same pass: {out (agents), cells (cell key to indexes into out), cellOf (cell x, y to key), size,
-  // herders: {cells, size, list (indexes into out)}, x, y (each one's place, by pawn id, from `placeOf` (sim/agents, passed in by the
+  // herders: {cells, size, list (indexes into out)}, calls (household id to the callers sitting at its door, VB-1547), callAt (a caller's
+  // id to that household), x, y (each one's place, by pawn id, from `placeOf` (sim/agents, passed in by the
   // clock: a walker is found along its leg; VB-473)}; derived, not state. x and y are scratch arrays reused by every call, read only
   // until the next. (Moved from sim/society's outdoors, VB-521.)
   const cellOf = (cx, cy) => cx * 65536 + cy;
@@ -184,7 +205,9 @@ VB['sim/encounters'] = (() => {
   function outdoors(st, placeOf) {
     const NEAR = ENCOUNTERS.outdoors.size,
       FAR = ENCOUNTERS.pasture.reach;
-    const out = [];
+    const out = [],
+      calls = new Map(),
+      callAt = new Map();
     if (px.length < st.agents.length) {
       px = new Float64Array(2 * st.agents.length);
       py = new Float64Array(2 * st.agents.length);
@@ -194,6 +217,13 @@ VB['sim/encounters'] = (() => {
       if (a.inside) continue;
       out.push(a);
       [px[id], py[id]] = placeOf(st, a);
+      const h = callerAt(st, a);
+      if (h !== null) {
+        callAt.set(id, h);
+        const l = calls.get(h);
+        if (l) l.push(a);
+        else calls.set(h, [a]);
+      }
     }
     const cells = new Map(),
       far = new Map(),
@@ -210,7 +240,7 @@ VB['sim/encounters'] = (() => {
         put(far, cellOf(Math.floor(px[a.id] / FAR), Math.floor(py[a.id] / FAR)), n);
       }
     });
-    return { out, cells, cellOf, size: NEAR, herders: { cells: far, size: FAR, list }, x: px, y: py };
+    return { out, cells, cellOf, size: NEAR, herders: { cells: far, size: FAR, list }, calls, callAt, x: px, y: py };
   }
-  return { ENCOUNTERS, atHome, partners, outdoors, present, said };
+  return { ENCOUNTERS, atHome, partners, outdoors, present, said, callerRule };
 })();
