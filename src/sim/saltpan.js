@@ -12,6 +12,7 @@ VB['sim/saltpan'] = (() => {
   const { bfs } = VB['sim/hex'],
     { passable } = VB['sim/walking'],
     { fellTree } = VB['sim/forest'];
+  const Rules = VB['sim/registry'];
   const Stores = VB['sim/stores'],
     Targets = VB['sim/targets'],
     Goods = VB['sim/goods'],
@@ -91,6 +92,25 @@ VB['sim/saltpan'] = (() => {
     weight: 1,
     perish: null,
     keeping: true,
+  });
+  // Salt's need term (the rule sim/foodneed declares): what a household lacks of its target (by default SALT.stock while it keeps animals)
+  // is worth the good's customary worth a measure, so a village with no spring takes salt at the fair (sim/fair) and as a gift; beyond the
+  // target it is a keeping good only (sim/exchange).
+  const worthCtx = { good: null }; // reused: the term allocates nothing
+  const lack = (due, n) => (due > n ? due - n : 0);
+  Rules.contribute({
+    rule: 'need',
+    source: 'sim/saltpan',
+    key: 'salt',
+    label: 'Salt, for the salting',
+    tunables: ['SALT.stock'],
+    value: (st, c) => {
+      if (c.good.id !== 'salt' || !c.hh) return 0;
+      const due = Targets.target(st, c.hh, 'salt'),
+        n = held(c.hh);
+      worthCtx.good = c.good;
+      return (Rules.value(st, 'worth', worthCtx) / c.good.quantum) * (lack(due, n) - lack(due, Math.max(0, n + c.n)));
+    },
   });
   // The job kind (sim/kinds registers it; its fields are described there): a boiling at the spring, its salt carried home in a basket.
   const KINDS = {

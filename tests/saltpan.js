@@ -51,6 +51,12 @@ if (p.length) {
   check(posts().length === 0, 'at its target the household posts no boiling');
   check(K.deliver(st, j, hh, f) === 0 && hh.salt === SALT.yield, 'a boiling carried home at the target is not put');
 }
+// --- the need term: a measure short of the target is worth the good's worth a measure, a measure beyond it nothing
+{ const Rules = VB['sim/registry'], need = (n) => Rules.value(st, 'need', { hh, good: G, n, kept: 0 }), was = hh.salt;
+  hh.salt = SALT.stock - 2; check(Math.abs(need(1) - 2) < 1e-9 && Math.abs(need(5) - 4) < 1e-9, `short of the target: ${need(1)}, ${need(5)}`);
+  hh.salt = SALT.stock; check(need(1) === 0, 'at the target a measure is worth nothing by need');
+  check(VB['sim/fair'].FAIR.goods.includes('salt'), 'salt is a good of the fair');
+  hh.salt = was; }
 // --- the salting: by the salt held, HERD.saltPerRation a ration; the rest smoked
 hh.larder = []; hh.salt = 3;
 L.addFood(st, hh, 'meat', 50);

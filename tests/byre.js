@@ -47,6 +47,7 @@ const sheep = H.herdOf(st, hh, 'sheep'), entry = { id: 99, sheep: 'ewe', lean: f
 sheep.cull.push(entry);
 Y.slaughterDone(st, sheep, entry, hh);
 check(sheep.ewes === 3 && L.larderOf(hh, 'meat') === Sim.HERD.meat.ewe, `slaughter: ${sheep.ewes} ewes, ${L.larderOf(hh, 'meat')} meat`);
+hh.salt = 10; // salt in the store (VB-700; without it the meat is smoked, tests/saltpan.js)
 Y.saltDone(st, hh);
 check(L.larderOf(hh, 'meat') === 0 && L.larderOf(hh, 'salt meat') === Sim.HERD.meat.ewe, 'salting: the meat is not salt meat');
 L.addFood(st, hh, 'meat', 5, -1); // already past its day
