@@ -8,6 +8,8 @@
   "page/ground.js",
   "page/reach.js",
   "page/fertility.js",
+  "page/woodland.js",
+  "page/wildfood.js",
   "page/loader.js",
   "page/minimap.js",
   "page/tileinfo.js",
