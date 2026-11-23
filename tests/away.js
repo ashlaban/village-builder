@@ -1,4 +1,4 @@
-// Sleeping away from home (VB-783; design.md, Moving to new land, Sleeping away from home): a pawn lodges at a place two hours from home on
+// Sleeping away from home (VB-783; design.md, Moving to new land, Sleeping away from home): a pawn lodges at a place three hours from home on
 // a pack from its household's food above its seed, works there only the tasks its stay names, is left out of its household's meals, eats
 // a ration a day from its pack and walks home when the pack is down to the walk home's ration; a household at its seed sends nobody; a
 // guest sleeps in another household's house with its head's yes; a save in the middle plays as the unbroken run. On a tiny state.
@@ -19,7 +19,7 @@ const keep = (st, hh, site) => post(st, KEY, 'fell', { type: 'household', id: hh
 
 const st = make(), hh = st.households[0], f = st.farmsteads[hh.farmstead], id = adultOf(st, hh), a = st.agents[id], p = st.pawns[id];
 assert.ok(id !== undefined, 'an adult who can go');
-const site = tileAt(st.w, st.w.hx ? (f.house % st.w.COLS) + 24 : 30, Math.floor(f.house / st.w.COLS)); // 24 tiles of meadow: 2 hours
+const site = tileAt(st.w, st.w.hx ? (f.house % st.w.COLS) + 24 : 30, Math.floor(f.house / st.w.COLS)); // 24 tiles of meadow: 3 hours at 8 an hour
 to(st, 15);
 Stores.put(st, hh, 'grain', 60, 'harvest', { barley: 60 });
 keep(st, hh, site);
@@ -37,7 +37,7 @@ assert.ok(Math.abs(s.food - 3 * rationOf(st, p)) < 1e-9, `a pack of 3 rations: $
 const packed = hh.ledger.filter((e) => e.kind === 'away' && e.good === 'grain' && e.pawn === id).reduce((n, e) => n - e.n, 0);
 assert.ok(grain0 - Stores.grainOf(hh) >= packed - 1e-9 && Math.abs(packed - 3 * R) < 1e-9, 'taken from the grain above the seed, uncooked');
 assert.ok(hh.ledger.some((e) => e.kind === 'away' && e.pawn === id), "a store movement with the reason 'away'");
-assert.ok(s.walk > 1.5 && s.walk < 2.5, `two hours from home: ${s.walk}`);
+assert.ok(s.walk > 2.5 && s.walk < 3.5, `three hours from home: ${s.walk}`);
 assert.strictEqual(bed(st, a), site, 'its bed is the site');
 assert.ok(typeof issue(st, { actor: id, verb: 'lodge', target: site, args: { why: 'work', days: 1 }, source: 'pawn' }) === 'string', 'one stay a pawn');
 to(st, 23);

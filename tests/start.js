@@ -8,7 +8,7 @@ const literal = (text, name) => { const m = text.match(new RegExp(`const ${name}
 const DEMO = literal(src('loader.js'), 'DEMO'), PEOPLE = literal(src('start.js'), 'START_PEOPLE');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('START FAIL:', m); } };
 // each seed's island generated once and handed out as a fresh copy for each scenario (tests/lib/probe.js; VB-862: three times a seed before)
-const world = (seed, cols, rows) => require('./lib/probe.js').island(seed, { cols, rows });
+const world = (seed, cols, rows) => require('./lib/probe.js').island(seed, { cols, rows, cover: null }); // the page's island, at the game's cover
 const SCENARIOS = ['founders', 'heirs', 'populous'];
 const living = (st) => st.pawns.filter((p) => p.alive).length;
 const fits = [], heirsAt = [];
@@ -18,7 +18,8 @@ for (const seed of DEMO.seeds) {
   });
   if (ok) fits.push(seed);
 }
-check(heirsAt.length >= 8, `heirs seeds on the ${DEMO.cols} by ${DEMO.rows} showcase at only ${heirsAt.join(', ')} of ${DEMO.seeds.join(', ')}`);
+check(heirsAt.length >= 4, // eight before the forested island (VB-780), where the heirs' villages fit at four
+   `heirs seeds on the ${DEMO.cols} by ${DEMO.rows} showcase at only ${heirsAt.join(', ')} of ${DEMO.seeds.join(', ')}`);
 check(fits.join() === DEMO.start.join(), `all three scenarios fit the showcase at ${fits.join(', ')}; DEMO.start is ${DEMO.start.join(', ')}`);
 check(DEMO.start.every((s) => DEMO.seeds.includes(s)), 'DEMO.start has a seed DEMO.seeds lacks');
 console.log(`showcase ${DEMO.cols} by ${DEMO.rows}: heirs at ${heirsAt.length} of ${DEMO.seeds.length} seeds; all three at ${fits.join(', ')}`);

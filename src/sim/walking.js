@@ -5,18 +5,20 @@ VB['sim/walking'] = (() => {
   const { bfs } = VB['sim/hex'];
   // @tunable TERRAIN: walking: the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost
   // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
-  // Each kind of ground has its own cost (Kim, 13 Nov; VB-439): sand and heather slow a walker a little, open pine wood more, rough
-  // hill ground more again, a thick broadleaf wood with no way through it takes twice the time of meadow, marsh and bare rock longer.
-  // What a worn way takes off these is PATHS.clear.
+  // Each kind of ground has its own cost (Kim, 13 Nov; VB-439): sand and heather slow a walker a little, open pine wood and rough hill
+  // ground three times as long as meadow, a thick broadleaf wood with no way through it four times, marsh and bare rock longer. Rough
+  // ground is dear (Kim, 15 Nov; the journey scale, VB-444's plan, section 5; VB-780): the costs above heath were doubled from 1.6, 1.8,
+  // 2, 2.5 and 3.5, so a path through the wood (PATHS.clear) is half again as slow as meadow, and two and a half times as fast as the
+  // pathless wood beside it: where a way goes decides the journey. What a worn way takes off these is PATHS.clear.
   const TERRAIN = {
     [B.MEADOW]: 1,
     [B.BEACH]: 1.15,
-    [B.HEATH]: 1.25,
-    [B.PINE]: 1.6,
-    [B.HILLS]: 1.8,
-    [B.FOREST]: 2,
-    [B.MARSH]: 2.5,
-    [B.MOUNTAIN]: 3.5,
+    [B.HEATH]: 1.5,
+    [B.PINE]: 3,
+    [B.HILLS]: 3,
+    [B.FOREST]: 4,
+    [B.MARSH]: 5,
+    [B.MOUNTAIN]: 6,
     [B.SNOW]: Infinity,
     ford: 2,
     bridge: 1,

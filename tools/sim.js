@@ -69,7 +69,8 @@ function plain(v, seen = new Map(), where = '$') {
 }
 
 const lat = opt('lat', null); // VB-807: the world's latitude (57, 59 the middle world, 62, 65); a loaded run keeps its save's
-const it = G.generate(seedNum, { cols: SIZES[map][0], rows: SIZES[map][1], ...(lat !== null ? { lat: +lat } : {}) });
+// the probe island is tests/lib/probe.js's, at its open cover (VB-780)
+const it = G.generate(seedNum, { cols: SIZES[map][0], rows: SIZES[map][1], ...(lat !== null ? { lat: +lat } : {}), ...(map === 'probe' ? { cover: require('../tests/lib/probe.js').OPEN } : {}) });
 let r; while (!(r = it.next()).done);
 const st = loaded ? Sim.load(r.value, loaded) : Sim.seed(r.value, seedNum, scenario, null, { rye: args.includes('--rye') }), say = (...a) => { if (!json) console.log(...a); };
 const causeOf = (p) => { const e = Sim.recordOf(st, { pawn: p.id, life: true }).find((x) => x.kind === 'died'); return e ? e.cause : null; };

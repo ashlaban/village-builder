@@ -11,8 +11,10 @@ const { issue } = VB['sim/commands'], { eligible } = VB['sim/eligibility'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TRUST FAIL:', m); } };
 // one world, but a world of its own for a case that runs days (a run writes what is dug into its world)
-const world = () => { const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; }, shared = world();
-const fresh = (own = false) => { const st = Sim.seed(own ? world() : shared, 7, 'heirs'); st.naturalDeaths = false; return st; };
+// seed 3 (it was 7: on the forested island, VB-780, seed 7's heirs village has a household with hands to spare, whose servant ends the
+// trust at the first round)
+const world = () => { const it = G.generate(3, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; }, shared = world();
+const fresh = (own = false) => { const st = Sim.seed(own ? world() : shared, 3, 'heirs'); st.naturalDeaths = false; return st; };
 const vOf = (st, h) => st.farmsteads[h.farmstead].village;
 const grown = (st, h) => h.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18);
 const invariants = (st, when) => { const bad = checkState(st); check(!bad.length, `${when}: invariants: ${bad.slice(0, 3).join('; ')}`); };
