@@ -253,10 +253,10 @@ function showPawn(id) {
           : '',
       marryLine,
       craftsLine(id),
-      Sim.idleLine(st, id),
     ].filter(Boolean),
     Sim.describe(st, id),
     {
+      reason: Sim.reasonLine(st, id), // who chose it and why, under what it does; the idle line for one with no work (VB-1538)
       badge: faceImg(id, 'badge'),
       stats: pawnStats(id) + traitsHTML(id),
       // whom it courts is that one's chip, as whom it is married to is the spouse's (VB-036)
@@ -428,6 +428,8 @@ function card(title, lines, activity = '', more = {}) {
   $('tile').classList.toggle('peek', !selectionPinned);
   $('tileActivity').textContent = activity;
   $('tileActivity').hidden = !activity;
+  $('tileReason').textContent = more.reason || '';
+  $('tileReason').hidden = !more.reason;
   ['tileElev', 'tileCoord', 'tileExtra', 'tileMore'].forEach((id, k) => {
     const el = $(id);
     el.textContent = lines[k] || '';

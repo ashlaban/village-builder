@@ -45,6 +45,7 @@ const Sim = (() => {
   // its pastime and with whom (sim/pastimes, VB-1539),
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || pastimeLine(st, id) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
+  const { reasonOf, reasonLine } = VB['sim/reasons']; // who chose a pawn's act, and why, for its card (VB-1538)
   const { seedReserve } = VB['sim/hunger'],
     { grainOf } = VB['sim/stores'],
     { shareOwed } = VB['sim/obligations'];
@@ -204,6 +205,8 @@ const Sim = (() => {
     poseOf, // and its facing and stride, for the page until it draws from legs (VB-474)
     explainIdle,
     idleLine,
+    reasonOf,
+    reasonLine,
     RIVER,
     byRiver,
     tilthOf, // a field's tilth now, closed form (VB-717): the field, farm and village cards (VB-719)

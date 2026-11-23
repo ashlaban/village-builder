@@ -246,9 +246,10 @@ VB['sim/pastimes'] = (() => {
       (typeof P.at(st, a, p, w) === 'string' ? P.at(st, a, p, w) : null)
     );
   }
+  // The wait, drawn on the stream `work` as the idle wait was (the choice, the one called on and the spot are drawn on `talk`):
   // IDLE.wait times 4/3 to 2/3 by diligence (the design's 4 to 2 hours about its 3; TRAITS.acts.diligence.idleWait, VB-520)
   const waitOf = (st, id) =>
-    (IDLE.wait[0] + rnd(st.rng.talk) * (IDLE.wait[1] - IDLE.wait[0])) * act(st, id, 'diligence', 'idleWait');
+    (IDLE.wait[0] + rnd(st.rng.work) * (IDLE.wait[1] - IDLE.wait[0])) * act(st, id, 'diligence', 'idleWait');
   // The pastime begins: the walk there (none for one at home already, who sits by its fire), and the wait.
   function begin(st, c) {
     const a = st.agents[c.actor],

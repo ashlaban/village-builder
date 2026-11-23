@@ -65,6 +65,7 @@ const from = [xg.x, xg.y];
 for (let h = 0; h < 30 && xg.path; h++) Sim.advance(st, 0.1);
 assert.ok(!xg.path && Math.hypot(xg.x - from[0], xg.y - from[1]) > 20, 'it arrives on foot');
 assert.strictEqual(Sim.describe(st, x.id), `Visiting ${y.given} at ${farmOf(y).name}`);
+assert.strictEqual(VB['sim/reasons'].reasonOf(st, x.id).by, 'self', 'the reasons view (VB-1538): a pastime is its own choosing');
 assert.deepStrictEqual(checkState(st), [], 'invariants with pastimes under way');
 
 // the head's call cuts a pastime as it cut an idle wait (sim/hands' settle: the pawn idles until now, and looks for work at the next step)

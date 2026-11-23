@@ -774,7 +774,9 @@ function checkState(st) {
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)}`); }
       // a cart standing out (VB-649): no carrier, and a lying 'leftCart' load of the household names it
       if (c.at !== undefined && !(c.by === null && Number.isInteger(c.at.tile) && c.at.t <= st.t &&
-        (st.lying || []).some((l) => l.kind === 'leftCart' && l.owner.type === 'household' && l.owner.id === h.id && l.of.cart.kind === c.kind && l.of.cart.built === c.built)))
+        (st.lying || []).some((l) => l.kind === 'leftCart' && l.owner.type === 'household' && l.owner.id === h.id && l.of.cart.kind === c.kind && l.of.cart.built === c.built) ||
+        // or a hand has taken it up and leads it home (the fetch's way back: the lying load is gone, the cart is home at the delivery; VB-1539 found the gap)
+        [...st.jobs.values()].some((j) => j.cart && j.cart.kind === c.kind && j.cart.built === c.built && j.claims.some((id) => st.agents[id].phase === 'back'))))
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)} stands out with no carrier's lying cart`);
     }
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
