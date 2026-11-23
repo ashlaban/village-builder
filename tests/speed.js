@@ -68,7 +68,7 @@ const input = {
   stage: { addEventListener() {} }, window: { addEventListener: (event, fn) => { keyHandlers[event] = fn; } },
   document: { querySelectorAll: () => [], addEventListener() {}, body: { classList: { toggle() {} } } },
   matchMedia: () => ({ matches: false }), $: control, speed: 0, resetSpeedSample() {}, cancelSkip() {},
-  overlayShortcut: () => null, // the overlays' keys (page/overlays, VB-1490): none here
+  overlayShortcut: () => null, // the overlays' keys (page/overlays, VB-1496): none here
 };
 vm.createContext(input);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '../src/page/icons.js'), 'utf8'), input); // the speeds' icons (VB-338)

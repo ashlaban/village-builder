@@ -152,7 +152,7 @@ const ICON = {
     '<path d="M4 17.5c2-4 7-3 7-7s4-5 5-7.5"/><path d="M7.5 17.5c2-3 6.5-3 6.5-6.5" stroke-dasharray="1.5 2"/>',
     ICON_STROKE,
   ), // a way worn, a track beside it
-  // three sheets one over another: the map's overlays (VB-1490), on the overlay button while none is on
+  // three sheets one over another: the map's overlays (VB-1496), on the overlay button while none is on
   layers: svgIcon(
     20,
     20,

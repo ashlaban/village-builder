@@ -1,4 +1,4 @@
-// VB-1490: the map's overlays, driven by their registry (page/overlays): each on and off through the overlay button's list and by its key,
+// VB-1496: the map's overlays, driven by their registry (page/overlays): each on and off through the overlay button's list and by its key,
 // one at a time (never two layers or two keys shown), 0 for none, [ and ] to step; the list stays open after a choice and shuts on Esc,
 // on its button, on a press on the map and when the bell's list opens; on a phone it fits the screen. No console error.
 // VB_SHOTS=DIR saves screenshots of the bar, shut and open, in the default and mural themes and on a phone (never into the repository).

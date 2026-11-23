@@ -177,7 +177,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     });
     for (const m of bad) fail(m);
   }
-  const landOverlay = async () => { await page.click('#overlayBtn'); await page.click('#landBtn'); await page.click('#overlayBtn'); }; // its list (VB-1490)
+  const landOverlay = async () => { await page.click('#overlayBtn'); await page.click('#landBtn'); await page.click('#overlayBtn'); }; // its list (VB-1496)
   for (const id of ['landBtn', 'settlersBtn', 'cultureBtn', 'treeBtn', 'landBtn']) {
     if (id === 'landBtn') await landOverlay(); else await page.click('#' + id);
     await page.waitForTimeout(500);

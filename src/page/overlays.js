@@ -1,4 +1,4 @@
-// @sys page/overlays: the map's overlays (VB-1490): their registry, one shown at a time, and the map bar's button and list that choose one
+// @sys page/overlays: the map's overlays (VB-1496): their registry, one shown at a time, and the map bar's button and list that choose one
 // ---- the overlays' registry and list ----
 // An overlay is drawn over the map and has a key over the minimap. Each registers here, from its own file before page/input:
 // registerOverlay({id, name, key, icon, group, set(on), refresh(), reset(), layer, keyEl}). `set` shows or hides its layer and draws it;
@@ -9,7 +9,7 @@
 // own: a row for each, grouped by `group`. The list stays open after a choice, so that overlays can be compared; it shuts on the button,
 // on Esc and on a press on the map. The hex grid and the regions are not overlays: they are toggles of their own.
 // The list's fold is the page's (never `st`). The digits 1 to 5 choose a speed and 0 shows none, so an overlay's digit is 6 to 9; past
-// those, the free letters under them, Y, U and I, are handed out in turn (VB-1493).
+// those, the free letters under them, Y, U and I, are handed out in turn (VB-1499).
 const OVERLAYS = [],
   OVERLAY_DIGITS = '6789yui';
 let overlayOn = null;
