@@ -22,7 +22,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `src/gen/biomes.js` holds the cover thresholds and the tile pigments, and updates a tile's biome and colour together (`setBiome`).
   `src/gen/bake.js` rasterizes the generated world for the map at each level of detail, with land pigments, coastal contours, water and
   decorations. `src/gen/marks.js` draws the individual marks (trees, stones, humps, crags). `ArchGen` exposes the generator and the bake.
-  Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
+  Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced by `src/gen/rivers.js`, listed before `gen.js`, which calls it, and drawn by `src/draw/rivers.js` (VB-1491).
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
   soapstone, and finite deposits of clay and ores (`w.deposit`, `w.depositLeft`) as veins, each island drawing which kinds it has
   (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Nothing digs yet. `src/sim/prospect.js` keeps what each village

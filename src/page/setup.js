@@ -2,7 +2,7 @@
 const G = ArchGen,
   LV = G.LV,
   TEX = G.TEX,
-  Rivers = VB['gen/rivers'],
+  Rivers = VB['draw/rivers'],
   Paths = VB['gen/paths'],
   Geo = VB['gen/geology'],
   Strata = VB['world/geology'],

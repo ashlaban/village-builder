@@ -8,6 +8,7 @@
   "gen/biomes.js",
   "gen/paths.js",
   "gen/rivers.js",
+  "draw/rivers.js",
   "gen/climate.js",
   "gen/marks.js",
   "gen/geology.js",

@@ -12,6 +12,7 @@
       "gen/biomes",
       "gen/paths",
       "gen/rivers",
+      "draw/rivers",
       "gen/climate",
       "gen/marks",
       "gen/geology",
