@@ -414,8 +414,12 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   applies to any element with the attribute, so the card's sample (a panel, a head, a pressed and an unpressed button) is drawn in the
   theme whatever theme is on. Then its styling of the pieces (VB-1488), listed beside the tokens: panel, head, button (pressed and
   primary by one rule), icon button, row, card, meter. What the tokens cannot say is a rule in the theme's own section,
-  `[data-theme="<key>"] .piece`, as Mural's medallion and beads; a rule there names a piece, or a component on the list's `counted:`
-  line with its reason beside it (`tests/themes.js` checks it).
+  `[data-theme="<key>"] .piece`, as Mural's medallion, leaf and beads; a rule there names a piece, or a component on the list's `counted:`
+  line with its reason beside it (`tests/themes.js` checks it). The tokens are scales and plain meanings (VB-1489): a theme sets its
+  three corners (`--r-0` to `--r-2`) and its three shadows (resting, raised, floating), not one corner a component; a value only one
+  theme's piece would read is that piece's rule, not a token. A sample's panel carries the theme itself, so a theme's panel rule names
+  it twice, `[data-theme="<key>"] .panel, .panel[data-theme="<key>"]`.
 - A new component uses pieces (VB-1488): its markup carries `panel`, `head`, `icon-btn`, `row`, `card` or `meter` (a button is the
   element), a popup's opener `aria-haspopup` so that it shows pressed while open; its own rules carry layout (place, size, gaps), and
-  corners from the radius tokens, not a look a theme would want to change.
+  corners from a step of the radius scale (or round, for a pill or a circle), its shadow from a step of the shadow scale, not a look
+  a theme would want to change.

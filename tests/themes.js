@@ -275,7 +275,8 @@ const css = stylesheet(readSource('src/head.html'));
 const themes = themeKeys(readSource('src/page/options.js'));
 const errors = check(css, themes, pageDefined());
 for (const e of errors) expect(false, e);
-expect(tokenList(css).length >= 40, `the token list holds ${tokenList(css).length} tokens, VB-1484 wrote 40`);
+// the list was read whole: VB-1489 cut VB-1484's 40 to 28, a list of scales; fewer is fine, a list near empty is a misread
+expect(tokenList(css).length >= 20, `the token list holds ${tokenList(css).length} tokens, VB-1489 wrote 28`);
 
 if (fail) process.exit(1);
 console.log(`themes ok: ${themes.length} themes, ${tokenList(css).length} tokens`);
