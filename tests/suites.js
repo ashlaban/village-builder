@@ -59,6 +59,7 @@ const FAST = [
   ['node', 'tests/seedorder.js'], // seed eaten last field last; a start in life and settlers take a field's seed of each crop (VB-352)
   ['node', 'tests/forest-spread.js'],
   ['node', 'tests/clear-ground.js'], // clearing by ground: hills 18, heath 13, meadow 10 (VB-1492)
+  ['node', 'tests/field-site.js'], // a field's site by its score, whatever its ground: far stony meadow over near hills (VB-1494)
   ['node', 'tests/rye.js'],
   ['node', 'tests/weather.js'], // VB-354: the seasons' weather, each crop's reading, the thaw, the frost, the ripening
   ['node', 'tests/latitude.js'], // VB-807: the winter's dates by latitude, the bands, the growing year by world, dates falling, lat saved

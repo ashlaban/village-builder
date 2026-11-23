@@ -1,14 +1,13 @@
 // @sys sim/fieldplans: field demand, site selection, clearing projects and the head's harvest estimate
 VB['sim/fieldplans'] = (() => {
-  const { B } = VB['gen'];
-  const { ECON, FIELDS, cal, YEAR_DAYS } = VB['sim/rules'],
-    { CROPS, ROTATIONS, GROUND, farmable, fertility } = VB['sim/crops'];
+  const { ECON, FIELDS, SPEED, cal, YEAR_DAYS } = VB['sim/rules'],
+    { CROPS, ROTATIONS, GROUND, SOIL, farmable, fertility } = VB['sim/crops'];
   const { rotationOf, courseFor } = VB['sim/rotations'];
   const { age } = VB['sim/records'];
   const { team } = VB['sim/herds'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
-  const { nextTo, farmedLand, FIELD_NEAR } = VB['sim/layout'];
+  const { nextTo, farmedLand } = VB['sim/layout'];
   const { freeFor } = VB['sim/territory'];
   const { stake, contest, contestable } = VB['sim/stakes'];
   const Projects = VB['sim/projects'],
@@ -140,27 +139,44 @@ VB['sim/fieldplans'] = (() => {
             : !may(t)
               ? "the land there is outside the farm's block"
               : null;
+  // @tunable SITE: how a head reckons a site for a new field (VB-1494; Kim, 23 Nov: no rule mandates the order of land use): the field's
+  // grain a year against the hours it costs a year, the making spread over `years`, the walk out and back `trips` times a year at
+  // SPEED; a tile touching the farm's fields counts `together` times, so the fields grow as one block (VB-109). ----
+  const SITE = { years: 5, trips: 10, together: 2 };
+  // The head's reckoning (principle 14) that a search shares: the reference crop's yield and hours a year, and its mean soil over SITE.years
+  // on ground farmed before (SOIL.start) and on ground never farmed (SOIL.fresh), each crop wearing it to SOIL.floor. Once a search.
+  function siteTerms() {
+    const c = CROPS.barley,
+      mean = (s0) => {
+        let n = 0;
+        for (let k = 0; k < SITE.years; k++) n += Math.max(SOIL.floor, s0 - k * c.wear);
+        return n / SITE.years;
+      };
+    let work = 0;
+    for (const [stage, h] of Object.entries(c.hours)) work += stage === 'weed' ? h * c.weeds : h;
+    return { grain: c.yield, work, start: mean(SOIL.start), fresh: mean(SOIL.fresh) };
+  }
+  // A site's score, d walking steps from the house: its grain a year (fertility, the soil it would start at) for each hour a year it costs
+  // (the crop's work, the clearing with its ground's term and the breaking over SITE.years, the walk). A ground's extra hours enter through
+  // clearHours (GROUND.clear); a one-off gain (a tile's wood, VB-1495) would enter as grain over SITE.years. Allocates nothing.
+  const siteScore = (st, t, d, k = siteTerms()) =>
+    (k.grain * fertility(st.w, t) * (st.w.dev[t] ? k.start : k.fresh)) /
+    (k.work + (clearHours(st, t) + BREAK_HOURS) / SITE.years + (2 * SITE.trips * d) / SPEED);
   // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),
   // not on a river, and where farmed land may lie (sim/layout, farmedLand: beside a house, but off the ring round a green and no nearer
-  // the green than the house): fertile (watered by one), few stones, near, and 1 better when it touches one of the
-  // farm's fields, so the fields grow as one block (VB-109). Open meadow always comes first; heath, hills or marsh (poorer, by GROUND)
-  // only when no meadow is free (balance review: where land ran short, poorer land was taken in). -1 when there is none. `free`: whether the
-  // household may take a tile in (a stake it may contest, for sim/stakes).
+  // the green than the house): the best score (siteScore), whatever its ground, and SITE.together times better when it touches one of the
+  // farm's fields. -1 when there is none. `free`: whether the household may take a tile in (a stake it may contest, for sim/stakes).
   // `built`: builtTiles(st), when the caller has it (the review asks every farm in one hour, VB-227).
   function chooseTile(st, f, free = (t) => freeFor(st, t, f.village), built = builtTiles(st)) {
     const w = st.w,
       own = new Set(f.fields.map((fd) => fd.tile)),
-      may = farmedLand(w, st.villages, st.villages[f.village], f.house, st);
+      may = farmedLand(w, st.villages, st.villages[f.village], f.house, st),
+      k = siteTerms();
     let best = -1,
       bs = -Infinity;
     for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
       if (d < 1 || fieldBar(st, t, free, built, may) !== null) continue;
-      const s =
-        fertility(w, t) -
-        (0.5 * w.stones[t]) / 255 -
-        FIELD_NEAR * d +
-        (nextTo(w, t, own) ? 1 : 0) -
-        (w.biome[t] === B.MEADOW ? 0 : 2);
+      const s = siteScore(st, t, d, k) * (nextTo(w, t, own) ? SITE.together : 1);
       if (s > bs) {
         bs = s;
         best = t;
@@ -248,6 +264,7 @@ VB['sim/fieldplans'] = (() => {
     fieldWhy,
     pickField,
     chooseTile,
+    siteScore,
     beginField,
     fieldProject,
     newFieldSeed,
