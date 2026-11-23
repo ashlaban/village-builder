@@ -330,7 +330,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   page, not by `Sim.load`. The landing page and the loader (`src/page/loader.js`) lead to it; it keeps nothing in `st`.
 - The interface's theme (VB-1161) is `src/page/options.js`: the main menu's Options screen, and `glass` (the default, the stylesheet as it
   stands) or `mural`, set as `data-theme` on the page's root and kept in localStorage (`vb.theme`), never in `st` or a save. A theme is a
-  block of tokens under `[data-theme="..."]` and its own pieces under `:root[data-theme="..."]` in `src/head.html`; the meter gives its fill's start and end as `--lo` and `--hi`, so a
+  block of tokens under `[data-theme="..."]` and its styling of the pieces in `src/head.html`; the meter gives its fill's start and end as `--lo` and `--hi`, so a
   theme can draw a level another way than as a bar's width.
   With no game open, the loader raises a tiny showcase island behind the menu screens, on one of a pool of seeds (VB-307; `demo`, page state): a run of its own at 3x,
   never saved and never a game to go back to; `build` drops it.
@@ -412,4 +412,10 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   card in Options, and `tests/page.js`'s walk of the themes, follow. And a block `[data-theme="<key>"] { ... }` in `src/head.html`
   that sets every token listed at the head of the stylesheet, in one rule (`tests/themes.js` checks it); written without `:root`, it
   applies to any element with the attribute, so the card's sample (a panel, a head, a pressed and an unpressed button) is drawn in the
-  theme whatever theme is on. A piece the tokens cannot say is a rule under `:root[data-theme="<key>"]`, as Mural's band and beads.
+  theme whatever theme is on. Then its styling of the pieces (VB-1488), listed beside the tokens: panel, head, button (pressed and
+  primary by one rule), icon button, row, card, meter. What the tokens cannot say is a rule in the theme's own section,
+  `[data-theme="<key>"] .piece`, as Mural's medallion and beads; a rule there names a piece, or a component on the list's `counted:`
+  line with its reason beside it (`tests/themes.js` checks it).
+- A new component uses pieces (VB-1488): its markup carries `panel`, `head`, `icon-btn`, `row`, `card` or `meter` (a button is the
+  element), a popup's opener `aria-haspopup` so that it shows pressed while open; its own rules carry layout (place, size, gaps), and
+  corners from the radius tokens, not a look a theme would want to change.
