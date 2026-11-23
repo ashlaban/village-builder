@@ -158,6 +158,6 @@
   "sim.js",
   "gen/paths.js",
   "draw/rivers.js",
-  "gen/marks.js",
+  "draw/marks.js",
   "draw/bake.js"
 ]

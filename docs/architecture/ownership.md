@@ -441,10 +441,10 @@ gone. The table is `node tools/writes.js` of 18 November.
 | gen/paths | - | - |
 | gen/rivers | - | - |
 | gen/climate | gen/rivers | - |
-| gen/marks | - | - |
+| draw/marks | - | - |
 | gen/geology | - | - |
 | gen/cover | - | - |
-| gen | - | gen/cover:243, gen/climate:344, gen/climate:477, gen/rivers:543, gen/geology:716, gen/paths:1038, gen/rivers:1038, gen/marks:1040 |
+| gen | - | gen/cover:243, gen/climate:344, gen/climate:477, gen/rivers:543, gen/geology:716, gen/paths:1038, gen/rivers:1038, draw/marks:1040 |
 | culture | - | count:381, count:417 |
 | sim/rules | gen | - |
 | sim/registry | - | count:120, count:136 |

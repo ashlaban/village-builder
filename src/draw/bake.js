@@ -288,7 +288,7 @@ VB['draw/bake'] = (() => {
       }
     VB['gen/paths'].thin(w, VB['draw/rivers'].thin(w, items, hexLocator(w)), hexLocator(w)).sort((a, b) => a.y - b.y); // none on rivers or paths
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
-    VB['gen/marks'].draw(ctx, items, S, R, full, mulberry32);
+    VB['draw/marks'].draw(ctx, items, S, R, full, mulberry32);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
