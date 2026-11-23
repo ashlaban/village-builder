@@ -58,6 +58,7 @@
       "sim/holding",
       "sim/makings",
       "sim/dig",
+      "sim/saltpan",
       "sim/pot",
       "sim/hunger",
       "sim/foodneed",

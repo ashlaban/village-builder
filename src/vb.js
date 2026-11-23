@@ -134,6 +134,8 @@ VB.COUNTERS = {
     'for tar (sim/drying, sim/tar; VB-301)',
   boatAsk:
     'Farms of villages by fishing water asked whether their household begins a boat, once a year (sim/drying; VB-300)',
+  saltGround:
+    'Tiles within reach of a house searched for its salt spring, when its want opens, at most once a year (sim/saltpan; VB-700)',
   digGround:
     'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
   cowSeek:

@@ -239,6 +239,13 @@ const MATERIALS = [
   { key: 'clay', label: 'Clay', icon: 'clay', field: 'clay', title: 'Clay, in loads' },
   { key: 'bogOre', label: 'Bog ore', icon: 'ore', field: 'bogOre', title: 'Bog iron ore, in loads' },
   { key: 'tar', label: 'Tar', icon: 'tar', field: 'tar', title: 'Tar, in barrels' },
+  {
+    key: 'salt',
+    label: 'Salt',
+    icon: 'salt',
+    field: 'salt',
+    title: 'Salt, in measures (a measure salts 10 rations of meat)',
+  },
   { key: 'wool', label: 'Wool', icon: 'wool', field: 'wool', title: 'Wool, in fleeces, unspun' },
 ];
 const materialsOf = (hh) => MATERIALS.map((m) => ({ ...m, n: Math.round(hh[m.field] || 0), kinds: [] }));
@@ -464,6 +471,7 @@ function animalsTab(hh) {
   }
   const larder = [
     ['salt meat', 'Salt meat', 'meat'],
+    ['smoked meat', 'Smoked meat', 'meat'],
     ['meat', 'Fresh meat', 'meat'],
     ['butter', 'Butter', 'butter'],
     ['milk', 'Milk', 'milk'],

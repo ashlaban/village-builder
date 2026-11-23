@@ -328,13 +328,22 @@ VB['sim/byre'] = (() => {
     },
     held: (st, hh) => larderOf(hh, 'salt meat'),
   });
-  // Salted: the fresh meat keeps as salt meat does (sim/goods), the change booked in the ledger.
+  // Salted: the fresh meat keeps as salt meat does (sim/goods), as far as the household's salt goes, HERD.saltPerRation a ration (VB-700);
+  // the rest is smoked and keeps HERD.smokeDays, so a household without salt is worse off, not barred. The changes booked in the ledger.
   function saltDone(st, hh) {
     const n = takeAll(hh, 'meat');
-    addFood(st, hh, 'salt meat', n);
-    if (n > 0) {
-      Stores.record(st, hh, 'meat', -n, 'salting');
-      Stores.record(st, hh, 'salt meat', n, 'salting');
+    if (!(n > 0)) return;
+    const salted = Math.min(n, (hh.salt || 0) / HERD.saltPerRation),
+      smoked = n - salted;
+    if (salted > 0) Stores.take(st, hh, 'salt', salted * HERD.saltPerRation, 'salting');
+    Stores.record(st, hh, 'meat', -n, 'salting');
+    if (salted > 0) {
+      addFood(st, hh, 'salt meat', salted);
+      Stores.record(st, hh, 'salt meat', salted, 'salting');
+    }
+    if (smoked > 0) {
+      addFood(st, hh, 'smoked meat', smoked);
+      Stores.record(st, hh, 'smoked meat', smoked, 'salting');
     }
   }
   // Barn hay spoils by winters of the animals now; mown hay still on a meadow is untouched (VB-159); BUILD.barn.loss as much on a farm

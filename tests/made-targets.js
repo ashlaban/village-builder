@@ -18,11 +18,11 @@ const G = plan.targets.goods;
 
 // the registry: the goods with a maker, each declared once by its maker
 const goods = Targets.madeGoods().sort();
-assert.deepStrictEqual(goods, ['ale', 'bogOre', 'butter', 'clay', 'dried fish', 'peat', 'quern', 'salt meat', 'tar'], 'the made goods');
+assert.deepStrictEqual(goods, ['ale', 'bogOre', 'butter', 'clay', 'dried fish', 'peat', 'quern', 'salt', 'salt meat', 'tar'], 'the made goods');
 // the default: the household's need, as its rule sets it
 assert.deepStrictEqual(
-  [G.clay, G.bogOre, G.ale, G.quern, G['dried fish'], G.tar, G.butter, G['salt meat'], G.peat],
-  [Dig.DIG.stock, Dig.DIG.stock, BREW.stock, 1, Drying.wanted(st, hh), 1, Infinity, Infinity, Infinity],
+  [G.clay, G.bogOre, G.ale, G.quern, G['dried fish'], G.tar, G.butter, G['salt meat'], G.peat, G.salt],
+  [Dig.DIG.stock, Dig.DIG.stock, BREW.stock, 1, Drying.wanted(st, hh), 1, Infinity, Infinity, Infinity, hh.herds.length ? VB['sim/saltpan'].SALT.stock : 0],
   'a review compiles each target to its need');
 for (const g of goods) assert.strictEqual(Targets.target(st, hh, g), G[g], `${g}: the makers read the compiled target`);
 sound('compiled');

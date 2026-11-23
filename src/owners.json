@@ -114,6 +114,8 @@
     "household.peat": "sim/stores",
     "household.peatCut": "sim/stores",
     "household.digAt": "sim/dig",
+    "household.saltAt": "sim/saltpan",
+    "household.salt": "sim/stores",
     "household.rack": "sim/stores",
     "household.fresh": "sim/pot",
     "household.boat": "sim/drying",
