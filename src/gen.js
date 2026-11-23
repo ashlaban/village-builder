@@ -333,6 +333,7 @@ const ArchGen = (() => {
 
     const name =
       SYL_A[(rand() * SYL_A.length) | 0] + SYL_B[(rand() * SYL_B.length) | 0] + SYL_C[(rand() * SYL_C.length) | 0];
+    const ground = VB['gen/geology'].lay({ N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R, seed });
     // @state w.lat: number; the world's latitude, degrees north at its middle row: the climate it was made in (sim/climate CLIMATE.worlds,
     //   VB-807), not drawn from the seed, so a seed's island is the same in every climate; 59, the middle world's, where none is given
     // @state w.seed,name: number, string; the generator seed and the map's name
@@ -391,7 +392,8 @@ const ArchGen = (() => {
       treesMax,
       stones,
       ...rivers,
-      ...VB['gen/geology'].lay({ N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R, seed }),
+      ...ground,
+      ...VB['gen/water'].lay({ N, nb, he, hm, water, ocean, biome, river: rivers.river, rock: ground.rock }),
     };
   }
 

@@ -1201,6 +1201,21 @@ function checkState(st) {
     }
     if (off) bad.push(`w.fish: ${off} tiles with a stock or day out of place`);
   }
+  // fresh water on the map (VB-1550): a source's class on every tile, none on the sea, a lake on a lake, running water where a river runs;
+  // a depth to the ground's water on land or no well, never on water; the walk laid, 0 on a river's tile, none on water, nowhere negative
+  {
+    const { fresh, waterDepth, freshWalk, water, ocean, river } = st.w, { FRESH, FRESHES } = globalThis.VB['world/water'];
+    if (!fresh || !waterDepth || !freshWalk || fresh.length !== N || waterDepth.length !== N || freshWalk.length !== N) bad.push('w.fresh, w.waterDepth, w.freshWalk: not laid a tile');
+    else {
+      let off = 0;
+      for (let i = 0; i < N; i++) {
+        const f = fresh[i], running = f >= FRESH.BROOK && f <= FRESH.RIVER;
+        if (f >= FRESHES.length || (water[i] ? f !== (ocean[i] ? FRESH.NONE : FRESH.LAKE) : f === FRESH.LAKE) || running !== (river[i] > 0 && !water[i])) off++;
+        else if (water[i] ? waterDepth[i] !== Infinity || freshWalk[i] !== Infinity : !(waterDepth[i] > 0) || !(freshWalk[i] >= 0) || (running && freshWalk[i] !== 0)) off++;
+      }
+      if (off) bad.push(`w.fresh, w.waterDepth, w.freshWalk: ${off} tiles out of place`);
+    }
+  }
   // the kept lists of walking reach (VB-452; sim/walking reachTiles): for each farm with a household and each reach the ground searches ask
   // (fishing, gathering, hunting), the kept list is what a new search from the house finds now, tile for tile in its order
   {

@@ -16,7 +16,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   them: `world/grid` the hex grid (the odd-r directions, `toAxial`, `hexDist`, `hexLocator`, and `csample(w, arr, x, y)`, a coarse-cell
   array sampled at a map point), `world/biomes` the biome codes `B` and their keys, names and water, and `treeStage` (the stage of a
   tile's trees, the contract between `sim/forest`, `sim/spread` and the drawing), `world/geology` the codes and names of the bedrock and
-  deposits (`ROCK`, `DEPOSIT`, `ENDLESS`, `FIND`), `world/rivers` the name of a river tile's water by its flow (`kind`).
+  deposits (`ROCK`, `DEPOSIT`, `ENDLESS`, `FIND`), `world/rivers` the name of a river tile's water by its flow (`kind`),
+  `world/water` the codes and names of a tile's fresh water (`FRESH`), the well's bands by the depth to the ground's water (`WELL`, `band`,
+  `bandHours`) and the nearest source down the walk to water (`sourceNear`).
   A sim module reads them there, not through the `gen` facade.
 - `ArchGen.generate(seed)` (`src/gen.js`) assembles the world's terrain, hex tiles and regions. Seeded noise comes from `src/gen/noise.js`.
   `src/gen/biomes.js` holds the cover thresholds (`COVER`); a tile's biome is changed by `setBiome` of `world/biomes`, which writes the
@@ -30,6 +32,11 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   are the presentation layer, listed after `sim.js` (VB-1503). `ArchGen` exposes the generator only (`generate`, `BIOMES`, `COVER`);
   the page reads the bake as `VB['draw/bake']` and `mulberry32` from `gen/noise`.
   Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced by `src/gen/rivers.js`, listed before `gen.js`, which calls it, and drawn by `src/draw/rivers.js` (VB-1502).
+  Fresh water (VB-1550; design.md, Water by the site) is laid by `src/gen/water.js` after the ground: a tile's source (`w.fresh`) and the
+  depth to the ground's water (`w.waterDepth`, `WATERTABLE`), shown only as a band. The walk to it (`w.freshWalk`) needs the walking
+  costs, which are the simulation's, so `src/sim/water.js` lays it where a world enters a state (`makeState`, and `load` before the
+  saved fields are put back): from the land as generated, never saved, never recomputed. No rule reads the three yet; the tile card
+  and the Fresh water overlay (`src/page/water.js`) show them.
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
   soapstone, and finite deposits of clay and ores (`w.deposit`, `w.depositLeft`) as veins, each island drawing which kinds it has
   (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Nothing digs yet. `src/sim/prospect.js` keeps what each village

@@ -146,6 +146,12 @@ const ICON = {
     '<path d="M10 17.5V8.5M10 11C6.5 11 4.5 9 4.5 5.5 8 5.5 10 7.5 10 11ZM10 9.5c0-3 2-5 5.5-5 0 3.5-2 5-5.5 5ZM3 17.5h14"/>',
     ICON_STROKE,
   ), // a sprout in the earth: how good a field is
+  freshwater: svgIcon(
+    20,
+    20,
+    '<path d="M10 2.5c2.5 4.2 5 6.7 5 9.3a5 5 0 0 1-10 0c0-2.6 2.5-5.1 5-9.3z"/>',
+    ICON_STROKE,
+  ), // a drop: the walk to fresh water
   woodland: svgIcon(20, 20, '<path d="M10 2.5l5.5 9h-11ZM10 11.5v6"/>', ICON_STROKE), // a tree: the woods standing
   wildfood: svgIcon(
     20,
@@ -226,6 +232,8 @@ const ICON_STEN = {
   reach: '<circle class="l" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.8"/>',
   fertility:
     '<path class="l" d="M12 21V10M3 21h18"/><path d="M12 13C7.5 13 5 10.5 5 6c4.5 0 7 2.5 7 7zM12 11c0-4 2.5-6.5 7-6.5 0 4.5-2.5 6.5-7 6.5z"/>',
+  freshwater:
+    '<path d="M12 2.5c3.2 5.3 6.5 8.5 6.5 11.8a6.5 6.5 0 0 1-13 0c0-3.3 3.3-6.5 6.5-11.8z"/><path class="c" d="M9 15c.3 1.5 1.3 2.5 2.8 2.8"/>',
   woodland: '<path d="M12 2.5l7 11.5H5z"/><path class="l" d="M12 14v7.5"/>',
   wildfood:
     '<circle cx="7.5" cy="16" r="4"/><circle cx="16.5" cy="16" r="4"/><path class="l" d="M12 12V3.5M12 7.5l4.5-2.5"/>',

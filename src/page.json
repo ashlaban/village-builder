@@ -12,6 +12,7 @@
   "page/wildfood.js",
   "page/grazing.js",
   "page/wear.js",
+  "page/water.js",
   "page/loader.js",
   "page/minimap.js",
   "page/tileinfo.js",

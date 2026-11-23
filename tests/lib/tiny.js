@@ -45,6 +45,7 @@ function tinyWorld(rows, opt = {}) {
     region: new Int32Array(N), regions: [{ cq: 0, cr: 0, tiles: N, land, label: 1 }],
     ang: new Float32Array(2 * N), trees, treesMax, stones,
     river: new Uint16Array(N), riverTo: new Int32Array(N).fill(-1), crossing: new Uint8Array(N), rivers: [],
+    ...VB['gen/water'].lay({ N, nb, he, hm, water, ocean, biome }), // w.fresh and w.waterDepth, as the generator lays them (VB-1550)
   };
 }
 // The tile index at column col, row row.

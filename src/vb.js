@@ -172,6 +172,9 @@ VB.COUNTERS = {
     'VB-461)',
   awayMeals:
     'Meals eaten from a pack by the pawns away from home, on a journey or lodging, a meal a day each (sim/away feedAway; VB-783)',
+  waterSettled:
+    "Tiles settled by the two searches of the map's fresh water, once a world: the rise above the nearest water surface (gen/water) " +
+    'and the walk to fresh water (sim/water; VB-1550)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };

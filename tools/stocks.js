@@ -147,7 +147,7 @@ const NOT_STOCKS = {
     'w.macro', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
       'w.hrnd',
     'w.landDist', 'w.nb', 'w.region', 'w.regions', 'w.river', 'w.riverTo', 'w.rock', 'w.deposit', 'w.vein', 'w.veinKind',
-    'w.veinNear'],
+    'w.veinNear', 'w.fresh', 'w.waterDepth', 'w.freshWalk'],
   'ways (the wear of walking, fords and bridges)': ['w.wear', 'w.worn', 'w.crossing'],
   'when a tile was last worked (a day, not an amount; sim/spread)': ['w.tended'],
   'choices of the village\'s meeting (a decision, not an amount)': ['village.gathering'],

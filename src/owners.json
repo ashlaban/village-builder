@@ -134,6 +134,7 @@
     "w.dugDay": "sim/dig",
     "w.graze": "sim/grazing",
     "w.tended": "sim/spread",
+    "w.freshWalk": "sim/water",
     "st.front": "sim/spread",
     "st.lapsed": "sim/spread",
     "st.deer": "sim/deer",

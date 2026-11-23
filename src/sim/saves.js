@@ -385,6 +385,7 @@ VB['sim/saves'] = (() => {
       );
     }
     seal();
+    VB['sim/water'].layWalk(w); // VB-1550: before the saved fields are put back, so from the land as generated, as at seeding
     w.lat = typeof data.lat === 'number' ? data.lat : VB['sim/climate'].CLIMATE.worlds.middle; // a save before VB-807: the middle world
     for (const k of WORLD) {
       if (!(k in data.world)) continue;

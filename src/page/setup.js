@@ -12,6 +12,7 @@ const G = ArchGen,
   Biomes = VB['world/biomes'],
   Grid = VB['world/grid'],
   Flow = VB['world/rivers'],
+  Water = VB['world/water'],
   Customs = VB['sim/customs'];
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -87,6 +88,7 @@ for (const k of [
   'ground',
   'reach',
   'fertility',
+  'freshwater',
   'woodland',
   'wildfood',
   'grazing',
@@ -108,7 +110,7 @@ L.regions.visible = false;
 L.land.visible = false;
 L.ground.visible = false;
 L.reach.visible = false;
-L.fertility.visible = false;
+L.fertility.visible = L.freshwater.visible = false;
 L.woodland.visible = L.wildfood.visible = false;
 L.grazing.visible = false;
 L.wear.visible = false;
