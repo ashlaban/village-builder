@@ -446,6 +446,8 @@ const ArchGen = (() => {
       }
     const name =
       SYL_A[(rand() * SYL_A.length) | 0] + SYL_B[(rand() * SYL_B.length) | 0] + SYL_C[(rand() * SYL_C.length) | 0];
+    // @state w.lat: number; the world's latitude, degrees north at its middle row: the climate it was made in (sim/climate CLIMATE.worlds,
+    //   VB-807), not drawn from the seed, so a seed's island is the same in every climate; 59, the middle world's, where none is given
     // @state w.seed,name: number, string; the generator seed and the map's name
     // @state w.R,COLS,ROWS,RR: numbers; hex circumradius (map units), grid columns, grid rows, region radius (tiles)
     // @state w.W,H,HW,AP: numbers; map width and height, hex width and hex apothem (map units)
@@ -469,6 +471,7 @@ const ArchGen = (() => {
     // @state w.tile: Float32Array 256*256; tileable noise texture
     return {
       seed,
+      lat: typeof opt.lat === 'number' ? opt.lat : 59,
       name,
       R,
       COLS,

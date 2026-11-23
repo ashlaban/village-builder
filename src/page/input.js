@@ -236,6 +236,7 @@ $('genForm').addEventListener('submit', (e) => {
     $('genMsg').hidden = false;
     return;
   }
+  choice.lat = +$('genClimate').value; // VB-807
   if (!building) build(+seed, $('genScenario').value, $('genSize').value);
 });
 function toggle(btn, fn) {

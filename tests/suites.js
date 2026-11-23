@@ -57,6 +57,7 @@ const FAST = [
   ['node', 'tests/forest-spread.js'],
   ['node', 'tests/rye.js'],
   ['node', 'tests/weather.js'], // VB-354: the seasons' weather, each crop's reading, the thaw, the frost, the ripening
+  ['node', 'tests/latitude.js'], // VB-807: the winter's dates by latitude, the bands, the growing year by world, dates falling, lat saved
   ['node', 'tests/peas.js'],
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
   ['node', 'tests/crafts.js'], // crafts learnt by doing: halfway in 400 hours, a tenth a year, a novice's rate to a master's (VB-360)
