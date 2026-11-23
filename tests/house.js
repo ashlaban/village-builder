@@ -14,9 +14,9 @@ st.t = 2 * YEAR; check(near(houseCondition(st, f), 0.8), `two years of wear: ${h
 f.tarredUntil = YEAR; // tarred for the first year only
 check(near(houseCondition(st, f), 1 - 0.067 - 0.1), `a year tarred, a year not: ${houseCondition(st, f)}`);
 f.tarredUntil = 0; f.condition = 1; f.condAt = st.t; st.t += 20 * YEAR; check(houseCondition(st, f) === 0, 'never below 0');
-// standing: holder 1.6 + 0.15 * condition; the spouse 1.3 + the same
+// standing: the base and the deeds that are not the house's (VB-705: a farm held), + 0.15 * condition; the spouse the same
 f.condition = 0.8; f.condAt = st.t; refreshStanding(st);
-const base = (p) => standingParts(st, p)[0][1] + (p.age >= 55 ? 0.2 : 0);
+const base = (p) => standingParts(st, p).filter(([l]) => !/house/.test(l)).reduce((s, x) => s + x[1], 0);
 check(near(holder.standing, base(holder) + 0.12), `holder standing ${holder.standing}`);
 if (sp !== null && st.pawns[sp].alive) check(near(st.pawns[sp].standing, base(st.pawns[sp]) + 0.12), `spouse standing ${st.pawns[sp].standing}`);
 f.tarredUntil = st.t + 6 * YEAR; refreshStanding(st);
