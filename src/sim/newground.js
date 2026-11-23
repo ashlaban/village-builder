@@ -32,7 +32,7 @@ VB['sim/newground'] = (() => {
   function finishBreak(st, f, plan) {
     const tile = plan.steps[plan.open].place;
     realiseStake(st, st.households[f.household], tile);
-    const fd = broken(st, tile, f.fields.length);
+    const fd = broken(st, tile, f.fields.length + (f.left ? f.left.gone : 0)); // the fields made so far, those let go among them (VB-768)
     f.fields.push(fd); // lint-allow: owner a new field joins its farm's list where its ground is broken (sim/fields' record)
     placeField(st, f, st.households[f.household], fd);
     st.farmDirty.add(f.id); // its new field is drawn (VB-442)

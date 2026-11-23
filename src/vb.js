@@ -7,6 +7,9 @@
 var VB = (globalThis.VB = globalThis.VB || {});
 // Work measurements only: never part of st or an input to a simulation decision.
 VB.COUNTERS = {
+  letGoJobs:
+    "Jobs read to see whether a field a household might let go has a task on it, on its head's planning day after the harvest " +
+    '(sim/fieldplans letGoWhy, VB-768)',
   tilthRead: "Reads of a field's tilth, at manuring and reaping only (sim/fields tilthOf, VB-717)",
   routeSearch: 'A* searches started',
   visitNoRoute:

@@ -1001,6 +1001,13 @@ function checkState(st) {
     }
     if (f.grade !== 'ground' && f.grade !== 'stone') bad.push(`farmsteads[${f.id}]: grade ${f.grade}`); // VB-332
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
+    // VB-768: the fields let go, absent or counted; the fields' ids distinct and under the fields ever made (none used again)
+    const L = f.left;
+    if (L !== undefined && !(L && Number.isInteger(L.gone) && L.gone >= 1 && Number.isInteger(L.year) && L.year >= 0 && L.year <= Math.floor(st.t / VB["sim/rules"].YEAR) + 1 && Number.isInteger(L.inYear) && L.inYear >= 1 && L.inYear <= L.gone))
+      bad.push(`farmsteads[${f.id}]: fields let go ${JSON.stringify(L)}`);
+    const made = f.fields.length + (L ? L.gone : 0), ids = new Set(f.fields.map((fd) => fd.id));
+    if (ids.size !== f.fields.length || f.fields.some((fd) => !(Number.isInteger(fd.id) && fd.id >= 0 && fd.id < made)))
+      bad.push(`farmsteads[${f.id}]: field ids ${[...ids].join(',')} not distinct under ${made}`);
     if (st.owner) {
       const want = f.household === null ? -f.village - 1 : f.household + 1;
       for (const tile of [f.house, ...f.fields.map((fd) => fd.tile), ...(f.meadows || []).map((m) => m.tile)]) {

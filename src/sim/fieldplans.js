@@ -15,6 +15,7 @@ VB['sim/fieldplans'] = (() => {
     Stores = VB['sim/stores'];
   const { scrubHours } = VB['sim/spread'];
   const { seedPer } = VB['sim/hunger'];
+  const { trusted } = VB['sim/yields'];
   const REACH = 4,
     SCRUB_HOURS = 10,
     STONE_HOURS = 20,
@@ -47,8 +48,11 @@ VB['sim/fieldplans'] = (() => {
   // seed a field takes back, VB-389; its rotation's sown courses by their mean, VB-350), times the head's `bias` (sim/plans, VB-485), as
   // many as its hands can till; and its rotation's fallow courses on top, in their share of its courses (VB-350; design.md, The rotation,
   // Fallow and the hands: two courses, as many again; three, half as many again).
+  // The food the fields must grow is the year's rations less what the head trusts its other sources to bring (sim/yields' trusted, VB-768:
+  // its animals, nets, hunting and gathering, days of work and gifts, by its own memory and caution); none when they cover it, else at
+  // least 1 sown field. `others` false leaves them out (the fields it would want on its fields alone: the cap on letting fields go).
   // `workable`: fieldsWorkable(st, hh), when the caller has it (the plan's review writes both, sim/plans).
-  function fieldsWanted(st, hh, workable = fieldsWorkable(st, hh), bias = 1) {
+  function fieldsWanted(st, hh, workable = fieldsWorkable(st, hh), bias = 1, others = true) {
     const R = ROTATIONS[rotationOf(st, hh)].courses;
     let net = 0,
       n = 0;
@@ -57,9 +61,47 @@ VB['sim/fieldplans'] = (() => {
         net += FIELDS.expect * CROPS[k].yield - CROPS[k].seed;
         n++;
       }
-    const food = Math.max(1, Math.ceil((FIELDS.want * yearlyRations(st, hh)) / (net / n))),
-      sown = Math.max(1, Math.min(workable, bias === 1 ? food : Math.round(food * bias)));
+    const need = FIELDS.want * yearlyRations(st, hh) - (others ? trusted(st, hh).total : 0),
+      food = need > 0 ? Math.max(1, Math.ceil(need / (net / n))) : 0,
+      sown = food ? Math.max(1, Math.min(workable, bias === 1 ? food : Math.round(food * bias))) : 0;
     return n < R.length ? Math.ceil((sown * R.length) / n) : sown;
+  }
+  // ---- fields let go (VB-768; design.md, Fields a household wants) ----
+  const IDLE = new Set(['stubble', 'fallow', 'scrub']);
+  // Why field fd of farm f cannot be let go now, or null: it bears no crop and no sheaves (stubble, fallow or scrub, nothing held), and no
+  // job of its household stands on it (VB.count.letGoJobs), so letting it go touches no work and no store.
+  function letGoWhy(st, f, fd) {
+    if (!f.fields.includes(fd)) return `field ${fd.id} is not a field of ${f.name}`;
+    if (!IDLE.has(fd.stage) || fd.held > 0)
+      return `the field is ${fd.stage}: only a field with no crop and no sheaves is let go`;
+    const mine = st.jobsBy.get(`household:${f.household}`);
+    if (mine)
+      for (const j of mine) {
+        VB.count.letGoJobs++;
+        if (j.field === fd) return 'a task stands on the field';
+      }
+    return null;
+  }
+  // The fields the household would want on its fields alone, by its head's bias (fieldsWanted with others false).
+  const alone = (st, plan, hh) =>
+    fieldsWanted(st, hh, plan.targets.workable, plan.head ? plan.head.bias.fields : 1, false);
+  // Whether the head counts on its other sources for a field's food or more (its target under the fields it would want on its fields
+  // alone): its ambition then breaks no field beyond the target (sim/aims), which it would let go again.
+  const freesFields = (st, plan, hh) => alone(st, plan, hh) > plan.targets.fields;
+  // The field the head lets go this year, or null (at its planning day after the harvest, sim/plans): only the fields its other sources
+  // free, those it would want on its fields alone (fieldsWanted with others false; so a household shrunk by a death or a marriage keeps
+  // its fields, as before), over those it wants now; none while its head has chosen its fields (the head's own target governs, VB-253), and
+  // at most FIELDS.letGo a year. Of the idle fields, the poorest (fertility by soil), the last made first on a tie.
+  function fieldToLetGo(st, plan, f, hh, c) {
+    const T = plan.targets,
+      L = f.left;
+    if (plan.chosen && plan.chosen.fields !== null && plan.chosen.fields !== undefined) return null;
+    if (L && L.year === c.year && L.inYear >= FIELDS.letGo) return null;
+    if (Math.min(f.fields.length, alone(st, plan, hh)) - T.fields <= FIELDS.slack) return null;
+    let best = null;
+    for (const fd of f.fields)
+      if (letGoWhy(st, f, fd) === null && (!best || fd.fert * fd.soil <= best.fert * best.soil)) best = fd;
+    return best;
   }
   // Hours of clearing a tile: brush, plus the stones in proportion, plus the scrub the forest has grown on it (sim/spread, VB-091).
   const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255 + scrubHours(st, tile);
@@ -206,5 +248,8 @@ VB['sim/fieldplans'] = (() => {
     fieldProject,
     newFieldSeed,
     harvestEstimate,
+    letGoWhy,
+    fieldToLetGo,
+    freesFields,
   };
 })();

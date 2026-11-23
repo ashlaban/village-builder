@@ -18,7 +18,7 @@ VB['sim/aims'] = (() => {
   const { dailyNeed } = VB['sim/hunger'],
     { larderOf } = VB['sim/larder'];
   const { winterNeed } = VB['sim/herds'];
-  const { pickField } = VB['sim/fieldplans'];
+  const { pickField, freesFields } = VB['sim/fieldplans'];
   const { pickMeadow } = VB['sim/meadows'];
   const { findSite } = VB['sim/expansion'],
     { hasPlot, awaitsCottage } = VB['sim/allotment'];
@@ -118,7 +118,8 @@ VB['sim/aims'] = (() => {
       generosity = 1 + Traits.of(st, head, 'generosity'),
       T = plan.targets,
       out = [];
-    if (f.fields.length >= T.fields && f.fields.length < T.workable) {
+    // a field beyond the target, unless the head counts on its other sources for a field's food already (VB-768): it would let it go again
+    if (f.fields.length >= T.fields && f.fields.length < T.workable && !freesFields(st, plan, hh)) {
       const tile = pickField(st, f, hh);
       if (tile >= 0) out.push({ what: 'field', weight: AIMS.base * ambition, tile });
     }
