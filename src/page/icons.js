@@ -127,6 +127,13 @@ const ICON = {
     '<circle cx="10" cy="10" r="1.5"/><circle cx="10" cy="10" r="4.5"/><circle cx="10" cy="10" r="7.5"/>',
     ICON_STROKE,
   ), // rings round a place: how far a walk is
+  woodland: svgIcon(20, 20, '<path d="M10 2.5l5.5 9h-11ZM10 11.5v6"/>', ICON_STROKE), // a tree: the woods standing
+  wildfood: svgIcon(
+    20,
+    20,
+    '<circle cx="6.5" cy="13" r="3"/><circle cx="13.5" cy="13" r="3"/><path d="M10 10V3.5M10 6.5l3.5-2"/>',
+    ICON_STROKE,
+  ), // berries on a stem
   grazing: svgIcon(
     20,
     20,
@@ -198,6 +205,9 @@ const ICON_STEN = {
   land: '<path class="l" d="M6 21.5V3"/><path d="M7 3.5h12l-3.2 4 3.2 4H7z"/>',
   ground: '<path d="M3 9l9-5 9 5-9 5z"/><path class="l" d="M3.5 14.5l8.5 4.7 8.5-4.7"/>',
   reach: '<circle class="l" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.8"/>',
+  woodland: '<path d="M12 2.5l7 11.5H5z"/><path class="l" d="M12 14v7.5"/>',
+  wildfood:
+    '<circle cx="7.5" cy="16" r="4"/><circle cx="16.5" cy="16" r="4"/><path class="l" d="M12 12V3.5M12 7.5l4.5-2.5"/>',
   grazing: '<path class="l" d="M3 20.5h18M6 20c0-4 1.2-6.5 2.5-8M10.5 20c0-5 .6-9 2-11.5M15 20c0-4 1.2-7 3-9"/>',
   wear: '<path class="l" d="M4.5 21c2.5-5 8.5-3.5 8.5-8.5s5-6 6.5-9.5"/><circle cx="9" cy="20" r="1.3"/><circle cx="14.5" cy="16" r="1.3"/>',
   layers: '<path d="M3 7.5L12 3l9 4.5-9 4.5z"/><path class="l" d="M3 12l9 4.5 9-4.5M3 16.5l9 4.5 9-4.5"/>',

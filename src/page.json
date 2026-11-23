@@ -7,6 +7,8 @@
   "page/land.js",
   "page/ground.js",
   "page/reach.js",
+  "page/woodland.js",
+  "page/wildfood.js",
   "page/grazing.js",
   "page/wear.js",
   "page/loader.js",
