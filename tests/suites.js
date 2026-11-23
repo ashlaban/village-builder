@@ -81,6 +81,7 @@ const FAST = [
   ['node', 'tests/territory.js'],
   ['node', 'tests/borders.js'],
   ['node', 'tests/farmclaims.js'],
+  ['node', 'tests/estate.js'], // VB-1175 (from VB-650): a household that dies out leaves its grain and wood lying at its farm for its heir
   ['node', 'tests/ownership.js'],
   ['node', 'tests/ownershiprules.js'],
   ['node', 'tests/dependencies.js'],
