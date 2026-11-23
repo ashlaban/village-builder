@@ -24,7 +24,8 @@ function ofRun(VB, st, seed, reaches) {
       if (w.rock[t]) {
         const key = rocks[w.rock[t] - 1];
         mark('rock:' + key, d);
-        if (VB['sim/rules'].BUILD.quarryOn.includes(w.biome[t])) mark('quarry:' + key, d); // where sim/building quarries (VB-733)
+        const on = VB['sim/rules'].BUILD.quarryOn[w.biome[t]]; // where sim/building quarries, and which rocks (VB-733)
+        if (on === null || (on !== undefined && on.includes(key))) mark('quarry:' + key, d);
       }
     }
     const has = (k, i) => !!(into[k] && into[k][i]);

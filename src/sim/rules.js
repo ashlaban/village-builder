@@ -559,10 +559,15 @@ VB['sim/rules'] = (() => {
   // and `stoneWalk` hours' walk of the house (proposed, 11 Nov). The village's well (VB-058; sim/green) takes `wellStone` loads from its
   // households' heaps, carried to the green; the green is cleared in `greenHours`, the well dug and lined in `wellHours` and its sweep raised
   // in `sweepHours` (Agreed, Kim, 30 Oct); the green lies within `greenReach` walking steps of a farm's house (VB-058's own choice).
-  // quarryOn: the biomes stone is quarried on (VB-733, the plan of VB-702's D7; Proposed): the hills and mountains of VB-332, and heath,
-  // thin soil over rock, since limestone was quarried on flat ground (Gotland, Öland).
+  // quarryOn: the biomes stone is quarried on, each with the rocks quarried there (null: any) (VB-733, the plan of VB-702's D7; Proposed):
+  // any rock on the hills and mountains of VB-332, and on heath, thin soil over rock, the bedded building stones, limestone and sandstone,
+  // as limestone was quarried on flat ground (Gotland, Öland); flat granite lies under till.
   const BUILD = {
-    quarryOn: Object.freeze([B.HILLS, B.MOUNTAIN, B.HEATH]),
+    quarryOn: Object.freeze({
+      [B.HILLS]: null,
+      [B.MOUNTAIN]: null,
+      [B.HEATH]: Object.freeze(['limestone', 'sandstone']),
+    }),
     timber: 18,
     foundationStone: 12,
     foundationHours: 40,

@@ -66,6 +66,12 @@ st.t -= YEAR;
 check(Bld.buildStep(st, plan, hh) === null, 'the step closes once the house is on stone');
 const p = st.pawns[hh.holder], parts = VB.sim.standingParts(st, p);
 check(parts.some(([l]) => l === 'A well-kept house on stone'), `the standing parts name the grade (${parts.map((x) => x[0])})`);
+// a save from before VB-733: its heap of no rock is granite, its quern's `rock` the quern's kind
+hh.stone = 5; hh.quern = { rock: 'sandstone', made: 0 }; // lint-allow: owner a test's old save
+VB['sim/stores'].heapsLoaded(st); VB['sim/quern'].quernsLoaded(st);
+check(hh.stone.granite === 5 && Object.keys(hh.stone).length === 1 && hh.quern.kind === 'sandstone' && hh.quern.made === 0 && !('rock' in hh.quern),
+  `an old save's heap and quern (${JSON.stringify(hh.stone)}, ${JSON.stringify(hh.quern)})`);
+hh.stone = {}; // lint-allow: owner a test's heap
 const bad = checkState(st);
 check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
 if (failed) process.exit(1);

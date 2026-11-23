@@ -133,8 +133,8 @@ check(Math.abs(Ties.tieOf(st, f0, f1) - 1.5 - TS.talk) < 1e-9, `a talk adds ${TS
 const atDay = [...fp.ties.keys()].map((j) => [j, Ties.tieOf(st, f0, j)]);
 Ties.renormalise(st, fp);
 check(fp.tieT === st.t && tieT0 <= st.t, `renormalised: tieT ${fp.tieT}, now ${st.t}`);
-check(atDay.every(([j, v]) => (fp.ties.has(j) ? Math.abs(Ties.tieOf(st, f0, j) - v) < 1e-9 * Math.max(1, v) : v < TS.forget)),
-  'renormalising keeps every tie as it was, and drops those under TIES.forget');
+check(atDay.every(([j, v]) => (fp.ties.has(j) ? Math.abs(Ties.tieOf(st, f0, j) - v) < 1e-9 * Math.max(1, v) : v < TS.forget || !st.pawns[j].alive)),
+  'renormalising keeps every tie as it was, and drops those under TIES.forget and those to the dead');
 R.dailyTies(st);
 // the kin floor, once a season: raised with a season's fading to spare, kin are still at the floor at the pawn's next turn
 const kin0 = VB['sim/records'].kinNear(st, f0).filter((q) => st.pawns[q].alive);
