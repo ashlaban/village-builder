@@ -9,11 +9,13 @@
 // ratios). The summary gives the run's three measures: weighted cost a finished task by size, the overhead (the orchestrator's share
 // of the cost, and the median boot), and with --results the share of tasks done at the first attempt.
 const fs = require('fs'), os = require('os'), path = require('path');
-const USAGE = `usage: node tools/agent-usage.js [FILE.jsonl] [--json] [--turns] [--since T] [--until T] [--label NAME] [--out DIR] [--results FILE]
+const USAGE = `usage: node tools/agent-usage.js [FILE.jsonl] [--json] [--turns] [--since T] [--until T] [--label NAME] [--task VB-NNN] [--out DIR] [--results FILE]
        node tools/agent-usage.js --history DIR
   FILE        a transcript; default the newest under ~/.claude/projects (this session's, when run from a session)
   --turns     a line per user prompt; --since/--until T limit to entries from/before an ISO time
   --label     the run's role (worker, reviewer, project-manager); --out DIR also writes DIR/<date>-<label>-<session>.json
+  --task      the one task this session worked on, when it ran no sub-agents: kept in the run's file as "task" (tools/usage-page.js reads it);
+              leave it out for a session that worked on several tasks or on none
   --results   the tasks' outcomes, from  node tools/inbox.js results --json : joins size and status to the sub-agents by task
   --history   medians and quartiles by label over the files in DIR`;
 
@@ -22,7 +24,7 @@ const option = (k) => { const i = args.indexOf(k); if (i < 0) return null; const
 const flag = (k) => { const i = args.indexOf(k); if (i < 0) return false; args.splice(i, 1); return true; };
 if (flag('--help') || flag('-h')) { console.log(USAGE); process.exit(0); }
 const asJson = flag('--json'), turns = flag('--turns'), since = option('--since'), until = option('--until');
-const label = option('--label') || '-', out = option('--out'), historyDir = option('--history'), resultsFile = option('--results');
+const label = option('--label') || '-', out = option('--out'), historyDir = option('--history'), resultsFile = option('--results'), task = option('--task');
 const fail = (msg) => { console.error('agent-usage: ' + msg); process.exit(1); };
 const k = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(n));
 const kb = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + ' KB' : n + ' B');
@@ -187,6 +189,8 @@ if (historyDir) { console.log(history(historyDir)); process.exit(0); }
 const file = args[0] || newest();
 if (!fs.existsSync(file)) fail(`no file ${file}`);
 const m = measure(file);
+if (task && !/^VB-\d{3,}$/.test(task)) fail(`--task takes a task ID (VB-NNN), not ${task}`);
+if (task) m.task = task;
 const results = resultsFile ? JSON.parse(fs.readFileSync(resultsFile, 'utf8')) : [];
 m.subagents = subagents(file, results);
 m.summary = summary(m);

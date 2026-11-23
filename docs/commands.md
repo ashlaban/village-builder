@@ -116,6 +116,6 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Token use: `node tools/usage-page.js [--dir DIR] [--out FILE] [--json]` writes `docs/usage.html` (derived, never committed; the Pages
   workflow makes it): the weighted cost of each task from the runs in `docs/agents/usage`, by size and model, by kind of token, and the
   sessions that belong to no one task (orchestrators, and work outside a task) apart. Its model is checked by `tests/usage-page.js`.
-- Agent usage: `node tools/agent-usage.js [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
+- Agent usage: `node tools/agent-usage.js [--task VB-NNN] [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
   their transcripts: weighted cost a done task by size, the orchestrator's share, the median boot, the share done; `--history docs/agents/usage`).
 - Play locally: `node build.js`, then open `index.html` in a browser.

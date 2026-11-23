@@ -21,7 +21,8 @@ orchestrator alone merges, writes the backlog, the questions and the tuning rows
 (principle candidates, teleports found, close calls: `AGENTS.md`, Surfacing) heads the night's PR, under "For Kim". The scheduled
 task's model is the orchestrator's: Opus.
 
-Each run ends by measuring itself (`tools/agent-usage.js`): one file per run in `docs/agents/usage/`, so runs never conflict;
+Each run ends by measuring itself (`tools/agent-usage.js`): one file per run in `docs/agents/usage/`, so runs never conflict (a session
+that worked on one task alone names it, `--task VB-NNN`, for the token use page, `tools/usage-page.js`);
 `node tools/agent-usage.js --history docs/agents/usage` gives medians and quartiles by role, to compare before and after a change
 to these files or to `AGENTS.md`. Three measures say whether a night gave the most work for the least overhead: the weighted cost of
 a done task, by size; the overhead, as the orchestrator's share of the cost and the sub-agents' median boot (their context at the
