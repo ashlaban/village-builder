@@ -94,12 +94,18 @@ VB['sim/crops'] = (() => {
     window: [0, 5],
     rot: 0.5,
   };
-  // @tunable FERTILITY: the fertility of a farmable tile as a field, by its biome (a tile of another biome cannot be farmed)
-  const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
+  // @tunable GROUND: what a farmable ground is worth as a field, by its biome (a tile of a biome with no row cannot be farmed):
+  // fert its fertility, clear the hours of clearing it takes (0 for now)
+  const GROUND = {
+    [B.MEADOW]: { fert: 1, clear: 0 },
+    [B.HEATH]: { fert: 0.65, clear: 0 },
+    [B.HILLS]: { fert: 0.7, clear: 0 },
+    [B.MARSH]: { fert: 0.5, clear: 0 },
+  };
   // @tunable RIVER: rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it
   // irrigation: extra fertility of a field next to a river tile; site: added to a village site's score by steps to the nearest river tile (0..3).
   const RIVER = { irrigation: 0.2, site: [0, 10, 10, 5] };
-  const farmable = (w, i) => i >= 0 && !w.water[i] && !w.river[i] && FERTILITY[w.biome[i]] !== undefined;
+  const farmable = (w, i) => i >= 0 && !w.water[i] && !w.river[i] && GROUND[w.biome[i]] !== undefined;
   const byRiver = (w, i) => {
     for (let k = 0; k < 6; k++) {
       const j = w.nb[i * 6 + k];
@@ -108,7 +114,7 @@ VB['sim/crops'] = (() => {
     return false;
   };
   // Fertility of a farmable tile as a field: by its biome, and more when a river waters it.
-  const fertility = (w, i) => FERTILITY[w.biome[i]] * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
+  const fertility = (w, i) => GROUND[w.biome[i]]?.fert * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
 
-  return { CROPS, ROTATIONS, SOIL, FERTILITY, RIVER, farmable, byRiver, fertility };
+  return { CROPS, ROTATIONS, SOIL, GROUND, RIVER, farmable, byRiver, fertility };
 })();
