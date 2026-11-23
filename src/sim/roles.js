@@ -133,6 +133,24 @@ VB['sim/roles'] = (() => {
       except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0 },
     },
   };
+  // @tunable STAND: the roles a holder stands in for (VB-1487; Kim, 23 Nov: a lone holder gains the absent roles' ranks; design.md, A
+  // holder alone). Each key is a role of the household's head pair, with the roles that fill its place: the mistress's is filled by a
+  // mistress, a maid or a daughter of the house (each of whom ranks the household's work as she does or above). A role is absent when
+  // none of the members the head allots the day to (living, 7 or older, at home, not on a day owed elsewhere nor commanded; ill or
+  // nursing still count) holds a role that fills it, the holder apart; the holder then ranks each kind of work at the higher of its own
+  // rank and the absent role's (sim/kinds `ranks`; read in sim/jobs prioOf). Only the holder stands in: a mistress left alone at home
+  // keeps her own ranks. The holder is always `farmer` (sim/heirs refreshRoles), so the farmer's place is never absent.
+  const STAND = { wife: ['wife', 'maid', 'daughter'] };
+  const STAND_KEYS = Object.keys(STAND);
+  // The absent roles among pawns `ps` (those the head allots the day to), the holder apart: a mask, bit i for STAND_KEYS[i]. One pass
+  // over the household's members, made once an allotment by its caller.
+  function absentMask(holder, ps) {
+    let m = (1 << STAND_KEYS.length) - 1;
+    for (const p of ps)
+      if (p.id !== holder)
+        for (let i = 0; i < STAND_KEYS.length; i++) if (STAND[STAND_KEYS[i]].includes(p.role)) m &= ~(1 << i);
+    return m;
+  }
   // @tunable CHILD: a child's working rate, by its age
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
   const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
@@ -208,5 +226,5 @@ VB['sim/roles'] = (() => {
       fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
     },
   };
-  return { ROLES, CHILD, workRate, MATCH };
+  return { ROLES, STAND, STAND_KEYS, absentMask, CHILD, workRate, MATCH };
 })();

@@ -1,7 +1,7 @@
 // @sys sim/kinds: the registry of job kinds: it joins the records each domain module declares (KINDS), builds the fetch kinds and each role's
 // ranks, and holds the order in which sim/jobs asks the kinds' rules (ASK). A kind's record lives with its domain (VB-418)
 VB['sim/kinds'] = (() => {
-  const { ROLES } = VB['sim/roles'],
+  const { ROLES, STAND_KEYS } = VB['sim/roles'],
     { doneOf } = VB['sim/progress'];
   const Fieldwork = VB['sim/fieldwork'],
     Chores = VB['sim/chores'],
@@ -113,6 +113,20 @@ VB['sim/kinds'] = (() => {
     r.prio = Object.fromEntries(
       Object.entries(KINDS).map(([k, K]) => [k, r.except[k] ?? r.except[K.fetch] ?? r.work[K.type] ?? 0]),
     );
+  // A holder's ranks with the roles of its household's head pair absent (sim/roles STAND, VB-1487): `ranks[mask]`, for each kind the
+  // highest of its own and each absent role's (bit i of the mask for STAND_KEYS[i]); ranks[0] is prio. Made once, at load.
+  for (const r of Object.values(ROLES)) {
+    r.ranks = [r.prio];
+    for (let m = 1; m < 1 << STAND_KEYS.length; m++)
+      r.ranks.push(
+        Object.fromEntries(
+          Object.keys(KINDS).map((k) => [
+            k,
+            STAND_KEYS.reduce((x, s, i) => (m & (1 << i) ? Math.max(x, ROLES[s].prio[k]) : x), r.prio[k]),
+          ]),
+        ),
+      );
+  }
   // Where refreshJobs (sim/jobs) asks, in this order: for each occupied farm in turn, at each of its fields (field), at the farm (farm),
   // and at the farm again after the household's plans for land (farmAfterPlans); then at each village (village), then once for the island
   // (island). An entry is [kind, rule]: a kind's own rule posts that kind; a shared rule (kind null) names its jobs' kinds. A job's id is its

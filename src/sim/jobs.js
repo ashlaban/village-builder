@@ -3,7 +3,7 @@
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { WORK, TICKS, cal } = VB['sim/rules'],
-    { ROLES, CHILD, MATCH } = VB['sim/roles'];
+    { ROLES, CHILD, MATCH, absentMask } = VB['sim/roles'];
   const { act } = VB['sim/traits'];
   const HELP = MATCH.help;
   const { hexSteps } = VB['sim/hex'];
@@ -259,15 +259,33 @@ VB['sim/jobs'] = (() => {
   // helper bids it for a neighbour's job, where a job that k pawns already work gets join^k of the bid (VB-102, VB-106).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), by the village's custom on a common field (sim/commons,
-  // VB-100), else by role and kind.
-  const prioOf = (st, p, j) =>
+  // VB-100), else by role and kind, the holder's with the ranks of the roles its household lacks (`stand`, the mask of sim/roles
+  // absentMask its caller made for the holder, else 0; VB-1487).
+  const prioOf = (st, p, j, stand = 0) =>
     j.plot
       ? plotPrio(st, p)
       : j.claim
         ? claimPrio(st, p, j)
         : j.common
           ? commonPrio(st, p, j)
-          : ROLES[p.role].prio[j.kind] || 0;
+          : ROLES[p.role].ranks[stand][j.kind] || 0;
+  // Whether the head allots member id the day: not a child under 7, one away from home (VB-287, VB-783), the player's pawn while it is
+  // commanded, or one on a day owed elsewhere (sim/days).
+  const allotted = (st, p) =>
+    age(st, p) >= CHILD.from &&
+    st.agents[p.id].away === undefined &&
+    !unplanned(st, p.id) &&
+    Days.on(st, p.id) === null;
+  // The stand mask of pawn p (VB-1487): the roles its household lacks today when p is the holder at work, else 0. A pass over the
+  // household's members, for a reader outside an allotment (fit); allot makes it once from its own list.
+  function standOf(st, p) {
+    const hh = p.household === null ? null : st.households[p.household];
+    if (!hh || hh.holder !== p.id || !allotted(st, p)) return 0;
+    return absentMask(
+      p.id,
+      hh.members.map((id) => st.pawns[id]).filter((q) => q.died === null && allotted(st, q)),
+    );
+  }
   // The join factor for n hands already at job j: MATCH.join ** n, or 1 for a kind worked all together (VB-120: a work day).
   const joined = (j, n) => (KINDS[j.kind].together ? 1 : MATCH.join ** n);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
@@ -275,9 +293,9 @@ VB['sim/jobs'] = (() => {
   // minAge (VB-136: herding from 8), or not its work.
   const tooYoung = (st, p, j) =>
     (p.role === 'child' && age(st, p) < CHILD.from) || (KINDS[j.kind].minAge && age(st, p) < KINDS[j.kind].minAge);
-  function score(st, p, j, c, memo) {
+  function score(st, p, j, c, memo, stand = 0) {
     if (tooYoung(st, p, j)) return null;
-    const pr = prioOf(st, p, j);
+    const pr = prioOf(st, p, j, stand);
     if (pr <= 0) return null;
     const here = bed(st, st.agents[p.id]); // the walk from where its day starts (VB-783)
     return floored(pr, pr * urgency(st, j, c, memo) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
@@ -300,8 +318,8 @@ VB['sim/jobs'] = (() => {
   // Why a pawn gets no job: every open job it may take with its noise-free bid, or the reason it gets none. Best first. Draws no random
   // numbers and writes nothing to st.
   // Pawn p's fit for a job it may take: {bid (noise-free, null when it would not bid), reason (why not, or null)}.
-  function fit(st, p, j, c) {
-    const pr = prioOf(st, p, j),
+  function fit(st, p, j, c, stand = 0) {
+    const pr = prioOf(st, p, j, stand),
       row = { bid: null, reason: null };
     if (!isOpen(st, j)) row.reason = 'taken';
     else if (pr <= 0 || tooYoung(st, p, j)) row.reason = 'not their work';
@@ -319,9 +337,10 @@ VB['sim/jobs'] = (() => {
   function explainIdle(st, id) {
     const p = st.pawns[id],
       c = cal(st.t),
-      out = [];
+      out = [],
+      stand = standOf(st, p);
     for (const j of st.jobs.values())
-      if (eligible(st, j, p)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c) });
+      if (eligible(st, j, p)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c, stand) });
     return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
   }
   // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
@@ -398,17 +417,13 @@ VB['sim/jobs'] = (() => {
       const p = st.pawns[id];
       if (p.died !== null) continue;
       lists[id] = [];
-      // not a child under 7, one away from home (VB-287, VB-783), or the player's pawn while it is commanded: the head allots around them
-      if (
-        age(st, p) >= CHILD.from &&
-        st.agents[id].away === undefined &&
-        !unplanned(st, id) &&
-        Days.on(st, id) === null
-      )
-        members.push(p);
+      // the head allots around those it does not have today (allotted)
+      if (allotted(st, p)) members.push(p);
     }
     const pairs = [],
-      memo = new Map();
+      memo = new Map(),
+      // the roles the household lacks today, whose ranks its holder takes (VB-1487): one pass over the members allotted
+      stand = hh.holder !== null && members.some((p) => p.id === hh.holder) ? absentMask(hh.holder, members) : 0;
     if (members.length) {
       const jobs = jobsFor(st, members[0]);
       VB.count.dayPair += (jobs.length ?? jobs.size) * members.length;
@@ -416,7 +431,7 @@ VB['sim/jobs'] = (() => {
         if (attentionOf(j) === 'full' && hoursLeft(st, j) <= 0) continue; // only its load is on the road
         for (const p of members) {
           if (!eligible(st, j, p)) continue;
-          const s = score(st, p, j, c, memo);
+          const s = score(st, p, j, c, memo, p.id === hh.holder ? stand : 0);
           if (s !== null && s > 0) pairs.push([s, p.id, j]);
         }
       }
@@ -470,7 +485,8 @@ VB['sim/jobs'] = (() => {
       if (!top || !busy || a.phase !== 'work' || a.job === top[1] || !isOpen(st, top[1])) continue;
       if (
         hoursLeft(st, a.job) > rateOf(st, p) &&
-        top[0] > MATCH.switchRatio * (score(st, p, a.job, c, memo) ?? 0) + MATCH.switchMargin
+        top[0] >
+          MATCH.switchRatio * (score(st, p, a.job, c, memo, p.id === hh.holder ? stand : 0) ?? 0) + MATCH.switchMargin
       )
         issue(st, { actor: a.id, verb: 'work', target: top[1].key, source: 'planner' });
     }
