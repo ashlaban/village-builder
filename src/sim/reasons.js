@@ -130,10 +130,10 @@ VB['sim/reasons'] = (() => {
       lent = Hands.on(st, id);
     if (owed !== null) return { by: 'owed', why: `nothing to take at ${farmName(st, owed)} yet` };
     if (lent !== null) return { by: 'lent', why: `nothing to take at ${farmName(st, lent)} yet` };
-    return { by: 'none', why: idle(st, id, p, a, c) };
+    return { by: 'none', why: noWork(st, id, p, a, c) };
   }
   // Why a pawn with no work has none: too young, the working day over, else the idle line (sim/jobs idleLine).
-  function idle(st, id, p, a, c) {
+  function noWork(st, id, p, a, c) {
     if (age(st, p) < CHILD.from) return 'too young to work';
     if (c.hour < WORK[0] || c.hour >= WORK[1]) return 'the working day is over';
     if (a.phase === 'home') return 'going home';
