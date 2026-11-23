@@ -399,6 +399,8 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       await page.click('#tabFacts'); await page.waitForTimeout(400);
       await page.click('#tabPlan'); await page.waitForSelector('#tileHouse [data-project]');
       if (await msg()) fail(`the refusal is still at the head of the Plan tab after it was closed: ${await page.locator('#tileHouse .plan-msg').textContent()}`);
+      // the head may have a project under way by its own rule on this course (VB-1541 moved it): the played head gives it up first
+      if (await page.locator('#tileHouse [data-plan="drop"]').count()) { await page.click('#tileHouse [data-plan="drop"]'); await page.waitForSelector('#tileHouse [data-plan="project"][data-what="field"]'); }
       await page.click('#tileHouse [data-plan="project"][data-what="field"]');
       const at = await page.evaluate((id) => { const p = VB['sim/projects'].ownOf(window.__play.st, id); return p ? p.steps[p.open].place : -1; }, hh);
       const link = `#tileHouse [data-project] [data-plan="fly"][data-tile="${at}"]`;
