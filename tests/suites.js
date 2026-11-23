@@ -164,6 +164,7 @@ const INTEGRATION = [
   ['node', 'tests/cottage.js'],
   ['node', 'tests/relations.js'],
   ['node', 'tests/pastimes.js'], // VB-1539: own time, the six pastimes each reached, the verb `pastime`, the call and the cut
+  ['node', 'tests/visitors.js'], // VB-1547: a caller at the door sits with those indoors; a passer-by does not
   ['node', 'tests/encounters.js'],
   ['node', 'tests/goodwill.js'],
   ['node', 'tests/meadows.js'],

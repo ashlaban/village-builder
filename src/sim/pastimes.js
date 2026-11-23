@@ -10,7 +10,7 @@ VB['sim/pastimes'] = (() => {
     { tieOf } = VB['sim/ties'];
   const { living, age, settlementIdOf, siblingsOf, childrenOf, fullName } = VB['sim/records'];
   const { tileAt, placeOf, travelling } = VB['sim/pose'];
-  const { atHome } = VB['sim/encounters'];
+  const { atHome, callerRule } = VB['sim/encounters'];
   const { companyFor, opinionOf } = VB['sim/relations'];
   const { issue, register } = VB['sim/commands'];
   // @tunable IDLE: how long an idle pawn waits before it looks for work again
@@ -221,6 +221,18 @@ VB['sim/pastimes'] = (() => {
     if (a.phase !== null && !(a.phase === 'home' && r.kind === 'fire')) return null;
     return st.pawns[id].alive ? r : null;
   }
+  // A caller sits with those indoors (VB-1547): one at the pastime `visit`, arrived (its walk over, within PASTIME.yard of the house it
+  // calls at), is present at the house encounter of the household it called on (sim/encounters). The cheap tests first: the talk hour's
+  // pass asks it of each pawn out of doors.
+  callerRule((st, a) => {
+    const r = a.pastime;
+    if (!r || r.kind !== 'visit' || a.path || r.with === null || of(st, a.id) !== r) return null;
+    const q = st.pawns[r.with],
+      hh = q.household === null ? null : st.households[q.household];
+    if (!hh || hh.farmstead !== r.farm) return null;
+    const h = st.farmsteads[r.farm].house;
+    return Math.hypot(a.x - st.w.hx[h], a.y - st.w.hy[h]) <= PASTIME.yard ? hh.id : null;
+  });
   // What the card says of a pawn at a pastime, and with whom ("Visiting Karin at Norrgård"), or null.
   function line(st, id) {
     const r = of(st, id);
