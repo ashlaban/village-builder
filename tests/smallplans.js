@@ -69,7 +69,7 @@ sound('plans dropped');
 // in a booth: a settler household's cottage under way, a cart begun beside it
 const g = st.farmsteads[v.farmsteads[1]], gh = st.households[g.household];
 g.booth = true;
-const home = VB['sim/projectplans'].makeProject(st, 'household', gh.id, X.cottagePlan(g));
+const home = VB['sim/projectplans'].makeProject(st, 'household', gh.id, VB['sim/cottageplan'].cottagePlan(g));
 gh.cartMiss = C.CART.misses;
 lookNow(st, 'cart', gh);
 const gcart = Projects.projectsOf(st, 'household', gh.id).find((p) => p.what === 'cart');

@@ -10,7 +10,7 @@ VB['sim/round'] = (() => {
   const { log, age, spouseOf, settlementIdOf, practice, spokesmanOf } = VB['sim/records'];
   const { countDemand, refreshRoles } = VB['sim/heirs'];
   const { kinOk, poolFor, sideScore, matchRules, wishedMatches, askerOf, askedOf } = VB['sim/matching'];
-  const { startPlots } = VB['sim/expansion'];
+  const { startPlots } = VB['sim/allotment'];
   const { claimFarms, claimableFarm, askLand } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
   const { takeServants, serveWhereShort } = VB['sim/service'];

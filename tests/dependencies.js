@@ -15,7 +15,7 @@ const fieldW = (k) => (r.fields.find((f) => f.field === k) || { writers: [] }).w
 assert.strictEqual(fieldW('st.owner').join(), 'sim/ownership', 'writes map: st.owner has one writer');
 for (const k of ['household.members', 'pawn.household', 'pawn.servant']) assert.strictEqual(fieldW(k).join(), 'sim/records', `writes map: ${k}`);
 assert(fieldW('household.grain').includes('sim/stores'), 'writes map: household grain owner not found');
-for (const [from, target] of [['sim/farmclaims', 'sim/heirs'], ['sim/expansion', 'sim/cottage']]) {
+for (const [from, target] of [['sim/farmclaims', 'sim/heirs'], ['sim/cottageplan', 'sim/cottage'], ['sim/allotment', 'sim/cottage']]) {
   const dep = r.deps.find((d) => d.mod === from);
   assert(dep && !dep.lookups.some((l) => l.key === target), `writes map: direct founding lookup ${from} → ${target}`);
   assert(dep && dep.imports.includes('sim/commands'), `writes map: ${from} founds through a command`);

@@ -109,7 +109,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   const X = VB['sim/expansion'], st = Sim.seed(world7, 7, 'heirs'), v = st.villages[0];
   st.demand = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)).map((p) => p.id).slice(0, 2);
   for (const f of st.farmsteads) if (f.household === null) f.state = 'ruin';
-  X.startPlots(st);
+  VB['sim/allotment'].startPlots(st);
   const plan = X.livePlots(st, v)[0];
   assert(plan && plan.what === 'plot' && plan.steps.map((s) => s.kind).join() === 'clear,foundation,walls,roof' && plan.steps[0].places.length === 2,
     'a plot: its tiles\' clearing, then the cottage');

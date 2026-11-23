@@ -191,7 +191,7 @@ function tent(g, bx, by) {
 }
 // A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
 // rising log walls, the turf roof; a ring while the work goes on (VB-148).
-// The cottage plan of farm f's settlers (sim/expansion's cottagePlan): its household's, or its village's while the farm waits for a
+// The cottage plan of farm f's settlers (sim/cottageplan's cottagePlan): its household's, or its village's while the farm waits for a
 // household (sim/plans' dropAll), or undefined.
 function boothCottage(f) {
   const P = VB['sim/projects'],

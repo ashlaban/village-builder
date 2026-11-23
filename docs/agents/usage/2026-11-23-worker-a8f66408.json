@@ -1,0 +1,118 @@
+{
+ "session": "a8f66408-9ae8-586b-8f74-c1aa81b1f666",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-23T11:08:47.290Z",
+ "end": "2026-11-23T11:22:25.132Z",
+ "wallMin": 13.6,
+ "activeMin": 13.6,
+ "prompts": 1,
+ "calls": 52,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 98,
+  "cacheWrite": 96603,
+  "cacheRead": 6910727,
+  "output": 24150
+ },
+ "context": {
+  "first": 84789,
+  "peak": 160307,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 52,
+   "bytes": 107806,
+   "seconds": 526.6
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/expansion.js",
+   "calls": 1,
+   "bytes": 29545
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 6,
+   "bytes": 23085
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 2,
+   "bytes": 10041
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 8,
+   "bytes": 9473
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 7,
+   "bytes": 5577
+  },
+  {
+   "tool": "Bash",
+   "what": "for e",
+   "calls": 1,
+   "bytes": 5554
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 7,
+   "bytes": 3872
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tests/width-baseline.json",
+   "calls": 1,
+   "bytes": 2981
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 2880
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 2796
+  },
+  {
+   "tool": "Bash",
+   "what": "npm run",
+   "calls": 2,
+   "bytes": 2688
+  },
+  {
+   "tool": "Bash",
+   "what": "ls src/sim",
+   "calls": 2,
+   "bytes": 1792
+  }
+ ],
+ "weighted": 932674,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 932674,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

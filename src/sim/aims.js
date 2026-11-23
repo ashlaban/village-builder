@@ -20,7 +20,8 @@ VB['sim/aims'] = (() => {
   const { winterNeed } = VB['sim/herds'];
   const { pickField } = VB['sim/fieldplans'];
   const { pickMeadow } = VB['sim/meadows'];
-  const { findSite, hasPlot, awaitsCottage } = VB['sim/expansion'];
+  const { findSite } = VB['sim/expansion'],
+    { hasPlot, awaitsCottage } = VB['sim/allotment'];
   const { issue, register } = VB['sim/commands'];
   const Plans = VB['sim/plans'],
     ProjectPlans = VB['sim/projectplans'],

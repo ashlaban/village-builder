@@ -7,7 +7,7 @@ let active = false;
 const targets = {
   'sim/heirs': ['handOn', 'countDemand', 'refreshRoles'],
   'sim/round': ['movingRound'], 'sim/marriage': ['wed'],
-  'sim/help': ['fillStores'], 'sim/farmclaims': ['claimFarms'], 'sim/expansion': ['startPlots'],
+  'sim/help': ['fillStores'], 'sim/farmclaims': ['claimFarms'], 'sim/allotment': ['startPlots'],
   'sim/settle': ['settleRound'], 'sim/service': ['takeServants'], 'sim/cottage': ['payOwed'],
   'sim/society': ['refreshStanding'],
 };

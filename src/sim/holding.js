@@ -22,7 +22,7 @@ VB['sim/holding'] = (() => {
   ];
   // The ways to a farm, each the bars it reads (the pathway's difference, by name). What else differs, and why, is the table of VB-688:
   //   claim   a derelict farm claimed and mended (sim/farmclaims): every bar
-  //   plot    a cleared plot allotted by the village (sim/expansion): its own villagers, so neither home nor ward is asked of them
+  //   plot    a cleared plot allotted by the village (sim/allotment): its own villagers, so neither home nor ward is asked of them
   //   waits   waiting for land in a crowded village (sim/settle's count of the crowded)
   //   settle  leaving it for new land (sim/settle): its age band is SETTLE.ages, read beside these
   //   ask     the asking day's ask for land (sim/asking): landed only, the claim's own check follows at the claim
