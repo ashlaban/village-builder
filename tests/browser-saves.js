@@ -132,7 +132,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   await pause();
   check((await hash()) === h1, 'Continue after a reload: ' + (await hash()) + ' against ' + h1);
   check(await page.locator('#choose').isHidden(), 'a load opens whom to play'); // VB-339: only a new game does
-  // VB-1493: the loaded world's paint, whose biomes the save laid, is the paint built anew from it
+  // VB-1504: the loaded world's paint, whose biomes the save laid, is the paint built anew from it
   const stale = await page.evaluate(() => { const w = window.__play.st.w, P = window.__play.paintOf(w), Q = VB['draw/paint'].paint(w);
     return Object.keys(Q).filter((k) => P[k].some((v, i) => !Object.is(v, Q[k][i]))); });
   check(!stale.length, 'the paint of a loaded world is not as built anew: ' + stale.join(', '));

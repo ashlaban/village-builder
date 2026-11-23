@@ -338,7 +338,7 @@ const ArchGen = (() => {
     // @state w.W,H,HW,AP: numbers; map width and height, hex width and hex apothem (map units)
     // @state w.N,STEP,CW,CH,KS: numbers; tile count COLS*ROWS, coarse-grid step (map units), coarse grid size, scale vs the first prototype
     // @state w.elev,macro: Float32Array per coarse cell (CW*CH); elevation (<0 sea floor, 0..1 land), tint (the map's colours, the light
-    //   of the relief and the distance to the land are the page's paint, draw/paint, VB-1493)
+    //   of the relief and the distance to the land are the page's paint, draw/paint, VB-1504)
     // @state w.hx,hy: Float32Array per tile; tile centre in map units
     // @state w.he,hp,hm: Float32Array per tile; elevation (<=0 water), land elevation rank 0..1, moisture 0..1
     // @state w.wind,rain: [x, y], Float32Array per tile; the way the seed's wind blows (unit vector), a land tile's rain 0..1 (gen/climate)

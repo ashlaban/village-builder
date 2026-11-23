@@ -60,7 +60,7 @@ if (process.argv.includes('--update')) {
   assert.deepStrictEqual(bad, [], `new upward calls against the layers (baseline ${base.total}, found ${total}); see node tools/dependencies.js`);
   if (total < base.total) console.log(`dependencies: ${total} upward calls, baseline ${base.total}: run --update to lower it`);
 }
-// VB-1492: the wall. The drawing (presentation) loads after sim.js: a generator or simulation module that names a draw/ module, at load or
+// VB-1503: the wall. The drawing (presentation) loads after sim.js: a generator or simulation module that names a draw/ module, at load or
 // in a function, is refused twice, as a call upward against the layers and as a lookup of a later module; and the layers place it so.
 const draws = L.names[L.of['draw/bake']];
 assert.strictEqual(draws, 'presentation', 'the draw/ modules are the presentation layer');

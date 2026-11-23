@@ -34,7 +34,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1123](backlog/VB-1123.md)<a id="VB-1123"></a> | Page: plan mode: the household's season planned on the map, in place of the Plan tab | - | 2 | L | Plan mode replaces the Plan tab: a bar of the season a member with the actions on it, actions chosen from a tile's menu, problems marked where they are, and the outcome read on the needs (survival's thresholds, by the head's estimate); no target is stepped. Requirements, walks and Kim's decisions of 17 and 18 Nov; mocks A to L. |
 | [VB-1476](backlog/VB-1476.md)<a id="VB-1476"></a> | A pawn's grain stake vanishes at its death | - | 2 | S | Found by VB-403's accounts: a pawn's stake (shares paid to it, sim/cottage payOwed) stays on the dead pawn and leaves the world with no movement; up to a fifth of a year's produce late in populous small seed 7. |
 | [VB-1478](backlog/VB-1478.md)<a id="VB-1478"></a> | The fair's animals and carts: a beast led to the gathering, a cart and two oxen carrying 90 | fair | 2 | S | VB-302 left these out: an animal walks to the fair beside its dealer and changes herd when swapped; a household with an ox cart and its team free loads 90 rations' worth, the cart out until it is home. |
-| [VB-1496](backlog/VB-1496.md)<a id="VB-1496"></a> | tests/browser.js fails on a busy machine: steps in working hours, and the work bar's click | - | 2 | S | 3 of 5 runs failed at d8f81ff on 23 November, before any page change: a wall-clock check and a click on a menu row that is redrawn |
+| [VB-1507](backlog/VB-1507.md)<a id="VB-1507"></a> | tests/browser.js fails on a busy machine: steps in working hours, and the work bar's click | - | 2 | S | 3 of 5 runs failed at d8f81ff on 23 November, before any page change: a wall-clock check and a click on a menu row that is redrawn |
 | [VB-043](backlog/VB-043.md)<a id="VB-043"></a> | One scope model: a membership graph of entities | debt | 3 | M | The membership graph of typed edges, with scopes on it; as Membership's truth if Kim adopts it (measured 0.55 ms at year 12). |
 | [VB-048](backlog/VB-048.md)<a id="VB-048"></a> | Wrap-up: tune yields and the food balance of a farm | animals | 3 | M | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. |
 | [VB-082](backlog/VB-082.md)<a id="VB-082"></a> | Customs made legible: votes, leanings and causes | debt | 3 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. |
@@ -93,7 +93,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1486](backlog/VB-1486.md)<a id="VB-1486"></a> | Refactor: split sim/stores by concern | - | 3 | S | sim/stores over 700 lines (VB-700's salt): the ledger and its yearly totals, grain by crop, the household's single stores (wood, stone, peat, tar, hides, salt, dug loads), ale, reservations; split by those, not by the line count |
 | [VB-1487](backlog/VB-1487.md)<a id="VB-1487"></a> | Refactor: split sim/agents by concern | - | 3 | S | sim/agents went over 700 lines with VB-1405's lasting verbs; split it by its concerns |
 | [VB-1488](backlog/VB-1488.md)<a id="VB-1488"></a> | Refactor: split sim/fieldplans by concern | - | 3 | S | sim/fieldplans holds four concerns at 16 exports (VB-768 took it over 15): field demand (yearlyRations, fieldsWorkable, fieldsWanted, and the fields let go: letGoWhy, fieldToLetGo, freesFields), where a field may go (builtTiles, fieldWhy, chooseTile, pickField), the clearing project (clearHours, BREAK_HOURS, beginField, fieldProject, newFieldSeed) and the head's harvest estimate (harvestEstimate); split by those |
-| [VB-1494](backlog/VB-1494.md)<a id="VB-1494"></a> | sim/pose: the tile at a map point by the grid's one locator | - | 3 | S | sim/pose.tileAt repeats hexLocator's arithmetic line for line; it calls the one in world/grid |
+| [VB-1505](backlog/VB-1505.md)<a id="VB-1505"></a> | sim/pose: the tile at a map point by the grid's one locator | - | 3 | S | sim/pose.tileAt repeats hexLocator's arithmetic line for line; it calls the one in world/grid |
 
 </details>
 
@@ -113,7 +113,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | [VB-1126](backlog/VB-1126.md)<a id="VB-1126"></a> | Design: the age of account and the bands' margin in design.md | talk | 3 | S | design.md does not yet say VB-1106's two rules (SOCIAL.account 12, SOCIAL.back 0.2) |
 | [VB-1364](backlog/VB-1364.md)<a id="VB-1364"></a> | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
 | [VB-1369](backlog/VB-1369.md)<a id="VB-1369"></a> | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
-| [VB-1495](backlog/VB-1495.md)<a id="VB-1495"></a> | Owners for w.biome, w.trees and w.stones | - | 3 | S | about ten sim modules write the world's biome, trees and stones, and src/owners.json names no owner for them |
+| [VB-1506](backlog/VB-1506.md)<a id="VB-1506"></a> | Owners for w.biome, w.trees and w.stones | - | 3 | S | about ten sim modules write the world's biome, trees and stones, and src/owners.json names no owner for them |
 
 </details>
 

@@ -1,6 +1,6 @@
 // Is the map drawn as it was? Bakes the same chunks headless (on @napi-rs/canvas) with the working tree's code and with a base commit's (a
 // temporary git worktree of it, as tools/same.js makes), and compares their hashes. The proof for a refactor of the bake, the marks, the
-// rivers' or the paths' drawing, which tools/same.js, comparing the leaves of `w` and `st`, cannot give (VB-1489). Nothing is recorded.
+// rivers' or the paths' drawing, which tools/same.js, comparing the leaves of `w` and `st`, cannot give (VB-1500). Nothing is recorded.
 // usage: node tools/samepixels.js [--base REF] [--seeds 7,42] [--map tiny|small|medium|large] [--years N] [--scenario founders]
 //   defaults: base HEAD (so: the uncommitted work against the last commit), seeds 7 and 42, small, 2 years, founders
 //   --base REF   the commit the work started from (`git merge-base HEAD origin/main`), a branch or a tag
@@ -17,7 +17,7 @@ const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [
 const root = path.join(__dirname, '..');
 
 // ---- the adapter: the drawing functions of one tree, wherever its modules keep them ----
-// The one place the terrain split (VB-1490 to VB-1493) changes: draw/ modules are looked in first, then world/, then gen/ and the gen
+// The one place the terrain split (VB-1501 to VB-1504) changes: draw/ modules are looked in first, then world/, then gen/ and the gen
 // facade (ArchGen), so that the base and the working tree are each found without being told. A module is found by the function it
 // exports and, where two share a name (rivers' and paths' drawChunk), by its key.
 function modules(VB, re = /./) {
@@ -35,7 +35,7 @@ function drawing(VB) {
   const bakeWater = find(VB, 'bakeWater'), bakeChunk = find(VB, 'bakeChunk'), decorate = find(VB, 'decorateChunk');
   const rivers = find(VB, 'drawChunk', /rivers/), paths = find(VB, 'drawChunk', /paths/), over = find(VB, 'drawOver', /paths/);
   if (!cover) throw new Error('no cover module with set, keep and restore: tools/samepixels.js\'s adapter needs to learn where it went');
-  // The paint (VB-1493): a tree with draw/paint bakes in a world's paint, one per world, recoloured as the page recolours it: a tile whose
+  // The paint (VB-1504): a tree with draw/paint bakes in a world's paint, one per world, recoloured as the page recolours it: a tile whose
   // cover is set by hand, the tiles of st.biomeDirty before a shot, and built anew after a restore. A tree before it keeps its colours in w.
   const Paint = VB['draw/paint'], paints = new WeakMap();
   const paintOf = (w) => { let P = paints.get(w); if (!P) paints.set(w, (P = Paint.paint(w))); return P; };

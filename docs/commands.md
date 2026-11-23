@@ -50,7 +50,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - No golden file (retired by VB-408, Kim, 12 November): where an older task or document asks for `tests/golden.js` or a re-recorded
   `tests/golden.json`, `docs/testing.md` stands instead. A refactor shows its behaviour unchanged with `node tools/same.js --base REF`, REF the commit it started
   from: the same runs from both trees, the world and the state compared leaf by leaf, nothing recorded. Its line goes into the PR.
-- Map pixels (VB-1489): a refactor of the map's drawing (the bake, the marks, the rivers' or the paths' drawing) shows it unchanged with
+- Map pixels (VB-1500): a refactor of the map's drawing (the bake, the marks, the rivers' or the paths' drawing) shows it unchanged with
   `node tools/samepixels.js --base REF`: the sea, the overview and the chunks round each village baked headless by both trees at seeds 7
   and 42, small, founders, years 0 and 2, and a cover set by hand and restored, their hashes compared; about 6 seconds; nothing recorded.
   Its drawing functions are found by one adapter (`drawing` in the tool), which a task that moves them keeps working at both commits.

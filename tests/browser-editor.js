@@ -70,7 +70,7 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
         demo: window.__ed.demo,
       };
     });
-  // VB-1493: the paint the page keeps for the world on the stage is the paint built anew from it (each colour, the light, the coast distance,
+  // VB-1504: the paint the page keeps for the world on the stage is the paint built anew from it (each colour, the light, the coast distance,
   // the brush texture), but for the tiles of st.biomeDirty not yet repainted; the names of the arrays that differ
   const fresh = (what) =>
     page

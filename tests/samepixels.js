@@ -1,4 +1,4 @@
-// tools/samepixels.js (VB-1489): its painter on a small generated island bakes the same hashes twice, and catches a pigment changed by a
+// tools/samepixels.js (VB-1500): its painter on a small generated island bakes the same hashes twice, and catches a pigment changed by a
 // little and one mark moved by a few units; the cover set by hand shows and its restore leaves nothing stale; a stray option is refused.
 const assert = require('assert'), path = require('path'), cp = require('child_process');
 const VB = require('../src/load.js'), probe = require('./lib/probe.js');
@@ -48,7 +48,7 @@ let stale;
 try { stale = compare({}, bake(fresh())).stale; } finally { cover.restore = restore; }
 assert(stale.length === 1 && /restored is not the chunk before/.test(stale[0]), `a stale restore is not seen: ${stale.join('; ')}`);
 
-// VB-1493: the paint kept up as the page keeps it (a tile recoloured where its cover is set by hand, the tiles of st.biomeDirty after a
+// VB-1504: the paint kept up as the page keeps it (a tile recoloured where its cover is set by hand, the tiles of st.biomeDirty after a
 // run's year) is the paint built anew; and a cover set with no recolour is caught, since the bake no longer mends a stale colour
 const KEYS = ['tr', 'tg', 'tb', 'shade', 'cdist', 'chex', 'tile'];
 const sameAs = (P, Q) => KEYS.filter((k) => Buffer.compare(Buffer.from(P[k].buffer), Buffer.from(Q[k].buffer)) !== 0);
