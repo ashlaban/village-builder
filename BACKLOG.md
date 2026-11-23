@@ -39,6 +39,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1476](backlog/VB-1476.md)<a id="VB-1476"></a> | A pawn's grain stake vanishes at its death | - | 2 | S | Found by VB-403's accounts: a pawn's stake (shares paid to it, sim/cottage payOwed) stays on the dead pawn and leaves the world with no movement; up to a fifth of a year's produce late in populous small seed 7. |
 | [VB-1478](backlog/VB-1478.md)<a id="VB-1478"></a> | The fair's animals and carts: a beast led to the gathering, a cart and two oxen carrying 90 | fair | 2 | S | VB-302 left these out: an animal walks to the fair beside its dealer and changes herd when swapped; a household with an ox cart and its team free loads 90 rations' worth, the cart out until it is home. |
 | [VB-1507](backlog/VB-1507.md)<a id="VB-1507"></a> | tests/browser.js fails on a busy machine: steps in working hours, and the work bar's click | - | 2 | S | 3 of 5 runs failed at d8f81ff on 23 November, before any page change: a wall-clock check and a click on a menu row that is redrawn |
+| [VB-1549](backlog/VB-1549.md)<a id="VB-1549"></a> | A hay target met early is kept to the winter | - | 2 | S | hayWanted stops the mowing when barn and mown hay reach the target; met at midsummer, the stack then falls under it by winter |
 | [VB-1550](backlog/VB-1550.md)<a id="VB-1550"></a> | A pawn away in no phase: the invariant met at another trajectory | - | 2 | S | tests/relations.js at MATCH.keep 1.15: away[0] (id 32), its pawn in phase null |
 | [VB-1551](backlog/VB-1551.md)<a id="VB-1551"></a> | Cost: the routes begun by the planner's commands | - | 2 | M | The second part of the jobs line, 22%: the walk a task taken begins |
 | [VB-1552](backlog/VB-1552.md)<a id="VB-1552"></a> | Cost: a holder's opportunities cached (the asks of the jobs line) | - | 2 | M | The third part of the jobs line, 17.5%: the availability asks, and the cache design.md agrees |
@@ -112,7 +113,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1537](backlog/VB-1537.md)<a id="VB-1537"></a> | The guide's second half: the deeds of sim/commands, and the rules reading a kind's at and needs | - | 3 | S | The guide (VB-1124) lists the job kinds from their at, needs and gives; the verbs of sim/commands carry no name to list, and no rule reads the declarations yet: name each verb beside its check for a Deeds chapter, and let a kind's available read its needs. |
 | [VB-1547](backlog/VB-1547.md)<a id="VB-1547"></a> | A caller sits with those indoors: the house encounter counts a visitor | - | 3 | S | A visit to one indoors meets no one: the house encounter should count the caller |
 | [VB-1548](backlog/VB-1548.md)<a id="VB-1548"></a> | Own time reported: the shares of pastimes by role and season | - | 3 | S | A report of own time by pastime, for tuning PASTIME.weights |
-| [VB-1549](backlog/VB-1549.md)<a id="VB-1549"></a> | A hay target met early is kept to the winter | - | 3 | S | hayWanted stops the mowing when barn and mown hay reach the target; met at midsummer, the stack then falls under it by winter |
 
 </details>
 
