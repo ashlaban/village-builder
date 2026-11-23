@@ -5,6 +5,9 @@
 // `[data-theme="x"]`, `.theme-pv[data-theme="x"]`: one compound, no combinator) and that sets a custom property; one under a media
 // query (Glass dark) is an override and may set some of them. A `var(--x)` of the stylesheet that no theme sets must be defined by a
 // declaration `--x:` outside the theme blocks, in the stylesheet or the page's markup and script (an inline style, setProperty).
+// A theme styles pieces, not components (VB-1488): the pieces are listed in the comment that names "The pieces", one `.name:` (or
+// `button:`) a line, with the components a theme may still style alone on its `counted:` line; every other rule under a theme's
+// selector (`[data-theme="x"] ...`) must have a piece or a counted component as the first compound after the theme.
 const fs = require('fs'),
   path = require('path');
 const { readSource } = require('../tools/lib/source');
@@ -49,6 +52,59 @@ function rules(css) {
     }
   }
   return out;
+}
+
+// The pieces and the counted components: {pieces, counted}, each a Set of names (".panel", "button"), or null with no list.
+function pieceList(css) {
+  const c = (css.match(/\/\*[\s\S]*?\*\//g) || []).find((x) => /The pieces/.test(x));
+  if (!c) return null;
+  const pieces = new Set([...c.matchAll(/^\s*(\.[a-z][\w-]*|button):/gim)].map((m) => m[1]));
+  const line = c.match(/^\s*counted:([^\n]*)/im);
+  const counted = new Set(line ? line[1].match(/\.[a-z][\w-]*/gi) || [] : []);
+  return { pieces, counted };
+}
+
+// What a theme's rule styles: for each alternative of its selector, the first compound after the theme's part, as the classes
+// and the element it names. The theme's part is `[data-theme="x"]`, bare, in :where() or on :root.
+function themedSubjects(selector) {
+  const out = [];
+  for (const part of splitTop(selector)) {
+    const m = part.match(/^\s*(?::where\(\s*)?(?::root)?\[data-theme=["']?[\w-]+["']?\]\)?\s+([\s\S]*)$/);
+    if (!m) continue;
+    const rest = m[1].trim();
+    const alts = rest.startsWith(':is(') ? splitTop(rest.slice(4, matching(rest, 3))) : [rest];
+    for (const a of alts) {
+      let x = a.trim();
+      for (let k = 0; k < 4; k++) x = x.replace(/:(?:not|where|is|has)\([^()]*\)/g, '');
+      const first = x.split(/\s*[\s>+~]\s*/)[0];
+      const el = (first.match(/^[a-z][\w-]*/i) || [''])[0];
+      out.push({ text: a.trim(), names: [...(first.match(/\.[a-z][\w-]*/gi) || []), ...(el ? [el] : [])] });
+    }
+  }
+  return out;
+}
+function splitTop(s) {
+  const out = [];
+  let depth = 0,
+    start = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '(') depth++;
+    else if (s[i] === ')') depth--;
+    else if (s[i] === ',' && !depth) {
+      out.push(s.slice(start, i));
+      start = i + 1;
+    }
+  }
+  out.push(s.slice(start));
+  return out;
+}
+function matching(s, open) {
+  let depth = 0;
+  for (let i = open; i < s.length; i++) {
+    if (s[i] === '(') depth++;
+    else if (s[i] === ')' && !--depth) return i;
+  }
+  return s.length;
 }
 
 const setsOf = (body) => [...body.matchAll(/(?:^|[;{\s])--([a-z0-9-]+)\s*:/gi)].map((m) => m[1]);
@@ -106,6 +162,16 @@ function check(css, themes, defined = new Set()) {
       for (const t of missing) errors.push(`theme "${k}" does not set --${t} (its token block, line ${b.line})`);
     }
   }
+  const list = pieceList(css);
+  if (!list || !list.pieces.size)
+    errors.push('no list of the pieces (a comment naming "The pieces", one `.name:` a line)');
+  else
+    for (const r of rules(css))
+      for (const t of themedSubjects(r.selector))
+        if (!t.names.some((n) => list.pieces.has(n) || list.counted.has(n)))
+          errors.push(
+            `a theme's rule styles ${t.text} (line ${r.line}), not a piece: name a piece, or count the component with its reason`,
+          );
   const used = new Set([...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/var\(\s*--([a-z0-9-]+)/gi)].map((m) => m[1]));
   for (const t of used) {
     if (anySet.has(t) || base.has(t)) continue;
@@ -155,7 +221,8 @@ const expect = (cond, what) => {
 };
 
 // The self-test, on a constructed stylesheet.
-const LIST = '/* The theme tokens:\n   --ink: words\n   --edge: a line\n*/\n';
+const LIST =
+  '/* The theme tokens:\n   --ink: words\n   --edge: a line\n   The pieces:\n   .y: a piece\n   button: a button\n   counted: .bar\n*/\n';
 const good =
   LIST +
   ':root[data-theme="a"] { --ink: #000; --edge: #111; }\n@media (prefers-color-scheme: dark) { :root[data-theme="a"] { --ink: #fff; } }\n' +
@@ -188,6 +255,19 @@ const unlisted = good.replace('--ink: #222;', '--ink: #222; --glow: 1px;');
 expect(
   check(unlisted, ['a', 'b']).some((e) => /--glow is set by a theme/.test(e)),
   'a token a theme sets outside the list should fail',
+);
+
+const component = good + '[data-theme="b"] .tabs button { color: red; }\n';
+expect(
+  check(component, ['a', 'b']).some((e) => /styles \.tabs button/.test(e)),
+  'a theme rule naming a component should fail: ' + check(component, ['a', 'b']).join('; '),
+);
+const pieces =
+  good +
+  ':where([data-theme="b"]) button:where(:not(.y)) { color: red; }\n[data-theme="b"] :is(.y > b, .bar i) { color: red; }\n';
+expect(
+  check(pieces, ['a', 'b']).length === 0,
+  'piece and counted rules should pass: ' + check(pieces, ['a', 'b']).join('; '),
 );
 
 // The repository.
