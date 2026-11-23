@@ -49,10 +49,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   What a tile's cover holds (a wood's trees at full cover, a meadow's stones) is `src/gen/cover.js`, read by `gen.js` as it lays the land.
 - The panels' shared pieces are `src/page/meter.js` (VB-664; `AGENTS.md`, Deciding without Kim, 15): `meter(o)`, the one meter every level is
   shown on (its scale is the caller's argument: VB-665), `stat(o)` and `stats(list)` (a good or a measure: its icon from `goodIcon` of
-  `src/page/icons.js`, its word, its value, its meter where it is a level), `traitsHTML(id)`, and the supply component (VB-667):
+  `src/page/goodicons.js`, its word, its value, its meter where it is a level), `traitsHTML(id)`, and the supply component (VB-667):
   `suppliesHTML(O, only)` draws a household's food, fuel and hay as season cells from its argument, the outlook `Sim.supplyOutlook` reads
   (VB-666; the page computes none), with whose reckoning it is and an i for the numbers, and `supplyChips(O)` the chips of a farm's row
-  (`seasonIcon` of `src/page/icons.js` for the seasons). A supply is shown only through these. A new panel shows a level, a store or a
+  (`seasonIcon` of `src/page/cardicons.js` for the seasons). A supply is shown only through these. A new panel shows a level, a store or a
   trait through these, and a person or a farm by `memberRow` and `farmRow` of `src/page/cards.js`; a household is told of only on its
   farm's card (`houseStats`, `renderHouse`: the tabs Stores, Land and Animals), and the People sheet only finds.
 - The archipelago editor is `src/page/editor.js`: a world alone on the stage with no run (`edit`, page state as the showcase island is), its
@@ -473,7 +473,8 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   meter); a **gear** wears (what condition is it in). A material is one row of `MATERIALS` in `src/page/cards.js`, its kinds a list under
   the total, shown only where more than one is held; a work's asks are read from the project plan's `build` reservations.
 - A new map overlay (VB-1496) is one file under `src/page/`, its line in `src/page.json` after `page/overlays.js` and before `page/input.js`,
-  an icon in both sets of `src/page/icons.js` (`ICON` and `ICON_STEN`), and a key panel (`class="ground-key panel"`, `hidden`) beside the
+  an icon in both sets of `src/page/icons.js` (`ICON` and `ICON_STEN`: the interface's own icons, not the kinds' of `src/page/kindicons.js`
+  or the goods' of `src/page/goodicons.js`), and a key panel (`class="ground-key panel"`, `hidden`) beside the
   others over the minimap in `src/body.html`. The file ends with `registerOverlay({id, name, short, key, icon, group, set(on), refresh(), reset(), layer, keyEl})`:
   `set` shows or hides its layer and draws it, `refresh` runs every frame on or off, `reset` for a new world. With no `key` it takes the next
   free digit (6 to 9: 1 to 5 are the speeds; then Y, U and I). The overlay button, its list, the keys and `tests/browser-overlays.js` follow the registry: none
@@ -484,6 +485,11 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   `line` drawing. In `src/head.html`, beside the stencil's, its one rule (hidden unless the root's `data-icons` names it, and then the
   `line` drawing beside it hidden) and the styles its shapes are drawn with; then a theme names it, the `icons` field of its entry in
   `THEMES` (`src/page/options.js`), which `applyTheme` puts on the root as `data-icons`. No rule of the icons names a theme.
+  The drawings are in four files, by what they show (VB-1558), in this order in `src/page.json`, each reading only those before it:
+  `src/page/icons.js` (the makers `svgIcon` and `drawings`, `ICON_SETS`, and the interface's own `ICON` and `ICON_STEN`),
+  `src/page/kindicons.js` (the acts' and the job kinds': `ACT_PATHS`, `ACT_STEN`, `actIcon`, `KIND_ICON`), `src/page/goodicons.js`
+  (the goods' and measures': `GOOD_PATHS`, `GOOD_STEN`, `goodIcon`) and `src/page/cardicons.js` (the seasons', traits', bonds', states'
+  and occasions', several of them the goods' and the acts' drawings). A new set gets its drawings in each.
 - A new theme (VB-1531) is two edits. An entry in `THEMES` (`src/page/options.js`): its key, `name`, `note` and the `icons` it shows; its
   card in Options, and `tests/page.js`'s walk of the themes, follow. And a block `[data-theme="<key>"] { ... }` in `src/head.html`
   that sets every token listed at the head of the stylesheet, in one rule (`tests/themes.js` checks it); written without `:root`, it
