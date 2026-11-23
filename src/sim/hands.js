@@ -1,7 +1,7 @@
 // @sys sim/hands: help asked for (VB-470; design.md section 7, Help between households): a head whose estimate says its field work will
 //   not be done in its window with its own hands asks the heads of its village, nearest kin and best friends first, for hands and hours
 //   today: an offer on the basis `help` (VB-690), "two hands for six hours". The head asked answers by kinship, its opinion of the asker
-//   and its own day (the hours its allotment gave its members no task; sim/jobs plan.day.free), and may give fewer hours than asked. A
+//   and its own day (the hours its allotment gave its members no task; sim/day plan.day.free), and may give fewer hours than asked. A
 //   hand lent works the asker's field work on the basis `helper` (sim/eligibility) for its hours, walking there and home, and its tie with
 //   each adult helped grows by the hours it gave (VB-106: a gift, nothing owed), and the hours' worth is booked as goodwill to its own
 //   credit (sim/relations helped, VB-704).
@@ -28,7 +28,7 @@ VB['sim/hands'] = (() => {
   const today = (st) => Math.floor(st.t / DAY);
   // The working hours left today, by the clock
   const hoursLeft = (st) => Math.max(0, WORK[1] - Math.max(WORK[0], st.t - today(st) * DAY));
-  // A member's working hours of the head's horizon (sim/jobs dayHours)
+  // A member's working hours of the head's horizon (sim/day dayHours)
   const horizon = () => MATCH.day.horizon * (WORK[1] - WORK[0]);
   const loans = (st) => {
     const d = st.handsToday;
@@ -69,7 +69,7 @@ VB['sim/hands'] = (() => {
   const hoursTo = (st, c, end) => (end - (c.season * SEASON_DAYS + c.sday)) * (WORK[1] - WORK[0]) + hoursLeft(st);
   // The hours of help household hh lacks, as its head estimates (VB-476): its windowed tasks, in the order their windows close, against
   // the work the hands it has given them in this allotment do in a horizon, kept up to each window's end; the most it falls short by.
-  // `tasks` is [[job, work left as the head sees it, work given in the horizon]], from the allotment (sim/jobs allot).
+  // `tasks` is [[job, work left as the head sees it, work given in the horizon]], from the allotment (sim/day allot).
   function shortOf(st, tasks, c) {
     const rows = [];
     let supply = 0;
@@ -191,7 +191,7 @@ VB['sim/hands'] = (() => {
   });
   // The hours lent to household id today
   const lentTo = (d, id) => Object.values(d.by).reduce((s, e) => s + (e[0] === id ? e[1] : 0), 0);
-  // The head of household hh, short of `short` hours of help today (sim/jobs, at the morning's allotment), asks its village's heads,
+  // The head of household hh, short of `short` hours of help today (sim/day, at the morning's allotment), asks its village's heads,
   // its near kin first, then by its opinion of them, at most HANDS.asks of them, until the hours lent cover it; once a day. The played
   // head asks for itself, by the same verb.
   function askFor(st, hh, short, c) {
@@ -241,7 +241,7 @@ VB['sim/hands'] = (() => {
     if (e[2] > 0 && st.pawns[id].alive && !st.households[e[0]].dissolved)
       emit(st, 'helped', { helpers: [id], household: e[0], farm: null, hours: e[2] });
   }
-  // Lent pawn id has nothing of the household's it can take (sim/jobs dutyRound): it goes back to its own day
+  // Lent pawn id has nothing of the household's it can take (sim/day dutyRound): it goes back to its own day
   function release(st, id) {
     const d = loans(st),
       e = d && d.by[id];

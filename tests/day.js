@@ -29,9 +29,9 @@ for (const id of st.liveHouseholds) {
 // 2. Allotting draws no random number and is the same twice.
 {
   const rng = canon(st.rng);
-  Jobs.allot(st, hh, c);
+  VB['sim/day'].allot(st, hh, c);
   const before = canon(dayOf(st, 0).lists);
-  Jobs.allot(st, hh, c);
+  VB['sim/day'].allot(st, hh, c);
   assert.strictEqual(canon(st.rng), rng, 'no random draw');
   assert.strictEqual(canon(dayOf(st, 0).lists), before, 'the same day twice');
 }
@@ -44,9 +44,9 @@ for (const id of st.liveHouseholds) {
   assert.strictEqual(kindOf(st, lists[farmer][0]), 'plow', 'the farmer hoes first');
   // the best fit of all, member and task, is that member's first task
   let best = null;
-  for (const m of hh.members) for (const j of Jobs.jobsFor(st, st.pawns[m])) {
+  for (const m of hh.members) for (const j of VB['sim/fit'].jobsFor(st, st.pawns[m])) {
     if (age(st, st.pawns[m]) < CHILD.from || !VB['sim/eligibility'].eligible(st, j, st.pawns[m]) || j.done >= (j.hours ?? KINDS[j.kind].hours)) continue;
-    const s = Jobs.score(st, st.pawns[m], j, c);
+    const s = VB['sim/fit'].score(st, st.pawns[m], j, c);
     if (s !== null && (!best || s > best[0])) best = [s, m, j.key];
   }
   assert.ok(best && lists[best[1]][0] === best[2], `the best fit comes first: pawn ${best && best[1]} on ${best && best[2]}`);
@@ -54,7 +54,7 @@ for (const id of st.liveHouseholds) {
   assert.ok(firstFields.size >= 2, `the hands are spread over the fields to hoe (${[...firstFields]})`);
   const mine = [...st.jobs.values()].filter((j) => j.owner.type === 'household' && j.owner.id === 0);
   for (const j of mine) {
-    const s = Jobs.score(st, st.pawns[farmer], j, c);
+    const s = VB['sim/fit'].score(st, st.pawns[farmer], j, c);
     if (s !== null && s > 0 && j.done < (j.hours ?? KINDS[j.kind].hours)) assert.ok(lists[farmer].includes(j.key), `the farmer's list holds ${j.key}`);
   }
 }
@@ -65,7 +65,7 @@ for (const id of st.liveHouseholds) {
   const list = dayOf(s2, 0).lists[a.id], had = a.job.key;
   VB['sim/agents'].release(s2, a);
   assert.strictEqual(a.job, null, 'its task let go');
-  const got = Jobs.takeDay(s2, [a], Sim.cal(s2.t));
+  const got = VB['sim/day'].takeDay(s2, [a], Sim.cal(s2.t));
   assert.ok(got.has(a) && a.job && list.includes(a.job.key), `it takes a task of its list (${a.job && a.job.key}; it had ${had})`);
   const open = list.find((k) => s2.jobs.get(k) && (VB['sim/kinds'].isOpen(s2, s2.jobs.get(k)) || s2.jobs.get(k) === a.job));
   assert.strictEqual(a.job.key, open, 'the first that has room');

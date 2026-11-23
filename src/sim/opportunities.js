@@ -17,7 +17,7 @@ VB['sim/opportunities'] = (() => {
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { GATHERING } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
-  const { appraise, workCommand, jobsFor } = VB['sim/jobs'];
+  const { appraise, workCommand, jobsFor } = VB['sim/fit'];
   const { eligible } = VB['sim/eligibility'];
   const { heirRanking, successorOf } = VB['sim/heirranking'],
     { staysWhy } = VB['sim/heirs'];
@@ -70,7 +70,7 @@ VB['sim/opportunities'] = (() => {
       const basis = seen.has(key) ? null : eligible(view, j || { owner }, p);
       if (!basis) return;
       seen.add(key);
-      // a posted job as the matcher weighs it (sim/jobs appraise), then the verb's own check of the command it would be given; one not
+      // a posted job as the matcher weighs it (sim/fit appraise), then the verb's own check of the command it would be given; one not
       // yet posted is shown, with why it cannot be taken
       const r = j ? appraise(view, a, j, c) : 'not given out yet: work is given out in working hours',
         cmd = workCommand(p.id, key, 'player');

@@ -55,7 +55,7 @@ until(3, WORK[1] + 0.1);
 check(!a.job && (a.phase === 'home' || a.inside), `at 18:00 the clearing is let go (${a.job && a.job.kind}, ${a.phase})`);
 // 2. day 5: water taken at 17:42 is still his after 18:00, and delivered that evening
 const k5 = waterAt(5, 17.7);
-check(issue(st, Jobs.workCommand(id, k5, 'planner')) === true, 'the settler takes the water at 17:42');
+check(issue(st, VB['sim/fit'].workCommand(id, k5, 'planner')) === true, 'the settler takes the water at 17:42');
 until(5, WORK[1] - 0.1);
 const before = a.phase,
   n = a.assigned.assignments; // the tasks it has taken: one let go at 18:00 and called again would count anew

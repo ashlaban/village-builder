@@ -5,7 +5,7 @@
 // save made before VB-1405, with none, resumes by the pawn as it stands. Test-only kinds, as tests/attention.js has them.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { issue, perform, active, VERBS } = VB['sim/commands'];
-const { KINDS } = VB['sim/kinds'], { post, bid, appraise, workCommand } = VB['sim/jobs'], A = VB['sim/agents'], At = VB['sim/attention'];
+const { KINDS } = VB['sim/kinds'], { post } = VB['sim/jobs'], { bid, appraise, workCommand } = VB['sim/fit'], A = VB['sim/agents'], At = VB['sim/attention'];
 const { playerStep } = VB['sim/player'], O = VB['sim/opportunities'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));

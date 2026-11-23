@@ -10,7 +10,7 @@ VB['sim/chores'] = (() => {
   const { WORK, FISH, BREW, PEAT, cal } = VB['sim/rules'],
     { FORAGE } = VB['sim/forage'],
     Carts = VB['sim/carts'],
-    AFTERNOON = VB['sim/roles'].MATCH.day.afternoon, // the afternoon's hour, when the head allots the day again (sim/jobs; VB-1546)
+    AFTERNOON = VB['sim/roles'].MATCH.day.afternoon, // the afternoon's hour, when the head allots the day again (sim/day; VB-1546)
     EVENING = VB['sim/roles'].MATCH.day.evening; // the hour past which no evening task is begun (VB-1547)
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
@@ -150,7 +150,7 @@ VB['sim/chores'] = (() => {
       type: 'household',
       inside: true,
       window: { from: AFTERNOON },
-      late: true, // the meal's deadline is today: unmanned, it calls its hand (sim/jobs)
+      late: true, // the meal's deadline is today: unmanned, it calls its hand (sim/day)
       vital: true, // the day's meal: a pot under way is finished after the end of work (VB-119; Kim, 11 Nov; VB-1547)
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
       // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain, the seed it would eat (sim/pot)

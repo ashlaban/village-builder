@@ -46,13 +46,13 @@ VB['sim/kinds'] = (() => {
   //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
-  //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/jobs; the cook).
+  //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/day; the cook).
   //   vital: a kind a household lives by, true or (st, j) => boolean: once begun it is carried to its end though the work day ends
   //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
-  //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/jobs eveningCall; the water).
+  //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/day eveningCall; the water).
   //   first: a kind that heads the list of the member best fit for it when the day is allotted (the water); trip(st, j): the hours of
-  //   its trip besides its work, counted in that member's day (sim/jobs allot; VB-1551).
-  //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/jobs).
+  //   its trip besides its work, counted in that member's day (sim/day allot; VB-1551).
+  //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/fit).
   //   norm(st, j): the job's hours for a normal crop, where its hours go by the crop's size (reap, thresh): what a head that does not
   //   reckon with the size estimates (sim/estimate, VB-476).
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----

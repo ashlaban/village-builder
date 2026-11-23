@@ -44,7 +44,7 @@ check(holder.role === 'farmer', 'the holder is the farmer');
 for (const k of ['water', 'repair'])
   Jobs.post(st, `${k}:h${hh.id}:test`, k, { type: 'household', id: hh.id }, f.house, {});
 const rank = (p, k = 'water') => {
-  const row = Jobs.explainIdle(st, p.id).find((x) => x.job === `${k}:h${hh.id}:test`);
+  const row = VB['sim/fit'].explainIdle(st, p.id).find((x) => x.job === `${k}:h${hh.id}:test`);
   const j = st.jobs.get(`${k}:h${hh.id}:test`);
   return row && row.bid !== null ? row.bid / VB['sim/kinds'].KINDS[j.kind].urgency(st, j, VB['sim/rules'].cal(st.t), VB['sim/roles'].MATCH.urgency) : null; // the walk is 0: the job is at the house
 };

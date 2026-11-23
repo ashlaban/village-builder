@@ -22,7 +22,9 @@ VB['sim/clock'] = (() => {
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
   const { feedAway, dayAway } = VB['sim/away'];
-  const { refreshJobs, takeDay, dutyRound, idleAbout, lookForWork, eveningCall } = VB['sim/jobs'];
+  const { refreshJobs, lookForWork } = VB['sim/jobs'],
+    { takeDay, dutyRound, eveningCall } = VB['sim/day'],
+    { idleAbout } = VB['sim/idle'];
   const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
   const { commanded, unplanned } = VB['sim/records'];
@@ -176,7 +178,7 @@ VB['sim/clock'] = (() => {
     {
       every: 'hour',
       at: { hour: [WORK[1], MATCH.day.evening] },
-      owner: 'sim/jobs',
+      owner: 'sim/day',
       note: 'the evening: a task that may be begun after work (the water), open and unmanned, calls a hand at home (VB-1547)',
       run: (st, c) => eveningCall(st, c),
     },

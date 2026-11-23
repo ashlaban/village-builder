@@ -82,7 +82,7 @@ const handsFor = (s) => {
   const H = E.headOf(st, hh), seen = [];
   const workFor = E.workFor;
   E.workFor = (st2, H2, x) => { const w = workFor(st2, H2, x); if (x === j) seen.push(w); return w; };
-  try { Jobs.allot(st, hh, c); } finally { E.workFor = workFor; }
+  try { VB['sim/day'].allot(st, hh, c); } finally { E.workFor = workFor; }
   assert.strictEqual(seen.length, 1, 'the day reads the head’s estimate of the task once');
   let left = seen[0], n = 0;
   for (const m of hh.members.filter((x) => st.pawns[x].role !== 'child')) {
@@ -100,7 +100,7 @@ assert.ok(nGood > nPoor && nPoor >= 1, `the good head gives the reaping ${nGood}
 const { emit } = VB['sim/events'], { notable } = VB['sim/notable'];
 const miss = (s) => {
   as(s);
-  Jobs.allot(st, hh, c);
+  VB['sim/day'].allot(st, hh, c);
   const n = st.record.length;
   emit(st, 'windowMissed', { farm: f, field: f.fields[0], kind: 'reap', why: 'frost took the barley' });
   return st.record.slice(n).filter((e) => e.kind === 'misjudged');

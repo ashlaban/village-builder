@@ -28,7 +28,7 @@ const hh = st.households.find((h) => h.members.some((m) => st.pawns[m].role === 
 // fishing and ploughing at the house (no walk); ploughing at its most pressing, late in its window, is the plough's fit at
 // urgency 1 + 11 / fieldPerDay, worked out from the farmer's rank as the score would (the window's day is the calendar's)
 const fish = Jobs.post(st, `fish:h${hh.id}:test`, 'fish', own, f.house, { farm: f });
-const fitOf = (j) => Jobs.score(st, holder, j, cal(st.t), undefined, 0);
+const fitOf = (j) => VB['sim/fit'].score(st, holder, j, cal(st.t), undefined, 0);
 const plowRank = VB['sim/roles'].ROLES.farmer.ranks[0].plow,
   woodRank = VB['sim/roles'].ROLES.farmer.ranks[0].wood,
   plowTop = plowRank * (U.field + 11 / U.fieldPerDay),

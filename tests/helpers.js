@@ -20,7 +20,7 @@ const make = () => {
   const fd = fB.fields[0];
   fd.stage = 'stubble';
   const j = Jobs.post(st, `plow:f${fB.id}.${fd.id}`, 'plow', { type: 'household', id: B.id }, fd.tile, { field: fd, farm: fB });
-  Jobs.allot(st, A, Sim.cal(st.t)); // A's day, with nothing to do: every member free
+  VB['sim/day'].allot(st, A, Sim.cal(st.t)); // A's day, with nothing to do: every member free
   return { st, A, B, fB, fd, j, dropAll };
 };
 const ask = (st, from, to, wants, source = 'planner') =>

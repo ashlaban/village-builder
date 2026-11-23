@@ -42,7 +42,7 @@ const Sim = (() => {
     { explainFeast } = VB['sim/feast'];
   // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || doing(st, id);
-  const { explainIdle, idleLine } = VB['sim/jobs'];
+  const { explainIdle, idleLine } = VB['sim/fit'];
   const { seedReserve } = VB['sim/hunger'],
     { grainOf } = VB['sim/stores'],
     { shareOwed } = VB['sim/obligations'];
