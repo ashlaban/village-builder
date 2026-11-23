@@ -5,7 +5,8 @@
 //   reach (VB-697); new land and service are still asked by the round's own walk until VB-696 and VB-694 make them askings.
 //   An open offer whose people have died, married or taken a place lapses
 //   where it is next read (staleWhy: an asking, or the round). A holder's own day is its birthday: it considers handing the farm on
-//   (sim/marriage's rule, VB-824), by an offer due at the round.
+//   (sim/marriage's rule, VB-824), by an offer due at the round. A courting pair with a child on the way makes its offer out of the
+//   round once the pregnancy is known (VB-555: st.courtDue).
 VB['sim/asking'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK, TRAVEL, cal } = VB['sim/rules'];
@@ -21,6 +22,8 @@ VB['sim/asking'] = (() => {
   const { issue } = VB['sim/commands'];
   const { chooseWish, wishOf, wishesOf, nextAsking, askingIn } = VB['sim/wishes'];
   const { conclude } = VB['sim/offers'];
+  const Due = VB['sim/due'],
+    { COURT } = VB['sim/courting'];
   const { handover } = VB['sim/marriage'],
     { on } = VB['sim/events'];
   const AUTUMN = 2;
@@ -148,8 +151,9 @@ VB['sim/asking'] = (() => {
   // limit of the man's village, a home under the residence custom (the means and the two's hunger are read at the round, where it
   // settles: sim/marriage). No score is asked: their liking replaces it. It is made by the man to the woman, or by her where she
   // speaks for herself and he does not; the two, and a spokesman of either, answer it at the round as any match (by opinion).
-  // 'made', 'held' (an offer of theirs is open), or 'wait' (the gate does not yet allow them: they wait, courting).
-  function askCourted(st, id, due = dueRound(st)) {
+  // 'made', 'held' (an offer of theirs is open), or 'wait' (the gate does not yet allow them: they wait, courting). `round` false: an
+  // offer out of the round (a child on the way, VB-555), due at `due`.
+  function askCourted(st, id, due = dueRound(st), round = true) {
     const p = st.pawns[id],
       q = st.pawns[p.courting],
       [m, f] = p.sex === 'm' ? [p, q] : [q, p];
@@ -165,7 +169,7 @@ VB['sim/asking'] = (() => {
         actor: hers ? f.id : m.id,
         verb: 'offer',
         target: hers ? m.id : f.id,
-        args: { basis: 'match', gives: { man: m.id, home }, wants: { woman: f.id }, due, round: true },
+        args: { basis: 'match', gives: { man: m.id, home }, wants: { woman: f.id }, due, ...(round ? { round } : {}) },
         source: 'courting',
       });
     return r === true && Number.isInteger(m.ask) ? 'made' : 'wait';
@@ -176,6 +180,49 @@ VB['sim/asking'] = (() => {
       VB.count.asksMade++;
     }
   });
+  // ---- a child on the way: the offer out of the round (VB-555; design.md, Courting: A child on the way) ----
+  // @state st.courtDue[]: absent or [], else the couples whose child on the way is not yet known, each {woman, man (pawn ids), t (game
+  //   hours: when the pregnancy is known and their offer made), until (the last time hunger may put it off)}, sorted by t. An entry a
+  //   pregnancy while courting; written here only. Plain data, saved.
+  const tOf = (e) => e.t;
+  on('conceivedCourting', (st, d) => {
+    const t = st.t + COURT.known * DAY;
+    Due.append(
+      st.courtDue || (st.courtDue = []),
+      { woman: d.woman, man: d.man, t, until: t + COURT.wait * DAY },
+      t,
+      tOf,
+    );
+  });
+  // The couple of entry e, the pregnancy now known: their offer is made at once, by the round's acts and under its rules (askCourted:
+  // the ages, a home under the residence custom, the kin limit; the means and their hunger where it settles), or their open offer of
+  // the round is answered now (sim/offers conclude, early): the unplayed answer at once, the played pawn has the basis's days. While either
+  // of the two is too hungry to marry it is put off a day at a time, until e.until. Nothing is made where they court no more, one has
+  // married, either is in service (it waits for the round: VB-634) or the man holds an offer of another basis; refused or not
+  // allowed, they are offered again at the round, by their asking. What came of it, for the tests.
+  function offerKnown(st, e) {
+    const f = st.pawns[e.woman],
+      m = st.pawns[e.man];
+    if (!f.alive || !m.alive || f.courting !== m.id || spouseOf(st, f.id) !== null) return 'gone';
+    if (f.servant || m.servant) return 'service';
+    if (!(f.hunger < HUNGER.marryBelow && m.hunger < HUNGER.marryBelow)) {
+      if (e.t + DAY > e.until) return 'hungry';
+      const later = { ...e, t: e.t + DAY };
+      Due.append(st.courtDue, later, later.t, tOf);
+      return 'later';
+    }
+    if (Number.isInteger(m.ask)) {
+      const o = st.offers.find((x) => x.id === m.ask);
+      return o && o.basis === 'match' && o.courted ? conclude(st, o, null, true) : 'held';
+    }
+    if (askCourted(st, m.id, st.t, false) === 'wait') return spouseOf(st, m.id) === f.id ? 'yes' : 'wait';
+    return 'open';
+  }
+  // At ASK.hour, before the askings: the couples whose pregnancy is known by now (the head of the queue only; Rules for cost, 4).
+  function courtDay(st) {
+    const q = st.courtDue;
+    while (q && q.length && q[0].t <= st.t) offerKnown(st, q.shift());
+  }
   // ---- the asking ----
   // Pawn id's asking (plan, section 3): an open offer it holds lapses if its people have died, married or taken a place (it asks again on
   // its next day); else it reviews its wish (not the played pawn's: the player sets it) and walks its rungs, best first, to Stay: Heir
@@ -263,6 +310,7 @@ VB['sim/asking'] = (() => {
   // Daily at ASK.hour: the askings due, read from the head of the queue (Rules for cost, 4). asksMade counts the offers made, asksNobody
   // the askings whose rungs found nobody to ask.
   function askingDay(st) {
+    courtDay(st);
     while (st.asking.length && st.asking[0].t <= st.t) {
       const id = nextAsking(st);
       if (id === null) continue;
@@ -281,5 +329,5 @@ VB['sim/asking'] = (() => {
     const hh = holdingOf(st, d.pawn);
     if (hh !== null) handover(st, hh, (h) => heirRanking(st, st.households[h]), dueRound(st));
   });
-  return { askingDay, askFor, askMatch, askCourted, staleWhy, dueRound };
+  return { askingDay, askFor, askMatch, askCourted, offerKnown, staleWhy, dueRound };
 })();

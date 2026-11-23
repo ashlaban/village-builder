@@ -201,6 +201,18 @@ VB['sim/customs'] = (() => {
         ['nothing', 'Nothing'],
       ],
     },
+    // VB-555 (Kim, 30 Oct; design.md, Custom dimensions): how a child born outside marriage inherits, read where children are ranked
+    // (sim/heirranking); a child whose parents have married each other since is born in marriage
+    {
+      key: 'outside',
+      label: 'Children born outside marriage',
+      m: 0.5,
+      opts: [
+        ['equal', 'Inherit like other children'],
+        ['after', 'Inherit after children born in marriage'],
+        ['none', 'Do not inherit'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -234,6 +246,7 @@ VB['sim/customs'] = (() => {
       stocking: 'hay',
       matchBy: 'consent',
       keep: 'days',
+      outside: 'after',
       commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
     },
   };

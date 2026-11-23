@@ -15,7 +15,21 @@ VB['sim/courting'] = (() => {
   // falls under `end`, or `years` after it began with no offer of theirs open. A refusal sends one of the two to ask for service at the
   // next round when it holds the head who refused at an opinion under `leaveBelow` (a threshold on what the pawn feels, in place of
   // the design's first chance of 0.5: principle 19).
-  const COURT = Object.freeze({ minAge: 16, opinion: 0.4, tie: 1.5, end: 0.2, years: 3, leaveBelow: 0 });
+  // A child on the way (VB-555; design.md, Courting: A child on the way): a courting woman conceives at `conceive` a year at the peak of
+  // the married women's curve (sim/births, by that curve and her hunger), so that about 5% of births come while courting; the
+  // pregnancy is known `known` days after, and the couple's offer is made then (sim/asking), postponed a day at a time while either
+  // is too hungry to marry, for at most `wait` days.
+  const COURT = Object.freeze({
+    minAge: 16,
+    opinion: 0.4,
+    tie: 1.5,
+    end: 0.2,
+    years: 3,
+    leaveBelow: 0,
+    conceive: 0.08,
+    known: 12,
+    wait: 12, // a season
+  });
   // @state pawn.courting (VB-036): absent or null, else the id of the pawn it courts; the same on both sides (one at a time). Written
   //   where a courtship starts (a good talk) and ends. Plain data, saved with the pawn.
   // @state pawn.courtingSince: game hours, when the courtship began; null or absent when it courts nobody.
