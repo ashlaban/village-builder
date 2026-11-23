@@ -377,7 +377,10 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 - Agency: `sim/legs`, `sim/work`, `sim/attention`, `sim/agents` (VB-422), `sim/away` (the stays away from home, VB-783), `sim/gifts` (how a gift gets from here to there: the verbs `give` and
   `deliver`, VB-228; a new household's start laid at its old homes and borne or fetched, VB-675), `sim/occasions` (gatherings; agency since VB-228, as target-v2 4.5 has it: its verb `attend` walks the pawn), `sim/player`
   (the player as a source of commands, VB-169, VB-228), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/seasonal` (a household's seasonal plan and targets: the template of the year, the head's bias and foresight), `sim/routines` (the village's routines and its review's steps), `sim/plandays` (planning days and the due-queue), `sim/plans` (the standing plans and the head's choices; split by VB-431),
-  `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review, with its doubt, VB-669; kept
+  `sim/estimate` (the head's estimate of a task, VB-476: its hours by the causes the head's judgement reckons with, in the order of
+  `ESTIMATE.reckons`, leaned by `plan.head.bias.hours`, with an honest range; worked out when read, nothing stored; `sim/jobs`' `allot` mans a
+  task by it, and a window missed (`sim/fields`' event `windowMissed`) outside the range is told on the record as `misjudged`; a kind's
+  `norm` gives a normal crop's hours), `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review, with its doubt, VB-669; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
 

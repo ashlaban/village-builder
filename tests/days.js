@@ -64,6 +64,9 @@ assert.ok(O.left(o) > 0 || o.status === 'met');
 B.grain = { barley: 4000 };
 const oid2 = O.create(st, { kind: 'days', debtor: { kind: 'household', id: B.id }, creditor: { kind: 'household', id: A.id }, owes: { days: 5 }, source: 'debt' });
 const D2 = today() + DAYS.notice + 2, o2 = st.obligations[oid2];
+// the creditor has work for another hand (VB-476: its hands are allotted by its head's estimate, and its fields may be worked down by now)
+if (!st.jobs.has(j.key)) j = post();
+j.hours = Math.max(j.hours ?? 0, (j.done || 0) + 100);
 assert.strictEqual(issue(st, { actor: A.holder, verb: 'callDays', target: oid2, args: { day: D2, pawn: hand }, source: 'player' }), true);
 const f0 = fB.fields[0], was = [f0.stage, f0.crop];
 f0.stage = 'ripe'; f0.crop = 'barley';

@@ -270,12 +270,13 @@ for (const at of ['holds', 'spouse']) {
   st.pawns[0].age = 60;
   birthday(st, 0);
   assert.strictEqual(st.pawns[0].age, 60, 'the scene: his sixtieth birthday');
+  const fond60 = opinionOf(st, 2, 0); // the grudge's time put back (no grudge), at his new age (VB-476: chemistry reads it)
   const o = handovers(st)[0];
   assert.ok(o && o.to === 2 && o.gives.reason === 'marriage', 'at 60, no longer a hand, he offers it to her');
   conclude(st, o);
   assert.strictEqual(st.households[0].holder, 2, 'she takes it');
   assert.strictEqual(home.expected, null, 'the farm expects nothing more');
-  assert.ok(opinionOf(st, 2, 0) >= fond - 1e-9, 'and the grudge ends with the holding');
+  assert.ok(opinionOf(st, 2, 0) >= fond60 - 1e-9, 'and the grudge ends with the holding');
   sound(st, 'handed on at 60');
 }
 

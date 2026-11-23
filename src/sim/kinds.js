@@ -48,6 +48,8 @@ VB['sim/kinds'] = (() => {
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
   //   late: a job of the kind under way, its worker walking there or at work, is finished after the end of work (VB-119: the cook).
   //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/jobs).
+  //   norm(st, j): the job's hours for a normal crop, where its hours go by the crop's size (reap, thresh): what a head that does not
+  //   reckon with the size estimates (sim/estimate, VB-476).
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // The village's common fields (VB-100): their kinds, as at a farm's fields, while its meeting chose the routine.
   function commonWork(st, v, at, c, post) {

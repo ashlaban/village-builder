@@ -16,7 +16,8 @@ VB['sim/seasonal'] = (() => {
   //   at the standing plan's first review in each season, from its culture's template; dropped with it. The order is recorded, not yet
   //   enforced beyond what the role rankings do (VB-023 enforces the first order).
   // @state plan.head (a household's; VB-254): its head as planner, {pawn (the holder), since (game hours: when it became head), bias: {wood,
-  //   hay, seed, fields}: its multipliers on the template's targets, each within Traits.HEAD.bias × (1 - its skill then) of 1}; drawn once
+  //   hay, seed, fields, hours}: its multipliers on the template's targets (hours, VB-476: its lean, on the hours its estimate gives a
+  //   task), each within Traits.HEAD.bias × (1 - its skill then) of 1}; drawn once
   //   from the stream `traits` when the plan is made and when the holder changes (sim/heirs' event newHead), never at a review; null while
   //   the household has no holder.
   // @state plan.targets (a household's; VB-248, VB-252): {wood: [the woodpile's goal by season], woodSecond (a second hand cuts below it),
@@ -173,7 +174,7 @@ VB['sim/seasonal'] = (() => {
   // the template's order (none is enforced yet: VB-023 was closed unmerged). Its bias, drawn once, multiplies the template's targets.
   const HORIZON = Object.freeze([0.33, 0.67]),
     ORDER_LEAST = 0.1,
-    UNBIASED = Object.freeze({ wood: 1, hay: 1, seed: 1, fields: 1 });
+    UNBIASED = Object.freeze({ wood: 1, hay: 1, seed: 1, fields: 1, hours: 1 });
   // The household's plan has a new head (its making, a succession): its record and bias, drawn now from the stream `traits`.
   function newHead(st, plan) {
     if (st.rng.seed) return; // while a scenario is seeded (its one stream): startHeads draws them once the streams are split

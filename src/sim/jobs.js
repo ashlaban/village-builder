@@ -27,6 +27,7 @@ VB['sim/jobs'] = (() => {
     { routineAsks } = VB['sim/routines'],
     { reviewWhy, mayLook, WINDOWED, dueNow, again } = VB['sim/plandays'];
   const { onProject } = VB['sim/projects'];
+  const Estimate = VB['sim/estimate'];
   // @tunable IDLE: how long an idle pawn waits before it looks for work again
   // An idle pawn the planner found no work looks again after wait[0] to wait[1] hours (VB-245; Kim, 10 Nov: 2 to 4, from 0.75 to 2). It hears of new
   // work meanwhile through the hourly refresh, looks again when its wait ends (a leg in sim/agents' queue, VB-473), and of an occasion by the asking.
@@ -380,14 +381,16 @@ VB['sim/jobs'] = (() => {
   // @state plan.day (a household's standing plan's; sim/plans holds the plan): absent until first allotted, then {made (the game hour),
   //   lists: {pawn id: [job keys]}}: for each living member the tasks the head gave it, in the order it takes them; a member too young has
   //   an empty list. Written only by allot, whole, each time; a key whose job is gone is passed over. Plain data, saved with the plan.
-  const dayHours = (st, p) => MATCH.day.horizon * (WORK[1] - WORK[0]) * rateOf(st, p);
+  // A member's working hours of the horizon, by the clock; what it does in them at a task is the head's belief of its rate there (VB-476).
+  const dayHours = () => MATCH.day.horizon * (WORK[1] - WORK[0]);
   const hoursLeft = (st, j) => (j.hours ?? KINDS[j.kind].hours ?? 0) - doneOf(st, j);
   // The head allots the household's day. Every member is weighed for every task of the household and of its village that it may take, by
-  // its fit (score); best fit first, a further hand on a task counting for less (join), a task is given hands until they finish it within
-  // the horizon, each member up to its own working
-  // hours of the horizon; then each member's list goes on with the other tasks it may take, by its fit, so that no one stands idle while
-  // there is work (design.md section 7, Work beats idling). No random draw. Then the head calls: a member at work leaves its task for the
-  // first of its list when that is much more urgent (switchRatio, switchMargin; VB-107), a task with a deadline today (`late`: the meal)
+  // its fit (score); best fit first, a further hand on a task counting for less (join), a task is given hands until they cover its work
+  // left as the head estimates it (sim/estimate, VB-476: the causes its judgement reckons with, leaned by its lean), each member up to its
+  // working hours of the horizon at the rate the head believes it works that task at; then each member's list goes on with the other
+  // tasks it may take, by its fit, so that no one stands idle while there is work (design.md section 7, Work beats idling). No random
+  // draw. Then the head calls: a member at work leaves its task for the first of its list when that is much more urgent (switchRatio,
+  // switchMargin; VB-107), a task with a deadline today (`late`: the meal)
   // calls its hand from work, from the road or from idling. The others take their tasks when they next look for work (takeDay).
   function allot(st, hh, c) {
     const plan = planOf(st, 'household', hh.id);
@@ -422,8 +425,10 @@ VB['sim/jobs'] = (() => {
       }
     }
     pairs.sort((x, y) => y[0] - x[0] || x[2].id - y[2].id || x[1] - y[1]);
-    const cap = new Map(members.map((p) => [p.id, dayHours(st, p)])),
-      manned = new Map(), // job -> [hours given, hands]
+    const H = Estimate.headOf(st, hh),
+      est = new Map(), // job -> the work left as the head sees it, once an allotment
+      cap = new Map(members.map((p) => [p.id, dayHours()])),
+      manned = new Map(), // job -> [hours of work given, hands]
       given = new Map(), // pawn -> its first task of the first pass, with its fit
       due = new Map(), // pawn -> the task with a deadline today it is the hand for
       spare = [];
@@ -433,8 +438,9 @@ VB['sim/jobs'] = (() => {
       const pair = pairs[i],
         [s, id, j, k = 0] = pair,
         full = attentionOf(j) === 'full',
-        m = manned.get(j) || [0, 0],
-        left = full ? hoursLeft(st, j) : 0;
+        m = manned.get(j) || [0, 0];
+      let left = 0;
+      if (full && (left = est.get(j)) === undefined) est.set(j, (left = Estimate.workFor(st, H, j)));
       if (m[1] >= KINDS[j.kind].hands || (full && (cap.get(id) <= 0 || m[0] >= left)) || (!full && m[1] > 0)) {
         spare.push(pair);
         continue;
@@ -444,9 +450,10 @@ VB['sim/jobs'] = (() => {
         pairs.splice(slot(pairs, i + 1, again[0]), 0, again);
         continue;
       }
-      const h = full ? Math.min(cap.get(id), left - m[0]) : 0;
+      const r = full ? Estimate.rateFor(st, H, id, j, m[1] === 0) : 0,
+        h = r > 0 ? Math.min(cap.get(id), (left - m[0]) / r) : 0;
       cap.set(id, cap.get(id) - h);
-      manned.set(j, [m[0] + h, m[1] + 1]);
+      manned.set(j, [m[0] + h * r, m[1] + 1]);
       // a task with a deadline today that waits unmanned goes first in its hand's list, whatever its fit, and calls it (below)
       if (KINDS[j.kind].late && !j.claims.length && !due.has(id)) {
         due.set(id, j);

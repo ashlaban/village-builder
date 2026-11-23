@@ -14,6 +14,8 @@ function morning() {
   hh.members = hh.members.slice(0, 3);
   // no manure to cart (VB-137), which outranks hoeing: whether the heap holds a load moves with the random draws
   for (const fd of st.farmsteads[hh.farmstead].fields) fd.soil = Sim.SOIL.cap;
+  // no ox team (VB-476: the head reckons with the team's rate, and a farmer at the plough with it would cover the hoeing alone)
+  for (const id of hh.herds) for (const h of st.herds[id].head || []) if (h.kind === 'ox') h.kind = 'steer';
   const [farmer, , son] = hh.members.map((id) => st.agents[id]);
   Sim.advance(st, Math.floor(st.t) + 0.5 - st.t);
   while (!(hoeing(farmer) && hoeing(son)) && st.t < 15) Sim.advance(st, 1);

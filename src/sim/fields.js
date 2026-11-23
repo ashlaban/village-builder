@@ -9,6 +9,12 @@ VB['sim/fields'] = (() => {
   const { clearScrub, SPREAD } = VB['sim/spread'];
   const { nextStep, failed } = VB['sim/courses'];
   const { wearSoil, rested, tilthOf } = VB['sim/soil'];
+  const { emit } = VB['sim/events'];
+  // A farm's window missed with the task that would have met it still on the board (sim/estimate, VB-476: the head's estimate read against
+  // the truth): told before the field moves on, while the task stands. A village's common field has no head to have misjudged it.
+  const missed = (st, f, fd, kind, why) => {
+    if (!isVillage(f)) emit(st, 'windowMissed', { farm: f, field: fd, kind, why });
+  };
   // The days after the crops' sowing windows close: [season, day, crop].
   const CLOSED = Object.keys(CROPS)
     .filter((k) => CROPS[k].seed > 0)
@@ -24,7 +30,10 @@ VB['sim/fields'] = (() => {
       for (const f of st.farmsteads)
         if (f.household !== null)
           for (const fd of f.fields)
-            if (fd.crop === k && (fd.stage === 'stubble' || fd.stage === 'plowed')) nextStep(fd);
+            if (fd.crop === k && (fd.stage === 'stubble' || fd.stage === 'plowed')) {
+              missed(st, f, fd, fd.stage === 'stubble' ? 'plow' : 'sow', `the window for sowing ${k} closed`);
+              nextStep(fd);
+            }
     }
   }
   // @state farmstead.fields[]: crop (a key of CROPS, sim/crops: a crop, or the course fallow, VB-348), stage, sown/reaped days, held sheaves and
@@ -138,6 +147,7 @@ VB['sim/fields'] = (() => {
   function lostRipe(st, f, fd, c) {
     const L = CROPS[fd.crop].lost;
     if (!L || fd.stage !== 'ripe' || c.season !== L[0] || c.sday !== L[1]) return;
+    missed(st, f, fd, 'reap', `the ${fd.crop} was lost, left standing too long`);
     fd.stage = 'stubble';
     fd.sown = null;
     fd.weedOpen = false;
@@ -219,6 +229,7 @@ VB['sim/fields'] = (() => {
       if (CROPS[fd.crop].winter && fd.stage === 'growing') return;
       if (['ripe', 'growing', 'stooks'].includes(fd.stage)) {
         const k = fd.crop + ' ' + (STOOD[fd.stage] || fd.stage);
+        if (fd.stage === 'ripe') missed(st, f, fd, 'reap', `frost took the ${fd.crop}`);
         if (!lost.has(f)) lost.set(f, new Map());
         lost.get(f).set(k, (lost.get(f).get(k) || 0) + 1);
         fd.stage = 'stubble';
