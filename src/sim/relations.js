@@ -225,11 +225,15 @@ VB['sim/relations'] = (() => {
   on('helped', (st, e) => helped(st, e));
   // Helpers gave e.hours of help to household e.household (sim/hands; VB-106, VB-470): each knows each adult there better, by
   // MATCH.help.tie for each tieHours given, and both remember working together; the helper's life tells of the farm helped, once a day for a farm.
+  // Credit follows the pawn who acted (VB-704; Kim, 16 Nov): the hours' worth (GOODWILL.hour a work hour) is booked to the helper, owed
+  // by the head helped, and stays the helper's own wherever it goes; goods given stay booked between the two heads.
   function helped(st, e) {
     const hh = st.households[e.household],
       f = e.farm || st.farmsteads[hh.farmstead],
-      H = MATCH.help;
+      H = MATCH.help,
+      head = hh.holder !== null && st.pawns[hh.holder].alive ? hh.holder : null;
     for (const h of e.helpers) {
+      if (head !== null && h !== head && st.pawns[h].alive && e.hours > 0) book(st, h, head, e.hours * GOODWILL.hour);
       for (const m of hh.members) {
         const q = st.pawns[m];
         if (m === h || !q.alive || age(st, q) < H.minAge) continue;

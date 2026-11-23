@@ -3,7 +3,8 @@
 //   today: an offer on the basis `help` (VB-690), "two hands for six hours". The head asked answers by kinship, its opinion of the asker
 //   and its own day (the hours its allotment gave its members no task; sim/jobs plan.day.free), and may give fewer hours than asked. A
 //   hand lent works the asker's field work on the basis `helper` (sim/eligibility) for its hours, walking there and home, and its tie with
-//   each adult helped grows by the hours it gave (VB-106: a gift, nothing owed).
+//   each adult helped grows by the hours it gave (VB-106: a gift, nothing owed), and the hours' worth is booked as goodwill to its own
+//   credit (sim/relations helped, VB-704).
 // @state st.handsToday: absent until the first hand is lent or asked, then {day (game day), asked: [household ids whose head asked
 //   today], by: {pawn id: [household helped, hours given, hours worked, 1 once its hours are given or it is sent home]}}: today's lent
 //   hands; a new day's first step closes yesterday's. Written only here.

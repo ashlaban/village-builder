@@ -7,7 +7,7 @@
 // by the verb. The shortfall a head reads from its estimate is the work its windows leave undone at the pace of its hands.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { tinyWorld, tinyState } = require('./lib/tiny.js');
-const { eligible } = VB['sim/eligibility'], Jobs = VB['sim/jobs'], { opinionOf, remember } = VB['sim/relations'], { tieOf } = VB['sim/ties'];
+const { eligible } = VB['sim/eligibility'], Jobs = VB['sim/jobs'], { opinionOf, remember, balance } = VB['sim/relations'], { GOODWILL } = VB['sim/rules'], { tieOf } = VB['sim/ties'];
 const { age } = VB['sim/records'], { MATCH } = VB['sim/roles'], Hands = VB['sim/hands'], { issue } = VB['sim/commands'];
 const make = () => {
   const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(36))),
@@ -68,7 +68,16 @@ const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(s
     assert.ok(r && r.mem.worked, 'the holder remembers working together');
     const e = st.record[st.pawns[h].events.find((i) => st.record[i].kind === 'helped')];
     assert.ok(e && e.farm === fB.id && e.text.includes(fB.name), 'the life event names the farm');
+    // VB-704: credit follows the pawn who acted: the hours' worth is the helper's, owed by the head helped, not A's head's
+    const owed = balance(st, h, holder), want = worked[k] * GOODWILL.hour;
+    assert.ok(Math.abs(owed - want) < 0.05 || (want < GOODWILL.forget && owed === 0), `helper ${h} is owed ${want} rations by the head, ${owed} booked`);
+    if (!helpers.includes(A.holder)) assert.strictEqual(balance(st, A.holder, holder), 0, 'the helper\'s own head is owed nothing for its hours');
   });
+  // the credit stays its own: a helper that leaves its household keeps its balance
+  const h0 = helpers.find((h) => h !== A.holder), kept = balance(st, h0, holder);
+  st.pawns[h0].household = null; // as if it had left; goodwill is the pawn's, not the household's
+  assert.strictEqual(balance(st, h0, holder), kept, 'a member\'s goodwill stays its own when it leaves the household');
+  st.pawns[h0].household = A.id;
   assert.ok(!Sim.villageLog(st, 1000).some((r) => r.ev.kind === 'helped'), 'help writes no line of the village log');
   assert.ok(Sim.grainOf(A) <= grainA && Sim.grainOf(B) <= grainB, 'nothing moved between the stores with the help');
   console.log(`  ${helpers.length} hands lent to ${fB.name}, worked ${worked.map((h) => h.toFixed(1)).join(' and ')} h; tie ${before[0][0].toFixed(2)} -> ${after[0][0].toFixed(2)}`);
