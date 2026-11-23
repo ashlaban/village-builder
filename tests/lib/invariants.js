@@ -207,10 +207,11 @@ function checkState(st) {
         // the one exception (VB-485)
         if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
         // VB-254: the plan's head is its household's holder, since a time not after now, with a bias on each of the four targets within
-        // Traits.HEAD.bias of 1 (and hours, VB-476: the lean of the head's estimate); none while the household has no holder
+        // Traits.HEAD.bias of 1 (and hours, VB-476: the lean of the head's estimate, absent in a save made before it, which reads 1);
+        // none while the household has no holder
         const H = plan.head, hhH = st.households[id].holder, most = globalThis.VB['sim/traits'].HEAD.bias + 1e-9;
         if (hhH === null || hhH === undefined ? H !== null : !H || H.pawn !== hhH || !(H.since <= st.t) || !H.bias ||
-          Object.keys(H.bias).join() !== 'wood,hay,seed,fields,hours' || !Object.values(H.bias).every((x) => Math.abs(x - 1) <= most))
+          !['wood,hay,seed,fields,hours', 'wood,hay,seed,fields'].includes(Object.keys(H.bias).join()) || !Object.values(H.bias).every((x) => Math.abs(x - 1) <= most))
           bad.push(`plans: household ${id}'s head ${JSON.stringify(H)} is not its holder ${hhH}'s`);
         // VB-255: the head's projects: its record absent, or its year, its project under way (a live project plan of the household's,
         // with its kind) or none, and the times not after now
