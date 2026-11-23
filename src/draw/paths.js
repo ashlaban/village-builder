@@ -1,7 +1,7 @@
-// @sys gen/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks and over the fields
+// @sys draw/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks and over the fields
 // ===== Worn paths on the map (VB-094). The simulation counts and fades the wear (sim/paths); this module only reads w.worn. =====
 // Listed before gen/rivers.js and gen.js: the chunk bake keeps trees and stones off paths and lanes through `thin`.
-VB['gen/paths'] = (() => {
+VB['draw/paths'] = (() => {
   // By stage (0 none, 1 trodden ground, 2 path, 3 lane): the trail's width in map units, and the coarsest level of detail (ArchGen.LV
   // index) that still shows it: trodden ground only up close, paths and lanes at the middle level too. The overview shows none, so a path
   // that changes stage never repaints it (a full overview chunk takes about 60 ms).

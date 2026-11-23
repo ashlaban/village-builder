@@ -174,7 +174,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 
 | Field | Owner (proposed) | Writers: lines | Other readers |
 | --- | --- | --- | --- |
-| `dev` **4** | fields ⁷ | layout 179,180; fields 78; meadows 47; expansion 161 | gen/paths, gen, routes, paths |
+| `dev` **4** | fields ⁷ | layout 179,180; fields 78; meadows 47; expansion 161 | draw/paths, gen, routes, paths |
 | `stones` **4** | fields ⁷ | layout 178; fields 68; meadows 65; expansion 160 | gen, names, page |
 | `trees` **2** | forest ⁷ | forest 15,30,40; expansion 158 | gen, page |
 | `*` | saves (the load) | saves 118,119 | - |
@@ -184,7 +184,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 | `tr` | gen | gen 576 | - |
 | `treesMax` | forest | forest 15 | gen, page |
 | `wear` | paths | paths 17,20,28,55 | page |
-| `worn` | paths | paths 17,31,56 | gen/paths, routes, page |
+| `worn` | paths | paths 17,31,56 | draw/paths, routes, page |
 
 ##### pawn
 
@@ -438,13 +438,13 @@ gone. The table is `node tools/writes.js` of 18 November.
 
 | Module | Imports at load | Lookups inside functions (later: a module loaded after it) |
 | --- | --- | --- |
-| gen/paths | - | - |
+| draw/paths | - | - |
 | gen/rivers | - | - |
 | gen/climate | gen/rivers | - |
 | draw/marks | - | - |
 | gen/geology | - | - |
 | gen/cover | - | - |
-| gen | - | gen/cover:243, gen/climate:344, gen/climate:477, gen/rivers:543, gen/geology:716, gen/paths:1038, gen/rivers:1038, draw/marks:1040 |
+| gen | - | gen/cover:243, gen/climate:344, gen/climate:477, gen/rivers:543, gen/geology:716, draw/paths:1038, gen/rivers:1038, draw/marks:1040 |
 | culture | - | count:381, count:417 |
 | sim/rules | gen | - |
 | sim/registry | - | count:120, count:136 |

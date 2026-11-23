@@ -29,7 +29,7 @@ function levelFor(z, cur) {
   if (cur === 2 && l === 1 && z < TH1 * HY) l = 2;
   return l;
 }
-// out, if given, gets out.way: the chunk's ways over its fields and meadows, a canvas of their own (gen/paths drawOver), or null.
+// out, if given, gets out.way: the chunk's ways over its fields and meadows, a canvas of their own (draw/paths drawOver), or null.
 function* chunkJob(wd, l, cx, cy, canvas, out) {
   const ctx = canvas.getContext('2d'),
     img = ctx.createImageData(TEX, TEX);
@@ -107,7 +107,7 @@ function repaintTiles(near, far) {
 // Repaint worn paths whose stage changed (sim/paths): the close levels around them are dropped and painted again on demand, within
 // the frame budget; the overview shows no paths.
 function refreshPaths() {
-  const reach = 5 * w.R; // a tile's stage changes the trails of the tiles within two steps of it (gen/paths)
+  const reach = 5 * w.R; // a tile's stage changes the trails of the tiles within two steps of it (draw/paths)
   for (const tile of st.pathDirty)
     for (const l of [0, 1]) {
       const [a, b, c, d] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);

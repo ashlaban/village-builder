@@ -384,7 +384,7 @@ VB['sim/layout'] = (() => {
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
     for (const f of farmsteads) w.dev[f.house] = 3; // a house: no way wears through it (sim/paths)
-    for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
+    for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (draw/paths)
     initWear(w);
     initFish(w);
     initForage(w);
