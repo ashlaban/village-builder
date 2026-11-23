@@ -116,6 +116,8 @@
     "household.digAt": "sim/dig",
     "household.saltAt": "sim/saltpan",
     "household.salt": "sim/stores",
+    "household.iron": "sim/stores",
+    "household.tools": "sim/ironwork",
     "household.rack": "sim/stores",
     "household.fresh": "sim/pot",
     "household.boat": "sim/drying",

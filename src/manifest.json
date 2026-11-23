@@ -69,7 +69,7 @@
   "sim/dig.js",
   "sim/pot.js",
   "sim/hunger.js",
-  "sim/foodneed.js",  "sim/saltpan.js",
+  "sim/foodneed.js",  "sim/saltpan.js",  "sim/ironwork.js",
   "sim/quern.js",
   "sim/offers.js",
   "sim/exchange.js",

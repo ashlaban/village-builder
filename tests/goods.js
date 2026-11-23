@@ -12,13 +12,13 @@ const near = (a, b, what) => { assert(Math.abs(a - b) < 1e-6, `${what}: ${a}, wa
 
 // ---- the registry: every good the fair trades, and nothing else; worth as the agreed table ----
 const WANT = { grain: 10, butter: 15, 'salt meat': 15, 'dried fish': 15, tar: 8, ale: 14, 'cattle/cow': 40, 'cattle/ox': 50, 'cattle/heifer': 20,
-  'cattle/steer': 20, sheep: 6, quern: 25, hide: 6, salt: 20 }; // salt, a sack of 10 measures (VB-700; Proposed) // the hand quern (VB-009; Proposed)
+  'cattle/steer': 20, sheep: 6, quern: 25, hide: 6, salt: 20, iron: 30 }; // a bloom (VB-701; Proposed) // salt, a sack of 10 measures (VB-700; Proposed) // the hand quern (VB-009; Proposed)
 assert.deepStrictEqual(Goods.goods().map((g) => g.id).sort(), Object.keys(WANT).sort(), 'the goods of the fair');
 for (const [id, w] of Object.entries(WANT)) {
   near(Norms.norm('worth', id), w, `worth of ${id}`);
   near(Rules.value(null, 'worth', { good: Goods.goodOf(id) }), w, `the worth rule for ${id}`);
 }
-assert.deepStrictEqual(Goods.goods().filter((g) => g.keeping).map((g) => g.id).sort(), ['butter', 'dried fish', 'hide', 'quern', 'salt', 'salt meat', 'sheep', 'tar']);
+assert.deepStrictEqual(Goods.goods().filter((g) => g.keeping).map((g) => g.id).sort(), ['butter', 'dried fish', 'hide', 'iron', 'quern', 'salt', 'salt meat', 'sheep', 'tar']);
 for (const id of ['grain', 'butter', 'salt meat', 'dried fish']) {
   const g = Goods.goodOf(id); assert(g.class === 'food' && g.quantum === 10 && g.rations === 1 && g.unit === 'ration', id);
 }
