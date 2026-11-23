@@ -949,6 +949,10 @@ function checkState(st) {
     const wd = p.workdays;
     if (wd && !(Number.isInteger(wd.year) && [wd.came, wd.missed].every((n) => Number.isInteger(n) && n >= 0 && n <= 2) && wd.came + wd.missed <= 2))
       bad.push(`pawns[${p.id}]: work days ${JSON.stringify(wd)}`);
+    // a pawn's deeds (VB-705): held, office and gift, each [v > 0, t not after now]
+    if (p.deeds) for (const [k, d] of Object.entries(p.deeds))
+      if (!['held', 'office', 'gift'].includes(k) || !Array.isArray(d) || !(d[0] > 0) || !Number.isFinite(d[0]) || !(d[1] <= st.t))
+        bad.push(`pawns[${p.id}]: deed ${k} ${JSON.stringify(d)}`);
     if (p.alive) {
       if (!memberOf.has(p.id)) bad.push(`pawns[${p.id}]: alive but in no household`);
       else if (p.household !== memberOf.get(p.id)) bad.push(`pawns[${p.id}]: household field ${p.household}, member of ${memberOf.get(p.id)}`);
