@@ -144,7 +144,7 @@ if (lane >= 0) {
   }));
   const spots = [0, 1, 2, 3, 4, 5].map((k) => [pw.hx[lane] + 0.75 * pw.R * Math.cos(k + 0.5), pw.hy[lane] + 0.75 * pw.R * Math.sin(k + 0.5)]);
   const free = spots.find(([x, y]) => clear(x, y)), items = [{ t: 'stone', x: bx, y: by }, ...(free ? [{ t: 'stone', x: free[0], y: free[1] }] : [])];
-  Look.thin(pw, items, G.hexLocator(pw));
+  Look.thin(pw, items, VB['world/grid'].hexLocator(pw));
   check(!items.some((it) => it.x === bx) && items.length === (free ? 1 : 0), `thin keeps ${items.length} items on and beside a lane`);
 }
 if (failed) process.exit(1);

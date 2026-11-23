@@ -1,6 +1,6 @@
 // @sys sim/layout: placing villages (a green, and a farm at a time round it, by its land), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { WOOD } = VB['sim/rules'],
     { RIVER, SOIL, farmable, byRiver, fertility } = VB['sim/crops'],
     { PATHS } = VB['sim/walking'];

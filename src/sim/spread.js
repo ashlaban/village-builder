@@ -2,7 +2,8 @@
 // farming, work or grazing keeps the land open; the hours scrub adds to clearing
 VB['sim/spread'] = (() => {
   const G = VB['gen'],
-    { B, treeStage, setBiome } = G;
+    { setBiome } = G,
+    { B, treeStage } = VB['world/biomes'];
   const { fullTrees } = VB['gen/cover'];
   const { DAY, YEAR_DAYS } = VB['sim/rules'];
   const { costChanged } = VB['sim/routes'];

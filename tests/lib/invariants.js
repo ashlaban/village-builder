@@ -1213,7 +1213,7 @@ function checkState(st) {
   // deposits (VB-359, sim/dig): loads left only on a deposit tile; a dug tile (dugDay) not after today, its first amount at least what is left
   // and nothing dug but clay, bog iron and peat; an endless tile stays endless
   {
-    const { deposit, depositLeft, depositFull, dugDay } = st.w, today = Math.floor(st.t / 24), E = globalThis.VB['gen/geology'];
+    const { deposit, depositLeft, depositFull, dugDay } = st.w, today = Math.floor(st.t / 24), E = globalThis.VB['world/geology'];
     let off = 0;
     if (deposit) for (let i = 0; i < N; i++) {
       if (!deposit[i] && depositLeft[i]) off++;

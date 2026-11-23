@@ -1,8 +1,9 @@
 // @sys gen/bake: rasterizing the map into levels of detail, including land, water and decorations
 VB['gen/bake'] = (() => {
   const { mulberry32 } = VB['gen/noise'];
-  const { B, BIOMES } = VB['gen/biomes'];
-  const SQ3 = Math.sqrt(3);
+  const { BIOMES } = VB['gen/biomes'],
+    { B, treeStage } = VB['world/biomes'],
+    { hexLocator } = VB['world/grid'];
 
   // Level-of-detail pyramid: every chunk is TEX x TEX texels; each level up covers 3x3 chunks of the one below.
   const TEX = 512;
@@ -11,31 +12,6 @@ VB['gen/bake'] = (() => {
     { size: 1536, scale: 1 / 3 },
     { size: 4608, scale: 1 / 9 },
   ];
-
-  function hexLocator(w) {
-    const { R, COLS, ROWS, HW, AP } = w;
-    return function (px, py, out) {
-      const x = px - AP,
-        y = py - R;
-      const qf = ((SQ3 / 3) * x - y / 3) / R,
-        rf = ((2 / 3) * y) / R,
-        sf = -qf - rf;
-      let q = Math.round(qf),
-        r = Math.round(rf),
-        s = Math.round(sf);
-      const dq = Math.abs(q - qf),
-        dr = Math.abs(r - rf),
-        ds = Math.abs(s - sf);
-      if (dq > dr && dq > ds) q = -r - s;
-      else if (dr > ds) r = -q - s;
-      const row = r,
-        col = q + ((r - (r & 1)) >> 1);
-      if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return -1;
-      out[0] = px - (HW * (col + 0.5 * (row & 1)) + AP);
-      out[1] = py - (1.5 * R * row + R);
-      return row * COLS + col;
-    };
-  }
 
   // Low-resolution water colour layer, one texel per coarse cell: a painted sea, in flat bands of blue-grey that darken away from the
   // land, each blended into the next over a narrow edge; a lake is one flat colour.
@@ -206,13 +182,6 @@ VB['gen/bake'] = (() => {
     }
   }
 
-  // Density stage of a tile's trees: 4 (more than 75% of max left) down to 1 (25% or less), 0 when none are left.
-  function treeStage(w, i) {
-    const t = w.trees[i],
-      m = w.treesMax[i];
-    return t <= 0 || m === 0 ? 0 : t > 0.75 * m ? 4 : t > 0.5 * m ? 3 : t > 0.25 * m ? 2 : 1;
-  }
-
   // Decorations for one chunk. Items come from every tile near the chunk, so objects that straddle
   // a chunk edge are drawn identically on both sides.
   function decorateChunk(w, ctx, l, cx, cy, S) {
@@ -323,5 +292,5 @@ VB['gen/bake'] = (() => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
-  return { bakeWater, bakeChunk, decorateChunk, hexLocator, treeStage, LV, TEX };
+  return { bakeWater, bakeChunk, decorateChunk, LV, TEX };
 })();

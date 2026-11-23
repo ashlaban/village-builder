@@ -5,6 +5,9 @@ const G = ArchGen,
   Rivers = VB['gen/rivers'],
   Paths = VB['gen/paths'],
   Geo = VB['gen/geology'],
+  Strata = VB['world/geology'],
+  Biomes = VB['world/biomes'],
+  Grid = VB['world/grid'],
   Customs = VB['sim/customs'];
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');

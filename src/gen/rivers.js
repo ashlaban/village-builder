@@ -564,7 +564,7 @@ VB['gen/rivers'] = (() => {
     return px * px + py * py;
   }
   // Drops the decoration items ({t, x, y, ...}) that stand in a river or on its bank, or whose crown (a tree's, 10 units above its foot)
-  // would hide one, in place, and returns the array. loc: ArchGen.hexLocator(w).
+  // would hide one, in place, and returns the array. loc: world/grid's hexLocator(w).
   function thin(w, items, loc) {
     const o = [0, 0],
       cache = new Map(),

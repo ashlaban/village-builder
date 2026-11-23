@@ -600,7 +600,7 @@ function planPoint(i) {
       d = VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[tool.what], VB['sim/walking'].walkable(st.w)).dist.get(i),
       why = (tool.what === 'field' ? VB['sim/fieldplans'].fieldWhy : VB['sim/meadows'].meadowWhy)(st, f, hh, i);
     tool.facts = [
-      G.BIOMES[w.biome[i]].name,
+      Biomes.BIOMES[w.biome[i]].name,
       VB['sim/crops'].farmable(w, i) ? `fertility ${Math.round(VB['sim/crops'].fertility(w, i) * 100)}` : '',
       Sim.byRiver(w, i) ? 'by the river' : '',
       d === undefined ? '' : `${d} ${d === 1 ? 'step' : 'steps'} from the house`,

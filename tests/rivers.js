@@ -7,7 +7,7 @@ const { RIVER, FERTILITY, fertility, byRiver } = VB['sim/crops'], { findRoute } 
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('RIVERS FAIL:', m); } };
 const EXT = process.argv.includes('--extended'), { island, generate, ROOMY } = require('./lib/probe.js');
 const world = (seed) => (EXT ? generate(seed, {}) : island(seed, ROOMY)), anew = (seed) => (EXT ? world(seed) : generate(seed, ROOMY));
-const SOURCES = [G.B.HILLS, G.B.MOUNTAIN, G.B.MARSH];
+const SOURCES = [VB['world/biomes'].B.HILLS, VB['world/biomes'].B.MOUNTAIN, VB['world/biomes'].B.MARSH];
 let lakeCourses = 0, watered = 0, fords = 0, crossed = 0, made = 0;
 for (const seed of EXT ? [7, 42] : [11, 13]) {
   const w = world(seed), again = anew(seed);
@@ -21,7 +21,7 @@ for (const seed of EXT ? [7, 42] : [11, 13]) {
     if (w.river[i]) check(!w.water[i] && to >= 0, `seed ${seed}: river tile ${i} is water or has no course`);
     if (to < 0) continue;
     check(w.nb.slice(i * 6, i * 6 + 6).includes(to), `seed ${seed}: tile ${i} drains to ${to}, not a neighbour`);
-    if (w.water[i]) { check(w.biome[i] === G.B.LAKE, `seed ${seed}: course through sea tile ${i}`); lakeCourses++; continue; }
+    if (w.water[i]) { check(w.biome[i] === VB['world/biomes'].B.LAKE, `seed ${seed}: course through sea tile ${i}`); lakeCourses++; continue; }
     // every course runs on, without a loop, to the sea
     let j = i, n = 0;
     while (j >= 0 && !w.ocean[j] && n++ < w.N) j = w.riverTo[j];
@@ -74,7 +74,7 @@ for (const seed of EXT ? [7, 42] : [11, 13]) {
   // a site 1 to 3 steps over land from a river scores RIVER.site[steps] higher than it would without that term
   let site = -1, steps = 0;
   for (let i = 0; i < w.N && site < 0; i++) {
-    if (w.biome[i] !== G.B.MEADOW || w.river[i] || siteScore(w, i) < 0) continue;
+    if (w.biome[i] !== VB['world/biomes'].B.MEADOW || w.river[i] || siteScore(w, i) < 0) continue;
     for (const [j, d] of bfs(w, i, 3, land(w)).dist) if (w.river[j] && (site < 0 || d < steps)) { site = i; steps = d; }
   }
   const keep = RIVER.site.slice(), withRiver = siteScore(w, site);
@@ -84,7 +84,7 @@ for (const seed of EXT ? [7, 42] : [11, 13]) {
   // decorations: an item in the middle of a river line goes, one well away from any river stays
   const t = sources[0], b = Rv.lines(w, t)[0][5], far = w.river.findIndex((x, i) => !x && !w.water[i] && !byRiver(w, i));
   const items = [{ t: 'stone', x: b[0], y: b[1] }, { t: 'stone', x: w.hx[far], y: w.hy[far] }];
-  check(Rv.thin(w, items, G.hexLocator(w)).length === 1 && items[0].x === w.hx[far], `seed ${seed}: thin keeps ${items.length} items`);
+  check(Rv.thin(w, items, VB['world/grid'].hexLocator(w)).length === 1 && items[0].x === w.hx[far], `seed ${seed}: thin keeps ${items.length} items`);
   // nothing built on a river; fields carry their watered fertility, also after a season of making new fields (a year at night)
   for (const scenario of ['founders', 'heirs']) {
     const st = Sim.seed(world(seed), seed, scenario);

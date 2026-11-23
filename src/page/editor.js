@@ -54,7 +54,7 @@ function edEcho() {
 // What the raised world holds: the land's biomes as one bar, and counts.
 function edFacts() {
   const wd = edit.wd,
-    n = new Array(G.BIOMES.length).fill(0);
+    n = new Array(Biomes.BIOMES.length).fill(0);
   let land = 0,
     river = 0,
     lake = 0,
@@ -264,7 +264,7 @@ function closeEditor() {
 // ---- the terrain brush ----
 // A brush lays a ground cover or a deposit on the land tiles under it, as the pointer is dragged over the map (page/input, mapBrush);
 // with no brush the map is dragged as ever. The sea, lakes and rivers are not painted: the relief stays as it was raised.
-const ED_COVERS = G.BIOMES.map((b, k) => k).filter((k) => !G.BIOMES[k].water);
+const ED_COVERS = Biomes.BIOMES.map((b, k) => k).filter((k) => !Biomes.BIOMES[k].water);
 let edBrush = null,
   edAt = null,
   edStruck = 0; // the brush held ({cover} or {deposit}); a stroke's last point on the map; tiles it changed
@@ -276,13 +276,13 @@ function edBrushList() {
   $('edBrushes').innerHTML =
     `<button type="button" data-brush="none" aria-pressed="${!edBrush}" class="wide">Look around</button><h4>Ground cover</h4>` +
     ED_COVERS.map((k) =>
-      btn(`data-cover="${k}"`, `<i style="background:rgb(${G.BIOMES[k].c.join(',')})"></i>`, G.BIOMES[k].name, {
+      btn(`data-cover="${k}"`, `<i style="background:rgb(${G.BIOMES[k].c.join(',')})"></i>`, Biomes.BIOMES[k].name, {
         cover: k,
       }),
     ).join('') +
     '<h4>Deposits</h4>' +
     btn('data-deposit="0"', '', 'No deposit', { deposit: 0 }, 'wide') +
-    Geo.DEPOSITS.map((d, k) =>
+    Strata.DEPOSITS.map((d, k) =>
       k
         ? btn(
             `data-deposit="${k}"`,
@@ -296,7 +296,7 @@ function edBrushList() {
     ? 'Drag the map to move it. Choose a brush to paint.'
     : edBrush.cover !== undefined
       ? 'Drag over the land to lay this cover. Two fingers, the wheel and the arrow keys still move the map.'
-      : edBrush.deposit && Geo.DEPOSITS[edBrush.deposit].hidden
+      : edBrush.deposit && Strata.DEPOSITS[edBrush.deposit].hidden
         ? 'A hidden ore: a village must find it before it can be dug.'
         : edBrush.deposit
           ? 'Drag over the land to lay this deposit.'

@@ -1,6 +1,6 @@
 // @sys sim/walking: terrain and slope costs, the discomfort routes are chosen by, tile passability and cached reach by walking steps
 VB['sim/walking'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { YEAR_DAYS } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   // @tunable TERRAIN: walking: the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost

@@ -378,7 +378,7 @@ VB['gen/paths'] = (() => {
     return px * px + py * py;
   }
   // Drops, in place, the decoration items ({t, x, y, ...}) that stand on a path or lane (a tree by its foot), and returns the array.
-  // Trodden ground keeps its grass, flowers and stones. loc: ArchGen.hexLocator(w).
+  // Trodden ground keeps its grass, flowers and stones. loc: world/grid's hexLocator(w).
   function thin(w, items, loc) {
     if (!w.worn) return items;
     const o = [0, 0],

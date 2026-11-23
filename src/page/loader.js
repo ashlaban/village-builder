@@ -80,7 +80,7 @@ async function swapWorld(wd, sim, { wc, over }) {
   }
   w = wd;
   stagePainted = { wc, over };
-  loc = G.hexLocator(wd);
+  loc = Grid.hexLocator(wd);
   sel = -1;
   hoverDirty = true;
   showTile(-1);

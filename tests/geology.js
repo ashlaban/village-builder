@@ -2,7 +2,7 @@
 // on a tile that can hold it, with loads left; tin only in granite; no island of the test maps with every kind. Every rule on three
 // 48 by 34 islands of tests/lib/probe.js (VB-856; three 180 by 130 maps before, which held over 50 deposits: these hold 36).
 const VB = require('../src/load.js'), G = VB.gen, Geo = VB['gen/geology'], { landComponents } = VB['sim/hex'];
-const { ROCK, DEPOSIT, ROCKS, DEPOSITS, ENDLESS, VEINS } = Geo, B = G.B;
+const { ROCK, DEPOSIT, ROCKS, DEPOSITS, ENDLESS } = VB['world/geology'], { VEINS } = Geo, B = VB['world/biomes'].B;
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('GEOLOGY FAIL:', m); } };
 const { island, generate, ROOMY: SIZE } = require('./lib/probe.js');
 const same = (a, b) => Buffer.compare(Buffer.from(a.buffer), Buffer.from(b.buffer)) === 0;

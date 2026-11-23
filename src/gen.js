@@ -1,41 +1,15 @@
 // @sys gen: assembly of the seeded archipelago's terrain, tile and region data, and the public ArchGen API
 const ArchGen = (() => {
   const { mulberry32, makeSimplex, fbm, smooth, makeTile } = VB['gen/noise'];
-  const { B, COVER, BIOMES, setBiome } = VB['gen/biomes'];
-  const { bakeWater, bakeChunk, decorateChunk, hexLocator, treeStage, LV, TEX } = VB['gen/bake'];
+  const { COVER, BIOMES, setBiome } = VB['gen/biomes'];
+  const { bakeWater, bakeChunk, decorateChunk, LV, TEX } = VB['gen/bake'];
+  const { B, treeStage } = VB['world/biomes'],
+    { NX, NY, DIR_EVEN, DIR_ODD, toAxial, hexDist, hexLocator } = VB['world/grid'];
   const SQ3 = Math.sqrt(3);
-
-  // neighbour directions for pointy-top odd-r: E, NE, NW, W, SW, SE
-  const NX = [1, 0.5, -0.5, -1, -0.5, 0.5],
-    NY = [0, -0.866, -0.866, 0, 0.866, 0.866];
-  const DIR_EVEN = [
-    [1, 0],
-    [0, -1],
-    [-1, -1],
-    [-1, 0],
-    [-1, 1],
-    [0, 1],
-  ];
-  const DIR_ODD = [
-    [1, 0],
-    [1, -1],
-    [0, -1],
-    [-1, 0],
-    [0, 1],
-    [1, 1],
-  ];
 
   const SYL_A = ['Ska', 'Ul', 'Ve', 'Ar', 'Tor', 'Mal', 'Sig', 'Bre', 'Hal', 'Ost', 'Fje', 'Lun', 'Rå', 'Gry', 'Ny'];
   const SYL_B = ['ra', 'vi', 'no', 'sa', 'ke', 'li', '', '', 'de'];
   const SYL_C = ['holm', 'ö', 'skär', 'nes', 'vik', 'sund', 'ey', 'land', 'by'];
-
-  // Pointy-top odd-r offset <-> axial helpers
-  const toAxial = (col, row) => [col - ((row - (row & 1)) >> 1), row];
-  const hexDist = (q1, r1, q2, r2) => {
-    const dq = q1 - q2,
-      dr = r1 - r2;
-    return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
-  };
 
   function* generate(seed, opt = {}) {
     const Cover = VB['gen/cover'],

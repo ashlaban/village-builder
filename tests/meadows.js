@@ -4,7 +4,7 @@ const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, M = VB['sim/mead
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('MEADOWS FAIL:', m); } };
 const world = (seed) => { const it = G.generate(seed, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done); return r.value; };
-const B = G.B, SITES = [B.MEADOW, B.MARSH, B.HEATH];
+const B = VB['world/biomes'].B, SITES = [B.MEADOW, B.MARSH, B.HEATH];
 function validMeadows(st, f, hh, what) {
   const reach = bfs(st.w, f.house, 6, walkable(st.w)).dist;
   for (const m of f.meadows) {

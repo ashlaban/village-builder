@@ -2,7 +2,7 @@
 // sim/plans), and the meadows of generated farms
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'],
     { byRiver } = VB['sim/crops'];
   const { bfs } = VB['sim/hex'];

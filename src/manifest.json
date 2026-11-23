@@ -1,5 +1,8 @@
 [
   "vb.js",
+  "world/grid.js",
+  "world/biomes.js",
+  "world/geology.js",
   "gen/paths.js",
   "gen/rivers.js",
   "gen/climate.js",

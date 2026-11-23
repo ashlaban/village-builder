@@ -122,7 +122,7 @@ function nearTile(wd, from, ok) {
 // words, and `edge` for one that may lie outside the picture and is then put at its edge, towards it.
 function pinsOf(wd, s, sc) {
   const T = (i) => ({ x: wd.hx[i], y: wd.hy[i] }),
-    B = G.B,
+    B = Biomes.B,
     farms = (v) => v.farmsteads.map((id) => s.farmsteads[id]);
   const pic = (url, gone) => ({ img: url, gone });
   let v, pins;

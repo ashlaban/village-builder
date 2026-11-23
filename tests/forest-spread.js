@@ -3,7 +3,7 @@
 // field in use, a house, a green, a meadow mown within the year, work within the year or grazing at GRAZE.keepsOpen keeps it open; grazing at
 // GRAZE.thins takes trees off at a fifth of the rate. Only the front (st.front) is visited. Scrub adds to clearing, and thick scrub is
 // felled and grubbed and cut for firewood. On a tiny village under a forest: the rules on constructed states, the invariants and a save.
-const VB = require('../src/load.js'), Sim = VB.sim, { B, treeStage } = VB.gen;
+const VB = require('../src/load.js'), Sim = VB.sim, { B, treeStage } = VB['world/biomes'];
 const S = VB['sim/spread'], Z = VB['sim/grazing'], Fd = VB['sim/fields'], FieldPlans = VB['sim/fieldplans'], Fo = VB['sim/forest'], T = VB['sim/territory'];
 const { YEAR_DAYS, DAY } = VB['sim/rules'], { GRAZE } = VB['sim/spread'], { KINDS } = VB['sim/kinds'];
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');

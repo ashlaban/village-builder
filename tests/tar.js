@@ -41,7 +41,7 @@ const summer = (st, day) => { st.t = (Math.floor(st.t / YEAR) * YEAR) + (SEASON_
   check(diggers.length === 1 && diggers[0].id === v.tarBy, 'the household charged begins it');
   check(diggers.length === 1 && tarpitOf(st, diggers[0].id).what === 'tarpit', 'one pit begun for the village');
   const hh = diggers[0], plan = tarpitOf(st, hh.id), s = plan.steps[plan.open];
-  check(st.w.biome[s.place] === VB.gen.B.PINE && v.wood.includes(s.place), 'on a pine tile of the wood');
+  check(st.w.biome[s.place] === VB['world/biomes'].B.PINE && v.wood.includes(s.place), 'on a pine tile of the wood');
   lookNow(st, 'tarpit');
   check(st.households.filter((h) => tarpitOf(st, h.id)).length === 1, 'a pit begun is not begun twice');
   KINDS.tarpit.done(st, { kind: 'tarpit', site: s.place }, hh);

@@ -1,6 +1,6 @@
 // Routes: cache keys never collide on a Large map, far targets are found, and the search takes the cheapest way by terrain (VB-096)
 // and over worn paths (VB-110).
-const VB = require('../src/load.js'), { B } = VB.gen, { route, findRoute, routeCost, refreshRoutes, costChanged } = VB['sim/routes'];
+const VB = require('../src/load.js'), { B } = VB['world/biomes'], { route, findRoute, routeCost, refreshRoutes, costChanged } = VB['sim/routes'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('ROUTES FAIL:', m); } };
 const grid = (COLS, ROWS) => {
   const N = COLS * ROWS, nb = new Int32Array(N * 6).fill(-1);

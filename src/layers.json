@@ -4,6 +4,9 @@
   "modules": {
     "kernel": [
       "vb",
+      "world/grid",
+      "world/biomes",
+      "world/geology",
       "gen/paths",
       "gen/rivers",
       "gen/climate",
