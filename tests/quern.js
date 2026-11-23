@@ -2,7 +2,8 @@
 // 4 grain on sandstone, a fifth slower on granite, while it holds grain above its seed reserve and less than 10 days of flour; the cook puts
 // flour in the pot at 1:1 and grain unground at 1.25 a ration, so the same grain feeds a household about 25% longer with a quern; a quern
 // wears out 20 years after it was made, read from when it was made; a new one is wanted 2 years before and hewn in winter (at once with
-// none) from a load of the heap, where the village's ground is sandstone or granite; the start's households have one; the quern is a good.
+// none) from a load of sandstone or granite on the heap, of that load's rock (VB-733); the start's households have one; the quern is a good
+// of two kinds, its grit the registry's row.
 const VB = require('../src/load.js'), Goods = VB['sim/goods'], Stores = VB['sim/stores'], Pot = VB['sim/pot'], Q = VB['sim/quern'];
 const { YEAR, DAY, ECON, FOODS } = VB['sim/rules'], { ROLES } = VB['sim/roles'], { dailyNeed, feedHousehold, seedReserve } = VB['sim/hunger'];
 const { KINDS, ASK } = VB['sim/kinds'], Norms = VB['sim/norms'], { ROCK } = VB['world/geology'];
@@ -12,7 +13,7 @@ const near = (a, b, e = 1e-6) => Math.abs(a - b) < e;
 const { QUERN } = Q;
 
 // --- the numbers, the kinds and the roles
-check(QUERN.years === 20 && QUERN.renewYears === 2 && QUERN.granite === 0.8 && QUERN.perHour === 4 && QUERN.flourDays === 10 && QUERN.hewHours === 12,
+check(QUERN.years === 20 && QUERN.renewYears === 2 && Goods.kindRow('quern', 'granite').grit === 0.8 && QUERN.perHour === 4 && QUERN.flourDays === 10 && QUERN.hewHours === 12,
   'a quern lasts 20 years, wanted 2 before; granite 0.8; 4 grain an hour; 10 days of flour; 12 hours to hew');
 check(ECON.unground === 1.25 && near(FOODS.grain.worth, 0.8) && FOODS.flour.worth === 1 && FOODS.flour.source === 'grain', 'grain 1.25 a ration unground; flour 1:1, one source with grain');
 check(KINDS.grind && KINDS.grind.inside && KINDS.grind.type === 'household' && KINDS.hewQuern && KINDS.hewQuern.hours === 12, 'the two kinds');
@@ -25,7 +26,7 @@ check(Norms.norm('worth', 'quern') === 25 && Goods.GOODS.get('quern').class === 
 // --- a household of the start has a quern of granite (no ground layers here); the start's are of every age below 16 years
 {
   const st = state(), live = st.households.filter((h) => !h.dissolved);
-  check(live.every((h) => h.quern && h.quern.rock === 'granite' && h.flour === 0 && Q.quernOf(st, h)), 'each household of the start has a working quern, no flour');
+  check(live.every((h) => h.quern && h.quern.kind === 'granite' && h.flour === 0 && Q.quernOf(st, h)), 'each household of the start has a working quern, no flour');
   check(new Set(live.map((h) => h.quern.made)).size === live.length, 'of different ages');
   const bad = checkState(st);
   check(!bad.length, 'invariants at the start: ' + bad.slice(0, 3).join('; '));
@@ -48,10 +49,10 @@ const posts = (st, hh, f, kind, c = { season: 0, sday: 3, day: 3, hour: 10 }) =>
 // --- grinding: posted while there is grain above the reserve and flour below 10 days; a job grinds 8 grain to 8 flour; slower on granite
 {
   const { st, hh, f } = home(200), need = dailyNeed(st, hh);
-  hh.quern.rock = 'sandstone';
+  hh.quern.kind = 'sandstone';
   let p = posts(st, hh, f, 'grind');
   check(p.length === 1 && p[0].key === `grind:h${hh.id}` && p[0].site === f.house && p[0].hours === undefined, 'grind posted at the house, 2 hours on sandstone');
-  hh.quern.rock = 'granite';
+  hh.quern.kind = 'granite';
   p = posts(st, hh, f, 'grind');
   check(p.length === 1 && near(p[0].hours, QUERN.grindHours / 0.8), `on granite a fifth slower: ${p[0] && p[0].hours} hours`);
   KINDS.grind.done(st, {}, hh);
@@ -101,29 +102,37 @@ function days(quern) {
 // --- wear and want: read from when it was made
 {
   const { st, hh, f } = home(100);
-  hh.quern = { rock: 'granite', made: st.t - 17 * YEAR }; // lint-allow: owner a test's quern
+  hh.quern = { kind: 'granite', grade: 1, made: st.t - 17 * YEAR }; // lint-allow: owner a test's quern
   check(Q.quernOf(st, hh) && !Q.wanted(st, hh) && near(Q.yearsLeft(st, hh), 3), '17 years old: works, not yet wanted, 3 years left');
   hh.quern.made = st.t - 18.5 * YEAR;
   check(Q.quernOf(st, hh) && Q.wanted(st, hh), '18.5 years old: works, and a new one is wanted');
-  hh.stone = 1; // lint-allow: owner a test's heap
+  hh.stone = { granite: 1 }; // lint-allow: owner a test's heap
   check(posts(st, hh, f, 'hewQuern').length === 0, 'with a working quern, not hewn but in winter');
   check(posts(st, hh, f, 'hewQuern', { season: 3, sday: 2, day: 38, hour: 10 }).length === 1, 'hewn in winter');
   hh.quern.made = st.t - 20 * YEAR;
   check(!Q.quernOf(st, hh) && Q.yearsLeft(st, hh) === 0 && posts(st, hh, f, 'grind').length === 0, '20 years old: worn out, nothing ground');
   check(posts(st, hh, f, 'hewQuern').length === 1, 'none working: hewn at once');
   KINDS.hewQuern.done(st, {}, hh);
-  check(hh.quern.made === st.t && hh.quern.rock === 'granite' && hh.stone === 0 && Q.quernOf(st, hh), 'hewn: a new granite quern, the load off the heap');
+  check(hh.quern.made === st.t && hh.quern.kind === 'granite' && Stores.heldOf(hh, 'stone') === 0 && Q.quernOf(st, hh), 'hewn: a new granite quern, the load off the heap');
   check(hh.ledger.some((e) => e.kind === 'quern' && e.good === 'stone' && e.n === -1), 'the load through the ledger');
-  hh.quern = null; hh.stone = 0;
+  hh.quern = null; hh.stone = {};
   check(Q.wantsStone(st, hh) && posts(st, hh, f, 'hewQuern').length === 0, 'no load on the heap: not hewn, the stone wanted');
-  // on limestone the quern cannot be hewn
+  // VB-733: the quern is of the rock of the load it is hewn from, whatever the ground under the green; a load of limestone hews none
   st.w.rock = new Uint8Array(st.w.N).fill(ROCK.LIMESTONE);
-  hh.stone = 1;
-  check(!Q.canHew(st, hh) && !Q.wantsStone(st, hh) && posts(st, hh, f, 'hewQuern').length === 0, 'on limestone: none hewn');
-  st.w.rock.fill(ROCK.SANDSTONE);
-  check(posts(st, hh, f, 'hewQuern').length === 1, 'on sandstone: hewn');
+  hh.stone = { limestone: 3 };
+  check(Q.canHew(st, hh) && Q.wantsStone(st, hh) && posts(st, hh, f, 'hewQuern').length === 0, 'a heap of limestone: none hewn, a load that can be wanted');
+  hh.stone = { limestone: 3, granite: 1, sandstone: 1 };
+  check(!Q.wantsStone(st, hh) && posts(st, hh, f, 'hewQuern').length === 1, 'with sandstone on the heap, on limestone ground: hewn');
   KINDS.hewQuern.done(st, {}, hh);
-  check(hh.quern.rock === 'sandstone', 'of sandstone');
+  check(hh.quern.kind === 'sandstone' && hh.stone.sandstone === 0 && hh.stone.granite === 1 && hh.stone.limestone === 3, `of sandstone, the best grit first (${JSON.stringify(hh.stone)})`);
+  // the building step's search for a quern's load: a quarry of a rock it can be hewn of; another rock's quarry is searched again
+  const Bld = VB['sim/building'], plan = VB['sim/plans'].planOf(st, 'household', hh.id);
+  hh.quern = null; hh.stone = {};
+  plan.build = { tile: f.house, kind: 'quarry' }; // a quarry of limestone, as a foundation's search could have found
+  const step = Bld.buildStep(st, plan, hh);
+  check(step !== plan.build && (step.kind === null || step.kind === 'pick' || Q.hewable(Q.villageRock(st, st.villages[f.village]))), `a limestone quarry is left for a quern's load (${JSON.stringify(step)})`);
+  st.w.rock.fill(ROCK.GRANITE);
+  hh.stone = { granite: 1 };
   const bad = checkState(st);
   check(!bad.length, 'invariants: ' + bad.slice(0, 3).join('; '));
 }

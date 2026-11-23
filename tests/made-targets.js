@@ -59,7 +59,7 @@ assert.ok(!salts(), 'none at a target of none');
 
 // a quern: a target of none lets it wear out; the need again hews one where the ground gives its stone
 st.households[0].quern = null; // lint-allow: owner a test wears the quern out
-st.households[0].stone = 0; // lint-allow: owner a test empties the heap
+st.households[0].stone = {}; // lint-allow: owner a test empties the heap
 assert.strictEqual(Quern.wantsStone(st, hh), Quern.canHew(st, hh), 'with none working, a stone for a quern where it can be hewn');
 assert.strictEqual(Sim.head(st, 'target', { store: 'quern', n: 0 }), true);
 assert.strictEqual(Quern.wantsStone(st, hh), false, 'none at a target of none');

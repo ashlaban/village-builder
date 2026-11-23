@@ -54,6 +54,7 @@ st = scenario('founders', 7);
 Sim.advance(st, Sim.YEAR);
 // the carting test is of barley land in stubble (the scenarios' crops, VB-353, give fields other courses): every field is made so
 for (const f of st.farmsteads) for (const [k, q] of f.fields.entries()) Object.assign(q, { crop: 'barley', rotation: 'every', step: 0, stage: 'stubble', soil: S.start - 0.1 * (k % 3) - 0.01 * k }); // below the cap, the poorest apart
+for (const f of st.farmsteads) delete f.failed; // a crop lost is kept only under a rotation of two crops (sim/courses clears it as this one is set)
 const heaps = st.farmsteads.filter((f) => f.household !== null).map((f) => ({ f, h: st.households[f.household], heap: st.households[f.household].manure,
   soils: f.fields.map((q) => q.soil) }));
 Sim.advance(st, (S.window[1] + 1) * Sim.DAY);

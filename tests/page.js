@@ -14,8 +14,8 @@ const P = openPage({
   url: `https://x.test/#sx${SEED}`,
   patch: (html) => html
     .replace(/const SIZES = \{ t:/, () => { patched++; return 'const SIZES = { x: [36, 26], t:'; })
-    .replace('let allMaterials = false;', () => { patched++; return 'let allMaterials = false; window.__materialsHTML = (...a) => materialsHTML(...a);'; })
-    .replace('/^#([shp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([shp]?)([tsmlx]?)(\\d{1,9})$/'; })
+    .replace('let allMaterials = false;', () => { patched++; return 'let allMaterials = false; window.__materialsHTML = (...a) => materialsHTML(...a); window.__materialsOf = (h) => materialsOf(h);'; })
+    .replace('/^#([sohp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([sohp]?)([tsmlx]?)(\\d{1,9})$/'; })
     .replace('const THEMES = {', () => { patched++; return 'const THEMES = window.__themes = {'; }) // the themes, to walk each (VB-1531)
     .replace('const chunks = new Map();', () => { patched++; return 'const chunks = new Map(); window.__lod = { chunks, w: () => w, st: () => st, T: () => T, size: (l) => LV[l].size, zoom(z) { cam.z = zt = z; }, zMin: () => zMin(), intro: () => !!intro, pending: () => pending, over: () => stagePainted.over };'; })
     .replace(/const t0 = performance\.now\(\);\s*while \(performance\.now\(\) - t0 < budget\) \{/, () => { patched++; return 'const t0 = performance.now(); let __n = 0; while (window.__lodSteps ? __n++ < window.__lodSteps : performance.now() - t0 < budget) {'; }),
@@ -142,7 +142,7 @@ async function main() {
     $('tabStores').click(); tick(2);
     const secs = qa('#tileHouse .card-sec').map((e) => e.textContent).join('|');
     if (!/^Supplies\|Materials\|Gear/.test(secs)) fail(`the Stores tab's sections are ${secs}`);
-    const nStat = () => qa('#tileHouse .stat-grid')[1].children.length;
+    const nStat = () => [...qa('#tileHouse .stat-grid')[1].children].filter((e) => !e.classList.contains('kinds')).length; // a heap's kinds row is not a material (VB-733)
     const few = nStat();
     click(q('#tileHouse [data-all-materials]'), 'All materials switch'); tick(2);
     if (nStat() !== 8 || !q('#tileHouse [data-all-materials][aria-pressed="true"]')) fail(`All materials lists ${nStat()} of 8 (${few} by default)`);
@@ -151,6 +151,10 @@ async function main() {
     const lay = win.__materialsHTML([mat('stone', 9, [{ label: 'granite', n: 5 }, { label: 'sandstone', n: 4 }]), mat('clay', 4, [{ label: 'one', n: 4 }])],
       [{ icon: 'field', name: 'A barn', step: 'Walls', asks: [{ key: 'stone', have: 6, want: 10 }] }], false);
     if ((lay.match(/class="stat wide kinds"/g) || []).length !== 1 || !/granite 5/.test(lay) || !/6 of 10/.test(lay) || !/asked: 10/.test(lay)) fail('the materials layout of a constructed list is wrong');
+    // the stone heap by its rock (VB-733): the total, and each rock held as its label and its Ground tint
+    const heap = win.__materialsOf({ farmstead: 0, stone: { granite: 3, sandstone: 2, slate: 0 } }).find((m) => m.key === 'stone');
+    if (heap.n !== 5 || heap.kinds.map((k) => `${k.label} ${k.n}`).join(', ') !== 'Granite 3, Sandstone 2' || !heap.kinds.every((k) => /^#[0-9a-f]{6}$/.test(k.tint)))
+      fail(`the heap by rock: ${JSON.stringify(heap)}`);
     click(q('#tileHouse [data-all-materials]'), 'All materials switch'); tick(2);
     $('tabFacts').click(); tick(2);
     // a pawn's card: its twelve traits as icons, no household tabs; its History tab lists dated lines

@@ -1,4 +1,4 @@
-// @sys sim/goods: the catalog of trade goods, grain subtype identifiers and culture's worth and propriety rules
+// @sys sim/goods: the catalog of trade goods with their materials and kinds (VB-733), grain subtype identifiers and culture's worth and propriety rules
 VB['sim/goods'] = (() => {
   const { FOODS, HERD, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
@@ -77,29 +77,134 @@ VB['sim/goods'] = (() => {
   // perish ({keepsDays}: a lot spoils by date; {tiers: true}: a share of the stock is lost by tiers; null: it does not perish in store; an
   // animal lives and dies as an animal): its keeping row (perishOf; VB-683), keeping (accepted beyond need, to be passed on; design.md,
   // The fair, Keeping goods), weight (optional, VB-700: rations of TRAVEL.load a unit weighs; VB-684 gives every good one). ----
+  // ---- materials and kinds (VB-733; design.md, The metals and the stones: goods by purpose, kinds by property; principle 17): a good is
+  // what it is for and is made of a material, its `material`, one of MATERIALS (`class` keeps its meaning, custom's class of exchange). A
+  // good with kinds lists them (at most KINDS_MAX), each a key of its material's table of properties below, and names the properties its
+  // use reads (`reads`); the kind is the good's subtype, 'quern/granite', carried from the material into the good, with no record for each
+  // item. Each good and kind is compiled at load into one frozen row ({id, good, kind, worth, ...the properties read}), read by kindRow
+  // without allocating. Worth is custom's row for each good and kind (sim/norms), never computed from the properties (D14). ----
+  const MATERIALS = Object.freeze(['stone', 'metal', 'clay', 'wood', 'ore', 'amber']),
+    KINDS_MAX = 8;
+  // @tunable STONE: the stones' physical properties that a good's use reads, one row a rock of world/geology's ROCKS (design.md, The
+  // metals and the stones, The kinds; Proposed, 16 Nov, the plan of VB-702). grit: the rate a quern or a millstone of the rock grinds,
+  // against sandstone's even grit (granite's coarse, uneven crystals grind at 0.8, QUERN.granite of VB-009); 0 where the rock cannot be
+  // dressed into a grinding stone (limestone and marble are too soft, slate splits into sheets, soapstone is cut with a knife).
+  const STONE = Object.freeze({
+    granite: Object.freeze({ grit: 0.8 }),
+    limestone: Object.freeze({ grit: 0 }),
+    sandstone: Object.freeze({ grit: 1 }),
+    slate: Object.freeze({ grit: 0 }),
+    marble: Object.freeze({ grit: 0 }),
+    soapstone: Object.freeze({ grit: 0 }),
+  });
+  const PROPERTIES = Object.freeze({ stone: STONE }); // a material's table of kinds; metal, clay, ore and amber join with their goods
+  const ROWS = {}; // good -> {kind -> its frozen row}; filled at load, never saved
+  const NO_KINDS = Object.freeze([]);
+  function compileKinds(spec) {
+    const table = PROPERTIES[spec.material],
+      reads = spec.reads || NO_KINDS,
+      rows = {};
+    if (!table || spec.kinds.length > KINDS_MAX || new Set(spec.kinds).size !== spec.kinds.length) return null;
+    for (const kind of spec.kinds) {
+      const props = table[kind],
+        id = spec.id + '/' + kind,
+        worth = Norms.norm('worth', id);
+      if (!props || !(worth > 0) || reads.some((p) => typeof props[p] !== 'number')) return null;
+      const row = { id, good: spec.id, kind, worth };
+      for (const p of reads) row[p] = props[p];
+      if (spec.graded) row.grades = gradeRows(spec, row);
+      rows[kind] = Object.freeze(row);
+    }
+    return Object.freeze(rows);
+  }
+  // ---- workmanship (VB-761; the plan of VB-702, 13.1 and 13.4): a made good declares `graded: {work: [properties]}`, the properties of
+  // its kinds that a grade's `work` multiplies (the effect its use reads: a quern's grit); every grade's `life` multiplies how long a piece
+  // lasts, read by the good's own module from its row. Each kind's row carries `grades`, one frozen row a grade, compiled here at load:
+  // {id, good, kind, grade, worth (custom's worth of the kind times custom's multiplier for the grade), life, work, ...the properties read,
+  // those named scaled by work}, so a reader allocates nothing. The grade is not part of a good's id. ----
+  const Workmanship = VB['sim/workmanship'];
+  function gradeRows(spec, row) {
+    const W = Workmanship.WORKMANSHIP,
+      scaled = spec.graded.work || NO_KINDS;
+    if (scaled.some((p) => typeof row[p] !== 'number'))
+      throw new Error('stores: graded good scales a property it does not read ' + spec.id);
+    return Object.freeze(
+      W.grades.map((_, g) => {
+        const r = {
+          ...row,
+          grade: g,
+          worth: row.worth * Norms.norm('workmanship', g),
+          life: W.life[g],
+          work: W.work[g],
+        };
+        for (const p of scaled) r[p] = row[p] * W.work[g];
+        return Object.freeze(r);
+      }),
+    );
+  }
   const GOODS = new Map();
   function declareGood(spec) {
     Rules.atLoad();
-    const ok =
-      spec &&
-      typeof spec.id === 'string' &&
-      !GOODS.has(spec.id) &&
-      typeof spec.kind === 'string' &&
-      Norms.CLASSES.includes(spec.class) &&
-      typeof spec.unit === 'string' &&
-      typeof spec.lump === 'string' &&
-      spec.quantum > 0 &&
-      spec.rations >= 0 &&
-      typeof spec.keeping === 'boolean' &&
-      (spec.weight === undefined || spec.weight > 0) &&
-      (spec.perish === null || spec.perish.keepsDays > 0 || spec.perish.tiers === true) &&
-      Norms.norm('worth', spec.id) > 0;
-    if (!ok) throw new Error('stores: invalid or duplicate good ' + (spec && spec.id));
+    const kinded = !!(spec && spec.kinds),
+      ok =
+        spec &&
+        typeof spec.id === 'string' &&
+        !GOODS.has(spec.id) &&
+        typeof spec.kind === 'string' &&
+        Norms.CLASSES.includes(spec.class) &&
+        typeof spec.unit === 'string' &&
+        typeof spec.lump === 'string' &&
+        spec.quantum > 0 &&
+        spec.rations >= 0 &&
+        typeof spec.keeping === 'boolean' &&
+        (spec.weight === undefined || spec.weight > 0) &&
+        (spec.material === undefined || MATERIALS.includes(spec.material)) &&
+        (!kinded || (Array.isArray(spec.kinds) && spec.material !== undefined)) &&
+        (spec.graded === undefined || kinded) && // VB-761: a graded good has kinds, today; one of no kinds would carry its own rows
+        (spec.perish === null || spec.perish.keepsDays > 0 || spec.perish.tiers === true) &&
+        Norms.norm('worth', spec.id) > 0,
+      rows = ok && kinded ? compileKinds(spec) : null;
+    if (!ok || (kinded && !rows)) throw new Error('stores: invalid or duplicate good ' + (spec && spec.id));
+    if (rows) ROWS[spec.id] = rows;
     GOODS.set(
       spec.id,
-      Object.freeze({ subtype: null, source: null, ...spec, perish: spec.perish && Object.freeze({ ...spec.perish }) }),
+      Object.freeze({
+        subtype: null,
+        source: null,
+        material: null,
+        ...spec,
+        kinds: kinded ? Object.freeze([...spec.kinds]) : NO_KINDS,
+        // the kinds by customary worth, least first, ties in the order declared: what a take of the good, any kind, spends first
+        cheapest: kinded
+          ? Object.freeze(
+              spec.kinds
+                .map((k, i) => [rows[k].worth, i, k])
+                .sort((a, b) => a[0] - b[0] || a[1] - b[1])
+                .map((e) => e[2]),
+            )
+          : NO_KINDS,
+        reads: Object.freeze([...(spec.reads || [])]),
+        graded: spec.graded ? Object.freeze({ work: Object.freeze([...(spec.graded.work || [])]) }) : null,
+        perish: spec.perish && Object.freeze({ ...spec.perish }),
+      }),
     );
   }
+  // The row of a good's kind ('quern', 'granite'), or undefined for a kind the good has not. Allocates nothing.
+  const kindRow = (good, kind) => {
+    const rows = ROWS[good];
+    return rows ? rows[kind] : undefined;
+  };
+  // A good's kinds, in the order declared (an empty list for a good of no kinds).
+  const kindsOf = (good) => goodOf(good).kinds;
+  // A good's id split at its kind: 'stone/granite' -> 'stone' and 'granite'; a good of no kinds, or the good itself, has kind null.
+  const baseOf = (id) => {
+    const i = id.indexOf('/');
+    return i > 0 && ROWS[id.slice(0, i)] ? id.slice(0, i) : id;
+  };
+  const kindIn = (id) => {
+    const i = id.indexOf('/');
+    return i > 0 && ROWS[id.slice(0, i)] ? id.slice(i + 1) : null;
+  };
   function goodOf(id) {
     const g = GOODS.get(id);
     if (!g) throw new Error('stores: unknown good ' + id);
@@ -180,14 +285,31 @@ VB['sim/goods'] = (() => {
     perish: null,
     keeping: true,
   });
+  // A load of stone (VB-332's heap, in loads of 25 stones) by its rock (VB-733): quarried of its tile's bedrock, picked or cleared as granite
+  // (sim/building, sim/meadows, sim/newground); the foundation and the well take any kind, the quern a kind it can be hewn of (sim/quern).
+  // Kept in the household's heap, not dealt at the fair.
+  declareGood({
+    id: 'stone',
+    kind: 'stone',
+    class: 'wares',
+    unit: 'load',
+    quantum: 1,
+    lump: 'load',
+    rations: 0,
+    perish: null,
+    keeping: false,
+    material: 'stone',
+    kinds: Object.keys(STONE),
+  });
   // The two norms on goods (sim/norms) as rules, so the registry lists and explains them (Norms.norm is the table; norms learn in slice 8):
-  // worth, rations a quantum, with the context {good}; proper, the index in Norms.PROPER of what custom calls giving a good of class `from`
+  // worth, rations a quantum, with the context {good, grade?} (VB-761: a made piece's grade of workmanship multiplies by custom's multiplier
+  // for it, sim/norms; none given is sound); proper, the index in Norms.PROPER of what custom calls giving a good of class `from`
   // for one of class `to`, with the context {from, to, days} (days: the giving side's food, in days of its need).
   Rules.declare({
     id: 'worth',
     owner: 'culture',
     combine: 'sum',
-    base: (st, c) => Norms.norm('worth', c.good.id),
+    base: (st, c) => Norms.norm('worth', c.good.id) * (c.grade == null ? 1 : Norms.norm('workmanship', c.grade)),
     clamp: [0, 1e9],
   });
   Rules.declare({
@@ -207,6 +329,10 @@ VB['sim/goods'] = (() => {
     declareGood,
     goodOf,
     goods,
+    kindRow,
+    kindsOf,
+    baseOf,
+    kindIn,
     GRAIN,
     CROP_LIST,
     CROP_GOOD,

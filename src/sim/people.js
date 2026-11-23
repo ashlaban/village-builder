@@ -1,10 +1,13 @@
-// @sys sim/people: the household generators of the founders and populous scenarios
+// @sys sim/people: the household generators of the founders, solo and populous scenarios
 VB['sim/people'] = (() => {
   const { person, marry, makeHousehold, joinHousehold } = VB['sim/records'];
   // @tunable FOUNDERS: the founders' ages
   // The founders' ages (VB-635; design.md, Starting scenarios): each couple's man is manMin to manMin+manSpan-1 years old, his wife
   // 1 to wifeYounger years younger and at least wifeMin; the two servants are servantMin to servantMin+servantSpan-1.
   const FOUNDERS = { manMin: 23, manSpan: 11, wifeYounger: 6, wifeMin: 19, servantMin: 16, servantSpan: 4 };
+  // @tunable SOLO: the lone settler's age
+  // The solo start: one settler, a man or a woman by even chance, ageMin to ageMin+ageSpan-1 years old (18 to 25).
+  const SOLO = { ageMin: 18, ageSpan: 8 };
 
   // Founders: a young couple on every farm, and two servants who join two of the households.
   function foundersHouseholds(R, farmsteads) {
@@ -28,6 +31,13 @@ VB['sim/people'] = (() => {
     joinHousehold(R, households[order[0]], hand);
     joinHousehold(R, households[order[1 % order.length]], maid);
     return households;
+  }
+
+  // Solo: one young adult on the one farm, unmarried, with no kin on record.
+  function soloHousehold(R, farmsteads) {
+    const sex = R.rand() < 0.5 ? 'm' : 'f',
+      settler = person(R, { sex, age: SOLO.ageMin + ((R.rand() * SOLO.ageSpan) | 0) });
+    return [makeHousehold(R, 0, farmsteads[0], [settler], settler)];
   }
 
   // Household sizes 4 to 9, about 6 on average.
@@ -115,5 +125,5 @@ VB['sim/people'] = (() => {
     });
     return { households, refused };
   }
-  return { foundersHouseholds, drawSize, populousHouseholds, handHouseholds };
+  return { foundersHouseholds, soloHousehold, drawSize, populousHouseholds, handHouseholds, SOLO };
 })();

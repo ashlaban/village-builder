@@ -1,5 +1,5 @@
 // The ground report (VB-735), for `node tools/sim.js --report ground [--reach 12,30] [--seeds 3,7,11] [--json]`: by village, each rock (any tile of
-// it, and a quarry tile of it: hills or mountain, VB-332) and each deposit within the reaches (walking steps from the green, over passable tiles
+// it, and a quarry tile of it: a biome of BUILD.quarryOn, VB-332, VB-733) and each deposit within the reaches (walking steps from the green, over passable tiles
 // on the green's island: the search sim/dig and sim/building use), the rock under the green, and for a hidden ore whether the village has
 // found it (st.finds). A summary line a kind counts villages (and maps, where several seeds are given); pairs: copper and tin, any iron.
 // It reads the world and the run as they stand, at any year, and writes nothing. --seeds runs each named seed of the same scenario, map and
@@ -24,7 +24,8 @@ function ofRun(VB, st, seed, reaches) {
       if (w.rock[t]) {
         const key = rocks[w.rock[t] - 1];
         mark('rock:' + key, d);
-        if (w.biome[t] === B.HILLS || w.biome[t] === B.MOUNTAIN) mark('quarry:' + key, d);
+        const on = VB['sim/rules'].BUILD.quarryOn[w.biome[t]]; // where sim/building quarries, and which rocks (VB-733)
+        if (on === null || (on !== undefined && on.includes(key))) mark('quarry:' + key, d);
       }
     }
     const has = (k, i) => !!(into[k] && into[k][i]);

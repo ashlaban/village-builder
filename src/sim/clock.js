@@ -22,7 +22,7 @@ VB['sim/clock'] = (() => {
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
   const { feedAway, dayAway } = VB['sim/away'];
-  const { refreshJobs, takeDay, dutyRound, lookForWork } = VB['sim/jobs'],
+  const { refreshJobs, takeDay, dutyRound, lookForWork, eveningCall } = VB['sim/jobs'],
     { ownTime } = VB['sim/pastimes'];
   const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
@@ -54,7 +54,8 @@ VB['sim/clock'] = (() => {
   const { trustOf } = VB['sim/ownership'];
   const { boatsRot } = VB['sim/drying'],
     { cartsFrost } = VB['sim/carts'],
-    { KINDS } = VB['sim/kinds'];
+    { carriedOn } = VB['sim/kinds'],
+    { MATCH } = VB['sim/roles'];
 
   // ---- the calendar (VB-241) ----
   // CALENDAR is everything the clock runs, in the order it runs: each 6-minute step walks the table once, top to bottom, and runs each
@@ -154,7 +155,7 @@ VB['sim/clock'] = (() => {
           if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
           if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
           if (travelling(a)) continue; // on the road it sleeps where it stopped (VB-287)
-          if (a.job && KINDS[a.job.kind].late && (a.phase === 'go' || a.phase === 'work')) continue; // a pot under way is finished (VB-119)
+          if (a.job && (a.phase === 'go' || a.phase === 'work') && carriedOn(st, a.job)) continue; // a task lived by, finished (VB-1547)
           release(st, a);
           if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
         }
@@ -172,6 +173,13 @@ VB['sim/clock'] = (() => {
         for (const v of st.villages) Workdays.judge(st, v, c, called.has(v.id));
         for (const j of [...st.jobs.values()]) if (Workdays.isWorkdayJob(j) && !j.claims.length) dropJob(st, j);
       },
+    },
+    {
+      every: 'hour',
+      at: { hour: [WORK[1], MATCH.day.evening] },
+      owner: 'sim/jobs',
+      note: 'the evening: a task that may be begun after work (the water), open and unmanned, calls a hand at home (VB-1547)',
+      run: (st, c) => eveningCall(st, c),
     },
     // ---- each day, at midnight: the households, the land ----
     {

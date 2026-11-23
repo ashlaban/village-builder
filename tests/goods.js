@@ -12,7 +12,7 @@ const near = (a, b, what) => { assert(Math.abs(a - b) < 1e-6, `${what}: ${a}, wa
 
 // ---- the registry: every good the fair trades, and nothing else; worth as the agreed table ----
 const WANT = { grain: 10, butter: 15, 'salt meat': 15, 'dried fish': 15, tar: 8, ale: 14, 'cattle/cow': 40, 'cattle/ox': 50, 'cattle/heifer': 20,
-  'cattle/steer': 20, sheep: 6, quern: 25, hide: 6, salt: 20, iron: 30 }; // a bloom (VB-701; Proposed) // salt, a sack of 10 measures (VB-700; Proposed) // the hand quern (VB-009; Proposed)
+  'cattle/steer': 20, sheep: 6, quern: 25, hide: 6, salt: 20, iron: 30, stone: 2 }; // a load of stone, kept in the heap (VB-733; Proposed) // a bloom (VB-701; Proposed) // salt, a sack of 10 measures (VB-700; Proposed) // the hand quern (VB-009; Proposed)
 assert.deepStrictEqual(Goods.goods().map((g) => g.id).sort(), Object.keys(WANT).sort(), 'the goods of the fair');
 for (const [id, w] of Object.entries(WANT)) {
   near(Norms.norm('worth', id), w, `worth of ${id}`);
@@ -27,6 +27,32 @@ assert(Goods.goods().every((g) => Object.isFrozen(g) && g.perish === null || g.p
 assert.throws(() => Goods.goodOf('wool'), /unknown good/); // wool and cheese are not goods yet
 assert.throws(() => Goods.declareGood({ id: 'grain' }), /invalid or duplicate/);
 checks += 4;
+
+// ---- materials and kinds (VB-733): a good's material, its kinds (at most 8) and the properties its use reads, compiled at load into one
+// frozen row a good and kind; worth is custom's row a kind; a kind the material has not, or a property it lacks, is refused ----
+assert.strictEqual(Goods.goodOf('stone').material, 'stone'); assert.strictEqual(Goods.goodOf('grain').material, null);
+assert.deepStrictEqual([...Goods.kindsOf('stone')], ['granite', 'limestone', 'sandstone', 'slate', 'marble', 'soapstone']);
+assert.deepStrictEqual([...Goods.kindsOf('quern')], ['sandstone', 'granite']); assert.deepStrictEqual([...Goods.kindsOf('grain')], []);
+{ const { grades, ...row } = Goods.kindRow('quern', 'granite'); // VB-761: and its rows by grade (tests/workmanship.js)
+  assert.deepStrictEqual(row, { id: 'quern/granite', good: 'quern', kind: 'granite', worth: 20, grit: 0.8 }); assert.strictEqual(grades.length, 5); }
+assert.strictEqual(Goods.kindRow('quern', 'sandstone').grit, 1); assert.strictEqual(Goods.kindRow('quern', 'slate'), undefined);
+assert(Object.isFrozen(Goods.kindRow('stone', 'marble')) && Goods.kindRow('stone', 'marble').grit === undefined, 'a row holds the properties read');
+for (const k of Goods.kindsOf('stone')) assert(Goods.kindRow('stone', k).worth === Norms.norm('worth', 'stone/' + k) && Goods.kindRow('stone', k).worth > 0, k);
+assert.strictEqual(Goods.baseOf('stone/slate'), 'stone'); assert.strictEqual(Goods.kindIn('stone/slate'), 'slate');
+assert.strictEqual(Goods.baseOf('cattle/cow'), 'cattle/cow'); assert.strictEqual(Goods.kindIn('cattle/cow'), null); // a subtype of its own, not a kind
+const spec = (o) => ({ id: 'test', kind: 'test', class: 'wares', unit: 'u', quantum: 1, lump: 'l', rations: 0, perish: null, keeping: false, ...o });
+assert.throws(() => Goods.declareGood(spec({ material: 'stone', kinds: ['granite'] })), /invalid/); // no worth row for 'test' or its kinds
+assert.throws(() => Goods.declareGood(spec({ id: 'quern', material: 'cloth' })), /invalid/);
+checks += 12;
+if (global.gc) { // kindRow allocates nothing
+  let sink = 0;
+  for (let i = 0; i < 1000; i++) sink += Goods.kindRow('quern', i & 1 ? 'granite' : 'sandstone').grit;
+  global.gc(); const heap = process.memoryUsage().heapUsed;
+  for (let i = 0; i < 1000000; i++) sink += Goods.kindRow('quern', i & 1 ? 'granite' : 'sandstone').grit;
+  global.gc(); const growth = process.memoryUsage().heapUsed - heap;
+  assert(growth < 500000 && Number.isFinite(sink), `a million kind rows read retain under 0.5 MB: ${growth}`);
+  checks++;
+}
 
 // ---- proper: each class rule ----
 const P = (a, b, days = 100) => Norms.norm('proper', a, b, days);

@@ -44,6 +44,7 @@
   "sim/ties.js",
   "sim/traits.js",
   "sim/skills.js",
+  "sim/workmanship.js",
   "sim/wishes.js",
   "sim/encounters.js",
   "sim/projects.js",

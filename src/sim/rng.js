@@ -40,6 +40,7 @@ VB['sim/rng'] = (() => {
     'gathering',
     'fair',
     'mishap',
+    'making', // the grade of a made piece (sim/workmanship, VB-761)
   ];
   // While a scenario is seeded, every system draws from its one seeding stream S, in the order it always has.
   const seeding = (S) => Object.fromEntries([['seed', S], ...SYSTEMS.map((k) => [k, S])]);

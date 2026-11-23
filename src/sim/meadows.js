@@ -178,7 +178,7 @@ VB['sim/meadows'] = (() => {
       gone = Math.max(0, w.stones[tile] - KEEP_STONES);
     realiseStake(st, hh, tile);
     const loads = Math.round(gone / STONES_PER_LOAD);
-    if (loads > 0) Stores.put(st, hh, 'stone', loads, 'clear'); // VB-332: through the stores
+    if (loads > 0) Stores.put(st, hh, 'stone/granite', loads, 'clear'); // VB-332: through the stores; cleared stone is granite (VB-733)
     w.stones[tile] -= gone;
     clearScrub(st, tile); // its scrub cleared too, and it is tended (VB-091)
     emit(st, 'stepDone', { type: 'household', id: f.household, plan }); // the project is finished (sim/plans)

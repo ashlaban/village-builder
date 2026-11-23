@@ -68,7 +68,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Baselines that only fall: `node tests/lint.js --update` (`tests/lint-baseline.json`) and `node tests/ownership.js --update` (fixed sites).
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10` prints a line a year; `--report NAME [--json]`
   adds a report (households, pawns, jobs, events, hunger, perf, counts and more), `--household N`, `--pawn N`; `--save FILE` and
-  `--load FILE`, so a bug report can carry the run.
+  `--load FILE`, so a bug report can carry the run. The scenarios: `founders`, `solo` (one young settler alone on a one-farm village),
+  `heirs`, `populous` and `market` (a test bed).
 - Review tools (VB-337): `node tools/sim.js --report hours [--from Y] [--fields N] [--team] [--household N] [--json]` (pawn-hours a
   household-year by job kind, work and walking, against its hands' and workers' working hours, and the farming year's days, and by season the
   fields' work, all jobs and idle (VB-356); `tools/hours.js`);
@@ -113,6 +114,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
   `medium-y5` and `medium-ref`).
 - Land cover: `node tools/cover.js [--map M] [--seeds 7,11,42]` prints each biome's share of a generated island's land; the thresholds are `COVER` in `src/gen.js`.
-- Agent usage: `node tools/agent-usage.js [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
+- Token use: `node tools/usage-page.js [--dir DIR] [--out FILE] [--json]` writes `docs/usage.html` (derived, never committed; the Pages
+  workflow makes it): the weighted cost of each task from the runs in `docs/agents/usage`, by size and model, by kind of token, by turns (model calls) and turns against cost, and the
+  sessions that belong to no one task (orchestrators, and work outside a task) apart. Its model is checked by `tests/usage-page.js`.
+- Agent usage: `node tools/agent-usage.js [--task VB-NNN] [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
   their transcripts: weighted cost a done task by size, the orchestrator's share, the median boot, the share done; `--history docs/agents/usage`).
 - Play locally: `node build.js`, then open `index.html` in a browser.

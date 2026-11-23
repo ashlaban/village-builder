@@ -15,6 +15,7 @@ const FAST = [
   ['node', 'tests/pulls.js'],
   ['node', 'tests/customhold.js'],
   ['node', 'tests/decisions.js'],
+  ['node', 'tests/solo.js'], // the solo start: one young settler alone, and a year on
   ['node', 'tests/alderman.js'], // VB-314: the village's alderman, chosen at its meeting
   ['node', 'tests/cacheowners.js'],
   ['node', 'tests/living.js'],
@@ -41,6 +42,7 @@ const FAST = [
   ['node', 'tests/doc-tool.js'],
   ['node', 'tests/questions-tool.js'],
   ['node', 'tests/agent-usage.js'],
+  ['node', 'tests/usage-page.js'],
   ['node', 'tests/context-size.js'],
   ['node', 'tests/same-tool.js'],
   ['node', 'tests/wood.js'],
@@ -68,6 +70,7 @@ const FAST = [
   ['node', 'tests/peas.js'],
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
   ['node', 'tests/reasons.js'], // VB-1551: who chose a pawn's act and why, every chooser but a duty, read-only and read by no module
+  ['node', 'tests/workmanship.js'], // workmanship: the grades' odds by skill, the draw, the maker, the graded quern (VB-761)
   ['node', 'tests/estimate.js'], // the head's estimate: the causes reckoned by skill, the range, the day manned by it (VB-476)
   ['node', 'tests/crafts.js'], // crafts learnt by doing: halfway in 400 hours, a tenth a year, a novice's rate to a master's (VB-360)
   ['node', 'tests/rotations.js'],
@@ -78,6 +81,10 @@ const FAST = [
   ['node', 'tests/discomfort.js'], // VB-448: routes chosen by time weighed with discomfort; a bridge up to twice the time, load classes
   ['node', 'tests/oversea.js'], // VB-436: nobody is sent to a home over the sea
   ['node', 'tests/tiny.js'],
+  ['node', 'tests/stand.js'], // VB-1545: a holder alone takes the ranks of the roles its household lacks
+  ['node', 'tests/afternoon.js'], // VB-1546: the day allotted again at 14:00: a rise in urgency reaches the morning's lists
+  ['node', 'tests/needfood.js'], // VB-1549: a household with no food fishes before it ploughs; with food, after
+  ['node', 'tests/evening.js'], // VB-1547: a task lived by, begun, is finished past 18:00; the water fetched in the evening
   ['node', 'tests/claims.js'],
   ['node', 'tests/territory.js'],
   ['node', 'tests/borders.js'],
