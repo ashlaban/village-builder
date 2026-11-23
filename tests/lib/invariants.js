@@ -139,6 +139,9 @@ function checkState(st) {
         if (!Number.isInteger(o.called) || o.called < 0 || (['met', 'forgiven', 'lapsed', 'defaulted'].includes(o.status) ? false : o.called > Math.ceil(n - o.delivered - 1e-9) + 1)) bad.push(`${at}: called ${o.called} of ${n - o.delivered} left`);
       }
       if (o.status === 'open' && o.delivered > 0 && o.kind !== 'days') bad.push(`${at}: open with ${o.delivered} delivered`);
+      // VB-637: a servant's wage is owed by a household to a pawn, in rations, its master's village the enforcer
+      if (o.kind === 'wage' && (o.debtor.kind !== 'household' || o.creditor.kind !== 'pawn' || o.owes.rations === undefined || !o.enforcer || o.enforcer.kind !== 'village'))
+        bad.push(`${at}: a wage of ${JSON.stringify([o.debtor, o.creditor, o.owes, o.enforcer])}`);
       if (!(o.since <= st.t) || !Number.isFinite(o.due)) bad.push(`${at}: since ${o.since}, due ${o.due}`);
       if (['open', 'part', 'overdue'].includes(o.status) && !(exists(o.debtor) && exists(o.creditor) && (o.enforcer === null || exists(o.enforcer))))
         bad.push(`${at}: a party of it does not exist (${JSON.stringify([o.debtor, o.creditor, o.enforcer])})`);
@@ -165,6 +168,13 @@ function checkState(st) {
       if (JSON.stringify(Object.keys(have).sort()) !== JSON.stringify(keys) || keys.some((k) => JSON.stringify(have[k]) !== JSON.stringify(made.by[as][k])))
         bad.push(`obligations: the ${as}s' lists differ from the live records`);
     }
+  }
+  // VB-637: a stake (shares paid out, a servant's wages) is grain of no crop held by its pawn where it lives: a finite number >= 0, and a
+  // living pawn's lies with it in a household or on its way to one (its pawn has a household)
+  for (const p of st.pawns) {
+    if (p.stake === undefined) continue;
+    if (!Number.isFinite(p.stake) || p.stake < -1e-9) bad.push(`pawns[${p.id}]: stake ${p.stake}`);
+    else if (p.alive && p.stake > 1e-9 && p.household === null) bad.push(`pawns[${p.id}]: a stake of ${p.stake} with no household to lie in`);
   }
   // the clock (VB-235): st.tick, a non-negative whole count of 6-minute steps, is its source of truth; st.t is it in hours, whole steps
   // only (VB-244: the page keeps the part of a step)

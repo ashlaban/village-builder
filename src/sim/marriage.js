@@ -406,7 +406,7 @@ VB['sim/marriage'] = (() => {
   // Whether the home of offer o lacks the means to marry (sim/matching meansOf): the farm cannot feed another mouth
   function meansShort(st, o) {
     const hh = st.households[o.gives.home],
-      m = hh.dissolved ? null : meansOf(st, hh.id);
+      m = hh.dissolved ? null : meansOf(st, hh.id, [o.gives.man, o.wants.woman]); // their portions counted (VB-637)
     return !!m && !m.exempt && m.held < m.asked;
   }
   // Which of the two answer `a` of offer o speaks or answers for ('man' or 'woman'; null for the head of the home), and whether it
@@ -476,7 +476,7 @@ VB['sim/marriage'] = (() => {
       // the gate's last two lines, read at the round: the couple waits, courting (hunger postpones the marriage, not the courting)
       for (const id of [o.gives.man, o.wants.woman])
         if (!(st.pawns[id].hunger < HUNGER.marryBelow)) return `${fullName(st.pawns[id])} is too hungry to marry`;
-      const m = hh.dissolved ? null : meansOf(st, hh.id);
+      const m = hh.dissolved ? null : meansOf(st, hh.id, [o.gives.man, o.wants.woman]);
       if (m && !m.exempt && m.held < m.asked) return 'the farm cannot feed another mouth';
     }
     // one who yields: it courts another, and marries the one its spokesman chose (read before the wedding ends the courtship)
