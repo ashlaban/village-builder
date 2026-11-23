@@ -4,7 +4,7 @@
 //   --out FILE    the page to write (default docs/roadmap.html)
 //   --today DATE  the day the page is as of (default the date of the last commit)
 //   --json        print the data the page is drawn from, and write nothing
-// Reads: the task files in backlog/ (status, arch, name), the Archs tables of BACKLOG.md and BACKLOG_ARCHIVE.md (which archs are
+// Reads: the task files in backlog/ (status, arch, name, priority, size), the Archs tables of BACKLOG.md and BACKLOG_ARCHIVE.md (which archs are
 // slices, and their order), and `git log -p` of the backlog (the day each task first appeared, and the day a task without a date in
 // its Status line was marked done). Needs the full history: in a shallow clone the earliest tasks take the clone's first day.
 // The estimate is the tool's, from the backlog's history (design.md, Principles for decisions: it says whose estimate it is):
@@ -47,7 +47,8 @@ function readBacklog(root) {
     const t = fs.readFileSync(path.join(root, 'backlog', f), 'utf8');
     const status = (t.match(/^Status: (.*)$/m) || [])[1] || '';
     tasks.push({ id: f.slice(0, -3), name: (t.match(/^# VB-\d+: (.*)$/m) || [])[1] || '', arch: (t.match(/^Arch: (\S+)/m) || [])[1] || '-',
-      done: status.startsWith('done'), doneDate: (status.match(/done \((\d{4}-\d\d-\d\d)/) || [])[1] || null });
+      done: status.startsWith('done'), doneDate: (status.match(/done \((\d{4}-\d\d-\d\d)/) || [])[1] || null,
+      status: status.split(' ')[0], priority: (t.match(/^Priority: (\S+)/m) || [])[1] || '', size: (t.match(/^Size: (\S+)/m) || [])[1] || '' });
   }
   const open = archRows(fs.readFileSync(path.join(root, 'BACKLOG.md'), 'utf8'), 'Archs');
   const closed = archRows(fs.readFileSync(path.join(root, 'BACKLOG_ARCHIVE.md'), 'utf8'), 'Closed archs');
@@ -69,6 +70,20 @@ function gitDates(root) {
     if (file && !done[file] && l.startsWith('+Status: done')) done[file] = day;
   }
   return { created, done, last: git('log', '-1', '--format=%ad', '--date=short').trim(), shallow, git: true };
+}
+
+// The open tasks by size, against their status and their priority: {sizes, total, status: {ready: {S, M, L}}, priority: {P1: {...}}}.
+// A task with no size or priority counts under '?'; the statuses and priorities are listed in a fixed order, then any others.
+function sizeMix(tasks) {
+  const open = tasks.filter((t) => !t.done), order = (seen, first) => [...first.filter((k) => seen.has(k)), ...[...seen].filter((k) => !first.includes(k)).sort()];
+  const size = (t) => t.size || '?', sizes = order(new Set(open.map(size)), ['S', 'M', 'L']);
+  const by = (key, first) => {
+    const keys = order(new Set(open.map(key)), first), out = {};
+    for (const k of keys) out[k] = Object.fromEntries(sizes.map((z) => [z, open.filter((t) => key(t) === k && size(t) === z).length]));
+    return out;
+  };
+  return { sizes, total: Object.fromEntries(sizes.map((z) => [z, open.filter((t) => size(t) === z).length])),
+    status: by((t) => t.status || '?', ['ready', 'blocked', 'needs-review']), priority: by((t) => (t.priority ? 'P' + t.priority : '?'), ['P1', 'P2', 'P3']) };
 }
 
 // ---- the model: a pure function of the tasks, the archs and the day
@@ -155,7 +170,7 @@ function model({ tasks, open, closed, today, kim = KIM }) {
   const names = { first: `The first archs (${firstKeys.length})`, '-': 'No arch' };
   for (const a of [...slices, ...side]) names[a.key] = a.label;
   return { day0, today, N, per, all, rate, paceFull, share14, shareAll, gLo, gHi, sizeLo, sizeHi, info, rem, est, finish, scope, order,
-    slices: slices.map((s) => s.key), side: side.map((a) => a.key), names, kim, created: dated.length, done: doneN, undated: tasks.filter((t) => !t.created).length };
+    slices: slices.map((s) => s.key), side: side.map((a) => a.key), names, kim, mix: sizeMix(tasks), created: dated.length, done: doneN, undated: tasks.filter((t) => !t.created).length };
 }
 
 // ---- main
@@ -173,4 +188,4 @@ if (require.main === module) {
   fs.writeFileSync(out, page);
   console.log(`roadmap: ${path.relative(root, out)}, as of ${data.today}: ${data.done} of ${data.created} tasks done; all done ${data.finish ? data.finish.join(' to ') : 'not estimated'} (est.)`);
 }
-module.exports = { model, readBacklog, gitDates, KIM };
+module.exports = { model, sizeMix, readBacklog, gitDates, KIM };

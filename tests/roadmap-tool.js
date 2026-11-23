@@ -3,7 +3,7 @@
 // growth from the slices planned five days before, an arch whose plan is open counted as unplanned, finishes in order and the
 // whole backlog's end the last of them; and --help without running.
 const assert = require('assert'), path = require('path'), { execFileSync } = require('child_process');
-const { model } = require('../tools/roadmap.js');
+const { model, sizeMix } = require('../tools/roadmap.js');
 
 const tasks = [];
 let n = 0;
@@ -52,6 +52,13 @@ assert.deepStrictEqual(m.finish, ends.at(-1), 'the whole backlog ends with the l
 assert.ok(m.est['-'] && m.est['-'][1] === m.finish[1], 'tasks with no arch end with the rest');
 assert.ok(m.scope[0] >= tasks.length && m.scope[0] <= m.scope[1], 'final size: at least the tasks there are');
 assert.strictEqual(m.per.first, undefined, 'no row for the first archs when none has tasks');
+const mix = sizeMix([{ done: false, status: 'ready', priority: '1', size: 'M' }, { done: false, status: 'blocked', priority: '3', size: 'S' },
+  { done: false, status: 'ready', priority: '3', size: 'S' }, { done: true, status: 'done', priority: '1', size: 'L' }, { done: false, status: 'odd', size: '' }]);
+assert.deepStrictEqual(mix.sizes, ['S', 'M', '?'], 'size mix: the sizes present in order, a missing size as ?');
+assert.deepStrictEqual(mix.total, { S: 2, M: 1, '?': 1 }, 'size mix: only open tasks count');
+assert.deepStrictEqual(Object.keys(mix.status), ['ready', 'blocked', 'odd'], 'size mix: known statuses first, then any other');
+assert.deepStrictEqual(mix.status.ready, { S: 1, M: 1, '?': 0 }, 'size mix: by status');
+assert.deepStrictEqual(mix.priority, { P1: { S: 0, M: 1, '?': 0 }, P3: { S: 2, M: 0, '?': 0 }, '?': { S: 0, M: 0, '?': 1 } }, 'size mix: by priority');
 const help = execFileSync(process.execPath, [path.join(__dirname, '..', 'tools', 'roadmap.js'), '--help'], { encoding: 'utf8' });
 assert.ok(/--out FILE/.test(help) && /--json/.test(help), 'tools/roadmap.js answers --help');
 console.log('roadmap tool ok');

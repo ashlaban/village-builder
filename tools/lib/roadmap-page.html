@@ -36,6 +36,11 @@ svg text.m{fill:var(--ink2)} svg text.b{font-weight:600}
 .sw{display:inline-block;width:14px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:4px}
 .swl{display:inline-block;width:18px;height:2px;vertical-align:3px;margin-right:4px}
 .tip{position:fixed;pointer-events:none;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font:12px/1.45 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.18);display:none;z-index:5;max-width:280px}
+.mix{display:flex;gap:10px;flex-wrap:wrap}
+.mix .panel{flex:1 1 320px;max-width:520px}
+.mix table{width:100%} .mix th{font-weight:600;color:var(--ink2)} .mix td.bar{width:45%;padding:2px 8px}
+.bars{display:flex;height:12px;border-radius:2px;overflow:hidden;background:var(--grid)} .bars i{display:block;height:100%}
+.mix tr.all td{font-weight:600;border-bottom:none}
 details{margin-top:8px;font-size:13px} table{border-collapse:collapse;font-size:12px} td,th{padding:2px 8px;border-bottom:1px solid var(--line);text-align:right} td:first-child,th:first-child{text-align:left}
 </style>
 </head>
@@ -54,6 +59,11 @@ details{margin-top:8px;font-size:13px} table{border-collapse:collapse;font-size:
 <div class="legend"><span>tasks done that day:</span><span><i class="sw" style="background:var(--q1)"></i>1–2</span><span><i class="sw" style="background:var(--q2)"></i>3–5</span><span><i class="sw" style="background:var(--q3)"></i>6–10</span><span><i class="sw" style="background:var(--q4)"></i>11–20</span><span><i class="sw" style="background:var(--q5)"></i>over 20</span><span><i class="sw" style="border:1px dashed var(--ink2)"></i>estimated span, darker where it may end</span></div>
 <div class="panel"><svg id="strip" role="img" aria-label="Tasks done each day by arch, with each arch's estimated end"></svg></div>
 <p class="note">Rows in the estimate's order: the slices in Kim's order (the Archs table of <a href="../BACKLOG.html#archs">the backlog</a>), each side arch (◇) before the first slice that began after it, side archs not begun before the last slice. Hover a cell.</p>
+
+<h2>The open tasks by size</h2>
+<div class="legend" id="mixlegend"></div>
+<div class="mix"><div class="panel"><div id="mixstatus"></div></div><div class="panel"><div id="mixpriority"></div></div></div>
+<p class="note">Each open task's size (S, M, L, from its file in <code>backlog/</code>), against its status and its priority. Bars share one scale: the full width is all the open tasks.</p>
 
 <details><summary>How the estimate is made</summary><div class="note" id="how"></div></details>
 <p class="note">The budget for cost and how it is measured: <a href="cost.html">docs/cost.md</a>. The open tasks: <a href="../BACKLOG.html">BACKLOG.md</a>. Made by <code>tools/roadmap.js</code>.</p>
@@ -145,7 +155,14 @@ function text(){const cc=sum(D.all.c),cd=sum(D.all.d),d0=D.all.c[0]-D.all.d[0];
   <p><b>Created, projected.</b> The tasks still to be written approach the final size, most of them early, as plans write their tasks at once.</p>
   <p><b>Order.</b> The archs are done one after another, in the order of the rows above; the tasks with no arch are done alongside, in proportion. The early end of each range takes the fast pace and the small growth; the late end the slow pace and the large growth.</p>
   ${D.undated?`<p>${D.undated} tasks have no date in the backlog's history and are left out of the charts.</p>`:''}`;}
-function draw(){text();burn();strip();}
+function mix(){const M=D.mix,col={S:'--q2',M:'--q3',L:'--q5'},sw=z=>col[z]?css(col[z]):css('--mark');
+  const tot=o=>sum(M.sizes.map(z=>o[z])),max=Math.max(1,tot(M.total));
+  document.getElementById('mixlegend').innerHTML=M.sizes.map(z=>`<span><i class="sw" style="background:${sw(z)}"></i>${z}</span>`).join('');
+  const row=(name,o,cls='')=>{const n=tot(o);return `<tr class="${cls}"><td>${name}</td><td class="bar"><div class="bars" style="width:${100*n/max}%">${M.sizes.map(z=>o[z]?`<i style="width:${100*o[z]/n}%;background:${sw(z)}" title="${name}, ${z}: ${o[z]}"></i>`:'').join('')}</div></td>${M.sizes.map(z=>`<td>${o[z]}</td>`).join('')}<td>${n}</td></tr>`;};
+  for(const [g,label] of [['status','status'],['priority','priority']])
+    document.getElementById('mix'+g).innerHTML=`<table><tr><th>${label}</th><th></th>${M.sizes.map(z=>`<th>${z}</th>`).join('')}<th>all</th></tr>`+
+      Object.entries(M[g]).map(([k,o])=>row(k,o)).join('')+row('All open',M.total,'all')+'</table>';}
+function draw(){text();burn();strip();mix();}
 draw();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
 </script>
 </body>
