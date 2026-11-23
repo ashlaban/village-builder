@@ -175,7 +175,7 @@ async function main(argv) {
   for (const s of stale) console.log(`stale: ${s}`);
   if (!differ.length && !stale.length) { console.log(`same: the sea, the overview and the chunks round each village, ${what}`); return; }
   for (const k of differ) console.log(`${k}: ${a[k] || '(absent)'} → ${b[k] || '(absent)'}`);
-  console.log(`differs: ${differ.length} of ${stale.length ? `, ${stale.length} stale restores` : ''}, ${what}`);
+  console.log(`differs: ${differ.length} of ${stale.length ? `; ${stale.length} stale restores: ` : ''}${what}`);
   process.exitCode = 1;
 }
 
