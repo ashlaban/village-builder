@@ -335,7 +335,7 @@ function edPaint(t) {
   const wd = edit.wd,
     b = edBrush;
   if (b.cover !== undefined) {
-    if (wd.biome[t] === b.cover || !VB['gen/cover'].set(G, wd, t, b.cover)) return false;
+    if (wd.biome[t] === b.cover || !VB['gen/cover'].set(wd, t, b.cover)) return false;
     edit.cover.delete(t);
     edit.cover.set(t, b.cover);
   } else {
@@ -414,7 +414,7 @@ function edStroke(sx, sy, first) {
 }
 // What was painted, laid on that land raised anew: in the editor after a game dropped its world, and under a game begun with Play.
 function edApply(wd) {
-  for (const [t, b] of edit.cover) VB['gen/cover'].set(G, wd, t, b);
+  for (const [t, b] of edit.cover) VB['gen/cover'].set(wd, t, b);
   for (const [t, d] of edit.deposit) Geo.setDeposit(wd, t, d);
   if (edit.deposit.size) Geo.reveins(wd);
 }

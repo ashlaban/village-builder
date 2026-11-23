@@ -1,10 +1,12 @@
 // @sys gen/geology: what lies in the ground: each land tile's bedrock, and the deposits of clay and ores laid as patches and veins, by island
 // ===== Geology: bedrock provinces, lenses of rare stone, and finite deposits of clay and ore (generation only: nothing digs yet) =====
-// Listed before gen.js, which calls lay; it reads no other module, so gen.js passes in the arrays, a random source and the biome codes.
+// Listed before gen.js, which calls lay with the arrays of the world in the making.
 // Measure: node tools/sim.js --scenario populous --map small --years 0 --report ground --seeds 1,2,3 [--reach 12,30]: villages with each deposit in reach.
 // The codes and names of the rocks and deposits are world/geology's.
 VB['gen/geology'] = (() => {
-  const { ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND } = VB['world/geology'];
+  const { ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND } = VB['world/geology'],
+    { B } = VB['world/biomes'],
+    { mulberry32: rng } = VB['gen/noise'];
   // tiles: map tiles (sea included) to a bedrock province, at least `least` provinces; ragged: how far, in tiles, noise moves a border.
   const PROVINCES = { tiles: 2200, least: 3, ragged: 2.5 };
   // Lenses of stone and deposits, laid island by island in this order (the rarest first: a tile holds one deposit, the first to reach it).
@@ -138,10 +140,10 @@ VB['gen/geology'] = (() => {
     },
   ];
 
-  // g: {N, nb, hx, hy, hp, hm, water, biome, river, W, H, R, seed} of the world in the making; B: the biome codes. rng(seed): a seeded
-  // random source: the bedrock (0) and each kind of VEINS draw from one of their own, so a kind added later leaves the others' draws as they were.
+  // g: {N, nb, hx, hy, hp, hm, water, biome, river, W, H, R, seed} of the world in the making. rng(seed), gen/noise's mulberry32: a
+  // seeded random source: the bedrock (0) and each kind of VEINS draw from one of their own, so a kind added later leaves the others' draws as they were.
   // Returns the three layers.
-  function lay(g, rng, B) {
+  function lay(g) {
     const stream = (k) => rng(g.seed ^ 0x6e0106 ^ Math.imul(k, 0x9e3779b1));
     const { N, nb, hx, hy, hp, hm, water, biome, river } = g,
       rnd = stream(0);

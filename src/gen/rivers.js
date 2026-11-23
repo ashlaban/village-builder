@@ -1,7 +1,8 @@
 // @sys gen/rivers: rivers traced over the generated terrain, from hills, mountains and marsh through lakes to the sea, and drawn on the map
 // ===== Rivers: drainage by priority flood, catchment, sources per island, courses to the sea; their curves on the map =====
-// Listed before gen.js, which calls trace; it reads no other module, so gen.js passes in the arrays, a random source and the biome codes.
+// Listed before gen.js, which calls trace with the arrays of the world in the making and a random source.
 VB['gen/rivers'] = (() => {
+  const { B } = VB['world/biomes'];
   // perTiles: land tiles of an island per river source (rounded); fromWater: least steps from a source to any water;
   // spacing: least steps between two sources; own: least land tiles a new river runs before it meets water or another river;
   // Which courses become rivers goes by drainage basin (VB-342): the main stems of the largest catchments first (trace).
@@ -104,8 +105,9 @@ VB['gen/rivers'] = (() => {
   }
 
   // The rivers of a world. t: {N, nb, he, hm, water, ocean, biome} as made by ArchGen.generate; rand: a seeded source of numbers in [0, 1);
-  // sources: biome codes rivers rise in. Returns {river, riverTo}.
-  function trace(t, rand, sources) {
+  // Rivers rise in hills, mountains and marsh. Returns {river, riverTo, crossing}.
+  function trace(t, rand) {
+    const sources = [B.HILLS, B.MOUNTAIN, B.MARSH];
     const { N, nb, hm, water, ocean, biome } = t;
     const { down, order } = drainage(t);
     // catchment: each tile's own rain (land 0.5 + moisture, lakes 1) plus all that drains through it

@@ -1,6 +1,7 @@
 // @sys gen/biomes: land cover thresholds and tile pigments (the biomes' codes and names are world/biomes')
 VB['gen/biomes'] = (() => {
-  const W = VB['world/biomes'];
+  const W = VB['world/biomes'],
+    { csample } = VB['world/grid'];
   // ---- land cover: which biome a land tile gets, from its height rank p (0 the lowest land tile, 1 the highest) and its moisture m
   // (0 dry to 1 wet, a little wetter on the coast and drier with height). Read in this order, the first that holds:
   //   snow, mountain: p above these; shore: a coast tile with p below it is sandy shore, or marsh where m is above shoreMarsh;
@@ -46,7 +47,7 @@ VB['gen/biomes'] = (() => {
   function setBiome(w, i, b) {
     const bi = BIOMES[b];
     w.biome[i] = b;
-    const mc = Math.max(0, Math.min(1, w.csample(w.macro, w.hx[i], w.hy[i]))),
+    const mc = Math.max(0, Math.min(1, csample(w, w.macro, w.hx[i], w.hy[i]))),
       t = 1 + (w.hrnd[i] - 0.5) * 0.03;
     w.tr[i] = (bi.c[0] + (bi.c2[0] - bi.c[0]) * mc) * t;
     w.tg[i] = (bi.c[1] + (bi.c2[1] - bi.c[1]) * mc) * t;

@@ -49,7 +49,7 @@ function drawing(VB) {
       decorate(w, ctx, l, cx, cy, S);
       return way;
     },
-    setCover: (w, i, b) => cover.set(G, w, i, b), keep: (w) => cover.keep(w), restore: (w, kept) => cover.restore(w, kept),
+    setCover: (w, i, b) => (cover.set.length === 4 ? cover.set(G, w, i, b) : cover.set(w, i, b)), keep: (w) => cover.keep(w), restore: (w, kept) => cover.restore(w, kept),
   };
 }
 

@@ -3,7 +3,7 @@ VB['gen/bake'] = (() => {
   const { mulberry32 } = VB['gen/noise'];
   const { BIOMES } = VB['gen/biomes'],
     { B, treeStage } = VB['world/biomes'],
-    { hexLocator } = VB['world/grid'];
+    { hexLocator, csample } = VB['world/grid'];
 
   // Level-of-detail pyramid: every chunk is TEX x TEX texels; each level up covers 3x3 chunks of the one below.
   const TEX = 512;
@@ -56,7 +56,7 @@ VB['gen/bake'] = (() => {
   // Generator: yields every 16 texel rows so the caller can spread work across frames.
   const INK = [44, 32, 28]; // the contour's colour (page/farmart's MP.line)
   function* bakeChunk(w, l, cx, cy, img) {
-    const { W, H, AP, biome, hrnd, nb, water, ocean, landDist, tile, shade, csample, tr, tg, tb } = w;
+    const { W, H, AP, biome, hrnd, nb, water, ocean, landDist, tile, shade, tr, tg, tb } = w;
     const lv = LV[l],
       inv = 1 / lv.scale,
       x0 = cx * lv.size,
@@ -149,7 +149,7 @@ VB['gen/bake'] = (() => {
           let f = 1 + (tn(x * 0.045 + 7, y * 0.045 + 3) - 0.5) * 0.07;
           if (!far) f += (tn(x * 0.8, y * 0.8) - 0.5) * 0.035;
           else if (bt === B.FOREST || bt === B.PINE) f *= tn(x * 0.12, y * 0.12) > 0.5 ? 1.04 : 0.9; // far view: canopy stands in for the trees
-          const sh = csample(shade, x, y) - 1;
+          const sh = csample(w, shade, x, y) - 1;
           f *= 1 + (sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh) * BIOMES[bt].shade;
           const aa = Math.abs(pa),
             ab = Math.abs(pb),

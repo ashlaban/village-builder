@@ -3,8 +3,9 @@ const ArchGen = (() => {
   const { mulberry32, makeSimplex, fbm, smooth, makeTile } = VB['gen/noise'];
   const { COVER, BIOMES, setBiome } = VB['gen/biomes'];
   const { bakeWater, bakeChunk, decorateChunk, LV, TEX } = VB['gen/bake'];
-  const { B, treeStage } = VB['world/biomes'],
-    { NX, NY, DIR_EVEN, DIR_ODD, toAxial, hexDist, hexLocator } = VB['world/grid'];
+  const { B } = VB['world/biomes'],
+    Grid = VB['world/grid'],
+    { DIR_EVEN, DIR_ODD, toAxial, hexDist, hexLocator } = Grid;
   const SQ3 = Math.sqrt(3);
 
   const SYL_A = ['Ska', 'Ul', 'Ve', 'Ar', 'Tor', 'Mal', 'Sig', 'Bre', 'Hal', 'Ost', 'Fje', 'Lun', 'Rå', 'Gry', 'Ny'];
@@ -12,8 +13,7 @@ const ArchGen = (() => {
   const SYL_C = ['holm', 'ö', 'skär', 'nes', 'vik', 'sund', 'ey', 'land', 'by'];
 
   function* generate(seed, opt = {}) {
-    const Cover = VB['gen/cover'],
-      K = { mulberry32, B };
+    const Cover = VB['gen/cover'];
     const R = opt.R || 28,
       COLS = opt.cols || 280,
       ROWS = opt.rows || 200,
@@ -137,24 +137,7 @@ const ArchGen = (() => {
         macro[k] = 0.5 + 0.9 * fbm(n4, u * 9 + 3, v * 9 + 8, 3);
       }
     }
-    const csample = (arr, x, y) => {
-      let gx = x / STEP,
-        gy = y / STEP;
-      if (gx < 0) gx = 0;
-      if (gy < 0) gy = 0;
-      if (gx > CW - 1.001) gx = CW - 1.001;
-      if (gy > CH - 1.001) gy = CH - 1.001;
-      const ix = gx | 0,
-        iy = gy | 0,
-        tx = gx - ix,
-        ty = gy - iy,
-        k = iy * CW + ix;
-      const a = arr[k],
-        b = arr[k + 1],
-        c = arr[k + CW],
-        d = arr[k + CW + 1];
-      return a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty;
-    };
+    const csample = (arr, x, y) => Grid.csample({ STEP, CW, CH }, arr, x, y);
     yield 0.75;
 
     // ---- tiles ----
@@ -285,7 +268,7 @@ const ArchGen = (() => {
       treesMax = new Uint8Array(N);
     for (let i = 0; i < N; i++) {
       if (biome[i] !== B.FOREST && biome[i] !== B.PINE) continue;
-      trees[i] = treesMax[i] = Cover.fullTrees(K, seed, i, biome[i]);
+      trees[i] = treesMax[i] = Cover.fullTrees(seed, i, biome[i]);
     }
 
     // ---- stones: every meadow tile has at least 30; up to +100 more next to hills, fading to nothing beyond 2 tiles ----
@@ -310,13 +293,9 @@ const ArchGen = (() => {
     }
     for (let i = 0; i < N; i++) {
       if (biome[i] !== B.MEADOW) continue;
-      stones[i] = Cover.meadowStones(K, seed, i, csample(macro, hx[i], hy[i]), hillDist[i]);
+      stones[i] = Cover.meadowStones(seed, i, csample(macro, hx[i], hy[i]), hillDist[i]);
     }
-    const rivers = VB['gen/rivers'].trace({ N, nb, he, hm, water, ocean, biome }, mulberry32(seed ^ 0x2177e5), [
-      B.HILLS,
-      B.MOUNTAIN,
-      B.MARSH,
-    ]);
+    const rivers = VB['gen/rivers'].trace({ N, nb, he, hm, water, ocean, biome }, mulberry32(seed ^ 0x2177e5));
 
     // ---- regions: hexagonal patches of radius RR (3RR(RR+1)+1 tiles) that tile the plane exactly ----
     const v1q = RR + 1,
@@ -428,7 +407,6 @@ const ArchGen = (() => {
     // @state w.N,STEP,CW,CH,KS: numbers; tile count COLS*ROWS, coarse-grid step (map units), coarse grid size, scale vs the first prototype
     // @state w.elev,shade,macro: Float32Array per coarse cell (CW*CH); elevation (<0 sea floor, 0..1 land), hillshade (~1 flat), tint
     // @state w.cdist,chex: coarse-cell arrays; distance to the nearest land tile (map units, 1e9 if none), tile index under the cell
-    // @state w.csample: function(arr, x, y); bilinear sample of a coarse-cell array at a map position
     // @state w.hx,hy: Float32Array per tile; tile centre in map units
     // @state w.he,hp,hm: Float32Array per tile; elevation (<=0 water), land elevation rank 0..1, moisture 0..1
     // @state w.wind,rain: [x, y], Float32Array per tile; the way the seed's wind blows (unit vector), a land tile's rain 0..1 (gen/climate)
@@ -463,7 +441,6 @@ const ArchGen = (() => {
       elev,
       shade,
       macro,
-      csample,
       cdist,
       chex,
       hx,
@@ -488,11 +465,7 @@ const ArchGen = (() => {
       treesMax,
       stones,
       ...rivers,
-      ...VB['gen/geology'].lay(
-        { N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R, seed },
-        mulberry32,
-        B,
-      ),
+      ...VB['gen/geology'].lay({ N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R, seed }),
       tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }
@@ -502,16 +475,11 @@ const ArchGen = (() => {
     bakeWater,
     bakeChunk,
     decorateChunk,
-    hexLocator,
     BIOMES,
-    B,
     COVER,
-    NX,
-    NY,
     LV,
     TEX,
     mulberry32,
-    treeStage,
     setBiome,
   };
 })();

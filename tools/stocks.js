@@ -140,7 +140,7 @@ const NOT_STOCKS = {
       'village.rotation', 'farmstead.rotationBy', 'farmstead.failed', 'farmstead.left'],
   'the generated world': ['w.seed', 'w.lat', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',
-    'w.shade', 'w.macro', 'w.cdist', 'w.chex', 'w.csample', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
+    'w.shade', 'w.macro', 'w.cdist', 'w.chex', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
       'w.hrnd',
     'w.landDist', 'w.nb', 'w.region', 'w.regions', 'w.tr', 'w.tg', 'w.tb', 'w.tile', 'w.river', 'w.riverTo', 'w.rock', 'w.deposit', 'w.vein', 'w.veinKind',
     'w.veinNear'],

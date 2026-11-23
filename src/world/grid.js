@@ -56,5 +56,26 @@ VB['world/grid'] = (() => {
     };
   }
 
-  return { NX, NY, DIR_EVEN, DIR_ODD, toAxial, hexDist, hexLocator };
+  // Bilinear sample of a coarse-cell array arr (w.CW by w.CH cells, w.STEP map units apart) at map position x, y.
+  function csample(w, arr, x, y) {
+    const { STEP, CW, CH } = w;
+    let gx = x / STEP,
+      gy = y / STEP;
+    if (gx < 0) gx = 0;
+    if (gy < 0) gy = 0;
+    if (gx > CW - 1.001) gx = CW - 1.001;
+    if (gy > CH - 1.001) gy = CH - 1.001;
+    const ix = gx | 0,
+      iy = gy | 0,
+      tx = gx - ix,
+      ty = gy - iy,
+      k = iy * CW + ix;
+    const a = arr[k],
+      b = arr[k + 1],
+      c = arr[k + CW],
+      d = arr[k + CW + 1];
+    return a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty;
+  }
+
+  return { NX, NY, DIR_EVEN, DIR_ODD, toAxial, hexDist, hexLocator, csample };
 })();
