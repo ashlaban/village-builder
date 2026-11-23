@@ -1,8 +1,7 @@
 // @sys sim/spread: forest spread into open land (VB-091): the front of open tiles beside woodland, where scrub grows to forest unless
 // farming, work or grazing keeps the land open; the hours scrub adds to clearing
 VB['sim/spread'] = (() => {
-  const { setBiome } = VB['gen'],
-    { B, treeStage } = VB['world/biomes'];
+  const { B, treeStage, setBiome } = VB['world/biomes'];
   const { fullTrees } = VB['gen/cover'];
   const { DAY, YEAR_DAYS } = VB['sim/rules'];
   const { costChanged } = VB['sim/routes'];

@@ -159,5 +159,6 @@
   "draw/paths.js",
   "draw/rivers.js",
   "draw/marks.js",
+  "draw/paint.js",
   "draw/bake.js"
 ]

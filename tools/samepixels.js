@@ -35,13 +35,18 @@ function drawing(VB) {
   const bakeWater = find(VB, 'bakeWater'), bakeChunk = find(VB, 'bakeChunk'), decorate = find(VB, 'decorateChunk');
   const rivers = find(VB, 'drawChunk', /rivers/), paths = find(VB, 'drawChunk', /paths/), over = find(VB, 'drawOver', /paths/);
   if (!cover) throw new Error('no cover module with set, keep and restore: tools/samepixels.js\'s adapter needs to learn where it went');
+  // The paint (VB-1493): a tree with draw/paint bakes in a world's paint, one per world, recoloured as the page recolours it: a tile whose
+  // cover is set by hand, the tiles of st.biomeDirty before a shot, and built anew after a restore. A tree before it keeps its colours in w.
+  const Paint = VB['draw/paint'], paints = new WeakMap();
+  const paintOf = (w) => { let P = paints.get(w); if (!P) paints.set(w, (P = Paint.paint(w))); return P; };
+  const recolour = (w, tiles) => { const P = Paint && paints.get(w); if (P) for (const t of tiles) Paint.colour(P, w, t); };
   return {
-    LV, TEX, generate: find(VB, 'generate'), B: find(VB, 'B'),
-    water: (w, ctx) => bakeWater(w, ctx),
+    LV, TEX, generate: find(VB, 'generate'), B: find(VB, 'B'), Paint, paintOf: Paint ? paintOf : null, recolour,
+    water: (w, ctx) => (Paint ? bakeWater(w, paintOf(w), ctx) : bakeWater(w, ctx)),
     // as page/chunks chunkJob: the land, the rivers, the worn paths and their ways over fields, the marks
     *chunk(w, l, ctx, cx, cy, S, make) {
       const img = ctx.createImageData(TEX, TEX);
-      yield* bakeChunk(w, l, cx, cy, img);
+      yield* (Paint ? bakeChunk(w, paintOf(w), l, cx, cy, img) : bakeChunk(w, l, cx, cy, img));
       ctx.putImageData(img, 0, 0);
       rivers(w, ctx, LV[l], cx, cy, l === 0);
       paths(w, ctx, LV[l], cx, cy, l);
@@ -49,7 +54,8 @@ function drawing(VB) {
       decorate(w, ctx, l, cx, cy, S);
       return way;
     },
-    setCover: (w, i, b) => (cover.set.length === 4 ? cover.set(G, w, i, b) : cover.set(w, i, b)), keep: (w) => cover.keep(w), restore: (w, kept) => cover.restore(w, kept),
+    setCover: (w, i, b) => { const ok = cover.set.length === 4 ? cover.set(G, w, i, b) : cover.set(w, i, b); if (ok) recolour(w, [i]); return ok; },
+    keep: (w) => cover.keep(w), restore: (w, kept) => { cover.restore(w, kept); paints.delete(w); },
   };
 }
 
@@ -131,6 +137,7 @@ function dump(tree, scenario, seed, map, years) {
   P.sea(w, `${at}/world`); P.overview(w, `${at}/world`);
   coverCase(P, w, `${at}/world`);
   const st = Sim.seed(w, seed, scenario), shoot = (label) => {
+    P.D.recolour(w, st.biomeDirty); st.biomeDirty.clear();
     P.sea(w, label); P.overview(w, label); P.round(w, label, st.villages.map((v) => v.center));
   };
   shoot(`${at}/year0`);

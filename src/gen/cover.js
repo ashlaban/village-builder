@@ -1,8 +1,7 @@
 // @sys gen/cover: what a tile's cover holds, as the generator lays it and as the editor sets it by hand; a world's arrays kept and put back
 VB['gen/cover'] = (() => {
   const { mulberry32 } = VB['gen/noise'],
-    { B, BIOMES } = VB['world/biomes'],
-    { setBiome } = VB['gen/biomes'],
+    { B, BIOMES, setBiome } = VB['world/biomes'],
     { csample } = VB['world/grid'];
   // A wood's trees at full cover: +-20% around 60 (broadleaf) or 80 (pine), by the seed and the tile; none on other ground.
   const fullTrees = (seed, i, b) =>
@@ -16,7 +15,7 @@ VB['gen/cover'] = (() => {
     const near = hillDist <= 2 ? Math.round((100 * (3 - hillDist)) / 2) : 0;
     return Math.min(255, 30 + Math.round((0.5 * mc + 0.5 * rn) * 60) + near);
   }
-  // A land tile given another cover by hand (the editor; before a run is seeded on the world): its biome and colour, a wood's trees at
+  // A land tile given another cover by hand (the editor; before a run is seeded on the world): its biome (the page recolours it), a wood's trees at
   // full cover and a meadow's stones, as generate lays them. Its height, rain and rivers stay; water, and a cover of water, are refused.
   function set(w, i, b) {
     if (w.water[i] || BIOMES[b].water) return false;
@@ -38,7 +37,8 @@ VB['gen/cover'] = (() => {
     w.stones[i] = b === B.MEADOW ? meadowStones(w.seed, i, csample(w, w.macro, w.hx[i], w.hy[i]), hd) : 0;
     return true;
   }
-  // A world's tile and cell arrays as they are now, and the same world put back to them: the editor seeds a run on its world to show what is
+  // A world's tile and cell arrays as they are now, and the same world put back to them (its colours are the page's paint, which the
+  // page drops when it puts a world back, page/editplace): the editor seeds a run on its world to show what is
   // placed, and takes the run away again before anything on the land changes. What a run adds to the world of its own (w.dev, the wear of
   // paths, fish, forage) is made anew by each seeding and is not kept.
   function keep(w) {

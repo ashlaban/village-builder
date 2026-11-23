@@ -21,13 +21,19 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
   const html = builtPage();
   if (!html.includes(HOOK)) throw new Error('hook not found');
   await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(html.replace(HOOK,
-    HOOK + ' window.__ed = { get st() { return st; }, get w() { return w; }, get demo() { return demo; }, get unsaved() { return unsaved; }, get cam() { return cam; } };')) }));
+    HOOK + ' window.__ed = { get st() { return st; }, get w() { return w; }, get demo() { return demo; }, get unsaved() { return unsaved; }, get cam() { return cam; }, paintOf }; window.__paintOf = paintOf;')) }));
   await page.goto('https://village.test/');
   const landing = () => page.waitForFunction(() => !document.getElementById('landing').hidden);
   const raised = () => page.waitForFunction(() => !document.getElementById('edGo').disabled && !document.getElementById('edFacts').hidden
     && document.getElementById('edBar').hidden, null, { timeout: 180000 });
   const world = () => page.evaluate(() => { const w = window.__ed.w; let land = 0; for (let i = 0; i < w.N; i++) land += !w.water[i];
     return { seed: w.seed, cols: w.COLS, rows: w.ROWS, rr: w.RR, land: land / w.N, run: !!window.__ed.st, demo: window.__ed.demo }; });
+  // VB-1493: the paint the page keeps for the world on the stage is the paint built anew from it (each colour, the light, the coast distance,
+  // the brush texture), but for the tiles of st.biomeDirty not yet repainted; the names of the arrays that differ
+  const fresh = (what) => page.evaluate(() => {
+    const w = window.__ed.w, P = window.__paintOf(w), Q = VB['draw/paint'].paint(w), st = window.__ed.st, dirty = st ? st.biomeDirty : new Set();
+    return Object.keys(Q).filter((k) => P[k].some((v, i) => !Object.is(v, Q[k][i]) && !(k[0] === 't' && k.length === 2 && dirty.has(i))));
+  }).then((d) => { if (d.length) fail(`the paint ${what} is not as built anew: ${d.join(', ')}`); });
   await landing();
 
   // From the main menu: the default world, alone on the stage, with the editor's own interface
@@ -106,6 +112,7 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
       [at.i, SNOW]);
   if (snow.here !== SNOW || snow.east !== SNOW || snow.ring !== 6) fail(`the cover brush: ${JSON.stringify(snow)}`);
   if (snow.x !== camWas.x || snow.y !== camWas.y) fail('a drag with a brush moved the map');
+  await fresh('after a stroke of the brush');
   await page.click('#edBrushes [data-deposit="' + IRON + '"]'); await page.locator('#edBrushSize').fill('0');
   await page.mouse.click(at.x, at.y);
   const ore = await page.evaluate((i) => {
@@ -135,7 +142,11 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
   const laid = await page.evaluate(([i, b]) => {
     const w = window.__ed.st.w; return { d: w.deposit[i], vein: w.veinKind[w.vein[i]], east: w.biome[i + 3] === b }; }, [at.i, SNOW]);
   if (laid.d !== IRON || laid.vein !== IRON || !laid.east) fail(`the game does not begin on the land as painted: ${JSON.stringify(laid)}`);
-  await page.click('#chooseWatch'); await page.click('#menuBtn'); await landing(); await page.click('#landLoad');
+  await page.click('#chooseWatch');
+  // a month of the game advanced at once, and the page's frame repaints what it changed: the tiles of st.biomeDirty, recoloured first
+  if (!(await page.evaluate(() => { VB.sim.advance(window.__ed.st, 24 * 30); return window.__ed.st.biomeDirty.size > 0; }))) fail('a month of the game changes no biome');
+  await page.waitForFunction(() => window.__ed.st.biomeDirty.size === 0, null, { timeout: 60000 });
+  await fresh('of a game, its biomeDirty repainted'); await page.click('#menuBtn'); await landing(); await page.click('#landLoad');
   await page.waitForSelector('#savesBody .save-files');
   if (!/cannot be saved yet/.test(await page.locator('#savesBody').innerText())) fail('the Saves screen does not say an editor game is not saved');
   if (await page.locator('#savesBody button', { hasText: 'Save to file' }).count()) fail('an editor game is offered to be saved');
@@ -177,6 +188,7 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
   if (!(await pressUntil(await tries(v1.centre), async () => (await placed()).farms > v1.farms))) fail('no household could be placed near the village');
   const v2 = await placed();
   if (v2.villages !== 1 || v2.farms !== v1.farms + 1) fail(`a household placed near a village is not of it: ${JSON.stringify(v2)}`);
+  await fresh('after the places are laid again on the world restored');
   // a field by the household; a road found from the green to the house, worn as a lane where nothing is built; each button has its icon
   const extra = () => page.evaluate(() => { const s = window.__ed.st, w = s.w; let lane = 0; for (let i = 0; i < w.N; i++) lane += w.worn[i] === 3;
     return { fields: s.farmsteads.reduce((n, f) => n + f.fields.length, 0), lane, house: s.farmsteads[s.farmsteads.length - 1].house }; });

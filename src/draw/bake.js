@@ -1,7 +1,7 @@
 // @sys draw/bake: rasterizing the map into levels of detail, including land, water and decorations
 VB['draw/bake'] = (() => {
   const { mulberry32 } = VB['gen/noise'];
-  const { BIOMES } = VB['gen/biomes'],
+  const { PIGMENTS } = VB['gen/biomes'],
     { B, treeStage } = VB['world/biomes'],
     { hexLocator, csample } = VB['world/grid'];
 
@@ -23,18 +23,19 @@ VB['draw/bake'] = (() => {
       [56, 90, 116],
     ],
     LAKE = [126, 164, 164];
-  function bakeWater(w, ctx) {
+  // P: the world's paint (draw/paint).
+  function bakeWater(w, P, ctx) {
     const { CW, CH, elev, KS } = w;
     const img = ctx.createImageData(CW, CH),
       D = img.data;
     for (let cy = 0; cy < CH; cy++)
       for (let cx = 0; cx < CW; cx++) {
         const k = cy * CW + cx,
-          i = w.chex[k];
+          i = P.chex[k];
         let c = LAKE;
         if (!(i >= 0 && w.biome[i] === B.LAKE)) {
           const depth =
-            0.85 * (1 - Math.exp(-w.cdist[k] / ((120 + w.macro[k] * 70) * KS))) +
+            0.85 * (1 - Math.exp(-P.cdist[k] / ((120 + w.macro[k] * 70) * KS))) +
             0.15 * Math.min(1, Math.max(0, -elev[k]) * 1.5);
           const u = Math.max(0, Math.min(0.9999, depth)) * (SEA.length - 1),
             n = Math.floor(u + 0.5),
@@ -52,11 +53,12 @@ VB['draw/bake'] = (() => {
     ctx.putImageData(img, 0, 0);
   }
 
-  // One chunk of the land layer at level l (0 = full detail). Transparent over open water.
+  // One chunk of the land layer at level l (0 = full detail), in the world's paint P. Transparent over open water.
   // Generator: yields every 16 texel rows so the caller can spread work across frames.
   const INK = [44, 32, 28]; // the contour's colour (page/farmart's MP.line)
-  function* bakeChunk(w, l, cx, cy, img) {
-    const { W, H, AP, biome, hrnd, nb, water, ocean, landDist, tile, shade, tr, tg, tb } = w;
+  function* bakeChunk(w, P, l, cx, cy, img) {
+    const { W, H, AP, biome, nb, water, ocean, landDist } = w,
+      { tile, shade, tr, tg, tb } = P;
     const lv = LV[l],
       inv = 1 / lv.scale,
       x0 = cx * lv.size,
@@ -150,7 +152,7 @@ VB['draw/bake'] = (() => {
           if (!far) f += (tn(x * 0.8, y * 0.8) - 0.5) * 0.035;
           else if (bt === B.FOREST || bt === B.PINE) f *= tn(x * 0.12, y * 0.12) > 0.5 ? 1.04 : 0.9; // far view: canopy stands in for the trees
           const sh = csample(w, shade, x, y) - 1;
-          f *= 1 + (sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh) * BIOMES[bt].shade;
+          f *= 1 + (sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh) * PIGMENTS[bt].shade;
           const aa = Math.abs(pa),
             ab = Math.abs(pb),
             ac = Math.abs(pc);

@@ -14,7 +14,7 @@ function showTile(i) {
     row = (i / w.COLS) | 0;
   let line;
   if (w.water[i]) {
-    const d = Grid.csample(w, w.cdist, w.hx[i], w.hy[i]);
+    const d = Grid.csample(w, paintOf(w).cdist, w.hx[i], w.hy[i]);
     const m = b.key === 'lake' ? 2 + 28 * (1 - Math.exp(-d / 70)) : 3 + 150 * (1 - Math.exp(-d / (150 * w.KS)));
     line = `Depth about ${Math.round(m)} m`;
   } else {

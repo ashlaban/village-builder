@@ -56,7 +56,7 @@ function showLanding() {
 // The sea and the overview level of a world, painted before it is swapped in; onP hears the share done.
 async function paintOverview(wd, onP) {
   const wc = makeCanvas(wd.CW, wd.CH);
-  Bake.bakeWater(wd, wc.getContext('2d'));
+  Bake.bakeWater(wd, paintOf(wd), wc.getContext('2d'));
   const nx2 = Math.ceil(wd.W / LV[2].size),
     ny2 = Math.ceil(wd.H / LV[2].size),
     over = [];
@@ -128,6 +128,7 @@ async function build(seed, scenario, size, save = null, quick = false) {
   let sim = null;
   try {
     sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario, custom ? custom.places : null);
+    if (save) dropPaint(wd); // the save's biomes are laid on the world whole: a paint it had is built anew
   } catch (e) {
     console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e);
   }

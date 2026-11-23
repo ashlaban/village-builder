@@ -338,7 +338,7 @@ function updateSettlement(dt) {
   updateClock();
   updateNotices(dt);
   if (st.visualDirty || st.rigDirty.size || st.farmDirty.size || st.villageDirty.size) redrawSettlement(w);
-  if (st.treeDirty.size) refreshTrees();
+  if (st.treeDirty.size || st.biomeDirty.size) refreshTrees();
   if (st.pathDirty.size) refreshPaths();
   if (landOn || st.landDirty.size) refreshLand();
   refreshGround();

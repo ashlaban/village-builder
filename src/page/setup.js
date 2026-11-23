@@ -2,6 +2,7 @@
 const G = ArchGen,
   Noise = VB['gen/noise'],
   Bake = VB['draw/bake'],
+  Pigments = VB['gen/biomes'],
   LV = Bake.LV,
   TEX = Bake.TEX,
   Rivers = VB['draw/rivers'],

@@ -1,7 +1,5 @@
 // @sys gen/biomes: land cover thresholds and tile pigments (the biomes' codes and names are world/biomes')
 VB['gen/biomes'] = (() => {
-  const W = VB['world/biomes'],
-    { csample } = VB['world/grid'];
   // ---- land cover: which biome a land tile gets, from its height rank p (0 the lowest land tile, 1 the highest) and its moisture m
   // (0 dry to 1 wet, a little wetter on the coast and drier with height). Read in this order, the first that holds:
   //   snow, mountain: p above these; shore: a coast tile with p below it is sandy shore, or marsh where m is above shoreMarsh;
@@ -41,18 +39,5 @@ VB['gen/biomes'] = (() => {
     { c: [196, 184, 166], c2: [184, 170, 156], shade: 1.1 },
     { c: [240, 236, 222], c2: [228, 226, 216], shade: 1.1 },
   ];
-  // The drawing's view: each biome of world/biomes with its pigments (until VB-1493 takes the colours out).
-  const BIOMES = W.BIOMES.map((b, k) => ({ ...b, ...PIGMENTS[k] }));
-  // Changes a tile's biome and its baked base colour (the same formula as in generate).
-  function setBiome(w, i, b) {
-    const bi = BIOMES[b];
-    w.biome[i] = b;
-    const mc = Math.max(0, Math.min(1, csample(w, w.macro, w.hx[i], w.hy[i]))),
-      t = 1 + (w.hrnd[i] - 0.5) * 0.03;
-    w.tr[i] = (bi.c[0] + (bi.c2[0] - bi.c[0]) * mc) * t;
-    w.tg[i] = (bi.c[1] + (bi.c2[1] - bi.c[1]) * mc) * t;
-    w.tb[i] = (bi.c[2] + (bi.c2[2] - bi.c[2]) * mc) * t;
-  }
-
-  return { COVER, BIOMES, setBiome };
+  return { COVER, PIGMENTS };
 })();

@@ -40,11 +40,10 @@ function tinyWorld(rows, opt = {}) {
   const land = N - water.reduce((s, x) => s + x, 0), CN = CW * CH;
   return {
     seed: opt.seed ?? 1, name: 'Tiny', R, COLS, ROWS, RR: 7, W, H, HW, AP, N, STEP, CW, CH, KS: W / 3264,
-    elev: new Float32Array(CN), shade: new Float32Array(CN).fill(1), macro: new Float32Array(CN).fill(0.5), cdist: new Float32Array(CN),
-      chex: new Int32Array(CN),
+    elev: new Float32Array(CN), macro: new Float32Array(CN).fill(0.5),
     hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
     region: new Int32Array(N), regions: [{ cq: 0, cr: 0, tiles: N, land, label: 1 }],
-    tr: new Float32Array(N), tg: new Float32Array(N), tb: new Float32Array(N), ang: new Float32Array(2 * N), trees, treesMax, stones,
+    ang: new Float32Array(2 * N), trees, treesMax, stones,
     river: new Uint16Array(N), riverTo: new Int32Array(N).fill(-1), crossing: new Uint8Array(N), rivers: [],
   };
 }

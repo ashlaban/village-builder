@@ -1,10 +1,10 @@
 // @sys gen: assembly of the seeded archipelago's terrain, tile and region data, and the public ArchGen API
 const ArchGen = (() => {
-  const { mulberry32, makeSimplex, fbm, smooth, makeTile } = VB['gen/noise'];
-  const { COVER, BIOMES, setBiome } = VB['gen/biomes'];
-  const { B } = VB['world/biomes'],
+  const { mulberry32, makeSimplex, fbm, smooth } = VB['gen/noise'];
+  const { COVER } = VB['gen/biomes'];
+  const { B, BIOMES } = VB['world/biomes'],
     Grid = VB['world/grid'],
-    { DIR_EVEN, DIR_ODD, toAxial, hexDist, hexLocator } = Grid;
+    { DIR_EVEN, DIR_ODD, toAxial, hexDist } = Grid;
   const SQ3 = Math.sqrt(3);
 
   const SYL_A = ['Ska', 'Ul', 'Ve', 'Ar', 'Tor', 'Mal', 'Sig', 'Bre', 'Hal', 'Ost', 'Fje', 'Lun', 'Rå', 'Gry', 'Ny'];
@@ -112,24 +112,12 @@ const ArchGen = (() => {
       const v = hf[k];
       elev[k] = v >= sea ? Math.pow((v - sea) / (mx - sea), 0.9) : -Math.pow((sea - v) / (sea - mn), 0.7);
     }
-    VB['gen/climate'].shape(elev, CW, CH); // running water cuts its valleys and ponds in its basins before the light and the tiles read the relief
-    const ZS = 75 * KS;
-    const L = [-0.55, -0.6, 0.58];
-    const shade = new Float32Array(CN),
-      moist = new Float32Array(CN),
+    VB['gen/climate'].shape(elev, CW, CH); // running water cuts its valleys and ponds in its basins before the tiles read the relief
+    const moist = new Float32Array(CN),
       macro = new Float32Array(CN);
     for (let cy = 0; cy < CH; cy++) {
       for (let cx = 0; cx < CW; cx++) {
         const k = cy * CW + cx;
-        const xl = cx > 0 ? k - 1 : k,
-          xr = cx < CW - 1 ? k + 1 : k,
-          yu = cy > 0 ? k - CW : k,
-          yd = cy < CH - 1 ? k + CW : k;
-        const z = (i) => Math.max(0, elev[i]) * ZS;
-        const dzx = (z(xr) - z(xl)) / (2 * STEP),
-          dzy = (z(yd) - z(yu)) / (2 * STEP);
-        const nl = Math.hypot(dzx, dzy, 1);
-        shade[k] = (-dzx * L[0] - dzy * L[1] + L[2]) / nl / L[2];
         const u = (cx * STEP) / S,
           v = (cy * STEP) / S;
         moist[k] = 0.5 + 0.8 * fbm(n4, u * 2.6 + 70, v * 2.6 - 30, 4);
@@ -341,61 +329,6 @@ const ArchGen = (() => {
       regions[id].label = k + 1;
     });
 
-    // per-tile base colour (biome colour, macro variation, tile tint)
-    const tr = new Float32Array(N),
-      tg = new Float32Array(N),
-      tb = new Float32Array(N);
-    for (let i = 0; i < N; i++) {
-      const bi = BIOMES[biome[i]];
-      if (bi.water) continue;
-      const mc = Math.max(0, Math.min(1, csample(macro, hx[i], hy[i]))),
-        t = 1 + (hrnd[i] - 0.5) * 0.03;
-      tr[i] = (bi.c[0] + (bi.c2[0] - bi.c[0]) * mc) * t;
-      tg[i] = (bi.c[1] + (bi.c2[1] - bi.c[1]) * mc) * t;
-      tb[i] = (bi.c[2] + (bi.c2[2] - bi.c[2]) * mc) * t;
-    }
-
-    // smooth distance-to-land field (chamfer) for water depth colour
-    const locC = hexLocator({ R, COLS, ROWS, HW, AP }),
-      oc = [0, 0];
-    const cdist = new Float32Array(CN),
-      chex = new Int32Array(CN);
-    for (let k = 0; k < CN; k++) {
-      const i = locC((k % CW) * STEP, ((k / CW) | 0) * STEP, oc);
-      chex[k] = i;
-      cdist[k] = i >= 0 && !water[i] ? 0 : 1e9;
-    }
-    const D1 = STEP,
-      D2 = STEP * Math.SQRT2;
-    for (let cy = 0; cy < CH; cy++)
-      for (let cx = 0; cx < CW; cx++) {
-        const k = cy * CW + cx;
-        let v = cdist[k];
-        if (cx > 0) v = Math.min(v, cdist[k - 1] + D1);
-        if (cy > 0) {
-          v = Math.min(
-            v,
-            cdist[k - CW] + D1,
-            cx > 0 ? cdist[k - CW - 1] + D2 : v,
-            cx < CW - 1 ? cdist[k - CW + 1] + D2 : v,
-          );
-        }
-        cdist[k] = v;
-      }
-    for (let cy = CH - 1; cy >= 0; cy--)
-      for (let cx = CW - 1; cx >= 0; cx--) {
-        const k = cy * CW + cx;
-        let v = cdist[k];
-        if (cx < CW - 1) v = Math.min(v, cdist[k + 1] + D1);
-        if (cy < CH - 1)
-          v = Math.min(
-            v,
-            cdist[k + CW] + D1,
-            cx < CW - 1 ? cdist[k + CW + 1] + D2 : v,
-            cx > 0 ? cdist[k + CW - 1] + D2 : v,
-          );
-        cdist[k] = v;
-      }
     const name =
       SYL_A[(rand() * SYL_A.length) | 0] + SYL_B[(rand() * SYL_B.length) | 0] + SYL_C[(rand() * SYL_C.length) | 0];
     // @state w.lat: number; the world's latitude, degrees north at its middle row: the climate it was made in (sim/climate CLIMATE.worlds,
@@ -404,8 +337,8 @@ const ArchGen = (() => {
     // @state w.R,COLS,ROWS,RR: numbers; hex circumradius (map units), grid columns, grid rows, region radius (tiles)
     // @state w.W,H,HW,AP: numbers; map width and height, hex width and hex apothem (map units)
     // @state w.N,STEP,CW,CH,KS: numbers; tile count COLS*ROWS, coarse-grid step (map units), coarse grid size, scale vs the first prototype
-    // @state w.elev,shade,macro: Float32Array per coarse cell (CW*CH); elevation (<0 sea floor, 0..1 land), hillshade (~1 flat), tint
-    // @state w.cdist,chex: coarse-cell arrays; distance to the nearest land tile (map units, 1e9 if none), tile index under the cell
+    // @state w.elev,macro: Float32Array per coarse cell (CW*CH); elevation (<0 sea floor, 0..1 land), tint (the map's colours, the light
+    //   of the relief and the distance to the land are the page's paint, draw/paint, VB-1493)
     // @state w.hx,hy: Float32Array per tile; tile centre in map units
     // @state w.he,hp,hm: Float32Array per tile; elevation (<=0 water), land elevation rank 0..1, moisture 0..1
     // @state w.wind,rain: [x, y], Float32Array per tile; the way the seed's wind blows (unit vector), a land tile's rain 0..1 (gen/climate)
@@ -416,10 +349,8 @@ const ArchGen = (() => {
     // @state w.nb: Int32Array, 6 per tile; neighbour tile indexes in direction order, -1 off the map
     // @state w.region: Int32Array per tile; index into w.regions
     // @state w.regions[]: {cq, cr, tiles, land, label}; hex patch centre, tile count, land tile count, 1.. label for land regions
-    // @state w.tr,tg,tb: Float32Array per tile; baked tile colour channels, 0..255
     // @state w.trees,treesMax: Float32Array, Uint8Array per tile; trees standing and at full cover (forest tiles only, 0 elsewhere)
     // @state w.stones: Uint8Array per tile; stones on meadow tiles, 30..255 (few < 85, some < 170, many above); 0 elsewhere and on fields
-    // @state w.tile: Float32Array 256*256; tileable noise texture
     return {
       seed,
       lat: typeof opt.lat === 'number' ? opt.lat : 59,
@@ -438,10 +369,7 @@ const ArchGen = (() => {
       CH,
       KS,
       elev,
-      shade,
       macro,
-      cdist,
-      chex,
       hx,
       hy,
       he,
@@ -457,15 +385,11 @@ const ArchGen = (() => {
       landDist,
       region,
       regions,
-      tr,
-      tg,
-      tb,
       trees,
       treesMax,
       stones,
       ...rivers,
       ...VB['gen/geology'].lay({ N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R, seed }),
-      tile: makeTile(mulberry32(seed ^ 0x9e3779b9), 256, 8, 5),
     };
   }
 
@@ -473,7 +397,6 @@ const ArchGen = (() => {
     generate,
     BIOMES,
     COVER,
-    setBiome,
   };
 })();
 VB['gen'] = ArchGen;

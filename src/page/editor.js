@@ -69,11 +69,11 @@ function edFacts() {
   }
   const pct = (k, of) => (of ? `${((100 * k) / of).toFixed(k / of < 0.1 ? 1 : 0)}%` : '0%'),
     num = (k) => k.toLocaleString('en');
-  const kinds = G.BIOMES.map((b, k) => ({ b, k: n[k] }))
+  const kinds = Biomes.BIOMES.map((b, k) => ({ b, code: k, k: n[k] }))
     .filter((x) => !x.b.water && x.k > 0)
     .sort((a, b) => b.k - a.k);
-  const col = (b) => `rgb(${b.c.join(',')})`;
-  $('edBiomes').innerHTML = kinds.map((x) => `<i style="flex:${x.k} 0 0;background:${col(x.b)}"></i>`).join('');
+  const col = (x) => `rgb(${Pigments.PIGMENTS[x.code].c.join(',')})`;
+  $('edBiomes').innerHTML = kinds.map((x) => `<i style="flex:${x.k} 0 0;background:${col(x)}"></i>`).join('');
   $('edBiomes').setAttribute(
     'aria-label',
     `The land by kind: ${kinds.map((x) => `${x.b.name} ${pct(x.k, land)}`).join(', ')}`,
@@ -81,7 +81,7 @@ function edFacts() {
   const rows = [
     ['Tiles', num(wd.N)],
     ['Land', `${num(land)} (${pct(land, wd.N)})`],
-    ...kinds.map((x) => [`<i style="background:${col(x.b)}"></i>${x.b.name}`, pct(x.k, land), 'sub']),
+    ...kinds.map((x) => [`<i style="background:${col(x)}"></i>${x.b.name}`, pct(x.k, land), 'sub']),
     ['Regions with land', num(wd.regions.filter((r) => r.land > 0).length)],
     ['Lake tiles', num(lake)],
     ['River tiles', num(river)],
@@ -276,9 +276,14 @@ function edBrushList() {
   $('edBrushes').innerHTML =
     `<button type="button" data-brush="none" aria-pressed="${!edBrush}" class="wide">Look around</button><h4>Ground cover</h4>` +
     ED_COVERS.map((k) =>
-      btn(`data-cover="${k}"`, `<i style="background:rgb(${G.BIOMES[k].c.join(',')})"></i>`, Biomes.BIOMES[k].name, {
-        cover: k,
-      }),
+      btn(
+        `data-cover="${k}"`,
+        `<i style="background:rgb(${Pigments.PIGMENTS[k].c.join(',')})"></i>`,
+        Biomes.BIOMES[k].name,
+        {
+          cover: k,
+        },
+      ),
     ).join('') +
     '<h4>Deposits</h4>' +
     btn('data-deposit="0"', '', 'No deposit', { deposit: 0 }, 'wide') +
@@ -336,6 +341,7 @@ function edPaint(t) {
     b = edBrush;
   if (b.cover !== undefined) {
     if (wd.biome[t] === b.cover || !VB['gen/cover'].set(wd, t, b.cover)) return false;
+    recolour(wd, [t]);
     edit.cover.delete(t);
     edit.cover.set(t, b.cover);
   } else {

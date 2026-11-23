@@ -1,7 +1,6 @@
 // @sys sim/forest: felling, regrowth and clearing of forest tiles
 VB['sim/forest'] = (() => {
-  const { B, treeStage } = VB['world/biomes'],
-    { setBiome } = VB['gen'];
+  const { B, treeStage, setBiome } = VB['world/biomes'];
   const { YEAR_DAYS, WOOD } = VB['sim/rules'];
   const { next } = VB['sim/rng'];
   const { costChanged } = VB['sim/routes'];

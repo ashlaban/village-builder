@@ -17,7 +17,7 @@ VB['world/biomes'] = (() => {
     MOUNTAIN: 11,
     SNOW: 12,
   };
-  // By code: key, the name the player reads, and water: 1 for the four kinds of water. Their pigments are gen/biomes'.
+  // By code: key, the name the player reads, and water: 1 for the four kinds of water. Their pigments are draw/pigments'.
   const BIOMES = [
     { key: 'deep', name: 'Open sea', water: 1 },
     { key: 'sea', name: 'Sea', water: 1 },
@@ -41,5 +41,10 @@ VB['world/biomes'] = (() => {
     return t <= 0 || m === 0 ? 0 : t > 0.75 * m ? 4 : t > 0.5 * m ? 3 : t > 0.25 * m ? 2 : 1;
   }
 
-  return { B, BIOMES, treeStage };
+  // A tile's biome changed (the editor's brush, a wood cleared or grown, a save loaded): the page recolours it (page/chunks).
+  function setBiome(w, i, b) {
+    w.biome[i] = b;
+  }
+
+  return { B, BIOMES, treeStage, setBiome };
 })();
