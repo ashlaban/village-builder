@@ -306,7 +306,7 @@ VB['sim/player'] = (() => {
   // The played pawn chooses as head of its household (VB-253, for the page's plan panel, VB-256): verb one of HEAD_VERBS, at once, not
   // queued (a choice of the plan takes no time); its target the household it holds, else the one it lives in, so a pawn that is not the
   // head is refused with the reason. True, or why not.
-  const HEAD_VERBS = ['target', 'tile', 'order', 'project', 'dropProject', 'rotation', 'sowOutOfTurn', 'duty'];
+  const HEAD_VERBS = ['target', 'tile', 'order', 'project', 'dropProject', 'rotation', 'sowOutOfTurn'];
   function head(st, verb, args) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';

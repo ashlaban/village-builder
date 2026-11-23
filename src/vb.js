@@ -107,10 +107,6 @@ VB.COUNTERS = {
   dayPair:
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
     '(sim/jobs, allot; VB-466)',
-  dutyDay:
-    'Members the morning allotment gave a task, who had one the morning before (sim/jobs, allot; VB-1540: the measure of standing duties)',
-  dutyKept:
-    'Of those (dutyDay), the members whose first task is of the type of work of the morning before (sim/jobs, allot; VB-1540)',
   dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-466)',
   handsAsked: 'Asks for hands made by a head short of hands, at the morning allotment (sim/hands askFor, VB-470)',
   foodAsked: 'Asks for food made by a hungry head at its plan review, one an asked party (sim/help askFood, VB-691)',

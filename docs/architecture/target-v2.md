@@ -613,8 +613,8 @@ background one at a reduced rate.
 November (`sim/jobs`, `allot`): the household is the unit that allots, and a member carries its list out. Four things give the member
 an agency of its own, each in the layer that already owns its kind:
 
-- **Standing duties** are the plan's memory of the day (Plans): `plan.day.duties`, written by the allotment that reads it; the head's
-  verb `duty` is a choice of the plan, as `order` and `target` are.
+- **Standing duties** are an idea with no mechanism (Kim, 23 November): the keep factor tried in the allotment was removed (VB-1540).
+  A mechanism for it would be the plan's (Plans), as the day is.
 - **Own time** is Social, not Work: `sim/pastimes` owns a table of pastimes beside the encounters' table, reads no plan and no store,
   and writes only the pawn's pastime; Work offers it the pawn it found no task for. A pastime has no opportunity, no task and no
   progress.

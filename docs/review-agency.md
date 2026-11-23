@@ -90,3 +90,15 @@ section 7 agrees (Opportunities: cached per holder) is not built and had no task
 VB-1538 to VB-1541 touch `sim/jobs` and `sim/agents` side by side: each claims its files (`tools/inbox.js claim`) and keeps its change
 to a shared file small. `sim/jobs` stands at 644 formatted lines and `sim/agents` at 707: Own time moves `idleAbout` out of `sim/jobs`,
 and a task that takes either over the line names VB-1487 or opens the split.
+
+## 8. Outcome of the run (23 November 2026)
+
+| Task | Outcome |
+| --- | --- |
+| VB-1538 Reasons shown | Done: `sim/reasons`, a view; the line on the pawn's card and the played pawn's sheet |
+| VB-1539 Own time | Done: `sim/pastimes`, six pastimes, the verb `pastime`; hungry household-days 55 to 46 at seed 7, friends 9.2% to 10.2% of relations |
+| VB-1540 Standing duties | Built, measured and removed. Finding 4's first point was wrong in its effect: with no memory at all 72 to 73% of member-days begin with the type of work of the day before. The keep factor added three points at 1.25, delayed the haymaking and raised hungry days at one seed of two. Kim: the idea is kept, this mechanism removed; `design.md` section 7, Standing duties, is Open |
+| VB-1541 Cost | The allotment, not the asks, is the largest part of the jobs line (31%; commands issued 22%, asks 17.5%, the review 17%). A village's review alone no longer allots its households anew: pairs weighed 21.4 to 19.3 a pawn-day. Kim: a task newly due is slotted in (VB-1545) |
+
+Follow-ups filed by the run: VB-1545 (the slotting), VB-1547 (a caller indoors), VB-1548 (own time reported), VB-1549 (a hay target met
+early), VB-1550 (a pawn away in no phase), VB-1551 (routes begun by the planner), VB-1552 (the asks' cache).
