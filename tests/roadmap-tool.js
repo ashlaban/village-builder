@@ -1,9 +1,10 @@
 // tools/roadmap.js on a small constructed backlog: the slices in the Archs table's order with a closed slice put back by its number,
 // a side arch merged before the first slice that began after it and one not begun before the last slice, the pace from full days,
-// growth from the slices planned five days before, an arch whose plan is open counted as unplanned, finishes in order and the
+// growth from the slices planned five days before, the open tasks by size from a small git history, an arch whose plan is open counted as unplanned, finishes in order and the
 // whole backlog's end the last of them; and --help without running.
 const assert = require('assert'), path = require('path'), { execFileSync } = require('child_process');
-const { model, sizeMix } = require('../tools/roadmap.js');
+const { model, sizeMix, sizeHistory, gitSizeHistory } = require('../tools/roadmap.js');
+const fs = require('fs'), os = require('os');
 
 const tasks = [];
 let n = 0;
@@ -59,6 +60,23 @@ assert.deepStrictEqual(mix.total, { S: 2, M: 1, '?': 1 }, 'size mix: only open t
 assert.deepStrictEqual(Object.keys(mix.status), ['ready', 'blocked', 'odd'], 'size mix: known statuses first, then any other');
 assert.deepStrictEqual(mix.status.ready, { S: 1, M: 1, '?': 0 }, 'size mix: by status');
 assert.deepStrictEqual(mix.priority, { P1: { S: 0, M: 1, '?': 0 }, P3: { S: 2, M: 0, '?': 0 }, '?': { S: 0, M: 0, '?': 1 } }, 'size mix: by priority');
+// sizeHistory: each day takes the last snapshot on or before it, null before the first, sizes in order with any other last
+const h = sizeHistory([{ day: '2026-11-04', total: { M: 1, '?': 2 } }, { day: '2026-11-02', total: { S: 3 } }], '2026-11-01', 5);
+assert.deepStrictEqual(h.sizes, ['S', 'M', '?'], 'size history: the sizes seen, in order');
+assert.deepStrictEqual(h.days, [null, { S: 3, M: 0, '?': 0 }, { S: 3, M: 0, '?': 0 }, { S: 0, M: 1, '?': 2 }, { S: 0, M: 1, '?': 2 }], 'size history: carried forward');
+// gitSizeHistory on a constructed repository: two commits on one day (the later counts), a task done, one with no size, one removed
+const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'roadmap-')), dir = path.join(repo, 'backlog');
+const g = (date, ...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: repo, env: { ...process.env, GIT_AUTHOR_DATE: date + 'T12:00:00Z', GIT_COMMITTER_DATE: date + 'T12:00:00Z' } });
+const put = (id, status, size) => fs.writeFileSync(path.join(dir, id + '.md'), `# ${id}: x\nStatus: ${status}\nPriority: 2\n` + (size ? `Size: ${size}\n` : ''));
+const commit = (date) => { g(date, 'add', '-A'); g(date, 'commit', '-qm', 'c'); };
+try {
+  g('2026-11-01', 'init', '-q'); fs.mkdirSync(dir);
+  put('VB-1', 'ready', 'S'); put('VB-2', 'blocked', 'M'); commit('2026-11-01');
+  put('VB-3', 'ready', 'S'); commit('2026-11-01');
+  put('VB-1', 'done (2026-11-03)', 'S'); put('VB-4', 'ready', ''); fs.unlinkSync(path.join(dir, 'VB-2.md')); commit('2026-11-03');
+  const snaps = gitSizeHistory(repo);
+  assert.deepStrictEqual(snaps, [{ day: '2026-11-01', total: { S: 2, M: 1 } }, { day: '2026-11-03', total: { S: 1, '?': 1 } }], 'git size history: ' + JSON.stringify(snaps));
+} finally { fs.rmSync(repo, { recursive: true, force: true }); }
 const help = execFileSync(process.execPath, [path.join(__dirname, '..', 'tools', 'roadmap.js'), '--help'], { encoding: 'utf8' });
 assert.ok(/--out FILE/.test(help) && /--json/.test(help), 'tools/roadmap.js answers --help');
 console.log('roadmap tool ok');

@@ -6,7 +6,7 @@
 //   --json        print the data the page is drawn from, and write nothing
 // Reads: the task files in backlog/ (status, arch, name, priority, size), the Archs tables of BACKLOG.md and BACKLOG_ARCHIVE.md (which archs are
 // slices, and their order), and `git log -p` of the backlog (the day each task first appeared, and the day a task without a date in
-// its Status line was marked done). Needs the full history: in a shallow clone the earliest tasks take the clone's first day.
+// its Status line was marked done; the open tasks by size at the end of each day). Needs the full history: in a shallow clone the earliest tasks take the clone's first day.
 // The estimate is the tool's, from the backlog's history (design.md, Principles for decisions: it says whose estimate it is):
 //   pace    tasks done on a full day (10 or more), times the share of full days, over the last 14 days and over all days;
 //   growth  a plan writes its arch's tasks and more follow: the middle half of total / size at the plan, over slices planned 5 or
@@ -41,15 +41,17 @@ const archRows = (text, heading) => {
   }
   return rows;
 };
+// One task file's header: name, arch, status, priority, size, and whether and when it was done.
+function parseTask(id, t) {
+  const status = (t.match(/^Status: (.*)$/m) || [])[1] || '';
+  return { id, name: (t.match(/^# VB-\d+: (.*)$/m) || [])[1] || '', arch: (t.match(/^Arch: (\S+)/m) || [])[1] || '-',
+    done: status.startsWith('done'), doneDate: (status.match(/done \((\d{4}-\d\d-\d\d)/) || [])[1] || null,
+    status: status.split(' ')[0], priority: (t.match(/^Priority: (\S+)/m) || [])[1] || '', size: (t.match(/^Size: (\S+)/m) || [])[1] || '' };
+}
 function readBacklog(root) {
   const tasks = [];
-  for (const f of fs.readdirSync(path.join(root, 'backlog')).filter((f) => /^VB-\d+\.md$/.test(f)).sort((a, b) => parseInt(a.slice(3)) - parseInt(b.slice(3)))) {
-    const t = fs.readFileSync(path.join(root, 'backlog', f), 'utf8');
-    const status = (t.match(/^Status: (.*)$/m) || [])[1] || '';
-    tasks.push({ id: f.slice(0, -3), name: (t.match(/^# VB-\d+: (.*)$/m) || [])[1] || '', arch: (t.match(/^Arch: (\S+)/m) || [])[1] || '-',
-      done: status.startsWith('done'), doneDate: (status.match(/done \((\d{4}-\d\d-\d\d)/) || [])[1] || null,
-      status: status.split(' ')[0], priority: (t.match(/^Priority: (\S+)/m) || [])[1] || '', size: (t.match(/^Size: (\S+)/m) || [])[1] || '' });
-  }
+  for (const f of fs.readdirSync(path.join(root, 'backlog')).filter((f) => /^VB-\d+\.md$/.test(f)).sort((a, b) => parseInt(a.slice(3)) - parseInt(b.slice(3))))
+    tasks.push(parseTask(f.slice(0, -3), fs.readFileSync(path.join(root, 'backlog', f), 'utf8')));
   const open = archRows(fs.readFileSync(path.join(root, 'BACKLOG.md'), 'utf8'), 'Archs');
   const closed = archRows(fs.readFileSync(path.join(root, 'BACKLOG_ARCHIVE.md'), 'utf8'), 'Closed archs');
   return { tasks, open, closed };
@@ -70,6 +72,37 @@ function gitDates(root) {
     if (file && !done[file] && l.startsWith('+Status: done')) done[file] = day;
   }
   return { created, done, last: git('log', '-1', '--format=%ad', '--date=short').trim(), shallow, git: true };
+}
+// The backlog as it stood at the end of each day with a commit to backlog/ (the last such commit of the day on the first-parent line):
+// [{day, total: {S, M, L}}], the open tasks by size, through sizeMix. Each task file version is read once (`git cat-file --batch`).
+function gitSizeHistory(root) {
+  const git = (a, input) => execFileSync('git', a, { cwd: root, input, maxBuffer: 1 << 30 });
+  const days = new Map();
+  for (const l of git(['log', '--first-parent', '--format=%H %ad', '--date=short', 'HEAD', '--', 'backlog/']).toString().trim().split('\n'))
+    if (l) { const [h, d] = l.split(' '); if (!days.has(d)) days.set(d, h); }
+  const snaps = [...days].sort((a, b) => a[0].localeCompare(b[0])).map(([day, h]) => ({ day, files: git(['ls-tree', h, 'backlog/']).toString().split('\n')
+    .map((l) => l.match(/^\d+ blob (\w+)\tbacklog\/(VB-\d+)\.md$/)).filter(Boolean).map((m) => [m[2], m[1]]) }));
+  const blobs = [...new Set(snaps.flatMap((s) => s.files.map((f) => f[1])))], text = {};
+  if (blobs.length) {
+    const out = git(['cat-file', '--batch'], blobs.join('\n') + '\n');
+    for (let at = 0; at < out.length; ) {
+      const nl = out.indexOf(10, at), [sha, , size] = out.toString('utf8', at, nl).split(' ');
+      text[sha] = out.toString('utf8', nl + 1, nl + 1 + +size); at = nl + 1 + +size + 1;
+    }
+  }
+  return snaps.map((s) => ({ day: s.day, total: sizeMix(s.files.map(([id, sha]) => parseTask(id, text[sha] || ''))).total }));
+}
+// The open tasks by size on each day from day0, N days: each day takes the last snapshot on or before it, null before the first.
+function sizeHistory(snaps, day0, N) {
+  const idx = dayIndex(day0), sorted = [...snaps].sort((a, b) => a.day.localeCompare(b.day)), seen = new Set(snaps.flatMap((s) => Object.keys(s.total)));
+  const sizes = [...['S', 'M', 'L'].filter((z) => seen.has(z)), ...[...seen].filter((z) => !['S', 'M', 'L'].includes(z)).sort()];
+  const days = Array(N).fill(null);
+  let j = -1;
+  for (let i = 0; i < N; i++) {
+    while (j + 1 < sorted.length && idx(sorted[j + 1].day) <= i) j++;
+    if (j >= 0) days[i] = Object.fromEntries(sizes.map((z) => [z, sorted[j].total[z] || 0]));
+  }
+  return { sizes, days };
 }
 
 // The open tasks by size, against their status and their priority: {sizes, total, status: {ready: {S, M, L}}, priority: {P1: {...}}}.
@@ -94,7 +127,7 @@ const quantile = (a, p) => { a = [...a].sort((x, y) => x - y); if (!a.length) re
 const sliceNo = (name) => { const m = name.match(/^Slice (\d+):\s*(.*)$/); return m ? { n: +m[1], label: `${m[1]} · ${m[2][0].toUpperCase()}${m[2].slice(1)}` } : null; };
 
 // tasks: [{id, name, arch, done, created, doneDate}]; open, closed: the Archs tables' rows in order; today: YYYY-MM-DD
-function model({ tasks, open, closed, today, kim = KIM }) {
+function model({ tasks, open, closed, today, kim = KIM, sizeSnaps = [] }) {
   const dated = tasks.filter((t) => t.created);
   const day0 = dated.map((t) => t.created).sort()[0] || today, idx = dayIndex(day0), N = idx(today) + 1;
   // which archs are slices, side archs, or the first archs folded into one row
@@ -170,7 +203,7 @@ function model({ tasks, open, closed, today, kim = KIM }) {
   const names = { first: `The first archs (${firstKeys.length})`, '-': 'No arch' };
   for (const a of [...slices, ...side]) names[a.key] = a.label;
   return { day0, today, N, per, all, rate, paceFull, share14, shareAll, gLo, gHi, sizeLo, sizeHi, info, rem, est, finish, scope, order,
-    slices: slices.map((s) => s.key), side: side.map((a) => a.key), names, kim, mix: sizeMix(tasks), created: dated.length, done: doneN, undated: tasks.filter((t) => !t.created).length };
+    slices: slices.map((s) => s.key), side: side.map((a) => a.key), names, kim, mix: sizeMix(tasks), openBySize: sizeHistory(sizeSnaps, day0, N), created: dated.length, done: doneN, undated: tasks.filter((t) => !t.created).length };
 }
 
 // ---- main
@@ -181,11 +214,11 @@ if (require.main === module) {
   if (!g.git) { console.error('roadmap: not a git repository; the page needs the backlog\'s history'); process.exit(1); }
   if (g.shallow) console.error('roadmap: a shallow clone: tasks older than the clone take its first day (fetch with --unshallow, or fetch-depth: 0)');
   for (const t of tasks) { t.created = g.created[t.id] || null; if (t.done && !t.doneDate) t.doneDate = g.done[t.id] || null; }
-  const data = model({ tasks, open, closed, today: opt('--today', g.last) });
+  const data = model({ tasks, open, closed, today: opt('--today', g.last), sizeSnaps: gitSizeHistory(root) });
   if (args.includes('--json')) { console.log(JSON.stringify(data)); process.exit(0); }
   const page = fs.readFileSync(path.join(__dirname, 'lib', 'roadmap-page.html'), 'utf8').replace('/*DATA*/', () => JSON.stringify(data));
   const out = path.resolve(root, opt('--out', 'docs/roadmap.html'));
   fs.writeFileSync(out, page);
   console.log(`roadmap: ${path.relative(root, out)}, as of ${data.today}: ${data.done} of ${data.created} tasks done; all done ${data.finish ? data.finish.join(' to ') : 'not estimated'} (est.)`);
 }
-module.exports = { model, sizeMix, readBacklog, gitDates, KIM };
+module.exports = { model, sizeMix, sizeHistory, gitSizeHistory, parseTask, readBacklog, gitDates, KIM };
