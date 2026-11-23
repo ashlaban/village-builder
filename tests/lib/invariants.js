@@ -906,7 +906,7 @@ function checkState(st) {
   }
   // the village's wood (VB-326): every tile wooded (forest, or scrub the forest has grown on open land, VB-091), in no other village's wood
   // and not in use; within the cap
-  const WOOD = globalThis.VB['sim/rules'].WOOD, { B } = globalThis.VB.gen, inWood = new Map();
+  const WOOD = globalThis.VB['sim/rules'].WOOD, { B } = globalThis.VB['world/biomes'], inWood = new Map();
   for (const v of st.villages) {
     if (!Array.isArray(v.wood) || v.wood.length > WOOD.cap) { bad.push(`villages[${v.id}]: wood is ${JSON.stringify(v.wood)}`); continue; }
     for (const t of v.wood) {
@@ -1213,7 +1213,7 @@ function checkState(st) {
   // deposits (VB-359, sim/dig): loads left only on a deposit tile; a dug tile (dugDay) not after today, its first amount at least what is left
   // and nothing dug but clay, bog iron and peat; an endless tile stays endless
   {
-    const { deposit, depositLeft, depositFull, dugDay } = st.w, today = Math.floor(st.t / 24), E = globalThis.VB['gen/geology'];
+    const { deposit, depositLeft, depositFull, dugDay } = st.w, today = Math.floor(st.t / 24), E = globalThis.VB['world/geology'];
     let off = 0;
     if (deposit) for (let i = 0; i < N; i++) {
       if (!deposit[i] && depositLeft[i]) off++;

@@ -9,12 +9,12 @@ function showTile(i) {
     selFarm = -1;
     return;
   }
-  const b = G.BIOMES[w.biome[i]],
+  const b = Biomes.BIOMES[w.biome[i]],
     col = i % w.COLS,
     row = (i / w.COLS) | 0;
   let line;
   if (w.water[i]) {
-    const d = w.csample(w.cdist, w.hx[i], w.hy[i]);
+    const d = Grid.csample(w, paintOf(w).cdist, w.hx[i], w.hy[i]);
     const m = b.key === 'lake' ? 2 + 28 * (1 - Math.exp(-d / 70)) : 3 + 150 * (1 - Math.exp(-d / (150 * w.KS)));
     line = `Depth about ${Math.round(m)} m`;
   } else {
@@ -54,7 +54,7 @@ function showTile(i) {
         ]
       : [];
   const river = w.river[i]
-    ? [`${Rivers.kind(w, i)} runs through; ${cross}`]
+    ? [`${Flow.kind(w, i)} runs through; ${cross}`]
     : !w.water[i] && Sim.byRiver(w, i)
       ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`]
       : [];
@@ -225,8 +225,8 @@ function levelStats(i) {
       img: swatch(ROCK_COLOUR[w.rock[i]]),
       label: 'Bedrock',
       wide: true,
-      value: Geo.ROCKS[w.rock[i]].name,
-      title: `${Geo.ROCKS[w.rock[i]].name} bedrock, as the Ground overlay tints it`,
+      value: Strata.ROCKS[w.rock[i]].name,
+      title: `${Strata.ROCKS[w.rock[i]].name} bedrock, as the Ground overlay tints it`,
     });
     const how = w.deposit[i] ? depositShown(i) : 0,
       d = how ? w.deposit[i] : 0,
@@ -234,11 +234,11 @@ function levelStats(i) {
     if (d)
       out.push({
         img: swatch(DEPOSIT_COLOUR[d], DEPOSIT_MARK[d]),
-        label: Geo.DEPOSITS[d].name,
+        label: Strata.DEPOSITS[d].name,
         wide: true,
-        value: left === Geo.ENDLESS ? 'never runs out' : `${left} loads`,
+        value: left === Strata.ENDLESS ? 'never runs out' : `${left} loads`,
         note: how === 2 ? 'no village has found it' : '',
-        title: `${Geo.DEPOSITS[d].name}, as the Ground overlay marks it`,
+        title: `${Strata.DEPOSITS[d].name}, as the Ground overlay marks it`,
       });
   }
   return stats(out);

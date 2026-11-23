@@ -36,6 +36,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1123](backlog/VB-1123.md)<a id="VB-1123"></a> | Page: plan mode: the household's season planned on the map, in place of the Plan tab | - | 2 | L | Plan mode replaces the Plan tab: a bar of the season a member with the actions on it, actions chosen from a tile's menu, problems marked where they are, and the outcome read on the needs (survival's thresholds, by the head's estimate); no target is stepped. Requirements, walks and Kim's decisions of 17 and 18 Nov; mocks A to L. |
 | [VB-1476](backlog/VB-1476.md)<a id="VB-1476"></a> | A pawn's grain stake vanishes at its death | - | 2 | S | Found by VB-403's accounts: a pawn's stake (shares paid to it, sim/cottage payOwed) stays on the dead pawn and leaves the world with no movement; up to a fifth of a year's produce late in populous small seed 7. |
 | [VB-1478](backlog/VB-1478.md)<a id="VB-1478"></a> | The fair's animals and carts: a beast led to the gathering, a cart and two oxen carrying 90 | fair | 2 | S | VB-302 left these out: an animal walks to the fair beside its dealer and changes herd when swapped; a household with an ox cart and its team free loads 90 rations' worth, the cart out until it is home. |
+| [VB-1507](backlog/VB-1507.md)<a id="VB-1507"></a> | tests/browser.js fails on a busy machine: steps in working hours, and the work bar's click | - | 2 | S | 3 of 5 runs failed at d8f81ff on 23 November, before any page change: a wall-clock check and a click on a menu row that is redrawn |
 | [VB-043](backlog/VB-043.md)<a id="VB-043"></a> | One scope model: a membership graph of entities | debt | 3 | M | The membership graph of typed edges, with scopes on it; as Membership's truth if Kim adopts it (measured 0.55 ms at year 12). |
 | [VB-048](backlog/VB-048.md)<a id="VB-048"></a> | Wrap-up: tune yields and the food balance of a farm | animals | 3 | M | With animals in, tune field yield, fields per farm and food from animals so a family of 6 is fed in an ordinary year. |
 | [VB-082](backlog/VB-082.md)<a id="VB-082"></a> | Customs made legible: votes, leanings and causes | debt | 3 | M | Votes in the meeting log, leanings in the pawn panel, causes and changes announced. |
@@ -104,6 +105,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1490](backlog/VB-1490.md)<a id="VB-1490"></a> | Page: a tile turned to meadow recolours the overview without waiting for a tree change | - | 3 | S | updateSettlement calls refreshTrees only when st.treeDirty has tiles, so a change that sets only st.biomeDirty waits for the next tree change before the overview is recoloured. |
 | [VB-1493](backlog/VB-1493.md)<a id="VB-1493"></a> | Refactor: split sim/walking by concern | - | 3 | S | sim/walking holds the ground's cost, the worn ways' tunables (PATHS), the discomfort a route is chosen by, passability with the cached reach, and the trail's cost; the discomfort and the reach cache are the first candidates for modules of their own. |
 | [VB-1494](backlog/VB-1494.md)<a id="VB-1494"></a> | A village blazes a trail to a neighbour or a daughter it has kin in | far | 3 | S | At its meeting a village decides to blaze a trail to a neighbour or a daughter it has kin in and cannot reach in a day there and back; its alderman issues blaze (sim/trails) as a village duty (VB-314; principle 16). |
+| [VB-1505](backlog/VB-1505.md)<a id="VB-1505"></a> | sim/pose: the tile at a map point by the grid's one locator | - | 3 | S | sim/pose.tileAt repeats hexLocator's arithmetic line for line; it calls the one in world/grid |
 
 </details>
 
@@ -123,6 +125,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | [VB-1126](backlog/VB-1126.md)<a id="VB-1126"></a> | Design: the age of account and the bands' margin in design.md | talk | 3 | S | design.md does not yet say VB-1106's two rules (SOCIAL.account 12, SOCIAL.back 0.2) |
 | [VB-1364](backlog/VB-1364.md)<a id="VB-1364"></a> | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
 | [VB-1369](backlog/VB-1369.md)<a id="VB-1369"></a> | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
+| [VB-1506](backlog/VB-1506.md)<a id="VB-1506"></a> | Owners for w.biome, w.trees and w.stones | - | 3 | S | about ten sim modules write the world's biome, trees and stones, and src/owners.json names no owner for them |
 
 </details>
 

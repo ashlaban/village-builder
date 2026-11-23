@@ -8,7 +8,7 @@
 // salt or boiled it at springs (Lüneburg). The salt is used up by the salting (sim/byre); without it the meat is smoked and keeps less.
 VB['sim/saltpan'] = (() => {
   const { YEAR_DAYS, DAY } = VB['sim/rules'];
-  const { DEPOSIT } = VB['gen/geology'];
+  const { DEPOSIT } = VB['world/geology'];
   const { bfs } = VB['sim/hex'],
     { passable } = VB['sim/walking'],
     { fellTree } = VB['sim/forest'];

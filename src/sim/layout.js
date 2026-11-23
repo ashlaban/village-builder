@@ -1,6 +1,6 @@
 // @sys sim/layout: placing villages (a green, and a farm at a time round it, by its land), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { WOOD } = VB['sim/rules'],
     { RIVER, SOIL, farmable, byRiver, fertility, clearable, clearedFertility } = VB['sim/crops'],
     { PATHS } = VB['sim/walking'];
@@ -393,7 +393,7 @@ VB['sim/layout'] = (() => {
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
     for (const f of farmsteads) w.dev[f.house] = 3; // a house: no way wears through it (sim/paths)
-    for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
+    for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (draw/paths)
     initWear(w);
     initFish(w);
     initForage(w);

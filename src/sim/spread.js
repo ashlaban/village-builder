@@ -1,8 +1,7 @@
 // @sys sim/spread: forest spread into open land (VB-091): the front of open tiles beside woodland, where scrub grows to forest unless
 // farming, work or grazing keeps the land open; the hours scrub adds to clearing
 VB['sim/spread'] = (() => {
-  const G = VB['gen'],
-    { B, treeStage, setBiome } = G;
+  const { B, treeStage, setBiome } = VB['world/biomes'];
   const { fullTrees } = VB['gen/cover'];
   const { DAY, YEAR_DAYS } = VB['sim/rules'];
   const { costChanged } = VB['sim/routes'];
@@ -61,7 +60,7 @@ VB['sim/spread'] = (() => {
     for (const f of st.farmsteads)
       for (const fd of f.fields)
         if (fd.stage === 'scrub' && open(w, fd.tile) && w.treesMax[fd.tile] === 0) {
-          w.treesMax[fd.tile] = fullTrees(G, w.seed, fd.tile, kindAt(w, fd.tile));
+          w.treesMax[fd.tile] = fullTrees(w.seed, fd.tile, kindAt(w, fd.tile));
           w.trees[fd.tile] = SPREAD.scrub * w.treesMax[fd.tile];
         }
     st.front = new Set();
@@ -140,7 +139,7 @@ VB['sim/spread'] = (() => {
     const w = st.w,
       b = kindAt(w, t);
     setBiome(w, t, b);
-    w.treesMax[t] = fullTrees(G, w.seed, t, b);
+    w.treesMax[t] = fullTrees(w.seed, t, b);
     w.trees[t] = w.treesMax[t];
     st.front.delete(t);
     st.treeDirty.add(t);
@@ -168,7 +167,7 @@ VB['sim/spread'] = (() => {
         continue;
       }
       if (g >= GRAZE.keepsOpen || kept(st, t, day, ctx)) continue;
-      if (w.treesMax[t] === 0) w.treesMax[t] = fullTrees(G, w.seed, t, kindAt(w, t));
+      if (w.treesMax[t] === 0) w.treesMax[t] = fullTrees(w.seed, t, kindAt(w, t));
       const n = w.trees[t] + w.treesMax[t] * RATE;
       if (n >= w.treesMax[t]) becomeForest(st, t, join);
       else setTrees(st, t, n, join);

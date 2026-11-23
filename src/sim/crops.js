@@ -1,7 +1,7 @@
 // @sys sim/crops: the crops, their rotations and the soil (VB-419, from sim/rules): each crop's row, the rotations a field keeps,
 // how a harvest wears the soil and dung restores it, and which land can be farmed and how fertile it is
 VB['sim/crops'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { SEASON_DAYS } = VB['sim/rules'];
   // @tunable CROPS: crops (VB-346; design.md, Crops and rotations): one row each, and a field holds the key of its crop (`fd.crop`). A plain table here,
   // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's

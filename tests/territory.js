@@ -87,7 +87,7 @@ const ok = (st, label) => { const bad = checkState(st); check(!bad.length, `${la
 {
   const put = {}; for (const k of ['13,6', '14,6', '13,7', '3,2']) put[k] = 'F';
   const st = tinyState(open(20, 12, put), [{ at: [8, 6], farms: 1 }], { seed: 6, outland: false });
-  const v = st.villages[0], forest = (t) => [VB.gen.B.FOREST, VB.gen.B.PINE].includes(st.w.biome[t]);
+  const v = st.villages[0], forest = (t) => [VB['world/biomes'].B.FOREST, VB['world/biomes'].B.PINE].includes(st.w.biome[t]);
   check(v.wood.length === 4 && v.wood.every(forest), `the wood is the four forest tiles in reach (${v.wood.length})`);
   T.claimOutland(st);
   const first = [...st.claims.entries()].sort((a, b) => a[1][0].seq - b[1][0].seq)[0][0];

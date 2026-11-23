@@ -8,7 +8,7 @@ const { KINDS, ASK } = VB['sim/kinds'], { DAY, HERD, FOODS } = VB['sim/rules'], 
 const Targets = VB['sim/targets'], Goods = VB['sim/goods'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SALT FAIL:', m); } };
-const { SALT } = S, { DEPOSIT, ENDLESS } = Geo, SEED = 8;
+const { SALT } = S, { DEPOSIT, ENDLESS } = VB['world/geology'], SEED = 8;
 
 // --- the kind, the good and the food
 const K = KINDS.boilsalt;

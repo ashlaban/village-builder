@@ -32,18 +32,32 @@ function levelFor(z, cur) {
   if (cur === 2 && l === 1 && z < TH1 * HY) l = 2;
   return l;
 }
-// out, if given, gets out.way: the chunk's ways over its fields and meadows, a canvas of their own (gen/paths drawOver), or null.
+// ---- the paint: each world's colours, light, coast distance and brush texture (draw/paint), one per world (the start screen holds several
+// islands, the editor its own), built when first baked. Recolouring is explicit: a tile whose biome changed is recoloured where the page
+// learns of it (refreshTrees, the editor's brush), and a world put back whole (the editor's restore, a load) drops its paint. ----
+const paints = new WeakMap();
+function paintOf(wd) {
+  let P = paints.get(wd);
+  if (!P) paints.set(wd, (P = VB['draw/paint'].paint(wd)));
+  return P;
+}
+function recolour(wd, tiles) {
+  const P = paints.get(wd);
+  if (P) for (const t of tiles) VB['draw/paint'].colour(P, wd, t);
+}
+const dropPaint = (wd) => paints.delete(wd);
+// out, if given, gets out.way: the chunk's ways over its fields and meadows, a canvas of their own (draw/paths drawOver), or null.
 function* chunkJob(wd, l, cx, cy, canvas, out) {
   const ctx = canvas.getContext('2d'),
     img = ctx.createImageData(TEX, TEX);
-  yield* G.bakeChunk(wd, l, cx, cy, img);
+  yield* Bake.bakeChunk(wd, paintOf(wd), l, cx, cy, img);
   ctx.putImageData(img, 0, 0);
   yield 1;
   Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
   Paths.drawChunk(wd, ctx, LV[l], cx, cy, l);
   if (out) out.way = Paths.drawOver(wd, LV[l], cx, cy, l, () => makeCanvas(TEX, TEX));
   yield 1;
-  G.decorateChunk(wd, ctx, l, cx, cy, SPR || (SPR = landSprites()));
+  Bake.decorateChunk(wd, ctx, l, cx, cy, SPR || (SPR = landSprites()));
 }
 function addChunk(l, cx, cy, canvas, wayCanvas) {
   const s = LV[l].size,
@@ -83,10 +97,11 @@ function dropChunk(k) {
   if (ch.way) ch.way.destroy({ texture: true, textureSource: true });
   chunks.delete(k);
 }
-// Repaint what the simulation changed on the map: tiles whose tree density stage changed or that turned to meadow.
+// Repaint what the simulation changed on the map: tiles whose tree density stage changed or whose biome changed, recoloured first.
 // The chunks over them are marked stale and painted again within the frame budget, shown until then: levels 0 and 1 where they are
 // wanted, the always-resident overview (level 2) wherever the view is.
 function refreshTrees() {
+  recolour(w, st.biomeDirty);
   repaintTiles(st.treeDirty, st.biomeDirty);
   st.treeDirty.clear();
   st.biomeDirty.clear();
@@ -120,7 +135,7 @@ const overOf = (cx, cy) => stagePainted && stagePainted.over.find((o) => o.cx ==
 // Repaint worn paths whose stage changed (sim/paths): the close levels around them are marked stale and painted again on demand,
 // within the frame budget, and shown until then; the overview shows no paths.
 function refreshPaths() {
-  const reach = 5 * w.R; // a tile's stage changes the trails of the tiles within two steps of it (gen/paths)
+  const reach = 5 * w.R; // a tile's stage changes the trails of the tiles within two steps of it (draw/paths)
   for (const tile of st.pathDirty)
     for (const l of [0, 1]) {
       const [a, b, c, d] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);

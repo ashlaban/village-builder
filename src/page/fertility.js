@@ -63,7 +63,7 @@ function drawFertility() {
     g.fill({ color: colour(v), alpha: 0.62 });
   }
   // the key: the bands present, best first, each with the biomes (and river) that give it
-  const what = (k) => G.BIOMES[k >> 1].name + (k & 1 ? ' by a river' : ''),
+  const what = (k) => Biomes.BIOMES[k >> 1].name + (k & 1 ? ' by a river' : ''),
     row = (v, k) =>
       `<li><i class="rock" style="background:${hex6(colour(v))}"></i>${fertilityNumber(v)}: ${[...bands.get(v).kinds]
         .sort((a, b) => a - b)
@@ -71,7 +71,7 @@ function drawFertility() {
         .join(
           ', ',
         )}${k === 0 && order.length > 1 ? ' (best)' : k === order.length - 1 && k > 0 ? ' (poorest)' : ''}</li>`,
-    unfarmed = G.BIOMES.filter((b, k) => !b.water && C.FERTILITY[k] === undefined).map((b) => b.name);
+    unfarmed = Biomes.BIOMES.filter((b, k) => !b.water && C.FERTILITY[k] === undefined).map((b) => b.name);
   $('fertilityKey').innerHTML =
     '<h2 class="menu-label">Fertility as a field</h2>' +
     (order.length ? '<ul>' + order.map(row).join('') + '</ul>' : '<p>No land on this map can be farmed.</p>') +

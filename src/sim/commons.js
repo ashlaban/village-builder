@@ -9,7 +9,7 @@ VB['sim/commons'] = (() => {
   const { cal } = VB['sim/rules'],
     { ROLES } = VB['sim/roles'],
     { CROPS, farmable, fertility } = VB['sim/crops'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
   const { freeFor } = VB['sim/territory'];

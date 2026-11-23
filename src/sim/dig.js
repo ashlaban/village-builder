@@ -5,8 +5,7 @@
 // cut in summer into the peat stack, where it dries, and burnt in place of wood (sim/hunger warmHouse); it never grows back.
 VB['sim/dig'] = (() => {
   const { YEAR_DAYS, DAY, PEAT, cal } = VB['sim/rules'];
-  const Geo = VB['gen/geology'],
-    { DEPOSIT, ENDLESS } = Geo;
+  const { DEPOSIT, ENDLESS } = VB['world/geology'];
   const { bfs } = VB['sim/hex'],
     { passable } = VB['sim/walking'];
   const { isOutland } = VB['sim/territory'],
