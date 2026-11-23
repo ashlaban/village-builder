@@ -91,7 +91,7 @@ const refused = (s, verb, args, re, actor) => {
   const s = farm('every', { barley: 400, rye: CROPS.rye.seed, peas: CROPS.peas.seed }, at(0, 2));
   const [a, b, c] = s.f.fields;
   refused(s, 'sowOutOfTurn', { tile: -1, crop: 'rye' }, /no field on tile/);
-  refused(s, 'sowOutOfTurn', { tile: a.tile, crop: 'oats' }, /no crop oats/);
+  refused(s, 'sowOutOfTurn', { tile: a.tile, crop: 'millet' }, /no crop millet/);
   refused(s, 'sowOutOfTurn', { tile: a.tile, crop: 'rye' }, /rye is sown in autumn, days 1 to 6/);
   refused(s, 'sowOutOfTurn', { tile: a.tile, crop: 'barley' }, /bears barley next as it is/);
   F.sown(b, cal(s.st.t));
@@ -105,7 +105,7 @@ const refused = (s, verb, args, re, actor) => {
   assert(a.crop === 'peas' && s.f.fields.every((fd) => fd.rotation === 'every'), 'the rule leaves a field out of turn alone');
   const view = Rotations.fieldView(s.st, a.tile);
   assert(view.turn && view.crop === 'peas' && view.next.crop === 'peas' && view.label === 'barley every year', JSON.stringify(view));
-  assert.deepStrictEqual(view.seed.map((x) => [x.crop, x.held, x.field]), [['barley', 400, 25], ['rye', 25, 25], ['peas', 20, 20]], 'the seed held of each crop');
+  assert.deepStrictEqual(view.seed.map((x) => [x.crop, x.held, x.field]), [['barley', 400, 25], ['rye', 25, 25], ['peas', 20, 20], ['wheat', 0, 48], ['oats', 0, 17]], 'the seed held of each crop');
   // back to its turn, and out again; when its crop is in, the field goes on in its rotation
   assert.strictEqual(s.cmd('sowOutOfTurn', { tile: a.tile, crop: 'barley' }), true, 'back to its turn');
   assert(a.crop === 'barley' && a.turn === undefined);

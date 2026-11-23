@@ -4,8 +4,8 @@ VB['sim/crops'] = (() => {
   const { B } = VB['world/biomes'];
   const { SEASON_DAYS } = VB['sim/rules'];
   // @tunable CROPS: crops (VB-346; design.md, Crops and rotations): one row each, and a field holds the key of its crop (`fd.crop`). A plain table here,
-  // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
-  // grain. Days are game days. yield: rations a field gives at fertility and soil 1; seed: rations sown on a field (a 4:1 ratio); sow: the window
+  // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Days are game days.
+  // yield: rations a field gives at fertility and soil 1; seed: rations sown on a field; sow: the window
   // [season, first day, last day]; ripe: days from sowing to ripe; wear: the soil a harvest takes (the frost's day is the
   // year's, sim/weather frostDay; it takes every crop but a winter one). hours: the work of each stage; KINDS plow, sow, weed, reap and thresh (sim/kinds)
   // read them from here.
@@ -13,7 +13,13 @@ VB['sim/crops'] = (() => {
   // (reading): the season 0 to 3 of the year it is reaped in, -1 the winter before it; kind 'w' adds k x warmth, 'r' k x wetness, 'dry'
   // takes k at the driest, 'wet' k at the wettest, 'bare' k when the season is both coldest and driest (the bare frost). ripens: the
   // summer's warmth moves its ripening (sim/weather ripeShift). ----
+  // Spring cereal calibration: net rations per field = yield * realized harvest fraction - seed. At FIELDS.expect (0.75), barley gives
+  // 50, wheat 60 and oats 44.5. Four fields staggered between barley and wheat give 220 against 216 annual rations for 3 adults and 3 children.
+  // At equal harvest fractions oats lead below 8/18, barley between 8/18 and 23/44, wheat above 23/44. Weather can shift these crossings.
+  // For 2 adults and 2 children eating three rations daily, sowing one spring field and eating until ripeness takes 80 rations for oats,
+  // 103 for barley or 135 for wheat, before harvest and processing time. These are household budgets; rotationChoice uses its own score.
   const CROPS = {
+    // The spring staple: moderate seed cost and return when a farm cannot afford the larger wheat sowing.
     barley: {
       yield: 100,
       seed: 25,
@@ -31,6 +37,7 @@ VB['sim/crops'] = (() => {
     },
     // winter rye (VB-348): sown in autumn days 1 to 6, it stands the winter and the frost (winter), and is ripe in summer days 7 to 12; a
     // ripe field still standing on `lost` [season, day] is lost; weeds: the rounds of weeding it gets (barley 2, at ECON.weedDays)
+    // Autumn sowing spreads fieldwork across seasons and brings grain in before the spring cereals. Bare winter frost risks that harvest.
     rye: {
       yield: 100,
       seed: 25,
@@ -48,6 +55,7 @@ VB['sim/crops'] = (() => {
     },
     // peas (VB-349): a spring crop, the soil mended `gain` a crop (to SOIL.start; a field manured above it keeps its soil) and no wear; hoed
     // (plow), pulled (reap) and threshed in fewer hours; lost to the frost as barley is; cooked in the pot as the food `pulses`, a source of its own
+    // A worn field can feed the family while recovering. The early harvest and short pulling and threshing jobs suit a short-handed farm.
     peas: {
       yield: 60,
       seed: 20,
@@ -63,6 +71,38 @@ VB['sim/crops'] = (() => {
       ripens: true,
       hours: { plow: 20, sow: 2, weed: 5, reap: 10, thresh: 10 },
     },
+    // Land is scarce but seed and food until autumn are plentiful: the largest harvest per field, at high upfront cost and soil wear.
+    wheat: {
+      yield: 144,
+      seed: 48,
+      sow: [0, 0, 9],
+      ripe: 29,
+      wear: 0.1,
+      weeds: 2,
+      weather: [
+        [1, 'w', 0.15],
+        [1, 'dry', 0.18],
+        [2, 'wet', 0.2],
+      ],
+      ripens: true,
+      hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
+    },
+    // A thin granary: little seed tied up, an early harvest, and light wear. The smaller crop buys fewer meals on productive land.
+    oats: {
+      yield: 82,
+      seed: 17,
+      sow: [0, 0, 9],
+      ripe: 21,
+      wear: 0.04,
+      weeds: 2,
+      weather: [
+        [0, 'r', 0.12],
+        [1, 'dry', 0.22],
+      ],
+      ripens: true,
+      hours: { plow: 20, sow: 2, weed: 5, reap: 15, thresh: 20 },
+    },
+    // A farm with food in reserve can give up this harvest to restore soil without spending seed.
     // fallow (VB-348), a course and not a crop: never sown, no seed and no grain (sim/stores holds only the rows with seed); tilled once in
     // `sow`, the summer; at the year's end a field that stood fallow through the summer gains `mend` of soil if tilled, half if not, to
     // at most SOIL.start
@@ -76,6 +116,8 @@ VB['sim/crops'] = (() => {
     two: { courses: ['barley', 'fallow'], label: 'two courses' },
     three: { courses: ['fallow', 'rye', 'barley'], label: 'three courses' },
     peas: { courses: ['barley', 'peas'], label: 'barley and peas by turns' },
+    wheat: { courses: ['barley', 'wheat'], label: 'barley and wheat by turns' },
+    oats: { courses: ['barley', 'oats'], label: 'barley and oats by turns' },
     peasRye: { courses: ['peas', 'rye', 'barley'], label: 'peas, rye, barley' },
   };
   // @tunable SOIL: soil (VB-137): a field's soil multiplies its yield; each reaped crop wears it by `wear` to `floor`; a load of manure, carted to a field in
