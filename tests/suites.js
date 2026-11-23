@@ -120,6 +120,7 @@ const INTEGRATION = [
   ['node', 'tests/backlog-tool.js'],
   ['node', 'tests/inbox.js'],
   ['node', 'tests/waiting.js'],
+  ['node', 'tests/foresight-hunger.js'], // foresight's hunger by household-years (VB-571)
   ['node', 'tests/brief-tool.js'],
   ['node', 'tests/guardians.js'],
   ['node', 'tests/holding.js'],
