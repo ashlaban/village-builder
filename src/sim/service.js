@@ -278,7 +278,7 @@ VB['sim/service'] = (() => {
           !h.dissolved &&
           (h.members.length === 1 || trustOf(st, h.id)) &&
           adult(st.pawns[h.holder]) &&
-          !belowFloor(st, h),
+          (!belowFloor(st, h) || trustOf(st, h.id)), // a farm in trust goes back to its heir with a servant whatever its store
       );
     const taken = new Set(),
       moved = new Set(); // the households that took a servant this round, and the servants (for serveWhereShort)
@@ -314,7 +314,7 @@ VB['sim/service'] = (() => {
   // parent lives (nobody goes back home by this rule). Each household takes at most one new servant a round, and nobody moves twice in one.
   // A servant whose household is no longer short may go on at a later round by the same rule. The servant is a member, works its jobs on
   // the `servant` basis and is owed a wage a year (oweWages); a household below its floor (sim/hunger floorOf) takes no new servant, since
-  // it could not pay one (VB-637), nor does a lone holder's (takeServants). One its master owes more than SERVICE.unpaid years' wages goes
+  // it could not pay one (VB-637), nor does a lone holder's (takeServants) but where its farm is held in trust (VB-309: a rescue, as takeIn is). One its master owes more than SERVICE.unpaid years' wages goes
   // home (unpaidLeave), else asks for a place as one a head refused does (`leavers`), whatever the hands at home.
   const fieldsOf = (st, hh) => Math.max(1, farmOf(st, hh).fields.length);
   const handsPerField = (st, hh) => hands(st, hh) / fieldsOf(st, hh);
