@@ -1,6 +1,8 @@
-// @sys page/chunks: level-of-detail map chunks painted on demand, the hex grid built lazily, and region borders
+// @sys page/chunks: level-of-detail map chunks painted on demand and repainted in place when stale, the hex grid built lazily, and region borders
 // ---- level-of-detail chunks ----
 // Level 2 covers the map in 6 chunks and is always resident; levels 1 and 0 are painted on demand.
+// A chunk of levels 1 and 0 whose ground changed is marked stale (VB-1492): it stays on screen, is wanted as if missing, and is swapped
+// for its replacement in the frame that finishes it. Dropped at once, it showed the blurry overview through its hole until then.
 const chunks = new Map();
 let job = null,
   frameNo = 0,
@@ -63,6 +65,16 @@ function addChunk(l, cx, cy, canvas, wayCanvas) {
     seen: frameNo,
   });
 }
+const fresh = (k) => {
+  const ch = chunks.get(k);
+  return !!ch && !ch.stale;
+};
+// a job already painting the chunk read the ground before this change: its result is shown, and painted once more (job.again)
+function staleChunk(k) {
+  const ch = chunks.get(k);
+  if (ch) ch.stale = true;
+  if (job && job.k === k) job.again = true;
+}
 function dropChunk(k) {
   const ch = chunks.get(k);
   if (!ch) return;
@@ -71,7 +83,8 @@ function dropChunk(k) {
   chunks.delete(k);
 }
 // Repaint what the simulation changed on the map: tiles whose tree density stage changed or that turned to meadow.
-// Levels 0 and 1 are dropped and painted again on demand; the always-resident overview (level 2) is only recoloured, in place.
+// Levels 0 and 1 are marked stale and painted again on demand, shown until then; the always-resident overview (level 2) is only
+// recoloured, in place.
 function refreshTrees() {
   repaintTiles(st.treeDirty, st.biomeDirty);
   st.treeDirty.clear();
@@ -92,7 +105,7 @@ function repaintTiles(near, far) {
     return out;
   };
   for (const tile of near)
-    for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) dropChunk(ckey(l, cx, cy));
+    for (const l of [0, 1]) for (const [cx, cy] of overChunks(tile, l)) staleChunk(ckey(l, cx, cy));
   const done = new Set(); // each overview chunk once, however many of its tiles changed
   for (const tile of far) {
     for (const [cx, cy] of overChunks(tile, 2)) {
@@ -104,14 +117,14 @@ function repaintTiles(near, far) {
     }
   }
 }
-// Repaint worn paths whose stage changed (sim/paths): the close levels around them are dropped and painted again on demand, within
-// the frame budget; the overview shows no paths.
+// Repaint worn paths whose stage changed (sim/paths): the close levels around them are marked stale and painted again on demand,
+// within the frame budget, and shown until then; the overview shows no paths.
 function refreshPaths() {
   const reach = 5 * w.R; // a tile's stage changes the trails of the tiles within two steps of it (gen/paths)
   for (const tile of st.pathDirty)
     for (const l of [0, 1]) {
       const [a, b, c, d] = rangeIn(l, [w.hx[tile] - reach, w.hy[tile] - reach, w.hx[tile] + reach, w.hy[tile] + reach]);
-      for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) dropChunk(ckey(l, cx, cy));
+      for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) staleChunk(ckey(l, cx, cy));
     }
   st.pathDirty.clear();
 }
@@ -127,7 +140,7 @@ function wantedList() {
     for (let cy = b; cy <= d; cy++)
       for (let cx = a; cx <= c; cx++) {
         const k = ckey(l, cx, cy);
-        if (chunks.has(k) || seen.has(k)) continue;
+        if (fresh(k) || seen.has(k)) continue;
         seen.add(k);
         out.push({ l, cx, cy, k, d: Math.hypot((cx + 0.5) * s - mx, (cy + 0.5) * s - my) + bias });
       }
@@ -146,12 +159,13 @@ function wantedList() {
 }
 function schedule(budget) {
   const want = wantedList();
-  pending = want.length + (job ? 1 : 0);
+  // the areas left that show no detail yet: a stale chunk is repainted, but shown meanwhile
+  pending = want.filter((q) => !chunks.has(q.k)).length + (job && !chunks.has(job.k) ? 1 : 0);
   if (job && !want.some((q) => q.k === job.k) && job.rows < 0.5) job = null; // panned away: drop half-done work
   const t0 = performance.now();
   while (performance.now() - t0 < budget) {
     if (!job) {
-      while (want.length && chunks.has(want[0].k)) want.shift();
+      while (want.length && fresh(want[0].k)) want.shift();
       const nx = want.shift();
       if (!nx) break;
       const canvas = makeCanvas(TEX, TEX);
@@ -160,7 +174,11 @@ function schedule(budget) {
     }
     const r = job.gen.next();
     if (r.done) {
-      if (job.wd === w) addChunk(job.l, job.cx, job.cy, job.canvas, job.out.way);
+      if (job.wd === w) {
+        dropChunk(job.k); // the stale chunk it replaces, gone in the frame the new one is shown
+        addChunk(job.l, job.cx, job.cy, job.canvas, job.out.way);
+        if (job.again) chunks.get(job.k).stale = true;
+      }
       job = null;
     } else job.rows = r.value;
   }

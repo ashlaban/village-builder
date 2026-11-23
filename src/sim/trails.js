@@ -56,7 +56,7 @@ VB['sim/trails'] = (() => {
   }
   // blaze(null, {from, to}) (VB-447): any grown pawn's: it opens a trail from tile `from` to tile `to`, the cheapest route counted as the
   // trail would make it, each tile of wood on it a job of its household's, from `from` outward. A party's leader blazes to the site it
-  // staked (VB-787); a village's trail is its alderman's, as a village duty (VB-1491). Taking no time, it may be ordered from
+  // staked (VB-787); a village's trail is its alderman's, as a village duty (VB-1494). Taking no time, it may be ordered from
   // anywhere.
   register('blaze', {
     check: (st, c) =>
