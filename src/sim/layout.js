@@ -8,6 +8,7 @@ VB['sim/layout'] = (() => {
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
   const { initWear, wearIn } = VB['sim/paths'];
+  const { newField } = VB['sim/fieldrec'];
   const { initFish } = VB['sim/fish'],
     { initForage } = VB['sim/forage'];
   // ---- placing farms: houses, fields, fences ----
@@ -179,7 +180,7 @@ VB['sim/layout'] = (() => {
     return {
       id,
       house,
-      fields: fields.map((t, k) => VB['sim/newground'].newField(w, k, t)), // loaded after this module: read when a farm is laid out
+      fields: fields.map((t, k) => newField(w, k, t)),
       village: village ? village.id : null,
       household: null,
       name: '',
@@ -439,7 +440,7 @@ VB['sim/layout'] = (() => {
   }
   function fieldOn(w, used, f, tile) {
     used.add(tile);
-    f.fields.push(VB['sim/newground'].newField(w, f.fields.length, tile));
+    f.fields.push(newField(w, f.fields.length, tile));
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
   const farmHooks = [];
