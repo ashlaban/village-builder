@@ -672,3 +672,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1490](backlog/VB-1490.md) | A field records its ground | - | 2 | S | fd.ground: the biome a field was broken on, kept when the tile's biome changes |
 | [VB-1493](backlog/VB-1493.md) | Page: the field's card shows its ground | - | 3 | S | A field's ground (meadow, heath, hills, marsh) is shown on its card |
 | [VB-1494](backlog/VB-1494.md) | A field's site is chosen by its estimated yield: no order of land use | - | 2 | M | chooseTile drops the meadow-first rule; the head prefers the tile with the best estimated yield for its work, by fertility, clearing hours and distance |
+| [VB-1495](backlog/VB-1495.md) | Breaking forest to a field: felled, grubbed, and its wood carted home | - | 2 | M | A household may break a forest tile into its own field: a costly conversion that yields all the standing wood as timber to cart home |
