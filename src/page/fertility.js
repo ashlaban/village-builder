@@ -96,7 +96,7 @@ function resetFertility() {
 }
 registerOverlay({
   id: 'fertility',
-  name: 'Fertility of fields',
+  name: 'Fertility',
   icon: 'fertility',
   group: 'nature',
   set: setFertility,

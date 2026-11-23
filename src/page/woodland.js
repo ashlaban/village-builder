@@ -81,7 +81,7 @@ function resetWoodland() {
 }
 registerOverlay({
   id: 'woodland',
-  name: 'Woodland: trees standing',
+  name: 'Woodland',
   icon: 'woodland',
   group: 'nature',
   set: setWoodland,

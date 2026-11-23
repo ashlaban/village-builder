@@ -94,7 +94,7 @@ function resetWear() {
 }
 registerOverlay({
   id: 'wear',
-  name: 'Wear on foot: tracks, paths and lanes',
+  name: 'Wear',
   icon: 'wear',
   group: 'ways',
   set: setWear,

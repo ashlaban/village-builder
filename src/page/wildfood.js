@@ -70,7 +70,7 @@ function resetWildFood() {
 }
 registerOverlay({
   id: 'wildfood',
-  name: 'Wild food: forage and fish',
+  name: 'Wild food',
   icon: 'wildfood',
   group: 'nature',
   set: setWildFood,

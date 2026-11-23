@@ -85,7 +85,7 @@ function resetGrazing() {
 }
 registerOverlay({
   id: 'grazing',
-  name: 'Grazing pressure',
+  name: 'Grazing',
   icon: 'grazing',
   group: 'nature',
   set: setGrazing,

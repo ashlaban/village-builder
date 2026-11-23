@@ -210,7 +210,7 @@ function resetReach() {
 // The H the old button named is the eye's, which hides the interface (page/input), so walking time is J, for a journey.
 registerOverlay({
   id: 'reach',
-  name: 'Walking time from the selected tile',
+  name: 'Walking time',
   key: 'j',
   icon: 'reach',
   group: 'ways',
