@@ -50,5 +50,6 @@
   "page/notices.js",
   "page/saves.js",
   "page/options.js",
+  "page/guide.js",
   "page/frame.js"
 ]

@@ -79,6 +79,9 @@ VB['sim/lying'] = (() => {
       go: 'Going for a load left lying',
       back: K.back,
       name: 'Fetch a load left lying',
+      at: ['road'], // where it was left (sim/kinds PLACES; VB-1124)
+      needs: [],
+      gives: K.gives,
       label: K.label,
       anim: 'gather',
       hours: LIFT,

@@ -478,6 +478,7 @@ function planTab(hh) {
     )}</p>` +
     section('Targets') +
     markKey() +
+    '<p class="card-note"><a href="#" class="guide-link" data-guide="work">What each kind of work needs and gives: the guide</a></p>' +
     targetsHTML(hh, V, mine) +
     section('This season') +
     routinesHTML(V, mine) +
