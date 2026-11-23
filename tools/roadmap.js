@@ -6,7 +6,7 @@
 //   --json        print the data the page is drawn from, and write nothing
 // Reads: the task files in backlog/ (status, arch, name, priority, size), the Archs tables of BACKLOG.md and BACKLOG_ARCHIVE.md (which archs are
 // slices, and their order), and `git log -p` of the backlog (the day each task first appeared, and the day a task without a date in
-// its Status line was marked done; the open tasks by size at the end of each day). Needs the full history: in a shallow clone the earliest tasks take the clone's first day.
+// its Status line was marked done; the open and the done tasks by size at the end of each day). Needs the full history: in a shallow clone the earliest tasks take the clone's first day.
 // The estimate is the tool's, from the backlog's history (design.md, Principles for decisions: it says whose estimate it is):
 //   pace    tasks done on a full day (10 or more), times the share of full days, over the last 14 days and over all days;
 //   growth  a plan writes its arch's tasks and more follow: the middle half of total / size at the plan, over slices planned 5 or
@@ -74,7 +74,8 @@ function gitDates(root) {
   return { created, done, last: git('log', '-1', '--format=%ad', '--date=short').trim(), shallow, git: true };
 }
 // The backlog as it stood at the end of each day with a commit to backlog/ (the last such commit of the day on the first-parent line):
-// [{day, total: {S, M, L}}], the open tasks by size, through sizeMix. Each task file version is read once (`git cat-file --batch`).
+// [{day, total: {S, M, L}, done: {S, M, L}}], the open and the done tasks by size, through sizeMix. Done tasks keep their files in
+// backlog/ (BACKLOG_ARCHIVE.md only indexes them), so the files alone give both. Each task file version is read once (`git cat-file --batch`).
 function gitSizeHistory(root) {
   const git = (a, input) => execFileSync('git', a, { cwd: root, input, maxBuffer: 1 << 30 });
   const days = new Map();
@@ -90,22 +91,25 @@ function gitSizeHistory(root) {
       text[sha] = out.toString('utf8', nl + 1, nl + 1 + +size); at = nl + 1 + +size + 1;
     }
   }
-  return snaps.map((s) => ({ day: s.day, total: sizeMix(s.files.map(([id, sha]) => parseTask(id, text[sha] || ''))).total }));
+  return snaps.map((s) => { const m = sizeMix(s.files.map(([id, sha]) => parseTask(id, text[sha] || ''))); return { day: s.day, total: m.total, done: m.done }; });
 }
-// The open tasks by size on each day from day0, N days: each day takes the last snapshot on or before it, null before the first.
+// The open and the done tasks by size on each day from day0, N days, {sizes, open: [], done: []}: each day takes the last snapshot
+// on or before it, null before the first.
 function sizeHistory(snaps, day0, N) {
-  const idx = dayIndex(day0), sorted = [...snaps].sort((a, b) => a.day.localeCompare(b.day)), seen = new Set(snaps.flatMap((s) => Object.keys(s.total)));
+  const idx = dayIndex(day0), sorted = [...snaps].sort((a, b) => a.day.localeCompare(b.day));
+  const seen = new Set(snaps.flatMap((s) => [...Object.keys(s.total), ...Object.keys(s.done || {})]));
   const sizes = [...['S', 'M', 'L'].filter((z) => seen.has(z)), ...[...seen].filter((z) => !['S', 'M', 'L'].includes(z)).sort()];
-  const days = Array(N).fill(null);
+  const open = Array(N).fill(null), done = Array(N).fill(null), pick = (o) => Object.fromEntries(sizes.map((z) => [z, (o || {})[z] || 0]));
   let j = -1;
   for (let i = 0; i < N; i++) {
     while (j + 1 < sorted.length && idx(sorted[j + 1].day) <= i) j++;
-    if (j >= 0) days[i] = Object.fromEntries(sizes.map((z) => [z, sorted[j].total[z] || 0]));
+    if (j >= 0) { open[i] = pick(sorted[j].total); done[i] = pick(sorted[j].done); }
   }
-  return { sizes, days };
+  return { sizes, open, done };
 }
 
-// The open tasks by size, against their status and their priority: {sizes, total, status: {ready: {S, M, L}}, priority: {P1: {...}}}.
+// The open tasks by size, against their status and their priority: {sizes, total, status: {ready: {S, M, L}}, priority: {P1: {...}}},
+// and the done tasks by size, done: {S, M, L} (its own sizes, in the same order).
 // A task with no size or priority counts under '?'; the statuses and priorities are listed in a fixed order, then any others.
 function sizeMix(tasks) {
   const open = tasks.filter((t) => !t.done), order = (seen, first) => [...first.filter((k) => seen.has(k)), ...[...seen].filter((k) => !first.includes(k)).sort()];
@@ -116,6 +120,7 @@ function sizeMix(tasks) {
     return out;
   };
   return { sizes, total: Object.fromEntries(sizes.map((z) => [z, open.filter((t) => size(t) === z).length])),
+    done: Object.fromEntries(order(new Set(tasks.filter((t) => t.done).map(size)), ['S', 'M', 'L']).map((z) => [z, tasks.filter((t) => t.done && size(t) === z).length])),
     status: by((t) => t.status || '?', ['ready', 'blocked', 'needs-review']), priority: by((t) => (t.priority ? 'P' + t.priority : '?'), ['P1', 'P2', 'P3']) };
 }
 
@@ -203,7 +208,7 @@ function model({ tasks, open, closed, today, kim = KIM, sizeSnaps = [] }) {
   const names = { first: `The first archs (${firstKeys.length})`, '-': 'No arch' };
   for (const a of [...slices, ...side]) names[a.key] = a.label;
   return { day0, today, N, per, all, rate, paceFull, share14, shareAll, gLo, gHi, sizeLo, sizeHi, info, rem, est, finish, scope, order,
-    slices: slices.map((s) => s.key), side: side.map((a) => a.key), names, kim, mix: sizeMix(tasks), openBySize: sizeHistory(sizeSnaps, day0, N), created: dated.length, done: doneN, undated: tasks.filter((t) => !t.created).length };
+    slices: slices.map((s) => s.key), side: side.map((a) => a.key), names, kim, mix: sizeMix(tasks), bySize: sizeHistory(sizeSnaps, day0, N), created: dated.length, done: doneN, undated: tasks.filter((t) => !t.created).length };
 }
 
 // ---- main

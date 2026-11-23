@@ -40,7 +40,7 @@ svg text.m{fill:var(--ink2)} svg text.b{font-weight:600}
 .mix .panel{flex:1 1 320px;max-width:520px}
 .mix table{width:100%} .mix th{font-weight:600;color:var(--ink2)} .mix td.bar{width:45%;padding:2px 8px}
 .bars{display:flex;height:12px;border-radius:2px;overflow:hidden;background:var(--grid)} .bars i{display:block;height:100%}
-.trend{max-width:1050px;margin-top:10px} .trend svg{display:block;width:100%;min-width:620px;height:auto}
+.trend{max-width:1050px;margin-top:10px} .trend h3{font:600 13px/1.2 system-ui,sans-serif;color:var(--ink2);margin:2px 0 4px} .trend svg{display:block;width:100%;min-width:620px;height:auto}
 .mix tr.all td{font-weight:600;border-bottom:none}
 details{margin-top:8px;font-size:13px} table{border-collapse:collapse;font-size:12px} td,th{padding:2px 8px;border-bottom:1px solid var(--line);text-align:right} td:first-child,th:first-child{text-align:left}
 </style>
@@ -64,8 +64,9 @@ details{margin-top:8px;font-size:13px} table{border-collapse:collapse;font-size:
 <h2>The open tasks by size</h2>
 <div class="legend" id="mixlegend"></div>
 <div class="mix"><div class="panel"><div id="mixstatus"></div></div><div class="panel"><div id="mixpriority"></div></div></div>
-<div class="panel trend"><svg id="trend" role="img" aria-label="Open tasks by size at the end of each day"></svg></div>
-<p class="note">Each open task's size (S, M, L, from its file in <code>backlog/</code>), against its status and its priority. Bars share one scale: the full width is all the open tasks. Below, the open tasks by size at the end of each day, from the task files in the backlog's git history (the last commit of the day); hover for the numbers.</p>
+<div class="panel trend"><h3>Open at the end of each day</h3><svg id="trendopen" role="img" aria-label="Open tasks by size at the end of each day"></svg></div>
+<div class="panel trend"><h3>Done by the end of each day</h3><svg id="trenddone" role="img" aria-label="Done tasks by size, cumulative, at the end of each day"></svg></div>
+<p class="note">Each open task's size (S, M, L, from its file in <code>backlog/</code>), against its status and its priority. Bars share one scale: the full width is all the open tasks. Below, the open tasks by size at the end of each day and the tasks done by then (each chart to its own scale), from the task files in the backlog's git history (the last commit of the day); hover for the numbers.</p>
 
 <details><summary>How the estimate is made</summary><div class="note" id="how"></div></details>
 <p class="note">The budget for cost and how it is measured: <a href="cost.html">docs/cost.md</a>. The open tasks: <a href="../BACKLOG.html">BACKLOG.md</a>. Made by <code>tools/roadmap.js</code>.</p>
@@ -158,15 +159,15 @@ function text(){const cc=sum(D.all.c),cd=sum(D.all.d),d0=D.all.c[0]-D.all.d[0];
   <p><b>Order.</b> The archs are done one after another, in the order of the rows above; the tasks with no arch are done alongside, in proportion. The early end of each range takes the fast pace and the small growth; the late end the slow pace and the large growth.</p>
   ${D.undated?`<p>${D.undated} tasks have no date in the backlog's history and are left out of the charts.</p>`:''}`;}
 const SIZECOL={S:'--q2',M:'--q3',L:'--q5'},sizeCol=z=>SIZECOL[z]?css(SIZECOL[z]):css('--mark');
-function mix(){const M=D.mix,sw=sizeCol,all=[...new Set([...M.sizes,...D.openBySize.sizes])];
+function mix(){const M=D.mix,sw=sizeCol,all=[...new Set([...M.sizes,...D.bySize.sizes])];
   const tot=o=>sum(M.sizes.map(z=>o[z])),max=Math.max(1,tot(M.total));
   document.getElementById('mixlegend').innerHTML=all.map(z=>`<span><i class="sw" style="background:${sw(z)}"></i>${z}</span>`).join('');
   const row=(name,o,cls='')=>{const n=tot(o);return `<tr class="${cls}"><td>${name}</td><td class="bar"><div class="bars" style="width:${100*n/max}%">${M.sizes.map(z=>o[z]?`<i style="width:${100*o[z]/n}%;background:${sw(z)}" title="${name}, ${z}: ${o[z]}"></i>`:'').join('')}</div></td>${M.sizes.map(z=>`<td>${o[z]}</td>`).join('')}<td>${n}</td></tr>`;};
   for(const [g,label] of [['status','status'],['priority','priority']])
     document.getElementById('mix'+g).innerHTML=`<table><tr><th>${label}</th><th></th>${M.sizes.map(z=>`<th>${z}</th>`).join('')}<th>all</th></tr>`+
       Object.entries(M[g]).map(([k,o])=>row(k,o)).join('')+row('All open',M.total,'all')+'</table>';}
-function trend(){
-  const svg=document.getElementById('trend');svg.innerHTML='';const H0=D.openBySize,Z=H0.sizes,days=H0.days,W=1030,H=230,ml=40,mr=70,mt=12,mb=24;
+function trend(key,what){
+  const svg=document.getElementById('trend'+key);svg.innerHTML='';const Z=D.bySize.sizes,days=D.bySize[key],W=1030,H=230,ml=40,mr=70,mt=12,mb=24;
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   const first=days.findIndex(d=>d);if(first<0){T(svg,ml,H/2,'No history of the backlog in git.',{class:'m'});return;}
   const tot=d=>sum(Z.map(z=>d[z])),ym=Math.max(1,...days.filter(Boolean).map(tot))*1.1,step=ym>600?150:ym>200?50:ym>80?20:10;
@@ -182,10 +183,10 @@ function trend(){
   const hl=S('line',{y1:mt,y2:H-mb,stroke:css('--ink2'),opacity:0},svg),hit=S('rect',{x:X(first),y:mt,width:X(TODAY)-X(first),height:H-mt-mb,fill:'transparent'},svg);
   hov(hit,e=>{const r=svg.getBoundingClientRect(),sx=(e.clientX-r.left)*W/r.width,i=Math.max(first,Math.min(TODAY,first-1+Math.round((sx-ml)/((W-ml-mr)/(TODAY+1-first))))),d=days[i];
     hl.setAttribute('x1',X(i));hl.setAttribute('x2',X(i));hl.setAttribute('opacity',1);
-    return `<b>${fmt(i)}</b>, open at the end of the day<br>`+Z.map(z=>`${z} ${d[z]}`).join(' · ')+`<br>all ${tot(d)}`;});
+    return `<b>${fmt(i)}</b>, ${what}<br>`+Z.map(z=>`${z} ${d[z]}`).join(' · ')+`<br>all ${tot(d)}`;});
   hit.addEventListener('mouseleave',()=>hl.setAttribute('opacity',0));
 }
-function draw(){text();burn();strip();mix();trend();}
+function draw(){text();burn();strip();mix();trend('open','open at the end of the day');trend('done','done by the end of the day');}
 draw();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
 </script>
 </body>

@@ -57,14 +57,17 @@ const mix = sizeMix([{ done: false, status: 'ready', priority: '1', size: 'M' },
   { done: false, status: 'ready', priority: '3', size: 'S' }, { done: true, status: 'done', priority: '1', size: 'L' }, { done: false, status: 'odd', size: '' }]);
 assert.deepStrictEqual(mix.sizes, ['S', 'M', '?'], 'size mix: the sizes present in order, a missing size as ?');
 assert.deepStrictEqual(mix.total, { S: 2, M: 1, '?': 1 }, 'size mix: only open tasks count');
+assert.deepStrictEqual(mix.done, { L: 1 }, 'size mix: the done tasks by size, apart');
 assert.deepStrictEqual(Object.keys(mix.status), ['ready', 'blocked', 'odd'], 'size mix: known statuses first, then any other');
 assert.deepStrictEqual(mix.status.ready, { S: 1, M: 1, '?': 0 }, 'size mix: by status');
 assert.deepStrictEqual(mix.priority, { P1: { S: 0, M: 1, '?': 0 }, P3: { S: 2, M: 0, '?': 0 }, '?': { S: 0, M: 0, '?': 1 } }, 'size mix: by priority');
 // sizeHistory: each day takes the last snapshot on or before it, null before the first, sizes in order with any other last
-const h = sizeHistory([{ day: '2026-11-04', total: { M: 1, '?': 2 } }, { day: '2026-11-02', total: { S: 3 } }], '2026-11-01', 5);
-assert.deepStrictEqual(h.sizes, ['S', 'M', '?'], 'size history: the sizes seen, in order');
-assert.deepStrictEqual(h.days, [null, { S: 3, M: 0, '?': 0 }, { S: 3, M: 0, '?': 0 }, { S: 0, M: 1, '?': 2 }, { S: 0, M: 1, '?': 2 }], 'size history: carried forward');
-// gitSizeHistory on a constructed repository: two commits on one day (the later counts), a task done, one with no size, one removed
+const h = sizeHistory([{ day: '2026-11-04', total: { M: 1, '?': 2 }, done: { S: 1, L: 1 } }, { day: '2026-11-02', total: { S: 3 }, done: {} }], '2026-11-01', 5);
+assert.deepStrictEqual(h.sizes, ['S', 'M', 'L', '?'], 'size history: the sizes seen, open or done, in order');
+const z = (S, M, L, q) => ({ S, M, L, '?': q });
+assert.deepStrictEqual(h.open, [null, z(3, 0, 0, 0), z(3, 0, 0, 0), z(0, 1, 0, 2), z(0, 1, 0, 2)], 'size history: open, carried forward');
+assert.deepStrictEqual(h.done, [null, z(0, 0, 0, 0), z(0, 0, 0, 0), z(1, 0, 1, 0), z(1, 0, 1, 0)], 'size history: done, carried forward');
+// gitSizeHistory on a constructed repository: two commits on one day (the later counts), a task done (counted as done), one with no size, one removed
 const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'roadmap-')), dir = path.join(repo, 'backlog');
 const g = (date, ...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: repo, env: { ...process.env, GIT_AUTHOR_DATE: date + 'T12:00:00Z', GIT_COMMITTER_DATE: date + 'T12:00:00Z' } });
 const put = (id, status, size) => fs.writeFileSync(path.join(dir, id + '.md'), `# ${id}: x\nStatus: ${status}\nPriority: 2\n` + (size ? `Size: ${size}\n` : ''));
@@ -75,7 +78,7 @@ try {
   put('VB-3', 'ready', 'S'); commit('2026-11-01');
   put('VB-1', 'done (2026-11-03)', 'S'); put('VB-4', 'ready', ''); fs.unlinkSync(path.join(dir, 'VB-2.md')); commit('2026-11-03');
   const snaps = gitSizeHistory(repo);
-  assert.deepStrictEqual(snaps, [{ day: '2026-11-01', total: { S: 2, M: 1 } }, { day: '2026-11-03', total: { S: 1, '?': 1 } }], 'git size history: ' + JSON.stringify(snaps));
+  assert.deepStrictEqual(snaps, [{ day: '2026-11-01', total: { S: 2, M: 1 }, done: {} }, { day: '2026-11-03', total: { S: 1, '?': 1 }, done: { S: 1 } }], 'git size history: ' + JSON.stringify(snaps));
 } finally { fs.rmSync(repo, { recursive: true, force: true }); }
 const help = execFileSync(process.execPath, [path.join(__dirname, '..', 'tools', 'roadmap.js'), '--help'], { encoding: 'utf8' });
 assert.ok(/--out FILE/.test(help) && /--json/.test(help), 'tools/roadmap.js answers --help');
