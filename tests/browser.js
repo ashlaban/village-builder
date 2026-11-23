@@ -265,7 +265,8 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     if (await page.evaluate(() => !!window.__play.tool()) || await page.locator('#actBanner').isVisible()) fail('Done did not put the tool away');
   } else {
     target = await page.evaluate(() => { const q = window.__play.st.player.queue.find((c) => c.verb === 'work'); return q ? q.target : null; });
-    if (!/Queued/.test(await page.locator('#actMenu .act-msg').textContent())) fail('the list does not say the work was queued');
+    const said = await page.locator('#actMenu .act-msg').textContent();
+    if (!/Queued/.test(said)) fail(`the list does not say the work was queued: ${said}`);
   }
   if (!target) fail(`the job was not queued: ${JSON.stringify(row)}`);
   console.log(`browser: the action bar queued ${row.kind} for its ${row.holder}${inTool ? `, in the tool mode, of ${inTool.sites.length} marked tiles` : ''}`);
@@ -333,7 +334,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       if (!(await page.locator(set).count())) {
         if (!/No duties yet/.test(await page.locator('#tileHouse').textContent())) fail('the Plan tab shows neither duties nor that there are none yet');
       } else {
-        const d = await page.locator(set).first().evaluate((b) => ({ pawn: +b.dataset.pawn, type: b.dataset.type }));
+        const d = await page.locator(set).first().evaluate((b) => ({ pawn: +b.dataset.member, type: b.dataset.type }));
         const held = () => page.evaluate(({ pawn, type }) => window.__play.Sim.dutiesOf(window.__play.st, pawn).find((x) => x.type === type), d);
         await page.locator(set).first().click();
         const row = `#tileHouse [data-duty="${d.pawn}"]`;

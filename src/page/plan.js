@@ -441,7 +441,7 @@ function dutiesHTML(hh, mine) {
           ? Sim.dutiesOf(st, id)
               .map((d) =>
                 planBtn(
-                  { plan: 'duty', pawn: id, type: d.type, on: d.set ? 0 : 1 },
+                  { plan: 'duty', member: id, type: d.type, on: d.set ? 0 : 1 },
                   `${d.set ? 'Lift' : 'Set'}: ${dutyName(d.type)}`,
                   d.set
                     ? `Lift ${dutyName(d.type)} from ${who}`
@@ -562,7 +562,7 @@ function planClick(b, hh) {
     renderActions();
     return;
   } else if (d.plan === 'project') r = Sim.head(st, 'project', { what: d.what === 'null' ? null : d.what });
-  else if (d.plan === 'duty') r = Sim.head(st, 'duty', { pawn: +d.pawn, type: d.type, on: d.on === '1' });
+  else if (d.plan === 'duty') r = Sim.head(st, 'duty', { pawn: +d.member, type: d.type, on: d.on === '1' });
   else if (d.plan === 'drop') r = Sim.head(st, 'dropProject', d.id !== undefined ? { id: +d.id } : {});
   else return;
   planMsg = r === true ? { text: `Done: ${b.getAttribute('aria-label')}.` } : { text: r, bad: true };
