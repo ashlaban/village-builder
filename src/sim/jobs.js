@@ -398,22 +398,6 @@ VB['sim/jobs'] = (() => {
     }
     return lo;
   }
-  // Assign the bids, best first, one job a pawn; a bid on a job others joined earlier in the round falls by join for each and waits its
-  // turn again.
-  function assign(st, bids, busy) {
-    bids.sort((x, y) => y[0] - x[0]);
-    for (let i = 0; i < bids.length; i++) {
-      const [s, a, j, k] = bids[i];
-      if (busy.has(a) || !isOpen(st, j)) continue;
-      if (j.claims.length > k) {
-        const b = [s * joined(j, j.claims.length - k), a, j, j.claims.length];
-        bids.splice(slot(bids, i + 1, b[0]), 0, b);
-        continue;
-      }
-      issue(st, workCommand(a.id, j.key, 'planner'));
-      busy.add(a);
-    }
-  }
   // ---- the head's day (VB-466; design.md section 7, The day's work) ----
   // @state plan.day (a household's standing plan's; sim/plans holds the plan): absent until first allotted, then {made (the game hour),
   //   lists: {pawn id: [job keys]}}: for each living member the tasks the head gave it, in the order it takes them; a member too young has
