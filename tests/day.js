@@ -80,7 +80,7 @@ for (const id of st.liveHouseholds) {
   assert.deepStrictEqual(checkState(st), [], 'invariants');
 }
 
-// 6. A village's review alone changes nobody's day; a task of the village posted at it has every household's day allotted anew (VB-1541).
+// 6. A village's review alone changes nobody's day; a task of the village posted at it has every household's day allotted anew (VB-1554).
 {
   const s3 = make(4.5), c3 = Sim.cal(s3.t), hour = Math.floor(s3.t), vp = s3.plans.villages.get(0);
   const made = () => s3.liveHouseholds.map((id) => dayOf(s3, id).made);

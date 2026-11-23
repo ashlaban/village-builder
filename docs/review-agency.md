@@ -79,15 +79,15 @@ section 7 agrees (Opportunities: cached per holder) is not built and had no task
 
 | Task | What | Size | Waits for |
 | --- | --- | --- | --- |
-| VB-1538 | Reasons shown: who chose a pawn's act, and why, on its card | M | |
-| VB-1539 | Own time: a pawn with no task chooses a pastime | M | |
-| VB-1540 | Standing duties: the head's day remembers | M | |
-| VB-1541 | Cost: the jobs line measured by part, and its largest part cut | M | |
-| VB-1542 | A member's voice: leave asked of the head | M | VB-1539, VB-1540 |
-| VB-1543 | A member's voice: a duty asked of the head | S | VB-1540, VB-1542 |
-| VB-1544 | Design: the wish reads a pawn's ties and its opinion of its head | S | Kim |
+| VB-1551 | Reasons shown: who chose a pawn's act, and why, on its card | M | |
+| VB-1552 | Own time: a pawn with no task chooses a pastime | M | |
+| VB-1553 | Standing duties: the head's day remembers | M | |
+| VB-1554 | Cost: the jobs line measured by part, and its largest part cut | M | |
+| VB-1555 | A member's voice: leave asked of the head | M | VB-1552, VB-1553 |
+| VB-1556 | A member's voice: a duty asked of the head | S | VB-1553, VB-1555 |
+| VB-1557 | Design: the wish reads a pawn's ties and its opinion of its head | S | Kim |
 
-VB-1538 to VB-1541 touch `sim/jobs` and `sim/agents` side by side: each claims its files (`tools/inbox.js claim`) and keeps its change
+VB-1551 to VB-1554 touch `sim/jobs` and `sim/agents` side by side: each claims its files (`tools/inbox.js claim`) and keeps its change
 to a shared file small. `sim/jobs` stands at 644 formatted lines and `sim/agents` at 707: Own time moves `idleAbout` out of `sim/jobs`,
 and a task that takes either over the line names VB-1487 or opens the split.
 
@@ -95,10 +95,10 @@ and a task that takes either over the line names VB-1487 or opens the split.
 
 | Task | Outcome |
 | --- | --- |
-| VB-1538 Reasons shown | Done: `sim/reasons`, a view; the line on the pawn's card and the played pawn's sheet |
-| VB-1539 Own time | Done: `sim/pastimes`, six pastimes, the verb `pastime`; hungry household-days 55 to 46 at seed 7, friends 9.2% to 10.2% of relations |
-| VB-1540 Standing duties | Built, measured and removed. Finding 4's first point was wrong in its effect: with no memory at all 72 to 73% of member-days begin with the type of work of the day before. The keep factor added three points at 1.25, delayed the haymaking and raised hungry days at one seed of two. Kim: the idea is kept, this mechanism removed; `design.md` section 7, Standing duties, is Open |
-| VB-1541 Cost | The allotment, not the asks, is the largest part of the jobs line (31%; commands issued 22%, asks 17.5%, the review 17%). A village's review alone no longer allots its households anew: pairs weighed 21.4 to 19.3 a pawn-day. Kim: a task newly due is slotted in (VB-1545) |
+| VB-1551 Reasons shown | Done: `sim/reasons`, a view; the line on the pawn's card and the played pawn's sheet |
+| VB-1552 Own time | Done: `sim/pastimes`, six pastimes, the verb `pastime`; hungry household-days 55 to 46 at seed 7, friends 9.2% to 10.2% of relations |
+| VB-1553 Standing duties | Built, measured and removed. Finding 4's first point was wrong in its effect: with no memory at all 72 to 73% of member-days begin with the type of work of the day before. The keep factor added three points at 1.25, delayed the haymaking and raised hungry days at one seed of two. Kim: the idea is kept, this mechanism removed; `design.md` section 7, Standing duties, is Open |
+| VB-1554 Cost | The allotment, not the asks, is the largest part of the jobs line (31%; commands issued 22%, asks 17.5%, the review 17%). A village's review alone no longer allots its households anew: pairs weighed 21.4 to 19.3 a pawn-day. Kim: a task newly due is slotted in (VB-1558) |
 
-Follow-ups filed by the run: VB-1545 (the slotting), VB-1547 (a caller indoors), VB-1548 (own time reported), VB-1549 (a hay target met
-early), VB-1550 (a pawn away in no phase), VB-1551 (routes begun by the planner), VB-1552 (the asks' cache).
+Follow-ups filed by the run: VB-1558 (the slotting), VB-1559 (a caller indoors), VB-1560 (own time reported), VB-1561 (a hay target met
+early), VB-1562 (a pawn away in no phase), VB-1563 (routes begun by the planner), VB-1564 (the asks' cache).

@@ -180,7 +180,7 @@ VB['sim/jobs'] = (() => {
       }
       takeDown('village', v.id);
       // Its households' days are allotted anew when its tasks change: one posted or taken down is noted where it is (post, sweep). Its
-      // review alone changes nobody's day (VB-1541; design.md section 7, The day's work: "when its tasks or its village's change").
+      // review alone changes nobody's day (VB-1554; design.md section 7, The day's work: "when its tasks or its village's change").
     }
     // ---- the island: plots, and empty farms being restored, every review hour; and a farm's land project that has ended (given up,
     // or contested away, sim/stakes) takes its task down at once, its hands freed, whatever the holder's planning day ----

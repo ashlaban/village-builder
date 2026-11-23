@@ -55,9 +55,9 @@ VB.COUNTERS = {
   walkAwake:
     "Pawn records looked at by the working day's start, for those waiting for it, once a day (sim/agents dayStart; VB-473)",
   idleStroll:
-    'Pawns the planner found no work given their own time by ownTime: a pastime chosen, a route begun for its walk (VB-205, VB-1539)',
+    'Pawns the planner found no work given their own time by ownTime: a pastime chosen, a route begun for its walk (VB-205, VB-1552)',
   visitWeighed:
-    'Near kin and close friends looked at as ones to call on, in the choice of a pastime (sim/pastimes callers, VB-1539)',
+    'Near kin and close friends looked at as ones to call on, in the choice of a pastime (sim/pastimes callers, VB-1552)',
   companyWeighed: 'Idle pawns drawn and weighed as company in companyFor (VB-205)',
   workReckon:
     'Tasks under work reckoned, with their hours since (sim/work settle: a hand joins or leaves, the end of work, the meal; VB-472)',

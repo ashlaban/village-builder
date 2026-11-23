@@ -42,10 +42,10 @@ const Sim = (() => {
     { explainFeast } = VB['sim/feast'],
     { line: pastimeLine, of: pastimeOf } = VB['sim/pastimes'];
   // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
-  // its pastime and with whom (sim/pastimes, VB-1539),
+  // its pastime and with whom (sim/pastimes, VB-1552),
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || pastimeLine(st, id) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
-  const { reasonOf, reasonLine } = VB['sim/reasons']; // who chose a pawn's act, and why, for its card (VB-1538)
+  const { reasonOf, reasonLine } = VB['sim/reasons']; // who chose a pawn's act, and why, for its card (VB-1551)
   const { seedReserve } = VB['sim/hunger'],
     { grainOf } = VB['sim/stores'],
     { shareOwed } = VB['sim/obligations'];

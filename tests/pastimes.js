@@ -1,4 +1,4 @@
-// Own time (VB-1539; design.md, Work, Own time): a pawn the planner found no task chooses a pastime from sim/pastimes' table. Each of
+// Own time (VB-1552; design.md, Work, Own time): a pawn the planner found no task chooses a pastime from sim/pastimes' table. Each of
 // the six is reached on the probe's small village: a child of 7 to 13 plays, a herder stays by its herd, a pawn with a close friend at
 // home on another farm of its village visits and walks there, the fire weighs more in winter and for the old; the verb `pastime`
 // refuses with a reason and passes the planner's choice and the played pawn's by one check; the head's call and a task cut a pastime as
@@ -65,7 +65,7 @@ const from = [xg.x, xg.y];
 for (let h = 0; h < 30 && xg.path; h++) Sim.advance(st, 0.1);
 assert.ok(!xg.path && Math.hypot(xg.x - from[0], xg.y - from[1]) > 20, 'it arrives on foot');
 assert.strictEqual(Sim.describe(st, x.id), `Visiting ${y.given} at ${farmOf(y).name}`);
-assert.strictEqual(VB['sim/reasons'].reasonOf(st, x.id).by, 'self', 'the reasons view (VB-1538): a pastime is its own choosing');
+assert.strictEqual(VB['sim/reasons'].reasonOf(st, x.id).by, 'self', 'the reasons view (VB-1551): a pastime is its own choosing');
 assert.deepStrictEqual(checkState(st), [], 'invariants with pastimes under way');
 
 // the head's call cuts a pastime as it cut an idle wait (sim/hands' settle: the pawn idles until now, and looks for work at the next step)

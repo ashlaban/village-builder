@@ -256,7 +256,7 @@ function showPawn(id) {
     ].filter(Boolean),
     Sim.describe(st, id),
     {
-      reason: Sim.reasonLine(st, id), // who chose it and why, under what it does; the idle line for one with no work (VB-1538)
+      reason: Sim.reasonLine(st, id), // who chose it and why, under what it does; the idle line for one with no work (VB-1551)
       badge: faceImg(id, 'badge'),
       stats: pawnStats(id) + traitsHTML(id),
       // whom it courts is that one's chip, as whom it is married to is the spouse's (VB-036)

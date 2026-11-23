@@ -82,7 +82,7 @@ function bear(st, m) {
   return R.childrenOf(st, m).find((c) => st.pawns[c].born > st.t - 2 * DAY);
 }
 // the days until the pregnancy is known, and one more: the asking day reads the entry (sim/asking courtDay)
-// a couple named stays fond on the way, whether or not the days bring the two together (VB-1541: the memories alone fade under COURT.end)
+// a couple named stays fond on the way, whether or not the days bring the two together (VB-1554: the memories alone fade under COURT.end)
 const known = (st, a, b) => {
   const half = Math.floor((COURT.known + 1) / 2) * DAY;
   VB.sim.advance(st, half);

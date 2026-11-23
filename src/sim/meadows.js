@@ -236,7 +236,7 @@ VB['sim/meadows'] = (() => {
   // Days into the haymaking window, or -1 outside it.
   const hayDay = (c) => (c.season === 1 ? c.sday : c.season === 2 && c.sday <= MOW_LAST ? SEASON_DAYS + c.sday : -1);
   // Hay is wanted while the barn and the hay lying mown hold less than the standing plan's target of winters' need (targets.hayWinters,
-  // sim/plans) of the household's animals now, with what the stack loses before the winter (VB-1549: a target met early in the window was
+  // sim/plans) of the household's animals now, with what the stack loses before the winter (VB-1561: a target met early in the window was
   // fed and spoilt under it by the winter's first day): the stall days still to come before it (sim/byre, HERD.stall) and its spoilage until
   // then, as a stack at the target would spoil (sim/goods dayLoss; a barn's BUILD.barn.loss). A household with no animals mows nothing
   // (balance review: a farm whose herds were gone mowed 3,893 hay that nothing would eat).

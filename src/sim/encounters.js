@@ -66,7 +66,7 @@ VB['sim/encounters'] = (() => {
     const h = st.farmsteads[hh.farmstead].house;
     return Math.hypot(a.x - (st.w.hx[h] - 12), a.y - (st.w.hy[h] + 14)) <= st.w.R + 12;
   }
-  // The household a pawn sits with as a caller (design.md, Own time: a visit; VB-1547), or null: a rule sim/pastimes contributes at load,
+  // The household a pawn sits with as a caller (design.md, Own time: a visit; VB-1559), or null: a rule sim/pastimes contributes at load,
   // since it keeps the visit and loads after this module. Read once a talk hour for each pawn out of doors, in the pass `outdoors` makes.
   let callerAt = () => null;
   const callerRule = (fn) => {
@@ -83,7 +83,7 @@ VB['sim/encounters'] = (() => {
   // `found` whom a may draw as a partner, and returns the kind's mix, a floor added to each partner's weight so that strangers are drawn;
   // said, for a kind where something can be said to all present. House and outdoors are as built (VB-061, VB-127). ----
   const ENCOUNTERS = {
-    // the members inside a house, and its callers at the door (VB-1547): a pawn inside draws from its housemates inside and those who
+    // the members inside a house, and its callers at the door (VB-1559): a pawn inside draws from its housemates inside and those who
     // sit at its door on a visit (one standing at an occasion is there, not at home); a caller draws from the members inside
     house: {
       present: (st, hh, near) =>
@@ -195,7 +195,7 @@ VB['sim/encounters'] = (() => {
 
   // The pawns outdoors in a talk hour, in cells of ENCOUNTERS.outdoors.size map units, and the herders among them in cells of the
   // pasture's reach, filled in the same pass: {out (agents), cells (cell key to indexes into out), cellOf (cell x, y to key), size,
-  // herders: {cells, size, list (indexes into out)}, calls (household id to the callers sitting at its door, VB-1547), callAt (a caller's
+  // herders: {cells, size, list (indexes into out)}, calls (household id to the callers sitting at its door, VB-1559), callAt (a caller's
   // id to that household), x, y (each one's place, by pawn id, from `placeOf` (sim/agents, passed in by the
   // clock: a walker is found along its leg; VB-473)}; derived, not state. x and y are scratch arrays reused by every call, read only
   // until the next. (Moved from sim/society's outdoors, VB-521.)

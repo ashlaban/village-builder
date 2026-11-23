@@ -196,7 +196,7 @@ const w = (x) => x.toFixed(2);
 // tenths falling short of a task's hours, the fourth was left 0.9 h short at nightfall and taken down; VB-472 ends it at its hours)
 const meadowHay = hay[0].expected / hay[0].meadows / hay[0].need; // one meadow's hay, in winters
 assert.ok(hay[0].atWinter >= 2 && hay[0].atWinter < 3 + meadowHay, `by its template the household holds two winters' hay at the start of winter, overshot by less than a meadow past three (${w(hay[0].atWinter)}, below ${w(3 + meadowHay)})`);
-// VB-1549: the target reckons with what the stack loses before the winter (the autumn's stall days and the spoilage), so a target met early in
+// VB-1561: the target reckons with what the stack loses before the winter (the autumn's stall days and the spoilage), so a target met early in
 // the window is still met at the winter's start; the meadows begun together overshoot it by less than a meadow past what was wanted.
 assert.ok(hay[1].atWinter >= 3 && hay[1].atWinter < hay[1].wanted / hay[1].need + meadowHay,
   `by its head's choice three at the start of winter (${w(hay[1].atWinter)} winters of ${hay[1].need.toFixed(1)}, ${w(hay[1].winters)} at its peak, ${w(hay[1].wanted / hay[1].need)} wanted at its last mowing, a meadow ${w(meadowHay)}; meadows give ${hay[1].expected})`);

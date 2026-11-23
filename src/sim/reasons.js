@@ -1,4 +1,4 @@
-// @sys sim/reasons: why a pawn does what it does (VB-1538; design.md section 7, Reasons shown): who chose its present act (the head's day
+// @sys sim/reasons: why a pawn does what it does (VB-1551; design.md section 7, Reasons shown): who chose its present act (the head's day
 // and its place in the member's list, the head's call, a day lent or owed, the village's work, the player's order, its own choosing, or
 // none) and one line of why, from the day's lists, the task's basis and what its kind declares; what presses is the head's estimate.
 // A view computed when a card asks: it writes nothing, draws nothing, and no simulation module reads it (tests/reasons.js)
@@ -130,7 +130,7 @@ VB['sim/reasons'] = (() => {
       lent = Hands.on(st, id);
     if (owed !== null) return { by: 'owed', why: `nothing to take at ${farmName(st, owed)} yet` };
     if (lent !== null) return { by: 'lent', why: `nothing to take at ${farmName(st, lent)} yet` };
-    // at a pastime (sim/pastimes, VB-1539), the choice is its own: the line under it says why it has no work
+    // at a pastime (sim/pastimes, VB-1552), the choice is its own: the line under it says why it has no work
     return { by: VB['sim/pastimes'].of(st, id) ? 'self' : 'none', why: noWork(st, id, p, a, c) };
   }
   // Why a pawn with no work has none: too young, the working day over, else the idle line (sim/jobs idleLine).

@@ -1,4 +1,4 @@
-// @sys sim/pastimes: own time (VB-1539; design.md, Work, Own time; target-v2, section 4.5): the table of pastimes (who may choose each,
+// @sys sim/pastimes: own time (VB-1552; design.md, Work, Own time; target-v2, section 4.5): the table of pastimes (who may choose each,
 //   where it is spent, with whom, what weighs for it, its words for the card), the choice of a pawn the planner found no task (ownTime),
 //   the verb `pastime`, which the played pawn has too, and the pawn's pastime (agent.pastime). A pastime is a walk and a wait: it reads
 //   no plan, no store and no mood, makes and uses no good, and has only the effects of the encounter it puts the pawn in (sim/encounters)
@@ -16,7 +16,7 @@ VB['sim/pastimes'] = (() => {
   // @tunable IDLE: how long an idle pawn waits before it looks for work again
   // An idle pawn the planner found no work looks again after wait[0] to wait[1] hours (VB-245; Kim, 10 Nov: 2 to 4, from 0.75 to 2). It hears of new
   // work meanwhile through the hourly refresh, looks again when its wait ends (a leg in sim/agents' queue, VB-473), and of an occasion by the asking.
-  // The wait is its pastime's length (VB-1539).
+  // The wait is its pastime's length (VB-1552).
   const IDLE = { wait: [4, 8] };
   // @tunable PASTIME: what weighs for each pastime in a pawn's own time
   // weights: of the pastimes the draw is among (a visit, the green, the fire, play); a visit's times the pawn's sociability (0.5 to 1.5,
@@ -221,7 +221,7 @@ VB['sim/pastimes'] = (() => {
     if (a.phase !== null && !(a.phase === 'home' && r.kind === 'fire')) return null;
     return st.pawns[id].alive ? r : null;
   }
-  // A caller sits with those indoors (VB-1547): one at the pastime `visit`, arrived (its walk over, within PASTIME.yard of the house it
+  // A caller sits with those indoors (VB-1559): one at the pastime `visit`, arrived (its walk over, within PASTIME.yard of the house it
   // calls at), is present at the house encounter of the household it called on (sim/encounters). The cheap tests first: the talk hour's
   // pass asks it of each pawn out of doors.
   callerRule((st, a) => {
