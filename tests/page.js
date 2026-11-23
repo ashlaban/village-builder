@@ -44,7 +44,7 @@ async function main() {
   if (!m || (real - (+m[2] * 60 + +m[3]) + 1440) % 1440 > 5) fail(`the clock shows ${$('clockYear').textContent} at ${real} min of the day`);
   console.log('ran', days, 'days |', $('clockDate').textContent, '|', $('clockYear').textContent);
   q('[data-speed="1"]').click(); tick(2);
-  // VB-1489: the close chunks over a tile whose trees changed stay on screen, every frame, until their replacements are painted; dropped
+  // VB-1492: the close chunks over a tile whose trees changed stay on screen, every frame, until their replacements are painted; dropped
   // at once, they showed the blurry overview through their holes for the frames the repaints took
   {
     const lod = win.__lod;

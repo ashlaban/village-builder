@@ -1,7 +1,7 @@
 // @sys page/chunks: level-of-detail map chunks painted on demand and repainted in place when stale, the hex grid built lazily, and region borders
 // ---- level-of-detail chunks ----
 // Level 2 covers the map in 6 chunks and is always resident; levels 1 and 0 are painted on demand.
-// A chunk of levels 1 and 0 whose ground changed is marked stale (VB-1489): it stays on screen, is wanted as if missing, and is swapped
+// A chunk of levels 1 and 0 whose ground changed is marked stale (VB-1492): it stays on screen, is wanted as if missing, and is swapped
 // for its replacement in the frame that finishes it. Dropped at once, it showed the blurry overview through its hole until then.
 const chunks = new Map();
 let job = null,
