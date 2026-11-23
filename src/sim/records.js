@@ -66,6 +66,7 @@ VB['sim/records'] = (() => {
     plotStarted: 0,
     green: 0, // the village's green and well laid out, and done (VB-058)
     field: 0,
+    fieldLeft: 0, // a field a household let go, its tile back to the village (sim/fields, VB-768)
     meadow: 0,
     stake: 0,
     stakeLapsed: 0,

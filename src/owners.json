@@ -205,6 +205,7 @@
     "pawn.causeSince": "culture",
     "pawn.lastCause": "culture",
     "farmstead.fields": "sim/fields",
+    "farmstead.left": "sim/fields",
     "farmstead.fields[].soil": "sim/soil",
     "farmstead.fields[].tilth": "sim/soil",
     "farmstead.fields[].tilthAt": "sim/soil",

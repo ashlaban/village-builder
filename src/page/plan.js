@@ -111,6 +111,22 @@ function targetRow(key, o, mine) {
   }
   return `<div class="plan-row" data-target="${esc(key)}">${h}</div>`;
 }
+// What the head counts on besides its fields (VB-768): its own estimate, by its memory of each source and its caution; principle 14.
+const COUNT_WORDS = {
+  animals: 'milk and meat',
+  fish: 'fish',
+  wild: 'hunting and gathering',
+  deals: 'dealing',
+  work: 'days of work',
+  gifts: 'gifts',
+};
+function countsNote(V) {
+  const C = V.targets.fields.counts || [];
+  if (!C.length || !V.head) return '';
+  const who = Sim.fullName(st.pawns[V.head.pawn]),
+    parts = C.map((x, i) => `${x.rations} rations ${i ? 'of ' : 'a year of '}${COUNT_WORDS[x.source] || x.source}`);
+  return `<p class="card-note">${esc(`${who} counts on ${parts.join(', ')}, and sizes the fields to grow the rest.`)}</p>`;
+}
 function targetsHTML(hh, V, mine) {
   const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
     need = Sim.winterNeed(st, hh),
@@ -157,7 +173,7 @@ function targetsHTML(hh, V, mine) {
             step: PLAN_STEP.fields,
           },
           mine,
-        )
+        ) + countsNote(V)
       : '',
     targetRow(
       'cow',

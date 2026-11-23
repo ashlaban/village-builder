@@ -10,6 +10,7 @@ VB['sim/fields'] = (() => {
   const { nextStep, failed } = VB['sim/courses'];
   const { wearSoil, rested, tilthOf } = VB['sim/soil'];
   const { emit } = VB['sim/events'];
+  const { setOwner } = VB['sim/ownership'];
   // A farm's window missed with the task that would have met it still on the board (sim/estimate, VB-476: the head's estimate read against
   // the truth): told before the field moves on, while the task stands. A village's common field has no head to have misjudged it.
   const missed = (st, f, fd, kind, why) => {
@@ -143,6 +144,26 @@ VB['sim/fields'] = (() => {
       fd.sown = null;
     }
   }
+  // @state farmstead.left (VB-768): absent, or {gone (fields the farm has let go, ever), year (the game year of the last), inYear (let go in
+  //   that year, at most FIELDS.letGo)}; a new field's id is the farm's fields made so far, fields.length + gone, so no id is used again
+  // A field let go (the head's verb letField, sim/plans; VB-768): it leaves the farm's list and its tile passes back to the village, in
+  // stubble or fallow as it lay: developed ground, outland any household of the village may take in again (sim/territory's freeFor). Only
+  // an idle field is let go (the verb checks it: no crop, no sheaves, no job on it), so no work and no store is touched.
+  function letGo(st, f, fd, c) {
+    const i = f.fields.indexOf(fd);
+    if (i < 0) return;
+    f.fields.splice(i, 1);
+    const L = f.left || (f.left = { gone: 0, year: c.year, inYear: 0 });
+    if (L.year !== c.year) L.inYear = 0;
+    L.gone++;
+    L.year = c.year;
+    L.inYear++;
+    st.used.delete(fd.tile);
+    setOwner(st, fd.tile, { type: 'village', id: f.village });
+    st.farmDirty.add(f.id);
+    st.biomeDirty.add(fd.tile);
+    log(st, `${f.name} lets a field go: its household no longer needs its grain.`, { kind: 'fieldLeft', ...atFarm(f) });
+  }
   // A ripe field still standing on its crop's `lost` day is lost (rye by the autumn's first day; VB-348).
   function lostRipe(st, f, fd, c) {
     const L = CROPS[fd.crop].lost;
@@ -267,6 +288,7 @@ VB['sim/fields'] = (() => {
     reclaimed,
     weeded,
     abandoned,
+    letGo,
     fieldsDay,
     fieldsFrost,
   };

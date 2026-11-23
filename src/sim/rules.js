@@ -70,7 +70,9 @@ VB['sim/rules'] = (() => {
   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
   // room (stability review, VB-154): a new farm (a plot, a settler's farm, a new village) needs this many free farmable tiles within FIELD_REACH
   // walking steps of its house besides its first field, for more fields, meadow and pasture; so fewer farms fit between villages.
-  const FIELDS = { want: 1.1, expect: 0.75, perHand: 2, oxenHands: 1.5, room: 6, memory: 8 };
+  // memory (VB-767): the years of each source of food a head remembers; trustFrom (VB-768): the years it must remember before it counts on
+  // its other sources at all; letGo (VB-768): the most fields a household lets go in a year, so one good year does not strip a farm
+  const FIELDS = { want: 1.1, expect: 0.75, perHand: 2, oxenHands: 1.5, room: 6, memory: 8, trustFrom: 3, letGo: 1 };
   // ---- fishing (VB-117; Kim, 10 Nov, QUESTION_ARCHIVE.md, VB-117 to VB-119, question 1): from a bank within `reach` walking steps of the
   // house; a trip brings home `trip` rations times the water tile's stock and lowers a river or small lake tile's stock by `take`, which
   // recovers `recover` a day; lakes of `bigLake` tiles or more and the sea do not run down. Water holds fish at a stock of `least` or more (a
