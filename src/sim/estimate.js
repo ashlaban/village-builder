@@ -222,10 +222,12 @@ VB['sim/estimate'] = (() => {
     }
     const f = st.farmsteads[hh.farmstead],
       task = KINDS[j.kind].label.toLowerCase(),
-      long = truth > e.hi ? 'longer' : 'shorter';
+      long = truth > e.hi ? 'longer' : 'shorter',
+      handWords = hands.length === 1 ? 'one hand' : `${hands.length} hands`;
     log(
       st,
-      `${fullName(st.pawns[id])} of ${f.name} reckoned the ${task} at ${Math.round(e.mid)} hours for ${hands.length === 1 ? 'one hand' : `${hands.length} hands`}, and it would have taken ${long}: ` +
+      `${fullName(st.pawns[id])} of ${f.name} reckoned the ${task} at ${Math.round(e.mid)} hours for ${handWords}, ` +
+        `and it would have taken ${long}: ` +
         `${d.why}; the head had not reckoned with ${WORDS[cause]}.`,
       { kind: 'misjudged', pawn: id, reason: cause, ...atFarm(f) },
     );
