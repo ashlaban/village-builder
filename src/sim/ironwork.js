@@ -19,7 +19,7 @@ VB['sim/ironwork'] = (() => {
   const TOOLS = {
     kinds: ['plow', 'break', 'reap', 'fell', 'wood', 'timber'],
     wear: 0.001,
-    share: 0.3,
+    share: 0.15,
     mend: 0.1,
     mendHours: 4,
     mendIron: 0.1,
