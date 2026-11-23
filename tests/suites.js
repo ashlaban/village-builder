@@ -4,7 +4,7 @@
 const FAST = [
   ['node', 'tests/build.js'],
   ['node', 'tests/format.js'],
-  ['node', 'tests/themes.js'], // VB-1486: every theme of THEMES sets every theme token; every var() of the stylesheet is defined
+  ['node', 'tests/themes.js'], // VB-1532: every theme of THEMES sets every theme token; every var() of the stylesheet is defined
   ['node', 'tests/marriage-demography.js'],
   ['node', 'tests/lintrules.js'],
   ['node', 'tests/source.js'],

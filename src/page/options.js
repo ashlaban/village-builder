@@ -1,9 +1,9 @@
 // @sys page/options: the main menu's Options screen and the interface's theme (VB-1161): glass or mural, the page's choice, kept in localStorage
 // ---- options: the interface's theme ----
-// A theme is a block of tokens under [data-theme] in src/head.html, with its styling of the pieces (VB-1488), over a base
-// stylesheet that holds what every theme shares; the root always carries one, glass by default, set in the markup and here (VB-1483).
+// A theme is a block of tokens under [data-theme] in src/head.html, with its styling of the pieces (VB-1534), over a base
+// stylesheet that holds what every theme shares; the root always carries one, glass by default, set in the markup and here (VB-1529).
 // The choice is the page's and the device's: kept in localStorage, never in st or a save. A theme's card shows a sample of its own look
-// whatever theme is on: the sample carries the theme's data-theme, so its panel, head and buttons take that theme's tokens (VB-1485).
+// whatever theme is on: the sample carries the theme's data-theme, so its panel, head and buttons take that theme's tokens (VB-1531).
 // Adding a theme is an entry here, a token block and its styling of the pieces in src/head.html (docs/architecture/modules.md,
 // Adding things).
 const THEME_KEY = 'vb.theme';

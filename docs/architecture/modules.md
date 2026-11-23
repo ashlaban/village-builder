@@ -403,23 +403,23 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   meter); a **gear** wears (what condition is it in). A material is one row of `MATERIALS` in `src/page/cards.js`, its kinds a list under
   the total, shown only where more than one is held; a work's asks are read from the project plan's `build` reservations.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.
-- A new set of icons (VB-1487; `line` and `stencil` today) is one entry of `ICON_SETS` in `src/page/icons.js` and its drawings, given
+- A new set of icons (VB-1533; `line` and `stencil` today) is one entry of `ICON_SETS` in `src/page/icons.js` and its drawings, given
   by name where an icon is made (`drawings(svg, { stencil: ..., <set>: ... })`, drawn on a 24 box); an icon left without one shows its
   `line` drawing. In `src/head.html`, beside the stencil's, its one rule (hidden unless the root's `data-icons` names it, and then the
   `line` drawing beside it hidden) and the styles its shapes are drawn with; then a theme names it, the `icons` field of its entry in
   `THEMES` (`src/page/options.js`), which `applyTheme` puts on the root as `data-icons`. No rule of the icons names a theme.
-- A new theme (VB-1485) is two edits. An entry in `THEMES` (`src/page/options.js`): its key, `name`, `note` and the `icons` it shows; its
+- A new theme (VB-1531) is two edits. An entry in `THEMES` (`src/page/options.js`): its key, `name`, `note` and the `icons` it shows; its
   card in Options, and `tests/page.js`'s walk of the themes, follow. And a block `[data-theme="<key>"] { ... }` in `src/head.html`
   that sets every token listed at the head of the stylesheet, in one rule (`tests/themes.js` checks it); written without `:root`, it
   applies to any element with the attribute, so the card's sample (a panel, a head, a pressed and an unpressed button) is drawn in the
-  theme whatever theme is on. Then its styling of the pieces (VB-1488), listed beside the tokens: panel, head, button (pressed and
+  theme whatever theme is on. Then its styling of the pieces (VB-1534), listed beside the tokens: panel, head, button (pressed and
   primary by one rule), icon button, row, card, meter. What the tokens cannot say is a rule in the theme's own section,
   `[data-theme="<key>"] .piece`, as Mural's medallion, leaf and beads; a rule there names a piece, or a component on the list's `counted:`
-  line with its reason beside it (`tests/themes.js` checks it). The tokens are scales and plain meanings (VB-1489): a theme sets its
+  line with its reason beside it (`tests/themes.js` checks it). The tokens are scales and plain meanings (VB-1535): a theme sets its
   three corners (`--r-0` to `--r-2`) and its three shadows (resting, raised, floating), not one corner a component; a value only one
   theme's piece would read is that piece's rule, not a token. A sample's panel carries the theme itself, so a theme's panel rule names
   it twice, `[data-theme="<key>"] .panel, .panel[data-theme="<key>"]`.
-- A new component uses pieces (VB-1488): its markup carries `panel`, `head`, `icon-btn`, `row`, `card` or `meter` (a button is the
+- A new component uses pieces (VB-1534): its markup carries `panel`, `head`, `icon-btn`, `row`, `card` or `meter` (a button is the
   element), a popup's opener `aria-haspopup` so that it shows pressed while open; its own rules carry layout (place, size, gaps), and
   corners from a step of the radius scale (or round, for a pill or a circle), its shadow from a step of the shadow scale, not a look
   a theme would want to change.

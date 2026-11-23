@@ -1,11 +1,11 @@
-// Every theme defines every token (VB-1486): the list of theme tokens at the head of the stylesheet (VB-1484), the themes of
+// Every theme defines every token (VB-1532): the list of theme tokens at the head of the stylesheet (VB-1530), the themes of
 // THEMES in src/page/options.js, and each theme's token block in src/head.html. A theme is safe to add: one that misses a token, or a
 // block whose theme is not in THEMES, fails with the theme and the token named.
 // A theme's token block is a rule outside any @media whose selector has a part that is the themed element itself (`:root[data-theme="x"]`,
 // `[data-theme="x"]`, `.theme-pv[data-theme="x"]`: one compound, no combinator) and that sets a custom property; one under a media
 // query (Glass dark) is an override and may set some of them. A `var(--x)` of the stylesheet that no theme sets must be defined by a
 // declaration `--x:` outside the theme blocks, in the stylesheet or the page's markup and script (an inline style, setProperty).
-// A theme styles pieces, not components (VB-1488): the pieces are listed in the comment that names "The pieces", one `.name:` (or
+// A theme styles pieces, not components (VB-1534): the pieces are listed in the comment that names "The pieces", one `.name:` (or
 // `button:`) a line, with the components a theme may still style alone on its `counted:` line; every other rule under a theme's
 // selector (`[data-theme="x"] ...`) must have a piece or a counted component as the first compound after the theme.
 const fs = require('fs'),
@@ -275,8 +275,8 @@ const css = stylesheet(readSource('src/head.html'));
 const themes = themeKeys(readSource('src/page/options.js'));
 const errors = check(css, themes, pageDefined());
 for (const e of errors) expect(false, e);
-// the list was read whole: VB-1489 cut VB-1484's 40 to 28, a list of scales; fewer is fine, a list near empty is a misread
-expect(tokenList(css).length >= 20, `the token list holds ${tokenList(css).length} tokens, VB-1489 wrote 28`);
+// the list was read whole: VB-1535 cut VB-1530's 40 to 28, a list of scales; fewer is fine, a list near empty is a misread
+expect(tokenList(css).length >= 20, `the token list holds ${tokenList(css).length} tokens, VB-1535 wrote 28`);
 
 if (fail) process.exit(1);
 console.log(`themes ok: ${themes.length} themes, ${tokenList(css).length} tokens`);

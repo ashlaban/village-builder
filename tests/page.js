@@ -16,7 +16,7 @@ const P = openPage({
     .replace(/const SIZES = \{ t:/, () => { patched++; return 'const SIZES = { x: [36, 26], t:'; })
     .replace('let allMaterials = false;', () => { patched++; return 'let allMaterials = false; window.__materialsHTML = (...a) => materialsHTML(...a);'; })
     .replace('/^#([shp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([shp]?)([tsmlx]?)(\\d{1,9})$/'; })
-    .replace('const THEMES = {', () => { patched++; return 'const THEMES = window.__themes = {'; }), // the themes, to walk each (VB-1485)
+    .replace('const THEMES = {', () => { patched++; return 'const THEMES = window.__themes = {'; }), // the themes, to walk each (VB-1531)
 });
 const { doc, win, fail, tick, q, qa, $ } = P;
 if (patched !== 4) { fail(`the page's sizes, its hash or its THEMES were not found to patch (${patched} of 4 patched)`); process.exit(1); }
@@ -139,7 +139,7 @@ async function main() {
     if (q('#actBar').hidden) q('#actionsBtn').click();
     tick(1);
     if (q('#actBar').hidden) fail("the dock's Actions did not open the bar");
-    // VB-1490: the dock's and the bar's buttons are labelled icon buttons, the icon and then the name in the piece
+    // VB-1536: the dock's and the bar's buttons are labelled icon buttons, the icon and then the name in the piece
     for (const b of qa('.navigation > button, #actBar > button'))
       if (!b.matches('.icon-btn.labelled') || !b.querySelector(':scope > .ico + .label'))
         fail(`${b.id || b.dataset.group} is not a labelled icon button (an icon, then its .label)`);
@@ -161,11 +161,11 @@ async function main() {
     // each theme in turn, then back to glass: the card sets the root's theme and icons and keeps the choice; its sample carries its theme
     for (const k of keys.filter((k) => k !== 'glass').concat('glass')) {
       const card = q(`[data-theme-choice="${k}"]`);
-      if (!card || !card.querySelector(`.theme-pv [data-theme="${k}"]`)) fail(`the ${k} theme's card has no sample in its own theme (VB-1485)`);
+      if (!card || !card.querySelector(`.theme-pv [data-theme="${k}"]`)) fail(`the ${k} theme's card has no sample in its own theme (VB-1531)`);
       click(card, `the ${k} theme`);
       if (root.dataset.theme !== k || q(`[data-theme-choice="${k}"]`).getAttribute('aria-checked') !== 'true') fail(`${k} was not set on the page`);
       if (kept() !== undefined && kept() !== k) fail(`the theme kept is ${kept()}, not ${k}`);
-      if (root.dataset.icons !== themes[k].icons) fail(`the ${k} theme shows the ${root.dataset.icons} icons, not its ${themes[k].icons} (VB-1487)`);
+      if (root.dataset.icons !== themes[k].icons) fail(`the ${k} theme shows the ${root.dataset.icons} icons, not its ${themes[k].icons} (VB-1533)`);
       if (k !== 'mural') continue;
       if (!/--lo:0%;--hi:/.test((q('.meter') || { getAttribute: () => '' }).getAttribute('style') || '')) fail('a meter does not say where its fill starts and ends, for the mural\'s beads');
       for (const sel of ['#settlersBtn .ico', '#pauseBtn .ico, [data-speed="0"] .ico', '.stat-ico .ico', '.trait .ico'])

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,500;1,700&family=Alegreya+Sans:wght@400;500;700&family=Grenze+Gotisch:wght@700&display=swap" rel="stylesheet">
 <style>
-/* The theme tokens (VB-1484): a theme is mostly a set of their values, and every theme sets every one: Glass light just below,
+/* The theme tokens (VB-1530): a theme is mostly a set of their values, and every theme sets every one: Glass light just below,
    Glass dark where it differs, under prefers-color-scheme, Mural with its pieces at the end of the sheet. One token a line, by group.
    colour
    --sea: the sea behind the map and the loader
@@ -23,7 +23,7 @@
    --bad: a loss, a shortfall, an error
    --gold: heirs, the scenario's suggestion, a short larder
    --plate: the ground behind a portrait
-   radius, a scale (VB-1489): every corner takes a step, or is round (999px for a pill, 50% for a circle: a button, an icon button,
+   radius, a scale (VB-1535): every corner takes a step, or is round (999px for a pill, 50% for a circle: a button, an icon button,
    a portrait, a tag of words), the same in every theme
    --r-0: the least: a meter, its fill, a supply's cell
    --r-1: small: a row, a field, a card or a box of words inside a panel, a name's tag
@@ -33,7 +33,7 @@
    --head: a head: the title of a screen, a card or a menu
    --head-ink: a head's colour
    --scroll: the face of a name, a title in a list, a word on a tag
-   shadow, a scale (VB-1489)
+   shadow, a scale (VB-1535)
    --shadow-0: resting: a thing standing on the map, a pin
    --shadow-1: raised: a panel
    --shadow-2: floating: a round button over the map, a popup over everything, the start's view
@@ -45,7 +45,7 @@
    --btn-ground: a button's background
    --btn-border: a button's border
    --btn-on-edge: a pressed or primary button's border colour
-   The pieces (VB-1488): what every component is built of. A theme styles each piece once: by its tokens, and where a token cannot
+   The pieces (VB-1534): what every component is built of. A theme styles each piece once: by its tokens, and where a token cannot
    say it, by a rule in the theme's own section that names the piece (Mural's at the end of the sheet). A component composes pieces
    and carries its layout. One piece a line, its class (or element) first.
    .panel: a surface standing over the map: a card, a sheet, a bar, a menu, a screen's sheet
@@ -53,7 +53,7 @@
    button: a button; pressed ([aria-pressed="true"]), a popup's opener while open ([aria-haspopup][aria-expanded="true"]) and
      .primary all take the pressed look, by one rule
    .icon-btn: a button that is an icon only; .icon-btn.labelled, a labelled icon button, its icon and its name (a .label) beside or
-     under it as the component lays them out: a theme styles the icon and the label inside the piece (VB-1490)
+     under it as the component lays them out: a theme styles the icon and the label inside the piece (VB-1536)
    .row: a row of a list; pressed, the accent ring
    .card: one of a choice of cards (a scenario, a story, a person, a voice); chosen, the accent ring, as a row
    .meter: a level on its scale (page/meter)
@@ -202,7 +202,7 @@ button {
 button[aria-pressed="false"] { color: var(--muted); }
 button:disabled { opacity: 0.55; cursor: progress; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-/* the pieces' base rules (VB-1488): the head; the one pressed look of a button (the stencils' gaps take its ground); an icon button
+/* the pieces' base rules (VB-1534): the head; the one pressed look of a button (the stencils' gaps take its ground); an icon button
    and its medallion's rings; a row or a card chosen. The panel, the button, the row and the meter keep their places in the sheet. */
 .head { font-family: var(--head); font-style: italic; font-weight: 700; line-height: 1.1; color: var(--head-ink); }
 button:not(.row, .card):is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"], .primary) {
@@ -1094,7 +1094,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .tile .sheet-head strong { font-size: 16px; }
 }
 /* ---- Options (VB-1161): the themes as cards, each with a sample of its own look. A sample carries its theme's data-theme, and the
-   theme blocks apply to any element with the attribute, so it shows its theme whatever theme is on (VB-1485). ---- */
+   theme blocks apply to any element with the attribute, so it shows its theme whatever theme is on (VB-1531). ---- */
 .options .menu-label { margin: 0; }
 .themes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .theme { display: grid; align-content: start; gap: 4px; padding: 8px; border-radius: var(--r-1); background: var(--node); text-align: left; }
@@ -1134,10 +1134,10 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   --shadow-0: 0 3px 8px rgba(20, 14, 10, 0.5); --shadow-1: 0 6px 16px rgba(20, 14, 10, 0.45); --shadow-2: 0 10px 30px rgba(3, 16, 26, 0.28);
   color-scheme: light;
 }
-/* Mural's pieces (VB-1488, VB-1489): the band is its panel, by its tokens (the band's sawtooth lies in the panel's transparent top
+/* Mural's pieces (VB-1534, VB-1535): the band is its panel, by its tokens (the band's sawtooth lies in the panel's transparent top
    and bottom border) and the ochre sides below, on a panel in a Mural page or a Mural sample; black letter in red ochre its head, by
    its tokens, upright below; the leaf is its button, its corners and the scroll's hand below; a ringed medallion in red ochre its
-   icon button, and a labelled one's icon, its label a tag under or beside it, both filled with red ochre when pressed (VB-1490; the
+   icon button, and a labelled one's icon, its label a tag under or beside it, both filled with red ochre when pressed (VB-1536; the
    :is(*, ...) lifts the rule over the one pressed look, which would fill the button behind them); a dotted ink line parts its rows; counted beads are its meter, ten to a level, filled as far as the level, the last in part, a mark a wedge over the beads (the fill lies under the whole row, cut to the level by page/meter's --lo and --hi). */
 :where([data-theme="mural"]) button:where(:not(.row, .card)) { border-radius: 0 10px 0 10px; font-family: var(--scroll); font-style: italic; font-weight: 700; }
 [data-theme="mural"] .panel, .panel[data-theme="mural"] { border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); }
@@ -1168,11 +1168,11 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 [data-theme="mural"] :is(.meter > b + b, .meter > b.head, .mark-key b.head) { border-top-color: var(--gold); }
 [data-theme="mural"] .meter > b.custom { border-top-color: var(--ink); }
 [data-theme="mural"] .meter.over::after { border-left-color: var(--good); }
-/* Counted (VB-1488): a Mural rule for one component, with its reason. The key of a meter's marks (above, with the meter's marks): it
+/* Counted (VB-1534): a Mural rule for one component, with its reason. The key of a meter's marks (above, with the meter's marks): it
    draws the marks as the meter does. The bars over the map: their buttons stand on the map with no band, which would hide the map
    under the dock and does not fit the height the bars are stacked by. */
 [data-theme="mural"] :is(.navigation, .map-bar, .act-bar) { background: none; border: 0; box-shadow: none; }
-/* the icons' sets (VB-1162, VB-1487; page/icons, ICON_SETS): the root's data-icons, which the theme names, is the set shown, and an icon
+/* the icons' sets (VB-1162, VB-1533; page/icons, ICON_SETS): the root's data-icons, which the theme names, is the set shown, and an icon
    with no drawing of that set shows its line one. One rule a set but line, the fallback: hidden unless asked for, and when asked for,
    the line drawing beside it hidden. The stencil: one pigment, its parts held apart by gaps in the colour of the ground it lies on */
 :root:not([data-icons="stencil"]) .ico > [data-set="stencil"], :root[data-icons="stencil"] .ico:has(> [data-set="stencil"]) > [data-set="line"] { display: none; }
