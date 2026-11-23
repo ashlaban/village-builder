@@ -247,6 +247,33 @@ async function main() {
     click($('optionsClose'), 'Close');
     if (shown('optionsScreen') || !shown('landing')) fail('Options did not close back to the main menu');
   }
+  // The guide (VB-1124): the main menu opens it; a row a kind of work, read from sim/kinds, so a kind added appears with no change to the
+  // page; a thing a row names leads to what makes and uses it; Escape closes it back to the menu; plan mode's links open it at a row.
+  click($('landGuide'), 'Guide');
+  const KINDS = win.VB['sim/kinds'].KINDS, names = new Set(Object.values(KINDS).map((K) => K.name));
+  if (!shown('guideScreen')) fail('the guide did not open from the main menu');
+  else if (qa('#guideBody [data-kind]').length !== names.size) fail(`the guide lists ${qa('#guideBody [data-kind]').length} kinds of work, not the ${names.size} sim/kinds names`);
+  else {
+    const cook = q('#guideBody [data-kind="cook"]');
+    if (!cook || !/Cook/.test(cook.textContent) || !cook.querySelector('[data-guide-thing="firewood"]')) fail('the guide\'s Cook row does not name the firewood it needs');
+    click(cook.querySelector('[data-guide-thing="firewood"]'), 'firewood, in the Cook row');
+    const fw = q('#guideBody [data-thing="firewood"]');
+    if (!fw || !fw.open || !fw.querySelector('[data-guide-kind="wood"]') || !fw.querySelector('[data-guide-kind="cook"]'))
+      fail('firewood in the guide does not say it is made by cutting firewood and used by cooking');
+    click(q('#guideTabs [data-guide-tab="crops"]'), 'the Crops chapter');
+    if (!q('#guideBody [data-crop="rye"]')) fail('the guide\'s crops do not list rye');
+    $('guideScreen').dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    tick(2);
+    if (shown('guideScreen') || !shown('landing')) fail('the guide did not close back to the main menu on Escape');
+    // a plan-mode link (the Plan tab's key, the plan tool's banner) opens it at its row
+    const link = doc.createElement('a');
+    link.dataset.guide = 'work:break';
+    doc.body.appendChild(link);
+    click(link, 'a link to the guide');
+    if (!shown('guideScreen') || !(q('#guideBody [data-kind="break"]') || {}).open) fail('a link marked data-guide="work:break" did not open the guide at Break new ground');
+    link.remove();
+    click($('guideClose'), 'Close the guide');
+  }
   click($('landBack'), 'Back to game');
   tick(30);
   console.log('chunks asked for by level:', P.baked.join(', '), '| left blank', P.blank);

@@ -446,6 +446,8 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   of saved state), and holds `ASK`, the order in which `refreshJobs` (`src/sim/jobs.js`) asks the kinds' `available`; a new kind gets its
   line in both. It holds no kind's record and no domain's rule. Roles rank types of work (`work` in `ROLES`, with `except` for single
   kinds), so a kind of an existing type needs no role numbers. Its `anim` names an animation in the page script.
+  It declares `at`, `needs` and `gives` (VB-1124): where its work is done, of `PLACES`, and what it takes and makes, of `THINGS`, both
+  in `sim/kinds` (a new place or thing is a line there); a name outside them fails at load, and the game's guide (`page/guide`) lists the kind.
 - Something that runs at a time (each step, hour, day, season or year, or on a named day or step) is one entry of `CALENDAR` in
   `src/sim/clock.js`, inserted where it should run in the order; `tests/clock.js` holds that order (`ORDER`, re-recorded on purpose).
 - A new stored quantity (a household's, a farm's, a village's or a tile's) adds its line to `QUANTITIES` in `tools/stocks.js`, with

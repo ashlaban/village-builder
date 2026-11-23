@@ -386,6 +386,13 @@ function done(r, text) {
   flash = { text, until: performance.now() + 3000 };
 }
 // The banner under the top bar while the tool is in hand: the act, what to tap, the last tap's answer, and Done (or Cancel).
+// The guide's row for the work in hand (VB-1124): the plan tool's field or meadow (break, meadow), a kind's own.
+function guideLink(t) {
+  const k = t.kind === 'plan' ? (t.what === 'field' ? 'break' : 'meadow') : t.kind === 'work' ? t.work : null;
+  return k && Sim.KINDS[k]
+    ? `<a href="#" class="guide-link" data-guide="work:${esc(k)}">What ${esc(Sim.KINDS[k].name.toLowerCase())} needs and gives</a>`
+    : '';
+}
 function paintBanner() {
   const el = $('actBanner');
   let h = '';
@@ -393,7 +400,7 @@ function paintBanner() {
     h =
       `${actIcon(tool.icon)}<div class="txt"><b>${esc(tool.title)}</b>: ${tapWord} ${esc(tool.needs)}${
         tool.kind === 'work' && !tool.sites.length ? '<span class="bad">None is open to you now.</span>' : ''
-      }${tool.facts ? `<span data-facts>${esc(tool.facts)}</span>` : ''}${
+      }${tool.facts ? `<span data-facts>${esc(tool.facts)}</span>` : ''}${guideLink(tool)}${
         tool.msg ? `<span class="${tool.msg.bad ? 'bad' : ''}">${esc(tool.msg.text)}</span>` : ''
       }` +
       `</div><button type="button" data-tool="end"${tool.keep ? ' class="primary"' : ''}>${tool.keep ? 'Done' : 'Cancel'}</button>`;
