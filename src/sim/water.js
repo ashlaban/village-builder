@@ -1,7 +1,8 @@
 // @sys sim/water: the walk to fresh water as a field of the map (w.freshWalk): the hours on foot over pathless ground from each land tile to
 // the nearest source that is not marsh, searched once from the land as generated; and each farm's source (farmstead.water): where its
 // household draws its water, of what class and how long the walk, found by one search outward from the house (VB-1551); the wells the
-// map starts with and a well's entry on the map (w.fresh); and a site's water before a house stands there (siteFetch, siteWater: VB-1552)
+// map starts with and a well's entry on the map (w.fresh); and a site's water before a house stands there (siteFetch, siteWater: VB-1552;
+// plotFetch, a plot's site in a village: VB-1565)
 VB['sim/water'] = (() => {
   const { minHeap } = VB['gen/rivers'];
   const { good, FRESH, FRESHES, WELL, NO_WELL, BANDS, band, bandHours, bandMid, sourceNear } = VB['world/water'];
@@ -190,6 +191,40 @@ VB['sim/water'] = (() => {
     }
     return v;
   }
+  // The daily fetch in hours of a house on each tile of `tiles` (a Map or Set of the walkable tiles round the green: sim/expansion
+  // findSite's reach) for `people` joining village v on a plot (VB-1565): a Map by tile of the least of what the round's search weighs
+  // (siteFetch: fresh water by the land's walk, a well of the site's own) and the walk to the village's well, where it has one. The
+  // walks to the well are one search outward from the green over the ground as it is walked now, shared by all the tiles and kept
+  // within them (sourceSettled: at most the tiles given), a step costed as it is walked towards the well.
+  function plotFetch(w, v, tiles, people) {
+    const out = new Map(),
+      n = trips(people);
+    for (const t of tiles.keys()) out.set(t, siteFetch(w, t, people));
+    if (!v.well || w.fresh[v.center] !== FRESH.WELL) return out;
+    const g = new Float32Array(w.N).fill(Infinity),
+      done = new Uint8Array(w.N),
+      heap = minHeap(g);
+    g[v.center] = 0;
+    heap.push(v.center);
+    while (heap.size) {
+      const i = heap.pop();
+      if (done[i]) continue;
+      done[i] = 1;
+      VB.count.sourceSettled++;
+      if (out.has(i)) out.set(i, Math.min(out.get(i), n * tripHours(g[i] / SPEED)));
+      if (i !== v.center && !through(w, i)) continue;
+      for (let k = 0; k < 6; k++) {
+        const j = w.nb[i * 6 + k];
+        if (j < 0 || done[j] || !tiles.has(j)) continue;
+        const c = Math.fround(g[i] + stepCost(w, j, i));
+        if (c < g[j]) {
+          g[j] = c;
+          heap.push(j);
+        }
+      }
+    }
+    return out;
+  }
   // A site's water as its leader would reckon it before placing the house on tile i, for `people` (design.md, In the leader's choice):
   // {hours, share, by, source, village, well}. hours: the daily fetch, the least of what follows; share: of one hand's working day;
   // by: which it is ('source', 'village', 'well', or 'none': no water in reach and no well in the ground, when hours is the farthest
@@ -265,6 +300,7 @@ VB['sim/water'] = (() => {
     tripHours,
     waterOf,
     siteFetch,
+    plotFetch,
     siteWater,
     wellDug,
     startWells,

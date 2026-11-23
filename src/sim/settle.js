@@ -53,7 +53,7 @@ VB['sim/settle'] = (() => {
       crowded = new Set();
     for (const v of st.villages) {
       const ids = waiting.get(v.id) || [];
-      v.crowded = ids.length && findSite(st, v) === null ? ids.length : 0;
+      v.crowded = ids.length && findSite(st, v, false) === null ? ids.length : 0;
       if (v.crowded) for (const id of ids) crowded.add(id);
     }
     for (const id of st.living) {
