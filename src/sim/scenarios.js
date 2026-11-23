@@ -483,7 +483,8 @@ VB['sim/scenarios'] = (() => {
     //   moved, VB-822)}; every event, append-only (sim/records, VB-075);
     //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start.
     //   A routine event's slot becomes, once folded, the index of its count in st.recordYears (VB-199); slots are never removed.
-    // @state st.pathCache: Map of route key (from * w.N + to) to path (tiles, both ends; sim/routes), oldest first, emptied each day a tile
+    // @state st.pathCache: Map of route key ((class * w.N + from) * w.N + to; the load class only while discomfort weighs, VB-448)
+    //   to path (tiles, both ends; sim/routes), oldest first, emptied each day a tile
     //   changed cost, at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; a nonempty set invalidates the route cache at day’s end

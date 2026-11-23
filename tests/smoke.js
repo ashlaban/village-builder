@@ -112,6 +112,15 @@ const iv = setInterval(async () => {
   doc.getElementById('groundBtn').click(); tick(2); // the Ground overlay on and off
   doc.getElementById('reachBtn').click(); tick(5); // the Reach overlay (VB-437): its key names the origin, or asks for one
   if (doc.getElementById('reachKey').hidden || !/Walking time/.test(doc.getElementById('reachKey').textContent)) fail('the Reach overlay shows no key');
+  { // two taps on land (VB-448): the bands from the second, and the way a walker takes from the first drawn, its hours beside the quickest's
+    win.HTMLElement.prototype.setPointerCapture = win.HTMLElement.prototype.setPointerCapture || (() => {});
+    const tapAt = (x, type) => { const e = new win.MouseEvent(type, { bubbles: true, clientX: x, clientY: 0 }); Object.defineProperty(e, 'pointerId', { value: 1 }); return e; };
+    for (const x of [0, 60]) { doc.getElementById('stage').dispatchEvent(tapAt(x, 'pointerdown')); doc.getElementById('stage').dispatchEvent(tapAt(x, 'pointerup')); tick(3); }
+    const key = doc.getElementById('reachKey').textContent;
+    console.log('Reach overlay, two taps:', key.replace(/Within.*Further, by land|Within.*?\./, '…'));
+    if (/Walking time from tile/.test(key) && !/quickest way/.test(key)) fail('the Reach overlay does not say it draws the quickest way');
+    if (/Walking time from tile/.test(key) && !/The white line|Click another tile/.test(key)) fail('the Reach overlay does not tell of the way a walker takes');
+  }
   doc.getElementById('reachBtn').click(); tick(2);
   if (!doc.getElementById('reachKey').hidden) fail('the Reach overlay keeps its key when off');
   doc.getElementById('settlersBtn').click(); tick(20);

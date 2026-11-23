@@ -45,8 +45,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`sim/byhand`, fieldAt; `sim/meadows`, meadowAt), and a road is wear laid as a lane (`sim/paths`, layWay), drawn or found by `findRoute`. The editor shows that run, standing still (`still`), and puts the world back
   (`gen/cover`, keep and restore) before it is painted or seeded again. A game begun there is
   `unsaved`: a save rebuilds its world from seed and size alone (`tests/browser-editor.js`).
-- Walking: `src/sim/walking.js` defines tile passability, the cost of a step and the cached breadth-first reach lists. `src/sim/routes.js`
-  searches for least-cost routes, including `reachCosts` for one search to many targets, and owns the bounded route cache
+- Walking: `src/sim/walking.js` defines tile passability, the cost of a step, the discomfort a route is chosen by (`DISCOMFORT`,
+  `choiceCost`, VB-448) and the cached breadth-first reach lists. `src/sim/routes.js` searches for the route a walker of a load class
+  chooses (its time weighed with discomfort; the quickest at weight 0), bounded by its time, including `reachCosts` for one search to many targets, and owns the bounded route cache
   (`st.pathCache`, `st.routeDirty`, `st.routeFallbacks`). `costChanged` marks that cache for daily refresh and tells walking to invalidate
   its reach lists if passability changed. `src/sim/villagehours.js` maintains the symmetric travel-time table `st.villageHours` (VB-286)
   through the route search and supplies the village-to-village distance queries. `src/sim/paths.js` counts and fades worn paths

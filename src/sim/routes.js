@@ -1,7 +1,7 @@
 // @sys sim/routes: least-cost path searches and the daily invalidation of the run's bounded route cache
 VB['sim/routes'] = (() => {
   const { hexSteps } = VB['sim/hex'];
-  const { through, stepCost, invalidateReach, PATHS } = VB['sim/walking'];
+  const { through, stepCost, discomfort, invalidateReach, PATHS, DISCOMFORT } = VB['sim/walking'];
   // @tunable ROUTE: the route search's bounds and its cache
   // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
   // a lane over meadow. cacheMax: entries, first in first out; the cache is emptied each day a tile changes cost (VB-236), and the most
@@ -21,6 +21,7 @@ VB['sim/routes'] = (() => {
         mark: new Uint32Array(w.N),
         shut: new Uint32Array(w.N),
         tgt: new Uint32Array(w.N),
+        time: new Float64Array(w.N),
         run: 0,
         open: null,
       };
@@ -77,17 +78,21 @@ VB['sim/routes'] = (() => {
       },
     };
   }
-  // The cheapest route from `from` to `to`, both ends included, or null when every route costs more than maxCost.
+  // The route from `from` to `to` a walker of load class `cls` (sim/walking DISCOMFORT.load: 0 unladen, 1 on the back, 2 with a cart)
+  // chooses, both ends included, or null when every route takes more than maxCost. It is the one least costly to choose (choiceCost:
+  // its time weighed with its discomfort, VB-448), which with DISCOMFORT.weight 0 is the quickest; maxCost bounds its time, as before,
+  // so that what is in reach does not move with the weight (a route is pruned by its time on the way the choice took to each tile).
   // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
-  function findRoute(w, from, to, maxCost = ROUTE.reach) {
+  function findRoute(w, from, to, maxCost = ROUTE.reach, cls = 0) {
     if (from === to) return [from];
     VB.count.routeSearch++;
     let expanded = 0;
     const S = buffers(w),
-      { g, prev, mark, shut } = S,
+      { g, prev, mark, shut, time } = S,
       run = ++S.run,
       open = heap(),
-      lo = ROUTE.minStep;
+      lo = ROUTE.minStep,
+      k = DISCOMFORT.weight * DISCOMFORT.load[cls];
     // Among routes that cost the same (on open ground there are many: every staircase between two tiles), the one nearest the straight
     // line is taken, as people walk: STRAIGHT of a step for each tile's width a tile lies off the line is added to its key, far below
     // any difference in cost. So the trips between two places wear one line, not a fan of them, and the ways look like ways (VB-402).
@@ -99,6 +104,7 @@ VB['sim/routes'] = (() => {
     const off = flat ? STRAIGHT / ((Math.hypot(lx, ly) || 1) * w.HW) : 0; // a world with no tile centres (a test's bare grid) has no line
     const h = (i) => hexSteps(w, i, to) * lo + (flat ? Math.abs((w.hx[i] - fx) * ly - (w.hy[i] - fy) * lx) * off : 0);
     g[from] = 0;
+    time[from] = 0;
     prev[from] = -1;
     mark[from] = run;
     open.push(h(from), from);
@@ -116,9 +122,12 @@ VB['sim/routes'] = (() => {
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
         if (j < 0 || shut[j] === run || (j !== to && !through(w, j))) continue;
-        const gj = g[i] + stepCost(w, i, j);
-        if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
+        const t = stepCost(w, i, j),
+          tj = time[i] + t,
+          gj = g[i] + (k ? t * (1 + (k * (discomfort(w, i) + discomfort(w, j))) / 2) : t);
+        if (tj > maxCost || (mark[j] === run && gj >= g[j])) continue;
         g[j] = gj;
+        time[j] = tj;
         prev[j] = i;
         mark[j] = run;
         open.push(gj + h(j), j);
@@ -186,21 +195,26 @@ VB['sim/routes'] = (() => {
       VB.count.routeEvict++;
     }
   }
-  function route(st, from, to) {
-    const N = st.w.N,
-      k = from * N + to;
+  // The route a walker of load class `cls` takes (findRoute), from the cache: keyed by the class as well while discomfort weighs (VB-448),
+  // so a laden walk and an unladen one between the same tiles are two entries under the one bound; with DISCOMFORT.weight 0 every class
+  // takes the quickest route, and shares one entry.
+  function route(st, from, to, cls = 0) {
+    const c = DISCOMFORT.weight ? cls : 0,
+      N = st.w.N,
+      o = c * N * N,
+      k = o + from * N + to;
     let p = st.pathCache.get(k);
     if (p) {
       VB.count.routeHit++;
       return p;
     }
-    const bk = to * N + from,
+    const bk = o + to * N + from,
       back = st.pathCache.get(bk);
     if (back && back[0] === to) {
       VB.count.routeHit++;
       p = back.slice().reverse();
     } else {
-      p = findRoute(st.w, from, to);
+      p = findRoute(st.w, from, to, ROUTE.reach, c);
       if (!p) {
         p = [to];
         st.routeFallbacks++;

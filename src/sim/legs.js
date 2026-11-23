@@ -1,7 +1,7 @@
 // @sys sim/legs: a pawn's leg (a walk, a wait or work) and the one due-queue of walks and waits: a walk set out on, begun, cut, its pace
 // told again and ended, its tiles trodden; split from sim/agents (VB-422). What a walk's end means for the pawn is sim/agents'
 VB['sim/legs'] = (() => {
-  const { DAY, TICKS, WORK, SPEED, HERD } = VB['sim/rules'];
+  const { DAY, TICKS, WORK, SPEED, HERD, TRAVEL } = VB['sim/rules'];
   const { route } = VB['sim/routes'],
     { stepCost, tileCost } = VB['sim/walking'];
   const { tread } = VB['sim/paths'];
@@ -161,6 +161,9 @@ VB['sim/legs'] = (() => {
     halt(st, a, true, true);
     begin(st, a);
   }
+  // The load class a route is chosen for (sim/walking DISCOMFORT.load, VB-448): 0 unladen, 1 a load on the back, 2 with a cart.
+  // As Carts.pace reads it: a load beyond the back's with a cart out for it goes by the cart.
+  const loadClass = (st, a) => (!a.carry ? 0 : Carts.pace(st, a) < TRAVEL.pace.back ? 2 : 1);
   // The next 6:00 after game time t (t itself excluded at 6:00 sharp).
   function nextLeg(t) {
     const day = Math.floor(t / DAY);
@@ -176,7 +179,7 @@ VB['sim/legs'] = (() => {
       from = tileAt(st, a.x, a.y),
       k = near && from >= 0 ? w.nb.indexOf(tile, from * 6) : -1,
       step = k >= from * 6 && k < from * 6 + 6,
-      p = step ? [from, tile] : from >= 0 && from !== tile ? route(st, from, tile) : null;
+      p = step ? [from, tile] : from >= 0 && from !== tile ? route(st, from, tile, loadClass(st, a)) : null;
     const ok = p && p[0] === from,
       tiles = ok ? p.slice(1, -1) : [],
       cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);

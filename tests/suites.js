@@ -66,6 +66,7 @@ const FAST = [
   ['node', 'tests/foresight.js'],
   ['node', 'tests/kinds.js'],
   ['node', 'tests/routes.js'],
+  ['node', 'tests/discomfort.js'], // VB-448: routes chosen by time weighed with discomfort; a bridge up to twice the time, load classes
   ['node', 'tests/oversea.js'], // VB-436: nobody is sent to a home over the sea
   ['node', 'tests/tiny.js'],
   ['node', 'tests/claims.js'],
