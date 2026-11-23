@@ -453,6 +453,9 @@ VB['sim/rules'] = (() => {
     gratitude: 0.15,
     scale: 20, // a debtor's opinion of its creditor gains gratitude x s / (s + scale) for a balance of s rations
     opinionRations: 10, // allowance: the giver's opinion of the receiver (-1 to 1) times this many rations
+    // an hour of help given to another household books this many rations to the worker's credit, owed by the head helped (VB-704):
+    // the worth table's day's work, 3 rations for 8 work hours (design.md, Remedies: "Debts are paid with")
+    hour: 3 / 8,
   };
 
   const SPEED = 12; // tiles per game hour on foot, on meadow (it was 3: the distance review, Kim, 12 Nov; design.md, World and scale)

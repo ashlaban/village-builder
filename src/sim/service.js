@@ -10,6 +10,7 @@ VB['sim/service'] = (() => {
   const { hoursBetween, withinDay, byLand } = VB['sim/villagehours'];
   const { MARRIAGE, AGES } = VB['sim/rules'];
   const Offers = VB['sim/offers'];
+  const { balance } = VB['sim/relations'];
   const { hasPlot } = VB['sim/expansion'];
   const { trustOf } = VB['sim/ownership'];
   const adult = (p) => p.alive && p.age >= 18;
@@ -240,8 +241,11 @@ VB['sim/service'] = (() => {
       v = farmOf(st, b).village;
     return withinDay(st, u, v, SERVICE.hours) ? hoursBetween(st, u, v) : null;
   };
+  // The whole rations head owes pawn id in goodwill (sim/relations balance), 0 if none: a worker's credit for hours it gave (VB-704)
+  const owedTo = (st, head, id) => Math.max(0, Math.floor(-balance(st, head, id)));
   // The servant for household hh among `available`, or null: one whose household keeps SERVICE.keepHands working hands without it, from
-  // hh's village first, then the nearest village within SERVICE.hours walking hours; then the household that keeps the most hands, then the oldest.
+  // hh's village first, then the nearest village within SERVICE.hours walking hours; then the one its head owes most in goodwill, whose
+  // asking for a place is answered by its credit (VB-704); then the household that keeps the most hands, then the oldest.
   function servantFor(st, hh, available) {
     let best = null,
       bs = null;
@@ -252,7 +256,7 @@ VB['sim/service'] = (() => {
       if (left < SERVICE.keepHands) continue;
       const d = reachHours(st, st.households[q.household], hh);
       if (d === null) continue;
-      const s = [d, -left, q.born];
+      const s = [d, -owedTo(st, hh.holder, id), -left, q.born];
       if (!bs || before(s, bs)) {
         best = q;
         bs = s;
@@ -294,10 +298,11 @@ VB['sim/service'] = (() => {
   // to spare above SERVICE.spare. At the moving round, after the servants for the lone (takeServants, whose households and servants count as
   // this round's): those who would serve (willServe: in st.demand, fit, unmarried, 18 to 50, not declining by the player's wish), oldest
   // first, whose household has hands to spare and keeps at least SERVICE.short hands per field without them, go as servants (the serve
-  // command) to the short household with fields of their own village with the fewest hands per field, else to the shortest of the nearest
-  // village within reach that has one (reachHours); never to a household where a parent lives (nobody goes back home by this rule). Each
-  // household takes at most one new servant a round, and nobody moves twice in one. A servant whose household is no longer short may go
-  // on at a later round by the same rule. Board and lodging only: the servant is a member and works its jobs on the `servant` basis.
+  // command) to the short household with fields of their own village whose head owes them most in goodwill (VB-704), then with the fewest
+  // hands per field, else to the shortest of the nearest village within reach that has one (reachHours); never to a household where a
+  // parent lives (nobody goes back home by this rule). Each household takes at most one new servant a round, and nobody moves twice in one.
+  // A servant whose household is no longer short may go on at a later round by the same rule. Board and lodging only: the servant is a
+  // member and works its jobs on the `servant` basis.
   const fieldsOf = (st, hh) => Math.max(1, farmOf(st, hh).fields.length);
   const handsPerField = (st, hh) => hands(st, hh) / fieldsOf(st, hh);
   const parentIn = (st, q, hh) =>
@@ -344,7 +349,7 @@ VB['sim/service'] = (() => {
         if (h.id === from.id || parentIn(st, q, h)) continue;
         const d = reachHours(st, from, h);
         if (d === null) continue;
-        const s = [d, handsPerField(st, h), h.id];
+        const s = [d, -owedTo(st, h.holder, q.id), handsPerField(st, h), h.id]; // its credit answers its ask (VB-704)
         if (!bs || before(s, bs)) {
           best = i;
           bs = s;
