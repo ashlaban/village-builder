@@ -72,7 +72,14 @@ function targetRow(key, o, mine) {
     icon: o.icon,
     label: o.label,
     value: o.flag ? `${fmtN(o.level)}, ${wants}` : `${fmt(o.level)} / ${fmt(t.now)}`,
-    note: [o.flag ? '' : o.per, t.chosen !== null ? 'chosen' : ''].filter(Boolean).join(', '),
+    note: [
+      o.flag ? '' : o.per,
+      t.chosen !== null ? 'chosen' : '',
+      // VB-699: what the head reckons it can place of the asks it heard of, beyond its need: its own estimate
+      t.placed ? `+${fmtN(t.placed)} for the asks, the head's estimate` : '',
+    ]
+      .filter(Boolean)
+      .join(', '),
     tone: !o.flag && o.level < t.now ? 'warn' : '',
     title: `${o.label}: ${o.unit}; held ${fmtN(o.level)}, the head's target ${fmt(t.now)}${
       custom !== null ? `, the custom's ${fmt(custom)}` : ''
@@ -175,7 +182,7 @@ function targetsHTML(hh, V, mine) {
         unit: `in ${g.unit}s`,
         per: `${g.unit}s`,
         level: g.held,
-        t: { now: g.now, custom: g.custom, chosen: g.chosen, bounds: g.bounds },
+        t: { now: g.now, custom: g.custom, chosen: g.chosen, bounds: g.bounds, placed: g.placed },
         step: 1,
       },
       mine,

@@ -296,7 +296,7 @@ VB['sim/plans'] = (() => {
         wood: target('wood', T.wood[c.season], M.wood[c.season]),
         cow: target('cow', plan.want ? 1 : 0, null),
       },
-      goods: Targets.view(st, hh, C.goods),
+      goods: Targets.view(st, hh, C.goods, plan.placed && plan.placed.goods),
       head: plan.head
         ? { pawn: plan.head.pawn, skill, horizon: horizonOf(skill), keepsOrder: skill >= ORDER_LEAST }
         : null,
