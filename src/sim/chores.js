@@ -9,7 +9,9 @@ VB['sim/chores'] = (() => {
     { target } = VB['sim/targets'];
   const { WORK, FISH, BREW, PEAT, cal } = VB['sim/rules'],
     { FORAGE } = VB['sim/forage'],
-    Carts = VB['sim/carts'];
+    Carts = VB['sim/carts'],
+    AFTERNOON = VB['sim/roles'].MATCH.day.afternoon, // the afternoon's hour, when the head allots the day again (sim/jobs; VB-1546)
+    EVENING = VB['sim/roles'].MATCH.day.evening; // the hour past which no evening task is begun (VB-1547)
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
     Pot = VB['sim/pot'];
@@ -46,6 +48,11 @@ VB['sim/chores'] = (() => {
       carry: 'logs',
       to: 'woodpile',
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
+      // lived by while the house is cold or the pile will not feed tonight's fire (VB-1547): a load cut is carried home after work
+      vital: (st, j) => {
+        const hh = st.households[j.farm.household];
+        return hh.cold > 0 || fuelFree(st, hh) < st.ECON.woodUse[cal(st.t).season];
+      },
       // 3 in a cold house (VB-327: above cooking's 2.2); 2.2 when the pile is nearly out; else its shortfall of the goal, and more in autumn
       urgency: (st, j, c, U) => {
         const hh = st.households[j.farm.household];
@@ -93,22 +100,24 @@ VB['sim/chores'] = (() => {
       carry: 'buckets',
       to: 'door',
       window: { from: WORK[0] - 1 },
+      vital: true, // a dry day costs the meal's cooking and health (VB-331): a fetch begun is finished after work (VB-1547)
+      evening: true, // and one not yet begun may be, until MATCH.day.evening (Kim, 23 November: water after dark)
       spot: (st, a, j) => {
         const w = st.w;
         return st.villages[j.farm.village].well
           ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8]
           : [w.hx[j.site] - 1, w.hy[j.site] + 4];
       },
-      // from 14:00, the cook's hour, above cooking's (VB-331): the hand that would cook fetches the water first
+      // from the afternoon (14:00), the cook's hour, above cooking's (VB-331): the hand that would cook fetches the water first
       urgency: (st, j, c, U) =>
-        c.hour >= U.waterLateHour ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
+        c.hour >= AFTERNOON ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
       deliver: (st, j, hh) => {
         hh.waterDay = cal(st.t).day;
       },
-      // once a day, from the hour before work until its end, at the village well if it has one, else by the house
+      // once a day, from the hour before work until the evening's (VB-1547: the due-queue's last ask, at the end of work, leaves it
+      // standing for the evening), at the village well if it has one, else by the house
       available: (st, hh, f, c, post) => {
-        const inWork = c.hour >= WORK[0] - 1 && c.hour < WORK[1];
-        if (inWork && hh.waterDay !== c.day)
+        if (c.hour >= WORK[0] - 1 && c.hour < EVENING && hh.waterDay !== c.day)
           post(`water:h${hh.id}:${c.day}`, st.villages[f.village].well ? st.villages[f.village].center : f.house, {
             farm: f,
           });
@@ -127,8 +136,9 @@ VB['sim/chores'] = (() => {
       hands: 1,
       type: 'household',
       inside: true,
-      window: { from: 14 },
-      late: true, // a pot under way is finished after the end of work (VB-119; Kim, 11 Nov)
+      window: { from: AFTERNOON },
+      late: true, // the meal's deadline is today: unmanned, it calls its hand (sim/jobs)
+      vital: true, // the day's meal: a pot under way is finished after the end of work (VB-119; Kim, 11 Nov; VB-1547)
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
       // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain, the seed it would eat (sim/pot)
       done: (st, j, hh, c) => {
@@ -137,7 +147,7 @@ VB['sim/chores'] = (() => {
       },
       // from 14:00 to the end of work, while the household is short of meals and has grain or fresh food to cook (cookWanted)
       available: (st, hh, f, c, post) => {
-        if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c))
+        if (c.hour >= AFTERNOON && c.hour < WORK[1] && cookWanted(st, hh, c))
           post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f, day: c.day });
       },
     },

@@ -3,12 +3,12 @@
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { WORK, TICKS, cal } = VB['sim/rules'],
-    { ROLES, CHILD, MATCH } = VB['sim/roles'];
+    { ROLES, CHILD, MATCH, absentMask } = VB['sim/roles'];
   const { act } = VB['sim/traits'];
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
   const { freeHands, dropJob, workSpot } = VB['sim/agents'],
-    { bed } = VB['sim/pose'],
+    { bed, travelling } = VB['sim/pose'],
     { offerWhy, heldAt } = VB['sim/attention'],
     { ownerKey, rateOf, attentionOf, doneOf } = VB['sim/work'];
   const { tileAt, placeOf } = VB['sim/pose'];
@@ -211,8 +211,10 @@ VB['sim/jobs'] = (() => {
         sweep(st, j);
       }
     }
-    // each morning every household's day is allotted; in the day, those whose tasks or whose village's changed, or that were reviewed
-    if (c.hour === WORK[0] - 1 || everyone) for (const id of st.liveHouseholds) changed.add(`household:${id}`);
+    // each morning, and again in the afternoon when its urgencies change (MATCH.day.afternoon; VB-1546), every household's day is
+    // allotted; in the day, those whose tasks or whose village's changed, or that were reviewed
+    if (c.hour === WORK[0] - 1 || c.hour === MATCH.day.afternoon || everyone)
+      for (const id of st.liveHouseholds) changed.add(`household:${id}`);
     allotChanged(st, c);
   }
   // A member without a task acts on the household's opportunities (design.md section 7, Acting without the plan; VB-249): when matching
@@ -277,15 +279,34 @@ VB['sim/jobs'] = (() => {
   // bid (VB-102).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), by the village's custom on a common field (sim/commons,
-  // VB-100), else by role and kind.
-  const prioOf = (st, p, j) =>
+  // VB-100), else by role and kind, the holder's with the ranks of the roles its household lacks (`stand`, the mask of sim/roles
+  // absentMask its caller made for the holder, else 0; VB-1545).
+  const prioOf = (st, p, j, stand = 0) =>
     j.plot
       ? plotPrio(st, p)
       : j.claim
         ? claimPrio(st, p, j)
         : j.common
           ? commonPrio(st, p, j)
-          : ROLES[p.role].prio[j.kind] || 0;
+          : ROLES[p.role].ranks[stand][j.kind] || 0;
+  // Whether the head allots member id the day: not a child under 7, one away from home (VB-287, VB-783), the player's pawn while it is
+  // commanded, or one on a day owed elsewhere (sim/days) or lent as a hand.
+  const allotted = (st, p) =>
+    age(st, p) >= CHILD.from &&
+    st.agents[p.id].away === undefined &&
+    !unplanned(st, p.id) &&
+    Days.on(st, p.id) === null &&
+    Hands.on(st, p.id) === null;
+  // The stand mask of pawn p (VB-1545): the roles its household lacks today when p is the holder at work, else 0. A pass over the
+  // household's members, for a reader outside an allotment (fit); allot makes it once from its own list.
+  function standOf(st, p) {
+    const hh = p.household === null ? null : st.households[p.household];
+    if (!hh || hh.holder !== p.id || !allotted(st, p)) return 0;
+    return absentMask(
+      p.id,
+      hh.members.map((id) => st.pawns[id]).filter((q) => q.died === null && allotted(st, q)),
+    );
+  }
   // The join factor for n hands already at job j: MATCH.join ** n, or 1 for a kind worked all together (VB-120: a work day).
   const joined = (j, n) => (KINDS[j.kind].together ? 1 : MATCH.join ** n);
   const floored = (pr, v) => (pr > MATCH.poorFit ? Math.max(v, MATCH.floor) : v);
@@ -293,9 +314,9 @@ VB['sim/jobs'] = (() => {
   // minAge (VB-136: herding from 8), or not its work.
   const tooYoung = (st, p, j) =>
     (p.role === 'child' && age(st, p) < CHILD.from) || (KINDS[j.kind].minAge && age(st, p) < KINDS[j.kind].minAge);
-  function score(st, p, j, c, memo) {
+  function score(st, p, j, c, memo, stand = 0) {
     if (tooYoung(st, p, j)) return null;
-    const pr = prioOf(st, p, j);
+    const pr = prioOf(st, p, j, stand);
     if (pr <= 0) return null;
     const here = bed(st, st.agents[p.id]); // the walk from where its day starts (VB-783)
     return floored(pr, pr * urgency(st, j, c, memo) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
@@ -310,11 +331,12 @@ VB['sim/jobs'] = (() => {
   const matchBar = (st, a, j) =>
     takeBar(st, a, j) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j)) || null;
   // Pawn a's appraisal of posted job j: its bid, a number above 0 (its score, by the hands already at the job), or why it would not
-  // bid, a string: the bar's (takeBar by default), 'not their work' or 'not worth the walk'.
-  function appraise(st, a, j, c, memo, bar = takeBar) {
+  // bid, a string: the bar's (takeBar by default), 'not their work' or 'not worth the walk'. `stand`: the holder's mask where its caller
+  // has it (VB-1545), else 0.
+  function appraise(st, a, j, c, memo, bar = takeBar, stand = 0) {
     const why = bar(st, a, j);
     if (why) return why;
-    const s = score(st, st.pawns[a.id], j, c, memo);
+    const s = score(st, st.pawns[a.id], j, c, memo, stand);
     if (s === null) return 'not their work';
     return s > 0 ? s * joined(j, j.claims.length) : 'not worth the walk';
   }
@@ -335,17 +357,19 @@ VB['sim/jobs'] = (() => {
   }
   // Why a pawn gets no job: every open job it may take with its bid, or the reason it gets none. Best first. Draws no random
   // numbers and writes nothing to st.
-  // Pawn p's fit for a job it may take, its appraisal as a row: {bid (null when it would not bid), reason (why not, or null)}.
-  function fit(st, p, j, c) {
-    const r = appraise(st, st.agents[p.id], j, c);
+  // Pawn p's fit for a job it may take, its appraisal as a row: {bid (null when it would not bid), reason (why not, or null)}; `stand`,
+  // the holder's mask (standOf).
+  function fit(st, p, j, c, stand = 0) {
+    const r = appraise(st, st.agents[p.id], j, c, undefined, takeBar, stand);
     return typeof r === 'number' ? { bid: r, reason: null } : { bid: null, reason: r };
   }
   function explainIdle(st, id) {
     const p = st.pawns[id],
       c = cal(st.t),
-      out = [];
+      out = [],
+      stand = standOf(st, p);
     for (const j of st.jobs.values())
-      if (eligible(st, j, p)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c) });
+      if (eligible(st, j, p)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c, stand) });
     return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
   }
   // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
@@ -425,18 +449,13 @@ VB['sim/jobs'] = (() => {
       const p = st.pawns[id];
       if (p.died !== null) continue;
       lists[id] = [];
-      // not a child under 7, one away from home (VB-287, VB-783), or the player's pawn while it is commanded: the head allots around them
-      if (
-        age(st, p) >= CHILD.from &&
-        st.agents[id].away === undefined &&
-        !unplanned(st, id) &&
-        Days.on(st, id) === null &&
-        Hands.on(st, id) === null
-      )
-        members.push(p);
+      // the head allots around those it does not have today (allotted)
+      if (allotted(st, p)) members.push(p);
     }
     const pairs = [],
-      memo = new Map();
+      memo = new Map(),
+      // the roles the household lacks today, whose ranks its holder takes (VB-1545): one pass over the members allotted
+      stand = hh.holder !== null && members.some((p) => p.id === hh.holder) ? absentMask(hh.holder, members) : 0;
     if (members.length) {
       const jobs = jobsFor(st, members[0]);
       VB.count.dayPair += (jobs.length ?? jobs.size) * members.length;
@@ -453,7 +472,7 @@ VB['sim/jobs'] = (() => {
         for (const p of members) {
           if (only !== null && p.id !== only) continue;
           if (!eligible(st, j, p)) continue;
-          const s = score(st, p, j, c, memo);
+          const s = score(st, p, j, c, memo, p.id === hh.holder ? stand : 0);
           if (s !== null && s > 0) pairs.push([s, p.id, j]);
         }
       }
@@ -520,7 +539,8 @@ VB['sim/jobs'] = (() => {
       if (!top || !busy || a.phase !== 'work' || a.job === top[1] || !isOpen(st, top[1])) continue;
       if (
         hoursLeft(st, a.job) > rateOf(st, p) &&
-        top[0] > MATCH.switchRatio * (score(st, p, a.job, c, memo) ?? 0) + MATCH.switchMargin
+        top[0] >
+          MATCH.switchRatio * (score(st, p, a.job, c, memo, p.id === hh.holder ? stand : 0) ?? 0) + MATCH.switchMargin
       )
         issue(st, workCommand(a.id, top[1].key, 'planner'));
     }
@@ -550,6 +570,33 @@ VB['sim/jobs'] = (() => {
     // once every day is allotted, so that the heads asked answer by their own (VB-470)
     if (ask)
       for (const [id, short] of ask) if (!st.households[id].dissolved) Hands.askFor(st, st.households[id], short, c);
+  }
+  // The evening (VB-1547; design.md, The head calls): from the end of work to MATCH.day.evening, each hour, a household's task of a kind
+  // that may be begun after work (`evening`, sim/kinds: the water) that stands open and unmanned calls one hand: the member free of a task
+  // whom the head's day put it earliest for (the lower id on a tie; one whose list was made before the task was posted, after those), at
+  // home or on its way there, not away, commanded, on a day owed, lent, at an occasion or on the road. A pass over each live household's
+  // tasks, two hours a day.
+  function eveningCall(st, c) {
+    for (const id of st.liveHouseholds) {
+      const plan = planOf(st, 'household', id),
+        lists = plan && plan.day && plan.day.lists;
+      if (!lists) continue;
+      for (const j of st.jobsBy.get(`household:${id}`) || none) {
+        VB.count.eveningAsk++;
+        if (!KINDS[j.kind].evening || j.claims.length || !isOpen(st, j)) continue;
+        let best = null,
+          at = Infinity;
+        for (const pid of st.households[id].members) {
+          const p = st.pawns[pid],
+            a = st.agents[pid],
+            n = lists[pid] ? lists[pid].indexOf(j.key) : -1,
+            i = n < 0 ? Number.MAX_SAFE_INTEGER : n;
+          if (i >= at || p.died !== null || a.job || a.occasion !== null || travelling(a)) continue;
+          if (allotted(st, p) && eligible(st, j, p)) [best, at] = [a, i];
+        }
+        if (best) issue(st, workCommand(best.id, j.key, 'planner'));
+      }
+    }
   }
   // Whether pawn a can take job j of its list now: there is room, it still may, and a task held at the side is in reach.
   const canTake = (st, a, j) => !matchBar(st, a, j);
@@ -654,6 +701,7 @@ VB['sim/jobs'] = (() => {
     allot,
     takeDay,
     dutyRound,
+    eveningCall,
     score,
     bid,
     idleAbout,

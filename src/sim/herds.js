@@ -284,9 +284,10 @@ VB['sim/herds'] = (() => {
   // ---- the herds each scenario starts with ----
   // Founders (Kim, 30 Oct): three farms keep 2 cows each, the first also a bull and the group's one pair of oxen; the first two keep 4 ewes,
   // the first also a ram; the lone farm keeps none.
-  function foundersHerds(st) {
+  // `alone`: a lone farm keeps a herd too (the solo start, whose one farm is its village).
+  function foundersHerds(st, alone = false) {
     const hhs = st.households.filter((h) => !h.dissolved),
-      lone = (h) => st.villages[st.farmsteads[h.farmstead].village].farmsteads.length < 2;
+      lone = (h) => !alone && st.villages[st.farmsteads[h.farmstead].village].farmsteads.length < 2;
     const keep = hhs.filter((h) => !lone(h)).slice(0, 3);
     keep.forEach((hh, k) => {
       const cattle = makeHerd(st, hh, 'cattle');

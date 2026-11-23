@@ -1,7 +1,7 @@
 // @sys sim/kinds: the registry of job kinds: it joins the records each domain module declares (KINDS), builds the fetch kinds and each role's
 // ranks, and holds the order in which sim/jobs asks the kinds' rules (ASK). A kind's record lives with its domain (VB-418)
 VB['sim/kinds'] = (() => {
-  const { ROLES } = VB['sim/roles'],
+  const { ROLES, STAND_KEYS } = VB['sim/roles'],
     { doneOf } = VB['sim/progress'];
   const Fieldwork = VB['sim/fieldwork'],
     Chores = VB['sim/chores'],
@@ -46,7 +46,10 @@ VB['sim/kinds'] = (() => {
   //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
-  //   late: a job of the kind under way, its worker walking there or at work, is finished after the end of work (VB-119: the cook).
+  //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/jobs; the cook).
+  //   vital: a kind a household lives by, true or (st, j) => boolean: once begun it is carried to its end though the work day ends
+  //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
+  //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/jobs eveningCall; the water).
   //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/jobs).
   //   norm(st, j): the job's hours for a normal crop, where its hours go by the crop's size (reap, thresh): what a head that does not
   //   reckon with the size estimates (sim/estimate, VB-476).
@@ -190,12 +193,33 @@ VB['sim/kinds'] = (() => {
   const isOpen = (st, j) =>
     j.claims.length < KINDS[j.kind].hands &&
     doneOf(st, j, j.hours ?? KINDS[j.kind].hours) < (j.hours ?? KINDS[j.kind].hours);
+  // The one rule of the work day's end for a task begun (VB-1547; design.md, The head calls): a task of a kind a household lives by (`vital`)
+  // whose hand is walking to it or at work is carried to its end; any other is let go (sim/clock, at WORK[1]). A load on its way home is
+  // brought in whatever its kind (sim/agents release).
+  const carriedOn = (st, j) => {
+    const v = KINDS[j.kind].vital;
+    return v === true || (!!v && v(st, j));
+  };
   // Each role's rank of every kind: its exception for the kind (a fetch kind's: the kind it fetches for, VB-611), else its rank of the
   // kind's type of work, else 0.
   for (const r of Object.values(ROLES))
     r.prio = Object.fromEntries(
       Object.entries(KINDS).map(([k, K]) => [k, r.except[k] ?? r.except[K.fetch] ?? r.work[K.type] ?? 0]),
     );
+  // A holder's ranks with the roles of its household's head pair absent (sim/roles STAND, VB-1545): `ranks[mask]`, for each kind the
+  // highest of its own and each absent role's (bit i of the mask for STAND_KEYS[i]); ranks[0] is prio. Made once, at load.
+  for (const r of Object.values(ROLES)) {
+    r.ranks = [r.prio];
+    for (let m = 1; m < 1 << STAND_KEYS.length; m++)
+      r.ranks.push(
+        Object.fromEntries(
+          Object.keys(KINDS).map((k) => [
+            k,
+            STAND_KEYS.reduce((x, s, i) => (m & (1 << i) ? Math.max(x, ROLES[s].prio[k]) : x), r.prio[k]),
+          ]),
+        ),
+      );
+  }
   // Where refreshJobs (sim/jobs) asks, in this order: for each occupied farm in turn, at each of its fields (field), at the farm (farm),
   // and at the farm again after the household's plans for land (farmAfterPlans); then at each village (village), then once for the island
   // (island). An entry is [kind, rule]: a kind's own rule posts that kind; a shared rule (kind null) names its jobs' kinds. A job's id is its
@@ -242,5 +266,5 @@ VB['sim/kinds'] = (() => {
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
   ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, isOpen, PLACES, THINGS };
+  return { KINDS, ASK, isOpen, carriedOn, PLACES, THINGS };
 })();

@@ -9,7 +9,7 @@
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
   'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook', 'gathering', 'soil', 'accounts', 'foresight-hunger'];
-const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous|market] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
+const USAGE = `usage: node tools/sim.js [--scenario founders|solo|heirs|populous|market] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
   --json            the report as JSON
@@ -53,7 +53,7 @@ const loaded = loadFrom ? readSave(loadFrom) : null;
 const mapOf = (d) => Object.keys(SIZES).find((k) => SIZES[k][0] === d.cols && SIZES[k][1] === d.rows);
 const scenario = loaded ? loaded.scenario : opt('scenario', 'founders'), seedNum = loaded ? loaded.seed : +opt('seed', 7), map = loaded ? mapOf(loaded) : opt('map', 'medium'), years = +(opt('at', null) ?? opt('years', 3));
 const report = opt('report', null), json = args.includes('--json'), pawnId = opt('pawn', null), hhId = opt('household', null);
-if (!SIZES[map] || !['founders', 'heirs', 'populous', 'market'].includes(scenario)) { console.error(USAGE); process.exit(2); }
+if (!SIZES[map] || !['founders', 'solo', 'heirs', 'populous', 'market'].includes(scenario)) { console.error(USAGE); process.exit(2); }
 if (report && !REPORTS.includes(report)) { console.error('unknown report ' + report); process.exit(2); }
 
 // plain data: Maps as objects, Sets as arrays, typed arrays as arrays, functions left out, shared objects after the first as "&path"

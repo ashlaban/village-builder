@@ -100,10 +100,10 @@ app.ticker.add((tk) => {
   }
 });
 
-// The page opens on the generation screen. A hash skips it: #<scenario><size><seed>, scenario s (founders), h (heirs) or p (populous),
-// size t, s, m or l (medium if left out); e.g. #s123, #h123, #pt123 (populous, tiny). #123 is founders on a medium map.
-const hm = location.hash.match(/^#([shp]?)([tsml]?)(\d{1,9})$/);
-if (hm) build(+hm[3], { s: 'founders', h: 'heirs', p: 'populous', '': 'founders' }[hm[1]], hm[2] || 'm');
+// The page opens on the generation screen. A hash skips it: #<scenario><size><seed>, scenario s (founders), o (solo), h (heirs) or
+// p (populous), size t, s, m or l (medium if left out); e.g. #s123, #o123, #h123, #pt123 (populous, tiny). #123 is founders on a medium map.
+const hm = location.hash.match(/^#([sohp]?)([tsml]?)(\d{1,9})$/);
+if (hm) build(+hm[3], { s: 'founders', o: 'solo', h: 'heirs', p: 'populous', '': 'founders' }[hm[1]], hm[2] || 'm');
 else {
   showLanding();
   startDemo();

@@ -37,7 +37,7 @@ function run() {
   const size = sizes[opt('map', 'tiny')], seed = data ? data.seed : Number(opt('seed', 7));
   const years = Number(opt('years', 0)), scenario = data ? data.scenario : opt('scenario', 'populous'), pawn = Number(id);
   if (!size || !Number.isFinite(seed) || !Number.isFinite(years) || years < 0 || !Number.isInteger(pawn) || pawn < 0
-    || !['founders', 'heirs', 'populous'].includes(scenario)) throw new Error('Invalid pawn, seed, map, scenario or years');
+    || !['founders', 'solo', 'heirs', 'populous'].includes(scenario)) throw new Error('Invalid pawn, seed, map, scenario or years');
   const it = VB.gen.generate(seed, { cols: data ? data.cols : size[0], rows: data ? data.rows : size[1] });
   let r; while (!(r = it.next()).done);
   const st = data ? Sim.load(r.value, data) : Sim.seed(r.value, seed, scenario);

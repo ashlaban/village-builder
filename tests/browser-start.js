@@ -25,7 +25,7 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
   await page.click('#landNew');
   if (await page.locator('#genScreen').isHidden()) fail('New archipelago does not open the start');
   const cards = await page.$$eval('#startCards [data-sc]', (bs) => bs.map((b) => b.dataset.sc));
-  if (cards.join() !== 'founders,heirs,populous') fail(`the start offers ${cards}, not the three built scenarios`);
+  if (cards.join() !== 'founders,solo,heirs,populous') fail(`the start offers ${cards}, not the four built scenarios`);
   const shown = (sc) => page.waitForFunction((sc) => {
     const s = window.__start.st;
     return s && s.scenario === sc && window.__start.demo && document.querySelector('#startPins .pin') && document.querySelector('#startStories .story')
@@ -41,7 +41,7 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
       return `${e.tagName}:${Math.round(r.width * 10)}x${Math.round(r.height * 10)}@${Math.round(r.x - o.x)},${Math.round(r.y - o.y)}`;
     });
   });
-  for (const sc of ['founders', 'heirs', 'populous']) {
+  for (const sc of ['founders', 'solo', 'heirs', 'populous']) {
     await page.click(`[data-sc="${sc}"]`); await shown(sc); await page.waitForTimeout(1500);
     const pins = await page.evaluate(() => {
       const v = document.getElementById('startView').getBoundingClientRect();
@@ -82,7 +82,7 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
   await page.setViewportSize({ width: 1440, height: 900 });
   // each scenario raised from the start: whom to play follows; the main menu leads back to the start, the game kept aside
   await page.selectOption('#genSize', 't'); await page.fill('#genSeed', '7');
-  for (const sc of ['founders', 'heirs', 'populous']) {
+  for (const sc of ['founders', 'solo', 'heirs', 'populous']) {
     if (await page.locator('#genScreen').isHidden()) { await page.click('#chooseMenu'); await page.click('#landNew'); } // by the main menu
     const lat = sc === 'populous' ? 62 : 59; // VB-807: the climate offered beside size, seed and scenario
     await page.click(`[data-sc="${sc}"]`); await page.selectOption('#genClimate', String(lat)); await page.click('#genGo');
@@ -128,6 +128,6 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
   if (quick.scenario !== 'populous' || quick.cols !== 120 || !quick.played || quick.choose || quick.start || !quick.bar) fail(`quick start: ${JSON.stringify(quick)}`);
   await browser.close();
   if (errors.length) { console.log(`browser-start: ${errors.length} failure(s)`); process.exit(1); }
-  console.log('browser-start: the three scenarios shown with their callouts inside the picture, archetypes a look that moves nothing, each raised, '
+  console.log('browser-start: the four scenarios shown with their callouts inside the picture, archetypes a look that moves nothing, each raised, '
     + 'the open game kept aside and brought back');
 })().catch((e) => { console.error(e); process.exit(1); });

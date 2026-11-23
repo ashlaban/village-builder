@@ -1,6 +1,6 @@
 // Food balance of farms (VB-048, the balance review): per household and game year, rations made by source (grain net of seed, milk drunk
 // fresh, butter, meat) against what its members need, grouped by household size, by cattle and by the year's weather.
-// node tools/balance.js --scenario founders|heirs|populous --seeds 3,7,11,42 --map small --years 30 [--from 3] [--json]
+// node tools/balance.js --scenario founders|solo|heirs|populous --seeds 3,7,11,42 --map small --years 30 [--from 3] [--json]
 //   --map probe|tiny|small|medium|large (probe: the 36 by 26 island of tests/lib/probe.js)
 //   --from Y: count years from Y on (the first years of a scenario are settling in); --json prints the household-years as well.
 //   --rye: every village given rye and farming in three courses from the start (the test switch of VB-350, sim/scenarios giveRye).
