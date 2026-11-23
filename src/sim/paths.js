@@ -2,7 +2,7 @@
 VB['sim/paths'] = (() => {
   const { SEASON_DAYS } = VB['sim/rules'],
     { PATHS } = VB['sim/walking'];
-  const { findRoute } = VB['sim/routes'];
+  const { findRoute, costChanged } = VB['sim/routes'];
   // The stage of a count n on a tile now at stage s: up to stage k once n reaches PATHS.at[k], down only below PATHS.keep of it,
   // so a count that hovers about a threshold does not flicker between stages.
   function stageOf(n, s) {
@@ -37,6 +37,17 @@ VB['sim/paths'] = (() => {
   // water is not walked.
   function tread(w, i, n = 1) {
     if (i >= 0 && !bars(w, i)) w.wear[i] += n;
+  }
+  // A trail blazed on tile i (VB-447, sim/trails): its count is raised to a path's (PATHS.at[2]) and its stage with it, as if walked so;
+  // from then on it is a worn way like any other, halving a year and kept only by being walked. Its walking cost changes (sim/routes).
+  function blazeTile(st, i) {
+    const w = st.w;
+    if (bars(w, i)) return;
+    w.wear[i] = Math.max(w.wear[i], PATHS.at[2]);
+    if (w.worn[i] >= 2) return;
+    w.worn[i] = 2;
+    st.pathDirty.add(i);
+    costChanged(st, i);
   }
   // Once a game day: every count fades; a count under half a crossing is gone, and so is the wear of a tile a house is built on
   // since. A tile that changes stage joins st.pathDirty; onStage(tile), if given, hears of each change.
@@ -94,5 +105,5 @@ VB['sim/paths'] = (() => {
     for (let i = 0; i < w.N; i++) if (!bars(w, i)) n[w.worn[i]]++;
     return n;
   }
-  return { bars, stageOf, initWear, tread, fadeWear, wearIn, stageCounts, layWay };
+  return { bars, stageOf, initWear, tread, fadeWear, wearIn, stageCounts, layWay, blazeTile };
 })();
