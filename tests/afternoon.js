@@ -1,4 +1,4 @@
-// VB-1543: the household's day is allotted again in the afternoon (MATCH.day.afternoon, 14:00), when water's urgency rises above
+// VB-1546: the household's day is allotted again in the afternoon (MATCH.day.afternoon, 14:00), when water's urgency rises above
 // cooking's: a lone settler clearing land through the late morning, the water standing below the clearing in his list, leaves the clearing
 // for the water after 14:00, and the afternoon's list has the water first, for a free hand to take. On the probe island's solo settler.
 const VB = require('../src/load.js'),

@@ -10,8 +10,8 @@ VB['sim/chores'] = (() => {
   const { WORK, FISH, BREW, PEAT, cal } = VB['sim/rules'],
     { FORAGE } = VB['sim/forage'],
     Carts = VB['sim/carts'],
-    AFTERNOON = VB['sim/roles'].MATCH.day.afternoon, // the afternoon's hour, when the head allots the day again (sim/jobs; VB-1543)
-    EVENING = VB['sim/roles'].MATCH.day.evening; // the hour past which no evening task is begun (VB-1544)
+    AFTERNOON = VB['sim/roles'].MATCH.day.afternoon, // the afternoon's hour, when the head allots the day again (sim/jobs; VB-1546)
+    EVENING = VB['sim/roles'].MATCH.day.evening; // the hour past which no evening task is begun (VB-1547)
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
     Pot = VB['sim/pot'];
@@ -48,7 +48,7 @@ VB['sim/chores'] = (() => {
       carry: 'logs',
       to: 'woodpile',
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
-      // lived by while the house is cold or the pile will not feed tonight's fire (VB-1544): a load cut is carried home after work
+      // lived by while the house is cold or the pile will not feed tonight's fire (VB-1547): a load cut is carried home after work
       vital: (st, j) => {
         const hh = st.households[j.farm.household];
         return hh.cold > 0 || fuelFree(st, hh) < st.ECON.woodUse[cal(st.t).season];
@@ -100,7 +100,7 @@ VB['sim/chores'] = (() => {
       carry: 'buckets',
       to: 'door',
       window: { from: WORK[0] - 1 },
-      vital: true, // a dry day costs the meal's cooking and health (VB-331): a fetch begun is finished after work (VB-1544)
+      vital: true, // a dry day costs the meal's cooking and health (VB-331): a fetch begun is finished after work (VB-1547)
       evening: true, // and one not yet begun may be, until MATCH.day.evening (Kim, 23 November: water after dark)
       spot: (st, a, j) => {
         const w = st.w;
@@ -114,7 +114,7 @@ VB['sim/chores'] = (() => {
       deliver: (st, j, hh) => {
         hh.waterDay = cal(st.t).day;
       },
-      // once a day, from the hour before work until the evening's (VB-1544: the due-queue's last ask, at the end of work, leaves it
+      // once a day, from the hour before work until the evening's (VB-1547: the due-queue's last ask, at the end of work, leaves it
       // standing for the evening), at the village well if it has one, else by the house
       available: (st, hh, f, c, post) => {
         if (c.hour >= WORK[0] - 1 && c.hour < EVENING && hh.waterDay !== c.day)
@@ -138,7 +138,7 @@ VB['sim/chores'] = (() => {
       inside: true,
       window: { from: AFTERNOON },
       late: true, // the meal's deadline is today: unmanned, it calls its hand (sim/jobs)
-      vital: true, // the day's meal: a pot under way is finished after the end of work (VB-119; Kim, 11 Nov; VB-1544)
+      vital: true, // the day's meal: a pot under way is finished after the end of work (VB-119; Kim, 11 Nov; VB-1547)
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
       // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain, the seed it would eat (sim/pot)
       done: (st, j, hh, c) => {

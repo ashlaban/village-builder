@@ -41,7 +41,7 @@ if (f) {
   const j = { farm: f, site: t, owner: { type: 'household', id: hh.id } };
   check(near(K.urgency(st, j, cal(1, 6), MATCH.urgency), 0.2), 'urgency 0.2 at 30 days of spare food');
   spare(11); check(posts(cal(1, 6)).length === 2, 'two trips under 12 days of spare food');
-  spare(0); check(near(K.urgency(st, j, cal(1, 6), MATCH.urgency), MATCH.urgency.need), 'urgency need at none (VB-1546; was fishLean 2)');
+  spare(0); check(near(K.urgency(st, j, cal(1, 6), MATCH.urgency), MATCH.urgency.need), 'urgency need at none (VB-1549; was fishLean 2)');
   const Pot = VB['sim/pot'], held = Pot.freshHeld(st, hh, 'gathered');
   K.deliver(st, j, hh, f);
   check(near(Pot.freshHeld(st, hh, 'gathered') - held, 2.5), `the baskets add ${Pot.freshHeld(st, hh, 'gathered') - held} gathered food, not 2.5`);

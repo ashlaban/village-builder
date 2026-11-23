@@ -48,7 +48,7 @@ VB['sim/kinds'] = (() => {
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
   //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/jobs; the cook).
   //   vital: a kind a household lives by, true or (st, j) => boolean: once begun it is carried to its end though the work day ends
-  //   meanwhile (`carriedOn`, below; VB-1544, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
+  //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
   //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/jobs eveningCall; the water).
   //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/jobs).
   //   norm(st, j): the job's hours for a normal crop, where its hours go by the crop's size (reap, thresh): what a head that does not
@@ -193,7 +193,7 @@ VB['sim/kinds'] = (() => {
   const isOpen = (st, j) =>
     j.claims.length < KINDS[j.kind].hands &&
     doneOf(st, j, j.hours ?? KINDS[j.kind].hours) < (j.hours ?? KINDS[j.kind].hours);
-  // The one rule of the work day's end for a task begun (VB-1544; design.md, The head calls): a task of a kind a household lives by (`vital`)
+  // The one rule of the work day's end for a task begun (VB-1547; design.md, The head calls): a task of a kind a household lives by (`vital`)
   // whose hand is walking to it or at work is carried to its end; any other is let go (sim/clock, at WORK[1]). A load on its way home is
   // brought in whatever its kind (sim/agents release).
   const carriedOn = (st, j) => {
@@ -206,7 +206,7 @@ VB['sim/kinds'] = (() => {
     r.prio = Object.fromEntries(
       Object.entries(KINDS).map(([k, K]) => [k, r.except[k] ?? r.except[K.fetch] ?? r.work[K.type] ?? 0]),
     );
-  // A holder's ranks with the roles of its household's head pair absent (sim/roles STAND, VB-1542): `ranks[mask]`, for each kind the
+  // A holder's ranks with the roles of its household's head pair absent (sim/roles STAND, VB-1545): `ranks[mask]`, for each kind the
   // highest of its own and each absent role's (bit i of the mask for STAND_KEYS[i]); ranks[0] is prio. Made once, at load.
   for (const r of Object.values(ROLES)) {
     r.ranks = [r.prio];

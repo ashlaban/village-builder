@@ -317,7 +317,7 @@ VB['sim/agents'] = (() => {
     } else if (a.phase === 'back') {
       deposit(st, a);
       if (a.moving) emit(st, 'moveOn', a); // the move it was told of while on the road (VB-581; sim/away's moved)
-      // a load brought in after the work day, as one carried on (VB-1544): free, it goes in, as everyone free did at its end
+      // a load brought in after the work day, as one carried on (VB-1547): free, it goes in, as everyone free did at its end
       const h = cal(st.t).hour;
       if ((h >= WORK[1] || h < WORK[0]) && !a.job && !a.path && !a.inside && a.phase === null && a.away === undefined)
         goHome(st, a);
