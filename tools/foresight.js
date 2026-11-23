@@ -126,9 +126,10 @@ if (require.main === module) {
   const opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; }, json = args.includes('--json');
   const root = path.resolve(opt('root', path.join(__dirname, '..'))), scenario = opt('scenario', 'populous'), map = opt('map', 'small');
   const years = +opt('years', 30);
-  if (args.includes('--child')) {
-    process.send(one(root, scenario, +opt('seed', 7), map, years), () => process.exit(0)); // exit once the message is sent
-  }
+  if (args.includes('--child')) process.send(one(root, scenario, +opt('seed', 7), map, years), () => process.exit(0)); // exit once sent
+  else main(args, opt, json, root, scenario, map, years, fs, fork);
+}
+function main(args, opt, json, root, scenario, map, years, fs, fork) {
   const print = (o) => console.log(JSON.stringify(o, null, json ? 1 : undefined));
   if (args.includes('--compare')) {
     const i = args.indexOf('--compare'), [a, b] = [args[i + 1], args[i + 2]].map((f) => JSON.parse(fs.readFileSync(f, 'utf8')));
@@ -147,8 +148,9 @@ if (require.main === module) {
     const seed = seeds[next++];
     return new Promise((done, fail) => {
       const p = fork(__filename, ['--child', '--seed', String(seed), '--root', root, '--scenario', scenario, '--map', map, '--years', String(years)], { cwd: root, stdio: ['ignore', 'ignore', 'inherit', 'ipc'] });
-      p.on('message', (m) => out.push(m));
-      p.on('exit', (code) => (code ? fail(new Error(`seed ${seed} failed: ${code}`)) : done()));
+      let got = false; // a large message can be read after the child's exit: the seed is done at its message
+      p.on('message', (m) => { got = true; out.push(m); done(); });
+      p.on('exit', (code) => { if (!got) setTimeout(() => (got ? null : fail(new Error(`seed ${seed} sent nothing (exit ${code})`))), 5000); });
     }).then(run);
   };
   Promise.all(Array.from({ length: Math.min(jobs, seeds.length) }, run)).then(() => {
