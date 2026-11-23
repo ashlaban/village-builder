@@ -108,6 +108,84 @@ VB['sim/kinds'] = (() => {
   for (const [k, K] of Object.entries(KINDS))
     if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
   KINDS.blaze = VB['sim/trails'].KINDS.blaze; // blazing a trail (VB-447): sim/trails'
+  // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
+  // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
+  // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind
+  // added to the game appears there; a name outside these lists fails at load. A thing names the good of the registry (sim/goods) or
+  // the food of FOODS (sim/rules) it is, where it is one; it says what a thing is, not what it is worth or how much a job gives. ----
+  const PLACES = {
+    field: 'a field of the farm',
+    meadow: 'a hay meadow',
+    land: 'open land beside the farm, to make a field, a meadow or a plot',
+    farm: 'the farmyard',
+    house: 'in the house',
+    barn: 'the barn',
+    byre: 'the byre and the fold',
+    pasture: 'the pasture and the outland',
+    woods: 'the woods',
+    water: 'a well, a spring, a lake or a river',
+    shore: 'the shore',
+    bog: 'a bog or a clay bank',
+    hills: 'the hills and mountains, where rock is bare',
+    spring: 'a salt spring',
+    site: 'a building site',
+    green: 'the village green',
+    fence: 'the village fence',
+    commons: "the village's commons",
+    road: 'where a load was left lying',
+  };
+  const THINGS = {
+    seed: { name: 'seed grain', food: 'grain' },
+    sheaves: { name: 'sheaves' },
+    grain: { name: 'grain', good: 'grain', food: 'grain' },
+    flour: { name: 'flour', food: 'flour' },
+    meals: { name: 'meals' },
+    ale: { name: 'ale', good: 'ale' },
+    hay: { name: 'hay' },
+    manure: { name: 'manure' },
+    water: { name: 'water' },
+    firewood: { name: 'firewood' },
+    timber: { name: 'timber' },
+    stone: { name: 'stone' },
+    clay: { name: 'clay' },
+    peat: { name: 'peat' },
+    ore: { name: 'bog iron ore' },
+    iron: { name: 'iron', good: 'iron' },
+    tools: { name: 'tools' },
+    tar: { name: 'tar', good: 'tar' },
+    salt: { name: 'salt', good: 'salt' },
+    meat: { name: 'meat', food: 'meat' },
+    'salt meat': { name: 'salt meat', good: 'salt meat', food: 'salt meat' },
+    milk: { name: 'milk', food: 'milk' },
+    butter: { name: 'butter', good: 'butter', food: 'butter' },
+    fish: { name: 'fish', food: 'fish' },
+    'dried fish': { name: 'dried fish', good: 'dried fish', food: 'dried fish' },
+    'wild food': { name: 'berries, mushrooms and nuts', food: 'gathered' },
+    hide: { name: 'hides', good: 'hide' },
+    fleece: { name: 'fleece' },
+    cattle: { name: 'cattle', good: 'cattle/cow' },
+    sheep: { name: 'sheep', good: 'sheep' },
+    quern: { name: 'a hand quern', good: 'quern' },
+    cart: { name: 'a cart' },
+    boat: { name: 'a fishing boat' },
+    'tar pit': { name: 'a tar pit' },
+    field: { name: 'a field' },
+    meadow: { name: 'a hay meadow' },
+    house: { name: 'the house' },
+    barn: { name: 'a barn' },
+    booth: { name: 'a booth' },
+    fence: { name: 'the village fence' },
+    green: { name: 'the village green' },
+    well: { name: 'the village well' },
+    trail: { name: 'a trail' },
+  };
+  for (const [k, K] of Object.entries(KINDS)) {
+    const bad =
+      !Array.isArray(K.at) || !K.at.length || K.at.some((p) => !PLACES[p])
+        ? 'at'
+        : ['needs', 'gives'].find((f) => !Array.isArray(K[f]) || K[f].some((t) => !THINGS[t]));
+    if (bad) throw new Error(`sim/kinds: kind ${k} declares no ${bad} of PLACES or THINGS`);
+  }
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (st, j) =>
     j.claims.length < KINDS[j.kind].hands &&
@@ -164,5 +242,5 @@ VB['sim/kinds'] = (() => {
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
   ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, isOpen };
+  return { KINDS, ASK, isOpen, PLACES, THINGS };
 })();
