@@ -127,8 +127,7 @@ if (require.main === module) {
   const root = path.resolve(opt('root', path.join(__dirname, '..'))), scenario = opt('scenario', 'populous'), map = opt('map', 'small');
   const years = +opt('years', 30);
   if (args.includes('--child')) {
-    process.send(one(root, scenario, +opt('seed', 7), map, years));
-    process.exit(0);
+    process.send(one(root, scenario, +opt('seed', 7), map, years), () => process.exit(0)); // exit once the message is sent
   }
   const print = (o) => console.log(JSON.stringify(o, null, json ? 1 : undefined));
   if (args.includes('--compare')) {
@@ -153,6 +152,7 @@ if (require.main === module) {
     }).then(run);
   };
   Promise.all(Array.from({ length: Math.min(jobs, seeds.length) }, run)).then(() => {
+    if (out.length !== seeds.length) throw new Error(`${out.length} of ${seeds.length} seeds reported`);
     out.sort((a, b) => seeds.indexOf(a.seed) - seeds.indexOf(b.seed));
     const s = { root, scenario, map, years, minutes: round((Date.now() - t0) / 60000, 1), ...summarise(out) };
     if (opt('save', null)) fs.writeFileSync(opt('save'), JSON.stringify(s));
