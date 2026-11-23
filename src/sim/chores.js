@@ -9,7 +9,8 @@ VB['sim/chores'] = (() => {
     { target } = VB['sim/targets'];
   const { WORK, FISH, BREW, PEAT, cal } = VB['sim/rules'],
     { FORAGE } = VB['sim/forage'],
-    Carts = VB['sim/carts'];
+    Carts = VB['sim/carts'],
+    AFTERNOON = VB['sim/roles'].MATCH.day.afternoon; // the afternoon's hour, when the head allots the day again (sim/jobs; VB-1488)
   const { fellTree, drawWood } = VB['sim/forest'];
   const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
     Pot = VB['sim/pot'];
@@ -93,9 +94,9 @@ VB['sim/chores'] = (() => {
           ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8]
           : [w.hx[j.site] - 1, w.hy[j.site] + 4];
       },
-      // from 14:00, the cook's hour, above cooking's (VB-331): the hand that would cook fetches the water first
+      // from the afternoon (14:00), the cook's hour, above cooking's (VB-331): the hand that would cook fetches the water first
       urgency: (st, j, c, U) =>
-        c.hour >= U.waterLateHour ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
+        c.hour >= AFTERNOON ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
       deliver: (st, j, hh) => {
         hh.waterDay = cal(st.t).day;
       },
@@ -118,7 +119,7 @@ VB['sim/chores'] = (() => {
       hands: 1,
       type: 'household',
       inside: true,
-      window: { from: 14 },
+      window: { from: AFTERNOON },
       late: true, // a pot under way is finished after the end of work (VB-119; Kim, 11 Nov)
       urgency: (st, j, c, U) => (c.hour >= U.cookEveningHour ? U.cookEvening : U.cook),
       // the meals still missing for the coming day, cooked in the pot: fresh food, dried fish in winter, grain, the seed it would eat (sim/pot)
@@ -128,7 +129,7 @@ VB['sim/chores'] = (() => {
       },
       // from 14:00 to the end of work, while the household is short of meals and has grain or fresh food to cook (cookWanted)
       available: (st, hh, f, c, post) => {
-        if (c.hour >= 14 && c.hour < WORK[1] && cookWanted(st, hh, c))
+        if (c.hour >= AFTERNOON && c.hour < WORK[1] && cookWanted(st, hh, c))
           post(`cook:h${hh.id}:${c.day}`, f.house, { farm: f, day: c.day });
       },
     },

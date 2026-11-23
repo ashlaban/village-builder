@@ -165,8 +165,10 @@ VB['sim/roles'] = (() => {
   const MATCH = {
     poorFit: 2,
     // The head's day (VB-466): a task is given hands until they finish it within `horizon` working days, and a member is given tasks
-    // up to its working hours of that time; what it may do besides follows in its list.
-    day: { horizon: 0.5 },
+    // up to its working hours of that time; what it may do besides follows in its list. The day is allotted at the hour before work and
+    // again at `afternoon` (VB-1488; Kim, 23 November), the hour the afternoon's urgencies change: water's rises above cooking's, the
+    // cook's window opens (sim/chores); so that a task that has become more pressing reaches the lists made in the morning.
+    day: { horizon: 0.5, afternoon: 14 },
     floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
     distanceWeight: 0.15,
     noise: 0.3,
@@ -198,8 +200,7 @@ VB['sim/roles'] = (() => {
       waterMorning: 1.4,
       waterMorningHour: 10,
       water: 1,
-      waterLate: 3.3, // VB-331: from waterLateHour, 1.5 times cookEvening: the water comes before the cooking
-      waterLateHour: 14,
+      waterLate: 3.3, // VB-331: from the afternoon (day.afternoon), 1.5 times cookEvening: the water comes before the cooking
       cookEvening: 2.2,
       cookEveningHour: 15,
       cook: 0.6,

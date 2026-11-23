@@ -194,8 +194,10 @@ VB['sim/jobs'] = (() => {
         sweep(st, j);
       }
     }
-    // each morning every household's day is allotted; in the day, those whose tasks or whose village's changed, or that were reviewed
-    if (c.hour === WORK[0] - 1 || everyone) for (const id of st.liveHouseholds) changed.add(`household:${id}`);
+    // each morning, and again in the afternoon when its urgencies change (MATCH.day.afternoon; VB-1488), every household's day is
+    // allotted; in the day, those whose tasks or whose village's changed, or that were reviewed
+    if (c.hour === WORK[0] - 1 || c.hour === MATCH.day.afternoon || everyone)
+      for (const id of st.liveHouseholds) changed.add(`household:${id}`);
     allotChanged(st, c);
   }
   // A member without a task acts on the household's opportunities (design.md section 7, Acting without the plan; VB-249): when matching
