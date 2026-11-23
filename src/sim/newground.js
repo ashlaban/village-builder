@@ -1,6 +1,10 @@
-// @sys sim/newground: new ground made: a field's site cleared of its stones, its ground broken, and the new field it becomes (VB-149, VB-332)
+// @sys sim/newground: new ground made: a field's site felled and grubbed when it is a wood (VB-1495), cleared of its stones, its ground
+// broken, and the new field it becomes (VB-149, VB-332)
 VB['sim/newground'] = (() => {
   const { SOIL } = VB['sim/crops'];
+  const { ECON, TRAVEL } = VB['sim/rules'];
+  const { fellAll, clearTile } = VB['sim/forest'];
+  const Lying = VB['sim/lying'];
   const { newField } = VB['sim/fieldrec'];
   const { costChanged } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
@@ -11,6 +15,21 @@ VB['sim/newground'] = (() => {
   const { clearScrub, tended } = VB['sim/spread'];
   const { placeField } = VB['sim/courses'];
   const STONES_PER_LOAD = 25;
+  // Felling done on a wood broken to a field (VB-1495; Kim, 23 Nov): every tree standing on it is felled (sim/forest's fellAll, as a plot's
+  // are) and its wood, ECON.woodPerTrip a tree, lies at the site as timber left lying, the household's (sim/lying, sim/building's
+  // leftTimber): its hands carry it home to the woodpile a load a trip, or it rots at the frost. The project's next step, grubbing, opens.
+  function finishFell(st, f, hh, plan) {
+    const tile = plan.steps[plan.open].place,
+      wood = fellAll(st, tile) * ECON.woodPerTrip;
+    if (wood > 0)
+      Lying.leave(st, 'leftTimber', (wood / ECON.woodPerTrip) * TRAVEL.load, tile, { type: 'household', id: hh.id });
+    emit(st, 'stepDone', { type: 'household', id: f.household, plan });
+  }
+  // Grubbing done: the stumps are out, the tile is meadow and leaves its village's wood (sim/forest's clearTile); clearing opens.
+  function finishGrub(st, f, hh, plan) {
+    clearTile(st, plan.steps[plan.open].place);
+    emit(st, 'stepDone', { type: 'household', id: f.household, plan });
+  }
   // Clearing done: the stones go to the household's store, the tile is bare ground; the project's next step, breaking, opens.
   // `plan` is the household's field plan whose step the job was (sim/projects' onProject).
   function finishClear(st, f, hh, plan) {
@@ -54,5 +73,5 @@ VB['sim/newground'] = (() => {
     st.biomeDirty.add(tile);
     return fd;
   }
-  return { finishClear, clearStones, finishBreak, broken };
+  return { finishFell, finishGrub, finishClear, clearStones, finishBreak, broken };
 })();

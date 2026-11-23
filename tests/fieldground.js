@@ -18,7 +18,7 @@ const hh = st.households[0], plan = fieldProject(st, hh, hill);
 check(plan.ground === 'hills', `plan ground ${plan.ground}`);
 G.setBiome(w, hill, G.B.MEADOW);
 const fd = broken(st, hill, 9, plan.ground);
-check(fd.ground === 'hills' && fd.fert === 1, `broken after clearing: ${fd.ground} ${fd.fert}`);
+check(fd.ground === 'hills' && fd.fert === 0.7, `broken after clearing: ${fd.ground} ${fd.fert} (its ground's fertility, VB-1495)`);
 st.farmsteads[0].fields.push(fd);
 check(!checkState(st).some((b) => /ground/.test(b)), `ground invariant: ${checkState(st).join('; ')}`);
 // an older save: no ground, read at load from the tile's biome

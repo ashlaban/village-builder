@@ -5,7 +5,7 @@ VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
   const { doneOf, keptDone } = VB['sim/progress'];
   const { FIELDS, ECON } = VB['sim/rules'],
-    { fertility, farmable } = VB['sim/crops'];
+    { fertility, openGround: farmable } = VB['sim/crops'];
   const Projects = VB['sim/projects'],
     { emit, on } = VB['sim/events'];
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
@@ -14,10 +14,12 @@ VB['sim/expansion'] = (() => {
   const { log, fullName } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];
-  const { clearTile, FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
+  const { clearTile, fellAll, FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
   const { thick, clearScrub, tended } = VB['sim/spread'];
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fieldplans'],
-    { onField } = VB['sim/fieldwork'];
+    { onField } = VB['sim/fieldwork'],
+    { finishFell, finishGrub } = VB['sim/newground'],
+    { workStake } = VB['sim/claims'];
   const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand, houseScore } = VB['sim/layout'];
   const { COTTAGE, villageOf, wallsOf, timberNeed, waitsForTimber, cottageSteps, finishCottageStage } =
     VB['sim/cottageplan'];
@@ -310,10 +312,7 @@ VB['sim/expansion'] = (() => {
       walls = wallsOf(plot);
     if (step === 'fell') {
       // the trees felled are the plot's wood, 3 loads a tree, kept for its walls (VB-328)
-      walls.wood += Math.floor(w.trees[tr.tile]) * ECON.woodPerTrip;
-      w.trees[tr.tile] = 0;
-      st.regrow.delete(tr.tile);
-      st.treeDirty.add(tr.tile);
+      walls.wood += fellAll(st, tr.tile) * ECON.woodPerTrip;
     } else if (step === 'grub') clearTile(st, tr.tile);
     else if (step === 'clear') {
       w.stones[tr.tile] = 0;
@@ -347,6 +346,14 @@ VB['sim/expansion'] = (() => {
       hours: 10,
       hands: Infinity,
       type: 'wood',
+      // also a household's step, felling a wood broken to a field (VB-1495; sim/projects' landProject posts it, sim/newground ends it); a
+      // plot's step ends in finishStep
+      project: true,
+      worked: (st, j) => j.farm && workStake(st, j),
+      done: (st, j, hh) => {
+        const plan = Projects.onProject(st, j);
+        if (plan) finishFell(st, j.farm, hh, plan);
+      },
       available: plotWork,
     },
     grub: {
@@ -360,6 +367,12 @@ VB['sim/expansion'] = (() => {
       type: 'tilling',
       field: true,
       spot: onField,
+      project: true,
+      worked: (st, j) => j.farm && workStake(st, j),
+      done: (st, j, hh) => {
+        const plan = Projects.onProject(st, j);
+        if (plan) finishGrub(st, j.farm, hh, plan);
+      },
       available: plotWork,
     },
   };

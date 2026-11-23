@@ -2,7 +2,7 @@
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
   const { WOOD } = VB['sim/rules'],
-    { RIVER, farmable, byRiver, fertility } = VB['sim/crops'],
+    { RIVER, openGround: farmable, byRiver, fertility } = VB['sim/crops'],
     { PATHS } = VB['sim/walking'];
   const { drawnName, nameVillages, nameFarms, loneFarmName } = VB['sim/names']; // names at seeding
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];

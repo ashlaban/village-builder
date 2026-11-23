@@ -3,9 +3,14 @@ VB['sim/fieldrec'] = (() => {
   const { SOIL, GROUND, fertility } = VB['sim/crops'];
   const { BIOMES } = VB['gen/biomes'];
   // @state farmstead.fields[].ground: the key of the biome (gen/biomes BIOMES) the field's tile had when its project began, one with a row of
-  // GROUND (sim/crops): 'meadow', 'heath', 'hills' or 'marsh', and later others (a wood broken, VB-1495). Not the tile's biome now: clearing
-  // turns a wooded tile to meadow. Set here, read by nothing yet but the invariant.
+  // GROUND (sim/crops): 'meadow', 'heath', 'hills', 'marsh', or 'forest' or 'pine' (a wood broken, VB-1495). Not the tile's biome now: clearing
+  // turns a wooded tile to meadow. Set here; its row gives the field's fertility (newField), and the invariant reads it.
   const groundKey = (w, tile) => (GROUND[w.biome[tile]] ? BIOMES[w.biome[tile]].key : 'meadow');
+  // The biome of ground key `ground`, the tile's own when the key has no row (a plan from an older save). Allocates nothing.
+  const groundBiome = (w, tile, ground) => {
+    const b = BIOMES.findIndex((x) => x.key === ground);
+    return GROUND[b] ? b : w.biome[tile];
+  };
   const farmableKeys = () => Object.keys(GROUND).map((b) => BIOMES[b].key);
   // The one record of a field, in stubble on `tile`: a property a field starts with is set here, once (VB-1505). Its soil and the tick its tilth
   // was set differ by where it comes from: a laid-out farm's fields start at SOIL.start and no tilth (tilthAt 0: the tick is moot until dung is
@@ -22,7 +27,7 @@ VB['sim/fieldrec'] = (() => {
       reaped: null,
       held: 0,
       ground,
-      fert: fertility(w, tile),
+      fert: fertility(w, tile, groundBiome(w, tile, ground)), // its ground's, not the meadow a wood is grubbed to (VB-1495)
       soil,
       tilth: 0,
       tilthAt,

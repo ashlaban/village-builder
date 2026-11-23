@@ -8,7 +8,7 @@ VB['sim/commons'] = (() => {
     { DIMS, IDX, inForceAt } = VB['sim/customs'];
   const { cal } = VB['sim/rules'],
     { ROLES } = VB['sim/roles'],
-    { CROPS, farmable, fertility } = VB['sim/crops'],
+    { CROPS, openGround: farmable, fertility } = VB['sim/crops'],
     { groundKey } = VB['sim/fieldrec'];
   const { B } = VB['gen'];
   const { bfs } = VB['sim/hex'];
