@@ -264,8 +264,6 @@ VB['gen/rivers'] = (() => {
   // ---- drawing: each river tile holds a line from the joint upstream, past a bend near its centre, to the joint downstream ----
   // Width of the river through tile i, in map units: a brook at its source, at most three quarters of a hex wide.
   const width = (w, i) => Math.min(0.75 * w.HW, 2.5 + 0.9 * Math.sqrt(w.river[i]));
-  // What the tile card calls the water through tile i, or null.
-  const kind = (w, i) => (!w.river[i] ? null : width(w, i) < 8 ? 'Brook' : width(w, i) < 16 ? 'Stream' : 'River');
   // Where the river bends in tile i: near the centre on land (a fixed offset by tile, up to 0.2 R), the centre on water.
   function bend(w, i) {
     if (w.water[i]) return [w.hx[i], w.hy[i]];
@@ -592,5 +590,5 @@ VB['gen/rivers'] = (() => {
     return items;
   }
 
-  return { RIVERS, FORDS, minHeap, drainage, trace, width, kind, lines, drawChunk, thin };
+  return { RIVERS, FORDS, minHeap, drainage, trace, width, lines, drawChunk, thin };
 })();

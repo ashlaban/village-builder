@@ -54,7 +54,7 @@ function showTile(i) {
         ]
       : [];
   const river = w.river[i]
-    ? [`${Rivers.kind(w, i)} runs through; ${cross}`]
+    ? [`${Flow.kind(w, i)} runs through; ${cross}`]
     : !w.water[i] && Sim.byRiver(w, i)
       ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`]
       : [];

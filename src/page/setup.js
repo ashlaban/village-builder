@@ -8,6 +8,7 @@ const G = ArchGen,
   Strata = VB['world/geology'],
   Biomes = VB['world/biomes'],
   Grid = VB['world/grid'],
+  Flow = VB['world/rivers'],
   Customs = VB['sim/customs'];
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');

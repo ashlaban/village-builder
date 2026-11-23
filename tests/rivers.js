@@ -2,7 +2,7 @@
 // Fords (VB-112): deterministic, each joins two banks, one on every course of 5 land tiles or more; routes cross rivers only at fords.
 // Every rule on two 48 by 34 islands of tests/lib/probe.js (VB-856). --extended, at night: the default island at seeds 7 and 42, where
 // the counts are a statistic of whole islands' generated geography (ten sources or more, a course through a lake, more than 20 crossings).
-const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rv = VB['gen/rivers'];
+const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rv = VB['gen/rivers'], Flow = VB['world/rivers'];
 const { RIVER, FERTILITY, fertility, byRiver } = VB['sim/crops'], { findRoute } = VB['sim/routes'], { passable } = VB['sim/walking'], { siteScore } = VB['sim/layout'], { bfs, land, landComponents } = VB['sim/hex'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('RIVERS FAIL:', m); } };
 const EXT = process.argv.includes('--extended'), { island, generate, ROOMY } = require('./lib/probe.js');
@@ -13,6 +13,10 @@ for (const seed of EXT ? [7, 42] : [11, 13]) {
   const w = world(seed), again = anew(seed);
   check(Buffer.compare(Buffer.from(w.river.buffer), Buffer.from(again.river.buffer)) === 0, `seed ${seed}: river differs between generations`);
   check(Buffer.compare(Buffer.from(w.riverTo.buffer), Buffer.from(again.riverTo.buffer)) === 0, `seed ${seed}: riverTo differs between generations`);
+  // the name by flow (world/rivers, Kim, 23 November) is the name the drawn width gave at R = 28, on the island and at every flow
+  const byWidth = (x, i) => (!x.river[i] ? null : Rv.width(x, i) < 8 ? 'Brook' : Rv.width(x, i) < 16 ? 'Stream' : 'River');
+  const all = { HW: w.HW, river: Uint16Array.from({ length: 65536 }, (_, k) => k) };
+  check(w.R === 28 && Array.from(w.river.keys()).every((i) => Flow.kind(w, i) === byWidth(w, i)) && Array.from(all.river.keys()).every((i) => Flow.kind(all, i) === byWidth(all, i)), `seed ${seed}: a river's name by flow differs from its name by drawn width at R = 28`);
   const up = new Int32Array(w.N);
   for (let i = 0; i < w.N; i++) if (w.riverTo[i] >= 0) up[w.riverTo[i]]++;
   const comp = landComponents(w), sources = [];

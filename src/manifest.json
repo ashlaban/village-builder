@@ -3,6 +3,7 @@
   "world/grid.js",
   "world/biomes.js",
   "world/geology.js",
+  "world/rivers.js",
   "gen/noise.js",
   "gen/biomes.js",
   "gen/paths.js",
