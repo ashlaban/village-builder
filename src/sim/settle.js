@@ -5,15 +5,15 @@ VB['sim/settle'] = (() => {
   const Offers = VB['sim/offers'];
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['world/biomes'];
-  const { DAY, SETTLE, ECON, FIELDS, WOOD, MARRIAGE } = VB['sim/rules'],
-    { CROPS, fertility, farmable } = VB['sim/crops'];
+  const { DAY, SETTLE, ECON, FIELDS, WOOD, MARRIAGE, SPEED } = VB['sim/rules'],
+    { CROPS, clearable, clearedFertility } = VB['sim/crops'];
   const { bufferOf, act } = VB['sim/traits'];
   const { wishOf, moveWhy } = VB['sim/wishes'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
-    { villageAdded } = VB['sim/villagehours'],
-    { costChanged } = VB['sim/routes'];
+    { villageAdded, hoursBetween } = VB['sim/villagehours'],
+    { costChanged, trailReach } = VB['sim/routes'];
   const { log, fullName, spouseOf, unionOf, siblingsOf, kinNear, settlementIdOf, atFarm } = VB['sim/records'];
   const { placeFields, siteScore, woodNear, makeFarmstead } = VB['sim/layout'];
   const names = VB['sim/names'];
@@ -132,6 +132,7 @@ VB['sim/settle'] = (() => {
     }
     for (const v of st.villages)
       for (const p of [...v.plots, ...livePlots(st, v)]) for (const tr of tilesOf(p)) marks.add(tr.tile);
+    for (const v of st.villages) for (const t of v.wood || []) use.near.add(t); // no house or field in a village's wood (VB-786)
     // A multi-source search computes the union of the same radius searches. Each tile is visited once,
     // even where hundreds of fields overlap; source order and BFS order cannot affect set membership.
     const queue = [...marks],
@@ -165,28 +166,30 @@ VB['sim/settle'] = (() => {
       }
     return n ? s / n : 1;
   };
-  // Walking steps from village v's centre to every tile within reach of new villages and small villages to join.
-  const reachOf = (st, v) => bfs(st.w, v.center, Math.max(SETTLE.reach[1], SETTLE.join), walkable(st.w)).dist;
-  // House sites SETTLE.reach walking steps from village v's centre (reach: reachOf(st, v)), on meadow nobody uses, at least SETTLE.centreApart
-  // hex steps from every village centre (VB-154), by siteScore less SETTLE.perStep a step, best first; a third of the tiles are tried, as for
-  // the generated lone farm.
+  // The walking cost from village v's green to every tile within SETTLE.hours along a trail (VB-786): one bounded search (sim/routes
+  // trailReach: a wooded tile with no path at a path's cost, the trail the party would blaze), a Map of tile to cost (hours × SPEED).
+  const reachOf = (st, v) => trailReach(st.w, v.center, SETTLE.hours * SPEED);
+  const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
+  // House sites within SETTLE.hours of village v's green along a trail (reach: reachOf(st, v)), on meadow or wood (read as the meadow it
+  // becomes when grubbed: sim/crops clearable) nobody uses, at least SETTLE.centreApart hex steps from every village centre (VB-154), by
+  // siteScore less SETTLE.perHour an hour, best first: [tile, hours, score]; a third of the tiles are tried, as for the generated lone farm.
   function candidates(st, v, use, reach) {
     const w = st.w,
-      [lo, hi] = SETTLE.reach,
       out = [],
       centres = st.villages.map((u) => u.center);
-    for (const [t, d] of reach) {
-      if (d > hi) continue;
-      if (d < lo || (t * 31) % 3 || w.biome[t] !== B.MEADOW || !farmable(w, t) || use.taken.has(t) || use.near.has(t))
-        continue;
-      if (centres.some((c) => hexSteps(w, c, t) < SETTLE.centreApart)) continue;
-      out.push([t, d, siteScore(w, t) - SETTLE.perStep * d]);
+    for (const [t, c] of reach) {
+      if ((t * 31) % 3 || !(w.biome[t] === B.MEADOW || wooded(w, t)) || !clearable(w, t)) continue;
+      if (use.taken.has(t) || use.near.has(t)) continue;
+      if (centres.some((x) => hexSteps(w, x, t) < SETTLE.centreApart)) continue;
+      const h = c / SPEED;
+      out.push([t, h, siteScore(w, t, true) - SETTLE.perHour * h]);
     }
     return out.sort((a, b) => b[2] - a[2] || a[0] - b[0]);
   }
   // The best site for a new village from village v: of the best SETTLE.candidates sites still free, one with a block of SETTLE.fields fields
   // (placeFields, none near other farms) at least SETTLE.fertility times as fertile on average as v's fields, and a wood within reach; scored
-  // by the site's score plus SETTLE.fieldWeight times the block's fertility. {house, field, steps}, or null.
+  // by the site's score plus SETTLE.fieldWeight times the block's fertility. Wooded land is read as the meadow it becomes when grubbed
+  // (VB-786). {house, field, hours}, or null.
   function newSite(st, v, use, cands) {
     const w = st.w,
       minFert = SETTLE.fertility * meanFertility(st, v);
@@ -196,21 +199,21 @@ VB['sim/settle'] = (() => {
     let best = null,
       bs = -Infinity,
       tried = 0;
-    for (const [t, d, s0] of cands) {
+    for (const [t, h, s0] of cands) {
       if (tried >= SETTLE.candidates) break;
       if (use.taken.has(t) || use.near.has(t) || cutsOff(w, t, shut, house)) continue; // a house may not close a way (VB-402)
       tried++;
-      const block = placeFields(w, use.taken, t, SETTLE.fields, use.near);
+      const block = placeFields(w, use.taken, t, SETTLE.fields, use.near, null, true);
       if (!block) continue;
       // room besides the block for meadow and pasture, away from other farms (VB-154)
-      if (roomAt(st, t, (j) => j === t || block.includes(j) || use.taken.has(j) || use.near.has(j)) < FIELDS.room)
-        continue;
-      const fert = block.reduce((a, k) => a + fertility(w, k), 0),
+      const taken = (j) => j === t || block.includes(j) || use.taken.has(j) || use.near.has(j);
+      if (roomAt(st, t, taken, null, true) < FIELDS.room) continue;
+      const fert = block.reduce((a, k) => a + clearedFertility(w, k), 0),
         s = s0 + SETTLE.fieldWeight * fert;
       if (fert / block.length < minFert || s <= bs) continue;
       if (woodNear(w, use.taken, t, WOOD.least).length < WOOD.least) continue; // a wood in reach (VB-326)
       bs = s;
-      best = { house: t, field: block[0], steps: d };
+      best = { house: t, field: block[0], hours: h };
     }
     return best;
   }
@@ -223,29 +226,28 @@ VB['sim/settle'] = (() => {
       names.tileRand(site, names.VILLAGE.salt),
     );
   // ---- a small village to join (VB-147) ----
-  // The small village settler p of village `home` joins before founding one: 1 to SETTLE.smallFarms farms, its centre within SETTLE.join
-  // walking steps (reach), and not crowded: none of its own adults waits for land (waiting), fewer than MAX_PLOTS plots and booths are under
-  // way (plots not cleared or not built on, booths), and findSite finds room. Villages with living near kin of the settler first, then the
-  // nearest, then the lowest id.
-  // {village, house, field, steps}, or null.
-  function smallVillage(st, home, p, waiting, reach) {
+  // The small village settler p of village `home` joins before founding one: 1 to SETTLE.smallFarms farms, its green within SETTLE.join
+  // walking hours of home's by the villages' table (hoursBetween, VB-786), and not crowded: none of its own adults waits for land
+  // (waiting), fewer than MAX_PLOTS plots and booths are under way (plots not cleared or not built on, booths), and findSite finds room.
+  // Villages with living near kin of the settler first, then the nearest, then the lowest id.
+  // {village, house, field, hours}, or null.
+  function smallVillage(st, home, p, waiting) {
     const kin = new Set();
     for (const q of kinNear(st, p.id))
       if (st.pawns[q].alive && st.pawns[q].household !== null) kin.add(settlementIdOf(st, st.pawns[q]));
     const near = st.villages.filter((u) => {
-      const d = reach.get(u.center),
-        n = u.farmsteads.length;
+      const n = u.farmsteads.length;
       return (
         u.id !== home.id &&
-        d !== undefined &&
-        d <= SETTLE.join &&
+        hoursBetween(st, home.id, u.id) <= SETTLE.join &&
         n >= 1 &&
         n <= SETTLE.smallFarms &&
         !(waiting.get(u.id) || []).length
       );
     });
     const rank = (u) => (kin.has(u.id) ? 0 : 1);
-    near.sort((a, b) => rank(a) - rank(b) || reach.get(a.center) - reach.get(b.center) || a.id - b.id);
+    const hours = (u) => hoursBetween(st, home.id, u.id);
+    near.sort((a, b) => rank(a) - rank(b) || hours(a) - hours(b) || a.id - b.id);
     for (const u of near) {
       const under =
         activePlots(st, u).length +
@@ -253,7 +255,7 @@ VB['sim/settle'] = (() => {
         u.farmsteads.filter((id) => st.farmsteads[id].booth).length;
       if (under >= MAX_PLOTS) continue;
       const site = findSite(st, u);
-      if (site) return { village: u, house: site.house, field: site.field, steps: reach.get(u.center) };
+      if (site) return { village: u, house: site.house, field: site.field, hours: hours(u) };
     }
     return null;
   }
@@ -296,7 +298,7 @@ VB['sim/settle'] = (() => {
     reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
     stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
     makeProject(st, 'household', hh.id, fieldProject(st, hh, field)); // its project plans (sim/plans, VB-123): the field's,
-    makeProject(st, 'household', hh.id, cottagePlan(f)); // and its cottage's, built beside it (VB-1411)
+    makeProject(st, 'household', hh.id, cottagePlan(st, f)); // and its cottage's, built beside it (VB-1411)
     return f;
   }
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
@@ -424,7 +426,7 @@ VB['sim/settle'] = (() => {
         if (!use) use = landInUse(st);
         if (!reach) reach = reachOf(st, v);
         let f = null,
-          steps = 0;
+          hours = 0;
         // the call to the party (the basis `party`, due at once: VB-692), whose yes is the leave command; the new farm is the last one
         // added, and its house and field are marked used for the rest of the round
         const leave = (args) => {
@@ -446,10 +448,11 @@ VB['sim/settle'] = (() => {
           const site = newSite(st, v, use, cands);
           if (site) {
             f = leave({ house: site.house, field: site.field });
-            steps = site.steps;
+            hours = site.hours;
           } else {
             noLand = true;
-            log(st, `No land worth clearing lies within a day's walk of crowded ${v.name}.`, {
+            const text = `No land worth clearing lies within ${SETTLE.hours} hours' walk of crowded ${v.name}, along a trail cut through the wood.`;
+            log(st, text, {
               kind: 'noLand',
               village: v.id,
             });
@@ -468,7 +471,7 @@ VB['sim/settle'] = (() => {
         log(
           st,
           `${fullName(p)} leaves crowded ${v.name}${company.length ? ` with ${listed(company)}` : ''} and ` +
-            `founds ${nv.name}, ${steps} steps away.`,
+            `founds ${nv.name}, ${hours.toFixed(1)} hours' walk away along a trail.`,
           {
             kind: 'left',
             pawn: p.id,

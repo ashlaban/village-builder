@@ -8,7 +8,7 @@ const SPEED = (Object.values(VB).find((m) => m && m.SPEED) || {}).SPEED;
 for (const seed of seeds.split(',').map(Number)) {
   const it = VB.gen.generate(seed, { cols: SIZES[map][0], rows: SIZES[map][1] }); let r; while (!(r = it.next()).done);
   const st = VB.sim.seed(r.value, seed, scenario), w = st.w;
-  const land = []; for (let i = 0; i < w.nb.length / 6; i++) if (R.walkable ? R.walkable(w, i) : R.passable(w, i)) land.push(i);
+  const land = []; for (let i = 0; i < w.nb.length / 6; i++) if (VB['sim/walking'].passable(w, i)) land.push(i);
   const centres = st.villages.map((v) => v.center), n = centres.length, best = new Float64Array(land.length).fill(Infinity);
   const idx = new Map(centres.map((c, k) => [c, k])), li = new Map(land.map((t, k) => [t, k]));
   const all = [], near = new Array(n).fill(Infinity); let sea = 0;

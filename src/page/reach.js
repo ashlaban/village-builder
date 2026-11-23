@@ -35,7 +35,7 @@ function reachBands() {
       [R.BUILD.stoneWalk, 'stone for a house'],
       [R.CLAIMS.farmHours, 'there and back in a day'],
       [R.TRAVEL.dayWalk, "a day's walk"],
-      [VB['sim/routes'].ROUTE.reach / R.SPEED, 'as far as routes go'],
+      [VB['sim/routes'].ROUTE.hours, 'as far as routes go'],
     ].sort((a, b) => a[0] - b[0]),
     out = [];
   for (const [h, what] of raw) {
@@ -177,7 +177,6 @@ function reachPick() {
 function setReach(on) {
   reachOn = on;
   L.reach.visible = on;
-  $('reachKey').hidden = !on;
   if (!on || !w) return;
   const pick = reachPick();
   if (pick >= 0) reachFrom = pick;
@@ -208,3 +207,16 @@ function resetReach() {
   }
   if (reachOn) drawReach();
 }
+// The H the old button named is the eye's, which hides the interface (page/input), so walking time is J, for a journey.
+registerOverlay({
+  id: 'reach',
+  name: 'Walking time',
+  key: 'j',
+  icon: 'reach',
+  group: 'ways',
+  set: setReach,
+  refresh: refreshReach,
+  reset: resetReach,
+  layer: L.reach,
+  keyEl: $('reachKey'),
+});

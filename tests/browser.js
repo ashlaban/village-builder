@@ -177,8 +177,10 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     });
     for (const m of bad) fail(m);
   }
+  const landOverlay = async () => { await page.click('#overlayBtn'); await page.click('#landBtn'); await page.click('#overlayBtn'); }; // its list (VB-1496)
   for (const id of ['landBtn', 'settlersBtn', 'cultureBtn', 'treeBtn', 'landBtn']) {
-    await page.click('#' + id); await page.waitForTimeout(500);
+    if (id === 'landBtn') await landOverlay(); else await page.click('#' + id);
+    await page.waitForTimeout(500);
     if (id === 'treeBtn') await page.click('#treeClose');
   }
   // the History tab (VB-099) of a village, a farm and a pawn, with each filter by kind

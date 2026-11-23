@@ -37,10 +37,11 @@ let demo = false,
   stagePainted = null;
 // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
 // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
-// began to place the biomes and the list was chosen again by that fit (VB-342), and again when the villages were laid out anew (VB-402)
+// began to place the biomes and the list was chosen again by that fit (VB-342), and again when the villages were laid out anew (VB-402);
+// on the forested island (VB-780) the heirs' two villages fit at four of them
 const DEMO = {
   seeds: [18, 19, 29, 32, 33, 45, 93, 114, 128],
-  start: [18, 19, 29, 32, 33, 45, 93, 114, 128],
+  start: [19, 29, 114, 128],
   cols: 56,
   rows: 40,
   speed: 3,
@@ -88,7 +89,10 @@ async function swapWorld(wd, sim, { wc, over }) {
   water.scale.set(wd.STEP);
   water.position.set(-wd.STEP / 2, -wd.STEP / 2);
   L.water.addChild(water);
-  for (const o of over) addChunk(2, o.cx, o.cy, o.canvas);
+  for (const o of over) {
+    addChunk(2, o.cx, o.cy, o.canvas);
+    if (o.stale) chunks.get(ckey(2, o.cx, o.cy)).stale = true; // left stale when this world was swapped out: painted again here
+  }
   regionG = buildRegions(wd);
   L.regions.addChild(regionG);
   if (!waves.length) {
@@ -98,10 +102,7 @@ async function swapWorld(wd, sim, { wc, over }) {
   makeClouds(wd);
   drawMinimap(wd, wc, over);
   await buildSettlement(wd, sim);
-  resetLand();
-  if (landOn) drawLand();
-  resetGround();
-  resetReach();
+  resetOverlays();
 }
 // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
 // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply, places} (page/editor), `apply(wd)`

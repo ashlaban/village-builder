@@ -9,6 +9,7 @@ VB['sim/cottageplan'] = (() => {
     Projects = VB['sim/projects'],
     { emit } = VB['sim/events'];
   const { log, fullName, atFarm } = VB['sim/records'];
+  const { fellSteps } = VB['sim/fieldplans'];
   const COTTAGE = ['foundation', 'walls', 'roof'],
     COTTAGE_HOURS = { foundation: 30, walls: 60, roof: 30 }; // stages in order; hours as in KINDS
   // The village a plot lies in (sim/expansion: `village` on every plot made since VB-255; a village's plot without it, its holder's).
@@ -33,7 +34,7 @@ VB['sim/cottageplan'] = (() => {
       ? {
           key: `timber:f${f.id}`,
           site: wallsOf(p),
-          need: timberNeed(p.open),
+          need: timberNeed(stageOf(p)),
           dest: f.house,
           owner: { type: 'household', id: f.household },
         }
@@ -41,7 +42,14 @@ VB['sim/cottageplan'] = (() => {
   }
   // The plan of the cottage of a household settling on farm f (sim/settle makes it, beside its first field's): the plot's stages at f's house;
   // `farmstead` names the farm it is kept with when its household is dissolved (sim/plans' dropAll).
-  const cottagePlan = (f) => ({ what: 'cottage', farmstead: f.id, steps: cottageSteps(f.house) });
+  // A house on a wooded tile (a forest site, VB-786) is felled and grubbed before its foundation.
+  const cottagePlan = (st, f) => ({
+    what: 'cottage',
+    farmstead: f.id,
+    steps: [...fellSteps(st, f.house).map((s) => ({ ...s, done: 0 })), ...cottageSteps(f.house)], // done: as a stage's
+  });
+  // The cottage's stage the plan's open step is (as COTTAGE's index), or -1 while its house tile is felled and grubbed.
+  const stageOf = (p) => COTTAGE.indexOf(p.steps[p.open].kind);
   // A cottage's stages at `house` as steps of a plan (a plot's after its clearing; a settler household's own, cottagePlan): each its hours
   // and its `done`, the walls the `wood` brought to the site (VB-328).
   const cottageSteps = (house) =>
@@ -83,7 +91,7 @@ VB['sim/cottageplan'] = (() => {
     const k = p.steps[p.open],
       key = `booth:f${f.id}`;
     k.done = keptDone(st, key, k.hours, k.done);
-    if (waitsForTimber(wallsOf(p), p.open)) return null;
+    if (waitsForTimber(wallsOf(p), stageOf(p))) return null;
     return [key, k.kind, { farm: f, booth: true, done: k.done, hours: k.hours }];
   }
   // A booth household's stage job j is done (sim/building's stage kinds): its plan's stage, while it is still its stage.
@@ -117,6 +125,7 @@ VB['sim/cottageplan'] = (() => {
     waitsForTimber,
     cottageSteps,
     cottagePlan,
+    cottageOf,
     cottageJob,
     cottageTimber,
     finishCottageStage,

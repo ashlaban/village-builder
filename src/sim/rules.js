@@ -478,7 +478,9 @@ VB['sim/rules'] = (() => {
     hour: 3 / 8,
   };
 
-  const SPEED = 12; // tiles per game hour on foot, on meadow (it was 3: the distance review, Kim, 12 Nov; design.md, World and scale)
+  // tiles per game hour on foot, on meadow (design.md, The journey scale; Kim, 15 Nov; VB-780): it was 3, then 12 (the distance review, Kim,
+  // 12 Nov); at 8 the neighbouring village is 2.5 to 3 hours off and the far side of the medium island days away (VB-444's plan, section 5)
+  const SPEED = 8;
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = {
@@ -492,28 +494,31 @@ VB['sim/rules'] = (() => {
   };
   // Moving to new land (sim/settle; docs/review-expansion.md): a waiting adult of ages[0]..ages[1] in a crowded village leaves with a chance of
   // chance[k] after k + 1 rounds of waiting there (the last from then on); each waiting sibling follows with `follow`, at most maxFollow. A party
-  // needs provisionDays of its rations and seed for one field. A new village lies reach[0]..reach[1] walking steps from home, its house at least
-  // `apart` steps from any house, green or field, with a block of `fields` fields at least `fertility` times as fertile as home's and a
-  // wood (WOOD.least wooded tiles within WOOD.reach); sites score siteScore + fieldWeight × the block's fertility − perStep a step, and the
-  // best `candidates` by the first and last terms are tried. A small village (VB-147) has 1..smallFarms farms, its centre within `join`
-  // steps of home. Spacing (stability review, VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from
-  // every village centre. Provisions were 36 days, which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
+  // needs provisionDays of its rations and seed for one field. A new village lies within `hours` walking hours of home's green along a
+  // trail the party would blaze (a wooded tile with no path at a path's cost; VB-786, docs/plans/VB-445.md: 6 hours is there and back in a
+  // day; the 10 to 30 steps it replaces were 10 hours at 3 tiles an hour when decided, 3.75 at 8), on meadow or wood (wood read as the
+  // meadow it becomes when grubbed), its house at least `apart` steps from any house, green or field, with a block of `fields` fields at
+  // least `fertility` times as fertile as home's and a wood (WOOD.least wooded tiles within WOOD.reach); sites score siteScore +
+  // fieldWeight × the block's fertility − perHour an hour (0.15 a step at 8 steps an hour), and the best `candidates` by the first and last
+  // terms are tried. A small village (VB-147) has 1..smallFarms farms, its green within `join` hours of home's by the villages' table.
+  // Spacing (stability review, VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from every village
+  // centre, the only near bound. Provisions were 36 days, which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
   const SETTLE = {
     ages: [18, 45],
     chance: [0.3, 0.6, 0.8],
     follow: 0.5,
     maxFollow: 2,
     provisionDays: 42,
-    reach: [10, 30],
+    hours: 6,
     apart: 5,
     centreApart: 12,
     fields: 3,
     fertility: 0.9,
     fieldWeight: 3,
-    perStep: 0.15,
+    perHour: 1.2,
     candidates: 40,
     smallFarms: 3,
-    join: 30,
+    join: 6,
   };
   // The moving round as offers (VB-692; docs/plans/VB-682.md, section 2; Proposed): it lasts `passes` days from autumn day `day` + 1 (sday
   // `day`, 0-based: days 11 to 13), each day every village in its step; a village's step answers the offers due to its people in `order`
@@ -535,11 +540,12 @@ VB['sim/rules'] = (() => {
   });
   // The village's wood (VB-326; design, Land and ecology, The village's wood; Agreed, Kim, 10 Nov): an allotted area of wooded tiles, v.wood
   // (sim/territory), perHousehold tiles for each live household of the village (a household fells about 11 trees a year and a tile of 60 to 80
-  // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre (4 hours each way on meadow,
-  // so a trip with its 3 hours' cutting fits the working day). A trip cuts on a tile drawn evenly among those keeping more than `thin` of
-  // their trees, else among any (sim/forest). A generated village or a settlers' site needs `least` wooded tiles within `reach`. Where reach
-  // holds too few, the rest of the area lies beyond it, up to `far` steps (VB-421): the farthest a trip still fits the working day, 9 hours'
-  // walk out on meadow (3 steps an hour) and its 3 hours' cutting between 6:00 and 18:00; the laden walk home may run past the day's end.
+  // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre. Where reach holds too few,
+  // the rest of the area lies beyond it, up to `far` steps (VB-421). A trip cuts on a tile drawn evenly among those keeping more than `thin`
+  // of their trees, else among any (sim/forest). A generated village or a settlers' site needs `least` wooded tiles within `reach`. The two
+  // reaches are distances (Kim, 16 Nov; VB-781 gives them hours), written at 3 steps an hour, when `far` was 9 hours' walk out: at SPEED 8
+  // and the journey scale's dear ground (VB-780), `reach` is 1.5 hours out over meadow, 6 through pathless broadleaf forest and 2.4 on the
+  // path the wood trips wear (worn in at seeding); `far` is 5.4 hours out on a path, and out of a day's work without one.
   const WOOD = { perHousehold: 5, least: 6, cap: 150, reach: 12, far: 27, thin: 0.25 };
   // Peat (VB-367; design.md, Fuel; Proposed, slice 6's plan, 11 Nov): cut in summer (sim/dig) and burnt in place of wood once dry, from the
   // season after it was cut. A load of peat is dug a trip (ECON.woodPerTrip units, as a firewood trip brings); `worth` of wood a unit burns

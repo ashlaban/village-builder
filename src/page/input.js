@@ -116,15 +116,13 @@ stage.addEventListener(
 );
 
 const keys = new Set();
+// The overlays' keys are their registry's (overlayShortcut, page/overlays): L, O, J, a digit 6 to 9 or Y, U, I, 0 for none, [ and ].
 const SHORTCUTS = {
   p: 'settlersBtn',
   t: 'treeBtn',
   c: 'cultureBtn',
   g: 'gridBtn',
   r: 'regionBtn',
-  l: 'landBtn',
-  o: 'groundBtn',
-  h: 'reachBtn',
   m: 'minimapBtn',
   f: 'centre',
 };
@@ -163,7 +161,11 @@ window.addEventListener('keydown', (e) => {
       return;
     } // the action bar's tool, then its list (page/actbar)
     const open =
-      activePanel !== null || barOpen || $('clock').classList.contains('speed-open') || !$('noticePop').hidden;
+      activePanel !== null ||
+      barOpen ||
+      $('clock').classList.contains('speed-open') ||
+      !$('noticePop').hidden ||
+      !$('overlayPop').hidden;
     closeSpeedOptions();
     closeNotices();
     openPanel(null);
@@ -177,14 +179,15 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   // panels and layers by a letter, wherever the focus is but in a text field; F centres the map on the selection
-  const press = SHORTCUTS[e.key.toLowerCase()];
+  const press = SHORTCUTS[e.key.toLowerCase()] || overlayShortcut(e.key.toLowerCase()); // the overlays' keys (page/overlays)
   if (
     press &&
     !e.shiftKey &&
     !(e.target.closest && e.target.closest('input, select, textarea')) &&
     !document.body.classList.contains('ui-hidden')
   ) {
-    if (press === 'centre') centreSelection();
+    if (typeof press === 'function') press();
+    else if (press === 'centre') centreSelection();
     else $(press).click();
     return;
   }
@@ -252,14 +255,6 @@ toggle($('gridBtn'), (on) => {
 toggle($('regionBtn'), (on) => {
   L.regions.visible = on;
 });
-toggle($('landBtn'), (on) => {
-  landOn = on;
-  L.land.visible = on;
-  $('landKey').hidden = !on;
-  if (on) drawLand();
-});
-toggle($('groundBtn'), (on) => setGround(on));
-toggle($('reachBtn'), (on) => setReach(on));
 // Panel choices and folds belong to the page, never to saved simulation state.
 const mobileUI = matchMedia('(max-width: 1024px)');
 let activePanel = null,

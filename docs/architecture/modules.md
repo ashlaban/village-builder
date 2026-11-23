@@ -35,7 +35,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Nothing digs yet. `src/sim/prospect.js` keeps what each village
   has found of the hidden upland ores (`st.finds`; `w.vein`, `w.veinNear`): a finished job near a vein may find it (`sim/agents` calls
   `worked`); `Sim.knowsDeposit` and `Sim.depositKnown` are the views' reads. They are shown by the tile panel
-  and the Ground overlay (`src/page/ground.js`: bedrock tints, deposit marks and a key, drawn once a world; the map bar, key O), and the Reach overlay (`src/page/reach.js`: land banded by walking hours from the selected tile, by `reachCosts` of `sim/routes`, with contours and a key at the hours the rules compare against; the map bar, key H).
+  and the Ground overlay (`src/page/ground.js`: bedrock tints, deposit marks and a key, drawn once a world; key O), and the Reach overlay (`src/page/reach.js`: land banded by walking hours from the selected tile, by `reachCosts` of `sim/routes`, with contours and a key at the hours the rules compare against; key J). The three register with `src/page/overlays.js` (VB-1496), the map bar's one overlay button and its list: one overlay shown at a time, its key over the minimap.
   The climate of a world is `src/gen/climate.js` (VB-342), also called by `gen.js`: it erodes the relief, draws the seed's wind (`w.wind`),
   carries rain over the map on it (`w.rain`) and deals the tiles' moisture (`w.hm`) out by that rain, so biomes follow the weather; its
   numbers are `CLIMATE`. Nothing in play reads the wind or the rain yet.
@@ -64,7 +64,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`st.pathCache`, `st.routeDirty`, `st.routeFallbacks`). `costChanged` marks that cache for daily refresh and tells walking to invalidate
   its reach lists if passability changed. `src/sim/villagehours.js` maintains the symmetric travel-time table `st.villageHours` (VB-286)
   through the route search and supplies the village-to-village distance queries. `src/sim/paths.js` counts and fades worn paths
-  (`w.wear`, `w.worn`) and wears in generated villages; `src/draw/paths.js` draws them into the map chunks.
+  (`w.wear`, `w.worn`) and wears in generated villages; `src/draw/paths.js` draws them into the map chunks. `src/sim/trails.js` holds the
+  verb `blaze` (VB-447): a trail is its blazer's project plan, a job a wooded tile on the route `trailStep` makes, worked by the blazer's
+  household; a tile blazed is set to a path's count through `sim/paths` (`blazeTile`), and nothing else of it is kept.
 - `Sim.seed(w, seed, scenario)` (`src/sim/scenarios.js`) makes the state `st`; `Sim.advance(st, hours)` (`src/sim/clock.js`) runs it, by whole 6-minute steps only: any other number of hours is refused with an error (VB-244); the page keeps the part of a step and draws the pawns between steps.
   What runs, and in what order, is one table in `src/sim/clock.js`, `CALENDAR` (VB-241): each entry an `every` (step, hour, day, season,
   year), an `at` within it (hour, tick, season, sday, doy), a guard `when` that is not a date, an owner module, `run` and a note. Each step walks
@@ -313,7 +315,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   domain. Since VB-1405 `perform` gives the queue done, refused(why) or pending(ref), through the one path `issue` takes; a verb whose act
   lasts registers `active(st, cmd, ref)`, and the queue (`sim/player`) asks it, keeping the reference in the save (work's: the pawn's
   numbered assignment in its slot, `agent.assigned`, sim/attention). Each module registers, at load, the verbs of the acts it carries out: `sim/agents` (`work`, `walkTo`, `goHome`, `idle`,
-  `haltForTalk`), `sim/away` (`lodge`, `comeHome`), `sim/building` (`raiseBooth`, `dropBooth`, `letIn`: a staked booth is its maker's project plan, VB-1172), `sim/gifts` (`give`, `deliver`), `sim/occasions` (`attend`, `call`), `sim/venues` (`callAle`),
+  `haltForTalk`), `sim/away` (`lodge`, `comeHome`), `sim/building` (`raiseBooth`, `dropBooth`, `letIn`: a staked booth is its maker's project plan, VB-1172), `sim/trails` (`blaze`, VB-447), `sim/gifts` (`give`, `deliver`), `sim/occasions` (`attend`, `call`), `sim/venues` (`callAle`),
   `sim/offers` (`offer`, `answer`), `sim/visits` (`visit`), `sim/plans` (the head's plan), `sim/routines` (`routines`; the alderman's `layOut`, VB-673), `sim/workdays` (`callWorkday`),
   `sim/tar` (`chargeTar`), `sim/help` (`fillStore`), `sim/aims`
   (`plotToVillage`), `sim/society` (`decide`, `argue`, `dropCause`, `rally`), `sim/gathering`, `sim/trust` (`goBack`, `goToKin`),
@@ -460,4 +462,10 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   enough for what is planned: a count, and where a project plan asks for it, its framed work block with held against asked on the one
   meter); a **gear** wears (what condition is it in). A material is one row of `MATERIALS` in `src/page/cards.js`, its kinds a list under
   the total, shown only where more than one is held; a work's asks are read from the project plan's `build` reservations.
+- A new map overlay (VB-1496) is one file under `src/page/`, its line in `src/page.json` after `page/overlays.js` and before `page/input.js`,
+  an icon in both sets of `src/page/icons.js` (`ICON` and `ICON_STEN`), and a key panel (`class="ground-key panel"`, `hidden`) beside the
+  others over the minimap in `src/body.html`. The file ends with `registerOverlay({id, name, short, key, icon, group, set(on), refresh(), reset(), layer, keyEl})`:
+  `set` shows or hides its layer and draws it, `refresh` runs every frame on or off, `reset` for a new world. With no `key` it takes the next
+  free digit (6 to 9: 1 to 5 are the speeds; then Y, U and I). The overlay button, its list, the keys and `tests/browser-overlays.js` follow the registry: none
+  of them names an overlay.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.

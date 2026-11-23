@@ -110,5 +110,11 @@ VB['sim/crops'] = (() => {
   // Fertility of a farmable tile as a field: by its biome, and more when a river waters it.
   const fertility = (w, i) => FERTILITY[w.biome[i]] * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
 
-  return { CROPS, ROTATIONS, SOIL, FERTILITY, RIVER, farmable, byRiver, fertility };
+  // A tile a settler may farm once it is cleared (VB-786): farmable, or wooded (broadleaf or pine) off the water and the rivers, read as
+  // the meadow it becomes when grubbed (sim/forest clearTile); its fertility as a field then.
+  const wooded = (w, i) => w.biome[i] === B.FOREST || w.biome[i] === B.PINE;
+  const clearable = (w, i) => farmable(w, i) || (i >= 0 && wooded(w, i) && !w.water[i] && !w.river[i]);
+  const clearedFertility = (w, i) =>
+    wooded(w, i) ? FERTILITY[B.MEADOW] * (byRiver(w, i) ? 1 + RIVER.irrigation : 1) : fertility(w, i);
+  return { CROPS, ROTATIONS, SOIL, FERTILITY, RIVER, farmable, byRiver, fertility, clearable, clearedFertility };
 })();

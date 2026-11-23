@@ -88,6 +88,7 @@
       "sim/cottageplan",
       "sim/expansion",
       "sim/building",
+      "sim/trails",
       "sim/drying",
       "sim/tar",
       "sim/carts",

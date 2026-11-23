@@ -2,7 +2,8 @@
 // node tools/cover.js [--map tiny|small|medium|large] [--seeds 7,42] [--json]
 //   defaults: medium, seeds 7,11,42; generates each island (no simulation is seeded or run) and prints one row a biome: its share of the
 //   land, in percent, for each seed and at the median seed, then the forest's share (broadleaf and pine together) and the open
-//   lowland's (meadow, heath and sandy shore). The thresholds that set these shares are COVER in src/gen.js.
+//   lowland's (meadow, heath and sandy shore). The thresholds that set these shares are COVER in src/gen/biomes.js: since the journey
+//   scale (VB-780) the island is forested, forest and pine about half of the land at the median seed (design.md, The journey scale).
 require('./help.js')(__filename);
 const VB = require('../src/load.js'), G = VB.gen;
 const opt = (k, d) => { const i = process.argv.indexOf('--' + k); return i < 0 ? d : process.argv[i + 1]; };

@@ -107,6 +107,7 @@ VB['sim/kinds'] = (() => {
   // a load left lying where its carrier fell is fetched by its owner (VB-611): a fetch kind for each kind that carries a load (sim/lying)
   for (const [k, K] of Object.entries(KINDS))
     if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
+  KINDS.blaze = VB['sim/trails'].KINDS.blaze; // blazing a trail (VB-447): sim/trails'
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (st, j) =>
     j.claims.length < KINDS[j.kind].hands &&
@@ -161,6 +162,7 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('boilsalt')); // salt (VB-700, sim/saltpan)
   ASK.farmAfterPlans.push(rule('smelt'), rule('mendtools')); // iron and the tools (VB-701, sim/ironwork)
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
+  ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, isOpen };
 })();
