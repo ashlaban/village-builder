@@ -3,7 +3,8 @@
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['world/biomes'];
-  const { SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'],
+  const { SEASON_DAYS, TRAVEL, HERD, BUILD, cal } = VB['sim/rules'],
+    { dayLoss } = VB['sim/goods'],
     { byRiver } = VB['sim/crops'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
@@ -235,15 +236,28 @@ VB['sim/meadows'] = (() => {
   // Days into the haymaking window, or -1 outside it.
   const hayDay = (c) => (c.season === 1 ? c.sday : c.season === 2 && c.sday <= MOW_LAST ? SEASON_DAYS + c.sday : -1);
   // Hay is wanted while the barn and the hay lying mown hold less than the standing plan's target of winters' need (targets.hayWinters,
-  // sim/plans) of the household's animals now; a household with none mows nothing (balance review: a farm whose herds were gone mowed 3,893
-  // hay that nothing would eat).
+  // sim/plans) of the household's animals now, with what the stack loses before the winter (VB-1549: a target met early in the window was
+  // fed and spoilt under it by the winter's first day): the stall days still to come before it (sim/byre, HERD.stall) and its spoilage until
+  // then, as a stack at the target would spoil (sim/goods dayLoss; a barn's BUILD.barn.loss). A household with no animals mows nothing
+  // (balance review: a farm whose herds were gone mowed 3,893 hay that nothing would eat).
   function hayWanted(st, f, hh) {
     const need = winterNeed(st, hh);
+    if (!(need > 0)) return false;
+    const target = st.plans.households.get(hh.id).targets.hayWinters * need;
     return (
-      need > 0 &&
       hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0) <
-        st.plans.households.get(hh.id).targets.hayWinters * need
+      target + hayLostToWinter(st, f, target, need)
     );
+  }
+  // What a stack of `target` hay loses from today to the winter's first day: the stall days before it, fed at the herds' daily hay (a
+  // winter's need over its stall days), and its days of spoilage. In the winter itself nothing is reckoned.
+  function hayLostToWinter(st, f, target, need) {
+    const doy = cal(st.t).doy,
+      winter = 3 * SEASON_DAYS;
+    if (doy >= winter) return 0;
+    const stall = Math.max(0, HERD.stall[1] - doy) + Math.max(0, winter - Math.max(doy, HERD.stall[0]));
+    const spoil = dayLoss(st, 'hay', target, need) * (f.barn ? BUILD.barn.loss : 1);
+    return (stall * need) / HERD.stallDays + (winter - doy) * spoil;
   }
   // The jobs a meadow posts now: [key, kind, extra]; refreshJobs posts them for the meadow's household. Raking and mowing only while hay is
   // wanted (`want`: a boolean, or a function asked only when a raking or mowing could be posted, VB-227); hay already mown is always carried in.
@@ -433,6 +447,7 @@ VB['sim/meadows'] = (() => {
     HAY,
     UNRAKED,
     hayWanted,
+    hayLostToWinter,
     hayLoad,
     hayLaid,
     meadowsSpring,
