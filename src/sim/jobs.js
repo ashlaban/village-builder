@@ -1,5 +1,6 @@
 // @sys sim/jobs: job board: posting and the reviews' asks; the head's day (VB-466): a household's tasks allotted to its members, and taken
-// from each member's list; fit and urgency; the hours of help a head lacks, asked at the morning's allotment (sim/hands, VB-470)
+// from each member's list, with its standing duties (VB-1540: what the morning gave each is kept to the next); fit and urgency; the
+// hours of help a head lacks, asked at the morning's allotment (sim/hands, VB-470)
 VB['sim/jobs'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { WORK, TICKS, DAY, cal } = VB['sim/rules'],

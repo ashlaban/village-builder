@@ -327,6 +327,23 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     await page.click('#tileHouse [data-plan="target"][data-store="ale"][data-n="null"]');
     if ((await view()).goods.ale.chosen !== null || await page.locator('#tileHouse [data-plan="target"][data-store="ale"][data-n="null"]').count()) {
       fail('the ale target was not cleared'); }
+    // standing duties (VB-1540): each member's in its one line; the head sets one the morning gave, the row says so, and lifts it again
+    {
+      const set = '#tileHouse [data-plan="duty"][data-on="1"]';
+      if (!(await page.locator(set).count())) {
+        if (!/No duties yet/.test(await page.locator('#tileHouse').textContent())) fail('the Plan tab shows neither duties nor that there are none yet');
+      } else {
+        const d = await page.locator(set).first().evaluate((b) => ({ pawn: +b.dataset.pawn, type: b.dataset.type }));
+        const held = () => page.evaluate(({ pawn, type }) => window.__play.Sim.dutiesOf(window.__play.st, pawn).find((x) => x.type === type), d);
+        await page.locator(set).first().click();
+        const row = `#tileHouse [data-duty="${d.pawn}"]`;
+        await page.waitForSelector(`${row} [data-plan="duty"][data-type="${d.type}"][data-on="0"]`);
+        if (!((await held()) || {}).set || !/set by the head/.test(await page.locator(row).textContent())) fail(`the duty ${d.type} of pawn ${d.pawn} was not set, or its row does not say so`);
+        await page.click(`${row} [data-plan="duty"][data-type="${d.type}"][data-on="0"]`);
+        await page.waitForTimeout(300);
+        if (await held()) fail(`the duty ${d.type} of pawn ${d.pawn} was not lifted`);
+      }
+    }
     await page.click('#tileHouse [data-plan="tile"][data-what="field"]:not([data-clear])');
     if ((await page.evaluate(() => window.__play.tool()))?.kind !== 'plan') fail('Choose the tile did not put the plan\'s tool in hand: ' + await page.locator('#tileHouse .plan-msg').allTextContents());
     const box = await page.locator('canvas').first().boundingBox(), mid = [box.x + box.width / 2, box.y + box.height / 2];
