@@ -82,10 +82,12 @@ VB['sim/spread'] = (() => {
   //   nobody's use, visited once a game day (spreadForest); a tile taken into use again leaves it, and one LAPSE.years untended reverts
   //   (w.dev 0) and leaves it. Made at seed; at the load of an older save, on the first day, from the developed tiles in nobody's use.
   //   Written here only.
-  // Tile t was let go today: tended to today, it lapses from now; open land a wood seeds joins the forest's front.
-  function lapse(st, t) {
+  // Tile t was let go: it lapses from its last use (`day`, the game day of the last work on its field; today when that is not known
+  // and no work on the tile is dated); open land a wood seeds joins the forest's front. Lapsing is the ground's, whoever held it.
+  function lapse(st, t, day) {
     const w = st.w;
-    tended(st, t);
+    if (Number.isInteger(day)) w.tended[t] = Math.max(w.tended[t], day + 1);
+    else if (!w.tended[t]) tended(st, t);
     lapsedOf(st).add(t);
     if (st.front && open(w, t) && seeded(w, t)) st.front.add(t);
   }
@@ -109,12 +111,19 @@ VB['sim/spread'] = (() => {
         continue;
       }
       if (day - (w.tended[t] - 1) < LAPSE.years * YEAR_DAYS) continue;
-      w.dev[t] = 0;
       lapsed.delete(t);
-      costChanged(st, t);
-      st.biomeDirty.add(t);
-      st.treeDirty.add(t);
+      wild(st, t);
     }
+  }
+  // Tile t, developed ground (a field's) in nobody's use, is wild ground of its terrain again: walked and drawn as its biome.
+  function wild(st, t) {
+    const w = st.w;
+    if (w.dev[t] !== 1) return;
+    w.dev[t] = 0;
+    costChanged(st, t);
+    st.biomeDirty.add(t);
+    st.treeDirty.add(t);
+    if (st.front && open(w, t) && seeded(w, t)) st.front.add(t);
   }
   // The hours the trees on tile t add to clearing it: none without trees, SPREAD.scrubHours for scrub below half cover, a felling and a
   // grubbing for thick scrub or forest (as forest, VB-031; a plot fells and grubs as steps of their own, before its clearing).
@@ -223,5 +232,5 @@ VB['sim/spread'] = (() => {
         if (j >= 0 && open(w, j)) front.add(j);
       }
   }
-  return { GRAZE, SPREAD, LAPSE, initFront, spreadForest, tended, lapse, scrubHours, clearScrub, thick };
+  return { GRAZE, SPREAD, LAPSE, initFront, spreadForest, tended, lapse, wild, scrubHours, clearScrub, thick };
 })();

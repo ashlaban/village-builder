@@ -124,9 +124,26 @@ check(!T.reckonWood(st, v).includes(scrubTile), 'young scrub is not');
   check(w.dev[ht] === 0 && !st.lapsed.has(ht) && w.biome[ht] === B.HILLS && st.biomeDirty.has(ht), `${S.LAPSE.years} years untended: hills again`);
   check(w.dev[at2] === 1 && !st.lapsed.has(at2), 'ground taken into use again does not revert');
   st.used.delete(at2);
+  w.tended[at2] = 0; // no work on it is dated
   delete st.lapsed; // an older save: the developed ground in nobody's use is found, and lapses from today
   days(1);
   check(st.lapsed.has(at2) && w.tended[at2] === day0 + 1 && w.dev[at2] === 1, "an older save's let-go field lapses from the load");
+}
+// --- a field unused goes back to the land, on a held farm or an empty one alike (VB-1504; Kim, 23 Nov): on the year's last day
+{
+  const f1 = st.farmsteads[0], f2 = st.farmsteads[1], day = Math.floor(st.t / DAY), L = S.LAPSE.years * YEAR_DAYS, end = { year: Math.floor(st.t / VB['sim/rules'].YEAR), season: 3, sday: VB['sim/rules'].SEASON_DAYS - 1, day };
+  for (const f of [f1, f2]) for (const fd of f.fields) { fd.stage = 'stubble'; fd.sown = null; fd.held = 0; fd.used = day; }
+  const old1 = f1.fields[f1.fields.length - 1], old2 = f2.fields[f2.fields.length - 1], n1 = f1.fields.length, n2 = f2.fields.length;
+  old1.used = old2.used = day - L; // unused LAPSE.years
+  const growing = f1.fields[0]; growing.used = day - L; growing.stage = 'growing'; growing.sown = day; // a crop stands: not unused
+  const was = f2.household; f2.household = null; f2.emptySince = st.t; // an empty farm's field lapses as a held farm's does
+  const c0 = VB.count.fieldLapse;
+  Fd.lapseFields(st, end);
+  check(f1.fields.length === n1 - 1 && !f1.fields.includes(old1) && f1.fields.includes(growing), "a held farm's field unused its years is gone; one with a crop stays");
+  check(f2.fields.length === n2 - 1 && !f2.fields.includes(old2), "an empty farm's too");
+  check(w.dev[old1.tile] === 0 && !st.used.has(old1.tile) && w.dev[old2.tile] === 0, 'and is wild ground at once');
+  check(VB.count.fieldLapse === c0 + n1 + n2, 'the fields weighed are counted');
+  growing.stage = 'stubble'; growing.sown = null; growing.used = day; f2.household = was; f2.emptySince = null;
 }
 // --- a save keeps the front and the work on tiles
 check(checkState(st).length === 0, `invariants at the end: ${checkState(st).join('; ')}`);

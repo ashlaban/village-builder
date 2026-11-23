@@ -1,12 +1,12 @@
 // @sys sim/fields: a field's crop year: hoed, sown, growing, weeded, ripe, reaped, carried, lost to the frost or left standing; fallow's rest
 VB['sim/fields'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { HERD, DEER, DAY, SEASON_DAYS, YEAR } = VB['sim/rules'],
+  const { HERD, DEER, DAY, SEASON_DAYS, YEAR, YEAR_DAYS } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
   const { log, atFarm } = VB['sim/records'];
   const { cropFactor, ripeShift } = VB['sim/weather'];
   const Projects = VB['sim/projects'];
-  const { clearScrub, lapse, SPREAD } = VB['sim/spread'];
+  const { clearScrub, lapse, wild, SPREAD, LAPSE } = VB['sim/spread'];
   const { nextStep, failed } = VB['sim/courses'];
   const { wearSoil, rested, tilthOf } = VB['sim/soil'];
   const { emit } = VB['sim/events'];
@@ -43,6 +43,8 @@ VB['sim/fields'] = (() => {
   //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
   //   hoursOwn, hoursOther (VB-462): absent, or the year's work hours given by the user household's own members and by others
   //   weeds: absent, or the rounds of weeding posted since sowing (CROPS weeds; VB-334, VB-348)
+  //   used: absent, or the game day of the field's last use (sown, reaped, a fallow course, reclaimed, broken; VB-1504): LAPSE.years
+  //   after it the field goes back to the land (lapseFields)
   //   rest: absent, or a fallow field's rest this year (VB-348): 0.5 once it stood fallow at the summer's start, 1 once tilled; credited
   //   to the soil at the year's end, whatever the field bears by then (rye is sown on it in autumn)
   // A stubble field hoed for its crop; a fallow field (the course, not the stage) is tilled and stays in stubble.
@@ -54,6 +56,7 @@ VB['sim/fields'] = (() => {
   function sown(fd, c) {
     fd.stage = 'sown';
     fd.sown = c.day;
+    fd.used = c.day;
     fd.weedOpen = false;
     fd.weedPosted = null;
     fd.weedMiss = 0;
@@ -98,6 +101,7 @@ VB['sim/fields'] = (() => {
     if (fd.weedOpen) fd.weedMiss++;
     fd.stage = 'stooks';
     fd.reaped = c.day;
+    fd.used = c.day;
     fd.held = Math.round(standing(st, fd) * (0.9 + rnd(st.rng.fields) * 0.2));
     delete fd.trampled;
     delete fd.browsed;
@@ -132,6 +136,7 @@ VB['sim/fields'] = (() => {
   };
   function reclaimed(st, fd) {
     clearScrub(st, fd.tile); // the forest's scrub on it is cleared with the grass (VB-091)
+    fd.used = Math.floor(st.t / DAY);
     if (fd.stage === 'fallow' || fd.stage === 'scrub') fd.stage = 'stubble'; // its picture follows the stage (page/animate)
   }
   const weeded = (fd) => {
@@ -160,11 +165,49 @@ VB['sim/fields'] = (() => {
     L.inYear++;
     st.used.delete(fd.tile);
     setOwner(st, fd.tile, { type: 'village', id: f.village });
-    lapse(st, fd.tile); // developed ground until it has lain LAPSE.years, then its terrain again (sim/spread, VB-1504)
+    lapse(st, fd.tile, fd.used); // developed ground until LAPSE.years from its last use, then its terrain again (sim/spread, VB-1504)
     st.farmDirty.add(f.id);
     st.biomeDirty.add(fd.tile);
     log(st, `${f.name} lets a field go: its household no longer needs its grain.`, { kind: 'fieldLeft', ...atFarm(f) });
   }
+  // A field unused goes back to the land, whatever farm it lies on (Kim, 23 Nov: reverting is a natural property of the ground, not tied
+  // to a pawn or a household; VB-1504): on the year's last day, a field of any farm, held or empty, whose last use (fd.used: sown, reaped,
+  // a fallow course, reclaimed, broken) is LAPSE.years back, that bears no crop and no sheaves and has no task on it, leaves the farm's
+  // list and is wild ground of its terrain at once (sim/spread's wild). A field with no use recorded (laid out, or an older save's) counts
+  // from the day its farm emptied, or from today. A farm under restoration keeps its fields (a claimant is reclaiming them).
+  function lapseFields(st, c) {
+    const day = Math.floor(st.t / DAY);
+    for (const f of st.farmsteads) {
+      if (!f.fields.length || Projects.onFarm(st, f.id)) continue;
+      const jobs = f.household === null ? null : st.jobsBy.get(`household:${f.household}`);
+      let n = 0;
+      for (const fd of [...f.fields]) {
+        VB.count.fieldLapse++;
+        if (fd.used === undefined)
+          fd.used = f.household === null && typeof f.emptySince === 'number' ? Math.floor(f.emptySince / DAY) : day;
+        if (day - fd.used < LAPSE.years * YEAR_DAYS || !LIES.has(fd.stage) || fd.held > 0) continue;
+        if (jobs && [...jobs].some((j) => j.field === fd)) continue;
+        f.fields.splice(f.fields.indexOf(fd), 1);
+        const L = f.left || (f.left = { gone: 0, year: c.year, inYear: 0 });
+        L.gone++; // its id is not used again (VB-768)
+        st.used.delete(fd.tile);
+        setOwner(st, fd.tile, { type: 'village', id: f.village });
+        wild(st, fd.tile);
+        n++;
+      }
+      if (!n) continue;
+      st.farmDirty.add(f.id);
+      log(
+        st,
+        `${n === 1 ? 'A field' : `${n} fields`} of ${f.name}, unused ${LAPSE.years} years, ${n === 1 ? 'has' : 'have'} gone back to the land.`,
+        {
+          kind: 'fieldLeft',
+          ...atFarm(f),
+        },
+      );
+    }
+  }
+  const LIES = new Set(['stubble', 'fallow', 'scrub']);
   // A ripe field still standing on its crop's `lost` day is lost (rye by the autumn's first day; VB-348).
   function lostRipe(st, f, fd, c) {
     const L = CROPS[fd.crop].lost;
@@ -199,7 +242,10 @@ VB['sim/fields'] = (() => {
     if (!summer && !end && !autumn) return;
     for (const f of st.farmsteads)
       for (const fd of f.fields) {
-        if (summer && f.household !== null && CROPS[fd.crop].fallow && fd.rest === undefined) fd.rest = 0.5;
+        if (summer && f.household !== null && CROPS[fd.crop].fallow && fd.rest === undefined) {
+          fd.rest = 0.5;
+          fd.used = c.day; // a fallow course is the field's use that year
+        }
         if (autumn && CROPS[fd.crop].fallow && fd.rest !== undefined) nextStep(fd);
         if (end && fd.rest !== undefined) {
           rested(fd);
@@ -231,6 +277,7 @@ VB['sim/fields'] = (() => {
     });
     rest(st, c);
     unsown(st, c);
+    if (c.season === 3 && c.sday === SEASON_DAYS - 1) lapseFields(st, c);
     // Untended fields go to grass, unless a claimant is restoring the farm; a field the forest has grown into is scrub (sim/spread, VB-091).
     for (const f of st.farmsteads)
       if (f.household === null && !Projects.onFarm(st, f.id)) {
@@ -290,6 +337,7 @@ VB['sim/fields'] = (() => {
     weeded,
     abandoned,
     letGo,
+    lapseFields,
     fieldsDay,
     fieldsFrost,
   };

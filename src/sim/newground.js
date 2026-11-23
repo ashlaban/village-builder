@@ -1,6 +1,7 @@
 // @sys sim/newground: new ground made: a field's site felled and grubbed when it is a wood (VB-1495), cleared of its stones, its ground
 // broken, and the new field it becomes (VB-149, VB-332)
 VB['sim/newground'] = (() => {
+  const { DAY } = VB['sim/rules'];
   const { SOIL } = VB['sim/crops'];
   const { ECON, TRAVEL } = VB['sim/rules'];
   const { fellAll, clearTile } = VB['sim/forest'];
@@ -66,6 +67,7 @@ VB['sim/newground'] = (() => {
   function broken(st, tile, id, ground) {
     const w = st.w,
       fd = newField(w, id, tile, w.dev[tile] ? SOIL.start : SOIL.fresh, st.t, ground);
+    fd.used = Math.floor(st.t / DAY); // broken today: its years unused count from now (sim/fields, VB-1504)
     tended(st, tile); // VB-091
     st.used.add(tile);
     woodTaken(st, tile); // a wood tile broken to a field leaves its village's wood (VB-326)
