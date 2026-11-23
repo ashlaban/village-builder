@@ -51,6 +51,8 @@
     "pawn.advisedIn": "sim/advice",
     "pawn.courting": "sim/courting",
     "pawn.outside": "sim/births",
+    "pawn.pregnantCourting": "sim/births",
+    "st.courtDue": "sim/asking",
     "pawn.courtingSince": "sim/courting",
     "pawn.courtRefused": "sim/courting",
     "st.courtships": {"owner": "sim/courting", "category": "cache"},

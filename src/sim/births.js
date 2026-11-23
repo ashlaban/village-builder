@@ -47,6 +47,7 @@ VB['sim/births'] = (() => {
   const courtChance = (a) => (conceiveChance(a) * COURT.conceive) / (BIRTH.peak * YEAR_DAYS);
   // @state pawn.outside (VB-555): absent or false, else true: born to an unmarried mother, and its parents have not married each other
   //   since (legitimation by the later marriage). Written at its birth and at its parents' wedding (sim/births). Plain data, saved.
+  // @state pawn.pregnantCourting (VB-555): absent or false, else true while a pregnancy conceived while courting, unmarried, lasts.
   // births to one woman who is married from age `from` to age `to`, for calibration: no deaths, no hunger
   function expectedBirths(rand, from, to) {
     let births = 0,
@@ -67,8 +68,10 @@ VB['sim/births'] = (() => {
     const hh = m.household !== null ? st.households[m.household] : null,
       fatherId = m.pregnantBy,
       father = st.pawns[fatherId];
+    const courted = m.pregnantCourting === true;
     m.pregnantUntil = null;
     m.pregnantBy = null;
+    if (courted) m.pregnantCourting = false;
     if (!hh || hh.dissolved) return;
     const sex = rnd(st.rng.births) < BIRTH.boys ? 'm' : 'f',
       taken = new Set(hh.members.map((id) => st.pawns[id].given)),
@@ -84,7 +87,9 @@ VB['sim/births'] = (() => {
     p.born = st.t;
     p.alive = true;
     p.age = 0;
-    if (spouseOf(st, m.id) === null) p.outside = true; // born outside marriage: it lives with its mother's household (VB-555)
+    // conceived while courting, and its mother has not married since: born outside marriage, in her household (VB-555); a widow's
+    // child by her late husband is born in marriage
+    if (courted && spouseOf(st, m.id) === null) p.outside = true;
     joinHousehold(st, hh, id);
     Traits.born(st, id); // its traits, from its parents by birth and its culture (VB-519)
     VB['sim/skills'].born(st, id); // its skill at each type of work (VB-475)
@@ -180,7 +185,10 @@ VB['sim/births'] = (() => {
       if (rnd(st.rng.births) < chance * (1 - m.hunger)) {
         m.pregnantUntil = st.t + BIRTH.pregnancyDays * DAY;
         m.pregnantBy = by;
-        if (sp === null) emit(st, 'conceivedCourting', { woman: m.id, man: by }); // the couple's offer, once it is known (sim/asking)
+        if (sp === null) {
+          m.pregnantCourting = true;
+          emit(st, 'conceivedCourting', { woman: m.id, man: by }); // the couple's offer, once it is known (sim/asking)
+        }
       }
     }
   }
