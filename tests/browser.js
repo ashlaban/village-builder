@@ -239,9 +239,15 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if (await page.locator('#actionSheet').isVisible()) fail('a group\'s list and the sheet are open together');
   await page.click('#actBar [data-group="house"]');
   const workable = '#actMenu [data-bar="work"]:not([aria-disabled])';
-  await page.click('[data-speed="30"]');
-  await page.waitForSelector(workable, { timeout: 120000 });
-  await page.click('[data-speed="0"]');
+  // VB-1562: the list is drawn again four times a second, so the row seen at 30x may be of an hour gone by the time the clock stands:
+  // the row clicked is one the list still offers once it has been drawn from the stopped state
+  for (let tries = 0; ; tries++) {
+    await page.click('[data-speed="30"]');
+    await page.waitForSelector(workable, { timeout: 120000 });
+    await page.click('[data-speed="0"]');
+    await page.waitForTimeout(1000);
+    if (await page.locator(workable).count() || tries >= 5) break;
+  }
   await page.waitForSelector(workable);
   const row = await page.locator(workable).first().evaluate((b) => ({ kind: b.dataset.kind, holder: b.dataset.holder }));
   await page.locator(workable).first().click();
@@ -265,7 +271,8 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     if (await page.evaluate(() => !!window.__play.tool()) || await page.locator('#actBanner').isVisible()) fail('Done did not put the tool away');
   } else {
     target = await page.evaluate(() => { const q = window.__play.st.player.queue.find((c) => c.verb === 'work'); return q ? q.target : null; });
-    if (!/Queued/.test(await page.locator('#actMenu .act-msg').textContent())) fail('the list does not say the work was queued');
+    const said = await page.locator('#actMenu .act-msg').allTextContents();
+    if (!/Queued/.test(said.join(''))) fail(`the list does not say the work was queued: ${said}`);
   }
   if (!target) fail(`the job was not queued: ${JSON.stringify(row)}`);
   console.log(`browser: the action bar queued ${row.kind} for its ${row.holder}${inTool ? `, in the tool mode, of ${inTool.sites.length} marked tiles` : ''}`);
@@ -381,6 +388,14 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       await page.click('#tabFacts'); await page.waitForTimeout(400);
       await page.click('#tabPlan'); await page.waitForSelector('#tileHouse [data-project]');
       if (await msg()) fail(`the refusal is still at the head of the Plan tab after it was closed: ${await page.locator('#tileHouse .plan-msg').textContent()}`);
+      // VB-1562: the household may have a project under way, begun by its head's rule (the work the action bar queued above may be
+      // its step): the card then offers "Give it up" in place of the three to begin, so it is given up first, by that button
+      const under = await page.evaluate((id) => { const p = VB['sim/projects'].ownOf(window.__play.st, id); return p ? p.what : null; }, hh);
+      if (under) {
+        if (await page.locator('#tileHouse [data-plan="project"][data-what="field"]').count()) fail(`a ${under} under way, and the card offers to begin a field`);
+        await page.click('#tileHouse [data-project] [data-plan="drop"]');
+        if (await page.evaluate((id) => !!VB['sim/projects'].ownOf(window.__play.st, id), hh)) fail(`Give it up did not give up the ${under} under way`);
+      }
       await page.click('#tileHouse [data-plan="project"][data-what="field"]');
       const at = await page.evaluate((id) => { const p = VB['sim/projects'].ownOf(window.__play.st, id); return p ? p.steps[p.open].place : -1; }, hh);
       const link = `#tileHouse [data-project] [data-plan="fly"][data-tile="${at}"]`;
