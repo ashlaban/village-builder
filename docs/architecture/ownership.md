@@ -178,10 +178,7 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 | `stones` **4** | fields ⁷ | layout 178; fields 68; meadows 65; expansion 160 | gen, names, page |
 | `trees` **2** | forest ⁷ | forest 15,30,40; expansion 158 | gen, page |
 | `*` | saves (the load) | saves 118,119 | - |
-| `biome` | gen (setBiome) | gen 574 | rules, names, routes, layout, territory, herds, fields, meadows, expansion, settle, clock, saves, page |
-| `tb` | gen | gen 578 | - |
-| `tg` | gen | gen 577 | - |
-| `tr` | gen | gen 576 | - |
+| `biome` | world/biomes (setBiome) | world/biomes setBiome; gen/cover set | rules, names, routes, layout, territory, herds, fields, meadows, expansion, settle, clock, saves, page |
 | `treesMax` | forest | forest 15 | gen, page |
 | `wear` | paths | paths 17,20,28,55 | page |
 | `worn` | paths | paths 17,31,56 | draw/paths, routes, page |

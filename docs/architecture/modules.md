@@ -19,10 +19,15 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   deposits (`ROCK`, `DEPOSIT`, `ENDLESS`, `FIND`), `world/rivers` the name of a river tile's water by its flow (`kind`).
   A sim module reads them there, not through the `gen` facade.
 - `ArchGen.generate(seed)` (`src/gen.js`) assembles the world's terrain, hex tiles and regions. Seeded noise comes from `src/gen/noise.js`.
-  `src/gen/biomes.js` holds the cover thresholds and the tile pigments, and updates a tile's biome and colour together (`setBiome`).
-  `src/draw/bake.js` rasterizes the generated world for the map at each level of detail, with land pigments, coastal contours, water and
-  decorations. `src/draw/marks.js` draws the individual marks (trees, stones, humps, crags). Both, with `src/draw/paths.js` and `src/draw/rivers.js`,
-  are the presentation layer, listed after `sim.js` (VB-1492). `ArchGen` exposes the generator only (`generate`, `BIOMES`, `COVER`, `setBiome`);
+  `src/gen/biomes.js` holds the cover thresholds (`COVER`); a tile's biome is changed by `setBiome` of `world/biomes`, which writes the
+  biome alone. The world holds no colour (VB-1493): `src/draw/paint.js` builds a world's paint from the world (`paint(w)`: each tile's
+  colour `tr`, `tg`, `tb`, the hillshade `shade`, the coast distance `cdist` and the tile under each coarse cell `chex`, and the brush
+  texture `tile`) and recolours one tile (`colour(P, w, i)`), in the pigments of `src/draw/pigments.js` (the land's, the sea's bands, the
+  lake's). The page keeps one paint per world (`paintOf(wd)` in `page/chunks`, a WeakMap) and recolours explicitly: the tiles of
+  `st.biomeDirty` before their chunks are repainted, the editor's brush, and a world put back whole (the editor's restore, a load) drops
+  its paint, to be built anew. `src/draw/bake.js` rasterizes the world in its paint (`bakeWater(w, P, ctx)`, `bakeChunk(w, P, l, cx, cy,
+  img)`) at each level of detail, with coastal contours, water and decorations. `src/draw/marks.js` draws the individual marks (trees, stones, humps, crags). Both, with `src/draw/paths.js` and `src/draw/rivers.js`,
+  are the presentation layer, listed after `sim.js` (VB-1492). `ArchGen` exposes the generator only (`generate`, `BIOMES`, `COVER`);
   the page reads the bake as `VB['draw/bake']` and `mulberry32` from `gen/noise`.
   Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced by `src/gen/rivers.js`, listed before `gen.js`, which calls it, and drawn by `src/draw/rivers.js` (VB-1491).
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
@@ -416,8 +421,8 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   `norm` gives a normal crop's hours), `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review, with its doubt, VB-669; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
-- Presentation (VB-1492): `draw/*`, the map's drawing (`draw/bake`, `draw/marks`, `draw/paths`, `draw/rivers`), listed after `sim.js`. They
-  read the world and, until VB-1493, the pigments of `gen/biomes`; no generator or simulation module names them (`tests/dependencies.js`
+- Presentation (VB-1492): `draw/*`, the map's drawing (`draw/pigments`, `draw/paint`, `draw/bake`, `draw/marks`, `draw/paths`,
+  `draw/rivers`), listed after `sim.js`. They read the world, and the bake a world's paint (VB-1493); no generator or simulation module names them (`tests/dependencies.js`
   refuses it, as an upward call and as a lookup of a later module). The page reads them by key.
 
 ## Adding things
