@@ -35,8 +35,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   Fresh water (VB-1550; design.md, Water by the site) is laid by `src/gen/water.js` after the ground: a tile's source (`w.fresh`) and the
   depth to the ground's water (`w.waterDepth`, `WATERTABLE`), shown only as a band. The walk to it (`w.freshWalk`) needs the walking
   costs, which are the simulation's, so `src/sim/water.js` lays it where a world enters a state (`makeState`, and `load` before the
-  saved fields are put back): from the land as generated, never saved, never recomputed. No rule reads the three yet; the tile card
-  and the Fresh water overlay (`src/page/water.js`) show them.
+  saved fields are put back): from the land as generated, never saved, never recomputed. The fetch reads them through a farm's
+  source (VB-1551); the site search weighs a site's daily fetch by them (`siteFetch`, array reads) and a leader's estimate of a site's
+  water is `siteWater` (VB-1552: the source, the well of the village joined, a well of its own by its band); the tile card and the
+  Fresh water overlay (`src/page/water.js`) show them.
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
   soapstone, and finite deposits of clay and ores (`w.deposit`, `w.depositLeft`) as veins, each island drawing which kinds it has
   (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Nothing digs yet. `src/sim/prospect.js` keeps what each village

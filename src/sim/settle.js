@@ -28,6 +28,7 @@ VB['sim/settle'] = (() => {
     { makeProject } = VB['sim/projectplans'];
   const { projectsOf } = VB['sim/projects'];
   const { reckonWood, woodTaken } = VB['sim/territory'];
+  const { siteFetch, siteWater } = VB['sim/water'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
   const { keepsWard, mayHoldFarm, goesWith } = VB['sim/holding'];
@@ -172,8 +173,10 @@ VB['sim/settle'] = (() => {
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // House sites within SETTLE.hours of village v's green along a trail (reach: reachOf(st, v)), on meadow or wood (read as the meadow it
   // becomes when grubbed: sim/crops clearable) nobody uses, at least SETTLE.centreApart hex steps from every village centre (VB-154), by
-  // siteScore less SETTLE.perHour an hour, best first: [tile, hours, score]; a third of the tiles are tried, as for the generated lone farm.
-  function candidates(st, v, use, reach) {
+  // siteScore less SETTLE.perHour an hour and SETTLE.perFetch a daily hour of the site's fetch for the party's `people` (sim/water
+  // siteFetch: array reads; no site is refused for its water, VB-1552), best first: [tile, hours, score]; a third of the tiles are
+  // tried, as for the generated lone farm.
+  function candidates(st, v, use, reach, people = 1) {
     const w = st.w,
       out = [],
       centres = st.villages.map((u) => u.center);
@@ -182,22 +185,22 @@ VB['sim/settle'] = (() => {
       if (use.taken.has(t) || use.near.has(t)) continue;
       if (centres.some((x) => hexSteps(w, x, t) < SETTLE.centreApart)) continue;
       const h = c / SPEED;
-      out.push([t, h, siteScore(w, t, true) - SETTLE.perHour * h]);
+      out.push([t, h, siteScore(w, t, true) - SETTLE.perHour * h - SETTLE.perFetch * siteFetch(w, t, people)]);
     }
     return out.sort((a, b) => b[2] - a[2] || a[0] - b[0]);
   }
-  // The best site for a new village from village v: of the best SETTLE.candidates sites still free, one with a block of SETTLE.fields fields
-  // (placeFields, none near other farms) at least SETTLE.fertility times as fertile on average as v's fields, and a wood within reach; scored
-  // by the site's score plus SETTLE.fieldWeight times the block's fertility. Wooded land is read as the meadow it becomes when grubbed
-  // (VB-786). {house, field, hours}, or null.
-  function newSite(st, v, use, cands) {
+  // The best n sites for a new village from village v, best first: of the best SETTLE.candidates sites still free, those with a block of
+  // SETTLE.fields fields (placeFields, none near other farms) at least SETTLE.fertility times as fertile on average as v's fields, and a
+  // wood within reach; scored by the site's score plus SETTLE.fieldWeight times the block's fertility. Wooded land is read as the meadow it
+  // becomes when grubbed (VB-786). [{house, field, hours, score}], none where there is no land.
+  function bestSites(st, v, use, cands, n) {
     const w = st.w,
       minFert = SETTLE.fertility * meanFertility(st, v);
     const walk = walkable(w),
       house = (j) => w.dev[j] === 3,
       shut = (j) => j < 0 || !walk(j) || house(j);
-    let best = null,
-      bs = -Infinity,
+    const best = [];
+    let bs = -Infinity, // the score to beat: the last kept, once n are
       tried = 0;
     for (const [t, h, s0] of cands) {
       if (tried >= SETTLE.candidates) break;
@@ -212,11 +215,21 @@ VB['sim/settle'] = (() => {
         s = s0 + SETTLE.fieldWeight * fert;
       if (fert / block.length < minFert || s <= bs) continue;
       if (woodNear(w, use.taken, t, WOOD.least).length < WOOD.least) continue; // a wood in reach (VB-326)
-      bs = s;
-      best = { house: t, field: block[0], hours: h };
+      let k = best.length;
+      while (k > 0 && best[k - 1].score < s) k--;
+      best.splice(k, 0, { house: t, field: block[0], hours: h, score: s });
+      if (best.length > n) best.pop();
+      if (best.length === n) bs = best[n - 1].score;
     }
     return best;
   }
+  // The site a leader not played takes: the first, the one its judgement ranks best. {house, field, hours, score}, or null.
+  const newSite = (st, v, use, cands) => bestSites(st, v, use, cands, 1)[0] || null;
+  // The sites a played leader chooses among (design.md, Settling in steps, The played pawn): the best SETTLE.shown, best first, each
+  // with its water as the leader's estimate for the party's `people` (sim/water siteWater: the source and the walk, the daily fetch
+  // and its share of a hand's day, the well's band with its hours; VB-1552).
+  const sites = (st, v, use, cands, people = 1) =>
+    bestSites(st, v, use, cands, SETTLE.shown).map((s) => ({ ...s, water: siteWater(st, s.house, people, null) }));
   // The name of a village founded on tile `site` by p of village `home` (sim/names: by its founder or its mother village, as the site
   // has it), from a stream of the tile's own, so naming draws nothing from the simulation's streams.
   const foundedName = (st, p, home, site) =>
@@ -395,6 +408,7 @@ VB['sim/settle'] = (() => {
       ids.sort((a, b) => at(b).landWait - at(a).landWait || at(a).born - at(b).born || a - b);
       let reach = null,
         cands = null,
+        candsFor = 0, // the party's people the candidates were scored for: a site's fetch is theirs
         noLand = false;
       for (const id of ids) {
         const p = st.pawns[id];
@@ -444,7 +458,8 @@ VB['sim/settle'] = (() => {
         };
         // a small village is not joined unasked: a plot there is asked of its alderman on the asking day (sim/asking, VB-697)
         if (!noLand) {
-          if (!cands) cands = candidates(st, v, use, reach);
+          if (!cands || candsFor !== party.all.length)
+            cands = candidates(st, v, use, reach, (candsFor = party.all.length));
           const site = newSite(st, v, use, cands);
           if (site) {
             f = leave({ house: site.house, field: site.field });
@@ -519,6 +534,7 @@ VB['sim/settle'] = (() => {
     reachOf,
     candidates,
     newSite,
+    sites,
     smallVillage,
     foundedName,
     settleFarm,

@@ -1,11 +1,12 @@
 // @sys sim/water: the walk to fresh water as a field of the map (w.freshWalk): the hours on foot over pathless ground from each land tile to
 // the nearest source that is not marsh, searched once from the land as generated; and each farm's source (farmstead.water): where its
 // household draws its water, of what class and how long the walk, found by one search outward from the house (VB-1551); the wells the
-// map starts with and a well's entry on the map (w.fresh)
+// map starts with and a well's entry on the map (w.fresh); and a site's water before a house stands there (siteFetch, siteWater: VB-1552)
 VB['sim/water'] = (() => {
   const { minHeap } = VB['gen/rivers'];
-  const { good, FRESH, FRESHES, WELL, NO_WELL } = VB['world/water'];
-  const { SPEED, TRAVEL, YEAR } = VB['sim/rules'];
+  const { good, FRESH, FRESHES, WELL, NO_WELL, BANDS, band, bandHours, bandMid, sourceNear } = VB['world/water'];
+  const { SPEED, TRAVEL, YEAR, YEAR_DAYS, WORK, SETTLE } = VB['sim/rules'];
+  const { hexSteps } = VB['sim/hex'];
   const yearOf = (t) => Math.floor(t / YEAR);
   const { TERRAIN, slopeFactor, stepCost, through } = VB['sim/walking'];
   const { on } = VB['sim/events'];
@@ -155,6 +156,79 @@ VB['sim/water'] = (() => {
       ? { none: true, search: WATER.search }
       : { name: FRESHES[s.cls].name, poor: !!FRESHES[s.cls].poor, walk: s.walk, hours: tripHours(s.walk) };
   }
+  // ---- a site's water, before a house stands there (VB-1552; design.md, Water by the site, The site's access, shown before placing) ----
+  // The trips a day `people` make for their water: one, until the fetch grows with the household (WATER.hand, VB-1555).
+  const trips = () => 1;
+  // The daily hours a well of its own would cost a house on tile i: the drawing at the door, and the digging at the middle of the
+  // ground's band (the head's estimate: never the depth) spread over WELL.payYears; Infinity where no well can be dug.
+  const ownWell = (w, i, people) =>
+    w.waterDepth[i] < NO_WELL
+      ? trips(people) * WATER.draw + bandMid(band(w.waterDepth[i])) / (WELL.payYears * YEAR_DAYS)
+      : Infinity;
+  // The daily fetch of a house on tile i with no source and no well: as far as a farm searches, which no site is refused for.
+  const noWater = (people) => trips(people) * tripHours(WATER.search);
+  // The daily fetch in hours the site search weighs for `people` settling on tile i, in a village of their own: the least of the walk
+  // to fresh water as the land shows it (w.freshWalk) and a well of the site's own. Array reads, nothing searched (a candidate of
+  // sim/settle, at most a searching village's reach a round).
+  const siteFetch = (w, i, people) =>
+    Math.min(
+      w.freshWalk[i] < WATER.search ? trips(people) * tripHours(w.freshWalk[i]) : Infinity,
+      ownWell(w, i, people),
+      noWater(people),
+    );
+  // The village a house on tile i would join: the one whose centre is the nearest within SETTLE.centreApart steps, as close farms are
+  // one village in play (sim/byhand farmAt); null where it would be a village of its own.
+  function joins(st, i) {
+    let v = null,
+      vd = SETTLE.centreApart;
+    for (const u of st.villages) {
+      const d = hexSteps(st.w, u.center, i);
+      if (d < vd) {
+        vd = d;
+        v = u;
+      }
+    }
+    return v;
+  }
+  // A site's water as its leader would reckon it before placing the house on tile i, for `people` (design.md, In the leader's choice):
+  // {hours, share, by, source, village, well}. hours: the daily fetch, the least of what follows; share: of one hand's working day;
+  // by: which it is ('source', 'village', 'well', or 'none': no water in reach and no well in the ground, when hours is the farthest
+  // fetch a farm makes); source: {name, walk, hours}, the nearest good water by the land's walk (w.freshWalk; null beyond
+  // WATER.search); village: {name, walk, hours}, the well of the village v the site would join (joins, unless given; null where it
+  // has none nearer than other water), by one search outward from the site over the ground as it is walked now; well: {band, name,
+  // range ([least, most] hours of digging), dig (the estimate, the band's middle), hours (a day, the digging spread over
+  // WELL.payYears)}, null where none can be dug. An estimate, never the depth: the band is all a pawn knows before it digs.
+  function siteWater(st, i, people = 1, v = joins(st, i)) {
+    const w = st.w,
+      n = trips(people),
+      opts = [];
+    let walk = w.freshWalk[i] < WATER.search ? w.freshWalk[i] : Infinity,
+      village = null;
+    if (v && v.well) {
+      const s = source(w, i, v);
+      if (s.cls === FRESH.WELL) village = { name: v.name, walk: s.walk, hours: n * tripHours(s.walk) };
+      else if (s.tile >= 0 && s.cls !== FRESH.MARSH) walk = Math.min(walk, s.walk); // good water nearer than the green, as walked now
+    }
+    const near = walk < Infinity ? sourceNear(w, i) : -1,
+      src = near < 0 ? null : { name: FRESHES[w.fresh[near]].name, walk, hours: n * tripHours(walk) },
+      k = band(w.waterDepth[i]),
+      well =
+        w.waterDepth[i] < NO_WELL
+          ? {
+              band: BANDS[k].key,
+              name: BANDS[k].name,
+              range: bandHours(k),
+              dig: bandMid(k),
+              hours: ownWell(w, i, people),
+            }
+          : null;
+    if (src) opts.push(['source', src.hours]);
+    if (village) opts.push(['village', village.hours]);
+    if (well) opts.push(['well', well.hours]);
+    opts.sort((a, b) => a[1] - b[1]);
+    const [by, hours] = opts[0] || ['none', noWater(people)];
+    return { hours, share: hours / (WORK[1] - WORK[0]), by, source: src, village, well };
+  }
   // A well stands on `tile` from now: a source on the map, and the farms of village v (all with a source found, when v is null: none)
   // find their sources again.
   function wellDug(st, tile, v) {
@@ -181,5 +255,18 @@ VB['sim/water'] = (() => {
       f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (f && f.water && f.water.year !== yearOf(st.t)) find(st, f);
   });
-  return { WATER, walks, layWalk, source, find, sourceOf, tripHours, waterOf, wellDug, startWells };
+  return {
+    WATER,
+    walks,
+    layWalk,
+    source,
+    find,
+    sourceOf,
+    tripHours,
+    waterOf,
+    siteFetch,
+    siteWater,
+    wellDug,
+    startWells,
+  };
 })();

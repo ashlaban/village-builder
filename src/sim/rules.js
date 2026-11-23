@@ -510,7 +510,10 @@ VB['sim/rules'] = (() => {
   // meadow it becomes when grubbed), its house at least `apart` steps from any house, green or field, with a block of `fields` fields at
   // least `fertility` times as fertile as home's and a wood (WOOD.least wooded tiles within WOOD.reach); sites score siteScore +
   // fieldWeight × the block's fertility − perHour an hour (0.15 a step at 8 steps an hour), and the best `candidates` by the first and last
-  // terms are tried. A small village (VB-147) has 1..smallFarms farms, its green within `join` hours of home's by the villages' table.
+  // terms are tried; a site's water (VB-1552; design.md, Water by the site, The site's access: Proposed, Kim's starting value of 23
+  // November) takes perFetch a daily hour of its fetch off the score, twice an hour of nearness, which is paid once; `shown`: the best
+  // sites a played leader chooses among (sim/settle sites). A small village (VB-147) has 1..smallFarms farms, its green within `join`
+  // hours of home's by the villages' table.
   // Spacing (stability review, VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from every village
   // centre, the only near bound. Provisions were 36 days, which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
   const SETTLE = {
@@ -526,6 +529,8 @@ VB['sim/rules'] = (() => {
     fertility: 0.9,
     fieldWeight: 3,
     perHour: 1.2,
+    perFetch: 2.4,
+    shown: 5,
     candidates: 40,
     smallFarms: 3,
     join: 6,

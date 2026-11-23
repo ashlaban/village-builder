@@ -20,8 +20,9 @@ VB['world/water'] = (() => {
   // which no well is dug (w.waterDepth holds NO_WELL there); a well's hours are `flat` (the curb and the sweep) and `perMetre` down to
   // the water, from `least` metres, the shallowest a well is; startWalk: a farm that has stood for years further than this, in hours one way, from
   // any source starts with a well of its own (sim/water, VB-1551). Proposed, design.md, Water by the site, Wells (Kim, 23 November: starting
-  // values). Only the bands and their hours are read yet: no well is dug before VB-1553.
-  const WELL = { shallow: 4, middling: 10, deepest: 20, flat: 16, perMetre: 4, least: 1, startWalk: 0.5 };
+  // values). payYears: the years of fetching a well's hours are spread over where a site's water is weighed (sim/water siteWater, VB-1552), and
+  // within which a household's well must pay (VB-1553). Only the bands and their hours are read yet: no well is dug before VB-1553.
+  const WELL = { shallow: 4, middling: 10, deepest: 20, flat: 16, perMetre: 4, least: 1, startWalk: 0.5, payYears: 2 };
   // w.waterDepth where no well can be dug: mountain, snowfield, water, and ground whose water lies deeper than WELL.deepest.
   const NO_WELL = Infinity;
   const BANDS = [
@@ -38,6 +39,8 @@ VB['world/water'] = (() => {
   // The range of hours of a well in band k, [least, most], or null for no well.
   const bandHours = (k) =>
     k > 2 ? null : [wellHours(k ? BANDS[k - 1].to : WELL.least), wellHours(BANDS[k].to)].map(Math.round);
+  // The hours of a well at the middle of band k, the head's estimate before it digs (design.md, Wells): 26, 44 and 76.
+  const bandMid = (k) => wellHours(((k ? BANDS[k - 1].to : WELL.least) + BANDS[k].to) / 2);
   // Whether tile i is a source of good water: any but marsh.
   const good = (w, i) => w.fresh[i] !== FRESH.NONE && w.fresh[i] !== FRESH.MARSH;
   // The source the walk to water of tile i leads to: the tile itself where it is a source of good water, else down w.freshWalk from
@@ -60,5 +63,5 @@ VB['world/water'] = (() => {
     }
     return -1;
   }
-  return { FRESH, FRESHES, WELL, NO_WELL, BANDS, band, bandHours, good, sourceNear };
+  return { FRESH, FRESHES, WELL, NO_WELL, BANDS, band, bandHours, bandMid, good, sourceNear };
 })();

@@ -43,7 +43,28 @@ function waterLines(i) {
   out.push(
     hours ? `A well here: ${BANDS[k].name}, ${hours[0]} to ${hours[1]} hours of digging` : 'No well can be dug here',
   );
+  // what a farm placed here would spend on its water each day (VB-1552): the leader's estimate, as its choice of site shows it
+  if (st && st.w === w && w.freshWalk) out.push(`A farm here: ${siteWaterWords(Sim.siteWater(st, i)).fetch}`);
   return out;
+}
+// A site's water in words, from the leader's estimate e (Sim.siteWater; design.md, Water by the site, In the leader's choice):
+// {source: the nearest good water and the walk there and back, or that none is in reach; fetch: the day's fetch in hours, as a share of
+// one hand's day, and where it is drawn; well: the band of a well there with its range of hours, or that none can be dug}. The site
+// choice (VB-788, VB-1544) shows the three; the tile card has the first and the last in its own lines, and adds the fetch.
+function siteWaterWords(e) {
+  const from = {
+    source: () => `from ${e.source.name}`,
+    village: () => `from ${e.village.name}'s well, ${walkWords(2 * e.village.walk)} there and back`,
+    well: () => `with a well dug by the house, about ${Math.round(e.well.dig)} hours of work`,
+    none: () => 'no fresh water in reach, and no well to dig',
+  }[e.by]();
+  return {
+    source: e.source ? `${e.source.name}, ${walkWords(2 * e.source.walk)} there and back` : 'no fresh water in reach',
+    fetch: `water ${e.hours.toFixed(1)} hours a day, ${Math.round(e.share * 100)}% of one hand's day (${from})`,
+    well: e.well
+      ? `a well here: ${e.well.name}, ${e.well.range[0]} to ${e.well.range[1]} hours`
+      : 'no well can be dug here',
+  };
 }
 const waterBand = (h) => {
   const k = WATER_WALKS.findIndex((x) => h <= x);
