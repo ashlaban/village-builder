@@ -104,11 +104,36 @@ check(T.reckonWood(st, v).includes(scrubTile), 'thick scrub near the green is cu
 w.trees[scrubTile] = 10;
 check(!T.reckonWood(st, v).includes(scrubTile), 'young scrub is not');
 
+// --- a field let go lapses (VB-1504): developed ground LAPSE.years untended, then wild ground of its terrain; taken in again, it stays
+{
+  const f2 = st.farmsteads[1], at = (fd) => fd.tile, clock = { year: 0 };
+  const hill = f2.fields[f2.fields.length - 1], again = f2.fields[f2.fields.length - 2], ht = at(hill), at2 = at(again);
+  w.biome[ht] = B.HILLS; // the field lies on hills: the ground under a field is its biome still
+  hill.stage = again.stage = 'stubble'; hill.held = again.held = 0;
+  Fd.letGo(st, f2, hill, clock); Fd.letGo(st, f2, again, { year: 1 });
+  check(st.lapsed.has(ht) && st.lapsed.has(at2) && w.dev[ht] === 1 && !st.used.has(ht), 'a field let go is lapsed ground, developed still');
+  check(checkState(st).length === 0, `invariants with lapsed ground: ${checkState(st).join('; ')}`);
+  const n0 = VB.count.lapsedTile, day0 = Math.floor(st.t / DAY), L = S.LAPSE.years * YEAR_DAYS;
+  w.tended[ht] = w.tended[at2] = day0 + 1 - (L - 1); // let go LAPSE.years less a day ago
+  days(1);
+  check(w.dev[ht] === 1 && st.lapsed.has(ht) && VB.count.lapsedTile === n0 + 2, 'a day short of its years it is developed ground, and counted');
+  st.used.add(at2); // taken into use again
+  w.tended[ht] = w.tended[at2] = day0 + 1 - L;
+  st.biomeDirty.clear();
+  days(1);
+  check(w.dev[ht] === 0 && !st.lapsed.has(ht) && w.biome[ht] === B.HILLS && st.biomeDirty.has(ht), `${S.LAPSE.years} years untended: hills again`);
+  check(w.dev[at2] === 1 && !st.lapsed.has(at2), 'ground taken into use again does not revert');
+  st.used.delete(at2);
+  delete st.lapsed; // an older save: the developed ground in nobody's use is found, and lapses from today
+  days(1);
+  check(st.lapsed.has(at2) && w.tended[at2] === day0 + 1 && w.dev[at2] === 1, "an older save's let-go field lapses from the load");
+}
 // --- a save keeps the front and the work on tiles
 check(checkState(st).length === 0, `invariants at the end: ${checkState(st).join('; ')}`);
 const back = Sim.load(w, JSON.parse(JSON.stringify(Sim.save(st))));
 check(back.front.size === st.front.size && [...st.front].every((t) => back.front.has(t)), 'a save keeps the front');
 check(back.w.tended[c] === w.tended[c], 'and the work on tiles');
+check(back.lapsed.size === st.lapsed.size && [...st.lapsed].every((t) => back.lapsed.has(t)), 'and the lapsed ground');
 
 if (failed) { console.error(`forest spread: ${failed} failed`); process.exit(1); }
-console.log('forest spread ok: the front, its rates, kept open, thinned, cleared, cut bare, firewood and a save');
+console.log('forest spread ok: the front, its rates, kept open, thinned, cleared, cut bare, firewood, lapsed ground and a save');

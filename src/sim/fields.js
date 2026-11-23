@@ -6,7 +6,7 @@ VB['sim/fields'] = (() => {
   const { log, atFarm } = VB['sim/records'];
   const { cropFactor, ripeShift } = VB['sim/weather'];
   const Projects = VB['sim/projects'];
-  const { clearScrub, SPREAD } = VB['sim/spread'];
+  const { clearScrub, lapse, SPREAD } = VB['sim/spread'];
   const { nextStep, failed } = VB['sim/courses'];
   const { wearSoil, rested, tilthOf } = VB['sim/soil'];
   const { emit } = VB['sim/events'];
@@ -160,6 +160,7 @@ VB['sim/fields'] = (() => {
     L.inYear++;
     st.used.delete(fd.tile);
     setOwner(st, fd.tile, { type: 'village', id: f.village });
+    lapse(st, fd.tile); // developed ground until it has lain LAPSE.years, then its terrain again (sim/spread, VB-1504)
     st.farmDirty.add(f.id);
     st.biomeDirty.add(fd.tile);
     log(st, `${f.name} lets a field go: its household no longer needs its grain.`, { kind: 'fieldLeft', ...atFarm(f) });
