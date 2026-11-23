@@ -26,12 +26,18 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 2. Resolve open decisions using **Deciding without Kim** below. Record each decision and reason.
 3. Work in small commits and run `npm test` after each change. For a refactor, run focused checks and, where needed, compare against the starting commit with `node tools/same.js`.
 4. Before the last commit run `npm run format` and `npm run verify`. For page changes also run `node tests/smoke.js` and the affected browser tests. Hard failures block merging. See `docs/testing.md` for coverage. A nightly failure gets its own repair task.
-5. Tick the criteria met. For an outstanding measurement or missed target, leave its criterion unticked, give the reason and report the available evidence at PR closeout. Mark complete work with `node tools/backlog.js done ID`. Set incomplete work or a question requiring Kim to `needs-review`. Limit task notes to ten lines of decisions, reasons and outstanding work.
+5. Tick the criteria met. For an outstanding measurement or missed target, leave its criterion unticked, give the reason and report the available evidence at PR closeout. Mark complete work with `node tools/backlog.js done ID`. Set incomplete work or a question requiring Kim to `needs-review`. Limit task notes to ten lines of decisions, reasons and outstanding work. A session that worked on one task alone measures itself last, `node tools/agent-usage.js --label worker --task ID --out docs/agents/usage`, and commits the file (the token use page, `tools/usage-page.js`, reads it); in an orchestrated run the orchestrator measures.
 6. Open the PR. For size M or a new module or state field, lead with its reads, writes, new coupling and the reason for any new abstraction or special case. For behaviour changes, report whether households were better off. Under **Targets**, give before, after, residual and cause for each target moved or intended to move, then count the other outstanding targets. Only Kim changes targets or starts a tuning run. Keep lint and ownership baselines as ratchets.
 
 Measure behaviour before and after once on the final PR result, or at nightly wrap-up on the merged branch. Measure within a task when its criterion names a number to move or when tuning. A refactor reports what became simpler and lists each intentional behaviour change.
 
 In an orchestrated run, follow `.claude/agents/vb-task.md`. Send closeout details through the inbox. The orchestrator updates shared records and opens the PR. Hand over at 120 model calls.
+
+### Spending turns
+Every model call re-reads the whole context, so a task's cost grows faster than its calls (the token use page, `docs/usage.html`).
+- Send independent reads and searches together, in one message: several greps, file sections or `doc.js` headings at once, not one a call.
+- Read a function or a section whole, once, not in windows of a few lines.
+- Make a file's edits in one call, and check the result in the same call (the diff, or the focused test), not in a call of its own.
 
 ## Deciding without Kim
 
