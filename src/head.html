@@ -285,10 +285,23 @@ input, select { font: inherit; color: var(--ink); }
   display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .map-bar { display: flex; gap: 2px; padding: 4px; border-radius: var(--r-panel); }
 .map-bar .icon-btn { width: 40px; height: 40px; min-height: 0; border: 0; }
-.map-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-#noticeBtn[aria-expanded="true"] { background: var(--edge); }
+.map-bar button[aria-pressed="true"], #overlayBtn.on { background: var(--accent); color: var(--on-accent); }
+:is(#noticeBtn, #overlayBtn:not(.on))[aria-expanded="true"] { background: var(--edge); }
 @media (pointer: coarse) { .map-bar .icon-btn { width: 44px; height: 44px; } }
 body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minimapBtn) { display: none; }
+/* The overlays' list (VB-1490), the overlay button's, placed as the bell's: a row for each overlay (page/overlays), its icon, its name and
+   its key; the one on checked; a hairline between groups. */
+.overlay-list { display: flex; flex-direction: column; gap: 2px; }
+.overlay-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 4px 8px; border: 0; border-radius: var(--r-small);
+  background: none; color: inherit; text-align: left; font-size: 14px; }
+.overlay-row > span { flex: 1; }
+.overlay-row svg { flex: none; width: 20px; height: 20px; }
+.overlay-row kbd { font: 12px/1 ui-monospace, monospace; padding: 3px 6px; border: 1px solid var(--edge); border-radius: 4px; }
+.overlay-row[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
+.overlay-row[aria-checked="true"] kbd { border-color: currentColor; }
+.overlay-row.group-start { margin-top: 5px; position: relative; }
+.overlay-row.group-start::before { content: ""; position: absolute; left: 0; right: 0; top: -4px; border-top: 1px solid var(--edge); }
+@media (pointer: coarse) { .overlay-row { min-height: 44px; } }
 .notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
   max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: var(--r-small); }
 .notice-pop .menu-label { margin: 12px 0 8px; }
@@ -1111,6 +1124,10 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 :root[data-theme="mural"] .map-bar { gap: 6px; }
 :root[data-theme="mural"] .map-bar .icon-btn { border: 2px solid var(--ink); box-shadow: var(--medal), var(--cast); }
 :root[data-theme="mural"] .map-bar .icon-btn[aria-pressed="true"] { box-shadow: var(--medal-on), var(--cast); }
+:root[data-theme="mural"] #overlayBtn.on { background: var(--accent); box-shadow: var(--medal-on), var(--cast); color: var(--on-accent); }
+:root[data-theme="mural"] .overlay-row { border: 1.5px solid transparent; border-radius: 0 10px 0 10px; background: none; }
+:root[data-theme="mural"] .overlay-row[aria-checked="true"] { background: var(--accent); border-color: var(--ink); color: var(--on-accent); }
+:root[data-theme="mural"] .overlay-row.group-start::before { border-top-color: var(--ink); }
 /* the action bar: each entry a medallion with its word on a scroll */
 :root[data-theme="mural"] .act-bar { gap: 26px; padding-left: 16px; }
 :root[data-theme="mural"] .act-bar button { min-height: 34px; overflow: visible; justify-content: flex-start; padding: 2px 10px 2px 0; border: 1.5px solid var(--ink);

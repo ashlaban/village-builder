@@ -177,7 +177,6 @@ function reachPick() {
 function setReach(on) {
   reachOn = on;
   L.reach.visible = on;
-  $('reachKey').hidden = !on;
   if (!on || !w) return;
   const pick = reachPick();
   if (pick >= 0) reachFrom = pick;
@@ -208,3 +207,16 @@ function resetReach() {
   }
   if (reachOn) drawReach();
 }
+// The H the old button named is the eye's, which hides the interface (page/input), so walking time is J, for a journey.
+registerOverlay({
+  id: 'reach',
+  name: 'Walking time from the selected tile',
+  key: 'j',
+  icon: 'reach',
+  group: 'ways',
+  set: setReach,
+  refresh: refreshReach,
+  reset: resetReach,
+  layer: L.reach,
+  keyEl: $('reachKey'),
+});

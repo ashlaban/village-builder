@@ -152,6 +152,10 @@
     <div class="notice-pop panel" id="noticePop" role="group" aria-labelledby="noticeTitle" hidden>
       <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
     </div>
+    <div class="notice-pop overlay-pop panel" id="overlayPop" role="group" aria-labelledby="overlayTitle" hidden>
+      <h2 class="menu-label" id="overlayTitle">Overlays</h2>
+      <div class="overlay-list" id="overlayList" role="radiogroup" aria-labelledby="overlayTitle"></div>
+    </div>
     <div class="ground-key panel" id="groundKey" role="group" aria-label="Key to the ground" hidden></div>
     <div class="ground-key land-key panel" id="landKey" role="group" aria-label="Key to land ownership" hidden></div>
     <div class="ground-key reach-key panel" id="reachKey" role="group" aria-label="Key to walking time" hidden></div>
@@ -164,12 +168,8 @@
         aria-pressed="true"></button>
       <button id="regionBtn" type="button" class="icon-btn" data-icon="regions" aria-keyshortcuts="r" aria-label="Regions" title="Regions (R)"
         aria-pressed="false"></button>
-      <button id="landBtn" type="button" class="icon-btn" data-icon="land" aria-keyshortcuts="l" aria-label="Land ownership"
-        title="Land ownership (L)" aria-pressed="false" aria-controls="landKey"></button>
-      <button id="groundBtn" type="button" class="icon-btn" data-icon="ground" aria-keyshortcuts="o" aria-label="Bedrock and deposits"
-        title="Bedrock and deposits (O)" aria-pressed="false" aria-controls="groundKey"></button>
-      <button id="reachBtn" type="button" class="icon-btn" data-icon="reach" aria-keyshortcuts="h" aria-label="Walking time from the selected tile"
-        title="Walking time from the selected tile (H)" aria-pressed="false" aria-controls="reachKey"></button>
+      <button id="overlayBtn" type="button" class="icon-btn" aria-label="Overlays" title="Overlays" aria-expanded="false"
+        aria-controls="overlayPop"></button>
       <button id="noticeBtn" type="button" class="icon-btn" data-icon="bell" aria-label="Notifications" title="Which notifications show"
         aria-expanded="false" aria-controls="noticePop"></button>
       <button id="minimapBtn" type="button" class="icon-btn" data-icon="minimap" aria-keyshortcuts="m" aria-label="Minimap" title="Minimap (M)"

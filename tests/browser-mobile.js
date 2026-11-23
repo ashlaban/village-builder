@@ -168,7 +168,13 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.click('#minimapBtn'); assert(await page.locator('#minimap').isVisible()); await fits('#mapTools');
     assert(await page.locator('#mmBase').evaluate((c) => c.width > 0 && c.height > 0), 'the minimap has a painted canvas');
     assert.strictEqual(await page.locator('.map-bar button:visible').last().getAttribute('id'), 'minimapBtn', 'the toggle ends the bar');
-    await page.click('#landBtn'); assert.strictEqual(await page.getAttribute('#landBtn', 'aria-pressed'), 'true');
+    // VB-1490: the overlay button unfolds its list over the minimap, rows 44px high; the list stays open after a choice
+    await page.click('#overlayBtn'); assert(await page.locator('#overlayPop').isVisible()); await fits('#overlayPop');
+    assert(await page.locator('#landBtn').boundingBox().then((b) => b.height >= 44), 'an overlay\'s row is 44px high on a phone');
+    await page.click('#landBtn'); assert.strictEqual(await page.getAttribute('#landBtn', 'aria-checked'), 'true');
+    assert(await page.locator('#overlayPop').isVisible(), 'the list stays open after a choice');
+    await page.click('#landBtn'); assert(await page.locator('#landKey').isHidden(), 'the row of the overlay on puts it away');
+    await page.click('#overlayBtn'); assert(await page.locator('#overlayPop').isHidden(), 'the button shuts its list');
     await page.click('#noticeBtn'); assert(await page.locator('#noticePop').isVisible()); await fits('#noticePop');
     assert(await page.locator('#noticeList input').count() > 0, 'the bell lists the kinds of notification');
     await page.keyboard.press('Escape'); assert(await page.locator('#noticePop').isHidden(), 'Esc shuts the list');

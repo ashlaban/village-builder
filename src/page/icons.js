@@ -127,6 +127,13 @@ const ICON = {
     '<circle cx="10" cy="10" r="1.5"/><circle cx="10" cy="10" r="4.5"/><circle cx="10" cy="10" r="7.5"/>',
     ICON_STROKE,
   ), // rings round a place: how far a walk is
+  // three sheets one over another: the map's overlays (VB-1490), on the overlay button while none is on
+  layers: svgIcon(
+    20,
+    20,
+    '<path d="M2.5 6.5L10 3l7.5 3.5L10 10ZM2.5 10l7.5 3.5 7.5-3.5M2.5 13.5L10 17l7.5-3.5"/>',
+    ICON_STROKE,
+  ),
   bell: svgIcon(
     20,
     20,
@@ -179,6 +186,7 @@ const ICON_STEN = {
   land: '<path class="l" d="M6 21.5V3"/><path d="M7 3.5h12l-3.2 4 3.2 4H7z"/>',
   ground: '<path d="M3 9l9-5 9 5-9 5z"/><path class="l" d="M3.5 14.5l8.5 4.7 8.5-4.7"/>',
   reach: '<circle class="l" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.8"/>',
+  layers: '<path d="M3 7.5L12 3l9 4.5-9 4.5z"/><path class="l" d="M3 12l9 4.5 9-4.5M3 16.5l9 4.5 9-4.5"/>',
   bell: '<path d="M6 16.5v-6a6 6 0 0 1 12 0v6l2 2H4z"/><circle cx="12" cy="20.8" r="1.6"/>',
   minimap: '<path d="M3 6l6-2.5 6 2.5 6-2.5V18l-6 2.5L9 18l-6 2.5z"/><path class="c" d="M9 3.5V18M15 6v14.5"/>',
   close: '<path class="l" d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',

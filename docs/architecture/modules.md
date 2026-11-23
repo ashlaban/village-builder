@@ -22,7 +22,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Nothing digs yet. `src/sim/prospect.js` keeps what each village
   has found of the hidden upland ores (`st.finds`; `w.vein`, `w.veinNear`): a finished job near a vein may find it (`sim/agents` calls
   `worked`); `Sim.knowsDeposit` and `Sim.depositKnown` are the views' reads. They are shown by the tile panel
-  and the Ground overlay (`src/page/ground.js`: bedrock tints, deposit marks and a key, drawn once a world; the map bar, key O), and the Reach overlay (`src/page/reach.js`: land banded by walking hours from the selected tile, by `reachCosts` of `sim/routes`, with contours and a key at the hours the rules compare against; the map bar, key H).
+  and the Ground overlay (`src/page/ground.js`: bedrock tints, deposit marks and a key, drawn once a world; key O), and the Reach overlay (`src/page/reach.js`: land banded by walking hours from the selected tile, by `reachCosts` of `sim/routes`, with contours and a key at the hours the rules compare against; key J). The three register with `src/page/overlays.js` (VB-1490), the map bar's one overlay button and its list: one overlay shown at a time, its key over the minimap.
   The climate of a world is `src/gen/climate.js` (VB-342), also called by `gen.js`: it erodes the relief, draws the seed's wind (`w.wind`),
   carries rain over the map on it (`w.rain`) and deals the tiles' moisture (`w.hm`) out by that rain, so biomes follow the weather; its
   numbers are `CLIMATE`. Nothing in play reads the wind or the rain yet.
@@ -444,4 +444,10 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   enough for what is planned: a count, and where a project plan asks for it, its framed work block with held against asked on the one
   meter); a **gear** wears (what condition is it in). A material is one row of `MATERIALS` in `src/page/cards.js`, its kinds a list under
   the total, shown only where more than one is held; a work's asks are read from the project plan's `build` reservations.
+- A new map overlay (VB-1490) is one file under `src/page/`, its line in `src/page.json` after `page/overlays.js` and before `page/input.js`,
+  an icon in both sets of `src/page/icons.js` (`ICON` and `ICON_STEN`), and a key panel (`class="ground-key panel"`, `hidden`) beside the
+  others over the minimap in `src/body.html`. The file ends with `registerOverlay({id, name, short, key, icon, group, set(on), refresh(), reset(), layer, keyEl})`:
+  `set` shows or hides its layer and draws it, `refresh` runs every frame on or off, `reset` for a new world. With no `key` it takes the next
+  free digit (6 to 9: 1 to 5 are the speeds). The overlay button, its list, the keys and `tests/browser-overlays.js` follow the registry: none
+  of them names an overlay.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.

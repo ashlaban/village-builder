@@ -340,9 +340,7 @@ function updateSettlement(dt) {
   if (st.visualDirty || st.rigDirty.size || st.farmDirty.size || st.villageDirty.size) redrawSettlement(w);
   if (st.treeDirty.size) refreshTrees();
   if (st.pathDirty.size) refreshPaths();
-  if (landOn || st.landDirty.size) refreshLand();
-  refreshGround();
-  refreshReach();
+  refreshOverlays();
   for (const o of fieldSprites) {
     const s = fieldLook(o.fd);
     if (s !== o.stage) {

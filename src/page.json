@@ -3,6 +3,7 @@
   "page/icons.js",
   "page/meter.js",
   "page/chunks.js",
+  "page/overlays.js",
   "page/land.js",
   "page/ground.js",
   "page/reach.js",

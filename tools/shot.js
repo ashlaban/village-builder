@@ -26,7 +26,7 @@ const outDir = path.resolve(opt('out', '.')), closeN = +opt('close', 1), at = op
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
 const html = (htmlPath ? fs.readFileSync(htmlPath, 'utf8') : require('../tests/lib/page').builtPage()).replace('let st = null,\n  speed = 1,\n  selPawn = -1;',
   'let st = null,\n  speed = 1,\n  selPawn = -1; window.__vb = { get st() { return st; }, cam: () => cam, Sim: () => Sim, '
-  + 'reachFrom(v) { selectVillage(v, false); setReach(true); }, view(x, y, z) { stopIntro(); cam.x = x; cam.y = y; cam.z = z; zt = z; vel.x = vel.y = 0; } };');
+  + 'reachFrom(v) { selectVillage(v, false); if (!overlayOn || overlayOn.id !== 'reach') chooseOverlay('reach'); }, view(x, y, z) { stopIntro(); cam.x = x; cam.y = y; cam.z = z; zt = z; vel.x = vel.y = 0; } };');
 if (!html.includes('window.__vb')) throw new Error('hook not found: the page script changed');
 fs.mkdirSync(outDir, { recursive: true });
 const page_ = path.join(os.tmpdir(), `vb-shot-${process.pid}.html`); fs.writeFileSync(page_, html);
