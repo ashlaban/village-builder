@@ -67,7 +67,7 @@ assert.strictEqual(Quern.wantsStone(st, hh), false, 'none at a target of none');
 // ale beyond its stock; the page's view of a good
 assert.strictEqual(Sim.head(st, 'target', { store: 'ale', n: 3 }), true);
 const V = Sim.headView(st, hh.id).goods;
-assert.deepStrictEqual(V.ale, { held: 0, now: 3, custom: BREW.stock, chosen: 3, bounds: [0, BREW.stock + Math.floor(spare / BREW.hours)], unit: 'barrel' },
+assert.deepStrictEqual(V.ale, { held: 0, now: 3, custom: BREW.stock, chosen: 3, bounds: [0, BREW.stock + Math.floor(spare / BREW.hours)], unit: 'barrel', placed: 0 },
   'the page reads the held stock, the target, the custom\'s, the choice and the bounds');
 assert.strictEqual(V.butter.now, Infinity, 'butter: all the milk gives');
 sound('chosen');
