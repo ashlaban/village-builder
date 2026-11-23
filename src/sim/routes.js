@@ -2,11 +2,14 @@
 VB['sim/routes'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { through, stepCost, discomfort, invalidateReach, PATHS, DISCOMFORT } = VB['sim/walking'];
+  const { SPEED } = VB['sim/rules'];
   // @tunable ROUTE: the route search's bounds and its cache
-  // reach: the dearest route searched for, in meadow steps (beyond it a pawn walks straight); minStep: the cheapest step there is,
-  // a lane over meadow. cacheMax: entries, first in first out; the cache is emptied each day a tile changes cost (VB-236), and the most
-  // it held over 48 days after the first emptying was 4,028 at medium-ref and 2,779 at small-y40: twice the larger, for a run of quiet days.
-  const ROUTE = { cacheMax: 8000, reach: 200, minStep: 1 / PATHS.speed[3] };
+  // hours: the longest walk the villages' table and a pawn's route search reach (design.md, The journey scale: 67 hours, the far side of
+  // the medium island; VB-444's plan, section 6); reach: the same bound in meadow steps, hours x SPEED (536), the dearest route searched
+  // for (beyond it a pawn walks straight); minStep: the cheapest step there is, a lane over meadow. cacheMax: entries, first in first
+  // out; the cache is emptied each day a tile changes cost (VB-236), and the most it held over 48 days after the first emptying was
+  // 4,028 at medium-ref and 2,779 at small-y40: twice the larger, for a run of quiet days.
+  const ROUTE = { cacheMax: 8000, hours: 67, reach: 67 * SPEED, minStep: 1 / PATHS.speed[3] };
 
   const STRAIGHT = 1e-3; // see findRoute: what a tile's width off the straight line adds to a tile's key, in steps
   // ---- the search: A* (Hart, Nilsson and Raphael 1968) with the hex distance times the cheapest step as the bound ----

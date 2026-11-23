@@ -8,7 +8,7 @@ const state = () => tinyState(world(), [{ at: [7, 9], farms: 2, sizes: [6, 5] },
 // generates the same world again. Each island is generated once per seed and size in a test process (VB-872), and every call hands out a
 // fresh copy of it: its arrays copied, so that what a run changes (trees, stones, deposits left, anything it adds) stays in that copy; its
 // one function (the colour sampler, which reads only the generator's own fields) shared.
-const SMALL = { cols: 36, rows: 26 }, ROOMY = { cols: 48, rows: 34 }, made = new Map();
+const SMALL = { cols: 36, rows: 26 }, ROOMY = { cols: 72, rows: 50 }, made = new Map();
 const copy = (v) => (ArrayBuffer.isView(v) ? v.slice() : typeof v === 'function' || v === null || typeof v !== 'object' ? v : structuredClone(v));
 // generate() makes one anew, for a test of the generator's determinism, which a copy cannot show.
 const generate = (seed = 7, size = SMALL) => {

@@ -276,26 +276,38 @@ VB['sim/scenarios'] = (() => {
       rand = drawer(S);
     const comp = landComponents(w),
       minLand = Math.round((1500 * w.N) / (280 * 200)); // on a small map, the requirement scaled to it
-    let a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= 1500);
-    if (a < 0) a = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
-    if (a < 0) throw new Error('No village site found');
-    // village B as remote as possible: another island if there is a decent one, otherwise far along the same land
-    const { dist: far } = bfs(w, a, 200, walkable(w));
-    let b = findSite(
-      w,
-      rand,
-      comp,
-      (i) => comp.id[i] !== comp.id[a] && comp.size[comp.id[i]] >= 350 && hexSteps(w, a, i) >= 30,
-    );
-    if (b < 0) b = findSite(w, rand, comp, (i) => (far.get(i) || 0) >= 45);
-    if (b < 0) b = findSite(w, rand, comp, (i) => hexSteps(w, a, i) >= 20);
-    const gen = settlementGenerator(w, rand),
-      vA = gen.addVillage(a, 4),
+    // On the forested island (VB-780) meadow lies in small patches, and the first site found may hold too few farms: a site that held too
+    // few is set aside and the next best tried, up to `tries` times; a generator's villages write nothing to the world until finish().
+    const tries = 12,
+      skipA = new Set(),
+      skipB = new Set();
+    let a, b, gen, vA, vB, A, Bf;
+    for (let k = 0; ; k++) {
+      a = findSite(w, rand, comp, (i) => !skipA.has(i) && comp.size[comp.id[i]] >= 1500);
+      if (a < 0) a = findSite(w, rand, comp, (i) => !skipA.has(i) && comp.size[comp.id[i]] >= minLand);
+      if (a < 0) throw new Error('No village site found');
+      // village B as remote as possible: another island if there is a decent one, otherwise far along the same land
+      const { dist: far } = bfs(w, a, 200, walkable(w)),
+        okB = (i) => !skipB.has(i) && i !== a;
+      b = findSite(
+        w,
+        rand,
+        comp,
+        (i) => okB(i) && comp.id[i] !== comp.id[a] && comp.size[comp.id[i]] >= 350 && hexSteps(w, a, i) >= 30,
+      );
+      if (b < 0) b = findSite(w, rand, comp, (i) => okB(i) && (far.get(i) || 0) >= 45);
+      if (b < 0) b = findSite(w, rand, comp, (i) => okB(i) && hexSteps(w, a, i) >= 20);
+      gen = settlementGenerator(w, rand);
+      vA = gen.addVillage(a, 4);
       vB = gen.addVillage(b, 3);
+      A = gen.farmsteads.filter((f) => f.village === 0);
+      Bf = gen.farmsteads.filter((f) => f.village === 1);
+      if (A.length >= 4 && Bf.length >= 3) break;
+      if (k + 1 >= tries) throw new Error('Not enough room for the debug villages');
+      if (A.length < 4) skipA.add(a);
+      else skipB.add(b);
+    }
     const { used, farmsteads, villages } = gen.finish();
-    const A = farmsteads.filter((f) => f.village === 0),
-      Bf = farmsteads.filter((f) => f.village === 1);
-    if (A.length < 4 || Bf.length < 3) throw new Error('Not enough room for the debug villages');
     const [A1, A2, A3, A4] = A,
       [B1, B2, B3] = Bf;
     const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
