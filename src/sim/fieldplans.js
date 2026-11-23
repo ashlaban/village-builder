@@ -1,7 +1,8 @@
 // @sys sim/fieldplans: field demand, site selection, clearing projects and the head's harvest estimate
 VB['sim/fieldplans'] = (() => {
   const { ECON, FIELDS, SPEED, cal, YEAR_DAYS } = VB['sim/rules'],
-    { CROPS, ROTATIONS, GROUND, SOIL, farmable, fertility } = VB['sim/crops'];
+    { CROPS, ROTATIONS, GROUND, SOIL, farmable, fertility } = VB['sim/crops'],
+    { groundKey } = VB['sim/fieldrec'];
   const { rotationOf, courseFor } = VB['sim/rotations'];
   const { age } = VB['sim/records'];
   const { team } = VB['sim/herds'];
@@ -211,6 +212,7 @@ VB['sim/fieldplans'] = (() => {
   // household's stake; it holds back the seed the field will want (released when the field is made, when the standing plan's seed counts it).
   const fieldProject = (st, hh, tile) => ({
     what: 'field',
+    ground: groundKey(st.w, tile), // the biome it has now, before the clearing (VB-1490)
     steps: [
       { kind: 'clear', place: tile, hours: clearHours(st, tile), stake: 'field' },
       { kind: 'break', place: tile, hours: BREAK_HOURS, stake: 'field' },

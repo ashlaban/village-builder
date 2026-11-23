@@ -33,7 +33,7 @@ VB['sim/newground'] = (() => {
   function finishBreak(st, f, plan) {
     const tile = plan.steps[plan.open].place;
     realiseStake(st, st.households[f.household], tile);
-    const fd = broken(st, tile, f.fields.length + (f.left ? f.left.gone : 0)); // the fields made so far, those let go among them (VB-768)
+    const fd = broken(st, tile, f.fields.length + (f.left ? f.left.gone : 0), plan.ground); // the fields made so far, those let go among them (VB-768)
     f.fields.push(fd); // lint-allow: owner a new field joins its farm's list where its ground is broken (sim/fields' record)
     placeField(st, f, st.households[f.household], fd);
     st.farmDirty.add(f.id); // its new field is drawn (VB-442)
@@ -41,10 +41,11 @@ VB['sim/newground'] = (() => {
     log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
   }
   // A new field in stubble on `tile`, its ground broken: farmed land from now. A farm's (finishBreak) or a village's common field (VB-100,
-  // sim/commons), whose holder adds it to its list.
-  function broken(st, tile, id) {
+  // sim/commons), whose holder adds it to its list. `ground`: the plan's, the biome the tile had when the project began (a plan from an older
+  // save has none: the tile's now).
+  function broken(st, tile, id, ground) {
     const w = st.w,
-      fd = newField(w, id, tile, w.dev[tile] ? SOIL.start : SOIL.fresh, st.t);
+      fd = newField(w, id, tile, w.dev[tile] ? SOIL.start : SOIL.fresh, st.t, ground);
     tended(st, tile); // VB-091
     st.used.add(tile);
     woodTaken(st, tile); // a wood tile broken to a field leaves its village's wood (VB-326)

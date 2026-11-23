@@ -1006,6 +1006,8 @@ function checkState(st) {
     }
     if (f.grade !== 'ground' && f.grade !== 'stone') bad.push(`farmsteads[${f.id}]: grade ${f.grade}`); // VB-332
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
+    // VB-1490: a field's ground is the key of a farmable ground (a biome with a row of GROUND)
+    for (const fd of f.fields) if (!VB['sim/fieldrec'].farmableKeys().includes(fd.ground)) bad.push(`farmsteads[${f.id}]: field ${fd.id} ground ${fd.ground}`);
     // VB-768: the fields let go, absent or counted; the fields' ids distinct and under the fields ever made (none used again)
     const L = f.left;
     if (L !== undefined && !(L && Number.isInteger(L.gone) && L.gone >= 1 && Number.isInteger(L.year) && L.year >= 0 && L.year <= Math.floor(st.t / VB["sim/rules"].YEAR) + 1 && Number.isInteger(L.inYear) && L.inYear >= 1 && L.inYear <= L.gone))
