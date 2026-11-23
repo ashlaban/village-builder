@@ -346,6 +346,15 @@ function checkState(st) {
           if (!st.pawns[id]) bad.push(`${at}: a list for pawn ${id}, which does not exist`);
           if (!Array.isArray(list) || list.some((k) => typeof k !== 'string') || new Set(list).size !== list.length) bad.push(`${at}: pawn ${id}'s list is not task keys, each once`);
         }
+        // VB-1540: its standing duties, once allotted since: the day and head they are of, and for members' ids types of work, each once
+        const D = d && d.duties;
+        if (D !== undefined) {
+          if (!D || !Number.isInteger(D.day) || !(D.head === null || Number.isInteger(D.head)) || !D.held || !D.set) bad.push(`${at}: its duties are not {day, head, held, set}`);
+          else for (const of of [D.held, D.set]) for (const [id, types] of Object.entries(of)) {
+            if (!st.pawns[id]) bad.push(`${at}: duties of pawn ${id}, which does not exist`);
+            if (!Array.isArray(types) || !types.length || types.some((t) => typeof t !== 'string') || new Set(types).size !== types.length) bad.push(`${at}: pawn ${id}'s duties are not types of work, each once`);
+          }
+        }
       }
     }
     // VB-123: project plans: each holder exists (a live household or village, a living pawn), keyed by it; its open step within its steps,

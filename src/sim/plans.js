@@ -5,6 +5,7 @@ VB['sim/plans'] = (() => {
   const { rotationWhy, turnWhy, swapWhy, fieldsChoice } = VB['sim/rotations'],
     { takeRotation, outOfTurn, swapSteps } = VB['sim/courses'];
   const { living, home } = VB['sim/records'];
+  const { ROLES } = VB['sim/roles'];
   const { TICKS, HERD, cal } = VB['sim/rules'],
     { ROTATIONS } = VB['sim/crops'];
   const Stores = VB['sim/stores'],
@@ -239,6 +240,42 @@ VB['sim/plans'] = (() => {
     for (const k of steps) if (!sp.steps.includes(k)) return `${k} is not a routine of the season`;
     return null;
   }
+  // Why household id's head may not set (on true) or lift (false) the duty `type` of member `pawn`, or null (VB-1540; design.md section 7,
+  // Standing duties): a living member, a type of work the roles rank, a day allotted, and to lift, a duty it holds.
+  function dutyWhy(st, id, args) {
+    const { pawn, type, on } = args || {},
+      plan = st.plans.households.get(id);
+    if (typeof on !== 'boolean') return 'a duty is set (on true) or lifted (on false)';
+    if (!Number.isInteger(pawn) || !st.households[id].members.includes(pawn) || living(st, pawn))
+      return `pawn ${pawn} is not a member of household ${id}`;
+    if (typeof type !== 'string' || !Object.values(ROLES).some((r) => type in r.work))
+      return `there is no type of work ${type}`;
+    const D = plan.day && plan.day.duties;
+    if (!D) return `household ${id}'s day is not allotted yet`;
+    if (!on && !(D.set[pawn] || []).includes(type) && !(D.held[pawn] || []).includes(type))
+      return `pawn ${pawn} holds no duty ${type}`;
+    return null;
+  }
+  // The duty `type` of member `pawn` is set by the head (it stands until lifted, the member leaves or the head changes), or
+  // lifted, set or not; the household's next allotment (sim/jobs' allot) weighs the member by it.
+  function setDuty(st, id, pawn, type, on) {
+    const day = st.plans.households.get(id).day,
+      D = day.duties,
+      head = st.households[id].holder,
+      without = (list) => (list || []).filter((t) => t !== type),
+      put = (of, list) => {
+        const { [pawn]: _, ...rest } = of;
+        return list.length ? { ...rest, [pawn]: list } : rest;
+      };
+    const set = D.head === head ? D.set : {};
+    const next = {
+      day: D.day,
+      head,
+      held: on ? D.held : put(D.held, without(D.held[pawn])),
+      set: put(set, on ? [...without(set[pawn]), type] : without(set[pawn])),
+    };
+    day.duties = next; // lint-allow: owner the head's choice of a duty (VB-1540; the day is sim/jobs')
+  }
   // The head holds off projects (on true) or lets its rule take them again (false).
   function holdProject(st, id, on) {
     choices(st.plans.households.get(id)).project = on ? 'none' : null;
@@ -388,6 +425,11 @@ VB['sim/plans'] = (() => {
   register('order', {
     check: (st, c) => heads(st, c) || orderWhy(st, c.target, c.args && c.args.steps),
     run: (st, c) => setOrder(st, c.target, c.args.steps),
+  });
+  // duty({pawn, type, on}): member `pawn` holds the type of work `type` as a standing duty (on true), or holds it no longer (false)
+  register('duty', {
+    check: (st, c) => heads(st, c) || dutyWhy(st, c.target, c.args),
+    run: (st, c) => setDuty(st, c.target, c.args.pawn, c.args.type, c.args.on),
   });
   // project({what, tile, ...}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
   // refused while a project is under way, and under the tile's checks. The land step is the holder's rule for it (sim/plans, source

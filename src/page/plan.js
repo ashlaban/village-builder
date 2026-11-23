@@ -429,6 +429,38 @@ function smallHTML(V, mine) {
     })
     .join('');
 }
+// The members' standing duties (VB-1540), each in its one line (dutiesLine); the head may set one the morning gave (it then stands until
+// lifted) or lift one: the verb `duty`.
+function dutiesHTML(hh, mine) {
+  const rows = hh.members
+    .map((id) => {
+      const line = dutiesLine(id);
+      if (!line) return '';
+      const who = st.pawns[id].given,
+        btns = mine
+          ? Sim.dutiesOf(st, id)
+              .map((d) =>
+                planBtn(
+                  { plan: 'duty', pawn: id, type: d.type, on: d.set ? 0 : 1 },
+                  `${d.set ? 'Lift' : 'Set'}: ${dutyName(d.type)}`,
+                  d.set
+                    ? `Lift ${dutyName(d.type)} from ${who}`
+                    : `Set ${who} to ${dutyName(d.type)}, until you lift it`,
+                  true,
+                  'wide',
+                ),
+              )
+              .join('')
+          : '';
+      return `<li data-duty="${id}">${faceImg(id, 'mini')}<span>${esc(`${who}: ${line.toLowerCase()}`)}</span>${
+        btns ? `<span class="plan-ctl">${btns}</span>` : ''
+      }</li>`;
+    })
+    .join('');
+  return rows
+    ? `<ol class="plan-order">${rows}</ol>`
+    : '<p class="card-note">No duties yet: the head allots the day each morning.</p>';
+}
 // What is reserved, by good: the plan's own (the seed) and its projects' (what their steps will spend).
 function reservedHTML(hh) {
   const plan = st.plans.households.get(hh.id),
@@ -482,6 +514,8 @@ function planTab(hh) {
     targetsHTML(hh, V, mine) +
     section('This season') +
     routinesHTML(V, mine) +
+    section('Duties') +
+    dutiesHTML(hh, mine) +
     section('Next steps') +
     stepsHTML(hh) +
     tilesHTML(hh, V, mine) +
@@ -528,6 +562,7 @@ function planClick(b, hh) {
     renderActions();
     return;
   } else if (d.plan === 'project') r = Sim.head(st, 'project', { what: d.what === 'null' ? null : d.what });
+  else if (d.plan === 'duty') r = Sim.head(st, 'duty', { pawn: +d.pawn, type: d.type, on: d.on === '1' });
   else if (d.plan === 'drop') r = Sim.head(st, 'dropProject', d.id !== undefined ? { id: +d.id } : {});
   else return;
   planMsg = r === true ? { text: `Done: ${b.getAttribute('aria-label')}.` } : { text: r, bad: true };
