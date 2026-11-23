@@ -17,7 +17,8 @@ VB['sim/exchange'] = (() => {
     { daysOfFood } = VB['sim/foodneed'];
   const Norms = VB['sim/norms'];
   const Offers = VB['sim/offers'];
-  const { issue } = VB['sim/commands'];
+  const { issue } = VB['sim/commands'],
+    { emit } = VB['sim/events'];
   const { MOOD, level: moodOf, word: moodWord } = VB['sim/mood'];
   // allowance's goodwill term (design.md, The gift: Allowance), relations' quantity, contributed here because its limit needs the receiving
   // household's need: plus what the giver owes the receiver, minus what the receiver owes beyond GOODWILL.limitDays of its household's
@@ -155,6 +156,8 @@ VB['sim/exchange'] = (() => {
         ])
           addTie(st, a.id, b.id, HELP.tieGain);
       if (two) book(st, hf.id, ht.id, n * WORTH.grain); // the giver is owed the gift's worth (Who books: the two holders)
+      // a household's gift is a deed the village sees, the grain carried across it (VB-705): its giver's standing (sim/society)
+      if (two && isHousehold(from)) emit(st, 'giftGiven', { giver: hf.id, worth: n * WORTH.grain });
     }
   }
   // Settles an accepted gift between two households of one farmstead, which is one place (the hard rule): what goes between places is

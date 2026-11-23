@@ -158,6 +158,7 @@ const INTEGRATION = [
   ['node', 'tests/fair.js'], // VB-302: the fair: loads packed, swaps weighed and settled, the residual booked, goods home and conserved
   ['node', 'tests/green.js'],
   ['node', 'tests/workdays.js'],
+  ['node', 'tests/deeds.js'], // VB-705: standing as deeds: the base, a farm held and held before, gifts given, each fading in closed form
   ['node', 'tests/commons.js'],
   ['node', 'tests/cottage.js'],
   ['node', 'tests/relations.js'],
