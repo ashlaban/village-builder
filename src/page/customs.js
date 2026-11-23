@@ -279,7 +279,7 @@ function standHTML(c, r, s) {
     tag = (cls, text) => `<em class="tag ${cls}">${text}</em>`;
   const face = (
     f,
-  ) => `<button type="button" class="voice${f.waver ? ' waver' : ''}" id="voice${f.id}" data-voice="${f.id}"
+  ) => `<button type="button" class="card voice${f.waver ? ' waver' : ''}" id="voice${f.id}" data-voice="${f.id}"
       aria-pressed="${f.id === customVoice}">${faceImg(f.id)}<b>${f.id === me ? 'You' : esc(st.pawns[f.id].given)}</b><small>${
         f.waver ? `wavering towards “${esc(c.d.opts[f.next][1])}”` : f.say > STRONG / r.voices ? 'a strong voice' : ''
       }</small></button>`;

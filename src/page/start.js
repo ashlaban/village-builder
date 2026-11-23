@@ -360,7 +360,7 @@ function renderCards() {
         ].join('')
       : '';
     return (
-      `<button type="button" class="scard" data-sc="${k}" aria-pressed="${k === start.sc}"><span class="cpic ${k}">${pic}</span>` +
+      `<button type="button" class="card scard" data-sc="${k}" aria-pressed="${k === start.sc}"><span class="cpic ${k}">${pic}</span>` +
       `<b>${esc(words.name)}</b><small>${esc(words.line)}</small><span class="stats"><span>${startSign('people')}${people}</span>` +
       `<span>${startSign('gens')}${gens}</span></span></button>`
     );

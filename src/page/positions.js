@@ -279,7 +279,7 @@ function storyCards(scenario, pressed = null) {
   return `<div class="stories">${storyPeople(scenario)
     .map(
       (s) =>
-        `<button type="button" class="story" data-story="${s.key}" aria-pressed="${
+        `<button type="button" class="card story" data-story="${s.key}" aria-pressed="${
           pressed === s.key
         }">${sign(POS_ICON[s.key])}<b>${esc(s.label)}</b>${s.sug ? SUGGESTED : '<span></span>'}<small>${esc(LIFE_LINE[s.key])}</small>` +
         `<span class="few">${s.who

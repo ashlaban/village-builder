@@ -264,7 +264,7 @@ function supplyRow(O, r) {
   return (
     `<div class="supply ${S.tone}" data-supply="${r.key}"><span class="stat-ico">${goodIcon(r.icon)}</span>` +
     `<span class="stat-name">${r.label}</span>${supplyCells(O, s)}<span class="supply-state">${esc(S.word)}</span>` +
-    `<button type="button" class="supply-more" data-supply-more="${r.key}" aria-expanded="${open}" title="The numbers" ` +
+    `<button type="button" class="supply-more" data-supply-more="${r.key}" aria-haspopup="true" aria-expanded="${open}" title="The numbers" ` +
     `aria-label="${r.label}: the numbers">i</button></div>` +
     (open ? supplyNums(O, r, s) : '')
   );
