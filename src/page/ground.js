@@ -100,7 +100,6 @@ function drawGround() {
 function setGround(on) {
   groundOn = on;
   L.ground.visible = on;
-  $('groundKey').hidden = !on;
   if (on) drawGround();
 }
 // Each frame while the overlay is on: a new find or another viewer redraws it, looked for at most twice a second.
@@ -116,3 +115,15 @@ function resetGround() {
   if (groundG) groundG.clear();
   if (groundOn) drawGround();
 }
+registerOverlay({
+  id: 'ground',
+  name: 'Bedrock and deposits',
+  key: 'o',
+  icon: 'ground',
+  group: 'nature',
+  set: setGround,
+  refresh: refreshGround,
+  reset: resetGround,
+  layer: L.ground,
+  keyEl: $('groundKey'),
+});

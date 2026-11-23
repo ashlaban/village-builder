@@ -281,6 +281,7 @@ const EXTENDED = [
   ['node', 'tests/browser-speed.js'],
   ['node', 'tests/browser-gathering.js'], // a gathering while it is on: its notice, its mark and its card (VB-1031, VB-1032)
   ['node', 'tests/browser-fields.js'], // a field's card: crop, course, the head's rotation choices and their answers, winter rye (VB-1146)
+  ['node', 'tests/browser-overlays.js'], // the map's overlays through their list and by key, one at a time, on a phone (VB-1496)
   ['node', 'tests/browser-bonds.js'] // portraits: the bonds as badges (VB-1026), their words (VB-1033), ageing (VB-1029)
 ];
 module.exports = { FAST, INTEGRATION, EXTENDED };

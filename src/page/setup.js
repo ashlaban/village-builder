@@ -79,6 +79,11 @@ for (const k of [
   'fences',
   'ground',
   'reach',
+  'fertility',
+  'woodland',
+  'wildfood',
+  'grazing',
+  'wear',
   'land',
   'grid',
   'regions',
@@ -96,6 +101,10 @@ L.regions.visible = false;
 L.land.visible = false;
 L.ground.visible = false;
 L.reach.visible = false;
+L.fertility.visible = false;
+L.woodland.visible = L.wildfood.visible = false;
+L.grazing.visible = false;
+L.wear.visible = false;
 
 // ---- static textures ----
 let SPR = null; // the trees and shrubs the chunks are decorated with: landSprites (page/farmart), made at the first chunk

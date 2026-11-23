@@ -127,6 +127,38 @@ const ICON = {
     '<circle cx="10" cy="10" r="1.5"/><circle cx="10" cy="10" r="4.5"/><circle cx="10" cy="10" r="7.5"/>',
     ICON_STROKE,
   ), // rings round a place: how far a walk is
+  fertility: svgIcon(
+    20,
+    20,
+    '<path d="M10 17.5V8.5M10 11C6.5 11 4.5 9 4.5 5.5 8 5.5 10 7.5 10 11ZM10 9.5c0-3 2-5 5.5-5 0 3.5-2 5-5.5 5ZM3 17.5h14"/>',
+    ICON_STROKE,
+  ), // a sprout in the earth: how good a field is
+  woodland: svgIcon(20, 20, '<path d="M10 2.5l5.5 9h-11ZM10 11.5v6"/>', ICON_STROKE), // a tree: the woods standing
+  wildfood: svgIcon(
+    20,
+    20,
+    '<circle cx="6.5" cy="13" r="3"/><circle cx="13.5" cy="13" r="3"/><path d="M10 10V3.5M10 6.5l3.5-2"/>',
+    ICON_STROKE,
+  ), // berries on a stem
+  grazing: svgIcon(
+    20,
+    20,
+    '<path d="M3 16.5h14M5 16.5c0-3 1-5 2-6M8.5 16.5c0-4 .5-7 1.5-9M12 16.5c0-3 1-5.5 2.5-7"/>',
+    ICON_STROKE,
+  ), // tufts of grass
+  wear: svgIcon(
+    20,
+    20,
+    '<path d="M4 17.5c2-4 7-3 7-7s4-5 5-7.5"/><path d="M7.5 17.5c2-3 6.5-3 6.5-6.5" stroke-dasharray="1.5 2"/>',
+    ICON_STROKE,
+  ), // a way worn, a track beside it
+  // three sheets one over another: the map's overlays (VB-1496), on the overlay button while none is on
+  layers: svgIcon(
+    20,
+    20,
+    '<path d="M2.5 6.5L10 3l7.5 3.5L10 10ZM2.5 10l7.5 3.5 7.5-3.5M2.5 13.5L10 17l7.5-3.5"/>',
+    ICON_STROKE,
+  ),
   bell: svgIcon(
     20,
     20,
@@ -179,6 +211,14 @@ const ICON_STEN = {
   land: '<path class="l" d="M6 21.5V3"/><path d="M7 3.5h12l-3.2 4 3.2 4H7z"/>',
   ground: '<path d="M3 9l9-5 9 5-9 5z"/><path class="l" d="M3.5 14.5l8.5 4.7 8.5-4.7"/>',
   reach: '<circle class="l" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.8"/>',
+  fertility:
+    '<path class="l" d="M12 21V10M3 21h18"/><path d="M12 13C7.5 13 5 10.5 5 6c4.5 0 7 2.5 7 7zM12 11c0-4 2.5-6.5 7-6.5 0 4.5-2.5 6.5-7 6.5z"/>',
+  woodland: '<path d="M12 2.5l7 11.5H5z"/><path class="l" d="M12 14v7.5"/>',
+  wildfood:
+    '<circle cx="7.5" cy="16" r="4"/><circle cx="16.5" cy="16" r="4"/><path class="l" d="M12 12V3.5M12 7.5l4.5-2.5"/>',
+  grazing: '<path class="l" d="M3 20.5h18M6 20c0-4 1.2-6.5 2.5-8M10.5 20c0-5 .6-9 2-11.5M15 20c0-4 1.2-7 3-9"/>',
+  wear: '<path class="l" d="M4.5 21c2.5-5 8.5-3.5 8.5-8.5s5-6 6.5-9.5"/><circle cx="9" cy="20" r="1.3"/><circle cx="14.5" cy="16" r="1.3"/>',
+  layers: '<path d="M3 7.5L12 3l9 4.5-9 4.5z"/><path class="l" d="M3 12l9 4.5 9-4.5M3 16.5l9 4.5 9-4.5"/>',
   bell: '<path d="M6 16.5v-6a6 6 0 0 1 12 0v6l2 2H4z"/><circle cx="12" cy="20.8" r="1.6"/>',
   minimap: '<path d="M3 6l6-2.5 6 2.5 6-2.5V18l-6 2.5L9 18l-6 2.5z"/><path class="c" d="M9 3.5V18M15 6v14.5"/>',
   close: '<path class="l" d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
