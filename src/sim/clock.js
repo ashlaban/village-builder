@@ -14,7 +14,7 @@ VB['sim/clock'] = (() => {
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
-  const { shareFood } = VB['sim/help'];
+  const { fellShort } = VB['sim/help'];
   const Workdays = VB['sim/workdays'];
   const { placeByDoor, release, dropJob, stepAgents, rest } = VB['sim/agents'],
     { travelling } = VB['sim/pose'],
@@ -77,9 +77,6 @@ VB['sim/clock'] = (() => {
   const STEPS_A_DAY = DAY * TICKS,
     mod = (x, m) => ((x % m) + m) % m;
   const cenv = (st) => !!st.cenv;
-  // Households short of people whose ask for food fell short today (sim/help, VB-308): written by shareFood's entry and read by takeIn's
-  // later in the same step, so it is never seen across a save.
-  let short = [];
   // The autumn frost falls on the year's own day (sim/weather frostDay, VB-354), at its first step.
   const AUTUMN = 2,
     frosty = (st, c) => c.season === AUTUMN && c.sday === frostDay(st);
@@ -176,14 +173,6 @@ VB['sim/clock'] = (() => {
       },
     },
     // ---- each day, at midnight: the households, the land ----
-    {
-      every: 'day',
-      owner: 'sim/help',
-      note: 'kin and the village give food to the short',
-      run: (st) => {
-        short = shareFood(st);
-      },
-    },
     {
       every: 'day',
       owner: 'sim/hunger',
@@ -433,10 +422,13 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'day',
-      when: (st) => !!st.cenv && short.length > 0,
+      when: cenv,
       owner: 'sim/service',
-      note: 'the short of people taken in (VB-308)',
-      run: (st) => takeIn(st, short),
+      note: 'the short of people whose ask for food fell short yesterday taken in (VB-308, VB-691: sim/help fellShort)',
+      run: (st) => {
+        const short = fellShort(st);
+        if (short.length) takeIn(st, short);
+      },
     },
     // autumn day 9 from noon (sday 8), before the meetings of day 10 whose tie may read the table (VB-290): a village a step (VB-286)
     {

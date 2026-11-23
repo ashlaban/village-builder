@@ -99,6 +99,7 @@ VB.COUNTERS = {
     '(sim/jobs, allot; VB-466)',
   dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-466)',
   handsAsked: 'Asks for hands made by a head short of hands, at the morning allotment (sim/hands askFor, VB-470)',
+  foodAsked: 'Asks for food made by a hungry head at its plan review, one an asked party (sim/help askFood, VB-691)',
   handsWeighed: 'Farms of the village read by a head short of hands, to choose whom to ask (sim/hands askFor, VB-470)',
   handsLent: 'Hands lent by a head asked for help, a pawn a day (sim/hands, VB-470)',
   occasionAsked:

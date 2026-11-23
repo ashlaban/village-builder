@@ -433,6 +433,7 @@ VB['sim/rules'] = (() => {
     // household's food in store before giving
     floorDays: 20, // the floor (VB-182): no deal takes a household below its seed reserve and this many days of its need
     answerDays: 1, // an offer of goods (a gift, an ask) the played pawn must answer stays open this many days (sim/offers, VB-690)
+    askLeast: 1, // an ask for food that would be given less than this many rations is answered no (sim/exchange, VB-691)
     askBelow: 3,
     askDays: 12, // a household asks when its spare grain covers fewer days than this, once a season, for food until the
     // next harvest and at least this many days (VB-222)

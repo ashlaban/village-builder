@@ -103,7 +103,9 @@ function giveHTML(id) {
       '<button type="button" data-give="cancel" data-k="cancel">Cancel</button></div>';
   } else
     h +=
-      '<div class="switches"><button type="button" class="primary" data-give="go" data-k="go">Add to the queue</button></div>';
+      '<div class="switches"><button type="button" class="primary" data-give="go" data-k="go">Add to the queue</button>' +
+      (to && to.holder !== null ? '<button type="button" data-give="ask" data-k="ask">Ask them for it</button>' : '') +
+      '</div>';
   if (gift.msg) h += `<p class="refused" role="status">${esc(gift.msg)}</p>`;
   return `${h}</div>`;
 }
@@ -142,6 +144,7 @@ function giveClick(b, id) {
     gift.warn = null;
   } else if (act === 'cancel') gift.warn = null;
   else if (gift.to === null) gift.msg = 'Choose a household to give to.';
+  else if (act === 'ask') queueAsk(id);
   else if (!(Number.isInteger(gift.n) && gift.n >= 1 && gift.n <= max))
     gift.msg = `Give a whole number of rations, from 1 to ${max}.`;
   else if (Number.isInteger(giftWay(hh).by) && gift.n > Sim.TRAVEL.load)
@@ -160,6 +163,24 @@ function queueGift(id) {
   if (r === true)
     barMsg = { text: `Queued: ${gift.n} grain to ${st.farmsteads[st.households[gift.to].farmstead].name}${how}.` };
   else gift.msg = r;
+  gift.warn = null;
+}
+// Ask them for it (VB-691): the played head asks the chosen household's holder for the rations named, by the verb its pawn's own ask uses
+// (an offer on the basis ask); the one asked gives what its floor and allowance allow, set aside there for one of ours to fetch.
+function queueAsk(id) {
+  const to = st.households[gift.to];
+  if (!(Number.isInteger(gift.n) && gift.n >= 1)) gift.msg = 'Ask for a whole number of rations, 1 or more.';
+  else if (to.holder === null) gift.msg = `${st.farmsteads[to.farmstead].name} has no holder to ask.`;
+  else {
+    const r = Sim.queue(st, {
+      actor: id,
+      verb: 'offer',
+      target: to.holder,
+      args: { basis: 'ask', wants: { good: 'grain', n: gift.n } },
+    });
+    if (r === true) barMsg = { text: `Queued: an ask of ${gift.n} grain from ${st.farmsteads[to.farmstead].name}.` };
+    else gift.msg = r;
+  }
   gift.warn = null;
 }
 // "Choose on the map": the next click names the household, by one of its people, its farm's name, or a tile of its land or its house

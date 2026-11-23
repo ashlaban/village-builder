@@ -1,6 +1,8 @@
 // Taken in before it starves (VB-308; design.md, Households short of people): a household of at most one grown member, with fields, whose
 // seasonal ask for food falls short takes in its nearest free relative from st.demand (kin first), else a servant, at once; land is unchanged.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], S = VB['sim/service'], H = VB['sim/help'];
+// VB-691: every hungry household's head asks (sim/help askFood); those short of people whose ask fell short today
+const askAll = (st) => st.liveHouseholds.filter((id) => H.askFood(st, st.households[id]) && st.households[id].fellShort === Math.floor(st.t / Sim.DAY));
 const { seedReserve } = VB['sim/hunger'], { SERVICE } = VB['sim/service'], { moveTo } = VB['sim/heirs'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TAKENIN FAIL:', m); } };
@@ -53,7 +55,7 @@ let report = '';
   const st = fresh(), c = loneCase(st);
   c.holder.father = null; c.holder.mother = null; st.idx = null; // parents set by hand: the records' index is built again (VB-239)
   starve(st); st.demand = [c.sister.id];
-  const short = H.shareFood(st);
+  const short = askAll(st);
   check(short.includes(c.a.id), 'the lone holder is named short of people');
   check(R.kinship(st, c.holder.id, c.sister.id) === 0 && S.handsLeft(st, c.sister) >= SERVICE.keepHands, 'setup: no kin, a servant to spare');
   S.takeIn(st, short);
@@ -66,7 +68,7 @@ let report = '';
   const st = fresh(), c = loneCase(st);
   moveTo(st, c.brother.id, c.a.id);
   starve(st); st.demand = [c.sister.id];
-  const short = H.shareFood(st);
+  const short = askAll(st);
   check(!short.includes(c.a.id), 'two grown members: not short of people');
   S.takeIn(st, [c.a.id]);
   check(c.sister.household === c.c.id, 'the sister stays');
@@ -78,7 +80,7 @@ let report = '';
   for (const id of grown(st, c.c).filter((m) => m !== c.sister.id && m !== c.c.holder)) moveTo(st, id, other.id);
   check(grown(st, c.c).length === 2, `setup: two grown at the sister's home (${grown(st, c.c).length})`);
   starve(st); st.demand = [c.sister.id];
-  S.takeIn(st, H.shareFood(st));
+  S.takeIn(st, askAll(st));
   check(c.sister.household === c.c.id, 'the sister stays: her home would be left short of people');
 }
 if (failed) process.exit(1);

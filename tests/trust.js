@@ -3,6 +3,8 @@
 // the fields as its own, the owner, holder and line unchanged, the house empty. The trust ends at the holder's marriage, a servant at the
 // round, a ward's coming of age, the trustee's end, or the holder's death; an orphaned heir with no guardian is held for the same way.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], S = VB['sim/service'], H = VB['sim/help'];
+// VB-691: every hungry household's head asks (sim/help askFood); those short of people whose ask fell short today
+const askAll = (st) => st.liveHouseholds.filter((id) => H.askFood(st, st.households[id]) && st.households[id].fellShort === Math.floor(st.t / Sim.DAY));
 const { seedReserve } = VB['sim/hunger'], { YEAR, cal } = VB['sim/rules'], { SERVICE } = VB['sim/service'], { moveTo, extinct, refreshRoles } = VB['sim/heirs'];
 const { trustOf, trustOfHolder, ownerOf } = VB['sim/ownership'], T = VB['sim/trust'], { refreshJobs } = VB['sim/jobs'];
 const { issue } = VB['sim/commands'], { eligible } = VB['sim/eligibility'];
@@ -37,7 +39,7 @@ function intoTrust(own = false) {
   const st = fresh(own), c = loneCase(st);
   if (!c) { console.error('TRUST FAIL: no case of a lone holder with a parent at a farm of three grown'); process.exit(1); }
   starve(st); st.demand = [];
-  const short = H.shareFood(st);
+  const short = askAll(st);
   check(short.includes(c.a.id), 'the lone holder is named short of people');
   S.takeIn(st, short);
   return { st, ...c, t: trustOf(st, c.a.id) };
