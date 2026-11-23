@@ -669,3 +669,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1491](backlog/VB-1491.md) | Refactor: the GROUND table replaces FERTILITY | - | 2 | S | One table a farmable ground: its fertility as a field, and room for its clearing hours |
 | [VB-1505](backlog/VB-1505.md) | Refactor: one constructor for a field record | - | 2 | S | The three places that write a field record (sim/newground, sim/layout twice) call one helper |
 | [VB-1492](backlog/VB-1492.md) | Marginal ground costs more to clear | - | 2 | S | clearHours adds a term by ground: heath 3, hills 8; a hill field no longer costs less than a stony meadow |
+| [VB-1490](backlog/VB-1490.md) | A field records its ground | - | 2 | S | fd.ground: the biome a field was broken on, kept when the tile's biome changes |
