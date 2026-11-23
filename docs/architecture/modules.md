@@ -234,6 +234,15 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   a memory. The fair's log line (kind `fair`) counts the deals, the worth by good, the deals that failed for want of change and the hard
   bargains. A dealer home again after its gathering puts its load into the store; one who dies on the road leaves its grain lying
   (`sim/lying`). Reads gathering, exchange, offers, relations, stores; writes `pawn.load` and `st.fair`.
+- The asks for goods (VB-699): `src/sim/asks.js`, on `planReviewed`. At a household's review it closes its asks that are met (it holds
+  its need) or a year old, and asks for each good of `FAIR.goods` that `sim/targets` says it needs, lacks and cannot make where it lives
+  (the place's bound beyond the need is 0: no pit or pine for tar, no shore for dried fish); one ask a good, `ASKS.cap` a household, on
+  the basis `swap` (or `gift`, with nothing to carry). From its first review of autumn, once a year, a head whose place makes a good reads
+  that good's open asks (`st.asks.open[good]`; `VB.count.asksRead`) from its own village and, from a skill of `ASKS.hears`, the district
+  of its gathering, and reckons `plan.placed`: the units asked times its lean (`plan.head.bias.hours`), within its spare hands and a back
+  load. `sim/seasonal`'s `goodTargets` adds it to the need, so the maker makes more, and the dealer carries the margin to the fair, where
+  a swap meets the ask. Nothing is priced and no good is moved here. Reads targets, fair, gathering, seasonal; writes `st.asks` and
+  `plan.placed`.
 - Saves (VB-074): `Sim.save(st)` and `Sim.load(w, data)` in `src/sim/saves.js`; a generic codec keeps shared objects, Maps, Sets and typed
   arrays, and the tiles the simulation changes are saved with the state (its `WORLD` list: a new world field the simulation writes goes there).
   `st` is plain data (VB-073, `tests/plaindata.js`): no functions, and no state kept aside in module closures, or a loaded run drifts

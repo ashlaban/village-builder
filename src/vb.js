@@ -21,6 +21,7 @@ VB.COUNTERS = {
   talkWeighed: 'Eligible partners weighed in talkHour',
   daysCalled: 'Days called by a creditor holder on its planning day (sim/days, VB-462)',
   obligationsDue: 'Obligations whose term ended at a step, taken off the due-queue (sim/obligations, VB-310)',
+  asksRead: 'Open asks for a good passed by a head reading them, once a year a head (sim/asks, VB-699)',
   offerWeighed: 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)',
   offersAnswered: 'Open offers answered at a village step of the moving round, a day of it each (sim/round, VB-692)',
   adviceOffered: 'Advice offered by a retired member to its head, at its spring planning day (sim/advice, VB-1316)',

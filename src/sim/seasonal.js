@@ -304,7 +304,10 @@ VB['sim/seasonal'] = (() => {
       C = plan.chosen && plan.chosen.goods;
     for (const good of Targets.MADE.keys()) {
       const n = C ? C[good] : undefined;
-      G[good] = n === undefined || n === null ? Targets.need(st, hh, good) : n;
+      // beyond the need, what the head reckons it can place of the asks it read (sim/asks, VB-699: plan.placed)
+      G[good] =
+        (n === undefined || n === null ? Targets.need(st, hh, good) : n) +
+        ((plan.placed && plan.placed.goods[good]) || 0);
     }
   }
   // A household's targets at its plan's making (and at the load of a save without them): its head, its seasonal plan and the fields it

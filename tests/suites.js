@@ -164,6 +164,7 @@ const INTEGRATION = [
   ['node', 'tests/stakes.js'],
   ['node', 'tests/head.js'],
   ['node', 'tests/made-targets.js'],
+  ['node', 'tests/asks.js'], // VB-699: the asks for goods, read by a head whose place makes them
   ['node', 'tests/traits.js'],
   ['node', 'tests/aims.js'],
   ['node', 'tests/traitacts.js'], // VB-520: what each trait does, chemistry, the quarrel

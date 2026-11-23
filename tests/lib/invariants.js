@@ -1337,6 +1337,24 @@ function checkState(st) {
     if (D !== undefined && (!Array.isArray(D) || D.length > DAYS_KEPT || D.some((d, k) => !(d.t <= st.t && (k === 0 || D[k - 1].t <= d.t))
       || !(d.health >= 0 && d.health <= 100) || Object.values(d.why).some((x) => !(x >= 0))))) bad.push(`player.days: ${JSON.stringify(D)}`);
   }
+  // the asks for goods (VB-699): each open ask under a made good its household asks for, made by now and n > 0, on the basis swap or
+  // gift; at most ASKS.cap a household and one a good; the tally's counts whole and none negative, met and lapsed within those asked.
+  if (st.asks !== undefined) {
+    const { ASKS } = globalThis.VB['sim/asks'], Tg = globalThis.VB['sim/targets'], per = new Map();
+    for (const [good, L] of Object.entries(st.asks.open || {})) {
+      if (!Tg.isMade(good) || !Array.isArray(L)) { bad.push(`asks: ${good} is not a made good with a list`); continue; }
+      const once = new Set();
+      for (const a of L) {
+        if (!(Number.isInteger(a.household) && st.households[a.household] && a.n > 0 && a.made <= st.t && (a.basis === 'swap' || a.basis === 'gift')) || once.has(a.household))
+          bad.push(`asks.open.${good}: ${JSON.stringify(a)}`);
+        once.add(a.household);
+        per.set(a.household, (per.get(a.household) || 0) + 1);
+      }
+    }
+    for (const [h, n] of per) if (n > ASKS.cap) bad.push(`asks: household ${h} holds ${n} asks, over ${ASKS.cap}`);
+    for (const [good, c] of Object.entries(st.asks.tally || {}))
+      if (![c.asked, c.met, c.lapsed].every((x) => Number.isInteger(x) && x >= 0) || c.met + c.lapsed > c.asked) bad.push(`asks.tally.${good}: ${JSON.stringify(c)}`);
+  }
   // the open offers (VB-293, VB-690): sorted by due, made by now and due after, within a year, and no later than the basis's wait after
   // it was made when the played pawn's answer extended it; ids below st.offerSeq and unique; a known basis; answers by pawns, keys unique,
   // none a no and one at least still to give (an offer closes at a no or at all yes). A match: a man and a woman, the one whose side asks in no other open

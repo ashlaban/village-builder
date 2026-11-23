@@ -152,6 +152,7 @@
       "sim/routines",
       "sim/plandays",
       "sim/plans",
+      "sim/asks",
       "sim/aims",
       "sim/outlook",
       "sim/estimate"

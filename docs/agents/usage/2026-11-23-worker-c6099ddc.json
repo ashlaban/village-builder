@@ -1,0 +1,133 @@
+{
+ "session": "c6099ddc-7bf5-5bd9-99c4-e2ea2d2ae785",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-23T09:32:24.918Z",
+ "end": "2026-11-23T09:58:54.321Z",
+ "wallMin": 26.5,
+ "activeMin": 26.5,
+ "prompts": 1,
+ "calls": 95,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 182,
+  "cacheWrite": 161078,
+  "cacheRead": 16434599,
+  "output": 40356
+ },
+ "context": {
+  "first": 84790,
+  "peak": 224782,
+  "firstEdit": 157896
+ },
+ "tools": {
+  "Bash": {
+   "calls": 93,
+   "bytes": 198777,
+   "seconds": 952.3
+  },
+  "Write": {
+   "calls": 1,
+   "bytes": 138,
+   "seconds": 0
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 47,
+   "seconds": 0
+  },
+  "Monitor": {
+   "calls": 1,
+   "bytes": 302,
+   "seconds": 0.3
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 19,
+   "bytes": 79041
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 15,
+   "bytes": 28487
+  },
+  {
+   "tool": "Bash",
+   "what": "cat backlog/VB-699.md",
+   "calls": 2,
+   "bytes": 12093
+  },
+  {
+   "tool": "Bash",
+   "what": "git show",
+   "calls": 1,
+   "bytes": 11252
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 1,
+   "bytes": 7421
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7360
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 5830
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 5,
+   "bytes": 5518
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 10,
+   "bytes": 5156
+  },
+  {
+   "tool": "Bash",
+   "what": "while [",
+   "calls": 1,
+   "bytes": 4900
+  },
+  {
+   "tool": "Bash",
+   "what": "for f",
+   "calls": 1,
+   "bytes": 4348
+  },
+  {
+   "tool": "Bash",
+   "what": "node tests/counters.js",
+   "calls": 2,
+   "bytes": 3979
+  }
+ ],
+ "weighted": 2046769,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2046769,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
